@@ -2,6 +2,7 @@
 
 import { NativeStack, NativeBitmap } from '../utils';
 import { syntax as sx } from '@dashql/proto';
+import * as schema from './syntax_schema';
 
 const decoder = new TextDecoder();
 
@@ -27,9 +28,13 @@ export class Program {
     }
 
     /// Access the text
-    public get textBuffer() { return this._textBuffer; }
+    public get textBuffer() {
+        return this._textBuffer;
+    }
     /// Access the flatbuffer
-    public get buffer() { return this._program; }
+    public get buffer() {
+        return this._program;
+    }
 
     /// Access the text
     public textAt(_loc: sx.Location): string {
@@ -51,13 +56,13 @@ export class Program {
     }
 
     /// Get a node
-    public getNode(i: number, n: Node | null): Node {
+    public getNode(i: number, n: Node | null = null): Node {
         n = n || new Node(this);
         if (!this._patchBitmap.isSet(i)) {
-            n.node = this._program.nodes(i, n.node)!;
+            n.buffer = this._program.nodes(i, n.buffer)!;
         } else {
             const m = this._patchNodes.get(i)!;
-            n.node = this._patch!.nodes(m)!.newNode()!;
+            n.buffer = this._patch!.nodes(m)!.newNode()!;
         }
         return n;
     }
@@ -80,7 +85,7 @@ export class Program {
             fn(i, stmt);
         }
         return count;
-    };
+    }
 
     /// Iterate over statements
     public iterateDependencies(fn: (idx: number, node: sx.Dependency) => void): number {
@@ -91,8 +96,8 @@ export class Program {
             fn(i, dep);
         }
         return count;
-    };
-};
+    }
+}
 
 export class Node {
     /// The module
@@ -104,41 +109,65 @@ export class Node {
     public constructor(program: Program, node: sx.Node = new sx.Node()) {
         this._program = program;
         this._node = node;
-    } 
+    }
     /// Get the module
-    public get program() { return this._program; }
+    public get program() {
+        return this._program;
+    }
     /// Get the module
-    public get programBuffer() { return this._program.buffer; }
+    public get programBuffer() {
+        return this._program.buffer;
+    }
     /// Get the node
-    public get node() { return this._node; }
+    public get buffer() {
+        return this._node;
+    }
     /// Get the node
-    public set node(n: sx.Node) { this._node = n; }
+    public set buffer(n: sx.Node) {
+        this._node = n;
+    }
     /// Get the parent
-    public get parent() { return this._node.parent(); }
+    public get parent() {
+        return this._node.parent();
+    }
     /// Get the key
-    public get key() { return this._node.attributeKey(); }
+    public get key() {
+        return this._node.attributeKey();
+    }
     /// Get the node type
-    public get nodeType() { return this._node.nodeType(); }
+    public get nodeType() {
+        return this._node.nodeType();
+    }
 
     /// Assume boolean value
-    public assumeBool(): boolean { return this._node.childrenBeginOrValue() != 0; }
+    public assumeBool(): boolean {
+        return this._node.childrenBeginOrValue() != 0;
+    }
     /// Assume number value
-    public assumeNumber(): number { return this._node.childrenBeginOrValue(); }
+    public assumeNumber(): number {
+        return this._node.childrenBeginOrValue();
+    }
     /// Assume number value
-    public assumeString(obj: sx.Location = new sx.Location()): string { return this._program.textAt(this._node.location(obj)!); }
+    public assumeString(obj: sx.Location = new sx.Location()): string {
+        return this._program.textAt(this._node.location(obj)!);
+    }
 
+    /// Is an object?
+    public isObject() {
+        return this._node.nodeType() >= sx.NodeType.OBJECT_MIN_;
+    }
     /// Get as boolean
     public getBool(): boolean | null {
-        return (this._node.nodeType() != sx.NodeType.BOOL) ? null : (this._node.childrenBeginOrValue() != 0);
+        return this._node.nodeType() != sx.NodeType.BOOL ? null : this._node.childrenBeginOrValue() != 0;
     }
     /// Get as number
     public getNumber(): number | null {
-        return (this._node.nodeType() != sx.NodeType.UI32) ? null : this._node.childrenBeginOrValue();
+        return this._node.nodeType() != sx.NodeType.UI32 ? null : this._node.childrenBeginOrValue();
     }
     /// Get a string
-    public getString(obj: sx.Location): string | null {
+    public getString(obj: sx.Location = new sx.Location()): string | null {
         const loc = this._node.location(obj)!;
-        return (this._node.nodeType() != sx.NodeType.STRING_REF) ? null : this._program.textAt(loc);
+        return this._node.nodeType() != sx.NodeType.STRING_REF ? null : this._program.textAt(loc);
     }
 
     /// Find an attribute
@@ -152,7 +181,7 @@ export class Node {
             const step = Math.floor(c / 2);
             const iter = lb + step;
             n = this.program.getNode(iter, n)!;
-            if (n.node.attributeKey() < key) {
+            if (n.buffer.attributeKey() < key) {
                 lb = iter + 1;
                 c -= step + 1;
             } else {
@@ -163,7 +192,7 @@ export class Node {
             return null;
         }
         n = this.program.getNode(lb, n)!;
-        return (n.node.attributeKey() == key) ? n : null;
+        return n.buffer.attributeKey() == key ? n : null;
     }
 
     /// Iterate over children.
@@ -196,7 +225,7 @@ export class NodePathStep {
         this.indexInParent = indexInParent;
         this.visitedChildren = 0;
     }
-};
+}
 
 /// A node stack to maintain the path during a pre-order DFS traversal
 export class NodePath {
@@ -246,25 +275,45 @@ export class Statement {
     }
 
     /// Get the module buffer
-    public get program() { return this._program; }
+    public get program() {
+        return this._program;
+    }
     /// Get the module buffer
-    public get programBuffer() { return this._program.buffer; }
+    public get programBuffer() {
+        return this._program.buffer;
+    }
     /// Get the statement id
-    public get statementId() { return this._statementId; }
+    public get statementId() {
+        return this._statementId;
+    }
     /// Set the statement id
-    public set statementId(id: number) { this._statementId = id; }
+    public set statementId(id: number) {
+        this._statementId = id;
+    }
     /// Get the statement buffer
-    public get statement() { return this._statement; }
+    public get statement() {
+        return this._statement;
+    }
     /// Set the statement buffer
-    public set statement(s: sx.Statement) { this._statement = s; }
+    public set statement(s: sx.Statement) {
+        this._statement = s;
+    }
     /// Get the statement type
-    public get statement_type() { return this._statement.statementType(); }
+    public get statement_type() {
+        return this._statement.statementType();
+    }
     /// Get the short name
-    public get targetNameShort() { return this._statement.nameShort(); }
+    public get targetNameShort() {
+        return this._statement.nameShort();
+    }
     /// Get the qualified name
-    public get targetNameQualified() { return this._statement.nameQualified(); }
+    public get targetNameQualified() {
+        return this._statement.nameQualified();
+    }
     /// Get the root
-    public get root() { return this._statement.rootNode(); }
+    public get root() {
+        return this._statement.rootNode();
+    }
     /// Get the root node
     public root_node(n: Node | null = null) {
         return this.program.getNode(this._statement.rootNode(), n)!;
@@ -285,7 +334,7 @@ export class Statement {
         while (!pending.empty()) {
             const top = pending.pop();
             current = this.program.getNode(top, current)!;
-            const node = current.node;
+            const node = current.buffer;
             const nodeType = current.nodeType;
 
             // Visit the node pre-order
@@ -305,7 +354,10 @@ export class Statement {
     }
 
     /// Perform a DFS traversal with preorder and postorder hooks
-    public traverse(visit_preorder: (nodeId: number, node: Node, path: NodePath) => void, visit_postorder: (nodeId: number, node: Node) => void) {
+    public traverse(
+        visit_preorder: (nodeId: number, node: Node, path: NodePath) => void,
+        visit_postorder: (nodeId: number, node: Node) => void,
+    ) {
         // Prepare the DFS
         const path = new NodePath(this._statementId);
         const pending_cap = this.programBuffer.nodesLength() / this.programBuffer.statementsLength();
@@ -322,7 +374,7 @@ export class Statement {
         while (!pending.empty()) {
             const top = pending.top();
             current = this.program.getNode(top, current)!;
-            const node = current.node;
+            const node = current.buffer;
             const nodeType = current.nodeType;
 
             // Visit post-order
@@ -347,5 +399,86 @@ export class Statement {
                 }
             }
         }
+    }
+
+    /// Match a schema
+    public matchSchema(spec: schema.NodeSchema) {
+        let mappedNodes: Map<number, schema.NodeSchema> = new Map();
+        this.traverse(
+            (nodeId: number, node: Node, path: NodePath) => {
+                const step = path.steps[path.steps.length - 1];
+
+                // Is root node?
+                let currentSchema: schema.NodeSchema | null = null;
+                if (path.steps.length == 1) {
+                    currentSchema = spec;
+                } else {
+                    // Resolve the child schema within the schema of the parent
+                    const parentStep = path.steps[path.steps.length - 2];
+                    const parentSchema = mappedNodes.get(parentStep.nodeId);
+                    if (!parentSchema) return;
+                    switch (parentSchema.specType) {
+                        case schema.SpecType.OBJECT_SPEC:
+                            currentSchema = parentSchema.value[node.buffer.attributeKey()] || null;
+                            break;
+                        case schema.SpecType.ARRAY_SPEC:
+                            currentSchema =
+                                step.indexInParent < parentSchema.value.length
+                                    ? parentSchema.value[step.indexInParent]
+                                    : null;
+                            break;
+                    }
+                }
+
+                // Couldn't resolve the child schema?
+                if (!currentSchema) return;
+                // Wrong node type?
+                // This also catches invalid object and enum types.
+                if (currentSchema.nodeType != null && currentSchema.nodeType != node.nodeType) return;
+
+                // Match the child schema
+                switch (currentSchema.specType) {
+                    case schema.SpecType.BOOL_SPEC:
+                        if (node.nodeType == sx.NodeType.BOOL) {
+                            currentSchema.present = true;
+                            currentSchema.value = node.buffer.childrenBeginOrValue() != 0;
+                        }
+                        break;
+                    case schema.SpecType.NUMBER_SPEC:
+                        if (node.nodeType == sx.NodeType.UI32) {
+                            currentSchema.present = true;
+                            currentSchema.value = node.buffer.childrenBeginOrValue();
+                        }
+                        break;
+                    case schema.SpecType.STRING_SPEC:
+                        if (node.nodeType == sx.NodeType.STRING_REF) {
+                            currentSchema.present = true;
+                            currentSchema.value = this.program.textAt(node.buffer.location()!);
+                        }
+                        break;
+                    case schema.SpecType.ENUM_SPEC:
+                        if (node.nodeType >= sx.NodeType.ENUM_MIN_ && node.nodeType < sx.NodeType.OBJECT_MIN_) {
+                            currentSchema.present = true;
+                            currentSchema.value = node.buffer.childrenBeginOrValue();
+                        }
+                        break;
+                    case schema.SpecType.OBJECT_SPEC:
+                        if (node.nodeType >= sx.NodeType.OBJECT_MIN_) {
+                            currentSchema.present = true;
+                            mappedNodes.set(nodeId, currentSchema);
+                        }
+                        break;
+                    case schema.SpecType.ARRAY_SPEC:
+                        if (node.nodeType == sx.NodeType.ARRAY) {
+                            currentSchema.present = true;
+                            mappedNodes.set(nodeId, currentSchema);
+                        }
+                        break;
+                }
+            },
+            (nodeId: number, _node: Node) => {
+                mappedNodes.delete(nodeId);
+            },
+        );
     }
 }
