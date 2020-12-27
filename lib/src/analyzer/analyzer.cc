@@ -54,13 +54,59 @@ ExpectedBuffer<proto::syntax::Program> Analyzer::ParseProgram(std::string_view t
 
 /// Instantiate a program with parameters
 Signal Analyzer::InstantiateProgram(proto::analyzer::ProgramParametersT& params) {
-    auto next_program = std::make_unique<ProgramInstance>(std::move(volatile_program_text_), std::move(volatile_program_), move(params.values));
+    // Create program instance
+    auto next_instance = std::make_unique<ProgramInstance>(std::move(volatile_program_text_), std::move(volatile_program_), move(params.values));
+    auto& program = next_instance->program();
+    auto& parameter_values = next_instance->parameter_values();
 
-    // XXX Analyze the program semantics and evaluate partially with parameters
+
+    // Find all the column refs that occur in the statement
+    std::unordered_set<size_t> visited_nodes;
+    for (auto& dep : program.dependencies) {
+        auto target = dep.target_statement();
+        auto source = dep.source_statement();
+
+        // We only interpolate column refs that refer to parameters for now
+        if (dep.type() != sx::DependencyType::COLUMN_REF) continue;
+        if (program.statements[source]->statement_type != sx::StatementType::PARAMETER) continue;
+        if (!parameter_values[source]) continue;
+
+        auto& target_root = program.nodes[program.statements[target]->root_node];
+        auto& target_node = program.nodes[dep.target_node()];
+        assert(target_node.node_type() == sx::NodeType::OBJECT_SQL_COLUMN_REF);
+
+        // Do we have to check the parent?
+        if (dep.target_node() == target_node.parent()) continue;
+        if (visited_nodes.count(target_node.parent())) continue;
+        visited_nodes.insert(target_node.parent());
+
+        // Is the column ref a function argument?
+        auto& parent_node = program.nodes[target_node.parent()];
+        if (parent_node.attribute_key() == sx::AttributeKey::SQL_FUNCTION_ARGUMENTS)  {
+            auto& func_node = program.nodes[parent_node.parent()];
+
+            // Get function name
+            auto* func_name_node = next_instance->FindAttribute(func_node, sx::AttributeKey::SQL_FUNCTION_NAME);
+            assert(!!func_name_node);
+            auto func_name = next_instance->GetStringValue(*func_name_node);
+            assert(!!func_name);
+
+            // Collect argument types
+            auto& func_args_node = parent_node;
+            std::vector<sx::NodeType> arg_types;
+            arg_types.resize(func_args_node.children_count(), sx::NodeType::NONE);
+            next_instance->IterateChildren(func_args_node, [&](auto idx, auto node_id, const auto& node) {
+                arg_types[idx] = node.node_type();
+            });
+
+            // XXX Resolve function
+            std::cout << "resolve function '" << *func_name << "' with " << arg_types.size() << " arguments";
+        }
+    }
 
     // If semantics are ok, replace current program instance
     program_log_[(program_log_writer_++) & PLANNER_LOG_MASK] = std::move(program_instance_);
-    program_instance_ = move(next_program);
+    program_instance_ = move(next_instance);
     return Signal::OK();
 }
 
