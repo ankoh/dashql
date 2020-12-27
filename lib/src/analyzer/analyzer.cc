@@ -3,6 +3,7 @@
 #include "dashql/analyzer/analyzer.h"
 
 #include "dashql/analyzer/action_planner.h"
+#include "dashql/analyzer/function_logic.h"
 #include "dashql/parser/parser_driver.h"
 #include "dashql/proto_generated.h"
 #include "duckdb/main/client_context.hpp"
@@ -59,7 +60,6 @@ Signal Analyzer::InstantiateProgram(proto::analyzer::ProgramParametersT& params)
     auto& program = next_instance->program();
     auto& parameter_values = next_instance->parameter_values();
 
-
     // Find all the column refs that occur in the statement
     std::unordered_set<size_t> visited_nodes;
     for (auto& dep : program.dependencies) {
@@ -99,11 +99,13 @@ Signal Analyzer::InstantiateProgram(proto::analyzer::ProgramParametersT& params)
                 arg_types[idx] = node.node_type();
             });
 
-            // XXX Resolve function
-            //
-            // Use format library that is bundled with DuckDB.
-            // https://github.com/cwida/duckdb/blob/abaf6258dd737f397472e911e71af31e01493e00/src/function/scalar/string/printf.cpp
-            std::cout << "resolve function '" << *func_name << "' with " << arg_types.size() << " arguments";
+            // Resolve function logic
+            auto logic = FunctionLogic::Resolve(*func_name, arg_types);
+            if (!logic) {
+                // XXX Could not resolve a function logic for the column ref, tell the user
+            }
+
+            // XXX Evaluate the function and emit the node patch
         }
     }
 
