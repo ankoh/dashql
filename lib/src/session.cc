@@ -101,7 +101,7 @@ Signal Session::ExtractCSV(BlobStreamBuffer& blob_streambuf, duckdb::BufferedCSV
     auto& col_names = reader.col_names;
 
     // Too few column names?
-    // The buffered csv reader actually generates names for us, so this might actually never happen.
+    // The buffered csv reader generates names for us, so this might actually never happen.
     if (col_names.size() < sql_types.size()) {
         return Error{ErrorCode::INTERNAL_ERROR, "missing csv column names"};
     }

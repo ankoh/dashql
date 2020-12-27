@@ -278,7 +278,9 @@ target_link_libraries(dashql_test dashql_core dashql_proto pugixml gtest duckdb)
 # ---------------------------------------------------------------------------
 # Emscripten
 
-add_executable(dashql_ffi ${CMAKE_SOURCE_DIR}/src/session_ffi.cc)
+add_executable(dashql_ffi
+    ${CMAKE_SOURCE_DIR}/src/common/ffi_response.cc
+    ${CMAKE_SOURCE_DIR}/src/session_ffi.cc)
 target_link_libraries(dashql_ffi dashql_core dashql_webdb dashql_proto spdlog)
 
 # We need "-s WARN_ON_UNDEFINED_SYMBOLS=0" to instantiate the module with our own imports.
@@ -315,6 +317,7 @@ if (EMSCRIPTEN)
     )
 
     add_executable(core_wasm
+        ${CMAKE_SOURCE_DIR}/src/common/ffi_response.cc
         ${CMAKE_SOURCE_DIR}/src/session_ffi.cc
         ${CMAKE_SOURCE_DIR}/src/webdb/webdb_ffi.cc
     )
@@ -322,6 +325,7 @@ if (EMSCRIPTEN)
     set_target_properties(core_wasm PROPERTIES LINK_FLAGS "${CORE_WASM_LINKER_FLAGS} -s ENVIRONMENT='web'")
 
     add_executable(core_wasm_node
+        ${CMAKE_SOURCE_DIR}/src/common/ffi_response.cc
         ${CMAKE_SOURCE_DIR}/src/session_ffi.cc
         ${CMAKE_SOURCE_DIR}/src/webdb/webdb_ffi.cc
     )
@@ -346,12 +350,18 @@ if (EMSCRIPTEN)
         "
     )
 
-    add_executable(webdb_wasm ${CMAKE_SOURCE_DIR}/src/webdb/webdb_ffi.cc)
+    add_executable(webdb_wasm
+        ${CMAKE_SOURCE_DIR}/src/common/ffi_response.cc
+        ${CMAKE_SOURCE_DIR}/src/webdb/webdb_ffi.cc
+    )
     target_compile_definitions(webdb_wasm PUBLIC WITH_WEBDB_MAIN)
     target_link_libraries(webdb_wasm dashql_webdb flatbuffers spdlog)
     set_target_properties(webdb_wasm PROPERTIES LINK_FLAGS "${WEBDB_WASM_LINKER_FLAGS} -s ENVIRONMENT='web'")
 
-    add_executable(webdb_wasm_node ${CMAKE_SOURCE_DIR}/src/webdb/webdb_ffi.cc)
+    add_executable(webdb_wasm_node
+        ${CMAKE_SOURCE_DIR}/src/common/ffi_response.cc
+        ${CMAKE_SOURCE_DIR}/src/webdb/webdb_ffi.cc
+    )
     target_compile_definitions(webdb_wasm_node PUBLIC WITH_WEBDB_MAIN)
     target_link_libraries(webdb_wasm_node dashql_webdb flatbuffers spdlog)
     set_target_properties(webdb_wasm_node PROPERTIES LINK_FLAGS "${WEBDB_WASM_LINKER_FLAGS} -s ENVIRONMENT='node'")
