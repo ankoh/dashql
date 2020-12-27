@@ -20,32 +20,6 @@ namespace webdb {
 /// The Web API context
 class WebDB {
    public:
-    class Connection;
-
-    // An adopted buffer
-    class AdoptedBuffer {
-        /// The bytes
-        nonstd::span<std::byte> bytes;
-
-       public:
-        // Constructor
-        AdoptedBuffer(nonstd::span<std::byte> s) : bytes(s) {}
-        // Destructor
-        ~AdoptedBuffer() { delete bytes.data(); }
-        // Move construction
-        AdoptedBuffer(AdoptedBuffer&& other) : bytes(other.bytes) {}
-        // Delete the copy constructor
-        AdoptedBuffer(const AdoptedBuffer& other) = delete;
-        // Move assignment
-        AdoptedBuffer& operator=(AdoptedBuffer&& other) {
-            delete bytes.data();
-            bytes = std::move(other.bytes);
-            return *this;
-        }
-        // Delete the copy assignment
-        AdoptedBuffer& operator=(const AdoptedBuffer& other) = delete;
-    };
-
     /// A connection
     class Connection {
        protected:
