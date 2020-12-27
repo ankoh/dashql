@@ -24,6 +24,15 @@ namespace p = dashql::proto::webdb;
 namespace dashql {
 namespace webdb {
 
+/// Get the static webdb instance
+WebDB& WebDB::GetInstance() {
+    static std::unique_ptr<WebDB> db = nullptr;
+    if (db == nullptr) {
+        db = std::make_unique<WebDB>();
+    }
+    return *db;
+}
+
 /// Constructor
 WebDB::Connection::Connection(std::shared_ptr<duckdb::DuckDB> db)
     : database_(std::move(db)),

@@ -32,7 +32,9 @@ const proto::session::ParameterValueT* ProgramInstance::FindParameterValue(size_
 
 /// Evaluate the program partially
 Signal ProgramInstance::EvaluatePartially(dashql::webdb::WebDB& database) {
-    // XXX
+    for (auto& node : program_->nodes) {
+        // XXX
+    }
     return Signal::OK();
 }
 

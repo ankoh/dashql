@@ -21,11 +21,6 @@ Session& GetSession() {
     return *session;
 }
 
-FFIResponseBuffer& GetResponseBuffer() {
-    static FFIResponseBuffer buffer;
-    return buffer;
-}
-
 }  // namespace
 
 extern "C" {
@@ -35,24 +30,24 @@ void dashql_reset_session() {
 }
 
 void dashql_clear_response() {
-    GetResponseBuffer().Clear();
+    FFIResponseBuffer::GetInstance().Clear();
 }
 
 void dashql_parse_program(FFIResponse* response, const char* text) {
-    GetResponseBuffer().Clear();
+    FFIResponseBuffer::GetInstance().Clear();
     auto& session = GetSession();
     auto program = session.ParseProgram(text);
-    GetResponseBuffer().Store(*response, std::move(program));
+    FFIResponseBuffer::GetInstance().Store(*response, std::move(program));
 }
 
 void dashql_plan_program(FFIResponse* response, const void* args_buffer) {
-    GetResponseBuffer().Clear();
+    FFIResponseBuffer::GetInstance().Clear();
     auto& session = GetSession();
     auto* args = flatbuffers::GetRoot<proto::session::PlanArguments>(args_buffer);
     proto::session::PlanArgumentsT unpackedArgs;
     args->UnPackTo(&unpackedArgs);
     auto plan = session.PlanProgram(unpackedArgs);
-    GetResponseBuffer().Store(*response, std::move(plan));
+    FFIResponseBuffer::GetInstance().Store(*response, std::move(plan));
 }
 
 size_t dashql_pong();

@@ -92,6 +92,9 @@ class WebDB {
     Connection* Connect();
     /// End a connection
     void Disconnect(Connection* connection);
+
+    /// Get the static webdb instance
+    static WebDB& GetInstance();
 };
 
 }  // namespace web
