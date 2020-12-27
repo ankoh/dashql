@@ -5,9 +5,9 @@ export * from "./value";
 export * from "./webdb_bindings";
 export * from "./webdb_buffer";
 
-import webdb_api_wasm from './wasm/webdb_wasm_node.wasm';
-import webdb_api_init from './wasm/webdb_wasm_node.js';
-import { WebDBModule } from './wasm/webdb_module';
+import webdb_api_wasm from './webdb_wasm_node.wasm';
+import webdb_api_init from './webdb_wasm_node.js';
+import { WebDBModule } from './webdb_module';
 import { WebDBBindings } from './webdb_bindings';
 
 export class WebDB extends WebDBBindings {

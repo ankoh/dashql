@@ -6,7 +6,7 @@ var conn: webdb.WebDBConnection;
 const testRows = 3000;
 
 beforeAll(async () => {
-    db = new webdb.WebDB(path.resolve(__dirname, "../src/wasm/webdb_wasm.wasm"));
+    db = new webdb.WebDB(path.resolve(__dirname, "../src/webdb_wasm.wasm"));
     await db.open();
 });
 

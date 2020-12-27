@@ -245,21 +245,31 @@ target_link_libraries(dashql_parser dashql_proto)
 # ---------------------------------------------------------------------------
 # Libraries
 
-add_library(dashql_core
-    ${CMAKE_SOURCE_DIR}/src/action_planner.cc
+add_library(dashql_common
     ${CMAKE_SOURCE_DIR}/src/common/blob_stream.cc
+    ${CMAKE_SOURCE_DIR}/src/common/ffi_response.cc
     ${CMAKE_SOURCE_DIR}/src/common/pattern_search.cc
     ${CMAKE_SOURCE_DIR}/src/common/substring_buffer.cc
+)
+
+add_library(dashql_extract
     ${CMAKE_SOURCE_DIR}/src/extract/csv_extract.cc
     ${CMAKE_SOURCE_DIR}/src/extract/csv_parser.cc
     ${CMAKE_SOURCE_DIR}/src/extract/csv_sniffer.cc
-    ${CMAKE_SOURCE_DIR}/src/program_instance.cc
-    ${CMAKE_SOURCE_DIR}/src/program_matcher.cc
-    ${CMAKE_SOURCE_DIR}/src/session.cc
+    ${CMAKE_SOURCE_DIR}/src/extract/extract.cc
+)
+
+add_library(dashql_analyzer
+    ${CMAKE_SOURCE_DIR}/src/analyzer/action_planner.cc
+    ${CMAKE_SOURCE_DIR}/src/analyzer/program_instance.cc
+    ${CMAKE_SOURCE_DIR}/src/analyzer/program_matcher.cc
+    ${CMAKE_SOURCE_DIR}/src/analyzer/analyzer.cc
+    ${CMAKE_SOURCE_DIR}/src/analyzer/analyzer_ffi.cc
 )
 
 add_library(dashql_webdb
     ${CMAKE_SOURCE_DIR}/src/webdb/webdb.cc
+    ${CMAKE_SOURCE_DIR}/src/webdb/webdb_ffi.cc
     ${CMAKE_SOURCE_DIR}/src/webdb/codec.cc
     ${CMAKE_SOURCE_DIR}/src/webdb/iterator.cc
     ${CMAKE_SOURCE_DIR}/src/webdb/json.cc
@@ -271,66 +281,44 @@ add_library(dashql_test
     ${CMAKE_SOURCE_DIR}/src/test/grammar_tests.cc
 )
 
-target_link_libraries(dashql_webdb dashql_proto duckdb spdlog)
-target_link_libraries(dashql_core dashql_parser dashql_webdb dashql_proto duckdb)
-target_link_libraries(dashql_test dashql_core dashql_proto pugixml gtest duckdb)
+target_link_libraries(dashql_common dashql_proto flatbuffers spdlog)
+target_link_libraries(dashql_extract dashql_proto flatbuffers spdlog)
+target_link_libraries(dashql_analyzer dashql_parser dashql_common dashql_proto spdlog)
+target_link_libraries(dashql_webdb dashql_extract dashql_common dashql_proto duckdb spdlog)
+target_link_libraries(dashql_test dashql_webdb dashql_analyzer dashql_common dashql_proto pugixml gtest duckdb)
 
 # ---------------------------------------------------------------------------
 # Emscripten
 
-add_executable(dashql_ffi
-    ${CMAKE_SOURCE_DIR}/src/common/ffi_response.cc
-    ${CMAKE_SOURCE_DIR}/src/session_ffi.cc)
-target_link_libraries(dashql_ffi dashql_core dashql_webdb dashql_proto spdlog)
-
 # We need "-s WARN_ON_UNDEFINED_SYMBOLS=0" to instantiate the module with our own imports.
 if (EMSCRIPTEN)
-    set(WEBDB_INTERFACE " \
-        _dashql_webdb_connect, \
-        _dashql_webdb_disconnect, \
-        _dashql_webdb_run_query, \
-        _dashql_webdb_send_query, \
-        _dashql_webdb_fetch_query_results, \
-        _dashql_webdb_analyze_query \
-    ")
-
-    set(CORE_WASM_LINKER_FLAGS " \
+    set(ANALYZER_WASM_LINKER_FLAGS " \
         -s LLD_REPORT_UNDEFINED=1 \
-        -s WARN_ON_UNDEFINED_SYMBOLS=0 \
+        -s WARN_ON_UNDEFINED_SYMBOLS=1 \
         -s USE_PTHREADS=0 \
         -s DISABLE_EXCEPTION_CATCHING=0 \
         -s MODULARIZE=1 \
-        -s EXPORT_NAME='DashQLCore' \
+        -s EXPORT_NAME='DashQLAnalyzer' \
         -s EXPORTED_FUNCTIONS='[ \
             _main, \
             _malloc, \
             _free, \
-            _dashql_reset_session, \
-            _dashql_ping, \
             _dashql_clear_response, \
-            _dashql_parse_program, \
-            _dashql_plan_program, \
-            ${WEBDB_INTERFACE} \
+            _dashql_analyzer_reset, \
+            _dashql_analyzer_parse_program, \
+            _dashql_analyzer_plan_program \
         ]' \
         -s EXTRA_EXPORTED_RUNTIME_METHODS='[\"ccall\"]' \
         "
     )
 
-    add_executable(core_wasm
-        ${CMAKE_SOURCE_DIR}/src/common/ffi_response.cc
-        ${CMAKE_SOURCE_DIR}/src/session_ffi.cc
-        ${CMAKE_SOURCE_DIR}/src/webdb/webdb_ffi.cc
-    )
-    target_link_libraries(core_wasm dashql_core)
-    set_target_properties(core_wasm PROPERTIES LINK_FLAGS "${CORE_WASM_LINKER_FLAGS} -s ENVIRONMENT='web'")
+    add_executable(analyzer_wasm ${CMAKE_SOURCE_DIR}/src/ffi_main.cc)
+    target_link_libraries(analyzer_wasm dashql_analyzer)
+    set_target_properties(analyzer_wasm PROPERTIES LINK_FLAGS "${ANALYZER_WASM_LINKER_FLAGS} -s ENVIRONMENT='web'")
 
-    add_executable(core_wasm_node
-        ${CMAKE_SOURCE_DIR}/src/common/ffi_response.cc
-        ${CMAKE_SOURCE_DIR}/src/session_ffi.cc
-        ${CMAKE_SOURCE_DIR}/src/webdb/webdb_ffi.cc
-    )
-    target_link_libraries(core_wasm_node dashql_core)
-    set_target_properties(core_wasm_node PROPERTIES LINK_FLAGS "${CORE_WASM_LINKER_FLAGS} -s ENVIRONMENT='node'")
+    add_executable(analyzer_wasm_node ${CMAKE_SOURCE_DIR}/src/ffi_main.cc)
+    target_link_libraries(analyzer_wasm_node dashql_analyzer)
+    set_target_properties(analyzer_wasm_node PROPERTIES LINK_FLAGS "${ANALYZER_WASM_LINKER_FLAGS} -s ENVIRONMENT='node'")
 
     set(WEBDB_WASM_LINKER_FLAGS " \
         -s LLD_REPORT_UNDEFINED=1 \
@@ -338,31 +326,28 @@ if (EMSCRIPTEN)
         -s USE_PTHREADS=0 \
         -s DISABLE_EXCEPTION_CATCHING=0 \
         -s MODULARIZE=1 \
-        -s EXPORT_NAME='DashQLCore' \
+        -s EXPORT_NAME='DashQLWebDB' \
         -s EXPORTED_FUNCTIONS='[ \
             _main, \
             _malloc, \
             _free, \
-            _dashql_webdb_clear_response, \
-            ${WEBDB_INTERFACE} \
+            _dashql_clear_response, \
+            _dashql_webdb_connect, \
+            _dashql_webdb_disconnect, \
+            _dashql_webdb_run_query, \
+            _dashql_webdb_send_query, \
+            _dashql_webdb_fetch_query_results, \
+            _dashql_webdb_analyze_query \
         ]' \
         -s EXTRA_EXPORTED_RUNTIME_METHODS='[\"ccall\"]' \
         "
     )
 
-    add_executable(webdb_wasm
-        ${CMAKE_SOURCE_DIR}/src/common/ffi_response.cc
-        ${CMAKE_SOURCE_DIR}/src/webdb/webdb_ffi.cc
-    )
-    target_compile_definitions(webdb_wasm PUBLIC WITH_WEBDB_MAIN)
+    add_executable(webdb_wasm ${CMAKE_SOURCE_DIR}/src/ffi_main.cc)
     target_link_libraries(webdb_wasm dashql_webdb flatbuffers spdlog)
     set_target_properties(webdb_wasm PROPERTIES LINK_FLAGS "${WEBDB_WASM_LINKER_FLAGS} -s ENVIRONMENT='web'")
 
-    add_executable(webdb_wasm_node
-        ${CMAKE_SOURCE_DIR}/src/common/ffi_response.cc
-        ${CMAKE_SOURCE_DIR}/src/webdb/webdb_ffi.cc
-    )
-    target_compile_definitions(webdb_wasm_node PUBLIC WITH_WEBDB_MAIN)
+    add_executable(webdb_wasm_node ${CMAKE_SOURCE_DIR}/src/ffi_main.cc)
     target_link_libraries(webdb_wasm_node dashql_webdb flatbuffers spdlog)
     set_target_properties(webdb_wasm_node PROPERTIES LINK_FLAGS "${WEBDB_WASM_LINKER_FLAGS} -s ENVIRONMENT='node'")
 else()
@@ -375,14 +360,14 @@ endif()
 
 if(NOT EMSCRIPTEN)
     add_executable(tester
+        ${CMAKE_SOURCE_DIR}/test/analyzer/program_matcher_test.cc
         ${CMAKE_SOURCE_DIR}/test/common/pod_vector_test.cc
         ${CMAKE_SOURCE_DIR}/test/common/substring_buffer_test.cc
         ${CMAKE_SOURCE_DIR}/test/common/topological_sort_test.cc
         ${CMAKE_SOURCE_DIR}/test/extract/csv_parser_test.cc
         ${CMAKE_SOURCE_DIR}/test/extract/csv_sniffer_test.cc
+        ${CMAKE_SOURCE_DIR}/test/extract/extract_test.cc
         ${CMAKE_SOURCE_DIR}/test/grammar_test_suite.cc
-        ${CMAKE_SOURCE_DIR}/test/program_matcher_test.cc
-        ${CMAKE_SOURCE_DIR}/test/session_test.cc
         ${CMAKE_SOURCE_DIR}/test/webdb/duckdb_test.cc
         ${CMAKE_SOURCE_DIR}/test/webdb/iterator_test.cc
         ${CMAKE_SOURCE_DIR}/test/webdb/webdb_test.cc

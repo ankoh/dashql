@@ -7,7 +7,7 @@
 #include <string>
 
 #include "gtest/gtest.h"
-#include "dashql/program_instance.h"
+#include "dashql/analyzer/program_instance.h"
 #include "dashql/proto_generated.h"
 #include "pugixml.hpp"
 

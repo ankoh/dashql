@@ -3,14 +3,8 @@
 #include <iostream>
 
 #include "dashql/common/ffi_response.h"
-#include "dashql/common/span.h"
 #include "dashql/webdb/webdb.h"
-#include "flatbuffers/flatbuffers.h"
-#include "flatbuffers/idl.h"
-#include "spdlog/sinks/stdout_sinks.h"
-#include "spdlog/spdlog.h"
 
-namespace fb = flatbuffers;
 using namespace dashql;
 using namespace dashql::webdb;
 
@@ -18,11 +12,6 @@ extern "C" {
 
 using ConnectionHdl = uintptr_t;
 using BufferHdl = uintptr_t;
-
-/// Clear the response
-void dashql_webdb_clear_response() {
-    FFIResponseBuffer::GetInstance().Clear();
-}
 
 /// Create a conn
 ConnectionHdl dashql_webdb_connect() {
@@ -68,14 +57,3 @@ void dashql_webdb_analyze_query(FFIResponse* packed, ConnectionHdl connHdl, cons
 }
 
 }
-
-#ifdef WITH_WEBDB_MAIN
-int main() {
-    // Prepare the logger
-    auto logSink = std::make_shared<spdlog::sinks::stderr_sink_st>();
-    auto logger = std::make_shared<spdlog::logger>("console", logSink);
-    logger->set_level(spdlog::level::debug);
-    logger->set_pattern(R"RAW({"time":"%T","level":"%l","message":"%v"})RAW");
-    spdlog::set_default_logger(logger);
-}
-#endif

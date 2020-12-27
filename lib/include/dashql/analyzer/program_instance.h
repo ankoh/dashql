@@ -1,7 +1,7 @@
 // Copyright (c) 2020 The DashQL Authors
 
-#ifndef INCLUDE_DASHQL_PROGRAM_INSTANCE_H_
-#define INCLUDE_DASHQL_PROGRAM_INSTANCE_H_
+#ifndef INCLUDE_DASHQL_ANALYZER_PROGRAM_INSTANCE_H_
+#define INCLUDE_DASHQL_ANALYZER_PROGRAM_INSTANCE_H_
 
 #include <iostream>
 #include <sstream>

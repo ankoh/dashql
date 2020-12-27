@@ -52,7 +52,7 @@
     "module": "./dist/dashql_core_node.js",
     "types": "./dist/core/src/index_node.d.ts",
     "browser": {
-        "./dist/dashql_core_node.js": "./dist/dashql_core_web.js",
+        "./dist/dashql_core_node.js": "./dist/dashql_core.js",
         "worker_threads": false,
         "perf_hooks": false,
         "fs": false,

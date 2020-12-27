@@ -1,29 +1,16 @@
 // Copyright (c) 2020 The DashQL Authors
 
-import { DashQLCoreModule } from './core_wasm_module';
+import { DashQLAnalyzerModule } from './analyzer_wasm_module';
 import { Plan, PlanParameter, Program } from  '../model';
 import { flatbuffers } from "flatbuffers";
 import * as proto from "@dashql/proto";
 
-///
-/// dashql_blobstream_underflow(blob: number, buffer_ofs, buffer_size): uint32_t
+export interface AnalyzerRuntime {}
 
-/// The core runtime
-export interface CoreWasmRuntime {
-    dashql_pong(): number;
-    dashql_blob_stream_underflow(): number;
-}
-
-/// Stubs for the DashQL core runtime
-export const CORE_WASM_RUNTIME_STUBS: CoreWasmRuntime = {
-    dashql_pong: () => { return 42; },
-    dashql_blob_stream_underflow: () => { return 0; }
-};
-
-/// The proxy for either the browser- order node-based DashQLCore API
-export abstract class CoreWasmBindings {
+/// The proxy for either the browser- order node-based DashQLAnalyzer API
+export abstract class AnalyzerBindings {
     /// The instance
-    private _instance: DashQLCoreModule | null = null;
+    private _instance: DashQLAnalyzerModule | null = null;
     /// The loading promise
     private _open_promise: Promise<void> | null = null;
     /// The resolver for the open promise (called by onRuntimeInitialized)
@@ -33,7 +20,7 @@ export abstract class CoreWasmBindings {
     protected _program: Program | null = null;
 
     /// Instantiate the module
-    protected abstract instantiate(moduleOverrides: Partial<DashQLCoreModule>): Promise<DashQLCoreModule>;
+    protected abstract instantiate(moduleOverrides: Partial<DashQLAnalyzerModule>): Promise<DashQLAnalyzerModule>;
 
     /// Init the module
     public async init() {
@@ -92,10 +79,10 @@ export abstract class CoreWasmBindings {
         return [status, data, dataSize];
     }
 
-    /// Reset the session
-    public resetSession() {
+    /// Reset the analyzer
+    public reset() {
         let instance = this._instance!;
-        return instance.ccall('dashql_reset_session', null, [], []);
+        return instance.ccall('dashql_analyzer_reset', null, [], []);
     }
 
     /// Copy a flatbuffer
@@ -119,7 +106,7 @@ export abstract class CoreWasmBindings {
         instance.HEAPU8[textMem + textUTF8.length + 1] = 0;
 
         /// Call the parse function
-        let [ptr, ofs, size] = this.callSRet('dashql_parse_program', ['number'], [textMem]);
+        let [ptr, ofs, size] = this.callSRet('dashql_analyzer_parse_program', ['number'], [textMem]);
         let mem = this.copyFlatbuffer(instance.HEAPU8.subarray(ptr + ofs, ptr + ofs + size));
         let program = proto.syntax.Program.getRoot(mem);
         instance.ccall('dashql_clear_response', null, [], []);
@@ -152,7 +139,7 @@ export abstract class CoreWasmBindings {
         instance.HEAPU8.set(argsMem, argsPtr);
 
         // Call the planner function 
-        const [ptr, ofs, size] = this.callSRet('dashql_plan_program', ['number'], [argsPtr]);
+        const [ptr, ofs, size] = this.callSRet('dashql_analyzer_plan_program', ['number'], [argsPtr]);
         const mem = this.copyFlatbuffer(instance.HEAPU8.subarray(ptr + ofs, ptr + ofs + size));
         const plan = proto.session.Plan.getRoot(mem);
         instance.ccall('dashql_clear_response', null, [], []);
@@ -164,10 +151,5 @@ export abstract class CoreWasmBindings {
         if (!this._instance) return;
         this._instance._free(ptr);
     }
-
-    /// Ping the runtime
-    public ping(): number {
-        let instance = this._instance!;
-        return instance.ccall('dashql_ping', 'number', [], []);
-    }
 };
+

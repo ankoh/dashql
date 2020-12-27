@@ -1,4 +1,4 @@
-import { DashQLCoreWasm, CORE_WASM_RUNTIME_STUBS, model } from '../../src/index_node';
+import { analyzer, model } from '../../src/index_node';
 import * as path from 'path';
 import * as proto from '@dashql/proto';
 import schema = model.schema;
@@ -7,20 +7,20 @@ import sxd = proto.syntax_dashql;
 
 import Key = proto.syntax.AttributeKey;
 
-var core: DashQLCoreWasm;
+var analyzerBindings: analyzer.AnalyzerBindings;
 
 beforeAll(async () => {
-    core = new DashQLCoreWasm(CORE_WASM_RUNTIME_STUBS, path.resolve(__dirname, '../../src/wasm/core_wasm_node.wasm'));
-    await core.init();
+    analyzerBindings = new analyzer.Analyzer({}, path.resolve(__dirname, '../../src/analyzer/analyzer_wasm_node.wasm'));
+    await analyzerBindings.init();
 });
 
 beforeEach(async () => {
-    core.resetSession();
+    analyzerBindings.reset();
 });
 
 describe('Statement schema', () => {
     test('simple load statement', async () => {
-        const program = core.parseProgram(`
+        const program = analyzerBindings.parseProgram(`
             LOAD weather_csv FROM http (
                 url = 'https://localhost/test'
             );

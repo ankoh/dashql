@@ -1,4 +1,4 @@
-#include "dashql/program_instance.h"
+#include "dashql/analyzer/program_instance.h"
 
 #include <iomanip>
 #include <sstream>

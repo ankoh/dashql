@@ -5,7 +5,7 @@ var db: webdb.WebDB;
 var conn: webdb.WebDBConnection;
 
 beforeAll(async () => {
-    db = new webdb.WebDB(path.resolve(__dirname, "../src/wasm/webdb_wasm.wasm"));
+    db = new webdb.WebDB(path.resolve(__dirname, "../src/webdb_wasm.wasm"));
     await db.open();
 });
 

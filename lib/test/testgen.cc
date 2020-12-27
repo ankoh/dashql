@@ -7,7 +7,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include "dashql/action_planner.h"
+#include "dashql/analyzer/action_planner.h"
 #include "dashql/common/span.h"
 #include "dashql/parser/parser_driver.h"
 #include "dashql/test/action_graph_tests.h"

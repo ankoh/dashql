@@ -1,6 +1,6 @@
 // Copyright (c) 2020 The DashQL Authors
 
-import { WebDBModule } from './wasm/webdb_module';
+import { WebDBModule } from './webdb_module';
 import { QueryResultBuffer, QueryResultChunkBuffer, QueryPlanBuffer } from './webdb_buffer';
 import { webdb as proto } from '@dashql/proto';
 
@@ -41,7 +41,7 @@ export class WebDBConnection {
             throw new Error(decodeString(mem));
         }
         let msg = new QueryResultBuffer(mem);
-        instance.ccall('dashql_webdb_clear_response', null, [], []);
+        instance.ccall('dashql_clear_response', null, [], []);
         return msg;
     }
 
@@ -54,7 +54,7 @@ export class WebDBConnection {
             throw new Error(decodeString(mem));
         }
         let msg = new QueryResultBuffer(mem);
-        instance.ccall('dashql_webdb_clear_response', null, [], []);
+        instance.ccall('dashql_clear_response', null, [], []);
         return msg;
     }
 
@@ -67,7 +67,7 @@ export class WebDBConnection {
             throw new Error(decodeString(mem));
         }
         let msg = new QueryResultChunkBuffer(mem);
-        instance.ccall('dashql_webdb_clear_response', null, [], []);
+        instance.ccall('dashql_clear_response', null, [], []);
         return msg;
     }
 
@@ -80,7 +80,7 @@ export class WebDBConnection {
             throw new Error(decodeString(mem));
         }
         let msg = new QueryPlanBuffer(mem);
-        instance.ccall('dashql_webdb_clear_response', null, [], []);
+        instance.ccall('dashql_clear_response', null, [], []);
         return msg;
     }
 }
