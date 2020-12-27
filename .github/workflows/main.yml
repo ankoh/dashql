@@ -153,10 +153,10 @@ jobs:
             emmake make \
                 -C./lib/build/wasm/release \
                 -j`nproc` \
-                core_wasm core_wasm_node webdb_wasm webdb_wasm_node
+                analyzer_wasm analyzer_wasm_node webdb_wasm webdb_wasm_node
 
-            cp ./lib/build/wasm/release/core_*.{wasm,js} ./core/src/wasm/
-            cp ./lib/build/wasm/release/webdb_*.{wasm,js} ./webdb/src/wasm/
+            cp ./lib/build/wasm/release/analyzer_*.{wasm,js} ./core/src/analyzer/
+            cp ./lib/build/wasm/release/webdb_*.{wasm,js} ./webdb/src/
 
     - name: Build @dashql/proto
       uses: ./ci/image
