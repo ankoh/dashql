@@ -14,23 +14,6 @@ namespace fb = flatbuffers;
 using namespace dashql;
 using namespace dashql::webdb;
 
-namespace {
-
-WebDB& GetWebDB() {
-    static std::unique_ptr<WebDB> db = nullptr;
-    if (db == nullptr) {
-        db = std::make_unique<WebDB>();
-    }
-    return *db;
-}
-
-FFIResponseBuffer& GetResponseBuffer() {
-    static FFIResponseBuffer buffer;
-    return buffer;
-}
-
-}
-
 extern "C" {
 
 using ConnectionHdl = uintptr_t;
@@ -38,17 +21,17 @@ using BufferHdl = uintptr_t;
 
 /// Clear the response
 void dashql_webdb_clear_response() {
-    GetResponseBuffer().Clear();
+    FFIResponseBuffer::GetInstance().Clear();
 }
 
 /// Create a conn
 ConnectionHdl dashql_webdb_connect() {
-    return reinterpret_cast<ConnectionHdl>(GetWebDB().Connect());
+    return reinterpret_cast<ConnectionHdl>(WebDB::GetInstance().Connect());
 }
 /// End a conn
 void dashql_webdb_disconnect(ConnectionHdl connHdl) {
     auto c = reinterpret_cast<WebDB::Connection*>(connHdl);
-    GetWebDB().Disconnect(c);
+    WebDB::GetInstance().Disconnect(c);
 }
 
 /// Access a buffer
@@ -60,28 +43,28 @@ void* dashql_webdb_access_buffer(ConnectionHdl /*connHdl*/, BufferHdl bufferHdl)
 void dashql_webdb_run_query(FFIResponse* packed, ConnectionHdl connHdl, const char* text) {
     auto c = reinterpret_cast<WebDB::Connection*>(connHdl);
     auto r = c->RunQuery(text);
-    GetResponseBuffer().Store(*packed, std::move(r));
+    FFIResponseBuffer::GetInstance().Store(*packed, std::move(r));
 }
 
 /// Send a query
 void dashql_webdb_send_query(FFIResponse* packed, ConnectionHdl connHdl, const char* text) {
     auto c = reinterpret_cast<WebDB::Connection*>(connHdl);
     auto r = c->SendQuery(text);
-    GetResponseBuffer().Store(*packed, std::move(r));
+    FFIResponseBuffer::GetInstance().Store(*packed, std::move(r));
 }
 
 /// Fetch query results
 void dashql_webdb_fetch_query_results(FFIResponse* packed, ConnectionHdl connHdl) {
     auto c = reinterpret_cast<WebDB::Connection*>(connHdl);
     auto r = c->FetchQueryResults();
-    GetResponseBuffer().Store(*packed, std::move(r));
+    FFIResponseBuffer::GetInstance().Store(*packed, std::move(r));
 }
 
 /// Analyze a query
 void dashql_webdb_analyze_query(FFIResponse* packed, ConnectionHdl connHdl, const char* text) {
     auto c = reinterpret_cast<WebDB::Connection*>(connHdl);
     auto r = c->AnalyzeQuery(text);
-    GetResponseBuffer().Store(*packed, std::move(r));
+    FFIResponseBuffer::GetInstance().Store(*packed, std::move(r));
 }
 
 }

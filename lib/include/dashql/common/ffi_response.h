@@ -77,6 +77,9 @@ class FFIResponseBuffer {
             response.dataSize = strlen(m);
         }
     }
+
+    /// Get the static response
+    static FFIResponseBuffer& GetInstance();
 };
 
 }  // namespace dashql
