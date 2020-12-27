@@ -1,10 +1,10 @@
 // Copyright (c) 2020 The DashQL Authors
 
-#ifndef INCLUDE_DASHQL_PROGRAM_MATCHER_H_
-#define INCLUDE_DASHQL_PROGRAM_MATCHER_H_
+#ifndef INCLUDE_DASHQL_ANALYZER_PROGRAM_MATCHER_H_
+#define INCLUDE_DASHQL_ANALYZER_PROGRAM_MATCHER_H_
 
+#include "dashql/analyzer/program_instance.h"
 #include "dashql/common/enum.h"
-#include "dashql/program_instance.h"
 #include "dashql/proto_generated.h"
 #include <iostream>
 #include <sstream>
@@ -150,4 +150,4 @@ class ProgramMatcher {
 
 }  // namespace dashql
 
-#endif  // INCLUDE_DASHQL_PROGRAM_MATCHER_H_
+#endif  // INCLUDE_DASHQL_ANALYZER_PROGRAM_MATCHER_H_

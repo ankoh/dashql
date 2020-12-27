@@ -101,3 +101,20 @@ BlobStreamBufferBase::int_type CachingBlobStreamBuffer::underflow() {
 }
 
 }  // namespace dashql
+
+
+extern "C" {
+
+size_t dashql_pong();
+size_t dashql_ping() {
+    return dashql_pong();
+}
+
+size_t dashql_blob_stream_underflow(dashql::BlobID, char*, size_t);
+
+#ifndef EMSCRIPTEN
+size_t dashql_pong() { return 0; }
+size_t dashql_blob_stream_underflow(dashql::BlobID, char*, size_t) { return 0; }
+#endif
+
+}

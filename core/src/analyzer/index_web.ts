@@ -1,21 +1,21 @@
 // Copyright (c) 2020 The DashQL Authors
 
 export * from "./bindings";
-export * from "./core_wasm_module";
+export * from "./analyzer_wasm_module";
 
-import dashql_core_wasm from './core_wasm.wasm';
-import dashql_core_init from './core_wasm.js';
-import { DashQLCoreModule } from './core_wasm_module';
-import { CoreWasmBindings, CoreWasmRuntime, CORE_WASM_RUNTIME_STUBS } from './bindings';
+import dashql_analyzer_wasm from './analyzer_wasm.wasm';
+import dashql_core_init from './analyzer_wasm.js';
+import { DashQLAnalyzerModule } from './analyzer_wasm_module';
+import { AnalyzerBindings, AnalyzerRuntime } from './bindings';
 
-export class DashQLCoreWasm extends CoreWasmBindings {
-    protected runtime: CoreWasmRuntime;
+export class Analyzer extends AnalyzerBindings {
+    protected runtime: AnalyzerRuntime;
     protected path: string;
 
-    public constructor(runtime: CoreWasmRuntime = CORE_WASM_RUNTIME_STUBS, path: string | null = null) {
+    public constructor(runtime: AnalyzerRuntime = {}, path: string | null = null) {
         super();
         this.runtime = runtime;
-        this.path = path ?? dashql_core_wasm;
+        this.path = path ?? dashql_analyzer_wasm;
     }
 
     protected instantiateWasm(imports: any, success: (module: WebAssembly.Module) => void): Emscripten.WebAssemblyExports {
@@ -45,15 +45,10 @@ export class DashQLCoreWasm extends CoreWasmBindings {
         return [];
     }
 
-    protected instantiate(moduleOverrides: Partial<DashQLCoreModule>): Promise<DashQLCoreModule> {
+    protected instantiate(moduleOverrides: Partial<DashQLAnalyzerModule>): Promise<DashQLAnalyzerModule> {
         return dashql_core_init({
             ...moduleOverrides,
-            instantiateWasm: this.instantiateWasm.bind(this),
-            locateFile: (path: string) => {
-                if (path.endsWith('dashql_core_node.wasm'))
-                    return this.path;
-                return path;
-            }
+            instantiateWasm: this.instantiateWasm.bind(this)
         });
     }
 }

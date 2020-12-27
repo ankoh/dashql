@@ -4,8 +4,8 @@
 
 #include "dashql/parser/scanner.h"
 #include "dashql/parser/parser_driver.h"
-#include "dashql/program_instance.h"
-#include "dashql/program_matcher.h"
+#include "dashql/analyzer/program_instance.h"
+#include "dashql/analyzer/program_matcher.h"
 #include "flatbuffers/flatbuffers.h"
 #include "gtest/gtest.h"
 

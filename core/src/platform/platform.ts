@@ -1,4 +1,4 @@
-import { CoreWasmAPI } from "./core_wasm_api";
+import { AnalyzerBindings } from "../analyzer";
 import { DatabaseManager } from "./database_manager";
 import { DerivedReduxStore } from "../model";
 import { FileManager } from "./file_manager";
@@ -7,8 +7,8 @@ import { HTTPManager } from "./http_manager";
 export class Platform {
     /// The global application state
     _globalState: DerivedReduxStore;
-    /// The core wasm api
-    _coreWasm: CoreWasmAPI;
+    /// The analyzer bindings
+    _analyzer: AnalyzerBindings;
     /// The database manager
     _databaseManager: DatabaseManager;
     /// The file manager
@@ -16,16 +16,16 @@ export class Platform {
     /// The HTTP manager
     _httpManager: HTTPManager;
 
-    constructor(globalState: DerivedReduxStore, coreWasm: CoreWasmAPI, databaseManager: DatabaseManager, fileManager: FileManager, httpManager: HTTPManager) {
+    constructor(globalState: DerivedReduxStore, analyzer: AnalyzerBindings) {
         this._globalState = globalState;
-        this._coreWasm = coreWasm;
-        this._databaseManager = databaseManager;
-        this._fileManager = fileManager;
-        this._httpManager = httpManager;
+        this._analyzer = analyzer;
+        this._databaseManager = new DatabaseManager();
+        this._fileManager = new FileManager(globalState);
+        this._httpManager = new HTTPManager(globalState);
     }
 
     public get state() { return this._globalState; }
-    public get coreWasm() { return this._coreWasm; }
+    public get analyzer() { return this._analyzer; }
     public get database() { return this._databaseManager; }
     public get file() { return this._fileManager; }
     public get http() { return this._httpManager; }

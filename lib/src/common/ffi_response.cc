@@ -9,4 +9,13 @@ FFIResponseBuffer& FFIResponseBuffer::GetInstance() {
     return buffer;
 }
 
+extern "C" {
+
+/// Clear the response
+void dashql_clear_response() {
+    FFIResponseBuffer::GetInstance().Clear();
+}
+
+}
+
 }

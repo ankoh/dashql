@@ -1,4 +1,4 @@
-#include "dashql/action_planner.h"
+#include "dashql/analyzer/action_planner.h"
 
 #include "dashql/common/topological_sort.h"
 #include "dashql/proto_generated.h"

@@ -6,7 +6,7 @@ const browserTarget = {
     target: 'web',
     mode: 'production',
     entry: {
-        "dashql_core_web": './src/index_web.ts'
+        "dashql_core": './src/index_web.ts'
     },
     devtool: 'source-map',
     output: {
@@ -32,11 +32,11 @@ const browserTarget = {
                 ]
             },
             {
-                test: /core_wasm(_node)?\.wasm$/,
+                test: /analyzer_wasm(_node)?\.wasm$/,
                 type: 'javascript/auto',
                 loader: 'file-loader',
                 options: {
-                    name: 'dashql_core.wasm',
+                    name: 'dashql_analyzer.wasm',
                 }
             }
         ]
