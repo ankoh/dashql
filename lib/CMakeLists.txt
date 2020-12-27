@@ -374,8 +374,8 @@ if(NOT EMSCRIPTEN)
         ${CMAKE_SOURCE_DIR}/test/tester.cc
     )
     target_link_libraries(tester
-        dashql_core
         dashql_test
+        dashql_extract dashql_analyzer dashql_webdb dashql_common
         dashql_proto
         flatbuffers gtest gmock
         Threads::Threads
@@ -385,8 +385,8 @@ if(NOT EMSCRIPTEN)
         ${CMAKE_SOURCE_DIR}/test/testgen.cc
     )
     target_link_libraries(testgen
-        dashql_core
         dashql_test
+        dashql_extract dashql_analyzer dashql_webdb dashql_common
         dashql_proto
         pugixml
         flatbuffers gtest gmock
