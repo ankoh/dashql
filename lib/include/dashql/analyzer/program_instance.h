@@ -29,15 +29,15 @@ class ProgramInstance {
     std::shared_ptr<sx::ProgramT> program_;
     /// The parameter values.
     /// Maps the id of parameter statements to parameter values.
-    std::vector<std::unique_ptr<proto::session::ParameterValueT>> parameter_values_;
+    std::vector<std::unique_ptr<proto::analyzer::ParameterValueT>> parameter_values_;
     /// The patch for partial evaluation (if any)
     std::unique_ptr<sx::ProgramPatchT> patch_;
 
     public:
     /// Constructor
-    ProgramInstance(std::string_view text, std::shared_ptr<sx::ProgramT> program, std::vector<std::unique_ptr<proto::session::ParameterValueT>> params = {});
+    ProgramInstance(std::string_view text, std::shared_ptr<sx::ProgramT> program, std::vector<std::unique_ptr<proto::analyzer::ParameterValueT>> params = {});
     /// Constructor
-    ProgramInstance(std::shared_ptr<std::string> text, std::shared_ptr<sx::ProgramT> program, std::vector<std::unique_ptr<proto::session::ParameterValueT>> params = {});
+    ProgramInstance(std::shared_ptr<std::string> text, std::shared_ptr<sx::ProgramT> program, std::vector<std::unique_ptr<proto::analyzer::ParameterValueT>> params = {});
 
     /// Get the program text
     auto& program_text() const { return *program_text_; }
@@ -49,7 +49,7 @@ class ProgramInstance {
     auto& patch() const { return patch_; }
 
     /// Find the parameter value
-    const proto::session::ParameterValueT* FindParameterValue(size_t stmt_id) const;
+    const proto::analyzer::ParameterValueT* FindParameterValue(size_t stmt_id) const;
     /// Get the text at a location
     std::string_view TextAt(sx::Location loc) const { return std::string_view{*program_text_}.substr(loc.offset(), loc.length()); }
     /// Evaluate the program partially

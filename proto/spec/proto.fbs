@@ -1,7 +1,7 @@
 // Copyright (c) 2020 The DashQL Authors
 
 include "action.fbs";
-include "session.fbs";
+include "analyzer.fbs";
 include "syntax.fbs";
 include "syntax_dashql.fbs";
 include "syntax_sql.fbs";

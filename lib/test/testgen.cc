@@ -93,11 +93,11 @@ proto::syntax_dashql::ParameterType GetParameterType(std::string_view type) {
     return proto::syntax_dashql::ParameterType::NONE;
 }
 
-std::unique_ptr<proto::session::ParameterValueT> GetParameter(const pugi::xml_node& node) {
+std::unique_ptr<proto::analyzer::ParameterValueT> GetParameter(const pugi::xml_node& node) {
     auto type = GetParameterType(node.attribute("type").as_string());
     auto stmt = node.attribute("statement").as_int();
     auto value = node.attribute("value").as_string();
-    auto result = std::make_unique<proto::session::ParameterValueT>();
+    auto result = std::make_unique<proto::analyzer::ParameterValueT>();
     result->origin_statement = stmt;
     result->type = type;
     result->value = value;
@@ -144,7 +144,7 @@ void generate_action_tests(const std::filesystem::path& source_dir) {
             auto prev_text = prev.child("text").text().get();
             auto prev_params = prev.child("parameters");
             auto prev_program = parser::ParserDriver::Parse(prev_text);
-            std::vector<std::unique_ptr<proto::session::ParameterValueT>> prev_param_values;
+            std::vector<std::unique_ptr<proto::analyzer::ParameterValueT>> prev_param_values;
             for (auto& param : prev_params.children()) {
                 prev_param_values.push_back(GetParameter(param));
             }
@@ -168,7 +168,7 @@ void generate_action_tests(const std::filesystem::path& source_dir) {
             auto next_text = next.child("text").text().get();
             auto next_params = next.child("parameters");
             auto next_program = parser::ParserDriver::Parse(next_text);
-            std::vector<std::unique_ptr<proto::session::ParameterValueT>> next_param_values;
+            std::vector<std::unique_ptr<proto::analyzer::ParameterValueT>> next_param_values;
             for (auto& param : next_params.children()) {
                 next_param_values.push_back(GetParameter(param));
             }
