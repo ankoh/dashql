@@ -100,6 +100,9 @@ Signal Analyzer::InstantiateProgram(proto::analyzer::ProgramParametersT& params)
             });
 
             // XXX Resolve function
+            //
+            // Use format library that is bundled with DuckDB.
+            // https://github.com/cwida/duckdb/blob/abaf6258dd737f397472e911e71af31e01493e00/src/function/scalar/string/printf.cpp
             std::cout << "resolve function '" << *func_name << "' with " << arg_types.size() << " arguments";
         }
     }
