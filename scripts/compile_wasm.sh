@@ -10,8 +10,8 @@ echo "BUILD_TYPE=${BUILD_TYPE}"
 
 CPP_BUILD_DIR="${PROJECT_ROOT}/lib/build/wasm/${BUILD_TYPE}"
 CPP_SOURCE_DIR="${PROJECT_ROOT}/lib"
-CORE_LIB_DIR="${PROJECT_ROOT}/core/src/wasm"
-WEBDB_LIB_DIR="${PROJECT_ROOT}/webdb/src/wasm"
+ANALYZER_LIB_DIR="${PROJECT_ROOT}/core/src/analyzer"
+WEBDB_LIB_DIR="${PROJECT_ROOT}/webdb/src/"
 set -x
 
 mkdir -p ${CPP_BUILD_DIR}
@@ -31,7 +31,7 @@ emcmake cmake \
 emmake make \
     -C"${CPP_SOURCE_DIR}/build/wasm/${BUILD_TYPE}" \
     -j${CORES} \
-    core_wasm core_wasm_node webdb_wasm webdb_wasm_node
+    analyzer_wasm analyzer_wasm_node webdb_wasm webdb_wasm_node
 
-cp ${CPP_SOURCE_DIR}/build/wasm/${BUILD_TYPE}/core_*.{wasm,js} "${CORE_LIB_DIR}"
+cp ${CPP_SOURCE_DIR}/build/wasm/${BUILD_TYPE}/analyzer_*.{wasm,js} "${ANALYZER_LIB_DIR}"
 cp ${CPP_SOURCE_DIR}/build/wasm/${BUILD_TYPE}/webdb_*.{wasm,js} "${WEBDB_LIB_DIR}"

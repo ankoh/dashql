@@ -1,21 +1,21 @@
-import { DashQLCoreWasm, CORE_WASM_RUNTIME_STUBS } from '../src/index_node';
+import { analyzer } from '../src/index_node';
 import * as path from 'path';
 
-var core: DashQLCoreWasm;
+var analyzerBindings: analyzer.AnalyzerBindings;
 
 beforeAll(async () => {
-    core = new DashQLCoreWasm(CORE_WASM_RUNTIME_STUBS, path.resolve(__dirname, "../src/wasm/core_wasm_node.wasm"));
-    await core.init();
+    analyzerBindings = new analyzer.Analyzer({}, path.resolve(__dirname, '../src/analyzer/analyzer_wasm_node.wasm'));
+    await analyzerBindings.init();
 });
 
 beforeEach(async () => {
-    core.resetSession();
+    analyzerBindings.reset();
 });
 
 describe('Parser', () => {
    describe('errors', () => {
        test('syntax error', async () => {
-           const r = core.parseProgram("?");
+           const r = analyzerBindings.parseProgram("?");
            const p = r.buffer;
            expect(p.statementsLength()).toEqual(0);
            expect(p.errorsLength()).toEqual(1);
@@ -24,7 +24,7 @@ describe('Parser', () => {
 
    describe('single statements', () => {
        test('select 1', async () => {
-           const r = core.parseProgram(`
+           const r = analyzerBindings.parseProgram(`
                select 1;
            `);
            const p = r.buffer;
@@ -33,7 +33,7 @@ describe('Parser', () => {
        });
 
        test('load http from url', async () => {
-           const r = core.parseProgram(`
+           const r = analyzerBindings.parseProgram(`
                 LOAD weather_csv FROM http (
                     url = 'https://localhost/test'
                 );

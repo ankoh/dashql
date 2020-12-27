@@ -1,6 +1,6 @@
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
-import { createCore } from './core';
+import * as core from '@dashql/core';
 import { createStore } from './model';
 import { AppController } from './controller';
 import { Route, BrowserRouter, Switch, Redirect } from 'react-router-dom';
@@ -13,9 +13,11 @@ import './app.module.css';
 import './fonts/fonts.module.css';
 import 'gridstack/dist/gridstack.min.css';
 
-const core = createCore();
+import dashql_analyzer_wasm from '@dashql/core/dist/dashql_analyzer.wasm';
+
+const analyzer = new core.analyzer.Analyzer({}, dashql_analyzer_wasm);
 const store = createStore();
-const controller = new AppController(core, store);
+const controller = new AppController(analyzer, store);
 controller.init();
 
 const appContext: IAppContext = {

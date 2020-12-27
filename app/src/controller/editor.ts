@@ -3,16 +3,16 @@ import { AppReduxStore, mutate } from '../model';
 import * as core from '@dashql/core';
 
 export class EditorController {
-    /// The core
-    protected _core: core.CoreWasmBindings;
+    /// The analyze
+    protected _analyzer: core.analyzer.AnalyzerBindings;
     /// The editor
     protected _editor: monaco.editor.IStandaloneCodeEditor | null;
     /// The store
     protected _store: AppReduxStore;
 
     /// Constructor
-    constructor(core: core.CoreWasmBindings, store: AppReduxStore) {
-        this._core = core;
+    constructor(analyzer: core.analyzer.AnalyzerBindings, store: AppReduxStore) {
+        this._analyzer = analyzer;
         this._store = store;
         this._editor = null;
     }
@@ -27,7 +27,7 @@ export class EditorController {
         if (s.core.program != null && s.core.programText == input) {
             return;
         }
-        const p = this._core.parseProgram(input);
+        const p = this._analyzer.parseProgram(input);
         this.displayErrors(p);
         mutate(this._store.dispatch, {
             type: core.model.StateMutationType.SET_PROGRAM,

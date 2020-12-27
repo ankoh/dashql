@@ -9,4 +9,4 @@ export * as platform from "./platform";
 export * as utils from "./utils";
 export * from "./action_scheduler";
 
-export * from "./wasm/index_node";
+export * as analyzer from "./analyzer/index_node";

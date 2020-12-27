@@ -1,13 +1,13 @@
 // Copyright (c) 2020 The DashQL Authors
 
-#ifndef INCLUDE_DASHQL_ACTION_PLANNER_H_
-#define INCLUDE_DASHQL_ACTION_PLANNER_H_
+#ifndef INCLUDE_DASHQL_ANALYZER_ACTION_PLANNER_H_
+#define INCLUDE_DASHQL_ANALYZER_ACTION_PLANNER_H_
 
 #include <unordered_map>
 
 #include "dashql/common/expected.h"
-#include "dashql/program_instance.h"
-#include "dashql/program_matcher.h"
+#include "dashql/analyzer/program_instance.h"
+#include "dashql/analyzer/program_matcher.h"
 #include "dashql/proto_generated.h"
 
 namespace dashql {
@@ -61,4 +61,4 @@ class ActionPlanner {
 
 }  // namespace dashql
 
-#endif  // INCLUDE_DASHQL_ACTION_PLANNER_H_
+#endif  // INCLUDE_DASHQL_ANALYZER_ACTION_PLANNER_H_

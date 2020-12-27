@@ -1,8 +1,8 @@
+import * as core from '@dashql/core';
 import { AppReduxStore, mutate } from '../model';
 import { EditorController } from './editor';
 import { LogController } from './log';
 import { InterpreterController } from './interpreter';
-import * as core from '@dashql/core';
 
 export const DEMO_SCRIPT =
 `-- This script outlines basic concepts of the SQL extension DashQL.
@@ -36,7 +36,7 @@ VIZ weather_avg USING LINE;
 /// A controller
 export class DemoController {
     /// The core
-    protected _core: core.CoreWasmBindings;
+    protected _analyzer: core.analyzer.AnalyzerBindings;
     /// The Store
     protected _store: AppReduxStore;
     /// The logger
@@ -46,17 +46,17 @@ export class DemoController {
     /// The interpreter controller
     protected _interpreter: InterpreterController;
 
-    constructor(core: core.CoreWasmBindings, store: AppReduxStore, log: LogController, editor: EditorController, interpreter: InterpreterController) {
+    constructor(analyzer: core.analyzer.AnalyzerBindings, store: AppReduxStore, log: LogController, editor: EditorController, interpreter: InterpreterController) {
+        this._analyzer = analyzer;
         this._store = store;
-        this._core = core;
         this._log = log;
         this._editor = editor;
         this._interpreter = interpreter;
     }
 
     public setup() {
-        const program = this._core.parseProgram(DEMO_SCRIPT);
-        const plan = this._core.planProgram();
+        const program = this._analyzer.parseProgram(DEMO_SCRIPT);
+        const plan = this._analyzer.planProgram();
         mutate(this._store.dispatch, {
             type: core.model.StateMutationType.SET_PROGRAM,
             data: [DEMO_SCRIPT, program]

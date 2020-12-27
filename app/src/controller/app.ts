@@ -1,4 +1,4 @@
-import { CoreWasmBindings } from '@dashql/core';
+import * as core from '@dashql/core';
 import { AppReduxStore } from '../model';
 import { EditorController } from './editor';
 import { LogController } from './log';
@@ -11,7 +11,7 @@ const workerIntervalMS = 400;
 /// A controller
 export class AppController {
     /// The core
-    protected _core: CoreWasmBindings;
+    protected _analyzer: core.analyzer.AnalyzerBindings;
     /// The store
     protected _store: AppReduxStore;
     /// The logger
@@ -27,13 +27,13 @@ export class AppController {
     protected workerTimer: number | null;
 
     // Constructor
-    constructor(core: CoreWasmBindings, store: AppReduxStore) {
-        this._core = core;
+    constructor(analyzer: core.analyzer.AnalyzerBindings, store: AppReduxStore) {
+        this._analyzer = analyzer;
         this._store = store;
         this._log = new LogController(store);
-        this._editor = new EditorController(this._core, this._store);
+        this._editor = new EditorController(this._analyzer, this._store);
         this._interpreter = new InterpreterController(this._store);
-        this._demo = new DemoController(this._core, this._store, this._log, this._editor, this._interpreter);
+        this._demo = new DemoController(this._analyzer, this._store, this._log, this._editor, this._interpreter);
         this.workerTimer = null;
     }
 
@@ -44,7 +44,7 @@ export class AppController {
     public async init(): Promise<void> {
         this.workerTimer = window.setTimeout(this.worker.bind(this), workerIntervalMS);
 
-        await this._core.init();
+        await this._analyzer.init();
         this._demo.setup();
     }
 

@@ -1,7 +1,7 @@
 // Copyright (c) 2020 The DashQL Authors
 
-#ifndef INCLUDE_DASHQL_SESSION_H_
-#define INCLUDE_DASHQL_SESSION_H_
+#ifndef INCLUDE_DASHQL_ANALYZER_ANALYZER_H_
+#define INCLUDE_DASHQL_ANALYZER_ANALYZER_H_
 
 #include <iostream>
 #include <map>
@@ -14,13 +14,11 @@
 #include <variant>
 #include <vector>
 
+#include "dashql/analyzer/program_instance.h"
 #include "dashql/common/blob_stream.h"
 #include "dashql/common/expected.h"
 #include "dashql/common/raw_buffer.h"
-#include "dashql/program_instance.h"
 #include "dashql/proto_generated.h"
-#include "dashql/webdb/webdb.h"
-#include "duckdb/execution/operator/persistent/buffered_csv_reader.hpp"
 
 namespace dashql {
 
@@ -31,13 +29,8 @@ using RawBuffer = dashql::RawBuffer;
 
 namespace fb = flatbuffers;
 
-class Session {
+class Analyzer {
    protected:
-    /// The database
-    webdb::WebDB database_;
-    /// The connection (if any)
-    webdb::WebDB::Connection* database_connection_;
-
     /// The volatile program text (if any)
     std::shared_ptr<std::string> volatile_program_text_;
     /// The volatile program text (if any)
@@ -52,25 +45,21 @@ class Session {
     /// The planner log writer cursor
     size_t planner_log_writer_;
 
-    /// Extract csv
-    Signal ExtractCSV(BlobStreamBuffer& blob_streambuf, duckdb::BufferedCSVReaderOptions csv_options,
-                      std::vector<duckdb::LogicalType>&& csv_col_types, const std::string& schema_name,
-                      const std::string& table_name);
-
    public:
     /// Constructor
-    Session();
+    Analyzer();
 
-    /// Access the database
-    auto* AccessDatabase() { return database_connection_; }
     /// Parse a program
     ExpectedBuffer<proto::syntax::Program> ParseProgram(std::string_view text);
     /// Plan the last program
     ExpectedBuffer<proto::session::Plan> PlanProgram(proto::session::PlanArgumentsT& args);
 
-    void UpdateParameter();
+    /// Get the global analyzer instance
+    static Analyzer& GetInstance();
+    /// Reset the global analyzer instance
+    static void ResetInstance();
 };
 
 }  // namespace dashql
 
-#endif  // INCLUDE_DASHQL_INTERPRETER_H_
+#endif  // INCLUDE_DASHQL_ANALYZER_ANALYZER_H_
