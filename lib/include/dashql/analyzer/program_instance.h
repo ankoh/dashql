@@ -11,6 +11,7 @@
 #include "dashql/common/expected.h"
 #include "dashql/proto_generated.h"
 #include "dashql/webdb/webdb.h"
+#include "dashql/common/span.h"
 
 namespace dashql {
 
@@ -58,7 +59,7 @@ class ProgramInstance {
     Expected<std::string> RenderStatementText(size_t stmt_id) const;
 
     /// Find an attribute
-    const sx::Node* FindAttribute(const sx::Node& origin, sx::AttributeKey key);
+    const sx::Node* FindAttribute(const sx::Node& origin, sx::AttributeKey key) const;
     /// Iterate over children
     template <typename F> void IterateChildren(const sx::Node& origin, F fn) {
         auto children_begin = origin.children_begin_or_value();
@@ -69,6 +70,8 @@ class ProgramInstance {
             fn(i, node_id, nodes[node_id]);
         }
     }
+    /// Get a string value (if possible)
+    std::optional<std::string_view> GetStringValue(const sx::Node& node) const;
 };
 
 }  // namespace dashql
