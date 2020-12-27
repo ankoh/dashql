@@ -23,7 +23,7 @@
 namespace dashql {
 
 using ActionGraph = proto::action::ActionGraph;
-using Plan = proto::session::Plan;
+using Plan = proto::analyzer::Plan;
 using Program = proto::syntax::Program;
 using RawBuffer = dashql::RawBuffer;
 
@@ -36,14 +36,17 @@ class Analyzer {
     /// The volatile program text (if any)
     std::shared_ptr<proto::syntax::ProgramT> volatile_program_;
 
-    /// The planned program (if any)
-    std::unique_ptr<ProgramInstance> planned_program_;
+    /// The program instance (if any)
+    std::unique_ptr<ProgramInstance> program_instance_;
+    /// The program log
+    std::vector<std::unique_ptr<ProgramInstance>> program_log_;
+    /// The planner log writer cursor
+    size_t program_log_writer_;
+
+    /// The planned program
+    const ProgramInstance* planned_program_;
     /// The planned graph (if any)
     std::unique_ptr<proto::action::ActionGraphT> planned_graph_;
-    /// The planner log
-    std::vector<std::unique_ptr<ProgramInstance>> planner_log_;
-    /// The planner log writer cursor
-    size_t planner_log_writer_;
 
    public:
     /// Constructor
@@ -51,8 +54,10 @@ class Analyzer {
 
     /// Parse a program
     ExpectedBuffer<proto::syntax::Program> ParseProgram(std::string_view text);
+    /// Instantiate the last program
+    Signal InstantiateProgram(proto::analyzer::ProgramParametersT& params);
     /// Plan the last program
-    ExpectedBuffer<proto::session::Plan> PlanProgram(proto::session::PlanArgumentsT& args);
+    ExpectedBuffer<proto::analyzer::Plan> PlanProgram();
 
     /// Get the global analyzer instance
     static Analyzer& GetInstance();

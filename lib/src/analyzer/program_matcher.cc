@@ -540,7 +540,7 @@ std::vector<ProgramMatcher::DiffOp> ProgramMatcher::ComputeDiff() {
 }
 
 // Do parameter values equal?
-bool ProgramMatcher::ParameterValuesEqual(const proto::session::ParameterValueT* l, const proto::session::ParameterValueT* r) {
+bool ProgramMatcher::ParameterValuesEqual(const proto::analyzer::ParameterValueT* l, const proto::analyzer::ParameterValueT* r) {
     return l->type == r->type && l->value == r->value;
 }
 

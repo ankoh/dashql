@@ -12,7 +12,7 @@
         "plugins": [{ "name": "typescript-plugin-css-modules" }],
         "baseUrl": ".",
         "paths": {
-            "@dashql/proto": ["../proto/dashql_proto.ts"]
+            "@dashql/proto": ["../proto/index.ts"]
         }
     },
     "exclude": [

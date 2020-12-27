@@ -7,7 +7,7 @@ module.exports = {
     testRegex: '(/__tests__/.*|(\\.|/)(test|spec))\\.tsx?$',
     moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
     moduleNameMapper: {
-        "^@dashql/proto$": "<rootDir>/../proto/dashql_proto.ts"
+        "^@dashql/proto$": "<rootDir>/../proto/index.ts"
     },
     globals: {
         'ts-jest': {

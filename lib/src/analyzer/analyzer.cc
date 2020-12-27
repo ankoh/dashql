@@ -33,10 +33,10 @@ void Analyzer::ResetInstance() {
 }
 
 /// Constructor
-Analyzer::Analyzer() : volatile_program_text_(), volatile_program_(), planned_program_(), planned_graph_(), planner_log_(), planner_log_writer_() {
-    planner_log_.reserve(PLANNER_LOG_SIZE);
+Analyzer::Analyzer() : volatile_program_text_(), volatile_program_(), program_instance_(), program_log_(), program_log_writer_(), planned_program_(nullptr), planned_graph_() {
+    program_log_.reserve(PLANNER_LOG_SIZE);
     for (unsigned i = 0; i < PLANNER_LOG_SIZE; ++i)
-        planner_log_.push_back(nullptr);
+        program_log_.push_back(nullptr);
 }
 
 /// Evaluate a program
@@ -52,44 +52,50 @@ ExpectedBuffer<proto::syntax::Program> Analyzer::ParseProgram(std::string_view t
     return builder.Release();
 }
 
-/// Evaluate a program
-ExpectedBuffer<proto::session::Plan> Analyzer::PlanProgram(proto::session::PlanArgumentsT& args) {
-    // Get previous and next program
-    auto prev_program = planned_program_.get();
-    auto prev_graph = planned_graph_.get();
-    auto next_program = std::make_unique<ProgramInstance>(std::move(volatile_program_text_), std::move(volatile_program_), move(args.parameters));
+/// Instantiate a program with parameters
+Signal Analyzer::InstantiateProgram(proto::analyzer::ProgramParametersT& params) {
+    auto next_program = std::make_unique<ProgramInstance>(std::move(volatile_program_text_), std::move(volatile_program_), move(params.values));
 
-    // XXX Evaluate partially
+    // XXX Analyze the program semantics and evaluate partially with parameters
+
+    // If semantics are ok, replace current program instance
+    program_log_[(program_log_writer_++) & PLANNER_LOG_MASK] = std::move(program_instance_);
+    program_instance_ = move(next_program);
+    return Signal::OK();
+}
+
+/// Evaluate a program
+ExpectedBuffer<proto::analyzer::Plan> Analyzer::PlanProgram() {
+    // Get previous and next program
+    auto prev_program = program_log_.empty() ? nullptr : program_log_.back().get();
+    auto prev_graph = planned_graph_.get();
+    auto next_program = program_instance_.get();
 
     // Plan the action graph
     ActionPlanner action_planner{*next_program, prev_program, prev_graph};
     action_planner.PlanActionGraph();
-    auto next_graph = action_planner.Finish();
-
-    // If successfull, replace currently planned program & graph
-    planner_log_[(planner_log_writer_++) & PLANNER_LOG_MASK] = std::move(planned_program_);
-    planned_program_ = move(next_program);
-    planned_graph_ = move(next_graph);
+    planned_graph_ = action_planner.Finish();
+    planned_program_ = next_program;
 
     // Pack action graph
     flatbuffers::FlatBufferBuilder builder;
     auto graph = proto::action::ActionGraph::Pack(builder, planned_graph_.get());
 
     // Pack parameters
-    std::vector<flatbuffers::Offset<proto::session::ParameterValue>> param_offsets;
-    param_offsets.reserve(planned_program_->parameter_values().size());
-    for (auto& param: planned_program_->parameter_values()) {
-        auto ofs = proto::session::ParameterValue::Pack(builder, param.get());
+    std::vector<flatbuffers::Offset<proto::analyzer::ParameterValue>> param_offsets;
+    param_offsets.reserve(program_instance_->parameter_values().size());
+    for (auto& param: program_instance_->parameter_values()) {
+        auto ofs = proto::analyzer::ParameterValue::Pack(builder, param.get());
         param_offsets.push_back(ofs);
     }
     auto param_vec = builder.CreateVector(param_offsets);
 
     // Pack patch
-    auto& patch = planned_program_->patch();
+    auto& patch = program_instance_->patch();
     auto patch_ofs = proto::syntax::ProgramPatch::Pack(builder, patch.get());
 
     // Encode the plan result
-    proto::session::PlanBuilder plan{builder};
+    proto::analyzer::PlanBuilder plan{builder};
     plan.add_action_graph(graph);
     plan.add_parameters(param_vec);
     plan.add_program_evaluation(patch_ofs);

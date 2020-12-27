@@ -42,6 +42,25 @@ class FFIResponseBuffer {
         proto_buffer_ = {};
     }
 
+    /// Store the signal
+    void Store(FFIResponse& response, Signal&& result) {
+        Clear();
+        if (result) {
+            proto_buffer_ = {};
+            response.statusCode = static_cast<size_t>(StatusCode::SUCCESS);
+            response.dataPtr = 0;
+            response.dataSize = proto_buffer_.size();
+        } else {
+            error_ = result.ReleaseError();
+            auto m = error_->message();
+            m = m == nullptr ? "" : m;
+            proto_buffer_ = {};
+            response.statusCode = static_cast<size_t>(error_->code());
+            response.dataPtr = reinterpret_cast<uintptr_t>(m);
+            response.dataSize = strlen(m);
+        }
+    }
+
     /// Store the packed response
     template <typename T> void Store(FFIResponse& response, ExpectedBuffer<T>&& result) {
         Clear();
