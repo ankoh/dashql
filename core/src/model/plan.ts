@@ -13,10 +13,10 @@ export class Plan {
     /// The program
     _program: Program;
     /// The module
-    _plan: proto.session.Plan;
+    _plan: proto.analyzer.Plan;
 
     /// Constructor
-    public constructor(program: Program, plan: proto.session.Plan = new proto.session.Plan()) {
+    public constructor(program: Program, plan: proto.analyzer.Plan = new proto.analyzer.Plan()) {
         this._program = program;
         this._plan = plan;
     }

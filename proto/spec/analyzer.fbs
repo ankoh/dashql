@@ -4,7 +4,7 @@ include "action.fbs";
 include "syntax.fbs";
 include "syntax_dashql.fbs";
 
-namespace dashql.proto.session;
+namespace dashql.proto.analyzer;
 
 table ParameterValue {
     type: syntax_dashql.ParameterType;
@@ -12,12 +12,8 @@ table ParameterValue {
     value: string;
 }
 
-table ExtractCSV {
-    action_id: uint32;
-}
-
-table PlanArguments {
-    parameters: [ParameterValue];
+table ProgramParameters {
+    values: [ParameterValue];
 }
 
 table Plan {

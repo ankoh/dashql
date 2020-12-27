@@ -8,7 +8,7 @@
 namespace dashql {
 
 /// Constructor
-ProgramInstance::ProgramInstance(std::string_view text, std::shared_ptr<sx::ProgramT> program, std::vector<std::unique_ptr<proto::session::ParameterValueT>> params)
+ProgramInstance::ProgramInstance(std::string_view text, std::shared_ptr<sx::ProgramT> program, std::vector<std::unique_ptr<proto::analyzer::ParameterValueT>> params)
     : program_text_(std::make_shared<std::string>(text)), program_(move(program)), parameter_values_(move(params)), patch_() {
 
     parameter_values_.reserve(program_->statements.size());
@@ -17,7 +17,7 @@ ProgramInstance::ProgramInstance(std::string_view text, std::shared_ptr<sx::Prog
 }
 
 /// Constructor
-ProgramInstance::ProgramInstance(std::shared_ptr<std::string> text, std::shared_ptr<sx::ProgramT> program, std::vector<std::unique_ptr<proto::session::ParameterValueT>> params)
+ProgramInstance::ProgramInstance(std::shared_ptr<std::string> text, std::shared_ptr<sx::ProgramT> program, std::vector<std::unique_ptr<proto::analyzer::ParameterValueT>> params)
     : program_text_(move(text)), program_(move(program)), parameter_values_(move(params)), patch_() {
 
     parameter_values_.reserve(program_->statements.size());
@@ -26,7 +26,7 @@ ProgramInstance::ProgramInstance(std::shared_ptr<std::string> text, std::shared_
 }
 
 /// Find a parameter value
-const proto::session::ParameterValueT* ProgramInstance::FindParameterValue(size_t stmt_id) const {
+const proto::analyzer::ParameterValueT* ProgramInstance::FindParameterValue(size_t stmt_id) const {
     return parameter_values_[stmt_id].get();
 }
 

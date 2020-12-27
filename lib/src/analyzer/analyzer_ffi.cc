@@ -13,18 +13,22 @@ void dashql_analyzer_reset() {
 
 void dashql_analyzer_parse_program(FFIResponse* response, const char* text) {
     FFIResponseBuffer::GetInstance().Clear();
-    auto& analyzer = Analyzer::GetInstance();
-    auto program = analyzer.ParseProgram(text);
+    auto program = Analyzer::GetInstance().ParseProgram(text);
     FFIResponseBuffer::GetInstance().Store(*response, std::move(program));
 }
 
-void dashql_analyzer_plan_program(FFIResponse* response, const void* args_buffer) {
+void dashql_analyzer_instantiate_program(FFIResponse* response, const void* args_buffer) {
     FFIResponseBuffer::GetInstance().Clear();
-    auto& analyzer = Analyzer::GetInstance();
-    auto* args = flatbuffers::GetRoot<proto::session::PlanArguments>(args_buffer);
-    proto::session::PlanArgumentsT unpackedArgs;
+    auto* args = flatbuffers::GetRoot<proto::analyzer::ProgramParameters>(args_buffer);
+    proto::analyzer::ProgramParametersT unpackedArgs;
     args->UnPackTo(&unpackedArgs);
-    auto plan = analyzer.PlanProgram(unpackedArgs);
+    auto signal = Analyzer::GetInstance().InstantiateProgram(unpackedArgs);
+    FFIResponseBuffer::GetInstance().Store(*response, std::move(signal));
+}
+
+void dashql_analyzer_plan_program(FFIResponse* response) {
+    FFIResponseBuffer::GetInstance().Clear();
+    auto plan = Analyzer::GetInstance().PlanProgram();
     FFIResponseBuffer::GetInstance().Store(*response, std::move(plan));
 }
 

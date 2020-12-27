@@ -126,10 +126,10 @@ export abstract class AnalyzerBindings {
         const builder = new flatbuffers.Builder(params.reduce((acc, v) => (acc + v.value.length + 16), 0));
         const paramOfs: flatbuffers.Offset[] = params.map(param => {
             const v = builder.createString(param.value);
-            return proto.session.ParameterValue.create(builder, param.type, param.origin, v);
+            return proto.analyzer.ParameterValue.create(builder, param.type, param.origin, v);
         });
-        const paramVectorOfs = proto.session.PlanArguments.createParametersVector(builder, paramOfs);
-        const args = proto.session.PlanArguments.create(builder, paramVectorOfs);
+        const paramVectorOfs = proto.analyzer.ProgramParameters.createValuesVector(builder, paramOfs);
+        const args = proto.analyzer.ProgramParameters.create(builder, paramVectorOfs);
         builder.finish(args);
 
         // Copy the arguments into the wasm module
@@ -141,7 +141,7 @@ export abstract class AnalyzerBindings {
         // Call the planner function 
         const [ptr, ofs, size] = this.callSRet('dashql_analyzer_plan_program', ['number'], [argsPtr]);
         const mem = this.copyFlatbuffer(instance.HEAPU8.subarray(ptr + ofs, ptr + ofs + size));
-        const plan = proto.session.Plan.getRoot(mem);
+        const plan = proto.analyzer.Plan.getRoot(mem);
         instance.ccall('dashql_clear_response', null, [], []);
         return new Plan(this._program, plan);
     }
