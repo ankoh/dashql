@@ -7,7 +7,7 @@
 
 namespace dashql {
 
-std::unique_ptr<FunctionLogic> Resolve(std::string_view name, nonstd::span<proto::syntax::NodeType> args) {
+std::unique_ptr<FunctionLogic> FunctionLogic::Resolve(std::string_view name, nonstd::span<proto::syntax::NodeType> args) {
     std::cout << "resolve function '" << name << "' with " << args.size() << " arguments";
     return nullptr;
 }
