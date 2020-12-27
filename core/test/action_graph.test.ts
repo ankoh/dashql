@@ -16,6 +16,7 @@ describe('Action Scheduler', () => {
    describe('program actions', () => {
         test('select 1', async () => {
             const program = analyzerBindings.parseProgram("select 1");
+            analyzerBindings.instantiateProgram();
             expect(program.buffer.statementsLength()).toBe(1);
             const plan = analyzerBindings.planProgram();
             const graph = plan!.buffer.actionGraph()!;

@@ -45,6 +45,7 @@ describe('Action Scheduler', () => {
             const plat = new platform.Platform(store, analyzerBindings);
 
             const program = analyzerBindings.parseProgram('SELECT 1 INTO a');
+            analyzerBindings.instantiateProgram();
             const plan = analyzerBindings.planProgram();
             const graph = plan!.buffer.actionGraph()!;
             expect(program.buffer.statementsLength()).toBe(1);
@@ -79,6 +80,7 @@ describe('Action Scheduler', () => {
                 EXTRACT weather FROM weather_csv USING CSV;
                 VIZ weather USING LINE;
             `);
+            analyzerBindings.instantiateProgram();
             const plan = analyzerBindings.planProgram();
             const graph = plan!.buffer.actionGraph()!;
             expect(program.buffer.statementsLength()).toBe(3);
@@ -132,6 +134,7 @@ describe('Action Scheduler', () => {
                 VIZ weather USING TABLE;
                 VIZ weather USING LINE;
             `);
+            analyzerBindings.instantiateProgram();
             const plan = analyzerBindings.planProgram();
             const graph = plan!.buffer.actionGraph()!;
             expect(program.buffer.statementsLength()).toBe(3);
@@ -185,6 +188,7 @@ describe('Action Scheduler', () => {
                 SELECT 1 INTO B;
                 SELECT 1 INTO C;
             `);
+            analyzerBindings.instantiateProgram();
             const plan = analyzerBindings.planProgram();
             const graph = plan!.buffer.actionGraph()!;
             expect(program.buffer.statementsLength()).toBe(3);

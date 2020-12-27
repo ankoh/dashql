@@ -117,12 +117,11 @@ export abstract class AnalyzerBindings {
         return this._program;
     }
 
-    /// Plan a program
-    public planProgram(params: PlanParameter[] = []): Plan | null {
-        if (!this._program) return null;
+    /// Instantiate program
+    public instantiateProgram(params: PlanParameter[] = []): void {
+        if (!this._program) return;
         const instance = this._instance!;
 
-        // Encode the arguments
         const builder = new flatbuffers.Builder(params.reduce((acc, v) => (acc + v.value.length + 16), 0));
         const paramOfs: flatbuffers.Offset[] = params.map(param => {
             const v = builder.createString(param.value);
@@ -139,7 +138,17 @@ export abstract class AnalyzerBindings {
         instance.HEAPU8.set(argsMem, argsPtr);
 
         // Call the planner function 
-        const [ptr, ofs, size] = this.callSRet('dashql_analyzer_plan_program', ['number'], [argsPtr]);
+        this.callSRet('dashql_analyzer_instantiate_program', ['number'], [argsPtr]);
+        instance.ccall('dashql_clear_response', null, [], []);
+    }
+
+    /// Plan a program
+    public planProgram(): Plan | null {
+        if (!this._program) return null;
+        const instance = this._instance!;
+
+        // Call the planner function 
+        const [ptr, ofs, size] = this.callSRet('dashql_analyzer_plan_program', [], []);
         const mem = this.copyFlatbuffer(instance.HEAPU8.subarray(ptr + ofs, ptr + ofs + size));
         const plan = proto.analyzer.Plan.getRoot(mem);
         instance.ccall('dashql_clear_response', null, [], []);
