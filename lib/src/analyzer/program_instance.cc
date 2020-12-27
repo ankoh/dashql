@@ -87,7 +87,7 @@ Expected<std::string> ProgramInstance::RenderStatementText(size_t stmt_id) const
 }
 
 /// Find an attribute
-const sx::Node* ProgramInstance::FindAttribute(const sx::Node& origin, sx::AttributeKey key) {
+const sx::Node* ProgramInstance::FindAttribute(const sx::Node& origin, sx::AttributeKey key) const {
     auto children_begin = origin.children_begin_or_value();
     auto children_count = origin.children_count();
     auto lb = children_begin;
@@ -108,6 +108,16 @@ const sx::Node* ProgramInstance::FindAttribute(const sx::Node& origin, sx::Attri
     }
     auto& n = program_->nodes[lb];
     return (n.attribute_key() == key) ? &n : nullptr;
+}
+
+/// Get the node value as text
+std::optional<std::string_view> ProgramInstance::GetStringValue(const sx::Node& node) const {
+    switch(node.node_type()) {
+        case sx::NodeType::STRING_REF:
+            return TextAt(node.location());
+        default:
+            return std::nullopt;
+    }
 }
 
 }  // namespace dashql
