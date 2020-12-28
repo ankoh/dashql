@@ -450,6 +450,7 @@ export class Statement {
                         currentSchema.value = node.buffer.childrenBeginOrValue();
                         break;
                     case schema.SpecType.STRING_SPEC:
+                        // XXX Patched strings may not be string refs
                         if (node.nodeType == sx.NodeType.STRING_REF) {
                             currentSchema.matching = schema.Matching.MATCHED;
                             currentSchema.value = this.program.textAt(node.buffer.location()!);

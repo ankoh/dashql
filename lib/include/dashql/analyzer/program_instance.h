@@ -6,12 +6,14 @@
 #include <iostream>
 #include <sstream>
 #include <unordered_map>
+#include <vector>
 
+#include "dashql/analyzer/syntax_schema.h"
 #include "dashql/common/enum.h"
 #include "dashql/common/expected.h"
+#include "dashql/common/span.h"
 #include "dashql/proto_generated.h"
 #include "dashql/webdb/webdb.h"
-#include "dashql/common/span.h"
 
 namespace dashql {
 
@@ -70,8 +72,8 @@ class ProgramInstance {
             fn(i, node_id, nodes[node_id]);
         }
     }
-    /// Get a string value (if possible)
-    std::optional<std::string_view> GetStringValue(const sx::Node& node) const;
+    /// Match a schema
+    bool MatchSchema(const sx::Node& node, NodeSchema& schema) const;
 };
 
 }  // namespace dashql

@@ -29,6 +29,13 @@ using RawBuffer = dashql::RawBuffer;
 
 namespace fb = flatbuffers;
 
+struct ConstantNodeValue {
+    /// The node type
+    sx::NodeType node_type;
+    /// The value
+    std::variant<bool, uint32_t, std::string_view> value;
+};
+
 class Analyzer {
    protected:
     /// The volatile program text (if any)
@@ -47,6 +54,9 @@ class Analyzer {
     const ProgramInstance* planned_program_;
     /// The planned graph (if any)
     std::unique_ptr<proto::action::ActionGraphT> planned_graph_;
+
+    /// Evaluate the constant
+    std::optional<ConstantNodeValue> evaluateConstantNode(ProgramInstance& instance, const sx::Node& node) const;
 
    public:
     /// Constructor
