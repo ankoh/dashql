@@ -2,6 +2,7 @@
 
 #include <iomanip>
 #include <sstream>
+#include <stack>
 
 #include "dashql/common/substring_buffer.h"
 
@@ -110,14 +111,108 @@ const sx::Node* ProgramInstance::FindAttribute(const sx::Node& origin, sx::Attri
     return (n.attribute_key() == key) ? &n : nullptr;
 }
 
-/// Get the node value as text
-std::optional<std::string_view> ProgramInstance::GetStringValue(const sx::Node& node) const {
-    switch(node.node_type()) {
-        case sx::NodeType::STRING_REF:
-            return TextAt(node.location());
-        default:
-            return std::nullopt;
+/// Match a schema
+bool ProgramInstance::MatchSchema(const sx::Node& root, NodeSchema& schema) const {
+    bool full_match = true;
+
+    // Init the node refs
+    std::vector<NodeSchema*> init;
+    init.push_back(&schema);
+    while (!init.empty()) {
+        auto* schema = init.back();
+        init.pop_back();
+        if (schema->ref) *schema->ref = schema;
+        for (auto& s: schema->children) {
+            init.push_back(&s);
+        }
     }
+
+    // Use a DFS to match the schema
+    struct Step { const sx::Node& node; NodeSchema& schema; };
+    std::vector<Step> pending;
+    pending.reserve(8);
+    pending.push_back({root, schema});
+
+    while (!pending.empty()) {
+        auto top = pending.back();
+        pending.pop_back();
+        top.schema.node = &top.node;
+
+        // Compare node type
+        if (top.schema.node_type != sx::NodeType::NONE && top.schema.node_type != top.node.node_type()) {
+            top.schema.matching = NodeSchemaMatching::TYPE_MISMATCH;
+            full_match = false;
+            continue;
+        }
+
+        // Match the node spec
+        switch (top.schema.node_spec) {
+            case NodeMatcherType::BOOL:
+                top.schema.matching = NodeSchemaMatching::MATCHED;
+                top.schema.value = top.node.children_begin_or_value() != 0;
+                break;
+            case NodeMatcherType::UI32:
+                top.schema.matching = NodeSchemaMatching::MATCHED;
+                top.schema.value = top.node.children_begin_or_value();
+                break;
+            case NodeMatcherType::STRING:
+                if (top.node.node_type() == sx::NodeType::STRING_REF) {
+                    top.schema.matching = NodeSchemaMatching::MATCHED;
+                    top.schema.value = TextAt(top.node.location());
+                } else {
+                    top.schema.matching = NodeSchemaMatching::MISSING;
+                    full_match = false;
+                }
+                break;
+            case NodeMatcherType::ENUM:
+                top.schema.matching = NodeSchemaMatching::MATCHED;
+                top.schema.value = top.node.children_begin_or_value();
+                break;
+            case NodeMatcherType::ARRAY: {
+                top.schema.matching = NodeSchemaMatching::MATCHED;
+                auto visit = std::min<size_t>(top.node.children_count(), top.schema.children.size());
+                auto unmatched = top.schema.children.size() - visit;
+                auto base = top.node.children_begin_or_value();
+                for (unsigned i = 0; i < visit; ++i) {
+                    pending.push_back({program_->nodes[base + i], top.schema.children[i]});
+                }
+                for (unsigned i = 0; i < unmatched; ++i) {
+                    top.schema.children[visit + i].matching = NodeSchemaMatching::MISSING;
+                    full_match = false;
+                }
+                break;
+            }
+            case NodeMatcherType::OBJECT: {
+                top.schema.matching = NodeSchemaMatching::MATCHED;
+                nonstd::span<const sx::Node> children{program_->nodes.data() + top.node.children_begin_or_value(), top.node.children_count()};
+                assert(std::is_sorted(children.begin(), children.end(), [](auto& l, auto& r) {
+                    return l.attribute_key() < r.attribute_key();
+                }));
+                size_t h = 0, e = 0;
+                while (h < children.size() && e < top.schema.children.size()) {
+                    auto& have = children[h];
+                    auto& expected = top.schema.children[e];
+                    if (have.attribute_key() < expected.attribute_key) {
+                        ++h;
+                    } else if (have.attribute_key() > expected.attribute_key) {
+                        expected.matching = NodeSchemaMatching::MISSING;
+                        full_match = false;
+                        ++e;
+                    } else {
+                        pending.push_back({have, expected});
+                        ++h;
+                        ++e;
+                    }
+                }
+                for (; e < top.schema.children.size(); ++e) {
+                    top.schema.children[e].matching = NodeSchemaMatching::MISSING;
+                    full_match = false;
+                }
+                break;
+            }
+        }
+    }
+    return full_match;
 }
 
 }  // namespace dashql
