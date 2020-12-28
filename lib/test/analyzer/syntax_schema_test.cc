@@ -25,24 +25,23 @@ TEST(NodeSchemaTest, LoadStatement) {
     auto program = parser::ParserDriver::Parse(txt);
     ASSERT_EQ(program->statements.size(), 1);
     ProgramInstance instance{txt, move(program)};
-    auto stmt_root = instance.program().statements[0]->root_node;
-    auto& stmt_node = instance.program().nodes[stmt_root];
 
     NodeSchema *load_stmt = nullptr;
     NodeSchema *load_method = nullptr;
     NodeSchema *stmt_name = nullptr;
     NodeSchema *url_value = nullptr;
-
     auto schema = NodeSchema::Object(N::OBJECT_DASHQL_LOAD, {
-        NodeSchema::Enum(N::ENUM_DASHQL_LOAD_METHOD_TYPE, K::DASHQL_LOAD_METHOD, &load_method),
+        NodeSchema::Enum(K::DASHQL_LOAD_METHOD, N::ENUM_DASHQL_LOAD_METHOD_TYPE, &load_method),
         NodeSchema::Array(K::DASHQL_STATEMENT_NAME, {
             NodeSchema::String(&stmt_name)
         }),
-        NodeSchema::Object(N::OBJECT_SQL_CONST, K::DASHQL_OPTION_URL, {
-            NodeSchema::Enum(N::ENUM_SQL_CONST_TYPE, K::SQL_CONST_TYPE),
+        NodeSchema::Object(K::DASHQL_OPTION_URL, N::OBJECT_SQL_CONST, {
+            NodeSchema::Enum(K::SQL_CONST_TYPE, N::ENUM_SQL_CONST_TYPE),
             NodeSchema::String(K::SQL_CONST_VALUE, &url_value)
         })
     }, &load_stmt);
+    auto stmt_root = instance.program().statements[0]->root_node;
+    auto& stmt_node = instance.program().nodes[stmt_root];
     instance.MatchSchema(stmt_node, schema);
 
     ASSERT_EQ(stmt_node.node_type(), N::OBJECT_DASHQL_LOAD);
@@ -53,6 +52,12 @@ TEST(NodeSchemaTest, LoadStatement) {
     ASSERT_TRUE(!!url_value);
     ASSERT_EQ(load_stmt->matching, NodeSchemaMatching::MATCHED);
     ASSERT_EQ(load_method->matching, NodeSchemaMatching::MATCHED);
+    ASSERT_EQ(stmt_name->matching, NodeSchemaMatching::MATCHED);
+    ASSERT_EQ(url_value->matching, NodeSchemaMatching::MATCHED);
+    ASSERT_TRUE(std::holds_alternative<std::string_view>(stmt_name->value));
+    ASSERT_EQ(std::get<std::string_view>(stmt_name->value), "weather_csv");
+    ASSERT_TRUE(std::holds_alternative<std::string_view>(url_value->value));
+    ASSERT_EQ(std::get<std::string_view>(url_value->value), "'https://localhost/test'");
 }
 
 }

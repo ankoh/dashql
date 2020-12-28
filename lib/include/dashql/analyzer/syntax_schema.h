@@ -53,7 +53,7 @@ struct NodeSchema {
     /// Create an object
     static NodeSchema Object(sx::NodeType node, std::vector<NodeSchema> children = {}, NodeSchema** ref = nullptr);
     /// Create an object
-    static NodeSchema Object(sx::NodeType node, sx::AttributeKey key, std::vector<NodeSchema> children = {}, NodeSchema** ref = nullptr);
+    static NodeSchema Object(sx::AttributeKey key, sx::NodeType node, std::vector<NodeSchema> children = {}, NodeSchema** ref = nullptr);
     /// Create an array
     static NodeSchema Array(sx::AttributeKey key = sx::AttributeKey::NONE, std::vector<NodeSchema> children = {}, NodeSchema** ref = nullptr);
     /// Create a string
@@ -63,7 +63,7 @@ struct NodeSchema {
     /// Create a boolean
     static NodeSchema Bool(sx::AttributeKey key = sx::AttributeKey::NONE, NodeSchema** ref = nullptr);
     /// Create an enum
-    static NodeSchema Enum(sx::NodeType type, sx::AttributeKey key = sx::AttributeKey::NONE, NodeSchema** ref = nullptr);
+    static NodeSchema Enum(sx::AttributeKey key, sx::NodeType type, NodeSchema** ref = nullptr);
     /// Create an integer
     static NodeSchema UI32(sx::AttributeKey key = sx::AttributeKey::NONE, NodeSchema** ref = nullptr);
 };
