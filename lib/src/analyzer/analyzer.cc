@@ -105,8 +105,8 @@ Signal Analyzer::InstantiateProgram(proto::analyzer::ProgramParametersT& params)
             // Match a schema
             NodeSchema *func_name = nullptr, *func_args = nullptr;
             auto schema = NodeSchema::Object(sx::NodeType::OBJECT_DASHQL_FUNCTION_CALL, {
-                NodeSchema::Array(sx::AttributeKey::SQL_FUNCTION_NAME, {}, &func_name),
-                NodeSchema::String(sx::AttributeKey::SQL_FUNCTION_ARGUMENTS, &func_args),
+                {sx::AttributeKey::SQL_FUNCTION_NAME, NodeSchema::Array({}, &func_name)},
+                {sx::AttributeKey::SQL_FUNCTION_ARGUMENTS, NodeSchema::String(&func_args)},
             });
             next_instance->MatchSchema(func_node, schema);
 
