@@ -11,8 +11,8 @@
 
 using namespace std;
 using namespace dashql;
-using N = sx::NodeType;
-using K = sx::AttributeKey;
+using NODE = sx::NodeType;
+using KEY = sx::AttributeKey;
 
 namespace {
 
@@ -30,21 +30,21 @@ TEST(NodeSchemaTest, LoadStatement) {
     NodeSchema *load_method = nullptr;
     NodeSchema *stmt_name = nullptr;
     NodeSchema *url_value = nullptr;
-    auto schema = NodeSchema::Object(N::OBJECT_DASHQL_LOAD, {
-        NodeSchema::Enum(K::DASHQL_LOAD_METHOD, N::ENUM_DASHQL_LOAD_METHOD_TYPE, &load_method),
-        NodeSchema::Array(K::DASHQL_STATEMENT_NAME, {
+    auto schema = NodeSchema::Object(NODE::OBJECT_DASHQL_LOAD, {
+        {KEY::DASHQL_LOAD_METHOD,  NodeSchema::Enum(NODE::ENUM_DASHQL_LOAD_METHOD_TYPE, &load_method)},
+        {KEY::DASHQL_STATEMENT_NAME, NodeSchema::Array({
             NodeSchema::String(&stmt_name)
-        }),
-        NodeSchema::Object(K::DASHQL_OPTION_URL, N::OBJECT_SQL_CONST, {
-            NodeSchema::Enum(K::SQL_CONST_TYPE, N::ENUM_SQL_CONST_TYPE),
-            NodeSchema::String(K::SQL_CONST_VALUE, &url_value)
-        })
+        })},
+        {KEY::DASHQL_OPTION_URL, NodeSchema::Object(NODE::OBJECT_SQL_CONST, {
+            {KEY::SQL_CONST_TYPE,  NodeSchema::Enum(NODE::ENUM_SQL_CONST_TYPE)},
+            {KEY::SQL_CONST_VALUE, NodeSchema::String(&url_value)}
+        })}
     }, &load_stmt);
     auto stmt_root = instance.program().statements[0]->root_node;
     auto& stmt_node = instance.program().nodes[stmt_root];
     instance.MatchSchema(stmt_node, schema);
 
-    ASSERT_EQ(stmt_node.node_type(), N::OBJECT_DASHQL_LOAD);
+    ASSERT_EQ(stmt_node.node_type(), NODE::OBJECT_DASHQL_LOAD);
 
     ASSERT_TRUE(!!load_stmt);
     ASSERT_TRUE(!!load_method);
