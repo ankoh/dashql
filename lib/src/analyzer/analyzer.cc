@@ -33,6 +33,23 @@ void Analyzer::ResetInstance() {
     analyzer_instance.reset();
 }
 
+/// Evaluate a constant node value
+std::optional<ConstantNodeValue> Analyzer::evaluateConstantNode(ProgramInstance& instance, const sx::Node& node) const {
+    // switch (node.node_type()) {
+    //     case sx::NodeType::OBJECT_SQL_CONST: {
+    //         const Node* constValue = nullptr;
+    //         const Node* constType = nullptr;
+    //         instance.IterateChildren(node, [&](auto idx, auto node_id, const sx::Node& child) {
+    //             switch (child.attribute_key()) {
+    //             case sx::AttributeKey::SQL_CONST_TYPE:
+    //                 break;
+    //             }
+    //         });
+    //         break;
+    //     }
+    // }
+}
+
 /// Constructor
 Analyzer::Analyzer() : volatile_program_text_(), volatile_program_(), program_instance_(), program_log_(), program_log_writer_(), planned_program_(nullptr), planned_graph_() {
     program_log_.reserve(PLANNER_LOG_SIZE);
@@ -56,7 +73,7 @@ ExpectedBuffer<proto::syntax::Program> Analyzer::ParseProgram(std::string_view t
 /// Instantiate a program with parameters
 Signal Analyzer::InstantiateProgram(proto::analyzer::ProgramParametersT& params) {
     // Create program instance
-    auto next_instance = std::make_unique<ProgramInstance>(std::move(volatile_program_text_), std::move(volatile_program_), move(params.values));
+    auto next_instance = std::make_unique<ProgramInstance>(volatile_program_text_, volatile_program_, move(params.values));
     auto& program = next_instance->program();
     auto& parameter_values = next_instance->parameter_values();
 
@@ -85,25 +102,16 @@ Signal Analyzer::InstantiateProgram(proto::analyzer::ProgramParametersT& params)
         if (parent_node.attribute_key() == sx::AttributeKey::SQL_FUNCTION_ARGUMENTS)  {
             auto& func_node = program.nodes[parent_node.parent()];
 
-            // Get function name
-            auto* func_name_node = next_instance->FindAttribute(func_node, sx::AttributeKey::SQL_FUNCTION_NAME);
-            assert(!!func_name_node);
-            auto func_name = next_instance->GetStringValue(*func_name_node);
-            assert(!!func_name);
-
-            // Collect argument types
-            auto& func_args_node = parent_node;
-            std::vector<sx::NodeType> arg_types;
-            arg_types.resize(func_args_node.children_count(), sx::NodeType::NONE);
-            next_instance->IterateChildren(func_args_node, [&](auto idx, auto node_id, const auto& node) {
-                arg_types[idx] = node.node_type();
+            // Match a schema
+            NodeSchema *func_name = nullptr, *func_args = nullptr;
+            auto schema = NodeSchema::Object(sx::NodeType::OBJECT_DASHQL_FUNCTION_CALL, {
+                NodeSchema::Array(sx::AttributeKey::SQL_FUNCTION_NAME, {}, &func_name),
+                NodeSchema::String(sx::AttributeKey::SQL_FUNCTION_ARGUMENTS, &func_args),
             });
+            next_instance->MatchSchema(func_node, schema);
 
-            // Resolve function logic
-            auto logic = FunctionLogic::Resolve(*func_name, arg_types);
-            if (!logic) {
-                // XXX Could not resolve a function logic for the column ref, tell the user
-            }
+            // Get text of function name
+            auto func_name_text = next_instance->TextAt(func_name->node->location());
 
             // XXX Evaluate the function and emit the node patch
         }

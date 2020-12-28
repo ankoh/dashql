@@ -266,6 +266,7 @@ add_library(dashql_analyzer
     ${CMAKE_SOURCE_DIR}/src/analyzer/function_logic.cc
     ${CMAKE_SOURCE_DIR}/src/analyzer/program_instance.cc
     ${CMAKE_SOURCE_DIR}/src/analyzer/program_matcher.cc
+    ${CMAKE_SOURCE_DIR}/src/analyzer/syntax_schema.cc
 )
 
 add_library(dashql_webdb
@@ -363,6 +364,7 @@ endif()
 if(NOT EMSCRIPTEN)
     add_executable(tester
         ${CMAKE_SOURCE_DIR}/test/analyzer/program_matcher_test.cc
+        ${CMAKE_SOURCE_DIR}/test/analyzer/syntax_schema_test.cc
         ${CMAKE_SOURCE_DIR}/test/common/pod_vector_test.cc
         ${CMAKE_SOURCE_DIR}/test/common/substring_buffer_test.cc
         ${CMAKE_SOURCE_DIR}/test/common/topological_sort_test.cc
