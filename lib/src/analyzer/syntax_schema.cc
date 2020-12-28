@@ -24,7 +24,7 @@ NodeSchema NodeSchema::Object(sx::NodeType node, std::vector<NodeSchema> childre
     };
 }
 
-NodeSchema NodeSchema::Object(sx::NodeType node, sx::AttributeKey key, std::vector<NodeSchema> children, NodeSchema** ref) {
+NodeSchema NodeSchema::Object(sx::AttributeKey key, sx::NodeType node, std::vector<NodeSchema> children, NodeSchema** ref) {
     std::sort(children.begin(), children.end(), [&](auto& l, auto& r) {
         return l.attribute_key < r.attribute_key;
     });
@@ -95,7 +95,7 @@ NodeSchema NodeSchema::Bool(sx::AttributeKey key, NodeSchema** ref) {
     };
 }
 
-NodeSchema NodeSchema::Enum(sx::NodeType type, sx::AttributeKey key, NodeSchema** ref) {
+NodeSchema NodeSchema::Enum(sx::AttributeKey key, sx::NodeType type, NodeSchema** ref) {
     return {
         .matching = NodeSchemaMatching::MISSING,
         .node_spec = NodeMatcherType::ENUM,
