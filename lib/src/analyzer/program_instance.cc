@@ -1,4 +1,5 @@
 #include "dashql/analyzer/program_instance.h"
+#include "dashql/common/variant.h"
 
 #include <iomanip>
 #include <sstream>
@@ -22,7 +23,40 @@ ConstantValue::ConstantValue(std::string_view value)
     : constant_type(sxs::AConstType::STRING), value(value) {}
 /// Constructor
 ConstantValue::ConstantValue(std::string value)
-    : constant_type(sxs::AConstType::STRING), value(value) {}
+    : constant_type(sxs::AConstType::STRING), value(move(value)) {}
+
+/// Get the value as integer
+int64_t ConstantValue::AsInteger() const {
+    return std::visit(overload {
+        [](int64_t v) { return v; },
+        [](double v) { return static_cast<int64_t>(v); },
+        [](std::string_view v) { return static_cast<int64_t>(0); },
+        [](std::string& v) { return static_cast<int64_t>(0); },
+        [](std::monostate v) { return static_cast<int64_t>(0); }
+    }, value);
+}
+
+/// Get the value as double
+double ConstantValue::AsDouble() const {
+    return std::visit(overload {
+        [](int64_t v) { return static_cast<double>(v); },
+        [](double v) { return v; },
+        [](std::string_view v) { return static_cast<double>(0); },
+        [](std::string& v) { return static_cast<double>(0); },
+        [](std::monostate v) { return static_cast<double>(0); }
+    }, value);
+}
+
+/// Get the value as string ref
+std::string_view ConstantValue::AsStringRef() const {
+    return std::visit(overload {
+        [](int64_t v) { return std::string_view{""}; },
+        [](double v) { return std::string_view{""}; },
+        [](std::string_view v) { return v; },
+        [](std::string& v) { return std::string_view{v}; },
+        [](std::monostate v) { return std::string_view{""}; }
+    }, value);
+}
 
 /// Constructor
 ProgramInstance::ProgramInstance(std::shared_ptr<std::string> text, std::shared_ptr<sx::ProgramT> program, std::vector<std::unique_ptr<proto::analyzer::ParameterValueT>> params)

@@ -35,6 +35,15 @@ struct ConstantValue {
     ConstantValue(std::string_view value);
     /// Constructor
     ConstantValue(std::string value);
+
+    /// Get the type
+    auto GetType() const { return constant_type; }
+    /// Get the integer
+    int64_t AsInteger() const;
+    /// Get the double
+    double AsDouble() const;
+    /// Get the value as string
+    std::string_view AsStringRef() const;
 };
 
 /// A program instance.
