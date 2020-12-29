@@ -73,6 +73,7 @@ find_package(Python3 COMPONENTS Interpreter REQUIRED)
 set(DUCKDB_SOURCE_DIR "${CMAKE_SOURCE_DIR}/../submodules/duckdb")
 set(DUCKDB_INCLUDE_DIR "${DUCKDB_SOURCE_DIR}/src/include")
 set(DUCKDB_UTF8PROC_INCLUDE_DIR "${DUCKDB_SOURCE_DIR}/third_party/utf8proc/include")
+set(DUCKDB_FMT_INCLUDE_DIR "${DUCKDB_SOURCE_DIR}/third_party/fmt/include")
 set(DUCKDB_AMALGAMATION "${DUCKDB_SOURCE_DIR}/src/amalgamation/duckdb.cpp")
 
 add_custom_command(OUTPUT ${DUCKDB_AMALGAMATION}
@@ -84,6 +85,7 @@ add_library(duckdb ${DUCKDB_AMALGAMATION})
 target_compile_options(duckdb PRIVATE -DDUCKDB_NO_THREADS=1)
 set_property(TARGET duckdb APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${DUCKDB_INCLUDE_DIR})
 set_property(TARGET duckdb APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${DUCKDB_UTF8PROC_INCLUDE_DIR})
+set_property(TARGET duckdb APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${DUCKDB_FMT_INCLUDE_DIR})
 
 # ---------------------------------------------------------------------------
 # Proto
@@ -284,8 +286,8 @@ add_library(dashql_test
 )
 
 target_link_libraries(dashql_common dashql_proto flatbuffers spdlog)
-target_link_libraries(dashql_extract dashql_proto flatbuffers spdlog)
-target_link_libraries(dashql_analyzer dashql_parser dashql_common dashql_proto spdlog)
+target_link_libraries(dashql_extract dashql_proto flatbuffers spdlog duckdb)
+target_link_libraries(dashql_analyzer dashql_parser dashql_common dashql_proto spdlog duckdb)
 target_link_libraries(dashql_webdb dashql_extract dashql_common dashql_proto duckdb spdlog)
 target_link_libraries(dashql_test dashql_webdb dashql_analyzer dashql_common dashql_proto pugixml gtest duckdb)
 
@@ -363,6 +365,7 @@ endif()
 
 if(NOT EMSCRIPTEN)
     add_executable(tester
+        ${CMAKE_SOURCE_DIR}/test/analyzer/function_logic_test.cc
         ${CMAKE_SOURCE_DIR}/test/analyzer/program_matcher_test.cc
         ${CMAKE_SOURCE_DIR}/test/analyzer/syntax_matcher_test.cc
         ${CMAKE_SOURCE_DIR}/test/common/pod_vector_test.cc

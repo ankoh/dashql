@@ -6,17 +6,22 @@
 #include <memory>
 #include <string_view>
 
+#include "dashql/analyzer/program_instance.h"
+#include "dashql/common/expected.h"
 #include "dashql/common/span.h"
 #include "dashql/proto_generated.h"
 
 namespace dashql {
 
 class FunctionLogic {
-   protected:
-
    public:
+    /// Destructor
+    virtual ~FunctionLogic() = default;
+    /// Evaluate the function
+    virtual Expected<ConstantValue> Evaluate(nonstd::span<ConstantValue> args = {}) = 0;
+
     /// Resolve function logic
-    static std::unique_ptr<FunctionLogic> Resolve(std::string_view name, nonstd::span<proto::syntax::NodeType> args);
+    static std::unique_ptr<FunctionLogic> Resolve(std::string_view name, nonstd::span<proto::syntax_sql::AConstType> args);
 };
 
 }  // namespace dashql

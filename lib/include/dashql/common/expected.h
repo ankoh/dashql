@@ -11,7 +11,17 @@
 
 namespace dashql {
 
-enum class ErrorCode { INTERNAL_ERROR, INVALID_REQUEST, QUERY_FAILED, TABLEGEN_INVALID_INPUT_INDEX, TABLEGEN_CIRCULAR_DEPENDENCY, NOT_IMPLEMENTED, CSV_PARSER_ERROR };
+enum class ErrorCode {
+    CSV_PARSER_ERROR,
+    FORMAT_FAILED,
+    FORMAT_INVALID_INPUT,
+    INTERNAL_ERROR,
+    INVALID_REQUEST,
+    NOT_IMPLEMENTED,
+    QUERY_FAILED,
+    TABLEGEN_CIRCULAR_DEPENDENCY,
+    TABLEGEN_INVALID_INPUT_INDEX,
+};
 
 struct Error {
     /// The error code
@@ -26,36 +36,36 @@ struct Error {
     /// Constructor
     Error(ErrorCode code, const char *msg) : code_(code), message_(msg), message_buffer_() {}
     /// Constructor
-    Error(ErrorCode code, std::string msg) : code_(code), message_buffer_(move(msg)), message_(message_buffer_.c_str()) {}
+    Error(ErrorCode code, std::string msg)
+        : code_(code), message_buffer_(move(msg)), message_(message_buffer_.c_str()) {}
 
     /// Get the status code
     auto code() const { return code_; }
     /// Get the message
     auto *message() const { return message_; }
 
-    Error& operator<<(const std::string& v) {
+    Error &operator<<(const std::string &v) {
         message_buffer_ += v;
         message_ = message_buffer_.c_str();
         return *this;
     }
-    Error& operator<<(const char* v) {
+    Error &operator<<(const char *v) {
         message_buffer_ += v;
         message_ = message_buffer_.c_str();
         return *this;
     }
-    Error& operator<<(uint32_t v) {
+    Error &operator<<(uint32_t v) {
         message_buffer_ += std::to_string(v);
         message_ = message_buffer_.c_str();
         return *this;
     }
 };
 
-template <typename Context>
-class ErrorBuilder {
+template <typename Context> class ErrorBuilder {
    protected:
-    using Callback = void(*)(Context*, Error&&);
+    using Callback = void (*)(Context *, Error &&);
     /// The state
-    Context* context_;
+    Context *context_;
     /// The error code
     ErrorCode error_code_;
     /// Ingore the error messages?
@@ -67,24 +77,24 @@ class ErrorBuilder {
 
    public:
     /// Constructor
-    ErrorBuilder(ErrorCode code, bool ignore, Context* context, Callback callback)
+    ErrorBuilder(ErrorCode code, bool ignore, Context *context, Callback callback)
         : error_code_(code), ignore_(ignore), context_(context), callback_(callback) {}
     /// Destructor
     ~ErrorBuilder() {
         if (!ignore_) callback_(context_, Error{error_code_, error_message_.str()});
     }
 
-    ErrorBuilder& operator<<(const std::string& v) {
+    ErrorBuilder &operator<<(const std::string &v) {
         if (ignore_) return *this;
         error_message_ << v;
         return *this;
     }
-    ErrorBuilder& operator<<(const char* v) {
+    ErrorBuilder &operator<<(const char *v) {
         if (ignore_) return *this;
         error_message_ << v;
         return *this;
     }
-    ErrorBuilder& operator<<(uint32_t v) {
+    ErrorBuilder &operator<<(uint32_t v) {
         if (ignore_) return *this;
         error_message_ << v;
         return *this;
@@ -184,9 +194,9 @@ template <typename V> struct ExpectedBuffer {
 
 template <typename V> struct ExpectedBufferRef {
     /// The data
-    std::variant<const flatbuffers::DetachedBuffer*, Error> data_;
+    std::variant<const flatbuffers::DetachedBuffer *, Error> data_;
     /// Constructor
-    ExpectedBufferRef(const flatbuffers::DetachedBuffer& data) : data_(&data) {}
+    ExpectedBufferRef(const flatbuffers::DetachedBuffer &data) : data_(&data) {}
     /// Constructor
     ExpectedBufferRef(Error &&e) : data_(std::move(e)) {}
     /// Constructor
@@ -194,13 +204,13 @@ template <typename V> struct ExpectedBufferRef {
     /// Constructor
     template <typename... T> ExpectedBufferRef(ErrorCode code, T... vs) : data_(Error{code, vs...}) {}
     /// Is ok?
-    auto IsOk() const { return std::holds_alternative<const flatbuffers::DetachedBuffer*>(data_); }
+    auto IsOk() const { return std::holds_alternative<const flatbuffers::DetachedBuffer *>(data_); }
     /// Is an error?
     auto IsErr() const { return std::holds_alternative<Error>(data_); }
     /// Get the result
     auto &value() const {
         assert(IsOk());
-        auto buffer = std::get<const flatbuffers::DetachedBuffer*>(data_);
+        auto buffer = std::get<const flatbuffers::DetachedBuffer *>(data_);
         return *flatbuffers::GetRoot<V>(buffer->data());
     }
     /// Get the error
@@ -214,8 +224,8 @@ template <typename V> struct ExpectedBufferRef {
     auto &operator*() const { return value(); }
     /// Get the buffer
     nonstd::span<const char> GetBuffer() {
-        auto buffer = std::get<const flatbuffers::DetachedBuffer*>(data_);
-        return {reinterpret_cast<const char*>(buffer->data()), buffer->size()};
+        auto buffer = std::get<const flatbuffers::DetachedBuffer *>(data_);
+        return {reinterpret_cast<const char *>(buffer->data()), buffer->size()};
     }
     /// Get buffer
     auto &&ReleaseError() {

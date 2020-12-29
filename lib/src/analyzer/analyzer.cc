@@ -41,7 +41,7 @@ std::optional<ConstantValue> Analyzer::TryEvaluateConstant(ProgramInstance& inst
     if (auto iter = instance.evaluated_nodes_.find(node_id); iter != instance.evaluated_nodes_.end()) {
         return iter->second;
     }
-    auto node = instance.program().nodes[node_id];
+    auto& node = instance.program().nodes[node_id];
 
     // Try to match a simple SQL constant.
     // XXX We might need to match more cases here as the grammar evolves.
@@ -151,6 +151,7 @@ void Analyzer::PropagateParameterValues(ProgramInstance& instance) {
                         .MatchString(),
                 ));
             // clang-format on
+
             auto& func_node = program.nodes[parent_node.parent()];
             std::array<NodeMatching, 2> matches;
             if (schema.Match(instance, func_node, matches)) {
@@ -163,27 +164,25 @@ void Analyzer::PropagateParameterValues(ProgramInstance& instance) {
                 for (unsigned i = 0; i < func_args_node->children_count(); ++i) {
                     auto arg_node_id = func_args_node->children_begin_or_value() + i;
                     auto arg_value = TryEvaluateConstant(instance, arg_node_id);
-
-                    // Failed to evaluate as constant?
-                    // We cannot evaluate the function, abort.
                     if (!arg_value) break;
-
-                    // Collect the function arguments
                     func_args.push_back(*arg_value);
                 }
 
                 // Are all function arguments const?
-                if (func_args.size() == func_args_node->children_count()) {
-                    // Try to resolve the appropriate function logic
+                if (func_args.size() != func_args_node->children_count()) continue;
 
+                // Collect arg types
+                std::vector<proto::syntax_sql::AConstType> func_arg_types;
+                func_arg_types.reserve(func_args.size());
+                for (auto arg: func_args) {
+                    func_arg_types.push_back(arg.constant_type);
                 }
+                auto logic = FunctionLogic::Resolve(func_name, func_arg_types);
+                if (!logic) continue;
+
+                // Evaluate the function
             }
         }
-
-
-        // XXX Otherwise just replace the whole column ref.
-
-
     }
 }
 
