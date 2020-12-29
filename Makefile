@@ -66,6 +66,11 @@ lib_tests: lib
 lib_testgen: lib
 	${LIB_DEBUG_DIR}/testgen ${LIB_SOURCE_DIR}
 
+# Debug the library
+.PHONY: lib_debug
+lib_debug: lib
+	lldb --args ${LIB_DEBUG_DIR}/tester ${LIB_SOURCE_DIR}
+
 # Build the dashql_core javascript library
 .PHONY: core
 core:
