@@ -1,6 +1,74 @@
 #include "dashql/analyzer/syntax_matcher.h"
+#include "dashql/common/variant.h"
+
+#include <streambuf>
+#include <istream>
+
+struct membuf: std::streambuf {
+    membuf(char const* base, size_t size) {
+        char* p(const_cast<char*>(base));
+        this->setg(p, p, p + size);
+    }
+};
+struct imemstream: virtual membuf, std::istream {
+    imemstream(char const* base, size_t size)
+        : membuf(base, size)
+        , std::istream(static_cast<std::streambuf*>(this)) {
+    }
+};
 
 namespace dashql {
+
+// Return as string ref
+std::string_view NodeMatching::ValueAsStringRef() const {
+    return std::visit(overload {
+        [](std::string_view arg) { return arg; },
+        [](auto arg) { return std::string_view{""}; },
+    }, value);
+}
+
+// Return as string
+std::string NodeMatching::ValueAsString() const {
+    return std::visit(overload {
+        [](bool arg) { return std::to_string(arg); },
+        [](double arg) { return std::to_string(arg); },
+        [](uint32_t arg) { return std::to_string(arg); },
+        [](std::string_view arg) { return std::string{arg}; },
+        [](auto arg) { return std::string{""}; },
+    }, value);
+}
+
+// Return as string
+int64_t NodeMatching::ValueAsI64() const {
+    return std::visit(overload {
+        [](bool arg) { return static_cast<int64_t>(arg); },
+        [](double arg) { return static_cast<int64_t>(arg); },
+        [](uint32_t arg) { return static_cast<int64_t>(arg); },
+        [](std::string_view arg) {
+            int64_t value;
+            imemstream ss{arg.data(), arg.size()};
+            ss >> value;
+            return value;
+        },
+        [](auto arg) { return 0ll; },
+    }, value);
+}
+
+// Return as double
+double NodeMatching::ValueAsDouble() const {
+    return std::visit(overload {
+        [](bool arg) { return static_cast<double>(arg); },
+        [](double arg) { return arg; },
+        [](uint32_t arg) { return static_cast<double>(arg); },
+        [](std::string_view arg) {
+            double value;
+            imemstream ss{arg.data(), arg.size()};
+            ss >> value;
+            return value;
+        },
+        [](auto arg) { return 0.0; },
+    }, value);
+}
 
 /// Match a matcher
 bool SyntaxMatcher::Match(const ProgramInstance& program, const sx::Node& root, nonstd::span<NodeMatching> out) const {

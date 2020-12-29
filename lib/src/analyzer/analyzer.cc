@@ -3,6 +3,7 @@
 #include "dashql/analyzer/analyzer.h"
 
 #include "dashql/analyzer/action_planner.h"
+#include "dashql/analyzer/syntax_matcher.h"
 #include "dashql/analyzer/function_logic.h"
 #include "dashql/parser/parser_driver.h"
 #include "dashql/proto_generated.h"
@@ -11,6 +12,7 @@
 using namespace dashql;
 namespace fb = flatbuffers;
 namespace sx = proto::syntax;
+namespace sxs = proto::syntax_sql;
 
 namespace dashql {
 
@@ -19,6 +21,22 @@ static constexpr size_t PLANNER_LOG_MASK = PLANNER_LOG_SIZE - 1;
 static_assert((PLANNER_LOG_SIZE & PLANNER_LOG_MASK) == 0, "PLANNER_LOG_SIZE must be a power of 2");
 
 static std::unique_ptr<Analyzer> analyzer_instance = nullptr;
+
+/// Constructor
+ConstantValue::ConstantValue()
+    : constant_type(sxs::AConstType::NULL_), value(std::monostate{}) {}
+/// Constructor
+ConstantValue::ConstantValue(sxs::AConstType type, bool value)
+    : constant_type(type), value(value) {}
+/// Constructor
+ConstantValue::ConstantValue(sxs::AConstType type, int64_t value)
+    : constant_type(type), value(value) {}
+/// Constructor
+ConstantValue::ConstantValue(sxs::AConstType type, double value)
+    : constant_type(type), value(value) {}
+/// Constructor
+ConstantValue::ConstantValue(sxs::AConstType type, std::string_view value)
+    : constant_type(type), value(value) {}
 
 /// Get the static webdb instance
 Analyzer& Analyzer::GetInstance() {
@@ -34,20 +52,36 @@ void Analyzer::ResetInstance() {
 }
 
 /// Evaluate a constant node value
-std::optional<ConstantNodeValue> Analyzer::evaluateConstantNode(ProgramInstance& instance, const sx::Node& node) const {
-    // switch (node.node_type()) {
-    //     case sx::NodeType::OBJECT_SQL_CONST: {
-    //         const Node* constValue = nullptr;
-    //         const Node* constType = nullptr;
-    //         instance.IterateChildren(node, [&](auto idx, auto node_id, const sx::Node& child) {
-    //             switch (child.attribute_key()) {
-    //             case sx::AttributeKey::SQL_CONST_TYPE:
-    //                 break;
-    //             }
-    //         });
-    //         break;
-    //     }
-    // }
+std::optional<ConstantValue> Analyzer::TryEvaluateConstant(ProgramInstance& instance, const sx::Node& node) const {
+    // Catch simple case
+
+    // clang-format off
+    auto schema = sxm::Element()
+        .MatchObject(sx::NodeType::OBJECT_SQL_CONST)
+        .MatchChildren(NODE_MATCHERS(
+            sxm::Attribute(sx::AttributeKey::SQL_CONST_TYPE, 0)
+                .MatchEnum(sx::NodeType::ENUM_SQL_CONST_TYPE),
+            sxm::Attribute(sx::AttributeKey::SQL_CONST_VALUE, 1)
+                .MatchString(),
+        ));
+    // clang-format on
+    std::array<NodeMatching, 2> matches;
+    if (schema.Match(instance, node, matches)) {
+        auto type = matches[0].ValueAsEnum<proto::syntax_sql::AConstType>();
+        switch (type) {
+            case proto::syntax_sql::AConstType::INTEGER:
+                return ConstantValue{type, matches[1].ValueAsI64()};
+            case proto::syntax_sql::AConstType::FLOAT:
+                return ConstantValue{type, matches[1].ValueAsDouble()};
+            case proto::syntax_sql::AConstType::STRING:
+                return ConstantValue{type, matches[1].ValueAsString()};
+            case proto::syntax_sql::AConstType::BITSTRING:
+                return ConstantValue{type, matches[1].ValueAsStringRef()};
+            case proto::syntax_sql::AConstType::NULL_:
+                return ConstantValue{};
+        }
+    }
+    return std::nullopt;
 }
 
 /// Constructor
@@ -70,52 +104,92 @@ ExpectedBuffer<proto::syntax::Program> Analyzer::ParseProgram(std::string_view t
     return builder.Release();
 }
 
-/// Instantiate a program with parameters
-Signal Analyzer::InstantiateProgram(proto::analyzer::ProgramParametersT& params) {
-    // Create program instance
-    auto next_instance = std::make_unique<ProgramInstance>(volatile_program_text_, volatile_program_, move(params.values));
-    auto& program = next_instance->program();
-    auto& parameter_values = next_instance->parameter_values();
+Signal Analyzer::EvaluateProgram(ProgramInstance& instance) {
+    auto& program = instance.program();
+    auto& parameter_values = instance.parameter_values();
+
+    // Maps the node ids to the parameter values
+    std::unordered_map<size_t, const proto::analyzer::ParameterValueT*> parameter_nodes;
+    // Contains all nodes that we tried to evaluate (not necessarily successful!)
+    std::unordered_set<size_t> evaluated_nodes;
+    // Map parameter values to statements
+    std::unordered_map<size_t, const proto::analyzer::ParameterValueT*> source_values;
+    source_values.reserve(parameter_values.size());
+    for (auto& p: parameter_values) {
+        source_values.insert({p->origin_statement, p.get()});
+    }
+    // Map parameter statements to referring nodes
+    parameter_nodes.reserve(parameter_values.size());
+    for (auto& dep: program.dependencies) {
+        if (auto iter = source_values.find(dep.source_statement()); iter != source_values.end()) {
+            parameter_nodes.insert({dep.target_node(), iter->second});
+        }
+    }
 
     // Find all the column refs that occur in the statement
-    std::unordered_set<size_t> visited_nodes;
     for (auto& dep : program.dependencies) {
         auto target = dep.target_statement();
         auto source = dep.source_statement();
 
-        // We only interpolate column refs that refer to parameters for now
+        // Skip non column ref dependencies
         if (dep.type() != sx::DependencyType::COLUMN_REF) continue;
-        if (program.statements[source]->statement_type != sx::StatementType::PARAMETER) continue;
-        if (!parameter_values[source]) continue;
+        auto& node_id = program.nodes[program.statements[target]->root_node];
+        auto& node = program.nodes[dep.target_node()];
+        assert(node.node_type() == sx::NodeType::OBJECT_SQL_COLUMN_REF);
 
-        auto& target_root = program.nodes[program.statements[target]->root_node];
-        auto& target_node = program.nodes[dep.target_node()];
-        assert(target_node.node_type() == sx::NodeType::OBJECT_SQL_COLUMN_REF);
+        // Check the parent node.
+        auto parent_node_id = node.parent();
+        auto& parent_node = program.nodes[parent_node_id];
+        if (evaluated_nodes.count(parent_node_id)) continue;
 
-        // Do we have to check the parent?
-        if (dep.target_node() == target_node.parent()) continue;
-        if (visited_nodes.count(target_node.parent())) continue;
-        visited_nodes.insert(target_node.parent());
-
-        // Is the column ref a function argument?
-        auto& parent_node = program.nodes[target_node.parent()];
+        // Is the parent a function argument list?
+        // In that case, we'll try to evaluate the function.
         if (parent_node.attribute_key() == sx::AttributeKey::SQL_FUNCTION_ARGUMENTS)  {
+            // clang-format off
+            auto schema = sxm::Element()
+                .MatchObject(sx::NodeType::OBJECT_DASHQL_FUNCTION_CALL)
+                .MatchChildren(NODE_MATCHERS(
+                    sxm::Attribute(sx::AttributeKey::SQL_FUNCTION_ARGUMENTS, 0)
+                        .MatchArray(),
+                    sxm::Attribute(sx::AttributeKey::SQL_FUNCTION_NAME, 1)
+                        .MatchString(),
+                ));
+            // clang-format on
             auto& func_node = program.nodes[parent_node.parent()];
+            std::array<NodeMatching, 2> matches;
+            if (schema.Match(instance, func_node, matches)) {
+                auto func_name = matches[1].ValueAsStringRef();
+                auto func_args = matches[0].node;
 
-//            // Match a schema
-//            NodeSchema *func_name = nullptr, *func_args = nullptr;
-//            auto schema = NodeSchema::Object(sx::NodeType::OBJECT_DASHQL_FUNCTION_CALL, {
-//                {sx::AttributeKey::SQL_FUNCTION_NAME, NodeSchema::Array({}, &func_name)},
-//                {sx::AttributeKey::SQL_FUNCTION_ARGUMENTS, NodeSchema::String(&func_args)},
-//            });
-//            next_instance->MatchSchema(func_node, schema);
-//
-//            // Get text of function name
-//            auto func_name_text = next_instance->TextAt(func_name->node->location());
-
-            // XXX Evaluate the function and emit the node patch
+                for (unsigned i = 0; i < func_args->children_count(); ++i) {
+                    auto node_id = func_args->children_begin_or_value() + i;
+                    auto arg_value = TryEvaluateConstant(instance, func_node);
+                    (void)arg_value;
+                }
+            }
         }
+
+
+        // XXX Otherwise just replace the whole column ref.
+
+
     }
+
+    return Signal::OK();
+}
+
+/// Instantiate a program with parameters
+Signal Analyzer::InstantiateProgram(proto::analyzer::ProgramParametersT& params) {
+    // Create program instance.
+    // Note that we copy the shared pointer here and leave the parser output in tact. 
+    // This allows us to re-instantiate the program with new parameter values without parsing it again.
+    auto next_instance = std::make_unique<ProgramInstance>(volatile_program_text_, volatile_program_, move(params.values));
+    if (auto rc = EvaluateProgram(*next_instance); !rc) {
+        return rc.ReleaseError();
+    }
+
+    // XXX Best-effort semantics check.
+    //     Everything that we can miss here will crash later in DuckDB.
 
     // If semantics are ok, replace current program instance
     program_log_[(program_log_writer_++) & PLANNER_LOG_MASK] = std::move(program_instance_);

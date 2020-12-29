@@ -17,6 +17,7 @@
 namespace dashql {
 
 namespace sx = proto::syntax;
+namespace sxs = proto::syntax_sql;
 
 /// A node spec type
 enum SyntaxMatcherType {
@@ -43,6 +44,23 @@ struct NodeMatching {
     const sx::Node* node = nullptr;
     /// The value (if any)
     std::variant<std::monostate, bool, uint32_t, std::string_view> value = std::monostate();
+
+    /// Has a value?
+    bool HasValue() const { return !std::holds_alternative<std::monostate>(value); }
+    /// Get the value as string ref
+    std::string_view ValueAsStringRef() const;
+    /// Get the value as string
+    std::string ValueAsString() const;
+    /// Get the value as integer
+    int64_t ValueAsI64() const;
+    /// Get the value as double
+    double ValueAsDouble() const;
+    /// Get the value as enum
+    template <typename T>
+    T ValueAsEnum() const {
+        auto* v = std::get_if<uint32_t>(&value);
+        return static_cast<T>(!!v ? *v : 0);
+    }
 };
 
 /// A syntax matcher
