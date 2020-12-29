@@ -63,8 +63,7 @@ bool SyntaxMatcher::Match(const ProgramInstance& program, const sx::Node& root, 
                     pending.push_back({program.program().nodes[base + i], top.matcher.children[i]});
                 }
                 for (unsigned i = 0; i < unmatched; ++i) {
-                    auto& matching = getOut(top.matcher.children[visit + i]);
-                    matching.status = NodeMatchingStatus::MISSING;
+                    getOut(top.matcher.children[visit + i]).status = NodeMatchingStatus::MISSING;
                     full_match = false;
                 }
                 break;
@@ -82,8 +81,7 @@ bool SyntaxMatcher::Match(const ProgramInstance& program, const sx::Node& root, 
                     if (have.attribute_key() < expected.attribute_key) {
                         ++h;
                     } else if (have.attribute_key() > expected.attribute_key) {
-                        auto& matching = getOut(expected);
-                        matching.status = NodeMatchingStatus::MISSING;
+                        getOut(expected).status = NodeMatchingStatus::MISSING;
                         full_match = false;
                         ++e;
                     } else {
@@ -93,8 +91,7 @@ bool SyntaxMatcher::Match(const ProgramInstance& program, const sx::Node& root, 
                     }
                 }
                 for (; e < top.matcher.children.size(); ++e) {
-                    auto& matching = getOut(top.matcher.children[e]);
-                    matching.status = NodeMatchingStatus::MISSING;
+                    getOut(top.matcher.children[e]).status = NodeMatchingStatus::MISSING;
                     full_match = false;
                 }
                 break;
