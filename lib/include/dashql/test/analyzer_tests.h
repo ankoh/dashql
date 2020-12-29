@@ -1,7 +1,7 @@
 // Copyright (c) 2020 The DashQL Authors
 
-#ifndef INCLUDE_DASHQL_PARSER_TEST_ACTION_GRAPH_TESTS_H_
-#define INCLUDE_DASHQL_PARSER_TEST_ACTION_GRAPH_TESTS_H_
+#ifndef INCLUDE_DASHQL_PARSER_TEST_ANALYZER_TESTS_H_
+#define INCLUDE_DASHQL_PARSER_TEST_ANALYZER_TESTS_H_
 
 #include <filesystem>
 #include <string>
@@ -14,10 +14,10 @@
 namespace dashql {
 namespace test {
 
-struct ActionGraphTest {
+struct AnalyzerTest {
     /// Printer test name
     struct TestPrinter {
-        std::string operator()(const ::testing::TestParamInfo<const ActionGraphTest*>& info) const {
+        std::string operator()(const ::testing::TestParamInfo<const AnalyzerTest*>& info) const {
             return std::string{info.param->name};
         }
     };
@@ -34,10 +34,10 @@ struct ActionGraphTest {
     pugi::xml_document expected_next_graph;
 
     /// Encode the action graph
-    static void EncodeActionGraph(pugi::xml_node& root, const ProgramInstance& program, const proto::action::ActionGraphT& graph);
+    static void EncodePlan(pugi::xml_node& root, const ProgramInstance& program, const proto::action::ActionGraphT& graph);
 };
 
 }  // namespace test
 }  // namespace dashql
 
-#endif  // INCLUDE_DASHQL_PARSER_TEST_ACTION_GRAPH_TESTS_H_
+#endif  // INCLUDE_DASHQL_PARSER_TEST_ANALYZER_TESTS_H_

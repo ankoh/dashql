@@ -235,7 +235,7 @@ static std::unordered_map<std::string, std::vector<GrammarTest>> TEST_FILES;
 
 // Load the tests
 void GrammarTest::LoadTests(std::filesystem::path& source_dir) {
-    auto grammar_dir = source_dir / "test" / "grammar";
+    auto grammar_dir = source_dir / "test" / "parser" / "spec";
 
     std::cout << "Loading grammar tests at: " << grammar_dir << std::endl;
     
