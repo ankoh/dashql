@@ -374,7 +374,7 @@ if(NOT EMSCRIPTEN)
         ${CMAKE_SOURCE_DIR}/test/extract/csv_parser_test.cc
         ${CMAKE_SOURCE_DIR}/test/extract/csv_sniffer_test.cc
         ${CMAKE_SOURCE_DIR}/test/extract/extract_test.cc
-        ${CMAKE_SOURCE_DIR}/test/grammar_test_suite.cc
+        ${CMAKE_SOURCE_DIR}/test/parser/grammar_test_suite.cc
         ${CMAKE_SOURCE_DIR}/test/webdb/duckdb_test.cc
         ${CMAKE_SOURCE_DIR}/test/webdb/iterator_test.cc
         ${CMAKE_SOURCE_DIR}/test/webdb/webdb_test.cc
