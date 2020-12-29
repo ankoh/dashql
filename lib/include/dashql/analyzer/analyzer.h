@@ -28,12 +28,24 @@ using Program = proto::syntax::Program;
 using RawBuffer = dashql::RawBuffer;
 
 namespace fb = flatbuffers;
+namespace sxs = proto::syntax_sql;
 
-struct ConstantNodeValue {
-    /// The node type
-    sx::NodeType node_type;
+struct ConstantValue {
+    /// The constant type
+    sxs::AConstType constant_type;
     /// The value
-    std::variant<bool, uint32_t, std::string_view> value;
+    std::variant<std::monostate, bool, int64_t, double, std::string_view> value;
+
+    /// Constructor
+    ConstantValue();
+    /// Constructor
+    ConstantValue(sxs::AConstType type, bool value);
+    /// Constructor
+    ConstantValue(sxs::AConstType type, int64_t value);
+    /// Constructor
+    ConstantValue(sxs::AConstType type, double value);
+    /// Constructor
+    ConstantValue(sxs::AConstType type, std::string_view value);
 };
 
 class Analyzer {
@@ -56,7 +68,9 @@ class Analyzer {
     std::unique_ptr<proto::action::ActionGraphT> planned_graph_;
 
     /// Evaluate the constant
-    std::optional<ConstantNodeValue> evaluateConstantNode(ProgramInstance& instance, const sx::Node& node) const;
+    std::optional<ConstantValue> TryEvaluateConstant(ProgramInstance& instance, const sx::Node& node) const;
+    /// Evaluate the program
+    Signal EvaluateProgram(ProgramInstance& instance);
 
    public:
     /// Constructor

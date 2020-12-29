@@ -30,14 +30,14 @@ class ProgramInstance {
     /// The program
     std::shared_ptr<sx::ProgramT> program_;
     /// The parameter values.
-    /// Maps the id of parameter statements to parameter values.
     std::vector<std::unique_ptr<proto::analyzer::ParameterValueT>> parameter_values_;
     /// The patch for partial evaluation (if any)
     std::unique_ptr<sx::ProgramPatchT> patch_;
 
     public:
     /// Constructor
-    ProgramInstance(std::string_view text, std::shared_ptr<sx::ProgramT> program, std::vector<std::unique_ptr<proto::analyzer::ParameterValueT>> params = {});
+    ProgramInstance(std::string_view text, std::shared_ptr<sx::ProgramT> program, std::vector<std::unique_ptr<proto::analyzer::ParameterValueT>> params = {})
+        : ProgramInstance(std::make_shared<std::string>(text), move(program), move(params)) {}
     /// Constructor
     ProgramInstance(std::shared_ptr<std::string> text, std::shared_ptr<sx::ProgramT> program, std::vector<std::unique_ptr<proto::analyzer::ParameterValueT>> params = {});
 
