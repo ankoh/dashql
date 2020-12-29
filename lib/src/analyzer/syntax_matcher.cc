@@ -50,7 +50,7 @@ int64_t NodeMatching::ValueAsI64() const {
             ss >> value;
             return value;
         },
-        [](auto arg) { return 0ll; },
+        [](auto arg) { return static_cast<int64_t>(0); },
     }, value);
 }
 

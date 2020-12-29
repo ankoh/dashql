@@ -77,7 +77,7 @@ std::optional<ConstantValue> Analyzer::TryEvaluateConstant(ProgramInstance& inst
                 return ConstantValue{type, matches[1].ValueAsString()};
             case proto::syntax_sql::AConstType::BITSTRING:
                 return ConstantValue{type, matches[1].ValueAsStringRef()};
-            case proto::syntax_sql::AConstType::NULL_:
+            default:
                 return ConstantValue{};
         }
     }
