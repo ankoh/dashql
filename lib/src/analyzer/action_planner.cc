@@ -2,6 +2,7 @@
 
 #include "dashql/common/topological_sort.h"
 #include "dashql/proto_generated.h"
+#include <unordered_set>
 
 namespace dashql {
 

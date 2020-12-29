@@ -1,4 +1,4 @@
-#include "dashql/analyzer/analyzer.h"
+#include "dashql/extract/extract.h"
 #include "duckdb/execution/operator/persistent/buffered_csv_reader.hpp"
 
 namespace dashql {

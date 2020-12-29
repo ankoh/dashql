@@ -12,11 +12,30 @@
 #include "dashql/common/expected.h"
 #include "dashql/common/span.h"
 #include "dashql/proto_generated.h"
-#include "dashql/webdb/webdb.h"
 
 namespace dashql {
 
 namespace sx = proto::syntax;
+namespace sxs = proto::syntax_sql;
+
+/// A constant value
+struct ConstantValue {
+    /// The constant type
+    sxs::AConstType constant_type;
+    /// The value
+    std::variant<std::monostate, int64_t, double, std::string_view, std::string> value;
+
+    /// Constructor
+    ConstantValue();
+    /// Constructor
+    ConstantValue(int64_t value);
+    /// Constructor
+    ConstantValue(double value);
+    /// Constructor
+    ConstantValue(std::string_view value);
+    /// Constructor
+    ConstantValue(std::string value);
+};
 
 /// A program instance.
 ///
@@ -25,14 +44,16 @@ namespace sx = proto::syntax;
 /// We primarily use shared references here in order to maintain a shallow undo log.
 ///
 class ProgramInstance {
+    friend class Analyzer;
+
     /// The program text
     std::shared_ptr<std::string> program_text_;
     /// The program
     std::shared_ptr<sx::ProgramT> program_;
-    /// The parameter values.
+    /// The parameter values
     std::vector<std::unique_ptr<proto::analyzer::ParameterValueT>> parameter_values_;
-    /// The patch for partial evaluation (if any)
-    std::unique_ptr<sx::ProgramPatchT> patch_;
+    /// The evaluated nodes (if any)
+    std::unordered_map<size_t, ConstantValue> evaluated_nodes_;
 
     public:
     /// Constructor
@@ -47,17 +68,15 @@ class ProgramInstance {
     auto& program() const { return *program_; }
     /// Get the parameter values
     auto& parameter_values() const { return parameter_values_; }
-    /// Get the patch
-    auto& patch() const { return patch_; }
 
     /// Find the parameter value
     const proto::analyzer::ParameterValueT* FindParameterValue(size_t stmt_id) const;
     /// Get the text at a location
     std::string_view TextAt(sx::Location loc) const { return std::string_view{*program_text_}.substr(loc.offset(), loc.length()); }
-    /// Evaluate the program partially
-    Signal EvaluatePartially(webdb::WebDB& database);
     /// Render the statement text
     Expected<std::string> RenderStatementText(size_t stmt_id) const;
+    /// Build the patch
+    std::unique_ptr<sx::ProgramPatchT> BuildPatch() const;
 
     /// Find an attribute
     const sx::Node* FindAttribute(const sx::Node& origin, sx::AttributeKey key) const;
