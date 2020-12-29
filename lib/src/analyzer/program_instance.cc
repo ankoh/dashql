@@ -9,21 +9,8 @@
 namespace dashql {
 
 /// Constructor
-ProgramInstance::ProgramInstance(std::string_view text, std::shared_ptr<sx::ProgramT> program, std::vector<std::unique_ptr<proto::analyzer::ParameterValueT>> params)
-    : program_text_(std::make_shared<std::string>(text)), program_(move(program)), parameter_values_(move(params)), patch_() {
-
-    parameter_values_.reserve(program_->statements.size());
-    for (auto i = 0; i < program_->statements.size(); ++i)
-        parameter_values_.push_back(nullptr);
-}
-
-/// Constructor
 ProgramInstance::ProgramInstance(std::shared_ptr<std::string> text, std::shared_ptr<sx::ProgramT> program, std::vector<std::unique_ptr<proto::analyzer::ParameterValueT>> params)
     : program_text_(move(text)), program_(move(program)), parameter_values_(move(params)), patch_() {
-
-    parameter_values_.reserve(program_->statements.size());
-    for (auto i = 0; i < program_->statements.size(); ++i)
-        parameter_values_.push_back(nullptr);
 }
 
 /// Find a parameter value
