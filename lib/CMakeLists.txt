@@ -280,7 +280,7 @@ add_library(dashql_webdb
 )
 
 add_library(dashql_test
-    ${CMAKE_SOURCE_DIR}/src/test/action_graph_tests.cc
+    ${CMAKE_SOURCE_DIR}/src/test/analyzer_tests.cc
     ${CMAKE_SOURCE_DIR}/src/test/blob_stream_tests.cc
     ${CMAKE_SOURCE_DIR}/src/test/grammar_tests.cc
 )

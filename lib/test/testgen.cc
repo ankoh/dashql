@@ -10,7 +10,7 @@
 #include "dashql/analyzer/action_planner.h"
 #include "dashql/common/span.h"
 #include "dashql/parser/parser_driver.h"
-#include "dashql/test/action_graph_tests.h"
+#include "dashql/test/analyzer_tests.h"
 #include "dashql/test/grammar_tests.h"
 #include "flatbuffers/flatbuffers.h"
 #include "gtest/gtest.h"
@@ -26,7 +26,7 @@ using namespace std;
 namespace {
 
 void generate_grammar_tests(const std::filesystem::path& source_dir) {
-    auto grammar_dir = source_dir / "test" / "grammar";
+    auto grammar_dir = source_dir / "test" / "parser" / "spec";
     for (auto& p : std::filesystem::directory_iterator(grammar_dir)) {
         auto filename = p.path().filename().filename().string();
 
@@ -105,7 +105,7 @@ std::unique_ptr<proto::analyzer::ParameterValueT> GetParameter(const pugi::xml_n
 }
 
 void generate_action_tests(const std::filesystem::path& source_dir) {
-    auto action_dir = source_dir / "test" / "action";
+    auto action_dir = source_dir / "test" / "analyzer" / "spec";
     for (auto& p : std::filesystem::directory_iterator(action_dir)) {
         auto filename = p.path().filename().filename().string();
 
@@ -178,9 +178,9 @@ void generate_action_tests(const std::filesystem::path& source_dir) {
             auto next_action_graph = next_planner.Finish();
 
             prev.remove_children();
-            ActionGraphTest::EncodeActionGraph(prev, prev_program_inst, *prev_action_graph);
+            AnalyzerTest::EncodePlan(prev, prev_program_inst, *prev_action_graph);
             next.remove_children();
-            ActionGraphTest::EncodeActionGraph(next, next_program_inst, *next_action_graph);
+            AnalyzerTest::EncodePlan(next, next_program_inst, *next_action_graph);
         }
 
         // Write xml document

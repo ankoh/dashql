@@ -1,4 +1,4 @@
-#include "dashql/test/action_graph_tests.h"
+#include "dashql/test/analyzer_tests.h"
 
 #include <cstdint>
 #include <iostream>
@@ -12,7 +12,7 @@
 namespace dashql {
 namespace test {
 
-void ActionGraphTest::EncodeActionGraph(pugi::xml_node& root, const ProgramInstance& program, const proto::action::ActionGraphT& graph) {
+void AnalyzerTest::EncodePlan(pugi::xml_node& root, const ProgramInstance& program, const proto::action::ActionGraphT& graph) {
     auto setup_action_type_tt = proto::action::SetupActionTypeTypeTable();
     auto program_action_type_tt = proto::action::ProgramActionTypeTypeTable();
     auto action_status_tt = proto::action::ActionStatusCodeTypeTable();
