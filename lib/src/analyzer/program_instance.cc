@@ -9,21 +9,29 @@
 namespace dashql {
 
 /// Constructor
+ConstantValue::ConstantValue()
+    : constant_type(sxs::AConstType::NULL_), value(std::monostate{}) {}
+/// Constructor
+ConstantValue::ConstantValue(int64_t value)
+    : constant_type(sxs::AConstType::INTEGER), value(value) {}
+/// Constructor
+ConstantValue::ConstantValue(double value)
+    : constant_type(sxs::AConstType::FLOAT), value(value) {}
+/// Constructor
+ConstantValue::ConstantValue(std::string_view value)
+    : constant_type(sxs::AConstType::STRING), value(value) {}
+/// Constructor
+ConstantValue::ConstantValue(std::string value)
+    : constant_type(sxs::AConstType::STRING), value(value) {}
+
+/// Constructor
 ProgramInstance::ProgramInstance(std::shared_ptr<std::string> text, std::shared_ptr<sx::ProgramT> program, std::vector<std::unique_ptr<proto::analyzer::ParameterValueT>> params)
-    : program_text_(move(text)), program_(move(program)), parameter_values_(move(params)), patch_() {
+    : program_text_(move(text)), program_(move(program)), parameter_values_(move(params)) {
 }
 
 /// Find a parameter value
 const proto::analyzer::ParameterValueT* ProgramInstance::FindParameterValue(size_t stmt_id) const {
     return parameter_values_[stmt_id].get();
-}
-
-/// Evaluate the program partially
-Signal ProgramInstance::EvaluatePartially(dashql::webdb::WebDB& database) {
-    for (auto& node : program_->nodes) {
-        // XXX
-    }
-    return Signal::OK();
 }
 
 // Collect the statement options
@@ -72,6 +80,13 @@ Expected<std::string> ProgramInstance::RenderStatementText(size_t stmt_id) const
 
     // Return the result
     return buffer.Finish();
+}
+
+/// Build the patch
+std::unique_ptr<sx::ProgramPatchT> ProgramInstance::BuildPatch() const {
+    auto patch = std::make_unique<sx::ProgramPatchT>();
+    /// XXX
+    return patch;
 }
 
 /// Find an attribute

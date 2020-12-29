@@ -22,22 +22,6 @@ static_assert((PLANNER_LOG_SIZE & PLANNER_LOG_MASK) == 0, "PLANNER_LOG_SIZE must
 
 static std::unique_ptr<Analyzer> analyzer_instance = nullptr;
 
-/// Constructor
-ConstantValue::ConstantValue()
-    : constant_type(sxs::AConstType::NULL_), value(std::monostate{}) {}
-/// Constructor
-ConstantValue::ConstantValue(sxs::AConstType type, bool value)
-    : constant_type(type), value(value) {}
-/// Constructor
-ConstantValue::ConstantValue(sxs::AConstType type, int64_t value)
-    : constant_type(type), value(value) {}
-/// Constructor
-ConstantValue::ConstantValue(sxs::AConstType type, double value)
-    : constant_type(type), value(value) {}
-/// Constructor
-ConstantValue::ConstantValue(sxs::AConstType type, std::string_view value)
-    : constant_type(type), value(value) {}
-
 /// Get the static webdb instance
 Analyzer& Analyzer::GetInstance() {
     if (analyzer_instance == nullptr) {
@@ -52,8 +36,15 @@ void Analyzer::ResetInstance() {
 }
 
 /// Evaluate a constant node value
-std::optional<ConstantValue> Analyzer::TryEvaluateConstant(ProgramInstance& instance, const sx::Node& node) const {
-    // Catch simple case
+std::optional<ConstantValue> Analyzer::TryEvaluateConstant(ProgramInstance& instance, size_t node_id) const {
+    // Already evaluated?
+    if (auto iter = instance.evaluated_nodes_.find(node_id); iter != instance.evaluated_nodes_.end()) {
+        return iter->second;
+    }
+    auto node = instance.program().nodes[node_id];
+
+    // Try to match a simple SQL constant.
+    // XXX We might need to match more cases here as the grammar evolves.
 
     // clang-format off
     auto schema = sxm::Element()
@@ -70,13 +61,13 @@ std::optional<ConstantValue> Analyzer::TryEvaluateConstant(ProgramInstance& inst
         auto type = matches[0].ValueAsEnum<proto::syntax_sql::AConstType>();
         switch (type) {
             case proto::syntax_sql::AConstType::INTEGER:
-                return ConstantValue{type, matches[1].ValueAsI64()};
+                return ConstantValue{matches[1].ValueAsI64()};
             case proto::syntax_sql::AConstType::FLOAT:
-                return ConstantValue{type, matches[1].ValueAsDouble()};
+                return ConstantValue{matches[1].ValueAsDouble()};
             case proto::syntax_sql::AConstType::STRING:
-                return ConstantValue{type, matches[1].ValueAsString()};
+                return ConstantValue{matches[1].ValueAsString()};
             case proto::syntax_sql::AConstType::BITSTRING:
-                return ConstantValue{type, matches[1].ValueAsStringRef()};
+                return ConstantValue{matches[1].ValueAsStringRef()};
             default:
                 return ConstantValue{};
         }
@@ -104,14 +95,11 @@ ExpectedBuffer<proto::syntax::Program> Analyzer::ParseProgram(std::string_view t
     return builder.Release();
 }
 
-Signal Analyzer::EvaluateProgram(ProgramInstance& instance) {
+// Evaluate the parameter values
+void Analyzer::EvaluateParameterValues(ProgramInstance& instance) {
     auto& program = instance.program();
     auto& parameter_values = instance.parameter_values();
 
-    // Maps the node ids to the parameter values
-    std::unordered_map<size_t, const proto::analyzer::ParameterValueT*> parameter_nodes;
-    // Contains all nodes that we tried to evaluate (not necessarily successful!)
-    std::unordered_set<size_t> evaluated_nodes;
     // Map parameter values to statements
     std::unordered_map<size_t, const proto::analyzer::ParameterValueT*> source_values;
     source_values.reserve(parameter_values.size());
@@ -119,12 +107,20 @@ Signal Analyzer::EvaluateProgram(ProgramInstance& instance) {
         source_values.insert({p->origin_statement, p.get()});
     }
     // Map parameter statements to referring nodes
-    parameter_nodes.reserve(parameter_values.size());
     for (auto& dep: program.dependencies) {
         if (auto iter = source_values.find(dep.source_statement()); iter != source_values.end()) {
-            parameter_nodes.insert({dep.target_node(), iter->second});
+            instance.evaluated_nodes_.insert({
+                dep.target_node(),
+                ConstantValue{iter->second->value}
+            });
         }
     }
+}
+
+// Propagate the parameter values
+void Analyzer::PropagateParameterValues(ProgramInstance& instance) {
+    auto& program = instance.program();
+    auto& parameter_values = instance.parameter_values();
 
     // Find all the column refs that occur in the statement
     for (auto& dep : program.dependencies) {
@@ -140,7 +136,7 @@ Signal Analyzer::EvaluateProgram(ProgramInstance& instance) {
         // Check the parent node.
         auto parent_node_id = node.parent();
         auto& parent_node = program.nodes[parent_node_id];
-        if (evaluated_nodes.count(parent_node_id)) continue;
+        if (instance.evaluated_nodes_.count(parent_node_id)) continue;
 
         // Is the parent a function argument list?
         // In that case, we'll try to evaluate the function.
@@ -159,12 +155,27 @@ Signal Analyzer::EvaluateProgram(ProgramInstance& instance) {
             std::array<NodeMatching, 2> matches;
             if (schema.Match(instance, func_node, matches)) {
                 auto func_name = matches[1].ValueAsStringRef();
-                auto func_args = matches[0].node;
 
-                for (unsigned i = 0; i < func_args->children_count(); ++i) {
-                    auto node_id = func_args->children_begin_or_value() + i;
-                    auto arg_value = TryEvaluateConstant(instance, func_node);
-                    (void)arg_value;
+                // Try to collect all function arguments.
+                // Abort if they are not const.
+                auto func_args_node = matches[0].node;
+                std::vector<ConstantValue> func_args;
+                for (unsigned i = 0; i < func_args_node->children_count(); ++i) {
+                    auto arg_node_id = func_args_node->children_begin_or_value() + i;
+                    auto arg_value = TryEvaluateConstant(instance, arg_node_id);
+
+                    // Failed to evaluate as constant?
+                    // We cannot evaluate the function, abort.
+                    if (!arg_value) break;
+
+                    // Collect the function arguments
+                    func_args.push_back(*arg_value);
+                }
+
+                // Are all function arguments const?
+                if (func_args.size() == func_args_node->children_count()) {
+                    // Try to resolve the appropriate function logic
+
                 }
             }
         }
@@ -174,22 +185,22 @@ Signal Analyzer::EvaluateProgram(ProgramInstance& instance) {
 
 
     }
-
-    return Signal::OK();
 }
 
 /// Instantiate a program with parameters
 Signal Analyzer::InstantiateProgram(proto::analyzer::ProgramParametersT& params) {
     // Create program instance.
-    // Note that we copy the shared pointer here and leave the parser output in tact. 
-    // This allows us to re-instantiate the program with new parameter values without parsing it again.
+    // Note that we copy the shared pointer here and leave the parser output intact. 
+    // That allows us to re-instantiate the program with new parameter values without parsing it again.
     auto next_instance = std::make_unique<ProgramInstance>(volatile_program_text_, volatile_program_, move(params.values));
-    if (auto rc = EvaluateProgram(*next_instance); !rc) {
-        return rc.ReleaseError();
-    }
+
+    // Evaluate the program with the given parameter values.
+    EvaluateParameterValues(*next_instance);
+    // Try to propagate the parameter values, e.g. function calls that are now constant
+    PropagateParameterValues(*next_instance);
 
     // XXX Best-effort semantics check.
-    //     Everything that we can miss here will crash later in DuckDB.
+    //     Everything that we miss here will crash later in DuckDB.
 
     // If semantics are ok, replace current program instance
     program_log_[(program_log_writer_++) & PLANNER_LOG_MASK] = std::move(program_instance_);
@@ -224,7 +235,7 @@ ExpectedBuffer<proto::analyzer::Plan> Analyzer::PlanProgram() {
     auto param_vec = builder.CreateVector(param_offsets);
 
     // Pack patch
-    auto& patch = program_instance_->patch();
+    auto patch = program_instance_->BuildPatch();
     auto patch_ofs = proto::syntax::ProgramPatch::Pack(builder, patch.get());
 
     // Encode the plan result
