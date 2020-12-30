@@ -51,11 +51,8 @@ struct EvaluatedNode {
     /// The location
     sx::Location location;
     /// The value
-    std::optional<ConstantValue> value;
+    ConstantValue value;
 
-    /// Constructor
-    EvaluatedNode(sx::Location loc)
-        : location(loc), value(std::nullopt) {}
     /// Constructor
     EvaluatedNode(sx::Location loc, ConstantValue value)
         : location(loc), value(value) {}
@@ -77,7 +74,7 @@ class ProgramInstance {
     /// The parameter values
     std::vector<std::unique_ptr<proto::analyzer::ParameterValueT>> parameter_values_;
     /// The evaluated nodes (if any)
-    SparseUnionFind<EvaluatedNode> evaluated_nodes_;
+    SparseUnionFind<std::optional<EvaluatedNode>> evaluated_nodes_;
 
     public:
     /// Constructor
