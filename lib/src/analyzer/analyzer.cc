@@ -38,8 +38,8 @@ void Analyzer::ResetInstance() {
 /// Evaluate a constant node value
 std::optional<ConstantValue> Analyzer::TryEvaluateConstant(ProgramInstance& instance, size_t node_id) const {
     // Already evaluated?
-    if (auto iter = instance.evaluated_nodes_.find(node_id); iter != instance.evaluated_nodes_.end()) {
-        return iter->second;
+    if (auto value = instance.evaluated_nodes_.Find(node_id); !!value) {
+        return *value;
     }
     auto& node = instance.program().nodes[node_id];
 
@@ -109,10 +109,10 @@ void Analyzer::EvaluateParameterValues(ProgramInstance& instance) {
     // Map parameter statements to referring nodes
     for (auto& dep: program.dependencies) {
         if (auto iter = source_values.find(dep.source_statement()); iter != source_values.end()) {
-            instance.evaluated_nodes_.insert({
+            instance.evaluated_nodes_.Insert(
                 dep.target_node(),
                 ConstantValue{iter->second->value}
-            });
+            );
         }
     }
 }
@@ -136,7 +136,7 @@ void Analyzer::PropagateParameterValues(ProgramInstance& instance) {
         // Check the parent node.
         auto parent_node_id = node.parent();
         auto& parent_node = program.nodes[parent_node_id];
-        if (instance.evaluated_nodes_.count(parent_node_id)) continue;
+        if (instance.evaluated_nodes_.Find(parent_node_id)) continue;
 
         // Is the parent a function argument list?
         // In that case, we'll try to evaluate the function.
