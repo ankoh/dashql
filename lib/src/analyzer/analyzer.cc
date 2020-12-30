@@ -9,6 +9,8 @@
 #include "dashql/proto_generated.h"
 #include "duckdb/main/client_context.hpp"
 
+#include <iomanip>
+
 using namespace dashql;
 namespace fb = flatbuffers;
 namespace sx = proto::syntax;
@@ -71,7 +73,7 @@ std::optional<ConstantValue> Analyzer::TryEvaluateConstant(ProgramInstance& inst
                     return ConstantValue{};
             }
         }();
-        instance.evaluated_nodes_.Insert(node_id, EvaluatedNode(node.location(), value));
+        instance.evaluated_nodes_.Insert(node_id, EvaluatedNode(node_id, value));
         return value;
     }
     return std::nullopt;
@@ -90,17 +92,22 @@ Analyzer::Analyzer()
     for (unsigned i = 0; i < PLANNER_LOG_SIZE; ++i) program_log_.push_back(nullptr);
 }
 
-/// Evaluate a program
-ExpectedBuffer<proto::syntax::Program> Analyzer::ParseProgram(std::string_view text) {
+void Analyzer::UpdateProgramActionStatus(size_t action_id, proto::action::ActionStatusCode status) {
+    if (!planned_graph_ || action_id >= planned_graph_->program_actions.size()) return;
+    planned_graph_->program_actions[action_id]->action_status_code = status;
+}
+
+void Analyzer::UpdateSetupActionStatus(size_t action_id, proto::action::ActionStatusCode status) {
+    if (!planned_graph_ || action_id >= planned_graph_->setup_actions.size()) return;
+    planned_graph_->setup_actions[action_id]->action_status_code = status;
+}
+
+/// Parse a program
+Signal Analyzer::ParseProgram(std::string_view text) {
     // Parse the program
     volatile_program_text_ = std::make_shared<std::string>(text);
     volatile_program_ = parser::ParserDriver::Parse(text);
-
-    // Encode the program
-    flatbuffers::FlatBufferBuilder builder{text.size()};
-    auto program_ofs = sx::Program::Pack(builder, volatile_program_.get());
-    builder.Finish(program_ofs);
-    return builder.Release();
+    return Signal::OK();
 }
 
 // Evaluate the parameter values
@@ -117,8 +124,28 @@ void Analyzer::EvaluateParameterValues(ProgramInstance& instance) {
     // Map parameter statements to referring nodes
     for (auto& dep : program.dependencies) {
         if (auto iter = source_values.find(dep.source_statement()); iter != source_values.end()) {
-            auto loc = program.nodes[dep.target_node()].location();
-            instance.evaluated_nodes_.Insert(dep.target_node(), EvaluatedNode(loc, ConstantValue{iter->second->value}));
+            auto& param_value = *iter->second;
+
+            ConstantValue v;
+            using ParameterType = proto::syntax_dashql::ParameterType;
+            switch (param_value.type) {
+                case ParameterType::NONE:
+                case ParameterType::FILE:
+                    break;
+                case ParameterType::INTEGER:
+                    v = ConstantValue{sxs::AConstType::INTEGER, param_value.value};
+                    break;
+                case ParameterType::FLOAT:
+                    v = ConstantValue{sxs::AConstType::FLOAT, param_value.value};
+                    break;
+                case ParameterType::DATE:
+                case ParameterType::DATETIME:
+                case ParameterType::TIME:
+                case ParameterType::TEXT:
+                    v = ConstantValue{std::string_view{param_value.value}};
+                    break;
+            }
+            instance.evaluated_nodes_.Insert(dep.target_node(), EvaluatedNode(dep.target_node(), std::move(v)));
         }
     }
 }
@@ -196,7 +223,7 @@ void Analyzer::PropagateParameterValues(ProgramInstance& instance) {
                 if (!value) continue;
 
                 // Merge the evaluated nodes
-                eval.Merge(func_node_id, func_arg_node_ids, {{func_node.location(), *value}});
+                eval.Merge(func_node_id, func_arg_node_ids, {{func_node_id, *value}});
             }
         }
     }
@@ -225,9 +252,9 @@ Signal Analyzer::InstantiateProgram(proto::analyzer::ProgramParametersT& params)
 }
 
 /// Evaluate a program
-ExpectedBuffer<proto::analyzer::Plan> Analyzer::PlanProgram() {
+Signal Analyzer::PlanProgram() {
     // Get previous and next program
-    auto prev_program = program_log_.empty() ? nullptr : program_log_.back().get();
+    auto prev_program = program_log_[(program_log_writer_ + program_log_.size() - 1) & PLANNER_LOG_MASK].get();
     auto prev_graph = planned_graph_.get();
     auto next_program = program_instance_.get();
 
@@ -237,8 +264,18 @@ ExpectedBuffer<proto::analyzer::Plan> Analyzer::PlanProgram() {
     planned_graph_ = action_planner.Finish();
     planned_program_ = next_program;
 
-    // Pack action graph
-    flatbuffers::FlatBufferBuilder builder;
+    return Signal::OK();
+}
+
+/// Pack the program
+flatbuffers::Offset<proto::syntax::Program> Analyzer::PackProgram(flatbuffers::FlatBufferBuilder& builder) {
+    assert(!!volatile_program_.get());
+    return sx::Program::Pack(builder, volatile_program_.get());
+}
+
+/// Pack the plan
+flatbuffers::Offset<proto::analyzer::Plan> Analyzer::PackPlan(flatbuffers::FlatBufferBuilder& builder) {
+    assert(!!planned_graph_.get());
     auto graph = proto::action::ActionGraph::Pack(builder, planned_graph_.get());
 
     // Pack parameters
@@ -259,9 +296,7 @@ ExpectedBuffer<proto::analyzer::Plan> Analyzer::PlanProgram() {
     plan.add_action_graph(graph);
     plan.add_parameters(param_vec);
     plan.add_program_evaluation(patch_ofs);
-    auto plan_ofs = plan.Finish();
-    builder.Finish(plan_ofs);
-    return builder.Release();
+    return plan.Finish();
 }
 
 }  // namespace dashql

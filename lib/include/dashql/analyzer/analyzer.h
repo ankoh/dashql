@@ -60,12 +60,31 @@ class Analyzer {
     /// Constructor
     Analyzer();
 
+    /// Get the volatile program
+    auto volatile_program() const { return volatile_program_.get(); }
+    /// Get the current program instance
+    auto program_instance() const { return program_instance_.get(); }
+    /// Get the planned program instance
+    auto planned_program_instance() const { return planned_program_; }
+    /// Get the planned graph
+    auto planned_graph() const { return planned_graph_.get(); }
+
+    /// Update the setup action status
+    void UpdateSetupActionStatus(size_t action_id, proto::action::ActionStatusCode status);
+    /// Update the program action status
+    void UpdateProgramActionStatus(size_t action_id, proto::action::ActionStatusCode status);
+
     /// Parse a program
-    ExpectedBuffer<proto::syntax::Program> ParseProgram(std::string_view text);
+    Signal ParseProgram(std::string_view text);
     /// Instantiate the last program
     Signal InstantiateProgram(proto::analyzer::ProgramParametersT& params);
     /// Plan the last program
-    ExpectedBuffer<proto::analyzer::Plan> PlanProgram();
+    Signal PlanProgram();
+
+    /// Pack the program
+    flatbuffers::Offset<proto::syntax::Program> PackProgram(flatbuffers::FlatBufferBuilder& builder);
+    /// Pack the plan
+    flatbuffers::Offset<proto::analyzer::Plan> PackPlan(flatbuffers::FlatBufferBuilder& builder);
 
     /// Get the global analyzer instance
     static Analyzer& GetInstance();
