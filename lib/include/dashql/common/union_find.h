@@ -3,6 +3,7 @@
 #ifndef INCLUDE_DASHQL_COMMON_UNION_FIND_H_
 #define INCLUDE_DASHQL_COMMON_UNION_FIND_H_
 
+#include "dashql/common/span.h"
 #include <cassert>
 #include <unordered_map>
 #include <vector>
@@ -31,7 +32,7 @@ class UnionFind {
 };
 
 template <typename T> class SparseUnionFind {
-   protected:
+   public:
     /// An entry in the set
     struct Entry {
         /// The parent
@@ -42,6 +43,7 @@ template <typename T> class SparseUnionFind {
         T value;
     };
 
+   protected:
     /// The entries
     std::unordered_map<size_t, Entry> entries_;
 
@@ -89,21 +91,39 @@ template <typename T> class SparseUnionFind {
         return !!entry ? &entry->value : nullptr;
     }
 
-    /// Merge two sets and set the value of the sets
-    void Merge(size_t l, size_t r, T value) {
+    /// Merge two sets
+    Entry* Merge(size_t l, size_t r) {
+        assert(entries_.count(l));
+        assert(entries_.count(r));
         auto *a = FindEntry(l), *b = FindEntry(r);
-        if (a == b) {
-            a->value = value;
-            return;
-        }
+        if (a == b) return a;
         if (b->rank < a->rank) {
             b->parent = a->parent;
-            a->value = std::move(value);
+            return a;
         } else {
             a->parent = b->parent;
             b->rank += a->rank == b->rank;
-            b->value = std::move(value);
+            return b;
         }
+    }
+
+    /// Merge two sets and set the value of the sets
+    void Merge(size_t l, size_t r, T value) {
+        auto root = Merge(l, r);
+        root->value = value;
+    }
+
+    /// Merge multiple nodes and set the value of the result
+    void Merge(size_t origin, nonstd::span<size_t> nodes, T value) {
+        if (nodes.empty()) {
+            FindEntry(origin)->value = move(value);
+            return;
+        }
+        Entry* e;
+        for (auto n: nodes) {
+            e = Merge(origin, n);
+        }
+        e->value = move(value);
     }
 };
 
