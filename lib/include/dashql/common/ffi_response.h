@@ -42,58 +42,59 @@ class FFIResponseBuffer {
         proto_buffer_ = {};
     }
 
+    /// Store the detached flatbuffer
+    void Store(FFIResponse& response, flatbuffers::DetachedBuffer&& buffer) {
+        Clear();
+        proto_buffer_ = std::move(buffer);
+        response.statusCode = static_cast<size_t>(StatusCode::SUCCESS);
+        response.dataPtr = reinterpret_cast<uintptr_t>(proto_buffer_.data());
+        response.dataSize = proto_buffer_.size();
+    }
+
+    /// Store the error
+    void Store(FFIResponse& response, Error&& err) {
+        Clear();
+        error_ = std::move(err);
+        auto m = error_->message();
+        m = m == nullptr ? "" : m;
+        proto_buffer_ = {};
+        response.statusCode = static_cast<size_t>(error_->code());
+        response.dataPtr = reinterpret_cast<uintptr_t>(m);
+        response.dataSize = strlen(m);
+    }
+
     /// Store the signal
     void Store(FFIResponse& response, Signal&& result) {
-        Clear();
         if (result) {
+            Clear();
             proto_buffer_ = {};
             response.statusCode = static_cast<size_t>(StatusCode::SUCCESS);
             response.dataPtr = 0;
             response.dataSize = proto_buffer_.size();
         } else {
-            error_ = result.ReleaseError();
-            auto m = error_->message();
-            m = m == nullptr ? "" : m;
-            proto_buffer_ = {};
-            response.statusCode = static_cast<size_t>(error_->code());
-            response.dataPtr = reinterpret_cast<uintptr_t>(m);
-            response.dataSize = strlen(m);
+            Store(response, result.ReleaseError());
         }
     }
 
     /// Store the packed response
     template <typename T> void Store(FFIResponse& response, ExpectedBuffer<T>&& result) {
-        Clear();
         if (result) {
-            proto_buffer_ = result.ReleaseBuffer();
-            response.statusCode = static_cast<size_t>(StatusCode::SUCCESS);
-            response.dataPtr = reinterpret_cast<uintptr_t>(proto_buffer_.data());
-            response.dataSize = proto_buffer_.size();
+            Store(response, result.ReleaseBuffer());
         } else {
-            error_ = result.ReleaseError();
-            auto m = error_->message();
-            m = m == nullptr ? "" : m;
-            response.statusCode = static_cast<size_t>(error_->code());
-            response.dataPtr = reinterpret_cast<uintptr_t>(m);
-            response.dataSize = strlen(m);
+            Store(response, result.ReleaseError());
         }
     }
 
     /// Store the packed response
     template <typename T> void Store(FFIResponse& response, ExpectedBufferRef<T>&& result) {
-        Clear();
         if (result) {
+            Clear();
             auto buffer = result.GetBuffer();
             response.statusCode = static_cast<size_t>(StatusCode::SUCCESS);
             response.dataPtr = reinterpret_cast<uintptr_t>(buffer.data());
             response.dataSize = buffer.size();
         } else {
-            error_ = result.ReleaseError();
-            auto m = error_->message();
-            m = m == nullptr ? "" : m;
-            response.statusCode = static_cast<size_t>(error_->code());
-            response.dataPtr = reinterpret_cast<uintptr_t>(m);
-            response.dataSize = strlen(m);
+            Store(response, result.ReleaseError());
         }
     }
 
