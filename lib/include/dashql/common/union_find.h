@@ -3,9 +3,9 @@
 #ifndef INCLUDE_DASHQL_COMMON_UNION_FIND_H_
 #define INCLUDE_DASHQL_COMMON_UNION_FIND_H_
 
+#include <cassert>
 #include <unordered_map>
 #include <vector>
-#include <cassert>
 
 namespace dashql {
 
