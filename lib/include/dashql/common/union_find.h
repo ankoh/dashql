@@ -5,6 +5,7 @@
 
 #include <unordered_map>
 #include <vector>
+#include <cassert>
 
 namespace dashql {
 
@@ -101,7 +102,7 @@ template <typename T> class SparseUnionFind {
         } else {
             a->parent = b->parent;
             b->rank += a->rank == b->rank;
-            b->value = value;
+            b->value = std::move(value);
         }
     }
 };
