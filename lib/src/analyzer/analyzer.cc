@@ -38,8 +38,8 @@ void Analyzer::ResetInstance() {
 /// Evaluate a constant node value
 std::optional<ConstantValue> Analyzer::TryEvaluateConstant(ProgramInstance& instance, size_t node_id) const {
     // Already evaluated?
-    if (auto value = instance.evaluated_nodes_.Find(node_id); !!value) {
-        return *value;
+    if (auto node = instance.evaluated_nodes_.Find(node_id); !!node) {
+        return node->value;
     }
     auto& node = instance.program().nodes[node_id];
 
@@ -109,9 +109,10 @@ void Analyzer::EvaluateParameterValues(ProgramInstance& instance) {
     // Map parameter statements to referring nodes
     for (auto& dep: program.dependencies) {
         if (auto iter = source_values.find(dep.source_statement()); iter != source_values.end()) {
+            auto loc = program.nodes[dep.target_node()].location();
             instance.evaluated_nodes_.Insert(
                 dep.target_node(),
-                ConstantValue{iter->second->value}
+                EvaluatedNode(loc, ConstantValue{iter->second->value})
             );
         }
     }
