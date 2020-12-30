@@ -1,21 +1,9 @@
 #include "dashql/analyzer/syntax_matcher.h"
+#include "dashql/common/memstream.h"
 #include "dashql/common/variant.h"
 
 #include <streambuf>
 #include <istream>
-
-struct membuf: std::streambuf {
-    membuf(char const* base, size_t size) {
-        char* p(const_cast<char*>(base));
-        this->setg(p, p, p + size);
-    }
-};
-struct imemstream: virtual membuf, std::istream {
-    imemstream(char const* base, size_t size)
-        : membuf(base, size)
-        , std::istream(static_cast<std::streambuf*>(this)) {
-    }
-};
 
 namespace dashql {
 
@@ -91,6 +79,7 @@ bool SyntaxMatcher::Match(const ProgramInstance& program, const sx::Node& root, 
         auto top = pending.back();
         pending.pop_back();
         auto& matching = getOut(top.matcher);
+        matching.node = &top.node;
 
         // Compare node type
         if (top.matcher.node_type != sx::NodeType::NONE && top.matcher.node_type != top.node.node_type()) {

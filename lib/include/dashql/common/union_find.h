@@ -6,6 +6,7 @@
 #include "dashql/common/span.h"
 #include <cassert>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 namespace dashql {
@@ -124,6 +125,16 @@ template <typename T> class SparseUnionFind {
             e = Merge(origin, n);
         }
         e->value = move(value);
+    }
+
+    /// Helper to iterate all values
+    template <typename Fn>
+    void IterateValues(Fn fn) const {
+        for (auto [k, v]: entries_) {
+            if (k == v.parent) {
+                fn(k, v.value);
+            }
+        }
     }
 };
 

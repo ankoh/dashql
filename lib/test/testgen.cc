@@ -7,7 +7,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include "dashql/analyzer/action_planner.h"
+#include "dashql/analyzer/analyzer.h"
 #include "dashql/common/span.h"
 #include "dashql/parser/parser_driver.h"
 #include "dashql/test/analyzer_tests.h"
@@ -104,7 +104,7 @@ std::unique_ptr<proto::analyzer::ParameterValueT> GetParameter(const pugi::xml_n
     return move(result);
 }
 
-void generate_action_tests(const std::filesystem::path& source_dir) {
+void generate_analyzer_tests(const std::filesystem::path& source_dir) {
     auto action_dir = source_dir / "test" / "analyzer" / "spec";
     for (auto& p : std::filesystem::directory_iterator(action_dir)) {
         auto filename = p.path().filename().filename().string();
@@ -135,52 +135,60 @@ void generate_action_tests(const std::filesystem::path& source_dir) {
         auto program_action_type_tt = proto::action::ProgramActionTypeTypeTable();
         auto action_status_code_tt = proto::action::ActionStatusCodeTypeTable();
 
+        auto assert_ok = [](Signal s, std::string_view what) {
+            if (!s) {
+                std::cout << "ERROR '" << what << "' failed with error: " << s.err().message() << std::endl;
+                std::exit(1);
+            }
+        };
+
         for (auto test : doc.children()) {
             auto name = test.attribute("name").value();
             std::cout << "  TEST " << name << std::endl;
+
+            Analyzer analyzer;
 
             // Unpack previous program
             auto prev = test.child("previous");
             auto prev_text = prev.child("text").text().get();
             auto prev_params = prev.child("parameters");
-            auto prev_program = parser::ParserDriver::Parse(prev_text);
-            std::vector<std::unique_ptr<proto::analyzer::ParameterValueT>> prev_param_values;
+            proto::analyzer::ProgramParametersT prev_params_obj;
             for (auto& param : prev_params.children()) {
-                prev_param_values.push_back(GetParameter(param));
+                prev_params_obj.values.push_back(GetParameter(param));
             }
-            ProgramInstance prev_program_inst{std::string_view{prev_text}, move(prev_program), move(prev_param_values)};
-            ActionPlanner prev_planner{prev_program_inst};
-            prev_planner.PlanActionGraph();
-            auto prev_action_graph = prev_planner.Finish();
+
+            // Parse, instantiate and plan the previous program
+            assert_ok(analyzer.ParseProgram(prev_text), "parsing of previous program");
+            assert_ok(analyzer.InstantiateProgram(prev_params_obj), "instantiation of previous program");
+            assert_ok(analyzer.PlanProgram(), "planning of previous program");
+
+            // Update the action status
             {
                 unsigned i = 0;
                 for (auto p : prev.child("graph").child("program").children()) {
                     auto status_str = p.attribute("status").as_string();
                     auto status = GetActionStatus(status_str);
-                    if (i < prev_action_graph->program_actions.size()) {
-                        prev_action_graph->program_actions[i++]->action_status_code = status;
-                    }
+                    analyzer.UpdateProgramActionStatus(i++, status);
                 }
             }
+            prev.remove_children();
+            AnalyzerTest::EncodePlan(prev, *analyzer.program_instance(), *analyzer.planned_graph());
 
             // Unpack next program
             auto next = test.child("next");
             auto next_text = next.child("text").text().get();
             auto next_params = next.child("parameters");
-            auto next_program = parser::ParserDriver::Parse(next_text);
-            std::vector<std::unique_ptr<proto::analyzer::ParameterValueT>> next_param_values;
+            proto::analyzer::ProgramParametersT next_params_obj;
             for (auto& param : next_params.children()) {
-                next_param_values.push_back(GetParameter(param));
+                next_params_obj.values.push_back(GetParameter(param));
             }
-            ProgramInstance next_program_inst{std::string{next_text}, move(next_program), move(next_param_values)};
-            ActionPlanner next_planner{next_program_inst, &prev_program_inst, prev_action_graph.get()};
-            next_planner.PlanActionGraph();
-            auto next_action_graph = next_planner.Finish();
 
-            prev.remove_children();
-            AnalyzerTest::EncodePlan(prev, prev_program_inst, *prev_action_graph);
+            // Parse, instantiate and plan the next program
+            assert_ok(analyzer.ParseProgram(next_text), "parsing of next program");
+            assert_ok(analyzer.InstantiateProgram(next_params_obj), "instantiation of next program");
+            assert_ok(analyzer.PlanProgram(), "planning of next program");
             next.remove_children();
-            AnalyzerTest::EncodePlan(next, next_program_inst, *next_action_graph);
+            AnalyzerTest::EncodePlan(next, *analyzer.program_instance(), *analyzer.planned_graph());
         }
 
         // Write xml document
@@ -201,6 +209,6 @@ int main(int argc, char* argv[]) {
     }
     std::filesystem::path source_dir{argv[1]};
     generate_grammar_tests(source_dir);
-    generate_action_tests(source_dir);
+    generate_analyzer_tests(source_dir);
     return 0;
 }

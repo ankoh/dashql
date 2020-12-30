@@ -36,6 +36,8 @@ struct ConstantValue {
     ConstantValue(std::string_view value);
     /// Constructor
     ConstantValue(std::string value);
+    /// Constructor
+    ConstantValue(sxs::AConstType type, std::string_view value);
 
     /// Get the type
     auto GetType() const { return constant_type; }
@@ -45,17 +47,19 @@ struct ConstantValue {
     double AsDouble() const;
     /// Get the value as string
     std::string_view AsStringRef() const;
+    /// Get the value as string
+    std::string AsString() const;
 };
 
 struct EvaluatedNode {
     /// The location
-    sx::Location location;
+    size_t node_id;
     /// The value
     ConstantValue value;
 
     /// Constructor
-    EvaluatedNode(sx::Location loc, ConstantValue value)
-        : location(loc), value(value) {}
+    EvaluatedNode(size_t node_id, ConstantValue value)
+        : node_id(node_id), value(value) {}
 };
 
 /// A program instance.

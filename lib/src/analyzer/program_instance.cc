@@ -1,5 +1,6 @@
 #include "dashql/analyzer/program_instance.h"
 #include "dashql/common/variant.h"
+#include "dashql/common/memstream.h"
 
 #include <iomanip>
 #include <sstream>
@@ -24,25 +25,40 @@ ConstantValue::ConstantValue(std::string_view value)
 /// Constructor
 ConstantValue::ConstantValue(std::string value)
     : constant_type(sxs::AConstType::STRING), value(move(value)) {}
+/// Constructor
+ConstantValue::ConstantValue(sxs::AConstType type, std::string_view value)
+    : constant_type(type), value(move(value)) {}
 
 /// Get the value as integer
 int64_t ConstantValue::AsInteger() const {
+    auto parse = [](std::string_view s) {
+        int64_t v;
+        imemstream ss{s.data(), s.size()};
+        ss >> v;
+        return v;
+    };
     return std::visit(overload {
         [](int64_t v) { return v; },
         [](double v) { return static_cast<int64_t>(v); },
-        [](std::string_view v) { return static_cast<int64_t>(0); },
-        [](std::string& v) { return static_cast<int64_t>(0); },
+        [parse](std::string_view v) { return parse(v); },
+        [parse](std::string& v) { return parse(v); },
         [](std::monostate v) { return static_cast<int64_t>(0); }
     }, value);
 }
 
 /// Get the value as double
 double ConstantValue::AsDouble() const {
+    auto parse = [](std::string_view s) {
+        double v;
+        imemstream ss{s.data(), s.size()};
+        ss >> v;
+        return v;
+    };
     return std::visit(overload {
         [](int64_t v) { return static_cast<double>(v); },
         [](double v) { return v; },
-        [](std::string_view v) { return static_cast<double>(0); },
-        [](std::string& v) { return static_cast<double>(0); },
+        [parse](std::string_view v) { return parse(v); },
+        [parse](std::string& v) { return parse(v); },
         [](std::monostate v) { return static_cast<double>(0); }
     }, value);
 }
@@ -55,6 +71,18 @@ std::string_view ConstantValue::AsStringRef() const {
         [](std::string_view v) { return v; },
         [](std::string& v) { return std::string_view{v}; },
         [](std::monostate v) { return std::string_view{""}; }
+    }, value);
+}
+
+
+/// Get the value as string
+std::string ConstantValue::AsString() const {
+    return std::visit(overload {
+        [](int64_t v) { return std::to_string(v); },
+        [](double v) { return std::to_string(v); },
+        [](std::string_view v) { return std::string{v}; },
+        [](std::string& v) { return v; },
+        [](std::monostate v) { return std::string{""}; }
     }, value);
 }
 
@@ -73,44 +101,32 @@ Expected<std::string> ProgramInstance::RenderStatementText(size_t stmt_id) const
     auto& target_root = program_->nodes[program_->statements[stmt_id]->root_node];
     SubstringBuffer buffer{*program_text_, target_root.location()};
 
-    // Find all the column refs that occur in the statement
-    for (auto& dep : program_->dependencies) {
-        auto target = dep.target_statement();
-        auto source = dep.source_statement();
+    // Replace all interpolated nodes
+    evaluated_nodes_.IterateValues([&](size_t, const std::optional<EvaluatedNode>& node) {
+        if (!node) return;
+        auto target = node->node_id;
+        auto& target_node = program_->nodes[target];
+        if (!buffer.Intersects(target_node.location())) return;
 
-        // We only interpolate column refs that refer to parameters for now
-        if (target != stmt_id) continue;
-        if (dep.type() != sx::DependencyType::COLUMN_REF) continue;
-        if (program_->statements[source]->statement_type != sx::StatementType::PARAMETER) continue;
-        if (!parameter_values_[source]) continue;
-
-        auto& target_root = program_->nodes[program_->statements[target]->root_node];
-        auto& target_node = program_->nodes[dep.target_node()];
-        assert(target_node.node_type() == sx::NodeType::OBJECT_SQL_COLUMN_REF);
-
-        // Escape the value based on value type
-        auto& param_value = parameter_values_[source];
-        std::stringstream value_sql_text;
-        using ParameterType = proto::syntax_dashql::ParameterType;
-        switch (param_value->type) {
-            case ParameterType::NONE:
-            case ParameterType::FILE:
+        std::stringstream out;
+        auto& v = node->value;
+        switch (v.constant_type) {
+            case sxs::AConstType::BITSTRING:
+            case sxs::AConstType::STRING:
+                out << std::quoted(v.AsString(), '\'');;
                 break;
-            case ParameterType::INTEGER:
-            case ParameterType::FLOAT:
-            case ParameterType::DATE:
-            case ParameterType::DATETIME:
-            case ParameterType::TIME:
-                value_sql_text << param_value->value;
+            case sxs::AConstType::FLOAT:
+                out << v.AsDouble();
                 break;
-            case ParameterType::TEXT:
-                value_sql_text << std::quoted(param_value->value, '\'');
+            case sxs::AConstType::INTEGER:
+                out << v.AsInteger();
+                break;
+            case sxs::AConstType::NULL_:
+                out << "NULL";
                 break;
         }
-
-        // The the source statement a parameter?
-        buffer.Replace(target_node.location(), value_sql_text.str());
-    }
+        buffer.Replace(target_node.location(), out.str());
+    });
 
     // Return the result
     return buffer.Finish();
@@ -119,6 +135,7 @@ Expected<std::string> ProgramInstance::RenderStatementText(size_t stmt_id) const
 /// Build the patch
 std::unique_ptr<sx::ProgramPatchT> ProgramInstance::BuildPatch() const {
     auto patch = std::make_unique<sx::ProgramPatchT>();
+
     /// XXX
     return patch;
 }

@@ -42,11 +42,16 @@ class SubstringBuffer {
     std::vector<Patch> shorten_;
 
     /// Patch a location
-    proto::syntax::Location Patch(proto::syntax::Location loc) const;
+    proto::syntax::Location CheckBounds(proto::syntax::Location loc) const;
+    /// Patch a location
+    proto::syntax::Location ApplyPatches(proto::syntax::Location loc) const;
 
     public:
     /// Constructor
     SubstringBuffer(std::string_view text, proto::syntax::Location loc);
+
+    /// Intersect a location?
+    bool Intersects(proto::syntax::Location loc) const;
     /// Replace substring
     void Replace(proto::syntax::Location loc, std::string_view value);
     /// Emit the substring

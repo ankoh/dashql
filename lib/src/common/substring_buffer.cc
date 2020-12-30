@@ -8,7 +8,14 @@ SubstringBuffer::SubstringBuffer(std::string_view text, proto::syntax::Location 
     : substring_loc_(loc), buffer_(text.substr(loc.offset(), loc.length())), lengthen_(), shorten_() {}
 
 // Patch a location
-proto::syntax::Location SubstringBuffer::Patch(proto::syntax::Location loc) const {
+proto::syntax::Location SubstringBuffer::CheckBounds(proto::syntax::Location loc) const {
+    auto begin = std::min(std::max(loc.offset(), substring_loc_.offset()), substring_loc_.offset() + substring_loc_.length());
+    auto end = std::min(std::max(loc.offset() + loc.length(), substring_loc_.offset()), substring_loc_.offset() + substring_loc_.length());
+    return {begin, end - begin};
+}
+
+// Patch a location
+proto::syntax::Location SubstringBuffer::ApplyPatches(proto::syntax::Location loc) const {
     auto begin = loc.offset();
     auto end = loc.offset() + loc.length();
     auto a = loc.offset();
@@ -24,10 +31,14 @@ proto::syntax::Location SubstringBuffer::Patch(proto::syntax::Location loc) cons
     return {a, b - a};
 }
 
+/// Intersect with the buffer range?
+bool SubstringBuffer::Intersects(proto::syntax::Location loc) const {
+    return CheckBounds(loc).length() > 0;
+}
+
 // Replace a substring
 void SubstringBuffer::Replace(proto::syntax::Location loc, std::string_view value) {
-    assert(loc.offset() >= substring_loc_.offset());
-    auto patched_loc = Patch(loc);
+    auto patched_loc = ApplyPatches(CheckBounds(loc));
     buffer_.replace(patched_loc.offset() - substring_loc_.offset(), patched_loc.length(), value);
     if (value.length() < patched_loc.length()) {
         auto diff = patched_loc.length() - value.length();
