@@ -11,6 +11,7 @@
 #include "dashql/common/enum.h"
 #include "dashql/common/expected.h"
 #include "dashql/common/span.h"
+#include "dashql/common/union_find.h"
 #include "dashql/proto_generated.h"
 
 namespace dashql {
@@ -62,7 +63,7 @@ class ProgramInstance {
     /// The parameter values
     std::vector<std::unique_ptr<proto::analyzer::ParameterValueT>> parameter_values_;
     /// The evaluated nodes (if any)
-    std::unordered_map<size_t, ConstantValue> evaluated_nodes_;
+    SparseUnionFind<std::optional<ConstantValue>> evaluated_nodes_;
 
     public:
     /// Constructor
@@ -82,6 +83,7 @@ class ProgramInstance {
     const proto::analyzer::ParameterValueT* FindParameterValue(size_t stmt_id) const;
     /// Get the text at a location
     std::string_view TextAt(sx::Location loc) const { return std::string_view{*program_text_}.substr(loc.offset(), loc.length()); }
+
     /// Render the statement text
     Expected<std::string> RenderStatementText(size_t stmt_id) const;
     /// Build the patch

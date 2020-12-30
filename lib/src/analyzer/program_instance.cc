@@ -60,7 +60,7 @@ std::string_view ConstantValue::AsStringRef() const {
 
 /// Constructor
 ProgramInstance::ProgramInstance(std::shared_ptr<std::string> text, std::shared_ptr<sx::ProgramT> program, std::vector<std::unique_ptr<proto::analyzer::ParameterValueT>> params)
-    : program_text_(move(text)), program_(move(program)), parameter_values_(move(params)) {
+    : program_text_(move(text)), program_(move(program)), parameter_values_(move(params)), evaluated_nodes_(program_->nodes.size()) {
 }
 
 /// Find a parameter value
