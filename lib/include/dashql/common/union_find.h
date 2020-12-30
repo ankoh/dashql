@@ -98,7 +98,7 @@ template <typename T> class SparseUnionFind {
         }
         if (b->rank < a->rank) {
             b->parent = a->parent;
-            a->value = value;
+            a->value = std::move(value);
         } else {
             a->parent = b->parent;
             b->rank += a->rank == b->rank;
