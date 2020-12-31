@@ -20,8 +20,6 @@ namespace dashql {
 namespace parser {
 
 namespace sx = proto::syntax;
-namespace sxd = proto::syntax_dashql;
-namespace sxs = proto::syntax_sql;
 
 class Scanner;
 

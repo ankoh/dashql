@@ -14,13 +14,12 @@
 #include "dashql/common/expected.h"
 #include "dashql/common/span.h"
 #include "dashql/common/union_find.h"
-#include "dashql/webdb/value.h"
+#include "dashql/analyzer/value.h"
 #include "dashql/proto_generated.h"
 
 namespace dashql {
 
 namespace sx = proto::syntax;
-namespace sxs = proto::syntax_sql;
 
 /// A program instance.
 ///
@@ -37,7 +36,7 @@ class ProgramInstance {
         /// The statement id
         size_t statement_id;
         /// The value
-        webdb::Value value;
+        Value value;
 
         /// Pack the parameter value
         flatbuffers::Offset<proto::analyzer::ParameterValue> Pack(flatbuffers::FlatBufferBuilder& builder) const;
@@ -55,10 +54,10 @@ class ProgramInstance {
         /// The node id
         size_t node_id;
         /// The value
-        std::optional<webdb::Value> value;
+        std::optional<Value> value;
 
         /// Pack the evaluated node
-        flatbuffers::Offset<proto::syntax::EvaluatedNode> Pack(flatbuffers::FlatBufferBuilder& builder) const;
+        flatbuffers::Offset<proto::analyzer::EvaluatedNode> Pack(flatbuffers::FlatBufferBuilder& builder) const;
     };
 
    protected:
@@ -93,7 +92,7 @@ class ProgramInstance {
     /// Render the statement text
     Expected<std::string> RenderStatementText(size_t stmt_id) const;
     /// Pack the program patch
-    flatbuffers::Offset<sx::ProgramPatch> PackProgramPatch(flatbuffers::FlatBufferBuilder& builder) const;
+    flatbuffers::Offset<proto::analyzer::ProgramPatch> PackProgramPatch(flatbuffers::FlatBufferBuilder& builder) const;
 
     /// Find an attribute
     const sx::Node* FindAttribute(const sx::Node& origin, sx::AttributeKey key) const;

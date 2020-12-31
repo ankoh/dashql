@@ -18,12 +18,10 @@ class FunctionLogic {
     /// Destructor
     virtual ~FunctionLogic() = default;
     /// Evaluate the function
-    virtual Expected<webdb::Value> Evaluate(nonstd::span<const webdb::Value> args = {}) = 0;
+    virtual Expected<Value> Evaluate(nonstd::span<const Value> args = {}) = 0;
 
     /// Resolve function logic
-    static std::unique_ptr<FunctionLogic> Resolve(std::string_view name, nonstd::span<const proto::webdb::SQLType*> args);
-    /// Resolve function logic
-    static std::unique_ptr<FunctionLogic> Resolve(std::string_view name, nonstd::span<const webdb::Value> args);
+    static std::unique_ptr<FunctionLogic> Resolve(std::string_view name, nonstd::span<const Value> args);
 };
 
 }  // namespace dashql

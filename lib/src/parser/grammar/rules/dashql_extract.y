@@ -9,6 +9,6 @@ dashql_extract_statement:
     ;
 
 dashql_extract_method:
-    CSV     { $$ = Enum(@$, sxd::ExtractMethodType::CSV); }
-  | JSON    { $$ = Enum(@$, sxd::ExtractMethodType::JSON); }
+    CSV     { $$ = Enum(@$, sx::ExtractMethodType::CSV); }
+  | JSON    { $$ = Enum(@$, sx::ExtractMethodType::JSON); }
     ;

@@ -17,7 +17,7 @@ struct FormatFunctionLogic final : public FunctionLogic {
     /// Constructor
     FormatFunctionLogic();
     /// Evaluate the function
-    Expected<webdb::Value> Evaluate(nonstd::span<const webdb::Value> arg_values) override;
+    Expected<Value> Evaluate(nonstd::span<const Value> arg_values) override;
 };
 
 }  // namespace
@@ -25,7 +25,7 @@ struct FormatFunctionLogic final : public FunctionLogic {
 // Constructor
 FormatFunctionLogic::FormatFunctionLogic() {}
 // Evaluate the function
-Expected<webdb::Value> FormatFunctionLogic::Evaluate(nonstd::span<const webdb::Value> arg_values) {
+Expected<Value> FormatFunctionLogic::Evaluate(nonstd::span<const Value> arg_values) {
     using ctx_t = duckdb_fmt::format_context;
     using args_t = duckdb_fmt::basic_format_args<ctx_t>;
     if (arg_values.size() == 0) {
@@ -37,16 +37,15 @@ Expected<webdb::Value> FormatFunctionLogic::Evaluate(nonstd::span<const webdb::V
     // Translate formatting arguments
     std::vector<duckdb_fmt::basic_format_arg<duckdb_fmt::format_context>> args;
     for (unsigned i = 1; i < arg_values.size(); ++i) {
-        switch (arg_values[i].sql_type().type_id()) {
-            case proto::webdb::SQLTypeID::INTEGER:
+        using T = proto::analyzer::ValueTypeID;
+        switch (arg_values[i].logical_type().type_id()) {
+            case T::BIGINT:
                 args.emplace_back(duckdb_fmt::internal::make_arg<ctx_t>(arg_values[i].GetUnsafeI64()));
                 break;
-            case proto::webdb::SQLTypeID::FLOAT:
-            case proto::webdb::SQLTypeID::DOUBLE:
+            case T::DOUBLE:
                 args.emplace_back(duckdb_fmt::internal::make_arg<ctx_t>(arg_values[i].GetUnsafeF64()));
                 break;
-            case proto::webdb::SQLTypeID::VARCHAR:
-            case proto::webdb::SQLTypeID::VARBINARY:
+            case T::VARCHAR:
             default: {
                 auto view = arg_values[i].GetUnsafeString();
                 auto fmt_view = duckdb_fmt::basic_string_view<char>(view.data(), view.size());
@@ -64,21 +63,11 @@ Expected<webdb::Value> FormatFunctionLogic::Evaluate(nonstd::span<const webdb::V
         return ErrorCode::FORMAT_FAILED;
     }
 
-    return webdb::Value::VARCHAR(move(str));
+    return Value::VARCHAR(move(str));
 }
 
 // Resolve a function logic
-std::unique_ptr<FunctionLogic> FunctionLogic::Resolve(std::string_view name,
-                                                      nonstd::span<const proto::webdb::SQLType*> args) {
-    if (name == "format") {
-        return std::make_unique<FormatFunctionLogic>();
-    }
-    return nullptr;
-}
-
-// Resolve a function logic
-std::unique_ptr<FunctionLogic> FunctionLogic::Resolve(std::string_view name,
-                                                      nonstd::span<const webdb::Value> values) {
+std::unique_ptr<FunctionLogic> FunctionLogic::Resolve(std::string_view name, nonstd::span<const Value> values) {
     if (name == "format") {
         return std::make_unique<FormatFunctionLogic>();
     }

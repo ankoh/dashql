@@ -1,6 +1,6 @@
 // Copyright (c) 2020 The DashQL Authors
 
-namespace dashql.proto.syntax_dashql;
+namespace dashql.proto.syntax;
 
 enum ParameterType: uint8 {
     NONE = 0,

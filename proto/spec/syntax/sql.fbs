@@ -1,6 +1,6 @@
 // Copyright (c) 2020 The DashQL Authors
 
-namespace dashql.proto.syntax_sql;
+namespace dashql.proto.syntax;
 
 enum ExpressionFunction: uint8 {
     NEGATE,

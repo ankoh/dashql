@@ -28,7 +28,6 @@ using Program = proto::syntax::Program;
 using RawBuffer = dashql::RawBuffer;
 
 namespace fb = flatbuffers;
-namespace sxs = proto::syntax_sql;
 
 class Analyzer {
    protected:
@@ -50,7 +49,7 @@ class Analyzer {
     std::unique_ptr<proto::action::ActionGraphT> planned_graph_;
 
     /// Evaluate the constant
-    std::optional<webdb::Value> TryEvaluateConstant(ProgramInstance& instance, size_t node_id) const;
+    std::optional<Value> TryEvaluateConstant(ProgramInstance& instance, size_t node_id) const;
     /// Evaluate the given parameter values
     void EvaluateParameterValues(ProgramInstance& instance);
     /// Propagate the given parameter values

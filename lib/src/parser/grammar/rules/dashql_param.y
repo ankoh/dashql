@@ -8,11 +8,11 @@ dashql_parameter_declaration:
     ;
 
 dashql_parameter_type:
-    INTEGER     { $$ = Enum(@$, sxd::ParameterType::INTEGER); }
-  | FLOAT       { $$ = Enum(@$, sxd::ParameterType::FLOAT); }
-  | TEXT        { $$ = Enum(@$, sxd::ParameterType::TEXT); }
-  | DATE        { $$ = Enum(@$, sxd::ParameterType::DATE); }
-  | DATETIME    { $$ = Enum(@$, sxd::ParameterType::DATETIME); }
-  | TIME        { $$ = Enum(@$, sxd::ParameterType::TIME); }
-  | FILE        { $$ = Enum(@$, sxd::ParameterType::FILE); }
+    INTEGER     { $$ = Enum(@$, sx::ParameterType::INTEGER); }
+  | FLOAT       { $$ = Enum(@$, sx::ParameterType::FLOAT); }
+  | TEXT        { $$ = Enum(@$, sx::ParameterType::TEXT); }
+  | DATE        { $$ = Enum(@$, sx::ParameterType::DATE); }
+  | DATETIME    { $$ = Enum(@$, sx::ParameterType::DATETIME); }
+  | TIME        { $$ = Enum(@$, sx::ParameterType::TIME); }
+  | FILE        { $$ = Enum(@$, sx::ParameterType::FILE); }
     ;

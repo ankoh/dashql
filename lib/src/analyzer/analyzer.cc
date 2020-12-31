@@ -14,7 +14,6 @@
 using namespace dashql;
 namespace fb = flatbuffers;
 namespace sx = proto::syntax;
-namespace sxs = proto::syntax_sql;
 
 namespace dashql {
 
@@ -36,7 +35,7 @@ Analyzer& Analyzer::GetInstance() {
 void Analyzer::ResetInstance() { analyzer_instance.reset(); }
 
 /// Evaluate a constant node value
-std::optional<webdb::Value> Analyzer::TryEvaluateConstant(ProgramInstance& instance, size_t node_id) const {
+std::optional<Value> Analyzer::TryEvaluateConstant(ProgramInstance& instance, size_t node_id) const {
     // Already evaluated?
     if (auto eval = instance.evaluated_nodes_.Find(node_id); !!eval) {
         auto& [node_id, value] = *eval;
@@ -59,17 +58,17 @@ std::optional<webdb::Value> Analyzer::TryEvaluateConstant(ProgramInstance& insta
     // clang-format on
     std::array<NodeMatching, 2> matches;
     if (schema.Match(instance, node, matches)) {
-        webdb::Value v;
-        switch (matches[0].DataAsEnum<proto::syntax_sql::AConstType>()) {
-            case proto::syntax_sql::AConstType::INTEGER:
-                v = webdb::Value::INTEGER(matches[1].DataAsI64());
+        Value v;
+        switch (matches[0].DataAsEnum<sx::AConstType>()) {
+            case sx::AConstType::INTEGER:
+                v = Value::BIGINT(matches[1].DataAsI64());
                 break;
-            case proto::syntax_sql::AConstType::FLOAT:
-                v = webdb::Value::FLOAT(matches[1].DataAsI64());
+            case sx::AConstType::FLOAT:
+                v = Value::DOUBLE(matches[1].DataAsDouble());
                 break;
-            case proto::syntax_sql::AConstType::BITSTRING:
-            case proto::syntax_sql::AConstType::STRING:
-                v = webdb::Value::VARCHAR(matches[1].DataAsString());
+            case sx::AConstType::BITSTRING:
+            case sx::AConstType::STRING:
+                v = Value::VARCHAR(matches[1].DataAsString());
                 break;
             default:
                 break;
@@ -177,7 +176,7 @@ void Analyzer::PropagateParameterValues(ProgramInstance& instance) {
                 // Try to collect all function arguments.
                 // Abort if they are not const.
                 auto func_args_node = matches[0].node;
-                std::vector<webdb::Value> func_args;
+                std::vector<Value> func_args;
                 std::vector<size_t> func_arg_node_ids;
                 for (unsigned i = 0; i < func_args_node->children_count(); ++i) {
                     auto arg_node_id = func_args_node->children_begin_or_value() + i;
@@ -190,15 +189,9 @@ void Analyzer::PropagateParameterValues(ProgramInstance& instance) {
                 // Not all arguments const?
                 if (func_args.size() != func_args_node->children_count()) continue;
 
-                // Collect arg types
-                std::vector<const proto::webdb::SQLType*> func_arg_types;
-                func_arg_types.reserve(func_args.size());
-                for (auto& arg : func_args) {
-                    func_arg_types.push_back(&arg.sql_type());
-                }
-                auto logic = FunctionLogic::Resolve(func_name, func_arg_types);
+                // Resolve the function
+                auto logic = FunctionLogic::Resolve(func_name, func_args);
                 if (!logic) continue;
-
                 // Evaluate the function
                 auto value = logic->Evaluate(func_args);
                 if (!value) continue;

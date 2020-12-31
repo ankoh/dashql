@@ -270,13 +270,13 @@ add_library(dashql_analyzer
     ${CMAKE_SOURCE_DIR}/src/analyzer/program_instance.cc
     ${CMAKE_SOURCE_DIR}/src/analyzer/program_matcher.cc
     ${CMAKE_SOURCE_DIR}/src/analyzer/syntax_matcher.cc
+    ${CMAKE_SOURCE_DIR}/src/analyzer/value.cc
 )
 
 add_library(dashql_webdb
     ${CMAKE_SOURCE_DIR}/src/webdb/codec.cc
     ${CMAKE_SOURCE_DIR}/src/webdb/iterator.cc
     ${CMAKE_SOURCE_DIR}/src/webdb/json.cc
-    ${CMAKE_SOURCE_DIR}/src/webdb/value.cc
     ${CMAKE_SOURCE_DIR}/src/webdb/webdb.cc
     ${CMAKE_SOURCE_DIR}/src/webdb/webdb_ffi.cc
 )

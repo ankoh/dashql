@@ -1,23 +1,57 @@
 // Copyright (c) 2020 The DashQL Authors
 
 include "action.fbs";
-include "syntax.fbs";
-include "syntax_dashql.fbs";
-include "webdb/value.fbs";
 
 namespace dashql.proto.analyzer;
 
+enum ValueTypeID: uint8 {
+    NONE = 0,
+    BOOLEAN = 1,
+    DOUBLE = 2,
+    BIGINT = 3,
+    DECIMAL = 4,
+    VARCHAR = 5,
+    DATE = 6,
+    TIME = 7,
+    TIMESTAMP = 8,
+    INTERVAL = 9,
+}
+
+struct ValueType {
+    type_id: ValueTypeID;
+    width: uint16;
+    scale: uint8;
+}
+
+table Value {
+    type: ValueType;
+    is_null: bool;
+    data_u32: uint32;
+    data_i64: int64;
+    data_f64: double;
+    data_str: string;
+}
+
 table ParameterValue {
     statement: uint32;
-    value: webdb.Value;
+    value: Value;
 }
 
 table ProgramParameters {
     values: [ParameterValue];
 }
 
+table EvaluatedNode {
+    node_id: uint32;
+    value: Value;
+}
+
+table ProgramPatch {
+    evaluated_nodes: [EvaluatedNode];
+}
+
 table Plan {
-    program_evaluation: syntax.ProgramPatch;
+    program_evaluation: ProgramPatch;
     parameters: [ParameterValue];
     action_graph: action.ActionGraph;
 }

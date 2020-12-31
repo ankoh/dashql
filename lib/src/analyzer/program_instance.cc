@@ -46,8 +46,8 @@ Expected<std::string> ProgramInstance::RenderStatementText(size_t stmt_id) const
 }
 
 /// Build the patch
-flatbuffers::Offset<sx::ProgramPatch> ProgramInstance::PackProgramPatch(flatbuffers::FlatBufferBuilder& builder) const {
-    sx::ProgramPatchBuilder patch{builder};
+flatbuffers::Offset<proto::analyzer::ProgramPatch> ProgramInstance::PackProgramPatch(flatbuffers::FlatBufferBuilder& builder) const {
+    proto::analyzer::ProgramPatchBuilder patch{builder};
     /// XXX
     return patch.Finish();
 }

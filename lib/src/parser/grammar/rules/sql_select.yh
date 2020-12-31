@@ -74,4 +74,4 @@
 %type <sx::Node> sql_where_clause;
 %type <sx::Node> sql_window_definition;
 %type <sx::Node> sql_window_specification;
-%type <sxs::NumericTypeTag> sql_opt_float;
+%type <sx::NumericTypeTag> sql_opt_float;

@@ -6,7 +6,7 @@
 
 namespace dashql {
 
-namespace sxd = dashql::proto::syntax_dashql;
+namespace sx = dashql::proto::syntax;
 using SetupActionType = proto::action::SetupActionType;
 using ProgramActionType = proto::action::ProgramActionType;
 using Key = sx::AttributeKey;

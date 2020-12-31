@@ -8,6 +8,6 @@ dashql_load_statement:
     ;
 
 dashql_load_method:
-    HTTP    { $$ = Enum(@$, sxd::LoadMethodType::HTTP); }
-  | FILE    { $$ = Enum(@$, sxd::LoadMethodType::FILE); }
+    HTTP    { $$ = Enum(@$, sx::LoadMethodType::HTTP); }
+  | FILE    { $$ = Enum(@$, sx::LoadMethodType::FILE); }
     ;
