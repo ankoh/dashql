@@ -27,8 +27,8 @@ void AnalyzerTest::EncodePlan(pugi::xml_node& root, const ProgramInstance& progr
         auto type_str = param.value.PrintType();
         auto value_str = param.value.PrintValue();
         auto p = params.append_child("parameter");
-        p.append_attribute("type").set_value(type_str.c_str());
         p.append_attribute("statement").set_value(param.statement_id);
+        p.append_attribute("type").set_value(type_str.c_str());
         p.append_attribute("value").set_value(value_str.c_str());
     }
 
