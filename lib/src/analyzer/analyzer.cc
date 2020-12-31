@@ -5,7 +5,9 @@
 #include <iomanip>
 
 #include "dashql/analyzer/action_planner.h"
+#include "dashql/analyzer/evaluated_node.h"
 #include "dashql/analyzer/function_logic.h"
+#include "dashql/analyzer/parameter_value.h"
 #include "dashql/analyzer/syntax_matcher.h"
 #include "dashql/parser/parser_driver.h"
 #include "dashql/proto_generated.h"
@@ -39,7 +41,7 @@ std::optional<Value> Analyzer::TryEvaluateConstant(ProgramInstance& instance, si
     // Already evaluated?
     if (auto eval = instance.evaluated_nodes_.Find(node_id); !!eval) {
         auto& [node_id, value] = *eval;
-        return value;
+        return value ? std::optional<Value>{value->CopyDeep()} : std::nullopt;
     }
     auto& node = instance.program().nodes[node_id];
 
@@ -73,7 +75,7 @@ std::optional<Value> Analyzer::TryEvaluateConstant(ProgramInstance& instance, si
             default:
                 break;
         }
-        instance.evaluated_nodes_.Insert(node_id, {node_id, v});
+        instance.evaluated_nodes_.Insert(node_id, {node_id, v.CopyDeep()});
         return v;
     }
     return std::nullopt;
@@ -116,7 +118,7 @@ void Analyzer::EvaluateParameterValues(ProgramInstance& instance) {
     auto& parameter_values = instance.parameter_values();
 
     // Map parameter values to statements
-    std::unordered_map<size_t, const ProgramInstance::ParameterValue*> source_values;
+    std::unordered_map<size_t, const ParameterValue*> source_values;
     source_values.reserve(parameter_values.size());
     for (auto& p : parameter_values) {
         source_values.insert({p.statement_id, &p});
@@ -125,7 +127,7 @@ void Analyzer::EvaluateParameterValues(ProgramInstance& instance) {
     for (auto& dep : program.dependencies) {
         if (auto iter = source_values.find(dep.source_statement()); iter != source_values.end()) {
             auto& param_value = iter->second;
-            instance.evaluated_nodes_.Insert(dep.target_node(), {dep.target_node(), param_value->value});
+            instance.evaluated_nodes_.Insert(dep.target_node(), {dep.target_node(), param_value->value.CopyDeep()});
         }
     }
 }
@@ -182,7 +184,7 @@ void Analyzer::PropagateParameterValues(ProgramInstance& instance) {
                     auto arg_node_id = func_args_node->children_begin_or_value() + i;
                     auto arg_value = TryEvaluateConstant(instance, arg_node_id);
                     if (!arg_value) break;
-                    func_args.push_back(*arg_value);
+                    func_args.push_back(std::move(*arg_value));
                     func_arg_node_ids.push_back(arg_node_id);
                 }
 
@@ -204,7 +206,7 @@ void Analyzer::PropagateParameterValues(ProgramInstance& instance) {
 }
 
 /// Instantiate a program with parameters
-Signal Analyzer::InstantiateProgram(std::vector<ProgramInstance::ParameterValue> params) {
+Signal Analyzer::InstantiateProgram(std::vector<ParameterValue> params) {
     // Create program instance.
     // Note that we copy the shared pointer here and leave the parser output intact.
     // That allows us to re-instantiate the program with new parameter values without parsing it again.

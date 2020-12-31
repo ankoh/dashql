@@ -16,7 +16,7 @@ ProgramInstance::ProgramInstance(std::shared_ptr<std::string> text, std::shared_
 }
 
 /// Find a parameter value
-const ProgramInstance::ParameterValue* ProgramInstance::FindParameterValue(size_t stmt_id) const {
+const ParameterValue* ProgramInstance::FindParameterValue(size_t stmt_id) const {
     // XXX check if valid
     return &parameter_values_[stmt_id];
 }

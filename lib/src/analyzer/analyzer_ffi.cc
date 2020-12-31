@@ -24,10 +24,10 @@ void dashql_analyzer_parse_program(FFIResponse* response, const char* text) {
 
 void dashql_analyzer_instantiate_program(FFIResponse* response, const void* args_buffer) {
     auto* args = flatbuffers::GetRoot<proto::analyzer::ProgramParameters>(args_buffer);
-    std::vector<ProgramInstance::ParameterValue> params;
+    std::vector<ParameterValue> params;
     if (auto values = args->values(); values && values->size() > 0) {
         for (unsigned i = 0; i < args->values()->size(); ++i) {
-            params.push_back(ProgramInstance::ParameterValue::FromBuffer(values->Get(i)));
+            params.push_back(ParameterValue::UnPack(*values->Get(i)));
         }
     }
     auto signal = Analyzer::GetInstance().InstantiateProgram(move(params));

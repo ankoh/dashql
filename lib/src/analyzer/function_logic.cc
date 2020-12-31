@@ -62,7 +62,6 @@ Expected<Value> FormatFunctionLogic::Evaluate(nonstd::span<const Value> arg_valu
     } catch (...) {
         return ErrorCode::FORMAT_FAILED;
     }
-
     return Value::VARCHAR(move(str));
 }
 
