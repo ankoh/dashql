@@ -42,6 +42,14 @@ template <typename T> class SparseUnionFind {
         size_t rank;
         /// The value
         T value;
+
+        /// Constructor
+        Entry(size_t parent, size_t rank, T value)
+            : parent(parent), rank(rank), value(std::move(value)) {}
+        /// Move constructor
+        Entry(Entry&& other) = default;
+        /// Move assignment
+        Entry& operator=(Entry&& other) = default;
     };
 
    protected:
@@ -77,18 +85,12 @@ template <typename T> class SparseUnionFind {
     /// Insert a value
     void Insert(size_t id, T value) {
         assert(!entries_.count(id));
-        // clang-format off
-        entries_.insert({id, {
-            .parent = id,
-            .rank = 0,
-            .value = std::move(value),
-        }});
-        // clang-format on
+        entries_.insert(std::make_pair(id, Entry(id, 0, std::move(value))));
     }
 
     /// Find a value
     T* Find(size_t id) {
-        auto entry = FindEntry(id);
+        auto* entry = FindEntry(id);
         return !!entry ? &entry->value : nullptr;
     }
 
@@ -104,7 +106,7 @@ template <typename T> class SparseUnionFind {
             return a;
         } else {
             a->parent = b->parent;
-            a->parent = {};
+            a->value = {};
             b->rank += a->rank == b->rank;
             return b;
         }
@@ -113,7 +115,7 @@ template <typename T> class SparseUnionFind {
     /// Merge two sets and set the value of the sets
     void Merge(size_t i, size_t j, T value) {
         auto root = Merge(i, j);
-        root->value = value;
+        root->value = std::move(value);
     }
 
     /// Merge multiple nodes and set the value of the result
@@ -132,7 +134,7 @@ template <typename T> class SparseUnionFind {
     /// Helper to iterate all values
     template <typename Fn>
     void IterateValues(Fn fn) const {
-        for (auto [k, v]: entries_) {
+        for (auto& [k, v]: entries_) {
             if (k == v.parent) {
                 fn(k, v.value);
             }

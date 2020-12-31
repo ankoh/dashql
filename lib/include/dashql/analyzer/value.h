@@ -62,9 +62,16 @@ class Value {
     /// Create an empty NULL value
     Value();
     /// Create an empty NULL value of the specified type
+    Value(proto::analyzer::ValueTypeID type);
+    /// Create an empty NULL value of the specified type
     Value(proto::analyzer::ValueType type);
     /// Create from flatbuffer object
     Value(const proto::analyzer::Value& val);
+
+    /// Explicit move constructor
+    Value(Value&& other) noexcept;
+    /// Explicit move assignment
+    Value& operator=(Value&& other) noexcept;
 
     /// Get the type
     auto& logical_type() const { return logical_type_; }
@@ -76,7 +83,7 @@ class Value {
     /// Get as double
     auto GetUnsafeF64() const { return data_.f64; }
     /// Get as string view
-    std::string_view GetUnsafeString() const { return data_str_; }
+    auto GetUnsafeString() const { return data_str_; }
 
     /// Print the type
     std::string PrintType() const;
@@ -86,6 +93,21 @@ class Value {
     std::string PrintValue() const;
     /// Print the value
     void PrintValue(std::ostream& out) const;
+
+    /// Comparison
+    bool operator==(const Value &rhs) const;
+    /// Comparison
+    bool operator!=(const Value &rhs) const;
+
+    /// Copy a value deep
+    Value CopyDeep() const;
+    /// Copy a value shallow
+    Value CopyShallow() const;
+
+    /// Pack as flatbuffer
+    flatbuffers::Offset<proto::analyzer::Value> Pack(flatbuffers::FlatBufferBuilder& builder) const;
+    /// Unpack from flatbuffer
+    static Value UnPack(const proto::analyzer::Value& val);
 
     /// Parse a value from text
     static proto::analyzer::ValueType ParseType(std::string_view type);
@@ -113,11 +135,8 @@ class Value {
     /// Create a timestamp value from a specified timestamp in separate values
     static Value TIMESTAMP(int32_t year, int32_t month, int32_t day, int32_t hour, int32_t min, int32_t sec,
                            int32_t micros);
-    static Value INTERVAL(int32_t months, int32_t days, int64_t micros);
 
     // Decimal values
-    static Value DECIMAL(int16_t value, uint8_t width, uint8_t scale);
-    static Value DECIMAL(int32_t value, uint8_t width, uint8_t scale);
     static Value DECIMAL(int64_t value, uint8_t width, uint8_t scale);
     /// Create a double value from a specified value
     static Value DOUBLE(double value);

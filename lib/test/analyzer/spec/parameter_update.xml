@@ -9,7 +9,7 @@
             );
         </text>
         <parameters>
-            <parameter type="TEXT" statement="0" value="DE" />
+            <parameter type="VARCHAR" statement="0" value="DE" />
         </parameters>
         <graph next_object_id="2">
             <setup />
@@ -39,7 +39,7 @@
             );
         </text>
         <parameters>
-            <parameter type="TEXT" statement="0" value="US" />
+            <parameter type="VARCHAR" statement="0" value="US" />
         </parameters>
         <graph next_object_id="4">
             <setup>

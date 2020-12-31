@@ -266,7 +266,9 @@ add_library(dashql_analyzer
     ${CMAKE_SOURCE_DIR}/src/analyzer/action_planner.cc
     ${CMAKE_SOURCE_DIR}/src/analyzer/analyzer.cc
     ${CMAKE_SOURCE_DIR}/src/analyzer/analyzer_ffi.cc
+    ${CMAKE_SOURCE_DIR}/src/analyzer/evaluated_node.cc
     ${CMAKE_SOURCE_DIR}/src/analyzer/function_logic.cc
+    ${CMAKE_SOURCE_DIR}/src/analyzer/parameter_value.cc
     ${CMAKE_SOURCE_DIR}/src/analyzer/program_instance.cc
     ${CMAKE_SOURCE_DIR}/src/analyzer/program_matcher.cc
     ${CMAKE_SOURCE_DIR}/src/analyzer/syntax_matcher.cc

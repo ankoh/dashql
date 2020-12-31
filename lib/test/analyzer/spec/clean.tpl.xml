@@ -5,7 +5,7 @@
             DECLARE PARAMETER country TYPE TEXT;
         </text>
         <parameters>
-            <parameter type="TEXT" statement="0" value="DE" />
+            <parameter type="VARCHAR" statement="0" value="DE" />
         </parameters>
     </next>
 </test>
@@ -28,7 +28,7 @@
             EXTRACT weather FROM weather_csv USING CSV;
         </text>
         <parameters>
-            <parameter type="TEXT" statement="0" value="DE" />
+            <parameter type="VARCHAR" statement="0" value="DE" />
         </parameters>
     </next>
 </test>
@@ -43,7 +43,7 @@
             EXTRACT weather FROM weather_csv USING CSV;
         </text>
         <parameters>
-            <parameter type="TEXT" statement="0" value="DE" />
+            <parameter type="VARCHAR" statement="0" value="DE" />
         </parameters>
     </next>
 </test>
@@ -59,7 +59,7 @@
             SELECT * INTO weather_avg FROM weather;
         </text>
         <parameters>
-            <parameter type="TEXT" statement="0" value="DE" />
+            <parameter type="VARCHAR" statement="0" value="DE" />
         </parameters>
     </next>
 </test>
@@ -77,7 +77,7 @@
             VIZ weather_avg USING TABLE;
         </text>
         <parameters>
-            <parameter type="TEXT" statement="0" value="DE" />
+            <parameter type="VARCHAR" statement="0" value="DE" />
         </parameters>
     </next>
 </test>
@@ -96,7 +96,7 @@
             VIZ weather_binned USING BAR;
         </text>
         <parameters>
-            <parameter type="TEXT" statement="0" value="DE" />
+            <parameter type="VARCHAR" statement="0" value="DE" />
         </parameters>
     </next>
 </test>
@@ -116,8 +116,8 @@
             VIZ weather_binned USING BAR;
         </text>
         <parameters>
-            <parameter type="TEXT" statement="0" value="DE" />
-            <parameter type="INTEGER" statement="1" value="5" />
+            <parameter type="VARCHAR" statement="0" value="DE" />
+            <parameter type="BIGINT" statement="1" value="5" />
         </parameters>
     </next>
 </test>
@@ -134,8 +134,8 @@
             SELECT * INTO weather_avg FROM weather WHERE city = global.city;
         </text>
         <parameters>
-            <parameter type="TEXT" statement="0" value="DE" />
-            <parameter type="TEXT" statement="1" value="MUC" />
+            <parameter type="VARCHAR" statement="0" value="DE" />
+            <parameter type="VARCHAR" statement="1" value="MUC" />
         </parameters>
     </next>
 </test>
@@ -158,9 +158,9 @@
             VIZ countries_joined USING LINE;
         </text>
         <parameters>
-            <parameter type="TEXT" statement="0" value="DE" />
-            <parameter type="TEXT" statement="1" value="US" />
-            <parameter type="INTEGER" statement="2" value="5" />
+            <parameter type="VARCHAR" statement="0" value="DE" />
+            <parameter type="VARCHAR" statement="1" value="US" />
+            <parameter type="BIGINT" statement="2" value="5" />
         </parameters>
     </next>
 </test>

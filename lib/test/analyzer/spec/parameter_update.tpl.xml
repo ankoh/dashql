@@ -9,7 +9,7 @@
             );
         </text>
         <parameters>
-            <parameter type="TEXT" statement="0" value="DE" />
+            <parameter type="VARCHAR" statement="0" value="DE" />
         </parameters>
         <graph>
             <program>
@@ -28,7 +28,7 @@
             );
         </text>
         <parameters>
-            <parameter type="TEXT" statement="0" value="US" />
+            <parameter type="VARCHAR" statement="0" value="US" />
         </parameters>
     </next>
 </test>

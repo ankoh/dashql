@@ -14,6 +14,8 @@
 #include "dashql/common/expected.h"
 #include "dashql/common/span.h"
 #include "dashql/common/union_find.h"
+#include "dashql/analyzer/evaluated_node.h"
+#include "dashql/analyzer/parameter_value.h"
 #include "dashql/analyzer/value.h"
 #include "dashql/proto_generated.h"
 
@@ -29,36 +31,6 @@ namespace sx = proto::syntax;
 ///
 class ProgramInstance {
     friend class Analyzer;
-
-   public:
-    /// An parameter value
-    struct ParameterValue {
-        /// The statement id
-        size_t statement_id;
-        /// The value
-        Value value;
-
-        /// Pack the parameter value
-        flatbuffers::Offset<proto::analyzer::ParameterValue> Pack(flatbuffers::FlatBufferBuilder& builder) const;
-        /// Compare two parameter values
-        bool operator==(const ParameterValue& other) const;
-        /// Compare two parameter values
-        bool operator!=(const ParameterValue& other) const;
-
-        /// Read from a parameter value
-        static ParameterValue FromBuffer(const proto::analyzer::ParameterValue*);
-    };
-
-    /// An evaluated node
-    struct EvaluatedNode {
-        /// The node id
-        size_t node_id;
-        /// The value
-        std::optional<Value> value;
-
-        /// Pack the evaluated node
-        flatbuffers::Offset<proto::analyzer::EvaluatedNode> Pack(flatbuffers::FlatBufferBuilder& builder) const;
-    };
 
    protected:
     /// The program text
