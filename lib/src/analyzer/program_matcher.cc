@@ -541,7 +541,13 @@ std::vector<ProgramMatcher::DiffOp> ProgramMatcher::ComputeDiff() {
 
 // Do parameter values equal?
 bool ProgramMatcher::ParameterValuesEqual(const proto::analyzer::ParameterValueT* l, const proto::analyzer::ParameterValueT* r) {
-    return l->type == r->type && l->value == r->value;
+    auto& lv = *l->value;
+    auto& rv = *r->value;
+    auto values_equal = lv.is_null == rv.is_null && lv.data_f64 == rv.data_f64 && lv.data_i64 == rv.data_i64 && lv.data_u32 == rv.data_u32 && lv.data_str == rv.data_str;
+    auto& lt = *lv.type;
+    auto& rt = *rv.type;
+    auto types_equal = lt.type_id() == rt.type_id() && lt.width() == rt.width() && lt.scale() == rt.scale();
+    return types_equal && values_equal;
 }
 
 }  // namespace dashql

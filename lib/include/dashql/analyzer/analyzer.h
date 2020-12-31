@@ -50,7 +50,7 @@ class Analyzer {
     std::unique_ptr<proto::action::ActionGraphT> planned_graph_;
 
     /// Evaluate the constant
-    std::optional<ConstantValue> TryEvaluateConstant(ProgramInstance& instance, size_t node_id) const;
+    std::optional<webdb::Value> TryEvaluateConstant(ProgramInstance& instance, size_t node_id) const;
     /// Evaluate the given parameter values
     void EvaluateParameterValues(ProgramInstance& instance);
     /// Propagate the given parameter values
@@ -77,7 +77,7 @@ class Analyzer {
     /// Parse a program
     Signal ParseProgram(std::string_view text);
     /// Instantiate the last program
-    Signal InstantiateProgram(proto::analyzer::ProgramParametersT& params);
+    Signal InstantiateProgram(std::vector<ProgramInstance::ParameterValue> params);
     /// Plan the last program
     Signal PlanProgram();
 

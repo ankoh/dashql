@@ -5,56 +5,46 @@
 #include <sstream>
 
 #include "dashql/analyzer/syntax_matcher.h"
+#include "dashql/webdb/value.h"
 #include "gtest/gtest.h"
 
 using namespace std;
 using namespace dashql;
+using namespace webdb;
 
 namespace {
 
 TEST(FormatTest, Empty) {
-    std::array<sxs::AConstType, 1> arg_types{
-        sxs::AConstType::STRING
+    std::array<Value, 1> args{
+        Value::VARCHAR(Ref, "foo")
     };
-    std::array<ConstantValue, 1> args{
-        ConstantValue{std::string{"foo"}}
-    };
-    auto fmt = FunctionLogic::Resolve("format", arg_types);
+    auto fmt = FunctionLogic::Resolve("format", args);
     auto res = fmt->Evaluate(args);
     ASSERT_TRUE(res.IsOk());
-    ASSERT_EQ(res.value().AsStringRef(), "foo");
+    ASSERT_EQ(res.value().DataAsStringView(), "foo");
 }
 
 TEST(FormatTest, IntegerParameter) {
-    std::array<sxs::AConstType, 2> arg_types{
-        sxs::AConstType::STRING,
-        sxs::AConstType::INTEGER,
+    std::array<Value, 2> args{
+        Value::VARCHAR(Ref, "foo {}"),
+        Value::INTEGER(static_cast<int64_t>(1)),
     };
-    std::array<ConstantValue, 2> args{
-        ConstantValue{std::string{"foo {}"}},
-        ConstantValue{static_cast<int64_t>(1)},
-    };
-    auto fmt = FunctionLogic::Resolve("format", arg_types);
+    auto fmt = FunctionLogic::Resolve("format", args);
     auto res = fmt->Evaluate(args);
     ASSERT_TRUE(res.IsOk());
-    ASSERT_EQ(res.value().AsStringRef(), "foo 1");
+    ASSERT_EQ(res.value().DataAsStringView(), "foo 1");
 }
 
 TEST(FormatTest, StringParameter) {
-    std::array<sxs::AConstType, 3> arg_types{
-        sxs::AConstType::STRING,
-        sxs::AConstType::INTEGER,
-        sxs::AConstType::STRING,
+    std::array<Value, 3> args{
+        Value::VARCHAR(Ref, "foo {} {}"),
+        Value::INTEGER(static_cast<int64_t>(1)),
+        Value::VARCHAR(Ref, "'bar'"),
     };
-    std::array<ConstantValue, 3> args{
-        ConstantValue{std::string{"foo {} {}"}},
-        ConstantValue{static_cast<int64_t>(1)},
-        ConstantValue{std::string{"'bar'"}},
-    };
-    auto fmt = FunctionLogic::Resolve("format", arg_types);
+    auto fmt = FunctionLogic::Resolve("format", args);
     auto res = fmt->Evaluate(args);
     ASSERT_TRUE(res.IsOk());
-    ASSERT_EQ(res.value().AsStringRef(), "foo 1 'bar'");
+    ASSERT_EQ(res.value().DataAsStringView(), "foo 1 'bar'");
 }
 
 }  // namespace

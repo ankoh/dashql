@@ -7,6 +7,7 @@
 #include <stack>
 #include <unordered_set>
 
+#include "dashql/webdb/value.h"
 #include "dashql/proto_generated.h"
 
 namespace dashql {
@@ -16,18 +17,19 @@ void AnalyzerTest::EncodePlan(pugi::xml_node& root, const ProgramInstance& progr
     auto setup_action_type_tt = proto::action::SetupActionTypeTypeTable();
     auto program_action_type_tt = proto::action::ProgramActionTypeTypeTable();
     auto action_status_tt = proto::action::ActionStatusCodeTypeTable();
-    auto parameter_type_tt = proto::syntax_dashql::ParameterTypeTypeTable();
+    auto parameter_type_tt = proto::webdb::SQLTypeIDTypeTable();
 
     std::string program_text{program.program_text()};
     root.append_child("text").text().set(program_text.c_str());
 
     auto params = root.append_child("parameters");
     for (auto& param: program.parameter_values()) {
-        if (!param) continue;
+        auto type_str = param.value.PrintType();
+        auto value_str = param.value.PrintValue();
         auto p = params.append_child("parameter");
-        p.append_attribute("type").set_value(parameter_type_tt->names[static_cast<uint16_t>(param->type)]);
-        p.append_attribute("statement").set_value(param->origin_statement);
-        p.append_attribute("value").set_value(param->value.c_str());
+        p.append_attribute("type").set_value(type_str.c_str());
+        p.append_attribute("statement").set_value(param.statement_id);
+        p.append_attribute("value").set_value(value_str.c_str());
     }
 
     auto g = root.append_child("graph");

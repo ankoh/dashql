@@ -8,26 +8,26 @@
 namespace dashql {
 
 // Return as string ref
-std::string_view NodeMatching::ValueAsStringRef() const {
+std::string_view NodeMatching::DataAsStringRef() const {
     return std::visit(overload {
         [](std::string_view arg) { return arg; },
         [](auto arg) { return std::string_view{""}; },
-    }, value);
+    }, data);
 }
 
 // Return as string
-std::string NodeMatching::ValueAsString() const {
+std::string NodeMatching::DataAsString() const {
     return std::visit(overload {
         [](bool arg) { return std::to_string(arg); },
         [](double arg) { return std::to_string(arg); },
         [](uint32_t arg) { return std::to_string(arg); },
         [](std::string_view arg) { return std::string{arg}; },
         [](auto arg) { return std::string{""}; },
-    }, value);
+    }, data);
 }
 
 // Return as string
-int64_t NodeMatching::ValueAsI64() const {
+int64_t NodeMatching::DataAsI64() const {
     return std::visit(overload {
         [](bool arg) { return static_cast<int64_t>(arg); },
         [](double arg) { return static_cast<int64_t>(arg); },
@@ -39,11 +39,11 @@ int64_t NodeMatching::ValueAsI64() const {
             return value;
         },
         [](auto arg) { return static_cast<int64_t>(0); },
-    }, value);
+    }, data);
 }
 
 // Return as double
-double NodeMatching::ValueAsDouble() const {
+double NodeMatching::DataAsDouble() const {
     return std::visit(overload {
         [](bool arg) { return static_cast<double>(arg); },
         [](double arg) { return arg; },
@@ -55,7 +55,7 @@ double NodeMatching::ValueAsDouble() const {
             return value;
         },
         [](auto arg) { return 0.0; },
-    }, value);
+    }, data);
 }
 
 /// Match a matcher
@@ -92,16 +92,16 @@ bool SyntaxMatcher::Match(const ProgramInstance& program, const sx::Node& root, 
         switch (top.matcher.node_spec) {
             case SyntaxMatcherType::BOOL:
                 matching.status = NodeMatchingStatus::MATCHED;
-                matching.value = top.node.children_begin_or_value() != 0;
+                matching.data = top.node.children_begin_or_value() != 0;
                 break;
             case SyntaxMatcherType::UI32:
                 matching.status = NodeMatchingStatus::MATCHED;
-                matching.value = top.node.children_begin_or_value();
+                matching.data = top.node.children_begin_or_value();
                 break;
             case SyntaxMatcherType::STRING:
                 if (top.node.node_type() == sx::NodeType::STRING_REF) {
                     matching.status = NodeMatchingStatus::MATCHED;
-                    matching.value = program.TextAt(top.node.location());
+                    matching.data = program.TextAt(top.node.location());
                 } else {
                     matching.status = NodeMatchingStatus::MISSING;
                     full_match = false;
@@ -109,7 +109,7 @@ bool SyntaxMatcher::Match(const ProgramInstance& program, const sx::Node& root, 
                 break;
             case SyntaxMatcherType::ENUM:
                 matching.status = NodeMatchingStatus::MATCHED;
-                matching.value = top.node.children_begin_or_value();
+                matching.data = top.node.children_begin_or_value();
                 break;
             case SyntaxMatcherType::ARRAY: {
                 matching.status = NodeMatchingStatus::MATCHED;

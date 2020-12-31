@@ -60,10 +60,10 @@ TEST(SyntaxMatcherTest, LoadStatement) {
     EXPECT_EQ(matching[6].status, NodeMatchingStatus::MATCHED);
     EXPECT_TRUE(full_match);
 
-    ASSERT_TRUE(std::holds_alternative<std::string_view>(matching[3].value));
-    ASSERT_EQ(std::get<std::string_view>(matching[3].value), "weather_csv");
-    ASSERT_TRUE(std::holds_alternative<std::string_view>(matching[6].value));
-    ASSERT_EQ(std::get<std::string_view>(matching[6].value), "'https://localhost/test'");
+    ASSERT_TRUE(std::holds_alternative<std::string_view>(matching[3].data));
+    ASSERT_EQ(std::get<std::string_view>(matching[3].data), "weather_csv");
+    ASSERT_TRUE(std::holds_alternative<std::string_view>(matching[6].data));
+    ASSERT_EQ(std::get<std::string_view>(matching[6].data), "'https://localhost/test'");
 }
 
 TEST(SyntaxMatcherTest, LoadStatementFormat) {
@@ -135,16 +135,16 @@ TEST(SyntaxMatcherTest, LoadStatementFormat) {
     EXPECT_EQ(matching[9].status, NodeMatchingStatus::MATCHED);
     EXPECT_TRUE(full_match);
 
-    ASSERT_TRUE(std::holds_alternative<std::string_view>(matching[3].value));
-    ASSERT_EQ(std::get<std::string_view>(matching[3].value), "weather_csv");
-    ASSERT_TRUE(std::holds_alternative<std::string_view>(matching[6].value));
-    ASSERT_EQ(std::get<std::string_view>(matching[6].value), "format");
-    ASSERT_TRUE(std::holds_alternative<std::string_view>(matching[7].value));
-    ASSERT_EQ(std::get<std::string_view>(matching[7].value), "'https://cdn.dashql.com/demo/weather/%s'");
-    ASSERT_TRUE(std::holds_alternative<std::string_view>(matching[8].value));
-    ASSERT_EQ(std::get<std::string_view>(matching[8].value), "global");
-    ASSERT_TRUE(std::holds_alternative<std::string_view>(matching[9].value));
-    ASSERT_EQ(std::get<std::string_view>(matching[9].value), "country");
+    ASSERT_TRUE(std::holds_alternative<std::string_view>(matching[3].data));
+    ASSERT_EQ(std::get<std::string_view>(matching[3].data), "weather_csv");
+    ASSERT_TRUE(std::holds_alternative<std::string_view>(matching[6].data));
+    ASSERT_EQ(std::get<std::string_view>(matching[6].data), "format");
+    ASSERT_TRUE(std::holds_alternative<std::string_view>(matching[7].data));
+    ASSERT_EQ(std::get<std::string_view>(matching[7].data), "'https://cdn.dashql.com/demo/weather/%s'");
+    ASSERT_TRUE(std::holds_alternative<std::string_view>(matching[8].data));
+    ASSERT_EQ(std::get<std::string_view>(matching[8].data), "global");
+    ASSERT_TRUE(std::holds_alternative<std::string_view>(matching[9].data));
+    ASSERT_EQ(std::get<std::string_view>(matching[9].data), "country");
 }
 
 }  // namespace

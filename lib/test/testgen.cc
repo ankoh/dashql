@@ -93,15 +93,12 @@ proto::syntax_dashql::ParameterType GetParameterType(std::string_view type) {
     return proto::syntax_dashql::ParameterType::NONE;
 }
 
-std::unique_ptr<proto::analyzer::ParameterValueT> GetParameter(const pugi::xml_node& node) {
-    auto type = GetParameterType(node.attribute("type").as_string());
+ProgramInstance::ParameterValue GetParameter(const pugi::xml_node& node) {
     auto stmt = node.attribute("statement").as_int();
     auto value = node.attribute("value").as_string();
-    auto result = std::make_unique<proto::analyzer::ParameterValueT>();
-    result->origin_statement = stmt;
-    result->type = type;
-    result->value = value;
-    return move(result);
+    auto type = node.attribute("type").as_string();
+    auto v = webdb::Value::Parse(type, value);
+    return {static_cast<size_t>(stmt), v};
 }
 
 void generate_analyzer_tests(const std::filesystem::path& source_dir) {
@@ -152,14 +149,14 @@ void generate_analyzer_tests(const std::filesystem::path& source_dir) {
             auto prev = test.child("previous");
             auto prev_text = prev.child("text").text().get();
             auto prev_params = prev.child("parameters");
-            proto::analyzer::ProgramParametersT prev_params_obj;
+            std::vector<ProgramInstance::ParameterValue> prev_params_vec;
             for (auto& param : prev_params.children()) {
-                prev_params_obj.values.push_back(GetParameter(param));
+                prev_params_vec.push_back(GetParameter(param));
             }
 
             // Parse, instantiate and plan the previous program
             assert_ok(analyzer.ParseProgram(prev_text), "parsing of previous program");
-            assert_ok(analyzer.InstantiateProgram(prev_params_obj), "instantiation of previous program");
+            assert_ok(analyzer.InstantiateProgram(prev_params_vec), "instantiation of previous program");
             assert_ok(analyzer.PlanProgram(), "planning of previous program");
 
             // Update the action status
@@ -178,14 +175,14 @@ void generate_analyzer_tests(const std::filesystem::path& source_dir) {
             auto next = test.child("next");
             auto next_text = next.child("text").text().get();
             auto next_params = next.child("parameters");
-            proto::analyzer::ProgramParametersT next_params_obj;
+            std::vector<ProgramInstance::ParameterValue> next_params_vec;
             for (auto& param : next_params.children()) {
-                next_params_obj.values.push_back(GetParameter(param));
+                next_params_vec.push_back(GetParameter(param));
             }
 
             // Parse, instantiate and plan the next program
             assert_ok(analyzer.ParseProgram(next_text), "parsing of next program");
-            assert_ok(analyzer.InstantiateProgram(next_params_obj), "instantiation of next program");
+            assert_ok(analyzer.InstantiateProgram(next_params_vec), "instantiation of next program");
             assert_ok(analyzer.PlanProgram(), "planning of next program");
             next.remove_children();
             AnalyzerTest::EncodePlan(next, *analyzer.program_instance(), *analyzer.planned_graph());

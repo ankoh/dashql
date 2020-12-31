@@ -3,13 +3,13 @@
 include "action.fbs";
 include "syntax.fbs";
 include "syntax_dashql.fbs";
+include "webdb/value.fbs";
 
 namespace dashql.proto.analyzer;
 
 table ParameterValue {
-    type: syntax_dashql.ParameterType;
-    origin_statement: uint32;
-    value: string;
+    statement: uint32;
+    value: webdb.Value;
 }
 
 table ProgramParameters {
