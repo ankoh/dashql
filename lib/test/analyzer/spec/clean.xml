@@ -2,6 +2,7 @@
     <previous>
         <text></text>
         <parameters />
+        <patches />
         <graph next_object_id="0">
             <setup />
             <program />
@@ -14,6 +15,7 @@
         <parameters>
             <parameter statement="0" type="VARCHAR" value="DE" />
         </parameters>
+        <patches />
         <graph next_object_id="1">
             <setup />
             <program>
@@ -28,6 +30,7 @@
     <previous>
         <text></text>
         <parameters />
+        <patches />
         <graph next_object_id="0">
             <setup />
             <program />
@@ -38,6 +41,7 @@
             SELECT 1 INTO a;
         </text>
         <parameters />
+        <patches />
         <graph next_object_id="1">
             <setup />
             <program>
@@ -53,6 +57,7 @@
     <previous>
         <text></text>
         <parameters />
+        <patches />
         <graph next_object_id="0">
             <setup />
             <program />
@@ -62,13 +67,16 @@
         <text>
             DECLARE PARAMETER country TYPE TEXT;
             LOAD weather_csv FROM http (
-                url = format('https://cdn.dashql.com/demo/weather/%s', global.country)
+                url = format('https://cdn.dashql.com/demo/weather/{}', global.country)
             );
             EXTRACT weather FROM weather_csv USING CSV;
         </text>
         <parameters>
             <parameter statement="0" type="VARCHAR" value="DE" />
         </parameters>
+        <patches>
+            <eval node="16" type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" />
+        </patches>
         <graph next_object_id="3">
             <setup />
             <program>
@@ -101,6 +109,7 @@
     <previous>
         <text></text>
         <parameters />
+        <patches />
         <graph next_object_id="0">
             <setup />
             <program />
@@ -110,13 +119,16 @@
         <text>
             DECLARE PARAMETER country TYPE TEXT;
             LOAD weather_csv FROM http (
-                url = format('https://cdn.dashql.com/demo/weather/%s', global.country)
+                url = format('https://cdn.dashql.com/demo/weather/{}', global.country)
             );
             EXTRACT weather FROM weather_csv USING CSV;
         </text>
         <parameters>
             <parameter statement="0" type="VARCHAR" value="DE" />
         </parameters>
+        <patches>
+            <eval node="16" type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" />
+        </patches>
         <graph next_object_id="3">
             <setup />
             <program>
@@ -149,6 +161,7 @@
     <previous>
         <text></text>
         <parameters />
+        <patches />
         <graph next_object_id="0">
             <setup />
             <program />
@@ -158,7 +171,7 @@
         <text>
             DECLARE PARAMETER country TYPE TEXT;
             LOAD weather_csv FROM http (
-                url = format('https://cdn.dashql.com/demo/weather/%s', global.country)
+                url = format('https://cdn.dashql.com/demo/weather/{}', global.country)
             );
             EXTRACT weather FROM weather_csv USING CSV;
             SELECT * INTO weather_avg FROM weather;
@@ -166,6 +179,9 @@
         <parameters>
             <parameter statement="0" type="VARCHAR" value="DE" />
         </parameters>
+        <patches>
+            <eval node="16" type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" />
+        </patches>
         <graph next_object_id="4">
             <setup />
             <program>
@@ -208,6 +224,7 @@
     <previous>
         <text></text>
         <parameters />
+        <patches />
         <graph next_object_id="0">
             <setup />
             <program />
@@ -217,7 +234,7 @@
         <text>
             DECLARE PARAMETER country TYPE TEXT;
             LOAD weather_csv FROM http (
-                url = format('https://cdn.dashql.com/demo/weather/%s', global.country)
+                url = format('https://cdn.dashql.com/demo/weather/{}', global.country)
             );
             EXTRACT weather FROM weather_csv USING CSV;
             SELECT * INTO weather_avg FROM weather;
@@ -227,6 +244,9 @@
         <parameters>
             <parameter statement="0" type="VARCHAR" value="DE" />
         </parameters>
+        <patches>
+            <eval node="16" type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" />
+        </patches>
         <graph next_object_id="6">
             <setup />
             <program>
@@ -285,6 +305,7 @@
     <previous>
         <text></text>
         <parameters />
+        <patches />
         <graph next_object_id="0">
             <setup />
             <program />
@@ -294,7 +315,7 @@
         <text>
             DECLARE PARAMETER country TYPE TEXT;
             LOAD weather_csv FROM http (
-                url = format('https://cdn.dashql.com/demo/weather/%s', global.country)
+                url = format('https://cdn.dashql.com/demo/weather/{}', global.country)
             );
             EXTRACT weather FROM weather_csv USING CSV;
             SELECT * INTO weather_avg FROM weather;
@@ -305,6 +326,9 @@
         <parameters>
             <parameter statement="0" type="VARCHAR" value="DE" />
         </parameters>
+        <patches>
+            <eval node="16" type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" />
+        </patches>
         <graph next_object_id="7">
             <setup />
             <program>
@@ -373,6 +397,7 @@
     <previous>
         <text></text>
         <parameters />
+        <patches />
         <graph next_object_id="0">
             <setup />
             <program />
@@ -383,7 +408,7 @@
             DECLARE PARAMETER country TYPE TEXT;
             DECLARE PARAMETER month TYPE INTEGER;
             LOAD weather_csv FROM http (
-                url = format('https://cdn.dashql.com/demo/weather/%s', global.country)
+                url = format('https://cdn.dashql.com/demo/weather/{}', global.country)
             );
             EXTRACT weather FROM weather_csv USING CSV;
             SELECT * INTO weather_avg FROM weather WHERE month = global.month;
@@ -395,6 +420,11 @@
             <parameter statement="0" type="VARCHAR" value="DE" />
             <parameter statement="1" type="BIGINT" value="5" />
         </parameters>
+        <patches>
+            <eval node="20" type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" />
+            <eval node="60" type="BIGINT" value="5" />
+            <eval node="40" type="BIGINT" value="5" />
+        </patches>
         <graph next_object_id="8">
             <setup />
             <program>
@@ -472,6 +502,7 @@
     <previous>
         <text></text>
         <parameters />
+        <patches />
         <graph next_object_id="0">
             <setup />
             <program />
@@ -482,7 +513,7 @@
             DECLARE PARAMETER country TYPE TEXT;
             DECLARE PARAMETER city TYPE TEXT;
             LOAD weather_csv FROM http (
-                url = format('https://cdn.dashql.com/demo/weather/%s', global.country)
+                url = format('https://cdn.dashql.com/demo/weather/{}', global.country)
             );
             EXTRACT weather FROM weather_csv USING CSV;
             SELECT * INTO weather_avg FROM weather WHERE city = global.city;
@@ -491,6 +522,10 @@
             <parameter statement="0" type="VARCHAR" value="DE" />
             <parameter statement="1" type="VARCHAR" value="MUC" />
         </parameters>
+        <patches>
+            <eval node="20" type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" />
+            <eval node="40" type="VARCHAR" value="MUC" />
+        </patches>
         <graph next_object_id="5">
             <setup />
             <program>
@@ -540,6 +575,7 @@
     <previous>
         <text></text>
         <parameters />
+        <patches />
         <graph next_object_id="0">
             <setup />
             <program />
@@ -551,10 +587,10 @@
             DECLARE PARAMETER country2 TYPE TEXT;
             DECLARE PARAMETER month TYPE INTEGER;
             LOAD country1_weather_csv FROM http (
-                url = format('https://cdn.dashql.com/demo/weather/%s', global.country1)
+                url = format('https://cdn.dashql.com/demo/weather/{}', global.country1)
             );
             LOAD country2_weather_csv FROM http (
-                url = format('https://cdn.dashql.com/demo/weather/%s', global.country2)
+                url = format('https://cdn.dashql.com/demo/weather/{}', global.country2)
             );
             EXTRACT country1_weather FROM country1_weather_csv USING CSV;
             EXTRACT country2_weather FROM country2_weather_csv USING CSV;
@@ -566,6 +602,11 @@
             <parameter statement="1" type="VARCHAR" value="US" />
             <parameter statement="2" type="BIGINT" value="5" />
         </parameters>
+        <patches>
+            <eval node="38" type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/US'" />
+            <eval node="24" type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" />
+            <eval node="79" type="BIGINT" value="5" />
+        </patches>
         <graph next_object_id="9">
             <setup />
             <program>

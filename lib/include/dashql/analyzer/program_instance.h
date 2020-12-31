@@ -55,6 +55,8 @@ class ProgramInstance {
     auto& program() const { return *program_; }
     /// Get the parameter values
     auto& parameter_values() const { return parameter_values_; }
+    /// Get the evaluated node
+    auto& evaluated_nodes() const { return evaluated_nodes_; }
 
     /// Find the parameter value
     const ParameterValue* FindParameterValue(size_t stmt_id) const;
