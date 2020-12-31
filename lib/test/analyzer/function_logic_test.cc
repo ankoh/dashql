@@ -21,7 +21,7 @@ TEST(FormatTest, Empty) {
     auto fmt = FunctionLogic::Resolve("format", args);
     auto res = fmt->Evaluate(args);
     ASSERT_TRUE(res.IsOk());
-    ASSERT_EQ(res.value().DataAsStringView(), "foo");
+    ASSERT_EQ(res.value().GetUnsafeString(), "foo");
 }
 
 TEST(FormatTest, IntegerParameter) {
@@ -32,7 +32,7 @@ TEST(FormatTest, IntegerParameter) {
     auto fmt = FunctionLogic::Resolve("format", args);
     auto res = fmt->Evaluate(args);
     ASSERT_TRUE(res.IsOk());
-    ASSERT_EQ(res.value().DataAsStringView(), "foo 1");
+    ASSERT_EQ(res.value().GetUnsafeString(), "foo 1");
 }
 
 TEST(FormatTest, StringParameter) {
@@ -44,7 +44,7 @@ TEST(FormatTest, StringParameter) {
     auto fmt = FunctionLogic::Resolve("format", args);
     auto res = fmt->Evaluate(args);
     ASSERT_TRUE(res.IsOk());
-    ASSERT_EQ(res.value().DataAsStringView(), "foo 1 'bar'");
+    ASSERT_EQ(res.value().GetUnsafeString(), "foo 1 'bar'");
 }
 
 }  // namespace

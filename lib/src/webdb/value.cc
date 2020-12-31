@@ -12,28 +12,57 @@
 namespace dashql {
 namespace webdb {
 
-static proto::webdb::SQLType SQLNULL() { return proto::webdb::SQLType(proto::webdb::SQLTypeID::SQLNULL, 0, 0); }
+namespace {
 
-Value::Value() : type_(SQLNULL()), data_(std::monostate{}) {}
+proto::webdb::SQLType SQLNULL() { return proto::webdb::SQLType(proto::webdb::SQLTypeID::SQLNULL, 0, 0); }
 
-Value::Value(proto::webdb::SQLType type) : type_(type), data_(std::monostate{}) {}
+}
 
-Value::Value(const proto::webdb::Value& val) : type_(val.type() ? *val.type() : SQLNULL()) {
-    if (val.is_null()) {
-        data_ = std::monostate{};
-    } else {
+// Set integer value
+void Value::SetData(int64_t value) {
+    physical_type_ = PhysicalType::I64;
+    data_.i64 = value;
+}
+
+// Set double value
+void Value::SetData(double value) {
+    physical_type_ = PhysicalType::F64;
+    data_.f64 = value;
+}
+
+// Set string value
+void Value::SetData(std::string value) {
+    physical_type_ = PhysicalType::STRING;
+    data_str_buffer_ = move(value);
+    data_str_ = data_str_buffer_;
+}
+
+// Set string view value
+void Value::SetData(std::string_view value) {
+    physical_type_ = PhysicalType::STRING_VIEW;
+    data_str_ = value;
+}
+Value::Value() : sql_type_(SQLNULL()), physical_type_(PhysicalType::NULL_), data_str_buffer_(), data_str_() {
+    data_.i64 = 0;
+}
+
+Value::Value(proto::webdb::SQLType type) : sql_type_(type), physical_type_(PhysicalType::NULL_), data_str_buffer_(), data_str_() {
+    data_.i64 = 0;
+}
+
+Value::Value(const proto::webdb::Value& val) : sql_type_(val.type() ? *val.type() : SQLNULL()), data_str_buffer_(), data_str_()  {
+    if (!val.is_null()) {
         using T = proto::webdb::SQLTypeID;
-        switch (type_.type_id()) {
+        switch (sql_type_.type_id()) {
             case T::INVALID:
             case T::UNKNOWN:
             case T::SQLNULL:
-                data_ = std::monostate{};
                 break;
 
             case T::BOOLEAN:
             case T::DATE:
             case T::TIME:
-                data_ = val.data_u32();
+                SetData(static_cast<int64_t>(val.data_u32()));
                 break;
 
             case T::TINYINT:
@@ -43,12 +72,12 @@ Value::Value(const proto::webdb::Value& val) : type_(val.type() ? *val.type() : 
             case T::TIMESTAMP:
             case T::INTERVAL:
             case T::DECIMAL:
-                data_ = val.data_i64();
+                SetData(val.data_i64());
                 break;
 
             case T::FLOAT:
             case T::DOUBLE:
-                data_ = val.data_f64();
+                SetData(val.data_f64());
                 break;
 
             case T::ANY:
@@ -61,96 +90,24 @@ Value::Value(const proto::webdb::Value& val) : type_(val.type() ? *val.type() : 
             case T::HASH:
             case T::STRUCT:
             case T::LIST:
-                data_ = val.data_str()->string_view();
+                SetData(val.data_str()->string_view());
                 break;
         }
     }
 }
 
-/// Get the value as integer
-int64_t Value::DataAsI64() const {
-    auto parse = [](std::string_view s) {
-        int64_t v;
-        imemstream ss{s.data(), s.size()};
-        ss >> v;
-        return v;
-    };
-    // clang-format off
-    return std::visit(overload {
-        [](int64_t v) { return v; },
-        [](double v) { return static_cast<int64_t>(v); },
-        [parse](std::string_view v) { return parse(v); },
-        [parse](std::string& v) { return parse(v); },
-        [](std::monostate v) { return static_cast<int64_t>(0); }
-    }, data_);
-    // clang-format on
-}
-
-/// Get the value as double
-double Value::DataAsF64() const {
-    auto parse = [](std::string_view s) {
-        double v;
-        imemstream ss{s.data(), s.size()};
-        ss >> v;
-        return v;
-    };
-    // clang-format off
-    return std::visit(overload {
-        [](int64_t v) { return static_cast<double>(v); },
-        [](double v) { return v; },
-        [parse](std::string_view v) { return parse(v); },
-        [parse](std::string& v) { return parse(v); },
-        [](std::monostate v) { return static_cast<double>(0); }
-    }, data_);
-    // clang-format on
-}
-
-/// Get the value as string ref
-std::string_view Value::DataAsStringView() const {
-    // clang-format off
-    return std::visit(overload {
-        [](int64_t v) { return std::string_view{""}; },
-        [](double v) { return std::string_view{""}; },
-        [](std::string_view v) { return v; },
-        [](std::string& v) { return std::string_view{v}; },
-        [](std::monostate v) { return std::string_view{""}; }
-    }, data_);
-    // clang-format on
-}
-
-/// Get the value as string
-std::string Value::DataAsString() const {
-    // clang-format off
-    return std::visit(overload {
-        [](int64_t v) { return std::to_string(v); },
-        [](double v) { return std::to_string(v); },
-        [](std::string_view v) { return std::string{v}; },
-        [](std::string& v) { return v; },
-        [](std::monostate v) { return std::string{""}; }
-    }, data_);
-    // clang-format off
-}
-
 /// Print as script text
 void Value::PrintValue(std::ostream& out) const {
-    switch (type_.type_id()) {
+    switch (sql_type_.type_id()) {
         case proto::webdb::SQLTypeID::INTEGER:
-            out << DataAsI64();
+            out << data_.i64;
             break;
         case proto::webdb::SQLTypeID::FLOAT:
         case proto::webdb::SQLTypeID::DOUBLE:
-            out << DataAsF64();
+            out << data_.f64;
             break;
         default:
-            // clang-format off
-            std::visit(overload {
-                [&](int64_t v) { out << '\'' << v << '\''; },
-                [&](double v) { out << '\'' << v << '\''; },
-                [&](std::string_view v) { out << std::quoted(v, '\''); },
-                [&](std::string& v) { out << std::quoted(v, '\''); },
-                [](std::monostate v) {}
-            }, data_);
-            // clang-format on
+            out << '\'' << data_str_ << '\'';
             break;
     }
 }
@@ -188,10 +145,10 @@ void Value::PrintType(std::ostream& out) const {
             case T::LIST: return "LIST";
                 // clang-format on
         }
-    }(type().type_id());
+    }(sql_type_.type_id());
     out << type_name;
-    if (type().type_id() == T::DECIMAL) {
-        out << "(" << type().width() << "," << type().scale() << ")";
+    if (sql_type_.type_id() == T::DECIMAL) {
+        out << "(" << sql_type_.width() << "," << sql_type_.scale() << ")";
     }
 }
 
@@ -202,6 +159,7 @@ std::string Value::PrintType() const {
     return ss.str();
 }
 
+/// Parse a type
 proto::webdb::SQLType Value::ParseType(std::string_view type) {
     using T = proto::webdb::SQLTypeID;
     static std::unordered_map<std::string_view, T> TYPE_NAMES{

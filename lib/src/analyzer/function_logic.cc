@@ -31,24 +31,24 @@ Expected<webdb::Value> FormatFunctionLogic::Evaluate(nonstd::span<const webdb::V
     if (arg_values.size() == 0) {
         return ErrorCode::FORMAT_INVALID_INPUT;
     }
-    auto tmpl = arg_values[0].DataAsStringView();
+    auto tmpl = arg_values[0].GetUnsafeString();
     auto tmpl_view = duckdb_fmt::basic_string_view<char>(tmpl.data(), tmpl.size());
 
     // Translate formatting arguments
     std::vector<duckdb_fmt::basic_format_arg<duckdb_fmt::format_context>> args;
     for (unsigned i = 1; i < arg_values.size(); ++i) {
-        switch (arg_values[i].type().type_id()) {
+        switch (arg_values[i].sql_type().type_id()) {
             case proto::webdb::SQLTypeID::INTEGER:
-                args.emplace_back(duckdb_fmt::internal::make_arg<ctx_t>(arg_values[i].DataAsI64()));
+                args.emplace_back(duckdb_fmt::internal::make_arg<ctx_t>(arg_values[i].GetUnsafeI64()));
                 break;
             case proto::webdb::SQLTypeID::FLOAT:
             case proto::webdb::SQLTypeID::DOUBLE:
-                args.emplace_back(duckdb_fmt::internal::make_arg<ctx_t>(arg_values[i].DataAsF64()));
+                args.emplace_back(duckdb_fmt::internal::make_arg<ctx_t>(arg_values[i].GetUnsafeF64()));
                 break;
             case proto::webdb::SQLTypeID::VARCHAR:
             case proto::webdb::SQLTypeID::VARBINARY:
             default: {
-                auto view = arg_values[i].DataAsStringView();
+                auto view = arg_values[i].GetUnsafeString();
                 auto fmt_view = duckdb_fmt::basic_string_view<char>(view.data(), view.size());
                 args.emplace_back(duckdb_fmt::internal::make_arg<ctx_t>(fmt_view));
                 break;
