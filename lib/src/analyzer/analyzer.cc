@@ -2,14 +2,14 @@
 
 #include "dashql/analyzer/analyzer.h"
 
+#include <iomanip>
+
 #include "dashql/analyzer/action_planner.h"
 #include "dashql/analyzer/function_logic.h"
 #include "dashql/analyzer/syntax_matcher.h"
 #include "dashql/parser/parser_driver.h"
 #include "dashql/proto_generated.h"
 #include "duckdb/main/client_context.hpp"
-
-#include <iomanip>
 
 using namespace dashql;
 namespace fb = flatbuffers;
@@ -36,10 +36,11 @@ Analyzer& Analyzer::GetInstance() {
 void Analyzer::ResetInstance() { analyzer_instance.reset(); }
 
 /// Evaluate a constant node value
-std::optional<ConstantValue> Analyzer::TryEvaluateConstant(ProgramInstance& instance, size_t node_id) const {
+std::optional<webdb::Value> Analyzer::TryEvaluateConstant(ProgramInstance& instance, size_t node_id) const {
     // Already evaluated?
-    if (auto node = instance.evaluated_nodes_.Find(node_id); !!node && node->has_value()) {
-        return node->value().value;
+    if (auto eval = instance.evaluated_nodes_.Find(node_id); !!eval) {
+        auto& [node_id, value] = *eval;
+        return value;
     }
     auto& node = instance.program().nodes[node_id];
 
@@ -58,23 +59,23 @@ std::optional<ConstantValue> Analyzer::TryEvaluateConstant(ProgramInstance& inst
     // clang-format on
     std::array<NodeMatching, 2> matches;
     if (schema.Match(instance, node, matches)) {
-        auto type = matches[0].ValueAsEnum<proto::syntax_sql::AConstType>();
-        ConstantValue value = [&]() {
-            switch (type) {
-                case proto::syntax_sql::AConstType::INTEGER:
-                    return ConstantValue{matches[1].ValueAsI64()};
-                case proto::syntax_sql::AConstType::FLOAT:
-                    return ConstantValue{matches[1].ValueAsDouble()};
-                case proto::syntax_sql::AConstType::STRING:
-                    return ConstantValue{matches[1].ValueAsString()};
-                case proto::syntax_sql::AConstType::BITSTRING:
-                    return ConstantValue{matches[1].ValueAsStringRef()};
-                default:
-                    return ConstantValue{};
-            }
-        }();
-        instance.evaluated_nodes_.Insert(node_id, EvaluatedNode(node_id, value));
-        return value;
+        webdb::Value v;
+        switch (matches[0].DataAsEnum<proto::syntax_sql::AConstType>()) {
+            case proto::syntax_sql::AConstType::INTEGER:
+                v = webdb::Value::INTEGER(matches[1].DataAsI64());
+                break;
+            case proto::syntax_sql::AConstType::FLOAT:
+                v = webdb::Value::FLOAT(matches[1].DataAsI64());
+                break;
+            case proto::syntax_sql::AConstType::BITSTRING:
+            case proto::syntax_sql::AConstType::STRING:
+                v = webdb::Value::VARCHAR(matches[1].DataAsString());
+                break;
+            default:
+                break;
+        }
+        instance.evaluated_nodes_.Insert(node_id, {node_id, v});
+        return v;
     }
     return std::nullopt;
 }
@@ -116,36 +117,16 @@ void Analyzer::EvaluateParameterValues(ProgramInstance& instance) {
     auto& parameter_values = instance.parameter_values();
 
     // Map parameter values to statements
-    std::unordered_map<size_t, const proto::analyzer::ParameterValueT*> source_values;
+    std::unordered_map<size_t, const ProgramInstance::ParameterValue*> source_values;
     source_values.reserve(parameter_values.size());
     for (auto& p : parameter_values) {
-        source_values.insert({p->origin_statement, p.get()});
+        source_values.insert({p.statement_id, &p});
     }
     // Map parameter statements to referring nodes
     for (auto& dep : program.dependencies) {
         if (auto iter = source_values.find(dep.source_statement()); iter != source_values.end()) {
-            auto& param_value = *iter->second;
-
-            ConstantValue v;
-            using ParameterType = proto::syntax_dashql::ParameterType;
-            switch (param_value.type) {
-                case ParameterType::NONE:
-                case ParameterType::FILE:
-                    break;
-                case ParameterType::INTEGER:
-                    v = ConstantValue{sxs::AConstType::INTEGER, param_value.value};
-                    break;
-                case ParameterType::FLOAT:
-                    v = ConstantValue{sxs::AConstType::FLOAT, param_value.value};
-                    break;
-                case ParameterType::DATE:
-                case ParameterType::DATETIME:
-                case ParameterType::TIME:
-                case ParameterType::TEXT:
-                    v = ConstantValue{std::string_view{param_value.value}};
-                    break;
-            }
-            instance.evaluated_nodes_.Insert(dep.target_node(), EvaluatedNode(dep.target_node(), std::move(v)));
+            auto& param_value = iter->second;
+            instance.evaluated_nodes_.Insert(dep.target_node(), {dep.target_node(), param_value->value});
         }
     }
 }
@@ -190,13 +171,13 @@ void Analyzer::PropagateParameterValues(ProgramInstance& instance) {
             auto& func_node = program.nodes[func_node_id];
             std::array<NodeMatching, 2> matches;
             if (schema.Match(instance, func_node, matches)) {
-                auto func_name = matches[1].ValueAsStringRef();
-                eval.Insert(func_node_id, std::nullopt);
+                auto func_name = matches[1].DataAsStringRef();
+                eval.Insert(func_node_id, {func_node_id, {}});
 
                 // Try to collect all function arguments.
                 // Abort if they are not const.
                 auto func_args_node = matches[0].node;
-                std::vector<ConstantValue> func_args;
+                std::vector<webdb::Value> func_args;
                 std::vector<size_t> func_arg_node_ids;
                 for (unsigned i = 0; i < func_args_node->children_count(); ++i) {
                     auto arg_node_id = func_args_node->children_begin_or_value() + i;
@@ -210,10 +191,10 @@ void Analyzer::PropagateParameterValues(ProgramInstance& instance) {
                 if (func_args.size() != func_args_node->children_count()) continue;
 
                 // Collect arg types
-                std::vector<proto::syntax_sql::AConstType> func_arg_types;
+                std::vector<const proto::webdb::SQLType*> func_arg_types;
                 func_arg_types.reserve(func_args.size());
-                for (auto arg : func_args) {
-                    func_arg_types.push_back(arg.constant_type);
+                for (auto& arg : func_args) {
+                    func_arg_types.push_back(&arg.type());
                 }
                 auto logic = FunctionLogic::Resolve(func_name, func_arg_types);
                 if (!logic) continue;
@@ -223,19 +204,18 @@ void Analyzer::PropagateParameterValues(ProgramInstance& instance) {
                 if (!value) continue;
 
                 // Merge the evaluated nodes
-                eval.Merge(func_node_id, func_arg_node_ids, {{func_node_id, *value}});
+                eval.Merge(func_node_id, func_arg_node_ids, {func_node_id, value.ReleaseValue()});
             }
         }
     }
 }
 
 /// Instantiate a program with parameters
-Signal Analyzer::InstantiateProgram(proto::analyzer::ProgramParametersT& params) {
+Signal Analyzer::InstantiateProgram(std::vector<ProgramInstance::ParameterValue> params) {
     // Create program instance.
     // Note that we copy the shared pointer here and leave the parser output intact.
     // That allows us to re-instantiate the program with new parameter values without parsing it again.
-    auto next_instance =
-        std::make_unique<ProgramInstance>(volatile_program_text_, volatile_program_, move(params.values));
+    auto next_instance = std::make_unique<ProgramInstance>(volatile_program_text_, volatile_program_, move(params));
 
     // Evaluate the program with the given parameter values.
     EvaluateParameterValues(*next_instance);
@@ -282,20 +262,18 @@ flatbuffers::Offset<proto::analyzer::Plan> Analyzer::PackPlan(flatbuffers::FlatB
     std::vector<flatbuffers::Offset<proto::analyzer::ParameterValue>> param_offsets;
     param_offsets.reserve(program_instance_->parameter_values().size());
     for (auto& param : program_instance_->parameter_values()) {
-        auto ofs = proto::analyzer::ParameterValue::Pack(builder, param.get());
-        param_offsets.push_back(ofs);
+        param_offsets.push_back(param.Pack(builder));
     }
     auto param_vec = builder.CreateVector(param_offsets);
 
     // Pack patch
-    auto patch = program_instance_->BuildPatch();
-    auto patch_ofs = proto::syntax::ProgramPatch::Pack(builder, patch.get());
+    auto patch = program_instance_->PackProgramPatch(builder);
 
     // Encode the plan result
     proto::analyzer::PlanBuilder plan{builder};
     plan.add_action_graph(graph);
     plan.add_parameters(param_vec);
-    plan.add_program_evaluation(patch_ofs);
+    plan.add_program_evaluation(patch);
     return plan.Finish();
 }
 

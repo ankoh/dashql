@@ -268,9 +268,9 @@ Signal ActionPlanner::IdentifyApplicableActions() {
                 // Then we also have to check whether the parameter value stayed the same.
                 // A changed parameter will propagate via the applicability.
                 if (a.action_type == proto::action::ProgramActionType::PARAMETER) {
-                    auto prev_param = prev_program_->FindParameterValue(*diff_op.source());
-                    auto next_param = next_program_.FindParameterValue(*diff_op.target());
-                    if (!ProgramMatcher::ParameterValuesEqual(prev_param, next_param)) {
+                    auto* prev_param = prev_program_->FindParameterValue(*diff_op.source());
+                    auto* next_param = next_program_.FindParameterValue(*diff_op.target());
+                    if (*prev_param != *next_param) {
                         invalidate(prev_action_id);
                         break;
                     }

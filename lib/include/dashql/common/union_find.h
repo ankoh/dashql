@@ -93,38 +93,40 @@ template <typename T> class SparseUnionFind {
     }
 
     /// Merge two sets
-    Entry* Merge(size_t l, size_t r) {
-        assert(entries_.count(l));
-        assert(entries_.count(r));
-        auto *a = FindEntry(l), *b = FindEntry(r);
+    Entry* Merge(size_t i, size_t j) {
+        assert(entries_.count(i));
+        assert(entries_.count(j));
+        auto *a = FindEntry(i), *b = FindEntry(j);
         if (a == b) return a;
         if (b->rank < a->rank) {
             b->parent = a->parent;
+            b->value = {};
             return a;
         } else {
             a->parent = b->parent;
+            a->parent = {};
             b->rank += a->rank == b->rank;
             return b;
         }
     }
 
     /// Merge two sets and set the value of the sets
-    void Merge(size_t l, size_t r, T value) {
-        auto root = Merge(l, r);
+    void Merge(size_t i, size_t j, T value) {
+        auto root = Merge(i, j);
         root->value = value;
     }
 
     /// Merge multiple nodes and set the value of the result
     void Merge(size_t origin, nonstd::span<size_t> nodes, T value) {
         if (nodes.empty()) {
-            FindEntry(origin)->value = move(value);
+            FindEntry(origin)->value = std::move(value);
             return;
         }
         Entry* e;
         for (auto n: nodes) {
             e = Merge(origin, n);
         }
-        e->value = move(value);
+        e->value = std::move(value);
     }
 
     /// Helper to iterate all values

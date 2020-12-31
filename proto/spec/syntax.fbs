@@ -1,5 +1,8 @@
 // Copyright (c) 2020 The DashQL Authors
 
+include "syntax_sql.fbs";
+include "webdb/value.fbs";
+
 namespace dashql.proto.syntax;
 
 struct Location { offset: uint32; length: uint32; }
@@ -221,13 +224,12 @@ table Program {
     dependencies: [Dependency];
 }
 
-struct PatchedNode {
+table EvaluatedNode {
     node_id: uint32;
-    new_node: Node;
+    value: webdb.Value;
 }
 
 table ProgramPatch {
-    nodes: [PatchedNode];
-    strings: [string];
+    evaluated_nodes: [EvaluatedNode];
 }
 
