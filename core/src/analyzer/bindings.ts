@@ -1,7 +1,7 @@
 // Copyright (c) 2020 The DashQL Authors
 
 import { DashQLAnalyzerModule } from './analyzer_wasm_module';
-import { Plan, PlanParameter, Program } from  '../model';
+import { Plan, Program, ParameterValue } from  '../model';
 import { flatbuffers } from "flatbuffers";
 import * as proto from "@dashql/proto";
 
@@ -118,14 +118,16 @@ export abstract class AnalyzerBindings {
     }
 
     /// Instantiate program
-    public instantiateProgram(params: PlanParameter[] = []): void {
+    public instantiateProgram(params: ParameterValue[] = []): void {
         if (!this._program) return;
         const instance = this._instance!;
 
-        const builder = new flatbuffers.Builder(params.reduce((acc, v) => (acc + v.value.length + 16), 0));
+        const builder = new flatbuffers.Builder();
         const paramOfs: flatbuffers.Offset[] = params.map(param => {
-            const v = builder.createString(param.value);
-            return proto.analyzer.ParameterValue.create(builder, param.type, param.origin, v);
+            proto.analyzer.ParameterValue.start(builder);
+            proto.analyzer.ParameterValue.addStatement(builder, param.statement);
+            // XXX add value
+            return proto.analyzer.ParameterValue.end(builder);
         });
         const paramVectorOfs = proto.analyzer.ProgramParameters.createValuesVector(builder, paramOfs);
         const args = proto.analyzer.ProgramParameters.create(builder, paramVectorOfs);
