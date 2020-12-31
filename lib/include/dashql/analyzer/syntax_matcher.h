@@ -18,7 +18,6 @@
 namespace dashql {
 
 namespace sx = proto::syntax;
-namespace sxs = proto::syntax_sql;
 
 /// A node spec type
 enum SyntaxMatcherType {

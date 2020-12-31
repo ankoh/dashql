@@ -1,7 +1,6 @@
 // Copyright (c) 2020 The DashQL Authors
 
-include "syntax_sql.fbs";
-include "webdb/value.fbs";
+include "syntax/sql.fbs";
 
 namespace dashql.proto.syntax;
 
@@ -223,13 +222,3 @@ table Program {
     comments: [Location];
     dependencies: [Dependency];
 }
-
-table EvaluatedNode {
-    node_id: uint32;
-    value: webdb.Value;
-}
-
-table ProgramPatch {
-    evaluated_nodes: [EvaluatedNode];
-}
-

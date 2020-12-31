@@ -289,11 +289,11 @@ void ParserDriver::AddStatement(sx::Node node) {
 
         case sx::NodeType::OBJECT_DASHQL_LOAD:
             if (auto [m, _] = FindAttribute(node, Key::DASHQL_LOAD_METHOD); m) {
-                switch (static_cast<sxd::LoadMethodType>(m->children_begin_or_value())) {
-                    case sxd::LoadMethodType::FILE:
+                switch (static_cast<sx::LoadMethodType>(m->children_begin_or_value())) {
+                    case sx::LoadMethodType::FILE:
                         stmt_type = sx::StatementType::LOAD_FILE;
                         break;
-                    case sxd::LoadMethodType::HTTP:
+                    case sx::LoadMethodType::HTTP:
                         stmt_type = sx::StatementType::LOAD_HTTP;
                         break;
                     default:
@@ -305,11 +305,11 @@ void ParserDriver::AddStatement(sx::Node node) {
 
         case sx::NodeType::OBJECT_DASHQL_EXTRACT:
             if (auto [m, _] = FindAttribute(node, Key::DASHQL_EXTRACT_METHOD); m) {
-                switch (static_cast<sxd::ExtractMethodType>(m->children_begin_or_value())) {
-                    case sxd::ExtractMethodType::JSON:
+                switch (static_cast<sx::ExtractMethodType>(m->children_begin_or_value())) {
+                    case sx::ExtractMethodType::JSON:
                         stmt_type = sx::StatementType::EXTRACT_JSON;
                         break;
-                    case sxd::ExtractMethodType::CSV:
+                    case sx::ExtractMethodType::CSV:
                         stmt_type = sx::StatementType::EXTRACT_CSV;
                         break;
                     default:
