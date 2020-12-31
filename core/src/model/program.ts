@@ -1,7 +1,7 @@
 // Copyright (c) 2020 The DashQL Authors
 
 import { NativeStack, NativeBitmap } from '../utils';
-import { syntax as sx } from '@dashql/proto';
+import { syntax as sx, analyzer } from '@dashql/proto';
 import * as schema from './syntax_schema';
 
 const decoder = new TextDecoder();
@@ -12,19 +12,16 @@ export class Program {
     /// The program
     _program: sx.Program;
     /// The patch (if any)
-    _patch: sx.ProgramPatch | null;
-    /// The patched nodes
-    _patchBitmap: NativeBitmap;
+    _patch: analyzer.ProgramPatch | null;
     /// The patched node positions
-    _patchNodes: Map<number, number>;
+    _nodeValues: Map<number, analyzer.Value>;
 
     /// Constructor
     public constructor(textBuffer: Uint8Array = new Uint8Array(0), program: sx.Program = new sx.Program()) {
         this._textBuffer = textBuffer;
         this._program = program;
         this._patch = null;
-        this._patchBitmap = new NativeBitmap(program.nodesLength());
-        this._patchNodes = new Map<number, number>();
+        this._nodeValues = new Map<number, analyzer.Value>();
     }
 
     /// Access the text
@@ -43,28 +40,26 @@ export class Program {
     }
 
     /// Patch the program
-    public patch(patch: sx.ProgramPatch) {
+    public patch(patch: analyzer.ProgramPatch) {
         this._patch = patch;
-        this._patchBitmap.reset(this._program.nodesLength());
-        this._patchNodes.clear();
-        let tmp = new sx.PatchedNode();
-        for (let i = 0; i < patch.nodesLength(); ++i) {
-            let p = patch.nodes(i, tmp)!;
-            this._patchBitmap.set(p.nodeId());
-            this._patchNodes.set(p.nodeId(), i);
+        this._nodeValues.clear();
+        let tmp = new analyzer.EvaluatedNode();
+        for (let i = 0; i < patch.evaluatedNodesLength(); ++i) {
+            let p = patch.evaluatedNodes(i, tmp)!;
+            this._nodeValues.set(p.nodeId(), p.value()!);
         }
     }
 
     /// Get a node
     public getNode(i: number, n: Node | null = null): Node {
         n = n || new Node(this);
-        if (!this._patchBitmap.isSet(i)) {
-            n.buffer = this._program.nodes(i, n.buffer)!;
-        } else {
-            const m = this._patchNodes.get(i)!;
-            n.buffer = this._patch!.nodes(m)!.newNode()!;
-        }
+        n.buffer = this._program.nodes(i, n.buffer)!;
         return n;
+    }
+
+    /// Get a node value
+    public getNodeValue(i: number): analyzer.Value | null {
+        return this._nodeValues.get(i) || null;
     }
 
     /// Get a statement
@@ -97,6 +92,10 @@ export class Program {
         }
         return count;
     }
+}
+
+export interface ParameterValue {
+    statement: number;
 }
 
 export class Node {

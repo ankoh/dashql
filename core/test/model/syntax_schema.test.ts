@@ -3,7 +3,6 @@ import * as path from 'path';
 import * as proto from '@dashql/proto';
 import schema = model.schema;
 import sx = proto.syntax;
-import sxd = proto.syntax_dashql;
 
 import Key = proto.syntax.AttributeKey;
 
@@ -40,7 +39,7 @@ describe('Statement schema', () => {
                 }),
             }));
             expect(method.matching).toEqual(schema.Matching.MATCHED);
-            expect(method.value).toEqual(sxd.LoadMethodType.HTTP);
+            expect(method.value).toEqual(sx.LoadMethodType.HTTP);
             expect(url.matching).toEqual(schema.Matching.MATCHED);
             expect(url.value).toEqual("'https://localhost/test'");
         }
@@ -56,7 +55,7 @@ describe('Statement schema', () => {
                 }),
             }));
             expect(method.matching).toEqual(schema.Matching.MATCHED);
-            expect(method.value).toEqual(sxd.LoadMethodType.HTTP);
+            expect(method.value).toEqual(sx.LoadMethodType.HTTP);
             expect(url.matching).toEqual(schema.Matching.TYPE_MISMATCH);
         }
 
@@ -71,7 +70,7 @@ describe('Statement schema', () => {
                 }),
             }));
             expect(method.matching).toEqual(schema.Matching.MATCHED);
-            expect(method.value).toEqual(sxd.LoadMethodType.HTTP);
+            expect(method.value).toEqual(sx.LoadMethodType.HTTP);
             expect(url.matching).toEqual(schema.Matching.MISSING);
         }
     });
