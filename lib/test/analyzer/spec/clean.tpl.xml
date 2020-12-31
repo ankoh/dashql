@@ -23,7 +23,7 @@
         <text>
             DECLARE PARAMETER country TYPE TEXT;
             LOAD weather_csv FROM http (
-                url = format('https://cdn.dashql.com/demo/weather/%s', global.country)
+                url = format('https://cdn.dashql.com/demo/weather/{}', global.country)
             );
             EXTRACT weather FROM weather_csv USING CSV;
         </text>
@@ -38,7 +38,7 @@
         <text>
             DECLARE PARAMETER country TYPE TEXT;
             LOAD weather_csv FROM http (
-                url = format('https://cdn.dashql.com/demo/weather/%s', global.country)
+                url = format('https://cdn.dashql.com/demo/weather/{}', global.country)
             );
             EXTRACT weather FROM weather_csv USING CSV;
         </text>
@@ -53,7 +53,7 @@
         <text>
             DECLARE PARAMETER country TYPE TEXT;
             LOAD weather_csv FROM http (
-                url = format('https://cdn.dashql.com/demo/weather/%s', global.country)
+                url = format('https://cdn.dashql.com/demo/weather/{}', global.country)
             );
             EXTRACT weather FROM weather_csv USING CSV;
             SELECT * INTO weather_avg FROM weather;
@@ -69,7 +69,7 @@
         <text>
             DECLARE PARAMETER country TYPE TEXT;
             LOAD weather_csv FROM http (
-                url = format('https://cdn.dashql.com/demo/weather/%s', global.country)
+                url = format('https://cdn.dashql.com/demo/weather/{}', global.country)
             );
             EXTRACT weather FROM weather_csv USING CSV;
             SELECT * INTO weather_avg FROM weather;
@@ -87,7 +87,7 @@
         <text>
             DECLARE PARAMETER country TYPE TEXT;
             LOAD weather_csv FROM http (
-                url = format('https://cdn.dashql.com/demo/weather/%s', global.country)
+                url = format('https://cdn.dashql.com/demo/weather/{}', global.country)
             );
             EXTRACT weather FROM weather_csv USING CSV;
             SELECT * INTO weather_avg FROM weather;
@@ -107,7 +107,7 @@
             DECLARE PARAMETER country TYPE TEXT;
             DECLARE PARAMETER month TYPE INTEGER;
             LOAD weather_csv FROM http (
-                url = format('https://cdn.dashql.com/demo/weather/%s', global.country)
+                url = format('https://cdn.dashql.com/demo/weather/{}', global.country)
             );
             EXTRACT weather FROM weather_csv USING CSV;
             SELECT * INTO weather_avg FROM weather WHERE month = global.month;
@@ -128,7 +128,7 @@
             DECLARE PARAMETER country TYPE TEXT;
             DECLARE PARAMETER city TYPE TEXT;
             LOAD weather_csv FROM http (
-                url = format('https://cdn.dashql.com/demo/weather/%s', global.country)
+                url = format('https://cdn.dashql.com/demo/weather/{}', global.country)
             );
             EXTRACT weather FROM weather_csv USING CSV;
             SELECT * INTO weather_avg FROM weather WHERE city = global.city;
@@ -147,10 +147,10 @@
             DECLARE PARAMETER country2 TYPE TEXT;
             DECLARE PARAMETER month TYPE INTEGER;
             LOAD country1_weather_csv FROM http (
-                url = format('https://cdn.dashql.com/demo/weather/%s', global.country1)
+                url = format('https://cdn.dashql.com/demo/weather/{}', global.country1)
             );
             LOAD country2_weather_csv FROM http (
-                url = format('https://cdn.dashql.com/demo/weather/%s', global.country2)
+                url = format('https://cdn.dashql.com/demo/weather/{}', global.country2)
             );
             EXTRACT country1_weather FROM country1_weather_csv USING CSV;
             EXTRACT country2_weather FROM country2_weather_csv USING CSV;
