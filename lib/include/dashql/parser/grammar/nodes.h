@@ -21,7 +21,7 @@ inline sx::Node UI32(sx::Location loc, uint32_t value) { return sx::Node(loc, sx
 inline sx::Node Bool(sx::Location loc, bool v) { return sx::Node(loc, sx::NodeType::BOOL, Key::NONE, NO_PARENT, static_cast<uint32_t>(v), 0); }
 
 /// Create a constant inline
-inline sx::Node Const(ParserDriver& driver, sx::Location loc, sxs::AConstType type) {
+inline sx::Node Const(ParserDriver& driver, sx::Location loc, sx::AConstType type) {
     return driver.Add(loc, sx::NodeType::OBJECT_SQL_CONST, {
         Key::SQL_CONST_TYPE << Enum(loc, type),
         Key::SQL_CONST_VALUE << String(loc),
@@ -100,26 +100,26 @@ inline sx::Node Negate(ParserDriver& driver, sx::Location loc, sx::Location loc_
 
     // Otherwise fall back to an unary negation
     return driver.Add(loc, sx::NodeType::OBJECT_SQL_EXPRESSION, {
-        Key::SQL_EXPRESSION_FUNCTION << Enum(loc_minus, sxs::ExpressionFunction::NEGATE),
+        Key::SQL_EXPRESSION_FUNCTION << Enum(loc_minus, sx::ExpressionFunction::NEGATE),
         Key::SQL_EXPRESSION_ARG0 << value,
     });
 }
 
 /// Read a float type
-inline sxs::NumericTypeTag ReadFloatType(ParserDriver& driver, sx::Location bitsLoc) {
+inline sx::NumericTypeTag ReadFloatType(ParserDriver& driver, sx::Location bitsLoc) {
     auto text = driver.scanner().TextAt(bitsLoc);
     int64_t bits;
     std::from_chars(text.data(), text.data() + text.size(), bits);
     if (bits < 1) {
         driver.AddError(bitsLoc, "precision for float type must be least 1 bit");
     } else if (bits < 24) {
-        return sxs::NumericTypeTag::FLOAT4;
+        return sx::NumericTypeTag::FLOAT4;
     } else if (bits < 53) {
-        return sxs::NumericTypeTag::FLOAT8;
+        return sx::NumericTypeTag::FLOAT8;
     } else {
         driver.AddError(bitsLoc, "precision for float type must be less than 54 bits");
     }
-    return sxs::NumericTypeTag::FLOAT4;
+    return sx::NumericTypeTag::FLOAT4;
 }
 
 /// Map an option.

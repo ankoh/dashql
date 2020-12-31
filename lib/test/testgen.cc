@@ -83,21 +83,21 @@ proto::action::ActionStatusCode GetActionStatus(std::string_view type) {
     return proto::action::ActionStatusCode::NONE;
 }
 
-proto::syntax_dashql::ParameterType GetParameterType(std::string_view type) {
-    auto tt = proto::syntax_dashql::ParameterTypeTypeTable();
+proto::syntax::ParameterType GetParameterType(std::string_view type) {
+    auto tt = proto::syntax::ParameterTypeTypeTable();
     auto& names = tt->names;
     auto& num_elems = tt->num_elems;
     for (unsigned i = 0; i < num_elems; ++i) {
-        if (type == std::string_view{names[i]}) return static_cast<proto::syntax_dashql::ParameterType>(i);
+        if (type == std::string_view{names[i]}) return static_cast<proto::syntax::ParameterType>(i);
     }
-    return proto::syntax_dashql::ParameterType::NONE;
+    return proto::syntax::ParameterType::NONE;
 }
 
 ProgramInstance::ParameterValue GetParameter(const pugi::xml_node& node) {
     auto stmt = node.attribute("statement").as_int();
     auto value = node.attribute("value").as_string();
     auto type = node.attribute("type").as_string();
-    auto v = webdb::Value::Parse(type, value);
+    auto v = Value::Parse(type, value);
     return {static_cast<size_t>(stmt), v};
 }
 

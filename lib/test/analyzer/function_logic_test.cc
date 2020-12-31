@@ -27,7 +27,7 @@ TEST(FormatTest, Empty) {
 TEST(FormatTest, IntegerParameter) {
     std::array<Value, 2> args{
         Value::VARCHAR(Ref, "foo {}"),
-        Value::INTEGER(static_cast<int64_t>(1)),
+        Value::BIGINT(static_cast<int64_t>(1)),
     };
     auto fmt = FunctionLogic::Resolve("format", args);
     auto res = fmt->Evaluate(args);
@@ -38,7 +38,7 @@ TEST(FormatTest, IntegerParameter) {
 TEST(FormatTest, StringParameter) {
     std::array<Value, 3> args{
         Value::VARCHAR(Ref, "foo {} {}"),
-        Value::INTEGER(static_cast<int64_t>(1)),
+        Value::BIGINT(static_cast<int64_t>(1)),
         Value::VARCHAR(Ref, "'bar'"),
     };
     auto fmt = FunctionLogic::Resolve("format", args);
