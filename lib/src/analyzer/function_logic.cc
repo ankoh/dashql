@@ -3,6 +3,7 @@
 #include <iostream>
 
 #include "dashql/common/variant.h"
+#include "dashql/webdb/value.h"
 #include "fmt/core.h"
 
 // Use format library that is bundled with DuckDB.
@@ -16,7 +17,7 @@ struct FormatFunctionLogic final : public FunctionLogic {
     /// Constructor
     FormatFunctionLogic();
     /// Evaluate the function
-    Expected<ConstantValue> Evaluate(nonstd::span<ConstantValue> args) override;
+    Expected<webdb::Value> Evaluate(nonstd::span<const webdb::Value> arg_values) override;
 };
 
 }  // namespace
@@ -24,39 +25,34 @@ struct FormatFunctionLogic final : public FunctionLogic {
 // Constructor
 FormatFunctionLogic::FormatFunctionLogic() {}
 // Evaluate the function
-Expected<ConstantValue> FormatFunctionLogic::Evaluate(nonstd::span<ConstantValue> arg_values) {
+Expected<webdb::Value> FormatFunctionLogic::Evaluate(nonstd::span<const webdb::Value> arg_values) {
     using ctx_t = duckdb_fmt::format_context;
     using args_t = duckdb_fmt::basic_format_args<ctx_t>;
     if (arg_values.size() == 0) {
         return ErrorCode::FORMAT_INVALID_INPUT;
     }
-    auto tmpl = arg_values[0].AsStringRef();
+    auto tmpl = arg_values[0].DataAsStringView();
     auto tmpl_view = duckdb_fmt::basic_string_view<char>(tmpl.data(), tmpl.size());
 
     // Translate formatting arguments
     std::vector<duckdb_fmt::basic_format_arg<duckdb_fmt::format_context>> args;
     for (unsigned i = 1; i < arg_values.size(); ++i) {
-        switch (arg_values[i].GetType()) {
-            case sxs::AConstType::INTEGER:
-                args.emplace_back(duckdb_fmt::internal::make_arg<ctx_t>(arg_values[i].AsInteger()));
+        switch (arg_values[i].type().type_id()) {
+            case proto::webdb::SQLTypeID::INTEGER:
+                args.emplace_back(duckdb_fmt::internal::make_arg<ctx_t>(arg_values[i].DataAsI64()));
                 break;
-            case sxs::AConstType::BITSTRING: {
-                auto view = arg_values[i].AsStringRef();
+            case proto::webdb::SQLTypeID::FLOAT:
+            case proto::webdb::SQLTypeID::DOUBLE:
+                args.emplace_back(duckdb_fmt::internal::make_arg<ctx_t>(arg_values[i].DataAsF64()));
+                break;
+            case proto::webdb::SQLTypeID::VARCHAR:
+            case proto::webdb::SQLTypeID::VARBINARY:
+            default: {
+                auto view = arg_values[i].DataAsStringView();
                 auto fmt_view = duckdb_fmt::basic_string_view<char>(view.data(), view.size());
                 args.emplace_back(duckdb_fmt::internal::make_arg<ctx_t>(fmt_view));
                 break;
             }
-            case sxs::AConstType::FLOAT:
-                args.emplace_back(duckdb_fmt::internal::make_arg<ctx_t>(arg_values[i].AsDouble()));
-                break;
-            case sxs::AConstType::STRING: {
-                auto view = arg_values[i].AsStringRef();
-                auto fmt_view = duckdb_fmt::basic_string_view<char>(view.data(), view.size());
-                args.emplace_back(duckdb_fmt::internal::make_arg<ctx_t>(fmt_view));
-                break;
-            }
-            case sxs::AConstType::NULL_:
-                return ErrorCode::FORMAT_INVALID_INPUT;
         }
     }
 
@@ -67,12 +63,22 @@ Expected<ConstantValue> FormatFunctionLogic::Evaluate(nonstd::span<ConstantValue
     } catch (...) {
         return ErrorCode::FORMAT_FAILED;
     }
-    return ConstantValue{move(str)};
+
+    return webdb::Value::VARCHAR(move(str));
 }
 
 // Resolve a function logic
 std::unique_ptr<FunctionLogic> FunctionLogic::Resolve(std::string_view name,
-                                                      nonstd::span<proto::syntax_sql::AConstType> args) {
+                                                      nonstd::span<const proto::webdb::SQLType*> args) {
+    if (name == "format") {
+        return std::make_unique<FormatFunctionLogic>();
+    }
+    return nullptr;
+}
+
+// Resolve a function logic
+std::unique_ptr<FunctionLogic> FunctionLogic::Resolve(std::string_view name,
+                                                      nonstd::span<const webdb::Value> values) {
     if (name == "format") {
         return std::make_unique<FormatFunctionLogic>();
     }

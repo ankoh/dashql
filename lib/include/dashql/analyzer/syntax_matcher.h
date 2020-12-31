@@ -10,6 +10,7 @@
 #include <variant>
 
 #include "dashql/analyzer/program_instance.h"
+#include "dashql/webdb/value.h"
 #include "dashql/common/enum.h"
 #include "dashql/common/span.h"
 #include "dashql/proto_generated.h"
@@ -43,22 +44,22 @@ struct NodeMatching {
     /// The node pointer (if any)
     const sx::Node* node = nullptr;
     /// The value (if any)
-    std::variant<std::monostate, bool, uint32_t, std::string_view> value = std::monostate();
+    std::variant<std::monostate, bool, uint32_t, std::string_view> data = std::monostate();
 
     /// Has a value?
-    bool HasValue() const { return !std::holds_alternative<std::monostate>(value); }
+    bool HasData() const { return !std::holds_alternative<std::monostate>(data); }
     /// Get the value as string ref
-    std::string_view ValueAsStringRef() const;
+    std::string_view DataAsStringRef() const;
     /// Get the value as string
-    std::string ValueAsString() const;
+    std::string DataAsString() const;
     /// Get the value as integer
-    int64_t ValueAsI64() const;
+    int64_t DataAsI64() const;
     /// Get the value as double
-    double ValueAsDouble() const;
+    double DataAsDouble() const;
     /// Get the value as enum
     template <typename T>
-    T ValueAsEnum() const {
-        auto* v = std::get_if<uint32_t>(&value);
+    T DataAsEnum() const {
+        auto* v = std::get_if<uint32_t>(&data);
         return static_cast<T>(!!v ? *v : 0);
     }
 };

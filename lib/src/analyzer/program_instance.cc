@@ -11,89 +11,14 @@
 namespace dashql {
 
 /// Constructor
-ConstantValue::ConstantValue()
-    : constant_type(sxs::AConstType::NULL_), value(std::monostate{}) {}
-/// Constructor
-ConstantValue::ConstantValue(int64_t value)
-    : constant_type(sxs::AConstType::INTEGER), value(value) {}
-/// Constructor
-ConstantValue::ConstantValue(double value)
-    : constant_type(sxs::AConstType::FLOAT), value(value) {}
-/// Constructor
-ConstantValue::ConstantValue(std::string_view value)
-    : constant_type(sxs::AConstType::STRING), value(value) {}
-/// Constructor
-ConstantValue::ConstantValue(std::string value)
-    : constant_type(sxs::AConstType::STRING), value(move(value)) {}
-/// Constructor
-ConstantValue::ConstantValue(sxs::AConstType type, std::string_view value)
-    : constant_type(type), value(move(value)) {}
-
-/// Get the value as integer
-int64_t ConstantValue::AsInteger() const {
-    auto parse = [](std::string_view s) {
-        int64_t v;
-        imemstream ss{s.data(), s.size()};
-        ss >> v;
-        return v;
-    };
-    return std::visit(overload {
-        [](int64_t v) { return v; },
-        [](double v) { return static_cast<int64_t>(v); },
-        [parse](std::string_view v) { return parse(v); },
-        [parse](std::string& v) { return parse(v); },
-        [](std::monostate v) { return static_cast<int64_t>(0); }
-    }, value);
-}
-
-/// Get the value as double
-double ConstantValue::AsDouble() const {
-    auto parse = [](std::string_view s) {
-        double v;
-        imemstream ss{s.data(), s.size()};
-        ss >> v;
-        return v;
-    };
-    return std::visit(overload {
-        [](int64_t v) { return static_cast<double>(v); },
-        [](double v) { return v; },
-        [parse](std::string_view v) { return parse(v); },
-        [parse](std::string& v) { return parse(v); },
-        [](std::monostate v) { return static_cast<double>(0); }
-    }, value);
-}
-
-/// Get the value as string ref
-std::string_view ConstantValue::AsStringRef() const {
-    return std::visit(overload {
-        [](int64_t v) { return std::string_view{""}; },
-        [](double v) { return std::string_view{""}; },
-        [](std::string_view v) { return v; },
-        [](std::string& v) { return std::string_view{v}; },
-        [](std::monostate v) { return std::string_view{""}; }
-    }, value);
-}
-
-
-/// Get the value as string
-std::string ConstantValue::AsString() const {
-    return std::visit(overload {
-        [](int64_t v) { return std::to_string(v); },
-        [](double v) { return std::to_string(v); },
-        [](std::string_view v) { return std::string{v}; },
-        [](std::string& v) { return v; },
-        [](std::monostate v) { return std::string{""}; }
-    }, value);
-}
-
-/// Constructor
-ProgramInstance::ProgramInstance(std::shared_ptr<std::string> text, std::shared_ptr<sx::ProgramT> program, std::vector<std::unique_ptr<proto::analyzer::ParameterValueT>> params)
+ProgramInstance::ProgramInstance(std::shared_ptr<std::string> text, std::shared_ptr<sx::ProgramT> program, std::vector<ParameterValue> params)
     : program_text_(move(text)), program_(move(program)), parameter_values_(move(params)), evaluated_nodes_(program_->nodes.size()) {
 }
 
 /// Find a parameter value
-const proto::analyzer::ParameterValueT* ProgramInstance::FindParameterValue(size_t stmt_id) const {
-    return parameter_values_[stmt_id].get();
+const ProgramInstance::ParameterValue* ProgramInstance::FindParameterValue(size_t stmt_id) const {
+    // XXX check if valid
+    return &parameter_values_[stmt_id];
 }
 
 // Collect the statement options
@@ -102,30 +27,18 @@ Expected<std::string> ProgramInstance::RenderStatementText(size_t stmt_id) const
     SubstringBuffer buffer{*program_text_, target_root.location()};
 
     // Replace all interpolated nodes
-    evaluated_nodes_.IterateValues([&](size_t, const std::optional<EvaluatedNode>& node) {
-        if (!node) return;
-        auto target = node->node_id;
-        auto& target_node = program_->nodes[target];
-        if (!buffer.Intersects(target_node.location())) return;
+    evaluated_nodes_.IterateValues([&](size_t, const EvaluatedNode& eval) {
+        auto& [node_id, value] = eval;
+        if (!value) return;
 
-        std::stringstream out;
-        auto& v = node->value;
-        switch (v.constant_type) {
-            case sxs::AConstType::BITSTRING:
-            case sxs::AConstType::STRING:
-                out << std::quoted(v.AsString(), '\'');;
-                break;
-            case sxs::AConstType::FLOAT:
-                out << v.AsDouble();
-                break;
-            case sxs::AConstType::INTEGER:
-                out << v.AsInteger();
-                break;
-            case sxs::AConstType::NULL_:
-                out << "NULL";
-                break;
-        }
-        buffer.Replace(target_node.location(), out.str());
+        // Intersects with buffer?
+        auto& node = program_->nodes[node_id];
+        auto node_loc = node.location();
+        if (!buffer.Intersects(node_loc)) return;
+
+        // Replace in buffer
+        auto vstr = value->PrintValue();
+        buffer.Replace(node_loc, vstr);
     });
 
     // Return the result
@@ -133,11 +46,10 @@ Expected<std::string> ProgramInstance::RenderStatementText(size_t stmt_id) const
 }
 
 /// Build the patch
-std::unique_ptr<sx::ProgramPatchT> ProgramInstance::BuildPatch() const {
-    auto patch = std::make_unique<sx::ProgramPatchT>();
-
+flatbuffers::Offset<sx::ProgramPatch> ProgramInstance::PackProgramPatch(flatbuffers::FlatBufferBuilder& builder) const {
+    sx::ProgramPatchBuilder patch{builder};
     /// XXX
-    return patch;
+    return patch.Finish();
 }
 
 /// Find an attribute

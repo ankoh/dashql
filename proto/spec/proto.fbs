@@ -11,5 +11,6 @@ include "webdb/import.fbs";
 include "webdb/query_plan.fbs";
 include "webdb/query_result.fbs";
 include "webdb/sql_type.fbs";
+include "webdb/value.fbs";
 include "webdb/vector.fbs";
 
