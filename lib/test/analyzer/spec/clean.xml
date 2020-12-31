@@ -12,7 +12,7 @@
             DECLARE PARAMETER country TYPE TEXT;
         </text>
         <parameters>
-            <parameter type="VARCHAR" statement="0" value="DE" />
+            <parameter statement="0" type="VARCHAR" value="DE" />
         </parameters>
         <graph next_object_id="1">
             <setup />
@@ -67,7 +67,7 @@
             EXTRACT weather FROM weather_csv USING CSV;
         </text>
         <parameters>
-            <parameter type="VARCHAR" statement="0" value="DE" />
+            <parameter statement="0" type="VARCHAR" value="DE" />
         </parameters>
         <graph next_object_id="3">
             <setup />
@@ -115,7 +115,7 @@
             EXTRACT weather FROM weather_csv USING CSV;
         </text>
         <parameters>
-            <parameter type="VARCHAR" statement="0" value="DE" />
+            <parameter statement="0" type="VARCHAR" value="DE" />
         </parameters>
         <graph next_object_id="3">
             <setup />
@@ -164,7 +164,7 @@
             SELECT * INTO weather_avg FROM weather;
         </text>
         <parameters>
-            <parameter type="VARCHAR" statement="0" value="DE" />
+            <parameter statement="0" type="VARCHAR" value="DE" />
         </parameters>
         <graph next_object_id="4">
             <setup />
@@ -225,7 +225,7 @@
             VIZ weather_avg USING TABLE;
         </text>
         <parameters>
-            <parameter type="VARCHAR" statement="0" value="DE" />
+            <parameter statement="0" type="VARCHAR" value="DE" />
         </parameters>
         <graph next_object_id="6">
             <setup />
@@ -303,7 +303,7 @@
             VIZ weather_binned USING BAR;
         </text>
         <parameters>
-            <parameter type="VARCHAR" statement="0" value="DE" />
+            <parameter statement="0" type="VARCHAR" value="DE" />
         </parameters>
         <graph next_object_id="7">
             <setup />
@@ -392,8 +392,8 @@
             VIZ weather_binned USING BAR;
         </text>
         <parameters>
-            <parameter type="VARCHAR" statement="0" value="DE" />
-            <parameter type="BIGINT" statement="1" value="5" />
+            <parameter statement="0" type="VARCHAR" value="DE" />
+            <parameter statement="1" type="BIGINT" value="5" />
         </parameters>
         <graph next_object_id="8">
             <setup />
@@ -488,8 +488,8 @@
             SELECT * INTO weather_avg FROM weather WHERE city = global.city;
         </text>
         <parameters>
-            <parameter type="VARCHAR" statement="0" value="DE" />
-            <parameter type="VARCHAR" statement="1" value="MUC" />
+            <parameter statement="0" type="VARCHAR" value="DE" />
+            <parameter statement="1" type="VARCHAR" value="MUC" />
         </parameters>
         <graph next_object_id="5">
             <setup />
@@ -562,9 +562,9 @@
             VIZ countries_joined USING LINE;
         </text>
         <parameters>
-            <parameter type="VARCHAR" statement="0" value="DE" />
-            <parameter type="VARCHAR" statement="1" value="US" />
-            <parameter type="BIGINT" statement="2" value="5" />
+            <parameter statement="0" type="VARCHAR" value="DE" />
+            <parameter statement="1" type="VARCHAR" value="US" />
+            <parameter statement="2" type="BIGINT" value="5" />
         </parameters>
         <graph next_object_id="9">
             <setup />
