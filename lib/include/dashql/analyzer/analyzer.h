@@ -14,6 +14,8 @@
 #include <variant>
 #include <vector>
 
+#include "dashql/analyzer/evaluated_node.h"
+#include "dashql/analyzer/parameter_value.h"
 #include "dashql/analyzer/program_instance.h"
 #include "dashql/common/blob_stream.h"
 #include "dashql/common/expected.h"
@@ -76,7 +78,7 @@ class Analyzer {
     /// Parse a program
     Signal ParseProgram(std::string_view text);
     /// Instantiate the last program
-    Signal InstantiateProgram(std::vector<ProgramInstance::ParameterValue> params);
+    Signal InstantiateProgram(std::vector<ParameterValue> params);
     /// Plan the last program
     Signal PlanProgram();
 

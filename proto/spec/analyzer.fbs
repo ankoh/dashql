@@ -14,7 +14,6 @@ enum ValueTypeID: uint8 {
     DATE = 6,
     TIME = 7,
     TIMESTAMP = 8,
-    INTERVAL = 9,
 }
 
 struct ValueType {

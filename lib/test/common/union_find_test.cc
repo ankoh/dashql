@@ -59,7 +59,6 @@ TEST(SparseUnionFind, SimpleOps) {
     ASSERT_EQ(*uf.Find(3), "f");
     ASSERT_EQ(*uf.Find(4), "f");
     ASSERT_EQ(*uf.Find(42), "f");
-
 }
 
 }

@@ -8,12 +8,11 @@
 
 #include "dashql/common/memstream.h"
 #include "dashql/common/variant.h"
-
-#include "duckdb/common/types/decimal.hpp"
 #include "duckdb/common/types/date.hpp"
+#include "duckdb/common/types/decimal.hpp"
+#include "duckdb/common/types/interval.hpp"
 #include "duckdb/common/types/time.hpp"
 #include "duckdb/common/types/timestamp.hpp"
-#include "duckdb/common/types/interval.hpp"
 
 namespace dashql {
 
@@ -21,6 +20,52 @@ namespace {
 
 proto::analyzer::ValueType NOTYPE() { return proto::analyzer::ValueType(proto::analyzer::ValueTypeID::NONE, 0, 0); }
 
+}  // namespace
+
+// Constructor
+Value::Value() : logical_type_(NOTYPE()), physical_type_(PhysicalType::NULL_), data_str_buffer_(), data_str_() {}
+
+// Constructor
+Value::Value(proto::analyzer::ValueTypeID type)
+    : logical_type_(proto::analyzer::ValueType(type, 0, 0)),
+      physical_type_(PhysicalType::NULL_),
+      data_str_buffer_(),
+      data_str_() {}
+
+// Constructor
+Value::Value(proto::analyzer::ValueType type)
+    : logical_type_(type), physical_type_(PhysicalType::NULL_), data_str_buffer_(), data_str_() {}
+
+// Move construction
+Value::Value(Value&& other) noexcept
+    : logical_type_(other.logical_type_), physical_type_(other.physical_type_), data_str_buffer_(), data_str_() {
+    *this = std::move(other);
+}
+
+// Move assignment
+Value& Value::operator=(Value&& other) noexcept {
+    logical_type_ = other.logical_type_;
+    physical_type_ = other.physical_type_;
+    data_str_buffer_ = {};
+    data_str_ = {};
+    switch (physical_type_) {
+        case PhysicalType::NULL_:
+            break;
+        case PhysicalType::I64:
+            data_.i64 = other.data_.i64;
+            break;
+        case PhysicalType::F64:
+            data_.f64 = other.data_.f64;
+            break;
+        case PhysicalType::STRING:
+            data_str_buffer_ = move(other.data_str_buffer_);
+            data_str_ = data_str_buffer_;
+            break;
+        case PhysicalType::STRING_VIEW:
+            data_str_ = other.data_str_;
+            break;
+    }
+    return *this;
 }
 
 // Set integer value
@@ -39,7 +84,7 @@ void Value::SetData(double value) {
 void Value::SetData(std::string value) {
     physical_type_ = PhysicalType::STRING;
     data_str_buffer_ = move(value);
-    data_str_ = data_str_buffer_;
+    data_str_ = std::string_view{data_str_buffer_};
 }
 
 // Set string view value
@@ -47,41 +92,7 @@ void Value::SetData(std::string_view value) {
     physical_type_ = PhysicalType::STRING_VIEW;
     data_str_ = value;
 }
-Value::Value() : logical_type_(NOTYPE()), physical_type_(PhysicalType::NULL_), data_str_buffer_(), data_str_() {
-}
 
-Value::Value(proto::analyzer::ValueType type) : logical_type_(type), physical_type_(PhysicalType::NULL_), data_str_buffer_(), data_str_() {
-}
-
-Value::Value(const proto::analyzer::Value& val) : logical_type_(val.type() ? *val.type() : NOTYPE()), data_str_buffer_(), data_str_()  {
-    if (val.is_null()) {
-        return;
-    }
-    using T = proto::analyzer::ValueTypeID;
-    switch (logical_type_.type_id()) {
-        case T::NONE:
-            break;
-        case T::BOOLEAN:
-        case T::DATE:
-        case T::TIME:
-            SetData(static_cast<int64_t>(val.data_u32()));
-            break;
-        case T::BIGINT:
-        case T::TIMESTAMP:
-        case T::INTERVAL:
-        case T::DECIMAL:
-            SetData(val.data_i64());
-            break;
-        case T::DOUBLE:
-            SetData(val.data_f64());
-            break;
-        case T::VARCHAR:
-            SetData(val.data_str()->string_view());
-            break;
-    }
-}
-
-/// Print as script text
 void Value::PrintValue(std::ostream& out) const {
     using T = proto::analyzer::ValueTypeID;
     switch (logical_type_.type_id()) {
@@ -106,10 +117,6 @@ void Value::PrintValue(std::ostream& out) const {
         case T::TIMESTAMP:
             out << duckdb::Timestamp::ToString(data_.i64);
             break;
-        case T::INTERVAL:
-            out << "[]";
-            // XXX
-            break;
         case T::DECIMAL:
             out << duckdb::Decimal::ToString(data_.i64, logical_type_.scale());
             break;
@@ -119,7 +126,12 @@ void Value::PrintValue(std::ostream& out) const {
     }
 }
 
-/// Print the type
+std::string Value::PrintValue() const {
+    std::stringstream ss;
+    PrintValue(ss);
+    return ss.str();
+}
+
 void Value::PrintType(std::ostream& out) const {
     using T = proto::analyzer::ValueTypeID;
     const char* type_name = [](T tid) {
@@ -134,7 +146,6 @@ void Value::PrintType(std::ostream& out) const {
             case T::DECIMAL: return "DECIMAL";
             case T::DOUBLE: return "DOUBLE";
             case T::VARCHAR: return "VARCHAR";
-            case T::INTERVAL: return "INTERVAL";
         }
         // clang-format on
     }(logical_type_.type_id());
@@ -144,30 +155,150 @@ void Value::PrintType(std::ostream& out) const {
     }
 }
 
-/// Print the type
 std::string Value::PrintType() const {
     std::stringstream ss;
     PrintType(ss);
     return ss.str();
 }
 
-template<typename T>
-T ParseNumber(std::string_view sv) {
+// Comparison
+bool Value::operator==(const Value& other) const {
+    bool cmp = true;
+    cmp = cmp && (logical_type_ == other.logical_type_);
+    cmp = cmp && (physical_type_ == other.physical_type_);
+    switch (physical_type_) {
+        case PhysicalType::NULL_:
+            break;
+        case PhysicalType::I64:
+            cmp = cmp && (data_.i64 == other.data_.i64);
+            break;
+        case PhysicalType::F64:
+            cmp = cmp && (data_.f64 == other.data_.f64);
+            break;
+        case PhysicalType::STRING:
+            cmp = cmp && (data_str_buffer_ == other.data_str_buffer_);
+            break;
+        case PhysicalType::STRING_VIEW:
+            cmp = cmp && (data_str_ == other.data_str_);
+            break;
+    }
+    return cmp;
+}
+
+// Comparison
+bool Value::operator!=(const Value& other) const { return !(*this == other); }
+
+// Copy a value
+Value Value::CopyShallow() const {
+    Value v;
+    v.logical_type_ = logical_type_;
+    v.physical_type_ = physical_type_;
+    switch (v.physical_type_) {
+        case PhysicalType::NULL_:
+            break;
+        case PhysicalType::I64:
+            v.data_.i64 = data_.i64;
+            break;
+        case PhysicalType::F64:
+            v.data_.i64 = data_.f64;
+            break;
+        case PhysicalType::STRING:
+        case PhysicalType::STRING_VIEW:
+            v.physical_type_ = PhysicalType::STRING_VIEW;
+            v.data_str_ = data_str_;
+            break;
+    }
+    return v;
+}
+
+// Copy a value
+Value Value::CopyDeep() const {
+    Value v;
+    v.logical_type_ = logical_type_;
+    v.physical_type_ = physical_type_;
+    switch (v.physical_type_) {
+        case PhysicalType::NULL_:
+            break;
+        case PhysicalType::I64:
+            v.data_.i64 = data_.i64;
+            break;
+        case PhysicalType::F64:
+            v.data_.i64 = data_.f64;
+            break;
+        case PhysicalType::STRING:
+            v.physical_type_ = PhysicalType::STRING;
+            v.data_str_buffer_ = data_str_buffer_;
+            v.data_str_ = v.data_str_buffer_;
+            break;
+        case PhysicalType::STRING_VIEW:
+            v.physical_type_ = PhysicalType::STRING;
+            v.data_str_buffer_ = data_str_;
+            v.data_str_ = v.data_str_buffer_;
+            break;
+    }
+    return v;
+}
+
+// Pack as flatbuffer
+flatbuffers::Offset<proto::analyzer::Value> Value::Pack(flatbuffers::FlatBufferBuilder& builder) const {
+    std::optional<flatbuffers::Offset<flatbuffers::String>> str = std::nullopt;
+    if (!data_str_.empty()) str = builder.CreateString(data_str_);
+    proto::analyzer::ValueBuilder v{builder};
+    v.add_type(&logical_type_);
+    v.add_is_null(is_null());
+    if (str) {
+        v.add_data_str(*str);
+    } else {
+        v.add_data_u32(data_.i64);
+        v.add_data_i64(data_.i64);
+        v.add_data_f64(data_.f64);
+    }
+    return v.Finish();
+}
+
+// Unpack from flatbuffer
+Value Value::UnPack(const proto::analyzer::Value& val) {
+    Value v{*val.type()};
+    if (val.is_null()) {
+        return v;
+    }
+    using T = proto::analyzer::ValueTypeID;
+    switch (val.type()->type_id()) {
+        case T::NONE:
+            break;
+        case T::BOOLEAN:
+        case T::DATE:
+        case T::TIME:
+            v.SetData(static_cast<int64_t>(val.data_u32()));
+            break;
+        case T::BIGINT:
+        case T::TIMESTAMP:
+        case T::DECIMAL:
+            v.SetData(val.data_i64());
+            break;
+        case T::DOUBLE:
+            v.SetData(val.data_f64());
+            break;
+        case T::VARCHAR:
+            v.SetData(val.data_str()->string_view());
+            break;
+    }
+    return v;
+}
+
+template <typename T> T ParseNumber(std::string_view sv) {
     imemstream in{sv.data(), sv.size()};
     T v;
     in >> v;
     return v;
 }
 
-/// Parse a type
+// Parse a type
 proto::analyzer::ValueType Value::ParseType(std::string_view type) {
     using T = proto::analyzer::ValueTypeID;
     static std::unordered_map<std::string_view, T> TYPE_NAMES{
-        {"NOTYPE", T::NONE},
-        {"BOOLEAN", T::BOOLEAN},     
-        {"BIGINT", T::BIGINT},       {"DATE", T::DATE},       {"TIME", T::TIME},         {"TIMESTAMP", T::TIMESTAMP},
-        {"DOUBLE", T::DOUBLE},   {"VARCHAR", T::VARCHAR},
-        {"INTERVAL", T::INTERVAL},
+        {"NOTYPE", T::NONE}, {"BOOLEAN", T::BOOLEAN},     {"BIGINT", T::BIGINT}, {"DATE", T::DATE},
+        {"TIME", T::TIME},   {"TIMESTAMP", T::TIMESTAMP}, {"DOUBLE", T::DOUBLE}, {"VARCHAR", T::VARCHAR},
     };
     if (auto iter = TYPE_NAMES.find(type); iter != TYPE_NAMES.end()) {
         return proto::analyzer::ValueType(iter->second, 0, 0);
@@ -199,7 +330,6 @@ Value Value::Parse(std::string_view type_str, std::string_view value_str, bool s
     switch (type.type_id()) {
         case T::NONE:
             break;
-
         case T::BIGINT:
             return Value::BIGINT(ParseNumber<int64_t>(value_str));
         case T::DOUBLE:
@@ -210,12 +340,93 @@ Value Value::Parse(std::string_view type_str, std::string_view value_str, bool s
         case T::DATE:
         case T::TIME:
         case T::TIMESTAMP:
-        case T::INTERVAL:
         case T::DECIMAL:
             // XXX
             return Value::BIGINT(ParseNumber<int64_t>(value_str));
     }
     return Value{type};
+}
+
+// Create a boolean value from a specified value
+Value Value::BOOLEAN(int8_t value) {
+    Value result{proto::analyzer::ValueTypeID::BOOLEAN};
+    result.SetData(static_cast<int64_t>(value));
+    return result;
+}
+
+// Create an integer value from a specified value
+Value Value::BIGINT(int64_t value) {
+    Value result{proto::analyzer::ValueTypeID::BIGINT};
+    result.SetData(value);
+    return result;
+}
+
+// Create a date value from a specified date
+Value Value::DATE(date_t date) {
+    Value result{proto::analyzer::ValueTypeID::DATE};
+    result.SetData(static_cast<int64_t>(date));
+    return result;
+}
+
+// Create a date value from a specified date
+Value Value::DATE(int32_t year, int32_t month, int32_t day) {
+    return Value::DATE(duckdb::Date::FromDate(year, month, day));
+}
+
+// Create a time value from a specified time
+Value Value::TIME(dtime_t time) {
+    Value result{proto::analyzer::ValueTypeID::TIME};
+    result.SetData(static_cast<int64_t>(time));
+    return result;
+}
+
+// Create a time value from a specified time
+Value Value::TIME(int32_t hour, int32_t min, int32_t sec, int32_t micros) {
+    return Value::TIME(duckdb::Time::FromTime(hour, min, sec, micros));
+}
+
+// Create a timestamp value from a specified date/time combination
+Value Value::TIMESTAMP(date_t date, dtime_t time) {
+    return Value::TIMESTAMP(duckdb::Timestamp::FromDatetime(date, time));
+}
+
+// Create a timestamp value from a specified timestamp
+Value Value::TIMESTAMP(timestamp_t timestamp) {
+    Value result{proto::analyzer::ValueTypeID::TIMESTAMP};
+    result.SetData(static_cast<int64_t>(timestamp));
+    return result;
+}
+
+// Create a timestamp value from a specified timestamp in separate values
+Value Value::TIMESTAMP(int32_t year, int32_t month, int32_t day, int32_t hour, int32_t min, int32_t sec,
+                       int32_t micros) {
+    return Value::TIMESTAMP(duckdb::Timestamp::FromDatetime(duckdb::Date::FromDate(year, month, day),
+                                                            duckdb::Time::FromTime(hour, min, sec, micros)));
+}
+
+// Decimal values
+Value Value::DECIMAL(int64_t value, uint8_t width, uint8_t scale) {
+    Value result{proto::analyzer::ValueTypeID::TIMESTAMP};
+    result.SetData(value);
+    return result;
+}
+// Create a double value from a specified value
+Value Value::DOUBLE(double value) {
+    Value result{proto::analyzer::ValueTypeID::DOUBLE};
+    result.SetData(value);
+    return result;
+}
+// Create a varchar from a string value
+Value Value::VARCHAR(std::string value) {
+    Value result{proto::analyzer::ValueTypeID::VARCHAR};
+    result.SetData(move(value));
+    return result;
+}
+// Create a varchar from a string view
+Value Value::VARCHAR(RefTag, std::string_view value) {
+    Value result{proto::analyzer::ValueTypeID::VARCHAR};
+    result.SetData(value);
+    return result;
 }
 
 }  // namespace dashql
