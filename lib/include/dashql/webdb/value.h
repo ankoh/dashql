@@ -23,8 +23,6 @@ class Value {
    protected:
     /// The type
     proto::webdb::SQLType type_;
-    /// Is null?
-    bool is_null_;
     /// The data
     std::variant<std::monostate, int64_t, double, std::string, std::string_view> data_;
 
@@ -34,23 +32,23 @@ class Value {
     /// Create an empty NULL value of the specified type
     Value(proto::webdb::SQLType type);
     /// Create from flatbuffer object
-    Value(const proto::webdb::ValueT& val);
+    Value(const proto::webdb::Value& val);
 
     /// Get the type
     auto& type() const { return type_; }
     /// Get the type
-    auto& is_null() const { return is_null_; }
+    bool is_null() const { return std::holds_alternative<std::monostate>(data_); }
     /// Get the raw data
     auto& data() const { return data_; }
 
-    /// Get as string
-    std::string DataAsString() const;
-    /// Get as string view
-    std::string_view DataAsStringView() const;
     /// Get as integer
     int64_t DataAsI64() const;
     /// Get as double
     double DataAsF64() const;
+    /// Get as string
+    std::string DataAsString() const;
+    /// Get as string view
+    std::string_view DataAsStringView() const;
 
     /// Print the type
     std::string PrintType() const;
@@ -62,11 +60,11 @@ class Value {
     void PrintValue(std::ostream& out) const;
 
     /// Parse a value from text
+    static proto::webdb::SQLType ParseType(std::string_view type);
+    /// Parse a value from text
     static Value Parse(std::string_view type, std::string_view data);
-
     /// Create a Numeric value of the specified type with the specified value
     static Value Numeric(proto::webdb::SQLType type, int64_t value);
-
     /// Create a tinyint Value from a specified value
     static Value BOOLEAN(int8_t value);
     /// Create a tinyint Value from a specified value
@@ -102,7 +100,6 @@ class Value {
     static Value FLOAT(float value);
     /// Create a double Value from a specified value
     static Value DOUBLE(double value);
-
     /// Create a varchar from a string value
     static Value VARCHAR(std::string value);
     /// Create a varchar from a string view
