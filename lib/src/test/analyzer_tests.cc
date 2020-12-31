@@ -32,6 +32,20 @@ void AnalyzerTest::EncodePlan(pugi::xml_node& root, const ProgramInstance& progr
         p.append_attribute("value").set_value(value_str.c_str());
     }
 
+    auto patch = root.append_child("patches");
+    program.evaluated_nodes().IterateValues([&](size_t k, const EvaluatedNode& eval) {
+        auto e = patch.append_child("eval");
+        e.append_attribute("node").set_value(eval.node_id);
+        if (!eval.value) {
+            e.append_attribute("value").set_value("NULL");
+        } else {
+            auto t = eval.value->PrintType();
+            auto v = eval.value->PrintValue();
+            e.append_attribute("type").set_value(t.c_str());
+            e.append_attribute("value").set_value(v.c_str());
+        }
+    });
+
     auto g = root.append_child("graph");
     g.append_attribute("next_object_id").set_value(graph.next_object_id);
     auto setup_actions = g.append_child("setup");
