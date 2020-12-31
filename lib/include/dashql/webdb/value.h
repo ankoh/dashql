@@ -21,10 +21,37 @@ enum RefTag { Ref };
 
 class Value {
    protected:
+    /// The physical type
+    enum class PhysicalType {
+        NULL_,
+        I64,
+        F64,
+        STRING,
+        STRING_VIEW
+    };
+
     /// The type
-    proto::webdb::SQLType type_;
+    proto::webdb::SQLType sql_type_;
+    /// The physical type
+    PhysicalType physical_type_;
     /// The data
-    std::variant<std::monostate, int64_t, double, std::string, std::string_view> data_;
+    union {
+        int64_t i64;
+        double f64;
+    } data_;
+    /// The string value buffer (if any)
+    std::string data_str_buffer_;
+    /// The string value
+    std::string_view data_str_;
+
+    /// Set integer value
+    void SetData(int64_t value);
+    /// Set double value
+    void SetData(double value);
+    /// Set string value
+    void SetData(std::string value);
+    /// Set string view value
+    void SetData(std::string_view value);
 
    public:
     /// Create an empty NULL value
@@ -35,20 +62,16 @@ class Value {
     Value(const proto::webdb::Value& val);
 
     /// Get the type
-    auto& type() const { return type_; }
+    auto& sql_type() const { return sql_type_; }
     /// Get the type
-    bool is_null() const { return std::holds_alternative<std::monostate>(data_); }
-    /// Get the raw data
-    auto& data() const { return data_; }
+    bool is_null() const { return physical_type_ == PhysicalType::NULL_; }
 
     /// Get as integer
-    int64_t DataAsI64() const;
+    auto GetUnsafeI64() const { return data_.i64; }
     /// Get as double
-    double DataAsF64() const;
-    /// Get as string
-    std::string DataAsString() const;
+    auto GetUnsafeF64() const { return data_.f64; }
     /// Get as string view
-    std::string_view DataAsStringView() const;
+    std::string_view GetUnsafeString() const { return data_str_; }
 
     /// Print the type
     std::string PrintType() const;

@@ -194,7 +194,7 @@ void Analyzer::PropagateParameterValues(ProgramInstance& instance) {
                 std::vector<const proto::webdb::SQLType*> func_arg_types;
                 func_arg_types.reserve(func_args.size());
                 for (auto& arg : func_args) {
-                    func_arg_types.push_back(&arg.type());
+                    func_arg_types.push_back(&arg.sql_type());
                 }
                 auto logic = FunctionLogic::Resolve(func_name, func_arg_types);
                 if (!logic) continue;
