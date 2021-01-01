@@ -7,6 +7,8 @@ import * as schema from './syntax_schema';
 const decoder = new TextDecoder();
 
 export class Program {
+    /// The program text
+    _text: string;
     /// The encoded text buffer based to the core
     _textBuffer: Uint8Array;
     /// The program
@@ -15,7 +17,8 @@ export class Program {
     _nodeValues: Map<number, analyzer.Value>;
 
     /// Constructor
-    public constructor(textBuffer: Uint8Array = new Uint8Array(0), program: sx.Program = new sx.Program()) {
+    public constructor(text: string = "", textBuffer: Uint8Array = new Uint8Array(0), program: sx.Program = new sx.Program()) {
+        this._text = text;
         this._textBuffer = textBuffer;
         this._program = program;
         this._nodeValues = new Map<number, analyzer.Value>();

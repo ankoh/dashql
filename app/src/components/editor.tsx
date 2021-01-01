@@ -4,7 +4,7 @@ import * as core from '@dashql/core';
 import { AutoSizer } from '../util/autosizer';
 import { connect } from 'react-redux';
 import { IAppContext, withAppContext } from '../app_context';
-import { AppState, Dispatch } from '../model';
+import * as model from '../model';
 import classNames from 'classnames';
 
 import { theme as monaco_theme } from './editor_theme_light';
@@ -15,6 +15,8 @@ type Props = {
     className?: string;
     programText: string;
     program: core.model.Program;
+
+    updateProgramText: (txt: string) => void;
 };
 
 class Editor extends React.Component<Props> {
@@ -90,9 +92,8 @@ class Editor extends React.Component<Props> {
     /// The editor did mount, register the event handler
     public editorDidMount() {
         const editor = this.editor!;
-        const editorCtrl = this.props.appContext.controller.editor;
         editor.onDidChangeModelContent((_event) => {
-            editorCtrl.updateStudioText(editor.getValue());
+            this.props.updateProgramText(editor.getValue());
         });
         if (this.monacoContainer) {
             this.resizeEditorDelayed(this.monacoContainer.offsetHeight, this.monacoContainer.offsetWidth);
@@ -135,12 +136,16 @@ class Editor extends React.Component<Props> {
     }
 }
 
-const mapStateToProps = (state: AppState) => ({
+const mapStateToProps = (state: model.AppState) => ({
     programText: state.core.programText,
     program: state.core.program || new core.model.Program()
 });
 
-const mapDispatchToProps = (_dispatch: Dispatch) => ({
+const mapDispatchToProps = (dispatch: model.Dispatch) => ({
+    updateProgramText: (txt: string) => (model.mutate(dispatch, {
+        type: core.model.StateMutationType.SET_PROGRAM_TEXT,
+        data: txt
+    }))
 });
 
 export default connect(mapStateToProps, mapDispatchToProps)(withAppContext(Editor));

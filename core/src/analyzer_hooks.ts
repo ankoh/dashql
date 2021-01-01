@@ -38,7 +38,13 @@ export class AnalyzerHooks {
         // Program text changed?
         if (next.programText !== this._programText) {
             this._programText = next.programText;
-            this.parseProgram(this._programText);
+
+            // Parse the new program
+            const program = this._platform.analyzer.parseProgram(this._programText);
+            model.mutate(this._platform.store.dispatch, {
+                type: model.StateMutationType.SET_PROGRAM,
+                data: program
+            });
             return;
         }
 
@@ -46,7 +52,15 @@ export class AnalyzerHooks {
         if (next.program !== this._program || next.programParameters !== this._programParameters) {
             this._program = next.program;
             this._programParameters = next.programParameters;
-            this.instantiateProgram(this._program, this._programParameters);
+            if (!this._program) return;
+
+            // Instantiate the new program
+            this._platform.analyzer.instantiateProgram(this._programParameters);
+
+            // Can schedule immediately?
+            if (this._schedulerStatus == model.ActionSchedulerStatus.Idle) {
+                this.planProgram();
+            }
             return;
         }
 
@@ -54,24 +68,38 @@ export class AnalyzerHooks {
         if (next.schedulerStatus !== this._schedulerStatus) {
             this._schedulerStatus = next.schedulerStatus;
 
-            // Should we plan a new program?
+            // Scheduler became idle and there is a program pending?
             const schedulerIsIdle = this._schedulerStatus == model.ActionSchedulerStatus.Idle;
-            const programNotPlanned =
+            const programPending =
                 this._program &&
                 (!next.plan || next.plan.program !== this._program || next.plan.parameters != this._programParameters);
-            if (schedulerIsIdle && programNotPlanned) {
-                this.scheduleProgram(this._program, this._programParameters);
+            if (schedulerIsIdle && programPending) {
+                this.planProgram();
             }
             return;
         }
     }
 
-    /// Parse a program
-    protected parseProgram(_text: string) {}
+    /// Execute a plan
+    protected async planProgram() {
+        const plan = this._platform.analyzer.planProgram();
+        if (!plan) return;
 
-    /// Instantiate a program
-    protected instantiateProgram(_program: model.Program | null, _params: Immutable.List<model.ParameterValue>) {}
+        // Schedule the plan
+        const infos = this._scheduler.prepare(plan);
+        if (infos.length == 0) return;
+        model.mutate(this._platform.store.dispatch, {
+            type: model.StateMutationType.SCHEDULE_PLAN,
+            data: [plan, infos],
+        });
 
-    /// Plan and schedule a program
-    protected scheduleProgram(_program: model.Program | null, _params: Immutable.List<model.ParameterValue>) {}
+        // Execute the plan
+        await this._scheduler.execute();
+
+        // Scheduler is ready again
+        model.mutate(this._platform.store.dispatch, {
+            type: model.StateMutationType.SCHEDULER_READY,
+            data: null,
+        });
+    }
 }

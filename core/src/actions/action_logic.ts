@@ -36,6 +36,10 @@ export abstract class ActionLogic<ActionBuffer extends ProtoAction> {
         this._status = action.actionStatusCode();
     }
 
+    /// Get the action id
+    public get actionId() {
+        return this._action_id;
+    }
     /// Get the action class
     public get actionClass() {
         return getActionClass(this._action_id);

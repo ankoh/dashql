@@ -116,7 +116,7 @@ export abstract class AnalyzerBindings {
 
         /// Clear the utf8 string buffer
         instance.stackRestore(stackPointer);
-        this._program = new Program(textUTF8, program);
+        this._program = new Program(text, textUTF8, program);
         return this._program;
     }
 
