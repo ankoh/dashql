@@ -46,14 +46,13 @@ table ProgramInstantiation {
     parameters: [ParameterValue];
 }
 
-enum ErrorCode: uint8 {
+enum NodeErrorCode: uint8 {
     INVALID_INPUT
 }
 
-table Error {
-    code: ErrorCode;
-    location: syntax.Location;
-    node: uint32;
+table NodeError {
+    node_id: uint32;
+    code: NodeErrorCode;
     message: string;
 }
 
@@ -61,5 +60,5 @@ table Plan {
     parameter_values: [ParameterValue];
     evaluated_nodes: [NodeValue];
     action_graph: action.ActionGraph;
-    errors: [Error];
+    node_errors: [NodeError];
 }
