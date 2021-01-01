@@ -7,7 +7,6 @@
 #include <stack>
 #include <unordered_set>
 
-#include "dashql/webdb/value.h"
 #include "dashql/proto_generated.h"
 
 namespace dashql {

@@ -3,7 +3,6 @@
 #include <iostream>
 
 #include "dashql/common/variant.h"
-#include "dashql/webdb/value.h"
 #include "fmt/core.h"
 
 // Use format library that is bundled with DuckDB.
