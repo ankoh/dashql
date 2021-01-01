@@ -5,7 +5,6 @@
 #include <sstream>
 
 #include "dashql/analyzer/syntax_matcher.h"
-#include "dashql/webdb/value.h"
 #include "gtest/gtest.h"
 
 using namespace std;

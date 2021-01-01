@@ -37,7 +37,7 @@ Expected<std::string> ProgramInstance::RenderStatementText(size_t stmt_id) const
         if (!buffer.Intersects(node_loc)) return;
 
         // Replace in buffer
-        auto vstr = value->PrintValue();
+        auto vstr = value->PrintValueAsScript();
         buffer.Replace(node_loc, vstr);
     });
 

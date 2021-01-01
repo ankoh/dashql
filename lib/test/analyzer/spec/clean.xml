@@ -565,7 +565,7 @@
                         <ref action="3" />
                         <ref action="1" />
                     </depends_on>
-                    <script>SELECT * INTO weather_avg FROM weather WHERE city = MUC</script>
+                    <script>SELECT * INTO weather_avg FROM weather WHERE city = 'MUC'</script>
                 </action>
             </program>
         </graph>

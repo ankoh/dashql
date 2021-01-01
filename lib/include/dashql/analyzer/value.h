@@ -86,13 +86,17 @@ class Value {
     auto GetUnsafeString() const { return data_str_; }
 
     /// Print the type
-    std::string PrintType() const;
-    /// Print the type
     void PrintType(std::ostream& out) const;
+    /// Print the value
+    void PrintValue(std::ostream& out) const;
+    /// Print the value
+    void PrintValueAsScript(std::ostream& out) const;
+    /// Print the type
+    std::string PrintType() const;
     /// Print the value
     std::string PrintValue() const;
     /// Print the value
-    void PrintValue(std::ostream& out) const;
+    std::string PrintValueAsScript() const;
 
     /// Comparison
     bool operator==(const Value &rhs) const;

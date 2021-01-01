@@ -93,6 +93,29 @@ void Value::SetData(std::string_view value) {
     data_str_ = value;
 }
 
+void Value::PrintType(std::ostream& out) const {
+    using T = proto::analyzer::ValueTypeID;
+    const char* type_name = [](T tid) {
+        // clang-format off
+        switch (tid) {
+            case T::NONE: return "NONE";
+            case T::BOOLEAN: return "BOOLEAN";
+            case T::BIGINT: return "BIGINT";
+            case T::DATE: return "DATE";
+            case T::TIME: return "TIME";
+            case T::TIMESTAMP: return "TIMESTAMP";
+            case T::DECIMAL: return "DECIMAL";
+            case T::DOUBLE: return "DOUBLE";
+            case T::VARCHAR: return "VARCHAR";
+        }
+        // clang-format on
+    }(logical_type_.type_id());
+    out << type_name;
+    if (logical_type_.type_id() == T::DECIMAL) {
+        out << "(" << logical_type_.width() << "," << logical_type_.scale() << ")";
+    }
+}
+
 void Value::PrintValue(std::ostream& out) const {
     using T = proto::analyzer::ValueTypeID;
     switch (logical_type_.type_id()) {
@@ -126,38 +149,54 @@ void Value::PrintValue(std::ostream& out) const {
     }
 }
 
-std::string Value::PrintValue() const {
-    std::stringstream ss;
-    PrintValue(ss);
-    return ss.str();
-}
-
-void Value::PrintType(std::ostream& out) const {
+void Value::PrintValueAsScript(std::ostream& out) const {
     using T = proto::analyzer::ValueTypeID;
-    const char* type_name = [](T tid) {
-        // clang-format off
-        switch (tid) {
-            case T::NONE: return "NONE";
-            case T::BOOLEAN: return "BOOLEAN";
-            case T::BIGINT: return "BIGINT";
-            case T::DATE: return "DATE";
-            case T::TIME: return "TIME";
-            case T::TIMESTAMP: return "TIMESTAMP";
-            case T::DECIMAL: return "DECIMAL";
-            case T::DOUBLE: return "DOUBLE";
-            case T::VARCHAR: return "VARCHAR";
-        }
-        // clang-format on
-    }(logical_type_.type_id());
-    out << type_name;
-    if (logical_type_.type_id() == T::DECIMAL) {
-        out << "(" << logical_type_.width() << "," << logical_type_.scale() << ")";
+    switch (logical_type_.type_id()) {
+        case T::NONE:
+            out << "NULL";
+            break;
+        case T::BOOLEAN:
+            out << ((data_.i64 != 0) ? "true" : "false");
+            break;
+        case T::BIGINT:
+            out << data_.i64;
+            break;
+        case T::DOUBLE:
+            out << data_.f64;
+            break;
+        case T::DATE:
+            out << duckdb::Date::ToString(data_.i64);
+            break;
+        case T::TIME:
+            out << duckdb::Time::ToString(data_.i64);
+            break;
+        case T::TIMESTAMP:
+            out << duckdb::Timestamp::ToString(data_.i64);
+            break;
+        case T::DECIMAL:
+            out << duckdb::Decimal::ToString(data_.i64, logical_type_.scale());
+            break;
+        case T::VARCHAR:
+            out << std::quoted(data_str_, '\'');
+            break;
     }
 }
 
 std::string Value::PrintType() const {
     std::stringstream ss;
     PrintType(ss);
+    return ss.str();
+}
+
+std::string Value::PrintValue() const {
+    std::stringstream ss;
+    PrintValue(ss);
+    return ss.str();
+}
+
+std::string Value::PrintValueAsScript() const {
+    std::stringstream ss;
+    PrintValueAsScript(ss);
     return ss.str();
 }
 

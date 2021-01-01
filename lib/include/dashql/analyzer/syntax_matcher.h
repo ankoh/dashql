@@ -10,7 +10,6 @@
 #include <variant>
 
 #include "dashql/analyzer/program_instance.h"
-#include "dashql/webdb/value.h"
 #include "dashql/common/enum.h"
 #include "dashql/common/span.h"
 #include "dashql/proto_generated.h"
