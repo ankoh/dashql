@@ -5,7 +5,6 @@
 #include <iomanip>
 
 #include "dashql/analyzer/action_planner.h"
-#include "dashql/analyzer/evaluated_node.h"
 #include "dashql/analyzer/function_logic.h"
 #include "dashql/analyzer/parameter_value.h"
 #include "dashql/analyzer/syntax_matcher.h"
@@ -251,6 +250,8 @@ flatbuffers::Offset<proto::syntax::Program> Analyzer::PackProgram(flatbuffers::F
 /// Pack the plan
 flatbuffers::Offset<proto::analyzer::Plan> Analyzer::PackPlan(flatbuffers::FlatBufferBuilder& builder) {
     assert(!!planned_graph_.get());
+
+    // Pack the graph
     auto graph = proto::action::ActionGraph::Pack(builder, planned_graph_.get());
 
     // Pack parameters
@@ -261,14 +262,14 @@ flatbuffers::Offset<proto::analyzer::Plan> Analyzer::PackPlan(flatbuffers::FlatB
     }
     auto param_vec = builder.CreateVector(param_offsets);
 
-    // Pack patch
-    auto patch = program_instance_->PackProgramPatch(builder);
+    // Pack the evaluated nodes
+    auto eval = program_instance_->PackEvaluatedNodes(builder);
 
     // Encode the plan result
     proto::analyzer::PlanBuilder plan{builder};
+    plan.add_parameter_values(param_vec);
+    plan.add_evaluated_nodes(eval);
     plan.add_action_graph(graph);
-    plan.add_parameters(param_vec);
-    plan.add_program_evaluation(patch);
     return plan.Finish();
 }
 
