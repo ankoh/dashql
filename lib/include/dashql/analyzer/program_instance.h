@@ -40,6 +40,14 @@ class ProgramInstance {
         std::optional<Value> value;
     };
 
+    /// An error associated with a node
+    struct NodeError {
+        /// The node id
+        size_t node_id;
+        /// The error
+        Error error;
+    };
+
    protected:
     /// The program text
     std::shared_ptr<std::string> program_text_;
@@ -49,6 +57,8 @@ class ProgramInstance {
     std::vector<ParameterValue> parameter_values_;
     /// The evaluated nodes (if any)
     SparseUnionFind<NodeValue> evaluated_nodes_;
+    /// The node errors
+    std::vector<NodeError> node_errors_;
 
     public:
     /// Constructor
@@ -66,6 +76,8 @@ class ProgramInstance {
     /// Get the evaluated node
     auto& evaluated_nodes() const { return evaluated_nodes_; }
 
+    /// Add a node error
+    void AddNodeError(NodeError&& error);
     /// Find the parameter value
     const ParameterValue* FindParameterValue(size_t stmt_id) const;
     /// Get the text at a location

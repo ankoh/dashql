@@ -10,12 +10,17 @@
 
 namespace dashql {
 
-/// Constructor
+// Constructor
 ProgramInstance::ProgramInstance(std::shared_ptr<std::string> text, std::shared_ptr<sx::ProgramT> program, std::vector<ParameterValue> params)
-    : program_text_(move(text)), program_(move(program)), parameter_values_(move(params)), evaluated_nodes_(program_->nodes.size()) {
+    : program_text_(move(text)), program_(move(program)), parameter_values_(move(params)), evaluated_nodes_(program_->nodes.size()), node_errors_() {
 }
 
-/// Find a parameter value
+// Add a node error
+void ProgramInstance::AddNodeError(NodeError&& error) {
+    node_errors_.push_back(std::move(error));
+}
+
+// Find a parameter value
 const ParameterValue* ProgramInstance::FindParameterValue(size_t stmt_id) const {
     // XXX check if valid
     return &parameter_values_[stmt_id];
