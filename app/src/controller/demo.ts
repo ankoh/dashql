@@ -1,5 +1,5 @@
 import * as core from '@dashql/core';
-import { mutate } from '../model';
+import * as model from '../model';
 
 export const DEMO_SCRIPT = `-- This script outlines basic concepts of the SQL extension DashQL.
 -- Delete everything when you're ready and start from scratch.
@@ -39,19 +39,9 @@ export class DemoController {
     }
 
     public setup() {
-        const store = this._platform.store;
-        const analyzer = this._platform.analyzer;
-        const program = analyzer.parseProgram(DEMO_SCRIPT);
-        const plan = analyzer.planProgram();
-        mutate(store.dispatch, {
-            type: core.model.StateMutationType.SET_PROGRAM,
-            data: [DEMO_SCRIPT, program],
+        model.mutate(this._platform.store.dispatch, {
+            type: core.model.StateMutationType.SET_PROGRAM_TEXT,
+            data: DEMO_SCRIPT,
         });
-        if (plan != null) {
-            mutate(store.dispatch, {
-                type: core.model.StateMutationType.SET_PLAN,
-                data: plan,
-            });
-        }
     }
 }

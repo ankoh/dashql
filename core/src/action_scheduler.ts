@@ -93,12 +93,12 @@ export class ActionScheduler<ActionBuffer extends ProtoAction> {
     /// An action can be scheduled if its rank is zero in the dependency heap.
     protected scheduleNext(context: ActionContext, diff: NativeStack) {
         while (!this._actionQueue.empty() && this._actionQueue.topRank() == 0) {
-            const next_action_id = this._actionQueue.top();
-            const next_action = this._actions[next_action_id];
+            const next_action_idx = this._actionQueue.top();
+            const next_action = this._actions[next_action_idx];
             this._actionQueue.pop();
-            this._scheduledActions.set(next_action_id);
-            this._actionPromises[next_action_id] = next_action.execute(context);
-            diff.push(next_action_id);
+            this._scheduledActions.set(next_action_idx);
+            this._actionPromises[next_action_idx] = next_action.execute(context);
+            diff.push(next_action_idx);
         }
     }
 
@@ -127,7 +127,7 @@ export class ActionScheduler<ActionBuffer extends ProtoAction> {
             /// Return false to indicate that we're not yet done and let the graph scheduler figure out whats wrong.
             return true;
         }
-        diff.push(next);
+        diff.push(getActionIndex(next));
 
         // Check the new status of the action
         const action_idx = getActionIndex(next);
@@ -195,7 +195,7 @@ export class ActionGraphScheduler {
     }
 
     /// Reset the scheduler
-    public prepare(plan: Plan) {
+    public prepare(plan: Plan): Action[] {
         this._canceled = false;
         this._plan = plan;
         const program = plan.program!;
@@ -253,12 +253,7 @@ export class ActionGraphScheduler {
             });
         }
         this._programActions.prepare(programLogic);
-
-        // Set all actions in the store
-        mutate(this._platform.store.dispatch, {
-            type: StateMutationType.SET_PLAN_ACTIONS,
-            data: actionInfos,
-        });
+        return actionInfos;
     }
 
     /// Interrupt the scheduler
@@ -287,6 +282,7 @@ export class ActionGraphScheduler {
         ctx: ActionContext,
         diff: NativeStack,
         scheduler: ActionScheduler<ActionBuffer>,
+        actionClass: ActionClass
     ) {
         for (
             let workLeft = await scheduler.executeFirst(ctx, diff);
@@ -296,10 +292,10 @@ export class ActionGraphScheduler {
             // Synchronize all the diffed actions
             let actionUpdates: ActionUpdate[] = [];
             for (; !diff.empty(); diff.pop()) {
-                const actionId = diff.top();
-                const action = scheduler.actions[getActionIndex(actionId)];
+                const actionIdx = diff.top();
+                const action = scheduler.actions[actionIdx];
                 actionUpdates.push({
-                    actionId: actionId,
+                    actionId: action.actionId,
                     statusCode: action.status,
                     blocker: action.blocker,
                 });
@@ -318,8 +314,8 @@ export class ActionGraphScheduler {
         if (this._plan == null) return;
         const ctx = new ActionContext(this._platform, this._plan);
         const diff = new NativeStack(64);
-        await this.executeActions(ctx, diff, this._setupActions);
+        await this.executeActions(ctx, diff, this._setupActions, ActionClass.SetupAction);
         diff.clear();
-        await this.executeActions(ctx, diff, this._programActions);
+        await this.executeActions(ctx, diff, this._programActions, ActionClass.ProgramAction);
     }
 }

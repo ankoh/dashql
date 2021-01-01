@@ -1,7 +1,7 @@
 import * as Immutable from 'immutable';
 import { LogEntry } from './log';
 import { Plan } from './plan';
-import { ActionID, Action, ActionUpdate, ActionLogEntry } from './action';
+import { ActionID, Action, ActionUpdate, ActionLogEntry, ActionSchedulerStatus } from './action';
 import { PlanObjectID, PlanObject } from './plan_object';
 import { Program } from './program';
 import { CoreState } from './state';
@@ -18,9 +18,10 @@ export type StateMutation<T, P> = {
 /// A mutation type
 export enum StateMutationType {
     LOG_PUSH_ENTRY = 'LOG_PUSH_ENTRY',
+    SCHEDULER_READY = 'SCHEDULER_READY',
+    SCHEDULE_PLAN = 'SCHEDULE_PLAN',
     SET_PROGRAM = 'SET_PROGRAM',
-    SET_PLAN = 'SET_PLAN',
-    SET_PLAN_ACTIONS = 'SET_PLAN_ACTIONS',
+    SET_PROGRAM_TEXT = 'SET_PROGRAM_TEXT',
     UPDATE_PLAN_ACTIONS = 'UPDATE_PLAN_ACTIONS',
     INSERT_PLAN_OBJECTS = 'INSERT_PLAN_OBJECTS',
     DELETE_PLAN_OBJECTS = 'DELETE_PLAN_OBJECTS',
@@ -34,9 +35,10 @@ export enum StateMutationType {
 /// A mutation variant
 export type StateMutationVariant =
     | StateMutation<StateMutationType.LOG_PUSH_ENTRY, LogEntry>
-    | StateMutation<StateMutationType.SET_PROGRAM, [string, Program]>
-    | StateMutation<StateMutationType.SET_PLAN, Plan | null>
-    | StateMutation<StateMutationType.SET_PLAN_ACTIONS, Action[]>
+    | StateMutation<StateMutationType.SCHEDULER_READY, null>
+    | StateMutation<StateMutationType.SCHEDULE_PLAN, [Plan, Action[]]>
+    | StateMutation<StateMutationType.SET_PROGRAM, Program>
+    | StateMutation<StateMutationType.SET_PROGRAM_TEXT, string>
     | StateMutation<StateMutationType.UPDATE_PLAN_ACTIONS, ActionUpdate[]>
     | StateMutation<StateMutationType.INSERT_PLAN_OBJECTS, PlanObject[]>
     | StateMutation<StateMutationType.DELETE_PLAN_OBJECTS, PlanObjectID[]>
@@ -68,23 +70,28 @@ export class StateMutations {
                         }
                     }),
                 };
+            case StateMutationType.SCHEDULE_PLAN:
+                return {
+                    ...state,
+                    schedulerStatus: ActionSchedulerStatus.Working,
+                    plan: mutation.data[0],
+                    planActions: Immutable.Map<ActionID, Action>(mutation.data[1].map(a => [a.actionId, a])),
+                    planActionLog: Immutable.List<ActionLogEntry>(),
+                };
+            case StateMutationType.SCHEDULER_READY:
+                return {
+                    ...state,
+                    schedulerStatus: ActionSchedulerStatus.Idle,
+                };
+            case StateMutationType.SET_PROGRAM_TEXT:
+                return {
+                    ...state,
+                    programText: mutation.data,
+                };
             case StateMutationType.SET_PROGRAM:
                 return {
                     ...state,
-                    programText: mutation.data[0],
-                    program: mutation.data[1],
-                };
-            case StateMutationType.SET_PLAN:
-                return {
-                    ...state,
-                    plan: mutation.data,
-                    planActions: Immutable.Map<ActionID, Action>(),
-                    planActionLog: Immutable.List<ActionLogEntry>(),
-                };
-            case StateMutationType.SET_PLAN_ACTIONS:
-                return {
-                    ...state,
-                    planActions: Immutable.Map<ActionID, Action>(mutation.data.map(a => [a.actionId, a])),
+                    program: mutation.data,
                 };
             case StateMutationType.UPDATE_PLAN_ACTIONS:
                 return {
