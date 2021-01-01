@@ -181,10 +181,10 @@ void Analyzer::PropagateParameterValues(ProgramInstance& instance) {
                 std::vector<size_t> func_arg_node_ids;
                 for (unsigned i = 0; i < func_args_node->children_count(); ++i) {
                     auto arg_node_id = func_args_node->children_begin_or_value() + i;
-                    auto arg_value = TryEvaluateConstant(instance, arg_node_id);
-                    if (!arg_value) break;
-                    func_args.push_back(std::move(*arg_value));
-                    func_arg_node_ids.push_back(arg_node_id);
+                        auto arg_value = TryEvaluateConstant(instance, arg_node_id);
+                        if (!arg_value) break;
+                        func_args.push_back(std::move(*arg_value));
+                        func_arg_node_ids.push_back(arg_node_id);
                 }
 
                 // Not all arguments const?
@@ -195,7 +195,10 @@ void Analyzer::PropagateParameterValues(ProgramInstance& instance) {
                 if (!logic) continue;
                 // Evaluate the function
                 auto value = logic->Evaluate(func_args);
-                if (!value) continue;
+                if (!value) {
+                    instance.AddNodeError({func_node_id, value.ReleaseError()});
+                    continue;
+                }
 
                 // Merge the evaluated nodes
                 eval.Merge(func_node_id, func_arg_node_ids, {func_node_id, value.ReleaseValue()});
