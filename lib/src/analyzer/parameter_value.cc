@@ -17,7 +17,7 @@ flatbuffers::Offset<proto::analyzer::ParameterValue> ParameterValue::Pack(
     flatbuffers::FlatBufferBuilder& builder) const {
     auto v = value.Pack(builder);
     proto::analyzer::ParameterValueBuilder p{builder};
-    p.add_statement(statement_id);
+    p.add_statement_id(statement_id);
     p.add_value(v);
     return p.Finish();
 }
@@ -25,7 +25,7 @@ flatbuffers::Offset<proto::analyzer::ParameterValue> ParameterValue::Pack(
 /// Read from a parameter value
 ParameterValue ParameterValue::UnPack(const proto::analyzer::ParameterValue& b) {
     ParameterValue p;
-    p.statement_id = b.statement();
+    p.statement_id = b.statement_id();
     if (auto v = b.value(); !!v) p.value = Value::UnPack(*v);
     return p;
 }
