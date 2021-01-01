@@ -32,7 +32,7 @@ void AnalyzerTest::EncodePlan(pugi::xml_node& root, const ProgramInstance& progr
     }
 
     auto patch = root.append_child("patches");
-    program.evaluated_nodes().IterateValues([&](size_t k, const EvaluatedNode& eval) {
+    program.evaluated_nodes().IterateValues([&](size_t k, const ProgramInstance::NodeValue& eval) {
         auto e = patch.append_child("eval");
         e.append_attribute("node").set_value(eval.node_id);
         if (!eval.value) {

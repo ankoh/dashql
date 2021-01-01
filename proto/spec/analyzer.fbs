@@ -1,6 +1,7 @@
 // Copyright (c) 2020 The DashQL Authors
 
 include "action.fbs";
+include "syntax/syntax.fbs";
 
 namespace dashql.proto.analyzer;
 
@@ -31,26 +32,34 @@ table Value {
     data_str: string;
 }
 
-table ParameterValue {
-    statement: uint32;
-    value: Value;
-}
-
-table ProgramParameters {
-    values: [ParameterValue];
-}
-
-table EvaluatedNode {
+table NodeValue {
     node_id: uint32;
     value: Value;
 }
 
-table ProgramPatch {
-    evaluated_nodes: [EvaluatedNode];
+table ParameterValue {
+    statement_id: uint32;
+    value: Value;
+}
+
+table ProgramInstantiation {
+    parameters: [ParameterValue];
+}
+
+enum ErrorCode: uint8 {
+    INVALID_INPUT
+}
+
+table Error {
+    code: ErrorCode;
+    location: syntax.Location;
+    node: uint32;
+    message: string;
 }
 
 table Plan {
-    program_evaluation: ProgramPatch;
-    parameters: [ParameterValue];
+    parameter_values: [ParameterValue];
+    evaluated_nodes: [NodeValue];
     action_graph: action.ActionGraph;
+    errors: [Error];
 }

@@ -125,12 +125,12 @@ export abstract class AnalyzerBindings {
         const builder = new flatbuffers.Builder();
         const paramOfs: flatbuffers.Offset[] = params.map(param => {
             proto.analyzer.ParameterValue.start(builder);
-            proto.analyzer.ParameterValue.addStatement(builder, param.statement);
+            proto.analyzer.ParameterValue.addStatementId(builder, param.statement);
             // XXX add value
             return proto.analyzer.ParameterValue.end(builder);
         });
-        const paramVectorOfs = proto.analyzer.ProgramParameters.createValuesVector(builder, paramOfs);
-        const args = proto.analyzer.ProgramParameters.create(builder, paramVectorOfs);
+        const paramVectorOfs = proto.analyzer.ProgramInstantiation.createParametersVector(builder, paramOfs);
+        const args = proto.analyzer.ProgramInstantiation.create(builder, paramVectorOfs);
         builder.finish(args);
 
         // Copy the arguments into the wasm module

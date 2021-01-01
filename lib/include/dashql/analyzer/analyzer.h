@@ -14,7 +14,6 @@
 #include <variant>
 #include <vector>
 
-#include "dashql/analyzer/evaluated_node.h"
 #include "dashql/analyzer/parameter_value.h"
 #include "dashql/analyzer/program_instance.h"
 #include "dashql/common/blob_stream.h"

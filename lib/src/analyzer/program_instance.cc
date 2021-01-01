@@ -27,7 +27,7 @@ Expected<std::string> ProgramInstance::RenderStatementText(size_t stmt_id) const
     SubstringBuffer buffer{*program_text_, target_root.location()};
 
     // Replace all interpolated nodes
-    evaluated_nodes_.IterateValues([&](size_t, const EvaluatedNode& eval) {
+    evaluated_nodes_.IterateValues([&](size_t, const NodeValue& eval) {
         auto& [node_id, value] = eval;
         if (!value) return;
 
@@ -45,11 +45,19 @@ Expected<std::string> ProgramInstance::RenderStatementText(size_t stmt_id) const
     return buffer.Finish();
 }
 
-/// Build the patch
-flatbuffers::Offset<proto::analyzer::ProgramPatch> ProgramInstance::PackProgramPatch(flatbuffers::FlatBufferBuilder& builder) const {
-    proto::analyzer::ProgramPatchBuilder patch{builder};
-    /// XXX
-    return patch.Finish();
+/// Pack the evaluated nodes
+flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<proto::analyzer::NodeValue>>> ProgramInstance::PackEvaluatedNodes(flatbuffers::FlatBufferBuilder& builder) const {
+    std::vector<flatbuffers::Offset<proto::analyzer::NodeValue>> values;
+    evaluated_nodes_.IterateValues([&](size_t, const NodeValue& eval) {
+        auto& [node_id, value] = eval;
+        if (!value) return;
+        auto vb = value->Pack(builder);
+        proto::analyzer::NodeValueBuilder nv{builder};
+        nv.add_node_id(node_id);
+        nv.add_value(vb);
+        values.push_back(nv.Finish());
+    });
+    return builder.CreateVector(values);
 }
 
 /// Find an attribute

@@ -11,8 +11,6 @@ export class Program {
     _textBuffer: Uint8Array;
     /// The program
     _program: sx.Program;
-    /// The patch (if any)
-    _patch: analyzer.ProgramPatch | null;
     /// The patched node positions
     _nodeValues: Map<number, analyzer.Value>;
 
@@ -20,7 +18,6 @@ export class Program {
     public constructor(textBuffer: Uint8Array = new Uint8Array(0), program: sx.Program = new sx.Program()) {
         this._textBuffer = textBuffer;
         this._program = program;
-        this._patch = null;
         this._nodeValues = new Map<number, analyzer.Value>();
     }
 
@@ -32,22 +29,15 @@ export class Program {
     public get buffer() {
         return this._program;
     }
+    /// Set the node values
+    public set setNodeValues(values: Map<number, analyzer.Value>) {
+        this._nodeValues = values;
+    }
 
     /// Access the text
     public textAt(_loc: sx.Location): string {
         const view = new Uint8Array(this._textBuffer.buffer, _loc.offset(), _loc.length());
         return decoder.decode(view);
-    }
-
-    /// Patch the program
-    public patch(patch: analyzer.ProgramPatch) {
-        this._patch = patch;
-        this._nodeValues.clear();
-        let tmp = new analyzer.EvaluatedNode();
-        for (let i = 0; i < patch.evaluatedNodesLength(); ++i) {
-            let p = patch.evaluatedNodes(i, tmp)!;
-            this._nodeValues.set(p.nodeId(), p.value()!);
-        }
     }
 
     /// Get a node

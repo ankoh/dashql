@@ -14,7 +14,6 @@
 #include "dashql/common/expected.h"
 #include "dashql/common/span.h"
 #include "dashql/common/union_find.h"
-#include "dashql/analyzer/evaluated_node.h"
 #include "dashql/analyzer/parameter_value.h"
 #include "dashql/analyzer/value.h"
 #include "dashql/proto_generated.h"
@@ -32,6 +31,15 @@ namespace sx = proto::syntax;
 class ProgramInstance {
     friend class Analyzer;
 
+   public:
+    /// A value associated with a node
+    struct NodeValue {
+        /// The node id
+        size_t node_id;
+        /// The value
+        std::optional<Value> value;
+    };
+
    protected:
     /// The program text
     std::shared_ptr<std::string> program_text_;
@@ -40,7 +48,7 @@ class ProgramInstance {
     /// The parameter values
     std::vector<ParameterValue> parameter_values_;
     /// The evaluated nodes (if any)
-    SparseUnionFind<EvaluatedNode> evaluated_nodes_;
+    SparseUnionFind<NodeValue> evaluated_nodes_;
 
     public:
     /// Constructor
@@ -65,8 +73,8 @@ class ProgramInstance {
 
     /// Render the statement text
     Expected<std::string> RenderStatementText(size_t stmt_id) const;
-    /// Pack the program patch
-    flatbuffers::Offset<proto::analyzer::ProgramPatch> PackProgramPatch(flatbuffers::FlatBufferBuilder& builder) const;
+    /// Pack the evaluated nodes
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<proto::analyzer::NodeValue>>> PackEvaluatedNodes(flatbuffers::FlatBufferBuilder& builder) const;
 
     /// Find an attribute
     const sx::Node* FindAttribute(const sx::Node& origin, sx::AttributeKey key) const;
