@@ -281,8 +281,7 @@ export class ActionGraphScheduler {
     protected async executeActions<ActionBuffer extends ProtoAction>(
         ctx: ActionContext,
         diff: NativeStack,
-        scheduler: ActionScheduler<ActionBuffer>,
-        actionClass: ActionClass
+        scheduler: ActionScheduler<ActionBuffer>
     ) {
         for (
             let workLeft = await scheduler.executeFirst(ctx, diff);
@@ -314,8 +313,8 @@ export class ActionGraphScheduler {
         if (this._plan == null) return;
         const ctx = new ActionContext(this._platform, this._plan);
         const diff = new NativeStack(64);
-        await this.executeActions(ctx, diff, this._setupActions, ActionClass.SetupAction);
+        await this.executeActions(ctx, diff, this._setupActions);
         diff.clear();
-        await this.executeActions(ctx, diff, this._programActions, ActionClass.ProgramAction);
+        await this.executeActions(ctx, diff, this._programActions);
     }
 }
