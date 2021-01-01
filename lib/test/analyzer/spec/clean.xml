@@ -2,7 +2,7 @@
     <previous>
         <text></text>
         <parameters />
-        <patches />
+        <evaluation />
         <graph next_object_id="0">
             <setup />
             <program />
@@ -15,7 +15,7 @@
         <parameters>
             <parameter statement="0" type="VARCHAR" value="DE" />
         </parameters>
-        <patches />
+        <evaluation />
         <graph next_object_id="1">
             <setup />
             <program>
@@ -30,7 +30,7 @@
     <previous>
         <text></text>
         <parameters />
-        <patches />
+        <evaluation />
         <graph next_object_id="0">
             <setup />
             <program />
@@ -41,7 +41,7 @@
             SELECT 1 INTO a;
         </text>
         <parameters />
-        <patches />
+        <evaluation />
         <graph next_object_id="1">
             <setup />
             <program>
@@ -57,7 +57,7 @@
     <previous>
         <text></text>
         <parameters />
-        <patches />
+        <evaluation />
         <graph next_object_id="0">
             <setup />
             <program />
@@ -74,9 +74,9 @@
         <parameters>
             <parameter statement="0" type="VARCHAR" value="DE" />
         </parameters>
-        <patches>
-            <eval node="16" type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" />
-        </patches>
+        <evaluation>
+            <value type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" loc="113..177" text="format('ht..l.country)" />
+        </evaluation>
         <graph next_object_id="3">
             <setup />
             <program>
@@ -109,7 +109,7 @@
     <previous>
         <text></text>
         <parameters />
-        <patches />
+        <evaluation />
         <graph next_object_id="0">
             <setup />
             <program />
@@ -126,9 +126,9 @@
         <parameters>
             <parameter statement="0" type="VARCHAR" value="DE" />
         </parameters>
-        <patches>
-            <eval node="16" type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" />
-        </patches>
+        <evaluation>
+            <value type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" loc="113..177" text="format('ht..l.country)" />
+        </evaluation>
         <graph next_object_id="3">
             <setup />
             <program>
@@ -161,7 +161,7 @@
     <previous>
         <text></text>
         <parameters />
-        <patches />
+        <evaluation />
         <graph next_object_id="0">
             <setup />
             <program />
@@ -179,9 +179,9 @@
         <parameters>
             <parameter statement="0" type="VARCHAR" value="DE" />
         </parameters>
-        <patches>
-            <eval node="16" type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" />
-        </patches>
+        <evaluation>
+            <value type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" loc="113..177" text="format('ht..l.country)" />
+        </evaluation>
         <graph next_object_id="4">
             <setup />
             <program>
@@ -224,7 +224,7 @@
     <previous>
         <text></text>
         <parameters />
-        <patches />
+        <evaluation />
         <graph next_object_id="0">
             <setup />
             <program />
@@ -244,9 +244,9 @@
         <parameters>
             <parameter statement="0" type="VARCHAR" value="DE" />
         </parameters>
-        <patches>
-            <eval node="16" type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" />
-        </patches>
+        <evaluation>
+            <value type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" loc="113..177" text="format('ht..l.country)" />
+        </evaluation>
         <graph next_object_id="6">
             <setup />
             <program>
@@ -305,7 +305,7 @@
     <previous>
         <text></text>
         <parameters />
-        <patches />
+        <evaluation />
         <graph next_object_id="0">
             <setup />
             <program />
@@ -326,9 +326,9 @@
         <parameters>
             <parameter statement="0" type="VARCHAR" value="DE" />
         </parameters>
-        <patches>
-            <eval node="16" type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" />
-        </patches>
+        <evaluation>
+            <value type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" loc="113..177" text="format('ht..l.country)" />
+        </evaluation>
         <graph next_object_id="7">
             <setup />
             <program>
@@ -397,7 +397,7 @@
     <previous>
         <text></text>
         <parameters />
-        <patches />
+        <evaluation />
         <graph next_object_id="0">
             <setup />
             <program />
@@ -420,11 +420,11 @@
             <parameter statement="0" type="VARCHAR" value="DE" />
             <parameter statement="1" type="BIGINT" value="5" />
         </parameters>
-        <patches>
-            <eval node="20" type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" />
-            <eval node="60" type="BIGINT" value="5" />
-            <eval node="40" type="BIGINT" value="5" />
-        </patches>
+        <evaluation>
+            <value type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" loc="163..227" text="format('ht..l.country)" />
+            <value type="BIGINT" value="5" loc="446..458" text="global.month" />
+            <value type="BIGINT" value="5" loc="364..376" text="global.month" />
+        </evaluation>
         <graph next_object_id="8">
             <setup />
             <program>
@@ -502,7 +502,7 @@
     <previous>
         <text></text>
         <parameters />
-        <patches />
+        <evaluation />
         <graph next_object_id="0">
             <setup />
             <program />
@@ -522,10 +522,10 @@
             <parameter statement="0" type="VARCHAR" value="DE" />
             <parameter statement="1" type="VARCHAR" value="MUC" />
         </parameters>
-        <patches>
-            <eval node="20" type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" />
-            <eval node="40" type="VARCHAR" value="MUC" />
-        </patches>
+        <evaluation>
+            <value type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" loc="159..223" text="format('ht..l.country)" />
+            <value type="VARCHAR" value="MUC" loc="359..370" text="global.city" />
+        </evaluation>
         <graph next_object_id="5">
             <setup />
             <program>
@@ -575,7 +575,7 @@
     <previous>
         <text></text>
         <parameters />
-        <patches />
+        <evaluation />
         <graph next_object_id="0">
             <setup />
             <program />
@@ -602,11 +602,11 @@
             <parameter statement="1" type="VARCHAR" value="US" />
             <parameter statement="2" type="BIGINT" value="5" />
         </parameters>
-        <patches>
-            <eval node="38" type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/US'" />
-            <eval node="24" type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" />
-            <eval node="79" type="BIGINT" value="5" />
-        </patches>
+        <evaluation>
+            <value type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/US'" loc="376..441" text="format('ht...country2)" />
+            <value type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" loc="223..288" text="format('ht...country1)" />
+            <value type="BIGINT" value="5" loc="735..747" text="global.month" />
+        </evaluation>
         <graph next_object_id="9">
             <setup />
             <program>

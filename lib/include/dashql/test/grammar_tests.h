@@ -14,6 +14,11 @@
 namespace dashql {
 namespace test {
 
+/// Encode a location
+void EncodeLocation(pugi::xml_node& n, proto::syntax::Location loc, std::string_view text);
+/// Encode an error
+void EncodeError(pugi::xml_node& n, const proto::syntax::ErrorT& err, std::string_view text);
+
 struct GrammarTest {
     /// Printer test name
     struct TestPrinter {

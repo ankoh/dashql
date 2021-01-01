@@ -8,21 +8,22 @@
 #include <unordered_set>
 
 #include "dashql/proto_generated.h"
+#include "dashql/test/grammar_tests.h"
 
 namespace dashql {
 namespace test {
 
-void AnalyzerTest::EncodePlan(pugi::xml_node& root, const ProgramInstance& program, const proto::action::ActionGraphT& graph) {
+void AnalyzerTest::EncodePlan(pugi::xml_node& root, const ProgramInstance& instance, const proto::action::ActionGraphT& graph) {
     auto setup_action_type_tt = proto::action::SetupActionTypeTypeTable();
     auto program_action_type_tt = proto::action::ProgramActionTypeTypeTable();
     auto action_status_tt = proto::action::ActionStatusCodeTypeTable();
     auto parameter_type_tt = proto::webdb::SQLTypeIDTypeTable();
 
-    std::string program_text{program.program_text()};
+    std::string program_text{instance.program_text()};
     root.append_child("text").text().set(program_text.c_str());
 
     auto params = root.append_child("parameters");
-    for (auto& param: program.parameter_values()) {
+    for (auto& param: instance.parameter_values()) {
         auto type_str = param.value.PrintType();
         auto value_str = param.value.PrintValue();
         auto p = params.append_child("parameter");
@@ -31,18 +32,18 @@ void AnalyzerTest::EncodePlan(pugi::xml_node& root, const ProgramInstance& progr
         p.append_attribute("value").set_value(value_str.c_str());
     }
 
-    auto patch = root.append_child("patches");
-    program.evaluated_nodes().IterateValues([&](size_t k, const ProgramInstance::NodeValue& eval) {
-        auto e = patch.append_child("eval");
-        e.append_attribute("node").set_value(eval.node_id);
-        if (!eval.value) {
+    auto patch = root.append_child("evaluation");
+    instance.evaluated_nodes().IterateValues([&](size_t k, const ProgramInstance::NodeValue& val) {
+        auto e = patch.append_child("value");
+        if (!val.value) {
             e.append_attribute("value").set_value("NULL");
         } else {
-            auto t = eval.value->PrintType();
-            auto v = eval.value->PrintValue();
+            auto t = val.value->PrintType();
+            auto v = val.value->PrintValue();
             e.append_attribute("type").set_value(t.c_str());
             e.append_attribute("value").set_value(v.c_str());
         }
+        EncodeLocation(e, instance.program().nodes[val.node_id].location(), instance.program_text());
     });
 
     auto g = root.append_child("graph");
