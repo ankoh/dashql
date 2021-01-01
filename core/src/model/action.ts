@@ -4,6 +4,12 @@ import { LogEntry } from "./log";
 /// An action id
 export type ActionID = number;
 
+/// The scheduler status
+export enum ActionSchedulerStatus {
+    Idle = 0,
+    Working = 1
+};
+
 /// The action class.
 /// We only need this enuum on the typescript side since the C++ code strictly separates both.
 export enum ActionClass {
