@@ -42,7 +42,6 @@ void dashql_analyzer_plan_program(FFIResponse* response) {
         auto program = Analyzer::GetInstance().PackPlan(builder);
         builder.Finish(program);
         FFIResponseBuffer::GetInstance().Store(*response, builder.Release());
-
     }
 }
 

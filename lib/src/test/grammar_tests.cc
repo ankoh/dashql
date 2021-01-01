@@ -18,35 +18,6 @@ namespace sx = proto::syntax;
 
 namespace {
 
-constexpr size_t INLINE_LOCATION_CAP = 20;
-constexpr size_t LOCATION_HINT_LENGTH = 10;
-
-void encode(pugi::xml_node& n, proto::syntax::Location loc, std::string_view text) {
-    auto begin = loc.offset();
-    auto end = loc.offset() + loc.length();
-    {
-        std::stringstream ss;
-        ss << begin << ".." << end;
-        n.append_attribute("loc") = ss.str().c_str();
-    }
-    {
-        std::stringstream ss;
-        if (loc.length() < INLINE_LOCATION_CAP) {
-            ss << text.substr(loc.offset(), loc.length());
-        } else {
-            auto prefix = text.substr(loc.offset(), LOCATION_HINT_LENGTH);
-            auto suffix = text.substr(loc.offset() + loc.length() - LOCATION_HINT_LENGTH, LOCATION_HINT_LENGTH);
-            ss << prefix << ".." << suffix;
-        }
-        n.append_attribute("text") = ss.str().c_str();
-    }
-}
-
-void encode(pugi::xml_node& n, const proto::syntax::ErrorT& err, std::string_view text) {
-    n.append_attribute("message") = err.message.c_str();
-    encode(n, *err.location, text);
-}
-
 const char* getEnumText(const sx::Node& target) {
     auto nt = target.node_type();
     auto v = static_cast<uint32_t>(target.children_begin_or_value());
@@ -91,6 +62,35 @@ const char* getEnumText(const sx::Node& target) {
 }
 
 }  // namespace
+
+constexpr size_t INLINE_LOCATION_CAP = 20;
+constexpr size_t LOCATION_HINT_LENGTH = 10;
+
+void EncodeLocation(pugi::xml_node& n, proto::syntax::Location loc, std::string_view text) {
+    auto begin = loc.offset();
+    auto end = loc.offset() + loc.length();
+    {
+        std::stringstream ss;
+        ss << begin << ".." << end;
+        n.append_attribute("loc") = ss.str().c_str();
+    }
+    {
+        std::stringstream ss;
+        if (loc.length() < INLINE_LOCATION_CAP) {
+            ss << text.substr(loc.offset(), loc.length());
+        } else {
+            auto prefix = text.substr(loc.offset(), LOCATION_HINT_LENGTH);
+            auto suffix = text.substr(loc.offset() + loc.length() - LOCATION_HINT_LENGTH, LOCATION_HINT_LENGTH);
+            ss << prefix << ".." << suffix;
+        }
+        n.append_attribute("text") = ss.str().c_str();
+    }
+}
+
+void EncodeError(pugi::xml_node& n, const proto::syntax::ErrorT& err, std::string_view text) {
+    n.append_attribute("message") = err.message.c_str();
+    EncodeLocation(n, *err.location, text);
+}
 
 /// Encode yaml
 void GrammarTest::EncodeProgram(pugi::xml_node& root, const proto::syntax::ProgramT& program, std::string_view text) {
@@ -137,7 +137,7 @@ void GrammarTest::EncodeProgram(pugi::xml_node& root, const proto::syntax::Progr
                     break;
                 }
                 case sx::NodeType::STRING_REF: {
-                    encode(n, target->location(), text);
+                    EncodeLocation(n, target->location(), text);
                     break;
                 }
                 case sx::NodeType::ARRAY: {
@@ -151,7 +151,7 @@ void GrammarTest::EncodeProgram(pugi::xml_node& root, const proto::syntax::Progr
                     auto node_type_id = static_cast<uint32_t>(target->node_type());
                     if (node_type_id > static_cast<uint32_t>(sx::NodeType::OBJECT_MIN_)) {
                         n.append_attribute("type") = node_type_tt->names[static_cast<size_t>(target->node_type())];
-                        encode(n, target->location(), text);
+                        EncodeLocation(n, target->location(), text);
                         auto begin = target->children_begin_or_value();
                         for (auto i = 0; i < target->children_count(); ++i) {
                             pending.push_back({n.append_child("node"), &nodes[begin + i]});
@@ -171,21 +171,21 @@ void GrammarTest::EncodeProgram(pugi::xml_node& root, const proto::syntax::Progr
     auto errors = root.append_child("errors");
     for (auto& err : program.errors) {
         auto error = errors.append_child("error");
-        encode(error, *err, text);
+        EncodeError(error, *err, text);
     }
 
     // Add line breaks
     auto line_breaks = root.append_child("line_breaks");
     for (auto& lb : program.line_breaks) {
         auto lb_node = line_breaks.append_child("line_break");
-        encode(lb_node, lb, text);
+        EncodeLocation(lb_node, lb, text);
     }
 
     // Add comments
     auto comments = root.append_child("comments");
     for (auto& comment : program.comments) {
         auto comment_node = comments.append_child("comment");
-        encode(comment_node, comment, text);
+        EncodeLocation(comment_node, comment, text);
     }
 
     // Add comments
@@ -196,7 +196,7 @@ void GrammarTest::EncodeProgram(pugi::xml_node& root, const proto::syntax::Progr
         n.append_attribute("type") = sx::DependencyTypeTypeTable()->names[static_cast<size_t>(dep.type())];
         n.append_attribute("source") = dep.source_statement();
         n.append_attribute("target") = dep.target_statement();
-        encode(n, loc, text);
+        EncodeLocation(n, loc, text);
     };
 }
 
