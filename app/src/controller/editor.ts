@@ -1,19 +1,16 @@
 import * as monaco from 'monaco-editor';
-import { AppReduxStore, mutate } from '../model';
+import { mutate } from '../model';
 import * as core from '@dashql/core';
 
 export class EditorController {
-    /// The analyze
-    protected _analyzer: core.analyzer.AnalyzerBindings;
+    /// The platform
+    protected _platform: core.platform.Platform;
     /// The editor
     protected _editor: monaco.editor.IStandaloneCodeEditor | null;
-    /// The store
-    protected _store: AppReduxStore;
 
     /// Constructor
-    constructor(analyzer: core.analyzer.AnalyzerBindings, store: AppReduxStore) {
-        this._analyzer = analyzer;
-        this._store = store;
+    constructor(platform: core.platform.Platform) {
+        this._platform = platform;
         this._editor = null;
     }
 
@@ -23,13 +20,13 @@ export class EditorController {
 
     /// Update studio text
     public updateStudioText(input: string) {
-        const s = this._store.getState();
+        const s = this._platform.store.getState();
         if (s.core.program != null && s.core.programText == input) {
             return;
         }
-        const p = this._analyzer.parseProgram(input);
+        const p = this._platform.analyzer.parseProgram(input);
         this.displayErrors(p);
-        mutate(this._store.dispatch, {
+        mutate(this._platform.store.dispatch, {
             type: core.model.StateMutationType.SET_PROGRAM,
             data: [input, p],
         });
@@ -59,7 +56,7 @@ export class EditorController {
                 startColumn,
                 endLineNumber,
                 endColumn,
-                message: error.message() ?? "",
+                message: error.message() ?? '',
                 severity: monaco.MarkerSeverity.Error,
             });
         }
@@ -118,8 +115,10 @@ export class EditorController {
             if (!(range.endLineNumber == 1 && range.endColumn == 1)) {
                 paddedText = '\n\n' + paddedText;
             }
-            if (range.endLineNumber == model.getLineCount() &&
-                range.endColumn == model.getLineLength(range.endLineNumber) + 1) {
+            if (
+                range.endLineNumber == model.getLineCount() &&
+                range.endColumn == model.getLineLength(range.endLineNumber) + 1
+            ) {
                 paddedText = paddedText + '\n';
             } else if (range.endColumn == 1 || range.endColumn == model.getLineLength(range.endLineNumber) + 1) {
                 paddedText = paddedText + '\n\n';
@@ -129,13 +128,8 @@ export class EditorController {
         // Apply the edits
         editor.executeEdits(
             '',
-            [ { range: range as monaco.Range, text: paddedText, } ],
-            [
-                monaco.Selection.fromPositions(
-                    { lineNumber: 1, column: 1, },
-                    { lineNumber: 1, column: 1, },
-                ),
-            ],
+            [{ range: range as monaco.Range, text: paddedText }],
+            [monaco.Selection.fromPositions({ lineNumber: 1, column: 1 }, { lineNumber: 1, column: 1 })],
         );
     }
 }

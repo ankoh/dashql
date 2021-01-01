@@ -2,9 +2,9 @@ import * as Immutable from "immutable";
 import { LogEntry } from "./log";
 import { Plan } from "./plan";
 import { CachedFileData, CachedHTTPData } from "./cache";
-import { ActionID, Action, ActionLogEntry } from "./action";
+import { ActionSchedulerStatus, ActionID, Action, ActionLogEntry } from "./action";
 import { PlanObjectID, PlanObject } from "./plan_object";
-import { Program } from "./program";
+import { Program, ParameterValue } from "./program";
 import { Store } from "redux";
 
 export class CoreState {
@@ -15,7 +15,11 @@ export class CoreState {
     public programText: string;
     /// The program
     public program: Program | null;
+    /// The progrma parameters
+    public programParameters: Immutable.List<ParameterValue>;
 
+    /// The action scheduler status
+    public schedulerStatus: ActionSchedulerStatus;
     /// The plan
     public plan: Plan | null;
     /// The plan objects
@@ -35,6 +39,8 @@ export class CoreState {
         this.logEntries = Immutable.List<LogEntry>();
         this.programText = "";
         this.program = null;
+        this.programParameters = Immutable.List<ParameterValue>();
+        this.schedulerStatus = ActionSchedulerStatus.Idle;
         this.plan = null;
         this.planObjects = Immutable.Map<PlanObjectID, PlanObject>();
         this.planActions = Immutable.Map<ActionID, Action>();
@@ -51,3 +57,18 @@ export interface DerivedState {
 
 // The store type
 export type DerivedReduxStore = Store<DerivedState>;
+
+// Helper to observe a store
+export function observeStore<T>(store: DerivedReduxStore, select: (state: DerivedState) => T, onChange: (v: T) => void) {
+    let prev: T | null = null;
+    const stateChanged = () => {
+        const next = select(store.getState());
+        if (next !== prev) {
+            prev = next;
+            onChange(prev!);
+        }
+    };
+    const unsub = store.subscribe(stateChanged);
+    stateChanged();
+    return unsub;
+}

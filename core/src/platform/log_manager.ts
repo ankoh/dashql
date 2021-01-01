@@ -1,13 +1,13 @@
-import { error, model } from '@dashql/core';
-import { AppReduxStore, mutate } from '../model';
+import * as model from "../model";
+import * as error from "../error";
 
-export class LogController {
+export class LogManager {
     // The store
-    public store: AppReduxStore;
+    public _store: model.DerivedReduxStore;
 
     // Constructor
-    constructor(store: AppReduxStore) {
-        this.store = store;
+    constructor(store: model.DerivedReduxStore) {
+        this._store = store;
     }
 
     protected log(level: model.LogLevel, text: string) {
@@ -19,7 +19,7 @@ export class LogController {
         };
 
         // Store in redux store
-        mutate(this.store.dispatch, {
+        model.mutate(this._store.dispatch, {
             type: model.StateMutationType.LOG_PUSH_ENTRY,
             data: logEntry,
         });
@@ -34,7 +34,7 @@ export class LogController {
         };
 
         // Store in redux store
-        this.store.dispatch({
+        model.mutate(this._store.dispatch, {
             type: model.StateMutationType.LOG_PUSH_ENTRY,
             data: logEntry,
         });

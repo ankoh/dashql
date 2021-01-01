@@ -17,4 +17,3 @@ export class AppState implements core.model.DerivedState {
         this.appSettings = null;
     }
 }
-

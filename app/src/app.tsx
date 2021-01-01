@@ -2,6 +2,7 @@ import * as React from 'react';
 import * as ReactDOM from 'react-dom';
 import * as core from '@dashql/core';
 import { createStore } from './model';
+import { BrowserPlatform } from './platform';
 import { AppController } from './controller';
 import { Route, BrowserRouter, Switch, Redirect } from 'react-router-dom';
 import { Provider as ReduxProvider } from 'react-redux';
@@ -17,7 +18,9 @@ import dashql_analyzer_wasm from '@dashql/core/dist/dashql_analyzer.wasm';
 
 const analyzer = new core.analyzer.Analyzer({}, dashql_analyzer_wasm);
 const store = createStore();
-const controller = new AppController(analyzer, store);
+const platform = new BrowserPlatform(store, analyzer);
+
+const controller = new AppController(platform);
 controller.init();
 
 const appContext: IAppContext = {
