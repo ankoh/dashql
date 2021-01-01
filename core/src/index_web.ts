@@ -8,5 +8,6 @@ export * as model from "./model";
 export * as platform from "./platform";
 export * as utils from "./utils";
 export * from "./action_scheduler";
+export * from "./analyzer_hooks";
 
 export * as analyzer from "./analyzer/index_web";

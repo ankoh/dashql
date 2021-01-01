@@ -1,17 +1,21 @@
 // Copyright (c) 2020 The DashQL Authors
 
+import * as Immutable from "immutable";
 import { Program } from './program';
 import * as proto from '@dashql/proto';
 
 export class Plan {
     /// The program
     _program: Program;
+    /// The program
+    _parameters: Immutable.List<any>;
     /// The module
     _plan: proto.analyzer.Plan;
 
     /// Constructor
-    public constructor(program: Program, plan: proto.analyzer.Plan = new proto.analyzer.Plan()) {
+    public constructor(program: Program, params: Immutable.List<any>, plan: proto.analyzer.Plan = new proto.analyzer.Plan()) {
         this._program = program;
+        this._parameters = params;
         this._plan = plan;
     }
 
@@ -19,6 +23,8 @@ export class Plan {
     public get buffer() { return this._plan; }
     /// Access the program
     public get program() { return this._program; }
+    /// Access the parameters
+    public get parameters() { return this._parameters; }
     /// Access the action graph
     public get action_graph() { return this._plan.actionGraph(); }
 

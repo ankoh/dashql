@@ -1,9 +1,10 @@
 // Copyright (c) 2020 The DashQL Authors
 
 import { DashQLAnalyzerModule } from './analyzer_wasm_module';
-import { Plan, Program, ParameterValue } from  '../model';
-import { flatbuffers } from "flatbuffers";
-import * as proto from "@dashql/proto";
+import { Plan, Program, ParameterValue } from '../model';
+import { flatbuffers } from 'flatbuffers';
+import * as Immutable from 'immutable';
+import * as proto from '@dashql/proto';
 
 export interface AnalyzerRuntime {}
 
@@ -18,6 +19,8 @@ export abstract class AnalyzerBindings {
 
     /// The program
     protected _program: Program | null = null;
+    /// The program parameters
+    protected _programParameters: Immutable.List<ParameterValue> = Immutable.List();
 
     /// Instantiate the module
     protected abstract instantiate(moduleOverrides: Partial<DashQLAnalyzerModule>): Promise<DashQLAnalyzerModule>;
@@ -118,8 +121,9 @@ export abstract class AnalyzerBindings {
     }
 
     /// Instantiate program
-    public instantiateProgram(params: ParameterValue[] = []): void {
+    public instantiateProgram(params: Immutable.List<ParameterValue> = Immutable.List()): void {
         if (!this._program) return;
+        this._programParameters = params;
         const instance = this._instance!;
 
         const builder = new flatbuffers.Builder();
@@ -128,7 +132,7 @@ export abstract class AnalyzerBindings {
             proto.analyzer.ParameterValue.addStatementId(builder, param.statement);
             // XXX add value
             return proto.analyzer.ParameterValue.end(builder);
-        });
+        }).toArray();
         const paramVectorOfs = proto.analyzer.ProgramInstantiation.createParametersVector(builder, paramOfs);
         const args = proto.analyzer.ProgramInstantiation.create(builder, paramVectorOfs);
         builder.finish(args);
@@ -139,7 +143,7 @@ export abstract class AnalyzerBindings {
         const argsPtr = instance.stackAlloc(argsMem.length);
         instance.HEAPU8.set(argsMem, argsPtr);
 
-        // Call the planner function 
+        // Call the planner function
         this.callSRet('dashql_analyzer_instantiate_program', ['number'], [argsPtr]);
         instance.ccall('dashql_clear_response', null, [], []);
     }
@@ -149,12 +153,12 @@ export abstract class AnalyzerBindings {
         if (!this._program) return null;
         const instance = this._instance!;
 
-        // Call the planner function 
+        // Call the planner function
         const [ptr, ofs, size] = this.callSRet('dashql_analyzer_plan_program', [], []);
         const mem = this.copyFlatbuffer(instance.HEAPU8.subarray(ptr + ofs, ptr + ofs + size));
         const plan = proto.analyzer.Plan.getRoot(mem);
         instance.ccall('dashql_clear_response', null, [], []);
-        return new Plan(this._program, plan);
+        return new Plan(this._program, this._programParameters, plan);
     }
 
     /// Free memory
@@ -162,5 +166,4 @@ export abstract class AnalyzerBindings {
         if (!this._instance) return;
         this._instance._free(ptr);
     }
-};
-
+}

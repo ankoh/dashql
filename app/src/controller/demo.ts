@@ -1,11 +1,7 @@
 import * as core from '@dashql/core';
-import { AppReduxStore, mutate } from '../model';
-import { EditorController } from './editor';
-import { LogController } from './log';
-import { InterpreterController } from './interpreter';
+import { mutate } from '../model';
 
-export const DEMO_SCRIPT =
-`-- This script outlines basic concepts of the SQL extension DashQL.
+export const DEMO_SCRIPT = `-- This script outlines basic concepts of the SQL extension DashQL.
 -- Delete everything when you're ready and start from scratch.
 
 -- Declare a dynamic input field on top of your dashboard.
@@ -17,7 +13,7 @@ DECLARE PARAMETER country TYPE TEXT (
 -- Load data from external sources like HTTP REST APIs.
 -- Ref: https://docs.dashql.com/grammar/load
 LOAD weather_csv FROM http (
-    url = format('https://cdn.dashql.com/demo/weather/%s', global.country)
+    url = format('https://cdn.dashql.com/demo/weather/{}', global.country)
 );
 
 -- Interpret the data as SQL table.
@@ -36,35 +32,25 @@ VIZ weather_avg USING LINE;
 /// A controller
 export class DemoController {
     /// The core
-    protected _analyzer: core.analyzer.AnalyzerBindings;
-    /// The Store
-    protected _store: AppReduxStore;
-    /// The logger
-    protected _log: LogController;
-    /// The editor controller
-    protected _editor: EditorController;
-    /// The interpreter controller
-    protected _interpreter: InterpreterController;
+    protected _platform: core.platform.Platform;
 
-    constructor(analyzer: core.analyzer.AnalyzerBindings, store: AppReduxStore, log: LogController, editor: EditorController, interpreter: InterpreterController) {
-        this._analyzer = analyzer;
-        this._store = store;
-        this._log = log;
-        this._editor = editor;
-        this._interpreter = interpreter;
+    constructor(platform: core.platform.Platform) {
+        this._platform = platform;
     }
 
     public setup() {
-        const program = this._analyzer.parseProgram(DEMO_SCRIPT);
-        const plan = this._analyzer.planProgram();
-        mutate(this._store.dispatch, {
+        const store = this._platform.store;
+        const analyzer = this._platform.analyzer;
+        const program = analyzer.parseProgram(DEMO_SCRIPT);
+        const plan = analyzer.planProgram();
+        mutate(store.dispatch, {
             type: core.model.StateMutationType.SET_PROGRAM,
-            data: [DEMO_SCRIPT, program]
+            data: [DEMO_SCRIPT, program],
         });
         if (plan != null) {
-            mutate(this._store.dispatch, {
+            mutate(store.dispatch, {
                 type: core.model.StateMutationType.SET_PLAN,
-                data: plan
+                data: plan,
             });
         }
     }

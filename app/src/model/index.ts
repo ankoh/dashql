@@ -1,4 +1,3 @@
-import { StateMutationVariant } from './state_mutation';
 import { AppState } from './state';
 import { Store } from 'redux';
 
