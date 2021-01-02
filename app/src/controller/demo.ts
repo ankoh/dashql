@@ -41,7 +41,7 @@ export class DemoController {
     public setup() {
         model.mutate(this._platform.store.dispatch, {
             type: core.model.StateMutationType.SET_PROGRAM_TEXT,
-            data: DEMO_SCRIPT,
+            data: [DEMO_SCRIPT, core.utils.countLines(DEMO_SCRIPT)],
         });
     }
 }
