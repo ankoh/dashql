@@ -56,6 +56,10 @@ export abstract class ActionLogic<ActionBuffer extends ProtoAction> {
     public get status() {
         return this._status;
     }
+    /// Set the action status
+    public set status(status: proto.action.ActionStatusCode) {
+        this._status = status;
+    }
     /// Get the blocker
     public get blocker() {
         return this._blocker;
