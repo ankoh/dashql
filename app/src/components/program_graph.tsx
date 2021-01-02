@@ -1,14 +1,19 @@
-import * as Immutable from "immutable";
-import * as React from "react";
-import * as core from "@dashql/core";
+import * as Immutable from 'immutable';
+import * as React from 'react';
+import * as core from '@dashql/core';
 import * as dagre from 'dagre';
 import { AppState, Dispatch } from '../model';
 import { connect } from 'react-redux';
-import ReactFlow, { Controls, Handle as ReactFlowHandle } from 'react-flow-renderer';
+import ReactFlow, {
+    Controls,
+    Handle as ReactFlowHandle,
+    FlowElement,
+    Node as NodeData,
+    Edge as EdgeData,
+} from 'react-flow-renderer';
 import { ActionStatusSpinner } from './spinners';
 import classNames from 'classnames';
-import { FlowElement, Node as NodeData, Edge as EdgeData } from 'react-flow-renderer';
-import { proto } from "@dashql/core";
+import { proto } from '@dashql/core';
 import {
     IIconProps,
     AnalyticsIcon,
@@ -24,52 +29,52 @@ import styles from './program_graph.module.css';
 function getStatementTypeLabel(type: proto.syntax.StatementType) {
     switch (type) {
         case proto.syntax.StatementType.CREATE_TABLE:
-            return "CREATE TABLE";
+            return 'CREATE TABLE';
         case proto.syntax.StatementType.CREATE_VIEW:
-            return "CREATE VIEW";
+            return 'CREATE VIEW';
         case proto.syntax.StatementType.EXTRACT_CSV:
-            return "EXTRACT CSV";
+            return 'EXTRACT CSV';
         case proto.syntax.StatementType.EXTRACT_JSON:
-            return "EXTRACT JSON";
+            return 'EXTRACT JSON';
         case proto.syntax.StatementType.LOAD_FILE:
-            return "LOAD FILE";
+            return 'LOAD FILE';
         case proto.syntax.StatementType.LOAD_HTTP:
-            return "LOAD HTTP";
+            return 'LOAD HTTP';
         case proto.syntax.StatementType.PARAMETER:
-            return "PARAMETER";
+            return 'PARAMETER';
         case proto.syntax.StatementType.SELECT:
-            return "SELECT";
+            return 'SELECT';
         case proto.syntax.StatementType.SELECT_INTO:
-            return "SELECT INTO";
+            return 'SELECT INTO';
         case proto.syntax.StatementType.VIZUALIZE:
-            return "VISUALIZE";
+            return 'VISUALIZE';
         default:
-            return "?";
+            return '?';
     }
 }
 
 function StatementTypeIcon(props: IIconProps & { type: proto.syntax.StatementType }) {
     switch (props.type) {
         case proto.syntax.StatementType.CREATE_TABLE:
-            return <DatabaseSearchIcon {...props} />
+            return <DatabaseSearchIcon {...props} />;
         case proto.syntax.StatementType.CREATE_VIEW:
-            return <DatabaseSearchIcon {...props} />
+            return <DatabaseSearchIcon {...props} />;
         case proto.syntax.StatementType.EXTRACT_CSV:
-            return <DatabaseImportIcon {...props} />
+            return <DatabaseImportIcon {...props} />;
         case proto.syntax.StatementType.EXTRACT_JSON:
-            return <DatabaseImportIcon {...props} />
+            return <DatabaseImportIcon {...props} />;
         case proto.syntax.StatementType.LOAD_FILE:
-            return <FileDocumentBoxPlusIcon {...props} />
+            return <FileDocumentBoxPlusIcon {...props} />;
         case proto.syntax.StatementType.LOAD_HTTP:
-            return <FileDocumentBoxPlusIcon {...props} />
+            return <FileDocumentBoxPlusIcon {...props} />;
         case proto.syntax.StatementType.PARAMETER:
-            return <VariableBoxIcon {...props} />
+            return <VariableBoxIcon {...props} />;
         case proto.syntax.StatementType.SELECT:
-            return <DatabaseSearchIcon {...props} />
+            return <DatabaseSearchIcon {...props} />;
         case proto.syntax.StatementType.SELECT_INTO:
-            return <DatabaseSearchIcon {...props} />
+            return <DatabaseSearchIcon {...props} />;
         case proto.syntax.StatementType.VIZUALIZE:
-            return <AnalyticsIcon {...props} />
+            return <AnalyticsIcon {...props} />;
         default:
             return <div />;
     }
@@ -79,7 +84,7 @@ interface ProgramNodeData extends NodeData {
     data: {
         statementType: proto.syntax.StatementType;
         actionStatus: proto.action.ActionStatusCode | null;
-    }
+    };
 }
 
 function Node(props: ProgramNodeData) {
@@ -88,14 +93,26 @@ function Node(props: ProgramNodeData) {
         <div className={styles.node}>
             <div className={styles.node_header}>
                 <div className={styles.node_type}>
-                    <StatementTypeIcon className={styles.node_icon} fill="rgb(80, 80, 80)"  width="22px" height="22px" type={props.data.statementType} />
+                    <StatementTypeIcon
+                        className={styles.node_icon}
+                        fill="rgb(80, 80, 80)"
+                        width="22px"
+                        height="22px"
+                        type={props.data.statementType}
+                    />
                     <ReactFlowHandle type="target" position="left" className={styles.node_handle_left} />
                     <ReactFlowHandle type="source" position="right" className={styles.node_handle_right} />
                 </div>
             </div>
             <div className={styles.node_detail}>
                 <div className={styles.node_detail_status}>
-                    <ActionStatusSpinner className={styles.node_detail_status_spinner} fill="rgb(80, 80, 80)" width="14px" height="14px" status={props.data.actionStatus} />
+                    <ActionStatusSpinner
+                        className={styles.node_detail_status_spinner}
+                        fill="rgb(80, 80, 80)"
+                        width="14px"
+                        height="14px"
+                        status={props.data.actionStatus}
+                    />
                 </div>
                 <div className={styles.node_detail_label}>{label}</div>
             </div>
@@ -106,7 +123,7 @@ function Node(props: ProgramNodeData) {
 interface ProgramGraphProps {
     program: core.model.Program | null;
     programStatus: Immutable.List<core.model.StatementStatus>;
-    className?: string
+    className?: string;
 }
 
 class ProgramGraph extends React.Component<ProgramGraphProps> {
@@ -129,7 +146,7 @@ class ProgramGraph extends React.Component<ProgramGraphProps> {
         const g = new dagre.graphlib.Graph().setGraph({
             nodesep: 60,
             ranksep: 40,
-            rankdir: 'LR'
+            rankdir: 'LR',
         });
         this.props.program.iterateStatements((idx: number, stmt: core.model.Statement) => {
             g.setNode(idx.toString(), {
@@ -143,13 +160,13 @@ class ProgramGraph extends React.Component<ProgramGraphProps> {
                 data: {
                     statementType: stmt.statement_type,
                     actionStatus: this.props.programStatus.get(idx)?.status || proto.action.ActionStatusCode.NONE,
-                }
+                },
             });
         });
         this.props.program.iterateDependencies((idx: number, dep: sx.Dependency) => {
             g.setEdge(dep.sourceStatement().toString(), dep.targetStatement().toString(), {});
             edges.push({
-                id: "e-" + idx.toString(),
+                id: 'e-' + idx.toString(),
                 source: dep.sourceStatement().toString(),
                 target: dep.targetStatement().toString(),
                 type: 'smoothstep',
@@ -168,8 +185,8 @@ class ProgramGraph extends React.Component<ProgramGraphProps> {
                 position: {
                     x: n.x - n.width / 2,
                     y: n.y - n.height / 2,
-                }
-            }
+                },
+            };
         });
         let elements = (nodes as FlowElement[]).concat(edges as FlowElement[]);
 
@@ -179,7 +196,7 @@ class ProgramGraph extends React.Component<ProgramGraphProps> {
                     elements={elements}
                     defaultPosition={[20, 20]}
                     nodesDraggable={false}
-                    onLoad={(flow) => flow.fitView({padding: FIT_PADDING})}
+                    onLoad={flow => flow.fitView({ padding: FIT_PADDING })}
                     nodeTypes={{
                         custom: Node,
                     }}
@@ -197,8 +214,6 @@ const mapStateToProps = (state: AppState) => ({
     programStatus: state.core.programStatus,
 });
 
-const mapDispatchToProps = (_dispatch: Dispatch) => ({
-});
+const mapDispatchToProps = (_dispatch: Dispatch) => ({});
 
 export default connect(mapStateToProps, mapDispatchToProps)(ProgramGraph);
-
