@@ -1,4 +1,5 @@
 import * as proto from "@dashql/proto";
+import * as utils from "../utils";
 import { ActionID } from "../model";
 import { SetupActionLogic } from "./action_logic";
 import { ActionContext } from "./action_context";
@@ -10,6 +11,7 @@ export class ImportTableActionLogic extends SetupActionLogic {
     }
 
     public async execute(_context: ActionContext): Promise<ActionID> {
+        await utils.sleep(1000);
         return this.returnWithStatus(ActionStatusCode.COMPLETED);
     }
 }

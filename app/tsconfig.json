@@ -13,7 +13,7 @@
         "baseUrl": ".",
         "paths": {
             "@dashql/proto": ["../proto/index.ts"],
-            "immutable": ["node_modules/immutable"]
+            "immutable": ["./node_modules/immutable"]
         }
     },
     "exclude": [
