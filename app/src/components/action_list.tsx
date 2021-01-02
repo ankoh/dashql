@@ -1,3 +1,4 @@
+import * as Immutable from 'immutable';
 import * as React from "react";
 import * as core from "@dashql/core";
 import { proto } from "@dashql/core";
@@ -39,13 +40,11 @@ function getProgramActionTypeLabel(type: proto.action.ProgramActionType) {
 interface Props {
     className?: string
     plan: core.model.Plan | null;
+    planActions: Immutable.Map<core.model.ActionID, core.model.Action>,
     close: () => void;
 }
 
-interface State {
-}
-
-class ActionList extends React.Component<Props, State> {
+class ActionList extends React.Component<Props> {
 
     public renderActions(plan: core.model.Plan)  {
         let setup_actions: JSX.Element[] = [];
@@ -58,7 +57,9 @@ class ActionList extends React.Component<Props, State> {
             );
         });
         plan.iterateProgramActions((i: number, o: proto.action.ProgramAction) => {
-            const status = o.actionStatusCode();
+            const actionId = core.model.buildActionID(i, core.model.ActionClass.ProgramAction);
+            const actionInfo = this.props.planActions.get(actionId);
+            const status = actionInfo?.statusCode || proto.action.ActionStatusCode.NONE;
             program_actions.push(
                 <div key={i} className={styles.action}>
                     <div className={styles.action_expand}>
@@ -118,7 +119,8 @@ class ActionList extends React.Component<Props, State> {
 }
 
 const mapStateToProps = (state: AppState) => ({
-    plan: state.core.plan
+    plan: state.core.plan,
+    planActions: state.core.planActions
 });
 
 const mapDispatchToProps = (_dispatch: Dispatch) => ({
