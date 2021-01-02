@@ -124,16 +124,15 @@ export function ActionStatusSpinner(props: IActionStatusSpinnerProps): JSX.Eleme
                     className={classNames(props.className)}
                     width={props.width || '24px'}
                     height={props.height || '24px'}
-                    viewBox="0 0 16 16"
+                    viewBox="-8 -8 16 16"
                     fill="none"
                     strokeWidth="2"
                 >
                     <g fill="none" fillRule="evenodd">
-                        <path
-                            fill={props.fill || 'white'}
-                            fillRule="evenodd"
-                            d="M1.5 8a6.5 6.5 0 1113 0 6.5 6.5 0 01-13 0zM8 0a8 8 0 100 16A8 8 0 008 0zm3.28 5.78a.75.75 0 00-1.06-1.06l-5.5 5.5a.75.75 0 101.06 1.06l5.5-5.5z"
-                        ></path>
+                        <rect x="-3.5" y="-3" width="3" height="6" fill={props.fill || 'white'}></rect>
+                        <rect x="0.5" y="-3" width="3" height="6" fill={props.fill || 'white'}></rect>
+                        <circle cx="0" cy="0" r="7" opacity=".5" stroke={props.fill || 'white'}></circle>
+                        <circle cx="0" cy="0" r="7" stroke={props.fill || 'white'} strokeDasharray="12, 88" className={styles.status_spinner} />
                     </g>
                 </svg>
             );
