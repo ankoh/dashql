@@ -25,7 +25,7 @@
     grid-row: 1;
     grid-column: 1;
     display: grid;
-    grid-template-columns: calc(3 * 48px) calc(100% - 5 * 48px) calc(2 * 48px);
+    grid-template-columns: calc(2 * 48px) calc(100% - 4 * 48px) calc(2 * 48px);
     box-sizing: border-box;
     border-bottom: 1px solid v_border_color;
 }
