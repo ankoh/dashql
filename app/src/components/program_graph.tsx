@@ -12,6 +12,11 @@ import { proto } from '@dashql/core';
 import sx = proto.syntax;
 import styles from './program_graph.module.css';
 
+interface ExtendedEdgeData extends EdgeData {
+    sourceId: number;
+    targetId: number;
+}
+
 interface ProgramGraphProps {
     program: core.model.Program | null;
     programStatus: Immutable.List<core.model.StatementStatus>;
@@ -19,10 +24,10 @@ interface ProgramGraphProps {
 }
 
 interface ProgramGraphState {
-    program: core.model.Program | null,
-    programStatus: Immutable.List<core.model.StatementStatus>,
-    nodes: StatementNodeData[],
-    edges: EdgeData[],
+    program: core.model.Program | null;
+    programStatus: Immutable.List<core.model.StatementStatus>;
+    nodes: StatementNodeData[];
+    edges: ExtendedEdgeData[];
 }
 
 class ProgramGraph extends React.Component<ProgramGraphProps, ProgramGraphState> {
@@ -38,7 +43,7 @@ class ProgramGraph extends React.Component<ProgramGraphProps, ProgramGraphState>
                 programStatus: Immutable.List<core.model.StatementStatus>(),
                 nodes: [],
                 edges: [],
-            }
+            };
         }
 
         const NODE_WIDTH = 120;
@@ -50,7 +55,7 @@ class ProgramGraph extends React.Component<ProgramGraphProps, ProgramGraphState>
 
         // We use dagre to do the layouting and the render the graph with react-flow
         let nodes: StatementNodeData[] = [];
-        let edges: EdgeData[] = [];
+        let edges: ExtendedEdgeData[] = [];
         const g = new dagre.graphlib.Graph().setGraph({
             nodesep: 60,
             ranksep: 40,
@@ -61,13 +66,14 @@ class ProgramGraph extends React.Component<ProgramGraphProps, ProgramGraphState>
                 ...NODE_SIZE,
             });
             nodes.push({
+                statementId: idx,
                 id: idx.toString(),
                 type: 'custom',
                 style: { ...NODE_SIZE },
                 position: { x: 0, y: 0 },
                 data: {
                     statementType: stmt.statement_type,
-                    actionStatus: props.programStatus.get(idx)?.status || proto.action.ActionStatusCode.NONE,
+                    actionStatus: proto.action.ActionStatusCode.NONE,
                 },
             });
         });
@@ -75,10 +81,15 @@ class ProgramGraph extends React.Component<ProgramGraphProps, ProgramGraphState>
             g.setEdge(dep.sourceStatement().toString(), dep.targetStatement().toString(), {});
             edges.push({
                 id: 'e:' + idx.toString(),
+                sourceId: dep.sourceStatement(),
                 source: dep.sourceStatement().toString(),
+                targetId: dep.sourceStatement(),
                 target: dep.targetStatement().toString(),
                 type: 'smoothstep',
-                animated: dep.sourceStatement() == 3, // XXX
+                animated: false,
+                style: {
+                    opacity: 1.0,
+                },
             });
         });
 
@@ -96,47 +107,56 @@ class ProgramGraph extends React.Component<ProgramGraphProps, ProgramGraphState>
                 },
             };
         });
-        return {
+        return ProgramGraph.updateState(props, {
             program: props.program,
             programStatus: props.programStatus,
             nodes: nodes,
             edges: edges,
-        };
+        });
     }
 
     protected static updateState(props: ProgramGraphProps, state: ProgramGraphState): ProgramGraphState {
-        props.programStatus.forEach((s, i) => {
-            const n = state.nodes[i];
-            if (n.data.actionStatus != s.status) {
-                state.nodes[i] = {
-                    ...n,
-                    data: {
-                        statementType: n.data.statementType,
-                        actionStatus: s.status
+        return {
+            ...state,
+            nodes: state.nodes.map(n => {
+                const s = props.programStatus.get(n.statementId)?.status;
+                if (s === undefined || s === null || n.data.actionStatus == s) {
+                    return n;
+                } else
+                    return {
+                        ...n,
+                        data: {
+                            statementType: n.data.statementType,
+                            actionStatus: s,
+                        },
+                    };
+            }),
+            edges: state.edges.map(e => {
+                const src = props.programStatus.get(e.targetId)?.status;
+                let animated = false;
+                let opacity = 1.0;
+                switch (src || proto.action.ActionStatusCode.NONE) {
+                    case proto.action.ActionStatusCode.RUNNING:
+                    case proto.action.ActionStatusCode.BLOCKED:
+                        animated = true;
+                        break;
+                    case proto.action.ActionStatusCode.NONE:
+                        opacity = 0.5;
+                        break;
+                    case proto.action.ActionStatusCode.COMPLETED:
+                    case proto.action.ActionStatusCode.FAILED:
+                        animated = false;
+                        break;
+                }
+                return {
+                    ...e,
+                    animated: animated,
+                    style: {
+                        opacity: opacity
                     }
                 };
-            }
-        });
-        props.program?.iterateDependencies((idx: number, dep: sx.Dependency) => {
-            const src = props.programStatus.get(dep.targetStatement())?.status;
-            let animated = false;
-            switch (src || proto.action.ActionStatusCode.NONE) {
-                case proto.action.ActionStatusCode.RUNNING:
-                case proto.action.ActionStatusCode.BLOCKED:
-                    animated = true;
-                    break;
-                case proto.action.ActionStatusCode.NONE:
-                case proto.action.ActionStatusCode.COMPLETED:
-                case proto.action.ActionStatusCode.FAILED:
-                    animated = false;
-                    break;
-            };
-            state.edges[idx] = {
-                ...state.edges[idx],
-                animated: animated,
-            };
-        });
-        return state;
+            }),
+        };
     }
 
     public static getDerivedStateFromProps(props: ProgramGraphProps, state: ProgramGraphState) {
