@@ -285,11 +285,14 @@ export class ActionGraphScheduler {
         const updateActions = (diff: NativeStack) => {
             if (diff.empty()) return;
             // Synchronize all the diffed actions
-            let actionUpdates: ActionUpdate[] = [];
+            let actionUpdates: Map<number, ActionUpdate> = new Map();
             for (; !diff.empty(); diff.pop()) {
                 const actionIdx = diff.top();
                 const action = scheduler.actions[actionIdx];
-                actionUpdates.push({
+                // Only propagate the most recent one
+                if (actionUpdates.get(action.actionId))
+                    continue;
+                actionUpdates.set(action.actionId, {
                     actionId: action.actionId,
                     statusCode: action.status,
                     blocker: action.blocker,
@@ -299,7 +302,7 @@ export class ActionGraphScheduler {
             // Update all actions in the store
             mutate(ctx.platform.store.dispatch, {
                 type: StateMutationType.UPDATE_PLAN_ACTIONS,
-                data: actionUpdates,
+                data: Array.from(actionUpdates, ([_k, v]) => v),
             });
         };
 

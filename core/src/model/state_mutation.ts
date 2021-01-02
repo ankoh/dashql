@@ -86,7 +86,7 @@ export class StateMutations {
                     });
                 }
                 mutation.data[1].forEach(a => {
-                    if (a.originStatement) {
+                    if (a.originStatement != null) {
                         ++stmt[a.originStatement].totalActions;
                     }
                 });
@@ -125,7 +125,7 @@ export class StateMutations {
                     programStatus: state.programStatus.withMutations(status => {
                         for (const update of mutation.data) {
                             const action = state.planActions.get(update.actionId);
-                            if (!action || !action.originStatement || action.statusCode == update.statusCode) {
+                            if (!action || action.originStatement == null || action.statusCode == update.statusCode) {
                                 continue;
                             }
                             const origin = {...status.get(action.originStatement)!};
