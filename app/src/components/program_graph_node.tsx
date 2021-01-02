@@ -71,6 +71,7 @@ function StatementTypeIcon(props: IIconProps & { type: proto.syntax.StatementTyp
 }
 
 export interface StatementNodeData extends NodeData {
+    statementId: number;
     data: {
         statementType: proto.syntax.StatementType;
         actionStatus: proto.action.ActionStatusCode | null;
