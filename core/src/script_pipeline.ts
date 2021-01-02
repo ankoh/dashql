@@ -9,8 +9,6 @@ export class ScriptPipeline {
     /// The scheduler
     _scheduler: ActionGraphScheduler;
 
-    /// The scheduler status
-    _schedulerStatus: model.ActionSchedulerStatus;
     /// The program text
     _programText: string;
     /// The previous program
@@ -24,7 +22,6 @@ export class ScriptPipeline {
         this._scheduler = scheduler;
         const store = platform.store;
         const state = store.getState().core;
-        this._schedulerStatus = state.schedulerStatus;
         this._programText = state.programText;
         this._program = state.program;
         this._programParameters = state.programParameters;
@@ -43,7 +40,7 @@ export class ScriptPipeline {
             const program = this._platform.analyzer.parseProgram(this._programText);
             model.mutate(this._platform.store.dispatch, {
                 type: model.StateMutationType.SET_PROGRAM,
-                data: program
+                data: program,
             });
             return;
         }
@@ -56,27 +53,15 @@ export class ScriptPipeline {
 
             // Instantiate the new program
             this._platform.analyzer.instantiateProgram(this._programParameters);
-
-            // Can schedule immediately?
-            if (this._schedulerStatus == model.ActionSchedulerStatus.Idle) {
-                this.planProgram();
-            }
-            return;
         }
 
-        // Scheduler status changed?
-        if (next.schedulerStatus !== this._schedulerStatus) {
-            this._schedulerStatus = next.schedulerStatus;
-
-            // Scheduler became idle and there is a program pending?
-            const schedulerIsIdle = this._schedulerStatus == model.ActionSchedulerStatus.Idle;
-            const programPending =
-                this._program &&
-                (!next.plan || next.plan.program !== this._program || next.plan.parameters != this._programParameters);
-            if (schedulerIsIdle && programPending) {
-                this.planProgram();
-            }
-            return;
+        // Scheduler became idle and there is a program pending?
+        if (
+            next.schedulerStatus == model.ActionSchedulerStatus.Idle &&
+            this._program &&
+            (!next.plan || next.plan.program !== this._program || next.plan.parameters != this._programParameters)
+        ) {
+            this.planProgram();
         }
     }
 
