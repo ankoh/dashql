@@ -21,6 +21,7 @@ export enum StateMutationType {
     LOG_PUSH_ENTRY = 'LOG_PUSH_ENTRY',
     SCHEDULER_READY = 'SCHEDULER_READY',
     SCHEDULE_PLAN = 'SCHEDULE_PLAN',
+    RESET_PLAN = 'RESET_PLAN',
     SET_PROGRAM = 'SET_PROGRAM',
     SET_PROGRAM_TEXT = 'SET_PROGRAM_TEXT',
     UPDATE_PLAN_ACTIONS = 'UPDATE_PLAN_ACTIONS',
@@ -38,6 +39,7 @@ export type StateMutationVariant =
     | StateMutation<StateMutationType.LOG_PUSH_ENTRY, LogEntry>
     | StateMutation<StateMutationType.SCHEDULER_READY, null>
     | StateMutation<StateMutationType.SCHEDULE_PLAN, [Plan, Action[]]>
+    | StateMutation<StateMutationType.RESET_PLAN, null>
     | StateMutation<StateMutationType.SET_PROGRAM, Program>
     | StateMutation<StateMutationType.SET_PROGRAM_TEXT, string>
     | StateMutation<StateMutationType.UPDATE_PLAN_ACTIONS, ActionUpdate[]>
@@ -72,6 +74,20 @@ export class StateMutations {
                         }
                     }),
                 };
+
+            case StateMutationType.RESET_PLAN: {
+                if (state.schedulerStatus !== ActionSchedulerStatus.Idle) {
+                    return state;
+                }
+                return {
+                    ...state,
+                    programStatus: Immutable.List<StatementStatus>(),
+                    schedulerStatus: ActionSchedulerStatus.Idle,
+                    plan: null,
+                    planActions: Immutable.Map<ActionID, Action>(),
+                    planActionLog: Immutable.List<ActionLogEntry>(),
+                };
+            }
 
             case StateMutationType.SCHEDULE_PLAN: {
                 const stmt: StatementStatus[] = [];

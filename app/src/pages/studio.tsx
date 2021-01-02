@@ -8,7 +8,7 @@ import { connect } from 'react-redux';
 // import Outline from './outline';
 // import Library from './library';
 
-import { ProgramCommandBar } from './studio_cmdbar_program';
+import ProgramCommandBar from './studio_cmdbar_program';
 import { BoardCommandBar } from './studio_cmdbar_board';
 import { ToolBar } from './studio_toolbar';
 

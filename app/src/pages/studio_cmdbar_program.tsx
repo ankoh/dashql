@@ -1,27 +1,20 @@
-import * as React from "react";
-import {
-    AutoRunIcon,
-    CloudUploadIcon,
-    DocumentDownloadIcon,
-    IIconProps,
-    PlayIcon,
-    UndoIcon,
-} from '../svg/icons';
+import * as React from 'react';
+import * as core from '@dashql/core';
+import * as model from '../model';
+import { AutoRunIcon, CloudUploadIcon, DocumentDownloadIcon, IIconProps, PlayIcon, UndoIcon } from '../svg/icons';
+import { connect } from 'react-redux';
 
 import styles from './studio.module.css';
 
-class ActionProps {}
+interface ActionProps extends IIconProps {
+    onClick: () => void;
+}
 
-function createAction(Icon: React.FunctionComponent<IIconProps>): React.FunctionComponent<IIconProps & ActionProps> {
-    return (props: IIconProps & ActionProps) => {
+function createAction(Icon: React.FunctionComponent<ActionProps>): React.FunctionComponent<ActionProps> {
+    return (props: ActionProps) => {
         return (
-            <div className={styles.cmdbar_cmd}>
-                <Icon
-                    className={styles.cmdbar_icon}
-                    width={'20px'}
-                    height={'20px'}
-                    {...props}
-                />
+            <div className={styles.cmdbar_cmd} onClick={props.onClick}>
+                <Icon className={styles.cmdbar_icon} width={'20px'} height={'20px'} {...props} />
             </div>
         );
     };
@@ -33,21 +26,38 @@ const AutoRunAction = createAction(AutoRunIcon);
 const DocumentDownloadAction = createAction(DocumentDownloadIcon);
 const CloudUploadAction = createAction(CloudUploadIcon);
 
-export class ProgramCommandBar extends React.Component<{}> {
+interface ProgramCommandBarProps {
+    resetPlan: () => void,
+}
+
+export class ProgramCommandBar extends React.Component<ProgramCommandBarProps> {
     public render() {
         return (
             <div className={styles.cmdbar_program}>
                 <div className={styles.cmdbar_cmdset}>
-                    <PlayAction />
-                    <AutoRunAction />
-                    <UndoAction />
+                    <PlayAction onClick={() => {}} />
+                    <AutoRunAction onClick={() => this.props.resetPlan()} />
+                    <UndoAction onClick={() => {}} />
                 </div>
                 <div className={styles.cmdbar_cmdset} />
                 <div className={styles.cmdbar_cmdset}>
-                    <DocumentDownloadAction />
-                    <CloudUploadAction />
+                    <DocumentDownloadAction onClick={() => {}} />
+                    <CloudUploadAction onClick={() => {}} />
                 </div>
             </div>
         );
     }
-};
+}
+
+const mapStateToProps = (_state: model.AppState) => ({});
+
+const mapDispatchToProps = (dispatch: model.Dispatch) => ({
+    resetPlan: () => {
+        core.model.mutate(dispatch, {
+            type: core.model.StateMutationType.RESET_PLAN,
+            data: null,
+        });
+    },
+});
+
+export default connect(mapStateToProps, mapDispatchToProps)(ProgramCommandBar);
