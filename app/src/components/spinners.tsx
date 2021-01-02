@@ -82,13 +82,35 @@ export function ActionStatusSpinner(props: IActionStatusSpinnerProps): JSX.Eleme
                     </g>
                 </svg>
             );
+            break;
         case proto.action.ActionStatusCode.NONE:
+            element = (
+                <div className={classNames(props.className)}>
+                    /
+                </div>
+            );
+            break;
         case proto.action.ActionStatusCode.FAILED:
+            element = (
+                <div className={classNames(props.className)}>
+                    E
+                </div>
+            );
+            break;
         case proto.action.ActionStatusCode.BLOCKED:
+            element = (
+                <div className={classNames(props.className)}>
+                    B
+                </div>
+            );
+            break;
         case proto.action.ActionStatusCode.COMPLETED:
             element = (
-                <div className={classNames(props.className)} />
+                <div className={classNames(props.className)}>
+                    C
+                </div>
             );
+            break;
     }
     return element;
 }

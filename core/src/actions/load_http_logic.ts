@@ -1,4 +1,5 @@
 import * as proto from "@dashql/proto";
+import * as utils from "../utils";
 import { LoggableError } from "../error";
 import { ActionID, Statement, LogLevel } from "../model";
 import { ProgramActionLogic } from "./action_logic";
@@ -11,6 +12,8 @@ export class LoadHTTPActionLogic extends ProgramActionLogic {
     }
 
     public async execute(context: ActionContext): Promise<ActionID> {
+        await utils.sleep(1000);
+
         const program = context.plan.program;
         const stmt = this.origin;
         const stmt_root = stmt.root_node();

@@ -95,6 +95,7 @@ export class ActionScheduler<ActionBuffer extends ProtoAction> {
         while (!this._actionQueue.empty() && this._actionQueue.topRank() == 0) {
             const next_action_idx = this._actionQueue.top();
             const next_action = this._actions[next_action_idx];
+            next_action.status = proto.action.ActionStatusCode.RUNNING;
             this._actionQueue.pop();
             this._scheduledActions.set(next_action_idx);
             this._actionPromises[next_action_idx] = next_action.execute(context);
