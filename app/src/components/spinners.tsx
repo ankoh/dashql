@@ -85,23 +85,51 @@ export function ActionStatusSpinner(props: IActionStatusSpinnerProps): JSX.Eleme
             break;
         case proto.action.ActionStatusCode.NONE:
             element = (
-                <div className={classNames(props.className)}>
-                    /
-                </div>
+                <svg
+                    className={classNames(props.className)}
+                    width={props.width || '24px'}
+                    height={props.height || '24px'}
+                    viewBox="-8 -8 16 16"
+                    fill="none"
+                    stroke={props.fill || "white"}
+                    strokeWidth="2"
+                >
+                    <g fill="none" fillRule="evenodd">
+                        <circle cx="0" cy="0" r="4" opacity=".5" strokeWidth="0" fill={props.fill || "white"}></circle>
+                    </g>
+                </svg>
             );
             break;
         case proto.action.ActionStatusCode.FAILED:
             element = (
-                <div className={classNames(props.className)}>
-                    E
-                </div>
+                <svg
+                    className={classNames(props.className)}
+                    width={props.width || '24px'}
+                    height={props.height || '24px'}
+                    viewBox="0 0 16 16"
+                    fill="none"
+                    strokeWidth="2"
+                >
+                    <g fill="none" fillRule="evenodd">
+                        <path fill={props.fill || "white"} fill-rule="evenodd" d="M2.343 13.657A8 8 0 1113.657 2.343 8 8 0 012.343 13.657zM6.03 4.97a.75.75 0 00-1.06 1.06L6.94 8 4.97 9.97a.75.75 0 101.06 1.06L8 9.06l1.97 1.97a.75.75 0 101.06-1.06L9.06 8l1.97-1.97a.75.75 0 10-1.06-1.06L8 6.94 6.03 4.97z"></path>
+                    </g>
+                </svg>
             );
             break;
         case proto.action.ActionStatusCode.BLOCKED:
             element = (
-                <div className={classNames(props.className)}>
-                    B
-                </div>
+                <svg
+                    className={classNames(props.className)}
+                    width={props.width || '24px'}
+                    height={props.height || '24px'}
+                    viewBox="0 0 16 16"
+                    fill="none"
+                    strokeWidth="2"
+                >
+                    <g fill="none" fillRule="evenodd">
+                        <path fill={props.fill || "white"} fill-rule="evenodd" d="M1.5 8a6.5 6.5 0 1113 0 6.5 6.5 0 01-13 0zM8 0a8 8 0 100 16A8 8 0 008 0zm3.28 5.78a.75.75 0 00-1.06-1.06l-5.5 5.5a.75.75 0 101.06 1.06l5.5-5.5z"></path>
+                    </g>
+                </svg>
             );
             break;
         case proto.action.ActionStatusCode.COMPLETED:

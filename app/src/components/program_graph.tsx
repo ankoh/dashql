@@ -117,6 +117,25 @@ class ProgramGraph extends React.Component<ProgramGraphProps, ProgramGraphState>
                 };
             }
         });
+        props.program?.iterateDependencies((idx: number, dep: sx.Dependency) => {
+            const src = props.programStatus.get(dep.targetStatement())?.status;
+            let animated = false;
+            switch (src || proto.action.ActionStatusCode.NONE) {
+                case proto.action.ActionStatusCode.RUNNING:
+                case proto.action.ActionStatusCode.BLOCKED:
+                    animated = true;
+                    break;
+                case proto.action.ActionStatusCode.NONE:
+                case proto.action.ActionStatusCode.COMPLETED:
+                case proto.action.ActionStatusCode.FAILED:
+                    animated = false;
+                    break;
+            };
+            state.edges[idx] = {
+                ...state.edges[idx],
+                animated: animated,
+            };
+        });
         return state;
     }
 

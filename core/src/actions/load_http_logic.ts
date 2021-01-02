@@ -12,7 +12,7 @@ export class LoadHTTPActionLogic extends ProgramActionLogic {
     }
 
     public async execute(context: ActionContext): Promise<ActionID> {
-        await utils.sleep(1000);
+        await utils.sleep(500);
 
         const program = context.plan.program;
         const stmt = this.origin;
