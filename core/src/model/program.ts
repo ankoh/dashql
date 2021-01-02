@@ -2,6 +2,7 @@
 
 import { NativeStack, NativeBitmap } from '../utils';
 import { syntax as sx, analyzer } from '@dashql/proto';
+import * as proto from '@dashql/proto';
 import * as schema from './syntax_schema';
 
 const decoder = new TextDecoder();
@@ -17,7 +18,11 @@ export class Program {
     _nodeValues: Map<number, analyzer.Value>;
 
     /// Constructor
-    public constructor(text: string = "", textBuffer: Uint8Array = new Uint8Array(0), program: sx.Program = new sx.Program()) {
+    public constructor(
+        text: string = '',
+        textBuffer: Uint8Array = new Uint8Array(0),
+        program: sx.Program = new sx.Program(),
+    ) {
         this._text = text;
         this._textBuffer = textBuffer;
         this._program = program;
@@ -396,72 +401,89 @@ export class Statement {
     /// Match a schema
     public matchSchema(spec: schema.NodeSchema) {
         let mappedNodes: Map<number, schema.NodeSchema> = new Map();
-        this.traversePreOrder(
-            (nodeId: number, node: Node, path: NodePath) => {
-                const step = path.steps[path.steps.length - 1];
+        this.traversePreOrder((nodeId: number, node: Node, path: NodePath) => {
+            const step = path.steps[path.steps.length - 1];
 
-                // Is root node?
-                let currentSchema: schema.NodeSchema | null = null;
-                if (path.steps.length == 1) {
-                    currentSchema = spec;
-                } else {
-                    // Resolve the child schema within the schema of the parent
-                    const parentStep = path.steps[path.steps.length - 2];
-                    const parentSchema = mappedNodes.get(parentStep.nodeId);
-                    if (!parentSchema) return;
-                    switch (parentSchema.specType) {
-                        case schema.SpecType.OBJECT_SPEC:
-                            currentSchema = parentSchema.value[node.buffer.attributeKey()] || null;
-                            break;
-                        case schema.SpecType.ARRAY_SPEC:
-                            currentSchema =
-                                step.indexInParent < parentSchema.value.length
-                                    ? parentSchema.value[step.indexInParent]
-                                    : null;
-                            break;
-                    }
-                }
-
-                // Couldn't resolve the child schema?
-                if (!currentSchema) return;
-                // Wrong node type?
-                // This also catches invalid object and enum types.
-                if (currentSchema.nodeType != null && currentSchema.nodeType != node.nodeType) {
-                    currentSchema.matching = schema.Matching.TYPE_MISMATCH;
-                    return;
-                }
-
-                // Match the child schema
-                switch (currentSchema.specType) {
-                    case schema.SpecType.BOOL_SPEC:
-                        currentSchema.matching = schema.Matching.MATCHED;
-                        currentSchema.value = node.buffer.childrenBeginOrValue() != 0;
-                        break;
-                    case schema.SpecType.NUMBER_SPEC:
-                        currentSchema.matching = schema.Matching.MATCHED;
-                        currentSchema.value = node.buffer.childrenBeginOrValue();
-                        break;
-                    case schema.SpecType.STRING_SPEC:
-                        // XXX Patched strings may not be string refs
-                        if (node.nodeType == sx.NodeType.STRING_REF) {
-                            currentSchema.matching = schema.Matching.MATCHED;
-                            currentSchema.value = this.program.textAt(node.buffer.location()!);
-                        }
-                        break;
-                    case schema.SpecType.ENUM_SPEC:
-                        currentSchema.matching = schema.Matching.MATCHED;
-                        currentSchema.value = node.buffer.childrenBeginOrValue();
-                        break;
+            // Is root node?
+            let currentSchema: schema.NodeSchema | null = null;
+            if (path.steps.length == 1) {
+                currentSchema = spec;
+            } else {
+                // Resolve the child schema within the schema of the parent
+                const parentStep = path.steps[path.steps.length - 2];
+                const parentSchema = mappedNodes.get(parentStep.nodeId);
+                if (!parentSchema) return;
+                switch (parentSchema.specType) {
                     case schema.SpecType.OBJECT_SPEC:
-                        currentSchema.matching = schema.Matching.MATCHED;
-                        mappedNodes.set(nodeId, currentSchema);
+                        currentSchema = parentSchema.value[node.buffer.attributeKey()] || null;
                         break;
                     case schema.SpecType.ARRAY_SPEC:
-                        currentSchema.matching = schema.Matching.MATCHED;
-                        mappedNodes.set(nodeId, currentSchema);
+                        currentSchema =
+                            step.indexInParent < parentSchema.value.length
+                                ? parentSchema.value[step.indexInParent]
+                                : null;
                         break;
                 }
             }
-        );
+
+            // Couldn't resolve the child schema?
+            if (!currentSchema) return;
+            // Wrong node type?
+            // This also catches invalid object and enum types.
+            if (currentSchema.nodeType != null && currentSchema.nodeType != node.nodeType) {
+                currentSchema.matching = schema.Matching.TYPE_MISMATCH;
+                return;
+            }
+
+            // Match the child schema
+            switch (currentSchema.specType) {
+                case schema.SpecType.BOOL_SPEC:
+                    currentSchema.matching = schema.Matching.MATCHED;
+                    currentSchema.value = node.buffer.childrenBeginOrValue() != 0;
+                    break;
+                case schema.SpecType.NUMBER_SPEC:
+                    currentSchema.matching = schema.Matching.MATCHED;
+                    currentSchema.value = node.buffer.childrenBeginOrValue();
+                    break;
+                case schema.SpecType.STRING_SPEC:
+                    // XXX Patched strings may not be string refs
+                    if (node.nodeType == sx.NodeType.STRING_REF) {
+                        currentSchema.matching = schema.Matching.MATCHED;
+                        currentSchema.value = this.program.textAt(node.buffer.location()!);
+                    }
+                    break;
+                case schema.SpecType.ENUM_SPEC:
+                    currentSchema.matching = schema.Matching.MATCHED;
+                    currentSchema.value = node.buffer.childrenBeginOrValue();
+                    break;
+                case schema.SpecType.OBJECT_SPEC:
+                    currentSchema.matching = schema.Matching.MATCHED;
+                    mappedNodes.set(nodeId, currentSchema);
+                    break;
+                case schema.SpecType.ARRAY_SPEC:
+                    currentSchema.matching = schema.Matching.MATCHED;
+                    mappedNodes.set(nodeId, currentSchema);
+                    break;
+            }
+        });
     }
+}
+
+/// A statement status
+export interface StatementStatus {
+    status: proto.action.ActionStatusCode;
+    totalActions: number;
+    runningActions: number;
+    blockedActions: number;
+    failedActions: number;
+    completedActions: number;
+}
+
+/// Derive a statement status
+export function deriveStatementStatusCode(status: StatementStatus): proto.action.ActionStatusCode {
+    if (status.failedActions > 0) return proto.action.ActionStatusCode.FAILED;
+    else if (status.blockedActions > 0) return proto.action.ActionStatusCode.BLOCKED;
+    else if (status.completedActions == status.totalActions) return proto.action.ActionStatusCode.COMPLETED;
+    else if (status.runningActions > 0) return proto.action.ActionStatusCode.RUNNING;
+    else return proto.action.ActionStatusCode.NONE;
 }

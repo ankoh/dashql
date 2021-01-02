@@ -1,8 +1,9 @@
+import * as Immutable from "immutable";
 import * as React from "react";
 import * as core from "@dashql/core";
 import { Board, EditorLoader } from '../components';
 import { AppState, Dispatch } from '../model';
-import { ProgramGraph } from "../components";
+import ProgramGraph from "../components/program_graph";
 import { connect } from 'react-redux';
 // import Outline from './outline';
 // import Library from './library';
@@ -14,7 +15,6 @@ import { ToolBar } from './studio_toolbar';
 import styles from './studio.module.css';
 
 interface Props {
-    program: core.model.Program | null;
     className?: string
 }
 
@@ -23,7 +23,7 @@ class Studio extends React.Component<Props> {
         return (
             <div className={styles.studio}>
                 <div className={styles.program}>
-                    <ProgramGraph className={styles.program_graph} program={this.props.program} />
+                    <ProgramGraph className={styles.program_graph} />
                     <div className={styles.program_info}>
                         <div className={styles.program_info_entry}>
                             unnamed.dashql
@@ -59,7 +59,6 @@ class Studio extends React.Component<Props> {
 }
 
 const mapStateToProps = (state: AppState) => ({
-    program: state.core.program
 });
 
 const mapDispatchToProps = (_dispatch: Dispatch) => ({

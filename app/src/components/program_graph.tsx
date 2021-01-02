@@ -1,6 +1,9 @@
+import * as Immutable from "immutable";
 import * as React from "react";
 import * as core from "@dashql/core";
 import * as dagre from 'dagre';
+import { AppState, Dispatch } from '../model';
+import { connect } from 'react-redux';
 import ReactFlow, { Controls, Handle as ReactFlowHandle } from 'react-flow-renderer';
 import { ActionStatusSpinner } from './spinners';
 import classNames from 'classnames';
@@ -102,6 +105,7 @@ function Node(props: ProgramNodeData) {
 
 interface ProgramGraphProps {
     program: core.model.Program | null;
+    programStatus: Immutable.List<core.model.StatementStatus>;
     className?: string
 }
 
@@ -138,7 +142,7 @@ class ProgramGraph extends React.Component<ProgramGraphProps> {
                 position: { x: 0, y: 0 },
                 data: {
                     statementType: stmt.statement_type,
-                    actionStatus: null
+                    actionStatus: this.props.programStatus.get(idx)?.status || proto.action.ActionStatusCode.NONE,
                 }
             });
         });
@@ -188,4 +192,13 @@ class ProgramGraph extends React.Component<ProgramGraphProps> {
     }
 }
 
-export default ProgramGraph;
+const mapStateToProps = (state: AppState) => ({
+    program: state.core.program,
+    programStatus: state.core.programStatus,
+});
+
+const mapDispatchToProps = (_dispatch: Dispatch) => ({
+});
+
+export default connect(mapStateToProps, mapDispatchToProps)(ProgramGraph);
+

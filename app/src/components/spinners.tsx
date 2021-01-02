@@ -64,12 +64,7 @@ export function ActionStatusSpinner(props: IActionStatusSpinnerProps): JSX.Eleme
     const status_code = props.status ? props.status : proto.action.ActionStatusCode.NONE;
     let element = <div />;
     switch (status_code) {
-        case proto.action.ActionStatusCode.NONE:
         case proto.action.ActionStatusCode.RUNNING:
-        case proto.action.ActionStatusCode.COMPLETED:
-        case proto.action.ActionStatusCode.ERROR:
-        case proto.action.ActionStatusCode.BLOCKED:
-        case proto.action.ActionStatusCode.PREPARING:
             element = (
                 <svg
                     className={classNames(props.className)}
@@ -86,6 +81,13 @@ export function ActionStatusSpinner(props: IActionStatusSpinnerProps): JSX.Eleme
                         <circle cx="0" cy="0" r="7" strokeDasharray="12, 88" className={styles.status_spinner} />
                     </g>
                 </svg>
+            );
+        case proto.action.ActionStatusCode.NONE:
+        case proto.action.ActionStatusCode.FAILED:
+        case proto.action.ActionStatusCode.BLOCKED:
+        case proto.action.ActionStatusCode.COMPLETED:
+            element = (
+                <div className={classNames(props.className)} />
             );
     }
     return element;

@@ -1,10 +1,11 @@
 import * as Immutable from "immutable";
+import * as proto from '@dashql/proto';
 import { LogEntry } from "./log";
 import { Plan } from "./plan";
 import { CachedFileData, CachedHTTPData } from "./cache";
 import { ActionSchedulerStatus, ActionID, Action, ActionLogEntry } from "./action";
 import { PlanObjectID, PlanObject } from "./plan_object";
-import { Program, ParameterValue } from "./program";
+import { Program, StatementStatus, ParameterValue } from "./program";
 import { Store } from "redux";
 
 export class CoreState {
@@ -15,8 +16,10 @@ export class CoreState {
     public programText: string;
     /// The program
     public program: Program | null;
-    /// The progrma parameters
+    /// The program parameters
     public programParameters: Immutable.List<ParameterValue>;
+    /// The program status
+    public programStatus: Immutable.List<StatementStatus>;
 
     /// The action scheduler status
     public schedulerStatus: ActionSchedulerStatus;
@@ -40,6 +43,7 @@ export class CoreState {
         this.programText = "";
         this.program = null;
         this.programParameters = Immutable.List<ParameterValue>();
+        this.programStatus = Immutable.List<StatementStatus>();
         this.schedulerStatus = ActionSchedulerStatus.Idle;
         this.plan = null;
         this.planObjects = Immutable.Map<PlanObjectID, PlanObject>();

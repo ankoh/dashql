@@ -133,10 +133,8 @@ export class ActionScheduler<ActionBuffer extends ProtoAction> {
         const action_idx = getActionIndex(next);
         this._actionPromises[action_idx] = null;
         switch (this._actions[action_idx].status) {
-            case proto.action.ActionStatusCode.PREPARING:
             case proto.action.ActionStatusCode.BLOCKED:
             case proto.action.ActionStatusCode.RUNNING:
-            case proto.action.ActionStatusCode.TEARDOWN:
                 break;
 
             case proto.action.ActionStatusCode.COMPLETED: {
@@ -152,7 +150,7 @@ export class ActionScheduler<ActionBuffer extends ProtoAction> {
                 break;
             }
             case proto.action.ActionStatusCode.NONE:
-            case proto.action.ActionStatusCode.ERROR:
+            case proto.action.ActionStatusCode.FAILED:
                 this._scheduledActions.clear(action_idx);
                 this._failedActions.set(action_idx);
                 break;
