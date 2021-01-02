@@ -3,7 +3,7 @@ import * as model from './model';
 import { Platform } from './platform';
 import { ActionGraphScheduler } from './action_scheduler';
 
-export class AnalyzerHooks {
+export class ScriptPipeline {
     /// The store
     _platform: Platform;
     /// The scheduler
