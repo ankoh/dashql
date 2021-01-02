@@ -15,6 +15,10 @@ import { ToolBar } from './studio_toolbar';
 import styles from './studio.module.css';
 
 interface Props {
+    fileName: string;
+    fileSize: number;
+    fileLineCount: number;
+    program: core.model.Program | null;
     className?: string
 }
 
@@ -26,23 +30,19 @@ class Studio extends React.Component<Props> {
                     <ProgramGraph className={styles.program_graph} />
                     <div className={styles.program_info}>
                         <div className={styles.program_info_entry}>
-                            unnamed.dashql
-                        </div>
-                        <div className={styles.program_info_divider} />
-                        <div className={styles.program_info_entry}>
-                            233 lines
-                        </div>
-                        <div className={styles.program_info_divider} />
-                        <div className={styles.program_info_entry}>
-                            4.88 KB
+                            {this.props.fileName}
                         </div>
                         <div className={styles.program_info_flex} />
                         <div className={styles.program_info_entry}>
-                            5 statements
+                            {this.props.program?.buffer.statementsLength() || 0} statements
                         </div>
                         <div className={styles.program_info_divider} />
                         <div className={styles.program_info_entry}>
-                            evaluated in 50 ms
+                            {this.props.fileLineCount} lines
+                        </div>
+                        <div className={styles.program_info_divider} />
+                        <div className={styles.program_info_entry}>
+                            {core.utils.formatBytes(this.props.fileSize)}
                         </div>
                     </div>
                     <EditorLoader className={styles.program_editor} />
@@ -59,6 +59,10 @@ class Studio extends React.Component<Props> {
 }
 
 const mapStateToProps = (state: AppState) => ({
+    fileName: state.core.fileName,
+    fileSize: state.core.fileSize,
+    fileLineCount: state.core.fileLineCount,
+    program: state.core.program,
 });
 
 const mapDispatchToProps = (_dispatch: Dispatch) => ({
