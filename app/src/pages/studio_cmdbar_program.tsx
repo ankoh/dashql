@@ -1,7 +1,7 @@
 import * as React from 'react';
 import * as core from '@dashql/core';
 import * as model from '../model';
-import { AutoRunIcon, CloudUploadIcon, DocumentDownloadIcon, IIconProps, PlayIcon, UndoIcon } from '../svg/icons';
+import { AutoRunIcon, FileUploadIcon, FileDownloadIcon, IIconProps, UndoIcon } from '../svg/icons';
 import { connect } from 'react-redux';
 
 import styles from './studio.module.css';
@@ -22,8 +22,8 @@ function createAction(Icon: React.FunctionComponent<ActionProps>): React.Functio
 
 const UndoAction = createAction(UndoIcon);
 const AutoRunAction = createAction(AutoRunIcon);
-const DocumentDownloadAction = createAction(DocumentDownloadIcon);
-const CloudUploadAction = createAction(CloudUploadIcon);
+const DocumentDownloadAction = createAction(FileDownloadIcon);
+const DocumentUploadAction = createAction(FileUploadIcon);
 
 interface ProgramCommandBarProps {
     resetPlan: () => void,
@@ -40,7 +40,7 @@ export class ProgramCommandBar extends React.Component<ProgramCommandBarProps> {
                 <div className={styles.cmdbar_cmdset} />
                 <div className={styles.cmdbar_cmdset}>
                     <DocumentDownloadAction onClick={() => {}} />
-                    <CloudUploadAction onClick={() => {}} />
+                    <DocumentUploadAction onClick={() => {}} />
                 </div>
             </div>
         );
