@@ -280,13 +280,10 @@ export class ActionGraphScheduler {
     protected async executeActions<ActionBuffer extends ProtoAction>(
         ctx: ActionContext,
         diff: NativeStack,
-        scheduler: ActionScheduler<ActionBuffer>
+        scheduler: ActionScheduler<ActionBuffer>,
     ) {
-        for (
-            let workLeft = await scheduler.executeFirst(ctx, diff);
-            workLeft;
-            diff.clear(), workLeft = await scheduler.execute(ctx, diff)
-        ) {
+        const updateActions = (diff: NativeStack) => {
+            if (diff.empty()) return;
             // Synchronize all the diffed actions
             let actionUpdates: ActionUpdate[] = [];
             for (; !diff.empty(); diff.pop()) {
@@ -304,7 +301,16 @@ export class ActionGraphScheduler {
                 type: StateMutationType.UPDATE_PLAN_ACTIONS,
                 data: actionUpdates,
             });
+        };
+
+        for (
+            let workLeft = await scheduler.executeFirst(ctx, diff);
+            workLeft;
+            diff.clear(), workLeft = await scheduler.execute(ctx, diff)
+        ) {
+            updateActions(diff);
         }
+        updateActions(diff);
     }
 
     /// Execute the entire action graph
