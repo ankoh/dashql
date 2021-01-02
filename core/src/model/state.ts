@@ -12,6 +12,12 @@ export class CoreState {
     /// The log entries
     public logEntries: Immutable.List<LogEntry>;
 
+    /// The file name
+    public fileName: string;
+    /// The file size
+    public fileSize: number;
+    /// The file line count
+    public fileLineCount: number;
     /// The program text
     public programText: string;
     /// The program
@@ -40,6 +46,9 @@ export class CoreState {
     /// Constructor
     constructor() {
         this.logEntries = Immutable.List<LogEntry>();
+        this.fileName = "unnamed.dashql";
+        this.fileSize = 0;
+        this.fileLineCount = 0;
         this.programText = "";
         this.program = null;
         this.programParameters = Immutable.List<ParameterValue>();

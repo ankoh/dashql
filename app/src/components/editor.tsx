@@ -16,7 +16,7 @@ type Props = {
     programText: string;
     program: core.model.Program;
 
-    updateProgramText: (txt: string) => void;
+    updateProgramText: (txt: string, lines: number) => void;
 };
 
 class Editor extends React.Component<Props> {
@@ -93,7 +93,7 @@ class Editor extends React.Component<Props> {
     public editorDidMount() {
         const editor = this.editor!;
         editor.onDidChangeModelContent((_event) => {
-            this.props.updateProgramText(editor.getValue());
+            this.props.updateProgramText(editor.getValue(), editor.getModel()?.getLineCount() || 0);
         });
         if (this.monacoContainer) {
             this.resizeEditorDelayed(this.monacoContainer.offsetHeight, this.monacoContainer.offsetWidth);
@@ -142,9 +142,9 @@ const mapStateToProps = (state: model.AppState) => ({
 });
 
 const mapDispatchToProps = (dispatch: model.Dispatch) => ({
-    updateProgramText: (txt: string) => (model.mutate(dispatch, {
+    updateProgramText: (txt: string, lines: number) => (model.mutate(dispatch, {
         type: core.model.StateMutationType.SET_PROGRAM_TEXT,
-        data: txt
+        data: [txt, lines]
     }))
 });
 

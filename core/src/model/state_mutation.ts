@@ -1,5 +1,6 @@
 import * as Immutable from 'immutable';
 import * as proto from '@dashql/proto';
+import * as utils from '../utils';
 import { LogEntry } from './log';
 import { Plan } from './plan';
 import { ActionID, Action, ActionUpdate, ActionLogEntry, ActionSchedulerStatus } from './action';
@@ -41,7 +42,7 @@ export type StateMutationVariant =
     | StateMutation<StateMutationType.SCHEDULE_PLAN, [Plan, Action[]]>
     | StateMutation<StateMutationType.RESET_PLAN, null>
     | StateMutation<StateMutationType.SET_PROGRAM, Program>
-    | StateMutation<StateMutationType.SET_PROGRAM_TEXT, string>
+    | StateMutation<StateMutationType.SET_PROGRAM_TEXT, [string, number]>
     | StateMutation<StateMutationType.UPDATE_PLAN_ACTIONS, ActionUpdate[]>
     | StateMutation<StateMutationType.INSERT_PLAN_OBJECTS, PlanObject[]>
     | StateMutation<StateMutationType.DELETE_PLAN_OBJECTS, PlanObjectID[]>
@@ -125,7 +126,9 @@ export class StateMutations {
             case StateMutationType.SET_PROGRAM_TEXT:
                 return {
                     ...state,
-                    programText: mutation.data,
+                    fileSize: utils.estimateUTF16Length(mutation.data[0]),
+                    fileLineCount: mutation.data[1],
+                    programText: mutation.data[0],
                 };
 
             case StateMutationType.SET_PROGRAM:
