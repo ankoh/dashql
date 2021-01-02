@@ -111,7 +111,7 @@ export function ActionStatusSpinner(props: IActionStatusSpinnerProps): JSX.Eleme
                     <g fill="none" fillRule="evenodd">
                         <path
                             fill={props.fill || 'white'}
-                            fill-rule="evenodd"
+                            fillRule="evenodd"
                             d="M2.343 13.657A8 8 0 1113.657 2.343 8 8 0 012.343 13.657zM6.03 4.97a.75.75 0 00-1.06 1.06L6.94 8 4.97 9.97a.75.75 0 101.06 1.06L8 9.06l1.97 1.97a.75.75 0 101.06-1.06L9.06 8l1.97-1.97a.75.75 0 10-1.06-1.06L8 6.94 6.03 4.97z"
                         ></path>
                     </g>
@@ -131,7 +131,7 @@ export function ActionStatusSpinner(props: IActionStatusSpinnerProps): JSX.Eleme
                     <g fill="none" fillRule="evenodd">
                         <path
                             fill={props.fill || 'white'}
-                            fill-rule="evenodd"
+                            fillRule="evenodd"
                             d="M1.5 8a6.5 6.5 0 1113 0 6.5 6.5 0 01-13 0zM8 0a8 8 0 100 16A8 8 0 008 0zm3.28 5.78a.75.75 0 00-1.06-1.06l-5.5 5.5a.75.75 0 101.06 1.06l5.5-5.5z"
                         ></path>
                     </g>
@@ -151,7 +151,7 @@ export function ActionStatusSpinner(props: IActionStatusSpinnerProps): JSX.Eleme
                     <g fill="none" fillRule="evenodd">
                         <path
                             fill={props.fill || 'white'}
-                            fill-rule="evenodd"
+                            fillRule="evenodd"
                             d="M8 16A8 8 0 108 0a8 8 0 000 16zm3.78-9.72a.75.75 0 00-1.06-1.06L6.75 9.19 5.28 7.72a.75.75 0 00-1.06 1.06l2 2a.75.75 0 001.06 0l4.5-4.5z"
                         ></path>
                     </g>
