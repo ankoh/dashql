@@ -13,8 +13,8 @@ export class AppController {
     protected _editor: EditorController;
     /// The interpreter controller
     protected _scheduler: core.ActionGraphScheduler;
-    /// The analyzer hooks
-    protected _analyzerHooks: core.AnalyzerHooks;
+    /// The script pipeline
+    protected _scriptPipeline: core.ScriptPipeline;
     /// The demo controller
     protected _demo: DemoController;
 
@@ -26,7 +26,7 @@ export class AppController {
         this._platform = platform;
         this._editor = new EditorController(platform);
         this._scheduler = new core.ActionGraphScheduler(platform);
-        this._analyzerHooks = new core.AnalyzerHooks(platform, this._scheduler);
+        this._scriptPipeline = new core.ScriptPipeline(platform, this._scheduler);
         this._demo = new DemoController(platform);
         this._workerTimer = null;
     }
