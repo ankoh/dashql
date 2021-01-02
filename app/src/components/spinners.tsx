@@ -106,9 +106,18 @@ export function ActionStatusSpinner(props: IActionStatusSpinnerProps): JSX.Eleme
             break;
         case proto.action.ActionStatusCode.COMPLETED:
             element = (
-                <div className={classNames(props.className)}>
-                    C
-                </div>
+                <svg
+                    className={classNames(props.className)}
+                    width={props.width || '24px'}
+                    height={props.height || '24px'}
+                    viewBox="0 0 16 16"
+                    fill="none"
+                    strokeWidth="2"
+                >
+                    <g fill="none" fillRule="evenodd">
+                        <path fill={props.fill || "white"} fill-rule="evenodd" d="M8 16A8 8 0 108 0a8 8 0 000 16zm3.78-9.72a.75.75 0 00-1.06-1.06L6.75 9.19 5.28 7.72a.75.75 0 00-1.06 1.06l2 2a.75.75 0 001.06 0l4.5-4.5z"></path>
+                    </g>
+                </svg>
             );
             break;
     }
