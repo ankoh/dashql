@@ -12,7 +12,8 @@
         "plugins": [{ "name": "typescript-plugin-css-modules" }],
         "baseUrl": ".",
         "paths": {
-            "@dashql/proto": ["../proto/index.ts"]
+            "@dashql/proto": ["../proto/index.ts"],
+            "immutable": ["node_modules/immutable"]
         }
     },
     "exclude": [

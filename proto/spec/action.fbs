@@ -7,12 +7,10 @@ namespace dashql.proto.action;
 
 enum ActionStatusCode: uint8 {
     NONE = 0,
-    PREPARING,
-    BLOCKED,
     RUNNING,
-    TEARDOWN,
+    BLOCKED,
+    FAILED,
     COMPLETED,
-    ERROR,
 }
 
 enum ActionBlocker: uint8 {
