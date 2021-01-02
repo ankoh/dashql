@@ -20,7 +20,6 @@ function createAction(Icon: React.FunctionComponent<ActionProps>): React.Functio
     };
 }
 
-const PlayAction = createAction(PlayIcon);
 const UndoAction = createAction(UndoIcon);
 const AutoRunAction = createAction(AutoRunIcon);
 const DocumentDownloadAction = createAction(DocumentDownloadIcon);
@@ -35,7 +34,6 @@ export class ProgramCommandBar extends React.Component<ProgramCommandBarProps> {
         return (
             <div className={styles.cmdbar_program}>
                 <div className={styles.cmdbar_cmdset}>
-                    <PlayAction onClick={() => {}} />
                     <AutoRunAction onClick={() => this.props.resetPlan()} />
                     <UndoAction onClick={() => {}} />
                 </div>
