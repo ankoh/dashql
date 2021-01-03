@@ -86,6 +86,11 @@ core_watch:
 core_tests:
 	npm --prefix ${ROOT_DIR}/core run test
 
+# Build the benchmarks
+.PHONY: benchmarks
+benchmarks:
+	npm --prefix ${ROOT_DIR}/benchmarks run build
+
 # Compile the flatbuffer schema
 .PHONY: proto
 proto:
