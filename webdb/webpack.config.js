@@ -6,9 +6,9 @@ const browserTarget = {
     target: 'web',
     mode: 'production',
     entry: {
-        "dashql_webdb": './src/index_web.ts',
-        "dashql_webdb_async": './src/index_web_async.ts',
-        "dashql_webdb_async.worker": './src/worker_web.ts'
+        "webdb": './src/index_web.ts',
+        "webdb_async": './src/index_web_async.ts',
+        "webdb_async.worker": './src/worker_web.ts'
     },
     devtool:'source-map',
     output: {
@@ -38,7 +38,7 @@ const browserTarget = {
                 type: 'javascript/auto',
                 loader: 'file-loader',
                 options: {
-                    name: 'dashql_webdb.wasm',
+                    name: 'webdb.wasm',
                 }
             }
         ]
@@ -70,9 +70,9 @@ const browserTarget = {
     plugins: [
         new CleanWebpackPlugin({
             root: "./dist",
-            cleanOnceBeforeBuildPatterns: ["*.wasm", "**/*.d.ts", "!.*"],
+            cleanOnceBeforeBuildPatterns: ["*.wasm", "**/*.d.ts", "**/*.map", "!.*"],
             cleanOnceAfterBuildPatterns: [],
-            verbose: true,
+            verbose: false,
         }),
     ],
     externals: {
@@ -85,16 +85,16 @@ const nodeTarget = {
     ...browserTarget,
     target: 'node',
     entry: {
-        "dashql_webdb": './src/index_node.ts',
-        "dashql_webdb_async": './src/index_node_async.ts',
-        "dashql_webdb_async.worker": './src/worker_node.ts'
+        "webdb_node": './src/index_node.ts',
+        "webdb_node_async": './src/index_node_async.ts',
+        "webdb_node_async.worker": './src/worker_node.ts',
     },
     plugins: [
         new CleanWebpackPlugin({
             root: "./dist",
             cleanOnceBeforeBuildPatterns: ["!.*"],
             cleanOnceAfterBuildPatterns: [],
-            verbose: true,
+            verbose: false,
         })
     ],
 };

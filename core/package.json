@@ -50,7 +50,7 @@
     ],
     "main": "./dist/dashql_core_node.js",
     "module": "./dist/dashql_core_node.js",
-    "types": "./dist/core/src/index_node.d.ts",
+    "types": "./dist/types/index_node.d.ts",
     "browser": {
         "./dist/dashql_core_node.js": "./dist/dashql_core.js",
         "worker_threads": false,
