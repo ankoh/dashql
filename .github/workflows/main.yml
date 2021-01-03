@@ -185,6 +185,15 @@ jobs:
             npm ci --no-optional --cache /mnt/npm_cache
             npm run build
 
+    - name: Build benchmarks
+      uses: ./ci/image
+      with:
+        script: |-
+            source /opt/env.sh
+            cd ./benchmarks
+            npm ci --no-optional --cache /mnt/npm_cache
+            npm run build
+
     - name: Test @dashql/webdb
       uses: ./ci/image
       with:
