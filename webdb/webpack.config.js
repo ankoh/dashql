@@ -7,7 +7,8 @@ const browserTarget = {
     mode: 'production',
     entry: {
         "dashql_webdb": './src/index_web.ts',
-        "dashql_webdb.worker": './src/worker_web.ts'
+        "dashql_webdb_async": './src/index_web_async.ts',
+        "dashql_webdb_async.worker": './src/worker_web.ts'
     },
     devtool:'source-map',
     output: {
@@ -84,8 +85,9 @@ const nodeTarget = {
     ...browserTarget,
     target: 'node',
     entry: {
-        "dashql_webdb_node": './src/index_node.ts',
-        "dashql_webdb_node.worker": './src/worker_node.ts'
+        "dashql_webdb": './src/index_node.ts',
+        "dashql_webdb_async": './src/index_node_async.ts',
+        "dashql_webdb_async.worker": './src/worker_node.ts'
     },
     plugins: [
         new CleanWebpackPlugin({
