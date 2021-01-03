@@ -30,7 +30,15 @@ module.exports = {
                     /node_modules/,
                     path.resolve(__dirname, 'dist')
                 ]
-            }
+            },
+            {
+                test: /.*\.wasm$/,
+                type: 'javascript/auto',
+                loader: 'file-loader',
+                options: {
+                    name: 'wasm/[name].[ext]',
+                }
+            },
         ]
     },
     plugins: [
@@ -41,5 +49,7 @@ module.exports = {
             verbose: true,
         }),
     ],
-    externals: [nodeExternals()]
+    externals: [nodeExternals({
+        allowlist: [/.*\.wasm$/]
+    })]
 };

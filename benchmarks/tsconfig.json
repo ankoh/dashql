@@ -8,14 +8,15 @@
         "sourceMap": true,
         "declaration": true,
         "declarationMap": true,
-        "declarationDir": "./dist/",
+        "declarationDir": "./dist/types",
         "noImplicitAny": true,
         "esModuleInterop": true,
         "types": ["node"],
         "baseUrl": "."
     },
     "files": [
-        "./src/iterator_benchmark.ts"
+        "./src/iterator_benchmark.ts",
+        "./types/wasm.d.ts"
     ],
     "exclude": [
         "./node_modules"
