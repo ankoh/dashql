@@ -8,15 +8,12 @@
         "strict": true,
         "declaration": true,
         "declarationMap": true,
-        "declarationDir": "dist",
+        "declarationDir": "./dist/types/",
         "noImplicitAny": true,
         "esModuleInterop": true,
         "types": ["emscripten", "jest", "node"],
         "lib": ["esnext", "dom"],
-        "baseUrl": ".",
-        "paths": {
-            "@dashql/proto": ["../proto/index.ts"]
-        }
+        "baseUrl": "."
     },
     "exclude": [
         "./test/**/*.ts",
