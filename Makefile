@@ -171,6 +171,7 @@ clean:
 .PHONY: docker_ci_image
 docker_ci_image:
 	tar -cvf - ./ci/image/Dockerfile | docker build \
+		--platform linux/amd64 \
 		-t ${CI_IMAGE_FULLY_QUALIFIED} \
 		-f ./ci/image/Dockerfile \
 		-
