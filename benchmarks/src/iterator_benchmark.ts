@@ -4,12 +4,9 @@ import kleur from 'kleur';
 
 import wasmPath from '@dashql/webdb/dist/webdb.wasm';
 
-let db = new webdb.WebDB({}, wasmPath);
-db.open().then(() => main()).catch((e) => console.error(e));
+const noop = () => {};
 
-function main() {
-    const noop = () => {};
-
+function main(db: webdb.WebDB) {
     let tupleCount = 1000000;
     let tupleSize = 0;
 
@@ -106,3 +103,6 @@ function main() {
         }),
     );
 }
+
+let db = new webdb.WebDB({}, wasmPath);
+db.open().then(() => main(db)).catch((e) => console.error(e));

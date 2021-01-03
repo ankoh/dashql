@@ -91,6 +91,12 @@ core_tests:
 benchmarks:
 	npm --prefix ${ROOT_DIR}/benchmarks run build
 
+# Run the iterator benchmark
+.PHONY: benchmark_iterator
+benchmark_iterator:
+	npm --prefix ${ROOT_DIR}/benchmarks run build
+	cd ${ROOT_DIR}/benchmarks && node ./dist/bench_iterator.js
+
 # Compile the flatbuffer schema
 .PHONY: proto
 proto:
