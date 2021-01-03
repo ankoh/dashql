@@ -1,5 +1,6 @@
 const path = require('path');
 const webpack = require('webpack');
+const nodeExternals = require('webpack-node-externals');
 const { CleanWebpackPlugin } = require('clean-webpack-plugin');
 
 const browserTarget = {
@@ -75,10 +76,7 @@ const browserTarget = {
             verbose: false,
         }),
     ],
-    externals: {
-        "@dashql/proto": "@dashql/proto",
-        "flatbuffers": "flatbuffers",
-    }
+    externals: [nodeExternals()]
 };
 
 const nodeTarget = {
