@@ -1,8 +1,8 @@
 // Copyright (c) 2020 The DashQL Authors
 
 import { WebDBModule } from './webdb_module';
-import { QueryResultBuffer, QueryResultChunkBuffer, QueryPlanBuffer } from './webdb_buffer';
 import { webdb as proto } from '@dashql/proto';
+import { flatbuffers } from 'flatbuffers';
 
 export interface WebDBRuntime {}
 
@@ -13,6 +13,13 @@ function decodeString(buffer: Uint8Array): string {
         result += String.fromCharCode(buffer[i]);
     }
     return result;
+}
+
+/// Copy a flatbuffer
+function copyFlatbuffer(buffer: Uint8Array): flatbuffers.ByteBuffer {
+    var copy = new Uint8Array(new ArrayBuffer(buffer.byteLength));
+    copy.set(buffer);
+    return new flatbuffers.ByteBuffer(copy);
 }
 
 /// A connection to WebDB
@@ -35,55 +42,55 @@ export class WebDBConnection {
     }
 
     /// Send a query and return the full result
-    public runQuery(text: string): QueryResultBuffer {
+    public runQuery(text: string): proto.QueryResult {
         let instance = this._bindings.instance!;
         let [s, d, n] = this._bindings.callSRet('dashql_webdb_run_query', ['number', 'string'], [this._conn, text]);
         let mem = instance.HEAPU8.subarray(d, d + n);
         if (s !== proto.StatusCode.SUCCESS) {
             throw new Error(decodeString(mem));
         }
-        let msg = new QueryResultBuffer(mem);
+        let res = proto.QueryResult.getRoot(copyFlatbuffer(mem));
         instance.ccall('dashql_clear_response', null, [], []);
-        return msg;
+        return res;
     }
 
     /// Send a query and return a result stream
-    public sendQuery(text: string): QueryResultBuffer {
+    public sendQuery(text: string): proto.QueryResult {
         let instance = this._bindings.instance!;
         let [s, d, n] = this._bindings.callSRet('dashql_webdb_send_query', ['number', 'string'], [this._conn, text]);
         let mem = instance.HEAPU8.subarray(d, d + n);
         if (s !== proto.StatusCode.SUCCESS) {
             throw new Error(decodeString(mem));
         }
-        let msg = new QueryResultBuffer(mem);
+        let res = proto.QueryResult.getRoot(copyFlatbuffer(mem));
         instance.ccall('dashql_clear_response', null, [], []);
-        return msg;
+        return res;
     }
 
     /// Fetch query results
-    public fetchQueryResults(): QueryResultChunkBuffer {
+    public fetchQueryResults(): proto.QueryResultChunk {
         let instance = this._bindings.instance!;
         let [s, d, n] = this._bindings.callSRet('dashql_webdb_fetch_query_results', ['number'], [this._conn]);
         let mem = instance.HEAPU8.subarray(d, d + n);
         if (s !== proto.StatusCode.SUCCESS) {
             throw new Error(decodeString(mem));
         }
-        let msg = new QueryResultChunkBuffer(mem);
+        let res = proto.QueryResultChunk.getRoot(copyFlatbuffer(mem));
         instance.ccall('dashql_clear_response', null, [], []);
-        return msg;
+        return res;
     }
 
     /// Analyze a query
-    public async analyzeQuery(text: string): Promise<QueryPlanBuffer> {
+    public analyzeQuery(_text: string): proto.QueryPlan {
         let instance = this._bindings.instance!;
         let [s, d, n] = this._bindings.callSRet('dashql_webdb_analyze_query', ['number'], [this._conn]);
         let mem = instance.HEAPU8.subarray(d, d + n);
         if (s !== proto.StatusCode.SUCCESS) {
             throw new Error(decodeString(mem));
         }
-        let msg = new QueryPlanBuffer(mem);
+        let plan = proto.QueryPlan.getRoot(copyFlatbuffer(mem));
         instance.ccall('dashql_clear_response', null, [], []);
-        return msg;
+        return plan;
     }
 }
 

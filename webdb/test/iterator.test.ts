@@ -24,7 +24,7 @@ describe('QueryResultRowIterator', () => {
             let result = conn.sendQuery(`
                 SELECT (v & 127)::TINYINT FROM generate_series(0, ${testRows}) as t(v);
             `);
-            expect(result.root.columnTypesLength()).toBe(1);
+            expect(result.columnTypesLength()).toBe(1);
             let chunks = new webdb.QueryResultChunkStream(conn, result);
             let iter = webdb.QueryResultRowIterator.iterate(chunks);
             let value = new webdb.Value();
@@ -40,7 +40,7 @@ describe('QueryResultRowIterator', () => {
             let result = conn.sendQuery(`
                 SELECT (v & 32767)::SMALLINT FROM generate_series(0, ${testRows}) as t(v);
             `);
-            expect(result.root.columnTypesLength()).toBe(1);
+            expect(result.columnTypesLength()).toBe(1);
             let chunks = new webdb.QueryResultChunkStream(conn, result);
             let iter = webdb.QueryResultRowIterator.iterate(chunks);
             let value = new webdb.Value();
@@ -56,7 +56,7 @@ describe('QueryResultRowIterator', () => {
             let result = conn.sendQuery(`
                 SELECT v::INTEGER FROM generate_series(0, ${testRows}) as t(v);
             `);
-            expect(result.root.columnTypesLength()).toBe(1);
+            expect(result.columnTypesLength()).toBe(1);
 
             let chunks = new webdb.QueryResultChunkStream(conn, result);
             let iter = webdb.QueryResultRowIterator.iterate(chunks);
@@ -73,7 +73,7 @@ describe('QueryResultRowIterator', () => {
             let result = conn.sendQuery(`
                 SELECT v::BIGINT FROM generate_series(0, ${testRows}) as t(v);
             `);
-            expect(result.root.columnTypesLength()).toBe(1);
+            expect(result.columnTypesLength()).toBe(1);
             let chunks = new webdb.QueryResultChunkStream(conn, result);
             let iter = webdb.QueryResultRowIterator.iterate(chunks);
             let value = new webdb.Value();
@@ -93,7 +93,7 @@ describe('QueryResultChunkStream', () => {
             let result = conn.sendQuery(`
                 SELECT (v & 127)::TINYINT FROM generate_series(0, ${testRows}) as t(v);
             `);
-            expect(result.root.columnTypesLength()).toBe(1);
+            expect(result.columnTypesLength()).toBe(1);
             let chunks = new webdb.QueryResultChunkStream(conn, result);
             let i = 0;
             while (chunks.next()) {
@@ -108,7 +108,7 @@ describe('QueryResultChunkStream', () => {
             let result = conn.sendQuery(`
                 SELECT (v & 32767)::SMALLINT FROM generate_series(0, ${testRows}) as t(v);
             `);
-            expect(result.root.columnTypesLength()).toBe(1);
+            expect(result.columnTypesLength()).toBe(1);
             let chunks = new webdb.QueryResultChunkStream(conn, result);
             let i = 0;
             while (chunks.next()) {
@@ -123,7 +123,7 @@ describe('QueryResultChunkStream', () => {
             let result = conn.sendQuery(`
                 SELECT v::INTEGER FROM generate_series(0, ${testRows}) as t(v);
             `);
-            expect(result.root.columnTypesLength()).toBe(1);
+            expect(result.columnTypesLength()).toBe(1);
             let chunks = new webdb.QueryResultChunkStream(conn, result);
             let i = 0;
             while (chunks.next()) {
