@@ -5,7 +5,7 @@ import github_oauth_script from "./github_oauth.html";
 /// https://developer.github.com/apps/building-oauth-apps/understanding-scopes-for-oauth-apps/#available-scopes
 
 const OAUTH_CLIENT_ID="907ea9e28eb25498492d"
-const OAUTH_REDIRECT_BASE_URI=`http://localhost:9000`;
+const OAUTH_REDIRECT_BASE_URI=`http://localhost:9001`;
 const OAUTH_REDIRECT_URI=`${OAUTH_REDIRECT_BASE_URI}${github_oauth_script}`;
 const OAUTH_SCOPES="gist read:user read:email";
 const OAUTH_POPUP_NAME="DashQL OAuth";
