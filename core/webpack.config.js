@@ -68,9 +68,9 @@ const browserTarget = {
     plugins: [
         new CleanWebpackPlugin({
             root: "./dist",
-            cleanOnceBeforeBuildPatterns: ["*.wasm", "!.*"],
+            cleanOnceBeforeBuildPatterns: ["*.wasm", "**/*.d.ts", "**/*.map", "!.*"],
             cleanOnceAfterBuildPatterns: [],
-            verbose: true,
+            verbose: false,
         })
     ],
     externals: {
@@ -94,7 +94,7 @@ const nodeTarget = {
             root: "./dist",
             cleanOnceBeforeBuildPatterns: ["*.wasm", "!.*"],
             cleanOnceAfterBuildPatterns: [],
-            verbose: true,
+            verbose: false,
         })
     ],
 };

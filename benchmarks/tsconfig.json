@@ -1,22 +1,23 @@
 {
     "compilerOptions": {
         "outDir": "./dist/",
-        "target": "es6",
-        "module": "es6",
+        "target": "es2017",
+        "module": "esnext",
         "moduleResolution": "node",
         "strict": true,
         "sourceMap": true,
         "declaration": true,
         "declarationMap": true,
-        "declarationDir": "./dist/types/",
+        "declarationDir": "./dist/",
         "noImplicitAny": true,
         "esModuleInterop": true,
-        "types": ["emscripten", "jest", "node"],
-        "baseUrl": ".",
-        "lib": ["webworker"]
+        "types": ["node"],
+        "baseUrl": "."
     },
+    "files": [
+        "./src/iterator_benchmark.ts"
+    ],
     "exclude": [
-        "./test/**/*.ts",
         "./node_modules"
     ]
 }
