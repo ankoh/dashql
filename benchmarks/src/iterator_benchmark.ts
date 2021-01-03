@@ -1,4 +1,5 @@
 import * as webdb from '@dashql/webdb';
+import * as core from '@dashql/core';
 import * as benny from 'benny';
 import kleur from 'kleur';
 
@@ -10,16 +11,8 @@ function main(db: webdb.WebDB) {
     let tupleCount = 1000000;
     let tupleSize = 0;
 
-    function formatBytes(bytes: number, decimals = 2) {
-        if (bytes === 0) return '0 Bytes';
-        const k = 1024;
-        const dm = decimals < 0 ? 0 : decimals;
-        const sizes = ['Bytes', 'KiB', 'MiB', 'GiB', 'TiB', 'PiB', 'EiB', 'ZiB', 'YiB'];
-        const i = Math.floor(Math.log(bytes) / Math.log(k));
-        return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
-    }
-
-    benny.suite(`Chunks | 1 column | 1m rows`,
+    benny.suite(
+        `Chunks | 1 column | 1m rows`,
         benny.add('TINYINT', () => {
             tupleSize = 1;
             let conn = db.connect();
@@ -28,9 +21,10 @@ function main(db: webdb.WebDB) {
             `);
             let chunks = new webdb.QueryResultChunkStream(conn, result);
             while (true) {
-                if (!chunks.next())
-                    break;
-                chunks.iterateNumberColumn(0, (row: number, v: number | null) => { noop(); });
+                if (!chunks.next()) break;
+                chunks.iterateNumberColumn(0, (_row: number, _v: number | null) => {
+                    noop();
+                });
             }
             conn.disconnect();
         }),
@@ -43,9 +37,10 @@ function main(db: webdb.WebDB) {
             `);
             let chunks = new webdb.QueryResultChunkStream(conn, result);
             while (true) {
-                if (!chunks.next())
-                    break;
-                chunks.iterateNumberColumn(0, (row: number, v: number | null) => { noop(); });
+                if (!chunks.next()) break;
+                chunks.iterateNumberColumn(0, (_row: number, _v: number | null) => {
+                    noop();
+                });
             }
             conn.disconnect();
         }),
@@ -58,9 +53,10 @@ function main(db: webdb.WebDB) {
             `);
             let chunks = new webdb.QueryResultChunkStream(conn, result);
             while (true) {
-                if (!chunks.next())
-                    break;
-                chunks.iterateNumberColumn(0, (row: number, v: number | null) => { noop(); });
+                if (!chunks.next()) break;
+                chunks.iterateNumberColumn(0, (_row: number, _v: number | null) => {
+                    noop();
+                });
             }
             conn.disconnect();
         }),
@@ -73,9 +69,10 @@ function main(db: webdb.WebDB) {
             `);
             let chunks = new webdb.QueryResultChunkStream(conn, result);
             while (true) {
-                if (!chunks.next())
-                    break;
-                chunks.iterateNumberColumn(0, (row: number, v: number | null) => { noop(); });
+                if (!chunks.next()) break;
+                chunks.iterateNumberColumn(0, (_row: number, _v: number | null) => {
+                    noop();
+                });
             }
             conn.disconnect();
         }),
@@ -88,9 +85,10 @@ function main(db: webdb.WebDB) {
             `);
             let chunks = new webdb.QueryResultChunkStream(conn, result);
             while (true) {
-                if (!chunks.next())
-                    break;
-                chunks.iterateNumberColumn(0, (row: number, v: number | null) => { noop(); });
+                if (!chunks.next()) break;
+                chunks.iterateNumberColumn(0, (_row: number, _v: number | null) => {
+                    noop();
+                });
             }
             conn.disconnect();
         }),
@@ -99,10 +97,14 @@ function main(db: webdb.WebDB) {
             let bytes = tupleCount * tupleSize;
             let duration = result.details.median;
             let throughput = bytes / duration;
-            console.log(`${kleur.cyan(result.name)} t: ${duration.toFixed(3)} s tp: ${formatBytes(throughput)}/s`)
+            console.log(
+                `${kleur.cyan(result.name)} t: ${duration.toFixed(3)} s tp: ${core.utils.formatBytes(throughput)}/s`,
+            );
         }),
     );
 }
 
 let db = new webdb.WebDB({}, wasmPath);
-db.open().then(() => main(db)).catch((e) => console.error(e));
+db.open()
+    .then(() => main(db))
+    .catch(e => console.error(e));
