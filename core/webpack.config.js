@@ -7,7 +7,7 @@ const browserTarget = {
     target: 'web',
     mode: 'production',
     entry: {
-        "dashql_core": './src/index_web.ts'
+        dashql_core: './src/index_web.ts',
     },
     devtool: 'source-map',
     output: {
@@ -17,7 +17,7 @@ const browserTarget = {
         library: 'DashQLCore',
         libraryTarget: 'umd',
         umdNamedDefine: true,
-        globalObject: 'this'
+        globalObject: 'this',
     },
     resolve: {
         extensions: ['.ts', '.js'],
@@ -27,10 +27,7 @@ const browserTarget = {
             {
                 test: /\.ts$/,
                 loader: 'ts-loader',
-                exclude: [
-                    /node_modules/,
-                    path.resolve(__dirname, 'test')
-                ]
+                exclude: [/node_modules/, path.resolve(__dirname, 'test')],
             },
             {
                 test: /analyzer_wasm(_node)?\.wasm$/,
@@ -38,9 +35,9 @@ const browserTarget = {
                 loader: 'file-loader',
                 options: {
                     name: 'dashql_analyzer.wasm',
-                }
-            }
-        ]
+                },
+            },
+        ],
     },
     optimization: {
         moduleIds: 'deterministic',
@@ -62,40 +59,39 @@ const browserTarget = {
                     minChunks: 2,
                     priority: -20,
                     reuseExistingChunk: true,
-                }
-            }
-        }
+                },
+            },
+        },
     },
     plugins: [
         new CleanWebpackPlugin({
-            root: "./dist",
-            cleanOnceBeforeBuildPatterns: ["*.wasm", "**/*.d.ts", "**/*.map", "!.*"],
+            root: './dist',
+            cleanOnceBeforeBuildPatterns: ['*.wasm', '**/*.d.ts', '**/*.map', '!.*'],
             cleanOnceAfterBuildPatterns: [],
             verbose: false,
-        })
+        }),
     ],
-    externals: [nodeExternals()]
+    externals: [nodeExternals()],
 };
 
 const nodeTarget = {
     ...browserTarget,
     target: 'node',
     entry: {
-        "dashql_core_node": './src/index_node.ts'
+        dashql_core_node: './src/index_node.ts',
     },
     plugins: [
         new CleanWebpackPlugin({
-            root: "./dist",
-            cleanOnceBeforeBuildPatterns: ["*.wasm", "!.*"],
+            root: './dist',
+            cleanOnceBeforeBuildPatterns: ['*.wasm', '!.*'],
             cleanOnceAfterBuildPatterns: [],
             verbose: false,
-        })
+        }),
     ],
 };
 nodeTarget.module.rules[0] = {
     ...nodeTarget.module.rules[0],
     options: { configFile: 'tsconfig.node.json' },
-}
+};
 
 module.exports = [browserTarget, nodeTarget];
-
