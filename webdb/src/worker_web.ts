@@ -1,13 +1,14 @@
 // Copyright (c) 2020 The DashQL Authors
 
-import { WorkerAPI, WorkerAPIRequest, WorkerAPIResponse } from './worker_api';
+import { WorkerAPI } from './worker_api';
+import { WAPIRequest, WAPIResponse } from './worker_api_message';
 import { WebDBBindings } from './webdb_bindings';
 import { WebDB } from './webdb_bindings_web';
 
 /// The webdb worker API for web workers
 class WebWorkerAPI extends WorkerAPI {
     /// Post a response back to the main thread
-    protected postMessage(response: WorkerAPIResponse) {
+    protected postMessage(response: WAPIResponse) {
         self.postMessage(response);
     }
 
@@ -21,6 +22,6 @@ class WebWorkerAPI extends WorkerAPI {
 
 /// Forward all requests
 const api = new WebWorkerAPI();
-self.onmessage = function(event: MessageEvent<WorkerAPIRequest>) {
+self.onmessage = function(event: MessageEvent<WAPIRequest>) {
     api.onMessage(event.data);
 };
