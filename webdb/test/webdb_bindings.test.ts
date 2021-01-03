@@ -5,16 +5,16 @@ var db: webdb.WebDB;
 var conn: webdb.WebDBConnection;
 
 beforeAll(async () => {
-    db = new webdb.WebDB(path.resolve(__dirname, "../src/webdb_wasm.wasm"));
+    db = new webdb.WebDB({}, path.resolve(__dirname, "../src/webdb_wasm.wasm"));
     await db.open();
 });
 
-beforeEach(async () => {
-    conn = await db.connect();
+beforeEach(() => {
+    conn = db.connect();
 });
 
-afterEach(async () => {
-    await conn.disconnect();
+afterEach (() => {
+    conn.disconnect();
 });
 
 describe('WebDBBindings', () => {
@@ -22,7 +22,7 @@ describe('WebDBBindings', () => {
         test('INVALID SQL', async () => {
             let error: Error | null = null;
             try {
-                await conn.sendQuery('INVALID');
+                conn.sendQuery('INVALID');
             } catch (e) {
                 error = e
             }

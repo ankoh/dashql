@@ -4,6 +4,8 @@ import { WebDBModule } from './webdb_module';
 import { QueryResultBuffer, QueryResultChunkBuffer, QueryPlanBuffer } from './webdb_buffer';
 import { webdb as proto } from '@dashql/proto';
 
+export interface WebDBRuntime {}
+
 /// Decode a string
 function decodeString(buffer: Uint8Array): string {
     var result = "";
@@ -27,15 +29,15 @@ export class WebDBConnection {
     }
 
     /// Disconnect from database
-    public async disconnect(): Promise<void> {
-        let instance = await this._bindings.getInstance();
+    public disconnect(): void {
+        let instance = this._bindings.instance!;
         instance.ccall('dashql_webdb_disconnect', null, ['number'], [this._conn]);
     }
 
     /// Send a query and return the full result
-    public async runQuery(text: string): Promise<QueryResultBuffer> {
-        let instance = await this._bindings.getInstance();
-        let [s, d, n] = await this._bindings.callSRet('dashql_webdb_run_query', ['number', 'string'], [this._conn, text]);
+    public runQuery(text: string): QueryResultBuffer {
+        let instance = this._bindings.instance!;
+        let [s, d, n] = this._bindings.callSRet('dashql_webdb_run_query', ['number', 'string'], [this._conn, text]);
         let mem = instance.HEAPU8.subarray(d, d + n);
         if (s !== proto.StatusCode.SUCCESS) {
             throw new Error(decodeString(mem));
@@ -46,9 +48,9 @@ export class WebDBConnection {
     }
 
     /// Send a query and return a result stream
-    public async sendQuery(text: string): Promise<QueryResultBuffer> {
-        let instance = await this._bindings.getInstance();
-        let [s, d, n] = await this._bindings.callSRet('dashql_webdb_send_query', ['number', 'string'], [this._conn, text]);
+    public sendQuery(text: string): QueryResultBuffer {
+        let instance = this._bindings.instance!;
+        let [s, d, n] = this._bindings.callSRet('dashql_webdb_send_query', ['number', 'string'], [this._conn, text]);
         let mem = instance.HEAPU8.subarray(d, d + n);
         if (s !== proto.StatusCode.SUCCESS) {
             throw new Error(decodeString(mem));
@@ -59,9 +61,9 @@ export class WebDBConnection {
     }
 
     /// Fetch query results
-    public async fetchQueryResults(): Promise<QueryResultChunkBuffer> {
-        let instance = await this._bindings.getInstance();
-        let [s, d, n] = await this._bindings.callSRet('dashql_webdb_fetch_query_results', ['number'], [this._conn]);
+    public fetchQueryResults(): QueryResultChunkBuffer {
+        let instance = this._bindings.instance!;
+        let [s, d, n] = this._bindings.callSRet('dashql_webdb_fetch_query_results', ['number'], [this._conn]);
         let mem = instance.HEAPU8.subarray(d, d + n);
         if (s !== proto.StatusCode.SUCCESS) {
             throw new Error(decodeString(mem));
@@ -73,8 +75,8 @@ export class WebDBConnection {
 
     /// Analyze a query
     public async analyzeQuery(text: string): Promise<QueryPlanBuffer> {
-        let instance = await this._bindings.getInstance();
-        let [s, d, n] = await this._bindings.callSRet('dashql_webdb_analyze_query', ['number'], [this._conn]);
+        let instance = this._bindings.instance!;
+        let [s, d, n] = this._bindings.callSRet('dashql_webdb_analyze_query', ['number'], [this._conn]);
         let mem = instance.HEAPU8.subarray(d, d + n);
         if (s !== proto.StatusCode.SUCCESS) {
             throw new Error(decodeString(mem));
@@ -93,6 +95,9 @@ export abstract class WebDBBindings {
     private _openPromise: Promise<void> | null = null;
     /// The resolver for the open promise (called by onRuntimeInitialized)
     private _openPromiseResolver: () => void = () => { };
+
+    /// Get the instance
+    public get instance() { return this._instance; }
 
     /// Instantiate the module
     protected abstract instantiate(moduleOverrides: Partial<WebDBModule>): Promise<WebDBModule>;
@@ -125,27 +130,14 @@ export abstract class WebDBBindings {
         this._openPromise = null;
     }
 
-    /// Get the instance
-    public async getInstance(): Promise<WebDBModule> {
-        if (this._instance != null)
-            return this._instance;
-        if (this._openPromise != null) {
-            await this._openPromise;
-            if (this._instance == null)
-                throw new Error('instance initialization failed');
-            return this._instance;
-        }
-        throw new Error('instance not initialized');
-    }
-
     // Call a core function with packed response buffer
-    public async callSRet(
+    public callSRet(
         funcName: string,
         argTypes: Array<Emscripten.JSType>,
         args: Array<any>,
-    ): Promise<[number, number, number]> {
+    ): [number, number, number] {
         // Save the stack
-        let instance = await this.getInstance();
+        let instance = this._instance!;
         let stackPointer = instance.stackSave();
 
         // Allocate the packed response buffer
@@ -168,8 +160,8 @@ export abstract class WebDBBindings {
     }
 
     /// Connect to database
-    public async connect(): Promise<WebDBConnection> {
-        let instance = await this.getInstance();
+    public connect(): WebDBConnection {
+        let instance = this._instance!;
         let conn = instance.ccall('dashql_webdb_connect', 'number', [], []);
         return new WebDBConnection(this, conn);
     }

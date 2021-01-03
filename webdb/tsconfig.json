@@ -13,6 +13,7 @@
         "esModuleInterop": true,
         "types": ["emscripten", "jest", "node"],
         "baseUrl": ".",
+        "lib": ["webworker"],
         "paths": {
             "@dashql/proto": ["../proto/index.ts"]
         }
