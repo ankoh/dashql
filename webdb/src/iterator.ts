@@ -1,7 +1,6 @@
 // Copyright (c) 2020 The DashQL Authors
 
 import { WebDBConnection } from './webdb_bindings';
-import { QueryResultBuffer, QueryResultChunkBuffer } from './webdb_buffer';
 import { Value } from './value';
 import { webdb as proto } from '@dashql/proto';
 
@@ -13,7 +12,7 @@ export abstract class QueryResultChunkIterator {
     /// The connection
     _connection: WebDBConnection;
     /// The result buffer
-    _resultBuffer: QueryResultBuffer;
+    _resultBuffer: proto.QueryResult;
     /// The chunk id
     _currentChunkID: number;
     /// The current chunk
@@ -24,7 +23,7 @@ export abstract class QueryResultChunkIterator {
     _tmp: VectorVariants;
 
     /// Constructor
-    public constructor(connection: WebDBConnection, resultBuffer: QueryResultBuffer) {
+    public constructor(connection: WebDBConnection, resultBuffer: proto.QueryResult) {
         this._connection = connection;
         this._resultBuffer = resultBuffer;
         this._currentChunkID = -1;
@@ -40,7 +39,7 @@ export abstract class QueryResultChunkIterator {
         }
     }
     /// Get the result
-    public get result() { return this._resultBuffer.root; }
+    public get result() { return this._resultBuffer; }
     /// Get the column count
     public get columnCount() { return this._columnTypes.length; }
     /// Get the column count
@@ -116,22 +115,22 @@ export abstract class QueryResultChunkIterator {
 /// A stream of query result chunks
 export class QueryResultChunkStream extends QueryResultChunkIterator {
     /// The current chunk buffer
-    _currentChunkBuffer: QueryResultChunkBuffer | null;
+    _currentChunkBuffer: proto.QueryResultChunk | null;
 
     /// Constructor
-    public constructor(connection: WebDBConnection, resultBuffer: QueryResultBuffer) {
+    public constructor(connection: WebDBConnection, resultBuffer: proto.QueryResult) {
         super(connection, resultBuffer);
         this._currentChunkBuffer = null;
     }
 
     /// Get the next chunk
     public next(): boolean {
-        let result = this._resultBuffer.root;
+        let result = this._resultBuffer;
         if (++this._currentChunkID < result.dataChunksLength()) {
             result.dataChunks(0, this._currentChunk);
         } else {
             let chunkBuffer = this._connection.fetchQueryResults();
-            this._currentChunk = chunkBuffer.root;
+            this._currentChunk = chunkBuffer;
             this._currentChunkBuffer = chunkBuffer;
         }
         return this._currentChunk.rowCount().low > 0;
@@ -140,21 +139,18 @@ export class QueryResultChunkStream extends QueryResultChunkIterator {
 
 /// Materialized result chunks
 export class MaterializedQueryResultChunks extends QueryResultChunkIterator {
-    /// The current chunk buffer
-    _chunkBuffers: QueryResultChunkBuffer[];
     /// The chunks
     _chunks: proto.QueryResultChunk[];
 
     /// Constructor
-    public constructor(connection: WebDBConnection, resultBuffer: QueryResultBuffer, chunkBuffers: QueryResultChunkBuffer[]) {
+    public constructor(connection: WebDBConnection, resultBuffer: proto.QueryResult, chunks: proto.QueryResultChunk[]) {
         super(connection, resultBuffer);
-        this._chunkBuffers = chunkBuffers;
         this._chunks = [];
         for (let i = 0; i < this.result.dataChunksLength(); ++i) {
             this._chunks.push(this.result.dataChunks(i)!);
         }
-        for (let i = 0; i < chunkBuffers.length; ++i) {
-            this._chunks.push(chunkBuffers[i].root);
+        for (let i = 0; i < chunks.length; ++i) {
+            this._chunks.push(chunks[i]);
         }
         if (this._chunks.length == 0 || this._chunks[this._chunks.length - 1].rowCount().low == 0)  {
             this._chunks.push(new proto.QueryResultChunk());

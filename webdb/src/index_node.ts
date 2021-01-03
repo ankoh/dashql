@@ -3,7 +3,6 @@
 export * from "./iterator";
 export * from "./value";
 export * from "./webdb_bindings";
-export * from "./webdb_buffer";
 
 import webdb_api_wasm from './webdb_wasm_node.wasm';
 import webdb_api_init from './webdb_wasm_node.js';
