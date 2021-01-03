@@ -7,11 +7,11 @@ const browserTarget = {
     target: 'web',
     mode: 'production',
     entry: {
-        "webdb": './src/index_web.ts',
-        "webdb_async": './src/index_web_async.ts',
-        "webdb_async.worker": './src/worker_web.ts'
+        webdb: './src/index_web.ts',
+        webdb_async: './src/index_web_async.ts',
+        'webdb_async.worker': './src/worker_web.ts',
     },
-    devtool:'source-map',
+    devtool: 'source-map',
     output: {
         filename: '[name].js',
         path: path.resolve(__dirname, 'dist'),
@@ -19,20 +19,17 @@ const browserTarget = {
         library: 'WebDB',
         libraryTarget: 'umd',
         umdNamedDefine: true,
-        globalObject: 'this'
+        globalObject: 'this',
     },
     resolve: {
-        extensions: ['.ts', '.js']
+        extensions: ['.ts', '.js'],
     },
     module: {
         rules: [
             {
                 test: /\.ts$/,
                 loader: 'ts-loader',
-                exclude: [
-                    /node_modules/,
-                    path.resolve(__dirname, 'test')
-                ]
+                exclude: [/node_modules/, path.resolve(__dirname, 'test')],
             },
             {
                 test: /webdb_wasm(_node)?\.wasm$/,
@@ -40,9 +37,9 @@ const browserTarget = {
                 loader: 'file-loader',
                 options: {
                     name: 'webdb.wasm',
-                }
-            }
-        ]
+                },
+            },
+        ],
     },
     optimization: {
         moduleIds: 'deterministic',
@@ -64,41 +61,41 @@ const browserTarget = {
                     minChunks: 2,
                     priority: -20,
                     reuseExistingChunk: true,
-                }
-            }
-        }
+                },
+            },
+        },
     },
     plugins: [
         new CleanWebpackPlugin({
-            root: "./dist",
-            cleanOnceBeforeBuildPatterns: ["*.wasm", "**/*.d.ts", "**/*.map", "!.*"],
+            root: './dist',
+            cleanOnceBeforeBuildPatterns: ['*.wasm', '**/*.d.ts', '**/*.map', '!.*'],
             cleanOnceAfterBuildPatterns: [],
             verbose: false,
         }),
     ],
-    externals: [nodeExternals()]
+    externals: [nodeExternals()],
 };
 
 const nodeTarget = {
     ...browserTarget,
     target: 'node',
     entry: {
-        "webdb_node": './src/index_node.ts',
-        "webdb_node_async": './src/index_node_async.ts',
-        "webdb_node_async.worker": './src/worker_node.ts',
+        webdb_node: './src/index_node.ts',
+        webdb_node_async: './src/index_node_async.ts',
+        'webdb_node_async.worker': './src/worker_node.ts',
     },
     plugins: [
         new CleanWebpackPlugin({
-            root: "./dist",
-            cleanOnceBeforeBuildPatterns: ["!.*"],
+            root: './dist',
+            cleanOnceBeforeBuildPatterns: ['!.*'],
             cleanOnceAfterBuildPatterns: [],
             verbose: false,
-        })
+        }),
     ],
 };
 nodeTarget.module.rules[0] = {
     ...nodeTarget.module.rules[0],
     options: { configFile: 'tsconfig.node.json' },
-}
+};
 
 module.exports = [browserTarget, nodeTarget];

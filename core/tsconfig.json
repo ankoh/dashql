@@ -15,8 +15,5 @@
         "lib": ["esnext", "dom"],
         "baseUrl": "."
     },
-    "exclude": [
-        "./test/**/*.ts",
-        "./node_modules"
-    ]
+    "exclude": ["./test/**/*.ts", "./node_modules"]
 }

@@ -7,7 +7,7 @@ module.exports = {
     target: 'node',
     mode: 'production',
     entry: {
-        "bench_iterator": './src/iterator_benchmark.ts',
+        bench_iterator: './src/iterator_benchmark.ts',
     },
     output: {
         filename: '[name].js',
@@ -16,20 +16,17 @@ module.exports = {
         library: 'benchmarks',
         libraryTarget: 'umd',
         umdNamedDefine: true,
-        globalObject: 'this'
+        globalObject: 'this',
     },
     resolve: {
-        extensions: ['.ts', '.js']
+        extensions: ['.ts', '.js'],
     },
     module: {
         rules: [
             {
                 test: /\.ts$/,
                 loader: 'ts-loader',
-                exclude: [
-                    /node_modules/,
-                    path.resolve(__dirname, 'dist')
-                ]
+                exclude: [/node_modules/, path.resolve(__dirname, 'dist')],
             },
             {
                 test: /.*\.wasm$/,
@@ -37,19 +34,21 @@ module.exports = {
                 loader: 'file-loader',
                 options: {
                     name: 'wasm/[name].[ext]',
-                }
+                },
             },
-        ]
+        ],
     },
     plugins: [
         new CleanWebpackPlugin({
-            root: "./dist",
-            cleanOnceBeforeBuildPatterns: ["*.wasm", "**/*.d.ts", "!.*"],
+            root: './dist',
+            cleanOnceBeforeBuildPatterns: ['*.wasm', '**/*.d.ts', '!.*'],
             cleanOnceAfterBuildPatterns: [],
             verbose: true,
         }),
     ],
-    externals: [nodeExternals({
-        allowlist: [/.*\.wasm$/]
-    })]
+    externals: [
+        nodeExternals({
+            allowlist: [/.*\.wasm$/],
+        }),
+    ],
 };

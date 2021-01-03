@@ -16,13 +16,8 @@
             "immutable": ["./node_modules/immutable"]
         }
     },
-    "exclude": [
-        "./test/**/*.ts",
-        "./node_modules"
-    ],
-    "include": [
-        "./src/**/*"
-    ],
+    "exclude": ["./test/**/*.ts", "./node_modules"],
+    "include": ["./src/**/*"],
     "files": [
         "./types/css-modules.d.ts",
         "./types/dagre-d3.d.ts",

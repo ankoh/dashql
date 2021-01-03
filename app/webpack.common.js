@@ -15,8 +15,11 @@ const MonacoWebpackPlugin = require('monaco-editor-webpack-plugin');
 /// We therefore use an explicit version file.
 /// If you don't change the version file, you don't have to change the redirect URI but an updated file won't bust the CDN cache.
 /// If you change the version file, you have to change the redirect URI and get cache busting automatically.
-const GITHUB_OAUTH_VERSION_FILE = path.resolve(__dirname, './src/auth/github_oauth.html.version')
-const GITHUB_OAUTH_VERSION = childProcess.execSync(`cat ${GITHUB_OAUTH_VERSION_FILE}`).toString().trim();
+const GITHUB_OAUTH_VERSION_FILE = path.resolve(__dirname, './src/auth/github_oauth.html.version');
+const GITHUB_OAUTH_VERSION = childProcess
+    .execSync(`cat ${GITHUB_OAUTH_VERSION_FILE}`)
+    .toString()
+    .trim();
 
 function configure(params) {
     return {
@@ -30,7 +33,7 @@ function configure(params) {
             chunkFilename: 'static/js/[name].[contenthash].js',
         },
         resolve: {
-            extensions: [".ts", ".tsx", ".js", ".jsx", ".css"]
+            extensions: ['.ts', '.tsx', '.js', '.jsx', '.css'],
         },
         module: {
             rules: [
@@ -38,14 +41,14 @@ function configure(params) {
                     test: /\.tsx?$/,
                     loader: 'ts-loader',
                     exclude: /node_modules/,
-                    options: params.tsLoaderOptions
+                    options: params.tsLoaderOptions,
                 },
                 {
                     test: /\.css$/,
                     use: [
                         params.extractCss ? MiniCssExtractPlugin.loader : 'style-loader',
                         {
-                            loader: "css-loader",
+                            loader: 'css-loader',
                             options: {
                                 modules: {
                                     compileType: 'module',
@@ -53,25 +56,25 @@ function configure(params) {
                                     auto: true,
                                     exportGlobals: true,
                                     localIdentName: params.cssIdentifier,
-                                    localIdentContext: path.resolve(__dirname, 'src')
+                                    localIdentContext: path.resolve(__dirname, 'src'),
                                 },
-                            }
-                        }
-                    ]
+                            },
+                        },
+                    ],
                 },
                 {
                     test: /\.(png|jpe?g|gif)$/i,
                     loader: 'file-loader',
                     options: {
-                        name: 'static/img/[name].[contenthash].[ext]'
-                    }
+                        name: 'static/img/[name].[contenthash].[ext]',
+                    },
                 },
                 {
                     test: /\.(ttf|eot|woff|woff2)$/,
                     loader: 'file-loader',
                     options: {
-                        name: 'static/fonts/[name].[contenthash].[ext]'
-                    }
+                        name: 'static/fonts/[name].[contenthash].[ext]',
+                    },
                 },
                 {
                     test: /.*\.wasm$/,
@@ -79,7 +82,7 @@ function configure(params) {
                     loader: 'file-loader',
                     options: {
                         name: 'static/wasm/[contenthash].[ext]',
-                    }
+                    },
                 },
                 {
                     test: /.*github_oauth\.html$/,
@@ -87,14 +90,14 @@ function configure(params) {
                     loader: 'file-loader',
                     options: {
                         name: `static/html/[name].${GITHUB_OAUTH_VERSION}.[ext]`,
-                    }
+                    },
                 },
                 {
                     test: /\.js$/,
                     enforce: 'pre',
                     use: ['source-map-loader'],
-                }
-            ]
+                },
+            ],
         },
         optimization: {
             moduleIds: 'deterministic',
@@ -110,45 +113,44 @@ function configure(params) {
                 cacheGroups: {
                     vendors: {
                         test: /[\\/]node_modules[\\/]/,
-                        name: "vendors",
+                        name: 'vendors',
                         priority: -10,
                     },
                     default: {
-                        name: "default",
+                        name: 'default',
                         minChunks: 2,
                         priority: -20,
                         reuseExistingChunk: true,
                     },
-                }
-            }
+                },
+            },
         },
         plugins: [
             new CleanWebpackPlugin({
                 verbose: false,
             }),
             new HtmlWebpackPlugin({
-                template: "./public/index.html",
-                filename: "./index.html",
-                favicon: './public/favicon.ico'
+                template: './public/index.html',
+                filename: './index.html',
+                favicon: './public/favicon.ico',
             }),
             new MiniCssExtractPlugin({
                 filename: './static/css/[id].[contenthash].css',
-                chunkFilename: './static/css/[id].[contenthash].css'
+                chunkFilename: './static/css/[id].[contenthash].css',
             }),
             new MonacoWebpackPlugin({
                 languages: ['sql'],
                 features: [],
-                filename: './static/workers/[contenthash].worker.js'
+                filename: './static/workers/[contenthash].worker.js',
             }),
             new webpack.DefinePlugin({
                 // Referenced by react-flow...
-                'process.env.FORCE_SIMILAR_INSTEAD_OF_MAP': JSON.stringify(process.env.FORCE_SIMILAR_INSTEAD_OF_MAP)
-            })
-        ]
+                'process.env.FORCE_SIMILAR_INSTEAD_OF_MAP': JSON.stringify(process.env.FORCE_SIMILAR_INSTEAD_OF_MAP),
+            }),
+        ],
     };
 }
 
 module.exports = {
-    configure
-}
-
+    configure,
+};
