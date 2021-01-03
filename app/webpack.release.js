@@ -8,11 +8,11 @@ module.exports = {
             compilerOptions: {
                 configFile: './tsconfig.json',
                 sourceMap: false,
-            }
+            },
         },
         extractCss: true,
-        cssIdentifier: '[hash:base64]'
+        cssIdentifier: '[hash:base64]',
     }),
     mode: 'production',
-    devtool: false
-}
+    devtool: false,
+};
