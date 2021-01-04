@@ -1,7 +1,6 @@
-import { webdb as proto } from '@dashql/proto';
-
 export enum AsyncWebDBRequestType {
     PING = 'PING',
+    OPEN = 'OPEN',
     CONNECT = 'CONNECT',
     DISCONNECT = 'DISCONNECT',
     RUN_QUERY = 'RUN_QUERY',
@@ -34,6 +33,7 @@ export type AsyncWebDBResponse<T, P> = {
 
 export type AsyncWebDBRequestVariant =
     | AsyncWebDBRequest<AsyncWebDBRequestType.PING, null>
+    | AsyncWebDBRequest<AsyncWebDBRequestType.OPEN, string | null>
     | AsyncWebDBRequest<AsyncWebDBRequestType.CONNECT, null>
     | AsyncWebDBRequest<AsyncWebDBRequestType.DISCONNECT, number>
     | AsyncWebDBRequest<AsyncWebDBRequestType.RUN_QUERY, [number, string]>
@@ -44,6 +44,6 @@ export type AsyncWebDBResponseVariant =
     | AsyncWebDBResponse<AsyncWebDBResponseType.OK, null>
     | AsyncWebDBResponse<AsyncWebDBResponseType.ERROR, any>
     | AsyncWebDBResponse<AsyncWebDBResponseType.CONNECTION_INFO, number>
-    | AsyncWebDBResponse<AsyncWebDBResponseType.QUERY_RESULT, proto.QueryResult>
-    | AsyncWebDBResponse<AsyncWebDBResponseType.QUERY_RESULT_CHUNK, proto.QueryResultChunk>
-    | AsyncWebDBResponse<AsyncWebDBResponseType.QUERY_PLAN, proto.QueryPlan>;
+    | AsyncWebDBResponse<AsyncWebDBResponseType.QUERY_RESULT, Uint8Array>
+    | AsyncWebDBResponse<AsyncWebDBResponseType.QUERY_RESULT_CHUNK, Uint8Array>
+    | AsyncWebDBResponse<AsyncWebDBResponseType.QUERY_PLAN, Uint8Array>;

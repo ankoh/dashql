@@ -22,6 +22,6 @@ class NodeWorker extends AsyncWebDBDispatcher {
 
 /// Forward all requests
 const api = new NodeWorker();
-self.onmessage = function(event: MessageEvent<AsyncWebDBRequestVariant>) {
-    api.onMessage(event.data);
+self.onmessage = async (event: MessageEvent<AsyncWebDBRequestVariant>) => {
+    await api.onMessage(event.data);
 };

@@ -1,6 +1,7 @@
 // Copyright (c) 2020 The DashQL Authors
 
 import { webdb as proto } from '@dashql/proto';
+import { flatbuffers } from 'flatbuffers';
 import {
     AsyncWebDBRequestType,
     AsyncWebDBResponseType,
@@ -10,6 +11,7 @@ import {
 
 enum TaskType {
     PING = 'PING',
+    OPEN = 'OPEN',
     CONNECT = 'CONNECT',
     DISCONNECT = 'DISCONNECT',
     RUN_QUERY = 'RUN_QUERY',
@@ -38,11 +40,12 @@ type ConnectionID = number;
 
 type TaskVariant =
     | Task<TaskType.PING, null, null>
+    | Task<TaskType.OPEN, string | null, null>
     | Task<TaskType.CONNECT, null, ConnectionID>
     | Task<TaskType.DISCONNECT, ConnectionID, null>
-    | Task<TaskType.SEND_QUERY, [ConnectionID, string], proto.QueryResult>
-    | Task<TaskType.RUN_QUERY, [ConnectionID, string], proto.QueryResult>
-    | Task<TaskType.FETCH_QUERY_RESULTS, ConnectionID, proto.QueryResultChunk>;
+    | Task<TaskType.SEND_QUERY, [ConnectionID, string], Uint8Array>
+    | Task<TaskType.RUN_QUERY, [ConnectionID, string], Uint8Array>
+    | Task<TaskType.FETCH_QUERY_RESULTS, ConnectionID, Uint8Array>;
 
 export class AsyncWebDB {
     /// The message handler
@@ -111,11 +114,18 @@ export class AsyncWebDB {
         const mid = this._nextMessageId++;
         this._pendingRequests.set(mid, task);
         switch (task.type) {
+            case TaskType.OPEN:
+                this.postRequest({
+                    messageId: mid,
+                    type: AsyncWebDBRequestType.OPEN,
+                    data: task.data,
+                });
+                break;
             case TaskType.PING:
                 this.postRequest({
                     messageId: mid,
                     type: AsyncWebDBRequestType.PING,
-                    data: null,
+                    data: task.data,
                 });
                 break;
             case TaskType.CONNECT:
@@ -184,6 +194,20 @@ export class AsyncWebDB {
 
         // Otherwise differentiate between the tasks first 
         switch (task.type) {
+            case TaskType.PING:
+            case TaskType.OPEN:
+            case TaskType.DISCONNECT:
+                if (response.type == AsyncWebDBResponseType.OK) {
+                    task.promiseResolver(response.data);
+                    return;
+                }
+                break;
+            case TaskType.CONNECT:
+                if (response.type == AsyncWebDBResponseType.CONNECTION_INFO) {
+                    task.promiseResolver(response.data);
+                    return;
+                }
+                break;
             case TaskType.RUN_QUERY:
                 if (response.type == AsyncWebDBResponseType.QUERY_RESULT) {
                     task.promiseResolver(response.data);
@@ -196,9 +220,9 @@ export class AsyncWebDB {
                     return;
                 }
                 break;
-            case TaskType.PING:
-                if (response.type == AsyncWebDBResponseType.OK) {
-                    task.promiseResolver(null);
+            case TaskType.FETCH_QUERY_RESULTS:
+                if (response.type == AsyncWebDBResponseType.QUERY_RESULT_CHUNK) {
+                    task.promiseResolver(response.data);
                     return;
                 }
                 break;
@@ -228,6 +252,12 @@ export class AsyncWebDB {
         await this.postTask(task);
     }
 
+    /// Open the database
+    public async open(wasm: string | null): Promise<null> {
+        const task = new Task<TaskType.OPEN, string | null, null>(TaskType.OPEN, wasm);
+        return await this.postTask(task);
+    }
+
     /// Connect to the database
     public async connect(): Promise<AsyncWebDBConnection> {
         const task = new Task<TaskType.CONNECT, null, ConnectionID>(TaskType.CONNECT, null);
@@ -243,29 +273,35 @@ export class AsyncWebDB {
 
     /// Run a query
     public async runQuery(conn: ConnectionID, text: string): Promise<proto.QueryResult> {
-        const task = new Task<TaskType.RUN_QUERY, [ConnectionID, string], proto.QueryResult>(TaskType.RUN_QUERY, [
+        const task = new Task<TaskType.RUN_QUERY, [ConnectionID, string], Uint8Array>(TaskType.RUN_QUERY, [
             conn,
             text,
         ]);
-        return await this.postTask(task);
+        const mem = await this.postTask(task);
+        const bb = new flatbuffers.ByteBuffer(mem);
+        return proto.QueryResult.getRoot(bb);
     }
 
     /// Send a query
     public async sendQuery(conn: ConnectionID, text: string): Promise<proto.QueryResult> {
-        const task = new Task<TaskType.SEND_QUERY, [ConnectionID, string], proto.QueryResult>(TaskType.SEND_QUERY, [
+        const task = new Task<TaskType.SEND_QUERY, [ConnectionID, string], Uint8Array>(TaskType.SEND_QUERY, [
             conn,
             text,
         ]);
-        return await this.postTask(task);
+        const mem = await this.postTask(task);
+        const bb = new flatbuffers.ByteBuffer(mem);
+        return proto.QueryResult.getRoot(bb);
     }
 
     /// Fetch query results
     public async fetchQueryResults(conn: ConnectionID): Promise<proto.QueryResultChunk> {
-        const task = new Task<TaskType.FETCH_QUERY_RESULTS, ConnectionID, proto.QueryResultChunk>(
+        const task = new Task<TaskType.FETCH_QUERY_RESULTS, ConnectionID, Uint8Array>(
             TaskType.FETCH_QUERY_RESULTS,
             conn,
         );
-        return await this.postTask(task);
+        const mem = await this.postTask(task);
+        const bb = new flatbuffers.ByteBuffer(mem);
+        return proto.QueryResultChunk.getRoot(bb);
     }
 }
 
