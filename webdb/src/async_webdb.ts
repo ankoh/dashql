@@ -1,12 +1,12 @@
 // Copyright (c) 2020 The DashQL Authors
 
+import { webdb as proto } from '@dashql/proto';
 import {
     AsyncWebDBRequestType,
     AsyncWebDBResponseType,
     AsyncWebDBRequestVariant,
     AsyncWebDBResponseVariant,
 } from './async_webdb_message';
-import { webdb as proto } from '@dashql/proto';
 
 enum TaskType {
     PING = 'PING',
@@ -61,14 +61,19 @@ class Queue<T> {
 }
 
 export class AsyncWebDB {
-    /// A worker
-    _worker: Worker | null;
     /// The message handler
     _onMessageHandler: (event: MessageEvent) => void;
     /// The error handler
     _onErrorHandler: (event: ErrorEvent) => void;
     /// The close handler
     _onCloseHandler: () => void;
+
+    /// A worker
+    _worker: Worker | null = null;
+    /// A promise for the worker shutdown 
+    _workerShutdownPromise: Promise<null> | null = null;
+    /// Make the worker as terminated 
+    _workerShutdownResolver: () => void = () => {};
 
     /// The next task id
     _nextTaskId: number = 0;
@@ -80,13 +85,47 @@ export class AsyncWebDB {
     _activeTask: TaskVariant | null = null;
 
     constructor(worker: Worker) {
-        this._worker = worker;
         this._onMessageHandler = this.onMessage.bind(this);
         this._onErrorHandler = this.onError.bind(this);
         this._onCloseHandler = this.onClose.bind(this);
+        this.attach(worker);
+    }
+
+    /// Attach to worker
+    protected attach(worker: Worker) {
+        this._worker = worker;
         this._worker.addEventListener('message', this._onMessageHandler);
         this._worker.addEventListener('error', this._onErrorHandler);
         this._worker.addEventListener('close', this._onCloseHandler);
+        this._workerShutdownPromise = new Promise<null>((resolve: (value?: null) => void, _reject: (reason?: void) => void) => {
+            this._workerShutdownResolver = resolve;
+        });
+    }
+
+    /// Detach from worker
+    public detach() {
+        if (!this._worker) {
+            return;
+        }
+        this._worker.removeEventListener('message', this._onMessageHandler);
+        this._worker.removeEventListener('error', this._onErrorHandler);
+        this._worker.removeEventListener('close', this._onCloseHandler);
+        this._worker = null;
+        this._workerShutdownResolver();
+        this._workerShutdownPromise = null;
+        this._workerShutdownResolver = () => {};
+    }
+
+    /// Wait until worker is dead
+    public async terminate() {
+        if (!this._worker) {
+            return;
+        }
+        this._worker.terminate();
+        await this._workerShutdownPromise;
+        this._worker = null;
+        this._workerShutdownPromise = null;
+        this._workerShutdownResolver = () => {};
     }
 
     /// Post a task
@@ -214,8 +253,9 @@ export class AsyncWebDB {
 
     /// The worker was closed
     protected onClose() {
+        this._workerShutdownResolver();
         if (this._activeTask != null) {
-            console.warn('aborted task of type ' + this._activeTask.type.toString());
+            console.warn('terminate worker with active task of type ' + this._activeTask.type.toString());
             return;
         }
         this._activeTask = null;
@@ -284,22 +324,18 @@ export class AsyncWebDBConnection {
         this._conn = conn;
     }
 
-    /// Disconnect
     public async disconnect(): Promise<null> {
         return this._instance.disconnect(this._conn);
     }
 
-    /// Run a query a query
     public async runQuery(text: string): Promise<proto.QueryResult> {
         return this._instance.runQuery(this._conn, text);
     }
 
-    /// Send a query
     public async sendQuery(text: string): Promise<proto.QueryResult> {
         return this._instance.sendQuery(this._conn, text);
     }
 
-    /// Fetch query results
     public async fetchQueryResults(): Promise<proto.QueryResultChunk> {
         return this._instance.fetchQueryResults(this._conn);
     }
