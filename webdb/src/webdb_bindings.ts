@@ -170,6 +170,8 @@ export class WebDBConnection {
         this._conn = conn;
     }
 
+    public get handle() { return this._conn; }
+
     public disconnect(): void {
         this._bindings.disconnect(this._conn);
     }
