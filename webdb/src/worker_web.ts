@@ -9,7 +9,7 @@ import { WebDB } from './webdb_bindings_web';
 class WebWorker extends AsyncWebDBDispatcher {
     /// Post a response back to the main thread
     protected postMessage(response: AsyncWebDBResponseVariant, transfer: ArrayBuffer[]) {
-        self.postMessage(response, transfer);
+        globalThis.postMessage(response, transfer);
     }
 
     /// Instantiate the wasm module
@@ -22,6 +22,6 @@ class WebWorker extends AsyncWebDBDispatcher {
 
 /// Forward all requests
 const api = new WebWorker();
-self.onmessage = function(event: MessageEvent<AsyncWebDBRequestVariant>) {
+globalThis.onmessage = function(event: MessageEvent<AsyncWebDBRequestVariant>) {
     api.onMessage(event.data);
 };
