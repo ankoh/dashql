@@ -1,23 +1,48 @@
-export enum AsyncWebDBMessageType {
+import { webdb as proto } from '@dashql/proto';
+
+export enum AsyncWebDBRequestType {
     PING = 'PING',
-    PONG = 'PONG',
-    RUN_QUERY_COMMAND = 'RUN_QUERY_COMMAND',
-    SEND_QUERY_COMMAND = 'SEND_QUERY_COMMAND',
-    FETCH_QUERY_RESULTS_COMMAND = 'FETCH_QUERY_RESULTS_COMMAND',
+    CONNECT = 'CONNECT',
+    DISCONNECT = 'DISCONNECT',
+    RUN_QUERY = 'RUN_QUERY',
+    SEND_QUERY = 'SEND_QUERY',
+    FETCH_QUERY_RESULTS = 'FETCH_QUERY_RESULTS',
 }
 
-export type AsyncWebDBMessage<T, P> = {
-    readonly id: number;
+export enum AsyncWebDBResponseType {
+    PONG = 'PONG',
+    CONNECTION_INFO = 'CONNECTION_INFO',
+    QUERY_RESULT = 'QUERY_RESULT',
+    QUERY_RESULT_CHUNK = 'QUERY_RESULT_CHUNK',
+    QUERY_PLAN = 'QUERY_PLAN',
+}
+
+export type AsyncWebDBRequest<T, P> = {
+    readonly messageId: number;
     readonly type: T;
     readonly data: P;
 };
 
-export type AsyncWebDBRequest =
-    | AsyncWebDBMessage<AsyncWebDBMessageType.PING, null>
-    | AsyncWebDBMessage<AsyncWebDBMessageType.RUN_QUERY_COMMAND, string>
-    | AsyncWebDBMessage<AsyncWebDBMessageType.SEND_QUERY_COMMAND, string>
-    | AsyncWebDBMessage<AsyncWebDBMessageType.FETCH_QUERY_RESULTS_COMMAND, string>
+export type AsyncWebDBResponse<T, P> = {
+    readonly messageId: number;
+    readonly requestId: number;
+    readonly type: T;
+    readonly data: P;
+};
+
+export type AsyncWebDBRequestVariant =
+    | AsyncWebDBRequest<AsyncWebDBRequestType.PING, null>
+    | AsyncWebDBRequest<AsyncWebDBRequestType.CONNECT, null>
+    | AsyncWebDBRequest<AsyncWebDBRequestType.DISCONNECT, number>
+    | AsyncWebDBRequest<AsyncWebDBRequestType.RUN_QUERY, [number, string]>
+    | AsyncWebDBRequest<AsyncWebDBRequestType.SEND_QUERY, [number, string]>
+    | AsyncWebDBRequest<AsyncWebDBRequestType.FETCH_QUERY_RESULTS, number>
     ;
 
-export type AsyncWebDBResponse =
-    | AsyncWebDBMessage<AsyncWebDBMessageType.PONG, null>;
+export type AsyncWebDBResponseVariant =
+    | AsyncWebDBResponse<AsyncWebDBResponseType.PONG, null>
+    | AsyncWebDBResponse<AsyncWebDBResponseType.CONNECTION_INFO, null>
+    | AsyncWebDBResponse<AsyncWebDBResponseType.QUERY_RESULT, proto.QueryResult>
+    | AsyncWebDBResponse<AsyncWebDBResponseType.QUERY_RESULT_CHUNK, proto.QueryResultChunk>
+    | AsyncWebDBResponse<AsyncWebDBResponseType.QUERY_PLAN, proto.QueryPlan>
+    ;
