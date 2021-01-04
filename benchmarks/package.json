@@ -7,8 +7,7 @@
         "@dashql/proto": "file:../proto/",
         "@dashql/webdb": "file:../webdb/",
         "flatbuffers": "^1.12.0",
-        "fsevents": "*",
-        "web-worker": "^1.0.0"
+        "fsevents": "*"
     },
     "devDependencies": {
         "@types/benchmark": "^2.1.0",
