@@ -45,15 +45,31 @@ export abstract class AsyncWebDBDispatcher {
     }
 
     /// Process a request from the main thread
-    public onMessage(request: AsyncWebDBRequestVariant) {
-        if (request.type == AsyncWebDBRequestType.PING) {
-            this.sendOK(request);
-            return;
+    public async onMessage(request: AsyncWebDBRequestVariant) {
+        // First process those requests that don't need bindings
+        switch (request.type) {
+            case AsyncWebDBRequestType.PING:
+                this.sendOK(request);
+                return;
+            case AsyncWebDBRequestType.OPEN:
+                if (this._bindings != null) {
+                    this.failWith(request, new Error('webdb already initialized'));
+                }
+                try {
+                    this._bindings = await this.open(request.data);
+                    this.sendOK(request);
+                } catch(e) {
+                    this._bindings = null;
+                    this.failWith(request, e);
+                }
+                return;
+            default:
+                break;
         }
 
-        // Bindings not available?
+        // Bindings not initialized?
         if (!this._bindings) {
-            return this.failWith(request, new Error('webdb bindings are null'));
+            return this.failWith(request, new Error('webdb is not initialized'));
         }
 
         // Catch every exception and forward it as error message to the main thread
@@ -77,40 +93,43 @@ export abstract class AsyncWebDBDispatcher {
                     break;
                 case AsyncWebDBRequestType.RUN_QUERY: {
                     const result = this._bindings.runQuery(request.data[0], request.data[1]);
+                    const bytes = result.bb!.bytes();
                     this.postMessage(
                         {
                             messageId: this._nextMessageId++,
                             requestId: request.messageId,
                             type: AsyncWebDBResponseType.QUERY_RESULT,
-                            data: result,
+                            data: result.bb!.bytes(),
                         },
-                        [result.bb!.bytes().buffer],
+                        [bytes.buffer],
                     );
                     break;
                 }
                 case AsyncWebDBRequestType.SEND_QUERY: {
                     const result = this._bindings.sendQuery(request.data[0], request.data[1]);
+                    const bytes = result.bb!.bytes();
                     this.postMessage(
                         {
                             messageId: this._nextMessageId++,
                             requestId: request.messageId,
                             type: AsyncWebDBResponseType.QUERY_RESULT,
-                            data: result,
+                            data: bytes,
                         },
-                        [result.bb!.bytes().buffer],
+                        [bytes.buffer],
                     );
                     break;
                 }
                 case AsyncWebDBRequestType.FETCH_QUERY_RESULTS: {
                     const result = this._bindings.fetchQueryResults(request.data);
+                    const bytes = result.bb!.bytes();
                     this.postMessage(
                         {
                             messageId: this._nextMessageId++,
                             requestId: request.messageId,
                             type: AsyncWebDBResponseType.QUERY_RESULT_CHUNK,
-                            data: result,
+                            data: result.bb!.bytes(),
                         },
-                        [result.bb!.bytes().buffer],
+                        [bytes.buffer],
                     );
                     break;
                 }
