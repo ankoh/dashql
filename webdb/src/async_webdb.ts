@@ -185,7 +185,6 @@ export class AsyncWebDB {
             case TaskType.SEND_QUERY:
                 if (response.type == AsyncWebDBResponseType.QUERY_RESULT) {
                     task.promiseResolver(response.data);
-                    // User still has to fetch data, so keep the task active
                     return;
                 }
                 break;
