@@ -1,85 +1,306 @@
 // Copyright (c) 2020 The DashQL Authors
 
-import { AsyncWebDBMessageType } from './async_webdb_message';
+import {
+    AsyncWebDBRequestType,
+    AsyncWebDBResponseType,
+    AsyncWebDBRequestVariant,
+    AsyncWebDBResponseVariant,
+} from './async_webdb_message';
+import { webdb as proto } from '@dashql/proto';
 
-interface Operation {
-    
+enum TaskType {
+    PING = 'PING',
+    CONNECT = 'CONNECT',
+    DISCONNECT = 'DISCONNECT',
+    RUN_QUERY = 'RUN_QUERY',
+    SEND_QUERY = 'SEND_QUERY',
+    FETCH_QUERY_RESULTS = 'FETCH_QUERY_RESULTS',
 }
 
-export class AsyncConnection {
-    /// The database
-    _webdb: AsyncWebDB;
+class Task<T, D, P> {
+    readonly id: number;
+    readonly type: T;
+    readonly data: D;
+    promise: Promise<P>;
+    promiseResolver: (value?: P) => void = () => {};
+    promiseRejecter: (value: any) => void = () => {};
 
-    constructor(webdb: AsyncWebDB) {
-        this._webdb = webdb;
+    /// Constructor
+    constructor(id: number, type: T, data: D) {
+        this.id = id;
+        this.type = type;
+        this.data = data;
+        this.promise = new Promise<P>((resolve: (value?: P) => void, reject: (reason?: void) => void) => {
+            this.promiseResolver = resolve;
+            this.promiseRejecter = reject;
+        });
+    }
+}
+
+type ConnectionID = number;
+
+type TaskVariant =
+    | Task<TaskType.PING, null, null>
+    | Task<TaskType.CONNECT, null, ConnectionID>
+    | Task<TaskType.DISCONNECT, ConnectionID, null>
+    | Task<TaskType.SEND_QUERY, [ConnectionID, string], proto.QueryResult>
+    | Task<TaskType.RUN_QUERY, [ConnectionID, string], proto.QueryResult>
+    | Task<TaskType.FETCH_QUERY_RESULTS, ConnectionID, proto.QueryResultChunk>;
+
+class Queue<T> {
+    _values: T[] = [];
+    empty() {
+        return this._values.length == 0;
+    }
+    push(val: T) {
+        this._values.push(val);
+    }
+    pop(): T | null {
+        return this._values.shift() || null;
     }
 }
 
 export class AsyncWebDB {
     /// A worker
-    _worker: Worker;
+    _worker: Worker | null;
     /// The message handler
-    _onMessageHandler: (event: Event) => void;
+    _onMessageHandler: (event: MessageEvent) => void;
     /// The error handler
-    _onErrorHandler: (event: Event) => void;
+    _onErrorHandler: (event: ErrorEvent) => void;
     /// The close handler
-    _onCloseHandler: (event: Event) => void;
+    _onCloseHandler: () => void;
 
-    /// The operations
-    _operations: Map<number, Operation> = new Map();
-    /// The lower bound of the operation ids
-    _operationsLB: number = 0;
-    /// The upper bound of the operation ids
-    _operationsUB: number = 0;
-
-    _testPromiseResolver: ((value: any) => void) | null = null;
-    _testPromiseRejecter: ((value: any) => void) | null = null;
+    /// The next task id
+    _nextTaskId: number = 0;
+    /// The next message id
+    _nextMessageId: number = 0;
+    /// The queue
+    _queue: Queue<TaskVariant> = new Queue();
+    /// The active task
+    _activeTask: TaskVariant | null = null;
 
     constructor(worker: Worker) {
         this._worker = worker;
         this._onMessageHandler = this.onMessage.bind(this);
         this._onErrorHandler = this.onError.bind(this);
         this._onCloseHandler = this.onClose.bind(this);
-        this._worker.addEventListener("message", this._onMessageHandler);
-        this._worker.addEventListener("error", this._onErrorHandler);
-        this._worker.addEventListener("close", this._onCloseHandler);
+        this._worker.addEventListener('message', this._onMessageHandler);
+        this._worker.addEventListener('error', this._onErrorHandler);
+        this._worker.addEventListener('close', this._onCloseHandler);
     }
 
-    protected onMessage(event: Event) {
-        if (this._testPromiseResolver) {
-            this._testPromiseRejecter = null;
-            this._testPromiseResolver(event);
+    /// Post a task
+    protected postTask(task: TaskVariant): Promise<any> {
+        if (this._activeTask != null) {
+            this._queue.push(task);
+            return task.promise;
+        }
+        this.processTask(task);
+        return task.promise;
+    }
+
+    /// Process a new task
+    protected startNextTask() {
+        this._activeTask = null;
+        if (this._queue.empty()) {
+            return;
+        }
+        this.processTask(this._queue.pop()!);
+    }
+
+    /// Thin wrapper around post message for strong typing of message
+    protected postMessage(message: AsyncWebDBRequestVariant) {
+        if (!this._worker) {
+            console.error('cannot send a message since the worker is not set!');
+            return;
+        }
+        this._worker.postMessage(message);
+    }
+
+    /// Process a new task
+    protected processTask(task: TaskVariant) {
+        this._activeTask = task;
+        switch (task.type) {
+            case TaskType.PING:
+                this.postMessage({
+                    messageId: this._nextMessageId,
+                    type: AsyncWebDBRequestType.PING,
+                    data: null,
+                });
+                break;
+            case TaskType.CONNECT:
+                this.postMessage({
+                    messageId: this._nextMessageId,
+                    type: AsyncWebDBRequestType.CONNECT,
+                    data: task.data,
+                });
+                break;
+            case TaskType.DISCONNECT:
+                this.postMessage({
+                    messageId: this._nextMessageId,
+                    type: AsyncWebDBRequestType.DISCONNECT,
+                    data: task.data,
+                });
+                break;
+            case TaskType.RUN_QUERY:
+                this.postMessage({
+                    messageId: this._nextMessageId,
+                    type: AsyncWebDBRequestType.RUN_QUERY,
+                    data: task.data,
+                });
+                break;
+            case TaskType.SEND_QUERY:
+                this.postMessage({
+                    messageId: this._nextMessageId,
+                    type: AsyncWebDBRequestType.SEND_QUERY,
+                    data: task.data,
+                });
+                break;
+            case TaskType.FETCH_QUERY_RESULTS:
+                this.postMessage({
+                    messageId: this._nextMessageId,
+                    type: AsyncWebDBRequestType.FETCH_QUERY_RESULTS,
+                    data: task.data,
+                });
+                break;
         }
     }
 
-    protected onError(event: Event) {
-        if (this._testPromiseRejecter) {
-            this._testPromiseRejecter(event);
+    /// Received a message
+    protected onMessage(event: MessageEvent) {
+        const response = event.data as AsyncWebDBResponseVariant;
+
+        // There must be an active task
+        if (!this._activeTask) {
+            console.warn('unexpected task message:' + response.type.toString());
+            return;
         }
+        switch (this._activeTask.type) {
+            case TaskType.RUN_QUERY:
+                if (response.type == AsyncWebDBResponseType.QUERY_RESULT) {
+                    this._activeTask!.promiseResolver(response.data);
+                    this.startNextTask();
+                    return;
+                }
+                break;
+            case TaskType.SEND_QUERY:
+                if (response.type == AsyncWebDBResponseType.QUERY_RESULT) {
+                    this._activeTask!.promiseResolver(response.data);
+                    // User still has to fetch data, so keep the task active
+                    return;
+                }
+                break;
+            case TaskType.PING:
+                if (response.type == AsyncWebDBResponseType.PONG) {
+                    this._activeTask!.promiseResolver(null);
+                    this.startNextTask();
+                    return;
+                }
+                break;
+        }
+        this._activeTask!.promiseRejecter(new Error('unexpected response type: ' + response.type.toString()));
+        this._activeTask = null;
     }
 
-    protected onClose(event: Event) {
-        if (this._testPromiseRejecter) {
-            this._testPromiseRejecter(event);
+    /// Received an error
+    protected onError(event: ErrorEvent) {
+        if (!this._activeTask) {
+            console.error('error in webdb worker: ' + event.message);
+            return;
         }
+        this._activeTask!.promiseRejecter(event.error);
+        this._activeTask = null;
     }
 
+    /// The worker was closed
+    protected onClose() {
+        if (this._activeTask != null) {
+            console.warn('aborted task of type ' + this._activeTask.type.toString());
+            return;
+        }
+        this._activeTask = null;
+    }
+
+    /// Ping the worker thread
     public async ping() {
-        const promise = new Promise((resolve: (value: any) => void, reject: (reason?: void) => void) => {
-            this._testPromiseResolver = resolve;
-            this._testPromiseRejecter = reject;
-        });
-        this._worker.postMessage({
-            id: 0,
-            type: AsyncWebDBMessageType.PING,
-            data: null,
-        });
-        await promise;
+        const task = new Task<TaskType.PING, null, null>(this._nextTaskId++, TaskType.PING, null);
+        await this.postTask(task);
     }
 
     /// Connect to the database
-    public connect(): AsyncConnection {
+    public async connect(): Promise<AsyncWebDBConnection> {
+        const task = new Task<TaskType.CONNECT, null, ConnectionID>(this._nextTaskId++, TaskType.CONNECT, null);
+        const conn = await this.postTask(task);
+        return new AsyncWebDBConnection(this, conn);
+    }
 
-        return new AsyncConnection(this);
+    /// Connect to the database
+    public async disconnect(conn: ConnectionID): Promise<null> {
+        const task = new Task<TaskType.DISCONNECT, ConnectionID, null>(this._nextTaskId++, TaskType.DISCONNECT, conn);
+        return await this.postTask(task);
+    }
+
+    /// Run a query
+    public async runQuery(conn: ConnectionID, text: string): Promise<proto.QueryResult> {
+        const task = new Task<TaskType.RUN_QUERY, [ConnectionID, string], proto.QueryResult>(
+            this._nextTaskId++,
+            TaskType.RUN_QUERY,
+            [conn, text],
+        );
+        return await this.postTask(task);
+    }
+
+    /// Send a query
+    public async sendQuery(conn: ConnectionID, text: string): Promise<proto.QueryResult> {
+        const task = new Task<TaskType.SEND_QUERY, [ConnectionID, string], proto.QueryResult>(
+            this._nextTaskId++,
+            TaskType.SEND_QUERY,
+            [conn, text],
+        );
+        return await this.postTask(task);
+    }
+
+    /// Fetch query results
+    public async fetchQueryResults(conn: ConnectionID): Promise<proto.QueryResultChunk> {
+        const task = new Task<TaskType.FETCH_QUERY_RESULTS, ConnectionID, proto.QueryResultChunk>(
+            this._nextTaskId++,
+            TaskType.FETCH_QUERY_RESULTS,
+            conn,
+        );
+        return await this.postTask(task);
+    }
+}
+
+/// A thin helper to memoize the connection id
+export class AsyncWebDBConnection {
+    /// The async webdb
+    _instance: AsyncWebDB;
+    /// The conn handle
+    _conn: number;
+
+    /// Constructor
+    constructor(instance: AsyncWebDB, conn: number) {
+        this._instance = instance;
+        this._conn = conn;
+    }
+
+    /// Disconnect
+    public async disconnect(): Promise<null> {
+        return this._instance.disconnect(this._conn);
+    }
+
+    /// Run a query a query
+    public async runQuery(text: string): Promise<proto.QueryResult> {
+        return this._instance.runQuery(this._conn, text);
+    }
+
+    /// Send a query
+    public async sendQuery(text: string): Promise<proto.QueryResult> {
+        return this._instance.sendQuery(this._conn, text);
+    }
+
+    /// Fetch query results
+    public async fetchQueryResults(): Promise<proto.QueryResultChunk> {
+        return this._instance.fetchQueryResults(this._conn);
     }
 }

@@ -1,22 +1,25 @@
 import { WebDBBindings } from './webdb_bindings';
-import { AsyncWebDBResponse, AsyncWebDBRequest, AsyncWebDBMessageType } from './async_webdb_message';
+import { AsyncWebDBResponseVariant, AsyncWebDBRequestVariant, AsyncWebDBRequestType, AsyncWebDBResponseType } from './async_webdb_message';
 
 export abstract class AsyncWebDBDispatcher {
     /// The bindings
     _bindings: WebDBBindings | null = null;
+    /// The next message id
+    _nextMessageId: number = 0;
 
     /// Instantiate the wasm module
     protected abstract open(path: string | null): Promise<WebDBBindings>;
     /// Post a response to the main thread
-    protected abstract postMessage(response: AsyncWebDBResponse, transfer: ArrayBuffer[]): void;
+    protected abstract postMessage(response: AsyncWebDBResponseVariant, transfer: ArrayBuffer[]): void;
 
     /// Process a request from the main thread
-    public onMessage(request: AsyncWebDBRequest) {
+    public onMessage(request: AsyncWebDBRequestVariant) {
         switch (request.type) {
-            case AsyncWebDBMessageType.PING:
+            case AsyncWebDBRequestType.PING:
                 postMessage({
-                    id: request.id,
-                    type: AsyncWebDBMessageType.PONG,
+                    messageId: this._nextMessageId++,
+                    originId: request.messageId,
+                    type: AsyncWebDBResponseType.PONG,
                     data: null
                 })
                 break;
