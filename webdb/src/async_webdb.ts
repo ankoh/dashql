@@ -175,6 +175,14 @@ export class AsyncWebDB {
             return;
         }
         this._pendingRequests.delete(response.requestId);
+
+        // Request failed?
+        if (response.type == AsyncWebDBResponseType.ERROR) {
+            task.promiseRejecter(response.data);
+            return;
+        }
+
+        // Otherwise differentiate between the tasks first 
         switch (task.type) {
             case TaskType.RUN_QUERY:
                 if (response.type == AsyncWebDBResponseType.QUERY_RESULT) {
@@ -189,7 +197,7 @@ export class AsyncWebDB {
                 }
                 break;
             case TaskType.PING:
-                if (response.type == AsyncWebDBResponseType.PONG) {
+                if (response.type == AsyncWebDBResponseType.OK) {
                     task.promiseResolver(null);
                     return;
                 }
