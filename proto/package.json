@@ -5,7 +5,8 @@
     "main": "./dist/index.js",
     "types": "./dist/index.d.ts",
     "dependencies": {
-        "flatbuffers": "^1.12.0"
+        "flatbuffers": "^1.12.0",
+        "fsevents": "*"
     },
     "devDependencies": {
         "@types/flatbuffers": "^1.10.0",

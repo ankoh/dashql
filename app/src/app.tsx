@@ -12,7 +12,8 @@ import { AppContextProvider, IAppContext } from './app_context';
 
 import './app.module.css';
 import './fonts/fonts.module.css';
-import 'gridstack/dist/gridstack.min.css';
+import 'react-grid-layout/css/styles.css';
+import 'react-resizable/css/styles.css';
 
 import dashql_analyzer_wasm from '@dashql/core/dist/dashql_analyzer.wasm';
 
