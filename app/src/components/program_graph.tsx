@@ -53,7 +53,7 @@ class ProgramGraph extends React.Component<ProgramGraphProps, ProgramGraphState>
             height: NODE_HEIGHT,
         };
 
-        // We use dagre to do the layouting and the render the graph with react-flow
+        // We use dagre to do the layouting and render the graph with react-flow afterwards
         let nodes: StatementNodeData[] = [];
         let edges: ExtendedEdgeData[] = [];
         const g = new dagre.graphlib.Graph().setGraph({

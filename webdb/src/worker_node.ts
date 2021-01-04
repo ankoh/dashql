@@ -1,15 +1,15 @@
 // Copyright (c) 2020 The DashQL Authors
 
-import { WorkerAPI } from './worker_api';
-import { WAPIResponse, WAPIRequest } from './worker_api_message';
+import { AsyncWebDBDispatcher } from './async_webdb_dispatcher';
+import { AsyncWebDBResponse, AsyncWebDBRequest } from './async_webdb_message';
 import { WebDBBindings } from './webdb_bindings';
 import { WebDB } from './webdb_bindings_node';
 
 /// The webdb worker API for node.js workers
-class NodeWorkerAPI extends WorkerAPI {
+class NodeWorker extends AsyncWebDBDispatcher {
     /// Post a response back to the main thread
-    protected postMessage(response: WAPIResponse) {
-        self.postMessage(response);
+    protected postMessage(response: AsyncWebDBResponse, transfer: ArrayBuffer[]) {
+        self.postMessage(response, transfer);
     }
 
     /// Instantiate the wasm module
@@ -21,7 +21,7 @@ class NodeWorkerAPI extends WorkerAPI {
 }
 
 /// Forward all requests
-const api = new NodeWorkerAPI();
-self.onmessage = function(event: MessageEvent<WAPIRequest>) {
+const api = new NodeWorker();
+self.onmessage = function(event: MessageEvent<AsyncWebDBRequest>) {
     api.onMessage(event.data);
 };
