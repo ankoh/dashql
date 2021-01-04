@@ -190,11 +190,10 @@ class Layout extends React.Component<Props, State> {
     render() {
         return (
             <ReactGrid
-                resizeHandles={['n', 'ne', 'e', 'se', 's', 'sw', 'w', 'nw']}
+                resizeHandles={['se']}
                 cols={12}
                 width={500}
                 rowHeight={50}
-                className={styles.grid}
                 compactType={null}
                 layout={this.getLayout(this.state.dashboard.widgets)}
                 onResize={console.log.bind(console)}
