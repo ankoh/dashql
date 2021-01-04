@@ -187,6 +187,12 @@ docker_ci_image:
 		-f ./ci/image/Dockerfile \
 		-
 
+# Build infrastructure and packages required for development
+.PHONY: bootstrap
+bootstrap:
+	git submodule update --init --recursive
+	make docker_ci_image npm_install proto wasm webdb core
+
 # ---------------------------------------------------------------------------
 # Deployment
 
