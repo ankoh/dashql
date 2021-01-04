@@ -23,6 +23,16 @@ export abstract class AsyncWebDBDispatcher {
                     data: null
                 }, []);
                 break;
+            case AsyncWebDBRequestType.CONNECT:
+                break;
+            case AsyncWebDBRequestType.DISCONNECT:
+                break;
+            case AsyncWebDBRequestType.RUN_QUERY:
+                break;
+            case AsyncWebDBRequestType.SEND_QUERY:
+                break;
+            case AsyncWebDBRequestType.FETCH_QUERY_RESULTS:
+                break;
         }
     }
 }
