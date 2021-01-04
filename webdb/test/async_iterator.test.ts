@@ -2,6 +2,7 @@ import * as webdb from '../dist/webdb_node_async';
 import * as path from 'path';
 
 let worker: Worker;
+let db: webdb.AsyncWebDB;
 
 beforeAll(() => {
     worker = webdb.spawnWorker(path.resolve(__dirname, "../dist/webdb_node_async.worker.js"));
@@ -12,14 +13,15 @@ afterAll(() => {
 });
 
 beforeEach(() => {
+    db = new webdb.AsyncWebDB(worker);
 });
 
-afterEach(() => {
+afterEach(async () => {
+    await db.terminate();
 });
 
 describe('AsyncWebDB', () => {
     test('ping', async () => {
-        const db = new webdb.AsyncWebDB(worker);
         await db.ping();
     });
 });
