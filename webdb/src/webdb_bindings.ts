@@ -8,7 +8,7 @@ export interface WebDBRuntime {}
 
 /// Decode a string
 function decodeString(buffer: Uint8Array): string {
-    var result = "";
+    var result = '';
     for (var i = 0; i < buffer.length; i++) {
         result += String.fromCharCode(buffer[i]);
     }
@@ -22,78 +22,6 @@ function copyFlatbuffer(buffer: Uint8Array): flatbuffers.ByteBuffer {
     return new flatbuffers.ByteBuffer(copy);
 }
 
-/// A connection to WebDB
-export class WebDBConnection {
-    /// The bindings
-    _bindings: WebDBBindings;
-    /// The connection handle
-    _conn: number;
-
-    /// Constructor
-    constructor(bindings: WebDBBindings, conn: number) {
-        this._bindings = bindings;
-        this._conn = conn;
-    }
-
-    /// Disconnect from database
-    public disconnect(): void {
-        let instance = this._bindings.instance!;
-        instance.ccall('dashql_webdb_disconnect', null, ['number'], [this._conn]);
-    }
-
-    /// Send a query and return the full result
-    public runQuery(text: string): proto.QueryResult {
-        let instance = this._bindings.instance!;
-        let [s, d, n] = this._bindings.callSRet('dashql_webdb_run_query', ['number', 'string'], [this._conn, text]);
-        let mem = instance.HEAPU8.subarray(d, d + n);
-        if (s !== proto.StatusCode.SUCCESS) {
-            throw new Error(decodeString(mem));
-        }
-        let res = proto.QueryResult.getRoot(copyFlatbuffer(mem));
-        instance.ccall('dashql_clear_response', null, [], []);
-        return res;
-    }
-
-    /// Send a query and return a result stream
-    public sendQuery(text: string): proto.QueryResult {
-        let instance = this._bindings.instance!;
-        let [s, d, n] = this._bindings.callSRet('dashql_webdb_send_query', ['number', 'string'], [this._conn, text]);
-        let mem = instance.HEAPU8.subarray(d, d + n);
-        if (s !== proto.StatusCode.SUCCESS) {
-            throw new Error(decodeString(mem));
-        }
-        let res = proto.QueryResult.getRoot(copyFlatbuffer(mem));
-        instance.ccall('dashql_clear_response', null, [], []);
-        return res;
-    }
-
-    /// Fetch query results
-    public fetchQueryResults(): proto.QueryResultChunk {
-        let instance = this._bindings.instance!;
-        let [s, d, n] = this._bindings.callSRet('dashql_webdb_fetch_query_results', ['number'], [this._conn]);
-        let mem = instance.HEAPU8.subarray(d, d + n);
-        if (s !== proto.StatusCode.SUCCESS) {
-            throw new Error(decodeString(mem));
-        }
-        let res = proto.QueryResultChunk.getRoot(copyFlatbuffer(mem));
-        instance.ccall('dashql_clear_response', null, [], []);
-        return res;
-    }
-
-    /// Analyze a query
-    public analyzeQuery(_text: string): proto.QueryPlan {
-        let instance = this._bindings.instance!;
-        let [s, d, n] = this._bindings.callSRet('dashql_webdb_analyze_query', ['number'], [this._conn]);
-        let mem = instance.HEAPU8.subarray(d, d + n);
-        if (s !== proto.StatusCode.SUCCESS) {
-            throw new Error(decodeString(mem));
-        }
-        let plan = proto.QueryPlan.getRoot(copyFlatbuffer(mem));
-        instance.ccall('dashql_clear_response', null, [], []);
-        return plan;
-    }
-}
-
 /// The proxy for either the browser- order node-based WebDB API
 export abstract class WebDBBindings {
     /// The instance
@@ -101,10 +29,12 @@ export abstract class WebDBBindings {
     /// The loading promise
     private _openPromise: Promise<void> | null = null;
     /// The resolver for the open promise (called by onRuntimeInitialized)
-    private _openPromiseResolver: () => void = () => { };
+    private _openPromiseResolver: () => void = () => {};
 
     /// Get the instance
-    public get instance() { return this._instance; }
+    public get instance() {
+        return this._instance;
+    }
 
     /// Instantiate the module
     protected abstract instantiate(moduleOverrides: Partial<WebDBModule>): Promise<WebDBModule>;
@@ -138,11 +68,7 @@ export abstract class WebDBBindings {
     }
 
     // Call a core function with packed response buffer
-    public callSRet(
-        funcName: string,
-        argTypes: Array<Emscripten.JSType>,
-        args: Array<any>,
-    ): [number, number, number] {
+    public callSRet(funcName: string, argTypes: Array<Emscripten.JSType>, args: Array<any>): [number, number, number] {
         // Save the stack
         let instance = this._instance!;
         let stackPointer = instance.stackSave();
@@ -172,4 +98,95 @@ export abstract class WebDBBindings {
         let conn = instance.ccall('dashql_webdb_connect', 'number', [], []);
         return new WebDBConnection(this, conn);
     }
-};
+
+    /// Disconnect from database
+    public disconnect(conn: number): void {
+        this.instance!.ccall('dashql_webdb_disconnect', null, ['number'], [conn]);
+    }
+
+    /// Send a query and return the full result
+    public runQuery(conn: number, text: string): proto.QueryResult {
+        let instance = this.instance!;
+        let [s, d, n] = this.callSRet('dashql_webdb_run_query', ['number', 'string'], [conn, text]);
+        let mem = instance.HEAPU8.subarray(d, d + n);
+        if (s !== proto.StatusCode.SUCCESS) {
+            throw new Error(decodeString(mem));
+        }
+        let res = proto.QueryResult.getRoot(copyFlatbuffer(mem));
+        instance.ccall('dashql_clear_response', null, [], []);
+        return res;
+    }
+
+    /// Send a query and return a result stream
+    public sendQuery(conn: number, text: string): proto.QueryResult {
+        let instance = this.instance!;
+        let [s, d, n] = this.callSRet('dashql_webdb_send_query', ['number', 'string'], [conn, text]);
+        let mem = instance.HEAPU8.subarray(d, d + n);
+        if (s !== proto.StatusCode.SUCCESS) {
+            throw new Error(decodeString(mem));
+        }
+        let res = proto.QueryResult.getRoot(copyFlatbuffer(mem));
+        instance.ccall('dashql_clear_response', null, [], []);
+        return res;
+    }
+
+    /// Fetch query results
+    public fetchQueryResults(conn: number): proto.QueryResultChunk {
+        let instance = this.instance!;
+        let [s, d, n] = this.callSRet('dashql_webdb_fetch_query_results', ['number'], [conn]);
+        let mem = instance.HEAPU8.subarray(d, d + n);
+        if (s !== proto.StatusCode.SUCCESS) {
+            throw new Error(decodeString(mem));
+        }
+        let res = proto.QueryResultChunk.getRoot(copyFlatbuffer(mem));
+        instance.ccall('dashql_clear_response', null, [], []);
+        return res;
+    }
+
+    /// Analyze a query
+    public analyzeQuery(conn: number, _text: string): proto.QueryPlan {
+        let instance = this.instance!;
+        let [s, d, n] = this.callSRet('dashql_webdb_analyze_query', ['number'], [conn]);
+        let mem = instance.HEAPU8.subarray(d, d + n);
+        if (s !== proto.StatusCode.SUCCESS) {
+            throw new Error(decodeString(mem));
+        }
+        let plan = proto.QueryPlan.getRoot(copyFlatbuffer(mem));
+        instance.ccall('dashql_clear_response', null, [], []);
+        return plan;
+    }
+}
+
+/// A thin helper to memoize the connection id
+export class WebDBConnection {
+    /// The bindings
+    _bindings: WebDBBindings;
+    /// The connection handle
+    _conn: number;
+
+    /// Constructor
+    constructor(bindings: WebDBBindings, conn: number) {
+        this._bindings = bindings;
+        this._conn = conn;
+    }
+
+    public disconnect(): void {
+        this._bindings.disconnect(this._conn);
+    }
+
+    public runQuery(text: string): proto.QueryResult {
+        return this._bindings.runQuery(this._conn, text);
+    }
+
+    public sendQuery(text: string): proto.QueryResult {
+        return this._bindings.sendQuery(this._conn, text);
+    }
+
+    public fetchQueryResults(): proto.QueryResultChunk {
+        return this._bindings.fetchQueryResults(this._conn);
+    }
+
+    public analyzeQuery(_text: string): proto.QueryPlan {
+        return this._bindings.analyzeQuery(this._conn, _text);
+    }
+}
