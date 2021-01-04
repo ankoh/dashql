@@ -16,12 +16,12 @@ export abstract class AsyncWebDBDispatcher {
     public onMessage(request: AsyncWebDBRequestVariant) {
         switch (request.type) {
             case AsyncWebDBRequestType.PING:
-                postMessage({
+                this.postMessage({
                     messageId: this._nextMessageId++,
-                    originId: request.messageId,
+                    requestId: request.messageId,
                     type: AsyncWebDBResponseType.PONG,
                     data: null
-                })
+                }, []);
                 break;
         }
     }
