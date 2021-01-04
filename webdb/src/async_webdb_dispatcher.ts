@@ -1,5 +1,10 @@
 import { WebDBBindings } from './webdb_bindings';
-import { AsyncWebDBResponseVariant, AsyncWebDBRequestVariant, AsyncWebDBRequestType, AsyncWebDBResponseType } from './async_webdb_message';
+import {
+    AsyncWebDBResponseVariant,
+    AsyncWebDBRequestVariant,
+    AsyncWebDBRequestType,
+    AsyncWebDBResponseType,
+} from './async_webdb_message';
 
 export abstract class AsyncWebDBDispatcher {
     /// The bindings
@@ -12,87 +17,106 @@ export abstract class AsyncWebDBDispatcher {
     /// Post a response to the main thread
     protected abstract postMessage(response: AsyncWebDBResponseVariant, transfer: ArrayBuffer[]): void;
 
+    /// Send plain OK without further data
+    protected sendOK(request: AsyncWebDBRequestVariant) {
+        this.postMessage(
+            {
+                messageId: this._nextMessageId++,
+                requestId: request.messageId,
+                type: AsyncWebDBResponseType.OK,
+                data: null,
+            },
+            [],
+        );
+    }
+
     /// Fail with an error
     protected failWith(request: AsyncWebDBRequestVariant, data: any) {
-        this.postMessage({
-            messageId: this._nextMessageId++,
-            requestId: request.messageId,
-            type: AsyncWebDBResponseType.ERROR,
-            data: data
-        }, []);
+        this.postMessage(
+            {
+                messageId: this._nextMessageId++,
+                requestId: request.messageId,
+                type: AsyncWebDBResponseType.ERROR,
+                data: data,
+            },
+            [],
+        );
         return;
     }
 
     /// Process a request from the main thread
     public onMessage(request: AsyncWebDBRequestVariant) {
         if (request.type == AsyncWebDBRequestType.PING) {
-            this.postMessage({
-                messageId: this._nextMessageId++,
-                requestId: request.messageId,
-                type: AsyncWebDBResponseType.OK,
-                data: null
-            }, []);
+            this.sendOK(request);
             return;
         }
 
         // Bindings not available?
         if (!this._bindings) {
-            return this.failWith(request, new Error("webdb bindings are null"));
+            return this.failWith(request, new Error('webdb bindings are null'));
         }
 
+        // Catch every exception and forward it as error message to the main thread
         try {
             switch (request.type) {
                 case AsyncWebDBRequestType.CONNECT:
                     const conn = this._bindings.connect();
-                    this.postMessage({
-                        messageId: this._nextMessageId++,
-                        requestId: request.messageId,
-                        type: AsyncWebDBResponseType.CONNECTION_INFO,
-                        data: conn.handle
-                    }, []);
+                    this.postMessage(
+                        {
+                            messageId: this._nextMessageId++,
+                            requestId: request.messageId,
+                            type: AsyncWebDBResponseType.CONNECTION_INFO,
+                            data: conn.handle,
+                        },
+                        [],
+                    );
                     break;
                 case AsyncWebDBRequestType.DISCONNECT:
                     this._bindings.disconnect(request.data);
-                    this.postMessage({
-                        messageId: this._nextMessageId++,
-                        requestId: request.messageId,
-                        type: AsyncWebDBResponseType.OK,
-                        data: null
-                    }, []);
+                    this.sendOK(request);
                     break;
                 case AsyncWebDBRequestType.RUN_QUERY: {
                     const result = this._bindings.runQuery(request.data[0], request.data[1]);
-                    this.postMessage({
-                        messageId: this._nextMessageId++,
-                        requestId: request.messageId,
-                        type: AsyncWebDBResponseType.QUERY_RESULT,
-                        data: result
-                    }, [result.bb!.bytes().buffer]);
+                    this.postMessage(
+                        {
+                            messageId: this._nextMessageId++,
+                            requestId: request.messageId,
+                            type: AsyncWebDBResponseType.QUERY_RESULT,
+                            data: result,
+                        },
+                        [result.bb!.bytes().buffer],
+                    );
                     break;
                 }
                 case AsyncWebDBRequestType.SEND_QUERY: {
                     const result = this._bindings.sendQuery(request.data[0], request.data[1]);
-                    this.postMessage({
-                        messageId: this._nextMessageId++,
-                        requestId: request.messageId,
-                        type: AsyncWebDBResponseType.QUERY_RESULT,
-                        data: result
-                    }, [result.bb!.bytes().buffer]);
+                    this.postMessage(
+                        {
+                            messageId: this._nextMessageId++,
+                            requestId: request.messageId,
+                            type: AsyncWebDBResponseType.QUERY_RESULT,
+                            data: result,
+                        },
+                        [result.bb!.bytes().buffer],
+                    );
                     break;
                 }
                 case AsyncWebDBRequestType.FETCH_QUERY_RESULTS: {
                     const result = this._bindings.fetchQueryResults(request.data);
-                    this.postMessage({
-                        messageId: this._nextMessageId++,
-                        requestId: request.messageId,
-                        type: AsyncWebDBResponseType.QUERY_RESULT_CHUNK,
-                        data: result
-                    }, [result.bb!.bytes().buffer]);
+                    this.postMessage(
+                        {
+                            messageId: this._nextMessageId++,
+                            requestId: request.messageId,
+                            type: AsyncWebDBResponseType.QUERY_RESULT_CHUNK,
+                            data: result,
+                        },
+                        [result.bb!.bytes().buffer],
+                    );
                     break;
                 }
             }
-        } catch(e) {
-            return this.failWith(request, new Error("webdb bindings are null"));
+        } catch (e) {
+            return this.failWith(request, new Error('webdb bindings are null'));
         }
     }
 }
