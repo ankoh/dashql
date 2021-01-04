@@ -8,6 +8,7 @@ module.exports = {
     mode: 'production',
     entry: {
         bench_iterator: './src/iterator_benchmark.ts',
+        bench_iterator_async: './src/iterator_benchmark_async.ts',
     },
     output: {
         filename: '[name].js',
@@ -36,6 +37,14 @@ module.exports = {
                     name: 'wasm/[name].[ext]',
                 },
             },
+            {
+                test: /.*\.worker\.js$/,
+                type: 'javascript/auto',
+                loader: 'file-loader',
+                options: {
+                    name: 'workers/[name].[ext]',
+                },
+            },
         ],
     },
     plugins: [
@@ -48,7 +57,7 @@ module.exports = {
     ],
     externals: [
         nodeExternals({
-            allowlist: [/.*\.wasm$/],
+            allowlist: [/.*\.wasm$/, /.*\.worker\.js$/],
         }),
     ],
 };
