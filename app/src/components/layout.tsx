@@ -22,6 +22,7 @@ import {
     TableChart,
     TextChart,
 } from './widgets';
+
 import { Grid, Widget } from './grid';
 
 import styles from './layout.module.css';
@@ -173,13 +174,7 @@ class Layout extends React.Component<Props> {
 
     renderWidget = (widget: WidgetModel) => {
         return (
-            <Widget
-                key={widget.id}
-                x={widget.position.x}
-                y={widget.position.y}
-                w={widget.position.width}
-                h={widget.position.height}
-            >
+            <Widget key={widget.id} id={widget.id} {...widget.position}>
                 {this.renderContent(widget)}
             </Widget>
         );
@@ -188,27 +183,25 @@ class Layout extends React.Component<Props> {
     render() {
         return (
             <Grid
+                resizeHandles={['n', 'ne', 'e', 'se', 's', 'sw', 'w', 'nw']}
+                cols={12}
+                width={1000}
+                rowHeight={50}
                 className={styles.grid}
-                resizable={{
-                    autoHide: true,
-                    handles: 'n,ne,e,se,s,sw,w,nw',
-                }}
-                minWidth={0}
-                column={12}
-                cellHeight={50}
-                float
-                itemClass={styles.item}
+                compactType={null}
             >
                 {this.dashboard.widgets.map(this.renderWidget)}
-                <Widget x={12} onChange={console.log.bind(console)}>
+                <Widget id="a" x={12} y={0} width={1} height={1} onDrag={console.log.bind(console)}>
                     <button onClick={() => this.setState({ foo: this.state.foo + 1 })}>{this.state.foo}</button>
                 </Widget>
-                {this.state.foo % 3 != 0 && (
-                    <Widget x={this.state.foo} y={this.state.foo}>
+                {/* {this.state.foo % 3 != 0 && (
+                    <Widget id="b" x={this.state.foo} y={this.state.foo}>
                         {this.state.foo}
                     </Widget>
-                )}
-                <Widget>yo!</Widget>
+                )} */}
+                {/* <Widget id="c" x={12} y={12} width={1} height={1}>
+                    yo!
+                </Widget> */}
             </Grid>
         );
     }
