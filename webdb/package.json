@@ -39,7 +39,7 @@
         "dist/*.wasm"
     ],
     "main": "./dist/webdb_node.js",
-    "types": "./dist/types/index_node.d.ts",
+    "types": "./dist/webdb_node.d.ts",
     "browser": {
         "./dist/dashql_webdb_node.js": "./dist/webdb.js",
         "perf_hooks": false,
