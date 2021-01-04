@@ -6,17 +6,10 @@ let db: webdb.AsyncWebDB;
 
 beforeAll(() => {
     worker = webdb.spawnWorker(path.resolve(__dirname, "../dist/webdb_node_async.worker.js"));
-});
-
-afterAll(() => {
-    worker.terminate();
-});
-
-beforeEach(() => {
     db = new webdb.AsyncWebDB(worker);
 });
 
-afterEach(async () => {
+afterAll(async () => {
     await db.terminate();
 });
 
