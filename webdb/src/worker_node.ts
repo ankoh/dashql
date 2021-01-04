@@ -1,14 +1,14 @@
 // Copyright (c) 2020 The DashQL Authors
 
 import { AsyncWebDBDispatcher } from './async_webdb_dispatcher';
-import { AsyncWebDBResponse, AsyncWebDBRequest } from './async_webdb_message';
+import { AsyncWebDBResponseVariant, AsyncWebDBRequestVariant } from './async_webdb_message';
 import { WebDBBindings } from './webdb_bindings';
 import { WebDB } from './webdb_bindings_node';
 
 /// The webdb worker API for node.js workers
 class NodeWorker extends AsyncWebDBDispatcher {
     /// Post a response back to the main thread
-    protected postMessage(response: AsyncWebDBResponse, transfer: ArrayBuffer[]) {
+    protected postMessage(response: AsyncWebDBResponseVariant, transfer: ArrayBuffer[]) {
         self.postMessage(response, transfer);
     }
 
@@ -22,6 +22,6 @@ class NodeWorker extends AsyncWebDBDispatcher {
 
 /// Forward all requests
 const api = new NodeWorker();
-self.onmessage = function(event: MessageEvent<AsyncWebDBRequest>) {
+self.onmessage = function(event: MessageEvent<AsyncWebDBRequestVariant>) {
     api.onMessage(event.data);
 };
