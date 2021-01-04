@@ -1,4 +1,5 @@
 import * as React from 'react';
+import * as ReactGrid from 'react-grid-layout';
 import { DashboardModel, WidgetModel, WidgetType, ParameterType, ChartType } from '../model/dashboard';
 import {
     IntegerParameter,
@@ -23,108 +24,108 @@ import {
     TextChart,
 } from './widgets';
 
-import { Grid, Widget } from './grid';
-
 import styles from './layout.module.css';
 
 type Props = {};
 
-class Layout extends React.Component<Props> {
-    state = {
-        foo: 0,
-    };
+type State = {
+    dashboard: DashboardModel;
+};
 
-    dashboard: DashboardModel = {
-        widgets: [
-            {
-                id: WidgetType.Parameter | ParameterType.Integer,
-                type: WidgetType.Parameter | ParameterType.Integer,
-                position: {
-                    x: 0,
-                    y: 0,
-                    width: 6,
-                    height: 1,
+class Layout extends React.Component<Props, State> {
+    state = {
+        dashboard: {
+            widgets: [
+                {
+                    id: WidgetType.Parameter | ParameterType.Integer,
+                    type: WidgetType.Parameter | ParameterType.Integer,
+                    position: {
+                        x: ParameterType.Integer,
+                        y: ParameterType.Integer,
+                        width: 6,
+                        height: 1,
+                    },
+                    content: void 0,
                 },
-                content: void 0,
-            },
-            {
-                id: WidgetType.Parameter | ParameterType.Float,
-                type: WidgetType.Parameter | ParameterType.Float,
-                position: {
-                    x: 0,
-                    y: 0,
-                    width: 6,
-                    height: 1,
+                {
+                    id: WidgetType.Parameter | ParameterType.Float,
+                    type: WidgetType.Parameter | ParameterType.Float,
+                    position: {
+                        x: ParameterType.Float,
+                        y: ParameterType.Float,
+                        width: 6,
+                        height: 1,
+                    },
+                    content: void 0,
                 },
-                content: void 0,
-            },
-            {
-                id: WidgetType.Parameter | ParameterType.Text,
-                type: WidgetType.Parameter | ParameterType.Text,
-                position: {
-                    x: 0,
-                    y: 0,
-                    width: 6,
-                    height: 1,
+                {
+                    id: WidgetType.Parameter | ParameterType.Text,
+                    type: WidgetType.Parameter | ParameterType.Text,
+                    position: {
+                        x: ParameterType.Text,
+                        y: ParameterType.Text,
+                        width: 6,
+                        height: 1,
+                    },
+                    content: void 0,
                 },
-                content: void 0,
-            },
-            {
-                id: WidgetType.Parameter | ParameterType.Date,
-                type: WidgetType.Parameter | ParameterType.Date,
-                position: {
-                    x: 0,
-                    y: 0,
-                    width: 6,
-                    height: 1,
+                {
+                    id: WidgetType.Parameter | ParameterType.Date,
+                    type: WidgetType.Parameter | ParameterType.Date,
+                    position: {
+                        x: ParameterType.Date,
+                        y: ParameterType.Date,
+                        width: 6,
+                        height: 1,
+                    },
+                    content: void 0,
                 },
-                content: void 0,
-            },
-            {
-                id: WidgetType.Parameter | ParameterType.Datetime,
-                type: WidgetType.Parameter | ParameterType.Datetime,
-                position: {
-                    x: 0,
-                    y: 0,
-                    width: 6,
-                    height: 1,
+                {
+                    id: WidgetType.Parameter | ParameterType.Datetime,
+                    type: WidgetType.Parameter | ParameterType.Datetime,
+                    position: {
+                        x: ParameterType.Datetime,
+                        y: ParameterType.Datetime,
+                        width: 6,
+                        height: 1,
+                    },
+                    content: void 0,
                 },
-                content: void 0,
-            },
-            {
-                id: WidgetType.Parameter | ParameterType.Time,
-                type: WidgetType.Parameter | ParameterType.Time,
-                position: {
-                    x: 0,
-                    y: 0,
-                    width: 6,
-                    height: 1,
+                {
+                    id: WidgetType.Parameter | ParameterType.Time,
+                    type: WidgetType.Parameter | ParameterType.Time,
+                    position: {
+                        x: ParameterType.Time,
+                        y: ParameterType.Time,
+                        width: 6,
+                        height: 1,
+                    },
+                    content: void 0,
                 },
-                content: void 0,
-            },
-            {
-                id: WidgetType.Parameter | ParameterType.File,
-                type: WidgetType.Parameter | ParameterType.File,
-                position: {
-                    x: 0,
-                    y: 0,
-                    width: 6,
-                    height: 1,
+                {
+                    id: WidgetType.Parameter | ParameterType.File,
+                    type: WidgetType.Parameter | ParameterType.File,
+                    position: {
+                        x: ParameterType.File,
+                        y: ParameterType.File,
+                        width: 6,
+                        height: 1,
+                    },
+                    content: void 0,
                 },
-                content: void 0,
-            },
-            {
-                id: WidgetType.Chart | ChartType.Bar,
-                type: WidgetType.Chart | ChartType.Bar,
-                position: {
-                    x: 0,
-                    y: 0,
-                    width: 6,
-                    height: 1,
+                {
+                    id: WidgetType.Chart | ChartType.Bar,
+                    type: WidgetType.Chart | ChartType.Bar,
+                    position: {
+                        x: ChartType.Bar,
+                        y: ChartType.Bar,
+                        width: 6,
+                        height: 1,
+                    },
+                    content: void 0,
                 },
-                content: void 0,
-            },
-        ],
+            ],
+        },
     };
 
     renderContent = (widget: WidgetModel) => {
@@ -173,36 +174,33 @@ class Layout extends React.Component<Props> {
     };
 
     renderWidget = (widget: WidgetModel) => {
-        return (
-            <Widget key={widget.id} id={widget.id} {...widget.position}>
-                {this.renderContent(widget)}
-            </Widget>
-        );
+        return <div key={String(widget.id)}>{this.renderContent(widget)}</div>;
+    };
+
+    getLayout = (widgets: WidgetModel[]): ReactGridLayout.Layout[] => {
+        return widgets.map(widget => ({
+            i: String(widget.id),
+            x: widget.position.x,
+            y: widget.position.y,
+            w: widget.position.width,
+            h: widget.position.height,
+        }));
     };
 
     render() {
         return (
-            <Grid
+            <ReactGrid
                 resizeHandles={['n', 'ne', 'e', 'se', 's', 'sw', 'w', 'nw']}
                 cols={12}
-                width={1000}
+                width={500}
                 rowHeight={50}
                 className={styles.grid}
                 compactType={null}
+                layout={this.getLayout(this.state.dashboard.widgets)}
+                onResize={console.log.bind(console)}
             >
-                {this.dashboard.widgets.map(this.renderWidget)}
-                <Widget id="a" x={12} y={0} width={1} height={1} onDrag={console.log.bind(console)}>
-                    <button onClick={() => this.setState({ foo: this.state.foo + 1 })}>{this.state.foo}</button>
-                </Widget>
-                {/* {this.state.foo % 3 != 0 && (
-                    <Widget id="b" x={this.state.foo} y={this.state.foo}>
-                        {this.state.foo}
-                    </Widget>
-                )} */}
-                {/* <Widget id="c" x={12} y={12} width={1} height={1}>
-                    yo!
-                </Widget> */}
-            </Grid>
+                {this.state.dashboard.widgets.map(this.renderWidget)}
+            </ReactGrid>
         );
     }
 }
