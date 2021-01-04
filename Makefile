@@ -191,7 +191,10 @@ docker_ci_image:
 .PHONY: bootstrap
 bootstrap:
 	git submodule update --init --recursive
-	make docker_ci_image npm_install proto wasm webdb core
+	make docker_ci_image npm_install
+	make proto
+	make wasm
+	make webdb core
 
 # ---------------------------------------------------------------------------
 # Deployment
