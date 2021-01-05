@@ -13,11 +13,17 @@
 }
 
 .actions {
-    padding: 8px 0px;
+    padding: 4px 0px;
 }
 
-.setup_actions {}
-.program_actions {}
+.setup_actions {
+    padding: 4px 0px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.program_actions {
+    padding: 4px 0px;
+}
 
 .action {
     display: grid;
