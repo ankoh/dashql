@@ -246,3 +246,8 @@
         select * into countries_joined from country1_weather c1, country2_weather c2 where c1.month = c2.month and c2.month = global.month
     </input>
 </test>
+<test name="select_generate_series">
+    <input>
+        select v into a FROM generate_series(0, 10000) as t(v);
+    </input>
+</test>
