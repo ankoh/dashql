@@ -56,11 +56,12 @@ export class AsyncWebDB {
     /// The pending requests
     _pendingRequests: Map<number, TaskVariant> = new Map();
 
-    constructor(worker: Worker) {
+    constructor(worker: Worker | null = null) {
         this._onMessageHandler = this.onMessage.bind(this);
         this._onErrorHandler = this.onError.bind(this);
         this._onCloseHandler = this.onClose.bind(this);
-        this.attach(worker);
+        if (worker != null)
+            this.attach(worker);
     }
 
     /// Attach to worker
