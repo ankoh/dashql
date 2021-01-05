@@ -1,16 +1,19 @@
 import { model } from "@dashql/core";
 import { AppState } from "./state";
 import { AppSettings } from "./settings";
+import { LaunchStep, Status } from "./launch_step";
 
 /// A mutation type
 export enum StateMutationType {
     CONFIGURE_APP           = 'CONFIGURE_APP',
+    UPDATE_LAUNCH_STEP      = 'UPDATE_LAUNCH_STEP',
     OTHER                   = 'OTHER',
 }
 
 /// An state mutation variant
 export type StateMutationVariant =
     | model.StateMutation<StateMutationType.CONFIGURE_APP, AppSettings>
+    | model.StateMutation<StateMutationType.UPDATE_LAUNCH_STEP, [LaunchStep, Status, string | null]>
     | model.StateMutationVariant
     ;
 
@@ -33,6 +36,29 @@ export class AppStateMutation {
                     ...state,
                     appSettings: mutation.data,
                 };
+            case StateMutationType.UPDATE_LAUNCH_STEP: {
+                const [step, status, error] = mutation.data;
+                const steps = state.launchSteps.withMutations((s) => {
+                    const info = s.get(step);
+                    const now = new Date();
+                    if (!info) return;
+                    s.set(step, {
+                        ...info,
+                        startedAt: info.startedAt || now,
+                        lastUpdateAt: now,
+                        status: status,
+                        error: error,
+                    });
+                });
+                const allCompleted = steps.reduce((accum, value) => {
+                    return accum && (value.status == Status.COMPLETED);
+                }, true);
+                return {
+                    ...state,
+                    launchSteps: steps,
+                    launchComplete: allCompleted,
+                };
+            }
             default: {
                 const s = model.StateMutations.reduce(state.core, mutation);
                 return s === state.core ? state : {

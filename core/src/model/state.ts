@@ -1,5 +1,4 @@
 import * as Immutable from "immutable";
-import * as proto from '@dashql/proto';
 import { LogEntry } from "./log";
 import { Plan } from "./plan";
 import { CachedFileData, CachedHTTPData } from "./cache";
