@@ -29,7 +29,7 @@ ReactDOM.render(
                     <Switch>
                         <Route exact path="/studio" component={withNavBar(Studio)} />
                         <Route path="/404" component={NotFound} />
-                        <Redirect to="/404" />
+                        <Redirect to="/studio" />
                     </Switch>
                 </BrowserRouter>
             </Launcher>
