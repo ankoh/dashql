@@ -5,19 +5,8 @@ import { flatbuffers } from 'flatbuffers';
 import {
     AsyncWebDBRequestType,
     AsyncWebDBResponseType,
-    AsyncWebDBRequestVariant,
     AsyncWebDBResponseVariant,
 } from './async_webdb_message';
-
-enum TaskType {
-    PING = 'PING',
-    OPEN = 'OPEN',
-    CONNECT = 'CONNECT',
-    DISCONNECT = 'DISCONNECT',
-    RUN_QUERY = 'RUN_QUERY',
-    SEND_QUERY = 'SEND_QUERY',
-    FETCH_QUERY_RESULTS = 'FETCH_QUERY_RESULTS',
-}
 
 class Task<T, D, P> {
     readonly type: T;
@@ -39,13 +28,13 @@ class Task<T, D, P> {
 type ConnectionID = number;
 
 type TaskVariant =
-    | Task<TaskType.PING, null, null>
-    | Task<TaskType.OPEN, string | null, null>
-    | Task<TaskType.CONNECT, null, ConnectionID>
-    | Task<TaskType.DISCONNECT, ConnectionID, null>
-    | Task<TaskType.SEND_QUERY, [ConnectionID, string], Uint8Array>
-    | Task<TaskType.RUN_QUERY, [ConnectionID, string], Uint8Array>
-    | Task<TaskType.FETCH_QUERY_RESULTS, ConnectionID, Uint8Array>;
+    | Task<AsyncWebDBRequestType.PING, null, null>
+    | Task<AsyncWebDBRequestType.OPEN, string | null, null>
+    | Task<AsyncWebDBRequestType.CONNECT, null, ConnectionID>
+    | Task<AsyncWebDBRequestType.DISCONNECT, ConnectionID, null>
+    | Task<AsyncWebDBRequestType.SEND_QUERY, [ConnectionID, string], Uint8Array>
+    | Task<AsyncWebDBRequestType.RUN_QUERY, [ConnectionID, string], Uint8Array>
+    | Task<AsyncWebDBRequestType.FETCH_QUERY_RESULTS, ConnectionID, Uint8Array>;
 
 export class AsyncWebDB {
     /// The message handler
@@ -111,69 +100,18 @@ export class AsyncWebDB {
 
     /// Post a task
     protected async postTask(task: TaskVariant): Promise<any> {
-        const mid = this._nextMessageId++;
-        this._pendingRequests.set(mid, task);
-        switch (task.type) {
-            case TaskType.OPEN:
-                this.postRequest({
-                    messageId: mid,
-                    type: AsyncWebDBRequestType.OPEN,
-                    data: task.data,
-                });
-                break;
-            case TaskType.PING:
-                this.postRequest({
-                    messageId: mid,
-                    type: AsyncWebDBRequestType.PING,
-                    data: task.data,
-                });
-                break;
-            case TaskType.CONNECT:
-                this.postRequest({
-                    messageId: mid,
-                    type: AsyncWebDBRequestType.CONNECT,
-                    data: task.data,
-                });
-                break;
-            case TaskType.DISCONNECT:
-                this.postRequest({
-                    messageId: mid,
-                    type: AsyncWebDBRequestType.DISCONNECT,
-                    data: task.data,
-                });
-                break;
-            case TaskType.RUN_QUERY:
-                this.postRequest({
-                    messageId: mid,
-                    type: AsyncWebDBRequestType.RUN_QUERY,
-                    data: task.data,
-                });
-                break;
-            case TaskType.SEND_QUERY:
-                this.postRequest({
-                    messageId: mid,
-                    type: AsyncWebDBRequestType.SEND_QUERY,
-                    data: task.data,
-                });
-                break;
-            case TaskType.FETCH_QUERY_RESULTS:
-                this.postRequest({
-                    messageId: mid,
-                    type: AsyncWebDBRequestType.FETCH_QUERY_RESULTS,
-                    data: task.data,
-                });
-                break;
-        }
-        return await task.promise;
-    }
-
-    /// Thin wrapper around post message for strong typing of requests
-    protected postRequest(request: AsyncWebDBRequestVariant) {
         if (!this._worker) {
             console.error('cannot send a message since the worker is not set!');
             return;
         }
-        this._worker.postMessage(request);
+        const mid = this._nextMessageId++;
+        this._pendingRequests.set(mid, task);
+        this._worker.postMessage({
+            messageId: mid,
+            type: task.type,
+            data: task.data,
+        });
+        return await task.promise;
     }
 
     /// Received a message
@@ -192,35 +130,35 @@ export class AsyncWebDB {
             return;
         }
 
-        // Otherwise differentiate between the tasks first 
+        // Otherwise differentiate between the tasks first
         switch (task.type) {
-            case TaskType.PING:
-            case TaskType.OPEN:
-            case TaskType.DISCONNECT:
+            case AsyncWebDBRequestType.PING:
+            case AsyncWebDBRequestType.OPEN:
+            case AsyncWebDBRequestType.DISCONNECT:
                 if (response.type == AsyncWebDBResponseType.OK) {
                     task.promiseResolver(response.data);
                     return;
                 }
                 break;
-            case TaskType.CONNECT:
+            case AsyncWebDBRequestType.CONNECT:
                 if (response.type == AsyncWebDBResponseType.CONNECTION_INFO) {
                     task.promiseResolver(response.data);
                     return;
                 }
                 break;
-            case TaskType.RUN_QUERY:
+            case AsyncWebDBRequestType.RUN_QUERY:
                 if (response.type == AsyncWebDBResponseType.QUERY_RESULT) {
                     task.promiseResolver(response.data);
                     return;
                 }
                 break;
-            case TaskType.SEND_QUERY:
+            case AsyncWebDBRequestType.SEND_QUERY:
                 if (response.type == AsyncWebDBResponseType.QUERY_RESULT) {
                     task.promiseResolver(response.data);
                     return;
                 }
                 break;
-            case TaskType.FETCH_QUERY_RESULTS:
+            case AsyncWebDBRequestType.FETCH_QUERY_RESULTS:
                 if (response.type == AsyncWebDBResponseType.QUERY_RESULT_CHUNK) {
                     task.promiseResolver(response.data);
                     return;
@@ -248,35 +186,38 @@ export class AsyncWebDB {
 
     /// Ping the worker thread
     public async ping() {
-        const task = new Task<TaskType.PING, null, null>(TaskType.PING, null);
+        const task = new Task<AsyncWebDBRequestType.PING, null, null>(AsyncWebDBRequestType.PING, null);
         await this.postTask(task);
     }
 
     /// Open the database
     public async open(wasm: string | null): Promise<null> {
-        const task = new Task<TaskType.OPEN, string | null, null>(TaskType.OPEN, wasm);
+        const task = new Task<AsyncWebDBRequestType.OPEN, string | null, null>(AsyncWebDBRequestType.OPEN, wasm);
         return await this.postTask(task);
     }
 
     /// Connect to the database
     public async connect(): Promise<AsyncWebDBConnection> {
-        const task = new Task<TaskType.CONNECT, null, ConnectionID>(TaskType.CONNECT, null);
+        const task = new Task<AsyncWebDBRequestType.CONNECT, null, ConnectionID>(AsyncWebDBRequestType.CONNECT, null);
         const conn = await this.postTask(task);
         return new AsyncWebDBConnection(this, conn);
     }
 
     /// Connect to the database
     public async disconnect(conn: ConnectionID): Promise<null> {
-        const task = new Task<TaskType.DISCONNECT, ConnectionID, null>(TaskType.DISCONNECT, conn);
+        const task = new Task<AsyncWebDBRequestType.DISCONNECT, ConnectionID, null>(
+            AsyncWebDBRequestType.DISCONNECT,
+            conn,
+        );
         return await this.postTask(task);
     }
 
     /// Run a query
     public async runQuery(conn: ConnectionID, text: string): Promise<proto.QueryResult> {
-        const task = new Task<TaskType.RUN_QUERY, [ConnectionID, string], Uint8Array>(TaskType.RUN_QUERY, [
-            conn,
-            text,
-        ]);
+        const task = new Task<AsyncWebDBRequestType.RUN_QUERY, [ConnectionID, string], Uint8Array>(
+            AsyncWebDBRequestType.RUN_QUERY,
+            [conn, text],
+        );
         const mem = await this.postTask(task);
         const bb = new flatbuffers.ByteBuffer(mem);
         return proto.QueryResult.getRoot(bb);
@@ -284,10 +225,10 @@ export class AsyncWebDB {
 
     /// Send a query
     public async sendQuery(conn: ConnectionID, text: string): Promise<proto.QueryResult> {
-        const task = new Task<TaskType.SEND_QUERY, [ConnectionID, string], Uint8Array>(TaskType.SEND_QUERY, [
-            conn,
-            text,
-        ]);
+        const task = new Task<AsyncWebDBRequestType.SEND_QUERY, [ConnectionID, string], Uint8Array>(
+            AsyncWebDBRequestType.SEND_QUERY,
+            [conn, text],
+        );
         const mem = await this.postTask(task);
         const bb = new flatbuffers.ByteBuffer(mem);
         return proto.QueryResult.getRoot(bb);
@@ -295,8 +236,8 @@ export class AsyncWebDB {
 
     /// Fetch query results
     public async fetchQueryResults(conn: ConnectionID): Promise<proto.QueryResultChunk> {
-        const task = new Task<TaskType.FETCH_QUERY_RESULTS, ConnectionID, Uint8Array>(
-            TaskType.FETCH_QUERY_RESULTS,
+        const task = new Task<AsyncWebDBRequestType.FETCH_QUERY_RESULTS, ConnectionID, Uint8Array>(
+            AsyncWebDBRequestType.FETCH_QUERY_RESULTS,
             conn,
         );
         const mem = await this.postTask(task);
