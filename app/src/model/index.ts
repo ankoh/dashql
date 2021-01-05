@@ -4,7 +4,7 @@ import { Store } from 'redux';
 // Export things
 export * from './launch_step';
 export * from './persistent_state';
-export * from './settings';
+export * from './app_config';
 export * from './state';
 export * from './state_mutation';
 

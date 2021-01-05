@@ -92,7 +92,9 @@ class Editor extends React.Component<Props> {
     public editorDidMount() {
         const editor = this.editor!;
         editor.onDidChangeModelContent((_event) => {
-            this.props.updateProgramText(editor.getValue(), editor.getModel()?.getLineCount() || 0);
+            if (editor.getValue() != this.props.programText) {
+                this.props.updateProgramText(editor.getValue(), editor.getModel()?.getLineCount() || 0);
+            }
         });
         if (this.monacoContainer) {
             this.resizeEditorDelayed(this.monacoContainer.offsetHeight, this.monacoContainer.offsetWidth);

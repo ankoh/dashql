@@ -18,6 +18,7 @@
         "@dashql/core": "file:../core/",
         "@dashql/proto": "file:../proto/",
         "@dashql/webdb": "file:../webdb/",
+        "axios": "^0.21.1",
         "chart.js": "^2.9.4",
         "classnames": "^2.2.6",
         "dagre": "^0.8.5",

@@ -82,9 +82,9 @@ export class StateMutations {
                 }
                 return {
                     ...state,
-                    programStatus: Immutable.List<StatementStatus>(),
                     schedulerStatus: ActionSchedulerStatus.Idle,
                     plan: null,
+                    planProgramStatus: Immutable.List<StatementStatus>(),
                     planActions: Immutable.Map<ActionID, Action>(),
                     planActionLog: Immutable.List<ActionLogEntry>(),
                 };
@@ -109,9 +109,9 @@ export class StateMutations {
                 });
                 return {
                     ...state,
-                    programStatus: Immutable.List<StatementStatus>(stmt),
                     schedulerStatus: ActionSchedulerStatus.Working,
                     plan: mutation.data[0],
+                    planProgramStatus: Immutable.List<StatementStatus>(stmt),
                     planActions: Immutable.Map<ActionID, Action>(mutation.data[1].map(a => [a.actionId, a])),
                     planActionLog: Immutable.List<ActionLogEntry>(),
                 };
@@ -135,13 +135,12 @@ export class StateMutations {
                 return {
                     ...state,
                     program: mutation.data,
-                    programStatus: Immutable.List<StatementStatus>(),
                 };
 
             case StateMutationType.UPDATE_PLAN_ACTIONS: {
                 return {
                     ...state,
-                    programStatus: state.programStatus.withMutations(status => {
+                    planProgramStatus: state.planProgramStatus.withMutations(status => {
                         for (const update of mutation.data) {
                             const action = state.planActions.get(update.actionId);
                             if (!action || action.originStatement == null || action.statusCode == update.statusCode) {

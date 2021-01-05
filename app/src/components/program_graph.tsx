@@ -192,8 +192,8 @@ class ProgramGraph extends React.Component<ProgramGraphProps, ProgramGraphState>
 }
 
 const mapStateToProps = (state: AppState) => ({
-    program: state.core.program,
-    programStatus: state.core.programStatus,
+    program: state.core.plan?.program || null,
+    programStatus: state.core.planProgramStatus,
 });
 
 const mapDispatchToProps = (_dispatch: Dispatch) => ({});

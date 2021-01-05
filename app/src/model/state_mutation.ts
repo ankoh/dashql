@@ -1,6 +1,6 @@
 import { model } from "@dashql/core";
 import { AppState } from "./state";
-import { AppSettings } from "./settings";
+import { AppConfig } from "./app_config";
 import { LaunchStep, Status } from "./launch_step";
 
 /// A mutation type
@@ -12,7 +12,7 @@ export enum StateMutationType {
 
 /// An state mutation variant
 export type StateMutationVariant =
-    | model.StateMutation<StateMutationType.CONFIGURE_APP, AppSettings>
+    | model.StateMutation<StateMutationType.CONFIGURE_APP, AppConfig>
     | model.StateMutation<StateMutationType.UPDATE_LAUNCH_STEP, [LaunchStep, Status, string | null]>
     | model.StateMutationVariant
     ;
@@ -34,7 +34,7 @@ export class AppStateMutation {
             case StateMutationType.CONFIGURE_APP:
                 return {
                     ...state,
-                    appSettings: mutation.data,
+                    config: mutation.data,
                 };
             case StateMutationType.UPDATE_LAUNCH_STEP: {
                 const [step, status, error] = mutation.data;

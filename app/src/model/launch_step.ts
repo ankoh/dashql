@@ -35,7 +35,6 @@ export const DEFAULT_LAUNCH_STEPS = [
     LaunchStep.CONFIGURE_APP,
     LaunchStep.INIT_ANALYZER,
     LaunchStep.INIT_WEBDB,
-    LaunchStep.LOAD_DEMO,
 ];
 
 export function createLaunchSteps(): Immutable.Map<LaunchStep, LaunchStepInfo> {
@@ -56,13 +55,6 @@ export function createLaunchSteps(): Immutable.Map<LaunchStep, LaunchStepInfo> {
         }],
         [LaunchStep.INIT_WEBDB, {
             label: "Initialize the database",
-            status: Status.NONE,
-            startedAt: null,
-            lastUpdateAt: null,
-            error: null,
-        }],
-        [LaunchStep.LOAD_DEMO, {
-            label: "Load the demo data",
             status: Status.NONE,
             startedAt: null,
             lastUpdateAt: null,

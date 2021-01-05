@@ -21,6 +21,14 @@ const GITHUB_OAUTH_VERSION = childProcess
     .toString()
     .trim();
 
+/// We support dynamic configurations of DashQL via a dedicated config file.
+/// The app loads this file at startup which allows us to adjust certain settings dynamically.
+///
+/// By default, the name of this config file includes the content hash for our own cache-busting.
+/// A more "generic" build of DashQL should set this path to 'static/config.json'.
+/// For example, we may want to provide a docker image for on-premise deployments that mounts a user-provided config.
+const CONFIG_PATH = 'static/config.[contenthash].json';
+
 function configure(params) {
     return {
         target: 'web',
@@ -62,6 +70,14 @@ function configure(params) {
                             },
                         },
                     ],
+                },
+                {
+                    test: /public\/config\.json$/i,
+                    type: 'javascript/auto',
+                    loader: 'file-loader',
+                    options: {
+                        name: CONFIG_PATH,
+                    },
                 },
                 {
                     test: /\.(png|jpe?g|gif)$/i,

@@ -8,33 +8,8 @@ import webdb_wasm from '@dashql/webdb/dist/webdb.wasm';
 import webdb_worker from '@dashql/webdb/dist/webdb_async.worker.js';
 import analyzer_wasm from '@dashql/core/dist/dashql_analyzer.wasm';
 
-export const DEMO_SCRIPT = `-- This script outlines basic concepts of the SQL extension DashQL.
--- Delete everything when you're ready and start from scratch.
-
--- Declare a dynamic input field on top of your dashboard.
--- Ref: https://docs.dashql.com/grammar/param
-DECLARE PARAMETER country TYPE TEXT (
-    default_value = 'DE'
-);
-
--- Load data from external sources like HTTP REST APIs.
--- Ref: https://docs.dashql.com/grammar/load
-LOAD weather_csv FROM http (
-    url = format('https://cdn.dashql.com/demo/weather/{}', global.country)
-);
-
--- Interpret the data as SQL table.
--- Ref: https://docs.dashql.com/grammar/extract
-EXTRACT weather FROM weather_csv USING CSV;
-
--- Run arbitrary SQL within your browser.
--- Ref: https://docs.dashql.com/grammar/query
-SELECT 1 INTO weather_avg FROM weather;
-
--- Visualize tables and views.
--- Ref: https://docs.dashql.com/grammar/viz
-VIZ weather_avg USING LINE;
-`;
+import axios from 'axios';
+import config_url from '../public/config.json';
 
 function startStep(store: model.AppReduxStore, step: model.LaunchStep) {
     model.mutate(store.dispatch, {
@@ -50,15 +25,32 @@ function stepSucceeded(store: model.AppReduxStore, step: model.LaunchStep) {
     });
 }
 
-function stepFailed(store: model.AppReduxStore, step: model.LaunchStep) {
+function stepFailed(store: model.AppReduxStore, step: model.LaunchStep, error: string | null = null) {
     model.mutate(store.dispatch, {
         type: model.StateMutationType.UPDATE_LAUNCH_STEP,
-        data: [step, model.Status.FAILED, null]
+        data: [step, model.Status.FAILED, error]
     });
 }
 
-function configureApp(store: model.AppReduxStore) {
-    stepSucceeded(store, model.LaunchStep.CONFIGURE_APP);
+async function configureApp(store: model.AppReduxStore): Promise<model.AppConfig | null> {
+    try {
+        const resp = await axios.get(config_url);
+        if (!model.isAppConfig(resp.data)) {
+            stepFailed(store, model.LaunchStep.CONFIGURE_APP, "invalid app config");
+            return null;
+        }
+        const config = resp.data as model.AppConfig;
+        model.mutate(store.dispatch, {
+            type: model.StateMutationType.CONFIGURE_APP,
+            data: config,
+        });
+        stepSucceeded(store, model.LaunchStep.CONFIGURE_APP);
+        return config;
+    } catch(e) {
+        console.error(e);
+        stepFailed(store, model.LaunchStep.CONFIGURE_APP);
+    }
+    return null;
 }
 
 async function initWebDB(store: model.AppReduxStore): Promise<webdb.AsyncWebDB | null> {
@@ -88,16 +80,9 @@ async function initAnalyzer(store: model.AppReduxStore): Promise<core.analyzer.A
     return null;
 }
 
-function loadDemo(store: model.AppReduxStore) {
-    model.mutate(store.dispatch, {
-        type: core.model.StateMutationType.SET_PROGRAM_TEXT,
-        data: [DEMO_SCRIPT, core.utils.countLines(DEMO_SCRIPT)],
-    });
-    stepSucceeded(store, model.LaunchStep.LOAD_DEMO);
-}
-
 export async function launchApp(ctx: IAppContext) {
-    configureApp(ctx.store);
+    const config = await configureApp(ctx.store);
+    if (!config) return;
 
     const webdbPromise = initWebDB(ctx.store);
     const analyzerPromise = initAnalyzer(ctx.store);
@@ -108,5 +93,9 @@ export async function launchApp(ctx: IAppContext) {
     const analyzer = init[1];
 
     ctx.platform = new platform.BrowserPlatform(ctx.store, webdb, analyzer);
-    loadDemo(ctx.store);
+
+    model.mutate(ctx.store.dispatch, {
+        type: core.model.StateMutationType.SET_PROGRAM_TEXT,
+        data: [config.program, core.utils.countLines(config.program)],
+    });
 }
