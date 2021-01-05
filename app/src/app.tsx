@@ -1,6 +1,7 @@
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
 import * as core from '@dashql/core';
+import * as webdb from '@dashql/webdb/dist/webdb_async';
 import { createStore } from './model';
 import { BrowserPlatform } from './platform';
 import { AppController } from './controller';
@@ -15,9 +16,15 @@ import './fonts/fonts.module.css';
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
 
-import dashql_analyzer_wasm from '@dashql/core/dist/dashql_analyzer.wasm';
+import webdb_wasm from '@dashql/webdb/dist/webdb.wasm';
+import webdb_worker from '@dashql/webdb/dist/webdb_async.worker.js';
+import analyzer_wasm from '@dashql/core/dist/dashql_analyzer.wasm';
 
-const analyzer = new core.analyzer.Analyzer({}, dashql_analyzer_wasm);
+const dbWorker = webdb.spawnWorker(webdb_worker);
+const db = new webdb.AsyncWebDB(dbWorker);
+db.open(webdb_wasm);
+
+const analyzer = new core.analyzer.Analyzer({}, analyzer_wasm);
 const store = createStore();
 const platform = new BrowserPlatform(store, analyzer);
 

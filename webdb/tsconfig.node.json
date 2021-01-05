@@ -1,6 +1,7 @@
 {
     "extends": "./tsconfig.json",
     "compilerOptions": {
-        "sourceMap": false
+        "sourceMap": true,
+        "types": ["emscripten", "jest", "node"]
     }
 }
