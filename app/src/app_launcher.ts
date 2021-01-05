@@ -98,4 +98,8 @@ export async function launchApp(ctx: IAppContext) {
         type: core.model.StateMutationType.SET_PROGRAM_TEXT,
         data: [config.program, core.utils.countLines(config.program)],
     });
+    model.mutate(ctx.store.dispatch, {
+        type: model.StateMutationType.MARK_LAUNCH_COMPLETE,
+        data: null,
+    });
 }
