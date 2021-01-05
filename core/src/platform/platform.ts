@@ -1,3 +1,4 @@
+import * as webdb from '@dashql/webdb/dist/webdb_async';
 import { AnalyzerBindings } from "../analyzer";
 import { DatabaseManager } from "./database_manager";
 import { DerivedReduxStore } from "../model";
@@ -8,6 +9,8 @@ import { LogManager } from "./log_manager";
 export class Platform {
     /// The global application state
     _store: DerivedReduxStore;
+    /// The webdb
+    _webdb: webdb.AsyncWebDB;
     /// The analyzer bindings
     _analyzer: AnalyzerBindings;
     /// The database manager
@@ -19,10 +22,11 @@ export class Platform {
     /// The log manager
     _logManager: LogManager;
 
-    constructor(store: DerivedReduxStore, analyzer: AnalyzerBindings) {
+    constructor(store: DerivedReduxStore, webdb: webdb.AsyncWebDB, analyzer: AnalyzerBindings) {
         this._store = store;
+        this._webdb = webdb;
         this._analyzer = analyzer;
-        this._databaseManager = new DatabaseManager();
+        this._databaseManager = new DatabaseManager(this._webdb);
         this._fileManager = new FileManager(store);
         this._httpManager = new HTTPManager(store);
         this._logManager = new LogManager(store);
