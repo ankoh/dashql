@@ -38,6 +38,17 @@ export class Plan {
             fn(i, graph.setupActions(i, tmp)!);
         }
     }
+    /// Iterate setup actions in reverse order
+    public iterateSetupActionsReverse(fn: (idx: number, node: proto.action.SetupAction) => void) {
+        const graph = this._plan.actionGraph();
+        if (!graph) return;
+        const count = graph.setupActionsLength();
+        const tmp = new proto.action.SetupAction();
+        for (let i = 0; i < count; ++i) {
+            const ri = count - i - 1;
+            fn(ri, graph.setupActions(ri, tmp)!);
+        }
+    }
     /// Iterate program actions
     public iterateProgramActions(fn: (idx: number, node: proto.action.ProgramAction) => void) {
         const graph = this._plan.actionGraph();
