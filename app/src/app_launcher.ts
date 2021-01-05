@@ -1,5 +1,12 @@
+import * as webdb from '@dashql/webdb/dist/webdb_async';
 import * as core from '@dashql/core';
-import * as model from '../model';
+import * as model from './model';
+import * as platform from './platform';
+import { IAppContext } from './app_context';
+
+import webdb_wasm from '@dashql/webdb/dist/webdb.wasm';
+import webdb_worker from '@dashql/webdb/dist/webdb_async.worker.js';
+import analyzer_wasm from '@dashql/core/dist/dashql_analyzer.wasm';
 
 export const DEMO_SCRIPT = `-- This script outlines basic concepts of the SQL extension DashQL.
 -- Delete everything when you're ready and start from scratch.
@@ -29,19 +36,18 @@ SELECT 1 INTO weather_avg FROM weather;
 VIZ weather_avg USING LINE;
 `;
 
-/// A controller
-export class DemoController {
-    /// The core
-    protected _platform: core.platform.Platform;
+export async function launchApp(ctx: IAppContext) {
+    const dbWorker = webdb.spawnWorker(webdb_worker);
+    const db = new webdb.AsyncWebDB(dbWorker);
+    await db.open(webdb_wasm);
 
-    constructor(platform: core.platform.Platform) {
-        this._platform = platform;
-    }
+    const analyzer = new core.analyzer.Analyzer({}, analyzer_wasm);
+    await analyzer.init();
 
-    public setup() {
-        model.mutate(this._platform.store.dispatch, {
-            type: core.model.StateMutationType.SET_PROGRAM_TEXT,
-            data: [DEMO_SCRIPT, core.utils.countLines(DEMO_SCRIPT)],
-        });
-    }
+    ctx.platform = new platform.BrowserPlatform(ctx.store, db, analyzer);
+
+    model.mutate(ctx.store.dispatch, {
+        type: core.model.StateMutationType.SET_PROGRAM_TEXT,
+        data: [DEMO_SCRIPT, core.utils.countLines(DEMO_SCRIPT)],
+    });
 }

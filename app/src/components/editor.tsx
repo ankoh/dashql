@@ -135,8 +135,7 @@ class Editor extends React.Component<Props> {
     }
 
     public updateMarkers() {
-        const platform = this.props.appContext.controller.platform;
-        const state = platform.store.getState();
+        const state = this.props.appContext.store.getState();
         const program = state.core.program;
         const data = this.editor?.getModel();
         if (!data) return;
