@@ -8,6 +8,3 @@ import CrossWorker from "./crossworker/index_web";
 export function spawnWorker(path: string) {
     return new CrossWorker(path);
 }
-exports = {
-    CrossWorker
-};

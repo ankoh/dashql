@@ -8,6 +8,8 @@ import {
     AsyncWebDBResponseVariant,
 } from './async_webdb_message';
 
+type ConnectionID = number;
+
 class Task<T, D, P> {
     readonly type: T;
     readonly data: D;
@@ -24,8 +26,6 @@ class Task<T, D, P> {
         });
     }
 }
-
-type ConnectionID = number;
 
 type TaskVariant =
     | Task<AsyncWebDBRequestType.PING, null, null>
