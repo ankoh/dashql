@@ -7,6 +7,7 @@ import { LaunchStep, Status } from "./launch_step";
 export enum StateMutationType {
     CONFIGURE_APP           = 'CONFIGURE_APP',
     UPDATE_LAUNCH_STEP      = 'UPDATE_LAUNCH_STEP',
+    MARK_LAUNCH_COMPLETE     = 'SET_LAUNCH_COMPLETE',
     OTHER                   = 'OTHER',
 }
 
@@ -14,6 +15,7 @@ export enum StateMutationType {
 export type StateMutationVariant =
     | model.StateMutation<StateMutationType.CONFIGURE_APP, AppConfig>
     | model.StateMutation<StateMutationType.UPDATE_LAUNCH_STEP, [LaunchStep, Status, string | null]>
+    | model.StateMutation<StateMutationType.MARK_LAUNCH_COMPLETE, null>
     | model.StateMutationVariant
     ;
 
@@ -50,13 +52,15 @@ export class AppStateMutation {
                         error: error,
                     });
                 });
-                const allCompleted = steps.reduce((accum, value) => {
-                    return accum && (value.status == Status.COMPLETED);
-                }, true);
                 return {
                     ...state,
                     launchSteps: steps,
-                    launchComplete: allCompleted,
+                };
+            }
+            case StateMutationType.MARK_LAUNCH_COMPLETE: {
+                return {
+                    ...state,
+                    launchComplete: true,
                 };
             }
             default: {
