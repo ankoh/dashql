@@ -1,6 +1,6 @@
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
-import { createStore } from './model';
+import * as model from './model';
 import { launchApp } from './app_launcher';
 import { Route, BrowserRouter, Switch, Redirect } from 'react-router-dom';
 import { Provider as ReduxProvider } from 'react-redux';
@@ -13,18 +13,17 @@ import './fonts/fonts.module.css';
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
 
-const store = createStore();
-const appContext: IAppContext = {
-    store: store,
+const ctx: IAppContext = {
+    store: model.createStore(),
     platform: null
 };
 
-launchApp(appContext)
+launchApp(ctx)
     .catch((e) => { console.error(e); });
 
 ReactDOM.render(
-    <AppContextProvider value={appContext}>
-        <ReduxProvider store={store}>
+    <AppContextProvider value={ctx}>
+        <ReduxProvider store={ctx.store}>
             <Launcher>
                 <BrowserRouter>
                     <Switch>
