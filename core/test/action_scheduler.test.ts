@@ -1,4 +1,6 @@
 import { analyzer, model, actions, platform, ActionScheduler, utils } from '../src/index_node';
+import { instance, mock } from 'ts-mockito';
+import * as webdb from '@dashql/webdb/dist/webdb_node_async';
 import * as path from 'path';
 import * as proto from '@dashql/proto';
 
@@ -7,6 +9,12 @@ import ActionClass = model.ActionClass;
 import ProgramActionType = proto.action.ProgramActionType;
 
 var analyzerBindings: analyzer.AnalyzerBindings;
+
+function mockDB(): [webdb.AsyncWebDB, webdb.AsyncWebDB] {
+    const dbMock: webdb.AsyncWebDB = mock(webdb.AsyncWebDB);
+    const db: webdb.AsyncWebDB = instance(dbMock);
+    return [db, dbMock];
+}
 
 beforeAll(async () => {
     analyzerBindings = new analyzer.Analyzer({}, path.resolve(__dirname, '../src/analyzer/analyzer_wasm_node.wasm'));
@@ -42,7 +50,8 @@ describe('Action Scheduler', () => {
     describe('program actions', () => {
         test('single table', async () => {
             const store = model.createStore();
-            const plat = new platform.Platform(store, analyzerBindings);
+            const db = new webdb.AsyncWebDB();
+            const plat = new platform.Platform(store, db, analyzerBindings);
 
             const program = analyzerBindings.parseProgram('SELECT 1 INTO a');
             analyzerBindings.instantiateProgram();
@@ -71,7 +80,8 @@ describe('Action Scheduler', () => {
 
         test('chain', async () => {
             const store = model.createStore();
-            const plat = new platform.Platform(store, analyzerBindings);
+            const db = new webdb.AsyncWebDB();
+            const plat = new platform.Platform(store, db, analyzerBindings);
 
             const program = analyzerBindings.parseProgram(`
                 LOAD weather_csv FROM http (
@@ -127,7 +137,8 @@ describe('Action Scheduler', () => {
 
         test('tree', async () => {
             const store = model.createStore();
-            const plat = new platform.Platform(store, analyzerBindings);
+            const db = new webdb.AsyncWebDB();
+            const plat = new platform.Platform(store, db, analyzerBindings);
 
             const program = analyzerBindings.parseProgram(`
                 SELECT 1 INTO weather;
@@ -181,7 +192,8 @@ describe('Action Scheduler', () => {
 
         test('independent', async () => {
             const store = model.createStore();
-            const plat = new platform.Platform(store, analyzerBindings);
+            const [db, _dbMock] = mockDB();
+            const plat = new platform.Platform(store, db, analyzerBindings);
 
             const program = analyzerBindings.parseProgram(`
                 SELECT 1 INTO A;
