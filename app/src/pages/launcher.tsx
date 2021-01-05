@@ -1,6 +1,6 @@
 import * as Immutable from "immutable";
 import * as React from "react";
-import { AppState, Dispatch, LaunchStep, LaunchStepInfo } from '../model';
+import { AppState, Dispatch, LaunchStep, LaunchStepInfo, DEFAULT_LAUNCH_STEPS } from '../model';
 import { StatusIndicator } from '../components';
 import { connect } from 'react-redux';
 
@@ -36,11 +36,6 @@ class Launcher extends React.Component<Props> {
         if (this.props.launchComplete) {
             return this.props.children;
         }
-        const steps = [
-            LaunchStep.CONFIGURE_APP,
-            LaunchStep.INIT_ANALYZER,
-            LaunchStep.INIT_WEBDB,
-        ];
         return (
             <div className={styles.launcher}>
                 <div className={styles.inner}>
@@ -51,7 +46,7 @@ class Launcher extends React.Component<Props> {
                         DashQL
                     </div>
                     <div className={styles.steps}>
-                        {steps.map(s => this.renderStep(s))}
+                        {DEFAULT_LAUNCH_STEPS.map(s => this.renderStep(s))}
                     </div>
                 </div>
             </div>
