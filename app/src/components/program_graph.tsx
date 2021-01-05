@@ -118,44 +118,48 @@ class ProgramGraph extends React.Component<ProgramGraphProps, ProgramGraphState>
     protected static updateState(props: ProgramGraphProps, state: ProgramGraphState): ProgramGraphState {
         return {
             ...state,
-            nodes: state.nodes.map(n => {
-                const s = props.programStatus.get(n.statementId)?.status;
-                if (s === undefined || s === null || n.data.actionStatus == s) {
-                    return n;
-                } else
+            nodes: state.nodes
+                .filter(n => props.programStatus.has(n.statementId))
+                .map(n => {
+                    const s = props.programStatus.get(n.statementId)!.status;
+                    if (n.data.actionStatus == s) {
+                        return n;
+                    } else
+                        return {
+                            ...n,
+                            data: {
+                                statementType: n.data.statementType,
+                                actionStatus: s,
+                            },
+                        };
+                }),
+            edges: state.edges
+                .filter(e => props.programStatus.has(e.targetId) && props.programStatus.has(e.sourceId))
+                .map(e => {
+                    const target = props.programStatus.get(e.targetId)!.status;
+                    let animated = false;
+                    let opacity = 1.0;
+                    switch (target) {
+                        case proto.action.ActionStatusCode.RUNNING:
+                        case proto.action.ActionStatusCode.BLOCKED:
+                            animated = true;
+                            break;
+                        case proto.action.ActionStatusCode.NONE:
+                            opacity = 0.5;
+                            break;
+                        case proto.action.ActionStatusCode.COMPLETED:
+                        case proto.action.ActionStatusCode.FAILED:
+                            animated = false;
+                            break;
+                    }
                     return {
-                        ...n,
-                        data: {
-                            statementType: n.data.statementType,
-                            actionStatus: s,
+                        ...e,
+                        animated: animated,
+                        style: {
+                            opacity: opacity,
                         },
                     };
-            }),
-            edges: state.edges.map(e => {
-                const src = props.programStatus.get(e.targetId)?.status;
-                let animated = false;
-                let opacity = 1.0;
-                switch (src || proto.action.ActionStatusCode.NONE) {
-                    case proto.action.ActionStatusCode.RUNNING:
-                    case proto.action.ActionStatusCode.BLOCKED:
-                        animated = true;
-                        break;
-                    case proto.action.ActionStatusCode.NONE:
-                        opacity = 0.5;
-                        break;
-                    case proto.action.ActionStatusCode.COMPLETED:
-                    case proto.action.ActionStatusCode.FAILED:
-                        animated = false;
-                        break;
-                }
-                return {
-                    ...e,
-                    animated: animated,
-                    style: {
-                        opacity: opacity
-                    }
-                };
-            }),
+                }),
         };
     }
 
