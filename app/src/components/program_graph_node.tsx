@@ -3,7 +3,7 @@ import {
     Handle as ReactFlowHandle,
     Node as NodeData,
 } from 'react-flow-renderer';
-import { ActionStatusSpinner } from './spinners';
+import { ActionStatusIndicator } from './status';
 import { proto } from '@dashql/core';
 import {
     IIconProps,
@@ -97,7 +97,7 @@ export function StatementNode(props: StatementNodeData) {
             </div>
             <div className={styles.node_detail}>
                 <div className={styles.node_detail_status}>
-                    <ActionStatusSpinner
+                    <ActionStatusIndicator
                         className={styles.node_detail_status_spinner}
                         fill="rgb(80, 80, 80)"
                         width="14px"
