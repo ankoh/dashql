@@ -23,13 +23,13 @@ export class CoreState {
     public program: Program | null;
     /// The program parameters
     public programParameters: Immutable.List<ParameterValue>;
-    /// The program status
-    public programStatus: Immutable.List<StatementStatus>;
 
     /// The action scheduler status
     public schedulerStatus: ActionSchedulerStatus;
     /// The plan
     public plan: Plan | null;
+    /// The planned program status
+    public planProgramStatus: Immutable.List<StatementStatus>;
     /// The plan objects
     public planObjects: Immutable.Map<PlanObjectID, PlanObject>;
     /// The setup actions
@@ -51,9 +51,9 @@ export class CoreState {
         this.programText = "";
         this.program = null;
         this.programParameters = Immutable.List<ParameterValue>();
-        this.programStatus = Immutable.List<StatementStatus>();
         this.schedulerStatus = ActionSchedulerStatus.Idle;
         this.plan = null;
+        this.planProgramStatus = Immutable.List<StatementStatus>();
         this.planObjects = Immutable.Map<PlanObjectID, PlanObject>();
         this.planActions = Immutable.Map<ActionID, Action>();
         this.planActionLog = Immutable.List<ActionLogEntry>();
