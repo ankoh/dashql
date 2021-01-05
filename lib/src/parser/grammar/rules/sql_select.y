@@ -505,7 +505,7 @@ sql_from_list:
 sql_table_ref:
     sql_relation_expr sql_opt_alias_clause                          { $1.push_back(Key::SQL_TABLE_ALIAS << $2); $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_TABLE_REF, move($1)); }
   | sql_relation_expr sql_opt_alias_clause sql_tablesample_clause   { $$ = {}; }
-  | sql_func_table sql_func_alias_clause                            { $$ = {}; }
+  | sql_func_table sql_func_alias_clause                            { $1.push_back(Key::SQL_TABLE_ALIAS << $2); $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_FUNCTABLE, move($1)); }
   | LATERAL_P sql_func_table sql_func_alias_clause                  { $$ = {}; }
   | sql_select_with_parens sql_opt_alias_clause                     { $$ = {}; }
   | LATERAL_P sql_select_with_parens sql_opt_alias_clause           { $$ = {}; }
@@ -553,11 +553,11 @@ sql_opt_alias_clause:
 // func_alias_clause can include both an PGAlias and a coldeflist, so we make it
 // return a 2-element list that gets disassembled by calling production.
 sql_func_alias_clause:
-    sql_alias_clause
-  | AS '(' sql_table_func_element_list ')'
-  | AS sql_col_id '(' sql_table_func_element_list ')' 
-  | sql_col_id '(' sql_table_func_element_list ')' ')'
-  | %empty
+    sql_alias_clause                                    { $$ = $1; }
+  | AS '(' sql_table_func_element_list ')'              { $$ = {}; }
+  | AS sql_col_id '(' sql_table_func_element_list ')'   { $$ = {}; }
+  | sql_col_id '(' sql_table_func_element_list ')' ')'  { $$ = {}; }
+  | %empty                                              { $$ = Null(); }
     ;
 
 sql_join_type:
@@ -625,8 +625,8 @@ sql_opt_repeatable_clause:
 // as a whole, but that's handled by the table_ref production.
 
 sql_func_table:
-    sql_func_expr_windowless sql_opt_ordinality
-  | ROWS FROM '(' sql_rowsfrom_list ')' sql_opt_ordinality
+    sql_func_expr_windowless sql_opt_ordinality             { $$ = move($1); /* XXX */ }
+  | ROWS FROM '(' sql_rowsfrom_list ')' sql_opt_ordinality  { $$ = {}; }
     ;
 
 sql_rowsfrom_item:
@@ -1137,8 +1137,8 @@ sql_func_expr:
 // disambiguate the grammar (e.g. in CREATE INDEX).
 
 sql_func_expr_windowless:
-    sql_func_application
-  | sql_func_expr_common_subexpr
+    sql_func_application            { $$ = move($1); }
+  | sql_func_expr_common_subexpr    { $$ = {}; }
     ;
 
 // Special expressions that are considered to be functions.

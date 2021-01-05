@@ -1988,3 +1988,59 @@
         </dependencies>
     </expected>
 </test>
+<test name="select_generate_series">
+    <input>
+        select v into a FROM generate_series(0, 10000) as t(v);
+    </input>
+    <expected>
+        <statements>
+            <statement type="SELECT_INTO" name="global.a">
+                <node type="OBJECT_DASHQL_QUERY" loc="9..63" text="select v i..0) as t(v)">
+                    <node key="DASHQL_QUERY_STATEMENT" type="OBJECT_SQL_SELECT" loc="9..63" text="select v i..0) as t(v)">
+                        <node key="SQL_SELECT_FROM">
+                            <node type="OBJECT_SQL_FUNCTABLE" loc="30..63" text="generate_s..0) as t(v)">
+                                <node key="SQL_FUNCTION_ARGUMENTS">
+                                    <node type="OBJECT_SQL_CONST" loc="46..47" text="0">
+                                        <node key="SQL_CONST_TYPE" value="INTEGER" />
+                                        <node key="SQL_CONST_VALUE" loc="46..47" text="0" />
+                                    </node>
+                                    <node type="OBJECT_SQL_CONST" loc="49..54" text="10000">
+                                        <node key="SQL_CONST_TYPE" value="INTEGER" />
+                                        <node key="SQL_CONST_VALUE" loc="49..54" text="10000" />
+                                    </node>
+                                </node>
+                                <node key="SQL_FUNCTION_NAME" loc="30..45" text="generate_series" />
+                                <node key="SQL_TABLE_ALIAS" type="OBJECT_SQL_ALIAS" loc="56..63" text="as t(v)">
+                                    <node key="SQL_ALIAS_COLUMNS">
+                                        <node loc="61..62" text="v" />
+                                    </node>
+                                    <node key="SQL_ALIAS_NAME" loc="59..60" text="t" />
+                                </node>
+                            </node>
+                        </node>
+                        <node key="SQL_SELECT_INTO" type="OBJECT_SQL_INTO" loc="23..24" text="a">
+                            <node key="SQL_TEMP_NAME">
+                                <node loc="23..24" text="a" />
+                            </node>
+                            <node key="SQL_TEMP_TYPE" value="DEFAULT" />
+                        </node>
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_COLUMN_REF" loc="16..17" text="v">
+                                <node key="SQL_COLUMN_REF_PATH">
+                                    <node loc="16..17" text="v" />
+                                </node>
+                            </node>
+                        </node>
+                    </node>
+                </node>
+            </statement>
+        </statements>
+        <errors />
+        <line_breaks>
+            <line_break loc="0..1" text="&#10;" />
+            <line_break loc="64..65" text="&#10;" />
+        </line_breaks>
+        <comments />
+        <dependencies />
+    </expected>
+</test>

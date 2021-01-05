@@ -86,6 +86,8 @@ export abstract class ProgramActionLogic extends ActionLogic<proto.action.Progra
 
     /// Return the origin
     public get origin() { return this._origin; }
+    /// Return the script
+    public get script() { return this._action.script() || null; }
 }
 
 export abstract class SetupActionLogic extends ActionLogic<proto.action.SetupAction> {

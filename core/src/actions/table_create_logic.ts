@@ -11,6 +11,7 @@ export class CreateTableActionLogic extends ProgramActionLogic {
     }
 
     public async execute(_context: ActionContext): Promise<ActionID> {
+        console.log(this.script);
         await utils.sleep(500);
         return this.returnWithStatus(ActionStatusCode.COMPLETED);
     }
