@@ -7,7 +7,7 @@ import { BrowserPlatform } from './platform';
 import { AppController } from './controller';
 import { Route, BrowserRouter, Switch, Redirect } from 'react-router-dom';
 import { Provider as ReduxProvider } from 'react-redux';
-import { Studio, NotFound } from './pages';
+import { Launcher, Studio, NotFound } from './pages';
 import { withNavBar } from './components';
 import { AppContextProvider, IAppContext } from './app_context';
 
@@ -36,16 +36,18 @@ const appContext: IAppContext = {
 };
 
 ReactDOM.render(
-    <ReduxProvider store={store}>
-        <AppContextProvider value={appContext}>
-            <BrowserRouter>
-                <Switch>
-                    <Route exact path="/studio" component={withNavBar(Studio)} />
-                    <Route path="/404" component={NotFound} />
-                    <Redirect to="/404" />
-                </Switch>
-            </BrowserRouter>
-        </AppContextProvider>
-    </ReduxProvider>,
+    <AppContextProvider value={appContext}>
+        <ReduxProvider store={store}>
+            <Launcher>
+                <BrowserRouter>
+                    <Switch>
+                        <Route exact path="/studio" component={withNavBar(Studio)} />
+                        <Route path="/404" component={NotFound} />
+                        <Redirect to="/404" />
+                    </Switch>
+                </BrowserRouter>
+            </Launcher>
+        </ReduxProvider>
+    </AppContextProvider>,
     document.getElementById('root'),
 );
