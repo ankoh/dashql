@@ -1,12 +1,13 @@
 // Copyright (c) 2020 The DashQL Authors
 
 import { webdb as proto } from '@dashql/proto';
+import { Value } from './value';
 
 type NumberVector = proto.VectorI8 | proto.VectorI16 | proto.VectorI32 | proto.VectorU8 | proto.VectorU16 | proto.VectorU32 | proto.VectorF32 | proto.VectorF64;
 type NumberArray = Int8Array | Int16Array | Int32Array | Uint8Array | Uint16Array | Uint32Array | Float32Array | Float64Array;
 
-/// An abstract chunk iterator
-export abstract class IteratorBase {
+/// A chunk iterator base class
+export abstract class ChunkIteratorBase {
     /// The result buffer
     _resultBuffer: proto.QueryResult;
     /// The chunk id
@@ -16,7 +17,7 @@ export abstract class IteratorBase {
     /// The column types
     _columnTypes: proto.SQLType[];
     /// The temporary flatbuffer objects
-    _tmp: VectorVariants;
+    _tmp: VectorBuffers;
 
     /// Constructor
     public constructor(resultBuffer: proto.QueryResult) {
@@ -24,7 +25,7 @@ export abstract class IteratorBase {
         this._currentChunkID = -1;
         this._currentChunk = new proto.QueryResultChunk();
         this._columnTypes = new Array<proto.SQLType>();
-        this._tmp = new VectorVariants();
+        this._tmp = new VectorBuffers();
 
         // Collect the column types
         for (let i = 0; i < this.result.columnTypesLength(); ++i) {
@@ -104,8 +105,118 @@ export abstract class IteratorBase {
     }
 }
 
+/// A row iterator base class
+export abstract class RowIteratorBase {
+    /// The query result
+    _chunkIter: ChunkIteratorBase;
+    /// The global row index
+    _globalRowIndex: number = 0;
+    /// The chunk row begin
+    _currentChunkBegin: number = 0;
+
+    constructor(iter: ChunkIteratorBase) {
+        this._chunkIter = iter;
+    }
+
+    /// Get the temporary buffers
+    public get tmp() { return this._chunkIter.tmp; }
+    /// Get the chunk row
+    public get currentRow() { return this._globalRowIndex - this._currentChunkBegin; }
+    /// Get the current chunk
+    public get currentChunk(): proto.QueryResultChunk { return this._chunkIter.currentChunk; }
+    /// Get the column count
+    public getColumnName(idx: number) { return this._chunkIter.result.columnNames(idx); }
+    /// Is the end?
+    public isEnd(): boolean { return this.currentRow >= this.currentChunk.rowCount().low; }
+
+
+    /// Read a value
+    public getValue(cid: number, v: Value): Value {
+        if (cid >= this._chunkIter.columnCount) {
+            throw Error("column index out of bounds");
+        }
+        v.sqlType = this._chunkIter.columnTypes[cid];
+        let r = this.currentRow;
+        let c = this.currentChunk.columns(cid, this.tmp.vector);
+        if (c == null) {
+            v.nullFlag = true;
+            return v;
+        }
+        switch (c.variantType()) {
+            case proto.VectorVariant.NONE:
+                break;
+            case proto.VectorVariant.VectorI8:
+                c.variant(this.tmp.vectorI8);
+                v.asNumber().value = this.tmp.vectorI8.values(r)!;
+                v.nullFlag = this.tmp.vectorI8.nullMask(r)!;
+                break;
+            case proto.VectorVariant.VectorU8:
+                c.variant(this.tmp.vectorU8);
+                v.asNumber().value = this.tmp.vectorU8.values(r)!;
+                v.nullFlag = this.tmp.vectorU8.nullMask(r)!;
+                break;
+            case proto.VectorVariant.VectorI16:
+                c.variant(this.tmp.vectorI16);
+                v.asNumber().value = this.tmp.vectorI16.values(r)!;
+                v.nullFlag = this.tmp.vectorI16.nullMask(r)!;
+                break;
+            case proto.VectorVariant.VectorU16:
+                c.variant(this.tmp.vectorU16);
+                v.asNumber().value = this.tmp.vectorU16.values(r)!;
+                v.nullFlag = this.tmp.vectorU16.nullMask(r)!;
+                break;
+            case proto.VectorVariant.VectorI32:
+                c.variant(this.tmp.vectorI32);
+                v.asNumber().value = this.tmp.vectorI32.values(r)!;
+                v.nullFlag = this.tmp.vectorI32.nullMask(r)!;
+                break;
+            case proto.VectorVariant.VectorU32:
+                c.variant(this.tmp.vectorU32);
+                v.asNumber().value = this.tmp.vectorU32.values(r)!;
+                v.nullFlag = this.tmp.vectorU32.nullMask(r)!;
+                break;
+            case proto.VectorVariant.VectorI64:
+                c.variant(this.tmp.vectorI64);
+                v.asLong().value = this.tmp.vectorI64.values(r)!;
+                v.nullFlag = this.tmp.vectorI64.nullMask(r)!;
+                break;
+            case proto.VectorVariant.VectorU64:
+                c.variant(this.tmp.vectorU64);
+                v.asLong().value = this.tmp.vectorU64.values(r)!;
+                v.nullFlag = this.tmp.vectorU64.nullMask(r)!;
+                break;
+            case proto.VectorVariant.VectorI128:
+                c.variant(this.tmp.vectorI128);
+                this.tmp.vectorI128.values(r, v.asI128().value)!;
+                v.nullFlag = this.tmp.vectorI128.nullMask(r)!;
+                break;
+            case proto.VectorVariant.VectorF32:
+                c.variant(this.tmp.vectorF32);
+                v.asNumber().value = this.tmp.vectorF32.values(r)!;
+                v.nullFlag = this.tmp.vectorF32.nullMask(r)!;
+                break;
+            case proto.VectorVariant.VectorF64:
+                c.variant(this.tmp.vectorF64);
+                v.asNumber().value = this.tmp.vectorF64.values(r)!;
+                v.nullFlag = this.tmp.vectorF64.nullMask(r)!;
+                break;
+            case proto.VectorVariant.VectorInterval:
+                c.variant(this.tmp.vectorInterval);
+                this.tmp.vectorInterval.values(r, v.asInterval().value)!;
+                v.nullFlag = this.tmp.vectorInterval.nullMask(r)!;
+                break;
+            case proto.VectorVariant.VectorString:
+                c.variant(this.tmp.vectorString);
+                v.asString().value = this.tmp.vectorString.values(r)!;
+                v.nullFlag = this.tmp.vectorString.nullMask(r)!;
+                break;
+        }
+        return v;
+    }
+}
+
 /// Flatbuffer objects to decode flatbuffers without allocation
-export class VectorVariants {
+export class VectorBuffers {
     vector: proto.Vector;
     vectorI8: proto.VectorI8;
     vectorU8: proto.VectorU8;
