@@ -57,6 +57,7 @@ module.exports = {
     ],
     externals: [
         nodeExternals({
+            importType: 'umd',
             allowlist: [/.*\.wasm$/, /.*\.worker\.js$/],
         }),
     ],

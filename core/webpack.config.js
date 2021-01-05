@@ -71,7 +71,7 @@ const browserTarget = {
             verbose: false,
         }),
     ],
-    externals: [nodeExternals()],
+    externals: [nodeExternals({ importType: 'umd' })],
 };
 
 const nodeTarget = {
