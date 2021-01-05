@@ -23,6 +23,7 @@ const GITHUB_OAUTH_VERSION = childProcess
 
 function configure(params) {
     return {
+        target: 'web',
         entry: {
             app: ['./src/app.tsx'],
         },
@@ -96,6 +97,14 @@ function configure(params) {
                     test: /\.js$/,
                     enforce: 'pre',
                     use: ['source-map-loader'],
+                },
+                {
+                    test: /.*\.worker\.js$/,
+                    type: 'javascript/auto',
+                    loader: 'file-loader',
+                    options: {
+                        name: 'static/workers/[contenthash].[ext]',
+                    },
                 },
             ],
         },
