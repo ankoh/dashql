@@ -203,7 +203,7 @@ export class AsyncWebDB {
         return new AsyncWebDBConnection(this, conn);
     }
 
-    /// Connect to the database
+    /// Disconnect from the database
     public async disconnect(conn: ConnectionID): Promise<null> {
         const task = new Task<AsyncWebDBRequestType.DISCONNECT, ConnectionID, null>(
             AsyncWebDBRequestType.DISCONNECT,
@@ -259,18 +259,22 @@ export class AsyncWebDBConnection {
         this._conn = conn;
     }
 
+    /// Disconnect from the database
     public async disconnect(): Promise<null> {
         return this._instance.disconnect(this._conn);
     }
 
+    /// Run a query
     public async runQuery(text: string): Promise<proto.QueryResult> {
         return this._instance.runQuery(this._conn, text);
     }
 
+    /// Send a query
     public async sendQuery(text: string): Promise<proto.QueryResult> {
         return this._instance.sendQuery(this._conn, text);
     }
 
+    /// Fetch query results
     public async fetchQueryResults(): Promise<proto.QueryResultChunk> {
         return this._instance.fetchQueryResults(this._conn);
     }
