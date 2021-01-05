@@ -1,8 +1,10 @@
 import * as React from 'react';
-import { AppController } from './controller';
+import * as model from './model';
+import * as platform from './platform';
 
 export interface IAppContext {
-    controller: AppController,
+    store: model.AppReduxStore;
+    platform: platform.BrowserPlatform | null;
 }
 
 const ctx = React.createContext<IAppContext | null>(null);

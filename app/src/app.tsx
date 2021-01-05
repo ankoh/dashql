@@ -1,10 +1,7 @@
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
-import * as core from '@dashql/core';
-import * as webdb from '@dashql/webdb/dist/webdb_async';
 import { createStore } from './model';
-import { BrowserPlatform } from './platform';
-import { AppController } from './controller';
+import { launchApp } from './app_launcher';
 import { Route, BrowserRouter, Switch, Redirect } from 'react-router-dom';
 import { Provider as ReduxProvider } from 'react-redux';
 import { Launcher, Studio, NotFound } from './pages';
@@ -16,24 +13,14 @@ import './fonts/fonts.module.css';
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
 
-import webdb_wasm from '@dashql/webdb/dist/webdb.wasm';
-import webdb_worker from '@dashql/webdb/dist/webdb_async.worker.js';
-import analyzer_wasm from '@dashql/core/dist/dashql_analyzer.wasm';
-
-const dbWorker = webdb.spawnWorker(webdb_worker);
-const db = new webdb.AsyncWebDB(dbWorker);
-db.open(webdb_wasm);
-
-const analyzer = new core.analyzer.Analyzer({}, analyzer_wasm);
 const store = createStore();
-const platform = new BrowserPlatform(store, analyzer);
-
-const controller = new AppController(platform);
-controller.init();
-
 const appContext: IAppContext = {
-    controller: controller,
+    store: store,
+    platform: null
 };
+
+launchApp(appContext)
+    .catch((e) => { console.error(e); });
 
 ReactDOM.render(
     <AppContextProvider value={appContext}>
