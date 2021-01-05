@@ -1,12 +1,12 @@
 import * as Immutable from  "immutable";
 import * as core from  "@dashql/core";
-import { AppSettings } from "./settings";
+import { AppConfig } from "./app_config";
 import { AppState } from "./state";
 import { createTransform } from 'redux-persist';
 
 export interface PersistentAppState {
     core: core.model.PersistentCoreState;
-    appSettings: AppSettings | null;
+    config: AppConfig | null;
 };
 
 function createPersistentStateTransform(platform: core.platform.Platform) {
