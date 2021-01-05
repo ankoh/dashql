@@ -57,7 +57,7 @@ class ProgramGraph extends React.Component<ProgramGraphProps, ProgramGraphState>
         let nodes: StatementNodeData[] = [];
         let edges: ExtendedEdgeData[] = [];
         const g = new dagre.graphlib.Graph().setGraph({
-            nodesep: 60,
+            nodesep: 40,
             ranksep: 40,
             rankdir: 'LR',
         });
@@ -175,7 +175,7 @@ class ProgramGraph extends React.Component<ProgramGraphProps, ProgramGraphState>
             return <div />;
         }
 
-        const FIT_PADDING = 0.2;
+        const FIT_PADDING = 0.3;
         return (
             <div className={classNames(styles.container, this.props.className)}>
                 <ReactFlow
