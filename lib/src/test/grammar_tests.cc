@@ -55,6 +55,8 @@ const char* getEnumText(const sx::Node& target) {
             return sx::WindowExclusionModeTypeTable()->names[v];
         case sx::NodeType::ENUM_SQL_WINDOW_BOUND_DIRECTION:
             return sx::WindowBoundDirectionTypeTable()->names[v];
+        case sx::NodeType::ENUM_SQL_ON_COMMIT_OPTION:
+            return sx::OnCommitOptionTypeTable()->names[v];
 
         default:
             return "?";

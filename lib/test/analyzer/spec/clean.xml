@@ -686,3 +686,40 @@
         </graph>
     </next>
 </test>
+<test name="create_as_viz">
+    <previous>
+        <text></text>
+        <parameters />
+        <evaluations />
+        <graph next_object_id="0">
+            <setup />
+            <program />
+        </graph>
+    </previous>
+    <next>
+        <text>
+            CREATE TABLE foo AS SELECT v::INTEGER FROM generate_series(0, 100) AS t(v);
+            VIZ foo USING TABLE;
+        </text>
+        <parameters />
+        <evaluations />
+        <graph next_object_id="2">
+            <setup />
+            <program>
+                <action id="0" type="CREATE_TABLE" status="NONE" object_id="0">
+                    <target name_qualified="global.foo" name_short="foo" />
+                    <required_for>
+                        <ref action="1" />
+                    </required_for>
+                    <script>CREATE TABLE foo AS SELECT v::INTEGER FROM generate_series(0, 100) AS t(v)</script>
+                </action>
+                <action id="1" type="CREATE_VIZ" status="NONE" object_id="1">
+                    <target name_qualified="global.foo" name_short="foo" />
+                    <depends_on>
+                        <ref action="0" />
+                    </depends_on>
+                </action>
+            </program>
+        </graph>
+    </next>
+</test>
