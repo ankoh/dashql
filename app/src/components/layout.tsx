@@ -1,5 +1,5 @@
 import * as React from 'react';
-import * as ReactGrid from 'react-grid-layout';
+import ReactGrid from 'react-grid-layout';
 import { withAutoSizer } from '../util/autosizer';
 import { DashboardModel, WidgetModel, WidgetType, ParameterType, ChartType } from '../model/dashboard';
 import {

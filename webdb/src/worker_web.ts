@@ -20,8 +20,12 @@ class WebWorker extends AsyncWebDBDispatcher {
     }
 }
 
-/// Forward all requests
-const api = new WebWorker();
-globalThis.onmessage = function(event: MessageEvent<AsyncWebDBRequestVariant>) {
-    api.onMessage(event.data);
-};
+/// Register the worker
+export function registerWorker() {
+    const api = new WebWorker();
+    globalThis.onmessage = async (event: MessageEvent<AsyncWebDBRequestVariant>) => {
+        await api.onMessage(event.data);
+    };
+}
+
+registerWorker();

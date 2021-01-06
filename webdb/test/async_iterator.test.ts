@@ -1,4 +1,5 @@
-import * as webdb from '../dist/webdb_node_async';
+import Worker from 'web-worker';
+import * as webdb from '../dist/webdb_async';
 import * as path from 'path';
 
 let worker: Worker;
@@ -7,7 +8,7 @@ var conn: webdb.AsyncWebDBConnection;
 const testRows = 3000;
 
 beforeAll(async () => {
-    worker = webdb.spawnWorker(path.resolve(__dirname, "../dist/webdb_node_async.worker.js"));
+    worker = new Worker(path.resolve(__dirname, "../dist/webdb_node_async.worker.js"));
     db = new webdb.AsyncWebDB(worker);
     await db.open(path.resolve(__dirname, "../src/webdb_wasm.wasm"));
 });

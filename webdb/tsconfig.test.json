@@ -1,9 +1,9 @@
 {
     "extends": "./tsconfig.json",
     "compilerOptions": {
-        "sourceMap": true,
-        "types": ["emscripten", "jest", "node"]
+        "sourceMap": true
     },
+    "include": ["./src/**/*", "./test/**/*", "./types/*.d.ts"],
     "exclude": [
         "./node_modules"
     ]

@@ -6,6 +6,7 @@
         "moduleResolution": "node",
         "sourceMap": true,
         "noImplicitAny": true,
+        "esModuleInterop": true,
         "strict": true,
         "types": ["node"],
         "jsx": "react",
@@ -14,7 +15,8 @@
         "paths": {
             "@dashql/proto": ["../proto/index.ts"],
             "immutable": ["./node_modules/immutable"]
-        }
+        },
+        "lib": ["es6", "dom"]
     },
     "exclude": ["./test/**/*.ts", "./node_modules"],
     "include": ["./src/**/*", "./types/*.d.ts"]
