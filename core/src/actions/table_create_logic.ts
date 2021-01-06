@@ -1,5 +1,5 @@
 import * as proto from "@dashql/proto";
-import * as utils from "../utils";
+import * as webdb from "@dashql/webdb/dist/webdb_async";
 import { ActionID, Statement } from "../model";
 import { ProgramActionLogic } from "./action_logic";
 import { ActionContext } from "./action_context";
@@ -10,8 +10,26 @@ export class CreateTableActionLogic extends ProgramActionLogic {
         super(action_id, action, statement);
     }
 
-    public async execute(_context: ActionContext): Promise<ActionID> {
-        await utils.sleep(500);
+    public async execute(context: ActionContext): Promise<ActionID> {
+        const script = this.script;
+        if (!script) {
+            return this.returnWithStatus(ActionStatusCode.COMPLETED);
+        }
+
+        const db = context.platform.database;
+        await db.use(async (c: webdb.AsyncWebDBConnection) => {
+            await c.runQuery(script);
+
+            const result = await c.runQuery("SELECT * FROM foo");
+            const chunkIter = new webdb.QueryResultChunkStream(c, result);
+            while (await chunkIter.next()) {
+                console.log(`rows ${chunkIter.rowCount} columns ${chunkIter.columnCount}`);
+                chunkIter.iterateNumberColumn(0, (row: number, v: number | null) => {
+                    console.log(`[${row}] ${v}`);
+                });
+            }
+        });
+
         return this.returnWithStatus(ActionStatusCode.COMPLETED);
     }
 };

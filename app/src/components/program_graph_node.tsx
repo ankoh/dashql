@@ -21,6 +21,8 @@ function getStatementTypeLabel(type: proto.syntax.StatementType) {
     switch (type) {
         case proto.syntax.StatementType.CREATE_TABLE:
             return 'CREATE TABLE';
+        case proto.syntax.StatementType.CREATE_TABLE_AS:
+            return 'CREATE TABLE';
         case proto.syntax.StatementType.CREATE_VIEW:
             return 'CREATE VIEW';
         case proto.syntax.StatementType.EXTRACT_CSV:
@@ -47,6 +49,8 @@ function getStatementTypeLabel(type: proto.syntax.StatementType) {
 function StatementTypeIcon(props: IIconProps & { type: proto.syntax.StatementType }) {
     switch (props.type) {
         case proto.syntax.StatementType.CREATE_TABLE:
+            return <DatabaseSearchIcon {...props} />;
+        case proto.syntax.StatementType.CREATE_TABLE_AS:
             return <DatabaseSearchIcon {...props} />;
         case proto.syntax.StatementType.CREATE_VIEW:
             return <DatabaseSearchIcon {...props} />;
