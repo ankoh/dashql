@@ -189,6 +189,12 @@ NodeID ParserDriver::AddNode(sx::Node node) {
             }
             break;
 
+        case sx::NodeType::OBJECT_SQL_CREATE_AS:
+            if (auto [name, name_id] = FindAttribute(node, Key::SQL_CREATE_AS_NAME); name) {
+                current_statement_.name = AsQualifiedName(*name, true);
+            }
+            break;
+
         case sx::NodeType::OBJECT_SQL_TABLE_REF:
             current_statement_.table_refs.push_back({node_id, AsQualifiedName(node, true)});
             break;

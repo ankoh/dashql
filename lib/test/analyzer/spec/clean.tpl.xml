@@ -164,3 +164,13 @@
         </parameters>
     </next>
 </test>
+<test name="create_as_viz">
+    <previous />
+    <next>
+        <text>
+            CREATE TABLE foo AS SELECT v::INTEGER FROM generate_series(0, 100) AS t(v);
+            VIZ foo USING TABLE;
+        </text>
+        <parameters />
+    </next>
+</test>
