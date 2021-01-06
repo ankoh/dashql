@@ -3,7 +3,7 @@ import { AppReduxStore } from '../model';
 import { connect } from 'react-redux';
 import { AutoSizer, withAutoSizer } from '../util/autosizer';
 import { Scrollbars } from 'react-custom-scrollbars';
-import Layout from './layout';
+import WidgetGrid from './widget_grid';
 
 import styles from './board.module.css';
 
@@ -223,7 +223,7 @@ export class Board extends React.Component<IBoardProps, {}> {
                         >
                             <div className={styles.ruler_area}>
                                 <div className={styles.content}>
-                                    <Layout />
+                                    <WidgetGrid />
                                 </div>
                                 <div className={styles.ruler_top}>
                                     <AutoSizingRuler

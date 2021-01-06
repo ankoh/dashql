@@ -3,7 +3,7 @@ import { LogEntry } from "./log";
 import { Plan } from "./plan";
 import { CachedFileData, CachedHTTPData } from "./cache";
 import { ActionSchedulerStatus, ActionID, Action, ActionLogEntry } from "./action";
-import { PlanObjectID, PlanObject } from "./plan_object";
+import { PlanObjectID, PlanObject, DatabaseObject } from "./plan_object";
 import { Program, StatementStatus, ParameterValue } from "./program";
 import { Store } from "redux";
 
@@ -32,6 +32,8 @@ export class CoreState {
     public planProgramStatus: Immutable.List<StatementStatus>;
     /// The plan objects
     public planObjects: Immutable.Map<PlanObjectID, PlanObject>;
+    /// The plan database objects
+    public planDatabaseObjects: Immutable.Map<string, DatabaseObject>;
     /// The setup actions
     public planActions: Immutable.Map<ActionID, Action>;
     /// The program actions
@@ -55,6 +57,7 @@ export class CoreState {
         this.plan = null;
         this.planProgramStatus = Immutable.List<StatementStatus>();
         this.planObjects = Immutable.Map<PlanObjectID, PlanObject>();
+        this.planDatabaseObjects = Immutable.Map<string, DatabaseObject>();
         this.planActions = Immutable.Map<ActionID, Action>();
         this.planActionLog = Immutable.List<ActionLogEntry>();
         this.cachedFileData = Immutable.Map<string, CachedFileData>();

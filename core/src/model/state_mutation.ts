@@ -4,7 +4,7 @@ import * as utils from '../utils';
 import { LogEntry } from './log';
 import { Plan } from './plan';
 import { ActionID, Action, ActionUpdate, ActionLogEntry, ActionSchedulerStatus } from './action';
-import { PlanObjectID, PlanObject } from './plan_object';
+import { PlanObjectID, PlanObject, PlanObjectType, DatabaseObject } from './plan_object';
 import { Program, StatementStatus, deriveStatementStatusCode } from './program';
 import { CoreState } from './state';
 import { CachedFileData, CachedHTTPData } from './cache';
@@ -49,8 +49,7 @@ export type StateMutationVariant =
     | StateMutation<StateMutationType.CACHE_FILE_DATA, [CachedFileData, string | null]>
     | StateMutation<StateMutationType.CACHE_HTTP_DATA, [CachedHTTPData, string | null]>
     | StateMutation<StateMutationType.HIT_CACHED_FILE_DATA, string>
-    | StateMutation<StateMutationType.HIT_CACHED_HTTP_DATA, string>
-    ;
+    | StateMutation<StateMutationType.HIT_CACHED_HTTP_DATA, string>;
 
 export type StateMutationDispatcher = (mutation: StateMutationVariant) => void;
 
@@ -64,7 +63,6 @@ export function mutate(dispatch: Dispatch, m: StateMutationVariant) {
 export class StateMutations {
     public static reduce(state: CoreState, mutation: StateMutationVariant): CoreState {
         switch (mutation.type) {
-
             case StateMutationType.LOG_PUSH_ENTRY:
                 return {
                     ...state,
@@ -146,7 +144,7 @@ export class StateMutations {
                             if (!action || action.originStatement == null || action.statusCode == update.statusCode) {
                                 continue;
                             }
-                            const origin = {...status.get(action.originStatement)!};
+                            const origin = { ...status.get(action.originStatement)! };
                             switch (action.statusCode) {
                                 case proto.action.ActionStatusCode.BLOCKED:
                                     --origin.blockedActions;
@@ -207,11 +205,27 @@ export class StateMutations {
                             os.set(o.objectId, o);
                         }
                     }),
+                    planDatabaseObjects: state.planDatabaseObjects.withMutations(os => {
+                        for (const o of mutation.data) {
+                            if (
+                                o.objectType == PlanObjectType.DATABASE_TABLE ||
+                                o.objectType == PlanObjectType.DATABASE_VIEW
+                            ) {
+                                os.set(o.nameQualified, o as DatabaseObject);
+                            }
+                        }
+                    }),
                 };
 
             case StateMutationType.DELETE_PLAN_OBJECTS:
                 return {
                     ...state,
+                    planDatabaseObjects: state.planDatabaseObjects.withMutations(os => {
+                        for (const v of mutation.data) {
+                            const n = state.planObjects.get(v)?.nameQualified;
+                            if (n) os.delete(n);
+                        }
+                    }),
                     planObjects: state.planObjects.withMutations(os => {
                         os.deleteAll(mutation.data);
                     }),
@@ -230,7 +244,7 @@ export class StateMutations {
                             }
                         }
                         c.set(next.key, next);
-                    })
+                    }),
                 };
 
             case StateMutationType.CACHE_HTTP_DATA:
@@ -242,7 +256,7 @@ export class StateMutations {
                             c.delete(evict);
                         }
                         c.set(next.key, next);
-                    })
+                    }),
                 };
 
             case StateMutationType.HIT_CACHED_FILE_DATA:
@@ -254,9 +268,9 @@ export class StateMutations {
                         c.set(e.key, {
                             ...e,
                             timeLastAccess: new Date(),
-                            accessCount: ++e.accessCount
+                            accessCount: ++e.accessCount,
                         });
-                    })
+                    }),
                 };
 
             case StateMutationType.HIT_CACHED_HTTP_DATA:
@@ -268,9 +282,9 @@ export class StateMutations {
                         c.set(e.key, {
                             ...e,
                             timeLastAccess: new Date(),
-                            accessCount: ++e.accessCount
+                            accessCount: ++e.accessCount,
                         });
-                    })
+                    }),
                 };
 
             default:

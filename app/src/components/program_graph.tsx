@@ -2,11 +2,11 @@ import * as Immutable from 'immutable';
 import * as React from 'react';
 import * as core from '@dashql/core';
 import * as dagre from 'dagre';
-import { AppState, Dispatch } from '../model';
-import { connect } from 'react-redux';
 import ReactFlow, { Controls, FlowElement, Edge as EdgeData } from 'react-flow-renderer';
-import { StatementNode, StatementNodeData } from './program_graph_node';
 import classNames from 'classnames';
+import { AppState, Dispatch } from '../model';
+import { StatementNode, StatementNodeData } from './program_graph_node';
+import { connect } from 'react-redux';
 import { proto } from '@dashql/core';
 
 import sx = proto.syntax;
