@@ -9,6 +9,11 @@ dashql_query_statement:
         $$ = ctx.Add(@$, sx::NodeType::OBJECT_DASHQL_QUERY, {
             Key::DASHQL_QUERY_STATEMENT << $1,
         });
-  }
+    }
+  | sql_create_as_stmt {
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_DASHQL_QUERY, {
+            Key::DASHQL_QUERY_STATEMENT << $1,
+        });
+    }
     ;
 
