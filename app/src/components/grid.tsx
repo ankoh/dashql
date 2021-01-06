@@ -1,5 +1,5 @@
 import * as React from 'react';
-import * as GridLayout from 'react-grid-layout';
+import GridLayout from 'react-grid-layout';
 import { ReactGridLayoutProps, ItemCallback, Layout } from 'react-grid-layout';
 
 const GridContext = React.createContext((id: React.Key, props: WidgetProps | null) => {});

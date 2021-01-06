@@ -1,8 +1,8 @@
 import { analyzer, model, actions, platform, ActionScheduler, utils } from '../src/index_node';
 import { instance, mock } from 'ts-mockito';
-import * as webdb from '@dashql/webdb/dist/webdb_node_async';
-import * as path from 'path';
+import * as webdb from '@dashql/webdb/dist/webdb_async';
 import * as proto from '@dashql/proto';
+import * as path from 'path';
 
 import ActionStatus = proto.action.ActionStatusCode;
 import ActionClass = model.ActionClass;

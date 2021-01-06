@@ -1,7 +1,7 @@
 {
     "compilerOptions": {
         "outDir": "./dist/",
-        "target": "es2015",
+        "target": "es6",
         "module": "commonjs",
         "moduleResolution": "node",
         "sourceMap": true,
@@ -12,7 +12,7 @@
         "noImplicitAny": true,
         "esModuleInterop": true,
         "types": ["emscripten", "jest", "node"],
-        "lib": ["esnext", "dom"],
+        "lib": ["es6", "dom"],
         "baseUrl": "."
     },
     "exclude": ["./test/**/*.ts", "./node_modules"]
