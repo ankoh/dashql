@@ -36,8 +36,8 @@
 // with or without outer parentheses.
 
 sql_select_stmt:
-    sql_select_no_parens    %prec UMINUS { $$ = ctx.Add(@1, sx::NodeType::OBJECT_SQL_SELECT, move($1)); }
-  | sql_select_with_parens  %prec UMINUS { $$ = ctx.Add(@1, sx::NodeType::OBJECT_SQL_SELECT, move($1)); }
+    sql_select_no_parens    %prec UMINUS { $$ = move($1); }
+  | sql_select_with_parens  %prec UMINUS { $$ = move($1); }
     ;
 
 sql_select_with_parens:
@@ -214,7 +214,7 @@ sql_into_clause:
 
 // XXX PreparableStmt: select | insert | update | delete
 sql_preparable_stmt:
-    sql_select_stmt                 { $$ = $1; }
+    sql_select_stmt                 { $$ = ctx.Add(@1, sx::NodeType::OBJECT_SQL_SELECT, move($1)); }
     ;
 
 // Redundancy here is needed to avoid shift/reduce conflicts,

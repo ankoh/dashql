@@ -1,7 +1,7 @@
 %type <NodeVector> sql_column_list;
+%type <NodeVector> sql_create_as_stmt;
 %type <NodeVector> sql_opt_column_list;
 %type <sx::Node> sql_opt_with_data;
-%type <sx::Node> sql_create_as_stmt;
 %type <sx::Node> sql_create_as_target;
 %type <sx::Node> sql_opt_with;
 %type <sx::OnCommitOption> sql_on_commit_option;
