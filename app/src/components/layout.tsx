@@ -1,5 +1,6 @@
 import * as React from 'react';
 import * as ReactGrid from 'react-grid-layout';
+import { withAutoSizer } from '../util/autosizer';
 import { DashboardModel, WidgetModel, WidgetType, ParameterType, ChartType } from '../model/dashboard';
 import {
     IntegerParameter,
@@ -26,7 +27,10 @@ import {
 
 import styles from './layout.module.css';
 
-type Props = {};
+type Props = {
+    width: number;
+    height: number;
+};
 
 type State = {
     dashboard: DashboardModel;
@@ -192,7 +196,7 @@ class Layout extends React.Component<Props, State> {
             <ReactGrid
                 resizeHandles={['se']}
                 cols={12}
-                width={500}
+                width={this.props.width}
                 rowHeight={50}
                 compactType={null}
                 layout={this.getLayout(this.state.dashboard.widgets)}
@@ -204,4 +208,4 @@ class Layout extends React.Component<Props, State> {
     }
 }
 
-export default Layout;
+export default withAutoSizer(Layout);
