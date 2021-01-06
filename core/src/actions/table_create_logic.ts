@@ -19,15 +19,6 @@ export class CreateTableActionLogic extends ProgramActionLogic {
         const db = context.platform.database;
         await db.use(async (c: webdb.AsyncWebDBConnection) => {
             await c.runQuery(script);
-
-            const result = await c.runQuery("SELECT * FROM foo");
-            const chunkIter = new webdb.QueryResultChunkStream(c, result);
-            while (await chunkIter.next()) {
-                console.log(`rows ${chunkIter.rowCount} columns ${chunkIter.columnCount}`);
-                chunkIter.iterateNumberColumn(0, (row: number, v: number | null) => {
-                    console.log(`[${row}] ${v}`);
-                });
-            }
         });
 
         return this.returnWithStatus(ActionStatusCode.COMPLETED);
