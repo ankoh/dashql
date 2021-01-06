@@ -23,14 +23,11 @@ export class CreateTableActionLogic extends ProgramActionLogic {
 
             // Collect statistics
             const limit0 = await c.runQuery(`SELECT * FROM ${this.buffer.targetNameShort()} LIMIT 0`);
-            const info: model.RelationInfo = {
-                columnNames: [],
-                columnTypes: [],
-                rowCount: 0
-            };
+            let columnNames: string[] = [];
+            let columnTypes: webdb.SQLType[] = [];
             for (let ci = 0; ci < limit0.columnNamesLength(); ++ci) {
-                info.columnNames.push(limit0.columnNames(ci));
-                info.columnTypes.push(webdb.getSQLType(limit0.columnTypes(ci)));
+                columnNames.push(limit0.columnNames(ci));
+                columnTypes.push(webdb.getSQLType(limit0.columnTypes(ci)));
             }
 
             // Return plan object
@@ -42,7 +39,9 @@ export class CreateTableActionLogic extends ProgramActionLogic {
                 timeUpdated: now,
                 nameQualified: this.buffer.targetNameQualified() || "",
                 nameShort: this.buffer.targetNameShort() || "",
-                relationInfo: info
+                columnNames: columnNames,
+                columnTypes: columnTypes,
+                rowCount: 0,
             };
             return table;
         });

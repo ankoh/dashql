@@ -25,8 +25,8 @@ export class CreateVizActionLogic extends ProgramActionLogic {
                     position: {
                         x: 0,
                         y: 0,
-                        width: 300,
-                        height: 200
+                        width: 6,
+                        height: 4
                     }
                 }
             }

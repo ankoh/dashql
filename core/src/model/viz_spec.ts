@@ -2,8 +2,13 @@
 
 //import * as charts from 'chart.js';
 
+/// The viz base spec
+export interface VizBaseSpec {
+    position: Position;
+}
+
 /// A viz spec
-export type VizSpec<T, P> = {
+export type VizSpec<T, P extends VizBaseSpec> = {
     readonly type: T;
     readonly data: P;
 };
@@ -27,11 +32,6 @@ export interface Position {
     width: number;
     height: number;
 };
-
-/// The viz base spec
-export interface VizBaseSpec {
-    position: Position;
-}
 
 /// A table viz specification
 export interface TableVizSpec extends VizBaseSpec {

@@ -29,28 +29,24 @@ export interface PlanObject {
     nameShort: string;
 }
 
-/// A relation info
-export interface RelationInfo {
+/// A database object
+export interface DatabaseObject extends PlanObject {
     /// The column names
     columnNames: string[];
     /// The column type
     columnTypes: webdb.SQLType[];
     /// The row count
     rowCount: number;
-};
+}
 
 /// A database table
-export interface DatabaseTable extends PlanObject {
-    /// The relation info
-    relationInfo: RelationInfo;
+export interface DatabaseTable extends DatabaseObject {
 };
 
 /// A database view
-export interface DatabaseView extends PlanObject {
+export interface DatabaseView extends DatabaseObject {
     /// The query result
     queryResult: proto.webdb.QueryResult;
-    /// The relation info
-    relationInfo: RelationInfo;
 };
 
 /// A vizualisation data object
