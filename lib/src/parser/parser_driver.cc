@@ -168,7 +168,6 @@ NodeID ParserDriver::AddNode(sx::Node node) {
     switch (node.node_type()) {
         case sx::NodeType::OBJECT_DASHQL_VIZ:
         case sx::NodeType::OBJECT_DASHQL_LOAD:
-        case sx::NodeType::OBJECT_DASHQL_QUERY:
         case sx::NodeType::OBJECT_DASHQL_PARAMETER:
             if (auto [name, name_id] = FindAttribute(node, Key::DASHQL_STATEMENT_NAME); name) {
                 current_statement_.name = AsQualifiedName(*name, true);
@@ -323,16 +322,17 @@ void ParserDriver::AddStatement(sx::Node node) {
             stmt_type = sx::StatementType::PARAMETER;
             break;
 
-        case sx::NodeType::OBJECT_DASHQL_QUERY: {
-            if (auto [m, _] = FindAttribute(node, Key::DASHQL_QUERY_STATEMENT); m) {
-                if (auto [into, _] = FindAttribute(*m, Key::SQL_SELECT_INTO); into) {
-                    stmt_type = sx::StatementType::SELECT_INTO;
-                } else {
-                    stmt_type = sx::StatementType::SELECT;
-                }
+        case sx::NodeType::OBJECT_SQL_CREATE_AS:
+            stmt_type = sx::StatementType::CREATE_TABLE;
+            break;
+
+        case sx::NodeType::OBJECT_SQL_SELECT:
+            if (auto [into, _] = FindAttribute(node, Key::SQL_SELECT_INTO); into) {
+                stmt_type = sx::StatementType::SELECT_INTO;
+            } else {
+                stmt_type = sx::StatementType::SELECT;
             }
             break;
-        }
 
         default:
             assert(false);

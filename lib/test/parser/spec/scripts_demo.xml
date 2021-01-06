@@ -76,27 +76,25 @@
                 </node>
             </statement>
             <statement type="SELECT_INTO" name="global.weather_avg">
-                <node type="OBJECT_DASHQL_QUERY" loc="875..913" text="SELECT 1 I..OM weather">
-                    <node key="DASHQL_QUERY_STATEMENT" type="OBJECT_SQL_SELECT" loc="875..913" text="SELECT 1 I..OM weather">
-                        <node key="SQL_SELECT_FROM">
-                            <node type="OBJECT_SQL_TABLE_REF" loc="906..913" text="weather">
-                                <node key="SQL_TABLE_INHERIT" value="true" />
-                                <node key="SQL_TABLE_NAME">
-                                    <node loc="906..913" text="weather" />
-                                </node>
+                <node type="OBJECT_SQL_SELECT" loc="875..913" text="SELECT 1 I..OM weather">
+                    <node key="SQL_SELECT_FROM">
+                        <node type="OBJECT_SQL_TABLE_REF" loc="906..913" text="weather">
+                            <node key="SQL_TABLE_INHERIT" value="true" />
+                            <node key="SQL_TABLE_NAME">
+                                <node loc="906..913" text="weather" />
                             </node>
                         </node>
-                        <node key="SQL_SELECT_INTO" type="OBJECT_SQL_INTO" loc="889..900" text="weather_avg">
-                            <node key="SQL_TEMP_NAME">
-                                <node loc="889..900" text="weather_avg" />
-                            </node>
-                            <node key="SQL_TEMP_TYPE" value="DEFAULT" />
+                    </node>
+                    <node key="SQL_SELECT_INTO" type="OBJECT_SQL_INTO" loc="889..900" text="weather_avg">
+                        <node key="SQL_TEMP_NAME">
+                            <node loc="889..900" text="weather_avg" />
                         </node>
-                        <node key="SQL_SELECT_TARGETS">
-                            <node type="OBJECT_SQL_CONST" loc="882..883" text="1">
-                                <node key="SQL_CONST_TYPE" value="INTEGER" />
-                                <node key="SQL_CONST_VALUE" loc="882..883" text="1" />
-                            </node>
+                        <node key="SQL_TEMP_TYPE" value="DEFAULT" />
+                    </node>
+                    <node key="SQL_SELECT_TARGETS">
+                        <node type="OBJECT_SQL_CONST" loc="882..883" text="1">
+                            <node key="SQL_CONST_TYPE" value="INTEGER" />
+                            <node key="SQL_CONST_VALUE" loc="882..883" text="1" />
                         </node>
                     </node>
                 </node>
