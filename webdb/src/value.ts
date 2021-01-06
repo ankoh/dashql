@@ -3,10 +3,35 @@
 import { webdb as proto } from '@dashql/proto';
 import { flatbuffers } from 'flatbuffers';
 
+/// A sql type
+export interface SQLType {
+    /// A type id
+    typeId: proto.SQLTypeID;
+    /// The width
+    width: number;
+    /// The scale
+    scale: number
+}
+
+export function getSQLType(t: proto.SQLType | null) {
+    if (t == null) {
+        return {
+            typeId: proto.SQLTypeID.INVALID,
+            width: 0,
+            scale: 0,
+        };
+    }
+    return {
+        typeId: t.typeId(),
+        width: t.width(),
+        scale: t.scale(),
+    };
+}
+
 /// A value
 export class Value {
     /// The type
-    _sqlType: proto.SQLType;
+    _type: SQLType;
     /// The value
     _valueVariant: NumberValue | StringValue | LongValue | I128Value | IntervalValue;
     /// The null flag
@@ -14,7 +39,11 @@ export class Value {
 
     /// Constructor
     public constructor() {
-        this._sqlType = new proto.SQLType();
+        this._type = {
+            typeId: proto.SQLTypeID.INVALID,
+            width: 0,
+            scale: 0,
+        };
         this._nullFlag = true;
         this._valueVariant = {
             type: PhysicalType.NUMBER,
@@ -58,7 +87,7 @@ export class Value {
     }
 
     /// Getters
-    public get sqlType() { return this._sqlType; }
+    public get type() { return this._type; }
     public get i8() { return (this._valueVariant as NumberValue).value; }
     public get u8() { return (this._valueVariant as NumberValue).value; }
     public get i16() { return (this._valueVariant as NumberValue).value; }
@@ -73,7 +102,7 @@ export class Value {
     public get nullFlag() { return this._nullFlag; }
 
     /// Setters
-    public set sqlType(v: proto.SQLType) { this._sqlType = v; }
+    public set sqlType(v: proto.SQLType) { this._type = getSQLType(v); }
     public set nullFlag(v: boolean) { this._nullFlag = v; }
 }
 
