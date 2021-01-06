@@ -60,7 +60,7 @@ static const std::unordered_map<sx::StatementType, StatementTranslation>& Statem
     X(LOAD_HTTP, LOAD_HTTP, false)
     X(EXTRACT_JSON, EXTRACT_JSON, false)
     X(EXTRACT_CSV, EXTRACT_CSV, false)
-    X(SELECT, CREATE_VIZ, true)
+    X(SELECT, UNNAMED_SELECT, true)
     X(SELECT_INTO, CREATE_TABLE, true)
     X(CREATE_TABLE, CREATE_TABLE, true)
     X(CREATE_VIEW, CREATE_VIEW, true)

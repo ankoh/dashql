@@ -40,6 +40,8 @@ export abstract class ChunkIteratorBase {
     public get columnCount() { return this._columnTypes.length; }
     /// Get the column count
     public get columnTypes() { return this._columnTypes; }
+    /// Get the row count
+    public get rowCount() { return this._currentChunk.rowCount().low; }
     /// Get the current chunk
     public get currentChunk() { return this._currentChunk; }
     /// Get the temporary buffers

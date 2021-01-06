@@ -9,7 +9,6 @@ const browserTarget = {
     entry: {
         webdb: './src/index_web.ts',
         webdb_async: './src/index_web_async.ts',
-        'webdb_async.worker': './src/worker_web.ts',
     },
     devtool: 'source-map',
     output: {
@@ -75,6 +74,21 @@ const browserTarget = {
     ],
     externals: [nodeExternals({ importType: 'umd' })],
 };
+const browserWorkerTarget = {
+    ...browserTarget,
+    entry: {
+        'webdb_async.worker': './src/worker_web.ts',
+    },
+    plugins: [
+        new CleanWebpackPlugin({
+            root: './dist',
+            cleanOnceBeforeBuildPatterns: ['!.*'],
+            cleanOnceAfterBuildPatterns: [],
+            verbose: false,
+        }),
+    ],
+    externals: [],
+};
 
 const nodeTarget = {
     ...browserTarget,
@@ -82,7 +96,6 @@ const nodeTarget = {
     entry: {
         webdb_node: './src/index_node.ts',
         webdb_node_async: './src/index_node_async.ts',
-        'webdb_node_async.worker': './src/worker_node.ts',
     },
     plugins: [
         new CleanWebpackPlugin({
@@ -97,5 +110,12 @@ nodeTarget.module.rules[0] = {
     ...nodeTarget.module.rules[0],
     options: { configFile: 'tsconfig.node.json' },
 };
+const nodeWorkerTarget = {
+    ...nodeTarget,
+    entry: {
+        'webdb_node_async.worker': './src/worker_node.ts',
+    },
+    externals: [],
+};
 
-module.exports = [browserTarget, nodeTarget];
+module.exports = [browserTarget, browserWorkerTarget, nodeTarget, nodeWorkerTarget];

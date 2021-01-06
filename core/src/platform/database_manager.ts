@@ -15,6 +15,10 @@ export class DatabaseManager {
         this._connectionMutex = new Mutex();
     }
 
+    public async init() {
+        await this.connect();
+    }
+
     /// Use the connection
     public async use<T>(f: (conn: webdb.AsyncWebDBConnection) => Promise<T>): Promise<T | null> {
         return await this._connectionMutex.useAsync(async () => {
@@ -33,9 +37,11 @@ export class DatabaseManager {
 
     /// Create a new connection
     public async connect() {
-        return await this._connectionMutex.useAsync(async () => {
-            if (this._connection) return null;
+        const conn = await this._connectionMutex.useAsync(async () => {
+            if (!!this._connection) return this._connection;
             return await this._webdb.connect();
         });
+        this._connection = conn;
+        return this._connection;
     }
 }

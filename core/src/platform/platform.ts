@@ -38,4 +38,8 @@ export class Platform {
     public get file() { return this._fileManager; }
     public get http() { return this._httpManager; }
     public get log() { return this._logManager; }
+
+    public async init() {
+        await this._databaseManager.init();
+    }
 }
