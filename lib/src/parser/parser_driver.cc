@@ -323,7 +323,7 @@ void ParserDriver::AddStatement(sx::Node node) {
             break;
 
         case sx::NodeType::OBJECT_SQL_CREATE_AS:
-            stmt_type = sx::StatementType::CREATE_TABLE;
+            stmt_type = sx::StatementType::CREATE_TABLE_AS;
             break;
 
         case sx::NodeType::OBJECT_SQL_SELECT:
