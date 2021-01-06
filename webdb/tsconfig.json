@@ -1,7 +1,7 @@
 {
     "compilerOptions": {
         "outDir": "./dist/",
-        "target": "es2015",
+        "target": "es6",
         "module": "commonjs",
         "moduleResolution": "node",
         "strict": true,
@@ -11,9 +11,10 @@
         "declarationDir": "./dist/types/",
         "noImplicitAny": true,
         "esModuleInterop": true,
-        "types": ["emscripten"],
+        "types": ["emscripten", "node", "jest"],
         "baseUrl": ".",
-        "lib": ["webworker"]
+        "lib": ["es6", "webworker"]
     },
+    "include": ["./src/**/*", "./types/*.d.ts"],
     "exclude": ["./test/**/*.ts", "./node_modules"]
 }

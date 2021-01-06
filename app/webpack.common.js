@@ -114,14 +114,6 @@ function configure(params) {
                     enforce: 'pre',
                     use: ['source-map-loader'],
                 },
-                {
-                    test: /.*\.worker\.js$/,
-                    type: 'javascript/auto',
-                    loader: 'file-loader',
-                    options: {
-                        name: 'static/workers/[contenthash].[ext]',
-                    },
-                },
             ],
         },
         optimization: {

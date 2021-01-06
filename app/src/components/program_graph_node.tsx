@@ -2,6 +2,7 @@ import * as React from 'react';
 import {
     Handle as ReactFlowHandle,
     Node as NodeData,
+    Position
 } from 'react-flow-renderer';
 import { ActionStatusIndicator } from './status';
 import { proto } from '@dashql/core';
@@ -91,8 +92,8 @@ export function StatementNode(props: StatementNodeData) {
                         height="22px"
                         type={props.data.statementType}
                     />
-                    <ReactFlowHandle type="target" position="left" className={styles.node_handle_left} />
-                    <ReactFlowHandle type="source" position="right" className={styles.node_handle_right} />
+                    <ReactFlowHandle type="target" position={Position.Left} className={styles.node_handle_left} />
+                    <ReactFlowHandle type="source" position={Position.Right} className={styles.node_handle_right} />
                 </div>
             </div>
             <div className={styles.node_detail}>

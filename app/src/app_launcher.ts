@@ -4,9 +4,9 @@ import * as model from './model';
 import * as platform from './platform';
 import { IAppContext } from './app_context';
 
-import webdb_wasm from '@dashql/webdb/dist/webdb.wasm';
-import webdb_worker from '@dashql/webdb/dist/webdb_async.worker.js';
 import analyzer_wasm from '@dashql/core/dist/dashql_analyzer.wasm';
+import webdb_wasm from '@dashql/webdb/dist/webdb.wasm';
+import WebDBWorker from 'worker-loader!./webdb.worker.ts';
 
 import axios from 'axios';
 import config_url from '../public/config.json';
@@ -56,7 +56,7 @@ async function configureApp(store: model.AppReduxStore): Promise<model.AppConfig
 async function initWebDB(store: model.AppReduxStore): Promise<webdb.AsyncWebDB | null> {
     startStep(store, model.LaunchStep.INIT_WEBDB);
     try {
-        const dbWorker = webdb.spawnWorker(webdb_worker);
+        const dbWorker = new WebDBWorker();
         const db = new webdb.AsyncWebDB(dbWorker);
         await db.open(webdb_wasm);
         stepSucceeded(store, model.LaunchStep.INIT_WEBDB);
