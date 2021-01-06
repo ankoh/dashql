@@ -1,0 +1,15 @@
+<test name="create_table_as_select_1">
+    <input>
+        create table foo as select 1
+    </input>
+    <expected>
+        <statements />
+        <errors />
+        <line_breaks>
+            <line_break loc="0..1" text="&#10;" />
+            <line_break loc="37..38" text="&#10;" />
+        </line_breaks>
+        <comments />
+        <dependencies />
+    </expected>
+</test>
