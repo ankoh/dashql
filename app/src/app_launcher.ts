@@ -93,6 +93,7 @@ export async function launchApp(ctx: IAppContext) {
     const analyzer = init[1];
 
     ctx.platform = new platform.BrowserPlatform(ctx.store, webdb, analyzer);
+    await ctx.platform.init();
 
     model.mutate(ctx.store.dispatch, {
         type: core.model.StateMutationType.SET_PROGRAM_TEXT,

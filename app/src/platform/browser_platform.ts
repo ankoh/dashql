@@ -14,5 +14,7 @@ export class BrowserPlatform extends core.platform.Platform {
         this._scheduler = new core.ActionGraphScheduler(this);
         this._scriptPipeline = new core.ScriptPipeline(this, this._scheduler);
     }
+
+
 };
 
