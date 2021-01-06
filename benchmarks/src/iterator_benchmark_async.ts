@@ -1,4 +1,5 @@
-import * as webdb from '@dashql/webdb/dist/webdb_node_async';
+import Worker from 'web-worker';
+import * as webdb from '@dashql/webdb/dist/webdb_async';
 import * as core from '@dashql/core';
 import * as benny from 'benny';
 import kleur from 'kleur';
@@ -105,7 +106,7 @@ async function main(db: webdb.AsyncWebDB) {
     );
 }
 
-const worker = webdb.spawnWorker(workerPath);
+const worker = new Worker(workerPath);
 const db = new webdb.AsyncWebDB(worker);
 db.open(wasmPath)
     .then(() => main(db))

@@ -15,12 +15,7 @@
         "baseUrl": ".",
         "lib": ["webworker"]
     },
-    "files": [
-        "./src/iterator_benchmark_async.ts",
-        "./src/iterator_benchmark.ts",
-        "./types/wasm.d.ts",
-        "./types/worker.d.ts"
-    ],
+    "include": ["./src/**/*", "./types/*.d.ts"],
     "exclude": [
         "./node_modules"
     ]
