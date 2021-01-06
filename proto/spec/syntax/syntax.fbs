@@ -184,6 +184,7 @@ enum StatementType: uint8 {
     SELECT,
     SELECT_INTO,
     CREATE_TABLE,
+    CREATE_TABLE_AS,
     CREATE_VIEW,
     VIZUALIZE,
 }

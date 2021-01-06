@@ -63,6 +63,7 @@ static const std::unordered_map<sx::StatementType, StatementTranslation>& Statem
     X(SELECT, UNNAMED_SELECT, true)
     X(SELECT_INTO, CREATE_TABLE, true)
     X(CREATE_TABLE, CREATE_TABLE, true)
+    X(CREATE_TABLE_AS, CREATE_TABLE, true)
     X(CREATE_VIEW, CREATE_VIEW, true)
     X(VIZUALIZE, CREATE_VIZ, false)
 #undef X
