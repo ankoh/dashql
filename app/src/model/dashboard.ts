@@ -36,107 +36,108 @@ export enum WidgetType {
     Chart = 0x200,
 }
 
-export type BaseWidgetModel = {
+export interface BaseWidgetModel {
     id: number;
     position: Position;
 }
 
-export type IntegerParameterModel = BaseWidgetModel & {
+
+export interface IntegerParameterModel extends BaseWidgetModel {
     type: WidgetType.Parameter | ParameterType.Integer;
     content: void;
-};
+}
 
-export type FloatParameterModel = BaseWidgetModel & {
+export interface FloatParameterModel extends BaseWidgetModel {
     type: WidgetType.Parameter | ParameterType.Float;
     content: void;
 };
 
-export type TextParameterModel = BaseWidgetModel & {
+export interface TextParameterModel extends BaseWidgetModel {
     type: WidgetType.Parameter | ParameterType.Text;
     content: void;
 };
 
-export type DateParameterModel = BaseWidgetModel & {
+export interface DateParameterModel extends BaseWidgetModel {
     type: WidgetType.Parameter | ParameterType.Date;
     content: void;
 };
 
-export type DatetimeParameterModel = BaseWidgetModel & {
+export interface DatetimeParameterModel extends BaseWidgetModel {
     type: WidgetType.Parameter | ParameterType.Datetime;
     content: void;
 };
 
-export type TimeParameterModel = BaseWidgetModel & {
+export interface TimeParameterModel extends BaseWidgetModel {
     type: WidgetType.Parameter | ParameterType.Time;
     content: void;
 };
 
-export type FileParameterModel = BaseWidgetModel & {
+export interface FileParameterModel extends BaseWidgetModel {
     type: WidgetType.Parameter | ParameterType.File;
     content: void;
 };
 
-export type AreaChartModel = BaseWidgetModel & {
+export interface AreaChartModel extends BaseWidgetModel {
     type: WidgetType.Chart | ChartType.Area;
     content: void;
 };
 
-export type BarChartModel = BaseWidgetModel & {
+export interface BarChartModel extends BaseWidgetModel {
     type: WidgetType.Chart | ChartType.Bar;
     content: void;
 };
 
-export type BoxChartModel = BaseWidgetModel & {
+export interface BoxChartModel extends BaseWidgetModel {
     type: WidgetType.Chart | ChartType.Box;
     content: void;
 };
 
-export type BubbleChartModel = BaseWidgetModel & {
+export interface BubbleChartModel extends BaseWidgetModel {
     type: WidgetType.Chart | ChartType.Bubble;
     content: void;
 };
 
-export type GridChartModel = BaseWidgetModel & {
+export interface GridChartModel extends BaseWidgetModel {
     type: WidgetType.Chart | ChartType.Grid;
     content: void;
 };
 
-export type HistogramChartModel = BaseWidgetModel & {
+export interface HistogramChartModel extends BaseWidgetModel {
     type: WidgetType.Chart | ChartType.Histogram;
     content: void;
 };
 
-export type LineChartModel = BaseWidgetModel & {
+export interface LineChartModel extends BaseWidgetModel {
     type: WidgetType.Chart | ChartType.Line;
     content: void;
 };
 
-export type NumberChartModel = BaseWidgetModel & {
+export interface NumberChartModel extends BaseWidgetModel {
     type: WidgetType.Chart | ChartType.Number;
     content: void;
 };
 
-export type PieChartModel = BaseWidgetModel & {
+export interface PieChartModel extends BaseWidgetModel {
     type: WidgetType.Chart | ChartType.Pie;
     content: void;
 };
 
-export type PointChartModel = BaseWidgetModel & {
+export interface PointChartModel extends BaseWidgetModel {
     type: WidgetType.Chart | ChartType.Point;
     content: void;
 };
 
-export type ScatterChartModel = BaseWidgetModel & {
+export interface ScatterChartModel extends BaseWidgetModel {
     type: WidgetType.Chart | ChartType.Scatter;
     content: void;
 };
 
-export type TableChartModel = BaseWidgetModel & {
+export interface TableChartModel extends BaseWidgetModel {
     type: WidgetType.Chart | ChartType.Table;
     content: void;
 };
 
-export type TextChartModel = BaseWidgetModel & {
+export interface TextChartModel extends BaseWidgetModel {
     type: WidgetType.Chart | ChartType.Text;
     content: void;
 };

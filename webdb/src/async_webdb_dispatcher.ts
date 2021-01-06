@@ -135,7 +135,7 @@ export abstract class AsyncWebDBDispatcher {
                 }
             }
         } catch (e) {
-            return this.failWith(request, new Error('webdb bindings are null'));
+            return this.failWith(request, e);
         }
     }
 }
