@@ -119,3 +119,10 @@ enum NumericTypeTag: uint8 {
     NUMERIC,
     BOOL,
 }
+
+enum OnCommitOption: uint8 {
+    DROP,
+    DELETE_ROWS,
+    PRESERVE_ROWS,
+    NOOP
+}

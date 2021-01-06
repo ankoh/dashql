@@ -1,0 +1,5 @@
+<test name="create_table_as_select_1">
+    <input>
+        create table foo as select 1
+    </input>
+</test>
