@@ -119,7 +119,6 @@ class ProgramGraph extends React.Component<ProgramGraphProps, ProgramGraphState>
         return {
             ...state,
             nodes: state.nodes
-                .filter(n => props.programStatus.has(n.statementId))
                 .map(n => {
                     const s = props.programStatus.get(n.statementId)!.status;
                     if (n.data.actionStatus == s) {
@@ -134,7 +133,6 @@ class ProgramGraph extends React.Component<ProgramGraphProps, ProgramGraphState>
                         };
                 }),
             edges: state.edges
-                .filter(e => props.programStatus.has(e.targetId) && props.programStatus.has(e.sourceId))
                 .map(e => {
                     const target = props.programStatus.get(e.targetId)!.status;
                     let animated = false;
