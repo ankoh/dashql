@@ -1,26 +1,41 @@
 import * as proto from "@dashql/proto";
-import * as webdb from "@dashql/webdb/dist/webdb_async";
-import { ActionID, Statement } from "../model";
+import * as model from "../model";
 import { ProgramActionLogic } from "./action_logic";
 import { ActionContext } from "./action_context";
 import ActionStatusCode = proto.action.ActionStatusCode;
 
 export class CreateVizActionLogic extends ProgramActionLogic {
-    constructor(action_id: ActionID, action: proto.action.ProgramAction, statement: Statement) {
+    constructor(action_id: model.ActionID, action: proto.action.ProgramAction, statement: model.Statement) {
         super(action_id, action, statement);
     }
 
-    public async execute(context: ActionContext): Promise<ActionID> {
-        const db = context.platform.database;
-        await db.use(async (c: webdb.AsyncWebDBConnection) => {
-            const result = await c.runQuery(`SELECT * FROM ${this.buffer.targetNameShort()}`);
-            const chunkIter = new webdb.QueryResultChunkStream(c, result);
-            while (await chunkIter.next()) {
-                console.log(`rows ${chunkIter.rowCount} columns ${chunkIter.columnCount}`);
-                chunkIter.iterateNumberColumn(0, (row: number, v: number | null) => {
-                    console.log(`[${row}] ${v}`);
-                });
+    public async execute(context: ActionContext): Promise<model.ActionID> {
+
+        const now = new Date();
+        const viz: model.VizData = {
+            objectId: this.buffer.objectId(),
+            objectType: model.PlanObjectType.VIZ_DATA,
+            timeCreated: now,
+            timeUpdated: now,
+            nameQualified: this.buffer.targetNameQualified() || "",
+            nameShort: this.buffer.targetNameShort() || "",
+            spec: {
+                type: model.VizSpecType.TABLE,
+                data: {
+                    position: {
+                        x: 0,
+                        y: 0,
+                        width: 300,
+                        height: 200
+                    }
+                }
             }
+        };
+
+        const store = context.platform.store;
+        model.mutate(store.dispatch, {
+            type: model.StateMutationType.INSERT_PLAN_OBJECTS,
+            data: [viz]
         });
 
         return this.returnWithStatus(ActionStatusCode.COMPLETED);
