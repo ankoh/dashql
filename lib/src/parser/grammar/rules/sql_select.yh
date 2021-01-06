@@ -28,6 +28,7 @@
 %type <NodeVector> sql_select_clause;
 %type <NodeVector> sql_select_limit;
 %type <NodeVector> sql_select_no_parens;
+%type <NodeVector> sql_select_stmt;
 %type <NodeVector> sql_select_with_parens;
 %type <NodeVector> sql_simple_select;
 %type <NodeVector> sql_sortby_list;
@@ -67,7 +68,6 @@
 %type <sx::Node> sql_preparable_stmt;
 %type <sx::Node> sql_select_limit_value;
 %type <sx::Node> sql_select_offset_value;
-%type <sx::Node> sql_select_stmt;
 %type <sx::Node> sql_simple_typename;
 %type <sx::Node> sql_sort_clause;
 %type <sx::Node> sql_sortby;

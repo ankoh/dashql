@@ -1,11 +1,11 @@
 sql_create_as_stmt:
     CREATE_P sql_opt_temp TABLE sql_create_as_target AS sql_select_stmt sql_opt_with_data {
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_CREATE_AS, {
+        $$ = {
                 Key::SQL_CREATE_AS_TEMP << Enum(@2, $2),
                 Key::SQL_CREATE_AS_TARGET << $4,
-                Key::SQL_CREATE_AS_STATEMENT << $6,
+                Key::SQL_CREATE_AS_STATEMENT << ctx.Add(@6, sx::NodeType::OBJECT_SQL_SELECT, move($6)),
                 Key::SQL_CREATE_AS_WITH_DATA << $7
-        });
+        };
     }
   | CREATE_P sql_opt_temp TABLE IF_P NOT EXISTS sql_create_as_target AS sql_select_stmt sql_opt_with_data {
         $$ = {};
