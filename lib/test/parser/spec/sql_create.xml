@@ -4,7 +4,7 @@
     </input>
     <expected>
         <statements>
-            <statement type="CREATE_TABLE">
+            <statement type="CREATE_TABLE_AS">
                 <node type="OBJECT_SQL_CREATE_AS" loc="9..37" text="create tab..s select 1">
                     <node key="SQL_CREATE_AS_TEMP" value="DEFAULT" />
                     <node key="SQL_CREATE_AS_STATEMENT" type="OBJECT_SQL_SELECT" loc="29..37" text="select 1">
