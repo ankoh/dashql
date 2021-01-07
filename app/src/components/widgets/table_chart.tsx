@@ -5,40 +5,46 @@ import * as core from '@dashql/core';
 import * as webdb from '@dashql/webdb/dist/webdb_async';
 import * as model from '../../model';
 import { connect } from 'react-redux';
-import { Grid, GridCellProps, Index } from 'react-virtualized';
-import { Scrollbars } from 'react-custom-scrollbars';
+import { Grid, GridCellProps, ScrollSync, AutoSizer } from 'react-virtualized';
 import { IAppContext, withAppContext } from '../../app_context';
-import { withAutoSizer } from '../../util/autosizer';
 
 import styles from './table_chart.module.css';
 
 type Props = {
     appContext: IAppContext;
-    width: number;
-    height: number;
     viz: core.model.VizData;
     dataObjects: Immutable.Map<string, core.model.DatabaseObject>;
 };
 
 type State = {
-    scrollTop: number;
-    scrollLeft: number;
     data: core.model.DatabaseObject | null;
     result: proto.webdb.QueryResult | null;
+
+    columnCount: number;
+    overscanColumnCount: number;
+    overscanRowCount: number;
+    rowHeight: number;
+    rowCount: number;
 };
 
 export class Table extends React.Component<Props, State> {
-    protected gridRef: React.RefObject<Grid>;
+    protected _renderAnchorCell = this.renderAnchorCell.bind(this);
+    protected _renderBodyCell = this.renderBodyCell.bind(this);
+    protected _renderRowHeaderCell = this.renderRowHeaderCell.bind(this);
+    protected _renderColumnHeaderCell = this.renderColumnHeaderCell.bind(this);
 
     constructor(props: Props) {
         super(props);
         this.state = {
-            scrollTop: 0,
-            scrollLeft: 0,
             data: props.dataObjects.get(props.viz.nameQualified) || null,
             result: null,
+
+            columnCount: 50,
+            overscanColumnCount: 0,
+            overscanRowCount: 5,
+            rowHeight: 40,
+            rowCount: 100,
         };
-        this.gridRef = React.createRef();
     }
 
     /// Get the column count
@@ -46,67 +52,45 @@ export class Table extends React.Component<Props, State> {
         return this.state.data?.columnNames.length || 0;
     }
 
-    /// Render a single cell
-    public renderCell(props: GridCellProps) {
-        // Determine cell type
-        enum CellType {
-            Anchor,
-            ColumnHeader,
-            RowHeader,
-            Data,
-        }
-
-        const cellType =
-            props.rowIndex === 0
-                ? props.columnIndex === 0
-                    ? CellType.Anchor
-                    : CellType.ColumnHeader
-                : props.columnIndex === 0
-                ? CellType.RowHeader
-                : CellType.Data;
-
-        // Render cell type
-        switch (cellType) {
-            case CellType.Anchor:
-                return <div key={props.key} className={styles.cell_anchor} style={{ ...props.style }} />;
-            case CellType.ColumnHeader:
-                return (
-                    <div key={props.key} className={styles.cell_header_col} style={{ ...props.style }}>
-                        {this.state.data?.columnNames[props.columnIndex - 1]}
-                    </div>
-                );
-            case CellType.RowHeader:
-                return (
-                    <div key={props.key} className={styles.cell_header_row} style={{ ...props.style }}>
-                        {props.rowIndex}
-                    </div>
-                );
-            case CellType.Data:
-                return (
-                    <div key={props.key} className={styles.cell_data} style={{ ...props.style }}>
-                        {42}
-                    </div>
-                );
-        }
+    /// Render an anchor cell
+    public renderAnchorCell(props: GridCellProps): JSX.Element {
+        return <div key={props.key} className={styles.cell_anchor} style={{ ...props.style }} />;
     }
 
-    /// Handle scroll event
-    protected handleScroll(event: any) {
-        this.setState({
-            ...this.state,
-            scrollTop: event.target.scrollTop,
-            scrollLeft: event.target.scrollLeft,
-        });
+    /// Render a body cell
+    public renderBodyCell(props: GridCellProps): JSX.Element {
+        return (
+            <div key={props.key} className={styles.cell_data} style={{ ...props.style }}>
+                {42}
+            </div>
+        );
+    }
+
+    /// Render a cell of the static left sidebar
+    public renderRowHeaderCell(props: GridCellProps): JSX.Element {
+        return (
+            <div key={props.key} className={styles.cell_header_row} style={{ ...props.style }}>
+                {props.rowIndex}
+            </div>
+        );
+    }
+
+    /// Render a cell of the header
+    public renderColumnHeaderCell(props: GridCellProps): JSX.Element {
+        return (
+            <div key={props.key} className={styles.cell_header_col} style={{ ...props.style }}>
+                {'foo'}
+            </div>
+        );
     }
 
     /// Compute the column width
-    protected getColumnWidth(index: Index) {
-        let lineNumberWidth = 40;
-        let available = this.props.width - lineNumberWidth;
+    protected computeColumnWidth(clientWidth: number, rowHeaderWidth: number) {
+        let available = clientWidth - rowHeaderWidth;
         let equalWidths = available;
         if (this.columnCount > 0) equalWidths = available / this.columnCount;
         let minWidth = 56;
-        return index.index === 0 ? lineNumberWidth : Math.max(equalWidths, minWidth);
+        return Math.max(equalWidths, minWidth);
     }
 
     public componentDidMount() {
@@ -122,11 +106,6 @@ export class Table extends React.Component<Props, State> {
 
     /// Did component update?
     public componentDidUpdate(prevProps: Props) {
-        if (this.props.width !== prevProps.width || this.props.height !== prevProps.height) {
-            if (this.gridRef.current) {
-                this.gridRef.current.recomputeGridSize();
-            }
-        }
         if (this.props.viz != prevProps.viz) {
             const data = this.props.dataObjects.get(this.props.viz.nameQualified) || null;
             if (data) {
@@ -144,7 +123,7 @@ export class Table extends React.Component<Props, State> {
             const result = (data as core.model.DatabaseView).queryResult;
             this.setState({
                 ...this.state,
-                result: result
+                result: result,
             });
         } else if (data.objectType == core.model.PlanObjectType.DATABASE_TABLE) {
             const db = this.props.appContext.platform!.database;
@@ -154,7 +133,7 @@ export class Table extends React.Component<Props, State> {
             if (result) {
                 this.setState({
                     ...this.state,
-                    result: result
+                    result: result,
                 });
             }
         }
@@ -163,30 +142,95 @@ export class Table extends React.Component<Props, State> {
     /// Render the table
     public render() {
         return (
-            <div className={styles.container} style={{ height: this.props.height, width: this.props.width }}>
-                <Scrollbars
-                    style={{
-                        height: this.props.height - 2,
-                        width: this.props.width - 2,
-                    }}
-                    onScroll={this.handleScroll.bind(this)}
-                    className={styles.scrollbars}
-                >
-                    <Grid
-                        ref={this.gridRef}
-                        autoHeight
-                        autoContainerWidth
-                        scrollTop={this.state.scrollTop}
-                        scrollLeft={this.state.scrollLeft}
-                        cellRenderer={this.renderCell.bind(this)}
-                        columnCount={this.columnCount + 1}
-                        columnWidth={this.getColumnWidth.bind(this)}
-                        height={this.props.height - 2}
-                        width={this.props.width - 2}
-                        rowCount={1 + (this.state.result?.dataChunks(0)?.rowCount()?.low || 0)}
-                        rowHeight={24}
-                    />
-                </Scrollbars>
+            <div className={styles.container}>
+                <AutoSizer>
+                    {({ width, height }) => (
+                        <ScrollSync>
+                            {({ onScroll, scrollLeft, scrollTop }) => {
+                                const rowHeaderWidth = 40;
+                                const columnWidth = this.computeColumnWidth(width, rowHeaderWidth);
+                                const bodyHeight = height - this.state.rowHeight;
+                                const bodyWidth = width - rowHeaderWidth;
+                                console.log(`${bodyHeight} ${bodyWidth}`);
+                                return (
+                                    <div
+                                        className={styles.grid_container}
+                                        style={{
+                                            display: 'grid',
+                                            gridTemplateRows: `${this.state.rowHeight}px ${bodyHeight}px`,
+                                            gridTemplateColumns: `${rowHeaderWidth}px ${bodyWidth}px`,
+                                        }}
+                                    >
+                                        <Grid
+                                            className={styles.grid_anchor}
+                                            width={rowHeaderWidth}
+                                            height={this.state.rowHeight}
+                                            columnWidth={rowHeaderWidth}
+                                            columnCount={1}
+                                            rowHeight={this.state.rowHeight}
+                                            rowCount={1}
+                                            scrollTop={scrollTop}
+                                            cellRenderer={this._renderAnchorCell}
+                                        />
+                                        <Grid
+                                            className={styles.grid_left}
+                                            width={rowHeaderWidth}
+                                            height={height - this.state.rowHeight}
+                                            columnWidth={rowHeaderWidth}
+                                            columnCount={1}
+                                            rowHeight={this.state.rowHeight}
+                                            rowCount={this.state.rowCount}
+                                            scrollTop={scrollTop}
+                                            overscanColumnCount={this.state.overscanColumnCount}
+                                            overscanRowCount={this.state.overscanRowCount}
+                                            cellRenderer={this._renderRowHeaderCell}
+                                        />
+                                        <div
+                                            className={styles.grid_container_dyn}
+                                            style={{
+                                                display: 'grid',
+                                                gridTemplateRows: `${this.state.rowHeight}px calc(100% - ${this.state.rowHeight}px)`,
+                                                gridTemplateColumns: '100%',
+                                            }}
+                                        >
+                                            <AutoSizer>
+                                                {({ width, height }) => (
+                                                    <>
+                                                        <Grid
+                                                            className={styles.grid_header}
+                                                            width={width}
+                                                            height={this.state.rowHeight}
+                                                            columnWidth={columnWidth}
+                                                            columnCount={this.state.columnCount}
+                                                            rowHeight={this.state.rowHeight}
+                                                            rowCount={1}
+                                                            scrollLeft={scrollLeft}
+                                                            cellRenderer={this._renderColumnHeaderCell}
+                                                        />
+                                                        <Grid
+                                                            className={styles.grid_body}
+                                                            width={width}
+                                                            height={height - this.state.rowHeight}
+                                                            columnWidth={columnWidth}
+                                                            columnCount={this.state.columnCount}
+                                                            rowHeight={this.state.rowHeight}
+                                                            rowCount={this.state.rowCount}
+                                                            scrollLeft={scrollLeft}
+                                                            onScroll={onScroll}
+                                                            overscanColumnCount={this.state.overscanColumnCount}
+                                                            overscanRowCount={this.state.overscanRowCount}
+                                                            cellRenderer={this._renderBodyCell}
+                                                        />
+                                                    </>
+                                                )}
+                                            </AutoSizer>
+                                        </div>
+                                    </div>
+                                );
+                            }}
+                        </ScrollSync>
+                    )}
+                </AutoSizer>
             </div>
         );
     }
@@ -198,4 +242,4 @@ const mapStateToProps = (state: model.AppState) => ({
 
 const mapDispatchToProps = (_dispatch: model.Dispatch) => ({});
 
-export default connect(mapStateToProps, mapDispatchToProps)(withAutoSizer(withAppContext(Table)));
+export default connect(mapStateToProps, mapDispatchToProps)(withAppContext(Table));
