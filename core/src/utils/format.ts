@@ -9,3 +9,10 @@ export function formatBytes(value: number, format: ByteFormat = ByteFormat.SI) {
     const size = Number((value / Math.pow(multiple, exp)).toFixed(2));
     return size + ' ' + (exp ? ((k + 'MGTPEZY')[exp - 1] + suffix) : ('byte' + (size !== 1 ? 's' : '')));
 }
+
+export function formatThousands(value: number) {
+    const [multiple, k] = [1000, 'k'];
+    const exp = (Math.log(value) / Math.log(multiple)) | 0;
+    const size = Number((value / Math.pow(multiple, exp)).toFixed(2));
+    return size + (exp ? (' ' + ((k + 'MGTPEZY')[exp - 1])) : '');
+}
