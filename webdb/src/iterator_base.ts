@@ -41,7 +41,7 @@ export abstract class ChunkIteratorBase {
     /// Get the column count
     public get columnTypes() { return this._columnTypes; }
     /// Get the row count
-    public get rowCount() { return this._currentChunk.rowCount().low; }
+    public get rowCount() { return this._currentChunk.rowCount(); }
     /// Get the current chunk
     public get currentChunk() { return this._currentChunk; }
     /// Get the temporary buffers
@@ -129,7 +129,7 @@ export abstract class RowIteratorBase {
     /// Get the column count
     public getColumnName(idx: number) { return this._chunkIter.result.columnNames(idx); }
     /// Is the end?
-    public isEnd(): boolean { return this.currentRow >= this.currentChunk.rowCount().low; }
+    public isEnd(): boolean { return this.currentRow >= this.currentChunk.rowCount(); }
 
 
     /// Read a value
