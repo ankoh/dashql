@@ -5,7 +5,7 @@ import * as core from '@dashql/core';
 import * as webdb from '@dashql/webdb/dist/webdb_async';
 import * as model from '../../model';
 import { connect } from 'react-redux';
-import { Grid, GridCellProps, ScrollSync, AutoSizer } from 'react-virtualized';
+import { Grid, GridCellProps, AutoSizer } from 'react-virtualized';
 import { Scrollbars, positionValues } from 'react-custom-scrollbars';
 import { IAppContext, withAppContext } from '../../app_context';
 
@@ -50,7 +50,7 @@ export class Table extends React.Component<Props, State> {
             columnCount: 50,
             overscanColumnCount: 0,
             overscanRowCount: 5,
-            rowHeight: 40,
+            rowHeight: 32,
             rowCount: 100,
         };
     }
@@ -162,8 +162,8 @@ export class Table extends React.Component<Props, State> {
             <div className={styles.container}>
                 <AutoSizer>
                     {({ width, height }) => {
-                        const columnHeaderHeight = 40;
-                        const rowHeaderWidth = 40;
+                        const columnHeaderHeight = 28;
+                        const rowHeaderWidth = 28;
                         const columnWidth = this.computeColumnWidth(width, rowHeaderWidth);
                         const bodyHeight = height - columnHeaderHeight;
                         const bodyWidth = width - rowHeaderWidth;
@@ -177,14 +177,42 @@ export class Table extends React.Component<Props, State> {
                                 }}
                             >
                                 <Grid
+                                    className={styles.grid_body}
+                                    width={bodyWidth - 2}
+                                    height={bodyHeight - 2}
+                                    columnWidth={columnWidth}
+                                    columnCount={this.state.columnCount}
+                                    rowHeight={this.state.rowHeight}
+                                    rowCount={this.state.rowCount}
+                                    scrollTop={this.state.scrollTop}
+                                    scrollLeft={this.state.scrollLeft}
+                                    overscanColumnCount={this.state.overscanColumnCount}
+                                    overscanRowCount={this.state.overscanRowCount}
+                                    cellRenderer={this._renderBodyCell}
+                                />
+                                <Scrollbars
+                                    className={styles.grid_body_scrollbars}
+                                    style={{
+                                        width: bodyWidth - 2,
+                                        height: bodyHeight - 2,
+                                    }}
+                                    onScrollFrame={this._onScroll}
+                                >
+                                    <div
+                                        style={{
+                                            width: this.state.columnCount * columnWidth,
+                                            height: this.state.rowCount * this.state.rowHeight,
+                                        }}
+                                    />
+                                </Scrollbars>
+                                <Grid
                                     className={styles.grid_anchor}
                                     width={rowHeaderWidth}
                                     height={columnHeaderHeight}
                                     columnWidth={rowHeaderWidth}
                                     columnCount={1}
-                                    rowHeight={this.state.rowHeight}
+                                    rowHeight={columnHeaderHeight}
                                     rowCount={1}
-                                    scrollTop={this.state.scrollTop}
                                     cellRenderer={this._renderAnchorCell}
                                 />
                                 <Grid
@@ -206,39 +234,11 @@ export class Table extends React.Component<Props, State> {
                                     height={columnHeaderHeight}
                                     columnWidth={columnWidth}
                                     columnCount={this.state.columnCount}
-                                    rowHeight={this.state.rowHeight}
+                                    rowHeight={columnHeaderHeight}
                                     rowCount={1}
                                     scrollLeft={this.state.scrollLeft}
                                     cellRenderer={this._renderColumnHeaderCell}
                                 />
-                                <Grid
-                                    className={styles.grid_body}
-                                    width={bodyWidth - 2}
-                                    height={bodyHeight - 2}
-                                    columnWidth={columnWidth}
-                                    columnCount={this.state.columnCount}
-                                    rowHeight={this.state.rowHeight}
-                                    rowCount={this.state.rowCount}
-                                    scrollTop={this.state.scrollTop}
-                                    scrollLeft={this.state.scrollLeft}
-                                    overscanColumnCount={this.state.overscanColumnCount}
-                                    overscanRowCount={this.state.overscanRowCount}
-                                    cellRenderer={this._renderBodyCell}
-                                />
-                                <Scrollbars 
-                                    className={styles.grid_body_scrollbars}
-                                    style={{
-                                        width: bodyWidth - 2,
-                                        height: bodyHeight - 2,
-                                    }}
-                                    onScrollFrame={this._onScroll}
-                                >
-                                    <div style={{
-                                            width: this.state.columnCount * columnWidth,
-                                            height: this.state.rowCount * this.state.rowHeight,
-                                        }}
-                                    />
-                                </Scrollbars>
                             </div>
                         );
                     }}
