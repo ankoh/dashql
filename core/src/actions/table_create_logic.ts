@@ -5,6 +5,24 @@ import { ProgramActionLogic } from "./action_logic";
 import { ActionContext } from "./action_context";
 import ActionStatusCode = proto.action.ActionStatusCode;
 
+export async function collectTableInfo(conn: webdb.AsyncWebDBConnection, info: model.DatabaseTable) {
+    // Get column names and types
+    const limit0 = await conn.runQuery(`SELECT * FROM ${info.nameShort} LIMIT 0`);
+    info.columnNames = [];
+    for (let ci = 0; ci < limit0.columnNamesLength(); ++ci) {
+        info.columnNames.push(limit0.columnNames(ci));
+        info.columnTypes.push(webdb.getSQLType(limit0.columnTypes(ci)));
+    }
+
+    // Get the row count
+    const countResult = await conn.runQuery(`SELECT count(*)::INTEGER FROM ${info.nameShort}`);
+    const countChunkIter = new webdb.QueryResultChunkStream(conn, countResult);
+    const countRowIter = await webdb.QueryResultRowIterator.iterate(countChunkIter);
+    info.rowCount = countRowIter.getValue().asNumber().value;
+
+    info.timeUpdated = new Date();
+}
+
 export class CreateTableActionLogic extends ProgramActionLogic {
     constructor(action_id: model.ActionID, action: proto.action.ProgramAction, statement: model.Statement) {
         super(action_id, action, statement);
@@ -21,23 +39,6 @@ export class CreateTableActionLogic extends ProgramActionLogic {
             /// First run the query
             await c.runQuery(script);
 
-            const targetName = this.buffer.targetNameShort();
-
-            // Get column names and types
-            const limit0 = await c.runQuery(`SELECT * FROM ${targetName} LIMIT 0`);
-            let columnNames: string[] = [];
-            let columnTypes: webdb.SQLType[] = [];
-            for (let ci = 0; ci < limit0.columnNamesLength(); ++ci) {
-                columnNames.push(limit0.columnNames(ci));
-                columnTypes.push(webdb.getSQLType(limit0.columnTypes(ci)));
-            }
-
-            // Get the row count
-            const countResult = await c.runQuery(`SELECT count(*)::INTEGER FROM ${this.buffer.targetNameShort()}`);
-            const countChunkIter = new webdb.QueryResultChunkStream(c, countResult);
-            const countRowIter = await webdb.QueryResultRowIterator.iterate(countChunkIter);
-            const count = countRowIter.getValue();
-
             // Return plan object
             const now = new Date();
             const table: model.DatabaseTable = {
@@ -47,10 +48,11 @@ export class CreateTableActionLogic extends ProgramActionLogic {
                 timeUpdated: now,
                 nameQualified: this.buffer.targetNameQualified() || "",
                 nameShort: this.buffer.targetNameShort() || "",
-                columnNames: columnNames,
-                columnTypes: columnTypes,
-                rowCount: count.asNumber().value,
+                columnNames: [],
+                columnTypes: [],
+                rowCount: 0,
             };
+            await collectTableInfo(c, table);
             return table;
         });
 

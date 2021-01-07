@@ -1,10 +1,7 @@
-import * as Immutable from 'immutable';
 import * as React from 'react';
 import * as proto from '@dashql/proto';
 import * as core from '@dashql/core';
 import * as webdb from '@dashql/webdb/dist/webdb_async';
-import * as model from '../../model';
-import { connect } from 'react-redux';
 import { Grid, GridCellProps, AutoSizer } from 'react-virtualized';
 import { Scrollbars, positionValues } from 'react-custom-scrollbars';
 import { IAppContext, withAppContext } from '../../app_context';
@@ -13,7 +10,7 @@ import styles from './data_grid.module.css';
 
 type Props = {
     appContext: IAppContext;
-    data: core.model.DatabaseObject;
+    data: core.model.DatabaseTable;
 };
 
 type State = {
@@ -113,24 +110,15 @@ export class DataGrid extends React.Component<Props, State> {
     }
 
     protected async queryData() {
-        const data = this.props.data;
-        if (data.objectType == core.model.PlanObjectType.DATABASE_VIEW) {
-            const result = (data as core.model.DatabaseView).queryResult;
+        const db = this.props.appContext.platform!.database;
+        const result = await db.use(async (c: webdb.AsyncWebDBConnection) => {
+            return await c.runQuery(`SELECT * FROM ${this.props.data.nameShort} LIMIT 100`);
+        });
+        if (result) {
             this.setState({
                 ...this.state,
                 queryResult: result,
             });
-        } else if (data.objectType == core.model.PlanObjectType.DATABASE_TABLE) {
-            const db = this.props.appContext.platform!.database;
-            const result = await db.use(async (c: webdb.AsyncWebDBConnection) => {
-                return await c.runQuery(`SELECT * FROM ${this.props.data.nameShort} LIMIT 100`);
-            });
-            if (result) {
-                this.setState({
-                    ...this.state,
-                    queryResult: result,
-                });
-            }
         }
     }
 
