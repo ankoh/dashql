@@ -2,6 +2,7 @@ const path = require('path');
 const webpack = require('webpack');
 const nodeExternals = require('webpack-node-externals');
 const { CleanWebpackPlugin } = require('clean-webpack-plugin');
+const WatchRunPlugin = require('./webpack/watch_run_plugin');
 
 const browserTarget = {
     target: 'web',
@@ -70,6 +71,13 @@ const browserTarget = {
             cleanOnceAfterBuildPatterns: [],
             verbose: false,
         }),
+        new WatchRunPlugin(),
+        new webpack.WatchIgnorePlugin({
+            paths: [
+                /node_modules\/^(@dashql)/,
+                path.resolve(__dirname, './dist/')
+            ]
+        })
     ],
     externals: [nodeExternals({ importType: 'umd' })],
 };
@@ -87,6 +95,12 @@ const nodeTarget = {
             cleanOnceAfterBuildPatterns: [],
             verbose: false,
         }),
+        new webpack.WatchIgnorePlugin({
+            paths: [
+                /node_modules\/^(@dashql)/,
+                path.resolve(__dirname, './dist/')
+            ]
+        })
     ],
 };
 nodeTarget.module.rules[0] = {
