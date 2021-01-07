@@ -9,7 +9,7 @@ namespace dashql.proto.webdb;
 // A query result chunk
 table QueryResultChunk {
     query_id: uint64;
-    row_count: uint64;
+    row_count: uint32;
     columns: [Vector];
 }
 
