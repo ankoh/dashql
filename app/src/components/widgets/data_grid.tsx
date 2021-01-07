@@ -159,8 +159,8 @@ export class DataGrid extends React.Component<Props, State> {
                                 <Scrollbars
                                     className={styles.grid_body_scrollbars}
                                     style={{
-                                        width: bodyWidth - 2,
-                                        height: bodyHeight - 2,
+                                        width: bodyWidth,
+                                        height: bodyHeight,
                                     }}
                                     onScrollFrame={this._onScroll}
                                     autoHide
