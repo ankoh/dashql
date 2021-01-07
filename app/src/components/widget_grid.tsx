@@ -6,6 +6,7 @@ import { connect } from 'react-redux';
 import { withAutoSizer } from '../util/autosizer';
 import TableChart from './widgets/table_chart';
 
+import styles from './widget_grid.module.css';
 import './widget_grid.raw.css';
 
 type Props = {
