@@ -61,16 +61,21 @@
     box-sizing: border-box;
     border-bottom: v_cell_border;
     border-right: v_cell_border;
-    text-align: center;
-    line-height: 24px;
+
+    display: grid;
+    align-items: center;
+    justify-content: center;
 }
 
 .cell_data {
     box-sizing: border-box;
     border-bottom: v_cell_border;
     border-right: v_cell_border;
-    text-align: center;
-    line-height: 24px;
+
+    display: grid;
+    align-items: center;
+    justify-content: center;
+
     padding: 0 8px 0 8px;
     white-space: nowrap;
     overflow: hidden;
