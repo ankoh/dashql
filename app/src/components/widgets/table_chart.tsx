@@ -12,7 +12,7 @@ import styles from './table_chart.module.css';
 
 type Props = {
     viz: core.model.VizData;
-    dbObjects: Immutable.Map<string, core.model.DatabaseObject>;
+    dbObjects: Immutable.Map<string, core.model.DatabaseTable>;
 };
 
 export class TableChart extends React.Component<Props> {
@@ -29,7 +29,7 @@ export class TableChart extends React.Component<Props> {
 }
 
 const mapStateToProps = (state: model.AppState) => ({
-    dbObjects: state.core.planDatabaseObjects,
+    dbObjects: state.core.planDatabaseTables,
 });
 
 const mapDispatchToProps = (_dispatch: model.Dispatch) => ({});

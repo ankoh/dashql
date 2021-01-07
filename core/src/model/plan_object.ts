@@ -1,13 +1,11 @@
 // Copyright (c) 2020 The DashQL Authors
 
-import * as proto from '@dashql/proto';
 import * as webdb from '@dashql/webdb';
 import { VizSpecVariant } from './viz_spec';
 
 /// A plan object type
 export enum PlanObjectType {
     DATABASE_TABLE,
-    DATABASE_VIEW,
     VIZ_DATA,
 }
 /// A plan obbject id
@@ -29,8 +27,8 @@ export interface PlanObject {
     nameShort: string;
 }
 
-/// A database object
-export interface DatabaseObject extends PlanObject {
+/// A database table
+export interface DatabaseTable extends PlanObject {
     /// The column names
     columnNames: string[];
     /// The column type
@@ -38,16 +36,6 @@ export interface DatabaseObject extends PlanObject {
     /// The row count
     rowCount: number;
 }
-
-/// A database table
-export interface DatabaseTable extends DatabaseObject {
-};
-
-/// A database view
-export interface DatabaseView extends DatabaseObject {
-    /// The query result
-    queryResult: proto.webdb.QueryResult;
-};
 
 /// A vizualisation data object
 export interface VizData extends PlanObject {
