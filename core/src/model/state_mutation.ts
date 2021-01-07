@@ -4,7 +4,7 @@ import * as utils from '../utils';
 import { LogEntry } from './log';
 import { Plan } from './plan';
 import { ActionID, Action, ActionUpdate, ActionLogEntry, ActionSchedulerStatus } from './action';
-import { PlanObjectID, PlanObject, PlanObjectType, DatabaseObject } from './plan_object';
+import { PlanObjectID, PlanObject, PlanObjectType, DatabaseTable } from './plan_object';
 import { Program, StatementStatus, deriveStatementStatusCode } from './program';
 import { CoreState } from './state';
 import { CachedFileData, CachedHTTPData } from './cache';
@@ -205,13 +205,10 @@ export class StateMutations {
                             os.set(o.objectId, o);
                         }
                     }),
-                    planDatabaseObjects: state.planDatabaseObjects.withMutations(os => {
+                    planDatabaseTables: state.planDatabaseTables.withMutations(os => {
                         for (const o of mutation.data) {
-                            if (
-                                o.objectType == PlanObjectType.DATABASE_TABLE ||
-                                o.objectType == PlanObjectType.DATABASE_VIEW
-                            ) {
-                                os.set(o.nameQualified, o as DatabaseObject);
+                            if (o.objectType == PlanObjectType.DATABASE_TABLE) {
+                                os.set(o.nameQualified, o as DatabaseTable);
                             }
                         }
                     }),
@@ -220,7 +217,7 @@ export class StateMutations {
             case StateMutationType.DELETE_PLAN_OBJECTS:
                 return {
                     ...state,
-                    planDatabaseObjects: state.planDatabaseObjects.withMutations(os => {
+                    planDatabaseTables: state.planDatabaseTables.withMutations(os => {
                         for (const v of mutation.data) {
                             const n = state.planObjects.get(v)?.nameQualified;
                             if (n) os.delete(n);
