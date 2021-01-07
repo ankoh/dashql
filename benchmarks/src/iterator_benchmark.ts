@@ -12,7 +12,100 @@ function main(db: webdb.WebDB) {
     let tupleSize = 0;
 
     benny.suite(
-        `Chunks | 1 column | 1m rows`,
+        `Chunks | 1 column | 1m rows | materialized`,
+        benny.add('TINYINT', () => {
+            tupleSize = 1;
+            let conn = db.connect();
+            let result = conn.runQuery(`
+                SELECT (v & 127)::TINYINT FROM generate_series(0, ${tupleCount}) as t(v);
+            `);
+            let chunks = new webdb.MaterializedQueryResultChunks(conn, result);
+            while (true) {
+                if (!chunks.next()) break;
+                chunks.iterateNumberColumn(0, (_row: number, _v: number | null) => {
+                    noop();
+                });
+            }
+            conn.disconnect();
+        }),
+
+        benny.add('SMALLINT', () => {
+            tupleSize = 2;
+            let conn = db.connect();
+            let result = conn.runQuery(`
+                SELECT (v & 32767)::SMALLINT FROM generate_series(0, ${tupleCount}) as t(v);
+            `);
+            let chunks = new webdb.MaterializedQueryResultChunks(conn, result);
+            while (true) {
+                if (!chunks.next()) break;
+                chunks.iterateNumberColumn(0, (_row: number, _v: number | null) => {
+                    noop();
+                });
+            }
+            conn.disconnect();
+        }),
+
+        benny.add('INTEGER', () => {
+            tupleSize = 4;
+            let conn = db.connect();
+            let result = conn.runQuery(`
+                SELECT v::INTEGER FROM generate_series(0, ${tupleCount}) as t(v);
+            `);
+            let chunks = new webdb.MaterializedQueryResultChunks(conn, result);
+            while (true) {
+                if (!chunks.next()) break;
+                chunks.iterateNumberColumn(0, (_row: number, _v: number | null) => {
+                    noop();
+                });
+            }
+            conn.disconnect();
+        }),
+
+        benny.add('FLOAT', () => {
+            tupleSize = 4;
+            let conn = db.connect();
+            let result = conn.runQuery(`
+                SELECT v::FLOAT FROM generate_series(0, ${tupleCount}) as t(v);
+            `);
+            let chunks = new webdb.MaterializedQueryResultChunks(conn, result);
+            while (true) {
+                if (!chunks.next()) break;
+                chunks.iterateNumberColumn(0, (_row: number, _v: number | null) => {
+                    noop();
+                });
+            }
+            conn.disconnect();
+        }),
+
+        benny.add('DOUBLE', () => {
+            tupleSize = 8;
+            let conn = db.connect();
+            let result = conn.runQuery(`
+                SELECT v::DOUBLE FROM generate_series(0, ${tupleCount}) as t(v);
+            `);
+            let chunks = new webdb.MaterializedQueryResultChunks(conn, result);
+            while (true) {
+                if (!chunks.next()) break;
+                chunks.iterateNumberColumn(0, (_row: number, _v: number | null) => {
+                    noop();
+                });
+            }
+            conn.disconnect();
+        }),
+
+        benny.cycle((result: any, _summary: any) => {
+            let bytes = tupleCount * tupleSize;
+            let duration = result.details.median;
+            let tupleThroughput = tupleCount / duration;
+            let dataThroughput = bytes / duration;
+            console.log(
+                `${kleur.cyan(result.name)} t: ${duration.toFixed(3)} s ttp: ${core.utils.formatThousands(tupleThroughput)}/s dtp: ${core.utils.formatBytes(dataThroughput)}/s`,
+            );
+        }),
+    );
+
+    benny.suite(
+        `Chunks | 1 column | 1m rows | streaming`,
         benny.add('TINYINT', () => {
             tupleSize = 1;
             let conn = db.connect();
@@ -96,9 +189,10 @@ function main(db: webdb.WebDB) {
         benny.cycle((result: any, _summary: any) => {
             let bytes = tupleCount * tupleSize;
             let duration = result.details.median;
-            let throughput = bytes / duration;
+            let tupleThroughput = tupleCount / duration;
+            let dataThroughput = bytes / duration;
             console.log(
-                `${kleur.cyan(result.name)} t: ${duration.toFixed(3)} s tp: ${core.utils.formatBytes(throughput)}/s`,
+                `${kleur.cyan(result.name)} t: ${duration.toFixed(3)} s ttp: ${core.utils.formatThousands(tupleThroughput)}/s dtp: ${core.utils.formatBytes(dataThroughput)}/s`,
             );
         }),
     );

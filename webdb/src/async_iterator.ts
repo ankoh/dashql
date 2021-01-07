@@ -34,7 +34,7 @@ export class QueryResultChunkStream extends QueryResultChunkIterator {
     public async next(): Promise<boolean> {
         let result = this._resultBuffer;
         if (++this._currentChunkID < result.dataChunksLength()) {
-            result.dataChunks(0, this._currentChunk);
+            this._currentChunk = result.dataChunks(this._currentChunkID, this._currentChunk)!;
         } else {
             let chunkBuffer = await this._connection.fetchQueryResults();
             this._currentChunk = chunkBuffer;
@@ -50,7 +50,7 @@ export class MaterializedQueryResultChunks extends QueryResultChunkIterator {
     _chunks: proto.QueryResultChunk[];
 
     /// Constructor
-    public constructor(connection: AsyncWebDBConnection, resultBuffer: proto.QueryResult, chunks: proto.QueryResultChunk[]) {
+    public constructor(connection: AsyncWebDBConnection, resultBuffer: proto.QueryResult, chunks: proto.QueryResultChunk[] = []) {
         super(connection, resultBuffer);
         this._chunks = [];
         for (let i = 0; i < this.result.dataChunksLength(); ++i) {
@@ -64,13 +64,25 @@ export class MaterializedQueryResultChunks extends QueryResultChunkIterator {
         }
     }
 
-    /// Restart  the chunk iterator
+    /// Restart the chunk iterator
     public rewind() { this._currentChunkID = -1; }
     /// Get the next chunk
     public async next(): Promise<boolean> {
-        this._currentChunkID = Math.min(this._currentChunkID + 1, this._chunks.length - 1);
+        if (this._currentChunkID + 1 >= this._chunks.length) {
+            return false;
+        }
+        ++this._currentChunkID;
         this._currentChunk = this._chunks[this._currentChunkID];
-        return this._currentChunk.rowCount().low > 0;
+        return true;
+    }
+    /// The the next chunk synchronous
+    public nextSync(): boolean {
+        if (this._currentChunkID + 1 >= this._chunks.length) {
+            return false;
+        }
+        ++this._currentChunkID;
+        this._currentChunk = this._chunks[this._currentChunkID];
+        return true;
     }
 }
 
