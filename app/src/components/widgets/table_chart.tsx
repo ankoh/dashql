@@ -6,6 +6,7 @@ import * as webdb from '@dashql/webdb/dist/webdb_async';
 import * as model from '../../model';
 import { connect } from 'react-redux';
 import { Grid, GridCellProps, ScrollSync, AutoSizer } from 'react-virtualized';
+import { Scrollbars, positionValues } from 'react-custom-scrollbars';
 import { IAppContext, withAppContext } from '../../app_context';
 
 import styles from './table_chart.module.css';
@@ -20,6 +21,9 @@ type State = {
     data: core.model.DatabaseObject | null;
     result: proto.webdb.QueryResult | null;
 
+    scrollTop: number;
+    scrollLeft: number;
+
     columnCount: number;
     overscanColumnCount: number;
     overscanRowCount: number;
@@ -28,6 +32,7 @@ type State = {
 };
 
 export class Table extends React.Component<Props, State> {
+    protected _onScroll = this.onScroll.bind(this);
     protected _renderAnchorCell = this.renderAnchorCell.bind(this);
     protected _renderBodyCell = this.renderBodyCell.bind(this);
     protected _renderRowHeaderCell = this.renderRowHeaderCell.bind(this);
@@ -38,6 +43,9 @@ export class Table extends React.Component<Props, State> {
         this.state = {
             data: props.dataObjects.get(props.viz.nameQualified) || null,
             result: null,
+
+            scrollTop: 0,
+            scrollLeft: 0,
 
             columnCount: 50,
             overscanColumnCount: 0,
@@ -50,6 +58,15 @@ export class Table extends React.Component<Props, State> {
     /// Get the column count
     public get columnCount() {
         return this.state.data?.columnNames.length || 0;
+    }
+
+    /// Scroll handler
+    public onScroll(pos: positionValues) {
+        this.setState({
+            ...this.state,
+            scrollTop: pos.scrollTop,
+            scrollLeft: pos.scrollLeft,
+        });
     }
 
     /// Render an anchor cell
@@ -88,7 +105,7 @@ export class Table extends React.Component<Props, State> {
     protected computeColumnWidth(clientWidth: number, rowHeaderWidth: number) {
         let available = clientWidth - rowHeaderWidth;
         let equalWidths = available;
-        if (this.columnCount > 0) equalWidths = available / this.columnCount;
+        if (this.state.columnCount > 0) equalWidths = available / this.state.columnCount;
         let minWidth = 56;
         return Math.max(equalWidths, minWidth);
     }
@@ -144,93 +161,89 @@ export class Table extends React.Component<Props, State> {
         return (
             <div className={styles.container}>
                 <AutoSizer>
-                    {({ width, height }) => (
-                        <ScrollSync>
-                            {({ onScroll, scrollLeft, scrollTop }) => {
-                                const rowHeaderWidth = 40;
-                                const columnWidth = this.computeColumnWidth(width, rowHeaderWidth);
-                                const bodyHeight = height - this.state.rowHeight;
-                                const bodyWidth = width - rowHeaderWidth;
-                                console.log(`${bodyHeight} ${bodyWidth}`);
-                                return (
-                                    <div
-                                        className={styles.grid_container}
-                                        style={{
-                                            display: 'grid',
-                                            gridTemplateRows: `${this.state.rowHeight}px ${bodyHeight}px`,
-                                            gridTemplateColumns: `${rowHeaderWidth}px ${bodyWidth}px`,
+                    {({ width, height }) => {
+                        const columnHeaderHeight = 40;
+                        const rowHeaderWidth = 40;
+                        const columnWidth = this.computeColumnWidth(width, rowHeaderWidth);
+                        const bodyHeight = height - columnHeaderHeight;
+                        const bodyWidth = width - rowHeaderWidth;
+                        return (
+                            <div
+                                className={styles.grid_container}
+                                style={{
+                                    display: 'grid',
+                                    gridTemplateRows: `${columnHeaderHeight}px ${bodyHeight}px`,
+                                    gridTemplateColumns: `${rowHeaderWidth}px ${bodyWidth}px`,
+                                }}
+                            >
+                                <Grid
+                                    className={styles.grid_anchor}
+                                    width={rowHeaderWidth}
+                                    height={columnHeaderHeight}
+                                    columnWidth={rowHeaderWidth}
+                                    columnCount={1}
+                                    rowHeight={this.state.rowHeight}
+                                    rowCount={1}
+                                    scrollTop={this.state.scrollTop}
+                                    cellRenderer={this._renderAnchorCell}
+                                />
+                                <Grid
+                                    className={styles.grid_left}
+                                    width={rowHeaderWidth}
+                                    height={bodyHeight}
+                                    columnWidth={rowHeaderWidth}
+                                    columnCount={1}
+                                    rowHeight={this.state.rowHeight}
+                                    rowCount={this.state.rowCount}
+                                    scrollTop={this.state.scrollTop}
+                                    overscanColumnCount={this.state.overscanColumnCount}
+                                    overscanRowCount={this.state.overscanRowCount}
+                                    cellRenderer={this._renderRowHeaderCell}
+                                />
+                                <Grid
+                                    className={styles.grid_header}
+                                    width={bodyWidth}
+                                    height={columnHeaderHeight}
+                                    columnWidth={columnWidth}
+                                    columnCount={this.state.columnCount}
+                                    rowHeight={this.state.rowHeight}
+                                    rowCount={1}
+                                    scrollLeft={this.state.scrollLeft}
+                                    cellRenderer={this._renderColumnHeaderCell}
+                                />
+                                <Grid
+                                    className={styles.grid_body}
+                                    width={bodyWidth - 2}
+                                    height={bodyHeight - 2}
+                                    columnWidth={columnWidth}
+                                    columnCount={this.state.columnCount}
+                                    rowHeight={this.state.rowHeight}
+                                    rowCount={this.state.rowCount}
+                                    scrollTop={this.state.scrollTop}
+                                    scrollLeft={this.state.scrollLeft}
+                                    overscanColumnCount={this.state.overscanColumnCount}
+                                    overscanRowCount={this.state.overscanRowCount}
+                                    cellRenderer={this._renderBodyCell}
+                                />
+                                <Scrollbars 
+                                    className={styles.grid_body_scrollbars}
+                                    style={{
+                                        width: bodyWidth - 2,
+                                        height: bodyHeight - 2,
+                                    }}
+                                    onScrollFrame={this._onScroll}
+                                >
+                                    <div style={{
+                                            width: this.state.columnCount * columnWidth,
+                                            height: this.state.rowCount * this.state.rowHeight,
                                         }}
-                                    >
-                                        <Grid
-                                            className={styles.grid_anchor}
-                                            width={rowHeaderWidth}
-                                            height={this.state.rowHeight}
-                                            columnWidth={rowHeaderWidth}
-                                            columnCount={1}
-                                            rowHeight={this.state.rowHeight}
-                                            rowCount={1}
-                                            scrollTop={scrollTop}
-                                            cellRenderer={this._renderAnchorCell}
-                                        />
-                                        <Grid
-                                            className={styles.grid_left}
-                                            width={rowHeaderWidth}
-                                            height={height - this.state.rowHeight}
-                                            columnWidth={rowHeaderWidth}
-                                            columnCount={1}
-                                            rowHeight={this.state.rowHeight}
-                                            rowCount={this.state.rowCount}
-                                            scrollTop={scrollTop}
-                                            overscanColumnCount={this.state.overscanColumnCount}
-                                            overscanRowCount={this.state.overscanRowCount}
-                                            cellRenderer={this._renderRowHeaderCell}
-                                        />
-                                        <div
-                                            className={styles.grid_container_dyn}
-                                            style={{
-                                                display: 'grid',
-                                                gridTemplateRows: `${this.state.rowHeight}px calc(100% - ${this.state.rowHeight}px)`,
-                                                gridTemplateColumns: '100%',
-                                            }}
-                                        >
-                                            <AutoSizer>
-                                                {({ width, height }) => (
-                                                    <>
-                                                        <Grid
-                                                            className={styles.grid_header}
-                                                            width={width}
-                                                            height={this.state.rowHeight}
-                                                            columnWidth={columnWidth}
-                                                            columnCount={this.state.columnCount}
-                                                            rowHeight={this.state.rowHeight}
-                                                            rowCount={1}
-                                                            scrollLeft={scrollLeft}
-                                                            cellRenderer={this._renderColumnHeaderCell}
-                                                        />
-                                                        <Grid
-                                                            className={styles.grid_body}
-                                                            width={width}
-                                                            height={height - this.state.rowHeight}
-                                                            columnWidth={columnWidth}
-                                                            columnCount={this.state.columnCount}
-                                                            rowHeight={this.state.rowHeight}
-                                                            rowCount={this.state.rowCount}
-                                                            scrollLeft={scrollLeft}
-                                                            onScroll={onScroll}
-                                                            overscanColumnCount={this.state.overscanColumnCount}
-                                                            overscanRowCount={this.state.overscanRowCount}
-                                                            cellRenderer={this._renderBodyCell}
-                                                        />
-                                                    </>
-                                                )}
-                                            </AutoSizer>
-                                        </div>
-                                    </div>
-                                );
-                            }}
-                        </ScrollSync>
-                    )}
+                                    />
+                                </Scrollbars>
+                            </div>
+                        );
+                    }}
                 </AutoSizer>
+                <div className={styles.resize_overlay} />
             </div>
         );
     }
