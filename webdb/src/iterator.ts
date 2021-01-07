@@ -6,7 +6,6 @@ import { webdb as proto } from '@dashql/proto';
 
 /// An abstract chunk iterator
 export abstract class QueryResultChunkIterator extends ChunkIteratorBase {
-
     /// Constructor
     public constructor(resultBuffer: proto.QueryResult) {
         super(resultBuffer);
@@ -40,7 +39,7 @@ export class QueryResultChunkStream extends QueryResultChunkIterator {
             this._currentChunk = chunkBuffer;
             this._currentChunkBuffer = chunkBuffer;
         }
-        return this._currentChunk.rowCount().low > 0;
+        return this._currentChunk.rowCount() > 0;
     }
 }
 
@@ -59,7 +58,7 @@ export class MaterializedQueryResultChunks extends QueryResultChunkIterator {
         for (let i = 0; i < chunks.length; ++i) {
             this._chunks.push(chunks[i]);
         }
-        if (this._chunks.length == 0 || this._chunks[this._chunks.length - 1].rowCount().low == 0)  {
+        if (this._chunks.length == 0 || this._chunks[this._chunks.length - 1].rowCount() == 0)  {
             this._chunks.push(new proto.QueryResultChunk());
         }
     }
@@ -105,13 +104,13 @@ export class QueryResultRowIterator extends RowIteratorBase {
 
         // Still in current chunk?
         ++this._globalRowIndex;
-        if (this.currentRow < this.currentChunk.rowCount().low)
+        if (this.currentRow < this.currentChunk.rowCount())
             return true;
 
         // Get next chunk
         this.iter.next();
         this._currentChunkBegin = this._globalRowIndex;
-        let empty = this.currentChunk.rowCount().low == 0;
+        let empty = this.currentChunk.rowCount() == 0;
         return !empty;
     }
 }
