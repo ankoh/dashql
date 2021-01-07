@@ -18,14 +18,11 @@ type Props = {
 
 type State = {
     queryResult: proto.webdb.QueryResult | null;
-
     scrollTop: number;
     scrollLeft: number;
-
     overscanColumnCount: number;
     overscanRowCount: number;
     rowHeight: number;
-    rowCount: number;
 };
 
 export class DataGrid extends React.Component<Props, State> {
@@ -46,7 +43,6 @@ export class DataGrid extends React.Component<Props, State> {
             overscanColumnCount: 0,
             overscanRowCount: 5,
             rowHeight: 32,
-            rowCount: 100,
         };
     }
 
@@ -165,7 +161,7 @@ export class DataGrid extends React.Component<Props, State> {
                                     columnWidth={columnWidth}
                                     columnCount={this.columnCount}
                                     rowHeight={this.state.rowHeight}
-                                    rowCount={this.state.rowCount}
+                                    rowCount={this.props.data.rowCount}
                                     scrollTop={this.state.scrollTop}
                                     scrollLeft={this.state.scrollLeft}
                                     overscanColumnCount={this.state.overscanColumnCount}
@@ -184,7 +180,7 @@ export class DataGrid extends React.Component<Props, State> {
                                     <div
                                         style={{
                                             width: this.columnCount * columnWidth,
-                                            height: this.state.rowCount * this.state.rowHeight,
+                                            height: this.props.data.rowCount * this.state.rowHeight,
                                         }}
                                     />
                                 </Scrollbars>
@@ -205,7 +201,7 @@ export class DataGrid extends React.Component<Props, State> {
                                     columnWidth={rowHeaderWidth}
                                     columnCount={1}
                                     rowHeight={this.state.rowHeight}
-                                    rowCount={this.state.rowCount}
+                                    rowCount={this.props.data.rowCount}
                                     scrollTop={this.state.scrollTop}
                                     overscanColumnCount={this.state.overscanColumnCount}
                                     overscanRowCount={this.state.overscanRowCount}
