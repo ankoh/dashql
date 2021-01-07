@@ -12,6 +12,7 @@ import './app.module.css';
 import './fonts/fonts.module.css';
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
+import 'react-virtualized/styles.css';
 
 const ctx: IAppContext = {
     store: model.createStore(),
