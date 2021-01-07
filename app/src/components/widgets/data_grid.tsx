@@ -2,6 +2,7 @@ import * as React from 'react';
 import * as proto from '@dashql/proto';
 import * as core from '@dashql/core';
 import * as webdb from '@dashql/webdb/dist/webdb_async';
+import { renderCellRange } from './data_grid_renderer';
 import { Grid, GridCellProps, AutoSizer } from 'react-virtualized';
 import { Scrollbars, positionValues } from 'react-custom-scrollbars';
 import { IAppContext, withAppContext } from '../../app_context';
@@ -204,6 +205,7 @@ export class DataGrid extends React.Component<Props, State> {
                                     rowHeight={columnHeaderHeight}
                                     rowCount={1}
                                     scrollLeft={this.state.scrollLeft}
+                                    cellRangeRenderer={renderCellRange}
                                     cellRenderer={this._renderColumnHeaderCell}
                                 />
                             </div>

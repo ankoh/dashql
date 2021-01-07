@@ -1,5 +1,4 @@
 import * as proto from "@dashql/proto";
-import * as utils from "../utils";
 import { ActionID } from "../model";
 import { SetupActionLogic } from "./action_logic";
 import { ActionContext } from "./action_context";
@@ -10,8 +9,9 @@ export class DropTableActionLogic extends SetupActionLogic {
         super(action_id, action);
     }
 
-    public async execute(_context: ActionContext): Promise<ActionID> {
-        await utils.sleep(50);
+    public async execute(context: ActionContext): Promise<ActionID> {
+        const db = context.platform.database;
+        db.dropTable(this.buffer.targetNameShort()!)
         return this.returnWithStatus(ActionStatusCode.COMPLETED);
     }
 }
