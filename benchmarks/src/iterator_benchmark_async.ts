@@ -21,7 +21,7 @@ async function main(db: webdb.AsyncWebDB) {
             let result = await conn.runQuery(`
                 SELECT (v & 127)::TINYINT FROM generate_series(0, ${tupleCount}) as t(v);
             `);
-            let chunks = new webdb.MaterializedQueryResultChunks(conn, result);
+            let chunks = new webdb.MaterializedQueryResultChunks(result);
             while (true) {
                 if (!chunks.nextSync()) break;
                 chunks.iterateNumberColumn(0, (_row: number, _v: number | null) => {
@@ -38,7 +38,7 @@ async function main(db: webdb.AsyncWebDB) {
             let result = await conn.runQuery(`
                 SELECT (v & 32767)::SMALLINT FROM generate_series(0, ${tupleCount}) as t(v);
             `);
-            let chunks = new webdb.MaterializedQueryResultChunks(conn, result);
+            let chunks = new webdb.MaterializedQueryResultChunks(result);
             while (true) {
                 if (!chunks.nextSync()) break;
                 chunks.iterateNumberColumn(0, (_row: number, _v: number | null) => {
@@ -57,7 +57,7 @@ async function main(db: webdb.AsyncWebDB) {
             let result = await conn.runQuery(`
                 SELECT v::INTEGER FROM generate_series(0, ${tupleCount}) as t(v);
             `);
-            let chunks = new webdb.MaterializedQueryResultChunks(conn, result);
+            let chunks = new webdb.MaterializedQueryResultChunks(result);
             while (true) {
                 if (!chunks.nextSync()) break;
                 chunks.iterateNumberColumn(0, (_row: number, _v: number | null) => {
@@ -73,7 +73,7 @@ async function main(db: webdb.AsyncWebDB) {
             let result = await conn.runQuery(`
                 SELECT v::FLOAT FROM generate_series(0, ${tupleCount}) as t(v);
             `);
-            let chunks = new webdb.MaterializedQueryResultChunks(conn, result);
+            let chunks = new webdb.MaterializedQueryResultChunks(result);
             while (true) {
                 if (!chunks.nextSync()) break;
                 chunks.iterateNumberColumn(0, (_row: number, _v: number | null) => {
@@ -89,7 +89,7 @@ async function main(db: webdb.AsyncWebDB) {
             let result = await conn.runQuery(`
                 SELECT v::DOUBLE FROM generate_series(0, ${tupleCount}) as t(v);
             `);
-            let chunks = new webdb.MaterializedQueryResultChunks(conn, result);
+            let chunks = new webdb.MaterializedQueryResultChunks(result);
             while (true) {
                 if (!chunks.nextSync()) break;
                 chunks.iterateNumberColumn(0, (_row: number, _v: number | null) => {

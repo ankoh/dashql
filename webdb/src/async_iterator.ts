@@ -6,13 +6,10 @@ import { webdb as proto } from '@dashql/proto';
 
 /// An abstract chunk iterator
 export abstract class QueryResultChunkIterator extends ChunkIteratorBase {
-    /// The connection
-    _connection: AsyncWebDBConnection;
 
     /// Constructor
-    public constructor(connection: AsyncWebDBConnection, resultBuffer: proto.QueryResult) {
+    public constructor(resultBuffer: proto.QueryResult) {
         super(resultBuffer);
-        this._connection = connection;
     }
 
     /// Get the next query result chunk
@@ -21,12 +18,15 @@ export abstract class QueryResultChunkIterator extends ChunkIteratorBase {
 
 /// A stream of query result chunks
 export class QueryResultChunkStream extends QueryResultChunkIterator {
+    /// The connection
+    _connection: AsyncWebDBConnection;
     /// The current chunk buffer
     _currentChunkBuffer: proto.QueryResultChunk | null;
 
     /// Constructor
     public constructor(connection: AsyncWebDBConnection, resultBuffer: proto.QueryResult) {
-        super(connection, resultBuffer);
+        super(resultBuffer);
+        this._connection = connection;
         this._currentChunkBuffer = null;
     }
 
@@ -50,8 +50,8 @@ export class MaterializedQueryResultChunks extends QueryResultChunkIterator {
     _chunks: proto.QueryResultChunk[];
 
     /// Constructor
-    public constructor(connection: AsyncWebDBConnection, resultBuffer: proto.QueryResult, chunks: proto.QueryResultChunk[] = []) {
-        super(connection, resultBuffer);
+    public constructor(resultBuffer: proto.QueryResult, chunks: proto.QueryResultChunk[] = []) {
+        super(resultBuffer);
         this._chunks = [];
         for (let i = 0; i < this.result.dataChunksLength(); ++i) {
             this._chunks.push(this.result.dataChunks(i)!);
