@@ -166,8 +166,8 @@ export class Table extends React.Component<Props, State> {
             <div className={styles.container} style={{ height: this.props.height, width: this.props.width }}>
                 <Scrollbars
                     style={{
-                        height: this.props.height,
-                        width: this.props.width,
+                        height: this.props.height - 2,
+                        width: this.props.width - 2,
                     }}
                     onScroll={this.handleScroll.bind(this)}
                     className={styles.scrollbars}
@@ -181,8 +181,8 @@ export class Table extends React.Component<Props, State> {
                         cellRenderer={this.renderCell.bind(this)}
                         columnCount={this.columnCount + 1}
                         columnWidth={this.getColumnWidth.bind(this)}
-                        height={this.props.height}
-                        width={this.props.width}
+                        height={this.props.height - 2}
+                        width={this.props.width - 2}
                         rowCount={1 + (this.state.result?.dataChunks(0)?.rowCount()?.low || 0)}
                         rowHeight={24}
                     />
