@@ -29,9 +29,7 @@
     right: 0;
     width: 20px;
     height: 20px;
-    border-radius: 6px 0px 6px 0px;
-
-    background: rgba(220, 220, 220, 0.75);
+    border-radius: 4px 0px 4px 0px;
 }
 
 .scrollbars {
