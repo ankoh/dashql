@@ -65,7 +65,14 @@ const browserTarget = {
             },
         },
     },
-    plugins: [],
+    plugins: [
+        new webpack.WatchIgnorePlugin({
+            paths: [
+                /node_modules\/^(@dashql)/,
+                path.resolve(__dirname, './dist/')
+            ]
+        })
+    ],
     externals: [nodeExternals({ importType: 'umd' })],
 };
 
@@ -76,7 +83,6 @@ const nodeTarget = {
         webdb_node: './src/index_node.ts',
         'webdb_node_async.worker': './src/worker_node.ts',
     },
-    plugins: [],
     externals: [nodeExternals({ importType: 'umd' })],
 };
 nodeTarget.module.rules[0] = {
