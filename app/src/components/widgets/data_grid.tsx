@@ -25,7 +25,7 @@ type State = {
 export class DataGrid extends React.Component<Props, State> {
     protected _onScroll = this.onScroll.bind(this);
     protected _renderAnchorCell = this.renderAnchorCell.bind(this);
-    protected _renderBodyCell = this.renderBodyCell.bind(this);
+    protected _renderDataCell = this.renderDataCell.bind(this);
     protected _renderRowHeaderCell = this.renderRowHeaderCell.bind(this);
     protected _renderColumnHeaderCell = this.renderColumnHeaderCell.bind(this);
 
@@ -62,15 +62,6 @@ export class DataGrid extends React.Component<Props, State> {
         return <div key={props.key} className={styles.cell_anchor} style={{ ...props.style }} />;
     }
 
-    /// Render a body cell
-    public renderBodyCell(props: GridCellProps): JSX.Element {
-        return (
-            <div key={props.key} className={styles.cell_data} style={{ ...props.style }}>
-                {42}
-            </div>
-        );
-    }
-
     /// Render a cell of the static left sidebar
     public renderRowHeaderCell(props: GridCellProps): JSX.Element {
         return (
@@ -85,6 +76,15 @@ export class DataGrid extends React.Component<Props, State> {
         return (
             <div key={props.key} className={styles.cell_header_col} style={{ ...props.style }}>
                 {'foo'}
+            </div>
+        );
+    }
+
+    /// Render a data cell
+    public renderDataCell(props: GridCellProps): JSX.Element {
+        return (
+            <div key={props.key} className={styles.cell_data} style={{ ...props.style }}>
+                {42}
             </div>
         );
     }
@@ -154,7 +154,7 @@ export class DataGrid extends React.Component<Props, State> {
                                     scrollLeft={this.state.scrollLeft}
                                     overscanColumnCount={this.state.overscanColumnCount}
                                     overscanRowCount={this.state.overscanRowCount}
-                                    cellRenderer={this._renderBodyCell}
+                                    cellRenderer={this._renderDataCell}
                                 />
                                 <Scrollbars
                                     className={styles.grid_body_scrollbars}
