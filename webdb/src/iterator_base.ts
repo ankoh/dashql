@@ -133,7 +133,7 @@ export abstract class RowIteratorBase {
 
 
     /// Read a value
-    public getValue(cid: number, v: Value): Value {
+    public getValue(cid: number = 0, v: Value = new Value()): Value {
         if (cid >= this._chunkIter.columnCount) {
             throw Error("column index out of bounds");
         }

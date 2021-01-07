@@ -21,14 +21,22 @@ export class CreateTableActionLogic extends ProgramActionLogic {
             /// First run the query
             await c.runQuery(script);
 
-            // Collect statistics
-            const limit0 = await c.runQuery(`SELECT * FROM ${this.buffer.targetNameShort()} LIMIT 0`);
+            const targetName = this.buffer.targetNameShort();
+
+            // Get column names and types
+            const limit0 = await c.runQuery(`SELECT * FROM ${targetName} LIMIT 0`);
             let columnNames: string[] = [];
             let columnTypes: webdb.SQLType[] = [];
             for (let ci = 0; ci < limit0.columnNamesLength(); ++ci) {
                 columnNames.push(limit0.columnNames(ci));
                 columnTypes.push(webdb.getSQLType(limit0.columnTypes(ci)));
             }
+
+            // Get the row count
+            const countResult = await c.runQuery(`SELECT count(*)::INTEGER FROM ${this.buffer.targetNameShort()}`);
+            const countChunkIter = new webdb.QueryResultChunkStream(c, countResult);
+            const countRowIter = await webdb.QueryResultRowIterator.iterate(countChunkIter);
+            const count = countRowIter.getValue();
 
             // Return plan object
             const now = new Date();
@@ -41,7 +49,7 @@ export class CreateTableActionLogic extends ProgramActionLogic {
                 nameShort: this.buffer.targetNameShort() || "",
                 columnNames: columnNames,
                 columnTypes: columnTypes,
-                rowCount: 0,
+                rowCount: count.asNumber().value,
             };
             return table;
         });
