@@ -1,28 +1,65 @@
 import * as React from 'react';
 import * as platform from '../platform';
-import { ScanRange, PartialScanResult, scanRangeIncludes } from './partial_scan_result';
+import * as proto from '@dashql/proto';
 
 const OVERSCAN = 1024;
+
+type RequestScanFn = (request: PartialScanRequest) => void;
+
+/// A table scan info
+export class PartialScanRequest {
+    /// The offset of a range
+    offset: number;
+    /// The limit of a range
+    limit: number;
+
+    constructor(offset: number, limit: number) {
+        this.offset = offset;
+        this.limit = limit;
+    }
+
+    /// Does a scan fully include a given range?
+    includes(offset: number, limit: number): boolean {
+        const begin = this.offset;
+        const end = this.offset + this.limit;
+        return begin <= offset && end >= offset + limit;
+    }
+
+    /// Does a scan intersect a given range?
+    intersects(offset: number, limit: number): boolean {
+        const begin = this.offset;
+        const end = this.offset + this.limit;
+        return (offset <= begin && offset + limit >= begin) || (offset < end && offset + limit >= end);
+    }
+}
+
+/// A partial result of a table scan
+export interface PartialScanResult {
+    /// The scan request
+    request: PartialScanRequest;
+    /// The query result buffer
+    result: proto.webdb.QueryResult;
+}
 
 interface Props {
     /// The database manager
     database: platform.DatabaseManager;
     /// The table name
     targetName: string;
-    /// The requested offset
-    offset: number;
-    /// The requested limit
-    limit: number;
     /// The children
-    children: (result: PartialScanResult | null) => JSX.Element;
+    children: (scanResult: PartialScanResult | null, requestScan: RequestScanFn) => JSX.Element;
 }
 
 interface State {
+    /// The current request
+    request: PartialScanRequest;
     /// The current data
-    data: PartialScanResult | null;
+    result: PartialScanResult | null;
 }
 
 export class PartialScanProvider extends React.Component<Props, State> {
+    /// Function to request data from the provider
+    _requestScan = this.requestScan.bind(this);
     /// The schedule function
     _schedule = this.schedule.bind(this);
     /// The handler to process a query result
@@ -30,38 +67,47 @@ export class PartialScanProvider extends React.Component<Props, State> {
     /// The query promise
     _queryPromise: Promise<PartialScanResult> | null = null;
     /// The in-flight query
-    _queryInFlight: ScanRange | null = null;
+    _queryInFlight: PartialScanRequest | null = null;
     /// The queued query
-    _queryQueued: ScanRange | null = null;
+    _queryQueued: PartialScanRequest | null = null;
 
     constructor(props: Props) {
         super(props);
         this.state = {
-            data: null,
+            request: new PartialScanRequest(0, 1024),
+            result: null,
         };
     }
 
+    /// Request a range
+    protected requestScan(request: PartialScanRequest) {
+        this.setState ({
+            ...this.state,
+            request,
+        });
+    }
+
     /// Run a query
-    public async runQuery(range: ScanRange): Promise<PartialScanResult> {
+    protected async runQuery(request: PartialScanRequest): Promise<PartialScanResult> {
         const result = await this.props.database.use(async conn => {
             return await conn.runQuery(
-                `SELECT * FROM ${this.props.targetName} LIMIT ${range.limit} OFFSET ${range.offset}`,
+                `SELECT * FROM ${this.props.targetName} LIMIT ${request.limit} OFFSET ${request.offset}`,
             );
         });
         return {
-            range,
+            request,
             result,
         };
     }
 
     /// Process the query result
-    public processQueryResult(result: PartialScanResult) {
+    protected processQueryResult(result: PartialScanResult) {
         this._queryPromise = null;
         this._queryInFlight = null;
         setImmediate(this._schedule)
         console.log(result);
         this.setState({
-            data: result,
+            result,
         });
     }
 
@@ -78,27 +124,23 @@ export class PartialScanProvider extends React.Component<Props, State> {
     }
 
     /// Schedule a query the data cannot be served from the cached results
-    protected scheduleIfNecessary() {
+    protected scheduleIfNecessary(req: PartialScanRequest) {
         // Included in cached range?
-        // Nothing to do.
-        if (this.state.data && scanRangeIncludes(this.state.data.range, this.props.offset, this.props.limit)) {
+        if (this.state.result && this.state.result.request.includes(req.offset, req.limit)) {
             return;
         }
-        const offset = Math.trunc(Math.max(this.props.offset, OVERSCAN) - OVERSCAN);
-        const limit = Math.trunc(this.props.limit + this.props.offset + OVERSCAN - offset);
 
         // In-flight query includes the range?
         // Wait for the result then.
-        if (this._queryInFlight && scanRangeIncludes(this._queryInFlight, this.props.offset, this.props.limit)) {
+        if (this._queryInFlight && this._queryInFlight.includes(req.offset, req.limit)) {
             return;
         }
+
         // Replace the queued query
-        if (this._queryQueued) {
-            this._queryQueued.offset = offset;
-            this._queryQueued.limit = limit;
-        } else {
-            this._queryQueued = { offset, limit };
-        }
+        const offset = Math.trunc(Math.max(req.offset, OVERSCAN) - OVERSCAN);
+        req.limit = Math.trunc(req.offset + req.limit + OVERSCAN - offset);
+        req.offset = offset;
+        this._queryQueued = req;
 
         // Schedule the queued query
         this.schedule();
@@ -106,14 +148,14 @@ export class PartialScanProvider extends React.Component<Props, State> {
 
     /// Load initial data
     public componentDidMount() {
-        this.scheduleIfNecessary();
+        this.scheduleIfNecessary(this.state.request);
     }
 
     /// Check if we have to query new data
-    public componentDidUpdate(prevProps: Props, _prevState: State) {
+    public componentDidUpdate(_prevProps: Props, prevState: State) {
         // Did limit and offset change?
-        if (prevProps.offset != this.props.limit || prevProps.limit != this.props.limit) {
-            this.scheduleIfNecessary();
+        if (this.state.request && this.state.request !== prevState.request) {
+            this.scheduleIfNecessary(this.state.request);
             return;
         }
     }
@@ -126,6 +168,6 @@ export class PartialScanProvider extends React.Component<Props, State> {
 
     // Pass the scan function to the child
     render() {
-        return this.props.children(this.state.data);
+        return this.props.children(this.state.result, this._requestScan);
     }
 }
