@@ -32,20 +32,20 @@ function renderAnchorCell(props: GridCellProps): JSX.Element {
     return <div key={props.key} className={styles.cell_anchor} style={{ ...props.style }} />;
 }
 
-/// Render a data cell placeholder for data that is not yet avaialable
-function renderDataCellPlaceholder(props: GridCellProps): JSX.Element {
+/// Render a data cell nodata for data that is not yet avaialable
+function renderDataCellNoData(props: GridCellProps): JSX.Element {
     return (
-        <div key={props.key} className={styles.cell_data} style={{ ...props.style }}>
-            {42}
-        </div>
+        <div key={props.key} className={styles.cell_nodata} style={{ ...props.style }} />
     );
 }
 
 export class DataGrid extends React.Component<Props, State> {
     protected _onScroll = this.onScroll.bind(this);
+    protected _onScrollStop = this.onScrollStop.bind(this);
     protected _renderDataCellRange = this.renderDataCellRange.bind(this);
     protected _renderRowHeaderCell = this.renderRowHeaderCell.bind(this);
     protected _renderColumnHeaderCell = this.renderColumnHeaderCell.bind(this);
+    protected _scrollbarsRef = React.createRef<Scrollbars>();
 
     constructor(props: Props) {
         super(props);
@@ -53,7 +53,7 @@ export class DataGrid extends React.Component<Props, State> {
             scrollTop: 0,
             scrollLeft: 0,
             overscanColumnCount: 0,
-            overscanRowCount: 10,
+            overscanRowCount: 30,
             rowHeight: 32,
         };
     }
@@ -63,12 +63,41 @@ export class DataGrid extends React.Component<Props, State> {
         return this.props.tableInfo.columnNames.length || 0;
     }
 
+    /// Get the row count
+    public get rowCount() {
+        return this.props.tableInfo.rowCount;
+    }
+
     /// Scroll handler
     public onScroll(pos: positionValues) {
         this.setState({
             ...this.state,
             scrollTop: pos.scrollTop,
             scrollLeft: pos.scrollLeft,
+        });
+    }
+
+    /// Scroll stop handler
+    public onScrollStop() {
+        const scrollbars = this._scrollbarsRef.current;
+        if (!scrollbars) {
+            return;
+        }
+        const scrollTop = scrollbars.getScrollTop();
+        const scrollLeft = scrollbars.getScrollLeft();
+
+        // Query data
+        const clientHeight = scrollbars.getClientHeight();
+        const ofs = Math.min(Math.trunc(scrollTop / (this.state.rowHeight | 1)), this.props.tableInfo.rowCount);
+        const count = Math.trunc(clientHeight / (this.state.rowHeight | 1));
+        const end = Math.min(ofs + count, this.props.tableInfo.rowCount);
+        this.props.dataProvider(new core.access.ScanRequest(ofs, end - count));
+
+        // Update scroll position
+        this.setState({
+            ...this.state,
+            scrollTop,
+            scrollLeft,
         });
     }
 
@@ -106,11 +135,6 @@ export class DataGrid extends React.Component<Props, State> {
         if (req.includes(props.rowStartIndex, rowCount)) {
             return this.renderAvailableDataCellRange(props);
         }
-
-        // Request additional data from provider
-        this.props.dataProvider(
-            new core.access.ScanRequest(props.rowStartIndex, rowCount),
-        );
 
         // Does not intersect with query results?
         // Render as missing.
@@ -238,9 +262,13 @@ export class DataGrid extends React.Component<Props, State> {
             let remaining = props.rowStopIndex - props.rowStartIndex + 1;
             let chunkStart = props.rowStartIndex;
 
-            while (remaining && iter.next()) {
+            while (remaining && iter.nextSync()) {
                 const skipHere = Math.min(skip, iter.currentChunk.rowCount());
                 skip -= skipHere;
+                if (skipHere == iter.currentChunk.rowCount()) {
+                    continue;
+                }
+                const rowsHere = Math.min(iter.currentChunk.rowCount() - skipHere, remaining);
 
                 // Iterate over the number column.
                 // XXX We have more than numbers
@@ -264,11 +292,11 @@ export class DataGrid extends React.Component<Props, State> {
                     if (cell) {
                         cells.push(cell);
                     }
-                }, skipHere, remaining);
+                }, skipHere, rowsHere);
 
                 // Advance the chunk start
-                chunkStart += iter.currentChunk.rowCount() - skipHere;
-                remaining -= Math.min(remaining, iter.currentChunk.rowCount());
+                chunkStart += iter.currentChunk.rowCount();
+                remaining -= rowsHere;
             }
         }
         return cells;
@@ -281,6 +309,11 @@ export class DataGrid extends React.Component<Props, State> {
         if (this.columnCount > 0) equalWidths = available / this.columnCount;
         let minWidth = 56;
         return Math.max(equalWidths, minWidth);
+    }
+
+    /// Component did update?
+    public componentDidUpdate(prevProps: Props, prevState: State) {
+
     }
 
     /// Render the table
@@ -315,16 +348,19 @@ export class DataGrid extends React.Component<Props, State> {
                                     scrollLeft={this.state.scrollLeft}
                                     overscanColumnCount={this.state.overscanColumnCount}
                                     overscanRowCount={this.state.overscanRowCount}
-                                    cellRenderer={renderDataCellPlaceholder}
+                                    cellRenderer={renderDataCellNoData}
                                     cellRangeRenderer={this._renderDataCellRange}
+                                    data={this.props.data}
                                 />
                                 <Scrollbars
                                     className={styles.grid_body_scrollbars}
+                                    ref={this._scrollbarsRef}
                                     style={{
                                         width: bodyWidth,
                                         height: bodyHeight,
                                     }}
                                     onScrollFrame={this._onScroll}
+                                    onScrollStop={this._onScrollStop}
                                     autoHide
                                 >
                                     <div
