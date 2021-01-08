@@ -7,8 +7,8 @@ import styles from './data_grid.module.css';
 
 type Props = {
     tableInfo: core.model.DatabaseTableInfo;
-    data: core.access.PartialScanResult | null;
-    dataProvider: (request: core.access.PartialScanRequest) => void;
+    data: core.access.ScanResult | null;
+    dataProvider: (request: core.access.ScanRequest) => void;
 };
 
 type State = {
