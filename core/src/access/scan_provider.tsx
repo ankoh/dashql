@@ -107,7 +107,6 @@ export class ScanProvider extends React.Component<Props, State> {
         this._queryPromise = null;
         this._queryInFlight = null;
         setImmediate(this._schedule);
-        console.log(result);
         this.setState({
             result,
         });

@@ -1,4 +1,5 @@
 import * as React from 'react';
+import * as webdb from '@dashql/webdb/dist/webdb_async';
 import * as core from '@dashql/core';
 import {
     Grid,
@@ -52,7 +53,7 @@ export class DataGrid extends React.Component<Props, State> {
             scrollTop: 0,
             scrollLeft: 0,
             overscanColumnCount: 0,
-            overscanRowCount: 5,
+            overscanRowCount: 10,
             rowHeight: 32,
         };
     }
@@ -91,6 +92,9 @@ export class DataGrid extends React.Component<Props, State> {
 
     /// Render a data cell range
     public renderDataCellRange(props: GridCellRangeProps): React.ReactNode[] {
+        // XXX StopIndex is apparently included !!!
+        const rowCount = props.rowStopIndex - props.rowStartIndex + 1;
+
         // No data provided?
         // Render as missing.
         if (!this.props.data) {
@@ -99,48 +103,55 @@ export class DataGrid extends React.Component<Props, State> {
 
         // Range is fully included?
         const req = this.props.data.request;
-        if (req.includes(props.rowStartIndex, props.rowStopIndex - props.rowStartIndex)) {
+        if (req.includes(props.rowStartIndex, rowCount)) {
             return this.renderAvailableDataCellRange(props);
         }
 
         // Request additional data from provider
         this.props.dataProvider(
-            new core.access.ScanRequest(props.rowStartIndex, props.rowStopIndex - props.rowStartIndex),
+            new core.access.ScanRequest(props.rowStartIndex, rowCount),
         );
 
         // Does not intersect with query results?
         // Render as missing.
-        if (!req.intersects(props.rowStartIndex, props.rowStopIndex - props.rowStartIndex)) {
+        if (!req.intersects(props.rowStartIndex, rowCount)) {
             return defaultCellRangeRenderer(props);
         }
 
         const dataBegin = req.offset;
         const dataEnd = req.offset + req.limit;
-        const rowStart = props.rowStartIndex;
-        const rowStop = props.rowStopIndex;
+        const rowsBegin = props.rowStartIndex;
+        const rowsEnd = props.rowStopIndex + 1;
 
         // Render missing cells at the beginning
-        props.rowStartIndex = rowStart;
-        props.rowStopIndex = Math.max(props.rowStartIndex, dataBegin);
-        const before = defaultCellRangeRenderer(props);
+        let before: React.ReactNode[] = [];
+        if (props.rowStartIndex < dataBegin) {
+            props.rowStartIndex = rowsBegin;
+            props.rowStopIndex = dataBegin - 1;
+            before = defaultCellRangeRenderer(props);
+        }
 
         // Render missing cells at the end
-        props.rowStartIndex = Math.min(props.rowStopIndex, dataEnd);
-        props.rowStopIndex = props.rowStopIndex;
-        const after = defaultCellRangeRenderer(props);
+        let after: React.ReactNode[] = [];
+        if (props.rowStopIndex >= dataEnd) {
+            props.rowStartIndex = dataEnd;
+            props.rowStopIndex = props.rowStopIndex;
+            after = defaultCellRangeRenderer(props);
+        }
 
         // Render available cells
         props.rowStartIndex = dataBegin;
-        props.rowStopIndex = dataEnd;
+        props.rowStopIndex = dataEnd + 1;
         const available = this.renderAvailableDataCellRange(props);
 
         // Concatenate the cells
-        props.rowStartIndex = rowStart;
-        props.rowStopIndex = rowStop;
+        props.rowStartIndex = rowsBegin;
+        props.rowStopIndex = rowsEnd - 1;
         return before.concat(available).concat(after);
     }
 
-    /// Render an available data cell
+    /// Render an available data cell.
+    /// Adopted from the defaultCellRangeRenderer of react-virtualized.
     public renderAvailableDataCell<T>(
         props: GridCellRangeProps,
         rowIndex: number,
@@ -149,7 +160,7 @@ export class DataGrid extends React.Component<Props, State> {
         columnDatum: SizeAndPositionData,
         canCacheStyle: boolean,
         value: T,
-        renderCell: (v: T) => React.ReactNode,
+        renderCell: (key: string, style: React.CSSProperties, v: T) => React.ReactNode,
     ) {
         let key = `${rowIndex}-${columnIndex}`;
 
@@ -193,17 +204,19 @@ export class DataGrid extends React.Component<Props, State> {
             !props.verticalOffsetAdjustment
         ) {
             if (!props.cellCache[key]) {
-                props.cellCache[key] = renderCell(value);
+                props.cellCache[key] = renderCell(key, style, value);
             }
             cell = props.cellCache[key];
         } else {
-            cell = renderCell(value);
+            cell = renderCell(key, style, value);
         }
         return cell;
     }
 
+    /// Render a data cell range that is backed by query results
     public renderAvailableDataCellRange(props: GridCellRangeProps): React.ReactNode[] {
-        const renderedCells = [];
+        const data = this.props.data!.result;
+        let cells: React.ReactNode[] = [];
 
         // Can use style cache?
         const areOffsetsAdjusted =
@@ -211,33 +224,54 @@ export class DataGrid extends React.Component<Props, State> {
             props.rowSizeAndPositionManager.areOffsetsAdjusted();
         const canCacheStyle = !props.isScrolling && !areOffsetsAdjusted;
 
-        // Iterate over all columns
+        // We render the cells column-wise to iterate over the query results more efficiently.
+        // react-virtualized does this row-wise in their default render which kills our chunk iterator.
         for (let columnIndex = props.columnStartIndex; columnIndex <= props.columnStopIndex; columnIndex++) {
-            let columnDatum = props.columnSizeAndPositionManager.getSizeAndPositionOfCell(columnIndex);
+            const columnDatum = props.columnSizeAndPositionManager.getSizeAndPositionOfCell(columnIndex);
 
-            // Iterate over all rows
-            for (let rowIndex = props.rowStartIndex; rowIndex <= props.rowStopIndex; rowIndex++) {
-                let rowDatum = props.rowSizeAndPositionManager.getSizeAndPositionOfCell(rowIndex);
+            // Create the chunk iterator
+            const iter = new webdb.MaterializedQueryResultChunks(data);
 
-                // Render the data cell
-                let cell = this.renderAvailableDataCell(
-                    props,
-                    rowIndex,
-                    rowDatum,
-                    columnIndex,
-                    columnDatum,
-                    canCacheStyle,
-                    21,
-                    v => <div>{v}</div>,
-                );
+            // We need to do some bookeeping for the chunk iterator.
+            // XXX move this into webdb on top of the async row iterator.
+            let skip = props.rowStartIndex - this.props.data!.request.offset;
+            let remaining = props.rowStopIndex - props.rowStartIndex + 1;
+            let chunkStart = props.rowStartIndex;
 
-                // Push the data cell
-                if (cell) {
-                    renderedCells.push(cell);
-                }
+            while (remaining && iter.next()) {
+                const skipHere = Math.min(skip, iter.currentChunk.rowCount());
+                skip -= skipHere;
+
+                // Iterate over the number column.
+                // XXX We have more than numbers
+                iter.iterateNumberColumn(columnIndex, (chunkRow: number, v: number | null) => {
+                    const rowIndex = chunkStart + chunkRow - skipHere;
+                    const rowDatum = props.rowSizeAndPositionManager.getSizeAndPositionOfCell(rowIndex);
+                    const cell = this.renderAvailableDataCell(
+                        props,
+                        rowIndex,
+                        rowDatum,
+                        columnIndex,
+                        columnDatum,
+                        canCacheStyle,
+                        v,
+                        (key, style, value) => (
+                            <div key={key} className={styles.cell_data} style={{ ...style }}>
+                                {value}
+                            </div>
+                        ),
+                    );
+                    if (cell) {
+                        cells.push(cell);
+                    }
+                }, skipHere, remaining);
+
+                // Advance the chunk start
+                chunkStart += iter.currentChunk.rowCount() - skipHere;
+                remaining -= Math.min(remaining, iter.currentChunk.rowCount());
             }
         }
-        return renderedCells;
+        return cells;
     }
 
     /// Compute the column width
