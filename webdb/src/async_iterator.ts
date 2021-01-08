@@ -67,10 +67,10 @@ export class MaterializedQueryResultChunks extends QueryResultChunkIterator {
     public rewind() { this._currentChunkID = -1; }
     /// Get the next chunk
     public async next(): Promise<boolean> {
-        if (this._currentChunkID + 1 >= this._chunks.length) {
+        if (++this._currentChunkID >= this._chunks.length) {
             return false;
         }
-        ++this._currentChunkID;
+        console.log(`chunk id ${this._currentChunkID} of ${this._chunks.length}`)
         this._currentChunk = this._chunks[this._currentChunkID];
         return true;
     }

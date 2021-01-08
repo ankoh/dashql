@@ -4,6 +4,7 @@
 @value v_cell_border: 1px solid rgb(225, 225, 225);
 @value v_cell_border_headers: rgb(245, 245, 245);
 @value v_cell_color_headers: rgb(245, 245, 245);
+@value v_cell_nodata_bg: rgb(235, 235, 235);
 
 .table {
     background-color: white;
@@ -80,6 +81,17 @@
     text-overflow: ellipsis;
 }
 
+.cell_nodata {
+    box-sizing: border-box;
+    border-bottom: v_cell_border;
+    border-right: v_cell_border;
+
+    display: grid;
+    align-items: center;
+    justify-content: center;
+
+    background-color: v_cell_nodata_bg;
+}
 
 .grid_container {
     width: 100%;

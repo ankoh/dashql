@@ -83,6 +83,10 @@ export class ScanProvider extends React.Component<Props, State> {
 
     /// Request a range
     protected requestScan(request: ScanRequest) {
+        if (this.state.result && this.state.result.request.includes(request.offset, request.limit)) {
+            return;
+        }
+        console.log(`request offset ${request.offset} limit ${request.limit}`)
         this.setState({
             ...this.state,
             request,
@@ -92,9 +96,9 @@ export class ScanProvider extends React.Component<Props, State> {
     /// Run a query
     protected async runQuery(request: ScanRequest): Promise<ScanResult> {
         const result = await this.props.database.use(async conn => {
-            return await conn.runQuery(
-                `SELECT * FROM ${this.props.targetName} LIMIT ${request.limit} OFFSET ${request.offset}`,
-            );
+            const query = `SELECT * FROM ${this.props.targetName} OFFSET ${request.offset} LIMIT ${request.limit}`;
+            console.log(query);
+            return await conn.runQuery(query);
         });
         return {
             request,
