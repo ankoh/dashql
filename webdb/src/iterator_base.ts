@@ -48,7 +48,7 @@ export abstract class ChunkIteratorBase {
     public get tmp() { return this._tmp; }
 
     /// Iterate over a number column
-    public iterateNumberColumn(cid: number, fn: (row: number, v: number | null) => void, ofs: number = 0) {
+    public iterateNumberColumn(cid: number, fn: (row: number, v: number | null) => void, ofs: number = 0, limit: number = 0) {
         if (cid >= this.columnCount) {
             throw Error("column index out of bounds");
         }
@@ -91,16 +91,18 @@ export abstract class ChunkIteratorBase {
             default:
                 return;
         }
-        let a: NumberArray | null = v.valuesArray();
-        let n: Int8Array | null = v.nullMaskArray();
+        const a: NumberArray | null = v.valuesArray();
+        const n: Int8Array | null = v.nullMaskArray();
         if (a == null)
             return;
+        const lb = ofs;
+        const ub = (limit > 0) ? Math.min(lb + limit, a.length) : a.length;
         if (n != null) {
-            for (let i = ofs; i < a.length; ++i) {
+            for (let i = lb; i < ub; ++i) {
                 fn(i, n[i] ? null : a[i]);
             }
         } else {
-            for (let i = ofs; i < a.length; ++i) {
+            for (let i = lb; i < ub; ++i) {
                 fn(i, a[i]);
             }
         }
