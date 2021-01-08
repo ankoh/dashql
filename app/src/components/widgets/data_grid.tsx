@@ -53,7 +53,7 @@ export class DataGrid extends React.Component<Props, State> {
             scrollTop: 0,
             scrollLeft: 0,
             overscanColumnCount: 0,
-            overscanRowCount: 30,
+            overscanRowCount: 10,
             rowHeight: 32,
         };
     }
@@ -69,11 +69,17 @@ export class DataGrid extends React.Component<Props, State> {
     }
 
     /// Scroll handler
-    public onScroll(pos: positionValues) {
+    public onScroll() {
+        const scrollbars = this._scrollbarsRef.current;
+        if (!scrollbars) {
+            return;
+        }
+        const scrollTop = scrollbars.getScrollTop();
+        const scrollLeft = scrollbars.getScrollLeft();
         this.setState({
             ...this.state,
-            scrollTop: pos.scrollTop,
-            scrollLeft: pos.scrollLeft,
+            scrollTop: scrollTop,
+            scrollLeft: scrollLeft,
         });
     }
 
