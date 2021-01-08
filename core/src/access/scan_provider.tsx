@@ -28,7 +28,11 @@ export class ScanRequest {
     intersects(offset: number, limit: number): boolean {
         const begin = this.offset;
         const end = this.offset + this.limit;
-        return (offset <= begin && offset + limit >= begin) || (offset < end && offset + limit >= end);
+        return (
+            (offset >= begin && offset + limit <= end) ||
+            (offset <= begin && offset + limit >= begin) ||
+            (offset < end && offset + limit >= end)
+        );
     }
 }
 
@@ -79,7 +83,7 @@ export class ScanProvider extends React.Component<Props, State> {
 
     /// Request a range
     protected requestScan(request: ScanRequest) {
-        this.setState ({
+        this.setState({
             ...this.state,
             request,
         });
@@ -102,7 +106,7 @@ export class ScanProvider extends React.Component<Props, State> {
     protected processQueryResult(result: ScanResult) {
         this._queryPromise = null;
         this._queryInFlight = null;
-        setImmediate(this._schedule)
+        setImmediate(this._schedule);
         console.log(result);
         this.setState({
             result,
@@ -111,14 +115,11 @@ export class ScanProvider extends React.Component<Props, State> {
 
     /// Schedule a queued query if no query is in-flight
     protected schedule() {
-        if (this._queryInFlight || !this._queryQueued)
-            return;
+        if (this._queryInFlight || !this._queryQueued) return;
         this._queryInFlight = this._queryQueued;
         this._queryQueued = null;
         this._queryPromise = this.runQuery(this._queryInFlight);
-        this._queryPromise
-            .then(this._processQueryResult)
-            .catch(e => console.error(e));
+        this._queryPromise.then(this._processQueryResult).catch(e => console.error(e));
     }
 
     /// Schedule a query the data cannot be served from the cached results
