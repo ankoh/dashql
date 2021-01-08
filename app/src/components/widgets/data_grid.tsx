@@ -22,7 +22,7 @@ type State = {
 export class DataGrid extends React.Component<Props, State> {
     protected _onScroll = this.onScroll.bind(this);
     protected _renderAnchorCell = this.renderAnchorCell.bind(this);
-    protected _renderDataCell = this.renderDataCell.bind(this);
+    protected _renderDataCellPlaceholder = this.renderDataCellPlaceholder.bind(this);
     protected _renderDataCellRange = this.renderDataCellRange.bind(this);
     protected _renderRowHeaderCell = this.renderRowHeaderCell.bind(this);
     protected _renderColumnHeaderCell = this.renderColumnHeaderCell.bind(this);
@@ -53,12 +53,12 @@ export class DataGrid extends React.Component<Props, State> {
     }
 
     /// Render an anchor cell
-    public renderAnchorCell(props: GridCellProps): JSX.Element {
+    protected renderAnchorCell(props: GridCellProps): JSX.Element {
         return <div key={props.key} className={styles.cell_anchor} style={{ ...props.style }} />;
     }
 
     /// Render a cell of the static left sidebar
-    public renderRowHeaderCell(props: GridCellProps): JSX.Element {
+    protected renderRowHeaderCell(props: GridCellProps): JSX.Element {
         return (
             <div key={props.key} className={styles.cell_header_row} style={{ ...props.style }}>
                 {props.rowIndex}
@@ -67,7 +67,7 @@ export class DataGrid extends React.Component<Props, State> {
     }
 
     /// Render a cell of the header
-    public renderColumnHeaderCell(props: GridCellProps): JSX.Element {
+    protected renderColumnHeaderCell(props: GridCellProps): JSX.Element {
         return (
             <div key={props.key} className={styles.cell_header_col} style={{ ...props.style }}>
                 {'foo'}
@@ -75,8 +75,8 @@ export class DataGrid extends React.Component<Props, State> {
         );
     }
 
-    /// Render a data cell
-    public renderDataCell(props: GridCellProps): JSX.Element {
+    /// Render a data cell placeholder for data that is not yet avaialable
+    protected renderDataCellPlaceholder(props: GridCellProps): JSX.Element {
         return (
             <div key={props.key} className={styles.cell_data} style={{ ...props.style }}>
                 {42}
@@ -84,17 +84,162 @@ export class DataGrid extends React.Component<Props, State> {
         );
     }
 
-    public async queryData(props: GridCellRangeProps) {
+    /// Render a missing data cell range
+    protected renderMissingDataCellRange(props: GridCellRangeProps): React.ReactNode[] {
+        return defaultCellRangeRenderer(props);
     }
 
     /// Render a data cell range
     public renderDataCellRange(props: GridCellRangeProps): React.ReactNode[] {
-        const range = {
-            offset: props.rowStartIndex,
-            limit: props.rowStopIndex - props.rowStartIndex,
-        };
+        // No data provided?
+        // Render as missing.
+        if (!this.props.data) {
+            return this.renderMissingDataCellRange(props);
+        }
 
-        return defaultCellRangeRenderer(props);
+        // Range is fully included? 
+        const req = this.props.data.request;
+        if (req.includes(props.rowStartIndex, props.rowStopIndex - props.rowStartIndex)) {
+            return this.renderAvailableDataCellRange(props);
+        }
+
+        // Request new data from provider
+        this.props.dataProvider(new core.access.ScanRequest(props.rowStartIndex, props.rowStopIndex - props.rowStartIndex));
+
+        // Does not intersect with range?
+        // Render as missing.
+        if (!req.intersects(props.rowStartIndex, props.rowStopIndex - props.rowStartIndex)) {
+            return this.renderMissingDataCellRange(props);
+        }
+
+        const dataBegin = req.offset;
+        const dataEnd = req.offset + req.limit;
+        const rowStart = props.rowStartIndex;
+        const rowStop = props.rowStopIndex;
+
+        // Render missing cells at the beginning
+        props.rowStartIndex = rowStart;
+        props.rowStopIndex = Math.max(props.rowStartIndex, dataBegin);
+        const before = this.renderMissingDataCellRange(props);
+
+        // Render missing cells at the end
+        props.rowStartIndex = Math.min(props.rowStopIndex, dataEnd);
+        props.rowStopIndex = props.rowStopIndex;
+        const after = this.renderMissingDataCellRange(props);
+
+        // Render available cells
+        props.rowStartIndex = dataBegin;
+        props.rowStopIndex = dataEnd;
+        const available = this.renderAvailableDataCellRange(props);
+
+        // Concatenate the cells
+        props.rowStartIndex = rowStart;
+        props.rowStopIndex = rowStop;
+        return before.concat(available).concat(after);
+    }
+
+    public renderAvailableDataCellRange(props: GridCellRangeProps): React.ReactNode[] {
+        const renderedCells = [];
+
+        // Browsers have native size limits for elements (eg Chrome 33M pixels, IE 1.5M pixes).
+        // User cannot scroll beyond these size limitations.
+        // In order to work around this, ScalingCellSizeAndPositionManager compresses offsets.
+        // We should never cache styles for compressed offsets though as this can lead to bugs.
+        // See issue #576 for more.
+        const areOffsetsAdjusted =
+            props.columnSizeAndPositionManager.areOffsetsAdjusted() || props.rowSizeAndPositionManager.areOffsetsAdjusted();
+
+        const canCacheStyle = !props.isScrolling && !areOffsetsAdjusted;
+
+        for (let columnIndex = props.columnStartIndex; columnIndex <= props.columnStopIndex; columnIndex++) {
+            let columnDatum = props.columnSizeAndPositionManager.getSizeAndPositionOfCell(columnIndex);
+
+            for (let rowIndex = props.rowStartIndex; rowIndex <= props.rowStopIndex; rowIndex++) {
+                let rowDatum = props.rowSizeAndPositionManager.getSizeAndPositionOfCell(rowIndex);
+
+                let isVisible =
+                    columnIndex >= props.visibleColumnIndices.start &&
+                    columnIndex <= props.visibleColumnIndices.stop &&
+                    rowIndex >= props.visibleRowIndices.start &&
+                    rowIndex <= props.visibleRowIndices.stop;
+                let key = `${rowIndex}-${columnIndex}`;
+
+                let style: React.CSSProperties;
+
+                // Cache style objects so shallow-compare doesn't re-render unnecessarily.
+                if (canCacheStyle && props.styleCache[key]) {
+                    style = props.styleCache[key];
+                } else {
+                    // In deferred mode, cells will be initially rendered before we know their size.
+                    // Don't interfere with CellMeasurer's measurements by setting an invalid size.
+                    if (props.deferredMeasurementCache && !props.deferredMeasurementCache.has(rowIndex, columnIndex)) {
+                        // Position not-yet-measured cells at top/left 0,0,
+                        // And give them width/height of 'auto' so they can grow larger than the parent Grid if necessary.
+                        // Positioning them further to the right/bottom influences their measured size.
+                        style = {
+                            height: 'auto',
+                            left: 0,
+                            position: 'absolute',
+                            top: 0,
+                            width: 'auto',
+                        };
+                    } else {
+                        style = {
+                            height: rowDatum.size,
+                            left: columnDatum.offset + props.horizontalOffsetAdjustment,
+                            position: 'absolute',
+                            top: rowDatum.offset + props.verticalOffsetAdjustment,
+                            width: columnDatum.size,
+                        };
+
+                        props.styleCache[key] = style;
+                    }
+                }
+
+                let cellRendererParams: GridCellProps = {
+                    columnIndex,
+                    isScrolling: props.isScrolling,
+                    isVisible,
+                    key,
+                    parent: props.parent,
+                    rowIndex,
+                    style,
+                };
+                let renderedCell;
+
+                // Avoid re-creating cells while scrolling.
+                // This can lead to the same cell being created many times and can cause performance issues for "heavy" cells.
+                // If a scroll is in progress- cache and reuse cells.
+                // This cache will be thrown away once scrolling completes.
+                // However if we are scaling scroll positions and sizes, we should also avoid caching.
+                // This is because the offset changes slightly as scroll position changes and caching leads to stale values.
+                // For more info refer to issue #395
+                //
+                // If isScrollingOptOut is specified, we always cache cells.
+                // For more info refer to issue #1028
+                if (
+                    (props.isScrollingOptOut || props.isScrolling) &&
+                    !props.horizontalOffsetAdjustment &&
+                    !props.verticalOffsetAdjustment
+                ) {
+                    if (!props.cellCache[key]) {
+                        props.cellCache[key] = props.cellRenderer(cellRendererParams);
+                    }
+                    renderedCell = props.cellCache[key];
+
+                    // If the user is no longer scrolling, don't cache cells.
+                    // This makes dynamic cell content difficult for users and would also lead to a heavier memory footprint.
+                } else {
+                    renderedCell = props.cellRenderer(cellRendererParams);
+                }
+
+                if (renderedCell == null || renderedCell === false) {
+                    continue;
+                }
+                renderedCells.push(renderedCell);
+            }
+        }
+        return renderedCells;
     }
 
     /// Compute the column width
@@ -138,7 +283,8 @@ export class DataGrid extends React.Component<Props, State> {
                                     scrollLeft={this.state.scrollLeft}
                                     overscanColumnCount={this.state.overscanColumnCount}
                                     overscanRowCount={this.state.overscanRowCount}
-                                    cellRenderer={this._renderDataCell}
+                                    cellRenderer={this._renderDataCellPlaceholder}
+                                    cellRangeRenderer={this._renderDataCellRange}
                                 />
                                 <Scrollbars
                                     className={styles.grid_body_scrollbars}
@@ -188,7 +334,6 @@ export class DataGrid extends React.Component<Props, State> {
                                     rowHeight={columnHeaderHeight}
                                     rowCount={1}
                                     scrollLeft={this.state.scrollLeft}
-                                    cellRangeRenderer={this._renderDataCellRange}
                                     cellRenderer={this._renderColumnHeaderCell}
                                 />
                             </div>
