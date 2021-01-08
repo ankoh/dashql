@@ -4,7 +4,7 @@ import * as utils from '../utils';
 import { LogEntry } from './log';
 import { Plan } from './plan';
 import { ActionID, Action, ActionUpdate, ActionLogEntry, ActionSchedulerStatus } from './action';
-import { PlanObjectID, PlanObject, PlanObjectType, DatabaseTable } from './plan_object';
+import { PlanObjectID, PlanObject, PlanObjectType, DatabaseTableInfo } from './plan_object';
 import { Program, StatementStatus, deriveStatementStatusCode } from './program';
 import { CoreState } from './state';
 import { CachedFileData, CachedHTTPData } from './cache';
@@ -207,8 +207,8 @@ export class StateMutations {
                     }),
                     planDatabaseTables: state.planDatabaseTables.withMutations(os => {
                         for (const o of mutation.data) {
-                            if (o.objectType == PlanObjectType.DATABASE_TABLE) {
-                                os.set(o.nameQualified, o as DatabaseTable);
+                            if (o.objectType == PlanObjectType.DATABASE_TABLE_INFO) {
+                                os.set(o.nameQualified, o as DatabaseTableInfo);
                             }
                         }
                     }),

@@ -21,12 +21,12 @@ const browserTarget = {
         globalObject: 'this',
     },
     resolve: {
-        extensions: ['.ts', '.js'],
+        extensions: ['.ts', '.tsx', '.js', '.jsx', '.css'],
     },
     module: {
         rules: [
             {
-                test: /\.ts$/,
+                test: /\.tsx?$/,
                 loader: 'ts-loader',
                 exclude: [/node_modules/, path.resolve(__dirname, 'test')],
             },
