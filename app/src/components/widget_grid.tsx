@@ -12,10 +12,10 @@ import './widget_grid.raw.css';
 type Props = {
     width: number;
     height: number;
-    vizData: core.model.VizData[];
+    vizData: core.model.VizInfo[];
 };
 
-function getLayout(data: core.model.VizData) {
+function getLayout(data: core.model.VizInfo) {
     const pos = data.spec.data.position;
     return {
         x: pos.x,
@@ -26,7 +26,7 @@ function getLayout(data: core.model.VizData) {
 }
 
 class WidgetGrid extends React.Component<Props> {
-    renderWidget(data: core.model.VizData) {
+    renderWidget(data: core.model.VizInfo) {
         switch (data.spec.type) {
             case core.model.VizSpecType.TABLE:
                 return <TableChart viz={data} />;
@@ -39,7 +39,7 @@ class WidgetGrid extends React.Component<Props> {
         const prev = this.props.vizData;
         const next = nextProps.vizData;
         let equal = prev.length == next.length;
-        let ht: Map<number, core.model.VizData> = new Map();
+        let ht: Map<number, core.model.VizInfo> = new Map();
         for (let v of prev) {
             ht.set(v.objectId, v);
         }
@@ -72,9 +72,9 @@ class WidgetGrid extends React.Component<Props> {
 
 const mapStateToProps = (state: model.AppState) => ({
     vizData: state.core.planObjects
-        .filter(o => o.objectType == core.model.PlanObjectType.VIZ_DATA)
+        .filter(o => o.objectType == core.model.PlanObjectType.VIZ_INFO)
         .toArray()
-        .map(([_k, v]) => v as core.model.VizData),
+        .map(([_k, v]) => v as core.model.VizInfo),
 });
 
 const mapDispatchToProps = (_dispatch: model.Dispatch) => ({});
