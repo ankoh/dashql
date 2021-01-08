@@ -25,20 +25,9 @@ interface State {
 }
 
 export class TableChart extends React.Component<Props, State> {
-    _updateRange = this.updateRange.bind(this);
-
     constructor(props: Props) {
         super(props);
         this.state = { offset: 0, limit: 1024 };
-    }
-
-    /// Update the range
-    public updateRange(range: core.access.ScanRange) {
-        this.setState({
-            ...this.state,
-            offset: range.offset,
-            limit: range.limit,
-        });
     }
 
     /// Render the table
@@ -49,8 +38,8 @@ export class TableChart extends React.Component<Props, State> {
             return <div />;
         } else {
             return (
-                <PartialScanProvider database={db} targetName={tableInfo.nameShort} offset={this.state.offset} limit={this.state.limit}>
-                    {data => <DataGrid tableInfo={tableInfo} data={data} dataProvider={this._updateRange} />}
+                <PartialScanProvider database={db} targetName={tableInfo.nameShort}>
+                    {(data, dataProvider) => <DataGrid tableInfo={tableInfo} data={data} dataProvider={dataProvider} />}
                 </PartialScanProvider>
             );
         }
