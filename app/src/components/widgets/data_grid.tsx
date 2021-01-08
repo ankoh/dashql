@@ -187,7 +187,6 @@ export class DataGrid extends React.Component<Props, State> {
         renderCell: (key: string, style: React.CSSProperties, v: T) => React.ReactNode,
     ) {
         let key = `${rowIndex}-${columnIndex}`;
-
         let style: React.CSSProperties;
 
         // Cache style objects so shallow-compare doesn't re-render unnecessarily.
@@ -350,7 +349,7 @@ export class DataGrid extends React.Component<Props, State> {
                                     overscanRowCount={this.state.overscanRowCount}
                                     cellRenderer={renderDataCellNoData}
                                     cellRangeRenderer={this._renderDataCellRange}
-                                    data={this.props.data}
+                                    dataRef={this.props.data}
                                 />
                                 <Scrollbars
                                     className={styles.grid_body_scrollbars}
