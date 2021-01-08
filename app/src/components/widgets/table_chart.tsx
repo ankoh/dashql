@@ -9,7 +9,7 @@ import { IAppContext, withAppContext } from '../../app_context';
 
 import DataGrid from './data_grid';
 
-import PartialScanProvider = core.access.PartialScanProvider;
+import ScanProvider = core.access.ScanProvider;
 
 import styles from './table_chart.module.css';
 
@@ -38,9 +38,9 @@ export class TableChart extends React.Component<Props, State> {
             return <div />;
         } else {
             return (
-                <PartialScanProvider database={db} targetName={tableInfo.nameShort}>
+                <ScanProvider database={db} targetName={tableInfo.nameShort}>
                     {(data, dataProvider) => <DataGrid tableInfo={tableInfo} data={data} dataProvider={dataProvider} />}
-                </PartialScanProvider>
+                </ScanProvider>
             );
         }
     }

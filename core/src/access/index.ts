@@ -1,1 +1,1 @@
-export * from './partial_scan_provider';
+export * from './scan_provider';

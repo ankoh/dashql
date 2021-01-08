@@ -4,10 +4,9 @@ import * as proto from '@dashql/proto';
 
 const OVERSCAN = 1024;
 
-type RequestScanFn = (request: PartialScanRequest) => void;
+type RequestScanFn = (request: ScanRequest) => void;
 
-/// A table scan info
-export class PartialScanRequest {
+export class ScanRequest {
     /// The offset of a range
     offset: number;
     /// The limit of a range
@@ -33,10 +32,9 @@ export class PartialScanRequest {
     }
 }
 
-/// A partial result of a table scan
-export interface PartialScanResult {
+export interface ScanResult {
     /// The scan request
-    request: PartialScanRequest;
+    request: ScanRequest;
     /// The query result buffer
     result: proto.webdb.QueryResult;
 }
@@ -47,17 +45,17 @@ interface Props {
     /// The table name
     targetName: string;
     /// The children
-    children: (scanResult: PartialScanResult | null, requestScan: RequestScanFn) => JSX.Element;
+    children: (scanResult: ScanResult | null, requestScan: RequestScanFn) => JSX.Element;
 }
 
 interface State {
     /// The current request
-    request: PartialScanRequest;
+    request: ScanRequest;
     /// The current data
-    result: PartialScanResult | null;
+    result: ScanResult | null;
 }
 
-export class PartialScanProvider extends React.Component<Props, State> {
+export class ScanProvider extends React.Component<Props, State> {
     /// Function to request data from the provider
     _requestScan = this.requestScan.bind(this);
     /// The schedule function
@@ -65,22 +63,22 @@ export class PartialScanProvider extends React.Component<Props, State> {
     /// The handler to process a query result
     _processQueryResult = this.processQueryResult.bind(this);
     /// The query promise
-    _queryPromise: Promise<PartialScanResult> | null = null;
+    _queryPromise: Promise<ScanResult> | null = null;
     /// The in-flight query
-    _queryInFlight: PartialScanRequest | null = null;
+    _queryInFlight: ScanRequest | null = null;
     /// The queued query
-    _queryQueued: PartialScanRequest | null = null;
+    _queryQueued: ScanRequest | null = null;
 
     constructor(props: Props) {
         super(props);
         this.state = {
-            request: new PartialScanRequest(0, 1024),
+            request: new ScanRequest(0, 1024),
             result: null,
         };
     }
 
     /// Request a range
-    protected requestScan(request: PartialScanRequest) {
+    protected requestScan(request: ScanRequest) {
         this.setState ({
             ...this.state,
             request,
@@ -88,7 +86,7 @@ export class PartialScanProvider extends React.Component<Props, State> {
     }
 
     /// Run a query
-    protected async runQuery(request: PartialScanRequest): Promise<PartialScanResult> {
+    protected async runQuery(request: ScanRequest): Promise<ScanResult> {
         const result = await this.props.database.use(async conn => {
             return await conn.runQuery(
                 `SELECT * FROM ${this.props.targetName} LIMIT ${request.limit} OFFSET ${request.offset}`,
@@ -101,7 +99,7 @@ export class PartialScanProvider extends React.Component<Props, State> {
     }
 
     /// Process the query result
-    protected processQueryResult(result: PartialScanResult) {
+    protected processQueryResult(result: ScanResult) {
         this._queryPromise = null;
         this._queryInFlight = null;
         setImmediate(this._schedule)
@@ -124,7 +122,7 @@ export class PartialScanProvider extends React.Component<Props, State> {
     }
 
     /// Schedule a query the data cannot be served from the cached results
-    protected scheduleIfNecessary(req: PartialScanRequest) {
+    protected scheduleIfNecessary(req: ScanRequest) {
         // Included in cached range?
         if (this.state.result && this.state.result.request.includes(req.offset, req.limit)) {
             return;
