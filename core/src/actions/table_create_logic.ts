@@ -5,7 +5,7 @@ import { ProgramActionLogic } from "./action_logic";
 import { ActionContext } from "./action_context";
 import ActionStatusCode = proto.action.ActionStatusCode;
 
-export async function collectTableInfo(conn: webdb.AsyncWebDBConnection, info: model.DatabaseTable) {
+export async function collectTableInfo(conn: webdb.AsyncWebDBConnection, info: model.DatabaseTableInfo) {
     // Get column names and types
     const limit0 = await conn.runQuery(`SELECT * FROM ${info.nameShort} LIMIT 0`);
     info.columnNames = [];
@@ -41,9 +41,9 @@ export class CreateTableActionLogic extends ProgramActionLogic {
 
             // Return plan object
             const now = new Date();
-            const table: model.DatabaseTable = {
+            const table: model.DatabaseTableInfo = {
                 objectId: this.buffer.objectId(),
-                objectType: model.PlanObjectType.DATABASE_TABLE,
+                objectType: model.PlanObjectType.DATABASE_TABLE_INFO,
                 timeCreated: now,
                 timeUpdated: now,
                 nameQualified: this.buffer.targetNameQualified() || "",

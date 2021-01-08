@@ -12,9 +12,9 @@ export class CreateVizActionLogic extends ProgramActionLogic {
     public async execute(context: ActionContext): Promise<model.ActionID> {
 
         const now = new Date();
-        const viz: model.VizData = {
+        const viz: model.VizInfo = {
             objectId: this.buffer.objectId(),
-            objectType: model.PlanObjectType.VIZ_DATA,
+            objectType: model.PlanObjectType.VIZ_INFO,
             timeCreated: now,
             timeUpdated: now,
             nameQualified: this.buffer.targetNameQualified() || "",

@@ -1,21 +1,17 @@
 import * as React from 'react';
-import * as proto from '@dashql/proto';
 import * as core from '@dashql/core';
-import * as webdb from '@dashql/webdb/dist/webdb_async';
-import { renderCellRange } from './data_grid_renderer';
-import { Grid, GridCellProps, AutoSizer } from 'react-virtualized';
+import { Grid, GridCellProps, GridCellRangeProps, AutoSizer, defaultCellRangeRenderer } from 'react-virtualized';
 import { Scrollbars, positionValues } from 'react-custom-scrollbars';
-import { IAppContext, withAppContext } from '../../app_context';
 
 import styles from './data_grid.module.css';
 
 type Props = {
-    appContext: IAppContext;
-    data: core.model.DatabaseTable;
+    tableInfo: core.model.DatabaseTableInfo;
+    data: core.access.PartialScanResult | null;
+    dataProvider: (range: core.access.ScanRange) => void;
 };
 
 type State = {
-    queryResult: proto.webdb.QueryResult | null;
     scrollTop: number;
     scrollLeft: number;
     overscanColumnCount: number;
@@ -27,17 +23,15 @@ export class DataGrid extends React.Component<Props, State> {
     protected _onScroll = this.onScroll.bind(this);
     protected _renderAnchorCell = this.renderAnchorCell.bind(this);
     protected _renderDataCell = this.renderDataCell.bind(this);
+    protected _renderDataCellRange = this.renderDataCellRange.bind(this);
     protected _renderRowHeaderCell = this.renderRowHeaderCell.bind(this);
     protected _renderColumnHeaderCell = this.renderColumnHeaderCell.bind(this);
 
     constructor(props: Props) {
         super(props);
         this.state = {
-            queryResult: null,
-
             scrollTop: 0,
             scrollLeft: 0,
-
             overscanColumnCount: 0,
             overscanRowCount: 5,
             rowHeight: 32,
@@ -46,7 +40,7 @@ export class DataGrid extends React.Component<Props, State> {
 
     /// Get the column count
     public get columnCount() {
-        return this.props.data.columnNames.length || 0;
+        return this.props.tableInfo.columnNames.length || 0;
     }
 
     /// Scroll handler
@@ -90,6 +84,19 @@ export class DataGrid extends React.Component<Props, State> {
         );
     }
 
+    public async queryData(props: GridCellRangeProps) {
+    }
+
+    /// Render a data cell range
+    public renderDataCellRange(props: GridCellRangeProps): React.ReactNode[] {
+        const range = {
+            offset: props.rowStartIndex,
+            limit: props.rowStopIndex - props.rowStartIndex,
+        };
+
+        return defaultCellRangeRenderer(props);
+    }
+
     /// Compute the column width
     protected computeColumnWidth(clientWidth: number, rowHeaderWidth: number) {
         let available = clientWidth - rowHeaderWidth;
@@ -97,30 +104,6 @@ export class DataGrid extends React.Component<Props, State> {
         if (this.columnCount > 0) equalWidths = available / this.columnCount;
         let minWidth = 56;
         return Math.max(equalWidths, minWidth);
-    }
-
-    public componentDidMount() {
-        this.queryData();
-    }
-
-    /// Did component update?
-    public componentDidUpdate(prevProps: Props) {
-        if (this.props.data !== prevProps.data) {
-            this.queryData();
-        }
-    }
-
-    protected async queryData() {
-        const db = this.props.appContext.platform!.database;
-        const result = await db.use(async (c: webdb.AsyncWebDBConnection) => {
-            return await c.runQuery(`SELECT * FROM ${this.props.data.nameShort} LIMIT 100`);
-        });
-        if (result) {
-            this.setState({
-                ...this.state,
-                queryResult: result,
-            });
-        }
     }
 
     /// Render the table
@@ -150,7 +133,7 @@ export class DataGrid extends React.Component<Props, State> {
                                     columnWidth={columnWidth}
                                     columnCount={this.columnCount}
                                     rowHeight={this.state.rowHeight}
-                                    rowCount={this.props.data.rowCount}
+                                    rowCount={this.props.tableInfo.rowCount}
                                     scrollTop={this.state.scrollTop}
                                     scrollLeft={this.state.scrollLeft}
                                     overscanColumnCount={this.state.overscanColumnCount}
@@ -169,7 +152,7 @@ export class DataGrid extends React.Component<Props, State> {
                                     <div
                                         style={{
                                             width: this.columnCount * columnWidth,
-                                            height: this.props.data.rowCount * this.state.rowHeight,
+                                            height: this.props.tableInfo.rowCount * this.state.rowHeight,
                                         }}
                                     />
                                 </Scrollbars>
@@ -190,7 +173,7 @@ export class DataGrid extends React.Component<Props, State> {
                                     columnWidth={rowHeaderWidth}
                                     columnCount={1}
                                     rowHeight={this.state.rowHeight}
-                                    rowCount={this.props.data.rowCount}
+                                    rowCount={this.props.tableInfo.rowCount}
                                     scrollTop={this.state.scrollTop}
                                     overscanColumnCount={this.state.overscanColumnCount}
                                     overscanRowCount={this.state.overscanRowCount}
@@ -205,7 +188,7 @@ export class DataGrid extends React.Component<Props, State> {
                                     rowHeight={columnHeaderHeight}
                                     rowCount={1}
                                     scrollLeft={this.state.scrollLeft}
-                                    cellRangeRenderer={renderCellRange}
+                                    cellRangeRenderer={this._renderDataCellRange}
                                     cellRenderer={this._renderColumnHeaderCell}
                                 />
                             </div>
@@ -218,4 +201,4 @@ export class DataGrid extends React.Component<Props, State> {
     }
 }
 
-export default withAppContext(DataGrid);
+export default DataGrid;

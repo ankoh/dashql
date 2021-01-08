@@ -30,7 +30,7 @@ export class Semaphore {
                 });
             };
             this.tasks.push(task);
-            this.schedule();
+            setImmediate(this.schedule.bind(this));
         });
     }
 

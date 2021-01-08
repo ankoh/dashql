@@ -9,9 +9,7 @@ export class DropViewActionLogic extends SetupActionLogic {
         super(action_id, action);
     }
 
-    public async execute(context: ActionContext): Promise<ActionID> {
-        const db = context.platform.database;
-        db.dropTable(this.buffer.targetNameShort()!)
+    public async execute(_context: ActionContext): Promise<ActionID> {
         return this.returnWithStatus(ActionStatusCode.COMPLETED);
     }
 }

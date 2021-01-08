@@ -5,8 +5,8 @@ import { VizSpecVariant } from './viz_spec';
 
 /// A plan object type
 export enum PlanObjectType {
-    DATABASE_TABLE,
-    VIZ_DATA,
+    DATABASE_TABLE_INFO,
+    VIZ_INFO,
 }
 /// A plan obbject id
 export type PlanObjectID = number;
@@ -28,7 +28,7 @@ export interface PlanObject {
 }
 
 /// A database table
-export interface DatabaseTable extends PlanObject {
+export interface DatabaseTableInfo extends PlanObject {
     /// The column names
     columnNames: string[];
     /// The column type
@@ -38,7 +38,7 @@ export interface DatabaseTable extends PlanObject {
 }
 
 /// A vizualisation data object
-export interface VizData extends PlanObject {
+export interface VizInfo extends PlanObject {
     /// The spec
     spec: VizSpecVariant;
 }

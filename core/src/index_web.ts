@@ -1,5 +1,7 @@
 // Copyright (c) 2020 The DashQL Authors
 
+import "./utils/set_immediate";
+
 export * as proto from "@dashql/proto";
 
 export * as access from "./access";

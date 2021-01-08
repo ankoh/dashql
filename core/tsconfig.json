@@ -11,9 +11,11 @@
         "declarationDir": "./dist/types/",
         "noImplicitAny": true,
         "esModuleInterop": true,
+        "jsx": "react",
         "types": ["emscripten", "jest", "node"],
         "lib": ["es6", "dom"],
         "baseUrl": "."
     },
-    "exclude": ["./test/**/*.ts", "./node_modules"]
+    "exclude": ["./test/**/*.ts", "./node_modules"],
+    "include": ["./src/**/*", "./types/*.d.ts"]
 }

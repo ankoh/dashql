@@ -1,1 +1,2 @@
-export * from './table_scan_buffer';
+export * from './partial_scan_result';
+export * from './partial_scan_provider';
