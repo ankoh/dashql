@@ -34,7 +34,7 @@ dashql_option_key:
     ;
 
 dashql_option_value:
-    dashql_options                  { $$ = ctx.Add(@$, move($1)); }
+    dashql_options                  { $$ = ctx.AddOptions(@$, move($1)); }
   | dashql_option_array_brackets    { $$ = ctx.Add(@$, move($1)); }
   | dashql_function_call            { $$ = $1; }
   | sql_columnref                   { $$ = $1; }

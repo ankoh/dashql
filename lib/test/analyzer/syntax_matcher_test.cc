@@ -66,6 +66,57 @@ TEST(SyntaxMatcherTest, LoadStatement) {
     ASSERT_EQ(std::get<std::string_view>(matching[6].data), "'https://localhost/test'");
 }
 
+TEST(SyntaxMatcherTest, VizStatementPositionShort) {
+    auto txt = R"CSV(
+        VIZ weather_avg USING LINE (
+            pos = (x = 1, y = 2, w = 4, h = 15)
+        )
+    )CSV";
+    auto program = parser::ParserDriver::Parse(txt);
+    ASSERT_EQ(program->statements.size(), 1);
+    auto stmt_root = program->nodes[program->statements[0]->root_node];
+    ProgramInstance instance{txt, move(program)};
+
+    // clang-format off
+    auto schema = sxm::Element()
+        .MatchObject(sx::NodeType::OBJECT_DASHQL_VIZ)
+        .MatchChildren(NODE_MATCHERS(
+            sxm::Attribute(sx::AttributeKey::DASHQL_OPTION_POSITION)
+                .MatchOptions()
+                .MatchChildren(NODE_MATCHERS(
+                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_WIDTH, 0)
+                        .MatchObject(sx::NodeType::OBJECT_SQL_CONST),
+                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_HEIGHT, 1)
+                        .MatchObject(sx::NodeType::OBJECT_SQL_CONST),
+                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_W, 2)
+                        .MatchObject(sx::NodeType::OBJECT_SQL_CONST),
+                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_H, 3)
+                        .MatchObject(sx::NodeType::OBJECT_SQL_CONST),
+                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_ROW, 4)
+                        .MatchObject(sx::NodeType::OBJECT_SQL_CONST),
+                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_COLUMN, 5)
+                        .MatchObject(sx::NodeType::OBJECT_SQL_CONST),
+                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_X, 6)
+                        .MatchObject(sx::NodeType::OBJECT_SQL_CONST),
+                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_Y, 7)
+                        .MatchObject(sx::NodeType::OBJECT_SQL_CONST),
+                )),
+        ));
+    // clang-format on
+
+    std::array<NodeMatching, 8> matching;
+    schema.Match(instance, stmt_root, matching);
+
+    EXPECT_EQ(matching[0].status, NodeMatchingStatus::MISSING);
+    EXPECT_EQ(matching[1].status, NodeMatchingStatus::MISSING);
+    EXPECT_EQ(matching[2].status, NodeMatchingStatus::MATCHED);
+    EXPECT_EQ(matching[3].status, NodeMatchingStatus::MATCHED);
+    EXPECT_EQ(matching[4].status, NodeMatchingStatus::MISSING);
+    EXPECT_EQ(matching[5].status, NodeMatchingStatus::MISSING);
+    EXPECT_EQ(matching[6].status, NodeMatchingStatus::MATCHED);
+    EXPECT_EQ(matching[7].status, NodeMatchingStatus::MATCHED);
+}
+
 TEST(SyntaxMatcherTest, LoadStatementFormat) {
     auto txt = R"CSV(
         LOAD weather_csv FROM http (

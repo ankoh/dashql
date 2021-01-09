@@ -48,6 +48,8 @@ class SubstringBuffer {
 
     public:
     /// Constructor
+    SubstringBuffer(std::string_view text);
+    /// Constructor
     SubstringBuffer(std::string_view text, proto::syntax::Location loc);
 
     /// Intersect a location?

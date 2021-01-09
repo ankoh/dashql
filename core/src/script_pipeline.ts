@@ -54,17 +54,30 @@ export class ScriptPipeline {
             this._programParameters = next.programParameters;
             if (!this._program) return;
 
-            // Instantiate the new program
-            const programInstance = this._platform.analyzer.instantiateProgram(this._programParameters);
-            if (!programInstance) return;
-            model.mutate(this._platform.store.dispatch, {
-                type: model.StateMutationType.SET_PROGRAM_INSTANCE,
-                data: programInstance,
-            });
-            return;
+            // Program instance was updated as well?
+            // This happens when rewriting the program for the user.
+            // Bypass the instantiation and skip directly to the scheduler check.
+            if (next.programInstance && next.programInstance.program == next.program) {
+                this._programInstance = next.programInstance;
+            } else {
+                // Instantiate the new program
+                const programInstance = this._platform.analyzer.instantiateProgram(this._programParameters);
+
+                // Instantiation failed?
+                // XXX log error
+                if (!programInstance) return;
+
+                // Otherwise store the new instance in redux
+                model.mutate(this._platform.store.dispatch, {
+                    type: model.StateMutationType.SET_PROGRAM_INSTANCE,
+                    data: programInstance,
+                });
+                return;
+            }
         }
 
         // Scheduler became idle and there is a program pending?
+        // This is also checked if everything is changed at once.
         if (
             next.schedulerStatus == model.ActionSchedulerStatus.Idle &&
             next.programInstance &&

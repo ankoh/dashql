@@ -51,4 +51,16 @@ void dashql_analyzer_plan_program(FFIResponse* response) {
     FFIResponseBuffer::GetInstance().Store(*response, builder.Release());
 }
 
+void dashql_analyzer_edit_program(FFIResponse* response, const void* args_buffer) {
+    auto* edit = flatbuffers::GetRoot<proto::edit::ProgramEdit>(args_buffer);
+    if (auto rc = Analyzer::GetInstance().EditProgram(*edit); !rc) {
+        FFIResponseBuffer::GetInstance().Store(*response, std::move(rc.ReleaseError()));
+        return;
+    }
+    flatbuffers::FlatBufferBuilder builder;
+    auto replacement = Analyzer::GetInstance().PackReplacement(builder);
+    builder.Finish(replacement);
+    FFIResponseBuffer::GetInstance().Store(*response, builder.Release());
+}
+
 }

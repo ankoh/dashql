@@ -111,7 +111,11 @@ class ParserDriver {
     /// Add a an array
     sx::Node Add(sx::Location loc, NodeVector&& values, bool null_if_empty = true, bool shrink_location = false);
     /// Add an object
-    sx::Node Add(sx::Location loc, sx::NodeType type, NodeVector&& attrs, bool null_if_empty = true);
+    sx::Node Add(sx::Location loc, sx::NodeType type, NodeVector&& attrs, bool null_if_empty = true, bool skip_none = true);
+    /// Add options
+    sx::Node AddOptions(sx::Location loc, NodeVector&& attrs, bool null_if_empty = true) {
+        return Add(loc, sx::NodeType::OBJECT_DASHQL_OPTION_LIST, std::move(attrs), null_if_empty, false);
+    }
     /// Add a statement
     void AddStatement(sx::Node node);
     /// Add an error

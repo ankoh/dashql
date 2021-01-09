@@ -109,6 +109,16 @@ struct SyntaxMatcher {
         };
     }
 
+    static constexpr inline SyntaxMatcher Option(sx::AttributeKey key, std::optional<size_t> matching = std::nullopt) {
+        return {
+            .matching_id = matching,
+            .attribute_key = key,
+            .node_spec = SyntaxMatcherType::OBJECT,
+            .node_type = sx::NodeType::NONE,
+            .children = {},
+        };
+    }
+
     /// Add children
     constexpr inline SyntaxMatcher& MatchChildren(nonstd::span<const SyntaxMatcher> c) {
         children = c;
@@ -119,6 +129,12 @@ struct SyntaxMatcher {
     constexpr inline SyntaxMatcher& MatchObject(sx::NodeType type) {
         node_spec = SyntaxMatcherType::OBJECT;
         node_type = type;
+        return *this;
+    }
+    /// Create options
+    constexpr inline SyntaxMatcher& MatchOptions() {
+        node_spec = SyntaxMatcherType::OBJECT;
+        node_type = sx::NodeType::NONE;
         return *this;
     }
     /// Create an array

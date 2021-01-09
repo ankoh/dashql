@@ -78,6 +78,8 @@ class Analyzer {
     Signal ParseProgram(std::string_view text);
     /// Instantiate the last program
     Signal InstantiateProgram(std::vector<ParameterValue> params);
+    /// Edit the last program
+    Signal EditProgram(const proto::edit::ProgramEdit& edit);
     /// Plan the last program
     Signal PlanProgram();
 
@@ -87,6 +89,8 @@ class Analyzer {
     flatbuffers::Offset<proto::analyzer::ProgramAnnotations> PackProgramAnnotations(flatbuffers::FlatBufferBuilder& builder);
     /// Pack the plan
     flatbuffers::Offset<proto::analyzer::Plan> PackPlan(flatbuffers::FlatBufferBuilder& builder);
+    /// Pack a program replacement
+    flatbuffers::Offset<proto::analyzer::ProgramReplacement> PackReplacement(flatbuffers::FlatBufferBuilder& builder);
 
     /// Get the global analyzer instance
     static Analyzer& GetInstance();

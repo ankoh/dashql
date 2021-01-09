@@ -4,6 +4,9 @@
 namespace dashql {
 
 // Constructor
+SubstringBuffer::SubstringBuffer(std::string_view text)
+    : substring_loc_(proto::syntax::Location(0, text.size())), buffer_(text), lengthen_(), shorten_() {}
+// Constructor
 SubstringBuffer::SubstringBuffer(std::string_view text, proto::syntax::Location loc)
     : substring_loc_(loc), buffer_(text.substr(loc.offset(), loc.length())), lengthen_(), shorten_() {}
 

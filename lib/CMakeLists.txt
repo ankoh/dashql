@@ -319,7 +319,8 @@ if (EMSCRIPTEN)
             _dashql_analyzer_reset, \
             _dashql_analyzer_parse_program, \
             _dashql_analyzer_instantiate_program, \
-            _dashql_analyzer_plan_program \
+            _dashql_analyzer_plan_program, \
+            _dashql_analyzer_edit_program \
         ]' \
         -s EXTRA_EXPORTED_RUNTIME_METHODS='[\"ccall\"]' \
         "

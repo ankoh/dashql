@@ -269,14 +269,14 @@ sx::Node ParserDriver::Add(sx::Location loc, NodeVector&& values, bool null_if_e
 }
 
 /// Add an object
-sx::Node ParserDriver::Add(sx::Location loc, sx::NodeType type, NodeVector&& attrs, bool null_if_empty) {
+sx::Node ParserDriver::Add(sx::Location loc, sx::NodeType type, NodeVector&& attrs, bool null_if_empty, bool skip_none) {
     auto begin = nodes_.size();
     nodes_.reserve(nodes_.size() + attrs.size());
     std::sort(attrs.begin(), attrs.end(), [&](auto& l, auto& r) {
         return static_cast<uint16_t>(l.attribute_key()) < static_cast<uint16_t>(r.attribute_key());
     });
     for (auto& v : attrs) {
-        if (v.node_type() == sx::NodeType::NONE) continue;
+        if (skip_none && v.node_type() == sx::NodeType::NONE) continue;
         AddNode(v);
     }
     auto n = nodes_.size() - begin;
