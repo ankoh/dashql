@@ -6,6 +6,7 @@ import { Plan } from './plan';
 import { ActionID, Action, ActionUpdate, ActionLogEntry, ActionSchedulerStatus } from './action';
 import { PlanObjectID, PlanObject, PlanObjectType, DatabaseTableInfo } from './plan_object';
 import { Program, StatementStatus, deriveStatementStatusCode } from './program';
+import { ProgramInstance } from './program_instance';
 import { CoreState } from './state';
 import { CachedFileData, CachedHTTPData } from './cache';
 
@@ -24,6 +25,7 @@ export enum StateMutationType {
     SCHEDULE_PLAN = 'SCHEDULE_PLAN',
     RESET_PLAN = 'RESET_PLAN',
     SET_PROGRAM = 'SET_PROGRAM',
+    SET_PROGRAM_INSTANCE = 'SET_PROGRAM_INSTANCE',
     SET_PROGRAM_TEXT = 'SET_PROGRAM_TEXT',
     UPDATE_PLAN_ACTIONS = 'UPDATE_PLAN_ACTIONS',
     INSERT_PLAN_OBJECTS = 'INSERT_PLAN_OBJECTS',
@@ -42,6 +44,7 @@ export type StateMutationVariant =
     | StateMutation<StateMutationType.SCHEDULE_PLAN, [Plan, Action[]]>
     | StateMutation<StateMutationType.RESET_PLAN, null>
     | StateMutation<StateMutationType.SET_PROGRAM, Program>
+    | StateMutation<StateMutationType.SET_PROGRAM_INSTANCE, ProgramInstance>
     | StateMutation<StateMutationType.SET_PROGRAM_TEXT, [string, number]>
     | StateMutation<StateMutationType.UPDATE_PLAN_ACTIONS, ActionUpdate[]>
     | StateMutation<StateMutationType.INSERT_PLAN_OBJECTS, PlanObject[]>
@@ -133,6 +136,12 @@ export class StateMutations {
                 return {
                     ...state,
                     program: mutation.data,
+                };
+
+            case StateMutationType.SET_PROGRAM_INSTANCE:
+                return {
+                    ...state,
+                    programInstance: mutation.data,
                 };
 
             case StateMutationType.UPDATE_PLAN_ACTIONS: {

@@ -1,0 +1,15 @@
+// Copyright (c) 2020 The DashQL Authors
+
+namespace dashql.proto.viz;
+
+struct Position {
+    row: uint32;
+    column: uint32;
+    width: uint32;
+    height: uint32;
+}
+
+table VizSpec {
+    statement_id: uint32;
+    position: Position;
+}

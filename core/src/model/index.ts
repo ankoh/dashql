@@ -4,6 +4,7 @@ export * from "./log";
 export * from "./plan";
 export * from "./plan_object";
 export * from "./program";
+export * from "./program_instance";
 export * from "./state";
 export * from "./state_mutation";
 export * from "./persistent_state";
