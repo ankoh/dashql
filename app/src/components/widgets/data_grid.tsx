@@ -22,6 +22,7 @@ type Props = {
 type State = {
     scrollTop: number;
     scrollLeft: number;
+    clientHeight: number;
     overscanColumnCount: number;
     overscanRowCount: number;
     rowHeight: number;
@@ -52,8 +53,9 @@ export class DataGrid extends React.Component<Props, State> {
         this.state = {
             scrollTop: 0,
             scrollLeft: 0,
+            clientHeight: 0,
             overscanColumnCount: 0,
-            overscanRowCount: 10,
+            overscanRowCount: 30,
             rowHeight: 32,
         };
     }
@@ -68,43 +70,33 @@ export class DataGrid extends React.Component<Props, State> {
         return this.props.tableInfo.rowCount;
     }
 
+    /// Get the first visible row
+    public get firstVisibleRow() {
+        return Math.min(Math.trunc(this.state.scrollTop / this.state.rowHeight), this.props.tableInfo.rowCount);
+    }
+
+    /// Get the first visible row
+    public get visibleRowCount() {
+        const n = this.props.tableInfo.rowCount - this.firstVisibleRow;
+        return Math.min(Math.trunc(this.state.clientHeight / this.state.rowHeight), n);
+    }
+
     /// Scroll handler
-    public onScroll() {
-        const scrollbars = this._scrollbarsRef.current;
-        if (!scrollbars) {
-            return;
-        }
-        const scrollTop = scrollbars.getScrollTop();
-        const scrollLeft = scrollbars.getScrollLeft();
+    public onScroll(pos: positionValues) {
         this.setState({
             ...this.state,
-            scrollTop: scrollTop,
-            scrollLeft: scrollLeft,
+            scrollTop: pos.scrollTop,
+            scrollLeft: pos.scrollLeft,
+            clientHeight: pos.clientHeight,
         });
     }
 
     /// Scroll stop handler
     public onScrollStop() {
-        const scrollbars = this._scrollbarsRef.current;
-        if (!scrollbars) {
-            return;
-        }
-        const scrollTop = scrollbars.getScrollTop();
-        const scrollLeft = scrollbars.getScrollLeft();
-
-        // Query data
-        const clientHeight = scrollbars.getClientHeight();
-        const ofs = Math.min(Math.trunc(scrollTop / (this.state.rowHeight | 1)), this.props.tableInfo.rowCount);
-        const count = Math.trunc(clientHeight / (this.state.rowHeight | 1));
+        const ofs = this.firstVisibleRow;
+        const count = this.visibleRowCount;
         const end = Math.min(ofs + count, this.props.tableInfo.rowCount);
-        this.props.dataProvider(new core.access.ScanRequest(ofs, end - count));
-
-        // Update scroll position
-        this.setState({
-            ...this.state,
-            scrollTop,
-            scrollLeft,
-        });
+        this.props.dataProvider(new core.access.ScanRequest(ofs, end - ofs));
     }
 
     /// Render a cell of the static left sidebar
@@ -128,7 +120,7 @@ export class DataGrid extends React.Component<Props, State> {
     /// Render a data cell range
     public renderDataCellRange(props: GridCellRangeProps): React.ReactNode[] {
         // XXX StopIndex is apparently included !!!
-        const rowCount = props.rowStopIndex - props.rowStartIndex + 1;
+        const propRows = props.rowStopIndex - props.rowStartIndex + 1;
 
         // No data provided?
         // Render as missing.
@@ -138,18 +130,18 @@ export class DataGrid extends React.Component<Props, State> {
 
         // Range is fully included?
         const req = this.props.data.request;
-        if (req.includes(props.rowStartIndex, rowCount)) {
+        if (req.includes(props.rowStartIndex, propRows)) {
             return this.renderAvailableDataCellRange(props);
         }
 
         // Does not intersect with query results?
         // Render as missing.
-        if (!req.intersects(props.rowStartIndex, rowCount)) {
+        if (!req.intersects(props.rowStartIndex, propRows)) {
             return defaultCellRangeRenderer(props);
         }
 
-        const dataBegin = req.offset;
-        const dataEnd = req.offset + req.limit;
+        const dataBegin = Math.min(req.offset, this.rowCount);
+        const dataEnd = Math.min(req.offset + req.limit, this.rowCount);
         const rowsBegin = props.rowStartIndex;
         const rowsEnd = props.rowStopIndex + 1;
 
@@ -170,9 +162,12 @@ export class DataGrid extends React.Component<Props, State> {
         }
 
         // Render available cells
-        props.rowStartIndex = dataBegin;
-        props.rowStopIndex = dataEnd + 1;
-        const available = this.renderAvailableDataCellRange(props);
+        let available: React.ReactNode[] = [];
+        if (dataBegin < dataEnd) {
+            props.rowStartIndex = dataBegin;
+            props.rowStopIndex = dataEnd - 1;
+            available = this.renderAvailableDataCellRange(props);
+        }
 
         // Concatenate the cells
         props.rowStartIndex = rowsBegin;
