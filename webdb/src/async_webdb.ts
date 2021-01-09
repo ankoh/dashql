@@ -275,6 +275,7 @@ export class AsyncWebDBConnection {
 
     /// Run a query
     public async runQuery(text: string): Promise<proto.QueryResult> {
+        console.log(`runQuery: ${text}`);
         return this._instance.runQuery(this._conn, text);
     }
 

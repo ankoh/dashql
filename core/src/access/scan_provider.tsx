@@ -96,7 +96,6 @@ export class ScanProvider extends React.Component<Props, State> {
     protected async runQuery(request: ScanRequest): Promise<ScanResult> {
         const result = await this.props.database.use(async conn => {
             const query = `SELECT * FROM ${this.props.targetName} OFFSET ${request.offset} LIMIT ${request.limit}`;
-            console.log(query);
             return await conn.runQuery(query);
         });
         return {
