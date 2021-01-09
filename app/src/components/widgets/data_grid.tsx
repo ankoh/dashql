@@ -56,7 +56,7 @@ export class DataGrid extends React.Component<Props, State> {
             firstVisibleRow: 0,
             visibleRows: 100,
             overscanColumnCount: 0,
-            overscanRowCount: 30,
+            overscanRowCount: 10,
             rowHeight: 32,
         };
     }
