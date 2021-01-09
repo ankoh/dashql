@@ -15,3 +15,29 @@
         );
     </input>
 </test>
+<test name="dashql_viz_position">
+    <input>
+        VIZ weather_avg USING LINE (
+            position = (
+                row = 0,
+                column = 0,
+                width = 4,
+                height = 15
+            )
+        )
+    </input>
+</test>
+<test name="dashql_viz_position_short">
+    <input>
+        VIZ weather_avg USING LINE (
+            pos = (x = 0, y = 0, w = 4, h = 15)
+        )
+    </input>
+</test>
+<test name="dashql_viz_position_tuple">
+    <input>
+        VIZ weather_avg USING LINE (
+            position = (0, 0, 4, 15)
+        )
+    </input>
+</test>
