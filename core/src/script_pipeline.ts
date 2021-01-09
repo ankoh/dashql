@@ -61,16 +61,18 @@ export class ScriptPipeline {
                 type: model.StateMutationType.SET_PROGRAM_INSTANCE,
                 data: programInstance,
             });
+            return;
         }
 
         // Scheduler became idle and there is a program pending?
         if (
             next.schedulerStatus == model.ActionSchedulerStatus.Idle &&
             next.programInstance &&
-            (!next.plan || next.plan.programInstance !== this._programInstance)
+            (!next.plan || next.plan.programInstance !== next.programInstance)
         ) {
             this._programInstance = next.programInstance;
             this.planProgram();
+            return;
         }
     }
 
