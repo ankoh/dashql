@@ -27,6 +27,10 @@ export class Program {
     }
 
     /// Access the text
+    public get text() {
+        return this._text;
+    }
+    /// Access the text
     public get textBuffer() {
         return this._textBuffer;
     }

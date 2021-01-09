@@ -4,6 +4,7 @@
 
 #include <iomanip>
 
+#include "dashql/common/substring_buffer.h"
 #include "dashql/analyzer/action_planner.h"
 #include "dashql/analyzer/function_logic.h"
 #include "dashql/analyzer/parameter_value.h"
@@ -225,6 +226,45 @@ Signal Analyzer::InstantiateProgram(std::vector<ParameterValue> params) {
     // If semantics are ok, replace current program instance
     program_log_[(program_log_writer_++) & PLANNER_LOG_MASK] = std::move(program_instance_);
     program_instance_ = move(next_instance);
+    return Signal::OK();
+}
+
+/// Change a viz position
+static void changeVizPosition(SubstringBuffer& buffer, const ProgramInstance& program, const proto::edit::VizChangePosition& edit) {
+    auto stmt = edit.statement_id();
+    auto& pos = *edit.position();
+    
+    // clang-format off
+    auto schema = sxm::Element()
+        .MatchObject(sx::NodeType::OBJECT_DASHQL_VIZ)
+        .MatchChildren(NODE_MATCHERS(
+            sxm::Attribute(sx::AttributeKey::DASHQL_OPTION_X, 0),
+            sxm::Attribute(sx::AttributeKey::DASHQL_OPTION_Y, 1),
+            sxm::Attribute(sx::AttributeKey::DASHQL_OPTION_W, 2),
+            sxm::Attribute(sx::AttributeKey::DASHQL_OPTION_H, 3),
+            sxm::Attribute(sx::AttributeKey::DASHQL_OPTION_WIDTH, 4),
+            sxm::Attribute(sx::AttributeKey::DASHQL_OPTION_HEIGHT, 5),
+            sxm::Attribute(sx::AttributeKey::DASHQL_OPTION_ROW, 6),
+            sxm::Attribute(sx::AttributeKey::DASHQL_OPTION_COLUMN, 7),
+        ));
+    // clang-format on
+}
+
+/// Edit the last program
+Signal Analyzer::EditProgram(const proto::edit::ProgramEdit& edit) {
+    std::string_view program_txt{program_instance_->program_text()};
+    SubstringBuffer edit_buffer{program_txt};
+
+    for (auto e: *edit.edits()) {
+        switch (e->variant_type()) {
+            case proto::edit::EditOperationVariant::VizChangePosition: {
+                auto op = e->variant_as_VizChangePosition();
+
+                break;
+            }
+        }
+    }
+    // XXX
     return Signal::OK();
 }
 
