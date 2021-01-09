@@ -23,7 +23,7 @@ async function main(db: webdb.AsyncWebDB) {
             `);
             let chunks = new webdb.MaterializedQueryResultChunks(result);
             while (true) {
-                if (!chunks.nextSync()) break;
+                if (!chunks.nextBlocking()) break;
                 chunks.iterateNumberColumn(0, (_row: number, _v: number | null) => {
                     noop();
                 });
@@ -40,7 +40,7 @@ async function main(db: webdb.AsyncWebDB) {
             `);
             let chunks = new webdb.MaterializedQueryResultChunks(result);
             while (true) {
-                if (!chunks.nextSync()) break;
+                if (!chunks.nextBlocking()) break;
                 chunks.iterateNumberColumn(0, (_row: number, _v: number | null) => {
                     noop();
                 });
@@ -59,7 +59,7 @@ async function main(db: webdb.AsyncWebDB) {
             `);
             let chunks = new webdb.MaterializedQueryResultChunks(result);
             while (true) {
-                if (!chunks.nextSync()) break;
+                if (!chunks.nextBlocking()) break;
                 chunks.iterateNumberColumn(0, (_row: number, _v: number | null) => {
                     noop();
                 });
@@ -75,7 +75,7 @@ async function main(db: webdb.AsyncWebDB) {
             `);
             let chunks = new webdb.MaterializedQueryResultChunks(result);
             while (true) {
-                if (!chunks.nextSync()) break;
+                if (!chunks.nextBlocking()) break;
                 chunks.iterateNumberColumn(0, (_row: number, _v: number | null) => {
                     noop();
                 });
@@ -91,7 +91,7 @@ async function main(db: webdb.AsyncWebDB) {
             `);
             let chunks = new webdb.MaterializedQueryResultChunks(result);
             while (true) {
-                if (!chunks.nextSync()) break;
+                if (!chunks.nextBlocking()) break;
                 chunks.iterateNumberColumn(0, (_row: number, _v: number | null) => {
                     noop();
                 });
@@ -120,7 +120,7 @@ async function main(db: webdb.AsyncWebDB) {
             `);
             let chunks = new webdb.QueryResultChunkStream(conn, result);
             while (true) {
-                if (!await chunks.next()) break;
+                if (!await chunks.nextAsync()) break;
                 chunks.iterateNumberColumn(0, (_row: number, _v: number | null) => {
                     noop();
                 });
@@ -136,7 +136,7 @@ async function main(db: webdb.AsyncWebDB) {
             `);
             let chunks = new webdb.QueryResultChunkStream(conn, result);
             while (true) {
-                if (!await chunks.next()) break;
+                if (!await chunks.nextAsync()) break;
                 chunks.iterateNumberColumn(0, (_row: number, _v: number | null) => {
                     noop();
                 });
@@ -152,7 +152,7 @@ async function main(db: webdb.AsyncWebDB) {
             `);
             let chunks = new webdb.QueryResultChunkStream(conn, result);
             while (true) {
-                if (!await chunks.next()) break;
+                if (!await chunks.nextAsync()) break;
                 chunks.iterateNumberColumn(0, (_row: number, _v: number | null) => {
                     noop();
                 });
@@ -168,7 +168,7 @@ async function main(db: webdb.AsyncWebDB) {
             `);
             let chunks = new webdb.QueryResultChunkStream(conn, result);
             while (true) {
-                if (!await chunks.next()) break;
+                if (!await chunks.nextAsync()) break;
                 chunks.iterateNumberColumn(0, (_row: number, _v: number | null) => {
                     noop();
                 });
@@ -184,7 +184,7 @@ async function main(db: webdb.AsyncWebDB) {
             `);
             let chunks = new webdb.QueryResultChunkStream(conn, result);
             while (true) {
-                if (!await chunks.next()) break;
+                if (!await chunks.nextAsync()) break;
                 chunks.iterateNumberColumn(0, (_row: number, _v: number | null) => {
                     noop();
                 });
