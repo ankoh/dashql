@@ -38,6 +38,11 @@
 }
 
 .cell_anchor {
+    grid-row: 1;
+    grid-column: 1;
+    overflow: hidden !important;
+
+    outline: none;
     box-sizing: border-box;
     border-bottom: v_cell_border;
     border-right: v_cell_border;
@@ -96,13 +101,6 @@
 .grid_container {
     width: 100%;
     height: 100%;
-}
-
-.grid_anchor {
-    grid-row: 1;
-    grid-column: 1;
-    overflow: hidden !important;
-    outline: none;
 }
 
 .grid_left {
