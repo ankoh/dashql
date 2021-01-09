@@ -250,12 +250,9 @@ flatbuffers::Offset<proto::syntax::Program> Analyzer::PackProgram(flatbuffers::F
     return sx::Program::Pack(builder, volatile_program_.get());
 }
 
-/// Pack the plan
-flatbuffers::Offset<proto::analyzer::Plan> Analyzer::PackPlan(flatbuffers::FlatBufferBuilder& builder) {
-    assert(!!planned_graph_.get());
-
-    // Pack the graph
-    auto graph = proto::action::ActionGraph::Pack(builder, planned_graph_.get());
+/// Pack the program annotations
+flatbuffers::Offset<proto::analyzer::ProgramAnnotations> Analyzer::PackProgramAnnotations(flatbuffers::FlatBufferBuilder& builder) {
+    assert(!!program_instance_.get());
 
     // Pack parameters
     std::vector<flatbuffers::Offset<proto::analyzer::ParameterValue>> param_offsets;
@@ -269,9 +266,19 @@ flatbuffers::Offset<proto::analyzer::Plan> Analyzer::PackPlan(flatbuffers::FlatB
     auto eval = program_instance_->PackEvaluatedNodes(builder);
 
     // Encode the plan result
+    proto::analyzer::ProgramAnnotationsBuilder annotations{builder};
+    annotations.add_parameters(param_vec);
+    annotations.add_evaluated_nodes(eval);
+    // XXX viz specs
+    // XXX node errors
+    return annotations.Finish();
+}
+
+/// Pack the plan
+flatbuffers::Offset<proto::analyzer::Plan> Analyzer::PackPlan(flatbuffers::FlatBufferBuilder& builder) {
+    assert(!!planned_graph_.get());
+    auto graph = proto::action::ActionGraph::Pack(builder, planned_graph_.get());
     proto::analyzer::PlanBuilder plan{builder};
-    plan.add_parameter_values(param_vec);
-    plan.add_evaluated_nodes(eval);
     plan.add_action_graph(graph);
     return plan.Finish();
 }

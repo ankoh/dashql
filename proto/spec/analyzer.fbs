@@ -2,6 +2,7 @@
 
 include "action.fbs";
 include "syntax/syntax.fbs";
+include "viz.fbs";
 
 namespace dashql.proto.analyzer;
 
@@ -42,10 +43,6 @@ table ParameterValue {
     value: Value;
 }
 
-table ProgramInstantiation {
-    parameters: [ParameterValue];
-}
-
 enum NodeErrorCode: uint8 {
     INVALID_INPUT
 }
@@ -56,9 +53,17 @@ table NodeError {
     message: string;
 }
 
-table Plan {
-    parameter_values: [ParameterValue];
+table ProgramInstantiation {
+    parameters: [ParameterValue];
+}
+
+table ProgramAnnotations {
+    parameters: [ParameterValue];
     evaluated_nodes: [NodeValue];
-    action_graph: action.ActionGraph;
+    viz_specs: [viz.VizSpec];
     node_errors: [NodeError];
+}
+
+table Plan {
+    action_graph: action.ActionGraph;
 }

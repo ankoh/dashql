@@ -6,6 +6,7 @@ export enum SpecType {
     STRING_SPEC = 'STRING_SPEC',
     ARRAY_SPEC = 'ARRAY_SPEC',
     ENUM_SPEC = 'ENUM_SPEC',
+    OPTION_SPEC = 'OPTION_SPEC',
     OBJECT_SPEC = 'OBJECT_SPEC',
 }
 
@@ -28,6 +29,7 @@ export type NodeSchema =
     | Spec<SpecType.STRING_SPEC, string>
     | Spec<SpecType.ARRAY_SPEC, NodeSchema[]>
     | Spec<SpecType.ENUM_SPEC, number>
+    | Spec<SpecType.OPTION_SPEC, ObjectSchema>
     | Spec<SpecType.OBJECT_SPEC, ObjectSchema>
     ;
 
@@ -77,6 +79,15 @@ export function arrayNode(elementSchemas: NodeSchema[]): NodeSchema {
         nodeType: proto.syntax.NodeType.ARRAY,
         matching: Matching.MISSING,
         value: elementSchemas,
+    };
+}
+
+export function optionNode(objectSchema: ObjectSchema): NodeSchema {
+    return {
+        specType: SpecType.OPTION_SPEC,
+        nodeType: null,
+        matching: Matching.MISSING,
+        value: objectSchema,
     };
 }
 

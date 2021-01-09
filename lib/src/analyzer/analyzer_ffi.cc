@@ -14,12 +14,12 @@ void dashql_analyzer_reset() {
 void dashql_analyzer_parse_program(FFIResponse* response, const char* text) {
     if (auto rc = Analyzer::GetInstance().ParseProgram(text); !rc) {
         FFIResponseBuffer::GetInstance().Store(*response, std::move(rc.ReleaseError()));
-    } else {
-        flatbuffers::FlatBufferBuilder builder;
-        auto program = Analyzer::GetInstance().PackProgram(builder);
-        builder.Finish(program);
-        FFIResponseBuffer::GetInstance().Store(*response, builder.Release());
+        return;
     }
+    flatbuffers::FlatBufferBuilder builder;
+    auto program = Analyzer::GetInstance().PackProgram(builder);
+    builder.Finish(program);
+    FFIResponseBuffer::GetInstance().Store(*response, builder.Release());
 }
 
 void dashql_analyzer_instantiate_program(FFIResponse* response, const void* args_buffer) {
@@ -30,19 +30,25 @@ void dashql_analyzer_instantiate_program(FFIResponse* response, const void* args
             params.push_back(ParameterValue::UnPack(*values->Get(i)));
         }
     }
-    auto signal = Analyzer::GetInstance().InstantiateProgram(move(params));
-    FFIResponseBuffer::GetInstance().Store(*response, std::move(signal));
+    if (auto rc = Analyzer::GetInstance().InstantiateProgram(move(params)); !rc) {
+        FFIResponseBuffer::GetInstance().Store(*response, std::move(rc.ReleaseError()));
+        return;
+    }
+    flatbuffers::FlatBufferBuilder builder;
+    auto program = Analyzer::GetInstance().PackProgramAnnotations(builder);
+    builder.Finish(program);
+    FFIResponseBuffer::GetInstance().Store(*response, builder.Release());
 }
 
 void dashql_analyzer_plan_program(FFIResponse* response) {
     if (auto rc = Analyzer::GetInstance().PlanProgram(); !rc) {
         FFIResponseBuffer::GetInstance().Store(*response, std::move(rc.ReleaseError()));
-    } else {
-        flatbuffers::FlatBufferBuilder builder;
-        auto program = Analyzer::GetInstance().PackPlan(builder);
-        builder.Finish(program);
-        FFIResponseBuffer::GetInstance().Store(*response, builder.Release());
+        return;
     }
+    flatbuffers::FlatBufferBuilder builder;
+    auto program = Analyzer::GetInstance().PackPlan(builder);
+    builder.Finish(program);
+    FFIResponseBuffer::GetInstance().Store(*response, builder.Release());
 }
 
 }
