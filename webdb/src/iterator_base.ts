@@ -166,7 +166,7 @@ export function iterateChunksBlocking(iter: BlockingChunkIterator, offset: numbe
         fn(iter, start, skipHere, rowsHere);
 
         // Advance the chunk start
-        start += iter.currentChunk.rowCount();
+        start += iter.currentChunk.rowCount() - skipHere;
         remaining -= rowsHere;
     }
 }
