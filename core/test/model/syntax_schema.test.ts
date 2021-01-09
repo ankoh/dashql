@@ -86,21 +86,31 @@ describe('Statement schema', () => {
         expect(p.statementsLength()).toEqual(1);
         const stmt = r.getStatement(0);
 
-        let posX = schema.objectNode(sx.NodeType.OBJECT_SQL_CONST, {});
-        let posY = schema.objectNode(sx.NodeType.OBJECT_SQL_CONST, {});
-        let posW = schema.objectNode(sx.NodeType.OBJECT_SQL_CONST, {});
-        let posH = schema.objectNode(sx.NodeType.OBJECT_SQL_CONST, {});
+        let posX = schema.stringNode();
+        let posY = schema.stringNode();
+        let posW = schema.stringNode();
+        let posH = schema.stringNode();
 
         stmt.matchSchema(schema.objectNode(sx.NodeType.OBJECT_DASHQL_VIZ, {
             [Key.DASHQL_OPTION_POSITION]: schema.optionNode({
-                [Key.DASHQL_OPTION_X]: posX,
-                [Key.DASHQL_OPTION_Y]: posY,
-                [Key.DASHQL_OPTION_W]: posW,
-                [Key.DASHQL_OPTION_H]: posH,
-                [Key.DASHQL_OPTION_ROW]: posY,
-                [Key.DASHQL_OPTION_COLUMN]: posX,
-                [Key.DASHQL_OPTION_WIDTH]: posW,
-                [Key.DASHQL_OPTION_HEIGHT]: posH,
+                [Key.DASHQL_OPTION_X]: schema.objectNode(sx.NodeType.OBJECT_SQL_CONST, {
+                    [Key.SQL_CONST_VALUE]: posX,
+                }),
+                [Key.DASHQL_OPTION_Y]: schema.objectNode(sx.NodeType.OBJECT_SQL_CONST, {
+                    [Key.SQL_CONST_VALUE]: posY,
+                }),
+                [Key.DASHQL_OPTION_W]: schema.objectNode(sx.NodeType.OBJECT_SQL_CONST, {
+                    [Key.SQL_CONST_VALUE]: posW,
+                }),
+                [Key.DASHQL_OPTION_H]: schema.objectNode(sx.NodeType.OBJECT_SQL_CONST, {
+                    [Key.SQL_CONST_VALUE]: posH,
+                }),
+                [Key.DASHQL_OPTION_WIDTH]: schema.objectNode(sx.NodeType.OBJECT_SQL_CONST, {
+                    [Key.SQL_CONST_VALUE]: posW,
+                }),
+                [Key.DASHQL_OPTION_HEIGHT]: schema.objectNode(sx.NodeType.OBJECT_SQL_CONST, {
+                    [Key.SQL_CONST_VALUE]: posH,
+                }),
             }),
         }));
 
