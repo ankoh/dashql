@@ -6,6 +6,41 @@ import { Value } from './value';
 type NumberVector = proto.VectorI8 | proto.VectorI16 | proto.VectorI32 | proto.VectorU8 | proto.VectorU16 | proto.VectorU32 | proto.VectorF32 | proto.VectorF64;
 type NumberArray = Int8Array | Int16Array | Int32Array | Uint8Array | Uint16Array | Uint32Array | Float32Array | Float64Array;
 
+export class VectorBuffers {
+    vector: proto.Vector;
+    vectorI8: proto.VectorI8;
+    vectorU8: proto.VectorU8;
+    vectorI16: proto.VectorI16;
+    vectorU16: proto.VectorU16;
+    vectorI32: proto.VectorI32;
+    vectorU32: proto.VectorU32;
+    vectorI64: proto.VectorI64;
+    vectorU64: proto.VectorU64;
+    vectorI128: proto.VectorI128;
+    vectorF32: proto.VectorF32;
+    vectorF64: proto.VectorF64;
+    vectorInterval: proto.VectorInterval;
+    vectorString: proto.VectorString;
+
+    /// Constructor
+    constructor() {
+        this.vector = new proto.Vector();
+        this.vectorI8 = new proto.VectorI8();
+        this.vectorU8 = new proto.VectorU8();
+        this.vectorI16 = new proto.VectorI16();
+        this.vectorU16 = new proto.VectorU16();
+        this.vectorI32 = new proto.VectorI32();
+        this.vectorU32 = new proto.VectorU32();
+        this.vectorI64 = new proto.VectorI64();
+        this.vectorU64 = new proto.VectorU64();
+        this.vectorI128 = new proto.VectorI128();
+        this.vectorF32 = new proto.VectorF32();
+        this.vectorF64 = new proto.VectorF64();
+        this.vectorInterval = new proto.VectorInterval();
+        this.vectorString = new proto.VectorString();
+    }
+}
+
 /// A chunk iterator base class
 export abstract class ChunkIteratorBase {
     /// The result buffer
@@ -111,6 +146,29 @@ export abstract class ChunkIteratorBase {
 
 export interface BlockingChunkIterator extends ChunkIteratorBase {
     nextBlocking(): boolean;
+}
+
+/// Helper to iterate over a blocking chunk iterator
+export function iterateChunksBlocking(iter: BlockingChunkIterator, offset: number, limit: number, fn: (iter: BlockingChunkIterator, start: number, skipHere: number, rowsHere: number) => void) {
+    let skip = offset;
+    let remaining = limit;
+    let start = 0;
+
+    while (remaining && iter.nextBlocking()) {
+        const skipHere = Math.min(skip, iter.currentChunk.rowCount());
+        skip -= skipHere;
+        if (skipHere == iter.currentChunk.rowCount()) {
+            continue;
+        }
+        const rowsHere = Math.min(iter.currentChunk.rowCount() - skipHere, remaining);
+
+        // Run the function
+        fn(iter, start, skipHere, rowsHere);
+
+        // Advance the chunk start
+        start += iter.currentChunk.rowCount();
+        remaining -= rowsHere;
+    }
 }
 
 export interface AsyncChunkIterator extends ChunkIteratorBase {
@@ -234,39 +292,3 @@ export interface BlockingRowIterator {
 export interface AsyncRowIterator {
     nextAsync(): Promise<boolean>;
 }
-
-/// Flatbuffer objects to decode flatbuffers without allocation
-export class VectorBuffers {
-    vector: proto.Vector;
-    vectorI8: proto.VectorI8;
-    vectorU8: proto.VectorU8;
-    vectorI16: proto.VectorI16;
-    vectorU16: proto.VectorU16;
-    vectorI32: proto.VectorI32;
-    vectorU32: proto.VectorU32;
-    vectorI64: proto.VectorI64;
-    vectorU64: proto.VectorU64;
-    vectorI128: proto.VectorI128;
-    vectorF32: proto.VectorF32;
-    vectorF64: proto.VectorF64;
-    vectorInterval: proto.VectorInterval;
-    vectorString: proto.VectorString;
-
-    /// Constructor
-    constructor() {
-        this.vector = new proto.Vector();
-        this.vectorI8 = new proto.VectorI8();
-        this.vectorU8 = new proto.VectorU8();
-        this.vectorI16 = new proto.VectorI16();
-        this.vectorU16 = new proto.VectorU16();
-        this.vectorI32 = new proto.VectorI32();
-        this.vectorU32 = new proto.VectorU32();
-        this.vectorI64 = new proto.VectorI64();
-        this.vectorU64 = new proto.VectorU64();
-        this.vectorI128 = new proto.VectorI128();
-        this.vectorF32 = new proto.VectorF32();
-        this.vectorF64 = new proto.VectorF64();
-        this.vectorInterval = new proto.VectorInterval();
-        this.vectorString = new proto.VectorString();
-    }
-};

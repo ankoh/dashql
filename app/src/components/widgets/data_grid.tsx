@@ -250,24 +250,12 @@ export class DataGrid extends React.Component<Props, State> {
             // Create the chunk iterator
             const iter = new webdb.MaterializedQueryResultChunks(data);
 
-            // We need to do some bookeeping for the chunk iterator.
-            // XXX move this into webdb on top of the async row iterator.
-            let skip = props.rowStartIndex - this.props.data!.request.offset;
-            let remaining = props.rowStopIndex - props.rowStartIndex + 1;
-            let chunkStart = props.rowStartIndex;
+            const offset = props.rowStartIndex - this.props.data!.request.offset;
+            const limit = props.rowStopIndex - props.rowStartIndex + 1;
 
-            while (remaining && iter.nextBlocking()) {
-                const skipHere = Math.min(skip, iter.currentChunk.rowCount());
-                skip -= skipHere;
-                if (skipHere == iter.currentChunk.rowCount()) {
-                    continue;
-                }
-                const rowsHere = Math.min(iter.currentChunk.rowCount() - skipHere, remaining);
-
-                // Iterate over the number column.
-                // XXX We have more than numbers
+            webdb.iterateChunksBlocking(iter, offset, limit, (iter: webdb.BlockingChunkIterator, chunkStart: number, skipHere: number, rowsHere: number) => {
                 iter.iterateNumberColumn(columnIndex, (chunkRow: number, v: number | null) => {
-                    const rowIndex = chunkStart + chunkRow - skipHere;
+                    const rowIndex = props.rowStartIndex + chunkStart + chunkRow - skipHere;
                     const rowDatum = props.rowSizeAndPositionManager.getSizeAndPositionOfCell(rowIndex);
                     const cell = this.renderAvailableDataCell(
                         props,
@@ -287,11 +275,7 @@ export class DataGrid extends React.Component<Props, State> {
                         cells.push(cell);
                     }
                 }, skipHere, rowsHere);
-
-                // Advance the chunk start
-                chunkStart += iter.currentChunk.rowCount();
-                remaining -= rowsHere;
-            }
+            });
         }
         return cells;
     }

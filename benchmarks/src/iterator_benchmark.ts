@@ -21,7 +21,7 @@ function main(db: webdb.WebDB) {
             `);
             let chunks = new webdb.MaterializedQueryResultChunks(result);
             while (true) {
-                if (!chunks.next()) break;
+                if (!chunks.nextBlocking()) break;
                 chunks.iterateNumberColumn(0, (_row: number, _v: number | null) => {
                     noop();
                 });
@@ -37,7 +37,7 @@ function main(db: webdb.WebDB) {
             `);
             let chunks = new webdb.MaterializedQueryResultChunks(result);
             while (true) {
-                if (!chunks.next()) break;
+                if (!chunks.nextBlocking()) break;
                 chunks.iterateNumberColumn(0, (_row: number, _v: number | null) => {
                     noop();
                 });
@@ -53,7 +53,7 @@ function main(db: webdb.WebDB) {
             `);
             let chunks = new webdb.MaterializedQueryResultChunks(result);
             while (true) {
-                if (!chunks.next()) break;
+                if (!chunks.nextBlocking()) break;
                 chunks.iterateNumberColumn(0, (_row: number, _v: number | null) => {
                     noop();
                 });
@@ -69,7 +69,7 @@ function main(db: webdb.WebDB) {
             `);
             let chunks = new webdb.MaterializedQueryResultChunks(result);
             while (true) {
-                if (!chunks.next()) break;
+                if (!chunks.nextBlocking()) break;
                 chunks.iterateNumberColumn(0, (_row: number, _v: number | null) => {
                     noop();
                 });
@@ -85,7 +85,7 @@ function main(db: webdb.WebDB) {
             `);
             let chunks = new webdb.MaterializedQueryResultChunks(result);
             while (true) {
-                if (!chunks.next()) break;
+                if (!chunks.nextBlocking()) break;
                 chunks.iterateNumberColumn(0, (_row: number, _v: number | null) => {
                     noop();
                 });
@@ -114,7 +114,7 @@ function main(db: webdb.WebDB) {
             `);
             let chunks = new webdb.QueryResultChunkStream(conn, result);
             while (true) {
-                if (!chunks.next()) break;
+                if (!chunks.nextBlocking()) break;
                 chunks.iterateNumberColumn(0, (_row: number, _v: number | null) => {
                     noop();
                 });
@@ -130,7 +130,7 @@ function main(db: webdb.WebDB) {
             `);
             let chunks = new webdb.QueryResultChunkStream(conn, result);
             while (true) {
-                if (!chunks.next()) break;
+                if (!chunks.nextBlocking()) break;
                 chunks.iterateNumberColumn(0, (_row: number, _v: number | null) => {
                     noop();
                 });
@@ -146,7 +146,7 @@ function main(db: webdb.WebDB) {
             `);
             let chunks = new webdb.QueryResultChunkStream(conn, result);
             while (true) {
-                if (!chunks.next()) break;
+                if (!chunks.nextBlocking()) break;
                 chunks.iterateNumberColumn(0, (_row: number, _v: number | null) => {
                     noop();
                 });
@@ -162,7 +162,7 @@ function main(db: webdb.WebDB) {
             `);
             let chunks = new webdb.QueryResultChunkStream(conn, result);
             while (true) {
-                if (!chunks.next()) break;
+                if (!chunks.nextBlocking()) break;
                 chunks.iterateNumberColumn(0, (_row: number, _v: number | null) => {
                     noop();
                 });
@@ -178,7 +178,7 @@ function main(db: webdb.WebDB) {
             `);
             let chunks = new webdb.QueryResultChunkStream(conn, result);
             while (true) {
-                if (!chunks.next()) break;
+                if (!chunks.nextBlocking()) break;
                 chunks.iterateNumberColumn(0, (_row: number, _v: number | null) => {
                     noop();
                 });
