@@ -2,7 +2,7 @@
     "compilerOptions": {
         "outDir": "./build/ts/",
         "target": "es6",
-        "module": "commonjs",
+        "module": "esnext",
         "moduleResolution": "node",
         "sourceMap": true,
         "noImplicitAny": true,
