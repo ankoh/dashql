@@ -36,6 +36,11 @@ afterEach(async () => {
     await db.reset();
 });
 
+afterAll(async () => {
+    await db.terminate();
+    worker.terminate();
+});
+
 function resolveProgramActionLogic(plan: model.Plan) {
     let r: actions.ActionLogic<proto.action.ProgramAction>[] = [];
     const graph = plan.action_graph;
