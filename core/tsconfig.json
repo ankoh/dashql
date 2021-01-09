@@ -2,7 +2,7 @@
     "compilerOptions": {
         "outDir": "./dist/",
         "target": "es6",
-        "module": "esnext",
+        "module": "commonjs",
         "moduleResolution": "node",
         "sourceMap": true,
         "strict": true,
