@@ -44,7 +44,7 @@ describe('QueryResultRowIterator', () => {
             for (let i = 0; i <= testRows; ++i) {
                 expect(iter.isEnd()).toBe(false);
                 expect(iter.getValue(0, value).i8).toBe(i & 127);
-                await iter.next();
+                await iter.nextAsync();
             }
             expect(iter.isEnd()).toBe(true);
         });

@@ -12,7 +12,7 @@ export abstract class QueryResultChunkIterator extends ChunkIteratorBase {
     }
 
     /// Get the next query result chunk
-    public abstract next(): boolean;
+    public abstract nextBlocking(): boolean;
 }
 
 /// A stream of query result chunks
@@ -30,7 +30,7 @@ export class QueryResultChunkStream extends QueryResultChunkIterator {
     }
 
     /// Get the next chunk
-    public next(): boolean {
+    public nextBlocking(): boolean {
         let result = this._resultBuffer;
         if (++this._currentChunkID < result.dataChunksLength()) {
             this._currentChunk = result.dataChunks(this._currentChunkID, this._currentChunk)!;
@@ -66,7 +66,7 @@ export class MaterializedQueryResultChunks extends QueryResultChunkIterator {
     /// Restart the chunk iterator
     public rewind() { this._currentChunkID = -1; }
     /// Get the next chunk
-    public next(): boolean {
+    public nextBlocking(): boolean {
         if (++this._currentChunkID >= this._chunks.length) {
             return false;
         }
@@ -90,13 +90,13 @@ export class QueryResultRowIterator extends RowIteratorBase {
     /// Iterate over a result buffer
     public static iterate(chunks: QueryResultChunkIterator): QueryResultRowIterator {
         let iter = new QueryResultRowIterator(chunks);
-        chunks.next();
+        chunks.nextBlocking();
         iter._currentChunkBegin = 0;
         return iter;
     }
 
     /// Advance the iterator
-    public next(): boolean {
+    public nextBlocking(): boolean {
         // Reached end?
         if (this.isEnd())
             return false;
@@ -107,7 +107,7 @@ export class QueryResultRowIterator extends RowIteratorBase {
             return true;
 
         // Get next chunk
-        this.iter.next();
+        this.iter.nextBlocking();
         this._currentChunkBegin = this._globalRowIndex;
         let empty = this.currentChunk.rowCount() == 0;
         return !empty;

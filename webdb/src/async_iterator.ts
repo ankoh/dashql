@@ -12,7 +12,7 @@ export abstract class QueryResultChunkIterator extends ChunkIteratorBase {
     }
 
     /// Get the next query result chunk
-    public abstract next(): Promise<boolean>;
+    public abstract nextAsync(): Promise<boolean>;
 }
 
 /// A stream of query result chunks
@@ -30,7 +30,7 @@ export class QueryResultChunkStream extends QueryResultChunkIterator {
     }
 
     /// Get the next chunk
-    public async next(): Promise<boolean> {
+    public async nextAsync(): Promise<boolean> {
         let result = this._resultBuffer;
         if (++this._currentChunkID < result.dataChunksLength()) {
             this._currentChunk = result.dataChunks(this._currentChunkID, this._currentChunk)!;
@@ -66,7 +66,7 @@ export class MaterializedQueryResultChunks extends QueryResultChunkIterator {
     /// Restart the chunk iterator
     public rewind() { this._currentChunkID = -1; }
     /// Get the next chunk
-    public async next(): Promise<boolean> {
+    public async nextAsync(): Promise<boolean> {
         if (++this._currentChunkID >= this._chunks.length) {
             return false;
         }
@@ -75,7 +75,7 @@ export class MaterializedQueryResultChunks extends QueryResultChunkIterator {
         return true;
     }
     /// The the next chunk synchronous
-    public nextSync(): boolean {
+    public nextBlocking(): boolean {
         if (this._currentChunkID + 1 >= this._chunks.length) {
             return false;
         }
@@ -97,14 +97,14 @@ export class QueryResultRowIterator extends RowIteratorBase {
     /// Iterate over a result buffer
     public static async iterate(chunks: QueryResultChunkIterator): Promise<QueryResultRowIterator> {
         let iter = new QueryResultRowIterator(chunks);
-        await chunks.next();
+        await chunks.nextAsync();
         iter._currentChunkBegin = 0;
         return iter;
     }
 
 
     /// Advance the iterator
-    public async next(): Promise<boolean> {
+    public async nextAsync(): Promise<boolean> {
         // Reached end?
         if (this.isEnd())
             return false;
@@ -115,7 +115,7 @@ export class QueryResultRowIterator extends RowIteratorBase {
             return true;
 
         // Get next chunk
-        await this.iter.next();
+        await this.iter.nextAsync();
         this._currentChunkBegin = this._globalRowIndex;
         let empty = this.currentChunk.rowCount() == 0;
         return !empty;
