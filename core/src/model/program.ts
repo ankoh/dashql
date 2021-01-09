@@ -1,7 +1,7 @@
 // Copyright (c) 2020 The DashQL Authors
 
 import { NativeStack, NativeBitmap } from '../utils';
-import { syntax as sx, analyzer } from '@dashql/proto';
+import { syntax as sx } from '@dashql/proto';
 import * as proto from '@dashql/proto';
 import * as schema from './syntax_schema';
 
@@ -14,8 +14,6 @@ export class Program {
     _textBuffer: Uint8Array;
     /// The program
     _program: sx.Program;
-    /// The patched node positions
-    _nodeValues: Map<number, analyzer.Value>;
 
     /// Constructor
     public constructor(
@@ -26,7 +24,6 @@ export class Program {
         this._text = text;
         this._textBuffer = textBuffer;
         this._program = program;
-        this._nodeValues = new Map<number, analyzer.Value>();
     }
 
     /// Access the text
@@ -36,10 +33,6 @@ export class Program {
     /// Access the flatbuffer
     public get buffer() {
         return this._program;
-    }
-    /// Set the node values
-    public set setNodeValues(values: Map<number, analyzer.Value>) {
-        this._nodeValues = values;
     }
 
     /// Access the text
@@ -53,11 +46,6 @@ export class Program {
         n = n || new Node(this);
         n.buffer = this._program.nodes(i, n.buffer)!;
         return n;
-    }
-
-    /// Get a node value
-    public getNodeValue(i: number): analyzer.Value | null {
-        return this._nodeValues.get(i) || null;
     }
 
     /// Get a statement
@@ -414,6 +402,7 @@ export class Statement {
                 const parentSchema = mappedNodes.get(parentStep.nodeId);
                 if (!parentSchema) return;
                 switch (parentSchema.specType) {
+                    case schema.SpecType.OPTION_SPEC:
                     case schema.SpecType.OBJECT_SPEC:
                         currentSchema = parentSchema.value[node.buffer.attributeKey()] || null;
                         break;
@@ -455,6 +444,10 @@ export class Statement {
                 case schema.SpecType.ENUM_SPEC:
                     currentSchema.matching = schema.Matching.MATCHED;
                     currentSchema.value = node.buffer.childrenBeginOrValue();
+                    break;
+                case schema.SpecType.OPTION_SPEC:
+                    currentSchema.matching = schema.Matching.MATCHED;
+                    mappedNodes.set(nodeId, currentSchema);
                     break;
                 case schema.SpecType.OBJECT_SPEC:
                     currentSchema.matching = schema.Matching.MATCHED;

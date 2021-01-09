@@ -2,6 +2,7 @@
 
 include "action.fbs";
 include "analyzer.fbs";
+include "viz.fbs";
 
 include "syntax/dashql.fbs";
 include "syntax/sql.fbs";

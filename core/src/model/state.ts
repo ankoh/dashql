@@ -5,6 +5,7 @@ import { CachedFileData, CachedHTTPData } from "./cache";
 import { ActionSchedulerStatus, ActionID, Action, ActionLogEntry } from "./action";
 import { PlanObjectID, PlanObject, DatabaseTableInfo } from "./plan_object";
 import { Program, StatementStatus, ParameterValue } from "./program";
+import { ProgramInstance } from "./program_instance";
 import { Store } from "redux";
 
 export class CoreState {
@@ -23,6 +24,8 @@ export class CoreState {
     public program: Program | null;
     /// The program parameters
     public programParameters: Immutable.List<ParameterValue>;
+    /// The program instance
+    public programInstance: ProgramInstance | null;
 
     /// The action scheduler status
     public schedulerStatus: ActionSchedulerStatus;
@@ -53,6 +56,7 @@ export class CoreState {
         this.programText = "";
         this.program = null;
         this.programParameters = Immutable.List<ParameterValue>();
+        this.programInstance = null;
         this.schedulerStatus = ActionSchedulerStatus.Idle;
         this.plan = null;
         this.planProgramStatus = Immutable.List<StatementStatus>();

@@ -4,12 +4,37 @@ import { ProgramActionLogic } from "./action_logic";
 import { ActionContext } from "./action_context";
 import ActionStatusCode = proto.action.ActionStatusCode;
 
+import schema = model.schema;
+import sx = proto.syntax;
+import Key = proto.syntax.AttributeKey;
+
+function readPosition(stmt: model.Statement) {
+}
+
 export class CreateVizActionLogic extends ProgramActionLogic {
     constructor(action_id: model.ActionID, action: proto.action.ProgramAction, statement: model.Statement) {
         super(action_id, action, statement);
     }
 
     public async execute(context: ActionContext): Promise<model.ActionID> {
+
+        let posX = schema.numberNode();
+        let posY = schema.numberNode();
+        let posW = schema.numberNode();
+        let posH = schema.numberNode();
+
+        this.origin.matchSchema(schema.objectNode(sx.NodeType.OBJECT_DASHQL_VIZ, {
+            [Key.DASHQL_OPTION_POSITION]: schema.objectNode(sx.NodeType.OBJECT_SQL_CONST, {
+                [Key.DASHQL_OPTION_X]: posX,
+                [Key.DASHQL_OPTION_Y]: posY,
+                [Key.DASHQL_OPTION_W]: posW,
+                [Key.DASHQL_OPTION_H]: posH,
+                [Key.DASHQL_OPTION_ROW]: posY,
+                [Key.DASHQL_OPTION_COLUMN]: posX,
+                [Key.DASHQL_OPTION_WIDTH]: posW,
+                [Key.DASHQL_OPTION_HEIGHT]: posH,
+            }),
+        }));
 
         const now = new Date();
         const viz: model.VizInfo = {

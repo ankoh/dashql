@@ -18,7 +18,7 @@ beforeEach(async () => {
 });
 
 describe('Statement schema', () => {
-    test('simple load statement', async () => {
+    test('simple load statement', () => {
         const program = analyzerBindings.parseProgram(`
             LOAD weather_csv FROM http (
                 url = 'https://localhost/test'
@@ -73,5 +73,40 @@ describe('Statement schema', () => {
             expect(method.value).toEqual(sx.LoadMethodType.HTTP);
             expect(url.matching).toEqual(schema.Matching.MISSING);
         }
+    });
+
+    test('viz position short', () => {
+        const r = analyzerBindings.parseProgram(`
+            VIZ weather_avg USING LINE (
+                pos = (x = 1, y = 2, w = 4, h = 15)
+            )
+        `);
+        const p = r.buffer;
+        expect(p.errorsLength()).toEqual(0);
+        expect(p.statementsLength()).toEqual(1);
+        const stmt = r.getStatement(0);
+
+        let posX = schema.objectNode(sx.NodeType.OBJECT_SQL_CONST, {});
+        let posY = schema.objectNode(sx.NodeType.OBJECT_SQL_CONST, {});
+        let posW = schema.objectNode(sx.NodeType.OBJECT_SQL_CONST, {});
+        let posH = schema.objectNode(sx.NodeType.OBJECT_SQL_CONST, {});
+
+        stmt.matchSchema(schema.objectNode(sx.NodeType.OBJECT_DASHQL_VIZ, {
+            [Key.DASHQL_OPTION_POSITION]: schema.optionNode({
+                [Key.DASHQL_OPTION_X]: posX,
+                [Key.DASHQL_OPTION_Y]: posY,
+                [Key.DASHQL_OPTION_W]: posW,
+                [Key.DASHQL_OPTION_H]: posH,
+                [Key.DASHQL_OPTION_ROW]: posY,
+                [Key.DASHQL_OPTION_COLUMN]: posX,
+                [Key.DASHQL_OPTION_WIDTH]: posW,
+                [Key.DASHQL_OPTION_HEIGHT]: posH,
+            }),
+        }));
+
+        expect(posX.matching).toEqual(schema.Matching.MATCHED);
+        expect(posY.matching).toEqual(schema.Matching.MATCHED);
+        expect(posW.matching).toEqual(schema.Matching.MATCHED);
+        expect(posH.matching).toEqual(schema.Matching.MATCHED);
     });
 });

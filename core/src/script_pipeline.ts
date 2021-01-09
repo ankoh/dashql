@@ -15,6 +15,8 @@ export class ScriptPipeline {
     _program: model.Program | null;
     /// The previous program parameters
     _programParameters: Immutable.List<any>;
+    /// The previous program instance
+    _programInstance: model.ProgramInstance | null;
 
     /// Constructor
     constructor(platform: Platform, scheduler: ActionGraphScheduler) {
@@ -25,6 +27,7 @@ export class ScriptPipeline {
         this._programText = state.programText;
         this._program = state.program;
         this._programParameters = state.programParameters;
+        this._programInstance = state.programInstance;
         store.subscribe(this.detectChanges.bind(this));
     }
 
@@ -52,15 +55,21 @@ export class ScriptPipeline {
             if (!this._program) return;
 
             // Instantiate the new program
-            this._platform.analyzer.instantiateProgram(this._programParameters);
+            const programInstance = this._platform.analyzer.instantiateProgram(this._programParameters);
+            if (!programInstance) return;
+            model.mutate(this._platform.store.dispatch, {
+                type: model.StateMutationType.SET_PROGRAM_INSTANCE,
+                data: programInstance,
+            });
         }
 
         // Scheduler became idle and there is a program pending?
         if (
             next.schedulerStatus == model.ActionSchedulerStatus.Idle &&
-            this._program &&
-            (!next.plan || next.plan.program !== this._program || next.plan.parameters != this._programParameters)
+            next.programInstance &&
+            (!next.plan || next.plan.programInstance !== this._programInstance)
         ) {
+            this._programInstance = next.programInstance;
             this.planProgram();
         }
     }
