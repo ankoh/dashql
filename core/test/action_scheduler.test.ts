@@ -3,18 +3,16 @@ import { instance, mock } from 'ts-mockito';
 import * as webdb from '@dashql/webdb/dist/webdb_async';
 import * as proto from '@dashql/proto';
 import * as path from 'path';
+import Worker from 'web-worker';
 
 import ActionStatus = proto.action.ActionStatusCode;
 import ActionClass = model.ActionClass;
 import ProgramActionType = proto.action.ProgramActionType;
 
-var analyzerBindings: analyzer.AnalyzerBindings;
-
-function mockDB(): [webdb.AsyncWebDB, webdb.AsyncWebDB] {
-    const dbMock: webdb.AsyncWebDB = mock(webdb.AsyncWebDB);
-    const db: webdb.AsyncWebDB = instance(dbMock);
-    return [db, dbMock];
-}
+let worker: Worker;
+let analyzerBindings: analyzer.AnalyzerBindings;
+let db: webdb.AsyncWebDB;
+let conn: webdb.AsyncWebDBConnection;
 
 beforeAll(async () => {
     analyzerBindings = new analyzer.Analyzer({}, path.resolve(__dirname, '../src/analyzer/analyzer_wasm_node.wasm'));
@@ -22,7 +20,21 @@ beforeAll(async () => {
 });
 
 beforeEach(async () => {
-    analyzerBindings.reset();
+    try {
+        await analyzerBindings.reset();
+        worker = new Worker(path.resolve(__dirname, "../../webdb/dist/webdb_node_async.worker.js"));
+        db = new webdb.AsyncWebDB(worker);
+        await db.open(path.resolve(__dirname, "../../webdb/dist/webdb.wasm"));
+        conn = await db.connect();
+    } catch (e) {
+        console.error(e);
+    }
+});
+
+afterEach(async () => {
+    await conn.disconnect();
+    await db.terminate();
+    worker.terminate();
 });
 
 function resolveProgramActionLogic(plan: model.Plan) {
@@ -50,10 +62,10 @@ describe('Action Scheduler', () => {
     describe('program actions', () => {
         test('single table', async () => {
             const store = model.createStore();
-            const db = new webdb.AsyncWebDB();
             const plat = new platform.Platform(store, db, analyzerBindings);
+            await plat.init();
 
-            const program = analyzerBindings.parseProgram('SELECT 1 INTO a');
+            const program = analyzerBindings.parseProgram('CREATE TABLE a AS SELECT 1');
             analyzerBindings.instantiateProgram();
             const plan = analyzerBindings.planProgram();
             const graph = plan!.buffer.actionGraph()!;
@@ -80,8 +92,8 @@ describe('Action Scheduler', () => {
 
         test('chain', async () => {
             const store = model.createStore();
-            const db = new webdb.AsyncWebDB();
             const plat = new platform.Platform(store, db, analyzerBindings);
+            await plat.init();
 
             const program = analyzerBindings.parseProgram(`
                 LOAD weather_csv FROM http (
@@ -137,11 +149,11 @@ describe('Action Scheduler', () => {
 
         test('tree', async () => {
             const store = model.createStore();
-            const db = new webdb.AsyncWebDB();
             const plat = new platform.Platform(store, db, analyzerBindings);
+            await plat.init();
 
             const program = analyzerBindings.parseProgram(`
-                SELECT 1 INTO weather;
+                CREATE TABLE weather AS SELECT 1;
                 VIZ weather USING TABLE;
                 VIZ weather USING LINE;
             `);
@@ -192,13 +204,13 @@ describe('Action Scheduler', () => {
 
         test('independent', async () => {
             const store = model.createStore();
-            const [db, _dbMock] = mockDB();
             const plat = new platform.Platform(store, db, analyzerBindings);
+            await plat.init();
 
             const program = analyzerBindings.parseProgram(`
-                SELECT 1 INTO A;
-                SELECT 1 INTO B;
-                SELECT 1 INTO C;
+                CREATE TABLE A AS SELECT 1;
+                CREATE TABLE B AS SELECT 1;
+                CREATE TABLE C AS SELECT 1;
             `);
             analyzerBindings.instantiateProgram();
             const plan = analyzerBindings.planProgram();
