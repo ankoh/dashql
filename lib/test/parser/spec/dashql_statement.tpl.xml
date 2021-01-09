@@ -34,10 +34,3 @@
         )
     </input>
 </test>
-<test name="dashql_viz_position_tuple">
-    <input>
-        VIZ weather_avg USING LINE (
-            position = (0, 0, 4, 15)
-        )
-    </input>
-</test>
