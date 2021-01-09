@@ -11,7 +11,6 @@ export class ModifyTableActionLogic extends ProgramActionLogic {
     }
 
     public async execute(_context: ActionContext): Promise<ActionID> {
-        await utils.sleep(500);
         return this.returnWithStatus(ActionStatusCode.COMPLETED);
     }
 };
