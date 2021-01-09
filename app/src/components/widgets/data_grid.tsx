@@ -7,7 +7,7 @@ import {
     GridCellRangeProps,
     AutoSizer,
     defaultCellRangeRenderer,
-    SizeAndPositionData,
+    SizeAndPositionData
 } from 'react-virtualized';
 import { Scrollbars, positionValues } from 'react-custom-scrollbars';
 
