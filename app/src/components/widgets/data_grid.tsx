@@ -63,7 +63,7 @@ export class DataGrid extends React.Component<Props, State> {
 
     /// Get the column count
     public get columnCount() {
-        return this.props.tableInfo.columnNames.length || 0;
+        return this.props.tableInfo.columnNames.length;
     }
 
     /// Get the row count
@@ -247,9 +247,7 @@ export class DataGrid extends React.Component<Props, State> {
         for (let columnIndex = props.columnStartIndex; columnIndex <= props.columnStopIndex; columnIndex++) {
             const columnDatum = props.columnSizeAndPositionManager.getSizeAndPositionOfCell(columnIndex);
 
-            // Create the chunk iterator
             const iter = new webdb.MaterializedQueryResultChunks(data);
-
             const offset = props.rowStartIndex - this.props.data!.request.offset;
             const limit = props.rowStopIndex - props.rowStartIndex + 1;
 
@@ -285,13 +283,8 @@ export class DataGrid extends React.Component<Props, State> {
         let available = clientWidth - rowHeaderWidth;
         let equalWidths = available;
         if (this.columnCount > 0) equalWidths = available / this.columnCount;
-        let minWidth = 56;
+        let minWidth = 80;
         return Math.max(equalWidths, minWidth);
-    }
-
-    /// Component did update?
-    public componentDidUpdate(prevProps: Props, prevState: State) {
-
     }
 
     /// Render the table
