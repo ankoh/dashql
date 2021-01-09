@@ -1,22 +1,11 @@
 // Copyright (c) 2020 The DashQL Authors
 
-import { ChunkIteratorBase, RowIteratorBase } from './iterator_base';
+import { ChunkIteratorBase, RowIteratorBase, BlockingChunkIterator, BlockingRowIterator } from './iterator_base';
 import { WebDBConnection } from './webdb_bindings';
 import { webdb as proto } from '@dashql/proto';
 
-/// An abstract chunk iterator
-export abstract class QueryResultChunkIterator extends ChunkIteratorBase {
-    /// Constructor
-    public constructor(resultBuffer: proto.QueryResult) {
-        super(resultBuffer);
-    }
-
-    /// Get the next query result chunk
-    public abstract nextBlocking(): boolean;
-}
-
 /// A stream of query result chunks
-export class QueryResultChunkStream extends QueryResultChunkIterator {
+export class QueryResultChunkStream extends ChunkIteratorBase implements BlockingChunkIterator {
     /// The connection
     _connection: WebDBConnection;
     /// The current chunk buffer
@@ -44,7 +33,7 @@ export class QueryResultChunkStream extends QueryResultChunkIterator {
 }
 
 /// Materialized result chunks
-export class MaterializedQueryResultChunks extends QueryResultChunkIterator {
+export class MaterializedQueryResultChunks extends ChunkIteratorBase implements BlockingChunkIterator {
     /// The chunks
     _chunks: proto.QueryResultChunk[];
 
@@ -58,13 +47,15 @@ export class MaterializedQueryResultChunks extends QueryResultChunkIterator {
         for (let i = 0; i < chunks.length; ++i) {
             this._chunks.push(chunks[i]);
         }
-        if (this._chunks.length == 0 || this._chunks[this._chunks.length - 1].rowCount() == 0)  {
+        if (this._chunks.length == 0 || this._chunks[this._chunks.length - 1].rowCount() == 0) {
             this._chunks.push(new proto.QueryResultChunk());
         }
     }
 
     /// Restart the chunk iterator
-    public rewind() { this._currentChunkID = -1; }
+    public rewind() {
+        this._currentChunkID = -1;
+    }
     /// Get the next chunk
     public nextBlocking(): boolean {
         if (++this._currentChunkID >= this._chunks.length) {
@@ -76,19 +67,21 @@ export class MaterializedQueryResultChunks extends QueryResultChunkIterator {
 }
 
 /// A query result row iterator
-export class QueryResultRowIterator extends RowIteratorBase {
+export class QueryResultRowIterator extends RowIteratorBase implements BlockingRowIterator {
     /// Constructor
-    protected constructor(chunks: QueryResultChunkIterator) {
-        super(chunks)
+    protected constructor(chunks: BlockingChunkIterator) {
+        super(chunks);
         this._chunkIter = chunks;
         this._globalRowIndex = 0;
         this._currentChunkBegin = 0;
     }
     /// Get iterator
-    public get iter() { return this._chunkIter as QueryResultChunkIterator; }
+    public get iter() {
+        return this._chunkIter as BlockingChunkIterator;
+    }
 
     /// Iterate over a result buffer
-    public static iterate(chunks: QueryResultChunkIterator): QueryResultRowIterator {
+    public static iterate(chunks: BlockingChunkIterator): QueryResultRowIterator {
         let iter = new QueryResultRowIterator(chunks);
         chunks.nextBlocking();
         iter._currentChunkBegin = 0;
@@ -98,13 +91,11 @@ export class QueryResultRowIterator extends RowIteratorBase {
     /// Advance the iterator
     public nextBlocking(): boolean {
         // Reached end?
-        if (this.isEnd())
-            return false;
+        if (this.isEnd()) return false;
 
         // Still in current chunk?
         ++this._globalRowIndex;
-        if (this.currentRow < this.currentChunk.rowCount())
-            return true;
+        if (this.currentRow < this.currentChunk.rowCount()) return true;
 
         // Get next chunk
         this.iter.nextBlocking();

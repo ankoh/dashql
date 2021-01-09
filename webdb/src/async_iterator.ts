@@ -1,22 +1,17 @@
 // Copyright (c) 2020 The DashQL Authors
 
-import { ChunkIteratorBase, RowIteratorBase } from './iterator_base';
+import {
+    ChunkIteratorBase,
+    RowIteratorBase,
+    AsyncChunkIterator,
+    BlockingChunkIterator,
+    AsyncRowIterator,
+} from './iterator_base';
 import { AsyncWebDBConnection } from './async_webdb';
 import { webdb as proto } from '@dashql/proto';
 
-/// An abstract chunk iterator
-export abstract class QueryResultChunkIterator extends ChunkIteratorBase {
-    /// Constructor
-    public constructor(resultBuffer: proto.QueryResult) {
-        super(resultBuffer);
-    }
-
-    /// Get the next query result chunk
-    public abstract nextAsync(): Promise<boolean>;
-}
-
 /// A stream of query result chunks
-export class QueryResultChunkStream extends QueryResultChunkIterator {
+export class QueryResultChunkStream extends ChunkIteratorBase implements AsyncChunkIterator {
     /// The connection
     _connection: AsyncWebDBConnection;
     /// The current chunk buffer
@@ -44,7 +39,8 @@ export class QueryResultChunkStream extends QueryResultChunkIterator {
 }
 
 /// Materialized result chunks
-export class MaterializedQueryResultChunks extends QueryResultChunkIterator {
+export class MaterializedQueryResultChunks extends ChunkIteratorBase
+    implements AsyncChunkIterator, BlockingChunkIterator {
     /// The chunks
     _chunks: proto.QueryResultChunk[];
 
@@ -58,19 +54,21 @@ export class MaterializedQueryResultChunks extends QueryResultChunkIterator {
         for (let i = 0; i < chunks.length; ++i) {
             this._chunks.push(chunks[i]);
         }
-        if (this._chunks.length == 0 || this._chunks[this._chunks.length - 1].rowCount() == 0)  {
+        if (this._chunks.length == 0 || this._chunks[this._chunks.length - 1].rowCount() == 0) {
             this._chunks.push(new proto.QueryResultChunk());
         }
     }
 
     /// Restart the chunk iterator
-    public rewind() { this._currentChunkID = -1; }
+    public rewind() {
+        this._currentChunkID = -1;
+    }
     /// Get the next chunk
     public async nextAsync(): Promise<boolean> {
         if (++this._currentChunkID >= this._chunks.length) {
             return false;
         }
-        console.log(`chunk id ${this._currentChunkID} of ${this._chunks.length}`)
+        console.log(`chunk id ${this._currentChunkID} of ${this._chunks.length}`);
         this._currentChunk = this._chunks[this._currentChunkID];
         return true;
     }
@@ -86,33 +84,32 @@ export class MaterializedQueryResultChunks extends QueryResultChunkIterator {
 }
 
 /// A query result row iterator
-export class QueryResultRowIterator extends RowIteratorBase {
+export class QueryResultRowIterator extends RowIteratorBase implements AsyncRowIterator {
     /// Constructor
-    protected constructor(chunks: QueryResultChunkIterator) {
+    protected constructor(chunks: AsyncChunkIterator) {
         super(chunks);
     }
     /// Get iterator
-    public get iter() { return this._chunkIter as QueryResultChunkIterator; }
+    public get iter() {
+        return this._chunkIter as AsyncChunkIterator;
+    }
 
     /// Iterate over a result buffer
-    public static async iterate(chunks: QueryResultChunkIterator): Promise<QueryResultRowIterator> {
+    public static async iterate(chunks: AsyncChunkIterator): Promise<QueryResultRowIterator> {
         let iter = new QueryResultRowIterator(chunks);
         await chunks.nextAsync();
         iter._currentChunkBegin = 0;
         return iter;
     }
 
-
     /// Advance the iterator
     public async nextAsync(): Promise<boolean> {
         // Reached end?
-        if (this.isEnd())
-            return false;
+        if (this.isEnd()) return false;
 
         // Still in current chunk?
         ++this._globalRowIndex;
-        if (this.currentRow < this.currentChunk.rowCount())
-            return true;
+        if (this.currentRow < this.currentChunk.rowCount()) return true;
 
         // Get next chunk
         await this.iter.nextAsync();
@@ -120,5 +117,4 @@ export class QueryResultRowIterator extends RowIteratorBase {
         let empty = this.currentChunk.rowCount() == 0;
         return !empty;
     }
-
 }
