@@ -75,6 +75,10 @@ export abstract class AsyncWebDBDispatcher {
         // Catch every exception and forward it as error message to the main thread
         try {
             switch (request.type) {
+                case AsyncWebDBRequestType.RESET:
+                    this._bindings = null;
+                    this.sendOK(request);
+                    break;
                 case AsyncWebDBRequestType.CONNECT:
                     const conn = this._bindings.connect();
                     this.postMessage(
