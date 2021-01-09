@@ -31,7 +31,7 @@ describe('QueryResultRowIterator', () => {
             for (let i = 0; i <= testRows; ++i) {
                 expect(iter.isEnd()).toBe(false);
                 expect(iter.getValue(0, value).i8).toBe(i & 127);
-                iter.next();
+                iter.nextBlocking();
             }
             expect(iter.isEnd()).toBe(true);
         });
@@ -47,7 +47,7 @@ describe('QueryResultRowIterator', () => {
             for (let i = 0; i <= testRows; ++i) {
                 expect(iter.isEnd()).toBe(false);
                 expect(iter.getValue(0, value).i16).toBe(i & 32767);
-                iter.next();
+                iter.nextBlocking();
             }
             expect(iter.isEnd()).toBe(true);
         });
@@ -64,7 +64,7 @@ describe('QueryResultRowIterator', () => {
             for (let i = 0; i <= testRows; ++i) {
                 expect(iter.isEnd()).toBe(false);
                 expect(iter.getValue(0, value).i32).toBe(i);
-                iter.next();
+                iter.nextBlocking();
             }
             expect(iter.isEnd()).toBe(true);
         });
@@ -80,7 +80,7 @@ describe('QueryResultRowIterator', () => {
             for (let i = 0; i <= testRows; ++i) {
                 expect(iter.isEnd()).toBe(false);
                 expect(iter.getValue(0, value).i64.low).toBe(i);
-                iter.next();
+                iter.nextBlocking();
             }
             expect(iter.isEnd()).toBe(true);
         });
@@ -96,7 +96,7 @@ describe('QueryResultChunkStream', () => {
             expect(result.columnTypesLength()).toBe(1);
             let chunks = new webdb.QueryResultChunkStream(conn, result);
             let i = 0;
-            while (chunks.next()) {
+            while (chunks.nextBlocking()) {
                 chunks.iterateNumberColumn(0, (_row: number, v: number | null) => {
                     expect(v).toBe(i++ & 127);
                 });
@@ -111,7 +111,7 @@ describe('QueryResultChunkStream', () => {
             expect(result.columnTypesLength()).toBe(1);
             let chunks = new webdb.QueryResultChunkStream(conn, result);
             let i = 0;
-            while (chunks.next()) {
+            while (chunks.nextBlocking()) {
                 chunks.iterateNumberColumn(0, (_row: number, v: number | null) => {
                     expect(v).toBe(i++ & 32767);
                 });
@@ -126,7 +126,7 @@ describe('QueryResultChunkStream', () => {
             expect(result.columnTypesLength()).toBe(1);
             let chunks = new webdb.QueryResultChunkStream(conn, result);
             let i = 0;
-            while (chunks.next()) {
+            while (chunks.nextBlocking()) {
                 chunks.iterateNumberColumn(0, (_row: number, v: number | null) => {
                     expect(v).toBe(i++);
                 });

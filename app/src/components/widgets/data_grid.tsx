@@ -256,7 +256,7 @@ export class DataGrid extends React.Component<Props, State> {
             let remaining = props.rowStopIndex - props.rowStartIndex + 1;
             let chunkStart = props.rowStartIndex;
 
-            while (remaining && iter.nextSync()) {
+            while (remaining && iter.nextBlocking()) {
                 const skipHere = Math.min(skip, iter.currentChunk.rowCount());
                 skip -= skipHere;
                 if (skipHere == iter.currentChunk.rowCount()) {
