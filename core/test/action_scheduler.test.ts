@@ -1,5 +1,4 @@
 import { analyzer, model, actions, platform, ActionScheduler, utils } from '../src/index_node';
-import { instance, mock } from 'ts-mockito';
 import * as webdb from '@dashql/webdb/dist/webdb_async';
 import * as proto from '@dashql/proto';
 import * as path from 'path';
