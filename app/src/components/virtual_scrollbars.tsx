@@ -36,7 +36,10 @@ interface State {
 ///
 /// Browsers have scroll offset limitations (eg Chrome stops scrolling at ~33.5M pixels where as Edge tops out at ~1.5M pixels).
 /// After a certain position, the browser won't allow the user to scroll further (even via JavaScript scroll offset adjustments).
-/// This util picks a lower ceiling for max size and artificially adjusts positions within to make it transparent for users.
+///
+/// This component wraps a react scrollbar and exposes scale factors with the scroll events.
+/// The scroll event widths and heights must be multiplied by these scale factors to receive the real lengths.
+/// React-virtualized consumes the adjusted widths and heights without any scaling.
 ///
 export class VirtualScrollbars extends React.Component<Props, State> {
     _onScrollFrame = this.onScrollFrame.bind(this);
