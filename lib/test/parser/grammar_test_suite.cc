@@ -28,3 +28,5 @@ INSTANTIATE_TEST_SUITE_P(SQLSelect, GrammarTestSuite, testing::ValuesIn(GrammarT
                          GrammarTest::TestPrinter());
 INSTANTIATE_TEST_SUITE_P(SQLCreate, GrammarTestSuite, testing::ValuesIn(GrammarTest::GetTests("sql_create.xml")),
                          GrammarTest::TestPrinter());
+INSTANTIATE_TEST_SUITE_P(SQLView, GrammarTestSuite, testing::ValuesIn(GrammarTest::GetTests("sql_view.xml")),
+                         GrammarTest::TestPrinter());
