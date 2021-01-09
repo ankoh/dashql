@@ -11,7 +11,6 @@ export class ImportTableActionLogic extends SetupActionLogic {
     }
 
     public async execute(_context: ActionContext): Promise<ActionID> {
-        await utils.sleep(50);
         return this.returnWithStatus(ActionStatusCode.COMPLETED);
     }
 }

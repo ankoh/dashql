@@ -1,5 +1,4 @@
 import * as proto from "@dashql/proto";
-import * as utils from "../utils";
 import { ActionID, Statement } from "../model";
 import { ProgramActionLogic } from "./action_logic";
 import { ActionContext } from "./action_context";
@@ -11,7 +10,6 @@ export class UpdateVizActionLogic extends ProgramActionLogic {
     }
 
     public async execute(_context: ActionContext): Promise<ActionID> {
-        await utils.sleep(500);
         return this.returnWithStatus(ActionStatusCode.COMPLETED);
     }
 };
