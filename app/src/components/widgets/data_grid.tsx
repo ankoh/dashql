@@ -9,7 +9,7 @@ import {
     defaultCellRangeRenderer,
     SizeAndPositionData
 } from 'react-virtualized';
-import { Scrollbars, positionValues } from 'react-custom-scrollbars';
+import { VirtualScrollbars, PositionValues } from '../virtual_scrollbars';
 
 import styles from './data_grid.module.css';
 
@@ -22,7 +22,8 @@ type Props = {
 type State = {
     scrollTop: number;
     scrollLeft: number;
-    clientHeight: number;
+    firstVisibleRow: number;
+    visibleRows: number;
     overscanColumnCount: number;
     overscanRowCount: number;
     rowHeight: number;
@@ -46,14 +47,14 @@ export class DataGrid extends React.Component<Props, State> {
     protected _renderDataCellRange = this.renderDataCellRange.bind(this);
     protected _renderRowHeaderCell = this.renderRowHeaderCell.bind(this);
     protected _renderColumnHeaderCell = this.renderColumnHeaderCell.bind(this);
-    protected _scrollbarsRef = React.createRef<Scrollbars>();
 
     constructor(props: Props) {
         super(props);
         this.state = {
             scrollTop: 0,
             scrollLeft: 0,
-            clientHeight: 0,
+            firstVisibleRow: 0,
+            visibleRows: 100,
             overscanColumnCount: 0,
             overscanRowCount: 30,
             rowHeight: 32,
@@ -70,32 +71,25 @@ export class DataGrid extends React.Component<Props, State> {
         return this.props.tableInfo.rowCount;
     }
 
-    /// Get the first visible row
-    public get firstVisibleRow() {
-        return Math.min(Math.trunc(this.state.scrollTop / this.state.rowHeight), this.props.tableInfo.rowCount);
-    }
-
-    /// Get the first visible row
-    public get visibleRowCount() {
-        const n = this.props.tableInfo.rowCount - this.firstVisibleRow;
-        return Math.min(Math.trunc(this.state.clientHeight / this.state.rowHeight), n);
-    }
-
     /// Scroll handler
-    public onScroll(pos: positionValues) {
+    public onScroll(pos: PositionValues) {
+        const firstVisibleRow = Math.min(Math.trunc(pos.scrollTop * pos.verticalScaling / this.state.rowHeight), this.rowCount);
+        const maxVisibleRows = this.rowCount - firstVisibleRow;
+        const visibleRows = Math.min(Math.trunc(pos.clientHeight / this.state.rowHeight), maxVisibleRows);
         this.setState({
             ...this.state,
             scrollTop: pos.scrollTop,
             scrollLeft: pos.scrollLeft,
-            clientHeight: pos.clientHeight,
+            firstVisibleRow: firstVisibleRow,
+            visibleRows: visibleRows,
         });
     }
 
     /// Scroll stop handler
     public onScrollStop() {
-        const ofs = this.firstVisibleRow;
-        const count = this.visibleRowCount;
-        const end = Math.min(ofs + count, this.props.tableInfo.rowCount);
+        const ofs = this.state.firstVisibleRow;
+        const count = this.state.visibleRows;
+        const end = Math.min(ofs + count, this.rowCount);
         this.props.dataProvider(new core.access.ScanRequest(ofs, end - ofs));
     }
 
@@ -352,24 +346,17 @@ export class DataGrid extends React.Component<Props, State> {
                                     cellRangeRenderer={this._renderDataCellRange}
                                     dataRef={this.props.data}
                                 />
-                                <Scrollbars
+                                <VirtualScrollbars
                                     className={styles.grid_body_scrollbars}
-                                    ref={this._scrollbarsRef}
                                     style={{
                                         width: bodyWidth,
                                         height: bodyHeight,
                                     }}
+                                    innerWidth={this.columnCount * columnWidth}
+                                    innerHeight={this.props.tableInfo.rowCount * this.state.rowHeight}
                                     onScrollFrame={this._onScroll}
                                     onScrollStop={this._onScrollStop}
-                                    autoHide
-                                >
-                                    <div
-                                        style={{
-                                            width: this.columnCount * columnWidth,
-                                            height: this.props.tableInfo.rowCount * this.state.rowHeight,
-                                        }}
-                                    />
-                                </Scrollbars>
+                                />
                                 <Grid
                                     className={styles.grid_anchor}
                                     width={rowHeaderWidth}
