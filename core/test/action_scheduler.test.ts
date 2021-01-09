@@ -9,21 +9,21 @@ import ActionStatus = proto.action.ActionStatusCode;
 import ActionClass = model.ActionClass;
 import ProgramActionType = proto.action.ProgramActionType;
 
-let worker: Worker;
 let analyzerBindings: analyzer.AnalyzerBindings;
+let worker: Worker;
 let db: webdb.AsyncWebDB;
 let conn: webdb.AsyncWebDBConnection;
 
 beforeAll(async () => {
     analyzerBindings = new analyzer.Analyzer({}, path.resolve(__dirname, '../src/analyzer/analyzer_wasm_node.wasm'));
     await analyzerBindings.init();
+    worker = new Worker(path.resolve(__dirname, "../../webdb/dist/webdb_node_async.worker.js"));
+    db = new webdb.AsyncWebDB(worker);
 });
 
 beforeEach(async () => {
     try {
         await analyzerBindings.reset();
-        worker = new Worker(path.resolve(__dirname, "../../webdb/dist/webdb_node_async.worker.js"));
-        db = new webdb.AsyncWebDB(worker);
         await db.open(path.resolve(__dirname, "../../webdb/dist/webdb.wasm"));
         conn = await db.connect();
     } catch (e) {
@@ -33,8 +33,7 @@ beforeEach(async () => {
 
 afterEach(async () => {
     await conn.disconnect();
-    await db.terminate();
-    worker.terminate();
+    await db.reset();
 });
 
 function resolveProgramActionLogic(plan: model.Plan) {

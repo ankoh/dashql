@@ -1,4 +1,5 @@
 export enum AsyncWebDBRequestType {
+    RESET = 'RESET',
     PING = 'PING',
     OPEN = 'OPEN',
     CONNECT = 'CONNECT',
@@ -32,6 +33,7 @@ export type AsyncWebDBResponse<T, P> = {
 };
 
 export type AsyncWebDBRequestVariant =
+    | AsyncWebDBRequest<AsyncWebDBRequestType.RESET, null>
     | AsyncWebDBRequest<AsyncWebDBRequestType.PING, null>
     | AsyncWebDBRequest<AsyncWebDBRequestType.OPEN, string | null>
     | AsyncWebDBRequest<AsyncWebDBRequestType.CONNECT, null>
