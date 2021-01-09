@@ -1,5 +1,5 @@
 import * as proto from "@dashql/proto";
-import * as utils from "../utils";
+import * as model from "../model";
 import { ActionID } from "../model";
 import { SetupActionLogic } from "./action_logic";
 import { ActionContext } from "./action_context";
@@ -10,8 +10,15 @@ export class DropVizActionLogic extends SetupActionLogic {
         super(action_id, action);
     }
 
-    public async execute(_context: ActionContext): Promise<ActionID> {
-        await utils.sleep(50);
+    public async execute(context: ActionContext): Promise<ActionID> {
+        const store = context.platform.store!;
+        const objectId = this.buffer.objectId();
+        model.mutate(store.dispatch, {
+            type: model.StateMutationType.DELETE_PLAN_OBJECTS,
+            data: [
+                objectId
+            ]
+        });
         return this.returnWithStatus(ActionStatusCode.COMPLETED);
     }
 }
