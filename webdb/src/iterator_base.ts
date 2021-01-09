@@ -109,6 +109,14 @@ export abstract class ChunkIteratorBase {
     }
 }
 
+export interface BlockingChunkIterator extends ChunkIteratorBase {
+    nextBlocking(): boolean;
+}
+
+export interface AsyncChunkIterator extends ChunkIteratorBase {
+    nextAsync(): Promise<boolean>;
+}
+
 /// A row iterator base class
 export abstract class RowIteratorBase {
     /// The query result
@@ -217,6 +225,14 @@ export abstract class RowIteratorBase {
         }
         return v;
     }
+}
+
+export interface BlockingRowIterator {
+    nextBlocking(): boolean;
+}
+
+export interface AsyncRowIterator {
+    nextAsync(): Promise<boolean>;
 }
 
 /// Flatbuffer objects to decode flatbuffers without allocation
