@@ -28,6 +28,7 @@ class Task<T, D, P> {
 }
 
 type TaskVariant =
+    | Task<AsyncWebDBRequestType.RESET, null, null>
     | Task<AsyncWebDBRequestType.PING, null, null>
     | Task<AsyncWebDBRequestType.OPEN, string | null, null>
     | Task<AsyncWebDBRequestType.CONNECT, null, ConnectionID>
@@ -133,6 +134,7 @@ export class AsyncWebDB {
 
         // Otherwise differentiate between the tasks first
         switch (task.type) {
+            case AsyncWebDBRequestType.RESET:
             case AsyncWebDBRequestType.PING:
             case AsyncWebDBRequestType.OPEN:
             case AsyncWebDBRequestType.DISCONNECT:
@@ -183,6 +185,12 @@ export class AsyncWebDB {
             return;
         }
         this._pendingRequests.clear();
+    }
+
+    /// Reset the webdb
+    public async reset(): Promise<null> {
+        const task = new Task<AsyncWebDBRequestType.RESET, null, null>(AsyncWebDBRequestType.RESET, null);
+        return await this.postTask(task);
     }
 
     /// Ping the worker thread
