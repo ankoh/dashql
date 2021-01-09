@@ -151,6 +151,7 @@ set(GRAMMAR_RULES
     ${CMAKE_SOURCE_DIR}/src/parser/grammar/rules/dashql_viz.y
     ${CMAKE_SOURCE_DIR}/src/parser/grammar/rules/sql_create.y
     ${CMAKE_SOURCE_DIR}/src/parser/grammar/rules/sql_select.y
+    ${CMAKE_SOURCE_DIR}/src/parser/grammar/rules/sql_view.y
 )
 
 set(GRAMMAR_TYPES
@@ -163,6 +164,7 @@ set(GRAMMAR_TYPES
     ${CMAKE_SOURCE_DIR}/src/parser/grammar/rules/dashql_viz.yh
     ${CMAKE_SOURCE_DIR}/src/parser/grammar/rules/sql_create.yh
     ${CMAKE_SOURCE_DIR}/src/parser/grammar/rules/sql_select.yh
+    ${CMAKE_SOURCE_DIR}/src/parser/grammar/rules/sql_view.yh
 )
 
 # Build grammar file

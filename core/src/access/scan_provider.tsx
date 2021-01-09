@@ -86,7 +86,6 @@ export class ScanProvider extends React.Component<Props, State> {
         if (this.state.result && this.state.result.request.includes(request.offset, request.limit)) {
             return;
         }
-        console.log(`request offset ${request.offset} limit ${request.limit}`)
         this.setState({
             ...this.state,
             request,
