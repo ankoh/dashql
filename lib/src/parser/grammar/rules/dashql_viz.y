@@ -3,7 +3,6 @@ dashql_viz_statement:
         $$ = ctx.Add(@$, sx::NodeType::OBJECT_DASHQL_VIZ, concat(NodeVector{
             Key::DASHQL_VIZ_TARGET << $2,
             Key::DASHQL_VIZ_TYPE << $4,
-            Key::DASHQL_VIZ_OPTIONS << ctx.Add(@5, std::move($5)),
         }, move($5)));
     }
     ;
