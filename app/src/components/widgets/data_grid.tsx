@@ -29,11 +29,6 @@ type State = {
     rowHeight: number;
 };
 
-/// Render an anchor cell
-function renderAnchorCell(props: GridCellProps): JSX.Element {
-    return <div key={props.key} className={styles.cell_anchor} style={{ ...props.style }} />;
-}
-
 /// Render a data cell nodata for data that is not yet avaialable
 function renderDataCellNoData(props: GridCellProps): JSX.Element {
     return (
@@ -334,16 +329,7 @@ export class DataGrid extends React.Component<Props, State> {
                                     onScrollFrame={this._onScroll}
                                     onScrollStop={this._onScrollStop}
                                 />
-                                <Grid
-                                    className={styles.grid_anchor}
-                                    width={rowHeaderWidth}
-                                    height={columnHeaderHeight}
-                                    columnWidth={rowHeaderWidth}
-                                    columnCount={1}
-                                    rowHeight={columnHeaderHeight}
-                                    rowCount={1}
-                                    cellRenderer={renderAnchorCell}
-                                />
+                                <div className={styles.cell_anchor} />
                                 <Grid
                                     className={styles.grid_left}
                                     width={rowHeaderWidth}
