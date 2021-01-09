@@ -27,6 +27,7 @@ export enum StateMutationType {
     SET_PROGRAM = 'SET_PROGRAM',
     SET_PROGRAM_INSTANCE = 'SET_PROGRAM_INSTANCE',
     SET_PROGRAM_TEXT = 'SET_PROGRAM_TEXT',
+    REWRITE_PROGRAM = 'REWRITE_PROGRAM',
     UPDATE_PLAN_ACTIONS = 'UPDATE_PLAN_ACTIONS',
     INSERT_PLAN_OBJECTS = 'INSERT_PLAN_OBJECTS',
     DELETE_PLAN_OBJECTS = 'DELETE_PLAN_OBJECTS',
@@ -46,6 +47,7 @@ export type StateMutationVariant =
     | StateMutation<StateMutationType.SET_PROGRAM, Program>
     | StateMutation<StateMutationType.SET_PROGRAM_INSTANCE, ProgramInstance>
     | StateMutation<StateMutationType.SET_PROGRAM_TEXT, [string, number]>
+    | StateMutation<StateMutationType.REWRITE_PROGRAM, ProgramInstance>
     | StateMutation<StateMutationType.UPDATE_PLAN_ACTIONS, ActionUpdate[]>
     | StateMutation<StateMutationType.INSERT_PLAN_OBJECTS, PlanObject[]>
     | StateMutation<StateMutationType.DELETE_PLAN_OBJECTS, PlanObjectID[]>
@@ -141,6 +143,14 @@ export class StateMutations {
             case StateMutationType.SET_PROGRAM_INSTANCE:
                 return {
                     ...state,
+                    programInstance: mutation.data,
+                };
+
+            case StateMutationType.REWRITE_PROGRAM:
+                return {
+                    ...state,
+                    programText: mutation.data.program.text,
+                    program: mutation.data.program,
                     programInstance: mutation.data,
                 };
 
