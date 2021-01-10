@@ -8,6 +8,7 @@ import VizChangePos = proto.edit.VizChangePosition;
 export type EditOperation<T, P> = {
     readonly type: T;
     readonly data: P;
+    readonly statement_id: number;
 };
 
 export enum EditOperationType {
@@ -15,7 +16,6 @@ export enum EditOperationType {
 }
 
 interface VizChangeOperation {
-    statement_id: number;
     row: number;
     column: number;
     width: number;
@@ -31,18 +31,18 @@ export function packProgramEdit(builder: flatbuffers.Builder, edits: EditOperati
     for (const e of edits) {
         let ofs: flatbuffers.Offset;
         let op: proto.edit.EditOperationVariant;
+        let stmt: number = e.statement_id;
         switch (e.type) {
             case EditOperationType.VIZ_CHANGE_POSITION: {
                 const pos = proto.viz.Position.create(builder, e.data.row, e.data.column, e.data.width, e.data.height);
                 VizChangePos.start(builder);
-                VizChangePos.addStatementId(builder, e.data.statement_id);
                 VizChangePos.addPosition(builder, pos);
                 ofs = VizChangePos.end(builder);
                 op = proto.edit.EditOperationVariant.VizChangePosition;
                 break;
             }
         }
-        editOffsets.push(proto.edit.EditOperation.create(builder, op, ofs));
+        editOffsets.push(proto.edit.EditOperation.create(builder, stmt, op, ofs));
     }
     let editsVec = proto.edit.ProgramEdit.createEditsVector(builder, editOffsets);
 

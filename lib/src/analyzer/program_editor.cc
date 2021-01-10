@@ -21,7 +21,7 @@ static std::string_view getOptionLabel(sx::AttributeKey key) {
 #undef X
     };
     auto iter = labels.find(key);
-    return (iter == labels.end()) ? "_" : iter->second;
+    return (iter == labels.end()) ? "?" : iter->second;
 }
 
 struct OptionEdit {
@@ -44,12 +44,12 @@ struct VizChangePosition : public OptionEdit {
     void WriteKey(std::ostream& out) const override { out << getOptionLabel(key); }
     /// Write the option value
     void WriteValue(std::ostream& out) const override {
-        out << "(x=" << pos.row() << ", y=" << pos.column() << ", w=" << pos.width() << ", h=" << pos.height() << ")";
+        out << "(x = " << pos.row() << ", y = " << pos.column() << ", w = " << pos.width() << ", h = " << pos.height() << ")";
     }
 };
 
 /// Rewrite a viz statement
-std::string ProgramEditor::RewriteVizStatement(size_t stmt_id, const proto::edit::ProgramEdit& program) const {
+std::string ProgramEditor::RewriteVizStatement(size_t stmt_id, nonstd::span<const proto::edit::EditOperation*> edits) const {
     auto& stmt = *instance_.program().statements[stmt_id];
     auto& root = instance_.program().nodes[stmt.root_node];
 
@@ -68,11 +68,10 @@ std::string ProgramEditor::RewriteVizStatement(size_t stmt_id, const proto::edit
 
     /// Collect edit operations
     std::array<std::unique_ptr<OptionEdit>, 3> ops;
-    for (auto* e : *program.edits()) {
+    for (auto* e : edits) {
         switch (e->variant_type()) {
             case proto::edit::EditOperationVariant::VizChangePosition: {
                 auto viz = e->variant_as_VizChangePosition();
-                if (viz->statement_id() != stmt_id) continue;
                 ops[2] = std::make_unique<VizChangePosition>(*e->variant_as_VizChangePosition()->position());
                 break;
             }
@@ -85,10 +84,10 @@ std::string ProgramEditor::RewriteVizStatement(size_t stmt_id, const proto::edit
     std::stringstream out;
     out << "VIZ ";
     if (matching[0].status == NodeMatchingStatus::MATCHED) {
-        out << instance_.TextAt(matching[0].node->location());
+        out << instance_.TextAt(matching[0].node->location()) << " ";
     }
     if (matching[1].status == NodeMatchingStatus::MATCHED) {
-        out << "USING " << instance_.TextAt(matching[0].node->location());
+        out << "USING " << instance_.TextAt(matching[1].node->location());
     }
 
     // Helper to add an option
@@ -96,7 +95,7 @@ std::string ProgramEditor::RewriteVizStatement(size_t stmt_id, const proto::edit
     auto add_option = [&]() {
         size_t oid = options++;
         if (oid == 0) {
-            out << " (\n";
+            out << " (\n    ";
         } else if (oid > 0) {
             out << ",\n    ";
         }
@@ -137,8 +136,47 @@ std::string ProgramEditor::RewriteVizStatement(size_t stmt_id, const proto::edit
     return out.str();
 }
 
-ProgramEditor::ProgramEditor(Analyzer& analyzer, ProgramInstance& program) : analyzer_(analyzer), instance_(program) {}
+ProgramEditor::ProgramEditor(ProgramInstance& program) : instance_(program) {}
 
-std::string ProgramEditor::Apply(const proto::edit::ProgramEdit& edit) { return instance_.program_text(); }
+std::string ProgramEditor::Apply(const proto::edit::ProgramEdit& pe) {
+    SubstringBuffer buffer{instance_.program_text()};
+
+    /// Sort the edit operations by statement id
+    std::vector<const proto::edit::EditOperation*> ops{pe.edits()->begin(), pe.edits()->end()};
+    std::sort(ops.begin(), ops.end(), [&](auto* l, auto* r) {
+        return l->statement_id() < r->statement_id();
+    });
+
+    for (auto iter = ops.begin(); iter != ops.end();) {
+        /// Find all operations that refer to the statement id
+        auto next = std::upper_bound(iter, ops.end(), *iter, [&](auto* target, auto* candidate) {
+            return target->statement_id() < candidate->statement_id();
+        });
+        nonstd::span<const proto::edit::EditOperation*> stmt_ops{&*iter, static_cast<unsigned long>(next - iter)};
+        assert(!stmt_ops.empty());
+
+        // Process the operations
+        auto stmt_id = stmt_ops[0]->statement_id();
+        auto& stmt = *instance_.program().statements[stmt_id];
+        auto& stmt_root = instance_.program().nodes[stmt.root_node];
+        switch (stmt.statement_type) {
+
+            case sx::StatementType::VIZUALIZE: {
+                buffer.Replace(stmt_root.location(), RewriteVizStatement(stmt_id, stmt_ops));
+                break;
+            }
+
+            default:
+                assert(false && "editing not implemented for statement type");
+                break;
+        }
+
+        // Switch to next statement id
+        iter = next;
+    }
+
+    // Finish the edits
+    return buffer.Finish();
+}
 
 }  // namespace dashql
