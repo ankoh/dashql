@@ -6,6 +6,7 @@
 
 #include "dashql/common/substring_buffer.h"
 #include "dashql/analyzer/action_planner.h"
+#include "dashql/analyzer/program_editor.h"
 #include "dashql/analyzer/function_logic.h"
 #include "dashql/analyzer/parameter_value.h"
 #include "dashql/analyzer/syntax_matcher.h"
@@ -229,47 +230,14 @@ Signal Analyzer::InstantiateProgram(std::vector<ParameterValue> params) {
     return Signal::OK();
 }
 
-/// Change a viz position
-static void changeVizPosition(SubstringBuffer& buffer, const ProgramInstance& instance, const proto::edit::VizChangePosition& edit) {
-    auto stmt_id = edit.statement_id();
-    auto& pos = *edit.position();
-    
-    // clang-format off
-    auto schema = sxm::Attribute(sx::AttributeKey::DASHQL_OPTION_POSITION)
-        .MatchObject(sx::NodeType::OBJECT_DASHQL_VIZ)
-        .MatchChildren(NODE_MATCHERS(
-            sxm::Attribute(sx::AttributeKey::DASHQL_OPTION_X, 1),
-            sxm::Attribute(sx::AttributeKey::DASHQL_OPTION_Y, 2),
-            sxm::Attribute(sx::AttributeKey::DASHQL_OPTION_W, 3),
-            sxm::Attribute(sx::AttributeKey::DASHQL_OPTION_H, 4),
-            sxm::Attribute(sx::AttributeKey::DASHQL_OPTION_WIDTH, 5),
-            sxm::Attribute(sx::AttributeKey::DASHQL_OPTION_HEIGHT, 6),
-            sxm::Attribute(sx::AttributeKey::DASHQL_OPTION_ROW, 7),
-            sxm::Attribute(sx::AttributeKey::DASHQL_OPTION_COLUMN, 8),
-        ));
-    // clang-format on
-
-    std::array<NodeMatching, 9> matching;
-    auto& stmt = instance.program().statements[stmt_id];
-    auto& node = instance.program().nodes[stmt->root_node];
-    schema.Match(instance, node, matching);
-}
-
 /// Edit the last program
 Signal Analyzer::EditProgram(const proto::edit::ProgramEdit& edit) {
-    std::string_view program_txt{program_instance_->program_text()};
-    SubstringBuffer edit_buffer{program_txt};
 
-    for (auto e: *edit.edits()) {
-        switch (e->variant_type()) {
-            case proto::edit::EditOperationVariant::VizChangePosition:
-                changeVizPosition(edit_buffer, *program_instance_, *e->variant_as_VizChangePosition());
-                break;
-            default:
-                break;
-        }
-    }
-    // XXX
+    ProgramEditor editor{*this, *program_instance_};
+    editor.Apply(edit);
+
+    // XXX Reparse the program
+
     return Signal::OK();
 }
 
