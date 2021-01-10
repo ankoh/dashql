@@ -232,12 +232,28 @@ Signal Analyzer::InstantiateProgram(std::vector<ParameterValue> params) {
 
 /// Edit the last program
 Signal Analyzer::EditProgram(const proto::edit::ProgramEdit& edit) {
+    if (!program_instance_) return Signal::OK();
 
+    // Apply the edits 
     ProgramEditor editor{*program_instance_};
-    editor.Apply(edit);
+    auto updated_text = editor.Apply(edit);
 
-    // XXX Reparse the program
+    // Parse the new program
+    ParseProgram(updated_text);
 
+    // Instantiate the new program
+    std::vector<ParameterValue> params;
+    params.reserve(program_instance_->parameter_values().size());
+    for (auto& p: program_instance_->parameter_values()) {
+        params.push_back({
+            p.statement_id,
+            p.value.CopyDeep(),
+        });
+    }
+    InstantiateProgram(std::move(params));
+
+    // XXX Error handling.
+    //     Rewriting a syntactically incorrect program?
     return Signal::OK();
 }
 
