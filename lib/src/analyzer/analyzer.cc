@@ -328,4 +328,19 @@ flatbuffers::Offset<proto::analyzer::Plan> Analyzer::PackPlan(flatbuffers::FlatB
     return plan.Finish();
 }
 
+/// Pack a program replacement
+flatbuffers::Offset<proto::analyzer::ProgramReplacement> Analyzer::PackReplacement(flatbuffers::FlatBufferBuilder& builder) {
+    assert(!!program_instance_.get());
+
+    auto program_txt = builder.CreateString(program_instance_->program_text());
+    auto program = sx::Program::Pack(builder, &program_instance_->program());
+    auto annotations = PackProgramAnnotations(builder);
+
+    proto::analyzer::ProgramReplacementBuilder replacement{builder};
+    replacement.add_program_text(program_txt);
+    replacement.add_program(program);
+    replacement.add_annotations(annotations);
+    return replacement.Finish();
+}
+
 }  // namespace dashql
