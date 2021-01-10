@@ -233,7 +233,7 @@ Signal Analyzer::InstantiateProgram(std::vector<ParameterValue> params) {
 /// Edit the last program
 Signal Analyzer::EditProgram(const proto::edit::ProgramEdit& edit) {
 
-    ProgramEditor editor{*this, *program_instance_};
+    ProgramEditor editor{*program_instance_};
     editor.Apply(edit);
 
     // XXX Reparse the program

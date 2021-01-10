@@ -377,6 +377,7 @@ endif()
 if(NOT EMSCRIPTEN)
     add_executable(tester
         ${CMAKE_SOURCE_DIR}/test/analyzer/function_logic_test.cc
+        ${CMAKE_SOURCE_DIR}/test/analyzer/program_editor_test.cc
         ${CMAKE_SOURCE_DIR}/test/analyzer/program_matcher_test.cc
         ${CMAKE_SOURCE_DIR}/test/analyzer/syntax_matcher_test.cc
         ${CMAKE_SOURCE_DIR}/test/common/pod_vector_test.cc

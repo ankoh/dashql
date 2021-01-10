@@ -25,17 +25,15 @@ namespace sx = proto::syntax;
 
 /// A program editor
 class ProgramEditor {
-    /// The analyzer
-    Analyzer& analyzer_;
     /// The current program
     ProgramInstance& instance_;
 
     /// Rewrite a viz statement
-    std::string RewriteVizStatement(size_t stmt_id, const proto::edit::ProgramEdit& edit) const;
+    std::string RewriteVizStatement(size_t stmt_id, nonstd::span<const proto::edit::EditOperation*> edit) const;
 
    public:
     /// Constructor
-    ProgramEditor(Analyzer& analyzer, ProgramInstance& program);
+    ProgramEditor(ProgramInstance& program);
 
     /// Apply the current program edit
     std::string Apply(const proto::edit::ProgramEdit& edit);
