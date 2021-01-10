@@ -28,7 +28,10 @@ class ProgramEditor {
     /// The analyzer
     Analyzer& analyzer_;
     /// The current program
-    ProgramInstance& current_program_;
+    ProgramInstance& instance_;
+
+    /// Rewrite a viz statement
+    std::string RewriteVizStatement(size_t stmt_id, const proto::edit::ProgramEdit& edit) const;
 
    public:
     /// Constructor

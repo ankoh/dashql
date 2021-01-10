@@ -4,45 +4,141 @@
 #include <stack>
 #include <unordered_map>
 
+#include "dashql/analyzer/syntax_matcher.h"
 #include "dashql/common/span.h"
 #include "dashql/common/substring_buffer.h"
-#include "dashql/analyzer/syntax_matcher.h"
 
 namespace dashql {
 
 namespace fb = flatbuffers;
 namespace sx = proto::syntax;
 
-/// Change a viz position
-static void changeVizPosition(SubstringBuffer& buffer, const ProgramInstance& instance,
-                              const proto::edit::VizChangePosition& edit) {
-    auto stmt_id = edit.statement_id();
-    auto& pos = *edit.position();
-
-    // clang-format off
-    auto schema = sxm::Attribute(sx::AttributeKey::DASHQL_OPTION_POSITION)
-        .MatchObject(sx::NodeType::OBJECT_DASHQL_VIZ)
-        .MatchChildren(NODE_MATCHERS(
-            sxm::Attribute(sx::AttributeKey::DASHQL_OPTION_X, 1),
-            sxm::Attribute(sx::AttributeKey::DASHQL_OPTION_Y, 2),
-            sxm::Attribute(sx::AttributeKey::DASHQL_OPTION_W, 3),
-            sxm::Attribute(sx::AttributeKey::DASHQL_OPTION_H, 4),
-            sxm::Attribute(sx::AttributeKey::DASHQL_OPTION_WIDTH, 5),
-            sxm::Attribute(sx::AttributeKey::DASHQL_OPTION_HEIGHT, 6),
-            sxm::Attribute(sx::AttributeKey::DASHQL_OPTION_ROW, 7),
-            sxm::Attribute(sx::AttributeKey::DASHQL_OPTION_COLUMN, 8),
-        ));
-    // clang-format on
-
-    std::array<NodeMatching, 9> matching;
-    auto& stmt = instance.program().statements[stmt_id];
-    auto& node = instance.program().nodes[stmt->root_node];
-    schema.Match(instance, node, matching);
+/// Get an option label
+static std::string_view getOptionLabel(sx::AttributeKey key) {
+    static const std::unordered_map<sx::AttributeKey, std::string_view> labels = {
+#define X(KEY, NAME) {sx::AttributeKey::KEY, NAME},
+        X(DASHQL_OPTION_POSITION, "pos")
+#undef X
+    };
+    auto iter = labels.find(key);
+    return (iter == labels.end()) ? "_" : iter->second;
 }
 
-ProgramEditor::ProgramEditor(Analyzer& analyzer, ProgramInstance& program)
-    : analyzer_(analyzer), current_program_(program) {}
+struct OptionEdit {
+    /// The attribute key
+    sx::AttributeKey key = sx::AttributeKey::NONE;
+    /// Destructor
+    virtual ~OptionEdit() = default;
+    /// Write the option key
+    virtual void WriteKey(std::ostream& out) const = 0;
+    /// Write the option value
+    virtual void WriteValue(std::ostream& out) const = 0;
+};
 
-std::string ProgramEditor::Apply(const proto::edit::ProgramEdit& edit) { return current_program_.program_text(); }
+struct VizChangePosition : public OptionEdit {
+    /// The position
+    const proto::viz::Position& pos;
+    /// Constructor
+    VizChangePosition(const proto::viz::Position& pos) : pos(pos) { key = sx::AttributeKey::DASHQL_OPTION_POSITION; }
+    /// Write the option key
+    void WriteKey(std::ostream& out) const override { out << getOptionLabel(key); }
+    /// Write the option value
+    void WriteValue(std::ostream& out) const override {
+        out << "(x=" << pos.row() << ", y=" << pos.column() << ", w=" << pos.width() << ", h=" << pos.height() << ")";
+    }
+};
+
+/// Rewrite a viz statement
+std::string ProgramEditor::RewriteVizStatement(size_t stmt_id, const proto::edit::ProgramEdit& program) const {
+    auto& stmt = *instance_.program().statements[stmt_id];
+    auto& root = instance_.program().nodes[stmt.root_node];
+
+    // Match the schema
+    // clang-format off
+    auto schema = sxm::Element()
+        .MatchObject(sx::NodeType::OBJECT_DASHQL_VIZ)
+        .MatchChildren(NODE_MATCHERS(
+            sxm::Attribute(sx::AttributeKey::DASHQL_VIZ_TARGET, 0),
+            sxm::Attribute(sx::AttributeKey::DASHQL_VIZ_TYPE, 1),
+            sxm::Attribute(sx::AttributeKey::DASHQL_OPTION_POSITION, 2)
+        ));
+    // clang-format on
+    std::array<NodeMatching, 3> matching;
+    schema.Match(instance_, root, matching);
+
+    /// Collect edit operations
+    std::array<std::unique_ptr<OptionEdit>, 3> ops;
+    for (auto* e : *program.edits()) {
+        switch (e->variant_type()) {
+            case proto::edit::EditOperationVariant::VizChangePosition: {
+                auto viz = e->variant_as_VizChangePosition();
+                if (viz->statement_id() != stmt_id) continue;
+                ops[2] = std::make_unique<VizChangePosition>(*e->variant_as_VizChangePosition()->position());
+                break;
+            }
+            default:
+                break;
+        }
+    }
+
+    // Start the statement
+    std::stringstream out;
+    out << "VIZ ";
+    if (matching[0].status == NodeMatchingStatus::MATCHED) {
+        out << instance_.TextAt(matching[0].node->location());
+    }
+    if (matching[1].status == NodeMatchingStatus::MATCHED) {
+        out << "USING " << instance_.TextAt(matching[0].node->location());
+    }
+
+    // Helper to add an option
+    size_t options = 0;
+    auto add_option = [&]() {
+        size_t oid = options++;
+        if (oid == 0) {
+            out << " (\n";
+        } else if (oid > 0) {
+            out << ",\n    ";
+        }
+    };
+    auto end_options = [&]() {
+        if (options > 0) {
+            out << "\n)";
+        }
+    };
+
+    // Process option updates
+    for (size_t i = 2; i < matching.size(); ++i) {
+        // Node not matched?
+        if (matching[i].status != NodeMatchingStatus::MATCHED) continue;
+        auto* node = matching[i].node;
+
+        // Write option prefix
+        add_option();
+        out << getOptionLabel(node->attribute_key()) << " = ";
+        if (!!ops[i]) {
+            ops[i]->WriteValue(out);
+            ops[i].reset();
+        } else {
+            out << instance_.TextAt(node->location());
+        }
+    }
+
+    // Process new option
+    for (auto& op : ops) {
+        if (!op) continue;
+        add_option();
+        op->WriteKey(out);
+        out << " = ";
+        op->WriteValue(out);
+    }
+    end_options();
+
+    return out.str();
+}
+
+ProgramEditor::ProgramEditor(Analyzer& analyzer, ProgramInstance& program) : analyzer_(analyzer), instance_(program) {}
+
+std::string ProgramEditor::Apply(const proto::edit::ProgramEdit& edit) { return instance_.program_text(); }
 
 }  // namespace dashql
