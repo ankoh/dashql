@@ -186,7 +186,7 @@ export abstract class AnalyzerBindings {
         this._instance.HEAPU8.set(editMem, editPtr);
 
         // Call the analyzer function
-        const [ptr, ofs, size] = this.callSRet('dashql_edit_plan_program', ['number'], [editPtr]);
+        const [ptr, ofs, size] = this.callSRet('dashql_analyzer_edit_program', ['number'], [editPtr]);
         const mem = this.copyFlatbuffer(this._instance.HEAPU8.subarray(ptr + ofs, ptr + ofs + size));
         const replacement = proto.analyzer.ProgramReplacement.getRoot(mem);
         this._instance.ccall('dashql_clear_response', null, [], []);
