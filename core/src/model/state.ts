@@ -34,7 +34,7 @@ export class CoreState {
     /// The planned program status
     public planProgramStatus: Immutable.List<StatementStatus>;
     /// The plan objects
-    public planObjects: Immutable.Map<PlanObjectID, PlanObject>;
+    public planObjects: Immutable.Map<string, PlanObject>;
     /// The plan database tables
     public planDatabaseTables: Immutable.Map<string, DatabaseTableInfo>;
     /// The setup actions
@@ -60,7 +60,7 @@ export class CoreState {
         this.schedulerStatus = ActionSchedulerStatus.Idle;
         this.plan = null;
         this.planProgramStatus = Immutable.List<StatementStatus>();
-        this.planObjects = Immutable.Map<PlanObjectID, PlanObject>();
+        this.planObjects = Immutable.Map<string, PlanObject>();
         this.planDatabaseTables = Immutable.Map<string, DatabaseTableInfo>();
         this.planActions = Immutable.Map<ActionID, Action>();
         this.planActionLog = Immutable.List<ActionLogEntry>();

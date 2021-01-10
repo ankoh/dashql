@@ -221,7 +221,7 @@ export class StateMutations {
                     ...state,
                     planObjects: state.planObjects.withMutations(os => {
                         for (const o of mutation.data) {
-                            os.set(o.objectId, o);
+                            os.set(o.objectId.toString(), o);
                         }
                     }),
                     planDatabaseTables: state.planDatabaseTables.withMutations(os => {
@@ -238,12 +238,12 @@ export class StateMutations {
                     ...state,
                     planDatabaseTables: state.planDatabaseTables.withMutations(os => {
                         for (const v of mutation.data) {
-                            const n = state.planObjects.get(v)?.nameQualified;
+                            const n = state.planObjects.get(v.toString())?.nameQualified;
                             if (n) os.delete(n);
                         }
                     }),
                     planObjects: state.planObjects.withMutations(os => {
-                        os.deleteAll(mutation.data);
+                        os.deleteAll(mutation.data.map(k => k.toString()));
                     }),
                 };
 
