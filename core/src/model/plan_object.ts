@@ -39,6 +39,8 @@ export interface DatabaseTableInfo extends PlanObject {
 
 /// A vizualisation data object
 export interface VizInfo extends PlanObject {
+    /// The current viz statement id
+    currentStatementId: number;
     /// The spec
     spec: VizSpecVariant;
 }

@@ -1,3 +1,4 @@
+import Immutable from 'immutable';
 import * as core from '@dashql/core';
 import * as React from 'react';
 import * as model from '../model';
@@ -12,7 +13,8 @@ import './widget_grid.raw.css';
 type Props = {
     width: number;
     height: number;
-    vizData: core.model.VizInfo[];
+
+    vizData: [string, core.model.VizInfo][];
 };
 
 function getLayout(data: core.model.VizInfo) {
@@ -39,12 +41,9 @@ class WidgetGrid extends React.Component<Props> {
         const prev = this.props.vizData;
         const next = nextProps.vizData;
         let equal = prev.length == next.length;
-        let ht: Map<number, core.model.VizInfo> = new Map();
-        for (let v of prev) {
-            ht.set(v.objectId, v);
-        }
-        for (let v of next) {
-            const p = ht.get(v.objectId);
+        let ht = new Map<string, core.model.VizInfo>(prev);
+        for (let [k, v] of next) {
+            const p = ht.get(k);
             equal = equal && (v === p);
         }
         return !equal;
@@ -58,11 +57,11 @@ class WidgetGrid extends React.Component<Props> {
                 width={this.props.width}
                 rowHeight={50}
                 compactType={null}
-                onResize={console.log.bind(console)}
+                onDrag={console.log.bind(console)}
             >
-                {this.props.vizData.map(d => (
-                    <div key={d.objectId} data-grid={getLayout(d)}>
-                        {this.renderWidget(d)}
+                {this.props.vizData.map(([k, v]) => (
+                    <div key={k} data-grid={getLayout(v)}>
+                        {this.renderWidget(v)}
                     </div>
                 ))}
             </ReactGrid>
@@ -74,7 +73,7 @@ const mapStateToProps = (state: model.AppState) => ({
     vizData: state.core.planObjects
         .filter(o => o.objectType == core.model.PlanObjectType.VIZ_INFO)
         .toArray()
-        .map(([_k, v]) => v as core.model.VizInfo),
+        .map(([k, v]) => [k, v as core.model.VizInfo]) as [string, core.model.VizInfo][],
 });
 
 const mapDispatchToProps = (_dispatch: model.Dispatch) => ({});
