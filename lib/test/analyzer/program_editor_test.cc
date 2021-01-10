@@ -30,7 +30,6 @@ TEST(ProgramEditorTest, VizStatementAddPosition) {
     ASSERT_EQ(instance.program().statements.size(), 1);
 
     ProgramEditor editor{instance};
-
     std::pair<const proto::edit::ProgramEdit*, flatbuffers::DetachedBuffer> edit;
     {
         auto e = std::make_unique<proto::edit::EditOperationT>();
@@ -44,6 +43,28 @@ TEST(ProgramEditorTest, VizStatementAddPosition) {
     }
 
     auto expected = "VIZ weather_avg USING LINE (\n    pos = (x = 1, y = 2, w = 3, h = 4)\n)";
+    EXPECT_EQ(editor.Apply(*std::get<0>(edit)), expected);
+}
+
+TEST(ProgramEditorTest, VizStatementUpdatePosition) {
+    auto txt = "VIZ weather_avg USING LINE (\n    pos = (x = 1, y = 2, w = 3, h = 4)\n)";
+    ProgramInstance instance{txt, move(parser::ParserDriver::Parse(txt))};
+    ASSERT_EQ(instance.program().statements.size(), 1);
+
+    ProgramEditor editor{instance};
+    std::pair<const proto::edit::ProgramEdit*, flatbuffers::DetachedBuffer> edit;
+    {
+        auto e = std::make_unique<proto::edit::EditOperationT>();
+        proto::edit::VizChangePositionT changePos;
+        changePos.position = std::make_unique<proto::viz::Position>(6, 5, 4, 3);
+        e->statement_id = 0;
+        e->variant.Set(move(changePos));
+        auto pe = std::make_unique<proto::edit::ProgramEditT>();
+        pe->edits.push_back(move(e));
+        edit = Pack<proto::edit::ProgramEdit>(move(pe));
+    }
+
+    auto expected = "VIZ weather_avg USING LINE (\n    pos = (x = 6, y = 5, w = 4, h = 3)\n)";
     EXPECT_EQ(editor.Apply(*std::get<0>(edit)), expected);
 }
 
