@@ -32,7 +32,7 @@ function getLayout(data: core.model.VizInfo) {
 }
 
 class WidgetGrid extends React.Component<Props> {
-    _onDragStop = this.onDragStop.bind(this);
+    _onItemLayoutChanged = this.onItemLayoutChanged.bind(this);
 
     renderWidget(data: core.model.VizInfo) {
         switch (data.spec.type) {
@@ -54,7 +54,7 @@ class WidgetGrid extends React.Component<Props> {
         return !equal;
     }
 
-    onDragStop(_layout: Layout[], oldItem: Layout, newItem: Layout, _placeholder: Layout, _event: MouseEvent, _element: HTMLElement) {
+    onItemLayoutChanged(_layout: Layout[], oldItem: Layout, newItem: Layout, _placeholder: Layout, _event: MouseEvent, _element: HTMLElement) {
 
         const info = this.props.vizData.get(oldItem.i)!;
         const stmt = info.currentStatementId;
@@ -83,7 +83,8 @@ class WidgetGrid extends React.Component<Props> {
                 width={this.props.width}
                 rowHeight={50}
                 compactType={null}
-                onDragStop={this._onDragStop}
+                onDragStop={this._onItemLayoutChanged}
+                onResizeStop={this._onItemLayoutChanged}
             >
                 {Array.from(this.props.vizData).map(([k, v]) => (
                     <div key={k} data-grid={getLayout(v)}>
