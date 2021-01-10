@@ -18,6 +18,7 @@ export class CreateVizActionLogic extends ProgramActionLogic {
             timeUpdated: now,
             nameQualified: this.buffer.targetNameQualified() || "",
             nameShort: this.buffer.targetNameShort() || "",
+            currentStatementId: this.origin.statementId,
             spec: {
                 type: model.VizSpecType.TABLE,
                 data: {

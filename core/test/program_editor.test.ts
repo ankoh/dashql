@@ -13,7 +13,7 @@ beforeEach(async () => {
 });
 
 describe('Program editor', () => {
-    test('add viz position', async () => {
+    test('add viz position', () => {
         const p = az.parseProgram("VIZ weather_avg USING LINE");
         const pi = az.instantiateProgram();
         expect(p.buffer.statementsLength()).toEqual(1);
@@ -36,7 +36,7 @@ describe('Program editor', () => {
         expect(n!.program.text).toEqual(expected);
     });
 
-    test('update viz position', async () => {
+    test('update viz position', () => {
         const p = az.parseProgram("VIZ weather_avg USING LINE (\n    pos = (x = 1, y = 2, w = 3, h = 4)\n)");
         const pi = az.instantiateProgram();
         expect(p.buffer.statementsLength()).toEqual(1);
