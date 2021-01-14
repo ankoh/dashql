@@ -1,9 +1,10 @@
 import * as Immutable from "immutable";
 import * as React from "react";
 import { AppState, Dispatch, LaunchStep, LaunchStepInfo, DEFAULT_LAUNCH_STEPS } from '../model';
-import { Logo } from '../svg/logo';
 import { StatusIndicator } from '../components';
 import { connect } from 'react-redux';
+
+import logo from '../../public/logo/preliminary.png';
 
 import styles from './launcher.module.css';
 
@@ -39,7 +40,7 @@ class Launcher extends React.Component<Props> {
             <div className={styles.launcher}>
                 <div className={styles.inner}>
                     <div className={styles.logo}>
-                        <Logo width="88px" height="88px" />
+                        <img src={logo} />
                     </div>
                     <div className={styles.title}>
                         DashQL
