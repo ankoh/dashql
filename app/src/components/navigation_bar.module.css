@@ -37,7 +37,7 @@
     text-align: center;
 
     display: grid;
-    grid-template-rows: 56px 48px auto 56px calc(3 * 48px);
+    grid-template-rows: 48px 48px auto 56px calc(3 * 48px);
 }
 
 .logo {
