@@ -8,7 +8,7 @@ import { auth } from '../auth';
 
 import styles from './navigation_bar.module.css';
 
-import logo from '../../public/logo/preliminary.png';
+import logo from '../../public/logo.svg';
 
 interface TabProps extends IIconProps {
     pathName: string;
