@@ -24,10 +24,6 @@
     background-color: v_logo_bg;
 }
 
-.logo > img {
-    width: 80px;
-}
-
 .title {
     text-align: center;
     margin-top: 20px;
