@@ -47,10 +47,6 @@
     background-color: v_logo_bg;
 }
 
-.logo > img {
-    width: 34px;
-}
-
 .tabs {
     grid-row: 2;
     display: grid;
