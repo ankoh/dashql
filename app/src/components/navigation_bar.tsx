@@ -2,6 +2,7 @@ import * as React from 'react';
 import ActionList from './action_list';
 import classNames from 'classnames';
 import { StudioIcon, DatabaseIcon, TaskListIcon, LogIcon, IIconProps } from '../svg/icons';
+import { Logo } from '../svg/logo';
 import { withRouter, RouteComponentProps, Link } from 'react-router-dom';
 import Avatar from 'react-avatar';
 import { auth } from '../auth';
@@ -82,7 +83,7 @@ class NavigationBar extends React.Component<NavigationBarProps, NavigationBarSta
         return (
             <div className={styles.navbar}>
                 <div className={styles.logo}>
-                    <img src={logo} />
+                    <Logo width="36px" height="36px" />
                 </div>
                 <div className={styles.tabs}>
                     <StudioTab pathName={this.props.location.pathname} />
