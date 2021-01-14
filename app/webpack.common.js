@@ -80,7 +80,7 @@ function configure(params) {
                     },
                 },
                 {
-                    test: /\.(png|jpe?g|gif)$/i,
+                    test: /\.(png|jpe?g|gif|svg)$/i,
                     loader: 'file-loader',
                     options: {
                         name: 'static/img/[name].[contenthash].[ext]',
