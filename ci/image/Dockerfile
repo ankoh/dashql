@@ -1,4 +1,4 @@
-ARG EMSDK_VERSION="2.0.9"
+ARG EMSDK_VERSION="2.0.12"
 FROM emscripten/emsdk:${EMSDK_VERSION} as emsdk
 
 FROM ubuntu:20.10
