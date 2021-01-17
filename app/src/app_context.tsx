@@ -18,7 +18,7 @@ export function withAppContext<
     return (props: RAW_PROPS) => {
         return (
             <AppContextConsumer>
-                {value => <Component {...(Object.assign({} as ALL_PROPS, props, {appContext: value}))}/>}
+                {value => <Component {...Object.assign({} as ALL_PROPS, props, { appContext: value })} />}
             </AppContextConsumer>
         );
     };

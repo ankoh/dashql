@@ -3,8 +3,8 @@
 #ifndef INCLUDE_DASHQL_PARSER_TEST_BLOB_STREAM_TESTS_H_
 #define INCLUDE_DASHQL_PARSER_TEST_BLOB_STREAM_TESTS_H_
 
-#include <vector>
 #include <string>
+#include <vector>
 
 namespace dashql {
 namespace test {
@@ -29,8 +29,7 @@ struct Blob {
     static size_t StreamUnderflow(size_t blob_id, char* buffer, size_t buffer_cap);
 };
 
-
-}
-}
+}  // namespace test
+}  // namespace dashql
 
 #endif

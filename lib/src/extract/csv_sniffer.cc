@@ -105,8 +105,7 @@ Expected<std::vector<CSVSniffer::Dialect>> CSVSniffer::DetectDialect() {
                     bool more_than_one_column = (score.column_count > 1);
 
                     // Used provided column count?
-                    if (!user_options_.sql_types.empty() &&
-                        user_options_.sql_types.size() != score.column_count) {
+                    if (!user_options_.sql_types.empty() && user_options_.sql_types.size() != score.column_count) {
                         continue;
                     } else if ((more_values || single_column_before) && fully_consistent) {
                         best = score;

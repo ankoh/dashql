@@ -73,11 +73,8 @@ const browserTarget = {
         }),
         new WatchRunPlugin(),
         new webpack.WatchIgnorePlugin({
-            paths: [
-                /node_modules\/^(@dashql)/,
-                path.resolve(__dirname, './dist/')
-            ]
-        })
+            paths: [/node_modules\/^(@dashql)/, path.resolve(__dirname, './dist/')],
+        }),
     ],
     externals: [nodeExternals({ importType: 'umd' })],
 };
@@ -96,11 +93,8 @@ const nodeTarget = {
             verbose: false,
         }),
         new webpack.WatchIgnorePlugin({
-            paths: [
-                /node_modules\/^(@dashql)/,
-                path.resolve(__dirname, './dist/')
-            ]
-        })
+            paths: [/node_modules\/^(@dashql)/, path.resolve(__dirname, './dist/')],
+        }),
     ],
 };
 nodeTarget.module.rules[0] = {

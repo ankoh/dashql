@@ -14,9 +14,7 @@ using ConnectionHdl = uintptr_t;
 using BufferHdl = uintptr_t;
 
 /// Create a conn
-ConnectionHdl dashql_webdb_connect() {
-    return reinterpret_cast<ConnectionHdl>(WebDB::GetInstance().Connect());
-}
+ConnectionHdl dashql_webdb_connect() { return reinterpret_cast<ConnectionHdl>(WebDB::GetInstance().Connect()); }
 /// End a conn
 void dashql_webdb_disconnect(ConnectionHdl connHdl) {
     auto c = reinterpret_cast<WebDB::Connection*>(connHdl);
@@ -55,5 +53,4 @@ void dashql_webdb_analyze_query(FFIResponse* packed, ConnectionHdl connHdl, cons
     auto r = c->AnalyzeQuery(text);
     FFIResponseBuffer::GetInstance().Store(*packed, std::move(r));
 }
-
 }

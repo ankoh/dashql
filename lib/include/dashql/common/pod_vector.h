@@ -122,7 +122,7 @@ template <typename V> class PodVector {
         if (new_size < capacity_ && ((new_size > capacity_ / 2) || (capacity_ <= MIN_CAPACITY))) {
             size_ = new_size;
             return;
-        } 
+        }
 
         // Allocate new buffer
         char* new_buffer = static_cast<char*>(realloc(buffer_.get(), new_size * sizeof(V)));

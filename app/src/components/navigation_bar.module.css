@@ -15,7 +15,7 @@
 @value v_status_button_height: 40px;
 
 .container {
-    position:relative;
+    position: relative;
     display: grid;
     grid-template-rows: 100%;
     grid-template-columns: v_navbar_width calc(100% - v_navbar_width);
@@ -88,7 +88,8 @@
     align-self: center;
 }
 
-.tab:hover, .tab.active {
+.tab:hover,
+.tab.active {
     background-color: v_tab_bg_active;
     color: v_tab_fg_active;
 }
@@ -112,7 +113,8 @@
     border-radius: v_border_radius;
 }
 
-.status:hover, .status.active {
+.status:hover,
+.status.active {
     background-color: v_status_bg_active;
     color: v_status_fg_active;
 }
@@ -133,4 +135,3 @@
     left: 96px;
     bottom: 16px;
 }
-

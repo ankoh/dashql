@@ -16,11 +16,12 @@ import 'react-virtualized/styles.css';
 
 const ctx: IAppContext = {
     store: model.createStore(),
-    platform: null
+    platform: null,
 };
 
-launchApp(ctx)
-    .catch((e) => { console.error(e); });
+launchApp(ctx).catch(e => {
+    console.error(e);
+});
 
 ReactDOM.render(
     <AppContextProvider value={ctx}>

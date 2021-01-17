@@ -1,17 +1,17 @@
 // Copyright (c) 2020 The DashQL Authors
 
+#include "dashql/webdb/iterator.h"
+
 #include <sstream>
 
 #include "dashql/proto_generated.h"
-#include "dashql/webdb/iterator.h"
 #include "dashql/webdb/webdb.h"
-#include "gtest/gtest.h"
-
+#include "duckdb/common/operator/add.hpp"
+#include "duckdb/common/operator/numeric_binary_operators.hpp"
 #include "duckdb/common/types/date.hpp"
 #include "duckdb/common/types/time.hpp"
 #include "duckdb/common/types/timestamp.hpp"
-#include "duckdb/common/operator/numeric_binary_operators.hpp"
-#include "duckdb/common/operator/add.hpp"
+#include "gtest/gtest.h"
 
 using namespace duckdb;
 using namespace dashql::webdb;
@@ -176,7 +176,8 @@ TEST(QueryResultIterator, DateColumn) {
     for (int32_t i = 0; i <= 10000; ++i) {
         ASSERT_FALSE(iter.IsEnd()) << "i=" << i;
         auto txt = std::to_string(i);
-        auto v = duckdb::AddOperator::Operation<date_t, interval_t, date_t>(duckdb::Date::FromDate(2020, 10, 9), {0, i, 0});
+        auto v =
+            duckdb::AddOperator::Operation<date_t, interval_t, date_t>(duckdb::Date::FromDate(2020, 10, 9), {0, i, 0});
         ASSERT_EQ(iter.GetValue(0).GetValue<date_t>(), v);
         iter.Next();
     }
@@ -242,7 +243,7 @@ TEST(QueryResultIterator, IntervalColumn) {
     for (int32_t i = 0; i <= 10000; ++i) {
         ASSERT_FALSE(iter.IsEnd()) << "i=" << i;
         auto expected = interval_t{0, 0, i % 1000};
-        auto v = iter.GetValue(0).value_.interval; // XXX DuckDB lacks GetValue<interval_t>
+        auto v = iter.GetValue(0).value_.interval;  // XXX DuckDB lacks GetValue<interval_t>
         ASSERT_EQ(v.days, expected.days);
         ASSERT_EQ(v.months, expected.months);
         ASSERT_EQ(v.micros, expected.micros);

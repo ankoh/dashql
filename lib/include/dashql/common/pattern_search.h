@@ -3,9 +3,10 @@
 #ifndef INCLUDE_DASHQL_COMMON_PATTERN_SEARCH_H_
 #define INCLUDE_DASHQL_COMMON_PATTERN_SEARCH_H_
 
-#include "dashql/proto_generated.h"
 #include <array>
 #include <string>
+
+#include "dashql/proto_generated.h"
 
 namespace dashql {
 
@@ -20,7 +21,7 @@ namespace dashql {
 ///
 ///     Suppose we then search in the following std::string "ABABAC", our progression will be as follows:
 ///     'A' -> [1], 'B' -> [2], 'A' -> [3], 'B' -> [2], 'A' -> [3], 'C' -> [4] (match!)
-/// 
+///
 /// Adopted from the buffered csv reader of DuckDB.
 ///
 struct PatternShiftArray {
@@ -43,6 +44,6 @@ struct PatternShiftArray {
     }
 };
 
-}
+}  // namespace dashql
 
 #endif

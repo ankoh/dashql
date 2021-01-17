@@ -3,10 +3,11 @@
 #ifndef INCLUDE_DASHQL_COMMON_STREAMS_H_
 #define INCLUDE_DASHQL_COMMON_STREAMS_H_
 
-#include "dashql/common/pod_vector.h"
 #include <iostream>
 #include <memory>
 #include <vector>
+
+#include "dashql/common/pod_vector.h"
 
 namespace dashql {
 
@@ -44,7 +45,7 @@ class BlobStreamBufferBase : public std::streambuf {
     /// Virtual function called by other member functions to get the current character
     /// in the controlled input sequence without changing the current position.
     ///
-    /// Derived classes can override this behavior to modify the gptr and egptr internal pointers in such a way 
+    /// Derived classes can override this behavior to modify the gptr and egptr internal pointers in such a way
     /// that more characters from the input sequence may be made accessible through the buffer.
     int_type underflow() override = 0;
 };
@@ -64,7 +65,7 @@ class BlobStreamBuffer : public BlobStreamBufferBase {
 
     /// Virtual function called by other member functions to get the current character
     /// in the controlled input sequence without changing the current position.
-    /// Derived classes can override this behavior to modify the gptr and egptr internal pointers in such a way 
+    /// Derived classes can override this behavior to modify the gptr and egptr internal pointers in such a way
     /// that more characters from the input sequence may be made accessible through the buffer.
     int_type underflow() override;
 };
@@ -83,7 +84,7 @@ class CachingBlobStreamBuffer : public BlobStreamBufferBase {
 
     /// Virtual function called by other member functions to get the current character
     /// in the controlled input sequence without changing the current position.
-    /// Derived classes can override this behavior to modify the gptr and egptr internal pointers in such a way 
+    /// Derived classes can override this behavior to modify the gptr and egptr internal pointers in such a way
     /// that more characters from the input sequence may be made accessible through the buffer.
     int_type underflow() override;
 };
@@ -93,7 +94,6 @@ class CachingBlobStreamBuffer : public BlobStreamBufferBase {
 extern "C" {
 
 size_t dashql_blob_stream_underflow(dashql::BlobID, char*, size_t);
-
 }
 
 #endif  // INCLUDE_DASHQL_COMMON_STREAMS_H_

@@ -269,7 +269,8 @@ sx::Node ParserDriver::Add(sx::Location loc, NodeVector&& values, bool null_if_e
 }
 
 /// Add an object
-sx::Node ParserDriver::Add(sx::Location loc, sx::NodeType type, NodeVector&& attrs, bool null_if_empty, bool skip_none) {
+sx::Node ParserDriver::Add(sx::Location loc, sx::NodeType type, NodeVector&& attrs, bool null_if_empty,
+                           bool skip_none) {
     auto begin = nodes_.size();
     nodes_.reserve(nodes_.size() + attrs.size());
     std::sort(attrs.begin(), attrs.end(), [&](auto& l, auto& r) {
@@ -365,11 +366,11 @@ std::shared_ptr<sx::ProgramT> ParserDriver::Finish() {
     auto program = std::make_unique<sx::ProgramT>();
     program->nodes = move(nodes_);
     program->statements.reserve(statements_.size());
-    for (auto& stmt: statements_) {
+    for (auto& stmt : statements_) {
         program->statements.push_back(stmt.Finish());
     }
     program->errors.reserve(errors_.size());
-    for (auto& [loc, msg]: errors_) {
+    for (auto& [loc, msg] : errors_) {
         auto err = std::make_unique<sx::ErrorT>();
         err->location = std::make_unique<sx::Location>(loc);
         err->message = move(msg);

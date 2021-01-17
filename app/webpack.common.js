@@ -16,10 +16,7 @@ const MonacoWebpackPlugin = require('monaco-editor-webpack-plugin');
 /// If you don't change the version file, you don't have to change the redirect URI but an updated file won't bust the CDN cache.
 /// If you change the version file, you have to change the redirect URI and get cache busting automatically.
 const GITHUB_OAUTH_VERSION_FILE = path.resolve(__dirname, './src/auth/github_oauth.html.version');
-const GITHUB_OAUTH_VERSION = childProcess
-    .execSync(`cat ${GITHUB_OAUTH_VERSION_FILE}`)
-    .toString()
-    .trim();
+const GITHUB_OAUTH_VERSION = childProcess.execSync(`cat ${GITHUB_OAUTH_VERSION_FILE}`).toString().trim();
 
 /// We support dynamic configurations of DashQL via a dedicated config file.
 /// The app loads this file at startup which allows us to adjust certain settings dynamically.
@@ -128,9 +125,9 @@ function configure(params) {
                     default: {
                         priority: -20,
                         reuseExistingChunk: true,
-                    }
-                }
-            }
+                    },
+                },
+            },
         },
         plugins: [
             new CleanWebpackPlugin({

@@ -31,4 +31,3 @@ flatbuffers::Offset<proto::webdb::QueryPlan> WriteQueryPlan(flatbuffers::FlatBuf
 }  // namespace dashql
 
 #endif  // INCLUDE_DUCKDB_WEB_PROTO_CODEC_H_
-

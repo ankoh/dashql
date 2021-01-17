@@ -41,17 +41,15 @@ ProgramMatcher::SimilarityEstimate ProgramMatcher::EstimateSimilarity(const sx::
 
 // Constructor
 ProgramMatcher::ProgramMatcher(const ProgramInstance& source, const ProgramInstance& target)
-    : source_(source),
-      target_(target),
-      source_subtree_sizes_(),
-      target_subtree_sizes_() {}
+    : source_(source), target_(target), source_subtree_sizes_(), target_subtree_sizes_() {}
 
 /// Compute tree size
 size_t ProgramMatcher::ComputeTreeSize(const sx::ProgramT& prog, size_t root, std::vector<size_t>& sizes) {
     // Init tree sizes
     if (auto n = prog.nodes.size(); sizes.size() != n) sizes.resize(n, 0);
     // Already computed?
-    else if (auto n = sizes[root]; n > 0) return n;
+    else if (auto n = sizes[root]; n > 0)
+        return n;
 
     /// Run a DFS starting at every program statement
     struct SubtreeNode {
@@ -103,7 +101,8 @@ size_t ProgramMatcher::ComputeTreeSize(const sx::ProgramT& prog, size_t root, st
 }
 
 // Perform two statements
-ProgramMatcher::StatementSimilarity ProgramMatcher::ComputeSimilarity(const sx::StatementT& source, const sx::StatementT& target) {
+ProgramMatcher::StatementSimilarity ProgramMatcher::ComputeSimilarity(const sx::StatementT& source,
+                                                                      const sx::StatementT& target) {
     // Compute tree sizes
     auto& source_program = source_.program();
     auto& target_program = target_.program();
@@ -371,9 +370,7 @@ void ProgramMatcher::MapStatements(StatementMappings& unique_pairs, StatementMap
         if (source_ambiguous[*source_id] || target_ambiguous[target_id]) continue;
         unique_pairs.push_back({*source_id, target_id});
     }
-    std::sort(unique_pairs.begin(), unique_pairs.end(), [&](auto& l, auto& r){
-        return l.first < r.first;
-    });
+    std::sort(unique_pairs.begin(), unique_pairs.end(), [&](auto& l, auto& r) { return l.first < r.first; });
 
     // Make sure they are really sorted
     assert(std::is_sorted(equal_pairs.begin(), equal_pairs.end()));
@@ -395,8 +392,10 @@ ProgramMatcher::StatementMappings ProgramMatcher::FindLCS(const std::vector<std:
 
     // Build the piles
     std::vector<Pile> piles;
-    for (auto& [source_id, target_id]: unique_pairs) {
-        if (auto p = std::find_if(piles.begin(), piles.end(), [t=target_id](auto& x) { return x.back().target_id >= t; }); p != piles.end()) {
+    for (auto& [source_id, target_id] : unique_pairs) {
+        if (auto p =
+                std::find_if(piles.begin(), piles.end(), [t = target_id](auto& x) { return x.back().target_id >= t; });
+            p != piles.end()) {
             auto prev_pile_id = std::max<size_t>(p - piles.begin(), 1) - 1;
             auto prev_pile_size = piles[prev_pile_id].size();
             p->push_back({source_id, target_id, prev_pile_size});
@@ -409,16 +408,14 @@ ProgramMatcher::StatementMappings ProgramMatcher::FindLCS(const std::vector<std:
     }
 
     // No piles?
-    if (piles.empty())
-        return lcs;
+    if (piles.empty()) return lcs;
 
     // Build the LCS
     for (auto pile_id = piles.size() - 1, entry_id = piles[pile_id].size() - 1;; --pile_id) {
         assert(entry_id < piles[pile_id].size());
         auto [source_id, target_id, prev_pile_size] = piles[pile_id][entry_id];
         lcs.push_back({source_id, target_id});
-        if (pile_id == 0)
-            break;
+        if (pile_id == 0) break;
         assert(prev_pile_size >= 1);
         entry_id = prev_pile_size - 1;
     }
@@ -448,10 +445,8 @@ std::vector<ProgramMatcher::DiffOp> ProgramMatcher::ComputeDiff() {
     std::vector<DiffOp> ops;
     auto emit = [&](DiffOpCode code, std::optional<size_t> source_id, std::optional<size_t> target_id = std::nullopt) {
         ops.emplace_back(code, source_id, target_id);
-        if (source_id)
-            source_emitted[*source_id] = true;
-        if (target_id)
-            target_emitted[*target_id] = true;
+        if (source_id) source_emitted[*source_id] = true;
+        if (target_id) target_emitted[*target_id] = true;
     };
 
     // Iterate over LCS sections
@@ -460,10 +455,11 @@ std::vector<ProgramMatcher::DiffOp> ProgramMatcher::ComputeDiff() {
     for (auto lcs_iter = lcs.begin();; ++lcs_iter) {
         // Update boundaries
         prev = next;
-        next = (lcs_iter < lcs.end()) ? *lcs_iter : StatementMapping{
-            source_program.statements.size(),
-            target_program.statements.size(),
-        };
+        next = (lcs_iter < lcs.end()) ? *lcs_iter
+                                      : StatementMapping{
+                                            source_program.statements.size(),
+                                            target_program.statements.size(),
+                                        };
         auto [prev_source_id, prev_target_id] = prev;
         auto [next_source_id, next_target_id] = next;
 
@@ -510,9 +506,8 @@ std::vector<ProgramMatcher::DiffOp> ProgramMatcher::ComputeDiff() {
                 if (sim_score >= UPDATE_SIMILARITY_THRESHOLD) {
                     // Add to min-heap
                     matches.push_back({target_id, sim_score});
-                    std::push_heap(matches.begin(), matches.end(), [](auto& l, auto& r) {
-                        return l.second > r.second;
-                    });
+                    std::push_heap(matches.begin(), matches.end(),
+                                   [](auto& l, auto& r) { return l.second > r.second; });
                 }
             }
             if (source_emitted[source_id]) continue;
@@ -540,10 +535,12 @@ std::vector<ProgramMatcher::DiffOp> ProgramMatcher::ComputeDiff() {
 }
 
 // Do parameter values equal?
-bool ProgramMatcher::ParameterValuesEqual(const proto::analyzer::ParameterValueT* l, const proto::analyzer::ParameterValueT* r) {
+bool ProgramMatcher::ParameterValuesEqual(const proto::analyzer::ParameterValueT* l,
+                                          const proto::analyzer::ParameterValueT* r) {
     auto& lv = *l->value;
     auto& rv = *r->value;
-    auto values_equal = lv.is_null == rv.is_null && lv.data_f64 == rv.data_f64 && lv.data_i64 == rv.data_i64 && lv.data_u32 == rv.data_u32 && lv.data_str == rv.data_str;
+    auto values_equal = lv.is_null == rv.is_null && lv.data_f64 == rv.data_f64 && lv.data_i64 == rv.data_i64 &&
+                        lv.data_u32 == rv.data_u32 && lv.data_str == rv.data_str;
     auto& lt = *lv.type;
     auto& rt = *rv.type;
     auto types_equal = lt.type_id() == rt.type_id() && lt.width() == rt.width() && lt.scale() == rt.scale();

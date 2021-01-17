@@ -55,8 +55,7 @@ struct ToJSONVisitor : public fb::IterationVisitor {
         }
     }
 
-    template <typename T>
-    void Named(T x, const char *name) {
+    template <typename T> void Named(T x, const char *name) {
         if (name) {
             out << "\"" << name << "\"";
         } else {
@@ -132,4 +131,3 @@ std::string writeJSON(void *buffer, const flatbuffers::TypeTable &type_table) {
 
 }  // namespace webdb
 }  // namespace dashql
-

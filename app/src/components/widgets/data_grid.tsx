@@ -7,7 +7,7 @@ import {
     GridCellRangeProps,
     AutoSizer,
     defaultCellRangeRenderer,
-    SizeAndPositionData
+    SizeAndPositionData,
 } from 'react-virtualized';
 import { VirtualScrollbars, PositionValues } from '../virtual_scrollbars';
 
@@ -31,9 +31,7 @@ type State = {
 
 /// Render a data cell nodata for data that is not yet avaialable
 function renderDataCellNoData(props: GridCellProps): JSX.Element {
-    return (
-        <div key={props.key} className={styles.cell_nodata} style={{ ...props.style }} />
-    );
+    return <div key={props.key} className={styles.cell_nodata} style={{ ...props.style }} />;
 }
 
 export class DataGrid extends React.Component<Props, State> {
@@ -68,7 +66,10 @@ export class DataGrid extends React.Component<Props, State> {
 
     /// Scroll handler
     public onScroll(pos: PositionValues) {
-        const firstVisibleRow = Math.min(Math.trunc(pos.scrollTop * pos.verticalScaling / this.state.rowHeight), this.rowCount);
+        const firstVisibleRow = Math.min(
+            Math.trunc((pos.scrollTop * pos.verticalScaling) / this.state.rowHeight),
+            this.rowCount,
+        );
         const maxVisibleRows = this.rowCount - firstVisibleRow;
         const visibleRows = Math.min(Math.trunc(pos.clientHeight / this.state.rowHeight), maxVisibleRows);
         this.setState({
@@ -246,29 +247,39 @@ export class DataGrid extends React.Component<Props, State> {
             const offset = props.rowStartIndex - this.props.data!.request.offset;
             const limit = props.rowStopIndex - props.rowStartIndex + 1;
 
-            webdb.iterateChunksBlocking(iter, offset, limit, (iter: webdb.BlockingChunkIterator, chunkStart: number, skipHere: number, rowsHere: number) => {
-                iter.iterateNumberColumn(columnIndex, (chunkRow: number, v: number | null) => {
-                    const rowIndex = props.rowStartIndex + chunkStart + chunkRow - skipHere;
-                    const rowDatum = props.rowSizeAndPositionManager.getSizeAndPositionOfCell(rowIndex);
-                    const cell = this.renderAvailableDataCell(
-                        props,
-                        rowIndex,
-                        rowDatum,
+            webdb.iterateChunksBlocking(
+                iter,
+                offset,
+                limit,
+                (iter: webdb.BlockingChunkIterator, chunkStart: number, skipHere: number, rowsHere: number) => {
+                    iter.iterateNumberColumn(
                         columnIndex,
-                        columnDatum,
-                        canCacheStyle,
-                        v,
-                        (key, style, value) => (
-                            <div key={key} className={styles.cell_data} style={{ ...style }}>
-                                {value}
-                            </div>
-                        ),
+                        (chunkRow: number, v: number | null) => {
+                            const rowIndex = props.rowStartIndex + chunkStart + chunkRow - skipHere;
+                            const rowDatum = props.rowSizeAndPositionManager.getSizeAndPositionOfCell(rowIndex);
+                            const cell = this.renderAvailableDataCell(
+                                props,
+                                rowIndex,
+                                rowDatum,
+                                columnIndex,
+                                columnDatum,
+                                canCacheStyle,
+                                v,
+                                (key, style, value) => (
+                                    <div key={key} className={styles.cell_data} style={{ ...style }}>
+                                        {value}
+                                    </div>
+                                ),
+                            );
+                            if (cell) {
+                                cells.push(cell);
+                            }
+                        },
+                        skipHere,
+                        rowsHere,
                     );
-                    if (cell) {
-                        cells.push(cell);
-                    }
-                }, skipHere, rowsHere);
-            });
+                },
+            );
         }
         return cells;
     }

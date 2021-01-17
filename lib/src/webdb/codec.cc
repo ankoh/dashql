@@ -2,10 +2,11 @@
 
 #include "dashql/webdb/codec.h"
 
+#include <iostream>
+
 #include "duckdb/common/vector_operations/unary_executor.hpp"
 #include "duckdb/common/vector_operations/vector_operations.hpp"
 #include "duckdb/planner/logical_operator.hpp"
-#include <iostream>
 
 namespace fb = flatbuffers;
 namespace p = dashql::proto::webdb;
@@ -14,51 +15,51 @@ using namespace duckdb;
 namespace dashql {
 namespace webdb {
 
-#define LOGICAL_OPERATOR_TYPES \
-    X(LOGICAL_INVALID) \
-    X(LOGICAL_PROJECTION) \
-    X(LOGICAL_FILTER) \
+#define LOGICAL_OPERATOR_TYPES        \
+    X(LOGICAL_INVALID)                \
+    X(LOGICAL_PROJECTION)             \
+    X(LOGICAL_FILTER)                 \
     X(LOGICAL_AGGREGATE_AND_GROUP_BY) \
-    X(LOGICAL_WINDOW) \
-    X(LOGICAL_UNNEST) \
-    X(LOGICAL_LIMIT) \
-    X(LOGICAL_ORDER_BY) \
-    X(LOGICAL_TOP_N) \
-    X(LOGICAL_COPY_TO_FILE) \
-    X(LOGICAL_DISTINCT) \
-    X(LOGICAL_GET) \
-    X(LOGICAL_CHUNK_GET) \
-    X(LOGICAL_DELIM_GET) \
-    X(LOGICAL_EXPRESSION_GET) \
-    X(LOGICAL_DUMMY_SCAN) \
-    X(LOGICAL_EMPTY_RESULT) \
-    X(LOGICAL_CTE_REF) \
-    X(LOGICAL_JOIN) \
-    X(LOGICAL_DELIM_JOIN) \
-    X(LOGICAL_COMPARISON_JOIN) \
-    X(LOGICAL_ANY_JOIN) \
-    X(LOGICAL_CROSS_PRODUCT) \
-    X(LOGICAL_UNION) \
-    X(LOGICAL_EXCEPT) \
-    X(LOGICAL_INTERSECT) \
-    X(LOGICAL_RECURSIVE_CTE) \
-    X(LOGICAL_INSERT) \
-    X(LOGICAL_DELETE) \
-    X(LOGICAL_UPDATE) \
-    X(LOGICAL_ALTER) \
-    X(LOGICAL_CREATE_TABLE) \
-    X(LOGICAL_CREATE_INDEX) \
-    X(LOGICAL_CREATE_SEQUENCE) \
-    X(LOGICAL_CREATE_VIEW) \
-    X(LOGICAL_CREATE_SCHEMA) \
-    X(LOGICAL_CREATE_MACRO) \
-    X(LOGICAL_DROP) \
-    X(LOGICAL_PRAGMA) \
-    X(LOGICAL_TRANSACTION) \
-    X(LOGICAL_EXPLAIN) \
-    X(LOGICAL_PREPARE) \
-    X(LOGICAL_EXECUTE) \
-    X(LOGICAL_EXPORT) \
+    X(LOGICAL_WINDOW)                 \
+    X(LOGICAL_UNNEST)                 \
+    X(LOGICAL_LIMIT)                  \
+    X(LOGICAL_ORDER_BY)               \
+    X(LOGICAL_TOP_N)                  \
+    X(LOGICAL_COPY_TO_FILE)           \
+    X(LOGICAL_DISTINCT)               \
+    X(LOGICAL_GET)                    \
+    X(LOGICAL_CHUNK_GET)              \
+    X(LOGICAL_DELIM_GET)              \
+    X(LOGICAL_EXPRESSION_GET)         \
+    X(LOGICAL_DUMMY_SCAN)             \
+    X(LOGICAL_EMPTY_RESULT)           \
+    X(LOGICAL_CTE_REF)                \
+    X(LOGICAL_JOIN)                   \
+    X(LOGICAL_DELIM_JOIN)             \
+    X(LOGICAL_COMPARISON_JOIN)        \
+    X(LOGICAL_ANY_JOIN)               \
+    X(LOGICAL_CROSS_PRODUCT)          \
+    X(LOGICAL_UNION)                  \
+    X(LOGICAL_EXCEPT)                 \
+    X(LOGICAL_INTERSECT)              \
+    X(LOGICAL_RECURSIVE_CTE)          \
+    X(LOGICAL_INSERT)                 \
+    X(LOGICAL_DELETE)                 \
+    X(LOGICAL_UPDATE)                 \
+    X(LOGICAL_ALTER)                  \
+    X(LOGICAL_CREATE_TABLE)           \
+    X(LOGICAL_CREATE_INDEX)           \
+    X(LOGICAL_CREATE_SEQUENCE)        \
+    X(LOGICAL_CREATE_VIEW)            \
+    X(LOGICAL_CREATE_SCHEMA)          \
+    X(LOGICAL_CREATE_MACRO)           \
+    X(LOGICAL_DROP)                   \
+    X(LOGICAL_PRAGMA)                 \
+    X(LOGICAL_TRANSACTION)            \
+    X(LOGICAL_EXPLAIN)                \
+    X(LOGICAL_PREPARE)                \
+    X(LOGICAL_EXECUTE)                \
+    X(LOGICAL_EXPORT)                 \
     X(LOGICAL_VACUUM)
 
 p::OperatorType MapOperatorType(duckdb::LogicalOperatorType type) {
@@ -99,7 +100,7 @@ template <typename T, bool WITH_NULL, typename OP> void iterVec(duckdb::VectorDa
 /// Write a fixed-length result column
 template <typename VecType, typename FlatbufferType = VecType>
 static fb::Offset<p::Vector> writeCol(fb::FlatBufferBuilder &builder, duckdb::PhysicalType type,
-                                          duckdb::VectorData &vec, size_t count) {
+                                      duckdb::VectorData &vec, size_t count) {
     assert(sizeof(VecType) == duckdb::GetTypeIdSize(type));
 
     FlatbufferType *values;
@@ -181,7 +182,7 @@ static fb::Offset<p::Vector> writeCol(fb::FlatBufferBuilder &builder, duckdb::Ph
 
 /// Write a fixed-length result column
 static fb::Offset<p::Vector> writeI128Col(fb::FlatBufferBuilder &builder, duckdb::PhysicalType type,
-                                              duckdb::VectorData &vec, size_t count) {
+                                          duckdb::VectorData &vec, size_t count) {
     p::I128 *values;
     auto d_buf = builder.CreateUninitializedVectorOfStructs(count, &values);
     std::optional<fb::Offset<fb::Vector<uint8_t>>> n_buf = std::nullopt;
@@ -213,7 +214,7 @@ static fb::Offset<p::Vector> writeI128Col(fb::FlatBufferBuilder &builder, duckdb
 
 /// Write a interval result column
 static fb::Offset<p::Vector> writeIntervalCol(fb::FlatBufferBuilder &builder, duckdb::PhysicalType type,
-                                                  duckdb::VectorData &vec, size_t count) {
+                                              duckdb::VectorData &vec, size_t count) {
     p::Interval *values;
     auto d_buf = builder.CreateUninitializedVectorOfStructs(count, &values);
     std::optional<fb::Offset<fb::Vector<uint8_t>>> n_buf = std::nullopt;
@@ -306,8 +307,8 @@ static fb::Offset<p::Vector> writeStringCol(fb::FlatBufferBuilder &builder, duck
 
 /// Write the query result chunk
 fb::Offset<p::QueryResultChunk> WriteQueryResultChunk(flatbuffers::FlatBufferBuilder &builder, uint64_t queryID,
-                                                          duckdb::DataChunk *chunkPtr,
-                                                          nonstd::span<duckdb::LogicalType> types) {
+                                                      duckdb::DataChunk *chunkPtr,
+                                                      nonstd::span<duckdb::LogicalType> types) {
     duckdb::DataChunk tmp;
     auto &chunk = (!!chunkPtr) ? *chunkPtr : tmp;
     auto size = chunk.size();
@@ -372,7 +373,7 @@ fb::Offset<p::QueryResultChunk> WriteQueryResultChunk(flatbuffers::FlatBufferBui
 
 /// Write the query result
 fb::Offset<p::QueryResult> WriteQueryResult(fb::FlatBufferBuilder &builder, duckdb::QueryResult &result,
-                                                uint64_t queryID, bool async) {
+                                            uint64_t queryID, bool async) {
     // Fetch result rows and immediately write them into a flatbuffer
     std::vector<fb::Offset<p::QueryResultChunk>> chunks;
     if (!async) {
@@ -501,4 +502,3 @@ fb::Offset<p::QueryPlan> WriteQueryPlan(fb::FlatBufferBuilder &builder, duckdb::
 
 }  // namespace webdb
 }  // namespace dashql
-

@@ -1,8 +1,9 @@
 // Copyright (c) 2020 The DashQL Authors
 
+#include "dashql/common/pod_vector.h"
+
 #include <sstream>
 
-#include "dashql/common/pod_vector.h"
 #include "gtest/gtest.h"
 
 using namespace std;
@@ -43,4 +44,4 @@ TEST(PodVectorTest, Resize) {
     ASSERT_TRUE(buffer.empty());
 }
 
-}
+}  // namespace

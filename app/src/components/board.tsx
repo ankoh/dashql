@@ -75,17 +75,9 @@ class Ruler extends React.Component<IRulerProps, Iboardtate> {
     // Layout the ruler
     layout(): [Array<Tick>, Array<Label>] {
         if (this.props.orientation === RulerOrientation.Horizontal) {
-            return this.layoutImpl(
-                this.props.width,
-                this.props.height,
-                this.props.scaleFactor,
-            );
+            return this.layoutImpl(this.props.width, this.props.height, this.props.scaleFactor);
         } else {
-            let [ticks, labels] = this.layoutImpl(
-                this.props.height,
-                this.props.width,
-                this.props.scaleFactor,
-            );
+            let [ticks, labels] = this.layoutImpl(this.props.height, this.props.width, this.props.scaleFactor);
             ticks.forEach(t => t.transpose());
             labels.forEach(l => l.transpose());
             return [ticks, labels];
@@ -93,36 +85,17 @@ class Ruler extends React.Component<IRulerProps, Iboardtate> {
     }
 
     // Layout implementation for both, the horizontal and the vertical ruler
-    layoutImpl(
-        length: number,
-        thickness: number,
-        scaleFactor: number,
-    ): [Array<Tick>, Array<Label>] {
+    layoutImpl(length: number, thickness: number, scaleFactor: number): [Array<Tick>, Array<Label>] {
         let ticks = new Array<Tick>();
         let labels = new Array<Label>();
         let stepLength = 5;
         for (let tickID = 0; tickID < length / 5; ++tickID) {
             const x = tickID * stepLength;
             if (tickID % 10 === 0) {
-                ticks.push(
-                    new Tick(
-                        [x, thickness - 0.5],
-                        [x, (thickness * 1) / 3 - 0.5],
-                    ),
-                );
-                labels.push(
-                    new Label(
-                        [x, thickness / 4 - 0.5],
-                        Math.round(x * scaleFactor).toString(),
-                    ),
-                );
+                ticks.push(new Tick([x, thickness - 0.5], [x, (thickness * 1) / 3 - 0.5]));
+                labels.push(new Label([x, thickness / 4 - 0.5], Math.round(x * scaleFactor).toString()));
             } else {
-                ticks.push(
-                    new Tick(
-                        [x, thickness - 0.5],
-                        [x, (thickness * 2) / 3 + 0.5],
-                    ),
-                );
+                ticks.push(new Tick([x, thickness - 0.5], [x, (thickness * 2) / 3 + 0.5]));
             }
         }
         return [ticks, labels];
@@ -153,11 +126,7 @@ class Ruler extends React.Component<IRulerProps, Iboardtate> {
                 context.lineTo(t.end[0], t.end[1]);
             });
             this.state.labels.forEach(l => {
-                context.fillText(
-                    l.text,
-                    l.position[0] + labelAdjustment,
-                    l.position[1],
-                );
+                context.fillText(l.text, l.position[0] + labelAdjustment, l.position[1]);
             });
             context.stroke();
         } else {
@@ -216,20 +185,14 @@ export class Board extends React.Component<IBoardProps, {}> {
             <div className={styles.container}>
                 <AutoSizer>
                     {({ height, width }) => (
-                        <Scrollbars
-                            className={styles.autosizer}
-                            width={width}
-                            height={height}
-                        >
+                        <Scrollbars className={styles.autosizer} width={width} height={height}>
                             <div className={styles.ruler_area}>
                                 <div className={styles.content}>
                                     <WidgetGrid />
                                 </div>
                                 <div className={styles.ruler_top}>
                                     <AutoSizingRuler
-                                        orientation={
-                                            RulerOrientation.Horizontal
-                                        }
+                                        orientation={RulerOrientation.Horizontal}
                                         scaleFactor={this.props.scaleFactor}
                                     />
                                 </div>

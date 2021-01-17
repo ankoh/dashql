@@ -6,8 +6,7 @@ namespace {
 
 void BenchmarkTest(benchmark::State& state) {
     std::string x = "hello";
-    for (auto _ : state)
-        std::string copy(x);
+    for (auto _ : state) std::string copy(x);
 }
 
 }  // namespace
@@ -15,4 +14,3 @@ void BenchmarkTest(benchmark::State& state) {
 BENCHMARK(BenchmarkTest)->RangeMultiplier(2)->Range(1024, 1u << 14u);
 
 BENCHMARK_MAIN();
-

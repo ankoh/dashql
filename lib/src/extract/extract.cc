@@ -1,4 +1,5 @@
 #include "dashql/extract/extract.h"
+
 #include "duckdb/execution/operator/persistent/buffered_csv_reader.hpp"
 
 namespace dashql {
@@ -7,7 +8,6 @@ namespace dashql {
 Signal ExtractCSV(webdb::WebDB::Connection& connection, BlobStreamBuffer& blob_streambuf,
                   duckdb::BufferedCSVReaderOptions csv_options, std::vector<duckdb::LogicalType>&& csv_col_types,
                   const std::string& schema_name, const std::string& table_name) {
-
     // Parse csv blob
     auto blob_stream = std::make_unique<std::istream>(&blob_streambuf);
     duckdb::BufferedCSVReader reader(csv_options, move(csv_col_types), move(blob_stream));
@@ -51,7 +51,7 @@ Signal ExtractCSV(webdb::WebDB::Connection& connection, BlobStreamBuffer& blob_s
     // Append the data chunk to the table
     auto table_info = conn.TableInfo(schema_name, table_name);
     conn.Append(*table_info, data_chunk);
-    return Signal::OK();    
+    return Signal::OK();
 }
 
-}
+}  // namespace dashql
