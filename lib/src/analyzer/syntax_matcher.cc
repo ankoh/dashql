@@ -1,61 +1,66 @@
 #include "dashql/analyzer/syntax_matcher.h"
+
+#include <istream>
+#include <streambuf>
+
 #include "dashql/common/memstream.h"
 #include "dashql/common/variant.h"
-
-#include <streambuf>
-#include <istream>
 
 namespace dashql {
 
 // Return as string ref
 std::string_view NodeMatching::DataAsStringRef() const {
-    return std::visit(overload {
-        [](std::string_view arg) { return arg; },
-        [](auto arg) { return std::string_view{""}; },
-    }, data);
+    return std::visit(overload{
+                          [](std::string_view arg) { return arg; },
+                          [](auto arg) { return std::string_view{""}; },
+                      },
+                      data);
 }
 
 // Return as string
 std::string NodeMatching::DataAsString() const {
-    return std::visit(overload {
-        [](bool arg) { return std::to_string(arg); },
-        [](double arg) { return std::to_string(arg); },
-        [](uint32_t arg) { return std::to_string(arg); },
-        [](std::string_view arg) { return std::string{arg}; },
-        [](auto arg) { return std::string{""}; },
-    }, data);
+    return std::visit(overload{
+                          [](bool arg) { return std::to_string(arg); },
+                          [](double arg) { return std::to_string(arg); },
+                          [](uint32_t arg) { return std::to_string(arg); },
+                          [](std::string_view arg) { return std::string{arg}; },
+                          [](auto arg) { return std::string{""}; },
+                      },
+                      data);
 }
 
 // Return as string
 int64_t NodeMatching::DataAsI64() const {
-    return std::visit(overload {
-        [](bool arg) { return static_cast<int64_t>(arg); },
-        [](double arg) { return static_cast<int64_t>(arg); },
-        [](uint32_t arg) { return static_cast<int64_t>(arg); },
-        [](std::string_view arg) {
-            int64_t value;
-            imemstream ss{arg.data(), arg.size()};
-            ss >> value;
-            return value;
-        },
-        [](auto arg) { return static_cast<int64_t>(0); },
-    }, data);
+    return std::visit(overload{
+                          [](bool arg) { return static_cast<int64_t>(arg); },
+                          [](double arg) { return static_cast<int64_t>(arg); },
+                          [](uint32_t arg) { return static_cast<int64_t>(arg); },
+                          [](std::string_view arg) {
+                              int64_t value;
+                              imemstream ss{arg.data(), arg.size()};
+                              ss >> value;
+                              return value;
+                          },
+                          [](auto arg) { return static_cast<int64_t>(0); },
+                      },
+                      data);
 }
 
 // Return as double
 double NodeMatching::DataAsDouble() const {
-    return std::visit(overload {
-        [](bool arg) { return static_cast<double>(arg); },
-        [](double arg) { return arg; },
-        [](uint32_t arg) { return static_cast<double>(arg); },
-        [](std::string_view arg) {
-            double value;
-            imemstream ss{arg.data(), arg.size()};
-            ss >> value;
-            return value;
-        },
-        [](auto arg) { return 0.0; },
-    }, data);
+    return std::visit(overload{
+                          [](bool arg) { return static_cast<double>(arg); },
+                          [](double arg) { return arg; },
+                          [](uint32_t arg) { return static_cast<double>(arg); },
+                          [](std::string_view arg) {
+                              double value;
+                              imemstream ss{arg.data(), arg.size()};
+                              ss >> value;
+                              return value;
+                          },
+                          [](auto arg) { return 0.0; },
+                      },
+                      data);
 }
 
 /// Match a matcher
@@ -70,7 +75,10 @@ bool SyntaxMatcher::Match(const ProgramInstance& program, const sx::Node& root, 
     };
 
     // Match the matcher with a DFS
-    struct Step { const sx::Node& node; const SyntaxMatcher& matcher; };
+    struct Step {
+        const sx::Node& node;
+        const SyntaxMatcher& matcher;
+    };
     std::vector<Step> pending;
     pending.reserve(8);
     pending.push_back({root, *this});
@@ -127,10 +135,10 @@ bool SyntaxMatcher::Match(const ProgramInstance& program, const sx::Node& root, 
             }
             case SyntaxMatcherType::OBJECT: {
                 matching.status = NodeMatchingStatus::MATCHED;
-                nonstd::span<const sx::Node> children{program.program().nodes.data() + top.node.children_begin_or_value(), top.node.children_count()};
-                assert(std::is_sorted(children.begin(), children.end(), [](auto& l, auto& r) {
-                    return l.attribute_key() < r.attribute_key();
-                }));
+                nonstd::span<const sx::Node> children{
+                    program.program().nodes.data() + top.node.children_begin_or_value(), top.node.children_count()};
+                assert(std::is_sorted(children.begin(), children.end(),
+                                      [](auto& l, auto& r) { return l.attribute_key() < r.attribute_key(); }));
                 size_t h = 0, e = 0;
                 while (h < children.size() && e < top.matcher.children.size()) {
                     auto& have = children[h];
@@ -158,4 +166,4 @@ bool SyntaxMatcher::Match(const ProgramInstance& program, const sx::Node& root, 
     return full_match;
 }
 
-}
+}  // namespace dashql

@@ -3,9 +3,10 @@
 #ifndef INCLUDE_DASHQL_COMMON_STRING_INDEX_H_
 #define INCLUDE_DASHQL_COMMON_STRING_INDEX_H_
 
-#include "dashql/proto_generated.h"
 #include <array>
 #include <string>
+
+#include "dashql/proto_generated.h"
 
 namespace dashql {
 
@@ -23,7 +24,7 @@ namespace dashql {
 /// The runtime is quadratic in the number of edits but use a very compact edit log that can be applied branch-free.
 ///
 class SubstringBuffer {
-    protected:
+   protected:
     /// A location patch
     struct Patch {
         /// Every location that is >= or <= offset will be patched
@@ -46,7 +47,7 @@ class SubstringBuffer {
     /// Patch a location
     proto::syntax::Location ApplyPatches(proto::syntax::Location loc) const;
 
-    public:
+   public:
     /// Constructor
     SubstringBuffer(std::string_view text);
     /// Constructor
@@ -60,6 +61,6 @@ class SubstringBuffer {
     std::string Finish() const { return buffer_; }
 };
 
-} // namespace dashql
+}  // namespace dashql
 
-#endif // INCLUDE_DASHQL_STRING_INDEX_H_
+#endif  // INCLUDE_DASHQL_STRING_INDEX_H_

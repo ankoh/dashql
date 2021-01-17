@@ -6,9 +6,9 @@
 #include <filesystem>
 #include <string>
 
-#include "gtest/gtest.h"
 #include "dashql/analyzer/program_instance.h"
 #include "dashql/proto_generated.h"
+#include "gtest/gtest.h"
 #include "pugixml.hpp"
 
 namespace dashql {
@@ -34,7 +34,8 @@ struct AnalyzerTest {
     pugi::xml_document expected_next_graph;
 
     /// Encode the action graph
-    static void EncodePlan(pugi::xml_node& root, const ProgramInstance& program, const proto::action::ActionGraphT& graph);
+    static void EncodePlan(pugi::xml_node& root, const ProgramInstance& program,
+                           const proto::action::ActionGraphT& graph);
 };
 
 }  // namespace test

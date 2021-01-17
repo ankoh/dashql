@@ -44,12 +44,14 @@ struct VizChangePosition : public OptionEdit {
     void WriteKey(std::ostream& out) const override { out << getOptionLabel(key); }
     /// Write the option value
     void WriteValue(std::ostream& out) const override {
-        out << "(x = " << pos.row() << ", y = " << pos.column() << ", w = " << pos.width() << ", h = " << pos.height() << ")";
+        out << "(x = " << pos.row() << ", y = " << pos.column() << ", w = " << pos.width() << ", h = " << pos.height()
+            << ")";
     }
 };
 
 /// Rewrite a viz statement
-std::string ProgramEditor::RewriteVizStatement(size_t stmt_id, nonstd::span<const proto::edit::EditOperation*> edits) const {
+std::string ProgramEditor::RewriteVizStatement(size_t stmt_id,
+                                               nonstd::span<const proto::edit::EditOperation*> edits) const {
     auto& stmt = *instance_.program().statements[stmt_id];
     auto& root = instance_.program().nodes[stmt.root_node];
 
@@ -143,9 +145,7 @@ std::string ProgramEditor::Apply(const proto::edit::ProgramEdit& pe) {
 
     /// Sort the edit operations by statement id
     std::vector<const proto::edit::EditOperation*> ops{pe.edits()->begin(), pe.edits()->end()};
-    std::sort(ops.begin(), ops.end(), [&](auto* l, auto* r) {
-        return l->statement_id() < r->statement_id();
-    });
+    std::sort(ops.begin(), ops.end(), [&](auto* l, auto* r) { return l->statement_id() < r->statement_id(); });
 
     for (auto iter = ops.begin(); iter != ops.end();) {
         /// Find all operations that refer to the statement id
@@ -160,7 +160,6 @@ std::string ProgramEditor::Apply(const proto::edit::ProgramEdit& pe) {
         auto& stmt = *instance_.program().statements[stmt_id];
         auto& stmt_root = instance_.program().nodes[stmt.root_node];
         switch (stmt.statement_type) {
-
             case sx::StatementType::VIZUALIZE: {
                 buffer.Replace(stmt_root.location(), RewriteVizStatement(stmt_id, stmt_ops));
                 break;

@@ -3,12 +3,11 @@
 #include <sstream>
 
 #include "dashql/proto_generated.h"
-#include "dashql/webdb/webdb.h"
 #include "dashql/webdb/iterator.h"
-#include "gtest/gtest.h"
-
-#include "duckdb/common/vector_size.hpp"
+#include "dashql/webdb/webdb.h"
 #include "duckdb/common/types.hpp"
+#include "duckdb/common/vector_size.hpp"
+#include "gtest/gtest.h"
 
 using namespace dashql::webdb;
 using namespace std;
@@ -16,10 +15,7 @@ namespace p = dashql::proto::webdb;
 
 namespace {
 
-TEST(DuckDBTests, Settings) {
-    ASSERT_EQ(STANDARD_VECTOR_SIZE, 1024);
-}
-
+TEST(DuckDBTests, Settings) { ASSERT_EQ(STANDARD_VECTOR_SIZE, 1024); }
 
 TEST(DuckDBTests, SQLTypeIDs) {
     using dt = duckdb::LogicalTypeId;

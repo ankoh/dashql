@@ -4,12 +4,12 @@
 
 #include <iomanip>
 
-#include "dashql/common/substring_buffer.h"
 #include "dashql/analyzer/action_planner.h"
-#include "dashql/analyzer/program_editor.h"
 #include "dashql/analyzer/function_logic.h"
 #include "dashql/analyzer/parameter_value.h"
+#include "dashql/analyzer/program_editor.h"
 #include "dashql/analyzer/syntax_matcher.h"
+#include "dashql/common/substring_buffer.h"
 #include "dashql/parser/parser_driver.h"
 #include "dashql/proto_generated.h"
 #include "duckdb/main/client_context.hpp"
@@ -183,10 +183,10 @@ void Analyzer::PropagateParameterValues(ProgramInstance& instance) {
                 std::vector<size_t> func_arg_node_ids;
                 for (unsigned i = 0; i < func_args_node->children_count(); ++i) {
                     auto arg_node_id = func_args_node->children_begin_or_value() + i;
-                        auto arg_value = TryEvaluateConstant(instance, arg_node_id);
-                        if (!arg_value) break;
-                        func_args.push_back(std::move(*arg_value));
-                        func_arg_node_ids.push_back(arg_node_id);
+                    auto arg_value = TryEvaluateConstant(instance, arg_node_id);
+                    if (!arg_value) break;
+                    func_args.push_back(std::move(*arg_value));
+                    func_arg_node_ids.push_back(arg_node_id);
                 }
 
                 // Not all arguments const?
@@ -234,7 +234,7 @@ Signal Analyzer::InstantiateProgram(std::vector<ParameterValue> params) {
 Signal Analyzer::EditProgram(const proto::edit::ProgramEdit& edit) {
     if (!program_instance_) return Signal::OK();
 
-    // Apply the edits 
+    // Apply the edits
     ProgramEditor editor{*program_instance_};
     auto updated_text = editor.Apply(edit);
 
@@ -244,7 +244,7 @@ Signal Analyzer::EditProgram(const proto::edit::ProgramEdit& edit) {
     // Instantiate the new program
     std::vector<ParameterValue> params;
     params.reserve(program_instance_->parameter_values().size());
-    for (auto& p: program_instance_->parameter_values()) {
+    for (auto& p : program_instance_->parameter_values()) {
         params.push_back({
             p.statement_id,
             p.value.CopyDeep(),
@@ -280,7 +280,8 @@ flatbuffers::Offset<proto::syntax::Program> Analyzer::PackProgram(flatbuffers::F
 }
 
 /// Pack the program annotations
-flatbuffers::Offset<proto::analyzer::ProgramAnnotations> Analyzer::PackProgramAnnotations(flatbuffers::FlatBufferBuilder& builder) {
+flatbuffers::Offset<proto::analyzer::ProgramAnnotations> Analyzer::PackProgramAnnotations(
+    flatbuffers::FlatBufferBuilder& builder) {
     assert(!!program_instance_.get());
 
     // Pack parameters
@@ -313,7 +314,8 @@ flatbuffers::Offset<proto::analyzer::Plan> Analyzer::PackPlan(flatbuffers::FlatB
 }
 
 /// Pack a program replacement
-flatbuffers::Offset<proto::analyzer::ProgramReplacement> Analyzer::PackReplacement(flatbuffers::FlatBufferBuilder& builder) {
+flatbuffers::Offset<proto::analyzer::ProgramReplacement> Analyzer::PackReplacement(
+    flatbuffers::FlatBufferBuilder& builder) {
     assert(!!program_instance_.get());
 
     auto program_txt = builder.CreateString(program_instance_->program_text());

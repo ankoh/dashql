@@ -4,8 +4,8 @@
 #define INCLUDE_DASHQL_ANALYZER_SYNTAX_MATCHER_H_
 
 #include <iostream>
-#include <sstream>
 #include <optional>
+#include <sstream>
 #include <unordered_map>
 #include <variant>
 
@@ -55,8 +55,7 @@ struct NodeMatching {
     /// Get the value as double
     double DataAsDouble() const;
     /// Get the value as enum
-    template <typename T>
-    T DataAsEnum() const {
+    template <typename T> T DataAsEnum() const {
         auto* v = std::get_if<uint32_t>(&data);
         return static_cast<T>(!!v ? *v : 0);
     }
@@ -76,17 +75,15 @@ struct SyntaxMatcher {
     nonstd::span<const SyntaxMatcher> children = {};
 
     /// A buffer to inline static nodes
-    template <size_t ID, size_t N>
-    struct StaticNodeMatchers {
+    template <size_t ID, size_t N> struct StaticNodeMatchers {
         static inline nonstd::span<const SyntaxMatcher> Create(std::array<SyntaxMatcher, N> elements) {
-            assert(std::is_sorted(elements.begin(), elements.end(), [](auto& l, auto& r) {
-                return l.attribute_key < r.attribute_key;
-            }));
+            assert(std::is_sorted(elements.begin(), elements.end(),
+                                  [](auto& l, auto& r) { return l.attribute_key < r.attribute_key; }));
             static const std::array<SyntaxMatcher, N> buffer = move(elements);
             return {buffer.data(), buffer.size()};
         }
     };
-#define NUM_NODES(...)  (sizeof((SyntaxMatcher[]){__VA_ARGS__})/sizeof(SyntaxMatcher))
+#define NUM_NODES(...) (sizeof((SyntaxMatcher[]){__VA_ARGS__}) / sizeof(SyntaxMatcher))
 #define NODE_MATCHERS(...) SyntaxMatcher::StaticNodeMatchers<__COUNTER__, NUM_NODES(__VA_ARGS__)>::Create({__VA_ARGS__})
 
     static constexpr inline SyntaxMatcher Element(std::optional<size_t> matching = std::nullopt) {
@@ -99,7 +96,8 @@ struct SyntaxMatcher {
         };
     }
 
-    static constexpr inline SyntaxMatcher Attribute(sx::AttributeKey key, std::optional<size_t> matching = std::nullopt) {
+    static constexpr inline SyntaxMatcher Attribute(sx::AttributeKey key,
+                                                    std::optional<size_t> matching = std::nullopt) {
         return {
             .matching_id = matching,
             .attribute_key = key,

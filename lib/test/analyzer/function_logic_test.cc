@@ -14,9 +14,7 @@ using namespace webdb;
 namespace {
 
 TEST(FormatTest, Empty) {
-    std::array<Value, 1> args{
-        Value::VARCHAR(Ref, "foo")
-    };
+    std::array<Value, 1> args{Value::VARCHAR(Ref, "foo")};
     auto fmt = FunctionLogic::Resolve("format", args);
     auto res = fmt->Evaluate(args);
     ASSERT_TRUE(res.IsOk());

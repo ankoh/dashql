@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Chart } from "chart.js";
+import { Chart } from 'chart.js';
 
 import styles from './widgets.module.css';
 
@@ -23,12 +23,7 @@ export class IntegerParameter extends React.Component<IntegerParameterProps> {
 
     render() {
         return (
-            <input
-                className={styles.input}
-                type="number"
-                value={this.props.value ?? ''}
-                onChange={this.handleChange}
-            />
+            <input className={styles.input} type="number" value={this.props.value ?? ''} onChange={this.handleChange} />
         );
     }
 }
@@ -83,12 +78,7 @@ export class TextParameter extends React.Component<TextParameterProps> {
 
     render() {
         return (
-            <input
-                className={styles.input}
-                type="text"
-                value={this.props.value ?? ''}
-                onChange={this.handleChange}
-            />
+            <input className={styles.input} type="text" value={this.props.value ?? ''} onChange={this.handleChange} />
         );
     }
 }
@@ -116,27 +106,16 @@ export class DateParameter extends React.Component<DateParameterProps> {
             return '';
         }
 
-        const year = date
-            .getFullYear()
-            .toString()
-            .padStart(4, '0');
+        const year = date.getFullYear().toString().padStart(4, '0');
         const month = (date.getMonth() + 1).toString().padStart(2, '0');
-        const day = date
-            .getDate()
-            .toString()
-            .padStart(2, '0');
+        const day = date.getDate().toString().padStart(2, '0');
 
         return `${year}-${month}-${day}`;
     }
 
     render() {
         return (
-            <input
-                className={styles.input}
-                type="date"
-                value={this.props.value ?? ''}
-                onChange={this.handleChange}
-            />
+            <input className={styles.input} type="date" value={this.props.value ?? ''} onChange={this.handleChange} />
         );
     }
 }
@@ -189,15 +168,9 @@ export class DatetimeParameter extends React.Component<DatetimeParameterProps> {
             return '';
         }
 
-        const year = date
-            .getFullYear()
-            .toString()
-            .padStart(4, '0');
+        const year = date.getFullYear().toString().padStart(4, '0');
         const month = (date.getMonth() + 1).toString().padStart(2, '0');
-        const day = date
-            .getDate()
-            .toString()
-            .padStart(2, '0');
+        const day = date.getDate().toString().padStart(2, '0');
 
         return `${year}-${month}-${day}`;
     }
@@ -207,18 +180,9 @@ export class DatetimeParameter extends React.Component<DatetimeParameterProps> {
             return '';
         }
 
-        const hours = date
-            .getHours()
-            .toString()
-            .padStart(2, '0');
-        const minutes = date
-            .getMinutes()
-            .toString()
-            .padStart(2, '0');
-        const seconds = date
-            .getSeconds()
-            .toString()
-            .padStart(2, '0');
+        const hours = date.getHours().toString().padStart(2, '0');
+        const minutes = date.getMinutes().toString().padStart(2, '0');
+        const seconds = date.getSeconds().toString().padStart(2, '0');
 
         return `${hours}:${minutes}:${seconds}`;
     }
@@ -269,18 +233,9 @@ export class TimeParameter extends React.Component<TimeParameterProps> {
             return '';
         }
 
-        const hours = date
-            .getHours()
-            .toString()
-            .padStart(2, '0');
-        const minutes = date
-            .getMinutes()
-            .toString()
-            .padStart(2, '0');
-        const seconds = date
-            .getSeconds()
-            .toString()
-            .padStart(2, '0');
+        const hours = date.getHours().toString().padStart(2, '0');
+        const minutes = date.getMinutes().toString().padStart(2, '0');
+        const seconds = date.getSeconds().toString().padStart(2, '0');
 
         return `${hours}:${minutes}:${seconds}`;
     }
@@ -317,13 +272,7 @@ export class FileParameter extends React.Component<FileParameterProps> {
     };
 
     render() {
-        return (
-            <input
-                className={styles.input}
-                type="file"
-                onChange={this.handleChange}
-            />
-        );
+        return <input className={styles.input} type="file" onChange={this.handleChange} />;
     }
 }
 
@@ -334,7 +283,7 @@ export class AreaChart extends React.Component {
 }
 
 export class BarChart extends React.Component {
-    chart!: Chart
+    chart!: Chart;
 
     componentDidMount() {
         const context = (this.refs.chart as HTMLCanvasElement).getContext('2d')!;
@@ -343,37 +292,41 @@ export class BarChart extends React.Component {
             type: 'bar',
             data: {
                 labels: ['Red', 'Blue', 'Yellow', 'Green', 'Purple', 'Orange'],
-                datasets: [{
-                    label: '# of Votes',
-                    data: [12, 19, 3, 5, 2, 3],
-                    backgroundColor: [
-                        'rgba(255, 99, 132, 0.2)',
-                        'rgba(54, 162, 235, 0.2)',
-                        'rgba(255, 206, 86, 0.2)',
-                        'rgba(75, 192, 192, 0.2)',
-                        'rgba(153, 102, 255, 0.2)',
-                        'rgba(255, 159, 64, 0.2)'
-                    ],
-                    borderColor: [
-                        'rgba(255, 99, 132, 1)',
-                        'rgba(54, 162, 235, 1)',
-                        'rgba(255, 206, 86, 1)',
-                        'rgba(75, 192, 192, 1)',
-                        'rgba(153, 102, 255, 1)',
-                        'rgba(255, 159, 64, 1)'
-                    ],
-                    borderWidth: 1
-                }]
+                datasets: [
+                    {
+                        label: '# of Votes',
+                        data: [12, 19, 3, 5, 2, 3],
+                        backgroundColor: [
+                            'rgba(255, 99, 132, 0.2)',
+                            'rgba(54, 162, 235, 0.2)',
+                            'rgba(255, 206, 86, 0.2)',
+                            'rgba(75, 192, 192, 0.2)',
+                            'rgba(153, 102, 255, 0.2)',
+                            'rgba(255, 159, 64, 0.2)',
+                        ],
+                        borderColor: [
+                            'rgba(255, 99, 132, 1)',
+                            'rgba(54, 162, 235, 1)',
+                            'rgba(255, 206, 86, 1)',
+                            'rgba(75, 192, 192, 1)',
+                            'rgba(153, 102, 255, 1)',
+                            'rgba(255, 159, 64, 1)',
+                        ],
+                        borderWidth: 1,
+                    },
+                ],
             },
             options: {
                 scales: {
-                    yAxes: [{
-                        ticks: {
-                            beginAtZero: true
-                        }
-                    }]
-                }
-            }
+                    yAxes: [
+                        {
+                            ticks: {
+                                beginAtZero: true,
+                            },
+                        },
+                    ],
+                },
+            },
         });
     }
 

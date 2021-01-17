@@ -48,10 +48,10 @@ TEST(SimpleCSVParser, SimpleColumns) {
 
     ASSERT_TRUE(rc.IsOk()) << rc.err().message();
     MatchIntegerChunk(output_chunk, {
-        {1, 4, 7},
-        {2, 5, 8},
-        {3, 6, 9},
-    });
+                                        {1, 4, 7},
+                                        {2, 5, 8},
+                                        {3, 6, 9},
+                                    });
 }
 
 TEST(SimpleCSVParser, InvalidCSV) {

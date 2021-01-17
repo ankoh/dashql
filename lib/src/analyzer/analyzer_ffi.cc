@@ -1,15 +1,13 @@
 // Copyright (c) 2020 The DashQL Authors
 
-#include "dashql/common/ffi_response.h"
 #include "dashql/analyzer/analyzer.h"
+#include "dashql/common/ffi_response.h"
 
 using namespace dashql;
 
 extern "C" {
 
-void dashql_analyzer_reset() {
-    Analyzer::ResetInstance();
-}
+void dashql_analyzer_reset() { Analyzer::ResetInstance(); }
 
 void dashql_analyzer_parse_program(FFIResponse* response, const char* text) {
     if (auto rc = Analyzer::GetInstance().ParseProgram(text); !rc) {
@@ -62,5 +60,4 @@ void dashql_analyzer_edit_program(FFIResponse* response, const void* args_buffer
     builder.Finish(replacement);
     FFIResponseBuffer::GetInstance().Store(*response, builder.Release());
 }
-
 }

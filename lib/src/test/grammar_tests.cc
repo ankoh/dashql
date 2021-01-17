@@ -1,7 +1,7 @@
 #include "dashql/test/grammar_tests.h"
 
-#include <fstream>
 #include <cstdint>
+#include <fstream>
 #include <iostream>
 #include <regex>
 #include <sstream>
@@ -238,7 +238,7 @@ void GrammarTest::LoadTests(std::filesystem::path& source_dir) {
     auto grammar_dir = source_dir / "test" / "parser" / "spec";
 
     std::cout << "Loading grammar tests at: " << grammar_dir << std::endl;
-    
+
     for (auto& p : std::filesystem::directory_iterator(grammar_dir)) {
         auto filename = p.path().filename().string();
         if (p.path().extension().string() != ".xml") continue;
@@ -269,7 +269,7 @@ void GrammarTest::LoadTests(std::filesystem::path& source_dir) {
             t.input = test.child("input").last_child().value();
 
             pugi::xml_document expected;
-            for (auto s: test.child("expected").children()) {
+            for (auto s : test.child("expected").children()) {
                 expected.append_copy(s);
             }
             t.expected = std::move(expected);
@@ -290,7 +290,7 @@ std::vector<const GrammarTest*> GrammarTest::GetTests(std::string_view filename)
         return {};
     }
     std::vector<const GrammarTest*> tests;
-    for (auto& test: iter->second) {
+    for (auto& test : iter->second) {
         tests.emplace_back(&test);
     }
     return tests;

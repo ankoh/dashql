@@ -1,8 +1,9 @@
 // Copyright (c) 2020 The DashQL Authors
 
+#include "dashql/common/union_find.h"
+
 #include <sstream>
 
-#include "dashql/common/union_find.h"
 #include "gtest/gtest.h"
 
 using namespace std;
@@ -61,4 +62,4 @@ TEST(SparseUnionFind, SimpleOps) {
     ASSERT_EQ(*uf.Find(42), "f");
 }
 
-}
+}  // namespace

@@ -3,12 +3,13 @@
 #ifndef INCLUDE_DASHQL_PARSER_SCANNER_H_
 #define INCLUDE_DASHQL_PARSER_SCANNER_H_
 
-#include <string_view>
 #include <charconv>
 #include <optional>
+#include <string_view>
+
+#include "dashql/common/span.h"
 #include "dashql/parser/parser.h"
 #include "dashql/proto_generated.h"
-#include "dashql/common/span.h"
 
 namespace sx = dashql::proto::syntax;
 
@@ -21,9 +22,10 @@ constexpr size_t YY_SCANNER_STATE_SIZE = 200;
 constexpr size_t YY_BUFFER_STATE_SIZE = 144;
 
 /// XXX Note that flex requires the input to be padded with 2 additional characters to match YY_END_OF_BUFFER.
-///     This scanner will blindly overwrite these last two characters and fall back to an empty buffer if the size of the input is < 2.
+///     This scanner will blindly overwrite these last two characters and fall back to an empty buffer if the size of
+///     the input is < 2.
 class Scanner {
-    protected:
+   protected:
     /// The full input buffer
     nonstd::span<char> input_buffer_;
     /// The invalid input buffer
@@ -55,7 +57,7 @@ class Scanner {
     /// The comments
     std::vector<sx::Location> comments_;
 
-    public:
+   public:
     /// Constructor
     Scanner(nonstd::span<char> input);
     /// Delete the copy constructor
@@ -64,17 +66,18 @@ class Scanner {
     Scanner& operator=(const Scanner& other) = delete;
 
     /// Get the scanner state pointer
-    auto* state() { return scanner_state_ptr_; } 
+    auto* state() { return scanner_state_ptr_; }
     /// Get the errors
-    auto& errors() { return errors_; } 
+    auto& errors() { return errors_; }
     /// Get the line breaks
-    auto& line_breaks() { return line_breaks_; } 
+    auto& line_breaks() { return line_breaks_; }
     /// Get the comments
-    auto& comments() { return comments_; } 
+    auto& comments() { return comments_; }
     /// Access the input
     std::string_view input_text() {
         assert(input_buffer_.size() >= 2);
-        return std::string_view{input_buffer_.data(), input_buffer_.size() - 2}; }
+        return std::string_view{input_buffer_.data(), input_buffer_.size() - 2};
+    }
 
     /// Release the line breaks
     auto&& ReleaseLineBreaks() { return move(line_breaks_); }
@@ -112,7 +115,7 @@ class Scanner {
     Parser::symbol_type Next();
 };
 
-} // namespace parser
-} // namespace dashql
+}  // namespace parser
+}  // namespace dashql
 
-#endif // INCLUDE_DASHQL_PARSER_PARSER_DRIVER_H_
+#endif  // INCLUDE_DASHQL_PARSER_PARSER_DRIVER_H_

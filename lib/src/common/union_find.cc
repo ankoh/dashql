@@ -5,8 +5,7 @@
 namespace dashql {
 
 /// Constructor
-UnionFind::UnionFind(size_t size)
-    : entries_() {
+UnionFind::UnionFind(size_t size) : entries_() {
     entries_.resize(size);
     for (unsigned i = 0; i < entries_.size(); ++i) {
         entries_[i] = {
@@ -20,7 +19,8 @@ UnionFind::UnionFind(size_t size)
 size_t UnionFind::Find(size_t key) {
     // Find the root of the set
     auto root = key;
-    for (; root != entries_[root].parent; root = entries_[root].parent);
+    for (; root != entries_[root].parent; root = entries_[root].parent)
+        ;
     // Path compression
     while (key != root) {
         auto parent = entries_[key].parent;
@@ -41,4 +41,4 @@ void UnionFind::Merge(size_t l, size_t r) {
     }
 }
 
-}
+}  // namespace dashql

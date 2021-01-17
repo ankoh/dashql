@@ -21,13 +21,7 @@ enum RefTag { Ref };
 class Value {
    protected:
     /// The physical type
-    enum class PhysicalType {
-        NULL_,
-        I64,
-        F64,
-        STRING,
-        STRING_VIEW
-    };
+    enum class PhysicalType { NULL_, I64, F64, STRING, STRING_VIEW };
 
     /// The logical type
     proto::analyzer::ValueType logical_type_;
@@ -99,9 +93,9 @@ class Value {
     std::string PrintValueAsScript() const;
 
     /// Comparison
-    bool operator==(const Value &rhs) const;
+    bool operator==(const Value& rhs) const;
     /// Comparison
-    bool operator!=(const Value &rhs) const;
+    bool operator!=(const Value& rhs) const;
 
     /// Copy a value deep
     Value CopyDeep() const;

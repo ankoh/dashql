@@ -6,9 +6,9 @@
 #include <iostream>
 #include <map>
 #include <memory>
+#include <queue>
 #include <stack>
 #include <string>
-#include <queue>
 #include <tuple>
 #include <unordered_map>
 #include <utility>
@@ -67,9 +67,11 @@ struct CSVExtractOptions {
     /// Consider all columns to be of type varchar
     bool all_varchar = false;
     /// The date format to use (if any is specified)
-    std::map<duckdb::LogicalTypeId, duckdb::StrpTimeFormat> date_format = {{duckdb::LogicalTypeId::DATE, {}}, {duckdb::LogicalTypeId::TIMESTAMP, {}}};
+    std::map<duckdb::LogicalTypeId, duckdb::StrpTimeFormat> date_format = {{duckdb::LogicalTypeId::DATE, {}},
+                                                                           {duckdb::LogicalTypeId::TIMESTAMP, {}}};
     /// Whether or not a type format is specified
-    std::map<duckdb::LogicalTypeId, bool> has_format = {{duckdb::LogicalTypeId::DATE, false}, {duckdb::LogicalTypeId::TIMESTAMP, false}};
+    std::map<duckdb::LogicalTypeId, bool> has_format = {{duckdb::LogicalTypeId::DATE, false},
+                                                        {duckdb::LogicalTypeId::TIMESTAMP, false}};
 
     std::string toString() const {
         return "DELIMITER='" + delimiter + (has_delimiter ? "'" : (auto_detect ? "' (auto detected)" : "' (default)")) +
@@ -93,19 +95,20 @@ class CSVExtract {
     /// Candidates for delimiter auto detection
     std::vector<std::string> delim_candidates = {",", "|", ";", "\t"};
     /// Candidates for quote rule auto detection
-    std::vector<QuoteRule> quoterule_candidates = {QuoteRule::QUOTES_RFC, QuoteRule::QUOTES_OTHER, QuoteRule::NO_QUOTES};
+    std::vector<QuoteRule> quoterule_candidates = {QuoteRule::QUOTES_RFC, QuoteRule::QUOTES_OTHER,
+                                                   QuoteRule::NO_QUOTES};
     /// Candidates for quote sign auto detection (per quote rule)
     std::vector<std::vector<std::string>> quote_candidates_map = {{"\""}, {"\"", "'"}, {""}};
     /// Candidates for escape character auto detection (per quote rule)
     std::vector<std::vector<std::string>> escape_candidates_map = {{""}, {"\\"}, {""}};
 
-public:
-    CSVExtract(CSVExtractOptions options, std::vector<duckdb::LogicalType> requested_types, std::istream& source);
+   public:
+    CSVExtract(CSVExtractOptions options, std::vector<duckdb::LogicalType> requested_types, std::istream &source);
 
     CSVExtractOptions options;
     std::vector<duckdb::LogicalType> sql_types;
     std::vector<std::string> col_names;
-    std::istream& source;
+    std::istream &source;
 
     std::unique_ptr<char[]> buffer;
     size_t buffer_size;
@@ -131,11 +134,11 @@ public:
 
     std::queue<std::unique_ptr<duckdb::DataChunk>> cached_chunks;
 
-public:
+   public:
     /// Extract a single DataChunk from the CSV file and stores it in insert_chunk
     void Extract(duckdb::DataChunk &insert_chunk);
 
-private:
+   private:
     /// Initialize Parser
     void Initialize(std::vector<duckdb::LogicalType> requested_types);
     /// Initializes the parse_chunk with varchar columns and aligns info with new number of cols
@@ -182,6 +185,6 @@ private:
     bool ReadBuffer(size_t &start);
 };
 
-}
+}  // namespace dashql
 
 #endif

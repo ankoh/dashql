@@ -5,9 +5,9 @@
 
 #include <unordered_map>
 
-#include "dashql/common/expected.h"
 #include "dashql/analyzer/program_instance.h"
 #include "dashql/analyzer/program_matcher.h"
+#include "dashql/common/expected.h"
 #include "dashql/proto_generated.h"
 
 namespace dashql {
@@ -49,8 +49,7 @@ class ActionPlanner {
 
    public:
     /// Constructor
-    ActionPlanner(const ProgramInstance& next_program,
-                  const ProgramInstance* prev_program = nullptr,
+    ActionPlanner(const ProgramInstance& next_program, const ProgramInstance* prev_program = nullptr,
                   const proto::action::ActionGraphT* prev_action_graph = nullptr);
 
     /// Plan the new action graph

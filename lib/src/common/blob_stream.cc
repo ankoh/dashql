@@ -34,8 +34,7 @@ std::streamsize BlobStreamBufferBase::xsgetn(char* out, std::streamsize capacity
     return copied;
 }
 
-BlobStreamBuffer::BlobStreamBuffer(UnderflowFunc underflow, BlobID blob_id,
-                                   CachedBuffers* cached_buffers)
+BlobStreamBuffer::BlobStreamBuffer(UnderflowFunc underflow, BlobID blob_id, CachedBuffers* cached_buffers)
     : BlobStreamBufferBase(underflow, blob_id), cached_buffers_(cached_buffers), cache_iter_(0), buffer_() {
     buffer_.reserve(BLOB_STREAMBUF_SIZE);
 }
@@ -102,13 +101,10 @@ BlobStreamBufferBase::int_type CachingBlobStreamBuffer::underflow() {
 
 }  // namespace dashql
 
-
 extern "C" {
 
 size_t dashql_pong();
-size_t dashql_ping() {
-    return dashql_pong();
-}
+size_t dashql_ping() { return dashql_pong(); }
 
 size_t dashql_blob_stream_underflow(dashql::BlobID, char*, size_t);
 
@@ -116,5 +112,4 @@ size_t dashql_blob_stream_underflow(dashql::BlobID, char*, size_t);
 size_t dashql_pong() { return 0; }
 size_t dashql_blob_stream_underflow(dashql::BlobID, char*, size_t) { return 0; }
 #endif
-
 }

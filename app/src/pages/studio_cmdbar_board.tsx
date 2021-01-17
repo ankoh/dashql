@@ -1,9 +1,5 @@
-import * as React from "react";
-import {
-    AspectRatioIcon,
-    IIconProps,
-    RulerIcon,
-} from '../svg/icons';
+import * as React from 'react';
+import { AspectRatioIcon, IIconProps, RulerIcon } from '../svg/icons';
 
 import styles from './studio.module.css';
 
@@ -13,12 +9,7 @@ function createAction(Icon: React.FunctionComponent<IIconProps>): React.Function
     return (props: IIconProps & ActionProps) => {
         return (
             <div className={styles.cmdbar_cmd}>
-                <Icon
-                    className={styles.cmdbar_icon}
-                    width={'20px'}
-                    height={'20px'}
-                    {...props}
-                />
+                <Icon className={styles.cmdbar_icon} width={'20px'} height={'20px'} {...props} />
             </div>
         );
     };
@@ -39,4 +30,4 @@ export class BoardCommandBar extends React.Component<{}> {
             </div>
         );
     }
-};
+}

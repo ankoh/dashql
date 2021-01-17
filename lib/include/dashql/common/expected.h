@@ -237,4 +237,3 @@ template <typename V> struct ExpectedBufferRef {
 }  // namespace dashql
 
 #endif  // INCLUDE_DASHQL_COMMON_EXPECTED_H_
-

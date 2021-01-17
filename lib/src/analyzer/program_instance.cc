@@ -1,24 +1,26 @@
 #include "dashql/analyzer/program_instance.h"
-#include "dashql/common/variant.h"
-#include "dashql/common/memstream.h"
 
 #include <iomanip>
 #include <sstream>
 #include <stack>
 
+#include "dashql/common/memstream.h"
 #include "dashql/common/substring_buffer.h"
+#include "dashql/common/variant.h"
 
 namespace dashql {
 
 // Constructor
-ProgramInstance::ProgramInstance(std::shared_ptr<std::string> text, std::shared_ptr<sx::ProgramT> program, std::vector<ParameterValue> params)
-    : program_text_(move(text)), program_(move(program)), parameter_values_(move(params)), evaluated_nodes_(program_->nodes.size()), node_errors_() {
-}
+ProgramInstance::ProgramInstance(std::shared_ptr<std::string> text, std::shared_ptr<sx::ProgramT> program,
+                                 std::vector<ParameterValue> params)
+    : program_text_(move(text)),
+      program_(move(program)),
+      parameter_values_(move(params)),
+      evaluated_nodes_(program_->nodes.size()),
+      node_errors_() {}
 
 // Add a node error
-void ProgramInstance::AddNodeError(NodeError&& error) {
-    node_errors_.push_back(std::move(error));
-}
+void ProgramInstance::AddNodeError(NodeError&& error) { node_errors_.push_back(std::move(error)); }
 
 // Find a parameter value
 const ParameterValue* ProgramInstance::FindParameterValue(size_t stmt_id) const {
@@ -51,7 +53,8 @@ Expected<std::string> ProgramInstance::RenderStatementText(size_t stmt_id) const
 }
 
 /// Pack the evaluated nodes
-flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<proto::analyzer::NodeValue>>> ProgramInstance::PackEvaluatedNodes(flatbuffers::FlatBufferBuilder& builder) const {
+flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<proto::analyzer::NodeValue>>>
+ProgramInstance::PackEvaluatedNodes(flatbuffers::FlatBufferBuilder& builder) const {
     std::vector<flatbuffers::Offset<proto::analyzer::NodeValue>> values;
     evaluated_nodes_.IterateValues([&](size_t, const NodeValue& eval) {
         auto& [node_id, value] = eval;

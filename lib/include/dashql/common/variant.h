@@ -5,9 +5,9 @@
 
 namespace dashql {
 
-template<class... Ts> struct overload : Ts... { using Ts::operator()...; };
-template<class... Ts> overload(Ts...)->overload<Ts...>;
+template <class... Ts> struct overload : Ts... { using Ts::operator()...; };
+template <class... Ts> overload(Ts...) -> overload<Ts...>;
 
-} // namespace dashql
+}  // namespace dashql
 
-#endif // INCLUDE_DASHQL_COMMON_VARIANT_H_
+#endif  // INCLUDE_DASHQL_COMMON_VARIANT_H_

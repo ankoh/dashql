@@ -36,7 +36,8 @@ std::string CSVParserOptions::ToString() const {
     return out.str();
 }
 
-CSVParser::CSVParser(const CSVParserOptions& options, std::istream& in, std::array<std::vector<char>, 2> donated) : options(options), in(in), buffers(move(donated)) {
+CSVParser::CSVParser(const CSVParserOptions& options, std::istream& in, std::array<std::vector<char>, 2> donated)
+    : options(options), in(in), buffers(move(donated)) {
     if (options.mode == +CSVParserMode::PARSING || options.mode == +CSVParserMode::PARSING_HEADER) {
         vector<LogicalType> varchar_types(options.sql_types.size(), LogicalType::VARCHAR);
         parse_chunk.Initialize(varchar_types);
@@ -94,8 +95,8 @@ void CSVParser::AddValue(std::string_view val, vector<size_t>& escapes) {
 
     // More values than types?
     if (current_column >= options.sql_types.size()) {
-        FailWith(ErrorCode::CSV_PARSER_ERROR) << "Line " << current_line << ": expected " << options.sql_types.size()
-                                              << " values per row, but got more.";
+        FailWith(ErrorCode::CSV_PARSER_ERROR)
+            << "Line " << current_line << ": expected " << options.sql_types.size() << " values per row, but got more.";
         return;
     }
 
@@ -213,7 +214,9 @@ void CSVParser::Flush(size_t limit, duckdb::DataChunk* output_chunk) {
 }
 
 /// Constructor
-SimpleCSVParser::SimpleCSVParser(const CSVParserOptions& options, std::istream& in, std::array<std::vector<char>, 2> donated_buffers) : CSVParser(options, in, move(donated_buffers)) {}
+SimpleCSVParser::SimpleCSVParser(const CSVParserOptions& options, std::istream& in,
+                                 std::array<std::vector<char>, 2> donated_buffers)
+    : CSVParser(options, in, move(donated_buffers)) {}
 
 Signal SimpleCSVParser::Parse(size_t limit, duckdb::DataChunk* output_chunk) {
     auto& buffer = buffers[0];
@@ -347,8 +350,7 @@ unquote:
         goto add_row;
     } else {
         return Error(ErrorCode::CSV_PARSER_ERROR)
-               << "Line " << current_line
-               << ": quote should be followed by end of value, end of row or another quote.";
+               << "Line " << current_line << ": quote should be followed by end of value, end of row or another quote.";
     }
 
 handle_escape:
@@ -397,7 +399,9 @@ final_state:
     return ParsingDone();
 }
 
-ComplexCSVParser::ComplexCSVParser(const CSVParserOptions& options, std::istream& in, std::array<std::vector<char>, 2> donated_buffers) : CSVParser(options, in, move(donated_buffers)) {}
+ComplexCSVParser::ComplexCSVParser(const CSVParserOptions& options, std::istream& in,
+                                   std::array<std::vector<char>, 2> donated_buffers)
+    : CSVParser(options, in, move(donated_buffers)) {}
 
 Signal ComplexCSVParser::Parse(size_t limit, duckdb::DataChunk* output_chunk) {
     auto& buffer = buffers[0];
@@ -561,8 +565,7 @@ unquote:
                 // Quote followed by delimiter, add value
                 offset = quote.size() + delimiter.size() - 1;
                 goto add_value;
-            } else if (quote_pos == quote.size() &&
-                       (escape.size() == 0 || escape == quote)) {
+            } else if (quote_pos == quote.size() && (escape.size() == 0 || escape == quote)) {
                 // Quote followed by quote, go back to quoted state and add to escape
                 escapes.push_back(buffer_position - token_start - (quote.size() - 1));
                 goto in_quotes;

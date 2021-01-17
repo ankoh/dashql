@@ -1,9 +1,5 @@
 import * as React from 'react';
-import {
-    Handle as ReactFlowHandle,
-    Node as NodeData,
-    Position
-} from 'react-flow-renderer';
+import { Handle as ReactFlowHandle, Node as NodeData, Position } from 'react-flow-renderer';
 import { ActionStatusIndicator } from './status';
 import { proto } from '@dashql/core';
 import {

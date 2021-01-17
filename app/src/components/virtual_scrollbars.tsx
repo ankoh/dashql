@@ -21,7 +21,7 @@ interface Props {
 
     onScrollFrame?: (pos: PositionValues) => void;
     onScrollStop?: () => void;
-};
+}
 
 interface State {
     adjustedInnerWidth: number;
@@ -29,7 +29,7 @@ interface State {
     horizontalScaling: number;
     verticalScaling: number;
     position: PositionValues | null;
-};
+}
 
 /// Virtual scrollbars for large lists.
 /// Implements the same position scaling as react-virtualized to bypass browser limitations.
@@ -57,7 +57,6 @@ export class VirtualScrollbars extends React.Component<Props, State> {
         });
     }
 
-
     static getDerivedStateFromProps(props: Props, state: State) {
         const maxElementSize = getMaxElementSize();
         const adjustedWidth = Math.min(props.innerWidth, maxElementSize);
@@ -66,8 +65,8 @@ export class VirtualScrollbars extends React.Component<Props, State> {
             ...state,
             adjustedInnerWidth: adjustedWidth,
             adjustedInnerHeight: adjustedHeight,
-            horizontalScaling: adjustedWidth > 0 ? (props.innerWidth / adjustedWidth) : 1.0,
-            verticalScaling: adjustedHeight > 0 ? (props.innerHeight / adjustedHeight) : 1.0,
+            horizontalScaling: adjustedWidth > 0 ? props.innerWidth / adjustedWidth : 1.0,
+            verticalScaling: adjustedHeight > 0 ? props.innerHeight / adjustedHeight : 1.0,
         };
     }
 
@@ -84,7 +83,7 @@ export class VirtualScrollbars extends React.Component<Props, State> {
         };
         this.setState({
             ...this.state,
-            position: p
+            position: p,
         });
         if (this.props.onScrollFrame) {
             this.props.onScrollFrame(p);

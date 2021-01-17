@@ -4,18 +4,18 @@
 #define INCLUDE_DASHQL_ANALYZER_PROGRAM_INSTANCE_H_
 
 #include <iostream>
+#include <optional>
 #include <sstream>
+#include <tuple>
 #include <unordered_map>
 #include <vector>
-#include <optional>
-#include <tuple>
 
+#include "dashql/analyzer/parameter_value.h"
+#include "dashql/analyzer/value.h"
 #include "dashql/common/enum.h"
 #include "dashql/common/expected.h"
 #include "dashql/common/span.h"
 #include "dashql/common/union_find.h"
-#include "dashql/analyzer/parameter_value.h"
-#include "dashql/analyzer/value.h"
 #include "dashql/proto_generated.h"
 
 namespace dashql {
@@ -60,12 +60,14 @@ class ProgramInstance {
     /// The node errors
     std::vector<NodeError> node_errors_;
 
-    public:
+   public:
     /// Constructor
-    ProgramInstance(std::string_view text, std::shared_ptr<sx::ProgramT> program, std::vector<ParameterValue> params = {})
+    ProgramInstance(std::string_view text, std::shared_ptr<sx::ProgramT> program,
+                    std::vector<ParameterValue> params = {})
         : ProgramInstance(std::make_shared<std::string>(text), move(program), move(params)) {}
     /// Constructor
-    ProgramInstance(std::shared_ptr<std::string> text, std::shared_ptr<sx::ProgramT> program, std::vector<ParameterValue> params = {});
+    ProgramInstance(std::shared_ptr<std::string> text, std::shared_ptr<sx::ProgramT> program,
+                    std::vector<ParameterValue> params = {});
 
     /// Get the program text
     auto& program_text() const { return *program_text_; }
@@ -81,12 +83,15 @@ class ProgramInstance {
     /// Find the parameter value
     const ParameterValue* FindParameterValue(size_t stmt_id) const;
     /// Get the text at a location
-    std::string_view TextAt(sx::Location loc) const { return std::string_view{*program_text_}.substr(loc.offset(), loc.length()); }
+    std::string_view TextAt(sx::Location loc) const {
+        return std::string_view{*program_text_}.substr(loc.offset(), loc.length());
+    }
 
     /// Render the statement text
     Expected<std::string> RenderStatementText(size_t stmt_id) const;
     /// Pack the evaluated nodes
-    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<proto::analyzer::NodeValue>>> PackEvaluatedNodes(flatbuffers::FlatBufferBuilder& builder) const;
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<proto::analyzer::NodeValue>>> PackEvaluatedNodes(
+        flatbuffers::FlatBufferBuilder& builder) const;
 
     /// Find an attribute
     const sx::Node* FindAttribute(const sx::Node& origin, sx::AttributeKey key) const;

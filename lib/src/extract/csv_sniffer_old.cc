@@ -81,7 +81,7 @@ bool StartsWithNumericDate(string &separator, const string_t &value) {
     return true;
 }
 
-}
+}  // namespace
 
 vector<LogicalType> CSVExtract::SniffCSV(vector<LogicalType> requested_types) {
     for (auto &type : requested_types) {
@@ -102,14 +102,13 @@ vector<LogicalType> CSVExtract::SniffCSV(vector<LogicalType> requested_types) {
 
     // Check each quote rule
     for (QuoteRule quoterule : quoterule_candidates) {
-        auto& quote_candidates = quote_candidates_map[static_cast<uint8_t>(quoterule)];
+        auto &quote_candidates = quote_candidates_map[static_cast<uint8_t>(quoterule)];
 
         // Check each quoting candidate
         for (const auto &quote : quote_candidates) {
-
             // Check each delimiter candidate
             for (const auto &delim : delim_candidates) {
-                auto& escape_candidates = escape_candidates_map[static_cast<uint8_t>(quoterule)];
+                auto &escape_candidates = escape_candidates_map[static_cast<uint8_t>(quoterule)];
                 for (const auto &escape : escape_candidates) {
                     CSVExtractOptions sniff_info = original_options;
                     sniff_info.delimiter = delim;
@@ -188,12 +187,9 @@ vector<LogicalType> CSVExtract::SniffCSV(vector<LogicalType> requested_types) {
     // Type detection (initial)
 
     // Type candidates, ordered by descending specificity (~ from high to low)
-    vector<LogicalType> type_candidates = {
-        LogicalType::VARCHAR, LogicalType::TIMESTAMP,
-        LogicalType::DATE,    LogicalType::TIME,
-        LogicalType::DOUBLE,  LogicalType::BIGINT,
-        LogicalType::INTEGER, LogicalType::BOOLEAN,
-        LogicalType::SQLNULL};
+    vector<LogicalType> type_candidates = {LogicalType::VARCHAR, LogicalType::TIMESTAMP, LogicalType::DATE,
+                                           LogicalType::TIME,    LogicalType::DOUBLE,    LogicalType::BIGINT,
+                                           LogicalType::INTEGER, LogicalType::BOOLEAN,   LogicalType::SQLNULL};
 
     // Format template candidates, ordered by descending specificity (~ from high to low)
     std::map<LogicalTypeId, vector<const char *>> format_template_candidates = {
@@ -449,7 +445,6 @@ vector<LogicalType> CSVExtract::SniffCSV(vector<LogicalType> requested_types) {
         detected_types = sql_types;
     }
 
-
     // Scan additional samples and refine the sql type guess
     else {
         while (JumpToNextSample()) {
@@ -522,4 +517,4 @@ vector<LogicalType> CSVExtract::SniffCSV(vector<LogicalType> requested_types) {
     return detected_types;
 }
 
-}
+}  // namespace dashql

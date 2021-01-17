@@ -5,7 +5,7 @@ import classnames from 'classnames';
 import styles from './editor_loader.module.css';
 
 interface Props {
-    className?: string
+    className?: string;
 }
 
 function loadingSpinner(props: Props) {
@@ -27,4 +27,3 @@ export default class EditorLoader extends React.Component<Props> {
         );
     }
 }
-

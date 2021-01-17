@@ -26,7 +26,7 @@ const DocumentDownloadAction = createAction(FileDownloadIcon);
 const DocumentUploadAction = createAction(FileUploadIcon);
 
 interface ProgramCommandBarProps {
-    resetPlan: () => void,
+    resetPlan: () => void;
 }
 
 export class ProgramCommandBar extends React.Component<ProgramCommandBarProps> {

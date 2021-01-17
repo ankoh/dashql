@@ -3,7 +3,7 @@
     height: 100%;
     position: relative;
 
-    -webkit-app-region:no-drag;
+    -webkit-app-region: no-drag;
 }
 
 .editor_monaco {

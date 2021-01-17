@@ -7,8 +7,8 @@
 #include <string>
 #include <unordered_map>
 
-#include "gtest/gtest.h"
 #include "dashql/proto_generated.h"
+#include "gtest/gtest.h"
 #include "pugixml.hpp"
 
 namespace dashql {
@@ -43,7 +43,6 @@ struct GrammarTest {
     static void LoadTests(std::filesystem::path& project_root);
     /// Get the grammar tests
     static std::vector<const GrammarTest*> GetTests(std::string_view filename);
-    
 };
 
 }  // namespace test

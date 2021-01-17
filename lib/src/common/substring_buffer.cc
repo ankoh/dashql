@@ -1,4 +1,5 @@
 #include "dashql/common/substring_buffer.h"
+
 #include <iostream>
 
 namespace dashql {
@@ -12,8 +13,10 @@ SubstringBuffer::SubstringBuffer(std::string_view text, proto::syntax::Location 
 
 // Patch a location
 proto::syntax::Location SubstringBuffer::CheckBounds(proto::syntax::Location loc) const {
-    auto begin = std::min(std::max(loc.offset(), substring_loc_.offset()), substring_loc_.offset() + substring_loc_.length());
-    auto end = std::min(std::max(loc.offset() + loc.length(), substring_loc_.offset()), substring_loc_.offset() + substring_loc_.length());
+    auto begin =
+        std::min(std::max(loc.offset(), substring_loc_.offset()), substring_loc_.offset() + substring_loc_.length());
+    auto end = std::min(std::max(loc.offset() + loc.length(), substring_loc_.offset()),
+                        substring_loc_.offset() + substring_loc_.length());
     return {begin, end - begin};
 }
 
@@ -23,11 +26,11 @@ proto::syntax::Location SubstringBuffer::ApplyPatches(proto::syntax::Location lo
     auto end = loc.offset() + loc.length();
     auto a = loc.offset();
     auto b = end;
-    for (auto& [ofs, adjust]: lengthen_) {
+    for (auto& [ofs, adjust] : lengthen_) {
         a += (begin >= ofs) * adjust;
         b += (end >= ofs) * adjust;
     }
-    for (auto& [ofs, adjust]: shorten_) {
+    for (auto& [ofs, adjust] : shorten_) {
         a -= (begin >= ofs) * adjust;
         b -= (end >= ofs) * adjust;
     }
@@ -35,9 +38,7 @@ proto::syntax::Location SubstringBuffer::ApplyPatches(proto::syntax::Location lo
 }
 
 /// Intersect with the buffer range?
-bool SubstringBuffer::Intersects(proto::syntax::Location loc) const {
-    return CheckBounds(loc).length() > 0;
-}
+bool SubstringBuffer::Intersects(proto::syntax::Location loc) const { return CheckBounds(loc).length() > 0; }
 
 // Replace a substring
 void SubstringBuffer::Replace(proto::syntax::Location loc, std::string_view value) {
@@ -45,10 +46,7 @@ void SubstringBuffer::Replace(proto::syntax::Location loc, std::string_view valu
     buffer_.replace(patched_loc.offset() - substring_loc_.offset(), patched_loc.length(), value);
     if (value.length() < patched_loc.length()) {
         auto diff = patched_loc.length() - value.length();
-        shorten_.push_back({
-            patched_loc.offset() + diff,
-            diff
-        });
+        shorten_.push_back({patched_loc.offset() + diff, diff});
     } else if (value.length() > patched_loc.length()) {
         auto diff = value.length() - patched_loc.length();
         lengthen_.push_back({
@@ -58,4 +56,4 @@ void SubstringBuffer::Replace(proto::syntax::Location loc, std::string_view valu
     }
 }
 
-}
+}  // namespace dashql

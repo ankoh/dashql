@@ -35,10 +35,7 @@ WebDB& WebDB::GetInstance() {
 
 /// Constructor
 WebDB::Connection::Connection(std::shared_ptr<duckdb::DuckDB> db)
-    : database_(std::move(db)),
-      connection_(*database_),
-      current_query_id_(),
-      current_query_result_() {}
+    : database_(std::move(db)), connection_(*database_), current_query_id_(), current_query_result_() {}
 
 /// Run a SQL query
 ExpectedBuffer<p::QueryResult> WebDB::Connection::RunQuery(std::string_view text) {
@@ -142,4 +139,5 @@ WebDB::Connection* WebDB::Connect() {
 /// End a session
 void WebDB::Disconnect(Connection* session) { connections_.erase(session); }
 
-}}
+}  // namespace webdb
+}  // namespace dashql

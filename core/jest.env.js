@@ -9,4 +9,4 @@ module.exports = class CustomTestEnvironment extends Environment {
             this.global.TextDecoder = TextDecoder;
         }
     }
-}
+};
