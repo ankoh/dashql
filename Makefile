@@ -44,6 +44,10 @@ CORES=$(shell grep -c ^processor /proc/cpuinfo 2>/dev/null || sysctl -n hw.ncpu)
 format:
 	${ROOT_DIR}/scripts/format
 
+.PHONY: check_format
+check_format:
+	${ROOT_DIR}/scripts/format check
+
 # ---------------------------------------------------------------------------
 # Building
 
