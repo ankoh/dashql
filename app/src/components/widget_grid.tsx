@@ -1,9 +1,8 @@
-import Immutable from 'immutable';
 import * as core from '@dashql/core';
 import * as React from 'react';
 import * as model from '../model';
 import ReactGrid from 'react-grid-layout';
-import { ItemCallback, Layout } from 'react-grid-layout';
+import { Layout } from 'react-grid-layout';
 import { connect } from 'react-redux';
 import { IAppContext, withAppContext } from '../app_context';
 import { withAutoSizer } from '../util/autosizer';
@@ -20,19 +19,7 @@ type Props = {
     rewriteProgram: (instance: core.model.ProgramInstance) => void;
 };
 
-function getLayout(data: core.model.VizInfo) {
-    const pos = data.spec.data.position;
-    return {
-        x: pos.x,
-        y: pos.y,
-        w: pos.width,
-        h: pos.height,
-    };
-}
-
 class WidgetGrid extends React.Component<Props> {
-    _onItemLayoutChanged = this.onItemLayoutChanged.bind(this);
-
     renderWidget(data: core.model.VizInfo) {
         switch (data.spec.type) {
             case core.model.VizSpecType.TABLE:
@@ -42,7 +29,7 @@ class WidgetGrid extends React.Component<Props> {
         }
     }
 
-    shouldComponentUpdate(nextProps: Props, _nextState: any) {
+    shouldComponentUpdate(nextProps: Props) {
         const prev = this.props.vizData;
         const next = nextProps.vizData;
         let equal = prev.size == next.size;
@@ -53,14 +40,14 @@ class WidgetGrid extends React.Component<Props> {
         return !equal;
     }
 
-    onItemLayoutChanged(
+    onItemLayoutChanged = (
         _layout: Layout[],
         oldItem: Layout,
         newItem: Layout,
         _placeholder: Layout,
         _event: MouseEvent,
         _element: HTMLElement,
-    ) {
+    ) => {
         const info = this.props.vizData.get(oldItem.i)!;
         const stmt = info.currentStatementId;
 
@@ -80,6 +67,16 @@ class WidgetGrid extends React.Component<Props> {
         if (next) {
             this.props.rewriteProgram(next);
         }
+    };
+
+    getLayout(data: Map<string, core.model.VizInfo>) {
+        return Array.from(data).map(([key, data]) => ({
+            i: key,
+            x: data.spec.data.position.x,
+            y: data.spec.data.position.y,
+            w: data.spec.data.position.width,
+            h: data.spec.data.position.height,
+        }));
     }
 
     render() {
@@ -90,13 +87,12 @@ class WidgetGrid extends React.Component<Props> {
                 width={this.props.width}
                 rowHeight={50}
                 compactType={null}
-                onDragStop={this._onItemLayoutChanged}
-                onResizeStop={this._onItemLayoutChanged}
+                onDragStop={this.onItemLayoutChanged}
+                onResizeStop={this.onItemLayoutChanged}
+                layout={this.getLayout(this.props.vizData)}
             >
                 {Array.from(this.props.vizData).map(([k, v]) => (
-                    <div key={k} data-grid={getLayout(v)}>
-                        {this.renderWidget(v)}
-                    </div>
+                    <div key={k}>{this.renderWidget(v)}</div>
                 ))}
             </ReactGrid>
         );
@@ -108,7 +104,7 @@ const mapStateToProps = (state: model.AppState) => ({
         state.core.planObjects
             .filter(o => o.objectType == core.model.PlanObjectType.VIZ_INFO)
             .toArray()
-            .map(([k, v]) => [k, v as core.model.VizInfo]) as [string, core.model.VizInfo][],
+            .map(([k, v]) => [k, v as core.model.VizInfo]),
     ),
 });
 
