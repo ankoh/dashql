@@ -37,6 +37,14 @@ WEBSITE_CF_DIST="E2N5KIE8UNXGM3"
 CORES=$(shell grep -c ^processor /proc/cpuinfo 2>/dev/null || sysctl -n hw.ncpu)
 
 # ---------------------------------------------------------------------------
+# Formatting
+
+# Format all source files
+.PHONY: format
+format:
+	${ROOT_DIR}/scripts/format
+
+# ---------------------------------------------------------------------------
 # Building
 
 # Compile the core in debug mode
