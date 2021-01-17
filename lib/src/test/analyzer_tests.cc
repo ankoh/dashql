@@ -13,7 +13,8 @@
 namespace dashql {
 namespace test {
 
-void AnalyzerTest::EncodePlan(pugi::xml_node& root, const ProgramInstance& instance, const proto::action::ActionGraphT& graph) {
+void AnalyzerTest::EncodePlan(pugi::xml_node& root, const ProgramInstance& instance,
+                              const proto::action::ActionGraphT& graph) {
     auto setup_action_type_tt = proto::action::SetupActionTypeTypeTable();
     auto program_action_type_tt = proto::action::ProgramActionTypeTypeTable();
     auto action_status_tt = proto::action::ActionStatusCodeTypeTable();
@@ -23,7 +24,7 @@ void AnalyzerTest::EncodePlan(pugi::xml_node& root, const ProgramInstance& insta
     root.append_child("text").text().set(program_text.c_str());
 
     auto params = root.append_child("parameters");
-    for (auto& param: instance.parameter_values()) {
+    for (auto& param : instance.parameter_values()) {
         auto type_str = param.value.PrintType();
         auto value_str = param.value.PrintValue();
         auto p = params.append_child("parameter");

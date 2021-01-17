@@ -86,7 +86,8 @@ class Analyzer {
     /// Pack the program
     flatbuffers::Offset<proto::syntax::Program> PackProgram(flatbuffers::FlatBufferBuilder& builder);
     /// Pack the program annotations
-    flatbuffers::Offset<proto::analyzer::ProgramAnnotations> PackProgramAnnotations(flatbuffers::FlatBufferBuilder& builder);
+    flatbuffers::Offset<proto::analyzer::ProgramAnnotations> PackProgramAnnotations(
+        flatbuffers::FlatBufferBuilder& builder);
     /// Pack the plan
     flatbuffers::Offset<proto::analyzer::Plan> PackPlan(flatbuffers::FlatBufferBuilder& builder);
     /// Pack a program replacement

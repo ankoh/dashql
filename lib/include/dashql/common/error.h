@@ -10,21 +10,19 @@ namespace dashql {
 
 struct ParseError : std::exception {
     // Constructor
-    explicit ParseError(const char* what): message_(what) {}
+    explicit ParseError(const char* what) : message_(what) {}
     // Constructor
-    explicit ParseError(const std::string& what): message_(what) {}
+    explicit ParseError(const std::string& what) : message_(what) {}
     // Destructor
     virtual ~ParseError() throw() {}
     // Get error message
-    virtual const char* what() const throw() {
-        return message_.c_str();
-    }
+    virtual const char* what() const throw() { return message_.c_str(); }
 
-    protected:
+   protected:
     // Error message
     std::string message_;
 };
 
-} // namespace dashql
+}  // namespace dashql
 
-#endif // INCLUDE_DASHQL_COMMON_ERROR_H_
+#endif  // INCLUDE_DASHQL_COMMON_ERROR_H_

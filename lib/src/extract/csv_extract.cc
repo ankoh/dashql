@@ -1,6 +1,9 @@
 #include "dashql/extract/csv_extract.h"
 
-#include "duckdb/execution/operator/persistent/buffered_csv_reader.hpp"
+#include <algorithm>
+#include <cctype>
+#include <cstring>
+#include <fstream>
 
 #include "duckdb/catalog/catalog_entry/table_catalog_entry.hpp"
 #include "duckdb/common/file_system.hpp"
@@ -8,15 +11,11 @@
 #include "duckdb/common/string_util.hpp"
 #include "duckdb/common/vector_operations/unary_executor.hpp"
 #include "duckdb/common/vector_operations/vector_operations.hpp"
+#include "duckdb/execution/operator/persistent/buffered_csv_reader.hpp"
 #include "duckdb/function/scalar/strftime.hpp"
 #include "duckdb/main/database.hpp"
 #include "duckdb/parser/column_definition.hpp"
 #include "duckdb/storage/data_table.hpp"
-
-#include <algorithm>
-#include <cctype>
-#include <cstring>
-#include <fstream>
 
 using namespace std;
 using namespace duckdb;
@@ -29,9 +28,9 @@ string GetLineNumberStr(size_t linenr, bool linenr_estimated) {
     return std::to_string(linenr + 1) + estimated;
 }
 
-}
+}  // namespace
 
-CSVExtract::CSVExtract(CSVExtractOptions options, vector<LogicalType> requested_types, istream& ssource)
+CSVExtract::CSVExtract(CSVExtractOptions options, vector<LogicalType> requested_types, istream &ssource)
     : options(options), source(ssource), buffer_size(0), position(0), start(0) {
     Initialize(requested_types);
 }
@@ -55,7 +54,7 @@ void CSVExtract::Initialize(vector<LogicalType> requested_types) {
 //         getline(source, read_line);
 //         linenr++;
 //     }
-// 
+//
 //     if (skip_header) {
 //         // Ignore the first line as a header line
 //         InitParseChunk(sql_types.size());
@@ -205,5 +204,4 @@ void CSVExtract::ParseCSV(ParserMode parser_mode, DataChunk &insert_chunk) {
     }
 }
 
-} // namespace duckdb
-
+}  // namespace dashql

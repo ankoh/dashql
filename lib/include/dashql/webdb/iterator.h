@@ -3,8 +3,8 @@
 #ifndef INCLUDE_DASHQL_WEBDB_ITERATOR_H_
 #define INCLUDE_DASHQL_WEBDB_ITERATOR_H_
 
-#include "dashql/proto_generated.h"
 #include "dashql/common/expected.h"
+#include "dashql/proto_generated.h"
 #include "dashql/webdb/webdb.h"
 
 namespace dashql {

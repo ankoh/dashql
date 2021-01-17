@@ -1,11 +1,12 @@
 // Copyright (c) 2020 The DashQL Authors
 
+#include "dashql/analyzer/program_editor.h"
+
 #include <sstream>
 
-#include "dashql/parser/scanner.h"
-#include "dashql/parser/parser_driver.h"
 #include "dashql/analyzer/program_instance.h"
-#include "dashql/analyzer/program_editor.h"
+#include "dashql/parser/parser_driver.h"
+#include "dashql/parser/scanner.h"
 #include "flatbuffers/flatbuffers.h"
 #include "gtest/gtest.h"
 
@@ -68,4 +69,4 @@ TEST(ProgramEditorTest, VizStatementUpdatePosition) {
     EXPECT_EQ(editor.Apply(*std::get<0>(edit)), expected);
 }
 
-}
+}  // namespace

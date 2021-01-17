@@ -3,23 +3,18 @@
 #ifndef INCLUDE_DASHQL_ANALYZER_PROGRAM_MATCHER_H_
 #define INCLUDE_DASHQL_ANALYZER_PROGRAM_MATCHER_H_
 
+#include <iostream>
+#include <sstream>
+
 #include "dashql/analyzer/program_instance.h"
 #include "dashql/common/enum.h"
 #include "dashql/proto_generated.h"
-#include <iostream>
-#include <sstream>
 
 namespace dashql {
 
 namespace sx = proto::syntax;
 
-BETTER_ENUM(DiffOpCode, uint8_t,
-    DELETE,
-    INSERT,
-    KEEP,
-    MOVE,
-    UPDATE
-)
+BETTER_ENUM(DiffOpCode, uint8_t, DELETE, INSERT, KEEP, MOVE, UPDATE)
 
 class ProgramMatcher {
    public:
@@ -27,11 +22,7 @@ class ProgramMatcher {
     using StatementMappings = std::vector<StatementMapping>;
 
     /// A similarity estimate
-    enum class SimilarityEstimate {
-        EQUAL,
-        SIMILAR,
-        NOT_EQUAL
-    };
+    enum class SimilarityEstimate { EQUAL, SIMILAR, NOT_EQUAL };
 
     /// A diff between statements
     struct StatementSimilarity {
@@ -41,8 +32,7 @@ class ProgramMatcher {
         size_t matching_nodes;
 
         /// Constructor
-        StatementSimilarity(size_t total = 0, size_t matching = 0)
-            : total_nodes(total), matching_nodes(matching) {}
+        StatementSimilarity(size_t total = 0, size_t matching = 0) : total_nodes(total), matching_nodes(matching) {}
         /// Are Equal?
         bool Equal() const { return total_nodes == matching_nodes; }
         /// Get the score
@@ -131,8 +121,8 @@ class ProgramMatcher {
     /// 1) Similar to patience diff, we first find all unique pairs of equal statements within the two programs.
     ///    Statements that are completely identical will very likely have the same effect in our DashQL program.
     ///    (The exception are modifying statements like INSERT but their actions will be invalidated later)
-    /// 2) Once we have the list of unique statement pairs, we determine the longest common subsequence (LCS) among them.
-    /// 3) We then use the LCS to split the statements into sections and emit the diff program as follows:
+    /// 2) Once we have the list of unique statement pairs, we determine the longest common subsequence (LCS) among
+    /// them. 3) We then use the LCS to split the statements into sections and emit the diff program as follows:
     ///     A) We emit MOVE instructions for equal pairs that cross section boundaries.
     ///     B) We emit UPDATE instructions if the similarity between two statements is above a threshold.
     ///     C) We emit CREATE/DELETE instructions if a statement has no similar match.
@@ -145,7 +135,8 @@ class ProgramMatcher {
     std::vector<DiffOp> ComputeDiff();
 
     /// Do parameter values equal?
-    static bool ParameterValuesEqual(const proto::analyzer::ParameterValueT* l, const proto::analyzer::ParameterValueT* r);
+    static bool ParameterValuesEqual(const proto::analyzer::ParameterValueT* l,
+                                     const proto::analyzer::ParameterValueT* r);
 };
 
 }  // namespace dashql

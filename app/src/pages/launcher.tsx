@@ -1,5 +1,5 @@
-import * as Immutable from "immutable";
-import * as React from "react";
+import * as Immutable from 'immutable';
+import * as React from 'react';
 import { AppState, Dispatch, LaunchStep, LaunchStepInfo, DEFAULT_LAUNCH_STEPS } from '../model';
 import { StatusIndicator } from '../components';
 import { connect } from 'react-redux';
@@ -11,7 +11,7 @@ import styles from './launcher.module.css';
 interface Props {
     launchComplete: boolean;
     launchSteps: Immutable.Map<LaunchStep, LaunchStepInfo>;
-    children: JSX.Element,
+    children: JSX.Element;
 }
 
 class Launcher extends React.Component<Props> {
@@ -25,9 +25,7 @@ class Launcher extends React.Component<Props> {
                 <div className={styles.step_status}>
                     <StatusIndicator width="14px" height="14px" status={info.status} />
                 </div>
-                <div className={styles.step_name}>
-                    {info.label}
-                </div>
+                <div className={styles.step_name}>{info.label}</div>
             </div>
         );
     }
@@ -42,15 +40,11 @@ class Launcher extends React.Component<Props> {
                     <div className={styles.logo}>
                         <img src={logo} />
                     </div>
-                    <div className={styles.title}>
-                        DashQL
-                    </div>
-                    <div className={styles.steps}>
-                        {DEFAULT_LAUNCH_STEPS.map(s => this.renderStep(s))}
-                    </div>
+                    <div className={styles.title}>DashQL</div>
+                    <div className={styles.steps}>{DEFAULT_LAUNCH_STEPS.map(s => this.renderStep(s))}</div>
                 </div>
             </div>
-        )
+        );
     }
 }
 
@@ -59,8 +53,6 @@ const mapStateToProps = (state: AppState) => ({
     launchSteps: state.launchSteps,
 });
 
-const mapDispatchToProps = (_dispatch: Dispatch) => ({
-});
+const mapDispatchToProps = (_dispatch: Dispatch) => ({});
 
 export default connect(mapStateToProps, mapDispatchToProps)(Launcher);
-

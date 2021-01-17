@@ -1,8 +1,9 @@
 #include "dashql/analyzer/action_planner.h"
 
+#include <unordered_set>
+
 #include "dashql/common/topological_sort.h"
 #include "dashql/proto_generated.h"
-#include <unordered_set>
 
 namespace dashql {
 
@@ -67,7 +68,7 @@ static const std::unordered_map<sx::StatementType, StatementTranslation>& Statem
     X(CREATE_VIEW, CREATE_VIEW, true)
     X(VIZUALIZE, CREATE_VIZ, false)
 #undef X
-    // clang-format on
+        // clang-format on
     };
     return mapping;
 };
@@ -251,7 +252,7 @@ Signal ActionPlanner::IdentifyApplicableActions() {
                 assert(diff_op.target());
                 auto next_deps = action_graph_->program_actions[*diff_op.target()]->depends_on;
                 bool deps_mapped = true;
-                for (auto& dep: next_deps) {
+                for (auto& dep : next_deps) {
                     if (!reverse_action_mapping_[dep]) {
                         deps_mapped = false;
                         break;
@@ -377,7 +378,8 @@ Signal ActionPlanner::MigrateActionGraph() {
             s->target_name_short = prev_action->target_name_short;
 
             // If statement B depends on A, the setup action of B must be executed before A.
-            // This flips the original dependencies to ensure that, for example, derived views are dropped before tables.
+            // This flips the original dependencies to ensure that, for example, derived views are dropped before
+            // tables.
             s->depends_on = prev_action->required_for;
             s->required_for = prev_action->depends_on;
         }
@@ -404,7 +406,7 @@ Signal ActionPlanner::MigrateActionGraph() {
         }
         ids.resize(n);
     };
-    for (auto& s: action_graph_->setup_actions) {
+    for (auto& s : action_graph_->setup_actions) {
         patch_setup_ids(s->required_for);
         patch_setup_ids(s->depends_on);
     }

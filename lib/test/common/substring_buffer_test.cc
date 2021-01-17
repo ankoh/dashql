@@ -1,8 +1,9 @@
 // Copyright (c) 2020 The DashQL Authors
 
+#include "dashql/common/substring_buffer.h"
+
 #include <sstream>
 
-#include "dashql/common/substring_buffer.h"
 #include "flatbuffers/flatbuffers.h"
 #include "gtest/gtest.h"
 

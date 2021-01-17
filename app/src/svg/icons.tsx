@@ -33,7 +33,7 @@ export function AnalyticsIcon(props: IIconProps) {
             viewBox="0 0 24 24"
         >
             <path
-                                                                                                           d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-5h2v5zm4 0h-2v-3h2v3zm0-5h-2v-2h2v2zm4 5h-2V7h2v10z"
+                d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-5h2v5zm4 0h-2v-3h2v3zm0-5h-2v-2h2v2zm4 5h-2V7h2v10z"
                 fill={props.fill || '#ffffff'}
                 fillRule="nonzero"
             />
@@ -640,10 +640,7 @@ export function ShellIcon(props: IIconProps) {
             height={props.height || '24px'}
             viewBox="0 0 20 12"
         >
-            <g
-                fill={props.fill || '#ffffff'}
-                fillRule="nonzero"
-            >
+            <g fill={props.fill || '#ffffff'} fillRule="nonzero">
                 <polygon points="0 0 3.03703704 5 0 10 3 10 6 5 3 0" />
                 <polygon points="9 8 9 10 18 10 18 8" />
             </g>
@@ -659,11 +656,7 @@ export function PlayIcon(props: IIconProps) {
             height={props.height || '24px'}
             viewBox="0 0 24 24"
         >
-            <path
-                d="M8 5v14l11-7z"
-                fill={props.fill || '#ffffff'}
-                fillRule="nonzero"
-            />
+            <path d="M8 5v14l11-7z" fill={props.fill || '#ffffff'} fillRule="nonzero" />
         </svg>
     );
 }
@@ -704,7 +697,6 @@ export function RedoIcon(props: IIconProps) {
 
 export function AutoRunIcon(props: IIconProps) {
     return (
-
         <svg
             className={props.className || 'icon'}
             width={props.width || '24px'}
@@ -722,7 +714,6 @@ export function AutoRunIcon(props: IIconProps) {
 
 export function CheckIconIcon(props: IIconProps) {
     return (
-
         <svg
             className={props.className || 'icon'}
             width={props.width || '24px'}
@@ -740,18 +731,13 @@ export function CheckIconIcon(props: IIconProps) {
 
 export function ChevronLeftIcon(props: IIconProps) {
     return (
-
         <svg
             className={props.className || 'icon'}
             width={props.width || '24px'}
             height={props.height || '24px'}
             viewBox="0 0 24 24"
         >
-            <path
-                d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"
-                fill={props.fill || '#ffffff'}
-                fillRule="nonzero"
-            />
+            <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z" fill={props.fill || '#ffffff'} fillRule="nonzero" />
         </svg>
     );
 }
@@ -798,11 +784,7 @@ export function ExpandMoreIcon(props: IIconProps) {
             height={props.height || '24px'}
             viewBox="0 0 24 24"
         >
-            <path
-                d="M16.59 8.59L12 13.17 7.41 8.59 6 10l6 6 6-6z"
-                fill={props.fill || '#ffffff'}
-                fillRule="nonzero"
-            />
+            <path d="M16.59 8.59L12 13.17 7.41 8.59 6 10l6 6 6-6z" fill={props.fill || '#ffffff'} fillRule="nonzero" />
         </svg>
     );
 }

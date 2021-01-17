@@ -1,4 +1,4 @@
-declare module "*public/config.json" {
+declare module '*public/config.json' {
     const value: any;
     export default value;
 }

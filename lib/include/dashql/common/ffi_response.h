@@ -105,4 +105,3 @@ class FFIResponseBuffer {
 }  // namespace dashql
 
 #endif  // INCLUDE_DASHQL_COMMON_FFI_RESPONSE_H_
-

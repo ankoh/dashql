@@ -4,14 +4,14 @@
 
 .container {
     position: relative;
-    background-color: rgb(240, 240, 240)
+    background-color: rgb(240, 240, 240);
 }
 
 .controls {
     top: 16px;
     right: 16px;
-    left: unset!important;
-    bottom: unset!important;
+    left: unset !important;
+    bottom: unset !important;
 }
 
 .node {

@@ -1,11 +1,12 @@
 // Copyright (c) 2020 The DashQL Authors
 
+#include "dashql/analyzer/program_matcher.h"
+
 #include <sstream>
 
-#include "dashql/parser/scanner.h"
-#include "dashql/parser/parser_driver.h"
 #include "dashql/analyzer/program_instance.h"
-#include "dashql/analyzer/program_matcher.h"
+#include "dashql/parser/parser_driver.h"
+#include "dashql/parser/scanner.h"
 #include "flatbuffers/flatbuffers.h"
 #include "gtest/gtest.h"
 
@@ -18,14 +19,14 @@ namespace fb = flatbuffers;
 
 namespace {
 
-class ProgramMatcherProxy: public ProgramMatcher {
-    public:
+class ProgramMatcherProxy : public ProgramMatcher {
+   public:
     /// Constructor
     ProgramMatcherProxy(const ProgramInstance& source, const ProgramInstance& target)
         : ProgramMatcher(source, target) {}
 
-    using ProgramMatcher::MapStatements;
     using ProgramMatcher::FindLCS;
+    using ProgramMatcher::MapStatements;
 };
 
 struct SimilarityTest {
@@ -40,7 +41,7 @@ struct SimilarityTest {
         return out;
     }
 };
-class SimilarityTestSuite: public ::testing::TestWithParam<SimilarityTest> {};
+class SimilarityTestSuite : public ::testing::TestWithParam<SimilarityTest> {};
 
 TEST_P(SimilarityTestSuite, DeepEquality) {
     auto& param = GetParam();
@@ -51,7 +52,7 @@ TEST_P(SimilarityTestSuite, DeepEquality) {
     ProgramInstance pi1{param.t1, move(p1)};
     ProgramInstance pi2{param.t2, move(p2)};
     ProgramMatcherProxy matcher{pi1, pi2};
-    auto& s1 = pi1.program().statements[0], &s2 = pi2.program().statements[0];
+    auto &s1 = pi1.program().statements[0], &s2 = pi2.program().statements[0];
     ASSERT_EQ(matcher.CheckDeepEquality(*s1, *s2), param.are_equal);
 }
 
@@ -64,7 +65,7 @@ TEST_P(SimilarityTestSuite, SimilarityEstimate) {
     ProgramInstance pi1{param.t1, move(p1)};
     ProgramInstance pi2{param.t2, move(p2)};
     ProgramMatcherProxy matcher{pi1, pi2};
-    auto& s1 = pi1.program().statements[0], &s2 = pi2.program().statements[0];
+    auto &s1 = pi1.program().statements[0], &s2 = pi2.program().statements[0];
     ASSERT_EQ(matcher.EstimateSimilarity(*s1, *s2), param.estimate);
 }
 
@@ -77,29 +78,24 @@ TEST_P(SimilarityTestSuite, Similarity) {
     ProgramInstance pi1{param.t1, move(p1)};
     ProgramInstance pi2{param.t2, move(p2)};
     ProgramMatcherProxy matcher{pi1, pi2};
-    auto& s1 = pi1.program().statements[0], &s2 = pi2.program().statements[0];
+    auto &s1 = pi1.program().statements[0], &s2 = pi2.program().statements[0];
     auto sim = matcher.ComputeSimilarity(*s1, *s2);
     ASSERT_EQ(sim.Equal(), param.are_equal);
-    if (param.diff_node_count)
-        ASSERT_EQ(sim.total_nodes - sim.matching_nodes, *param.diff_node_count);
+    if (param.diff_node_count) ASSERT_EQ(sim.total_nodes - sim.matching_nodes, *param.diff_node_count);
 }
 
-INSTANTIATE_TEST_SUITE_P(ProgramDiff, SimilarityTestSuite, ::testing::Values(
-    SimilarityTest{"SELECT 1", "SELECT 1", true, SimilarityEstimate::EQUAL, 0},
-    SimilarityTest{"SELECT 1", "SELECT 2", false, SimilarityEstimate::SIMILAR, 1},
-    SimilarityTest{"select c from b where c = global.a",
-        "select c from b where c = global.a",
-        true, SimilarityEstimate::EQUAL, 0},
-    SimilarityTest{"select c from b where c = global.a",
-        "select c from b where c = global.d",
-        false, SimilarityEstimate::SIMILAR, 1},
-    SimilarityTest{"select 1",
-        "select c from b where c = global.d",
-        false, SimilarityEstimate::SIMILAR},
-    SimilarityTest{"viz whether_avg using line",
-        "select c from b where c = global.d",
-        false, SimilarityEstimate::NOT_EQUAL}
-));
+INSTANTIATE_TEST_SUITE_P(
+    ProgramDiff, SimilarityTestSuite,
+    ::testing::Values(SimilarityTest{"SELECT 1", "SELECT 1", true, SimilarityEstimate::EQUAL, 0},
+                      SimilarityTest{"SELECT 1", "SELECT 2", false, SimilarityEstimate::SIMILAR, 1},
+                      SimilarityTest{"select c from b where c = global.a", "select c from b where c = global.a", true,
+                                     SimilarityEstimate::EQUAL, 0},
+                      SimilarityTest{"select c from b where c = global.a", "select c from b where c = global.d", false,
+                                     SimilarityEstimate::SIMILAR, 1},
+                      SimilarityTest{"select 1", "select c from b where c = global.d", false,
+                                     SimilarityEstimate::SIMILAR},
+                      SimilarityTest{"viz whether_avg using line", "select c from b where c = global.d", false,
+                                     SimilarityEstimate::NOT_EQUAL}));
 
 struct MappingTest {
     std::string_view t1;
@@ -113,7 +109,7 @@ struct MappingTest {
         return out;
     }
 };
-class MappingTestSuite: public ::testing::TestWithParam<MappingTest> {};
+class MappingTestSuite : public ::testing::TestWithParam<MappingTest> {};
 
 TEST_P(MappingTestSuite, Mappings) {
     auto& param = GetParam();
@@ -126,9 +122,7 @@ TEST_P(MappingTestSuite, Mappings) {
     StatementMappings equal_pairs;
     matcher.MapStatements(unique_pairs, equal_pairs);
     ASSERT_EQ(unique_pairs, param.unique);
-    std::sort(equal_pairs.begin(), equal_pairs.end(), [&](auto& l, auto& r) {
-        return l.first < r.first;
-    });
+    std::sort(equal_pairs.begin(), equal_pairs.end(), [&](auto& l, auto& r) { return l.first < r.first; });
     ASSERT_EQ(equal_pairs, param.equal);
 }
 
@@ -146,40 +140,44 @@ TEST_P(MappingTestSuite, LCS) {
     ASSERT_EQ(lcs, param.lcs);
 }
 
-INSTANTIATE_TEST_SUITE_P(ProgramDiff, MappingTestSuite, ::testing::Values(
-    MappingTest{"SELECT 1;", "SELECT 1;", {{0, 0}}, {{0, 0}}, {{0, 0}}},
-    MappingTest{"SELECT 2; SELECT 1;", "SELECT 1;", {{1, 0}}, {{1, 0}}, {{1, 0}}},
-    MappingTest{"SELECT 2; SELECT 1;", "SELECT 3; SELECT 1;", {{1, 1}}, {{1, 1}}, {{1, 1}}},
-    MappingTest{"SELECT 1; SELECT 1;", "SELECT 3; SELECT 1;", {}, {{0, 1}, {1, 1}}, {}},
-    MappingTest{"SELECT 1; SELECT 2;", "SELECT 1; SELECT 1;", {}, {{0, 0}, {0, 1}}, {}},
-    MappingTest{"SELECT 2; SELECT 1;", "SELECT 1; SELECT 2;", {{0, 1}, {1, 0}}, {{0, 1}, {1, 0}}, {{1, 0}}},
-    MappingTest{"SELECT 1; SELECT 2; SELECT 3;", "SELECT 1; SELECT 3; SELECT 2;",
-        {{0, 0}, {1, 2}, {2, 1}},
-        {{0, 0}, {1, 2}, {2, 1}},
-        {{0, 0}, {2, 1}}},
-    MappingTest{R"DQL(
-        EXTRACT weather FROM weather_csv USING CSV;
-        VIZ weather_avg USING LINE;
-    )DQL", R"DQL(
+INSTANTIATE_TEST_SUITE_P(
+    ProgramDiff, MappingTestSuite,
+    ::testing::Values(MappingTest{"SELECT 1;", "SELECT 1;", {{0, 0}}, {{0, 0}}, {{0, 0}}},
+                      MappingTest{"SELECT 2; SELECT 1;", "SELECT 1;", {{1, 0}}, {{1, 0}}, {{1, 0}}},
+                      MappingTest{"SELECT 2; SELECT 1;", "SELECT 3; SELECT 1;", {{1, 1}}, {{1, 1}}, {{1, 1}}},
+                      MappingTest{"SELECT 1; SELECT 1;", "SELECT 3; SELECT 1;", {}, {{0, 1}, {1, 1}}, {}},
+                      MappingTest{"SELECT 1; SELECT 2;", "SELECT 1; SELECT 1;", {}, {{0, 0}, {0, 1}}, {}},
+                      MappingTest{
+                          "SELECT 2; SELECT 1;", "SELECT 1; SELECT 2;", {{0, 1}, {1, 0}}, {{0, 1}, {1, 0}}, {{1, 0}}},
+                      MappingTest{"SELECT 1; SELECT 2; SELECT 3;",
+                                  "SELECT 1; SELECT 3; SELECT 2;",
+                                  {{0, 0}, {1, 2}, {2, 1}},
+                                  {{0, 0}, {1, 2}, {2, 1}},
+                                  {{0, 0}, {2, 1}}},
+                      MappingTest{R"DQL(
         EXTRACT weather FROM weather_csv USING CSV;
         VIZ weather_avg USING LINE;
     )DQL",
-        {{0, 0}, {1, 1}},
-        {{0, 0}, {1, 1}},
-        {{0, 0}, {1, 1}}},
-    MappingTest{R"DQL(
+                                  R"DQL(
+        EXTRACT weather FROM weather_csv USING CSV;
+        VIZ weather_avg USING LINE;
+    )DQL",
+                                  {{0, 0}, {1, 1}},
+                                  {{0, 0}, {1, 1}},
+                                  {{0, 0}, {1, 1}}},
+                      MappingTest{R"DQL(
         EXTRACT weather FROM weather_csv USING CSV;
         SELECT 1 INTO weather_avg FROM weather;
         VIZ weather_avg USING LINE;
-    )DQL", R"DQL(
+    )DQL",
+                                  R"DQL(
         EXTRACT weather FROM weather_csv USING CSV;
         SELECT 2 INTO weather_avg FROM weather;
         VIZ weather_avg USING LINE;
     )DQL",
-        {{0, 0}, {2, 2}},
-        {{0, 0}, {2, 2}},
-        {{0, 0}, {2, 2}}}
-));
+                                  {{0, 0}, {2, 2}},
+                                  {{0, 0}, {2, 2}},
+                                  {{0, 0}, {2, 2}}}));
 
 struct DiffTest {
     std::string_view t1;
@@ -191,7 +189,7 @@ struct DiffTest {
         return out;
     }
 };
-class DiffTestSuite: public ::testing::TestWithParam<DiffTest> {};
+class DiffTestSuite : public ::testing::TestWithParam<DiffTest> {};
 
 TEST_P(DiffTestSuite, DiffOps) {
     auto& param = GetParam();
@@ -204,77 +202,86 @@ TEST_P(DiffTestSuite, DiffOps) {
     ASSERT_EQ(diff, param.diff);
 }
 
-INSTANTIATE_TEST_SUITE_P(ProgramDiff, DiffTestSuite, ::testing::Values(
-    DiffTest{"", "", {}},
+INSTANTIATE_TEST_SUITE_P(ProgramDiff, DiffTestSuite,
+                         ::testing::Values(DiffTest{"", "", {}},
 
-    DiffTest{"SELECT 1; SELECT 2; SELECT 3;", "SELECT 1; SELECT 3; SELECT 2;", {
-        {DiffOpCode::KEEP, 0, 0},
-        {DiffOpCode::MOVE, 1, 2},
-        {DiffOpCode::KEEP, 2, 1},
-    }},
+                                           DiffTest{"SELECT 1; SELECT 2; SELECT 3;",
+                                                    "SELECT 1; SELECT 3; SELECT 2;",
+                                                    {
+                                                        {DiffOpCode::KEEP, 0, 0},
+                                                        {DiffOpCode::MOVE, 1, 2},
+                                                        {DiffOpCode::KEEP, 2, 1},
+                                                    }},
 
-    DiffTest{R"DQL(
+                                           DiffTest{R"DQL(
         EXTRACT weather FROM weather_csv USING CSV;
         SELECT 1 INTO weather_avg FROM weather;
         VIZ weather_avg USING LINE;
-    )DQL", R"DQL(
+    )DQL",
+                                                    R"DQL(
         EXTRACT weather FROM weather_csv USING CSV;
         SELECT 2 INTO weather_avg FROM weather;
         VIZ weather_avg USING LINE;
-    )DQL", {
-        {DiffOpCode::KEEP, 0, 0},
-        {DiffOpCode::UPDATE, 1, 1},
-        {DiffOpCode::KEEP, 2, 2},
-    }},
+    )DQL",
+                                                    {
+                                                        {DiffOpCode::KEEP, 0, 0},
+                                                        {DiffOpCode::UPDATE, 1, 1},
+                                                        {DiffOpCode::KEEP, 2, 2},
+                                                    }},
 
-    DiffTest{R"DQL(
+                                           DiffTest{R"DQL(
         EXTRACT weather FROM weather_csv USING CSV;
         SELECT 2 INTO weather_avg FROM weather;
         SELECT 4;
         VIZ weather_avg USING LINE;
-    )DQL", R"DQL(
+    )DQL",
+                                                    R"DQL(
         EXTRACT weather FROM weather_csv USING CSV;
         VIZ weather_avg USING LINE;
-    )DQL", {
-        {DiffOpCode::KEEP, 0, 0},
-        {DiffOpCode::DELETE, 1},
-        {DiffOpCode::DELETE, 2},
-        {DiffOpCode::KEEP, 3, 1},
-    }},
+    )DQL",
+                                                    {
+                                                        {DiffOpCode::KEEP, 0, 0},
+                                                        {DiffOpCode::DELETE, 1},
+                                                        {DiffOpCode::DELETE, 2},
+                                                        {DiffOpCode::KEEP, 3, 1},
+                                                    }},
 
-    DiffTest{R"DQL(
+                                           DiffTest{R"DQL(
         EXTRACT weather FROM weather_csv USING CSV;
         SELECT 4;
         SELECT 2 INTO weather_avg FROM weather;
         VIZ weather_avg USING LINE;
-    )DQL", R"DQL(
+    )DQL",
+                                                    R"DQL(
         EXTRACT weather FROM weather_csv USING CSV;
         SELECT 1 INTO weather_avg FROM weather;
         VIZ weather_avg USING LINE;
-    )DQL", {
-        {DiffOpCode::KEEP, 0, 0},
-        {DiffOpCode::DELETE, 1},
-        {DiffOpCode::UPDATE, 2, 1},
-        {DiffOpCode::KEEP, 3, 2},
-    }},
+    )DQL",
+                                                    {
+                                                        {DiffOpCode::KEEP, 0, 0},
+                                                        {DiffOpCode::DELETE, 1},
+                                                        {DiffOpCode::UPDATE, 2, 1},
+                                                        {DiffOpCode::KEEP, 3, 2},
+                                                    }},
 
-    DiffTest{R"DQL(
+                                           DiffTest{R"DQL(
         EXTRACT weather FROM weather_csv USING CSV;
         SELECT 4;
         SELECT 2 INTO weather_avg FROM weather;
         VIZ weather_avg USING LINE;
-    )DQL", R"DQL(
+    )DQL",
+                                                    R"DQL(
         EXTRACT weather FROM weather_csv USING CSV;
         SELECT 1 INTO weather_avg FROM weather;
         VIZ weather_avg USING LINE;
         VIZ weather_avg_2 USING BAR;
-    )DQL", {
-        {DiffOpCode::KEEP, 0, 0},
-        {DiffOpCode::DELETE, 1},
-        {DiffOpCode::UPDATE, 2, 1},
-        {DiffOpCode::KEEP, 3, 2},
-        {DiffOpCode::INSERT, std::nullopt, 3},
-    }}
-));
+    )DQL",
+                                                    {
+                                                        {DiffOpCode::KEEP, 0, 0},
+                                                        {DiffOpCode::DELETE, 1},
+                                                        {DiffOpCode::UPDATE, 2, 1},
+                                                        {DiffOpCode::KEEP, 3, 2},
+                                                        {DiffOpCode::INSERT, std::nullopt, 3},
+                                                    }}));
 
 }  // namespace

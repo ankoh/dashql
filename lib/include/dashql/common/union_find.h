@@ -3,11 +3,12 @@
 #ifndef INCLUDE_DASHQL_COMMON_UNION_FIND_H_
 #define INCLUDE_DASHQL_COMMON_UNION_FIND_H_
 
-#include "dashql/common/span.h"
 #include <cassert>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
+
+#include "dashql/common/span.h"
 
 namespace dashql {
 
@@ -44,8 +45,7 @@ template <typename T> class SparseUnionFind {
         T value;
 
         /// Constructor
-        Entry(size_t parent, size_t rank, T value)
-            : parent(parent), rank(rank), value(std::move(value)) {}
+        Entry(size_t parent, size_t rank, T value) : parent(parent), rank(rank), value(std::move(value)) {}
         /// Move constructor
         Entry(Entry&& other) = default;
         /// Move assignment
@@ -125,16 +125,15 @@ template <typename T> class SparseUnionFind {
             return;
         }
         Entry* e;
-        for (auto n: nodes) {
+        for (auto n : nodes) {
             e = Merge(origin, n);
         }
         e->value = std::move(value);
     }
 
     /// Helper to iterate all values
-    template <typename Fn>
-    void IterateValues(Fn fn) const {
-        for (auto& [k, v]: entries_) {
+    template <typename Fn> void IterateValues(Fn fn) const {
+        for (auto& [k, v] : entries_) {
             if (k == v.parent) {
                 fn(k, v.value);
             }

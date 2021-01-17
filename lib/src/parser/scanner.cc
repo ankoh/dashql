@@ -1,8 +1,10 @@
 // Copyright (c) 2020 The DashQL Authors
 
 #include "dashql/parser/scanner.h"
-#include "dashql/parser/parser_driver.h"
+
 #include <regex>
+
+#include "dashql/parser/parser_driver.h"
 
 using Parser = dashql::parser::Parser;
 
@@ -12,9 +14,7 @@ namespace dashql {
 namespace parser {
 
 /// Get the text at location
-std::string_view Scanner::TextAt(sx::Location loc) {
-    return input_text().substr(loc.offset(), loc.length());
-}
+std::string_view Scanner::TextAt(sx::Location loc) { return input_text().substr(loc.offset(), loc.length()); }
 /// Begin a literal
 void Scanner::BeginLiteral(sx::Location loc) { literal_begin_ = loc; }
 
@@ -50,24 +50,16 @@ std::optional<sx::Location> Scanner::EndComment(sx::Location loc) {
 }
 
 /// Add an error
-void Scanner::AddError(sx::Location location, const char* message) {
-    errors_.push_back({location, message});
-}
+void Scanner::AddError(sx::Location location, const char* message) { errors_.push_back({location, message}); }
 
 /// Add an error
-void Scanner::AddError(sx::Location location, std::string&& message) {
-    errors_.push_back({location, move(message)});
-}
+void Scanner::AddError(sx::Location location, std::string&& message) { errors_.push_back({location, move(message)}); }
 
 /// Add a line break
-void Scanner::AddLineBreak(sx::Location location) {
-    line_breaks_.push_back(location);
-}
+void Scanner::AddLineBreak(sx::Location location) { line_breaks_.push_back(location); }
 
 /// Add a comment
-void Scanner::AddComment(sx::Location location) {
-    comments_.push_back(location);
-}
+void Scanner::AddComment(sx::Location location) { comments_.push_back(location); }
 
 /// Read a parameter
 Parser::symbol_type Scanner::ReadParameter(sx::Location loc) {
@@ -161,5 +153,5 @@ Parser::symbol_type Scanner::Next() {
     return current_token;
 }
 
-}
-}
+}  // namespace parser
+}  // namespace dashql

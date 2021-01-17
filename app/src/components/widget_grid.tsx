@@ -48,27 +48,35 @@ class WidgetGrid extends React.Component<Props> {
         let equal = prev.size == next.size;
         for (let [k, v] of next) {
             const p = prev.get(k);
-            equal = equal && (v === p);
+            equal = equal && v === p;
         }
         return !equal;
     }
 
-    onItemLayoutChanged(_layout: Layout[], oldItem: Layout, newItem: Layout, _placeholder: Layout, _event: MouseEvent, _element: HTMLElement) {
-
+    onItemLayoutChanged(
+        _layout: Layout[],
+        oldItem: Layout,
+        newItem: Layout,
+        _placeholder: Layout,
+        _event: MouseEvent,
+        _element: HTMLElement,
+    ) {
         const info = this.props.vizData.get(oldItem.i)!;
         const stmt = info.currentStatementId;
 
         const analyzer = this.props.appContext.platform!.analyzer;
-        const next = analyzer.editProgram([{
-            type: core.edit.EditOperationType.VIZ_CHANGE_POSITION,
-            statement_id: stmt,
-            data: {
-                row: newItem.x,
-                column: newItem.y,
-                width: newItem.w,
-                height: newItem.h,
-            }
-        }]);
+        const next = analyzer.editProgram([
+            {
+                type: core.edit.EditOperationType.VIZ_CHANGE_POSITION,
+                statement_id: stmt,
+                data: {
+                    row: newItem.x,
+                    column: newItem.y,
+                    width: newItem.w,
+                    height: newItem.h,
+                },
+            },
+        ]);
         if (next) {
             this.props.rewriteProgram(next);
         }
@@ -96,17 +104,19 @@ class WidgetGrid extends React.Component<Props> {
 }
 
 const mapStateToProps = (state: model.AppState) => ({
-    vizData: new Map(state.core.planObjects
-        .filter(o => o.objectType == core.model.PlanObjectType.VIZ_INFO)
-        .toArray()
-        .map(([k, v]) => [k, v as core.model.VizInfo]) as [string, core.model.VizInfo][]),
+    vizData: new Map(
+        state.core.planObjects
+            .filter(o => o.objectType == core.model.PlanObjectType.VIZ_INFO)
+            .toArray()
+            .map(([k, v]) => [k, v as core.model.VizInfo]) as [string, core.model.VizInfo][],
+    ),
 });
 
 const mapDispatchToProps = (dispatch: model.Dispatch) => ({
     rewriteProgram: (instance: core.model.ProgramInstance) => {
         model.mutate(dispatch, {
             type: core.model.StateMutationType.REWRITE_PROGRAM,
-            data: instance
+            data: instance,
         });
     },
 });

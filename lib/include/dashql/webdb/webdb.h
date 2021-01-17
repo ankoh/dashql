@@ -8,11 +8,11 @@
 #include <string>
 #include <unordered_map>
 
-#include "duckdb.hpp"
-#include "dashql/proto_generated.h"
 #include "dashql/common/expected.h"
 #include "dashql/common/ffi_response.h"
 #include "dashql/common/span.h"
+#include "dashql/proto_generated.h"
+#include "duckdb.hpp"
 
 namespace dashql {
 namespace webdb {
@@ -71,7 +71,7 @@ class WebDB {
     static WebDB& GetInstance();
 };
 
-}  // namespace web
-}  // namespace duckdb
+}  // namespace webdb
+}  // namespace dashql
 
 #endif  // INCLUDE_DUCKDB_WEB_WEBDB_H_

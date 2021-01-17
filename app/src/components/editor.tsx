@@ -1,5 +1,5 @@
 import * as React from 'react';
-import * as monaco from 'monaco-editor/esm/vs/editor/editor.api'
+import * as monaco from 'monaco-editor/esm/vs/editor/editor.api';
 import * as core from '@dashql/core';
 import { AutoSizer } from '../util/autosizer';
 import { connect } from 'react-redux';
@@ -61,20 +61,20 @@ class Editor extends React.Component<Props> {
         if (this.monacoContainer) {
             this.editor = monaco.editor.create(this.monacoContainer, {
                 fontSize: 13,
-                language: "sql",
+                language: 'sql',
                 value: this.props.programText,
                 links: false,
                 minimap: {
-                    enabled: false
+                    enabled: false,
                 },
                 scrollBeyondLastLine: false,
             });
-            this.editor.setPosition({column: 0, lineNumber: 0});
+            this.editor.setPosition({ column: 0, lineNumber: 0 });
             this.editor.focus();
 
             // Set theme
             monaco.editor.defineTheme('dashql', monaco_theme);
-            monaco.editor.setTheme("dashql");
+            monaco.editor.setTheme('dashql');
 
             // Finalize the editor
             this.editorDidMount();
@@ -91,7 +91,7 @@ class Editor extends React.Component<Props> {
     /// The editor did mount, register the event handler
     public editorDidMount() {
         const editor = this.editor!;
-        editor.onDidChangeModelContent((_event) => {
+        editor.onDidChangeModelContent(_event => {
             if (editor.getValue() != this.props.programText) {
                 this.props.updateProgramText(editor.getValue(), editor.getModel()?.getLineCount() || 0);
             }
@@ -106,8 +106,10 @@ class Editor extends React.Component<Props> {
         const delayMs = 100;
         if (this.pendingEditorResize != null) {
             clearTimeout(this.pendingEditorResize);
-        };
-        this.pendingEditorResize = window.setTimeout(() => { this.resizeEditor(height, width) }, delayMs);
+        }
+        this.pendingEditorResize = window.setTimeout(() => {
+            this.resizeEditor(height, width);
+        }, delayMs);
     }
 
     /// Resize the editor
@@ -116,7 +118,7 @@ class Editor extends React.Component<Props> {
             this.editor.layout({
                 height: height,
                 width: width,
-            })
+            });
         }
     }
 
@@ -124,13 +126,12 @@ class Editor extends React.Component<Props> {
     render() {
         return (
             <div className={classNames(styles.editor, this.props.className)}>
-                <AutoSizer onResize={(size: {height: number, width: number}) => {this.resizeEditorDelayed(size.height, size.width)}}>
-                    {(_size) =>
-                        <div
-                            className={styles.editor_monaco}
-                            ref={(ref) => this.monacoContainer = ref}
-                        />
-                    }
+                <AutoSizer
+                    onResize={(size: { height: number; width: number }) => {
+                        this.resizeEditorDelayed(size.height, size.width);
+                    }}
+                >
+                    {_size => <div className={styles.editor_monaco} ref={ref => (this.monacoContainer = ref)} />}
                 </AutoSizer>
             </div>
         );
@@ -243,14 +244,15 @@ class Editor extends React.Component<Props> {
 
 const mapStateToProps = (state: model.AppState) => ({
     programText: state.core.programText,
-    program: state.core.program || new core.model.Program()
+    program: state.core.program || new core.model.Program(),
 });
 
 const mapDispatchToProps = (dispatch: model.Dispatch) => ({
-    updateProgramText: (txt: string, lines: number) => (model.mutate(dispatch, {
-        type: core.model.StateMutationType.SET_PROGRAM_TEXT,
-        data: [txt, lines]
-    }))
+    updateProgramText: (txt: string, lines: number) =>
+        model.mutate(dispatch, {
+            type: core.model.StateMutationType.SET_PROGRAM_TEXT,
+            data: [txt, lines],
+        }),
 });
 
 export default connect(mapStateToProps, mapDispatchToProps)(withAppContext(Editor));

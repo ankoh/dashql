@@ -12,10 +12,6 @@
         "esModuleInterop": true,
         "lib": ["es6"]
     },
-    "exclude": [
-        "./node_modules"
-    ],
-    "files": [
-        "./index.ts"
-    ]
+    "exclude": ["./node_modules"],
+    "files": ["./index.ts"]
 }

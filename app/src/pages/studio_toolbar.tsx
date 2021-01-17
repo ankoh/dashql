@@ -1,4 +1,4 @@
-import * as React from "react";
+import * as React from 'react';
 import {
     IIconProps,
     AnalyticsIcon,
@@ -22,12 +22,7 @@ function createTool(Icon: React.FunctionComponent<IIconProps>): React.FunctionCo
     return (props: IIconProps & ToolProps) => {
         return (
             <div className={styles.tool}>
-                <Icon
-                    className={styles.tool_icon}
-                    width={'20px'}
-                    height={'20px'}
-                    {...props}
-                />
+                <Icon className={styles.tool_icon} width={'20px'} height={'20px'} {...props} />
             </div>
         );
     };
@@ -42,12 +37,7 @@ function createVizType(Icon: React.FunctionComponent<IIconProps>): React.Functio
     return (props: IIconProps & VizTypeProps) => {
         return (
             <div className={styles.viztype}>
-                <Icon
-                    className={styles.viztype_icon}
-                    width={'20px'}
-                    height={'20px'}
-                    {...props}
-                />
+                <Icon className={styles.viztype_icon} width={'20px'} height={'20px'} {...props} />
             </div>
         );
     };
@@ -71,7 +61,7 @@ export class ToolBar extends React.Component<{}, ToolBarState> {
         };
     }
     protected toggleViz() {
-        this.setState({...this.state, vizExpanded: !this.state.vizExpanded});
+        this.setState({ ...this.state, vizExpanded: !this.state.vizExpanded });
     }
     public render() {
         return (
@@ -80,14 +70,15 @@ export class ToolBar extends React.Component<{}, ToolBarState> {
                 <CreateLoad />
                 <CreateExtract />
                 <CreateQuery />
-                <div className={classNames(styles.tool, {
-                        [styles.active]: this.state.vizExpanded
+                <div
+                    className={classNames(styles.tool, {
+                        [styles.active]: this.state.vizExpanded,
                     })}
                     onClick={this.toggleViz.bind(this)}
                 >
                     <AnalyticsIcon
                         className={classNames(styles.tool_icon, {
-                            [styles.active]: this.state.vizExpanded
+                            [styles.active]: this.state.vizExpanded,
                         })}
                         width={'20px'}
                         height={'20px'}
@@ -107,4 +98,4 @@ export class ToolBar extends React.Component<{}, ToolBarState> {
             </div>
         );
     }
-};
+}
