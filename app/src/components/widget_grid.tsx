@@ -9,8 +9,7 @@ import { IAppContext, withAppContext } from '../app_context';
 import { withAutoSizer } from '../util/autosizer';
 import TableChart from './widgets/table_chart';
 
-import styles from './widget_grid.module.css';
-import './widget_grid.raw.css';
+import './widget_grid.module.css';
 
 type Props = {
     appContext: IAppContext;
