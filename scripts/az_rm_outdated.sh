@@ -22,4 +22,9 @@ az storage blob delete-batch \
     --account-name "${AZ_ACCOUNT}" \
     --source "${AZ_CONTAINER}" \
     --if-unmodified-since $OLDER_THAN \
-    --dryrun
+    --dry-run
+
+az storage blob delete-batch \
+    --account-name "${AZ_ACCOUNT}" \
+    --source "${AZ_CONTAINER}" \
+    --if-unmodified-since $OLDER_THAN
