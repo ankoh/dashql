@@ -130,8 +130,6 @@ rm -r "${APP_DEPLOY_TMP}/static"
 # -------------------------------------------------------------------------------------
 # Copy all other files to azure
 
-# We copy the new index.html at the end to hide the new build until everything is uploaded.
-
 echo "Copy other files to Azure"
 az storage blob upload-batch \
     --auth-mode login \
