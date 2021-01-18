@@ -8,15 +8,15 @@ set -euo pipefail
 
 AZ_TENANT="bbea9c1c-1860-49d5-9226-62a126bdf255"
 AZ_USER="http://dashql-app-ci"
-AZ_PASS="${AZ_PASS:-}"
-if [[ -z "${AZ_PASS}" ]]; then
-    read -sp "Password for ${AZ_USER}: " AZ_PASS
+AZ_KEY="${AZ_KEY:-}"
+if [[ -z "${AZ_KEY}" ]]; then
+    read -sp "Password for ${AZ_USER}: " AZ_KEY
 fi
 az login \
     --service-principal \
     --tenant ${AZ_TENANT} \
     -u ${AZ_USER} \
-    -p ${AZ_PASS}
+    -p ${AZ_KEY}
 
 # -------------------------------------------------------------------------------------
 # Perform delete with dry-run
