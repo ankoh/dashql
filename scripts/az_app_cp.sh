@@ -4,6 +4,21 @@
 set -euo pipefail
 
 # -------------------------------------------------------------------------------------
+# Login
+
+AZ_TENANT="bbea9c1c-1860-49d5-9226-62a126bdf255"
+AZ_USER="http://dashql-app-ci"
+AZ_PASS="${AZ_PASS:-}"
+if [[ -z "${AZ_PASS}" ]]; then
+    read -sp "Password for ${AZ_USER}: " AZ_PASS
+fi
+az login \
+    --service-principal \
+    --tenant ${AZ_TENANT} \
+    -u ${AZ_USER} \
+    -p ${AZ_PASS}
+
+# -------------------------------------------------------------------------------------
 # Upload the build to the azure container.
 #
 # We deliberately do not sync with --delete here.
@@ -17,7 +32,7 @@ set -euo pipefail
 # All files in the static folder MUST include [contenthash] in the filename.
 # That means that caches are never "stale" since an updated index.html will refer to new filenames.
 
-AZ_ACCOUNT="stdashql"
+AZ_STORAGE="stdashql"
 AZ_CONTAINER="$1"
 APP_RELEASE="$2"
 
@@ -87,7 +102,8 @@ for IDX in "${!BROTLI_FILE_MATCHERS[@]}"; do
 
     echo "Copy ./static/${BROTLI_FILE_MATCHER} to Azure"
     az storage blob upload-batch \
-        --account-name "${AZ_ACCOUNT}" \
+        --auth-mode login \
+        --account-name "${AZ_STORAGE}" \
         --destination "${AZ_CONTAINER}/static" \
         --source "${APP_DEPLOY_TMP}/static" \
         --pattern "${BROTLI_FILE_MATCHER}" \
@@ -103,7 +119,8 @@ done
 
 echo "Copy ./static/ to Azure"
 az storage blob upload-batch \
-    --account-name "${AZ_ACCOUNT}" \
+    --auth-mode login \
+    --account-name "${AZ_STORAGE}" \
     --destination "${AZ_CONTAINER}/static" \
     --source "${APP_DEPLOY_TMP}/static" \
     --content-cache-control "max-age=${TTL_STATIC}"
@@ -117,7 +134,8 @@ rm -r "${APP_DEPLOY_TMP}/static"
 
 echo "Copy other files to Azure"
 az storage blob upload-batch \
-    --account-name "${AZ_ACCOUNT}" \
+    --auth-mode login \
+    --account-name "${AZ_STORAGE}" \
     --destination "${AZ_CONTAINER}" \
     --source "${APP_DEPLOY_TMP}" \
     --content-cache-control "max-age=${TTL_INDEX}"
