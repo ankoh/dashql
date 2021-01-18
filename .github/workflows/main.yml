@@ -230,7 +230,7 @@ jobs:
       uses: ./ci/image
       with:
         script: |-
-            export AZ_APP_PASS="${{ secrets.AZ_APP_PASS }}"
+            export AZ_PASS="${{ secrets.AZ_APP_PASS }}"
             ./scripts/az_app_upload.sh dashql-app-nightly ./app/build/release
             ./scripts/az_app_old_rm.sh dashql-app-nightly '1 week'
 
@@ -239,7 +239,7 @@ jobs:
       uses: ./ci/image
       with:
         script: |-
-            export AZ_APP_PASS="${{ secrets.AZ_APP_PASS }}"
+            export AZ_PASS="${{ secrets.AZ_APP_PASS }}"
             ./scripts/az_app_upload.sh dashql-app ./app/build/release
             ./scripts/az_app_old_rm.sh dashql-app '1 week'
 
