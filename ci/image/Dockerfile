@@ -8,10 +8,11 @@ RUN apt-get update -qq \
         build-essential git \
         ccache cmake ninja-build llvm clang clang-tidy curl python python3 \
         bison flex \
-        brotli awscli rsync \
+        brotli rsync \
         openjdk-14-jdk \
         libpthread-stubs0-dev \
         libboost-all-dev \
+    && curl -sL https://aka.ms/InstallAzureCLIDeb | bash \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
