@@ -54,12 +54,16 @@ APP_DEPLOY_TMP="${ROOT_DIR}/artifacts/tmp"
 BROTLI_LEVEL=11
 BROTLI_FILE_MATCHERS=(
     "*.js"
+    "*.svg"
+    "*.html"
     "*.css"
     "*.ttf"
     "*.wasm"
 )
 BROTLI_CONTENT_TYPES=(
     "application/javascript"
+    "image/svg+xml"
+    "text/html"
     "text/css"
     "font/ttf"
     "application/wasm"
