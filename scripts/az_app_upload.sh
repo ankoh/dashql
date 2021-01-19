@@ -86,9 +86,9 @@ mkdir -p ${APP_DEPLOY_TMP}
 # -------------------------------------------------------------------------------------
 # Compress files with brotli
 
-echo "Compressing .js, .css, .ttf and .wasm with brotli"
+echo "Compressing .js, .svg, .html, .css, .ttf and .wasm with brotli"
 find ${APP_RELEASE} \
-    -type f \( -iname "*.js" -o -iname "*.css" -o -iname "*.ttf"  -o -iname "*.wasm" \) \
+    -type f \( -iname "*.js" -o -iname "*.svg" -o -iname "*.html" -o -iname "*.css" -o -iname "*.ttf"  -o -iname "*.wasm" \) \
     -exec sh -c "export OUT=${APP_DEPLOY_TMP}/\$(realpath --relative-to ${APP_RELEASE} {}) && mkdir -p \$(dirname \${OUT}) && brotli --verbose --force --quality=${BROTLI_LEVEL} --output=\${OUT} {}" \; \
 
 echo "Files"
