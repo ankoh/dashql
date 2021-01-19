@@ -4,7 +4,7 @@
 set -euo pipefail
 
 STORAGE_RG="rg-dashql"
-STORAGE_ACCOUNT="stdashql"
+STORAGE_ACCOUNT="dashql"
 SUBSCRIPTION_ID=`az account show --query id --output tsv`
 
 SCOPE_RG="/subscriptions/${SUBSCRIPTION_ID}/resourceGroups/${STORAGE_RG}"
@@ -17,10 +17,10 @@ az role assignment create \
     --assignee-object-id "${APP_CI_OID}" \
     --assignee-principal-type ServicePrincipal \
     --role "Storage Blob Data Contributor" \
-    --scope "${SCOPE_CONT}/dashql-app"
+    --scope "${SCOPE_CONT}/app"
 
 az role assignment create \
     --assignee-object-id "${APP_CI_OID}" \
     --assignee-principal-type ServicePrincipal \
     --role "Storage Blob Data Contributor" \
-    --scope "${SCOPE_CONT}/dashql-app-nightly"
+    --scope "${SCOPE_CONT}/app-nightly"

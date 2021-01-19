@@ -30,7 +30,7 @@ ${DATE} --version 1>/dev/null \
     && { echo "[ OK   ] Command: ${DATE}"; } \
     || { echo "[ ERR  ] Command: ${DATE}"; exit 1; }
 
-AZ_STORAGE="stdashql"
+AZ_STORAGE="dashql"
 AZ_CONTAINER="$1"
 
 OLDER_THAN=$(${DATE} -u -d "$2 ago" '+%Y-%m-%dT%H:%MZ')

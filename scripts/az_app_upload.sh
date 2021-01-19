@@ -32,7 +32,7 @@ az login \
 # All files in the static folder MUST include [contenthash] in the filename.
 # That means that caches are never "stale" since an updated index.html will refer to new filenames.
 
-AZ_STORAGE="stdashql"
+AZ_STORAGE="dashql"
 AZ_CONTAINER="$1"
 APP_RELEASE="$2"
 
