@@ -231,8 +231,8 @@ jobs:
       with:
         script: |-
             export AZ_PASS="${{ secrets.AZ_APP_PASS }}"
-            ./scripts/az_app_upload.sh dashql-app-nightly ./app/build/release
-            ./scripts/az_app_old_rm.sh dashql-app-nightly '1 week'
+            ./scripts/az_app_upload.sh app-nightly ./app/build/release
+            ./scripts/az_app_old_rm.sh app-nightly '1 week'
 
     - name: Deploy to app.dashql.com
       if: github.ref == 'refs/heads/stable'
@@ -240,8 +240,8 @@ jobs:
       with:
         script: |-
             export AZ_PASS="${{ secrets.AZ_APP_PASS }}"
-            ./scripts/az_app_upload.sh dashql-app ./app/build/release
-            ./scripts/az_app_old_rm.sh dashql-app '1 week'
+            ./scripts/az_app_upload.sh app ./app/build/release
+            ./scripts/az_app_old_rm.sh app '1 week'
 
   plugins:
     name: Plugins
