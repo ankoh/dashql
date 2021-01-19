@@ -87,9 +87,16 @@ mkdir -p ${APP_DEPLOY_TMP}
 # Compress files with brotli
 
 echo "Compressing .js, .svg, .html, .css, .ttf and .wasm with brotli"
-find ${APP_RELEASE} \
+find "${APP_RELEASE}/static/" \
     -type f \( -iname "*.js" -o -iname "*.svg" -o -iname "*.html" -o -iname "*.css" -o -iname "*.ttf"  -o -iname "*.wasm" \) \
     -exec sh -c "export OUT=${APP_DEPLOY_TMP}/\$(realpath --relative-to ${APP_RELEASE} {}) && mkdir -p \$(dirname \${OUT}) && brotli --verbose --force --quality=${BROTLI_LEVEL} --output=\${OUT} {}" \; \
+
+brotli \
+    --verbose \
+    --force \
+    --quality=${BROTLI_LEVEL} \
+    --output="${APP_DEPLOY_TMP}/index.html" \
+    "${APP_RELEASE}/index.html"
 
 echo "Files"
 rsync -av --ignore-existing ${APP_RELEASE}/ ${APP_DEPLOY_TMP}/
@@ -134,11 +141,14 @@ rm -r "${APP_DEPLOY_TMP}/static"
 # -------------------------------------------------------------------------------------
 # Copy all other files to azure
 
-echo "Copy other files to Azure"
-az storage blob upload-batch \
+echo "Copy index.html to Azure"
+az storage blob upload \
     --auth-mode login \
     --account-name "${AZ_STORAGE}" \
-    --destination "${AZ_CONTAINER}" \
-    --source "${APP_DEPLOY_TMP}" \
+    --container-name "${AZ_CONTAINER}" \
+    --file "${APP_DEPLOY_TMP}/index.html" \
+    --name "index.html" \
+    --content-type "text/html" \
+    --content-encoding "br" \
     --content-cache-control "max-age=${TTL_INDEX}"
 
