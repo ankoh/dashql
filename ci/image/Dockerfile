@@ -12,7 +12,6 @@ RUN apt-get update -qq \
         openjdk-14-jdk \
         libpthread-stubs0-dev \
         libboost-all-dev \
-    && curl -sL https://aka.ms/InstallAzureCLIDeb | bash \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -62,14 +61,21 @@ RUN export RUSTUP_HOME=/opt/rust \
     && chgrp -R actions /opt/rust \
     && chmod -R g=u /opt/rust
 
+ENV AZURE_CONFIG_DIR=/opt/azure
+RUN curl -sL https://aka.ms/InstallAzureCLIDeb | bash \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* \
+    && chgrp -R actions /opt/azure \
+    && chmod -R g=u /opt/azure
+
 RUN source /opt/emsdk/emsdk_env.sh \
     && echo "export PATH=$PATH:/opt/rust/bin" >> /opt/env.sh \
     && echo "export EMSDK=$EMSDK" >> /opt/env.sh \
     && echo "export EM_CONFIG=$EM_CONFIG" >> /opt/env.sh \
-    && echo "export EM_CACHE=/mnt/emscripten_cache/" >> /opt/env.sh \
     && echo "export EMSCRIPTEN=$EMSCRIPTEN" >> /opt/env.sh \
     && echo "export CARGO_HOME=/opt/rust" >> /opt/env.sh \
     && echo "export RUSTUP_HOME=/opt/rust" >> /opt/env.sh \
+    && echo "export AZURE_CONFIG_DIR=/opt/azure" >> /opt/env.sh \
     && echo "source /opt/nvm/nvm.sh" >> /opt/env.sh \
     && printf '#!/bin/bash\n. /opt/env.sh\nexec "$@"\n' > /opt/entrypoint.sh \
     && chmod +x /opt/entrypoint.sh
