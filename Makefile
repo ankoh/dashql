@@ -209,30 +209,6 @@ bootstrap:
 	make webdb core
 
 # ---------------------------------------------------------------------------
-# Deployment
-
-.PHONY: aws_stable_deploy
-aws_stable_deploy:
-	./scripts/s3_cp_app.sh ${APP_STABLE_S3_BUCKET} ./app/build/release
-
-# Remove old app versions.
-# Make sure a newer versions exist and that the CDN no longer refers to an outdated index.html!
-.PHONY: aws_stable_prune
-aws_stable_prune:
-	./scripts/s3_rm_outdated.sh ${APP_STABLE_S3_BUCKET} "1 week"
-
-# Deploy a nightly build
-.PHONY: aws_nightly_deploy
-aws_nightly_deploy:
-	./scripts/s3_cp_app.sh ${APP_NIGHTLY_S3_BUCKET} ./app/build/release
-
-# Remove old app versions.
-# Make sure a newer versions exist and that the CDN no longer refers to an outdated index.html!
-.PHONY: aws_nightly_prune
-aws_nightly_prune:
-	./scripts/s3_rm_outdated.sh ${APP_NIGHTLY_S3_BUCKET} "1 month"
-
-# ---------------------------------------------------------------------------
 # Data
 
 # Package the uni schema data
@@ -247,7 +223,7 @@ pkg_uni:
 	cd ${UNI_SCHEMA_OUT} && rm -f ./tables.zip && zip ./tables.zip ./*.parquet
 
 # Copy university schema data to s3
-aws_update_uni:
-	aws s3 cp "${UNI_SCHEMA_OUT}/tables.zip" "${CDN_S3_BUCKET}/demo/uni/tables-de.zip" \
-		--cache-control "max-age=604800" \
-		--acl public-read
+# aws_update_uni:
+# 	aws s3 cp "${UNI_SCHEMA_OUT}/tables.zip" "${CDN_S3_BUCKET}/demo/uni/tables-de.zip" \
+# 		--cache-control "max-age=604800" \
+# 		--acl public-read
