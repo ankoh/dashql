@@ -65,6 +65,7 @@ ENV AZURE_CONFIG_DIR=/opt/azure
 RUN curl -sL https://aka.ms/InstallAzureCLIDeb | bash \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* \
+    && mkdir -p /opt/azure \
     && chgrp -R actions /opt/azure \
     && chmod -R g=u /opt/azure
 
