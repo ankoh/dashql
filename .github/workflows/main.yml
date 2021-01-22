@@ -242,25 +242,3 @@ jobs:
             export AZ_PASS="${{ secrets.AZ_APP_PASS }}"
             ./scripts/az_app_upload.sh app ./app/build/release
             ./scripts/az_app_old_rm.sh app '1 week'
-
-  plugins:
-    name: Plugins
-    runs-on: self-hosted
-
-    steps:
-    - uses: actions/checkout@v2
-
-    - name: Compile flatbuffer schema
-      uses: ./ci/image
-      with:
-        script: |-
-            ./scripts/generate_proto.sh
-
-    - name: extract/fortnite-replay
-      uses: ./ci/image
-      with:
-        script: |-
-            source /opt/env.sh
-            cd ./plugins/extract/fortnite-replay/
-            cargo build
-            cargo build --target wasm32-unknown-unknown
