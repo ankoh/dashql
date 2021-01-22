@@ -120,7 +120,6 @@ jobs:
     needs:
     - linux_x86_debug
     - linux_x86_release
-    - plugins
 
     steps:
     - uses: actions/checkout@v2
