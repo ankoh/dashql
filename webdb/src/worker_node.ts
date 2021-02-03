@@ -6,7 +6,7 @@ import { WebDBBindings } from './webdb_bindings';
 import { WebDB } from './webdb_bindings_node';
 
 /// The webdb worker API for node.js workers
-class NodeWorker extends AsyncWebDBDispatcher {
+class NodeWorker extends AsyncWebDBDispatcher  {
     /// Post a response back to the main thread
     protected postMessage(response: AsyncWebDBResponseVariant, transfer: ArrayBuffer[]) {
         globalThis.postMessage(response, transfer);
@@ -14,7 +14,7 @@ class NodeWorker extends AsyncWebDBDispatcher {
 
     /// Instantiate the wasm module
     protected async open(path: string | null): Promise<WebDBBindings> {
-        const bindings = new WebDB({}, path);
+        const bindings = new WebDB(this, {}, path);
         await bindings.open();
         return bindings;
     }

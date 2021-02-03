@@ -204,8 +204,9 @@ async function main(db: webdb.AsyncWebDB) {
     );
 }
 
+const logger = new webdb.VoidLogger();
 const worker = new Worker(workerPath);
-const db = new webdb.AsyncWebDB(worker);
+const db = new webdb.AsyncWebDB(logger, worker);
 db.open(wasmPath)
     .then(() => main(db))
     .then(() => db.terminate())

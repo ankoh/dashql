@@ -27,6 +27,7 @@ export enum LogOrigin {
     CHUNK_BUFFER,
     CHUNK_STREAM,
     ROW_ITERATOR,
+    ASYNC_WEBDB,
     ASYNC_CHUNK_BUFFER,
     ASYNC_CHUNK_STREAM,
     ASYNC_ROW_ITERATOR,
@@ -52,5 +53,19 @@ export type LogEntryVariant =
     | LogEntry<LogOrigin.BINDINGS, LogTopic.OPEN, LogEvent.START, void>
     | LogEntry<LogOrigin.BINDINGS, LogTopic.OPEN, LogEvent.OK, void>
     | LogEntry<LogOrigin.BINDINGS, LogTopic.OPEN, LogEvent.ERROR, void>
+    | LogEntry<LogOrigin.ASYNC_WEBDB, LogTopic.QUERY, LogEvent.START, string>
     ;
 
+export interface Logger {
+    log(entry: LogEntryVariant): void;
+}
+
+export class VoidLogger implements Logger {
+    public log(_entry: LogEntryVariant): void {}
+}
+
+export class ConsoleLogger implements Logger {
+    public log(entry: LogEntryVariant): void {
+        console.log(entry);
+    }
+}

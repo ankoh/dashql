@@ -13,6 +13,7 @@ export enum LogTopic {
     PARSE_PROGRAM,
     INSTANTIATE_PROGRAM,
     SCHEDULE_PROGRAM,
+    REQUEST_SCAN,
 }
 
 export enum LogEvent {
@@ -24,6 +25,7 @@ export enum LogEvent {
 export enum LogOrigin {
     DB_MANAGER,
     SCRIPT_PIPELINE,
+    SCAN_PROVIDER,
 }
 
 export type LogEntry<O, T, E, V> = webdb.LogEntry<O, T, E, V>;
@@ -35,6 +37,10 @@ export type LogEntryVariant =
     | LogEntry<LogOrigin.DB_MANAGER, LogTopic.DB_DISCONNECT, LogEvent.START, void>
     | LogEntry<LogOrigin.DB_MANAGER, LogTopic.DB_DISCONNECT, LogEvent.OK, void>
     | LogEntry<LogOrigin.DB_MANAGER, LogTopic.DB_DISCONNECT, LogEvent.ERROR, void>
-    | LogEntry<LogOrigin.SCRIPT_PIPELINE, LogTopic.PARSE_PROGRAM, LogEvent.START, string>
+    | LogEntry<LogOrigin.SCRIPT_PIPELINE, LogTopic.PARSE_PROGRAM, LogEvent.OK, string>
+    | LogEntry<LogOrigin.SCRIPT_PIPELINE, LogTopic.PARSE_PROGRAM, LogEvent.ERROR, void>
+    | LogEntry<LogOrigin.SCRIPT_PIPELINE, LogTopic.INSTANTIATE_PROGRAM, LogEvent.OK, void>
+    | LogEntry<LogOrigin.SCRIPT_PIPELINE, LogTopic.INSTANTIATE_PROGRAM, LogEvent.ERROR, void>
+    | LogEntry<LogOrigin.SCAN_PROVIDER, LogTopic.REQUEST_SCAN, LogEvent.OK, void>
     | webdb.LogEntryVariant
     ;

@@ -7,6 +7,7 @@ import {
     AsyncWebDBResponseType,
     AsyncWebDBResponseVariant,
 } from './async_webdb_message';
+import { Logger, LogLevel, LogTopic, LogOrigin, LogEvent } from './log';
 
 type ConnectionID = number;
 
@@ -14,13 +15,13 @@ class Task<T, D, P> {
     readonly type: T;
     readonly data: D;
     promise: Promise<P>;
-    promiseResolver: (value?: P) => void = () => {};
+    promiseResolver: (value: P | PromiseLike<P>) => void = () => {};
     promiseRejecter: (value: any) => void = () => {};
 
     constructor(type: T, data: D) {
         this.type = type;
         this.data = data;
-        this.promise = new Promise<P>((resolve: (value?: P) => void, reject: (reason?: void) => void) => {
+        this.promise = new Promise<P>((resolve: (value: P | PromiseLike<P>) => void, reject: (reason?: void) => void) => {
             this.promiseResolver = resolve;
             this.promiseRejecter = reject;
         });
@@ -45,25 +46,31 @@ export class AsyncWebDB {
     /// The close handler
     _onCloseHandler: () => void;
 
-    /// A worker
+    /// The logger
+    _logger: Logger;
+    /// The worker
     _worker: Worker | null = null;
-    /// A promise for the worker shutdown
+    /// The promise for the worker shutdown
     _workerShutdownPromise: Promise<null> | null = null;
     /// Make the worker as terminated
-    _workerShutdownResolver: () => void = () => {};
+    _workerShutdownResolver: (value: PromiseLike<null> | null) => void = () => {};
 
     /// The next message id
     _nextMessageId: number = 0;
     /// The pending requests
     _pendingRequests: Map<number, TaskVariant> = new Map();
 
-    constructor(worker: Worker | null = null) {
+    constructor(logger: Logger, worker: Worker | null = null) {
+        this._logger = logger;
         this._onMessageHandler = this.onMessage.bind(this);
         this._onErrorHandler = this.onError.bind(this);
         this._onCloseHandler = this.onClose.bind(this);
         if (worker != null)
             this.attach(worker);
     }
+
+    /// Get the logger
+    public get logger() { return this._logger; }
 
     /// Attach to worker
     protected attach(worker: Worker) {
@@ -72,7 +79,7 @@ export class AsyncWebDB {
         this._worker.addEventListener('error', this._onErrorHandler);
         this._worker.addEventListener('close', this._onCloseHandler);
         this._workerShutdownPromise = new Promise<null>(
-            (resolve: (value?: null) => void, _reject: (reason?: void) => void) => {
+            (resolve: (value: PromiseLike<null> | null) => void, _reject: (reason?: void) => void) => {
                 this._workerShutdownResolver = resolve;
             },
         );
@@ -85,7 +92,7 @@ export class AsyncWebDB {
         this._worker.removeEventListener('error', this._onErrorHandler);
         this._worker.removeEventListener('close', this._onCloseHandler);
         this._worker = null;
-        this._workerShutdownResolver();
+        this._workerShutdownResolver(null);
         this._workerShutdownPromise = null;
         this._workerShutdownResolver = () => {};
     }
@@ -119,6 +126,13 @@ export class AsyncWebDB {
     /// Received a message
     protected onMessage(event: MessageEvent) {
         const response = event.data as AsyncWebDBResponseVariant;
+
+        // Short-circuit unassociated log entries
+        if (response.type == AsyncWebDBResponseType.LOG) {
+            this._logger.log(response.data);
+        }
+
+        // Get associated task
         const task = this._pendingRequests.get(response.requestId);
         if (!task) {
             console.warn(`unassociated response: [${response.requestId}, ${response.type.toString()}]`);
@@ -179,7 +193,7 @@ export class AsyncWebDB {
 
     /// The worker was closed
     protected onClose() {
-        this._workerShutdownResolver();
+        this._workerShutdownResolver(null);
         if (this._pendingRequests.size != 0) {
             console.warn(`worker terminated with ${this._pendingRequests.size} pending requests`);
             return;
@@ -275,7 +289,14 @@ export class AsyncWebDBConnection {
 
     /// Run a query
     public async runQuery(text: string): Promise<proto.QueryResult> {
-        console.log(`runQuery: ${text}`);
+        this._instance.logger.log({
+            timestamp: new Date(),
+            level: LogLevel.INFO,
+            origin: LogOrigin.ASYNC_WEBDB,
+            topic: LogTopic.QUERY,
+            event: LogEvent.START,
+            value: text,
+        });
         return this._instance.runQuery(this._conn, text);
     }
 

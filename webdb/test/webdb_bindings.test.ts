@@ -3,9 +3,10 @@ import * as path from 'path';
 
 var db: webdb.WebDB;
 var conn: webdb.WebDBConnection;
+const logger = new webdb.ConsoleLogger();
 
 beforeAll(async () => {
-    db = new webdb.WebDB({}, path.resolve(__dirname, "../src/webdb_wasm.wasm"));
+    db = new webdb.WebDB(logger, {}, path.resolve(__dirname, "../src/webdb_wasm.wasm"));
     await db.open();
 });
 
