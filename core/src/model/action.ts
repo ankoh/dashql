@@ -64,11 +64,6 @@ export interface Action {
     timeLastUpdate: Date | null;
 }
 
-export interface ActionLogEntry extends LogEntry {
-    /// The action id
-    actionId: ActionID;
-}
-
 export interface ActionUpdate {
     /// The action id
     actionId: ActionID;

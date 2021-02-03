@@ -1,9 +1,9 @@
 import { Platform } from  "../platform";
 import { CoreState } from  "./state";
-import { LogEntry } from "./log";
+import { LogEntryVariant } from "./log";
 
 export interface PersistentCoreState {
-    logEntries: LogEntry[];
+    logEntries: LogEntryVariant[];
     programText: string;
 };
 

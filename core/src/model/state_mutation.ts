@@ -1,9 +1,9 @@
 import * as Immutable from 'immutable';
 import * as proto from '@dashql/proto';
 import * as utils from '../utils';
-import { LogEntry } from './log';
+import { LogEntryVariant } from './log';
 import { Plan } from './plan';
-import { ActionID, Action, ActionUpdate, ActionLogEntry, ActionSchedulerStatus } from './action';
+import { ActionID, Action, ActionUpdate, ActionSchedulerStatus } from './action';
 import { PlanObjectID, PlanObject, PlanObjectType, DatabaseTableInfo } from './plan_object';
 import { Program, StatementStatus, deriveStatementStatusCode } from './program';
 import { ProgramInstance } from './program_instance';
@@ -40,7 +40,7 @@ export enum StateMutationType {
 
 /// A mutation variant
 export type StateMutationVariant =
-    | StateMutation<StateMutationType.LOG_PUSH_ENTRY, LogEntry>
+    | StateMutation<StateMutationType.LOG_PUSH_ENTRY, LogEntryVariant>
     | StateMutation<StateMutationType.SCHEDULER_READY, null>
     | StateMutation<StateMutationType.SCHEDULE_PLAN, [Plan, Action[]]>
     | StateMutation<StateMutationType.RESET_PLAN, null>
@@ -89,7 +89,6 @@ export class StateMutations {
                     plan: null,
                     planProgramStatus: Immutable.List<StatementStatus>(),
                     planActions: Immutable.Map<ActionID, Action>(),
-                    planActionLog: Immutable.List<ActionLogEntry>(),
                 };
             }
 
@@ -116,7 +115,6 @@ export class StateMutations {
                     plan: mutation.data[0],
                     planProgramStatus: Immutable.List<StatementStatus>(stmt),
                     planActions: Immutable.Map<ActionID, Action>(mutation.data[1].map(a => [a.actionId, a])),
-                    planActionLog: Immutable.List<ActionLogEntry>(),
                 };
             }
 
