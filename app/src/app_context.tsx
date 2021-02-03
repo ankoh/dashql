@@ -1,9 +1,11 @@
+import * as webdb from '@dashql/webdb/dist/webdb_async';
 import * as React from 'react';
 import * as model from './model';
 import * as platform from './platform';
 
 export interface IAppContext {
     store: model.AppReduxStore;
+    logger: webdb.Logger;
     platform: platform.BrowserPlatform | null;
 }
 

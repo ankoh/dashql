@@ -8,8 +8,8 @@ export class BrowserPlatform extends core.platform.Platform {
     /// The script pipeline
     protected _scriptPipeline: core.ScriptPipeline;
 
-    constructor(store: model.AppReduxStore, webdb: webdb.AsyncWebDB, analyzer: core.analyzer.AnalyzerBindings) {
-        super(store, webdb, analyzer);
+    constructor(store: model.AppReduxStore, logger: webdb.Logger, webdb: webdb.AsyncWebDB, analyzer: core.analyzer.AnalyzerBindings) {
+        super(store, logger, webdb, analyzer);
         this._store = store;
         this._scheduler = new core.ActionGraphScheduler(this);
         this._scriptPipeline = new core.ScriptPipeline(this, this._scheduler);

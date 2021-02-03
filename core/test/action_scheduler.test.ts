@@ -67,7 +67,7 @@ describe('Action Scheduler', () => {
     describe('program actions', () => {
         test('single table', async () => {
             const store = model.createStore();
-            const plat = new platform.Platform(store, db, analyzerBindings);
+            const plat = new platform.Platform(store, logger, db, analyzerBindings);
             await plat.init();
 
             const program = analyzerBindings.parseProgram('CREATE TABLE a AS SELECT 1');
@@ -97,7 +97,7 @@ describe('Action Scheduler', () => {
 
         test('chain', async () => {
             const store = model.createStore();
-            const plat = new platform.Platform(store, db, analyzerBindings);
+            const plat = new platform.Platform(store, logger, db, analyzerBindings);
             await plat.init();
 
             const program = analyzerBindings.parseProgram(`
@@ -154,7 +154,7 @@ describe('Action Scheduler', () => {
 
         test('tree', async () => {
             const store = model.createStore();
-            const plat = new platform.Platform(store, db, analyzerBindings);
+            const plat = new platform.Platform(store, logger, db, analyzerBindings);
             await plat.init();
 
             const program = analyzerBindings.parseProgram(`
@@ -209,7 +209,7 @@ describe('Action Scheduler', () => {
 
         test('independent', async () => {
             const store = model.createStore();
-            const plat = new platform.Platform(store, db, analyzerBindings);
+            const plat = new platform.Platform(store, logger, db, analyzerBindings);
             await plat.init();
 
             const program = analyzerBindings.parseProgram(`

@@ -1,6 +1,7 @@
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
 import * as model from './model';
+import * as core from '@dashql/core';
 import { launchApp } from './app_launcher';
 import { Route, BrowserRouter, Switch, Redirect } from 'react-router-dom';
 import { Provider as ReduxProvider } from 'react-redux';
@@ -14,8 +15,11 @@ import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
 import 'react-virtualized/styles.css';
 
+const store = model.createStore();
+const logger = new core.platform.LogManager(store);
+
 const ctx: IAppContext = {
-    store: model.createStore(),
+    store, logger,
     platform: null,
 };
 
