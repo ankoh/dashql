@@ -8,6 +8,8 @@ import ActionStatus = proto.action.ActionStatusCode;
 import ActionClass = model.ActionClass;
 import ProgramActionType = proto.action.ProgramActionType;
 
+const logger = new webdb.ConsoleLogger();
+
 let analyzerBindings: analyzer.AnalyzerBindings;
 let worker: Worker;
 let db: webdb.AsyncWebDB;
@@ -17,7 +19,7 @@ beforeAll(async () => {
     analyzerBindings = new analyzer.Analyzer({}, path.resolve(__dirname, '../src/analyzer/analyzer_wasm_node.wasm'));
     await analyzerBindings.init();
     worker = new Worker(path.resolve(__dirname, "../../webdb/dist/webdb_node_async.worker.js"));
-    db = new webdb.AsyncWebDB(worker);
+    db = new webdb.AsyncWebDB(logger, worker);
 });
 
 beforeEach(async () => {

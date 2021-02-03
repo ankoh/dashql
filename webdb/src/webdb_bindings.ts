@@ -3,6 +3,7 @@
 import { WebDBModule } from './webdb_module';
 import { webdb as proto } from '@dashql/proto';
 import { flatbuffers } from 'flatbuffers';
+import { Logger } from './log';
 
 export interface WebDBRuntime {}
 
@@ -24,6 +25,8 @@ function copyFlatbuffer(buffer: Uint8Array): flatbuffers.ByteBuffer {
 
 /// The proxy for either the browser- order node-based WebDB API
 export abstract class WebDBBindings {
+    /// The logger
+    private _logger: Logger;
     /// The instance
     private _instance: WebDBModule | null = null;
     /// The loading promise
@@ -31,10 +34,14 @@ export abstract class WebDBBindings {
     /// The resolver for the open promise (called by onRuntimeInitialized)
     private _openPromiseResolver: () => void = () => {};
 
-    /// Get the instance
-    public get instance() {
-        return this._instance;
+    constructor(logger: Logger) {
+        this._logger = logger;
     }
+
+    /// Get the logger
+    public get logger() { return this._logger; }
+    /// Get the instance
+    public get instance() { return this._instance; }
 
     /// Instantiate the module
     protected abstract instantiate(moduleOverrides: Partial<WebDBModule>): Promise<WebDBModule>;

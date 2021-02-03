@@ -31,6 +31,9 @@ function stepFailed(store: model.AppReduxStore, step: model.LaunchStep, error: s
     });
 }
 
+// XXX Log to redux instead
+const consoleLogger = new webdb.ConsoleLogger();
+
 async function configureApp(store: model.AppReduxStore): Promise<model.AppConfig | null> {
     try {
         const resp = await axios.get(config_url);
@@ -56,7 +59,7 @@ async function initWebDB(store: model.AppReduxStore): Promise<webdb.AsyncWebDB |
     startStep(store, model.LaunchStep.INIT_WEBDB);
     try {
         const dbWorker = new Worker(new URL('@dashql/webdb/dist/webdb_async.worker.js', import.meta.url))
-        const db = new webdb.AsyncWebDB(dbWorker);
+        const db = new webdb.AsyncWebDB(consoleLogger, dbWorker);
         await db.open(webdb_wasm);
         stepSucceeded(store, model.LaunchStep.INIT_WEBDB);
         return db;

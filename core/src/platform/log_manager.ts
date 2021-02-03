@@ -1,7 +1,8 @@
+import * as webdb from '@dashql/webdb/dist/webdb_async';
 import * as model from "../model";
 import * as error from "../error";
 
-export class LogManager {
+export class LogManager implements webdb.Logger {
     // The store
     public _store: model.DerivedReduxStore;
 
@@ -10,7 +11,7 @@ export class LogManager {
         this._store = store;
     }
 
-    protected log(entry: model.LogEntryVariant) {
+    public log(entry: model.LogEntryVariant) {
         // XXX Rotate if full
         // XXX Eventually push to service bus 
         model.mutate(this._store.dispatch, {
