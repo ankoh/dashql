@@ -31,9 +31,6 @@ function stepFailed(store: model.AppReduxStore, step: model.LaunchStep, error: s
     });
 }
 
-// XXX Log to redux instead
-const consoleLogger = new webdb.ConsoleLogger();
-
 async function configureApp(store: model.AppReduxStore): Promise<model.AppConfig | null> {
     try {
         const resp = await axios.get(config_url);
@@ -55,11 +52,11 @@ async function configureApp(store: model.AppReduxStore): Promise<model.AppConfig
     return null;
 }
 
-async function initWebDB(store: model.AppReduxStore): Promise<webdb.AsyncWebDB | null> {
+async function initWebDB(store: model.AppReduxStore, logger: webdb.Logger): Promise<webdb.AsyncWebDB | null> {
     startStep(store, model.LaunchStep.INIT_WEBDB);
     try {
         const dbWorker = new Worker(new URL('@dashql/webdb/dist/webdb_async.worker.js', import.meta.url))
-        const db = new webdb.AsyncWebDB(consoleLogger, dbWorker);
+        const db = new webdb.AsyncWebDB(logger, dbWorker);
         await db.open(webdb_wasm);
         stepSucceeded(store, model.LaunchStep.INIT_WEBDB);
         return db;
@@ -86,7 +83,7 @@ export async function launchApp(ctx: IAppContext) {
     const config = await configureApp(ctx.store);
     if (!config) return;
 
-    const webdbPromise = initWebDB(ctx.store);
+    const webdbPromise = initWebDB(ctx.store, ctx.logger);
     const analyzerPromise = initAnalyzer(ctx.store);
 
     const init = await Promise.all([webdbPromise, analyzerPromise])
@@ -94,7 +91,7 @@ export async function launchApp(ctx: IAppContext) {
     const webdb = init[0];
     const analyzer = init[1];
 
-    ctx.platform = new platform.BrowserPlatform(ctx.store, webdb, analyzer);
+    ctx.platform = new platform.BrowserPlatform(ctx.store, ctx.logger, webdb, analyzer);
     await ctx.platform.init();
 
     model.mutate(ctx.store.dispatch, {

@@ -1,3 +1,4 @@
+import * as webdb from '@dashql/webdb/dist/webdb_async';
 import * as React from 'react';
 import * as platform from '../platform';
 import * as proto from '@dashql/proto';
@@ -45,7 +46,7 @@ export interface ScanResult {
 
 interface Props {
     /// The log manager
-    log: platform.LogManager;
+    logger: webdb.Logger;
     /// The database manager
     database: platform.DatabaseManager;
     /// The table name

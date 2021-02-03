@@ -9,6 +9,8 @@ import { LogManager } from "./log_manager";
 export class Platform {
     /// The global application state
     _store: DerivedReduxStore;
+    /// The logger
+    _logger: webdb.Logger;
     /// The webdb
     _webdb: webdb.AsyncWebDB;
     /// The analyzer bindings
@@ -19,17 +21,15 @@ export class Platform {
     _fileManager: FileManager;
     /// The HTTP manager
     _httpManager: HTTPManager;
-    /// The log manager
-    _logManager: LogManager;
 
-    constructor(store: DerivedReduxStore, webdb: webdb.AsyncWebDB, analyzer: AnalyzerBindings) {
+    constructor(store: DerivedReduxStore, logger: webdb.Logger, webdb: webdb.AsyncWebDB, analyzer: AnalyzerBindings) {
         this._store = store;
+        this._logger = logger;
         this._webdb = webdb;
         this._analyzer = analyzer;
         this._databaseManager = new DatabaseManager(this._webdb);
         this._fileManager = new FileManager(store);
         this._httpManager = new HTTPManager(store);
-        this._logManager = new LogManager(store);
     }
 
     public get store() { return this._store; }
@@ -37,7 +37,7 @@ export class Platform {
     public get database() { return this._databaseManager; }
     public get file() { return this._fileManager; }
     public get http() { return this._httpManager; }
-    public get log() { return this._logManager; }
+    public get logger() { return this._logger; }
 
     public async init() {
         await this._databaseManager.init();
