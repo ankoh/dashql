@@ -4,6 +4,7 @@ import * as core from '@dashql/core';
 import { proto } from '@dashql/core';
 import { AppState, Dispatch } from '../model';
 import { connect } from 'react-redux';
+import { SystemCard } from './system_card';
 import { ActionStatusIndicator } from './status';
 import { ChevronRightIcon, CloseIcon } from '../svg/icons';
 import styles from './action_list.module.css';
@@ -64,7 +65,7 @@ interface Props {
     className?: string;
     plan: core.model.Plan | null;
     planActions: Immutable.Map<core.model.ActionID, core.model.Action>;
-    close: () => void;
+    onClose: () => void;
 }
 
 class ActionList extends React.Component<Props> {
@@ -119,16 +120,9 @@ class ActionList extends React.Component<Props> {
 
     public render() {
         return (
-            <div className={styles.action_list_panel}>
-                <div className={styles.action_header}>
-                    <div className={styles.action_header_title}>Actions</div>
-                    <div className={styles.action_header_subtitle}>started 20 ms ago</div>
-                    <div className={styles.action_close} onClick={this.props.close}>
-                        <CloseIcon width="20px" height="20px" />
-                    </div>
-                </div>
+            <SystemCard title="Action" subtitle="started 20 ms ago" onClose={this.props.onClose}>
                 {this.props.plan && this.renderActions(this.props.plan)}
-            </div>
+            </SystemCard>
         );
     }
 
