@@ -10,6 +10,9 @@ export enum LogLevel {
 export enum LogEntryType {
     DB_CONNECT,
     DB_DISCONNECT,
+    PARSE_PROGRAM,
+    INSTANTIATE_PROGRAM,
+    SCHEDULE_PROGRAM,
 }
 
 export enum LogEvent {
@@ -20,6 +23,7 @@ export enum LogEvent {
 
 export enum LogOrigin {
     DB_MANAGER,
+    SCRIPT_PIPELINE,
 }
 
 export type LogEntry<O, T, E, V> = webdb.LogEntry<O, T, E, V>;
@@ -31,5 +35,6 @@ export type LogEntryVariant =
     | LogEntry<LogOrigin.DB_MANAGER, LogEntryType.DB_DISCONNECT, LogEvent.OK, void>
     | LogEntry<LogOrigin.DB_MANAGER, LogEntryType.DB_DISCONNECT, LogEvent.ERROR, void>
     | LogEntry<LogOrigin.DB_MANAGER, LogEntryType.DB_DISCONNECT, LogEvent.START, void>
+    | LogEntry<LogOrigin.SCRIPT_PIPELINE, LogEntryType.PARSE_PROGRAM, LogEvent.START, string>
     | webdb.LogEntryVariant
     ;
