@@ -198,7 +198,7 @@ function main(db: webdb.WebDB) {
     );
 }
 
-const logger = new webdb.ConsoleLogger();
+const logger = new webdb.VoidLogger();
 const db = new webdb.WebDB(logger, {}, wasmPath);
 db.open()
     .then(() => main(db))
