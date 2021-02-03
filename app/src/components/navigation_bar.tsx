@@ -1,5 +1,6 @@
 import * as React from 'react';
 import ActionList from './action_list';
+import LogViewer from './log_viewer';
 import classNames from 'classnames';
 import { StudioIcon, DatabaseIcon, TaskListIcon, LogIcon, IIconProps } from '../svg/icons';
 import { withRouter, RouteComponentProps, Link } from 'react-router-dom';
@@ -113,7 +114,7 @@ class NavigationBar extends React.Component<NavigationBarProps, NavigationBarSta
                         onClick={this.toggleTab.bind(this)}
                         icon={LogIcon}
                     >
-                        <div />
+                        <LogViewer close={() => this.toggleTab(1)} />
                     </StatusPanel>
                 </div>
             </div>
