@@ -33,8 +33,8 @@ export enum LogOrigin {
 }
 
 export type LogEntry<O, T, E, V> = {
-    readonly level: LogLevel;
     readonly timestamp: Date;
+    readonly level: LogLevel;
     readonly origin: O;
     readonly topic: T;
     readonly event: E;
