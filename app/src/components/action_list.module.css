@@ -31,47 +31,6 @@
     padding: 4px;
 }
 
-.action_header {
-    display: grid;
-    grid-template-columns: calc(100% - 40px) 40px;
-    grid-template-rows: auto auto;
-    padding: 8px 8px 8px 16px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.action_header_title {
-    grid-column: 1;
-    grid-row: 1;
-    text-align: left;
-    font-weight: 700;
-    margin-bottom: -4px;
-}
-
-.action_header_subtitle {
-    grid-column: 1;
-    grid-row: 2;
-    font-size: v_subtitle_fontsize;
-    color: v_subtitle_color;
-    text-align: left;
-}
-
-.action_close {
-    grid-column: 2;
-    grid-row: 1 / 3;
-    display: grid;
-}
-
-.action_close > svg {
-    justify-self: center;
-    align-self: center;
-}
-
-.action_subheader {
-    text-align: left;
-    padding: 4px 8px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.3);
-}
-
 .action_type {
 }
 
