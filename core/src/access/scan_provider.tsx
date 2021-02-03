@@ -44,6 +44,8 @@ export interface ScanResult {
 }
 
 interface Props {
+    /// The log manager
+    log: platform.LogManager;
     /// The database manager
     database: platform.DatabaseManager;
     /// The table name

@@ -32,13 +32,14 @@ export class TableChart extends React.Component<Props, State> {
 
     /// Render the table
     public render() {
+        const log = this.props.appContext.platform!.log;
         const db = this.props.appContext.platform!.database;
         const tableInfo = this.props.dbObjects.get(this.props.viz.nameQualified);
         if (!tableInfo) {
             return <div />;
         } else {
             return (
-                <ScanProvider database={db} targetName={tableInfo.nameShort}>
+                <ScanProvider log={log} database={db} targetName={tableInfo.nameShort}>
                     {(data, dataProvider) => <DataGrid tableInfo={tableInfo} data={data} dataProvider={dataProvider} />}
                 </ScanProvider>
             );

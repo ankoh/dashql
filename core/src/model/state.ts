@@ -1,8 +1,8 @@
 import * as Immutable from "immutable";
-import { LogEntry } from "./log";
+import { LogEntryVariant } from "./log";
 import { Plan } from "./plan";
 import { CachedFileData, CachedHTTPData } from "./cache";
-import { ActionSchedulerStatus, ActionID, Action, ActionLogEntry } from "./action";
+import { ActionSchedulerStatus, ActionID, Action } from "./action";
 import { PlanObjectID, PlanObject, DatabaseTableInfo } from "./plan_object";
 import { Program, StatementStatus, ParameterValue } from "./program";
 import { ProgramInstance } from "./program_instance";
@@ -10,7 +10,7 @@ import { Store } from "redux";
 
 export class CoreState {
     /// The log entries
-    public logEntries: Immutable.List<LogEntry>;
+    public logEntries: Immutable.List<LogEntryVariant>;
 
     /// The file name
     public fileName: string;
@@ -39,8 +39,6 @@ export class CoreState {
     public planDatabaseTables: Immutable.Map<string, DatabaseTableInfo>;
     /// The setup actions
     public planActions: Immutable.Map<ActionID, Action>;
-    /// The program actions
-    public planActionLog: Immutable.List<ActionLogEntry>;
 
     /// The cached files
     public cachedFileData: Immutable.Map<string, CachedFileData>;
@@ -49,7 +47,7 @@ export class CoreState {
 
     /// Constructor
     constructor() {
-        this.logEntries = Immutable.List<LogEntry>();
+        this.logEntries = Immutable.List<LogEntryVariant>();
         this.fileName = "unnamed.dashql";
         this.fileSize = 0;
         this.fileLineCount = 0;
@@ -63,7 +61,6 @@ export class CoreState {
         this.planObjects = Immutable.Map<string, PlanObject>();
         this.planDatabaseTables = Immutable.Map<string, DatabaseTableInfo>();
         this.planActions = Immutable.Map<ActionID, Action>();
-        this.planActionLog = Immutable.List<ActionLogEntry>();
         this.cachedFileData = Immutable.Map<string, CachedFileData>();
         this.cachedHTTPData = Immutable.Map<string, CachedHTTPData>();
     }
