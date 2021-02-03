@@ -7,7 +7,7 @@ export enum LogLevel {
     ERROR = 4,
 }
 
-export enum LogEntryType {
+export enum LogTopic {
     DB_CONNECT,
     DB_DISCONNECT,
     PARSE_PROGRAM,
@@ -29,12 +29,12 @@ export enum LogOrigin {
 export type LogEntry<O, T, E, V> = webdb.LogEntry<O, T, E, V>;
 
 export type LogEntryVariant =
-    | LogEntry<LogOrigin.DB_MANAGER, LogEntryType.DB_CONNECT, LogEvent.OK, void>
-    | LogEntry<LogOrigin.DB_MANAGER, LogEntryType.DB_CONNECT, LogEvent.ERROR, void>
-    | LogEntry<LogOrigin.DB_MANAGER, LogEntryType.DB_CONNECT, LogEvent.START, void>
-    | LogEntry<LogOrigin.DB_MANAGER, LogEntryType.DB_DISCONNECT, LogEvent.OK, void>
-    | LogEntry<LogOrigin.DB_MANAGER, LogEntryType.DB_DISCONNECT, LogEvent.ERROR, void>
-    | LogEntry<LogOrigin.DB_MANAGER, LogEntryType.DB_DISCONNECT, LogEvent.START, void>
-    | LogEntry<LogOrigin.SCRIPT_PIPELINE, LogEntryType.PARSE_PROGRAM, LogEvent.START, string>
+    | LogEntry<LogOrigin.DB_MANAGER, LogTopic.DB_CONNECT, LogEvent.START, void>
+    | LogEntry<LogOrigin.DB_MANAGER, LogTopic.DB_CONNECT, LogEvent.OK, void>
+    | LogEntry<LogOrigin.DB_MANAGER, LogTopic.DB_CONNECT, LogEvent.ERROR, void>
+    | LogEntry<LogOrigin.DB_MANAGER, LogTopic.DB_DISCONNECT, LogEvent.START, void>
+    | LogEntry<LogOrigin.DB_MANAGER, LogTopic.DB_DISCONNECT, LogEvent.OK, void>
+    | LogEntry<LogOrigin.DB_MANAGER, LogTopic.DB_DISCONNECT, LogEvent.ERROR, void>
+    | LogEntry<LogOrigin.SCRIPT_PIPELINE, LogTopic.PARSE_PROGRAM, LogEvent.START, string>
     | webdb.LogEntryVariant
     ;

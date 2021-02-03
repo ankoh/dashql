@@ -5,7 +5,7 @@ export enum LogLevel {
     ERROR = 4,
 }
 
-export enum LogEntryType {
+export enum LogTopic {
     CONNECT,
     DISCONNECT,
     OPEN,
@@ -33,24 +33,24 @@ export enum LogOrigin {
 }
 
 export type LogEntry<O, T, E, V> = {
-    readonly origin: O;
-    readonly type: T;
-    readonly event: E;
-    readonly value: V;
     readonly level: LogLevel;
     readonly timestamp: Date;
+    readonly origin: O;
+    readonly topic: T;
+    readonly event: E;
+    readonly value: V;
 };
 
 export type LogEntryVariant =
-    | LogEntry<LogOrigin.BINDINGS, LogEntryType.QUERY, LogEvent.OK, void>
-    | LogEntry<LogOrigin.BINDINGS, LogEntryType.QUERY, LogEvent.ERROR, void>
-    | LogEntry<LogOrigin.BINDINGS, LogEntryType.QUERY, LogEvent.START, void>
-    | LogEntry<LogOrigin.BINDINGS, LogEntryType.CONNECT, LogEvent.OK, void>
-    | LogEntry<LogOrigin.BINDINGS, LogEntryType.CONNECT, LogEvent.ERROR, void>
-    | LogEntry<LogOrigin.BINDINGS, LogEntryType.DISCONNECT, LogEvent.OK, void>
-    | LogEntry<LogOrigin.BINDINGS, LogEntryType.DISCONNECT, LogEvent.ERROR, void>
-    | LogEntry<LogOrigin.BINDINGS, LogEntryType.OPEN, LogEvent.OK, void>
-    | LogEntry<LogOrigin.BINDINGS, LogEntryType.OPEN, LogEvent.ERROR, void>
-    | LogEntry<LogOrigin.BINDINGS, LogEntryType.OPEN, LogEvent.START, void>
+    | LogEntry<LogOrigin.BINDINGS, LogTopic.QUERY, LogEvent.START, void>
+    | LogEntry<LogOrigin.BINDINGS, LogTopic.QUERY, LogEvent.OK, void>
+    | LogEntry<LogOrigin.BINDINGS, LogTopic.QUERY, LogEvent.ERROR, void>
+    | LogEntry<LogOrigin.BINDINGS, LogTopic.CONNECT, LogEvent.OK, void>
+    | LogEntry<LogOrigin.BINDINGS, LogTopic.CONNECT, LogEvent.ERROR, void>
+    | LogEntry<LogOrigin.BINDINGS, LogTopic.DISCONNECT, LogEvent.OK, void>
+    | LogEntry<LogOrigin.BINDINGS, LogTopic.DISCONNECT, LogEvent.ERROR, void>
+    | LogEntry<LogOrigin.BINDINGS, LogTopic.OPEN, LogEvent.START, void>
+    | LogEntry<LogOrigin.BINDINGS, LogTopic.OPEN, LogEvent.OK, void>
+    | LogEntry<LogOrigin.BINDINGS, LogTopic.OPEN, LogEvent.ERROR, void>
     ;
 
