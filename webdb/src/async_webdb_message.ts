@@ -1,3 +1,5 @@
+import { LogEntryVariant } from './log';
+
 export enum AsyncWebDBRequestType {
     RESET = 'RESET',
     PING = 'PING',
@@ -10,9 +12,9 @@ export enum AsyncWebDBRequestType {
 }
 
 export enum AsyncWebDBResponseType {
+    LOG = 'LOG',
     OK = 'OK',
     ERROR = 'ERROR',
-    PONG = 'PONG',
     CONNECTION_INFO = 'CONNECTION_INFO',
     QUERY_RESULT = 'QUERY_RESULT',
     QUERY_RESULT_CHUNK = 'QUERY_RESULT_CHUNK',
@@ -43,6 +45,7 @@ export type AsyncWebDBRequestVariant =
     | AsyncWebDBRequest<AsyncWebDBRequestType.FETCH_QUERY_RESULTS, number>;
 
 export type AsyncWebDBResponseVariant =
+    | AsyncWebDBResponse<AsyncWebDBResponseType.LOG, LogEntryVariant>
     | AsyncWebDBResponse<AsyncWebDBResponseType.OK, null>
     | AsyncWebDBResponse<AsyncWebDBResponseType.ERROR, any>
     | AsyncWebDBResponse<AsyncWebDBResponseType.CONNECTION_INFO, number>

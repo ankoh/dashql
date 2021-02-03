@@ -4,6 +4,7 @@ import webdb_api_wasm from './webdb_wasm_node.wasm';
 import webdb_api_init from './webdb_wasm_node.js';
 import { WebDBModule } from './webdb_module';
 import { WebDBBindings, WebDBRuntime } from './webdb_bindings';
+import { Logger } from './log';
 import fs from 'fs';
 
 /// WebDB bindings for node.js
@@ -11,8 +12,8 @@ export class WebDB extends WebDBBindings {
     protected runtime: WebDBRuntime;
     protected path: string;
 
-    public constructor(runtime: WebDBRuntime = {}, path: string | null = null) {
-        super();
+    public constructor(logger: Logger, runtime: WebDBRuntime = {}, path: string | null = null) {
+        super(logger);
         this.runtime = runtime;
         this.path = path ?? webdb_api_wasm;
     }

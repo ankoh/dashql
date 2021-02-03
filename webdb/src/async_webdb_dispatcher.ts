@@ -5,8 +5,9 @@ import {
     AsyncWebDBRequestType,
     AsyncWebDBResponseType,
 } from './async_webdb_message';
+import { Logger, LogEntryVariant } from './log';
 
-export abstract class AsyncWebDBDispatcher {
+export abstract class AsyncWebDBDispatcher implements Logger {
     /// The bindings
     _bindings: WebDBBindings | null = null;
     /// The next message id
@@ -16,6 +17,19 @@ export abstract class AsyncWebDBDispatcher {
     protected abstract open(path: string | null): Promise<WebDBBindings>;
     /// Post a response to the main thread
     protected abstract postMessage(response: AsyncWebDBResponseVariant, transfer: ArrayBuffer[]): void;
+
+    /// Send log entry to the main thread
+    public log(entry: LogEntryVariant) {
+        this.postMessage(
+            {
+                messageId: this._nextMessageId++,
+                requestId: 0,
+                type: AsyncWebDBResponseType.LOG,
+                data: entry,
+            },
+            [],
+        );
+    }
 
     /// Send plain OK without further data
     protected sendOK(request: AsyncWebDBRequestVariant) {
@@ -58,7 +72,7 @@ export abstract class AsyncWebDBDispatcher {
                 try {
                     this._bindings = await this.open(request.data);
                     this.sendOK(request);
-                } catch(e) {
+                } catch (e) {
                     this._bindings = null;
                     this.failWith(request, e);
                 }

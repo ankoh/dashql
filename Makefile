@@ -109,6 +109,12 @@ benchmark_iterator:
 	npm --prefix ${ROOT_DIR}/benchmarks run build
 	cd ${ROOT_DIR}/benchmarks && node ./dist/bench_iterator.js
 
+# Run the async iterator benchmark
+.PHONY: benchmark_iterator_async
+benchmark_iterator_async:
+	npm --prefix ${ROOT_DIR}/benchmarks run build
+	cd ${ROOT_DIR}/benchmarks && node ./dist/bench_iterator_async.js
+
 # Compile the flatbuffer schema
 .PHONY: proto
 proto:

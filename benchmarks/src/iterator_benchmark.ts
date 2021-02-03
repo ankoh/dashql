@@ -198,7 +198,8 @@ function main(db: webdb.WebDB) {
     );
 }
 
-let db = new webdb.WebDB({}, wasmPath);
+const logger = new webdb.ConsoleLogger();
+const db = new webdb.WebDB(logger, {}, wasmPath);
 db.open()
     .then(() => main(db))
     .catch(e => console.error(e));
