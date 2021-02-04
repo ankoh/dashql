@@ -56,6 +56,10 @@ class Editor extends React.Component<Props> {
         }
     }
 
+    public componentWillUnmount() {
+        this.destroyMonaco();
+    }
+
     /// Init the monaco editor
     protected initMonaco() {
         if (this.monacoContainer) {
