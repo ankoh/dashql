@@ -1,11 +1,17 @@
 import * as webdb from '@dashql/webdb/dist/webdb_async';
 import { Mutex } from '../utils';
 
+/// An database manager.
+///
+/// We introduce the database manager to abstract any interaction with the database.
+/// This allows us to swap the in-browser wasm database with a native database when
+/// bundling as electron app or when connecting to a dedicated accelerator server.
+///
 export class DatabaseManager {
     /// The async webdb
     _webdb: webdb.AsyncWebDB;
     /// The connection
-    _connection: webdb.AsyncWebDBConnection | null;
+    _connection: webdb.AsyncConnection | null;
     /// The connection mutex
     _connectionMutex: Mutex;
 
@@ -21,7 +27,7 @@ export class DatabaseManager {
     }
 
     /// Use the connection
-    public async use<T>(f: (conn: webdb.AsyncWebDBConnection) => Promise<T>): Promise<T> {
+    public async use<T>(f: (conn: webdb.AsyncConnection) => Promise<T>): Promise<T> {
         return await this._connectionMutex.useAsync(async () => {
             if (!this._connection) {
                 throw new Error("not connected");

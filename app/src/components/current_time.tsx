@@ -11,7 +11,7 @@ interface State {
 }
 
 class CurrentTime extends React.Component<Props, State> {
-    protected _timer: number | null;
+    protected _timer: any | null;
 
     constructor(props: Props) {
         super(props);
