@@ -114,7 +114,7 @@ class NavigationBar extends React.Component<NavigationBarProps, NavigationBarSta
                         onClick={this.toggleTab.bind(this)}
                         icon={LogIcon}
                     >
-                        <LogViewer onClose={() => this.toggleTab(1)} />
+                        <LogViewer onClose={() => this.toggleTab(2)} />
                     </StatusPanel>
                 </div>
             </div>
