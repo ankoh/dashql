@@ -17,7 +17,7 @@ export class UnnamedSelectLogic extends ProgramActionLogic {
         }
 
         const db = context.platform.database;
-        await db.use(async (c: webdb.AsyncWebDBConnection) => {
+        await db.use(async (c: webdb.AsyncConnection) => {
             const result =  await c.runQuery(script);
 
             const chunkIter = new webdb.QueryResultChunkStream(c, result);
