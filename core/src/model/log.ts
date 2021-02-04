@@ -1,11 +1,6 @@
 import * as webdb from '@dashql/webdb/dist/webdb_async';
 
-export enum LogLevel {
-    DEBUG = 1,
-    INFO = 2,
-    WARNING = 3,
-    ERROR = 4,
-}
+export import LogLevel = webdb.LogLevel;
 
 export enum LogTopic {
     DB_CONNECT = 1001,
@@ -45,6 +40,9 @@ export type LogEntryVariant =
     | webdb.LogEntryVariant
     ;
 
+export function getLogLevelLabel(level: webdb.LogLevel) {
+    return webdb.getLogLevelLabel(level);
+}
 
 export function getLogEventLabel(event: LogEvent | webdb.LogEvent) {
     return webdb.getLogEventLabel(event);
@@ -53,17 +51,17 @@ export function getLogEventLabel(event: LogEvent | webdb.LogEvent) {
 export function getLogTopicLabel(topic: LogTopic | webdb.LogTopic) {
     switch (topic) {
         case LogTopic.DB_CONNECT:
-            return "Connect";
+            return "CONNECT";
         case LogTopic.DB_DISCONNECT:
-            return "Disconnect";
+            return "DISCONNECT";
         case LogTopic.PARSE_PROGRAM:
-            return "Parse Program";
+            return "PARSE";
         case LogTopic.INSTANTIATE_PROGRAM:
-            return "Instantiate Program";
+            return "INSTANTIATE";
         case LogTopic.SCHEDULE_PROGRAM:
-            return "Schedule Program";
+            return "SCHEDULE";
         case LogTopic.REQUEST_SCAN:
-            return "Request Scan";
+            return "REQUEST";
         default:
             return webdb.getLogTopicLabel(topic);
     }
@@ -72,11 +70,11 @@ export function getLogTopicLabel(topic: LogTopic | webdb.LogTopic) {
 export function getLogOriginLabel(origin: LogOrigin | webdb.LogOrigin) {
     switch (origin) {
         case LogOrigin.DB_MANAGER:
-            return "Database Manager";
+            return "DATABASE ACCESS";
         case LogOrigin.SCRIPT_PIPELINE:
-            return "Script Pipeline";
+            return "SCRIPT PIPELINE";
         case LogOrigin.SCAN_PROVIDER:
-            return "Scan Provider";
+            return "SCAN PROVIDER";
         default:
             return webdb.getLogOriginLabel(origin);
     }

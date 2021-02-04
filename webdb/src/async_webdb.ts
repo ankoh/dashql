@@ -307,7 +307,7 @@ export class AsyncWebDBConnection implements AsyncConnection {
             level: LogLevel.INFO,
             origin: LogOrigin.ASYNC_WEBDB,
             topic: LogTopic.QUERY,
-            event: LogEvent.START,
+            event: LogEvent.RUN,
             value: text,
         });
         return this._instance.runQuery(this._conn, text);
