@@ -29,7 +29,8 @@
     display: grid;
     grid-template-columns: 16px 20px auto 60px;
     grid-column-gap: 8px;
-    padding: 4px;
+    padding: 2px 4px;
+    font-size: 80%;
 }
 
 .action_type {
