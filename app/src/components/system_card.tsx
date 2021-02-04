@@ -7,6 +7,7 @@ import { connect } from 'react-redux';
 import { ActionStatusIndicator } from './status';
 import { ChevronRightIcon, CloseIcon } from '../svg/icons';
 import styles from './system_card.module.css';
+import classNames from 'classNames';
 
 interface Props {
     className?: string;
@@ -19,7 +20,7 @@ interface Props {
 export class SystemCard extends React.Component<Props> {
     public render() {
         return (
-            <div className={styles.panel}>
+            <div className={classNames(styles.panel, this.props.className)}>
                 <div className={styles.header}>
                     <div className={styles.header_title}>{this.props.title}</div>
                     <div className={styles.header_subtitle}>{this.props.subtitle}</div>

@@ -27,7 +27,8 @@
 
 .action {
     display: grid;
-    grid-template-columns: 24px 24px 6px 160px 60px;
+    grid-template-columns: 16px 20px auto 60px;
+    grid-column-gap: 8px;
     padding: 4px;
 }
 
@@ -68,13 +69,13 @@
 
 .action_type {
     grid-row: 1;
-    grid-column: 4;
+    grid-column: 3;
     text-align: left;
 }
 
 .action_duration {
     grid-row: 1;
-    grid-column: 5;
+    grid-column: 4;
 
     font-size: v_action_duration_fontsize;
     color: v_action_duration_color;
