@@ -12,21 +12,21 @@ import styles from './action_list.module.css';
 function getSetupActionTypeLabel(type: proto.action.SetupActionType) {
     switch (type) {
         case proto.action.SetupActionType.DROP_BLOB:
-            return 'Drop Blob';
+            return 'DROP BLOB';
         case proto.action.SetupActionType.DROP_TABLE:
-            return 'Drop Table';
+            return 'DROP TABLE';
         case proto.action.SetupActionType.DROP_VIEW:
-            return 'Drop View';
+            return 'DROP VIEW';
         case proto.action.SetupActionType.DROP_VIZ:
-            return 'Drop Viz';
+            return 'DROP VIZ';
         case proto.action.SetupActionType.IMPORT_BLOB:
-            return 'Import Blob';
+            return 'IMPORT BLOB';
         case proto.action.SetupActionType.IMPORT_TABLE:
-            return 'Import Table';
+            return 'IMPORT TABLE';
         case proto.action.SetupActionType.IMPORT_VIEW:
-            return 'Import View';
+            return 'IMPORT VIEW';
         case proto.action.SetupActionType.IMPORT_VIZ:
-            return 'Import Viz';
+            return 'IMPORT VIZ';
         default:
             return '?';
     }
@@ -35,27 +35,27 @@ function getSetupActionTypeLabel(type: proto.action.SetupActionType) {
 function getProgramActionTypeLabel(type: proto.action.ProgramActionType) {
     switch (type) {
         case proto.action.ProgramActionType.EXTRACT_CSV:
-            return 'Extract CSV';
+            return 'EXTRACT CSV';
         case proto.action.ProgramActionType.EXTRACT_JSON:
-            return 'Extract JSON';
+            return 'EXTRACT JSON';
         case proto.action.ProgramActionType.LOAD_FILE:
-            return 'Load File';
+            return 'LOAD FILE';
         case proto.action.ProgramActionType.LOAD_HTTP:
-            return 'Load HTTP';
+            return 'LOAD HTTP';
         case proto.action.ProgramActionType.PARAMETER:
-            return 'Define Parameter';
+            return 'DEFINE PARAMETER';
         case proto.action.ProgramActionType.CREATE_TABLE:
-            return 'Create Table';
+            return 'CREATE TABLE';
         case proto.action.ProgramActionType.MODIFY_TABLE:
-            return 'Modify Table';
+            return 'MODIFY TABLE';
         case proto.action.ProgramActionType.UNNAMED_SELECT:
-            return 'Select';
+            return 'SELECT';
         case proto.action.ProgramActionType.CREATE_VIEW:
-            return 'Create View';
+            return 'CREATE VIEW';
         case proto.action.ProgramActionType.CREATE_VIZ:
-            return 'Create Viz';
+            return 'CREATE VIZ';
         case proto.action.ProgramActionType.UPDATE_VIZ:
-            return 'Update Viz';
+            return 'UPDATE VIZ';
         default:
             return '?';
     }
@@ -80,11 +80,11 @@ class ActionList extends React.Component<Props> {
                 <div key={i} className={styles.action}>
                     <div className={styles.action_expand}>
                         <div className={styles.action_expand_icon}>
-                            <ChevronRightIcon width="20px" height="20px" />
+                            <ChevronRightIcon width="18px" height="18px" />
                         </div>
                     </div>
                     <div className={styles.action_status}>
-                        <ActionStatusIndicator width="14px" height="14px" status={status} />
+                        <ActionStatusIndicator width="12px" height="12px" status={status} />
                     </div>
                     <div className={styles.action_type}>{getSetupActionTypeLabel(o.actionType())}</div>
                     <div className={styles.action_duration}>0 ms</div>
@@ -99,11 +99,11 @@ class ActionList extends React.Component<Props> {
                 <div key={i} className={styles.action}>
                     <div className={styles.action_expand}>
                         <div className={styles.action_expand_icon}>
-                            <ChevronRightIcon width="20px" height="20px" />
+                            <ChevronRightIcon width="18px" height="18px" />
                         </div>
                     </div>
                     <div className={styles.action_status}>
-                        <ActionStatusIndicator width="14px" height="14px" status={status} />
+                        <ActionStatusIndicator width="12px" height="12px" status={status} />
                     </div>
                     <div className={styles.action_type}>{getProgramActionTypeLabel(o.actionType())}</div>
                     <div className={styles.action_duration}>0 ms</div>
