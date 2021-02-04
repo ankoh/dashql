@@ -1,7 +1,7 @@
 {
     "extends": "./tsconfig.json",
     "compilerOptions": {
-        "lib": ["esnext", "dom"]
+        "lib": ["esnext", "es2020", "dom"]
     },
     "exclude": ["./node_modules"]
 }

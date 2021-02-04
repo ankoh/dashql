@@ -5,3 +5,4 @@ export * from "./native_stack";
 export * from "./sleep";
 export * from "./text";
 export * from "./semaphore";
+export * from "./time";

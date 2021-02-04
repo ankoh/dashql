@@ -7,7 +7,7 @@ import { connect } from 'react-redux';
 import { ActionStatusIndicator } from './status';
 import { ChevronRightIcon, CloseIcon } from '../svg/icons';
 import styles from './system_card.module.css';
-import classNames from 'classNames';
+import classNames from 'classnames';
 
 interface Props {
     className?: string;
