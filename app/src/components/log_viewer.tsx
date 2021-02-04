@@ -9,17 +9,26 @@ import { withCurrentTime } from './current_time';
 import { ActionStatusIndicator } from './status';
 import { ChevronRightIcon, CloseIcon } from '../svg/icons';
 import { List, ListRowProps, AutoSizer } from 'react-virtualized';
+import classnames from 'classnames';
+
 import styles from './log_viewer.module.css';
 
 const OVERSCAN_ROW_COUNT = 5;
 
 interface LogRowProps {
+    style: React.CSSProperties;
     entry: core.model.LogEntryVariant;
+    currentTime: Date;
 }
 
 function LogRow(props: LogRowProps) {
+    const tsNow = props.currentTime;
+    const tsLog = props.entry.timestamp;
     return (
-        <div>
+        <div className={styles.row}>
+            <div className={styles.timestamp}>
+                {core.utils.getRelativeTime(tsLog, tsNow)}
+            </div>
         </div>
     );
 }
@@ -43,13 +52,8 @@ class LogViewer extends React.Component<Props> {
     protected renderRow(props: ListRowProps) {
         const log = this.props.logs.get(props.index);
         if (!log) return <div />;
-
-        const tsNow = this.props.currentTime;
-        const tsLog = log.timestamp;
         return (
-            <div key={props.index} style={props.style}>
-                {core.utils.getRelativeTime(tsLog, tsNow)}
-            </div>
+            <LogRow key={props.index} style={props.style} entry={log} currentTime={this.props.currentTime} />
         );
     }
 
