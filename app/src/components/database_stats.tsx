@@ -14,6 +14,7 @@ import styles from './log_viewer.module.css';
 interface Props {
     onClose: () => void;
     currentTime: Date;
+    updateCurrentTime: () => void;
 }
 
 class DatabaseStats extends React.Component<Props> {

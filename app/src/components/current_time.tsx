@@ -3,7 +3,7 @@ import classNames from 'classnames';
 
 interface Props {
     refreshRate: number;
-    children: (date: Date) => React.ReactNode;
+    children: (time: Date, updateTime: () => void) => React.ReactNode;
 }
 
 interface State {
@@ -12,6 +12,7 @@ interface State {
 
 class CurrentTime extends React.Component<Props, State> {
     protected _timer: any | null;
+    protected _updateTime = this.updateTime.bind(this);
 
     constructor(props: Props) {
         super(props);
@@ -53,18 +54,18 @@ class CurrentTime extends React.Component<Props, State> {
 
 
     public render() {
-        return this.props.children(this.state.currentTime);
+        return this.props.children(this.state.currentTime, this._updateTime);
     }
 }
 
 export function withCurrentTime<
-    OUT_PROPS extends { currentTime?: Date },
-    IN_PROPS = Pick<OUT_PROPS, Exclude<keyof OUT_PROPS, 'currentTime'>>
+    OUT_PROPS extends { currentTime?: Date, updateCurrentTime: () => void },
+    IN_PROPS = Pick<OUT_PROPS, Exclude<keyof OUT_PROPS, 'currentTime' | 'updateCurrentTime'>>
 >(Component: React.ComponentType<OUT_PROPS>, refreshRate: number): React.FunctionComponent<IN_PROPS> {
     return (props: IN_PROPS) => {
         return (
             <CurrentTime refreshRate={refreshRate}>
-                {(time) => <Component {...Object.assign({} as OUT_PROPS, props, { currentTime: time })} />}
+                {(time, update) => <Component {...Object.assign({} as OUT_PROPS, props, { currentTime: time, updateCurrentTime: update})} />}
             </CurrentTime>
         );
     };
