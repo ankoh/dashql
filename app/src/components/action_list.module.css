@@ -1,8 +1,5 @@
 @value v_panel_border_radius: 8px;
 @value v_panel_bg: rgb(30, 30, 30);
-@value v_subtitle_fontsize: 90%;
-@value v_subtitle_color: rgba(255, 255, 255, 0.6);
-@value v_action_duration_fontsize: 90%;
 @value v_action_duration_color: rgba(255, 255, 255, 0.6);
 
 .action_list_panel {
@@ -77,8 +74,7 @@
 .action_duration {
     grid-row: 1;
     grid-column: 4;
-
-    font-size: v_action_duration_fontsize;
+    text-align: right;
     color: v_action_duration_color;
 }
 

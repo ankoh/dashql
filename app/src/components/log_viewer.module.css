@@ -1,3 +1,5 @@
+@value v_timestamp_color: rgba(255, 255, 255, 0.6);
+
 .list {
     outline: none;
     padding: 4px 0px;
@@ -28,6 +30,7 @@
     grid-column: 6;
     display: grid;
     text-align: right;
+    color: v_timestamp_color;
 }
 
 
