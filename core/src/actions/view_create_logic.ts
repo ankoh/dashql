@@ -19,7 +19,7 @@ export class ViewCreateActionLogic extends ProgramActionLogic {
         }
 
         const db = context.platform.database;
-        const table = await db.use(async (c: webdb.AsyncWebDBConnection) => {
+        const table = await db.use(async (c: webdb.AsyncConnection) => {
             /// First run the query
             await c.runQuery(script);
 

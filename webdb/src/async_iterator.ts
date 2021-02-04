@@ -7,18 +7,18 @@ import {
     BlockingChunkIterator,
     AsyncRowIterator,
 } from './iterator_base';
-import { AsyncWebDBConnection } from './async_webdb';
+import { AsyncConnection } from './async_webdb';
 import { webdb as proto } from '@dashql/proto';
 
 /// A stream of query result chunks
 export class QueryResultChunkStream extends ChunkIteratorBase implements AsyncChunkIterator {
     /// The connection
-    _connection: AsyncWebDBConnection;
+    _connection: AsyncConnection;
     /// The current chunk buffer
     _currentChunkBuffer: proto.QueryResultChunk | null;
 
     /// Constructor
-    public constructor(connection: AsyncWebDBConnection, resultBuffer: proto.QueryResult) {
+    public constructor(connection: AsyncConnection, resultBuffer: proto.QueryResult) {
         super(resultBuffer);
         this._connection = connection;
         this._currentChunkBuffer = null;
