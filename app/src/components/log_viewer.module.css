@@ -4,27 +4,27 @@
 
 .row {
     display: grid;
-    grid-template-columns: 1fr 1fr 40px 120px;
+    grid-template-columns: 40px 1fr 1fr 40px 120px;
     grid-column-gap: 8px;
     padding: 4px 16px;
-    font-size: 80%;
+    font-size: 75%;
 }
 
 .origin {
-    text-align: center;
+    text-align: left;
 }
 
 .topic {
-    text-align: center;
+    text-align: left;
 }
 
 .event {
-    text-align: center;
+    text-align: left;
 }
 
 .timestamp {
     grid-row: 1;
-    grid-column: 4;
+    grid-column: 5;
     display: grid;
     text-align: right;
 }
