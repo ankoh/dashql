@@ -5,6 +5,7 @@ import { proto } from '@dashql/core';
 import { AppState, Dispatch } from '../model';
 import { connect } from 'react-redux';
 import { SystemCard } from './system_card';
+import { withCurrentTime } from './current_time';
 import { ActionStatusIndicator } from './status';
 import { ChevronRightIcon, CloseIcon } from '../svg/icons';
 import { List, ListRowProps, AutoSizer } from 'react-virtualized';
@@ -26,6 +27,7 @@ function LogRow(props: LogRowProps) {
 interface Props {
     className?: string;
     logs: Immutable.List<core.model.LogEntryVariant>;
+    currentTime: Date;
     onClose: () => void;
 }
 
@@ -39,9 +41,14 @@ class LogViewer extends React.Component<Props> {
     }
 
     protected renderRow(props: ListRowProps) {
+        const log = this.props.logs.get(props.index);
+        if (!log) return <div />;
+
+        const tsNow = this.props.currentTime;
+        const tsLog = log.timestamp;
         return (
             <div key={props.index} style={props.style}>
-                {this.props.logs.get(props.index)?.timestamp.toString()}
+                {core.utils.getRelativeTime(tsLog, tsNow)}
             </div>
         );
     }
@@ -57,6 +64,7 @@ class LogViewer extends React.Component<Props> {
                 <AutoSizer disableHeight>
                     {({width}) => (
                         <List
+                            currentTimeRef={this.props.currentTime}
                             height={200}
                             width={width}
                             overscanRowCount={OVERSCAN_ROW_COUNT}
@@ -82,4 +90,4 @@ const mapStateToProps = (state: AppState) => ({
 
 const mapDispatchToProps = (_dispatch: Dispatch) => ({});
 
-export default connect(mapStateToProps, mapDispatchToProps)(LogViewer);
+export default connect(mapStateToProps, mapDispatchToProps)(withCurrentTime(LogViewer, 5000));
