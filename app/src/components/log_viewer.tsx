@@ -30,6 +30,11 @@ function LogRow(props: LogRowProps) {
     const tsLog = props.entry.timestamp;
     return (
         <div className={styles.row}>
+            <div className={styles.expand}>
+                <div className={styles.expand_icon}>
+                    <ChevronRightIcon width="18px" height="18px" />
+                </div>
+            </div>
             <div className={styles.origin}>
                 {core.model.getLogLevelLabel(props.entry.level)}
             </div>
