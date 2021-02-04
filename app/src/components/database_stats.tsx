@@ -20,7 +20,7 @@ class DatabaseStats extends React.Component<Props> {
     public render() {
         const height = 200;
         return (
-            <SystemCard title="Database" subtitle="Foo" onClose={this.props.onClose} />
+            <SystemCard title="Database" onClose={this.props.onClose} />
         );
     }
 

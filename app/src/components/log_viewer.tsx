@@ -85,7 +85,7 @@ class LogViewer extends React.Component<Props> {
     public render() {
         const height = 200;
         return (
-            <SystemCard title="Log" subtitle="Foo" onClose={this.props.onClose}>
+            <SystemCard title="Log" onClose={this.props.onClose}>
                 <AutoSizer disableHeight>
                     {({width}) => (
                         <List
