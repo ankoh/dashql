@@ -110,7 +110,7 @@ export class QueryProvider extends React.Component<Props, State> {
         this._queryPromise.then(this._processQueryResult).catch(e => console.error(e));
     }
 
-    /// Schedule a query the data cannot be served from the cached results
+    /// Schedule a query iff the data cannot be served from the cached results
     protected scheduleIfNecessary(req: QueryRequest) {
         // In-flight query equals our request?
         // Wait for the result then.
