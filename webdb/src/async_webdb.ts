@@ -269,8 +269,21 @@ export class AsyncWebDB {
     }
 }
 
+/// An async connection.
+/// This interface will enable us to swap webdb with a native version.
+export interface AsyncConnection {
+    /// Disconnect from the database
+    disconnect(): Promise<null>;
+    /// Run a query
+    runQuery(text: string): Promise<proto.QueryResult>;
+    /// Send a query
+    sendQuery(text: string): Promise<proto.QueryResult>;
+    /// Fetch query results
+    fetchQueryResults(): Promise<proto.QueryResultChunk>;
+}
+
 /// A thin helper to memoize the connection id
-export class AsyncWebDBConnection {
+export class AsyncWebDBConnection implements AsyncConnection {
     /// The async webdb
     _instance: AsyncWebDB;
     /// The conn handle
