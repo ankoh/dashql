@@ -58,6 +58,7 @@ interface Props {
     className?: string;
     logs: Immutable.List<core.model.LogEntryVariant>;
     currentTime: Date;
+    updateCurrentTime: () => void;
     onClose: () => void;
 }
 
@@ -107,7 +108,11 @@ class LogViewer extends React.Component<Props> {
 
     componentDidMount() {}
 
-    componentDidUpdate(_prev: Readonly<Props>): void {}
+    componentDidUpdate(prevProps: Readonly<Props>): void {
+        if (prevProps.logs !== this.props.logs) {
+            this.props.updateCurrentTime();
+        }
+    }
 }
 
 const mapStateToProps = (state: AppState) => ({
