@@ -1,5 +1,6 @@
 import * as Immutable from 'immutable';
 import * as React from 'react';
+import * as webdb from '@dashql/webdb';
 import * as core from '@dashql/core';
 import { proto } from '@dashql/core';
 import { AppState, Dispatch } from '../model';
@@ -12,6 +13,9 @@ import { List, ListRowProps, AutoSizer } from 'react-virtualized';
 import classnames from 'classnames';
 
 import styles from './log_viewer.module.css';
+
+import CLO = core.model.LogOrigin;
+import WLO = webdb.LogOrigin;
 
 const OVERSCAN_ROW_COUNT = 5;
 
@@ -26,6 +30,15 @@ function LogRow(props: LogRowProps) {
     const tsLog = props.entry.timestamp;
     return (
         <div className={styles.row}>
+            <div className={styles.origin}>
+                {core.model.getLogOriginLabel(props.entry.origin)}
+            </div>
+            <div className={styles.topic}>
+                {core.model.getLogTopicLabel(props.entry.topic)}
+            </div>
+            <div className={styles.event}>
+                {core.model.getLogEventLabel(props.entry.event)}
+            </div>
             <div className={styles.timestamp}>
                 {core.utils.getRelativeTime(tsLog, tsNow)}
             </div>
@@ -68,6 +81,7 @@ class LogViewer extends React.Component<Props> {
                 <AutoSizer disableHeight>
                     {({width}) => (
                         <List
+                            className={styles.list}
                             currentTimeRef={this.props.currentTime}
                             height={200}
                             width={width}
