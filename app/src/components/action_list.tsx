@@ -120,7 +120,7 @@ class ActionList extends React.Component<Props> {
 
     public render() {
         return (
-            <SystemCard title="Action" subtitle="started 20 ms ago" onClose={this.props.onClose}>
+            <SystemCard title="Action" onClose={this.props.onClose}>
                 {this.props.plan && this.renderActions(this.props.plan)}
             </SystemCard>
         );
