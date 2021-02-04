@@ -17,7 +17,8 @@ export enum LogTopic {
 export enum LogEvent {
     OK = 1,
     ERROR = 2,
-    START = 3
+    START = 3,
+    RUN = 4
 }
 
 export enum LogOrigin {
@@ -53,7 +54,7 @@ export type LogEntryVariant =
     | LogEntry<LogOrigin.BINDINGS, LogTopic.OPEN, LogEvent.START, void>
     | LogEntry<LogOrigin.BINDINGS, LogTopic.OPEN, LogEvent.OK, void>
     | LogEntry<LogOrigin.BINDINGS, LogTopic.OPEN, LogEvent.ERROR, void>
-    | LogEntry<LogOrigin.ASYNC_WEBDB, LogTopic.QUERY, LogEvent.START, string>
+    | LogEntry<LogOrigin.ASYNC_WEBDB, LogTopic.QUERY, LogEvent.RUN, string>
     ;
 
 export interface Logger {
@@ -70,14 +71,31 @@ export class ConsoleLogger implements Logger {
     }
 }
 
+export function getLogLevelLabel(level: LogLevel) {
+    switch (level) {
+        case LogLevel.DEBUG:
+            return "DEBUG";
+        case LogLevel.INFO:
+            return "INFO";
+        case LogLevel.WARNING:
+            return "WARNING";
+        case LogLevel.ERROR:
+            return "ERROR";
+        default:
+            return "?";
+    }
+}
+
 export function getLogEventLabel(event: LogEvent) {
     switch (event) {
         case LogEvent.OK:
             return "OK";
         case LogEvent.ERROR:
-            return "Error";
+            return "ERROR";
         case LogEvent.START:
-            return "Start";
+            return "START";
+        case LogEvent.RUN:
+            return "RUN";
         default:
             return "?";
     }
@@ -86,17 +104,17 @@ export function getLogEventLabel(event: LogEvent) {
 export function getLogTopicLabel(topic: LogTopic) {
     switch (topic) {
         case LogTopic.CONNECT:
-            return "Connect";
+            return "CONNECT";
         case LogTopic.DISCONNECT:
-            return "Disconnect";
+            return "DISCONNECT";
         case LogTopic.OPEN:
-            return "Open";
+            return "OPEN";
         case LogTopic.QUERY:
-            return "Query";
+            return "QUERY";
         case LogTopic.ITER_NEXT:
-            return "Advance Iterator";
+            return "NEXT";
         case LogTopic.ITER_REWIND:
-            return "Rewind Iterator";
+            return "REWIND";
         default:
             return "?";
     }
@@ -105,25 +123,25 @@ export function getLogTopicLabel(topic: LogTopic) {
 export function getLogOriginLabel(origin: LogOrigin) {
     switch (origin) {
         case LogOrigin.WEB_WORKER:
-            return "Web Worker";
+            return "WEB WORKER";
         case LogOrigin.NODE_WORKER:
-            return "Node Worker";
+            return "NODE WORKER";
         case LogOrigin.BINDINGS:
-            return "WebDB Bindings";
+            return "WEBDB BINDINGS";
         case LogOrigin.CHUNK_BUFFER:
-            return "Chunk Buffer";
+            return "CHUNK BUFFER";
         case LogOrigin.CHUNK_STREAM:
-            return "Chunk Stream";
+            return "CHUNK STREAM";
         case LogOrigin.ROW_ITERATOR:
-            return "Row Iterator";
+            return "ROW ITERATOR";
         case LogOrigin.ASYNC_WEBDB:
-            return "Async WebDB";
+            return "WEBDB";
         case LogOrigin.ASYNC_CHUNK_BUFFER:
-            return "Async Chunk Buffer";
+            return "CHUNK BUFFER";
         case LogOrigin.ASYNC_CHUNK_STREAM:
-            return "Async Chunk Stream";
+            return "CHUNK STREAM";
         case LogOrigin.ASYNC_ROW_ITERATOR :
-            return "Async Row Iterator";
+            return "ROW ITERATOR";
         default:
             return "?";
     }

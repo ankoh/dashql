@@ -31,6 +31,9 @@ function LogRow(props: LogRowProps) {
     return (
         <div className={styles.row}>
             <div className={styles.origin}>
+                {core.model.getLogLevelLabel(props.entry.level)}
+            </div>
+            <div className={styles.origin}>
                 {core.model.getLogOriginLabel(props.entry.origin)}
             </div>
             <div className={styles.topic}>
@@ -66,7 +69,7 @@ class LogViewer extends React.Component<Props> {
         const log = this.props.logs.get(props.index);
         if (!log) return <div />;
         return (
-            <LogRow key={props.index} style={props.style} entry={log} currentTime={this.props.currentTime} />
+            <LogRow key={props.key} style={props.style} entry={log} currentTime={this.props.currentTime} />
         );
     }
 
