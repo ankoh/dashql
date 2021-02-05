@@ -209,6 +209,66 @@ void Analyzer::PropagateParameterValues(ProgramInstance& instance) {
     }
 }
 
+/// Analyze the viz specs
+void Analyzer::AnalyzeVizSpecs(ProgramInstance& instance) {
+    auto& program = instance.program();
+    for (auto& stmt: program.statements) {
+        // Not a vizualize statement? - Skip then
+        if (stmt->statement_type != proto::syntax::StatementType::VIZUALIZE)
+            continue;
+
+        auto root_id = stmt->root_node;
+        auto& root = program.nodes[root_id];
+
+        // Match the top level viz attributes
+
+        // clang-format off
+        auto schema = sxm::Element()
+            .MatchObject(sx::NodeType::OBJECT_DASHQL_VIZ)
+            .MatchChildren(NODE_MATCHERS(
+                sxm::Attribute(sx::AttributeKey::DASHQL_VIZ_TARGET, 0),
+                sxm::Attribute(sx::AttributeKey::DASHQL_VIZ_TYPE, 1),
+                sxm::Attribute(sx::AttributeKey::DASHQL_OPTION_AXES, 37),
+                sxm::Attribute(sx::AttributeKey::DASHQL_OPTION_BACKGROUND_COLOR, 11),
+                sxm::Attribute(sx::AttributeKey::DASHQL_OPTION_BORDER_ALIGN, 18),
+                sxm::Attribute(sx::AttributeKey::DASHQL_OPTION_BORDER_ANGLE, 19),
+                sxm::Attribute(sx::AttributeKey::DASHQL_OPTION_BORDER_CAP_STYLE, 12),
+                sxm::Attribute(sx::AttributeKey::DASHQL_OPTION_BORDER_COLOR, 13),
+                sxm::Attribute(sx::AttributeKey::DASHQL_OPTION_BORDER_DASH, 14),
+                sxm::Attribute(sx::AttributeKey::DASHQL_OPTION_BORDER_DASH_OFFSET, 15),
+                sxm::Attribute(sx::AttributeKey::DASHQL_OPTION_BORDER_JOIN_STYLE, 16),
+                sxm::Attribute(sx::AttributeKey::DASHQL_OPTION_BORDER_WIDTH, 17),
+                sxm::Attribute(sx::AttributeKey::DASHQL_OPTION_CLIP, 21),
+                sxm::Attribute(sx::AttributeKey::DASHQL_OPTION_CUBIC_INTERPOLATION_MODE, 20),
+                sxm::Attribute(sx::AttributeKey::DASHQL_OPTION_FILL, 22),
+                sxm::Attribute(sx::AttributeKey::DASHQL_OPTION_LABEL, 24),
+                sxm::Attribute(sx::AttributeKey::DASHQL_OPTION_LEGEND,6),
+                sxm::Attribute(sx::AttributeKey::DASHQL_OPTION_LINE_TENSION, 25),
+                sxm::Attribute(sx::AttributeKey::DASHQL_OPTION_OPACITY, 9),
+                sxm::Attribute(sx::AttributeKey::DASHQL_OPTION_OVERRIDES, 23),
+                sxm::Attribute(sx::AttributeKey::DASHQL_OPTION_PADDING, 5),
+                sxm::Attribute(sx::AttributeKey::DASHQL_OPTION_POINT_BACKGROUND_COLOR, 26),
+                sxm::Attribute(sx::AttributeKey::DASHQL_OPTION_POINT_BORDER_COLOR, 27),
+                sxm::Attribute(sx::AttributeKey::DASHQL_OPTION_POINT_BORDER_WIDTH, 28),
+                sxm::Attribute(sx::AttributeKey::DASHQL_OPTION_POINT_HIT_RADIUS, 29),
+                sxm::Attribute(sx::AttributeKey::DASHQL_OPTION_POINT_HOVER_RADIUS, 30),
+                sxm::Attribute(sx::AttributeKey::DASHQL_OPTION_POINT_RADIUS, 31),
+                sxm::Attribute(sx::AttributeKey::DASHQL_OPTION_POINT_ROTATION, 32),
+                sxm::Attribute(sx::AttributeKey::DASHQL_OPTION_POINT_STYLE, 33),
+                sxm::Attribute(sx::AttributeKey::DASHQL_OPTION_POSITION, 2),
+                sxm::Attribute(sx::AttributeKey::DASHQL_OPTION_SELECTION, 10),
+                sxm::Attribute(sx::AttributeKey::DASHQL_OPTION_SHOW_LINE, 34),
+                sxm::Attribute(sx::AttributeKey::DASHQL_OPTION_SPAN_GAPS, 35),
+                sxm::Attribute(sx::AttributeKey::DASHQL_OPTION_STEPPED_LINE, 36),
+                sxm::Attribute(sx::AttributeKey::DASHQL_OPTION_TITLE, 7),
+                sxm::Attribute(sx::AttributeKey::DASHQL_OPTION_TOOLTIP, 8),
+                sxm::Attribute(sx::AttributeKey::DASHQL_OPTION_X, 3),
+                sxm::Attribute(sx::AttributeKey::DASHQL_OPTION_Y, 4),
+            ));
+        // clang-format on
+    }
+}
+
 /// Instantiate a program with parameters
 Signal Analyzer::InstantiateProgram(std::vector<ParameterValue> params) {
     // Create program instance.
@@ -220,6 +280,7 @@ Signal Analyzer::InstantiateProgram(std::vector<ParameterValue> params) {
     EvaluateParameterValues(*next_instance);
     // Try to propagate the parameter values, e.g. function calls that are now constant
     PropagateParameterValues(*next_instance);
+    // Analyze the viz specs
 
     // XXX Best-effort semantics check.
     //     Everything that we miss here will crash later in DuckDB.
