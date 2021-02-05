@@ -1,0 +1,55 @@
+<test name="dashql_viz_line_full">
+    <input>
+        VIZ weather_avg USING LINE (
+            tile = (x = 0, y = 0, w = 4, h = 15),
+            padding = (top = 2.0, left = 2.0, right = 0, bottom = 0),
+            title = (
+                display = true,
+                position = 'top',
+                font_size = 12,
+                font_family = 'Helvetica',
+                font_color = '#666',
+                font_style = 'bold',
+                padding = 10,
+                line_height = 1.2,
+                text = 'foo'
+            ),
+            legend = (
+                display = true,
+                position = 'top',
+                align = 'center',
+                full_width = false,
+                reverse = false,
+                rtl = false,
+                labels = ['a', 'b', 'c']
+            ),
+            tooltip = (
+                enabled = true,
+                mode = 'nearest',
+                intersect = true,
+                position = 'average',
+                title = (
+                    font_size = 12,
+                    font_style = 'bold',
+                    font_color = '#fff',
+                    font_align = 'left',
+                    font_family = 'Helvetica',
+                    margin = (bottom = 6),
+                    spacing = 2
+                ),
+                body = (
+                    font_size = 11,
+                    align = 'left'
+                ),
+                footer = (
+                    font_size = 11,
+                    align = 'left'
+                ),
+                padding = (left = 2, right = 4),
+                caret_padding = 2,
+                caret_size = 5,
+                corner_radius = 6
+            )
+        )
+    </input>
+</test>

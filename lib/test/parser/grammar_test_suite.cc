@@ -22,6 +22,8 @@ TEST_P(GrammarTestSuite, Test) {
 
 INSTANTIATE_TEST_SUITE_P(Statement, GrammarTestSuite, testing::ValuesIn(GrammarTest::GetTests("dashql_statement.xml")),
                          GrammarTest::TestPrinter());
+INSTANTIATE_TEST_SUITE_P(Viz, GrammarTestSuite, testing::ValuesIn(GrammarTest::GetTests("dashql_viz.xml")),
+                         GrammarTest::TestPrinter());
 INSTANTIATE_TEST_SUITE_P(Demo, GrammarTestSuite, testing::ValuesIn(GrammarTest::GetTests("scripts_demo.xml")),
                          GrammarTest::TestPrinter());
 INSTANTIATE_TEST_SUITE_P(SQLSelect, GrammarTestSuite, testing::ValuesIn(GrammarTest::GetTests("sql_select.xml")),
