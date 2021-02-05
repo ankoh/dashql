@@ -1,6 +1,6 @@
 {
     "name": "@dashql/core",
-    "private": true,
+    "version": "0.0.1",
     "description": "DashQL Core Library",
     "license": "AGPL-3.0-or-later",
     "dependencies": {
