@@ -37,9 +37,9 @@ struct OptionEdit {
 
 struct VizChangePosition : public OptionEdit {
     /// The position
-    const proto::viz::Position& pos;
+    const proto::viz::VizTile& pos;
     /// Constructor
-    VizChangePosition(const proto::viz::Position& pos) : pos(pos) { key = sx::AttributeKey::DASHQL_OPTION_POSITION; }
+    VizChangePosition(const proto::viz::VizTile& pos) : pos(pos) { key = sx::AttributeKey::DASHQL_OPTION_POSITION; }
     /// Write the option key
     void WriteKey(std::ostream& out) const override { out << getOptionLabel(key); }
     /// Write the option value

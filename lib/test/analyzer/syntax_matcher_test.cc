@@ -84,17 +84,17 @@ TEST(SyntaxMatcherTest, VizStatementPositionShort) {
             sxm::Attribute(sx::AttributeKey::DASHQL_OPTION_POSITION)
                 .MatchOptions()
                 .MatchChildren(NODE_MATCHERS(
-                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_WIDTH, 0)
-                        .MatchObject(sx::NodeType::OBJECT_SQL_CONST),
-                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_HEIGHT, 1)
-                        .MatchObject(sx::NodeType::OBJECT_SQL_CONST),
-                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_W, 2)
+                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_COLUMN, 5)
                         .MatchObject(sx::NodeType::OBJECT_SQL_CONST),
                     sxm::Option(sx::AttributeKey::DASHQL_OPTION_H, 3)
                         .MatchObject(sx::NodeType::OBJECT_SQL_CONST),
+                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_HEIGHT, 1)
+                        .MatchObject(sx::NodeType::OBJECT_SQL_CONST),
                     sxm::Option(sx::AttributeKey::DASHQL_OPTION_ROW, 4)
                         .MatchObject(sx::NodeType::OBJECT_SQL_CONST),
-                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_COLUMN, 5)
+                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_W, 2)
+                        .MatchObject(sx::NodeType::OBJECT_SQL_CONST),
+                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_WIDTH, 0)
                         .MatchObject(sx::NodeType::OBJECT_SQL_CONST),
                     sxm::Option(sx::AttributeKey::DASHQL_OPTION_X, 6)
                         .MatchObject(sx::NodeType::OBJECT_SQL_CONST),
