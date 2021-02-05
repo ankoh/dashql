@@ -2,14 +2,85 @@
 
 namespace dashql.proto.viz;
 
-struct Position {
+struct VizTile {
     row: uint32;
     column: uint32;
     width: uint32;
     height: uint32;
 }
 
+enum ElementPosition: uint8 {
+    TOP = 0,
+    LEFT = 1,
+    BOTTOM = 2,
+    RIGHT = 3,
+}
+
+enum ElementAlignment: uint8 {
+    START = 0,
+    CENTER = 1,
+    END = 2,
+}
+
+enum FontStyle: uint8 {
+    NORMAL = 0,
+    ITALIC = 1,
+    OBLIQUE = 2,
+    INITIAL = 3,
+    INHERIT = 4,
+}
+
+table Title {
+    display: bool;
+    position: ElementPosition;
+    align: ElementAlignment;
+    font_size: float;
+    font_family: string;
+    font_color: string;
+    font_style: string;
+    padding: float;
+    line_height: float;
+    text: string;
+}
+
+table Legend {
+    display: bool;
+    position: ElementPosition;
+    align: ElementAlignment;
+    full_width: bool;
+    reverse: bool;
+    labels: [string];
+}
+
+enum TooltipPosition: uint8 {
+    AVERAGE = 0,
+    NEAREST = 1,
+}
+
+enum InteractionMode: uint8 {
+    POINT = 0,
+    NEAREST = 1,
+    INDEX = 2,
+    DATASET = 3,
+    X = 4,
+    Y = 5,
+}
+
+table TooltipTitle {
+    color: string;
+    align: ElementAlignment; 
+    spacing: uint32;
+}
+
+table Tooltip {
+    enabled: bool;
+    mode: InteractionMode;
+    intersect: bool;
+    position: ElementPosition;
+    title: TooltipTitle;
+}
+
 table VizSpec {
     statement_id: uint32;
-    position: Position;
+    position: VizTile;
 }

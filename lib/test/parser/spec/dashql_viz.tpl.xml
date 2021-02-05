@@ -1,7 +1,7 @@
 <test name="dashql_viz_line_full">
     <input>
         VIZ weather_avg USING LINE (
-            area = (x = 0, y = 0, w = 4, h = 15),
+            position = (x = 0, y = 0, w = 4, h = 15),
             padding = (top = 2.0, left = 2.0, right = 0, bottom = 0),
             title = (
                 display = true,
