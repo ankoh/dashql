@@ -163,7 +163,16 @@
                         </node>
                     </node>
                     <node key="DASHQL_OPTION_TOOLTIP" type="OBJECT_DASHQL_OPTION_LIST" loc="803..1664" text="(&#10;        ..         )">
-                        <node />
+                        <node key="DASHQL_OPTION_BODY" type="OBJECT_DASHQL_OPTION_LIST" loc="1292..1382" text="(&#10;        ..         )">
+                            <node key="DASHQL_OPTION_ALIGN" type="OBJECT_SQL_CONST" loc="1358..1364" text="'left'">
+                                <node key="SQL_CONST_TYPE" value="STRING" />
+                                <node key="SQL_CONST_VALUE" loc="1358..1364" text="'left'" />
+                            </node>
+                            <node key="DASHQL_OPTION_FONT_SIZE" type="OBJECT_SQL_CONST" loc="1326..1328" text="11">
+                                <node key="SQL_CONST_TYPE" value="INTEGER" />
+                                <node key="SQL_CONST_VALUE" loc="1326..1328" text="11" />
+                            </node>
+                        </node>
                         <node key="DASHQL_OPTION_CARET_PADDING" type="OBJECT_SQL_CONST" loc="1582..1583" text="2">
                             <node key="SQL_CONST_TYPE" value="INTEGER" />
                             <node key="SQL_CONST_VALUE" loc="1582..1583" text="2" />
@@ -242,9 +251,7 @@
                 </node>
             </statement>
         </statements>
-        <errors>
-            <error message="unknown option key: body" loc="1285..1382" text="body = (&#10; ..         )" />
-        </errors>
+        <errors />
         <line_breaks>
             <line_break loc="0..1" text="&#10;" />
             <line_break loc="37..38" text="&#10;" />
