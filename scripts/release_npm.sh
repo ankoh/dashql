@@ -15,9 +15,9 @@ function get_pkg_version() {
 CORE_VERSION="$(get_pkg_version ${CORE_PKG_FILE})"
 WEBDB_VERSION="$(get_pkg_version ${WEBDB_PKG_FILE})"
 
-function release_if_missing() {
+function release() {
     PKG_DIR="$1"
-    PKG_NAME="@dashql/$2@$3"
+    PKG_NAME="$2"
 
     #echo "Build ${PKG_NAME}"
     #npm --prefix ${PKG_DIR} run build
@@ -30,6 +30,6 @@ function release_if_missing() {
     fi
 }
 
-release_if_missing "${PROJECT_ROOT}/webdb" "webdb" "${WEBDB_VERSION}"
-release_if_missing "${PROJECT_ROOT}/core" "core" "${CORE_VERSION}"
+release "${PROJECT_ROOT}/webdb" "@dashql/webdb@${WEBDB_VERSION}"
+release "${PROJECT_ROOT}/core" "@dashql/core@${CORE_VERSION}"
 
