@@ -44,6 +44,7 @@ set(CMAKE_BUILD_PARALLEL_LEVEL ${NPROCS})
 include("${CMAKE_SOURCE_DIR}/cmake/flatbuffers.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/benchmark.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/googletest.cmake")
+include("${CMAKE_SOURCE_DIR}/cmake/gflags.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/rapidjson.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/pugixml.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/spdlog.cmake")
@@ -397,7 +398,7 @@ if(NOT EMSCRIPTEN)
         dashql_test
         dashql_extract dashql_analyzer dashql_webdb dashql_common
         dashql_proto
-        flatbuffers gtest gmock
+        flatbuffers gtest gmock gflags
         Threads::Threads
     )
 

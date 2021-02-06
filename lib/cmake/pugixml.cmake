@@ -20,6 +20,7 @@ ExternalProject_Add(
         -DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/third_party/pugixml/install
     DOWNLOAD_COMMAND ""
     UPDATE_COMMAND ""
+    BUILD_BYPRODUCTS <INSTALL_DIR>/lib/libpugixml.a
 )
 
 # Prepare json
