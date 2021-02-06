@@ -17,5 +17,10 @@
         "baseUrl": "."
     },
     "exclude": ["./test/**/*.ts", "./node_modules"],
-    "include": ["./src/**/*", "./types/*.d.ts"]
+    "include": ["./src/**/*", "./types/*.d.ts"],
+    "typeAcquisition": {
+        "include": [
+            "jest"
+        ]
+    }
 }
