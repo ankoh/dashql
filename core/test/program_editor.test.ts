@@ -1,4 +1,4 @@
-import { analyzer, edit  } from '../src/index_node';
+import { analyzer, edit  } from '../';
 import * as path from 'path';
 
 var az: analyzer.AnalyzerBindings;

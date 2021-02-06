@@ -1,4 +1,4 @@
-import { analyzer } from '../src/index_node';
+import { analyzer } from '../';
 import * as path from 'path';
 
 var analyzerBindings: analyzer.AnalyzerBindings;

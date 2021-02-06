@@ -1,4 +1,4 @@
-import { platform, model } from '../../src/index_node';
+import { platform, model } from '../../';
 import { mockHTTP, HTTPMock, encodeTextBody, decodeTextBody } from '../mocks/http_mock';
 
 let httpMock: HTTPMock;

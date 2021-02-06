@@ -1,5 +1,7 @@
 module.exports = {
+    maxWorkers: 1,
     roots: ['<rootDir>'],
+    testEnvironment: "./jest.env.js",
     transform: {
         '^.+\\.tsx?$': 'ts-jest',
         '\\.wasm$': '<rootDir>/test/transforms/file_transform.js',

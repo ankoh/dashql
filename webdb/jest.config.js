@@ -1,5 +1,6 @@
 module.exports = {
     roots: ['<rootDir>'],
+    maxWorkers: 1,
     transform: {
         '^.+\\.ts$': 'ts-jest',
         '\\.wasm$': '<rootDir>/test/transforms/file_transform.js',
