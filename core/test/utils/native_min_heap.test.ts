@@ -1,3 +1,4 @@
+import { describe, test, expect } from '@jest/globals';
 import * as core from '../../';
 
 enum TestOpType { POP, DEC, INC, SET }
