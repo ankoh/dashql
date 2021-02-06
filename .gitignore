@@ -1,3 +1,4 @@
+/.cache
 /.ccache
 /.flatc
 /artifacts
@@ -13,4 +14,3 @@ compile_commands.json
 
 # Miscellaneous
 .DS_Store
-.vscode

@@ -3,25 +3,29 @@
 #include "dashql/parser/parser_driver.h"
 #include "dashql/test/grammar_tests.h"
 #include "gtest/gtest.h"
+#include "gflags/gflags.h"
 #include "pugixml.hpp"
+#include <string_view>
 
 using namespace dashql;
 using namespace dashql::test;
 
+DEFINE_string(source_dir, "", "Source directory");
+
 int main(int argc, char* argv[]) {
-    if (argc < 2) {
-        std::cout << "Usage: ./tester <dir>" << std::endl;
+    testing::InitGoogleTest(&argc, argv);
+
+    gflags::SetUsageMessage("Usage: ./tester --source_dir <dir>");
+    gflags::ParseCommandLineFlags(&argc, &argv, false);
+
+    // Make sure the directory exists
+    if (!std::filesystem::exists(FLAGS_source_dir)) {
+        std::cerr << "Invalid source dir: " << FLAGS_source_dir << std::endl;
         return 1;
     }
-    if (!argv[1] || !std::filesystem::exists(argv[1])) {
-        std::cout << "Invalid directory: " << argv[1] << std::endl;
-        return 1;
-    }
-    auto source_dir = std::filesystem::path{argv[1]};
+    auto source_dir = std::filesystem::path{FLAGS_source_dir};
 
     // Load the grammar tests
     GrammarTest::LoadTests(source_dir);
-
-    testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
 }

@@ -49,7 +49,8 @@ jobs:
       with:
         script: |-
             export LLVM_PROFILE_FILE=./reports/lib.profraw
-            ./lib/build/debug/tester ./lib/ \
+            ./lib/build/debug/tester \
+                --source_dir=./lib/ \
                 --gtest_output=xml:./reports/tests_lib_debug.xml
 
     - name: Code Coverage
@@ -111,7 +112,8 @@ jobs:
       uses: ./ci/image
       with:
         script: |-
-            ./lib/build/release/tester ./lib/ \
+            ./lib/build/release/tester \
+                --source_dir=./lib/ \
                 --gtest_output=xml:./reports/tests_lib_release.xml
 
   web:
