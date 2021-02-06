@@ -1,4 +1,4 @@
-import { analyzer, model } from '../../src/index_node';
+import { analyzer, model } from '../../';
 import * as path from 'path';
 import * as proto from '@dashql/proto';
 import schema = model.schema;

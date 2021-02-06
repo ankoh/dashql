@@ -1,4 +1,5 @@
-import { Mutex } from '../../src/utils';
+import * as core from '../../';
+import Mutex = core.utils.Mutex;
 
 describe('Semaphore', () => {
     test('simple ops', async () => {

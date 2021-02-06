@@ -1,4 +1,4 @@
-import * as core from '../../src/index_node';
+import * as core from '../../';
 
 enum TestOpType { POP, DEC, INC, SET }
 interface TestOp {
@@ -33,7 +33,7 @@ const tests: [string, [number, number][], TestOp[]][] = [
 
 describe('NativeMinHeap', () => {
     test.each(tests)(
-        "%s",
+        "ops_%s",
         (_name, input, ops) => {
             input.sort((l, r) => l[1] - r[1]);
             const heap = new core.utils.NativeMinHeap(input);
