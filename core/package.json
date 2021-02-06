@@ -39,12 +39,11 @@
     },
     "scripts": {
         "build:watch": "webpack --watch --progress --mode=production",
-        "build": "webpack --mode=production",
-        "build:test": "webpack --mode=production",
-        "test": "node ./node_modules/.bin/jest --runInBand --detectOpenHandles --env=./jest.env.js ",
-        "test:debug": "node --inspect ./node_modules/.bin/jest --runInBand --detectOpenHandles --env=./jest.env.js ",
-        "test:silent": "node ./node_modules/.bin/jest --silent --runInBand --detectOpenHandles --env=./jest.env.js",
-        "test:ci": "node ./node_modules/.bin/jest --silent --runInBand --detectOpenHandles --env=./jest.env.js --ci"
+        "build": "webpack --mode=production && node ./gendts.js",
+        "test": "node ./node_modules/.bin/jest",
+        "test:debug": "node --inspect ./node_modules/.bin/jest",
+        "test:silent": "node ./node_modules/.bin/jest --silent",
+        "test:ci": "node ./node_modules/.bin/jest --ci --reporters=default --reporters=jest-junit"
     },
     "files": [
         "dist/**/*.d.ts",
