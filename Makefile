@@ -12,8 +12,8 @@ APP_RELEASE_TAG="$(shell git rev-parse --short HEAD)"
 APP_DEPLOY_TMP="${ROOT_DIR}/artifacts/tmp"
 
 LIB_SOURCE_DIR="${ROOT_DIR}/lib"
-LIB_DEBUG_DIR="${ROOT_DIR}/lib/build/debug"
-LIB_RELEASE_DIR="${ROOT_DIR}/lib/build/release"
+LIB_DEBUG_DIR="${ROOT_DIR}/lib/build/Debug"
+LIB_RELEASE_DIR="${ROOT_DIR}/lib/build/Release"
 CORE_WASM_DIR="${ROOT_DIR}/core/src/wasm"
 WEBDB_WASM_DIR="${ROOT_DIR}/webdb/src/wasm"
 
