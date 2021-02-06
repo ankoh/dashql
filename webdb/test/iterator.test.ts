@@ -1,4 +1,4 @@
-import { beforeAll, afterAll, beforeEach, afterEach, describe, test, expect } from '@jest/globals';
+import { beforeAll, beforeEach, afterEach, describe, test, expect } from '@jest/globals';
 import * as webdb from '../src/index_node';
 import * as path from 'path';
 

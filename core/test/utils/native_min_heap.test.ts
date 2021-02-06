@@ -36,7 +36,7 @@ describe('NativeMinHeap', () => {
     test.each(tests)(
         "ops_%s",
         (_name, input, ops) => {
-            input.sort((l, r) => l[1] - r[1]);
+            input.sort((l: [number, number], r: [number, number]) => l[1] - r[1]);
             const heap = new core.utils.NativeMinHeap(input);
             for (const op of ops) {
                 switch (op.type) {
