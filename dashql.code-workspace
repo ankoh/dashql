@@ -1,10 +1,6 @@
 {
     "folders": [
         {
-            "name": "dashql",
-            "path": "."
-        },
-        {
             "name": "lib",
             "path": "lib"
         },
@@ -23,9 +19,14 @@
         {
             "name": "benchmarks",
             "path": "benchmarks"
-        }
+        },
+        {
+            "name": "other",
+            "path": "."
+        },
     ],
     "settings": {
+		"cmake.autoSelectActiveFolder": false,
         "files.exclude": {
             "lib": true,
             "core": true,
