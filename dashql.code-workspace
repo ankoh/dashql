@@ -1,37 +1,37 @@
 {
-	"folders": [
-		{
-			"name": "dashql",
-			"path": "."
-		},
-		{
-			"name": "lib",
-			"path": "lib"
-		},
-		{
-			"name": "webdb",
-			"path": "webdb"
-		},
-		{
-			"name": "core",
-			"path": "core"
-		},
-		{
-			"name": "app",
-			"path": "app"
-		},
-		{
-			"name": "benchmarks",
-			"path": "benchmarks"
-		},
-	],
-	"settings": {
-		"files.exclude": {
+    "folders": [
+        {
+            "name": "dashql",
+            "path": "."
+        },
+        {
+            "name": "lib",
+            "path": "lib"
+        },
+        {
+            "name": "webdb",
+            "path": "webdb"
+        },
+        {
+            "name": "core",
+            "path": "core"
+        },
+        {
+            "name": "app",
+            "path": "app"
+        },
+        {
+            "name": "benchmarks",
+            "path": "benchmarks"
+        }
+    ],
+    "settings": {
+        "files.exclude": {
             "lib": true,
             "core": true,
             "app": true,
             "webdb": true,
-            "benchmarks": true,
+            "benchmarks": true
         }
-	}
+    }
 }

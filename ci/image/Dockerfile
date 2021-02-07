@@ -69,6 +69,10 @@ RUN curl -sL https://aka.ms/InstallAzureCLIDeb | bash \
     && chgrp -R actions /opt/azure \
     && chmod -R g=u /opt/azure
 
+RUN mkdir -p /.cmake \
+    && chgrp -R actions /.cmake \
+    && chmod -R g=u /.cmake
+
 RUN source /opt/emsdk/emsdk_env.sh \
     && echo "export PATH=$PATH:/opt/rust/bin" >> /opt/env.sh \
     && echo "export EMSDK=$EMSDK" >> /opt/env.sh \
