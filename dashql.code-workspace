@@ -5,15 +5,15 @@
 			"path": "."
 		},
 		{
-			"name": "/lib",
+			"name": "lib",
 			"path": "lib"
 		},
 		{
-			"name": "/core",
+			"name": "core",
 			"path": "core"
 		},
 		{
-			"name": "/webdb",
+			"name": "webdb",
 			"path": "webdb"
 		}
 	],
