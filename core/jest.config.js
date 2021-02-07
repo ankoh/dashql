@@ -13,7 +13,7 @@ module.exports = {
     },
     globals: {
         'ts-jest': {
-            tsConfig: 'tsconfig.test.json',
+            tsConfig: '<rootDir>/tsconfig.test.json',
         },
     },
     reporters: ['default', 'jest-junit'],
