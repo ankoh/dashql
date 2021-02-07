@@ -1,0 +1,21 @@
+{
+	"folders": [
+		{
+			"name": "/",
+			"path": "."
+		},
+		{
+			"name": "/lib",
+			"path": "lib"
+		},
+		{
+			"name": "/core",
+			"path": "core"
+		},
+		{
+			"name": "/webdb",
+			"path": "webdb"
+		}
+	],
+	"settings": {}
+}
