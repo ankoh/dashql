@@ -1,7 +1,7 @@
 {
 	"folders": [
 		{
-			"name": "/",
+			"name": "dashql",
 			"path": "."
 		},
 		{
@@ -9,13 +9,29 @@
 			"path": "lib"
 		},
 		{
+			"name": "webdb",
+			"path": "webdb"
+		},
+		{
 			"name": "core",
 			"path": "core"
 		},
 		{
-			"name": "webdb",
-			"path": "webdb"
-		}
+			"name": "app",
+			"path": "app"
+		},
+		{
+			"name": "benchmarks",
+			"path": "benchmarks"
+		},
 	],
-	"settings": {}
+	"settings": {
+		"files.exclude": {
+            "lib": true,
+            "core": true,
+            "app": true,
+            "webdb": true,
+            "benchmarks": true,
+        }
+	}
 }
