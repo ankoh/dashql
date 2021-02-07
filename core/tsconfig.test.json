@@ -3,10 +3,5 @@
     "compilerOptions": {
         "lib": ["esnext", "es2020", "dom"]
     },
-    "exclude": ["./node_modules"],
-    "typeAcquisition": {
-        "include": [
-            "jest"
-        ]
-    }
+    "exclude": ["./node_modules"]
 }

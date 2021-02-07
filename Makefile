@@ -179,7 +179,7 @@ compile_commands:
 	cmake -S ${LIB_SOURCE_DIR} -B ${LIB_DEBUG_DIR} \
 		-DCMAKE_BUILD_TYPE=Debug \
 		-DCMAKE_EXPORT_COMPILE_COMMANDS=1
-	ln -sf ${LIB_DEBUG_DIR}/compile_commands.json ${ROOT_DIR}/compile_commands.json
+	ln -sf ${LIB_DEBUG_DIR}/compile_commands.json ${LIB_SOURCE_DIR}/compile_commands.json
 
 # Reset the duckdb repo
 .PHONY: reset_duckdb

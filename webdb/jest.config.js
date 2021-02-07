@@ -17,7 +17,7 @@ module.exports = {
     },
     reporters: ['default', 'jest-junit'],
     collectCoverage: true,
-    coverageDirectory: '../reports',
+    coverageDirectory: '<rootDir>/../reports',
     testPathIgnorePatterns: ['/node_modules/'],
     coverageReporters: [['json', { file: 'coverage_webdb.json' }]],
 };

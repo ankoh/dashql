@@ -1,5 +1,5 @@
 import { beforeAll, beforeEach, afterEach, describe, test, expect } from '@jest/globals';
-import * as webdb from '../src/index_node';
+import * as webdb from '../dist/webdb_node';
 import * as path from 'path';
 
 var db: webdb.WebDB;

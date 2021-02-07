@@ -1,12 +1,12 @@
 {
     "cmake.generator": "Unix Makefiles",
-    "cmake.sourceDirectory": "${workspaceFolder}/lib",
-    "cmake.buildDirectory": "${workspaceFolder}/lib/build/${buildType}",
+    "cmake.sourceDirectory": "${workspaceFolder}/",
+    "cmake.buildDirectory": "${workspaceFolder}/build/${buildType}",
     "testMate.cpp.test.advancedExecutables": [
         {
             "name": "C++ Tests",
-            "pattern": "lib/build/Debug/tester",
-            "cwd": "lib/build/Debug/",
+            "pattern": "build/Debug/tester",
+            "cwd": "build/Debug/",
             "gtest": {
               "prependTestRunningArgs": ["--source_dir=../../"],
               "prependTestListingArgs": ["--source_dir=../../"]
