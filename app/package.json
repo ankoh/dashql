@@ -18,7 +18,6 @@
         "@dashql/proto": "file:../proto/",
         "@dashql/webdb": "file:../webdb/",
         "axios": "^0.21.1",
-        "chart.js": "^2.9.4",
         "classnames": "^2.2.6",
         "dagre": "^0.8.5",
         "fsevents": "*",
@@ -36,10 +35,10 @@
         "react-vega": "^7.4.1",
         "react-virtualized": "^9.22.2",
         "redux": "^4.0.5",
-        "redux-persist": "^6.0.0"
+        "redux-persist": "^6.0.0",
+        "victory": "^35.4.8"
     },
     "devDependencies": {
-        "@types/chart.js": "^2.9.28",
         "@types/classnames": "^2.2.10",
         "@types/d3": "^6.2.0",
         "@types/dagre": "^0.7.44",
