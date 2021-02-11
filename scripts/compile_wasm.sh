@@ -3,6 +3,8 @@
 
 set -euo pipefail
 
+trap exit SIGINT
+
 PROJECT_ROOT="$(cd $(dirname "$BASH_SOURCE[0]") && cd .. && pwd)" &> /dev/null
 
 BUILD_TYPE=${1:-Release}
@@ -31,7 +33,8 @@ emcmake cmake \
 emmake make \
     -C"${CPP_SOURCE_DIR}/build/wasm/${BUILD_TYPE}" \
     -j${CORES} \
-    analyzer_wasm analyzer_wasm_node webdb_wasm webdb_wasm_node
+    table_wasm table_wasm_node analyzer_wasm analyzer_wasm_node webdb_wasm webdb_wasm_node
 
+cp ${CPP_SOURCE_DIR}/build/wasm/${BUILD_TYPE}/table_*.{wasm,js} "${TABLE_LIB_DIR}"
 cp ${CPP_SOURCE_DIR}/build/wasm/${BUILD_TYPE}/analyzer_*.{wasm,js} "${ANALYZER_LIB_DIR}"
 cp ${CPP_SOURCE_DIR}/build/wasm/${BUILD_TYPE}/webdb_*.{wasm,js} "${WEBDB_LIB_DIR}"
