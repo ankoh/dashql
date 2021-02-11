@@ -154,8 +154,9 @@ jobs:
             emmake make \
                 -C./lib/build/wasm/release \
                 -j`nproc` \
-                analyzer_wasm analyzer_wasm_node webdb_wasm webdb_wasm_node
+                table_wasm table_wasm_node analyzer_wasm analyzer_wasm_node webdb_wasm webdb_wasm_node
 
+            cp ./lib/build/wasm/release/table_*.{wasm,js} ./core/src/table/
             cp ./lib/build/wasm/release/analyzer_*.{wasm,js} ./core/src/analyzer/
             cp ./lib/build/wasm/release/webdb_*.{wasm,js} ./webdb/src/
 
