@@ -1,6 +1,10 @@
 {
     "folders": [
         {
+            "name": "dashql",
+            "path": "."
+        },
+        {
             "name": "lib",
             "path": "lib"
         },
@@ -19,10 +23,6 @@
         {
             "name": "benchmarks",
             "path": "benchmarks"
-        },
-        {
-            "name": "other",
-            "path": "."
         },
     ],
     "settings": {
