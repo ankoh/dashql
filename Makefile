@@ -22,7 +22,7 @@ CI_IMAGE_NAME="ci"
 CI_IMAGE_TAG="$(shell cat ./ci/image/TAG)"
 CI_IMAGE_FULLY_QUALIFIED="${CI_IMAGE_NAMESPACE}/${CI_IMAGE_NAME}:${CI_IMAGE_TAG}"
 IN_IMAGE_MOUNTS=-v${ROOT_DIR}:/wd/ -v${ROOT_DIR}/.emscripten_cache/:/mnt/emscripten_cache/ -v${ROOT_DIR}/.ccache/:/mnt/ccache/
-IN_IMAGE_ENV=-e CCACHE_DIR=/mnt/ccache -e CCACHE_BASEDIR=/wd/core/cpp/
+IN_IMAGE_ENV=-e CCACHE_DIR=/mnt/ccache -e CCACHE_BASEDIR=/wd/core/cpp/ -e EM_CACHE=/mnt/emscripten_cache/
 EXEC_ENVIRONMENT?=docker run --rm ${IN_IMAGE_MOUNTS} ${IN_IMAGE_ENV} "${CI_IMAGE_FULLY_QUALIFIED}"
 
 CDN_S3_BUCKET="s3://dashql-cdn"
@@ -118,18 +118,18 @@ benchmark_iterator_async:
 # Compile the flatbuffer schema
 .PHONY: proto
 proto:
-	${EXEC_ENVIRONMENT} bash -ec ./scripts/generate_proto.sh
+	${EXEC_ENVIRONMENT} ./scripts/generate_proto.sh
 	npm --prefix ${ROOT_DIR}/proto run build
 
 # Build the wasm module with debug info
 .PHONY: wasm
 wasm:
-	${EXEC_ENVIRONMENT} bash -ec "./scripts/compile_wasm.sh RelWithDebInfo"
+	${EXEC_ENVIRONMENT} "./scripts/compile_wasm.sh RelWithDebInfo"
 
 # Build the wasm modules
 .PHONY: wasm_release
 wasm_release:
-	${EXEC_ENVIRONMENT} bash -ec "./scripts/compile_wasm.sh Release"
+	${EXEC_ENVIRONMENT} "./scripts/compile_wasm.sh Release"
 
 # Builds the app
 .PHONY: app

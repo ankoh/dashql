@@ -43,6 +43,7 @@ set(CMAKE_BUILD_PARALLEL_LEVEL ${NPROCS})
 
 include("${CMAKE_SOURCE_DIR}/cmake/flatbuffers.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/benchmark.cmake")
+include("${CMAKE_SOURCE_DIR}/cmake/binaryen.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/googletest.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/gflags.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/rapidjson.cmake")
@@ -267,6 +268,10 @@ add_library(dashql_extract
     ${CMAKE_SOURCE_DIR}/src/extract/extract.cc
 )
 
+add_library(dashql_table
+    ${CMAKE_SOURCE_DIR}/src/table/table_ffi.cc
+)
+
 add_library(dashql_analyzer
     ${CMAKE_SOURCE_DIR}/src/analyzer/action_planner.cc
     ${CMAKE_SOURCE_DIR}/src/analyzer/analyzer.cc
@@ -297,6 +302,7 @@ add_library(dashql_test
 target_link_libraries(dashql_common dashql_proto flatbuffers spdlog)
 target_link_libraries(dashql_extract dashql_proto flatbuffers spdlog duckdb)
 target_link_libraries(dashql_analyzer dashql_parser dashql_common dashql_proto spdlog duckdb)
+target_link_libraries(dashql_table dashql_common dashql_proto binaryen)
 target_link_libraries(dashql_webdb dashql_extract dashql_common dashql_proto duckdb spdlog)
 target_link_libraries(dashql_test dashql_webdb dashql_analyzer dashql_common dashql_proto pugixml gtest duckdb)
 
@@ -305,6 +311,33 @@ target_link_libraries(dashql_test dashql_webdb dashql_analyzer dashql_common das
 
 # We need "-s WARN_ON_UNDEFINED_SYMBOLS=0" to instantiate the module with our own imports.
 if (EMSCRIPTEN)
+    set(TABLES_WASM_LINKER_FLAGS " \
+        -s LLD_REPORT_UNDEFINED=1 \
+        -s WARN_ON_UNDEFINED_SYMBOLS=1 \
+        -s ALLOW_MEMORY_GROWTH=1 \
+        -s USE_PTHREADS=0 \
+        -s DISABLE_EXCEPTION_CATCHING=0 \
+        -s MODULARIZE=1 \
+        -s EXPORT_NAME='DashQLTable' \
+        -s EXPORTED_FUNCTIONS='[ \
+            _main, \
+            _malloc, \
+            _free, \
+            _dashql_clear_response, \
+            _dashql_table_ping \
+        ]' \
+        -s EXTRA_EXPORTED_RUNTIME_METHODS='[\"ccall\"]' \
+        "
+    )
+
+    add_executable(table_wasm ${CMAKE_SOURCE_DIR}/src/ffi_main.cc)
+    target_link_libraries(table_wasm dashql_table)
+    set_target_properties(table_wasm PROPERTIES LINK_FLAGS "${TABLES_WASM_LINKER_FLAGS} -s ENVIRONMENT='web'")
+
+    add_executable(table_wasm_node ${CMAKE_SOURCE_DIR}/src/ffi_main.cc)
+    target_link_libraries(table_wasm_node dashql_table)
+    set_target_properties(table_wasm_node PROPERTIES LINK_FLAGS "${TABLES_WASM_LINKER_FLAGS} -s ENVIRONMENT='node'")
+
     set(ANALYZER_WASM_LINKER_FLAGS " \
         -s LLD_REPORT_UNDEFINED=1 \
         -s WARN_ON_UNDEFINED_SYMBOLS=1 \
@@ -396,7 +429,7 @@ if(NOT EMSCRIPTEN)
     )
     target_link_libraries(tester
         dashql_test
-        dashql_extract dashql_analyzer dashql_webdb dashql_common
+        dashql_extract dashql_analyzer dashql_table dashql_webdb dashql_common
         dashql_proto
         flatbuffers gtest gmock gflags
         Threads::Threads
@@ -407,7 +440,7 @@ if(NOT EMSCRIPTEN)
     )
     target_link_libraries(testgen
         dashql_test
-        dashql_extract dashql_analyzer dashql_webdb dashql_common
+        dashql_extract dashql_analyzer dashql_table dashql_webdb dashql_common
         dashql_proto
         pugixml
         flatbuffers gtest gmock
