@@ -5,7 +5,7 @@ FROM ubuntu:20.10
 
 RUN apt-get update -qq \
     && DEBIAN_FRONTEND=noninteractive apt-get install -y \
-        build-essential git \
+        tini build-essential git \
         ccache cmake ninja-build llvm clang clang-tidy curl python python3 \
         bison flex \
         brotli rsync \
@@ -52,7 +52,7 @@ RUN mkdir -p /tmp/flatbuffers/build /tmp/flatbuffers/install \
     && make -C /tmp/flatbuffers/build -j`nproc` install \
     && rm -rf /tmp/flatbuffers
 
-ARG RUST_VERSION="1.48.0"
+ARG RUST_VERSION="1.50.0"
 RUN export RUSTUP_HOME=/opt/rust \
     && export CARGO_HOME=/opt/rust \
     && curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain ${RUST_VERSION} -y \
@@ -85,5 +85,5 @@ RUN source /opt/emsdk/emsdk_env.sh \
     && printf '#!/bin/bash\n. /opt/env.sh\nexec "$@"\n' > /opt/entrypoint.sh \
     && chmod +x /opt/entrypoint.sh
 
-ENTRYPOINT ["/opt/entrypoint.sh"]
+ENTRYPOINT ["tini", "-v", "--", "/opt/entrypoint.sh"]
 WORKDIR /wd
