@@ -12,6 +12,7 @@ echo "BUILD_TYPE=${BUILD_TYPE}"
 
 CPP_BUILD_DIR="${PROJECT_ROOT}/lib/build/wasm/${BUILD_TYPE}"
 CPP_SOURCE_DIR="${PROJECT_ROOT}/lib"
+TABLE_LIB_DIR="${PROJECT_ROOT}/core/src/table"
 ANALYZER_LIB_DIR="${PROJECT_ROOT}/core/src/analyzer"
 WEBDB_LIB_DIR="${PROJECT_ROOT}/webdb/src/"
 set -x
