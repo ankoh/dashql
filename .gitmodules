@@ -22,3 +22,6 @@
 [submodule "submodules/gflags"]
 	path = submodules/gflags
 	url = https://github.com/gflags/gflags.git
+[submodule "submodules/binaryen"]
+	path = submodules/binaryen
+	url = https://github.com/WebAssembly/binaryen
