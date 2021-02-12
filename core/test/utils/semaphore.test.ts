@@ -1,5 +1,5 @@
 import { describe, test, expect } from '@jest/globals';
-import * as core from '../../';
+import * as core from '../../src/index_node';
 import Mutex = core.utils.Mutex;
 
 describe('Semaphore', () => {

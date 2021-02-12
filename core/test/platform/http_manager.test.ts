@@ -1,5 +1,5 @@
 import { beforeEach, afterEach, describe, test, expect } from '@jest/globals';
-import { platform, model } from '../../';
+import { platform, model } from '../../src/index_node';
 import { mockHTTP, HTTPMock, encodeTextBody, decodeTextBody } from '../mocks/http_mock';
 
 let httpMock: HTTPMock;
