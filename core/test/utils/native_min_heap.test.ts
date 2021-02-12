@@ -1,5 +1,5 @@
 import { describe, test, expect } from '@jest/globals';
-import * as core from '../../';
+import * as core from '../../src/index_node';
 
 enum TestOpType { POP, DEC, INC, SET }
 interface TestOp {
