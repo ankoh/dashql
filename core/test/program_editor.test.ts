@@ -1,5 +1,5 @@
 import { beforeAll, beforeEach, describe, test, expect } from '@jest/globals';
-import { analyzer, edit  } from '../';
+import { analyzer, edit  } from '../src/index_node';
 import * as path from 'path';
 
 var az: analyzer.AnalyzerBindings;

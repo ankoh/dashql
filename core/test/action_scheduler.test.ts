@@ -1,5 +1,5 @@
 import { beforeAll, afterAll, beforeEach, afterEach, describe, test, expect } from '@jest/globals';
-import { analyzer, model, actions, platform, ActionScheduler, utils } from '../';
+import { analyzer, model, actions, platform, ActionScheduler, utils } from '../src/index_node';
 import * as webdb from '@dashql/webdb/dist/webdb_async';
 import * as proto from '@dashql/proto';
 import * as path from 'path';
