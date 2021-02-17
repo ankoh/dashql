@@ -84,21 +84,17 @@ TEST(SyntaxMatcherTest, VizStatementPositionShort) {
             sxm::Attribute(sx::AttributeKey::DASHQL_OPTION_POSITION)
                 .MatchOptions()
                 .MatchChildren(NODE_MATCHERS(
-                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_COLUMN, 5)
-                        .MatchObject(sx::NodeType::OBJECT_SQL_CONST),
-                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_H, 3)
+                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_COLUMN, 0)
                         .MatchObject(sx::NodeType::OBJECT_SQL_CONST),
                     sxm::Option(sx::AttributeKey::DASHQL_OPTION_HEIGHT, 1)
                         .MatchObject(sx::NodeType::OBJECT_SQL_CONST),
-                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_ROW, 4)
+                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_ROW, 2)
                         .MatchObject(sx::NodeType::OBJECT_SQL_CONST),
-                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_W, 2)
+                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_WIDTH, 3)
                         .MatchObject(sx::NodeType::OBJECT_SQL_CONST),
-                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_WIDTH, 0)
+                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_X, 4)
                         .MatchObject(sx::NodeType::OBJECT_SQL_CONST),
-                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_X, 6)
-                        .MatchObject(sx::NodeType::OBJECT_SQL_CONST),
-                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_Y, 7)
+                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_Y, 5)
                         .MatchObject(sx::NodeType::OBJECT_SQL_CONST),
                 )),
         ));
@@ -108,13 +104,11 @@ TEST(SyntaxMatcherTest, VizStatementPositionShort) {
     schema.Match(instance, stmt_root, matching);
 
     EXPECT_EQ(matching[0].status, NodeMatchingStatus::MISSING);
-    EXPECT_EQ(matching[1].status, NodeMatchingStatus::MISSING);
-    EXPECT_EQ(matching[2].status, NodeMatchingStatus::MATCHED);
+    EXPECT_EQ(matching[1].status, NodeMatchingStatus::MATCHED);
+    EXPECT_EQ(matching[2].status, NodeMatchingStatus::MISSING);
     EXPECT_EQ(matching[3].status, NodeMatchingStatus::MATCHED);
-    EXPECT_EQ(matching[4].status, NodeMatchingStatus::MISSING);
-    EXPECT_EQ(matching[5].status, NodeMatchingStatus::MISSING);
-    EXPECT_EQ(matching[6].status, NodeMatchingStatus::MATCHED);
-    EXPECT_EQ(matching[7].status, NodeMatchingStatus::MATCHED);
+    EXPECT_EQ(matching[4].status, NodeMatchingStatus::MATCHED);
+    EXPECT_EQ(matching[5].status, NodeMatchingStatus::MATCHED);
 }
 
 TEST(SyntaxMatcherTest, LoadStatementFormat) {
