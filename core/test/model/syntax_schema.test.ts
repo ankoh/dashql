@@ -100,10 +100,10 @@ describe('Statement schema', () => {
                 [Key.DASHQL_OPTION_Y]: schema.objectNode(sx.NodeType.OBJECT_SQL_CONST, {
                     [Key.SQL_CONST_VALUE]: posY,
                 }),
-                [Key.DASHQL_OPTION_W]: schema.objectNode(sx.NodeType.OBJECT_SQL_CONST, {
+                [Key.DASHQL_OPTION_WICK_STROKE_WIDTH]: schema.objectNode(sx.NodeType.OBJECT_SQL_CONST, {
                     [Key.SQL_CONST_VALUE]: posW,
                 }),
-                [Key.DASHQL_OPTION_H]: schema.objectNode(sx.NodeType.OBJECT_SQL_CONST, {
+                [Key.DASHQL_OPTION_HEIGHT]: schema.objectNode(sx.NodeType.OBJECT_SQL_CONST, {
                     [Key.SQL_CONST_VALUE]: posH,
                 }),
                 [Key.DASHQL_OPTION_WIDTH]: schema.objectNode(sx.NodeType.OBJECT_SQL_CONST, {
