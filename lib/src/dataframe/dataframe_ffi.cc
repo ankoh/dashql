@@ -1,11 +1,11 @@
 // Copyright (c) 2020 The DashQL Authors
 
-#include "dashql/table/table.h"
+#include "dashql/dataframe/dataframe.h"
 
 using namespace dashql;
 
 extern "C" {
 
-void dashql_table_ping() {}
+void dashql_dataframe_ping() {}
 
 }
