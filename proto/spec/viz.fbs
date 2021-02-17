@@ -9,75 +9,79 @@ struct VizTile {
     height: uint32;
 }
 
-enum ElementPosition: uint8 {
+enum ScaleType: uint8 {
+    DEFAULT = 0,
+    LINEAR = 1,
+    TIME = 2,
+    LOG = 3,
+    SQRT = 4,
+}
+
+enum InterpolationType: uint8 {
+    BASIS = 0,
+    CARDINAL = 1,
+    CATMULL_ROM = 2,
+    LINEAR = 3,
+    MONOTONE_X = 4,
+    MONOTONE_Y = 5,
+    NATURAL = 6,
+    STEP = 7,
+    STEP_AFTER = 8,
+    STEP_BEFORE = 9,
+}
+
+enum ElementOrientation: uint8 {
     TOP = 0,
-    LEFT = 1,
-    BOTTOM = 2,
+    BOTTOM = 1,
+    LEFT = 2,
     RIGHT = 3,
 }
 
 enum ElementAlignment: uint8 {
     START = 0,
-    CENTER = 1,
+    MIDDLE = 1,
     END = 2,
 }
 
-enum FontStyle: uint8 {
-    NORMAL = 0,
-    ITALIC = 1,
-    OBLIQUE = 2,
-    INITIAL = 3,
-    INHERIT = 4,
+struct CornerRadius {
+    top_left: float;
+    top_right: float;
+    bottom_left: float;
+    bottom_right: float;
 }
 
-table Title {
-    display: bool;
-    position: ElementPosition;
-    align: ElementAlignment;
-    font_size: float;
-    font_family: string;
-    font_color: string;
-    font_style: string;
-    padding: float;
-    line_height: float;
-    text: string;
+enum LabelPlacement: uint8 {
+    PARALLEL = 0,
+    PERPENDICULAR = 1,
+    VERTICAL = 2,
 }
 
-table Legend {
-    display: bool;
-    position: ElementPosition;
-    align: ElementAlignment;
-    full_width: bool;
-    reverse: bool;
-    labels: [string];
+enum LabelPosition: uint8 {
+    START_ANGLE = 0,
+    END_ANGLE = 1,
+    CENTROID = 2,
 }
 
-enum TooltipPosition: uint8 {
-    AVERAGE = 0,
-    NEAREST = 1,
+enum SymbolType: uint8 {
+    CIRCLE = 0,
+    DIAMOND = 1,
+    PLUS = 2,
+    MINUS = 3,
+    SQUARE = 4,
+    STAR = 5,
+    TRIANGLE_DOWN = 6,
+    TRIANGLE_UP = 7,
 }
 
-enum InteractionMode: uint8 {
-    POINT = 0,
-    NEAREST = 1,
-    INDEX = 2,
-    DATASET = 3,
-    X = 4,
-    Y = 5,
-}
-
-table TooltipTitle {
-    color: string;
-    align: ElementAlignment; 
-    spacing: uint32;
-}
-
-table Tooltip {
-    enabled: bool;
-    mode: InteractionMode;
-    intersect: bool;
-    position: ElementPosition;
-    title: TooltipTitle;
+enum ColorScale: uint8 {
+    GRAYSCALE = 0,
+    QUALITATIVE = 1,
+    HEATMAP = 2,
+    WARM = 3,
+    COOL = 4,
+    RED = 5,
+    GREEN = 6,
+    BLUE = 7,
 }
 
 table VizSpec {

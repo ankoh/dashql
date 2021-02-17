@@ -13,19 +13,14 @@ using namespace dashql::test;
 DEFINE_string(source_dir, "", "Source directory");
 
 int main(int argc, char* argv[]) {
-    testing::InitGoogleTest(&argc, argv);
-
     gflags::SetUsageMessage("Usage: ./tester --source_dir <dir>");
     gflags::ParseCommandLineFlags(&argc, &argv, false);
 
-    // Make sure the directory exists
-    if (!std::filesystem::exists(FLAGS_source_dir)) {
-        std::cerr << "Invalid source dir: " << FLAGS_source_dir << std::endl;
-        return 1;
+    if (std::filesystem::exists(FLAGS_source_dir)) {
+        auto source_dir = std::filesystem::path{FLAGS_source_dir};
+        GrammarTest::LoadTests(source_dir);
     }
-    auto source_dir = std::filesystem::path{FLAGS_source_dir};
 
-    // Load the grammar tests
-    GrammarTest::LoadTests(source_dir);
+    testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
 }

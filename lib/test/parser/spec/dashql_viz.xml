@@ -1,61 +1,13 @@
 <test name="dashql_viz_line_full">
     <input>
         VIZ weather_avg USING LINE (
-            position = (x = 0, y = 0, w = 4, h = 15),
-            padding = (top = 2.0, left = 2.0, right = 0, bottom = 0),
-            title = (
-                display = true,
-                position = 'top',
-                font_size = 12,
-                font_family = 'Helvetica',
-                font_color = '#666',
-                font_style = 'bold',
-                padding = 10,
-                line_height = 1.2,
-                text = 'foo'
-            ),
-            legend = (
-                display = true,
-                position = 'top',
-                align = 'center',
-                full_width = false,
-                reverse = false,
-                rtl = false,
-                labels = ['a', 'b', 'c']
-            ),
-            tooltip = (
-                enabled = true,
-                mode = 'nearest',
-                intersect = true,
-                position = 'average',
-                title = (
-                    font_size = 12,
-                    font_style = 'bold',
-                    font_color = '#fff',
-                    font_align = 'left',
-                    font_family = 'Helvetica',
-                    margin = (bottom = 6),
-                    spacing = 2
-                ),
-                body = (
-                    font_size = 11,
-                    align = 'left'
-                ),
-                footer = (
-                    font_size = 11,
-                    align = 'left'
-                ),
-                padding = (left = 2, right = 4),
-                caret_padding = 2,
-                caret_size = 5,
-                corner_radius = 6
-            )
+            position = (x = 0, y = 0, w = 4, h = 15)
         )
     </input>
     <expected>
         <statements>
             <statement type="VIZUALIZE">
-                <node type="OBJECT_DASHQL_VIZ" loc="9..1678" text="VIZ weathe..&#10;        )">
+                <node type="OBJECT_DASHQL_VIZ" loc="9..100" text="VIZ weathe..&#10;        )">
                     <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLE_REF" loc="13..24" text="weather_avg">
                         <node key="SQL_TABLE_INHERIT" value="true" />
                         <node key="SQL_TABLE_NAME">
@@ -63,58 +15,12 @@
                         </node>
                     </node>
                     <node key="DASHQL_VIZ_TYPE" value="LINE" />
-                    <node key="DASHQL_OPTION_LEGEND" type="OBJECT_DASHQL_OPTION_LIST" loc="529..783" text="(&#10;        ..         )">
-                        <node key="DASHQL_OPTION_ALIGN" type="OBJECT_SQL_CONST" loc="621..629" text="'center'">
-                            <node key="SQL_CONST_TYPE" value="STRING" />
-                            <node key="SQL_CONST_VALUE" loc="621..629" text="'center'" />
-                        </node>
-                        <node key="DASHQL_OPTION_DISPLAY" />
-                        <node key="DASHQL_OPTION_FULL_WIDTH" />
-                        <node key="DASHQL_OPTION_LABELS">
-                            <node type="OBJECT_SQL_CONST" loc="755..758" text="'a'">
-                                <node key="SQL_CONST_TYPE" value="STRING" />
-                                <node key="SQL_CONST_VALUE" loc="755..758" text="'a'" />
-                            </node>
-                            <node type="OBJECT_SQL_CONST" loc="760..763" text="'b'">
-                                <node key="SQL_CONST_TYPE" value="STRING" />
-                                <node key="SQL_CONST_VALUE" loc="760..763" text="'b'" />
-                            </node>
-                            <node type="OBJECT_SQL_CONST" loc="765..768" text="'c'">
-                                <node key="SQL_CONST_TYPE" value="STRING" />
-                                <node key="SQL_CONST_VALUE" loc="765..768" text="'c'" />
-                            </node>
-                        </node>
-                        <node key="DASHQL_OPTION_POSITION" type="OBJECT_SQL_CONST" loc="590..595" text="'top'">
-                            <node key="SQL_CONST_TYPE" value="STRING" />
-                            <node key="SQL_CONST_VALUE" loc="590..595" text="'top'" />
-                        </node>
-                        <node key="DASHQL_OPTION_REVERSE" />
-                        <node key="DASHQL_OPTION_RTL" />
-                    </node>
-                    <node key="DASHQL_OPTION_PADDING" type="OBJECT_DASHQL_OPTION_LIST" loc="114..160" text="(top = 2.0..ottom = 0)">
-                        <node key="DASHQL_OPTION_BOTTOM" type="OBJECT_SQL_CONST" loc="158..159" text="0">
-                            <node key="SQL_CONST_TYPE" value="INTEGER" />
-                            <node key="SQL_CONST_VALUE" loc="158..159" text="0" />
-                        </node>
-                        <node key="DASHQL_OPTION_LEFT" type="OBJECT_SQL_CONST" loc="133..136" text="2.0">
-                            <node key="SQL_CONST_TYPE" value="FLOAT" />
-                            <node key="SQL_CONST_VALUE" loc="133..136" text="2.0" />
-                        </node>
-                        <node key="DASHQL_OPTION_RIGHT" type="OBJECT_SQL_CONST" loc="146..147" text="0">
-                            <node key="SQL_CONST_TYPE" value="INTEGER" />
-                            <node key="SQL_CONST_VALUE" loc="146..147" text="0" />
-                        </node>
-                        <node key="DASHQL_OPTION_TOP" type="OBJECT_SQL_CONST" loc="121..124" text="2.0">
-                            <node key="SQL_CONST_TYPE" value="FLOAT" />
-                            <node key="SQL_CONST_VALUE" loc="121..124" text="2.0" />
-                        </node>
-                    </node>
                     <node key="DASHQL_OPTION_POSITION" type="OBJECT_DASHQL_OPTION_LIST" loc="61..90" text="(x = 0, y ..4, h = 15)">
-                        <node key="DASHQL_OPTION_H" type="OBJECT_SQL_CONST" loc="87..89" text="15">
+                        <node key="DASHQL_OPTION_HEIGHT" type="OBJECT_SQL_CONST" loc="87..89" text="15">
                             <node key="SQL_CONST_TYPE" value="INTEGER" />
                             <node key="SQL_CONST_VALUE" loc="87..89" text="15" />
                         </node>
-                        <node key="DASHQL_OPTION_W" type="OBJECT_SQL_CONST" loc="80..81" text="4">
+                        <node key="DASHQL_OPTION_WIDTH" type="OBJECT_SQL_CONST" loc="80..81" text="4">
                             <node key="SQL_CONST_TYPE" value="INTEGER" />
                             <node key="SQL_CONST_VALUE" loc="80..81" text="4" />
                         </node>
@@ -127,127 +33,6 @@
                             <node key="SQL_CONST_VALUE" loc="73..74" text="0" />
                         </node>
                     </node>
-                    <node key="DASHQL_OPTION_TITLE" type="OBJECT_DASHQL_OPTION_LIST" loc="182..506" text="(&#10;        ..         )">
-                        <node key="DASHQL_OPTION_DISPLAY" />
-                        <node key="DASHQL_OPTION_FONT_COLOR" type="OBJECT_SQL_CONST" loc="354..360" text="'#666'">
-                            <node key="SQL_CONST_TYPE" value="STRING" />
-                            <node key="SQL_CONST_VALUE" loc="354..360" text="'#666'" />
-                        </node>
-                        <node key="DASHQL_OPTION_FONT_FAMILY" type="OBJECT_SQL_CONST" loc="312..323" text="'Helvetica'">
-                            <node key="SQL_CONST_TYPE" value="STRING" />
-                            <node key="SQL_CONST_VALUE" loc="312..323" text="'Helvetica'" />
-                        </node>
-                        <node key="DASHQL_OPTION_FONT_SIZE" type="OBJECT_SQL_CONST" loc="278..280" text="12">
-                            <node key="SQL_CONST_TYPE" value="INTEGER" />
-                            <node key="SQL_CONST_VALUE" loc="278..280" text="12" />
-                        </node>
-                        <node key="DASHQL_OPTION_FONT_STYLE" type="OBJECT_SQL_CONST" loc="391..397" text="'bold'">
-                            <node key="SQL_CONST_TYPE" value="STRING" />
-                            <node key="SQL_CONST_VALUE" loc="391..397" text="'bold'" />
-                        </node>
-                        <node key="DASHQL_OPTION_LINE_HEIGHT" type="OBJECT_SQL_CONST" loc="459..462" text="1.2">
-                            <node key="SQL_CONST_TYPE" value="FLOAT" />
-                            <node key="SQL_CONST_VALUE" loc="459..462" text="1.2" />
-                        </node>
-                        <node key="DASHQL_OPTION_PADDING" type="OBJECT_SQL_CONST" loc="425..427" text="10">
-                            <node key="SQL_CONST_TYPE" value="INTEGER" />
-                            <node key="SQL_CONST_VALUE" loc="425..427" text="10" />
-                        </node>
-                        <node key="DASHQL_OPTION_POSITION" type="OBJECT_SQL_CONST" loc="243..248" text="'top'">
-                            <node key="SQL_CONST_TYPE" value="STRING" />
-                            <node key="SQL_CONST_VALUE" loc="243..248" text="'top'" />
-                        </node>
-                        <node key="DASHQL_OPTION_TEXT" type="OBJECT_SQL_CONST" loc="487..492" text="'foo'">
-                            <node key="SQL_CONST_TYPE" value="STRING" />
-                            <node key="SQL_CONST_VALUE" loc="487..492" text="'foo'" />
-                        </node>
-                    </node>
-                    <node key="DASHQL_OPTION_TOOLTIP" type="OBJECT_DASHQL_OPTION_LIST" loc="807..1668" text="(&#10;        ..         )">
-                        <node key="DASHQL_OPTION_BODY" type="OBJECT_DASHQL_OPTION_LIST" loc="1296..1386" text="(&#10;        ..         )">
-                            <node key="DASHQL_OPTION_ALIGN" type="OBJECT_SQL_CONST" loc="1362..1368" text="'left'">
-                                <node key="SQL_CONST_TYPE" value="STRING" />
-                                <node key="SQL_CONST_VALUE" loc="1362..1368" text="'left'" />
-                            </node>
-                            <node key="DASHQL_OPTION_FONT_SIZE" type="OBJECT_SQL_CONST" loc="1330..1332" text="11">
-                                <node key="SQL_CONST_TYPE" value="INTEGER" />
-                                <node key="SQL_CONST_VALUE" loc="1330..1332" text="11" />
-                            </node>
-                        </node>
-                        <node key="DASHQL_OPTION_CARET_PADDING" type="OBJECT_SQL_CONST" loc="1586..1587" text="2">
-                            <node key="SQL_CONST_TYPE" value="INTEGER" />
-                            <node key="SQL_CONST_VALUE" loc="1586..1587" text="2" />
-                        </node>
-                        <node key="DASHQL_OPTION_CARET_SIZE" type="OBJECT_SQL_CONST" loc="1618..1619" text="5">
-                            <node key="SQL_CONST_TYPE" value="INTEGER" />
-                            <node key="SQL_CONST_VALUE" loc="1618..1619" text="5" />
-                        </node>
-                        <node key="DASHQL_OPTION_CORNER_RADIUS" type="OBJECT_SQL_CONST" loc="1653..1654" text="6">
-                            <node key="SQL_CONST_TYPE" value="INTEGER" />
-                            <node key="SQL_CONST_VALUE" loc="1653..1654" text="6" />
-                        </node>
-                        <node key="DASHQL_OPTION_ENABLED" />
-                        <node key="DASHQL_OPTION_FOOTER" type="OBJECT_DASHQL_OPTION_LIST" loc="1413..1503" text="(&#10;        ..         )">
-                            <node key="DASHQL_OPTION_ALIGN" type="OBJECT_SQL_CONST" loc="1479..1485" text="'left'">
-                                <node key="SQL_CONST_TYPE" value="STRING" />
-                                <node key="SQL_CONST_VALUE" loc="1479..1485" text="'left'" />
-                            </node>
-                            <node key="DASHQL_OPTION_FONT_SIZE" type="OBJECT_SQL_CONST" loc="1447..1449" text="11">
-                                <node key="SQL_CONST_TYPE" value="INTEGER" />
-                                <node key="SQL_CONST_VALUE" loc="1447..1449" text="11" />
-                            </node>
-                        </node>
-                        <node key="DASHQL_OPTION_INTERSECT" />
-                        <node key="DASHQL_OPTION_MODE" type="OBJECT_SQL_CONST" loc="864..873" text="'nearest'">
-                            <node key="SQL_CONST_TYPE" value="STRING" />
-                            <node key="SQL_CONST_VALUE" loc="864..873" text="'nearest'" />
-                        </node>
-                        <node key="DASHQL_OPTION_PADDING" type="OBJECT_DASHQL_OPTION_LIST" loc="1531..1552" text="(left = 2,..right = 4)">
-                            <node key="DASHQL_OPTION_LEFT" type="OBJECT_SQL_CONST" loc="1539..1540" text="2">
-                                <node key="SQL_CONST_TYPE" value="INTEGER" />
-                                <node key="SQL_CONST_VALUE" loc="1539..1540" text="2" />
-                            </node>
-                            <node key="DASHQL_OPTION_RIGHT" type="OBJECT_SQL_CONST" loc="1550..1551" text="4">
-                                <node key="SQL_CONST_TYPE" value="INTEGER" />
-                                <node key="SQL_CONST_VALUE" loc="1550..1551" text="4" />
-                            </node>
-                        </node>
-                        <node key="DASHQL_OPTION_POSITION" type="OBJECT_SQL_CONST" loc="936..945" text="'average'">
-                            <node key="SQL_CONST_TYPE" value="STRING" />
-                            <node key="SQL_CONST_VALUE" loc="936..945" text="'average'" />
-                        </node>
-                        <node key="DASHQL_OPTION_TITLE" type="OBJECT_DASHQL_OPTION_LIST" loc="971..1271" text="(&#10;        ..         )">
-                            <node key="DASHQL_OPTION_FONT_ALIGN" type="OBJECT_SQL_CONST" loc="1124..1130" text="'left'">
-                                <node key="SQL_CONST_TYPE" value="STRING" />
-                                <node key="SQL_CONST_VALUE" loc="1124..1130" text="'left'" />
-                            </node>
-                            <node key="DASHQL_OPTION_FONT_COLOR" type="OBJECT_SQL_CONST" loc="1083..1089" text="'#fff'">
-                                <node key="SQL_CONST_TYPE" value="STRING" />
-                                <node key="SQL_CONST_VALUE" loc="1083..1089" text="'#fff'" />
-                            </node>
-                            <node key="DASHQL_OPTION_FONT_FAMILY" type="OBJECT_SQL_CONST" loc="1166..1177" text="'Helvetica'">
-                                <node key="SQL_CONST_TYPE" value="STRING" />
-                                <node key="SQL_CONST_VALUE" loc="1166..1177" text="'Helvetica'" />
-                            </node>
-                            <node key="DASHQL_OPTION_FONT_SIZE" type="OBJECT_SQL_CONST" loc="1005..1007" text="12">
-                                <node key="SQL_CONST_TYPE" value="INTEGER" />
-                                <node key="SQL_CONST_VALUE" loc="1005..1007" text="12" />
-                            </node>
-                            <node key="DASHQL_OPTION_FONT_STYLE" type="OBJECT_SQL_CONST" loc="1042..1048" text="'bold'">
-                                <node key="SQL_CONST_TYPE" value="STRING" />
-                                <node key="SQL_CONST_VALUE" loc="1042..1048" text="'bold'" />
-                            </node>
-                            <node key="DASHQL_OPTION_MARGIN" type="OBJECT_DASHQL_OPTION_LIST" loc="1208..1220" text="(bottom = 6)">
-                                <node key="DASHQL_OPTION_BOTTOM" type="OBJECT_SQL_CONST" loc="1218..1219" text="6">
-                                    <node key="SQL_CONST_TYPE" value="INTEGER" />
-                                    <node key="SQL_CONST_VALUE" loc="1218..1219" text="6" />
-                                </node>
-                            </node>
-                            <node key="DASHQL_OPTION_SPACING" type="OBJECT_SQL_CONST" loc="1252..1253" text="2">
-                                <node key="SQL_CONST_TYPE" value="INTEGER" />
-                                <node key="SQL_CONST_VALUE" loc="1252..1253" text="2" />
-                            </node>
-                        </node>
-                    </node>
                 </node>
             </statement>
         </statements>
@@ -255,56 +40,8 @@
         <line_breaks>
             <line_break loc="0..1" text="&#10;" />
             <line_break loc="37..38" text="&#10;" />
-            <line_break loc="91..92" text="&#10;" />
-            <line_break loc="161..162" text="&#10;" />
-            <line_break loc="183..184" text="&#10;" />
-            <line_break loc="215..216" text="&#10;" />
-            <line_break loc="249..250" text="&#10;" />
-            <line_break loc="281..282" text="&#10;" />
-            <line_break loc="324..325" text="&#10;" />
-            <line_break loc="361..362" text="&#10;" />
-            <line_break loc="398..399" text="&#10;" />
-            <line_break loc="428..429" text="&#10;" />
-            <line_break loc="463..464" text="&#10;" />
-            <line_break loc="492..493" text="&#10;" />
-            <line_break loc="507..508" text="&#10;" />
-            <line_break loc="530..531" text="&#10;" />
-            <line_break loc="562..563" text="&#10;" />
-            <line_break loc="596..597" text="&#10;" />
-            <line_break loc="630..631" text="&#10;" />
-            <line_break loc="666..667" text="&#10;" />
-            <line_break loc="699..700" text="&#10;" />
-            <line_break loc="728..729" text="&#10;" />
-            <line_break loc="769..770" text="&#10;" />
-            <line_break loc="784..785" text="&#10;" />
-            <line_break loc="808..809" text="&#10;" />
-            <line_break loc="840..841" text="&#10;" />
-            <line_break loc="874..875" text="&#10;" />
-            <line_break loc="908..909" text="&#10;" />
-            <line_break loc="946..947" text="&#10;" />
-            <line_break loc="972..973" text="&#10;" />
-            <line_break loc="1008..1009" text="&#10;" />
-            <line_break loc="1049..1050" text="&#10;" />
-            <line_break loc="1090..1091" text="&#10;" />
-            <line_break loc="1131..1132" text="&#10;" />
-            <line_break loc="1178..1179" text="&#10;" />
-            <line_break loc="1221..1222" text="&#10;" />
-            <line_break loc="1253..1254" text="&#10;" />
-            <line_break loc="1272..1273" text="&#10;" />
-            <line_break loc="1297..1298" text="&#10;" />
-            <line_break loc="1333..1334" text="&#10;" />
-            <line_break loc="1368..1369" text="&#10;" />
-            <line_break loc="1387..1388" text="&#10;" />
-            <line_break loc="1414..1415" text="&#10;" />
-            <line_break loc="1450..1451" text="&#10;" />
-            <line_break loc="1485..1486" text="&#10;" />
-            <line_break loc="1504..1505" text="&#10;" />
-            <line_break loc="1553..1554" text="&#10;" />
-            <line_break loc="1588..1589" text="&#10;" />
-            <line_break loc="1620..1621" text="&#10;" />
-            <line_break loc="1654..1655" text="&#10;" />
-            <line_break loc="1668..1669" text="&#10;" />
-            <line_break loc="1678..1679" text="&#10;" />
+            <line_break loc="90..91" text="&#10;" />
+            <line_break loc="100..101" text="&#10;" />
         </line_breaks>
         <comments />
         <dependencies />

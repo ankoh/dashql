@@ -151,14 +151,14 @@ void GrammarTest::EncodeProgram(pugi::xml_node& root, const proto::syntax::Progr
                 }
                 default: {
                     auto node_type_id = static_cast<uint32_t>(target->node_type());
-                    if (node_type_id > static_cast<uint32_t>(sx::NodeType::OBJECT_MIN_)) {
+                    if (node_type_id > static_cast<uint32_t>(sx::NodeType::OBJECT_KEYS_)) {
                         n.append_attribute("type") = node_type_tt->names[static_cast<size_t>(target->node_type())];
                         EncodeLocation(n, target->location(), text);
                         auto begin = target->children_begin_or_value();
                         for (auto i = 0; i < target->children_count(); ++i) {
                             pending.push_back({n.append_child("node"), &nodes[begin + i]});
                         }
-                    } else if (node_type_id > static_cast<uint32_t>(sx::NodeType::ENUM_MIN_)) {
+                    } else if (node_type_id > static_cast<uint32_t>(sx::NodeType::ENUM_KEYS_)) {
                         n.append_attribute("value") = getEnumText(*target);
                     } else {
                         n.append_attribute("value") = target->children_begin_or_value();
