@@ -87,7 +87,7 @@ size_t ProgramMatcher::ComputeTreeSize(const sx::ProgramT& prog, size_t root, st
         // Discover children
         auto& node = prog.nodes[target];
         auto node_type = node.node_type();
-        if (node_type > sx::NodeType::OBJECT_MIN_ || node_type == sx::NodeType::ARRAY) {
+        if (node_type > sx::NodeType::OBJECT_KEYS_ || node_type == sx::NodeType::ARRAY) {
             auto children_begin = node.children_begin_or_value();
             auto children_count = node.children_count();
             auto children_end = children_begin + children_count;
@@ -180,8 +180,8 @@ ProgramMatcher::StatementSimilarity ProgramMatcher::ComputeSimilarity(const sx::
                 break;
             }
             default: {
-                assert(node_type > sx::NodeType::ENUM_MIN_);
-                if (node_type > sx::NodeType::OBJECT_MIN_) {
+                assert(node_type > sx::NodeType::ENUM_KEYS_);
+                if (node_type > sx::NodeType::OBJECT_KEYS_) {
                     // Is object?
                     // Attribute lists are sorted, so a simple merge is enough.
                     auto si = source.children_begin_or_value();
@@ -204,7 +204,7 @@ ProgramMatcher::StatementSimilarity ProgramMatcher::ComputeSimilarity(const sx::
                         }
                     }
 
-                } else if (node_type > sx::NodeType::ENUM_MIN_) {
+                } else if (node_type > sx::NodeType::ENUM_KEYS_) {
                     // Is enum?
                     // Match the value.
                     match = source.children_begin_or_value() == target.children_begin_or_value();
@@ -275,8 +275,8 @@ bool ProgramMatcher::CheckDeepEquality(const sx::StatementT& source, const sx::S
                 break;
             }
             default: {
-                assert(node_type > sx::NodeType::ENUM_MIN_);
-                if (node_type > sx::NodeType::OBJECT_MIN_) {
+                assert(node_type > sx::NodeType::ENUM_KEYS_);
+                if (node_type > sx::NodeType::OBJECT_KEYS_) {
                     // Is object?
                     // Attribute lists are sorted, so a simple merge is enough.
                     auto si = source.children_begin_or_value();
@@ -294,7 +294,7 @@ bool ProgramMatcher::CheckDeepEquality(const sx::StatementT& source, const sx::S
                         }
                     }
 
-                } else if (node_type > sx::NodeType::ENUM_MIN_) {
+                } else if (node_type > sx::NodeType::ENUM_KEYS_) {
                     // Is enum?
                     // Match the value.
                     eq = source.children_begin_or_value() == target.children_begin_or_value();
