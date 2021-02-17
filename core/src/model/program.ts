@@ -143,7 +143,7 @@ export class Node {
 
     /// Is an object?
     public isObject() {
-        return this._node.nodeType() >= sx.NodeType.OBJECT_MIN_;
+        return this._node.nodeType() >= sx.NodeType.OBJECT_KEYS_;
     }
     /// Get as boolean
     public getBool(): boolean | null {
@@ -331,7 +331,7 @@ export class Statement {
             visit(top, current, path);
 
             // Discover children
-            if (nodeType == sx.NodeType.ARRAY || nodeType > sx.NodeType.OBJECT_MIN_) {
+            if (nodeType == sx.NodeType.ARRAY || nodeType > sx.NodeType.OBJECT_KEYS_) {
                 const begin = node.childrenBeginOrValue();
                 const count = node.childrenCount();
                 const end = begin + count;
@@ -379,7 +379,7 @@ export class Statement {
             visited.set(top);
 
             // Discover children
-            if (nodeType == sx.NodeType.ARRAY || nodeType > sx.NodeType.OBJECT_MIN_) {
+            if (nodeType == sx.NodeType.ARRAY || nodeType > sx.NodeType.OBJECT_KEYS_) {
                 const begin = node.childrenBeginOrValue();
                 const count = node.childrenCount();
                 const end = begin + count;
