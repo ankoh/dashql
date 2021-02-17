@@ -13,6 +13,7 @@ using namespace dashql::test;
 DEFINE_string(source_dir, "", "Source directory");
 
 int main(int argc, char* argv[]) {
+    gflags::AllowCommandLineReparsing();
     gflags::SetUsageMessage("Usage: ./tester --source_dir <dir>");
     gflags::ParseCommandLineFlags(&argc, &argv, false);
 
