@@ -75,49 +75,4 @@ describe('Statement schema', () => {
             expect(url.matching).toEqual(schema.Matching.MISSING);
         }
     });
-
-    test('viz position short', () => {
-        const r = analyzerBindings.parseProgram(`
-            VIZ weather_avg USING LINE (
-                pos = (x = 1, y = 2, w = 4, h = 15)
-            )
-        `);
-        const p = r.buffer;
-        expect(p.errorsLength()).toEqual(0);
-        expect(p.statementsLength()).toEqual(1);
-        const stmt = r.getStatement(0);
-
-        let posX = schema.stringNode();
-        let posY = schema.stringNode();
-        let posW = schema.stringNode();
-        let posH = schema.stringNode();
-
-        stmt.matchSchema(schema.objectNode(sx.NodeType.OBJECT_DASHQL_VIZ, {
-            [Key.DASHQL_OPTION_POSITION]: schema.optionNode({
-                [Key.DASHQL_OPTION_X]: schema.objectNode(sx.NodeType.OBJECT_SQL_CONST, {
-                    [Key.SQL_CONST_VALUE]: posX,
-                }),
-                [Key.DASHQL_OPTION_Y]: schema.objectNode(sx.NodeType.OBJECT_SQL_CONST, {
-                    [Key.SQL_CONST_VALUE]: posY,
-                }),
-                [Key.DASHQL_OPTION_WICK_STROKE_WIDTH]: schema.objectNode(sx.NodeType.OBJECT_SQL_CONST, {
-                    [Key.SQL_CONST_VALUE]: posW,
-                }),
-                [Key.DASHQL_OPTION_HEIGHT]: schema.objectNode(sx.NodeType.OBJECT_SQL_CONST, {
-                    [Key.SQL_CONST_VALUE]: posH,
-                }),
-                [Key.DASHQL_OPTION_WIDTH]: schema.objectNode(sx.NodeType.OBJECT_SQL_CONST, {
-                    [Key.SQL_CONST_VALUE]: posW,
-                }),
-                [Key.DASHQL_OPTION_HEIGHT]: schema.objectNode(sx.NodeType.OBJECT_SQL_CONST, {
-                    [Key.SQL_CONST_VALUE]: posH,
-                }),
-            }),
-        }));
-
-        expect(posX.matching).toEqual(schema.Matching.MATCHED);
-        expect(posY.matching).toEqual(schema.Matching.MATCHED);
-        expect(posW.matching).toEqual(schema.Matching.MATCHED);
-        expect(posH.matching).toEqual(schema.Matching.MATCHED);
-    });
 });

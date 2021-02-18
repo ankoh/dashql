@@ -128,11 +128,11 @@ proto:
 
 # Build the wasm module with debug info
 .PHONY: wasm
-wasm:
+wasm_debinfo:
 	${EXEC_ENVIRONMENT} "./scripts/compile_wasm.sh RelWithDebInfo"
 
 # Build the wasm modules
-.PHONY: wasm_release
+.PHONY: wasm
 wasm_release:
 	${EXEC_ENVIRONMENT} "./scripts/compile_wasm.sh Release"
 

@@ -33,12 +33,12 @@ describe('Program editor', () => {
         ]);
         expect(n).not.toEqual(null);
         expect(n!.program.buffer.statementsLength()).toEqual(1);
-        const expected = "VIZ weather_avg USING LINE (\n    pos = (x = 1, y = 2, w = 3, h = 4)\n)";
+        const expected = "VIZ weather_avg USING LINE (\n    pos = (r = 1, c = 2, w = 3, h = 4)\n)";
         expect(n!.program.text).toEqual(expected);
     });
 
     test('update viz position', () => {
-        const p = az.parseProgram("VIZ weather_avg USING LINE (\n    pos = (x = 1, y = 2, w = 3, h = 4)\n)");
+        const p = az.parseProgram("VIZ weather_avg USING LINE (\n    pos = (r = 1, c = 2, w = 3, h = 4)\n)");
         const pi = az.instantiateProgram();
         expect(p.buffer.statementsLength()).toEqual(1);
         expect(pi).not.toEqual(null);
@@ -56,7 +56,7 @@ describe('Program editor', () => {
         ]);
         expect(n).not.toEqual(null);
         expect(n!.program.buffer.statementsLength()).toEqual(1);
-        const expected = "VIZ weather_avg USING LINE (\n    pos = (x = 10, y = 9, w = 8, h = 7)\n)";
+        const expected = "VIZ weather_avg USING LINE (\n    pos = (r = 10, c = 9, w = 8, h = 7)\n)";
         expect(n!.program.text).toEqual(expected);
     });
 });
