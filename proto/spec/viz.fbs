@@ -84,7 +84,36 @@ enum ColorScale: uint8 {
     BLUE = 7,
 }
 
+table AreaChartComponent {
+    animate: bool;
+}
+table BarChartComponent {}
+table BoxChartComponent {}
+table CandlestickChartComponent {}
+table ErrorBarChartComponent {}
+table HistogramChartComponent {}
+table LineChartComponent {}
+table PieChartComponent {}
+table ScatterChartComponent {}
+table StackChartComponent {}
+table VoronoiChartComponent {}
+
+union VizComponent {
+    AreaChartComponent,
+    BarChartComponent,
+    BoxChartComponent,
+    CandlestickChartComponent,
+    ErrorBarChartComponent,
+    HistogramChartComponent,
+    LineChartComponent,
+    PieChartComponent,
+    ScatterChartComponent,
+    StackChartComponent,
+    VoronoiChartComponent,
+}
+
 table VizSpec {
     statement_id: uint32;
     position: VizTile;
+    components: [VizComponent];
 }

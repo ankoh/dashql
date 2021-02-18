@@ -9,14 +9,13 @@
 #include "dashql/analyzer/parameter_value.h"
 #include "dashql/analyzer/program_editor.h"
 #include "dashql/analyzer/syntax_matcher.h"
+#include "dashql/analyzer/viz_statement.h"
 #include "dashql/common/substring_buffer.h"
 #include "dashql/parser/parser_driver.h"
 #include "dashql/proto_generated.h"
 #include "duckdb/main/client_context.hpp"
 
 using namespace dashql;
-namespace fb = flatbuffers;
-namespace sx = proto::syntax;
 
 namespace dashql {
 
@@ -210,29 +209,14 @@ void Analyzer::PropagateParameterValues(ProgramInstance& instance) {
 }
 
 /// Analyze the viz specs
-void Analyzer::AnalyzeVizSpecs(ProgramInstance& instance) {
+void Analyzer::AnalyzeVizStatements(ProgramInstance& instance) {
     auto& program = instance.program();
     for (auto& stmt: program.statements) {
-        // Not a vizualize statement? - Skip then
-        if (stmt->statement_type != proto::syntax::StatementType::VIZUALIZE)
+        auto viz = viz::VizStatement::ReadFrom(instance, *stmt);
+        if (!viz)
             continue;
 
-        auto root_id = stmt->root_node;
-        auto& root = program.nodes[root_id];
-
-        // Match the top level viz attributes
-
-        // clang-format off
-        auto schema = sxm::Element()
-            .MatchObject(sx::NodeType::OBJECT_DASHQL_VIZ)
-            .MatchChildren(NODE_MATCHERS(
-                sxm::Attribute(sx::AttributeKey::DASHQL_VIZ_TARGET, 0),
-                sxm::Attribute(sx::AttributeKey::DASHQL_VIZ_TYPE, 1),
-                sxm::Attribute(sx::AttributeKey::DASHQL_OPTION_AXES, 2),
-                sxm::Attribute(sx::AttributeKey::DASHQL_OPTION_X, 3),
-                sxm::Attribute(sx::AttributeKey::DASHQL_OPTION_Y, 4),
-            ));
-        // clang-format on
+        // XXX Pack as viz spec
     }
 }
 
