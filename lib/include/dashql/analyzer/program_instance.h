@@ -32,14 +32,6 @@ class ProgramInstance {
     friend class Analyzer;
 
    public:
-    /// A value associated with a node
-    struct NodeValue {
-        /// The node id
-        size_t node_id;
-        /// The value
-        std::optional<Value> value;
-    };
-
     /// An error associated with a node
     struct NodeError {
         /// The node id
@@ -56,7 +48,7 @@ class ProgramInstance {
     /// The parameter values
     std::vector<ParameterValue> parameter_values_;
     /// The evaluated nodes (if any)
-    SparseUnionFind<NodeValue> evaluated_nodes_;
+    SparseUnionFind<Value> evaluated_nodes_;
     /// The node errors
     std::vector<NodeError> node_errors_;
 
@@ -75,7 +67,7 @@ class ProgramInstance {
     auto& program() const { return *program_; }
     /// Get the parameter values
     auto& parameter_values() const { return parameter_values_; }
-    /// Get the evaluated node
+    /// Get the evaluate nodes
     auto& evaluated_nodes() const { return evaluated_nodes_; }
 
     /// Add a node error
@@ -85,6 +77,13 @@ class ProgramInstance {
     /// Get the text at a location
     std::string_view TextAt(sx::Location loc) const {
         return std::string_view{*program_text_}.substr(loc.offset(), loc.length());
+    }
+    /// Find an evaluated node value.
+    /// Note: This is deliberately NOT const since we do lazy path compression for union-find.
+    const Value* FindNodeValue(size_t node_id);
+    /// Find an evaluated node value
+    const Value* FindNodeValue(const sx::Node& node) {
+        return FindNodeValue(&node - program_->nodes.data());
     }
 
     /// Render the statement text

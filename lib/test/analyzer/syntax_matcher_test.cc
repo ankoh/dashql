@@ -6,6 +6,7 @@
 
 #include "dashql/parser/parser_driver.h"
 #include "dashql/parser/scanner.h"
+#include "dashql/proto_generated.h"
 #include "flatbuffers/flatbuffers.h"
 #include "gtest/gtest.h"
 
@@ -69,7 +70,7 @@ TEST(SyntaxMatcherTest, LoadStatement) {
 TEST(SyntaxMatcherTest, VizStatementPositionShort) {
     auto txt = R"CSV(
         VIZ weather_avg USING LINE (
-            pos = (x = 1, y = 2, w = 4, h = 15)
+            pos = (r = 1, c = 2, w = 4, h = 15)
         )
     )CSV";
     auto program = parser::ParserDriver::Parse(txt);
@@ -81,34 +82,46 @@ TEST(SyntaxMatcherTest, VizStatementPositionShort) {
     auto schema = sxm::Element()
         .MatchObject(sx::NodeType::OBJECT_DASHQL_VIZ)
         .MatchChildren(NODE_MATCHERS(
-            sxm::Attribute(sx::AttributeKey::DASHQL_OPTION_POSITION)
-                .MatchOptions()
+            sxm::Attribute(sx::AttributeKey::DASHQL_VIZ_COMPONENTS)
+                .MatchArray()
                 .MatchChildren(NODE_MATCHERS(
-                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_COLUMN, 0)
-                        .MatchObject(sx::NodeType::OBJECT_SQL_CONST),
-                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_HEIGHT, 1)
-                        .MatchObject(sx::NodeType::OBJECT_SQL_CONST),
-                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_ROW, 2)
-                        .MatchObject(sx::NodeType::OBJECT_SQL_CONST),
-                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_WIDTH, 3)
-                        .MatchObject(sx::NodeType::OBJECT_SQL_CONST),
-                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_X, 4)
-                        .MatchObject(sx::NodeType::OBJECT_SQL_CONST),
-                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_Y, 5)
-                        .MatchObject(sx::NodeType::OBJECT_SQL_CONST),
+                    sxm::Element()
+                        .MatchObject(sx::NodeType::OBJECT_DASHQL_VIZ_COMPONENT)
+                        .MatchChildren(NODE_MATCHERS(
+                            sxm::Attribute(sx::AttributeKey::DASHQL_VIZ_COMPONENT_TYPE)
+                                .MatchEnum(sx::NodeType::ENUM_DASHQL_VIZ_COMPONENT_TYPE),
+                            sxm::Attribute(sx::AttributeKey::DASHQL_OPTION_POSITION)
+                                .MatchOptions()
+                                .MatchChildren(NODE_MATCHERS(
+                                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_COLUMN, 0)
+                                        .MatchObject(sx::NodeType::OBJECT_SQL_CONST),
+                                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_HEIGHT, 1)
+                                        .MatchObject(sx::NodeType::OBJECT_SQL_CONST),
+                                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_ROW, 2)
+                                        .MatchObject(sx::NodeType::OBJECT_SQL_CONST),
+                                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_WIDTH, 3)
+                                        .MatchObject(sx::NodeType::OBJECT_SQL_CONST),
+                                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_X, 4)
+                                        .MatchObject(sx::NodeType::OBJECT_SQL_CONST),
+                                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_Y, 5)
+                                        .MatchObject(sx::NodeType::OBJECT_SQL_CONST),
+                                )),
+                        ))
                 )),
+            sxm::Attribute(sx::AttributeKey::DASHQL_VIZ_TARGET)
+                .MatchObject(sx::NodeType::OBJECT_SQL_TABLE_REF)
         ));
     // clang-format on
 
     std::array<NodeMatching, 8> matching;
     schema.Match(instance, stmt_root, matching);
 
-    EXPECT_EQ(matching[0].status, NodeMatchingStatus::MISSING);
+    EXPECT_EQ(matching[0].status, NodeMatchingStatus::MATCHED);
     EXPECT_EQ(matching[1].status, NodeMatchingStatus::MATCHED);
-    EXPECT_EQ(matching[2].status, NodeMatchingStatus::MISSING);
+    EXPECT_EQ(matching[2].status, NodeMatchingStatus::MATCHED);
     EXPECT_EQ(matching[3].status, NodeMatchingStatus::MATCHED);
-    EXPECT_EQ(matching[4].status, NodeMatchingStatus::MATCHED);
-    EXPECT_EQ(matching[5].status, NodeMatchingStatus::MATCHED);
+    EXPECT_EQ(matching[4].status, NodeMatchingStatus::MISSING);
+    EXPECT_EQ(matching[5].status, NodeMatchingStatus::MISSING);
 }
 
 TEST(SyntaxMatcherTest, LoadStatementFormat) {

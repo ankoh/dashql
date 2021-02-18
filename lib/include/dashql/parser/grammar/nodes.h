@@ -20,6 +20,10 @@ inline sx::Node String(sx::Location loc) { return sx::Node(loc, sx::NodeType::ST
 inline sx::Node UI32(sx::Location loc, uint32_t value) {
     return sx::Node(loc, sx::NodeType::UI32, Key::NONE, NO_PARENT, value, 0);
 }
+/// Create a ui32 bitmap node
+inline sx::Node UI32Bitmap(sx::Location loc, uint32_t value) {
+    return sx::Node(loc, sx::NodeType::UI32_BITMAP, Key::NONE, NO_PARENT, value, 0);
+}
 /// Create a bool node
 inline sx::Node Bool(sx::Location loc, bool v) {
     return sx::Node(loc, sx::NodeType::BOOL, Key::NONE, NO_PARENT, static_cast<uint32_t>(v), 0);

@@ -101,13 +101,17 @@
             </statement>
             <statement type="VIZUALIZE" name="global.weather_avg">
                 <node type="OBJECT_DASHQL_VIZ" loc="1015..1041" text="VIZ weathe..USING LINE">
+                    <node key="DASHQL_VIZ_COMPONENTS">
+                        <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="1037..1041" text="LINE">
+                            <node key="DASHQL_VIZ_COMPONENT_TYPE" value="LINE" />
+                        </node>
+                    </node>
                     <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLE_REF" loc="1019..1030" text="weather_avg">
                         <node key="SQL_TABLE_INHERIT" value="true" />
                         <node key="SQL_TABLE_NAME">
                             <node loc="1019..1030" text="weather_avg" />
                         </node>
                     </node>
-                    <node key="DASHQL_VIZ_TYPE" value="LINE" />
                 </node>
             </statement>
         </statements>

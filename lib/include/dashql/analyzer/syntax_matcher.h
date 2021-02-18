@@ -26,6 +26,7 @@ enum SyntaxMatcherType {
     OBJECT,
     STRING,
     UI32,
+    UI32_BITMAP,
 };
 
 /// A node matching status
@@ -59,6 +60,8 @@ struct NodeMatching {
         auto* v = std::get_if<uint32_t>(&data);
         return static_cast<T>(!!v ? *v : 0);
     }
+    /// Matched
+    operator bool() const { return status == NodeMatchingStatus::MATCHED; }
 };
 
 /// A syntax matcher
@@ -162,6 +165,12 @@ struct SyntaxMatcher {
     /// Create an integer
     constexpr inline SyntaxMatcher& MatchUI32() {
         node_spec = SyntaxMatcherType::UI32;
+        node_type = sx::NodeType::NONE;
+        return *this;
+    }
+    /// Create an integer bitmap
+    constexpr inline SyntaxMatcher& MatchUI32Bitmap() {
+        node_spec = SyntaxMatcherType::UI32_BITMAP;
         node_type = sx::NodeType::NONE;
         return *this;
     }

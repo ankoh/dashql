@@ -30,7 +30,7 @@
 <test name="dashql_viz_position_short">
     <input>
         VIZ weather_avg USING LINE (
-            pos = (x = 0, y = 0, w = 4, h = 15)
+            pos = (r = 0, c = 0, w = 4, h = 15)
         )
     </input>
 </test>

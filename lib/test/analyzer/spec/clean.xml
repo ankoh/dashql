@@ -41,7 +41,9 @@
             SELECT 1 INTO a;
         </text>
         <parameters />
-        <evaluations />
+        <evaluations>
+            <eval type="BIGINT" value="1" loc="20..21" text="1" />
+        </evaluations>
         <graph next_object_id="1">
             <setup />
             <program>
@@ -75,7 +77,7 @@
             <parameter statement="0" type="VARCHAR" value="DE" />
         </parameters>
         <evaluations>
-            <eval type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" loc="113..177" text="format('ht..l.country)" />
+            <eval type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" loc="120..160" text="'https://c..eather/{}'" />
         </evaluations>
         <graph next_object_id="3">
             <setup />
@@ -127,7 +129,7 @@
             <parameter statement="0" type="VARCHAR" value="DE" />
         </parameters>
         <evaluations>
-            <eval type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" loc="113..177" text="format('ht..l.country)" />
+            <eval type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" loc="120..160" text="'https://c..eather/{}'" />
         </evaluations>
         <graph next_object_id="3">
             <setup />
@@ -180,7 +182,7 @@
             <parameter statement="0" type="VARCHAR" value="DE" />
         </parameters>
         <evaluations>
-            <eval type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" loc="113..177" text="format('ht..l.country)" />
+            <eval type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" loc="120..160" text="'https://c..eather/{}'" />
         </evaluations>
         <graph next_object_id="4">
             <setup />
@@ -245,7 +247,7 @@
             <parameter statement="0" type="VARCHAR" value="DE" />
         </parameters>
         <evaluations>
-            <eval type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" loc="113..177" text="format('ht..l.country)" />
+            <eval type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" loc="120..160" text="'https://c..eather/{}'" />
         </evaluations>
         <graph next_object_id="6">
             <setup />
@@ -327,7 +329,7 @@
             <parameter statement="0" type="VARCHAR" value="DE" />
         </parameters>
         <evaluations>
-            <eval type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" loc="113..177" text="format('ht..l.country)" />
+            <eval type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" loc="120..160" text="'https://c..eather/{}'" />
         </evaluations>
         <graph next_object_id="7">
             <setup />
@@ -421,7 +423,7 @@
             <parameter statement="1" type="BIGINT" value="5" />
         </parameters>
         <evaluations>
-            <eval type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" loc="163..227" text="format('ht..l.country)" />
+            <eval type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" loc="170..210" text="'https://c..eather/{}'" />
             <eval type="BIGINT" value="5" loc="446..458" text="global.month" />
             <eval type="BIGINT" value="5" loc="364..376" text="global.month" />
         </evaluations>
@@ -523,7 +525,7 @@
             <parameter statement="1" type="VARCHAR" value="MUC" />
         </parameters>
         <evaluations>
-            <eval type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" loc="159..223" text="format('ht..l.country)" />
+            <eval type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" loc="166..206" text="'https://c..eather/{}'" />
             <eval type="VARCHAR" value="MUC" loc="359..370" text="global.city" />
         </evaluations>
         <graph next_object_id="5">
@@ -603,8 +605,8 @@
             <parameter statement="2" type="BIGINT" value="5" />
         </parameters>
         <evaluations>
-            <eval type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/US'" loc="376..441" text="format('ht...country2)" />
-            <eval type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" loc="223..288" text="format('ht...country1)" />
+            <eval type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/US'" loc="383..423" text="'https://c..eather/{}'" />
+            <eval type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" loc="230..270" text="'https://c..eather/{}'" />
             <eval type="BIGINT" value="5" loc="735..747" text="global.month" />
         </evaluations>
         <graph next_object_id="9">
@@ -702,7 +704,10 @@
             VIZ foo USING TABLE;
         </text>
         <parameters />
-        <evaluations />
+        <evaluations>
+            <eval type="BIGINT" value="100" loc="75..78" text="100" />
+            <eval type="BIGINT" value="0" loc="72..73" text="0" />
+        </evaluations>
         <graph next_object_id="2">
             <setup />
             <program>

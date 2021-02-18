@@ -48,11 +48,13 @@ class Analyzer {
     std::unique_ptr<proto::action::ActionGraphT> planned_graph_;
 
     /// Evaluate the constant
-    std::optional<Value> TryEvaluateConstant(ProgramInstance& instance, size_t node_id) const;
+    const Value* TryEvaluateConstant(ProgramInstance& instance, size_t node_id) const;
+    /// Evaluate constants
+    const Value* TryEvaluateFunctionCall(ProgramInstance& instance, size_t node_id) const;
     /// Evaluate the given parameter values
     void EvaluateParameterValues(ProgramInstance& instance);
-    /// Propagate the given parameter values
-    void PropagateParameterValues(ProgramInstance& instance);
+    /// Evaluate constants
+    void EvaluateConstants(ProgramInstance& instance);
     /// Analyze the viz statements
     void AnalyzeVizStatements(ProgramInstance& instance);
 

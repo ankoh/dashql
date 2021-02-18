@@ -5,6 +5,7 @@
 
 #include <iostream>
 #include <optional>
+#include <ostream>
 #include <sstream>
 #include <unordered_map>
 #include <variant>
@@ -17,7 +18,8 @@
 namespace dashql {
 namespace viz {
 
-struct VizComponent;
+class VizComponent;
+class VizAttributePrinter;
 
 class VizStatement {
    protected:
@@ -48,29 +50,28 @@ class VizStatement {
 class VizComponent {
    protected:
     /// The position
-    std::optional<dashql::proto::viz::VizTile> position_ = std::nullopt;
+    std::optional<dashql::proto::viz::VizTile> position = std::nullopt;
 
    public:
-    /// Constructor
-    VizComponent();
     /// Virtual destructor
     virtual ~VizComponent() = default;
 
     /// Set the position
-    void SetPosition(dashql::proto::viz::VizTile tile) { position_ = tile; }
+    void SetPosition(dashql::proto::viz::VizTile tile) { position = tile; }
     /// Clear the position (if any)
-    void ClearPosition() { position_.reset(); }
+    void ClearPosition() { position.reset(); }
+    /// Read attributes of the viz component
+    void ReadAttributes(const ProgramInstance& instance, const sx::Node& node);
+    /// Print common attributes
+    void PrintAttributes(VizAttributePrinter& out) const;
 
-    /// Read attributes from a node span
-    virtual void ReadAttributes(const ProgramInstance& instance, const sx::Node& node) = 0;
     /// Print as script
     virtual void PrintScript(std::ostream& out) const = 0;
-
     /// Read component from a node
     static std::unique_ptr<VizComponent> ReadFrom(const ProgramInstance& instance, const sx::Node& node);
 };
 
-class TableChartComponent : public VizComponent {
+struct TableChartComponent : public VizComponent {
     /// Print as script
     void PrintScript(std::ostream& out) const override;
     /// Read attributes
@@ -78,15 +79,19 @@ class TableChartComponent : public VizComponent {
 };
 
 /// A line chart component
-class LineChartComponent : public VizComponent {
+struct LineChartComponent : public VizComponent {
+    /// Is stacked?
+    bool stacked = false;
+
     /// Print as script
     void PrintScript(std::ostream& out) const override;
     /// Read attributes
     static std::unique_ptr<VizComponent> ReadFrom(const ProgramInstance& instance, const sx::Node& node);
 };
+
 
 /// A scatter chart component
-class ScatterChartComponent : public VizComponent {
+struct ScatterChartComponent : public VizComponent {
     /// Print as script
     void PrintScript(std::ostream& out) const override;
     /// Read attributes
@@ -94,7 +99,21 @@ class ScatterChartComponent : public VizComponent {
 };
 
 /// A line chart component
-class AreaChartComponent : public VizComponent {
+struct AreaChartComponent : public VizComponent {
+    /// Is stacked?
+    bool stacked = false;
+
+    /// Print as script
+    void PrintScript(std::ostream& out) const override;
+    /// Read attributes
+    static std::unique_ptr<VizComponent> ReadFrom(const ProgramInstance& instance, const sx::Node& node);
+};
+
+/// A line chart component
+struct AxisComponent : public VizComponent {
+    /// Is dependant axis?
+    bool dependant = false;
+
     /// Print as script
     void PrintScript(std::ostream& out) const override;
     /// Read attributes

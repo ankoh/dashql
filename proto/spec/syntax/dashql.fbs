@@ -25,11 +25,14 @@ enum ExtractMethodType: uint8 {
     JSON = 2
 }
 
-enum VizComponentTypeSpecifier: uint8 {
-    NONE = 0,
-    STACKED,
-    DEPENDENT,
-    INDEPENDENT,
+enum VizComponentTypeModifier: uint32 {
+    NONE            = 0,
+    STACKED         = 1,
+    DEPENDENT       = 2,
+    INDEPENDENT     = 4,
+    POLAR           = 8,
+    X               = 16,
+    Y               = 32
 }
 
 enum VizComponentType: uint8 {
@@ -38,16 +41,14 @@ enum VizComponentType: uint8 {
     AXIS,
     BAR,
     BOX,
-    BUBBLE,
-    GRID,
+    CANDLESTICK,
+    ERROR,
     HISTOGRAM,
     LINE,
     NUMBER,
     PIE,
-    POINT,
     SCATTER,
     TABLE,
     TEXT,
-    XAXIS,
-    YAXIS,
+    VORONOI,
 }
