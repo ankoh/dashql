@@ -6,6 +6,7 @@
 #include <charconv>
 
 #include "dashql/parser/parser_driver.h"
+#include "dashql/proto_generated.h"
 
 namespace dashql {
 namespace parser {
@@ -30,7 +31,8 @@ X(sx::OrderDirection, sx::NodeType::ENUM_SQL_ORDER_DIRECTION)
 X(sx::OrderNullRule, sx::NodeType::ENUM_SQL_ORDER_NULL_RULE)
 X(sx::ParameterType, sx::NodeType::ENUM_DASHQL_PARAMETER_TYPE)
 X(sx::TempType, sx::NodeType::ENUM_SQL_TEMP_TYPE)
-X(sx::VizType, sx::NodeType::ENUM_DASHQL_VIZ_TYPE)
+X(sx::VizComponentType, sx::NodeType::ENUM_DASHQL_VIZ_COMPONENT_TYPE)
+X(sx::VizComponentTypeSpecifier, sx::NodeType::ENUM_DASHQL_VIZ_COMPONENT_TYPE_SPECIFIER)
 X(sx::WindowBoundDirection, sx::NodeType::ENUM_SQL_WINDOW_BOUND_DIRECTION)
 X(sx::WindowBoundMode, sx::NodeType::ENUM_SQL_WINDOW_BOUND_MODE)
 X(sx::WindowExclusionMode, sx::NodeType::ENUM_SQL_WINDOW_EXCLUSION_MODE)

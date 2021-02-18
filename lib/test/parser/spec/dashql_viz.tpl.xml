@@ -1,7 +1,11 @@
-<test name="dashql_viz_line_full">
+<test name="dashql_viz_full">
     <input>
-        VIZ weather_avg USING LINE (
-            position = (x = 0, y = 0, w = 4, h = 15)
-        )
+        VISUALIZE weather_avg USING STACKED BAR (
+            position = (r = 0, c = 0, w = 4, h = 15)
+        ), LINE (
+        ), SCATTER (
+        ), XAXIS (
+        ), YAXIS (
+        );
     </input>
 </test>

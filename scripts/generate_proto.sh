@@ -21,13 +21,13 @@ OUT_DIR_JS="${PROJECT_ROOT}/proto/gen"
 
 mkdir -p ${OUT_DIR_RS} ${OUT_DIR_CPP} ${OUT_DIR_JS}
 
-${FLATC} -I ${SPEC_DIR} -o ${OUT_DIR_RS} ${SPEC_INDEX} --rust \
-        --gen-all \
-        --reflect-types --reflect-names \
-        --gen-object-api --gen-name-strings --gen-compare \
-        --gen-mutable \
-    && { echo "[ OK  ] Generate Rust Library"; } \
-    || { echo "[ ERR ] Generate Rust Library"; exit 1; }
+# ${FLATC} -I ${SPEC_DIR} -o ${OUT_DIR_RS} ${SPEC_INDEX} --rust \
+#         --gen-all \
+#         --reflect-types --reflect-names \
+#         --gen-object-api --gen-name-strings --gen-compare \
+#         --gen-mutable \
+#     && { echo "[ OK  ] Generate Rust Library"; } \
+#     || { echo "[ ERR ] Generate Rust Library"; exit 1; }
 
 ${FLATC} -I ${SPEC_DIR} -o ${OUT_DIR_CPP} ${SPEC_INDEX} --cpp \
         --gen-all \

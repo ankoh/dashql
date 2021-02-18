@@ -207,6 +207,7 @@ add_custom_command(
 
     VERBATIM
     DEPENDS
+        ${GRAMMAR_KEYWORDS}
         ${GRAMMAR_PROLOGUE}
         ${GRAMMAR_PRECEDENCES}
         ${GRAMMAR_TYPES}
@@ -282,6 +283,7 @@ add_library(dashql_analyzer
     ${CMAKE_SOURCE_DIR}/src/analyzer/program_instance.cc
     ${CMAKE_SOURCE_DIR}/src/analyzer/program_matcher.cc
     ${CMAKE_SOURCE_DIR}/src/analyzer/syntax_matcher.cc
+    ${CMAKE_SOURCE_DIR}/src/analyzer/viz_statement.cc
     ${CMAKE_SOURCE_DIR}/src/analyzer/value.cc
 )
 

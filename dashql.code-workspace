@@ -5,6 +5,10 @@
             "path": "lib"
         },
         {
+            "name": "proto",
+            "path": "proto"
+        },
+        {
             "name": "webdb",
             "path": "webdb"
         },
