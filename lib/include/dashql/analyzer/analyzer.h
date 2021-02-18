@@ -28,8 +28,6 @@ using Plan = proto::analyzer::Plan;
 using Program = proto::syntax::Program;
 using RawBuffer = dashql::RawBuffer;
 
-namespace fb = flatbuffers;
-
 class Analyzer {
    protected:
     /// The volatile program text (if any)
@@ -55,8 +53,8 @@ class Analyzer {
     void EvaluateParameterValues(ProgramInstance& instance);
     /// Propagate the given parameter values
     void PropagateParameterValues(ProgramInstance& instance);
-    /// Analyze the viz specs
-    void AnalyzeVizSpecs(ProgramInstance& instance);
+    /// Analyze the viz statements
+    void AnalyzeVizStatements(ProgramInstance& instance);
 
    public:
     /// Constructor

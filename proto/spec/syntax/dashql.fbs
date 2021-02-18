@@ -25,19 +25,29 @@ enum ExtractMethodType: uint8 {
     JSON = 2
 }
 
-enum VizType: uint8 {
+enum VizComponentTypeSpecifier: uint8 {
     NONE = 0,
-    AREA = 1,
-    BAR = 2,
-    BOX = 3,
-    BUBBLE = 4,
-    GRID = 5,
-    HISTOGRAM = 6,
-    LINE = 7,
-    NUMBER = 8,
-    PIE = 9,
-    POINT = 10,
-    SCATTER = 11,
-    TABLE = 12,
-    TEXT = 13,
+    STACKED,
+    DEPENDENT,
+    INDEPENDENT,
+}
+
+enum VizComponentType: uint8 {
+    NONE = 0,
+    AREA,
+    AXIS,
+    BAR,
+    BOX,
+    BUBBLE,
+    GRID,
+    HISTOGRAM,
+    LINE,
+    NUMBER,
+    PIE,
+    POINT,
+    SCATTER,
+    TABLE,
+    TEXT,
+    XAXIS,
+    YAXIS,
 }
