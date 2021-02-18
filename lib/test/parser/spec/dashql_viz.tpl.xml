@@ -4,8 +4,8 @@
             position = (r = 0, c = 0, w = 4, h = 15)
         ), LINE (
         ), SCATTER (
-        ), XAXIS (
-        ), YAXIS (
+        ), X AXIS (
+        ), Y AXIS (
         );
     </input>
 </test>
