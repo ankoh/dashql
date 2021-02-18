@@ -11,8 +11,6 @@
     <expected>
         <statements />
         <errors>
-            <error message="unknown option key: r" loc="75..80" text="r = 0" />
-            <error message="unknown option key: c" loc="82..87" text="c = 0" />
             <error message="syntax error, unexpected ')'" loc="130..131" text=")" />
         </errors>
         <line_breaks>
