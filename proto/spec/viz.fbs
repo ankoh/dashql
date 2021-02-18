@@ -87,6 +87,7 @@ enum ColorScale: uint8 {
 table AreaChartComponent {
     animate: bool;
 }
+table AxisComponent {}
 table BarChartComponent {}
 table BoxChartComponent {}
 table CandlestickChartComponent {}
@@ -104,6 +105,7 @@ table TableComponent {
 
 union VizComponentVariant {
     AreaChartComponent,
+    AxisComponent,
     BarChartComponent,
     BoxChartComponent,
     CandlestickChartComponent,

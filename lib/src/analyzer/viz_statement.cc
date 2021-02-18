@@ -14,6 +14,7 @@ namespace dashql {
 namespace viz {
 
 namespace sx = proto::syntax;
+namespace fb = flatbuffers;
 
 class VizAttributePrinter {
    protected:
@@ -200,8 +201,12 @@ void TableChartComponent::PrintScript(std::ostream& out) const {
 }
 
 /// Pack flatbuffer
-void TableChartComponent::Pack(flatbuffers::FlatBufferBuilder& builder, flatbuffers::Offset<void>& value,
-                               uint8_t& type) const {}
+std::pair<flatbuffers::Offset<void>, proto::viz::VizComponentVariant> TableChartComponent::Pack(
+    fb::FlatBufferBuilder& builder) const {
+    const proto::viz::VizPosition* pos = nullptr;
+    if (position) pos = &position.value();
+    return {proto::viz::CreateTableComponent(builder, pos).Union(), proto::viz::VizComponentVariant::TableComponent};
+}
 
 /// Read component
 std::unique_ptr<VizComponent> LineChartComponent::ReadFrom(const ProgramInstance& instance, const sx::Node& node) {
@@ -235,8 +240,10 @@ void LineChartComponent::PrintScript(std::ostream& out) const {
 }
 
 /// Pack flatbuffer
-void LineChartComponent::Pack(flatbuffers::FlatBufferBuilder& builder, flatbuffers::Offset<void>& value,
-                              uint8_t& type) const {}
+std::pair<flatbuffers::Offset<void>, proto::viz::VizComponentVariant> LineChartComponent::Pack(
+    fb::FlatBufferBuilder& builder) const {
+    return {proto::viz::CreateLineChartComponent(builder).Union(), proto::viz::VizComponentVariant::LineChartComponent};
+}
 
 /// Read component
 std::unique_ptr<VizComponent> ScatterChartComponent::ReadFrom(const ProgramInstance& instance, const sx::Node& node) {
@@ -253,8 +260,10 @@ std::unique_ptr<VizComponent> ScatterChartComponent::ReadFrom(const ProgramInsta
 void ScatterChartComponent::PrintScript(std::ostream& out) const { out << "SCATTER"; }
 
 /// Pack flatbuffer
-void ScatterChartComponent::Pack(flatbuffers::FlatBufferBuilder& builder, flatbuffers::Offset<void>& value,
-                                 uint8_t& type) const {}
+std::pair<flatbuffers::Offset<void>, proto::viz::VizComponentVariant> ScatterChartComponent::Pack(
+    fb::FlatBufferBuilder& builder) const {
+    return {proto::viz::CreateScatterChartComponent(builder).Union(), proto::viz::VizComponentVariant::ScatterChartComponent};
+}
 
 /// Read component
 std::unique_ptr<VizComponent> AreaChartComponent::ReadFrom(const ProgramInstance& instance, const sx::Node& node) {
@@ -274,8 +283,10 @@ std::unique_ptr<VizComponent> AreaChartComponent::ReadFrom(const ProgramInstance
 void AreaChartComponent::PrintScript(std::ostream& out) const { out << "AREA"; }
 
 /// Pack flatbuffer
-void AreaChartComponent::Pack(flatbuffers::FlatBufferBuilder& builder, flatbuffers::Offset<void>& value,
-                              uint8_t& type) const {}
+std::pair<flatbuffers::Offset<void>, proto::viz::VizComponentVariant> AreaChartComponent::Pack(
+    fb::FlatBufferBuilder& builder) const {
+    return {proto::viz::CreateAreaChartComponent(builder).Union(), proto::viz::VizComponentVariant::AreaChartComponent};
+}
 
 /// Read component
 std::unique_ptr<VizComponent> AxisComponent::ReadFrom(const ProgramInstance& instance, const sx::Node& node) {
@@ -305,8 +316,10 @@ std::unique_ptr<VizComponent> AxisComponent::ReadFrom(const ProgramInstance& ins
 void AxisComponent::PrintScript(std::ostream& out) const { out << "AREA"; }
 
 /// Pack flatbuffer
-void AxisComponent::Pack(flatbuffers::FlatBufferBuilder& builder, flatbuffers::Offset<void>& value,
-                         uint8_t& type) const {}
+std::pair<flatbuffers::Offset<void>, proto::viz::VizComponentVariant> AxisComponent::Pack(
+    fb::FlatBufferBuilder& builder) const {
+    return {proto::viz::CreateAxisComponent(builder).Union(), proto::viz::VizComponentVariant::AxisComponent};
+}
 
 }  // namespace viz
 }  // namespace dashql
