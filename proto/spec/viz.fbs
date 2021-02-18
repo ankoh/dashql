@@ -2,7 +2,7 @@
 
 namespace dashql.proto.viz;
 
-struct VizTile {
+struct VizPosition {
     row: uint32;
     column: uint32;
     width: uint32;
@@ -98,7 +98,11 @@ table ScatterChartComponent {}
 table StackChartComponent {}
 table VoronoiChartComponent {}
 
-union VizComponent {
+table TableComponent {
+    position: VizPosition;
+}
+
+union VizComponentVariant {
     AreaChartComponent,
     BarChartComponent,
     BoxChartComponent,
@@ -109,11 +113,16 @@ union VizComponent {
     PieChartComponent,
     ScatterChartComponent,
     StackChartComponent,
+    TableComponent,
     VoronoiChartComponent,
+}
+
+table VizComponent {
+
 }
 
 table VizSpec {
     statement_id: uint32;
-    position: VizTile;
+    position: VizPosition;
     components: [VizComponent];
 }
