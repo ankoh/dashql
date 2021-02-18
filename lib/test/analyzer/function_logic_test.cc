@@ -14,7 +14,8 @@ using namespace webdb;
 namespace {
 
 TEST(FormatTest, Empty) {
-    std::array<Value, 1> args{Value::VARCHAR(Ref, "foo")};
+    auto arg = Value::VARCHAR(Ref, "foo");
+    std::array<const Value*, 1> args{&arg};
     auto fmt = FunctionLogic::Resolve("format", args);
     auto res = fmt->Evaluate(args);
     ASSERT_TRUE(res.IsOk());
@@ -22,10 +23,9 @@ TEST(FormatTest, Empty) {
 }
 
 TEST(FormatTest, IntegerParameter) {
-    std::array<Value, 2> args{
-        Value::VARCHAR(Ref, "foo {}"),
-        Value::BIGINT(static_cast<int64_t>(1)),
-    };
+    auto arg1 = Value::VARCHAR(Ref, "foo {}");
+    auto arg2 = Value::BIGINT(static_cast<int64_t>(1));
+    std::array<const Value*, 2> args{&arg1, &arg2};
     auto fmt = FunctionLogic::Resolve("format", args);
     auto res = fmt->Evaluate(args);
     ASSERT_TRUE(res.IsOk());
@@ -33,10 +33,13 @@ TEST(FormatTest, IntegerParameter) {
 }
 
 TEST(FormatTest, StringParameter) {
-    std::array<Value, 3> args{
-        Value::VARCHAR(Ref, "foo {} {}"),
-        Value::BIGINT(static_cast<int64_t>(1)),
-        Value::VARCHAR(Ref, "'bar'"),
+    auto arg1 = Value::VARCHAR(Ref, "foo {} {}");
+    auto arg2 = Value::BIGINT(static_cast<int64_t>(1));
+    auto arg3 = Value::VARCHAR(Ref, "'bar'");
+    std::array<const Value*, 3> args{
+        &arg1,
+        &arg2,
+        &arg3
     };
     auto fmt = FunctionLogic::Resolve("format", args);
     auto res = fmt->Evaluate(args);

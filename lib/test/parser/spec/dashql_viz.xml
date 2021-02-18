@@ -1,47 +1,25 @@
-<test name="dashql_viz_line_full">
+<test name="dashql_viz_full">
     <input>
-        VIZ weather_avg USING LINE (
-            position = (x = 0, y = 0, w = 4, h = 15)
-        )
+        VISUALIZE weather_avg USING STACKED BAR (
+            position = (r = 0, c = 0, w = 4, h = 15)
+        ), LINE (
+        ), SCATTER (
+        ), XAXIS (
+        ), YAXIS (
+        );
     </input>
     <expected>
-        <statements>
-            <statement type="VIZUALIZE">
-                <node type="OBJECT_DASHQL_VIZ" loc="9..100" text="VIZ weathe..&#10;        )">
-                    <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLE_REF" loc="13..24" text="weather_avg">
-                        <node key="SQL_TABLE_INHERIT" value="true" />
-                        <node key="SQL_TABLE_NAME">
-                            <node loc="13..24" text="weather_avg" />
-                        </node>
-                    </node>
-                    <node key="DASHQL_VIZ_TYPE" value="LINE" />
-                    <node key="DASHQL_OPTION_POSITION" type="OBJECT_DASHQL_OPTION_LIST" loc="61..90" text="(x = 0, y ..4, h = 15)">
-                        <node key="DASHQL_OPTION_HEIGHT" type="OBJECT_SQL_CONST" loc="87..89" text="15">
-                            <node key="SQL_CONST_TYPE" value="INTEGER" />
-                            <node key="SQL_CONST_VALUE" loc="87..89" text="15" />
-                        </node>
-                        <node key="DASHQL_OPTION_WIDTH" type="OBJECT_SQL_CONST" loc="80..81" text="4">
-                            <node key="SQL_CONST_TYPE" value="INTEGER" />
-                            <node key="SQL_CONST_VALUE" loc="80..81" text="4" />
-                        </node>
-                        <node key="DASHQL_OPTION_X" type="OBJECT_SQL_CONST" loc="66..67" text="0">
-                            <node key="SQL_CONST_TYPE" value="INTEGER" />
-                            <node key="SQL_CONST_VALUE" loc="66..67" text="0" />
-                        </node>
-                        <node key="DASHQL_OPTION_Y" type="OBJECT_SQL_CONST" loc="73..74" text="0">
-                            <node key="SQL_CONST_TYPE" value="INTEGER" />
-                            <node key="SQL_CONST_VALUE" loc="73..74" text="0" />
-                        </node>
-                    </node>
-                </node>
-            </statement>
-        </statements>
-        <errors />
+        <statements />
+        <errors>
+            <error message="unknown option key: r" loc="75..80" text="r = 0" />
+            <error message="unknown option key: c" loc="82..87" text="c = 0" />
+            <error message="syntax error, unexpected ')'" loc="130..131" text=")" />
+        </errors>
         <line_breaks>
             <line_break loc="0..1" text="&#10;" />
-            <line_break loc="37..38" text="&#10;" />
-            <line_break loc="90..91" text="&#10;" />
-            <line_break loc="100..101" text="&#10;" />
+            <line_break loc="50..51" text="&#10;" />
+            <line_break loc="103..104" text="&#10;" />
+            <line_break loc="121..122" text="&#10;" />
         </line_breaks>
         <comments />
         <dependencies />

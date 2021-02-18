@@ -106,6 +106,10 @@ bool SyntaxMatcher::Match(const ProgramInstance& program, const sx::Node& root, 
                 matching.status = NodeMatchingStatus::MATCHED;
                 matching.data = top.node.children_begin_or_value();
                 break;
+            case SyntaxMatcherType::UI32_BITMAP:
+                matching.status = NodeMatchingStatus::MATCHED;
+                matching.data = top.node.children_begin_or_value();
+                break;
             case SyntaxMatcherType::STRING:
                 if (top.node.node_type() == sx::NodeType::STRING_REF) {
                     matching.status = NodeMatchingStatus::MATCHED;

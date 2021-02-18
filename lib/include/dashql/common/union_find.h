@@ -60,7 +60,8 @@ template <typename T> class SparseUnionFind {
     Entry* FindEntry(size_t id) {
         auto origin = entries_.find(id);
         if (origin == entries_.end()) return nullptr;
-        std::vector<Entry*> path{&origin->second};
+        std::vector<Entry*> path;
+        path.push_back(&origin->second);
 
         // Find the root of the set
         auto root_id = id;
@@ -83,13 +84,14 @@ template <typename T> class SparseUnionFind {
     SparseUnionFind(size_t capacity) : entries_() { entries_.reserve(capacity); }
 
     /// Insert a value
-    void Insert(size_t id, T value) {
+    const T* Insert(size_t id, T value) {
         assert(!entries_.count(id));
-        entries_.insert(std::make_pair(id, Entry(id, 0, std::move(value))));
+        auto [iter, ok] = entries_.insert(std::make_pair(id, Entry(id, 0, std::move(value))));
+        return &iter->second.value;
     }
 
     /// Find a value
-    T* Find(size_t id) {
+    const T* Find(size_t id) {
         auto* entry = FindEntry(id);
         return !!entry ? &entry->value : nullptr;
     }
@@ -113,22 +115,25 @@ template <typename T> class SparseUnionFind {
     }
 
     /// Merge two sets and set the value of the sets
-    void Merge(size_t i, size_t j, T value) {
-        auto root = Merge(i, j);
+    const T* Merge(size_t i, size_t j, T value) {
+        auto* root = Merge(i, j);
         root->value = std::move(value);
+        return &root->value;
     }
 
     /// Merge multiple nodes and set the value of the result
-    void Merge(size_t origin, nonstd::span<size_t> nodes, T value) {
+    const T* Merge(size_t origin, nonstd::span<size_t> nodes, T value) {
         if (nodes.empty()) {
-            FindEntry(origin)->value = std::move(value);
-            return;
+            auto* entry = FindEntry(origin);
+            entry->value = std::move(value);
+            return &entry->value;
         }
         Entry* e;
         for (auto n : nodes) {
             e = Merge(origin, n);
         }
         e->value = std::move(value);
+        return &e->value;
     }
 
     /// Helper to iterate all values

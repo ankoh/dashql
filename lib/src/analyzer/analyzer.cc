@@ -3,6 +3,7 @@
 #include "dashql/analyzer/analyzer.h"
 
 #include <iomanip>
+#include <optional>
 
 #include "dashql/analyzer/action_planner.h"
 #include "dashql/analyzer/function_logic.h"
@@ -37,11 +38,10 @@ Analyzer& Analyzer::GetInstance() {
 void Analyzer::ResetInstance() { analyzer_instance.reset(); }
 
 /// Evaluate a constant node value
-std::optional<Value> Analyzer::TryEvaluateConstant(ProgramInstance& instance, size_t node_id) const {
+const Value* Analyzer::TryEvaluateConstant(ProgramInstance& instance, size_t node_id) const {
     // Already evaluated?
-    if (auto eval = instance.evaluated_nodes_.Find(node_id); !!eval) {
-        auto& [node_id, value] = *eval;
-        return value ? std::optional<Value>{value->CopyDeep()} : std::nullopt;
+    if (auto* eval = instance.evaluated_nodes_.Find(node_id); !!eval) {
+        return eval;
     }
     auto& node = instance.program().nodes[node_id];
 
@@ -75,10 +75,64 @@ std::optional<Value> Analyzer::TryEvaluateConstant(ProgramInstance& instance, si
             default:
                 break;
         }
-        instance.evaluated_nodes_.Insert(node_id, {node_id, v.CopyDeep()});
-        return v;
+        return instance.evaluated_nodes_.Insert(node_id, std::move(v));
     }
-    return std::nullopt;
+    return nullptr;
+}
+
+/// Evaluate a function call
+const Value* Analyzer::TryEvaluateFunctionCall(ProgramInstance& instance, size_t node_id) const {
+    // clang-format off
+    auto schema = sxm::Element()
+        .MatchObject(sx::NodeType::OBJECT_DASHQL_FUNCTION_CALL)
+        .MatchChildren(NODE_MATCHERS(
+            sxm::Attribute(sx::AttributeKey::SQL_FUNCTION_ARGUMENTS, 0)
+                .MatchArray(),
+            sxm::Attribute(sx::AttributeKey::SQL_FUNCTION_NAME, 1)
+                .MatchString(),
+        ));
+    // clang-format on
+
+    auto& eval = instance.evaluated_nodes_;
+    auto& program = instance.program();
+    auto& func_node = program.nodes[node_id];
+    std::array<NodeMatching, 2> matches;
+    if (!schema.Match(instance, func_node, matches)) {
+        return nullptr;
+    }
+    auto func_name = matches[1].DataAsStringRef();
+
+    // Try to collect all function arguments.
+    // Abort if they are not const.
+    auto func_args_node = matches[0].node;
+    std::vector<const Value*> func_args;
+    std::vector<size_t> func_arg_node_ids;
+    for (unsigned i = 0; i < func_args_node->children_count(); ++i) {
+        auto arg_node_id = func_args_node->children_begin_or_value() + i;
+        auto arg_value = TryEvaluateConstant(instance, arg_node_id);
+        if (!arg_value) break;
+        func_args.push_back(arg_value);
+        func_arg_node_ids.push_back(arg_node_id);
+    }
+
+    // Not all arguments const?
+    // Abort immediately
+    if (func_args.size() != func_args_node->children_count()) return nullptr;
+
+    // Resolve the function
+    auto logic = FunctionLogic::Resolve(func_name, func_args);
+    if (!logic) return nullptr;
+
+    // Evaluate the function
+    auto value = logic->Evaluate(func_args);
+    if (!value) {
+        instance.AddNodeError({node_id, value.ReleaseError()});
+        return nullptr;
+    }
+
+    // Merge the evaluated nodes
+    eval.Insert(node_id, {});
+    return eval.Merge(node_id, func_arg_node_ids, value.ReleaseValue());
 }
 
 /// Constructor
@@ -127,83 +181,25 @@ void Analyzer::EvaluateParameterValues(ProgramInstance& instance) {
     for (auto& dep : program.dependencies) {
         if (auto iter = source_values.find(dep.source_statement()); iter != source_values.end()) {
             auto& param_value = iter->second;
-            instance.evaluated_nodes_.Insert(dep.target_node(), {dep.target_node(), param_value->value.CopyDeep()});
+            instance.evaluated_nodes_.Insert(dep.target_node(), param_value->value.CopyDeep());
         }
     }
 }
 
-// Propagate the parameter values
-void Analyzer::PropagateParameterValues(ProgramInstance& instance) {
-    auto& program = instance.program();
-    auto& parameter_values = instance.parameter_values();
-    auto& eval = instance.evaluated_nodes_;
-
-    // Find all the column refs that occur in the statement
-    for (auto& dep : program.dependencies) {
-        auto target = dep.target_statement();
-        auto source = dep.source_statement();
-
-        // Skip non column ref dependencies
-        if (dep.type() != sx::DependencyType::COLUMN_REF) continue;
-        auto& node_id = program.nodes[program.statements[target]->root_node];
-        auto& node = program.nodes[dep.target_node()];
-        assert(node.node_type() == sx::NodeType::OBJECT_SQL_COLUMN_REF);
-
-        // Check the parent node.
-        auto parent_node_id = node.parent();
-        auto& parent_node = program.nodes[parent_node_id];
-        if (eval.Find(parent_node_id)) continue;
-
-        // Is the parent a function argument list?
-        // In that case, we'll try to evaluate the function.
-        if (parent_node.attribute_key() == sx::AttributeKey::SQL_FUNCTION_ARGUMENTS) {
-            // clang-format off
-            auto schema = sxm::Element()
-                .MatchObject(sx::NodeType::OBJECT_DASHQL_FUNCTION_CALL)
-                .MatchChildren(NODE_MATCHERS(
-                    sxm::Attribute(sx::AttributeKey::SQL_FUNCTION_ARGUMENTS, 0)
-                        .MatchArray(),
-                    sxm::Attribute(sx::AttributeKey::SQL_FUNCTION_NAME, 1)
-                        .MatchString(),
-                ));
-            // clang-format on
-
-            auto func_node_id = parent_node.parent();
-            auto& func_node = program.nodes[func_node_id];
-            std::array<NodeMatching, 2> matches;
-            if (schema.Match(instance, func_node, matches)) {
-                auto func_name = matches[1].DataAsStringRef();
-                eval.Insert(func_node_id, {func_node_id, {}});
-
-                // Try to collect all function arguments.
-                // Abort if they are not const.
-                auto func_args_node = matches[0].node;
-                std::vector<Value> func_args;
-                std::vector<size_t> func_arg_node_ids;
-                for (unsigned i = 0; i < func_args_node->children_count(); ++i) {
-                    auto arg_node_id = func_args_node->children_begin_or_value() + i;
-                    auto arg_value = TryEvaluateConstant(instance, arg_node_id);
-                    if (!arg_value) break;
-                    func_args.push_back(std::move(*arg_value));
-                    func_arg_node_ids.push_back(arg_node_id);
-                }
-
-                // Not all arguments const?
-                if (func_args.size() != func_args_node->children_count()) continue;
-
-                // Resolve the function
-                auto logic = FunctionLogic::Resolve(func_name, func_args);
-                if (!logic) continue;
-                // Evaluate the function
-                auto value = logic->Evaluate(func_args);
-                if (!value) {
-                    instance.AddNodeError({func_node_id, value.ReleaseError()});
-                    continue;
-                }
-
-                // Merge the evaluated nodes
-                eval.Merge(func_node_id, func_arg_node_ids, {func_node_id, value.ReleaseValue()});
-            }
+void Analyzer::EvaluateConstants(ProgramInstance& instance) {
+    // We iterate through all nodes from the front to the back.
+    // This already ensures that we see all children of a node before we see the parent.
+    auto nodes = instance.program_->nodes;
+    for (unsigned n = 0; n < nodes.size(); ++n) {
+        switch (nodes[n].node_type()) {
+            case sx::NodeType::OBJECT_SQL_CONST:
+                TryEvaluateConstant(instance, n);
+                break;
+            case sx::NodeType::OBJECT_DASHQL_FUNCTION_CALL:
+                TryEvaluateFunctionCall(instance, n);
+                break;
+            default:
+                break;
         }
     }
 }
@@ -211,10 +207,9 @@ void Analyzer::PropagateParameterValues(ProgramInstance& instance) {
 /// Analyze the viz specs
 void Analyzer::AnalyzeVizStatements(ProgramInstance& instance) {
     auto& program = instance.program();
-    for (auto& stmt: program.statements) {
+    for (auto& stmt : program.statements) {
         auto viz = viz::VizStatement::ReadFrom(instance, *stmt);
-        if (!viz)
-            continue;
+        if (!viz) continue;
 
         // XXX Pack as viz spec
     }
@@ -227,11 +222,12 @@ Signal Analyzer::InstantiateProgram(std::vector<ParameterValue> params) {
     // That allows us to re-instantiate the program with new parameter values without parsing it again.
     auto next_instance = std::make_unique<ProgramInstance>(volatile_program_text_, volatile_program_, move(params));
 
-    // Evaluate the program with the given parameter values.
+    // Evaluate the given parameter values.
     EvaluateParameterValues(*next_instance);
-    // Try to propagate the parameter values, e.g. function calls that are now constant
-    PropagateParameterValues(*next_instance);
+    // Evaluate and propagate constant values.
+    EvaluateConstants(*next_instance);
     // Analyze the viz specs
+    AnalyzeVizStatements(*next_instance);
 
     // XXX Best-effort semantics check.
     //     Everything that we miss here will crash later in DuckDB.

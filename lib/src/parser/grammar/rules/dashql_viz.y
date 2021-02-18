@@ -5,12 +5,12 @@ dashql_viz_component_list:
 
 dashql_viz_component:
     dashql_viz_type opt_dashql_options {
-        $2.push_back(std::move($1));
+        $2.push_back(Key::DASHQL_VIZ_COMPONENT_TYPE << std::move($1));
         $$ = ctx.Add(@$, sx::NodeType::OBJECT_DASHQL_VIZ_COMPONENT, std::move($2));
     }
- |  dashql_viz_type_specifier dashql_viz_type opt_dashql_options {
-        $3.push_back(std::move($1));
-        $3.push_back(std::move($2));
+ |  dashql_viz_type_modifiers dashql_viz_type opt_dashql_options {
+        $3.push_back(Key::DASHQL_VIZ_COMPONENT_TYPE_MODIFIERS << UI32Bitmap(@1, $1));
+        $3.push_back(Key::DASHQL_VIZ_COMPONENT_TYPE << $2);
         $$ = ctx.Add(@$, sx::NodeType::OBJECT_DASHQL_VIZ_COMPONENT, std::move($3));
     }
     ;
@@ -32,10 +32,17 @@ dashql_viz_statement_prefix:
   | SHOW
     ;
 
-dashql_viz_type_specifier:
-    STACKED         { $$ = Enum(@$, sx::VizComponentTypeSpecifier::STACKED); }
-  | DEPENDENT       { $$ = Enum(@$, sx::VizComponentTypeSpecifier::DEPENDENT); }
-  | INDEPENDENT     { $$ = Enum(@$, sx::VizComponentTypeSpecifier::INDEPENDENT); }
+dashql_viz_type_modifiers:
+    dashql_viz_type_modifiers dashql_viz_type_modifier  { $$ = $1 | $2; }
+  | dashql_viz_type_modifier                            { $$ = $1; }
+
+dashql_viz_type_modifier:
+    STACKED         { $$ = static_cast<uint32_t>(sx::VizComponentTypeModifier::STACKED); }
+  | DEPENDENT       { $$ = static_cast<uint32_t>(sx::VizComponentTypeModifier::DEPENDENT); }
+  | INDEPENDENT     { $$ = static_cast<uint32_t>(sx::VizComponentTypeModifier::INDEPENDENT); }
+  | POLAR           { $$ = static_cast<uint32_t>(sx::VizComponentTypeModifier::POLAR); }
+  | X               { $$ = static_cast<uint32_t>(sx::VizComponentTypeModifier::X); }
+  | Y               { $$ = static_cast<uint32_t>(sx::VizComponentTypeModifier::Y); }
     ;
 
 dashql_viz_type:
@@ -43,16 +50,15 @@ dashql_viz_type:
   | AXIS        { $$ = Enum(@$, sx::VizComponentType::AXIS); }
   | BAR         { $$ = Enum(@$, sx::VizComponentType::BAR); }
   | BOX         { $$ = Enum(@$, sx::VizComponentType::BOX); }
-  | BUBBLE      { $$ = Enum(@$, sx::VizComponentType::BUBBLE); }
-  | GRID        { $$ = Enum(@$, sx::VizComponentType::GRID); }
+  | CANDLESTICK { $$ = Enum(@$, sx::VizComponentType::CANDLESTICK); }
+  | ERROR       { $$ = Enum(@$, sx::VizComponentType::ERROR); }
   | HISTOGRAM   { $$ = Enum(@$, sx::VizComponentType::HISTOGRAM); }
   | LINE        { $$ = Enum(@$, sx::VizComponentType::LINE); }
   | NUMBER      { $$ = Enum(@$, sx::VizComponentType::NUMBER); }
   | PIE         { $$ = Enum(@$, sx::VizComponentType::PIE); }
-  | POINT       { $$ = Enum(@$, sx::VizComponentType::POINT); }
+  | POINT       { $$ = Enum(@$, sx::VizComponentType::SCATTER); }
   | SCATTER     { $$ = Enum(@$, sx::VizComponentType::SCATTER); }
   | TABLE       { $$ = Enum(@$, sx::VizComponentType::TABLE); }
   | TEXT        { $$ = Enum(@$, sx::VizComponentType::TEXT); }
-  | XAXIS       { $$ = Enum(@$, sx::VizComponentType::XAXIS); }
-  | YAXIS       { $$ = Enum(@$, sx::VizComponentType::YAXIS); }
+  | VORONOI     { $$ = Enum(@$, sx::VizComponentType::VORONOI); }
     ;
