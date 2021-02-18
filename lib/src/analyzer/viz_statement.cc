@@ -115,7 +115,7 @@ void VizStatement::PrintScript(std::ostream& out) const {
 }
 
 /// Read common viz attributes
-void VizComponent::ReadAttributes(const ProgramInstance &instance, const sx::Node &node) {
+void VizComponent::ReadAttributes(const ProgramInstance& instance, const sx::Node& node) {
     // clang-format off
     auto schema = sxm::Element()
         .MatchObject(sx::NodeType::OBJECT_DASHQL_VIZ_COMPONENT)
@@ -141,8 +141,8 @@ void VizComponent::ReadAttributes(const ProgramInstance &instance, const sx::Nod
 void VizComponent::PrintAttributes(VizAttributePrinter& out) const {
     if (auto p = position) {
         out.AddKey("pos");
-        out.AddValue() << "(r = " << p->row() << ", c = " << p->column() << ", w = " << p->width() << ", h = " << p->height()
-                       << ")";
+        out.AddValue() << "(r = " << p->row() << ", c = " << p->column() << ", w = " << p->width()
+                       << ", h = " << p->height() << ")";
     }
 }
 
@@ -199,6 +199,10 @@ void TableChartComponent::PrintScript(std::ostream& out) const {
     VizComponent::PrintAttributes(aout);
 }
 
+/// Pack flatbuffer
+void TableChartComponent::Pack(flatbuffers::FlatBufferBuilder& builder, flatbuffers::Offset<void>& value,
+                               uint8_t& type) const {}
+
 /// Read component
 std::unique_ptr<VizComponent> LineChartComponent::ReadFrom(const ProgramInstance& instance, const sx::Node& node) {
     auto c = std::make_unique<LineChartComponent>();
@@ -230,6 +234,10 @@ void LineChartComponent::PrintScript(std::ostream& out) const {
     VizComponent::PrintAttributes(aout);
 }
 
+/// Pack flatbuffer
+void LineChartComponent::Pack(flatbuffers::FlatBufferBuilder& builder, flatbuffers::Offset<void>& value,
+                              uint8_t& type) const {}
+
 /// Read component
 std::unique_ptr<VizComponent> ScatterChartComponent::ReadFrom(const ProgramInstance& instance, const sx::Node& node) {
     // clang-format off
@@ -243,6 +251,10 @@ std::unique_ptr<VizComponent> ScatterChartComponent::ReadFrom(const ProgramInsta
 
 /// Print as script
 void ScatterChartComponent::PrintScript(std::ostream& out) const { out << "SCATTER"; }
+
+/// Pack flatbuffer
+void ScatterChartComponent::Pack(flatbuffers::FlatBufferBuilder& builder, flatbuffers::Offset<void>& value,
+                                 uint8_t& type) const {}
 
 /// Read component
 std::unique_ptr<VizComponent> AreaChartComponent::ReadFrom(const ProgramInstance& instance, const sx::Node& node) {
@@ -260,6 +272,10 @@ std::unique_ptr<VizComponent> AreaChartComponent::ReadFrom(const ProgramInstance
 
 /// Print as script
 void AreaChartComponent::PrintScript(std::ostream& out) const { out << "AREA"; }
+
+/// Pack flatbuffer
+void AreaChartComponent::Pack(flatbuffers::FlatBufferBuilder& builder, flatbuffers::Offset<void>& value,
+                              uint8_t& type) const {}
 
 /// Read component
 std::unique_ptr<VizComponent> AxisComponent::ReadFrom(const ProgramInstance& instance, const sx::Node& node) {
@@ -287,6 +303,10 @@ std::unique_ptr<VizComponent> AxisComponent::ReadFrom(const ProgramInstance& ins
 
 /// Print as script
 void AxisComponent::PrintScript(std::ostream& out) const { out << "AREA"; }
+
+/// Pack flatbuffer
+void AxisComponent::Pack(flatbuffers::FlatBufferBuilder& builder, flatbuffers::Offset<void>& value,
+                         uint8_t& type) const {}
 
 }  // namespace viz
 }  // namespace dashql
