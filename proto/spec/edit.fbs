@@ -7,7 +7,7 @@ include "viz.fbs";
 namespace dashql.proto.edit;
 
 table VizChangePosition {
-    position: viz.VizTile;
+    position: viz.VizPosition;
 }
 
 union EditOperationVariant {

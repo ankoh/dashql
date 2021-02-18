@@ -11,7 +11,12 @@ opt_dashql_options:
     ;
 
 dashql_options:
-    '(' dashql_option_list ')'  { $$ = move($2); }
+    '(' opt_dashql_option_list ')'  { $$ = move($2); }
+    ;
+
+opt_dashql_option_list:
+    dashql_option_list  { $$ = move($1); }
+  | %empty              { $$ = {}; }
     ;
 
 dashql_option_list:

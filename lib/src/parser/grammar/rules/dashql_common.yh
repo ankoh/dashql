@@ -2,6 +2,7 @@
 %type <NodeVector> dashql_option_array_brackets;
 %type <NodeVector> dashql_option_list;
 %type <NodeVector> dashql_options;
+%type <NodeVector> opt_dashql_option_list;
 %type <NodeVector> opt_dashql_options;
 %type <sx::Node> dashql_function_call;
 %type <sx::Node> dashql_option;

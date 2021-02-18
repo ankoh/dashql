@@ -36,9 +36,9 @@ struct VizEditOp {
 
 struct VizChangePositionOp : public VizEditOp {
     /// The position
-    const proto::viz::VizTile& pos;
+    const proto::viz::VizPosition& pos;
     /// Constructor
-    VizChangePositionOp(const proto::viz::VizTile& pos) : pos(pos) { key = sx::AttributeKey::DASHQL_OPTION_POSITION; }
+    VizChangePositionOp(const proto::viz::VizPosition& pos) : pos(pos) { key = sx::AttributeKey::DASHQL_OPTION_POSITION; }
     /// Edit a component
     void EditComponent(size_t idx, viz::VizComponent& component) {
         if (idx == 0) {

@@ -3,6 +3,7 @@
 #ifndef INCLUDE_DASHQL_ANALYZER_VIZ_STATMENT_H_
 #define INCLUDE_DASHQL_ANALYZER_VIZ_STATMENT_H_
 
+#include <flatbuffers/flatbuffers.h>
 #include <iostream>
 #include <optional>
 #include <ostream>
@@ -50,14 +51,14 @@ class VizStatement {
 class VizComponent {
    protected:
     /// The position
-    std::optional<dashql::proto::viz::VizTile> position = std::nullopt;
+    std::optional<dashql::proto::viz::VizPosition> position = std::nullopt;
 
    public:
     /// Virtual destructor
     virtual ~VizComponent() = default;
 
     /// Set the position
-    void SetPosition(dashql::proto::viz::VizTile tile) { position = tile; }
+    void SetPosition(dashql::proto::viz::VizPosition tile) { position = tile; }
     /// Clear the position (if any)
     void ClearPosition() { position.reset(); }
     /// Read attributes of the viz component
@@ -67,6 +68,8 @@ class VizComponent {
 
     /// Print as script
     virtual void PrintScript(std::ostream& out) const = 0;
+    /// Pack as buffer
+    virtual void Pack(flatbuffers::FlatBufferBuilder& builder, flatbuffers::Offset<void>& value, uint8_t& type) const = 0;
     /// Read component from a node
     static std::unique_ptr<VizComponent> ReadFrom(const ProgramInstance& instance, const sx::Node& node);
 };
@@ -74,6 +77,8 @@ class VizComponent {
 struct TableChartComponent : public VizComponent {
     /// Print as script
     void PrintScript(std::ostream& out) const override;
+    /// Pack flatbuffer
+    void Pack(flatbuffers::FlatBufferBuilder& builder, flatbuffers::Offset<void>& value, uint8_t& type) const override;
     /// Read attributes
     static std::unique_ptr<VizComponent> ReadFrom(const ProgramInstance& instance, const sx::Node& node);
 };
@@ -85,6 +90,8 @@ struct LineChartComponent : public VizComponent {
 
     /// Print as script
     void PrintScript(std::ostream& out) const override;
+    /// Pack as buffer
+    void Pack(flatbuffers::FlatBufferBuilder& builder, flatbuffers::Offset<void>& value, uint8_t& type) const override;
     /// Read attributes
     static std::unique_ptr<VizComponent> ReadFrom(const ProgramInstance& instance, const sx::Node& node);
 };
@@ -94,6 +101,8 @@ struct LineChartComponent : public VizComponent {
 struct ScatterChartComponent : public VizComponent {
     /// Print as script
     void PrintScript(std::ostream& out) const override;
+    /// Pack as buffer
+    void Pack(flatbuffers::FlatBufferBuilder& builder, flatbuffers::Offset<void>& value, uint8_t& type) const override;
     /// Read attributes
     static std::unique_ptr<VizComponent> ReadFrom(const ProgramInstance& instance, const sx::Node& node);
 };
@@ -105,6 +114,8 @@ struct AreaChartComponent : public VizComponent {
 
     /// Print as script
     void PrintScript(std::ostream& out) const override;
+    /// Pack as buffer
+    void Pack(flatbuffers::FlatBufferBuilder& builder, flatbuffers::Offset<void>& value, uint8_t& type) const override;
     /// Read attributes
     static std::unique_ptr<VizComponent> ReadFrom(const ProgramInstance& instance, const sx::Node& node);
 };
@@ -116,6 +127,8 @@ struct AxisComponent : public VizComponent {
 
     /// Print as script
     void PrintScript(std::ostream& out) const override;
+    /// Pack as buffer
+    void Pack(flatbuffers::FlatBufferBuilder& builder, flatbuffers::Offset<void>& value, uint8_t& type) const override;
     /// Read attributes
     static std::unique_ptr<VizComponent> ReadFrom(const ProgramInstance& instance, const sx::Node& node);
 };
