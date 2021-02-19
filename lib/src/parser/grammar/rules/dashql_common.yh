@@ -2,9 +2,8 @@
 %type <NodeVector> dashql_option_array_brackets;
 %type <NodeVector> dashql_option_list;
 %type <NodeVector> dashql_options;
-%type <NodeVector> opt_dashql_option_list;
 %type <NodeVector> opt_dashql_options;
 %type <std::vector<sx::Location>> dashql_option_key_path;
 %type <sx::Node> dashql_function_call;
-%type <sx::Node> dashql_option;
 %type <sx::Node> dashql_option_value;
+%type <sx::Node> opt_dashql_option;
