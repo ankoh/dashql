@@ -11,21 +11,17 @@ opt_dashql_options:
     ;
 
 dashql_options:
-    '(' opt_dashql_option_list ')'  { $$ = move($2); }
-    ;
-
-opt_dashql_option_list:
-    dashql_option_list  { $$ = move($1); }
-  | %empty              { $$ = {}; }
+    '(' dashql_option_list ')'  { $$ = move($2); }
     ;
 
 dashql_option_list:
-    dashql_option_list ',' dashql_option    { $1.push_back($3); $$ = move($1); }
-  | dashql_option                           { $$ = {$1}; }
+    dashql_option_list ',' opt_dashql_option { $1.push_back($3); $$ = move($1); }
+  | opt_dashql_option                        { $$ = {$1}; }
     ;
 
-dashql_option:
+opt_dashql_option:
     dashql_option_key_path '=' dashql_option_value    { $$ = Option(ctx, @$, move($1), $3); }
+  | %empty                                            { $$ = Null(); }
     ;
 
 dashql_option_key_path:
