@@ -1,5 +1,7 @@
 #include "dashql/analyzer/viz_statement.h"
 
+#include <flatbuffers/flatbuffers.h>
+
 #include <iostream>
 #include <stack>
 #include <unordered_map>
@@ -67,16 +69,16 @@ void VizAttributePrinter::Finish() {
     out << "\n)";
 }
 
-VizStatement::VizStatement(const ProgramInstance& instance, const sx::Node& node, const sx::Node& target,
+VizStatement::VizStatement(const ProgramInstance& instance, size_t statement_id, const sx::Node& target,
                            std::vector<std::unique_ptr<VizComponent>>&& components)
-    : instance_(instance), node_(node), target_(target), components_(move(components)) {}
+    : instance_(instance), statement_id_(statement_id), target_(target), components_(move(components)) {}
 
 /// Read a viz statement
-std::unique_ptr<VizStatement> VizStatement::ReadFrom(const ProgramInstance& instance,
-                                                     const proto::syntax::StatementT& stmt) {
+std::unique_ptr<VizStatement> VizStatement::ReadFrom(const ProgramInstance& instance, size_t stmt_id) {
     // clang-format off
     auto& program = instance.program();
-    auto& root = program.nodes[stmt.root_node];
+    auto& stmt = program.statements[stmt_id];
+    auto& root = program.nodes[stmt->root_node];
     auto schema = sxm::Element()
         .MatchObject(sx::NodeType::OBJECT_DASHQL_VIZ)
         .MatchChildren(NODE_MATCHERS(
@@ -100,7 +102,7 @@ std::unique_ptr<VizStatement> VizStatement::ReadFrom(const ProgramInstance& inst
         components.push_back(move(comp));
     }
 
-    return std::make_unique<VizStatement>(instance, root, *matches[0].node, std::move(components));
+    return std::make_unique<VizStatement>(instance, stmt_id, *matches[0].node, std::move(components));
 }
 
 /// Print statement as script
@@ -114,6 +116,31 @@ void VizStatement::PrintScript(std::ostream& out) const {
         }
         components_[i]->PrintScript(out);
     }
+}
+
+/// Pack the viz specs
+flatbuffers::Offset<proto::viz::VizSpec> VizStatement::Pack(flatbuffers::FlatBufferBuilder& builder) const {
+    // Pack components
+    std::vector<fb::Offset<void>> component_offsets;
+    std::vector<uint8_t> component_types;
+    for (auto& c : components_) {
+        auto [buffer, variant] = c->Pack(builder);
+        component_offsets.push_back(buffer);
+        component_types.push_back(static_cast<uint8_t>(variant));
+    }
+    auto component_ofs_vec = builder.CreateVector(component_offsets);
+    auto component_types_vec = builder.CreateVector(component_types);
+    auto position = position_.has_value() ? &position_.value() : nullptr;
+
+    // Build viz spec
+    pv::VizSpecBuilder spec_builder{builder};
+    spec_builder.add_statement_id(statement_id_);
+    spec_builder.add_components(component_ofs_vec);
+    spec_builder.add_components_type(component_types_vec);
+    if (position) {
+        spec_builder.add_position(position);
+    }
+    return spec_builder.Finish();
 }
 
 /// Read common viz attributes
@@ -204,9 +231,7 @@ void TableChartComponent::PrintScript(std::ostream& out) const {
 /// Pack flatbuffer
 std::pair<flatbuffers::Offset<void>, pv::VizComponentVariant> TableChartComponent::Pack(
     fb::FlatBufferBuilder& builder) const {
-    const pv::VizPosition* pos = nullptr;
-    if (position) pos = &position.value();
-    return {pv::CreateTableComponent(builder, pos).Union(), pv::VizComponentVariant::TableComponent};
+    return {pv::CreateTableComponent(builder).Union(), pv::VizComponentVariant::TableComponent};
 }
 
 /// Read component
@@ -263,8 +288,7 @@ void ScatterChartComponent::PrintScript(std::ostream& out) const { out << "SCATT
 /// Pack flatbuffer
 std::pair<flatbuffers::Offset<void>, pv::VizComponentVariant> ScatterChartComponent::Pack(
     fb::FlatBufferBuilder& builder) const {
-    return {pv::CreateScatterChartComponent(builder).Union(),
-            pv::VizComponentVariant::ScatterChartComponent};
+    return {pv::CreateScatterChartComponent(builder).Union(), pv::VizComponentVariant::ScatterChartComponent};
 }
 
 /// Read component

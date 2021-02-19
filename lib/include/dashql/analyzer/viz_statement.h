@@ -26,26 +26,29 @@ class VizStatement {
    protected:
     /// The program instance
     const ProgramInstance& instance_;
-    /// The node
-    const sx::Node& node_;
+    /// The statement id
+    const size_t statement_id_;
     /// The target
     const sx::Node& target_;
     /// The components
     std::vector<std::unique_ptr<VizComponent>> components_ = {};
+
+    /// The position (if known)
+    std::optional<dashql::proto::viz::VizPosition> position_ = std::nullopt;
  
    public:
     /// Constructor
-    VizStatement(const ProgramInstance& instance, const sx::Node& node, const sx::Node& target, std::vector<std::unique_ptr<VizComponent>>&& components);
+    VizStatement(const ProgramInstance& instance, size_t statement_id, const sx::Node& target, std::vector<std::unique_ptr<VizComponent>>&& components);
     /// Get the component
     auto& components() { return components_; }
     /// Print as script
     void PrintScript(std::ostream& out) const;
     /// Pack the viz specs
-    flatbuffers::Offset<proto::viz::VizSpec> Pack(flatbuffers::FlatBufferBuilder& builder);
+    flatbuffers::Offset<proto::viz::VizSpec> Pack(flatbuffers::FlatBufferBuilder& builder) const;
 
     /// Read a viz statement
     static std::unique_ptr<VizStatement> ReadFrom(const ProgramInstance& instance,
-                                                  const proto::syntax::StatementT& statement);
+                                                  size_t statement_id);
 };
 
 class VizComponent {

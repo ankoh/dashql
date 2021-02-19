@@ -54,7 +54,7 @@ std::string ProgramEditor::RewriteVizStatement(size_t stmt_id,
                                                nonstd::span<const proto::edit::EditOperation*> edits) const {
     auto& stmt = *instance_.program().statements[stmt_id];
     auto& root = instance_.program().nodes[stmt.root_node];
-    auto viz = viz::VizStatement::ReadFrom(instance_, stmt);
+    auto viz = viz::VizStatement::ReadFrom(instance_, stmt_id);
     if (!viz) {
         return std::string{instance_.TextAt(root.location())};
     }

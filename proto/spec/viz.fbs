@@ -99,9 +99,7 @@ table ScatterChartComponent {}
 table StackChartComponent {}
 table VoronoiChartComponent {}
 
-table TableComponent {
-    position: VizPosition;
-}
+table TableComponent {}
 
 union VizComponentVariant {
     AreaChartComponent,
@@ -119,12 +117,8 @@ union VizComponentVariant {
     VoronoiChartComponent,
 }
 
-table VizComponent {
-
-}
-
 table VizSpec {
     statement_id: uint32;
     position: VizPosition;
-    components: [VizComponent];
+    components: [VizComponentVariant];
 }
