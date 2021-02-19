@@ -33,6 +33,14 @@ class ProgramInstance {
     friend class Analyzer;
 
    public:
+    /// A value associated with a node.
+    struct NodeValue {
+        /// The root node id
+        size_t root_node_id;
+        /// The value
+        Value value;
+    };
+
     /// An error associated with a node
     struct NodeError {
         /// The node id
@@ -49,7 +57,9 @@ class ProgramInstance {
     /// The parameter values
     std::vector<ParameterValue> parameter_values_;
     /// The evaluated nodes (if any)
-    SparseUnionFind<Value> evaluated_nodes_;
+    /// Note that we deliberately store the root node id within the value as well since
+    /// UNION FIND might just pick a different representative.
+    SparseUnionFind<NodeValue> evaluated_nodes_;
     /// The node errors
     std::vector<NodeError> node_errors_;
     /// The viz statements
@@ -83,9 +93,9 @@ class ProgramInstance {
     }
     /// Find an evaluated node value.
     /// Note: This is deliberately NOT const since we do lazy path compression for union-find.
-    const Value* FindNodeValue(size_t node_id);
+    const NodeValue* FindNodeValue(size_t node_id);
     /// Find an evaluated node value
-    const Value* FindNodeValue(const sx::Node& node) {
+    const NodeValue* FindNodeValue(const sx::Node& node) {
         return FindNodeValue(&node - program_->nodes.data());
     }
 

@@ -41,7 +41,7 @@ void Analyzer::ResetInstance() { analyzer_instance.reset(); }
 const Value* Analyzer::TryEvaluateConstant(ProgramInstance& instance, size_t node_id) const {
     // Already evaluated?
     if (auto* eval = instance.evaluated_nodes_.Find(node_id); !!eval) {
-        return eval;
+        return &eval->value;
     }
     auto& node = instance.program().nodes[node_id];
 
@@ -52,7 +52,7 @@ const Value* Analyzer::TryEvaluateConstant(ProgramInstance& instance, size_t nod
         case sx::NodeType::UI32:
         case sx::NodeType::UI32_BITMAP:
         case sx::NodeType::STRING_REF:
-            return instance.evaluated_nodes_.Insert(node_id, Value::VARCHAR(Ref, instance.TextAt(node.location())));
+            return &instance.evaluated_nodes_.Insert(node_id, {node_id, Value::VARCHAR(Ref, instance.TextAt(node.location()))})->value;
         default:
             return nullptr;
     }
@@ -112,7 +112,7 @@ const Value* Analyzer::TryEvaluateFunctionCall(ProgramInstance& instance, size_t
 
     // Merge the evaluated nodes
     eval.Insert(node_id, {});
-    return eval.Merge(node_id, func_arg_node_ids, value.ReleaseValue());
+    return &eval.Merge(node_id, func_arg_node_ids, {node_id, value.ReleaseValue()})->value;
 }
 
 /// Constructor
@@ -161,7 +161,7 @@ void Analyzer::EvaluateParameterValues(ProgramInstance& instance) {
     for (auto& dep : program.dependencies) {
         if (auto iter = source_values.find(dep.source_statement()); iter != source_values.end()) {
             auto& param_value = iter->second;
-            instance.evaluated_nodes_.Insert(dep.target_node(), param_value->value.CopyDeep());
+            instance.evaluated_nodes_.Insert(dep.target_node(), {dep.target_node(), param_value->value.CopyDeep()});
         }
     }
 }
