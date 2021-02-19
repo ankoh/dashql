@@ -1,11 +1,29 @@
 <test name="dashql_viz_full">
     <input>
         VISUALIZE weather_avg USING STACKED BAR (
-            position = (r = 0, c = 0, w = 4, h = 15)
+            position = (r = 0, c = 0, w = 4, h = 15),
+            x = "a",
+            y = "b",
+            categories = "c",
+            theme = "grayscale",
+            colors = ["#aaa", "#bbb", "#ccc"]
         ), LINE (
+            style.data = (
+                stroke = "#c43a31"
+            ),
+            style.labels = (
+                fontSize = 15,
+                fill = "red"
+            )
         ), SCATTER (
-        ), X AXIS (
-        ), Y AXIS (
-        );
+            style = (
+                data = (
+                    fill: "#c43a31",
+                    fillOpacity: 0.6,
+                    stroke: "#c43a31",
+                    strokeWidth: 3
+                )
+            )
+        ), X AXIS(scale = "time"), Y AXIS(scale = "log");
     </input>
 </test>

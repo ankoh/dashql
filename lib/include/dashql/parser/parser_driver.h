@@ -14,6 +14,7 @@
 #include <variant>
 #include <vector>
 
+#include "dashql/common/span.h"
 #include "dashql/proto_generated.h"
 
 namespace dashql {
@@ -109,13 +110,24 @@ class ParserDriver {
     auto& scanner() { return scanner_; }
 
     /// Add a an array
-    sx::Node Add(sx::Location loc, NodeVector&& values, bool null_if_empty = true, bool shrink_location = false);
+    sx::Node AddArray(sx::Location loc, nonstd::span<sx::Node> values, bool null_if_empty = true,
+                 bool shrink_location = false);
     /// Add an object
-    sx::Node Add(sx::Location loc, sx::NodeType type, NodeVector&& attrs, bool null_if_empty = true,
-                 bool skip_none = true);
+    sx::Node AddObject(sx::Location loc, sx::NodeType type, nonstd::span<sx::Node> attrs, bool null_if_empty = true, bool shrink_location = false);
+
+    /// Add a an array
+    inline sx::Node Add(sx::Location loc, NodeVector&& values, bool null_if_empty = true,
+                        bool shrink_location = false) {
+        return AddArray(loc, nonstd::span<sx::Node>{values}, null_if_empty, shrink_location);
+    }
+    /// Add a an object
+    inline sx::Node Add(sx::Location loc, sx::NodeType type, NodeVector&& values, bool null_if_empty = true,
+                        bool shrink_location = false) {
+        return AddObject(loc, type, nonstd::span<sx::Node>{values}, null_if_empty, shrink_location);
+    }
     /// Add options
-    sx::Node AddOptions(sx::Location loc, NodeVector&& attrs, bool null_if_empty = true) {
-        return Add(loc, sx::NodeType::OBJECT_DASHQL_OPTION_LIST, std::move(attrs), null_if_empty, false);
+    inline sx::Node AddOptions(sx::Location loc, NodeVector&& attrs, bool null_if_empty = true) {
+        return AddObject(loc, sx::NodeType::OBJECT_DASHQL_OPTION_LIST, nonstd::span<sx::Node>{attrs}, null_if_empty);
     }
     /// Add a statement
     void AddStatement(sx::Node node);

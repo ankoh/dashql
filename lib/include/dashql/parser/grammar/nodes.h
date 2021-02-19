@@ -143,7 +143,7 @@ inline sx::NumericTypeTag ReadFloatType(ParserDriver& driver, sx::Location bitsL
 
 /// Map an option.
 /// Add an error if the key or the (key, value) combination is invalid.
-sx::Node Option(ParserDriver& driver, sx::Location loc, sx::Location key, sx::Node value);
+sx::Node Option(ParserDriver& driver, sx::Location loc, std::vector<sx::Location>&& key_path, sx::Node value);
 
 }  // namespace parser
 }  // namespace dashql
