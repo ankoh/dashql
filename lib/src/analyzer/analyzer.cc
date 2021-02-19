@@ -286,6 +286,12 @@ flatbuffers::Offset<proto::syntax::Program> Analyzer::PackProgram(flatbuffers::F
     return sx::Program::Pack(builder, volatile_program_.get());
 }
 
+/// Pack the program annotations
+flatbuffers::Offset<proto::analyzer::ProgramAnnotations> Analyzer::PackProgramAnnotations(flatbuffers::FlatBufferBuilder& builder) {
+    assert(!!program_instance_.get());
+    return program_instance_->PackAnnotations(builder);
+}
+
 /// Pack the plan
 flatbuffers::Offset<proto::analyzer::Plan> Analyzer::PackPlan(flatbuffers::FlatBufferBuilder& builder) {
     assert(!!planned_graph_.get());
