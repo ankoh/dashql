@@ -34,13 +34,13 @@ void AnalyzerTest::EncodePlan(pugi::xml_node& root, const ProgramInstance& insta
     }
 
     auto patch = root.append_child("evaluations");
-    instance.evaluated_nodes().IterateValues([&](size_t node_id, const Value& val) {
+    instance.evaluated_nodes().IterateValues([&](size_t /*node_id*/, const ProgramInstance::NodeValue& node_value) {
         auto e = patch.append_child("eval");
-        auto t = val.PrintType();
-        auto v = val.PrintValue();
+        auto t = node_value.value.PrintType();
+        auto v = node_value.value.PrintValue();
         e.append_attribute("type").set_value(t.c_str());
         e.append_attribute("value").set_value(v.c_str());
-        EncodeLocation(e, instance.program().nodes[node_id].location(), instance.program_text());
+        EncodeLocation(e, instance.program().nodes[node_value.root_node_id].location(), instance.program_text());
     });
 
     auto g = root.append_child("graph");
