@@ -41,9 +41,7 @@
             SELECT 1 INTO a;
         </text>
         <parameters />
-        <evaluations>
-            <eval type="BIGINT" value="1" loc="20..21" text="1" />
-        </evaluations>
+        <evaluations />
         <graph next_object_id="1">
             <setup />
             <program>
@@ -704,10 +702,7 @@
             VIZ foo USING TABLE;
         </text>
         <parameters />
-        <evaluations>
-            <eval type="BIGINT" value="100" loc="75..78" text="100" />
-            <eval type="BIGINT" value="0" loc="72..73" text="0" />
-        </evaluations>
+        <evaluations />
         <graph next_object_id="2">
             <setup />
             <program>

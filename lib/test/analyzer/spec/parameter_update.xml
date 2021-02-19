@@ -5,15 +5,14 @@
                 default_value = 'DE'
             );
             LOAD weather_csv FROM http (
-                url = format('https://cdn.dashql.com/demo/weather/%s', global.country)
+                url = format('https://cdn.dashql.com/demo/weather/{}', global.country)
             );
         </text>
         <parameters>
             <parameter statement="0" type="VARCHAR" value="DE" />
         </parameters>
         <evaluations>
-            <eval type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/%s'" loc="173..213" text="'https://c..eather/%s'" />
-            <eval type="VARCHAR" value="'DE'" loc="83..87" text="'DE'" />
+            <eval type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" loc="173..213" text="'https://c..eather/{}'" />
         </evaluations>
         <graph next_object_id="2">
             <setup />
@@ -39,15 +38,14 @@
                 default_value = 'DE'
             );
             LOAD weather_csv FROM http (
-                url = format('https://cdn.dashql.com/demo/weather/%s', global.country)
+                url = format('https://cdn.dashql.com/demo/weather/{}', global.country)
             );
         </text>
         <parameters>
             <parameter statement="0" type="VARCHAR" value="US" />
         </parameters>
         <evaluations>
-            <eval type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/%s'" loc="173..213" text="'https://c..eather/%s'" />
-            <eval type="VARCHAR" value="'DE'" loc="83..87" text="'DE'" />
+            <eval type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/US'" loc="173..213" text="'https://c..eather/{}'" />
         </evaluations>
         <graph next_object_id="4">
             <setup>

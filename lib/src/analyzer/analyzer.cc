@@ -45,39 +45,17 @@ const Value* Analyzer::TryEvaluateConstant(ProgramInstance& instance, size_t nod
     }
     auto& node = instance.program().nodes[node_id];
 
-    // Try to match a simple SQL constant.
     // XXX We might need to match more cases here as the grammar evolves.
 
-    // clang-format off
-    auto schema = sxm::Element()
-        .MatchObject(sx::NodeType::OBJECT_SQL_CONST)
-        .MatchChildren(NODE_MATCHERS(
-            sxm::Attribute(sx::AttributeKey::SQL_CONST_TYPE, 0)
-                .MatchEnum(sx::NodeType::ENUM_SQL_CONST_TYPE),
-            sxm::Attribute(sx::AttributeKey::SQL_CONST_VALUE, 1)
-                .MatchString(),
-        ));
-    // clang-format on
-    std::array<NodeMatching, 2> matches;
-    if (schema.Match(instance, node, matches)) {
-        Value v;
-        switch (matches[0].DataAsEnum<sx::AConstType>()) {
-            case sx::AConstType::INTEGER:
-                v = Value::BIGINT(matches[1].DataAsI64());
-                break;
-            case sx::AConstType::FLOAT:
-                v = Value::DOUBLE(matches[1].DataAsDouble());
-                break;
-            case sx::AConstType::BITSTRING:
-            case sx::AConstType::STRING:
-                v = Value::VARCHAR(matches[1].DataAsString());
-                break;
-            default:
-                break;
-        }
-        return instance.evaluated_nodes_.Insert(node_id, std::move(v));
+    switch (node.node_type()) {
+        case sx::NodeType::BOOL:
+        case sx::NodeType::UI32:
+        case sx::NodeType::UI32_BITMAP:
+        case sx::NodeType::STRING_REF:
+            return instance.evaluated_nodes_.Insert(node_id, Value::VARCHAR(Ref, instance.TextAt(node.location())));
+        default:
+            return nullptr;
     }
-    return nullptr;
 }
 
 /// Evaluate a function call
@@ -110,7 +88,9 @@ const Value* Analyzer::TryEvaluateFunctionCall(ProgramInstance& instance, size_t
     for (unsigned i = 0; i < func_args_node->children_count(); ++i) {
         auto arg_node_id = func_args_node->children_begin_or_value() + i;
         auto arg_value = TryEvaluateConstant(instance, arg_node_id);
-        if (!arg_value) break;
+        if (!arg_value) {
+            break;
+        }
         func_args.push_back(arg_value);
         func_arg_node_ids.push_back(arg_node_id);
     }
@@ -186,15 +166,12 @@ void Analyzer::EvaluateParameterValues(ProgramInstance& instance) {
     }
 }
 
-void Analyzer::EvaluateConstants(ProgramInstance& instance) {
+void Analyzer::PropagateConstants(ProgramInstance& instance) {
     // We iterate through all nodes from the front to the back.
     // This already ensures that we see all children of a node before we see the parent.
-    auto nodes = instance.program_->nodes;
+    auto& nodes = instance.program_->nodes;
     for (unsigned n = 0; n < nodes.size(); ++n) {
         switch (nodes[n].node_type()) {
-            case sx::NodeType::OBJECT_SQL_CONST:
-                TryEvaluateConstant(instance, n);
-                break;
             case sx::NodeType::OBJECT_DASHQL_FUNCTION_CALL:
                 TryEvaluateFunctionCall(instance, n);
                 break;
@@ -224,7 +201,7 @@ Signal Analyzer::InstantiateProgram(std::vector<ParameterValue> params) {
     // Evaluate the given parameter values.
     EvaluateParameterValues(*next_instance);
     // Evaluate and propagate constant values.
-    EvaluateConstants(*next_instance);
+    PropagateConstants(*next_instance);
     // Analyze the viz specs
     AnalyzeVizStatements(*next_instance);
 

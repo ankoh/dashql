@@ -54,7 +54,7 @@ class Analyzer {
     /// Evaluate the given parameter values
     void EvaluateParameterValues(ProgramInstance& instance);
     /// Evaluate constants
-    void EvaluateConstants(ProgramInstance& instance);
+    void PropagateConstants(ProgramInstance& instance);
     /// Analyze the viz statements
     void AnalyzeVizStatements(ProgramInstance& instance);
 
