@@ -210,8 +210,7 @@ void Analyzer::AnalyzeVizStatements(ProgramInstance& instance) {
     for (size_t stmt_id = 0; stmt_id < program.statements.size(); ++stmt_id) {
         auto viz = viz::VizStatement::ReadFrom(instance, stmt_id);
         if (!viz) continue;
-
-        // XXX Pack as viz spec
+        instance.viz_statements_.push_back(std::move(viz));
     }
 }
 
