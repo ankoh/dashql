@@ -17,7 +17,8 @@ ProgramInstance::ProgramInstance(std::shared_ptr<std::string> text, std::shared_
       program_(move(program)),
       parameter_values_(move(params)),
       evaluated_nodes_(program_->nodes.size()),
-      node_errors_() {}
+      node_errors_(),
+      viz_statements_() {}
 
 // Add a node error
 void ProgramInstance::AddNodeError(NodeError&& error) { node_errors_.push_back(std::move(error)); }
@@ -29,9 +30,7 @@ const ParameterValue* ProgramInstance::FindParameterValue(size_t stmt_id) const 
 }
 
 // Find a parameter value
-const Value* ProgramInstance::FindNodeValue(size_t node_id) {
-    return evaluated_nodes_.Find(node_id);
-}
+const Value* ProgramInstance::FindNodeValue(size_t node_id) { return evaluated_nodes_.Find(node_id); }
 
 // Collect the statement options
 Expected<std::string> ProgramInstance::RenderStatementText(size_t stmt_id) const {
@@ -55,17 +54,41 @@ Expected<std::string> ProgramInstance::RenderStatementText(size_t stmt_id) const
 }
 
 /// Pack the evaluated nodes
-flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<proto::analyzer::NodeValue>>>
-ProgramInstance::PackEvaluatedNodes(flatbuffers::FlatBufferBuilder& builder) const {
-    std::vector<flatbuffers::Offset<proto::analyzer::NodeValue>> values;
+flatbuffers::Offset<proto::analyzer::ProgramAnnotations> ProgramInstance::PackAnnotations(
+    flatbuffers::FlatBufferBuilder& builder) const {
+    // Pack parameters
+    std::vector<flatbuffers::Offset<proto::analyzer::ParameterValue>> param_offsets;
+    param_offsets.reserve(parameter_values_.size());
+    for (auto& param : parameter_values_) {
+        param_offsets.push_back(param.Pack(builder));
+    }
+    auto param_vec = builder.CreateVector(param_offsets);
+
+    // Pack the evaluated nodes
+    std::vector<flatbuffers::Offset<proto::analyzer::NodeValue>> eval_nodes;
     evaluated_nodes_.IterateValues([&](size_t node_id, const Value& value) {
         auto vb = value.Pack(builder);
         proto::analyzer::NodeValueBuilder nv{builder};
         nv.add_node_id(node_id);
         nv.add_value(vb);
-        values.push_back(nv.Finish());
+        eval_nodes.push_back(nv.Finish());
     });
-    return builder.CreateVector(values);
+    auto eval_node_vec = builder.CreateVector(eval_nodes);
+
+    // Pack the viz statements
+    std::vector<flatbuffers::Offset<proto::viz::VizSpec>> viz_specs;
+    for (auto& viz : viz_statements_) {
+        viz_specs.push_back(viz->Pack(builder));
+    }
+    auto viz_spec_vec = builder.CreateVector(viz_specs);
+
+    // Encode the plan result
+    proto::analyzer::ProgramAnnotationsBuilder annotations{builder};
+    annotations.add_parameters(param_vec);
+    annotations.add_evaluated_nodes(eval_node_vec);
+    annotations.add_viz_specs(viz_spec_vec);
+    // XXX node errors
+    return annotations.Finish();
 }
 
 /// Find an attribute
