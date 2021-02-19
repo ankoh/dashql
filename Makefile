@@ -71,12 +71,12 @@ lib_release:
 # Test the core library
 .PHONY: lib_tests
 lib_tests: lib
-	${LIB_DEBUG_DIR}/tester ${LIB_SOURCE_DIR}
+	${LIB_DEBUG_DIR}/tester --source_dir ${LIB_SOURCE_DIR}
 
 # Debug the core library
 .PHONY: lib_tests
 lib_tests_lldb: lib
-	lldb ${LIB_DEBUG_DIR}/tester ${LIB_SOURCE_DIR}
+	lldb ${LIB_DEBUG_DIR}/tester --source_dir ${LIB_SOURCE_DIR}
 
 # Generate declarative tests
 .PHONY: testgen
