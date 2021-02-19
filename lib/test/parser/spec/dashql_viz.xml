@@ -1,74 +1,46 @@
 <test name="dashql_viz_full">
     <input>
         VISUALIZE weather_avg USING STACKED BAR (
-            position = (r = 0, c = 0, w = 4, h = 15)
+            position = (r = 0, c = 0, w = 4, h = 15),
+            x = "a",
+            y = "b",
+            categories = "c",
+            theme = "grayscale",
+            colors = ["#aaa", "#bbb", "#ccc"]
         ), LINE (
+            style.data = (
+                stroke = "#c43a31"
+            ),
+            style.labels = (
+                fontSize = 15,
+                fill = "red"
+            )
         ), SCATTER (
-        ), X AXIS (
-        ), Y AXIS (
-        );
+            style = (
+                data = (
+                    fill: "#c43a31",
+                    fillOpacity: 0.6,
+                    stroke: "#c43a31",
+                    strokeWidth: 3
+                )
+            )
+        ), X AXIS(scale = "time"), Y AXIS(scale = "log");
     </input>
     <expected>
-        <statements>
-            <statement type="VIZUALIZE">
-                <node type="OBJECT_DASHQL_VIZ" loc="9..192" text="VISUALIZE ..&#10;        )">
-                    <node key="DASHQL_VIZ_COMPONENTS">
-                        <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="37..113" text="STACKED BA..&#10;        )">
-                            <node key="DASHQL_VIZ_COMPONENT_TYPE" value="BAR" />
-                            <node key="DASHQL_VIZ_COMPONENT_TYPE_MODIFIERS" value="1" />
-                            <node key="DASHQL_OPTION_POSITION" type="OBJECT_DASHQL_OPTION_LIST" loc="74..103" text="(r = 0, c ..4, h = 15)">
-                                <node key="DASHQL_OPTION_COLUMN" type="OBJECT_SQL_CONST" loc="86..87" text="0">
-                                    <node key="SQL_CONST_TYPE" value="INTEGER" />
-                                    <node key="SQL_CONST_VALUE" loc="86..87" text="0" />
-                                </node>
-                                <node key="DASHQL_OPTION_HEIGHT" type="OBJECT_SQL_CONST" loc="100..102" text="15">
-                                    <node key="SQL_CONST_TYPE" value="INTEGER" />
-                                    <node key="SQL_CONST_VALUE" loc="100..102" text="15" />
-                                </node>
-                                <node key="DASHQL_OPTION_ROW" type="OBJECT_SQL_CONST" loc="79..80" text="0">
-                                    <node key="SQL_CONST_TYPE" value="INTEGER" />
-                                    <node key="SQL_CONST_VALUE" loc="79..80" text="0" />
-                                </node>
-                                <node key="DASHQL_OPTION_WIDTH" type="OBJECT_SQL_CONST" loc="93..94" text="4">
-                                    <node key="SQL_CONST_TYPE" value="INTEGER" />
-                                    <node key="SQL_CONST_VALUE" loc="93..94" text="4" />
-                                </node>
-                            </node>
-                        </node>
-                        <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="115..131" text="LINE (&#10;        )">
-                            <node key="DASHQL_VIZ_COMPONENT_TYPE" value="LINE" />
-                        </node>
-                        <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="133..152" text="SCATTER (&#10;        )">
-                            <node key="DASHQL_VIZ_COMPONENT_TYPE" value="SCATTER" />
-                        </node>
-                        <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="154..172" text="X AXIS (&#10;        )">
-                            <node key="DASHQL_VIZ_COMPONENT_TYPE" value="AXIS" />
-                            <node key="DASHQL_VIZ_COMPONENT_TYPE_MODIFIERS" value="16" />
-                        </node>
-                        <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="174..192" text="Y AXIS (&#10;        )">
-                            <node key="DASHQL_VIZ_COMPONENT_TYPE" value="AXIS" />
-                            <node key="DASHQL_VIZ_COMPONENT_TYPE_MODIFIERS" value="32" />
-                        </node>
-                    </node>
-                    <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLE_REF" loc="19..30" text="weather_avg">
-                        <node key="SQL_TABLE_INHERIT" value="true" />
-                        <node key="SQL_TABLE_NAME">
-                            <node loc="19..30" text="weather_avg" />
-                        </node>
-                    </node>
-                </node>
-            </statement>
-        </statements>
-        <errors />
+        <statements />
+        <errors>
+            <error message="syntax error, unexpected '.', expecting '='" loc="291..292" text="." />
+        </errors>
         <line_breaks>
             <line_break loc="0..1" text="&#10;" />
             <line_break loc="50..51" text="&#10;" />
-            <line_break loc="103..104" text="&#10;" />
-            <line_break loc="121..122" text="&#10;" />
-            <line_break loc="142..143" text="&#10;" />
-            <line_break loc="162..163" text="&#10;" />
-            <line_break loc="182..183" text="&#10;" />
-            <line_break loc="193..194" text="&#10;" />
+            <line_break loc="104..105" text="&#10;" />
+            <line_break loc="125..126" text="&#10;" />
+            <line_break loc="146..147" text="&#10;" />
+            <line_break loc="176..177" text="&#10;" />
+            <line_break loc="209..210" text="&#10;" />
+            <line_break loc="255..256" text="&#10;" />
+            <line_break loc="273..274" text="&#10;" />
         </line_breaks>
         <comments />
         <dependencies />

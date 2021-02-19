@@ -25,8 +25,12 @@ dashql_option_list:
     ;
 
 dashql_option:
-    dashql_option_key '=' dashql_option_value       { $$ = Option(ctx, @$, @1, $3); }
+    dashql_option_key_path '=' dashql_option_value    { $$ = Option(ctx, @$, move($1), $3); }
     ;
+
+dashql_option_key_path:
+    dashql_option_key_path '.' dashql_option_key  { $1.push_back(@3); $$ = std::move($1); }
+  | dashql_option_key                             { $$ = { @1 }; }
 
 dashql_option_key:
     SCONST

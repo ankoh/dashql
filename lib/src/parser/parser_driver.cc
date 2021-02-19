@@ -13,8 +13,7 @@
 #include "dashql/parser/grammar/nodes.h"
 #include "dashql/parser/parser.h"
 #include "dashql/parser/scanner.h"
-
-namespace fb = flatbuffers;
+#include "dashql/proto_generated.h"
 
 namespace dashql {
 namespace parser {
@@ -249,7 +248,8 @@ void ParserDriver::ComputeDependencies() {
 }
 
 /// Add an array
-sx::Node ParserDriver::Add(sx::Location loc, NodeVector&& values, bool null_if_empty, bool shrink_location) {
+sx::Node ParserDriver::AddArray(sx::Location loc, nonstd::span<sx::Node> values, bool null_if_empty,
+                                bool shrink_location) {
     auto begin = nodes_.size();
     nodes_.reserve(nodes_.size() + values.size());
     for (auto& v : values) {
@@ -261,7 +261,7 @@ sx::Node ParserDriver::Add(sx::Location loc, NodeVector&& values, bool null_if_e
         return Null();
     }
     if (n > 0 && shrink_location) {
-        auto fstBegin = nodes_[0].location().offset();
+        auto fstBegin = nodes_[begin].location().offset();
         auto lstEnd = nodes_.back().location().offset() + nodes_.back().location().length();
         loc = sx::Location(fstBegin, lstEnd - fstBegin);
     }
@@ -269,20 +269,74 @@ sx::Node ParserDriver::Add(sx::Location loc, NodeVector&& values, bool null_if_e
 }
 
 /// Add an object
-sx::Node ParserDriver::Add(sx::Location loc, sx::NodeType type, NodeVector&& attrs, bool null_if_empty,
-                           bool skip_none) {
+sx::Node ParserDriver::AddObject(sx::Location loc, sx::NodeType type, nonstd::span<sx::Node> attrs, bool null_if_empty,
+                                 bool shrink_location) {
+    // Sort all the attributes
     auto begin = nodes_.size();
     nodes_.reserve(nodes_.size() + attrs.size());
     std::sort(attrs.begin(), attrs.end(), [&](auto& l, auto& r) {
         return static_cast<uint16_t>(l.attribute_key()) < static_cast<uint16_t>(r.attribute_key());
     });
+    // Find duplicate ranges.
+    // We optimize the fast path here and try to add as little overhead as possible for duplicate-free attributes.
+    std::vector<nonstd::span<sx::Node>> duplicates;
+    for (size_t i = 0, j = 1; i < attrs.size(); i = j++) {
+        for (; j < attrs.size() && attrs[j].attribute_key() == attrs[i].attribute_key(); ++j)
+            ;
+        if ((j - i) == 1) continue;
+        duplicates.emplace_back(attrs.data() + i, j - i);
+    }
+    // Merge attributes if there are any
+    std::vector<sx::Node> merged_attrs;
+    if (duplicates.size() > 0) {
+        merged_attrs.reserve(attrs.size());
+
+        auto* reader = attrs.data();
+        std::vector<sx::Node> tmp;
+        for (auto dups : duplicates) {
+            // Copy attributes until first duplicate
+            for (; reader != dups.data(); ++reader) merged_attrs.push_back(*reader);
+            reader = dups.end();
+
+            // Only keep first if its not an object
+            auto& fst = dups[0];
+            if (fst.node_type() < sx::NodeType::OBJECT_KEYS_) {
+                merged_attrs.push_back(fst);
+                continue;
+            }
+            // Otherwise merge child attributes
+            size_t child_count = 0;
+            for (auto dup : dups) child_count += dup.children_count();
+            tmp.clear();
+            tmp.reserve(child_count);
+            for (auto dup : dups) {
+                for (size_t l = 0; l < dup.children_count(); ++l) {
+                    tmp.push_back(nodes_[dup.children_begin_or_value() + l]);
+                }
+            }
+            // Add object.
+            // Note that this will recursively merge paths such as style.data.fill and style.data.stroke
+            auto merged = AddObject(fst.location(), fst.node_type(), merged_attrs, true, true);
+            merged_attrs.push_back(merged);
+        }
+        for (; reader != attrs.end(); ++reader) merged_attrs.push_back(*reader);
+
+        // Replace attributes
+        attrs = {merged_attrs};
+    }
+    // Add the nodes
     for (auto& v : attrs) {
-        if (skip_none && v.node_type() == sx::NodeType::NONE) continue;
+        if (v.node_type() == sx::NodeType::NONE) continue;
         AddNode(v);
     }
     auto n = nodes_.size() - begin;
     if ((n == 0) && null_if_empty) {
         return Null();
+    }
+    if (n > 0 && shrink_location) {
+        auto fstBegin = nodes_[begin].location().offset();
+        auto lstEnd = nodes_.back().location().offset() + nodes_.back().location().length();
+        loc = sx::Location(fstBegin, lstEnd - fstBegin);
     }
     return sx::Node(loc, type, sx::AttributeKey::NONE, NO_PARENT, begin, n);
 }
