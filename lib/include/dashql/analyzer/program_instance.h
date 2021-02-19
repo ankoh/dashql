@@ -91,9 +91,8 @@ class ProgramInstance {
 
     /// Render the statement text
     Expected<std::string> RenderStatementText(size_t stmt_id) const;
-    /// Pack the evaluated nodes
-    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<proto::analyzer::NodeValue>>> PackEvaluatedNodes(
-        flatbuffers::FlatBufferBuilder& builder) const;
+    /// Pack the program annotations
+    flatbuffers::Offset<proto::analyzer::ProgramAnnotations> PackAnnotations(flatbuffers::FlatBufferBuilder& builder) const;
 
     /// Find an attribute
     const sx::Node* FindAttribute(const sx::Node& origin, sx::AttributeKey key) const;

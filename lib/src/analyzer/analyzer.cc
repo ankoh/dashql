@@ -286,31 +286,6 @@ flatbuffers::Offset<proto::syntax::Program> Analyzer::PackProgram(flatbuffers::F
     return sx::Program::Pack(builder, volatile_program_.get());
 }
 
-/// Pack the program annotations
-flatbuffers::Offset<proto::analyzer::ProgramAnnotations> Analyzer::PackProgramAnnotations(
-    flatbuffers::FlatBufferBuilder& builder) {
-    assert(!!program_instance_.get());
-
-    // Pack parameters
-    std::vector<flatbuffers::Offset<proto::analyzer::ParameterValue>> param_offsets;
-    param_offsets.reserve(program_instance_->parameter_values().size());
-    for (auto& param : program_instance_->parameter_values()) {
-        param_offsets.push_back(param.Pack(builder));
-    }
-    auto param_vec = builder.CreateVector(param_offsets);
-
-    // Pack the evaluated nodes
-    auto eval = program_instance_->PackEvaluatedNodes(builder);
-
-    // Encode the plan result
-    proto::analyzer::ProgramAnnotationsBuilder annotations{builder};
-    annotations.add_parameters(param_vec);
-    annotations.add_evaluated_nodes(eval);
-    // XXX viz specs
-    // XXX node errors
-    return annotations.Finish();
-}
-
 /// Pack the plan
 flatbuffers::Offset<proto::analyzer::Plan> Analyzer::PackPlan(flatbuffers::FlatBufferBuilder& builder) {
     assert(!!planned_graph_.get());
@@ -327,7 +302,7 @@ flatbuffers::Offset<proto::analyzer::ProgramReplacement> Analyzer::PackReplaceme
 
     auto program_txt = builder.CreateString(program_instance_->program_text());
     auto program = sx::Program::Pack(builder, &program_instance_->program());
-    auto annotations = PackProgramAnnotations(builder);
+    auto annotations = program_instance_->PackAnnotations(builder);
 
     proto::analyzer::ProgramReplacementBuilder replacement{builder};
     replacement.add_program_text(program_txt);
