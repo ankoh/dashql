@@ -30,12 +30,8 @@ inline sx::Node Bool(sx::Location loc, bool v) {
 }
 
 /// Create a constant inline
-inline sx::Node Const(ParserDriver& driver, sx::Location loc, sx::AConstType type) {
-    return driver.Add(loc, sx::NodeType::OBJECT_SQL_CONST,
-                      {
-                          Key::SQL_CONST_TYPE << Enum(loc, type),
-                          Key::SQL_CONST_VALUE << String(loc),
-                      });
+inline sx::Node Const(ParserDriver& driver, sx::Location loc, sx::AConstType /*type*/) {
+    return sx::Node(loc, sx::NodeType::STRING_REF, Key::NONE, NO_PARENT, 0, 0);
 }
 
 /// Create indirection

@@ -12,10 +12,7 @@
                     </node>
                     <node key="SQL_VIEW_STATEMENT" type="OBJECT_SQL_VIEW" loc="28..36" text="select 1">
                         <node key="SQL_SELECT_TARGETS">
-                            <node type="OBJECT_SQL_CONST" loc="35..36" text="1">
-                                <node key="SQL_CONST_TYPE" value="INTEGER" />
-                                <node key="SQL_CONST_VALUE" loc="35..36" text="1" />
-                            </node>
+                            <node loc="35..36" text="1" />
                         </node>
                     </node>
                     <node key="SQL_VIEW_TEMP" value="DEFAULT" />
