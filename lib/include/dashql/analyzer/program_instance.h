@@ -12,6 +12,7 @@
 
 #include "dashql/analyzer/parameter_value.h"
 #include "dashql/analyzer/value.h"
+#include "dashql/analyzer/viz_statement.h"
 #include "dashql/common/enum.h"
 #include "dashql/common/expected.h"
 #include "dashql/common/span.h"
@@ -51,6 +52,8 @@ class ProgramInstance {
     SparseUnionFind<Value> evaluated_nodes_;
     /// The node errors
     std::vector<NodeError> node_errors_;
+    /// The viz statements
+    std::vector<std::unique_ptr<viz::VizStatement>> viz_statements_;
 
    public:
     /// Constructor
