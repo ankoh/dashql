@@ -12,16 +12,16 @@
                 stroke = "#c43a31"
             ),
             style.labels = (
-                fontSize = 15,
+                font_size = 15,
                 fill = "red"
             )
         ), SCATTER (
             style = (
                 data = (
-                    fill: "#c43a31",
-                    fillOpacity: 0.6,
-                    stroke: "#c43a31",
-                    strokeWidth: 3
+                    fill = "#c43a31",
+                    fill_opacity = 0.6,
+                    stroke = "#c43a31",
+                    stroke_width = 3
                 )
             )
         ), X AXIS(scale = "time"), Y AXIS(scale = "log");
