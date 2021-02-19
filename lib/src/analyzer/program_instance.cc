@@ -30,7 +30,7 @@ const ParameterValue* ProgramInstance::FindParameterValue(size_t stmt_id) const 
 }
 
 // Find a parameter value
-const Value* ProgramInstance::FindNodeValue(size_t node_id) { return evaluated_nodes_.Find(node_id); }
+const ProgramInstance::NodeValue* ProgramInstance::FindNodeValue(size_t node_id) { return evaluated_nodes_.Find(node_id); }
 
 // Collect the statement options
 Expected<std::string> ProgramInstance::RenderStatementText(size_t stmt_id) const {
@@ -38,14 +38,14 @@ Expected<std::string> ProgramInstance::RenderStatementText(size_t stmt_id) const
     SubstringBuffer buffer{*program_text_, target_root.location()};
 
     // Replace all interpolated nodes
-    evaluated_nodes_.IterateValues([&](size_t node_id, const Value& value) {
+    evaluated_nodes_.IterateValues([&](size_t, const NodeValue& node_value) {
         // Intersects with buffer?
-        auto& node = program_->nodes[node_id];
+        auto& node = program_->nodes[node_value.root_node_id];
         auto node_loc = node.location();
         if (!buffer.Intersects(node_loc)) return;
 
         // Replace in buffer
-        auto vstr = value.PrintValueAsScript();
+        auto vstr = node_value.value.PrintValueAsScript();
         buffer.Replace(node_loc, vstr);
     });
 
@@ -66,10 +66,10 @@ flatbuffers::Offset<proto::analyzer::ProgramAnnotations> ProgramInstance::PackAn
 
     // Pack the evaluated nodes
     std::vector<flatbuffers::Offset<proto::analyzer::NodeValue>> eval_nodes;
-    evaluated_nodes_.IterateValues([&](size_t node_id, const Value& value) {
-        auto vb = value.Pack(builder);
+    evaluated_nodes_.IterateValues([&](size_t /*node_id*/, const NodeValue& node_value) {
+        auto vb = node_value.value.Pack(builder);
         proto::analyzer::NodeValueBuilder nv{builder};
-        nv.add_node_id(node_id);
+        nv.add_node_id(node_value.root_node_id);
         nv.add_value(vb);
         eval_nodes.push_back(nv.Finish());
     });
