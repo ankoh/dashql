@@ -35,10 +35,7 @@
                     <node key="DASHQL_STATEMENT_NAME">
                         <node loc="296..303" text="country" />
                     </node>
-                    <node key="DASHQL_OPTION_DEFAULT_VALUE" type="OBJECT_SQL_CONST" loc="344..348" text="'DE'">
-                        <node key="SQL_CONST_TYPE" value="STRING" />
-                        <node key="SQL_CONST_VALUE" loc="344..348" text="'DE'" />
-                    </node>
+                    <node key="DASHQL_OPTION_DEFAULT_VALUE" loc="344..348" text="'DE'" />
                 </node>
             </statement>
             <statement type="LOAD_HTTP" name="global.weather_csv">
@@ -49,10 +46,7 @@
                     </node>
                     <node key="DASHQL_OPTION_URL" type="OBJECT_DASHQL_FUNCTION_CALL" loc="533..597" text="format('ht..l.country)">
                         <node key="SQL_FUNCTION_ARGUMENTS">
-                            <node type="OBJECT_SQL_CONST" loc="540..580" text="'https://c..eather/%s'">
-                                <node key="SQL_CONST_TYPE" value="STRING" />
-                                <node key="SQL_CONST_VALUE" loc="540..580" text="'https://c..eather/%s'" />
-                            </node>
+                            <node loc="540..580" text="'https://c..eather/%s'" />
                             <node type="OBJECT_SQL_COLUMN_REF" loc="582..596" text="global.country">
                                 <node key="SQL_COLUMN_REF_PATH">
                                     <node loc="582..588" text="global" />
@@ -92,10 +86,7 @@
                         <node key="SQL_TEMP_TYPE" value="DEFAULT" />
                     </node>
                     <node key="SQL_SELECT_TARGETS">
-                        <node type="OBJECT_SQL_CONST" loc="882..883" text="1">
-                            <node key="SQL_CONST_TYPE" value="INTEGER" />
-                            <node key="SQL_CONST_VALUE" loc="882..883" text="1" />
-                        </node>
+                        <node loc="882..883" text="1" />
                     </node>
                 </node>
             </statement>

@@ -5,7 +5,7 @@
                 default_value = 'DE'
             );
             LOAD weather_csv FROM http (
-                url = format('https://cdn.dashql.com/demo/weather/%s', global.country)
+                url = format('https://cdn.dashql.com/demo/weather/{}', global.country)
             );
         </text>
         <parameters>
@@ -24,7 +24,7 @@
                 default_value = 'DE'
             );
             LOAD weather_csv FROM http (
-                url = format('https://cdn.dashql.com/demo/weather/%s', global.country)
+                url = format('https://cdn.dashql.com/demo/weather/{}', global.country)
             );
         </text>
         <parameters>

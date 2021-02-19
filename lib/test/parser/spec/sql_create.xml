@@ -12,10 +12,7 @@
                     <node key="SQL_CREATE_AS_ON_COMMIT" value="NOOP" />
                     <node key="SQL_CREATE_AS_STATEMENT" type="OBJECT_SQL_SELECT" loc="29..37" text="select 1">
                         <node key="SQL_SELECT_TARGETS">
-                            <node type="OBJECT_SQL_CONST" loc="36..37" text="1">
-                                <node key="SQL_CONST_TYPE" value="INTEGER" />
-                                <node key="SQL_CONST_VALUE" loc="36..37" text="1" />
-                            </node>
+                            <node loc="36..37" text="1" />
                         </node>
                     </node>
                     <node key="SQL_CREATE_AS_TEMP" value="DEFAULT" />

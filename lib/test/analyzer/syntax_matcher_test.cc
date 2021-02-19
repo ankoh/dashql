@@ -39,17 +39,11 @@ TEST(SyntaxMatcherTest, LoadStatement) {
                         .MatchString()
                 )),
             sxm::Attribute(sx::AttributeKey::DASHQL_OPTION_URL, 4)
-                .MatchObject(sx::NodeType::OBJECT_SQL_CONST)
-                .MatchChildren(NODE_MATCHERS(
-                    sxm::Attribute(sx::AttributeKey::SQL_CONST_TYPE, 5)
-                        .MatchEnum(sx::NodeType::ENUM_SQL_CONST_TYPE),
-                    sxm::Attribute(sx::AttributeKey::SQL_CONST_VALUE, 6)
-                        .MatchString(),
-                ))
+                .MatchString()
     ));
     // clang-format on
 
-    std::array<NodeMatching, 7> matching;
+    std::array<NodeMatching, 5> matching;
     auto full_match = schema.Match(instance, stmt_root, matching);
 
     EXPECT_EQ(matching[0].status, NodeMatchingStatus::MATCHED);
@@ -57,14 +51,12 @@ TEST(SyntaxMatcherTest, LoadStatement) {
     EXPECT_EQ(matching[2].status, NodeMatchingStatus::MATCHED);
     EXPECT_EQ(matching[3].status, NodeMatchingStatus::MATCHED);
     EXPECT_EQ(matching[4].status, NodeMatchingStatus::MATCHED);
-    EXPECT_EQ(matching[5].status, NodeMatchingStatus::MATCHED);
-    EXPECT_EQ(matching[6].status, NodeMatchingStatus::MATCHED);
     EXPECT_TRUE(full_match);
 
     ASSERT_TRUE(std::holds_alternative<std::string_view>(matching[3].data));
     ASSERT_EQ(std::get<std::string_view>(matching[3].data), "weather_csv");
-    ASSERT_TRUE(std::holds_alternative<std::string_view>(matching[6].data));
-    ASSERT_EQ(std::get<std::string_view>(matching[6].data), "'https://localhost/test'");
+    ASSERT_TRUE(std::holds_alternative<std::string_view>(matching[4].data));
+    ASSERT_EQ(std::get<std::string_view>(matching[4].data), "'https://localhost/test'");
 }
 
 TEST(SyntaxMatcherTest, VizStatementPositionShort) {
@@ -94,17 +86,17 @@ TEST(SyntaxMatcherTest, VizStatementPositionShort) {
                                 .MatchOptions()
                                 .MatchChildren(NODE_MATCHERS(
                                     sxm::Option(sx::AttributeKey::DASHQL_OPTION_COLUMN, 0)
-                                        .MatchObject(sx::NodeType::OBJECT_SQL_CONST),
+                                        .MatchString(),
                                     sxm::Option(sx::AttributeKey::DASHQL_OPTION_HEIGHT, 1)
-                                        .MatchObject(sx::NodeType::OBJECT_SQL_CONST),
+                                        .MatchString(),
                                     sxm::Option(sx::AttributeKey::DASHQL_OPTION_ROW, 2)
-                                        .MatchObject(sx::NodeType::OBJECT_SQL_CONST),
+                                        .MatchString(),
                                     sxm::Option(sx::AttributeKey::DASHQL_OPTION_WIDTH, 3)
-                                        .MatchObject(sx::NodeType::OBJECT_SQL_CONST),
+                                        .MatchString(),
                                     sxm::Option(sx::AttributeKey::DASHQL_OPTION_X, 4)
-                                        .MatchObject(sx::NodeType::OBJECT_SQL_CONST),
+                                        .MatchString(),
                                     sxm::Option(sx::AttributeKey::DASHQL_OPTION_Y, 5)
-                                        .MatchObject(sx::NodeType::OBJECT_SQL_CONST),
+                                        .MatchString(),
                                 )),
                         ))
                 )),
@@ -113,7 +105,7 @@ TEST(SyntaxMatcherTest, VizStatementPositionShort) {
         ));
     // clang-format on
 
-    std::array<NodeMatching, 8> matching;
+    std::array<NodeMatching, 6> matching;
     schema.Match(instance, stmt_root, matching);
 
     EXPECT_EQ(matching[0].status, NodeMatchingStatus::MATCHED);
@@ -153,14 +145,8 @@ TEST(SyntaxMatcherTest, LoadStatementFormat) {
                     sxm::Attribute(sx::AttributeKey::SQL_FUNCTION_ARGUMENTS, 5)
                         .MatchArray()
                         .MatchChildren(NODE_MATCHERS(
-                            sxm::Element()
-                                .MatchObject(sx::NodeType::OBJECT_SQL_CONST)
-                                .MatchChildren(NODE_MATCHERS(
-                                    sxm::Attribute(sx::AttributeKey::SQL_CONST_TYPE)
-                                        .MatchEnum(sx::NodeType::ENUM_SQL_CONST_TYPE),
-                                    sxm::Attribute(sx::AttributeKey::SQL_CONST_VALUE, 7)
-                                        .MatchString(),
-                                )),
+                            sxm::Element(7)
+                                .MatchString(),
                             sxm::Element()
                                 .MatchObject(sx::NodeType::OBJECT_SQL_COLUMN_REF)
                                 .MatchChildren(NODE_MATCHERS(

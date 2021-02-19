@@ -24,10 +24,7 @@
                     <node key="DASHQL_STATEMENT_NAME">
                         <node loc="14..25" text="weather_csv" />
                     </node>
-                    <node key="DASHQL_OPTION_URL" type="OBJECT_SQL_CONST" loc="56..80" text="'https://l..host/test'">
-                        <node key="SQL_CONST_TYPE" value="STRING" />
-                        <node key="SQL_CONST_VALUE" loc="56..80" text="'https://l..host/test'" />
-                    </node>
+                    <node key="DASHQL_OPTION_URL" loc="56..80" text="'https://l..host/test'" />
                 </node>
             </statement>
         </statements>
@@ -58,10 +55,7 @@
                     </node>
                     <node key="DASHQL_OPTION_URL" type="OBJECT_DASHQL_FUNCTION_CALL" loc="56..120" text="format('ht..l.country)">
                         <node key="SQL_FUNCTION_ARGUMENTS">
-                            <node type="OBJECT_SQL_CONST" loc="63..103" text="'https://c..eather/%s'">
-                                <node key="SQL_CONST_TYPE" value="STRING" />
-                                <node key="SQL_CONST_VALUE" loc="63..103" text="'https://c..eather/%s'" />
-                            </node>
+                            <node loc="63..103" text="'https://c..eather/%s'" />
                             <node type="OBJECT_SQL_COLUMN_REF" loc="105..119" text="global.country">
                                 <node key="SQL_COLUMN_REF_PATH">
                                     <node loc="105..111" text="global" />
@@ -104,22 +98,10 @@
                         <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="31..194" text="LINE (&#10;   ..&#10;        )">
                             <node key="DASHQL_VIZ_COMPONENT_TYPE" value="LINE" />
                             <node key="DASHQL_OPTION_POSITION" type="OBJECT_DASHQL_OPTION_LIST" loc="61..184" text="(&#10;        ..         )">
-                                <node key="DASHQL_OPTION_COLUMN" type="OBJECT_SQL_CONST" loc="113..114" text="0">
-                                    <node key="SQL_CONST_TYPE" value="INTEGER" />
-                                    <node key="SQL_CONST_VALUE" loc="113..114" text="0" />
-                                </node>
-                                <node key="DASHQL_OPTION_HEIGHT" type="OBJECT_SQL_CONST" loc="168..170" text="15">
-                                    <node key="SQL_CONST_TYPE" value="INTEGER" />
-                                    <node key="SQL_CONST_VALUE" loc="168..170" text="15" />
-                                </node>
-                                <node key="DASHQL_OPTION_ROW" type="OBJECT_SQL_CONST" loc="85..86" text="0">
-                                    <node key="SQL_CONST_TYPE" value="INTEGER" />
-                                    <node key="SQL_CONST_VALUE" loc="85..86" text="0" />
-                                </node>
-                                <node key="DASHQL_OPTION_WIDTH" type="OBJECT_SQL_CONST" loc="140..141" text="4">
-                                    <node key="SQL_CONST_TYPE" value="INTEGER" />
-                                    <node key="SQL_CONST_VALUE" loc="140..141" text="4" />
-                                </node>
+                                <node key="DASHQL_OPTION_COLUMN" loc="113..114" text="0" />
+                                <node key="DASHQL_OPTION_HEIGHT" loc="168..170" text="15" />
+                                <node key="DASHQL_OPTION_ROW" loc="85..86" text="0" />
+                                <node key="DASHQL_OPTION_WIDTH" loc="140..141" text="4" />
                             </node>
                         </node>
                     </node>
@@ -162,22 +144,10 @@
                         <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="31..95" text="LINE (&#10;   ..&#10;        )">
                             <node key="DASHQL_VIZ_COMPONENT_TYPE" value="LINE" />
                             <node key="DASHQL_OPTION_POSITION" type="OBJECT_DASHQL_OPTION_LIST" loc="56..85" text="(r = 0, c ..4, h = 15)">
-                                <node key="DASHQL_OPTION_COLUMN" type="OBJECT_SQL_CONST" loc="68..69" text="0">
-                                    <node key="SQL_CONST_TYPE" value="INTEGER" />
-                                    <node key="SQL_CONST_VALUE" loc="68..69" text="0" />
-                                </node>
-                                <node key="DASHQL_OPTION_HEIGHT" type="OBJECT_SQL_CONST" loc="82..84" text="15">
-                                    <node key="SQL_CONST_TYPE" value="INTEGER" />
-                                    <node key="SQL_CONST_VALUE" loc="82..84" text="15" />
-                                </node>
-                                <node key="DASHQL_OPTION_ROW" type="OBJECT_SQL_CONST" loc="61..62" text="0">
-                                    <node key="SQL_CONST_TYPE" value="INTEGER" />
-                                    <node key="SQL_CONST_VALUE" loc="61..62" text="0" />
-                                </node>
-                                <node key="DASHQL_OPTION_WIDTH" type="OBJECT_SQL_CONST" loc="75..76" text="4">
-                                    <node key="SQL_CONST_TYPE" value="INTEGER" />
-                                    <node key="SQL_CONST_VALUE" loc="75..76" text="4" />
-                                </node>
+                                <node key="DASHQL_OPTION_COLUMN" loc="68..69" text="0" />
+                                <node key="DASHQL_OPTION_HEIGHT" loc="82..84" text="15" />
+                                <node key="DASHQL_OPTION_ROW" loc="61..62" text="0" />
+                                <node key="DASHQL_OPTION_WIDTH" loc="75..76" text="4" />
                             </node>
                         </node>
                     </node>
