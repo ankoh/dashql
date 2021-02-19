@@ -11,12 +11,16 @@
 #include <unordered_map>
 #include <variant>
 
-#include "dashql/analyzer/program_instance.h"
 #include "dashql/common/enum.h"
 #include "dashql/common/span.h"
 #include "dashql/proto_generated.h"
 
+namespace sx = dashql::proto::syntax;
+
 namespace dashql {
+
+class ProgramInstance;
+
 namespace viz {
 
 class VizComponent;

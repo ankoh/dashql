@@ -7,17 +7,18 @@
 #include <unordered_map>
 
 #include "dashql/analyzer/program_editor.h"
+#include "dashql/analyzer/program_instance.h"
 #include "dashql/analyzer/syntax_matcher.h"
 #include "dashql/common/span.h"
 #include "dashql/common/substring_buffer.h"
 #include "dashql/proto_generated.h"
 
+namespace pv = dashql::proto::viz;
+namespace fb = flatbuffers;
+
+
 namespace dashql {
 namespace viz {
-
-namespace sx = proto::syntax;
-namespace pv = proto::viz;
-namespace fb = flatbuffers;
 
 class VizAttributePrinter {
    protected:
