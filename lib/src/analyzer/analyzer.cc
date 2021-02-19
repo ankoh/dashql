@@ -207,8 +207,8 @@ void Analyzer::EvaluateConstants(ProgramInstance& instance) {
 /// Analyze the viz specs
 void Analyzer::AnalyzeVizStatements(ProgramInstance& instance) {
     auto& program = instance.program();
-    for (auto& stmt : program.statements) {
-        auto viz = viz::VizStatement::ReadFrom(instance, *stmt);
+    for (size_t stmt_id = 0; stmt_id < program.statements.size(); ++stmt_id) {
+        auto viz = viz::VizStatement::ReadFrom(instance, stmt_id);
         if (!viz) continue;
 
         // XXX Pack as viz spec
