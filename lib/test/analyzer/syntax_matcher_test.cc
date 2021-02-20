@@ -29,18 +29,18 @@ TEST(SyntaxMatcherTest, LoadStatement) {
     // clang-format off
     auto schema = sxm::Element(0)
         .MatchObject(sx::NodeType::OBJECT_DASHQL_LOAD)
-        .MatchChildren(NODE_MATCHERS(
+        .MatchChildren({
             sxm::Attribute(sx::AttributeKey::DASHQL_LOAD_METHOD, 1)
                 .MatchEnum(sx::NodeType::ENUM_DASHQL_LOAD_METHOD_TYPE),
             sxm::Attribute(sx::AttributeKey::DASHQL_STATEMENT_NAME, 2)
                 .MatchArray()
-                .MatchChildren(NODE_MATCHERS(
+                .MatchChildren({
                     sxm::Element(3)
                         .MatchString()
-                )),
+                }),
             sxm::Attribute(sx::AttributeKey::DASHQL_OPTION_URL, 4)
                 .MatchString()
-    ));
+        });
     // clang-format on
 
     std::array<NodeMatching, 5> matching;
@@ -59,6 +59,33 @@ TEST(SyntaxMatcherTest, LoadStatement) {
     ASSERT_EQ(std::get<std::string_view>(matching[4].data), "'https://localhost/test'");
 }
 
+TEST(SyntaxMatcherTest, MinimalError) {
+    auto txt = R"CSV(
+        VIZ weather_avg USING LINE (
+            pos = (r = 1, c = 2, w = 4, h = 15)
+        )
+    )CSV";
+    auto program = parser::ParserDriver::Parse(txt);
+    ASSERT_EQ(program->statements.size(), 1);
+    auto stmt_root = program->nodes[program->statements[0]->root_node];
+    ProgramInstance instance{txt, move(program)};
+
+    // clang-format off
+    auto schema = sxm::Element(0)
+        .MatchObject(sx::NodeType::OBJECT_DASHQL_VIZ)
+        .MatchChildren({
+            sxm::Attribute(sx::AttributeKey::DASHQL_VIZ_COMPONENTS, 1)
+                .MatchArray()
+        });
+    // clang-format on
+
+    std::array<NodeMatching, 2> matching;
+    schema.Match(instance, stmt_root, matching);
+
+    EXPECT_EQ(matching[0].status, NodeMatchingStatus::MATCHED);
+    EXPECT_EQ(matching[1].status, NodeMatchingStatus::MATCHED);
+}
+
 TEST(SyntaxMatcherTest, VizStatementPositionShort) {
     auto txt = R"CSV(
         VIZ weather_avg USING LINE (
@@ -71,24 +98,22 @@ TEST(SyntaxMatcherTest, VizStatementPositionShort) {
     ProgramInstance instance{txt, move(program)};
 
     // clang-format off
-    auto schema = sxm::Element()
+    auto schema = sxm::Element(10)
         .MatchObject(sx::NodeType::OBJECT_DASHQL_VIZ)
-        .MatchChildren(NODE_MATCHERS(
-            sxm::Attribute(sx::AttributeKey::DASHQL_VIZ_COMPONENTS)
+        .MatchChildren({
+            sxm::Attribute(sx::AttributeKey::DASHQL_VIZ_COMPONENTS, 11)
                 .MatchArray()
-                .MatchChildren(NODE_MATCHERS(
-                    sxm::Element()
+                .MatchChildren({
+                    sxm::Element(8)
                         .MatchObject(sx::NodeType::OBJECT_DASHQL_VIZ_COMPONENT)
-                        .MatchChildren(NODE_MATCHERS(
+                        .MatchChildren({
                             sxm::Attribute(sx::AttributeKey::DASHQL_VIZ_COMPONENT_TYPE)
                                 .MatchEnum(sx::NodeType::ENUM_DASHQL_VIZ_COMPONENT_TYPE),
-                            sxm::Attribute(sx::AttributeKey::DASHQL_OPTION_POSITION)
+                            sxm::Attribute(sx::AttributeKey::DASHQL_OPTION_POSITION, 9)
                                 .MatchOptions()
-                                .MatchChildren(NODE_MATCHERS(
-                                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_COLUMN, 0)
-                                        .MatchString(),
-                                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_HEIGHT, 1)
-                                        .MatchString(),
+                                .MatchChildren({
+                                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_COLUMN, 0),
+                                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_HEIGHT, 1),
                                     sxm::Option(sx::AttributeKey::DASHQL_OPTION_ROW, 2)
                                         .MatchString(),
                                     sxm::Option(sx::AttributeKey::DASHQL_OPTION_WIDTH, 3)
@@ -97,15 +122,15 @@ TEST(SyntaxMatcherTest, VizStatementPositionShort) {
                                         .MatchString(),
                                     sxm::Option(sx::AttributeKey::DASHQL_OPTION_Y, 5)
                                         .MatchString(),
-                                )),
-                        ))
-                )),
+                                }),
+                        })
+                }),
             sxm::Attribute(sx::AttributeKey::DASHQL_VIZ_TARGET)
-                .MatchObject(sx::NodeType::OBJECT_SQL_TABLE_REF)
-        ));
+                .MatchObject(sx::NodeType::OBJECT_SQL_TABLE_REF),
+        });
     // clang-format on
 
-    std::array<NodeMatching, 6> matching;
+    std::array<NodeMatching, 12> matching;
     schema.Match(instance, stmt_root, matching);
 
     EXPECT_EQ(matching[0].status, NodeMatchingStatus::MATCHED);
@@ -130,38 +155,38 @@ TEST(SyntaxMatcherTest, LoadStatementFormat) {
     // clang-format off
     auto schema = sxm::Element(0)
         .MatchObject(sx::NodeType::OBJECT_DASHQL_LOAD)
-        .MatchChildren(NODE_MATCHERS(
+        .MatchChildren({
             sxm::Attribute(sx::AttributeKey::DASHQL_LOAD_METHOD, 1)
                 .MatchEnum(sx::NodeType::ENUM_DASHQL_LOAD_METHOD_TYPE),
             sxm::Attribute(sx::AttributeKey::DASHQL_STATEMENT_NAME, 2)
                 .MatchArray()
-                .MatchChildren(NODE_MATCHERS(
+                .MatchChildren({
                     sxm::Element(3)
                         .MatchString()
-                )),
+                }),
             sxm::Attribute(sx::AttributeKey::DASHQL_OPTION_URL, 4)
                 .MatchObject(sx::NodeType::OBJECT_DASHQL_FUNCTION_CALL)
-                .MatchChildren(NODE_MATCHERS(
+                .MatchChildren({
                     sxm::Attribute(sx::AttributeKey::SQL_FUNCTION_ARGUMENTS, 5)
                         .MatchArray()
-                        .MatchChildren(NODE_MATCHERS(
+                        .MatchChildren({
                             sxm::Element(7)
                                 .MatchString(),
                             sxm::Element()
                                 .MatchObject(sx::NodeType::OBJECT_SQL_COLUMN_REF)
-                                .MatchChildren(NODE_MATCHERS(
+                                .MatchChildren({
                                     sxm::Attribute(sx::AttributeKey::SQL_COLUMN_REF_PATH)
                                         .MatchArray()
-                                        .MatchChildren(NODE_MATCHERS(
+                                        .MatchChildren({
                                             sxm::Element(8).MatchString(),
                                             sxm::Element(9).MatchString(),
-                                        ))
-                                ))
-                        )),
+                                        })
+                                })
+                        }),
                     sxm::Attribute(sx::AttributeKey::SQL_FUNCTION_NAME, 6)
                         .MatchString(),
-                ))
-    ));
+                })
+    });
     // clang-format on
 
     std::array<NodeMatching, 10> matching;

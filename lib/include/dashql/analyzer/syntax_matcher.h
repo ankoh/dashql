@@ -75,21 +75,9 @@ struct SyntaxMatcher {
     /// The node type
     sx::NodeType node_type = sx::NodeType::NONE;
     /// The children (if any)
-    nonstd::span<const SyntaxMatcher> children = {};
+    std::vector<SyntaxMatcher> children = {};
 
-    /// A buffer to inline static nodes
-    template <size_t ID, size_t N> struct StaticNodeMatchers {
-        static inline nonstd::span<const SyntaxMatcher> Create(std::array<SyntaxMatcher, N> elements) {
-            assert(std::is_sorted(elements.begin(), elements.end(),
-                                  [](auto& l, auto& r) { return l.attribute_key < r.attribute_key; }));
-            static const std::array<SyntaxMatcher, N> buffer = move(elements);
-            return {buffer.data(), buffer.size()};
-        }
-    };
-#define NUM_NODES(...) (sizeof((SyntaxMatcher[]){__VA_ARGS__}) / sizeof(SyntaxMatcher))
-#define NODE_MATCHERS(...) SyntaxMatcher::StaticNodeMatchers<__COUNTER__, NUM_NODES(__VA_ARGS__)>::Create({__VA_ARGS__})
-
-    static constexpr inline SyntaxMatcher Element(std::optional<size_t> matching = std::nullopt) {
+    static inline SyntaxMatcher Element(std::optional<size_t> matching = std::nullopt) {
         return {
             .matching_id = matching,
             .attribute_key = sx::AttributeKey::NONE,
@@ -99,7 +87,7 @@ struct SyntaxMatcher {
         };
     }
 
-    static constexpr inline SyntaxMatcher Attribute(sx::AttributeKey key,
+    static inline SyntaxMatcher Attribute(sx::AttributeKey key,
                                                     std::optional<size_t> matching = std::nullopt) {
         return {
             .matching_id = matching,
@@ -110,7 +98,7 @@ struct SyntaxMatcher {
         };
     }
 
-    static constexpr inline SyntaxMatcher Option(sx::AttributeKey key, std::optional<size_t> matching = std::nullopt) {
+    static inline SyntaxMatcher Option(sx::AttributeKey key, std::optional<size_t> matching = std::nullopt) {
         return {
             .matching_id = matching,
             .attribute_key = key,
@@ -121,8 +109,8 @@ struct SyntaxMatcher {
     }
 
     /// Add children
-    constexpr inline SyntaxMatcher& MatchChildren(nonstd::span<const SyntaxMatcher> c) {
-        children = c;
+    inline SyntaxMatcher& MatchChildren(std::initializer_list<SyntaxMatcher> c) {
+        children = std::move(c);
         return *this;
     }
 
@@ -135,7 +123,7 @@ struct SyntaxMatcher {
     /// Create options
     constexpr inline SyntaxMatcher& MatchOptions() {
         node_spec = SyntaxMatcherType::OBJECT;
-        node_type = sx::NodeType::NONE;
+        node_type = sx::NodeType::OBJECT_DASHQL_OPTION_LIST;
         return *this;
     }
     /// Create an array
@@ -153,7 +141,7 @@ struct SyntaxMatcher {
     /// Create a boolean
     constexpr inline SyntaxMatcher& MatchBool() {
         node_spec = SyntaxMatcherType::BOOL;
-        node_type = sx::NodeType::NONE;
+        node_type = sx::NodeType::BOOL;
         return *this;
     }
     /// Create an enum
@@ -165,13 +153,13 @@ struct SyntaxMatcher {
     /// Create an integer
     constexpr inline SyntaxMatcher& MatchUI32() {
         node_spec = SyntaxMatcherType::UI32;
-        node_type = sx::NodeType::NONE;
+        node_type = sx::NodeType::UI32;
         return *this;
     }
     /// Create an integer bitmap
     constexpr inline SyntaxMatcher& MatchUI32Bitmap() {
         node_spec = SyntaxMatcherType::UI32_BITMAP;
-        node_type = sx::NodeType::NONE;
+        node_type = sx::NodeType::UI32_BITMAP;
         return *this;
     }
 

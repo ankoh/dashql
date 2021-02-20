@@ -111,9 +111,10 @@ class ParserDriver {
 
     /// Add a an array
     sx::Node AddArray(sx::Location loc, nonstd::span<sx::Node> values, bool null_if_empty = true,
-                 bool shrink_location = false);
+                      bool shrink_location = false);
     /// Add an object
-    sx::Node AddObject(sx::Location loc, sx::NodeType type, nonstd::span<sx::Node> attrs, bool null_if_empty = true, bool shrink_location = false);
+    sx::Node AddObject(sx::Location loc, sx::NodeType type, nonstd::span<sx::Node> attrs, bool null_if_empty = true,
+                       bool shrink_location = false);
 
     /// Add a an array
     inline sx::Node Add(sx::Location loc, NodeVector&& values, bool null_if_empty = true,
