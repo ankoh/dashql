@@ -5,6 +5,7 @@
 
 #include "dashql/common/memstream.h"
 #include "dashql/common/variant.h"
+#include "dashql/proto_generated.h"
 
 namespace dashql {
 
@@ -143,6 +144,7 @@ bool SyntaxMatcher::Match(const ProgramInstance& program, const sx::Node& root, 
                     program.program().nodes.data() + top.node.children_begin_or_value(), top.node.children_count()};
                 assert(std::is_sorted(children.begin(), children.end(),
                                       [](auto& l, auto& r) { return l.attribute_key() < r.attribute_key(); }));
+
                 size_t h = 0, e = 0;
                 while (h < children.size() && e < top.matcher.children.size()) {
                     auto& have = children[h];

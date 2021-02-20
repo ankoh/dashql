@@ -80,13 +80,13 @@ std::unique_ptr<VizStatement> VizStatement::ReadFrom(const ProgramInstance& inst
     auto& program = instance.program();
     auto& stmt = program.statements[stmt_id];
     auto& root = program.nodes[stmt->root_node];
-    auto schema = sxm::Element()
+    static const auto schema = sxm::Element()
         .MatchObject(sx::NodeType::OBJECT_DASHQL_VIZ)
-        .MatchChildren(NODE_MATCHERS(
+        .MatchChildren({
             sxm::Attribute(sx::AttributeKey::DASHQL_VIZ_COMPONENTS, 1)
                 .MatchArray(),
             sxm::Attribute(sx::AttributeKey::DASHQL_VIZ_TARGET, 0),
-        ));
+        });
     // clang-format on
 
     // Match root
@@ -147,18 +147,18 @@ flatbuffers::Offset<proto::viz::VizSpec> VizStatement::Pack(flatbuffers::FlatBuf
 /// Read common viz attributes
 void VizComponent::ReadAttributes(const ProgramInstance& instance, const sx::Node& node) {
     // clang-format off
-    auto schema = sxm::Element()
+    static const auto schema = sxm::Element()
         .MatchObject(sx::NodeType::OBJECT_DASHQL_VIZ_COMPONENT)
-        .MatchChildren(NODE_MATCHERS(
+        .MatchChildren({
             sxm::Option(sx::AttributeKey::DASHQL_OPTION_POSITION)
                 .MatchOptions()
-                .MatchChildren(NODE_MATCHERS(
+                .MatchChildren({
                     sxm::Option(sx::AttributeKey::DASHQL_OPTION_COLUMN, 1),
                     sxm::Option(sx::AttributeKey::DASHQL_OPTION_HEIGHT, 3),
                     sxm::Option(sx::AttributeKey::DASHQL_OPTION_ROW, 0),
                     sxm::Option(sx::AttributeKey::DASHQL_OPTION_WIDTH, 2),
-                ))
-        ));
+                })
+        });
     // clang-format on
 
     // Match root
@@ -179,12 +179,12 @@ void VizComponent::PrintAttributes(VizAttributePrinter& out) const {
 /// Read component from a node
 std::unique_ptr<VizComponent> VizComponent::ReadFrom(const ProgramInstance& instance, const sx::Node& node) {
     // clang-format off
-    auto schema = sxm::Element()
+    static const auto schema = sxm::Element()
         .MatchObject(sx::NodeType::OBJECT_DASHQL_VIZ_COMPONENT)
-        .MatchChildren(NODE_MATCHERS(
+        .MatchChildren({
             sxm::Attribute(sx::AttributeKey::DASHQL_VIZ_COMPONENT_TYPE, 0)
                 .MatchEnum(sx::NodeType::ENUM_DASHQL_VIZ_COMPONENT_TYPE),
-        ));
+        });
     // clang-format on
 
     std::array<NodeMatching, 1> matches;
@@ -241,12 +241,12 @@ std::unique_ptr<VizComponent> LineChartComponent::ReadFrom(const ProgramInstance
     c->VizComponent::ReadAttributes(instance, node);
 
     // clang-format off
-    auto schema = sxm::Element()
+    static const auto schema = sxm::Element()
         .MatchObject(sx::NodeType::OBJECT_DASHQL_VIZ_COMPONENT)
-        .MatchChildren(NODE_MATCHERS(
+        .MatchChildren({
             sxm::Attribute(sx::AttributeKey::DASHQL_VIZ_COMPONENT_TYPE_MODIFIERS, 0)
                 .MatchUI32Bitmap(),
-        ));
+        });
     // clang-format on
     std::array<NodeMatching, 1> matches;
     schema.Match(instance, node, matches);
@@ -275,10 +275,9 @@ std::pair<flatbuffers::Offset<void>, pv::VizComponentVariant> LineChartComponent
 /// Read component
 std::unique_ptr<VizComponent> ScatterChartComponent::ReadFrom(const ProgramInstance& instance, const sx::Node& node) {
     // clang-format off
-    auto schema = sxm::Element()
+    static const auto schema = sxm::Element()
         .MatchObject(sx::NodeType::OBJECT_DASHQL_VIZ_COMPONENT)
-        .MatchChildren(NODE_MATCHERS(
-        ));
+        .MatchChildren({});
     // clang-format on
     return std::make_unique<ScatterChartComponent>();
 }
@@ -295,12 +294,12 @@ std::pair<flatbuffers::Offset<void>, pv::VizComponentVariant> ScatterChartCompon
 /// Read component
 std::unique_ptr<VizComponent> AreaChartComponent::ReadFrom(const ProgramInstance& instance, const sx::Node& node) {
     // clang-format off
-    auto schema = sxm::Element()
+    static const auto schema = sxm::Element()
         .MatchObject(sx::NodeType::OBJECT_DASHQL_VIZ_COMPONENT)
-        .MatchChildren(NODE_MATCHERS(
+        .MatchChildren({
             sxm::Attribute(sx::AttributeKey::DASHQL_VIZ_COMPONENT_TYPE_MODIFIERS, 0)
                 .MatchUI32Bitmap(),
-        ));
+        });
     // clang-format on
 
     return std::make_unique<AreaChartComponent>();
@@ -321,12 +320,12 @@ std::unique_ptr<VizComponent> AxisComponent::ReadFrom(const ProgramInstance& ins
     c->VizComponent::ReadAttributes(instance, node);
 
     // clang-format off
-    auto schema = sxm::Element()
+    static const auto schema = sxm::Element()
         .MatchObject(sx::NodeType::OBJECT_DASHQL_VIZ_COMPONENT)
-        .MatchChildren(NODE_MATCHERS(
+        .MatchChildren({
             sxm::Attribute(sx::AttributeKey::DASHQL_VIZ_COMPONENT_TYPE_MODIFIERS, 0)
                 .MatchUI32Bitmap(),
-        ));
+        });
     // clang-format on
     std::array<NodeMatching, 1> matches;
     schema.Match(instance, node, matches);
