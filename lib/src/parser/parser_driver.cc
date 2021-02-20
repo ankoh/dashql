@@ -280,7 +280,7 @@ sx::Node ParserDriver::AddObject(sx::Location loc, sx::NodeType type, nonstd::sp
     // Find duplicate ranges.
     // We optimize the fast path here and try to add as little overhead as possible for duplicate-free attributes.
     std::vector<nonstd::span<sx::Node>> duplicates;
-    for (size_t i = 0, j = 1; i < attrs.size(); i = j++) {
+    for (size_t i = 0, j = 1; j < attrs.size(); i = j++) {
         for (; j < attrs.size() && attrs[j].attribute_key() == attrs[i].attribute_key(); ++j)
             ;
         if ((j - i) == 1) continue;

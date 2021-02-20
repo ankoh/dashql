@@ -61,14 +61,14 @@ const Value* Analyzer::TryEvaluateConstant(ProgramInstance& instance, size_t nod
 /// Evaluate a function call
 const Value* Analyzer::TryEvaluateFunctionCall(ProgramInstance& instance, size_t node_id) const {
     // clang-format off
-    auto schema = sxm::Element()
+    static const auto schema = sxm::Element()
         .MatchObject(sx::NodeType::OBJECT_DASHQL_FUNCTION_CALL)
-        .MatchChildren(NODE_MATCHERS(
+        .MatchChildren({
             sxm::Attribute(sx::AttributeKey::SQL_FUNCTION_ARGUMENTS, 0)
                 .MatchArray(),
             sxm::Attribute(sx::AttributeKey::SQL_FUNCTION_NAME, 1)
                 .MatchString(),
-        ));
+        });
     // clang-format on
 
     auto& eval = instance.evaluated_nodes_;
