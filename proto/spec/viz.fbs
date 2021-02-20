@@ -1,5 +1,7 @@
 // Copyright (c) 2020 The DashQL Authors
 
+include "syntax/syntax.fbs";
+
 namespace dashql.proto.viz;
 
 struct VizPosition {
@@ -84,8 +86,69 @@ enum ColorScale: uint8 {
     BLUE = 7,
 }
 
+table ChartData {
+    x: syntax.Location;
+    y: syntax.Location;
+    category: syntax.Location;
+}
+
+enum SVGStyleTarget: uint8 {
+    DATA,
+    LABELS
+}
+
+enum SVGStylePropertyType: uint8 {
+    COLOR,
+    CX,
+    CY,
+    FILL,
+    FONT_COLOR,
+    FONT_FAMILY,
+    FONT_SIZE,
+    FONT_SIZE_ADJUST,
+    FONT_STRETCH,
+    FONT_VARIANT,
+    FONT_WEIGHT,
+    HEIGHT,
+    LETTER_SPACING,
+    MARKER_END,
+    MARKER_MID,
+    MARKER_START,
+    OPACITY,
+    RX,
+    RY,
+    SHAPE_RENDERING,
+    STOP_COLOR,
+    STOP_OPACITY,
+    STROKE,
+    STROKE_DASHARRAY,
+    STROKE_DASHOFFSET,
+    STROKE_LINECAP,
+    STROKE_LINEJOIN,
+    STROKE_MITERLIMIT,
+    STROKE_OPACITY,
+    TEXT_ANCHOR,
+    TEXT_DECORATION,
+    TEXT_OVERFLOW,
+    TEXT_RENDERING,
+    WHITE_SPACE,
+    WIDTH,
+    WORD_SPACING,
+    WRITING_MODE,
+    X,
+    Y,
+}
+ 
+struct SVGStyleProperty {
+    target: SVGStyleTarget;
+    type: SVGStylePropertyType;
+    value: syntax.Location;
+}
+
 table AreaChartComponent {
     animate: bool;
+    data: ChartData;
+    style: [SVGStyleProperty];
 }
 table AxisComponent {}
 table BarChartComponent {}
