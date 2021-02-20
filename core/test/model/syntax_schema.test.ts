@@ -35,7 +35,7 @@ describe('Statement schema', () => {
             const url = schema.stringNode();
             stmt.matchSchema(schema.objectNode(sx.NodeType.OBJECT_DASHQL_LOAD, {
                 [Key.DASHQL_LOAD_METHOD]: method,
-                [Key.DASHQL_OPTION_URL]: schema.stringNode(),
+                [Key.DASHQL_OPTION_URL]: url,
             }));
             expect(method.matching).toEqual(schema.Matching.MATCHED);
             expect(method.value).toEqual(sx.LoadMethodType.HTTP);
@@ -49,7 +49,7 @@ describe('Statement schema', () => {
             const url = schema.numberNode();
             stmt.matchSchema(schema.objectNode(sx.NodeType.OBJECT_DASHQL_LOAD, {
                 [Key.DASHQL_LOAD_METHOD]: method,
-                [Key.DASHQL_OPTION_URL]: schema.stringNode(),
+                [Key.DASHQL_OPTION_URL]: url,
             }));
             expect(method.matching).toEqual(schema.Matching.MATCHED);
             expect(method.value).toEqual(sx.LoadMethodType.HTTP);
@@ -62,7 +62,7 @@ describe('Statement schema', () => {
             const url = schema.numberNode();
             stmt.matchSchema(schema.objectNode(sx.NodeType.OBJECT_DASHQL_LOAD, {
                 [Key.DASHQL_LOAD_METHOD]: method,
-                [Key.DASHQL_OPTION_URL]: schema.stringNode(),
+                [Key.DASHQL_OPTION_X]: url,
             }));
             expect(method.matching).toEqual(schema.Matching.MATCHED);
             expect(method.value).toEqual(sx.LoadMethodType.HTTP);
