@@ -112,8 +112,10 @@ TEST(SyntaxMatcherTest, VizStatementPositionShort) {
                             sxm::Attribute(sx::AttributeKey::DASHQL_OPTION_POSITION, 9)
                                 .MatchOptions()
                                 .MatchChildren({
-                                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_COLUMN, 0),
-                                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_HEIGHT, 1),
+                                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_COLUMN, 0)
+                                        .MatchString(),
+                                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_HEIGHT, 1)
+                                        .MatchString(),
                                     sxm::Option(sx::AttributeKey::DASHQL_OPTION_ROW, 2)
                                         .MatchString(),
                                     sxm::Option(sx::AttributeKey::DASHQL_OPTION_WIDTH, 3)
