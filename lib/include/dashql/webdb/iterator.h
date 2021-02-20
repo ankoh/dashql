@@ -28,9 +28,6 @@ struct QueryResultIterator {
     /// The chunk
     const proto::webdb::QueryResultChunk* chunk;
 
-    /// Verify the result chunk
-    bool Verify(const proto::webdb::QueryResultChunk& chunk) const;
-
    public:
     /// Constructor
     QueryResultIterator(WebDB::Connection& connection, const proto::webdb::QueryResult& result);
