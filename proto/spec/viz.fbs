@@ -142,7 +142,7 @@ enum SVGStylePropertyType: uint8 {
 struct SVGStyleProperty {
     target: SVGStyleTarget;
     type: SVGStylePropertyType;
-    value: syntax.Location;
+    node: uint32;
 }
 
 table AreaChartComponent {
