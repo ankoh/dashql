@@ -39,14 +39,6 @@ QueryResultIterator::QueryResultIterator(WebDB::Connection& connection, const p:
     }
 }
 
-/// Verify the result chunk
-bool QueryResultIterator::Verify(const p::QueryResultChunk& chunk) const {
-    auto columns = chunk.columns();
-    if (!columns || columns->size() != result.column_types()->size()) return false;
-    // XXX Check row counts
-    return true;
-}
-
 /// Advance the iterator
 Signal QueryResultIterator::Next() {
     // Reached end?
@@ -67,7 +59,6 @@ Signal QueryResultIterator::Next() {
         chunkBuffer = result.ReleaseBuffer();
     }
     chunkRowBegin = globalRowIndex;
-    assert(Verify(*chunk));
     return Signal::OK();
 }
 
