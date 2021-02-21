@@ -179,6 +179,8 @@ void VizComponent::ReadFrom(size_t node_id) {
     constexpr size_t ID_DOMAIN_PADDING = 23;
     constexpr size_t ID_DOMAIN_PADDING_X = 24;
     constexpr size_t ID_DOMAIN_PADDING_Y = 25;
+    constexpr size_t ID_STYLE_DATA_FILL = 26;
+    constexpr size_t ID_FILL = 27;
 
     // clang-format off
     static const auto schema = sxm::Element()
@@ -210,6 +212,7 @@ void VizComponent::ReadFrom(size_t node_id) {
                     sxm::Option(sx::AttributeKey::DASHQL_OPTION_X, ID_DOMAIN_PADDING_X),
                     sxm::Option(sx::AttributeKey::DASHQL_OPTION_Y, ID_DOMAIN_PADDING_Y)
                 }),
+            sxm::Option(sx::AttributeKey::DASHQL_OPTION_FILL, ID_FILL),
             sxm::Option(sx::AttributeKey::DASHQL_OPTION_HEIGHT, ID_HEIGHT),
             sxm::Option(sx::AttributeKey::DASHQL_OPTION_POSITION)
                 .MatchOptions()
@@ -223,7 +226,16 @@ void VizComponent::ReadFrom(size_t node_id) {
             sxm::Option(sx::AttributeKey::DASHQL_OPTION_STYLE)
                 .MatchOptions()
                 .MatchChildren({
-                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_DATA, ID_STYLE_DATA),
+                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_DATA, ID_STYLE_DATA)
+                        .MatchOptions()
+                        .MatchChildren({
+                            sxm::Option(sx::AttributeKey::DASHQL_OPTION_FILL, ID_STYLE_DATA_FILL),
+                            sxm::Option(sx::AttributeKey::DASHQL_OPTION_FILL_OPACITY),
+                            sxm::Option(sx::AttributeKey::DASHQL_OPTION_FONT),
+                            sxm::Option(sx::AttributeKey::DASHQL_OPTION_FONT_SIZE),
+                            sxm::Option(sx::AttributeKey::DASHQL_OPTION_OPACITY),
+                            sxm::Option(sx::AttributeKey::DASHQL_OPTION_STROKE),
+                        }),
                     sxm::Option(sx::AttributeKey::DASHQL_OPTION_LABELS, ID_STYLE_LABELS),
                 }),
             sxm::Option(sx::AttributeKey::DASHQL_OPTION_THEME, ID_THEME),
@@ -234,7 +246,7 @@ void VizComponent::ReadFrom(size_t node_id) {
         });
     // clang-format on
 
-    std::array<NodeMatch, 26> matches;
+    std::array<NodeMatch, 28> matches;
     schema.Match(instance, node_id, matches);
 
     if (matches[0]) {
@@ -250,19 +262,20 @@ void VizComponent::ReadFrom(size_t node_id) {
     uint64_t type_mask = 1 << static_cast<size_t>(type);
 
     /// Get position attributes
-    auto pos_row = SelectAltOption("position.row", ID_POS_ROW, ID_ROW);
-    auto pos_column = SelectAltOption("position.column", ID_POS_COLUMN, ID_COLUMN);
-    auto pos_width = SelectAltOption("position.width", ID_POS_WIDTH, ID_WIDTH);
-    auto pos_height = SelectAltOption("position.height", ID_POS_HEIGHT, ID_HEIGHT);
+    auto pos_row = SelectAltOption("position.row", matches[ID_POS_ROW].node_id, matches[ID_ROW].node_id);
+    auto pos_column = SelectAltOption("position.column", matches[ID_POS_COLUMN].node_id, matches[ID_COLUMN].node_id);
+    auto pos_width = SelectAltOption("position.width", matches[ID_POS_WIDTH].node_id, matches[ID_WIDTH].node_id);
+    auto pos_height = SelectAltOption("position.height", matches[ID_POS_HEIGHT].node_id, matches[ID_HEIGHT].node_id);
     if (AnyOptionSet({pos_row, pos_column, pos_width, pos_height})) {
         position = pv::VizPosition(pos_row, pos_column, pos_width, pos_height);
     }
 
     /// Get data attributes
-    auto data_x = SelectAltOption("data.x", ID_DATA_X, ID_X);
-    auto data_y = SelectAltOption("data.y", ID_DATA_Y, ID_Y);
-    auto data_y0 = SelectAltOption("data.y0", ID_DATA_Y0, ID_Y0);
-    auto data_categories = SelectAltOption("data.categories", ID_DATA_CATEGORIES, ID_CATEGORIES);
+    auto data_x = SelectAltOption("data.x", matches[ID_DATA_X].node_id, matches[ID_X].node_id);
+    auto data_y = SelectAltOption("data.y", matches[ID_DATA_Y].node_id, matches[ID_Y].node_id);
+    auto data_y0 = SelectAltOption("data.y0", matches[ID_DATA_Y0].node_id, matches[ID_Y0].node_id);
+    auto data_categories =
+        SelectAltOption("data.categories", matches[ID_DATA_CATEGORIES].node_id, matches[ID_CATEGORIES].node_id);
     if (AnyOptionSet({data_x, data_y, data_y0, data_categories})) {
         data.emplace();
         data->x = data_x;
@@ -271,7 +284,9 @@ void VizComponent::ReadFrom(size_t node_id) {
         data->categories = data_categories;
     }
 
-    /// XXX
+    /// Match style attribute
+    std::vector<pv::SVGStyleProperty> style;
+    AddAltStyleOption("style.data.fill", matches[ID_STYLE_DATA_FILL].node_id, pv::SVGStylePropertyType::FILL, style);
 }
 
 /// Select an option
@@ -291,7 +306,7 @@ size_t VizComponent::SelectAltOption(std::string_view label, size_t node_id, siz
         if (alt_node_id < INVALID_NODE_ID) {
             instance.AddNodeError(
                 {.node_id = alt_node_id,
-                .error = Error{ErrorCode::OPTION_REDUNDANT} << "option superseded by '" << label << "'"});
+                 .error = Error{ErrorCode::OPTION_REDUNDANT} << "option superseded by '" << label << "'"});
         }
     } else if (alt_node_id < INVALID_NODE_ID) {
         selection = alt_node_id;
@@ -300,6 +315,17 @@ size_t VizComponent::SelectAltOption(std::string_view label, size_t node_id, siz
              .error = Error{ErrorCode::OPTION_ALTERNATIVE} << "option should be specified as '" << label << "'"});
     }
     return selection;
+}
+
+/// Match an alternative style option
+void VizComponent::AddAltStyleOption(std::string_view label, size_t node_id, dashql::proto::viz::SVGStylePropertyType prop, std::vector<pv::SVGStyleProperty>& out) const {
+    if (node_id < INVALID_NODE_ID) {
+        instance.AddNodeError(
+            {.node_id = node_id,
+             .error = Error{ErrorCode::OPTION_ALTERNATIVE_STYLE} << "option should be specified as '" << label << "'"});
+        auto p = pv::SVGStyleProperty(pv::SVGStyleTarget::DATA, prop, node_id);
+        out.push_back(std::move(p));
+    }
 }
 
 /// Read component from a node
