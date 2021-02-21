@@ -10,6 +10,7 @@
 #include "dashql/analyzer/program_editor.h"
 #include "dashql/analyzer/program_instance.h"
 #include "dashql/analyzer/syntax_matcher.h"
+#include "dashql/common/expected.h"
 #include "dashql/common/span.h"
 #include "dashql/common/substring_buffer.h"
 #include "dashql/proto_generated.h"
@@ -172,6 +173,12 @@ void VizComponent::ReadFrom(size_t node_id) {
     constexpr size_t ID_COLUMN = 17;
     constexpr size_t ID_WIDTH = 18;
     constexpr size_t ID_HEIGHT = 19;
+    constexpr size_t ID_DOMAIN = 20;
+    constexpr size_t ID_DOMAIN_X = 21;
+    constexpr size_t ID_DOMAIN_Y = 22;
+    constexpr size_t ID_DOMAIN_PADDING = 23;
+    constexpr size_t ID_DOMAIN_PADDING_X = 24;
+    constexpr size_t ID_DOMAIN_PADDING_Y = 25;
 
     // clang-format off
     static const auto schema = sxm::Element()
@@ -190,6 +197,18 @@ void VizComponent::ReadFrom(size_t node_id) {
                     sxm::Option(sx::AttributeKey::DASHQL_OPTION_X, ID_DATA_X),
                     sxm::Option(sx::AttributeKey::DASHQL_OPTION_Y, ID_DATA_Y),
                     sxm::Option(sx::AttributeKey::DASHQL_OPTION_Y0, ID_DATA_Y0),
+                }),
+            sxm::Option(sx::AttributeKey::DASHQL_OPTION_DOMAIN, ID_DOMAIN)
+                .MatchOptions()
+                .MatchChildren({
+                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_X, ID_DOMAIN_X),
+                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_Y, ID_DOMAIN_Y)
+                }),
+            sxm::Option(sx::AttributeKey::DASHQL_OPTION_DOMAIN, ID_DOMAIN_PADDING)
+                .MatchOptions()
+                .MatchChildren({
+                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_X, ID_DOMAIN_PADDING_X),
+                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_Y, ID_DOMAIN_PADDING_Y)
                 }),
             sxm::Option(sx::AttributeKey::DASHQL_OPTION_HEIGHT, ID_HEIGHT),
             sxm::Option(sx::AttributeKey::DASHQL_OPTION_POSITION)
@@ -215,7 +234,7 @@ void VizComponent::ReadFrom(size_t node_id) {
         });
     // clang-format on
 
-    std::array<NodeMatch, 20> matches;
+    std::array<NodeMatch, 26> matches;
     schema.Match(instance, node_id, matches);
 
     if (matches[0]) {
@@ -231,19 +250,19 @@ void VizComponent::ReadFrom(size_t node_id) {
     uint64_t type_mask = 1 << static_cast<size_t>(type);
 
     /// Get position attributes
-    auto pos_row = SelectOption("position.row", {ID_POS_ROW, ID_ROW});
-    auto pos_column = SelectOption("position.column", {ID_POS_COLUMN, ID_COLUMN});
-    auto pos_width = SelectOption("position.width", {ID_POS_WIDTH, ID_WIDTH});
-    auto pos_height = SelectOption("position.height", {ID_POS_HEIGHT, ID_HEIGHT});
+    auto pos_row = SelectAltOption("position.row", ID_POS_ROW, ID_ROW);
+    auto pos_column = SelectAltOption("position.column", ID_POS_COLUMN, ID_COLUMN);
+    auto pos_width = SelectAltOption("position.width", ID_POS_WIDTH, ID_WIDTH);
+    auto pos_height = SelectAltOption("position.height", ID_POS_HEIGHT, ID_HEIGHT);
     if (AnyOptionSet({pos_row, pos_column, pos_width, pos_height})) {
         position = pv::VizPosition(pos_row, pos_column, pos_width, pos_height);
     }
 
     /// Get data attributes
-    auto data_x = SelectOption("data.x", {ID_DATA_X, ID_X});
-    auto data_y = SelectOption("data.y", {ID_DATA_Y, ID_Y});
-    auto data_y0 = SelectOption("data.y0", {ID_DATA_Y0, ID_Y0});
-    auto data_categories = SelectOption("data.categories", {ID_DATA_CATEGORIES, ID_CATEGORIES});
+    auto data_x = SelectAltOption("data.x", ID_DATA_X, ID_X);
+    auto data_y = SelectAltOption("data.y", ID_DATA_Y, ID_Y);
+    auto data_y0 = SelectAltOption("data.y0", ID_DATA_Y0, ID_Y0);
+    auto data_categories = SelectAltOption("data.categories", ID_DATA_CATEGORIES, ID_CATEGORIES);
     if (AnyOptionSet({data_x, data_y, data_y0, data_categories})) {
         data.emplace();
         data->x = data_x;
@@ -258,27 +277,29 @@ void VizComponent::ReadFrom(size_t node_id) {
 /// Select an option
 bool VizComponent::AnyOptionSet(std::initializer_list<size_t> node_ids) const {
     bool any = false;
-    for (auto node_id: node_ids) {
+    for (auto node_id : node_ids) {
         any |= node_id < INVALID_NODE_ID;
     }
     return any;
 }
 
-/// Select an option
-size_t VizComponent::SelectOption(std::string_view label, std::initializer_list<size_t> node_ids) const {
-    size_t selected = std::min<size_t>(node_ids);
-    size_t matches = 0;
-    for (auto node_id : node_ids) {
-        matches += node_id < INVALID_NODE_ID;
-    }
-    if (matches > 0) {
-        for (auto node_id : node_ids) {
-            if (node_id == INVALID_NODE_ID) continue;
-            auto e = Error{ErrorCode::OPTION_AMBIGUOUS} << "option " << label << " is ambiguous";
-            instance.AddNodeError({.node_id = node_id, .error = std::move(e)});
+/// Select an option with alternative
+size_t VizComponent::SelectAltOption(std::string_view label, size_t node_id, size_t alt_node_id) const {
+    size_t selection = 0;
+    if (node_id < INVALID_NODE_ID) {
+        selection = node_id;
+        if (alt_node_id < INVALID_NODE_ID) {
+            instance.AddNodeError(
+                {.node_id = alt_node_id,
+                .error = Error{ErrorCode::OPTION_REDUNDANT} << "option superseded by '" << label << "'"});
         }
+    } else if (alt_node_id < INVALID_NODE_ID) {
+        selection = alt_node_id;
+        instance.AddNodeError(
+            {.node_id = alt_node_id,
+             .error = Error{ErrorCode::OPTION_ALTERNATIVE} << "option should be specified as '" << label << "'"});
     }
-    return selected;
+    return selection;
 }
 
 /// Read component from a node
