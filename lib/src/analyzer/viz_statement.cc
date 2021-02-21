@@ -69,16 +69,15 @@ void VizAttributePrinter::Finish() {
     out << "\n)";
 }
 
-VizStatement::VizStatement(const ProgramInstance& instance, size_t statement_id, const sx::Node& target,
+VizStatement::VizStatement(const ProgramInstance& instance, size_t statement_id, size_t target_node_id,
                            std::vector<std::unique_ptr<VizComponent>>&& components)
-    : instance_(instance), statement_id_(statement_id), target_(target), components_(move(components)) {}
+    : instance_(instance), statement_id_(statement_id), target_node_id_(target_node_id), components_(move(components)) {}
 
 /// Read a viz statement
 std::unique_ptr<VizStatement> VizStatement::ReadFrom(const ProgramInstance& instance, size_t stmt_id) {
     // clang-format off
     auto& program = instance.program();
     auto& stmt = program.statements[stmt_id];
-    auto& root = program.nodes[stmt->root_node];
     static const auto schema = sxm::Element()
         .MatchObject(sx::NodeType::OBJECT_DASHQL_VIZ)
         .MatchChildren({
@@ -90,25 +89,28 @@ std::unique_ptr<VizStatement> VizStatement::ReadFrom(const ProgramInstance& inst
 
     // Match root
     std::array<NodeMatch, 2> matches;
-    if (!schema.Match(instance, root, matches)) return nullptr;
-    auto& comps_node = matches[1].node;
+    if (!schema.Match(instance, stmt->root_node, matches)) return nullptr;
+    auto comps_node_id = matches[1].node_id;
+    auto& comps_node = program.nodes[comps_node_id];
 
     // Read all components
     std::vector<std::unique_ptr<viz::VizComponent>> components;
-    components.reserve(comps_node->children_count());
-    for (auto cid = 0; cid < comps_node->children_count(); ++cid) {
-        auto begin = comps_node->children_begin_or_value();
-        auto comp = viz::VizComponent::CreateFrom(instance, program.nodes[begin + cid]);
+    components.reserve(comps_node.children_count());
+    for (auto cid = 0; cid < comps_node.children_count(); ++cid) {
+        auto begin = comps_node.children_begin_or_value();
+        auto comp = viz::VizComponent::CreateFrom(instance, begin + cid);
         components.push_back(move(comp));
     }
 
-    return std::make_unique<VizStatement>(instance, stmt_id, *matches[0].node, std::move(components));
+    return std::make_unique<VizStatement>(instance, stmt_id, matches[0].node_id, std::move(components));
 }
 
 /// Print statement as script
 void VizStatement::PrintScript(std::ostream& out) const {
+    auto& nodes = instance_.program().nodes;
+
     out << "VIZ ";
-    out << instance_.TextAt(target_.location());
+    out << instance_.TextAt(nodes[target_node_id_].location());
     out << " USING";
     for (auto i = 0; i < components_.size(); ++i) {
         if (i > 0) {
@@ -140,7 +142,7 @@ flatbuffers::Offset<proto::viz::VizSpec> VizStatement::Pack(flatbuffers::FlatBuf
 }
 
 /// Read common viz attributes.
-void VizComponent::ReadFrom(const ProgramInstance& instance, const sx::Node& node) {
+void VizComponent::ReadFrom(const ProgramInstance& instance, size_t node_id) {
     constexpr size_t ID_TYPE = 0;
     constexpr size_t ID_TYPE_MODIFIERS = 1;
     constexpr size_t ID_POS_ROW = 2;
@@ -158,6 +160,7 @@ void VizComponent::ReadFrom(const ProgramInstance& instance, const sx::Node& nod
     constexpr size_t ID_STYLE_DATA = 12;
     constexpr size_t ID_STYLE_LABELS = 13;
     constexpr size_t ID_THEME = 14;
+    constexpr size_t ID_DATA = 15;
 
     // clang-format off
     static const auto schema = sxm::Element()
@@ -168,7 +171,7 @@ void VizComponent::ReadFrom(const ProgramInstance& instance, const sx::Node& nod
             sxm::Attribute(sx::AttributeKey::DASHQL_VIZ_COMPONENT_TYPE_MODIFIERS, ID_TYPE_MODIFIERS)
                 .MatchUI32Bitmap(),
             sxm::Option(sx::AttributeKey::DASHQL_OPTION_CATEGORIES, ID_CATEGORIES),
-            sxm::Option(sx::AttributeKey::DASHQL_OPTION_DATA)
+            sxm::Option(sx::AttributeKey::DASHQL_OPTION_DATA, ID_DATA)
                 .MatchOptions()
                 .MatchChildren({
                     sxm::Option(sx::AttributeKey::DASHQL_OPTION_CATEGORIES, ID_DATA_CATEGORIES),
@@ -197,8 +200,8 @@ void VizComponent::ReadFrom(const ProgramInstance& instance, const sx::Node& nod
         });
     // clang-format on
 
-    std::array<NodeMatch, 15> matches;
-    schema.Match(instance, node, matches);
+    std::array<NodeMatch, 16> matches;
+    schema.Match(instance, node_id, matches);
 
     if (matches[0]) {
         type = matches[0].DataAsEnum<sx::VizComponentType>();
@@ -206,12 +209,26 @@ void VizComponent::ReadFrom(const ProgramInstance& instance, const sx::Node& nod
     if (matches[1]) {
         type_modifiers = matches[1].DataAsI64();
     }
+
+    /// Build the type mask for fast compatibility checks.
+    /// This will obviously break as soon as we've got more than > 64 component types.
+    static_assert(static_cast<size_t>(sx::VizComponentType::MAX) <= 63);
+    uint64_t type_mask = 1 << static_cast<size_t>(type);
+
+    /// Read data
+    if (matches[ID_DATA]) {
+//        auto x = matches[ID_DATA_X] ? matches[ID_DATA_X].node
+//        if (matches[ID_DATA_X]) {
+//            
+//        }
+    }
+
 }
 
 /// Read component from a node
-std::unique_ptr<VizComponent> VizComponent::CreateFrom(const ProgramInstance& instance, const sx::Node& node) {
+std::unique_ptr<VizComponent> VizComponent::CreateFrom(const ProgramInstance& instance, size_t node_id) {
     auto c = std::make_unique<VizComponent>();
-    c->ReadFrom(instance, node);
+    c->ReadFrom(instance, node_id);
     return c;
 }
 
@@ -228,8 +245,8 @@ void VizComponent::PrintScript(std::ostream& out) const {
 
     // Print the type name
     static constexpr std::array<std::string_view, 14> type_names = {
-        "AREA", "AXIS",   "BAR", "BOX_PLOT", "CANDLESTICK", "ERROR_BAR", "HISTOGRAM",
-        "LINE", "NUMBER", "PIE", "SCATTER",  "TABLE",       "TEXT",      "VORONOI",
+        "AREA", "AXIS",   "BAR", "BOX",     "CANDLESTICK", "ERROR_BAR", "HISTOGRAM",
+        "LINE", "NUMBER", "PIE", "SCATTER", "TABLE",       "TEXT",      "VORONOI",
     };
     out << " " << type_names[static_cast<size_t>(type)];
 

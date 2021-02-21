@@ -36,7 +36,7 @@ class VizStatement {
     /// The statement id
     const size_t statement_id_;
     /// The target
-    const sx::Node& target_;
+    const size_t target_node_id_;
     /// The components
     std::vector<std::unique_ptr<VizComponent>> components_ = {};
 
@@ -45,7 +45,7 @@ class VizStatement {
  
    public:
     /// Constructor
-    VizStatement(const ProgramInstance& instance, size_t statement_id, const sx::Node& target, std::vector<std::unique_ptr<VizComponent>>&& components);
+    VizStatement(const ProgramInstance& instance, size_t statement_id, size_t target_node_id, std::vector<std::unique_ptr<VizComponent>>&& components);
     /// Get the component
     auto& components() { return components_; }
     /// Print as script
@@ -100,7 +100,7 @@ class VizComponent {
     void ClearPosition() { position.reset(); }
     /// Read the viz component
     /// This will also perform a semanatic analysis of the given options
-    void ReadFrom(const ProgramInstance& instance, const sx::Node& node);
+    void ReadFrom(const ProgramInstance& instance, size_t node_id);
     /// Print common attributes
     void PrintAttributes(VizAttributePrinter& out) const;
 
@@ -109,7 +109,7 @@ class VizComponent {
     /// Pack as buffer
     flatbuffers::Offset<proto::viz::VizComponent> Pack(flatbuffers::FlatBufferBuilder& builder) const;
     /// Read component from a node
-    static std::unique_ptr<VizComponent> CreateFrom(const ProgramInstance& instance, const sx::Node& node);
+    static std::unique_ptr<VizComponent> CreateFrom(const ProgramInstance& instance, size_t node_id);
 };
 
 }  // namespace viz
