@@ -26,23 +26,21 @@ enum ExtractMethodType: uint8 {
 }
 
 enum VizComponentTypeModifier: uint32 {
-    NONE            = 0,
-    STACKED         = 1,
-    DEPENDENT       = 2,
-    INDEPENDENT     = 4,
-    POLAR           = 8,
-    X               = 16,
-    Y               = 32
+    STACKED         = 0,
+    DEPENDENT       = 1,
+    INDEPENDENT     = 2,
+    POLAR           = 3,
+    X               = 4,
+    Y               = 5
 }
 
 enum VizComponentType: uint8 {
-    NONE = 0,
     AREA,
     AXIS,
     BAR,
-    BOX,
+    BOX_PLOT,
     CANDLESTICK,
-    ERROR,
+    ERROR_BAR,
     HISTOGRAM,
     LINE,
     NUMBER,

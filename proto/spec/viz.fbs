@@ -1,6 +1,6 @@
 // Copyright (c) 2020 The DashQL Authors
 
-include "syntax/syntax.fbs";
+include "syntax/dashql.fbs";
 
 namespace dashql.proto.viz;
 
@@ -139,21 +139,21 @@ struct SVGStyleProperty {
     node: uint32;
 }
 
-table ChartData {
+table VizData {
     x: uint32;
     y: uint32;
     y0: uint32;
     category: uint32;
 }
 
-struct ChartValueDomain {
+struct VizValueDomain {
     value: uint32;
     padding: uint32;
     max: uint32;
     min: uint32;
 }
 
-struct ChartDomain {
+struct VizDomain {
     column: uint32;
     left: uint32;
     right: uint32;
@@ -166,46 +166,31 @@ struct Coordinates {
     y: uint32;
 }
 
-struct ChartPadding {
+struct VizPadding {
     left: uint32;
     right: uint32;
     top: uint32;
     bottom: uint32;
 }
 
-struct ChartScales {
+struct VizScales {
     x: uint32;
     y: uint32;
 }
 
-enum ChartComponentType: uint8 {
-    AREA,
-    AXIS,
-    BAR,
-    BOX_PLOT,
-    CANDLESTICK,
-    ERROR_BAR,
-    HISTOGRAM,
-    LINE,
-    PIE,
-    SCATTER,
-    STACK,
-    TABLE,
-    VORONOI,
-}
-
-table ChartComponent {
-    type: ChartComponentType;
-    data: ChartData;
+table VizComponent {
+    type: syntax.VizComponentType;
+    type_modifiers: uint32;
+    data: VizData;
     style: [SVGStyleProperty];
-    domain: ChartDomain;
+    domain: VizDomain;
     horizontal: uint32;
     name: uint32;
     origin: Coordinates;
-    padding: ChartPadding;
+    padding: VizPadding;
     polar: uint32;
     samples: uint32;
-    scales: ChartScales;
+    scales: VizScales;
     theme: uint32;
     interpolation: uint32;
 }
@@ -213,5 +198,5 @@ table ChartComponent {
 table VizSpec {
     statement_id: uint32;
     position: VizPosition;
-    components: [ChartComponent];
+    components: [VizComponent];
 }

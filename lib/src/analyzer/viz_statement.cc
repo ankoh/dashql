@@ -98,7 +98,7 @@ std::unique_ptr<VizStatement> VizStatement::ReadFrom(const ProgramInstance& inst
     components.reserve(comps_node->children_count());
     for (auto cid = 0; cid < comps_node->children_count(); ++cid) {
         auto begin = comps_node->children_begin_or_value();
-        auto comp = viz::VizComponent::ReadFrom(instance, program.nodes[begin + cid]);
+        auto comp = viz::VizComponent::CreateFrom(instance, program.nodes[begin + cid]);
         components.push_back(move(comp));
     }
 
@@ -121,7 +121,7 @@ void VizStatement::PrintScript(std::ostream& out) const {
 /// Pack the viz specs
 flatbuffers::Offset<proto::viz::VizSpec> VizStatement::Pack(flatbuffers::FlatBufferBuilder& builder) const {
     // Pack components
-    std::vector<fb::Offset<proto::viz::ChartComponent>> component_offsets;
+    std::vector<fb::Offset<proto::viz::VizComponent>> component_offsets;
     for (auto& c : components_) {
         auto component = c->Pack(builder);
         component_offsets.push_back(component);
@@ -139,206 +139,103 @@ flatbuffers::Offset<proto::viz::VizSpec> VizStatement::Pack(flatbuffers::FlatBuf
     return spec_builder.Finish();
 }
 
-/// Read common viz attributes
-void VizComponent::ReadAttributes(const ProgramInstance& instance, const sx::Node& node) {
-    // clang-format off
-    static const auto schema = sxm::Element()
-        .MatchObject(sx::NodeType::OBJECT_DASHQL_VIZ_COMPONENT)
-        .MatchChildren({
-            sxm::Option(sx::AttributeKey::DASHQL_OPTION_POSITION)
-                .MatchOptions()
-                .MatchChildren({
-                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_COLUMN, 1),
-                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_HEIGHT, 3),
-                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_ROW, 0),
-                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_WIDTH, 2),
-                })
-        });
-    // clang-format on
-
-    // Match root
-    std::array<NodeMatching, 4> matches;
-    schema.Match(instance, node, matches);
-    // XXX Assemble things
-}
-
-/// Print common viz attributes
-void VizComponent::PrintAttributes(VizAttributePrinter& out) const {
-    if (auto p = position) {
-        out.AddKey("pos");
-        out.AddValue() << "(r = " << p->row() << ", c = " << p->column() << ", w = " << p->width()
-                       << ", h = " << p->height() << ")";
-    }
-}
-
-/// Read component from a node
-std::unique_ptr<VizComponent> VizComponent::ReadFrom(const ProgramInstance& instance, const sx::Node& node) {
+/// Read common viz attributes.
+void VizComponent::ReadFrom(const ProgramInstance& instance, const sx::Node& node) {
     // clang-format off
     static const auto schema = sxm::Element()
         .MatchObject(sx::NodeType::OBJECT_DASHQL_VIZ_COMPONENT)
         .MatchChildren({
             sxm::Attribute(sx::AttributeKey::DASHQL_VIZ_COMPONENT_TYPE, 0)
                 .MatchEnum(sx::NodeType::ENUM_DASHQL_VIZ_COMPONENT_TYPE),
-        });
-    // clang-format on
-
-    std::array<NodeMatching, 1> matches;
-    schema.Match(instance, node, matches);
-    if (matches[0].status != NodeMatchingStatus::MATCHED) {
-        return nullptr;
-    }
-    switch (matches[0].DataAsEnum<sx::VizComponentType>()) {
-        case sx::VizComponentType::TABLE:
-            return TableChartComponent::ReadFrom(instance, node);
-        case sx::VizComponentType::AREA:
-            return AreaChartComponent::ReadFrom(instance, node);
-        case sx::VizComponentType::LINE:
-            return LineChartComponent::ReadFrom(instance, node);
-        case sx::VizComponentType::SCATTER:
-            return ScatterChartComponent::ReadFrom(instance, node);
-        case sx::VizComponentType::AXIS:
-        case sx::VizComponentType::BAR:
-        case sx::VizComponentType::BOX:
-        case sx::VizComponentType::CANDLESTICK:
-        case sx::VizComponentType::ERROR:
-        case sx::VizComponentType::HISTOGRAM:
-        case sx::VizComponentType::NUMBER:
-        case sx::VizComponentType::PIE:
-        case sx::VizComponentType::TEXT:
-        case sx::VizComponentType::VORONOI:
-        case sx::VizComponentType::NONE:
-            break;
-    }
-    return nullptr;
-}
-
-/// Read component
-std::unique_ptr<VizComponent> TableChartComponent::ReadFrom(const ProgramInstance& instance, const sx::Node& node) {
-    return std::make_unique<TableChartComponent>();
-}
-
-/// Print as script
-void TableChartComponent::PrintScript(std::ostream& out) const {
-    out << "TABLE";
-    VizAttributePrinter aout{out};
-    VizComponent::PrintAttributes(aout);
-}
-
-/// Pack flatbuffer
-flatbuffers::Offset<proto::viz::ChartComponent> TableChartComponent::Pack(fb::FlatBufferBuilder& builder) const {
-    auto cb = proto::viz::ChartComponentBuilder{builder};
-    return cb.Finish();
-}
-
-/// Read component
-std::unique_ptr<VizComponent> LineChartComponent::ReadFrom(const ProgramInstance& instance, const sx::Node& node) {
-    auto c = std::make_unique<LineChartComponent>();
-    c->VizComponent::ReadAttributes(instance, node);
-
-    // clang-format off
-    static const auto schema = sxm::Element()
-        .MatchObject(sx::NodeType::OBJECT_DASHQL_VIZ_COMPONENT)
-        .MatchChildren({
-            sxm::Attribute(sx::AttributeKey::DASHQL_VIZ_COMPONENT_TYPE_MODIFIERS, 0)
+            sxm::Attribute(sx::AttributeKey::DASHQL_VIZ_COMPONENT_TYPE_MODIFIERS, 1)
                 .MatchUI32Bitmap(),
+            sxm::Option(sx::AttributeKey::DASHQL_OPTION_POSITION)
+                .MatchOptions()
+                .MatchChildren({
+                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_COLUMN, 2),
+                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_HEIGHT, 3),
+                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_ROW, 4),
+                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_WIDTH, 5),
+                })
         });
     // clang-format on
-    std::array<NodeMatching, 1> matches;
+
+    std::array<NodeMatching, 7> matches;
     schema.Match(instance, node, matches);
 
-    // Stacked?
     if (matches[0]) {
-        // XXX check bitmap
+        type = matches[0].DataAsEnum<sx::VizComponentType>();
     }
+}
 
+/// Read component from a node
+std::unique_ptr<VizComponent> VizComponent::CreateFrom(const ProgramInstance& instance, const sx::Node& node) {
+    auto c = std::make_unique<VizComponent>();
+    c->ReadFrom(instance, node);
     return c;
 }
 
-/// Print as script
-void LineChartComponent::PrintScript(std::ostream& out) const {
-    out << "LINE";
+/// Print common viz attributes
+void VizComponent::PrintScript(std::ostream& out) const {
+    // Print the type modifiers
+    auto printModifierIfSet = [](std::ostream& out, uint32_t modifiers, sx::VizComponentTypeModifier mod, std::string_view txt) {
+        if (((~(1 << static_cast<uint32_t>(mod))) & modifiers) != 0) {
+            out << txt;
+        }
+    };
+    printModifierIfSet(out, type_modifiers, sx::VizComponentTypeModifier::STACKED, " STACKED");
+    printModifierIfSet(out, type_modifiers, sx::VizComponentTypeModifier::DEPENDENT, " DEPENDENT");
+    printModifierIfSet(out, type_modifiers, sx::VizComponentTypeModifier::INDEPENDENT, " INDEPENDENT");
+    printModifierIfSet(out, type_modifiers, sx::VizComponentTypeModifier::POLAR, " POLAR");
+    printModifierIfSet(out, type_modifiers, sx::VizComponentTypeModifier::X, " X");
+    printModifierIfSet(out, type_modifiers, sx::VizComponentTypeModifier::Y, " Y");
+
+    // Print the type name
+    auto printTypeName = [](sx::VizComponentType t) -> std::string_view {
+        switch (t) {
+            case sx::VizComponentType::AREA:
+                return "AREA";
+            case sx::VizComponentType::AXIS:
+                return "AXIS";
+            case sx::VizComponentType::BAR:
+                return "BAR";
+            case sx::VizComponentType::BOX_PLOT:
+                return "BOX";
+            case sx::VizComponentType::CANDLESTICK:
+                return "CANDLESTICK";
+            case sx::VizComponentType::ERROR_BAR:
+                return "ERROR";
+            case sx::VizComponentType::HISTOGRAM:
+                return "HISTOGRAM";
+            case sx::VizComponentType::LINE:
+                return "LINE";
+            case sx::VizComponentType::PIE:
+                return "PIE";
+            case sx::VizComponentType::SCATTER:
+                return "SCATTER";
+            case sx::VizComponentType::VORONOI:
+                return "VORONOI";
+            case sx::VizComponentType::TABLE:
+                return "TABLE";
+            case sx::VizComponentType::NUMBER:
+                return "NUMBER";
+            case sx::VizComponentType::TEXT:
+                return "TEXT";
+        }
+    };
+    out << printTypeName(type);
+
     VizAttributePrinter aout{out};
-    VizComponent::PrintAttributes(aout);
-}
-
-/// Pack flatbuffer
-flatbuffers::Offset<proto::viz::ChartComponent> LineChartComponent::Pack(fb::FlatBufferBuilder& builder) const {
-    auto cb = proto::viz::ChartComponentBuilder{builder};
-    return cb.Finish();
-}
-
-/// Read component
-std::unique_ptr<VizComponent> ScatterChartComponent::ReadFrom(const ProgramInstance& instance, const sx::Node& node) {
-    // clang-format off
-    static const auto schema = sxm::Element()
-        .MatchObject(sx::NodeType::OBJECT_DASHQL_VIZ_COMPONENT)
-        .MatchChildren({});
-    // clang-format on
-    return std::make_unique<ScatterChartComponent>();
-}
-
-/// Print as script
-void ScatterChartComponent::PrintScript(std::ostream& out) const { out << "SCATTER"; }
-
-/// Pack flatbuffer
-flatbuffers::Offset<proto::viz::ChartComponent> ScatterChartComponent::Pack(fb::FlatBufferBuilder& builder) const {
-    auto cb = proto::viz::ChartComponentBuilder{builder};
-    return cb.Finish();
-}
-
-/// Read component
-std::unique_ptr<VizComponent> AreaChartComponent::ReadFrom(const ProgramInstance& instance, const sx::Node& node) {
-    // clang-format off
-    static const auto schema = sxm::Element()
-        .MatchObject(sx::NodeType::OBJECT_DASHQL_VIZ_COMPONENT)
-        .MatchChildren({
-            sxm::Attribute(sx::AttributeKey::DASHQL_VIZ_COMPONENT_TYPE_MODIFIERS, 0)
-                .MatchUI32Bitmap(),
-        });
-    // clang-format on
-
-    return std::make_unique<AreaChartComponent>();
-}
-
-/// Print as script
-void AreaChartComponent::PrintScript(std::ostream& out) const { out << "AREA"; }
-
-/// Pack flatbuffer
-flatbuffers::Offset<proto::viz::ChartComponent> AreaChartComponent::Pack(fb::FlatBufferBuilder& builder) const {
-    auto cb = proto::viz::ChartComponentBuilder{builder};
-    return cb.Finish();
-}
-
-/// Read component
-std::unique_ptr<VizComponent> AxisComponent::ReadFrom(const ProgramInstance& instance, const sx::Node& node) {
-    auto c = std::make_unique<AxisComponent>();
-    c->VizComponent::ReadAttributes(instance, node);
-
-    // clang-format off
-    static const auto schema = sxm::Element()
-        .MatchObject(sx::NodeType::OBJECT_DASHQL_VIZ_COMPONENT)
-        .MatchChildren({
-            sxm::Attribute(sx::AttributeKey::DASHQL_VIZ_COMPONENT_TYPE_MODIFIERS, 0)
-                .MatchUI32Bitmap(),
-        });
-    // clang-format on
-    std::array<NodeMatching, 1> matches;
-    schema.Match(instance, node, matches);
-
-    // Stacked?
-    if (matches[0]) {
-        // XXX Type modifiers (stacked, dependent, x, y)
+    if (auto p = position) {
+        aout.AddKey("pos");
+        aout.AddValue() << "(r = " << p->row() << ", c = " << p->column() << ", w = " << p->width()
+                        << ", h = " << p->height() << ")";
     }
-
-    return std::make_unique<AxisComponent>();
 }
 
-/// Print as script
-void AxisComponent::PrintScript(std::ostream& out) const { out << "AREA"; }
-
-/// Pack flatbuffer
-flatbuffers::Offset<proto::viz::ChartComponent> AxisComponent::Pack(fb::FlatBufferBuilder& builder) const {
-    auto cb = proto::viz::ChartComponentBuilder{builder};
+/// Pack as buffer
+flatbuffers::Offset<proto::viz::VizComponent> VizComponent::Pack(flatbuffers::FlatBufferBuilder& builder) const {
+    proto::viz::VizComponentBuilder cb{builder};
     return cb.Finish();
 }
 
