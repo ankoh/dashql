@@ -97,7 +97,7 @@ class VizComponent {
     /// Any option set?
     bool AnyOptionSet(std::initializer_list<size_t> node_ids) const;
     /// Select among matches and report ambiguities (if any)
-    size_t SelectOption(std::string_view label, std::initializer_list<size_t> node_ids) const;
+    size_t SelectAltOption(std::string_view label, size_t node_id, size_t alt_node_id) const;
 
    public:
     /// Constructor
