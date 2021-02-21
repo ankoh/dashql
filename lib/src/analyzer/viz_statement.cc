@@ -16,7 +16,6 @@
 namespace pv = dashql::proto::viz;
 namespace fb = flatbuffers;
 
-
 namespace dashql {
 namespace viz {
 
@@ -122,22 +121,18 @@ void VizStatement::PrintScript(std::ostream& out) const {
 /// Pack the viz specs
 flatbuffers::Offset<proto::viz::VizSpec> VizStatement::Pack(flatbuffers::FlatBufferBuilder& builder) const {
     // Pack components
-    std::vector<fb::Offset<void>> component_offsets;
-    std::vector<uint8_t> component_types;
+    std::vector<fb::Offset<proto::viz::ChartComponent>> component_offsets;
     for (auto& c : components_) {
-        auto [buffer, variant] = c->Pack(builder);
-        component_offsets.push_back(buffer);
-        component_types.push_back(static_cast<uint8_t>(variant));
+        auto component = c->Pack(builder);
+        component_offsets.push_back(component);
     }
     auto component_ofs_vec = builder.CreateVector(component_offsets);
-    auto component_types_vec = builder.CreateVector(component_types);
     auto position = position_.has_value() ? &position_.value() : nullptr;
 
     // Build viz spec
     pv::VizSpecBuilder spec_builder{builder};
     spec_builder.add_statement_id(statement_id_);
     spec_builder.add_components(component_ofs_vec);
-    spec_builder.add_components_type(component_types_vec);
     if (position) {
         spec_builder.add_position(position);
     }
@@ -230,9 +225,9 @@ void TableChartComponent::PrintScript(std::ostream& out) const {
 }
 
 /// Pack flatbuffer
-std::pair<flatbuffers::Offset<void>, pv::VizComponentVariant> TableChartComponent::Pack(
-    fb::FlatBufferBuilder& builder) const {
-    return {pv::CreateTableComponent(builder).Union(), pv::VizComponentVariant::TableComponent};
+flatbuffers::Offset<proto::viz::ChartComponent> TableChartComponent::Pack(fb::FlatBufferBuilder& builder) const {
+    auto cb = proto::viz::ChartComponentBuilder{builder};
+    return cb.Finish();
 }
 
 /// Read component
@@ -267,9 +262,9 @@ void LineChartComponent::PrintScript(std::ostream& out) const {
 }
 
 /// Pack flatbuffer
-std::pair<flatbuffers::Offset<void>, pv::VizComponentVariant> LineChartComponent::Pack(
-    fb::FlatBufferBuilder& builder) const {
-    return {pv::CreateLineChartComponent(builder).Union(), pv::VizComponentVariant::LineChartComponent};
+flatbuffers::Offset<proto::viz::ChartComponent> LineChartComponent::Pack(fb::FlatBufferBuilder& builder) const {
+    auto cb = proto::viz::ChartComponentBuilder{builder};
+    return cb.Finish();
 }
 
 /// Read component
@@ -286,9 +281,9 @@ std::unique_ptr<VizComponent> ScatterChartComponent::ReadFrom(const ProgramInsta
 void ScatterChartComponent::PrintScript(std::ostream& out) const { out << "SCATTER"; }
 
 /// Pack flatbuffer
-std::pair<flatbuffers::Offset<void>, pv::VizComponentVariant> ScatterChartComponent::Pack(
-    fb::FlatBufferBuilder& builder) const {
-    return {pv::CreateScatterChartComponent(builder).Union(), pv::VizComponentVariant::ScatterChartComponent};
+flatbuffers::Offset<proto::viz::ChartComponent> ScatterChartComponent::Pack(fb::FlatBufferBuilder& builder) const {
+    auto cb = proto::viz::ChartComponentBuilder{builder};
+    return cb.Finish();
 }
 
 /// Read component
@@ -309,9 +304,9 @@ std::unique_ptr<VizComponent> AreaChartComponent::ReadFrom(const ProgramInstance
 void AreaChartComponent::PrintScript(std::ostream& out) const { out << "AREA"; }
 
 /// Pack flatbuffer
-std::pair<flatbuffers::Offset<void>, pv::VizComponentVariant> AreaChartComponent::Pack(
-    fb::FlatBufferBuilder& builder) const {
-    return {pv::CreateAreaChartComponent(builder).Union(), pv::VizComponentVariant::AreaChartComponent};
+flatbuffers::Offset<proto::viz::ChartComponent> AreaChartComponent::Pack(fb::FlatBufferBuilder& builder) const {
+    auto cb = proto::viz::ChartComponentBuilder{builder};
+    return cb.Finish();
 }
 
 /// Read component
@@ -342,9 +337,9 @@ std::unique_ptr<VizComponent> AxisComponent::ReadFrom(const ProgramInstance& ins
 void AxisComponent::PrintScript(std::ostream& out) const { out << "AREA"; }
 
 /// Pack flatbuffer
-std::pair<flatbuffers::Offset<void>, pv::VizComponentVariant> AxisComponent::Pack(
-    fb::FlatBufferBuilder& builder) const {
-    return {pv::CreateAxisComponent(builder).Union(), pv::VizComponentVariant::AxisComponent};
+flatbuffers::Offset<proto::viz::ChartComponent> AxisComponent::Pack(fb::FlatBufferBuilder& builder) const {
+    auto cb = proto::viz::ChartComponentBuilder{builder};
+    return cb.Finish();
 }
 
 }  // namespace viz
