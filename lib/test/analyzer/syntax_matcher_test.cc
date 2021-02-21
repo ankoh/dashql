@@ -43,14 +43,14 @@ TEST(SyntaxMatcherTest, LoadStatement) {
         });
     // clang-format on
 
-    std::array<NodeMatching, 5> matching;
+    std::array<NodeMatch, 5> matching;
     auto full_match = schema.Match(instance, stmt_root, matching);
 
-    EXPECT_EQ(matching[0].status, NodeMatchingStatus::MATCHED);
-    EXPECT_EQ(matching[1].status, NodeMatchingStatus::MATCHED);
-    EXPECT_EQ(matching[2].status, NodeMatchingStatus::MATCHED);
-    EXPECT_EQ(matching[3].status, NodeMatchingStatus::MATCHED);
-    EXPECT_EQ(matching[4].status, NodeMatchingStatus::MATCHED);
+    EXPECT_EQ(matching[0].status, NodeMatchStatus::MATCHED);
+    EXPECT_EQ(matching[1].status, NodeMatchStatus::MATCHED);
+    EXPECT_EQ(matching[2].status, NodeMatchStatus::MATCHED);
+    EXPECT_EQ(matching[3].status, NodeMatchStatus::MATCHED);
+    EXPECT_EQ(matching[4].status, NodeMatchStatus::MATCHED);
     EXPECT_TRUE(full_match);
 
     ASSERT_TRUE(std::holds_alternative<std::string_view>(matching[3].data));
@@ -79,11 +79,11 @@ TEST(SyntaxMatcherTest, MinimalError) {
         });
     // clang-format on
 
-    std::array<NodeMatching, 2> matching;
+    std::array<NodeMatch, 2> matching;
     schema.Match(instance, stmt_root, matching);
 
-    EXPECT_EQ(matching[0].status, NodeMatchingStatus::MATCHED);
-    EXPECT_EQ(matching[1].status, NodeMatchingStatus::MATCHED);
+    EXPECT_EQ(matching[0].status, NodeMatchStatus::MATCHED);
+    EXPECT_EQ(matching[1].status, NodeMatchStatus::MATCHED);
 }
 
 TEST(SyntaxMatcherTest, VizStatementPositionShort) {
@@ -132,15 +132,15 @@ TEST(SyntaxMatcherTest, VizStatementPositionShort) {
         });
     // clang-format on
 
-    std::array<NodeMatching, 12> matching;
+    std::array<NodeMatch, 12> matching;
     schema.Match(instance, stmt_root, matching);
 
-    EXPECT_EQ(matching[0].status, NodeMatchingStatus::MATCHED);
-    EXPECT_EQ(matching[1].status, NodeMatchingStatus::MATCHED);
-    EXPECT_EQ(matching[2].status, NodeMatchingStatus::MATCHED);
-    EXPECT_EQ(matching[3].status, NodeMatchingStatus::MATCHED);
-    EXPECT_EQ(matching[4].status, NodeMatchingStatus::MISSING);
-    EXPECT_EQ(matching[5].status, NodeMatchingStatus::MISSING);
+    EXPECT_EQ(matching[0].status, NodeMatchStatus::MATCHED);
+    EXPECT_EQ(matching[1].status, NodeMatchStatus::MATCHED);
+    EXPECT_EQ(matching[2].status, NodeMatchStatus::MATCHED);
+    EXPECT_EQ(matching[3].status, NodeMatchStatus::MATCHED);
+    EXPECT_EQ(matching[4].status, NodeMatchStatus::MISSING);
+    EXPECT_EQ(matching[5].status, NodeMatchStatus::MISSING);
 }
 
 TEST(SyntaxMatcherTest, LoadStatementFormat) {
@@ -191,19 +191,19 @@ TEST(SyntaxMatcherTest, LoadStatementFormat) {
     });
     // clang-format on
 
-    std::array<NodeMatching, 10> matching;
+    std::array<NodeMatch, 10> matching;
     auto full_match = schema.Match(instance, stmt_root, matching);
 
-    EXPECT_EQ(matching[0].status, NodeMatchingStatus::MATCHED);
-    EXPECT_EQ(matching[1].status, NodeMatchingStatus::MATCHED);
-    EXPECT_EQ(matching[2].status, NodeMatchingStatus::MATCHED);
-    EXPECT_EQ(matching[3].status, NodeMatchingStatus::MATCHED);
-    EXPECT_EQ(matching[4].status, NodeMatchingStatus::MATCHED);
-    EXPECT_EQ(matching[5].status, NodeMatchingStatus::MATCHED);
-    EXPECT_EQ(matching[6].status, NodeMatchingStatus::MATCHED);
-    EXPECT_EQ(matching[7].status, NodeMatchingStatus::MATCHED);
-    EXPECT_EQ(matching[8].status, NodeMatchingStatus::MATCHED);
-    EXPECT_EQ(matching[9].status, NodeMatchingStatus::MATCHED);
+    EXPECT_EQ(matching[0].status, NodeMatchStatus::MATCHED);
+    EXPECT_EQ(matching[1].status, NodeMatchStatus::MATCHED);
+    EXPECT_EQ(matching[2].status, NodeMatchStatus::MATCHED);
+    EXPECT_EQ(matching[3].status, NodeMatchStatus::MATCHED);
+    EXPECT_EQ(matching[4].status, NodeMatchStatus::MATCHED);
+    EXPECT_EQ(matching[5].status, NodeMatchStatus::MATCHED);
+    EXPECT_EQ(matching[6].status, NodeMatchStatus::MATCHED);
+    EXPECT_EQ(matching[7].status, NodeMatchStatus::MATCHED);
+    EXPECT_EQ(matching[8].status, NodeMatchStatus::MATCHED);
+    EXPECT_EQ(matching[9].status, NodeMatchStatus::MATCHED);
     EXPECT_TRUE(full_match);
 
     ASSERT_TRUE(std::holds_alternative<std::string_view>(matching[3].data));

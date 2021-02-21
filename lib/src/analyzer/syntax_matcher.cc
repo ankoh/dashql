@@ -10,7 +10,7 @@
 namespace dashql {
 
 // Return as string ref
-std::string_view NodeMatching::DataAsStringRef() const {
+std::string_view NodeMatch::DataAsStringRef() const {
     return std::visit(overload{
                           [](std::string_view arg) { return arg; },
                           [](auto arg) { return std::string_view{""}; },
@@ -19,7 +19,7 @@ std::string_view NodeMatching::DataAsStringRef() const {
 }
 
 // Return as string
-std::string NodeMatching::DataAsString() const {
+std::string NodeMatch::DataAsString() const {
     return std::visit(overload{
                           [](bool arg) { return std::to_string(arg); },
                           [](double arg) { return std::to_string(arg); },
@@ -31,7 +31,7 @@ std::string NodeMatching::DataAsString() const {
 }
 
 // Return as string
-int64_t NodeMatching::DataAsI64() const {
+int64_t NodeMatch::DataAsI64() const {
     return std::visit(overload{
                           [](bool arg) { return static_cast<int64_t>(arg); },
                           [](double arg) { return static_cast<int64_t>(arg); },
@@ -48,7 +48,7 @@ int64_t NodeMatching::DataAsI64() const {
 }
 
 // Return as double
-double NodeMatching::DataAsDouble() const {
+double NodeMatch::DataAsDouble() const {
     return std::visit(overload{
                           [](bool arg) { return static_cast<double>(arg); },
                           [](double arg) { return arg; },
@@ -65,12 +65,12 @@ double NodeMatching::DataAsDouble() const {
 }
 
 /// Match a matcher
-bool SyntaxMatcher::Match(const ProgramInstance& program, const sx::Node& root, nonstd::span<NodeMatching> out) const {
+bool SyntaxMatcher::Match(const ProgramInstance& program, const sx::Node& root, nonstd::span<NodeMatch> out) const {
     bool full_match = true;
 
     // Helper to get matching output
-    NodeMatching tmp;
-    auto getOut = [&](const SyntaxMatcher& matcher) -> NodeMatching& {
+    NodeMatch tmp;
+    auto getOut = [&](const SyntaxMatcher& matcher) -> NodeMatch& {
         if (matcher.matching_id == DISCARD_SYNTAX_MATCH) return tmp;
         assert(matcher.matching_id < out.size());
         return out[matcher.matching_id];
@@ -93,7 +93,7 @@ bool SyntaxMatcher::Match(const ProgramInstance& program, const sx::Node& root, 
 
         // Compare node type
         if (top.matcher.node_type != sx::NodeType::NONE && top.matcher.node_type != top.node.node_type()) {
-            matching.status = NodeMatchingStatus::TYPE_MISMATCH;
+            matching.status = NodeMatchStatus::TYPE_MISMATCH;
             full_match = false;
             continue;
         }
@@ -101,32 +101,32 @@ bool SyntaxMatcher::Match(const ProgramInstance& program, const sx::Node& root, 
         // Match the node spec
         switch (top.matcher.node_spec) {
             case SyntaxMatcherType::BOOL:
-                matching.status = NodeMatchingStatus::MATCHED;
+                matching.status = NodeMatchStatus::MATCHED;
                 matching.data = top.node.children_begin_or_value() != 0;
                 break;
             case SyntaxMatcherType::UI32:
-                matching.status = NodeMatchingStatus::MATCHED;
+                matching.status = NodeMatchStatus::MATCHED;
                 matching.data = top.node.children_begin_or_value();
                 break;
             case SyntaxMatcherType::UI32_BITMAP:
-                matching.status = NodeMatchingStatus::MATCHED;
+                matching.status = NodeMatchStatus::MATCHED;
                 matching.data = top.node.children_begin_or_value();
                 break;
             case SyntaxMatcherType::STRING:
                 if (top.node.node_type() == sx::NodeType::STRING_REF) {
-                    matching.status = NodeMatchingStatus::MATCHED;
+                    matching.status = NodeMatchStatus::MATCHED;
                     matching.data = program.TextAt(top.node.location());
                 } else {
-                    matching.status = NodeMatchingStatus::MISSING;
+                    matching.status = NodeMatchStatus::MISSING;
                     full_match = false;
                 }
                 break;
             case SyntaxMatcherType::ENUM:
-                matching.status = NodeMatchingStatus::MATCHED;
+                matching.status = NodeMatchStatus::MATCHED;
                 matching.data = top.node.children_begin_or_value();
                 break;
             case SyntaxMatcherType::ARRAY: {
-                matching.status = NodeMatchingStatus::MATCHED;
+                matching.status = NodeMatchStatus::MATCHED;
                 auto visit = std::min<size_t>(top.node.children_count(), top.matcher.children.size());
                 auto unmatched = top.matcher.children.size() - visit;
                 auto base = top.node.children_begin_or_value();
@@ -134,13 +134,13 @@ bool SyntaxMatcher::Match(const ProgramInstance& program, const sx::Node& root, 
                     pending.push_back({program.program().nodes[base + i], top.matcher.children[i]});
                 }
                 for (unsigned i = 0; i < unmatched; ++i) {
-                    getOut(top.matcher.children[visit + i]).status = NodeMatchingStatus::MISSING;
+                    getOut(top.matcher.children[visit + i]).status = NodeMatchStatus::MISSING;
                     full_match = false;
                 }
                 break;
             }
             case SyntaxMatcherType::OBJECT: {
-                matching.status = NodeMatchingStatus::MATCHED;
+                matching.status = NodeMatchStatus::MATCHED;
                 nonstd::span<const sx::Node> children{
                     program.program().nodes.data() + top.node.children_begin_or_value(), top.node.children_count()};
                 assert(std::is_sorted(children.begin(), children.end(),
@@ -153,7 +153,7 @@ bool SyntaxMatcher::Match(const ProgramInstance& program, const sx::Node& root, 
                     if (have.attribute_key() < expected.attribute_key) {
                         ++h;
                     } else if (have.attribute_key() > expected.attribute_key) {
-                        getOut(expected).status = NodeMatchingStatus::MISSING;
+                        getOut(expected).status = NodeMatchStatus::MISSING;
                         full_match = false;
                         ++e;
                     } else {
@@ -163,7 +163,7 @@ bool SyntaxMatcher::Match(const ProgramInstance& program, const sx::Node& root, 
                     }
                 }
                 for (; e < top.matcher.children.size(); ++e) {
-                    getOut(top.matcher.children[e]).status = NodeMatchingStatus::MISSING;
+                    getOut(top.matcher.children[e]).status = NodeMatchStatus::MISSING;
                     full_match = false;
                 }
                 break;
