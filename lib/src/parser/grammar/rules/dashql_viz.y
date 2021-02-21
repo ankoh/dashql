@@ -49,9 +49,9 @@ dashql_viz_type:
     AREA        { $$ = Enum(@$, sx::VizComponentType::AREA); }
   | AXIS        { $$ = Enum(@$, sx::VizComponentType::AXIS); }
   | BAR         { $$ = Enum(@$, sx::VizComponentType::BAR); }
-  | BOX         { $$ = Enum(@$, sx::VizComponentType::BOX); }
+  | BOX         { $$ = Enum(@$, sx::VizComponentType::BOX_PLOT); }
   | CANDLESTICK { $$ = Enum(@$, sx::VizComponentType::CANDLESTICK); }
-  | ERROR       { $$ = Enum(@$, sx::VizComponentType::ERROR); }
+  | ERROR       { $$ = Enum(@$, sx::VizComponentType::ERROR_BAR); }
   | HISTOGRAM   { $$ = Enum(@$, sx::VizComponentType::HISTOGRAM); }
   | LINE        { $$ = Enum(@$, sx::VizComponentType::LINE); }
   | NUMBER      { $$ = Enum(@$, sx::VizComponentType::NUMBER); }
