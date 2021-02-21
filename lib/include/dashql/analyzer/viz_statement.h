@@ -4,6 +4,7 @@
 #define INCLUDE_DASHQL_ANALYZER_VIZ_STATMENT_H_
 
 #include <flatbuffers/flatbuffers.h>
+
 #include <iostream>
 #include <limits>
 #include <optional>
@@ -32,7 +33,7 @@ class VizAttributePrinter;
 class VizStatement {
    protected:
     /// The program instance
-    const ProgramInstance& instance_;
+    ProgramInstance& instance_;
     /// The statement id
     const size_t statement_id_;
     /// The target
@@ -42,10 +43,11 @@ class VizStatement {
 
     /// The position (if known)
     std::optional<dashql::proto::viz::VizPosition> position_ = std::nullopt;
- 
+
    public:
     /// Constructor
-    VizStatement(const ProgramInstance& instance, size_t statement_id, size_t target_node_id, std::vector<std::unique_ptr<VizComponent>>&& components);
+    VizStatement(ProgramInstance& instance, size_t statement_id, size_t target_node_id,
+                 std::vector<std::unique_ptr<VizComponent>>&& components);
     /// Get the component
     auto& components() { return components_; }
     /// Print as script
@@ -54,8 +56,7 @@ class VizStatement {
     flatbuffers::Offset<proto::viz::VizSpec> Pack(flatbuffers::FlatBufferBuilder& builder) const;
 
     /// Read a viz statement
-    static std::unique_ptr<VizStatement> ReadFrom(const ProgramInstance& instance,
-                                                  size_t statement_id);
+    static std::unique_ptr<VizStatement> ReadFrom(ProgramInstance& instance, size_t statement_id);
 };
 
 using NodeID = uint32_t;
@@ -63,6 +64,8 @@ constexpr NodeID INVALID_NODE_ID = std::numeric_limits<NodeID>::max();
 
 class VizComponent {
    protected:
+    /// The program instance
+    ProgramInstance& instance;
     /// The type
     sx::VizComponentType type = sx::VizComponentType::TABLE;
     /// The type modifiers
@@ -90,7 +93,13 @@ class VizComponent {
     /// The interpolation option
     NodeID interpolation = INVALID_NODE_ID;
 
+   protected:
+    /// Select among matches and report ambiguities (if any)
+    size_t SelectOption(std::initializer_list<size_t> node_ids, std::string_view label) const;
+
    public:
+    /// Constructor
+    VizComponent(ProgramInstance& instance);
     /// Virtual destructor
     virtual ~VizComponent() = default;
 
@@ -100,7 +109,7 @@ class VizComponent {
     void ClearPosition() { position.reset(); }
     /// Read the viz component
     /// This will also perform a semanatic analysis of the given options
-    void ReadFrom(const ProgramInstance& instance, size_t node_id);
+    void ReadFrom(size_t node_id);
     /// Print common attributes
     void PrintAttributes(VizAttributePrinter& out) const;
 
@@ -109,7 +118,7 @@ class VizComponent {
     /// Pack as buffer
     flatbuffers::Offset<proto::viz::VizComponent> Pack(flatbuffers::FlatBufferBuilder& builder) const;
     /// Read component from a node
-    static std::unique_ptr<VizComponent> CreateFrom(const ProgramInstance& instance, size_t node_id);
+    static std::unique_ptr<VizComponent> CreateFrom(ProgramInstance& instance, size_t node_id);
 };
 
 }  // namespace viz
