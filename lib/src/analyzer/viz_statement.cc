@@ -245,6 +245,7 @@ void VizComponent::ReadFrom(size_t node_id) {
     auto data_y0 = SelectOption("data.y0", {ID_DATA_Y0, ID_Y0});
     auto data_categories = SelectOption("data.categories", {ID_DATA_CATEGORIES, ID_CATEGORIES});
     if (AnyOptionSet({data_x, data_y, data_y0, data_categories})) {
+        data.emplace();
         data->x = data_x;
         data->y = data_y;
         data->y0 = data_y0;
