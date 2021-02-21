@@ -3,6 +3,7 @@
 #include <flatbuffers/flatbuffers.h>
 
 #include <iostream>
+#include <limits>
 #include <stack>
 #include <unordered_map>
 
@@ -69,12 +70,15 @@ void VizAttributePrinter::Finish() {
     out << "\n)";
 }
 
-VizStatement::VizStatement(const ProgramInstance& instance, size_t statement_id, size_t target_node_id,
+VizStatement::VizStatement(ProgramInstance& instance, size_t statement_id, size_t target_node_id,
                            std::vector<std::unique_ptr<VizComponent>>&& components)
-    : instance_(instance), statement_id_(statement_id), target_node_id_(target_node_id), components_(move(components)) {}
+    : instance_(instance),
+      statement_id_(statement_id),
+      target_node_id_(target_node_id),
+      components_(move(components)) {}
 
 /// Read a viz statement
-std::unique_ptr<VizStatement> VizStatement::ReadFrom(const ProgramInstance& instance, size_t stmt_id) {
+std::unique_ptr<VizStatement> VizStatement::ReadFrom(ProgramInstance& instance, size_t stmt_id) {
     // clang-format off
     auto& program = instance.program();
     auto& stmt = program.statements[stmt_id];
@@ -141,12 +145,15 @@ flatbuffers::Offset<proto::viz::VizSpec> VizStatement::Pack(flatbuffers::FlatBuf
     return spec_builder.Finish();
 }
 
+/// Constructor
+VizComponent::VizComponent(ProgramInstance& instance) : instance(instance) {}
+
 /// Read common viz attributes.
-void VizComponent::ReadFrom(const ProgramInstance& instance, size_t node_id) {
+void VizComponent::ReadFrom(size_t node_id) {
     constexpr size_t ID_TYPE = 0;
     constexpr size_t ID_TYPE_MODIFIERS = 1;
     constexpr size_t ID_POS_ROW = 2;
-    constexpr size_t ID_POS_COL = 3;
+    constexpr size_t ID_POS_COLUMN = 3;
     constexpr size_t ID_POS_WIDTH = 4;
     constexpr size_t ID_POS_HEIGHT = 5;
     constexpr size_t ID_CATEGORIES = 13;
@@ -161,6 +168,10 @@ void VizComponent::ReadFrom(const ProgramInstance& instance, size_t node_id) {
     constexpr size_t ID_STYLE_LABELS = 13;
     constexpr size_t ID_THEME = 14;
     constexpr size_t ID_DATA = 15;
+    constexpr size_t ID_ROW = 16;
+    constexpr size_t ID_COLUMN = 17;
+    constexpr size_t ID_WIDTH = 18;
+    constexpr size_t ID_HEIGHT = 19;
 
     // clang-format off
     static const auto schema = sxm::Element()
@@ -171,6 +182,7 @@ void VizComponent::ReadFrom(const ProgramInstance& instance, size_t node_id) {
             sxm::Attribute(sx::AttributeKey::DASHQL_VIZ_COMPONENT_TYPE_MODIFIERS, ID_TYPE_MODIFIERS)
                 .MatchUI32Bitmap(),
             sxm::Option(sx::AttributeKey::DASHQL_OPTION_CATEGORIES, ID_CATEGORIES),
+            sxm::Option(sx::AttributeKey::DASHQL_OPTION_COLUMN, ID_COLUMN),
             sxm::Option(sx::AttributeKey::DASHQL_OPTION_DATA, ID_DATA)
                 .MatchOptions()
                 .MatchChildren({
@@ -179,14 +191,16 @@ void VizComponent::ReadFrom(const ProgramInstance& instance, size_t node_id) {
                     sxm::Option(sx::AttributeKey::DASHQL_OPTION_Y, ID_DATA_Y),
                     sxm::Option(sx::AttributeKey::DASHQL_OPTION_Y0, ID_DATA_Y0),
                 }),
+            sxm::Option(sx::AttributeKey::DASHQL_OPTION_HEIGHT, ID_HEIGHT),
             sxm::Option(sx::AttributeKey::DASHQL_OPTION_POSITION)
                 .MatchOptions()
                 .MatchChildren({
-                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_COLUMN, ID_POS_COL),
+                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_COLUMN, ID_POS_COLUMN),
                     sxm::Option(sx::AttributeKey::DASHQL_OPTION_HEIGHT, ID_POS_HEIGHT),
                     sxm::Option(sx::AttributeKey::DASHQL_OPTION_ROW, ID_POS_ROW),
                     sxm::Option(sx::AttributeKey::DASHQL_OPTION_WIDTH, ID_POS_WIDTH),
                 }),
+            sxm::Option(sx::AttributeKey::DASHQL_OPTION_ROW, ID_ROW),
             sxm::Option(sx::AttributeKey::DASHQL_OPTION_STYLE)
                 .MatchOptions()
                 .MatchChildren({
@@ -194,13 +208,14 @@ void VizComponent::ReadFrom(const ProgramInstance& instance, size_t node_id) {
                     sxm::Option(sx::AttributeKey::DASHQL_OPTION_LABELS, ID_STYLE_LABELS),
                 }),
             sxm::Option(sx::AttributeKey::DASHQL_OPTION_THEME, ID_THEME),
+            sxm::Option(sx::AttributeKey::DASHQL_OPTION_WIDTH, ID_WIDTH),
             sxm::Option(sx::AttributeKey::DASHQL_OPTION_X, ID_X),
             sxm::Option(sx::AttributeKey::DASHQL_OPTION_Y, ID_Y),
             sxm::Option(sx::AttributeKey::DASHQL_OPTION_Y0, ID_Y0),
         });
     // clang-format on
 
-    std::array<NodeMatch, 16> matches;
+    std::array<NodeMatch, 20> matches;
     schema.Match(instance, node_id, matches);
 
     if (matches[0]) {
@@ -215,20 +230,42 @@ void VizComponent::ReadFrom(const ProgramInstance& instance, size_t node_id) {
     static_assert(static_cast<size_t>(sx::VizComponentType::MAX) <= 63);
     uint64_t type_mask = 1 << static_cast<size_t>(type);
 
-    /// Read data
-    if (matches[ID_DATA]) {
-//        auto x = matches[ID_DATA_X] ? matches[ID_DATA_X].node
-//        if (matches[ID_DATA_X]) {
-//            
-//        }
-    }
+    /// Get position attributes
+    auto pos_row = SelectOption({ID_POS_ROW, ID_ROW}, "position.row");
+    auto pos_column = SelectOption({ID_POS_COLUMN, ID_COLUMN}, "position.column");
+    auto pos_width = SelectOption({ID_POS_WIDTH, ID_WIDTH}, "position.width");
+    auto pos_height = SelectOption({ID_POS_HEIGHT, ID_HEIGHT}, "position.height");
 
+    /// Get data attributes
+    auto data_x = SelectOption({ID_DATA_X, ID_X}, "data.x");
+    auto data_y = SelectOption({ID_DATA_Y, ID_Y}, "data.y");
+    auto data_y0 = SelectOption({ID_DATA_Y0, ID_Y0}, "data.y0");
+    auto data_categories = SelectOption({ID_DATA_CATEGORIES, ID_CATEGORIES}, "data.categories");
+
+    /// XXX
+}
+
+/// Select an option
+size_t VizComponent::SelectOption(std::initializer_list<size_t> node_ids, std::string_view label) const {
+    size_t selected = std::min<size_t>(node_ids);
+    size_t matches = 0;
+    for (auto node_id : node_ids) {
+        matches += node_id < INVALID_NODE_ID;
+    }
+    if (matches > 0) {
+        for (auto node_id : node_ids) {
+            if (node_id == INVALID_NODE_ID) continue;
+            auto e = Error{ErrorCode::OPTION_AMBIGUOUS} << "option " << label << " is ambiguous";
+            instance.AddNodeError({.node_id = node_id, .error = std::move(e)});
+        }
+    }
+    return selected;
 }
 
 /// Read component from a node
-std::unique_ptr<VizComponent> VizComponent::CreateFrom(const ProgramInstance& instance, size_t node_id) {
-    auto c = std::make_unique<VizComponent>();
-    c->ReadFrom(instance, node_id);
+std::unique_ptr<VizComponent> VizComponent::CreateFrom(ProgramInstance& instance, size_t node_id) {
+    auto c = std::make_unique<VizComponent>(instance);
+    c->ReadFrom(node_id);
     return c;
 }
 

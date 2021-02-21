@@ -21,6 +21,7 @@ enum class ErrorCode {
     QUERY_FAILED,
     TABLEGEN_CIRCULAR_DEPENDENCY,
     TABLEGEN_INVALID_INPUT_INDEX,
+    OPTION_AMBIGUOUS,
 };
 
 struct Error {
@@ -45,6 +46,11 @@ struct Error {
     auto *message() const { return message_; }
 
     Error &operator<<(const std::string &v) {
+        message_buffer_ += v;
+        message_ = message_buffer_.c_str();
+        return *this;
+    }
+    Error &operator<<(std::string_view v) {
         message_buffer_ += v;
         message_ = message_buffer_.c_str();
         return *this;
