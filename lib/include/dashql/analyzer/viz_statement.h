@@ -73,7 +73,7 @@ class VizComponent {
     /// The position option
     std::optional<pv::VizPosition> position = std::nullopt;
     /// The chart data option
-    std::optional<pv::VizData> data = std::nullopt;
+    std::optional<pv::VizDataT> data = std::nullopt;
     /// The style option
     std::vector<pv::SVGStyleProperty> style = {};
     /// The domain option
@@ -94,8 +94,10 @@ class VizComponent {
     NodeID interpolation = INVALID_NODE_ID;
 
    protected:
+    /// Any option set?
+    bool AnyOptionSet(std::initializer_list<size_t> node_ids) const;
     /// Select among matches and report ambiguities (if any)
-    size_t SelectOption(std::initializer_list<size_t> node_ids, std::string_view label) const;
+    size_t SelectOption(std::string_view label, std::initializer_list<size_t> node_ids) const;
 
    public:
     /// Constructor
