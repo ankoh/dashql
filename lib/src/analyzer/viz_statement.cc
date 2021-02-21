@@ -181,7 +181,7 @@ std::unique_ptr<VizComponent> VizComponent::CreateFrom(const ProgramInstance& in
 /// Print common viz attributes
 void VizComponent::PrintScript(std::ostream& out) const {
     // Print the type modifiers
-    const std::array<std::string_view, 6> type_modifier_names = {
+    static constexpr std::array<std::string_view, 6> type_modifier_names = {
         "STACKED", "DEPENDENT", "INDEPENDENT", "POLAR", "X", "Y",
     };
     for (uint32_t i = 0, modifiers = type_modifiers; i < 6; ++i, modifiers >>= 1) {
@@ -190,7 +190,7 @@ void VizComponent::PrintScript(std::ostream& out) const {
     }
 
     // Print the type name
-    const std::array<std::string_view, 14> type_names = {
+    static constexpr std::array<std::string_view, 14> type_names = {
         "AREA", "AXIS",   "BAR", "BOX_PLOT", "CANDLESTICK", "ERROR_BAR", "HISTOGRAM",
         "LINE", "NUMBER", "PIE", "SCATTER",  "TABLE",       "TEXT",      "VORONOI",
     };
