@@ -231,22 +231,40 @@ void VizComponent::ReadFrom(size_t node_id) {
     uint64_t type_mask = 1 << static_cast<size_t>(type);
 
     /// Get position attributes
-    auto pos_row = SelectOption({ID_POS_ROW, ID_ROW}, "position.row");
-    auto pos_column = SelectOption({ID_POS_COLUMN, ID_COLUMN}, "position.column");
-    auto pos_width = SelectOption({ID_POS_WIDTH, ID_WIDTH}, "position.width");
-    auto pos_height = SelectOption({ID_POS_HEIGHT, ID_HEIGHT}, "position.height");
+    auto pos_row = SelectOption("position.row", {ID_POS_ROW, ID_ROW});
+    auto pos_column = SelectOption("position.column", {ID_POS_COLUMN, ID_COLUMN});
+    auto pos_width = SelectOption("position.width", {ID_POS_WIDTH, ID_WIDTH});
+    auto pos_height = SelectOption("position.height", {ID_POS_HEIGHT, ID_HEIGHT});
+    if (AnyOptionSet({pos_row, pos_column, pos_width, pos_height})) {
+        position = pv::VizPosition(pos_row, pos_column, pos_width, pos_height);
+    }
 
     /// Get data attributes
-    auto data_x = SelectOption({ID_DATA_X, ID_X}, "data.x");
-    auto data_y = SelectOption({ID_DATA_Y, ID_Y}, "data.y");
-    auto data_y0 = SelectOption({ID_DATA_Y0, ID_Y0}, "data.y0");
-    auto data_categories = SelectOption({ID_DATA_CATEGORIES, ID_CATEGORIES}, "data.categories");
+    auto data_x = SelectOption("data.x", {ID_DATA_X, ID_X});
+    auto data_y = SelectOption("data.y", {ID_DATA_Y, ID_Y});
+    auto data_y0 = SelectOption("data.y0", {ID_DATA_Y0, ID_Y0});
+    auto data_categories = SelectOption("data.categories", {ID_DATA_CATEGORIES, ID_CATEGORIES});
+    if (AnyOptionSet({data_x, data_y, data_y0, data_categories})) {
+        data->x = data_x;
+        data->y = data_y;
+        data->y0 = data_y0;
+        data->categories = data_categories;
+    }
 
     /// XXX
 }
 
 /// Select an option
-size_t VizComponent::SelectOption(std::initializer_list<size_t> node_ids, std::string_view label) const {
+bool VizComponent::AnyOptionSet(std::initializer_list<size_t> node_ids) const {
+    bool any = false;
+    for (auto node_id: node_ids) {
+        any |= node_id < INVALID_NODE_ID;
+    }
+    return any;
+}
+
+/// Select an option
+size_t VizComponent::SelectOption(std::string_view label, std::initializer_list<size_t> node_ids) const {
     size_t selected = std::min<size_t>(node_ids);
     size_t matches = 0;
     for (auto node_id : node_ids) {
