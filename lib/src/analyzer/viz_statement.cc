@@ -109,7 +109,7 @@ std::unique_ptr<VizStatement> VizStatement::ReadFrom(const ProgramInstance& inst
 void VizStatement::PrintScript(std::ostream& out) const {
     out << "VIZ ";
     out << instance_.TextAt(target_.location());
-    out << " USING ";
+    out << " USING";
     for (auto i = 0; i < components_.size(); ++i) {
         if (i > 0) {
             out << ", ";
@@ -166,6 +166,9 @@ void VizComponent::ReadFrom(const ProgramInstance& instance, const sx::Node& nod
     if (matches[0]) {
         type = matches[0].DataAsEnum<sx::VizComponentType>();
     }
+    if (matches[1]) {
+        type_modifiers = matches[1].DataAsI64();
+    }
 }
 
 /// Read component from a node
@@ -178,52 +181,20 @@ std::unique_ptr<VizComponent> VizComponent::CreateFrom(const ProgramInstance& in
 /// Print common viz attributes
 void VizComponent::PrintScript(std::ostream& out) const {
     // Print the type modifiers
-    auto printModifierIfSet = [](std::ostream& out, uint32_t modifiers, sx::VizComponentTypeModifier mod, std::string_view txt) {
-        if (((~(1 << static_cast<uint32_t>(mod))) & modifiers) != 0) {
-            out << txt;
-        }
+    const std::array<std::string_view, 6> type_modifier_names = {
+        "STACKED", "DEPENDENT", "INDEPENDENT", "POLAR", "X", "Y",
     };
-    printModifierIfSet(out, type_modifiers, sx::VizComponentTypeModifier::STACKED, " STACKED");
-    printModifierIfSet(out, type_modifiers, sx::VizComponentTypeModifier::DEPENDENT, " DEPENDENT");
-    printModifierIfSet(out, type_modifiers, sx::VizComponentTypeModifier::INDEPENDENT, " INDEPENDENT");
-    printModifierIfSet(out, type_modifiers, sx::VizComponentTypeModifier::POLAR, " POLAR");
-    printModifierIfSet(out, type_modifiers, sx::VizComponentTypeModifier::X, " X");
-    printModifierIfSet(out, type_modifiers, sx::VizComponentTypeModifier::Y, " Y");
+    for (uint32_t i = 0, modifiers = type_modifiers; i < 6; ++i, modifiers >>= 1) {
+        if ((modifiers & ~0b1) == 0) continue;
+        out << " " << type_modifier_names[i];
+    }
 
     // Print the type name
-    auto printTypeName = [](sx::VizComponentType t) -> std::string_view {
-        switch (t) {
-            case sx::VizComponentType::AREA:
-                return "AREA";
-            case sx::VizComponentType::AXIS:
-                return "AXIS";
-            case sx::VizComponentType::BAR:
-                return "BAR";
-            case sx::VizComponentType::BOX_PLOT:
-                return "BOX";
-            case sx::VizComponentType::CANDLESTICK:
-                return "CANDLESTICK";
-            case sx::VizComponentType::ERROR_BAR:
-                return "ERROR";
-            case sx::VizComponentType::HISTOGRAM:
-                return "HISTOGRAM";
-            case sx::VizComponentType::LINE:
-                return "LINE";
-            case sx::VizComponentType::PIE:
-                return "PIE";
-            case sx::VizComponentType::SCATTER:
-                return "SCATTER";
-            case sx::VizComponentType::VORONOI:
-                return "VORONOI";
-            case sx::VizComponentType::TABLE:
-                return "TABLE";
-            case sx::VizComponentType::NUMBER:
-                return "NUMBER";
-            case sx::VizComponentType::TEXT:
-                return "TEXT";
-        }
+    const std::array<std::string_view, 14> type_names = {
+        "AREA", "AXIS",   "BAR", "BOX_PLOT", "CANDLESTICK", "ERROR_BAR", "HISTOGRAM",
+        "LINE", "NUMBER", "PIE", "SCATTER",  "TABLE",       "TEXT",      "VORONOI",
     };
-    out << printTypeName(type);
+    out << " " << type_names[static_cast<size_t>(type)];
 
     VizAttributePrinter aout{out};
     if (auto p = position) {
