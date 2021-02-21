@@ -89,7 +89,7 @@ std::unique_ptr<VizStatement> VizStatement::ReadFrom(const ProgramInstance& inst
     // clang-format on
 
     // Match root
-    std::array<NodeMatching, 2> matches;
+    std::array<NodeMatch, 2> matches;
     if (!schema.Match(instance, root, matches)) return nullptr;
     auto& comps_node = matches[1].node;
 
@@ -197,7 +197,7 @@ void VizComponent::ReadFrom(const ProgramInstance& instance, const sx::Node& nod
         });
     // clang-format on
 
-    std::array<NodeMatching, 15> matches;
+    std::array<NodeMatch, 15> matches;
     schema.Match(instance, node, matches);
 
     if (matches[0]) {

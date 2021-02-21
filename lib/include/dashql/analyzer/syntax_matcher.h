@@ -31,16 +31,16 @@ enum SyntaxMatcherType {
 };
 
 /// A node matching status
-enum NodeMatchingStatus {
+enum NodeMatchStatus {
     MISSING,
     TYPE_MISMATCH,
     MATCHED,
 };
 
-/// A node matching
-struct NodeMatching {
+/// A node match
+struct NodeMatch {
     /// The matching status
-    NodeMatchingStatus status = NodeMatchingStatus::MISSING;
+    NodeMatchStatus status = NodeMatchStatus::MISSING;
     /// The node pointer (if any)
     const sx::Node* node = nullptr;
     /// The value (if any)
@@ -62,7 +62,7 @@ struct NodeMatching {
         return static_cast<T>(!!v ? *v : 0);
     }
     /// Matched
-    operator bool() const { return status == NodeMatchingStatus::MATCHED; }
+    operator bool() const { return status == NodeMatchStatus::MATCHED; }
 };
 
 /// Use uint32_t max as NULL matching id
@@ -70,43 +70,43 @@ constexpr size_t DISCARD_SYNTAX_MATCH = std::numeric_limits<uint32_t>::max();
 
 /// A syntax matcher
 struct SyntaxMatcher {
-    /// The matching identifier (if any)
-    size_t matching_id = DISCARD_SYNTAX_MATCH;
-    /// The attribute key (if any)
-    sx::AttributeKey attribute_key = sx::AttributeKey::NONE;
     /// The matcher type
     SyntaxMatcherType node_spec = SyntaxMatcherType::OBJECT;
+    /// The attribute key (if any)
+    sx::AttributeKey attribute_key = sx::AttributeKey::NONE;
     /// The node type
     sx::NodeType node_type = sx::NodeType::NONE;
+    /// The matching identifier (if any)
+    size_t matching_id = DISCARD_SYNTAX_MATCH;
     /// The children (if any)
     std::vector<SyntaxMatcher> children = {};
 
     static inline SyntaxMatcher Element(size_t matching = DISCARD_SYNTAX_MATCH) {
         return {
-            .matching_id = matching,
-            .attribute_key = sx::AttributeKey::NONE,
             .node_spec = SyntaxMatcherType::OBJECT,
+            .attribute_key = sx::AttributeKey::NONE,
             .node_type = sx::NodeType::NONE,
+            .matching_id = matching,
             .children = {},
         };
     }
 
     static inline SyntaxMatcher Attribute(sx::AttributeKey key, size_t matching = DISCARD_SYNTAX_MATCH) {
         return {
-            .matching_id = matching,
-            .attribute_key = key,
             .node_spec = SyntaxMatcherType::OBJECT,
+            .attribute_key = key,
             .node_type = sx::NodeType::NONE,
+            .matching_id = matching,
             .children = {},
         };
     }
 
     static inline SyntaxMatcher Option(sx::AttributeKey key, size_t matching = DISCARD_SYNTAX_MATCH) {
         return {
-            .matching_id = matching,
-            .attribute_key = key,
             .node_spec = SyntaxMatcherType::OBJECT,
+            .attribute_key = key,
             .node_type = sx::NodeType::NONE,
+            .matching_id = matching,
             .children = {},
         };
     }
@@ -167,7 +167,7 @@ struct SyntaxMatcher {
     }
 
     /// Match a schema
-    bool Match(const ProgramInstance& program, const sx::Node& node, nonstd::span<NodeMatching> matching) const;
+    bool Match(const ProgramInstance& program, const sx::Node& node, nonstd::span<NodeMatch> matching) const;
 };
 using sxm = SyntaxMatcher;
 
