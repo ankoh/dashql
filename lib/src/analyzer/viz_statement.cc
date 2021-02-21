@@ -9,6 +9,7 @@
 
 #include "dashql/analyzer/program_editor.h"
 #include "dashql/analyzer/program_instance.h"
+#include "dashql/analyzer/program_linter.h"
 #include "dashql/analyzer/syntax_matcher.h"
 #include "dashql/common/expected.h"
 #include "dashql/common/span.h"
@@ -304,28 +305,25 @@ size_t VizComponent::SelectAltOption(std::string_view label, size_t node_id, siz
     if (node_id < INVALID_NODE_ID) {
         selection = node_id;
         if (alt_node_id < INVALID_NODE_ID) {
-            instance.AddNodeError(
-                {.node_id = alt_node_id,
-                 .error = Error{ErrorCode::OPTION_REDUNDANT} << "option superseded by '" << label << "'"});
+            instance.AddLinterMessage(LinterMessage{LinterMessageCode::OPTION_ALTERNATIVE_STYLE, alt_node_id}
+                                      << "option superseded by '" << label << "'");
         }
     } else if (alt_node_id < INVALID_NODE_ID) {
         selection = alt_node_id;
-        instance.AddNodeError(
-            {.node_id = alt_node_id,
-             .error = Error{ErrorCode::OPTION_ALTERNATIVE} << "option should be specified as '" << label << "'"});
+        instance.AddLinterMessage(LinterMessage{LinterMessageCode::OPTION_ALTERNATIVE_STYLE, alt_node_id}
+                                  << "option should be specified as '" << label << "'");
     }
     return selection;
 }
 
 /// Match an alternative style option
-void VizComponent::AddAltStyleOption(std::string_view label, size_t node_id, dashql::proto::viz::SVGStylePropertyType prop, std::vector<pv::SVGStyleProperty>& out) const {
-    if (node_id < INVALID_NODE_ID) {
-        instance.AddNodeError(
-            {.node_id = node_id,
-             .error = Error{ErrorCode::OPTION_ALTERNATIVE_STYLE} << "option should be specified as '" << label << "'"});
-        auto p = pv::SVGStyleProperty(pv::SVGStyleTarget::DATA, prop, node_id);
-        out.push_back(std::move(p));
-    }
+void VizComponent::AddAltStyleOption(std::string_view label, size_t node_id, pv::SVGStylePropertyType prop,
+                                     std::vector<pv::SVGStyleProperty>& out) const {
+    if (node_id == INVALID_NODE_ID) return;
+    instance.AddLinterMessage(LinterMessage{LinterMessageCode::OPTION_ALTERNATIVE_STYLE, node_id}
+                              << "option should be specified as '" << label << "'");
+    auto p = pv::SVGStyleProperty(pv::SVGStyleTarget::DATA, prop, node_id);
+    out.push_back(std::move(p));
 }
 
 /// Read component from a node

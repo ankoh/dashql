@@ -11,6 +11,7 @@
 #include <vector>
 
 #include "dashql/analyzer/parameter_value.h"
+#include "dashql/analyzer/program_linter.h"
 #include "dashql/analyzer/value.h"
 #include "dashql/analyzer/viz_statement.h"
 #include "dashql/common/enum.h"
@@ -62,6 +63,8 @@ class ProgramInstance {
     SparseUnionFind<NodeValue> evaluated_nodes_;
     /// The node errors
     std::vector<NodeError> node_errors_;
+    /// The linter messages
+    std::vector<LinterMessage> linter_messages_;
     /// The viz statements
     std::vector<std::unique_ptr<viz::VizStatement>> viz_statements_;
 
@@ -87,6 +90,8 @@ class ProgramInstance {
 
     /// Add a node error
     void AddNodeError(NodeError&& error);
+    /// Add a linter message
+    void AddLinterMessage(LinterMessage msg);
     /// Find the parameter value
     const ParameterValue* FindParameterValue(size_t stmt_id) const;
     /// Get the text at a location
