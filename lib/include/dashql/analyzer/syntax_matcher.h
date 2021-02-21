@@ -41,8 +41,8 @@ enum NodeMatchStatus {
 struct NodeMatch {
     /// The matching status
     NodeMatchStatus status = NodeMatchStatus::MISSING;
-    /// The node pointer (if any)
-    const sx::Node* node = nullptr;
+    /// The node id (if any)
+    size_t node_id = std::numeric_limits<size_t>::max();
     /// The value (if any)
     std::variant<std::monostate, bool, uint32_t, std::string_view> data = std::monostate();
 
@@ -167,7 +167,7 @@ struct SyntaxMatcher {
     }
 
     /// Match a schema
-    bool Match(const ProgramInstance& program, const sx::Node& node, nonstd::span<NodeMatch> matching) const;
+    bool Match(const ProgramInstance& program, size_t node_id, nonstd::span<NodeMatch> matching) const;
 };
 using sxm = SyntaxMatcher;
 

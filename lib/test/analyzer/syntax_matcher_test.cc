@@ -23,7 +23,7 @@ TEST(SyntaxMatcherTest, LoadStatement) {
     )CSV";
     auto program = parser::ParserDriver::Parse(txt);
     ASSERT_EQ(program->statements.size(), 1);
-    auto stmt_root = program->nodes[program->statements[0]->root_node];
+    auto stmt_root_id = program->statements[0]->root_node;
     ProgramInstance instance{txt, move(program)};
 
     // clang-format off
@@ -44,7 +44,7 @@ TEST(SyntaxMatcherTest, LoadStatement) {
     // clang-format on
 
     std::array<NodeMatch, 5> matching;
-    auto full_match = schema.Match(instance, stmt_root, matching);
+    auto full_match = schema.Match(instance, stmt_root_id, matching);
 
     EXPECT_EQ(matching[0].status, NodeMatchStatus::MATCHED);
     EXPECT_EQ(matching[1].status, NodeMatchStatus::MATCHED);
@@ -67,7 +67,7 @@ TEST(SyntaxMatcherTest, MinimalError) {
     )CSV";
     auto program = parser::ParserDriver::Parse(txt);
     ASSERT_EQ(program->statements.size(), 1);
-    auto stmt_root = program->nodes[program->statements[0]->root_node];
+    auto stmt_root_id = program->statements[0]->root_node;
     ProgramInstance instance{txt, move(program)};
 
     // clang-format off
@@ -80,7 +80,7 @@ TEST(SyntaxMatcherTest, MinimalError) {
     // clang-format on
 
     std::array<NodeMatch, 2> matching;
-    schema.Match(instance, stmt_root, matching);
+    schema.Match(instance, stmt_root_id, matching);
 
     EXPECT_EQ(matching[0].status, NodeMatchStatus::MATCHED);
     EXPECT_EQ(matching[1].status, NodeMatchStatus::MATCHED);
@@ -94,7 +94,7 @@ TEST(SyntaxMatcherTest, VizStatementPositionShort) {
     )CSV";
     auto program = parser::ParserDriver::Parse(txt);
     ASSERT_EQ(program->statements.size(), 1);
-    auto stmt_root = program->nodes[program->statements[0]->root_node];
+    auto stmt_root_id = program->statements[0]->root_node;
     ProgramInstance instance{txt, move(program)};
 
     // clang-format off
@@ -133,7 +133,7 @@ TEST(SyntaxMatcherTest, VizStatementPositionShort) {
     // clang-format on
 
     std::array<NodeMatch, 12> matching;
-    schema.Match(instance, stmt_root, matching);
+    schema.Match(instance, stmt_root_id, matching);
 
     EXPECT_EQ(matching[0].status, NodeMatchStatus::MATCHED);
     EXPECT_EQ(matching[1].status, NodeMatchStatus::MATCHED);
@@ -151,7 +151,7 @@ TEST(SyntaxMatcherTest, LoadStatementFormat) {
     )CSV";
     auto program = parser::ParserDriver::Parse(txt);
     ASSERT_EQ(program->statements.size(), 1);
-    auto stmt_root = program->nodes[program->statements[0]->root_node];
+    auto stmt_root_id = program->statements[0]->root_node;
     ProgramInstance instance{txt, move(program)};
 
     // clang-format off
@@ -192,7 +192,7 @@ TEST(SyntaxMatcherTest, LoadStatementFormat) {
     // clang-format on
 
     std::array<NodeMatch, 10> matching;
-    auto full_match = schema.Match(instance, stmt_root, matching);
+    auto full_match = schema.Match(instance, stmt_root_id, matching);
 
     EXPECT_EQ(matching[0].status, NodeMatchStatus::MATCHED);
     EXPECT_EQ(matching[1].status, NodeMatchStatus::MATCHED);

@@ -73,20 +73,20 @@ const Value* Analyzer::TryEvaluateFunctionCall(ProgramInstance& instance, size_t
 
     auto& eval = instance.evaluated_nodes_;
     auto& program = instance.program();
-    auto& func_node = program.nodes[node_id];
     std::array<NodeMatch, 2> matches;
-    if (!schema.Match(instance, func_node, matches)) {
+    if (!schema.Match(instance, node_id, matches)) {
         return nullptr;
     }
     auto func_name = matches[1].DataAsStringRef();
 
     // Try to collect all function arguments.
     // Abort if they are not const.
-    auto func_args_node = matches[0].node;
+    auto func_args_node_id = matches[0].node_id;
+    auto func_args_node = program.nodes[func_args_node_id];
     std::vector<const Value*> func_args;
     std::vector<size_t> func_arg_node_ids;
-    for (unsigned i = 0; i < func_args_node->children_count(); ++i) {
-        auto arg_node_id = func_args_node->children_begin_or_value() + i;
+    for (unsigned i = 0; i < func_args_node.children_count(); ++i) {
+        auto arg_node_id = func_args_node.children_begin_or_value() + i;
         auto arg_value = TryEvaluateConstant(instance, arg_node_id);
         if (!arg_value) {
             break;
@@ -97,7 +97,7 @@ const Value* Analyzer::TryEvaluateFunctionCall(ProgramInstance& instance, size_t
 
     // Not all arguments const?
     // Abort immediately
-    if (func_args.size() != func_args_node->children_count()) return nullptr;
+    if (func_args.size() != func_args_node.children_count()) return nullptr;
 
     // Resolve the function
     auto logic = FunctionLogic::Resolve(func_name, func_args);
