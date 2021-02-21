@@ -305,13 +305,13 @@ size_t VizComponent::SelectAltOption(std::string_view label, size_t node_id, siz
     if (node_id < INVALID_NODE_ID) {
         selection = node_id;
         if (alt_node_id < INVALID_NODE_ID) {
-            instance.AddLinterMessage(LinterMessage{LinterMessageCode::OPTION_ALTERNATIVE_STYLE, alt_node_id}
-                                      << "option superseded by '" << label << "'");
+            instance.Add(LinterMessage{LinterMessageCode::OPTION_ALTERNATIVE_STYLE, alt_node_id}
+                         << "option superseded by '" << label << "'");
         }
     } else if (alt_node_id < INVALID_NODE_ID) {
         selection = alt_node_id;
-        instance.AddLinterMessage(LinterMessage{LinterMessageCode::OPTION_ALTERNATIVE_STYLE, alt_node_id}
-                                  << "option should be specified as '" << label << "'");
+        instance.Add(LinterMessage{LinterMessageCode::OPTION_ALTERNATIVE_STYLE, alt_node_id}
+                     << "option should be specified as '" << label << "'");
     }
     return selection;
 }
@@ -320,8 +320,8 @@ size_t VizComponent::SelectAltOption(std::string_view label, size_t node_id, siz
 void VizComponent::AddAltStyleOption(std::string_view label, size_t node_id, pv::SVGStylePropertyType prop,
                                      std::vector<pv::SVGStyleProperty>& out) const {
     if (node_id == INVALID_NODE_ID) return;
-    instance.AddLinterMessage(LinterMessage{LinterMessageCode::OPTION_ALTERNATIVE_STYLE, node_id}
-                              << "option should be specified as '" << label << "'");
+    instance.Add(LinterMessage{LinterMessageCode::OPTION_ALTERNATIVE_STYLE, node_id}
+                 << "option should be specified as '" << label << "'");
     auto p = pv::SVGStyleProperty(pv::SVGStyleTarget::DATA, prop, node_id);
     out.push_back(std::move(p));
 }
