@@ -74,7 +74,7 @@ const Value* Analyzer::TryEvaluateFunctionCall(ProgramInstance& instance, size_t
     auto& eval = instance.evaluated_nodes_;
     auto& program = instance.program();
     auto& func_node = program.nodes[node_id];
-    std::array<NodeMatching, 2> matches;
+    std::array<NodeMatch, 2> matches;
     if (!schema.Match(instance, func_node, matches)) {
         return nullptr;
     }
