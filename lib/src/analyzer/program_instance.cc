@@ -4,6 +4,7 @@
 #include <sstream>
 #include <stack>
 
+#include "dashql/analyzer/program_linter.h"
 #include "dashql/common/memstream.h"
 #include "dashql/common/substring_buffer.h"
 #include "dashql/common/variant.h"
@@ -18,10 +19,13 @@ ProgramInstance::ProgramInstance(std::shared_ptr<std::string> text, std::shared_
       parameter_values_(move(params)),
       evaluated_nodes_(program_->nodes.size()),
       node_errors_(),
+      linter_messages_(),
       viz_statements_() {}
 
 // Add a node error
 void ProgramInstance::AddNodeError(NodeError&& error) { node_errors_.push_back(std::move(error)); }
+// Add a node error
+void ProgramInstance::AddLinterMessage(LinterMessage msg) { linter_messages_.push_back(std::move(msg)); }
 
 // Find a parameter value
 const ParameterValue* ProgramInstance::FindParameterValue(size_t stmt_id) const {
@@ -30,7 +34,9 @@ const ParameterValue* ProgramInstance::FindParameterValue(size_t stmt_id) const 
 }
 
 // Find a parameter value
-const ProgramInstance::NodeValue* ProgramInstance::FindNodeValue(size_t node_id) { return evaluated_nodes_.Find(node_id); }
+const ProgramInstance::NodeValue* ProgramInstance::FindNodeValue(size_t node_id) {
+    return evaluated_nodes_.Find(node_id);
+}
 
 // Collect the statement options
 Expected<std::string> ProgramInstance::RenderStatementText(size_t stmt_id) const {
