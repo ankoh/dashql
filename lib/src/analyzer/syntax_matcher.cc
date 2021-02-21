@@ -65,7 +65,7 @@ double NodeMatch::DataAsDouble() const {
 }
 
 /// Match a matcher
-bool SyntaxMatcher::Match(const ProgramInstance& program, const sx::Node& root, nonstd::span<NodeMatch> out) const {
+bool SyntaxMatcher::Match(const ProgramInstance& program, size_t root_id, nonstd::span<NodeMatch> out) const {
     bool full_match = true;
 
     // Helper to get matching output
@@ -78,21 +78,22 @@ bool SyntaxMatcher::Match(const ProgramInstance& program, const sx::Node& root, 
 
     // Match the matcher with a DFS
     struct Step {
-        const sx::Node& node;
+        size_t node_id;
         const SyntaxMatcher& matcher;
     };
     std::vector<Step> pending;
     pending.reserve(8);
-    pending.push_back({root, *this});
+    pending.push_back({root_id, *this});
 
     while (!pending.empty()) {
         auto top = pending.back();
+        auto& top_node = program.program().nodes[top.node_id];
         pending.pop_back();
         auto& matching = getOut(top.matcher);
-        matching.node = &top.node;
+        matching.node_id = top.node_id;
 
         // Compare node type
-        if (top.matcher.node_type != sx::NodeType::NONE && top.matcher.node_type != top.node.node_type()) {
+        if (top.matcher.node_type != sx::NodeType::NONE && top.matcher.node_type != top_node.node_type()) {
             matching.status = NodeMatchStatus::TYPE_MISMATCH;
             full_match = false;
             continue;
@@ -102,20 +103,20 @@ bool SyntaxMatcher::Match(const ProgramInstance& program, const sx::Node& root, 
         switch (top.matcher.node_spec) {
             case SyntaxMatcherType::BOOL:
                 matching.status = NodeMatchStatus::MATCHED;
-                matching.data = top.node.children_begin_or_value() != 0;
+                matching.data = top_node.children_begin_or_value() != 0;
                 break;
             case SyntaxMatcherType::UI32:
                 matching.status = NodeMatchStatus::MATCHED;
-                matching.data = top.node.children_begin_or_value();
+                matching.data = top_node.children_begin_or_value();
                 break;
             case SyntaxMatcherType::UI32_BITMAP:
                 matching.status = NodeMatchStatus::MATCHED;
-                matching.data = top.node.children_begin_or_value();
+                matching.data = top_node.children_begin_or_value();
                 break;
             case SyntaxMatcherType::STRING:
-                if (top.node.node_type() == sx::NodeType::STRING_REF) {
+                if (top_node.node_type() == sx::NodeType::STRING_REF) {
                     matching.status = NodeMatchStatus::MATCHED;
-                    matching.data = program.TextAt(top.node.location());
+                    matching.data = program.TextAt(top_node.location());
                 } else {
                     matching.status = NodeMatchStatus::MISSING;
                     full_match = false;
@@ -123,15 +124,15 @@ bool SyntaxMatcher::Match(const ProgramInstance& program, const sx::Node& root, 
                 break;
             case SyntaxMatcherType::ENUM:
                 matching.status = NodeMatchStatus::MATCHED;
-                matching.data = top.node.children_begin_or_value();
+                matching.data = top_node.children_begin_or_value();
                 break;
             case SyntaxMatcherType::ARRAY: {
                 matching.status = NodeMatchStatus::MATCHED;
-                auto visit = std::min<size_t>(top.node.children_count(), top.matcher.children.size());
+                auto visit = std::min<size_t>(top_node.children_count(), top.matcher.children.size());
                 auto unmatched = top.matcher.children.size() - visit;
-                auto base = top.node.children_begin_or_value();
+                auto base = top_node.children_begin_or_value();
                 for (unsigned i = 0; i < visit; ++i) {
-                    pending.push_back({program.program().nodes[base + i], top.matcher.children[i]});
+                    pending.push_back({base + i, top.matcher.children[i]});
                 }
                 for (unsigned i = 0; i < unmatched; ++i) {
                     getOut(top.matcher.children[visit + i]).status = NodeMatchStatus::MISSING;
@@ -142,7 +143,7 @@ bool SyntaxMatcher::Match(const ProgramInstance& program, const sx::Node& root, 
             case SyntaxMatcherType::OBJECT: {
                 matching.status = NodeMatchStatus::MATCHED;
                 nonstd::span<const sx::Node> children{
-                    program.program().nodes.data() + top.node.children_begin_or_value(), top.node.children_count()};
+                    program.program().nodes.data() + top_node.children_begin_or_value(), top_node.children_count()};
                 assert(std::is_sorted(children.begin(), children.end(),
                                       [](auto& l, auto& r) { return l.attribute_key() < r.attribute_key(); }));
 
@@ -157,7 +158,7 @@ bool SyntaxMatcher::Match(const ProgramInstance& program, const sx::Node& root, 
                         full_match = false;
                         ++e;
                     } else {
-                        pending.push_back({have, expected});
+                        pending.push_back({top_node.children_begin_or_value() + h, expected});
                         ++h;
                         ++e;
                     }
