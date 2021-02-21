@@ -98,6 +98,8 @@ class VizComponent {
     bool AnyOptionSet(std::initializer_list<size_t> node_ids) const;
     /// Select among matches and report ambiguities (if any)
     size_t SelectAltOption(std::string_view label, size_t node_id, size_t alt_node_id) const;
+    /// Match an alternative style option
+    void AddAltStyleOption(std::string_view label, size_t node_id, dashql::proto::viz::SVGStylePropertyType prop, std::vector<pv::SVGStyleProperty>& out) const;
 
    public:
     /// Constructor
