@@ -24,8 +24,8 @@ ProgramInstance::ProgramInstance(std::shared_ptr<std::string> text, std::shared_
 
 // Add a node error
 void ProgramInstance::AddNodeError(NodeError&& error) { node_errors_.push_back(std::move(error)); }
-// Add a node error
-void ProgramInstance::AddLinterMessage(LinterMessage msg) { linter_messages_.push_back(std::move(msg)); }
+// Add a linter message
+void ProgramInstance::Add(LinterMessage msg) { linter_messages_.push_back(std::move(msg)); }
 
 // Find a parameter value
 const ParameterValue* ProgramInstance::FindParameterValue(size_t stmt_id) const {

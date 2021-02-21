@@ -91,7 +91,7 @@ class ProgramInstance {
     /// Add a node error
     void AddNodeError(NodeError&& error);
     /// Add a linter message
-    void AddLinterMessage(LinterMessage msg);
+    void Add(LinterMessage msg);
     /// Find the parameter value
     const ParameterValue* FindParameterValue(size_t stmt_id) const;
     /// Get the text at a location
