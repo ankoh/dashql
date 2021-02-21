@@ -78,6 +78,8 @@ class ProgramInstance {
     auto& program_text() const { return *program_text_; }
     /// Get the program
     auto& program() const { return *program_; }
+    /// Get the program
+    auto& program() { return *program_; }
     /// Get the parameter values
     auto& parameter_values() const { return parameter_values_; }
     /// Get the evaluate nodes
