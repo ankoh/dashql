@@ -5,6 +5,7 @@
 
 #include <flatbuffers/flatbuffers.h>
 #include <iostream>
+#include <limits>
 #include <optional>
 #include <ostream>
 #include <sstream>
@@ -13,9 +14,11 @@
 
 #include "dashql/common/enum.h"
 #include "dashql/common/span.h"
+#include "dashql/parser/parser_driver.h"
 #include "dashql/proto_generated.h"
 
 namespace sx = dashql::proto::syntax;
+namespace pv = dashql::proto::viz;
 
 namespace dashql {
 
@@ -55,10 +58,37 @@ class VizStatement {
                                                   size_t statement_id);
 };
 
+using NodeID = uint32_t;
+constexpr NodeID INVALID_NODE_ID = std::numeric_limits<NodeID>::max();
+
 class VizComponent {
    protected:
-    /// The position
-    std::optional<dashql::proto::viz::VizPosition> position = std::nullopt;
+    /// The type
+    sx::VizComponentType type = sx::VizComponentType::TABLE;
+    /// The type modifiers
+    uint32_t type_modifiers = 0;
+    /// The position option
+    std::optional<pv::VizPosition> position = std::nullopt;
+    /// The chart data option
+    std::optional<pv::VizData> data = std::nullopt;
+    /// The style option
+    std::vector<pv::SVGStyleProperty> style = {};
+    /// The domain option
+    std::optional<pv::VizDomain> domain = std::nullopt;
+    /// The origin option
+    std::optional<pv::Coordinates> origin = std::nullopt;
+    /// The padding option
+    std::optional<pv::VizPadding> padding = std::nullopt;
+    /// The scales option
+    std::optional<pv::VizScales> scales = std::nullopt;
+    /// The name option
+    NodeID name = INVALID_NODE_ID;
+    /// THe samples option
+    NodeID samples = INVALID_NODE_ID;
+    /// The theme option
+    NodeID theme = INVALID_NODE_ID;
+    /// The interpolation option
+    NodeID interpolation = INVALID_NODE_ID;
 
    public:
     /// Virtual destructor
@@ -68,76 +98,18 @@ class VizComponent {
     void SetPosition(dashql::proto::viz::VizPosition tile) { position = tile; }
     /// Clear the position (if any)
     void ClearPosition() { position.reset(); }
-    /// Read attributes of the viz component
-    void ReadAttributes(const ProgramInstance& instance, const sx::Node& node);
+    /// Read the viz component
+    /// This will also perform a semanatic analysis of the given options
+    void ReadFrom(const ProgramInstance& instance, const sx::Node& node);
     /// Print common attributes
     void PrintAttributes(VizAttributePrinter& out) const;
 
     /// Print as script
-    virtual void PrintScript(std::ostream& out) const = 0;
+    void PrintScript(std::ostream& out) const;
     /// Pack as buffer
-    virtual flatbuffers::Offset<proto::viz::ChartComponent> Pack(flatbuffers::FlatBufferBuilder& builder) const = 0;
+    flatbuffers::Offset<proto::viz::VizComponent> Pack(flatbuffers::FlatBufferBuilder& builder) const;
     /// Read component from a node
-    static std::unique_ptr<VizComponent> ReadFrom(const ProgramInstance& instance, const sx::Node& node);
-};
-
-struct TableChartComponent : public VizComponent {
-    /// Print as script
-    void PrintScript(std::ostream& out) const override;
-    /// Pack flatbuffer
-    flatbuffers::Offset<proto::viz::ChartComponent> Pack(flatbuffers::FlatBufferBuilder& builder) const override;
-    /// Read attributes
-    static std::unique_ptr<VizComponent> ReadFrom(const ProgramInstance& instance, const sx::Node& node);
-};
-
-/// A line chart component
-struct LineChartComponent : public VizComponent {
-    /// Is stacked?
-    bool stacked = false;
-
-    /// Print as script
-    void PrintScript(std::ostream& out) const override;
-    /// Pack as buffer
-    flatbuffers::Offset<proto::viz::ChartComponent> Pack(flatbuffers::FlatBufferBuilder& builder) const override;
-    /// Read attributes
-    static std::unique_ptr<VizComponent> ReadFrom(const ProgramInstance& instance, const sx::Node& node);
-};
-
-
-/// A scatter chart component
-struct ScatterChartComponent : public VizComponent {
-    /// Print as script
-    void PrintScript(std::ostream& out) const override;
-    /// Pack as buffer
-    flatbuffers::Offset<proto::viz::ChartComponent> Pack(flatbuffers::FlatBufferBuilder& builder) const override;
-    /// Read attributes
-    static std::unique_ptr<VizComponent> ReadFrom(const ProgramInstance& instance, const sx::Node& node);
-};
-
-/// A line chart component
-struct AreaChartComponent : public VizComponent {
-    /// Is stacked?
-    bool stacked = false;
-
-    /// Print as script
-    void PrintScript(std::ostream& out) const override;
-    /// Pack as buffer
-    flatbuffers::Offset<proto::viz::ChartComponent> Pack(flatbuffers::FlatBufferBuilder& builder) const override;
-    /// Read attributes
-    static std::unique_ptr<VizComponent> ReadFrom(const ProgramInstance& instance, const sx::Node& node);
-};
-
-/// A line chart component
-struct AxisComponent : public VizComponent {
-    /// Is dependant axis?
-    bool dependant = false;
-
-    /// Print as script
-    void PrintScript(std::ostream& out) const override;
-    /// Pack as buffer
-    flatbuffers::Offset<proto::viz::ChartComponent> Pack(flatbuffers::FlatBufferBuilder& builder) const override;
-    /// Read attributes
-    static std::unique_ptr<VizComponent> ReadFrom(const ProgramInstance& instance, const sx::Node& node);
+    static std::unique_ptr<VizComponent> CreateFrom(const ProgramInstance& instance, const sx::Node& node);
 };
 
 }  // namespace viz

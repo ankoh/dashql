@@ -33,7 +33,7 @@
                     <node key="DASHQL_VIZ_COMPONENTS">
                         <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="37..259" text="STACKED BA..&#10;        )">
                             <node key="DASHQL_VIZ_COMPONENT_TYPE" value="BAR" />
-                            <node key="DASHQL_VIZ_COMPONENT_TYPE_MODIFIERS" value="1" />
+                            <node key="DASHQL_VIZ_COMPONENT_TYPE_MODIFIERS" value="0" />
                             <node key="DASHQL_OPTION_CATEGORIES" type="OBJECT_SQL_COLUMN_REF" loc="168..169" text="c">
                                 <node key="SQL_COLUMN_REF_PATH">
                                     <node loc="168..169" text="c" />
@@ -78,12 +78,12 @@
                         </node>
                         <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="717..739" text="X AXIS(sca.. = 'time')">
                             <node key="DASHQL_VIZ_COMPONENT_TYPE" value="AXIS" />
-                            <node key="DASHQL_VIZ_COMPONENT_TYPE_MODIFIERS" value="16" />
+                            <node key="DASHQL_VIZ_COMPONENT_TYPE_MODIFIERS" value="4" />
                             <node key="DASHQL_OPTION_SCALE" loc="732..738" text="'time'" />
                         </node>
                         <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="741..762" text="Y AXIS(sca..e = 'log')">
                             <node key="DASHQL_VIZ_COMPONENT_TYPE" value="AXIS" />
-                            <node key="DASHQL_VIZ_COMPONENT_TYPE_MODIFIERS" value="32" />
+                            <node key="DASHQL_VIZ_COMPONENT_TYPE_MODIFIERS" value="5" />
                             <node key="DASHQL_OPTION_SCALE" loc="756..761" text="'log'" />
                         </node>
                     </node>
