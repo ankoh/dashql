@@ -71,8 +71,9 @@ bool SyntaxMatcher::Match(const ProgramInstance& program, const sx::Node& root, 
     // Helper to get matching output
     NodeMatching tmp;
     auto getOut = [&](const SyntaxMatcher& matcher) -> NodeMatching& {
-        assert(!matcher.matching_id || matcher.matching_id < out.size());
-        return matcher.matching_id ? out[*matcher.matching_id] : tmp;
+        if (matcher.matching_id == DISCARD_SYNTAX_MATCH) return tmp;
+        assert(matcher.matching_id < out.size());
+        return out[matcher.matching_id];
     };
 
     // Match the matcher with a DFS
