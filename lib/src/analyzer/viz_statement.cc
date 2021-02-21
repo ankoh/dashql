@@ -141,26 +141,63 @@ flatbuffers::Offset<proto::viz::VizSpec> VizStatement::Pack(flatbuffers::FlatBuf
 
 /// Read common viz attributes.
 void VizComponent::ReadFrom(const ProgramInstance& instance, const sx::Node& node) {
+    constexpr size_t ID_TYPE = 0;
+    constexpr size_t ID_TYPE_MODIFIERS = 1;
+    constexpr size_t ID_POS_ROW = 2;
+    constexpr size_t ID_POS_COL = 3;
+    constexpr size_t ID_POS_WIDTH = 4;
+    constexpr size_t ID_POS_HEIGHT = 5;
+    constexpr size_t ID_CATEGORIES = 13;
+    constexpr size_t ID_X = 6;
+    constexpr size_t ID_Y = 7;
+    constexpr size_t ID_Y0 = 8;
+    constexpr size_t ID_DATA_CATEGORIES = 12;
+    constexpr size_t ID_DATA_X = 9;
+    constexpr size_t ID_DATA_Y = 10;
+    constexpr size_t ID_DATA_Y0 = 11;
+    constexpr size_t ID_STYLE_DATA = 12;
+    constexpr size_t ID_STYLE_LABELS = 13;
+    constexpr size_t ID_THEME = 14;
+
     // clang-format off
     static const auto schema = sxm::Element()
         .MatchObject(sx::NodeType::OBJECT_DASHQL_VIZ_COMPONENT)
         .MatchChildren({
-            sxm::Attribute(sx::AttributeKey::DASHQL_VIZ_COMPONENT_TYPE, 0)
+            sxm::Attribute(sx::AttributeKey::DASHQL_VIZ_COMPONENT_TYPE, ID_TYPE)
                 .MatchEnum(sx::NodeType::ENUM_DASHQL_VIZ_COMPONENT_TYPE),
-            sxm::Attribute(sx::AttributeKey::DASHQL_VIZ_COMPONENT_TYPE_MODIFIERS, 1)
+            sxm::Attribute(sx::AttributeKey::DASHQL_VIZ_COMPONENT_TYPE_MODIFIERS, ID_TYPE_MODIFIERS)
                 .MatchUI32Bitmap(),
+            sxm::Option(sx::AttributeKey::DASHQL_OPTION_CATEGORIES, ID_CATEGORIES),
+            sxm::Option(sx::AttributeKey::DASHQL_OPTION_DATA)
+                .MatchOptions()
+                .MatchChildren({
+                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_CATEGORIES, ID_DATA_CATEGORIES),
+                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_X, ID_DATA_X),
+                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_Y, ID_DATA_Y),
+                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_Y0, ID_DATA_Y0),
+                }),
             sxm::Option(sx::AttributeKey::DASHQL_OPTION_POSITION)
                 .MatchOptions()
                 .MatchChildren({
-                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_COLUMN, 2),
-                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_HEIGHT, 3),
-                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_ROW, 4),
-                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_WIDTH, 5),
-                })
+                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_COLUMN, ID_POS_COL),
+                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_HEIGHT, ID_POS_HEIGHT),
+                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_ROW, ID_POS_ROW),
+                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_WIDTH, ID_POS_WIDTH),
+                }),
+            sxm::Option(sx::AttributeKey::DASHQL_OPTION_STYLE)
+                .MatchOptions()
+                .MatchChildren({
+                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_DATA, ID_STYLE_DATA),
+                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_LABELS, ID_STYLE_LABELS),
+                }),
+            sxm::Option(sx::AttributeKey::DASHQL_OPTION_THEME, ID_THEME),
+            sxm::Option(sx::AttributeKey::DASHQL_OPTION_X, ID_X),
+            sxm::Option(sx::AttributeKey::DASHQL_OPTION_Y, ID_Y),
+            sxm::Option(sx::AttributeKey::DASHQL_OPTION_Y0, ID_Y0),
         });
     // clang-format on
 
-    std::array<NodeMatching, 7> matches;
+    std::array<NodeMatching, 15> matches;
     schema.Match(instance, node, matches);
 
     if (matches[0]) {

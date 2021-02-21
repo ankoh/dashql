@@ -4,6 +4,7 @@
 #define INCLUDE_DASHQL_ANALYZER_SYNTAX_MATCHER_H_
 
 #include <iostream>
+#include <limits>
 #include <optional>
 #include <sstream>
 #include <unordered_map>
@@ -64,10 +65,13 @@ struct NodeMatching {
     operator bool() const { return status == NodeMatchingStatus::MATCHED; }
 };
 
+/// Use uint32_t max as NULL matching id
+constexpr size_t DISCARD_SYNTAX_MATCH = std::numeric_limits<uint32_t>::max();
+
 /// A syntax matcher
 struct SyntaxMatcher {
     /// The matching identifier (if any)
-    std::optional<size_t> matching_id = std::nullopt;
+    size_t matching_id = DISCARD_SYNTAX_MATCH;
     /// The attribute key (if any)
     sx::AttributeKey attribute_key = sx::AttributeKey::NONE;
     /// The matcher type
@@ -77,7 +81,7 @@ struct SyntaxMatcher {
     /// The children (if any)
     std::vector<SyntaxMatcher> children = {};
 
-    static inline SyntaxMatcher Element(std::optional<size_t> matching = std::nullopt) {
+    static inline SyntaxMatcher Element(size_t matching = DISCARD_SYNTAX_MATCH) {
         return {
             .matching_id = matching,
             .attribute_key = sx::AttributeKey::NONE,
@@ -87,8 +91,7 @@ struct SyntaxMatcher {
         };
     }
 
-    static inline SyntaxMatcher Attribute(sx::AttributeKey key,
-                                                    std::optional<size_t> matching = std::nullopt) {
+    static inline SyntaxMatcher Attribute(sx::AttributeKey key, size_t matching = DISCARD_SYNTAX_MATCH) {
         return {
             .matching_id = matching,
             .attribute_key = key,
@@ -98,7 +101,7 @@ struct SyntaxMatcher {
         };
     }
 
-    static inline SyntaxMatcher Option(sx::AttributeKey key, std::optional<size_t> matching = std::nullopt) {
+    static inline SyntaxMatcher Option(sx::AttributeKey key, size_t matching = DISCARD_SYNTAX_MATCH) {
         return {
             .matching_id = matching,
             .attribute_key = key,
