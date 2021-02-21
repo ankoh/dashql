@@ -76,7 +76,7 @@ class VizComponent {
     /// Print as script
     virtual void PrintScript(std::ostream& out) const = 0;
     /// Pack as buffer
-    virtual std::pair<flatbuffers::Offset<void>, proto::viz::VizComponentVariant> Pack(flatbuffers::FlatBufferBuilder& builder) const = 0;
+    virtual flatbuffers::Offset<proto::viz::ChartComponent> Pack(flatbuffers::FlatBufferBuilder& builder) const = 0;
     /// Read component from a node
     static std::unique_ptr<VizComponent> ReadFrom(const ProgramInstance& instance, const sx::Node& node);
 };
@@ -85,7 +85,7 @@ struct TableChartComponent : public VizComponent {
     /// Print as script
     void PrintScript(std::ostream& out) const override;
     /// Pack flatbuffer
-    std::pair<flatbuffers::Offset<void>, proto::viz::VizComponentVariant>  Pack(flatbuffers::FlatBufferBuilder& builder) const override;
+    flatbuffers::Offset<proto::viz::ChartComponent> Pack(flatbuffers::FlatBufferBuilder& builder) const override;
     /// Read attributes
     static std::unique_ptr<VizComponent> ReadFrom(const ProgramInstance& instance, const sx::Node& node);
 };
@@ -98,7 +98,7 @@ struct LineChartComponent : public VizComponent {
     /// Print as script
     void PrintScript(std::ostream& out) const override;
     /// Pack as buffer
-    std::pair<flatbuffers::Offset<void>, proto::viz::VizComponentVariant>  Pack(flatbuffers::FlatBufferBuilder& builder) const override;
+    flatbuffers::Offset<proto::viz::ChartComponent> Pack(flatbuffers::FlatBufferBuilder& builder) const override;
     /// Read attributes
     static std::unique_ptr<VizComponent> ReadFrom(const ProgramInstance& instance, const sx::Node& node);
 };
@@ -109,7 +109,7 @@ struct ScatterChartComponent : public VizComponent {
     /// Print as script
     void PrintScript(std::ostream& out) const override;
     /// Pack as buffer
-    std::pair<flatbuffers::Offset<void>, proto::viz::VizComponentVariant>  Pack(flatbuffers::FlatBufferBuilder& builder) const override;
+    flatbuffers::Offset<proto::viz::ChartComponent> Pack(flatbuffers::FlatBufferBuilder& builder) const override;
     /// Read attributes
     static std::unique_ptr<VizComponent> ReadFrom(const ProgramInstance& instance, const sx::Node& node);
 };
@@ -122,7 +122,7 @@ struct AreaChartComponent : public VizComponent {
     /// Print as script
     void PrintScript(std::ostream& out) const override;
     /// Pack as buffer
-    std::pair<flatbuffers::Offset<void>, proto::viz::VizComponentVariant>  Pack(flatbuffers::FlatBufferBuilder& builder) const override;
+    flatbuffers::Offset<proto::viz::ChartComponent> Pack(flatbuffers::FlatBufferBuilder& builder) const override;
     /// Read attributes
     static std::unique_ptr<VizComponent> ReadFrom(const ProgramInstance& instance, const sx::Node& node);
 };
@@ -135,7 +135,7 @@ struct AxisComponent : public VizComponent {
     /// Print as script
     void PrintScript(std::ostream& out) const override;
     /// Pack as buffer
-    std::pair<flatbuffers::Offset<void>, proto::viz::VizComponentVariant>  Pack(flatbuffers::FlatBufferBuilder& builder) const override;
+    flatbuffers::Offset<proto::viz::ChartComponent> Pack(flatbuffers::FlatBufferBuilder& builder) const override;
     /// Read attributes
     static std::unique_ptr<VizComponent> ReadFrom(const ProgramInstance& instance, const sx::Node& node);
 };
