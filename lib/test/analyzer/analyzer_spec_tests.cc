@@ -17,7 +17,7 @@ TEST_P(AnalyzerSpecTests, Test) {
     for (auto& step: test->steps) {
         auto rc = analyzer.ParseProgram(step.program_text);
         ASSERT_TRUE(rc.IsOk());
-        rc = analyzer.InstantiateProgram(std::move(step.parameters));
+        rc = analyzer.InstantiateProgram(step.parameters);
         ASSERT_TRUE(rc.IsOk());
         rc = analyzer.PlanProgram();
         ASSERT_TRUE(rc.IsOk());
