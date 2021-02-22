@@ -1,22 +1,22 @@
 <test name="param">
-    <plan>
+    <step>
         <text>
             DECLARE PARAMETER country TYPE TEXT;
         </text>
         <parameters>
             <parameter type="VARCHAR" statement="0" value="DE" />
         </parameters>
-    </plan>
+    </step>
 </test>
 <test name="select_into">
-    <plan>
+    <step>
         <text>
             SELECT 1 INTO a;
         </text>
-    </plan>
+    </step>
 </test>
 <test name="param_load">
-    <plan>
+    <step>
         <text>
             DECLARE PARAMETER country TYPE TEXT;
             LOAD weather_csv FROM http (
@@ -27,10 +27,10 @@
         <parameters>
             <parameter type="VARCHAR" statement="0" value="DE" />
         </parameters>
-    </plan>
+    </step>
 </test>
 <test name="param_load_extract">
-    <plan>
+    <step>
         <text>
             DECLARE PARAMETER country TYPE TEXT;
             LOAD weather_csv FROM http (
@@ -41,10 +41,10 @@
         <parameters>
             <parameter type="VARCHAR" statement="0" value="DE" />
         </parameters>
-    </plan>
+    </step>
 </test>
 <test name="param_load_extract_select">
-    <plan>
+    <step>
         <text>
             DECLARE PARAMETER country TYPE TEXT;
             LOAD weather_csv FROM http (
@@ -56,10 +56,10 @@
         <parameters>
             <parameter type="VARCHAR" statement="0" value="DE" />
         </parameters>
-    </plan>
+    </step>
 </test>
 <test name="two_vizzes">
-    <plan>
+    <step>
         <text>
             DECLARE PARAMETER country TYPE TEXT;
             LOAD weather_csv FROM http (
@@ -73,11 +73,11 @@
         <parameters>
             <parameter type="VARCHAR" statement="0" value="DE" />
         </parameters>
-    </plan>
+    </step>
 </test>
 <test name="two_tables_two_vizzes">
-    <plan />
-    <plan>
+    <step />
+    <step>
         <text>
             DECLARE PARAMETER country TYPE TEXT;
             LOAD weather_csv FROM http (
@@ -92,10 +92,10 @@
         <parameters>
             <parameter type="VARCHAR" statement="0" value="DE" />
         </parameters>
-    </plan>
+    </step>
 </test>
 <test name="integer_interpolation">
-    <plan>
+    <step>
         <text>
             DECLARE PARAMETER country TYPE TEXT;
             DECLARE PARAMETER month TYPE INTEGER;
@@ -112,10 +112,10 @@
             <parameter type="VARCHAR" statement="0" value="DE" />
             <parameter type="BIGINT" statement="1" value="5" />
         </parameters>
-    </plan>
+    </step>
 </test>
 <test name="text_interpolation">
-    <plan>
+    <step>
         <text>
             DECLARE PARAMETER country TYPE TEXT;
             DECLARE PARAMETER city TYPE TEXT;
@@ -129,10 +129,10 @@
             <parameter type="VARCHAR" statement="0" value="DE" />
             <parameter type="VARCHAR" statement="1" value="MUC" />
         </parameters>
-    </plan>
+    </step>
 </test>
 <test name="extract_join">
-    <plan>
+    <step>
         <text>
             DECLARE PARAMETER country1 TYPE TEXT;
             DECLARE PARAMETER country2 TYPE TEXT;
@@ -153,19 +153,19 @@
             <parameter type="VARCHAR" statement="1" value="US" />
             <parameter type="BIGINT" statement="2" value="5" />
         </parameters>
-    </plan>
+    </step>
 </test>
 <test name="create_as_viz">
-    <plan>
+    <step>
         <text>
             CREATE TABLE foo AS SELECT v::INTEGER FROM generate_series(0, 100) AS t(v);
             VIZ foo USING TABLE;
         </text>
         <parameters />
-    </plan>
+    </step>
 </test>
 <test name="create_as_viz_complex_1">
-    <plan>
+    <step>
         <text>
             CREATE TABLE foo AS SELECT v::INTEGER FROM generate_series(0, 100) AS t(v);
             VISUALIZE weather_avg USING STACKED BAR (
@@ -195,5 +195,5 @@
             ), X AXIS(scale = 'time'), Y AXIS(scale = 'log');
         </text>
         <parameters />
-    </plan>
+    </step>
 </test>
