@@ -196,7 +196,7 @@ void AnalyzerTest::LoadTests(std::filesystem::path& source_dir) {
                 t.steps.emplace_back();
                 auto& s = t.steps.back();
                 // Read program text
-                s.program_text = step.child("text").value();
+                s.program_text = step.child("text").last_child().value();
                 // Read parameters
                 auto params = step.child("parameters");
                 for (auto& param : params.children()) {
@@ -207,7 +207,7 @@ void AnalyzerTest::LoadTests(std::filesystem::path& source_dir) {
                 for (auto c : step.children()) {
                     expected.append_copy(c);
                 }
-                s.expected_plan = std::move(expected);
+                s.expected_output = std::move(expected);
                 // Read setup action status codes
                 for (auto p : step.child("graph").child("setup").children()) {
                     auto status_str = p.attribute("status").as_string();
