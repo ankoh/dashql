@@ -180,7 +180,7 @@ struct VizScales {
 
 table VizComponent {
     type: syntax.VizComponentType;
-    type_modifiers: uint32;
+    type_modifiers: [syntax.VizComponentTypeModifier];
     data: VizData;
     style: [SVGStyleProperty];
     domain: VizDomain;
