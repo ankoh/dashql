@@ -14,6 +14,7 @@ APP_DEPLOY_TMP="${ROOT_DIR}/artifacts/tmp"
 LIB_SOURCE_DIR="${ROOT_DIR}/lib"
 LIB_DEBUG_DIR="${ROOT_DIR}/lib/build/Debug"
 LIB_RELEASE_DIR="${ROOT_DIR}/lib/build/Release"
+LIB_RELWITHDEBINFO_DIR="${ROOT_DIR}/lib/build/RelWithDebInfo"
 CORE_WASM_DIR="${ROOT_DIR}/core/src/wasm"
 WEBDB_WASM_DIR="${ROOT_DIR}/webdb/src/wasm"
 
@@ -61,6 +62,14 @@ lib:
 	make -C ${LIB_DEBUG_DIR} -j ${CORES}
 
 # Compile the core in release mode
+.PHONY: lib_relwithdebinfo
+lib_relwithdebinfo:
+	mkdir -p ${LIB_RELWITHDEBINFO_DIR}
+	cmake -S ${LIB_SOURCE_DIR} -B ${LIB_RELWITHDEBINFO_DIR} \
+		-DCMAKE_BUILD_TYPE=RelWithDebInfo
+	make -C ${LIB_RELWITHDEBINFO_DIR} -j ${CORES}
+
+# Compile the core in release mode
 .PHONY: lib_release
 lib_release:
 	mkdir -p ${LIB_RELEASE_DIR}
@@ -77,6 +86,16 @@ lib_tests: lib
 .PHONY: lib_tests
 lib_tests_lldb: lib
 	lldb ${LIB_DEBUG_DIR}/tester -- --source_dir ${LIB_SOURCE_DIR}
+
+# Test the core library
+.PHONY: lib_tests_relwithdebinfo
+lib_tests_relwithdebinfo: lib_relwithdebinfo
+	${LIB_RELWITHDEBINFO_DIR}/tester --source_dir ${LIB_SOURCE_DIR}
+
+# Test the core library
+.PHONY: lib_tests_relwithdebinfo_lldb
+lib_tests_relwithdebinfo_lldb: lib_relwithdebinfo
+	lldb ${LIB_RELWITHDEBINFO_DIR}/tester -- --source_dir ${LIB_SOURCE_DIR}
 
 # Generate declarative tests
 .PHONY: testgen
