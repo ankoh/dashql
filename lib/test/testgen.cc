@@ -145,7 +145,7 @@ void generate_analyzer_tests(const std::filesystem::path& source_dir) {
 
             Analyzer analyzer;
 
-            for (auto inst: test.children("plan")) {
+            for (auto inst: test.children("step")) {
                 // Unpack previous program
                 auto inst_text = inst.child("text").text().get();
                 auto inst_params = inst.child("parameters");
