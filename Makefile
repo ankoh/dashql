@@ -146,14 +146,14 @@ proto:
 	npm --prefix ${ROOT_DIR}/proto run build
 
 # Build the wasm module with debug info
-.PHONY: wasm_fast
-wasm_fast:
-	${EXEC_ENVIRONMENT} "./scripts/compile_wasm.sh Fast"
+.PHONY: wasm
+wasm:
+	${EXEC_ENVIRONMENT} "./scripts/wasm_build_lib.sh Fast"
 
 # Build the wasm modules
 .PHONY: wasm_release
 wasm_release:
-	${EXEC_ENVIRONMENT} "./scripts/compile_wasm.sh Release"
+	${EXEC_ENVIRONMENT} "./scripts/wasm_build_lib.sh Release"
 
 # Builds the app
 .PHONY: app
