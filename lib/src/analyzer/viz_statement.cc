@@ -368,7 +368,7 @@ void VizComponent::PrintScript(std::ostream& out) const {
     out << " " << type_names[static_cast<size_t>(type_)];
 
     VizAttributePrinter aout{out};
-    if (auto p = position_) {
+    if (auto p = position_; p.has_value() && (&p.value() == viz_stmt_.position())) {
         aout.AddKey("pos");
         aout.AddValue() << "(r = " << p->row() << ", c = " << p->column() << ", w = " << p->width()
                         << ", h = " << p->height() << ")";
