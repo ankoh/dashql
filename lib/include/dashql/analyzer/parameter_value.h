@@ -26,6 +26,18 @@ struct ParameterValue {
     /// The value
     Value value;
 
+    /// Constructor
+    ParameterValue(size_t statement_id = 0, Value value = {});
+    /// Copy constructor
+    ParameterValue(const ParameterValue& other);
+    /// Move constructor
+    ParameterValue(ParameterValue&& other);
+
+    /// Copy assignment
+    ParameterValue& operator=(const ParameterValue& other);
+    /// Move assignment
+    ParameterValue& operator=(ParameterValue&& other);
+
     /// Compare two parameter values
     bool operator==(const ParameterValue& other) const;
     /// Compare two parameter values

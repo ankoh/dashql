@@ -412,6 +412,7 @@ endif()
 
 if(NOT EMSCRIPTEN)
     add_executable(tester
+        ${CMAKE_SOURCE_DIR}/test/analyzer/analyzer_spec_tests.cc
         ${CMAKE_SOURCE_DIR}/test/analyzer/function_logic_test.cc
         ${CMAKE_SOURCE_DIR}/test/analyzer/program_editor_test.cc
         ${CMAKE_SOURCE_DIR}/test/analyzer/program_matcher_test.cc
@@ -423,7 +424,7 @@ if(NOT EMSCRIPTEN)
         ${CMAKE_SOURCE_DIR}/test/extract/csv_parser_test.cc
         ${CMAKE_SOURCE_DIR}/test/extract/csv_sniffer_test.cc
         ${CMAKE_SOURCE_DIR}/test/extract/extract_test.cc
-        ${CMAKE_SOURCE_DIR}/test/parser/grammar_test_suite.cc
+        ${CMAKE_SOURCE_DIR}/test/parser/grammar_spec_tests.cc
         ${CMAKE_SOURCE_DIR}/test/webdb/duckdb_test.cc
         ${CMAKE_SOURCE_DIR}/test/webdb/iterator_test.cc
         ${CMAKE_SOURCE_DIR}/test/webdb/webdb_test.cc

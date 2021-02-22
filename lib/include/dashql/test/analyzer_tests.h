@@ -6,6 +6,7 @@
 #include <filesystem>
 #include <string>
 
+#include "dashql/analyzer/parameter_value.h"
 #include "dashql/analyzer/program_instance.h"
 #include "dashql/proto_generated.h"
 #include "gtest/gtest.h"
@@ -24,16 +25,24 @@ struct AnalyzerTest {
 
     struct TestStep {
         /// The previous program text
-        std::string program_text;
-        /// XXX The Parameters
+        std::string program_text = "";
+        /// The parameters
+        std::vector<ParameterValue> parameters = {};
         /// The expected plan
-        pugi::xml_document expected_plan;
+        pugi::xml_document expected_plan = {};
     };
 
     /// The name
     std::string name = "";
     /// The steps
     std::vector<TestStep> steps = {};
+
+    /// Get an action status code
+    static proto::action::ActionStatusCode GetActionStatus(std::string_view type);
+    /// Read a parameter type
+    static proto::syntax::ParameterType GetParameterType(std::string_view type);
+    /// Get a parameter
+    static ParameterValue GetParameter(const pugi::xml_node& node);
 
     /// Encode the action graph
     static void EncodePlan(pugi::xml_node root, const ProgramInstance& program,

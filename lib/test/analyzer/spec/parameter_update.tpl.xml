@@ -1,5 +1,5 @@
 <test name="parameter_update_load">
-    <plan>
+    <step>
         <text>
             DECLARE PARAMETER country TYPE TEXT (
                 default_value = 'DE'
@@ -17,8 +17,8 @@
                 <action status="NONE" />
             </program>
         </graph>
-    </plan>
-    <plan>
+    </step>
+    <step>
         <text>
             DECLARE PARAMETER country TYPE TEXT (
                 default_value = 'DE'
@@ -30,5 +30,5 @@
         <parameters>
             <parameter type="VARCHAR" statement="0" value="US" />
         </parameters>
-    </plan>
+    </step>
 </test>
