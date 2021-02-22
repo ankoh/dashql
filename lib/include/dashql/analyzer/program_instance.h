@@ -87,6 +87,8 @@ class ProgramInstance {
     auto& parameter_values() const { return parameter_values_; }
     /// Get the evaluate nodes
     auto& evaluated_nodes() const { return evaluated_nodes_; }
+    /// Get the viz statements
+    auto& viz_statements() const { return viz_statements_; }
 
     /// Add a node error
     void AddNodeError(NodeError&& error);
