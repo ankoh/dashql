@@ -9,27 +9,12 @@
             );
         </text>
         <parameters>
-            <parameter statement="0" type="VARCHAR" value="DE" />
+            <parameter type="VARCHAR" statement="0" value="DE" />
         </parameters>
-        <evaluations>
-            <eval type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" loc="166..230" text="format('ht..l.country)" />
-        </evaluations>
-        <visualizations />
-        <graph next_object_id="2">
-            <setup />
+        <graph>
             <program>
-                <action id="0" type="PARAMETER" status="COMPLETED" object_id="0">
-                    <target name_qualified="global.country" name_short="country" />
-                    <required_for>
-                        <ref action="1" />
-                    </required_for>
-                </action>
-                <action id="1" type="LOAD_HTTP" status="NONE" object_id="1">
-                    <target name_qualified="global.weather_csv" name_short="weather_csv" />
-                    <depends_on>
-                        <ref action="0" />
-                    </depends_on>
-                </action>
+                <action status="COMPLETED" />
+                <action status="NONE" />
             </program>
         </graph>
     </plan>
@@ -43,32 +28,7 @@
             );
         </text>
         <parameters>
-            <parameter statement="0" type="VARCHAR" value="US" />
+            <parameter type="VARCHAR" statement="0" value="US" />
         </parameters>
-        <evaluations>
-            <eval type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/US'" loc="166..230" text="format('ht..l.country)" />
-        </evaluations>
-        <visualizations />
-        <graph next_object_id="4">
-            <setup>
-                <action type="DROP_BLOB" status="NONE" object_id="0">
-                    <target name_qualified="global.weather_csv" name_short="weather_csv" />
-                </action>
-            </setup>
-            <program>
-                <action id="0" type="PARAMETER" status="NONE" object_id="2">
-                    <target name_qualified="global.country" name_short="country" />
-                    <required_for>
-                        <ref action="1" />
-                    </required_for>
-                </action>
-                <action id="1" type="LOAD_HTTP" status="NONE" object_id="3">
-                    <target name_qualified="global.weather_csv" name_short="weather_csv" />
-                    <depends_on>
-                        <ref action="0" />
-                    </depends_on>
-                </action>
-            </program>
-        </graph>
     </plan>
 </test>
