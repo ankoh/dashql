@@ -40,16 +40,18 @@ class VizStatement {
     const size_t target_node_id_;
     /// The components
     std::vector<std::unique_ptr<VizComponent>> components_ = {};
-
-    /// The position (if known)
-    std::optional<dashql::proto::viz::VizPosition> position_ = std::nullopt;
+    /// The position (if set by any of the components)
+    pv::VizPosition* position_ = nullptr;
 
    public:
     /// Constructor
-    VizStatement(ProgramInstance& instance, size_t statement_id, size_t target_node_id,
-                 std::vector<std::unique_ptr<VizComponent>>&& components);
+    VizStatement(ProgramInstance& instance, size_t statement_id, size_t target_node_id);
+    /// Get the instance
+    auto& instance() { return instance_; }
     /// Get the component
     auto& components() { return components_; }
+    /// Get the instance
+    auto& position() { return position_; }
     /// Get the target node
     auto target_node_id() const { return target_node_id_; }
     /// Print as script
@@ -66,8 +68,8 @@ constexpr NodeID INVALID_NODE_ID = std::numeric_limits<NodeID>::max();
 
 class VizComponent {
    protected:
-    /// The program instance
-    ProgramInstance& instance;
+    /// The unique properties
+    VizStatement& viz_stmt_;
     /// The type
     sx::VizComponentType type_ = sx::VizComponentType::TABLE;
     /// The type modifiers
@@ -105,7 +107,7 @@ class VizComponent {
 
    public:
     /// Constructor
-    VizComponent(ProgramInstance& instance);
+    VizComponent(VizStatement& stmt);
     /// Virtual destructor
     virtual ~VizComponent() = default;
 
@@ -131,7 +133,7 @@ class VizComponent {
     /// Pack as buffer
     flatbuffers::Offset<proto::viz::VizComponent> Pack(flatbuffers::FlatBufferBuilder& builder) const;
     /// Read component from a node
-    static std::unique_ptr<VizComponent> CreateFrom(ProgramInstance& instance, size_t node_id);
+    static std::unique_ptr<VizComponent> CreateFrom(VizStatement& stmt, size_t node_id);
 };
 
 }  // namespace viz
