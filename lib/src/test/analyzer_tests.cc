@@ -21,8 +21,10 @@ void AnalyzerTest::EncodePlan(pugi::xml_node root, const ProgramInstance& instan
     auto& text = instance.program_text();
 
     auto add_raw_attr = [&](pugi::xml_node node, const char* attr, size_t node_id) {
-        if (node_id < viz::INVALID_NODE_ID)
-            node.append_attribute(attr).set_value(std::string{instance.TextAt(nodes[node_id].location())}.c_str());
+        if (node_id < viz::INVALID_NODE_ID) {
+            std::string text{instance.TextAt(nodes[node_id].location())};
+            node.append_attribute(attr).set_value(text.c_str());
+        }
     };
 
     auto setup_action_type_tt = proto::action::SetupActionTypeTypeTable();
@@ -194,10 +196,11 @@ void AnalyzerTest::LoadTests(std::filesystem::path& source_dir) {
                 t.steps.emplace_back();
                 auto& s = t.steps.back();
                 s.program_text = step.child("text").value();
-                s.expected_plan = {};
+                pugi::xml_document expected;
                 for (auto c : step.children()) {
-                    s.expected_plan.append_copy(c);
+                    expected.append_copy(c);
                 }
+                s.expected_plan = std::move(expected);
                 auto params = step.child("parameters");
                 for (auto& param : params.children()) {
                     s.parameters.push_back(AnalyzerTest::GetParameter(param));
