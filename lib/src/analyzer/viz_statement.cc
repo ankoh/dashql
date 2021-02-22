@@ -139,7 +139,7 @@ flatbuffers::Offset<proto::viz::VizSpec> VizStatement::Pack(flatbuffers::FlatBuf
     pv::VizSpecBuilder spec_builder{builder};
     spec_builder.add_statement_id(statement_id_);
     spec_builder.add_components(component_ofs_vec);
-    if (!position_) spec_builder.add_position(position_);
+    if (!!position_) spec_builder.add_position(position_);
     return spec_builder.Finish();
 }
 

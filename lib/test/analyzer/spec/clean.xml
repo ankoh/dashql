@@ -199,14 +199,18 @@
             <eval type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" loc="113..177" text="format('ht..l.country)" />
         </evaluations>
         <visualizations>
-            <viz>
+            <visualization>
                 <target loc="317..328" text="weather_avg" />
-                <component type="LINE" />
-            </viz>
-            <viz>
+                <components>
+                    <component type="LINE" />
+                </components>
+            </visualization>
+            <visualization>
                 <target loc="357..368" text="weather_avg" />
-                <component type="TABLE" />
-            </viz>
+                <components>
+                    <component type="TABLE" />
+                </components>
+            </visualization>
         </visualizations>
         <graph next_object_id="6">
             <setup />
@@ -282,14 +286,18 @@
             <eval type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" loc="113..177" text="format('ht..l.country)" />
         </evaluations>
         <visualizations>
-            <viz>
+            <visualization>
                 <target loc="372..383" text="weather_avg" />
-                <component type="LINE" />
-            </viz>
-            <viz>
+                <components>
+                    <component type="LINE" />
+                </components>
+            </visualization>
+            <visualization>
                 <target loc="412..426" text="weather_binned" />
-                <component type="BAR" />
-            </viz>
+                <components>
+                    <component type="BAR" />
+                </components>
+            </visualization>
         </visualizations>
         <graph next_object_id="7">
             <setup />
@@ -379,14 +387,18 @@
             <eval type="BIGINT" value="5" loc="364..376" text="global.month" />
         </evaluations>
         <visualizations>
-            <viz>
+            <visualization>
                 <target loc="476..487" text="weather_avg" />
-                <component type="LINE" />
-            </viz>
-            <viz>
+                <components>
+                    <component type="LINE" />
+                </components>
+            </visualization>
+            <visualization>
                 <target loc="516..530" text="weather_binned" />
-                <component type="BAR" />
-            </viz>
+                <components>
+                    <component type="BAR" />
+                </components>
+            </visualization>
         </visualizations>
         <graph next_object_id="8">
             <setup />
@@ -554,10 +566,12 @@
             <eval type="BIGINT" value="5" loc="735..747" text="global.month" />
         </evaluations>
         <visualizations>
-            <viz>
+            <visualization>
                 <target loc="765..781" text="countries_joined" />
-                <component type="LINE" />
-            </viz>
+                <components>
+                    <component type="LINE" />
+                </components>
+            </visualization>
         </visualizations>
         <graph next_object_id="9">
             <setup />
@@ -647,10 +661,12 @@
         <parameters />
         <evaluations />
         <visualizations>
-            <viz>
+            <visualization>
                 <target loc="105..108" text="foo" />
-                <component type="TABLE" />
-            </viz>
+                <components>
+                    <component type="TABLE" />
+                </components>
+            </visualization>
         </visualizations>
         <graph next_object_id="2">
             <setup />
@@ -705,17 +721,19 @@
         <parameters />
         <evaluations />
         <visualizations>
-            <viz>
+            <visualization>
                 <target loc="111..122" text="weather_avg" />
-                <component type="BAR">
-                    <position row="0" column="0" width="4" height="15" />
-                    <data x="a" y="b" categories="c" />
-                </component>
-                <component type="LINE" />
-                <component type="SCATTER" />
-                <component type="AXIS" />
-                <component type="AXIS" />
-            </viz>
+                <position row="0" column="0" width="4" height="15" />
+                <components>
+                    <component type="BAR">
+                        <data x="a" y="b" categories="c" />
+                    </component>
+                    <component type="LINE" />
+                    <component type="SCATTER" />
+                    <component type="AXIS" />
+                    <component type="AXIS" />
+                </components>
+            </visualization>
         </visualizations>
         <graph next_object_id="2">
             <setup />
