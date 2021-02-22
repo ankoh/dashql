@@ -119,9 +119,15 @@ class VizComponent {
     auto data() const { return data_; };
 
     /// Set the position
-    void SetPosition(dashql::proto::viz::VizPosition tile) { position_ = tile; }
+    void SetPosition(dashql::proto::viz::VizPosition pos) {
+        position_ = pos;
+        viz_stmt_.position() = &position_.value();
+    }
     /// Clear the position (if any)
-    void ClearPosition() { position_.reset(); }
+    void ClearPosition() {
+        position_.reset();
+        viz_stmt_.position() = nullptr;
+    }
     /// Read the viz component
     /// This will also perform a semanatic analysis of the given options
     void ReadFrom(size_t node_id);
