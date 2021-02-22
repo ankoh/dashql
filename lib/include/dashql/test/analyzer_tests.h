@@ -28,14 +28,18 @@ struct AnalyzerTest {
     std::string prev_program_text;
     /// The next program text
     std::string next_program_text;
-    /// The previous graph
-    pugi::xml_document prev_graph;
-    /// The expected next graph
-    pugi::xml_document expected_next_graph;
+    /// The expected prev
+    pugi::xml_document expected_prev;
+    /// The expected next
+    pugi::xml_document expected_next;
 
     /// Encode the action graph
     static void EncodePlan(pugi::xml_node root, const ProgramInstance& program,
                            const proto::action::ActionGraphT& graph);
+    /// Get the grammar tests
+    static void LoadTests(std::filesystem::path& project_root);
+    /// Get the grammar tests
+    static std::vector<const AnalyzerTest*> GetTests(std::string_view filename);
 };
 
 }  // namespace test
