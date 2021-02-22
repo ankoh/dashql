@@ -150,27 +150,22 @@ void AnalyzerTest::LoadTests(std::filesystem::path& source_dir) {
 
         // Read tests
         std::vector<AnalyzerTest> tests;
-        for (auto test : doc.children()) {
+        for (auto test : doc.children("test")) {
             // Create test
             tests.emplace_back();
             auto& t = tests.back();
             t.name = test.attribute("name").as_string();
 
-            /// Create program text
-            t.prev_program_text = test.child("previous").child("text").value();
-            t.next_program_text = test.child("next").child("text").value();
-
-            /// Extract encoded XML
-            pugi::xml_document prev;
-            for (auto s : test.child("previous").children()) {
-                prev.append_copy(s);
+            // Read all plans
+            for (auto plan : doc.children("plan")) {
+                t.steps.emplace_back();
+                auto& s = t.steps.back();
+                s.program_text = plan.child("text").value();
+                s.expected_plan = {};
+                for (auto c : plan.children()) {
+                    s.expected_plan.append_copy(c);
+                }
             }
-            t.expected_prev = std::move(prev);
-            pugi::xml_document next;
-            for (auto s : test.child("next").children()) {
-                prev.append_copy(s);
-            }
-            t.expected_next = std::move(next);
         }
 
         std::cout << "[ SETUP    ] " << filename << ": " << tests.size() << " tests" << std::endl;
