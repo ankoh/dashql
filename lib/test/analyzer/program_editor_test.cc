@@ -12,7 +12,6 @@
 
 using namespace std;
 using namespace dashql;
-namespace fb = flatbuffers;
 
 namespace {
 
