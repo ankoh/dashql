@@ -154,7 +154,6 @@ ParameterValue AnalyzerTest::GetParameter(const pugi::xml_node& node) {
     return {static_cast<size_t>(stmt), std::move(v)};
 }
 
-
 // The files
 static std::unordered_map<std::string, std::vector<AnalyzerTest>> TEST_FILES;
 
