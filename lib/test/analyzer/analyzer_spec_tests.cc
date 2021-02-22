@@ -15,13 +15,19 @@ TEST_P(AnalyzerSpecTests, Test) {
 
     Analyzer analyzer;
     for (auto& step: test->steps) {
+        // Parse, instantiate and plan the program
         auto rc = analyzer.ParseProgram(step.program_text);
         ASSERT_TRUE(rc.IsOk());
         rc = analyzer.InstantiateProgram(step.parameters);
         ASSERT_TRUE(rc.IsOk());
         rc = analyzer.PlanProgram();
         ASSERT_TRUE(rc.IsOk());
-        /// XXX action status
+
+        // Update the action status for the next step
+        for (unsigned i = 0; i < step.setupActionStatusCodes.size(); ++i) 
+            analyzer.UpdateSetupActionStatus(i, step.setupActionStatusCodes[i]);
+        for (unsigned i = 0; i < step.programActionStatusCodes.size(); ++i) 
+            analyzer.UpdateProgramActionStatus(i, step.programActionStatusCodes[i]);
     }
 }
 
