@@ -1,15 +1,5 @@
 <test name="param">
-    <previous>
-        <text></text>
-        <parameters />
-        <evaluations />
-        <visualizations />
-        <graph next_object_id="0">
-            <setup />
-            <program />
-        </graph>
-    </previous>
-    <next>
+    <plan>
         <text>
             DECLARE PARAMETER country TYPE TEXT;
         </text>
@@ -26,20 +16,10 @@
                 </action>
             </program>
         </graph>
-    </next>
+    </plan>
 </test>
 <test name="select_into">
-    <previous>
-        <text></text>
-        <parameters />
-        <evaluations />
-        <visualizations />
-        <graph next_object_id="0">
-            <setup />
-            <program />
-        </graph>
-    </previous>
-    <next>
+    <plan>
         <text>
             SELECT 1 INTO a;
         </text>
@@ -55,20 +35,10 @@
                 </action>
             </program>
         </graph>
-    </next>
+    </plan>
 </test>
 <test name="param_load">
-    <previous>
-        <text></text>
-        <parameters />
-        <evaluations />
-        <visualizations />
-        <graph next_object_id="0">
-            <setup />
-            <program />
-        </graph>
-    </previous>
-    <next>
+    <plan>
         <text>
             DECLARE PARAMETER country TYPE TEXT;
             LOAD weather_csv FROM http (
@@ -109,20 +79,10 @@
                 </action>
             </program>
         </graph>
-    </next>
+    </plan>
 </test>
 <test name="param_load_extract">
-    <previous>
-        <text></text>
-        <parameters />
-        <evaluations />
-        <visualizations />
-        <graph next_object_id="0">
-            <setup />
-            <program />
-        </graph>
-    </previous>
-    <next>
+    <plan>
         <text>
             DECLARE PARAMETER country TYPE TEXT;
             LOAD weather_csv FROM http (
@@ -163,20 +123,10 @@
                 </action>
             </program>
         </graph>
-    </next>
+    </plan>
 </test>
 <test name="param_load_extract_select">
-    <previous>
-        <text></text>
-        <parameters />
-        <evaluations />
-        <visualizations />
-        <graph next_object_id="0">
-            <setup />
-            <program />
-        </graph>
-    </previous>
-    <next>
+    <plan>
         <text>
             DECLARE PARAMETER country TYPE TEXT;
             LOAD weather_csv FROM http (
@@ -228,20 +178,10 @@
                 </action>
             </program>
         </graph>
-    </next>
+    </plan>
 </test>
 <test name="two_vizzes">
-    <previous>
-        <text></text>
-        <parameters />
-        <evaluations />
-        <visualizations />
-        <graph next_object_id="0">
-            <setup />
-            <program />
-        </graph>
-    </previous>
-    <next>
+    <plan>
         <text>
             DECLARE PARAMETER country TYPE TEXT;
             LOAD weather_csv FROM http (
@@ -320,10 +260,10 @@
                 </action>
             </program>
         </graph>
-    </next>
+    </plan>
 </test>
 <test name="two_tables_two_vizzes">
-    <previous>
+    <plan>
         <text></text>
         <parameters />
         <evaluations />
@@ -332,8 +272,8 @@
             <setup />
             <program />
         </graph>
-    </previous>
-    <next>
+    </plan>
+    <plan>
         <text>
             DECLARE PARAMETER country TYPE TEXT;
             LOAD weather_csv FROM http (
@@ -423,20 +363,10 @@
                 </action>
             </program>
         </graph>
-    </next>
+    </plan>
 </test>
 <test name="integer_interpolation">
-    <previous>
-        <text></text>
-        <parameters />
-        <evaluations />
-        <visualizations />
-        <graph next_object_id="0">
-            <setup />
-            <program />
-        </graph>
-    </previous>
-    <next>
+    <plan>
         <text>
             DECLARE PARAMETER country TYPE TEXT;
             DECLARE PARAMETER month TYPE INTEGER;
@@ -539,20 +469,10 @@
                 </action>
             </program>
         </graph>
-    </next>
+    </plan>
 </test>
 <test name="text_interpolation">
-    <previous>
-        <text></text>
-        <parameters />
-        <evaluations />
-        <visualizations />
-        <graph next_object_id="0">
-            <setup />
-            <program />
-        </graph>
-    </previous>
-    <next>
+    <plan>
         <text>
             DECLARE PARAMETER country TYPE TEXT;
             DECLARE PARAMETER city TYPE TEXT;
@@ -614,20 +534,10 @@
                 </action>
             </program>
         </graph>
-    </next>
+    </plan>
 </test>
 <test name="extract_join">
-    <previous>
-        <text></text>
-        <parameters />
-        <evaluations />
-        <visualizations />
-        <graph next_object_id="0">
-            <setup />
-            <program />
-        </graph>
-    </previous>
-    <next>
+    <plan>
         <text>
             DECLARE PARAMETER country1 TYPE TEXT;
             DECLARE PARAMETER country2 TYPE TEXT;
@@ -736,20 +646,10 @@
                 </action>
             </program>
         </graph>
-    </next>
+    </plan>
 </test>
 <test name="create_as_viz">
-    <previous>
-        <text></text>
-        <parameters />
-        <evaluations />
-        <visualizations />
-        <graph next_object_id="0">
-            <setup />
-            <program />
-        </graph>
-    </previous>
-    <next>
+    <plan>
         <text>
             CREATE TABLE foo AS SELECT v::INTEGER FROM generate_series(0, 100) AS t(v);
             VIZ foo USING TABLE;
@@ -780,20 +680,10 @@
                 </action>
             </program>
         </graph>
-    </next>
+    </plan>
 </test>
 <test name="create_as_viz_complex_1">
-    <previous>
-        <text></text>
-        <parameters />
-        <evaluations />
-        <visualizations />
-        <graph next_object_id="0">
-            <setup />
-            <program />
-        </graph>
-    </previous>
-    <next>
+    <plan>
         <text>
             CREATE TABLE foo AS SELECT v::INTEGER FROM generate_series(0, 100) AS t(v);
             VISUALIZE weather_avg USING STACKED BAR (
@@ -849,5 +739,5 @@
                 </action>
             </program>
         </graph>
-    </next>
+    </plan>
 </test>

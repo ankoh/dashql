@@ -22,16 +22,18 @@ struct AnalyzerTest {
         }
     };
 
+    struct TestStep {
+        /// The previous program text
+        std::string program_text;
+        /// XXX The Parameters
+        /// The expected plan
+        pugi::xml_document expected_plan;
+    };
+
     /// The name
-    std::string name;
-    /// The previous program text
-    std::string prev_program_text;
-    /// The next program text
-    std::string next_program_text;
-    /// The expected prev
-    pugi::xml_document expected_prev;
-    /// The expected next
-    pugi::xml_document expected_next;
+    std::string name = "";
+    /// The steps
+    std::vector<TestStep> steps = {};
 
     /// Encode the action graph
     static void EncodePlan(pugi::xml_node root, const ProgramInstance& program,

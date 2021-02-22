@@ -145,47 +145,32 @@ void generate_analyzer_tests(const std::filesystem::path& source_dir) {
 
             Analyzer analyzer;
 
-            // Unpack previous program
-            auto prev = test.child("previous");
-            auto prev_text = prev.child("text").text().get();
-            auto prev_params = prev.child("parameters");
-            std::vector<ParameterValue> prev_params_vec;
-            for (auto& param : prev_params.children()) {
-                prev_params_vec.push_back(GetParameter(param));
-            }
-
-            // Parse, instantiate and plan the previous program
-            assert_ok(analyzer.ParseProgram(prev_text), "parsing of previous program");
-            assert_ok(analyzer.InstantiateProgram(move(prev_params_vec)), "instantiation of previous program");
-            assert_ok(analyzer.PlanProgram(), "planning of previous program");
-
-            // Update the action status
-            {
-                unsigned i = 0;
-                for (auto p : prev.child("graph").child("program").children()) {
-                    auto status_str = p.attribute("status").as_string();
-                    auto status = GetActionStatus(status_str);
-                    analyzer.UpdateProgramActionStatus(i++, status);
+            for (auto inst: test.children("plan")) {
+                // Unpack previous program
+                auto inst_text = inst.child("text").text().get();
+                auto inst_params = inst.child("parameters");
+                std::vector<ParameterValue> inst_params_vec;
+                for (auto& param : inst_params.children()) {
+                    inst_params_vec.push_back(GetParameter(param));
                 }
-            }
-            prev.remove_children();
-            AnalyzerTest::EncodePlan(prev, *analyzer.program_instance(), *analyzer.planned_graph());
 
-            // Unpack next program
-            auto next = test.child("next");
-            auto next_text = next.child("text").text().get();
-            auto next_params = next.child("parameters");
-            std::vector<ParameterValue> next_params_vec;
-            for (auto& param : next_params.children()) {
-                next_params_vec.push_back(GetParameter(param));
-            }
+                // Parse, instantiate and plan the previous program
+                assert_ok(analyzer.ParseProgram(inst_text), "parsing of previous program");
+                assert_ok(analyzer.InstantiateProgram(move(inst_params_vec)), "instantiation of previous program");
+                assert_ok(analyzer.PlanProgram(), "planning of previous program");
 
-            // Parse, instantiate and plan the next program
-            assert_ok(analyzer.ParseProgram(next_text), "parsing of next program");
-            assert_ok(analyzer.InstantiateProgram(move(next_params_vec)), "instantiation of next program");
-            assert_ok(analyzer.PlanProgram(), "planning of next program");
-            next.remove_children();
-            AnalyzerTest::EncodePlan(next, *analyzer.program_instance(), *analyzer.planned_graph());
+                // Update the action status
+                {
+                    unsigned i = 0;
+                    for (auto p : inst.child("graph").child("program").children()) {
+                        auto status_str = p.attribute("status").as_string();
+                        auto status = GetActionStatus(status_str);
+                        analyzer.UpdateProgramActionStatus(i++, status);
+                    }
+                }
+                inst.remove_children();
+                AnalyzerTest::EncodePlan(inst, *analyzer.program_instance(), *analyzer.planned_graph());
+            }
         }
 
         // Write xml document
