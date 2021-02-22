@@ -195,15 +195,30 @@ void AnalyzerTest::LoadTests(std::filesystem::path& source_dir) {
             for (auto step : test.children("step")) {
                 t.steps.emplace_back();
                 auto& s = t.steps.back();
+                // Read program text
                 s.program_text = step.child("text").value();
+                // Read parameters
+                auto params = step.child("parameters");
+                for (auto& param : params.children()) {
+                    s.parameters.push_back(AnalyzerTest::GetParameter(param));
+                }
+                // Read full expected analyzer output
                 pugi::xml_document expected;
                 for (auto c : step.children()) {
                     expected.append_copy(c);
                 }
                 s.expected_plan = std::move(expected);
-                auto params = step.child("parameters");
-                for (auto& param : params.children()) {
-                    s.parameters.push_back(AnalyzerTest::GetParameter(param));
+                // Read setup action status codes
+                for (auto p : step.child("graph").child("setup").children()) {
+                    auto status_str = p.attribute("status").as_string();
+                    auto status = AnalyzerTest::GetActionStatus(status_str);
+                    s.setupActionStatusCodes.push_back(status);
+                }
+                // Read program action status codes
+                for (auto p : step.child("graph").child("program").children()) {
+                    auto status_str = p.attribute("status").as_string();
+                    auto status = AnalyzerTest::GetActionStatus(status_str);
+                    s.programActionStatusCodes.push_back(status);
                 }
             }
         }
