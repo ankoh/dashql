@@ -190,7 +190,7 @@ void AnalyzerTest::LoadTests(std::filesystem::path& source_dir) {
             t.name = test.attribute("name").as_string();
 
             // Read all plans
-            for (auto step : doc.children("step")) {
+            for (auto step : test.children("step")) {
                 t.steps.emplace_back();
                 auto& s = t.steps.back();
                 s.program_text = step.child("text").value();
