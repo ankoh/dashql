@@ -68,7 +68,7 @@ const char* getEnumText(const sx::Node& target) {
 constexpr size_t INLINE_LOCATION_CAP = 20;
 constexpr size_t LOCATION_HINT_LENGTH = 10;
 
-void EncodeLocation(pugi::xml_node& n, proto::syntax::Location loc, std::string_view text) {
+void EncodeLocation(pugi::xml_node n, proto::syntax::Location loc, std::string_view text) {
     auto begin = loc.offset();
     auto end = loc.offset() + loc.length();
     {
@@ -89,13 +89,13 @@ void EncodeLocation(pugi::xml_node& n, proto::syntax::Location loc, std::string_
     }
 }
 
-void EncodeError(pugi::xml_node& n, const proto::syntax::ErrorT& err, std::string_view text) {
+void EncodeError(pugi::xml_node n, const proto::syntax::ErrorT& err, std::string_view text) {
     n.append_attribute("message") = err.message.c_str();
     EncodeLocation(n, *err.location, text);
 }
 
 /// Encode yaml
-void GrammarTest::EncodeProgram(pugi::xml_node& root, const proto::syntax::ProgramT& program, std::string_view text) {
+void GrammarTest::EncodeProgram(pugi::xml_node root, const proto::syntax::ProgramT& program, std::string_view text) {
     // Unpack modules
     auto& nodes = program.nodes;
     auto& statements = program.statements;

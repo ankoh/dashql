@@ -174,3 +174,37 @@
         <parameters />
     </next>
 </test>
+<test name="create_as_viz_complex_1">
+    <previous />
+    <next>
+        <text>
+            CREATE TABLE foo AS SELECT v::INTEGER FROM generate_series(0, 100) AS t(v);
+            VISUALIZE weather_avg USING STACKED BAR (
+                position = (r = 0, c = 0, w = 4, h = 15),
+                x = a,
+                y = b,
+                categories = c,
+                theme = 'grayscale',
+                colors = ['#aaa', '#bbb', '#ccc']
+            ), LINE (
+                style.data = (
+                    stroke = '#c43a31'
+                ),
+                style.labels = (
+                    font_size = 15,
+                    fill = 'red',
+                )
+            ), SCATTER (
+                style = (
+                    data = (
+                        fill = '#c43a31',
+                        fill_opacity = 0.6,
+                        stroke = '#c43a31',
+                        stroke_width = 3,
+                    )
+                )
+            ), X AXIS(scale = 'time'), Y AXIS(scale = 'log');
+        </text>
+        <parameters />
+    </next>
+</test>

@@ -3,6 +3,7 @@
         <text></text>
         <parameters />
         <evaluations />
+        <visualizations />
         <graph next_object_id="0">
             <setup />
             <program />
@@ -16,6 +17,7 @@
             <parameter statement="0" type="VARCHAR" value="DE" />
         </parameters>
         <evaluations />
+        <visualizations />
         <graph next_object_id="1">
             <setup />
             <program>
@@ -31,6 +33,7 @@
         <text></text>
         <parameters />
         <evaluations />
+        <visualizations />
         <graph next_object_id="0">
             <setup />
             <program />
@@ -42,6 +45,7 @@
         </text>
         <parameters />
         <evaluations />
+        <visualizations />
         <graph next_object_id="1">
             <setup />
             <program>
@@ -58,6 +62,7 @@
         <text></text>
         <parameters />
         <evaluations />
+        <visualizations />
         <graph next_object_id="0">
             <setup />
             <program />
@@ -77,6 +82,7 @@
         <evaluations>
             <eval type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" loc="113..177" text="format('ht..l.country)" />
         </evaluations>
+        <visualizations />
         <graph next_object_id="3">
             <setup />
             <program>
@@ -110,6 +116,7 @@
         <text></text>
         <parameters />
         <evaluations />
+        <visualizations />
         <graph next_object_id="0">
             <setup />
             <program />
@@ -129,6 +136,7 @@
         <evaluations>
             <eval type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" loc="113..177" text="format('ht..l.country)" />
         </evaluations>
+        <visualizations />
         <graph next_object_id="3">
             <setup />
             <program>
@@ -162,6 +170,7 @@
         <text></text>
         <parameters />
         <evaluations />
+        <visualizations />
         <graph next_object_id="0">
             <setup />
             <program />
@@ -182,6 +191,7 @@
         <evaluations>
             <eval type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" loc="113..177" text="format('ht..l.country)" />
         </evaluations>
+        <visualizations />
         <graph next_object_id="4">
             <setup />
             <program>
@@ -225,6 +235,7 @@
         <text></text>
         <parameters />
         <evaluations />
+        <visualizations />
         <graph next_object_id="0">
             <setup />
             <program />
@@ -247,6 +258,16 @@
         <evaluations>
             <eval type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" loc="113..177" text="format('ht..l.country)" />
         </evaluations>
+        <visualizations>
+            <viz>
+                <target loc="317..328" text="weather_avg" />
+                <component type="LINE" />
+            </viz>
+            <viz>
+                <target loc="357..368" text="weather_avg" />
+                <component type="TABLE" />
+            </viz>
+        </visualizations>
         <graph next_object_id="6">
             <setup />
             <program>
@@ -306,6 +327,7 @@
         <text></text>
         <parameters />
         <evaluations />
+        <visualizations />
         <graph next_object_id="0">
             <setup />
             <program />
@@ -329,6 +351,16 @@
         <evaluations>
             <eval type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" loc="113..177" text="format('ht..l.country)" />
         </evaluations>
+        <visualizations>
+            <viz>
+                <target loc="372..383" text="weather_avg" />
+                <component type="LINE" />
+            </viz>
+            <viz>
+                <target loc="412..426" text="weather_binned" />
+                <component type="BAR" />
+            </viz>
+        </visualizations>
         <graph next_object_id="7">
             <setup />
             <program>
@@ -398,6 +430,7 @@
         <text></text>
         <parameters />
         <evaluations />
+        <visualizations />
         <graph next_object_id="0">
             <setup />
             <program />
@@ -425,6 +458,16 @@
             <eval type="BIGINT" value="5" loc="446..458" text="global.month" />
             <eval type="BIGINT" value="5" loc="364..376" text="global.month" />
         </evaluations>
+        <visualizations>
+            <viz>
+                <target loc="476..487" text="weather_avg" />
+                <component type="LINE" />
+            </viz>
+            <viz>
+                <target loc="516..530" text="weather_binned" />
+                <component type="BAR" />
+            </viz>
+        </visualizations>
         <graph next_object_id="8">
             <setup />
             <program>
@@ -503,6 +546,7 @@
         <text></text>
         <parameters />
         <evaluations />
+        <visualizations />
         <graph next_object_id="0">
             <setup />
             <program />
@@ -526,6 +570,7 @@
             <eval type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" loc="159..223" text="format('ht..l.country)" />
             <eval type="VARCHAR" value="MUC" loc="359..370" text="global.city" />
         </evaluations>
+        <visualizations />
         <graph next_object_id="5">
             <setup />
             <program>
@@ -576,6 +621,7 @@
         <text></text>
         <parameters />
         <evaluations />
+        <visualizations />
         <graph next_object_id="0">
             <setup />
             <program />
@@ -607,6 +653,12 @@
             <eval type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" loc="223..288" text="format('ht...country1)" />
             <eval type="BIGINT" value="5" loc="735..747" text="global.month" />
         </evaluations>
+        <visualizations>
+            <viz>
+                <target loc="765..781" text="countries_joined" />
+                <component type="LINE" />
+            </viz>
+        </visualizations>
         <graph next_object_id="9">
             <setup />
             <program>
@@ -691,6 +743,7 @@
         <text></text>
         <parameters />
         <evaluations />
+        <visualizations />
         <graph next_object_id="0">
             <setup />
             <program />
@@ -703,6 +756,12 @@
         </text>
         <parameters />
         <evaluations />
+        <visualizations>
+            <viz>
+                <target loc="105..108" text="foo" />
+                <component type="TABLE" />
+            </viz>
+        </visualizations>
         <graph next_object_id="2">
             <setup />
             <program>
@@ -718,6 +777,75 @@
                     <depends_on>
                         <ref action="0" />
                     </depends_on>
+                </action>
+            </program>
+        </graph>
+    </next>
+</test>
+<test name="create_as_viz_complex_1">
+    <previous>
+        <text></text>
+        <parameters />
+        <evaluations />
+        <visualizations />
+        <graph next_object_id="0">
+            <setup />
+            <program />
+        </graph>
+    </previous>
+    <next>
+        <text>
+            CREATE TABLE foo AS SELECT v::INTEGER FROM generate_series(0, 100) AS t(v);
+            VISUALIZE weather_avg USING STACKED BAR (
+                position = (r = 0, c = 0, w = 4, h = 15),
+                x = a,
+                y = b,
+                categories = c,
+                theme = 'grayscale',
+                colors = ['#aaa', '#bbb', '#ccc']
+            ), LINE (
+                style.data = (
+                    stroke = '#c43a31'
+                ),
+                style.labels = (
+                    font_size = 15,
+                    fill = 'red',
+                )
+            ), SCATTER (
+                style = (
+                    data = (
+                        fill = '#c43a31',
+                        fill_opacity = 0.6,
+                        stroke = '#c43a31',
+                        stroke_width = 3,
+                    )
+                )
+            ), X AXIS(scale = 'time'), Y AXIS(scale = 'log');
+        </text>
+        <parameters />
+        <evaluations />
+        <visualizations>
+            <viz>
+                <target loc="111..122" text="weather_avg" />
+                <component type="BAR">
+                    <position row="0" column="0" width="4" height="15" />
+                    <data x="a" y="b" categories="c" />
+                </component>
+                <component type="LINE" />
+                <component type="SCATTER" />
+                <component type="AXIS" />
+                <component type="AXIS" />
+            </viz>
+        </visualizations>
+        <graph next_object_id="2">
+            <setup />
+            <program>
+                <action id="0" type="CREATE_TABLE" status="NONE" object_id="0">
+                    <target name_qualified="global.foo" name_short="foo" />
+                    <script>CREATE TABLE foo AS SELECT v::INTEGER FROM generate_series(0, 100) AS t(v)</script>
+                </action>
+                <action id="1" type="CREATE_VIZ" status="NONE" object_id="1">
+                    <target name_qualified="global.foo" name_short="foo" />
                 </action>
             </program>
         </graph>

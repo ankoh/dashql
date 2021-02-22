@@ -34,7 +34,7 @@ struct AnalyzerTest {
     pugi::xml_document expected_next_graph;
 
     /// Encode the action graph
-    static void EncodePlan(pugi::xml_node& root, const ProgramInstance& program,
+    static void EncodePlan(pugi::xml_node root, const ProgramInstance& program,
                            const proto::action::ActionGraphT& graph);
 };
 

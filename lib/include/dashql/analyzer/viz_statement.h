@@ -50,6 +50,8 @@ class VizStatement {
                  std::vector<std::unique_ptr<VizComponent>>&& components);
     /// Get the component
     auto& components() { return components_; }
+    /// Get the target node
+    auto target_node_id() const { return target_node_id_; }
     /// Print as script
     void PrintScript(std::ostream& out) const;
     /// Pack the viz specs
@@ -67,31 +69,31 @@ class VizComponent {
     /// The program instance
     ProgramInstance& instance;
     /// The type
-    sx::VizComponentType type = sx::VizComponentType::TABLE;
+    sx::VizComponentType type_ = sx::VizComponentType::TABLE;
     /// The type modifiers
-    uint32_t type_modifiers = 0;
+    uint32_t type_modifiers_ = 0;
     /// The position option
-    std::optional<pv::VizPosition> position = std::nullopt;
+    std::optional<pv::VizPosition> position_ = std::nullopt;
     /// The chart data option
-    std::optional<pv::VizDataT> data = std::nullopt;
+    std::optional<pv::VizDataT> data_ = std::nullopt;
     /// The style option
-    std::vector<pv::SVGStyleProperty> style = {};
+    std::vector<pv::SVGStyleProperty> style_ = {};
     /// The domain option
-    std::optional<pv::VizDomain> domain = std::nullopt;
+    std::optional<pv::VizDomain> domain_ = std::nullopt;
     /// The origin option
-    std::optional<pv::Coordinates> origin = std::nullopt;
+    std::optional<pv::Coordinates> origin_ = std::nullopt;
     /// The padding option
-    std::optional<pv::VizPadding> padding = std::nullopt;
+    std::optional<pv::VizPadding> padding_ = std::nullopt;
     /// The scales option
-    std::optional<pv::VizScales> scales = std::nullopt;
+    std::optional<pv::VizScales> scales_ = std::nullopt;
     /// The name option
-    NodeID name = INVALID_NODE_ID;
+    NodeID name_ = INVALID_NODE_ID;
     /// THe samples option
-    NodeID samples = INVALID_NODE_ID;
+    NodeID samples_ = INVALID_NODE_ID;
     /// The theme option
-    NodeID theme = INVALID_NODE_ID;
+    NodeID theme_ = INVALID_NODE_ID;
     /// The interpolation option
-    NodeID interpolation = INVALID_NODE_ID;
+    NodeID interpolation_ = INVALID_NODE_ID;
 
    protected:
     /// Any option set?
@@ -107,10 +109,17 @@ class VizComponent {
     /// Virtual destructor
     virtual ~VizComponent() = default;
 
+    /// Get the type
+    auto type() const { return type_; };
+    /// Get the position
+    auto position() const { return position_; };
+    /// Get the data
+    auto data() const { return data_; };
+
     /// Set the position
-    void SetPosition(dashql::proto::viz::VizPosition tile) { position = tile; }
+    void SetPosition(dashql::proto::viz::VizPosition tile) { position_ = tile; }
     /// Clear the position (if any)
-    void ClearPosition() { position.reset(); }
+    void ClearPosition() { position_.reset(); }
     /// Read the viz component
     /// This will also perform a semanatic analysis of the given options
     void ReadFrom(size_t node_id);
