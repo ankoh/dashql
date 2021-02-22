@@ -58,19 +58,20 @@ void AnalyzerTest::EncodePlan(pugi::xml_node root, const ProgramInstance& instan
 
     auto vizzes = root.append_child("visualizations");
     for (auto& viz : instance.viz_statements()) {
-        auto v = vizzes.append_child("viz");
+        auto v = vizzes.append_child("visualization");
         auto target = v.append_child("target");
         EncodeLocation(target, instance.program().nodes[viz->target_node_id()].location(), instance.program_text());
+        if (auto pos = viz->position()) {
+            auto p = v.append_child("position");
+            add_raw_attr(p, "row", pos->row());
+            add_raw_attr(p, "column", pos->column());
+            add_raw_attr(p, "width", pos->width());
+            add_raw_attr(p, "height", pos->height());
+        }
+        auto c = v.append_child("components");
         for (auto& vizc : viz->components()) {
-            auto vc = v.append_child("component");
+            auto vc = c.append_child("component");
             vc.append_attribute("type") = viz_component_type_tt->names[static_cast<size_t>(vizc->type())];
-            if (auto pos = vizc->position(); pos.has_value()) {
-                auto p = vc.append_child("position");
-                add_raw_attr(p, "row", pos->row());
-                add_raw_attr(p, "column", pos->column());
-                add_raw_attr(p, "width", pos->width());
-                add_raw_attr(p, "height", pos->height());
-            }
             if (auto data = vizc->data(); data.has_value()) {
                 auto d = vc.append_child("data");
                 add_raw_attr(d, "x", data->x);
