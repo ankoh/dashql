@@ -157,12 +157,12 @@ void AnalyzerTest::LoadTests(std::filesystem::path& source_dir) {
             t.name = test.attribute("name").as_string();
 
             // Read all plans
-            for (auto plan : doc.children("plan")) {
+            for (auto step : doc.children("step")) {
                 t.steps.emplace_back();
                 auto& s = t.steps.back();
-                s.program_text = plan.child("text").value();
+                s.program_text = step.child("text").value();
                 s.expected_plan = {};
-                for (auto c : plan.children()) {
+                for (auto c : step.children()) {
                     s.expected_plan.append_copy(c);
                 }
             }
