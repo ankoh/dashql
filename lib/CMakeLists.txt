@@ -70,24 +70,60 @@ endif()
 # ---------------------------------------------------------------------------
 # DuckDB
 
-find_package(Python3 COMPONENTS Interpreter REQUIRED)
-
 set(DUCKDB_SOURCE_DIR "${CMAKE_SOURCE_DIR}/../submodules/duckdb")
 set(DUCKDB_INCLUDE_DIR "${DUCKDB_SOURCE_DIR}/src/include")
 set(DUCKDB_UTF8PROC_INCLUDE_DIR "${DUCKDB_SOURCE_DIR}/third_party/utf8proc/include")
 set(DUCKDB_FMT_INCLUDE_DIR "${DUCKDB_SOURCE_DIR}/third_party/fmt/include")
 set(DUCKDB_AMALGAMATION "${DUCKDB_SOURCE_DIR}/src/amalgamation/duckdb.cpp")
 
-add_custom_command(OUTPUT ${DUCKDB_AMALGAMATION}
-    COMMAND ${Python3_EXECUTABLE} "${DUCKDB_SOURCE_DIR}/scripts/amalgamation.py"
-    WORKING_DIRECTORY "${DUCKDB_SOURCE_DIR}"
-)
+if (EMSCRIPTEN) 
+    # Load duckdb.wasm archive
+    include(FetchContent)
+    FetchContent_Declare(
+        duckdb_wasm
+        URL "https://github.com/dashql/duckdb/releases/download/0.2.4.1/duckdb-wasm32-nothreads.zip"
+        URL_HASH "SHA256=1ac85c1e2e7fadcd86a5a3befff87aae2d1d2ad615d664e2228357777ff8a2a9"
+    )
+    FetchContent_GetProperties(duckdb_wasm)
+    if(NOT duckdb_wasm_POPULATED)
+        FetchContent_Populate(duckdb_wasm)
+    endif()
 
-add_library(duckdb ${DUCKDB_AMALGAMATION})
-target_compile_options(duckdb PRIVATE -DDUCKDB_NO_THREADS=1)
-set_property(TARGET duckdb APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${DUCKDB_INCLUDE_DIR})
-set_property(TARGET duckdb APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${DUCKDB_UTF8PROC_INCLUDE_DIR})
-set_property(TARGET duckdb APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${DUCKDB_FMT_INCLUDE_DIR})
+    # Add command to unzip file
+    set(DUCKDB_WASM_ARCHIVE ${duckdb_wasm_SOURCE_DIR}/duckdb-wasm32-nothreads.zip)
+    set(DUCKDB_WASM_OUT ${CMAKE_BINARY_DIR}/duckdb.wasm)
+    add_custom_target(
+        duckdb_wasm
+        COMMAND ${CMAKE_COMMAND} -E remove ${DUCKDB_WASM_OUT}
+        COMMAND ${CMAKE_COMMAND} -E tar xvz ${DUCKDB_WASM_ARCHIVE}
+        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+    )
+
+    # Add command to unzip file
+    add_library(duckdb INTERFACE)
+    add_dependencies(duckdb duckdb_wasm)
+    target_compile_options(duckdb INTERFACE -DDUCKDB_NO_THREADS=1)
+    target_link_libraries(duckdb INTERFACE ${CMAKE_BINARY_DIR}/duckdb.wasm)
+    set_property(TARGET duckdb APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${DUCKDB_INCLUDE_DIR})
+    set_property(TARGET duckdb APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${DUCKDB_UTF8PROC_INCLUDE_DIR})
+    set_property(TARGET duckdb APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${DUCKDB_FMT_INCLUDE_DIR})
+
+else ()
+
+    # Amalgamate DuckDB
+    find_package(Python3 COMPONENTS Interpreter REQUIRED)
+    add_custom_command(OUTPUT ${DUCKDB_AMALGAMATION}
+        COMMAND ${Python3_EXECUTABLE} "${DUCKDB_SOURCE_DIR}/scripts/amalgamation.py"
+        WORKING_DIRECTORY "${DUCKDB_SOURCE_DIR}"
+    )
+
+    # Compile library
+    add_library(duckdb ${DUCKDB_AMALGAMATION})
+    target_compile_options(duckdb PUBLIC -DDUCKDB_NO_THREADS=1)
+    set_property(TARGET duckdb APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${DUCKDB_INCLUDE_DIR})
+    set_property(TARGET duckdb APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${DUCKDB_UTF8PROC_INCLUDE_DIR})
+    set_property(TARGET duckdb APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${DUCKDB_FMT_INCLUDE_DIR})
+endif ()
 
 # ---------------------------------------------------------------------------
 # Proto
@@ -313,6 +349,11 @@ target_link_libraries(dashql_test dashql_webdb dashql_analyzer dashql_common das
 
 # We need "-s WARN_ON_UNDEFINED_SYMBOLS=0" to instantiate the module with our own imports.
 if (EMSCRIPTEN)
+    set(ADDITIONAL_LINKER_FLAGS)
+    if (WASM_FAST_LINKING)
+        set(ADDITIONAL_LINKER_FLAGS -O0)
+    endif ()
+
     set(DATAFRAME_WASM_LINKER_FLAGS " \
         -s LLD_REPORT_UNDEFINED=1 \
         -s WARN_ON_UNDEFINED_SYMBOLS=1 \
@@ -329,6 +370,7 @@ if (EMSCRIPTEN)
             _dashql_dataframe_ping \
         ]' \
         -s EXTRA_EXPORTED_RUNTIME_METHODS='[\"ccall\"]' \
+        ${ADDITIONAL_LINKER_FLAGS} \
         "
     )
 
@@ -360,6 +402,7 @@ if (EMSCRIPTEN)
             _dashql_analyzer_edit_program \
         ]' \
         -s EXTRA_EXPORTED_RUNTIME_METHODS='[\"ccall\"]' \
+        ${ADDITIONAL_LINKER_FLAGS} \
         "
     )
 
@@ -392,6 +435,7 @@ if (EMSCRIPTEN)
             _dashql_webdb_analyze_query \
         ]' \
         -s EXTRA_EXPORTED_RUNTIME_METHODS='[\"ccall\"]' \
+        ${ADDITIONAL_LINKER_FLAGS} \
         "
     )
 
