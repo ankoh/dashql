@@ -7,18 +7,28 @@
 #include <stack>
 #include <unordered_set>
 
+#include "dashql/analyzer/viz_statement.h"
 #include "dashql/proto_generated.h"
 #include "dashql/test/grammar_tests.h"
 
 namespace dashql {
 namespace test {
 
-void AnalyzerTest::EncodePlan(pugi::xml_node& root, const ProgramInstance& instance,
+void AnalyzerTest::EncodePlan(pugi::xml_node root, const ProgramInstance& instance,
                               const proto::action::ActionGraphT& graph) {
+    auto& nodes = instance.program().nodes;
+    auto& text = instance.program_text();
+
+    auto add_raw_attr = [&](pugi::xml_node node, const char* attr, size_t node_id) {
+        if (node_id < viz::INVALID_NODE_ID)
+            node.append_attribute(attr).set_value(std::string{instance.TextAt(nodes[node_id].location())}.c_str());
+    };
+
     auto setup_action_type_tt = proto::action::SetupActionTypeTypeTable();
     auto program_action_type_tt = proto::action::ProgramActionTypeTypeTable();
     auto action_status_tt = proto::action::ActionStatusCodeTypeTable();
     auto parameter_type_tt = proto::webdb::SQLTypeIDTypeTable();
+    auto viz_component_type_tt = proto::syntax::VizComponentTypeTypeTable();
 
     std::string program_text{instance.program_text()};
     root.append_child("text").text().set(program_text.c_str());
@@ -42,6 +52,31 @@ void AnalyzerTest::EncodePlan(pugi::xml_node& root, const ProgramInstance& insta
         e.append_attribute("value").set_value(v.c_str());
         EncodeLocation(e, instance.program().nodes[node_value.root_node_id].location(), instance.program_text());
     });
+
+    auto vizzes = root.append_child("visualizations");
+    for (auto& viz : instance.viz_statements()) {
+        auto v = vizzes.append_child("viz");
+        auto target = v.append_child("target");
+        EncodeLocation(target, instance.program().nodes[viz->target_node_id()].location(), instance.program_text());
+        for (auto& vizc : viz->components()) {
+            auto vc = v.append_child("component");
+            vc.append_attribute("type") = viz_component_type_tt->names[static_cast<size_t>(vizc->type())];
+            if (auto pos = vizc->position(); pos.has_value()) {
+                auto p = vc.append_child("position");
+                add_raw_attr(p, "row", pos->row());
+                add_raw_attr(p, "column", pos->column());
+                add_raw_attr(p, "width", pos->width());
+                add_raw_attr(p, "height", pos->height());
+            }
+            if (auto data = vizc->data(); data.has_value()) {
+                auto d = vc.append_child("data");
+                add_raw_attr(d, "x", data->x);
+                add_raw_attr(d, "y", data->y);
+                add_raw_attr(d, "y0", data->y0);
+                add_raw_attr(d, "categories", data->categories);
+            }
+        }
+    }
 
     auto g = root.append_child("graph");
     g.append_attribute("next_object_id").set_value(graph.next_object_id);

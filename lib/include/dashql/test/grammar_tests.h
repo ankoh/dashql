@@ -15,9 +15,9 @@ namespace dashql {
 namespace test {
 
 /// Encode a location
-void EncodeLocation(pugi::xml_node& n, proto::syntax::Location loc, std::string_view text);
+void EncodeLocation(pugi::xml_node n, proto::syntax::Location loc, std::string_view text);
 /// Encode an error
-void EncodeError(pugi::xml_node& n, const proto::syntax::ErrorT& err, std::string_view text);
+void EncodeError(pugi::xml_node n, const proto::syntax::ErrorT& err, std::string_view text);
 
 struct GrammarTest {
     /// Printer test name
@@ -38,7 +38,7 @@ struct GrammarTest {
     ::testing::AssertionResult Matches(const pugi::xml_node& actual) const;
 
     /// Encode a program
-    static void EncodeProgram(pugi::xml_node& root, const proto::syntax::ProgramT& program, std::string_view text);
+    static void EncodeProgram(pugi::xml_node root, const proto::syntax::ProgramT& program, std::string_view text);
     /// Get the grammar tests
     static void LoadTests(std::filesystem::path& project_root);
     /// Get the grammar tests

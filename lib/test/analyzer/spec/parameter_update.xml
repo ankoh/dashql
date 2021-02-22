@@ -14,6 +14,7 @@
         <evaluations>
             <eval type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" loc="166..230" text="format('ht..l.country)" />
         </evaluations>
+        <visualizations />
         <graph next_object_id="2">
             <setup />
             <program>
@@ -47,6 +48,7 @@
         <evaluations>
             <eval type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/US'" loc="166..230" text="format('ht..l.country)" />
         </evaluations>
+        <visualizations />
         <graph next_object_id="4">
             <setup>
                 <action type="DROP_BLOB" status="NONE" object_id="0">

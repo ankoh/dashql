@@ -166,7 +166,7 @@ void VizComponent::ReadFrom(size_t node_id) {
     constexpr size_t ID_DATA_X = 9;
     constexpr size_t ID_DATA_Y = 10;
     constexpr size_t ID_DATA_Y0 = 11;
-    constexpr size_t ID_STYLE_DATA = 12;
+    constexpr size_t ID_STYLE_DATA = 28;
     constexpr size_t ID_STYLE_LABELS = 13;
     constexpr size_t ID_THEME = 14;
     constexpr size_t ID_DATA = 15;
@@ -247,20 +247,20 @@ void VizComponent::ReadFrom(size_t node_id) {
         });
     // clang-format on
 
-    std::array<NodeMatch, 28> matches;
+    std::array<NodeMatch, 29> matches;
     schema.Match(instance, node_id, matches);
 
     if (matches[0]) {
-        type = matches[0].DataAsEnum<sx::VizComponentType>();
+        type_ = matches[0].DataAsEnum<sx::VizComponentType>();
     }
     if (matches[1]) {
-        type_modifiers = matches[1].DataAsI64();
+        type_modifiers_ = matches[1].DataAsI64();
     }
 
     /// Build the type mask for fast compatibility checks.
     /// This will obviously break as soon as we've got more than > 64 component types.
     static_assert(static_cast<size_t>(sx::VizComponentType::MAX) <= 63);
-    uint64_t type_mask = 1 << static_cast<size_t>(type);
+    uint64_t type_mask = 1 << static_cast<size_t>(type_);
 
     /// Get position attributes
     auto pos_row = SelectAltOption("position.row", matches[ID_POS_ROW].node_id, matches[ID_ROW].node_id);
@@ -268,7 +268,7 @@ void VizComponent::ReadFrom(size_t node_id) {
     auto pos_width = SelectAltOption("position.width", matches[ID_POS_WIDTH].node_id, matches[ID_WIDTH].node_id);
     auto pos_height = SelectAltOption("position.height", matches[ID_POS_HEIGHT].node_id, matches[ID_HEIGHT].node_id);
     if (AnyOptionSet({pos_row, pos_column, pos_width, pos_height})) {
-        position = pv::VizPosition(pos_row, pos_column, pos_width, pos_height);
+        position_ = pv::VizPosition(pos_row, pos_column, pos_width, pos_height);
     }
 
     /// Get data attributes
@@ -278,11 +278,11 @@ void VizComponent::ReadFrom(size_t node_id) {
     auto data_categories =
         SelectAltOption("data.categories", matches[ID_DATA_CATEGORIES].node_id, matches[ID_CATEGORIES].node_id);
     if (AnyOptionSet({data_x, data_y, data_y0, data_categories})) {
-        data.emplace();
-        data->x = data_x;
-        data->y = data_y;
-        data->y0 = data_y0;
-        data->categories = data_categories;
+        data_.emplace();
+        data_->x = data_x;
+        data_->y = data_y;
+        data_->y0 = data_y0;
+        data_->categories = data_categories;
     }
 
     /// Match style attribute
@@ -301,7 +301,7 @@ bool VizComponent::AnyOptionSet(std::initializer_list<size_t> node_ids) const {
 
 /// Select an option with alternative
 size_t VizComponent::SelectAltOption(std::string_view label, size_t node_id, size_t alt_node_id) const {
-    size_t selection = 0;
+    size_t selection = INVALID_NODE_ID;
     if (node_id < INVALID_NODE_ID) {
         selection = node_id;
         if (alt_node_id < INVALID_NODE_ID) {
@@ -339,7 +339,7 @@ void VizComponent::PrintScript(std::ostream& out) const {
     static constexpr std::array<std::string_view, 6> type_modifier_names = {
         "STACKED", "DEPENDENT", "INDEPENDENT", "POLAR", "X", "Y",
     };
-    for (uint32_t i = 0, modifiers = type_modifiers; i < 6; ++i, modifiers >>= 1) {
+    for (uint32_t i = 0, modifiers = type_modifiers_; i < 6; ++i, modifiers >>= 1) {
         if ((modifiers & ~0b1) == 0) continue;
         out << " " << type_modifier_names[i];
     }
@@ -349,10 +349,10 @@ void VizComponent::PrintScript(std::ostream& out) const {
         "AREA", "AXIS",   "BAR", "BOX",     "CANDLESTICK", "ERROR_BAR", "HISTOGRAM",
         "LINE", "NUMBER", "PIE", "SCATTER", "TABLE",       "TEXT",      "VORONOI",
     };
-    out << " " << type_names[static_cast<size_t>(type)];
+    out << " " << type_names[static_cast<size_t>(type_)];
 
     VizAttributePrinter aout{out};
-    if (auto p = position) {
+    if (auto p = position_) {
         aout.AddKey("pos");
         aout.AddValue() << "(r = " << p->row() << ", c = " << p->column() << ", w = " << p->width()
                         << ", h = " << p->height() << ")";
