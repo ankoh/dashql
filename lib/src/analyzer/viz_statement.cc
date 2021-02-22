@@ -72,12 +72,8 @@ void VizAttributePrinter::Finish() {
     out << "\n)";
 }
 
-VizStatement::VizStatement(ProgramInstance& instance, size_t statement_id, size_t target_node_id,
-                           std::vector<std::unique_ptr<VizComponent>>&& components)
-    : instance_(instance),
-      statement_id_(statement_id),
-      target_node_id_(target_node_id),
-      components_(move(components)) {}
+VizStatement::VizStatement(ProgramInstance& instance, size_t statement_id, size_t target_node_id)
+    : instance_(instance), statement_id_(statement_id), target_node_id_(target_node_id), components_() {}
 
 /// Read a viz statement
 std::unique_ptr<VizStatement> VizStatement::ReadFrom(ProgramInstance& instance, size_t stmt_id) {
@@ -99,16 +95,19 @@ std::unique_ptr<VizStatement> VizStatement::ReadFrom(ProgramInstance& instance, 
     auto comps_node_id = matches[1].node_id;
     auto& comps_node = program.nodes[comps_node_id];
 
+    // Create the viz statement
+    auto viz = std::make_unique<VizStatement>(instance, stmt_id, matches[0].node_id);
+
     // Read all components
     std::vector<std::unique_ptr<viz::VizComponent>> components;
     components.reserve(comps_node.children_count());
     for (auto cid = 0; cid < comps_node.children_count(); ++cid) {
         auto begin = comps_node.children_begin_or_value();
-        auto comp = viz::VizComponent::CreateFrom(instance, begin + cid);
+        auto comp = viz::VizComponent::CreateFrom(*viz, begin + cid);
         components.push_back(move(comp));
     }
-
-    return std::make_unique<VizStatement>(instance, stmt_id, matches[0].node_id, std::move(components));
+    viz->components_ = std::move(components);
+    return viz;
 }
 
 /// Print statement as script
@@ -135,20 +134,17 @@ flatbuffers::Offset<proto::viz::VizSpec> VizStatement::Pack(flatbuffers::FlatBuf
         component_offsets.push_back(component);
     }
     auto component_ofs_vec = builder.CreateVector(component_offsets);
-    auto position = position_.has_value() ? &position_.value() : nullptr;
 
     // Build viz spec
     pv::VizSpecBuilder spec_builder{builder};
     spec_builder.add_statement_id(statement_id_);
     spec_builder.add_components(component_ofs_vec);
-    if (position) {
-        spec_builder.add_position(position);
-    }
+    if (!position_) spec_builder.add_position(position_);
     return spec_builder.Finish();
 }
 
 /// Constructor
-VizComponent::VizComponent(ProgramInstance& instance) : instance(instance) {}
+VizComponent::VizComponent(VizStatement& viz) : viz_stmt_(viz) {}
 
 /// Read common viz attributes.
 void VizComponent::ReadFrom(size_t node_id) {
@@ -248,11 +244,13 @@ void VizComponent::ReadFrom(size_t node_id) {
     // clang-format on
 
     std::array<NodeMatch, 29> matches;
-    schema.Match(instance, node_id, matches);
+    schema.Match(viz_stmt_.instance(), node_id, matches);
 
+    // Read type
     if (matches[0]) {
         type_ = matches[0].DataAsEnum<sx::VizComponentType>();
     }
+    // Read type modifiers
     if (matches[1]) {
         type_modifiers_ = matches[1].DataAsI64();
     }
@@ -262,13 +260,29 @@ void VizComponent::ReadFrom(size_t node_id) {
     static_assert(static_cast<size_t>(sx::VizComponentType::MAX) <= 63);
     uint64_t type_mask = 1 << static_cast<size_t>(type_);
 
+    // Report that option is not unique
+    auto report_not_unique = [this](size_t node_id, std::string_view key) {
+        if (node_id == INVALID_NODE_ID) return;
+        viz_stmt_.instance().Add(LinterMessage{LinterMessageCode::OPTION_NOT_UNIQUE, node_id}
+                                 << "option '" << key << "' must be unique across components");
+    };
+
     /// Get position attributes
     auto pos_row = SelectAltOption("position.row", matches[ID_POS_ROW].node_id, matches[ID_ROW].node_id);
     auto pos_column = SelectAltOption("position.column", matches[ID_POS_COLUMN].node_id, matches[ID_COLUMN].node_id);
     auto pos_width = SelectAltOption("position.width", matches[ID_POS_WIDTH].node_id, matches[ID_WIDTH].node_id);
     auto pos_height = SelectAltOption("position.height", matches[ID_POS_HEIGHT].node_id, matches[ID_HEIGHT].node_id);
     if (AnyOptionSet({pos_row, pos_column, pos_width, pos_height})) {
-        position_ = pv::VizPosition(pos_row, pos_column, pos_width, pos_height);
+        // Already provided by a previous component?
+        if (viz_stmt_.position()) {
+            report_not_unique(pos_row, "position.row");
+            report_not_unique(pos_column, "position.column");
+            report_not_unique(pos_width, "position.width");
+            report_not_unique(pos_height, "position.height");
+        } else {
+            position_ = pv::VizPosition(pos_row, pos_column, pos_width, pos_height);
+            viz_stmt_.position() = &position_.value();
+        }
     }
 
     /// Get data attributes
@@ -301,6 +315,7 @@ bool VizComponent::AnyOptionSet(std::initializer_list<size_t> node_ids) const {
 
 /// Select an option with alternative
 size_t VizComponent::SelectAltOption(std::string_view label, size_t node_id, size_t alt_node_id) const {
+    auto& instance = viz_stmt_.instance();
     size_t selection = INVALID_NODE_ID;
     if (node_id < INVALID_NODE_ID) {
         selection = node_id;
@@ -320,6 +335,7 @@ size_t VizComponent::SelectAltOption(std::string_view label, size_t node_id, siz
 void VizComponent::AddAltStyleOption(std::string_view label, size_t node_id, pv::SVGStylePropertyType prop,
                                      std::vector<pv::SVGStyleProperty>& out) const {
     if (node_id == INVALID_NODE_ID) return;
+    auto& instance = viz_stmt_.instance();
     instance.Add(LinterMessage{LinterMessageCode::OPTION_ALTERNATIVE_STYLE, node_id}
                  << "option should be specified as '" << label << "'");
     auto p = pv::SVGStyleProperty(pv::SVGStyleTarget::DATA, prop, node_id);
@@ -327,8 +343,8 @@ void VizComponent::AddAltStyleOption(std::string_view label, size_t node_id, pv:
 }
 
 /// Read component from a node
-std::unique_ptr<VizComponent> VizComponent::CreateFrom(ProgramInstance& instance, size_t node_id) {
-    auto c = std::make_unique<VizComponent>(instance);
+std::unique_ptr<VizComponent> VizComponent::CreateFrom(VizStatement& stmt, size_t node_id) {
+    auto c = std::make_unique<VizComponent>(stmt);
     c->ReadFrom(node_id);
     return c;
 }
@@ -340,7 +356,7 @@ void VizComponent::PrintScript(std::ostream& out) const {
         "STACKED", "DEPENDENT", "INDEPENDENT", "POLAR", "X", "Y",
     };
     for (uint32_t i = 0, modifiers = type_modifiers_; i < 6; ++i, modifiers >>= 1) {
-        if ((modifiers & ~0b1) == 0) continue;
+        if ((modifiers & 0b1) == 0) continue;
         out << " " << type_modifier_names[i];
     }
 
@@ -361,7 +377,23 @@ void VizComponent::PrintScript(std::ostream& out) const {
 
 /// Pack as buffer
 flatbuffers::Offset<proto::viz::VizComponent> VizComponent::Pack(flatbuffers::FlatBufferBuilder& builder) const {
+    // Pack modifiers
+    std::vector<uint8_t> modifiers;
+    for (uint32_t i = 0, m = type_modifiers_; i < 6; ++i, m >>= 1) {
+        if ((m & 0b1) == 0) continue;
+        modifiers.push_back(i);
+    }
+    auto modifiers_vec = builder.CreateVector(modifiers);
+
+    // Pack data
+    std::optional<flatbuffers::Offset<pv::VizData>> data;
+    if (data_) data = pv::CreateVizData(builder, data_->x, data_->y, data_->y0, data_->categories);
+
+    // Pack component
     proto::viz::VizComponentBuilder cb{builder};
+    cb.add_type(type_);
+    cb.add_type_modifiers(modifiers_vec);
+    if (data) cb.add_data(*data);
     return cb.Finish();
 }
 

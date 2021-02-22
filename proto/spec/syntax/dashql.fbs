@@ -25,7 +25,7 @@ enum ExtractMethodType: uint8 {
     JSON = 2
 }
 
-enum VizComponentTypeModifier: uint32 {
+enum VizComponentTypeModifier: uint8 {
     STACKED         = 0,
     DEPENDENT       = 1,
     INDEPENDENT     = 2,
