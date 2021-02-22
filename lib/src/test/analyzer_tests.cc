@@ -1,6 +1,7 @@
 #include "dashql/test/analyzer_tests.h"
 
 #include <cstdint>
+#include <fstream>
 #include <iostream>
 #include <regex>
 #include <sstream>
@@ -117,6 +118,80 @@ void AnalyzerTest::EncodePlan(pugi::xml_node root, const ProgramInstance& instan
             p.append_child("script").text().set(action->script.c_str());
         }
     }
+}
+// The files
+static std::unordered_map<std::string, std::vector<AnalyzerTest>> TEST_FILES;
+
+/// Get the grammar tests
+void AnalyzerTest::LoadTests(std::filesystem::path& source_dir) {
+    auto spec_dir = source_dir / "test" / "analyzer" / "spec";
+
+    std::cout << "Loading analyzer tests at: " << spec_dir << std::endl;
+
+    for (auto& p : std::filesystem::directory_iterator(spec_dir)) {
+        auto filename = p.path().filename().string();
+        if (p.path().extension().string() != ".xml") continue;
+
+        // Make sure that it's no template
+        auto tpl = p.path();
+        tpl.replace_extension();
+        if (tpl.extension() == ".tpl") continue;
+
+        // Open input stream
+        std::ifstream in(p.path(), std::ios::in | std::ios::binary);
+        if (!in) {
+            std::cout << "[ SETUP    ] failed to read test file: " << filename << std::endl;
+            continue;
+        }
+
+        // Parse xml document
+        pugi::xml_document doc;
+        doc.load(in);
+
+        // Read tests
+        std::vector<AnalyzerTest> tests;
+        for (auto test : doc.children()) {
+            // Create test
+            tests.emplace_back();
+            auto& t = tests.back();
+            t.name = test.attribute("name").as_string();
+
+            /// Create program text
+            t.prev_program_text = test.child("previous").child("text").value();
+            t.next_program_text = test.child("next").child("text").value();
+
+            /// Extract encoded XML
+            pugi::xml_document prev;
+            for (auto s : test.child("previous").children()) {
+                prev.append_copy(s);
+            }
+            t.expected_prev = std::move(prev);
+            pugi::xml_document next;
+            for (auto s : test.child("next").children()) {
+                prev.append_copy(s);
+            }
+            t.expected_next = std::move(next);
+        }
+
+        std::cout << "[ SETUP    ] " << filename << ": " << tests.size() << " tests" << std::endl;
+
+        // Register test
+        TEST_FILES.insert({filename, move(tests)});
+    }
+}
+
+/// Get the grammar tests
+std::vector<const AnalyzerTest*> AnalyzerTest::GetTests(std::string_view filename) {
+    std::string name{filename};
+    auto iter = TEST_FILES.find(name);
+    if (iter == TEST_FILES.end()) {
+        return {};
+    }
+    std::vector<const AnalyzerTest*> tests;
+    for (auto& test : iter->second) {
+        tests.emplace_back(&test);
+    }
+    return tests;
 }
 
 }  // namespace test

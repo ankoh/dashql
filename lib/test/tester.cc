@@ -1,6 +1,7 @@
 // Copyright (c) 2020 The DashQL Authors
 
 #include "dashql/parser/parser_driver.h"
+#include "dashql/test/analyzer_tests.h"
 #include "dashql/test/grammar_tests.h"
 #include "gtest/gtest.h"
 #include "gflags/gflags.h"
@@ -20,6 +21,7 @@ int main(int argc, char* argv[]) {
     if (std::filesystem::exists(FLAGS_source_dir)) {
         auto source_dir = std::filesystem::path{FLAGS_source_dir};
         GrammarTest::LoadTests(source_dir);
+        AnalyzerTest::LoadTests(source_dir);
     }
 
     testing::InitGoogleTest(&argc, argv);
