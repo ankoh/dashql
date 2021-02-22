@@ -29,7 +29,7 @@ struct AnalyzerTest {
         /// The parameters
         std::vector<ParameterValue> parameters = {};
         /// The expected plan
-        pugi::xml_document expected_plan = {};
+        pugi::xml_document expected_output = {};
         /// The action status of setup actions
         std::vector<proto::action::ActionStatusCode> setupActionStatusCodes = {};
         /// The action status of program actions

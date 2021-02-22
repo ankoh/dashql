@@ -264,16 +264,6 @@
 </test>
 <test name="two_tables_two_vizzes">
     <step>
-        <text></text>
-        <parameters />
-        <evaluations />
-        <visualizations />
-        <graph next_object_id="0">
-            <setup />
-            <program />
-        </graph>
-    </step>
-    <step>
         <text>
             DECLARE PARAMETER country TYPE TEXT;
             LOAD weather_csv FROM http (
