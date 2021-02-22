@@ -1,25 +1,22 @@
 <test name="param">
-    <previous />
-    <next>
+    <plan>
         <text>
             DECLARE PARAMETER country TYPE TEXT;
         </text>
         <parameters>
             <parameter type="VARCHAR" statement="0" value="DE" />
         </parameters>
-    </next>
+    </plan>
 </test>
 <test name="select_into">
-    <previous />
-    <next>
+    <plan>
         <text>
             SELECT 1 INTO a;
         </text>
-    </next>
+    </plan>
 </test>
 <test name="param_load">
-    <previous />
-    <next>
+    <plan>
         <text>
             DECLARE PARAMETER country TYPE TEXT;
             LOAD weather_csv FROM http (
@@ -30,11 +27,10 @@
         <parameters>
             <parameter type="VARCHAR" statement="0" value="DE" />
         </parameters>
-    </next>
+    </plan>
 </test>
 <test name="param_load_extract">
-    <previous />
-    <next>
+    <plan>
         <text>
             DECLARE PARAMETER country TYPE TEXT;
             LOAD weather_csv FROM http (
@@ -45,11 +41,10 @@
         <parameters>
             <parameter type="VARCHAR" statement="0" value="DE" />
         </parameters>
-    </next>
+    </plan>
 </test>
 <test name="param_load_extract_select">
-    <previous />
-    <next>
+    <plan>
         <text>
             DECLARE PARAMETER country TYPE TEXT;
             LOAD weather_csv FROM http (
@@ -61,11 +56,10 @@
         <parameters>
             <parameter type="VARCHAR" statement="0" value="DE" />
         </parameters>
-    </next>
+    </plan>
 </test>
 <test name="two_vizzes">
-    <previous />
-    <next>
+    <plan>
         <text>
             DECLARE PARAMETER country TYPE TEXT;
             LOAD weather_csv FROM http (
@@ -79,11 +73,11 @@
         <parameters>
             <parameter type="VARCHAR" statement="0" value="DE" />
         </parameters>
-    </next>
+    </plan>
 </test>
 <test name="two_tables_two_vizzes">
-    <previous />
-    <next>
+    <plan />
+    <plan>
         <text>
             DECLARE PARAMETER country TYPE TEXT;
             LOAD weather_csv FROM http (
@@ -98,11 +92,10 @@
         <parameters>
             <parameter type="VARCHAR" statement="0" value="DE" />
         </parameters>
-    </next>
+    </plan>
 </test>
 <test name="integer_interpolation">
-    <previous />
-    <next>
+    <plan>
         <text>
             DECLARE PARAMETER country TYPE TEXT;
             DECLARE PARAMETER month TYPE INTEGER;
@@ -119,11 +112,10 @@
             <parameter type="VARCHAR" statement="0" value="DE" />
             <parameter type="BIGINT" statement="1" value="5" />
         </parameters>
-    </next>
+    </plan>
 </test>
 <test name="text_interpolation">
-    <previous />
-    <next>
+    <plan>
         <text>
             DECLARE PARAMETER country TYPE TEXT;
             DECLARE PARAMETER city TYPE TEXT;
@@ -137,11 +129,10 @@
             <parameter type="VARCHAR" statement="0" value="DE" />
             <parameter type="VARCHAR" statement="1" value="MUC" />
         </parameters>
-    </next>
+    </plan>
 </test>
 <test name="extract_join">
-    <previous />
-    <next>
+    <plan>
         <text>
             DECLARE PARAMETER country1 TYPE TEXT;
             DECLARE PARAMETER country2 TYPE TEXT;
@@ -162,21 +153,19 @@
             <parameter type="VARCHAR" statement="1" value="US" />
             <parameter type="BIGINT" statement="2" value="5" />
         </parameters>
-    </next>
+    </plan>
 </test>
 <test name="create_as_viz">
-    <previous />
-    <next>
+    <plan>
         <text>
             CREATE TABLE foo AS SELECT v::INTEGER FROM generate_series(0, 100) AS t(v);
             VIZ foo USING TABLE;
         </text>
         <parameters />
-    </next>
+    </plan>
 </test>
 <test name="create_as_viz_complex_1">
-    <previous />
-    <next>
+    <plan>
         <text>
             CREATE TABLE foo AS SELECT v::INTEGER FROM generate_series(0, 100) AS t(v);
             VISUALIZE weather_avg USING STACKED BAR (
@@ -206,5 +195,5 @@
             ), X AXIS(scale = 'time'), Y AXIS(scale = 'log');
         </text>
         <parameters />
-    </next>
+    </plan>
 </test>
