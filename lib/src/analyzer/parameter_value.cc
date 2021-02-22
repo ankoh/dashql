@@ -2,11 +2,33 @@
 
 namespace dashql {
 
+/// Default constructor
+ParameterValue::ParameterValue(size_t statement_id, Value value)
+    : statement_id(statement_id), value(std::move(value)) {}
+/// Copy constructor
+ParameterValue::ParameterValue(const ParameterValue& other)
+    : statement_id(other.statement_id), value(other.value.CopyDeep()) {}
+/// Move constructor
+ParameterValue::ParameterValue(ParameterValue&& other)
+    : statement_id(other.statement_id), value(std::move(other.value)) {}
+
+/// Copy assignment
+ParameterValue& ParameterValue::operator=(const ParameterValue& other) {
+    statement_id = other.statement_id;
+    value = other.value.CopyDeep();
+    return *this;
+}
+/// Move assignment
+ParameterValue& ParameterValue::operator=(ParameterValue&& other) {
+    statement_id = other.statement_id;
+    value = std::move(other.value);
+    return *this;
+}
+
 /// Compare two parameter values
 bool ParameterValue::operator==(const ParameterValue& other) const {
     return statement_id == other.statement_id && value == other.value;
 }
-
 /// Compare two parameter values
 bool ParameterValue::operator!=(const ParameterValue& other) const {
     return statement_id != other.statement_id || value != other.value;

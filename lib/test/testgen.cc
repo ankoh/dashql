@@ -73,34 +73,6 @@ void generate_grammar_tests(const std::filesystem::path& source_dir) {
     }
 }
 
-proto::action::ActionStatusCode GetActionStatus(std::string_view type) {
-    auto tt = proto::action::ActionStatusCodeTypeTable();
-    auto& names = tt->names;
-    auto& num_elems = tt->num_elems;
-    for (unsigned i = 0; i < num_elems; ++i) {
-        if (type == std::string_view{names[i]}) return static_cast<proto::action::ActionStatusCode>(i);
-    }
-    return proto::action::ActionStatusCode::NONE;
-}
-
-proto::syntax::ParameterType GetParameterType(std::string_view type) {
-    auto tt = proto::syntax::ParameterTypeTypeTable();
-    auto& names = tt->names;
-    auto& num_elems = tt->num_elems;
-    for (unsigned i = 0; i < num_elems; ++i) {
-        if (type == std::string_view{names[i]}) return static_cast<proto::syntax::ParameterType>(i);
-    }
-    return proto::syntax::ParameterType::NONE;
-}
-
-ParameterValue GetParameter(const pugi::xml_node& node) {
-    auto stmt = node.attribute("statement").as_int();
-    auto value = node.attribute("value").as_string();
-    auto type = node.attribute("type").as_string();
-    auto v = Value::Parse(type, value);
-    return {static_cast<size_t>(stmt), std::move(v)};
-}
-
 void generate_analyzer_tests(const std::filesystem::path& source_dir) {
     auto action_dir = source_dir / "test" / "analyzer" / "spec";
     for (auto& p : std::filesystem::directory_iterator(action_dir)) {
@@ -151,7 +123,7 @@ void generate_analyzer_tests(const std::filesystem::path& source_dir) {
                 auto inst_params = inst.child("parameters");
                 std::vector<ParameterValue> inst_params_vec;
                 for (auto& param : inst_params.children()) {
-                    inst_params_vec.push_back(GetParameter(param));
+                    inst_params_vec.push_back(AnalyzerTest::GetParameter(param));
                 }
 
                 // Parse, instantiate and plan the previous program
@@ -164,7 +136,7 @@ void generate_analyzer_tests(const std::filesystem::path& source_dir) {
                     unsigned i = 0;
                     for (auto p : inst.child("graph").child("program").children()) {
                         auto status_str = p.attribute("status").as_string();
-                        auto status = GetActionStatus(status_str);
+                        auto status = AnalyzerTest::GetActionStatus(status_str);
                         analyzer.UpdateProgramActionStatus(i++, status);
                     }
                 }
