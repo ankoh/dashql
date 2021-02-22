@@ -95,7 +95,7 @@ void AnalyzerTest::EncodePlan(pugi::xml_node root, const ProgramInstance& instan
     auto program_actions = g.append_child("program");
     for (auto& action : graph.program_actions) {
         auto p = program_actions.append_child("action");
-        p.append_attribute("id") = action->origin_statement;
+        p.append_attribute("origin") = action->origin_statement;
         p.append_attribute("type") = program_action_type_tt->names[static_cast<uint16_t>(action->action_type)];
         p.append_attribute("status") = action_status_tt->names[static_cast<uint16_t>(action->action_status_code)];
         p.append_attribute("object_id") = action->object_id;
@@ -119,6 +119,39 @@ void AnalyzerTest::EncodePlan(pugi::xml_node root, const ProgramInstance& instan
         }
     }
 }
+
+// Read an action status
+proto::action::ActionStatusCode AnalyzerTest::GetActionStatus(std::string_view type) {
+    auto tt = proto::action::ActionStatusCodeTypeTable();
+    auto& names = tt->names;
+    auto& num_elems = tt->num_elems;
+    for (unsigned i = 0; i < num_elems; ++i) {
+        if (type == std::string_view{names[i]}) return static_cast<proto::action::ActionStatusCode>(i);
+    }
+    return proto::action::ActionStatusCode::NONE;
+}
+
+// Read a parameter type
+proto::syntax::ParameterType AnalyzerTest::GetParameterType(std::string_view type) {
+    auto tt = proto::syntax::ParameterTypeTypeTable();
+    auto& names = tt->names;
+    auto& num_elems = tt->num_elems;
+    for (unsigned i = 0; i < num_elems; ++i) {
+        if (type == std::string_view{names[i]}) return static_cast<proto::syntax::ParameterType>(i);
+    }
+    return proto::syntax::ParameterType::NONE;
+}
+
+// Read a parameter
+ParameterValue AnalyzerTest::GetParameter(const pugi::xml_node& node) {
+    auto stmt = node.attribute("statement").as_int();
+    auto value = node.attribute("value").as_string();
+    auto type = node.attribute("type").as_string();
+    auto v = Value::Parse(type, value);
+    return {static_cast<size_t>(stmt), std::move(v)};
+}
+
+
 // The files
 static std::unordered_map<std::string, std::vector<AnalyzerTest>> TEST_FILES;
 
@@ -164,6 +197,10 @@ void AnalyzerTest::LoadTests(std::filesystem::path& source_dir) {
                 s.expected_plan = {};
                 for (auto c : step.children()) {
                     s.expected_plan.append_copy(c);
+                }
+                auto params = step.child("parameters");
+                for (auto& param : params.children()) {
+                    s.parameters.push_back(AnalyzerTest::GetParameter(param));
                 }
             }
         }
