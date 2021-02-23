@@ -32,7 +32,7 @@ describe('QueryResultRowIterator', () => {
             let value = new webdb.Value();
             for (let i = 0; i <= testRows; ++i) {
                 expect(iter.isEnd()).toBe(false);
-                expect(iter.getValue(0, value).i8).toBe(i & 127);
+                expect(iter.getValue(0, value).castAsNumber()).toBe(i & 127);
                 iter.nextBlocking();
             }
             expect(iter.isEnd()).toBe(true);
@@ -48,7 +48,7 @@ describe('QueryResultRowIterator', () => {
             let value = new webdb.Value();
             for (let i = 0; i <= testRows; ++i) {
                 expect(iter.isEnd()).toBe(false);
-                expect(iter.getValue(0, value).i16).toBe(i & 32767);
+                expect(iter.getValue(0, value).castAsNumber()).toBe(i & 32767);
                 iter.nextBlocking();
             }
             expect(iter.isEnd()).toBe(true);
@@ -65,7 +65,7 @@ describe('QueryResultRowIterator', () => {
             let value = new webdb.Value();
             for (let i = 0; i <= testRows; ++i) {
                 expect(iter.isEnd()).toBe(false);
-                expect(iter.getValue(0, value).i32).toBe(i);
+                expect(iter.getValue(0, value).castAsNumber()).toBe(i);
                 iter.nextBlocking();
             }
             expect(iter.isEnd()).toBe(true);
@@ -81,7 +81,7 @@ describe('QueryResultRowIterator', () => {
             let value = new webdb.Value();
             for (let i = 0; i <= testRows; ++i) {
                 expect(iter.isEnd()).toBe(false);
-                expect(iter.getValue(0, value).i64.low).toBe(i);
+                expect(iter.getValue(0, value).castAsNumber()).toBe(i);
                 iter.nextBlocking();
             }
             expect(iter.isEnd()).toBe(true);
