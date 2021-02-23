@@ -36,7 +36,7 @@ Expected<Value> FormatFunctionLogic::Evaluate(nonstd::span<const Value*> arg_val
     // Translate formatting arguments
     std::vector<duckdb_fmt::basic_format_arg<duckdb_fmt::format_context>> args;
     for (unsigned i = 1; i < arg_values.size(); ++i) {
-        using T = proto::analyzer::ValueTypeID;
+        using T = proto::webdb::SQLTypeID;
         switch (arg_values[i]->logical_type().type_id()) {
             case T::BIGINT:
                 args.emplace_back(duckdb_fmt::internal::make_arg<ctx_t>(arg_values[i]->GetUnsafeI64()));

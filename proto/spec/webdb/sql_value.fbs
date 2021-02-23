@@ -1,0 +1,14 @@
+// Copyright (c) 2020 The DashQL Authors
+
+include "webdb/sql_type.fbs";
+
+namespace dashql.proto.webdb;
+
+table SQLValue {
+    type: SQLType;
+    is_null: bool;
+    data_u32: uint32;
+    data_i64: int64;
+    data_f64: double;
+    data_str: string;
+}

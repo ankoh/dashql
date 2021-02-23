@@ -24,7 +24,7 @@ class Value {
     enum class PhysicalType { NULL_, I64, F64, STRING, STRING_VIEW };
 
     /// The logical type
-    proto::analyzer::ValueType logical_type_;
+    proto::webdb::SQLType logical_type_;
     /// The physical type
     PhysicalType physical_type_;
     /// The data.
@@ -56,11 +56,11 @@ class Value {
     /// Create an empty NULL value
     Value();
     /// Create an empty NULL value of the specified type
-    Value(proto::analyzer::ValueTypeID type);
+    Value(proto::webdb::SQLTypeID type);
     /// Create an empty NULL value of the specified type
-    Value(proto::analyzer::ValueType type);
+    Value(proto::webdb::SQLType type);
     /// Create from flatbuffer object
-    Value(const proto::analyzer::Value& val);
+    Value(const proto::webdb::SQLValue& val);
 
     /// Explicit move constructor
     Value(Value&& other) noexcept;
@@ -103,12 +103,12 @@ class Value {
     Value CopyShallow() const;
 
     /// Pack as flatbuffer
-    flatbuffers::Offset<proto::analyzer::Value> Pack(flatbuffers::FlatBufferBuilder& builder) const;
+    flatbuffers::Offset<proto::webdb::SQLValue> Pack(flatbuffers::FlatBufferBuilder& builder) const;
     /// Unpack from flatbuffer
-    static Value UnPack(const proto::analyzer::Value& val);
+    static Value UnPack(const proto::webdb::SQLValue& val);
 
     /// Parse a value from text
-    static proto::analyzer::ValueType ParseType(std::string_view type);
+    static proto::webdb::SQLType ParseType(std::string_view type);
     /// Parse a value from text
     static Value Parse(std::string_view type, std::string_view data, bool string_refs = false);
     /// Create a Numeric value of the specified type with the specified value

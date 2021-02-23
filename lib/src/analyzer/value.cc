@@ -8,6 +8,7 @@
 
 #include "dashql/common/memstream.h"
 #include "dashql/common/variant.h"
+#include "dashql/proto_generated.h"
 #include "duckdb/common/types/date.hpp"
 #include "duckdb/common/types/decimal.hpp"
 #include "duckdb/common/types/interval.hpp"
@@ -18,7 +19,7 @@ namespace dashql {
 
 namespace {
 
-proto::analyzer::ValueType NOTYPE() { return proto::analyzer::ValueType(proto::analyzer::ValueTypeID::NONE, 0, 0); }
+proto::webdb::SQLType NOTYPE() { return proto::webdb::SQLType(proto::webdb::SQLTypeID::INVALID, 0, 0); }
 
 }  // namespace
 
@@ -26,14 +27,14 @@ proto::analyzer::ValueType NOTYPE() { return proto::analyzer::ValueType(proto::a
 Value::Value() : logical_type_(NOTYPE()), physical_type_(PhysicalType::NULL_), data_str_buffer_(), data_str_() {}
 
 // Constructor
-Value::Value(proto::analyzer::ValueTypeID type)
-    : logical_type_(proto::analyzer::ValueType(type, 0, 0)),
+Value::Value(proto::webdb::SQLTypeID type)
+    : logical_type_(proto::webdb::SQLType(type, 0, 0)),
       physical_type_(PhysicalType::NULL_),
       data_str_buffer_(),
       data_str_() {}
 
 // Constructor
-Value::Value(proto::analyzer::ValueType type)
+Value::Value(proto::webdb::SQLType type)
     : logical_type_(type), physical_type_(PhysicalType::NULL_), data_str_buffer_(), data_str_() {}
 
 // Move construction
@@ -94,34 +95,16 @@ void Value::SetData(std::string_view value) {
 }
 
 void Value::PrintType(std::ostream& out) const {
-    using T = proto::analyzer::ValueTypeID;
-    const char* type_name = [](T tid) {
-        // clang-format off
-        switch (tid) {
-            case T::NONE: return "NONE";
-            case T::BOOLEAN: return "BOOLEAN";
-            case T::BIGINT: return "BIGINT";
-            case T::DATE: return "DATE";
-            case T::TIME: return "TIME";
-            case T::TIMESTAMP: return "TIMESTAMP";
-            case T::DECIMAL: return "DECIMAL";
-            case T::DOUBLE: return "DOUBLE";
-            case T::VARCHAR: return "VARCHAR";
-        }
-        // clang-format on
-    }(logical_type_.type_id());
-    out << type_name;
+    using T = proto::webdb::SQLTypeID;
+    out << proto::webdb::EnumNameSQLTypeID(logical_type_.type_id());
     if (logical_type_.type_id() == T::DECIMAL) {
         out << "(" << logical_type_.width() << "," << logical_type_.scale() << ")";
     }
 }
 
 void Value::PrintValue(std::ostream& out) const {
-    using T = proto::analyzer::ValueTypeID;
+    using T = proto::webdb::SQLTypeID;
     switch (logical_type_.type_id()) {
-        case T::NONE:
-            out << "NULL";
-            break;
         case T::BOOLEAN:
             out << ((data_.i64 != 0) ? "true" : "false");
             break;
@@ -146,15 +129,15 @@ void Value::PrintValue(std::ostream& out) const {
         case T::VARCHAR:
             out << data_str_;
             break;
+        default:
+            out << "NULL";
+            break;
     }
 }
 
 void Value::PrintValueAsScript(std::ostream& out) const {
-    using T = proto::analyzer::ValueTypeID;
+    using T = proto::webdb::SQLTypeID;
     switch (logical_type_.type_id()) {
-        case T::NONE:
-            out << "NULL";
-            break;
         case T::BOOLEAN:
             out << ((data_.i64 != 0) ? "true" : "false");
             break;
@@ -178,6 +161,9 @@ void Value::PrintValueAsScript(std::ostream& out) const {
             break;
         case T::VARCHAR:
             out << std::quoted(data_str_, '\'');
+            break;
+        default:
+            out << "NULL";
             break;
     }
 }
@@ -279,10 +265,10 @@ Value Value::CopyDeep() const {
 }
 
 // Pack as flatbuffer
-flatbuffers::Offset<proto::analyzer::Value> Value::Pack(flatbuffers::FlatBufferBuilder& builder) const {
+flatbuffers::Offset<proto::webdb::SQLValue> Value::Pack(flatbuffers::FlatBufferBuilder& builder) const {
     std::optional<flatbuffers::Offset<flatbuffers::String>> str = std::nullopt;
     if (!data_str_.empty()) str = builder.CreateString(data_str_);
-    proto::analyzer::ValueBuilder v{builder};
+    proto::webdb::SQLValueBuilder v{builder};
     v.add_type(&logical_type_);
     v.add_is_null(is_null());
     if (str) {
@@ -296,15 +282,13 @@ flatbuffers::Offset<proto::analyzer::Value> Value::Pack(flatbuffers::FlatBufferB
 }
 
 // Unpack from flatbuffer
-Value Value::UnPack(const proto::analyzer::Value& val) {
+Value Value::UnPack(const proto::webdb::SQLValue& val) {
     Value v{*val.type()};
     if (val.is_null()) {
         return v;
     }
-    using T = proto::analyzer::ValueTypeID;
+    using T = proto::webdb::SQLTypeID;
     switch (val.type()->type_id()) {
-        case T::NONE:
-            break;
         case T::BOOLEAN:
         case T::DATE:
         case T::TIME:
@@ -321,6 +305,8 @@ Value Value::UnPack(const proto::analyzer::Value& val) {
         case T::VARCHAR:
             v.SetData(val.data_str()->string_view());
             break;
+        default:
+            break;
     }
     return v;
 }
@@ -333,14 +319,14 @@ template <typename T> T ParseNumber(std::string_view sv) {
 }
 
 // Parse a type
-proto::analyzer::ValueType Value::ParseType(std::string_view type) {
-    using T = proto::analyzer::ValueTypeID;
-    static std::unordered_map<std::string_view, T> TYPE_NAMES{
-        {"NOTYPE", T::NONE}, {"BOOLEAN", T::BOOLEAN},     {"BIGINT", T::BIGINT}, {"DATE", T::DATE},
-        {"TIME", T::TIME},   {"TIMESTAMP", T::TIMESTAMP}, {"DOUBLE", T::DOUBLE}, {"VARCHAR", T::VARCHAR},
+proto::webdb::SQLType Value::ParseType(std::string_view type) {
+    using T = proto::webdb::SQLTypeID;
+    static const std::unordered_map<std::string_view, T> TYPE_NAMES{
+        {"NOTYPE", T::INVALID}, {"BOOLEAN", T::BOOLEAN},     {"BIGINT", T::BIGINT}, {"DATE", T::DATE},
+        {"TIME", T::TIME},      {"TIMESTAMP", T::TIMESTAMP}, {"DOUBLE", T::DOUBLE}, {"VARCHAR", T::VARCHAR},
     };
     if (auto iter = TYPE_NAMES.find(type); iter != TYPE_NAMES.end()) {
-        return proto::analyzer::ValueType(iter->second, 0, 0);
+        return proto::webdb::SQLType(iter->second, 0, 0);
     }
     std::string regex_buffer{type};
 
@@ -355,7 +341,7 @@ proto::analyzer::ValueType Value::ParseType(std::string_view type) {
         int64_t scale = 0;
         if (match.size() >= 1) width = ParseNumber<int64_t>(get_sv(match[0]));
         if (match.size() >= 2) scale = ParseNumber<int64_t>(get_sv(match[1]));
-        return proto::analyzer::ValueType(T::DECIMAL, width, scale);
+        return proto::webdb::SQLType(T::DECIMAL, width, scale);
     }
     return NOTYPE();
 }
@@ -365,10 +351,8 @@ Value Value::Parse(std::string_view type_str, std::string_view value_str, bool s
     if (value_str == "NULL") {
         return Value{type};
     }
-    using T = proto::analyzer::ValueTypeID;
+    using T = proto::webdb::SQLTypeID;
     switch (type.type_id()) {
-        case T::NONE:
-            break;
         case T::BIGINT:
             return Value::BIGINT(ParseNumber<int64_t>(value_str));
         case T::DOUBLE:
@@ -382,27 +366,29 @@ Value Value::Parse(std::string_view type_str, std::string_view value_str, bool s
         case T::DECIMAL:
             // XXX
             return Value::BIGINT(ParseNumber<int64_t>(value_str));
+        default:
+            break;
     }
     return Value{type};
 }
 
 // Create a boolean value from a specified value
 Value Value::BOOLEAN(int8_t value) {
-    Value result{proto::analyzer::ValueTypeID::BOOLEAN};
+    Value result{proto::webdb::SQLTypeID::BOOLEAN};
     result.SetData(static_cast<int64_t>(value));
     return result;
 }
 
 // Create an integer value from a specified value
 Value Value::BIGINT(int64_t value) {
-    Value result{proto::analyzer::ValueTypeID::BIGINT};
+    Value result{proto::webdb::SQLTypeID::BIGINT};
     result.SetData(value);
     return result;
 }
 
 // Create a date value from a specified date
 Value Value::DATE(date_t date) {
-    Value result{proto::analyzer::ValueTypeID::DATE};
+    Value result{proto::webdb::SQLTypeID::DATE};
     result.SetData(static_cast<int64_t>(date));
     return result;
 }
@@ -414,7 +400,7 @@ Value Value::DATE(int32_t year, int32_t month, int32_t day) {
 
 // Create a time value from a specified time
 Value Value::TIME(dtime_t time) {
-    Value result{proto::analyzer::ValueTypeID::TIME};
+    Value result{proto::webdb::SQLTypeID::TIME};
     result.SetData(static_cast<int64_t>(time));
     return result;
 }
@@ -431,7 +417,7 @@ Value Value::TIMESTAMP(date_t date, dtime_t time) {
 
 // Create a timestamp value from a specified timestamp
 Value Value::TIMESTAMP(timestamp_t timestamp) {
-    Value result{proto::analyzer::ValueTypeID::TIMESTAMP};
+    Value result{proto::webdb::SQLTypeID::TIMESTAMP};
     result.SetData(static_cast<int64_t>(timestamp));
     return result;
 }
@@ -445,25 +431,25 @@ Value Value::TIMESTAMP(int32_t year, int32_t month, int32_t day, int32_t hour, i
 
 // Decimal values
 Value Value::DECIMAL(int64_t value, uint8_t width, uint8_t scale) {
-    Value result{proto::analyzer::ValueTypeID::TIMESTAMP};
+    Value result{proto::webdb::SQLTypeID::TIMESTAMP};
     result.SetData(value);
     return result;
 }
 // Create a double value from a specified value
 Value Value::DOUBLE(double value) {
-    Value result{proto::analyzer::ValueTypeID::DOUBLE};
+    Value result{proto::webdb::SQLTypeID::DOUBLE};
     result.SetData(value);
     return result;
 }
 // Create a varchar from a string value
 Value Value::VARCHAR(std::string value) {
-    Value result{proto::analyzer::ValueTypeID::VARCHAR};
+    Value result{proto::webdb::SQLTypeID::VARCHAR};
     result.SetData(move(value));
     return result;
 }
 // Create a varchar from a string view
 Value Value::VARCHAR(RefTag, std::string_view value) {
-    Value result{proto::analyzer::ValueTypeID::VARCHAR};
+    Value result{proto::webdb::SQLTypeID::VARCHAR};
     result.SetData(value);
     return result;
 }
