@@ -4,6 +4,7 @@
 #define INCLUDE_DASHQL_ANALYZER_PROGRAM_INSTANCE_H_
 
 #include <iostream>
+#include <limits>
 #include <optional>
 #include <sstream>
 #include <tuple>
@@ -102,10 +103,11 @@ class ProgramInstance {
     }
     /// Read a node value.
     /// Note: This is deliberately NOT const since we do lazy path compression the union-find of evaluated nodes.
-    const NodeValue* FindNodeValue(size_t node_id);
-    /// Find an evaluated node value
-    const NodeValue* FindNodeValue(const sx::Node& node) {
-        return FindNodeValue(&node - program_->nodes.data());
+    Value ReadNodeValue(size_t node_id);
+    /// Read a node value if it is valid
+    inline Value ReadNodeValueOrNull(size_t node_id) {
+        if (node_id == viz::INVALID_NODE_ID) return Value{};
+        return ReadNodeValue(node_id);
     }
 
     /// Render the statement text

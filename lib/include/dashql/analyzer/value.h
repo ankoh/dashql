@@ -79,6 +79,9 @@ class Value {
     /// Get as string view
     auto GetUnsafeString() const { return data_str_; }
 
+    /// Cast as integer
+    std::optional<int64_t> CastAsUI64() const;
+
     /// Print the type
     void PrintType(std::ostream& out) const;
     /// Print the value

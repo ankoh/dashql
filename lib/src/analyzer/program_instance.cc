@@ -8,6 +8,7 @@
 #include "dashql/common/memstream.h"
 #include "dashql/common/substring_buffer.h"
 #include "dashql/common/variant.h"
+#include "dashql/proto_generated.h"
 
 namespace dashql {
 
@@ -33,9 +34,26 @@ const ParameterValue* ProgramInstance::FindParameterValue(size_t stmt_id) const 
     return &parameter_values_[stmt_id];
 }
 
-// Find a parameter value
-const ProgramInstance::NodeValue* ProgramInstance::FindNodeValue(size_t node_id) {
-    return evaluated_nodes_.Find(node_id);
+/// Read a node value
+Value ProgramInstance::ReadNodeValue(size_t node_id) {
+    if (auto* node = evaluated_nodes_.Find(node_id); !!node) {
+        return node->value.CopyShallow();
+    }
+    Value v;
+    auto& n = program_->nodes[node_id];
+    switch (n.node_type()) {
+        case proto::syntax::NodeType::BOOL:
+        case proto::syntax::NodeType::UI32:
+        case proto::syntax::NodeType::UI32_BITMAP:
+            v = Value::BIGINT(n.children_begin_or_value());
+            break;
+        case proto::syntax::NodeType::STRING_REF:
+            v = Value::VARCHAR(Ref, TextAt(n.location()));
+            break;
+        default:
+            break;
+    }
+    return v;
 }
 
 // Collect the statement options
