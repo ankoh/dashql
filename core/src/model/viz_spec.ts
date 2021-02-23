@@ -2,21 +2,29 @@
 
 /// The viz base spec
 export interface VizSpec {
-    position: Position;
+    position: VizPosition;
     components: VizComponentSpec[];
 }
 
 export interface VizComponentSpec {
     styles: SVGStyleMap;
+    data: VizData;
     selectionID: number | null;
 }
 
 /// A position
-export interface Position {
-    x: number;
-    y: number;
+export interface VizPosition {
+    row: number;
+    column: number;
     width: number;
     height: number;
+};
+
+export interface VizData {
+    x?: string;
+    y?: string;
+    y0?: string;
+    categories?: string;
 };
 
 /// A style configuration

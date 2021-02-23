@@ -63,4 +63,9 @@ export class ProgramInstance {
         }
         return v;
     }
+
+    public readNodeValueIfValid(i: number, v: webdb.Value | null = null): webdb.Value | null {
+        if (i == 0xffffffff) return null;
+        return this.readNodeValue(i, v);
+    }
 }
