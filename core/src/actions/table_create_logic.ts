@@ -18,7 +18,7 @@ export async function collectTableInfo(conn: webdb.AsyncConnection, info: model.
     const countResult = await conn.runQuery(`SELECT count(*)::INTEGER FROM ${info.nameShort}`);
     const countChunkIter = new webdb.QueryResultChunkStream(conn, countResult);
     const countRowIter = await webdb.QueryResultRowIterator.iterate(countChunkIter);
-    info.rowCount = countRowIter.getValue().castAsNumber();
+    info.rowCount = countRowIter.getValue().castAsInteger();
 
     info.timeUpdated = new Date();
 }

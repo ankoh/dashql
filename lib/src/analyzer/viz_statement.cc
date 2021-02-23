@@ -136,10 +136,11 @@ flatbuffers::Offset<proto::viz::VizSpec> VizStatement::Pack(flatbuffers::FlatBuf
     auto component_ofs_vec = builder.CreateVector(component_offsets);
 
     // Build viz spec
+    assert(computed_position_.has_value());
     pv::VizSpecBuilder spec_builder{builder};
     spec_builder.add_statement_id(statement_id_);
     spec_builder.add_components(component_ofs_vec);
-    if (!!position_) spec_builder.add_position(position_);
+    spec_builder.add_position(&computed_position_.value());
     return spec_builder.Finish();
 }
 
@@ -274,16 +275,16 @@ void VizComponent::ReadFrom(size_t node_id) {
     auto pos_height = SelectAltOption("position.height", matches[ID_POS_HEIGHT].node_id, matches[ID_HEIGHT].node_id);
     if (AnyOptionSet({pos_row, pos_column, pos_width, pos_height})) {
         // Already provided by a previous component?
-        if (viz_stmt_.position()) {
+        if (viz_stmt_.specified_position()) {
             report_not_unique(pos_row, "position.row");
             report_not_unique(pos_column, "position.column");
             report_not_unique(pos_width, "position.width");
             report_not_unique(pos_height, "position.height");
         } else {
-            /// XXX read value
-            
+            /// XXX read values
+
             position_ = pv::VizPosition(pos_row, pos_column, pos_width, pos_height);
-            viz_stmt_.position() = &position_.value();
+            viz_stmt_.specified_position() = &position_.value();
         }
     }
 
@@ -370,7 +371,7 @@ void VizComponent::PrintScript(std::ostream& out) const {
     out << " " << type_names[static_cast<size_t>(type_)];
 
     VizAttributePrinter aout{out};
-    if (auto& p = position_; p.has_value() && (&p.value() == viz_stmt_.position())) {
+    if (auto& p = position_; p.has_value() && (&p.value() == viz_stmt_.specified_position())) {
         aout.AddKey("pos");
         aout.AddValue() << "(r = " << p->row() << ", c = " << p->column() << ", w = " << p->width()
                         << ", h = " << p->height() << ")";

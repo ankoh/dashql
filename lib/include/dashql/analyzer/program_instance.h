@@ -100,8 +100,8 @@ class ProgramInstance {
     std::string_view TextAt(sx::Location loc) const {
         return std::string_view{*program_text_}.substr(loc.offset(), loc.length());
     }
-    /// Find an evaluated node value.
-    /// Note: This is deliberately NOT const since we do lazy path compression for union-find.
+    /// Read a node value.
+    /// Note: This is deliberately NOT const since we do lazy path compression the union-find of evaluated nodes.
     const NodeValue* FindNodeValue(size_t node_id);
     /// Find an evaluated node value
     const NodeValue* FindNodeValue(const sx::Node& node) {

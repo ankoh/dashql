@@ -67,8 +67,8 @@ class BoardGrid extends React.Component<Props> {
     getLayout(data: Map<string, core.model.VizInfo>) {
         return Array.from(data).map(([key, data]) => ({
             i: key,
-            x: data.spec.position.x,
-            y: data.spec.position.y,
+            x: data.spec.position.column,
+            y: data.spec.position.row,
             w: data.spec.position.width,
             h: data.spec.position.height,
         }));

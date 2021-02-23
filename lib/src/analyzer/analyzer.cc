@@ -191,6 +191,27 @@ void Analyzer::AnalyzeVizStatements(ProgramInstance& instance) {
     }
 }
 
+/// Compute the viz positions
+void Analyzer::ComputeVizPositions(ProgramInstance& instance) {
+    std::vector<proto::viz::VizPosition*> positions;
+    positions.reserve(instance.viz_statements().size());
+    for (auto& stmt: instance.viz_statements()) {
+        auto* specified = stmt->specified_position();
+        if (!!specified) {
+            stmt->computed_position() = *specified;
+            positions.push_back(&stmt->computed_position().value());
+        } else {
+            positions.push_back(&stmt->computed_position().emplace());
+        }
+    }
+    /// XXX Compute positions
+    for (auto* pos: positions) {
+        if (pos->width() == 0 || pos->height() == 0) {
+            *pos = proto::viz::VizPosition(0, 0, 8, 4);
+        }
+    }
+}
+
 /// Instantiate a program with parameters
 Signal Analyzer::InstantiateProgram(std::vector<ParameterValue> params) {
     // Create program instance.
@@ -204,6 +225,8 @@ Signal Analyzer::InstantiateProgram(std::vector<ParameterValue> params) {
     PropagateConstants(*next_instance);
     // Analyze the viz specs
     AnalyzeVizStatements(*next_instance);
+    // Compute the viz positions
+    ComputeVizPositions(*next_instance);
 
     // XXX Best-effort semantics check.
     //     Everything that we miss here will crash later in DuckDB.
