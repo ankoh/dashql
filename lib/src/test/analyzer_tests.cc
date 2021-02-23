@@ -61,7 +61,7 @@ void AnalyzerTest::EncodePlan(pugi::xml_node root, const ProgramInstance& instan
         auto v = vizzes.append_child("visualization");
         auto target = v.append_child("target");
         EncodeLocation(target, instance.program().nodes[viz->target_node_id()].location(), instance.program_text());
-        if (auto pos = viz->position()) {
+        if (auto pos = viz->specified_position()) {
             auto p = v.append_child("position");
             add_raw_attr(p, "row", pos->row());
             add_raw_attr(p, "column", pos->column());

@@ -31,6 +31,8 @@ class VizComponent;
 class VizAttributePrinter;
 
 class VizStatement {
+    friend class VizComponent;
+
    protected:
     /// The program instance
     ProgramInstance& instance_;
@@ -40,8 +42,10 @@ class VizStatement {
     const size_t target_node_id_;
     /// The components
     std::vector<std::unique_ptr<VizComponent>> components_ = {};
-    /// The position (if set by any of the components)
-    pv::VizPosition* position_ = nullptr;
+    /// The provided position
+    pv::VizPosition* specified_position_ = nullptr;
+    /// The computed position
+    std::optional<pv::VizPosition> computed_position_ = std::nullopt;
 
    public:
     /// Constructor
@@ -50,8 +54,10 @@ class VizStatement {
     auto& instance() { return instance_; }
     /// Get the component
     auto& components() { return components_; }
-    /// Get the instance
-    auto& position() { return position_; }
+    /// Get the specified position
+    auto& specified_position() { return specified_position_; }
+    /// Get the computed position
+    auto& computed_position() { return computed_position_; }
     /// Get the target node
     auto target_node_id() const { return target_node_id_; }
     /// Print as script
@@ -121,12 +127,12 @@ class VizComponent {
     /// Set the position
     void SetPosition(dashql::proto::viz::VizPosition pos) {
         position_ = pos;
-        viz_stmt_.position() = &position_.value();
+        viz_stmt_.specified_position_ = &position_.value();
     }
     /// Clear the position (if any)
     void ClearPosition() {
         position_.reset();
-        viz_stmt_.position() = nullptr;
+        viz_stmt_.specified_position_ = nullptr;
     }
     /// Read the viz component
     /// This will also perform a semanatic analysis of the given options
