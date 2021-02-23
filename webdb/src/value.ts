@@ -114,8 +114,8 @@ export class Value {
         this._value_string = v;
     }
 
-    /// As number value
-    public castAsNumber(): number {
+    /// Cast as floating point number
+    public castAsFloat(): number {
         switch (this._physicalType) {
             case PhysicalType.NUMBER:
                 return this._value_number!;
@@ -125,6 +125,22 @@ export class Value {
                 return this._value_i128!.lower().toFloat64();
             case PhysicalType.STRING:
                 return parseFloat(this._value_string!);
+            default:
+                return 0.0;
+        }
+    }
+
+    /// As integer value
+    public castAsInteger(): number {
+        switch (this._physicalType) {
+            case PhysicalType.NUMBER:
+                return Math.trunc(this._value_number!);
+            case PhysicalType.LONG:
+                return this._value_long!.low;
+            case PhysicalType.I128:
+                return this._value_i128!.lower().toFloat64();
+            case PhysicalType.STRING:
+                return parseInt(this._value_string!);
             default:
                 return 0.0;
         }
