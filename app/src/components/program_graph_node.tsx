@@ -13,35 +13,6 @@ import {
 
 import styles from './program_graph.module.css';
 
-function getStatementTypeLabel(type: proto.syntax.StatementType) {
-    switch (type) {
-        case proto.syntax.StatementType.CREATE_TABLE:
-            return 'CREATE TABLE';
-        case proto.syntax.StatementType.CREATE_TABLE_AS:
-            return 'CREATE TABLE';
-        case proto.syntax.StatementType.CREATE_VIEW:
-            return 'CREATE VIEW';
-        case proto.syntax.StatementType.EXTRACT_CSV:
-            return 'EXTRACT CSV';
-        case proto.syntax.StatementType.EXTRACT_JSON:
-            return 'EXTRACT JSON';
-        case proto.syntax.StatementType.LOAD_FILE:
-            return 'LOAD FILE';
-        case proto.syntax.StatementType.LOAD_HTTP:
-            return 'LOAD HTTP';
-        case proto.syntax.StatementType.PARAMETER:
-            return 'PARAMETER';
-        case proto.syntax.StatementType.SELECT:
-            return 'SELECT';
-        case proto.syntax.StatementType.SELECT_INTO:
-            return 'SELECT INTO';
-        case proto.syntax.StatementType.VIZUALIZE:
-            return 'VISUALIZE';
-        default:
-            return '?';
-    }
-}
-
 function StatementTypeIcon(props: IIconProps & { type: proto.syntax.StatementType }) {
     switch (props.type) {
         case proto.syntax.StatementType.CREATE_TABLE:
@@ -80,33 +51,27 @@ export interface StatementNodeData extends NodeData {
 }
 
 export function StatementNode(props: StatementNodeData) {
-    const label = getStatementTypeLabel(props.data.statementType);
     return (
         <div className={styles.node}>
-            <div className={styles.node_header}>
-                <div className={styles.node_type}>
-                    <StatementTypeIcon
-                        className={styles.node_icon}
-                        fill="rgb(80, 80, 80)"
-                        width="22px"
-                        height="22px"
-                        type={props.data.statementType}
-                    />
-                    <ReactFlowHandle type="target" position={Position.Left} className={styles.node_handle_left} />
-                    <ReactFlowHandle type="source" position={Position.Right} className={styles.node_handle_right} />
-                </div>
+            <div className={styles.node_type}>
+                <StatementTypeIcon
+                    className={styles.node_icon}
+                    fill="rgb(80, 80, 80)"
+                    width="22px"
+                    height="22px"
+                    type={props.data.statementType}
+                />
+                <ReactFlowHandle type="target" position={Position.Left} className={styles.node_handle_top} />
+                <ReactFlowHandle type="source" position={Position.Right} className={styles.node_handle_bottom} />
             </div>
-            <div className={styles.node_detail}>
-                <div className={styles.node_detail_status}>
-                    <ActionStatusIndicator
-                        className={styles.node_detail_status_spinner}
-                        fill="rgb(80, 80, 80)"
-                        width="14px"
-                        height="14px"
-                        status={props.data.actionStatus}
-                    />
-                </div>
-                <div className={styles.node_detail_label}>{label}</div>
+            <div className={styles.node_status}>
+                <ActionStatusIndicator
+                    className={styles.node_status_spinner}
+                    fill="rgb(80, 80, 80)"
+                    width="14px"
+                    height="14px"
+                    status={props.data.actionStatus}
+                />
             </div>
         </div>
     );
