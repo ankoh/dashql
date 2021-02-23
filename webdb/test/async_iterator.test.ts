@@ -45,7 +45,7 @@ describe('QueryResultRowIterator', () => {
             let value = new webdb.Value();
             for (let i = 0; i <= testRows; ++i) {
                 expect(iter.isEnd()).toBe(false);
-                expect(iter.getValue(0, value).castAsNumber()).toBe(i & 127);
+                expect(iter.getValue(0, value).castAsInteger()).toBe(i & 127);
                 await iter.nextAsync();
             }
             expect(iter.isEnd()).toBe(true);

@@ -280,6 +280,8 @@ void VizComponent::ReadFrom(size_t node_id) {
             report_not_unique(pos_width, "position.width");
             report_not_unique(pos_height, "position.height");
         } else {
+            /// XXX read value
+            
             position_ = pv::VizPosition(pos_row, pos_column, pos_width, pos_height);
             viz_stmt_.position() = &position_.value();
         }
