@@ -209,7 +209,7 @@ export abstract class RowIteratorBase {
         let r = this.currentRow;
         let c = this.currentChunk.columns(cid, this.tmp.vector);
         if (c == null) {
-            v.nullFlag = true;
+            v.resetValue();
             return v;
         }
         switch (c.variantType()) {
@@ -217,68 +217,55 @@ export abstract class RowIteratorBase {
                 break;
             case proto.VectorVariant.VectorI8:
                 c.variant(this.tmp.vectorI8);
-                v.asNumber().value = this.tmp.vectorI8.values(r)!;
-                v.nullFlag = this.tmp.vectorI8.nullMask(r)!;
+                v.setNumber(this.tmp.vectorI8.values(r)!, this.tmp.vectorI8.nullMask(r)!);
                 break;
             case proto.VectorVariant.VectorU8:
                 c.variant(this.tmp.vectorU8);
-                v.asNumber().value = this.tmp.vectorU8.values(r)!;
-                v.nullFlag = this.tmp.vectorU8.nullMask(r)!;
+                v.setNumber(this.tmp.vectorU8.values(r)!, this.tmp.vectorU8.nullMask(r)!);
                 break;
             case proto.VectorVariant.VectorI16:
                 c.variant(this.tmp.vectorI16);
-                v.asNumber().value = this.tmp.vectorI16.values(r)!;
-                v.nullFlag = this.tmp.vectorI16.nullMask(r)!;
+                v.setNumber(this.tmp.vectorI16.values(r)!, this.tmp.vectorI16.nullMask(r)!);
                 break;
             case proto.VectorVariant.VectorU16:
                 c.variant(this.tmp.vectorU16);
-                v.asNumber().value = this.tmp.vectorU16.values(r)!;
-                v.nullFlag = this.tmp.vectorU16.nullMask(r)!;
+                v.setNumber(this.tmp.vectorU16.values(r)!, this.tmp.vectorU16.nullMask(r)!);
                 break;
             case proto.VectorVariant.VectorI32:
                 c.variant(this.tmp.vectorI32);
-                v.asNumber().value = this.tmp.vectorI32.values(r)!;
-                v.nullFlag = this.tmp.vectorI32.nullMask(r)!;
+                v.setNumber(this.tmp.vectorI32.values(r)!, this.tmp.vectorI32.nullMask(r)!);
                 break;
             case proto.VectorVariant.VectorU32:
                 c.variant(this.tmp.vectorU32);
-                v.asNumber().value = this.tmp.vectorU32.values(r)!;
-                v.nullFlag = this.tmp.vectorU32.nullMask(r)!;
+                v.setNumber(this.tmp.vectorU32.values(r)!, this.tmp.vectorU32.nullMask(r)!);
                 break;
             case proto.VectorVariant.VectorI64:
                 c.variant(this.tmp.vectorI64);
-                v.asLong().value = this.tmp.vectorI64.values(r)!;
-                v.nullFlag = this.tmp.vectorI64.nullMask(r)!;
+                v.setLong(this.tmp.vectorI64.values(r)!, this.tmp.vectorI64.nullMask(r)!);
                 break;
             case proto.VectorVariant.VectorU64:
                 c.variant(this.tmp.vectorU64);
-                v.asLong().value = this.tmp.vectorU64.values(r)!;
-                v.nullFlag = this.tmp.vectorU64.nullMask(r)!;
+                v.setLong(this.tmp.vectorU64.values(r)!, this.tmp.vectorU64.nullMask(r)!);
                 break;
             case proto.VectorVariant.VectorI128:
                 c.variant(this.tmp.vectorI128);
-                this.tmp.vectorI128.values(r, v.asI128().value)!;
-                v.nullFlag = this.tmp.vectorI128.nullMask(r)!;
+                v.setI128(this.tmp.vectorI128.values(r)!, this.tmp.vectorI128.nullMask(r)!);
                 break;
             case proto.VectorVariant.VectorF32:
                 c.variant(this.tmp.vectorF32);
-                v.asNumber().value = this.tmp.vectorF32.values(r)!;
-                v.nullFlag = this.tmp.vectorF32.nullMask(r)!;
+                v.setNumber(this.tmp.vectorF32.values(r)!, this.tmp.vectorF32.nullMask(r)!);
                 break;
             case proto.VectorVariant.VectorF64:
                 c.variant(this.tmp.vectorF64);
-                v.asNumber().value = this.tmp.vectorF64.values(r)!;
-                v.nullFlag = this.tmp.vectorF64.nullMask(r)!;
+                v.setNumber(this.tmp.vectorF64.values(r)!, this.tmp.vectorF64.nullMask(r)!);
                 break;
             case proto.VectorVariant.VectorInterval:
                 c.variant(this.tmp.vectorInterval);
-                this.tmp.vectorInterval.values(r, v.asInterval().value)!;
-                v.nullFlag = this.tmp.vectorInterval.nullMask(r)!;
+                v.setInterval(this.tmp.vectorInterval.values(r)!, this.tmp.vectorInterval.nullMask(r)!);
                 break;
             case proto.VectorVariant.VectorString:
                 c.variant(this.tmp.vectorString);
-                v.asString().value = this.tmp.vectorString.values(r)!;
-                v.nullFlag = this.tmp.vectorString.nullMask(r)!;
+                v.setString(this.tmp.vectorString.values(r)!, this.tmp.vectorString.nullMask(r)!);
                 break;
         }
         return v;
