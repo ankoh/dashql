@@ -4,8 +4,17 @@ include "webdb/sql_type.fbs";
 
 namespace dashql.proto.webdb;
 
+enum PhysicalType: uint8 {
+    NULL_,
+    U32,
+    I64,
+    F64,
+    STRING
+}
+
 table SQLValue {
-    type: SQLType;
+    logical_type: SQLType;
+    physical_type: PhysicalType;
     is_null: bool;
     data_u32: uint32;
     data_i64: int64;
