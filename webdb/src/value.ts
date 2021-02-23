@@ -36,8 +36,6 @@ export class Value {
     _logicalType: SQLType;
     /// The value
     _physicalValue: PhysicalValue;
-    /// The null flag
-    _nullFlag: boolean;
 
     /// Constructor
     public constructor(
@@ -46,107 +44,116 @@ export class Value {
             width: 0,
             scale: 0,
         },
+        value: PhysicalValue = {
+            type: PhysicalType.NULL_,
+            value: null
+        }
     ) {
         this._logicalType = type;
-        this._nullFlag = true;
-        this._physicalValue = {
-            type: PhysicalType.NULL_,
-            value: null,
-        };
+        this._physicalValue = value;
     }
 
-    /// As number value
-    public asNumber() {
-        if (this._physicalValue.type != PhysicalType.NUMBER)
-            this._physicalValue = { type: PhysicalType.NUMBER, value: 0.0 };
-        return this._physicalValue;
-    }
-
-    /// As string value
-    public asString() {
-        if (this._physicalValue.type != PhysicalType.STRING)
-            this._physicalValue = { type: PhysicalType.STRING, value: '' };
-        return this._physicalValue;
-    }
-
-    /// As long value
-    public asLong() {
-        if (this._physicalValue.type != PhysicalType.LONG)
-            this._physicalValue = { type: PhysicalType.LONG, value: flatbuffers.Long.ZERO };
-        return this._physicalValue;
-    }
-
-    /// As i128 value
-    public asI128() {
-        if (this._physicalValue.type != PhysicalType.I128)
-            this._physicalValue = { type: PhysicalType.I128, value: new proto.I128() };
-        return this._physicalValue;
-    }
-
-    /// As interval value
-    public asInterval() {
-        if (this._physicalValue.type != PhysicalType.INTERVAL)
-            this._physicalValue = { type: PhysicalType.INTERVAL, value: new proto.Interval() };
-        return this._physicalValue;
-    }
-
-    /// Getters
+    /// Get the sql type 
     public get logicalType() {
         return this._logicalType;
     }
-    public get i8() {
-        return (this._physicalValue as NumberValue).value;
-    }
-    public get u8() {
-        return (this._physicalValue as NumberValue).value;
-    }
-    public get i16() {
-        return (this._physicalValue as NumberValue).value;
-    }
-    public get u16() {
-        return (this._physicalValue as NumberValue).value;
-    }
-    public get i32() {
-        return (this._physicalValue as NumberValue).value;
-    }
-    public get u32() {
-        return (this._physicalValue as NumberValue).value;
-    }
-    public get i64() {
-        return (this._physicalValue as LongValue).value;
-    }
-    public get u64() {
-        return (this._physicalValue as LongValue).value;
-    }
-    public get i128() {
-        return (this._physicalValue as I128Value).value;
-    }
-    public get str() {
-        return (this._physicalValue as StringValue).value;
-    }
-    public get interval() {
-        return (this._physicalValue as IntervalValue).value;
-    }
-    public get nullFlag() {
-        return this._nullFlag;
-    }
-
-    /// Setters
+    /// Set the sql type
     public set sqlType(v: proto.SQLType) {
         this._logicalType = getSQLType(v);
     }
-    public set nullFlag(v: boolean) {
-        this._nullFlag = v;
-    }
+    /// Access the raw value
     public set rawValue(v: PhysicalValue) {
         this._physicalValue = v;
     }
-
+    /// Reset a value
     public resetValue() {
         this._physicalValue = {
             type: PhysicalType.NULL_,
             value: null,
         };
+    }
+    /// Is null?
+    public isNull(): boolean {
+        return this._physicalValue.type == PhysicalType.NULL_;
+    }
+
+    /// Set a number
+    public setNumber(v: number, isNull: boolean) {
+        this._physicalValue = !isNull ? {
+            type: PhysicalType.NUMBER,
+            value: v,
+        } : {
+            type: PhysicalType.NULL_,
+            value: null,
+        }
+    }
+    /// Set a long
+    public setLong(v: flatbuffers.Long, isNull: boolean) {
+        this._physicalValue = !isNull ? {
+            type: PhysicalType.LONG,
+            value: v,
+        } : {
+            type: PhysicalType.NULL_,
+            value: null,
+        }
+    }
+    /// Set an i128
+    public setI128(v: proto.I128, isNull: boolean) {
+        this._physicalValue = !isNull ? {
+            type: PhysicalType.I128,
+            value: v,
+        } : {
+            type: PhysicalType.NULL_,
+            value: null,
+        }
+    }
+    /// Set an interval
+    public setInterval(v: proto.Interval, isNull: boolean) {
+        this._physicalValue = !isNull ? {
+            type: PhysicalType.INTERVAL,
+            value: v,
+        } : {
+            type: PhysicalType.NULL_,
+            value: null,
+        }
+    }
+    /// Set an interval
+    public setString(v: string, isNull: boolean) {
+        this._physicalValue = !isNull ? {
+            type: PhysicalType.STRING,
+            value: v,
+        } : {
+            type: PhysicalType.NULL_,
+            value: null,
+        }
+    }
+
+    /// As number value
+    public castAsNumber(): number {
+        switch (this._physicalValue.type) {
+            case PhysicalType.NUMBER:
+                return this._physicalValue.value;
+            case PhysicalType.LONG:
+                return this._physicalValue.value.toFloat64();
+            case PhysicalType.I128:
+                return this._physicalValue.value.lower().toFloat64();
+            case PhysicalType.STRING:
+                return parseFloat(this._physicalValue.value);
+            default:
+                return 0.0;
+        }
+    }
+
+    /// As string value
+    public castAsString(): string {
+        switch (this._physicalValue.type) {
+            case PhysicalType.NUMBER:
+                return this._physicalValue.value.toString();
+            case PhysicalType.STRING:
+                return this._physicalValue.value.toString();
+            default:
+                return "";
+        }
     }
 
     /// Read from proto
