@@ -2,45 +2,19 @@
 
 include "action.fbs";
 include "syntax/syntax.fbs";
+include "webdb/sql_value.fbs";
 include "viz.fbs";
 
 namespace dashql.proto.analyzer;
 
-enum ValueTypeID: uint8 {
-    NONE = 0,
-    BOOLEAN = 1,
-    DOUBLE = 2,
-    BIGINT = 3,
-    DECIMAL = 4,
-    VARCHAR = 5,
-    DATE = 6,
-    TIME = 7,
-    TIMESTAMP = 8,
-}
-
-struct ValueType {
-    type_id: ValueTypeID;
-    width: uint16;
-    scale: uint8;
-}
-
-table Value {
-    type: ValueType;
-    is_null: bool;
-    data_u32: uint32;
-    data_i64: int64;
-    data_f64: double;
-    data_str: string;
-}
-
 table NodeValue {
     node_id: uint32;
-    value: Value;
+    value: webdb.SQLValue;
 }
 
 table ParameterValue {
     statement_id: uint32;
-    value: Value;
+    value: webdb.SQLValue;
 }
 
 enum NodeErrorCode: uint8 {
