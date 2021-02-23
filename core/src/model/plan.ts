@@ -5,30 +5,26 @@ import * as proto from '@dashql/proto';
 
 export class Plan {
     /// The program
-    _programInstance: ProgramInstance;
+    public readonly programInstance: ProgramInstance;
     /// The module
-    _plan: proto.analyzer.Plan;
+    public readonly buffer: proto.analyzer.Plan;
 
     /// Constructor
     public constructor(program_instance: ProgramInstance, plan: proto.analyzer.Plan = new proto.analyzer.Plan()) {
-        this._programInstance = program_instance;
-        this._plan = plan;
+        this.programInstance = program_instance;
+        this.buffer = plan;
     }
 
-    /// Get the buffer
-    public get buffer() { return this._plan; }
-    /// Access the program instance
-    public get programInstance() { return this._programInstance; }
     /// Access the program
-    public get program() { return this._programInstance.program; }
+    public get program() { return this.programInstance.program; }
     /// Access the parameters
-    public get parameters() { return this._programInstance.parameters; }
+    public get parameters() { return this.programInstance.parameters; }
     /// Access the action graph
-    public get action_graph() { return this._plan.actionGraph(); }
+    public get action_graph() { return this.buffer.actionGraph(); }
 
     /// Iterate setup actions
     public iterateSetupActions(fn: (idx: number, node: proto.action.SetupAction) => void) {
-        const graph = this._plan.actionGraph();
+        const graph = this.buffer.actionGraph();
         if (!graph) return;
         const count = graph.setupActionsLength();
         const tmp = new proto.action.SetupAction();
@@ -38,7 +34,7 @@ export class Plan {
     }
     /// Iterate setup actions in reverse order
     public iterateSetupActionsReverse(fn: (idx: number, node: proto.action.SetupAction) => void) {
-        const graph = this._plan.actionGraph();
+        const graph = this.buffer.actionGraph();
         if (!graph) return;
         const count = graph.setupActionsLength();
         const tmp = new proto.action.SetupAction();
@@ -49,7 +45,7 @@ export class Plan {
     }
     /// Iterate program actions
     public iterateProgramActions(fn: (idx: number, node: proto.action.ProgramAction) => void) {
-        const graph = this._plan.actionGraph();
+        const graph = this.buffer.actionGraph();
         if (!graph) return;
         const count = graph.programActionsLength();
         const tmp = new proto.action.ProgramAction();
@@ -60,7 +56,7 @@ export class Plan {
 
     /// Map program actions
     public mapProgramActions<T>(fn: (idx: number, node: proto.action.ProgramAction) => T): T[] {
-        const graph = this._plan.actionGraph();
+        const graph = this.buffer.actionGraph();
         if (!graph) return [];
         let mapped: T[] = [];
         mapped.length = graph.programActionsLength();
@@ -72,7 +68,7 @@ export class Plan {
 
     /// Map setup actions
     public mapSetupActions<T>(fn: (idx: number, node: proto.action.SetupAction) => T): T[] {
-        const graph = this._plan.actionGraph();
+        const graph = this.buffer.actionGraph();
         if (!graph) return [];
         let mapped: T[] = [];
         mapped.length = graph.programActionsLength();
