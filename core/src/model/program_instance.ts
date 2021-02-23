@@ -9,48 +9,42 @@ import value from '*.wasm';
 
 export class ProgramInstance {
     /// The program
-    _program: Program;
+    public readonly program: Program;
     /// The parameters
-    _parameters: Immutable.List<any>;
+    public readonly parameters: Immutable.List<any>;
     /// The instantiated program
-    _annotations: proto.analyzer.ProgramAnnotations;
+    public readonly annotations: proto.analyzer.ProgramAnnotations;
     /// The evaluated nodes
-    _evaluatedNodes: Map<number, webdb.Value>;
+    public readonly evaluatedNodes: Map<number, webdb.Value>;
+    /// The viz specs
+    public readonly vizSpecs: Map<number, proto.viz.VizSpec>;
 
     /// Constructor
     public constructor(program: Program, params: Immutable.List<any>, annotations: proto.analyzer.ProgramAnnotations) {
-        this._program = program;
-        this._parameters = params;
-        this._annotations = annotations;
-        this._evaluatedNodes = new Map();
+        this.program = program;
+        this.parameters = params;
+        this.annotations = annotations;
+        this.evaluatedNodes = new Map();
+        this.vizSpecs = new Map();
 
         for (let i = 0; i < annotations.evaluatedNodesLength(); ++i) {
             const node = annotations.evaluatedNodes(i)!;
-            this._evaluatedNodes.set(node.nodeId(), webdb.Value.FromProto(node.value()!));
+            this.evaluatedNodes.set(node.nodeId(), webdb.Value.FromProto(node.value()!));
         }
-    }
-
-    /// Get the annotations
-    public get annotations() {
-        return this._annotations;
-    }
-    /// Access the program
-    public get program() {
-        return this._program;
-    }
-    /// Access the parameters
-    public get parameters() {
-        return this._parameters;
+        for (let i = 0; i < annotations.vizSpecsLength(); ++i) {
+            const spec = annotations.vizSpecs(i)!;
+            this.vizSpecs.set(spec.statementId(), spec);
+        }
     }
 
     /// Read a node as a SQL value
     public readNodeValue(i: number, v: webdb.Value | null = null): webdb.Value {
-        if (this._evaluatedNodes.has(i)) {
-            return this._evaluatedNodes.get(i)!;
+        if (this.evaluatedNodes.has(i)) {
+            return this.evaluatedNodes.get(i)!;
         }
         v = v || new webdb.Value();
         v.resetValue();
-        const n = this._program.getNode(i);
+        const n = this.program.getNode(i);
         const nt = n.nodeType;
         switch (nt) {
             case proto.syntax.NodeType.BOOL:
