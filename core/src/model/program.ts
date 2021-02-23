@@ -9,11 +9,11 @@ const decoder = new TextDecoder();
 
 export class Program {
     /// The program text
-    _text: string;
+    public readonly text: string;
     /// The encoded text buffer based to the core
-    _textBuffer: Uint8Array;
+    public readonly textBuffer: Uint8Array;
     /// The program
-    _program: sx.Program;
+    public readonly buffer: sx.Program;
 
     /// Constructor
     public constructor(
@@ -21,34 +21,21 @@ export class Program {
         textBuffer: Uint8Array = new Uint8Array(0),
         program: sx.Program = new sx.Program(),
     ) {
-        this._text = text;
-        this._textBuffer = textBuffer;
-        this._program = program;
-    }
-
-    /// Access the text
-    public get text() {
-        return this._text;
-    }
-    /// Access the text
-    public get textBuffer() {
-        return this._textBuffer;
-    }
-    /// Access the flatbuffer
-    public get buffer() {
-        return this._program;
+        this.text = text;
+        this.textBuffer = textBuffer;
+        this.buffer = program;
     }
 
     /// Access the text
     public textAt(_loc: sx.Location): string {
-        const view = new Uint8Array(this._textBuffer.buffer, _loc.offset(), _loc.length());
+        const view = new Uint8Array(this.textBuffer.buffer, _loc.offset(), _loc.length());
         return decoder.decode(view);
     }
 
     /// Get a node
     public getNode(i: number, n: Node | null = null): Node {
         n = n || new Node(this);
-        n.buffer = this._program.nodes(i, n.buffer)!;
+        n.buffer = this.buffer.nodes(i, n.buffer)!;
         return n;
     }
 
@@ -90,90 +77,78 @@ export interface ParameterValue {
 
 export class Node {
     /// The module
-    _program: Program;
+    public readonly program: Program;
     /// The node
-    _node: sx.Node;
+    public buffer: sx.Node;
 
     /// Constructor
     public constructor(program: Program, node: sx.Node = new sx.Node()) {
-        this._program = program;
-        this._node = node;
-    }
-    /// Get the module
-    public get program() {
-        return this._program;
+        this.program = program;
+        this.buffer = node;
     }
     /// Get the module
     public get programBuffer() {
-        return this._program.buffer;
-    }
-    /// Get the node
-    public get buffer() {
-        return this._node;
-    }
-    /// Get the node
-    public set buffer(n: sx.Node) {
-        this._node = n;
+        return this.program.buffer;
     }
     /// Get the parent
     public get parent() {
-        return this._node.parent();
+        return this.buffer.parent();
     }
     /// Get the key
     public get key() {
-        return this._node.attributeKey();
+        return this.buffer.attributeKey();
     }
     /// Get the node type
     public get nodeType() {
-        return this._node.nodeType();
+        return this.buffer.nodeType();
     }
 
     /// Assume boolean value
     public assumeBool(): boolean {
-        return this._node.childrenBeginOrValue() != 0;
+        return this.buffer.childrenBeginOrValue() != 0;
     }
     /// Assume number value
     public assumeNumber(): number {
-        return this._node.childrenBeginOrValue();
+        return this.buffer.childrenBeginOrValue();
     }
     /// Assume number value
     public assumeString(obj: sx.Location = new sx.Location()): string {
-        return this._program.textAt(this._node.location(obj)!);
+        return this.program.textAt(this.buffer.location(obj)!);
     }
 
     /// Is an object?
     public isObject() {
-        return this._node.nodeType() >= sx.NodeType.OBJECT_KEYS_;
+        return this.buffer.nodeType() >= sx.NodeType.OBJECT_KEYS_;
     }
     /// Get as boolean
     public getBool(): boolean | null {
-        return this._node.nodeType() != sx.NodeType.BOOL ? null : this._node.childrenBeginOrValue() != 0;
+        return this.buffer.nodeType() != sx.NodeType.BOOL ? null : this.buffer.childrenBeginOrValue() != 0;
     }
     /// Get as number
     public getNumber(): number | null {
-        const t = this._node.nodeType();
+        const t = this.buffer.nodeType();
         switch (t) {
             case sx.NodeType.UI32:
             case sx.NodeType.UI32_BITMAP:
-                return this._node.childrenBeginOrValue();
+                return this.buffer.childrenBeginOrValue();
             default:
                 if (t > proto.syntax.NodeType.ENUM_KEYS_ && t < proto.syntax.NodeType.OBJECT_KEYS_) {
-                    return this._node.childrenBeginOrValue();
+                    return this.buffer.childrenBeginOrValue();
                 }
                 return null;
         }
     }
     /// Get a string
     public getString(obj: sx.Location = new sx.Location()): string | null {
-        const loc = this._node.location(obj)!;
-        return this._node.nodeType() != sx.NodeType.STRING_REF ? null : this._program.textAt(loc);
+        const loc = this.buffer.location(obj)!;
+        return this.buffer.nodeType() != sx.NodeType.STRING_REF ? null : this.program.textAt(loc);
     }
 
     /// Find an attribute
     public findAttribute(key: sx.AttributeKey, n: Node | null = null): Node | null {
-        let children_begin = this._node.childrenBeginOrValue();
-        let children_count = this._node.childrenCount();
-        n = n || new Node(this._program);
+        let children_begin = this.buffer.childrenBeginOrValue();
+        let children_count = this.buffer.childrenCount();
+        n = n || new Node(this.program);
         let lb = children_begin;
         let c = children_count;
         while (c > 0) {
@@ -196,9 +171,9 @@ export class Node {
 
     /// Iterate over children.
     public iterateChildren(fn: (idx: number, node: Node) => void, n: Node | null = null): number {
-        const begin = this._node.childrenBeginOrValue();
-        const count = this._node.childrenCount();
-        n = n || new Node(this._program);
+        const begin = this.buffer.childrenBeginOrValue();
+        const count = this.buffer.childrenCount();
+        n = n || new Node(this.program);
         for (let i = 0; i < count; ++i) {
             n = this.program.getNode(begin + i, n)!;
             fn(i, n);
@@ -210,11 +185,11 @@ export class Node {
 /// A single step in a node path
 export class NodePathStep {
     /// The node id
-    nodeId: number;
+    public readonly nodeId: number;
     /// The attribute key, NONE if array element
-    attributeKey: sx.AttributeKey;
+    public readonly attributeKey: sx.AttributeKey;
     /// The index of the node within the parent
-    indexInParent: number;
+    public readonly indexInParent: number;
     /// The number of visited children
     visitedChildren: number;
 
