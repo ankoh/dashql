@@ -176,6 +176,8 @@ export abstract class AnalyzerBindings {
         if (!this._instance || !this._programInstance) return null;
         const params = this._programInstance.parameters;
 
+        console.log(edits);
+
         // Pack the edits
         const builder = new flatbuffers.Builder();
         const editOfs = packProgramEdit(builder, edits);
