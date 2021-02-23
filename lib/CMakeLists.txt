@@ -89,7 +89,7 @@ if (EMSCRIPTEN)
         FetchContent_Populate(duckdb_wasm)
     endif()
 
-    # Add command to unzip file
+    # Command to extract archive
     set(DUCKDB_WASM_ARCHIVE ${duckdb_wasm_SOURCE_DIR}/duckdb-wasm32-nothreads.zip)
     set(DUCKDB_WASM_OUT ${CMAKE_BINARY_DIR}/duckdb.wasm)
     add_custom_target(
@@ -99,7 +99,7 @@ if (EMSCRIPTEN)
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
     )
 
-    # Add command to unzip file
+    # INTERFACE library to link prebuilt wasm
     add_library(duckdb INTERFACE)
     add_dependencies(duckdb duckdb_wasm)
     target_compile_options(duckdb INTERFACE -DDUCKDB_NO_THREADS=1)
