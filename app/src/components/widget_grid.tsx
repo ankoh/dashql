@@ -21,12 +21,7 @@ type Props = {
 
 class WidgetGrid extends React.Component<Props> {
     renderWidget(data: core.model.VizInfo) {
-        switch (data.spec.type) {
-            case core.model.VizSpecType.TABLE:
-                return <TableChart viz={data} />;
-            default:
-                return <div />;
-        }
+        return <TableChart viz={data} />;
     }
 
     shouldComponentUpdate(nextProps: Props) {
@@ -72,10 +67,10 @@ class WidgetGrid extends React.Component<Props> {
     getLayout(data: Map<string, core.model.VizInfo>) {
         return Array.from(data).map(([key, data]) => ({
             i: key,
-            x: data.spec.data.position.x,
-            y: data.spec.data.position.y,
-            w: data.spec.data.position.width,
-            h: data.spec.data.position.height,
+            x: data.spec.position.x,
+            y: data.spec.position.y,
+            w: data.spec.position.width,
+            h: data.spec.position.height,
         }));
     }
 
