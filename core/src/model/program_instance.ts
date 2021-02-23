@@ -43,31 +43,21 @@ export class ProgramInstance {
             return this.evaluatedNodes.get(i)!;
         }
         v = v || new webdb.Value();
-        v.resetValue();
+        v.setNull();
         const n = this.program.getNode(i);
         const nt = n.nodeType;
         switch (nt) {
             case proto.syntax.NodeType.BOOL:
             case proto.syntax.NodeType.UI32:
             case proto.syntax.NodeType.UI32_BITMAP:
-                v.rawValue = {
-                    type: PhysicalType.NUMBER,
-                    value: n.assumeNumber(),
-                };
+                v.setNumber(n.assumeNumber());
                 break;
             case proto.syntax.NodeType.STRING_REF:
-                v.rawValue = {
-                    type: PhysicalType.STRING,
-                    value: n.assumeString(),
-                };
-                break;
+                v.setString(n.assumeString());
                 break;
             default:
                 if (nt > proto.syntax.NodeType.ENUM_KEYS_ && nt < proto.syntax.NodeType.OBJECT_KEYS_) {
-                    v.rawValue = {
-                        type: PhysicalType.NUMBER,
-                        value: n.assumeNumber(),
-                    };
+                    v.setNumber(n.assumeNumber());
                 }
                 break;
         }
