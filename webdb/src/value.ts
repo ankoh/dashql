@@ -33,7 +33,7 @@ type PhysicalValue = NumberValue | StringValue | LongValue | I128Value | Interva
 /// A value
 export class Value {
     /// The type
-    _type: SQLType;
+    _logicalType: SQLType;
     /// The value
     _physicalValue: PhysicalValue;
     /// The null flag
@@ -47,7 +47,7 @@ export class Value {
             scale: 0,
         },
     ) {
-        this._type = type;
+        this._logicalType = type;
         this._nullFlag = true;
         this._physicalValue = {
             type: PhysicalType.NUMBER,
@@ -91,8 +91,8 @@ export class Value {
     }
 
     /// Getters
-    public get type() {
-        return this._type;
+    public get logicalType() {
+        return this._logicalType;
     }
     public get i8() {
         return (this._physicalValue as NumberValue).value;
@@ -133,13 +133,46 @@ export class Value {
 
     /// Setters
     public set sqlType(v: proto.SQLType) {
-        this._type = getSQLType(v);
-    }
-    public set value(v: PhysicalValue) {
-        this._physicalValue = v;
+        this._logicalType = getSQLType(v);
     }
     public set nullFlag(v: boolean) {
         this._nullFlag = v;
+    }
+    public set rawValue(v: PhysicalValue) {
+        this._physicalValue = v;
+    }
+
+    /// Read from proto
+    public static FromProto(buffer: proto.SQLValue, v: Value | null = null) {
+        v = v || new Value();
+        v.sqlType = buffer.logicalType()!;
+        switch (buffer.physicalType()!) {
+            case proto.PhysicalType.U32:
+                v.rawValue = {
+                    type: PhysicalType.NUMBER,
+                    value: buffer.dataU32()!,
+                };
+                break;
+            case proto.PhysicalType.F64:
+                v.rawValue = {
+                    type: PhysicalType.NUMBER,
+                    value: buffer.dataF64()!,
+                };
+                break;
+            case proto.PhysicalType.I64:
+                v.rawValue = {
+                    type: PhysicalType.LONG,
+                    value: buffer.dataI64()!,
+                };
+                break;
+            case proto.PhysicalType.STRING:
+                v.rawValue = {
+                    type: PhysicalType.STRING,
+                    value: buffer.dataStr()!,
+                };
+                break;
+        }
+        return v;
     }
 }
 
