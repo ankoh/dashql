@@ -57,11 +57,17 @@ table ProgramInstantiation {
     parameters: [ParameterValue];
 }
 
+table LinterMessage {
+    node_id: uint32;
+    message: string;
+}
+
 table ProgramAnnotations {
     parameters: [ParameterValue];
     evaluated_nodes: [NodeValue];
     viz_specs: [viz.VizSpec];
     node_errors: [NodeError];
+    linter_messages: [LinterMessage];
 }
 
 table ProgramReplacement {

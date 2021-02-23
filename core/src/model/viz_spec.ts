@@ -1,29 +1,15 @@
 // Copyright (c) 2020 The DashQL Authors
 
-//import * as charts from 'chart.js';
-
 /// The viz base spec
-export interface VizBaseSpec {
+export interface VizSpec {
     position: Position;
+    components: VizComponentSpec[];
 }
 
-/// A viz spec
-export type VizSpec<T, P extends VizBaseSpec> = {
-    readonly type: T;
-    readonly data: P;
-};
-
-/// A viz spec type
-export enum VizSpecType {
-    TABLE = 'TABLE',
-    LINE_CHART = 'LINE_CHART'
+export interface VizComponentSpec {
+    styles: SVGStyleMap;
+    selectionID: number | null;
 }
-
-/// A viz spec variant
-export type VizSpecVariant =
-    | VizSpec<VizSpecType.TABLE, TableVizSpec>
-    | VizSpec<VizSpecType.LINE_CHART, LineChartSpec>
-    ;
 
 /// A position
 export interface Position {
@@ -33,10 +19,48 @@ export interface Position {
     height: number;
 };
 
-/// A table viz specification
-export interface TableVizSpec extends VizBaseSpec {
+/// A style configuration
+export interface SVGStyleConfiguration {
+    color?: string;
+    cx?: number;
+    cy?: number;
+    fill?: string;
+    fontColor?: string;
+    fontFamily?: string;
+    fontSize?: string;
+    fontSizeAdjust?: string;
+    fontStretch?: string;
+    fontVariant?: string;
+    fontHeight?: string;
+    letterSpacing?: string;
+    markerEnd?: string;
+    markerStart?: string;
+    opacity?: number;
+    rx?: number;
+    ry?: number;
+    shapeRendering?: string;
+    stopColor?: string;
+    stopOpacity?: string;
+    stroke?: string;
+    strokeDasharray?: string;
+    strokeDashoffset?: string;
+    strokeLinecap?: string;
+    strokeMiterlimit?: string;
+    strokeOpacity?: number;
+    textAnchor?: string;
+    textDecoration?: string;
+    textOverflow?: string;
+    textRendering?: string;
+    whiteSpace?: string;
+    width?: number;
+    wordSpacing?: string;
+    writingMode?: string;
+    x?: string;
+    y?: string;
 }
 
-/// A line chart specification
-export interface LineChartSpec extends VizBaseSpec {
+/// An SVG style map
+export interface SVGStyleMap {
+    data?: SVGStyleConfiguration;
+    labels?: SVGStyleConfiguration;
 }

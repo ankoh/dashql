@@ -99,7 +99,7 @@ if (EMSCRIPTEN)
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
     )
 
-    # INTERFACE library to link prebuilt wasm
+    # INTERFACE library to link prebuilt wasmt
     add_library(duckdb INTERFACE)
     add_dependencies(duckdb duckdb_wasm)
     target_compile_options(duckdb INTERFACE -DDUCKDB_NO_THREADS=1)
