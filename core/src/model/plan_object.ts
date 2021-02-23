@@ -1,7 +1,7 @@
 // Copyright (c) 2020 The DashQL Authors
 
 import * as webdb from '@dashql/webdb';
-import { VizSpecVariant } from './viz_spec';
+import { VizSpec } from './viz_spec';
 
 /// A plan object type
 export enum PlanObjectType {
@@ -42,5 +42,5 @@ export interface VizInfo extends PlanObject {
     /// The current viz statement id
     currentStatementId: number;
     /// The spec
-    spec: VizSpecVariant;
+    spec: VizSpec;
 }
