@@ -269,40 +269,53 @@ flatbuffers::Offset<proto::webdb::SQLValue> Value::Pack(flatbuffers::FlatBufferB
     std::optional<flatbuffers::Offset<flatbuffers::String>> str = std::nullopt;
     if (!data_str_.empty()) str = builder.CreateString(data_str_);
     proto::webdb::SQLValueBuilder v{builder};
-    v.add_type(&logical_type_);
+    v.add_logical_type(&logical_type_);
     v.add_is_null(is_null());
-    if (str) {
-        v.add_data_str(*str);
-    } else {
-        v.add_data_u32(data_.i64);
-        v.add_data_i64(data_.i64);
-        v.add_data_f64(data_.f64);
+    switch (physical_type_) {
+        case Value::PhysicalType::NULL_:
+            v.add_physical_type(proto::webdb::PhysicalType::NULL_);
+            break;
+        case Value::PhysicalType::I64:
+            v.add_physical_type(proto::webdb::PhysicalType::I64);
+            v.add_data_i64(data_.i64);
+            break;
+        case Value::PhysicalType::F64:
+            v.add_physical_type(proto::webdb::PhysicalType::F64);
+            v.add_data_f64(data_.f64);
+            break;
+        case Value::PhysicalType::STRING:
+            v.add_physical_type(proto::webdb::PhysicalType::STRING);
+            v.add_data_str(*str);
+            break;
+        case Value::PhysicalType::STRING_VIEW:
+            v.add_physical_type(proto::webdb::PhysicalType::STRING);
+            v.add_data_str(*str);
+            break;
     }
     return v.Finish();
 }
 
 // Unpack from flatbuffer
 Value Value::UnPack(const proto::webdb::SQLValue& val) {
-    Value v{*val.type()};
+    Value v{*val.logical_type()};
     if (val.is_null()) {
         return v;
     }
-    using T = proto::webdb::SQLTypeID;
-    switch (val.type()->type_id()) {
-        case T::BOOLEAN:
-        case T::DATE:
-        case T::TIME:
+    using T = proto::webdb::PhysicalType;
+    switch (val.physical_type()) {
+        case T::NULL_:
+            v.physical_type_ = PhysicalType::NULL_;
+            break;
+        case T::U32:
             v.SetData(static_cast<int64_t>(val.data_u32()));
             break;
-        case T::BIGINT:
-        case T::TIMESTAMP:
-        case T::DECIMAL:
-            v.SetData(val.data_i64());
+        case T::I64:
+            v.SetData(static_cast<int64_t>(val.data_i64()));
             break;
-        case T::DOUBLE:
-            v.SetData(val.data_f64());
+        case T::F64:
+            v.SetData(static_cast<double>(val.data_f64()));
             break;
-        case T::VARCHAR:
+        case T::STRING:
             v.SetData(val.data_str()->string_view());
             break;
         default:
