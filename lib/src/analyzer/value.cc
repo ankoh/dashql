@@ -9,6 +9,7 @@
 #include "dashql/common/memstream.h"
 #include "dashql/common/variant.h"
 #include "dashql/proto_generated.h"
+#include "dashql/common/memstream.h"
 #include "duckdb/common/types/date.hpp"
 #include "duckdb/common/types/decimal.hpp"
 #include "duckdb/common/types/interval.hpp"
@@ -92,6 +93,32 @@ void Value::SetData(std::string value) {
 void Value::SetData(std::string_view value) {
     physical_type_ = PhysicalType::STRING_VIEW;
     data_str_ = value;
+}
+
+/// Cast as integer
+std::optional<int64_t> Value::CastAsUI64() const {
+    if (physical_type_ == PhysicalType::NULL_)
+        return std::nullopt;
+    using T = proto::webdb::SQLTypeID;
+    switch (logical_type_.type_id()) {
+        case T::BOOLEAN:
+        case T::BIGINT:
+            return data_.i64;
+        case T::DOUBLE:
+            return data_.f64;
+        case T::VARCHAR: {
+            imemstream ms{data_str_.data(), data_str_.size()};
+            int64_t v = 0;
+            ms >> v;
+            return v;
+        }
+        case T::DATE:
+        case T::TIME:
+        case T::TIMESTAMP:
+        case T::DECIMAL:
+        default:
+            return 0;
+    }
 }
 
 void Value::PrintType(std::ostream& out) const {

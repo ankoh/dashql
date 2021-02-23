@@ -281,9 +281,11 @@ void VizComponent::ReadFrom(size_t node_id) {
             report_not_unique(pos_width, "position.width");
             report_not_unique(pos_height, "position.height");
         } else {
-            /// XXX read values
-
-            position_ = pv::VizPosition(pos_row, pos_column, pos_width, pos_height);
+            auto r = viz_stmt_.instance_.ReadNodeValueOrNull(pos_row).CastAsUI64().value_or(0);
+            auto c = viz_stmt_.instance_.ReadNodeValueOrNull(pos_column).CastAsUI64().value_or(0);
+            auto w = viz_stmt_.instance_.ReadNodeValueOrNull(pos_width).CastAsUI64().value_or(0);
+            auto h = viz_stmt_.instance_.ReadNodeValueOrNull(pos_height).CastAsUI64().value_or(0);
+            position_ = proto::viz::VizPosition(r, c, w, h);
             viz_stmt_.specified_position() = &position_.value();
         }
     }

@@ -63,10 +63,10 @@ void AnalyzerTest::EncodePlan(pugi::xml_node root, const ProgramInstance& instan
         EncodeLocation(target, instance.program().nodes[viz->target_node_id()].location(), instance.program_text());
         if (auto pos = viz->specified_position()) {
             auto p = v.append_child("position");
-            add_raw_attr(p, "row", pos->row());
-            add_raw_attr(p, "column", pos->column());
-            add_raw_attr(p, "width", pos->width());
-            add_raw_attr(p, "height", pos->height());
+            p.append_attribute("row") = pos->row();
+            p.append_attribute("column") = pos->column();
+            p.append_attribute("width") = pos->width();
+            p.append_attribute("height") = pos->height();
         }
         auto c = v.append_child("components");
         for (auto& vizc : viz->components()) {
