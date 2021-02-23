@@ -58,7 +58,7 @@ class ProgramGraph extends React.Component<ProgramGraphProps, ProgramGraphState>
         let edges: ExtendedEdgeData[] = [];
         const g = new dagre.graphlib.Graph().setGraph({
             nodesep: 40,
-            ranksep: 60,
+            ranksep: 80,
             rankdir: 'LR',
         });
         props.program.iterateStatements((idx: number, stmt: core.model.Statement) => {
