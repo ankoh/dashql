@@ -28,7 +28,7 @@ export function getSQLType(t: proto.SQLType | null) {
     };
 }
 
-type PhysicalValue = NumberValue | StringValue | LongValue | I128Value | IntervalValue;
+type PhysicalValue = NullValue | NumberValue | StringValue | LongValue | I128Value | IntervalValue;
 
 /// A value
 export class Value {
@@ -50,8 +50,8 @@ export class Value {
         this._logicalType = type;
         this._nullFlag = true;
         this._physicalValue = {
-            type: PhysicalType.NUMBER,
-            value: 0,
+            type: PhysicalType.NULL_,
+            value: null,
         };
     }
 
@@ -142,6 +142,13 @@ export class Value {
         this._physicalValue = v;
     }
 
+    public resetValue() {
+        this._physicalValue = {
+            type: PhysicalType.NULL_,
+            value: null,
+        };
+    }
+
     /// Read from proto
     public static FromProto(buffer: proto.SQLValue, v: Value | null = null) {
         v = v || new Value();
@@ -178,6 +185,7 @@ export class Value {
 
 /// A physical type
 export enum PhysicalType {
+    NULL_,
     NUMBER,
     STRING,
     LONG,
@@ -186,6 +194,10 @@ export enum PhysicalType {
 }
 
 /// Value interfaces
+export interface NullValue {
+    type: PhysicalType.NULL_;
+    value: null;
+}
 export interface NumberValue {
     type: PhysicalType.NUMBER;
     value: number;

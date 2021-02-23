@@ -151,7 +151,17 @@ export class Node {
     }
     /// Get as number
     public getNumber(): number | null {
-        return this._node.nodeType() != sx.NodeType.UI32 ? null : this._node.childrenBeginOrValue();
+        const t = this._node.nodeType();
+        switch (t) {
+            case sx.NodeType.UI32:
+            case sx.NodeType.UI32_BITMAP:
+                return this._node.childrenBeginOrValue();
+            default:
+                if (t > proto.syntax.NodeType.ENUM_KEYS_ && t < proto.syntax.NodeType.OBJECT_KEYS_) {
+                    return this._node.childrenBeginOrValue();
+                }
+                return null;
+        }
     }
     /// Get a string
     public getString(obj: sx.Location = new sx.Location()): string | null {
