@@ -70,7 +70,7 @@ class BoardGrid extends React.Component<Props> {
             x: data.spec.position.column,
             y: data.spec.position.row,
             w: data.spec.position.width || 8,
-            h: data.spec.position.height || 5,
+            h: data.spec.position.height || 4,
         }));
         return l;
     }

@@ -46,8 +46,8 @@ class ProgramGraph extends React.Component<ProgramGraphProps, ProgramGraphState>
             };
         }
 
-        const NODE_WIDTH = 120;
-        const NODE_HEIGHT = 70;
+        const NODE_WIDTH = 40;
+        const NODE_HEIGHT = 40;
         const NODE_SIZE = {
             width: NODE_WIDTH,
             height: NODE_HEIGHT,
@@ -58,7 +58,7 @@ class ProgramGraph extends React.Component<ProgramGraphProps, ProgramGraphState>
         let edges: ExtendedEdgeData[] = [];
         const g = new dagre.graphlib.Graph().setGraph({
             nodesep: 40,
-            ranksep: 40,
+            ranksep: 60,
             rankdir: 'LR',
         });
         props.program.iterateStatements((idx: number, stmt: core.model.Statement) => {
