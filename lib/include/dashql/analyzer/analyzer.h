@@ -57,6 +57,8 @@ class Analyzer {
     void PropagateConstants(ProgramInstance& instance);
     /// Analyze the viz statements
     void AnalyzeVizStatements(ProgramInstance& instance);
+    /// Compute the viz positions
+    void ComputeVizPositions(ProgramInstance& instance);
 
    public:
     /// Constructor

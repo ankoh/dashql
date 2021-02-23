@@ -42,7 +42,6 @@ export abstract class BaseVizActionLogic extends ProgramActionLogic {
         const now = new Date();
 
         // Read position
-        const tmp = new webdb.Value();
         const posReader = vizSpec.position()!;
         const pos: model.VizPosition = {
             row: posReader.row(),
