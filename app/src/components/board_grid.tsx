@@ -8,7 +8,7 @@ import { IAppContext, withAppContext } from '../app_context';
 import { withAutoSizer } from '../util/autosizer';
 import TableChart from './widgets/table_chart';
 
-import './widget_grid.module.css';
+import './board_grid.module.css';
 
 type Props = {
     appContext: IAppContext;
@@ -19,8 +19,8 @@ type Props = {
     rewriteProgram: (instance: core.model.ProgramInstance) => void;
 };
 
-class WidgetGrid extends React.Component<Props> {
-    renderWidget(data: core.model.VizInfo) {
+class BoardGrid extends React.Component<Props> {
+    renderViz(data: core.model.VizInfo) {
         return <TableChart viz={data} />;
     }
 
@@ -87,7 +87,7 @@ class WidgetGrid extends React.Component<Props> {
                 layout={this.getLayout(this.props.vizData)}
             >
                 {Array.from(this.props.vizData).map(([k, v]) => (
-                    <div key={k}>{this.renderWidget(v)}</div>
+                    <div key={k}>{this.renderViz(v)}</div>
                 ))}
             </ReactGrid>
         );
@@ -112,4 +112,4 @@ const mapDispatchToProps = (dispatch: model.Dispatch) => ({
     },
 });
 
-export default connect(mapStateToProps, mapDispatchToProps)(withAppContext(withAutoSizer(WidgetGrid)));
+export default connect(mapStateToProps, mapDispatchToProps)(withAppContext(withAutoSizer(BoardGrid)));
