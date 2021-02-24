@@ -52,8 +52,8 @@ class BoardGrid extends React.Component<Props> {
                 type: core.edit.EditOperationType.VIZ_CHANGE_POSITION,
                 statement_id: stmt,
                 data: {
-                    row: newItem.x,
-                    column: newItem.y,
+                    row: newItem.y,
+                    column: newItem.x,
                     width: newItem.w,
                     height: newItem.h,
                 },
