@@ -6,7 +6,6 @@ import { Platform } from './platform';
 import {
     ActionHandle,
     Action,
-    ActionClass,
     ActionUpdate,
     buildActionHandle,
     getActionIndex,
@@ -205,7 +204,7 @@ export class ActionGraphScheduler {
         let actionInfos: Action[] = [];
         let setupLogic = [];
         for (let i = 0; i < graph.setupActionsLength(); ++i) {
-            const actionId = buildActionHandle(i, ActionClass.SetupAction);
+            const actionId = buildActionHandle(i, proto.action.ActionClass.SETUP_ACTION);
             const a = graph.setupActions(i)!;
             setupLogic.push(resolveSetupActionLogic(actionId, a)!);
             actionInfos.push({
@@ -230,7 +229,7 @@ export class ActionGraphScheduler {
         // Translate the program actions
         let programLogic = [];
         for (let i = 0; i < graph.programActionsLength(); ++i) {
-            const actionId = buildActionHandle(i, ActionClass.ProgramAction);
+            const actionId = buildActionHandle(i, proto.action.ActionClass.PROGRAM_ACTION);
             const a = graph.programActions(i)!;
             const s = program.getStatement(a.originStatement());
             programLogic.push(resolveProgramActionLogic(actionId, a, s)!);
