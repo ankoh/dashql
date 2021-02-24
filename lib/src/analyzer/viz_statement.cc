@@ -13,6 +13,7 @@
 #include "dashql/analyzer/syntax_matcher.h"
 #include "dashql/common/expected.h"
 #include "dashql/common/span.h"
+#include "dashql/common/string.h"
 #include "dashql/common/substring_buffer.h"
 #include "dashql/proto_generated.h"
 
@@ -135,12 +136,19 @@ flatbuffers::Offset<proto::viz::VizSpec> VizStatement::Pack(flatbuffers::FlatBuf
     }
     auto component_ofs_vec = builder.CreateVector(component_offsets);
 
+    // Pack title (if any)
+    std::optional<fb::Offset<fb::String>> title_offset;
+    if (title_) {
+        title_offset = builder.CreateString(*title_);
+    }
+
     // Build viz spec
     assert(computed_position_.has_value());
     pv::VizSpecBuilder spec_builder{builder};
     spec_builder.add_statement_id(statement_id_);
     spec_builder.add_components(component_ofs_vec);
     spec_builder.add_position(&computed_position_.value());
+    if (title_offset) spec_builder.add_title(*title_offset);
     return spec_builder.Finish();
 }
 
@@ -179,6 +187,7 @@ void VizComponent::ReadFrom(size_t node_id) {
     constexpr size_t ID_DOMAIN_PADDING_Y = 25;
     constexpr size_t ID_STYLE_DATA_FILL = 26;
     constexpr size_t ID_FILL = 27;
+    constexpr size_t ID_TITLE = 28;
 
     // clang-format off
     static const auto schema = sxm::Element()
@@ -237,6 +246,7 @@ void VizComponent::ReadFrom(size_t node_id) {
                     sxm::Option(sx::AttributeKey::DASHQL_OPTION_LABELS, ID_STYLE_LABELS),
                 }),
             sxm::Option(sx::AttributeKey::DASHQL_OPTION_THEME, ID_THEME),
+            sxm::Option(sx::AttributeKey::DASHQL_OPTION_TITLE, ID_TITLE),
             sxm::Option(sx::AttributeKey::DASHQL_OPTION_WIDTH, ID_WIDTH),
             sxm::Option(sx::AttributeKey::DASHQL_OPTION_X, ID_X),
             sxm::Option(sx::AttributeKey::DASHQL_OPTION_Y, ID_Y),
@@ -302,6 +312,17 @@ void VizComponent::ReadFrom(size_t node_id) {
         data_->y = data_y;
         data_->y0 = data_y0;
         data_->categories = data_categories;
+    }
+
+    /// Get the title attribute
+    if (matches[ID_TITLE]) {
+        if (viz_stmt_.title()) {
+            report_not_unique(matches[ID_TITLE].node_id, "title");
+        } else {
+            auto title = viz_stmt_.instance_.ReadNodeValueOrNull(matches[ID_TITLE].node_id).PrintValue();
+            trim(title, isNoQuote);
+            viz_stmt_.title() = title;
+        }
     }
 
     /// Match style attribute
