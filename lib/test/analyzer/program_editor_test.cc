@@ -47,7 +47,7 @@ TEST(ProgramEditorTest, VizStatementAddPosition) {
 }
 
 TEST(ProgramEditorTest, VizStatementUpdatePosition) {
-    auto txt = "VIZ weather_avg USING LINE (\n    pos = (r = 1, c = 2, w = 3, h = 4)\n)";
+    auto txt = "VIZ weather_avg USING LINE (\n    pos = (r = 1, c = 2, w = 3, h = 4),\n    title = 'sometitle'\n)";
     ProgramInstance instance{txt, move(parser::ParserDriver::Parse(txt))};
     ASSERT_EQ(instance.program().statements.size(), 1);
 
@@ -64,7 +64,7 @@ TEST(ProgramEditorTest, VizStatementUpdatePosition) {
         edit = Pack<proto::edit::ProgramEdit>(move(pe));
     }
 
-    auto expected = "VIZ weather_avg USING LINE (\n    pos = (r = 6, c = 5, w = 4, h = 3)\n)";
+    auto expected = "VIZ weather_avg USING LINE (\n    pos = (r = 6, c = 5, w = 4, h = 3),\n    title = 'sometitle'\n)";
     EXPECT_EQ(editor.Apply(*std::get<0>(edit)), expected);
 }
 

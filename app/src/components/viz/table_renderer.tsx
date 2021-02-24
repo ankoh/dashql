@@ -34,7 +34,6 @@ export class TableRenderer extends React.Component<Props, State> {
         const targetShort = this.props.vizInfo.nameShort;
         const targetQualified = this.props.vizInfo.nameQualified;
         const tableInfo = this.props.dbObjects.get(targetQualified);
-        console.log(tableInfo);
         if (!tableInfo) {
             return <div />;
         }
