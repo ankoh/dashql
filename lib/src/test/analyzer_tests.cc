@@ -60,7 +60,8 @@ void AnalyzerTest::EncodePlan(pugi::xml_node root, const ProgramInstance& instan
     for (auto& viz : instance.viz_statements()) {
         auto v = vizzes.append_child("visualization");
         if (auto& title = viz->title(); title.has_value()) {
-            v.append_attribute("title").set_value(title->c_str());
+            std::string copy{*title};
+            v.append_attribute("title").set_value(copy.c_str());
         }
         auto target = v.append_child("target");
         EncodeLocation(target, instance.program().nodes[viz->target_node_id()].location(), instance.program_text());
