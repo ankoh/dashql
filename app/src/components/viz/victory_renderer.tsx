@@ -1,6 +1,7 @@
 import * as React from 'react';
 import * as core from '@dashql/core';
 import { AutoSizer } from '../../util/autosizer';
+import { VizCard } from './viz_card';
 import { VictoryChart, VictoryAxis, VictoryLine, VictoryScatter, VictoryTheme } from 'victory';
 
 interface Props {
@@ -17,29 +18,36 @@ export class VictoryRenderer extends React.Component<Props> {
             { x: 5, y: 7 }
         ];
         return (
-            <AutoSizer>
-                {({height, width}) => (
-                    <VictoryChart
-                        style={{
-                            parent: {
-                                width: width,
-                                height: height,
-                            }
-                        }}
-                        width={width}
-                        height={height}
-                        domain={[0, 10]}
-                        padding={50}
-                        theme={VictoryTheme.material}
-                    >
-                        <VictoryAxis />
-                        <VictoryAxis dependentAxis />
-                        <VictoryLine
-                            data={data}
-                        />
-                    </VictoryChart>
-                )}
-            </AutoSizer>
+            <VizCard>
+                <AutoSizer>
+                    {({height, width}) => (
+                        <VictoryChart
+                            style={{
+                                parent: {
+                                    width: width,
+                                    height: height,
+                                }
+                            }}
+                            width={width}
+                            height={height}
+                            domain={[0, 10]}
+                            padding={{
+                                top: 30,
+                                left: 50,
+                                right: 50,
+                                bottom: 50,
+                            }}
+                            theme={VictoryTheme.material}
+                        >
+                            <VictoryAxis />
+                            <VictoryAxis dependentAxis />
+                            <VictoryLine
+                                data={data}
+                            />
+                        </VictoryChart>
+                    )}
+                </AutoSizer>
+            </VizCard>
         );
     }
 }
