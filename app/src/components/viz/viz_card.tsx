@@ -1,5 +1,4 @@
 import * as React from 'react';
-import classNames from 'classnames';
 import styles from './viz_card.module.css';
 
 interface Props {
