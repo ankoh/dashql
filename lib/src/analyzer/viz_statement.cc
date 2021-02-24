@@ -402,7 +402,7 @@ void VizComponent::PrintScript(std::ostream& out) const {
     }
     if (auto& t = title_; t.has_value()) {
         aout.AddKey("title");
-        aout.AddValue() << "'" << *t << "'";
+        aout.AddValue() << "'" << *t << "";
     }
 }
 
