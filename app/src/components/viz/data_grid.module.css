@@ -41,12 +41,14 @@
     border-bottom: v_cell_headers_border;
     border-right: v_cell_headers_border;
     color: v_cell_headers_fg;
-    text-align: center;
-    line-height: 24px;
+    background-color: v_cell_headers_bg;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    background-color: v_cell_headers_bg;
+
+    display: grid;
+    align-items: center;
+    justify-content: center;
 }
 
 .cell_header_row {
