@@ -24,11 +24,11 @@ export async function collectTableInfo(conn: webdb.AsyncConnection, info: model.
 }
 
 export class CreateTableActionLogic extends ProgramActionLogic {
-    constructor(action_id: model.ActionID, action: proto.action.ProgramAction, statement: model.Statement) {
+    constructor(action_id: model.ActionHandle, action: proto.action.ProgramAction, statement: model.Statement) {
         super(action_id, action, statement);
     }
 
-    public async execute(context: ActionContext): Promise<model.ActionID> {
+    public async execute(context: ActionContext): Promise<model.ActionHandle> {
         const script = this.script;
         if (!script) {
             return this.returnWithStatus(ActionStatusCode.COMPLETED);

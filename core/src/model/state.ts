@@ -2,7 +2,7 @@ import * as Immutable from "immutable";
 import { LogEntryVariant } from "./log";
 import { Plan } from "./plan";
 import { CachedFileData, CachedHTTPData } from "./cache";
-import { ActionSchedulerStatus, ActionID, Action } from "./action";
+import { ActionSchedulerStatus, ActionHandle, Action } from "./action";
 import { PlanObjectID, PlanObject, DatabaseTableInfo } from "./plan_object";
 import { Program, StatementStatus, ParameterValue } from "./program";
 import { ProgramInstance } from "./program_instance";
@@ -38,7 +38,7 @@ export class CoreState {
     /// The plan database tables
     public planDatabaseTables: Immutable.Map<string, DatabaseTableInfo>;
     /// The setup actions
-    public planActions: Immutable.Map<ActionID, Action>;
+    public planActions: Immutable.Map<ActionHandle, Action>;
 
     /// The cached files
     public cachedFileData: Immutable.Map<string, CachedFileData>;
@@ -60,7 +60,7 @@ export class CoreState {
         this.planProgramStatus = Immutable.List<StatementStatus>();
         this.planObjects = Immutable.Map<string, PlanObject>();
         this.planDatabaseTables = Immutable.Map<string, DatabaseTableInfo>();
-        this.planActions = Immutable.Map<ActionID, Action>();
+        this.planActions = Immutable.Map<ActionHandle, Action>();
         this.cachedFileData = Immutable.Map<string, CachedFileData>();
         this.cachedHTTPData = Immutable.Map<string, CachedHTTPData>();
     }

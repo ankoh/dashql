@@ -1,18 +1,18 @@
 import * as proto from "@dashql/proto";
 import * as webdb from "@dashql/webdb/dist/webdb_async";
 import * as model from "../model";
-import { ActionID, Statement } from "../model";
+import { ActionHandle, Statement } from "../model";
 import { ProgramActionLogic } from "./action_logic";
 import { ActionContext } from "./action_context";
 import { collectTableInfo } from "./table_create_logic";
 import ActionStatusCode = proto.action.ActionStatusCode;
 
 export class ViewCreateActionLogic extends ProgramActionLogic {
-    constructor(action_id: ActionID, action: proto.action.ProgramAction, statement: Statement) {
+    constructor(action_id: ActionHandle, action: proto.action.ProgramAction, statement: Statement) {
         super(action_id, action, statement);
     }
 
-    public async execute(context: ActionContext): Promise<model.ActionID> {
+    public async execute(context: ActionContext): Promise<model.ActionHandle> {
         const script = this.script;
         if (!script) {
             return this.returnWithStatus(ActionStatusCode.COMPLETED);
