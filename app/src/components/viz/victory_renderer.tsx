@@ -32,10 +32,10 @@ export class VictoryRenderer extends React.Component<Props> {
                             height={height}
                             domain={[0, 10]}
                             padding={{
-                                top: 30,
-                                left: 50,
-                                right: 50,
-                                bottom: 50,
+                                top: 20,
+                                left: 40,
+                                right: 20,
+                                bottom: 40,
                             }}
                             theme={VictoryTheme.material}
                         >
