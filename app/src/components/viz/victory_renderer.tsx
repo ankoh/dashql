@@ -20,7 +20,7 @@ export class VictoryRenderer extends React.Component<Props> {
             { x: 5, y: 7 }
         ];
         return (
-            <VizCard>
+            <VizCard title={this.props.vizInfo.spec.title}>
                 <AutoSizer>
                     {({height, width}) => (
                         <VictoryChart
