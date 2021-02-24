@@ -13,7 +13,9 @@ export class VizCard extends React.Component<Props> {
         return (
             <div className={styles.container}>
                 <div className={styles.header}>
-                    {this.props.title}
+                    <div className={styles.title}>
+                        {this.props.title}
+                    </div>
                 </div>
                 <div className={styles.body}>
                     {this.props.children}

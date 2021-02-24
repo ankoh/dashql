@@ -23,6 +23,22 @@
     border-bottom: v_header_border;
     border-radius: v_border_radius v_border_radius 0 0;
     box-sizing: border-box;
+
+    display: grid;
+    grid-template-rows: auto;
+    grid-template-columns: auto 120px;
+}
+
+.title {
+    grid-row: 1;
+    grid-column: 1;
+
+    font-size: 120%;
+    margin-left: 12px;
+
+    display: grid;
+    justify-content: start;
+    align-items: center;
 }
 
 .body {
