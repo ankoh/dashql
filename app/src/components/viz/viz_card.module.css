@@ -26,7 +26,7 @@
 
     display: grid;
     grid-template-rows: auto;
-    grid-template-columns: auto 120px;
+    grid-template-columns: auto 40px;
 }
 
 .title {
@@ -38,6 +38,15 @@
 
     display: grid;
     justify-content: start;
+    align-items: center;
+}
+
+.settings {
+    grid-row: 1;
+    grid-column: 2;
+
+    display: grid;
+    justify-content: center;
     align-items: center;
 }
 
