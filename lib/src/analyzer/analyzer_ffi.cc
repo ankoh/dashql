@@ -60,4 +60,11 @@ void dashql_analyzer_edit_program(FFIResponse* response, const void* args_buffer
     builder.Finish(replacement);
     FFIResponseBuffer::GetInstance().Store(*response, builder.Release());
 }
+
+void dashql_analyzer_update_action_status(uint8_t action_class, size_t action_id, uint8_t status_code) {
+    auto ac = static_cast<proto::action::ActionClass>(action_class);
+    auto s = static_cast<proto::action::ActionStatusCode>(status_code);
+    Analyzer::GetInstance().UpdateActionStatus(ac, action_id, s);
+}
+
 }

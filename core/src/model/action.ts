@@ -10,20 +10,13 @@ export enum ActionSchedulerStatus {
     Working = 1
 };
 
-/// The action class.
-/// We only need this enuum on the typescript side since the C++ code strictly separates both.
-export enum ActionClass {
-    SetupAction = 0,
-    ProgramAction = 1,
-}
-
 /// Build an action id
-export function buildActionHandle(action_idx: number, action_class: ActionClass): ActionHandle {
+export function buildActionHandle(action_idx: number, action_class: proto.action.ActionClass): ActionHandle {
     return (action_idx << 1) | (action_class as number);
 }
 /// Extract the action class from the id
 export function getActionClass(action_id: ActionHandle) {
-    return (action_id & 1) as ActionClass;
+    return (action_id & 1) as proto.action.ActionClass;
 }
 /// Extract the action index from the id
 export function getActionIndex(action_id: ActionHandle) {

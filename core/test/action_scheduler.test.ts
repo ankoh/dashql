@@ -6,7 +6,7 @@ import * as path from 'path';
 import Worker from 'web-worker';
 
 import ActionStatus = proto.action.ActionStatusCode;
-import ActionClass = model.ActionClass;
+import ActionClass = proto.action.ActionClass;
 import ProgramActionType = proto.action.ProgramActionType;
 
 const logger = new webdb.ConsoleLogger();
@@ -57,7 +57,7 @@ function resolveProgramActionLogic(plan: model.Plan) {
         expect(action.originStatement()).toEqual(i);
         expect(action.actionType()).not.toEqual(ProgramActionType.NONE);
         const stmt = plan.program.getStatement(i);
-        const aid = model.buildActionHandle(i, model.ActionClass.ProgramAction);
+        const aid = model.buildActionHandle(i, ActionClass.PROGRAM_ACTION);
         r[i] = actions.resolveProgramActionLogic(aid, action, stmt)!;
         expect(r[i]).not.toBeNull();
     }
@@ -84,7 +84,7 @@ describe('Action Scheduler', () => {
             const scheduler = new ActionScheduler<proto.action.ProgramAction>(interrupt);
             scheduler.prepare(logic);
             expect(scheduler.actions.length).toBe(1);
-            expect(scheduler.actions[0].actionClass).toBe(ActionClass.ProgramAction);
+            expect(scheduler.actions[0].actionClass).toBe(ActionClass.PROGRAM_ACTION);
             expect(scheduler.actions[0].buffer.actionType()).toBe(ProgramActionType.CREATE_TABLE);
             expect(scheduler.actions[0].status).toBe(ActionStatus.NONE);
 
@@ -120,7 +120,7 @@ describe('Action Scheduler', () => {
             const scheduler = new ActionScheduler<proto.action.ProgramAction>(interrupt);
             scheduler.prepare(logic);
             scheduler.actions.forEach((a, i) => {
-                expect(a.actionClass).toBe(ActionClass.ProgramAction);
+                expect(a.actionClass).toBe(ActionClass.PROGRAM_ACTION);
                 expect(a.buffer.originStatement()).toBe(i);
                 expect(a.status).toBe(ActionStatus.NONE);
             });
@@ -175,7 +175,7 @@ describe('Action Scheduler', () => {
             const scheduler = new ActionScheduler<proto.action.ProgramAction>(interrupt);
             scheduler.prepare(logic);
             scheduler.actions.forEach((a, i) => {
-                expect(a.actionClass).toBe(ActionClass.ProgramAction);
+                expect(a.actionClass).toBe(ActionClass.PROGRAM_ACTION);
                 expect(a.buffer.originStatement()).toBe(i);
                 expect(a.status).toBe(ActionStatus.NONE);
             });
@@ -230,7 +230,7 @@ describe('Action Scheduler', () => {
             const scheduler = new ActionScheduler<proto.action.ProgramAction>(interrupt);
             scheduler.prepare(logic);
             scheduler.actions.forEach((a, i) => {
-                expect(a.actionClass).toBe(ActionClass.ProgramAction);
+                expect(a.actionClass).toBe(ActionClass.PROGRAM_ACTION);
                 expect(a.buffer.originStatement()).toBe(i);
                 expect(a.status).toBe(ActionStatus.NONE);
             });
