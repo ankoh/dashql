@@ -20,7 +20,7 @@ interface State {
     limit: number;
 }
 
-export class TableChart extends React.Component<Props, State> {
+export class TableRenderer extends React.Component<Props, State> {
     constructor(props: Props) {
         super(props);
         this.state = { offset: 0, limit: 1024 };
@@ -49,4 +49,4 @@ const mapStateToProps = (state: model.AppState) => ({
 
 const mapDispatchToProps = (_dispatch: model.Dispatch) => ({});
 
-export default connect(mapStateToProps, mapDispatchToProps)(withAppContext(TableChart));
+export default connect(mapStateToProps, mapDispatchToProps)(withAppContext(TableRenderer));

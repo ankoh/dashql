@@ -1,6 +1,7 @@
 import * as React from 'react';
 import * as core from '@dashql/core';
-import TableChart from  './table_chart';
+import TableRenderer from  './table_renderer';
+import VictoryRenderer from  './victory_renderer';
 
 interface Props {
     vizInfo: core.model.VizInfo;
@@ -48,9 +49,9 @@ export class VizComponent extends React.Component<Props> {
         }
         switch (renderer) {
             case VizRenderer.TABLE:
-                return <TableChart targetQualified="global.foo" />;
+                return <TableRenderer targetQualified="global.foo" />;
             case VizRenderer.VICTORY:
-                return <div>VICTORY</div>;
+                return <VictoryRenderer vizInfo={this.props.vizInfo} />;
             
         }
     }
