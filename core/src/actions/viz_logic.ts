@@ -54,16 +54,25 @@ export abstract class BaseVizActionLogic extends ProgramActionLogic {
         const components = new Array<model.VizComponentSpec>();
         for (let i = 0; i < vizSpec.componentsLength(); ++i) {
             const c = vizSpec.components(i)!;
+            const type = c.type()!;
+            let typeModifiers: Map<proto.syntax.VizComponentTypeModifier, boolean> = new Map();
+            for (let i = 0; i < c.typeModifiersLength(); ++i) {
+                typeModifiers.set(c.typeModifiers(i)!, true);
+            }
             const dataReader = c.data();
-            const data: model.VizData = {};
+            let data: model.VizData = {};
             if (dataReader) {
-                data.x = instance.readNodeValueIfValid(dataReader.x())?.castAsString() || undefined;
-                data.y = instance.readNodeValueIfValid(dataReader.y())?.castAsString() || undefined;
-                data.y0 = instance.readNodeValueIfValid(dataReader.y0())?.castAsString() || undefined;
-                data.categories = instance.readNodeValueIfValid(dataReader.y0())?.castAsString() || undefined;
+                data = {
+                    x: instance.readNodeValueIfValid(dataReader.x())?.castAsString() || undefined,
+                    y: instance.readNodeValueIfValid(dataReader.y())?.castAsString() || undefined,
+                    y0: instance.readNodeValueIfValid(dataReader.y0())?.castAsString() || undefined,
+                    categories: instance.readNodeValueIfValid(dataReader.y0())?.castAsString() || undefined,
+                };
             }
             const styles: SVGStyleMap = {};
             components.push({
+                type,
+                typeModifiers,
                 styles,
                 data,
                 selectionID: null
