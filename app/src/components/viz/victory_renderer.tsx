@@ -4,6 +4,8 @@ import { AutoSizer } from '../../util/autosizer';
 import { VizCard } from './viz_card';
 import { VictoryChart, VictoryAxis, VictoryLine, VictoryScatter, VictoryTheme } from 'victory';
 
+import styles from './victory_renderer.module.css';
+
 interface Props {
     vizInfo: core.model.VizInfo;
 }
@@ -34,7 +36,7 @@ export class VictoryRenderer extends React.Component<Props> {
                             padding={{
                                 top: 20,
                                 left: 40,
-                                right: 20,
+                                right: 30,
                                 bottom: 40,
                             }}
                             theme={VictoryTheme.material}
