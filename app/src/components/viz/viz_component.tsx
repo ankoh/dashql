@@ -49,7 +49,7 @@ export class VizComponent extends React.Component<Props> {
         }
         switch (renderer) {
             case VizRenderer.TABLE:
-                return <TableRenderer targetQualified="global.foo" />;
+                return <TableRenderer vizInfo={this.props.vizInfo} />;
             case VizRenderer.VICTORY:
                 return <VictoryRenderer vizInfo={this.props.vizInfo} />;
             

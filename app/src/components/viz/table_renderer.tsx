@@ -3,6 +3,7 @@ import * as React from 'react';
 import * as core from '@dashql/core';
 import * as model from '../../model';
 import { connect } from 'react-redux';
+import { VizCard } from './viz_card';
 import { IAppContext, withAppContext } from '../../app_context';
 
 import DataGrid from './data_grid';
@@ -12,7 +13,7 @@ import ScanProvider = core.access.ScanProvider;
 interface Props {
     appContext: IAppContext;
     dbObjects: Immutable.Map<string, core.model.DatabaseTableInfo>;
-    targetQualified: string;
+    vizInfo: core.model.VizInfo;
 }
 
 interface State {
@@ -30,15 +31,19 @@ export class TableRenderer extends React.Component<Props, State> {
     public render() {
         const logger = this.props.appContext.platform!.logger;
         const db = this.props.appContext.platform!.database;
-        const tableInfo = this.props.dbObjects.get(this.props.targetQualified);
+        const targetShort = this.props.vizInfo.nameShort;
+        const targetQualified = this.props.vizInfo.nameQualified;
+        const tableInfo = this.props.dbObjects.get(targetQualified);
         console.log(tableInfo);
         if (!tableInfo) {
             return <div />;
         }
         return (
-            <ScanProvider logger={logger} database={db} targetName={tableInfo.nameShort}>
-                {(data, dataProvider) => <DataGrid tableInfo={tableInfo} data={data} dataProvider={dataProvider} />}
-            </ScanProvider>
+            <VizCard title={this.props.vizInfo.spec.title || `Table ${targetShort}`}>
+                <ScanProvider logger={logger} database={db} targetName={tableInfo.nameShort}>
+                    {(data, dataProvider) => <DataGrid tableInfo={tableInfo} data={data} dataProvider={dataProvider} />}
+                </ScanProvider>
+            </VizCard>
         );
     }
 }
