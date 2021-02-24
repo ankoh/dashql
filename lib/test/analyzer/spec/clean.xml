@@ -698,6 +698,7 @@
                 y = b,
                 categories = c,
                 theme = 'grayscale',
+                title = 'sometitle',
                 colors = ['#aaa', '#bbb', '#ccc']
             ), LINE (
                 style.data = (
@@ -721,7 +722,7 @@
         <parameters />
         <evaluations />
         <visualizations>
-            <visualization>
+            <visualization title="sometitle">
                 <target loc="111..122" text="weather_avg" />
                 <position row="0" column="0" width="4" height="15" />
                 <components>
