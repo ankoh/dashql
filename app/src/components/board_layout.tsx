@@ -6,9 +6,9 @@ import { Layout } from 'react-grid-layout';
 import { connect } from 'react-redux';
 import { IAppContext, withAppContext } from '../app_context';
 import { withAutoSizer } from '../util/autosizer';
-import TableChart from './widgets/table_chart';
+import TableChart from './viz/table_chart';
 
-import './board_grid.module.css';
+import './board_layout.module.css';
 
 type Props = {
     appContext: IAppContext;
@@ -19,7 +19,7 @@ type Props = {
     rewriteProgram: (instance: core.model.ProgramInstance) => void;
 };
 
-class BoardGrid extends React.Component<Props> {
+class BoardLayout extends React.Component<Props> {
     renderViz(data: core.model.VizInfo) {
         return <TableChart viz={data} />;
     }
@@ -113,4 +113,4 @@ const mapDispatchToProps = (dispatch: model.Dispatch) => ({
     },
 });
 
-export default connect(mapStateToProps, mapDispatchToProps)(withAppContext(withAutoSizer(BoardGrid)));
+export default connect(mapStateToProps, mapDispatchToProps)(withAppContext(withAutoSizer(BoardLayout)));
