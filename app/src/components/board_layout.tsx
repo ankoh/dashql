@@ -85,7 +85,7 @@ class BoardLayout extends React.Component<Props> {
             >
                 {Array.from(this.props.vizData).map(([k, v]) => (
                     <div key={k}>
-                        <VizComponent spec={v} />
+                        <VizComponent vizInfo={v} />
                     </div>
                 ))}
             </ReactGrid>
