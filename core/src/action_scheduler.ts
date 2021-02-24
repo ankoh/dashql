@@ -12,6 +12,7 @@ import {
     StateMutationType,
     mutate,
     Plan,
+    getActionClass,
 } from './model';
 
 export class ActionScheduler<ActionBuffer extends ProtoAction> {
@@ -291,13 +292,22 @@ export class ActionGraphScheduler {
                 // Only propagate the most recent one
                 if (actionUpdates.get(action.actionId))
                     continue;
+                // Mark the action as updated
                 actionUpdates.set(action.actionId, {
                     actionId: action.actionId,
                     statusCode: action.status,
                     blocker: action.blocker,
                 });
             }
-
+            // Update the action status in the analyzer
+            for (const [_, u] of actionUpdates) {
+                // Update the action status in the analyzer
+                ctx.platform.analyzer.updateActionStatus(
+                    getActionClass(u.actionId),
+                    getActionIndex(u.actionId),
+                    u.statusCode
+                );
+            }
             // Update all actions in the store
             mutate(ctx.platform.store.dispatch, {
                 type: StateMutationType.UPDATE_PLAN_ACTIONS,
