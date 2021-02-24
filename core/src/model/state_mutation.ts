@@ -3,7 +3,7 @@ import * as proto from '@dashql/proto';
 import * as utils from '../utils';
 import { LogEntryVariant } from './log';
 import { Plan } from './plan';
-import { ActionID, Action, ActionUpdate, ActionSchedulerStatus } from './action';
+import { ActionHandle, Action, ActionUpdate, ActionSchedulerStatus } from './action';
 import { PlanObjectID, PlanObject, PlanObjectType, DatabaseTableInfo } from './plan_object';
 import { Program, StatementStatus, deriveStatementStatusCode } from './program';
 import { ProgramInstance } from './program_instance';
@@ -88,7 +88,7 @@ export class StateMutations {
                     schedulerStatus: ActionSchedulerStatus.Idle,
                     plan: null,
                     planProgramStatus: Immutable.List<StatementStatus>(),
-                    planActions: Immutable.Map<ActionID, Action>(),
+                    planActions: Immutable.Map<ActionHandle, Action>(),
                 };
             }
 
@@ -114,7 +114,7 @@ export class StateMutations {
                     schedulerStatus: ActionSchedulerStatus.Working,
                     plan: mutation.data[0],
                     planProgramStatus: Immutable.List<StatementStatus>(stmt),
-                    planActions: Immutable.Map<ActionID, Action>(mutation.data[1].map(a => [a.actionId, a])),
+                    planActions: Immutable.Map<ActionHandle, Action>(mutation.data[1].map(a => [a.actionId, a])),
                 };
             }
 

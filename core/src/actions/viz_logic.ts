@@ -7,7 +7,7 @@ import ActionStatusCode = proto.action.ActionStatusCode;
 import { SVGStyleMap } from "../model";
 
 export abstract class BaseVizActionLogic extends ProgramActionLogic {
-    constructor(action_id: model.ActionID, action: proto.action.ProgramAction, statement: model.Statement) {
+    constructor(action_id: model.ActionHandle, action: proto.action.ProgramAction, statement: model.Statement) {
         super(action_id, action, statement);
     }
 
@@ -97,11 +97,11 @@ export abstract class BaseVizActionLogic extends ProgramActionLogic {
 }
 
 export class CreateVizActionLogic extends BaseVizActionLogic {
-    constructor(action_id: model.ActionID, action: proto.action.ProgramAction, statement: model.Statement) {
+    constructor(action_id: model.ActionHandle, action: proto.action.ProgramAction, statement: model.Statement) {
         super(action_id, action, statement);
     }
 
-    public async execute(context: ActionContext): Promise<model.ActionID> {
+    public async execute(context: ActionContext): Promise<model.ActionHandle> {
         const info = this.deriveVizInfo(context);
         const store = context.platform.store;
         model.mutate(store.dispatch, {
@@ -113,11 +113,11 @@ export class CreateVizActionLogic extends BaseVizActionLogic {
 };
 
 export class UpdateVizActionLogic extends BaseVizActionLogic {
-    constructor(action_id: model.ActionID, action: proto.action.ProgramAction, statement: model.Statement) {
+    constructor(action_id: model.ActionHandle, action: proto.action.ProgramAction, statement: model.Statement) {
         super(action_id, action, statement);
     }
 
-    public async execute(context: ActionContext): Promise<model.ActionID> {
+    public async execute(context: ActionContext): Promise<model.ActionHandle> {
         const info = this.deriveVizInfo(context);
         const store = context.platform.store;
         model.mutate(store.dispatch, {
@@ -130,11 +130,11 @@ export class UpdateVizActionLogic extends BaseVizActionLogic {
 };
 
 export class DropVizActionLogic extends SetupActionLogic {
-    constructor(action_id: model.ActionID, action: proto.action.SetupAction) {
+    constructor(action_id: model.ActionHandle, action: proto.action.SetupAction) {
         super(action_id, action);
     }
 
-    public async execute(context: ActionContext): Promise<model.ActionID> {
+    public async execute(context: ActionContext): Promise<model.ActionHandle> {
         const store = context.platform.store!;
         const objectId = this.buffer.objectId();
         model.mutate(store.dispatch, {
@@ -148,11 +148,11 @@ export class DropVizActionLogic extends SetupActionLogic {
 }
 
 export class ImportVizActionLogic extends SetupActionLogic {
-    constructor(action_id: model.ActionID, action: proto.action.SetupAction) {
+    constructor(action_id: model.ActionHandle, action: proto.action.SetupAction) {
         super(action_id, action);
     }
 
-    public async execute(_context: ActionContext): Promise<model.ActionID> {
+    public async execute(_context: ActionContext): Promise<model.ActionHandle> {
         return this.returnWithStatus(ActionStatusCode.COMPLETED);
     }
 }

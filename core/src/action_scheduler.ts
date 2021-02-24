@@ -4,11 +4,11 @@ import { ActionLogic, ProtoAction, resolveSetupActionLogic, resolveProgramAction
 import { ActionContext } from './actions';
 import { Platform } from './platform';
 import {
-    ActionID,
+    ActionHandle,
     Action,
     ActionClass,
     ActionUpdate,
-    buildActionID,
+    buildActionHandle,
     getActionIndex,
     StateMutationType,
     mutate,
@@ -17,14 +17,14 @@ import {
 
 export class ActionScheduler<ActionBuffer extends ProtoAction> {
     /// The cancel promise
-    _interrupt: Promise<ActionID | null>;
+    _interrupt: Promise<ActionHandle | null>;
 
     /// The actions
     _actions: ActionLogic<ActionBuffer>[] = [];
     /// The pending actions
     _actionQueue: NativeMinHeap = new NativeMinHeap();
     /// The action promises
-    _actionPromises: (Promise<ActionID | null> | null)[] = [];
+    _actionPromises: (Promise<ActionHandle | null> | null)[] = [];
 
     /// The scheduled actions
     _scheduledActions: NativeBitmap = new NativeBitmap();
@@ -33,7 +33,7 @@ export class ActionScheduler<ActionBuffer extends ProtoAction> {
     /// The failed actions
     _failedActions: NativeBitmap = new NativeBitmap();
 
-    constructor(interrupt: Promise<ActionID | null>) {
+    constructor(interrupt: Promise<ActionHandle | null>) {
         this._interrupt = interrupt;
     }
 
@@ -68,7 +68,7 @@ export class ActionScheduler<ActionBuffer extends ProtoAction> {
         return this._actions;
     }
     /// Set the scheduler interrupt promise
-    public set interrupt(promise: Promise<ActionID | null>) {
+    public set interrupt(promise: Promise<ActionHandle | null>) {
         this._interrupt = promise;
     }
 
@@ -117,7 +117,7 @@ export class ActionScheduler<ActionBuffer extends ProtoAction> {
         if (!this.workLeft()) return false;
 
         // Wait for next action to complete
-        let promises: Promise<ActionID | null>[] = [this._interrupt];
+        let promises: Promise<ActionHandle | null>[] = [this._interrupt];
         this._actionPromises.forEach(p => {
             if (p) promises.push(p);
         });
@@ -169,7 +169,7 @@ export class ActionGraphScheduler {
     _plan: Plan | null;
 
     /// The cancel promise
-    _interruptPromise: Promise<ActionID | null>;
+    _interruptPromise: Promise<ActionHandle | null>;
     /// The cancel promise
     _interruptFunction: () => void;
     /// Has been canceled?
@@ -205,7 +205,7 @@ export class ActionGraphScheduler {
         let actionInfos: Action[] = [];
         let setupLogic = [];
         for (let i = 0; i < graph.setupActionsLength(); ++i) {
-            const actionId = buildActionID(i, ActionClass.SetupAction);
+            const actionId = buildActionHandle(i, ActionClass.SetupAction);
             const a = graph.setupActions(i)!;
             setupLogic.push(resolveSetupActionLogic(actionId, a)!);
             actionInfos.push({
@@ -230,7 +230,7 @@ export class ActionGraphScheduler {
         // Translate the program actions
         let programLogic = [];
         for (let i = 0; i < graph.programActionsLength(); ++i) {
-            const actionId = buildActionID(i, ActionClass.ProgramAction);
+            const actionId = buildActionHandle(i, ActionClass.ProgramAction);
             const a = graph.programActions(i)!;
             const s = program.getStatement(a.originStatement());
             programLogic.push(resolveProgramActionLogic(actionId, a, s)!);

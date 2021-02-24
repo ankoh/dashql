@@ -1,6 +1,6 @@
 import * as proto from '@dashql/proto';
 import { SetupActionLogic, ProgramActionLogic } from './action_logic';
-import { ActionID, Statement, Plan } from '../model';
+import { ActionHandle, Statement, Plan } from '../model';
 
 import { DropBlobActionLogic } from './drop_blob_logic';
 import { DropTableActionLogic } from './drop_table_logic';
@@ -24,7 +24,7 @@ import SetupActionType = proto.action.SetupActionType;
 import ProgramActionType = proto.action.ProgramActionType;
 
 /// Translate a setup action
-export function resolveSetupActionLogic(id: ActionID, a: proto.action.SetupAction): SetupActionLogic | null {
+export function resolveSetupActionLogic(id: ActionHandle, a: proto.action.SetupAction): SetupActionLogic | null {
     switch (a.actionType()) {
         case SetupActionType.DROP_BLOB:
             return new DropBlobActionLogic(id, a);
@@ -48,7 +48,7 @@ export function resolveSetupActionLogic(id: ActionID, a: proto.action.SetupActio
 
 /// Translate a program action
 export function resolveProgramActionLogic(
-    id: ActionID,
+    id: ActionHandle,
     a: proto.action.ProgramAction,
     s: Statement,
 ): ProgramActionLogic | null {

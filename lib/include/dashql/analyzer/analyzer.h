@@ -73,10 +73,8 @@ class Analyzer {
     /// Get the planned graph
     auto planned_graph() const { return planned_graph_.get(); }
 
-    /// Update the setup action status
-    void UpdateSetupActionStatus(size_t action_id, proto::action::ActionStatusCode status);
-    /// Update the program action status
-    void UpdateProgramActionStatus(size_t action_id, proto::action::ActionStatusCode status);
+    /// Update the action status
+    void UpdateActionStatus(proto::action::ActionClass action_class, size_t action_id, proto::action::ActionStatusCode status);
 
     /// Parse a program
     Signal ParseProgram(std::string_view text);

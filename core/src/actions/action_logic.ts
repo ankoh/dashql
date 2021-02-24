@@ -1,5 +1,5 @@
 import * as proto from '@dashql/proto';
-import { ActionID, Statement, getActionClass, getActionIndex } from '../model';
+import { ActionHandle, Statement, getActionClass, getActionIndex } from '../model';
 import { ActionContext } from './action_context';
 
 export interface ProtoAction {
@@ -21,7 +21,7 @@ export interface ProtoAction {
 
 export abstract class ActionLogic<ActionBuffer extends ProtoAction> {
     /// The action id
-    _action_id: ActionID;
+    _action_id: ActionHandle;
     /// The protocol buffer
     _action: ActionBuffer;
     /// The status
@@ -30,7 +30,7 @@ export abstract class ActionLogic<ActionBuffer extends ProtoAction> {
     _blocker: proto.action.ActionBlocker | null = null;
 
     /// Constructor
-    constructor(action_id: ActionID, action: ActionBuffer) {
+    constructor(action_id: ActionHandle, action: ActionBuffer) {
         this._action_id = action_id;
         this._action = action;
         this._status = action.actionStatusCode();
@@ -66,12 +66,12 @@ export abstract class ActionLogic<ActionBuffer extends ProtoAction> {
     }
 
     /// Return with a status
-    protected returnWithStatus(status: proto.action.ActionStatusCode): ActionID {
+    protected returnWithStatus(status: proto.action.ActionStatusCode): ActionHandle {
         this._status = status;
         return this._action_id;
     }
     /// Execute an action
-    public abstract execute(context: ActionContext): Promise<ActionID>;
+    public abstract execute(context: ActionContext): Promise<ActionHandle>;
 }
 
 export abstract class ProgramActionLogic extends ActionLogic<proto.action.ProgramAction> {
@@ -79,7 +79,7 @@ export abstract class ProgramActionLogic extends ActionLogic<proto.action.Progra
     _origin: Statement;
 
     /// Constructor
-    constructor(action_id: ActionID, action: proto.action.ProgramAction, origin: Statement) {
+    constructor(action_id: ActionHandle, action: proto.action.ProgramAction, origin: Statement) {
         super(action_id, action);
         this._origin = origin;
     }
@@ -92,7 +92,7 @@ export abstract class ProgramActionLogic extends ActionLogic<proto.action.Progra
 
 export abstract class SetupActionLogic extends ActionLogic<proto.action.SetupAction> {
     /// Constructor
-    constructor(action_id: ActionID, action: proto.action.SetupAction) {
+    constructor(action_id: ActionHandle, action: proto.action.SetupAction) {
         super(action_id, action);
     }
 }

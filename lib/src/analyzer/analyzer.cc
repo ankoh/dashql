@@ -128,14 +128,14 @@ Analyzer::Analyzer()
     for (unsigned i = 0; i < PLANNER_LOG_SIZE; ++i) program_log_.push_back(nullptr);
 }
 
-void Analyzer::UpdateProgramActionStatus(size_t action_id, proto::action::ActionStatusCode status) {
-    if (!planned_graph_ || action_id >= planned_graph_->program_actions.size()) return;
-    planned_graph_->program_actions[action_id]->action_status_code = status;
-}
-
-void Analyzer::UpdateSetupActionStatus(size_t action_id, proto::action::ActionStatusCode status) {
-    if (!planned_graph_ || action_id >= planned_graph_->setup_actions.size()) return;
-    planned_graph_->setup_actions[action_id]->action_status_code = status;
+void Analyzer::UpdateActionStatus(proto::action::ActionClass action_class, size_t action_id, proto::action::ActionStatusCode status) {
+    if (action_class == proto::action::ActionClass::SETUP_ACTION) {
+        if (!planned_graph_ || action_id >= planned_graph_->setup_actions.size()) return;
+        planned_graph_->setup_actions[action_id]->action_status_code = status;
+    } else {
+        if (!planned_graph_ || action_id >= planned_graph_->program_actions.size()) return;
+        planned_graph_->program_actions[action_id]->action_status_code = status;
+    }
 }
 
 /// Parse a program
