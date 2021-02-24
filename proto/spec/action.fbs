@@ -5,6 +5,11 @@ namespace dashql.proto.action;
 // ---------------------------------------------------------------------------
 // Action status
 
+enum ActionClass: uint8 {
+    SETUP_ACTION = 0,
+    PROGRAM_ACTION = 1,
+}
+
 enum ActionStatusCode: uint8 {
     NONE = 0,
     RUNNING,

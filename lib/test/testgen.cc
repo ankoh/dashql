@@ -10,6 +10,7 @@
 #include "dashql/analyzer/analyzer.h"
 #include "dashql/common/span.h"
 #include "dashql/parser/parser_driver.h"
+#include "dashql/proto_generated.h"
 #include "dashql/test/analyzer_tests.h"
 #include "dashql/test/grammar_tests.h"
 #include "flatbuffers/flatbuffers.h"
@@ -137,7 +138,7 @@ void generate_analyzer_tests(const std::filesystem::path& source_dir) {
                     for (auto p : inst.child("graph").child("program").children()) {
                         auto status_str = p.attribute("status").as_string();
                         auto status = AnalyzerTest::GetActionStatus(status_str);
-                        analyzer.UpdateProgramActionStatus(i++, status);
+                        analyzer.UpdateActionStatus(proto::action::ActionClass::PROGRAM_ACTION, i++, status);
                     }
                 }
                 inst.remove_children();

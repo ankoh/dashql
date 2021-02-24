@@ -57,7 +57,7 @@ function resolveProgramActionLogic(plan: model.Plan) {
         expect(action.originStatement()).toEqual(i);
         expect(action.actionType()).not.toEqual(ProgramActionType.NONE);
         const stmt = plan.program.getStatement(i);
-        const aid = model.buildActionID(i, model.ActionClass.ProgramAction);
+        const aid = model.buildActionHandle(i, model.ActionClass.ProgramAction);
         r[i] = actions.resolveProgramActionLogic(aid, action, stmt)!;
         expect(r[i]).not.toBeNull();
     }

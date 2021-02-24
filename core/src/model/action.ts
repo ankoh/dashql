@@ -2,7 +2,7 @@ import * as proto from "@dashql/proto";
 import { LogEntry } from "./log";
 
 /// An action id
-export type ActionID = number;
+export type ActionHandle = number;
 
 /// The scheduler status
 export enum ActionSchedulerStatus {
@@ -18,21 +18,21 @@ export enum ActionClass {
 }
 
 /// Build an action id
-export function buildActionID(action_idx: number, action_class: ActionClass): ActionID {
+export function buildActionHandle(action_idx: number, action_class: ActionClass): ActionHandle {
     return (action_idx << 1) | (action_class as number);
 }
 /// Extract the action class from the id
-export function getActionClass(action_id: ActionID) {
+export function getActionClass(action_id: ActionHandle) {
     return (action_id & 1) as ActionClass;
 }
 /// Extract the action index from the id
-export function getActionIndex(action_id: ActionID) {
+export function getActionIndex(action_id: ActionHandle) {
     return action_id >> 1;
 }
 
 export interface Action {
     /// The action id
-    actionId: ActionID;
+    actionId: ActionHandle;
     /// The setup action
     actionType: proto.action.SetupActionType | proto.action.ProgramActionType;
     /// The status code
@@ -66,7 +66,7 @@ export interface Action {
 
 export interface ActionUpdate {
     /// The action id
-    actionId: ActionID;
+    actionId: ActionHandle;
     /// The status code
     statusCode: proto.action.ActionStatusCode;
     /// The blocker (if any)

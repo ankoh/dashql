@@ -53,9 +53,9 @@ TEST_P(AnalyzerSpecTests, Test) {
 
         // Update the action status for the next step
         for (unsigned i = 0; i < step.setupActionStatusCodes.size(); ++i) 
-            analyzer.UpdateSetupActionStatus(i, step.setupActionStatusCodes[i]);
+            analyzer.UpdateActionStatus(proto::action::ActionClass::SETUP_ACTION, i, step.setupActionStatusCodes[i]);
         for (unsigned i = 0; i < step.programActionStatusCodes.size(); ++i) 
-            analyzer.UpdateProgramActionStatus(i, step.programActionStatusCodes[i]);
+            analyzer.UpdateActionStatus(proto::action::ActionClass::PROGRAM_ACTION, i, step.programActionStatusCodes[i]);
 
 
         // Encode the test output
