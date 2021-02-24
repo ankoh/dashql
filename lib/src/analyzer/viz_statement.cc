@@ -321,7 +321,8 @@ void VizComponent::ReadFrom(size_t node_id) {
         } else {
             auto title = viz_stmt_.instance_.ReadNodeValueOrNull(matches[ID_TITLE].node_id).PrintValue();
             trim(title, isNoQuote);
-            viz_stmt_.title() = title;
+            title_ = std::move(title);
+            viz_stmt_.title() = title_;
         }
     }
 
@@ -394,10 +395,14 @@ void VizComponent::PrintScript(std::ostream& out) const {
     out << " " << type_names[static_cast<size_t>(type_)];
 
     VizAttributePrinter aout{out};
-    if (auto& p = position_; p.has_value() && (&p.value() == viz_stmt_.specified_position())) {
+    if (auto& p = position_; p.has_value()) {
         aout.AddKey("pos");
         aout.AddValue() << "(r = " << p->row() << ", c = " << p->column() << ", w = " << p->width()
                         << ", h = " << p->height() << ")";
+    }
+    if (auto& t = title_; t.has_value()) {
+        aout.AddKey("title");
+        aout.AddValue() << *t;
     }
 }
 
