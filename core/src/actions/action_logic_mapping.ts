@@ -5,7 +5,6 @@ import { ActionID, Statement, Plan } from '../model';
 import { DropBlobActionLogic } from './drop_blob_logic';
 import { DropTableActionLogic } from './drop_table_logic';
 import { DropViewActionLogic } from './drop_view_logic';
-import {} from './drop_viz_logic';
 import { ImportBlobActionLogic } from './import_blob_logic';
 import { ImportTableActionLogic } from './import_table_logic';
 import { ImportViewActionLogic } from './import_view_logic';
