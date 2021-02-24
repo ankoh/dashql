@@ -64,7 +64,7 @@ function getProgramActionTypeLabel(type: proto.action.ProgramActionType) {
 interface Props {
     className?: string;
     plan: core.model.Plan | null;
-    planActions: Immutable.Map<core.model.ActionID, core.model.Action>;
+    planActions: Immutable.Map<core.model.ActionHandle, core.model.Action>;
     onClose: () => void;
 }
 
@@ -73,7 +73,7 @@ class ActionList extends React.Component<Props> {
         let setup_actions: JSX.Element[] = [];
         let program_actions: JSX.Element[] = [];
         plan.iterateSetupActionsReverse((i: number, o: proto.action.SetupAction) => {
-            const actionId = core.model.buildActionID(i, core.model.ActionClass.SetupAction);
+            const actionId = core.model.buildActionHandle(i, proto.action.ActionClass.SETUP_ACTION);
             const actionInfo = this.props.planActions.get(actionId);
             const status = actionInfo?.statusCode || proto.action.ActionStatusCode.NONE;
             setup_actions.push(
@@ -92,7 +92,7 @@ class ActionList extends React.Component<Props> {
             );
         });
         plan.iterateProgramActions((i: number, o: proto.action.ProgramAction) => {
-            const actionId = core.model.buildActionID(i, core.model.ActionClass.ProgramAction);
+            const actionId = core.model.buildActionHandle(i, proto.action.ActionClass.PROGRAM_ACTION);
             const actionInfo = this.props.planActions.get(actionId);
             const status = actionInfo?.statusCode || proto.action.ActionStatusCode.NONE;
             program_actions.push(
