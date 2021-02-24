@@ -110,7 +110,6 @@ table VizComponent {
     style: [SVGStyleProperty];
     domain: VizDomain;
     horizontal: uint32;
-    name: uint32;
     origin: Coordinates;
     padding: VizPadding;
     polar: uint32;
@@ -123,5 +122,6 @@ table VizComponent {
 table VizSpec {
     statement_id: uint32;
     position: VizPosition;
+    title: string;
     components: [VizComponent];
 }

@@ -46,6 +46,8 @@ class VizStatement {
     pv::VizPosition* specified_position_ = nullptr;
     /// The computed position
     std::optional<pv::VizPosition> computed_position_ = std::nullopt;
+    /// The title
+    std::optional<std::string> title_ = std::nullopt;
 
    public:
     /// Constructor
@@ -58,6 +60,8 @@ class VizStatement {
     auto& specified_position() { return specified_position_; }
     /// Get the computed position
     auto& computed_position() { return computed_position_; }
+    /// Get the title
+    auto& title() { return title_; }
     /// Get the target node
     auto target_node_id() const { return target_node_id_; }
     /// Print as script
