@@ -13,23 +13,7 @@
 }
 
 .container {
-    position: relative;
-    width: 100%;
-    height: 100%;
-    border-radius: v_border_radius;
-    border: 1px solid v_border_color;
-    box-sizing: border-box;
-    font-size: 0.7em;
     background-color: v_cell_color_headers;
-}
-
-.resize_overlay {
-    position: absolute;
-    bottom: 0;
-    right: 0;
-    width: 20px;
-    height: 20px;
-    border-radius: 4px 0px 4px 0px;
 }
 
 .scrollbars {

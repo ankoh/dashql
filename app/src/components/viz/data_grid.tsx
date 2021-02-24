@@ -9,6 +9,7 @@ import {
     defaultCellRangeRenderer,
     SizeAndPositionData,
 } from 'react-virtualized';
+import { VizCard } from './viz_card';
 import { VirtualScrollbars, PositionValues } from '../virtual_scrollbars';
 
 import styles from './data_grid.module.css';
@@ -296,7 +297,7 @@ export class DataGrid extends React.Component<Props, State> {
     /// Render the table
     public render() {
         return (
-            <div className={styles.container}>
+            <VizCard className={styles.container}>
                 <AutoSizer>
                     {({ width, height }) => {
                         const columnHeaderHeight = 28;
@@ -369,8 +370,7 @@ export class DataGrid extends React.Component<Props, State> {
                         );
                     }}
                 </AutoSizer>
-                <div className={styles.resize_overlay} />
-            </div>
+            </VizCard>
         );
     }
 }
