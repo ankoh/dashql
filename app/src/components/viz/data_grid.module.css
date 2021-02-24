@@ -2,9 +2,11 @@
 @value v_border_color: rgb(200, 200, 200);
 
 @value v_cell_border: 1px solid rgb(225, 225, 225);
-@value v_cell_border_headers: rgb(245, 245, 245);
-@value v_cell_color_headers: rgb(245, 245, 245);
-@value v_cell_nodata_bg: rgb(235, 235, 235);
+@value v_cell_headers_border: 1px solid rgb(215, 215, 215);
+@value v_cell_headers_bg: rgb(240, 240, 240);
+@value v_cell_headers_fg: rgb(0, 0, 0);
+@value v_cell_nodata_bg: rgb(225, 225, 225);
+@value v_cell_anchor_bg: rgb(240, 240, 240);
 
 .table {
     background-color: white;
@@ -13,7 +15,7 @@
 }
 
 .container {
-    background-color: v_cell_color_headers;
+    background-color: v_cell_headers_bg;
 }
 
 .scrollbars {
@@ -27,27 +29,32 @@
 
     outline: none;
     box-sizing: border-box;
-    border-bottom: v_cell_border;
-    border-right: v_cell_border;
+    border-bottom: v_cell_headers_border;
+    border-right: v_cell_headers_border;
     text-align: center;
     line-height: 24px;
+    background-color: v_cell_anchor_bg;
 }
 
 .cell_header_col {
     box-sizing: border-box;
-    border-bottom: v_cell_border;
-    border-right: v_cell_border;
+    border-bottom: v_cell_headers_border;
+    border-right: v_cell_headers_border;
+    color: v_cell_headers_fg;
     text-align: center;
     line-height: 24px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    background-color: v_cell_headers_bg;
 }
 
 .cell_header_row {
     box-sizing: border-box;
-    border-bottom: v_cell_border;
-    border-right: v_cell_border;
+    border-bottom: v_cell_headers_border;
+    border-right: v_cell_headers_border;
+    background-color: v_cell_headers_bg;
+    color: v_cell_headers_fg;
 
     display: grid;
     align-items: center;
@@ -91,6 +98,7 @@
     grid-column: 1;
     overflow: hidden !important;
     outline: none;
+    border-radius: 0 0 0 8px;
 }
 
 .grid_header {
@@ -105,8 +113,6 @@
     grid-column: 2;
     outline: none;
     overflow: hidden !important;
-    background: rgb(255, 255, 255);
-    border-radius: 8px;
 }
 
 .grid_body_scrollbars {
