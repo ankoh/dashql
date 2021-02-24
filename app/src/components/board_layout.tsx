@@ -6,7 +6,7 @@ import { Layout } from 'react-grid-layout';
 import { connect } from 'react-redux';
 import { IAppContext, withAppContext } from '../app_context';
 import { withAutoSizer } from '../util/autosizer';
-import TableChart from './viz/table_chart';
+import VizComponent from './viz/viz_component';
 
 import './board_layout.module.css';
 
@@ -20,10 +20,6 @@ type Props = {
 };
 
 class BoardLayout extends React.Component<Props> {
-    renderViz(data: core.model.VizInfo) {
-        return <TableChart viz={data} />;
-    }
-
     shouldComponentUpdate(nextProps: Props) {
         const prev = this.props.vizData;
         const next = nextProps.vizData;
@@ -88,7 +84,9 @@ class BoardLayout extends React.Component<Props> {
                 layout={this.getLayout(this.props.vizData)}
             >
                 {Array.from(this.props.vizData).map(([k, v]) => (
-                    <div key={k}>{this.renderViz(v)}</div>
+                    <div key={k}>
+                        <VizComponent spec={v} />
+                    </div>
                 ))}
             </ReactGrid>
         );
