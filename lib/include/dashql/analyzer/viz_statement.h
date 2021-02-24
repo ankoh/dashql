@@ -86,6 +86,8 @@ class VizComponent {
     uint32_t type_modifiers_ = 0;
     /// The position option
     std::optional<pv::VizPosition> position_ = std::nullopt;
+    /// The title option
+    std::optional<std::string_view> title_ = std::nullopt;
     /// The chart data option
     std::optional<pv::VizDataT> data_ = std::nullopt;
     /// The style option
