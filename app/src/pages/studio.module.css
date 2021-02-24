@@ -11,6 +11,7 @@
 @value v_viztype_color: rgb(255, 255, 255);
 @value v_viztype_hover_bg: rgb(40, 40, 40);
 @value v_program_info_height: 40px;
+@value v_board_bg: rgb(225, 225, 225);
 
 .studio {
     width: 100%;
@@ -215,7 +216,7 @@
     grid-row: 2;
     grid-column: 2;
     height: 100%;
-    background-color: rgb(229, 229, 229);
+    background-color: v_board_bg;
     border-left: 1px solid v_border_color;
 }
 
