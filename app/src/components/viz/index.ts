@@ -1,1 +1,1 @@
-export * from './table_chart';
+export * from './table_renderer';
