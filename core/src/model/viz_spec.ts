@@ -5,6 +5,7 @@ import { proto } from "src/index_node";
 /// The viz base spec
 export interface VizSpec {
     readonly position: VizPosition;
+    readonly title?: string;
     readonly components: VizComponentSpec[];
 }
 

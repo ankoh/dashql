@@ -88,6 +88,7 @@ export abstract class BaseVizActionLogic extends ProgramActionLogic {
             nameShort: this.buffer.targetNameShort() || "",
             currentStatementId: this.origin.statementId,
             spec: {
+                title: vizSpec.title() || undefined,
                 position: pos,
                 components: components
             }
