@@ -1,25 +1,31 @@
-import * as proto from "@dashql/proto";
-import * as webdb from "@dashql/webdb";
-import * as model from "../model";
-import { ProgramActionLogic, SetupActionLogic } from "./action_logic";
-import { ActionContext } from "./action_context";
+import * as proto from '@dashql/proto';
+import * as webdb from '@dashql/webdb';
+import * as model from '../model';
+import * as error from '../error';
+import { ProgramActionLogic, SetupActionLogic } from './action_logic';
+import { ActionContext } from './action_context';
 import ActionStatusCode = proto.action.ActionStatusCode;
-import { SVGStyleMap } from "../model";
+import { Action, LogLevel, SVGStyleMap } from '../model';
+import { ColumnStatisticsType } from '../platform';
 
 export abstract class BaseVizActionLogic extends ProgramActionLogic {
     constructor(action_id: model.ActionHandle, action: proto.action.ProgramAction, statement: model.Statement) {
         super(action_id, action, statement);
     }
 
-    protected getDefaultVizInfo(): model.VizInfo {
+    protected get tableNameQualified() {
+        return this.buffer.targetNameQualified()!;
+    }
+
+    protected getDefaultVizInfo(rowCount: number): model.VizInfo {
         const now = new Date();
         return {
             objectId: this.buffer.objectId(),
             objectType: model.PlanObjectType.VIZ_INFO,
             timeCreated: now,
             timeUpdated: now,
-            nameQualified: this.buffer.targetNameQualified() || "",
-            nameShort: this.buffer.targetNameShort() || "",
+            nameQualified: this.buffer.targetNameQualified() || '',
+            nameShort: this.buffer.targetNameShort() || '',
             currentStatementId: this.origin.statementId,
             spec: {
                 position: {
@@ -28,16 +34,17 @@ export abstract class BaseVizActionLogic extends ProgramActionLogic {
                     width: 0,
                     height: 0,
                 },
-                components: []
-            }
+                components: [],
+                rowCount: rowCount,
+            },
         };
     }
 
-    protected deriveVizInfo(context: ActionContext): model.VizInfo {
+    protected deriveVizInfo(context: ActionContext, rowCount: number): model.VizInfo {
         const instance = context.plan.programInstance;
         const vizSpec = instance.vizSpecs.get(this.origin.statementId);
         if (!vizSpec) {
-            return this.getDefaultVizInfo();
+            return this.getDefaultVizInfo(rowCount);
         }
         const now = new Date();
 
@@ -75,7 +82,7 @@ export abstract class BaseVizActionLogic extends ProgramActionLogic {
                 typeModifiers,
                 styles,
                 data,
-                selectionID: null
+                selectionID: null,
             });
         }
 
@@ -84,35 +91,59 @@ export abstract class BaseVizActionLogic extends ProgramActionLogic {
             objectType: model.PlanObjectType.VIZ_INFO,
             timeCreated: now,
             timeUpdated: now,
-            nameQualified: this.buffer.targetNameQualified() || "",
-            nameShort: this.buffer.targetNameShort() || "",
+            nameQualified: this.buffer.targetNameQualified() || '',
+            nameShort: this.buffer.targetNameShort() || '',
             currentStatementId: this.origin.statementId,
             spec: {
                 title: vizSpec.title() || undefined,
                 position: pos,
-                components: components
-            }
+                components: components,
+                rowCount: rowCount,
+            },
         };
     }
 }
 
 export class CreateVizActionLogic extends BaseVizActionLogic {
+    /// The promise to get the row count
+    _rowCountPromise: Promise<webdb.Value> | null = null;
+
     constructor(action_id: model.ActionHandle, action: proto.action.ProgramAction, statement: model.Statement) {
         super(action_id, action, statement);
     }
 
-    public prepareExecution(_context: ActionContext) {}
+    public getTableInfo(context: ActionContext): model.DatabaseTableInfo {
+        const state = context.platform.store.getState();
+        const tableInfo = state.core.planDatabaseTables.get(this.tableNameQualified);
+        if (!tableInfo) {
+            throw new error.LoggableError(`database table ${this.tableNameQualified} does not exist`, LogLevel.ERROR);
+        }
+        return tableInfo;
+    }
+
+    public prepareExecution(context: ActionContext) {
+        const tableInfo = this.getTableInfo(context);
+        this._rowCountPromise = context.platform.database.requestColumnStatistics(
+            tableInfo!,
+            ColumnStatisticsType.ROW_COUNT,
+        );
+    }
 
     public async execute(context: ActionContext): Promise<model.ActionHandle> {
-        const info = this.deriveVizInfo(context);
+        const tableInfo = this.getTableInfo(context);
+        await context.platform.database.evaluateColumnStatistics(tableInfo);
+        const rowCount = (await this._rowCountPromise)?.castAsInteger() || 0;
+
+        // Store the viz info
+        const info = this.deriveVizInfo(context, rowCount);
         const store = context.platform.store;
         model.mutate(store.dispatch, {
             type: model.StateMutationType.INSERT_PLAN_OBJECTS,
-            data: [info]
+            data: [info],
         });
         return this.returnWithStatus(ActionStatusCode.COMPLETED);
     }
-};
+}
 
 export class UpdateVizActionLogic extends BaseVizActionLogic {
     constructor(action_id: model.ActionHandle, action: proto.action.ProgramAction, statement: model.Statement) {
@@ -122,16 +153,19 @@ export class UpdateVizActionLogic extends BaseVizActionLogic {
     public prepareExecution(_context: ActionContext) {}
 
     public async execute(context: ActionContext): Promise<model.ActionHandle> {
-        const info = this.deriveVizInfo(context);
+        const state = context.platform.store.getState();
+        const prev = state.core.planObjects.get(this.buffer.objectId().toString()) as model.VizInfo;
+         
+        const info = this.deriveVizInfo(context, prev.spec.rowCount || 0);
         const store = context.platform.store;
         model.mutate(store.dispatch, {
             type: model.StateMutationType.INSERT_PLAN_OBJECTS,
-            data: [info]
+            data: [info],
         });
 
         return this.returnWithStatus(ActionStatusCode.COMPLETED);
     }
-};
+}
 
 export class DropVizActionLogic extends SetupActionLogic {
     constructor(action_id: model.ActionHandle, action: proto.action.SetupAction) {
@@ -145,9 +179,7 @@ export class DropVizActionLogic extends SetupActionLogic {
         const objectId = this.buffer.objectId();
         model.mutate(store.dispatch, {
             type: model.StateMutationType.DELETE_PLAN_OBJECTS,
-            data: [
-                objectId
-            ]
+            data: [objectId],
         });
         return this.returnWithStatus(ActionStatusCode.COMPLETED);
     }

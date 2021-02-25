@@ -27,7 +27,7 @@ export class Platform {
         this._logger = logger;
         this._webdb = webdb;
         this._analyzer = analyzer;
-        this._databaseManager = new DatabaseManager(this._webdb);
+        this._databaseManager = new DatabaseManager(this._webdb, this._store);
         this._fileManager = new FileManager(store);
         this._httpManager = new HTTPManager(store);
     }
