@@ -1,4 +1,5 @@
 import * as webdb from '@dashql/webdb/dist/webdb_async';
+import * as proto from '@dashql/proto';
 import { Mutex } from '../utils';
 
 /// An database manager.
@@ -14,11 +15,14 @@ export class DatabaseManager {
     _connection: webdb.AsyncConnection | null;
     /// The connection mutex
     _connectionMutex: Mutex;
+    /// The table statistics requests
+    _tableStatisticsQueue: Map<string, TableStatisticsQueue>;
 
     constructor(db: webdb.AsyncWebDB) {
         this._webdb = db;
         this._connection = null;
         this._connectionMutex = new Mutex();
+        this._tableStatisticsQueue = new Map();
     }
 
     /// Setup the database connection
@@ -30,8 +34,8 @@ export class DatabaseManager {
     public async use<T>(f: (conn: webdb.AsyncConnection) => Promise<T>): Promise<T> {
         return await this._connectionMutex.useAsync(async () => {
             if (!this._connection) {
-                throw new Error("not connected");
-            };
+                throw new Error('not connected');
+            }
             return await f(this._connection);
         });
     }
@@ -52,5 +56,186 @@ export class DatabaseManager {
         });
         this._connection = conn;
         return this._connection;
+    }
+
+    /// Request column statistics.
+    ///
+    /// We invest some effort to eliminate redundant statistics queries.
+    /// A very common operation in dashboards is the computation of the value domain or the row count.
+    /// We could, in principle, just query DuckDB within every single viz but that's unnecessary overhead
+    /// since we can compute all of the associative aggregates at once.
+    ///
+    /// We therefore untangle these column statistics and create a two-step process.
+    /// Every viz logic first requests column statistics in its prepare hook.
+    /// The database manager then merges all requests and runs a single query that forwards statistics to all vizzes.
+    public async requestColumnStatistics(
+        tableName: string,
+        columnId: number,
+        type: ColumnStatisticsType,
+    ): Promise<webdb.Value> {
+        let queue = this._tableStatisticsQueue.get(tableName);
+        if (!queue) {
+            queue = new TableStatisticsQueue(tableName);
+            this._tableStatisticsQueue.set(tableName, queue);
+        }
+        return queue.request(columnId, type);
+    }
+
+    /// Evaluate pending column statistics
+    public async evaluateColumnStatistics(tableName: string) {
+        // Get the queue
+        const queue = this._tableStatisticsQueue.get(tableName);
+        if (!queue) return;
+        this._tableStatisticsQueue.delete(tableName);
+
+        const text = queue.buildQuery();
+        try {
+            // Run the query
+            const result = await this.use(async (conn: webdb.AsyncConnection) => {
+                return await conn.runQuery(text);
+            });
+
+            // Unpack the query result
+            const chunkIter = new webdb.MaterializedQueryResultChunks(result);
+            const rowIter = webdb.MaterializedQueryResultRowIterator.iterate(chunkIter);
+            if (rowIter.isEnd()) {
+                // XXX Received no values
+                // -> reject
+            }
+
+            // Resolve with values
+            let values: webdb.Value[] = [];
+            for (let i = 0; i < Math.min(queue._requestedValueCount, chunkIter.columnCount); ++i) {
+                values.push(rowIter.getValue(i));
+            }
+            queue.resolve(values);
+        } catch (e) {
+            // An error occured, forward to promises
+            queue.reject(e);
+        }
+    }
+}
+
+/// A queue for table statistics
+export class TableStatisticsQueue {
+    /// The table
+    _tableName: string;
+    /// The column names
+    _columnNames: string[];
+    /// The column types
+    _columnTypes: webdb.SQLType[];
+    /// The column requests
+    _requestsByColumn: ColumnStatisticsRequest[][];
+    /// The requested column count
+    _requestedValueCount: number;
+
+    /// Constructor
+    constructor(tableName: string) {
+        this._tableName = tableName;
+        this._columnNames = [];
+        this._columnTypes = [];
+        this._requestsByColumn = [];
+        this._requestedValueCount = 0;
+    }
+
+    /// Build the query text
+    public buildQuery(): string {
+        let out = 'SELECT ';
+        let value_id = 0;
+        for (let column_id = 0; column_id < this._columnNames.length; ++column_id) {
+            let column_name = this._columnNames[column_id];
+            if (value_id++ > 0) {
+                out += ', ';
+            }
+            for (const req of this._requestsByColumn[column_id]) {
+                switch (req._statsType) {
+                    case ColumnStatisticsType.ROW_COUNT:
+                        out += `count(${column_name})`;
+                        break;
+                    case ColumnStatisticsType.MINIMUM_VALUE:
+                        out += `min(${column_name})`;
+                        break;
+                    case ColumnStatisticsType.MAXIMUM_VALUE:
+                        out += `max(${column_name})`;
+                        break;
+                }
+            }
+        }
+        out += ` FROM ${this._tableName};`;
+        return out;
+    }
+
+    /// Request statistics
+    public async request(columnId: number, type: ColumnStatisticsType): Promise<webdb.Value> {
+        let reqs = this._requestsByColumn[columnId];
+        let req: ColumnStatisticsRequest | null = null;
+        for (const r of reqs) {
+            if (r._statsType != type) continue;
+            req = r;
+            break;
+        }
+        if (req == null) {
+            req = new ColumnStatisticsRequest(type);
+            reqs.push(req);
+        }
+        const r = req;
+        return new Promise((resolve, reject) => {
+            r._promiseResolvers.push(resolve);
+            r._promiseRejecters.push(reject);
+        });
+    }
+
+    /// Resolve all reqeusts
+    public resolve(values: webdb.Value[]) {
+        let out_id = 0;
+        for (let column_id = 0; column_id < this._columnNames.length; ++column_id) {
+            for (let req_id = 0; req_id < this._requestsByColumn[column_id].length; ++req_id) {
+                const o = out_id++;
+                const v = o < values.length ? values[0] : new webdb.Value();
+                const req = this._requestsByColumn[column_id][req_id];
+                for (const resolve of req._promiseResolvers) {
+                    resolve(v);
+                }
+            }
+        }
+    }
+
+    /// Reject all requests
+    public reject(e: any) {
+        for (let column_id = 0; column_id < this._columnNames.length; ++column_id) {
+            for (let req_id = 0; req_id < this._requestsByColumn[column_id].length; ++req_id) {
+                const req = this._requestsByColumn[column_id][req_id];
+                for (const reject of req._promiseRejecters) {
+                    reject(e);
+                }
+            }
+        }
+    }
+}
+
+/// A column statistics type
+export enum ColumnStatisticsType {
+    ROW_COUNT,
+    MINIMUM_VALUE,
+    MAXIMUM_VALUE,
+}
+
+/// A column statistics request
+export class ColumnStatisticsRequest {
+    /// The statistics type
+    _statsType: ColumnStatisticsType;
+    /// The promise resolvers
+    _promiseResolvers: ((value: webdb.Value) => void)[];
+    /// The promise rejecters
+    _promiseRejecters: ((e: any) => void)[];
+    /// The value (if resolved)
+    _value: webdb.Value | null;
+
+    /// Constructor
+    constructor(statsType: ColumnStatisticsType) {
+        this._statsType = statsType;
+        this._promiseResolvers = [];
+        this._promiseRejecters = [];
+        this._value = null;
     }
 }

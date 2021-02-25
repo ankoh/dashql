@@ -6,6 +6,7 @@ import {
     AsyncChunkIterator,
     BlockingChunkIterator,
     AsyncRowIterator,
+    BlockingRowIterator
 } from './iterator_base';
 import { AsyncConnection } from './async_webdb';
 import { webdb as proto } from '@dashql/proto';
@@ -80,6 +81,42 @@ export class MaterializedQueryResultChunks extends ChunkIteratorBase
         ++this._currentChunkID;
         this._currentChunk = this._chunks[this._currentChunkID];
         return true;
+    }
+}
+
+/// A query result row iterator
+export class MaterializedQueryResultRowIterator extends RowIteratorBase implements BlockingRowIterator {
+    /// Constructor
+    protected constructor(chunks: AsyncChunkIterator) {
+        super(chunks);
+    }
+    /// Get iterator
+    public get iter() {
+        return this._chunkIter as BlockingChunkIterator;
+    }
+
+    /// Iterate over a result buffer
+    public static iterate(chunks: MaterializedQueryResultChunks): MaterializedQueryResultRowIterator {
+        let iter = new MaterializedQueryResultRowIterator(chunks);
+        chunks.nextBlocking();
+        iter._currentChunkBegin = 0;
+        return iter;
+    }
+
+    /// Advance the iterator
+    public nextBlocking(): boolean {
+        // Reached end?
+        if (this.isEnd()) return false;
+
+        // Still in current chunk?
+        ++this._globalRowIndex;
+        if (this.currentRow < this.currentChunk.rowCount()) return true;
+
+        // Get next chunk
+        this.iter.nextBlocking();
+        this._currentChunkBegin = this._globalRowIndex;
+        let empty = this.currentChunk.rowCount() == 0;
+        return !empty;
     }
 }
 
