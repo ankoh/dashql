@@ -11,6 +11,8 @@ export class LoadHTTPActionLogic extends ProgramActionLogic {
         super(action_id, action, statement);
     }
 
+    public prepareExecution(_context: ActionContext) {}
+
     public async execute(context: ActionContext): Promise<ActionHandle> {
         await utils.sleep(500);
 

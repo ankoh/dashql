@@ -28,6 +28,8 @@ export class CreateTableActionLogic extends ProgramActionLogic {
         super(action_id, action, statement);
     }
 
+    public prepareExecution(_context: ActionContext) {}
+
     public async execute(context: ActionContext): Promise<model.ActionHandle> {
         const script = this.script;
         if (!script) {

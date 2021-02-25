@@ -10,6 +10,8 @@ export class DropViewActionLogic extends SetupActionLogic {
         super(action_id, action);
     }
 
+    public prepareExecution(_context: ActionContext) {}
+
     public async execute(context: ActionContext): Promise<ActionHandle> {
         const db = context.platform.database;
         await db.use(async (c: webdb.AsyncConnection) => {

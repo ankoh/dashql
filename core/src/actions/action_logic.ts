@@ -70,6 +70,9 @@ export abstract class ActionLogic<ActionBuffer extends ProtoAction> {
         this._status = status;
         return this._action_id;
     }
+
+    /// Prepare an action for execution
+    public abstract prepareExecution(context: ActionContext): void;
     /// Execute an action
     public abstract execute(context: ActionContext): Promise<ActionHandle>;
 }

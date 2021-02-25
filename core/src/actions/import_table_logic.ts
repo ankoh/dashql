@@ -10,6 +10,8 @@ export class ImportTableActionLogic extends SetupActionLogic {
         super(action_id, action);
     }
 
+    public prepareExecution(_context: ActionContext) {}
+
     public async execute(_context: ActionContext): Promise<ActionHandle> {
         return this.returnWithStatus(ActionStatusCode.COMPLETED);
     }

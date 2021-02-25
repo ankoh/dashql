@@ -101,6 +101,8 @@ export class CreateVizActionLogic extends BaseVizActionLogic {
         super(action_id, action, statement);
     }
 
+    public prepareExecution(_context: ActionContext) {}
+
     public async execute(context: ActionContext): Promise<model.ActionHandle> {
         const info = this.deriveVizInfo(context);
         const store = context.platform.store;
@@ -116,6 +118,8 @@ export class UpdateVizActionLogic extends BaseVizActionLogic {
     constructor(action_id: model.ActionHandle, action: proto.action.ProgramAction, statement: model.Statement) {
         super(action_id, action, statement);
     }
+
+    public prepareExecution(_context: ActionContext) {}
 
     public async execute(context: ActionContext): Promise<model.ActionHandle> {
         const info = this.deriveVizInfo(context);
@@ -134,6 +138,8 @@ export class DropVizActionLogic extends SetupActionLogic {
         super(action_id, action);
     }
 
+    public prepareExecution(_context: ActionContext) {}
+
     public async execute(context: ActionContext): Promise<model.ActionHandle> {
         const store = context.platform.store!;
         const objectId = this.buffer.objectId();
@@ -151,6 +157,8 @@ export class ImportVizActionLogic extends SetupActionLogic {
     constructor(action_id: model.ActionHandle, action: proto.action.SetupAction) {
         super(action_id, action);
     }
+
+    public prepareExecution(_context: ActionContext) {}
 
     public async execute(_context: ActionContext): Promise<model.ActionHandle> {
         return this.returnWithStatus(ActionStatusCode.COMPLETED);

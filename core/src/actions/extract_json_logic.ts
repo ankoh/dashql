@@ -10,6 +10,8 @@ export class ExtractJsonActionLogic extends ProgramActionLogic {
         super(action_id, action, statement);
     }
 
+    public prepareExecution(_context: ActionContext) {}
+
     public async execute(_context: ActionContext): Promise<ActionHandle> {
         await utils.sleep(500);
         return this.returnWithStatus(ActionStatusCode.COMPLETED);
