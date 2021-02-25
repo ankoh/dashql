@@ -51,7 +51,7 @@ export class DataGrid extends React.Component<Props, State> {
             visibleRows: 100,
             overscanColumnCount: 0,
             overscanRowCount: 10,
-            rowHeight: 32,
+            rowHeight: 24,
         };
     }
 
@@ -299,7 +299,7 @@ export class DataGrid extends React.Component<Props, State> {
         return (
             <AutoSizer>
                 {({ width, height }) => {
-                    const columnHeaderHeight = 28;
+                    const columnHeaderHeight = 24;
                     const rowHeaderWidth = 28;
                     const columnWidth = this.computeColumnWidth(width, rowHeaderWidth);
                     const bodyHeight = height - columnHeaderHeight;
