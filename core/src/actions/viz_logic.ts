@@ -17,7 +17,7 @@ export abstract class BaseVizActionLogic extends ProgramActionLogic {
         return this.buffer.targetNameQualified()!;
     }
 
-    protected getDefaultVizInfo(rowCount: number): model.VizInfo {
+    protected getDefaultVizInfo(): model.VizInfo {
         const now = new Date();
         return {
             objectId: this.buffer.objectId(),
@@ -35,16 +35,15 @@ export abstract class BaseVizActionLogic extends ProgramActionLogic {
                     height: 0,
                 },
                 components: [],
-                rowCount: rowCount,
             },
         };
     }
 
-    protected deriveVizInfo(context: ActionContext, rowCount: number): model.VizInfo {
+    protected deriveVizInfo(context: ActionContext): model.VizInfo {
         const instance = context.plan.programInstance;
         const vizSpec = instance.vizSpecs.get(this.origin.statementId);
         if (!vizSpec) {
-            return this.getDefaultVizInfo(rowCount);
+            return this.getDefaultVizInfo();
         }
         const now = new Date();
 
@@ -98,7 +97,6 @@ export abstract class BaseVizActionLogic extends ProgramActionLogic {
                 title: vizSpec.title() || undefined,
                 position: pos,
                 components: components,
-                rowCount: rowCount,
             },
         };
     }
@@ -135,7 +133,7 @@ export class CreateVizActionLogic extends BaseVizActionLogic {
         const rowCount = (await this._rowCountPromise)?.castAsInteger() || 0;
 
         // Store the viz info
-        const info = this.deriveVizInfo(context, rowCount);
+        const info = this.deriveVizInfo(context);
         const store = context.platform.store;
         model.mutate(store.dispatch, {
             type: model.StateMutationType.INSERT_PLAN_OBJECTS,
@@ -156,7 +154,7 @@ export class UpdateVizActionLogic extends BaseVizActionLogic {
         const state = context.platform.store.getState();
         const prev = state.core.planObjects.get(this.buffer.objectId().toString()) as model.VizInfo;
          
-        const info = this.deriveVizInfo(context, prev.spec.rowCount || 0);
+        const info = this.deriveVizInfo(context);
         const store = context.platform.store;
         model.mutate(store.dispatch, {
             type: model.StateMutationType.INSERT_PLAN_OBJECTS,

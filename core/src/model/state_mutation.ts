@@ -9,6 +9,7 @@ import { Program, StatementStatus, deriveStatementStatusCode } from './program';
 import { ProgramInstance } from './program_instance';
 import { CoreState } from './state';
 import { CachedFileData, CachedHTTPData } from './cache';
+import { model } from 'src/index_node';
 
 const MAX_LOG_SIZE = 100;
 
@@ -31,6 +32,7 @@ export enum StateMutationType {
     UPDATE_PLAN_ACTIONS = 'UPDATE_PLAN_ACTIONS',
     INSERT_PLAN_OBJECTS = 'INSERT_PLAN_OBJECTS',
     DELETE_PLAN_OBJECTS = 'DELETE_PLAN_OBJECTS',
+    UPDATE_PLAN_OBJECT = 'UPDATE_PLAN_OBJECT',
     CACHE_HTTP_DATA = 'CACHE_HTTP_DATA',
     CACHE_FILE_DATA = 'CACHE_FILE_DATA',
     HIT_CACHED_HTTP_DATA = 'HIT_CACHED_HTTP_DATA',
@@ -51,6 +53,7 @@ export type StateMutationVariant =
     | StateMutation<StateMutationType.UPDATE_PLAN_ACTIONS, ActionUpdate[]>
     | StateMutation<StateMutationType.INSERT_PLAN_OBJECTS, PlanObject[]>
     | StateMutation<StateMutationType.DELETE_PLAN_OBJECTS, PlanObjectID[]>
+    | StateMutation<StateMutationType.UPDATE_PLAN_OBJECT, Partial<model.PlanObject>>
     | StateMutation<StateMutationType.CACHE_FILE_DATA, [CachedFileData, string | null]>
     | StateMutation<StateMutationType.CACHE_HTTP_DATA, [CachedHTTPData, string | null]>
     | StateMutation<StateMutationType.HIT_CACHED_FILE_DATA, string>

@@ -7,7 +7,6 @@ export interface VizSpec {
     readonly position: VizPosition;
     readonly title?: string;
     readonly components: VizComponentSpec[];
-    readonly rowCount?: number;
 }
 
 export interface VizComponentSpec {
