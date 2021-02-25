@@ -10,6 +10,8 @@ export class ModifyTableActionLogic extends ProgramActionLogic {
         super(action_id, action, statement);
     }
 
+    public prepareExecution(_context: ActionContext) {}
+
     public async execute(_context: ActionContext): Promise<ActionHandle> {
         return this.returnWithStatus(ActionStatusCode.COMPLETED);
     }
