@@ -92,11 +92,21 @@ export class ActionScheduler<ActionBuffer extends ProtoAction> {
     /// Schedule all actions that can be scheduled.
     /// An action can be scheduled if its rank is zero in the dependency heap.
     protected scheduleNext(context: ActionContext, diff: NativeStack) {
+        // Collect next actions
+        let next_action_idcs: number[] = [];
         while (!this._actionQueue.empty() && this._actionQueue.topRank() == 0) {
-            const next_action_idx = this._actionQueue.top();
+            next_action_idcs.push(this._actionQueue.top());
+            this._actionQueue.pop();
+        }
+        // Prepare all actions for execution
+        for (const next_action_idx of next_action_idcs) {
+            const next_action = this._actions[next_action_idx];
+            next_action.prepareExecution(context);
+        }
+        // Schedule all actions
+        for (const next_action_idx of next_action_idcs) {
             const next_action = this._actions[next_action_idx];
             next_action.status = proto.action.ActionStatusCode.RUNNING;
-            this._actionQueue.pop();
             this._scheduledActions.set(next_action_idx);
             this._actionPromises[next_action_idx] = next_action.execute(context);
             diff.push(next_action_idx);
