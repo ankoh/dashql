@@ -1,6 +1,8 @@
 import * as webdb from '@dashql/webdb/dist/webdb_async';
 import * as proto from '@dashql/proto';
+import * as model from '../model';
 import { Mutex } from '../utils';
+import { Plan } from '../model';
 
 /// An database manager.
 ///
@@ -11,6 +13,8 @@ import { Mutex } from '../utils';
 export class DatabaseManager {
     /// The async webdb
     _webdb: webdb.AsyncWebDB;
+    // The store
+    _store: model.DerivedReduxStore;
     /// The connection
     _connection: webdb.AsyncConnection | null;
     /// The connection mutex
@@ -18,8 +22,9 @@ export class DatabaseManager {
     /// The table statistics requests
     _tableStatisticsQueue: Map<string, TableStatisticsQueue>;
 
-    constructor(db: webdb.AsyncWebDB) {
+    constructor(db: webdb.AsyncWebDB, store: model.DerivedReduxStore) {
         this._webdb = db;
+        this._store = store;
         this._connection = null;
         this._connectionMutex = new Mutex();
         this._tableStatisticsQueue = new Map();
@@ -69,24 +74,24 @@ export class DatabaseManager {
     /// Every viz logic first requests column statistics in its prepare hook.
     /// The database manager then merges all requests and runs a single query that forwards statistics to all vizzes.
     public async requestColumnStatistics(
-        tableName: string,
-        columnId: number,
+        tableInfo: model.DatabaseTableInfo,
         type: ColumnStatisticsType,
+        columnId: number = 0,
     ): Promise<webdb.Value> {
-        let queue = this._tableStatisticsQueue.get(tableName);
+        let queue = this._tableStatisticsQueue.get(tableInfo.nameQualified);
         if (!queue) {
-            queue = new TableStatisticsQueue(tableName);
-            this._tableStatisticsQueue.set(tableName, queue);
+            queue = new TableStatisticsQueue(tableInfo);
+            this._tableStatisticsQueue.set(tableInfo.nameQualified, queue);
         }
         return queue.request(columnId, type);
     }
 
     /// Evaluate pending column statistics
-    public async evaluateColumnStatistics(tableName: string) {
+    public async evaluateColumnStatistics(tableInfo: model.DatabaseTableInfo) {
         // Get the queue
-        const queue = this._tableStatisticsQueue.get(tableName);
+        const queue = this._tableStatisticsQueue.get(tableInfo.nameQualified);
         if (!queue) return;
-        this._tableStatisticsQueue.delete(tableName);
+        this._tableStatisticsQueue.delete(tableInfo.nameQualified);
 
         const text = queue.buildQuery();
         try {
@@ -101,6 +106,7 @@ export class DatabaseManager {
             if (rowIter.isEnd()) {
                 // XXX Received no values
                 // -> reject
+                console.error('NO RESULTS');
             }
 
             // Resolve with values
@@ -119,21 +125,15 @@ export class DatabaseManager {
 /// A queue for table statistics
 export class TableStatisticsQueue {
     /// The table
-    _tableName: string;
-    /// The column names
-    _columnNames: string[];
-    /// The column types
-    _columnTypes: webdb.SQLType[];
+    _tableInfo: model.DatabaseTableInfo;
     /// The column requests
     _requestsByColumn: ColumnStatisticsRequest[][];
     /// The requested column count
     _requestedValueCount: number;
 
     /// Constructor
-    constructor(tableName: string) {
-        this._tableName = tableName;
-        this._columnNames = [];
-        this._columnTypes = [];
+    constructor(tableInfo: model.DatabaseTableInfo) {
+        this._tableInfo = tableInfo;
         this._requestsByColumn = [];
         this._requestedValueCount = 0;
     }
@@ -142,15 +142,15 @@ export class TableStatisticsQueue {
     public buildQuery(): string {
         let out = 'SELECT ';
         let value_id = 0;
-        for (let column_id = 0; column_id < this._columnNames.length; ++column_id) {
-            let column_name = this._columnNames[column_id];
+        for (let column_id = 0; column_id < this._requestsByColumn.length; ++column_id) {
+            let column_name = this._tableInfo.columnNames[column_id];
             if (value_id++ > 0) {
                 out += ', ';
             }
             for (const req of this._requestsByColumn[column_id]) {
                 switch (req._statsType) {
                     case ColumnStatisticsType.ROW_COUNT:
-                        out += `count(${column_name})`;
+                        out += `count(*)::INTEGER`;
                         break;
                     case ColumnStatisticsType.MINIMUM_VALUE:
                         out += `min(${column_name})`;
@@ -161,12 +161,16 @@ export class TableStatisticsQueue {
                 }
             }
         }
-        out += ` FROM ${this._tableName};`;
+        out += ` FROM ${this._tableInfo.nameShort};`;
         return out;
     }
 
     /// Request statistics
     public async request(columnId: number, type: ColumnStatisticsType): Promise<webdb.Value> {
+        let prevLen = this._requestsByColumn.length;
+        for (let i = prevLen; i <= columnId; ++i) {
+            this._requestsByColumn.push([]);
+        }
         let reqs = this._requestsByColumn[columnId];
         let req: ColumnStatisticsRequest | null = null;
         for (const r of reqs) {
@@ -177,6 +181,7 @@ export class TableStatisticsQueue {
         if (req == null) {
             req = new ColumnStatisticsRequest(type);
             reqs.push(req);
+            ++this._requestedValueCount;
         }
         const r = req;
         return new Promise((resolve, reject) => {
@@ -188,10 +193,10 @@ export class TableStatisticsQueue {
     /// Resolve all reqeusts
     public resolve(values: webdb.Value[]) {
         let out_id = 0;
-        for (let column_id = 0; column_id < this._columnNames.length; ++column_id) {
+        for (let column_id = 0; column_id < this._tableInfo.columnNames.length; ++column_id) {
             for (let req_id = 0; req_id < this._requestsByColumn[column_id].length; ++req_id) {
                 const o = out_id++;
-                const v = o < values.length ? values[0] : new webdb.Value();
+                const v = o < values.length ? values[o] : new webdb.Value();
                 const req = this._requestsByColumn[column_id][req_id];
                 for (const resolve of req._promiseResolvers) {
                     resolve(v);
@@ -202,7 +207,7 @@ export class TableStatisticsQueue {
 
     /// Reject all requests
     public reject(e: any) {
-        for (let column_id = 0; column_id < this._columnNames.length; ++column_id) {
+        for (let column_id = 0; column_id < this._requestsByColumn.length; ++column_id) {
             for (let req_id = 0; req_id < this._requestsByColumn[column_id].length; ++req_id) {
                 const req = this._requestsByColumn[column_id][req_id];
                 for (const reject of req._promiseRejecters) {

@@ -312,11 +312,12 @@ export class ActionGraphScheduler {
             // Update the action status in the analyzer
             for (const [_, u] of actionUpdates) {
                 // Update the action status in the analyzer
-                ctx.platform.analyzer.updateActionStatus(
-                    getActionClass(u.actionId),
-                    getActionIndex(u.actionId),
-                    u.statusCode
-                );
+                // XXX
+                // ctx.platform.analyzer.updateActionStatus(
+                //     getActionClass(u.actionId),
+                //     getActionIndex(u.actionId),
+                //     u.statusCode
+                // );
             }
             // Update all actions in the store
             mutate(ctx.platform.store.dispatch, {
