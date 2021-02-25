@@ -69,9 +69,9 @@ export class DataGrid extends React.Component<Props, State> {
     public onScroll(pos: PositionValues) {
         const firstVisibleRow = Math.min(
             Math.trunc((pos.scrollTop * pos.verticalScaling) / this.state.rowHeight),
-            this.rowCount,
+            this.rowCount!,
         );
-        const maxVisibleRows = this.rowCount - firstVisibleRow;
+        const maxVisibleRows = this.rowCount! - firstVisibleRow;
         const visibleRows = Math.min(Math.trunc(pos.clientHeight / this.state.rowHeight), maxVisibleRows);
         this.setState({
             ...this.state,
@@ -86,7 +86,7 @@ export class DataGrid extends React.Component<Props, State> {
     public onScrollStop() {
         const ofs = this.state.firstVisibleRow;
         const count = this.state.visibleRows;
-        const end = Math.min(ofs + count, this.rowCount);
+        const end = Math.min(ofs + count, this.rowCount!);
         this.props.dataProvider(new core.access.ScanRequest(ofs, end - ofs));
     }
 
@@ -131,8 +131,8 @@ export class DataGrid extends React.Component<Props, State> {
             return defaultCellRangeRenderer(props);
         }
 
-        const dataBegin = Math.min(req.offset, this.rowCount);
-        const dataEnd = Math.min(req.offset + req.limit, this.rowCount);
+        const dataBegin = Math.min(req.offset, this.rowCount!);
+        const dataEnd = Math.min(req.offset + req.limit, this.rowCount!);
         const rowsBegin = props.rowStartIndex;
         const rowsEnd = props.rowStopIndex + 1;
 
@@ -320,7 +320,7 @@ export class DataGrid extends React.Component<Props, State> {
                                 columnWidth={columnWidth}
                                 columnCount={this.columnCount}
                                 rowHeight={this.state.rowHeight}
-                                rowCount={this.props.tableInfo.rowCount}
+                                rowCount={this.props.tableInfo.rowCount!}
                                 scrollTop={this.state.scrollTop}
                                 scrollLeft={this.state.scrollLeft}
                                 overscanColumnCount={this.state.overscanColumnCount}
@@ -336,7 +336,7 @@ export class DataGrid extends React.Component<Props, State> {
                                     height: bodyHeight,
                                 }}
                                 innerWidth={this.columnCount * columnWidth}
-                                innerHeight={this.props.tableInfo.rowCount * this.state.rowHeight}
+                                innerHeight={this.props.tableInfo.rowCount! * this.state.rowHeight}
                                 onScrollFrame={this._onScroll}
                                 onScrollStop={this._onScrollStop}
                             />
@@ -348,7 +348,7 @@ export class DataGrid extends React.Component<Props, State> {
                                 columnWidth={rowHeaderWidth}
                                 columnCount={1}
                                 rowHeight={this.state.rowHeight}
-                                rowCount={this.props.tableInfo.rowCount}
+                                rowCount={this.props.tableInfo.rowCount!}
                                 scrollTop={this.state.scrollTop}
                                 overscanColumnCount={this.state.overscanColumnCount}
                                 overscanRowCount={this.state.overscanRowCount}

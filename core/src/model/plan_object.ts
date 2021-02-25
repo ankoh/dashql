@@ -34,7 +34,7 @@ export interface DatabaseTableInfo extends PlanObject {
     /// The column type
     columnTypes: webdb.SQLType[];
     /// The row count
-    rowCount: number;
+    rowCount?: number;
 }
 
 /// A vizualisation data object

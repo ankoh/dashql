@@ -15,7 +15,6 @@ export class DropViewActionLogic extends SetupActionLogic {
     public async execute(context: ActionContext): Promise<ActionHandle> {
         const db = context.platform.database;
         await db.use(async (c: webdb.AsyncConnection) => {
-            console.log(`DROP VIEW IF EXISTS ${this.buffer.targetNameShort()}`);
             await c.runQuery(`DROP VIEW IF EXISTS ${this.buffer.targetNameShort()}`);
         });
         return this.returnWithStatus(ActionStatusCode.COMPLETED);
