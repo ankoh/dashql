@@ -63,6 +63,11 @@ export class DatabaseManager {
         return this._connection;
     }
 
+    /// Resolve table info
+    public resolveTableInfo(qualifiedTableName: string): model.DatabaseTableInfo | null {
+        return this._store.getState().core.planDatabaseTables.get(qualifiedTableName) || null;
+    }
+
     /// Request column statistics.
     ///
     /// We invest some effort to eliminate redundant statistics queries.
@@ -74,26 +79,34 @@ export class DatabaseManager {
     /// Every viz logic first requests column statistics in its prepare hook.
     /// The database manager then merges all requests and runs a single query that forwards statistics to all vizzes.
     public async requestColumnStatistics(
-        tableInfo: model.DatabaseTableInfo,
-        type: ColumnStatisticsType,
+        qualifiedTableName: string,
+        type: model.ColumnSummaryType,
         columnId: number = 0,
     ): Promise<webdb.Value> {
-        let queue = this._tableStatisticsQueue.get(tableInfo.nameQualified);
+        let queue = this._tableStatisticsQueue.get(qualifiedTableName);
         if (!queue) {
-            queue = new TableStatisticsQueue(tableInfo);
-            this._tableStatisticsQueue.set(tableInfo.nameQualified, queue);
+            queue = new TableStatisticsQueue(this, qualifiedTableName);
+            this._tableStatisticsQueue.set(qualifiedTableName, queue);
         }
         return queue.request(columnId, type);
     }
 
     /// Evaluate pending column statistics
-    public async evaluateColumnStatistics(tableInfo: model.DatabaseTableInfo) {
-        // Get the queue
-        const queue = this._tableStatisticsQueue.get(tableInfo.nameQualified);
-        if (!queue) return;
-        this._tableStatisticsQueue.delete(tableInfo.nameQualified);
+    public async evaluateColumnStatistics(qualifiedTableName: string) {
+        // Resolve the table info.
+        // If it doesn't exit we have nothing to do.
+        const tableInfo = this.resolveTableInfo(qualifiedTableName);
+        if (!tableInfo) return;
 
-        const text = queue.buildQuery();
+        // Get the queue.
+        // Abort immediatedly if there's none.
+        // This happens whenever two viz statements evaluate the same queue simultaneously.
+        const queue = this._tableStatisticsQueue.get(qualifiedTableName);
+        if (!queue) return;
+        this._tableStatisticsQueue.delete(qualifiedTableName);
+
+        /// Build the query text
+        const text = queue.buildQuery(tableInfo);
         try {
             // Run the query
             const result = await this.use(async (conn: webdb.AsyncConnection) => {
@@ -124,49 +137,52 @@ export class DatabaseManager {
 
 /// A queue for table statistics
 export class TableStatisticsQueue {
+    /// THe database manager
+    _databaseManager: DatabaseManager;
     /// The table
-    _tableInfo: model.DatabaseTableInfo;
+    _tableNameQualified: string;
     /// The column requests
     _requestsByColumn: ColumnStatisticsRequest[][];
     /// The requested column count
     _requestedValueCount: number;
 
     /// Constructor
-    constructor(tableInfo: model.DatabaseTableInfo) {
-        this._tableInfo = tableInfo;
+    constructor(dbManager: DatabaseManager, qualifiedTableName: string) {
+        this._databaseManager = dbManager;
+        this._tableNameQualified = qualifiedTableName;
         this._requestsByColumn = [];
         this._requestedValueCount = 0;
     }
 
     /// Build the query text
-    public buildQuery(): string {
+    public buildQuery(tableInfo: model.DatabaseTableInfo): string {
         let out = 'SELECT ';
         let value_id = 0;
         for (let column_id = 0; column_id < this._requestsByColumn.length; ++column_id) {
-            let column_name = this._tableInfo.columnNames[column_id];
+            let column_name = tableInfo.columnNames[column_id];
             if (value_id++ > 0) {
                 out += ', ';
             }
             for (const req of this._requestsByColumn[column_id]) {
                 switch (req._statsType) {
-                    case ColumnStatisticsType.ROW_COUNT:
+                    case model.ColumnSummaryType.COUNT_STAR:
                         out += `count(*)::INTEGER`;
                         break;
-                    case ColumnStatisticsType.MINIMUM_VALUE:
+                    case model.ColumnSummaryType.MINIMUM_VALUE:
                         out += `min(${column_name})`;
                         break;
-                    case ColumnStatisticsType.MAXIMUM_VALUE:
+                    case model.ColumnSummaryType.MAXIMUM_VALUE:
                         out += `max(${column_name})`;
                         break;
                 }
             }
         }
-        out += ` FROM ${this._tableInfo.nameShort};`;
+        out += ` FROM ${tableInfo.nameShort};`;
         return out;
     }
 
     /// Request statistics
-    public async request(columnId: number, type: ColumnStatisticsType): Promise<webdb.Value> {
+    public async request(columnId: number, type: model.ColumnSummaryType): Promise<webdb.Value> {
         let prevLen = this._requestsByColumn.length;
         for (let i = prevLen; i <= columnId; ++i) {
             this._requestsByColumn.push([]);
@@ -193,7 +209,7 @@ export class TableStatisticsQueue {
     /// Resolve all reqeusts
     public resolve(values: webdb.Value[]) {
         let out_id = 0;
-        for (let column_id = 0; column_id < this._tableInfo.columnNames.length; ++column_id) {
+        for (let column_id = 0; column_id < this._requestsByColumn.length; ++column_id) {
             for (let req_id = 0; req_id < this._requestsByColumn[column_id].length; ++req_id) {
                 const o = out_id++;
                 const v = o < values.length ? values[o] : new webdb.Value();
@@ -218,17 +234,10 @@ export class TableStatisticsQueue {
     }
 }
 
-/// A column statistics type
-export enum ColumnStatisticsType {
-    ROW_COUNT,
-    MINIMUM_VALUE,
-    MAXIMUM_VALUE,
-}
-
 /// A column statistics request
 export class ColumnStatisticsRequest {
     /// The statistics type
-    _statsType: ColumnStatisticsType;
+    _statsType: model.ColumnSummaryType;
     /// The promise resolvers
     _promiseResolvers: ((value: webdb.Value) => void)[];
     /// The promise rejecters
@@ -237,7 +246,7 @@ export class ColumnStatisticsRequest {
     _value: webdb.Value | null;
 
     /// Constructor
-    constructor(statsType: ColumnStatisticsType) {
+    constructor(statsType: model.ColumnSummaryType) {
         this._statsType = statsType;
         this._promiseResolvers = [];
         this._promiseRejecters = [];
