@@ -5,8 +5,7 @@ import * as error from '../error';
 import { ProgramActionLogic, SetupActionLogic } from './action_logic';
 import { ActionContext } from './action_context';
 import ActionStatusCode = proto.action.ActionStatusCode;
-import { LogLevel, SVGStyleMap } from '../model';
-import { ColumnStatisticsType } from '../platform';
+import { ColumnSummaryType, LogLevel, SVGStyleMap } from '../model';
 
 export abstract class BaseVizActionLogic extends ProgramActionLogic {
     constructor(action_id: model.ActionHandle, action: proto.action.ProgramAction, statement: model.Statement) {
@@ -108,27 +107,17 @@ export class CreateVizActionLogic extends BaseVizActionLogic {
         super(action_id, action, statement);
     }
 
-    public getTableInfo(context: ActionContext): model.DatabaseTableInfo {
-        const state = context.platform.store.getState();
-        const tableInfo = state.core.planDatabaseTables.get(this.tableNameQualified);
-        if (!tableInfo) {
-            throw new error.LoggableError(`database table ${this.tableNameQualified} does not exist`, LogLevel.ERROR);
-        }
-        return tableInfo;
-    }
-
     public prepareExecution(context: ActionContext) {
-        const tableInfo = this.getTableInfo(context);
         this._rowCountPromise = context.platform.database.requestColumnStatistics(
-            tableInfo!,
-            ColumnStatisticsType.ROW_COUNT,
+            this.tableNameQualified,
+            ColumnSummaryType.COUNT_STAR,
         );
     }
 
     public async execute(context: ActionContext): Promise<model.ActionHandle> {
-        const tableInfo = this.getTableInfo(context);
-        await context.platform.database.evaluateColumnStatistics(tableInfo);
+        await context.platform.database.evaluateColumnStatistics(this.tableNameQualified);
         const rowCount = (await this._rowCountPromise)?.castAsInteger() || 0;
+        console.log(`rowCount: ${rowCount}`);
 
         // Store the viz info
         const info = this.deriveVizInfo(context);
