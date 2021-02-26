@@ -1,12 +1,13 @@
-import * as Immutable from "immutable";
-import { LogEntryVariant } from "./log";
-import { Plan } from "./plan";
-import { CachedFileData, CachedHTTPData } from "./cache";
-import { ActionSchedulerStatus, ActionHandle, Action } from "./action";
-import { PlanObjectID, PlanObject, DatabaseTableInfo } from "./plan_object";
-import { Program, StatementStatus, ParameterValue } from "./program";
-import { ProgramInstance } from "./program_instance";
-import { Store } from "redux";
+import * as Immutable from 'immutable';
+import { LogEntryVariant } from './log';
+import { Plan } from './plan';
+import { CachedFileData, CachedHTTPData } from './cache';
+import { ActionSchedulerStatus, ActionHandle, Action } from './action';
+import { DatabaseTableInfo } from './database_info';
+import { PlanObjectID, PlanObject } from './plan_object';
+import { Program, StatementStatus, ParameterValue } from './program';
+import { ProgramInstance } from './program_instance';
+import { Store } from 'redux';
 
 export class CoreState {
     /// The log entries
@@ -48,10 +49,10 @@ export class CoreState {
     /// Constructor
     constructor() {
         this.logEntries = Immutable.List<LogEntryVariant>();
-        this.fileName = "unnamed.dashql";
+        this.fileName = 'unnamed.dashql';
         this.fileSize = 0;
         this.fileLineCount = 0;
-        this.programText = "";
+        this.programText = '';
         this.program = null;
         this.programParameters = Immutable.List<ParameterValue>();
         this.programInstance = null;
@@ -69,13 +70,17 @@ export class CoreState {
 export interface DerivedState {
     /// The core state
     core: CoreState;
-};
+}
 
 // The store type
 export type DerivedReduxStore = Store<DerivedState>;
 
 // Helper to observe a store
-export function observeStore<T>(store: DerivedReduxStore, select: (state: DerivedState) => T, onChange: (v: T) => void) {
+export function observeStore<T>(
+    store: DerivedReduxStore,
+    select: (state: DerivedState) => T,
+    onChange: (v: T) => void,
+) {
     let prev: T | null = null;
     const stateChanged = () => {
         const next = select(store.getState());

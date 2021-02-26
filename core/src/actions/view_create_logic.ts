@@ -27,7 +27,7 @@ export class ViewCreateActionLogic extends ProgramActionLogic {
 
             // Return plan object
             const now = new Date();
-            const table: model.DatabaseTableInfo = {
+            return await collectTableInfo(c, {
                 objectId: this.buffer.objectId(),
                 objectType: model.PlanObjectType.DATABASE_TABLE_INFO,
                 timeCreated: now,
@@ -37,9 +37,7 @@ export class ViewCreateActionLogic extends ProgramActionLogic {
                 columnNames: [],
                 columnTypes: [],
                 rowCount: 0,
-            };
-            await collectTableInfo(c, table);
-            return table;
+            });
         });
 
         if (table) {

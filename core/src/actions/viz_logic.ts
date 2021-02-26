@@ -5,7 +5,7 @@ import * as error from '../error';
 import { ProgramActionLogic, SetupActionLogic } from './action_logic';
 import { ActionContext } from './action_context';
 import ActionStatusCode = proto.action.ActionStatusCode;
-import { Action, LogLevel, SVGStyleMap } from '../model';
+import { LogLevel, SVGStyleMap } from '../model';
 import { ColumnStatisticsType } from '../platform';
 
 export abstract class BaseVizActionLogic extends ProgramActionLogic {
@@ -26,16 +26,15 @@ export abstract class BaseVizActionLogic extends ProgramActionLogic {
             timeUpdated: now,
             nameQualified: this.buffer.targetNameQualified() || '',
             nameShort: this.buffer.targetNameShort() || '',
+
             currentStatementId: this.origin.statementId,
-            spec: {
-                position: {
-                    row: 0,
-                    column: 0,
-                    width: 0,
-                    height: 0,
-                },
-                components: [],
+            position: {
+                row: 0,
+                column: 0,
+                width: 0,
+                height: 0,
             },
+            components: [],
         };
     }
 
@@ -92,12 +91,11 @@ export abstract class BaseVizActionLogic extends ProgramActionLogic {
             timeUpdated: now,
             nameQualified: this.buffer.targetNameQualified() || '',
             nameShort: this.buffer.targetNameShort() || '',
+
             currentStatementId: this.origin.statementId,
-            spec: {
-                title: vizSpec.title() || undefined,
-                position: pos,
-                components: components,
-            },
+            title: vizSpec.title() || undefined,
+            position: pos,
+            components: components,
         };
     }
 }

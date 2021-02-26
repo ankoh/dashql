@@ -1,9 +1,11 @@
 // Copyright (c) 2020 The DashQL Authors
 
-import { proto } from "src/index_node";
+import { proto } from 'src/index_node';
+import { PlanObject } from './plan_object';
 
 /// The viz base spec
-export interface VizSpec {
+export interface VizInfo extends PlanObject {
+    readonly currentStatementId: number;
     readonly position: VizPosition;
     readonly title?: string;
     readonly components: VizComponentSpec[];
@@ -23,14 +25,14 @@ export interface VizPosition {
     readonly column: number;
     readonly width: number;
     readonly height: number;
-};
+}
 
 export interface VizData {
     readonly x?: string;
     readonly y?: string;
     readonly y0?: string;
     readonly categories?: string;
-};
+}
 
 /// A style configuration
 export interface SVGStyleConfiguration {
