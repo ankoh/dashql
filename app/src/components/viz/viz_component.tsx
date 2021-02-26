@@ -15,9 +15,8 @@ enum VizRenderer {
 export class VizComponent extends React.Component<Props> {
     public render() {
         let renderer: VizRenderer | null = null;
-        const spec = this.props.vizInfo.spec;
 
-        for (const c of spec.components) {
+        for (const c of this.props.vizInfo.components) {
             switch (c.type) {
                 case core.proto.syntax.VizComponentType.AREA:
                 case core.proto.syntax.VizComponentType.AXIS:
