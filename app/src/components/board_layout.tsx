@@ -63,10 +63,10 @@ class BoardLayout extends React.Component<Props> {
     getLayout(data: Map<string, core.model.VizInfo>) {
         const l = Array.from(data).map(([key, data]) => ({
             i: key,
-            x: data.spec.position.column,
-            y: data.spec.position.row,
-            w: data.spec.position.width || 8,
-            h: data.spec.position.height || 4,
+            x: data.position.column,
+            y: data.position.row,
+            w: data.position.width || 8,
+            h: data.position.height || 4,
         }));
         return l;
     }

@@ -5,22 +5,31 @@ import { ProgramActionLogic } from "./action_logic";
 import { ActionContext } from "./action_context";
 import ActionStatusCode = proto.action.ActionStatusCode;
 
-export async function collectTableInfo(conn: webdb.AsyncConnection, info: model.DatabaseTableInfo) {
+/// XXX Delete this eventually in favor of the async statistics requests
+export async function collectTableInfo(conn: webdb.AsyncConnection, info: model.DatabaseTableInfo): Promise<model.DatabaseTableInfo> {
     // Get column names and types
     const limit0 = await conn.runQuery(`SELECT * FROM ${info.nameShort} LIMIT 0`);
-    info.columnNames = [];
+    const columnNames: string[] = [];
+    const columnTypes: webdb.SQLType[] = [];
     for (let ci = 0; ci < limit0.columnNamesLength(); ++ci) {
-        info.columnNames.push(limit0.columnNames(ci));
-        info.columnTypes.push(webdb.getSQLType(limit0.columnTypes(ci)));
+        columnNames.push(limit0.columnNames(ci));
+        columnTypes.push(webdb.getSQLType(limit0.columnTypes(ci)));
     }
 
     // Get the row count
     const countResult = await conn.runQuery(`SELECT count(*)::INTEGER FROM ${info.nameShort}`);
     const countChunkIter = new webdb.MaterializedQueryResultChunks(countResult);
     const countRowIter = webdb.MaterializedQueryResultRowIterator.iterate(countChunkIter);
-    info.rowCount = countRowIter.getValue().castAsInteger();
+    const rowCount = countRowIter.getValue().castAsInteger();
 
-    info.timeUpdated = new Date();
+    const timeUpdated = new Date();
+    return {
+        ...info,
+        columnNames,
+        columnTypes,
+        timeUpdated,
+        rowCount
+    };
 }
 
 export class CreateTableActionLogic extends ProgramActionLogic {
@@ -43,7 +52,7 @@ export class CreateTableActionLogic extends ProgramActionLogic {
 
             // Return plan object
             const now = new Date();
-            const table: model.DatabaseTableInfo = {
+            return await collectTableInfo(c, {
                 objectId: this.buffer.objectId(),
                 objectType: model.PlanObjectType.DATABASE_TABLE_INFO,
                 timeCreated: now,
@@ -53,9 +62,7 @@ export class CreateTableActionLogic extends ProgramActionLogic {
                 columnNames: [],
                 columnTypes: [],
                 rowCount: 0,
-            };
-            await collectTableInfo(c, table);
-            return table;
+            });
         });
 
         if (table) {
