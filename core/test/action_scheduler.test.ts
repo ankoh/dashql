@@ -106,14 +106,13 @@ describe('Action Scheduler', () => {
                     url = 'https://localhost/test'
                 );
                 EXTRACT weather FROM weather_csv USING CSV;
-                VIZ weather USING LINE;
             `);
             analyzerBindings.instantiateProgram();
             const plan = analyzerBindings.planProgram();
             const graph = plan!.buffer.actionGraph()!;
-            expect(program.buffer.statementsLength()).toBe(3);
+            expect(program.buffer.statementsLength()).toBe(2);
             expect(graph.setupActionsLength()).toBe(0);
-            expect(graph.programActionsLength()).toBe(3);
+            expect(graph.programActionsLength()).toBe(2);
 
             const logic = resolveProgramActionLogic(plan!);
             const interrupt = new Promise((_resolve: (value: any) => void, _reject: (reason?: void) => void) => {});
@@ -127,16 +126,13 @@ describe('Action Scheduler', () => {
             expect(scheduler.actions.map(a => a.buffer.actionType())).toEqual([
                 ProgramActionType.LOAD_HTTP,
                 ProgramActionType.EXTRACT_CSV,
-                ProgramActionType.CREATE_VIZ,
             ]);
             expect(scheduler.actions.map(a => a.buffer.dependsOnArray())).toEqual([
                 null,
                 new Uint32Array([0]),
-                new Uint32Array([1]),
             ]);
             expect(scheduler.actions.map(a => a.buffer.requiredForArray())).toEqual([
                 new Uint32Array([1]),
-                new Uint32Array([2]),
                 null,
             ]);
 
@@ -147,9 +143,6 @@ describe('Action Scheduler', () => {
             expect(workLeft).toBe(true);
             workLeft = await scheduler.execute(ctx, diff);
             expect(scheduler.actions[1].status).toBe(ActionStatus.COMPLETED);
-            expect(workLeft).toBe(true);
-            workLeft = await scheduler.execute(ctx, diff);
-            expect(scheduler.actions[2].status).toBe(ActionStatus.COMPLETED);
             expect(workLeft).toBe(false);
         });
 
