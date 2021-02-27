@@ -306,6 +306,7 @@ add_library(dashql_extract
 )
 
 add_library(dashql_dataframe
+    ${CMAKE_SOURCE_DIR}/src/dataframe/dataframe.cc
     ${CMAKE_SOURCE_DIR}/src/dataframe/dataframe_ffi.cc
 )
 
@@ -466,6 +467,7 @@ if(NOT EMSCRIPTEN)
         ${CMAKE_SOURCE_DIR}/test/common/substring_buffer_test.cc
         ${CMAKE_SOURCE_DIR}/test/common/topological_sort_test.cc
         ${CMAKE_SOURCE_DIR}/test/common/union_find_test.cc
+        ${CMAKE_SOURCE_DIR}/test/dataframe/dataframe_test.cc
         ${CMAKE_SOURCE_DIR}/test/extract/csv_parser_test.cc
         ${CMAKE_SOURCE_DIR}/test/extract/csv_sniffer_test.cc
         ${CMAKE_SOURCE_DIR}/test/extract/extract_test.cc
