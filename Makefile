@@ -148,12 +148,12 @@ proto:
 # Build the wasm module with debug info
 .PHONY: wasm
 wasm:
-	${EXEC_ENVIRONMENT} "./scripts/wasm_build_lib.sh Fast"
+	${EXEC_ENVIRONMENT} ./scripts/wasm_build_lib.sh Fast
 
 # Build the wasm modules
 .PHONY: wasm_release
 wasm_release:
-	${EXEC_ENVIRONMENT} "./scripts/wasm_build_lib.sh Release"
+	${EXEC_ENVIRONMENT} ./scripts/wasm_build_lib.sh Release
 
 # Builds the app
 .PHONY: app
