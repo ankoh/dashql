@@ -9,7 +9,6 @@
         "axios": "^0.21.0",
         "chart.js": "^2.9.4",
         "flatbuffers": "^1.12.0",
-        "fsevents": "*",
         "hash-wasm": "^4.4.1",
         "immutable": "^4.0.0-rc.12",
         "react": "^17.0.1",
