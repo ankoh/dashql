@@ -1,25 +1,8 @@
 // Copyright (c) 2020 The DashQL Authors
 
-import * as Immutable from "immutable";
-import { PlanObject } from "./plan_object";
+import * as Immutable from 'immutable';
+import { PlanObject } from './plan_object';
 import * as webdb from '@dashql/webdb';
-
-/// A column summary type
-export enum ColumnSummaryType {
-    COUNT_STAR,
-    MINIMUM_VALUE,
-    MAXIMUM_VALUE,
-}
-
-/// A column statistic
-export interface ColumnStatistic {
-    /// The column id
-    readonly column_id: number;
-    /// The statistics type
-    readonly type: ColumnSummaryType;
-    /// The value
-    readonly value: webdb.Value;
-}
 
 /// A database table info
 export interface DatabaseTableInfo extends PlanObject {
@@ -27,8 +10,27 @@ export interface DatabaseTableInfo extends PlanObject {
     readonly columnNames: string[];
     /// The column type
     readonly columnTypes: webdb.SQLType[];
-    /// The row count
-    readonly rowCount?: number;
-    /// The column summaries 
-    readonly column_summaries?: Immutable.List<ColumnStatistic>;
+    /// The statistics
+    readonly statistics: Immutable.Map<TableStatisticsType, webdb.Value>;
+}
+
+/// A column summary type
+export enum TableStatisticsType {
+    COUNT_STAR = 0,
+    MINIMUM_VALUE = 1,
+    MAXIMUM_VALUE = 2,
+}
+/// A table statistics key
+export type TableStatisticsKey = number;
+/// Build a key for table statistics by concatenating the type and the column idx
+export function buildTableStatisticsKey(type: TableStatisticsType, column_id: number = 0): TableStatisticsKey {
+    return (column_id << 2) | (type as number);
+}
+/// Extract the statistics type from a table statistics key
+export function getTableStatisticsType(key: TableStatisticsKey): TableStatisticsType {
+    return (key & 0b11) as TableStatisticsType;
+}
+/// Extract the column id from a table statistics key
+export function getTableStatisticsColumn(key: TableStatisticsKey): TableStatisticsType {
+    return key >> 2;
 }
