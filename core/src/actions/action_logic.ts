@@ -85,6 +85,7 @@ export abstract class ProgramActionLogic extends ActionLogic<proto.action.Progra
     constructor(action_id: ActionHandle, action: proto.action.ProgramAction, origin: Statement) {
         super(action_id, action);
         this._origin = origin;
+        this._status = action.actionStatusCode();
     }
 
     /// Return the origin
@@ -97,5 +98,6 @@ export abstract class SetupActionLogic extends ActionLogic<proto.action.SetupAct
     /// Constructor
     constructor(action_id: ActionHandle, action: proto.action.SetupAction) {
         super(action_id, action);
+        this._status = action.actionStatusCode();
     }
 }

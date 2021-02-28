@@ -95,9 +95,25 @@ export class ActionScheduler<ActionBuffer extends ProtoAction> {
         // Collect next actions
         let next_action_idcs: number[] = [];
         while (!this._actionQueue.empty() && this._actionQueue.topRank() == 0) {
-            next_action_idcs.push(this._actionQueue.top());
+            const action_idx = this._actionQueue.top();
             this._actionQueue.pop();
+            diff.push(action_idx);
+
+            // Action already done, register as completed?
+            if (this._actions[action_idx].status == proto.action.ActionStatusCode.COMPLETED) {
+                const requiredFor = this._actions[action_idx].buffer.requiredForArray();
+                if (requiredFor) {
+                    for (const req of requiredFor) {
+                        this._actionQueue.decrementRank(req);
+                    }
+                }
+
+                continue;
+            }
+            // Remember next action id
+            next_action_idcs.push(action_idx);
         }
+
         // Prepare all actions for execution
         for (const next_action_idx of next_action_idcs) {
             const next_action = this._actions[next_action_idx];
@@ -109,7 +125,6 @@ export class ActionScheduler<ActionBuffer extends ProtoAction> {
             next_action.status = proto.action.ActionStatusCode.RUNNING;
             this._scheduledActions.set(next_action_idx);
             this._actionPromises[next_action_idx] = next_action.execute(context);
-            diff.push(next_action_idx);
         }
     }
 
@@ -312,12 +327,11 @@ export class ActionGraphScheduler {
             // Update the action status in the analyzer
             for (const [_, u] of actionUpdates) {
                 // Update the action status in the analyzer
-                // XXX
-                // ctx.platform.analyzer.updateActionStatus(
-                //     getActionClass(u.actionId),
-                //     getActionIndex(u.actionId),
-                //     u.statusCode
-                // );
+                ctx.platform.analyzer.updateActionStatus(
+                    getActionClass(u.actionId),
+                    getActionIndex(u.actionId),
+                    u.statusCode
+                );
             }
             // Update all actions in the store
             mutate(ctx.platform.store.dispatch, {

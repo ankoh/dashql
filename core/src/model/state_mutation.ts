@@ -110,8 +110,17 @@ export class StateMutations {
                 mutation.data[1].forEach(a => {
                     if (a.originStatement != null) {
                         ++stmt[a.originStatement].totalActions;
+
+                        // Already done?
+                        // This may happen on import.
+                        if (a.statusCode == proto.action.ActionStatusCode.COMPLETED) {
+                            ++stmt[a.originStatement].completedActions;
+                        }
                     }
                 });
+                for (const s of stmt) {
+                    s.status = deriveStatementStatusCode(s);
+                }
                 return {
                     ...state,
                     schedulerStatus: ActionSchedulerStatus.Working,
@@ -166,6 +175,8 @@ export class StateMutations {
                             }
                             const origin = { ...status.get(action.originStatement)! };
                             switch (action.statusCode) {
+                                case proto.action.ActionStatusCode.NONE:
+                                    break;
                                 case proto.action.ActionStatusCode.BLOCKED:
                                     --origin.blockedActions;
                                     break;
@@ -173,9 +184,10 @@ export class StateMutations {
                                     --origin.runningActions;
                                     break;
                                 case proto.action.ActionStatusCode.COMPLETED:
-                                case proto.action.ActionStatusCode.FAILED:
-                                case proto.action.ActionStatusCode.NONE:
+                                    --origin.completedActions;
                                     break;
+                                case proto.action.ActionStatusCode.FAILED:
+                                    --origin.failedActions;
                             }
                             switch (update.statusCode) {
                                 case proto.action.ActionStatusCode.NONE:
