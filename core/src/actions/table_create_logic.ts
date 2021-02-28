@@ -1,6 +1,7 @@
 import * as proto from "@dashql/proto";
 import * as webdb from "@dashql/webdb/dist/webdb_async";
 import * as model from "../model";
+import * as Immutable from 'immutable';
 import { ProgramActionLogic } from "./action_logic";
 import { ActionContext } from "./action_context";
 import ActionStatusCode = proto.action.ActionStatusCode;
@@ -15,20 +16,12 @@ export async function collectTableInfo(conn: webdb.AsyncConnection, info: model.
         columnNames.push(limit0.columnNames(ci));
         columnTypes.push(webdb.getSQLType(limit0.columnTypes(ci)));
     }
-
-    // Get the row count
-    const countResult = await conn.runQuery(`SELECT count(*)::INTEGER FROM ${info.nameShort}`);
-    const countChunkIter = new webdb.MaterializedQueryResultChunks(countResult);
-    const countRowIter = webdb.MaterializedQueryResultRowIterator.iterate(countChunkIter);
-    const rowCount = countRowIter.getValue().castAsInteger();
-
     const timeUpdated = new Date();
     return {
         ...info,
         columnNames,
         columnTypes,
         timeUpdated,
-        rowCount
     };
 }
 
@@ -61,7 +54,7 @@ export class CreateTableActionLogic extends ProgramActionLogic {
                 nameShort: this.buffer.targetNameShort() || "",
                 columnNames: [],
                 columnTypes: [],
-                rowCount: 0,
+                statistics: Immutable.Map(),
             });
         });
 

@@ -61,8 +61,9 @@ export class DataGrid extends React.Component<Props, State> {
     }
 
     /// Get the row count
-    public get rowCount() {
-        return this.props.tableInfo.rowCount;
+    public get rowCount(): number {
+        const key = core.model.buildTableStatisticsKey(core.model.TableStatisticsType.COUNT_STAR);
+        return this.props.tableInfo.statistics.get(key)?.castAsInteger() || 0;
     }
 
     /// Scroll handler
@@ -320,7 +321,7 @@ export class DataGrid extends React.Component<Props, State> {
                                 columnWidth={columnWidth}
                                 columnCount={this.columnCount}
                                 rowHeight={this.state.rowHeight}
-                                rowCount={this.props.tableInfo.rowCount!}
+                                rowCount={this.rowCount}
                                 scrollTop={this.state.scrollTop}
                                 scrollLeft={this.state.scrollLeft}
                                 overscanColumnCount={this.state.overscanColumnCount}
@@ -336,7 +337,7 @@ export class DataGrid extends React.Component<Props, State> {
                                     height: bodyHeight,
                                 }}
                                 innerWidth={this.columnCount * columnWidth}
-                                innerHeight={this.props.tableInfo.rowCount! * this.state.rowHeight}
+                                innerHeight={this.rowCount * this.state.rowHeight}
                                 onScrollFrame={this._onScroll}
                                 onScrollStop={this._onScrollStop}
                             />
@@ -348,7 +349,7 @@ export class DataGrid extends React.Component<Props, State> {
                                 columnWidth={rowHeaderWidth}
                                 columnCount={1}
                                 rowHeight={this.state.rowHeight}
-                                rowCount={this.props.tableInfo.rowCount!}
+                                rowCount={this.rowCount}
                                 scrollTop={this.state.scrollTop}
                                 overscanColumnCount={this.state.overscanColumnCount}
                                 overscanRowCount={this.state.overscanRowCount}
