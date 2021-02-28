@@ -71,7 +71,7 @@ TEST_P(AnalyzerSpecTests, Test) {
     }
 }
 
-INSTANTIATE_TEST_SUITE_P(Clean, AnalyzerSpecTests, testing::ValuesIn(AnalyzerTest::GetTests("clean.xml")),
+INSTANTIATE_TEST_SUITE_P(FirstRun, AnalyzerSpecTests, testing::ValuesIn(AnalyzerTest::GetTests("first_run.xml")),
                          AnalyzerTest::TestPrinter());
-INSTANTIATE_TEST_SUITE_P(ParameterUpdate, AnalyzerSpecTests, testing::ValuesIn(AnalyzerTest::GetTests("parameter_update.xml")),
+INSTANTIATE_TEST_SUITE_P(Updates, AnalyzerSpecTests, testing::ValuesIn(AnalyzerTest::GetTests("updates.xml")),
                          AnalyzerTest::TestPrinter());

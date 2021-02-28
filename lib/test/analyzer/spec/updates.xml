@@ -72,7 +72,7 @@
         </graph>
     </step>
 </test>
-<test name="position_update_keep_view">
+<test name="position_update_view_changed">
     <step>
         <text>
             CREATE VIEW foo AS
@@ -104,6 +104,96 @@
                 FROM generate_series(0, 1000000) AS a(a1)</script>
                 </action>
                 <action origin="1" type="CREATE_VIZ" status="NONE" object_id="1">
+                    <target name_qualified="global.foo" name_short="foo" />
+                    <depends_on>
+                        <ref action="0" />
+                    </depends_on>
+                </action>
+            </program>
+        </graph>
+    </step>
+    <step>
+        <text>
+            CREATE VIEW foo AS
+                SELECT a1::INTEGER AS a
+                FROM generate_series(0, 1000000) AS a(a1);
+
+            VIZ foo USING TABLE (
+                pos = (r = 5, c = 1, w = 8, h = 4)
+            );
+        </text>
+        <parameters />
+        <evaluations />
+        <visualizations>
+            <visualization>
+                <target loc="148..151" text="foo" />
+                <position row="5" column="1" width="8" height="4" />
+                <components>
+                    <component type="TABLE" />
+                </components>
+            </visualization>
+        </visualizations>
+        <graph next_object_id="4">
+            <setup>
+                <action type="IMPORT_VIEW" status="NONE" object_id="0">
+                    <target name_qualified="global.foo" name_short="foo" />
+                </action>
+                <action type="DROP_VIZ" status="NONE" object_id="0">
+                    <target name_qualified="global.foo" name_short="foo" />
+                </action>
+            </setup>
+            <program>
+                <action origin="0" type="CREATE_VIEW" status="COMPLETED" object_id="0">
+                    <target name_qualified="global.foo" name_short="foo" />
+                    <required_for>
+                        <ref action="1" />
+                    </required_for>
+                    <script>CREATE VIEW foo AS
+                SELECT a1::INTEGER AS a
+                FROM generate_series(0, 1000000) AS a(a1)</script>
+                </action>
+                <action origin="1" type="CREATE_VIZ" status="NONE" object_id="3">
+                    <target name_qualified="global.foo" name_short="foo" />
+                    <depends_on>
+                        <ref action="0" />
+                    </depends_on>
+                </action>
+            </program>
+        </graph>
+    </step>
+</test>
+<test name="position_update_view_changed_2">
+    <step>
+        <text>
+            CREATE VIEW foo AS
+                SELECT a1::INTEGER AS a
+                FROM generate_series(0, 1000000) AS a(a1);
+
+            VIZ foo USING TABLE;
+        </text>
+        <parameters />
+        <evaluations />
+        <visualizations>
+            <visualization>
+                <target loc="148..151" text="foo" />
+                <components>
+                    <component type="TABLE" />
+                </components>
+            </visualization>
+        </visualizations>
+        <graph next_object_id="2">
+            <setup />
+            <program>
+                <action origin="0" type="CREATE_VIEW" status="COMPLETED" object_id="0">
+                    <target name_qualified="global.foo" name_short="foo" />
+                    <required_for>
+                        <ref action="1" />
+                    </required_for>
+                    <script>CREATE VIEW foo AS
+                SELECT a1::INTEGER AS a
+                FROM generate_series(0, 1000000) AS a(a1)</script>
+                </action>
+                <action origin="1" type="CREATE_VIZ" status="COMPLETED" object_id="1">
                     <target name_qualified="global.foo" name_short="foo" />
                     <depends_on>
                         <ref action="0" />
