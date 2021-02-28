@@ -32,7 +32,7 @@
         </parameters>
     </step>
 </test>
-<test name="position_update_keep_view">
+<test name="position_update_view_changed">
     <step>
         <text>
             CREATE VIEW foo AS
@@ -46,6 +46,42 @@
             <program>
                 <action status="COMPLETED" />
                 <action status="NONE" />
+            </program>
+        </graph>
+    </step>
+    <step>
+        <text>
+            CREATE VIEW foo AS
+                SELECT a1::INTEGER AS a
+                FROM generate_series(0, 1000000) AS a(a1);
+
+            VIZ foo USING TABLE (
+                pos = (r = 5, c = 1, w = 8, h = 4)
+            );
+        </text>
+        <parameters />
+        <graph>
+            <program>
+                <action status="COMPLETED" />
+                <action status="NONE" />
+            </program>
+        </graph>
+    </step>
+</test>
+<test name="position_update_view_changed_2">
+    <step>
+        <text>
+            CREATE VIEW foo AS
+                SELECT a1::INTEGER AS a
+                FROM generate_series(0, 1000000) AS a(a1);
+
+            VIZ foo USING TABLE;
+        </text>
+        <parameters />
+        <graph>
+            <program>
+                <action status="COMPLETED" />
+                <action status="COMPLETED" />
             </program>
         </graph>
     </step>
