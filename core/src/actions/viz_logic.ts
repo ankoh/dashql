@@ -2,10 +2,11 @@ import * as proto from '@dashql/proto';
 import * as webdb from '@dashql/webdb';
 import * as model from '../model';
 import * as error from '../error';
+import * as Immutable from 'immutable';
 import { ProgramActionLogic, SetupActionLogic } from './action_logic';
 import { ActionContext } from './action_context';
 import ActionStatusCode = proto.action.ActionStatusCode;
-import { ColumnSummaryType, LogLevel, SVGStyleMap } from '../model';
+import { SVGStyleMap } from '../model';
 
 export abstract class BaseVizActionLogic extends ProgramActionLogic {
     constructor(action_id: model.ActionHandle, action: proto.action.ProgramAction, statement: model.Statement) {
@@ -37,7 +38,7 @@ export abstract class BaseVizActionLogic extends ProgramActionLogic {
         };
     }
 
-    protected deriveVizInfo(context: ActionContext): model.VizInfo {
+    protected deriveVizInfo(context: ActionContext, mixin: Partial<model.VizInfo> = {}): model.VizInfo {
         const instance = context.plan.programInstance;
         const vizSpec = instance.vizSpecs.get(this.origin.statementId);
         if (!vizSpec) {
@@ -90,7 +91,6 @@ export abstract class BaseVizActionLogic extends ProgramActionLogic {
             timeUpdated: now,
             nameQualified: this.buffer.targetNameQualified() || '',
             nameShort: this.buffer.targetNameShort() || '',
-
             currentStatementId: this.origin.statementId,
             title: vizSpec.title() || undefined,
             position: pos,
@@ -108,20 +108,21 @@ export class CreateVizActionLogic extends BaseVizActionLogic {
     }
 
     public prepareExecution(context: ActionContext) {
-        this._rowCountPromise = context.platform.database.requestColumnStatistics(
+        // We will need the row count in any case
+        this._rowCountPromise = context.platform.database.requestTableStatistics(
             this.tableNameQualified,
-            ColumnSummaryType.COUNT_STAR,
+            model.TableStatisticsType.COUNT_STAR,
         );
     }
 
     public async execute(context: ActionContext): Promise<model.ActionHandle> {
-        await context.platform.database.evaluateColumnStatistics(this.tableNameQualified);
-        const rowCount = (await this._rowCountPromise)?.castAsInteger() || 0;
-        console.log(`rowCount: ${rowCount}`);
+        // Make sure the row count is available in the vizzes
+        await context.platform.database.evaluateTableStatistics(this.tableNameQualified);
+        await this._rowCountPromise!;
 
         // Store the viz info
-        const info = this.deriveVizInfo(context);
         const store = context.platform.store;
+        const info = this.deriveVizInfo(context);
         model.mutate(store.dispatch, {
             type: model.StateMutationType.INSERT_PLAN_OBJECTS,
             data: [info],

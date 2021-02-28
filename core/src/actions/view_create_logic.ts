@@ -1,6 +1,7 @@
 import * as proto from "@dashql/proto";
 import * as webdb from "@dashql/webdb/dist/webdb_async";
 import * as model from "../model";
+import * as Immutable from 'immutable';
 import { ActionHandle, Statement } from "../model";
 import { ProgramActionLogic } from "./action_logic";
 import { ActionContext } from "./action_context";
@@ -36,7 +37,7 @@ export class ViewCreateActionLogic extends ProgramActionLogic {
                 nameShort: this.buffer.targetNameShort() || "",
                 columnNames: [],
                 columnTypes: [],
-                rowCount: 0,
+                statistics: Immutable.Map(),
             });
         });
 

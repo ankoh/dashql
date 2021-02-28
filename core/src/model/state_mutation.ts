@@ -4,13 +4,12 @@ import * as utils from '../utils';
 import { LogEntryVariant } from './log';
 import { Plan } from './plan';
 import { ActionHandle, Action, ActionUpdate, ActionSchedulerStatus } from './action';
-import { DatabaseTableInfo } from './database_info';
+import { DatabaseTableInfo, TableStatisticsKey } from './database_info';
 import { PlanObjectID, PlanObject, PlanObjectType } from './plan_object';
 import { Program, StatementStatus, deriveStatementStatusCode } from './program';
 import { ProgramInstance } from './program_instance';
 import { CoreState } from './state';
 import { CachedFileData, CachedHTTPData } from './cache';
-import { model } from 'src/index_node';
 
 const MAX_LOG_SIZE = 100;
 
@@ -33,7 +32,7 @@ export enum StateMutationType {
     UPDATE_PLAN_ACTIONS = 'UPDATE_PLAN_ACTIONS',
     INSERT_PLAN_OBJECTS = 'INSERT_PLAN_OBJECTS',
     DELETE_PLAN_OBJECTS = 'DELETE_PLAN_OBJECTS',
-    UPDATE_PLAN_OBJECT = 'UPDATE_PLAN_OBJECT',
+    UPDATE_TABLE_INFO = 'UPDATE_TABLE_INFO',
     CACHE_HTTP_DATA = 'CACHE_HTTP_DATA',
     CACHE_FILE_DATA = 'CACHE_FILE_DATA',
     HIT_CACHED_HTTP_DATA = 'HIT_CACHED_HTTP_DATA',
@@ -54,7 +53,7 @@ export type StateMutationVariant =
     | StateMutation<StateMutationType.UPDATE_PLAN_ACTIONS, ActionUpdate[]>
     | StateMutation<StateMutationType.INSERT_PLAN_OBJECTS, PlanObject[]>
     | StateMutation<StateMutationType.DELETE_PLAN_OBJECTS, PlanObjectID[]>
-    | StateMutation<StateMutationType.UPDATE_PLAN_OBJECT, Partial<model.PlanObject>>
+    | StateMutation<StateMutationType.UPDATE_TABLE_INFO, [string, Partial<DatabaseTableInfo>]>
     | StateMutation<StateMutationType.CACHE_FILE_DATA, [CachedFileData, string | null]>
     | StateMutation<StateMutationType.CACHE_HTTP_DATA, [CachedHTTPData, string | null]>
     | StateMutation<StateMutationType.HIT_CACHED_FILE_DATA, string>
@@ -248,6 +247,21 @@ export class StateMutations {
                         os.deleteAll(mutation.data.map(k => k.toString()));
                     }),
                 };
+
+            case StateMutationType.UPDATE_TABLE_INFO: {
+                const table = state.planDatabaseTables.get(mutation.data[0]);
+                if (!table) return state;
+                const next = {
+                    ...table,
+                    ...mutation.data[1],
+                };
+                const key = table.objectId.toString();
+                return {
+                    ...state,
+                    planObjects: state.planObjects.set(key, next),
+                    planDatabaseTables: state.planDatabaseTables.set(table.nameQualified, next),
+                };
+            }
 
             case StateMutationType.CACHE_FILE_DATA:
                 return {
