@@ -39,13 +39,17 @@ export class ScriptPipeline {
         if (next.programText !== this._programText) {
             this._programText = next.programText;
 
-            // Parse the new program
-            const program = this._platform.analyzer.parseProgram(this._programText);
-            model.mutate(this._platform.store.dispatch, {
-                type: model.StateMutationType.SET_PROGRAM,
-                data: program,
-            });
-            return;
+            // Parse the new program if necessary
+            if (next.program && next.program.text == this._programText) {
+                this._program = next.program;
+            } else {
+                const program = this._platform.analyzer.parseProgram(this._programText);
+                model.mutate(this._platform.store.dispatch, {
+                    type: model.StateMutationType.SET_PROGRAM,
+                    data: program,
+                });
+                return;
+            }
         }
 
         // Program or parameters changed?
@@ -54,10 +58,12 @@ export class ScriptPipeline {
             this._programParameters = next.programParameters;
             if (!this._program) return;
 
-            // Program instance was updated as well?
-            // This happens when rewriting the program for the user.
-            // Bypass the instantiation and skip directly to the scheduler check.
-            if (next.programInstance && next.programInstance.program == next.program) {
+            // Instantiate the new program if necessary
+            if (
+                next.programInstance &&
+                next.programInstance.program == this._program &&
+                next.programInstance.parameters == this._programParameters
+            ) {
                 this._programInstance = next.programInstance;
             } else {
                 // Instantiate the new program
