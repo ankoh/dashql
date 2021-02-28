@@ -16,7 +16,6 @@ export class ViewCreateActionLogic extends ProgramActionLogic {
     public prepareExecution(_context: ActionContext) {}
 
     public async execute(context: ActionContext): Promise<model.ActionHandle> {
-        console.log(this.script);
         const script = this.script;
         if (!script) {
             return this.returnWithStatus(ActionStatusCode.COMPLETED);

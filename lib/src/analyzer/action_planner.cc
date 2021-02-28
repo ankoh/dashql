@@ -376,6 +376,7 @@ Signal ActionPlanner::MigrateActionGraph() {
             s->action_type = drop_action;
             s->target_name_qualified = prev_action->target_name_qualified;
             s->target_name_short = prev_action->target_name_short;
+            s->object_id = prev_action->object_id;
 
             // If statement B depends on A, the setup action of B must be executed before A.
             // This flips the original dependencies to ensure that, for example, derived views are dropped before
