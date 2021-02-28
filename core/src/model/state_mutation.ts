@@ -32,6 +32,7 @@ export enum StateMutationType {
     UPDATE_PLAN_ACTIONS = 'UPDATE_PLAN_ACTIONS',
     INSERT_PLAN_OBJECTS = 'INSERT_PLAN_OBJECTS',
     DELETE_PLAN_OBJECTS = 'DELETE_PLAN_OBJECTS',
+    DELETE_TABLE_INFO = 'DELETE_TABLE_INFO',
     UPDATE_TABLE_INFO = 'UPDATE_TABLE_INFO',
     CACHE_HTTP_DATA = 'CACHE_HTTP_DATA',
     CACHE_FILE_DATA = 'CACHE_FILE_DATA',
@@ -53,6 +54,7 @@ export type StateMutationVariant =
     | StateMutation<StateMutationType.UPDATE_PLAN_ACTIONS, ActionUpdate[]>
     | StateMutation<StateMutationType.INSERT_PLAN_OBJECTS, PlanObject[]>
     | StateMutation<StateMutationType.DELETE_PLAN_OBJECTS, PlanObjectID[]>
+    | StateMutation<StateMutationType.DELETE_TABLE_INFO, string>
     | StateMutation<StateMutationType.UPDATE_TABLE_INFO, [string, Partial<DatabaseTableInfo>]>
     | StateMutation<StateMutationType.CACHE_FILE_DATA, [CachedFileData, string | null]>
     | StateMutation<StateMutationType.CACHE_HTTP_DATA, [CachedHTTPData, string | null]>
@@ -249,16 +251,23 @@ export class StateMutations {
             case StateMutationType.DELETE_PLAN_OBJECTS:
                 return {
                     ...state,
-                    planDatabaseTables: state.planDatabaseTables.withMutations(os => {
-                        for (const v of mutation.data) {
-                            const n = state.planObjects.get(v.toString())?.nameQualified;
-                            if (n) os.delete(n);
-                        }
-                    }),
                     planObjects: state.planObjects.withMutations(os => {
                         os.deleteAll(mutation.data.map(k => k.toString()));
                     }),
                 };
+
+            case StateMutationType.DELETE_TABLE_INFO: {
+                const info = state.planDatabaseTables.get(mutation.data);
+                if (!info) {
+                    return state;
+                }
+                const objectID = info.objectId;
+                return {
+                    ...state,
+                    planObjects: state.planObjects.delete(objectID.toString()),
+                    planDatabaseTables: state.planDatabaseTables.delete(mutation.data),
+                };
+            }
 
             case StateMutationType.UPDATE_TABLE_INFO: {
                 const table = state.planDatabaseTables.get(mutation.data[0]);
