@@ -82,6 +82,7 @@ class BoardLayout extends React.Component<Props> {
                 onDragStop={this.onItemLayoutChanged}
                 onResizeStop={this.onItemLayoutChanged}
                 layout={this.getLayout(this.props.vizData)}
+                useCSSTransforms={false}
             >
                 {Array.from(this.props.vizData).map(([k, v]) => (
                     <div key={k}>
