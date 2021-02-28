@@ -107,7 +107,6 @@ export class ActionScheduler<ActionBuffer extends ProtoAction> {
                         this._actionQueue.decrementRank(req);
                     }
                 }
-
                 continue;
             }
             // Remember next action id
