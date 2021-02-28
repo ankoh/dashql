@@ -18,6 +18,8 @@ export class ProgramInstance {
     public readonly evaluatedNodes: Map<number, webdb.Value>;
     /// The viz specs
     public readonly vizSpecs: Map<number, proto.viz.VizSpec>;
+    /// The time when the program was created
+    public readonly createdAt: Date;
 
     /// Constructor
     public constructor(program: Program, params: Immutable.List<any>, annotations: proto.analyzer.ProgramAnnotations) {
@@ -26,6 +28,7 @@ export class ProgramInstance {
         this.annotations = annotations;
         this.evaluatedNodes = new Map();
         this.vizSpecs = new Map();
+        this.createdAt = new Date();
 
         for (let i = 0; i < annotations.evaluatedNodesLength(); ++i) {
             const node = annotations.evaluatedNodes(i)!;
