@@ -3,8 +3,8 @@
 import { webdb as proto } from '@dashql/proto';
 import { Value } from './value';
 
-type NumberVector = proto.VectorI8 | proto.VectorI16 | proto.VectorI32 | proto.VectorU8 | proto.VectorU16 | proto.VectorU32 | proto.VectorF32 | proto.VectorF64;
-type NumberArray = Int8Array | Int16Array | Int32Array | Uint8Array | Uint16Array | Uint32Array | Float32Array | Float64Array;
+export type NumberVector = proto.VectorI8 | proto.VectorI16 | proto.VectorI32 | proto.VectorU8 | proto.VectorU16 | proto.VectorU32 | proto.VectorF32 | proto.VectorF64;
+export type NumberArray = Int8Array | Int16Array | Int32Array | Uint8Array | Uint16Array | Uint32Array | Float32Array | Float64Array;
 
 export class VectorBuffers {
     vector: proto.Vector;
