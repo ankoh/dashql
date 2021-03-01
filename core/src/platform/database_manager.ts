@@ -116,7 +116,7 @@ export class DatabaseManager {
 
             // Unpack the query result
             const chunkIter = new webdb.MaterializedQueryResultChunks(result);
-            const rowIter = webdb.MaterializedQueryResultRowIterator.iterate(chunkIter);
+            const rowIter = webdb.BlockingQueryResultRowIterator.iterate(chunkIter);
             if (rowIter.isEnd()) {
                 // XXX Received no values
                 // -> reject

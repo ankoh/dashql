@@ -292,3 +292,39 @@ export interface BlockingRowIterator {
 export interface AsyncRowIterator {
     nextAsync(): Promise<boolean>;
 }
+
+/// A row iterator for materialized query results
+export class BlockingQueryResultRowIterator extends RowIteratorBase implements BlockingRowIterator {
+    /// Constructor
+    protected constructor(chunks: BlockingChunkIterator) {
+        super(chunks);
+    }
+    /// Get iterator
+    public get iter() {
+        return this._chunkIter as BlockingChunkIterator;
+    }
+
+    /// Iterate over a result buffer
+    public static iterate(chunks: BlockingChunkIterator): BlockingQueryResultRowIterator {
+        let iter = new BlockingQueryResultRowIterator(chunks);
+        chunks.nextBlocking();
+        iter._currentChunkBegin = 0;
+        return iter;
+    }
+
+    /// Advance the iterator
+    public nextBlocking(): boolean {
+        // Reached end?
+        if (this.isEnd()) return false;
+
+        // Still in current chunk?
+        ++this._globalRowIndex;
+        if (this.currentRow < this.currentChunk.rowCount()) return true;
+
+        // Get next chunk
+        this.iter.nextBlocking();
+        this._currentChunkBegin = this._globalRowIndex;
+        let empty = this.currentChunk.rowCount() == 0;
+        return !empty;
+    }
+}
