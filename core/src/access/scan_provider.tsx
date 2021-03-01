@@ -3,37 +3,69 @@ import * as React from 'react';
 import * as platform from '../platform';
 import * as proto from '@dashql/proto';
 
-const OVERSCAN = 1024;
-
 type RequestScanFn = (request: ScanRequest) => void;
 
 export class ScanRequest {
     /// The offset of a range
-    offset: number;
+    offset: number = 0;
     /// The limit of a range
-    limit: number;
+    limit: number = 0;
+    /// The sample size
+    sample: number = 0;
+    /// The overscan
+    overscan: number = 0;
 
-    constructor(offset: number, limit: number) {
+    /// Configure range
+    public withRange(offset: number, limit: number, overscan: number = 0): ScanRequest {
         this.offset = offset;
         this.limit = limit;
+        this.overscan = overscan;
+        return this;
+    }
+
+    /// Configure sample
+    public withSample(sample: number): ScanRequest {
+        this.sample = sample;
+        return this;
+    }
+
+    /// Get begin of scan range
+    get begin() {
+        return Math.max(this.offset, this.overscan) - this.overscan;
+    }
+    /// Get end of scan range
+    get end() {
+        return this.offset + this.limit + this.overscan;
     }
 
     /// Does a scan fully include a given range?
-    includes(offset: number, limit: number): boolean {
-        const begin = this.offset;
-        const end = this.offset + this.limit;
-        return begin <= offset && end >= offset + limit;
+    includesRequest(other: ScanRequest): boolean {
+        return this.includesRange(other.offset, other.limit) && this.sample == other.sample;
     }
 
-    /// Does a scan intersect a given range?
-    intersects(offset: number, limit: number): boolean {
-        const begin = this.offset;
-        const end = this.offset + this.limit;
-        return (
-            (offset >= begin && offset + limit <= end) ||
-            (offset <= begin && offset + limit >= begin) ||
-            (offset < end && offset + limit >= end)
-        );
+    /// Does a scan fully include a given range?
+    public includesRange(offset: number, limit: number): boolean {
+        if (this.limit == 0 || limit == 0) {
+            return this.limit == 0 && this.begin <= offset;
+        } else {
+            return this.begin <= offset && this.end >= offset + limit;
+        }
+    }
+
+    /// Does intersect with a range
+    public intersectsRange(offset: number, limit: number): boolean {
+        if (limit == 0) return true;
+        if (this.limit == 0) {
+            return offset + limit > this.begin;
+        } else {
+            const b = this.begin;
+            const e = this.end;
+            return (
+                (offset >= b && offset + limit <= e) ||
+                (offset <= b && offset + limit >= b) ||
+                (offset < e && offset + limit >= e)
+            );
+        }
     }
 }
 
@@ -79,14 +111,15 @@ export class ScanProvider extends React.Component<Props, State> {
     constructor(props: Props) {
         super(props);
         this.state = {
-            request: new ScanRequest(0, 1024),
+            request: new ScanRequest().withRange(0, 1024, 1024),
             result: null,
         };
     }
 
     /// Request a range
     protected requestScan(request: ScanRequest) {
-        if (this.state.result && this.state.result.request.includes(request.offset, request.limit)) {
+        console.log(request);
+        if (this.state.result && this.state.result.request.includesRequest(request)) {
             return;
         }
         this.setState({
@@ -97,8 +130,14 @@ export class ScanProvider extends React.Component<Props, State> {
 
     /// Run a query
     protected async runQuery(request: ScanRequest): Promise<ScanResult> {
+        const offset = request.begin;
+        const limit = request.end - offset;
+        let query = `SELECT * FROM ${this.props.targetName} OFFSET ${offset} LIMIT ${limit}`;
+        if (request.sample > 0) {
+            query += ` USING SAMPLE RESERVOIR (${Math.trunc(request.sample)} ROWS)`;
+        }
+        console.log(query);
         const result = await this.props.database.use(async conn => {
-            const query = `SELECT * FROM ${this.props.targetName} OFFSET ${request.offset} LIMIT ${request.limit}`;
             return await conn.runQuery(query);
         });
         return {
@@ -129,22 +168,16 @@ export class ScanProvider extends React.Component<Props, State> {
     /// Schedule a query the data cannot be served from the cached results
     protected scheduleIfNecessary(req: ScanRequest) {
         // Included in cached range?
-        if (this.state.result && this.state.result.request.includes(req.offset, req.limit)) {
+        if (this.state.result && this.state.result.request.includesRequest(req)) {
             return;
         }
-
         // In-flight query includes the range?
         // Wait for the result then.
-        if (this._queryInFlight && this._queryInFlight.includes(req.offset, req.limit)) {
+        if (this._queryInFlight && this._queryInFlight.includesRequest(req)) {
             return;
         }
-
         // Replace the queued query
-        const offset = Math.trunc(Math.max(req.offset, OVERSCAN) - OVERSCAN);
-        req.limit = Math.trunc(req.offset + req.limit + OVERSCAN - offset);
-        req.offset = offset;
         this._queryQueued = req;
-
         // Schedule the queued query
         this.schedule();
     }
