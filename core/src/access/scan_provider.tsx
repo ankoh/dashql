@@ -118,7 +118,6 @@ export class ScanProvider extends React.Component<Props, State> {
 
     /// Request a range
     protected requestScan(request: ScanRequest) {
-        console.log(request);
         if (this.state.result && this.state.result.request.includesRequest(request)) {
             return;
         }
@@ -136,7 +135,6 @@ export class ScanProvider extends React.Component<Props, State> {
         if (request.sample > 0) {
             query += ` USING SAMPLE RESERVOIR (${Math.trunc(request.sample)} ROWS)`;
         }
-        console.log(query);
         const result = await this.props.database.use(async conn => {
             return await conn.runQuery(query);
         });
