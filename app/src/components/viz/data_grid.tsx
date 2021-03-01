@@ -88,7 +88,7 @@ export class DataGrid extends React.Component<Props, State> {
         const ofs = this.state.firstVisibleRow;
         const count = this.state.visibleRows;
         const end = Math.min(ofs + count, this.rowCount!);
-        this.props.dataProvider(new core.access.ScanRequest(ofs, end - ofs));
+        this.props.dataProvider(new core.access.ScanRequest().withRange(ofs, end - ofs, 1024));
     }
 
     /// Render a cell of the static left sidebar
@@ -122,18 +122,17 @@ export class DataGrid extends React.Component<Props, State> {
 
         // Range is fully included?
         const req = this.props.data.request;
-        if (req.includes(props.rowStartIndex, propRows)) {
+        if (req.includesRange(props.rowStartIndex, propRows)) {
             return this.renderAvailableDataCellRange(props);
         }
 
-        // Does not intersect with query results?
-        // Render as missing.
-        if (!req.intersects(props.rowStartIndex, propRows)) {
+        // Does not intersect with the range?
+        if (!req.intersectsRange(props.rowStartIndex, propRows)) {
             return defaultCellRangeRenderer(props);
         }
 
-        const dataBegin = Math.min(req.offset, this.rowCount!);
-        const dataEnd = Math.min(req.offset + req.limit, this.rowCount!);
+        const dataBegin = Math.min(req.begin, this.rowCount!);
+        const dataEnd = Math.min(req.end, this.rowCount!);
         const rowsBegin = props.rowStartIndex;
         const rowsEnd = props.rowStopIndex + 1;
 
@@ -246,7 +245,7 @@ export class DataGrid extends React.Component<Props, State> {
             const columnDatum = props.columnSizeAndPositionManager.getSizeAndPositionOfCell(columnIndex);
 
             const iter = new webdb.MaterializedQueryResultChunks(data);
-            const offset = props.rowStartIndex - this.props.data!.request.offset;
+            const offset = props.rowStartIndex - this.props.data!.request.begin;
             const limit = props.rowStopIndex - props.rowStartIndex + 1;
 
             webdb.iterateChunksBlocking(
