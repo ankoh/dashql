@@ -12,5 +12,12 @@
               "prependTestListingArgs": ["--source_dir=../../"]
             }
         }
-    ]
+    ],
+    "search.exclude": {
+        "submodules": true,
+        "**/node_modules": true,
+        "**/build": true,
+        "**/dist": true,
+        "**/.cache": true,
+    },
 }
