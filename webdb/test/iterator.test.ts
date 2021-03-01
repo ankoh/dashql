@@ -20,7 +20,7 @@ afterEach(() => {
     conn.disconnect();
 });
 
-describe('QueryResultRowIterator', () => {
+describe('BlockingQueryResultRowIterator', () => {
     describe('single column', () => {
         test('TINYINT', () => {
             let result = conn.sendQuery(`
@@ -28,7 +28,7 @@ describe('QueryResultRowIterator', () => {
             `);
             expect(result.columnTypesLength()).toBe(1);
             let chunks = new webdb.QueryResultChunkStream(conn, result);
-            let iter = webdb.QueryResultRowIterator.iterate(chunks);
+            let iter = webdb.BlockingQueryResultRowIterator.iterate(chunks);
             let value = new webdb.Value();
             for (let i = 0; i <= testRows; ++i) {
                 expect(iter.isEnd()).toBe(false);
@@ -44,7 +44,7 @@ describe('QueryResultRowIterator', () => {
             `);
             expect(result.columnTypesLength()).toBe(1);
             let chunks = new webdb.QueryResultChunkStream(conn, result);
-            let iter = webdb.QueryResultRowIterator.iterate(chunks);
+            let iter = webdb.BlockingQueryResultRowIterator.iterate(chunks);
             let value = new webdb.Value();
             for (let i = 0; i <= testRows; ++i) {
                 expect(iter.isEnd()).toBe(false);
@@ -61,7 +61,7 @@ describe('QueryResultRowIterator', () => {
             expect(result.columnTypesLength()).toBe(1);
 
             let chunks = new webdb.QueryResultChunkStream(conn, result);
-            let iter = webdb.QueryResultRowIterator.iterate(chunks);
+            let iter = webdb.BlockingQueryResultRowIterator.iterate(chunks);
             let value = new webdb.Value();
             for (let i = 0; i <= testRows; ++i) {
                 expect(iter.isEnd()).toBe(false);
@@ -77,7 +77,7 @@ describe('QueryResultRowIterator', () => {
             `);
             expect(result.columnTypesLength()).toBe(1);
             let chunks = new webdb.QueryResultChunkStream(conn, result);
-            let iter = webdb.QueryResultRowIterator.iterate(chunks);
+            let iter = webdb.BlockingQueryResultRowIterator.iterate(chunks);
             let value = new webdb.Value();
             for (let i = 0; i <= testRows; ++i) {
                 expect(iter.isEnd()).toBe(false);
