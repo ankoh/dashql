@@ -85,42 +85,6 @@ export class MaterializedQueryResultChunks extends ChunkIteratorBase
 }
 
 /// A query result row iterator
-export class MaterializedQueryResultRowIterator extends RowIteratorBase implements BlockingRowIterator {
-    /// Constructor
-    protected constructor(chunks: AsyncChunkIterator) {
-        super(chunks);
-    }
-    /// Get iterator
-    public get iter() {
-        return this._chunkIter as BlockingChunkIterator;
-    }
-
-    /// Iterate over a result buffer
-    public static iterate(chunks: MaterializedQueryResultChunks): MaterializedQueryResultRowIterator {
-        let iter = new MaterializedQueryResultRowIterator(chunks);
-        chunks.nextBlocking();
-        iter._currentChunkBegin = 0;
-        return iter;
-    }
-
-    /// Advance the iterator
-    public nextBlocking(): boolean {
-        // Reached end?
-        if (this.isEnd()) return false;
-
-        // Still in current chunk?
-        ++this._globalRowIndex;
-        if (this.currentRow < this.currentChunk.rowCount()) return true;
-
-        // Get next chunk
-        this.iter.nextBlocking();
-        this._currentChunkBegin = this._globalRowIndex;
-        let empty = this.currentChunk.rowCount() == 0;
-        return !empty;
-    }
-}
-
-/// A query result row iterator
 export class QueryResultRowIterator extends RowIteratorBase implements AsyncRowIterator {
     /// Constructor
     protected constructor(chunks: AsyncChunkIterator) {
