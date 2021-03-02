@@ -46,7 +46,7 @@ type RowProxyCtor = (chunk: ChunkData, row: number) => any;
 
 /// The base class for row proxies
 export interface RowProxy {
-    __row__: number;
+    __chunkRow__: number;
     __column__: (i: number) => number | string | null;
 }
 
@@ -55,25 +55,25 @@ function defineRowProxyType(columnNames: string[], columnProxies: AttributeProxy
     const proxies = columnProxies;
     const ctor = function (this: any, chunk: ChunkData, row: number) {
         this.__chunk__ = chunk;
-        this.__row__ = row;
+        this.__chunkRow__ = row;
     };
     Object.defineProperty(ctor.prototype, '__chunk__', {
         enumerable: false,
         writable: true,
     });
-    Object.defineProperty(ctor.prototype, '__row__', {
+    Object.defineProperty(ctor.prototype, '__chunkRow__', {
         value: -1,
         enumerable: false,
         writable: true,
     });
     ctor.prototype.__column__ = function (i: number) {
-        return proxies[i](this.__chunk__, this.__row__);
+        return proxies[i](this.__chunk__, this.__chunkRow__);
     };
     for (let i = 0; i < columnProxies.length; ++i) {
         const proxy = columnProxies[i];
         Object.defineProperty(ctor.prototype, columnNames[i], {
             get: function () {
-                return proxy(this.__chunk__, this.__row__);
+                return proxy(this.__chunk__, this.__chunkRow__);
             },
             enumerable: true,
         });
