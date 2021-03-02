@@ -38,7 +38,7 @@ describe('ResultProxy', () => {
                 for (let i = 0; i < rows.length; ++i) {
                     let e = expected++;
                     expect(rows[i].foo).toBe(e);
-                    expect(rows[i].__column__(0)).toBe(e);
+                    expect(rows[i].__attribute__(0)).toBe(e);
                 }
             }
         });
