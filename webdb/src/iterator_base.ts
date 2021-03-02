@@ -3,21 +3,11 @@
 import { webdb as proto } from '@dashql/proto';
 import { Value } from './value';
 
-export type NumberVector = proto.VectorI8 | proto.VectorI16 | proto.VectorI32 | proto.VectorU8 | proto.VectorU16 | proto.VectorU32 | proto.VectorF32 | proto.VectorF64;
-export type NumberArray = Int8Array | Int16Array | Int32Array | Uint8Array | Uint16Array | Uint32Array | Float32Array | Float64Array;
-
 export class VectorBuffers {
     vector: proto.Vector;
-    vectorI8: proto.VectorI8;
     vectorU8: proto.VectorU8;
-    vectorI16: proto.VectorI16;
-    vectorU16: proto.VectorU16;
-    vectorI32: proto.VectorI32;
-    vectorU32: proto.VectorU32;
     vectorI64: proto.VectorI64;
-    vectorU64: proto.VectorU64;
     vectorI128: proto.VectorI128;
-    vectorF32: proto.VectorF32;
     vectorF64: proto.VectorF64;
     vectorInterval: proto.VectorInterval;
     vectorString: proto.VectorString;
@@ -25,16 +15,9 @@ export class VectorBuffers {
     /// Constructor
     constructor() {
         this.vector = new proto.Vector();
-        this.vectorI8 = new proto.VectorI8();
         this.vectorU8 = new proto.VectorU8();
-        this.vectorI16 = new proto.VectorI16();
-        this.vectorU16 = new proto.VectorU16();
-        this.vectorI32 = new proto.VectorI32();
-        this.vectorU32 = new proto.VectorU32();
         this.vectorI64 = new proto.VectorI64();
-        this.vectorU64 = new proto.VectorU64();
         this.vectorI128 = new proto.VectorI128();
-        this.vectorF32 = new proto.VectorF32();
         this.vectorF64 = new proto.VectorF64();
         this.vectorInterval = new proto.VectorInterval();
         this.vectorString = new proto.VectorString();
@@ -91,42 +74,12 @@ export abstract class ChunkIteratorBase {
         if (c == null) {
             return;
         }
-        let v : NumberVector | null;
-        switch (c.variantType()) {
-            case proto.VectorVariant.VectorI8:
-                v = c.variant(this.tmp.vectorI8)!;
-                break;
-            case proto.VectorVariant.VectorU8:
-                v = c.variant(this.tmp.vectorU8)!;
-                break;
-            case proto.VectorVariant.VectorI16:
-                v = c.variant(this.tmp.vectorI16)!;
-                break;
-            case proto.VectorVariant.VectorU16:
-                v = c.variant(this.tmp.vectorU16)!;
-                break;
-            case proto.VectorVariant.VectorI32:
-                v = c.variant(this.tmp.vectorI32)!;
-                break;
-            case proto.VectorVariant.VectorU32:
-                v = c.variant(this.tmp.vectorU32)!;
-                break;
-            case proto.VectorVariant.VectorF32:
-                v = c.variant(this.tmp.vectorF32)!;
-                break;
-            case proto.VectorVariant.VectorF64:
-                v = c.variant(this.tmp.vectorF64)!;
-                break;
-            case proto.VectorVariant.NONE:
-            case proto.VectorVariant.VectorI128:
-            case proto.VectorVariant.VectorI64:
-            case proto.VectorVariant.VectorU64:
-            case proto.VectorVariant.VectorInterval:
-            case proto.VectorVariant.VectorString:
-            default:
-                return;
+        // XXX other types
+        if (c.variantType() != proto.VectorVariant.VectorF64) {
+            return;
         }
-        const a: NumberArray | null = v.valuesArray();
+        let v = c.variant(this.tmp.vectorF64)!;
+        const a: Float64Array | null = v.valuesArray();
         const n: Int8Array | null = v.nullMaskArray();
         if (a == null)
             return;
@@ -215,60 +168,25 @@ export abstract class RowIteratorBase {
         switch (c.variantType()) {
             case proto.VectorVariant.NONE:
                 break;
-            case proto.VectorVariant.VectorI8:
-                c.variant(this.tmp.vectorI8);
-                v.setNumber(this.tmp.vectorI8.values(r)!);
-                v.setNull(this.tmp.vectorI8.nullMask(r)!);
-                break;
             case proto.VectorVariant.VectorU8:
                 c.variant(this.tmp.vectorU8);
                 v.setNumber(this.tmp.vectorU8.values(r)!);
                 v.setNull(this.tmp.vectorU8.nullMask(r)!);
-                break;
-            case proto.VectorVariant.VectorI16:
-                c.variant(this.tmp.vectorI16);
-                v.setNumber(this.tmp.vectorI16.values(r)!);
-                v.setNull(this.tmp.vectorI16.nullMask(r)!);
-                break;
-            case proto.VectorVariant.VectorU16:
-                c.variant(this.tmp.vectorU16);
-                v.setNumber(this.tmp.vectorU16.values(r)!);
-                v.setNull(this.tmp.vectorU16.nullMask(r)!);
-                break;
-            case proto.VectorVariant.VectorI32:
-                c.variant(this.tmp.vectorI32);
-                v.setNumber(this.tmp.vectorI32.values(r)!);
-                v.setNull(this.tmp.vectorI32.nullMask(r)!);
-                break;
-            case proto.VectorVariant.VectorU32:
-                c.variant(this.tmp.vectorU32);
-                v.setNumber(this.tmp.vectorU32.values(r)!);
-                v.setNull(this.tmp.vectorU32.nullMask(r)!);
                 break;
             case proto.VectorVariant.VectorI64:
                 c.variant(this.tmp.vectorI64);
                 v.setLong(this.tmp.vectorI64.values(r)!);
                 v.setNull(this.tmp.vectorI64.nullMask(r)!);
                 break;
-            case proto.VectorVariant.VectorU64:
-                c.variant(this.tmp.vectorU64);
-                v.setLong(this.tmp.vectorU64.values(r)!);
-                v.setNull(this.tmp.vectorU64.nullMask(r)!);
+            case proto.VectorVariant.VectorF64:
+                c.variant(this.tmp.vectorF64);
+                v.setNumber(this.tmp.vectorF64.values(r)!);
+                v.setNull(this.tmp.vectorF64.nullMask(r)!);
                 break;
             case proto.VectorVariant.VectorI128:
                 c.variant(this.tmp.vectorI128);
                 v.setI128(this.tmp.vectorI128.values(r)!);
                 v.setNull(this.tmp.vectorI128.nullMask(r)!);
-                break;
-            case proto.VectorVariant.VectorF32:
-                c.variant(this.tmp.vectorF32);
-                v.setNumber(this.tmp.vectorF32.values(r)!);
-                v.setNull(this.tmp.vectorF32.nullMask(r)!);
-                break;
-            case proto.VectorVariant.VectorF64:
-                c.variant(this.tmp.vectorF64);
-                v.setNumber(this.tmp.vectorF64.values(r)!);
-                v.setNull(this.tmp.vectorF64.nullMask(r)!);
                 break;
             case proto.VectorVariant.VectorInterval:
                 c.variant(this.tmp.vectorInterval);

@@ -74,6 +74,7 @@ duckdb::Value QueryResultIterator::GetValue(size_t col_idx) const {
     assert(row < chunk->row_count());
 
     // Values
+    auto v_u8 = 0;
     auto v_i64 = 0ll;
     auto v_u64 = 0ull;
     auto v_f64 = 0.0L;
@@ -90,29 +91,14 @@ duckdb::Value QueryResultIterator::GetValue(size_t col_idx) const {
     switch (column->variant_type()) {
         case p::VectorVariant::NONE:
             break;
-        case p::VectorVariant::VectorI8:
-            copy(v_i64, column->variant_as_VectorI8());
-            break;
         case p::VectorVariant::VectorU8:
-            copy(v_u64, column->variant_as_VectorU8());
-            break;
-        case p::VectorVariant::VectorI16:
-            copy(v_i64, column->variant_as_VectorI16());
-            break;
-        case p::VectorVariant::VectorU16:
-            copy(v_u64, column->variant_as_VectorU16());
-            break;
-        case p::VectorVariant::VectorI32:
-            copy(v_i64, column->variant_as_VectorI32());
-            break;
-        case p::VectorVariant::VectorU32:
-            copy(v_u64, column->variant_as_VectorU32());
+            copy(v_u8, column->variant_as_VectorU8());
             break;
         case p::VectorVariant::VectorI64:
             copy(v_i64, column->variant_as_VectorI64());
             break;
-        case p::VectorVariant::VectorU64:
-            copy(v_u64, column->variant_as_VectorU64());
+        case p::VectorVariant::VectorF64:
+            copy(v_f64, column->variant_as_VectorF64());
             break;
         case p::VectorVariant::VectorI128: {
             auto* vec_i128 = column->variant_as_VectorI128();
@@ -124,12 +110,6 @@ duckdb::Value QueryResultIterator::GetValue(size_t col_idx) const {
             if (null_mask) null = null_mask->Get(row);
             break;
         }
-        case p::VectorVariant::VectorF32:
-            copy(v_f64, column->variant_as_VectorF32());
-            break;
-        case p::VectorVariant::VectorF64:
-            copy(v_f64, column->variant_as_VectorF64());
-            break;
         case p::VectorVariant::VectorInterval: {
             auto* vec_interval = column->variant_as_VectorInterval();
             auto* values = vec_interval->values();
@@ -160,13 +140,13 @@ duckdb::Value QueryResultIterator::GetValue(size_t col_idx) const {
         case p::SQLTypeID::SQLNULL:
             return duckdb::Value{};
         case p::SQLTypeID::BOOLEAN:
-            return duckdb::Value::BOOLEAN(v_u64);
+            return duckdb::Value::BOOLEAN(v_u8);
         case p::SQLTypeID::TINYINT:
-            return duckdb::Value::TINYINT(v_i64);
+            return duckdb::Value::TINYINT(v_f64);
         case p::SQLTypeID::SMALLINT:
-            return duckdb::Value::SMALLINT(v_i64);
+            return duckdb::Value::SMALLINT(v_f64);
         case p::SQLTypeID::INTEGER:
-            return duckdb::Value::INTEGER(v_i64);
+            return duckdb::Value::INTEGER(v_f64);
         case p::SQLTypeID::BIGINT:
             return duckdb::Value::BIGINT(v_i64);
         case p::SQLTypeID::FLOAT:
@@ -180,7 +160,7 @@ duckdb::Value QueryResultIterator::GetValue(size_t col_idx) const {
         case p::SQLTypeID::HUGEINT:
             return duckdb::Value::HUGEINT(v_i128);
         case p::SQLTypeID::DATE:
-            return duckdb::Value::DATE(v_i64);
+            return duckdb::Value::DATE(v_f64);
         case p::SQLTypeID::TIME:
             return duckdb::Value::TIME(v_i64);
         case p::SQLTypeID::TIMESTAMP:

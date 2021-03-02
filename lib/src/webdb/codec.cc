@@ -4,6 +4,7 @@
 
 #include <iostream>
 
+#include "dashql/proto_generated.h"
 #include "duckdb/common/vector_operations/unary_executor.hpp"
 #include "duckdb/common/vector_operations/vector_operations.hpp"
 #include "duckdb/planner/logical_operator.hpp"
@@ -98,7 +99,7 @@ template <typename T, bool WITH_NULL, typename OP> void iterVec(duckdb::VectorDa
 }
 
 /// Write a fixed-length result column
-template <typename VecType, typename FlatbufferType = VecType>
+template <typename VecType, typename FlatbufferType>
 static fb::Offset<p::Vector> writeCol(fb::FlatBufferBuilder &builder, duckdb::PhysicalType type,
                                       duckdb::VectorData &vec, size_t count) {
     assert(sizeof(VecType) == duckdb::GetTypeIdSize(type));
@@ -130,47 +131,15 @@ static fb::Offset<p::Vector> writeCol(fb::FlatBufferBuilder &builder, duckdb::Ph
         w.add_variant_type(vt);
         wrapper = w.Finish();
     };
-    if constexpr (std::is_same_v<VecType, bool>) {
+    if constexpr (std::is_same_v<FlatbufferType, uint8_t>) {
         p::VectorU8Builder vec{builder};
         vec.add_values(d_buf);
         build(vec, p::VectorVariant::VectorU8);
-    } else if constexpr (std::is_same_v<VecType, int8_t>) {
-        p::VectorI8Builder vec{builder};
-        vec.add_values(d_buf);
-        build(vec, p::VectorVariant::VectorI8);
-    } else if constexpr (std::is_same_v<VecType, uint8_t>) {
-        p::VectorU8Builder vec{builder};
-        vec.add_values(d_buf);
-        build(vec, p::VectorVariant::VectorU8);
-    } else if constexpr (std::is_same_v<VecType, uint16_t>) {
-        p::VectorU16Builder vec{builder};
-        vec.add_values(d_buf);
-        build(vec, p::VectorVariant::VectorU16);
-    } else if constexpr (std::is_same_v<VecType, int16_t>) {
-        p::VectorI16Builder vec{builder};
-        vec.add_values(d_buf);
-        build(vec, p::VectorVariant::VectorI16);
-    } else if constexpr (std::is_same_v<VecType, uint32_t>) {
-        p::VectorU32Builder vec{builder};
-        vec.add_values(d_buf);
-        build(vec, p::VectorVariant::VectorU32);
-    } else if constexpr (std::is_same_v<VecType, int32_t>) {
-        p::VectorI32Builder vec{builder};
-        vec.add_values(d_buf);
-        build(vec, p::VectorVariant::VectorI32);
-    } else if constexpr (std::is_same_v<VecType, uint64_t>) {
-        p::VectorU64Builder vec{builder};
-        vec.add_values(d_buf);
-        build(vec, p::VectorVariant::VectorU64);
-    } else if constexpr (std::is_same_v<VecType, int64_t>) {
+    } else if constexpr (std::is_same_v<FlatbufferType, int64_t>) {
         p::VectorI64Builder vec{builder};
         vec.add_values(d_buf);
         build(vec, p::VectorVariant::VectorI64);
-    } else if constexpr (std::is_same_v<VecType, float>) {
-        p::VectorF32Builder vec{builder};
-        vec.add_values(d_buf);
-        build(vec, p::VectorVariant::VectorF32);
-    } else if constexpr (std::is_same_v<VecType, double>) {
+    } else if constexpr (std::is_same_v<FlatbufferType, double>) {
         p::VectorF64Builder vec{builder};
         vec.add_values(d_buf);
         build(vec, p::VectorVariant::VectorF64);
@@ -333,19 +302,19 @@ fb::Offset<p::QueryResultChunk> WriteQueryResultChunk(flatbuffers::FlatBufferBui
                     //     (Iterator must not assume vector.size() == row_count)
                     return writeCol<bool, uint8_t>(builder, p_type, vec, size);
                 case duckdb::PhysicalType::INT8:
-                    return writeCol<int8_t>(builder, p_type, vec, size);
+                    return writeCol<int8_t, double>(builder, p_type, vec, size);
                 case duckdb::PhysicalType::INT16:
-                    return writeCol<int16_t>(builder, p_type, vec, size);
+                    return writeCol<int16_t, double>(builder, p_type, vec, size);
                 case duckdb::PhysicalType::INT32:
-                    return writeCol<int32_t>(builder, p_type, vec, size);
+                    return writeCol<int32_t, double>(builder, p_type, vec, size);
                 case duckdb::PhysicalType::INT64:
-                    return writeCol<int64_t>(builder, p_type, vec, size);
+                    return writeCol<int64_t, int64_t>(builder, p_type, vec, size);
                 case duckdb::PhysicalType::INT128:
                     return writeI128Col(builder, p_type, vec, size);
                 case duckdb::PhysicalType::FLOAT:
-                    return writeCol<float>(builder, p_type, vec, size);
+                    return writeCol<float, double>(builder, p_type, vec, size);
                 case duckdb::PhysicalType::DOUBLE:
-                    return writeCol<double>(builder, p_type, vec, size);
+                    return writeCol<double, double>(builder, p_type, vec, size);
                 case duckdb::PhysicalType::INTERVAL:
                     return writeIntervalCol(builder, p_type, vec, size);
                 case duckdb::PhysicalType::VARCHAR:
