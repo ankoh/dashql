@@ -47,7 +47,7 @@ type RowProxyCtor = (chunk: ChunkData, row: number) => any;
 /// The base class for row proxies
 export interface RowProxy {
     __chunkRow__: number;
-    __column__: (i: number) => number | string | null;
+    __attribute__: (i: number) => number | string | null;
 }
 
 /// Define a row proxy type
@@ -66,7 +66,7 @@ function defineRowProxyType(columnNames: string[], columnProxies: AttributeProxy
         enumerable: false,
         writable: true,
     });
-    ctor.prototype.__column__ = function (i: number) {
+    ctor.prototype.__attribute__ = function (i: number) {
         return proxies[i](this.__chunkData__, this.__chunkRow__);
     };
     for (let i = 0; i < columnProxies.length; ++i) {
