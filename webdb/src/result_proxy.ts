@@ -1,8 +1,7 @@
 // Copyright (c) 2020 The DashQL Authors
 
 import { webdb as proto } from '@dashql/proto';
-import { SQLType, Value } from './value';
-import { BlockingChunkIterator, VectorBuffers } from './iterator_base';
+import { BlockingChunkIterator } from './iterator_base';
 
 type ValueArray = Float64Array | proto.VectorString;
 
@@ -16,33 +15,31 @@ type FloatAttributeProxy = (chunk: ChunkData, row: number) => number | null;
 type StringAttributeProxy = (chunk: ChunkData, row: number) => string | null;
 type AttributeProxy = IntegerAttributeProxy | FloatAttributeProxy | StringAttributeProxy;
 
-function Column<T>(column: number, fn: (column: number, chunk: ChunkData, row: number) => T) : (chunk: ChunkData, row: number) => T {
+function readColumn<T>(
+    column: number,
+    fn: (column: number, chunk: ChunkData, row: number) => T,
+): (chunk: ChunkData, row: number) => T {
     return (chunk: ChunkData, row: number) => fn(column, chunk, row);
 }
 
-function Nullable<T>(fn: (column: number, chunk: ChunkData, row: number) => T): (column: number, chunk: ChunkData, row: number) => T | null {
+function checkNull<T>(
+    fn: (column: number, chunk: ChunkData, row: number) => T,
+): (column: number, chunk: ChunkData, row: number) => T | null {
     return (column: number, chunk: ChunkData, row: number) =>
-        chunk.nullmasks[column]![row] ? null : fn(column, chunk, row);
+        chunk.nullmasks[column] && chunk.nullmasks[column]![row] ? null : fn(column, chunk, row);
 }
 
-function DoubleAsDouble(column: number, chunk: ChunkData, row: number): number | null {
+function readDouble(column: number, chunk: ChunkData, row: number): number | null {
     return (chunk.columns[column] as Float64Array)[row];
 }
-function DoubleAsInteger(column: number, chunk: ChunkData, row: number): number | null {
+function readDoubleAsInteger(column: number, chunk: ChunkData, row: number): number | null {
     return Math.trunc((chunk.columns[column] as Float64Array)[row]);
 }
-function DoubleAsString(column: number, chunk: ChunkData, row: number): string | null {
-    return (chunk.columns[column] as Float64Array)[row].toString();
-}
-
-function StringAsDouble(column: number, chunk: ChunkData, row: number): number | null {
-    return parseFloat((chunk.columns[column] as proto.VectorString).values(row));
-}
-function StringAsInteger(column: number, chunk: ChunkData, row: number): number | null {
-    return parseInt((chunk.columns[column] as proto.VectorString).values(row));
-}
-function StringAsString(column: number, chunk: ChunkData, row: number): string | null {
+function readString(column: number, chunk: ChunkData, row: number): string | null {
     return (chunk.columns[column] as proto.VectorString).values(row);
+}
+function returnNull(chunk: ChunkData, row: number) {
+    return null;
 }
 
 /// The row proxy constructor
@@ -79,37 +76,31 @@ export function proxyMaterializedChunkRows<T>(iter: BlockingChunkIterator): T[] 
     let columnNames: string[] = [];
     let columnProxies: AttributeProxy[] = [];
     for (let columnId = 0; columnId < iter.columnCount; ++columnId) {
+        columnNames.push(iter.result.columnNames(columnId));
         switch (iter.columnTypes[columnId].typeId()) {
-            case proto.SQLTypeID.BOOLEAN:
-                break;
-
             case proto.SQLTypeID.TINYINT:
             case proto.SQLTypeID.SMALLINT:
             case proto.SQLTypeID.INTEGER: {
-                columnProxies.push(Column(columnId, Nullable(DoubleAsInteger)));
-                columnNames.push(iter.result.columnNames(columnId));
+                columnProxies.push(readColumn(columnId, checkNull(readDoubleAsInteger)));
                 break;
             }
 
             case proto.SQLTypeID.FLOAT:
             case proto.SQLTypeID.DOUBLE: {
-                columnProxies.push(Column(columnId, Nullable(DoubleAsDouble)));
-                columnNames.push(iter.result.columnNames(columnId));
+                columnProxies.push(readColumn(columnId, checkNull(readDouble)));
                 break;
             }
 
             case proto.SQLTypeID.CHAR:
             case proto.SQLTypeID.VARCHAR: {
-                columnProxies.push(Column(columnId, Nullable(StringAsString)));
-                columnNames.push(iter.result.columnNames(columnId));
+                columnProxies.push(readColumn(columnId, checkNull(readString)));
                 break;
             }
 
+            case proto.SQLTypeID.BOOLEAN:
             case proto.SQLTypeID.DATE:
             case proto.SQLTypeID.TIME:
             case proto.SQLTypeID.TIMESTAMP:
-                break;
-
             case proto.SQLTypeID.BIGINT:
             case proto.SQLTypeID.DECIMAL:
             case proto.SQLTypeID.VARBINARY:
@@ -124,6 +115,7 @@ export function proxyMaterializedChunkRows<T>(iter: BlockingChunkIterator): T[] 
             case proto.SQLTypeID.HASH:
             case proto.SQLTypeID.STRUCT:
             case proto.SQLTypeID.LIST:
+                columnProxies.push(returnNull);
                 break;
         }
     }
@@ -132,36 +124,36 @@ export function proxyMaterializedChunkRows<T>(iter: BlockingChunkIterator): T[] 
     const tmpVectorF64 = new proto.VectorF64();
 
     // Collect all chunks
-    let rows: T[] = []
+    let rows: T[] = [];
     while (iter.nextBlocking()) {
         const chunk = iter.currentChunk;
         const chunkData: ChunkData = {
             columns: [],
-            nullmasks: []
+            nullmasks: [],
         };
         for (let columnId = 0; columnId < chunk.columnsLength(); ++columnId) {
             const column = chunk.columns(columnId)!;
             switch (column.variantType()) {
-                case proto.VectorVariant.NONE:
-                    break;
                 case proto.VectorVariant.VectorF64: {
                     const vec = column.variant(tmpVectorF64)!;
                     chunkData.columns.push(vec.valuesArray());
                     chunkData.nullmasks.push(vec.nullMaskArray());
                     break;
                 }
-                case proto.VectorVariant.VectorI128:
-                    break;
-                case proto.VectorVariant.VectorI64:
-                    break;
-                case proto.VectorVariant.VectorInterval:
-                    break;
-                case proto.VectorVariant.VectorString:
-                    const vec = column.variant(new proto.VectorString)!;
+                case proto.VectorVariant.VectorString: {
+                    const vec = column.variant(new proto.VectorString())!;
                     chunkData.columns.push(vec);
                     chunkData.nullmasks.push(vec.nullMaskArray());
                     break;
+                }
+
+                case proto.VectorVariant.NONE:
+                case proto.VectorVariant.VectorI64:
+                case proto.VectorVariant.VectorI128:
+                case proto.VectorVariant.VectorInterval:
                 case proto.VectorVariant.VectorU8:
+                    chunkData.columns.push(null);
+                    chunkData.nullmasks.push(null);
                     break;
             }
         }
