@@ -8,63 +8,71 @@ import wasmPath from '@dashql/webdb/dist/webdb.wasm';
 function main(db: webdb.WebDB) {
     let tupleSize = 8; // 32-bit integers as encoded as doubles to help js
 
-    for (const tupleCount of [1000, 10000, 1000000]) {
-        benny.suite(`Single INTEGER column | ${tupleCount} rows`,
+    for (const tupleCount of [1000, 10000, 1000000, 10000000]) {
+        benny.suite(`Single DOUBLE column | ${tupleCount} rows`,
             benny.add('column scan', () => {
                 let conn = db.connect();
                 let result = conn.runQuery(`
-                    SELECT v::INTEGER AS foo FROM generate_series(0, ${tupleCount}) as t(v);
+                    SELECT v::DOUBLE AS foo FROM generate_series(0, ${tupleCount}) as t(v);
                 `);
-                let chunks = new webdb.MaterializedQueryResultChunks(result);
-                let sum = 0;
-                while (chunks.nextBlocking()) {
-                    chunks.iterateNumberColumn(0, (_row: number, v: number | null) => {
-                        sum += Math.trunc(v!);
-                    });
-                }
                 conn.disconnect();
-                if (sum != ((tupleCount) * (tupleCount + 1) / 2)) {
-                    console.log("WRONG RESULT")
+                return () => {
+                    let chunks = new webdb.MaterializedQueryResultChunks(result);
+                    let sum = 0;
+                    while (chunks.nextBlocking()) {
+                        chunks.iterateNumberColumn(0, (_row: number, v: number | null) => {
+                            sum += v!;
+                        });
+                    }
+                    conn.disconnect();
+                    if (sum != ((tupleCount) * (tupleCount + 1) / 2)) {
+                        console.log("WRONG RESULT")
+                    }
                 }
             }),
 
             benny.add('row iterator', () => {
                 let conn = db.connect();
                 let result = conn.runQuery(`
-                    SELECT v::INTEGER AS foo FROM generate_series(0, ${tupleCount}) as t(v);
+                    SELECT v::DOUBLE AS foo FROM generate_series(0, ${tupleCount}) as t(v);
                 `);
-                let chunks = new webdb.MaterializedQueryResultChunks(result);
-                let iter = webdb.BlockingQueryResultRowIterator.iterate(chunks);
-                let sum = 0;
-                let tmp = new webdb.Value();
-                while (true) {
-                    sum += iter.getValue(0, tmp).castAsInteger();
-                    if (!iter.nextBlocking())
-                        break;
-                }
                 conn.disconnect();
-                if (sum != ((tupleCount) * (tupleCount + 1) / 2)) {
-                    console.log("WRONG RESULT")
+                return () => {
+                    let chunks = new webdb.MaterializedQueryResultChunks(result);
+                    let iter = webdb.BlockingQueryResultRowIterator.iterate(chunks);
+                    let sum = 0;
+                    let tmp = new webdb.Value();
+                    while (true) {
+                        sum += iter.getValue(0, tmp).castAsInteger();
+                        if (!iter.nextBlocking())
+                            break;
+                    }
+                    conn.disconnect();
+                    if (sum != ((tupleCount) * (tupleCount + 1) / 2)) {
+                        console.log("WRONG RESULT")
+                    }
                 }
             }),
 
             benny.add('row proxies', () => {
                 let conn = db.connect();
                 let result = conn.runQuery(`
-                    SELECT v::INTEGER AS foo FROM generate_series(0, ${tupleCount}) as t(v);
+                    SELECT v::DOUBLE AS foo FROM generate_series(0, ${tupleCount}) as t(v);
                 `);
-                let chunks = new webdb.MaterializedQueryResultChunks(result);
-                interface Row {
-                    foo: number | null
-                }
-                let rows = webdb.proxyMaterializedChunkRows<Row>(chunks);
-                let sum = 0;
-                for (const row of rows) {
-                    sum += row.foo!;
-                }
                 conn.disconnect();
-                if (sum != ((tupleCount) * (tupleCount + 1) / 2)) {
-                    console.log("WRONG RESULT")
+                return () => {
+                    let chunks = new webdb.MaterializedQueryResultChunks(result);
+                    interface Row {
+                        foo: number | null
+                    }
+                    let rows = webdb.proxyMaterializedChunkRows<Row>(chunks);
+                    let sum = 0;
+                    for (const row of rows) {
+                        sum += row.foo!;
+                    }
+                    if (sum != ((tupleCount) * (tupleCount + 1) / 2)) {
+                        console.log("WRONG RESULT")
+                    }
                 }
             }),
 
