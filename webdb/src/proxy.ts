@@ -82,7 +82,7 @@ function defineRowProxyType(columnNames: string[], columnProxies: AttributeProxy
 }
 
 /// A row proxy type definition
-export class RowProxyType<T> {
+export class RowProxyType {
     /// The row constructor
     _ctor: RowProxyCtor;
 
@@ -138,7 +138,7 @@ export class RowProxyType<T> {
     }
 
     // Proxy rows in chunk
-    public proxyChunkRows(chunk: webdb.QueryResultChunk, out: T[] = []): T[] {
+    public proxyChunkRows<T extends RowProxy>(chunk: webdb.QueryResultChunk, out: T[] = []): T[] {
         const tmpVectorF64 = new proto.VectorF64();
         const chunkData: ChunkData = {
             columns: [],

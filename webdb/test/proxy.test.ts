@@ -20,7 +20,7 @@ afterEach(() => {
     conn.disconnect();
 });
 
-describe('ResultProxy', () => {
+describe('RowProxy', () => {
     describe('single columns', () => {
         test('INTEGER', () => {
             const result = conn.sendQuery(`
@@ -30,11 +30,11 @@ describe('ResultProxy', () => {
             interface Row extends webdb.RowProxy {
                 foo: number | null;
             }
-            const proxyType = new webdb.RowProxyType<Row>(result);
+            const proxyType = new webdb.RowProxyType(result);
             const chunks = new webdb.QueryResultChunkStream(conn, result);
             let expected = 0;
             while (chunks.nextBlocking()) {
-                const rows = proxyType.proxyChunkRows(chunks.currentChunk);
+                const rows = proxyType.proxyChunkRows<Row>(chunks.currentChunk);
                 for (let i = 0; i < rows.length; ++i) {
                     let e = expected++;
                     expect(rows[i].foo).toBe(e);
