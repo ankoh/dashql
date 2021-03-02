@@ -27,8 +27,8 @@ describe('ResultProxy', () => {
                 SELECT v::INTEGER AS foo FROM generate_series(0, ${testRows}) as t(v);
             `);
             expect(result.columnTypesLength()).toBe(1);
-            interface Row {
-                foo: number | null
+            interface Row extends webdb.RowProxy {
+                foo: number | null;
             }
             const proxyType = new webdb.RowProxyType<Row>(result);
             const chunks = new webdb.QueryResultChunkStream(conn, result);
@@ -36,7 +36,9 @@ describe('ResultProxy', () => {
             while (chunks.nextBlocking()) {
                 const rows = proxyType.proxyChunkRows(chunks.currentChunk);
                 for (let i = 0; i < rows.length; ++i) {
-                    expect(rows[i].foo).toBe(expected++);
+                    let e = expected++;
+                    expect(rows[i].foo).toBe(e);
+                    expect(rows[i].__column__(0)).toBe(e);
                 }
             }
         });
