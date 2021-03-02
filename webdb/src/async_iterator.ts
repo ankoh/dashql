@@ -60,6 +60,10 @@ export class MaterializedQueryResultChunks extends ChunkIteratorBase
         }
     }
 
+    /// Get the current chunk (if available)
+    public get currentChunk() {
+        return this._chunks[this._currentChunkID];
+    }
     /// Restart the chunk iterator
     public rewind() {
         this._currentChunkID = -1;
