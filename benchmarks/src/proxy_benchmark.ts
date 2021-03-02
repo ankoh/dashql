@@ -6,6 +6,7 @@ import kleur from 'kleur';
 import wasmPath from '@dashql/webdb/dist/webdb.wasm';
 
 function main(db: webdb.WebDB) {
+    let tupleSize = 8;
     for (const tupleCount of [1000, 10000, 1000000, 10000000]) {
         benny.suite(`Single DOUBLE column | ${tupleCount} rows`,
             benny.add('column scan', () => {
@@ -40,7 +41,7 @@ function main(db: webdb.WebDB) {
                     let sum = 0;
                     let tmp = new webdb.Value();
                     while (true) {
-                        sum += iter.getValue(0, tmp).castAsInteger();
+                        sum += iter.getValue(0, tmp).castAsFloat();
                         if (!iter.nextBlocking())
                             break;
                     }
