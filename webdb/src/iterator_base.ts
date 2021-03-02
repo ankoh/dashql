@@ -1,8 +1,8 @@
 // Copyright (c) 2020 The DashQL Authors
 
-import { webdb as proto } from '@dashql/proto';
+import { webdb as proto, webdb } from '@dashql/proto';
 import { Value } from './value';
-import { RowProxyType } from './proxy';
+import { RowProxyType, RowProxy } from './proxy';
 
 /// The vector buffers
 export class VectorBuffers {
@@ -36,6 +36,8 @@ export abstract class ChunkIteratorBase {
     _currentChunk: proto.QueryResultChunk;
     /// The column types
     _columnTypes: proto.SQLType[];
+    /// The row type
+    _proxyType: RowProxyType | null;
     /// The temporary flatbuffer objects
     _tmp: VectorBuffers;
 
@@ -45,6 +47,7 @@ export abstract class ChunkIteratorBase {
         this._currentChunkID = -1;
         this._currentChunk = new proto.QueryResultChunk();
         this._columnTypes = new Array<proto.SQLType>();
+        this._proxyType = null;
         this._tmp = new VectorBuffers();
 
         // Collect the column types
@@ -98,11 +101,13 @@ export abstract class ChunkIteratorBase {
         }
     }
 
-    /// Proxy the chunk rows
-    // public proxyRows<T>(type: RowProxyType<T>, out: T[] = []): T[]  {
-    //     
-    //     return out;
-    // }
+    /// Build the row proxies
+    public collect<T extends RowProxy>(out: T[] = []): T[]  {
+        if (!this._proxyType) {
+            this._proxyType = new RowProxyType(this.result);
+        }
+        return this._proxyType.proxyChunkRows<T>(this.currentChunk, out);
+    }
 }
 
 export interface BlockingChunkIterator extends ChunkIteratorBase {

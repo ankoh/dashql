@@ -62,11 +62,9 @@ function main(db: webdb.WebDB) {
                     interface Row extends webdb.RowProxy {
                         foo: number | null;
                     }
-                    const proxyType = new webdb.RowProxyType(result);
                     let sum = 0;
                     while (chunks.nextBlocking()) {
-                        const rows = proxyType.proxyChunkRows<Row>(chunks.currentChunk);
-                        for (const row of rows) {
+                        for (const row of chunks.collect<Row>()) {
                             sum += row.foo!;
                         }
                     }
