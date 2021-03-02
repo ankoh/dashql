@@ -58,14 +58,17 @@ function main(db: webdb.WebDB) {
                 `);
                 conn.disconnect();
                 return () => {
-                    let chunks = new webdb.MaterializedQueryResultChunks(result);
+                    const chunks = new webdb.MaterializedQueryResultChunks(result);
                     interface Row {
                         foo: number | null
                     }
-                    let rows = webdb.proxyMaterializedChunkRows<Row>(chunks);
+                    const proxyType = new webdb.RowProxyType<Row>(result);
                     let sum = 0;
-                    for (const row of rows) {
-                        sum += row.foo!;
+                    while (chunks.nextBlocking()) {
+                        const rows = proxyType.proxyChunkRows(chunks.currentChunk);
+                        for (const row of rows) {
+                            sum += row.foo!;
+                        }
                     }
                     if (sum != ((tupleCount) * (tupleCount + 1) / 2)) {
                         console.log("WRONG RESULT")

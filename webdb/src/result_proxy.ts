@@ -1,7 +1,6 @@
 // Copyright (c) 2020 The DashQL Authors
 
-import { webdb as proto } from '@dashql/proto';
-import { BlockingChunkIterator } from './iterator_base';
+import { webdb as proto, webdb } from '@dashql/proto';
 
 type ValueArray = Float64Array | proto.VectorString;
 
@@ -72,61 +71,64 @@ function defineRowProxyType(columnNames: string[], columnProxies: AttributeProxy
     return (chunk: ChunkData, row: number) => new (ctor as any)(chunk, row);
 }
 
-export function proxyMaterializedChunkRows<T>(iter: BlockingChunkIterator): T[] {
-    let columnNames: string[] = [];
-    let columnProxies: AttributeProxy[] = [];
-    for (let columnId = 0; columnId < iter.columnCount; ++columnId) {
-        columnNames.push(iter.result.columnNames(columnId));
-        switch (iter.columnTypes[columnId].typeId()) {
-            case proto.SQLTypeID.TINYINT:
-            case proto.SQLTypeID.SMALLINT:
-            case proto.SQLTypeID.INTEGER: {
-                columnProxies.push(readColumn(columnId, checkNull(readDoubleAsInteger)));
-                break;
-            }
+export class RowProxyType<T> {
+    /// The row constructor
+    _ctor: RowProxyCtor;
 
-            case proto.SQLTypeID.FLOAT:
-            case proto.SQLTypeID.DOUBLE: {
-                columnProxies.push(readColumn(columnId, checkNull(readDouble)));
-                break;
-            }
+    /// Constructor
+    constructor(result: proto.QueryResult) {
+        let columnNames: string[] = [];
+        let columnProxies: AttributeProxy[] = [];
+        for (let columnId = 0; columnId < result.columnTypesLength(); ++columnId) {
+            columnNames.push(result.columnNames(columnId));
+            switch (result.columnTypes(columnId)!.typeId()) {
+                case proto.SQLTypeID.TINYINT:
+                case proto.SQLTypeID.SMALLINT:
+                case proto.SQLTypeID.INTEGER: {
+                    columnProxies.push(readColumn(columnId, checkNull(readDoubleAsInteger)));
+                    break;
+                }
 
-            case proto.SQLTypeID.CHAR:
-            case proto.SQLTypeID.VARCHAR: {
-                columnProxies.push(readColumn(columnId, checkNull(readString)));
-                break;
-            }
+                case proto.SQLTypeID.FLOAT:
+                case proto.SQLTypeID.DOUBLE: {
+                    columnProxies.push(readColumn(columnId, checkNull(readDouble)));
+                    break;
+                }
 
-            case proto.SQLTypeID.BOOLEAN:
-            case proto.SQLTypeID.DATE:
-            case proto.SQLTypeID.TIME:
-            case proto.SQLTypeID.TIMESTAMP:
-            case proto.SQLTypeID.BIGINT:
-            case proto.SQLTypeID.DECIMAL:
-            case proto.SQLTypeID.VARBINARY:
-            case proto.SQLTypeID.BLOB:
-            case proto.SQLTypeID.INTERVAL:
-            case proto.SQLTypeID.INVALID:
-            case proto.SQLTypeID.SQLNULL:
-            case proto.SQLTypeID.UNKNOWN:
-            case proto.SQLTypeID.ANY:
-            case proto.SQLTypeID.HUGEINT:
-            case proto.SQLTypeID.POINTER:
-            case proto.SQLTypeID.HASH:
-            case proto.SQLTypeID.STRUCT:
-            case proto.SQLTypeID.LIST:
-                columnProxies.push(returnNull);
-                break;
+                case proto.SQLTypeID.CHAR:
+                case proto.SQLTypeID.VARCHAR: {
+                    columnProxies.push(readColumn(columnId, checkNull(readString)));
+                    break;
+                }
+
+                case proto.SQLTypeID.BOOLEAN:
+                case proto.SQLTypeID.DATE:
+                case proto.SQLTypeID.TIME:
+                case proto.SQLTypeID.TIMESTAMP:
+                case proto.SQLTypeID.BIGINT:
+                case proto.SQLTypeID.DECIMAL:
+                case proto.SQLTypeID.VARBINARY:
+                case proto.SQLTypeID.BLOB:
+                case proto.SQLTypeID.INTERVAL:
+                case proto.SQLTypeID.INVALID:
+                case proto.SQLTypeID.SQLNULL:
+                case proto.SQLTypeID.UNKNOWN:
+                case proto.SQLTypeID.ANY:
+                case proto.SQLTypeID.HUGEINT:
+                case proto.SQLTypeID.POINTER:
+                case proto.SQLTypeID.HASH:
+                case proto.SQLTypeID.STRUCT:
+                case proto.SQLTypeID.LIST:
+                    columnProxies.push(returnNull);
+                    break;
+            }
         }
+        this._ctor = defineRowProxyType(columnNames, columnProxies);
     }
-    const rowProxyCtor = defineRowProxyType(columnNames, columnProxies);
 
-    const tmpVectorF64 = new proto.VectorF64();
-
-    // Collect all chunks
-    let rows: T[] = [];
-    while (iter.nextBlocking()) {
-        const chunk = iter.currentChunk;
+    // Proxy rows in chunk
+    public proxyChunkRows(chunk: webdb.QueryResultChunk, out: T[] = []): T[] {
+        const tmpVectorF64 = new proto.VectorF64();
         const chunkData: ChunkData = {
             columns: [],
             nullmasks: [],
@@ -158,8 +160,8 @@ export function proxyMaterializedChunkRows<T>(iter: BlockingChunkIterator): T[] 
             }
         }
         for (let rowId = 0; rowId < chunk.rowCount(); ++rowId) {
-            rows.push(rowProxyCtor(chunkData, rowId) as T);
+            out.push(this._ctor(chunkData, rowId) as T);
         }
+        return out;
     }
-    return rows;
 }

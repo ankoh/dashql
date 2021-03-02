@@ -23,18 +23,21 @@ afterEach(() => {
 describe('ResultProxy', () => {
     describe('single columns', () => {
         test('INTEGER', () => {
-            let result = conn.sendQuery(`
+            const result = conn.sendQuery(`
                 SELECT v::INTEGER AS foo FROM generate_series(0, ${testRows}) as t(v);
             `);
             expect(result.columnTypesLength()).toBe(1);
             interface Row {
                 foo: number | null
             }
-            let chunks = new webdb.QueryResultChunkStream(conn, result);
-            let rows = webdb.proxyMaterializedChunkRows<Row>(chunks);
-            expect(rows.length).toBe(testRows + 1);
-            for (let i = 0; i < rows.length; ++i) {
-                expect(rows[i].foo).toBe(i);
+            const proxyType = new webdb.RowProxyType<Row>(result);
+            const chunks = new webdb.QueryResultChunkStream(conn, result);
+            let expected = 0;
+            while (chunks.nextBlocking()) {
+                const rows = proxyType.proxyChunkRows(chunks.currentChunk);
+                for (let i = 0; i < rows.length; ++i) {
+                    expect(rows[i].foo).toBe(expected++);
+                }
             }
         });
     });
