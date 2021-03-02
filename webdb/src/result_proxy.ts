@@ -4,121 +4,57 @@ import { webdb as proto } from '@dashql/proto';
 import { SQLType, Value } from './value';
 import { BlockingChunkIterator, VectorBuffers } from './iterator_base';
 
-interface ColumnProxy {
-    /// Cast value at index as float
-    castAsDouble(chunk: number, row: number): number | null;
-    /// Cast value at index as integer
-    castAsInteger(chunk: number, row: number): number | null;
-    /// Cast value at index as string
-    castAsString(chunk: number, row: number): string | null;
+type ValueArray = Float64Array | proto.VectorString;
+
+interface ChunkData {
+    columns: (ValueArray | null)[];
+    nullmasks: (Int8Array | null)[];
 }
 
-class StringColumnProxy implements ColumnProxy {
-    /// The value arrays
-    _values: proto.VectorString[];
-    /// Constructor
-    constructor(values: proto.VectorString[]) {
-        this._values = values;
-    }
-    /// Cast value at index as float
-    public castAsDouble(chunk: number, row: number): number | null {
-        return parseFloat(this._values[chunk].values(row));
-    }
-    /// Cast value at index as integer
-    public castAsInteger(chunk: number, row: number): number | null {
-        return parseInt(this._values[chunk].values(row));
-    }
-    /// Cast value at index as string
-    public castAsString(chunk: number, row: number): string | null {
-        return this._values[chunk].values(row);
-    }
-}
-
-class NullableStringColumnProxy implements ColumnProxy {
-    /// The value arrays
-    _values: proto.VectorString[];
-    /// The nullmask arrays
-    _nullmasks: Int8Array[];
-    /// Constructor
-    constructor(values: proto.VectorString[], nullmasks: Int8Array[]) {
-        this._values = values;
-        this._nullmasks = nullmasks;
-    }
-    /// Cast value at index as float
-    public castAsDouble(chunk: number, row: number): number | null {
-        return this._nullmasks[chunk][row] ? null : parseFloat(this._values[chunk].values(row));
-    }
-    /// Cast value at index as integer
-    public castAsInteger(chunk: number, row: number): number | null {
-        return this._nullmasks[chunk][row] ? null : parseInt(this._values[chunk].values(row));
-    }
-    /// Cast value at index as string
-    public castAsString(chunk: number, row: number): string | null {
-        return this._nullmasks[chunk][row] ? null : this._values[chunk].values(row);
-    }
-}
-
-class Float64ColumnProxy implements ColumnProxy {
-    /// The value arrays
-    _values: Float64Array[];
-    /// Constructor
-    constructor(values: Float64Array[]) {
-        this._values = values;
-    }
-    /// Cast value at index as float
-    public castAsDouble(chunk: number, row: number): number | null {
-        return this._values[chunk][row];
-    }
-    /// Cast value at index as integer
-    public castAsInteger(chunk: number, row: number): number | null {
-        return Math.trunc(this._values[chunk][row]);
-    }
-    /// Cast value at index as string
-    public castAsString(chunk: number, row: number): string | null {
-        return this._values[chunk][row].toString();
-    }
-}
-
-class NullableFloat64ColumnProxy implements ColumnProxy {
-    /// The value arrays
-    _values: Float64Array[];
-    /// The nullmask arrays
-    _nullmasks: Int8Array[];
-    /// Constructor
-    constructor(values: Float64Array[], nullmasks: Int8Array[]) {
-        this._values = values;
-        this._nullmasks = nullmasks;
-    }
-    /// Cast value at index as float
-    public castAsDouble(chunk: number, row: number): number | null {
-        return this._nullmasks[chunk][row] ? null : this._values[chunk][row];
-    }
-    /// Cast value at index as integer
-    public castAsInteger(chunk: number, row: number): number | null {
-        return this._nullmasks[chunk][row] ? null : Math.trunc(this._values[chunk][row]);
-    }
-    /// Cast value at index as string
-    public castAsString(chunk: number, row: number): string | null {
-        return this._nullmasks[chunk][row] ? null : this._values[chunk][row].toString();
-    }
-}
-
-type IntegerAttributeProxy = (chunkId: number, rowId: number) => number | null;
-type FloatAttributeProxy = (chunkId: number, rowId: number) => number | null;
-type StringAttributeProxy = (chunkId: number, rowId: number) => string | null;
+type IntegerAttributeProxy = (chunk: ChunkData, row: number) => number | null;
+type FloatAttributeProxy = (chunk: ChunkData, row: number) => number | null;
+type StringAttributeProxy = (chunk: ChunkData, row: number) => string | null;
 type AttributeProxy = IntegerAttributeProxy | FloatAttributeProxy | StringAttributeProxy;
 
+function Column<T>(column: number, fn: (column: number, chunk: ChunkData, row: number) => T) : (chunk: ChunkData, row: number) => T {
+    return (chunk: ChunkData, row: number) => fn(column, chunk, row);
+}
+
+function Nullable<T>(fn: (column: number, chunk: ChunkData, row: number) => T): (column: number, chunk: ChunkData, row: number) => T | null {
+    return (column: number, chunk: ChunkData, row: number) =>
+        chunk.nullmasks[column]![row] ? null : fn(column, chunk, row);
+}
+
+function DoubleAsDouble(column: number, chunk: ChunkData, row: number): number | null {
+    return (chunk.columns[column] as Float64Array)[row];
+}
+function DoubleAsInteger(column: number, chunk: ChunkData, row: number): number | null {
+    return Math.trunc((chunk.columns[column] as Float64Array)[row]);
+}
+function DoubleAsString(column: number, chunk: ChunkData, row: number): string | null {
+    return (chunk.columns[column] as Float64Array)[row].toString();
+}
+
+function StringAsDouble(column: number, chunk: ChunkData, row: number): number | null {
+    return parseFloat((chunk.columns[column] as proto.VectorString).values(row));
+}
+function StringAsInteger(column: number, chunk: ChunkData, row: number): number | null {
+    return parseInt((chunk.columns[column] as proto.VectorString).values(row));
+}
+function StringAsString(column: number, chunk: ChunkData, row: number): string | null {
+    return (chunk.columns[column] as proto.VectorString).values(row);
+}
+
 /// The row proxy constructor
-type RowProxyCtor = (chunk: number, row: number) => any;
+type RowProxyCtor = (chunk: ChunkData, row: number) => any;
 
 /// Define a row proxy type
 function defineRowProxyType(columnNames: string[], columnProxies: AttributeProxy[]): RowProxyCtor {
-    const ctor = function (this: any, chunk: number, row: number) {
+    const ctor = function (this: any, chunk: ChunkData, row: number) {
         this.__chunk__ = chunk;
         this.__row__ = row;
     };
     Object.defineProperty(ctor.prototype, '__chunk__', {
-        value: -1,
         enumerable: false,
         writable: true,
     });
@@ -136,64 +72,12 @@ function defineRowProxyType(columnNames: string[], columnProxies: AttributeProxy
             enumerable: true,
         });
     }
-    return (chunk: number, row: number) => new (ctor as any)(chunk, row);
-}
-
-/// Read a double column accross multiple chunks
-export function readFloat64Column(
-    chunks: proto.QueryResultChunk[],
-    columnId: number,
-): [Float64Array[] | null, Int8Array[] | null] {
-    let values: Float64Array[] = [];
-    let nulls: Int8Array[] = [];
-    let hasNulls = true;
-    const tmp = new proto.VectorF64();
-    for (const chunk of chunks) {
-        const c = chunk.columns(columnId);
-        if (!c || c.variantType() != proto.VectorVariant.VectorF64) {
-            return [null, null];
-        }
-        const v = c.variant(tmp)!;
-        values.push(v.valuesArray()!);
-        const n = v.nullMaskArray();
-        hasNulls = hasNulls && n != null;
-        if (hasNulls) nulls.push(n!);
-    }
-    return [values, hasNulls ? nulls : null];
-}
-
-/// Read a string column accross multiple chunks
-export function readStringColumn(
-    chunks: proto.QueryResultChunk[],
-    column_id: number,
-): [proto.VectorString[] | null, Int8Array[] | null] {
-    let values: proto.VectorString[] = [];
-    let nulls: Int8Array[] = [];
-    let hasNulls = true;
-    for (const chunk of chunks) {
-        const c = chunk.columns(column_id);
-        if (!c || c.variantType() != proto.VectorVariant.VectorString) {
-            return [null, null];
-        }
-        const vec = c.variant(new proto.VectorString())!;
-        values.push(vec);
-        const n = vec.nullMaskArray();
-        hasNulls = hasNulls && n != null;
-        if (hasNulls) nulls.push(n!);
-    }
-    return [values, hasNulls ? nulls : null];
+    return (chunk: ChunkData, row: number) => new (ctor as any)(chunk, row);
 }
 
 export function proxyMaterializedChunkRows<T>(iter: BlockingChunkIterator): T[] {
-    // Collect all chunks
-    let chunks: proto.QueryResultChunk[] = [];
-    while (iter.nextBlocking()) {
-        chunks.push(iter.currentChunk);
-    }
-
-    // Build all column proxies
-    let columnProxies: AttributeProxy[] = [];
     let columnNames: string[] = [];
+    let columnProxies: AttributeProxy[] = [];
     for (let columnId = 0; columnId < iter.columnCount; ++columnId) {
         switch (iter.columnTypes[columnId].typeId()) {
             case proto.SQLTypeID.BOOLEAN:
@@ -202,36 +86,21 @@ export function proxyMaterializedChunkRows<T>(iter: BlockingChunkIterator): T[] 
             case proto.SQLTypeID.TINYINT:
             case proto.SQLTypeID.SMALLINT:
             case proto.SQLTypeID.INTEGER: {
-                const [values, nulls] = readFloat64Column(chunks, columnId);
-                if (!values) continue;
-                const proxy = !nulls
-                    ? new Float64ColumnProxy(values!)
-                    : new NullableFloat64ColumnProxy(values!, nulls!);
-                columnProxies.push(proxy.castAsInteger.bind(proxy));
+                columnProxies.push(Column(columnId, Nullable(DoubleAsInteger)));
                 columnNames.push(iter.result.columnNames(columnId));
                 break;
             }
 
             case proto.SQLTypeID.FLOAT:
             case proto.SQLTypeID.DOUBLE: {
-                const [values, nulls] = readFloat64Column(chunks, columnId);
-                if (!values) continue;
-                const proxy = !nulls
-                    ? new Float64ColumnProxy(values!)
-                    : new NullableFloat64ColumnProxy(values!, nulls!);
-                columnProxies.push(proxy.castAsDouble.bind(proxy));
+                columnProxies.push(Column(columnId, Nullable(DoubleAsDouble)));
                 columnNames.push(iter.result.columnNames(columnId));
                 break;
             }
 
             case proto.SQLTypeID.CHAR:
             case proto.SQLTypeID.VARCHAR: {
-                const [values, nulls] = readStringColumn(chunks, columnId);
-                if (!values) continue;
-                const proxy = !nulls
-                    ? new StringColumnProxy(values!)
-                    : new NullableStringColumnProxy(values!, nulls!);
-                columnProxies.push(proxy.castAsDouble.bind(proxy));
+                columnProxies.push(Column(columnId, Nullable(StringAsString)));
                 columnNames.push(iter.result.columnNames(columnId));
                 break;
             }
@@ -258,12 +127,46 @@ export function proxyMaterializedChunkRows<T>(iter: BlockingChunkIterator): T[] 
                 break;
         }
     }
-
     const rowProxyCtor = defineRowProxyType(columnNames, columnProxies);
-    let rows: T[] = [];
-    for (let chunkId = 0; chunkId < chunks.length; ++chunkId) {
-        for (let rowId = 0; rowId < chunks[chunkId].rowCount(); ++rowId) {
-            rows.push(rowProxyCtor(chunkId, rowId) as T);
+
+    const tmpVectorF64 = new proto.VectorF64();
+
+    // Collect all chunks
+    let rows: T[] = []
+    while (iter.nextBlocking()) {
+        const chunk = iter.currentChunk;
+        const chunkData: ChunkData = {
+            columns: [],
+            nullmasks: []
+        };
+        for (let columnId = 0; columnId < chunk.columnsLength(); ++columnId) {
+            const column = chunk.columns(columnId)!;
+            switch (column.variantType()) {
+                case proto.VectorVariant.NONE:
+                    break;
+                case proto.VectorVariant.VectorF64: {
+                    const vec = column.variant(tmpVectorF64)!;
+                    chunkData.columns.push(vec.valuesArray());
+                    chunkData.nullmasks.push(vec.nullMaskArray());
+                    break;
+                }
+                case proto.VectorVariant.VectorI128:
+                    break;
+                case proto.VectorVariant.VectorI64:
+                    break;
+                case proto.VectorVariant.VectorInterval:
+                    break;
+                case proto.VectorVariant.VectorString:
+                    const vec = column.variant(new proto.VectorString)!;
+                    chunkData.columns.push(vec);
+                    chunkData.nullmasks.push(vec.nullMaskArray());
+                    break;
+                case proto.VectorVariant.VectorU8:
+                    break;
+            }
+        }
+        for (let rowId = 0; rowId < chunk.rowCount(); ++rowId) {
+            rows.push(rowProxyCtor(chunkData, rowId) as T);
         }
     }
     return rows;
