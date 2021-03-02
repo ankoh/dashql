@@ -30,15 +30,13 @@ describe('RowProxy', () => {
             interface Row extends webdb.RowProxy {
                 foo: number | null;
             }
-            const proxyType = new webdb.RowProxyType(result);
             const chunks = new webdb.QueryResultChunkStream(conn, result);
             let expected = 0;
             while (chunks.nextBlocking()) {
-                const rows = proxyType.proxyChunkRows<Row>(chunks.currentChunk);
-                for (let i = 0; i < rows.length; ++i) {
+                for (const row of chunks.collect<Row>()) {
                     let e = expected++;
-                    expect(rows[i].foo).toBe(e);
-                    expect(rows[i].__attribute__(0)).toBe(e);
+                    expect(row.foo).toBe(e);
+                    expect(row.__attribute__(0)).toBe(e);
                 }
             }
         });
