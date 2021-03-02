@@ -2,116 +2,269 @@
 
 import { webdb as proto } from '@dashql/proto';
 import { SQLType, Value } from './value';
-import { NumberArray } from './iterator_base';
+import { BlockingChunkIterator, VectorBuffers } from './iterator_base';
 
-export interface ColumnProxy {
+interface ColumnProxy {
     /// Cast value at index as float
-    castAsFloat(i: number): number | null;
+    castAsDouble(chunk: number, row: number): number | null;
     /// Cast value at index as integer
-    castAsInteger(i: number): number | null;
+    castAsInteger(chunk: number, row: number): number | null;
     /// Cast value at index as string
-    castAsString(i: number): string | null;
+    castAsString(chunk: number, row: number): string | null;
 }
 
-class NumberColumnProxy<T extends NumberArray> implements ColumnProxy {
+class StringColumnProxy implements ColumnProxy {
     /// The value arrays
-    _valueArrays: T[] = [];
-    /// The nullmask arrays
-    _nullmaskArrays: Uint8Array[] = [];
-    /// The array offsets
-    _arrayOffsets: Uint32Array = new Uint32Array();
-
-    /// Find an index in the chunks
-    protected resolveIndex(i: number): [number, number] {
-        return [0, 0];
+    _values: proto.VectorString[];
+    /// Constructor
+    constructor(values: proto.VectorString[]) {
+        this._values = values;
     }
-
     /// Cast value at index as float
-    public castAsFloat(i: number): number | null {
-        const [chunk, idx] = this.resolveIndex(i);
-        return this._valueArrays[chunk][idx];
+    public castAsDouble(chunk: number, row: number): number | null {
+        return parseFloat(this._values[chunk].values(row));
     }
-
     /// Cast value at index as integer
-    public castAsInteger(i: number): number | null {
-        const [chunk, idx] = this.resolveIndex(i);
-        return Math.trunc(this._valueArrays[chunk][idx]);
+    public castAsInteger(chunk: number, row: number): number | null {
+        return parseInt(this._values[chunk].values(row));
     }
-
     /// Cast value at index as string
-    public castAsString(i: number): string | null {
-        const [chunk, idx] = this.resolveIndex(i);
-        return this._valueArrays[chunk][idx].toString();
+    public castAsString(chunk: number, row: number): string | null {
+        return this._values[chunk].values(row);
     }
 }
 
-type IntegerAttributeProxy = (i: number) => number | null;
-type FloatAttributeProxy = (i: number) => number | null;
-type StringAttributeProxy = (i: number) => string | null;
+class NullableStringColumnProxy implements ColumnProxy {
+    /// The value arrays
+    _values: proto.VectorString[];
+    /// The nullmask arrays
+    _nullmasks: Int8Array[];
+    /// Constructor
+    constructor(values: proto.VectorString[], nullmasks: Int8Array[]) {
+        this._values = values;
+        this._nullmasks = nullmasks;
+    }
+    /// Cast value at index as float
+    public castAsDouble(chunk: number, row: number): number | null {
+        return this._nullmasks[chunk][row] ? null : parseFloat(this._values[chunk].values(row));
+    }
+    /// Cast value at index as integer
+    public castAsInteger(chunk: number, row: number): number | null {
+        return this._nullmasks[chunk][row] ? null : parseInt(this._values[chunk].values(row));
+    }
+    /// Cast value at index as string
+    public castAsString(chunk: number, row: number): string | null {
+        return this._nullmasks[chunk][row] ? null : this._values[chunk].values(row);
+    }
+}
+
+class Float64ColumnProxy implements ColumnProxy {
+    /// The value arrays
+    _values: Float64Array[];
+    /// Constructor
+    constructor(values: Float64Array[]) {
+        this._values = values;
+    }
+    /// Cast value at index as float
+    public castAsDouble(chunk: number, row: number): number | null {
+        return this._values[chunk][row];
+    }
+    /// Cast value at index as integer
+    public castAsInteger(chunk: number, row: number): number | null {
+        return Math.trunc(this._values[chunk][row]);
+    }
+    /// Cast value at index as string
+    public castAsString(chunk: number, row: number): string | null {
+        return this._values[chunk][row].toString();
+    }
+}
+
+class NullableFloat64ColumnProxy implements ColumnProxy {
+    /// The value arrays
+    _values: Float64Array[];
+    /// The nullmask arrays
+    _nullmasks: Int8Array[];
+    /// Constructor
+    constructor(values: Float64Array[], nullmasks: Int8Array[]) {
+        this._values = values;
+        this._nullmasks = nullmasks;
+    }
+    /// Cast value at index as float
+    public castAsDouble(chunk: number, row: number): number | null {
+        return this._nullmasks[chunk][row] ? null : this._values[chunk][row];
+    }
+    /// Cast value at index as integer
+    public castAsInteger(chunk: number, row: number): number | null {
+        return this._nullmasks[chunk][row] ? null : Math.trunc(this._values[chunk][row]);
+    }
+    /// Cast value at index as string
+    public castAsString(chunk: number, row: number): string | null {
+        return this._nullmasks[chunk][row] ? null : this._values[chunk][row].toString();
+    }
+}
+
+type IntegerAttributeProxy = (chunkId: number, rowId: number) => number | null;
+type FloatAttributeProxy = (chunkId: number, rowId: number) => number | null;
+type StringAttributeProxy = (chunkId: number, rowId: number) => string | null;
 type AttributeProxy = IntegerAttributeProxy | FloatAttributeProxy | StringAttributeProxy;
 
-export interface RowProxy {
-    [name: string]: AttributeProxy
-}
+/// The row proxy constructor
+type RowProxyCtor = (chunk: number, row: number) => any;
 
-function defineRowProxyType(columnNames: string[], columnProxies: AttributeProxy[]): (index: number) => RowProxy {
-    const ctor = function(this: any, index: number) {
-        this.__rowIndex__ = index;
+/// Define a row proxy type
+function defineRowProxyType(columnNames: string[], columnProxies: AttributeProxy[]): RowProxyCtor {
+    const ctor = function (this: any, chunk: number, row: number) {
+        this.__chunk__ = chunk;
+        this.__row__ = row;
     };
-    Object.defineProperty(ctor.prototype, "__rowIndex__" , {
+    Object.defineProperty(ctor.prototype, '__chunk__', {
         value: -1,
         enumerable: false,
         writable: false,
-    })
+    });
+    Object.defineProperty(ctor.prototype, '__row__', {
+        value: -1,
+        enumerable: false,
+        writable: false,
+    });
     for (let i = 0; i < columnProxies.length; ++i) {
         const proxy = columnProxies[i];
         Object.defineProperty(ctor.prototype, columnNames[i], {
-            get: function() { return proxy(this.__rowIndex__) },
-            enumerable: true
-        })
+            get: function () {
+                return proxy(this.__chunk__, this.__row__);
+            },
+            enumerable: true,
+        });
     }
-    return (index: number) => (new (ctor as any)(index));
+    return (chunk: number, row: number) => new (ctor as any)(chunk, row);
 }
 
-export class MaterializedQueryResultBuffer {
-    /// The query result
-    _result: proto.QueryResult;
-    /// The chunks
-    _chunks: proto.QueryResultChunk[];
-    /// The offsets of the chunks
-    _chunkOffsets: Uint32Array;
+/// Read a double column accross multiple chunks
+export function readFloat64Column(
+    chunks: proto.QueryResultChunk[],
+    columnId: number,
+): [Float64Array[] | null, Int8Array[] | null] {
+    let values: Float64Array[] = [];
+    let nulls: Int8Array[] = [];
+    let hasNulls = true;
+    const tmp = new proto.VectorF64();
+    for (const chunk of chunks) {
+        const c = chunk.columns(columnId);
+        if (!c || c.variantType() != proto.VectorVariant.VectorF64) {
+            return [null, null];
+        }
+        const v = c.variant(tmp)!;
+        values.push(v.valuesArray()!);
+        const n = v.nullMaskArray();
+        hasNulls = hasNulls && n != null;
+        if (hasNulls) nulls.push(n!);
+    }
+    return [values, hasNulls ? nulls : null];
+}
 
-    /// Constructor
-    public constructor(resultBuffer: proto.QueryResult, chunks: proto.QueryResultChunk[] = []) {
-        this._result = resultBuffer;
-        this._chunks = [];
-        this._chunkOffsets = new Uint32Array(this._result.dataChunksLength() + chunks.length);
-        let globalOffset = 0;
-        for (let i = 0; i < this._result.dataChunksLength(); ++i) {
-            this._chunkOffsets[i] = globalOffset;
-            this._chunks.push(this._result.dataChunks(i)!);
-            globalOffset += this._chunks[i].rowCount();
+/// Read a string column accross multiple chunks
+export function readStringColumn(
+    chunks: proto.QueryResultChunk[],
+    column_id: number,
+): [proto.VectorString[] | null, Int8Array[] | null] {
+    let values: proto.VectorString[] = [];
+    let nulls: Int8Array[] = [];
+    let hasNulls = true;
+    for (const chunk of chunks) {
+        const c = chunk.columns(column_id);
+        if (!c || c.variantType() != proto.VectorVariant.VectorString) {
+            return [null, null];
         }
-        for (let i = 0; i < chunks.length; ++i) {
-            this._chunkOffsets[this._chunks.length] = globalOffset;
-            this._chunks.push(chunks[i]);
-            globalOffset += chunks[i].rowCount();
-        }
-        if (this._chunks.length == 0 || this._chunks[this._chunks.length - 1].rowCount() == 0) {
-            this._chunks.push(new proto.QueryResultChunk());
+        const vec = c.variant(new proto.VectorString())!;
+        values.push(vec);
+        const n = vec.nullMaskArray();
+        hasNulls = hasNulls && n != null;
+        if (hasNulls) nulls.push(n!);
+    }
+    return [values, hasNulls ? nulls : null];
+}
+
+export function proxyMaterializedChunkRows<T>(iter: BlockingChunkIterator): T[] {
+    // Collect all chunks
+    let chunks: proto.QueryResultChunk[] = [];
+    while (iter.nextBlocking()) {
+        chunks.push(iter.currentChunk);
+    }
+
+    // Build all column proxies
+    let columnProxies: AttributeProxy[] = [];
+    let columnNames: string[] = [];
+    for (let columnId = 0; columnId < iter.columnCount; ++columnId) {
+        switch (iter.columnTypes[columnId].typeId()) {
+            case proto.SQLTypeID.BOOLEAN:
+                break;
+
+            case proto.SQLTypeID.TINYINT:
+            case proto.SQLTypeID.SMALLINT:
+            case proto.SQLTypeID.INTEGER: {
+                const [values, nulls] = readFloat64Column(chunks, columnId);
+                if (!values) continue;
+                const proxy = !nulls
+                    ? new Float64ColumnProxy(values!)
+                    : new NullableFloat64ColumnProxy(values!, nulls!);
+                columnProxies.push(proxy.castAsInteger.bind(proxy));
+                columnNames.push(iter.result.columnNames(columnId));
+                break;
+            }
+
+            case proto.SQLTypeID.FLOAT:
+            case proto.SQLTypeID.DOUBLE: {
+                const [values, nulls] = readFloat64Column(chunks, columnId);
+                if (!values) continue;
+                const proxy = !nulls
+                    ? new Float64ColumnProxy(values!)
+                    : new NullableFloat64ColumnProxy(values!, nulls!);
+                columnProxies.push(proxy.castAsDouble.bind(proxy));
+                columnNames.push(iter.result.columnNames(columnId));
+                break;
+            }
+
+            case proto.SQLTypeID.CHAR:
+            case proto.SQLTypeID.VARCHAR: {
+                const [values, nulls] = readStringColumn(chunks, columnId);
+                if (!values) continue;
+                const proxy = !nulls
+                    ? new StringColumnProxy(values!)
+                    : new NullableStringColumnProxy(values!, nulls!);
+                columnProxies.push(proxy.castAsDouble.bind(proxy));
+                columnNames.push(iter.result.columnNames(columnId));
+                break;
+            }
+
+            case proto.SQLTypeID.DATE:
+            case proto.SQLTypeID.TIME:
+            case proto.SQLTypeID.TIMESTAMP:
+                break;
+
+            case proto.SQLTypeID.BIGINT:
+            case proto.SQLTypeID.DECIMAL:
+            case proto.SQLTypeID.VARBINARY:
+            case proto.SQLTypeID.BLOB:
+            case proto.SQLTypeID.INTERVAL:
+            case proto.SQLTypeID.INVALID:
+            case proto.SQLTypeID.SQLNULL:
+            case proto.SQLTypeID.UNKNOWN:
+            case proto.SQLTypeID.ANY:
+            case proto.SQLTypeID.HUGEINT:
+            case proto.SQLTypeID.POINTER:
+            case proto.SQLTypeID.HASH:
+            case proto.SQLTypeID.STRUCT:
+            case proto.SQLTypeID.LIST:
+                break;
         }
     }
 
-    /// Build row proxies
-    public buildRowProxies(): RowProxy[] {
-        const columnNames: string[] = [];
-        const columnProxies: AttributeProxy[] = [];
-        const RowProxyType = defineRowProxyType(columnNames, columnProxies);
-        let rows: RowProxy[] = [];
-        for (let i = 0; i < 1000; ++i) {
-            const row = RowProxyType(i);
-            rows.push(row);
+    const rowProxyCtor = defineRowProxyType(columnNames, columnProxies);
+    let rows: T[] = [];
+    for (let chunkId = 0; chunkId < chunks.length; ++chunkId) {
+        for (let rowId = 0; rowId < chunks[chunkId].rowCount(); ++rowId) {
+            rows.push(rowProxyCtor(chunkId, rowId) as T);
         }
-        return rows;
     }
+    return rows;
 }
