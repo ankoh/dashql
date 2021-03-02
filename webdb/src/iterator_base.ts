@@ -240,7 +240,9 @@ export class BlockingQueryResultRowIterator extends RowIteratorBase implements B
         if (this.currentRow < this.currentChunk.rowCount()) return true;
 
         // Get next chunk
-        this.iter.nextBlocking();
+        if (!this.iter.nextBlocking()) {
+            return false;
+        }
         this._currentChunkBegin = this._globalRowIndex;
         let empty = this.currentChunk.rowCount() == 0;
         return !empty;
