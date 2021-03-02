@@ -6,8 +6,6 @@ import kleur from 'kleur';
 import wasmPath from '@dashql/webdb/dist/webdb.wasm';
 
 function main(db: webdb.WebDB) {
-    let tupleSize = 8; // 32-bit integers as encoded as doubles to help js
-
     for (const tupleCount of [1000, 10000, 1000000, 10000000]) {
         benny.suite(`Single DOUBLE column | ${tupleCount} rows`,
             benny.add('column scan', () => {
@@ -24,7 +22,6 @@ function main(db: webdb.WebDB) {
                             sum += v!;
                         });
                     }
-                    conn.disconnect();
                     if (sum != ((tupleCount) * (tupleCount + 1) / 2)) {
                         console.log("WRONG RESULT")
                     }
@@ -47,7 +44,6 @@ function main(db: webdb.WebDB) {
                         if (!iter.nextBlocking())
                             break;
                     }
-                    conn.disconnect();
                     if (sum != ((tupleCount) * (tupleCount + 1) / 2)) {
                         console.log("WRONG RESULT")
                     }
