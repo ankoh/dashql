@@ -152,7 +152,6 @@ export abstract class RowIteratorBase {
     /// Is the end?
     public isEnd(): boolean { return this.currentRow >= this.currentChunk.rowCount(); }
 
-
     /// Read a value
     public getValue(cid: number = 0, v: Value = new Value()): Value {
         if (cid >= this._chunkIter.columnCount) {
