@@ -120,12 +120,12 @@ function defineRowProxyType(columnNames: string[], columnProxies: AttributeProxy
     Object.defineProperty(ctor.prototype, '__chunk__', {
         value: -1,
         enumerable: false,
-        writable: false,
+        writable: true,
     });
     Object.defineProperty(ctor.prototype, '__row__', {
         value: -1,
         enumerable: false,
-        writable: false,
+        writable: true,
     });
     for (let i = 0; i < columnProxies.length; ++i) {
         const proxy = columnProxies[i];
