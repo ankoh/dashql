@@ -59,13 +59,13 @@ function main(db: webdb.WebDB) {
                 conn.disconnect();
                 return () => {
                     const chunks = new webdb.MaterializedQueryResultChunks(result);
-                    interface Row {
-                        foo: number | null
+                    interface Row extends webdb.RowProxy {
+                        foo: number | null;
                     }
-                    const proxyType = new webdb.RowProxyType<Row>(result);
+                    const proxyType = new webdb.RowProxyType(result);
                     let sum = 0;
                     while (chunks.nextBlocking()) {
-                        const rows = proxyType.proxyChunkRows(chunks.currentChunk);
+                        const rows = proxyType.proxyChunkRows<Row>(chunks.currentChunk);
                         for (const row of rows) {
                             sum += row.foo!;
                         }

@@ -2,7 +2,9 @@
 
 import { webdb as proto } from '@dashql/proto';
 import { Value } from './value';
+import { RowProxyType } from './proxy';
 
+/// The vector buffers
 export class VectorBuffers {
     vector: proto.Vector;
     vectorU8: proto.VectorU8;
@@ -95,6 +97,12 @@ export abstract class ChunkIteratorBase {
             }
         }
     }
+
+    /// Proxy the chunk rows
+    // public proxyRows<T>(type: RowProxyType<T>, out: T[] = []): T[]  {
+    //     
+    //     return out;
+    // }
 }
 
 export interface BlockingChunkIterator extends ChunkIteratorBase {
