@@ -58,9 +58,10 @@ export class MaterializedQueryResultChunks extends ChunkIteratorBase implements 
     }
     /// Get the next chunk
     public nextBlocking(): boolean {
-        if (++this._currentChunkID >= this._chunks.length) {
+        if (this._currentChunkID + 1 >= this._chunks.length) {
             return false;
         }
+        ++this._currentChunkID;
         this._currentChunk = this._chunks[this._currentChunkID];
         return true;
     }
