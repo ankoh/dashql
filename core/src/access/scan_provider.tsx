@@ -10,6 +10,8 @@ export class ScanRequest {
     offset: number = 0;
     /// The limit of a range
     limit: number = 0;
+    /// The sample size
+    sample: number = 0;
     /// The overscan
     overscan: number = 0;
 
@@ -18,6 +20,12 @@ export class ScanRequest {
         this.offset = offset;
         this.limit = limit;
         this.overscan = overscan;
+        return this;
+    }
+
+    /// Configure sample
+    public withSample(sample: number): ScanRequest {
+        this.sample = sample;
         return this;
     }
 
@@ -32,7 +40,7 @@ export class ScanRequest {
 
     /// Does a scan fully include a given range?
     includesRequest(other: ScanRequest): boolean {
-        return this.includesRange(other.offset, other.limit);
+        return this.includesRange(other.offset, other.limit) && this.sample == other.sample;
     }
 
     /// Does a scan fully include a given range?
@@ -124,6 +132,9 @@ export class ScanProvider extends React.Component<Props, State> {
         const offset = request.begin;
         const limit = request.end - offset;
         let query = `SELECT * FROM ${this.props.targetName} OFFSET ${offset} LIMIT ${limit}`;
+        if (request.sample > 0) {
+            query += ` USING SAMPLE RESERVOIR (${Math.trunc(request.sample)} ROWS)`;
+        }
         const result = await this.props.database.use(async conn => {
             return await conn.runQuery(query);
         });
