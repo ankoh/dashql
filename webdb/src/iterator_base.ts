@@ -110,7 +110,7 @@ export abstract class ChunkIteratorBase {
     }
 
     /// Collect exactly one entry
-    public collectOne<T extends RowProxy>(out: T[] = []): T {
+    public collectOne<T extends RowProxy>(): T {
         if (!this._proxyType) {
             this._proxyType = new RowProxyType(this.result);
         }
