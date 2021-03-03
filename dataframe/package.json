@@ -1,8 +1,7 @@
 {
-    "name": "@dashql/webdb",
+    "name": "@dashql/dataframe",
     "version": "0.0.8",
-    "description": "DuckDB powered by WebAssembly",
-    "author": "Andre Kohn <kohn.a@outlook.com>",
+    "description": "A Dataframe powered by WebAssembly",
     "license": "AGPL-3.0-or-later",
     "dependencies": {
         "@dashql/proto": "file:../proto/",
@@ -39,10 +38,10 @@
         "dist/**/*.js",
         "dist/*.wasm"
     ],
-    "main": "./dist/webdb_node.js",
-    "types": "./dist/webdb_node.d.ts",
+    "main": "./dist/dataframe_node.js",
+    "types": "./dist/dataframe_node.d.ts",
     "browser": {
-        "./dist/webdb_node.js": "./dist/webdb.js",
+        "./dist/dataframe_node.js": "./dist/dataframe.js",
         "perf_hooks": false,
         "fs": false,
         "buffer": false
