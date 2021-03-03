@@ -1,11 +1,11 @@
 // Copyright (c) 2020 The DashQL Authors
 
-import { ChunkIteratorBase, BlockingChunkIterator } from './iterator_base';
+import { ChunkIterator, BlockingChunkIterator } from './iterator_base';
 import { WebDBConnection } from './webdb_bindings';
 import { webdb as proto } from '@dashql/proto';
 
 /// An iterator for blocking chunk streams
-export class ChunkStreamIterator extends ChunkIteratorBase implements BlockingChunkIterator {
+export class ChunkStreamIterator extends ChunkIterator implements BlockingChunkIterator {
     /// The connection
     _connection: WebDBConnection;
     /// The current chunk buffer
@@ -33,7 +33,7 @@ export class ChunkStreamIterator extends ChunkIteratorBase implements BlockingCh
 }
 
 /// An iterator for a chunk array
-export class ChunkArrayIterator extends ChunkIteratorBase implements BlockingChunkIterator {
+export class ChunkArrayIterator extends ChunkIterator implements BlockingChunkIterator {
     /// The chunks
     _chunks: proto.QueryResultChunk[];
 

@@ -248,7 +248,7 @@ export class DataGrid extends React.Component<Props, State> {
             const offset = props.rowStartIndex - this.props.data!.request.begin;
             const limit = props.rowStopIndex - props.rowStartIndex + 1;
 
-            webdb.iterateChunksBlocking(
+            webdb.ChunkIterator.iterateAllBlocking(
                 iter,
                 offset,
                 limit,
