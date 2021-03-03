@@ -10,7 +10,8 @@ using namespace std;
 namespace {
 
 TEST(Dataframe, Constructor) {
-    auto dataframe = dataframe::Dataframe();
+    auto query = dataframe::Dataframe::AlgebraTree();
+    auto dataframe = dataframe::Dataframe(query);
     ASSERT_TRUE(true);
 }
 
