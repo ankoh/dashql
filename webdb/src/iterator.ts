@@ -22,7 +22,7 @@ export class QueryResultChunkStream extends ChunkIteratorBase implements Blockin
     public nextBlocking(): boolean {
         let result = this._resultBuffer;
         if (++this._currentChunkID < result.dataChunksLength()) {
-            this._currentChunk = result.dataChunks(this._currentChunkID, this._currentChunk)!;
+            this._currentChunk = result.dataChunks(this._currentChunkID, this._currentChunk!)!;
         } else {
             let chunkBuffer = this._connection.fetchQueryResults();
             this._currentChunk = chunkBuffer;

@@ -53,11 +53,11 @@ export interface RowProxy {
 /// Define a row proxy type
 function defineRowProxyType(columnNames: string[], columnProxies: AttributeProxy[]): RowProxyCtor {
     const proxies = columnProxies;
-    const ctor = function (this: any, chunkData: ChunkData, chunkRow: number) {
-        this.__chunkData__ = chunkData;
+    const ctor = function (this: any, data: ChunkData, chunkRow: number) {
+        this.__data__ = data;
         this.__chunkRow__ = chunkRow;
     };
-    Object.defineProperty(ctor.prototype, '__chunkData__', {
+    Object.defineProperty(ctor.prototype, '__data__', {
         enumerable: false,
         writable: true,
     });
@@ -67,13 +67,13 @@ function defineRowProxyType(columnNames: string[], columnProxies: AttributeProxy
         writable: true,
     });
     ctor.prototype.__attribute__ = function (i: number) {
-        return proxies[i](this.__chunkData__, this.__chunkRow__);
+        return proxies[i](this.__data__, this.__chunkRow__);
     };
     for (let i = 0; i < columnProxies.length; ++i) {
         const proxy = columnProxies[i];
         Object.defineProperty(ctor.prototype, columnNames[i], {
             get: function () {
-                return proxy(this.__chunkData__, this.__chunkRow__);
+                return proxy(this.__data__, this.__chunkRow__);
             },
             enumerable: true,
         });
@@ -83,11 +83,14 @@ function defineRowProxyType(columnNames: string[], columnProxies: AttributeProxy
 
 /// A row proxy type definition
 export class RowProxyType {
+    /// The query result
+    _result: proto.QueryResult;
     /// The row constructor
     _ctor: RowProxyCtor;
 
     /// Constructor
     constructor(result: proto.QueryResult) {
+        this._result = result;
         let columnNames: string[] = [];
         let columnProxies: AttributeProxy[] = [];
         for (let columnId = 0; columnId < result.columnTypesLength(); ++columnId) {
@@ -137,10 +140,10 @@ export class RowProxyType {
         this._ctor = defineRowProxyType(columnNames, columnProxies);
     }
 
-    // Proxy rows in chunk
-    public proxyChunkRows<T extends RowProxy>(chunk: webdb.QueryResultChunk, out: T[] = []): T[] {
+    // Index the chunk data
+    public static indexChunkData(chunk: webdb.QueryResultChunk) {
         const tmpVectorF64 = new proto.VectorF64();
-        const chunkData: ChunkData = {
+        const data: ChunkData = {
             columns: [],
             nullmasks: [],
         };
@@ -149,14 +152,14 @@ export class RowProxyType {
             switch (column.variantType()) {
                 case proto.VectorVariant.VectorF64: {
                     const vec = column.variant(tmpVectorF64)!;
-                    chunkData.columns.push(vec.valuesArray());
-                    chunkData.nullmasks.push(vec.nullMaskArray());
+                    data.columns.push(vec.valuesArray());
+                    data.nullmasks.push(vec.nullMaskArray());
                     break;
                 }
                 case proto.VectorVariant.VectorString: {
                     const vec = column.variant(new proto.VectorString())!;
-                    chunkData.columns.push(vec);
-                    chunkData.nullmasks.push(vec.nullMaskArray());
+                    data.columns.push(vec);
+                    data.nullmasks.push(vec.nullMaskArray());
                     break;
                 }
 
@@ -165,13 +168,44 @@ export class RowProxyType {
                 case proto.VectorVariant.VectorI128:
                 case proto.VectorVariant.VectorInterval:
                 case proto.VectorVariant.VectorU8:
-                    chunkData.columns.push(null);
-                    chunkData.nullmasks.push(null);
+                    data.columns.push(null);
+                    data.nullmasks.push(null);
                     break;
             }
         }
+        return data;
+    }
+
+    /// Create an empty row
+    public createEmptyRow<T extends RowProxy>(): T {
+        const data: ChunkData = {
+            columns: [],
+            nullmasks: [],
+        };
+        const n = this._result.columnTypesLength();
+        for (let i = 0; i < n; ++i) {
+            const nullmask = new Int8Array(1);
+            nullmask[0] = 1;
+            data.columns.push(null);
+            data.nullmasks.push(nullmask);
+        }
+        return this._ctor(data, 0) as T;
+    }
+
+    /// Proxy a single chunk row
+    public proxyChunkRow<T extends RowProxy>(chunk: webdb.QueryResultChunk): T {
+        if (chunk.rowCount() == 0) {
+            return this.createEmptyRow<T>();
+        }
+        const data = RowProxyType.indexChunkData(chunk);
+        return this._ctor(data, 0) as T;
+    }
+
+    // Proxy rows in chunk
+    public proxyChunkRows<T extends RowProxy>(chunk: webdb.QueryResultChunk, out: T[] = []): T[] {
+        const data = RowProxyType.indexChunkData(chunk);
         for (let rowId = 0; rowId < chunk.rowCount(); ++rowId) {
-            out.push(this._ctor(chunkData, rowId) as T);
+            out.push(this._ctor(data, rowId) as T);
         }
         return out;
     }

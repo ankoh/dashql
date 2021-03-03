@@ -15,25 +15,21 @@ import { webdb as proto } from '@dashql/proto';
 export class QueryResultChunkStream extends ChunkIteratorBase implements AsyncChunkIterator {
     /// The connection
     _connection: AsyncConnection;
-    /// The current chunk buffer
-    _currentChunkBuffer: proto.QueryResultChunk | null;
 
     /// Constructor
     public constructor(connection: AsyncConnection, resultBuffer: proto.QueryResult) {
         super(resultBuffer);
         this._connection = connection;
-        this._currentChunkBuffer = null;
     }
 
     /// Get the next chunk
     public async nextAsync(): Promise<boolean> {
         let result = this._resultBuffer;
         if (++this._currentChunkID < result.dataChunksLength()) {
-            this._currentChunk = result.dataChunks(this._currentChunkID, this._currentChunk)!;
+            this._currentChunk = result.dataChunks(this._currentChunkID, this._currentChunk!)!;
         } else {
             let chunkBuffer = await this._connection.fetchQueryResults();
             this._currentChunk = chunkBuffer;
-            this._currentChunkBuffer = chunkBuffer;
         }
         return this._currentChunk.rowCount() > 0;
     }
@@ -70,11 +66,10 @@ export class MaterializedQueryResultChunks extends ChunkIteratorBase
     }
     /// Get the next chunk
     public async nextAsync(): Promise<boolean> {
-        if (++this._currentChunkID >= this._chunks.length) {
+        if (this._currentChunkID + 1 >= this._chunks.length) {
             return false;
         }
-        console.log(`chunk id ${this._currentChunkID} of ${this._chunks.length}`);
-        this._currentChunk = this._chunks[this._currentChunkID];
+        this._currentChunk = this._chunks[++this._currentChunkID];
         return true;
     }
     /// The the next chunk synchronous
@@ -82,8 +77,7 @@ export class MaterializedQueryResultChunks extends ChunkIteratorBase
         if (this._currentChunkID + 1 >= this._chunks.length) {
             return false;
         }
-        ++this._currentChunkID;
-        this._currentChunk = this._chunks[this._currentChunkID];
+        this._currentChunk = this._chunks[++this._currentChunkID];
         return true;
     }
 }
