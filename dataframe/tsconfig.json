@@ -1,0 +1,20 @@
+{
+    "compilerOptions": {
+        "outDir": "./dist/",
+        "target": "es6",
+        "module": "commonjs",
+        "moduleResolution": "node",
+        "strict": true,
+        "sourceMap": true,
+        "declaration": true,
+        "declarationMap": true,
+        "declarationDir": "./dist/types/",
+        "noImplicitAny": true,
+        "esModuleInterop": true,
+        "types": ["emscripten", "node", "jest"],
+        "baseUrl": ".",
+        "lib": ["es6", "webworker"]
+    },
+    "include": ["./src/**/*", "./types/*.d.ts"],
+    "exclude": ["./test/**/*.ts", "./node_modules"]
+}

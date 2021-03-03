@@ -20,6 +20,7 @@
         "axios": "^0.21.1",
         "classnames": "^2.2.6",
         "dagre": "^0.8.5",
+        "fsevents": "*",
         "immutable": "^4.0.0-rc.12",
         "monaco-editor": "^0.21.2",
         "react": "^17.0.1",
