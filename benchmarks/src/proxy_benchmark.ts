@@ -16,34 +16,12 @@ function main(db: webdb.WebDB) {
                 `);
                 conn.disconnect();
                 return () => {
-                    let chunks = new webdb.MaterializedQueryResultChunks(result);
+                    let chunks = new webdb.ChunkArrayIterator(result);
                     let sum = 0;
                     while (chunks.nextBlocking()) {
                         chunks.iterateNumberColumn(0, (_row: number, v: number | null) => {
                             sum += v!;
                         });
-                    }
-                    if (sum != ((tupleCount) * (tupleCount + 1) / 2)) {
-                        console.log("WRONG RESULT")
-                    }
-                }
-            }),
-
-            benny.add('row iterator', () => {
-                let conn = db.connect();
-                let result = conn.runQuery(`
-                    SELECT v::DOUBLE AS foo FROM generate_series(0, ${tupleCount}) as t(v);
-                `);
-                conn.disconnect();
-                return () => {
-                    let chunks = new webdb.MaterializedQueryResultChunks(result);
-                    let iter = webdb.BlockingQueryResultRowIterator.iterate(chunks);
-                    let sum = 0;
-                    let tmp = new webdb.Value();
-                    while (true) {
-                        sum += iter.getValue(0, tmp).castAsFloat();
-                        if (!iter.nextBlocking())
-                            break;
                     }
                     if (sum != ((tupleCount) * (tupleCount + 1) / 2)) {
                         console.log("WRONG RESULT")
@@ -58,7 +36,7 @@ function main(db: webdb.WebDB) {
                 `);
                 conn.disconnect();
                 return () => {
-                    const chunks = new webdb.MaterializedQueryResultChunks(result);
+                    const chunks = new webdb.ChunkArrayIterator(result);
                     interface Row extends webdb.RowProxy {
                         foo: number | null;
                     }

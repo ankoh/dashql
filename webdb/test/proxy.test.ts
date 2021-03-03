@@ -30,7 +30,7 @@ describe('RowProxy', () => {
             interface Row extends webdb.RowProxy {
                 foo: number | null;
             }
-            const chunks = new webdb.QueryResultChunkStream(conn, result);
+            const chunks = new webdb.ChunkStreamIterator(conn, result);
             const row = chunks.collectOne<Row>();
             expect(row.foo).toBeNull();
         });
@@ -45,7 +45,7 @@ describe('RowProxy', () => {
             interface Row extends webdb.RowProxy {
                 foo: number | null;
             }
-            const chunks = new webdb.QueryResultChunkStream(conn, result);
+            const chunks = new webdb.ChunkStreamIterator(conn, result);
             expect(chunks.nextBlocking()).toBe(true);
             const row = chunks.collectOne<Row>();
             expect(row.foo).toBe(42);
@@ -60,7 +60,7 @@ describe('RowProxy', () => {
             expect(result.columnTypesLength()).toBe(1);
             interface Row extends webdb.RowProxy {
             }
-            const chunks = new webdb.QueryResultChunkStream(conn, result);
+            const chunks = new webdb.ChunkStreamIterator(conn, result);
             expect(chunks.nextBlocking()).toBe(true);
             const row = chunks.collectOne<Row>();
             expect(row.__attribute__(0)).toBe(42);
@@ -76,7 +76,7 @@ describe('RowProxy', () => {
             interface Row extends webdb.RowProxy {
                 foo: number | null;
             }
-            const chunks = new webdb.QueryResultChunkStream(conn, result);
+            const chunks = new webdb.ChunkStreamIterator(conn, result);
             let expected = 0;
             while (chunks.nextBlocking()) {
                 for (const row of chunks.collect<Row>()) {

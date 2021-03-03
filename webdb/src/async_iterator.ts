@@ -8,8 +8,8 @@ import {
 import { AsyncConnection } from './async_webdb';
 import { webdb as proto } from '@dashql/proto';
 
-/// A stream of query result chunks
-export class QueryResultChunkStream extends ChunkIteratorBase implements AsyncChunkIterator {
+/// An iterator for async chunk streams
+export class ChunkStreamIterator extends ChunkIteratorBase implements AsyncChunkIterator {
     /// The connection
     _connection: AsyncConnection;
 
@@ -32,8 +32,8 @@ export class QueryResultChunkStream extends ChunkIteratorBase implements AsyncCh
     }
 }
 
-/// Materialized result chunks
-export class MaterializedQueryResultChunks extends ChunkIteratorBase
+/// An iterator for a chunk array
+export class ChunkArrayIterator extends ChunkIteratorBase
     implements AsyncChunkIterator, BlockingChunkIterator {
     /// The chunks
     _chunks: proto.QueryResultChunk[];

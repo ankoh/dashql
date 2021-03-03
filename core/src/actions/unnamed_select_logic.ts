@@ -22,7 +22,7 @@ export class UnnamedSelectLogic extends ProgramActionLogic {
         await db.use(async (c: webdb.AsyncConnection) => {
             const result =  await c.runQuery(script);
 
-            const chunkIter = new webdb.QueryResultChunkStream(c, result);
+            const chunkIter = new webdb.ChunkStreamIterator(c, result);
             while (await chunkIter.nextAsync()) {
                 console.log(`rows ${chunkIter.rowCount} columns ${chunkIter.columnCount}`);
                 chunkIter.iterateNumberColumn(0, (row: number, v: number | null) => {

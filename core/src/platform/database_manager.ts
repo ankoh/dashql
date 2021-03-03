@@ -115,7 +115,7 @@ export class DatabaseManager {
             });
 
             // Unpack the query result
-            const chunkIter = new webdb.MaterializedQueryResultChunks(result);
+            const chunkIter = new webdb.ChunkArrayIterator(result);
             chunkIter.nextBlocking();
             if (chunkIter.rowCount == 0) {
                 // XXX Received no values
