@@ -131,7 +131,13 @@ export class ScanProvider extends React.Component<Props, State> {
     protected async runQuery(request: ScanRequest): Promise<ScanResult> {
         const offset = request.begin;
         const limit = request.end - offset;
-        let query = `SELECT * FROM ${this.props.targetName} OFFSET ${offset} LIMIT ${limit}`;
+        let query = `SELECT * FROM ${this.props.targetName}`;
+        if (request.offset > 0) {
+            query += ` OFFSET ${offset}`;
+        }
+        if (request.limit > 0) {
+            query += ` LIMIT ${limit}`;
+        }
         if (request.sample > 0) {
             query += ` USING SAMPLE RESERVOIR (${Math.trunc(request.sample)} ROWS)`;
         }
