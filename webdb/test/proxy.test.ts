@@ -21,7 +21,38 @@ afterEach(() => {
 });
 
 describe('RowProxy', () => {
-    describe('single columns', () => {
+    describe('single column, zero rows', () => {
+        test('INTEGER', () => {
+            const result = conn.sendQuery(`
+                SELECT v::INTEGER AS foo FROM generate_series(0, 1) as t(v) WHERE v < 0;
+            `);
+            expect(result.columnTypesLength()).toBe(1);
+            interface Row extends webdb.RowProxy {
+                foo: number | null;
+            }
+            const chunks = new webdb.QueryResultChunkStream(conn, result);
+            const row = chunks.collectOne<Row>();
+            expect(row.foo).toBeNull();
+        });
+    });
+
+    describe('single column, single rows', () => {
+        test('INTEGER', () => {
+            const result = conn.sendQuery(`
+                SELECT v::INTEGER AS foo FROM generate_series(0, 1) as t(v);
+            `);
+            expect(result.columnTypesLength()).toBe(1);
+            interface Row extends webdb.RowProxy {
+                foo: number | null;
+            }
+            const chunks = new webdb.QueryResultChunkStream(conn, result);
+            expect(chunks.nextBlocking()).toBe(true);
+            const row = chunks.collectOne<Row>();
+            expect(row.foo).toBe(0);
+        });
+    });
+
+    describe('single column, many rows', () => {
         test('INTEGER', () => {
             const result = conn.sendQuery(`
                 SELECT v::INTEGER AS foo FROM generate_series(0, ${testRows}) as t(v);
