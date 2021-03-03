@@ -40,7 +40,7 @@ describe('QueryResultRowIterator', () => {
                 SELECT (v & 127)::TINYINT FROM generate_series(0, ${testRows}) as t(v);
             `);
             expect(result.columnTypesLength()).toBe(1);
-            let chunks = new webdb.QueryResultChunkStream(conn, result);
+            let chunks = new webdb.ChunkStreamIterator(conn, result);
             let i = 0;
             while (await chunks.nextAsync()) {
                 chunks.iterateNumberColumn(0, (_row: number, v: number | null) => {
