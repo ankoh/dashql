@@ -48,6 +48,19 @@ export abstract class ChunkIterator {
     /// Get the temporary buffers
     public get tmp() { return this._tmp; }
 
+    /// Get the next chunk synchrnously
+    abstract nextBlocking(): boolean;
+    /// Get the next chunk asynchrnously
+    abstract nextAsync(): Promise<boolean>;
+
+    /// Collect exactly one entry
+    public collectOne<T extends RowProxy>(): T {
+        if (!this._proxyType) {
+            this._proxyType = new RowProxyType(this.result);
+        }
+        return this._proxyType.proxyChunkRow<T>(this.currentChunk);
+    }
+
     /// Build the row proxies
     public collect<T extends RowProxy>(out: T[] = []): T[]  {
         if (!this._proxyType) {
@@ -56,12 +69,15 @@ export abstract class ChunkIterator {
         return this._proxyType.proxyChunkRows<T>(this.currentChunk, out);
     }
 
-    /// Collect exactly one entry
-    public collectOne<T extends RowProxy>(): T {
+    /// Build row proxies for all chunks 
+    public collectAllBlocking<T extends RowProxy>(out: T[] = []): T[] {
         if (!this._proxyType) {
             this._proxyType = new RowProxyType(this.result);
         }
-        return this._proxyType.proxyChunkRow<T>(this.currentChunk);
+        while (this.nextBlocking()) {
+            this._proxyType.proxyChunkRows<T>(this.currentChunk, out);
+        }
+        return out;
     }
 
     /// Read a value of a row
@@ -141,13 +157,13 @@ export abstract class ChunkIterator {
     }
 
     /// Helper to iterate over a blocking chunk iterator
-    static iterateAllBlocking(iter: BlockingChunkIterator, offset: number, limit: number, fn: (iter: BlockingChunkIterator, start: number, skipHere: number, rowsHere: number) => void) {
+    public iterateAllBlocking(offset: number, limit: number, fn: (iter: ChunkIterator, start: number, skipHere: number, rowsHere: number) => void) {
         let skip = offset;
         let remaining = limit;
         let start = 0;
 
-        while (remaining && iter.nextBlocking()) {
-            const chunkRows = iter.currentChunk!.rowCount();
+        while (remaining && this.nextBlocking()) {
+            const chunkRows = this.currentChunk!.rowCount();
             const skipHere = Math.min(skip, chunkRows);
             skip -= skipHere;
             if (skipHere == chunkRows) {
@@ -156,23 +172,13 @@ export abstract class ChunkIterator {
             const rowsHere = Math.min(chunkRows - skipHere, remaining);
 
             // Run the function
-            fn(iter, start, skipHere, rowsHere);
+            fn(this, start, skipHere, rowsHere);
 
             // Advance the chunk start
             start += chunkRows - skipHere;
             remaining -= rowsHere;
         }
     }
-}
-
-/// A blocking chunk iterator
-export interface BlockingChunkIterator extends ChunkIterator {
-    nextBlocking(): boolean;
-}
-
-/// An asynchronous chunk iterator
-export interface AsyncChunkIterator extends ChunkIterator {
-    nextAsync(): Promise<boolean>;
 }
 
 /// The vector buffers

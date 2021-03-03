@@ -1,11 +1,11 @@
 // Copyright (c) 2020 The DashQL Authors
 
-import { ChunkIterator, BlockingChunkIterator } from './iterator_base';
+import { ChunkIterator } from './iterator_base';
 import { WebDBConnection } from './webdb_bindings';
 import { webdb as proto } from '@dashql/proto';
 
 /// An iterator for blocking chunk streams
-export class ChunkStreamIterator extends ChunkIterator implements BlockingChunkIterator {
+export class ChunkStreamIterator extends ChunkIterator {
     /// The connection
     _connection: WebDBConnection;
     /// The current chunk buffer
@@ -30,10 +30,15 @@ export class ChunkStreamIterator extends ChunkIterator implements BlockingChunkI
         }
         return this._currentChunk.rowCount() > 0;
     }
+    /// Get the next chunk asynchronously
+    public async nextAsync(): Promise<boolean> {
+        console.error("The blocking stream iterator does not support asynchronous iteration");
+        return Promise.resolve(false);
+    }
 }
 
 /// An iterator for a chunk array
-export class ChunkArrayIterator extends ChunkIterator implements BlockingChunkIterator {
+export class ChunkArrayIterator extends ChunkIterator {
     /// The chunks
     _chunks: proto.QueryResultChunk[];
 
@@ -64,5 +69,10 @@ export class ChunkArrayIterator extends ChunkIterator implements BlockingChunkIt
         ++this._currentChunkID;
         this._currentChunk = this._chunks[this._currentChunkID];
         return true;
+    }
+    /// Get the next chunk asynchronously
+    public async nextAsync(): Promise<boolean> {
+        console.error("The blocking array iterator does not support asynchronous iteration");
+        return Promise.resolve(false);
     }
 }
