@@ -89,7 +89,7 @@ interface Props {
 
 interface State {
     /// The current request
-    request: ScanRequest;
+    request: ScanRequest | null;
     /// The current data
     result: ScanResult | null;
 }
@@ -111,7 +111,7 @@ export class ScanProvider extends React.Component<Props, State> {
     constructor(props: Props) {
         super(props);
         this.state = {
-            request: new ScanRequest().withRange(0, 1024, 1024),
+            request: null,
             result: null,
         };
     }
@@ -188,6 +188,7 @@ export class ScanProvider extends React.Component<Props, State> {
 
     /// Load initial data
     public componentDidMount() {
+        if (!this.state.request) return;
         this.scheduleIfNecessary(this.state.request);
     }
 

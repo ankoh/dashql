@@ -40,7 +40,7 @@ export class TableRenderer extends React.Component<Props, State> {
         return (
             <VizCard title={this.props.vizInfo.title || `Table ${targetShort}`}>
                 <ScanProvider logger={logger} database={db} targetName={tableInfo.nameShort}>
-                    {(data, dataProvider) => <DataGrid tableInfo={tableInfo} data={data} dataProvider={dataProvider} />}
+                    {(data, requestData) => <DataGrid tableInfo={tableInfo} data={data} requestData={requestData} />}
                 </ScanProvider>
             </VizCard>
         );
