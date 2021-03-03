@@ -4,8 +4,8 @@ import { ChunkIteratorBase, BlockingChunkIterator } from './iterator_base';
 import { WebDBConnection } from './webdb_bindings';
 import { webdb as proto } from '@dashql/proto';
 
-/// A stream of query result chunks
-export class QueryResultChunkStream extends ChunkIteratorBase implements BlockingChunkIterator {
+/// An iterator for blocking chunk streams
+export class ChunkStreamIterator extends ChunkIteratorBase implements BlockingChunkIterator {
     /// The connection
     _connection: WebDBConnection;
     /// The current chunk buffer
@@ -32,8 +32,8 @@ export class QueryResultChunkStream extends ChunkIteratorBase implements Blockin
     }
 }
 
-/// Materialized result chunks
-export class MaterializedQueryResultChunks extends ChunkIteratorBase implements BlockingChunkIterator {
+/// An iterator for a chunk array
+export class ChunkArrayIterator extends ChunkIteratorBase implements BlockingChunkIterator {
     /// The chunks
     _chunks: proto.QueryResultChunk[];
 
