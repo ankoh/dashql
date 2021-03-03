@@ -12,15 +12,14 @@ class Dataframe {
    public:
     class AlgebraTree {};
 
-    Dataframe();
+    struct ExecutionPlan {
+        std::string entry_point;
+    };
 
-    ExpectedBuffer<proto::webdb::QueryResult> Query(Dataframe::AlgebraTree algebra_tree);
+    std::vector<char> module;
+    ExecutionPlan execution_plan;
 
-    void Write();
-
-    void End();
-
-    ExpectedBuffer<proto::webdb::QueryResultChunk> Next();
+    Dataframe(Dataframe::AlgebraTree& query);
 };
 }  // namespace dataframe
 }  // namespace dashql

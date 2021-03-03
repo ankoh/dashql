@@ -17,6 +17,7 @@ LIB_RELEASE_DIR="${ROOT_DIR}/lib/build/Release"
 LIB_RELWITHDEBINFO_DIR="${ROOT_DIR}/lib/build/RelWithDebInfo"
 CORE_WASM_DIR="${ROOT_DIR}/core/src/wasm"
 WEBDB_WASM_DIR="${ROOT_DIR}/webdb/src/wasm"
+DATAFRAME_WASM_DIR="${ROOT_DIR}/dataframe/src/wasm"
 
 CI_IMAGE_NAMESPACE="dashql"
 CI_IMAGE_NAME="ci"
@@ -186,15 +187,26 @@ app_start:
 webdb:
 	npm --prefix ${ROOT_DIR}/webdb run build
 
-# Run the javascript tests
+# Build the dataframe library
+.PHONY: dataframe
+dataframe:
+	npm --prefix ${ROOT_DIR}/dataframe run build
+
+# Run the webdb javascript tests
 .PHONY: webdb_tests
 webdb_tests:
 	npm --prefix ${ROOT_DIR}/webdb run test
+
+# Run the dataframe javascript tests
+.PHONY: dataframe_tests
+dataframe_tests:
+	npm --prefix ${ROOT_DIR}/dataframe run test
 
 # Install all npm packages
 .PHONY: npm_install
 npm_install:
 	npm --prefix ${ROOT_DIR}/webdb install
+	npm --prefix ${ROOT_DIR}/dataframe install
 	npm --prefix ${ROOT_DIR}/core install
 	npm --prefix ${ROOT_DIR}/app install
 	npm --prefix ${ROOT_DIR}/proto install
@@ -242,7 +254,7 @@ bootstrap:
 	make docker_ci_image npm_install
 	make proto
 	make wasm
-	make webdb core
+	make webdb dataframe core
 
 # ---------------------------------------------------------------------------
 # Data
