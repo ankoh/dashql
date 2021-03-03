@@ -17,7 +17,7 @@ import styles from './data_grid.module.css';
 type Props = {
     tableInfo: core.model.DatabaseTableInfo;
     data: core.access.ScanResult | null;
-    dataProvider: (request: core.access.ScanRequest) => void;
+    requestData: (request: core.access.ScanRequest) => void;
 };
 
 type State = {
@@ -55,6 +55,12 @@ export class DataGrid extends React.Component<Props, State> {
         };
     }
 
+    componentDidMount() {
+        this.props.requestData(
+            new core.access.ScanRequest()
+                .withRange(0, 1024, 1024));
+    }
+
     /// Get the column count
     public get columnCount() {
         return this.props.tableInfo.columnNames.length;
@@ -88,7 +94,7 @@ export class DataGrid extends React.Component<Props, State> {
         const ofs = this.state.firstVisibleRow;
         const count = this.state.visibleRows;
         const end = Math.min(ofs + count, this.rowCount!);
-        this.props.dataProvider(new core.access.ScanRequest().withRange(ofs, end - ofs, 1024));
+        this.props.requestData(new core.access.ScanRequest().withRange(ofs, end - ofs, 1024));
     }
 
     /// Render a cell of the static left sidebar
