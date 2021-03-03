@@ -26,7 +26,7 @@ export class QueryRequest {
     }
 }
 
-export interface QueryResult {
+export interface QueryData {
     /// The scan request
     request: QueryRequest;
     /// The query result buffer
@@ -39,12 +39,12 @@ interface Props {
     /// The database manager
     database: platform.DatabaseManager;
     /// The children
-    children: (queryResults: Immutable.Map<number, QueryResult>, requestQuery: RequestQueryFn) => React.ReactNode;
+    children: (queryResults: Immutable.Map<number, QueryData>, requestQuery: RequestQueryFn) => React.ReactNode;
 }
 
 interface State {
-    /// The results
-    results: Immutable.Map<number, QueryResult>;
+    /// The data
+    data: Immutable.Map<number, QueryData>;
 }
 
 export class QueryProvider extends React.Component<Props, State> {
@@ -53,7 +53,7 @@ export class QueryProvider extends React.Component<Props, State> {
     /// The schedule function
     _schedule = this.schedule.bind(this);
     /// The handler to process a query result
-    _processQueryResult = this.processQueryResult.bind(this);
+    _processQueryData = this.processQueryData.bind(this);
 
     /// The query queue
     _queryQueue: number[] = [];
@@ -62,25 +62,25 @@ export class QueryProvider extends React.Component<Props, State> {
     /// The in-flight query
     _queryInFlight: QueryRequest | null = null;
     /// The query promise
-    _queryPromise: Promise<QueryResult> | null = null;
+    _queryPromise: Promise<QueryData> | null = null;
 
     constructor(props: Props) {
         super(props);
         this.state = {
-            results: Immutable.Map(),
+            data: Immutable.Map(),
         };
     }
 
     /// Request a query
     protected requestQuery(request: QueryRequest) {
-        if (this.state.results.has(request.queryKey) && this.state.results.get(request.queryKey)!.request.equals(request)) {
+        if (this.state.data.has(request.queryKey) && this.state.data.get(request.queryKey)!.request.equals(request)) {
             return;
         }
         this.scheduleIfNecessary(request);
     }
 
     /// Run a query
-    protected async runQuery(request: QueryRequest): Promise<QueryResult> {
+    protected async runQuery(request: QueryRequest): Promise<QueryData> {
         const result = await this.props.database.use(async conn => {
             return await conn.runQuery(request.queryText);
         });
@@ -91,12 +91,12 @@ export class QueryProvider extends React.Component<Props, State> {
     }
 
     /// Process the query result
-    protected processQueryResult(result: QueryResult) {
+    protected processQueryData(result: QueryData) {
         this._queryPromise = null;
         this._queryInFlight = null;
         setImmediate(this._schedule);
         this.setState({
-            results: this.state.results.set(result.request.queryKey, result),
+            data: this.state.data.set(result.request.queryKey, result),
         });
     }
 
@@ -107,7 +107,7 @@ export class QueryProvider extends React.Component<Props, State> {
         this._queryInFlight = this._queuedRequests.get(key)!;
         this._queuedRequests.delete(key);
         this._queryPromise = this.runQuery(this._queryInFlight);
-        this._queryPromise.then(this._processQueryResult).catch(e => console.error(e));
+        this._queryPromise.then(this._processQueryData).catch(e => console.error(e));
     }
 
     /// Schedule a query iff the data cannot be served from the cached results
@@ -139,6 +139,6 @@ export class QueryProvider extends React.Component<Props, State> {
 
     // Pass the scan function to the child
     render() {
-        return this.props.children(this.state.results, this._requestQuery);
+        return this.props.children(this.state.data, this._requestQuery);
     }
 }
