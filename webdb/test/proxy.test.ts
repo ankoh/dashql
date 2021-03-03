@@ -36,10 +36,10 @@ describe('RowProxy', () => {
         });
     });
 
-    describe('single column, single rows', () => {
+    describe('single column, single row', () => {
         test('INTEGER', () => {
             const result = conn.sendQuery(`
-                SELECT v::INTEGER AS foo FROM generate_series(0, 1) as t(v);
+                SELECT v::INTEGER AS foo FROM generate_series(42, 42) as t(v);
             `);
             expect(result.columnTypesLength()).toBe(1);
             interface Row extends webdb.RowProxy {
@@ -48,7 +48,22 @@ describe('RowProxy', () => {
             const chunks = new webdb.QueryResultChunkStream(conn, result);
             expect(chunks.nextBlocking()).toBe(true);
             const row = chunks.collectOne<Row>();
-            expect(row.foo).toBe(0);
+            expect(row.foo).toBe(42);
+        });
+    });
+
+    describe('single column, single row, underspecified type', () => {
+        test('INTEGER', () => {
+            const result = conn.sendQuery(`
+                SELECT v::INTEGER AS foo FROM generate_series(42, 42) as t(v);
+            `);
+            expect(result.columnTypesLength()).toBe(1);
+            interface Row extends webdb.RowProxy {
+            }
+            const chunks = new webdb.QueryResultChunkStream(conn, result);
+            expect(chunks.nextBlocking()).toBe(true);
+            const row = chunks.collectOne<Row>();
+            expect(row.__attribute__(0)).toBe(42);
         });
     });
 
