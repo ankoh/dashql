@@ -13,15 +13,23 @@ using namespace dashql::test;
 
 DEFINE_string(source_dir, "", "Source directory");
 
+namespace dashql {
+namespace test {
+
+std::filesystem::path SOURCE_DIR;
+
+}
+}
+
 int main(int argc, char* argv[]) {
     gflags::AllowCommandLineReparsing();
     gflags::SetUsageMessage("Usage: ./tester --source_dir <dir>");
     gflags::ParseCommandLineFlags(&argc, &argv, false);
 
     if (std::filesystem::exists(FLAGS_source_dir)) {
-        auto source_dir = std::filesystem::path{FLAGS_source_dir};
-        GrammarTest::LoadTests(source_dir);
-        AnalyzerTest::LoadTests(source_dir);
+        SOURCE_DIR = std::filesystem::path{FLAGS_source_dir};
+        GrammarTest::LoadTests(SOURCE_DIR);
+        AnalyzerTest::LoadTests(SOURCE_DIR);
     }
 
     testing::InitGoogleTest(&argc, argv);
