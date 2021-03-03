@@ -116,8 +116,8 @@ export class DatabaseManager {
 
             // Unpack the query result
             const chunkIter = new webdb.MaterializedQueryResultChunks(result);
-            const rowIter = webdb.BlockingQueryResultRowIterator.iterate(chunkIter);
-            if (rowIter.isEnd()) {
+            chunkIter.nextBlocking();
+            if (chunkIter.rowCount == 0) {
                 // XXX Received no values
                 // -> reject
                 console.error('NO RESULTS');
@@ -126,7 +126,7 @@ export class DatabaseManager {
             // Resolve with values
             let values: webdb.Value[] = [];
             for (let i = 0; i < chunkIter.columnCount; ++i) {
-                values.push(rowIter.getValue(i));
+                values.push(chunkIter.readValue(0, i));
             }
 
             // Update the table statistics

@@ -5,7 +5,7 @@ import { Value } from './value';
 import { RowProxyType, RowProxy } from './proxy';
 
 /// The vector buffers
-export class VectorBuffers {
+class TmpBuffers {
     vector: proto.Vector;
     vectorU8: proto.VectorU8;
     vectorI64: proto.VectorI64;
@@ -39,7 +39,7 @@ export abstract class ChunkIteratorBase {
     /// The row type
     _proxyType: RowProxyType | null;
     /// The temporary flatbuffer objects
-    _tmp: VectorBuffers;
+    _tmp: TmpBuffers;
 
     /// Constructor
     public constructor(resultBuffer: proto.QueryResult) {
@@ -48,7 +48,7 @@ export abstract class ChunkIteratorBase {
         this._currentChunk = null;
         this._columnTypes = new Array<proto.SQLType>();
         this._proxyType = null;
-        this._tmp = new VectorBuffers();
+        this._tmp = new TmpBuffers();
 
         // Collect the column types
         for (let i = 0; i < this.result.columnTypesLength(); ++i) {
@@ -69,6 +69,67 @@ export abstract class ChunkIteratorBase {
     public get currentChunk() { return this._currentChunk; }
     /// Get the temporary buffers
     public get tmp() { return this._tmp; }
+
+    /// Build the row proxies
+    public collect<T extends RowProxy>(out: T[] = []): T[]  {
+        if (!this._proxyType) {
+            this._proxyType = new RowProxyType(this.result);
+        }
+        return this._proxyType.proxyChunkRows<T>(this.currentChunk, out);
+    }
+
+    /// Collect exactly one entry
+    public collectOne<T extends RowProxy>(): T {
+        if (!this._proxyType) {
+            this._proxyType = new RowProxyType(this.result);
+        }
+        return this._proxyType.proxyChunkRow<T>(this.currentChunk);
+    }
+
+    /// Read a value of a row
+    public readValue(rid = 0, cid: number = 0, v: Value = new Value()): Value {
+        v.sqlType = this.columnTypes[cid];
+        let c = this.currentChunk?.columns(cid, this.tmp.vector);
+        if (c == null) {
+            v.setNull();
+            return v;
+        }
+        switch (c.variantType()) {
+            case proto.VectorVariant.NONE:
+                break;
+            case proto.VectorVariant.VectorU8:
+                c.variant(this.tmp.vectorU8);
+                v.setNumber(this.tmp.vectorU8.values(rid)!);
+                v.setNull(this.tmp.vectorU8.nullMask(rid)!);
+                break;
+            case proto.VectorVariant.VectorI64:
+                c.variant(this.tmp.vectorI64);
+                v.setLong(this.tmp.vectorI64.values(rid)!);
+                v.setNull(this.tmp.vectorI64.nullMask(rid)!);
+                break;
+            case proto.VectorVariant.VectorF64:
+                c.variant(this.tmp.vectorF64);
+                v.setNumber(this.tmp.vectorF64.values(rid)!);
+                v.setNull(this.tmp.vectorF64.nullMask(rid)!);
+                break;
+            case proto.VectorVariant.VectorI128:
+                c.variant(this.tmp.vectorI128);
+                v.setI128(this.tmp.vectorI128.values(rid)!);
+                v.setNull(this.tmp.vectorI128.nullMask(rid)!);
+                break;
+            case proto.VectorVariant.VectorInterval:
+                c.variant(this.tmp.vectorInterval);
+                v.setInterval(this.tmp.vectorInterval.values(rid)!);
+                v.setNull(this.tmp.vectorInterval.nullMask(rid)!);
+                break;
+            case proto.VectorVariant.VectorString:
+                c.variant(this.tmp.vectorString);
+                v.setString(this.tmp.vectorString.values(rid)!);
+                v.setNull(this.tmp.vectorString.nullMask(rid)!);
+                break;
+        }
+        return v;
+    }
 
     /// Iterate over a number column
     public iterateNumberColumn(cid: number, fn: (row: number, v: number | null) => void, ofs: number = 0, limit: number = 0) {
@@ -100,27 +161,15 @@ export abstract class ChunkIteratorBase {
             }
         }
     }
-
-    /// Build the row proxies
-    public collect<T extends RowProxy>(out: T[] = []): T[]  {
-        if (!this._proxyType) {
-            this._proxyType = new RowProxyType(this.result);
-        }
-        return this._proxyType.proxyChunkRows<T>(this.currentChunk, out);
-    }
-
-    /// Collect exactly one entry
-    public collectOne<T extends RowProxy>(): T {
-        if (!this._proxyType) {
-            this._proxyType = new RowProxyType(this.result);
-        }
-        return this._proxyType.proxyChunkRow<T>(this.currentChunk);
-    }
 }
 
 /// A blocking chunk iterator
 export interface BlockingChunkIterator extends ChunkIteratorBase {
     nextBlocking(): boolean;
+}
+
+export interface AsyncChunkIterator extends ChunkIteratorBase {
+    nextAsync(): Promise<boolean>;
 }
 
 /// Helper to iterate over a blocking chunk iterator
@@ -144,129 +193,5 @@ export function iterateChunksBlocking(iter: BlockingChunkIterator, offset: numbe
         // Advance the chunk start
         start += chunkRows - skipHere;
         remaining -= rowsHere;
-    }
-}
-
-export interface AsyncChunkIterator extends ChunkIteratorBase {
-    nextAsync(): Promise<boolean>;
-}
-
-/// A row iterator base class
-export abstract class RowIteratorBase {
-    /// The query result
-    _chunkIter: ChunkIteratorBase;
-    /// The global row index
-    _globalRowIndex: number = 0;
-    /// The chunk row begin
-    _currentChunkBegin: number = 0;
-
-    constructor(iter: ChunkIteratorBase) {
-        this._chunkIter = iter;
-    }
-
-    /// Get the temporary buffers
-    public get tmp() { return this._chunkIter.tmp; }
-    /// Get the chunk row
-    public get currentRow() { return this._globalRowIndex - this._currentChunkBegin; }
-    /// Get the current chunk
-    public get currentChunk(): proto.QueryResultChunk { return this._chunkIter.currentChunk!; }
-    /// Get the column count
-    public getColumnName(idx: number) { return this._chunkIter.result.columnNames(idx); }
-    /// Is the end?
-    public isEnd(): boolean { return this.currentRow >= this.currentChunk.rowCount(); }
-
-    /// Read a value
-    public getValue(cid: number = 0, v: Value = new Value()): Value {
-        if (cid >= this._chunkIter.columnCount) {
-            throw Error("column index out of bounds");
-        }
-        v.sqlType = this._chunkIter.columnTypes[cid];
-        let r = this.currentRow;
-        let c = this.currentChunk.columns(cid, this.tmp.vector);
-        if (c == null) {
-            v.setNull();
-            return v;
-        }
-        switch (c.variantType()) {
-            case proto.VectorVariant.NONE:
-                break;
-            case proto.VectorVariant.VectorU8:
-                c.variant(this.tmp.vectorU8);
-                v.setNumber(this.tmp.vectorU8.values(r)!);
-                v.setNull(this.tmp.vectorU8.nullMask(r)!);
-                break;
-            case proto.VectorVariant.VectorI64:
-                c.variant(this.tmp.vectorI64);
-                v.setLong(this.tmp.vectorI64.values(r)!);
-                v.setNull(this.tmp.vectorI64.nullMask(r)!);
-                break;
-            case proto.VectorVariant.VectorF64:
-                c.variant(this.tmp.vectorF64);
-                v.setNumber(this.tmp.vectorF64.values(r)!);
-                v.setNull(this.tmp.vectorF64.nullMask(r)!);
-                break;
-            case proto.VectorVariant.VectorI128:
-                c.variant(this.tmp.vectorI128);
-                v.setI128(this.tmp.vectorI128.values(r)!);
-                v.setNull(this.tmp.vectorI128.nullMask(r)!);
-                break;
-            case proto.VectorVariant.VectorInterval:
-                c.variant(this.tmp.vectorInterval);
-                v.setInterval(this.tmp.vectorInterval.values(r)!);
-                v.setNull(this.tmp.vectorInterval.nullMask(r)!);
-                break;
-            case proto.VectorVariant.VectorString:
-                c.variant(this.tmp.vectorString);
-                v.setString(this.tmp.vectorString.values(r)!);
-                v.setNull(this.tmp.vectorString.nullMask(r)!);
-                break;
-        }
-        return v;
-    }
-}
-
-export interface BlockingRowIterator {
-    nextBlocking(): boolean;
-}
-
-export interface AsyncRowIterator {
-    nextAsync(): Promise<boolean>;
-}
-
-/// A row iterator for materialized query results
-export class BlockingQueryResultRowIterator extends RowIteratorBase implements BlockingRowIterator {
-    /// Constructor
-    protected constructor(chunks: BlockingChunkIterator) {
-        super(chunks);
-    }
-    /// Get iterator
-    public get iter() {
-        return this._chunkIter as BlockingChunkIterator;
-    }
-
-    /// Iterate over a result buffer
-    public static iterate(chunks: BlockingChunkIterator): BlockingQueryResultRowIterator {
-        let iter = new BlockingQueryResultRowIterator(chunks);
-        chunks.nextBlocking();
-        iter._currentChunkBegin = 0;
-        return iter;
-    }
-
-    /// Advance the iterator
-    public nextBlocking(): boolean {
-        // Reached end?
-        if (this.isEnd()) return false;
-
-        // Still in current chunk?
-        ++this._globalRowIndex;
-        if (this.currentRow < this.currentChunk.rowCount()) return true;
-
-        // Get next chunk
-        if (!this.iter.nextBlocking()) {
-            return false;
-        }
-        this._currentChunkBegin = this._globalRowIndex;
-        let empty = this.currentChunk.rowCount() == 0;
-        return !empty;
     }
 }
