@@ -106,7 +106,7 @@ export abstract class ChunkIteratorBase {
         if (!this._proxyType) {
             this._proxyType = new RowProxyType(this.result);
         }
-        return this._proxyType.proxyChunkRows<T>(this.currentChunk!, out);
+        return this._proxyType.proxyChunkRows<T>(this.currentChunk, out);
     }
 
     /// Collect exactly one entry
@@ -114,11 +114,7 @@ export abstract class ChunkIteratorBase {
         if (!this._proxyType) {
             this._proxyType = new RowProxyType(this.result);
         }
-        if (this.rowCount == 0) {
-            return this._proxyType.createEmptyRow<T>();
-        } else {
-            return this._proxyType.proxyChunkRow<T>(this.currentChunk!);
-        }
+        return this._proxyType.proxyChunkRow<T>(this.currentChunk);
     }
 }
 
