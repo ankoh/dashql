@@ -33,7 +33,7 @@ export abstract class ChunkIteratorBase {
     /// The chunk id
     _currentChunkID: number;
     /// The current chunk
-    _currentChunk: proto.QueryResultChunk;
+    _currentChunk: proto.QueryResultChunk | null;
     /// The column types
     _columnTypes: proto.SQLType[];
     /// The row type
@@ -45,7 +45,7 @@ export abstract class ChunkIteratorBase {
     public constructor(resultBuffer: proto.QueryResult) {
         this._resultBuffer = resultBuffer;
         this._currentChunkID = -1;
-        this._currentChunk = new proto.QueryResultChunk();
+        this._currentChunk = null;
         this._columnTypes = new Array<proto.SQLType>();
         this._proxyType = null;
         this._tmp = new VectorBuffers();
@@ -64,7 +64,7 @@ export abstract class ChunkIteratorBase {
     /// Get the column count
     public get columnTypes() { return this._columnTypes; }
     /// Get the row count
-    public get rowCount() { return this._currentChunk.rowCount(); }
+    public get rowCount() { return this._currentChunk?.rowCount() || 0; }
     /// Get the current chunk
     public get currentChunk() { return this._currentChunk; }
     /// Get the temporary buffers
@@ -75,7 +75,7 @@ export abstract class ChunkIteratorBase {
         if (cid >= this.columnCount) {
             throw Error("column index out of bounds");
         }
-        let c = this.currentChunk.columns(cid, this.tmp.vector);
+        let c = this.currentChunk?.columns(cid, this.tmp.vector);
         if (c == null) {
             return;
         }
@@ -106,10 +106,23 @@ export abstract class ChunkIteratorBase {
         if (!this._proxyType) {
             this._proxyType = new RowProxyType(this.result);
         }
-        return this._proxyType.proxyChunkRows<T>(this.currentChunk, out);
+        return this._proxyType.proxyChunkRows<T>(this.currentChunk!, out);
+    }
+
+    /// Collect exactly one entry
+    public collectOne<T extends RowProxy>(out: T[] = []): T {
+        if (!this._proxyType) {
+            this._proxyType = new RowProxyType(this.result);
+        }
+        if (this.rowCount == 0) {
+            return this._proxyType.createEmptyRow<T>();
+        } else {
+            return this._proxyType.proxyChunkRow<T>(this.currentChunk!);
+        }
     }
 }
 
+/// A blocking chunk iterator
 export interface BlockingChunkIterator extends ChunkIteratorBase {
     nextBlocking(): boolean;
 }
@@ -121,18 +134,19 @@ export function iterateChunksBlocking(iter: BlockingChunkIterator, offset: numbe
     let start = 0;
 
     while (remaining && iter.nextBlocking()) {
-        const skipHere = Math.min(skip, iter.currentChunk.rowCount());
+        const chunkRows = iter.currentChunk!.rowCount();
+        const skipHere = Math.min(skip, chunkRows);
         skip -= skipHere;
-        if (skipHere == iter.currentChunk.rowCount()) {
+        if (skipHere == chunkRows) {
             continue;
         }
-        const rowsHere = Math.min(iter.currentChunk.rowCount() - skipHere, remaining);
+        const rowsHere = Math.min(chunkRows - skipHere, remaining);
 
         // Run the function
         fn(iter, start, skipHere, rowsHere);
 
         // Advance the chunk start
-        start += iter.currentChunk.rowCount() - skipHere;
+        start += chunkRows - skipHere;
         remaining -= rowsHere;
     }
 }
@@ -159,7 +173,7 @@ export abstract class RowIteratorBase {
     /// Get the chunk row
     public get currentRow() { return this._globalRowIndex - this._currentChunkBegin; }
     /// Get the current chunk
-    public get currentChunk(): proto.QueryResultChunk { return this._chunkIter.currentChunk; }
+    public get currentChunk(): proto.QueryResultChunk { return this._chunkIter.currentChunk!; }
     /// Get the column count
     public getColumnName(idx: number) { return this._chunkIter.result.columnNames(idx); }
     /// Is the end?
