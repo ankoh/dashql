@@ -41,6 +41,11 @@ set(CMAKE_BUILD_PARALLEL_LEVEL ${NPROCS})
 # ---------------------------------------------------------------------------
 # CMake includes
 
+SET(CMAKE_MODULE_PATH
+  ${CMAKE_SOURCE_DIR}/cmake/modules
+  ${CMAKE_MODULE_PATH}
+)
+
 include("${CMAKE_SOURCE_DIR}/cmake/flatbuffers.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/benchmark.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/binaryen.cmake")
@@ -49,6 +54,12 @@ include("${CMAKE_SOURCE_DIR}/cmake/gflags.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/rapidjson.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/pugixml.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/spdlog.cmake")
+include("${CMAKE_SOURCE_DIR}/cmake/wasm-c-api.cmake")
+
+if (HAVE_WASM_RUNTIME)
+    set (WITH_DATAFRAME_TESTS TRUE)
+    message(STATUS "WITH_DATAFRAME_TESTS=${WITH_DATAFRAME_TESTS}")
+endif ()
 
 # ---------------------------------------------------------------------------
 # Code coverage
@@ -457,7 +468,7 @@ endif()
 # Tester
 
 if(NOT EMSCRIPTEN)
-    add_executable(tester
+    set (TEST_CC
         ${CMAKE_SOURCE_DIR}/test/analyzer/analyzer_spec_tests.cc
         ${CMAKE_SOURCE_DIR}/test/analyzer/function_logic_test.cc
         ${CMAKE_SOURCE_DIR}/test/analyzer/program_editor_test.cc
@@ -477,25 +488,29 @@ if(NOT EMSCRIPTEN)
         ${CMAKE_SOURCE_DIR}/test/webdb/webdb_test.cc
         ${CMAKE_SOURCE_DIR}/test/tester.cc
     )
-    target_link_libraries(tester
+    set (TEST_LIBS
         dashql_test
         dashql_extract dashql_analyzer dashql_dataframe dashql_webdb dashql_common
         dashql_proto
+        wasm_api
         flatbuffers gtest gmock gflags
         Threads::Threads
     )
 
+    if (WITH_DATAFRAME_TESTS)
+        set (TEST_CC ${TEST_CC}
+            ${CMAKE_SOURCE_DIR}/test/dataframe/hellowasm_test.cc
+        )
+        set (TEST_LIBS ${TEST_LIBS} wasm_api v8 Threads::Threads)
+    endif ()
+
+    add_executable(tester ${TEST_CC})
+    target_link_libraries(tester ${TEST_LIBS})
+
     add_executable(testgen
         ${CMAKE_SOURCE_DIR}/test/testgen.cc
     )
-    target_link_libraries(testgen
-        dashql_test
-        dashql_extract dashql_analyzer dashql_dataframe dashql_webdb dashql_common
-        dashql_proto
-        pugixml
-        flatbuffers gtest gmock
-        Threads::Threads
-    )
+    target_link_libraries(testgen ${TEST_LIBS})
 endif()
 
 # ---------------------------------------------------------------------------
