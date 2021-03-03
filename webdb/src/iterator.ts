@@ -1,6 +1,6 @@
 // Copyright (c) 2020 The DashQL Authors
 
-import { ChunkIteratorBase, RowIteratorBase, BlockingChunkIterator, BlockingRowIterator } from './iterator_base';
+import { ChunkIteratorBase, BlockingChunkIterator } from './iterator_base';
 import { WebDBConnection } from './webdb_bindings';
 import { webdb as proto } from '@dashql/proto';
 
