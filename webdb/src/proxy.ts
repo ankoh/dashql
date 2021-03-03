@@ -193,8 +193,8 @@ export class RowProxyType {
     }
 
     /// Proxy a single chunk row
-    public proxyChunkRow<T extends RowProxy>(chunk: webdb.QueryResultChunk): T {
-        if (chunk.rowCount() == 0) {
+    public proxyChunkRow<T extends RowProxy>(chunk: webdb.QueryResultChunk | null): T {
+        if (!chunk || chunk.rowCount() == 0) {
             return this.createEmptyRow<T>();
         }
         const data = RowProxyType.indexChunkData(chunk);
@@ -202,7 +202,8 @@ export class RowProxyType {
     }
 
     // Proxy rows in chunk
-    public proxyChunkRows<T extends RowProxy>(chunk: webdb.QueryResultChunk, out: T[] = []): T[] {
+    public proxyChunkRows<T extends RowProxy>(chunk: webdb.QueryResultChunk | null, out: T[] = []): T[] {
+        if (!chunk) return out;
         const data = RowProxyType.indexChunkData(chunk);
         for (let rowId = 0; rowId < chunk.rowCount(); ++rowId) {
             out.push(this._ctor(data, rowId) as T);
