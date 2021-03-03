@@ -41,14 +41,13 @@ describe('QueryResultRowIterator', () => {
             `);
             expect(result.columnTypesLength()).toBe(1);
             let chunks = new webdb.QueryResultChunkStream(conn, result);
-            let iter = await webdb.QueryResultRowIterator.iterate(chunks);
-            let value = new webdb.Value();
-            for (let i = 0; i <= testRows; ++i) {
-                expect(iter.isEnd()).toBe(false);
-                expect(iter.getValue(0, value).castAsInteger()).toBe(i & 127);
-                await iter.nextAsync();
+            let i = 0;
+            while (await chunks.nextAsync()) {
+                chunks.iterateNumberColumn(0, (_row: number, v: number | null) => {
+                    expect(v).toBe(i++ & 127);
+                });
             }
-            expect(iter.isEnd()).toBe(true);
+            expect(i).toBe(testRows + 1);
         });
     });
 });
