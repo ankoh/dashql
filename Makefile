@@ -152,6 +152,16 @@ proto:
 	${EXEC_ENVIRONMENT} ./scripts/generate_proto.sh
 	npm --prefix ${ROOT_DIR}/proto run build
 
+# Build the dataframe wasm module with debug info
+.PHONY: dataframe
+dataframe_wasm:
+	${EXEC_ENVIRONMENT} ./scripts/wasm_build_dataframe.sh Fast
+
+# Build the dataframe wasm module with debug info
+.PHONY: dataframe
+dataframe_wasm_release:
+	${EXEC_ENVIRONMENT} ./scripts/wasm_build_dataframe.sh Release
+
 # Build the wasm module with debug info
 .PHONY: wasm
 wasm:
@@ -251,7 +261,7 @@ bootstrap:
 	git submodule update --init --recursive
 	make docker_ci_image npm_install
 	make proto
-	make wasm
+	make wasm dataframe_wasm
 	make webdb dataframe core
 
 # ---------------------------------------------------------------------------

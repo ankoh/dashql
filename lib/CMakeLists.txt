@@ -373,8 +373,9 @@ if (EMSCRIPTEN)
             _main, \
             _malloc, \
             _free, \
-            _dashql_clear_response, \
-            _dashql_dataframe_ping \
+            _dashql_dataframe_algebra_tree, \
+            _dashql_dataframe, \
+            _dashql_dataframe_get_module \
         ]' \
         -s EXTRA_EXPORTED_RUNTIME_METHODS='[\"ccall\"]' \
         ${ADDITIONAL_LINKER_FLAGS} \

@@ -12,7 +12,6 @@ echo "MODE=${MODE}"
 
 CPP_BUILD_DIR="${PROJECT_ROOT}/lib/build/wasm/${MODE}"
 CPP_SOURCE_DIR="${PROJECT_ROOT}/lib"
-DATAFRAME_LIB_DIR="${PROJECT_ROOT}/core/src/dataframe"
 ANALYZER_LIB_DIR="${PROJECT_ROOT}/core/src/analyzer"
 WEBDB_LIB_DIR="${PROJECT_ROOT}/webdb/src/"
 
