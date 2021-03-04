@@ -73,8 +73,6 @@ class ChartComposer extends React.Component<ChartComposerProps, ChartComposerSta
                         <VictoryAxis dependentAxis />
                         <VictoryScatter
                             data={this.state.rows}
-                            x="a"
-                            y="b"
                         />
                     </VictoryChart>
                 )}
