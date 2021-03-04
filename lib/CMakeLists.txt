@@ -489,7 +489,6 @@ if(NOT EMSCRIPTEN)
         dashql_extract dashql_analyzer dashql_dataframe dashql_webdb dashql_common
         dashql_proto
         wasm_api
-        wasmtime
         flatbuffers gtest gmock gflags
         Threads::Threads
     )
