@@ -3,8 +3,6 @@
 #include "dashql/test/config.h"
 #include "wasm.h"
 
-#include <v8/v8.h>
-
 #include <sstream>
 #include <fstream>
 
