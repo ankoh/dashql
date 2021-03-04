@@ -7,7 +7,7 @@ import { connect } from 'react-redux';
 import { IAppContext, withAppContext } from '../../app_context';
 import { AutoSizer } from '../../util/autosizer';
 import { VizCard } from './viz_card';
-import { VictoryChart, VictoryAxis, VictoryLine, VictoryScatter, VictoryTheme } from 'victory';
+import * as vy from 'victory';
 
 import styles from './victory_renderer.module.css';
 
@@ -42,17 +42,51 @@ class ChartComposer extends React.Component<ChartComposerProps, ChartComposerSta
     }
 
     componentDidMount() {
-        this.props.requestData(
-            new core.access.ScanRequest()
-                .withSample(1024));
+        this.props.requestData(new core.access.ScanRequest().withSample(1024));
     }
 
     render() {
-        
+        let components = this.props.vizInfo.components.map(c => {
+            let dataProps = {
+                x: c.data.x,
+                y: c.data.y,
+                y0: c.data.y0,
+                data: this.state.rows
+            };
+            switch (c.type) {
+                case core.proto.syntax.VizComponentType.AREA:
+                    return <vy.VictoryArea {...dataProps} />;
+                case core.proto.syntax.VizComponentType.AXIS:
+                    return <vy.VictoryAxis />;
+                case core.proto.syntax.VizComponentType.BAR:
+                    return <vy.VictoryBar  {...dataProps} />;
+                case core.proto.syntax.VizComponentType.BOX_PLOT:
+                    return <vy.VictoryBoxPlot {...dataProps} />;
+                case core.proto.syntax.VizComponentType.CANDLESTICK:
+                    return <vy.VictoryCandlestick {...dataProps} />;
+                case core.proto.syntax.VizComponentType.ERROR_BAR:
+                    return <vy.VictoryErrorBar {...dataProps} />;
+                case core.proto.syntax.VizComponentType.HISTOGRAM:
+                    return <vy.VictoryHistogram {...dataProps} />;
+                case core.proto.syntax.VizComponentType.LINE:
+                    return <vy.VictoryLine {...dataProps} />;
+                case core.proto.syntax.VizComponentType.PIE:
+                    return <vy.VictoryPie {...dataProps} />;
+                case core.proto.syntax.VizComponentType.SCATTER:
+                    return <vy.VictoryScatter {...dataProps} />;
+                case core.proto.syntax.VizComponentType.VORONOI:
+                    return <vy.VictoryVoronoi {...dataProps} />;
+                case core.proto.syntax.VizComponentType.NUMBER:
+                case core.proto.syntax.VizComponentType.TABLE:
+                case core.proto.syntax.VizComponentType.TEXT:
+                    return <div />;
+            }
+        });
+
         return (
             <AutoSizer>
                 {({ height, width }) => (
-                    <VictoryChart
+                    <vy.VictoryChart
                         style={{
                             parent: {
                                 width: width,
@@ -67,14 +101,10 @@ class ChartComposer extends React.Component<ChartComposerProps, ChartComposerSta
                             right: 30,
                             bottom: 40,
                         }}
-                        theme={VictoryTheme.material}
+                        theme={vy.VictoryTheme.material}
                     >
-                        <VictoryAxis />
-                        <VictoryAxis dependentAxis />
-                        <VictoryScatter
-                            data={this.state.rows}
-                        />
-                    </VictoryChart>
+                        {components}
+                    </vy.VictoryChart>
                 )}
             </AutoSizer>
         );
