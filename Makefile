@@ -133,24 +133,6 @@ core_tests:
 benchmarks:
 	npm --prefix ${ROOT_DIR}/benchmarks run build
 
-# Run the iterator benchmark
-.PHONY: benchmark_iterator
-benchmark_iterator:
-	npm --prefix ${ROOT_DIR}/benchmarks run build
-	cd ${ROOT_DIR}/benchmarks && node ./dist/bench_iterator.js
-
-# Run the async iterator benchmark
-.PHONY: benchmark_iterator_async
-benchmark_iterator_async:
-	npm --prefix ${ROOT_DIR}/benchmarks run build
-	cd ${ROOT_DIR}/benchmarks && node ./dist/bench_iterator_async.js
-
-# Run the proxy benchmark
-.PHONY: benchmark_proxy
-benchmark_proxy:
-	npm --prefix ${ROOT_DIR}/benchmarks run build
-	cd ${ROOT_DIR}/benchmarks && node ./dist/bench_proxy.js
-
 # Compile the flatbuffer schema
 .PHONY: proto
 proto:
