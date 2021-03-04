@@ -66,4 +66,4 @@ set_property(TARGET wasmtime APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${WAS
 # Add wasm api library 
 add_library(wasm_api INTERFACE)
 set_property(TARGET wasm_api APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES "${CMAKE_SOURCE_DIR}/../submodules/wasm-c-api/include")
-target_link_libraries(wasm_api INTERFACE wasmtime)
+target_link_libraries(wasm_api INTERFACE wasmtime dl)
