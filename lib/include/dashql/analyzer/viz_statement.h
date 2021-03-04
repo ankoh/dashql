@@ -116,6 +116,8 @@ class VizComponent {
     size_t SelectAltOption(std::string_view label, size_t node_id, size_t alt_node_id) const;
     /// Match an alternative style option
     void AddAltStyleOption(std::string_view label, size_t node_id, dashql::proto::viz::SVGStylePropertyType prop, std::vector<pv::SVGStyleProperty>& out) const;
+    /// Read column ref or string
+    std::string_view ReadStringOrColumnRef(size_t node_id) const;
 
    public:
     /// Constructor
@@ -124,11 +126,11 @@ class VizComponent {
     virtual ~VizComponent() = default;
 
     /// Get the type
-    auto type() const { return type_; };
+    auto& type() const { return type_; };
     /// Get the position
-    auto position() const { return position_; };
+    auto& position() const { return position_; };
     /// Get the data
-    auto data() const { return data_; };
+    auto& data() const { return data_; };
 
     /// Set the position
     void SetPosition(dashql::proto::viz::VizPosition pos) {

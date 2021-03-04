@@ -68,10 +68,10 @@ export abstract class BaseVizActionLogic extends ProgramActionLogic {
             let data: model.VizData = {};
             if (dataReader) {
                 data = {
-                    x: instance.readNodeValueIfValid(dataReader.x())?.castAsString() || undefined,
-                    y: instance.readNodeValueIfValid(dataReader.y())?.castAsString() || undefined,
-                    y0: instance.readNodeValueIfValid(dataReader.y0())?.castAsString() || undefined,
-                    categories: instance.readNodeValueIfValid(dataReader.y0())?.castAsString() || undefined,
+                    x: dataReader.x() || undefined,
+                    y: dataReader.y() || undefined,
+                    y0: dataReader.y0() || undefined,
+                    categories: dataReader.y0() || undefined,
                 };
             }
             const styles: SVGStyleMap = {};

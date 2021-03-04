@@ -99,9 +99,14 @@ lib_tests_relwithdebinfo_lldb: lib_relwithdebinfo
 	lldb ${LIB_RELWITHDEBINFO_DIR}/tester -- --source_dir ${LIB_SOURCE_DIR}
 
 # Generate declarative tests
-.PHONY: testgen
+.PHONY: lib_testgen
 lib_testgen: lib
 	${LIB_DEBUG_DIR}/testgen ${LIB_SOURCE_DIR}
+
+# Generate declarative tests
+.PHONY: lib_testgen_gdb
+lib_testgen_gdb: lib
+	gdb --args ${LIB_DEBUG_DIR}/testgen ${LIB_SOURCE_DIR}
 
 # Debug the library
 .PHONY: lib_debug
