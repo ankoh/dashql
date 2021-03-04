@@ -26,7 +26,7 @@ export class ScriptPipeline {
     /// The debounce timeout
     _debounceTimeout: ReturnType<typeof setTimeout> | null;
     /// The last debounce trigger
-    _lastInputTime: number;
+    _programParsedAt: number;
 
     /// Constructor
     constructor(platform: Platform, scheduler: ActionGraphScheduler) {
@@ -39,7 +39,7 @@ export class ScriptPipeline {
         this._programParameters = state.programParameters;
         this._programInstance = state.programInstance;
         this._debounceTimeout = null;
-        this._lastInputTime = 0;
+        this._programParsedAt = 0;
         store.subscribe(this.detectChanges.bind(this));
     }
 
@@ -65,7 +65,7 @@ export class ScriptPipeline {
             const lastErrorCount = this._programInstance.program.buffer.errorsLength();
 
             // Wait at least MIN_INPUT_DELAY_MS after last input
-            let deltaMS = nowMS - this._lastInputTime;
+            let deltaMS = nowMS - this._programParsedAt;
             if (deltaMS < MIN_INPUT_DELAY) {
                 this.debounceInstantiation(MIN_INPUT_DELAY - deltaMS);
                 return;
@@ -114,6 +114,7 @@ export class ScriptPipeline {
                 // Program can be replaced directly (might be the result of a rewrite)
                 this._program = next.program;
             } else {
+                this._programParsedAt = new Date().getTime();
                 const program = this._platform.analyzer.parseProgram(this._programText);
                 model.mutate(this._platform.store.dispatch, {
                     type: model.StateMutationType.SET_PROGRAM,
