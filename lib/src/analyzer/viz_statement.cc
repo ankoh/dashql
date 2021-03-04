@@ -308,10 +308,10 @@ void VizComponent::ReadFrom(size_t node_id) {
         SelectAltOption("data.categories", matches[ID_DATA_CATEGORIES].node_id, matches[ID_CATEGORIES].node_id);
     if (AnyOptionSet({data_x, data_y, data_y0, data_categories})) {
         data_.emplace();
-        data_->x = data_x;
-        data_->y = data_y;
-        data_->y0 = data_y0;
-        data_->categories = data_categories;
+        data_->x = ReadStringOrColumnRef(data_x);
+        data_->y = ReadStringOrColumnRef(data_y);
+        data_->y0 = ReadStringOrColumnRef(data_y0);
+        data_->categories = ReadStringOrColumnRef(data_categories);
     }
 
     /// Get the title attribute
@@ -376,6 +376,39 @@ std::unique_ptr<VizComponent> VizComponent::CreateFrom(VizStatement& stmt, size_
     return c;
 }
 
+/// Read a string or a column ref as text
+std::string_view VizComponent::ReadStringOrColumnRef(size_t target_node_id) const {
+    if (target_node_id == INVALID_NODE_ID) return {};
+    auto& instance = viz_stmt_.instance();
+    auto& nodes = instance.program().nodes;
+    auto& target_node = nodes[target_node_id];
+
+    // Get a string ref?
+    if (target_node.node_type() == sx::NodeType::STRING_REF) {
+        return instance.TextAt(target_node.location());
+    }
+
+    // clang-format off
+    constexpr size_t ID_COLUMN_REF_PATH = 0;
+    static const auto schema = sxm::Element()
+        .MatchObject(sx::NodeType::OBJECT_SQL_COLUMN_REF)
+        .MatchChildren({
+            sxm::Attribute(sx::AttributeKey::SQL_COLUMN_REF_PATH, ID_COLUMN_REF_PATH)
+                .MatchArray()
+        });
+    std::array<NodeMatch, 1> matches;
+    schema.Match(instance, target_node_id, matches);
+    // clang-format on
+
+    // Is a column ref path?
+    if (matches[ID_COLUMN_REF_PATH]) {
+        auto node_id = matches[ID_COLUMN_REF_PATH].node_id;
+        auto& node = instance.program().nodes[node_id];
+        return trimview(instance.TextAt(node.location()), isNoQuote);
+    }
+    return {nullptr, 0};
+}
+
 /// Print common viz attributes
 void VizComponent::PrintScript(std::ostream& out) const {
     // Print the type modifiers
@@ -417,8 +450,20 @@ flatbuffers::Offset<proto::viz::VizComponent> VizComponent::Pack(flatbuffers::Fl
     auto modifiers_vec = builder.CreateVector(modifiers);
 
     // Pack data
-    std::optional<flatbuffers::Offset<pv::VizData>> data;
-    if (data_) data = pv::CreateVizData(builder, data_->x, data_->y, data_->y0, data_->categories);
+    std::optional<flatbuffers::Offset<pv::VizData>> data = std::nullopt;
+    if (data_) {
+        auto x = data_->x.empty() ? std::nullopt : std::optional{builder.CreateString(data_->x)};
+        auto y = data_->y.empty() ? std::nullopt : std::optional{builder.CreateString(data_->y)};
+        auto y0 = data_->y0.empty() ? std::nullopt : std::optional{builder.CreateString(data_->y0)};
+        auto cat = data_->categories.empty() ? std::nullopt : std::optional{builder.CreateString(data_->categories)};
+
+        pv::VizDataBuilder dataBuilder{builder};
+        if (x) dataBuilder.add_x(*x);
+        if (y) dataBuilder.add_x(*y);
+        if (y0) dataBuilder.add_x(*y0);
+        if (cat) dataBuilder.add_x(*cat);
+        data = dataBuilder.Finish();
+    }
 
     // Pack component
     proto::viz::VizComponentBuilder cb{builder};

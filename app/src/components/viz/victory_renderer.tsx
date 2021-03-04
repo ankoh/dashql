@@ -38,7 +38,6 @@ class ChartComposer extends React.Component<ChartComposerProps, ChartComposerSta
         }
         const iter = new webdb.ChunkArrayIterator(nextProps.data.result);
         rows = iter.collectAllBlocking<webdb.RowProxy>();
-        console.log(rows);
         return { rows };
     }
 

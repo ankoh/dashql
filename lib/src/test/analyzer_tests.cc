@@ -76,12 +76,12 @@ void AnalyzerTest::EncodePlan(pugi::xml_node root, const ProgramInstance& instan
         for (auto& vizc : viz->components()) {
             auto vc = c.append_child("component");
             vc.append_attribute("type") = viz_component_type_tt->names[static_cast<size_t>(vizc->type())];
-            if (auto data = vizc->data(); data.has_value()) {
+            if (auto& data = vizc->data(); data.has_value()) {
                 auto d = vc.append_child("data");
-                add_raw_attr(d, "x", data->x);
-                add_raw_attr(d, "y", data->y);
-                add_raw_attr(d, "y0", data->y0);
-                add_raw_attr(d, "categories", data->categories);
+                if (!data->x.empty()) d.append_attribute("x") = data->x.c_str();
+                if (!data->y.empty()) d.append_attribute("y") = data->y.c_str();
+                if (!data->y0.empty()) d.append_attribute("y0") = data->y0.c_str();
+                if (!data->categories.empty()) d.append_attribute("categories") = data->categories.c_str();
             }
         }
     }
