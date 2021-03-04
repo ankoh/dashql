@@ -10,6 +10,7 @@ module.exports = {
         bench_iterator: './src/iterator_benchmark.ts',
         bench_iterator_async: './src/iterator_benchmark_async.ts',
         bench_proxy: './src/proxy_benchmark.ts',
+        bench_parser: './src/parser_benchmark.ts',
     },
     output: {
         filename: '[name].js',
