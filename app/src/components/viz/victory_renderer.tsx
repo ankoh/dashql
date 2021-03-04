@@ -12,6 +12,8 @@ import * as vy from 'victory';
 import styles from './victory_renderer.module.css';
 
 import ScanProvider = core.access.ScanProvider;
+import VizComponentTypeModifier = core.proto.syntax.VizComponentTypeModifier;
+import VizComponentType = core.proto.syntax.VizComponentType;
 
 interface ChartComposerProps {
     logger: webdb.Logger;
@@ -47,38 +49,64 @@ class ChartComposer extends React.Component<ChartComposerProps, ChartComposerSta
 
     render() {
         let components = this.props.vizInfo.components.map((c, i) => {
+            let stacked = false;
+            let polar = false;
+            let axisProps = {
+                dependentAxis: false,
+                independentAxis: false,
+            }
             let dataProps = {
                 data: this.state.rows,
                 x: c.data.x,
                 y: c.data.y,
                 y0: c.data.y0,
             };
+            for (const [modifier, _ok] of c.typeModifiers) {
+                switch (modifier) {
+                    case VizComponentTypeModifier.Y:
+                    case VizComponentTypeModifier.DEPENDENT:
+                        axisProps.dependentAxis = true;
+                        break;
+                    case VizComponentTypeModifier.X:
+                    case VizComponentTypeModifier.INDEPENDENT:
+                        axisProps.independentAxis = true;
+                        break;
+                    case VizComponentTypeModifier.POLAR:
+                        polar = true;
+                        break;
+                    case VizComponentTypeModifier.STACKED:
+                        stacked = true;
+                        break;
+                        break;
+                }
+            }
+
             switch (c.type) {
-                case core.proto.syntax.VizComponentType.AREA:
+                case VizComponentType.AREA:
                     return <vy.VictoryArea key={i} style={c.styles} {...dataProps} />;
-                case core.proto.syntax.VizComponentType.AXIS:
+                case VizComponentType.AXIS:
                     return <vy.VictoryAxis key={i} style={c.styles} />;
-                case core.proto.syntax.VizComponentType.BAR:
+                case VizComponentType.BAR:
                     return <vy.VictoryBar key={i} style={c.styles} {...dataProps} />;
-                case core.proto.syntax.VizComponentType.BOX_PLOT:
+                case VizComponentType.BOX_PLOT:
                     return <vy.VictoryBoxPlot key={i} style={c.styles} {...dataProps} />;
-                case core.proto.syntax.VizComponentType.CANDLESTICK:
+                case VizComponentType.CANDLESTICK:
                     return <vy.VictoryCandlestick key={i} style={c.styles} {...dataProps} />;
-                case core.proto.syntax.VizComponentType.ERROR_BAR:
+                case VizComponentType.ERROR_BAR:
                     return <vy.VictoryErrorBar key={i} style={c.styles} {...dataProps} />;
-                case core.proto.syntax.VizComponentType.HISTOGRAM:
+                case VizComponentType.HISTOGRAM:
                     return <vy.VictoryHistogram key={i} style={c.styles} {...dataProps} />;
-                case core.proto.syntax.VizComponentType.LINE:
+                case VizComponentType.LINE:
                     return <vy.VictoryLine key={i} style={c.styles} {...dataProps} />;
-                case core.proto.syntax.VizComponentType.PIE:
+                case VizComponentType.PIE:
                     return <vy.VictoryPie key={i} style={c.styles} {...dataProps} />;
-                case core.proto.syntax.VizComponentType.SCATTER:
+                case VizComponentType.SCATTER:
                     return <vy.VictoryScatter key={i} style={c.styles} {...dataProps} />;
-                case core.proto.syntax.VizComponentType.VORONOI:
+                case VizComponentType.VORONOI:
                     return <vy.VictoryVoronoi key={i} style={c.styles} {...dataProps} />;
-                case core.proto.syntax.VizComponentType.NUMBER:
-                case core.proto.syntax.VizComponentType.TABLE:
-                case core.proto.syntax.VizComponentType.TEXT:
+                case VizComponentType.NUMBER:
+                case VizComponentType.TABLE:
+                case VizComponentType.TEXT:
                     return <div />;
             }
         });
