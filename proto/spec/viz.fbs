@@ -65,10 +65,10 @@ struct SVGStyleProperty {
 }
 
 table VizData {
-    x: uint32;
-    y: uint32;
-    y0: uint32;
-    categories: uint32;
+    x: string;
+    y: string;
+    y0: string;
+    categories: string;
 }
 
 struct VizValueDomain {
