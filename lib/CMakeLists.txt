@@ -56,11 +56,6 @@ include("${CMAKE_SOURCE_DIR}/cmake/pugixml.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/spdlog.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/wasm-c-api.cmake")
 
-if (HAVE_WASM_RUNTIME)
-    set (WITH_DATAFRAME_TESTS TRUE)
-    message(STATUS "WITH_DATAFRAME_TESTS=${WITH_DATAFRAME_TESTS}")
-endif ()
-
 # ---------------------------------------------------------------------------
 # Code coverage
 
@@ -479,30 +474,25 @@ if(NOT EMSCRIPTEN)
         ${CMAKE_SOURCE_DIR}/test/common/topological_sort_test.cc
         ${CMAKE_SOURCE_DIR}/test/common/union_find_test.cc
         ${CMAKE_SOURCE_DIR}/test/dataframe/dataframe_test.cc
+        ${CMAKE_SOURCE_DIR}/test/dataframe/hellowasm_test.cc
         ${CMAKE_SOURCE_DIR}/test/extract/csv_parser_test.cc
         ${CMAKE_SOURCE_DIR}/test/extract/csv_sniffer_test.cc
         ${CMAKE_SOURCE_DIR}/test/extract/extract_test.cc
         ${CMAKE_SOURCE_DIR}/test/parser/grammar_spec_tests.cc
+        ${CMAKE_SOURCE_DIR}/test/tester.cc
         ${CMAKE_SOURCE_DIR}/test/webdb/duckdb_test.cc
         ${CMAKE_SOURCE_DIR}/test/webdb/iterator_test.cc
         ${CMAKE_SOURCE_DIR}/test/webdb/webdb_test.cc
-        ${CMAKE_SOURCE_DIR}/test/tester.cc
     )
     set (TEST_LIBS
         dashql_test
         dashql_extract dashql_analyzer dashql_dataframe dashql_webdb dashql_common
         dashql_proto
         wasm_api
+        wasmtime
         flatbuffers gtest gmock gflags
         Threads::Threads
     )
-
-    if (WITH_DATAFRAME_TESTS)
-        set (TEST_CC ${TEST_CC}
-            ${CMAKE_SOURCE_DIR}/test/dataframe/hellowasm_test.cc
-        )
-        set (TEST_LIBS ${TEST_LIBS} wasm_api v8 Threads::Threads)
-    endif ()
 
     add_executable(tester ${TEST_CC})
     target_link_libraries(tester ${TEST_LIBS})
