@@ -27,15 +27,6 @@ IN_IMAGE_MOUNTS=-v${ROOT_DIR}:/wd/ -v${ROOT_DIR}/.emscripten_cache/:/mnt/emscrip
 IN_IMAGE_ENV=-e CCACHE_DIR=/mnt/ccache -e CCACHE_BASEDIR=/wd/core/cpp/ -e EM_CACHE=/mnt/emscripten_cache/
 EXEC_ENVIRONMENT?=docker run -it --rm ${IN_IMAGE_MOUNTS} ${IN_IMAGE_ENV} "${CI_IMAGE_FULLY_QUALIFIED}"
 
-CDN_S3_BUCKET="s3://dashql-cdn"
-CDN_CF_DIST="E18RW837PIKROW"
-APP_STABLE_S3_BUCKET="s3://dashql-app"
-APP_STABLE_CF_DIST="E1WT3LVZLA4YZX"
-APP_NIGHTLY_S3_BUCKET="s3://dashql-app-nightly"
-APP_NIGHTLY_CF_DIST="EQPYKLIF8GRS4"
-WEBSITE_S3_BUCKET="s3://dashql-cdn"
-WEBSITE_CF_DIST="E2N5KIE8UNXGM3"
-
 CORES=$(shell grep -c ^processor /proc/cpuinfo 2>/dev/null || sysctl -n hw.ncpu)
 
 # ---------------------------------------------------------------------------
@@ -264,9 +255,3 @@ pkg_uni:
 	mkdir -p ${UNI_SCHEMA_OUT}
 	${UNI_SCHEMA_PKG} ${UNI_SCHEMA_OUT}
 	cd ${UNI_SCHEMA_OUT} && rm -f ./tables.zip && zip ./tables.zip ./*.parquet
-
-# Copy university schema data to s3
-# aws_update_uni:
-# 	aws s3 cp "${UNI_SCHEMA_OUT}/tables.zip" "${CDN_S3_BUCKET}/demo/uni/tables-de.zip" \
-# 		--cache-control "max-age=604800" \
-# 		--acl public-read
