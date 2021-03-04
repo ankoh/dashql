@@ -11,15 +11,19 @@ export async function collectTableInfo(conn: webdb.AsyncConnection, info: model.
     // Get column names and types
     const limit0 = await conn.runQuery(`SELECT * FROM ${info.nameShort} LIMIT 0`);
     const columnNames: string[] = [];
+    const columnNameMapping: Map<string, number> = new Map();
     const columnTypes: webdb.SQLType[] = [];
     for (let ci = 0; ci < limit0.columnNamesLength(); ++ci) {
-        columnNames.push(limit0.columnNames(ci));
+        const name = limit0.columnNames(ci);
+        columnNames.push(name);
+        columnNameMapping.set(name, ci);
         columnTypes.push(webdb.getSQLType(limit0.columnTypes(ci)));
     }
     const timeUpdated = new Date();
     return {
         ...info,
         columnNames,
+        columnNameMapping,
         columnTypes,
         timeUpdated,
     };
@@ -53,6 +57,7 @@ export class CreateTableActionLogic extends ProgramActionLogic {
                 nameQualified: this.buffer.targetNameQualified() || "",
                 nameShort: this.buffer.targetNameShort() || "",
                 columnNames: [],
+                columnNameMapping: new Map(),
                 columnTypes: [],
                 statistics: Immutable.Map(),
             });

@@ -8,6 +8,8 @@ import * as webdb from '@dashql/webdb';
 export interface DatabaseTableInfo extends PlanObject {
     /// The column names
     readonly columnNames: string[];
+    /// The column name indices
+    readonly columnNameMapping: Map<string, number>;
     /// The column type
     readonly columnTypes: webdb.SQLType[];
     /// The statistics

@@ -40,11 +40,23 @@ export abstract class BaseVizActionLogic extends ProgramActionLogic {
 
     protected deriveVizInfo(context: ActionContext, mixin: Partial<model.VizInfo> = {}): model.VizInfo {
         const instance = context.plan.programInstance;
+        const store = context.platform.store;
+
+        // Get viz spec
         const vizSpec = instance.vizSpecs.get(this.origin.statementId);
         if (!vizSpec) {
             return this.getDefaultVizInfo();
         }
-        const now = new Date();
+
+        // Get the table info
+        const tableInfo = store.getState().core.planDatabaseTables.get(this.tableNameQualified);
+        if (!tableInfo) {
+            return this.getDefaultVizInfo();
+        }
+        const cols = tableInfo.columnNameMapping;
+        const getCol = (n: string) => (
+            cols.has(n) ? n : undefined
+        );
 
         // Read position
         const posReader = vizSpec.position()!;
@@ -55,26 +67,50 @@ export abstract class BaseVizActionLogic extends ProgramActionLogic {
             height: posReader.height(),
         };
 
+        // The common data attributes in case some are not set
+        let dataX: string | undefined = undefined;
+        let dataY: string | undefined = undefined;
+        let dataY0: string | undefined = undefined;
+        let dataCat: string | undefined = undefined;
+
         // Read the component specs
         const components = new Array<model.VizComponentSpec>();
         for (let i = 0; i < vizSpec.componentsLength(); ++i) {
             const c = vizSpec.components(i)!;
+
+            // Collect type
             const type = c.type()!;
             let typeModifiers: Map<proto.syntax.VizComponentTypeModifier, boolean> = new Map();
             for (let i = 0; i < c.typeModifiersLength(); ++i) {
                 typeModifiers.set(c.typeModifiers(i)!, true);
             }
+
+            // Read the viz data
             const dataReader = c.data();
-            let data: model.VizData = {};
+            let data: model.VizData = {
+                x: getCol('x') || dataX,
+                y: getCol('y') || dataY,
+                y0: getCol('y0') || dataY0,
+                categories: getCol('categories') || getCol('cat') || dataCat,
+            };
+            // Specified data attributes always override previous attributes
             if (dataReader) {
                 data = {
-                    x: dataReader.x() || undefined,
-                    y: dataReader.y() || undefined,
-                    y0: dataReader.y0() || undefined,
-                    categories: dataReader.y0() || undefined,
+                    x: dataReader.x() || data.x,
+                    y: dataReader.y() || data.y,
+                    y0: dataReader.y0() || data.y0,
+                    categories: dataReader.categories() || data.categories,
                 };
             }
+            dataX = data.x || dataX;
+            dataY = data.y || dataY;
+            dataY0 = data.y0 || dataY0;
+            dataCat = data.categories || dataCat;
+
+            // Collect the style attributes
             const styles: SVGStyleMap = {};
+
+            // Build the components
             components.push({
                 type,
                 typeModifiers,
@@ -84,6 +120,7 @@ export abstract class BaseVizActionLogic extends ProgramActionLogic {
             });
         }
 
+        const now = new Date();
         return {
             objectId: this.buffer.objectId(),
             objectType: model.PlanObjectType.VIZ_INFO,
@@ -141,7 +178,7 @@ export class UpdateVizActionLogic extends BaseVizActionLogic {
     public async execute(context: ActionContext): Promise<model.ActionHandle> {
         const state = context.platform.store.getState();
         const prev = state.core.planObjects.get(this.buffer.objectId().toString()) as model.VizInfo;
-         
+
         const info = this.deriveVizInfo(context);
         const store = context.platform.store;
         model.mutate(store.dispatch, {

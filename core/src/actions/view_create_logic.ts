@@ -36,6 +36,7 @@ export class ViewCreateActionLogic extends ProgramActionLogic {
                 nameQualified: this.buffer.targetNameQualified() || "",
                 nameShort: this.buffer.targetNameShort() || "",
                 columnNames: [],
+                columnNameMapping: new Map(),
                 columnTypes: [],
                 statistics: Immutable.Map(),
             });
