@@ -76,6 +76,21 @@ export interface SVGStyleConfiguration {
 
 /// An SVG style map
 export interface SVGStyleMap {
+    readonly axis?: SVGStyleConfiguration;
+    readonly axisLabel?: SVGStyleConfiguration;
     readonly data?: SVGStyleConfiguration;
+    readonly grid?: SVGStyleConfiguration;
     readonly labels?: SVGStyleConfiguration;
+    readonly max?: SVGStyleConfiguration,
+    readonly maxLabels?: SVGStyleConfiguration,
+    readonly median?: SVGStyleConfiguration,
+    readonly medianLabels?: SVGStyleConfiguration,
+    readonly min?: SVGStyleConfiguration,
+    readonly minLabels?: SVGStyleConfiguration,
+    readonly q1?: SVGStyleConfiguration,
+    readonly q1Labels?: SVGStyleConfiguration,
+    readonly q3?: SVGStyleConfiguration,
+    readonly q3Labels?: SVGStyleConfiguration
+    readonly tickLabels?: SVGStyleConfiguration;
+    readonly ticks?: SVGStyleConfiguration;
 }
