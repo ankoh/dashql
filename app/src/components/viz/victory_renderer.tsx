@@ -96,10 +96,10 @@ class ChartComposer extends React.Component<ChartComposerProps, ChartComposerSta
                         width={width}
                         height={height}
                         padding={{
-                            top: 20,
-                            left: 40,
-                            right: 30,
-                            bottom: 40,
+                            top: 16,
+                            left: 36,
+                            right: 20,
+                            bottom: 36,
                         }}
                         theme={vy.VictoryTheme.material}
                     >
