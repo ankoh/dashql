@@ -50,10 +50,10 @@ class ChartComposer extends React.Component<ChartComposerProps, ChartComposerSta
     render() {
         let components = this.props.vizInfo.components.map((c, i) => {
             let stacked = false;
-            let polar = false;
             let axisProps = {
                 dependentAxis: false,
                 independentAxis: false,
+                polar: false,
             }
             let dataProps = {
                 data: this.state.rows,
@@ -72,11 +72,10 @@ class ChartComposer extends React.Component<ChartComposerProps, ChartComposerSta
                         axisProps.independentAxis = true;
                         break;
                     case VizComponentTypeModifier.POLAR:
-                        polar = true;
+                        axisProps.polar = true;
                         break;
                     case VizComponentTypeModifier.STACKED:
                         stacked = true;
-                        break;
                         break;
                 }
             }
@@ -85,7 +84,7 @@ class ChartComposer extends React.Component<ChartComposerProps, ChartComposerSta
                 case VizComponentType.AREA:
                     return <vy.VictoryArea key={i} style={c.styles} {...dataProps} />;
                 case VizComponentType.AXIS:
-                    return <vy.VictoryAxis key={i} style={c.styles} />;
+                    return <vy.VictoryAxis key={i} style={c.styles} {...axisProps} />;
                 case VizComponentType.BAR:
                     return <vy.VictoryBar key={i} style={c.styles} {...dataProps} />;
                 case VizComponentType.BOX_PLOT:
