@@ -46,36 +46,36 @@ class ChartComposer extends React.Component<ChartComposerProps, ChartComposerSta
     }
 
     render() {
-        let components = this.props.vizInfo.components.map(c => {
+        let components = this.props.vizInfo.components.map((c, i) => {
             let dataProps = {
+                data: this.state.rows,
                 x: c.data.x,
                 y: c.data.y,
                 y0: c.data.y0,
-                data: this.state.rows
             };
             switch (c.type) {
                 case core.proto.syntax.VizComponentType.AREA:
-                    return <vy.VictoryArea {...dataProps} />;
+                    return <vy.VictoryArea key={i} {...dataProps} />;
                 case core.proto.syntax.VizComponentType.AXIS:
-                    return <vy.VictoryAxis />;
+                    return <vy.VictoryAxis key={i} />;
                 case core.proto.syntax.VizComponentType.BAR:
-                    return <vy.VictoryBar  {...dataProps} />;
+                    return <vy.VictoryBar key={i} {...dataProps} />;
                 case core.proto.syntax.VizComponentType.BOX_PLOT:
-                    return <vy.VictoryBoxPlot {...dataProps} />;
+                    return <vy.VictoryBoxPlot key={i} {...dataProps} />;
                 case core.proto.syntax.VizComponentType.CANDLESTICK:
-                    return <vy.VictoryCandlestick {...dataProps} />;
+                    return <vy.VictoryCandlestick key={i} {...dataProps} />;
                 case core.proto.syntax.VizComponentType.ERROR_BAR:
-                    return <vy.VictoryErrorBar {...dataProps} />;
+                    return <vy.VictoryErrorBar key={i} {...dataProps} />;
                 case core.proto.syntax.VizComponentType.HISTOGRAM:
-                    return <vy.VictoryHistogram {...dataProps} />;
+                    return <vy.VictoryHistogram key={i} {...dataProps} />;
                 case core.proto.syntax.VizComponentType.LINE:
-                    return <vy.VictoryLine {...dataProps} />;
+                    return <vy.VictoryLine key={i} {...dataProps} />;
                 case core.proto.syntax.VizComponentType.PIE:
-                    return <vy.VictoryPie {...dataProps} />;
+                    return <vy.VictoryPie key={i} {...dataProps} />;
                 case core.proto.syntax.VizComponentType.SCATTER:
-                    return <vy.VictoryScatter {...dataProps} />;
+                    return <vy.VictoryScatter key={i} {...dataProps} />;
                 case core.proto.syntax.VizComponentType.VORONOI:
-                    return <vy.VictoryVoronoi {...dataProps} />;
+                    return <vy.VictoryVoronoi key={i} {...dataProps} />;
                 case core.proto.syntax.VizComponentType.NUMBER:
                 case core.proto.syntax.VizComponentType.TABLE:
                 case core.proto.syntax.VizComponentType.TEXT:
