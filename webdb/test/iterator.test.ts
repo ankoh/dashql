@@ -66,5 +66,20 @@ describe('QueryResultChunkStream', () => {
             }
             expect(i).toBe(testRows + 1);
         });
+
+        test('STRING', () => {
+            let result = conn.sendQuery(`
+                SELECT v::VARCHAR FROM generate_series(0, ${testRows}) as t(v);
+            `);
+            expect(result.columnTypesLength()).toBe(1);
+            let chunks = new webdb.ChunkStreamIterator(conn, result);
+            let i = 0;
+            while (chunks.nextBlocking()) {
+                chunks.iterateStringColumn(0, (_row: number, v: string | null) => {
+                    expect(v).toBe(`${i++}`);
+                });
+            }
+            expect(i).toBe(testRows + 1);
+        });
     });
 });
