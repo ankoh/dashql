@@ -76,7 +76,7 @@ describe('QueryResultChunkStream', () => {
             let i = 0;
             while (chunks.nextBlocking()) {
                 chunks.iterateStringColumn(0, (_row: number, v: string | null) => {
-                    expect(v).toBe(`${i++}`);
+                    expect(v).toBe(String(i++));
                 });
             }
             expect(i).toBe(testRows + 1);
