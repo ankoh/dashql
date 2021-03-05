@@ -156,6 +156,34 @@ export abstract class ChunkIterator {
         }
     }
 
+    /// Iterate over a string column
+    public iterateStringColumn(cid: number, fn: (row: number, v: string | null) => void, ofs: number = 0, limit: number = 0) {
+        if (cid >= this.columnCount) {
+            throw Error("column index out of bounds");
+        }
+        let c = this.currentChunk?.columns(cid, this.tmp.vector);
+        if (c == null) {
+            return;
+        }
+        // XXX other types
+        if (c.variantType() != proto.VectorVariant.VectorString) {
+            return;
+        }
+        let v = c.variant(this.tmp.vectorString)!;
+        const n: Int8Array | null = v.nullMaskArray();
+        const lb = ofs;
+        const ub = (limit > 0) ? Math.min(lb + limit, v.valuesLength()) : v.valuesLength();
+        if (n != null) {
+            for (let i = lb; i < ub; ++i) {
+                fn(i, n[i] ? null : v.values(i));
+            }
+        } else {
+            for (let i = lb; i < ub; ++i) {
+                fn(i, v.values(i));
+            }
+        }
+    }
+
     /// Helper to iterate over a blocking chunk iterator
     public iterateAllBlocking(offset: number, limit: number, fn: (iter: ChunkIterator, start: number, skipHere: number, rowsHere: number) => void) {
         let skip = offset;
