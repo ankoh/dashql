@@ -1,9 +1,5 @@
 name: "main"
-on:
-  push:
-    branches:
-      - master
-      - stable
+on: [push, pull_request]
 
 jobs:
   linux_x86_debug:
