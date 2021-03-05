@@ -4,7 +4,6 @@
             position = (r = 0, c = 0, w = 4, h = 15),
             x = a,
             y = b,
-            categories = c,
             theme = 'grayscale',
             colors = ['#aaa', '#bbb', '#ccc']
         ), LINE (

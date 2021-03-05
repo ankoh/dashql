@@ -57,9 +57,8 @@ class ChartComposer extends React.Component<ChartComposerProps, ChartComposerSta
             }
             let dataProps = {
                 data: this.state.rows,
-                x: c.data.x,
-                y: c.data.y,
-                y0: c.data.y0,
+                x: c.data.x?.[0],
+                y: c.data.y?.[0],
             };
             for (const [modifier, _ok] of c.typeModifiers) {
                 switch (modifier) {

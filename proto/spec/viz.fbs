@@ -1,6 +1,7 @@
 // Copyright (c) 2020 The DashQL Authors
 
 include "syntax/dashql.fbs";
+include "webdb/sql_value.fbs";
 
 namespace dashql.proto.viz;
 
@@ -65,10 +66,13 @@ struct SVGStyleProperty {
 }
 
 table VizData {
-    x: string;
-    y: string;
+    x: [string];
+    y: [string];
     y0: string;
-    categories: string;
+    group: [string];
+    stack: [string];
+    order: [string];
+    samples: double;
 }
 
 struct VizValueDomain {
@@ -113,7 +117,6 @@ table VizComponent {
     origin: Coordinates;
     padding: VizPadding;
     polar: uint32;
-    samples: uint32;
     scales: VizScales;
     theme: uint32;
     interpolation: uint32;

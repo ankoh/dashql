@@ -4,7 +4,6 @@
             position = (r = 0, c = 0, w = 4, h = 15),
             x = a,
             y = b,
-            categories = c,
             theme = 'grayscale',
             colors = ['#aaa', '#bbb', '#ccc']
         ), LINE (
@@ -29,20 +28,15 @@
     <expected>
         <statements>
             <statement type="VIZUALIZE">
-                <node type="OBJECT_DASHQL_VIZ" loc="9..762" text="VISUALIZE ..e = 'log')">
+                <node type="OBJECT_DASHQL_VIZ" loc="9..734" text="VISUALIZE ..e = 'log')">
                     <node key="DASHQL_VIZ_COMPONENTS">
-                        <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="37..259" text="STACKED BA..&#10;        )">
+                        <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="37..231" text="STACKED BA..&#10;        )">
                             <node key="DASHQL_VIZ_COMPONENT_TYPE" value="BAR" />
                             <node key="DASHQL_VIZ_COMPONENT_TYPE_MODIFIERS" value="0" />
-                            <node key="DASHQL_OPTION_CATEGORIES" type="OBJECT_SQL_COLUMN_REF" loc="168..169" text="c">
-                                <node key="SQL_COLUMN_REF_PATH">
-                                    <node loc="168..169" text="c" />
-                                </node>
-                            </node>
                             <node key="DASHQL_OPTION_COLORS">
-                                <node loc="226..232" text="'#aaa'" />
-                                <node loc="234..240" text="'#bbb'" />
-                                <node loc="242..248" text="'#ccc'" />
+                                <node loc="198..204" text="'#aaa'" />
+                                <node loc="206..212" text="'#bbb'" />
+                                <node loc="214..220" text="'#ccc'" />
                             </node>
                             <node key="DASHQL_OPTION_POSITION" type="OBJECT_DASHQL_OPTION_LIST" loc="74..103" text="(r = 0, c ..4, h = 15)">
                                 <node key="DASHQL_OPTION_COLUMN" loc="86..87" text="0" />
@@ -50,7 +44,7 @@
                                 <node key="DASHQL_OPTION_ROW" loc="79..80" text="0" />
                                 <node key="DASHQL_OPTION_WIDTH" loc="93..94" text="4" />
                             </node>
-                            <node key="DASHQL_OPTION_THEME" loc="191..202" text="'grayscale'" />
+                            <node key="DASHQL_OPTION_THEME" loc="163..174" text="'grayscale'" />
                             <node key="DASHQL_OPTION_X" type="OBJECT_SQL_COLUMN_REF" loc="121..122" text="a">
                                 <node key="SQL_COLUMN_REF_PATH">
                                     <node loc="121..122" text="a" />
@@ -62,29 +56,29 @@
                                 </node>
                             </node>
                         </node>
-                        <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="261..459" text="LINE (&#10;   ..&#10;        )">
+                        <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="233..431" text="LINE (&#10;   ..&#10;        )">
                             <node key="DASHQL_VIZ_COMPONENT_TYPE" value="LINE" />
                         </node>
-                        <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="461..715" text="SCATTER (&#10;..&#10;        )">
+                        <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="433..687" text="SCATTER (&#10;..&#10;        )">
                             <node key="DASHQL_VIZ_COMPONENT_TYPE" value="SCATTER" />
-                            <node key="DASHQL_OPTION_STYLE" type="OBJECT_DASHQL_OPTION_LIST" loc="491..705" text="(&#10;        ..         )">
-                                <node key="DASHQL_OPTION_DATA" type="OBJECT_DASHQL_OPTION_LIST" loc="516..691" text="(&#10;        ..         )">
-                                    <node key="DASHQL_OPTION_FILL" loc="545..554" text="'#c43a31'" />
-                                    <node key="DASHQL_OPTION_FILL_OPACITY" loc="591..594" text="0.6" />
-                                    <node key="DASHQL_OPTION_STROKE" loc="625..634" text="'#c43a31'" />
-                                    <node key="DASHQL_OPTION_STROKE_WIDTH" loc="671..672" text="3" />
+                            <node key="DASHQL_OPTION_STYLE" type="OBJECT_DASHQL_OPTION_LIST" loc="463..677" text="(&#10;        ..         )">
+                                <node key="DASHQL_OPTION_DATA" type="OBJECT_DASHQL_OPTION_LIST" loc="488..663" text="(&#10;        ..         )">
+                                    <node key="DASHQL_OPTION_FILL" loc="517..526" text="'#c43a31'" />
+                                    <node key="DASHQL_OPTION_FILL_OPACITY" loc="563..566" text="0.6" />
+                                    <node key="DASHQL_OPTION_STROKE" loc="597..606" text="'#c43a31'" />
+                                    <node key="DASHQL_OPTION_STROKE_WIDTH" loc="643..644" text="3" />
                                 </node>
                             </node>
                         </node>
-                        <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="717..739" text="X AXIS(sca.. = 'time')">
+                        <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="689..711" text="X AXIS(sca.. = 'time')">
                             <node key="DASHQL_VIZ_COMPONENT_TYPE" value="AXIS" />
                             <node key="DASHQL_VIZ_COMPONENT_TYPE_MODIFIERS" value="4" />
-                            <node key="DASHQL_OPTION_SCALE" loc="732..738" text="'time'" />
+                            <node key="DASHQL_OPTION_SCALE" loc="704..710" text="'time'" />
                         </node>
-                        <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="741..762" text="Y AXIS(sca..e = 'log')">
+                        <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="713..734" text="Y AXIS(sca..e = 'log')">
                             <node key="DASHQL_VIZ_COMPONENT_TYPE" value="AXIS" />
                             <node key="DASHQL_VIZ_COMPONENT_TYPE_MODIFIERS" value="5" />
-                            <node key="DASHQL_OPTION_SCALE" loc="756..761" text="'log'" />
+                            <node key="DASHQL_OPTION_SCALE" loc="728..733" text="'log'" />
                         </node>
                     </node>
                     <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLE_REF" loc="19..30" text="weather_avg">
@@ -103,27 +97,26 @@
             <line_break loc="104..105" text="&#10;" />
             <line_break loc="123..124" text="&#10;" />
             <line_break loc="142..143" text="&#10;" />
-            <line_break loc="170..171" text="&#10;" />
-            <line_break loc="203..204" text="&#10;" />
-            <line_break loc="249..250" text="&#10;" />
-            <line_break loc="267..268" text="&#10;" />
-            <line_break loc="294..295" text="&#10;" />
-            <line_break loc="329..330" text="&#10;" />
-            <line_break loc="344..345" text="&#10;" />
-            <line_break loc="373..374" text="&#10;" />
-            <line_break loc="405..406" text="&#10;" />
-            <line_break loc="435..436" text="&#10;" />
-            <line_break loc="449..450" text="&#10;" />
-            <line_break loc="470..471" text="&#10;" />
-            <line_break loc="492..493" text="&#10;" />
-            <line_break loc="517..518" text="&#10;" />
-            <line_break loc="555..556" text="&#10;" />
-            <line_break loc="595..596" text="&#10;" />
-            <line_break loc="635..636" text="&#10;" />
-            <line_break loc="673..674" text="&#10;" />
-            <line_break loc="691..692" text="&#10;" />
-            <line_break loc="705..706" text="&#10;" />
-            <line_break loc="763..764" text="&#10;" />
+            <line_break loc="175..176" text="&#10;" />
+            <line_break loc="221..222" text="&#10;" />
+            <line_break loc="239..240" text="&#10;" />
+            <line_break loc="266..267" text="&#10;" />
+            <line_break loc="301..302" text="&#10;" />
+            <line_break loc="316..317" text="&#10;" />
+            <line_break loc="345..346" text="&#10;" />
+            <line_break loc="377..378" text="&#10;" />
+            <line_break loc="407..408" text="&#10;" />
+            <line_break loc="421..422" text="&#10;" />
+            <line_break loc="442..443" text="&#10;" />
+            <line_break loc="464..465" text="&#10;" />
+            <line_break loc="489..490" text="&#10;" />
+            <line_break loc="527..528" text="&#10;" />
+            <line_break loc="567..568" text="&#10;" />
+            <line_break loc="607..608" text="&#10;" />
+            <line_break loc="645..646" text="&#10;" />
+            <line_break loc="663..664" text="&#10;" />
+            <line_break loc="677..678" text="&#10;" />
+            <line_break loc="735..736" text="&#10;" />
         </line_breaks>
         <comments />
         <dependencies />
