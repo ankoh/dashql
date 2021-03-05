@@ -138,7 +138,7 @@ export abstract class BaseVizActionLogic extends ProgramActionLogic {
 
 export class CreateVizActionLogic extends BaseVizActionLogic {
     /// The promise to get the row count
-    _rowCountPromise: Promise<webdb.Value> | null = null;
+    _rowCountPromise: Promise<webdb.Value[]> | null = null;
 
     constructor(action_id: model.ActionHandle, action: proto.action.ProgramAction, statement: model.Statement) {
         super(action_id, action, statement);
