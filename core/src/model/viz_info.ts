@@ -28,10 +28,12 @@ export interface VizPosition {
 }
 
 export interface VizData {
-    readonly x?: string;
-    readonly y?: string;
-    readonly y0?: string;
-    readonly categories?: string;
+    readonly x?: string[];
+    readonly y?: string[];
+    readonly group?: string[];
+    readonly stack?: string[];
+    readonly order?: string[];
+    readonly samples?: number;
 }
 
 /// A style configuration
