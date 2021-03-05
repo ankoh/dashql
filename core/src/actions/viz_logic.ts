@@ -54,8 +54,8 @@ export abstract class BaseVizActionLogic extends ProgramActionLogic {
             return this.getDefaultVizInfo();
         }
         const cols = tableInfo.columnNameMapping;
-        const getCol = (n: string) => (
-            cols.has(n) ? n : undefined
+        const getCol = (n: string): string[] | undefined => (
+            cols.has(n) ? [n] : undefined
         );
 
         // Read position
@@ -68,10 +68,19 @@ export abstract class BaseVizActionLogic extends ProgramActionLogic {
         };
 
         // The common data attributes in case some are not set
-        let dataX: string | undefined = undefined;
-        let dataY: string | undefined = undefined;
-        let dataY0: string | undefined = undefined;
-        let dataCat: string | undefined = undefined;
+        let sharedX: string[] | undefined = undefined;
+        let sharedY: string[] | undefined = undefined;
+        let sharedGroup: string[] | undefined = undefined;
+        let sharedStack: string[] | undefined = undefined;
+        let sharedOrder: string[] | undefined = undefined;
+        let sharedSamples: number | undefined = undefined;
+
+        const collectStr = (fn: (i: number) => string, n: number) =>{
+            let vec = [];
+            for (let i = 0; i < n; ++i)
+                vec.push(fn(i));
+            return vec.length > 0 ? vec : undefined;
+        };
 
         // Read the component specs
         const components = new Array<model.VizComponentSpec>();
@@ -88,24 +97,30 @@ export abstract class BaseVizActionLogic extends ProgramActionLogic {
             // Read the viz data
             const dataReader = c.data();
             let data: model.VizData = {
-                x: getCol('x') || dataX,
-                y: getCol('y') || dataY,
-                y0: getCol('y0') || dataY0,
-                categories: getCol('categories') || getCol('cat') || dataCat,
+                x: sharedX || getCol('x'),
+                y: sharedY || getCol('y'),
+                group: sharedGroup,
+                stack: sharedStack,
+                order: sharedOrder,
+                samples: sharedSamples,
             };
             // Specified data attributes always override previous attributes
             if (dataReader) {
                 data = {
-                    x: dataReader.x() || data.x,
-                    y: dataReader.y() || data.y,
-                    y0: dataReader.y0() || data.y0,
-                    categories: dataReader.categories() || data.categories,
+                    x: collectStr(dataReader.x, dataReader.xLength()) || data.x,
+                    y: collectStr(dataReader.y, dataReader.yLength()) || data.y,
+                    group: collectStr(dataReader.group, dataReader.groupLength()) || data.group,
+                    stack: collectStr(dataReader.stack, dataReader.stackLength()) || data.stack,
+                    order: collectStr(dataReader.order, dataReader.orderLength()) || data.order,
+                    samples: dataReader.samples() || data.samples,
                 };
             }
-            dataX = data.x || dataX;
-            dataY = data.y || dataY;
-            dataY0 = data.y0 || dataY0;
-            dataCat = data.categories || dataCat;
+            sharedX = data.x || sharedX;
+            sharedY = data.y || sharedY;
+            sharedStack = data.stack || sharedStack;
+            sharedGroup = data.group || sharedGroup;
+            sharedOrder = data.order || sharedOrder;
+            sharedSamples = data.samples || sharedSamples;
 
             // Collect the style attributes
             const styles: SVGStyleMap = {};

@@ -116,8 +116,12 @@ class VizComponent {
     size_t SelectAltOption(std::string_view label, size_t node_id, size_t alt_node_id) const;
     /// Match an alternative style option
     void AddAltStyleOption(std::string_view label, size_t node_id, dashql::proto::viz::SVGStylePropertyType prop, std::vector<pv::SVGStyleProperty>& out) const;
-    /// Read column ref or string
-    std::string_view ReadStringOrColumnRef(size_t node_id) const;
+    /// Read column ref
+    std::string_view ReadColumnRef(size_t node_id) const;
+    /// Read column refs
+    std::vector<std::string> ReadColumnRefs(size_t node_id) const;
+    /// Read double
+    double ReadDouble(size_t node_id) const;
 
    public:
     /// Constructor

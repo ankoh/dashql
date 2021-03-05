@@ -12,6 +12,7 @@
 #include "dashql/analyzer/program_linter.h"
 #include "dashql/analyzer/syntax_matcher.h"
 #include "dashql/common/expected.h"
+#include "dashql/common/memstream.h"
 #include "dashql/common/span.h"
 #include "dashql/common/string.h"
 #include "dashql/common/substring_buffer.h"
@@ -163,11 +164,17 @@ void VizComponent::ReadFrom(size_t node_id) {
     constexpr size_t ID_POS_COLUMN = 3;
     constexpr size_t ID_POS_WIDTH = 4;
     constexpr size_t ID_POS_HEIGHT = 5;
-    constexpr size_t ID_CATEGORIES = 13;
+    constexpr size_t ID_STACK = 13;
+    constexpr size_t ID_GROUP = 29;
+    constexpr size_t ID_ORDER = 33;
+    constexpr size_t ID_SAMPLES = 31;
     constexpr size_t ID_X = 6;
     constexpr size_t ID_Y = 7;
     constexpr size_t ID_Y0 = 8;
-    constexpr size_t ID_DATA_CATEGORIES = 12;
+    constexpr size_t ID_DATA_STACK = 12;
+    constexpr size_t ID_DATA_GROUP = 30;
+    constexpr size_t ID_DATA_ORDER = 34;
+    constexpr size_t ID_DATA_SAMPLES = 32;
     constexpr size_t ID_DATA_X = 9;
     constexpr size_t ID_DATA_Y = 10;
     constexpr size_t ID_DATA_Y0 = 11;
@@ -197,12 +204,14 @@ void VizComponent::ReadFrom(size_t node_id) {
                 .MatchEnum(sx::NodeType::ENUM_DASHQL_VIZ_COMPONENT_TYPE),
             sxm::Attribute(sx::AttributeKey::DASHQL_VIZ_COMPONENT_TYPE_MODIFIERS, ID_TYPE_MODIFIERS)
                 .MatchUI32Bitmap(),
-            sxm::Option(sx::AttributeKey::DASHQL_OPTION_CATEGORIES, ID_CATEGORIES),
             sxm::Option(sx::AttributeKey::DASHQL_OPTION_COLUMN, ID_COLUMN),
             sxm::Option(sx::AttributeKey::DASHQL_OPTION_DATA, ID_DATA)
                 .MatchOptions()
                 .MatchChildren({
-                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_CATEGORIES, ID_DATA_CATEGORIES),
+                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_GROUP, ID_DATA_GROUP),
+                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_ORDER, ID_DATA_ORDER),
+                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_SAMPLES, ID_DATA_SAMPLES),
+                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_STACK, ID_DATA_STACK),
                     sxm::Option(sx::AttributeKey::DASHQL_OPTION_X, ID_DATA_X),
                     sxm::Option(sx::AttributeKey::DASHQL_OPTION_Y, ID_DATA_Y),
                     sxm::Option(sx::AttributeKey::DASHQL_OPTION_Y0, ID_DATA_Y0),
@@ -220,7 +229,9 @@ void VizComponent::ReadFrom(size_t node_id) {
                     sxm::Option(sx::AttributeKey::DASHQL_OPTION_Y, ID_DOMAIN_PADDING_Y)
                 }),
             sxm::Option(sx::AttributeKey::DASHQL_OPTION_FILL, ID_FILL),
+            sxm::Option(sx::AttributeKey::DASHQL_OPTION_GROUP, ID_GROUP),
             sxm::Option(sx::AttributeKey::DASHQL_OPTION_HEIGHT, ID_HEIGHT),
+            sxm::Option(sx::AttributeKey::DASHQL_OPTION_ORDER, ID_ORDER),
             sxm::Option(sx::AttributeKey::DASHQL_OPTION_POSITION)
                 .MatchOptions()
                 .MatchChildren({
@@ -230,6 +241,7 @@ void VizComponent::ReadFrom(size_t node_id) {
                     sxm::Option(sx::AttributeKey::DASHQL_OPTION_WIDTH, ID_POS_WIDTH),
                 }),
             sxm::Option(sx::AttributeKey::DASHQL_OPTION_ROW, ID_ROW),
+            sxm::Option(sx::AttributeKey::DASHQL_OPTION_STACK, ID_STACK),
             sxm::Option(sx::AttributeKey::DASHQL_OPTION_STYLE)
                 .MatchOptions()
                 .MatchChildren({
@@ -254,7 +266,7 @@ void VizComponent::ReadFrom(size_t node_id) {
         });
     // clang-format on
 
-    std::array<NodeMatch, 29> matches;
+    std::array<NodeMatch, 35> matches;
     schema.Match(viz_stmt_.instance(), node_id, matches);
 
     // Read type
@@ -301,17 +313,20 @@ void VizComponent::ReadFrom(size_t node_id) {
     }
 
     /// Get data attributes
+    auto data_group = SelectAltOption("data.group", matches[ID_DATA_GROUP].node_id, matches[ID_GROUP].node_id);
+    auto data_stack = SelectAltOption("data.stack", matches[ID_DATA_STACK].node_id, matches[ID_STACK].node_id);
+    auto data_order = SelectAltOption("data.order", matches[ID_DATA_ORDER].node_id, matches[ID_ORDER].node_id);
+    auto data_samples = SelectAltOption("data.samples", matches[ID_DATA_SAMPLES].node_id, matches[ID_SAMPLES].node_id);
     auto data_x = SelectAltOption("data.x", matches[ID_DATA_X].node_id, matches[ID_X].node_id);
     auto data_y = SelectAltOption("data.y", matches[ID_DATA_Y].node_id, matches[ID_Y].node_id);
-    auto data_y0 = SelectAltOption("data.y0", matches[ID_DATA_Y0].node_id, matches[ID_Y0].node_id);
-    auto data_categories =
-        SelectAltOption("data.categories", matches[ID_DATA_CATEGORIES].node_id, matches[ID_CATEGORIES].node_id);
-    if (AnyOptionSet({data_x, data_y, data_y0, data_categories})) {
+    if (AnyOptionSet({data_x, data_y, data_group, data_stack, data_order, data_samples})) {
         data_.emplace();
-        data_->x = ReadStringOrColumnRef(data_x);
-        data_->y = ReadStringOrColumnRef(data_y);
-        data_->y0 = ReadStringOrColumnRef(data_y0);
-        data_->categories = ReadStringOrColumnRef(data_categories);
+        data_->group = ReadColumnRefs(data_group);
+        data_->stack = ReadColumnRefs(data_stack);
+        data_->order = ReadColumnRefs(data_stack);
+        data_->x = ReadColumnRefs(data_x);
+        data_->y = ReadColumnRefs(data_y);
+        data_->samples = viz_stmt_.instance_.ReadNodeValueOrNull(pos_row).CastAsUI64().value_or(0);
     }
 
     /// Get the title attribute
@@ -376,8 +391,60 @@ std::unique_ptr<VizComponent> VizComponent::CreateFrom(VizStatement& stmt, size_
     return c;
 }
 
-/// Read a string or a column ref as text
-std::string_view VizComponent::ReadStringOrColumnRef(size_t target_node_id) const {
+/// Read column refs as text vector
+std::vector<std::string> VizComponent::ReadColumnRefs(size_t target_node_id) const {
+    if (target_node_id == INVALID_NODE_ID) return {};
+    auto& instance = viz_stmt_.instance();
+    auto& nodes = instance.program().nodes;
+    auto& target_node = nodes[target_node_id];
+
+    switch (target_node.node_type()) {
+        case sx::NodeType::ARRAY: {
+            auto begin = target_node.children_begin_or_value();
+            auto end = begin + target_node.children_count();
+            std::vector<std::string_view> refs;
+            refs.reserve(end - begin);
+            for (size_t i = begin; i < end; ++i) {
+                if (auto v = ReadColumnRef(i); !v.empty())
+                    refs.push_back(v);
+            }
+            break;
+        }
+        case sx::NodeType::OBJECT_SQL_COLUMN_REF:
+            return {std::string{ReadColumnRef(target_node_id)}};
+        default:
+            break;
+    }
+    return {};
+}
+
+/// Read double
+double VizComponent::ReadDouble(size_t node_id) const {
+    if (node_id == INVALID_NODE_ID) return {};
+    auto& instance = viz_stmt_.instance();
+    auto& nodes = instance.program().nodes;
+    auto& target_node = nodes[node_id];
+    switch (target_node.node_type()) {
+        case sx::NodeType::BOOL:
+            return target_node.children_begin_or_value();
+        case sx::NodeType::UI32:
+        case sx::NodeType::UI32_BITMAP:
+            return target_node.children_begin_or_value();
+        case sx::NodeType::STRING_REF: {
+            auto txt = instance.TextAt(target_node.location());
+            imemstream txtstr{txt.data(), txt.length()};
+            double d = 0;
+            txtstr >> d;
+            return d;
+        }
+        default:
+            break;
+    }
+    return 0.0;
+}
+
+/// Read a column ref as text
+std::string_view VizComponent::ReadColumnRef(size_t target_node_id) const {
     if (target_node_id == INVALID_NODE_ID) return {};
     auto& instance = viz_stmt_.instance();
     auto& nodes = instance.program().nodes;
@@ -452,16 +519,19 @@ flatbuffers::Offset<proto::viz::VizComponent> VizComponent::Pack(flatbuffers::Fl
     // Pack data
     std::optional<flatbuffers::Offset<pv::VizData>> data = std::nullopt;
     if (data_) {
-        auto x = data_->x.empty() ? std::nullopt : std::optional{builder.CreateString(data_->x)};
-        auto y = data_->y.empty() ? std::nullopt : std::optional{builder.CreateString(data_->y)};
-        auto y0 = data_->y0.empty() ? std::nullopt : std::optional{builder.CreateString(data_->y0)};
-        auto cat = data_->categories.empty() ? std::nullopt : std::optional{builder.CreateString(data_->categories)};
+        auto x = data_->x.empty() ? std::nullopt : std::optional{builder.CreateVectorOfStrings(data_->x)};
+        auto y = data_->y.empty() ? std::nullopt : std::optional{builder.CreateVectorOfStrings(data_->y)};
+        auto group = data_->group.empty() ? std::nullopt : std::optional{builder.CreateVectorOfStrings(data_->group)};
+        auto stack = data_->stack.empty() ? std::nullopt : std::optional{builder.CreateVectorOfStrings(data_->stack)};
+        auto order = data_->order.empty() ? std::nullopt : std::optional{builder.CreateVectorOfStrings(data_->order)};
 
         pv::VizDataBuilder dataBuilder{builder};
         if (x) dataBuilder.add_x(*x);
         if (y) dataBuilder.add_x(*y);
-        if (y0) dataBuilder.add_x(*y0);
-        if (cat) dataBuilder.add_x(*cat);
+        if (group) dataBuilder.add_x(*group);
+        if (stack) dataBuilder.add_x(*stack);
+        if (order) dataBuilder.add_x(*order);
+        dataBuilder.add_samples(data_->samples);
         data = dataBuilder.Finish();
     }
 
