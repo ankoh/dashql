@@ -1,9 +1,7 @@
-import * as Immutable from 'immutable';
 import * as webdb from '@dashql/webdb/dist/webdb_async';
-import * as proto from '@dashql/proto';
 import * as model from '../model';
+import { TableStatisticsQueue } from './table_statistics_queue';
 import { Mutex } from '../utils';
-import { Plan } from '../model';
 
 /// An database manager.
 ///
@@ -83,7 +81,7 @@ export class DatabaseManager {
         qualifiedTableName: string,
         type: model.TableStatisticsType,
         columnId: number = 0,
-    ): Promise<webdb.Value> {
+    ): Promise<webdb.Value[]> {
         let queue = this._tableStatisticsQueue.get(qualifiedTableName);
         if (!queue) {
             queue = new TableStatisticsQueue(this, qualifiedTableName);
@@ -107,162 +105,21 @@ export class DatabaseManager {
         this._tableStatisticsQueue.delete(qualifiedTableName);
 
         /// Build the query text
-        const text = queue.buildQuery(tableInfo);
-        try {
-            // Run the query
-            const result = await this.use(async (conn: webdb.AsyncConnection) => {
-                return await conn.runQuery(text);
-            });
-
-            // Unpack the query result
-            const chunkIter = new webdb.ChunkArrayIterator(result);
-            chunkIter.nextBlocking();
-            if (chunkIter.rowCount == 0) {
-                // XXX Received no values
-                // -> reject
-                console.error('NO RESULTS');
-            }
-
-            // Resolve with values
-            let values: webdb.Value[] = [];
-            for (let i = 0; i < chunkIter.columnCount; ++i) {
-                values.push(chunkIter.readValue(0, i));
-            }
-
-            // Update the table statistics
-            const stats = queue.persist(values, tableInfo.statistics);
-            model.mutate(this._store.dispatch, {
-                type: model.StateMutationType.UPDATE_TABLE_INFO,
-                data: [
-                    qualifiedTableName,
-                    {
-                        ...tableInfo,
-                        statistics: stats,
-                    },
-                ],
-            });
-
-            // Resolve the promises
-            queue.resolve(values);
-        } catch (e) {
-            // An error occured, forward to promises
-            queue.reject(e);
-        }
-    }
-}
-
-/// A queue for table statistics
-export class TableStatisticsQueue {
-    /// THe database manager
-    _databaseManager: DatabaseManager;
-    /// The table
-    _qualifiedTableName: string;
-    /// The column requests
-    _requests: Map<model.TableStatisticsKey, TableStatisticsRequest>;
-
-    /// Constructor
-    constructor(dbManager: DatabaseManager, qualifiedTableName: string) {
-        this._databaseManager = dbManager;
-        this._qualifiedTableName = qualifiedTableName;
-        this._requests = new Map();
-    }
-
-    /// Build the query text
-    public buildQuery(tableInfo: model.DatabaseTableInfo): string {
-        let out = 'SELECT ';
-        let value_id = 0;
-        for (let [_k, req] of this._requests) {
-            let column_name = tableInfo.columnNames[req._columnId];
-            req._valueId = value_id++;
-            if (req._valueId > 0) {
-                out += ', ';
-            }
-            switch (req._statsType) {
-                case model.TableStatisticsType.COUNT_STAR:
-                    out += `count(*)::INTEGER`;
-                    break;
-                case model.TableStatisticsType.MINIMUM_VALUE:
-                    out += `min(${column_name})`;
-                    break;
-                case model.TableStatisticsType.MAXIMUM_VALUE:
-                    out += `max(${column_name})`;
-                    break;
-            }
-        }
-        out += ` FROM ${tableInfo.nameShort};`;
-        return out;
-    }
-
-    /// Request statistics
-    public async request(type: model.TableStatisticsType, columnId: number = 0): Promise<webdb.Value> {
-        const key = model.buildTableStatisticsKey(type, columnId);
-        const prev = this._requests.get(key);
-        if (prev) {
-            return new Promise((resolve, reject) => {
-                prev._promiseResolvers.push(resolve);
-                prev._promiseRejecters.push(reject);
-            });
-        } else {
-            const req = new TableStatisticsRequest(type, columnId);
-            this._requests.set(key, req);
-            return new Promise((resolve, reject) => {
-                req._promiseResolvers.push(resolve);
-                req._promiseRejecters.push(reject);
-            });
-        }
-    }
-
-    /// Update statistics map
-    public persist(values: webdb.Value[], prev: Immutable.Map<model.TableStatisticsType, webdb.Value>) {
-        return prev.withMutations(stats => {
-            for (const [k, req] of this._requests) {
-                if (req._valueId >= values.length) continue;
-                stats.set(k, values[req._valueId]);
+        const results = await queue.evaluate(this);
+        const stats = tableInfo.statistics.withMutations(stats => {
+            for (const [k, vs] of results) {
+                stats.set(k, vs);
             }
         });
-    }
-
-    /// Resolve all reqeusts
-    public resolve(values: webdb.Value[]) {
-        const nullValue = new webdb.Value();
-        for (const [_k, req] of this._requests) {
-            const v = req._valueId < values.length ? values[req._valueId] : nullValue;
-            for (const resolve of req._promiseResolvers) {
-                resolve(v);
-            }
-        }
-    }
-
-    /// Reject all requests
-    public reject(e: any) {
-        const nullValue = new webdb.Value();
-        for (const [_k, req] of this._requests) {
-            for (const reject of req._promiseRejecters) {
-                reject(e);
-            }
-        }
-    }
-}
-
-/// A column statistics request
-export class TableStatisticsRequest {
-    /// The statistics type
-    _statsType: model.TableStatisticsType;
-    /// The column id
-    _columnId: number;
-    /// The promise resolvers
-    _promiseResolvers: ((value: webdb.Value) => void)[];
-    /// The promise rejecters
-    _promiseRejecters: ((e: any) => void)[];
-    /// The value id
-    _valueId: number;
-
-    /// Constructor
-    constructor(statsType: model.TableStatisticsType, columnId: number) {
-        this._statsType = statsType;
-        this._columnId = columnId;
-        this._promiseResolvers = [];
-        this._promiseRejecters = [];
-        this._valueId = 0;
+        model.mutate(this._store.dispatch, {
+            type: model.StateMutationType.UPDATE_TABLE_INFO,
+            data: [
+                qualifiedTableName,
+                {
+                    ...tableInfo,
+                    statistics: stats,
+                },
+            ],
+        });
     }
 }

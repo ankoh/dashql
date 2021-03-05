@@ -69,7 +69,7 @@ export class DataGrid extends React.Component<Props, State> {
     /// Get the row count
     public get rowCount(): number {
         const key = core.model.buildTableStatisticsKey(core.model.TableStatisticsType.COUNT_STAR);
-        return this.props.tableInfo.statistics.get(key)?.castAsInteger() || 0;
+        return this.props.tableInfo.statistics.get(key)![0].castAsInteger() || 0;
     }
 
     /// Scroll handler
