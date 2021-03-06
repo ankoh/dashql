@@ -1,3 +1,2 @@
 {
-    "program": "-- Test script for development.\n\nCREATE VIEW foo AS\n    SELECT v::INTEGER AS x, (sin(v / 50000.0) * 100 + 100)::INTEGER AS y, (random() * 10)::INTEGER as cat10, (random() * 100)::INTEGER as cat100\n    FROM generate_series(0, 1000000) AS a(v);\n\nVIZ foo USING TABLE (\n    pos = (r = 0, c = 0, w = 12, h = 4)\n);\nVIZ foo USING LINE(\n    title = 'Line Chart',\n    pos = (r = 4, c = 0, w = 6, h = 4)\n);\nVIZ foo USING SCATTER(\n    title = 'Scatter Chart',\n    pos = (r = 4, c = 6, w = 6, h = 4)\n);\n"
 }
