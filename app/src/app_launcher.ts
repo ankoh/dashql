@@ -1,6 +1,7 @@
 import * as webdb from '@dashql/webdb/dist/webdb_async';
 import * as core from '@dashql/core';
 import * as model from './model';
+import * as examples from './examples';
 import * as platform from './platform';
 import { IAppContext } from './app_context';
 
@@ -93,11 +94,7 @@ export async function launchApp(ctx: IAppContext) {
 
     ctx.platform = new platform.BrowserPlatform(ctx.store, ctx.logger, webdb, analyzer);
     await ctx.platform.init();
-
-    model.mutate(ctx.store.dispatch, {
-        type: core.model.StateMutationType.SET_PROGRAM_TEXT,
-        data: [config.program, core.utils.countLines(config.program)],
-    });
+    await examples.loadExampleScript(examples.ExampleScript.HELLOWORLD, ctx.store);
     model.mutate(ctx.store.dispatch, {
         type: model.StateMutationType.MARK_LAUNCH_COMPLETE,
         data: null,
