@@ -61,8 +61,8 @@ export function StatementNode(props: StatementNodeData) {
                     height="22px"
                     type={props.data.statementType}
                 />
-                <ReactFlowHandle type="target" position={Position.Left} className={styles.node_handle_top} />
-                <ReactFlowHandle type="source" position={Position.Right} className={styles.node_handle_bottom} />
+                <ReactFlowHandle type="target" position={Position.Top} className={styles.node_handle_top} />
+                <ReactFlowHandle type="source" position={Position.Bottom} className={styles.node_handle_bottom} />
             </div>
             <div className={styles.node_status}>
                 <ActionStatusIndicator

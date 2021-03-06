@@ -59,7 +59,7 @@ class ProgramGraph extends React.Component<ProgramGraphProps, ProgramGraphState>
         const g = new dagre.graphlib.Graph().setGraph({
             nodesep: 40,
             ranksep: 80,
-            rankdir: 'LR',
+            rankdir: 'TB',
         });
         props.program.iterateStatements((idx: number, stmt: core.model.Statement) => {
             g.setNode(idx.toString(), {
