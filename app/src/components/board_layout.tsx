@@ -12,9 +12,8 @@ import './board_layout.module.css';
 
 type Props = {
     appContext: IAppContext;
+    className?: string;
     width: number;
-    height: number;
-
     vizData: Map<string, core.model.VizInfo>;
     rewriteProgram: (instance: core.model.ProgramInstance) => void;
 };
@@ -74,6 +73,7 @@ class BoardLayout extends React.Component<Props> {
     render() {
         return (
             <ReactGrid
+                className={this.props.className}
                 resizeHandles={['se']}
                 cols={12}
                 width={this.props.width}
@@ -82,6 +82,7 @@ class BoardLayout extends React.Component<Props> {
                 onDragStop={this.onItemLayoutChanged}
                 onResizeStop={this.onItemLayoutChanged}
                 layout={this.getLayout(this.props.vizData)}
+                containerPadding={[40, 40]}
             >
                 {Array.from(this.props.vizData).map(([k, v]) => (
                     <div key={k}>
@@ -112,4 +113,4 @@ const mapDispatchToProps = (dispatch: model.Dispatch) => ({
     },
 });
 
-export default connect(mapStateToProps, mapDispatchToProps)(withAppContext(withAutoSizer(BoardLayout)));
+export default connect(mapStateToProps, mapDispatchToProps)(withAppContext(BoardLayout));
