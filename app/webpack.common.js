@@ -77,6 +77,14 @@ function configure(params) {
                     },
                 },
                 {
+                    test: /examples\/.*\.dashql$/i,
+                    type: 'javascript/auto',
+                    loader: 'file-loader',
+                    options: {
+                        name: 'static/examples/[contenthash].[ext]',
+                    },
+                },
+                {
                     test: /\.(png|jpe?g|gif|svg)$/i,
                     loader: 'file-loader',
                     options: {
