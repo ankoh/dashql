@@ -2,7 +2,7 @@ import * as React from 'react';
 import { AppReduxStore } from '../model';
 import { connect } from 'react-redux';
 import { AutoSizer, withAutoSizer } from '../util/autosizer';
-import { Scrollbars } from 'react-custom-scrollbars';
+import { Scrollbars, positionValues } from 'react-custom-scrollbars';
 import BoardLayout from './board_layout';
 
 import styles from './board.module.css';
@@ -46,6 +46,7 @@ class Label {
 }
 
 interface IRulerProps {
+    className?: string;
     width: number;
     height: number;
     orientation: RulerOrientation;
@@ -169,42 +170,62 @@ class Ruler extends React.Component<IRulerProps, Iboardtate> {
     }
 
     render() {
-        return <canvas className={styles.ruler} ref={this.canvas} />;
+        return (
+            <div className={this.props.className}>
+                <canvas className={styles.ruler_canvas} ref={this.canvas} />
+            </div>
+        );
     }
 }
-
-const AutoSizingRuler = withAutoSizer(Ruler);
 
 interface IBoardProps {
     scaleFactor: number;
 }
 
 export class Board extends React.Component<IBoardProps, {}> {
+    constructor(props: IBoardProps) {
+        super(props);
+    }
+
     public render() {
         return (
             <div className={styles.container}>
                 <AutoSizer>
                     {({ height, width }) => (
-                        <Scrollbars className={styles.autosizer} width={width} height={height}>
-                            <div className={styles.ruler_area}>
-                                <div className={styles.content}>
-                                    <BoardLayout />
+                        <div className={styles.content_with_rulers}>
+                            <div className={styles.ruler_corner} />
+                            <Ruler
+                                className={styles.ruler_top}
+                                width={width - 32}
+                                height={32}
+                                orientation={RulerOrientation.Horizontal}
+                                scaleFactor={this.props.scaleFactor}
+                            />
+                            <Scrollbars
+                                className={styles.content_scroller}
+                                width={width}
+                                height={height - 32}
+                                renderTrackHorizontal={props => (
+                                    <div {...props} style={{ display: 'none' }} className="track-horizontal" />
+                                )}
+                            >
+                                <div className={styles.content_container}>
+                                    <BoardLayout className={styles.content} width={width - 32} />
+                                    <div className={styles.ruler_left}>
+                                        <AutoSizer disableWidth>
+                                            {s => (
+                                                <Ruler
+                                                    width={32}
+                                                    height={s.height}
+                                                    orientation={RulerOrientation.Vertical}
+                                                    scaleFactor={this.props.scaleFactor}
+                                                />
+                                            )}
+                                        </AutoSizer>
+                                    </div>
                                 </div>
-                                <div className={styles.ruler_top}>
-                                    <AutoSizingRuler
-                                        orientation={RulerOrientation.Horizontal}
-                                        scaleFactor={this.props.scaleFactor}
-                                    />
-                                </div>
-                                <div className={styles.ruler_left}>
-                                    <AutoSizingRuler
-                                        orientation={RulerOrientation.Vertical}
-                                        scaleFactor={this.props.scaleFactor}
-                                    />
-                                </div>
-                                <div className={styles.ruler_corner} />
-                            </div>
-                        </Scrollbars>
+                            </Scrollbars>
+                        </div>
                     )}
                 </AutoSizer>
             </div>
