@@ -23,7 +23,7 @@ CI_IMAGE_NAMESPACE="dashql"
 CI_IMAGE_NAME="ci"
 CI_IMAGE_TAG="$(shell cat ./ci/image/TAG)"
 CI_IMAGE_FULLY_QUALIFIED="${CI_IMAGE_NAMESPACE}/${CI_IMAGE_NAME}:${CI_IMAGE_TAG}"
-IN_IMAGE_MOUNTS=-v${ROOT_DIR}:/wd/ -v${ROOT_DIR}/.emscripten_cache/:/mnt/emscripten_cache/ -v${ROOT_DIR}/.ccache/:/mnt/ccache/
+IN_IMAGE_MOUNTS=-v${ROOT_DIR}:${ROOT_DIR} -v${ROOT_DIR}/.emscripten_cache/:/mnt/emscripten_cache/ -v${ROOT_DIR}/.ccache/:/mnt/ccache/
 IN_IMAGE_ENV=-e CCACHE_DIR=/mnt/ccache -e CCACHE_BASEDIR=/wd/core/cpp/ -e EM_CACHE=/mnt/emscripten_cache/
 EXEC_ENVIRONMENT?=docker run -it --rm ${IN_IMAGE_MOUNTS} ${IN_IMAGE_ENV} "${CI_IMAGE_FULLY_QUALIFIED}"
 
@@ -127,28 +127,28 @@ benchmarks:
 # Compile the flatbuffer schema
 .PHONY: proto
 proto:
-	${EXEC_ENVIRONMENT} ./scripts/generate_proto.sh
+	${EXEC_ENVIRONMENT} ${ROOT_DIR}/scripts/generate_proto.sh
 	npm --prefix ${ROOT_DIR}/proto run build
 
 # Build the dataframe wasm module with debug info
 .PHONY: dataframe
 dataframe_wasm:
-	${EXEC_ENVIRONMENT} ./scripts/wasm_build_dataframe.sh Fast
+	${EXEC_ENVIRONMENT} ${ROOT_DIR}/scripts/wasm_build_dataframe.sh Fast
 
 # Build the dataframe wasm module with debug info
 .PHONY: dataframe
 dataframe_wasm_release:
-	${EXEC_ENVIRONMENT} ./scripts/wasm_build_dataframe.sh Release
+	${EXEC_ENVIRONMENT} ${ROOT_DIR}/scripts/wasm_build_dataframe.sh Release
 
 # Build the wasm module with debug info
 .PHONY: wasm
 wasm:
-	${EXEC_ENVIRONMENT} ./scripts/wasm_build_lib.sh Fast
+	${EXEC_ENVIRONMENT} ${ROOT_DIR}/scripts/wasm_build_lib.sh Fast
 
 # Build the wasm modules
 .PHONY: wasm_release
 wasm_release:
-	${EXEC_ENVIRONMENT} ./scripts/wasm_build_lib.sh Release
+	${EXEC_ENVIRONMENT} ${ROOT_DIR}/scripts/wasm_build_lib.sh Release
 
 # Builds the app
 .PHONY: app
