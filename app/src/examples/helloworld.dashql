@@ -21,7 +21,7 @@ VIZ foo USING AREA (
     pos = (r = 8, c = 0, w = 6, h = 4)
 );
 
-VIZ foo USING Line (
-    title = 'Line + Scatter Chart',
+VIZ foo USING Area (
+    title = 'Area + Scatter Chart',
     pos = (r = 12, c = 0, w = 6, h = 4)
-);
+), Scatter;
