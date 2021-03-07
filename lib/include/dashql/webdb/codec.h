@@ -12,6 +12,26 @@
 namespace dashql {
 namespace webdb {
 
+/// Iterate over a vector
+template <typename T, bool WITH_NULL, typename OP> void iterateVector(duckdb::VectorData &vec, size_t count, OP op) {
+    if (vec.sel) {
+        for (unsigned i = 0; i < count; ++i) {
+            auto s = vec.sel->get_index(i);
+            auto n = false;
+            if constexpr (WITH_NULL) n = (*vec.nullmask)[s];
+            auto& d = reinterpret_cast<T *>(vec.data)[s];
+            op(i, d, n);
+        }
+    } else {
+        for (unsigned i = 0; i < count; ++i) {
+            auto& d = reinterpret_cast<T *>(vec.data)[i];
+            auto n = false;
+            if constexpr (WITH_NULL) n = (*vec.nullmask)[i];
+            op(i, d, n);
+        }
+    }
+}
+
 /// Map an operator type
 proto::webdb::OperatorType MapOperatorType(duckdb::LogicalOperatorType type);
 
