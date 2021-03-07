@@ -8,7 +8,7 @@ const testRows = 3000;
 const logger = new webdb.ConsoleLogger();
 
 beforeAll(async () => {
-    db = new webdb.WebDB(logger, {}, path.resolve(__dirname, "../src/webdb_wasm.wasm"));
+    db = new webdb.WebDB(logger, {}, path.resolve(__dirname, '../src/webdb_wasm.wasm'));
     await db.open();
 });
 
@@ -67,6 +67,36 @@ describe('QueryResultChunkStream', () => {
             expect(i).toBe(testRows + 1);
         });
 
+        test('BIGINT', () => {
+            let result = conn.sendQuery(`
+                SELECT v::BIGINT FROM generate_series(0, ${testRows}) as t(v);
+            `);
+            expect(result.columnTypesLength()).toBe(1);
+            let chunks = new webdb.ChunkStreamIterator(conn, result);
+            let i = 0;
+            while (chunks.nextBlocking()) {
+                chunks.iterateBigIntColumn(0, (_row: number, v: bigint | null) => {
+                    expect(v).toBe(BigInt(i++));
+                });
+            }
+            expect(i).toBe(testRows + 1);
+        });
+
+        test('HUGEINT', () => {
+            let result = conn.sendQuery(`
+                SELECT v::HUGEINT FROM generate_series(0, ${testRows}) as t(v);
+            `);
+            expect(result.columnTypesLength()).toBe(1);
+            let chunks = new webdb.ChunkStreamIterator(conn, result);
+            let i = 0;
+            while (chunks.nextBlocking()) {
+                chunks.iterateHugeIntColumn(0, (_row: number, v: bigint | null) => {
+                    expect(v).toBe(BigInt(i++));
+                });
+            }
+            expect(i).toBe(testRows + 1);
+        });
+
         test('STRING', () => {
             let result = conn.sendQuery(`
                 SELECT v::VARCHAR FROM generate_series(0, ${testRows}) as t(v);
@@ -77,6 +107,21 @@ describe('QueryResultChunkStream', () => {
             while (chunks.nextBlocking()) {
                 chunks.iterateStringColumn(0, (_row: number, v: string | null) => {
                     expect(v).toBe(String(i++));
+                });
+            }
+            expect(i).toBe(testRows + 1);
+        });
+
+        test('BOOLEAN', () => {
+            let result = conn.sendQuery(`
+                SELECT v > 0 FROM generate_series(0, ${testRows}) as t(v);
+            `);
+            expect(result.columnTypesLength()).toBe(1);
+            let chunks = new webdb.ChunkStreamIterator(conn, result);
+            let i = 0;
+            while (chunks.nextBlocking()) {
+                chunks.iterateBooleanColumn(0, (_row: number, v: boolean | null) => {
+                    expect(v).toBe(i++ > 0);
                 });
             }
             expect(i).toBe(testRows + 1);

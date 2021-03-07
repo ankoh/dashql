@@ -193,6 +193,7 @@ dataframe_tests:
 # Install all npm packages
 .PHONY: npm_install
 npm_install:
+	npm --prefix ${ROOT_DIR}/benchmarks install
 	npm --prefix ${ROOT_DIR}/webdb install
 	npm --prefix ${ROOT_DIR}/dataframe install
 	npm --prefix ${ROOT_DIR}/core install
