@@ -10,7 +10,7 @@
 namespace dashql {
 namespace webdb {
 
-using PartitionMask = std::vector<bool>;
+using PartitionBoundaries = std::vector<bool>;
 
 /// We use a stream partitioner to efficiently track partition boundaries on sorted output.
 ///
@@ -34,7 +34,7 @@ class StreamPartitioner {
     StreamPartitioner(const duckdb::QueryResult& result, nonstd::span<const uint32_t> columns);
 
     /// Consume the next query result chunk 
-    void consumeChunk(duckdb::DataChunk& chunk, PartitionMask& out);
+    void consumeChunk(duckdb::DataChunk& chunk, PartitionBoundaries& out);
 };
 
 }  // namespace webdb

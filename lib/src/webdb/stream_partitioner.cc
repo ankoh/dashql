@@ -18,7 +18,7 @@ StreamPartitioner::StreamPartitioner(const duckdb::QueryResult& result, nonstd::
 
 /// Scan a duckdb vector and track positions where values change
 template <typename VecType>
-static void partition(duckdb::VectorData& vec, size_t count, duckdb::Value& prev, PartitionMask& out) {
+static void partition(duckdb::VectorData& vec, size_t count, duckdb::Value& prev, PartitionBoundaries& out) {
     auto prev_value = prev.GetValueUnsafe<VecType>();
     auto prev_null = prev.is_null;
     assert(out.size() >= count);
@@ -39,7 +39,7 @@ static void partition(duckdb::VectorData& vec, size_t count, duckdb::Value& prev
 }
 
 /// Partition strings
-static void partitionStrings(duckdb::VectorData& vec, size_t count, duckdb::Value& prev, PartitionMask& out) {
+static void partitionStrings(duckdb::VectorData& vec, size_t count, duckdb::Value& prev, PartitionBoundaries& out) {
     auto prev_value = duckdb::string_t{prev.GetValueUnsafe<std::string>()};
     auto prev_null = prev.is_null;
     assert(out.size() >= count);
@@ -64,7 +64,7 @@ static void partitionStrings(duckdb::VectorData& vec, size_t count, duckdb::Valu
 }
 
 /// Consume the next query result chunk
-void StreamPartitioner::consumeChunk(duckdb::DataChunk& chunk, PartitionMask& out) {
+void StreamPartitioner::consumeChunk(duckdb::DataChunk& chunk, PartitionBoundaries& out) {
     if (partition_columns_.empty()) {
         return;
     }

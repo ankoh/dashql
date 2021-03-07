@@ -237,7 +237,7 @@ static fb::Offset<p::Vector> writeStringCol(fb::FlatBufferBuilder &builder, duck
 fb::Offset<p::QueryResultChunk> WriteQueryResultChunk(flatbuffers::FlatBufferBuilder &builder,
                                                       duckdb::QueryResult &result, uint64_t queryID,
                                                       duckdb::DataChunk *chunk_ptr,
-                                                      const PartitionMask& partition_mask) {
+                                                      const PartitionBoundaries& partition_mask) {
     duckdb::DataChunk tmp;
     auto &chunk = (!!chunk_ptr) ? *chunk_ptr : tmp;
     auto size = chunk.size();
@@ -293,10 +293,10 @@ fb::Offset<p::QueryResultChunk> WriteQueryResultChunk(flatbuffers::FlatBufferBui
     auto column_offset = builder.CreateVector(columns);
 
     // Write partition mask
-    uint8_t* partition_mask_ptr;
-    auto partition_mask_ofs = builder.CreateUninitializedVector<uint8_t>(partition_mask.size(), &partition_mask_ptr);
+    uint8_t* partition_boundaries_ptr;
+    auto partition_boundaries_ofs = builder.CreateUninitializedVector<uint8_t>(partition_mask.size(), &partition_boundaries_ptr);
     for (unsigned i = 0; i < partition_mask.size(); ++i) {
-        partition_mask_ptr[i] = partition_mask[i];
+        partition_boundaries_ptr[i] = partition_mask[i];
     }
 
     // Build result chunk
@@ -304,7 +304,7 @@ fb::Offset<p::QueryResultChunk> WriteQueryResultChunk(flatbuffers::FlatBufferBui
     chunk_builder.add_query_id(queryID);
     chunk_builder.add_row_count(size);
     chunk_builder.add_columns(column_offset);
-    chunk_builder.add_partition_mask(partition_mask_ofs);
+    chunk_builder.add_partition_boundaries(partition_boundaries_ofs);
     return chunk_builder.Finish();
 }
 
