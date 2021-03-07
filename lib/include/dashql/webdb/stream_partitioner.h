@@ -22,20 +22,18 @@ using PartitionMask = std::vector<bool>;
 /// The client code can then just split the result based on the partition mask entries.
 /// That allows us to implement grouped and stacked charts much more efficiently by splitting the row proxy vectors.
 class StreamPartitioner {
-    /// The current query result
-    const duckdb::QueryResult* query_result_;
+    /// The query result
+    const duckdb::QueryResult& query_result_;
     /// The columns that should be partitioned
-    std::vector<size_t> partition_columns_;
+    const std::vector<size_t> partition_columns_;
     /// The last row of the previous chunk (if any)
     std::vector<duckdb::Value> previous_values_;
 
     /// Constructor
-    StreamPartitioner();
+    StreamPartitioner(const duckdb::QueryResult& result, nonstd::span<const size_t> columns);
 
-    /// Setup the partitioning of a query
-    void prepare(duckdb::QueryResult& result, std::vector<size_t> columns);
     /// Consume the next query result chunk 
-    void consumeQueryResultChunk(duckdb::DataChunk& chunk, PartitionMask& out);
+    void consumeChunk(duckdb::DataChunk& chunk, PartitionMask& out);
 };
 
 }  // namespace webdb
