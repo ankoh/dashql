@@ -8,7 +8,8 @@ import wasmPath from '@dashql/webdb/dist/webdb.wasm';
 function main(db: webdb.WebDB) {
     let tupleSize = 8;
     for (const tupleCount of [1000, 10000, 1000000, 10000000]) {
-        benny.suite(`Single DOUBLE column | ${tupleCount} rows`,
+        benny.suite(
+            `Single DOUBLE column | ${tupleCount} rows`,
             benny.add('column scan', () => {
                 let conn = db.connect();
                 let result = conn.runQuery(`
@@ -23,10 +24,10 @@ function main(db: webdb.WebDB) {
                             sum += v!;
                         });
                     }
-                    if (sum != ((tupleCount) * (tupleCount + 1) / 2)) {
-                        console.log("WRONG RESULT")
+                    if (sum != (tupleCount * (tupleCount + 1)) / 2) {
+                        console.log('WRONG RESULT');
                     }
-                }
+                };
             }),
 
             benny.add('row proxies', () => {
@@ -46,10 +47,10 @@ function main(db: webdb.WebDB) {
                             sum += row.foo!;
                         }
                     }
-                    if (sum != ((tupleCount) * (tupleCount + 1) / 2)) {
-                        console.log("WRONG RESULT")
+                    if (sum != (tupleCount * (tupleCount + 1)) / 2) {
+                        console.log('WRONG RESULT');
                     }
-                }
+                };
             }),
 
             benny.cycle((result: any, _summary: any) => {
@@ -58,7 +59,9 @@ function main(db: webdb.WebDB) {
                 let tupleThroughput = tupleCount / duration;
                 let dataThroughput = bytes / duration;
                 console.log(
-                    `${kleur.cyan(result.name)} t: ${duration.toFixed(3)} s ttp: ${core.utils.formatThousands(tupleThroughput)}/s dtp: ${core.utils.formatBytes(dataThroughput)}/s`,
+                    `${kleur.cyan(result.name)} t: ${duration.toFixed(3)} s ttp: ${core.utils.formatThousands(
+                        tupleThroughput,
+                    )}/s dtp: ${core.utils.formatBytes(dataThroughput)}/s`,
                 );
             }),
         );

@@ -8,7 +8,7 @@ const testRows = 3000;
 const logger = new webdb.ConsoleLogger();
 
 beforeAll(async () => {
-    db = new webdb.WebDB(logger, {}, path.resolve(__dirname, "../src/webdb_wasm.wasm"));
+    db = new webdb.WebDB(logger, {}, path.resolve(__dirname, '../src/webdb_wasm.wasm'));
     await db.open();
 });
 
@@ -58,8 +58,7 @@ describe('RowProxy', () => {
                 SELECT v::INTEGER AS foo FROM generate_series(42, 42) as t(v);
             `);
             expect(result.columnTypesLength()).toBe(1);
-            interface Row extends webdb.RowProxy {
-            }
+            interface Row extends webdb.RowProxy {}
             const chunks = new webdb.ChunkStreamIterator(conn, result);
             expect(chunks.nextBlocking()).toBe(true);
             const row = chunks.collectOne<Row>();
@@ -83,6 +82,114 @@ describe('RowProxy', () => {
                     let e = expected++;
                     expect(row.foo).toBe(e);
                     expect(row.__attribute__(0)).toBe(e);
+                }
+            }
+        });
+
+        test('BIGINT', () => {
+            const result = conn.sendQuery(`
+                SELECT v::BIGINT AS foo FROM generate_series(0, ${testRows}) as t(v);
+            `);
+            expect(result.columnTypesLength()).toBe(1);
+            interface Row extends webdb.RowProxy {
+                foo: bigint | null;
+            }
+            const chunks = new webdb.ChunkStreamIterator(conn, result);
+            let expected = 0;
+            while (chunks.nextBlocking()) {
+                for (const row of chunks.collect<Row>()) {
+                    let e = BigInt(expected++);
+                    expect(row.foo).toBe(e);
+                    expect(row.__attribute__(0)).toBe(e);
+                }
+            }
+        });
+
+        test('HUGEINT', () => {
+            const result = conn.sendQuery(`
+                SELECT v::HUGEINT AS foo FROM generate_series(0, ${testRows}) as t(v);
+            `);
+            expect(result.columnTypesLength()).toBe(1);
+            interface Row extends webdb.RowProxy {
+                foo: bigint | null;
+            }
+            const chunks = new webdb.ChunkStreamIterator(conn, result);
+            let expected = 0;
+            while (chunks.nextBlocking()) {
+                for (const row of chunks.collect<Row>()) {
+                    let e = BigInt(expected++);
+                    expect(row.foo).toBe(e);
+                    expect(row.__attribute__(0)).toBe(e);
+                }
+            }
+        });
+
+        test('STRING', () => {
+            const result = conn.sendQuery(`
+                SELECT v::VARCHAR AS foo FROM generate_series(0, ${testRows}) as t(v);
+            `);
+            expect(result.columnTypesLength()).toBe(1);
+            interface Row extends webdb.RowProxy {
+                foo: string | null;
+            }
+            const chunks = new webdb.ChunkStreamIterator(conn, result);
+            let expected = 0;
+            while (chunks.nextBlocking()) {
+                for (const row of chunks.collect<Row>()) {
+                    let e = String(expected++);
+                    expect(row.foo).toBe(e);
+                    expect(row.__attribute__(0)).toBe(e);
+                }
+            }
+        });
+
+        test('BOOLEAN', () => {
+            const result = conn.sendQuery(`
+                SELECT v > 0 AS foo FROM generate_series(0, ${testRows}) as t(v);
+            `);
+            expect(result.columnTypesLength()).toBe(1);
+            interface Row extends webdb.RowProxy {
+                foo: boolean | null;
+            }
+            const chunks = new webdb.ChunkStreamIterator(conn, result);
+            let counter = 0;
+            while (chunks.nextBlocking()) {
+                for (const row of chunks.collect<Row>()) {
+                    let reference = counter > 0;
+                    expect(row.foo).toBe(reference);
+                    expect(row.__attribute__(0)).toBe(reference);
+
+                    counter++;
+                }
+            }
+        });
+    });
+
+    describe('multiple columns, many rows', () => {
+        test('ALLTYPES', () => {
+            const result = conn.sendQuery(`
+                SELECT v::INTEGER AS foo, v::BIGINT as bar, v::VARCHAR as fizz, v > 0 as buzz FROM generate_series(0, ${testRows}) as t(v);
+            `);
+            expect(result.columnTypesLength()).toBe(4);
+            interface Row extends webdb.RowProxy {
+                foo: number | null;
+                bar: bigint | null;
+                fizz: string | null;
+                buzz: boolean | null;
+            }
+            const chunks = new webdb.ChunkStreamIterator(conn, result);
+            let expected = 0;
+            while (chunks.nextBlocking()) {
+                for (const row of chunks.collect<Row>()) {
+                    let e = expected++;
+                    expect(row.foo).toBe(e);
+                    expect(row.__attribute__(0)).toBe(e);
+                    expect(row.bar).toBe(BigInt(e));
+                    expect(row.__attribute__(1)).toBe(BigInt(e));
+                    expect(row.fizz).toBe(String(e));
+                    expect(row.__attribute__(2)).toBe(String(e));
+                    expect(row.buzz).toBe(e > 0);
+                    expect(row.__attribute__(3)).toBe(e > 0);
                 }
             }
         });

@@ -1,18 +1,26 @@
 // Copyright (c) 2020 The DashQL Authors
 
 import { webdb as proto, webdb } from '@dashql/proto';
+import { TmpBuffers } from './buffers';
 
-type ValueArray = Float64Array | proto.VectorString;
+type ValueArray = Uint8Array | Float64Array | proto.VectorI64 | proto.VectorI128 | proto.VectorString;
 
 interface ChunkData {
     columns: (ValueArray | null)[];
     nullmasks: (Int8Array | null)[];
 }
 
+type BigIntAttributeProxy = (chunk: ChunkData, row: number) => bigint | null;
+type BooleanAttributeProxy = (chunk: ChunkData, row: number) => boolean | null;
 type IntegerAttributeProxy = (chunk: ChunkData, row: number) => number | null;
 type FloatAttributeProxy = (chunk: ChunkData, row: number) => number | null;
 type StringAttributeProxy = (chunk: ChunkData, row: number) => string | null;
-type AttributeProxy = IntegerAttributeProxy | FloatAttributeProxy | StringAttributeProxy;
+type AttributeProxy =
+    | BigIntAttributeProxy
+    | BooleanAttributeProxy
+    | IntegerAttributeProxy
+    | FloatAttributeProxy
+    | StringAttributeProxy;
 
 function readColumn<T>(
     column: number,
@@ -28,6 +36,16 @@ function checkNull<T>(
         chunk.nullmasks[column] && chunk.nullmasks[column]![row] ? null : fn(column, chunk, row);
 }
 
+function readBigInt(column: number, chunk: ChunkData, row: number): bigint | null {
+    return BigInt((chunk.columns[column] as proto.VectorI64).values(row)!.low);
+}
+function readHugeInt(column: number, chunk: ChunkData, row: number): bigint | null {
+    const val = (chunk.columns[column] as proto.VectorI128).values(row)!;
+    return (BigInt(val.upper().low) << BigInt(64)) | BigInt(val.lower().low);
+}
+function readBoolean(column: number, chunk: ChunkData, row: number): boolean | null {
+    return (chunk.columns[column] as Uint8Array)[row] != 0;
+}
 function readDouble(column: number, chunk: ChunkData, row: number): number | null {
     return (chunk.columns[column] as Float64Array)[row];
 }
@@ -47,7 +65,7 @@ type RowProxyCtor = (chunk: ChunkData, row: number) => any;
 /// The base class for row proxies
 export interface RowProxy {
     __chunkRow__: number;
-    __attribute__: (i: number) => number | string | null;
+    __attribute__: (i: number) => bigint | number | string | boolean | null;
 }
 
 /// Define a row proxy type
@@ -115,11 +133,24 @@ export class RowProxyType {
                     break;
                 }
 
-                case proto.SQLTypeID.BOOLEAN:
+                case proto.SQLTypeID.BOOLEAN: {
+                    columnProxies.push(readColumn(columnId, checkNull(readBoolean)));
+                    break;
+                }
+
+                case proto.SQLTypeID.BIGINT: {
+                    columnProxies.push(readColumn(columnId, checkNull(readBigInt)));
+                    break;
+                }
+
+                case proto.SQLTypeID.HUGEINT: {
+                    columnProxies.push(readColumn(columnId, checkNull(readHugeInt)));
+                    break;
+                }
+
                 case proto.SQLTypeID.DATE:
                 case proto.SQLTypeID.TIME:
                 case proto.SQLTypeID.TIMESTAMP:
-                case proto.SQLTypeID.BIGINT:
                 case proto.SQLTypeID.DECIMAL:
                 case proto.SQLTypeID.VARBINARY:
                 case proto.SQLTypeID.BLOB:
@@ -128,7 +159,6 @@ export class RowProxyType {
                 case proto.SQLTypeID.SQLNULL:
                 case proto.SQLTypeID.UNKNOWN:
                 case proto.SQLTypeID.ANY:
-                case proto.SQLTypeID.HUGEINT:
                 case proto.SQLTypeID.POINTER:
                 case proto.SQLTypeID.HASH:
                 case proto.SQLTypeID.STRUCT:
@@ -142,7 +172,7 @@ export class RowProxyType {
 
     // Index the chunk data
     public static indexChunkData(chunk: webdb.QueryResultChunk) {
-        const tmpVectorF64 = new proto.VectorF64();
+        let tmp = new TmpBuffers();
         const data: ChunkData = {
             columns: [],
             nullmasks: [],
@@ -150,24 +180,41 @@ export class RowProxyType {
         for (let columnId = 0; columnId < chunk.columnsLength(); ++columnId) {
             const column = chunk.columns(columnId)!;
             switch (column.variantType()) {
+                case proto.VectorVariant.VectorU8: {
+                    const vec = column.variant(tmp.vectorU8)!;
+                    data.columns.push(vec.valuesArray());
+                    data.nullmasks.push(vec.nullMaskArray());
+                    break;
+                }
                 case proto.VectorVariant.VectorF64: {
-                    const vec = column.variant(tmpVectorF64)!;
+                    const vec = column.variant(tmp.vectorF64)!;
                     data.columns.push(vec.valuesArray());
                     data.nullmasks.push(vec.nullMaskArray());
                     break;
                 }
                 case proto.VectorVariant.VectorString: {
-                    const vec = column.variant(new proto.VectorString())!;
+                    const vec = column.variant(tmp.vectorString)!;
+                    data.columns.push(vec);
+                    data.nullmasks.push(vec.nullMaskArray());
+                    break;
+                }
+
+                case proto.VectorVariant.VectorI64: {
+                    const vec = column.variant(tmp.vectorI64)!;
+                    data.columns.push(vec);
+                    data.nullmasks.push(vec.nullMaskArray());
+                    break;
+                }
+
+                case proto.VectorVariant.VectorI128: {
+                    const vec = column.variant(tmp.vectorI128)!;
                     data.columns.push(vec);
                     data.nullmasks.push(vec.nullMaskArray());
                     break;
                 }
 
                 case proto.VectorVariant.NONE:
-                case proto.VectorVariant.VectorI64:
-                case proto.VectorVariant.VectorI128:
                 case proto.VectorVariant.VectorInterval:
-                case proto.VectorVariant.VectorU8:
                     data.columns.push(null);
                     data.nullmasks.push(null);
                     break;
