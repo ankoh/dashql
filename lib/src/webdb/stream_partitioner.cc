@@ -32,7 +32,7 @@ static void partition(duckdb::VectorData& vec, size_t count, duckdb::Value& prev
             prev_value = value;
         });
     } else {
-        iterateVector<VecType, true>(vec, count, [&](unsigned i, VecType& value, bool null) {
+        iterateVector<VecType, false>(vec, count, [&](unsigned i, VecType& value, bool null) {
             out[i] = out[i] | (value != prev_value);
             prev_value = value;
         });
@@ -57,7 +57,7 @@ static void partitionStrings(duckdb::VectorData& vec, size_t count, duckdb::Valu
             prev_value = value;
         });
     } else {
-        iterateVector<duckdb::string_t, true>(vec, count, [&](unsigned i, duckdb::string_t& value, bool null) {
+        iterateVector<duckdb::string_t, false>(vec, count, [&](unsigned i, duckdb::string_t& value, bool null) {
             out[i] = out[i] | (strv(value) != strv(prev_value));
             prev_value = value;
         });
