@@ -83,6 +83,8 @@ interface Props {
     database: platform.DatabaseManager;
     /// The table name
     targetName: string;
+    /// The request
+    request?: ScanRequest;
     /// The children
     children: (scanResult: ScanResult | null, requestScan: RequestScanFn) => JSX.Element;
 }
@@ -111,7 +113,7 @@ export class ScanProvider extends React.Component<Props, State> {
     constructor(props: Props) {
         super(props);
         this.state = {
-            request: null,
+            request: props.request || null,
             result: null,
         };
     }
