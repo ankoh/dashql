@@ -8,6 +8,7 @@ type ValueArray = Uint8Array | Float64Array | proto.VectorI64 | proto.VectorI128
 interface ChunkData {
     columns: (ValueArray | null)[];
     nullmasks: (Int8Array | null)[];
+    partitionBoundaries: Uint8Array | null;
 }
 
 type BigIntAttributeProxy = (chunk: ChunkData, row: number) => bigint | null;
@@ -64,7 +65,9 @@ type RowProxyCtor = (chunk: ChunkData, row: number) => any;
 
 /// The base class for row proxies
 export interface RowProxy {
+    __chunkData__: ChunkData;
     __chunkRow__: number;
+    __is_partition_boundary__: boolean;
     __attribute__: (i: number) => bigint | number | string | boolean | null;
 }
 
@@ -72,10 +75,10 @@ export interface RowProxy {
 function defineRowProxyType(columnNames: string[], columnProxies: AttributeProxy[]): RowProxyCtor {
     const proxies = columnProxies;
     const ctor = function (this: any, data: ChunkData, chunkRow: number) {
-        this.__data__ = data;
+        this.__chunkData__ = data;
         this.__chunkRow__ = chunkRow;
     };
-    Object.defineProperty(ctor.prototype, '__data__', {
+    Object.defineProperty(ctor.prototype, '__chunkData__', {
         enumerable: false,
         writable: true,
     });
@@ -84,14 +87,21 @@ function defineRowProxyType(columnNames: string[], columnProxies: AttributeProxy
         enumerable: false,
         writable: true,
     });
+    Object.defineProperty(ctor.prototype, '__is_partition_boundary__', {
+        get: function () {
+            const p = this.__chunkData__.partitionBoundaries;
+            return p && p[this.__chunkRow__] != 0;
+        },
+        enumerable: false,
+    });
     ctor.prototype.__attribute__ = function (i: number) {
-        return proxies[i](this.__data__, this.__chunkRow__);
+        return proxies[i](this.__chunkData__, this.__chunkRow__);
     };
     for (let i = 0; i < columnProxies.length; ++i) {
         const proxy = columnProxies[i];
         Object.defineProperty(ctor.prototype, columnNames[i], {
             get: function () {
-                return proxy(this.__data__, this.__chunkRow__);
+                return proxy(this.__chunkData__, this.__chunkRow__);
             },
             enumerable: true,
         });
@@ -176,6 +186,7 @@ export class RowProxyType {
         const data: ChunkData = {
             columns: [],
             nullmasks: [],
+            partitionBoundaries: chunk.partitionBoundariesArray() || null,
         };
         for (let columnId = 0; columnId < chunk.columnsLength(); ++columnId) {
             const column = chunk.columns(columnId)!;
@@ -228,6 +239,7 @@ export class RowProxyType {
         const data: ChunkData = {
             columns: [],
             nullmasks: [],
+            partitionBoundaries: null,
         };
         const n = this._result.columnTypesLength();
         for (let i = 0; i < n; ++i) {

@@ -40,8 +40,8 @@ export type AsyncWebDBRequestVariant =
     | AsyncWebDBRequest<AsyncWebDBRequestType.OPEN, string | null>
     | AsyncWebDBRequest<AsyncWebDBRequestType.CONNECT, null>
     | AsyncWebDBRequest<AsyncWebDBRequestType.DISCONNECT, number>
-    | AsyncWebDBRequest<AsyncWebDBRequestType.RUN_QUERY, [number, string]>
-    | AsyncWebDBRequest<AsyncWebDBRequestType.SEND_QUERY, [number, string]>
+    | AsyncWebDBRequest<AsyncWebDBRequestType.RUN_QUERY, [number, string, number[]]>
+    | AsyncWebDBRequest<AsyncWebDBRequestType.SEND_QUERY, [number, string, number[]]>
     | AsyncWebDBRequest<AsyncWebDBRequestType.FETCH_QUERY_RESULTS, number>;
 
 export type AsyncWebDBResponseVariant =
