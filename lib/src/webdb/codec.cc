@@ -78,26 +78,6 @@ p::OperatorType MapOperatorType(duckdb::LogicalOperatorType type) {
     return p::OperatorType::LOGICAL_INVALID;
 }
 
-/// Iterate over a vector
-template <typename T, bool WITH_NULL, typename OP> void iterVec(duckdb::VectorData &vec, size_t count, OP op) {
-    if (vec.sel) {
-        for (unsigned i = 0; i < count; ++i) {
-            auto s = vec.sel->get_index(i);
-            auto n = false;
-            if constexpr (WITH_NULL) n = (*vec.nullmask)[s];
-            auto d = reinterpret_cast<T *>(vec.data)[s];
-            op(i, d, n);
-        }
-    } else {
-        for (unsigned i = 0; i < count; ++i) {
-            auto d = reinterpret_cast<T *>(vec.data)[i];
-            auto n = false;
-            if constexpr (WITH_NULL) n = (*vec.nullmask)[i];
-            op(i, d, n);
-        }
-    }
-}
-
 /// Write a fixed-length result column
 template <typename VecType, typename FlatbufferType>
 static fb::Offset<p::Vector> writeCol(fb::FlatBufferBuilder &builder, duckdb::PhysicalType type,
@@ -113,12 +93,12 @@ static fb::Offset<p::Vector> writeCol(fb::FlatBufferBuilder &builder, duckdb::Ph
         uint8_t *nullmask;
         n_buf = builder.CreateUninitializedVector(count, &nullmask);
         values = GetMutableTemporaryPointer(builder, d_buf)->data();  // n_buf invalidates values
-        iterVec<VecType, true>(vec, count, [&](unsigned i, VecType value, bool null) {
+        iterateVector<VecType, true>(vec, count, [&](unsigned i, VecType value, bool null) {
             values[i] = value;
             nullmask[i] = null;
         });
     } else {
-        iterVec<VecType, false>(vec, count, [&](unsigned i, VecType value, bool null) { values[i] = value; });
+        iterateVector<VecType, false>(vec, count, [&](unsigned i, VecType value, bool null) { values[i] = value; });
     }
 
     // Build the query result column
@@ -160,12 +140,12 @@ static fb::Offset<p::Vector> writeI128Col(fb::FlatBufferBuilder &builder, duckdb
     if (vec.nullmask) {
         uint8_t *nullmask;
         n_buf = builder.CreateUninitializedVector(count, &nullmask);
-        iterVec<hugeint_t, true>(vec, count, [&](unsigned i, hugeint_t value, bool null) {
+        iterateVector<hugeint_t, true>(vec, count, [&](unsigned i, hugeint_t value, bool null) {
             values[i] = p::I128{value.lower, value.upper};
             nullmask[i] = null;
         });
     } else {
-        iterVec<hugeint_t, false>(vec, count, [&](unsigned i, hugeint_t value, bool null) {
+        iterateVector<hugeint_t, false>(vec, count, [&](unsigned i, hugeint_t value, bool null) {
             values[i] = p::I128{value.lower, value.upper};
         });
     }
@@ -193,12 +173,12 @@ static fb::Offset<p::Vector> writeIntervalCol(fb::FlatBufferBuilder &builder, du
     if (vec.nullmask) {
         uint8_t *nullmask;
         n_buf = builder.CreateUninitializedVector(count, &nullmask);
-        iterVec<interval_t, true>(vec, count, [&](unsigned i, interval_t value, bool null) {
+        iterateVector<interval_t, true>(vec, count, [&](unsigned i, interval_t value, bool null) {
             values[i] = p::Interval{value.months, value.days, value.micros};
             nullmask[i] = null;
         });
     } else {
-        iterVec<interval_t, false>(vec, count, [&](unsigned i, interval_t value, bool null) {
+        iterateVector<interval_t, false>(vec, count, [&](unsigned i, interval_t value, bool null) {
             values[i] = p::Interval{value.months, value.days, value.micros};
         });
     }
@@ -219,43 +199,20 @@ static fb::Offset<p::Vector> writeStringCol(fb::FlatBufferBuilder &builder, duck
     // First collect string views and copy nulls (if any)
     std::optional<fb::Offset<fb::Vector<uint8_t>>> n_buf = std::nullopt;
     std::vector<std::string_view> strings{count};
-    auto *source = reinterpret_cast<const duckdb::string_t *>(vec.data);
     using ST = std::string_view::size_type;
 
     // Has null mask?
     if (vec.nullmask) {
         uint8_t *nullmask;
-        auto n = builder.CreateUninitializedVector(count, &nullmask);
-
-        // Has selection vector?
-        if (vec.sel) {
-            for (unsigned i = 0; i < count; ++i) {
-                auto si = vec.sel->get_index(i);
-                auto &s = source[si];
-                nullmask[i] = (*vec.nullmask)[si];
-                strings[i] = std::string_view{s.GetDataUnsafe(), static_cast<ST>(s.GetSize())};
-            }
-        } else {
-            for (unsigned i = 0; i < count; ++i) {
-                auto &s = source[i];
-                nullmask[i] = (*vec.nullmask)[i];
-                strings[i] = std::string_view{s.GetDataUnsafe(), static_cast<ST>(s.GetSize())};
-            }
-        }
+        n_buf = builder.CreateUninitializedVector(count, &nullmask);
+        iterateVector<duckdb::string_t, true>(vec, count, [&](unsigned i, duckdb::string_t& value, bool null) {
+            nullmask[i] = null;
+            strings[i] = std::string_view{value.GetDataUnsafe(), static_cast<ST>(value.GetSize())};
+        });
     } else {
-        // Has selection vector?
-        if (vec.sel) {
-            for (unsigned i = 0; i < count; ++i) {
-                auto si = vec.sel->get_index(i);
-                auto &s = source[si];
-                strings[i] = std::string_view{s.GetDataUnsafe(), static_cast<ST>(s.GetSize())};
-            }
-        } else {
-            for (unsigned i = 0; i < count; ++i) {
-                auto &s = source[i];
-                strings[i] = std::string_view{s.GetDataUnsafe(), static_cast<ST>(s.GetSize())};
-            }
-        }
+        iterateVector<duckdb::string_t, false>(vec, count, [&](unsigned i, duckdb::string_t& value, bool null) {
+            strings[i] = std::string_view{value.GetDataUnsafe(), static_cast<ST>(value.GetSize())};
+        });
     }
 
     // Copy all strings
