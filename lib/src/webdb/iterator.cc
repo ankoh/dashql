@@ -66,7 +66,7 @@ Signal QueryResultIterator::Next() {
 bool QueryResultIterator::IsEnd() const { return !chunk || (chunk_row() >= chunk->row_count()); }
 /// Is at end?
 bool QueryResultIterator::IsPartitionBoundary() const {
-    return chunk && chunk->partition_mask() && chunk->partition_mask()->Get(chunk_row());
+    return chunk && chunk->partition_boundaries() && chunk->partition_boundaries()->Get(chunk_row());
 }
 
 /// Get a value
