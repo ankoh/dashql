@@ -5,6 +5,7 @@
 
 #include "dashql/common/span.h"
 #include "dashql/proto_generated.h"
+#include "dashql/webdb/stream_partitioner.h"
 #include "duckdb.hpp"
 #include "duckdb/common/enums/logical_operator_type.hpp"
 #include "flatbuffers/flatbuffers.h"
@@ -43,7 +44,8 @@ flatbuffers::Offset<proto::webdb::QueryResult> WriteQueryResult(flatbuffers::Fla
 /// Write the query result chunk
 flatbuffers::Offset<proto::webdb::QueryResultChunk> WriteQueryResultChunk(flatbuffers::FlatBufferBuilder& builder,
                                                                           duckdb::QueryResult& result, uint64_t queryID,
-                                                                          duckdb::DataChunk* chunk);
+                                                                          duckdb::DataChunk* chunk,
+                                                                          const PartitionMask& partitionMask);
 /// Write the query plan
 flatbuffers::Offset<proto::webdb::QueryPlan> WriteQueryPlan(flatbuffers::FlatBufferBuilder& builder,
                                                             duckdb::LogicalOperator& plan);

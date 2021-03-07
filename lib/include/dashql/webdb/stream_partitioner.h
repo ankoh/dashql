@@ -29,8 +29,9 @@ class StreamPartitioner {
     /// The last row of the previous chunk (if any)
     std::vector<duckdb::Value> previous_values_;
 
+   public:
     /// Constructor
-    StreamPartitioner(const duckdb::QueryResult& result, nonstd::span<const size_t> columns);
+    StreamPartitioner(const duckdb::QueryResult& result, nonstd::span<const uint32_t> columns);
 
     /// Consume the next query result chunk 
     void consumeChunk(duckdb::DataChunk& chunk, PartitionMask& out);
