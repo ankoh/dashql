@@ -23,6 +23,15 @@ class WebDB {
    public:
     /// A connection
     class Connection {
+       public:
+        /// The query arguments
+        struct QueryArgs {
+            /// The query text
+            std::string_view text;
+            /// The result partitioning
+            nonstd::span<const uint32_t> partitioned_by = {};
+        };
+
        protected:
         /// The database
         std::shared_ptr<duckdb::DuckDB> database_;
@@ -46,9 +55,9 @@ class WebDB {
         auto& GetConnection() { return connection_; }
 
         /// Run a SQL query
-        ExpectedBuffer<proto::webdb::QueryResult> RunQuery(std::string_view text);
+        ExpectedBuffer<proto::webdb::QueryResult> RunQuery(const QueryArgs& args);
         /// Send a SQL query
-        ExpectedBuffer<proto::webdb::QueryResult> SendQuery(std::string_view text);
+        ExpectedBuffer<proto::webdb::QueryResult> SendQuery(const QueryArgs& args);
         /// Fetch query results
         ExpectedBuffer<proto::webdb::QueryResultChunk> FetchQueryResults();
         /// Analyze a SQL query

@@ -43,10 +43,10 @@ WebDB::Connection::Connection(std::shared_ptr<duckdb::DuckDB> db)
       current_stream_partitioner_() {}
 
 /// Run a SQL query
-ExpectedBuffer<p::QueryResult> WebDB::Connection::RunQuery(std::string_view text) {
+ExpectedBuffer<p::QueryResult> WebDB::Connection::RunQuery(const QueryArgs& args) {
     try {
         // Send the query
-        auto result = connection_.SendQuery(std::string{text});
+        auto result = connection_.SendQuery(std::string{args.text});
         if (!result->success) return {ErrorCode::QUERY_FAILED, move(result->error)};
         current_query_result_ = move(result);
         auto query_id = ++current_query_id_;
@@ -70,10 +70,10 @@ ExpectedBuffer<p::QueryResult> WebDB::Connection::RunQuery(std::string_view text
 }
 
 /// Start a SQL query
-ExpectedBuffer<p::QueryResult> WebDB::Connection::SendQuery(std::string_view text) {
+ExpectedBuffer<p::QueryResult> WebDB::Connection::SendQuery(const QueryArgs& args) {
     try {
         // Send the query
-        auto result = connection_.SendQuery(std::string{text});
+        auto result = connection_.SendQuery(std::string{args.text});
         if (!result->success) return {ErrorCode::QUERY_FAILED, move(result->error)};
         current_query_result_ = move(result);
 
