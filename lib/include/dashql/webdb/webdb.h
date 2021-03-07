@@ -29,7 +29,7 @@ class WebDB {
             /// The query text
             std::string_view text;
             /// The result partitioning
-            nonstd::span<const uint32_t> partitioned_by = {};
+            std::vector<uint32_t> partitioned_by = {};
         };
 
        protected:
