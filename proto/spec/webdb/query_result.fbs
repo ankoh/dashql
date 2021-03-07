@@ -17,7 +17,7 @@ table QueryResultChunk {
     query_id: uint64;
     row_count: uint32;
     columns: [Vector];
-    partition_mask: [uint8];
+    partition_boundaries: [uint8];
 }
 
 // A query result

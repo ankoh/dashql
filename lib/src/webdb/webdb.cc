@@ -58,7 +58,7 @@ ExpectedBuffer<p::QueryResult> WebDB::Connection::RunQuery(const QueryArgs& args
         if (!args.partitioned_by.empty()) {
             partitioner.emplace(StreamPartitioner{*result, args.partitioned_by});
         }
-        PartitionMask partitionMask;
+        PartitionBoundaries partitionBoundaries;
 
         // Encode result chunks
         fb::FlatBufferBuilder builder{1024};
@@ -66,15 +66,15 @@ ExpectedBuffer<p::QueryResult> WebDB::Connection::RunQuery(const QueryArgs& args
         for (auto chunk = result->Fetch(); !!chunk && chunk->size() > 0; chunk = result->Fetch()) {
             // Pass chunk to stream partitioner
             if (partitioner) {
-                if (partitionMask.size() < chunk->size()) {
-                    partitionMask.resize(chunk->size(), 0);
+                if (partitionBoundaries.size() < chunk->size()) {
+                    partitionBoundaries.resize(chunk->size(), 0);
                 }
-                std::fill(partitionMask.begin(), partitionMask.begin() + chunk->size(), 0);
-                partitioner->consumeChunk(*chunk, partitionMask);
+                std::fill(partitionBoundaries.begin(), partitionBoundaries.begin() + chunk->size(), 0);
+                partitioner->consumeChunk(*chunk, partitionBoundaries);
             }
 
             // Write flatbuffer
-            auto chunk_ofs = WriteQueryResultChunk(builder, *result, query_id, chunk.get(), partitionMask);
+            auto chunk_ofs = WriteQueryResultChunk(builder, *result, query_id, chunk.get(), partitionBoundaries);
             chunks.push_back(chunk_ofs);
         }
         auto chunkVec = builder.CreateVector(std::move(chunks));
@@ -127,16 +127,16 @@ ExpectedBuffer<p::QueryResultChunk> WebDB::Connection::FetchQueryResults() {
         if (!current_query_result_->success) return {ErrorCode::QUERY_FAILED, move(current_query_result_->error)};
 
         // Encode the partition mask (if configured)
-        PartitionMask partitionMask;
+        PartitionBoundaries partitionBoundaries;
         if (current_stream_partitioner_ && !!chunk) {
-            partitionMask.resize(chunk->size(), 0);
-            current_stream_partitioner_->consumeChunk(*chunk, partitionMask);
+            partitionBoundaries.resize(chunk->size(), 0);
+            current_stream_partitioner_->consumeChunk(*chunk, partitionBoundaries);
         }
 
         // Get query result
         fb::FlatBufferBuilder builder{128};
         auto ofs =
-            WriteQueryResultChunk(builder, *current_query_result_, current_query_id_, chunk.get(), partitionMask);
+            WriteQueryResultChunk(builder, *current_query_result_, current_query_id_, chunk.get(), partitionBoundaries);
         builder.Finish(ofs);
 
         // Last chunk?

@@ -45,7 +45,7 @@ flatbuffers::Offset<proto::webdb::QueryResult> WriteQueryResult(flatbuffers::Fla
 flatbuffers::Offset<proto::webdb::QueryResultChunk> WriteQueryResultChunk(flatbuffers::FlatBufferBuilder& builder,
                                                                           duckdb::QueryResult& result, uint64_t queryID,
                                                                           duckdb::DataChunk* chunk,
-                                                                          const PartitionMask& partitionMask);
+                                                                          const PartitionBoundaries& partitionMask);
 /// Write the query plan
 flatbuffers::Offset<proto::webdb::QueryPlan> WriteQueryPlan(flatbuffers::FlatBufferBuilder& builder,
                                                             duckdb::LogicalOperator& plan);
