@@ -111,28 +111,48 @@ export abstract class WebDBBindings {
         this.instance!.ccall('dashql_webdb_disconnect', null, ['number'], [conn]);
     }
 
+    /// Encode query arguments 
+    protected encodeQueryArguments(text: string): number {
+        const instance = this.instance!;
+        const builder = new flatbuffers.Builder();
+        const scriptOfs = builder.createString(text);
+        proto.QueryArguments.start(builder);
+        proto.QueryArguments.addScript(builder, scriptOfs);
+        const args = proto.QueryArguments.end(builder);
+        builder.finish(args);
+        const argsBuffer = builder.dataBuffer();
+
+        // Copy the arguments into the wasm module
+        const argsMem = argsBuffer.bytes().subarray(argsBuffer.position());
+        const argsPtr = instance.stackAlloc(argsMem.length);
+        instance.HEAPU8.set(argsMem, argsPtr);
+        return argsPtr;
+    }
+
     /// Send a query and return the full result
     public runQuery(conn: number, text: string): proto.QueryResult {
-        let instance = this.instance!;
-        let [s, d, n] = this.callSRet('dashql_webdb_run_query', ['number', 'string'], [conn, text]);
-        let mem = instance.HEAPU8.subarray(d, d + n);
+        const instance = this.instance!;
+        const args = this.encodeQueryArguments(text);
+        const [s, d, n] = this.callSRet('dashql_webdb_run_query', ['number', 'number'], [conn, args]);
+        const mem = instance.HEAPU8.subarray(d, d + n);
         if (s !== proto.StatusCode.SUCCESS) {
             throw new Error(decodeString(mem));
         }
-        let res = proto.QueryResult.getRoot(copyFlatbuffer(mem));
+        const res = proto.QueryResult.getRoot(copyFlatbuffer(mem));
         instance.ccall('dashql_clear_response', null, [], []);
         return res;
     }
 
     /// Send a query and return a result stream
     public sendQuery(conn: number, text: string): proto.QueryResult {
-        let instance = this.instance!;
-        let [s, d, n] = this.callSRet('dashql_webdb_send_query', ['number', 'string'], [conn, text]);
-        let mem = instance.HEAPU8.subarray(d, d + n);
+        const instance = this.instance!;
+        const args = this.encodeQueryArguments(text);
+        const [s, d, n] = this.callSRet('dashql_webdb_send_query', ['number', 'number'], [conn, args]);
+        const mem = instance.HEAPU8.subarray(d, d + n);
         if (s !== proto.StatusCode.SUCCESS) {
             throw new Error(decodeString(mem));
         }
-        let res = proto.QueryResult.getRoot(copyFlatbuffer(mem));
+        const res = proto.QueryResult.getRoot(copyFlatbuffer(mem));
         instance.ccall('dashql_clear_response', null, [], []);
         return res;
     }
