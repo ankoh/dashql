@@ -194,4 +194,57 @@ describe('RowProxy', () => {
             }
         });
     });
+
+    describe('single column, partition boundaries, single integer', () => {
+        test('INTEGER', () => {
+            const result = conn.sendQuery(`
+                SELECT v::INTEGER AS foo, (v::INTEGER / 100) AS bar FROM generate_series(0, ${testRows}) as t(v);
+            `, [1]);
+            expect(result.columnTypesLength()).toBe(2);
+            interface Row extends webdb.RowProxy {
+                foo: number | null;
+                bar: number | null;
+            }
+            const chunks = new webdb.ChunkStreamIterator(conn, result);
+            let expected = 0;
+            while (chunks.nextBlocking()) {
+                for (const row of chunks.collect<Row>()) {
+                    let e = expected++;
+                    expect(row.foo).toBe(e);
+                    expect(row.bar).toBe(Math.trunc(e / 100));
+                    expect(row.__attribute__(0)).toBe(e);
+                    expect(row.__attribute__(1)).toBe(Math.trunc(e / 100));
+                    expect(row.__is_partition_boundary__).toBe((e % 100) == 0);
+                }
+            }
+        });
+    });
+
+    describe('single column, partition boundaries, 2 integers', () => {
+        test('INTEGER', () => {
+            const result = conn.sendQuery(`
+                SELECT v::INTEGER AS foo, (v::INTEGER / 200) AS bar, (v::INTEGER / 300) AS bam FROM generate_series(0, ${testRows}) as t(v);
+            `, [1, 2]);
+            expect(result.columnTypesLength()).toBe(3);
+            interface Row extends webdb.RowProxy {
+                foo: number | null;
+                bar: number | null;
+                bam: number | null;
+            }
+            const chunks = new webdb.ChunkStreamIterator(conn, result);
+            let expected = 0;
+            while (chunks.nextBlocking()) {
+                for (const row of chunks.collect<Row>()) {
+                    let e = expected++;
+                    expect(row.foo).toBe(e);
+                    expect(row.bar).toBe(Math.trunc(e / 200));
+                    expect(row.bam).toBe(Math.trunc(e / 300));
+                    expect(row.__attribute__(0)).toBe(e);
+                    expect(row.__attribute__(1)).toBe(Math.trunc(e / 200));
+                    expect(row.__attribute__(2)).toBe(Math.trunc(e / 300));
+                    expect(row.__is_partition_boundary__).toBe((e % 200) == 0 || (e % 300) == 0);
+                }
+            }
+        });
+    });
 });
