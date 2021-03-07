@@ -252,4 +252,54 @@ TEST(QueryResultIterator, IntervalColumn) {
     ASSERT_TRUE(iter.IsEnd());
 }
 
+TEST(QueryResultIterator, PartitionByInteger) {
+    auto db = make_shared<duckdb::DuckDB>();
+    WebDB::Connection conn{db};
+    auto expected = conn.SendQuery({.text = R"RAW(
+        SELECT v::INTEGER, (v::INTEGER / 100) FROM generate_series(0, 10000) as t(v);
+    )RAW",
+                                    .partitioned_by = {1}});
+    ASSERT_TRUE(expected.IsOk());
+    auto& result = expected.value();
+    ASSERT_NE(result.column_types(), nullptr);
+    ASSERT_EQ(result.column_types()->size(), 2);
+    ASSERT_EQ(result.column_types()->Get(0)->type_id(), p::SQLTypeID::INTEGER);
+    ASSERT_EQ(result.column_types()->Get(1)->type_id(), p::SQLTypeID::INTEGER);
+    QueryResultIterator iter{conn, result};
+    for (unsigned i = 0; i <= 10000; ++i) {
+        ASSERT_FALSE(iter.IsEnd());
+        ASSERT_EQ(iter.GetValue(0).GetValue<int32_t>(), i);
+        ASSERT_EQ(iter.GetValue(1).GetValue<int32_t>(), i / 100);
+        ASSERT_EQ(iter.IsPartitionBoundary(), (i % 100) == 0);
+        iter.Next();
+    }
+    ASSERT_TRUE(iter.IsEnd());
+}
+
+TEST(QueryResultIterator, PartitionBy2Integers) {
+    auto db = make_shared<duckdb::DuckDB>();
+    WebDB::Connection conn{db};
+    auto expected = conn.SendQuery({.text = R"RAW(
+        SELECT v::INTEGER, (v::INTEGER / 200), (v::INTEGER / 300) FROM generate_series(0, 10000) as t(v);
+    )RAW",
+                                    .partitioned_by = {1, 2}});
+    ASSERT_TRUE(expected.IsOk());
+    auto& result = expected.value();
+    ASSERT_NE(result.column_types(), nullptr);
+    ASSERT_EQ(result.column_types()->size(), 3);
+    ASSERT_EQ(result.column_types()->Get(0)->type_id(), p::SQLTypeID::INTEGER);
+    ASSERT_EQ(result.column_types()->Get(1)->type_id(), p::SQLTypeID::INTEGER);
+    ASSERT_EQ(result.column_types()->Get(2)->type_id(), p::SQLTypeID::INTEGER);
+    QueryResultIterator iter{conn, result};
+    for (unsigned i = 0; i <= 10000; ++i) {
+        ASSERT_FALSE(iter.IsEnd());
+        ASSERT_EQ(iter.GetValue(0).GetValue<int32_t>(), i);
+        ASSERT_EQ(iter.GetValue(1).GetValue<int32_t>(), i / 200);
+        ASSERT_EQ(iter.GetValue(2).GetValue<int32_t>(), i / 300);
+        ASSERT_EQ(iter.IsPartitionBoundary(), ((i % 200) == 0) || ((i % 300) == 0)) << i;
+        iter.Next();
+    }
+    ASSERT_TRUE(iter.IsEnd());
+}
+
 }  // namespace
