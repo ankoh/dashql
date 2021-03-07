@@ -43,6 +43,8 @@ struct QueryResultIterator {
 
     /// Is at end?
     bool IsEnd() const;
+    /// Is a partition boundary?
+    bool IsPartitionBoundary() const;
     /// Advance the iterator
     Signal Next();
     /// Iterator increment

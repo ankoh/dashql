@@ -64,6 +64,10 @@ Signal QueryResultIterator::Next() {
 
 /// Is at end?
 bool QueryResultIterator::IsEnd() const { return !chunk || (chunk_row() >= chunk->row_count()); }
+/// Is at end?
+bool QueryResultIterator::IsPartitionBoundary() const {
+    return chunk && chunk->partition_mask() && chunk->partition_mask()->Get(chunk_row());
+}
 
 /// Get a value
 duckdb::Value QueryResultIterator::GetValue(size_t col_idx) const {
