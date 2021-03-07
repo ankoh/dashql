@@ -11,15 +11,30 @@ const noop = () => {};
 
 async function main(db: webdb.AsyncWebDB) {
     let tupleCount = 1000000;
-    let tupleSize = 0;
+    let bytes = 0;
 
     await benny.suite(
         `Chunks | 1 column | 1m rows | materialized`,
-        benny.add('TINYINT', async () => {
-            tupleSize = 1;
+        benny.add('BOOLEAN', async () => {
             let conn = await db.connect();
             let result = await conn.runQuery(`
-                SELECT (v & 127)::TINYINT FROM generate_series(0, ${tupleCount}) as t(v);
+            SELECT v > 0 FROM generate_series(0, ${tupleCount}) as t(v);
+            `);
+            let chunks = new webdb.ChunkArrayIterator(result);
+            while (true) {
+                if (!chunks.nextBlocking()) break;
+                chunks.iterateBooleanColumn(0, (_row: number, _v: boolean | null) => {
+                    noop();
+                });
+            }
+            await conn.disconnect();
+            bytes = tupleCount * 1;
+        }),
+
+        benny.add('TINYINT', async () => {
+            let conn = await db.connect();
+            let result = await conn.runQuery(`
+            SELECT (v & 127)::TINYINT FROM generate_series(0, ${tupleCount}) as t(v);
             `);
             let chunks = new webdb.ChunkArrayIterator(result);
             while (true) {
@@ -29,30 +44,30 @@ async function main(db: webdb.AsyncWebDB) {
                 });
             }
             await conn.disconnect();
+            bytes = tupleCount * 1;
         }),
 
         benny.add('SMALLINT', async () => {
-            try{ 
-            tupleSize = 2;
-            let conn = await db.connect();
-            let result = await conn.runQuery(`
+            try {
+                let conn = await db.connect();
+                let result = await conn.runQuery(`
                 SELECT (v & 32767)::SMALLINT FROM generate_series(0, ${tupleCount}) as t(v);
             `);
-            let chunks = new webdb.ChunkArrayIterator(result);
-            while (true) {
-                if (!chunks.nextBlocking()) break;
-                chunks.iterateNumberColumn(0, (_row: number, _v: number | null) => {
-                    noop();
-                });
-            }
-            await conn.disconnect();
-            } catch(e) {
+                let chunks = new webdb.ChunkArrayIterator(result);
+                while (true) {
+                    if (!chunks.nextBlocking()) break;
+                    chunks.iterateNumberColumn(0, (_row: number, _v: number | null) => {
+                        noop();
+                    });
+                }
+                await conn.disconnect();
+            } catch (e) {
                 console.error(e);
             }
+            bytes = tupleCount * 2;
         }),
 
         benny.add('INTEGER', async () => {
-            tupleSize = 4;
             let conn = await db.connect();
             let result = await conn.runQuery(`
                 SELECT v::INTEGER FROM generate_series(0, ${tupleCount}) as t(v);
@@ -65,10 +80,42 @@ async function main(db: webdb.AsyncWebDB) {
                 });
             }
             await conn.disconnect();
+            bytes = tupleCount * 4;
+        }),
+
+        benny.add('BIGINT', async () => {
+            let conn = await db.connect();
+            let result = await conn.runQuery(`
+                SELECT v::BIGINT FROM generate_series(0, ${tupleCount}) as t(v);
+            `);
+            let chunks = new webdb.ChunkArrayIterator(result);
+            while (true) {
+                if (!chunks.nextBlocking()) break;
+                chunks.iterateBigIntColumn(0, (_row: number, _v: bigint | null) => {
+                    noop();
+                });
+            }
+            await conn.disconnect();
+            bytes = tupleCount * 8;
+        }),
+
+        benny.add('HUGEINT', async () => {
+            let conn = await db.connect();
+            let result = await conn.runQuery(`
+                SELECT v::HUGEINT FROM generate_series(0, ${tupleCount}) as t(v);
+            `);
+            let chunks = new webdb.ChunkArrayIterator(result);
+            while (true) {
+                if (!chunks.nextBlocking()) break;
+                chunks.iterateBigIntColumn(0, (_row: number, _v: bigint | null) => {
+                    noop();
+                });
+            }
+            await conn.disconnect();
+            bytes = tupleCount * 16;
         }),
 
         benny.add('FLOAT', async () => {
-            tupleSize = 4;
             let conn = await db.connect();
             let result = await conn.runQuery(`
                 SELECT v::FLOAT FROM generate_series(0, ${tupleCount}) as t(v);
@@ -81,10 +128,10 @@ async function main(db: webdb.AsyncWebDB) {
                 });
             }
             await conn.disconnect();
+            bytes = tupleCount * 4;
         }),
 
         benny.add('DOUBLE', async () => {
-            tupleSize = 8;
             let conn = await db.connect();
             let result = await conn.runQuery(`
                 SELECT v::DOUBLE FROM generate_series(0, ${tupleCount}) as t(v);
@@ -97,108 +144,192 @@ async function main(db: webdb.AsyncWebDB) {
                 });
             }
             await conn.disconnect();
+            bytes = tupleCount * 8;
+        }),
+
+        benny.add('STRING', async () => {
+            let conn = await db.connect();
+            let result = await conn.runQuery(`
+                SELECT v::VARCHAR FROM generate_series(0, ${tupleCount}) as t(v);
+            `);
+            let chunks = new webdb.ChunkArrayIterator(result);
+
+            bytes = 0;
+            while (true) {
+                if (!chunks.nextBlocking()) break;
+                chunks.iterateStringColumn(0, (_row: number, v: string | null) => {
+                    bytes += v!.length;
+                });
+            }
+            await conn.disconnect();
         }),
 
         benny.cycle((result: any, _summary: any) => {
-            let bytes = tupleCount * tupleSize;
             let duration = result.details.median;
             let tupleThroughput = tupleCount / duration;
             let dataThroughput = bytes / duration;
             console.log(
-                `${kleur.cyan(result.name)} t: ${duration.toFixed(3)} s ttp: ${core.utils.formatThousands(tupleThroughput)}/s dtp: ${core.utils.formatBytes(dataThroughput)}/s`,
+                `${kleur.cyan(result.name)} t: ${duration.toFixed(3)} s ttp: ${core.utils.formatThousands(
+                    tupleThroughput,
+                )}/s dtp: ${core.utils.formatBytes(dataThroughput)}/s`,
             );
         }),
     );
 
     await benny.suite(
         `Chunks | 1 column | 1m rows | streaming`,
+        benny.add('BOOLEAN', async () => {
+            let conn = await db.connect();
+            let result = await conn.sendQuery(`
+                SELECT v > 0 FROM generate_series(0, ${tupleCount}) as t(v);
+            `);
+            let chunks = new webdb.ChunkStreamIterator(conn, result);
+            while (true) {
+                if (!(await chunks.nextAsync())) break;
+                chunks.iterateBooleanColumn(0, (_row: number, _v: boolean | null) => {
+                    noop();
+                });
+            }
+            await conn.disconnect();
+            bytes = tupleCount * 1;
+        }),
+
         benny.add('TINYINT', async () => {
-            tupleSize = 1;
             let conn = await db.connect();
             let result = await conn.sendQuery(`
                 SELECT (v & 127)::TINYINT FROM generate_series(0, ${tupleCount}) as t(v);
             `);
             let chunks = new webdb.ChunkStreamIterator(conn, result);
             while (true) {
-                if (!await chunks.nextAsync()) break;
+                if (!(await chunks.nextAsync())) break;
                 chunks.iterateNumberColumn(0, (_row: number, _v: number | null) => {
                     noop();
                 });
             }
             await conn.disconnect();
+            bytes = tupleCount * 1;
         }),
 
         benny.add('SMALLINT', async () => {
-            tupleSize = 2;
             let conn = await db.connect();
             let result = await conn.sendQuery(`
                 SELECT (v & 32767)::SMALLINT FROM generate_series(0, ${tupleCount}) as t(v);
             `);
             let chunks = new webdb.ChunkStreamIterator(conn, result);
             while (true) {
-                if (!await chunks.nextAsync()) break;
+                if (!(await chunks.nextAsync())) break;
                 chunks.iterateNumberColumn(0, (_row: number, _v: number | null) => {
                     noop();
                 });
             }
             await conn.disconnect();
+            bytes = tupleCount * 2;
         }),
 
         benny.add('INTEGER', async () => {
-            tupleSize = 4;
             let conn = await db.connect();
             let result = await conn.sendQuery(`
                 SELECT v::INTEGER FROM generate_series(0, ${tupleCount}) as t(v);
             `);
             let chunks = new webdb.ChunkStreamIterator(conn, result);
             while (true) {
-                if (!await chunks.nextAsync()) break;
+                if (!(await chunks.nextAsync())) break;
                 chunks.iterateNumberColumn(0, (_row: number, _v: number | null) => {
                     noop();
                 });
             }
             await conn.disconnect();
+            bytes = tupleCount * 4;
+        }),
+
+        benny.add('BIGINT', async () => {
+            let conn = await db.connect();
+            let result = await conn.sendQuery(`
+                SELECT v::BIGINT FROM generate_series(0, ${tupleCount}) as t(v);
+            `);
+            let chunks = new webdb.ChunkStreamIterator(conn, result);
+            while (true) {
+                if (!(await chunks.nextAsync())) break;
+                chunks.iterateBigIntColumn(0, (_row: number, _v: bigint | null) => {
+                    noop();
+                });
+            }
+            await conn.disconnect();
+            bytes = tupleCount * 8;
+        }),
+
+        benny.add('HUGEINT', async () => {
+            let conn = await db.connect();
+            let result = await conn.sendQuery(`
+                SELECT v::HUGEINT FROM generate_series(0, ${tupleCount}) as t(v);
+            `);
+            let chunks = new webdb.ChunkStreamIterator(conn, result);
+            while (true) {
+                if (!(await chunks.nextAsync())) break;
+                chunks.iterateBigIntColumn(0, (_row: number, _v: bigint | null) => {
+                    noop();
+                });
+            }
+            await conn.disconnect();
+            bytes = tupleCount * 16;
         }),
 
         benny.add('FLOAT', async () => {
-            tupleSize = 4;
             let conn = await db.connect();
             let result = await conn.sendQuery(`
                 SELECT v::FLOAT FROM generate_series(0, ${tupleCount}) as t(v);
             `);
             let chunks = new webdb.ChunkStreamIterator(conn, result);
             while (true) {
-                if (!await chunks.nextAsync()) break;
+                if (!(await chunks.nextAsync())) break;
                 chunks.iterateNumberColumn(0, (_row: number, _v: number | null) => {
                     noop();
                 });
             }
             await conn.disconnect();
+            bytes = tupleCount * 4;
         }),
 
         benny.add('DOUBLE', async () => {
-            tupleSize = 8;
             let conn = await db.connect();
             let result = await conn.sendQuery(`
                 SELECT v::DOUBLE FROM generate_series(0, ${tupleCount}) as t(v);
             `);
             let chunks = new webdb.ChunkStreamIterator(conn, result);
             while (true) {
-                if (!await chunks.nextAsync()) break;
+                if (!(await chunks.nextAsync())) break;
                 chunks.iterateNumberColumn(0, (_row: number, _v: number | null) => {
                     noop();
+                });
+            }
+            await conn.disconnect();
+            bytes = tupleCount * 8;
+        }),
+
+        benny.add('STRING', async () => {
+            let conn = await db.connect();
+            let result = await conn.sendQuery(`
+                SELECT v::VARCHAR FROM generate_series(0, ${tupleCount}) as t(v);
+            `);
+            let chunks = new webdb.ChunkStreamIterator(conn, result);
+            bytes = 0;
+            while (true) {
+                if (!(await chunks.nextAsync())) break;
+                chunks.iterateStringColumn(0, (_row: number, v: string | null) => {
+                    bytes += v!.length;
                 });
             }
             await conn.disconnect();
         }),
 
         benny.cycle((result: any, _summary: any) => {
-            let bytes = tupleCount * tupleSize;
             let duration = result.details.median;
             let tupleThroughput = tupleCount / duration;
             let dataThroughput = bytes / duration;
             console.log(
-                `${kleur.cyan(result.name)} t: ${duration.toFixed(3)} s ttp: ${core.utils.formatThousands(tupleThroughput)}/s dtp: ${core.utils.formatBytes(dataThroughput)}/s`,
+                `${kleur.cyan(result.name)} t: ${duration.toFixed(3)} s ttp: ${core.utils.formatThousands(
+                    tupleThroughput,
+                )}/s dtp: ${core.utils.formatBytes(dataThroughput)}/s`,
             );
         }),
     );

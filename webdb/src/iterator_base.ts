@@ -2,6 +2,7 @@
 
 import { webdb as proto } from '@dashql/proto';
 import { Value } from './value';
+import { TmpBuffers } from './buffers';
 import { RowProxyType, RowProxy } from './proxy';
 
 /// A chunk iterator base class
@@ -36,17 +37,29 @@ export abstract class ChunkIterator {
         }
     }
     /// Get the result
-    public get result() { return this._resultBuffer; }
+    public get result() {
+        return this._resultBuffer;
+    }
     /// Get the column count
-    public get columnCount() { return this._columnTypes.length; }
+    public get columnCount() {
+        return this._columnTypes.length;
+    }
     /// Get the column count
-    public get columnTypes() { return this._columnTypes; }
+    public get columnTypes() {
+        return this._columnTypes;
+    }
     /// Get the row count
-    public get rowCount() { return this._currentChunk?.rowCount() || 0; }
+    public get rowCount() {
+        return this._currentChunk?.rowCount() || 0;
+    }
     /// Get the current chunk
-    public get currentChunk() { return this._currentChunk; }
+    public get currentChunk() {
+        return this._currentChunk;
+    }
     /// Get the temporary buffers
-    public get tmp() { return this._tmp; }
+    public get tmp() {
+        return this._tmp;
+    }
 
     /// Get the next chunk synchrnously
     abstract nextBlocking(): boolean;
@@ -62,14 +75,14 @@ export abstract class ChunkIterator {
     }
 
     /// Build the row proxies
-    public collect<T extends RowProxy>(out: T[] = []): T[]  {
+    public collect<T extends RowProxy>(out: T[] = []): T[] {
         if (!this._proxyType) {
             this._proxyType = new RowProxyType(this.result);
         }
         return this._proxyType.proxyChunkRows<T>(this.currentChunk, out);
     }
 
-    /// Build row proxies for all chunks 
+    /// Build row proxies for all chunks
     public collectAllBlocking<T extends RowProxy>(out: T[] = []): T[] {
         if (!this._proxyType) {
             this._proxyType = new RowProxyType(this.result);
@@ -126,9 +139,14 @@ export abstract class ChunkIterator {
     }
 
     /// Iterate over a number column
-    public iterateNumberColumn(cid: number, fn: (row: number, v: number | null) => void, ofs: number = 0, limit: number = 0) {
+    public iterateNumberColumn(
+        cid: number,
+        fn: (row: number, v: number | null) => void,
+        ofs: number = 0,
+        limit: number = 0,
+    ) {
         if (cid >= this.columnCount) {
-            throw Error("column index out of bounds");
+            throw Error('column index out of bounds');
         }
         let c = this.currentChunk?.columns(cid, this.tmp.vector);
         if (c == null) {
@@ -141,10 +159,9 @@ export abstract class ChunkIterator {
         let v = c.variant(this.tmp.vectorF64)!;
         const a: Float64Array | null = v.valuesArray();
         const n: Int8Array | null = v.nullMaskArray();
-        if (a == null)
-            return;
+        if (a == null) return;
         const lb = ofs;
-        const ub = (limit > 0) ? Math.min(lb + limit, a.length) : a.length;
+        const ub = limit > 0 ? Math.min(lb + limit, a.length) : a.length;
         if (n != null) {
             for (let i = lb; i < ub; ++i) {
                 fn(i, n[i] ? null : a[i]);
@@ -156,10 +173,50 @@ export abstract class ChunkIterator {
         }
     }
 
-    /// Iterate over a string column
-    public iterateStringColumn(cid: number, fn: (row: number, v: string | null) => void, ofs: number = 0, limit: number = 0) {
+    /// Iterate over a boolean column
+    public iterateBooleanColumn(
+        cid: number,
+        fn: (row: number, v: boolean | null) => void,
+        ofs: number = 0,
+        limit: number = 0,
+    ) {
         if (cid >= this.columnCount) {
-            throw Error("column index out of bounds");
+            throw Error('column index out of bounds');
+        }
+        let c = this.currentChunk?.columns(cid, this.tmp.vector);
+        if (c == null) {
+            return;
+        }
+        // XXX other types
+        if (c.variantType() != proto.VectorVariant.VectorU8) {
+            return;
+        }
+        let v = c.variant(this.tmp.vectorU8)!;
+        const a: Uint8Array | null = v.valuesArray();
+        const n: Int8Array | null = v.nullMaskArray();
+        if (a == null) return;
+        const lb = ofs;
+        const ub = limit > 0 ? Math.min(lb + limit, a.length) : a.length;
+        if (n != null) {
+            for (let i = lb; i < ub; ++i) {
+                fn(i, n[i] ? null : a[i] != 0);
+            }
+        } else {
+            for (let i = lb; i < ub; ++i) {
+                fn(i, a[i] != 0);
+            }
+        }
+    }
+
+    /// Iterate over a string column
+    public iterateStringColumn(
+        cid: number,
+        fn: (row: number, v: string | null) => void,
+        ofs: number = 0,
+        limit: number = 0,
+    ) {
+        if (cid >= this.columnCount) {
+            throw Error('column index out of bounds');
         }
         let c = this.currentChunk?.columns(cid, this.tmp.vector);
         if (c == null) {
@@ -172,7 +229,7 @@ export abstract class ChunkIterator {
         let v = c.variant(this.tmp.vectorString)!;
         const n: Int8Array | null = v.nullMaskArray();
         const lb = ofs;
-        const ub = (limit > 0) ? Math.min(lb + limit, v.valuesLength()) : v.valuesLength();
+        const ub = limit > 0 ? Math.min(lb + limit, v.valuesLength()) : v.valuesLength();
         if (n != null) {
             for (let i = lb; i < ub; ++i) {
                 fn(i, n[i] ? null : v.values(i));
@@ -184,8 +241,83 @@ export abstract class ChunkIterator {
         }
     }
 
+    /// Iterate over a bigint column
+    public iterateBigIntColumn(
+        cid: number,
+        fn: (row: number, v: bigint | null) => void,
+        ofs: number = 0,
+        limit: number = 0,
+    ) {
+        if (cid >= this.columnCount) {
+            throw Error('column index out of bounds');
+        }
+        let c = this.currentChunk?.columns(cid, this.tmp.vector);
+        if (c == null) {
+            return;
+        }
+        // XXX other types
+        if (c.variantType() != proto.VectorVariant.VectorI64) {
+            return;
+        }
+
+        let v = c.variant(this.tmp.vectorI64)!;
+        const n: Int8Array | null = v.nullMaskArray();
+        const lb = ofs;
+        const ub = limit > 0 ? Math.min(lb + limit, v.valuesLength()) : v.valuesLength();
+        if (n != null) {
+            for (let i = lb; i < ub; ++i) {
+                fn(i, n[i] ? null : BigInt(v.values(i)!.low));
+            }
+        } else {
+            for (let i = lb; i < ub; ++i) {
+                fn(i, BigInt(v.values(i)!.low));
+            }
+        }
+    }
+
+    /// Iterate over a hugeint column
+    public iterateHugeIntColumn(
+        cid: number,
+        fn: (row: number, v: bigint | null) => void,
+        ofs: number = 0,
+        limit: number = 0,
+    ) {
+        if (cid >= this.columnCount) {
+            throw Error('column index out of bounds');
+        }
+        let c = this.currentChunk?.columns(cid, this.tmp.vector);
+        if (c == null) {
+            return;
+        }
+        // XXX other types
+        if (c.variantType() != proto.VectorVariant.VectorI128) {
+            return;
+        }
+
+        const bigintConverter = (raw: proto.I128): bigint =>
+            (BigInt(raw.upper().low) << BigInt(64)) | BigInt(raw.lower().low);
+
+        let v = c.variant(this.tmp.vectorI128)!;
+        const n: Int8Array | null = v.nullMaskArray();
+        const lb = ofs;
+        const ub = limit > 0 ? Math.min(lb + limit, v.valuesLength()) : v.valuesLength();
+        if (n != null) {
+            for (let i = lb; i < ub; ++i) {
+                fn(i, n[i] ? null : bigintConverter(v.values(i)!));
+            }
+        } else {
+            for (let i = lb; i < ub; ++i) {
+                fn(i, bigintConverter(v.values(i)!));
+            }
+        }
+    }
+
     /// Helper to iterate over a blocking chunk iterator
-    public iterateAllBlocking(offset: number, limit: number, fn: (iter: ChunkIterator, start: number, skipHere: number, rowsHere: number) => void) {
+    public iterateAllBlocking(
+        offset: number,
+        limit: number,
+        fn: (iter: ChunkIterator, start: number, skipHere: number, rowsHere: number) => void,
+    ) {
         let skip = offset;
         let remaining = limit;
         let start = 0;
@@ -206,27 +338,5 @@ export abstract class ChunkIterator {
             start += chunkRows - skipHere;
             remaining -= rowsHere;
         }
-    }
-}
-
-/// The vector buffers
-class TmpBuffers {
-    vector: proto.Vector;
-    vectorU8: proto.VectorU8;
-    vectorI64: proto.VectorI64;
-    vectorI128: proto.VectorI128;
-    vectorF64: proto.VectorF64;
-    vectorInterval: proto.VectorInterval;
-    vectorString: proto.VectorString;
-
-    /// Constructor
-    constructor() {
-        this.vector = new proto.Vector();
-        this.vectorU8 = new proto.VectorU8();
-        this.vectorI64 = new proto.VectorI64();
-        this.vectorI128 = new proto.VectorI128();
-        this.vectorF64 = new proto.VectorF64();
-        this.vectorInterval = new proto.VectorInterval();
-        this.vectorString = new proto.VectorString();
     }
 }
