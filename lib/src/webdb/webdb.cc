@@ -8,6 +8,7 @@
 #include <string_view>
 #include <unordered_map>
 
+#include "dashql/proto_generated.h"
 #include "dashql/webdb/codec.h"
 #include "dashql/webdb/json.h"
 #include "duckdb.hpp"
@@ -35,7 +36,11 @@ WebDB& WebDB::GetInstance() {
 
 /// Constructor
 WebDB::Connection::Connection(std::shared_ptr<duckdb::DuckDB> db)
-    : database_(std::move(db)), connection_(*database_), current_query_id_(), current_query_result_() {}
+    : database_(std::move(db)),
+      connection_(*database_),
+      current_query_id_(),
+      current_query_result_(),
+      current_stream_partitioner_() {}
 
 /// Run a SQL query
 ExpectedBuffer<p::QueryResult> WebDB::Connection::RunQuery(std::string_view text) {
@@ -44,10 +49,19 @@ ExpectedBuffer<p::QueryResult> WebDB::Connection::RunQuery(std::string_view text
         auto result = connection_.SendQuery(std::string{text});
         if (!result->success) return {ErrorCode::QUERY_FAILED, move(result->error)};
         current_query_result_ = move(result);
+        auto query_id = ++current_query_id_;
+
+        // Encode result chunks
+        fb::FlatBufferBuilder builder{1024};
+        std::vector<flatbuffers::Offset<proto::webdb::QueryResultChunk>> chunks;
+        for (auto chunk = current_query_result_->Fetch(); !!chunk && chunk->size() > 0;
+             chunk = current_query_result_->Fetch()) {
+            chunks.push_back(WriteQueryResultChunk(builder, *current_query_result_, query_id, chunk.get()));
+        }
+        auto chunkVec = builder.CreateVector(std::move(chunks));
 
         // Write the result buffer
-        fb::FlatBufferBuilder builder{1024};
-        auto query_result_ofs = WriteQueryResult(builder, *current_query_result_, ++current_query_id_, false);
+        auto query_result_ofs = WriteQueryResult(builder, *current_query_result_, query_id, chunkVec);
         builder.Finish(query_result_ofs);
         return {builder.Release()};
     } catch (std::exception& e) {
@@ -63,9 +77,11 @@ ExpectedBuffer<p::QueryResult> WebDB::Connection::SendQuery(std::string_view tex
         if (!result->success) return {ErrorCode::QUERY_FAILED, move(result->error)};
         current_query_result_ = move(result);
 
-        // Write the result buffer
+        // Encode no result chunks
         fb::FlatBufferBuilder builder{1024};
-        auto query_result_ofs = WriteQueryResult(builder, *current_query_result_, ++current_query_id_, true);
+        std::vector<flatbuffers::Offset<proto::webdb::QueryResultChunk>> chunks;
+        auto chunkVec = builder.CreateVector(std::move(chunks));
+        auto query_result_ofs = WriteQueryResult(builder, *current_query_result_, ++current_query_id_, chunkVec);
         builder.Finish(query_result_ofs);
         return {builder.Release()};
     } catch (std::exception& e) {
@@ -87,7 +103,7 @@ ExpectedBuffer<p::QueryResultChunk> WebDB::Connection::FetchQueryResults() {
 
         // Get query result
         fb::FlatBufferBuilder builder{128};
-        auto ofs = WriteQueryResultChunk(builder, current_query_id_, chunk.get(), types);
+        auto ofs = WriteQueryResultChunk(builder, *current_query_result_, current_query_id_, chunk.get());
         builder.Finish(ofs);
 
         // Last chunk?

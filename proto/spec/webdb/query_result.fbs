@@ -11,6 +11,7 @@ table QueryResultChunk {
     query_id: uint64;
     row_count: uint32;
     columns: [Vector];
+    partition_mask: [uint8];
 }
 
 // A query result
@@ -19,5 +20,6 @@ table QueryResult {
     query_plan: QueryPlan;
     column_types: [SQLType];
     column_names: [string];
+    partitioned_by: [uint32];
     data_chunks: [QueryResultChunk];
 }

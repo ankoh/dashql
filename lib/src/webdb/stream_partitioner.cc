@@ -9,15 +9,8 @@
 namespace dashql {
 namespace webdb {
 
-StreamPartitioner::StreamPartitioner()
-    : query_result_(nullptr), partition_columns_(), previous_values_() {}
-
-/// Consume a query result
-void StreamPartitioner::prepare(duckdb::QueryResult& result, std::vector<size_t> columns) {
-    query_result_ = &result;
-    partition_columns_ = {};
-    previous_values_ = {};
-}
+StreamPartitioner::StreamPartitioner(const duckdb::QueryResult& result, nonstd::span<const size_t> columns)
+    : query_result_(result), partition_columns_(columns.begin(), columns.end()), previous_values_() {}
 
 /// Scan a duckdb vector and track positions where values change
 template <typename VecType>
@@ -67,14 +60,11 @@ static void partitionStrings(duckdb::VectorData& vec, size_t count, duckdb::Valu
 }
 
 /// Consume the next query result chunk 
-void StreamPartitioner::consumeQueryResultChunk(duckdb::DataChunk& chunk, PartitionMask& out) {
-    if (!this->query_result_) return;
+void StreamPartitioner::consumeChunk(duckdb::DataChunk& chunk, PartitionMask& out) {
     if (partition_columns_.empty()) { return; }
     assert(out.size() >= chunk.size());
     auto size = chunk.size();
     auto vectors = chunk.Orrify();
-
-    auto local = out;
 
     for (size_t pi = 0; pi < partition_columns_.size(); ++pi) {
         auto ci = partition_columns_[pi];
