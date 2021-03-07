@@ -1,7 +1,7 @@
 // Copyright (c) 2020 The DashQL Authors
 
-#ifndef INCLUDE_DUCKDB_WEB_WEBDB_H_
-#define INCLUDE_DUCKDB_WEB_WEBDB_H_
+#ifndef INCLUDE_DASHQL_WEBDB_WEBDB_H_
+#define INCLUDE_DASHQL_WEBDB_WEBDB_H_
 
 #include <cstring>
 #include <stdexcept>
@@ -12,6 +12,7 @@
 #include "dashql/common/ffi_response.h"
 #include "dashql/common/span.h"
 #include "dashql/proto_generated.h"
+#include "dashql/webdb/stream_partitioner.h"
 #include "duckdb.hpp"
 
 namespace dashql {
@@ -32,6 +33,8 @@ class WebDB {
         uint64_t current_query_id_;
         /// The current query result (if any)
         std::unique_ptr<duckdb::QueryResult> current_query_result_;
+        /// The stream partitioniner (if any)
+        std::unique_ptr<StreamPartitioner> current_stream_partitioner_;
 
        public:
         /// Constructor
