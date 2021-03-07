@@ -30,16 +30,28 @@ void* dashql_webdb_access_buffer(ConnectionHdl /*connHdl*/, BufferHdl bufferHdl)
 /// Run a query
 void dashql_webdb_run_query(FFIResponse* packed, ConnectionHdl connHdl, const void* args_buffer) {
     auto* args = flatbuffers::GetRoot<proto::webdb::QueryArguments>(args_buffer);
+    nonstd::span<const uint32_t> partitioned_by;
+    if (auto pb = args->partitioned_by()) {
+        partitioned_by = {pb->data(), pb->size()};
+    }
     auto c = reinterpret_cast<WebDB::Connection*>(connHdl);
-    auto r = c->RunQuery(args->script()->string_view());
+    auto r = c->RunQuery({
+        .text = args->script()->string_view(),
+    });
     FFIResponseBuffer::GetInstance().Store(*packed, std::move(r));
 }
 
 /// Send a query
 void dashql_webdb_send_query(FFIResponse* packed, ConnectionHdl connHdl, const void* args_buffer) {
     auto* args = flatbuffers::GetRoot<proto::webdb::QueryArguments>(args_buffer);
+    nonstd::span<const uint32_t> partitioned_by;
+    if (auto pb = args->partitioned_by()) {
+        partitioned_by = {pb->data(), pb->size()};
+    }
     auto c = reinterpret_cast<WebDB::Connection*>(connHdl);
-    auto r = c->SendQuery(args->script()->string_view());
+    auto r = c->SendQuery({
+        .text = args->script()->string_view()
+    });
     FFIResponseBuffer::GetInstance().Store(*packed, std::move(r));
 }
 

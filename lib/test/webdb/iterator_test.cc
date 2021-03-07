@@ -23,9 +23,9 @@ namespace {
 TEST(QueryResultIterator, BoolColumn) {
     auto db = make_shared<duckdb::DuckDB>();
     WebDB::Connection conn{db};
-    auto expected = conn.SendQuery(R"RAW(
+    auto expected = conn.SendQuery({.text = R"RAW(
         SELECT MOD(v, 2)::BOOL FROM generate_series(0, 10000) as t(v);
-    )RAW");
+    )RAW"});
     ASSERT_TRUE(expected.IsOk());
     auto& result = expected.value();
     ASSERT_NE(result.column_types(), nullptr);
@@ -43,9 +43,9 @@ TEST(QueryResultIterator, BoolColumn) {
 TEST(QueryResultIterator, TinyIntColumn) {
     auto db = make_shared<duckdb::DuckDB>();
     WebDB::Connection conn{db};
-    auto expected = conn.SendQuery(R"RAW(
+    auto expected = conn.SendQuery({.text = R"RAW(
         SELECT MOD(v, 128)::TINYINT FROM generate_series(0, 10000) as t(v);
-    )RAW");
+    )RAW"});
     ASSERT_TRUE(expected.IsOk());
     auto& result = expected.value();
     ASSERT_NE(result.column_types(), nullptr);
@@ -63,9 +63,9 @@ TEST(QueryResultIterator, TinyIntColumn) {
 TEST(QueryResultIterator, SmallIntColumn) {
     auto db = make_shared<duckdb::DuckDB>();
     WebDB::Connection conn{db};
-    auto expected = conn.SendQuery(R"RAW(
+    auto expected = conn.SendQuery({.text = R"RAW(
         SELECT v::SMALLINT FROM generate_series(0, 10000) as t(v);
-    )RAW");
+    )RAW"});
     ASSERT_TRUE(expected.IsOk());
     auto& result = expected.value();
     ASSERT_NE(result.column_types(), nullptr);
@@ -83,9 +83,9 @@ TEST(QueryResultIterator, SmallIntColumn) {
 TEST(QueryResultIterator, IntegerColumn) {
     auto db = make_shared<duckdb::DuckDB>();
     WebDB::Connection conn{db};
-    auto expected = conn.SendQuery(R"RAW(
+    auto expected = conn.SendQuery({.text = R"RAW(
         SELECT v::INTEGER FROM generate_series(0, 10000) as t(v);
-    )RAW");
+    )RAW"});
     ASSERT_TRUE(expected.IsOk());
     auto& result = expected.value();
     ASSERT_NE(result.column_types(), nullptr);
@@ -103,9 +103,9 @@ TEST(QueryResultIterator, IntegerColumn) {
 TEST(QueryResultIterator, BigIntColumn) {
     auto db = make_shared<duckdb::DuckDB>();
     WebDB::Connection conn{db};
-    auto expected = conn.SendQuery(R"RAW(
+    auto expected = conn.SendQuery({.text = R"RAW(
         SELECT v::BIGINT FROM generate_series(0, 10000) as t(v);
-    )RAW");
+    )RAW"});
     ASSERT_TRUE(expected.IsOk());
     auto& result = expected.value();
     ASSERT_NE(result.column_types(), nullptr);
@@ -123,9 +123,9 @@ TEST(QueryResultIterator, BigIntColumn) {
 TEST(QueryResultIterator, FloatColumn) {
     auto db = make_shared<duckdb::DuckDB>();
     WebDB::Connection conn{db};
-    auto expected = conn.SendQuery(R"RAW(
+    auto expected = conn.SendQuery({.text = R"RAW(
         SELECT v::FLOAT FROM generate_series(0, 10000) as t(v);
-    )RAW");
+    )RAW"});
     ASSERT_TRUE(expected.IsOk());
     auto& result = expected.value();
     ASSERT_NE(result.column_types(), nullptr);
@@ -143,9 +143,9 @@ TEST(QueryResultIterator, FloatColumn) {
 TEST(QueryResultIterator, VarcharColumn) {
     auto db = make_shared<duckdb::DuckDB>();
     WebDB::Connection conn{db};
-    auto expected = conn.SendQuery(R"RAW(
+    auto expected = conn.SendQuery({.text = R"RAW(
         SELECT v::VARCHAR FROM generate_series(0, 10000) as t(v);
-    )RAW");
+    )RAW"});
     ASSERT_TRUE(expected.IsOk());
     auto& result = expected.value();
     ASSERT_NE(result.column_types(), nullptr);
@@ -164,9 +164,9 @@ TEST(QueryResultIterator, VarcharColumn) {
 TEST(QueryResultIterator, DateColumn) {
     auto db = make_shared<duckdb::DuckDB>();
     WebDB::Connection conn{db};
-    auto expected = conn.SendQuery(R"RAW(
+    auto expected = conn.SendQuery({.text = R"RAW(
         SELECT DATE '2020-10-09' + v::INTEGER FROM generate_series(0, 10000) AS t(v);
-    )RAW");
+    )RAW"});
     ASSERT_TRUE(expected.IsOk());
     auto& result = expected.value();
     ASSERT_NE(result.column_types(), nullptr);
@@ -187,9 +187,9 @@ TEST(QueryResultIterator, DateColumn) {
 TEST(QueryResultIterator, TimeColumn) {
     auto db = make_shared<duckdb::DuckDB>();
     WebDB::Connection conn{db};
-    auto expected = conn.SendQuery(R"RAW(
+    auto expected = conn.SendQuery({.text = R"RAW(
         SELECT TIME '01:00:00' + CAST(CONCAT(MOD(v, 1000)::VARCHAR, ' microsecond') AS INTERVAL) FROM generate_series(0, 10000) AS t(v);
-    )RAW");
+    )RAW"});
     ASSERT_TRUE(expected.IsOk());
     auto& result = expected.value();
     ASSERT_NE(result.column_types(), nullptr);
@@ -208,9 +208,9 @@ TEST(QueryResultIterator, TimeColumn) {
 TEST(QueryResultIterator, TimestampColumn) {
     auto db = make_shared<duckdb::DuckDB>();
     WebDB::Connection conn{db};
-    auto expected = conn.SendQuery(R"RAW(
+    auto expected = conn.SendQuery({.text = R"RAW(
         SELECT TIMESTAMP '2020-10-09 01:00:00' + CAST(CONCAT(MOD(v, 1000)::VARCHAR, ' microsecond') AS INTERVAL) FROM generate_series(0, 10000) AS t(v);
-    )RAW");
+    )RAW"});
     ASSERT_TRUE(expected.IsOk());
     auto& result = expected.value();
     ASSERT_NE(result.column_types(), nullptr);
@@ -231,9 +231,9 @@ TEST(QueryResultIterator, TimestampColumn) {
 TEST(QueryResultIterator, IntervalColumn) {
     auto db = make_shared<duckdb::DuckDB>();
     WebDB::Connection conn{db};
-    auto expected = conn.SendQuery(R"RAW(
+    auto expected = conn.SendQuery({.text = R"RAW(
         SELECT CAST(CONCAT(MOD(v, 1000)::VARCHAR, ' microsecond') AS INTERVAL) FROM generate_series(0, 10000) AS t(v);
-    )RAW");
+    )RAW"});
     ASSERT_TRUE(expected.IsOk());
     auto& result = expected.value();
     ASSERT_NE(result.column_types(), nullptr);
