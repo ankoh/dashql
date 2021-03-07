@@ -34,8 +34,8 @@ type TaskVariant =
     | Task<AsyncWebDBRequestType.OPEN, string | null, null>
     | Task<AsyncWebDBRequestType.CONNECT, null, ConnectionID>
     | Task<AsyncWebDBRequestType.DISCONNECT, ConnectionID, null>
-    | Task<AsyncWebDBRequestType.SEND_QUERY, [ConnectionID, string], Uint8Array>
-    | Task<AsyncWebDBRequestType.RUN_QUERY, [ConnectionID, string], Uint8Array>
+    | Task<AsyncWebDBRequestType.SEND_QUERY, [ConnectionID, string, number[]], Uint8Array>
+    | Task<AsyncWebDBRequestType.RUN_QUERY, [ConnectionID, string, number[]], Uint8Array>
     | Task<AsyncWebDBRequestType.FETCH_QUERY_RESULTS, ConnectionID, Uint8Array>;
 
 export class AsyncWebDB {
@@ -236,10 +236,10 @@ export class AsyncWebDB {
     }
 
     /// Run a query
-    public async runQuery(conn: ConnectionID, text: string): Promise<proto.QueryResult> {
-        const task = new Task<AsyncWebDBRequestType.RUN_QUERY, [ConnectionID, string], Uint8Array>(
+    public async runQuery(conn: ConnectionID, text: string, partitionedBy: number[] = []): Promise<proto.QueryResult> {
+        const task = new Task<AsyncWebDBRequestType.RUN_QUERY, [ConnectionID, string, number[]], Uint8Array>(
             AsyncWebDBRequestType.RUN_QUERY,
-            [conn, text],
+            [conn, text, partitionedBy],
         );
         const mem = await this.postTask(task);
         const bb = new flatbuffers.ByteBuffer(mem);
@@ -247,10 +247,10 @@ export class AsyncWebDB {
     }
 
     /// Send a query
-    public async sendQuery(conn: ConnectionID, text: string): Promise<proto.QueryResult> {
-        const task = new Task<AsyncWebDBRequestType.SEND_QUERY, [ConnectionID, string], Uint8Array>(
+    public async sendQuery(conn: ConnectionID, text: string, partitionedBy: number[] = []): Promise<proto.QueryResult> {
+        const task = new Task<AsyncWebDBRequestType.SEND_QUERY, [ConnectionID, string, number[]], Uint8Array>(
             AsyncWebDBRequestType.SEND_QUERY,
-            [conn, text],
+            [conn, text, partitionedBy],
         );
         const mem = await this.postTask(task);
         const bb = new flatbuffers.ByteBuffer(mem);
