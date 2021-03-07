@@ -1,134 +1,90 @@
-import * as Immutable from "immutable";
+import * as Immutable from 'immutable';
 import * as webdb from '@dashql/webdb/dist/webdb_async';
 import * as React from 'react';
 import * as platform from '../platform';
 import * as proto from '@dashql/proto';
-
-type RequestQueryFn = (request: QueryRequest) => void;
-
-export class QueryRequest {
-    /// The query key.
-    /// Results with the same key are overwritten.
-    queryKey: number;
-    /// The query
-    queryText: string;
-    /// The targets
-    targets: string[];
-
-    constructor(key: number, text: string, targets: string[]) {
-        this.queryKey = key;
-        this.queryText = text;
-        this.targets = targets;
-    }
-
-    public equals(other: QueryRequest): boolean {
-        return this.queryKey == other.queryKey && this.queryText == other.queryText;
-    }
-}
-
-export interface QueryData {
-    /// The scan request
-    request: QueryRequest;
-    /// The query result buffer
-    result: proto.webdb.QueryResult;
-}
 
 interface Props {
     /// The log manager
     logger: webdb.Logger;
     /// The database manager
     database: platform.DatabaseManager;
+    /// The query
+    query: string;
+    /// The error component
+    errorComponent?: ((error: string) => React.ReactNode) | null;
+    /// The in-flight component
+    inFlightComponent?: ((query: string) => React.ReactNode) | null;
     /// The children
-    children: (queryResults: Immutable.Map<number, QueryData>, requestQuery: RequestQueryFn) => React.ReactNode;
+    children: (result: proto.webdb.QueryResult) => React.ReactNode;
 }
 
 interface State {
-    /// The data
-    data: Immutable.Map<number, QueryData>;
+    /// The query
+    queryText: string | null;
+    /// The query result
+    queryResult: proto.webdb.QueryResult | null;
+    /// The error
+    error: string | null;
 }
 
 export class QueryProvider extends React.Component<Props, State> {
-    /// Function to request data from the provider
-    _requestQuery = this.requestQuery.bind(this);
-    /// The schedule function
-    _schedule = this.schedule.bind(this);
-    /// The handler to process a query result
-    _processQueryData = this.processQueryData.bind(this);
-
-    /// The query queue
-    _queryQueue: number[] = [];
-    /// The currently queued requests
-    _queuedRequests: Map<number, QueryRequest> = new Map();
-    /// The in-flight query
-    _queryInFlight: QueryRequest | null = null;
+    /// The query succeeded
+    _querySucceeded = this.querySucceeded.bind(this);
+    /// The query failed
+    _queryFailed = this.queryFailed.bind(this);
+    /// The evaluation handler
+    _evaluate = this.evaluate.bind(this);
+    /// The scheduled query
+    _inFlightQuery: string | null = null;
     /// The query promise
-    _queryPromise: Promise<QueryData> | null = null;
+    _queryPromise: Promise<proto.webdb.QueryResult> | null = null;
 
     constructor(props: Props) {
         super(props);
         this.state = {
-            data: Immutable.Map(),
+            queryText: null,
+            queryResult: null,
+            error: null,
         };
     }
 
-    /// Request a query
-    protected requestQuery(request: QueryRequest) {
-        if (this.state.data.has(request.queryKey) && this.state.data.get(request.queryKey)!.request.equals(request)) {
-            return;
-        }
-        this.scheduleIfNecessary(request);
-    }
-
-    /// Run a query
-    protected async runQuery(request: QueryRequest): Promise<QueryData> {
-        const result = await this.props.database.use(async conn => {
-            return await conn.runQuery(request.queryText);
-        });
-        return {
-            request,
-            result,
-        };
-    }
-
-    /// Process the query result
-    protected processQueryData(result: QueryData) {
+    protected querySucceeded(result: proto.webdb.QueryResult) {
+        const text = this._inFlightQuery;
+        this._inFlightQuery = null;
         this._queryPromise = null;
-        this._queryInFlight = null;
-        setImmediate(this._schedule);
+        setImmediate(this._evaluate);
         this.setState({
-            data: this.state.data.set(result.request.queryKey, result),
+            queryText: text,
+            queryResult: result,
         });
     }
 
-    /// Schedule a queued query if no query is in-flight
-    protected schedule() {
-        if (this._queryInFlight || this._queryQueue.length == 0) return;
-        const key = this._queryQueue.shift()!;
-        this._queryInFlight = this._queuedRequests.get(key)!;
-        this._queuedRequests.delete(key);
-        this._queryPromise = this.runQuery(this._queryInFlight);
-        this._queryPromise.then(this._processQueryData).catch(e => console.error(e));
+    protected queryFailed(e: any) {
+        console.error(e);
+        this._inFlightQuery = null;
+        this._queryPromise = null;
+        setImmediate(this._evaluate);
     }
 
-    /// Schedule a query iff the data cannot be served from the cached results
-    protected scheduleIfNecessary(req: QueryRequest) {
-        // In-flight query equals our request?
-        // Wait for the result then.
-        if (this._queryInFlight && this._queryInFlight.equals(req)) {
+    protected evaluate() {
+        if (this.props.query == this.state.queryText || this.props.query == this._inFlightQuery) {
             return;
         }
+        const text = this.props.query;
+        this._inFlightQuery = this.props.query;
+        this._queryPromise = this.props.database.use(async conn => {
+            return await conn.runQuery(text);
+        });
+        this._queryPromise.then(this._querySucceeded).catch(this._queryFailed);
+    }
 
-        // Replace the queued query if there is one.
-        // Note that this may lead to queries overtaking each other if a previous query with the same key exists.
-        // We accept that here for simplicity reasons.
-        // The query provider is FIFO "most of the time".
-        if (!this._queuedRequests.has(req.queryKey)) {
-            this._queryQueue.push(req.queryKey);
-        }
-        this._queuedRequests.set(req.queryKey, req);
+    componentDidMount() {
+        this.evaluate();
+    }
 
-        // Schedule the queued query
-        this.schedule();
+    componentDidUpdate() {
+        this.evaluate();
     }
 
     componentWillUnmount() {
@@ -139,6 +95,18 @@ export class QueryProvider extends React.Component<Props, State> {
 
     // Pass the scan function to the child
     render() {
-        return this.props.children(this.state.data, this._requestQuery);
+        // Query in flight?
+        if (this._inFlightQuery && this.props.inFlightComponent) {
+            return this.props.inFlightComponent(this._inFlightQuery!);
+        }
+        // Query failed?
+        if (this.state.error && this.props.errorComponent) {
+            return this.props.errorComponent(this.state.error);
+        }
+        // Query OK?
+        if (this.state.queryResult) {
+            return this.props.children(this.state.queryResult);
+        }
+        return <div />;
     }
 }
