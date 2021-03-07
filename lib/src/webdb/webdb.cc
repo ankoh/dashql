@@ -11,6 +11,7 @@
 #include "dashql/proto_generated.h"
 #include "dashql/webdb/codec.h"
 #include "dashql/webdb/json.h"
+#include "dashql/webdb/stream_partitioner.h"
 #include "duckdb.hpp"
 #include "duckdb/common/vector_operations/vector_operations.hpp"
 #include "duckdb/main/client_context.hpp"
@@ -48,20 +49,38 @@ ExpectedBuffer<p::QueryResult> WebDB::Connection::RunQuery(const QueryArgs& args
         // Send the query
         auto result = connection_.SendQuery(std::string{args.text});
         if (!result->success) return {ErrorCode::QUERY_FAILED, move(result->error)};
-        current_query_result_ = move(result);
+        current_query_result_.reset();
+        current_stream_partitioner_.reset();
         auto query_id = ++current_query_id_;
+
+        // Create stream partitioner (if necessary)
+        std::optional<StreamPartitioner> partitioner = std::nullopt;
+        if (!args.partitioned_by.empty()) {
+            partitioner.emplace(StreamPartitioner{*result, args.partitioned_by});
+        }
+        PartitionMask partitionMask;
 
         // Encode result chunks
         fb::FlatBufferBuilder builder{1024};
         std::vector<flatbuffers::Offset<proto::webdb::QueryResultChunk>> chunks;
-        for (auto chunk = current_query_result_->Fetch(); !!chunk && chunk->size() > 0;
-             chunk = current_query_result_->Fetch()) {
-            chunks.push_back(WriteQueryResultChunk(builder, *current_query_result_, query_id, chunk.get()));
+        for (auto chunk = result->Fetch(); !!chunk && chunk->size() > 0; chunk = result->Fetch()) {
+            // Pass chunk to stream partitioner
+            if (partitioner) {
+                if (partitionMask.size() < chunk->size()) {
+                    partitionMask.resize(chunk->size(), 0);
+                }
+                std::fill(partitionMask.begin(), partitionMask.begin() + chunk->size(), 0);
+                partitioner->consumeChunk(*chunk, partitionMask);
+            }
+
+            // Write flatbuffer
+            auto chunk_ofs = WriteQueryResultChunk(builder, *result, query_id, chunk.get(), partitionMask);
+            chunks.push_back(chunk_ofs);
         }
         auto chunkVec = builder.CreateVector(std::move(chunks));
 
         // Write the result buffer
-        auto query_result_ofs = WriteQueryResult(builder, *current_query_result_, query_id, chunkVec);
+        auto query_result_ofs = WriteQueryResult(builder, *result, query_id, chunkVec);
         builder.Finish(query_result_ofs);
         return {builder.Release()};
     } catch (std::exception& e) {
@@ -76,6 +95,12 @@ ExpectedBuffer<p::QueryResult> WebDB::Connection::SendQuery(const QueryArgs& arg
         auto result = connection_.SendQuery(std::string{args.text});
         if (!result->success) return {ErrorCode::QUERY_FAILED, move(result->error)};
         current_query_result_ = move(result);
+        current_stream_partitioner_.reset();
+
+        // Create stream partitioner (if necessary)
+        if (!args.partitioned_by.empty()) {
+            current_stream_partitioner_ = std::make_unique<StreamPartitioner>(*result, args.partitioned_by);
+        }
 
         // Encode no result chunks
         fb::FlatBufferBuilder builder{1024};
@@ -101,9 +126,17 @@ ExpectedBuffer<p::QueryResultChunk> WebDB::Connection::FetchQueryResults() {
         }
         if (!current_query_result_->success) return {ErrorCode::QUERY_FAILED, move(current_query_result_->error)};
 
+        // Encode the partition mask (if configured)
+        PartitionMask partitionMask;
+        if (current_stream_partitioner_ && !!chunk) {
+            partitionMask.resize(chunk->size(), 0);
+            current_stream_partitioner_->consumeChunk(*chunk, partitionMask);
+        }
+
         // Get query result
         fb::FlatBufferBuilder builder{128};
-        auto ofs = WriteQueryResultChunk(builder, *current_query_result_, current_query_id_, chunk.get());
+        auto ofs =
+            WriteQueryResultChunk(builder, *current_query_result_, current_query_id_, chunk.get(), partitionMask);
         builder.Finish(ofs);
 
         // Last chunk?
@@ -123,7 +156,6 @@ ExpectedBuffer<p::QueryPlan> WebDB::Connection::AnalyzeQuery(std::string_view te
 
     // Begin transaction
     conn.context->transaction.BeginTransaction();
-
     // Invalid statement count?
     if (parser.statements.size() != 1) return ErrorCode::INVALID_REQUEST;
 

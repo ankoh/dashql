@@ -9,7 +9,7 @@
 namespace dashql {
 namespace webdb {
 
-StreamPartitioner::StreamPartitioner(const duckdb::QueryResult& result, nonstd::span<const size_t> columns)
+StreamPartitioner::StreamPartitioner(const duckdb::QueryResult& result, nonstd::span<const uint32_t> columns)
     : query_result_(result), partition_columns_(columns.begin(), columns.end()), previous_values_() {}
 
 /// Scan a duckdb vector and track positions where values change
