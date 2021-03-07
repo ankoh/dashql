@@ -334,6 +334,7 @@ add_library(dashql_webdb
     ${CMAKE_SOURCE_DIR}/src/webdb/codec.cc
     ${CMAKE_SOURCE_DIR}/src/webdb/iterator.cc
     ${CMAKE_SOURCE_DIR}/src/webdb/json.cc
+    ${CMAKE_SOURCE_DIR}/src/webdb/stream_partitioner.cc
     ${CMAKE_SOURCE_DIR}/src/webdb/webdb.cc
     ${CMAKE_SOURCE_DIR}/src/webdb/webdb_ffi.cc
 )
