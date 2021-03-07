@@ -3,13 +3,11 @@
 #ifndef INCLUDE_DASHQL_WEBDB_STREAM_PARTITIONER_H_
 #define INCLUDE_DASHQL_WEBDB_STREAM_PARTITIONER_H_
 
-#include "duckdb.hpp"
 #include "duckdb/common/types/data_chunk.hpp"
 #include "duckdb/main/query_result.hpp"
-#include "flatbuffers/flatbuffers.h"
 
-namespace duckdb {
-namespace web {
+namespace dashql {
+namespace webdb {
 
 using PartitionMask = std::vector<bool>;
 
@@ -17,7 +15,7 @@ using PartitionMask = std::vector<bool>;
 ///
 /// It works as follows:
 /// For N specified columns, we pairwise scan the individual column values and write N partition masks.
-/// A partition masks contains a 0 whenever a value equals the predecessor and 1 if it doesnt.
+/// A partition mask contains a 0 whenever a value equals the predecessor and 1 if it doesnt.
 /// We then bitwise AND all the partition masks and attach them to a query result chunk.
 ///
 /// The client code can then just split the result based on the partition mask entries.
@@ -34,12 +32,12 @@ class StreamPartitioner {
     StreamPartitioner();
 
     /// Setup the partitioning of a query
-    void partition(duckdb::QueryResult& result, std::vector<size_t> columns);
+    void prepare(duckdb::QueryResult& result, std::vector<size_t> columns);
     /// Consume the next query result chunk 
     void consumeQueryResultChunk(duckdb::DataChunk& chunk, PartitionMask& out);
 };
 
-}  // namespace web
-}  // namespace duckdb
+}  // namespace webdb
+}  // namespace dashql
 
 #endif  // INCLUDE_DASHQL_WEBDB_STREAM_PARTITIONER_H_
