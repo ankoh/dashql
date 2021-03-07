@@ -6,6 +6,12 @@ include "webdb/vector.fbs";
 
 namespace dashql.proto.webdb;
 
+// Query arguments
+table QueryArguments {
+    script: string;
+    partitioned_by: [uint32];
+}
+
 // A query result chunk
 table QueryResultChunk {
     query_id: uint64;
