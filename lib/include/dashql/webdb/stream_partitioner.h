@@ -3,6 +3,7 @@
 #ifndef INCLUDE_DASHQL_WEBDB_STREAM_PARTITIONER_H_
 #define INCLUDE_DASHQL_WEBDB_STREAM_PARTITIONER_H_
 
+#include "dashql/common/span.h"
 #include "duckdb/common/types/data_chunk.hpp"
 #include "duckdb/main/query_result.hpp"
 
@@ -26,7 +27,7 @@ class StreamPartitioner {
     /// The columns that should be partitioned
     std::vector<size_t> partition_columns_;
     /// The last row of the previous chunk (if any)
-    std::vector<duckdb::Value> last_chunk_row_;
+    std::vector<duckdb::Value> previous_values_;
 
     /// Constructor
     StreamPartitioner();
