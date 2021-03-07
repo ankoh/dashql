@@ -1,14 +1,14 @@
 #include "dashql/webdb/stream_partitioner.h" 
 #include "duckdb/common/types/vector.hpp"
 
-namespace duckdb {
-namespace web {
+namespace dashql {
+namespace webdb {
 
 StreamPartitioner::StreamPartitioner()
     : query_result_(nullptr), partition_columns_(), last_chunk_row_() {}
 
 /// Consume a query result
-void StreamPartitioner::partition(duckdb::QueryResult& result, std::vector<size_t> columns) {
+void StreamPartitioner::prepare(duckdb::QueryResult& result, std::vector<size_t> columns) {
     query_result_ = &result;
     partition_columns_ = {};
     last_chunk_row_ = {};
@@ -69,5 +69,5 @@ void StreamPartitioner::consumeQueryResultChunk(duckdb::DataChunk& chunk, Partit
     }
 }
 
-}  // namespace web
-}  // namespace duckdb
+}  // namespace webdb
+}  // namespace dashql
