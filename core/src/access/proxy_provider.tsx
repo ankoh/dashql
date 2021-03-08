@@ -2,23 +2,23 @@ import * as webdb from '@dashql/webdb/dist/webdb_async';
 import * as React from 'react';
 import * as proto from '@dashql/proto';
 
-interface RowProviderProps {
+interface ProxyProviderProps {
     result: proto.webdb.QueryResult;
     children: (result: proto.webdb.QueryResult, rows: webdb.RowProxy[]) => React.ReactNode;
 }
 
-interface RowProviderState {
+interface ProxyProviderState {
     result: proto.webdb.QueryResult;
     rows: webdb.RowProxy[];
 }
 
-class RowProvider extends React.Component<RowProviderProps, RowProviderState> {
-    constructor(props: RowProviderProps) {
+export class ProxyProvider extends React.Component<ProxyProviderProps, ProxyProviderState> {
+    constructor(props: ProxyProviderProps) {
         super(props);
-        this.state = RowProvider.getDerivedStateFromProps(props);
+        this.state = ProxyProvider.getDerivedStateFromProps(props);
     }
 
-    public static getDerivedStateFromProps(nextProps: RowProviderProps, prevState?: RowProviderState) {
+    public static getDerivedStateFromProps(nextProps: ProxyProviderProps, prevState?: ProxyProviderState) {
         if (prevState?.result == nextProps.result) {
             return prevState;
         }
@@ -36,29 +36,29 @@ class RowProvider extends React.Component<RowProviderProps, RowProviderState> {
 
 export function withRowProxies(fn: (result: proto.webdb.QueryResult, rows: webdb.RowProxy[]) => React.ReactNode) {
     return (result: proto.webdb.QueryResult): React.ReactNode => (
-        <RowProvider result={result}>
+        <ProxyProvider result={result}>
             {(result: proto.webdb.QueryResult, rows: webdb.RowProxy[]) => fn(result, rows)}
-        </RowProvider>
+        </ProxyProvider>
     );
 }
 
-interface PartitionProviderProps {
+interface ProxyPartitionsProviderProps {
     result: proto.webdb.QueryResult;
     children: (result: proto.webdb.QueryResult, rows: webdb.RowProxy[][]) => React.ReactNode;
 }
 
-interface PartitionProviderState {
+interface ProxyPartitionsProviderState {
     result: proto.webdb.QueryResult;
     partitions: webdb.RowProxy[][];
 }
 
-class PartitionProvider extends React.Component<PartitionProviderProps, PartitionProviderState> {
-    constructor(props: PartitionProviderProps) {
+export class ProxyPartitionsProvider extends React.Component<ProxyPartitionsProviderProps, ProxyPartitionsProviderState> {
+    constructor(props: ProxyPartitionsProviderProps) {
         super(props);
-        this.state = PartitionProvider.getDerivedStateFromProps(props);
+        this.state = ProxyPartitionsProvider.getDerivedStateFromProps(props);
     }
 
-    public static getDerivedStateFromProps(nextProps: PartitionProviderProps, prevState?: PartitionProviderState) {
+    public static getDerivedStateFromProps(nextProps: ProxyPartitionsProviderProps, prevState?: ProxyPartitionsProviderState) {
         if (prevState?.result == nextProps.result) {
             return prevState;
         }
@@ -78,8 +78,8 @@ export function withRowProxyPartitions(
     fn: (result: proto.webdb.QueryResult, partitions: webdb.RowProxy[][]) => React.ReactNode,
 ) {
     return (result: proto.webdb.QueryResult): React.ReactNode => (
-        <PartitionProvider result={result}>
+        <ProxyPartitionsProvider result={result}>
             {(result: proto.webdb.QueryResult, partitions: webdb.RowProxy[][]) => fn(result, partitions)}
-        </PartitionProvider>
+        </ProxyPartitionsProvider>
     );
 }
