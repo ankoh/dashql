@@ -10,7 +10,7 @@ import VizComponentType = core.proto.syntax.VizComponentType;
 
 interface Props {
     appContext: IAppContext;
-    dbObjects: Immutable.Map<string, core.model.DatabaseTableInfo>;
+    tableInfo: core.model.DatabaseTableInfo;
     vizInfo: core.model.VizInfo;
     width: number;
     height: number;
