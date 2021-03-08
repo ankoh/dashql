@@ -208,10 +208,10 @@ void VizComponent::ReadFrom(size_t node_id) {
             sxm::Option(sx::AttributeKey::DASHQL_OPTION_DATA, ID_DATA)
                 .MatchOptions()
                 .MatchChildren({
-                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_GROUP, ID_DATA_GROUP),
-                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_ORDER, ID_DATA_ORDER),
+                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_GROUP_BY, ID_DATA_GROUP),
+                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_ORDER_BY, ID_DATA_ORDER),
                     sxm::Option(sx::AttributeKey::DASHQL_OPTION_SAMPLES, ID_DATA_SAMPLES),
-                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_STACK, ID_DATA_STACK),
+                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_STACK_BY, ID_DATA_STACK),
                     sxm::Option(sx::AttributeKey::DASHQL_OPTION_X, ID_DATA_X),
                     sxm::Option(sx::AttributeKey::DASHQL_OPTION_Y, ID_DATA_Y),
                     sxm::Option(sx::AttributeKey::DASHQL_OPTION_Y0, ID_DATA_Y0),
@@ -229,9 +229,9 @@ void VizComponent::ReadFrom(size_t node_id) {
                     sxm::Option(sx::AttributeKey::DASHQL_OPTION_Y, ID_DOMAIN_PADDING_Y)
                 }),
             sxm::Option(sx::AttributeKey::DASHQL_OPTION_FILL, ID_FILL),
-            sxm::Option(sx::AttributeKey::DASHQL_OPTION_GROUP, ID_GROUP),
+            sxm::Option(sx::AttributeKey::DASHQL_OPTION_GROUP_BY, ID_GROUP),
             sxm::Option(sx::AttributeKey::DASHQL_OPTION_HEIGHT, ID_HEIGHT),
-            sxm::Option(sx::AttributeKey::DASHQL_OPTION_ORDER, ID_ORDER),
+            sxm::Option(sx::AttributeKey::DASHQL_OPTION_ORDER_BY, ID_ORDER),
             sxm::Option(sx::AttributeKey::DASHQL_OPTION_POSITION)
                 .MatchOptions()
                 .MatchChildren({
@@ -241,7 +241,7 @@ void VizComponent::ReadFrom(size_t node_id) {
                     sxm::Option(sx::AttributeKey::DASHQL_OPTION_WIDTH, ID_POS_WIDTH),
                 }),
             sxm::Option(sx::AttributeKey::DASHQL_OPTION_ROW, ID_ROW),
-            sxm::Option(sx::AttributeKey::DASHQL_OPTION_STACK, ID_STACK),
+            sxm::Option(sx::AttributeKey::DASHQL_OPTION_STACK_BY, ID_STACK),
             sxm::Option(sx::AttributeKey::DASHQL_OPTION_STYLE)
                 .MatchOptions()
                 .MatchChildren({
@@ -321,9 +321,9 @@ void VizComponent::ReadFrom(size_t node_id) {
     auto data_y = SelectAltOption("data.y", matches[ID_DATA_Y].node_id, matches[ID_Y].node_id);
     if (AnyOptionSet({data_x, data_y, data_group, data_stack, data_order, data_samples})) {
         data_.emplace();
-        data_->group = ReadColumnRefs(data_group);
-        data_->stack = ReadColumnRefs(data_stack);
-        data_->order = ReadColumnRefs(data_stack);
+        data_->group_by = ReadColumnRefs(data_group);
+        data_->stack_by = ReadColumnRefs(data_stack);
+        data_->order_by = ReadColumnRefs(data_stack);
         data_->x = ReadColumnRefs(data_x);
         data_->y = ReadColumnRefs(data_y);
         data_->samples = viz_stmt_.instance_.ReadNodeValueOrNull(pos_row).CastAsUI64().value_or(0);
@@ -521,16 +521,16 @@ flatbuffers::Offset<proto::viz::VizComponent> VizComponent::Pack(flatbuffers::Fl
     if (data_) {
         auto x = data_->x.empty() ? std::nullopt : std::optional{builder.CreateVectorOfStrings(data_->x)};
         auto y = data_->y.empty() ? std::nullopt : std::optional{builder.CreateVectorOfStrings(data_->y)};
-        auto group = data_->group.empty() ? std::nullopt : std::optional{builder.CreateVectorOfStrings(data_->group)};
-        auto stack = data_->stack.empty() ? std::nullopt : std::optional{builder.CreateVectorOfStrings(data_->stack)};
-        auto order = data_->order.empty() ? std::nullopt : std::optional{builder.CreateVectorOfStrings(data_->order)};
+        auto group_by = data_->group_by.empty() ? std::nullopt : std::optional{builder.CreateVectorOfStrings(data_->group_by)};
+        auto stack_by = data_->stack_by.empty() ? std::nullopt : std::optional{builder.CreateVectorOfStrings(data_->stack_by)};
+        auto order_by = data_->order_by.empty() ? std::nullopt : std::optional{builder.CreateVectorOfStrings(data_->order_by)};
 
         pv::VizDataBuilder dataBuilder{builder};
         if (x) dataBuilder.add_x(*x);
         if (y) dataBuilder.add_x(*y);
-        if (group) dataBuilder.add_x(*group);
-        if (stack) dataBuilder.add_x(*stack);
-        if (order) dataBuilder.add_x(*order);
+        if (group_by) dataBuilder.add_x(*group_by);
+        if (stack_by) dataBuilder.add_x(*stack_by);
+        if (order_by) dataBuilder.add_x(*order_by);
         dataBuilder.add_samples(data_->samples);
         data = dataBuilder.Finish();
     }

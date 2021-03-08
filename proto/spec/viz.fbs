@@ -69,9 +69,9 @@ table VizData {
     x: [string];
     y: [string];
     y0: string;
-    group: [string];
-    stack: [string];
-    order: [string];
+    group_by: [string];
+    stack_by: [string];
+    order_by: [string];
     samples: double;
 }
 
