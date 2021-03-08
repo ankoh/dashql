@@ -5,8 +5,6 @@ import * as webdb from '@dashql/webdb/dist/webdb_async';
 import { IAppContext } from '../../app_context';
 import * as vy from 'victory';
 
-import styles from './victory_renderer.module.css';
-
 import VizComponentTypeModifier = core.proto.syntax.VizComponentTypeModifier;
 import VizComponentType = core.proto.syntax.VizComponentType;
 
@@ -91,7 +89,7 @@ export class VictoryChartSimple extends React.Component<Props> {
             >
                 {(scan, _req) => (
                     <core.access.ProxyProvider result={scan.result}>
-                        {(result, rows) => (
+                        {(_result, rows) => (
                             <vy.VictoryChart
                                 style={{
                                     parent: {
