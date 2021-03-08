@@ -6,7 +6,9 @@ import * as Immutable from 'immutable';
 import { ProgramActionLogic, SetupActionLogic } from './action_logic';
 import { ActionContext } from './action_context';
 import ActionStatusCode = proto.action.ActionStatusCode;
-import { SVGStyleMap } from '../model';
+import { SVGStyleMap, VizDataGrouping } from '../model';
+
+import VizComponentTypeModifier = proto.syntax.VizComponentTypeModifier;
 
 export abstract class BaseVizActionLogic extends ProgramActionLogic {
     constructor(action_id: model.ActionHandle, action: proto.action.ProgramAction, statement: model.Statement) {
@@ -70,8 +72,8 @@ export abstract class BaseVizActionLogic extends ProgramActionLogic {
         // The common data attributes in case some are not set
         let sharedX: string[] | undefined = undefined;
         let sharedY: string[] | undefined = undefined;
-        let sharedGroup: string[] | undefined = undefined;
-        let sharedStack: string[] | undefined = undefined;
+        let sharedXGrouping: model.VizDataGrouping | undefined = undefined;
+        let sharedYGrouping: model.VizDataGrouping | undefined = undefined;
         let sharedOrder: string[] | undefined = undefined;
         let sharedSamples: number | undefined = undefined;
 
@@ -99,26 +101,99 @@ export abstract class BaseVizActionLogic extends ProgramActionLogic {
             let data: model.VizData = {
                 x: sharedX || getCol('x'),
                 y: sharedY || getCol('y'),
-                group: sharedGroup,
-                stack: sharedStack,
+                xGrouping: VizDataGrouping.NO_GROUPING,
+                yGrouping: VizDataGrouping.NO_GROUPING,
                 order: sharedOrder,
                 samples: sharedSamples,
             };
             // Specified data attributes always override previous attributes
             if (dataReader) {
+                /// Detect the grouping mode for x and y axis.
+                /// Note that the grouping of the y-axis is also referred to as "stacking".
+                ///
+                /// We differentiate between the following situations:
+                /// A) USING BAR (x = attr1, y = attr2)
+                ///    Displays (attr1 -> attr3) bars, easy, very fast, allows for sampling.
+                ///
+                /// B) USING GROUPED BAR (x = [attr1, attr2], y = attr3)
+                ///    User provides already pivotted x values.
+                ///    Displays ((attr1, attr2) -> attr3) bars, no preprocessing, very fast, allows for sampling.
+                ///
+                /// C) USING STACKED BAR (x = attr1, y = [attr2, attr3])
+                ///    User provides already privotted y values.
+                ///    Displays ((attr1) -> (attr2, attr3)) bars, no preprocessing, very fast, allows for sampling.
+                ///         
+                /// D) USING GROUPED BAR (y = attr1, group = attr2)
+                ///    We need to group x ourselves.
+                ///    Displays (groups(attr2) -> attr1) bars, slower because of grouping.
+                ///
+                /// E) USING STACKED BAR (x = attr1, stack = [attr2, attr3])
+                ///    We need to group y ourselves.
+                ///    Displays ((attr1) -> groups(attr2, attr3)) bars, slower because of grouping.
+                ///
+                /// + Combinations of above, e.g.:
+                ///
+                /// F) USING GROUPED STACKED BAR (x = [attr1, attr2], stack = [attr3, attr4])
+                ///    User gives us pivotted x groups but we have to group y.
+                ///    (e.g. SELECT attr3, attr4, max(attr1), max(attr2) GROUP BY attr3, attr4 ORDER BY attr1, attr2, attr3, attr4)
+                ///    Displays (attr1, attr2) -> groups(attr3, attr4) bars, slower because of grouping.
+                ///
+                /// G) USING GROUPED STACKED BAR (group = [attr1, attr2], stack = [attr3, attr4])
+                ///    We have to group x and y.
+                ///    Displays groups(attr3, attr4) -> groups(attr1, attr2)
+
+                let x: string[] = [];
+                let y: string[] = [];
+                let xGrouping: model.VizDataGrouping = model.VizDataGrouping.NO_GROUPING;
+                let yGrouping: model.VizDataGrouping = model.VizDataGrouping.NO_GROUPING;
+                let withExplicitGrouping: boolean = false;
+
+                // Is grouped?
+                // The user either gave us multiple x-attributes or specified `group`.
+                if (typeModifiers.has(VizComponentTypeModifier.GROUPED)) {
+                    let key: string[];
+                    if (dataReader.groupLength() > 0) {
+                        x = collectStr(dataReader.group, dataReader.groupLength())!;
+                        xGrouping = model.VizDataGrouping.GROUP_BY;
+                        withExplicitGrouping = true;
+                    } else {
+                        x = collectStr(dataReader.x, dataReader.xLength()) || data.x || [];
+                        xGrouping = model.VizDataGrouping.GROUP_PIVOT;
+                    }
+                }
+
+                // Is stacked?
+                // The user either gave us multiple y-attributes or specified `stack`.
+                if (typeModifiers.has(VizComponentTypeModifier.STACKED)) {
+                    if (dataReader.groupLength() > 0) {
+                        y = collectStr(dataReader.stack, dataReader.stackLength())!;
+                        yGrouping = model.VizDataGrouping.GROUP_BY;
+                        withExplicitGrouping = true;
+                    } else {
+                        y = collectStr(dataReader.y, dataReader.xLength()) || data.y|| [];
+                        yGrouping = model.VizDataGrouping.GROUP_PIVOT;
+                    }
+                }
+
+                let ordering = collectStr(dataReader.order, dataReader.orderLength()) || data.order;
+                if (withExplicitGrouping) {
+                    // XXX We override the user ordering here.
+                    //     Emit a warning or error if it differs.
+                    ordering = x.concat(y);
+                }
+
                 data = {
-                    x: collectStr(dataReader.x, dataReader.xLength()) || data.x,
-                    y: collectStr(dataReader.y, dataReader.yLength()) || data.y,
-                    group: collectStr(dataReader.group, dataReader.groupLength()) || data.group,
-                    stack: collectStr(dataReader.stack, dataReader.stackLength()) || data.stack,
-                    order: collectStr(dataReader.order, dataReader.orderLength()) || data.order,
-                    samples: dataReader.samples() || data.samples,
+                    x, y, xGrouping, yGrouping,
+                    order: ordering,
+                    samples: withExplicitGrouping ? undefined : (dataReader.samples() || data.samples),
                 };
+
+                /// XXX Detect when data spec conflicts with other components
             }
             sharedX = data.x || sharedX;
             sharedY = data.y || sharedY;
-            sharedStack = data.stack || sharedStack;
-            sharedGroup = data.group || sharedGroup;
+            sharedXGrouping = data.xGrouping || sharedXGrouping;
+            sharedYGrouping = data.yGrouping || sharedYGrouping;
             sharedOrder = data.order || sharedOrder;
             sharedSamples = data.samples || sharedSamples;
 
