@@ -1,4 +1,4 @@
-import { LogLevel } from './model';
+import { LogLevel, ProgramInstance } from './model';
 
 // Inheriting from error requires a tiny hack as the Error class apparently messes up the prototype chain.
 // https://stackoverflow.com/questions/41102060/typescript-extending-error-class
@@ -28,6 +28,17 @@ export class LoggableError extends ErrorBase {
 
     public get logLevel() { return this._logLevel; }
     public get message() { return this._message; }
+}
+
+// An error within the viz logic
+export class VizLogicError extends LoggableError {
+    protected _message: string;
+    protected _programInstance: ProgramInstance | null;
+    constructor(message: string, program: ProgramInstance, logLevel: LogLevel = LogLevel.WARNING) {
+        super(message);
+        this._message = message;
+        this._programInstance = program;
+    }
 }
 
 // An error with a http status code
