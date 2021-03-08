@@ -86,7 +86,7 @@ interface Props {
     /// The request
     request?: ScanRequest;
     /// The children
-    children: (scanResult: ScanResult | null, requestScan: RequestScanFn) => JSX.Element;
+    children: (scanResult: ScanResult, requestScan: RequestScanFn) => JSX.Element;
 }
 
 interface State {
@@ -211,6 +211,9 @@ export class ScanProvider extends React.Component<Props, State> {
 
     // Pass the scan function to the child
     render() {
+        if (!this.state.result) {
+            return <div />;
+        }
         return this.props.children(this.state.result, this._requestScan);
     }
 }
