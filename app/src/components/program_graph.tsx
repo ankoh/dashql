@@ -178,13 +178,17 @@ class ProgramGraph extends React.Component<ProgramGraphProps, ProgramGraphState>
                     elements={(this.state.nodes as FlowElement[]).concat(this.state.edges as FlowElement[])}
                     defaultPosition={[20, 20]}
                     nodesDraggable={false}
+                    paneMoveable={false}
+                    zoomOnScroll={false}
+                    zoomOnDoubleClick={false}
+                    selectNodesOnDrag={false}
+                    elementsSelectable={false}
+                    nodesConnectable={false}
                     onLoad={flow => flow.fitView({ padding: FIT_PADDING })}
                     nodeTypes={{
                         custom: StatementNode,
                     }}
-                    nodesConnectable={false}
                 >
-                    <Controls className={styles.controls} showInteractive={false} showZoom={false} />
                 </ReactFlow>
             </div>
         );
