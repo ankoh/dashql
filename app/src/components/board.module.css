@@ -42,7 +42,8 @@
 .content_container {
     display: grid;
     grid-template-columns: v_ruler_size calc(100% - 32px);
-    grid-template-rows: max-content;
+    grid-template-rows: minmax(100%, max-content);
+    min-height: 100%;
 }
 
 .ruler_left {
