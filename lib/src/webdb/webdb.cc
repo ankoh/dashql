@@ -7,7 +7,6 @@
 #include <optional>
 #include <string_view>
 #include <unordered_map>
-#include <iostream>
 
 #include "dashql/proto_generated.h"
 #include "dashql/webdb/codec.h"
@@ -45,10 +44,10 @@ WebDB::Connection::Connection(std::shared_ptr<duckdb::DuckDB> db)
       current_stream_partitioner_() {}
 
 /// Run a SQL query
-ExpectedBuffer<p::QueryResult> WebDB::Connection::RunQuery(const QueryArgs& args) {
+ExpectedBuffer<p::QueryResult> WebDB::Connection::RunQuery(std::string_view text, const QueryRunOptions& options) {
     try {
         // Send the query
-        auto result = connection_.SendQuery(std::string{args.text});
+        auto result = connection_.SendQuery(std::string{text});
         if (!result->success) return {ErrorCode::QUERY_FAILED, move(result->error)};
         current_query_result_.reset();
         current_stream_partitioner_.reset();
@@ -56,8 +55,8 @@ ExpectedBuffer<p::QueryResult> WebDB::Connection::RunQuery(const QueryArgs& args
 
         // Create stream partitioner (if necessary)
         std::optional<StreamPartitioner> partitioner = std::nullopt;
-        if (!args.partitioned_by.empty()) {
-            partitioner.emplace(StreamPartitioner{*result, args.partitioned_by});
+        if (!options.partition_boundaries.empty()) {
+            partitioner.emplace(StreamPartitioner{*result, options.partition_boundaries});
         }
         PartitionBoundaries partitionBoundaries;
 
@@ -90,17 +89,18 @@ ExpectedBuffer<p::QueryResult> WebDB::Connection::RunQuery(const QueryArgs& args
 }
 
 /// Start a SQL query
-ExpectedBuffer<p::QueryResult> WebDB::Connection::SendQuery(const QueryArgs& args) {
+ExpectedBuffer<p::QueryResult> WebDB::Connection::SendQuery(std::string_view text, const QueryRunOptions& options) {
     try {
         // Send the query
-        auto result = connection_.SendQuery(std::string{args.text});
+        auto result = connection_.SendQuery(std::string{text});
         if (!result->success) return {ErrorCode::QUERY_FAILED, move(result->error)};
         current_query_result_ = move(result);
         current_stream_partitioner_.reset();
 
         // Create stream partitioner (if necessary)
-        if (!args.partitioned_by.empty()) {
-            current_stream_partitioner_ = std::make_unique<StreamPartitioner>(*result, args.partitioned_by);
+        if (!options.partition_boundaries.empty()) {
+            current_stream_partitioner_ =
+                std::make_unique<StreamPartitioner>(*result, options.partition_boundaries);
         }
 
         // Encode no result chunks

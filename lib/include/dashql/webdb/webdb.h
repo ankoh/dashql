@@ -4,6 +4,7 @@
 #define INCLUDE_DASHQL_WEBDB_WEBDB_H_
 
 #include <cstring>
+#include <initializer_list>
 #include <stdexcept>
 #include <string>
 #include <unordered_map>
@@ -18,19 +19,24 @@
 namespace dashql {
 namespace webdb {
 
-/// The Web API context
+struct QueryRunOptions {
+    /// Partition boundary keys
+    std::vector<uint32_t> partition_boundaries = {};
+
+    /// Constructor
+    QueryRunOptions() = default;
+    /// Set partition boundary columns
+    QueryRunOptions& WithPartitionBoundaries(std::initializer_list<uint32_t> columns) {
+        partition_boundaries = {columns};
+        return *this;
+    }
+};
+
 class WebDB {
    public:
     /// A connection
     class Connection {
        public:
-        /// The query arguments
-        struct QueryArgs {
-            /// The query text
-            std::string_view text;
-            /// The result partitioning
-            std::vector<uint32_t> partitioned_by = {};
-        };
 
        protected:
         /// The database
@@ -55,9 +61,9 @@ class WebDB {
         auto& GetConnection() { return connection_; }
 
         /// Run a SQL query
-        ExpectedBuffer<proto::webdb::QueryResult> RunQuery(const QueryArgs& args);
+        ExpectedBuffer<proto::webdb::QueryResult> RunQuery(std::string_view text, const QueryRunOptions& args = {});
         /// Send a SQL query
-        ExpectedBuffer<proto::webdb::QueryResult> SendQuery(const QueryArgs& args);
+        ExpectedBuffer<proto::webdb::QueryResult> SendQuery(std::string_view text, const QueryRunOptions& args = {});
         /// Fetch query results
         ExpectedBuffer<proto::webdb::QueryResultChunk> FetchQueryResults();
         /// Analyze a SQL query

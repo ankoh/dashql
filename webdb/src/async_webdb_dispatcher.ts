@@ -110,7 +110,7 @@ export abstract class AsyncWebDBDispatcher implements Logger {
                     this.sendOK(request);
                     break;
                 case AsyncWebDBRequestType.RUN_QUERY: {
-                    const result = this._bindings.runQuery(request.data[0], request.data[1]);
+                    const result = this._bindings.runQuery(request.data[0], request.data[1], request.data[2]);
                     const bytes = result.bb!.bytes();
                     this.postMessage(
                         {
@@ -124,7 +124,7 @@ export abstract class AsyncWebDBDispatcher implements Logger {
                     break;
                 }
                 case AsyncWebDBRequestType.SEND_QUERY: {
-                    const result = this._bindings.sendQuery(request.data[0], request.data[1]);
+                    const result = this._bindings.sendQuery(request.data[0], request.data[1], request.data[2]);
                     const bytes = result.bb!.bytes();
                     this.postMessage(
                         {
