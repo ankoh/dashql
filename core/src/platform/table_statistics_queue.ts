@@ -82,12 +82,8 @@ export class TableStatisticsQueue {
     }
 
     /// Build a standalone query
-    public buildStandaloneQuery(tableInfo: model.DatabaseTableInfo, req: TableStatisticsRequest): string {
-        let columnName = tableInfo.columnNames[req.columnId];
-        switch (req.type) {
-            case model.TableStatisticsType.DISTINCT_VALUES:
-                return `SELECT DISTINCT ${columnName} FROM ${tableInfo.nameShort} LIMIT 1024;`;
-        }
+    public buildStandaloneQuery(_tableInfo: model.DatabaseTableInfo, _req: TableStatisticsRequest): string {
+        console.assert("There are no standalone table statistics at the moment");
         return "";
     }
 
@@ -104,9 +100,6 @@ export class TableStatisticsQueue {
             const req = new TableStatisticsRequest(key);
             this._requests.set(key, req);
             switch (type) {
-                case model.TableStatisticsType.DISTINCT_VALUES:
-                    this._standaloneRequests.push(req);
-                    break;
                 case model.TableStatisticsType.COUNT_STAR:
                 case model.TableStatisticsType.MAXIMUM_VALUE:
                 case model.TableStatisticsType.MINIMUM_VALUE:
