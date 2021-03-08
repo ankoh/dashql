@@ -3,7 +3,12 @@
 import { proto } from 'src/index_node';
 import { PlanObject } from './plan_object';
 
-/// The viz base spec
+export enum VizDataGrouping {
+    NO_GROUPING,
+    GROUP_PIVOT,
+    GROUP_BY,
+}
+
 export interface VizInfo extends PlanObject {
     readonly currentStatementId: number;
     readonly position: VizPosition;
@@ -19,7 +24,6 @@ export interface VizComponentSpec {
     readonly selectionID: number | null;
 }
 
-/// A position
 export interface VizPosition {
     readonly row: number;
     readonly column: number;
@@ -30,13 +34,12 @@ export interface VizPosition {
 export interface VizData {
     readonly x?: string[];
     readonly y?: string[];
-    readonly group?: string[];
-    readonly stack?: string[];
+    readonly xGrouping: VizDataGrouping;
+    readonly yGrouping: VizDataGrouping;
     readonly order?: string[];
     readonly samples?: number;
 }
 
-/// A style configuration
 export interface SVGStyleConfiguration {
     readonly color?: string;
     readonly cx?: number;
@@ -76,7 +79,6 @@ export interface SVGStyleConfiguration {
     readonly y?: string;
 }
 
-/// An SVG style map
 export interface SVGStyleMap {
     readonly axis?: SVGStyleConfiguration;
     readonly axisLabel?: SVGStyleConfiguration;
