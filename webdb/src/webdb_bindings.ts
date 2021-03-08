@@ -4,6 +4,7 @@ import { WebDBModule } from './webdb_module';
 import { webdb as proto } from '@dashql/proto';
 import { flatbuffers } from 'flatbuffers';
 import { Logger } from './log';
+import { QueryRunOptions } from './query_options';
 
 export interface WebDBRuntime {}
 
@@ -112,14 +113,14 @@ export abstract class WebDBBindings {
     }
 
     /// Encode query arguments 
-    protected encodeQueryArguments(text: string, partitionedBy: number[]): number {
+    protected encodeQueryArguments(text: string, options: QueryRunOptions = {}): number {
         const instance = this.instance!;
         const builder = new flatbuffers.Builder();
-        const partitionedByOfs = proto.QueryArguments.createPartitionedByVector(builder, partitionedBy);
+        const partitionBoundaries = proto.QueryArguments.createPartitionBoundariesVector(builder, options.partitionBoundaries || []);
         const scriptOfs = builder.createString(text);
         proto.QueryArguments.start(builder);
         proto.QueryArguments.addScript(builder, scriptOfs);
-        proto.QueryArguments.addPartitionedBy(builder, partitionedByOfs);
+        proto.QueryArguments.addPartitionBoundaries(builder, partitionBoundaries);
         const args = proto.QueryArguments.end(builder);
         builder.finish(args);
         const argsBuffer = builder.dataBuffer();
@@ -132,9 +133,9 @@ export abstract class WebDBBindings {
     }
 
     /// Send a query and return the full result
-    public runQuery(conn: number, text: string, partitionedBy: number[] = []): proto.QueryResult {
+    public runQuery(conn: number, text: string, options: QueryRunOptions = {}): proto.QueryResult {
         const instance = this.instance!;
-        const args = this.encodeQueryArguments(text, partitionedBy);
+        const args = this.encodeQueryArguments(text, options);
         const [s, d, n] = this.callSRet('dashql_webdb_run_query', ['number', 'number'], [conn, args]);
         const mem = instance.HEAPU8.subarray(d, d + n);
         if (s !== proto.StatusCode.SUCCESS) {
@@ -146,9 +147,9 @@ export abstract class WebDBBindings {
     }
 
     /// Send a query and return a result stream
-    public sendQuery(conn: number, text: string, partitionedBy: number[] = []): proto.QueryResult {
+    public sendQuery(conn: number, text: string, options: QueryRunOptions = {}): proto.QueryResult {
         const instance = this.instance!;
-        const args = this.encodeQueryArguments(text, partitionedBy);
+        const args = this.encodeQueryArguments(text, options);
         const [s, d, n] = this.callSRet('dashql_webdb_send_query', ['number', 'number'], [conn, args]);
         const mem = instance.HEAPU8.subarray(d, d + n);
         if (s !== proto.StatusCode.SUCCESS) {
@@ -205,12 +206,12 @@ export class WebDBConnection {
         this._bindings.disconnect(this._conn);
     }
 
-    public runQuery(text: string, partitionedBy: number[] = []): proto.QueryResult {
-        return this._bindings.runQuery(this._conn, text, partitionedBy);
+    public runQuery(text: string, options: QueryRunOptions = {}): proto.QueryResult {
+        return this._bindings.runQuery(this._conn, text, options);
     }
 
-    public sendQuery(text: string, partitionedBy: number[] = []): proto.QueryResult {
-        return this._bindings.sendQuery(this._conn, text, partitionedBy);
+    public sendQuery(text: string, options: QueryRunOptions = {}): proto.QueryResult {
+        return this._bindings.sendQuery(this._conn, text, options);
     }
 
     public fetchQueryResults(): proto.QueryResultChunk {

@@ -9,7 +9,7 @@ namespace dashql.proto.webdb;
 // Query arguments
 table QueryArguments {
     script: string;
-    partitioned_by: [uint32];
+    partition_boundaries: [uint32];
 }
 
 // A query result chunk

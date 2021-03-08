@@ -8,6 +8,7 @@ import {
     AsyncWebDBResponseVariant,
 } from './async_webdb_message';
 import { Logger, LogLevel, LogTopic, LogOrigin, LogEvent } from './log';
+import { QueryRunOptions } from './query_options';
 
 type ConnectionID = number;
 
@@ -34,8 +35,8 @@ type TaskVariant =
     | Task<AsyncWebDBRequestType.OPEN, string | null, null>
     | Task<AsyncWebDBRequestType.CONNECT, null, ConnectionID>
     | Task<AsyncWebDBRequestType.DISCONNECT, ConnectionID, null>
-    | Task<AsyncWebDBRequestType.SEND_QUERY, [ConnectionID, string, number[]], Uint8Array>
-    | Task<AsyncWebDBRequestType.RUN_QUERY, [ConnectionID, string, number[]], Uint8Array>
+    | Task<AsyncWebDBRequestType.SEND_QUERY, [ConnectionID, string, QueryRunOptions], Uint8Array>
+    | Task<AsyncWebDBRequestType.RUN_QUERY, [ConnectionID, string, QueryRunOptions], Uint8Array>
     | Task<AsyncWebDBRequestType.FETCH_QUERY_RESULTS, ConnectionID, Uint8Array>;
 
 export class AsyncWebDB {
@@ -236,10 +237,10 @@ export class AsyncWebDB {
     }
 
     /// Run a query
-    public async runQuery(conn: ConnectionID, text: string, partitionedBy: number[] = []): Promise<proto.QueryResult> {
-        const task = new Task<AsyncWebDBRequestType.RUN_QUERY, [ConnectionID, string, number[]], Uint8Array>(
+    public async runQuery(conn: ConnectionID, text: string, options: QueryRunOptions = {}): Promise<proto.QueryResult> {
+        const task = new Task<AsyncWebDBRequestType.RUN_QUERY, [ConnectionID, string, QueryRunOptions], Uint8Array>(
             AsyncWebDBRequestType.RUN_QUERY,
-            [conn, text, partitionedBy],
+            [conn, text, options],
         );
         const mem = await this.postTask(task);
         const bb = new flatbuffers.ByteBuffer(mem);
@@ -247,10 +248,10 @@ export class AsyncWebDB {
     }
 
     /// Send a query
-    public async sendQuery(conn: ConnectionID, text: string, partitionedBy: number[] = []): Promise<proto.QueryResult> {
-        const task = new Task<AsyncWebDBRequestType.SEND_QUERY, [ConnectionID, string, number[]], Uint8Array>(
+    public async sendQuery(conn: ConnectionID, text: string, options: QueryRunOptions = {}): Promise<proto.QueryResult> {
+        const task = new Task<AsyncWebDBRequestType.SEND_QUERY, [ConnectionID, string, QueryRunOptions], Uint8Array>(
             AsyncWebDBRequestType.SEND_QUERY,
-            [conn, text, partitionedBy],
+            [conn, text, options],
         );
         const mem = await this.postTask(task);
         const bb = new flatbuffers.ByteBuffer(mem);
