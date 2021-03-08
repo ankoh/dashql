@@ -82,13 +82,43 @@ export abstract class ChunkIterator {
         return this._proxyType.proxyChunkRows<T>(this.currentChunk, out);
     }
 
-    /// Build row proxies for all chunks
+    /// Build row proxies for across all chunks
     public collectAllBlocking<T extends RowProxy>(out: T[] = []): T[] {
         if (!this._proxyType) {
             this._proxyType = new RowProxyType(this.result);
         }
         while (this.nextBlocking()) {
             this._proxyType.proxyChunkRows<T>(this.currentChunk, out);
+        }
+        return out;
+    }
+
+    /// Build row proxy partitions across all chunks
+    public collectPartitionsBlocking<T extends RowProxy>(out: T[][] = []): T[][] {
+        if (!this._proxyType) {
+            this._proxyType = new RowProxyType(this.result);
+        }
+        let current: T[] = [];
+        while (this.nextBlocking()) {
+            const rows = this._proxyType.proxyChunkRows<T>(this.currentChunk);
+            const bounds = this.currentChunk?.partitionBoundariesArray();
+            if (!bounds) {
+                current = current.concat(rows);
+                continue;
+            }
+            for (let i = 0; i < bounds.length; ++i) {
+                if (bounds[i]) {
+                    if (current.length > 0) {
+                        out.push(current);
+                    }
+                    current = [rows[i]];
+                } else {
+                    current.push(rows[i]);
+                }
+            }
+        }
+        if (current.length > 0) {
+            out.push(current);
         }
         return out;
     }

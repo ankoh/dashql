@@ -195,7 +195,7 @@ describe('RowProxy', () => {
         });
     });
 
-    describe('single column, partition boundaries, single integer', () => {
+    describe('single column, chunked partition boundaries, single integer', () => {
         test('INTEGER', () => {
             const result = conn.sendQuery(`
                 SELECT v::INTEGER AS foo, (v::INTEGER / 100) AS bar FROM generate_series(0, ${testRows}) as t(v);
@@ -222,7 +222,7 @@ describe('RowProxy', () => {
         });
     });
 
-    describe('single column, partition boundaries, 2 integers', () => {
+    describe('single column, chunked partition boundaries, 2 integers', () => {
         test('INTEGER', () => {
             const result = conn.sendQuery(`
                 SELECT v::INTEGER AS foo, (v::INTEGER / 200) AS bar, (v::INTEGER / 300) AS bam FROM generate_series(0, ${testRows}) as t(v);
@@ -251,4 +251,32 @@ describe('RowProxy', () => {
             }
         });
     });
+
+    describe('single column, proxy partitions, 1 integer', () => {
+        test('INTEGER', () => {
+            const result = conn.sendQuery(`
+                SELECT v::INTEGER AS foo, (v::INTEGER / 100) AS bar FROM generate_series(0, ${testRows - 1}) as t(v);
+            `, {
+                partitionBoundaries: [1]
+            });
+            expect(result.columnTypesLength()).toBe(2);
+            interface Row extends webdb.RowProxy {
+                foo: number | null;
+                bar: number | null;
+            }
+            const chunks = new webdb.ChunkStreamIterator(conn, result);
+            const partitions = chunks.collectPartitionsBlocking<Row>();
+            expect(partitions.length).toBe(Math.ceil((testRows - 1) / 100));
+            let expected = 0;
+            for (let i = 0; i < partitions.length; ++i) {
+                const partition = partitions[i];
+                expect(partition.length).toBe(100);
+                for (const row of partition) {
+                    let e = expected++;
+                    expect(row.__attribute__(1)).toBe(Math.trunc(e / 100));
+                }
+            }
+        });
+    });
+
 });
