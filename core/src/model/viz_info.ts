@@ -3,12 +3,6 @@
 import { proto } from 'src/index_node';
 import { PlanObject } from './plan_object';
 
-export enum VizDataGrouping {
-    NO_GROUPING,
-    GROUP_PIVOT,
-    GROUP_BY,
-}
-
 export interface VizInfo extends PlanObject {
     readonly currentStatementId: number;
     readonly position: VizPosition;
@@ -32,12 +26,12 @@ export interface VizPosition {
 }
 
 export interface VizData {
-    readonly x?: string[];
-    readonly y?: string[];
-    readonly xGrouping: VizDataGrouping;
-    readonly yGrouping: VizDataGrouping;
-    readonly order?: string[];
-    readonly samples?: number;
+    readonly x: string[] | null;
+    readonly y: string[] | null;
+    readonly groupBy: string[] | null;
+    readonly stackBy: string[] | null;
+    readonly orderBy: string[] | null;
+    readonly samples: number | null;
 }
 
 export interface SVGStyleConfiguration {
