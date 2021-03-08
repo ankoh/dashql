@@ -29,7 +29,7 @@ export class VictoryRenderer extends React.Component<Props> {
                     {({ width, height }) => (
                         <VictoryChartSimple
                             appContext={this.props.appContext}
-                            dbObjects={this.props.dbObjects}
+                            tableInfo={tableInfo}
                             vizInfo={this.props.vizInfo}
                             width={width}
                             height={height}

@@ -7,7 +7,7 @@ import * as vy from 'victory';
 
 interface Props {
     appContext: IAppContext;
-    dbObjects: Immutable.Map<string, core.model.DatabaseTableInfo>;
+    tableInfo: core.model.DatabaseTableInfo;
     vizInfo: core.model.VizInfo;
     width: number;
     height: number;
@@ -18,16 +18,38 @@ export class VictoryChartGrouped extends React.Component<Props> {
     }
 
     public render() {
+        let groupByColumns: number[] = [];
+
+        // XXX collect aggregate columns
+
+        // XXX collect group columns
+
+        // Build group column list
+        let groupColumnList = "";
+        for (let i = 0; i < groupByColumns.length; ++i) {
+            if (i > 0) groupColumnList += ", ";
+            groupColumnList += this.props.tableInfo.columnNames[i];
+        }
+  
+        // Build query
+        let query = `
+            SELECT ${groupColumnList}
+            FROM ${this.props.tableInfo.nameShort}
+            GROUP BY ${groupColumnList}
+            ORDER BY ${groupColumnList}
+        `;
         return (
             <core.access.QueryProvider
                 logger={this.props.appContext.platform!.logger}
                 database={this.props.appContext.platform!.database}
-                query={""}
-                queryOptions={{}}
+                query={query}
+                queryOptions={{
+                    partitionBoundaries: groupByColumns
+                }}
             >
                 {(result) => (
                     <core.access.ProxyPartitionsProvider result={result}>
-                        {(_result, rows) => (
+                        {(_result, partitions) => (
                             <vy.VictoryChart
                                 style={{
                                     parent: {
@@ -45,7 +67,7 @@ export class VictoryChartGrouped extends React.Component<Props> {
                                 }}
                                 theme={vy.VictoryTheme.material}
                             >
-                                {this.props.vizInfo.components.map((c, i) => this.renderComponent(i, c, rows))}
+                                {this.props.vizInfo.components.map((c, i) => this.renderComponent(i, c, partitions))}
                             </vy.VictoryChart>
                         )}
                     </core.access.ProxyPartitionsProvider>
