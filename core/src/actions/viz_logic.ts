@@ -152,8 +152,8 @@ export abstract class BaseVizActionLogic extends ProgramActionLogic {
                 // The user either gave us multiple x-attributes or specified `group`.
                 if (typeModifiers.has(VizComponentTypeModifier.GROUPED)) {
                     let key: string[];
-                    if (dataReader.groupLength() > 0) {
-                        x = collectStr(dataReader.group, dataReader.groupLength())!;
+                    if (dataReader.groupByLength() > 0) {
+                        x = collectStr(dataReader.groupBy, dataReader.groupByLength())!;
                         xGrouping = model.VizDataGrouping.GROUP_BY;
                         withExplicitGrouping = true;
                     } else {
@@ -165,8 +165,8 @@ export abstract class BaseVizActionLogic extends ProgramActionLogic {
                 // Is stacked?
                 // The user either gave us multiple y-attributes or specified `stack`.
                 if (typeModifiers.has(VizComponentTypeModifier.STACKED)) {
-                    if (dataReader.groupLength() > 0) {
-                        y = collectStr(dataReader.stack, dataReader.stackLength())!;
+                    if (dataReader.groupByLength() > 0) {
+                        y = collectStr(dataReader.stackBy, dataReader.stackByLength())!;
                         yGrouping = model.VizDataGrouping.GROUP_BY;
                         withExplicitGrouping = true;
                     } else {
@@ -175,7 +175,7 @@ export abstract class BaseVizActionLogic extends ProgramActionLogic {
                     }
                 }
 
-                let ordering = collectStr(dataReader.order, dataReader.orderLength()) || data.order;
+                let ordering = collectStr(dataReader.orderBy, dataReader.orderByLength()) || data.order;
                 if (withExplicitGrouping) {
                     // XXX We override the user ordering here.
                     //     Emit a warning or error if it differs.

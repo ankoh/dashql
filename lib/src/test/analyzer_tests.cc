@@ -91,9 +91,9 @@ void AnalyzerTest::EncodePlan(pugi::xml_node root, const ProgramInstance& instan
                 auto d = vc.append_child("data");
                 add_strvec_attr(d, "x", data->x);
                 add_strvec_attr(d, "y", data->y);
-                add_strvec_attr(d, "group", data->group);
-                add_strvec_attr(d, "stack", data->stack);
-                add_strvec_attr(d, "order", data->order);
+                add_strvec_attr(d, "group_by", data->group_by);
+                add_strvec_attr(d, "stack_by", data->stack_by);
+                add_strvec_attr(d, "order_by", data->order_by);
                 d.append_attribute("samples").set_value(data->samples);
             }
         }
