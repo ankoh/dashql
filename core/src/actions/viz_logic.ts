@@ -6,17 +6,39 @@ import * as Immutable from 'immutable';
 import { ProgramActionLogic, SetupActionLogic } from './action_logic';
 import { ActionContext } from './action_context';
 import ActionStatusCode = proto.action.ActionStatusCode;
-import { SVGStyleMap, VizDataGrouping } from '../model';
+import { Action, SVGStyleMap, VizDataGrouping } from '../model';
 
 import VizComponentTypeModifier = proto.syntax.VizComponentTypeModifier;
 
-export abstract class BaseVizActionLogic extends ProgramActionLogic {
+export abstract class VizActionLogic extends ProgramActionLogic {
+    /// The viz spec 
+    _vizSpec: proto.viz.VizSpec | null = null;
+    /// The table info (when fetched)
+    _tableInfo: model.DatabaseTableInfo | null = null;
+
     constructor(action_id: model.ActionHandle, action: proto.action.ProgramAction, statement: model.Statement) {
         super(action_id, action, statement);
     }
 
     protected get tableNameQualified() {
         return this.buffer.targetNameQualified()!;
+    }
+
+    protected readContext(context: ActionContext): boolean {
+        // Get viz spec
+        this._vizSpec = context.plan.programInstance.vizSpecs.get(this.origin.statementId) || null;
+        if (!this._vizSpec) {
+            // XXX could not find viz spec
+            return false;
+        }
+
+        const store = context.platform.store;
+        this._tableInfo = store.getState().core.planDatabaseTables.get(this.tableNameQualified) || null;
+        if (!this._tableInfo) {
+            // XXX target table does not exist
+            return false;
+        }
+        return true;
     }
 
     protected getDefaultVizInfo(): model.VizInfo {
@@ -44,24 +66,13 @@ export abstract class BaseVizActionLogic extends ProgramActionLogic {
         const instance = context.plan.programInstance;
         const store = context.platform.store;
 
-        // Get viz spec
-        const vizSpec = instance.vizSpecs.get(this.origin.statementId);
-        if (!vizSpec) {
-            return this.getDefaultVizInfo();
-        }
-
-        // Get the table info
-        const tableInfo = store.getState().core.planDatabaseTables.get(this.tableNameQualified);
-        if (!tableInfo) {
-            return this.getDefaultVizInfo();
-        }
-        const cols = tableInfo.columnNameMapping;
+        const cols = this._tableInfo!.columnNameMapping;
         const getCol = (n: string): string[] | undefined => (
             cols.has(n) ? [n] : undefined
         );
 
         // Read position
-        const posReader = vizSpec.position()!;
+        const posReader = this._vizSpec!.position()!;
         const pos: model.VizPosition = {
             row: posReader.row(),
             column: posReader.column(),
@@ -86,8 +97,8 @@ export abstract class BaseVizActionLogic extends ProgramActionLogic {
 
         // Read the component specs
         const components = new Array<model.VizComponentSpec>();
-        for (let i = 0; i < vizSpec.componentsLength(); ++i) {
-            const c = vizSpec.components(i)!;
+        for (let i = 0; i < this._vizSpec!.componentsLength(); ++i) {
+            const c = this._vizSpec!.components(i)!;
 
             // Collect type
             const type = c.type()!;
@@ -219,14 +230,14 @@ export abstract class BaseVizActionLogic extends ProgramActionLogic {
             nameQualified: this.buffer.targetNameQualified() || '',
             nameShort: this.buffer.targetNameShort() || '',
             currentStatementId: this.origin.statementId,
-            title: vizSpec.title() || undefined,
+            title: this._vizSpec!.title() || undefined,
             position: pos,
             components: components,
         };
     }
 }
 
-export class CreateVizActionLogic extends BaseVizActionLogic {
+export class CreateVizActionLogic extends VizActionLogic {
     /// The promise to get the row count
     _rowCountPromise: Promise<webdb.Value[]> | null = null;
 
@@ -243,14 +254,17 @@ export class CreateVizActionLogic extends BaseVizActionLogic {
     }
 
     public async execute(context: ActionContext): Promise<model.ActionHandle> {
+        // Setup viz logic
+        if (!this.readContext(context)) {
+            return this.returnWithStatus(ActionStatusCode.FAILED);
+        }
         // Make sure the row count is available in the vizzes
         await context.platform.database.evaluateTableStatistics(this.tableNameQualified);
         await this._rowCountPromise!;
 
         // Store the viz info
-        const store = context.platform.store;
         const info = this.deriveVizInfo(context);
-        model.mutate(store.dispatch, {
+        model.mutate(context.platform.store.dispatch, {
             type: model.StateMutationType.INSERT_PLAN_OBJECTS,
             data: [info],
         });
@@ -258,7 +272,7 @@ export class CreateVizActionLogic extends BaseVizActionLogic {
     }
 }
 
-export class UpdateVizActionLogic extends BaseVizActionLogic {
+export class UpdateVizActionLogic extends VizActionLogic {
     constructor(action_id: model.ActionHandle, action: proto.action.ProgramAction, statement: model.Statement) {
         super(action_id, action, statement);
     }
@@ -266,6 +280,9 @@ export class UpdateVizActionLogic extends BaseVizActionLogic {
     public prepareExecution(_context: ActionContext) {}
 
     public async execute(context: ActionContext): Promise<model.ActionHandle> {
+        if (!this.readContext(context)) {
+            return this.returnWithStatus(ActionStatusCode.FAILED);
+        }
         const state = context.platform.store.getState();
         const prev = state.core.planObjects.get(this.buffer.objectId().toString()) as model.VizInfo;
 
