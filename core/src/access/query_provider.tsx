@@ -10,17 +10,19 @@ interface Props {
     database: platform.DatabaseManager;
     /// The query
     query: string;
+    /// The query options
+    queryOptions?: webdb.QueryRunOptions;
     /// The error component
     errorComponent?: ((error: string) => React.ReactNode) | null;
     /// The in-flight component
-    inFlightComponent?: ((query: string) => React.ReactNode) | null;
+    inFlightComponent?: ((query: string, queryOptions: webdb.QueryRunOptions) => React.ReactNode) | null;
     /// The children
     children: (result: proto.webdb.QueryResult) => React.ReactNode;
 }
 
 interface State {
     /// The query
-    queryText: string | null;
+    query: [string, webdb.QueryRunOptions] | null;
     /// The query result
     queryResult: proto.webdb.QueryResult | null;
     /// The error
@@ -35,14 +37,14 @@ export class QueryProvider extends React.Component<Props, State> {
     /// The evaluation handler
     _evaluate = this.evaluate.bind(this);
     /// The scheduled query
-    _inFlightQuery: string | null = null;
+    _inFlightQuery: [string, webdb.QueryRunOptions] | null = null;
     /// The query promise
     _queryPromise: Promise<proto.webdb.QueryResult> | null = null;
 
     constructor(props: Props) {
         super(props);
         this.state = {
-            queryText: null,
+            query: null,
             queryResult: null,
             error: null,
         };
@@ -54,7 +56,7 @@ export class QueryProvider extends React.Component<Props, State> {
         this._queryPromise = null;
         setImmediate(this._evaluate);
         this.setState({
-            queryText: text,
+            query: text,
             queryResult: result,
         });
     }
@@ -67,11 +69,15 @@ export class QueryProvider extends React.Component<Props, State> {
     }
 
     protected evaluate() {
-        if (this.props.query == this.state.queryText || this.props.query == this._inFlightQuery) {
+        const queryCached =
+            this.props.query == this.state.query?.[0] && this.props.queryOptions == this.state.query?.[1];
+        const queryInFlight =
+            this.props.query == this._inFlightQuery?.[0] && this.props.queryOptions == this._inFlightQuery?.[1];
+        if (queryCached || queryInFlight) {
             return;
         }
         const text = this.props.query;
-        this._inFlightQuery = this.props.query;
+        this._inFlightQuery = [this.props.query, this.props.queryOptions || {}];
         this._queryPromise = this.props.database.use(async conn => {
             return await conn.runQuery(text);
         });
@@ -96,7 +102,7 @@ export class QueryProvider extends React.Component<Props, State> {
     render() {
         // Query in flight?
         if (this._inFlightQuery && this.props.inFlightComponent) {
-            return this.props.inFlightComponent(this._inFlightQuery!);
+            return this.props.inFlightComponent(this._inFlightQuery![0], this._inFlightQuery![1]);
         }
         // Query failed?
         if (this.state.error && this.props.errorComponent) {
@@ -109,4 +115,3 @@ export class QueryProvider extends React.Component<Props, State> {
         return <div />;
     }
 }
-
