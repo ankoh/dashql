@@ -72,12 +72,12 @@
                         </node>
                         <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="689..711" text="X AXIS(sca.. = 'time')">
                             <node key="DASHQL_VIZ_COMPONENT_TYPE" value="AXIS" />
-                            <node key="DASHQL_VIZ_COMPONENT_TYPE_MODIFIERS" value="4" />
+                            <node key="DASHQL_VIZ_COMPONENT_TYPE_MODIFIERS" value="5" />
                             <node key="DASHQL_OPTION_SCALE" loc="704..710" text="'time'" />
                         </node>
                         <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="713..734" text="Y AXIS(sca..e = 'log')">
                             <node key="DASHQL_VIZ_COMPONENT_TYPE" value="AXIS" />
-                            <node key="DASHQL_VIZ_COMPONENT_TYPE_MODIFIERS" value="5" />
+                            <node key="DASHQL_VIZ_COMPONENT_TYPE_MODIFIERS" value="6" />
                             <node key="DASHQL_OPTION_SCALE" loc="728..733" text="'log'" />
                         </node>
                     </node>

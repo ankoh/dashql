@@ -27,11 +27,12 @@ enum ExtractMethodType: uint8 {
 
 enum VizComponentTypeModifier: uint8 {
     STACKED         = 0,
-    DEPENDENT       = 1,
-    INDEPENDENT     = 2,
-    POLAR           = 3,
-    X               = 4,
-    Y               = 5
+    GROUPED         = 1,
+    DEPENDENT       = 2,
+    INDEPENDENT     = 3,
+    POLAR           = 4,
+    X               = 5,
+    Y               = 6
 }
 
 enum VizComponentType: uint8 {

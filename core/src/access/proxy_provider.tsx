@@ -34,6 +34,14 @@ class RowProvider extends React.Component<RowProviderProps, RowProviderState> {
     }
 }
 
+export function withRowProxies(fn: (result: proto.webdb.QueryResult, rows: webdb.RowProxy[]) => React.ReactNode) {
+    return (result: proto.webdb.QueryResult): React.ReactNode => (
+        <RowProvider result={result}>
+            {(result: proto.webdb.QueryResult, rows: webdb.RowProxy[]) => fn(result, rows)}
+        </RowProvider>
+    );
+}
+
 interface PartitionProviderProps {
     result: proto.webdb.QueryResult;
     children: (result: proto.webdb.QueryResult, rows: webdb.RowProxy[][]) => React.ReactNode;
@@ -64,14 +72,6 @@ class PartitionProvider extends React.Component<PartitionProviderProps, Partitio
     render() {
         return this.props.children(this.state.result, this.state.partitions);
     }
-}
-
-export function withRowProxies(fn: (result: proto.webdb.QueryResult, rows: webdb.RowProxy[]) => React.ReactNode) {
-    return (result: proto.webdb.QueryResult): React.ReactNode => (
-        <RowProvider result={result}>
-            {(result: proto.webdb.QueryResult, rows: webdb.RowProxy[]) => fn(result, rows)}
-        </RowProvider>
-    );
 }
 
 export function withRowProxyPartitions(
