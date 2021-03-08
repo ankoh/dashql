@@ -199,7 +199,9 @@ describe('RowProxy', () => {
         test('INTEGER', () => {
             const result = conn.sendQuery(`
                 SELECT v::INTEGER AS foo, (v::INTEGER / 100) AS bar FROM generate_series(0, ${testRows}) as t(v);
-            `, [1]);
+            `, {
+                partitionBoundaries: [1]
+            });
             expect(result.columnTypesLength()).toBe(2);
             interface Row extends webdb.RowProxy {
                 foo: number | null;
@@ -224,7 +226,9 @@ describe('RowProxy', () => {
         test('INTEGER', () => {
             const result = conn.sendQuery(`
                 SELECT v::INTEGER AS foo, (v::INTEGER / 200) AS bar, (v::INTEGER / 300) AS bam FROM generate_series(0, ${testRows}) as t(v);
-            `, [1, 2]);
+            `, {
+                partitionBoundaries: [1, 2]
+            });
             expect(result.columnTypesLength()).toBe(3);
             interface Row extends webdb.RowProxy {
                 foo: number | null;
