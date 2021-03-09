@@ -69,8 +69,8 @@ table VizData {
     x: [string];
     y: [string];
     y0: string;
-    pivot_x: bool;
-    pivot_y: bool;
+    cluster: [string];
+    stack: [string];
     order: [string];
 }
 

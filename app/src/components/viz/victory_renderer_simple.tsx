@@ -44,7 +44,7 @@ export class VictoryChartSimple extends React.Component<Props> {
                     axisProps.polar = true;
                     break;
                 case VizComponentTypeModifier.STACKED:
-                case VizComponentTypeModifier.GROUPED:
+                case VizComponentTypeModifier.CLUSTERED:
                     // unreachable
                     console.assert(false, "unexpected type modifier");
                     break;

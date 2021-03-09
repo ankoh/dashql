@@ -15,7 +15,7 @@ interface Props {
     vizInfo: core.model.VizInfo;
 }
 
-export class VictoryChartGrouped extends React.Component<Props> {
+export class VictoryChartClustered extends React.Component<Props> {
     public renderComponent(i: number, c: core.model.VizComponentSpec, partitions: webdb.RowProxy[][]) {
         console.log(partitions);
     }
@@ -32,6 +32,9 @@ export class VictoryChartGrouped extends React.Component<Props> {
             return <div />;
         }
         console.log(query.script);
+
+        const bounds = query.partitionBy.map((n) => query.columnNameMapping.get(n) || -1);
+
         return (
             <VizCard title={this.props.vizInfo.title}>
                 <AutoSizer>
@@ -41,7 +44,7 @@ export class VictoryChartGrouped extends React.Component<Props> {
                             database={this.props.appContext.platform!.database}
                             query={query.script}
                             queryOptions={{
-                                partitionBoundaries: query.keyColumnIds
+                                partitionBoundaries: bounds
                             }}
                         >
                             {(result) => (
@@ -82,4 +85,4 @@ const mapStateToProps = (state: model.AppState) => ({
 
 const mapDispatchToProps = (_dispatch: model.Dispatch) => ({});
 
-export default connect(mapStateToProps, mapDispatchToProps)(withAppContext(VictoryChartGrouped));
+export default connect(mapStateToProps, mapDispatchToProps)(withAppContext(VictoryChartClustered));

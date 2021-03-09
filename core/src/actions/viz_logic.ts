@@ -26,20 +26,20 @@ export abstract class VizActionLogic extends ProgramActionLogic {
     /// The table info (when fetched)
     _tableInfo: model.DatabaseTableInfo | null = null;
 
-    /// The requested columns
-    _requiredColumns: Map<string, boolean> = new Map();
     /// The key columns
-    _keyColumns: Map<string, boolean> = new Map();
+    _requiredColumns: Map<string, boolean> = new Map();
     /// The x attribute(s)
-    _dataX: string[] | null = null;
+    _x: string[] | null = null;
     /// The y attribute(s)
-    _dataY: string[] | null = null;
-    /// Group the x attribute?
-    _groupX = false;
-    /// Group the x attribute?
-    _groupY = false;
-    /// The orderBy attributes (if any)
-    _dataOrder: string[] | null = null;
+    _y: string[] | null = null;
+    /// The data clustering (if any)
+    _clusterBy: string[] | null = null;
+    /// The data stacking (if any)
+    _stackBy: string[] | null = null;
+    /// The data ordering (if any)
+    _orderBy: string[] | null = null;
+    /// The data partitioning (if any)
+    _partitionBy: string[] | null = null;
 
     constructor(action_id: model.ActionHandle, action: proto.action.ProgramAction, statement: model.Statement) {
         super(action_id, action, statement);
@@ -82,65 +82,75 @@ export abstract class VizActionLogic extends ProgramActionLogic {
 
         // Read the viz data
         const dataReader = component.data();
-        let dataX = this._dataX || (this.hasColumn('x') ? ['x'] : null);
-        let dataY = this._dataY || (this.hasColumn('y') ? ['y'] : null);
-        let dataOrder = this._dataOrder;
-        let pivotX = false;
-        let pivotY = false;
+        let x = this._x || (this.hasColumn('x') ? ['x'] : null);
+        let y = this._y || (this.hasColumn('y') ? ['y'] : null);
+        let stackBy = this._stackBy;
+        let clusterBy = this._clusterBy;
+        let orderBy = this._orderBy;
+        let partitionBy = this._partitionBy;
 
+        /// XXX Deprecated !!
         /// Detect the grouping mode for x and y axis.
         /// Note that the grouping of the y-axis is also referred to as "stacking".
         ///
         /// We differentiate between the following situations:
         /// A) USING BAR (x = attr1, y = attr2)
         ///
-        /// B) USING GROUPED BAR (x = [attr1, attr2], y = attr3, pivot_x = true)
+        /// B) USING GROUPED BAR (x = [attr1, attr2], y = attr3)
         ///    User provides already pivotted x values.
         ///
-        /// C) USING STACKED BAR (x = attr1, y = [attr2, attr3], pivot_y = true)
-        ///    User provides already privotted y values.
+        /// C) USING STACKED BAR (x = attr1, y = [attr2, attr3])
+        ///    User provides already pivotted y values.
         ///
-        /// D) USING GROUPED BAR (x = attr2, y = attr1)
+        /// D) USING GROUPED BAR (x = attr1, y = attr2, group_by = attr3)
         ///    We need to group x ourselves.
         ///
-        /// E) USING STACKED BAR (x = attr1, y = [attr2, attr3])
+        /// E) USING STACKED BAR (x = attr1, y = attr2, stack_by = attr3)
         ///    We need to group y ourselves.
         ///
         /// + Combinations of above, e.g.:
         ///
-        /// F) USING GROUPED STACKED BAR (x = [attr1, attr2], y = [attr3, attr4], pivot_x = true)
+        /// F) USING GROUPED STACKED BAR (x = attr1, y = [attr3, attr4], group_by = [attr5])
         ///    User gives us pivotted x groups but we have to group y.
-        ///    (e.g. SELECT attr3, attr4, max(attr1), max(attr2) GROUP BY attr3, attr4 ORDER BY attr1, attr2, attr3, attr4)
+        ///    (e.g. SELECT attr5, max(attr1), max(attr3), max(attr4) GROUP BY attr5 ORDER BY attr5, attr1)
 
         if (dataReader) {
-            dataX = collectStr(dataReader.x.bind(dataReader), dataReader.xLength()) || dataX;
-            dataY = collectStr(dataReader.y.bind(dataReader), dataReader.yLength()) || dataY;
-            dataOrder = collectStr(dataReader.order.bind(dataReader), dataReader.orderLength()) || dataOrder;
-            pivotX = dataReader.pivotX();
-            pivotY = dataReader.pivotY();
+            x = collectStr(dataReader.x.bind(dataReader), dataReader.xLength()) || x;
+            y = collectStr(dataReader.y.bind(dataReader), dataReader.yLength()) || y;
+            clusterBy = collectStr(dataReader.cluster.bind(dataReader), dataReader.clusterLength()) || clusterBy;
+            stackBy = collectStr(dataReader.stack.bind(dataReader), dataReader.stackLength()) || stackBy;
+            orderBy = collectStr(dataReader.order.bind(dataReader), dataReader.orderLength()) || orderBy;
         }
 
-        // Force ordering?
-        const isGrouping = typeModifiers.has(VizComponentTypeModifier.GROUPED);
-        const isStacking = typeModifiers.has(VizComponentTypeModifier.STACKED);
-        if (isGrouping || isStacking) {
-            // XXX We override the user ordering here.
-            //     Emit a warning or error if it differs.
-            dataOrder = dataX?.concat(dataY || []) || null;
+        // XXX We override the user orderBy here.
+        //     Emit a warning or error if it differs.
+        const isClustered = typeModifiers.has(VizComponentTypeModifier.CLUSTERED);
+        const isStacked = typeModifiers.has(VizComponentTypeModifier.STACKED);
+        if (isStacked) {
+            if (isClustered) {
+                orderBy = clusterBy?.concat(stackBy || []) || [];
+                partitionBy = orderBy;
+            } else {
+                orderBy = stackBy?.concat(x || []) || [];
+                partitionBy = stackBy;
+            }
+        } else if (isClustered) {
+            orderBy = clusterBy?.concat(x || []) || [];
+            partitionBy = orderBy;
         }
-        if (isGrouping && !pivotX) dataX?.forEach((x) => this._keyColumns.set(x, true));
-        if (isStacking && !pivotY) dataY?.forEach((y) => this._keyColumns.set(y, true));
+        x?.forEach((v) => this._requiredColumns.set(v, true));
+        y?.forEach((v) => this._requiredColumns.set(v, true));
+        clusterBy?.forEach((v) => this._requiredColumns.set(v, true));
+        stackBy?.forEach((v) => this._requiredColumns.set(v, true));
+        orderBy?.forEach((v) => this._requiredColumns.set(v, true));
 
-        // Register required columns
-        dataX?.forEach((x) => this._requiredColumns.set(x, true));
-        dataY?.forEach((y) => this._requiredColumns.set(y, true));
-        dataOrder?.forEach((o) => this._requiredColumns.set(o, true));
-
-        /// XXX Detect when data spec conflicts with other components
-
-        this._dataX = dataX;
-        this._dataY = dataY;
-        this._dataOrder = dataOrder;
+        // Detect conflicts
+        this._x = x;
+        this._y = y;
+        this._clusterBy = clusterBy;
+        this._stackBy = stackBy;
+        this._orderBy = orderBy;
+        this._partitionBy = partitionBy;
 
         // Collect the style attributes
         const styles: SVGStyleMap = {};
@@ -149,72 +159,38 @@ export abstract class VizActionLogic extends ProgramActionLogic {
             typeModifiers,
             styles,
             data: {
-                x: dataX,
-                y: dataY,
-                groupX: isGrouping && !pivotX,
-                groupY: isStacking && !pivotY,
-                order: dataOrder
+                x: x,
+                y: y,
+                clusterBy: clusterBy,
+                stackBy: stackBy,
+                orderBy: orderBy,
             },
             selectionID: null,
         };
     }
 
-    protected buildAggregateQuery(): model.VizQuery | null {
-        // Collect aggregates
-        let additional = new Map<string, boolean>();
-        for (const [c, _b] of this._requiredColumns) {
-            if (!this._keyColumns.has(c)) additional.set(c, true);
+    // Build the query
+    protected buildQuery(): model.VizQuery {
+        let out = Array.from(this._requiredColumns).map(([k, v]) => k);
+        let script = `SELECT ${out.join(',')}`;
+        script += ` FROM ${this.buffer.targetNameShort()} TABLESAMPLE RESERVOIR(10000)`;
+        if (this._orderBy) {
+            script += ` ORDER BY ${this._orderBy.join(',')}`;
         }
 
-        // Build keys
-        let columnNameMapping = new Map<string, number>();
-        let keyList = '';
-        let keyColumnIds = [];
-        let keyColumnNames = [];
-        let i = 0;
-        for (const [k, _v] of this._keyColumns) {
-            columnNameMapping.set(k, i);
-            keyColumnIds.push(i);
-            keyColumnNames.push(k);
-            if (i++ > 0) keyList += ', ';
-            keyList += k;
-        }
-
-        // Build attributes
-        let script = `SELECT ${keyList}`;
-        for (const [k, _v] of additional) {
-            columnNameMapping.set(k, i);
-            if (i++ > 0) script += ', ';
-            script += `max(${k}) AS ${k}`;
-        }
-        let order = this._dataOrder?.join(",");
-        script += ` FROM ${this._tableInfo?.nameShort!} GROUP BY ${keyList} ORDER BY ${order}`;
-
-        // Collect data columns
-        const xColumnNames = this._dataX || [];
-        const xColumnIds = xColumnNames.map((x) => columnNameMapping.get(x) || -1) || []
-        const yColumnNames = this._dataY || [];
-        const yColumnIds = yColumnNames.map((y) => columnNameMapping.get(y) || -1) || []
+        let colIds = new Map<string, number>();
+        for (let i = 0; i < out.length; ++i) colIds.set(out[i], i);
 
         return {
             script,
-            columnNameMapping,
-            keyColumnIds,
-            keyColumnNames,
-            xColumnIds,
-            xColumnNames,
-            yColumnIds,
-            yColumnNames,
-        };
-    }
-
-    /// Build the query
-    protected buildQuery(): model.VizQuery | null {
-        // No query necessary?
-        // We will just run a SELECT * with sampling.
-        if (this._keyColumns.size == 0) return null;
-
-        return this.buildAggregateQuery();
+            columnNameMapping: colIds,
+            x: this._x || [],
+            y: this._y || [],
+            clusterBy: this._clusterBy || [],
+            stackBy: this._stackBy || [],
+            orderBy: this._orderBy || [],
+            partitionBy: this._partitionBy || [],
+        }
     }
 
     /// Pick a viz renderer
@@ -235,10 +211,10 @@ export abstract class VizActionLogic extends ProgramActionLogic {
                 case proto.syntax.VizComponentType.VORONOI: {
                     renderer = model.VizRendererType.BUILTIN_VICTORY_SIMPLE;
                     let isGrouped =
-                        component.typeModifiers.has(VizComponentTypeModifier.GROUPED) ||
+                        component.typeModifiers.has(VizComponentTypeModifier.CLUSTERED) ||
                         component.typeModifiers.has(VizComponentTypeModifier.STACKED);
                     if (isGrouped) {
-                        renderer = model.VizRendererType.BUILTIN_VICTORY_GROUPED;
+                        renderer = model.VizRendererType.BUILTIN_VICTORY_CLUSTERED;
                     }
                     break;
                 }
