@@ -17,7 +17,7 @@ interface Props {
 
 export class VictoryChartGrouped extends React.Component<Props> {
     public renderComponent(i: number, c: core.model.VizComponentSpec, partitions: webdb.RowProxy[][]) {
-
+        console.log(partitions);
     }
 
     public render() {
@@ -31,6 +31,7 @@ export class VictoryChartGrouped extends React.Component<Props> {
             console.error("missing viz query");
             return <div />;
         }
+        console.log(query.script);
         return (
             <VizCard title={this.props.vizInfo.title}>
                 <AutoSizer>
@@ -40,7 +41,7 @@ export class VictoryChartGrouped extends React.Component<Props> {
                             database={this.props.appContext.platform!.database}
                             query={query.script}
                             queryOptions={{
-                                partitionBoundaries: query.keyColumns
+                                partitionBoundaries: query.keyColumnIds
                             }}
                         >
                             {(result) => (

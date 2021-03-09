@@ -20,8 +20,13 @@ export enum VizRendererType {
 
 export interface VizQuery {
     readonly script: string;
-    readonly columnMapping: Map<string, number>;
-    readonly keyColumns: number[];
+    readonly columnNameMapping: Map<string, number>;
+    readonly keyColumnIds: number[];
+    readonly keyColumnNames: string[];
+    readonly xColumnIds: number[];
+    readonly xColumnNames: string[];
+    readonly yColumnIds: number[];
+    readonly yColumnNames: string[];
 }
 
 export interface VizComponentSpec {
