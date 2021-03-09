@@ -51,35 +51,38 @@ export class QueryProvider extends React.Component<Props, State> {
     }
 
     protected querySucceeded(result: proto.webdb.QueryResult) {
-        const text = this._inFlightQuery;
+        const query = this._inFlightQuery;
         this._inFlightQuery = null;
         this._queryPromise = null;
-        setImmediate(this._evaluate);
         this.setState({
-            query: text,
+            query: query,
             queryResult: result,
+            error: null,
         });
     }
 
     protected queryFailed(e: any) {
         console.error(e);
+        const query = this._inFlightQuery;
         this._inFlightQuery = null;
         this._queryPromise = null;
-        setImmediate(this._evaluate);
+        this.setState({
+            query: query,
+            queryResult: null,
+            error: e,
+        });
     }
 
     protected evaluate() {
-        const queryCached =
-            this.props.query == this.state.query?.[0] && this.props.queryOptions == this.state.query?.[1];
-        const queryInFlight =
-            this.props.query == this._inFlightQuery?.[0] && this.props.queryOptions == this._inFlightQuery?.[1];
-        if (queryCached || queryInFlight) {
+        if (this._inFlightQuery != null) return;
+        if (this.props.query == this.state.query?.[0] && webdb.queryOptionsEqual(this.props.queryOptions, this.state.query?.[1])) {
             return;
         }
         const text = this.props.query;
         this._inFlightQuery = [this.props.query, this.props.queryOptions || {}];
+        const options = this.props.queryOptions;
         this._queryPromise = this.props.database.use(async conn => {
-            return await conn.runQuery(text);
+            return await conn.runQuery(text, options);
         });
         this._queryPromise.then(this._querySucceeded).catch(this._queryFailed);
     }
@@ -88,7 +91,7 @@ export class QueryProvider extends React.Component<Props, State> {
         this.evaluate();
     }
 
-    componentDidUpdate() {
+    componentDidUpdate(prevProps: Props, prevState: State) {
         this.evaluate();
     }
 

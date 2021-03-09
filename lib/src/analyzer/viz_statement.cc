@@ -270,12 +270,12 @@ void VizComponent::ReadFrom(size_t node_id) {
     schema.Match(viz_stmt_.instance(), node_id, matches);
 
     // Read type
-    if (matches[0]) {
-        type_ = matches[0].DataAsEnum<sx::VizComponentType>();
+    if (matches[ID_TYPE]) {
+        type_ = matches[ID_TYPE].DataAsEnum<sx::VizComponentType>();
     }
     // Read type modifiers
-    if (matches[1]) {
-        type_modifiers_ = matches[1].DataAsI64();
+    if (matches[ID_TYPE_MODIFIERS]) {
+        type_modifiers_ = matches[ID_TYPE_MODIFIERS].DataAsI64();
     }
 
     /// Build the type mask for fast compatibility checks.
@@ -402,45 +402,21 @@ std::vector<std::string> VizComponent::ReadColumnRefs(size_t target_node_id) con
         case sx::NodeType::ARRAY: {
             auto begin = target_node.children_begin_or_value();
             auto end = begin + target_node.children_count();
-            std::vector<std::string_view> refs;
+            std::vector<std::string> refs;
             refs.reserve(end - begin);
             for (size_t i = begin; i < end; ++i) {
                 if (auto v = ReadColumnRef(i); !v.empty())
-                    refs.push_back(v);
+                    refs.push_back(std::string{v});
             }
-            break;
+            return refs;
         }
+        case sx::NodeType::STRING_REF:
         case sx::NodeType::OBJECT_SQL_COLUMN_REF:
             return {std::string{ReadColumnRef(target_node_id)}};
         default:
             break;
     }
     return {};
-}
-
-/// Read double
-double VizComponent::ReadDouble(size_t node_id) const {
-    if (node_id == INVALID_NODE_ID) return {};
-    auto& instance = viz_stmt_.instance();
-    auto& nodes = instance.program().nodes;
-    auto& target_node = nodes[node_id];
-    switch (target_node.node_type()) {
-        case sx::NodeType::BOOL:
-            return target_node.children_begin_or_value();
-        case sx::NodeType::UI32:
-        case sx::NodeType::UI32_BITMAP:
-            return target_node.children_begin_or_value();
-        case sx::NodeType::STRING_REF: {
-            auto txt = instance.TextAt(target_node.location());
-            imemstream txtstr{txt.data(), txt.length()};
-            double d = 0;
-            txtstr >> d;
-            return d;
-        }
-        default:
-            break;
-    }
-    return 0.0;
 }
 
 /// Read a column ref as text
@@ -476,13 +452,38 @@ std::string_view VizComponent::ReadColumnRef(size_t target_node_id) const {
     return {nullptr, 0};
 }
 
+/// Read double
+double VizComponent::ReadDouble(size_t node_id) const {
+    if (node_id == INVALID_NODE_ID) return {};
+    auto& instance = viz_stmt_.instance();
+    auto& nodes = instance.program().nodes;
+    auto& target_node = nodes[node_id];
+    switch (target_node.node_type()) {
+        case sx::NodeType::BOOL:
+            return target_node.children_begin_or_value();
+        case sx::NodeType::UI32:
+        case sx::NodeType::UI32_BITMAP:
+            return target_node.children_begin_or_value();
+        case sx::NodeType::STRING_REF: {
+            auto txt = instance.TextAt(target_node.location());
+            imemstream txtstr{txt.data(), txt.length()};
+            double d = 0;
+            txtstr >> d;
+            return d;
+        }
+        default:
+            break;
+    }
+    return 0.0;
+}
+
 /// Print common viz attributes
 void VizComponent::PrintScript(std::ostream& out) const {
     // Print the type modifiers
-    static constexpr std::array<std::string_view, 6> type_modifier_names = {
-        "STACKED", "DEPENDENT", "INDEPENDENT", "POLAR", "X", "Y",
+    static constexpr std::array<std::string_view, 7> type_modifier_names = {
+        "STACKED", "GROUPED", "DEPENDENT", "INDEPENDENT", "POLAR", "X", "Y",
     };
-    for (uint32_t i = 0, modifiers = type_modifiers_; i < 6; ++i, modifiers >>= 1) {
+    for (uint32_t i = 0, modifiers = type_modifiers_; i < 7; ++i, modifiers >>= 1) {
         if ((modifiers & 0b1) == 0) continue;
         out << " " << type_modifier_names[i];
     }
@@ -510,7 +511,7 @@ void VizComponent::PrintScript(std::ostream& out) const {
 flatbuffers::Offset<proto::viz::VizComponent> VizComponent::Pack(flatbuffers::FlatBufferBuilder& builder) const {
     // Pack modifiers
     std::vector<uint8_t> modifiers;
-    for (uint32_t i = 0, m = type_modifiers_; i < 6; ++i, m >>= 1) {
+    for (uint32_t i = 0, m = type_modifiers_; i < 7; ++i, m >>= 1) {
         if ((m & 0b1) == 0) continue;
         modifiers.push_back(i);
     }
