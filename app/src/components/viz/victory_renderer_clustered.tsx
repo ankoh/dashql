@@ -22,40 +22,26 @@ export class VictoryChartClustered extends React.Component<Props> {
 
     public render() {
         const targetQualified = this.props.vizInfo.nameQualified;
-        const tableInfo = this.props.dbObjects.get(targetQualified);
-        if (!tableInfo) {
+        const table = this.props.dbObjects.get(targetQualified);
+        if (!table) {
             return <div />;
         }
-        const query = this.props.vizInfo.query;
-        if (!query) {
-            console.error("missing viz query");
-            return <div />;
-        }
-        console.log(query.script);
-
-        const bounds = query.partitionBy.map((n) => query.columnNameMapping.get(n) || -1);
-
         return (
             <VizCard title={this.props.vizInfo.title}>
                 <AutoSizer>
                     {({ width, height }) => (
-                        <core.access.QueryProvider
+                        <core.access.VizQueryProvider
                             logger={this.props.appContext.platform!.logger}
                             database={this.props.appContext.platform!.database}
-                            query={query.script}
-                            queryOptions={{
-                                partitionBoundaries: bounds
-                            }}
+                            table={table}
+                            query={this.props.vizInfo.dataQuery}
                         >
-                            {(result) => (
+                            {result => (
                                 <core.access.ProxyPartitionsProvider result={result}>
                                     {(_result, partitions) => (
                                         <vy.VictoryChart
                                             style={{
-                                                parent: {
-                                                    width: width,
-                                                    height: height,
-                                                },
+                                                parent: { width, height },
                                             }}
                                             width={width}
                                             height={height}
@@ -66,12 +52,14 @@ export class VictoryChartClustered extends React.Component<Props> {
                                                 bottom: 36,
                                             }}
                                         >
-                                            {this.props.vizInfo.components.map((c, i) => this.renderComponent(i, c, partitions))}
+                                            {this.props.vizInfo.components.map((c, i) =>
+                                                this.renderComponent(i, c, partitions),
+                                            )}
                                         </vy.VictoryChart>
                                     )}
                                 </core.access.ProxyPartitionsProvider>
                             )}
-                        </core.access.QueryProvider>
+                        </core.access.VizQueryProvider>
                     )}
                 </AutoSizer>
             </VizCard>
@@ -80,7 +68,7 @@ export class VictoryChartClustered extends React.Component<Props> {
 }
 
 const mapStateToProps = (state: model.AppState) => ({
-    dbObjects: state.core.planDatabaseTables
+    dbObjects: state.core.planDatabaseTables,
 });
 
 const mapDispatchToProps = (_dispatch: model.Dispatch) => ({});

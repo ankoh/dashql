@@ -9,8 +9,8 @@ import { IAppContext, withAppContext } from '../../app_context';
 import { VizCard } from './viz_card';
 import * as vy from 'victory';
 
-import VizComponentTypeModifier = core.proto.syntax.VizComponentTypeModifier;
-import VizComponentType = core.proto.syntax.VizComponentType;
+import TypeModifier = core.proto.syntax.VizComponentTypeModifier;
+import ComponentType = core.proto.syntax.VizComponentType;
 
 interface Props {
     appContext: IAppContext;
@@ -20,6 +20,8 @@ interface Props {
 
 export class VictoryChartSimple extends React.Component<Props> {
     public renderComponent(i: number, c: core.model.VizComponentSpec, rows: webdb.RowProxy[]) {
+        const targetQualified = this.props.vizInfo.nameQualified;
+        const table = this.props.dbObjects.get(targetQualified)!;
         let axisProps = {
             dependentAxis: false,
             independentAxis: false,
@@ -27,85 +29,81 @@ export class VictoryChartSimple extends React.Component<Props> {
         };
         let dataProps = {
             data: rows,
-            x: c.data.x?.[0],
-            y: c.data.y?.[0],
+            x: c.dataView.x.length > 1 ? table.columnNames[c.dataView.x[0]] : undefined,
+            y: c.dataView.y.length > 1 ? table.columnNames[c.dataView.y[0]] : undefined,
         };
         for (const [modifier, _ok] of c.typeModifiers) {
             switch (modifier) {
-                case VizComponentTypeModifier.Y:
-                case VizComponentTypeModifier.DEPENDENT:
+                case TypeModifier.Y:
+                case TypeModifier.DEPENDENT:
                     axisProps.dependentAxis = true;
                     break;
-                case VizComponentTypeModifier.X:
-                case VizComponentTypeModifier.INDEPENDENT:
+                case TypeModifier.X:
+                case TypeModifier.INDEPENDENT:
                     axisProps.independentAxis = true;
                     break;
-                case VizComponentTypeModifier.POLAR:
+                case TypeModifier.POLAR:
                     axisProps.polar = true;
                     break;
-                case VizComponentTypeModifier.STACKED:
-                case VizComponentTypeModifier.CLUSTERED:
+                case TypeModifier.STACKED:
+                case TypeModifier.CLUSTERED:
                     // unreachable
-                    console.assert(false, "unexpected type modifier");
+                    console.assert(false, 'unexpected type modifier');
                     break;
             }
         }
-
         switch (c.type) {
-            case VizComponentType.AREA:
+            case ComponentType.AREA:
                 return <vy.VictoryArea key={i} style={c.styles} {...dataProps} />;
-            case VizComponentType.AXIS:
+            case ComponentType.AXIS:
                 return <vy.VictoryAxis key={i} style={c.styles} {...axisProps} />;
-            case VizComponentType.BAR:
+            case ComponentType.BAR:
                 return <vy.VictoryBar key={i} style={c.styles} {...dataProps} />;
-            case VizComponentType.BOX_PLOT:
+            case ComponentType.BOX_PLOT:
                 return <vy.VictoryBoxPlot key={i} style={c.styles} {...dataProps} />;
-            case VizComponentType.CANDLESTICK:
+            case ComponentType.CANDLESTICK:
                 return <vy.VictoryCandlestick key={i} style={c.styles} {...dataProps} />;
-            case VizComponentType.ERROR_BAR:
+            case ComponentType.ERROR_BAR:
                 return <vy.VictoryErrorBar key={i} style={c.styles} {...dataProps} />;
-            case VizComponentType.HISTOGRAM:
+            case ComponentType.HISTOGRAM:
                 return <vy.VictoryHistogram key={i} style={c.styles} {...dataProps} />;
-            case VizComponentType.LINE:
+            case ComponentType.LINE:
                 return <vy.VictoryLine key={i} style={c.styles} {...dataProps} />;
-            case VizComponentType.PIE:
+            case ComponentType.PIE:
                 return <vy.VictoryPie key={i} style={c.styles} {...dataProps} />;
-            case VizComponentType.SCATTER:
+            case ComponentType.SCATTER:
                 return <vy.VictoryScatter key={i} style={c.styles} {...dataProps} />;
-            case VizComponentType.VORONOI:
+            case ComponentType.VORONOI:
                 return <vy.VictoryVoronoi key={i} style={c.styles} {...dataProps} />;
-            case VizComponentType.NUMBER:
-            case VizComponentType.TABLE:
-            case VizComponentType.TEXT:
+            case ComponentType.NUMBER:
+            case ComponentType.TABLE:
+            case ComponentType.TEXT:
                 return <div />;
         }
     }
 
     public render() {
         const targetQualified = this.props.vizInfo.nameQualified;
-        const tableInfo = this.props.dbObjects.get(targetQualified);
-        if (!tableInfo) {
+        const table = this.props.dbObjects.get(targetQualified);
+        if (!table) {
             return <div />;
         }
         return (
             <VizCard title={this.props.vizInfo.title}>
                 <AutoSizer>
                     {({ width, height }) => (
-                        <core.access.ScanProvider
+                        <core.access.VizQueryProvider
                             logger={this.props.appContext.platform!.logger}
                             database={this.props.appContext.platform!.database}
-                            targetName={this.props.vizInfo.nameShort}
-                            request={new core.access.ScanRequest().withSample(1024)}
+                            table={table}
+                            query={this.props.vizInfo.dataQuery}
                         >
-                            {(scan, _req) => (
-                                <core.access.ProxyProvider result={scan.result}>
+                            {result => (
+                                <core.access.ProxyProvider result={result}>
                                     {(_result, rows) => (
                                         <vy.VictoryChart
                                             style={{
-                                                parent: {
-                                                    width: width,
-                                                    height: height,
-                                                },
+                                                parent: { width, height },
                                             }}
                                             width={width}
                                             height={height}
@@ -116,12 +114,14 @@ export class VictoryChartSimple extends React.Component<Props> {
                                                 bottom: 36,
                                             }}
                                         >
-                                            {this.props.vizInfo.components.map((c, i) => this.renderComponent(i, c, rows))}
+                                            {this.props.vizInfo.components.map((c, i) =>
+                                                this.renderComponent(i, c, rows),
+                                            )}
                                         </vy.VictoryChart>
                                     )}
                                 </core.access.ProxyProvider>
                             )}
-                        </core.access.ScanProvider>
+                        </core.access.VizQueryProvider>
                     )}
                 </AutoSizer>
             </VizCard>
