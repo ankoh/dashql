@@ -31,7 +31,7 @@
         VIZ foo USING STACKED AREA (
             title = 'Stacked Area Chart',
             pos = (r = 8, c = 0, w = 6, h = 4),
-            data = (group_by = 'cat10')
+            data = (y = cat10)
         );
     </input>
 </test>

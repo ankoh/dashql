@@ -164,15 +164,15 @@ void VizComponent::ReadFrom(size_t node_id) {
     constexpr size_t ID_POS_COLUMN = 3;
     constexpr size_t ID_POS_WIDTH = 4;
     constexpr size_t ID_POS_HEIGHT = 5;
-    constexpr size_t ID_STACK = 13;
-    constexpr size_t ID_GROUP = 29;
+    constexpr size_t ID_PIVOT_X = 13;
+    constexpr size_t ID_PIVOT_Y = 29;
     constexpr size_t ID_ORDER = 33;
     constexpr size_t ID_SAMPLES = 31;
     constexpr size_t ID_X = 6;
     constexpr size_t ID_Y = 7;
     constexpr size_t ID_Y0 = 8;
-    constexpr size_t ID_DATA_STACK = 12;
-    constexpr size_t ID_DATA_GROUP = 30;
+    constexpr size_t ID_DATA_PIVOT_X = 12;
+    constexpr size_t ID_DATA_PIVOT_Y = 30;
     constexpr size_t ID_DATA_ORDER = 34;
     constexpr size_t ID_DATA_SAMPLES = 32;
     constexpr size_t ID_DATA_X = 9;
@@ -208,10 +208,10 @@ void VizComponent::ReadFrom(size_t node_id) {
             sxm::Option(sx::AttributeKey::DASHQL_OPTION_DATA, ID_DATA)
                 .MatchOptions()
                 .MatchChildren({
-                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_GROUP_BY, ID_DATA_GROUP),
-                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_ORDER_BY, ID_DATA_ORDER),
+                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_ORDER, ID_DATA_ORDER),
+                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_PIVOT_X, ID_DATA_PIVOT_X),
+                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_PIVOT_Y, ID_DATA_PIVOT_Y),
                     sxm::Option(sx::AttributeKey::DASHQL_OPTION_SAMPLES, ID_DATA_SAMPLES),
-                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_STACK_BY, ID_DATA_STACK),
                     sxm::Option(sx::AttributeKey::DASHQL_OPTION_X, ID_DATA_X),
                     sxm::Option(sx::AttributeKey::DASHQL_OPTION_Y, ID_DATA_Y),
                     sxm::Option(sx::AttributeKey::DASHQL_OPTION_Y0, ID_DATA_Y0),
@@ -229,9 +229,10 @@ void VizComponent::ReadFrom(size_t node_id) {
                     sxm::Option(sx::AttributeKey::DASHQL_OPTION_Y, ID_DOMAIN_PADDING_Y)
                 }),
             sxm::Option(sx::AttributeKey::DASHQL_OPTION_FILL, ID_FILL),
-            sxm::Option(sx::AttributeKey::DASHQL_OPTION_GROUP_BY, ID_GROUP),
             sxm::Option(sx::AttributeKey::DASHQL_OPTION_HEIGHT, ID_HEIGHT),
-            sxm::Option(sx::AttributeKey::DASHQL_OPTION_ORDER_BY, ID_ORDER),
+            sxm::Option(sx::AttributeKey::DASHQL_OPTION_ORDER, ID_ORDER),
+            sxm::Option(sx::AttributeKey::DASHQL_OPTION_PIVOT_X, ID_PIVOT_X),
+            sxm::Option(sx::AttributeKey::DASHQL_OPTION_PIVOT_Y, ID_PIVOT_Y),
             sxm::Option(sx::AttributeKey::DASHQL_OPTION_POSITION)
                 .MatchOptions()
                 .MatchChildren({
@@ -241,7 +242,6 @@ void VizComponent::ReadFrom(size_t node_id) {
                     sxm::Option(sx::AttributeKey::DASHQL_OPTION_WIDTH, ID_POS_WIDTH),
                 }),
             sxm::Option(sx::AttributeKey::DASHQL_OPTION_ROW, ID_ROW),
-            sxm::Option(sx::AttributeKey::DASHQL_OPTION_STACK_BY, ID_STACK),
             sxm::Option(sx::AttributeKey::DASHQL_OPTION_STYLE)
                 .MatchOptions()
                 .MatchChildren({
@@ -313,17 +313,17 @@ void VizComponent::ReadFrom(size_t node_id) {
     }
 
     /// Get data attributes
-    auto data_group = SelectAltOption("data.group", matches[ID_DATA_GROUP].node_id, matches[ID_GROUP].node_id);
-    auto data_stack = SelectAltOption("data.stack", matches[ID_DATA_STACK].node_id, matches[ID_STACK].node_id);
+    auto data_pivot_x = SelectAltOption("data.pivot_x", matches[ID_DATA_PIVOT_X].node_id, matches[ID_PIVOT_X].node_id);
+    auto data_pivot_y = SelectAltOption("data.pivot_y", matches[ID_DATA_PIVOT_Y].node_id, matches[ID_PIVOT_Y].node_id);
     auto data_order = SelectAltOption("data.order", matches[ID_DATA_ORDER].node_id, matches[ID_ORDER].node_id);
     auto data_samples = SelectAltOption("data.samples", matches[ID_DATA_SAMPLES].node_id, matches[ID_SAMPLES].node_id);
     auto data_x = SelectAltOption("data.x", matches[ID_DATA_X].node_id, matches[ID_X].node_id);
     auto data_y = SelectAltOption("data.y", matches[ID_DATA_Y].node_id, matches[ID_Y].node_id);
-    if (AnyOptionSet({data_x, data_y, data_group, data_stack, data_order, data_samples})) {
+    if (AnyOptionSet({data_x, data_y, data_pivot_x, data_pivot_y, data_order, data_samples})) {
         data_.emplace();
-        data_->group_by = ReadColumnRefs(data_group);
-        data_->stack_by = ReadColumnRefs(data_stack);
-        data_->order_by = ReadColumnRefs(data_stack);
+        data_->pivot_x = viz_stmt_.instance_.ReadNodeValueOrNull(data_pivot_x).CastAsBool().value_or(false);
+        data_->pivot_y = viz_stmt_.instance_.ReadNodeValueOrNull(data_pivot_x).CastAsBool().value_or(false);
+        data_->order = ReadColumnRefs(data_order);
         data_->x = ReadColumnRefs(data_x);
         data_->y = ReadColumnRefs(data_y);
         //data_->samples = viz_stmt_.instance_.ReadNodeValueOrNull(pos_row).CastAsUI64().value_or(0);
@@ -521,16 +521,14 @@ flatbuffers::Offset<proto::viz::VizComponent> VizComponent::Pack(flatbuffers::Fl
     if (data_) {
         auto x = data_->x.empty() ? std::nullopt : std::optional{builder.CreateVectorOfStrings(data_->x)};
         auto y = data_->y.empty() ? std::nullopt : std::optional{builder.CreateVectorOfStrings(data_->y)};
-        auto group_by = data_->group_by.empty() ? std::nullopt : std::optional{builder.CreateVectorOfStrings(data_->group_by)};
-        auto stack_by = data_->stack_by.empty() ? std::nullopt : std::optional{builder.CreateVectorOfStrings(data_->stack_by)};
-        auto order_by = data_->order_by.empty() ? std::nullopt : std::optional{builder.CreateVectorOfStrings(data_->order_by)};
+        auto order = data_->order.empty() ? std::nullopt : std::optional{builder.CreateVectorOfStrings(data_->order)};
 
         pv::VizDataBuilder dataBuilder{builder};
         if (x) dataBuilder.add_x(*x);
-        if (y) dataBuilder.add_x(*y);
-        if (group_by) dataBuilder.add_x(*group_by);
-        if (stack_by) dataBuilder.add_x(*stack_by);
-        if (order_by) dataBuilder.add_x(*order_by);
+        if (y) dataBuilder.add_y(*y);
+        if (data_->pivot_x) dataBuilder.add_pivot_x(data_->pivot_x);
+        if (data_->pivot_y) dataBuilder.add_pivot_y(data_->pivot_y);
+        if (order) dataBuilder.add_x(*order);
         //dataBuilder.add_samples(data_->samples);
         data = dataBuilder.Finish();
     }
