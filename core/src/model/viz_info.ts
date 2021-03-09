@@ -3,37 +3,41 @@
 import { proto } from 'src/index_node';
 import { PlanObject } from './plan_object';
 
-export interface VizInfo extends PlanObject {
-    readonly renderer: VizRendererType;
-    readonly currentStatementId: number;
-    readonly position: VizPosition;
-    readonly title?: string;
-    readonly query: VizQuery | null;
-    readonly components: VizComponentSpec[];
-}
-
 export enum VizRendererType {
     BUILTIN_TABLE,
     BUILTIN_VICTORY_SIMPLE,
     BUILTIN_VICTORY_CLUSTERED,
 }
 
-export interface VizQuery {
-    readonly script: string;
-    readonly columnNameMapping: Map<string, number>;
-    readonly x: string[];
-    readonly y: string[];
-    readonly orderBy: string[];
-    readonly clusterBy: string[];
-    readonly stackBy: string[];
-    readonly partitionBy: string[];
+export interface VizInfo extends PlanObject {
+    readonly renderer: VizRendererType;
+    readonly currentStatementId: number;
+    readonly position: VizPosition;
+    readonly title?: string;
+    readonly dataQuery: VizDataQuery;
+    readonly components: VizComponentSpec[];
+}
+
+export interface VizDataQuery {
+    readonly targetQualified: string;
+    readonly targetShort: string;
+    readonly columns: number[];
+    readonly orderBy: number[];
+    readonly clusterBy: number[];
+    readonly stackBy: number[];
+    readonly partitionBy: number[];
+}
+
+export interface VizDataView {
+    readonly x: number[];
+    readonly y: number[];
 }
 
 export interface VizComponentSpec {
     readonly type: proto.syntax.VizComponentType;
     readonly typeModifiers: Map<proto.syntax.VizComponentTypeModifier, boolean>;
     readonly styles: SVGStyleMap;
-    readonly data: VizData;
+    readonly dataView: VizDataView;
     readonly selectionID: number | null;
 }
 
@@ -42,14 +46,6 @@ export interface VizPosition {
     readonly column: number;
     readonly width: number;
     readonly height: number;
-}
-
-export interface VizData {
-    readonly x: string[] | null;
-    readonly y: string[] | null;
-    readonly clusterBy: string[] | null;
-    readonly stackBy: string[] | null;
-    readonly orderBy: string[] | null;
 }
 
 export interface SVGStyleConfiguration {
