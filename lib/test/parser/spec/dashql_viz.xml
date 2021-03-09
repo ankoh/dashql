@@ -127,21 +127,21 @@
         VIZ foo USING STACKED AREA (
             title = 'Stacked Area Chart',
             pos = (r = 8, c = 0, w = 6, h = 4),
-            data = (y = cat10)
+            data = (stack = cat100)
         );
     </input>
     <expected>
         <statements>
             <statement type="VIZUALIZE">
-                <node type="OBJECT_DASHQL_VIZ" loc="9..168" text="VIZ foo US..&#10;        )">
+                <node type="OBJECT_DASHQL_VIZ" loc="9..173" text="VIZ foo US..&#10;        )">
                     <node key="DASHQL_VIZ_COMPONENTS">
-                        <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="23..168" text="STACKED AR..&#10;        )">
+                        <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="23..173" text="STACKED AR..&#10;        )">
                             <node key="DASHQL_VIZ_COMPONENT_TYPE" value="AREA" />
                             <node key="DASHQL_VIZ_COMPONENT_TYPE_MODIFIERS" value="1" />
-                            <node key="DASHQL_OPTION_DATA" type="OBJECT_DASHQL_OPTION_LIST" loc="147..158" text="(y = cat10)">
-                                <node key="DASHQL_OPTION_Y" type="OBJECT_SQL_COLUMN_REF" loc="152..157" text="cat10">
+                            <node key="DASHQL_OPTION_DATA" type="OBJECT_DASHQL_OPTION_LIST" loc="147..163" text="(stack = cat100)">
+                                <node key="DASHQL_OPTION_STACK" type="OBJECT_SQL_COLUMN_REF" loc="156..162" text="cat100">
                                     <node key="SQL_COLUMN_REF_PATH">
-                                        <node loc="152..157" text="cat10" />
+                                        <node loc="156..162" text="cat100" />
                                     </node>
                                 </node>
                             </node>
@@ -169,8 +169,8 @@
             <line_break loc="37..38" text="&#10;" />
             <line_break loc="79..80" text="&#10;" />
             <line_break loc="127..128" text="&#10;" />
-            <line_break loc="158..159" text="&#10;" />
-            <line_break loc="169..170" text="&#10;" />
+            <line_break loc="163..164" text="&#10;" />
+            <line_break loc="174..175" text="&#10;" />
         </line_breaks>
         <comments />
         <dependencies />

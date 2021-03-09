@@ -91,9 +91,9 @@ void AnalyzerTest::EncodePlan(pugi::xml_node root, const ProgramInstance& instan
                 auto d = vc.append_child("data");
                 add_strvec_attr(d, "x", data->x);
                 add_strvec_attr(d, "y", data->y);
+                add_strvec_attr(d, "cluster", data->cluster);
+                add_strvec_attr(d, "stack", data->stack);
                 add_strvec_attr(d, "order", data->order);
-                if (data->pivot_x) d.append_attribute("pivot_x") = data->pivot_x;
-                if (data->pivot_y) d.append_attribute("pivot_y") = data->pivot_y;
             }
         }
     }

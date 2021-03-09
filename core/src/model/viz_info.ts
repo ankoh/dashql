@@ -15,18 +15,18 @@ export interface VizInfo extends PlanObject {
 export enum VizRendererType {
     BUILTIN_TABLE,
     BUILTIN_VICTORY_SIMPLE,
-    BUILTIN_VICTORY_GROUPED,
+    BUILTIN_VICTORY_CLUSTERED,
 }
 
 export interface VizQuery {
     readonly script: string;
     readonly columnNameMapping: Map<string, number>;
-    readonly keyColumnIds: number[];
-    readonly keyColumnNames: string[];
-    readonly xColumnIds: number[];
-    readonly xColumnNames: string[];
-    readonly yColumnIds: number[];
-    readonly yColumnNames: string[];
+    readonly x: string[];
+    readonly y: string[];
+    readonly orderBy: string[];
+    readonly clusterBy: string[];
+    readonly stackBy: string[];
+    readonly partitionBy: string[];
 }
 
 export interface VizComponentSpec {
@@ -47,9 +47,9 @@ export interface VizPosition {
 export interface VizData {
     readonly x: string[] | null;
     readonly y: string[] | null;
-    readonly groupX: boolean;
-    readonly groupY: boolean;
-    readonly order: string[] | null;
+    readonly clusterBy: string[] | null;
+    readonly stackBy: string[] | null;
+    readonly orderBy: string[] | null;
 }
 
 export interface SVGStyleConfiguration {
