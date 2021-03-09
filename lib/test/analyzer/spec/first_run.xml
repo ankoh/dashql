@@ -727,7 +727,7 @@
                 <position row="0" column="0" width="4" height="15" />
                 <components>
                     <component type="BAR">
-                        <data x="a&#10;" y="b&#10;" samples="0" />
+                        <data x="a&#10;" y="b&#10;" />
                     </component>
                     <component type="LINE" />
                     <component type="SCATTER" />

@@ -49,6 +49,7 @@ dashql_option_value:
 dashql_option_array:
     dashql_option_array ',' dashql_option_value     { $1.push_back($3); $$ = move($1); }
   | dashql_option_value                             { $$ = {$1}; }
+  | %empty                                          { $$ = {}; }
     ;
 
 dashql_option_array_brackets:
