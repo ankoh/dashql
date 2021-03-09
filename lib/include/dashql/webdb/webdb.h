@@ -13,7 +13,7 @@
 #include "dashql/common/ffi_response.h"
 #include "dashql/common/span.h"
 #include "dashql/proto_generated.h"
-#include "dashql/webdb/stream_partitioner.h"
+#include "dashql/webdb/partitioner.h"
 #include "duckdb.hpp"
 
 namespace dashql {
@@ -49,7 +49,7 @@ class WebDB {
         /// The current query result (if any)
         std::unique_ptr<duckdb::QueryResult> current_query_result_;
         /// The stream partitioniner (if any)
-        std::unique_ptr<StreamPartitioner> current_stream_partitioner_;
+        std::unique_ptr<Partitioner> current_stream_partitioner_;
 
        public:
         /// Constructor

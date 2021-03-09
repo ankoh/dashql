@@ -5,7 +5,7 @@
 
 #include "dashql/common/span.h"
 #include "dashql/proto_generated.h"
-#include "dashql/webdb/stream_partitioner.h"
+#include "dashql/webdb/partitioner.h"
 #include "duckdb.hpp"
 #include "duckdb/common/enums/logical_operator_type.hpp"
 #include "flatbuffers/flatbuffers.h"

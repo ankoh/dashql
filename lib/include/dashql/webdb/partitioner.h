@@ -1,7 +1,7 @@
 // Copyright (c) 2020 The DashQL Authors
 
-#ifndef INCLUDE_DASHQL_WEBDB_STREAM_PARTITIONER_H_
-#define INCLUDE_DASHQL_WEBDB_STREAM_PARTITIONER_H_
+#ifndef INCLUDE_DASHQL_WEBDB_PARTITIONER_H_
+#define INCLUDE_DASHQL_WEBDB_PARTITIONER_H_
 
 #include "dashql/common/span.h"
 #include "duckdb/common/types/data_chunk.hpp"
@@ -21,7 +21,7 @@ using PartitionBoundaries = std::vector<bool>;
 ///
 /// The client code can then just split the result based on the partition mask entries.
 /// That allows us to implement grouped and stacked charts much more efficiently by splitting the row proxy vectors.
-class StreamPartitioner {
+class Partitioner {
     /// The query result
     const duckdb::QueryResult& query_result_;
     /// The columns that should be partitioned
@@ -31,7 +31,7 @@ class StreamPartitioner {
 
    public:
     /// Constructor
-    StreamPartitioner(const duckdb::QueryResult& result, nonstd::span<const uint32_t> columns);
+    Partitioner(const duckdb::QueryResult& result, nonstd::span<const uint32_t> columns);
 
     /// Consume the next query result chunk 
     void consumeChunk(duckdb::DataChunk& chunk, PartitionBoundaries& out);
@@ -40,4 +40,4 @@ class StreamPartitioner {
 }  // namespace webdb
 }  // namespace dashql
 
-#endif  // INCLUDE_DASHQL_WEBDB_STREAM_PARTITIONER_H_
+#endif  // INCLUDE_DASHQL_WEBDB_PARTITIONER_H_

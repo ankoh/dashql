@@ -1,4 +1,4 @@
-#include "dashql/webdb/stream_partitioner.h"
+#include "dashql/webdb/partitioner.h"
 
 #include <string_view>
 #include <vector>
@@ -11,7 +11,7 @@
 namespace dashql {
 namespace webdb {
 
-StreamPartitioner::StreamPartitioner(const duckdb::QueryResult& result, nonstd::span<const uint32_t> columns)
+Partitioner::Partitioner(const duckdb::QueryResult& result, nonstd::span<const uint32_t> columns)
     : query_result_(result), partition_columns_(columns.begin(), columns.end()), previous_values_() {
     previous_values_.resize(columns.size());
 }
@@ -64,7 +64,7 @@ static void partitionStrings(duckdb::VectorData& vec, size_t count, duckdb::Valu
 }
 
 /// Consume the next query result chunk
-void StreamPartitioner::consumeChunk(duckdb::DataChunk& chunk, PartitionBoundaries& out) {
+void Partitioner::consumeChunk(duckdb::DataChunk& chunk, PartitionBoundaries& out) {
     if (partition_columns_.empty()) {
         return;
     }
