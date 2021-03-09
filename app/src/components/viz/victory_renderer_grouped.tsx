@@ -1,8 +1,8 @@
 import * as Immutable from 'immutable';
 import * as React from 'react';
+import * as model from '../../model';
 import * as core from '@dashql/core';
 import * as webdb from '@dashql/webdb/dist/webdb_async';
-import * as model from '../../model';
 import { connect } from 'react-redux';
 import { VizCard } from './viz_card';
 import { AutoSizer } from '../../util/autosizer';
@@ -17,6 +17,7 @@ interface Props {
 
 export class VictoryChartGrouped extends React.Component<Props> {
     public renderComponent(i: number, c: core.model.VizComponentSpec, partitions: webdb.RowProxy[][]) {
+
     }
 
     public render() {
@@ -25,27 +26,11 @@ export class VictoryChartGrouped extends React.Component<Props> {
         if (!tableInfo) {
             return <div />;
         }
-
-        let groupByColumns: number[] = [];
-
-        // XXX collect aggregate columns
-
-        // XXX collect group columns
-
-        // Build group column list
-        let groupColumnList = "";
-        for (let i = 0; i < groupByColumns.length; ++i) {
-            if (i > 0) groupColumnList += ", ";
-            groupColumnList += tableInfo.columnNames[i];
+        const query = this.props.vizInfo.query;
+        if (!query) {
+            console.error("missing viz query");
+            return <div />;
         }
-  
-        // Build query
-        let query = `
-            SELECT ${groupColumnList}
-            FROM ${tableInfo.nameShort}
-            GROUP BY ${groupColumnList}
-            ORDER BY ${groupColumnList}
-        `;
         return (
             <VizCard title={this.props.vizInfo.title}>
                 <AutoSizer>
@@ -53,9 +38,9 @@ export class VictoryChartGrouped extends React.Component<Props> {
                         <core.access.QueryProvider
                             logger={this.props.appContext.platform!.logger}
                             database={this.props.appContext.platform!.database}
-                            query={query}
+                            query={query.script}
                             queryOptions={{
-                                partitionBoundaries: groupByColumns
+                                partitionBoundaries: query.keyColumns
                             }}
                         >
                             {(result) => (
@@ -92,7 +77,7 @@ export class VictoryChartGrouped extends React.Component<Props> {
 }
 
 const mapStateToProps = (state: model.AppState) => ({
-    dbObjects: state.core.planDatabaseTables,
+    dbObjects: state.core.planDatabaseTables
 });
 
 const mapDispatchToProps = (_dispatch: model.Dispatch) => ({});

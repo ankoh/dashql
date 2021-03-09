@@ -21,6 +21,7 @@ export enum VizRendererType {
 export interface VizQuery {
     readonly script: string;
     readonly columnMapping: Map<string, number>;
+    readonly keyColumns: number[];
 }
 
 export interface VizComponentSpec {
@@ -41,9 +42,9 @@ export interface VizPosition {
 export interface VizData {
     readonly x: string[] | null;
     readonly y: string[] | null;
-    readonly groupBy: string[] | null;
-    readonly stackBy: string[] | null;
-    readonly orderBy: string[] | null;
+    readonly groupX: boolean;
+    readonly groupY: boolean;
+    readonly order: string[] | null;
 }
 
 export interface SVGStyleConfiguration {

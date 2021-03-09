@@ -37,13 +37,13 @@ dashql_viz_type_modifiers:
   | dashql_viz_type_modifier                            { $$ = $1; }
 
 dashql_viz_type_modifier:
-    STACKED         { $$ = static_cast<uint32_t>(sx::VizComponentTypeModifier::STACKED); }
-  | GROUPED         { $$ = static_cast<uint32_t>(sx::VizComponentTypeModifier::GROUPED); }
-  | DEPENDENT       { $$ = static_cast<uint32_t>(sx::VizComponentTypeModifier::DEPENDENT); }
-  | INDEPENDENT     { $$ = static_cast<uint32_t>(sx::VizComponentTypeModifier::INDEPENDENT); }
-  | POLAR           { $$ = static_cast<uint32_t>(sx::VizComponentTypeModifier::POLAR); }
-  | X               { $$ = static_cast<uint32_t>(sx::VizComponentTypeModifier::X); }
-  | Y               { $$ = static_cast<uint32_t>(sx::VizComponentTypeModifier::Y); }
+    STACKED         { $$ = 1 << static_cast<uint32_t>(sx::VizComponentTypeModifier::STACKED); }
+  | GROUPED         { $$ = 1 << static_cast<uint32_t>(sx::VizComponentTypeModifier::GROUPED); }
+  | DEPENDENT       { $$ = 1 << static_cast<uint32_t>(sx::VizComponentTypeModifier::DEPENDENT); }
+  | INDEPENDENT     { $$ = 1 << static_cast<uint32_t>(sx::VizComponentTypeModifier::INDEPENDENT); }
+  | POLAR           { $$ = 1 << static_cast<uint32_t>(sx::VizComponentTypeModifier::POLAR); }
+  | X               { $$ = 1 << static_cast<uint32_t>(sx::VizComponentTypeModifier::X); }
+  | Y               { $$ = 1 << static_cast<uint32_t>(sx::VizComponentTypeModifier::Y); }
     ;
 
 dashql_viz_type:

@@ -28,16 +28,18 @@ export abstract class VizActionLogic extends ProgramActionLogic {
 
     /// The requested columns
     _requiredColumns: Map<string, boolean> = new Map();
+    /// The key columns
+    _keyColumns: Map<string, boolean> = new Map();
     /// The x attribute(s)
     _dataX: string[] | null = null;
     /// The y attribute(s)
     _dataY: string[] | null = null;
-    /// The groupBy attributes (if any)
-    _dataGroupBy: string[] | null = null;
-    /// The stackBy attributes (if any)
-    _dataStackBy: string[] | null = null;
+    /// Group the x attribute?
+    _groupX = false;
+    /// Group the x attribute?
+    _groupY = false;
     /// The orderBy attributes (if any)
-    _dataOrderBy: string[] | null = null;
+    _dataOrder: string[] | null = null;
 
     constructor(action_id: model.ActionHandle, action: proto.action.ProgramAction, statement: model.Statement) {
         super(action_id, action, statement);
@@ -80,65 +82,65 @@ export abstract class VizActionLogic extends ProgramActionLogic {
 
         // Read the viz data
         const dataReader = component.data();
-        let data: model.VizData = {
-            x: this._dataX || (this.hasColumn('x') ? ['x'] : null),
-            y: this._dataY || (this.hasColumn('y') ? ['y'] : null),
-            groupBy: this._dataGroupBy,
-            stackBy: this._dataStackBy,
-            orderBy: this._dataOrderBy,
-        };
+        let dataX = this._dataX || (this.hasColumn('x') ? ['x'] : null);
+        let dataY = this._dataY || (this.hasColumn('y') ? ['y'] : null);
+        let dataOrder = this._dataOrder;
+        let pivotX = false;
+        let pivotY = false;
+
+        /// Detect the grouping mode for x and y axis.
+        /// Note that the grouping of the y-axis is also referred to as "stacking".
+        ///
+        /// We differentiate between the following situations:
+        /// A) USING BAR (x = attr1, y = attr2)
+        ///
+        /// B) USING GROUPED BAR (x = [attr1, attr2], y = attr3, pivot_x = true)
+        ///    User provides already pivotted x values.
+        ///
+        /// C) USING STACKED BAR (x = attr1, y = [attr2, attr3], pivot_y = true)
+        ///    User provides already privotted y values.
+        ///
+        /// D) USING GROUPED BAR (x = attr2, y = attr1)
+        ///    We need to group x ourselves.
+        ///
+        /// E) USING STACKED BAR (x = attr1, y = [attr2, attr3])
+        ///    We need to group y ourselves.
+        ///
+        /// + Combinations of above, e.g.:
+        ///
+        /// F) USING GROUPED STACKED BAR (x = [attr1, attr2], y = [attr3, attr4], pivot_x = true)
+        ///    User gives us pivotted x groups but we have to group y.
+        ///    (e.g. SELECT attr3, attr4, max(attr1), max(attr2) GROUP BY attr3, attr4 ORDER BY attr1, attr2, attr3, attr4)
+
         if (dataReader) {
-            /// Detect the grouping mode for x and y axis.
-            /// Note that the grouping of the y-axis is also referred to as "stacking".
-            ///
-            /// We differentiate between the following situations:
-            /// A) USING BAR (x = attr1, y = attr2)
-            ///
-            /// B) USING GROUPED BAR (x = [attr1, attr2], y = attr3)
-            ///    User provides already pivotted x values.
-            ///
-            /// C) USING STACKED BAR (x = attr1, y = [attr2, attr3])
-            ///    User provides already privotted y values.
-            ///
-            /// D) USING GROUPED BAR (y = attr1, group_by = attr2)
-            ///    We need to group x ourselves.
-            ///
-            /// E) USING STACKED BAR (x = attr1, stack_by = [attr2, attr3])
-            ///    We need to group y ourselves.
-            ///
-            /// + Combinations of above, e.g.:
-            ///
-            /// F) USING GROUPED STACKED BAR (x = [attr1, attr2], stack_by = [attr3, attr4])
-            ///    User gives us pivotted x groups but we have to group y.
-            ///    (e.g. SELECT attr3, attr4, max(attr1), max(attr2) GROUP BY attr3, attr4 ORDER BY attr1, attr2, attr3, attr4)
-
-            let x: string[] | null = collectStr(dataReader.x, dataReader.xLength()) || data.x;
-            let y: string[] | null = collectStr(dataReader.y, dataReader.yLength()) || data.y;
-            let groupBy: string[] | null = collectStr(dataReader.groupBy, dataReader.groupByLength()) || data.groupBy;
-            let stackBy: string[] | null = collectStr(dataReader.stackBy, dataReader.stackByLength()) || data.stackBy;
-            let orderBy: string[] | null = collectStr(dataReader.orderBy, dataReader.orderByLength()) || data.orderBy;
-            x = (groupBy && groupBy.length > 0) ? null : x;
-            y = (stackBy && stackBy.length > 0) ? null : y;
-
-            // Force ordering?
-            let isGrouping = typeModifiers.has(VizComponentTypeModifier.GROUPED);
-            let isStacking = typeModifiers.has(VizComponentTypeModifier.STACKED);
-            if (isGrouping || isStacking) {
-                // XXX We override the user ordering here.
-                //     Emit a warning or error if it differs.
-                orderBy = !y ? x : x?.concat(y) || null;
-            }
-            data = { x, y, groupBy, stackBy, orderBy };
-
-            // Register required columns
-            for (const c of x || []) this._requiredColumns.set(c, true);
-            for (const c of y || []) this._requiredColumns.set(c, true);
-            for (const c of groupBy || []) this._requiredColumns.set(c, true);
-            for (const c of stackBy || []) this._requiredColumns.set(c, true);
-            for (const c of orderBy || []) this._requiredColumns.set(c, true);
-
-            /// XXX Detect when data spec conflicts with other components
+            dataX = collectStr(dataReader.x.bind(dataReader), dataReader.xLength()) || dataX;
+            dataY = collectStr(dataReader.y.bind(dataReader), dataReader.yLength()) || dataY;
+            dataOrder = collectStr(dataReader.order.bind(dataReader), dataReader.orderLength()) || dataOrder;
+            pivotX = dataReader.pivotX();
+            pivotY = dataReader.pivotY();
         }
+
+        // Force ordering?
+        const isGrouping = typeModifiers.has(VizComponentTypeModifier.GROUPED);
+        const isStacking = typeModifiers.has(VizComponentTypeModifier.STACKED);
+        if (isGrouping || isStacking) {
+            // XXX We override the user ordering here.
+            //     Emit a warning or error if it differs.
+            dataOrder = dataX?.concat(dataY || []) || null;
+        }
+        if (isGrouping && !pivotX) dataX?.forEach((x) => this._keyColumns.set(x, true));
+        if (isStacking && !pivotY) dataY?.forEach((y) => this._keyColumns.set(y, true));
+
+        // Register required columns
+        dataX?.forEach((x) => this._requiredColumns.set(x, true));
+        dataY?.forEach((y) => this._requiredColumns.set(y, true));
+        dataOrder?.forEach((o) => this._requiredColumns.set(o, true));
+
+        /// XXX Detect when data spec conflicts with other components
+
+        this._dataX = dataX;
+        this._dataY = dataY;
+        this._dataOrder = dataOrder;
 
         // Collect the style attributes
         const styles: SVGStyleMap = {};
@@ -146,36 +148,37 @@ export abstract class VizActionLogic extends ProgramActionLogic {
             type,
             typeModifiers,
             styles,
-            data,
+            data: {
+                x: dataX,
+                y: dataY,
+                groupX: isGrouping && !pivotX,
+                groupY: isStacking && !pivotY,
+                order: dataOrder
+            },
             selectionID: null,
         };
     }
 
     /// Build the query
     protected buildQuery(): model.VizQuery | null {
-        // Collect key
-        let key = new Map<string, boolean>();
-        for (const c of this._dataGroupBy || []) key.set(c, true);
-        for (const c of this._dataStackBy || []) key.set(c, true);
-
-        console.log(key);
-
         // No query necessary?
         // We will just run a SELECT * with sampling.
-        if (key.size == 0) return null;
+        if (this._keyColumns.size == 0) return null;
 
         // Collect aggregates
         let additional = new Map<string, boolean>();
         for (const [c, _b] of this._requiredColumns) {
-            if (!key.has(c)) additional.set(c, true);
+            if (!this._keyColumns.has(c)) additional.set(c, true);
         }
 
         // Build keys
-        let colMap = this._tableInfo!.columnNameMapping;
+        let colMap = new Map();
         let keyList = '';
+        let keyColumns = [];
         let i = 0;
-        for (const [k, _v] of key) {
+        for (const [k, _v] of this._keyColumns) {
             colMap.set(k, i);
+            keyColumns.push(i);
             if (i++ > 0) keyList += ', ';
             keyList += k;
         }
@@ -187,11 +190,13 @@ export abstract class VizActionLogic extends ProgramActionLogic {
             if (i++ > 0) query += ', ';
             query += `max(${k}) AS ${k}`;
         }
-        query += ` FROM ${this._tableInfo?.nameShort!} ORDER BY ${keyList}`;
+        let order = this._dataOrder?.join(",");
+        query += ` FROM ${this._tableInfo?.nameShort!} GROUP BY ${keyList} ORDER BY ${order}`;
 
         return {
             script: query,
             columnMapping: colMap,
+            keyColumns: keyColumns
         };
     }
 

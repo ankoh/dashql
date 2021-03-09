@@ -276,7 +276,7 @@ export interface AsyncConnection {
     /// Disconnect from the database
     disconnect(): Promise<null>;
     /// Run a query
-    runQuery(text: string): Promise<proto.QueryResult>;
+    runQuery(text: string, options?: QueryRunOptions): Promise<proto.QueryResult>;
     /// Send a query
     sendQuery(text: string): Promise<proto.QueryResult>;
     /// Fetch query results
@@ -302,7 +302,7 @@ export class AsyncWebDBConnection implements AsyncConnection {
     }
 
     /// Run a query
-    public async runQuery(text: string): Promise<proto.QueryResult> {
+    public async runQuery(text: string, options?: QueryRunOptions): Promise<proto.QueryResult> {
         this._instance.logger.log({
             timestamp: new Date(),
             level: LogLevel.INFO,
@@ -311,12 +311,12 @@ export class AsyncWebDBConnection implements AsyncConnection {
             event: LogEvent.RUN,
             value: text,
         });
-        return this._instance.runQuery(this._conn, text);
+        return this._instance.runQuery(this._conn, text, options);
     }
 
     /// Send a query
-    public async sendQuery(text: string): Promise<proto.QueryResult> {
-        return this._instance.sendQuery(this._conn, text);
+    public async sendQuery(text: string, options?: QueryRunOptions): Promise<proto.QueryResult> {
+        return this._instance.sendQuery(this._conn, text, options);
     }
 
     /// Fetch query results
