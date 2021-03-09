@@ -98,7 +98,7 @@ export class VictoryChartSimple extends React.Component<Props> {
                 >
                     {result => (
                         <core.access.ProxyProvider result={result}>
-                            {(_result, rows) => (
+                            {rows => (
                                 <AutoSizer>
                                     {({ width, height }) => (
                                         <vy.VictoryChart
