@@ -36,7 +36,7 @@ export class VictoryChartClustered extends React.Component<Props> {
                 >
                     {result => (
                         <core.access.ProxyPartitionsProvider result={result}>
-                            {(_result, partitions) => (
+                            {partitions => (
                                 <AutoSizer>
                                     {({ width, height }) => (
                                         <vy.VictoryChart
