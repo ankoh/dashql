@@ -61,7 +61,6 @@ export class VictoryChartGrouped extends React.Component<Props> {
                                                 right: 20,
                                                 bottom: 36,
                                             }}
-                                            theme={vy.VictoryTheme.material}
                                         >
                                             {this.props.vizInfo.components.map((c, i) => this.renderComponent(i, c, partitions))}
                                         </vy.VictoryChart>
