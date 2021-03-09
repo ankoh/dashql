@@ -11,7 +11,7 @@
 #include "dashql/proto_generated.h"
 #include "dashql/webdb/codec.h"
 #include "dashql/webdb/json.h"
-#include "dashql/webdb/stream_partitioner.h"
+#include "dashql/webdb/partitioner.h"
 #include "duckdb.hpp"
 #include "duckdb/common/vector_operations/vector_operations.hpp"
 #include "duckdb/main/client_context.hpp"
@@ -54,9 +54,9 @@ ExpectedBuffer<p::QueryResult> WebDB::Connection::RunQuery(std::string_view text
         auto query_id = ++current_query_id_;
 
         // Create stream partitioner (if necessary)
-        std::optional<StreamPartitioner> partitioner = std::nullopt;
+        std::optional<Partitioner> partitioner = std::nullopt;
         if (!options.partition_boundaries.empty()) {
-            partitioner.emplace(StreamPartitioner{*result, options.partition_boundaries});
+            partitioner.emplace(Partitioner{*result, options.partition_boundaries});
         }
         PartitionBoundaries partitionBoundaries;
 
@@ -100,7 +100,7 @@ ExpectedBuffer<p::QueryResult> WebDB::Connection::SendQuery(std::string_view tex
         // Create stream partitioner (if necessary)
         if (!options.partition_boundaries.empty()) {
             current_stream_partitioner_ =
-                std::make_unique<StreamPartitioner>(*result, options.partition_boundaries);
+                std::make_unique<Partitioner>(*result, options.partition_boundaries);
         }
 
         // Encode no result chunks
