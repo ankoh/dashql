@@ -122,3 +122,53 @@
         <dependencies />
     </expected>
 </test>
+<test name="dashql_viz_stacked">
+    <input>
+        VIZ foo USING STACKED AREA (
+            title = 'Stacked Area Chart',
+            pos = (r = 8, c = 0, w = 6, h = 4),
+            data = (group_by = 'cat10')
+        );
+    </input>
+    <expected>
+        <statements>
+            <statement type="VIZUALIZE">
+                <node type="OBJECT_DASHQL_VIZ" loc="9..177" text="VIZ foo US..&#10;        )">
+                    <node key="DASHQL_VIZ_COMPONENTS">
+                        <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="23..177" text="STACKED AR..&#10;        )">
+                            <node key="DASHQL_VIZ_COMPONENT_TYPE" value="AREA" />
+                            <node key="DASHQL_VIZ_COMPONENT_TYPE_MODIFIERS" value="0" />
+                            <node key="DASHQL_OPTION_DATA" type="OBJECT_DASHQL_OPTION_LIST" loc="147..167" text="(group_by ..= 'cat10')">
+                                <node key="DASHQL_OPTION_GROUP_BY" loc="159..166" text="'cat10'" />
+                            </node>
+                            <node key="DASHQL_OPTION_POSITION" type="OBJECT_DASHQL_OPTION_LIST" loc="98..126" text="(r = 8, c .. 6, h = 4)">
+                                <node key="DASHQL_OPTION_COLUMN" loc="110..111" text="0" />
+                                <node key="DASHQL_OPTION_HEIGHT" loc="124..125" text="4" />
+                                <node key="DASHQL_OPTION_ROW" loc="103..104" text="8" />
+                                <node key="DASHQL_OPTION_WIDTH" loc="117..118" text="6" />
+                            </node>
+                            <node key="DASHQL_OPTION_TITLE" loc="58..78" text="'Stacked A..rea Chart'" />
+                        </node>
+                    </node>
+                    <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLE_REF" loc="13..16" text="foo">
+                        <node key="SQL_TABLE_INHERIT" value="true" />
+                        <node key="SQL_TABLE_NAME">
+                            <node loc="13..16" text="foo" />
+                        </node>
+                    </node>
+                </node>
+            </statement>
+        </statements>
+        <errors />
+        <line_breaks>
+            <line_break loc="0..1" text="&#10;" />
+            <line_break loc="37..38" text="&#10;" />
+            <line_break loc="79..80" text="&#10;" />
+            <line_break loc="127..128" text="&#10;" />
+            <line_break loc="167..168" text="&#10;" />
+            <line_break loc="178..179" text="&#10;" />
+        </line_breaks>
+        <comments />
+        <dependencies />
+    </expected>
+</test>

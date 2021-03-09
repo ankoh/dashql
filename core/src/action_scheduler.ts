@@ -116,24 +116,24 @@ export class ActionScheduler<ActionBuffer extends ProtoAction> {
         // Prepare all actions for execution
         for (const next_action_idx of next_action_idcs) {
             const next_action = this._actions[next_action_idx];
-            try {
+            //try {
                 next_action.prepareExecution(context);
-            } catch (e) {
-                // XXX to logger
-                console.error(e);
-            }
+            //} catch (e) {
+            //    // XXX to logger
+            //    console.error(e);
+            //}
         }
         // Schedule all actions
         for (const next_action_idx of next_action_idcs) {
             const next_action = this._actions[next_action_idx];
             next_action.status = proto.action.ActionStatusCode.RUNNING;
             this._scheduledActions.set(next_action_idx);
-            try {
+            //try {
                 this._actionPromises[next_action_idx] = next_action.execute(context);
-            } catch(e) {
-                // XXX to logger
-                console.error(e);
-            }
+            //} catch(e) {
+            //    // XXX to logger
+            //    console.error(e);
+            //}
         }
     }
 
@@ -157,13 +157,13 @@ export class ActionScheduler<ActionBuffer extends ProtoAction> {
         });
 
         let next: ActionHandle | null = null;
-        try {
+        //try {
             next = await Promise.race(promises);
-        } catch(e) {
-            console.error(e);
-            // XXX to log
-            return this.workLeft();
-        }
+        //} catch(e) {
+        //    console.error(e);
+        //    // XXX to log
+        //    return this.workLeft();
+        //}
         if (next == null) {
             /// Update interrupt promise since someone might have just replaced it.
             this._actionPromises[0] = this._interrupt;

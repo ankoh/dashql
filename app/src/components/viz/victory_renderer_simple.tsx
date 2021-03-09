@@ -2,7 +2,11 @@ import * as Immutable from 'immutable';
 import * as React from 'react';
 import * as core from '@dashql/core';
 import * as webdb from '@dashql/webdb/dist/webdb_async';
-import { IAppContext } from '../../app_context';
+import * as model from '../../model';
+import { connect } from 'react-redux';
+import { AutoSizer } from '../../util/autosizer';
+import { IAppContext, withAppContext } from '../../app_context';
+import { VizCard } from './viz_card';
 import * as vy from 'victory';
 
 import VizComponentTypeModifier = core.proto.syntax.VizComponentTypeModifier;
@@ -10,10 +14,8 @@ import VizComponentType = core.proto.syntax.VizComponentType;
 
 interface Props {
     appContext: IAppContext;
-    tableInfo: core.model.DatabaseTableInfo;
+    dbObjects: Immutable.Map<string, core.model.DatabaseTableInfo>;
     vizInfo: core.model.VizInfo;
-    width: number;
-    height: number;
 }
 
 export class VictoryChartSimple extends React.Component<Props> {
@@ -80,41 +82,58 @@ export class VictoryChartSimple extends React.Component<Props> {
     }
 
     public render() {
+        const targetQualified = this.props.vizInfo.nameQualified;
+        const tableInfo = this.props.dbObjects.get(targetQualified);
+        if (!tableInfo) {
+            return <div />;
+        }
         return (
-            <core.access.ScanProvider
-                logger={this.props.appContext.platform!.logger}
-                database={this.props.appContext.platform!.database}
-                targetName={this.props.vizInfo.nameShort}
-                request={new core.access.ScanRequest().withSample(1024)}
-            >
-                {(scan, _req) => (
-                    <core.access.ProxyProvider result={scan.result}>
-                        {(_result, rows) => (
-                            <vy.VictoryChart
-                                style={{
-                                    parent: {
-                                        width: this.props.width,
-                                        height: this.props.height,
-                                    },
-                                }}
-                                width={this.props.width}
-                                height={this.props.height}
-                                padding={{
-                                    top: 16,
-                                    left: 36,
-                                    right: 20,
-                                    bottom: 36,
-                                }}
-                                theme={vy.VictoryTheme.material}
-                            >
-                                {this.props.vizInfo.components.map((c, i) => this.renderComponent(i, c, rows))}
-                            </vy.VictoryChart>
-                        )}
-                    </core.access.ProxyProvider>
-                )}
-            </core.access.ScanProvider>
+            <VizCard title={this.props.vizInfo.title}>
+                <AutoSizer>
+                    {({ width, height }) => (
+                        <core.access.ScanProvider
+                            logger={this.props.appContext.platform!.logger}
+                            database={this.props.appContext.platform!.database}
+                            targetName={this.props.vizInfo.nameShort}
+                            request={new core.access.ScanRequest().withSample(1024)}
+                        >
+                            {(scan, _req) => (
+                                <core.access.ProxyProvider result={scan.result}>
+                                    {(_result, rows) => (
+                                        <vy.VictoryChart
+                                            style={{
+                                                parent: {
+                                                    width: width,
+                                                    height: height,
+                                                },
+                                            }}
+                                            width={width}
+                                            height={height}
+                                            padding={{
+                                                top: 16,
+                                                left: 36,
+                                                right: 20,
+                                                bottom: 36,
+                                            }}
+                                            theme={vy.VictoryTheme.material}
+                                        >
+                                            {this.props.vizInfo.components.map((c, i) => this.renderComponent(i, c, rows))}
+                                        </vy.VictoryChart>
+                                    )}
+                                </core.access.ProxyProvider>
+                            )}
+                        </core.access.ScanProvider>
+                    )}
+                </AutoSizer>
+            </VizCard>
         );
     }
 }
 
-export default VictoryChartSimple;
+const mapStateToProps = (state: model.AppState) => ({
+    dbObjects: state.core.planDatabaseTables,
+});
+
+const mapDispatchToProps = (_dispatch: model.Dispatch) => ({});
+
+export default connect(mapStateToProps, mapDispatchToProps)(withAppContext(VictoryChartSimple));
