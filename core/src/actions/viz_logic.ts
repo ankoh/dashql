@@ -159,12 +159,7 @@ export abstract class VizActionLogic extends ProgramActionLogic {
         };
     }
 
-    /// Build the query
-    protected buildQuery(): model.VizQuery | null {
-        // No query necessary?
-        // We will just run a SELECT * with sampling.
-        if (this._keyColumns.size == 0) return null;
-
+    protected buildAggregateQuery(): model.VizQuery | null {
         // Collect aggregates
         let additional = new Map<string, boolean>();
         for (const [c, _b] of this._requiredColumns) {
@@ -172,32 +167,54 @@ export abstract class VizActionLogic extends ProgramActionLogic {
         }
 
         // Build keys
-        let colMap = new Map();
+        let columnNameMapping = new Map<string, number>();
         let keyList = '';
-        let keyColumns = [];
+        let keyColumnIds = [];
+        let keyColumnNames = [];
         let i = 0;
         for (const [k, _v] of this._keyColumns) {
-            colMap.set(k, i);
-            keyColumns.push(i);
+            columnNameMapping.set(k, i);
+            keyColumnIds.push(i);
+            keyColumnNames.push(k);
             if (i++ > 0) keyList += ', ';
             keyList += k;
         }
 
         // Build attributes
-        let query = `SELECT ${keyList}`;
+        let script = `SELECT ${keyList}`;
         for (const [k, _v] of additional) {
-            colMap.set(k, i);
-            if (i++ > 0) query += ', ';
-            query += `max(${k}) AS ${k}`;
+            columnNameMapping.set(k, i);
+            if (i++ > 0) script += ', ';
+            script += `max(${k}) AS ${k}`;
         }
         let order = this._dataOrder?.join(",");
-        query += ` FROM ${this._tableInfo?.nameShort!} GROUP BY ${keyList} ORDER BY ${order}`;
+        script += ` FROM ${this._tableInfo?.nameShort!} GROUP BY ${keyList} ORDER BY ${order}`;
+
+        // Collect data columns
+        const xColumnNames = this._dataX || [];
+        const xColumnIds = xColumnNames.map((x) => columnNameMapping.get(x) || -1) || []
+        const yColumnNames = this._dataY || [];
+        const yColumnIds = yColumnNames.map((y) => columnNameMapping.get(y) || -1) || []
 
         return {
-            script: query,
-            columnMapping: colMap,
-            keyColumns: keyColumns
+            script,
+            columnNameMapping,
+            keyColumnIds,
+            keyColumnNames,
+            xColumnIds,
+            xColumnNames,
+            yColumnIds,
+            yColumnNames,
         };
+    }
+
+    /// Build the query
+    protected buildQuery(): model.VizQuery | null {
+        // No query necessary?
+        // We will just run a SELECT * with sampling.
+        if (this._keyColumns.size == 0) return null;
+
+        return this.buildAggregateQuery();
     }
 
     /// Pick a viz renderer
