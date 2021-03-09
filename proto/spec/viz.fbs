@@ -72,7 +72,6 @@ table VizData {
     group_by: [string];
     stack_by: [string];
     order_by: [string];
-    samples: double;
 }
 
 struct VizValueDomain {

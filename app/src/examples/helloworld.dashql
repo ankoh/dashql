@@ -21,3 +21,9 @@ VIZ foo USING AREA (
     pos = (r = 4, c = 6, w = 6, h = 4),
     title = 'Area + Scatter Chart'
 ),  SCATTER;
+
+VIZ foo USING STACKED AREA (
+    title = 'Stacked Area Chart',
+    pos = (r = 8, c = 0, w = 6, h = 4),
+    group_by = cat10
+);

@@ -326,7 +326,7 @@ void VizComponent::ReadFrom(size_t node_id) {
         data_->order_by = ReadColumnRefs(data_stack);
         data_->x = ReadColumnRefs(data_x);
         data_->y = ReadColumnRefs(data_y);
-        data_->samples = viz_stmt_.instance_.ReadNodeValueOrNull(pos_row).CastAsUI64().value_or(0);
+        //data_->samples = viz_stmt_.instance_.ReadNodeValueOrNull(pos_row).CastAsUI64().value_or(0);
     }
 
     /// Get the title attribute
@@ -531,7 +531,7 @@ flatbuffers::Offset<proto::viz::VizComponent> VizComponent::Pack(flatbuffers::Fl
         if (group_by) dataBuilder.add_x(*group_by);
         if (stack_by) dataBuilder.add_x(*stack_by);
         if (order_by) dataBuilder.add_x(*order_by);
-        dataBuilder.add_samples(data_->samples);
+        //dataBuilder.add_samples(data_->samples);
         data = dataBuilder.Finish();
     }
 

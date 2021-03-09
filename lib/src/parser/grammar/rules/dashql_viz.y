@@ -38,6 +38,7 @@ dashql_viz_type_modifiers:
 
 dashql_viz_type_modifier:
     STACKED         { $$ = static_cast<uint32_t>(sx::VizComponentTypeModifier::STACKED); }
+  | GROUPED         { $$ = static_cast<uint32_t>(sx::VizComponentTypeModifier::GROUPED); }
   | DEPENDENT       { $$ = static_cast<uint32_t>(sx::VizComponentTypeModifier::DEPENDENT); }
   | INDEPENDENT     { $$ = static_cast<uint32_t>(sx::VizComponentTypeModifier::INDEPENDENT); }
   | POLAR           { $$ = static_cast<uint32_t>(sx::VizComponentTypeModifier::POLAR); }

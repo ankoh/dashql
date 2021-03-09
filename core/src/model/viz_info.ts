@@ -4,10 +4,23 @@ import { proto } from 'src/index_node';
 import { PlanObject } from './plan_object';
 
 export interface VizInfo extends PlanObject {
+    readonly renderer: VizRendererType;
     readonly currentStatementId: number;
     readonly position: VizPosition;
     readonly title?: string;
+    readonly query: VizQuery | null;
     readonly components: VizComponentSpec[];
+}
+
+export enum VizRendererType {
+    BUILTIN_TABLE,
+    BUILTIN_VICTORY_SIMPLE,
+    BUILTIN_VICTORY_GROUPED,
+}
+
+export interface VizQuery {
+    readonly script: string;
+    readonly columnMapping: Map<string, number>;
 }
 
 export interface VizComponentSpec {
@@ -31,7 +44,6 @@ export interface VizData {
     readonly groupBy: string[] | null;
     readonly stackBy: string[] | null;
     readonly orderBy: string[] | null;
-    readonly samples: number | null;
 }
 
 export interface SVGStyleConfiguration {
