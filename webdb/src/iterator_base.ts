@@ -102,11 +102,11 @@ export abstract class ChunkIterator {
         while (this.nextBlocking()) {
             const rows = this._proxyType.proxyChunkRows<T>(this.currentChunk);
             const bounds = this.currentChunk?.partitionBoundariesArray();
-            if (!bounds) {
+            if (!bounds || bounds.length < rows.length) {
                 current = current.concat(rows);
                 continue;
             }
-            for (let i = 0; i < bounds.length; ++i) {
+            for (let i = 0; i < rows.length; ++i) {
                 if (bounds[i]) {
                     if (current.length > 0) {
                         out.push(current);

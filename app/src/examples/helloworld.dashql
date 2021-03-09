@@ -25,5 +25,5 @@ VIZ foo USING AREA (
 VIZ foo USING STACKED AREA (
     title = 'Stacked Area Chart',
     pos = (r = 8, c = 0, w = 6, h = 4),
-    group_by = cat10
+    y = cat100
 );

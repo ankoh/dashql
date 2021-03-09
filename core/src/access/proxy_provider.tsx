@@ -63,9 +63,10 @@ export class ProxyPartitionsProvider extends React.Component<ProxyPartitionsProv
             return prevState;
         }
         const chunks = new webdb.ChunkArrayIterator(nextProps.result);
+        const partitions = chunks.collectPartitionsBlocking();
         return {
             result: nextProps.result,
-            partitions: chunks.collectPartitionsBlocking(),
+            partitions: partitions,
         };
     }
 
