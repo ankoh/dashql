@@ -9,6 +9,10 @@ import { AutoSizer } from '../../util/autosizer';
 import { IAppContext, withAppContext } from '../../app_context';
 import * as vy from 'victory';
 
+import TypeModifier = core.proto.syntax.VizComponentTypeModifier;
+import ComponentType = core.proto.syntax.VizComponentType;
+import { VizDataQuery } from '@dashql/core/dist/types/model';
+
 interface Props {
     appContext: IAppContext;
     dbObjects: Immutable.Map<string, core.model.DatabaseTableInfo>;
@@ -17,7 +21,64 @@ interface Props {
 
 export class VictoryChartClustered extends React.Component<Props> {
     public renderComponent(i: number, c: core.model.VizComponentSpec, partitions: webdb.RowProxy[][]) {
-        console.log(partitions);
+        const targetQualified = this.props.vizInfo.nameQualified;
+        const table = this.props.dbObjects.get(targetQualified)!;
+        const dataView = c.dataView;
+        const dataQuery = this.props.vizInfo.dataQuery;
+
+        //const xs = dataView.x.map(i => table.columnNames[i]);
+        //const ys = dataView.y.map(i => table.columnNames[i]);
+
+        /// Translate component
+        const translate = (rows: webdb.RowProxy[], x?: string, y?: string): React.ReactNode => {
+            const dataProps = {
+                data: rows,
+                x,
+                y,
+            };
+            switch (c.type) {
+                case ComponentType.AREA:
+                    return <vy.VictoryArea key={i} style={c.styles} {...dataProps} />;
+                case ComponentType.BAR:
+                    return <vy.VictoryBar key={i} style={c.styles} {...dataProps} />;
+                case ComponentType.CANDLESTICK:
+                    return <vy.VictoryCandlestick key={i} style={c.styles} {...dataProps} />;
+                case ComponentType.ERROR_BAR:
+                    return <vy.VictoryErrorBar key={i} style={c.styles} {...dataProps} />;
+                case ComponentType.HISTOGRAM:
+                    return <vy.VictoryHistogram key={i} style={c.styles} {...dataProps} />;
+                case ComponentType.LINE:
+                    return <vy.VictoryLine key={i} style={c.styles} {...dataProps} />;
+                case ComponentType.SCATTER:
+                    return <vy.VictoryScatter key={i} style={c.styles} {...dataProps} />;
+                default:
+                    return <div />;
+            }
+        };
+
+        // Is same cluster?
+        const sameCluster = (l: webdb.RowProxy[], r: webdb.RowProxy[]): boolean => {
+            for (const a of dataQuery.clusterBy) {
+                if (l[0].__attribute__(a) != r[0].__attribute__(a)) return false;
+            }
+            return true;
+        };
+
+        // Collect all partitions that belong to a cluster
+        let nodes: React.ReactNode[] = [];
+        while (i < partitions.length) {
+            let cluster: webdb.RowProxy[][] = [partitions[i]];
+            for (++i; i < partitions.length && sameCluster(cluster[0], partitions[i]); ++i) {
+                cluster.push(partitions[i]);
+            }
+
+            let stack: React.ReactNode = (
+                <vy.VictoryStack>
+                    {cluster.map(p => translate(p))}
+                </vy.VictoryStack>
+            );
+            nodes.push(stack);
+        }
     }
 
     public render() {
