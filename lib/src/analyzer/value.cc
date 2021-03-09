@@ -95,6 +95,32 @@ void Value::SetData(std::string_view value) {
     data_str_ = value;
 }
 
+/// Cast as bool
+std::optional<bool> Value::CastAsBool() const {
+    if (physical_type_ == PhysicalType::NULL_)
+        return std::nullopt;
+    using T = proto::webdb::SQLTypeID;
+    switch (logical_type_.type_id()) {
+        case T::BOOLEAN:
+        case T::BIGINT:
+            return data_.i64 != 0;
+        case T::DOUBLE:
+            return data_.f64 != 0;
+        case T::VARCHAR: {
+            imemstream ms{data_str_.data(), data_str_.size()};
+            bool v = 0;
+            ms >> v;
+            return v;
+        }
+        case T::DATE:
+        case T::TIME:
+        case T::TIMESTAMP:
+        case T::DECIMAL:
+        default:
+            return std::nullopt;
+    }
+}
+
 /// Cast as integer
 std::optional<int64_t> Value::CastAsUI64() const {
     if (physical_type_ == PhysicalType::NULL_)
@@ -117,7 +143,7 @@ std::optional<int64_t> Value::CastAsUI64() const {
         case T::TIMESTAMP:
         case T::DECIMAL:
         default:
-            return 0;
+            return std::nullopt;
     }
 }
 

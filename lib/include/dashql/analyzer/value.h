@@ -79,7 +79,9 @@ class Value {
     /// Get as string view
     auto GetUnsafeString() const { return data_str_; }
 
-    /// Cast as integer
+    /// Cast as boolean
+    std::optional<bool> CastAsBool() const;
+    /// Cast as unsigned 64 bit integer
     std::optional<int64_t> CastAsUI64() const;
 
     /// Print the type
