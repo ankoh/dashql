@@ -9,8 +9,6 @@ import { ProgramInstance, SVGStyleMap, VizComponentSpec, VizRendererType } from 
 import ActionStatusCode = proto.action.ActionStatusCode;
 import VizComponentTypeModifier = proto.syntax.VizComponentTypeModifier;
 
-const DEFAULT_SAMPLE_SIZE = 1024;
-
 /// Collect strings
 function collectStr(fn: (i: number) => string, n: number) {
     let vec = [];
@@ -26,8 +24,10 @@ export abstract class VizActionLogic extends ProgramActionLogic {
     /// The table info (when fetched)
     _tableInfo: model.DatabaseTableInfo | null = null;
 
-    /// The key columns
-    _requiredColumns: Map<string, boolean> = new Map();
+    /// The required columns
+    _requiredColumnIds: Map<string, number> = new Map();
+    /// The required column list
+    _requiredColumns: string[] = [];
     /// The x attribute(s)
     _x: string[] | null = null;
     /// The y attribute(s)
@@ -71,6 +71,19 @@ export abstract class VizActionLogic extends ProgramActionLogic {
         }
     }
 
+    /// Require a column
+    protected requireColumn(name: string) {
+        if (!this._requiredColumnIds.has(name)) {
+            this._requiredColumnIds.set(name, this._requiredColumns.length);
+            this._requiredColumns.push(name);
+        }
+    }
+
+    /// Resolve a column id by name
+    protected resolveColumnId(name: string) {
+        return this._requiredColumnIds.get(name)!;
+    }
+
     /// Analayze a single viz component
     protected analyzeVizComponent(component: proto.viz.VizComponent): VizComponentSpec {
         // Collect type
@@ -89,30 +102,28 @@ export abstract class VizActionLogic extends ProgramActionLogic {
         let orderBy = this._orderBy;
         let partitionBy = this._partitionBy;
 
-        /// XXX Deprecated !!
-        /// Detect the grouping mode for x and y axis.
-        /// Note that the grouping of the y-axis is also referred to as "stacking".
-        ///
         /// We differentiate between the following situations:
         /// A) USING BAR (x = attr1, y = attr2)
         ///
-        /// B) USING GROUPED BAR (x = [attr1, attr2], y = attr3)
+        /// B) USING CLUSTERED BAR (x = [attr1, attr2], y = attr3)
         ///    User provides already pivotted x values.
+        ///    No explicit ordering necessary.
         ///
         /// C) USING STACKED BAR (x = attr1, y = [attr2, attr3])
         ///    User provides already pivotted y values.
+        ///    No explicit ordering necessary.
         ///
-        /// D) USING GROUPED BAR (x = attr1, y = attr2, group_by = attr3)
-        ///    We need to group x ourselves.
+        /// D) USING CLUSTERED BAR (x = attr1, y = attr2, cluster = attr3)
+        ///    We order by (attr3, x) ourselves.
         ///
-        /// E) USING STACKED BAR (x = attr1, y = attr2, stack_by = attr3)
-        ///    We need to group y ourselves.
+        /// E) USING STACKED BAR (x = attr1, y = attr2, stack = attr3)
+        ///    We order by (attr3, x) ourselves.
         ///
         /// + Combinations of above, e.g.:
         ///
-        /// F) USING GROUPED STACKED BAR (x = attr1, y = [attr3, attr4], group_by = [attr5])
-        ///    User gives us pivotted x groups but we have to group y.
-        ///    (e.g. SELECT attr5, max(attr1), max(attr3), max(attr4) GROUP BY attr5 ORDER BY attr5, attr1)
+        /// F) USING GROUPED STACKED BAR (x = attr1, y = [attr3, attr4], cluster = attr5)
+        ///    User gives us pivotted stacks but we have to cluster x.
+        ///    We order by (attr5, attr1) ourselves.
 
         if (dataReader) {
             x = collectStr(dataReader.x.bind(dataReader), dataReader.xLength()) || x;
@@ -122,7 +133,7 @@ export abstract class VizActionLogic extends ProgramActionLogic {
             orderBy = collectStr(dataReader.order.bind(dataReader), dataReader.orderLength()) || orderBy;
         }
 
-        // XXX We override the user orderBy here.
+        // XXX We may override a user-provided ordering here.
         //     Emit a warning or error if it differs.
         const isClustered = typeModifiers.has(VizComponentTypeModifier.CLUSTERED);
         const isStacked = typeModifiers.has(VizComponentTypeModifier.STACKED);
@@ -138,13 +149,14 @@ export abstract class VizActionLogic extends ProgramActionLogic {
             orderBy = clusterBy?.concat(x || []) || [];
             partitionBy = orderBy;
         }
-        x?.forEach((v) => this._requiredColumns.set(v, true));
-        y?.forEach((v) => this._requiredColumns.set(v, true));
-        clusterBy?.forEach((v) => this._requiredColumns.set(v, true));
-        stackBy?.forEach((v) => this._requiredColumns.set(v, true));
-        orderBy?.forEach((v) => this._requiredColumns.set(v, true));
+        x?.forEach((v) => this.requireColumn(v));
+        y?.forEach((v) => this.requireColumn(v));
+        clusterBy?.forEach((v) => this.requireColumn(v));
+        stackBy?.forEach((v) => this.requireColumn(v));
+        orderBy?.forEach((v) => this.requireColumn(v));
 
-        // Detect conflicts
+        // TODO Detect conflicts
+
         this._x = x;
         this._y = y;
         this._clusterBy = clusterBy;
@@ -158,38 +170,26 @@ export abstract class VizActionLogic extends ProgramActionLogic {
             type,
             typeModifiers,
             styles,
-            data: {
-                x: x,
-                y: y,
-                clusterBy: clusterBy,
-                stackBy: stackBy,
-                orderBy: orderBy,
+            dataView: {
+                x: x?.map(this.resolveColumnId.bind(this)) || [],
+                y: y?.map(this.resolveColumnId.bind(this)) || []
             },
             selectionID: null,
         };
     }
 
     // Build the query
-    protected buildQuery(): model.VizQuery {
-        let out = Array.from(this._requiredColumns).map(([k, v]) => k);
-        let script = `SELECT ${out.join(',')}`;
-        script += ` FROM ${this.buffer.targetNameShort()} TABLESAMPLE RESERVOIR(10000)`;
-        if (this._orderBy) {
-            script += ` ORDER BY ${this._orderBy.join(',')}`;
-        }
-
-        let colIds = new Map<string, number>();
-        for (let i = 0; i < out.length; ++i) colIds.set(out[i], i);
-
+    protected buildQuery(): model.VizDataQuery {
+        const colNames = this._tableInfo!.columnNameMapping;
+        const getColId = this.resolveColumnId.bind(this);
         return {
-            script,
-            columnNameMapping: colIds,
-            x: this._x || [],
-            y: this._y || [],
-            clusterBy: this._clusterBy || [],
-            stackBy: this._stackBy || [],
-            orderBy: this._orderBy || [],
-            partitionBy: this._partitionBy || [],
+            targetShort: this.buffer.targetNameShort()!,
+            targetQualified: this.buffer.targetNameQualified()!,
+            columns: this._requiredColumns.map((c) => colNames.get(c)!),
+            orderBy: this._orderBy?.map(getColId) || [],
+            clusterBy: this._clusterBy?.map(getColId) || [],
+            stackBy: this._stackBy?.map(getColId) || [],
+            partitionBy: this._partitionBy?.map(getColId) || [],
         }
     }
 
@@ -258,7 +258,7 @@ export abstract class VizActionLogic extends ProgramActionLogic {
             currentStatementId: this.origin.statementId,
             title: this._vizSpec!.title() || undefined,
             position: pos,
-            query: this.buildQuery(),
+            dataQuery: this.buildQuery(),
             components: components,
         };
     }
