@@ -69,7 +69,7 @@ function main(db: webdb.WebDB) {
 }
 
 const logger = new webdb.VoidLogger();
-const db = new webdb.WebDB(logger, {}, wasmPath);
+const db = new webdb.WebDB(logger, new webdb.DefaultWebDBRuntime(), wasmPath);
 db.open()
     .then(() => main(db))
     .catch(e => console.error(e));
