@@ -17,14 +17,6 @@
         "@dashql/core": "file:../core/",
         "@dashql/proto": "file:../proto/",
         "@dashql/webdb": "file:../webdb/",
-        "@visx/axis": "^1.6.1",
-        "@visx/grid": "^1.6.1",
-        "@visx/group": "^1.6.1",
-        "@visx/legend": "^1.6.1",
-        "@visx/responsive": "^1.6.1",
-        "@visx/scale": "^1.6.1",
-        "@visx/shape": "^1.6.1",
-        "@visx/tooltip": "^1.6.1",
         "axios": "^0.21.1",
         "classnames": "^2.2.6",
         "dagre": "^0.8.5",
@@ -43,6 +35,8 @@
         "react-virtualized": "^9.22.3",
         "redux": "^4.0.5",
         "redux-persist": "^6.0.0",
+        "vega": "^5.19.1",
+        "vega-lite": "^5.0.0",
         "victory": "^35.4.11"
     },
     "devDependencies": {
