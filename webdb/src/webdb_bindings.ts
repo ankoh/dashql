@@ -6,12 +6,17 @@ import { flatbuffers } from 'flatbuffers';
 import { Logger } from './log';
 import { QueryRunOptions } from './query_options';
 
-export interface WebDBRuntime {
-    dashql_blob_stream_underflow(blobId: number, buf: number, size: number): number;
+export abstract class WebDBRuntime {
+    protected bindings?: WebDBBindings;
+    setBindings(bindings: WebDBBindings) {
+        this.bindings = bindings;
+    }
+
+    abstract dashql_blob_stream_underflow(blobId: number, buf: number, size: number): number;
 }
 
-export class DefaultWebDBRuntime implements WebDBRuntime {
-    dashql_blob_stream_underflow(blobId: number, buf: number, size: number): number {
+export class DefaultWebDBRuntime extends WebDBRuntime {
+    public dashql_blob_stream_underflow(blobId: number, buf: number, size: number): number {
         throw new Error('dashql_blob_stream_underflow not implemented.');
     }
 }

@@ -446,9 +446,11 @@ if (EMSCRIPTEN)
             _dashql_blob_stream_consume \
         ]' \
         -s EXTRA_EXPORTED_RUNTIME_METHODS='[\"ccall\"]' \
+        --js-library=${CMAKE_SOURCE_DIR}/js-stubs.js \
         ${ADDITIONAL_LINKER_FLAGS} \
         "
-    )
+        )
+#        -s LINKABLE=1 \
 
     add_executable(webdb_wasm ${CMAKE_SOURCE_DIR}/src/ffi_main.cc)
     target_link_libraries(webdb_wasm dashql_webdb flatbuffers spdlog)
