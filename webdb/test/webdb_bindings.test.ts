@@ -7,7 +7,7 @@ var conn: webdb.WebDBConnection;
 const logger = new webdb.ConsoleLogger();
 
 beforeAll(async () => {
-    db = new webdb.WebDB(logger, {}, path.resolve(__dirname, "../src/webdb_wasm.wasm"));
+    db = new webdb.WebDB(logger, new webdb.DefaultWebDBRuntime(), path.resolve(__dirname, '../src/webdb_wasm.wasm'));
     await db.open();
 });
 
@@ -15,7 +15,7 @@ beforeEach(() => {
     conn = db.connect();
 });
 
-afterEach (() => {
+afterEach(() => {
     conn.disconnect();
 });
 
@@ -26,7 +26,7 @@ describe('WebDBBindings', () => {
             try {
                 conn.sendQuery('INVALID');
             } catch (e) {
-                error = e
+                error = e;
             }
             expect(error).not.toBe(null);
         });

@@ -2,13 +2,10 @@
 
 import { webdb as proto } from '@dashql/proto';
 import { flatbuffers } from 'flatbuffers';
-import {
-    AsyncWebDBRequestType,
-    AsyncWebDBResponseType,
-    AsyncWebDBResponseVariant,
-} from './async_webdb_message';
+import { AsyncWebDBRequestType, AsyncWebDBResponseType, AsyncWebDBResponseVariant } from './async_webdb_message';
 import { Logger, LogLevel, LogTopic, LogOrigin, LogEvent } from './log';
 import { QueryRunOptions } from './query_options';
+import { BlobStream } from './webdb_bindings';
 
 type ConnectionID = number;
 
@@ -22,15 +19,18 @@ class Task<T, D, P> {
     constructor(type: T, data: D) {
         this.type = type;
         this.data = data;
-        this.promise = new Promise<P>((resolve: (value: P | PromiseLike<P>) => void, reject: (reason?: void) => void) => {
+        this.promise = new Promise<P>(
+            (resolve: (value: P | PromiseLike<P>) => void, reject: (reason?: void) => void) => {
             this.promiseResolver = resolve;
             this.promiseRejecter = reject;
-        });
+            },
+        );
     }
 }
 
 type TaskVariant =
     | Task<AsyncWebDBRequestType.RESET, null, null>
+    | Task<AsyncWebDBRequestType.INGEST_BLOBSTREAM, BlobStream, null>
     | Task<AsyncWebDBRequestType.PING, null, null>
     | Task<AsyncWebDBRequestType.OPEN, string | null, null>
     | Task<AsyncWebDBRequestType.CONNECT, null, ConnectionID>
@@ -66,12 +66,13 @@ export class AsyncWebDB {
         this._onMessageHandler = this.onMessage.bind(this);
         this._onErrorHandler = this.onError.bind(this);
         this._onCloseHandler = this.onClose.bind(this);
-        if (worker != null)
-            this.attach(worker);
+        if (worker != null) this.attach(worker);
     }
 
     /// Get the logger
-    public get logger() { return this._logger; }
+    public get logger() {
+        return this._logger;
+    }
 
     /// Attach to worker
     protected attach(worker: Worker) {
@@ -151,6 +152,7 @@ export class AsyncWebDB {
         switch (task.type) {
             case AsyncWebDBRequestType.RESET:
             case AsyncWebDBRequestType.PING:
+            case AsyncWebDBRequestType.INGEST_BLOBSTREAM:
             case AsyncWebDBRequestType.OPEN:
             case AsyncWebDBRequestType.DISCONNECT:
                 if (response.type == AsyncWebDBResponseType.OK) {
@@ -211,6 +213,15 @@ export class AsyncWebDB {
     /// Ping the worker thread
     public async ping() {
         const task = new Task<AsyncWebDBRequestType.PING, null, null>(AsyncWebDBRequestType.PING, null);
+        await this.postTask(task);
+    }
+
+    /// Ping the worker thread
+    public async ingestBlobStream(blobStream: BlobStream) {
+        const task = new Task<AsyncWebDBRequestType.INGEST_BLOBSTREAM, BlobStream, null>(
+            AsyncWebDBRequestType.INGEST_BLOBSTREAM,
+            blobStream,
+        );
         await this.postTask(task);
     }
 

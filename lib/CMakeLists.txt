@@ -442,7 +442,8 @@ if (EMSCRIPTEN)
             _dashql_webdb_run_query, \
             _dashql_webdb_send_query, \
             _dashql_webdb_fetch_query_results, \
-            _dashql_webdb_analyze_query \
+            _dashql_webdb_analyze_query, \
+            _dashql_blob_stream_consume \
         ]' \
         -s EXTRA_EXPORTED_RUNTIME_METHODS='[\"ccall\"]' \
         ${ADDITIONAL_LINKER_FLAGS} \
