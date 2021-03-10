@@ -1,6 +1,8 @@
 #include "dashql/common/blob_stream.h"
 
 #include <cstring>
+#include <iostream>
+#include <sstream>
 
 namespace dashql {
 
@@ -106,10 +108,21 @@ extern "C" {
 size_t dashql_pong();
 size_t dashql_ping() { return dashql_pong(); }
 
-size_t dashql_blob_stream_underflow(dashql::BlobID, char*, size_t);
+extern size_t dashql_blob_stream_underflow(dashql::BlobID, char*, size_t);
+
+void dashql_blob_stream_consume(dashql::BlobID blobId) {
+    dashql::BlobStreamBuffer blob_streambuf(dashql_blob_stream_underflow, blobId);
+    std::istream blob_stream{&blob_streambuf};
+    std::cout << "response: " << blob_stream.rdbuf() << std::endl;
+//     char buf[100] = {};
+//     dashql_blob_stream_underflow(blobId, buf, 100);
+// 
+//     std::cout << "response: " << buf << std::endl;
+}
 
 #ifndef EMSCRIPTEN
 size_t dashql_pong() { return 0; }
 size_t dashql_blob_stream_underflow(dashql::BlobID, char*, size_t) { return 0; }
+
 #endif
 }

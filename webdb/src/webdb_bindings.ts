@@ -6,7 +6,15 @@ import { flatbuffers } from 'flatbuffers';
 import { Logger } from './log';
 import { QueryRunOptions } from './query_options';
 
-export interface WebDBRuntime {}
+export interface WebDBRuntime {
+    dashql_blob_stream_underflow(blobId: number, buf: number, size: number): number;
+}
+
+export class DefaultWebDBRuntime implements WebDBRuntime {
+    dashql_blob_stream_underflow(blobId: number, buf: number, size: number): number {
+        throw new Error('dashql_blob_stream_underflow not implemented.');
+    }
+}
 
 /// Decode a string
 function decodeString(buffer: Uint8Array): string {
@@ -24,6 +32,25 @@ function copyFlatbuffer(buffer: Uint8Array): flatbuffers.ByteBuffer {
     return new flatbuffers.ByteBuffer(copy);
 }
 
+export abstract class BlobStream {
+    public buffer: Uint8Array;
+    public position: number;
+
+    public constructor(buffer: Uint8Array) {
+        this.buffer = buffer;
+        this.position = 0;
+    }
+}
+
+// As a global function because when passing the object to the webworker it turns into a POJO (?)
+export function copyBlobStreamTo(blobStream: BlobStream, dest: Uint8Array, pos: number, length: number): number {
+    if (blobStream.position >= blobStream.buffer.length) return 0;
+    let size = Math.min(length, blobStream.buffer.length - blobStream.position);
+    dest.set(blobStream.buffer.slice(blobStream.position, blobStream.position + size), pos);
+    blobStream.position += size;
+    return size;
+}
+
 /// The proxy for either the browser- order node-based WebDB API
 export abstract class WebDBBindings {
     /// The logger
@@ -34,15 +61,21 @@ export abstract class WebDBBindings {
     private _openPromise: Promise<void> | null = null;
     /// The resolver for the open promise (called by onRuntimeInitialized)
     private _openPromiseResolver: () => void = () => {};
+    /// The blob "file-handle" map of currently open blob streams
+    private _blobMap = new Map<number, BlobStream>();
 
     constructor(logger: Logger) {
         this._logger = logger;
     }
 
     /// Get the logger
-    public get logger() { return this._logger; }
+    public get logger() {
+        return this._logger;
+    }
     /// Get the instance
-    public get instance() { return this._instance; }
+    public get instance() {
+        return this._instance;
+    }
 
     /// Instantiate the module
     protected abstract instantiate(moduleOverrides: Partial<WebDBModule>): Promise<WebDBModule>;
@@ -185,6 +218,20 @@ export abstract class WebDBBindings {
         instance.ccall('dashql_clear_response', null, [], []);
         return plan;
     }
+
+    /// Ingest a blob
+    public ingestBlobStream(blobStream: BlobStream): void {
+        const blobId = this._blobMap.size;
+        this._blobMap.set(blobId, blobStream);
+
+        this.instance!.ccall('dashql_blob_stream_consume', null, ['number'], [blobId]);
+
+        this._blobMap.delete(blobId);
+    }
+
+    public getBlobStreamById(blobId: number): BlobStream | undefined {
+        return this._blobMap.get(blobId);
+    }
 }
 
 /// A thin helper to memoize the connection id
@@ -200,7 +247,9 @@ export class WebDBConnection {
         this._conn = conn;
     }
 
-    public get handle() { return this._conn; }
+    public get handle() {
+        return this._conn;
+    }
 
     public disconnect(): void {
         this._bindings.disconnect(this._conn);
