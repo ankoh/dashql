@@ -7,9 +7,13 @@ import { WebDBBindings, WebDBRuntime, DefaultWebDBRuntime, BlobStream } from './
 import { Logger } from './log';
 import fs from 'fs';
 
-export class NodeBlobStream extends BlobStream {
+export class NodeBlobStream implements BlobStream {
+    buffer: Uint8Array;
+    position: number;
+
     public constructor(file: string) {
-        super(new Uint8Array(fs.readFileSync(file)));
+        this.buffer = new Uint8Array(fs.readFileSync(file));
+        this.position = 0;
     }
 }
 

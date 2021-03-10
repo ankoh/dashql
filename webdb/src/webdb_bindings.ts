@@ -32,17 +32,12 @@ function copyFlatbuffer(buffer: Uint8Array): flatbuffers.ByteBuffer {
     return new flatbuffers.ByteBuffer(copy);
 }
 
-export abstract class BlobStream {
-    public buffer: Uint8Array;
-    public position: number;
-
-    public constructor(buffer: Uint8Array) {
-        this.buffer = buffer;
-        this.position = 0;
-    }
+export interface BlobStream {
+    buffer: Uint8Array;
+    position: number;
 }
 
-// As a global function because when passing the object to the webworker it turns into a POJO (?)
+// As a global function because when passing the object to the webworker it turns into a POJO
 export function copyBlobStreamTo(blobStream: BlobStream, dest: Uint8Array, pos: number, length: number): number {
     if (blobStream.position >= blobStream.buffer.length) return 0;
     let size = Math.min(length, blobStream.buffer.length - blobStream.position);
@@ -145,11 +140,14 @@ export abstract class WebDBBindings {
         this.instance!.ccall('dashql_webdb_disconnect', null, ['number'], [conn]);
     }
 
-    /// Encode query arguments 
+    /// Encode query arguments
     protected encodeQueryArguments(text: string, options: QueryRunOptions = {}): number {
         const instance = this.instance!;
         const builder = new flatbuffers.Builder();
-        const partitionBoundaries = proto.QueryArguments.createPartitionBoundariesVector(builder, options.partitionBoundaries || []);
+        const partitionBoundaries = proto.QueryArguments.createPartitionBoundariesVector(
+            builder,
+            options.partitionBoundaries || [],
+        );
         const scriptOfs = builder.createString(text);
         proto.QueryArguments.start(builder);
         proto.QueryArguments.addScript(builder, scriptOfs);
