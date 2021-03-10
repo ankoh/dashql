@@ -1,9 +1,11 @@
 import { LogEntryVariant } from './log';
 import { QueryRunOptions } from './query_options';
+import { BlobStream } from './webdb_bindings';
 
 export enum AsyncWebDBRequestType {
     RESET = 'RESET',
     PING = 'PING',
+    INGEST_BLOBSTREAM = 'INGEST_BLOBSTREAM',
     OPEN = 'OPEN',
     CONNECT = 'CONNECT',
     DISCONNECT = 'DISCONNECT',
@@ -38,6 +40,7 @@ export type AsyncWebDBResponse<T, P> = {
 export type AsyncWebDBRequestVariant =
     | AsyncWebDBRequest<AsyncWebDBRequestType.RESET, null>
     | AsyncWebDBRequest<AsyncWebDBRequestType.PING, null>
+    | AsyncWebDBRequest<AsyncWebDBRequestType.INGEST_BLOBSTREAM, BlobStream>
     | AsyncWebDBRequest<AsyncWebDBRequestType.OPEN, string | null>
     | AsyncWebDBRequest<AsyncWebDBRequestType.CONNECT, null>
     | AsyncWebDBRequest<AsyncWebDBRequestType.DISCONNECT, number>

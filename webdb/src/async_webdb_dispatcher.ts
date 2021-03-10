@@ -151,6 +151,10 @@ export abstract class AsyncWebDBDispatcher implements Logger {
                     );
                     break;
                 }
+                case AsyncWebDBRequestType.INGEST_BLOBSTREAM:
+                    this._bindings.ingestBlobStream(request.data);
+                    this.sendOK(request);
+                    break;
             }
         } catch (e) {
             return this.failWith(request, e);

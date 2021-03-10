@@ -3,15 +3,22 @@
 import webdb_api_wasm from './webdb_wasm.wasm';
 import webdb_api_init from './webdb_wasm.js';
 import { WebDBModule } from './webdb_module';
-import { WebDBBindings, WebDBRuntime } from './webdb_bindings';
+import { WebDBBindings, WebDBRuntime, DefaultWebDBRuntime, BlobStream } from './webdb_bindings';
 import { Logger } from './log';
+
+export class WebBlobStream extends BlobStream {
+    public constructor(blob: Blob) {
+        const reader = new FileReaderSync();
+        super(new Uint8Array(reader.readAsArrayBuffer(blob)));
+    }
+}
 
 /// WebDB bindings for the browser
 export class WebDB extends WebDBBindings {
     protected runtime: WebDBRuntime;
     protected path: string;
 
-    public constructor(logger: Logger, runtime: WebDBRuntime = {}, path: string | null = null) {
+    public constructor(logger: Logger, runtime: WebDBRuntime = new DefaultWebDBRuntime(), path: string | null = null) {
         super(logger);
         this.runtime = runtime;
         this.path = path ?? webdb_api_wasm;
