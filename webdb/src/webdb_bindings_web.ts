@@ -6,10 +6,14 @@ import { WebDBModule } from './webdb_module';
 import { WebDBBindings, WebDBRuntime, DefaultWebDBRuntime, BlobStream } from './webdb_bindings';
 import { Logger } from './log';
 
-export class WebBlobStream extends BlobStream {
+export class WebBlobStream implements BlobStream {
+    buffer: Uint8Array;
+    position: number;
+
     public constructor(blob: Blob) {
         const reader = new FileReaderSync();
-        super(new Uint8Array(reader.readAsArrayBuffer(blob)));
+        this.buffer = new Uint8Array(reader.readAsArrayBuffer(blob));
+        this.position = 0;
     }
 }
 

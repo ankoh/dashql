@@ -21,8 +21,8 @@ class Task<T, D, P> {
         this.data = data;
         this.promise = new Promise<P>(
             (resolve: (value: P | PromiseLike<P>) => void, reject: (reason?: void) => void) => {
-            this.promiseResolver = resolve;
-            this.promiseRejecter = reject;
+                this.promiseResolver = resolve;
+                this.promiseRejecter = reject;
             },
         );
     }
@@ -216,7 +216,7 @@ export class AsyncWebDB {
         await this.postTask(task);
     }
 
-    /// Ping the worker thread
+    /// Submit a blobstream data payload to webdb
     public async ingestBlobStream(blobStream: BlobStream) {
         const task = new Task<AsyncWebDBRequestType.INGEST_BLOBSTREAM, BlobStream, null>(
             AsyncWebDBRequestType.INGEST_BLOBSTREAM,
@@ -259,7 +259,11 @@ export class AsyncWebDB {
     }
 
     /// Send a query
-    public async sendQuery(conn: ConnectionID, text: string, options: QueryRunOptions = {}): Promise<proto.QueryResult> {
+    public async sendQuery(
+        conn: ConnectionID,
+        text: string,
+        options: QueryRunOptions = {},
+    ): Promise<proto.QueryResult> {
         const task = new Task<AsyncWebDBRequestType.SEND_QUERY, [ConnectionID, string, QueryRunOptions], Uint8Array>(
             AsyncWebDBRequestType.SEND_QUERY,
             [conn, text, options],
