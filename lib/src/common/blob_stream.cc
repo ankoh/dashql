@@ -114,10 +114,6 @@ void dashql_blob_stream_consume(dashql::BlobID blobId) {
     dashql::BlobStreamBuffer blob_streambuf(dashql_blob_stream_underflow, blobId);
     std::istream blob_stream{&blob_streambuf};
     std::cout << "response: " << blob_stream.rdbuf() << std::endl;
-//     char buf[100] = {};
-//     dashql_blob_stream_underflow(blobId, buf, 100);
-// 
-//     std::cout << "response: " << buf << std::endl;
 }
 
 #ifndef EMSCRIPTEN
