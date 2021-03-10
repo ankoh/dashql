@@ -11,7 +11,83 @@ import * as vy from 'victory';
 
 import TypeModifier = core.proto.syntax.VizComponentTypeModifier;
 import ComponentType = core.proto.syntax.VizComponentType;
-import { VizDataQuery } from '@dashql/core/dist/types/model';
+
+interface ClusteredChartsProps {
+    /// The partitions
+    partitions: webdb.RowProxy[][];
+    /// The cluster columns
+    clusterBy: number[];
+    /// The children
+    children: (partitions: webdb.RowProxy[][], clusterId: number) => React.ReactNode | React.ReactNode[];
+}
+
+interface ClusteredChartsState {
+    /// The partitions
+    partitions: webdb.RowProxy[][];
+    /// The cluster columns
+    clusterBy: number[];
+    /// The clustered partitions
+    clusteredPartitions: webdb.RowProxy[][][];
+}
+
+export class ClusteredCharts extends React.Component<ClusteredChartsProps, ClusteredChartsState> {
+    public static getDerivedStateFromProps(nextProps: ClusteredChartsProps, prevState?: ClusteredChartsState) {
+        // Nothing to do?
+        if (prevState && prevState.partitions == nextProps.partitions && prevState.clusterBy == nextProps.clusterBy) {
+            return prevState;
+        }
+
+        // Helper to compare cluster key?
+        const sameCluster = (l: webdb.RowProxy[], r: webdb.RowProxy[]): boolean => {
+            for (const a of nextProps.clusterBy) {
+                if (l[0].__attribute__(a) != r[0].__attribute__(a)) return false;
+            }
+            return true;
+        };
+
+        // Collect all clusters
+        let i = 0;
+        let partitions = nextProps.partitions;
+        let clusters: webdb.RowProxy[][][] = [];
+        for (let i = 0; i < partitions.length; ) {
+            let cluster: webdb.RowProxy[][] = [partitions[i]];
+            for (++i; i < partitions.length && sameCluster(cluster[0], partitions[i]); ++i) {
+                cluster.push(partitions[i]);
+            }
+            clusters.push(cluster);
+        }
+        return {
+            partitions: nextProps.partitions,
+            clusterBy: nextProps.clusterBy,
+            clusteredPartitions: clusters,
+        };
+    }
+
+    public render() {
+        return (
+            <vy.VictoryGroup>{this.state.clusteredPartitions.map((c, i) => this.props.children(c, i))}</vy.VictoryGroup>
+        );
+    }
+}
+
+interface StackedChartsProps {
+    /// The key
+    clusterId: number;
+    /// The partitions
+    partitions: webdb.RowProxy[][];
+    /// The children
+    children: (rows: webdb.RowProxy[], clusterId: number, stackId: number) => React.ReactNode | React.ReactNode[];
+}
+
+function StackedCharts(props: StackedChartsProps) {
+    console.log("STACKED");
+    console.log(props.partitions);
+    return (
+        <vy.VictoryStack key={props.clusterId}>
+            {props.partitions.map((p, i) => props.children(p, props.clusterId, i))}
+        </vy.VictoryStack>
+    );
+}
 
 interface Props {
     appContext: IAppContext;
@@ -20,65 +96,101 @@ interface Props {
 }
 
 export class VictoryChartClustered extends React.Component<Props> {
-    public renderComponent(i: number, c: core.model.VizComponentSpec, partitions: webdb.RowProxy[][]) {
+    public renderComponent(
+        componentId: number,
+        component: core.model.VizComponentSpec,
+        partitions: webdb.RowProxy[][],
+    ) {
         const targetQualified = this.props.vizInfo.nameQualified;
         const table = this.props.dbObjects.get(targetQualified)!;
-        const dataView = c.dataView;
+        const dataView = component.dataView;
         const dataQuery = this.props.vizInfo.dataQuery;
 
-        //const xs = dataView.x.map(i => table.columnNames[i]);
-        //const ys = dataView.y.map(i => table.columnNames[i]);
-
-        /// Translate component
-        const translate = (rows: webdb.RowProxy[], x?: string, y?: string): React.ReactNode => {
-            const dataProps = {
-                data: rows,
-                x,
-                y,
-            };
-            switch (c.type) {
-                case ComponentType.AREA:
-                    return <vy.VictoryArea key={i} style={c.styles} {...dataProps} />;
-                case ComponentType.BAR:
-                    return <vy.VictoryBar key={i} style={c.styles} {...dataProps} />;
-                case ComponentType.CANDLESTICK:
-                    return <vy.VictoryCandlestick key={i} style={c.styles} {...dataProps} />;
-                case ComponentType.ERROR_BAR:
-                    return <vy.VictoryErrorBar key={i} style={c.styles} {...dataProps} />;
-                case ComponentType.HISTOGRAM:
-                    return <vy.VictoryHistogram key={i} style={c.styles} {...dataProps} />;
-                case ComponentType.LINE:
-                    return <vy.VictoryLine key={i} style={c.styles} {...dataProps} />;
-                case ComponentType.SCATTER:
-                    return <vy.VictoryScatter key={i} style={c.styles} {...dataProps} />;
-                default:
-                    return <div />;
-            }
-        };
-
-        // Is same cluster?
-        const sameCluster = (l: webdb.RowProxy[], r: webdb.RowProxy[]): boolean => {
-            for (const a of dataQuery.clusterBy) {
-                if (l[0].__attribute__(a) != r[0].__attribute__(a)) return false;
-            }
-            return true;
-        };
-
-        // Collect all partitions that belong to a cluster
-        let nodes: React.ReactNode[] = [];
-        while (i < partitions.length) {
-            let cluster: webdb.RowProxy[][] = [partitions[i]];
-            for (++i; i < partitions.length && sameCluster(cluster[0], partitions[i]); ++i) {
-                cluster.push(partitions[i]);
-            }
-
-            let stack: React.ReactNode = (
-                <vy.VictoryStack>
-                    {cluster.map(p => translate(p))}
-                </vy.VictoryStack>
-            );
-            nodes.push(stack);
-        }
+//        const resolveColumns = (clusterId: number, partitionId: number) => {
+//            const xi = (dataQuery.clusterBy.length > 0) ? 0 : clusterId;
+//            const yi = (dataQuery.stackBy.length > 0) ? 0 : partitionId;
+//            let x = undefined;
+//            let y = undefined;
+//            if (xi > dataView.x.length) {
+//                console.error(`x column out of bounds, clusterId=${clusterId}, partitionId=${partitionId}`);
+//            } else {
+//                x = table.columnNames[dataQuery.columns[dataView.x[xi]]];
+//            }
+//            if (yi > dataView.y.length) {
+//                console.error(`y column out of bounds, clusterId=${clusterId}, partitionId=${partitionId}`);
+//            } else {
+//                y = table.columnNames[dataQuery.columns[dataView.y[yi]]];
+//            }
+//            console.log({x, y});
+//            return {x, y};
+//        };
+//
+//        // Renderers
+//        const renderComponent = (data: webdb.RowProxy[], clusterId: number, partitionId: number): React.ReactNode => {
+//            const dataProps = {
+//                data,
+//                ...resolveColumns(clusterId, partitionId)
+//            };
+//            const c = component;
+//            const ci = clusterId * partitionId;
+//            switch (component.type) {
+//                case ComponentType.AREA:
+//                    console.log(`AREA ${clusterId} ${partitionId}`);
+//                    console.log(data);
+//                    return <vy.VictoryArea key={ci} style={c.styles} {...dataProps} />;
+//                case ComponentType.BAR:
+//                    console.log(`BAR ${clusterId} ${partitionId}`);
+//                    console.log(data);
+//                    return <vy.VictoryBar key={ci} style={c.styles} {...dataProps} />;
+//                case ComponentType.CANDLESTICK:
+//                    return <vy.VictoryCandlestick key={ci} style={c.styles} {...dataProps} />;
+//                case ComponentType.ERROR_BAR:
+//                    return <vy.VictoryErrorBar key={ci} style={c.styles} {...dataProps} />;
+//                case ComponentType.HISTOGRAM:
+//                    return <vy.VictoryHistogram key={ci} style={c.styles} {...dataProps} />;
+//                case ComponentType.LINE:
+//                    return <vy.VictoryLine key={ci} style={c.styles} {...dataProps} />;
+//                case ComponentType.SCATTER:
+//                    return <vy.VictoryScatter key={ci} style={c.styles} {...dataProps} />;
+//                default:
+//                    return <div />;
+//            }
+//        };
+//        const noClusters = (fn: (partitions: webdb.RowProxy[][], clusterId: number) => React.ReactNode) =>
+//            fn(partitions, 0);
+//        const clustered = (componentId: number, fn: (partitions: webdb.RowProxy[][], clusterId: number) => React.ReactNode) => (
+//            <ClusteredCharts key={componentId} partitions={partitions} clusterBy={dataQuery.clusterBy}>
+//                {fn}
+//            </ClusteredCharts>
+//        );
+//        const noStacks = (fn: (rows: webdb.RowProxy[], clusterId: number, partitionId: number) => React.ReactNode) => (
+//            partitions: webdb.RowProxy[][],
+//            clusterId: number,
+//        ) => partitions.map((p, i) => fn(p, clusterId, i));
+//        const stacked = (fn: (rows: webdb.RowProxy[], clusterId: number, partitionId: number) => React.ReactNode) => (
+//            partitions: webdb.RowProxy[][],
+//            clusterId: number,
+//        ) => (
+//            <StackedCharts key={clusterId} clusterId={clusterId} partitions={partitions}>
+//                {fn}
+//            </StackedCharts>
+//        );
+//
+//        // Combine cluster & stack renderers
+//        if (component.typeModifiers.has(TypeModifier.CLUSTERED)) {
+//            if (component.typeModifiers.has(TypeModifier.STACKED)) {
+//                return clustered(componentId, stacked(renderComponent));
+//            } else {
+//                return clustered(componentId, noStacks(renderComponent));
+//            }
+//        } else {
+//            if (component.typeModifiers.has(TypeModifier.STACKED)) {
+//                return noClusters(stacked(renderComponent));
+//            } else {
+//                return noClusters(noStacks(renderComponent));
+//            }
+//        }
+        return <div key={componentId} />
     }
 
     public render() {
@@ -113,9 +225,6 @@ export class VictoryChartClustered extends React.Component<Props> {
                                                 bottom: 36,
                                             }}
                                         >
-                                            {this.props.vizInfo.components.map((c, i) =>
-                                                this.renderComponent(i, c, partitions),
-                                            )}
                                         </vy.VictoryChart>
                                     )}
                                 </AutoSizer>
