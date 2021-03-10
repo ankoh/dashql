@@ -139,15 +139,15 @@ export abstract class VizActionLogic extends ProgramActionLogic {
         const isStacked = typeModifiers.has(VizComponentTypeModifier.STACKED);
         if (isStacked) {
             if (isClustered) {
-                orderBy = clusterBy?.concat(stackBy || []) || [];
-                partitionBy = orderBy;
+                partitionBy = clusterBy?.concat(stackBy || []) || [];
+                orderBy = partitionBy.concat(x || []);
             } else {
-                orderBy = stackBy?.concat(x || []) || [];
                 partitionBy = stackBy;
+                orderBy = stackBy?.concat(x || []) || [];
             }
         } else if (isClustered) {
-            orderBy = clusterBy?.concat(x || []) || [];
-            partitionBy = orderBy;
+            partitionBy = clusterBy?.concat(x || []) || [];
+            orderBy = partitionBy;
         }
         x?.forEach((v) => this.requireColumn(v));
         y?.forEach((v) => this.requireColumn(v));
