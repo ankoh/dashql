@@ -22,7 +22,7 @@ VIZ foo USING AREA (
     title = 'Area + Scatter Chart'
 ),  SCATTER;
 
-VIZ foo USING STACKED AREA (
+VIZ foo USING STACKED BAR (
     title = 'Stacked Area Chart',
     pos = (r = 8, c = 0, w = 6, h = 4),
     stack = cat10
