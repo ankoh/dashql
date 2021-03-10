@@ -2,6 +2,7 @@ import { beforeAll, afterAll, beforeEach, afterEach, describe, test, expect } fr
 import Worker from 'web-worker';
 import * as webdb from '../src/index_async';
 import * as path from 'path';
+import { NodeBlobStream } from '../src/webdb_bindings_node';
 
 let worker: Worker;
 let db: webdb.AsyncWebDB;
@@ -10,9 +11,9 @@ const logger = new webdb.ConsoleLogger();
 const testRows = 3000;
 
 beforeAll(async () => {
-    worker = new Worker(path.resolve(__dirname, "../dist/webdb_node_async.worker.js"));
+    worker = new Worker(path.resolve(__dirname, '../dist/webdb_node_async.worker.js'));
     db = new webdb.AsyncWebDB(logger, worker);
-    await db.open(path.resolve(__dirname, "../src/webdb_wasm.wasm"));
+    await db.open(path.resolve(__dirname, '../src/webdb_wasm.wasm'));
 });
 
 afterAll(async () => {
@@ -30,6 +31,12 @@ afterEach(async () => {
 describe('AsyncWebDB', () => {
     test('ping', async () => {
         await db.ping();
+    });
+});
+
+describe('AsyncWebDB', () => {
+    test('blob stream', async () => {
+        await db.ingestBlobStream(new NodeBlobStream('./test/blob.txt'));
     });
 });
 

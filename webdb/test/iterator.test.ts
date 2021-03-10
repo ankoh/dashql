@@ -8,7 +8,7 @@ const testRows = 3000;
 const logger = new webdb.ConsoleLogger();
 
 beforeAll(async () => {
-    db = new webdb.WebDB(logger, {}, path.resolve(__dirname, '../src/webdb_wasm.wasm'));
+    db = new webdb.WebDB(logger, new webdb.DefaultWebDBRuntime(), path.resolve(__dirname, '../src/webdb_wasm.wasm'));
     await db.open();
 });
 
