@@ -78,11 +78,19 @@ template <typename Writer> static void writeOptionsAsJSONImpl(ProgramInstance& i
                 // Is an object?
                 auto node_type_id = static_cast<uint32_t>(node.node_type());
                 if (node_type_id > static_cast<uint32_t>(sx::NodeType::OBJECT_KEYS_)) {
-                    // Is evaluated?
-                    // XXX problem column refs!
-                    if (auto eval = instance.FindEvaluatedNode(node_id); !!eval) {
-                        auto txt = eval->value.PrintValue();
-                        trim(txt, isNoQuote);
+                    // Flatten object?
+                    // We do not want to bother JS with the AST in JSON.
+                    bool flatten = false;
+                    switch (node.node_type()) {
+                        case sx::NodeType::OBJECT_DASHQL_FUNCTION_CALL:
+                        case sx::NodeType::OBJECT_SQL_COLUMN_REF:
+                            flatten = true;
+                            break;
+                        default:
+                            break;
+                    }
+                    if (flatten) {
+                        auto txt = trimview(instance.TextAt(node.location()), isNoQuote);
                         out.String(txt.data(), txt.length(), false); // XXX Maybe emit numbers as well?
                         pending.pop();
                         break;
