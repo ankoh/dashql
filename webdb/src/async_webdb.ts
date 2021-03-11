@@ -31,6 +31,7 @@ class Task<T, D, P> {
 type TaskVariant =
     | Task<AsyncWebDBRequestType.RESET, null, null>
     | Task<AsyncWebDBRequestType.INGEST_BLOBSTREAM, BlobStream, null>
+    | Task<AsyncWebDBRequestType.IMPORT_CSV, [number, BlobStream, string, string], null>
     | Task<AsyncWebDBRequestType.PING, null, null>
     | Task<AsyncWebDBRequestType.OPEN, string | null, null>
     | Task<AsyncWebDBRequestType.CONNECT, null, ConnectionID>
@@ -153,6 +154,7 @@ export class AsyncWebDB {
             case AsyncWebDBRequestType.RESET:
             case AsyncWebDBRequestType.PING:
             case AsyncWebDBRequestType.INGEST_BLOBSTREAM:
+            case AsyncWebDBRequestType.IMPORT_CSV:
             case AsyncWebDBRequestType.OPEN:
             case AsyncWebDBRequestType.DISCONNECT:
                 if (response.type == AsyncWebDBResponseType.OK) {
@@ -221,6 +223,15 @@ export class AsyncWebDB {
         const task = new Task<AsyncWebDBRequestType.INGEST_BLOBSTREAM, BlobStream, null>(
             AsyncWebDBRequestType.INGEST_BLOBSTREAM,
             blobStream,
+        );
+        await this.postTask(task);
+    }
+
+    /// Import csv from a blob stream
+    public async importCSV(conn: ConnectionID, blobStream: BlobStream, schemaName: string, tableName: string) {
+        const task = new Task<AsyncWebDBRequestType.IMPORT_CSV, [number, BlobStream, string, string], null>(
+            AsyncWebDBRequestType.IMPORT_CSV,
+            [conn, blobStream, schemaName, tableName],
         );
         await this.postTask(task);
     }
@@ -337,5 +348,10 @@ export class AsyncWebDBConnection implements AsyncConnection {
     /// Fetch query results
     public async fetchQueryResults(): Promise<proto.QueryResultChunk> {
         return this._instance.fetchQueryResults(this._conn);
+    }
+
+    /// Import csv from a blob stream
+    public async importCSV(blobStream: BlobStream, schemaName: string, tableName: string) {
+        return this._instance.importCSV(this._conn, blobStream, schemaName, tableName);
     }
 }
