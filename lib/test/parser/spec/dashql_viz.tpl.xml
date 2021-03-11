@@ -15,3 +15,54 @@
         );
     </input>
 </test>
+<test name="dashql_viz_vegalite_examples_bar">
+    <input>
+        VIZ foo USING VEGA (
+            mark = 'bar',
+            encoding = (
+                x = (
+                    field = a,
+                    type = 'nominal',
+                ),
+                y = (
+                    field = b,
+                    type = 'quantitative',
+                ),
+            )
+        );
+    </input>
+</test>
+<test name="dashql_viz_vegalite_examples_bar_size_responsive">
+    <input>
+        VIZ foo USING VEGA (
+            mark = 'bar',
+            encoding = (
+                x = (
+                    field = a,
+                    type = 'nominal',
+                ),
+                y = (
+                    aggregate = 'count',
+                    title = 'Number of cars',
+                ),
+            )
+        );
+    </input>
+</test>
+<test name="dashql_viz_vegalite_examples_bar_aggregate">
+    <input>
+        VIZ foo USING VEGA (
+            mark = 'bar',
+            encoding = (
+                x = (
+                    field = age,
+                ),
+                y = (
+                    aggregate = 'sum',
+                    field = 'people',
+                    title = 'population'
+                ),
+            )
+        );
+    </input>
+</test>
