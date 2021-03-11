@@ -22,10 +22,10 @@ export class WebDB extends WebDBBindings {
     protected runtime: WebDBRuntime;
     protected path: string;
 
-    public constructor(logger: Logger, runtime: WebDBRuntime = new DefaultWebDBRuntime(), path: string | null = null) {
+    public constructor(logger: Logger, runtime: WebDBRuntime = DefaultWebDBRuntime, path: string | null = null) {
         super(logger);
         this.runtime = runtime;
-        this.runtime.setBindings(this);
+        this.runtime.bindings = this;
         this.path = path ?? webdb_api_wasm;
     }
 
