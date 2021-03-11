@@ -18,8 +18,9 @@
 #include "dashql/parser/parser_driver.h"
 #include "dashql/proto_generated.h"
 
+#include "rapidjson/document.h"
+
 namespace sx = dashql::proto::syntax;
-namespace pv = dashql::proto::viz;
 
 namespace dashql {
 
@@ -43,9 +44,9 @@ class VizStatement {
     /// The components
     std::vector<std::unique_ptr<VizComponent>> components_ = {};
     /// The provided position
-    pv::VizPosition* specified_position_ = nullptr;
-    /// The computed position
-    std::optional<pv::VizPosition> computed_position_ = std::nullopt;
+    std::optional<proto::analyzer::VizPosition> specified_position_ = std::nullopt;
+    // /// The computed position
+    std::optional<proto::analyzer::VizPosition> computed_position_ = std::nullopt;
     /// The title
     std::optional<std::string_view> title_ = std::nullopt;
 
@@ -67,7 +68,7 @@ class VizStatement {
     /// Print as script
     void PrintScript(std::ostream& out) const;
     /// Pack the viz specs
-    flatbuffers::Offset<proto::viz::VizSpec> Pack(flatbuffers::FlatBufferBuilder& builder) const;
+    flatbuffers::Offset<proto::analyzer::VizSpec> Pack(flatbuffers::FlatBufferBuilder& builder) const;
 
     /// Read a viz statement
     static std::unique_ptr<VizStatement> ReadFrom(ProgramInstance& instance, size_t statement_id);
@@ -84,44 +85,8 @@ class VizComponent {
     sx::VizComponentType type_ = sx::VizComponentType::TABLE;
     /// The type modifiers
     uint32_t type_modifiers_ = 0;
-    /// The position option
-    std::optional<pv::VizPosition> position_ = std::nullopt;
-    /// The title option
-    std::optional<std::string> title_ = std::nullopt;
-    /// The chart data option
-    std::optional<pv::VizDataT> data_ = std::nullopt;
-    /// The style option
-    std::vector<pv::SVGStyleProperty> style_ = {};
-    /// The domain option
-    std::optional<pv::VizDomain> domain_ = std::nullopt;
-    /// The origin option
-    std::optional<pv::Coordinates> origin_ = std::nullopt;
-    /// The padding option
-    std::optional<pv::VizPadding> padding_ = std::nullopt;
-    /// The scales option
-    std::optional<pv::VizScales> scales_ = std::nullopt;
-    /// The name option
-    NodeID name_ = INVALID_NODE_ID;
-    /// THe samples option
-    NodeID samples_ = INVALID_NODE_ID;
-    /// The theme option
-    NodeID theme_ = INVALID_NODE_ID;
-    /// The interpolation option
-    NodeID interpolation_ = INVALID_NODE_ID;
-
-   protected:
-    /// Any option set?
-    bool AnyOptionSet(std::initializer_list<size_t> node_ids) const;
-    /// Select among matches and report ambiguities (if any)
-    size_t SelectAltOption(std::string_view label, size_t node_id, size_t alt_node_id) const;
-    /// Match an alternative style option
-    void AddAltStyleOption(std::string_view label, size_t node_id, dashql::proto::viz::SVGStylePropertyType prop, std::vector<pv::SVGStyleProperty>& out) const;
-    /// Read column ref
-    std::string_view ReadColumnRef(size_t node_id) const;
-    /// Read column refs
-    std::vector<std::string> ReadColumnRefs(size_t node_id) const;
-    /// Read double
-    double ReadDouble(size_t node_id) const;
+    /// The viz spec
+    rapidjson::Document spec;
 
    public:
     /// Constructor
@@ -131,31 +96,23 @@ class VizComponent {
 
     /// Get the type
     auto& type() const { return type_; };
-    /// Get the position
-    auto& position() const { return position_; };
-    /// Get the data
-    auto& data() const { return data_; };
 
     /// Set the position
-    void SetPosition(dashql::proto::viz::VizPosition pos) {
-        position_ = pos;
-        viz_stmt_.specified_position_ = &position_.value();
-    }
+    void SetPosition(dashql::proto::analyzer::VizPosition pos);
     /// Clear the position (if any)
-    void ClearPosition() {
-        position_.reset();
-        viz_stmt_.specified_position_ = nullptr;
-    }
+    void ClearPosition();
     /// Read the viz component
     /// This will also perform a semanatic analysis of the given options
     void ReadFrom(size_t node_id);
     /// Print common attributes
     void PrintAttributes(VizAttributePrinter& out) const;
 
+    /// Print the spec
+    void PrintSpec(std::ostream& out, bool pretty = false) const;
     /// Print as script
     void PrintScript(std::ostream& out) const;
     /// Pack as buffer
-    flatbuffers::Offset<proto::viz::VizComponent> Pack(flatbuffers::FlatBufferBuilder& builder) const;
+    flatbuffers::Offset<proto::analyzer::VizComponent> Pack(flatbuffers::FlatBufferBuilder& builder) const;
     /// Read component from a node
     static std::unique_ptr<VizComponent> CreateFrom(VizStatement& stmt, size_t node_id);
 };

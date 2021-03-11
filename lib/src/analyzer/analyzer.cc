@@ -193,17 +193,17 @@ void Analyzer::AnalyzeVizStatements(ProgramInstance& instance) {
 
 /// Compute the viz positions
 void Analyzer::ComputeVizPositions(ProgramInstance& instance) {
-    std::vector<proto::viz::VizPosition*> positions;
+    std::vector<proto::analyzer::VizPosition*> positions;
     positions.reserve(instance.viz_statements().size());
     for (auto& stmt: instance.viz_statements()) {
-        auto* specified = stmt->specified_position();
-        stmt->computed_position() = !!specified ? *specified : proto::viz::VizPosition(0, 0, 0, 0);
+        auto& specified = stmt->specified_position();
+        stmt->computed_position() = !!specified ? *specified : proto::analyzer::VizPosition(0, 0, 0, 0);
         positions.push_back(&stmt->computed_position().value());
     }
     /// XXX Compute meaningful positions
     for (auto* pos: positions) {
         if (pos->width() == 0 || pos->height() == 0) {
-            *pos = proto::viz::VizPosition(0, 0, 0, 0);
+            *pos = proto::analyzer::VizPosition(0, 0, 0, 0);
         }
     }
 }

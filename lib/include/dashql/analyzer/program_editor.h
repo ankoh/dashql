@@ -21,8 +21,6 @@
 
 namespace dashql {
 
-namespace sx = proto::syntax;
-
 /// A program editor
 class ProgramEditor {
     /// The current program

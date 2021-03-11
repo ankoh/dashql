@@ -1,9 +1,9 @@
 // Copyright (c) 2020 The DashQL Authors
 
 include "action.fbs";
-include "syntax/syntax.fbs";
+include "syntax/program.fbs";
+include "syntax/dashql_syntax.fbs";
 include "webdb/sql_value.fbs";
-include "viz.fbs";
 
 namespace dashql.proto.analyzer;
 
@@ -36,10 +36,29 @@ table LinterMessage {
     message: string;
 }
 
+struct VizPosition {
+    row: uint32;
+    column: uint32;
+    width: uint32;
+    height: uint32;
+}
+
+table VizComponent {
+    type: syntax.VizComponentType;
+    type_modifiers: [syntax.VizComponentTypeModifier];
+    position: VizPosition;
+    options: string;
+}
+
+table VizSpec {
+    statement_id: uint32;
+    components: VizComponent;
+}
+
 table ProgramAnnotations {
     parameters: [ParameterValue];
     evaluated_nodes: [NodeValue];
-    viz_specs: [viz.VizSpec];
+    viz_specs: [VizSpec];
     node_errors: [NodeError];
     linter_messages: [LinterMessage];
 }

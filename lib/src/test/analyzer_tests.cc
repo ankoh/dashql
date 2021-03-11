@@ -87,14 +87,10 @@ void AnalyzerTest::EncodePlan(pugi::xml_node root, const ProgramInstance& instan
         for (auto& vizc : viz->components()) {
             auto vc = c.append_child("component");
             vc.append_attribute("type") = viz_component_type_tt->names[static_cast<size_t>(vizc->type())];
-            if (auto& data = vizc->data(); data.has_value()) {
-                auto d = vc.append_child("data");
-                add_strvec_attr(d, "x", data->x);
-                add_strvec_attr(d, "y", data->y);
-                add_strvec_attr(d, "cluster", data->cluster);
-                add_strvec_attr(d, "stack", data->stack);
-                add_strvec_attr(d, "order", data->order);
-            }
+            std::stringstream specss;
+            vizc->PrintSpec(specss, true);
+            auto specstr = specss.str();
+            vc.append_child("spec").text().set(specstr.c_str());
         }
     }
 

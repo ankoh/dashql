@@ -1,13 +1,14 @@
 // Copyright (c) 2020 The DashQL Authors
 
-include "syntax/syntax.fbs";
 include "analyzer.fbs";
-include "viz.fbs";
 
 namespace dashql.proto.edit;
 
 table VizChangePosition {
-    position: viz.VizPosition;
+    row: uint32;
+    column: uint32;
+    width: uint32;
+    height: uint32;
 }
 
 union EditOperationVariant {
