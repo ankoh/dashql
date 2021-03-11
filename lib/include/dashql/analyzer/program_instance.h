@@ -97,6 +97,8 @@ class ProgramInstance {
     void Add(LinterMessage msg);
     /// Find the parameter value
     const ParameterValue* FindParameterValue(size_t stmt_id) const;
+    /// Find an evaluated node
+    const NodeValue* FindEvaluatedNode(size_t node_id) { return evaluated_nodes_.Find(node_id); }
     /// Get the text at a location
     std::string_view TextAt(sx::Location loc) const {
         return std::string_view{*program_text_}.substr(loc.offset(), loc.length());
@@ -113,7 +115,8 @@ class ProgramInstance {
     /// Render the statement text
     Expected<std::string> RenderStatementText(size_t stmt_id) const;
     /// Pack the program annotations
-    flatbuffers::Offset<proto::analyzer::ProgramAnnotations> PackAnnotations(flatbuffers::FlatBufferBuilder& builder) const;
+    flatbuffers::Offset<proto::analyzer::ProgramAnnotations> PackAnnotations(
+        flatbuffers::FlatBufferBuilder& builder) const;
 
     /// Find an attribute
     const sx::Node* FindAttribute(const sx::Node& origin, sx::AttributeKey key) const;

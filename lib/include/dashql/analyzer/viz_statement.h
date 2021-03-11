@@ -81,6 +81,8 @@ class VizComponent {
    protected:
     /// The unique properties
     VizStatement& viz_stmt_;
+    /// The node id
+    size_t node_id_;
     /// The type
     sx::VizComponentType type_ = sx::VizComponentType::TABLE;
     /// The type modifiers
@@ -89,8 +91,6 @@ class VizComponent {
     std::optional<proto::analyzer::VizPosition> position_ = std::nullopt;
     /// The title (if any)
     std::optional<std::string> title_ = std::nullopt;
-    /// All options as JSON
-    rapidjson::Document options_ = {};
 
     /// Select an option
     bool AnyOptionSet(std::initializer_list<size_t> node_ids) const;
@@ -99,7 +99,7 @@ class VizComponent {
 
    public:
     /// Constructor
-    VizComponent(VizStatement& stmt);
+    VizComponent(VizStatement& stmt, size_t node_id);
     /// Virtual destructor
     virtual ~VizComponent() = default;
 

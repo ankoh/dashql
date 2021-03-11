@@ -87,9 +87,7 @@
             <visualization>
                 <target loc="148..151" text="foo" />
                 <components>
-                    <component type="TABLE">
-                        <spec>null</spec>
-                    </component>
+                    <component type="TABLE">{}</component>
                 </components>
             </visualization>
         </visualizations>
@@ -130,9 +128,7 @@
             <visualization>
                 <target loc="148..151" text="foo" />
                 <components>
-                    <component type="TABLE">
-                        <spec>null</spec>
-                    </component>
+                    <component type="TABLE">{}</component>
                 </components>
             </visualization>
         </visualizations>
@@ -177,9 +173,7 @@
             <visualization>
                 <target loc="148..151" text="foo" />
                 <components>
-                    <component type="TABLE">
-                        <spec>null</spec>
-                    </component>
+                    <component type="TABLE">{}</component>
                 </components>
             </visualization>
         </visualizations>
@@ -220,9 +214,7 @@
             <visualization>
                 <target loc="148..151" text="foo" />
                 <components>
-                    <component type="TABLE">
-                        <spec>null</spec>
-                    </component>
+                    <component type="TABLE">{}</component>
                 </components>
             </visualization>
         </visualizations>

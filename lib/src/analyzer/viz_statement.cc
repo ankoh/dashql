@@ -161,15 +161,12 @@ flatbuffers::Offset<proto::analyzer::VizSpec> VizStatement::Pack(flatbuffers::Fl
 }
 
 /// Constructor
-VizComponent::VizComponent(VizStatement& viz) : viz_stmt_(viz) {}
+VizComponent::VizComponent(VizStatement& viz, size_t node_id) : viz_stmt_(viz), node_id_(node_id) {}
 
 /// Read common viz attributes.
 void VizComponent::ReadFrom(size_t node_id) {
     auto& instance = viz_stmt_.instance();
     auto& nodes = instance.program().nodes;
-
-    /// Read all options as json
-    readOptionsAsJSON(instance, node_id, options_);
 
     // Extract important metadata for the analyzer
     constexpr size_t ID_TYPE = 0;
@@ -291,21 +288,14 @@ size_t VizComponent::SelectAltOption(std::string_view label, size_t node_id, siz
 
 /// Read component from a node
 std::unique_ptr<VizComponent> VizComponent::CreateFrom(VizStatement& stmt, size_t node_id) {
-    auto c = std::make_unique<VizComponent>(stmt);
+    auto c = std::make_unique<VizComponent>(stmt, node_id);
     c->ReadFrom(node_id);
     return c;
 }
 
 /// Print the options as json
-void VizComponent::PrintOptionsAsJSON(std::ostream& raw_out, bool pretty) const {
-    rapidjson::OStreamWrapper out{raw_out};
-    if (pretty) {
-        rapidjson::PrettyWriter writer(out);
-        options_.Accept(writer);
-    } else {
-        rapidjson::Writer writer(out);
-        options_.Accept(writer);
-    }
+void VizComponent::PrintOptionsAsJSON(std::ostream& out, bool pretty) const {
+    writeOptionsAsJSON(viz_stmt_.instance_, node_id_, out, pretty);
 }
 
 /// Print common viz attributes
@@ -347,12 +337,9 @@ flatbuffers::Offset<proto::analyzer::VizComponent> VizComponent::Pack(flatbuffer
     // Print the spec
     std::optional<flatbuffers::Offset<flatbuffers::String>> spec;
     {
-        rapidjson::StringBuffer buffer;
-        rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
-        options_.Accept(writer);
-        if (buffer.GetLength() > 0) {
-            spec = builder.CreateString(buffer.GetString());
-        }
+        std::stringstream out;
+        PrintOptionsAsJSON(out, false);
+        spec = builder.CreateString(out.str());
     }
 
     // Pack component
