@@ -15,17 +15,6 @@ namespace dashql {
 
 namespace sx = proto::syntax;
 
-/// Get an option label
-static std::string_view getOptionLabel(sx::AttributeKey key) {
-    static const std::unordered_map<sx::AttributeKey, std::string_view> labels = {
-#define X(KEY, NAME) {sx::AttributeKey::KEY, NAME},
-        X(DASHQL_OPTION_POSITION, "pos")
-#undef X
-    };
-    auto iter = labels.find(key);
-    return (iter == labels.end()) ? "?" : iter->second;
-}
-
 struct VizEditOp {
     /// The attribute key
     sx::AttributeKey key = sx::AttributeKey::NONE;

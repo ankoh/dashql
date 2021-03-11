@@ -45,12 +45,12 @@ TEST(ProgramEditorTest, VizStatementAddPosition) {
         edit = Pack<proto::edit::ProgramEdit>(move(pe));
     }
 
-    auto expected = "VIZ weather_avg USING LINE (\n    pos = (r = 1, c = 2, w = 3, h = 4)\n)";
+    auto expected = "VIZ weather_avg USING LINE (\n    position = (row = 1, column = 2, width = 3, height = 4)\n)";
     EXPECT_EQ(editor.Apply(*std::get<0>(edit)), expected);
 }
 
 TEST(ProgramEditorTest, VizStatementUpdatePosition) {
-    auto txt = "VIZ weather_avg USING LINE (\n    pos = (r = 1, c = 2, w = 3, h = 4),\n    title = 'sometitle'\n)";
+    auto txt = "VIZ weather_avg USING LINE (\n    position = (row = 1, column = 2, width = 3, height = 4),\n    title = 'sometitle'\n)";
     ProgramInstance instance{txt, move(parser::ParserDriver::Parse(txt))};
     ASSERT_EQ(instance.program().statements.size(), 1);
 
@@ -70,7 +70,7 @@ TEST(ProgramEditorTest, VizStatementUpdatePosition) {
         edit = Pack<proto::edit::ProgramEdit>(move(pe));
     }
 
-    auto expected = "VIZ weather_avg USING LINE (\n    pos = (r = 6, c = 5, w = 4, h = 3),\n    title = 'sometitle'\n)";
+    auto expected = "VIZ weather_avg USING LINE (\n    position = (row = 6, column = 5, width = 4, height = 3),\n    title = 'sometitle'\n)";
     EXPECT_EQ(editor.Apply(*std::get<0>(edit)), expected);
 }
 

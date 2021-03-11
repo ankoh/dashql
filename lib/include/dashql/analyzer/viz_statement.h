@@ -17,7 +17,6 @@
 #include "dashql/common/span.h"
 #include "dashql/parser/parser_driver.h"
 #include "dashql/proto_generated.h"
-
 #include "rapidjson/document.h"
 
 namespace sx = dashql::proto::syntax;
@@ -43,9 +42,10 @@ class VizStatement {
     const size_t target_node_id_;
     /// The components
     std::vector<std::unique_ptr<VizComponent>> components_ = {};
-    /// The provided position
-    std::optional<proto::analyzer::VizPosition> specified_position_ = std::nullopt;
-    // /// The computed position
+    /// The provided position.
+    /// The owner of the position is the actual component.
+    proto::analyzer::VizPosition* specified_position_ = nullptr;
+    /// The computed position
     std::optional<proto::analyzer::VizPosition> computed_position_ = std::nullopt;
     /// The title
     std::optional<std::string_view> title_ = std::nullopt;
@@ -85,8 +85,17 @@ class VizComponent {
     sx::VizComponentType type_ = sx::VizComponentType::TABLE;
     /// The type modifiers
     uint32_t type_modifiers_ = 0;
-    /// The viz spec
-    rapidjson::Document component_spec;
+    /// The position (if any)
+    std::optional<proto::analyzer::VizPosition> position_ = std::nullopt;
+    /// The title (if any)
+    std::optional<std::string> title_ = std::nullopt;
+    /// All options as JSON
+    rapidjson::Document options_ = {};
+
+    /// Select an option
+    bool AnyOptionSet(std::initializer_list<size_t> node_ids) const;
+    /// Select an option with alternative
+    size_t SelectAltOption(std::string_view label, size_t node_id, size_t alt_node_id) const;
 
    public:
     /// Constructor
@@ -98,17 +107,17 @@ class VizComponent {
     auto& type() const { return type_; };
 
     /// Set the position
-    void SetPosition(dashql::proto::analyzer::VizPosition pos);
+    void SetPosition(dashql::proto::analyzer::VizPosition pos) { position_ = pos; }
     /// Clear the position (if any)
-    void ClearPosition();
+    void ClearPosition() { position_.reset(); }
     /// Read the viz component
     /// This will also perform a semanatic analysis of the given options
     void ReadFrom(size_t node_id);
     /// Print common attributes
     void PrintAttributes(VizAttributePrinter& out) const;
 
-    /// Print the spec
-    void PrintSpec(std::ostream& out, bool pretty = false) const;
+    /// Print the options as json
+    void PrintOptionsAsJSON(std::ostream& out, bool pretty = false) const;
     /// Print as script
     void PrintScript(std::ostream& out) const;
     /// Pack as buffer

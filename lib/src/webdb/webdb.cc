@@ -10,7 +10,6 @@
 
 #include "dashql/proto_generated.h"
 #include "dashql/webdb/codec.h"
-#include "dashql/webdb/json.h"
 #include "dashql/webdb/partitioner.h"
 #include "duckdb.hpp"
 #include "duckdb/common/vector_operations/vector_operations.hpp"

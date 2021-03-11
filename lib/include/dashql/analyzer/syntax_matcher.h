@@ -113,6 +113,9 @@ struct SyntaxMatcher {
 
     /// Add children
     inline SyntaxMatcher& MatchChildren(std::initializer_list<SyntaxMatcher> c) {
+        assert(std::is_sorted(c.begin(), c.end(), [&](auto& l, auto& r) {
+            return l.attribute_key < r.attribute_key;
+        }));
         children = std::move(c);
         return *this;
     }

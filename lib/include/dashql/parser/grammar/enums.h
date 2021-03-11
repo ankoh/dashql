@@ -38,6 +38,8 @@ X(sx::WindowExclusionMode, sx::NodeType::ENUM_SQL_WINDOW_EXCLUSION_MODE)
 X(sx::WindowRangeMode, sx::NodeType::ENUM_SQL_WINDOW_RANGE_MODE)
 #undef X
 
+    const char* getEnumText(const sx::Node& target);
+
 }  // namespace parser
 }  // namespace dashql
 

@@ -35,7 +35,6 @@
                     <node key="DASHQL_STATEMENT_NAME">
                         <node loc="296..303" text="country" />
                     </node>
-                    <node key="DASHQL_OPTION_DEFAULT_VALUE" loc="344..348" text="'DE'" />
                 </node>
             </statement>
             <statement type="LOAD_HTTP" name="global.weather_csv">
@@ -106,7 +105,9 @@
                 </node>
             </statement>
         </statements>
-        <errors />
+        <errors>
+            <error message="unknown option key: default_value" loc="328..348" text="default_va..lue = 'DE'" />
+        </errors>
         <line_breaks>
             <line_break loc="0..1" text="&#10;" />
             <line_break loc="76..77" text="&#10;" />

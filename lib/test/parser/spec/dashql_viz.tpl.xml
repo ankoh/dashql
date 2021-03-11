@@ -1,37 +1,17 @@
 <test name="dashql_viz_full">
     <input>
         VISUALIZE weather_avg USING STACKED BAR (
-            position = (r = 0, c = 0, w = 4, h = 15),
+            position = (row = 0, column = 0, width = 4, height = 15),
             x = a,
             y = b,
-            theme = 'grayscale',
-            colors = ['#aaa', '#bbb', '#ccc']
-        ), LINE (
-            style.data = (
-                stroke = '#c43a31'
-            ),
-            style.labels = (
-                font_size = 15,
-                fill = 'red',
-            )
-        ), SCATTER (
-            style = (
-                data = (
-                    fill = '#c43a31',
-                    fill_opacity = 0.6,
-                    stroke = '#c43a31',
-                    stroke_width = 3,
-                )
-            )
-        ), X AXIS(scale = 'time'), Y AXIS(scale = 'log');
+        ), LINE, SCATTER, X AXIS(scale = 'linear'), Y AXIS(scale = 'log');
     </input>
 </test>
 <test name="dashql_viz_stacked">
     <input>
         VIZ foo USING STACKED AREA (
             title = 'Stacked Area Chart',
-            pos = (r = 8, c = 0, w = 6, h = 4),
-            data = (stack = cat100)
+            position = (row = 8, column = 0, width = 6, height = 5)
         );
     </input>
 </test>
