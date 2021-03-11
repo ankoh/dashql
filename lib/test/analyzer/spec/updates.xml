@@ -87,7 +87,9 @@
             <visualization>
                 <target loc="148..151" text="foo" />
                 <components>
-                    <component type="TABLE" />
+                    <component type="TABLE">
+                        <spec>null</spec>
+                    </component>
                 </components>
             </visualization>
         </visualizations>
@@ -127,18 +129,16 @@
         <visualizations>
             <visualization>
                 <target loc="148..151" text="foo" />
-                <position row="5" column="1" width="8" height="4" />
                 <components>
-                    <component type="TABLE" />
+                    <component type="TABLE">
+                        <spec>null</spec>
+                    </component>
                 </components>
             </visualization>
         </visualizations>
         <graph next_object_id="4">
             <setup>
                 <action type="IMPORT_VIEW" status="NONE" object_id="0">
-                    <target name_qualified="global.foo" name_short="foo" />
-                </action>
-                <action type="DROP_VIZ" status="NONE" object_id="1">
                     <target name_qualified="global.foo" name_short="foo" />
                 </action>
             </setup>
@@ -152,7 +152,7 @@
                 SELECT a1::INTEGER AS a
                 FROM generate_series(0, 1000000) AS a(a1)</script>
                 </action>
-                <action origin="1" type="CREATE_VIZ" status="NONE" object_id="3">
+                <action origin="1" type="UPDATE_VIZ" status="NONE" object_id="1">
                     <target name_qualified="global.foo" name_short="foo" />
                     <depends_on>
                         <ref action="0" />
@@ -177,7 +177,9 @@
             <visualization>
                 <target loc="148..151" text="foo" />
                 <components>
-                    <component type="TABLE" />
+                    <component type="TABLE">
+                        <spec>null</spec>
+                    </component>
                 </components>
             </visualization>
         </visualizations>
@@ -217,9 +219,10 @@
         <visualizations>
             <visualization>
                 <target loc="148..151" text="foo" />
-                <position row="5" column="1" width="8" height="4" />
                 <components>
-                    <component type="TABLE" />
+                    <component type="TABLE">
+                        <spec>null</spec>
+                    </component>
                 </components>
             </visualization>
         </visualizations>
@@ -228,7 +231,7 @@
                 <action type="IMPORT_VIEW" status="NONE" object_id="0">
                     <target name_qualified="global.foo" name_short="foo" />
                 </action>
-                <action type="DROP_VIZ" status="NONE" object_id="1">
+                <action type="IMPORT_VIZ" status="NONE" object_id="1">
                     <target name_qualified="global.foo" name_short="foo" />
                 </action>
             </setup>
@@ -242,7 +245,7 @@
                 SELECT a1::INTEGER AS a
                 FROM generate_series(0, 1000000) AS a(a1)</script>
                 </action>
-                <action origin="1" type="CREATE_VIZ" status="NONE" object_id="3">
+                <action origin="1" type="CREATE_VIZ" status="NONE" object_id="1">
                     <target name_qualified="global.foo" name_short="foo" />
                     <depends_on>
                         <ref action="0" />

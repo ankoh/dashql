@@ -285,6 +285,7 @@ add_custom_command(
 add_library(dashql_parser
     ${SCANNER_OUT}
     ${PARSER_OUT}
+    ${CMAKE_SOURCE_DIR}/src/parser/enums.cc
     ${CMAKE_SOURCE_DIR}/src/parser/keywords.cc
     ${CMAKE_SOURCE_DIR}/src/parser/options.cc
     ${CMAKE_SOURCE_DIR}/src/parser/parser_driver.cc
@@ -321,19 +322,19 @@ add_library(dashql_analyzer
     ${CMAKE_SOURCE_DIR}/src/analyzer/analyzer.cc
     ${CMAKE_SOURCE_DIR}/src/analyzer/analyzer_ffi.cc
     ${CMAKE_SOURCE_DIR}/src/analyzer/function_logic.cc
+    ${CMAKE_SOURCE_DIR}/src/analyzer/json.cc
     ${CMAKE_SOURCE_DIR}/src/analyzer/parameter_value.cc
     ${CMAKE_SOURCE_DIR}/src/analyzer/program_editor.cc
     ${CMAKE_SOURCE_DIR}/src/analyzer/program_instance.cc
     ${CMAKE_SOURCE_DIR}/src/analyzer/program_matcher.cc
     ${CMAKE_SOURCE_DIR}/src/analyzer/syntax_matcher.cc
-    ${CMAKE_SOURCE_DIR}/src/analyzer/viz_statement.cc
     ${CMAKE_SOURCE_DIR}/src/analyzer/value.cc
+    ${CMAKE_SOURCE_DIR}/src/analyzer/viz_statement.cc
 )
 
 add_library(dashql_webdb
     ${CMAKE_SOURCE_DIR}/src/webdb/codec.cc
     ${CMAKE_SOURCE_DIR}/src/webdb/iterator.cc
-    ${CMAKE_SOURCE_DIR}/src/webdb/json.cc
     ${CMAKE_SOURCE_DIR}/src/webdb/partitioner.cc
     ${CMAKE_SOURCE_DIR}/src/webdb/webdb.cc
     ${CMAKE_SOURCE_DIR}/src/webdb/webdb_ffi.cc

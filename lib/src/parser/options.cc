@@ -22,11 +22,41 @@ constexpr size_t MAX_OPTION_KEY_LENGTH = std::max<size_t>({
 #undef X
 });
 
-constexpr size_t MAX_NESTING_LEVEL = 4;
+/// Get option as text
+std::string_view optionToString(sx::AttributeKey key) {
+    switch (key) {
+#define X(NAME, TOKEN) case sx::AttributeKey::TOKEN: return NAME;
+    #include "../parser/grammar/lists/dashql_option_keys.list"
+#undef X
+        default:
+            return "";
+    }
+}
+
+/// Read option from text
+sx::AttributeKey optionFromString(std::string_view text) {
+    if (text.size() > MAX_OPTION_KEY_LENGTH) {
+        return sx::AttributeKey::NONE;
+    }
+
+    // Convert to lowercase
+    std::array<char, MAX_OPTION_KEY_LENGTH + 1> buffer;
+    for (unsigned i = 0; i < text.size(); ++i) buffer[i] = ::tolower(text[i]);
+    std::string_view text_lc{buffer.data(), text.size()};
+
+    // Find the keyword
+    if (auto iter = DASHQL_OPTIONS.find(text_lc); iter != DASHQL_OPTIONS.end())
+        return iter->second;
+
+    return sx::AttributeKey::NONE;
+}
+
 
 /// Map an option.
 /// Registers an error if the (key, value) combination is not supported.
 sx::Node Option(ParserDriver& driver, sx::Location loc, std::vector<sx::Location>&& key_path, sx::Node value) {
+    constexpr size_t MAX_NESTING_LEVEL = 4;
+
     // Check max nesting level
     std::array<sx::AttributeKey, MAX_NESTING_LEVEL> keys;
     if (key_path.size() > keys.size()) {
@@ -45,13 +75,7 @@ sx::Node Option(ParserDriver& driver, sx::Location loc, std::vector<sx::Location
 
         // Convert to lowercase
         if (key_text.size() <= MAX_OPTION_KEY_LENGTH) {
-            // Convert to lowercase
-            std::array<char, MAX_OPTION_KEY_LENGTH + 1> buffer;
-            for (unsigned i = 0; i < key_text.size(); ++i) buffer[i] = ::tolower(key_text[i]);
-            std::string_view text_lc{buffer.data(), key_text.size()};
-
-            // Find the keyword
-            if (auto iter = DASHQL_OPTIONS.find(text_lc); iter != DASHQL_OPTIONS.end()) key = iter->second;
+            key = optionFromString(key_text);
         }
 
         // Abort immediately when encountering unknown keys
