@@ -159,3 +159,72 @@
         </dependencies>
     </expected>
 </test>
+<test name="demo_2">
+    <input>
+        VIZ foo USING VEGA (
+            title = 'Line Chart',
+            position = (row = 0, column = 0, width = 6, height = 4),
+            mark = 'line',
+            encoding = (
+                x = (field = 'x', axis = (tick_count = 10)),
+                y = (field = 'y', axis = (tick_count = 10))
+            )
+        );
+    </input>
+    <expected>
+        <statements>
+            <statement type="VIZUALIZE">
+                <node type="OBJECT_DASHQL_VIZ" loc="9..329" text="VIZ foo US..&#10;        )">
+                    <node key="DASHQL_VIZ_COMPONENTS">
+                        <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="23..329" text="VEGA (&#10;   ..&#10;        )">
+                            <node key="DASHQL_VIZ_COMPONENT_TYPE" value="VEGA" />
+                            <node key="DASHQL_OPTION_ENCODING" type="OBJECT_DASHQL_OPTION_LIST" loc="183..319" text="(&#10;        ..         )">
+                                <node key="DASHQL_OPTION_X" type="OBJECT_DASHQL_OPTION_LIST" loc="205..244" text="(field = '..unt = 10))">
+                                    <node key="DASHQL_OPTION_AXIS" type="OBJECT_DASHQL_OPTION_LIST" loc="226..243" text="(tick_count = 10)">
+                                        <node key="DASHQL_OPTION_TICK_COUNT" loc="240..242" text="10" />
+                                    </node>
+                                    <node key="DASHQL_OPTION_FIELD" loc="214..217" text="'x'" />
+                                </node>
+                                <node key="DASHQL_OPTION_Y" type="OBJECT_DASHQL_OPTION_LIST" loc="266..305" text="(field = '..unt = 10))">
+                                    <node key="DASHQL_OPTION_AXIS" type="OBJECT_DASHQL_OPTION_LIST" loc="287..304" text="(tick_count = 10)">
+                                        <node key="DASHQL_OPTION_TICK_COUNT" loc="301..303" text="10" />
+                                    </node>
+                                    <node key="DASHQL_OPTION_FIELD" loc="275..278" text="'y'" />
+                                </node>
+                            </node>
+                            <node key="DASHQL_OPTION_MARK" loc="152..158" text="'line'" />
+                            <node key="DASHQL_OPTION_POSITION" type="OBJECT_DASHQL_OPTION_LIST" loc="87..131" text="(row = 0, ..eight = 4)">
+                                <node key="DASHQL_OPTION_COLUMN" loc="106..107" text="0" />
+                                <node key="DASHQL_OPTION_HEIGHT" loc="129..130" text="4" />
+                                <node key="DASHQL_OPTION_ROW" loc="94..95" text="0" />
+                                <node key="DASHQL_OPTION_WIDTH" loc="117..118" text="6" />
+                            </node>
+                            <node key="DASHQL_OPTION_TITLE" loc="50..62" text="'Line Chart'" />
+                        </node>
+                    </node>
+                    <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLE_REF" loc="13..16" text="foo">
+                        <node key="SQL_TABLE_INHERIT" value="true" />
+                        <node key="SQL_TABLE_NAME">
+                            <node loc="13..16" text="foo" />
+                        </node>
+                    </node>
+                </node>
+            </statement>
+        </statements>
+        <errors />
+        <line_breaks>
+            <line_break loc="0..1" text="&#10;" />
+            <line_break loc="29..30" text="&#10;" />
+            <line_break loc="63..64" text="&#10;" />
+            <line_break loc="132..133" text="&#10;" />
+            <line_break loc="159..160" text="&#10;" />
+            <line_break loc="184..185" text="&#10;" />
+            <line_break loc="245..246" text="&#10;" />
+            <line_break loc="305..306" text="&#10;" />
+            <line_break loc="319..320" text="&#10;" />
+            <line_break loc="330..331" text="&#10;" />
+        </line_breaks>
+        <comments />
+        <dependencies />
+    </expected>
+</test>
