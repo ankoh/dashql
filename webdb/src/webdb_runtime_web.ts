@@ -1,6 +1,6 @@
 // Copyright (c) 2020 The DashQL Authors
 
-import { WebDBBindings, copyBlobStreamTo, WebDBRuntime } from './webdb_bindings';
+import { copyBlobStreamTo, WebDBRuntime } from './webdb_bindings';
 
 export var WebWebDBRuntime: WebDBRuntime = {
     bindings: undefined,
