@@ -154,7 +154,7 @@ describe('Action Scheduler', () => {
             const program = analyzerBindings.parseProgram(`
                 CREATE TABLE weather AS SELECT 1;
                 VIZ weather USING TABLE;
-                VIZ weather USING LINE;
+                VIZ weather USING TABLE;
             `);
             analyzerBindings.instantiateProgram();
             const plan = analyzerBindings.planProgram();
