@@ -10,7 +10,6 @@
 
 using namespace std;
 using namespace dashql;
-namespace sx = dashql::proto::syntax;
 
 namespace {
 

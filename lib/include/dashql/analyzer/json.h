@@ -7,7 +7,7 @@
 namespace dashql {
 
 /// Read all options as JSON
-void readOptionsAsJSON(ProgramInstance& instance, size_t node_id, rapidjson::Document& out, bool copy = false);
+void writeOptionsAsJSON(ProgramInstance& instance, size_t node_id, std::ostream& out, bool pretty = false);
 
 }
 
