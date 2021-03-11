@@ -8,7 +8,7 @@ const testRows = 3000;
 const logger = new webdb.ConsoleLogger();
 
 beforeAll(async () => {
-    db = new webdb.WebDB(logger, new webdb.DefaultWebDBRuntime(), path.resolve(__dirname, '../src/webdb_wasm.wasm'));
+    db = new webdb.WebDB(logger, webdb.DefaultWebDBRuntime, path.resolve(__dirname, '../src/webdb_wasm.wasm'));
     await db.open();
 });
 
@@ -197,11 +197,14 @@ describe('RowProxy', () => {
 
     describe('single column, chunked partition boundaries, single integer', () => {
         test('INTEGER', () => {
-            const result = conn.sendQuery(`
+            const result = conn.sendQuery(
+                `
                 SELECT v::INTEGER AS foo, (v::INTEGER / 100) AS bar FROM generate_series(0, ${testRows}) as t(v);
-            `, {
-                partitionBoundaries: [1]
-            });
+            `,
+                {
+                    partitionBoundaries: [1],
+                },
+            );
             expect(result.columnTypesLength()).toBe(2);
             interface Row extends webdb.RowProxy {
                 foo: number | null;
@@ -216,7 +219,7 @@ describe('RowProxy', () => {
                     expect(row.bar).toBe(Math.trunc(e / 100));
                     expect(row.__attribute__(0)).toBe(e);
                     expect(row.__attribute__(1)).toBe(Math.trunc(e / 100));
-                    expect(row.__is_partition_boundary__).toBe((e % 100) == 0);
+                    expect(row.__is_partition_boundary__).toBe(e % 100 == 0);
                 }
             }
         });
@@ -224,11 +227,14 @@ describe('RowProxy', () => {
 
     describe('single column, chunked partition boundaries, 2 integers', () => {
         test('INTEGER', () => {
-            const result = conn.sendQuery(`
+            const result = conn.sendQuery(
+                `
                 SELECT v::INTEGER AS foo, (v::INTEGER / 200) AS bar, (v::INTEGER / 300) AS bam FROM generate_series(0, ${testRows}) as t(v);
-            `, {
-                partitionBoundaries: [1, 2]
-            });
+            `,
+                {
+                    partitionBoundaries: [1, 2],
+                },
+            );
             expect(result.columnTypesLength()).toBe(3);
             interface Row extends webdb.RowProxy {
                 foo: number | null;
@@ -246,7 +252,7 @@ describe('RowProxy', () => {
                     expect(row.__attribute__(0)).toBe(e);
                     expect(row.__attribute__(1)).toBe(Math.trunc(e / 200));
                     expect(row.__attribute__(2)).toBe(Math.trunc(e / 300));
-                    expect(row.__is_partition_boundary__).toBe((e % 200) == 0 || (e % 300) == 0);
+                    expect(row.__is_partition_boundary__).toBe(e % 200 == 0 || e % 300 == 0);
                 }
             }
         });
@@ -254,11 +260,14 @@ describe('RowProxy', () => {
 
     describe('single column, proxy partitions, 1 integer', () => {
         test('INTEGER', () => {
-            const result = conn.sendQuery(`
+            const result = conn.sendQuery(
+                `
                 SELECT v::INTEGER AS foo, (v::INTEGER / 100) AS bar FROM generate_series(0, ${testRows - 1}) as t(v);
-            `, {
-                partitionBoundaries: [1]
-            });
+            `,
+                {
+                    partitionBoundaries: [1],
+                },
+            );
             expect(result.columnTypesLength()).toBe(2);
             interface Row extends webdb.RowProxy {
                 foo: number | null;
@@ -278,5 +287,4 @@ describe('RowProxy', () => {
             }
         });
     });
-
 });
