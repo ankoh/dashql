@@ -2,28 +2,27 @@ CREATE VIEW foo AS
     SELECT v::INTEGER AS x, (sin(v / 50000.0) * 100 + 100)::INTEGER AS y, (random() * 10)::INTEGER as cat10, (random() * 100)::INTEGER as cat100
     FROM generate_series(0, 1000000) AS a(v);
 
-VIZ foo USING LINE(
+VIZ foo USING VEGA (
     title = 'Line Chart',
-    pos = (r = 0, c = 0, w = 6, h = 4)
+    position = (row = 0, column = 0, width = 6, height = 4),
+    mark = 'line',
+    encoding = (
+        x = (field = 'x', type = 'quantitative'),
+        y = (field = 'y', type = 'quantitative')
+    )
 );
 
-VIZ foo USING SCATTER(
-    title = 'Scatter Chart',
-    pos = (r = 0, c = 6, w = 6, h = 4)
+VIZ foo USING VEGA (
+    title = 'Bar Chart',
+    position = (row = 0, column = 6, width = 6, height = 4),
+    mark = 'bar',
+    encoding = (
+        x = (field = 'x', type = 'quantitative'),
+        y = (field = 'y', type = 'quantitative')
+    )
 );
 
-VIZ foo USING AREA (
-    title = 'Area Chart',
-    pos = (r = 4, c = 0, w = 6, h = 4)
-);
-
-VIZ foo USING AREA (
-    pos = (r = 4, c = 6, w = 6, h = 4),
-    title = 'Area + Scatter Chart'
-),  SCATTER;
-
-VIZ foo USING STACKED BAR (
-    title = 'Stacked Area Chart',
-    pos = (r = 8, c = 0, w = 6, h = 4),
-    stack = cat10
+VIZ foo USING TABLE (
+    title = 'Some Table',
+    position = (row = 4, column = 0, width = 12, height = 4),
 );

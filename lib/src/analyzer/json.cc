@@ -1,5 +1,7 @@
+#include <cctype>
 #include "dashql/analyzer/analyzer.h"
 #include "dashql/common/string.h"
+#include "dashql/common/memstream.h"
 #include "dashql/parser/grammar/enums.h"
 #include "dashql/parser/grammar/options.h"
 #include "dashql/proto_generated.h"
@@ -8,6 +10,22 @@
 #include "rapidjson/writer.h"
 
 namespace dashql {
+
+static std::string camelize(std::string_view txt) {
+    std::string buffer{txt};
+    bool to_upper = false;
+    unsigned i = 0, j = 0;
+    while (i < buffer.size()) {
+        char c = buffer[i++];
+        if (c == '_') {
+            to_upper = true;
+            continue;
+        };
+        buffer[j++] = to_upper ? std::toupper(c) : c;
+        to_upper = false;
+    }
+    return buffer.substr(0, j);
+}
 
 template <typename Writer> static void writeOptionsAsJSONImpl(ProgramInstance& instance, size_t root_node_id, Writer& out) {
     /// Use a single post-order DFS to build the json outument with the SAX API
@@ -38,7 +56,10 @@ template <typename Writer> static void writeOptionsAsJSONImpl(ProgramInstance& i
         // Not visited yet, is option?
         if (node.attribute_key() != sx::AttributeKey::NONE) {
             auto text = parser::optionToString(node.attribute_key());
-            if (!text.empty()) out.Key(text.data(), text.length(), false);
+            if (!text.empty()) {
+                auto key = camelize(text);
+                out.Key(key.data(), key.length(), true);
+            };
         }
 
         // Not visited yet, check node type
@@ -57,7 +78,14 @@ template <typename Writer> static void writeOptionsAsJSONImpl(ProgramInstance& i
                 break;
             case sx::NodeType::STRING_REF: {
                 auto txt = trimview(instance.TextAt(node.location()), isNoQuote);
-                out.String(txt.data(), txt.length(), false);
+                double v;
+                imemstream trydouble{txt.data(), txt.length()};
+                trydouble >> v;
+                if (!trydouble.fail()) {
+                    out.Double(v);
+                } else {
+                    out.String(txt.data(), txt.length(), false);
+                }
                 pending.pop();
                 break;
             }

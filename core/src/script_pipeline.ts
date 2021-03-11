@@ -3,7 +3,7 @@ import * as model from './model';
 import { Platform } from './platform';
 import { ActionGraphScheduler } from './action_scheduler';
 
-const MIN_INPUT_DELAY = 100;
+const MIN_INPUT_DELAY = 300;
 const MAX_INPUT_DELAY = 1000;
 const MIN_INSTANTIATION_DELAY = 100;
 

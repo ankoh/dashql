@@ -13,7 +13,7 @@ interface Props {
     /// The table info
     table: model.DatabaseTableInfo;
     /// The viz data query
-    query: model.VizDataQuery;
+    query: model.VizDataSource;
     /// The error component
     errorComponent?: ((error: string) => React.ReactNode) | null;
     /// The in-flight component

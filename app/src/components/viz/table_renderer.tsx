@@ -16,15 +16,9 @@ interface Props {
     vizInfo: core.model.VizInfo;
 }
 
-interface State {
-    offset: number;
-    limit: number;
-}
-
-export class TableRenderer extends React.Component<Props, State> {
+export class TableRenderer extends React.Component<Props> {
     constructor(props: Props) {
         super(props);
-        this.state = { offset: 0, limit: 1024 };
     }
 
     /// Render the table
@@ -39,7 +33,7 @@ export class TableRenderer extends React.Component<Props, State> {
         }
         return (
             <VizCard title={this.props.vizInfo.title || `Table ${targetShort}`}>
-                <ScanProvider logger={logger} database={db} targetName={tableInfo.nameShort}>
+                <ScanProvider logger={logger} database={db} targetName={tableInfo.nameShort} request={new core.access.ScanRequest().withRange(0, 1024)}>
                     {(data, requestData) => <DataGrid tableInfo={tableInfo} data={data} requestData={requestData} />}
                 </ScanProvider>
             </VizCard>

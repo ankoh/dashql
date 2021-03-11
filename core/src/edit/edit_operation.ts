@@ -34,9 +34,11 @@ export function packProgramEdit(builder: flatbuffers.Builder, edits: EditOperati
         let stmt: number = e.statement_id;
         switch (e.type) {
             case EditOperationType.VIZ_CHANGE_POSITION: {
-                const pos = proto.viz.VizPosition.create(builder, e.data.row, e.data.column, e.data.width, e.data.height);
                 VizChangePos.start(builder);
-                VizChangePos.addPosition(builder, pos);
+                VizChangePos.addColumn(builder, e.data.column);
+                VizChangePos.addRow(builder, e.data.row);
+                VizChangePos.addWidth(builder, e.data.width);
+                VizChangePos.addHeight(builder, e.data.height);
                 ofs = VizChangePos.end(builder);
                 op = proto.edit.EditOperationVariant.VizChangePosition;
                 break;

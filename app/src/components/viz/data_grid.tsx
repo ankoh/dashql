@@ -55,12 +55,6 @@ export class DataGrid extends React.Component<Props, State> {
         };
     }
 
-    componentDidMount() {
-        this.props.requestData(
-            new core.access.ScanRequest()
-                .withRange(0, 1024, 1024));
-    }
-
     /// Get the column count
     public get columnCount() {
         return this.props.tableInfo.columnNames.length;
