@@ -3,7 +3,7 @@
 import { copyBlobStreamTo, WebDBRuntime } from './webdb_bindings';
 
 export var WebWebDBRuntime: WebDBRuntime = {
-    bindings: undefined,
+    bindings: null,
     dashql_blob_stream_underflow(blobId: number, buf: number, size: number): number {
         let blobStream = this.bindings!.getBlobStreamById(blobId);
         if (blobStream === undefined) return 0;
