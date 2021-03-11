@@ -2,12 +2,11 @@
 
 include "action.fbs";
 include "analyzer.fbs";
-include "viz.fbs";
 include "edit.fbs";
 
-include "syntax/dashql.fbs";
-include "syntax/sql.fbs";
-include "syntax/syntax.fbs";
+include "syntax/sql_syntax.fbs";
+include "syntax/dashql_syntax.fbs";
+include "syntax/program.fbs";
 
 include "webdb/error.fbs";
 include "webdb/import.fbs";

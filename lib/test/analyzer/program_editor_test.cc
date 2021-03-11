@@ -34,7 +34,10 @@ TEST(ProgramEditorTest, VizStatementAddPosition) {
     {
         auto e = std::make_unique<proto::edit::EditOperationT>();
         proto::edit::VizChangePositionT changePos;
-        changePos.position = std::make_unique<proto::viz::VizPosition>(1, 2, 3, 4);
+        changePos.row = 1;
+        changePos.column = 2;
+        changePos.width = 3;
+        changePos.height = 4;
         e->statement_id = 0;
         e->variant.Set(move(changePos));
         auto pe = std::make_unique<proto::edit::ProgramEditT>();
@@ -56,7 +59,10 @@ TEST(ProgramEditorTest, VizStatementUpdatePosition) {
     {
         auto e = std::make_unique<proto::edit::EditOperationT>();
         proto::edit::VizChangePositionT changePos;
-        changePos.position = std::make_unique<proto::viz::VizPosition>(6, 5, 4, 3);
+        changePos.row = 6;
+        changePos.column = 5;
+        changePos.width = 4;
+        changePos.height = 3;
         e->statement_id = 0;
         e->variant.Set(move(changePos));
         auto pe = std::make_unique<proto::edit::ProgramEditT>();

@@ -100,7 +100,7 @@ flatbuffers::Offset<proto::analyzer::ProgramAnnotations> ProgramInstance::PackAn
     auto eval_node_vec = builder.CreateVector(eval_nodes);
 
     // Pack the viz statements
-    std::vector<flatbuffers::Offset<proto::viz::VizSpec>> viz_specs;
+    std::vector<flatbuffers::Offset<proto::analyzer::VizSpec>> viz_specs;
     for (auto& viz : viz_statements_) {
         viz_specs.push_back(viz->Pack(builder));
     }
