@@ -18,143 +18,147 @@
 #include "dashql/common/substring_buffer.h"
 #include "dashql/proto_generated.h"
 
+#include "rapidjson/stringbuffer.h"
+#include "rapidjson/writer.h"
+
 namespace fb = flatbuffers;
 
 namespace dashql {
 namespace viz {
 
-//class VizAttributePrinter {
-//   protected:
-//    /// The output
-//    std::ostream& out;
-//    /// Already started?
-//    bool started;
-//    /// Already finished?
-//    bool finished;
-//
-//   public:
-//    ~VizAttributePrinter();
-//
-//    /// Constructor
-//    VizAttributePrinter(std::ostream& out);
-//    /// Start a key
-//    void AddKey(std::string_view key);
-//    /// Start a value
-//    std::ostream& AddValue();
-//    /// Finish all options
-//    void Finish();
-//};
-//
-//VizAttributePrinter::VizAttributePrinter(std::ostream& out) : out(out), started(false), finished(false) {}
-//VizAttributePrinter::~VizAttributePrinter() {
-//    if (started && !finished) {
-//        Finish();
-//    }
-//}
-//
-///// Add a key
-//void VizAttributePrinter::AddKey(std::string_view key) {
-//    if (!started) {
-//        started = true;
-//        out << " (\n    ";
-//    } else {
-//        out << ",\n    ";
-//    }
-//    out << key;
-//}
-///// Start a value
-//std::ostream& VizAttributePrinter::AddValue() {
-//    out << " = ";
-//    return out;
-//}
-///// Start a value
-//void VizAttributePrinter::Finish() {
-//    finished = true;
-//    out << "\n)";
-//}
-//
-//VizStatement::VizStatement(ProgramInstance& instance, size_t statement_id, size_t target_node_id)
-//    : instance_(instance), statement_id_(statement_id), target_node_id_(target_node_id), components_() {}
-//
-///// Read a viz statement
-//std::unique_ptr<VizStatement> VizStatement::ReadFrom(ProgramInstance& instance, size_t stmt_id) {
-//    // clang-format off
-//    auto& program = instance.program();
-//    auto& stmt = program.statements[stmt_id];
-//    static const auto schema = sxm::Element()
-//        .MatchObject(sx::NodeType::OBJECT_DASHQL_VIZ)
-//        .MatchChildren({
-//            sxm::Attribute(sx::AttributeKey::DASHQL_VIZ_COMPONENTS, 1)
-//                .MatchArray(),
-//            sxm::Attribute(sx::AttributeKey::DASHQL_VIZ_TARGET, 0),
-//        });
-//    // clang-format on
-//
-//    // Match root
-//    std::array<NodeMatch, 2> matches;
-//    if (!schema.Match(instance, stmt->root_node, matches)) return nullptr;
-//    auto comps_node_id = matches[1].node_id;
-//    auto& comps_node = program.nodes[comps_node_id];
-//
-//    // Create the viz statement
-//    auto viz = std::make_unique<VizStatement>(instance, stmt_id, matches[0].node_id);
-//
-//    // Read all components
-//    std::vector<std::unique_ptr<viz::VizComponent>> components;
-//    components.reserve(comps_node.children_count());
-//    for (auto cid = 0; cid < comps_node.children_count(); ++cid) {
-//        auto begin = comps_node.children_begin_or_value();
-//        auto comp = viz::VizComponent::CreateFrom(*viz, begin + cid);
-//        components.push_back(move(comp));
-//    }
-//    viz->components_ = std::move(components);
-//    return viz;
-//}
-//
-///// Print statement as script
-//void VizStatement::PrintScript(std::ostream& out) const {
-//    auto& nodes = instance_.program().nodes;
-//
-//    out << "VIZ ";
-//    out << instance_.TextAt(nodes[target_node_id_].location());
-//    out << " USING";
-//    for (auto i = 0; i < components_.size(); ++i) {
-//        if (i > 0) {
-//            out << ", ";
-//        }
-//        components_[i]->PrintScript(out);
-//    }
-//}
-//
-///// Pack the viz specs
-//flatbuffers::Offset<proto::viz::VizSpec> VizStatement::Pack(flatbuffers::FlatBufferBuilder& builder) const {
-//    // Pack components
-//    std::vector<fb::Offset<proto::viz::VizComponent>> component_offsets;
-//    for (auto& c : components_) {
-//        auto component = c->Pack(builder);
-//        component_offsets.push_back(component);
-//    }
-//    auto component_ofs_vec = builder.CreateVector(component_offsets);
-//
-//    // Pack title (if any)
-//    std::optional<fb::Offset<fb::String>> title_offset;
-//    if (title_) {
-//        title_offset = builder.CreateString(*title_);
-//    }
-//
-//    // Build viz spec
-//    assert(computed_position_.has_value());
-//    pv::VizSpecBuilder spec_builder{builder};
-//    spec_builder.add_statement_id(statement_id_);
-//    spec_builder.add_components(component_ofs_vec);
-//    spec_builder.add_position(&computed_position_.value());
-//    if (title_offset) spec_builder.add_title(*title_offset);
-//    return spec_builder.Finish();
-//}
-//
-///// Constructor
-//VizComponent::VizComponent(VizStatement& viz) : viz_stmt_(viz) {}
-//
+class VizAttributePrinter {
+   protected:
+    /// The output
+    std::ostream& out;
+    /// Already started?
+    bool started;
+    /// Already finished?
+    bool finished;
+
+   public:
+    ~VizAttributePrinter();
+
+    /// Constructor
+    VizAttributePrinter(std::ostream& out);
+    /// Start a key
+    void AddKey(std::string_view key);
+    /// Start a value
+    std::ostream& AddValue();
+    /// Finish all options
+    void Finish();
+};
+
+VizAttributePrinter::VizAttributePrinter(std::ostream& out) : out(out), started(false), finished(false) {}
+VizAttributePrinter::~VizAttributePrinter() {
+    if (started && !finished) {
+        Finish();
+    }
+}
+
+/// Add a key
+void VizAttributePrinter::AddKey(std::string_view key) {
+    if (!started) {
+        started = true;
+        out << " (\n    ";
+    } else {
+        out << ",\n    ";
+    }
+    out << key;
+}
+
+/// Start a value
+std::ostream& VizAttributePrinter::AddValue() {
+    out << " = ";
+    return out;
+}
+/// Start a value
+void VizAttributePrinter::Finish() {
+    finished = true;
+    out << "\n)";
+}
+
+VizStatement::VizStatement(ProgramInstance& instance, size_t statement_id, size_t target_node_id)
+    : instance_(instance), statement_id_(statement_id), target_node_id_(target_node_id), components_() {}
+
+/// Read a viz statement
+std::unique_ptr<VizStatement> VizStatement::ReadFrom(ProgramInstance& instance, size_t stmt_id) {
+    // clang-format off
+    auto& program = instance.program();
+    auto& stmt = program.statements[stmt_id];
+    static const auto schema = sxm::Element()
+        .MatchObject(sx::NodeType::OBJECT_DASHQL_VIZ)
+        .MatchChildren({
+            sxm::Attribute(sx::AttributeKey::DASHQL_VIZ_COMPONENTS, 1)
+                .MatchArray(),
+            sxm::Attribute(sx::AttributeKey::DASHQL_VIZ_TARGET, 0),
+        });
+    // clang-format on
+
+    // Match root
+    std::array<NodeMatch, 2> matches;
+    if (!schema.Match(instance, stmt->root_node, matches)) return nullptr;
+    auto comps_node_id = matches[1].node_id;
+    auto& comps_node = program.nodes[comps_node_id];
+
+    // Create the viz statement
+    auto viz = std::make_unique<VizStatement>(instance, stmt_id, matches[0].node_id);
+
+    // Read all components
+    std::vector<std::unique_ptr<viz::VizComponent>> components;
+    components.reserve(comps_node.children_count());
+    for (auto cid = 0; cid < comps_node.children_count(); ++cid) {
+        auto begin = comps_node.children_begin_or_value();
+        auto comp = viz::VizComponent::CreateFrom(*viz, begin + cid);
+        components.push_back(move(comp));
+    }
+    viz->components_ = std::move(components);
+    return viz;
+}
+
+/// Print statement as script
+void VizStatement::PrintScript(std::ostream& out) const {
+    auto& nodes = instance_.program().nodes;
+
+    out << "VIZ ";
+    out << instance_.TextAt(nodes[target_node_id_].location());
+    out << " USING";
+    for (auto i = 0; i < components_.size(); ++i) {
+        if (i > 0) {
+            out << ", ";
+        }
+        components_[i]->PrintScript(out);
+    }
+}
+
+/// Pack the viz specs
+flatbuffers::Offset<proto::analyzer::VizSpec> VizStatement::Pack(flatbuffers::FlatBufferBuilder& builder) const {
+    // Pack components
+    std::vector<fb::Offset<proto::analyzer::VizComponent>> component_offsets;
+    for (auto& c : components_) {
+        auto component = c->Pack(builder);
+        component_offsets.push_back(component);
+    }
+    auto component_ofs_vec = builder.CreateVector(component_offsets);
+
+    // Pack title (if any)
+    std::optional<fb::Offset<fb::String>> title_offset;
+    if (title_) {
+        title_offset = builder.CreateString(*title_);
+    }
+
+    // Build viz spec
+    assert(computed_position_.has_value());
+    proto::analyzer::VizSpecBuilder spec_builder{builder};
+    spec_builder.add_statement_id(statement_id_);
+    spec_builder.add_components(component_ofs_vec);
+    spec_builder.add_position(&computed_position_.value());
+    if (title_offset) spec_builder.add_title(*title_offset);
+    return spec_builder.Finish();
+}
+
+/// Constructor
+VizComponent::VizComponent(VizStatement& viz) : viz_stmt_(viz) {}
+
 ///// Read common viz attributes.
 //void VizComponent::ReadFrom(size_t node_id) {
 //    constexpr size_t ID_TYPE = 0;
@@ -383,12 +387,12 @@ namespace viz {
 //    out.push_back(std::move(p));
 //}
 //
-///// Read component from a node
-//std::unique_ptr<VizComponent> VizComponent::CreateFrom(VizStatement& stmt, size_t node_id) {
-//    auto c = std::make_unique<VizComponent>(stmt);
-//    c->ReadFrom(node_id);
-//    return c;
-//}
+/// Read component from a node
+std::unique_ptr<VizComponent> VizComponent::CreateFrom(VizStatement& stmt, size_t node_id) {
+    auto c = std::make_unique<VizComponent>(stmt);
+    c->ReadFrom(node_id);
+    return c;
+}
 //
 ///// Read column refs as text vector
 //std::vector<std::string> VizComponent::ReadColumnRefs(size_t target_node_id) const {
@@ -506,43 +510,35 @@ namespace viz {
 //    }
 //}
 //
-///// Pack as buffer
-//flatbuffers::Offset<proto::viz::VizComponent> VizComponent::Pack(flatbuffers::FlatBufferBuilder& builder) const {
-//    // Pack modifiers
-//    std::vector<uint8_t> modifiers;
-//    for (uint32_t i = 0, m = type_modifiers_; i < 7; ++i, m >>= 1) {
-//        if ((m & 0b1) == 0) continue;
-//        modifiers.push_back(i);
-//    }
-//    auto modifiers_vec = builder.CreateVector(modifiers);
-//
-//    // Pack data
-//    std::optional<flatbuffers::Offset<pv::VizData>> data = std::nullopt;
-//    if (data_) {
-//        auto x = data_->x.empty() ? std::nullopt : std::optional{builder.CreateVectorOfStrings(data_->x)};
-//        auto y = data_->y.empty() ? std::nullopt : std::optional{builder.CreateVectorOfStrings(data_->y)};
-//        auto cluster = data_->cluster.empty() ? std::nullopt : std::optional{builder.CreateVectorOfStrings(data_->cluster)};
-//        auto stack = data_->stack.empty() ? std::nullopt : std::optional{builder.CreateVectorOfStrings(data_->stack)};
-//        auto order = data_->order.empty() ? std::nullopt : std::optional{builder.CreateVectorOfStrings(data_->order)};
-//
-//        pv::VizDataBuilder dataBuilder{builder};
-//        if (x) dataBuilder.add_x(*x);
-//        if (y) dataBuilder.add_y(*y);
-//        if (cluster) dataBuilder.add_cluster(*cluster);
-//        if (stack) dataBuilder.add_stack(*stack);
-//        if (order) dataBuilder.add_order(*order);
-//
-//        //dataBuilder.add_samples(data_->samples);
-//        data = dataBuilder.Finish();
-//    }
-//
-//    // Pack component
-//    proto::viz::VizComponentBuilder cb{builder};
-//    cb.add_type(type_);
-//    cb.add_type_modifiers(modifiers_vec);
-//    if (data) cb.add_data(*data);
-//    return cb.Finish();
-//}
+/// Pack as buffer
+flatbuffers::Offset<proto::analyzer::VizComponent> VizComponent::Pack(flatbuffers::FlatBufferBuilder& builder) const {
+    // Pack modifiers
+    std::vector<uint8_t> modifiers;
+    for (uint32_t i = 0, m = type_modifiers_; i < 7; ++i, m >>= 1) {
+        if ((m & 0b1) == 0) continue;
+        modifiers.push_back(i);
+    }
+    auto modifiers_vec = builder.CreateVector(modifiers);
+
+    // Print the spec
+    std::optional<flatbuffers::Offset<flatbuffers::String>> spec;
+    {
+        rapidjson::StringBuffer buffer;
+        rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+        component_spec.Accept(writer);
+        if (buffer.GetLength() > 0) {
+            spec = builder.CreateString(buffer.GetString());
+        }
+    }
+
+
+    // Pack component
+    proto::analyzer::VizComponentBuilder cb{builder};
+    cb.add_type(type_);
+    cb.add_type_modifiers(modifiers_vec);
+    if (spec) cb.add_component_spec(*spec);
+    return cb.Finish();
+}
 
 }  // namespace viz
 }  // namespace dashql

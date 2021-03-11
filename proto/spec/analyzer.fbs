@@ -46,13 +46,14 @@ struct VizPosition {
 table VizComponent {
     type: syntax.VizComponentType;
     type_modifiers: [syntax.VizComponentTypeModifier];
-    position: VizPosition;
-    options: string;
+    component_spec: string;
 }
 
 table VizSpec {
     statement_id: uint32;
-    components: VizComponent;
+    title: string;
+    position: VizPosition;
+    components: [VizComponent];
 }
 
 table ProgramAnnotations {

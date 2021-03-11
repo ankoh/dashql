@@ -86,7 +86,7 @@ class VizComponent {
     /// The type modifiers
     uint32_t type_modifiers_ = 0;
     /// The viz spec
-    rapidjson::Document spec;
+    rapidjson::Document component_spec;
 
    public:
     /// Constructor
