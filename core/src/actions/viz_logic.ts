@@ -2,36 +2,31 @@ import * as proto from '@dashql/proto';
 import * as webdb from '@dashql/webdb';
 import * as model from '../model';
 import * as error from '../error';
+import * as v from 'vega';
+import * as vl from 'vega-lite';
 import { ProgramActionLogic, SetupActionLogic } from './action_logic';
 import { ActionContext } from './action_context';
-import { ProgramInstance, SVGStyleMap, VizComponentSpec, VizRendererType } from '../model';
+import { ProgramInstance } from '../model';
 
 import ActionStatusCode = proto.action.ActionStatusCode;
-import VizComponentTypeModifier = proto.syntax.VizComponentTypeModifier;
-
-/// Collect strings
-function collectStr(fn: (i: number) => string, n: number) {
-    let vec = [];
-    for (let i = 0; i < n; ++i) vec.push(fn(i));
-    return vec.length == 0 ? null : vec;
-}
 
 export abstract class VizActionLogic extends ProgramActionLogic {
     /// The program instance
     _programInstance: ProgramInstance | null = null;
     /// The viz spec
-    _vizSpec: proto.viz.VizSpec | null = null;
+    _vizSpec: proto.analyzer.VizSpec | null = null;
     /// The table info (when fetched)
     _tableInfo: model.DatabaseTableInfo | null = null;
 
+    /// The renderer type
+    _renderer: model.VizRendererType | null = null;
     /// The required columns
     _requiredColumnIds: Map<string, number> = new Map();
     /// The required column list
     _requiredColumns: string[] = [];
-    /// The x attribute(s)
-    _x: string[] | null = null;
-    /// The y attribute(s)
-    _y: string[] | null = null;
+    /// The vega-lite spec
+    _vegaLiteSpec: vl.TopLevelSpec | null = null;
+
     /// The data clustering (if any)
     _clusterBy: string[] | null = null;
     /// The data stacking (if any)
@@ -84,8 +79,20 @@ export abstract class VizActionLogic extends ProgramActionLogic {
         return this._requiredColumnIds.get(name)!;
     }
 
+    /// Merge the user-provided data into a vega-lite spec
+    protected mergeVegaLiteSpec(spec: any) {
+        // XXX
+        console.log(spec);
+        this._vegaLiteSpec = {
+            ...spec,
+            autosize: "fit",
+            resize: true,
+            title: undefined
+        };
+    }
+
     /// Analayze a single viz component
-    protected analyzeVizComponent(component: proto.viz.VizComponent): VizComponentSpec {
+    protected analyzeVizComponent(component: proto.analyzer.VizComponent) {
         // Collect type
         const type = component.type()!;
         let typeModifiers: Map<proto.syntax.VizComponentTypeModifier, boolean> = new Map();
@@ -93,93 +100,47 @@ export abstract class VizActionLogic extends ProgramActionLogic {
             typeModifiers.set(component.typeModifiers(i)!, true);
         }
 
-        // Read the viz data
-        const dataReader = component.data();
-        let x = this._x || (this.hasColumn('x') ? ['x'] : null);
-        let y = this._y || (this.hasColumn('y') ? ['y'] : null);
-        let stackBy = this._stackBy;
-        let clusterBy = this._clusterBy;
-        let orderBy = this._orderBy;
-        let partitionBy = this._partitionBy;
-
-        /// We differentiate between the following situations:
-        /// A) USING BAR (x = attr1, y = attr2)
-        ///
-        /// B) USING CLUSTERED BAR (x = [attr1, attr2], y = attr3)
-        ///    User provides already pivotted x values.
-        ///    No explicit ordering necessary.
-        ///
-        /// C) USING STACKED BAR (x = attr1, y = [attr2, attr3])
-        ///    User provides already pivotted y values.
-        ///    No explicit ordering necessary.
-        ///
-        /// D) USING CLUSTERED BAR (x = attr1, y = attr2, cluster = attr3)
-        ///    We order by (attr3, x) ourselves.
-        ///
-        /// E) USING STACKED BAR (x = attr1, y = attr2, stack = attr3)
-        ///    We order by (attr3, x) ourselves.
-        ///
-        /// + Combinations of above, e.g.:
-        ///
-        /// F) USING GROUPED STACKED BAR (x = attr1, y = [attr3, attr4], cluster = attr5)
-        ///    User gives us pivotted stacks but we have to cluster x.
-        ///    We order by (attr5, attr1) ourselves.
-
-        if (dataReader) {
-            x = collectStr(dataReader.x.bind(dataReader), dataReader.xLength()) || x;
-            y = collectStr(dataReader.y.bind(dataReader), dataReader.yLength()) || y;
-            clusterBy = collectStr(dataReader.cluster.bind(dataReader), dataReader.clusterLength()) || clusterBy;
-            stackBy = collectStr(dataReader.stack.bind(dataReader), dataReader.stackLength()) || stackBy;
-            orderBy = collectStr(dataReader.order.bind(dataReader), dataReader.orderLength()) || orderBy;
-        }
-
-        // XXX We may override a user-provided ordering here.
-        //     Emit a warning or error if it differs.
-        const isClustered = typeModifiers.has(VizComponentTypeModifier.CLUSTERED);
-        const isStacked = typeModifiers.has(VizComponentTypeModifier.STACKED);
-        if (isStacked) {
-            if (isClustered) {
-                partitionBy = clusterBy?.concat(stackBy || []) || [];
-                orderBy = partitionBy.concat(x || []);
-            } else {
-                partitionBy = stackBy;
-                orderBy = stackBy?.concat(x || []) || [];
+        switch (type) {
+            case proto.syntax.VizComponentType.VEGA:
+            case proto.syntax.VizComponentType.AREA:
+            case proto.syntax.VizComponentType.AXIS:
+            case proto.syntax.VizComponentType.BAR:
+            case proto.syntax.VizComponentType.BOX:
+            case proto.syntax.VizComponentType.CANDLESTICK:
+            case proto.syntax.VizComponentType.ERROR_BAR:
+            case proto.syntax.VizComponentType.HISTOGRAM:
+            case proto.syntax.VizComponentType.LINE:
+            case proto.syntax.VizComponentType.PIE:
+            case proto.syntax.VizComponentType.SCATTER:
+            case proto.syntax.VizComponentType.VORONOI: {
+                // XXX conflicts
+                this._renderer = model.VizRendererType.BUILTIN_VEGA;
+                break;
             }
-        } else if (isClustered) {
-            partitionBy = clusterBy?.concat(x || []) || [];
-            orderBy = partitionBy;
+            case proto.syntax.VizComponentType.NUMBER:
+            case proto.syntax.VizComponentType.TABLE:
+                // XXX conflicts
+                this._renderer = model.VizRendererType.BUILTIN_TABLE;
+                break;
         }
-        x?.forEach((v) => this.requireColumn(v));
-        y?.forEach((v) => this.requireColumn(v));
-        clusterBy?.forEach((v) => this.requireColumn(v));
-        stackBy?.forEach((v) => this.requireColumn(v));
-        orderBy?.forEach((v) => this.requireColumn(v));
 
-        // TODO Detect conflicts
+        // TODO This is literally doing nothing smart at the moment.
+        //      Let there be fancy vega autogen logic.
 
-        this._x = x;
-        this._y = y;
-        this._clusterBy = clusterBy;
-        this._stackBy = stackBy;
-        this._orderBy = orderBy;
-        this._partitionBy = partitionBy;
+        for (const c of this._tableInfo?.columnNames || []) {
+            this.requireColumn(c);
+        }
 
-        // Collect the style attributes
-        const styles: SVGStyleMap = {};
-        return {
-            type,
-            typeModifiers,
-            styles,
-            dataView: {
-                x: x?.map(this.resolveColumnId.bind(this)) || [],
-                y: y?.map(this.resolveColumnId.bind(this)) || []
-            },
-            selectionID: null,
-        };
+        const rawSpec = component.componentSpec();
+        if (rawSpec != null) {
+            let spec = JSON.parse(rawSpec);
+            console.log(spec);
+            this.mergeVegaLiteSpec(spec);
+        }
     }
 
     // Build the query
-    protected buildQuery(): model.VizDataQuery {
+    protected buildQuery(): model.VizDataSource {
         const colNames = this._tableInfo!.columnNameMapping;
         const getColId = this.resolveColumnId.bind(this);
         return {
@@ -193,39 +154,15 @@ export abstract class VizActionLogic extends ProgramActionLogic {
         }
     }
 
-    /// Pick a viz renderer
-    protected pickRenderer(components: VizComponentSpec[]): model.VizRendererType {
-        let renderer = model.VizRendererType.BUILTIN_TABLE;
-        for (const component of components) {
-            switch (component.type) {
-                case proto.syntax.VizComponentType.AREA:
-                case proto.syntax.VizComponentType.AXIS:
-                case proto.syntax.VizComponentType.BAR:
-                case proto.syntax.VizComponentType.BOX_PLOT:
-                case proto.syntax.VizComponentType.CANDLESTICK:
-                case proto.syntax.VizComponentType.ERROR_BAR:
-                case proto.syntax.VizComponentType.HISTOGRAM:
-                case proto.syntax.VizComponentType.LINE:
-                case proto.syntax.VizComponentType.PIE:
-                case proto.syntax.VizComponentType.SCATTER:
-                case proto.syntax.VizComponentType.VORONOI: {
-                    renderer = model.VizRendererType.BUILTIN_VICTORY_SIMPLE;
-                    let isGrouped =
-                        component.typeModifiers.has(VizComponentTypeModifier.CLUSTERED) ||
-                        component.typeModifiers.has(VizComponentTypeModifier.STACKED);
-                    if (isGrouped) {
-                        renderer = model.VizRendererType.BUILTIN_VICTORY_CLUSTERED;
-                    }
-                    break;
-                }
-                case proto.syntax.VizComponentType.TABLE:
-                case proto.syntax.VizComponentType.NUMBER:
-                case proto.syntax.VizComponentType.TABLE:
-                    renderer = model.VizRendererType.BUILTIN_TABLE;
-                    break;
-            }
-        }
-        return renderer;
+    // Build the vega spec (if any)
+    protected buildVegaSpec(): v.Spec | null {
+        if (this._vegaLiteSpec == null) 
+            return null;
+
+        // just a hacky proof-of-concept for now
+        let compiled = vl.compile(this._vegaLiteSpec).spec;
+        console.log(compiled);
+        return compiled;
     }
 
     /// Derive viz renderer
@@ -240,10 +177,9 @@ export abstract class VizActionLogic extends ProgramActionLogic {
         };
 
         // Read the component specs
-        const components = new Array<model.VizComponentSpec>();
         for (let i = 0; i < this._vizSpec!.componentsLength(); ++i) {
             const c = this._vizSpec!.components(i)!;
-            components.push(this.analyzeVizComponent(c)!);
+            this.analyzeVizComponent(c)!;
         }
 
         const now = new Date();
@@ -254,12 +190,12 @@ export abstract class VizActionLogic extends ProgramActionLogic {
             timeUpdated: now,
             nameQualified: this.buffer.targetNameQualified() || '',
             nameShort: this.buffer.targetNameShort() || '',
-            renderer: this.pickRenderer(components),
+            renderer: this._renderer || model.VizRendererType.BUILTIN_TABLE,
             currentStatementId: this.origin.statementId,
-            title: this._vizSpec!.title() || undefined,
+            title: this._vizSpec!.title() || null,
             position: pos,
-            dataQuery: this.buildQuery(),
-            components: components,
+            data: this.buildQuery(),
+            vegaSpec: this._renderer == model.VizRendererType.BUILTIN_VEGA ? this.buildVegaSpec() : null,
         };
     }
 }

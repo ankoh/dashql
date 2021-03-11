@@ -17,7 +17,7 @@ export class ProgramInstance {
     /// The evaluated nodes
     public readonly evaluatedNodes: Map<number, webdb.Value>;
     /// The viz specs
-    public readonly vizSpecs: Map<number, proto.viz.VizSpec>;
+    public readonly vizSpecs: Map<number, proto.analyzer.VizSpec>;
     /// The time when the program was created
     public readonly createdAt: Date;
 
