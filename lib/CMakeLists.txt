@@ -345,9 +345,9 @@ add_library(dashql_test
     ${CMAKE_SOURCE_DIR}/src/test/grammar_tests.cc
 )
 
-target_link_libraries(dashql_common dashql_proto flatbuffers spdlog)
-target_link_libraries(dashql_extract dashql_proto flatbuffers spdlog duckdb)
-target_link_libraries(dashql_analyzer dashql_parser dashql_common dashql_proto spdlog duckdb)
+target_link_libraries(dashql_common dashql_proto flatbuffers spdlog rapidjson)
+target_link_libraries(dashql_extract dashql_proto flatbuffers spdlog duckdb rapidjson)
+target_link_libraries(dashql_analyzer dashql_parser dashql_common dashql_proto spdlog duckdb rapidjson)
 target_link_libraries(dashql_dataframe dashql_common dashql_proto binaryen)
 target_link_libraries(dashql_webdb dashql_extract dashql_common dashql_proto duckdb spdlog)
 target_link_libraries(dashql_test dashql_webdb dashql_analyzer dashql_common dashql_proto pugixml gtest duckdb)

@@ -9,6 +9,7 @@
 #include "dashql/analyzer/viz_statement.h"
 #include "dashql/common/span.h"
 #include "dashql/common/substring_buffer.h"
+#include "dashql/proto_generated.h"
 
 namespace dashql {
 
@@ -36,12 +37,13 @@ struct VizEditOp {
 
 struct VizChangePositionOp : public VizEditOp {
     /// The position
-    const proto::viz::VizPosition& pos;
+    const proto::edit::VizChangePosition& edit;
     /// Constructor
-    VizChangePositionOp(const proto::viz::VizPosition& pos) : pos(pos) { key = sx::AttributeKey::DASHQL_OPTION_POSITION; }
+    VizChangePositionOp(const proto::edit::VizChangePosition& edit) : edit(edit) { key = sx::AttributeKey::DASHQL_OPTION_POSITION; }
     /// Edit a component
     void EditComponent(size_t idx, viz::VizComponent& component) {
         if (idx == 0) {
+            proto::analyzer::VizPosition pos(edit.row(), edit.column(), edit.width(), edit.height());
             component.SetPosition(pos);
         } else {
             component.ClearPosition();
@@ -66,7 +68,7 @@ std::string ProgramEditor::RewriteVizStatement(size_t stmt_id,
         switch (e->variant_type()) {
             case proto::edit::EditOperationVariant::VizChangePosition: {
                 auto viz = e->variant_as_VizChangePosition();
-                ops.push_back(std::make_unique<VizChangePositionOp>(*e->variant_as_VizChangePosition()->position()));
+                ops.push_back(std::make_unique<VizChangePositionOp>(*e->variant_as_VizChangePosition()));
                 break;
             }
             default:

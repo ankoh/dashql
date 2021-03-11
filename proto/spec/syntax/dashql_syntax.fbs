@@ -39,7 +39,7 @@ enum VizComponentType: uint8 {
     AREA,
     AXIS,
     BAR,
-    BOX_PLOT,
+    BOX,
     CANDLESTICK,
     ERROR_BAR,
     HISTOGRAM,

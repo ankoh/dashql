@@ -1,6 +1,6 @@
 // Copyright (c) 2020 The DashQL Authors
 
-include "syntax/sql.fbs";
+include "syntax/sql_syntax.fbs";
 
 namespace dashql.proto.syntax;
 

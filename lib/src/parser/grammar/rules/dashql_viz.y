@@ -50,7 +50,7 @@ dashql_viz_type:
     AREA        { $$ = Enum(@$, sx::VizComponentType::AREA); }
   | AXIS        { $$ = Enum(@$, sx::VizComponentType::AXIS); }
   | BAR         { $$ = Enum(@$, sx::VizComponentType::BAR); }
-  | BOX         { $$ = Enum(@$, sx::VizComponentType::BOX_PLOT); }
+  | BOX         { $$ = Enum(@$, sx::VizComponentType::BOX); }
   | CANDLESTICK { $$ = Enum(@$, sx::VizComponentType::CANDLESTICK); }
   | ERROR       { $$ = Enum(@$, sx::VizComponentType::ERROR_BAR); }
   | HISTOGRAM   { $$ = Enum(@$, sx::VizComponentType::HISTOGRAM); }
