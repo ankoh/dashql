@@ -7,12 +7,12 @@ import { Logger } from './log';
 import { QueryRunOptions } from './query_options';
 
 export interface WebDBRuntime {
-    bindings?: WebDBBindings;
+    bindings: WebDBBindings | null;
     dashql_blob_stream_underflow(blobId: number, buf: number, size: number): number;
 }
 
 export var DefaultWebDBRuntime: WebDBRuntime = {
-    bindings: undefined,
+    bindings: null,
     dashql_blob_stream_underflow: function (blobId: number, buf: number, size: number) {
         throw Error('undefined');
     },
