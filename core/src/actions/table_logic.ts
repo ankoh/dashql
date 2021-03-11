@@ -2,7 +2,7 @@ import * as proto from "@dashql/proto";
 import * as webdb from "@dashql/webdb/dist/webdb_async";
 import * as model from "../model";
 import * as Immutable from 'immutable';
-import { ProgramActionLogic } from "./action_logic";
+import { ProgramActionLogic, SetupActionLogic } from "./action_logic";
 import { ActionContext } from "./action_context";
 import ActionStatusCode = proto.action.ActionStatusCode;
 
@@ -74,3 +74,43 @@ export class CreateTableActionLogic extends ProgramActionLogic {
         return this.returnWithStatus(ActionStatusCode.COMPLETED);
     }
 };
+
+export class ModifyTableActionLogic extends ProgramActionLogic {
+    constructor(action_id: model.ActionHandle, action: proto.action.ProgramAction, statement: model.Statement) {
+        super(action_id, action, statement);
+    }
+
+    public prepareExecution(_context: ActionContext) {}
+
+    public async execute(_context: ActionContext): Promise<model.ActionHandle> {
+        return this.returnWithStatus(ActionStatusCode.COMPLETED);
+    }
+};
+
+export class ImportTableActionLogic extends SetupActionLogic {
+    constructor(action_id: model.ActionHandle, action: proto.action.SetupAction) {
+        super(action_id, action);
+    }
+
+    public prepareExecution(_context: ActionContext) {}
+
+    public async execute(_context: ActionContext): Promise<model.ActionHandle> {
+        return this.returnWithStatus(ActionStatusCode.COMPLETED);
+    }
+}
+
+export class DropTableActionLogic extends SetupActionLogic {
+    constructor(action_id: model.ActionHandle, action: proto.action.SetupAction) {
+        super(action_id, action);
+    }
+
+    public prepareExecution(_context: ActionContext) {}
+
+    public async execute(context: ActionContext): Promise<model.ActionHandle> {
+        const db = context.platform.database;
+        await db.use(async (c: webdb.AsyncConnection) => {
+            await c.runQuery(`DROP TABLE IF EXISTS ${this.buffer.targetNameShort()}`);
+        });
+        return this.returnWithStatus(ActionStatusCode.COMPLETED);
+    }
+}

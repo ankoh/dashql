@@ -16,3 +16,15 @@ export class ImportBlobActionLogic extends SetupActionLogic {
         return this.returnWithStatus(ActionStatusCode.COMPLETED);
     }
 }
+
+export class DropBlobActionLogic extends SetupActionLogic {
+    constructor(action_id: ActionHandle, action: proto.action.SetupAction) {
+        super(action_id, action);
+    }
+
+    public prepareExecution(_context: ActionContext) {}
+
+    public async execute(_context: ActionContext): Promise<ActionHandle> {
+        return this.returnWithStatus(ActionStatusCode.COMPLETED);
+    }
+}
