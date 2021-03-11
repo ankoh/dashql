@@ -15,7 +15,7 @@ class WebWorker extends AsyncWebDBDispatcher {
 
     /// Instantiate the wasm module
     protected async open(path: string | null): Promise<WebDBBindings> {
-        const bindings = new WebDB(this, new WebWebDBRuntime(), path);
+        const bindings = new WebDB(this, WebWebDBRuntime, path);
         await bindings.open();
         return bindings;
     }

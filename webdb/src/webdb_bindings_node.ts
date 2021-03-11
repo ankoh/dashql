@@ -26,11 +26,10 @@ export class WebDB extends WebDBBindings {
     protected runtime: WebDBRuntime;
     protected path: string;
 
-    public constructor(logger: Logger, runtime: WebDBRuntime = new DefaultWebDBRuntime(), path: string | null = null) {
+    public constructor(logger: Logger, runtime: WebDBRuntime = DefaultWebDBRuntime, path: string | null = null) {
         super(logger);
         this.runtime = runtime;
-        this.runtime.setBindings(this);
-        console.log('llo');
+        this.runtime.bindings = this;
         this.path = path ?? webdb_api_wasm;
     }
 
@@ -52,10 +51,9 @@ export class WebDB extends WebDBBindings {
             var global: any = typeof global !== 'undefined' ? global : typeof self !== 'undefined' ? self : {};
             global.WebDBTrampoline = {};
 
-            let proto = Object.getPrototypeOf(this.runtime);
-            for (let func of Object.getOwnPropertyNames(proto)) {
+            for (let func of Object.getOwnPropertyNames(this.runtime)) {
                 if (func == 'constructor') continue;
-                global.WebDBTrampoline[func] = <Function>Object.getOwnPropertyDescriptor(proto, func)!.value;
+                global.WebDBTrampoline[func] = <Function>Object.getOwnPropertyDescriptor(this.runtime, func)!.value;
             }
             success(module);
         });
