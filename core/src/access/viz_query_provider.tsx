@@ -29,7 +29,7 @@ export class VizQueryProvider extends React.Component<Props> {
         const columnNames = query.columns.map(n => this.props.table.columnNames[n]);
         const selectText = columnNames.join(',');
         let orderByText = "";
-        let sampleSize = 1000;
+        let sampleSize = 10000;
         if (query.orderBy.length > 0) {
             const orderByList = query.orderBy.map(o => columnNames[o]).join(',');
             orderByText = ` ORDER BY ${orderByList}`;
