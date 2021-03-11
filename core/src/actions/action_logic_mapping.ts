@@ -1,23 +1,21 @@
 import * as proto from '@dashql/proto';
 import { SetupActionLogic, ProgramActionLogic } from './action_logic';
-import { ActionHandle, Statement, Plan } from '../model';
+import { ActionHandle, Statement } from '../model';
 
-import { DropBlobActionLogic } from './drop_blob_logic';
-import { DropTableActionLogic } from './drop_table_logic';
-import { DropViewActionLogic } from './drop_view_logic';
-import { ImportBlobActionLogic } from './import_blob_logic';
-import { ImportTableActionLogic } from './import_table_logic';
-import { ImportViewActionLogic } from './import_view_logic';
-
+import { ImportBlobActionLogic, DropBlobActionLogic } from './blob_logic';
 import { ExtractCSVActionLogic } from './extract_csv_logic';
 import { ExtractJsonActionLogic } from './extract_json_logic';
 import { LoadFileActionLogic } from './load_file_logic';
 import { LoadHTTPActionLogic } from './load_http_logic';
 import { ParameterActionLogic } from './parameter_logic';
-import { CreateTableActionLogic } from './table_create_logic';
-import { ModifyTableActionLogic } from './table_modify_logic';
+import {
+    CreateTableActionLogic,
+    DropTableActionLogic,
+    ModifyTableActionLogic,
+    ImportTableActionLogic,
+} from './table_logic';
 import { UnnamedSelectLogic } from './unnamed_select_logic';
-import { ViewCreateActionLogic } from './view_create_logic';
+import { ViewCreateActionLogic, ImportViewActionLogic, DropViewActionLogic } from './view_logic';
 import { CreateVizActionLogic, DropVizActionLogic, ImportVizActionLogic } from './viz_logic';
 
 import SetupActionType = proto.action.SetupActionType;
