@@ -1,15 +1,15 @@
+import * as Immutable from 'immutable';
 import * as proto from "@dashql/proto";
 import * as webdb from "@dashql/webdb/dist/webdb_async";
 import * as model from "../model";
-import * as Immutable from 'immutable';
-import { ActionHandle, Statement } from "../model";
-import { ProgramActionLogic } from "./action_logic";
+import { ActionHandle } from "../model";
+import { ProgramActionLogic, SetupActionLogic } from "./action_logic";
 import { ActionContext } from "./action_context";
-import { collectTableInfo } from "./table_create_logic";
+import { collectTableInfo } from "./table_logic";
 import ActionStatusCode = proto.action.ActionStatusCode;
 
 export class ViewCreateActionLogic extends ProgramActionLogic {
-    constructor(action_id: ActionHandle, action: proto.action.ProgramAction, statement: Statement) {
+    constructor(action_id: ActionHandle, action: proto.action.ProgramAction, statement: model.Statement) {
         super(action_id, action, statement);
     }
 
@@ -53,3 +53,32 @@ export class ViewCreateActionLogic extends ProgramActionLogic {
         return this.returnWithStatus(ActionStatusCode.COMPLETED);
     }
 };
+
+export class ImportViewActionLogic extends SetupActionLogic {
+    constructor(action_id: ActionHandle, action: proto.action.SetupAction) {
+        super(action_id, action);
+    }
+
+    public prepareExecution(_context: ActionContext) {}
+
+    public async execute(_context: ActionContext): Promise<ActionHandle> {
+        return this.returnWithStatus(ActionStatusCode.COMPLETED);
+    }
+}
+
+export class DropViewActionLogic extends SetupActionLogic {
+    constructor(action_id: ActionHandle, action: proto.action.SetupAction) {
+        super(action_id, action);
+    }
+
+    public prepareExecution(_context: ActionContext) {}
+
+    public async execute(context: ActionContext): Promise<ActionHandle> {
+        const db = context.platform.database;
+        await db.use(async (c: webdb.AsyncConnection) => {
+            console.log(`DROP VIEW IF EXISTS ${this.buffer.targetNameShort()}`);
+            await c.runQuery(`DROP VIEW IF EXISTS ${this.buffer.targetNameShort()}`);
+        });
+        return this.returnWithStatus(ActionStatusCode.COMPLETED);
+    }
+}
