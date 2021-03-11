@@ -7,9 +7,10 @@ import { Logger } from './log';
 import { QueryRunOptions } from './query_options';
 
 export abstract class WebDBRuntime {
-    protected bindings?: WebDBBindings;
-    setBindings(bindings: WebDBBindings) {
-        this.bindings = bindings;
+    protected _bindings?: WebDBBindings;
+
+    public setBindings(bindings: WebDBBindings): void {
+        this._bindings = bindings;
     }
 
     abstract dashql_blob_stream_underflow(blobId: number, buf: number, size: number): number;

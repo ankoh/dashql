@@ -17,12 +17,9 @@ export class NodeBlobStream implements BlobStream {
     }
 }
 
-// How to register a true global?
 declare global {
-    let WebDBTrampoline: Map<string, Function>;
+    var WebDBTrampoline: any;
 }
-
-WebDBTrampoline = new Map<string, Function>();
 
 /// WebDB bindings for node.js
 export class WebDB extends WebDBBindings {
@@ -33,6 +30,7 @@ export class WebDB extends WebDBBindings {
         super(logger);
         this.runtime = runtime;
         this.runtime.setBindings(this);
+        console.log('llo');
         this.path = path ?? webdb_api_wasm;
     }
 
@@ -50,13 +48,15 @@ export class WebDB extends WebDBBindings {
         const buf = fs.readFileSync(this.path);
         WebAssembly.instantiate(buf, imports_rt).then(output => {
             let module = output.instance;
-            for (let func of Object.getOwnPropertyNames(this.runtime)) {
-                WebDBTrampoline.set(
-                    `_trampoline_${func}`,
-                    <Function>Object.getOwnPropertyDescriptor(this.runtime, func)!.value,
-                );
+
+            var global: any = typeof global !== 'undefined' ? global : typeof self !== 'undefined' ? self : {};
+            global.WebDBTrampoline = {};
+
+            let proto = Object.getPrototypeOf(this.runtime);
+            for (let func of Object.getOwnPropertyNames(proto)) {
+                if (func == 'constructor') continue;
+                global.WebDBTrampoline[func] = <Function>Object.getOwnPropertyDescriptor(proto, func)!.value;
             }
-            console.log('after inserting: ', WebAssembly.Module.prototype);
             success(module);
         });
         return [];
