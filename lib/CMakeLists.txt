@@ -310,6 +310,7 @@ add_library(dashql_extract
     ${CMAKE_SOURCE_DIR}/src/extract/csv_parser.cc
     ${CMAKE_SOURCE_DIR}/src/extract/csv_sniffer.cc
     ${CMAKE_SOURCE_DIR}/src/extract/extract.cc
+    ${CMAKE_SOURCE_DIR}/src/extract/extract_ffi.cc
 )
 
 add_library(dashql_dataframe
@@ -444,7 +445,8 @@ if (EMSCRIPTEN)
             _dashql_webdb_send_query, \
             _dashql_webdb_fetch_query_results, \
             _dashql_webdb_analyze_query, \
-            _dashql_blob_stream_consume \
+            _dashql_blob_stream_consume, \
+            _dashql_extract_import_csv \
         ]' \
         -s EXTRA_EXPORTED_RUNTIME_METHODS='[\"ccall\"]' \
         --js-library=${CMAKE_SOURCE_DIR}/js-stubs.js \

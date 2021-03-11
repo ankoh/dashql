@@ -11,9 +11,13 @@ export class NodeBlobStream implements BlobStream {
     buffer: Uint8Array;
     position: number;
 
-    public constructor(file: string) {
-        this.buffer = new Uint8Array(fs.readFileSync(file));
+    public constructor(buffer: Uint8Array) {
+        this.buffer = buffer;
         this.position = 0;
+    }
+
+    public static fromFile(file: string): NodeBlobStream {
+        return new NodeBlobStream(new Uint8Array(fs.readFileSync(file)));
     }
 }
 

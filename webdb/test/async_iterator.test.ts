@@ -36,7 +36,7 @@ describe('AsyncWebDB', () => {
 
 describe('AsyncWebDB', () => {
     test('blob stream', async () => {
-        await db.ingestBlobStream(new NodeBlobStream('./test/blob.txt'));
+        await db.ingestBlobStream(NodeBlobStream.fromFile('./test/blob.txt'));
     });
 });
 

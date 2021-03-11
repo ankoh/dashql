@@ -223,14 +223,33 @@ export abstract class WebDBBindings {
     public ingestBlobStream(blobStream: BlobStream): void {
         const blobId = this._blobMap.size;
         this._blobMap.set(blobId, blobStream);
-
         this.instance!.ccall('dashql_blob_stream_consume', null, ['number'], [blobId]);
-
         this._blobMap.delete(blobId);
     }
 
+    /// Get a blobstream by its ID
     public getBlobStreamById(blobId: number): BlobStream | undefined {
         return this._blobMap.get(blobId);
+    }
+
+    /// Import csv from a blob stream
+    public importCSV(conn: number, blobStream: BlobStream, schemaName: string, tableName: string): void {
+        const blobId = this._blobMap.size;
+        this._blobMap.set(blobId, blobStream);
+
+        let instance = this.instance!;
+        let [s, d, n] = this.callSRet(
+            'dashql_extract_import_csv',
+            ['number', 'number', 'string', 'string'],
+            [conn, blobId, schemaName, tableName],
+        );
+
+        this._blobMap.delete(blobId);
+
+        let mem = instance.HEAPU8.subarray(d, d + n);
+        if (s !== proto.StatusCode.SUCCESS) {
+            throw new Error(decodeString(mem));
+        }
     }
 }
 
@@ -269,5 +288,9 @@ export class WebDBConnection {
 
     public analyzeQuery(_text: string): proto.QueryPlan {
         return this._bindings.analyzeQuery(this._conn, _text);
+    }
+
+    public importCSV(blobStream: BlobStream, schemaName: string, tableName: string): void {
+        this._bindings.importCSV(this._conn, blobStream, schemaName, tableName);
     }
 }
