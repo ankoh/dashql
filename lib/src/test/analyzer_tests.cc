@@ -88,9 +88,9 @@ void AnalyzerTest::EncodePlan(pugi::xml_node root, const ProgramInstance& instan
             auto vc = c.append_child("component");
             vc.append_attribute("type") = viz_component_type_tt->names[static_cast<size_t>(vizc->type())];
             std::stringstream options;
-            vizc->PrintOptionsAsJSON(options, true);
+            vizc->PrintOptionsAsJSON(options);
             auto optionsstr = options.str();
-            vc.append_child("spec").text().set(optionsstr.c_str());
+            vc.text().set(optionsstr.c_str());
         }
     }
 
