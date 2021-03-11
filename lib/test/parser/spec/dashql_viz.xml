@@ -1,84 +1,51 @@
 <test name="dashql_viz_full">
     <input>
         VISUALIZE weather_avg USING STACKED BAR (
-            position = (r = 0, c = 0, w = 4, h = 15),
+            position = (row = 0, column = 0, width = 4, height = 15),
             x = a,
             y = b,
-            theme = 'grayscale',
-            colors = ['#aaa', '#bbb', '#ccc']
-        ), LINE (
-            style.data = (
-                stroke = '#c43a31'
-            ),
-            style.labels = (
-                font_size = 15,
-                fill = 'red',
-            )
-        ), SCATTER (
-            style = (
-                data = (
-                    fill = '#c43a31',
-                    fill_opacity = 0.6,
-                    stroke = '#c43a31',
-                    stroke_width = 3,
-                )
-            )
-        ), X AXIS(scale = 'time'), Y AXIS(scale = 'log');
+        ), LINE, SCATTER, X AXIS(scale = 'linear'), Y AXIS(scale = 'log');
     </input>
     <expected>
         <statements>
             <statement type="VIZUALIZE">
-                <node type="OBJECT_DASHQL_VIZ" loc="9..734" text="VISUALIZE ..e = 'log')">
+                <node type="OBJECT_DASHQL_VIZ" loc="9..232" text="VISUALIZE ..e = 'log')">
                     <node key="DASHQL_VIZ_COMPONENTS">
-                        <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="37..231" text="STACKED BA..&#10;        )">
+                        <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="37..168" text="STACKED BA..&#10;        )">
                             <node key="DASHQL_VIZ_COMPONENT_TYPE" value="BAR" />
                             <node key="DASHQL_VIZ_COMPONENT_TYPE_MODIFIERS" value="1" />
-                            <node key="DASHQL_OPTION_COLORS">
-                                <node loc="198..204" text="'#aaa'" />
-                                <node loc="206..212" text="'#bbb'" />
-                                <node loc="214..220" text="'#ccc'" />
+                            <node key="DASHQL_OPTION_POSITION" type="OBJECT_DASHQL_OPTION_LIST" loc="74..119" text="(row = 0, ..ight = 15)">
+                                <node key="DASHQL_OPTION_COLUMN" loc="93..94" text="0" />
+                                <node key="DASHQL_OPTION_HEIGHT" loc="116..118" text="15" />
+                                <node key="DASHQL_OPTION_ROW" loc="81..82" text="0" />
+                                <node key="DASHQL_OPTION_WIDTH" loc="104..105" text="4" />
                             </node>
-                            <node key="DASHQL_OPTION_POSITION" type="OBJECT_DASHQL_OPTION_LIST" loc="74..103" text="(r = 0, c ..4, h = 15)">
-                                <node key="DASHQL_OPTION_COLUMN" loc="86..87" text="0" />
-                                <node key="DASHQL_OPTION_HEIGHT" loc="100..102" text="15" />
-                                <node key="DASHQL_OPTION_ROW" loc="79..80" text="0" />
-                                <node key="DASHQL_OPTION_WIDTH" loc="93..94" text="4" />
-                            </node>
-                            <node key="DASHQL_OPTION_THEME" loc="163..174" text="'grayscale'" />
-                            <node key="DASHQL_OPTION_X" type="OBJECT_SQL_COLUMN_REF" loc="121..122" text="a">
+                            <node key="DASHQL_OPTION_X" type="OBJECT_SQL_COLUMN_REF" loc="137..138" text="a">
                                 <node key="SQL_COLUMN_REF_PATH">
-                                    <node loc="121..122" text="a" />
+                                    <node loc="137..138" text="a" />
                                 </node>
                             </node>
-                            <node key="DASHQL_OPTION_Y" type="OBJECT_SQL_COLUMN_REF" loc="140..141" text="b">
+                            <node key="DASHQL_OPTION_Y" type="OBJECT_SQL_COLUMN_REF" loc="156..157" text="b">
                                 <node key="SQL_COLUMN_REF_PATH">
-                                    <node loc="140..141" text="b" />
+                                    <node loc="156..157" text="b" />
                                 </node>
                             </node>
                         </node>
-                        <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="233..431" text="LINE (&#10;   ..&#10;        )">
+                        <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="170..174" text="LINE">
                             <node key="DASHQL_VIZ_COMPONENT_TYPE" value="LINE" />
                         </node>
-                        <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="433..687" text="SCATTER (&#10;..&#10;        )">
+                        <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="176..183" text="SCATTER">
                             <node key="DASHQL_VIZ_COMPONENT_TYPE" value="SCATTER" />
-                            <node key="DASHQL_OPTION_STYLE" type="OBJECT_DASHQL_OPTION_LIST" loc="463..677" text="(&#10;        ..         )">
-                                <node key="DASHQL_OPTION_DATA" type="OBJECT_DASHQL_OPTION_LIST" loc="488..663" text="(&#10;        ..         )">
-                                    <node key="DASHQL_OPTION_FILL" loc="517..526" text="'#c43a31'" />
-                                    <node key="DASHQL_OPTION_FILL_OPACITY" loc="563..566" text="0.6" />
-                                    <node key="DASHQL_OPTION_STROKE" loc="597..606" text="'#c43a31'" />
-                                    <node key="DASHQL_OPTION_STROKE_WIDTH" loc="643..644" text="3" />
-                                </node>
-                            </node>
                         </node>
-                        <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="689..711" text="X AXIS(sca.. = 'time')">
+                        <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="185..209" text="X AXIS(sca.. 'linear')">
                             <node key="DASHQL_VIZ_COMPONENT_TYPE" value="AXIS" />
                             <node key="DASHQL_VIZ_COMPONENT_TYPE_MODIFIERS" value="32" />
-                            <node key="DASHQL_OPTION_SCALE" loc="704..710" text="'time'" />
+                            <node key="DASHQL_OPTION_SCALE" loc="200..208" text="'linear'" />
                         </node>
-                        <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="713..734" text="Y AXIS(sca..e = 'log')">
+                        <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="211..232" text="Y AXIS(sca..e = 'log')">
                             <node key="DASHQL_VIZ_COMPONENT_TYPE" value="AXIS" />
                             <node key="DASHQL_VIZ_COMPONENT_TYPE_MODIFIERS" value="64" />
-                            <node key="DASHQL_OPTION_SCALE" loc="728..733" text="'log'" />
+                            <node key="DASHQL_OPTION_SCALE" loc="226..231" text="'log'" />
                         </node>
                     </node>
                     <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLE_REF" loc="19..30" text="weather_avg">
@@ -94,29 +61,10 @@
         <line_breaks>
             <line_break loc="0..1" text="&#10;" />
             <line_break loc="50..51" text="&#10;" />
-            <line_break loc="104..105" text="&#10;" />
-            <line_break loc="123..124" text="&#10;" />
-            <line_break loc="142..143" text="&#10;" />
-            <line_break loc="175..176" text="&#10;" />
-            <line_break loc="221..222" text="&#10;" />
-            <line_break loc="239..240" text="&#10;" />
-            <line_break loc="266..267" text="&#10;" />
-            <line_break loc="301..302" text="&#10;" />
-            <line_break loc="316..317" text="&#10;" />
-            <line_break loc="345..346" text="&#10;" />
-            <line_break loc="377..378" text="&#10;" />
-            <line_break loc="407..408" text="&#10;" />
-            <line_break loc="421..422" text="&#10;" />
-            <line_break loc="442..443" text="&#10;" />
-            <line_break loc="464..465" text="&#10;" />
-            <line_break loc="489..490" text="&#10;" />
-            <line_break loc="527..528" text="&#10;" />
-            <line_break loc="567..568" text="&#10;" />
-            <line_break loc="607..608" text="&#10;" />
-            <line_break loc="645..646" text="&#10;" />
-            <line_break loc="663..664" text="&#10;" />
-            <line_break loc="677..678" text="&#10;" />
-            <line_break loc="735..736" text="&#10;" />
+            <line_break loc="120..121" text="&#10;" />
+            <line_break loc="139..140" text="&#10;" />
+            <line_break loc="158..159" text="&#10;" />
+            <line_break loc="233..234" text="&#10;" />
         </line_breaks>
         <comments />
         <dependencies />
@@ -126,30 +74,22 @@
     <input>
         VIZ foo USING STACKED AREA (
             title = 'Stacked Area Chart',
-            pos = (r = 8, c = 0, w = 6, h = 4),
-            data = (stack = cat100)
+            position = (row = 8, column = 0, width = 6, height = 5)
         );
     </input>
     <expected>
         <statements>
             <statement type="VIZUALIZE">
-                <node type="OBJECT_DASHQL_VIZ" loc="9..173" text="VIZ foo US..&#10;        )">
+                <node type="OBJECT_DASHQL_VIZ" loc="9..157" text="VIZ foo US..&#10;        )">
                     <node key="DASHQL_VIZ_COMPONENTS">
-                        <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="23..173" text="STACKED AR..&#10;        )">
+                        <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="23..157" text="STACKED AR..&#10;        )">
                             <node key="DASHQL_VIZ_COMPONENT_TYPE" value="AREA" />
                             <node key="DASHQL_VIZ_COMPONENT_TYPE_MODIFIERS" value="1" />
-                            <node key="DASHQL_OPTION_DATA" type="OBJECT_DASHQL_OPTION_LIST" loc="147..163" text="(stack = cat100)">
-                                <node key="DASHQL_OPTION_STACK" type="OBJECT_SQL_COLUMN_REF" loc="156..162" text="cat100">
-                                    <node key="SQL_COLUMN_REF_PATH">
-                                        <node loc="156..162" text="cat100" />
-                                    </node>
-                                </node>
-                            </node>
-                            <node key="DASHQL_OPTION_POSITION" type="OBJECT_DASHQL_OPTION_LIST" loc="98..126" text="(r = 8, c .. 6, h = 4)">
-                                <node key="DASHQL_OPTION_COLUMN" loc="110..111" text="0" />
-                                <node key="DASHQL_OPTION_HEIGHT" loc="124..125" text="4" />
-                                <node key="DASHQL_OPTION_ROW" loc="103..104" text="8" />
-                                <node key="DASHQL_OPTION_WIDTH" loc="117..118" text="6" />
+                            <node key="DASHQL_OPTION_POSITION" type="OBJECT_DASHQL_OPTION_LIST" loc="103..147" text="(row = 8, ..eight = 5)">
+                                <node key="DASHQL_OPTION_COLUMN" loc="122..123" text="0" />
+                                <node key="DASHQL_OPTION_HEIGHT" loc="145..146" text="5" />
+                                <node key="DASHQL_OPTION_ROW" loc="110..111" text="8" />
+                                <node key="DASHQL_OPTION_WIDTH" loc="133..134" text="6" />
                             </node>
                             <node key="DASHQL_OPTION_TITLE" loc="58..78" text="'Stacked A..rea Chart'" />
                         </node>
@@ -168,9 +108,8 @@
             <line_break loc="0..1" text="&#10;" />
             <line_break loc="37..38" text="&#10;" />
             <line_break loc="79..80" text="&#10;" />
-            <line_break loc="127..128" text="&#10;" />
-            <line_break loc="163..164" text="&#10;" />
-            <line_break loc="174..175" text="&#10;" />
+            <line_break loc="147..148" text="&#10;" />
+            <line_break loc="158..159" text="&#10;" />
         </line_breaks>
         <comments />
         <dependencies />

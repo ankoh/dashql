@@ -62,7 +62,7 @@ TEST(SyntaxMatcherTest, LoadStatement) {
 TEST(SyntaxMatcherTest, MinimalError) {
     auto txt = R"CSV(
         VIZ weather_avg USING LINE (
-            pos = (r = 1, c = 2, w = 4, h = 15)
+            position = (row = 1, column = 2, width = 4, height = 15)
         )
     )CSV";
     auto program = parser::ParserDriver::Parse(txt);
@@ -89,7 +89,7 @@ TEST(SyntaxMatcherTest, MinimalError) {
 TEST(SyntaxMatcherTest, VizStatementPositionShort) {
     auto txt = R"CSV(
         VIZ weather_avg USING LINE (
-            pos = (r = 1, c = 2, w = 4, h = 15)
+            position = (row = 1, column = 2, width = 4, height = 15)
         )
     )CSV";
     auto program = parser::ParserDriver::Parse(txt);

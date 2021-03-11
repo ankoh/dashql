@@ -143,12 +143,6 @@
                     <node key="DASHQL_VIZ_COMPONENTS">
                         <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="31..95" text="LINE (&#10;   ..&#10;        )">
                             <node key="DASHQL_VIZ_COMPONENT_TYPE" value="LINE" />
-                            <node key="DASHQL_OPTION_POSITION" type="OBJECT_DASHQL_OPTION_LIST" loc="56..85" text="(r = 0, c ..4, h = 15)">
-                                <node key="DASHQL_OPTION_COLUMN" loc="68..69" text="0" />
-                                <node key="DASHQL_OPTION_HEIGHT" loc="82..84" text="15" />
-                                <node key="DASHQL_OPTION_ROW" loc="61..62" text="0" />
-                                <node key="DASHQL_OPTION_WIDTH" loc="75..76" text="4" />
-                            </node>
                         </node>
                     </node>
                     <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLE_REF" loc="13..24" text="weather_avg">
@@ -160,7 +154,13 @@
                 </node>
             </statement>
         </statements>
-        <errors />
+        <errors>
+            <error message="unknown option key: r" loc="57..62" text="r = 0" />
+            <error message="unknown option key: c" loc="64..69" text="c = 0" />
+            <error message="unknown option key: w" loc="71..76" text="w = 4" />
+            <error message="unknown option key: h" loc="78..84" text="h = 15" />
+            <error message="unknown option key: pos" loc="50..85" text="pos = (r =..4, h = 15)" />
+        </errors>
         <line_breaks>
             <line_break loc="0..1" text="&#10;" />
             <line_break loc="37..38" text="&#10;" />
