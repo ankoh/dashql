@@ -62,4 +62,6 @@ dashql_viz_type:
   | TABLE       { $$ = Enum(@$, sx::VizComponentType::TABLE); }
   | TEXT        { $$ = Enum(@$, sx::VizComponentType::TEXT); }
   | VORONOI     { $$ = Enum(@$, sx::VizComponentType::VORONOI); }
+  | VEGA        { $$ = Enum(@$, sx::VizComponentType::VEGA); }
+  | %empty      { $$ = Enum(@$, sx::VizComponentType::VEGA); }
     ;
