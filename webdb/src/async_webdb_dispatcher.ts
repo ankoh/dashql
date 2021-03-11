@@ -155,6 +155,10 @@ export abstract class AsyncWebDBDispatcher implements Logger {
                     this._bindings.ingestBlobStream(request.data);
                     this.sendOK(request);
                     break;
+                case AsyncWebDBRequestType.IMPORT_CSV:
+                    this._bindings.importCSV(request.data[0], request.data[1], request.data[2], request.data[3]);
+                    this.sendOK(request);
+                    break;
             }
         } catch (e) {
             return this.failWith(request, e);
