@@ -115,3 +115,217 @@
         <dependencies />
     </expected>
 </test>
+<test name="dashql_viz_vegalite_examples_bar">
+    <input>
+        VIZ foo USING VEGA (
+            mark = 'bar',
+            encoding = (
+                x = (
+                    field = a,
+                    type = 'nominal',
+                ),
+                y = (
+                    field = b,
+                    type = 'quantitative',
+                ),
+            )
+        );
+    </input>
+    <expected>
+        <statements>
+            <statement type="VIZUALIZE">
+                <node type="OBJECT_DASHQL_VIZ" loc="9..329" text="VIZ foo US..&#10;        )">
+                    <node key="DASHQL_VIZ_COMPONENTS">
+                        <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="23..329" text="VEGA (&#10;   ..&#10;        )">
+                            <node key="DASHQL_VIZ_COMPONENT_TYPE" value="VEGA" />
+                            <node key="DASHQL_OPTION_ENCODING" type="OBJECT_DASHQL_OPTION_LIST" loc="79..319" text="(&#10;        ..         )">
+                                <node key="DASHQL_OPTION_X" type="OBJECT_DASHQL_OPTION_LIST" loc="101..189" text="(&#10;        ..         )">
+                                    <node key="DASHQL_OPTION_FIELD" type="OBJECT_SQL_COLUMN_REF" loc="131..132" text="a">
+                                        <node key="SQL_COLUMN_REF_PATH">
+                                            <node loc="131..132" text="a" />
+                                        </node>
+                                    </node>
+                                    <node key="DASHQL_OPTION_TYPE" loc="161..170" text="'nominal'" />
+                                </node>
+                                <node key="DASHQL_OPTION_Y" type="OBJECT_DASHQL_OPTION_LIST" loc="211..304" text="(&#10;        ..         )">
+                                    <node key="DASHQL_OPTION_FIELD" type="OBJECT_SQL_COLUMN_REF" loc="241..242" text="b">
+                                        <node key="SQL_COLUMN_REF_PATH">
+                                            <node loc="241..242" text="b" />
+                                        </node>
+                                    </node>
+                                    <node key="DASHQL_OPTION_TYPE" loc="271..285" text="'quantitative'" />
+                                </node>
+                            </node>
+                            <node key="DASHQL_OPTION_MARK" loc="49..54" text="'bar'" />
+                        </node>
+                    </node>
+                    <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLE_REF" loc="13..16" text="foo">
+                        <node key="SQL_TABLE_INHERIT" value="true" />
+                        <node key="SQL_TABLE_NAME">
+                            <node loc="13..16" text="foo" />
+                        </node>
+                    </node>
+                </node>
+            </statement>
+        </statements>
+        <errors />
+        <line_breaks>
+            <line_break loc="0..1" text="&#10;" />
+            <line_break loc="29..30" text="&#10;" />
+            <line_break loc="55..56" text="&#10;" />
+            <line_break loc="80..81" text="&#10;" />
+            <line_break loc="102..103" text="&#10;" />
+            <line_break loc="133..134" text="&#10;" />
+            <line_break loc="171..172" text="&#10;" />
+            <line_break loc="190..191" text="&#10;" />
+            <line_break loc="212..213" text="&#10;" />
+            <line_break loc="243..244" text="&#10;" />
+            <line_break loc="286..287" text="&#10;" />
+            <line_break loc="305..306" text="&#10;" />
+            <line_break loc="319..320" text="&#10;" />
+            <line_break loc="330..331" text="&#10;" />
+        </line_breaks>
+        <comments />
+        <dependencies />
+    </expected>
+</test>
+<test name="dashql_viz_vegalite_examples_bar_size_responsive">
+    <input>
+        VIZ foo USING VEGA (
+            mark = 'bar',
+            encoding = (
+                x = (
+                    field = a,
+                    type = 'nominal',
+                ),
+                y = (
+                    aggregate = 'count',
+                    title = 'Number of cars',
+                ),
+            )
+        );
+    </input>
+    <expected>
+        <statements>
+            <statement type="VIZUALIZE">
+                <node type="OBJECT_DASHQL_VIZ" loc="9..342" text="VIZ foo US..&#10;        )">
+                    <node key="DASHQL_VIZ_COMPONENTS">
+                        <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="23..342" text="VEGA (&#10;   ..&#10;        )">
+                            <node key="DASHQL_VIZ_COMPONENT_TYPE" value="VEGA" />
+                            <node key="DASHQL_OPTION_ENCODING" type="OBJECT_DASHQL_OPTION_LIST" loc="79..332" text="(&#10;        ..         )">
+                                <node key="DASHQL_OPTION_X" type="OBJECT_DASHQL_OPTION_LIST" loc="101..189" text="(&#10;        ..         )">
+                                    <node key="DASHQL_OPTION_FIELD" type="OBJECT_SQL_COLUMN_REF" loc="131..132" text="a">
+                                        <node key="SQL_COLUMN_REF_PATH">
+                                            <node loc="131..132" text="a" />
+                                        </node>
+                                    </node>
+                                    <node key="DASHQL_OPTION_TYPE" loc="161..170" text="'nominal'" />
+                                </node>
+                                <node key="DASHQL_OPTION_Y" type="OBJECT_DASHQL_OPTION_LIST" loc="211..317" text="(&#10;        ..         )">
+                                    <node key="DASHQL_OPTION_AGGREGATE" loc="245..252" text="'count'" />
+                                    <node key="DASHQL_OPTION_TITLE" loc="282..298" text="'Number of cars'" />
+                                </node>
+                            </node>
+                            <node key="DASHQL_OPTION_MARK" loc="49..54" text="'bar'" />
+                        </node>
+                    </node>
+                    <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLE_REF" loc="13..16" text="foo">
+                        <node key="SQL_TABLE_INHERIT" value="true" />
+                        <node key="SQL_TABLE_NAME">
+                            <node loc="13..16" text="foo" />
+                        </node>
+                    </node>
+                </node>
+            </statement>
+        </statements>
+        <errors />
+        <line_breaks>
+            <line_break loc="0..1" text="&#10;" />
+            <line_break loc="29..30" text="&#10;" />
+            <line_break loc="55..56" text="&#10;" />
+            <line_break loc="80..81" text="&#10;" />
+            <line_break loc="102..103" text="&#10;" />
+            <line_break loc="133..134" text="&#10;" />
+            <line_break loc="171..172" text="&#10;" />
+            <line_break loc="190..191" text="&#10;" />
+            <line_break loc="212..213" text="&#10;" />
+            <line_break loc="253..254" text="&#10;" />
+            <line_break loc="299..300" text="&#10;" />
+            <line_break loc="318..319" text="&#10;" />
+            <line_break loc="332..333" text="&#10;" />
+            <line_break loc="343..344" text="&#10;" />
+        </line_breaks>
+        <comments />
+        <dependencies />
+    </expected>
+</test>
+<test name="dashql_viz_vegalite_examples_bar_aggregate">
+    <input>
+        VIZ foo USING VEGA (
+            mark = 'bar',
+            encoding = (
+                x = (
+                    field = age,
+                ),
+                y = (
+                    aggregate = 'sum',
+                    field = 'people',
+                    title = 'population'
+                ),
+            )
+        );
+    </input>
+    <expected>
+        <statements>
+            <statement type="VIZUALIZE">
+                <node type="OBJECT_DASHQL_VIZ" loc="9..337" text="VIZ foo US..&#10;        )">
+                    <node key="DASHQL_VIZ_COMPONENTS">
+                        <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="23..337" text="VEGA (&#10;   ..&#10;        )">
+                            <node key="DASHQL_VIZ_COMPONENT_TYPE" value="VEGA" />
+                            <node key="DASHQL_OPTION_ENCODING" type="OBJECT_DASHQL_OPTION_LIST" loc="79..327" text="(&#10;        ..         )">
+                                <node key="DASHQL_OPTION_X" type="OBJECT_DASHQL_OPTION_LIST" loc="101..153" text="(&#10;        ..         )">
+                                    <node key="DASHQL_OPTION_FIELD" type="OBJECT_SQL_COLUMN_REF" loc="131..134" text="age">
+                                        <node key="SQL_COLUMN_REF_PATH">
+                                            <node loc="131..134" text="age" />
+                                        </node>
+                                    </node>
+                                </node>
+                                <node key="DASHQL_OPTION_Y" type="OBJECT_DASHQL_OPTION_LIST" loc="175..312" text="(&#10;        ..         )">
+                                    <node key="DASHQL_OPTION_AGGREGATE" loc="209..214" text="'sum'" />
+                                    <node key="DASHQL_OPTION_FIELD" loc="244..252" text="'people'" />
+                                    <node key="DASHQL_OPTION_TITLE" loc="282..294" text="'population'" />
+                                </node>
+                            </node>
+                            <node key="DASHQL_OPTION_MARK" loc="49..54" text="'bar'" />
+                        </node>
+                    </node>
+                    <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLE_REF" loc="13..16" text="foo">
+                        <node key="SQL_TABLE_INHERIT" value="true" />
+                        <node key="SQL_TABLE_NAME">
+                            <node loc="13..16" text="foo" />
+                        </node>
+                    </node>
+                </node>
+            </statement>
+        </statements>
+        <errors />
+        <line_breaks>
+            <line_break loc="0..1" text="&#10;" />
+            <line_break loc="29..30" text="&#10;" />
+            <line_break loc="55..56" text="&#10;" />
+            <line_break loc="80..81" text="&#10;" />
+            <line_break loc="102..103" text="&#10;" />
+            <line_break loc="135..136" text="&#10;" />
+            <line_break loc="154..155" text="&#10;" />
+            <line_break loc="176..177" text="&#10;" />
+            <line_break loc="215..216" text="&#10;" />
+            <line_break loc="253..254" text="&#10;" />
+            <line_break loc="294..295" text="&#10;" />
+            <line_break loc="313..314" text="&#10;" />
+            <line_break loc="327..328" text="&#10;" />
+            <line_break loc="338..339" text="&#10;" />
+        </line_breaks>
+        <comments />
+        <dependencies />
+    </expected>
+</test>
