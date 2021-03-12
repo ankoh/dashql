@@ -48,8 +48,8 @@ export class VictoryChartSimple extends React.Component<Props> {
                                                 ...this.props.vizInfo.vegaSpec,
                                             }}
                                             data={{ source: rows }}
-                                            width={width-20}
-                                            height={height-20}
+                                            width={width}
+                                            height={height}
                                             actions={false}
                                         />
                                     )}

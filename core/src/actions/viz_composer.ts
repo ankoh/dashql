@@ -61,10 +61,15 @@ export class VizComposer {
             autosize: {
                 type: 'fit',
                 contains: 'padding',
+                resize: true,
             },
-            resize: true,
             title: undefined,
+            background: "transparent",
         };
+    }
+
+    protected componentInvalid(component: proto.analyzer.VizComponent, reason: string) {
+
     }
 
     /// Analayze a single viz component
@@ -89,15 +94,24 @@ export class VizComposer {
             case proto.syntax.VizComponentType.PIE:
             case proto.syntax.VizComponentType.SCATTER:
             case proto.syntax.VizComponentType.VORONOI: {
+                if (this._renderer != null && this._renderer != model.VizRendererType.BUILTIN_VEGA) {
+                    this.componentInvalid(component, "viz component requires vega renderer");
+                    return;
+                }
                 // XXX conflicts
                 this._renderer = model.VizRendererType.BUILTIN_VEGA;
                 break;
             }
             case proto.syntax.VizComponentType.NUMBER:
-            case proto.syntax.VizComponentType.TABLE:
+            case proto.syntax.VizComponentType.TABLE: {
+                if (this._renderer != null && this._renderer != model.VizRendererType.BUILTIN_TABLE) {
+                    this.componentInvalid(component, "viz component requires vega table");
+                    return;
+                }
                 // XXX conflicts
                 this._renderer = model.VizRendererType.BUILTIN_TABLE;
                 break;
+            }
         }
 
         // TODO This is literally doing nothing smart at the moment.
