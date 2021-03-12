@@ -70,8 +70,36 @@ export class VizComposer {
         };
     }
 
-    protected componentInvalid(component: proto.analyzer.VizComponent, reason: string) {
+    protected invalidVegaLiteSpec(spec: vl.TopLevelSpec, reason: string) {
+        console.error(reason);
+    }
 
+    // Build the vega spec (if any)
+    protected compileVegaSpec(): v.Spec | null {
+        if (this._vegaLiteSpec == null) return null;
+
+        // Try to autocomplete vega specs on a best-effort basis.
+        const spec = this._vegaLiteSpec!;
+        const mark = (spec as any).mark || spec.config?.mark;
+        const compile = (spec: vl.TopLevelSpec): v.Spec | null => vl.compile(spec).spec;
+
+//        // No mark?
+//        // We'll hand over to vega-lite immediately
+//        if (!mark) {
+//            return compile(spec);
+//        }
+//
+//        // Otherwise try to figure out what the user wants.
+//        switch (mark) {
+//        }
+
+        // just a hacky proof-of-concept for now
+        return compile(spec);
+    }
+
+
+    protected invalidComponent(component: proto.analyzer.VizComponent, reason: string) {
+        console.error(reason);
     }
 
     /// Analayze a single viz component
@@ -97,7 +125,7 @@ export class VizComposer {
             case proto.syntax.VizComponentType.SCATTER:
             case proto.syntax.VizComponentType.VORONOI: {
                 if (this._renderer != null && this._renderer != model.VizRendererType.BUILTIN_VEGA) {
-                    this.componentInvalid(component, "viz component requires vega renderer");
+                    this.invalidComponent(component, "viz component requires vega renderer");
                     return;
                 }
                 // XXX conflicts
@@ -107,7 +135,7 @@ export class VizComposer {
             case proto.syntax.VizComponentType.NUMBER:
             case proto.syntax.VizComponentType.TABLE: {
                 if (this._renderer != null && this._renderer != model.VizRendererType.BUILTIN_TABLE) {
-                    this.componentInvalid(component, "viz component requires vega table");
+                    this.invalidComponent(component, "viz component requires vega table");
                     return;
                 }
                 // XXX conflicts
@@ -143,15 +171,6 @@ export class VizComposer {
         };
     }
 
-    // Build the vega spec (if any)
-    protected configureVega(): v.Spec | null {
-        if (this._vegaLiteSpec == null) return null;
-
-        // just a hacky proof-of-concept for now
-        let compiled = vl.compile(this._vegaLiteSpec).spec;
-        return compiled;
-    }
-
     public build(
         base: Pick<
             model.VizInfo,
@@ -163,7 +182,7 @@ export class VizComposer {
     ): model.VizInfo {
         const now = new Date();
         const data = this.configureQuery();
-        const vegaSpec = this._renderer == model.VizRendererType.BUILTIN_VEGA ? this.configureVega() : null;
+        const vegaSpec = this._renderer == model.VizRendererType.BUILTIN_VEGA ? this.compileVegaSpec() : null;
         return {
             ...base,
             timeCreated: now,
