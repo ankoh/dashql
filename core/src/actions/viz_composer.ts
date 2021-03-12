@@ -58,7 +58,10 @@ export class VizComposer {
         // XXX
         this._vegaLiteSpec = {
             ...spec,
-            autosize: 'fit',
+            autosize: {
+                type: 'fit',
+                contains: 'padding',
+            },
             resize: true,
             title: undefined,
         };
