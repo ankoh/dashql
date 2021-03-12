@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { AspectRatioIcon, IIconProps, RulerIcon } from '../svg/icons';
+import { EyeIcon, IIconProps } from '../svg/icons';
 
 import styles from './cmdbars.module.css';
 
@@ -15,8 +15,7 @@ function createAction(Icon: React.FunctionComponent<IIconProps>): React.Function
     };
 }
 
-const RulerAction = createAction(RulerIcon);
-const DeviceAction = createAction(AspectRatioIcon);
+const ViewerAction = createAction(EyeIcon);
 
 export class BoardCommandBar extends React.Component<{}> {
     public render() {
@@ -24,8 +23,7 @@ export class BoardCommandBar extends React.Component<{}> {
             <div className={styles.cmdbar_board}>
                 <div className={styles.cmdbar_cmdset} />
                 <div className={styles.cmdbar_cmdset}>
-                    <RulerAction />
-                    <DeviceAction />
+                    <ViewerAction />
                 </div>
             </div>
         );
