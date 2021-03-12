@@ -54,7 +54,7 @@
 .tabs {
     grid-row: 2;
     display: grid;
-    grid-template-rows: repeat(1, 48px);
+    grid-template-rows: repeat(2, 48px);
 }
 
 .tab_navbar {
