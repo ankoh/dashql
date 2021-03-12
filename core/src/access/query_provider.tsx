@@ -82,7 +82,6 @@ export class QueryProvider extends React.Component<Props, State> {
         this._inFlightQuery = [this.props.query, this.props.queryOptions || {}];
         const options = this.props.queryOptions;
         this._queryPromise = this.props.database.use(async conn => {
-            console.log(text);
             return await conn.runQuery(text, options);
         });
         this._queryPromise.then(this._querySucceeded).catch(this._queryFailed);

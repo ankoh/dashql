@@ -2,6 +2,7 @@
 
 import { PlanObject } from './plan_object';
 import * as v from 'vega';
+import * as vl from 'vega-lite';
 
 export enum VizRendererType {
     BUILTIN_TABLE,
@@ -14,6 +15,7 @@ export interface VizInfo extends PlanObject {
     readonly position: VizPosition;
     readonly data: VizDataSource;
     readonly title: string | null;
+    readonly vegaLiteSpec: vl.TopLevelSpec | null;
     readonly vegaSpec: v.Spec | null;
 }
 
@@ -22,8 +24,6 @@ export interface VizDataSource {
     readonly targetShort: string;
     readonly columns: number[];
     readonly orderBy: number[];
-    readonly clusterBy: number[];
-    readonly stackBy: number[];
     readonly partitionBy: number[];
 }
 
