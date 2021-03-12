@@ -13,7 +13,11 @@ interface Props {
     /// The table info
     table: model.DatabaseTableInfo;
     /// The viz data query
-    query: model.VizDataSource;
+    data: model.VizDataSource;
+    /// The width of the container
+    width: number;
+    /// The height of the container
+    height: number;
     /// The error component
     errorComponent?: ((error: string) => React.ReactNode) | null;
     /// The in-flight component
@@ -25,7 +29,7 @@ interface Props {
 export class VizQueryProvider extends React.Component<Props> {
     render() {
         // Collect query information
-        const query = this.props.query;
+        const query = this.props.data;
         const columnNames = query.columns.map(n => this.props.table.columnNames[n]);
         const selectText = columnNames.join(',');
         let orderByText = "";

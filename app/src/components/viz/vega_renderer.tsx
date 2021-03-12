@@ -28,17 +28,19 @@ export class VictoryChartSimple extends React.Component<Props> {
         }
         return (
             <VizCard title={this.props.vizInfo.title || 'Some Title'}>
-                <core.access.VizQueryProvider
-                    logger={this.props.appContext.platform!.logger}
-                    database={this.props.appContext.platform!.database}
-                    table={table}
-                    query={this.props.vizInfo.data}
-                >
-                    {result => (
-                        <core.access.ProxyProvider result={result}>
-                            {rows => (
-                                <AutoSizer>
-                                    {({ width, height }) => (
+                <AutoSizer>
+                    {({ width, height }) => (
+                        <core.access.VizQueryProvider
+                            logger={this.props.appContext.platform!.logger}
+                            database={this.props.appContext.platform!.database}
+                            table={table}
+                            data={this.props.vizInfo.data}
+                            width={width}
+                            height={height}
+                        >
+                            {result => (
+                                <core.access.ProxyProvider result={result}>
+                                    {rows => (
                                         <Vega
                                             style={{
                                                 width: width,
@@ -53,11 +55,11 @@ export class VictoryChartSimple extends React.Component<Props> {
                                             actions={false}
                                         />
                                     )}
-                                </AutoSizer>
+                                </core.access.ProxyProvider>
                             )}
-                        </core.access.ProxyProvider>
+                        </core.access.VizQueryProvider>
                     )}
-                </core.access.VizQueryProvider>
+                </AutoSizer>
             </VizCard>
         );
     }
