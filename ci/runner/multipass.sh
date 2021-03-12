@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 multipass launch \
     --cpus 4 \
