@@ -4,7 +4,7 @@ import * as model from '../model';
 import { AutoRunIcon, FileUploadIcon, FileDownloadIcon, IIconProps, UndoIcon } from '../svg/icons';
 import { connect } from 'react-redux';
 
-import styles from './studio.module.css';
+import styles from './cmdbars.module.css';
 
 interface ActionProps extends IIconProps {
     onClick: () => void;
@@ -25,14 +25,14 @@ const AutoRunAction = createAction(AutoRunIcon);
 const DocumentDownloadAction = createAction(FileDownloadIcon);
 const DocumentUploadAction = createAction(FileUploadIcon);
 
-interface ProgramCommandBarProps {
+interface StudioCommandBarProps {
     resetPlan: () => void;
 }
 
-export class ProgramCommandBar extends React.Component<ProgramCommandBarProps> {
+export class StudioCommandBar extends React.Component<StudioCommandBarProps> {
     public render() {
         return (
-            <div className={styles.cmdbar_program}>
+            <div className={styles.cmdbar_studio}>
                 <div className={styles.cmdbar_cmdset}>
                     <AutoRunAction onClick={() => this.props.resetPlan()} />
                     <UndoAction onClick={() => {}} />
@@ -58,4 +58,4 @@ const mapDispatchToProps = (dispatch: model.Dispatch) => ({
     },
 });
 
-export default connect(mapStateToProps, mapDispatchToProps)(ProgramCommandBar);
+export default connect(mapStateToProps, mapDispatchToProps)(StudioCommandBar);
