@@ -3,7 +3,7 @@ import ActionList from './action_list';
 import LogViewer from './log_viewer';
 import DatabaseStats from './database_stats';
 import classNames from 'classnames';
-import { StudioIcon, CarouselIcon, DatabaseIcon, TaskListIcon, LogIcon, IIconProps } from '../svg/icons';
+import { StudioIcon, LibraryBooksIcon, DatabaseIcon, TaskListIcon, LogIcon, IIconProps } from '../svg/icons';
 import { withRouter, RouteComponentProps, Link } from 'react-router-dom';
 import Avatar from 'react-avatar';
 import { auth } from '../auth';
@@ -32,7 +32,7 @@ function createTab(path: string, Icon: React.FunctionComponent<IIconProps>): Rea
     };
 }
 const StudioTab = createTab('/studio', StudioIcon);
-const GalleryTab = createTab('/gallery', CarouselIcon);
+const LibraryTab = createTab('/library', LibraryBooksIcon);
 
 interface StatusPanelProps {
     icon: React.FunctionComponent<IIconProps>;
@@ -89,7 +89,7 @@ class NavigationBar extends React.Component<NavigationBarProps, NavigationBarSta
                 </div>
                 <div className={styles.tabs}>
                     <StudioTab pathName={this.props.location.pathname} />
-                    <GalleryTab pathName={this.props.location.pathname} />
+                    <LibraryTab pathName={this.props.location.pathname} />
                 </div>
                 <div className={styles.account} onClick={async () => auth()}>
                     <Avatar githubHandle="ankoh" size="36" round={true} />
