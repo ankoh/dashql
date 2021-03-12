@@ -63,5 +63,34 @@
     width: 48px;
     height: auto;
     background: var(--studio_tool_sublist_bg);
-    border-radius: var(--studio_border_radius);
+    border-radius: var(--border_radius);
+}
+
+.viztypes {
+    grid-row: 2;
+    grid-column: 4;
+    border-left: 1px solid var(--border_color);
+}
+.viztypes_charts {
+    border-top: 1px solid var(--border_color);
+}
+.viztype {
+    height: 48px;
+    width: 100%;
+    box-sizing: border-box;
+    display: grid;
+    border-radius: var(--border_radius);
+}
+.viztype:hover {
+    background-color: var(--studio_viztype_hover_bg);
+}
+.viztype_icon {
+    justify-self: center;
+    align-self: center;
+}
+.viztype_icon path {
+    fill: v_viztype_color;
+}
+.viztype_icon circle {
+    fill: v_viztype_color;
 }
