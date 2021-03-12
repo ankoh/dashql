@@ -1,4 +1,5 @@
 import * as proto from '@dashql/proto';
+import * as webdb from '@dashql/webdb';
 import * as model from '../model';
 import * as platform from '../platform';
 import * as v from 'vega';
@@ -65,6 +66,7 @@ export class VizComposer {
             },
             title: undefined,
             background: "transparent",
+            padding: 8
         };
     }
 
