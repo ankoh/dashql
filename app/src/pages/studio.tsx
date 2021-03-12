@@ -1,16 +1,10 @@
 import * as Immutable from 'immutable';
 import * as React from 'react';
 import * as core from '@dashql/core';
-import { Board, EditorLoader } from '../components';
+import { Board, EditorLoader, StudioCommandBar, StudioToolBar, BoardCommandBar } from '../components';
 import { AppState, Dispatch } from '../model';
 import ProgramGraph from '../components/program_graph';
 import { connect } from 'react-redux';
-// import Outline from './outline';
-// import Library from './library';
-
-import ProgramCommandBar from './studio_cmdbar_program';
-import { BoardCommandBar } from './studio_cmdbar_board';
-import { ToolBar } from './studio_toolbar';
 
 import styles from './studio.module.css';
 
@@ -40,12 +34,12 @@ class Studio extends React.Component<Props> {
                         <div className={styles.program_info_entry}>{core.utils.formatBytes(this.props.fileSize)}</div>
                     </div>
                     <EditorLoader className={styles.program_editor} />
-                    <ToolBar />
+                    <StudioToolBar />
                 </div>
                 <div className={styles.board}>
                     <Board scaleFactor={1.0} />
                 </div>
-                <ProgramCommandBar />
+                <StudioCommandBar />
                 <BoardCommandBar />
             </div>
         );

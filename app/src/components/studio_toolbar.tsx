@@ -14,7 +14,7 @@ import {
     TextCardIcon,
     VariableBoxIcon,
 } from '../svg/icons';
-import styles from './studio.module.css';
+import styles from './studio_toolbar.module.css';
 import classNames from 'classnames';
 
 class ToolProps {}
@@ -53,7 +53,7 @@ const PieChartViz = createVizType(ArcChartIcon);
 type ToolBarState = {
     vizExpanded: boolean;
 };
-export class ToolBar extends React.Component<{}, ToolBarState> {
+export class StudioToolBar extends React.Component<{}, ToolBarState> {
     constructor(props: {}) {
         super(props);
         this.state = {
