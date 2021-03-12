@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { AspectRatioIcon, IIconProps, RulerIcon } from '../svg/icons';
 
-import styles from './studio.module.css';
+import styles from './cmdbars.module.css';
 
 class ActionProps {}
 

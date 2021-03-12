@@ -5,9 +5,6 @@
 @value v_box_shadow_2: 0 4px 20px 0 rgba(0, 0, 0, 0.14), 0 7px 10px -5px rgba(0, 0, 0, 0.1);
 @value v_cmd_hover_bg: rgb(80, 80, 80);
 @value v_cmd_margin: 4px;
-@value v_tool_hover_bg: rgb(80, 80, 80);
-@value v_tool_fg: rgb(80, 80, 80);
-@value v_tool_sublist_bg: rgb(80, 80, 80);
 @value v_viztype_color: rgb(255, 255, 255);
 @value v_viztype_hover_bg: rgb(40, 40, 40);
 @value v_program_info_height: 40px;
@@ -19,73 +16,6 @@
     display: grid;
     grid-template-rows: 48px calc(100% - 48px);
     grid-template-columns: 50% auto;
-}
-
-.cmdbar_program {
-    background-color: v_cmdbar_bg;
-    grid-row: 1;
-    grid-column: 1;
-    display: grid;
-    grid-template-columns: calc(2 * 48px) calc(100% - 4 * 48px) calc(2 * 48px);
-    box-sizing: border-box;
-    border-bottom: 1px solid v_border_color;
-}
-.cmdbar_cmdset {
-    display: flex;
-    flex-direction: row;
-}
-.cmdbar_cmd {
-    width: calc(100% - 2 * v_cmd_margin);
-    height: calc(100% - 2 * v_cmd_margin);
-    display: grid;
-
-    box-sizing: border-box;
-    margin: v_cmd_margin;
-    border-radius: v_border_radius;
-}
-.cmdbar_cmd:hover {
-    background-color: v_tool_hover_bg;
-}
-.cmdbar_cmd:hover path {
-    fill: rgb(255, 255, 255);
-}
-.cmdbar_cmd:hover circle {
-    fill: rgb(255, 255, 255);
-}
-.cmdbar_cmd.active {
-    background-color: v_tool_hover_bg;
-}
-
-.cmdbar_icon {
-    justify-self: center;
-    align-self: center;
-}
-.cmdbar_icon path {
-    fill: v_tool_fg;
-}
-.cmdbar_icon circle {
-    fill: v_tool_fg;
-}
-.cmdbar_icon.active {
-    justify-self: center;
-    align-self: center;
-}
-.cmdbar_icon.active path {
-    fill: rgb(255, 255, 255);
-}
-.cmdbar_icon.active circle {
-    fill: rgb(255, 255, 255);
-}
-
-.cmdbar_board {
-    background-color: v_cmdbar_board_bg;
-    grid-row: 1;
-    grid-column: 2;
-    display: grid;
-    grid-template-columns: calc(100% - 2 * 48px) calc(2 * 48px);
-    box-sizing: border-box;
-    border-left: 1px solid v_border_color;
-    border-bottom: 1px solid v_border_color;
 }
 
 .program {
@@ -145,72 +75,6 @@
     border-top: 1px solid v_border_color;
 }
 
-.toolbar {
-    position: relative;
-    grid-row: 3;
-    grid-column: 1;
-    border-top: 1px solid v_border_color;
-    border-right: 1px solid v_border_color;
-    background-color: rgb(255, 255, 255);
-}
-
-.tool {
-    height: 36px;
-    width: calc(100% - 8px);
-    box-sizing: border-box;
-    margin: 4px;
-    border-radius: v_border_radius;
-    font-weight: 600;
-    color: rgb(166, 166, 166);
-    display: grid;
-}
-.tool:hover {
-    background-color: v_tool_hover_bg;
-}
-.tool:hover path {
-    fill: rgb(255, 255, 255);
-}
-.tool:hover circle {
-    fill: rgb(255, 255, 255);
-}
-.tool.active {
-    background-color: v_tool_hover_bg;
-}
-.tool.small_font {
-    font-size: 9px !important;
-}
-
-.tool_icon {
-    justify-self: center;
-    align-self: center;
-}
-.tool_icon path {
-    fill: v_tool_fg;
-}
-.tool_icon circle {
-    fill: v_tool_fg;
-}
-.tool_icon.active {
-    justify-self: center;
-    align-self: center;
-}
-.tool_icon.active path {
-    fill: rgb(255, 255, 255);
-}
-.tool_icon.active circle {
-    fill: rgb(255, 255, 255);
-}
-
-.tool_sublist {
-    position: absolute;
-    top: 48px;
-    left: 47px;
-    width: 48px;
-    height: auto;
-    background: v_tool_sublist_bg;
-    border-radius: v_border_radius;
-}
-
 .board {
     position: relative;
     display: flex;
@@ -220,52 +84,4 @@
     height: 100%;
     background-color: v_board_bg;
     border-left: 1px solid v_border_color;
-}
-
-.viztypes {
-    grid-row: 2;
-    grid-column: 4;
-    border-left: 1px solid v_border_color;
-}
-.viztypes_charts {
-    border-top: 1px solid v_border_color;
-}
-.viztype {
-    height: 48px;
-    width: 100%;
-    box-sizing: border-box;
-    display: grid;
-    border-radius: v_border_radius;
-}
-.viztype:hover {
-    background-color: v_viztype_hover_bg;
-}
-.viztype_icon {
-    justify-self: center;
-    align-self: center;
-}
-.viztype_icon path {
-    fill: v_viztype_color;
-}
-.viztype_icon circle {
-    fill: v_viztype_color;
-}
-
-.properties {
-    grid-row: 2;
-    grid-column: 5;
-    border-left: 1px solid v_border_color;
-    display: flex;
-    flex-direction: column;
-}
-.properties_header {
-    background-color: rgb(255, 255, 255);
-    font-size: 12px;
-    font-weight: 500;
-    line-height: 32px;
-    height: 32px;
-
-    padding: 0 12px;
-    color: rgb(120, 120, 120);
-    border-bottom: 1px solid v_border_color;
 }
