@@ -102,5 +102,22 @@ sx::Node Option(ParserDriver& driver, sx::Location loc, std::vector<sx::Location
     return prev;
 }
 
+/// Convert an option to camelcase (primarily for JSON)
+std::string_view optionToCamelCase(std::string_view txt, std::string& tmp) {
+    tmp = txt;
+    bool to_upper = false;
+    unsigned i = 0, j = 0;
+    while (i < tmp.size()) {
+        char c = tmp[i++];
+        if (c == '_') {
+            to_upper = true;
+            continue;
+        };
+        tmp[j++] = to_upper ? std::toupper(c) : c;
+        to_upper = false;
+    }
+    return {tmp.data(), j};
+}
+
 }  // namespace parser
 }  // namespace dashql
