@@ -1,12 +1,9 @@
-@value v_panel_border_radius: 8px;
-@value v_panel_bg: rgb(30, 30, 30);
-@value v_subtitle_fontsize: 90%;
-@value v_subtitle_color: rgba(255, 255, 255, 0.6);
+@import "../vars.module.css";
 
 .panel {
-    background: v_panel_bg;
+    background: var(--sys_panel_bg);
     box-sizing: border-box;
-    border-radius: v_panel_border_radius;
+    border-radius: var(--sys_panel_border_radius);
     color: white;
 
     width: 400px;
@@ -31,8 +28,8 @@
 .header_subtitle {
     grid-column: 1;
     grid-row: 2;
-    font-size: v_subtitle_fontsize;
-    color: v_subtitle_color;
+    font-size: var(--sys_subtitle_fontsize);
+    color: var(--sys_subtitle_color);
     text-align: left;
 }
 

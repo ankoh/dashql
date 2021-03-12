@@ -1,37 +1,29 @@
-@value v_border_color: rgb(220, 220, 220);
-@value v_border_radius: 8px;
-@value v_cmdbar_bg: rgb(255, 255, 255);
-@value v_cmdbar_board_bg: rgb(255, 255, 255);
-@value v_cmd_hover_bg: rgb(80, 80, 80);
-@value v_cmd_margin: 4px;
-@value v_tool_hover_bg: rgb(80, 80, 80);
-@value v_tool_fg: rgb(80, 80, 80);
-@value v_tool_sublist_bg: rgb(80, 80, 80);
+@import "../vars.module.css";
 
 .cmdbar_studio {
-    background-color: v_cmdbar_bg;
+    background-color: var(--cmd_bar_bg);
     grid-row: 1;
     grid-column: 1;
     display: grid;
     grid-template-columns: calc(2 * 48px) calc(100% - 4 * 48px) calc(2 * 48px);
     box-sizing: border-box;
-    border-bottom: 1px solid v_border_color;
+    border-bottom: 1px solid var(--border_color);
 }
 .cmdbar_cmdset {
     display: flex;
     flex-direction: row;
 }
 .cmdbar_cmd {
-    width: calc(100% - 2 * v_cmd_margin);
-    height: calc(100% - 2 * v_cmd_margin);
+    width: calc(100% - 2 * var(--cmd_margin));
+    height: calc(100% - 2 * var(--cmd_margin));
     display: grid;
 
     box-sizing: border-box;
-    margin: v_cmd_margin;
-    border-radius: v_border_radius;
+    margin: var(--cmd_margin);
+    border-radius: var(--border_radius);
 }
 .cmdbar_cmd:hover {
-    background-color: v_tool_hover_bg;
+    background-color: var(--cmd_hover_bg);
 }
 .cmdbar_cmd:hover path {
     fill: rgb(255, 255, 255);
@@ -40,7 +32,7 @@
     fill: rgb(255, 255, 255);
 }
 .cmdbar_cmd.active {
-    background-color: v_tool_hover_bg;
+    background-color: var(--cmd_hover_bg);
 }
 
 .cmdbar_icon {
@@ -48,10 +40,10 @@
     align-self: center;
 }
 .cmdbar_icon path {
-    fill: v_tool_fg;
+    fill: var(--cmd_fg);
 }
 .cmdbar_icon circle {
-    fill: v_tool_fg;
+    fill: var(--cmd_fg);
 }
 .cmdbar_icon.active {
     justify-self: center;
@@ -65,12 +57,12 @@
 }
 
 .cmdbar_board {
-    background-color: v_cmdbar_board_bg;
+    background-color: var(--cmd_bar_board_bg);
     grid-row: 1;
     grid-column: 2;
     display: grid;
     grid-template-columns: calc(100% - 2 * 48px) calc(2 * 48px);
     box-sizing: border-box;
-    border-left: 1px solid v_border_color;
-    border-bottom: 1px solid v_border_color;
+    border-left: 1px solid var(--border_color);
+    border-bottom: 1px solid var(--border_color);
 }

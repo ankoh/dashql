@@ -1,11 +1,9 @@
-@value v_panel_border_radius: 8px;
-@value v_panel_bg: rgb(30, 30, 30);
-@value v_action_duration_color: rgba(255, 255, 255, 0.6);
+@import "../vars.module.css";
 
 .action_list_panel {
-    background: v_panel_bg;
+    background: var(--action_panel_bg);
     box-sizing: border-box;
-    border-radius: v_panel_border_radius;
+    border-radius: var(--action_panel_border_radius);
     color: white;
 }
 
@@ -75,7 +73,7 @@
     grid-row: 1;
     grid-column: 4;
     text-align: right;
-    color: v_action_duration_color;
+    color: var(--action_duration_color);
 }
 
 .action_detail {

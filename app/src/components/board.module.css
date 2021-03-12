@@ -1,4 +1,4 @@
-@value v_ruler_size: 32px;
+@import "../vars.module.css";
 
 .container {
     position: relative;
@@ -15,8 +15,8 @@
 .content_with_rulers {
     display: grid;
     width: 100%;
-    grid-template-rows: v_ruler_size minmax(calc(100% - v_ruler_size), max-content);
-    grid-template-columns: v_ruler_size 100%;
+    grid-template-rows: var(--board_ruler_size) minmax(calc(100% - var(--board_ruler_size)), max-content);
+    grid-template-columns: var(--board_ruler_size) 100%;
 }
 
 .ruler_corner {
@@ -41,7 +41,7 @@
 
 .content_container {
     display: grid;
-    grid-template-columns: v_ruler_size calc(100% - 32px);
+    grid-template-columns: var(--board_ruler_size) calc(100% - 32px);
     grid-template-rows: minmax(100%, max-content);
     min-height: 100%;
 }
