@@ -1,4 +1,4 @@
-@value v_launcher_bg: rgb(30, 30, 30);
+@import "../vars.module.css";
 
 .launcher {
     width: 100%;
@@ -8,7 +8,7 @@
     align-items: center;
     justify-content: center;
 
-    background-color: v_launcher_bg;
+    background-color: var(--launcher_bg);
     color: rgb(255, 255, 255);
 }
 
@@ -21,7 +21,6 @@
     display: grid;
     align-items: center;
     justify-content: center;
-    background-color: v_logo_bg;
 }
 
 .logo > img {
