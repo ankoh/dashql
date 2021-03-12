@@ -14,19 +14,20 @@ export class VizComposer {
 
     /// The renderer type
     _renderer: model.VizRendererType | null = null;
+
     /// The required columns
     _requiredColumnIds: Map<string, number> = new Map();
     /// The required column list
     _requiredColumns: string[] = [];
-    /// The vega-lite spec
-    _vegaLiteSpec: vl.TopLevelSpec | null = null;
-    /// The vega spec
-    _vegaSpec: v.Spec | null = null;
-
     /// The data ordering (if any)
     _orderBy: string[] | null = null;
     /// The data partitioning (if any)
     _partitionBy: string[] | null = null;
+
+    /// The vega-lite spec
+    _vegaLiteSpec: vl.TopLevelSpec | null = null;
+    /// The vega spec
+    _vegaSpec: v.Spec | null = null;
 
     constructor(platform: platform.Platform, plan: model.Plan, table: model.DatabaseTableInfo) {
         this._platform = platform;
