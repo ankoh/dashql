@@ -11,22 +11,6 @@
 
 namespace dashql {
 
-static std::string_view camelize(std::string_view txt, std::string& tmp) {
-    tmp = txt;
-    bool to_upper = false;
-    unsigned i = 0, j = 0;
-    while (i < tmp.size()) {
-        char c = tmp[i++];
-        if (c == '_') {
-            to_upper = true;
-            continue;
-        };
-        tmp[j++] = to_upper ? std::toupper(c) : c;
-        to_upper = false;
-    }
-    return {tmp.data(), j};
-}
-
 template <typename Writer> static void writeOptionsAsJSONImpl(ProgramInstance& instance, size_t root_node_id, Writer& out) {
     std::string tmp;
 
@@ -59,7 +43,7 @@ template <typename Writer> static void writeOptionsAsJSONImpl(ProgramInstance& i
         if (node.attribute_key() != sx::AttributeKey::NONE) {
             auto text = parser::optionToString(node.attribute_key());
             if (!text.empty()) {
-                auto key = camelize(text, tmp);
+                auto key = parser::optionToCamelCase(text, tmp);
                 out.Key(key.data(), key.length(), true);
             };
         }
