@@ -1,4 +1,4 @@
-@value v_timestamp_color: rgba(255, 255, 255, 0.6);
+@import "../vars.module.css";
 
 .list {
     outline: none;
@@ -30,7 +30,7 @@
     grid-column: 6;
     display: grid;
     text-align: right;
-    color: v_timestamp_color;
+    color: var(--log_timestamp_color);
 }
 
 

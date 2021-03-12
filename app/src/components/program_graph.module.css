@@ -1,6 +1,4 @@
-@value v_border_radius: 8px;
-@value v_border_color: rgb(200, 200, 200);
-@value v_node_status_bg: rgb(240, 240, 240);
+@import "../vars.module.css";
 
 .container {
     position: relative;
@@ -22,8 +20,8 @@
 }
 
 .node_type {
-    border: 1px solid v_border_color;
-    border-radius: v_border_radius;
+    border: 1px solid var(--pgraph_node_border_color);
+    border-radius: var(--pgraph_node_border_radius);
     background: white;
     justify-self: center;
     align-self: center;

@@ -1,15 +1,11 @@
-@value v_border_radius: 8px;
-@value v_border_color: rgb(220, 220, 220);
-@value v_tool_hover_bg: rgb(80, 80, 80);
-@value v_tool_fg: rgb(80, 80, 80);
-@value v_tool_sublist_bg: rgb(80, 80, 80);
+@import "../vars.module.css";
 
 .toolbar {
     position: relative;
     grid-row: 3;
     grid-column: 1;
-    border-top: 1px solid v_border_color;
-    border-right: 1px solid v_border_color;
+    border-top: 1px solid var(--border_color);
+    border-right: 1px solid var(--border_color);
     background-color: rgb(255, 255, 255);
 }
 
@@ -18,13 +14,13 @@
     width: calc(100% - 8px);
     box-sizing: border-box;
     margin: 4px;
-    border-radius: v_border_radius;
+    border-radius: var(--border_radius);
     font-weight: 600;
     color: rgb(166, 166, 166);
     display: grid;
 }
 .tool:hover {
-    background-color: v_tool_hover_bg;
+    background-color: var(--studio_tool_hover_bg);
 }
 .tool:hover path {
     fill: rgb(255, 255, 255);
@@ -33,7 +29,7 @@
     fill: rgb(255, 255, 255);
 }
 .tool.active {
-    background-color: v_tool_hover_bg;
+    background-color: var(--studio_tool_hover_bg);
 }
 .tool.small_font {
     font-size: 9px !important;
@@ -44,10 +40,10 @@
     align-self: center;
 }
 .tool_icon path {
-    fill: v_tool_fg;
+    fill: var(--studio_tool_fg);
 }
 .tool_icon circle {
-    fill: v_tool_fg;
+    fill: var(--studio_tool_fg);
 }
 .tool_icon.active {
     justify-self: center;
@@ -66,6 +62,6 @@
     left: 47px;
     width: 48px;
     height: auto;
-    background: v_tool_sublist_bg;
-    border-radius: v_border_radius;
+    background: var(--studio_tool_sublist_bg);
+    border-radius: var(--studio_border_radius);
 }
