@@ -47,6 +47,8 @@ export class VizQueryProvider extends React.Component<Props> {
         const script = `SELECT ${selectText} FROM ${query.targetShort}${tableSampleText}${orderByText}`;
         const partitionBoundaries = (query.partitionBy.length > 0) ? query.partitionBy : undefined;
 
+        console.log(this.props.width);
+
         return (
             <QueryProvider
                 logger={this.props.logger}

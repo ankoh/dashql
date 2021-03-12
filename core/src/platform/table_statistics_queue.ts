@@ -91,11 +91,14 @@ export class TableStatisticsQueue {
     public async request(type: model.TableStatisticsType, columnId: number = 0): Promise<webdb.Value[]> {
         const key = model.buildTableStatisticsKey(type, columnId);
         const prev = this._requests.get(key);
+        const table = this._databaseManager.resolveTableInfo(this._qualifiedTableName);
         if (prev) {
             return new Promise((resolve, reject) => {
                 prev._promiseResolvers.push(resolve);
                 prev._promiseRejecters.push(reject);
             });
+        } else if (table != null && table.statistics.has(key)) {
+            return Promise.resolve(table.statistics.get(key)!);
         } else {
             const req = new TableStatisticsRequest(key);
             this._requests.set(key, req);
