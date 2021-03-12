@@ -11,23 +11,25 @@
 
 namespace dashql {
 
-static std::string camelize(std::string_view txt) {
-    std::string buffer{txt};
+static std::string_view camelize(std::string_view txt, std::string& tmp) {
+    tmp = txt;
     bool to_upper = false;
     unsigned i = 0, j = 0;
-    while (i < buffer.size()) {
-        char c = buffer[i++];
+    while (i < tmp.size()) {
+        char c = tmp[i++];
         if (c == '_') {
             to_upper = true;
             continue;
         };
-        buffer[j++] = to_upper ? std::toupper(c) : c;
+        tmp[j++] = to_upper ? std::toupper(c) : c;
         to_upper = false;
     }
-    return buffer.substr(0, j);
+    return {tmp.data(), j};
 }
 
 template <typename Writer> static void writeOptionsAsJSONImpl(ProgramInstance& instance, size_t root_node_id, Writer& out) {
+    std::string tmp;
+
     /// Use a single post-order DFS to build the json outument with the SAX API
     auto& nodes = instance.program().nodes;
     std::stack<std::tuple<size_t, std::optional<rapidjson::Type>, size_t>> pending;
@@ -57,7 +59,7 @@ template <typename Writer> static void writeOptionsAsJSONImpl(ProgramInstance& i
         if (node.attribute_key() != sx::AttributeKey::NONE) {
             auto text = parser::optionToString(node.attribute_key());
             if (!text.empty()) {
-                auto key = camelize(text);
+                auto key = camelize(text, tmp);
                 out.Key(key.data(), key.length(), true);
             };
         }
