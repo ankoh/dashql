@@ -5,7 +5,7 @@ import * as core from '@dashql/core';
 import { launchApp } from './app_launcher';
 import { Route, BrowserRouter, Switch, Redirect } from 'react-router-dom';
 import { Provider as ReduxProvider } from 'react-redux';
-import { Launcher, Studio, NotFound } from './pages';
+import { Launcher, Studio, Gallery, NotFound } from './pages';
 import { withNavBar } from './components';
 import { AppContextProvider, IAppContext } from './app_context';
 
@@ -34,6 +34,7 @@ ReactDOM.render(
                 <BrowserRouter>
                     <Switch>
                         <Route exact path="/studio" component={withNavBar(Studio)} />
+                        <Route exact path="/gallery" component={withNavBar(Gallery)} />
                         <Route path="/404" component={NotFound} />
                         <Redirect path="/" to="/studio" />
                         <Redirect to="/404" />
