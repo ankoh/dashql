@@ -1,10 +1,10 @@
 import Launcher from "./launcher";
 import Studio from "./studio";
-import Gallery from "./gallery";
+import Library from "./library";
 export { NotFound } from "./not_found";
 
 export {
     Launcher,
     Studio,
-    Gallery
+    Library
 }
