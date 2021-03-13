@@ -10,8 +10,8 @@ using namespace duckdb;
 namespace dashql {
 
 /// Constructor
-CSVSniffer::CSVSniffer(const CSVParserOptions& user_options_, CachingBlobStreamBuffer&& streambuf)
-    : user_options_(user_options_), detected_options_(user_options_), blob_streambuf_(move(streambuf)) {}
+CSVSniffer::CSVSniffer(const CSVParserOptions& user_options_, CachingBlobStreamBuffer& streambuf)
+    : user_options_(user_options_), detected_options_(user_options_), blob_streambuf_(streambuf) {}
 
 /// Test a dialect
 CSVSniffer::DialectScore CSVSniffer::TryDialect(CSVParserOptions& options) {
@@ -136,7 +136,9 @@ Expected<std::vector<CSVSniffer::Dialect>> CSVSniffer::DetectDialect() {
 }
 
 /// Detect the data types
-void CSVSniffer::DetectTypes() {}
+void CSVSniffer::DetectTypes() {
+    // TODO: Implement
+}
 
 /// Detect the parser options
 const CSVParserOptions& CSVSniffer::Detect() {

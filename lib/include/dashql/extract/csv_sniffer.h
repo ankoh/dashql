@@ -37,7 +37,7 @@ class CSVSniffer {
     /// The parser options
     CSVParserOptions detected_options_;
     /// The blob stream buffer
-    CachingBlobStreamBuffer blob_streambuf_;
+    CachingBlobStreamBuffer& blob_streambuf_;
     /// The donated buffers
     std::array<std::vector<char>, 2> donated_buffers_ = {};
 
@@ -50,7 +50,7 @@ class CSVSniffer {
 
    public:
     /// Constructor
-    CSVSniffer(const CSVParserOptions& user_options, CachingBlobStreamBuffer&& streambuf);
+    CSVSniffer(const CSVParserOptions& user_options, CachingBlobStreamBuffer& streambuf);
 
     /// Detect the parser options
     const CSVParserOptions& Detect();

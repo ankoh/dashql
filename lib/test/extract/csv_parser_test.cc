@@ -5,7 +5,10 @@
 #include <sstream>
 
 #include "dashql/common/blob_stream.h"
+#include "dashql/extract/extract.h"
 #include "dashql/test/blob_stream_tests.h"
+#include "dashql/webdb/webdb.h"
+#include "duckdb/execution/operator/persistent/buffered_csv_reader.hpp"
 #include "gtest/gtest.h"
 
 using namespace std;
