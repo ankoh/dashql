@@ -18,8 +18,8 @@ namespace {
 class CSVSnifferProxy : public CSVSniffer {
    public:
     /// Constructor
-    CSVSnifferProxy(const CSVParserOptions& user_options, CachingBlobStreamBuffer&& streambuf)
-        : CSVSniffer(user_options, move(streambuf)) {}
+    CSVSnifferProxy(const CSVParserOptions& user_options, CachingBlobStreamBuffer& streambuf)
+        : CSVSniffer(user_options, streambuf) {}
 
     using CSVSniffer::DetectDialect;
     using CSVSniffer::DetectTypes;
@@ -45,7 +45,7 @@ TEST_P(CSVDialectDetectionTestSuite, CandidatesMatch) {
     presets.delimiter = std::nullopt;
     presets.escape = std::nullopt;
     presets.quote = std::nullopt;
-    CSVSnifferProxy sniffer{presets, move(blob_streambuf)};
+    CSVSnifferProxy sniffer{presets, blob_streambuf};
     auto rc = sniffer.DetectDialect();
     EXPECT_TRUE(rc.IsOk());
 
