@@ -228,12 +228,17 @@ export class AsyncWebDB {
     }
 
     /// Import csv from a blob stream
-    public async importCSV(conn: ConnectionID, blobStream: BlobStream, schemaName: string, tableName: string) {
+    public async importCSV(
+        conn: ConnectionID,
+        blobStream: BlobStream,
+        schemaName: string,
+        tableName: string,
+    ): Promise<null> {
         const task = new Task<AsyncWebDBRequestType.IMPORT_CSV, [number, BlobStream, string, string], null>(
             AsyncWebDBRequestType.IMPORT_CSV,
             [conn, blobStream, schemaName, tableName],
         );
-        await this.postTask(task);
+        return await this.postTask(task);
     }
 
     /// Open the database

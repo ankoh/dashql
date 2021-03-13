@@ -12,6 +12,8 @@
 namespace dashql {
 
 enum class ErrorCode {
+    // This error code is plainly converted into proto.StatusCode and therefore value 0 is reserved for success
+    NO_ERROR,
     CSV_PARSER_ERROR,
     FORMAT_FAILED,
     FORMAT_INVALID_INPUT,
@@ -41,6 +43,8 @@ struct Error {
     /// Constructor
     Error(ErrorCode code, std::string msg)
         : code_(code), message_buffer_(move(msg)), message_(message_buffer_.c_str()) {}
+    /// Constructor
+    Error(const Error &o) : code_(o.code_), message_buffer_(o.message_buffer_), message_(message_buffer_.c_str()) {}
 
     /// Get the status code
     auto code() const { return code_; }
