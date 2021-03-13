@@ -32,15 +32,17 @@ afterEach(async () => {
 
 describe('Extract CSV', () => {
     test('SimpleColumns', async () => {
-        await conn.importCSV(
-            new NodeBlobStream(
-                encoder.encode(`1,2,3
+        expect(
+            conn.importCSV(
+                new NodeBlobStream(
+                    encoder.encode(`1,2,3
 4,5,4
 7,8,9`),
+                ),
+                'test_schema',
+                'test_table',
             ),
-            'test_schema',
-            'test_table',
-        );
+        ).resolves.toBeNull();
     });
 
     test('InvalidCSV', async () => {
