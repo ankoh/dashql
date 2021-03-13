@@ -19,13 +19,13 @@ const browserTarget = {
         libraryTarget: 'umd',
         umdNamedDefine: true,
         globalObject: 'this',
+        devtoolModuleFilenameTemplate: 'file:///[absolute-resource-path]', // map to source with absolute file path not webpack:// protocol
     },
     resolve: {
         extensions: ['.ts', '.tsx', '.js', '.jsx', '.css'],
     },
     module: {
-        rules: [
-            {
+        rules: [{
                 test: /\.tsx?$/,
                 loader: 'ts-loader',
                 exclude: [/node_modules/, path.resolve(__dirname, 'test')],
