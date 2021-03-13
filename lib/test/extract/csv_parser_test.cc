@@ -54,7 +54,7 @@ TEST(SimpleCSVParser, SimpleColumns) {
 }
 
 TEST(SimpleCSVParser, InvalidCSV) {
-    auto test = [&](const char* csv) {
+    auto test = [&](const char* csv, const char* error) {
         auto blob_id = test::Blob::Register({csv});
         BlobStreamBuffer blob_streambuf(test::Blob::StreamUnderflow, blob_id);
         std::istream blob_stream{&blob_streambuf};
@@ -70,29 +70,35 @@ TEST(SimpleCSVParser, InvalidCSV) {
         SimpleCSVParser parser{options, blob_stream};
         auto rc = parser.Parse(128, &output_chunk);
         EXPECT_FALSE(rc.IsOk());
+        EXPECT_STREQ(rc.err().message(), error);
     };
 
     // Column mismatch
-    test("1,2,3,X\n4,5,6\n7,8,9\n");
-    test("1,2,3\n4,5,6,X\n7,8,9\n");
-    test("1,2,3\n4,5,6\n7,8,9,X\n");
-    test("1,2\n4,5,6\n7,8,9\n");
-    test("1,2,3\n4,5\n7,8,9\n");
-    test("1,2,3\n4,5,6\n7,8\n");
+    test("1,2,3,X\n4,5,6\n7,8,9\n", "Line 0: expected 3 values per row, but got more.");
+    test("1,2,3\n4,5,6,X\n7,8,9\n", "Line 1: expected 3 values per row, but got more.");
+    test("1,2,3\n4,5,6\n7,8,9,X\n", "Line 2: expected 3 values per row, but got more.");
+    test("1,2\n4,5,6\n7,8,9\n", "Line 1: expected 3 values per row, but got 2.");
+    test("1,2,3\n4,5\n7,8,9\n", "Line 2: expected 3 values per row, but got 2.");
+    test("1,2,3\n4,5,6\n7,8\n", "Line 3: expected 3 values per row, but got 2.");
 
     // Unterminated quotes
-    test("\"1,2,3\n4,5,6\n7,8,9\n");
-    test("1,2,\"3\n4,5,6\n7,8,9\n");
-    test("1,2,3\"\n4,5,6\n7,8,9\n");
-    test("1,2,3\n\"4,5,6\n7,8,9\n");
-    test("1,2,3\n4\",5,6\n7,8,9\n");
-    test("1,2,3\n4,5,6\n7,8,9\n\"");
+    test("\"1,2,3\n4,5,6\n7,8,9\n", "Line 0: unterminated quotes.");
+    test("1,2,\"3\n4,5,6\n7,8,9\n", "Line 0: unterminated quotes.");
+    test("1,2,3\"\n4,5,6\n7,8,9\n",
+         "Conversion Error: Could not convert string '3\"' to INT32 in column 0 between line 0 and 3");
+    test("1,2,3\n\"4,5,6\n7,8,9\n", "Line 1: unterminated quotes.");
+    test("1,2,3\n4\",5,6\n7,8,9\n",
+         "Conversion Error: Could not convert string '4\"' to INT32 in column 0 between line 0 and 3");
+    test("1,2,3\n4,5,6\n7,8,9\n\"", "Line 3: unterminated quotes.");
 
     // Invalid Escapes
-    test("\\1,2,3\n4,5,6\n7,8,9\n");
-    test("1\\,2,3\n4,5,6\n7,8,9\n");
-    test("1,2,\\3\n4,5,6\n7,8,9\n");
-    test("1,2,3\\\n4,5,6\n7,8,9\n\\");
+    test("\\1,2,3\n4,5,6\n7,8,9\n",
+         "Conversion Error: Could not convert string '\\1' to INT32 in column 0 between line 0 and 3");
+    test("1\\,2,3\n4,5,6\n7,8,9\n",
+         "Conversion Error: Could not convert string '1\\' to INT32 in column 0 between line 0 and 3");
+    test("1,2,\\3\n4,5,6\n7,8,9\n",
+         "Conversion Error: Could not convert string '\\3' to INT32 in column 0 between line 0 and 3");
+    test("1,2,3\\\n4,5,6\n7,8,9\n\\", "Line 4: expected 3 values per row, but got 1.");
 }
 
 }  // namespace
