@@ -13,6 +13,9 @@ module.exports = {
         extractCss: false,
         cssIdentifier: '[local]_[hash:base64]',
     }),
+    output: {
+        devtoolModuleFilenameTemplate: 'file:///[absolute-resource-path]', // map to source with absolute file path not webpack:// protocol
+    },
     mode: 'development',
     watchOptions: {
         ignored: ['node_modules/**', 'dist/**'],
