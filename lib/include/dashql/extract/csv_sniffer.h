@@ -11,7 +11,7 @@ namespace dashql {
 /// This simple CSV sniffer brute-force tries out different dialects to to detect the parser options of the given csv
 /// input. This implementation is currently preferred over duckdb's auto_detect option as we currently do not support
 /// seeking on blob streams, rendering auto_detect unusable. Additionally, duckdb's CSV parser makes heavy use of
-/// exceptions, disruption control flow and potentially causing performance degradations.
+/// exceptions, disrupting control flow and potentially causing performance degradations.
 ///
 /// TODO: implement DetectTypes
 class CSVSniffer {
