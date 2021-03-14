@@ -55,8 +55,8 @@ export class TableStatistics {
     }
 
     /// Resolve the table info
-    public resolveTableInfo(tableName: string): model.DatabaseTableInfo | null {
-        return this._databaseManager.resolveTableInfo(tableName);
+    public resolveTableInfo(): model.DatabaseTableInfo | null {
+        return this._databaseManager.resolveTableInfo(this._qualifiedTableName);
     }
 
     /// Build the associative aggregate query
