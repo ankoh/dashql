@@ -29,6 +29,11 @@ export class DatabaseManager {
         this._tableStatistics = new Map();
     }
 
+    /// Resolve table statistics
+    public resolveTableStatistics(table: string) : TableStatistics | null {
+        return this._tableStatistics.get(table) || null;
+    }
+
     /// Setup the database connection
     public async init() {
         await this.connect();

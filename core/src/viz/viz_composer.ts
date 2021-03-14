@@ -6,28 +6,29 @@ import * as v from 'vega';
 import * as vl from 'vega-lite';
 import * as vlt from 'vega-lite/src/transform';
 
-import { VegaLiteEditOperation } from './vega_editing';
-import { TopLevel } from 'vega-lite/src/spec/toplevel';
-import { LayerSpec } from 'vega-lite/src/spec/layer';
-import { UnitSpec } from 'vega-lite/src/spec/unit';
-import { Field } from 'vega-lite/src/channeldef';
-import { Transform, AggregatedFieldDef } from 'vega-lite/src/transform';
-import { Mark } from 'vega-lite/src/mark';
-import { values } from 'vega-lite/src/compile/axis/properties';
+import { VegaLiteEditOperation, ResolveMinMaxDomain } from './vega_editing';
+
+import { AggregatedFieldDef } from 'vega-lite/src/transform';
+import { Field, isScaleFieldDef, isFieldDef } from 'vega-lite/src/channeldef';
+import { LayerSpec, NormalizedLayerSpec } from 'vega-lite/src/spec/layer';
 import { LogicalComposition } from 'vega-lite/src/logical';
+import { NormalizedSpec } from 'vega-lite/src/spec';
 import { Predicate } from 'vega-lite/src/predicate';
 import { SortField } from 'vega-lite/src/sort';
-import { TableStatistics } from '../platform';
+import { TopLevel } from 'vega-lite/src/spec/toplevel';
+import { hasContinuousDomain } from 'vega-lite/src/scale';
+import { isUnitSpec } from 'vega-lite/src/spec/unit';
+import { normalize } from 'vega-lite/src/normalize';
 
 export type VegaLiteTLLayerSpec = TopLevel<LayerSpec<Field>>;
 
 const DEFAULT_SAMPLE_SIZE = 10000;
 
 export class VizComposer {
+    /// The platform
+    _database: platform.DatabaseManager;
     /// The table info (when fetched)
     _tableName: string;
-    /// The table st
-    _tableStatistics: platform.TableStatistics;
 
     /// The renderer type
     _renderer: model.VizRendererType | null = null;
@@ -42,7 +43,7 @@ export class VizComposer {
     /// The M4 attributes (if any)
     _m4Attribute: string | null = null;
     /// The M4 domain (if any)
-    _m4Domain: webdb.Value[] = [];
+    _m4Domain: model.DomainValues = [];
     /// The row count (if known)
     _rowCount: number | null = null;
     /// The max sample size (if any)
@@ -50,20 +51,23 @@ export class VizComposer {
 
     /// The vega-lite spec.
     /// We only want to construct layer specs here.
-    _vegaLiteSpec: VegaLiteTLLayerSpec | null = null;
+    _inputVegaLiteSpec: TopLevel<LayerSpec<Field>> | null = null;
+    /// The normalized vega-lite spec
+    _normalizedVegaLiteSpec: TopLevel<NormalizedLayerSpec> | null = null;
     /// The vega-lite edit ops
     _vegaLiteEditOps: VegaLiteEditOperation[] = [];
     /// The vega spec
     _vegaSpec: v.Spec | null = null;
 
-    constructor(tableName: string, statistics: platform.TableStatistics) {
+    constructor(database: platform.DatabaseManager, tableName: string) {
+        this._database = database;
         this._tableName = tableName;
-        this._tableStatistics = statistics;
     }
 
     /// Get the table
     protected get table() {
-        return this._tableStatistics.resolveTableInfo(this._tableName)!;
+        const stats = this._database.resolveTableStatistics(this._tableName)!;
+        return stats.resolveTableInfo()!;
     }
 
     /// Has a column?
@@ -125,7 +129,7 @@ export class VizComposer {
         if (rawSpec != null) {
             let spec = JSON.parse(rawSpec);
             // XXX
-            this._vegaLiteSpec = {
+            this._inputVegaLiteSpec = {
                 ...spec,
                 autosize: {
                     type: 'fit',
@@ -140,8 +144,8 @@ export class VizComposer {
     }
 
     /// Analyze the vega transforms
-    protected analyzeVegaTransforms(spec: VegaLiteTLLayerSpec) {
-        let keepTransforms = [];
+    protected analyzeVegaTransforms(spec: TopLevel<NormalizedLayerSpec>) {
+        let keepTransforms: boolean[] = [];
         let noRewrites = false;
 
         for (let i = 0; i < (spec.transform?.length || 0); ++i) {
@@ -176,13 +180,10 @@ export class VizComposer {
                 // Can we push the grouping to the database?
                 // Is the grouping a base attribute or the result of a computation?
                 // We can only push the grouping to the database in the former case.
-                if (transform.groupby) {
-                }
-                for (const agg of transform.aggregate) {
-                    // XXX
-                }
 
                 // XXX For now, just stop rewriting
+                // We should be smarter here very soon.
+
                 noRewrites = true;
                 forceQueryType = model.VizQueryType.RESERVOIR_SAMPLE;
             } else if (vlt.isCalculate(transform)) {
@@ -195,6 +196,7 @@ export class VizComposer {
                 // We should push down the filter under the sampling.
                 // Check if the attribute is simple enough.
                 forceQueryType = model.VizQueryType.RESERVOIR_SAMPLE;
+
                 // XXX Check if filter expression can be pushed to SQL
             } else if (vlt.isTimeUnit(transform)) {
                 // Time grouping?
@@ -206,39 +208,89 @@ export class VizComposer {
                 forceSampleSize = transform.sample;
                 keepTransforms[i] = false;
             }
+
+            // Set query and sample size
+            if (this._queryType && this._queryType != forceQueryType) {
+                // XXX Emit error
+                console.error('Incompatible query type');
+                break;
+            }
+            this._queryType = forceQueryType;
+            this._sampleSize = forceSampleSize;
         }
 
-
-        // XXX request all table statistics that we will need
-
-        // XXX Create edit ops
-
-        // Prepare all edit operations
-        this._vegaLiteEditOps.forEach(e => e.prepare());
+        // Filter transforms
+        spec.transform = spec.transform?.filter((t, i) => keepTransforms[i]);
     }
 
-    protected analyzeVegaEncodings(spec: VegaLiteTLLayerSpec) {
+    protected analyzeVegaEncodings(spec: TopLevel<NormalizedLayerSpec>) {
+        let table = this._database.resolveTableInfo(this._tableName);
+        let stats = this._database.resolveTableStatistics(this._tableName)!;
+
+        // Use m4 data source?
+        let useM4 = true;
+        let m4Attribute: string | null = null;
+        let m4Domain: model.DomainValues = [];
+
         // Iterate over all layer specs
         for (const layer of spec.layer) {
-            // XXX detect nesting
-            const unit = layer as UnitSpec<Field>;
-
-            const mark = unit.mark;
-            const encoding = layer.encoding;
-
-            if (encoding === undefined) continue;
-            const order = encoding.order;
-
-            for (const key in unit.encoding) {
+            // Skip nested layers
+            if (!isUnitSpec(layer)) {
+                useM4 = false;
+                continue;
             }
+
+            // Check x encoding.
+            // Sufficient to check only X here? Likely not.
+            // What about chart types with explicit x2 or inverted ones?
+            const x = layer.encoding?.x;
+            let xID: number | null = null;
+            if (x) {
+                // Has field property?
+                if (isFieldDef(x) && x.field) {
+                    const isBaseAttribute = table?.columnNameMapping.has(x.field) || false;
+                    useM4 &&= isBaseAttribute;
+
+                    // Is field a plain data column?
+                    if (useM4) {
+                        m4Attribute = x.field;
+                        m4Domain = [];
+                        xID = table?.columnNameMapping.get(x.field)!;
+                        const resolver = new ResolveMinMaxDomain(stats, xID, this._m4Domain);
+                        this._vegaLiteEditOps.push(resolver);
+                    }
+                }
+
+                // Has exlicit scale property?
+                if (xID && isScaleFieldDef(x)) {
+                    const scale = x.scale!;
+                    const scaleType = scale.type;
+                    useM4 &&= scaleType ? hasContinuousDomain(scaleType) : true;
+
+                    // Try to resolve the domain for the user
+                    if (!scale.domain) {
+                        scale.domain = [];
+                        const resolver = new ResolveMinMaxDomain(stats, xID, scale.domain);
+                        this._vegaLiteEditOps.push(resolver);
+                    }
+                }
+            }
+        }
+
+        // Use m4 sampling?
+        if (useM4) {
+            this._queryType = model.VizQueryType.M4;
+            this._m4Attribute = m4Attribute;
+            this._m4Domain = m4Domain;
         }
     }
 
     public combineComponents() {
         // Instrument vega spec?
-        if (this._vegaLiteSpec) {
-            this.analyzeVegaEncodings(this._vegaLiteSpec);
-            this.analyzeVegaTransforms(this._vegaLiteSpec);
+        if (this._inputVegaLiteSpec) {
+            this._normalizedVegaLiteSpec = normalize(this._inputVegaLiteSpec) as TopLevel<NormalizedLayerSpec>;
+            this.analyzeVegaEncodings(this._normalizedVegaLiteSpec);
+            this.analyzeVegaTransforms(this._normalizedVegaLiteSpec);
             this._vegaLiteEditOps.map(o => o.prepare());
         }
     }
@@ -276,7 +328,7 @@ export class VizComposer {
         const now = new Date();
         let vegaSpec = null;
         if (this._renderer == model.VizRendererType.BUILTIN_VEGA) {
-            vegaSpec = await this.compileVegaSpec(this._vegaLiteSpec!);
+            vegaSpec = await this.compileVegaSpec(this._normalizedVegaLiteSpec!);
         }
         return {
             ...base,
@@ -296,7 +348,7 @@ export class VizComposer {
                 rowCount: null,
                 sampleSize: 10000,
             },
-            vegaLiteSpec: this._vegaLiteSpec,
+            vegaLiteSpec: this._normalizedVegaLiteSpec,
             vegaSpec: vegaSpec,
         };
     }
