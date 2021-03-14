@@ -33,8 +33,18 @@ export class TableStatisticsRequest {
     }
 }
 
+/// A resolver for table statistics
+export interface TableStatisticsResolver {
+    /// Resolve the table info
+    resolveTableInfo(): model.DatabaseTableInfo | null;
+    /// Request table statistics
+    request(type: model.TableStatisticsType, columnId: number): Promise<webdb.Value[]>;
+    /// Evaluate table statistics
+    evaluate(): Promise<Map<model.TableStatisticsKey, webdb.Value[]>>;
+}
+
 /// A queue for table statistics
-export class TableStatistics {
+export class DatabaseTableStatistics implements TableStatisticsResolver {
     /// The database manager
     _databaseManager: platform.DatabaseManager;
     /// The table name
@@ -60,7 +70,7 @@ export class TableStatistics {
     }
 
     /// Build the associative aggregate query
-    public buildAssociativeAggregateQuery(tableInfo: model.DatabaseTableInfo): string {
+    protected buildAssociativeAggregateQuery(tableInfo: model.DatabaseTableInfo): string {
         let out = 'SELECT ';
         let value_id = 0;
         for (let req of this._associativeAggregates) {
@@ -86,7 +96,7 @@ export class TableStatistics {
     }
 
     /// Build a standalone query
-    public buildStandaloneQuery(_tableInfo: model.DatabaseTableInfo, _req: TableStatisticsRequest): string {
+    protected buildStandaloneQuery(_tableInfo: model.DatabaseTableInfo, _req: TableStatisticsRequest): string {
         console.assert("There are no standalone table statistics at the moment");
         return "";
     }
@@ -120,10 +130,10 @@ export class TableStatistics {
         }
     }
 
-    public async evaluate(db: platform.DatabaseManager): Promise<Map<model.TableStatisticsKey, webdb.Value[]>> {
+    public async evaluate(): Promise<Map<model.TableStatisticsKey, webdb.Value[]>> {
         // Resolve the table info
         const stats: Map<model.TableStatisticsKey, webdb.Value[]> = new Map();
-        const tableInfo = db.resolveTableInfo(this._qualifiedTableName);
+        const tableInfo = this._databaseManager.resolveTableInfo(this._qualifiedTableName);
         if (!tableInfo) return stats;
 
         // Process the associative aggregates first
@@ -131,7 +141,7 @@ export class TableStatistics {
             try {
                 // Query the associative aggregates
                 const query = this.buildAssociativeAggregateQuery(tableInfo);
-                const result = await db.use(async (conn: webdb.AsyncConnection) => {
+                const result = await this._databaseManager.use(async (conn: webdb.AsyncConnection) => {
                     return await conn.runQuery(query);
                 });
                 const iter = new webdb.ChunkArrayIterator(result);
@@ -165,7 +175,7 @@ export class TableStatistics {
             try {
                 // Evaluate the query
                 const query = this.buildStandaloneQuery(tableInfo, req);
-                const result = await db.use(async (conn: webdb.AsyncConnection) => {
+                const result = await this._databaseManager.use(async (conn: webdb.AsyncConnection) => {
                     return await conn.runQuery(query);
                 });
                 // Collect the values

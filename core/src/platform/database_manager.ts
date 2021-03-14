@@ -1,6 +1,6 @@
 import * as webdb from '@dashql/webdb/dist/webdb_async';
 import * as model from '../model';
-import { TableStatistics } from './table_statistics';
+import { TableStatisticsResolver, DatabaseTableStatistics } from './table_statistics';
 import { Mutex } from '../utils';
 
 /// An database manager.
@@ -19,7 +19,7 @@ export class DatabaseManager {
     /// The connection mutex
     _connectionMutex: Mutex;
     /// The table statistics requests
-    _tableStatistics: Map<string, TableStatistics>;
+    _tableStatistics: Map<string, TableStatisticsResolver>;
 
     constructor(db: webdb.AsyncWebDB, store: model.DerivedReduxStore) {
         this._webdb = db;
@@ -30,7 +30,7 @@ export class DatabaseManager {
     }
 
     /// Resolve table statistics
-    public resolveTableStatistics(table: string) : TableStatistics | null {
+    public resolveTableStatistics(table: string) : TableStatisticsResolver | null {
         return this._tableStatistics.get(table) || null;
     }
 
@@ -89,7 +89,7 @@ export class DatabaseManager {
     ): Promise<webdb.Value[]> {
         let queue = this._tableStatistics.get(qualifiedTableName);
         if (!queue) {
-            queue = new TableStatistics(this, qualifiedTableName);
+            queue = new DatabaseTableStatistics(this, qualifiedTableName);
             this._tableStatistics.set(qualifiedTableName, queue);
         }
         return queue.request(columnId, type);
@@ -110,7 +110,7 @@ export class DatabaseManager {
         this._tableStatistics.delete(qualifiedTableName);
 
         /// Build the query text
-        const results = await queue.evaluate(this);
+        const results = await queue.evaluate();
         const stats = tableInfo.statistics.withMutations(stats => {
             for (const [k, vs] of results) {
                 stats.set(k, vs);

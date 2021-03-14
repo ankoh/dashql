@@ -1,5 +1,4 @@
 import * as proto from '@dashql/proto';
-import * as webdb from '@dashql/webdb';
 import * as model from '../model';
 import * as platform from '../platform';
 import * as v from 'vega';
@@ -12,7 +11,6 @@ import { AggregatedFieldDef } from 'vega-lite/src/transform';
 import { Field, isScaleFieldDef, isFieldDef } from 'vega-lite/src/channeldef';
 import { LayerSpec, NormalizedLayerSpec } from 'vega-lite/src/spec/layer';
 import { LogicalComposition } from 'vega-lite/src/logical';
-import { NormalizedSpec } from 'vega-lite/src/spec';
 import { Predicate } from 'vega-lite/src/predicate';
 import { SortField } from 'vega-lite/src/sort';
 import { TopLevel } from 'vega-lite/src/spec/toplevel';
@@ -26,9 +24,7 @@ const DEFAULT_SAMPLE_SIZE = 10000;
 
 export class VizComposer {
     /// The platform
-    _database: platform.DatabaseManager;
-    /// The table info (when fetched)
-    _tableName: string;
+    _tableStatistics: platform.TableStatisticsResolver;
 
     /// The renderer type
     _renderer: model.VizRendererType | null = null;
@@ -40,10 +36,12 @@ export class VizComposer {
     _aggregates: AggregatedFieldDef[] = [];
     /// The data ordering (if any)
     _orderBy: SortField[] | null = null;
-    /// The M4 attributes (if any)
-    _m4Attribute: string | null = null;
-    /// The M4 domain (if any)
-    _m4Domain: model.DomainValues = [];
+    /// The M4 X-attributes (if any)
+    _m4AttributeX: string | null = null;
+    /// The M4 Y-attributes (if any)
+    _m4AttributeY: string | null = null;
+    /// The M4 X-domain (if any)
+    _m4DomainX: model.DomainValues = [];
     /// The row count (if known)
     _rowCount: number | null = null;
     /// The max sample size (if any)
@@ -59,15 +57,13 @@ export class VizComposer {
     /// The vega spec
     _vegaSpec: v.Spec | null = null;
 
-    constructor(database: platform.DatabaseManager, tableName: string) {
-        this._database = database;
-        this._tableName = tableName;
+    constructor(statistics: platform.TableStatisticsResolver) {
+        this._tableStatistics = statistics;
     }
 
     /// Get the table
     protected get table() {
-        const stats = this._database.resolveTableStatistics(this._tableName)!;
-        return stats.resolveTableInfo()!;
+        return this._tableStatistics.resolveTableInfo()!;
     }
 
     /// Has a column?
@@ -76,7 +72,7 @@ export class VizComposer {
     }
 
     /// Report that the component is invalid
-    protected invalidComponent(component: proto.analyzer.VizComponent, reason: string) {
+    protected invalidComponent(_component: proto.analyzer.VizComponent, reason: string) {
         console.error(reason);
     }
 
@@ -224,13 +220,13 @@ export class VizComposer {
     }
 
     protected analyzeVegaEncodings(spec: TopLevel<NormalizedLayerSpec>) {
-        let table = this._database.resolveTableInfo(this._tableName);
-        let stats = this._database.resolveTableStatistics(this._tableName)!;
+        let table = this._tableStatistics.resolveTableInfo();
 
         // Use m4 data source?
         let useM4 = true;
-        let m4Attribute: string | null = null;
-        let m4Domain: model.DomainValues = [];
+        let m4AttributeX: string | null = null;
+        let m4AttributeY: string | null = null;
+        let m4DomainX: model.DomainValues = [];
 
         // Iterate over all layer specs
         for (const layer of spec.layer) {
@@ -241,36 +237,44 @@ export class VizComposer {
             }
 
             // Check x encoding.
-            // Sufficient to check only X here? Likely not.
             // What about chart types with explicit x2 or inverted ones?
             const x = layer.encoding?.x;
+            const y = layer.encoding?.y;
             let xID: number | null = null;
-            if (x) {
-                // Has field property?
-                if (isFieldDef(x) && x.field) {
-                    const isBaseAttribute = table?.columnNameMapping.has(x.field) || false;
-                    useM4 &&= isBaseAttribute;
-
-                    // Is field a plain data column?
+            let yID: number | null = null;
+            if (x && y) {
+                // Has field properties?
+                if (isFieldDef(x) && isFieldDef(y) && x.field && y.field) {
+                    useM4 &&= table?.columnNameMapping.has(x.field) || table?.columnNameMapping.has(y.field) || false;
                     if (useM4) {
-                        m4Attribute = x.field;
-                        m4Domain = [];
+                        m4AttributeX = x.field;
+                        m4AttributeY = x.field;
+                        m4DomainX = [];
                         xID = table?.columnNameMapping.get(x.field)!;
-                        const resolver = new ResolveMinMaxDomain(stats, xID, this._m4Domain);
+                        yID = table?.columnNameMapping.get(y.field)!;
+                        const resolver = new ResolveMinMaxDomain(this._tableStatistics, xID, this._m4DomainX);
                         this._vegaLiteEditOps.push(resolver);
                     }
                 }
 
-                // Has exlicit scale property?
+                // Has exlicit X scale property?
                 if (xID && isScaleFieldDef(x)) {
                     const scale = x.scale!;
                     const scaleType = scale.type;
                     useM4 &&= scaleType ? hasContinuousDomain(scaleType) : true;
-
-                    // Try to resolve the domain for the user
                     if (!scale.domain) {
                         scale.domain = [];
-                        const resolver = new ResolveMinMaxDomain(stats, xID, scale.domain);
+                        const resolver = new ResolveMinMaxDomain(this._tableStatistics, xID, scale.domain);
+                        this._vegaLiteEditOps.push(resolver);
+                    }
+                }
+
+                // Has exlicit Y scale property?
+                if (yID && isScaleFieldDef(y)) {
+                    const scale = y.scale!;
+                    if (!scale.domain) {
+                        scale.domain = [];
+                        const resolver = new ResolveMinMaxDomain(this._tableStatistics, yID, scale.domain);
                         this._vegaLiteEditOps.push(resolver);
                     }
                 }
@@ -280,8 +284,9 @@ export class VizComposer {
         // Use m4 sampling?
         if (useM4) {
             this._queryType = model.VizQueryType.M4;
-            this._m4Attribute = m4Attribute;
-            this._m4Domain = m4Domain;
+            this._m4AttributeX = m4AttributeX;
+            this._m4AttributeY = m4AttributeY;
+            this._m4DomainX = m4DomainX;
         }
     }
 
@@ -343,8 +348,9 @@ export class VizComposer {
                 predicates: this._predicates || [],
                 aggregates: this._aggregates || [],
                 orderBy: this._orderBy || [],
-                m4Attribute: this._m4Attribute,
-                m4Domain: this._m4Domain || [],
+                m4AttributeX: this._m4AttributeX,
+                m4AttributeY: this._m4AttributeY,
+                m4DomainX: this._m4DomainX || [],
                 rowCount: null,
                 sampleSize: 10000,
             },

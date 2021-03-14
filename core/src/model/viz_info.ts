@@ -41,8 +41,9 @@ export interface VizDataSource {
     readonly predicates: LogicalComposition<Predicate>[];
     readonly aggregates: AggregatedFieldDef[];
     readonly orderBy: SortField[];
-    readonly m4Attribute: string | null;
-    readonly m4Domain: DomainValues;
+    readonly m4AttributeX: string | null;
+    readonly m4AttributeY: string | null;
+    readonly m4DomainX: DomainValues;
     readonly rowCount: number | null;
     readonly sampleSize: number;
 }
