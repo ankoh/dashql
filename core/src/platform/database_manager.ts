@@ -1,6 +1,6 @@
 import * as webdb from '@dashql/webdb/dist/webdb_async';
 import * as model from '../model';
-import { TableStatisticsQueue } from './table_statistics_queue';
+import { TableStatistics } from './table_statistics';
 import { Mutex } from '../utils';
 
 /// An database manager.
@@ -19,14 +19,14 @@ export class DatabaseManager {
     /// The connection mutex
     _connectionMutex: Mutex;
     /// The table statistics requests
-    _tableStatisticsQueue: Map<string, TableStatisticsQueue>;
+    _tableStatistics: Map<string, TableStatistics>;
 
     constructor(db: webdb.AsyncWebDB, store: model.DerivedReduxStore) {
         this._webdb = db;
         this._store = store;
         this._connection = null;
         this._connectionMutex = new Mutex();
-        this._tableStatisticsQueue = new Map();
+        this._tableStatistics = new Map();
     }
 
     /// Setup the database connection
@@ -82,10 +82,10 @@ export class DatabaseManager {
         type: model.TableStatisticsType,
         columnId: number = 0,
     ): Promise<webdb.Value[]> {
-        let queue = this._tableStatisticsQueue.get(qualifiedTableName);
+        let queue = this._tableStatistics.get(qualifiedTableName);
         if (!queue) {
-            queue = new TableStatisticsQueue(this, qualifiedTableName);
-            this._tableStatisticsQueue.set(qualifiedTableName, queue);
+            queue = new TableStatistics(this, qualifiedTableName);
+            this._tableStatistics.set(qualifiedTableName, queue);
         }
         return queue.request(columnId, type);
     }
@@ -100,9 +100,9 @@ export class DatabaseManager {
         // Get the queue.
         // Abort immediatedly if there's none.
         // This happens whenever two viz statements evaluate the same queue simultaneously.
-        const queue = this._tableStatisticsQueue.get(qualifiedTableName);
+        const queue = this._tableStatistics.get(qualifiedTableName);
         if (!queue) return;
-        this._tableStatisticsQueue.delete(qualifiedTableName);
+        this._tableStatistics.delete(qualifiedTableName);
 
         /// Build the query text
         const results = await queue.evaluate(this);
