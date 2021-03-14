@@ -73,9 +73,18 @@ export class CreateVizActionLogic extends VizActionLogic {
         await this._rowCountPromise!;
 
         // Build the viz info and store it in redux
+        const posReader = this._vizSpec!.position()!;
+        const pos: model.VizPosition = {
+            row: posReader.row(),
+            column: posReader.column(),
+            width: posReader.width(),
+            height: posReader.height(),
+        };
         const info = await this._vizComposer!.buildViz({
             objectId: this.buffer.objectId(),
             objectType: model.PlanObjectType.VIZ_INFO,
+            title: this._vizSpec!.title() || null,
+            position: pos,
             currentStatementId: this.origin.statementId,
         });
         model.mutate(context.platform.store.dispatch, {
