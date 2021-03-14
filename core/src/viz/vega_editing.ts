@@ -5,7 +5,7 @@ import * as vl from 'vega-lite';
 import * as utils from '../utils';
 import * as webdb from '@dashql/webdb';
 import * as proto from '@dashql/proto';
-import { DateTime } from 'vega-lite/src/datetime';
+import { DateTime } from 'vega-lite/build/src/datetime';
 
 export abstract class VegaLiteEditOperation {
     /// Prepare the completion
@@ -67,7 +67,7 @@ function readDomainValues(type: webdb.SQLType, values: webdb.Value[], out: model
 
 export class ResolveMinMaxDomain extends VegaLiteEditOperation {
     /// The statistics queue
-    _statistics: platform.TableStatistics;
+    _statistics: platform.TableStatisticsResolver;
     /// The attribute id
     _attribute: number;
     /// The domain object
@@ -75,7 +75,7 @@ export class ResolveMinMaxDomain extends VegaLiteEditOperation {
     /// The promises
     _promises: Promise<webdb.Value[]>[];
 
-    constructor(stats: platform.TableStatistics, attribute: number, out: model.DomainValues) {
+    constructor(stats: platform.TableStatisticsResolver, attribute: number, out: model.DomainValues) {
         super();
         this._statistics = stats;
         this._out = out;
@@ -111,7 +111,7 @@ export class ResolveMinMaxDomain extends VegaLiteEditOperation {
 
 export class ResolveCategorialDomain extends VegaLiteEditOperation {
     /// The statistics queue
-    _statistics: platform.TableStatistics;
+    _statistics: platform.TableStatisticsResolver;
     /// The attribute id
     _attribute: number;
     /// The domain object
@@ -119,7 +119,7 @@ export class ResolveCategorialDomain extends VegaLiteEditOperation {
     /// The promise
     _promise: Promise<webdb.Value[]> | null;
 
-    constructor(stats: platform.TableStatistics, attribute: number, out: model.DomainValues) {
+    constructor(stats: platform.TableStatisticsResolver, attribute: number, out: model.DomainValues) {
         super();
         this._statistics = stats;
         this._attribute = attribute;

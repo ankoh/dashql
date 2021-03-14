@@ -2,7 +2,7 @@ import * as proto from '@dashql/proto';
 import * as webdb from '@dashql/webdb';
 import * as model from '../model';
 import * as error from '../error';
-import { VizComposer } from './viz_composer';
+import { VizComposer } from '../viz/viz_composer';
 import { ProgramActionLogic, SetupActionLogic } from './action_logic';
 import { ActionContext } from './action_context';
 
@@ -34,12 +34,13 @@ export abstract class VizActionLogic extends ProgramActionLogic {
         }
         // Get the table info
         const store = context.platform.store;
-        let tableInfo = store.getState().core.planDatabaseTables.get(this.tableNameQualified) || null;
+        const tableInfo = store.getState().core.planDatabaseTables.get(this.tableNameQualified) || null;
         if (!tableInfo) {
             throw new error.VizLogicError('target table does not exist', programInstance);
         }
         // Build the composer
-        this._vizComposer = new VizComposer(context.platform, context.plan, tableInfo);
+        const stats = context.platform._databaseManager.resolveTableStatistics(tableInfo.nameQualified)!;
+        this._vizComposer = new VizComposer(stats);
 
         // Read the component specs and add them to the compose
         for (let i = 0; i < this._vizSpec.componentsLength(); ++i) {
