@@ -17,18 +17,17 @@ import { values } from 'vega-lite/src/compile/axis/properties';
 import { LogicalComposition } from 'vega-lite/src/logical';
 import { Predicate } from 'vega-lite/src/predicate';
 import { SortField } from 'vega-lite/src/sort';
+import { TableStatistics } from '../platform';
 
 export type VegaLiteTLLayerSpec = TopLevel<LayerSpec<Field>>;
 
 const DEFAULT_SAMPLE_SIZE = 10000;
 
 export class VizComposer {
-    /// The platform
-    _platform: platform.Platform;
-    /// The plan
-    _plan: model.Plan;
     /// The table info (when fetched)
-    _table: model.DatabaseTableInfo;
+    _tableName: string;
+    /// The table st
+    _tableStatistics: platform.TableStatistics;
 
     /// The viz spec
     _protoSpec: proto.analyzer.VizSpec | null = null;
@@ -60,15 +59,19 @@ export class VizComposer {
     /// The vega spec
     _vegaSpec: v.Spec | null = null;
 
-    constructor(platform: platform.Platform, plan: model.Plan, table: model.DatabaseTableInfo) {
-        this._platform = platform;
-        this._plan = plan;
-        this._table = table;
+    constructor(tableName: string, statistics: platform.TableStatistics) {
+        this._tableName = tableName;
+        this._tableStatistics = statistics;
+    }
+
+    /// Get the table
+    protected get table() {
+        return this._tableStatistics.resolveTableInfo(this._tableName)!;
     }
 
     /// Has a column?
     protected hasColumn(column: string): boolean {
-        return this._table.columnNameMapping!.has(column);
+        return this.table.columnNameMapping!.has(column);
     }
 
     /// Report that the component is invalid
@@ -139,9 +142,8 @@ export class VizComposer {
         }
     }
 
-    /// Request table statistics explicitly (if necessary).
-    /// This function is also responsible for autocompleting any underspecified options.
-    public combineComponents() {
+    /// Analyze the vega transforms
+    protected analyzeVegaTransforms() {
         // Nothing to do?
         if (this._vegaLiteSpec == null) return null;
         let keepTransforms = [];
@@ -234,6 +236,13 @@ export class VizComposer {
         this._vegaLiteEditOps.forEach(e => e.prepare());
     }
 
+    protected analyzeVegaMarks() {}
+
+    public combineComponents() {
+        this.analyzeVegaTransforms();
+        this.analyzeVegaMarks();
+    }
+
     /// Compile the vega spec.
     public async compileVegaSpec(): Promise<v.Spec | null> {
         // Nothing to do?
@@ -268,6 +277,7 @@ export class VizComposer {
             >
         >,
     ): Promise<model.VizInfo> {
+        const table = this.table;
         const now = new Date();
         const posReader = this._protoSpec!.position()!;
         const pos: model.VizPosition = {
@@ -284,14 +294,14 @@ export class VizComposer {
             ...base,
             timeCreated: now,
             timeUpdated: now,
-            nameQualified: this._table.nameQualified || '',
-            nameShort: this._table.nameShort || '',
+            nameQualified: table.nameQualified || '',
+            nameShort: table.nameShort || '',
             renderer: this._renderer || model.VizRendererType.BUILTIN_TABLE,
             position: pos,
             title: this._protoSpec!.title() || null,
             dataSource: {
                 queryType: model.VizQueryType.RESERVOIR_SAMPLE,
-                targetQualified: this._table.nameQualified,
+                targetQualified: table.nameQualified,
                 predicates: this._predicates || [],
                 aggregates: this._aggregates || [],
                 orderBy: this._orderBy || [],
