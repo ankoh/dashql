@@ -217,7 +217,7 @@ export class VizComposer {
         this._vegaLiteEditOps.forEach(e => e.prepare());
     }
 
-    protected analyzeVegaMarks(spec: VegaLiteTLLayerSpec) {
+    protected analyzeVegaEncodings(spec: VegaLiteTLLayerSpec) {
         // Iterate over all layer specs
         for (const layer of spec.layer) {
             // XXX detect nesting
@@ -235,27 +235,23 @@ export class VizComposer {
     }
 
     public combineComponents() {
-
         // Instrument vega spec?
         if (this._vegaLiteSpec) {
+            this.analyzeVegaEncodings(this._vegaLiteSpec);
             this.analyzeVegaTransforms(this._vegaLiteSpec);
-            this.analyzeVegaMarks(this._vegaLiteSpec);
             this._vegaLiteEditOps.map(o => o.prepare());
         }
     }
 
     /// Compile the vega spec.
-    public async compileVegaSpec(): Promise<v.Spec | null> {
-        // Nothing to do?
-        if (this._vegaLiteSpec == null) return null;
-
+    protected async compileVegaSpec(spec: VegaLiteTLLayerSpec): Promise<v.Spec | null> {
         // Apply all edit operations (if any)
         const editPromises = this._vegaLiteEditOps.map(e => e.apply());
         await Promise.all(editPromises);
         this._vegaLiteEditOps = [];
 
         // Compile the spec
-        return vl.compile(this._vegaLiteSpec).spec;
+        return vl.compile(spec).spec;
     }
 
     /// Build the actual viz object that is passed to the renderer.
@@ -280,7 +276,7 @@ export class VizComposer {
         const now = new Date();
         let vegaSpec = null;
         if (this._renderer == model.VizRendererType.BUILTIN_VEGA) {
-            vegaSpec = await this.compileVegaSpec();
+            vegaSpec = await this.compileVegaSpec(this._vegaLiteSpec!);
         }
         return {
             ...base,
