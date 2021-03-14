@@ -49,7 +49,7 @@ export class VizComposer {
 
     /// The vega-lite spec.
     /// We only want to construct layer specs here.
-    _inputVegaLiteSpec: TopLevel<LayerSpec<Field>> | null = null;
+    _inputVegaLiteSpec: TopLevel<LayerSpec<Field>>;
     /// The normalized vega-lite spec
     _normalizedVegaLiteSpec: TopLevel<NormalizedLayerSpec> | null = null;
     /// The vega-lite edit ops
@@ -59,6 +59,17 @@ export class VizComposer {
 
     constructor(statistics: platform.TableStatisticsResolver) {
         this._tableStatistics = statistics;
+        this._inputVegaLiteSpec = {
+            autosize: {
+                type: 'fit',
+                contains: 'padding',
+                resize: true,
+            },
+            title: undefined,
+            background: 'transparent',
+            padding: 8,
+            layer: [],
+        };
     }
 
     /// Get the table
@@ -118,24 +129,29 @@ export class VizComposer {
             }
         }
 
-        // TODO This is literally doing nothing smart at the moment.
-        //      Let there be fancy vega autogen logic.
+        // Read field encoding
+        const readFieldEncoding = (spec: any, field: string) => {
+            if (typeof spec[field] === 'string' || spec[field] instanceof String) {
+                return { field: field };
+            } else {
+                return spec.encoding[field];
+            }
+        };
 
         const rawSpec = component.componentSpec();
         if (rawSpec != null) {
-            let spec = JSON.parse(rawSpec);
-            // XXX
-            this._inputVegaLiteSpec = {
+            const spec = JSON.parse(rawSpec);
+            this._inputVegaLiteSpec.transform?.push(...spec.transform);
+            this._inputVegaLiteSpec.layer.push({
                 ...spec,
-                autosize: {
-                    type: 'fit',
-                    contains: 'padding',
-                    resize: true,
+                x: undefined,
+                y: undefined,
+                encoding: {
+                    ...spec.encoding,
+                    x: readFieldEncoding(spec, 'x'),
+                    y: readFieldEncoding(spec, 'y'),
                 },
-                title: undefined,
-                background: 'transparent',
-                padding: 8,
-            };
+            });
         }
     }
 
