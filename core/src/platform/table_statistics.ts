@@ -2,7 +2,6 @@ import * as Immutable from 'immutable';
 import * as webdb from '@dashql/webdb/dist/webdb_async';
 import * as model from '../model';
 import * as platform from '../platform';
-import { DatabaseManager } from './database_manager';
 
 /// A column statistics request
 export class TableStatisticsRequest {
@@ -35,7 +34,7 @@ export class TableStatisticsRequest {
 }
 
 /// A queue for table statistics
-export class TableStatisticsQueue {
+export class TableStatistics {
     /// The database manager
     _databaseManager: platform.DatabaseManager;
     /// The table name
@@ -53,6 +52,11 @@ export class TableStatisticsQueue {
         this._requests = new Map();
         this._associativeAggregates = [];
         this._standaloneRequests = [];
+    }
+
+    /// Resolve the table info
+    public resolveTableInfo(tableName: string): model.DatabaseTableInfo | null {
+        return this._databaseManager.resolveTableInfo(tableName);
     }
 
     /// Build the associative aggregate query
@@ -116,7 +120,7 @@ export class TableStatisticsQueue {
         }
     }
 
-    public async evaluate(db: DatabaseManager): Promise<Map<model.TableStatisticsKey, webdb.Value[]>> {
+    public async evaluate(db: platform.DatabaseManager): Promise<Map<model.TableStatisticsKey, webdb.Value[]>> {
         // Resolve the table info
         const stats: Map<model.TableStatisticsKey, webdb.Value[]> = new Map();
         const tableInfo = db.resolveTableInfo(this._qualifiedTableName);
