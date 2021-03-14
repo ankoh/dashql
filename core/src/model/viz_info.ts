@@ -5,6 +5,8 @@ import { AggregatedFieldDef } from 'vega-lite/src/transform';
 import { LogicalComposition } from 'vega-lite/src/logical';
 import { Predicate } from 'vega-lite/src/predicate';
 import { SortField } from 'vega-lite/src/sort';
+import { DateTime } from 'vega-lite/src/datetime';
+import { ExprRef } from 'vega-lite/src/expr';
 import * as v from 'vega';
 import * as vl from 'vega-lite';
 import * as webdb from '@dashql/webdb';
@@ -30,6 +32,9 @@ export enum VizQueryType {
     M4,
 }
 
+export type DomainValue = null | string | number | boolean | ExprRef | v.SignalRef | DateTime;
+export type DomainValues = DomainValue[];
+
 export interface VizDataSource {
     readonly queryType: VizQueryType;
     readonly targetQualified: string;
@@ -37,7 +42,7 @@ export interface VizDataSource {
     readonly aggregates: AggregatedFieldDef[];
     readonly orderBy: SortField[];
     readonly m4Attribute: string | null;
-    readonly m4Domain: webdb.Value[];
+    readonly m4Domain: DomainValues;
     readonly rowCount: number | null;
     readonly sampleSize: number;
 }
