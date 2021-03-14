@@ -4,3 +4,4 @@ export * from "./http_manager";
 export * from "./log_manager";
 
 export * from "./platform";
+export * from "./table_statistics_queue";

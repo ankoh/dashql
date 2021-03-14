@@ -21,6 +21,7 @@ export enum TableStatisticsType {
     COUNT_STAR = 0,
     MINIMUM_VALUE = 1,
     MAXIMUM_VALUE = 2,
+    DISTINCT_VALUES = 3,
 }
 
 /// A table statistics key
