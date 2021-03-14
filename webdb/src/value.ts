@@ -158,6 +158,12 @@ export class Value {
         }
     }
 
+    /// Print for script
+    public printScript(): string {
+        // XXX
+        return this.castAsString();
+    }
+
     /// Read from proto
     public static FromProto(buffer: proto.SQLValue, v: Value | null = null) {
         v = v || new Value();
