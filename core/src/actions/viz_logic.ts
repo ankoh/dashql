@@ -41,29 +41,13 @@ export abstract class VizActionLogic extends ProgramActionLogic {
         // Build the composer
         this._vizComposer = new VizComposer(context.platform, context.plan, tableInfo);
 
-        // Read the component specs
+        // Read the component specs and add them to the compose
         for (let i = 0; i < this._vizSpec.componentsLength(); ++i) {
             const c = this._vizSpec.components(i)!;
             this._vizComposer.addComponent(c)!;
         }
-    }
-
-    /// Derive viz renderer
-    protected deriveVizInfo(context: ActionContext): model.VizInfo {
-        const posReader = this._vizSpec!.position()!;
-        const pos: model.VizPosition = {
-            row: posReader.row(),
-            column: posReader.column(),
-            width: posReader.width(),
-            height: posReader.height(),
-        };
-        return this._vizComposer!.build({
-            objectId: this.buffer.objectId(),
-            objectType: model.PlanObjectType.VIZ_INFO,
-            currentStatementId: this.origin.statementId,
-            title: this._vizSpec!.title() || null,
-            position: pos,
-        });
+        // Combine all the components
+        this._vizComposer.combineComponents();
     }
 }
 
@@ -88,8 +72,12 @@ export class CreateVizActionLogic extends VizActionLogic {
         await context.platform.database.evaluateTableStatistics(this.tableNameQualified);
         await this._rowCountPromise!;
 
-        // Store the viz info
-        const info = this.deriveVizInfo(context);
+        // Build the viz info and store it in redux
+        const info = await this._vizComposer!.buildViz({
+            objectId: this.buffer.objectId(),
+            objectType: model.PlanObjectType.VIZ_INFO,
+            currentStatementId: this.origin.statementId,
+        });
         model.mutate(context.platform.store.dispatch, {
             type: model.StateMutationType.INSERT_PLAN_OBJECTS,
             data: [info],

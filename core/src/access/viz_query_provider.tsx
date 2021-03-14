@@ -27,39 +27,84 @@ interface Props {
 }
 
 export class VizQueryProvider extends React.Component<Props> {
-    render() {
-        // Collect query information
-        const query = this.props.data;
-        const columnNames = query.columns.map(n => this.props.table.columnNames[n]);
-        const selectText = columnNames.join(',');
-        let orderByText = "";
-        let sampleSize = 10000;
-        if (query.orderBy.length > 0) {
-            const orderByList = query.orderBy.map(o => columnNames[o]).join(',');
-            orderByText = ` ORDER BY ${orderByList}`;
-        }
-        if (query.partitionBy.length > 0) {
-            sampleSize = 10000; // XXX smarter decisions
-        }
-        const tableSampleText = ` TABLESAMPLE RESERVOIR(${sampleSize} ROWS)`;
-
-        // Build query script
-        const script = `SELECT ${selectText} FROM ${query.targetShort}${tableSampleText}${orderByText}`;
-        const partitionBoundaries = (query.partitionBy.length > 0) ? query.partitionBy : undefined;
-
-        console.log(this.props.width);
-
+    runQuery(script: string, options: webdb.QueryRunOptions = {}) {
+        console.log(script);
         return (
             <QueryProvider
                 logger={this.props.logger}
                 database={this.props.database}
                 query={script}
-                queryOptions={{
-                    partitionBoundaries: partitionBoundaries
-                }}
+                queryOptions={options}
             >
                 {result => this.props.children.bind(this)(result)}
             </QueryProvider>
         );
+    }
+
+    render() {
+        const db = this.props.table;
+        const query = this.props.data;
+        const columnNames = query.columns.map(n => this.props.table.columnNames[n]);
+
+        // Generate M4?
+        if (query.samplingMethod == model.SamplingMethod.M4) {
+            const canvasWidth = 1000;
+
+            // Get x and y attributes
+            console.assert(query.xAttributes.length == 1, "M4 currently requires a single x attribute");
+            console.assert(query.yAttributes.length == 1, "M4 currently requires a single y attribute");
+            const y = query.columns[query.yAttributes[0]];
+            const x = query.columns[query.xAttributes[0]];
+
+            // Get x domain
+            const xMin = db.statistics.get(model.buildTableStatisticsKey(model.TableStatisticsType.MINIMUM_VALUE, x));
+            const xMax = db.statistics.get(model.buildTableStatisticsKey(model.TableStatisticsType.MAXIMUM_VALUE, x));
+            console.assert(!!xMin, "M4 requires a pre-fetched minimum value of x");
+            console.assert(!!xMax, "M4 requires a pre-fetched maximum value of x");
+
+            // Build binning expression
+            const xMinStr = xMin![0].printScript();
+            const xMaxStr = xMax![0].printScript();
+            const keyExpr = `round(${canvasWidth}*(${columnNames[x]}-${xMinStr})/(${xMaxStr}-${xMinStr}))`;
+
+            // Build query.
+            // Directly taken from here:
+            //
+            // M4: A Visualization-Oriented Time Series Data Aggregation
+            // Uwe Jugel, Zbigniew Jerzak, Gregor Hackenbroich, and Volker Markl. 2014.
+            //
+            const script = `
+SELECT * FROM ${query.targetShort}, (
+    SELECT ${keyExpr} as k,
+           min(${columnNames[y]}) as _y_min, max(${columnNames[y]}) as _y_max,
+           min(${columnNames[x]}) as _x_min, max(${columnNames[x]}) as _x_max,
+    FROM ${query.targetShort} GROUP BY k) as tmp
+WHERE k = ${keyExpr}
+AND   (${columnNames[y]} = _y_min OR ${columnNames[y]} = _y_max OR
+       ${columnNames[x]} = _x_min OR ${columnNames[x]} = _x_max)
+            `;
+
+            return this.runQuery(script);
+        }
+
+        // Build select
+        const select = columnNames.join(',');
+        let orderBy = "";
+        if (query.orderBy.length > 0) {
+            orderBy = ` ORDER BY ${query.orderBy.map(o => columnNames[o]).join(',')}`;
+        }
+
+        // Build sampling expression
+        let sampling = "";
+        if (query.samplingMethod == model.SamplingMethod.RESERVOIR) {
+            sampling = ` TABLESAMPLE RESERVOIR(${query.maxSampleSize} ROWS)`;
+        }
+
+        const script = `SELECT ${select} FROM ${query.targetShort}${sampling}${orderBy}`;
+        const partitions = (query.partitionBy.length > 0) ? query.partitionBy : undefined;
+
+        return this.runQuery(script, {
+            partitionBoundaries: partitions
+        })
     }
 }
