@@ -1,12 +1,12 @@
 // Copyright (c) 2020 The DashQL Authors
 
 import { PlanObject } from './plan_object';
-import { AggregatedFieldDef } from 'vega-lite/src/transform';
-import { LogicalComposition } from 'vega-lite/src/logical';
-import { Predicate } from 'vega-lite/src/predicate';
-import { SortField } from 'vega-lite/src/sort';
-import { DateTime } from 'vega-lite/src/datetime';
-import { ExprRef } from 'vega-lite/src/expr';
+import { AggregatedFieldDef } from 'vega-lite/build/src/transform';
+import { LogicalComposition } from 'vega-lite/build/src/logical';
+import { Predicate } from 'vega-lite/build/src/predicate';
+import { SortField } from 'vega-lite/build/src/sort';
+import { DateTime } from 'vega-lite/build/src/datetime';
+import { ExprRef } from 'vega-lite/build/src/expr';
 import * as v from 'vega';
 import * as vl from 'vega-lite';
 import * as webdb from '@dashql/webdb';

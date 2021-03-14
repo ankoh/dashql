@@ -3,20 +3,20 @@ import * as model from '../model';
 import * as platform from '../platform';
 import * as v from 'vega';
 import * as vl from 'vega-lite';
-import * as vlt from 'vega-lite/src/transform';
+import * as vlt from 'vega-lite/build/src/transform';
 
 import { VegaLiteEditOperation, ResolveMinMaxDomain } from './vega_editing';
 
-import { AggregatedFieldDef } from 'vega-lite/src/transform';
-import { Field, isScaleFieldDef, isFieldDef } from 'vega-lite/src/channeldef';
-import { LayerSpec, NormalizedLayerSpec } from 'vega-lite/src/spec/layer';
-import { LogicalComposition } from 'vega-lite/src/logical';
-import { Predicate } from 'vega-lite/src/predicate';
-import { SortField } from 'vega-lite/src/sort';
-import { TopLevel } from 'vega-lite/src/spec/toplevel';
-import { hasContinuousDomain } from 'vega-lite/src/scale';
-import { isUnitSpec } from 'vega-lite/src/spec/unit';
-import { normalize } from 'vega-lite/src/normalize';
+import { AggregatedFieldDef } from 'vega-lite/build/src/transform';
+import { Field, isScaleFieldDef, isFieldDef } from 'vega-lite/build/src/channeldef';
+import { LayerSpec, NormalizedLayerSpec } from 'vega-lite/build/src/spec/layer';
+import { LogicalComposition } from 'vega-lite/build/src/logical';
+import { Predicate } from 'vega-lite/build/src/predicate';
+import { SortField } from 'vega-lite/build/src/sort';
+import { TopLevel } from 'vega-lite/build/src/spec/toplevel';
+import { hasContinuousDomain } from 'vega-lite/build/src/scale';
+import { isUnitSpec } from 'vega-lite/build/src/spec/unit';
+import { normalize } from 'vega-lite/build/src/normalize';
 
 export type VegaLiteTLLayerSpec = TopLevel<LayerSpec<Field>>;
 
@@ -339,7 +339,7 @@ export class VizComposer {
                 | 'nameQualified'
                 | 'nameShort'
                 | 'renderer'
-                | 'data'
+                | 'dataSource'
                 | 'vegaLiteSpec'
                 | 'vegaSpec'
             >
