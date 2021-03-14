@@ -26,33 +26,20 @@ interface Props {
     children: (result: proto.webdb.QueryResult) => React.ReactNode;
 }
 
-export class VizQueryProvider extends React.Component<Props> {
-    runQuery(script: string, options: webdb.QueryRunOptions = {}) {
-        console.log(script);
+export const SampleProvider: React.FunctionComponent<Props> = (props: Props) => {
+    const db = props.table;
+
+    // Build select
+    let orderBy = '';
+    if (props.data.orderBy.length > 0) {
+        orderBy = ` ORDER BY ${props.data.orderBy.map(o => o.field + ' ' + (o.order || '')).join(',')}`;
     }
+    let sampling = ` TABLESAMPLE RESERVOIR(${props.data.sampleSize} ROWS)`;
 
-    render() {
-        const db = this.props.table;
-        const query = this.props.data;
-        const columnNames = query.columns.map(n => this.props.table.columnNames[n]);
-
-        // Build select
-        let orderBy = "";
-        if (query.orderBy.length > 0) {
-            orderBy = ` ORDER BY ${query.orderBy.map(o => columnNames[o]).join(',')}`;
-        }
-
-        // Build sampling expression
-        let sampling = "";
-        if (query.samplingMethod == model.SamplingMethod.RESERVOIR) {
-            sampling = ` TABLESAMPLE RESERVOIR(${query.maxSampleSize} ROWS)`;
-        }
-
-        const script = `SELECT * FROM ${query.targetShort}${sampling}${orderBy}`;
-        const partitions = (query.partitionBy.length > 0) ? query.partitionBy : undefined;
-
-        return this.runQuery(script, {
-            partitionBoundaries: partitions
-        })
-    }
-}
+    const script = `SELECT * FROM ${props.table.nameShort}${sampling}${orderBy}`;
+    return (
+        <QueryProvider logger={props.logger} database={props.database} query={script}>
+            {result => props.children.bind(this)(result)}
+        </QueryProvider>
+    );
+};

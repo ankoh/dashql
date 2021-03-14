@@ -16,8 +16,6 @@ interface Props {
     data: model.VizDataSource;
     /// The width of the container
     width: number;
-    /// The height of the container
-    height: number;
     /// The error component
     errorComponent?: ((error: string) => React.ReactNode) | null;
     /// The in-flight component
@@ -26,59 +24,43 @@ interface Props {
     children: (result: proto.webdb.QueryResult) => React.ReactNode;
 }
 
-export class VizQueryProvider extends React.Component<Props> {
-    runQuery(script: string, options: webdb.QueryRunOptions = {}) {
-        console.log(script);
-    }
+export const M4Provider: React.FunctionComponent<Props> = (props: Props) => {
+    const canvasWidth = 1000;
 
-    render() {
-        const db = this.props.table;
-        const query = this.props.data;
-        const canvasWidth = 1000;
+    // Get x and y attributes
+    console.assert(!!props.data.m4AttributeX, 'M4 provider requires X attribute');
+    console.assert(!!props.data.m4AttributeY, 'M4 provider requires Y attribute');
+    const xName = props.data.m4AttributeX!;
+    const yName = props.data.m4AttributeY!;
 
-        // Get x and y attributes
-        console.assert(query.xAttributes.length == 1, "M4 currently requires a single x attribute");
-        console.assert(query.yAttributes.length == 1, "M4 currently requires a single y attribute");
-        const y = query.columns[query.yAttributes[0]];
-        const x = query.columns[query.xAttributes[0]];
+    console.assert(props.data.m4DomainX && props.data.m4DomainX.length >= 2, 'M4 provider requires X domain');
+    const xDomain = props.data.m4DomainX!;
+    const xDomainMin = xDomain[0];
+    const xDomainMax = xDomain[1];
 
-        // Get x domain
-        const xMin = db.statistics.get(model.buildTableStatisticsKey(model.TableStatisticsType.MINIMUM_VALUE, x));
-        const xMax = db.statistics.get(model.buildTableStatisticsKey(model.TableStatisticsType.MAXIMUM_VALUE, x));
-        console.assert(!!xMin, "M4 requires a pre-fetched minimum value of x");
-        console.assert(!!xMax, "M4 requires a pre-fetched maximum value of x");
+    // Build binning expression
+    const keyExpr = `round(${canvasWidth}*(${xName}-${xDomainMin})/(${xDomainMax}-${xDomainMin}))`;
 
-        // Build binning expression
-        const xMinStr = xMin![0].printScript();
-        const xMaxStr = xMax![0].printScript();
-        const keyExpr = `round(${canvasWidth}*(${columnNames[x]}-${xMinStr})/(${xMaxStr}-${xMinStr}))`;
-
-        // Build query.
-        // Directly taken from here:
-        //
-        // M4: A Visualization-Oriented Time Series Data Aggregation
-        // Uwe Jugel, Zbigniew Jerzak, Gregor Hackenbroich, and Volker Markl. 2014.
-        //
-        const script = `
-SELECT * FROM ${query.targetShort}, (
+    // Build query.
+    // Directly taken from here:
+    //
+    // M4: A Visualization-Oriented Time Series Data Aggregation
+    // Uwe Jugel, Zbigniew Jerzak, Gregor Hackenbroich, and Volker Markl. 2014.
+    //
+    const script = `
+SELECT * FROM ${props.table.nameShort}, (
 SELECT ${keyExpr} as k,
-        min(${columnNames[y]}) as _y_min, max(${columnNames[y]}) as _y_max,
-        min(${columnNames[x]}) as _x_min, max(${columnNames[x]}) as _x_max,
-FROM ${query.targetShort} GROUP BY k) as tmp
+    min(${yName}) as _y_min, max(${yName}) as _y_max,
+    min(${xName}) as _x_min, max(${xName}) as _x_max,
+FROM ${props.table.nameShort} GROUP BY k) as tmp
 WHERE k = ${keyExpr}
-AND   (${columnNames[y]} = _y_min OR ${columnNames[y]} = _y_max OR
-    ${columnNames[x]} = _x_min OR ${columnNames[x]} = _x_max)
-        `;
+AND   (${yName} = _y_min OR ${yName} = _y_max OR
+${xName} = _x_min OR ${xName} = _x_max)
+    `;
 
-        return (
-            <QueryProvider
-                logger={this.props.logger}
-                database={this.props.database}
-                query={script}
-                queryOptions={options}
-            >
-                {result => this.props.children.bind(this)(result)}
-            </QueryProvider>
-        );
-    }
-}
+    return (
+        <QueryProvider logger={props.logger} database={props.database} query={script}>
+            {result => props.children.bind(this)(result)}
+        </QueryProvider>
+    );
+};
