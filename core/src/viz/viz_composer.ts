@@ -140,14 +140,12 @@ export class VizComposer {
     }
 
     /// Analyze the vega transforms
-    protected analyzeVegaTransforms() {
-        // Nothing to do?
-        if (this._vegaLiteSpec == null) return null;
+    protected analyzeVegaTransforms(spec: VegaLiteTLLayerSpec) {
         let keepTransforms = [];
         let noRewrites = false;
 
-        for (let i = 0; i < (this._vegaLiteSpec?.transform?.length || 0); ++i) {
-            const transform = this._vegaLiteSpec?.transform![i];
+        for (let i = 0; i < (spec.transform?.length || 0); ++i) {
+            const transform = spec.transform![i];
             keepTransforms.push(true);
 
             // Is unsupported transform?
@@ -210,8 +208,18 @@ export class VizComposer {
             }
         }
 
+
+        // XXX request all table statistics that we will need
+
+        // XXX Create edit ops
+
+        // Prepare all edit operations
+        this._vegaLiteEditOps.forEach(e => e.prepare());
+    }
+
+    protected analyzeVegaMarks(spec: VegaLiteTLLayerSpec) {
         // Iterate over all layer specs
-        for (const layer of this._vegaLiteSpec.layer) {
+        for (const layer of spec.layer) {
             // XXX detect nesting
             const unit = layer as UnitSpec<Field>;
 
@@ -224,20 +232,16 @@ export class VizComposer {
             for (const key in unit.encoding) {
             }
         }
-
-        // XXX request all table statistics that we will need
-
-        // XXX Create edit ops
-
-        // Prepare all edit operations
-        this._vegaLiteEditOps.forEach(e => e.prepare());
     }
 
-    protected analyzeVegaMarks() {}
-
     public combineComponents() {
-        this.analyzeVegaTransforms();
-        this.analyzeVegaMarks();
+
+        // Instrument vega spec?
+        if (this._vegaLiteSpec) {
+            this.analyzeVegaTransforms(this._vegaLiteSpec);
+            this.analyzeVegaMarks(this._vegaLiteSpec);
+            this._vegaLiteEditOps.map(o => o.prepare());
+        }
     }
 
     /// Compile the vega spec.
