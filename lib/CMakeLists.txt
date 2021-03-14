@@ -335,6 +335,7 @@ add_library(dashql_analyzer
 
 add_library(dashql_webdb
     ${CMAKE_SOURCE_DIR}/src/webdb/codec.cc
+    ${CMAKE_SOURCE_DIR}/src/webdb/filesystem.cc
     ${CMAKE_SOURCE_DIR}/src/webdb/iterator.cc
     ${CMAKE_SOURCE_DIR}/src/webdb/partitioner.cc
     ${CMAKE_SOURCE_DIR}/src/webdb/webdb.cc
@@ -446,14 +447,14 @@ if (EMSCRIPTEN)
             _dashql_webdb_fetch_query_results, \
             _dashql_webdb_analyze_query, \
             _dashql_blob_stream_consume, \
-            _dashql_extract_import_csv \
+            _dashql_extract_import_csv, \
+            _dashql_webdb_fs_directory_list_files_callback \
         ]' \
         -s EXTRA_EXPORTED_RUNTIME_METHODS='[\"ccall\"]' \
         --js-library=${CMAKE_SOURCE_DIR}/js-stubs.js \
         ${ADDITIONAL_LINKER_FLAGS} \
         "
         )
-#        -s LINKABLE=1 \
 
     add_executable(webdb_wasm ${CMAKE_SOURCE_DIR}/src/ffi_main.cc)
     target_link_libraries(webdb_wasm dashql_webdb flatbuffers spdlog)
