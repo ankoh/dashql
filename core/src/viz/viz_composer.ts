@@ -29,9 +29,6 @@ export class VizComposer {
     /// The table st
     _tableStatistics: platform.TableStatistics;
 
-    /// The viz spec
-    _protoSpec: proto.analyzer.VizSpec | null = null;
-
     /// The renderer type
     _renderer: model.VizRendererType | null = null;
     /// The query type
@@ -264,8 +261,6 @@ export class VizComposer {
             model.VizInfo,
             Exclude<
                 keyof model.VizInfo,
-                | 'position'
-                | 'title'
                 | 'timeCreated'
                 | 'timeUpdated'
                 | 'nameQualified'
@@ -279,13 +274,6 @@ export class VizComposer {
     ): Promise<model.VizInfo> {
         const table = this.table;
         const now = new Date();
-        const posReader = this._protoSpec!.position()!;
-        const pos: model.VizPosition = {
-            row: posReader.row(),
-            column: posReader.column(),
-            width: posReader.width(),
-            height: posReader.height(),
-        };
         let vegaSpec = null;
         if (this._renderer == model.VizRendererType.BUILTIN_VEGA) {
             vegaSpec = await this.compileVegaSpec();
@@ -297,8 +285,6 @@ export class VizComposer {
             nameQualified: table.nameQualified || '',
             nameShort: table.nameShort || '',
             renderer: this._renderer || model.VizRendererType.BUILTIN_TABLE,
-            position: pos,
-            title: this._protoSpec!.title() || null,
             dataSource: {
                 queryType: model.VizQueryType.RESERVOIR_SAMPLE,
                 targetQualified: table.nameQualified,
