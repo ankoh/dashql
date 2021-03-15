@@ -91,7 +91,7 @@ export class DatabaseTableStatistics implements TableStatisticsResolver {
                     break;
             }
         }
-        out += ` FROM ${tableInfo.nameShort};`;
+        out += ` FROM ${tableInfo.tableNameShort};`;
         return out;
     }
 

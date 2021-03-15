@@ -36,10 +36,11 @@ export abstract class VizActionLogic extends ProgramActionLogic {
         const store = context.platform.store;
         const tableInfo = store.getState().core.planDatabaseTables.get(this.tableNameQualified) || null;
         if (!tableInfo) {
-            throw new error.VizLogicError('target table does not exist', programInstance);
+            console.log(store.getState().core.planDatabaseTables.toArray());
+            throw new error.VizLogicError(`target table ${this.tableNameQualified} does not exist`, programInstance);
         }
         // Build the composer
-        const stats = context.platform._databaseManager.resolveTableStatistics(tableInfo.nameQualified)!;
+        const stats = context.platform._databaseManager.resolveTableStatistics(tableInfo.tableNameQualified)!;
         this._vizComposer = new VizComposer(stats);
 
         // Read the component specs and add them to the compose

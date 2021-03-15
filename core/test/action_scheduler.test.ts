@@ -9,23 +9,23 @@ import ActionStatus = proto.action.ActionStatusCode;
 import ActionClass = proto.action.ActionClass;
 import ProgramActionType = proto.action.ProgramActionType;
 
-const logger = new webdb.ConsoleLogger();
+const logger = new webdb.VoidLogger();
 
-let analyzerBindings: analyzer.AnalyzerBindings;
+let ana: analyzer.AnalyzerBindings;
 let worker: Worker;
 let db: webdb.AsyncWebDB;
 let conn: webdb.AsyncWebDBConnection;
 
 beforeAll(async () => {
-    analyzerBindings = new analyzer.Analyzer({}, path.resolve(__dirname, '../src/analyzer/analyzer_wasm_node.wasm'));
-    await analyzerBindings.init();
+    ana = new analyzer.Analyzer({}, path.resolve(__dirname, '../src/analyzer/analyzer_wasm_node.wasm'));
+    await ana.init();
     worker = new Worker(path.resolve(__dirname, "../../webdb/dist/webdb_node_async.worker.js"));
     db = new webdb.AsyncWebDB(logger, worker);
 });
 
 beforeEach(async () => {
     try {
-        await analyzerBindings.reset();
+        await ana.reset();
         await db.open(path.resolve(__dirname, "../../webdb/dist/webdb.wasm"));
         conn = await db.connect();
     } catch (e) {
@@ -68,12 +68,12 @@ describe('Action Scheduler', () => {
     describe('program actions', () => {
         test('single table', async () => {
             const store = model.createStore();
-            const plat = new platform.Platform(store, logger, db, analyzerBindings);
+            const plat = new platform.Platform(store, logger, db, ana);
             await plat.init();
 
-            const program = analyzerBindings.parseProgram('CREATE TABLE a AS SELECT 1');
-            analyzerBindings.instantiateProgram();
-            const plan = analyzerBindings.planProgram();
+            const program = ana.parseProgram('CREATE TABLE a AS SELECT 1');
+            ana.instantiateProgram();
+            const plan = ana.planProgram();
             const graph = plan!.buffer.actionGraph()!;
             expect(program.buffer.statementsLength()).toBe(1);
             expect(graph.setupActionsLength()).toBe(0);
@@ -98,17 +98,17 @@ describe('Action Scheduler', () => {
 
         test('chain', async () => {
             const store = model.createStore();
-            const plat = new platform.Platform(store, logger, db, analyzerBindings);
+            const plat = new platform.Platform(store, logger, db, ana);
             await plat.init();
 
-            const program = analyzerBindings.parseProgram(`
+            const program = ana.parseProgram(`
                 LOAD weather_csv FROM http (
                     url = 'https://localhost/test'
                 );
                 EXTRACT weather FROM weather_csv USING CSV;
             `);
-            analyzerBindings.instantiateProgram();
-            const plan = analyzerBindings.planProgram();
+            ana.instantiateProgram();
+            const plan = ana.planProgram();
             const graph = plan!.buffer.actionGraph()!;
             expect(program.buffer.statementsLength()).toBe(2);
             expect(graph.setupActionsLength()).toBe(0);
@@ -148,16 +148,16 @@ describe('Action Scheduler', () => {
 
         test('tree', async () => {
             const store = model.createStore();
-            const plat = new platform.Platform(store, logger, db, analyzerBindings);
+            const plat = new platform.Platform(store, logger, db, ana);
             await plat.init();
 
-            const program = analyzerBindings.parseProgram(`
+            const program = ana.parseProgram(`
                 CREATE TABLE weather AS SELECT 1;
                 VIZ weather USING TABLE;
                 VIZ weather USING TABLE;
             `);
-            analyzerBindings.instantiateProgram();
-            const plan = analyzerBindings.planProgram();
+            ana.instantiateProgram();
+            const plan = ana.planProgram();
             const graph = plan!.buffer.actionGraph()!;
             expect(program.buffer.statementsLength()).toBe(3);
             expect(graph.setupActionsLength()).toBe(0);
@@ -203,16 +203,16 @@ describe('Action Scheduler', () => {
 
         test('independent', async () => {
             const store = model.createStore();
-            const plat = new platform.Platform(store, logger, db, analyzerBindings);
+            const plat = new platform.Platform(store, logger, db, ana);
             await plat.init();
 
-            const program = analyzerBindings.parseProgram(`
+            const program = ana.parseProgram(`
                 CREATE TABLE A AS SELECT 1;
                 CREATE TABLE B AS SELECT 1;
                 CREATE TABLE C AS SELECT 1;
             `);
-            analyzerBindings.instantiateProgram();
-            const plan = analyzerBindings.planProgram();
+            ana.instantiateProgram();
+            const plan = ana.planProgram();
             const graph = plan!.buffer.actionGraph()!;
             expect(program.buffer.statementsLength()).toBe(3);
             expect(graph.setupActionsLength()).toBe(0);
