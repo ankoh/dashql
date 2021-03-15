@@ -14,10 +14,6 @@ interface Props {
     table: model.DatabaseTableInfo;
     /// The viz data query
     data: model.VizDataSource;
-    /// The width of the container
-    width: number;
-    /// The height of the container
-    height: number;
     /// The error component
     errorComponent?: ((error: string) => React.ReactNode) | null;
     /// The in-flight component
