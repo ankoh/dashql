@@ -9,7 +9,7 @@ import ActionStatusCode = proto.action.ActionStatusCode;
 /// XXX Delete this eventually in favor of the async statistics requests
 export async function collectTableInfo(conn: webdb.AsyncConnection, info: model.DatabaseTableInfo): Promise<model.DatabaseTableInfo> {
     // Get column names and types
-    const limit0 = await conn.runQuery(`SELECT * FROM ${info.nameShort} LIMIT 0`);
+    const limit0 = await conn.runQuery(`SELECT * FROM ${info.tableNameShort} LIMIT 0`);
     const columnNames: string[] = [];
     const columnNameMapping: Map<string, number> = new Map();
     const columnTypes: webdb.SQLType[] = [];
@@ -54,8 +54,8 @@ export class CreateTableActionLogic extends ProgramActionLogic {
                 objectType: model.PlanObjectType.DATABASE_TABLE_INFO,
                 timeCreated: now,
                 timeUpdated: now,
-                nameQualified: this.buffer.targetNameQualified() || "",
-                nameShort: this.buffer.targetNameShort() || "",
+                tableNameQualified: this.buffer.targetNameQualified() || "",
+                tableNameShort: this.buffer.targetNameShort() || "",
                 columnNames: [],
                 columnNameMapping: new Map(),
                 columnTypes: [],

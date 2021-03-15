@@ -88,13 +88,18 @@ export class CreateVizActionLogic extends VizActionLogic {
             width: posReader.width(),
             height: posReader.height(),
         };
-        const info = await this._vizComposer!.buildViz({
+        const spec = await this._vizComposer!.compile();
+        const now = new Date();
+        const info: model.VizInfo = {
             objectId: this.buffer.objectId(),
             objectType: model.PlanObjectType.VIZ_INFO,
+            timeCreated: now,
+            timeUpdated: now,
             title: this._vizSpec!.title() || null,
             position: pos,
             currentStatementId: this.origin.statementId,
-        });
+            ...spec,
+        };
         model.mutate(context.platform.store.dispatch, {
             type: model.StateMutationType.INSERT_PLAN_OBJECTS,
             data: [info],

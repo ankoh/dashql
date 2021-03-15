@@ -21,31 +21,42 @@ import { normalize } from 'vega-lite/build/src/normalize';
 export type VegaLiteTLLayerSpec = TopLevel<LayerSpec<Field>>;
 
 const DEFAULT_SAMPLE_SIZE = 10000;
+export const DEFAULT_VEGA_LITE_MIXINS: VegaLiteTLLayerSpec = {
+    autosize: {
+        type: 'fit',
+        contains: 'padding',
+        resize: true,
+    },
+    title: undefined,
+    background: 'transparent',
+    padding: 8,
+    layer: [],
+};
 
 export class VizComposer {
     /// The platform
     _tableStatistics: platform.TableStatisticsResolver;
 
     /// The renderer type
-    _renderer: model.VizRendererType | null = null;
+    _renderer?: model.VizRendererType;
     /// The query type
-    _queryType: model.VizQueryType | null = model.VizQueryType.RESERVOIR_SAMPLE;
+    _queryType?: model.VizQueryType;
     /// The filters (if any)
-    _filters: LogicalComposition<Predicate>[] = [];
+    _filters?: LogicalComposition<Predicate>[];
     /// The aggregates
-    _aggregates: AggregatedFieldDef[] = [];
+    _aggregates?: AggregatedFieldDef[];
     /// The data ordering (if any)
-    _orderBy: SortField[] | null = null;
+    _orderBy?: SortField[];
     /// The M4 X-attributes (if any)
-    _m4AttributeX: string | null = null;
+    _m4AttributeX?: string;
     /// The M4 Y-attributes (if any)
-    _m4AttributeY: string | null = null;
+    _m4AttributeY?: string;
     /// The M4 X-domain (if any)
-    _m4DomainX: model.DomainValues = [];
+    _m4DomainX?: model.DomainValues;
     /// The row count (if known)
-    _rowCount: number | null = null;
+    _rowCount?: number;
     /// The max sample size (if any)
-    _sampleSize: number | null = null;
+    _sampleSize?: number;
 
     /// The vega-lite spec.
     /// We only want to construct layer specs here.
@@ -60,15 +71,8 @@ export class VizComposer {
     constructor(statistics: platform.TableStatisticsResolver) {
         this._tableStatistics = statistics;
         this._inputVegaLiteSpec = {
-            autosize: {
-                type: 'fit',
-                contains: 'padding',
-                resize: true,
-            },
-            title: undefined,
-            background: 'transparent',
-            padding: 8,
-            layer: [],
+            ...DEFAULT_VEGA_LITE_MIXINS,
+            layer: []
         };
     }
 
@@ -83,13 +87,21 @@ export class VizComposer {
     }
 
     /// Report that the component is invalid
-    protected invalidComponent(type: proto.syntax.VizComponentType, modifiers: Map<proto.syntax.VizComponentTypeModifier, boolean>, options: any, reason: string) {
+    protected invalidComponent(
+        type: proto.syntax.VizComponentType,
+        modifiers: Map<proto.syntax.VizComponentTypeModifier, boolean>,
+        options: any,
+        reason: string,
+    ) {
         console.error(reason);
     }
 
     /// Add a vega component
-    protected addVegaComponent(type: proto.syntax.VizComponentType, modifiers: Map<proto.syntax.VizComponentTypeModifier, boolean>, options: any = null) {
-
+    protected addVegaComponent(
+        type: proto.syntax.VizComponentType,
+        modifiers: Map<proto.syntax.VizComponentTypeModifier, boolean>,
+        options: any = null,
+    ) {
         // XXX make smarter
 
         // Read field encoding
@@ -119,7 +131,11 @@ export class VizComposer {
     }
 
     /// Analayze a single viz component
-    public addComponent(type: proto.syntax.VizComponentType, modifiers: Map<proto.syntax.VizComponentTypeModifier, boolean>, options: any = null) {
+    public addComponent(
+        type: proto.syntax.VizComponentType,
+        modifiers: Map<proto.syntax.VizComponentTypeModifier, boolean>,
+        options: any = null,
+    ) {
         switch (type) {
             case proto.syntax.VizComponentType.VEGA:
             case proto.syntax.VizComponentType.AREA:
@@ -222,12 +238,14 @@ export class VizComposer {
             }
 
             // Set query and sample size
-            if (this._queryType && this._queryType != forceQueryType) {
-                // XXX Emit error
-                console.error('Incompatible query type');
-                break;
+            if (forceQueryType) {
+                if (this._queryType && this._queryType != forceQueryType) {
+                    // XXX Emit error
+                    console.error('Incompatible query type');
+                    break;
+                }
+                this._queryType = forceQueryType;
             }
-            this._queryType = forceQueryType;
             this._sampleSize = forceSampleSize;
         }
 
@@ -264,11 +282,11 @@ export class VizComposer {
                     useM4 &&= table?.columnNameMapping.has(x.field) || table?.columnNameMapping.has(y.field) || false;
                     if (useM4) {
                         m4AttributeX = x.field;
-                        m4AttributeY = x.field;
+                        m4AttributeY = y.field;
                         m4DomainX = [];
                         xID = table?.columnNameMapping.get(x.field)!;
                         yID = table?.columnNameMapping.get(y.field)!;
-                        const resolver = new ResolveMinMaxDomain(this._tableStatistics, xID, this._m4DomainX);
+                        const resolver = new ResolveMinMaxDomain(this._tableStatistics, xID, m4DomainX);
                         this._vegaLiteEditOps.push(resolver);
                     }
                 }
@@ -300,8 +318,8 @@ export class VizComposer {
         // Use m4 sampling?
         if (useM4) {
             this._queryType = model.VizQueryType.M4;
-            this._m4AttributeX = m4AttributeX;
-            this._m4AttributeY = m4AttributeY;
+            this._m4AttributeX = m4AttributeX || undefined;
+            this._m4AttributeY = m4AttributeY || undefined;
             this._m4DomainX = m4DomainX;
         }
     }
@@ -329,22 +347,7 @@ export class VizComposer {
 
     /// Build the actual viz object that is passed to the renderer.
     /// The function is async since we may have to wait for database requests.
-    public async buildViz(
-        base: Pick<
-            model.VizInfo,
-            Exclude<
-                keyof model.VizInfo,
-                | 'timeCreated'
-                | 'timeUpdated'
-                | 'nameQualified'
-                | 'nameShort'
-                | 'renderer'
-                | 'dataSource'
-                | 'vegaLiteSpec'
-                | 'vegaSpec'
-            >
-        >,
-    ): Promise<model.VizInfo> {
+    public async compile(): Promise<Pick<model.VizInfo, 'renderer' | 'dataSource' | 'vegaLiteSpec' | 'vegaSpec'>> {
         const table = this.table;
         const now = new Date();
         let vegaSpec = null;
@@ -352,22 +355,17 @@ export class VizComposer {
             vegaSpec = await this.compileVegaSpec(this._normalizedVegaLiteSpec!);
         }
         return {
-            ...base,
-            timeCreated: now,
-            timeUpdated: now,
-            nameQualified: table.nameQualified || '',
-            nameShort: table.nameShort || '',
             renderer: this._renderer || model.VizRendererType.BUILTIN_TABLE,
             dataSource: {
-                queryType: model.VizQueryType.RESERVOIR_SAMPLE,
-                targetQualified: table.nameQualified,
-                filters: this._filters || [],
-                aggregates: this._aggregates || [],
-                orderBy: this._orderBy || [],
+                queryType: this._queryType || model.VizQueryType.RESERVOIR_SAMPLE,
+                targetQualified: table.tableNameQualified,
+                filters: this._filters,
+                aggregates: this._aggregates,
+                orderBy: this._orderBy,
                 m4AttributeX: this._m4AttributeX,
                 m4AttributeY: this._m4AttributeY,
-                m4DomainX: this._m4DomainX || [],
-                rowCount: null,
+                m4DomainX: this._m4DomainX,
+                rowCount: undefined,
                 sampleSize: 10000,
             },
             vegaLiteSpec: this._normalizedVegaLiteSpec,
