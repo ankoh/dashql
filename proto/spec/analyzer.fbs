@@ -46,7 +46,7 @@ struct VizPosition {
 table VizComponent {
     type: syntax.VizComponentType;
     type_modifiers: [syntax.VizComponentTypeModifier];
-    component_spec: string;
+    options: string;
 }
 
 table VizSpec {
