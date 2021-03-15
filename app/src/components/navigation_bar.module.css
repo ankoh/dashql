@@ -23,7 +23,7 @@
     text-align: center;
 
     display: grid;
-    grid-template-rows: 56px 48px auto 56px calc(3 * 48px);
+    grid-template-rows: 56px auto 56px calc(3 * 48px);
 }
 
 .logo {
@@ -40,7 +40,7 @@
 .tabs {
     grid-row: 2;
     display: grid;
-    grid-template-rows: repeat(2, 48px);
+    grid-template-rows: repeat(2, 56px);
 }
 
 .tab_navbar {
@@ -57,9 +57,6 @@
     margin: var(--nav_bar_button_margin);
     box-sizing: border-box;
     border-radius: var(--border_radius);
-}
-
-.tab_icon {
 }
 
 .tab > a {
@@ -81,11 +78,11 @@
 }
 
 .account {
-    grid-row: 4;
+    grid-row: 3;
 }
 
 .statuslist {
-    grid-row: 5;
+    grid-row: 4;
 
     background: var(--nav_status_bg);
     display: grid;

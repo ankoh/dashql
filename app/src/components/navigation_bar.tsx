@@ -6,6 +6,7 @@ import classNames from 'classnames';
 import { StudioIcon, LibraryBooksIcon, DatabaseIcon, TaskListIcon, LogIcon, IIconProps } from '../svg/icons';
 import { withRouter, RouteComponentProps, Link } from 'react-router-dom';
 import Avatar from 'react-avatar';
+import Button from 'react-bootstrap/Button';
 import { auth } from '../auth';
 
 import styles from './navigation_bar.module.css';
@@ -25,7 +26,9 @@ function createTab(path: string, Icon: React.FunctionComponent<IIconProps>): Rea
                 })}
             >
                 <Link to={path}>
-                    {<Icon width="22px" height="22px" fill="rgb(230, 230, 230)" {...(props as IIconProps)} />}
+                    <Button variant="link">
+                        <Icon width="22px" height="22px" fill="rgb(230, 230, 230)" {...(props as IIconProps)} />
+                    </Button>
                 </Link>
             </div>
         );

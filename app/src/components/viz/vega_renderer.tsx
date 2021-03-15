@@ -2,16 +2,12 @@ import * as Immutable from 'immutable';
 import * as React from 'react';
 import * as proto from '@dashql/proto';
 import * as core from '@dashql/core';
-import * as webdb from '@dashql/webdb/dist/webdb_async';
 import * as model from '../../model';
 import { connect } from 'react-redux';
 import { AutoSizer } from '../../util/autosizer';
 import { IAppContext, withAppContext } from '../../app_context';
 import { VizCard } from './viz_card';
 import { Vega } from 'react-vega';
-
-import TypeModifier = core.proto.syntax.VizComponentTypeModifier;
-import ComponentType = core.proto.syntax.VizComponentType;
 
 interface Props {
     appContext: IAppContext;
@@ -20,7 +16,6 @@ interface Props {
 }
 
 export class VegaRenderer extends React.Component<Props> {
-
     protected renderContent(table: core.model.DatabaseTableInfo, width: number, height: number) {
         let vega = (result: proto.webdb.QueryResult, width: number, height: number) => (
             <core.access.ProxyProvider result={result}>
@@ -70,9 +65,8 @@ export class VegaRenderer extends React.Component<Props> {
                 );
             }
 
-            default: {
-                <VizCard title={this.props.vizInfo.title || 'Some Title'} />
-            };
+            default:
+                return <div />;
         }
     }
 
