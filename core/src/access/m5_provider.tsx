@@ -5,6 +5,9 @@ import * as model from '../model';
 import * as proto from '@dashql/proto';
 import { QueryProvider, Query } from './query_provider';
 
+// We run single-threaded at the moment, so deterministic output > true random temp names.
+const TMP_NAME = '__TEMP__';
+
 interface Props {
     /// The log manager
     logger: webdb.Logger;
@@ -53,9 +56,8 @@ export const M5Provider: React.FunctionComponent<Props> = (props: Props) => {
     // TODO Use safe temporary table name
     //
     const binExpr = `round(${canvasWidth}*(${xName}-${xDomainMin})/(${xDomainMax}-${xDomainMin}))`;
-    const tmp = 'sometemp';
     const before = `
-CREATE TEMPORARY TABLE ${tmp} AS (
+CREATE TEMPORARY TABLE ${TMP_NAME} AS (
     SELECT ${binExpr} as k,
         min(${xName}) as _xmin_x, arg_min(${yName}, ${xName}) as _xmin_y,
         max(${xName}) as _xmax_x, arg_max(${yName}, ${xName}) as _xmax_y,
@@ -65,16 +67,16 @@ CREATE TEMPORARY TABLE ${tmp} AS (
 );  `;
     const data = `
 SELECT * FROM (
-    SELECT _xmin_x AS ${xName}, _xmin_y AS ${yName} FROM ${tmp}
+    SELECT _xmin_x AS ${xName}, _xmin_y AS ${yName} FROM ${TMP_NAME}
     UNION ALL
-    SELECT _xmax_x AS ${xName}, _xmax_y AS ${yName} FROM ${tmp}
+    SELECT _xmax_x AS ${xName}, _xmax_y AS ${yName} FROM ${TMP_NAME}
     UNION ALL
-    SELECT _ymin_x AS ${xName}, _ymin_y AS ${yName} FROM ${tmp}
+    SELECT _ymin_x AS ${xName}, _ymin_y AS ${yName} FROM ${TMP_NAME}
     UNION ALL
-    SELECT _ymax_x AS ${xName}, _ymax_y AS ${yName} FROM ${tmp}
+    SELECT _ymax_x AS ${xName}, _ymax_y AS ${yName} FROM ${TMP_NAME}
 ) combined ORDER BY ${xName}
     `;
-    const after = `DROP TABLE ${tmp}`;
+    const after = `DROP TABLE ${TMP_NAME}`;
 
     return (
         <QueryProvider logger={props.logger} database={props.database} query={{ before, data, after }}>
