@@ -58,7 +58,6 @@ export class VizComposer {
     _vegaSpec: v.Spec | null = null;
 
     constructor(statistics: platform.TableStatisticsResolver) {
-        console.assert(statistics !== null && statistics != undefined, "viz composer requires table statistics")
         this._tableStatistics = statistics;
         this._inputVegaLiteSpec = {
             autosize: {
