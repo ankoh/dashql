@@ -9,7 +9,6 @@
         "@dashql/webdb": "file:../webdb/",
         "axios": "^0.21.1",
         "canvas": "^2.7.0",
-        "chart.js": "^2.9.4",
         "flatbuffers": "^1.12.0",
         "hash-wasm": "^4.5.0",
         "immutable": "^4.0.0-rc.12",
