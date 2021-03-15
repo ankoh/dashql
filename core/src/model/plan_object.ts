@@ -18,8 +18,4 @@ export interface PlanObject {
     timeCreated: Date;
     /// The time when the object was updated
     timeUpdated: Date;
-    /// The short name (if any)
-    nameQualified: string;
-    /// The short name (if any)
-    nameShort: string;
 }

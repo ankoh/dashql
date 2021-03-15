@@ -728,3 +728,37 @@
         </graph>
     </step>
 </test>
+<test name="script">
+    <step>
+        <text>
+            VIZ foo USING VEGA (
+                title = 'Line Chart',
+                position = (row = 0, column = 6, width = 6, height = 4),
+                mark = 'line',
+                encoding = (
+                    x = (field = 'x', type = 'quantitative'),
+                    y = (field = 'y', type = 'quantitative')
+                )
+            );
+        </text>
+        <parameters />
+        <evaluations />
+        <visualizations>
+            <visualization title="Line Chart">
+                <target loc="17..20" text="foo" />
+                <position row="0" column="6" width="6" height="4" />
+                <components>
+                    <component type="VEGA">{"title":"Line Chart","position":{"width":6.0,"row":0.0,"height":4.0,"column":6.0},"mark":"line","encoding":{"y":{"type":"quantitative","field":"y"},"x":{"type":"quantitative","field":"x"}}}</component>
+                </components>
+            </visualization>
+        </visualizations>
+        <graph next_object_id="1">
+            <setup />
+            <program>
+                <action origin="0" type="CREATE_VIZ" status="NONE" object_id="0">
+                    <target name_qualified="" name_short="" />
+                </action>
+            </program>
+        </graph>
+    </step>
+</test>
