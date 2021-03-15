@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - master
+      - kohn/testing
   pull_request:
     branches:
       - master

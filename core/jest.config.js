@@ -9,7 +9,8 @@ module.exports = {
         '\\.wasm$': '<rootDir>/test/transforms/file_transform.js',
     },
     transformIgnorePatterns: [
-        "<rootDir>/node_modules/(?!(vega-lite)/)"
+        "<rootDir>/node_modules/(?!(vega-lite)/)",
+        "/flatbuffers/",
     ],
     testRegex: '(/__tests__/.*|(\\.|/)(test|spec))\\.tsx?$',
     moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
