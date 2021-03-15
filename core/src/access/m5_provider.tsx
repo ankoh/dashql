@@ -36,14 +36,24 @@ export const M5Provider: React.FunctionComponent<Props> = (props: Props) => {
     const xDomainMin = xDomain[0];
     const xDomainMax = xDomain[1];
 
-    // Build query.
-    // Based on the idea of M4
+    // Based on the idea of M4.
     //
     // M4: A Visualization-Oriented Time Series Data Aggregation
     // Uwe Jugel, Zbigniew Jerzak, Gregor Hackenbroich, and Volker Markl. 2014.
     //
+    // M4 has problems with many duplicates on y.
+    // An almost distinct x is a reasonable assumption for time series but y may very well still contain many duplicates.
+    // Therefore, M4 cannot make any guarantees about the ouput size which is very dangerous.
+    // We pick up the idea from M4 to consider values on the y-axis but replace their join with
+    // the aggregate functions arg_min and arg_max.
+    //
+    // We use a temporary table to ensure that we do the aggregation only once.
+    // (At the time of writing, DuckDB does not share common subtrees between UNION ALL).
+    //
+    // TODO Use safe temporary table name
+    //
     const binExpr = `round(${canvasWidth}*(${xName}-${xDomainMin})/(${xDomainMax}-${xDomainMin}))`;
-    const tmp = "sometemp";
+    const tmp = 'sometemp';
     const before = `
 CREATE TEMPORARY TABLE ${tmp} AS (
     SELECT ${binExpr} as k,
