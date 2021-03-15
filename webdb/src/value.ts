@@ -188,4 +188,15 @@ export class Value {
         }
         return v;
     }
+
+    public static DOUBLE(lit: number): Value {
+        const v = new Value({
+            typeId: proto.SQLTypeID.DOUBLE,
+            width: 0,
+            scale: 0,
+        });
+        v._physicalType = PhysicalType.NUMBER;
+        v._value_number = lit;
+        return v;
+    }
 }

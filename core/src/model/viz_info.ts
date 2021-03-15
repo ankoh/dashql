@@ -38,14 +38,14 @@ export type DomainValues = DomainValue[];
 export interface VizDataSource {
     readonly queryType: VizQueryType;
     readonly targetQualified: string;
-    readonly filters: LogicalComposition<Predicate>[];
-    readonly aggregates: AggregatedFieldDef[];
-    readonly orderBy: SortField[];
-    readonly m4AttributeX: string | null;
-    readonly m4AttributeY: string | null;
-    readonly m4DomainX: DomainValues;
-    readonly rowCount: number | null;
-    readonly sampleSize: number;
+    readonly filters?: LogicalComposition<Predicate>[];
+    readonly aggregates?: AggregatedFieldDef[];
+    readonly orderBy?: SortField[];
+    readonly m4AttributeX?: string;
+    readonly m4AttributeY?: string;
+    readonly m4DomainX?: DomainValues;
+    readonly rowCount?: number;
+    readonly sampleSize?: number;
 }
 
 export interface VizPosition {
