@@ -22,7 +22,7 @@ RUN groupadd -g 10101 actions
 
 ENV NVM_DIR=/opt/nvm
 ARG NVM_VERSION="v0.37.2"
-ARG NODE_VERSION="v15.2"
+ARG NODE_VERSION="v15.10"
 RUN mkdir -p /opt/nvm \
     && ls -lisah /opt/nvm \
     && curl https://raw.githubusercontent.com/creationix/nvm/${NVM_VERSION}/install.sh | bash \
