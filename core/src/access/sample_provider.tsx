@@ -31,12 +31,12 @@ export const SampleProvider: React.FunctionComponent<Props> = (props: Props) => 
 
     // Build select
     let orderBy = '';
-    if (props.data.orderBy.length > 0) {
+    if (props.data.orderBy && props.data.orderBy.length > 0) {
         orderBy = ` ORDER BY ${props.data.orderBy.map(o => o.field + ' ' + (o.order || '')).join(',')}`;
     }
     let sampling = ` TABLESAMPLE RESERVOIR(${props.data.sampleSize} ROWS)`;
 
-    const script = `SELECT * FROM ${props.table.nameShort}${sampling}${orderBy}`;
+    const script = `SELECT * FROM ${props.table.tableNameShort}${sampling}${orderBy}`;
     return (
         <QueryProvider logger={props.logger} database={props.database} query={script}>
             {result => props.children.bind(this)(result)}
