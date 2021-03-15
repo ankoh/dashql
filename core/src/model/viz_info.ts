@@ -35,15 +35,19 @@ export enum VizQueryType {
 export type DomainValue = null | string | number | boolean | ExprRef | v.SignalRef | DateTime;
 export type DomainValues = DomainValue[];
 
+export interface M4Config {
+    attributeX: string;
+    attributeY: string;
+    domainX: DomainValues;
+};
+
 export interface VizDataSource {
     readonly queryType: VizQueryType;
     readonly targetQualified: string;
     readonly filters?: LogicalComposition<Predicate>[];
     readonly aggregates?: AggregatedFieldDef[];
     readonly orderBy?: SortField[];
-    readonly m4AttributeX?: string;
-    readonly m4AttributeY?: string;
-    readonly m4DomainX?: DomainValues;
+    readonly m4Config?: M4Config;
     readonly rowCount?: number;
     readonly sampleSize?: number;
 }
