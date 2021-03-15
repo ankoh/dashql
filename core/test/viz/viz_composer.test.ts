@@ -60,9 +60,9 @@ VIZ foo USING VEGA (
             expected: {
                 renderer: model.VizRendererType.BUILTIN_VEGA,
                 dataSource: {
-                    queryType: model.VizQueryType.M4,
+                    queryType: model.VizQueryType.M5,
                     targetQualified: 'global.foo',
-                    m4Config: {
+                    m5Config: {
                         attributeX: 'x',
                         attributeY: 'y',
                         domainX: [0.0, 100.0],

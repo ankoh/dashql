@@ -24,15 +24,15 @@ interface Props {
     children: (result: proto.webdb.QueryResult) => React.ReactNode;
 }
 
-export const M4Provider: React.FunctionComponent<Props> = (props: Props) => {
+export const M5Provider: React.FunctionComponent<Props> = (props: Props) => {
     const canvasWidth = 1000;
-    const m4Config = props.data.m4Config;
-    console.assert(!!m4Config, 'M4 not configured!');
+    const m5Config = props.data.m5Config;
+    console.assert(!!m5Config, 'M5 not configured!');
 
     // Get x and y attributes
-    const xName = m4Config!.attributeX!;
-    const yName = m4Config!.attributeY!;
-    const xDomain = m4Config?.domainX!;
+    const xName = m5Config!.attributeX!;
+    const yName = m5Config!.attributeY!;
+    const xDomain = m5Config?.domainX!;
     const xDomainMin = xDomain[0];
     const xDomainMax = xDomain[1];
 
