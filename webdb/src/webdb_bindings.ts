@@ -6,14 +6,54 @@ import { flatbuffers } from 'flatbuffers';
 import { Logger } from './log';
 import { QueryRunOptions } from './query_options';
 
-export interface WebDBRuntime {
-    bindings: WebDBBindings | null;
-    dashql_blob_stream_underflow(blobId: number, buf: number, size: number): number;
-}
-
-export var DefaultWebDBRuntime: WebDBRuntime = {
+export var DefaultWebDBRuntime = {
     bindings: null,
     dashql_blob_stream_underflow: function (blobId: number, buf: number, size: number) {
+        throw Error('undefined');
+    },
+    dashql_webdb_fs_read: function (blobId: number, buf: number, bytes: number) {
+        throw Error('undefined');
+    },
+    dashql_webdb_fs_write: function (blobId: number, buf: number, bytes: number) {
+        throw Error('undefined');
+    },
+    dashql_webdb_fs_directory_exists: function (pathPtr: number, pathLen: number) {
+        throw Error('undefined');
+    },
+    dashql_webdb_fs_directory_create: function (pathPtr: number, pathLen: number) {
+        throw Error('undefined');
+    },
+    dashql_webdb_fs_directory_remove: function (pathPtr: number, pathLen: number) {
+        throw Error('undefined');
+    },
+    dashql_webdb_fs_directory_list_files: function (pathPtr: number, pathLen: number) {
+        throw Error('undefined');
+    },
+    dashql_webdb_fs_glob: function (pathPtr: number, pathLen: number) {
+        throw Error('undefined');
+    },
+    dashql_webdb_fs_file_open: function (pathPtr: number, pathLen: number, flags: number) {
+        throw Error('undefined');
+    },
+    dashql_webdb_fs_file_close: function (blobId: number) {
+        throw Error('undefined');
+    },
+    dashql_webdb_fs_file_get_size: function (blobId: number) {
+        throw Error('undefined');
+    },
+    dashql_webdb_fs_file_get_last_modified_time: function (blobId: number) {
+        throw Error('undefined');
+    },
+    dashql_webdb_fs_file_move: function (fromPtr: number, fromLen: number, toPtr: number, toLen: number) {
+        throw Error('undefined');
+    },
+    dashql_webdb_fs_file_set_pointer: function (blobId: number, location: number) {
+        throw Error('undefined');
+    },
+    dashql_webdb_fs_file_exists: function (pathPtr: number, pathLen: number) {
+        throw Error('undefined');
+    },
+    dashql_webdb_fs_file_remove: function (pathPtr: number, pathLen: number) {
         throw Error('undefined');
     },
 };
@@ -140,6 +180,11 @@ export abstract class WebDBBindings {
     /// Disconnect from database
     public disconnect(conn: number): void {
         this.instance!.ccall('dashql_webdb_disconnect', null, ['number'], [conn]);
+    }
+
+    /// Invoke the file system test
+    public fsTest(): void {
+        this.instance!.ccall('dashql_webdb_fs_basic_read', null, [], []);
     }
 
     /// Encode query arguments

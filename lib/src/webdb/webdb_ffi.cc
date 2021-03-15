@@ -4,6 +4,7 @@
 
 #include "dashql/common/ffi_response.h"
 #include "dashql/proto_generated.h"
+#include "dashql/webdb/filesystem.h"
 #include "dashql/webdb/webdb.h"
 
 using namespace dashql;
@@ -63,5 +64,27 @@ void dashql_webdb_analyze_query(FFIResponse* packed, ConnectionHdl connHdl, cons
     auto c = reinterpret_cast<WebDB::Connection*>(connHdl);
     auto r = c->AnalyzeQuery(text);
     FFIResponseBuffer::GetInstance().Store(*packed, std::move(r));
+}
+
+/// Small test for WebDB file system
+void dashql_webdb_fs_basic_read() {
+    duckdb::DBConfig config;
+    config.file_system = std::make_unique<WebDBFileSystem>();
+
+    auto handle = config.file_system->OpenFile("./test/blob.txt", duckdb::FileFlags::FILE_FLAGS_READ);
+    std::cout << "reading from ./test/blob.txt:" << std::endl;
+    char buf[5];
+    int64_t len = 0;
+    while ((len = config.file_system->Read(*handle, &buf, 5)) > 0) {
+        std::cout.write(buf, len);
+    }
+
+    std::cout << std::endl;
+
+    auto db = std::make_unique<duckdb::DuckDB>(nullptr, &config);
+    auto con = duckdb::Connection{*db};
+    std::cout << "scanning csv from ./test/test.csv:" << std::endl;
+    auto result = con.Query("SELECT * FROM read_csv_auto('./test/test.csv');");
+    std::cout << result->ToString() << std::endl;
 }
 }
