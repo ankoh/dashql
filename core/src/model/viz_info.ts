@@ -38,7 +38,7 @@ export type DomainValues = DomainValue[];
 export interface VizDataSource {
     readonly queryType: VizQueryType;
     readonly targetQualified: string;
-    readonly predicates: LogicalComposition<Predicate>[];
+    readonly filters: LogicalComposition<Predicate>[];
     readonly aggregates: AggregatedFieldDef[];
     readonly orderBy: SortField[];
     readonly m4AttributeX: string | null;
