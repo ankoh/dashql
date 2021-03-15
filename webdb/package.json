@@ -6,6 +6,7 @@
     "license": "AGPL-3.0-or-later",
     "dependencies": {
         "@dashql/proto": "file:../proto/",
+        "fast-glob": "^3.2.5",
         "flatbuffers": "^1.12.0"
     },
     "devDependencies": {
@@ -29,7 +30,7 @@
         "fsevents": "*"
     },
     "scripts": {
-        "build": "webpack --mode=production && node ./gendts.js",
+        "build": "webpack --mode=development && node ./gendts.js",
         "test": "node ./node_modules/jest/bin/jest.js",
         "test:ci": "node ./node_modules/jest/bin/jest.js --ci --reporters=default --reporters=jest-junit"
     },

@@ -94,20 +94,22 @@ extern "C" {
 int64_t dashql_webdb_fs_read(dashql::BlobID blobId, void *buffer, int64_t bytes);
 int64_t dashql_webdb_fs_write(dashql::BlobID blobId, void *buffer, int64_t bytes);
 
-bool dashql_webdb_fs_directory_exists(const char *path);
-void dashql_webdb_fs_directory_create(const char *path);
-void dashql_webdb_fs_directory_remove(const char *path);
-bool dashql_webdb_fs_directory_list_files(const char *path);
-void dashql_webdb_fs_directory_list_files_callback(const char *path, bool is_dir);
+bool dashql_webdb_fs_directory_exists(const char *path, size_t pathLen);
+void dashql_webdb_fs_directory_create(const char *path, size_t pathLen);
+void dashql_webdb_fs_directory_remove(const char *path, size_t pathLen);
+bool dashql_webdb_fs_directory_list_files(const char *path, size_t pathLen);
+void dashql_webdb_fs_directory_list_files_callback(const char *path, size_t pathLen, bool is_dir);
+void dashql_webdb_fs_glob(const char *path, size_t pathLen);
+void dashql_webdb_fs_glob_callback(const char *path, size_t pathLen);
 
-dashql::BlobID dashql_webdb_fs_file_open(const char *path, uint8_t flags);
+dashql::BlobID dashql_webdb_fs_file_open(const char *path, size_t pathLen, uint8_t flags);
 void dashql_webdb_fs_file_close(dashql::BlobID blobId);
 int64_t dashql_webdb_fs_file_get_size(dashql::BlobID blobId);
 time_t dashql_webdb_fs_file_get_last_modified_time(dashql::BlobID blobId);
-void dashql_webdb_fs_file_move(const char *from, const char *to);
+void dashql_webdb_fs_file_move(const char *from, size_t fromLen, const char *to, size_t toLen);
 void dashql_webdb_fs_file_set_pointer(dashql::BlobID blobId, duckdb::idx_t location);
-bool dashql_webdb_fs_file_exists(const char *path);
-bool dashql_webdb_fs_file_remove(const char *path);
+bool dashql_webdb_fs_file_exists(const char *path, size_t pathLen);
+bool dashql_webdb_fs_file_remove(const char *path, size_t pathLen);
 }
 
 #endif
