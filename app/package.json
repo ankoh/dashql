@@ -37,8 +37,7 @@
         "redux": "^4.0.5",
         "redux-persist": "^6.0.0",
         "vega": "^5.19.1",
-        "vega-lite": "^5.0.0",
-        "victory": "^35.4.11"
+        "vega-lite": "^5.0.0"
     },
     "devDependencies": {
         "@types/classnames": "^2.2.11",

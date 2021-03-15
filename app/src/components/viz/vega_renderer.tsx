@@ -9,7 +9,6 @@ import { AutoSizer } from '../../util/autosizer';
 import { IAppContext, withAppContext } from '../../app_context';
 import { VizCard } from './viz_card';
 import { Vega } from 'react-vega';
-import * as vy from 'victory';
 
 import TypeModifier = core.proto.syntax.VizComponentTypeModifier;
 import ComponentType = core.proto.syntax.VizComponentType;
