@@ -9,6 +9,8 @@ import { Launcher, Studio, Explorer, NotFound } from './pages';
 import { withNavBar } from './components';
 import { AppContextProvider, IAppContext } from './app_context';
 
+import 'bootstrap/dist/css/bootstrap.min.css';
+
 import './app.module.css';
 import './fonts/fonts.module.css';
 import 'react-grid-layout/css/styles.css';

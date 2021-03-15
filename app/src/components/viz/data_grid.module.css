@@ -1,12 +1,4 @@
-@value v_border_radius: 8px;
-@value v_border_color: rgb(200, 200, 200);
-
-@value v_cell_border: 1px solid rgb(225, 225, 225);
-@value v_cell_headers_border: 1px solid rgb(215, 215, 215);
-@value v_cell_headers_bg: rgb(240, 240, 240);
-@value v_cell_headers_fg: rgb(0, 0, 0);
-@value v_cell_nodata_bg: rgb(225, 225, 225);
-@value v_cell_anchor_bg: rgb(240, 240, 240);
+@import "../../vars.module.css";
 
 .table {
     background-color: white;
@@ -15,7 +7,7 @@
 }
 
 .scrollbars {
-    border-radius: 0 0 v_border_radius v_border_radius;
+    border-radius: 0 0 var(--border_radius) var(--border_radius);
 }
 
 .cell_anchor {
@@ -25,19 +17,19 @@
 
     outline: none;
     box-sizing: border-box;
-    border-bottom: v_cell_headers_border;
-    border-right: v_cell_headers_border;
+    border-bottom: var(--datagrid_cell_headers_border);
+    border-right: var(--datagrid_cell_headers_border);
     text-align: center;
     line-height: 24px;
-    background-color: v_cell_anchor_bg;
+    background-color: --datagrid_cell_anchor_bg;
 }
 
 .cell_header_col {
     box-sizing: border-box;
-    border-bottom: v_cell_headers_border;
-    border-right: v_cell_headers_border;
-    color: v_cell_headers_fg;
-    background-color: v_cell_headers_bg;
+    border-bottom: var(--datagrid_cell_headers_border);
+    border-right: var(--datagrid_cell_headers_border);
+    color: var(--datagrid_cell_headers_fg);
+    background-color: var(--datagrid_cell_headers_bg);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -49,10 +41,10 @@
 
 .cell_header_row {
     box-sizing: border-box;
-    border-bottom: v_cell_headers_border;
-    border-right: v_cell_headers_border;
-    background-color: v_cell_headers_bg;
-    color: v_cell_headers_fg;
+    border-bottom: var(--datagrid_cell_headers_border);
+    border-right: var(--datagrid_cell_headers_border);
+    background-color: var(--datagrid_cell_headers_bg);
+    color: var(--datagrid_cell_headers_fg);
 
     display: grid;
     align-items: center;
@@ -61,8 +53,8 @@
 
 .cell_data {
     box-sizing: border-box;
-    border-bottom: v_cell_border;
-    border-right: v_cell_border;
+    border-bottom: var(--datagrid_cell_border);
+    border-right: var(--datagrid_cell_border);
 
     display: grid;
     align-items: center;
@@ -76,14 +68,14 @@
 
 .cell_nodata {
     box-sizing: border-box;
-    border-bottom: v_cell_border;
-    border-right: v_cell_border;
+    border-bottom: var(--datagrid_cell_border);
+    border-right: var(--datagrid_cell_border);
 
     display: grid;
     align-items: center;
     justify-content: center;
 
-    background-color: v_cell_nodata_bg;
+    background-color: var(--datagrid_cell_nodata_bg);
 }
 
 .grid_container {

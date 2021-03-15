@@ -15,7 +15,7 @@
     --log_timestamp_color: rgba(255, 255, 255, 0.6);
     --nav_bar_bg: rgb(30, 30, 30);
     --nav_bar_button_height: 48px;
-    --nav_bar_button_margin: 6px;
+    --nav_bar_button_margin: 4px 8px;
     --nav_bar_width: 76px;
     --nav_logo_bg: rgb(30, 30, 30);
     --nav_logo_height: 56px;
@@ -39,4 +39,12 @@
     --sys_panel_border_radius: 8px;
     --sys_subtitle_color: rgba(255, 255, 255, 0.6);
     --sys_subtitle_fontsize: 90%;
+    --vizcard_header_bg: rgb(245, 245, 245);
+    --vizcard_header_border: 1px solid rgb(215, 215, 215);
+    --datagrid_cell_border: 1px solid rgb(225, 225, 225);
+    --datagrid_cell_headers_border: 1px solid rgb(215, 215, 215);
+    --datagrid_cell_headers_bg: rgb(240, 240, 240);
+    --datagrid_cell_headers_fg: rgb(0, 0, 0);
+    --datagrid_cell_nodata_bg: rgb(225, 225, 225);
+    --datagrid_cell_anchor_bg: rgb(240, 240, 240);
 }
