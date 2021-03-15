@@ -1,4 +1,4 @@
-export * from './m4_provider';
+export * from './m5_provider';
 export * from './proxy_provider';
 export * from './query_provider';
 export * from './sample_provider';

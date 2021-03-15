@@ -9,7 +9,6 @@ import { DateTime } from 'vega-lite/build/src/datetime';
 import { ExprRef } from 'vega-lite/build/src/expr';
 import * as v from 'vega';
 import * as vl from 'vega-lite';
-import * as webdb from '@dashql/webdb';
 
 export enum VizRendererType {
     BUILTIN_TABLE,
@@ -29,13 +28,13 @@ export interface VizInfo extends PlanObject {
 export enum VizQueryType {
     PIECEWISE_SCAN,
     RESERVOIR_SAMPLE,
-    M4,
+    M5,
 }
 
 export type DomainValue = null | string | number | boolean | ExprRef | v.SignalRef | DateTime;
 export type DomainValues = DomainValue[];
 
-export interface M4Config {
+export interface M5Config {
     attributeX: string;
     attributeY: string;
     domainX: DomainValues;
@@ -47,7 +46,7 @@ export interface VizDataSource {
     readonly filters?: LogicalComposition<Predicate>[];
     readonly aggregates?: AggregatedFieldDef[];
     readonly orderBy?: SortField[];
-    readonly m4Config?: M4Config;
+    readonly m5Config?: M5Config;
     readonly rowCount?: number;
     readonly sampleSize?: number;
 }
