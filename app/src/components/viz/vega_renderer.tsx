@@ -44,9 +44,9 @@ export class VegaRenderer extends React.Component<Props> {
         );
 
         switch (this.props.vizInfo.dataSource.queryType) {
-            case core.model.VizQueryType.M4: {
+            case core.model.VizQueryType.M5: {
                 return (
-                    <core.access.M4Provider
+                    <core.access.M5Provider
                         logger={this.props.appContext.platform!.logger}
                         database={this.props.appContext.platform!.database}
                         table={table}
@@ -54,7 +54,7 @@ export class VegaRenderer extends React.Component<Props> {
                         width={width}
                     >
                         {(result) => vega(result, width, height)}
-                    </core.access.M4Provider>
+                    </core.access.M5Provider>
                 );
             }
 

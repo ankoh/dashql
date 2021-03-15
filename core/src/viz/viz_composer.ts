@@ -47,8 +47,8 @@ export class VizComposer {
     _aggregates?: AggregatedFieldDef[];
     /// The data ordering (if any)
     _orderBy?: SortField[];
-    /// The M4 X-attributes (if any)
-    _m4Config?: model.M4Config;
+    /// The M5 X-attributes (if any)
+    _m5Config?: model.M5Config;
     /// The row count (if known)
     _rowCount?: number;
     /// The max sample size (if any)
@@ -252,15 +252,15 @@ export class VizComposer {
     protected analyzeVegaEncodings(spec: TopLevel<NormalizedLayerSpec>) {
         let table = this._tableStatistics.resolveTableInfo();
 
-        // Use m4 data source?
-        let useM4 = true;
-        let m4Config: model.M4Config | null = null;
+        // Use m5 data source?
+        let useM5 = true;
+        let m5Config: model.M5Config | null = null;
 
         // Iterate over all layer specs
         for (const layer of spec.layer) {
             // Skip nested layers
             if (!isUnitSpec(layer)) {
-                useM4 = false;
+                useM5 = false;
                 continue;
             }
 
@@ -273,16 +273,16 @@ export class VizComposer {
             if (x && y) {
                 // Has field properties?
                 if (isFieldDef(x) && isFieldDef(y) && x.field && y.field) {
-                    useM4 &&= table?.columnNameMapping.has(x.field) || table?.columnNameMapping.has(y.field) || false;
-                    if (useM4) {
-                        m4Config = {
+                    useM5 &&= table?.columnNameMapping.has(x.field) || table?.columnNameMapping.has(y.field) || false;
+                    if (useM5) {
+                        m5Config = {
                             attributeX: x.field!,
                             attributeY: y.field!,
                             domainX: [],
                         };
                         xID = table?.columnNameMapping.get(x.field)!;
                         yID = table?.columnNameMapping.get(y.field)!;
-                        const resolver = new ResolveMinMaxDomain(this._tableStatistics, xID, m4Config.domainX);
+                        const resolver = new ResolveMinMaxDomain(this._tableStatistics, xID, m5Config.domainX);
                         this._vegaLiteEditOps.push(resolver);
                     }
                 }
@@ -291,7 +291,7 @@ export class VizComposer {
                 if (xID && isScaleFieldDef(x)) {
                     const scale = x.scale!;
                     const scaleType = scale.type;
-                    useM4 &&= scaleType ? hasContinuousDomain(scaleType) : true;
+                    useM5 &&= scaleType ? hasContinuousDomain(scaleType) : true;
                     if (!scale.domain) {
                         scale.domain = [];
                         const resolver = new ResolveMinMaxDomain(this._tableStatistics, xID, scale.domain);
@@ -311,10 +311,10 @@ export class VizComposer {
             }
         }
 
-        // Use m4 sampling?
-        if (useM4) {
-            this._queryType = model.VizQueryType.M4;
-            this._m4Config = m4Config || undefined;
+        // Use m5 sampling?
+        if (useM5) {
+            this._queryType = model.VizQueryType.M5;
+            this._m5Config = m5Config || undefined;
         }
     }
 
@@ -356,7 +356,7 @@ export class VizComposer {
                 filters: this._filters,
                 aggregates: this._aggregates,
                 orderBy: this._orderBy,
-                m4Config: this._m4Config,
+                m5Config: this._m5Config,
                 rowCount: undefined,
                 sampleSize: 10000,
             },
