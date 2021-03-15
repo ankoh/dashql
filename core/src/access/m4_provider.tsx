@@ -26,15 +26,13 @@ interface Props {
 
 export const M4Provider: React.FunctionComponent<Props> = (props: Props) => {
     const canvasWidth = 1000;
+    const m4Config = props.data.m4Config;
+    console.assert(!!m4Config, 'M4 not configured!');
 
     // Get x and y attributes
-    console.assert(!!props.data.m4AttributeX, 'M4 provider requires X attribute');
-    console.assert(!!props.data.m4AttributeY, 'M4 provider requires Y attribute');
-    const xName = props.data.m4AttributeX!;
-    const yName = props.data.m4AttributeY!;
-
-    console.assert(props.data.m4DomainX && props.data.m4DomainX.length >= 2, 'M4 provider requires X domain');
-    const xDomain = props.data.m4DomainX!;
+    const xName = m4Config!.attributeX!;
+    const yName = m4Config!.attributeY!;
+    const xDomain = m4Config?.domainX!;
     const xDomainMin = xDomain[0];
     const xDomainMax = xDomain[1];
 
@@ -46,11 +44,11 @@ export const M4Provider: React.FunctionComponent<Props> = (props: Props) => {
     //
     const bins = `round(${canvasWidth}*(${xName}-${xDomainMin})/(${xDomainMax}-${xDomainMin}))`;
     const script = `
-SELECT * FROM ${props.table.nameShort}, (
+SELECT * FROM ${props.table.tableNameShort}, (
     SELECT ${bins} as k,
         min(${yName}) as _y_min, max(${yName}) as _y_max,
         min(${xName}) as _x_min, max(${xName}) as _x_max,
-    FROM ${props.table.nameShort} GROUP BY k) as tmp
+    FROM ${props.table.tableNameShort} GROUP BY k) as tmp
 WHERE k = ${bins}
 AND (${yName} = _y_min OR ${yName} = _y_max OR ${xName} = _x_min OR ${xName} = _x_max)
     `;
