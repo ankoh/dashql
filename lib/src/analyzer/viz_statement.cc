@@ -346,7 +346,7 @@ flatbuffers::Offset<proto::analyzer::VizComponent> VizComponent::Pack(flatbuffer
     proto::analyzer::VizComponentBuilder cb{builder};
     cb.add_type(type_);
     cb.add_type_modifiers(modifiers_vec);
-    if (spec) cb.add_component_spec(*spec);
+    if (spec) cb.add_options(*spec);
     return cb.Finish();
 }
 
