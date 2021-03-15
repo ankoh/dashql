@@ -45,7 +45,14 @@ export abstract class VizActionLogic extends ProgramActionLogic {
         // Read the component specs and add them to the compose
         for (let i = 0; i < this._vizSpec.componentsLength(); ++i) {
             const c = this._vizSpec.components(i)!;
-            this._vizComposer.addComponent(c)!;
+            const type = c.type()!;
+            let mods: Map<proto.syntax.VizComponentTypeModifier, boolean> = new Map();
+            for (let i = 0; i < c.typeModifiersLength(); ++i) {
+                mods.set(c.typeModifiers(i)!, true);
+            }
+            const optionsJSON = c.componentSpec() || "";
+            const options = JSON.parse(optionsJSON);
+            this._vizComposer.addComponent(type, mods, options)!;
         }
         // Combine all the components
         this._vizComposer.combineComponents();

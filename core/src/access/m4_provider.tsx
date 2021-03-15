@@ -38,24 +38,21 @@ export const M4Provider: React.FunctionComponent<Props> = (props: Props) => {
     const xDomainMin = xDomain[0];
     const xDomainMax = xDomain[1];
 
-    // Build binning expression
-    const keyExpr = `round(${canvasWidth}*(${xName}-${xDomainMin})/(${xDomainMax}-${xDomainMin}))`;
-
     // Build query.
     // Directly taken from here:
     //
     // M4: A Visualization-Oriented Time Series Data Aggregation
     // Uwe Jugel, Zbigniew Jerzak, Gregor Hackenbroich, and Volker Markl. 2014.
     //
+    const bins = `round(${canvasWidth}*(${xName}-${xDomainMin})/(${xDomainMax}-${xDomainMin}))`;
     const script = `
 SELECT * FROM ${props.table.nameShort}, (
-SELECT ${keyExpr} as k,
-    min(${yName}) as _y_min, max(${yName}) as _y_max,
-    min(${xName}) as _x_min, max(${xName}) as _x_max,
-FROM ${props.table.nameShort} GROUP BY k) as tmp
-WHERE k = ${keyExpr}
-AND   (${yName} = _y_min OR ${yName} = _y_max OR
-${xName} = _x_min OR ${xName} = _x_max)
+    SELECT ${bins} as k,
+        min(${yName}) as _y_min, max(${yName}) as _y_max,
+        min(${xName}) as _x_min, max(${xName}) as _x_max,
+    FROM ${props.table.nameShort} GROUP BY k) as tmp
+WHERE k = ${bins}
+AND (${yName} = _y_min OR ${yName} = _y_max OR ${xName} = _x_min OR ${xName} = _x_max)
     `;
 
     return (

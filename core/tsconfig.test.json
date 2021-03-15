@@ -1,7 +1,21 @@
 {
-    "extends": "./tsconfig.json",
     "compilerOptions": {
-        "lib": ["esnext", "es2020", "dom"]
+        "outDir": "./dist/",
+        "target": "es6",
+        "module": "commonjs",
+        "moduleResolution": "node",
+        "sourceMap": true,
+        "strict": true,
+        "declaration": true,
+        "declarationMap": true,
+        "declarationDir": "./dist/types/",
+        "noImplicitAny": true,
+        "esModuleInterop": true,
+        "jsx": "react",
+        "types": ["emscripten", "jest", "node"],
+        "lib": ["esnext", "es2020", "dom"],
+        "baseUrl": ".",
+        "allowJs": true
     },
     "exclude": ["./node_modules"]
 }

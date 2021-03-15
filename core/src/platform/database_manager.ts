@@ -30,8 +30,12 @@ export class DatabaseManager {
     }
 
     /// Resolve table statistics
-    public resolveTableStatistics(table: string) : TableStatisticsResolver | null {
-        return this._tableStatistics.get(table) || null;
+    public resolveTableStatistics(qualifiedTableName: string) : TableStatisticsResolver | null {
+        const prev = this._tableStatistics.get(qualifiedTableName);
+        if (!!prev) return prev;
+        const stats = new DatabaseTableStatistics(this, qualifiedTableName);
+        this._tableStatistics.set(qualifiedTableName, stats);
+        return stats;
     }
 
     /// Setup the database connection

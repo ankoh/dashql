@@ -30,8 +30,8 @@ export class VizComposer {
     _renderer: model.VizRendererType | null = null;
     /// The query type
     _queryType: model.VizQueryType | null = model.VizQueryType.RESERVOIR_SAMPLE;
-    /// The predicates (if any)
-    _predicates: LogicalComposition<Predicate>[] = [];
+    /// The filters (if any)
+    _filters: LogicalComposition<Predicate>[] = [];
     /// The aggregates
     _aggregates: AggregatedFieldDef[] = [];
     /// The data ordering (if any)
@@ -58,6 +58,7 @@ export class VizComposer {
     _vegaSpec: v.Spec | null = null;
 
     constructor(statistics: platform.TableStatisticsResolver) {
+        console.assert(statistics !== null && statistics != undefined, "viz composer requires table statistics")
         this._tableStatistics = statistics;
         this._inputVegaLiteSpec = {
             autosize: {
@@ -83,19 +84,43 @@ export class VizComposer {
     }
 
     /// Report that the component is invalid
-    protected invalidComponent(_component: proto.analyzer.VizComponent, reason: string) {
+    protected invalidComponent(type: proto.syntax.VizComponentType, modifiers: Map<proto.syntax.VizComponentTypeModifier, boolean>, options: any, reason: string) {
         console.error(reason);
     }
 
-    /// Analayze a single viz component
-    public addComponent(component: proto.analyzer.VizComponent) {
-        // Collect type
-        const type = component.type()!;
-        let typeModifiers: Map<proto.syntax.VizComponentTypeModifier, boolean> = new Map();
-        for (let i = 0; i < component.typeModifiersLength(); ++i) {
-            typeModifiers.set(component.typeModifiers(i)!, true);
-        }
+    /// Add a vega component
+    protected addVegaComponent(type: proto.syntax.VizComponentType, modifiers: Map<proto.syntax.VizComponentTypeModifier, boolean>, options: any = null) {
 
+        // XXX make smarter
+
+        // Read field encoding
+        const readFieldEncoding = (spec: any, field: string) => {
+            if (typeof spec[field] === 'string' || spec[field] instanceof String) {
+                return { field: field };
+            } else {
+                return spec.encoding?.[field];
+            }
+        };
+
+        if (options != null) {
+            this._inputVegaLiteSpec.transform?.push(...options.transform);
+            this._inputVegaLiteSpec.layer.push({
+                ...options,
+                title: undefined,
+                position: undefined,
+                x: undefined,
+                y: undefined,
+                encoding: {
+                    ...options.encoding,
+                    x: readFieldEncoding(options, 'x'),
+                    y: readFieldEncoding(options, 'y'),
+                },
+            });
+        }
+    }
+
+    /// Analayze a single viz component
+    public addComponent(type: proto.syntax.VizComponentType, modifiers: Map<proto.syntax.VizComponentTypeModifier, boolean>, options: any = null) {
         switch (type) {
             case proto.syntax.VizComponentType.VEGA:
             case proto.syntax.VizComponentType.AREA:
@@ -110,48 +135,24 @@ export class VizComposer {
             case proto.syntax.VizComponentType.SCATTER:
             case proto.syntax.VizComponentType.VORONOI: {
                 if (this._renderer != null && this._renderer != model.VizRendererType.BUILTIN_VEGA) {
-                    this.invalidComponent(component, 'viz component requires vega renderer');
+                    this.invalidComponent(type, modifiers, options, 'viz component requires vega renderer');
                     return;
                 }
                 // XXX conflicts
                 this._renderer = model.VizRendererType.BUILTIN_VEGA;
+                this.addVegaComponent(type, modifiers, options);
                 break;
             }
             case proto.syntax.VizComponentType.NUMBER:
             case proto.syntax.VizComponentType.TABLE: {
                 if (this._renderer != null && this._renderer != model.VizRendererType.BUILTIN_TABLE) {
-                    this.invalidComponent(component, 'viz component requires vega table');
+                    this.invalidComponent(type, modifiers, options, 'viz component requires vega table');
                     return;
                 }
                 // XXX conflicts
                 this._renderer = model.VizRendererType.BUILTIN_TABLE;
                 break;
             }
-        }
-
-        // Read field encoding
-        const readFieldEncoding = (spec: any, field: string) => {
-            if (typeof spec[field] === 'string' || spec[field] instanceof String) {
-                return { field: field };
-            } else {
-                return spec.encoding[field];
-            }
-        };
-
-        const rawSpec = component.componentSpec();
-        if (rawSpec != null) {
-            const spec = JSON.parse(rawSpec);
-            this._inputVegaLiteSpec.transform?.push(...spec.transform);
-            this._inputVegaLiteSpec.layer.push({
-                ...spec,
-                x: undefined,
-                y: undefined,
-                encoding: {
-                    ...spec.encoding,
-                    x: readFieldEncoding(spec, 'x'),
-                    y: readFieldEncoding(spec, 'y'),
-                },
-            });
         }
     }
 
@@ -361,7 +362,7 @@ export class VizComposer {
             dataSource: {
                 queryType: model.VizQueryType.RESERVOIR_SAMPLE,
                 targetQualified: table.nameQualified,
-                predicates: this._predicates || [],
+                filters: this._filters || [],
                 aggregates: this._aggregates || [],
                 orderBy: this._orderBy || [],
                 m4AttributeX: this._m4AttributeX,
