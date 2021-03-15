@@ -33,6 +33,7 @@ type TaskVariant =
     | Task<AsyncWebDBRequestType.INGEST_BLOBSTREAM, BlobStream, null>
     | Task<AsyncWebDBRequestType.IMPORT_CSV, [number, BlobStream, string, string], null>
     | Task<AsyncWebDBRequestType.PING, null, null>
+    | Task<AsyncWebDBRequestType.FS_TEST, null, null>
     | Task<AsyncWebDBRequestType.OPEN, string | null, null>
     | Task<AsyncWebDBRequestType.CONNECT, null, ConnectionID>
     | Task<AsyncWebDBRequestType.DISCONNECT, ConnectionID, null>
@@ -153,6 +154,7 @@ export class AsyncWebDB {
         switch (task.type) {
             case AsyncWebDBRequestType.RESET:
             case AsyncWebDBRequestType.PING:
+            case AsyncWebDBRequestType.FS_TEST:
             case AsyncWebDBRequestType.INGEST_BLOBSTREAM:
             case AsyncWebDBRequestType.IMPORT_CSV:
             case AsyncWebDBRequestType.OPEN:
@@ -260,6 +262,12 @@ export class AsyncWebDB {
             AsyncWebDBRequestType.DISCONNECT,
             conn,
         );
+        return await this.postTask(task);
+    }
+
+    /// Invoke the file system test
+    public async fsTest(): Promise<null> {
+        const task = new Task<AsyncWebDBRequestType.FS_TEST, null, null>(AsyncWebDBRequestType.FS_TEST, null);
         return await this.postTask(task);
     }
 
