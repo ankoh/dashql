@@ -62,9 +62,11 @@ VIZ foo USING VEGA (
                 dataSource: {
                     queryType: model.VizQueryType.M4,
                     targetQualified: 'global.foo',
-                    m4AttributeX: 'x',
-                    m4AttributeY: 'y',
-                    m4DomainX: [0.0, 100.0],
+                    m4Config: {
+                        attributeX: 'x',
+                        attributeY: 'y',
+                        domainX: [0.0, 100.0],
+                    },
                     sampleSize: 10000,
                 },
                 vegaLite: {

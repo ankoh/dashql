@@ -48,11 +48,7 @@ export class VizComposer {
     /// The data ordering (if any)
     _orderBy?: SortField[];
     /// The M4 X-attributes (if any)
-    _m4AttributeX?: string;
-    /// The M4 Y-attributes (if any)
-    _m4AttributeY?: string;
-    /// The M4 X-domain (if any)
-    _m4DomainX?: model.DomainValues;
+    _m4Config?: model.M4Config;
     /// The row count (if known)
     _rowCount?: number;
     /// The max sample size (if any)
@@ -258,9 +254,7 @@ export class VizComposer {
 
         // Use m4 data source?
         let useM4 = true;
-        let m4AttributeX: string | null = null;
-        let m4AttributeY: string | null = null;
-        let m4DomainX: model.DomainValues = [];
+        let m4Config: model.M4Config | null = null;
 
         // Iterate over all layer specs
         for (const layer of spec.layer) {
@@ -281,12 +275,14 @@ export class VizComposer {
                 if (isFieldDef(x) && isFieldDef(y) && x.field && y.field) {
                     useM4 &&= table?.columnNameMapping.has(x.field) || table?.columnNameMapping.has(y.field) || false;
                     if (useM4) {
-                        m4AttributeX = x.field;
-                        m4AttributeY = y.field;
-                        m4DomainX = [];
+                        m4Config = {
+                            attributeX: x.field!,
+                            attributeY: y.field!,
+                            domainX: [],
+                        };
                         xID = table?.columnNameMapping.get(x.field)!;
                         yID = table?.columnNameMapping.get(y.field)!;
-                        const resolver = new ResolveMinMaxDomain(this._tableStatistics, xID, m4DomainX);
+                        const resolver = new ResolveMinMaxDomain(this._tableStatistics, xID, m4Config.domainX);
                         this._vegaLiteEditOps.push(resolver);
                     }
                 }
@@ -318,9 +314,7 @@ export class VizComposer {
         // Use m4 sampling?
         if (useM4) {
             this._queryType = model.VizQueryType.M4;
-            this._m4AttributeX = m4AttributeX || undefined;
-            this._m4AttributeY = m4AttributeY || undefined;
-            this._m4DomainX = m4DomainX;
+            this._m4Config = m4Config || undefined;
         }
     }
 
@@ -362,9 +356,7 @@ export class VizComposer {
                 filters: this._filters,
                 aggregates: this._aggregates,
                 orderBy: this._orderBy,
-                m4AttributeX: this._m4AttributeX,
-                m4AttributeY: this._m4AttributeY,
-                m4DomainX: this._m4DomainX,
+                m4Config: this._m4Config,
                 rowCount: undefined,
                 sampleSize: 10000,
             },
