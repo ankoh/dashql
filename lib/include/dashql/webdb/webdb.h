@@ -37,7 +37,6 @@ class WebDB {
     /// A connection
     class Connection {
        public:
-
        protected:
         /// The database
         std::shared_ptr<duckdb::DuckDB> database_;
@@ -75,6 +74,8 @@ class WebDB {
     std::shared_ptr<duckdb::DuckDB> database_;
     /// The connections
     std::unordered_map<Connection*, std::unique_ptr<Connection>> connections_;
+
+    duckdb::DBConfig db_config_;
 
    public:
     /// Constructor
