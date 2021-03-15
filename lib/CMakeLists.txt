@@ -448,7 +448,9 @@ if (EMSCRIPTEN)
             _dashql_webdb_analyze_query, \
             _dashql_blob_stream_consume, \
             _dashql_extract_import_csv, \
-            _dashql_webdb_fs_directory_list_files_callback \
+            _dashql_webdb_fs_directory_list_files_callback, \
+            _dashql_webdb_fs_glob_callback, \
+            _dashql_webdb_fs_basic_read \
         ]' \
         -s EXTRA_EXPORTED_RUNTIME_METHODS='[\"ccall\"]' \
         --pre-js=${CMAKE_SOURCE_DIR}/pre-js.js \
