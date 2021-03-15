@@ -242,7 +242,8 @@ export class StateMutations {
                     planDatabaseTables: state.planDatabaseTables.withMutations(os => {
                         for (const o of mutation.data) {
                             if (o.objectType == PlanObjectType.DATABASE_TABLE_INFO) {
-                                os.set(o.nameQualified, o as DatabaseTableInfo);
+                                const t = o as DatabaseTableInfo;
+                                os.set(t.tableNameQualified, t);
                             }
                         }
                     }),
@@ -280,7 +281,7 @@ export class StateMutations {
                 return {
                     ...state,
                     planObjects: state.planObjects.set(key, next),
-                    planDatabaseTables: state.planDatabaseTables.set(table.nameQualified, next),
+                    planDatabaseTables: state.planDatabaseTables.set(table.tableNameQualified, next),
                 };
             }
 
