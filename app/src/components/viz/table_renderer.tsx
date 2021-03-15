@@ -25,16 +25,16 @@ export class TableRenderer extends React.Component<Props> {
     public render() {
         const logger = this.props.appContext.platform!.logger;
         const db = this.props.appContext.platform!.database;
-        const targetShort = this.props.vizInfo.nameShort;
-        const targetQualified = this.props.vizInfo.nameQualified;
-        const tableInfo = this.props.dbObjects.get(targetQualified);
-        if (!tableInfo) {
+        const table = this.props.dbObjects.get(this.props.vizInfo.dataSource.targetQualified);
+        if (!table) {
             return <div />;
         }
+        const targetShort = table.tableNameShort;
+        const targetQualified = table.tableNameQualified;
         return (
             <VizCard title={this.props.vizInfo.title || `Table ${targetShort}`}>
-                <ScanProvider logger={logger} database={db} targetName={tableInfo.nameShort} request={new core.access.ScanRequest().withRange(0, 1024)}>
-                    {(data, requestData) => <DataGrid tableInfo={tableInfo} data={data} requestData={requestData} />}
+                <ScanProvider logger={logger} database={db} targetName={targetShort} request={new core.access.ScanRequest().withRange(0, 1024)}>
+                    {(data, requestData) => <DataGrid tableInfo={table} data={data} requestData={requestData} />}
                 </ScanProvider>
             </VizCard>
         );
