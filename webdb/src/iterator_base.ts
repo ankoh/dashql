@@ -90,6 +90,7 @@ export abstract class ChunkIterator {
         while (this.nextBlocking()) {
             this._proxyType.proxyChunkRows<T>(this.currentChunk, out);
         }
+        console.log(`proxied ${out.length} rows`);
         return out;
     }
 

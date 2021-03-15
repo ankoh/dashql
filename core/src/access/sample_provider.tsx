@@ -34,7 +34,7 @@ export const SampleProvider: React.FunctionComponent<Props> = (props: Props) => 
 
     const script = `SELECT * FROM ${props.table.tableNameShort}${sampling}${orderBy}`;
     return (
-        <QueryProvider logger={props.logger} database={props.database} query={script}>
+        <QueryProvider logger={props.logger} database={props.database} query={{ data: script }}>
             {result => props.children.bind(this)(result)}
         </QueryProvider>
     );

@@ -3,7 +3,7 @@ import * as React from 'react';
 import * as platform from '../platform';
 import * as model from '../model';
 import * as proto from '@dashql/proto';
-import { QueryProvider } from './query_provider';
+import { QueryProvider, Query } from './query_provider';
 
 interface Props {
     /// The log manager
@@ -19,7 +19,7 @@ interface Props {
     /// The error component
     errorComponent?: ((error: string) => React.ReactNode) | null;
     /// The in-flight component
-    inFlightComponent?: ((query: string, queryOptions: webdb.QueryRunOptions) => React.ReactNode) | null;
+    inFlightComponent?: ((query: Query) => React.ReactNode) | null;
     /// The children
     children: (result: proto.webdb.QueryResult) => React.ReactNode;
 }
@@ -37,24 +37,37 @@ export const M4Provider: React.FunctionComponent<Props> = (props: Props) => {
     const xDomainMax = xDomain[1];
 
     // Build query.
-    // Directly taken from here:
+    // Based on the idea of M4
     //
     // M4: A Visualization-Oriented Time Series Data Aggregation
     // Uwe Jugel, Zbigniew Jerzak, Gregor Hackenbroich, and Volker Markl. 2014.
     //
-    const bins = `round(${canvasWidth}*(${xName}-${xDomainMin})/(${xDomainMax}-${xDomainMin}))`;
-    const script = `
-SELECT * FROM ${props.table.tableNameShort}, (
-    SELECT ${bins} as k,
-        min(${yName}) as _y_min, max(${yName}) as _y_max,
-        min(${xName}) as _x_min, max(${xName}) as _x_max,
-    FROM ${props.table.tableNameShort} GROUP BY k) as tmp
-WHERE k = ${bins}
-AND (${yName} = _y_min OR ${yName} = _y_max OR ${xName} = _x_min OR ${xName} = _x_max)
+    const binExpr = `round(${canvasWidth}*(${xName}-${xDomainMin})/(${xDomainMax}-${xDomainMin}))`;
+    const tmp = "sometemp";
+    const before = `
+CREATE TEMPORARY TABLE ${tmp} AS (
+    SELECT ${binExpr} as k,
+        min(${xName}) as _xmin_x, arg_min(${yName}, ${xName}) as _xmin_y,
+        max(${xName}) as _xmax_x, arg_max(${yName}, ${xName}) as _xmax_y,
+        min(${yName}) as _ymin_y, arg_min(${xName}, ${yName}) as _ymin_x,
+        max(${yName}) as _ymax_y, arg_max(${xName}, ${yName}) as _ymax_x
+    FROM ${props.table.tableNameShort} GROUP BY k
+);  `;
+    const data = `
+SELECT * FROM (
+    SELECT _xmin_x AS ${xName}, _xmin_y AS ${yName} FROM ${tmp}
+    UNION ALL
+    SELECT _xmax_x AS ${xName}, _xmax_y AS ${yName} FROM ${tmp}
+    UNION ALL
+    SELECT _ymin_x AS ${xName}, _ymin_y AS ${yName} FROM ${tmp}
+    UNION ALL
+    SELECT _ymax_x AS ${xName}, _ymax_y AS ${yName} FROM ${tmp}
+) combined ORDER BY ${xName}
     `;
+    const after = `DROP TABLE ${tmp}`;
 
     return (
-        <QueryProvider logger={props.logger} database={props.database} query={script}>
+        <QueryProvider logger={props.logger} database={props.database} query={{ before, data, after }}>
             {result => props.children.bind(this)(result)}
         </QueryProvider>
     );
