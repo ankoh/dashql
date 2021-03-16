@@ -9,7 +9,7 @@ import * as vlt from 'vega-lite/build/src/transform';
 import { VegaLiteEditOperation, ResolveMinMaxDomain } from './vega_editing';
 
 import { AggregatedFieldDef } from 'vega-lite/build/src/transform';
-import { Field, isScaleFieldDef, isFieldDef } from 'vega-lite/build/src/channeldef';
+import { Field, isScaleFieldDef, isFieldDef, isTypedFieldDef } from 'vega-lite/build/src/channeldef';
 import { LayerSpec, NormalizedLayerSpec } from 'vega-lite/build/src/spec/layer';
 import { LogicalComposition } from 'vega-lite/build/src/logical';
 import { Predicate } from 'vega-lite/build/src/predicate';
@@ -92,7 +92,7 @@ export class VizComposer {
         options: any = null,
     ) {
         /// Otherwise build the vega layer manually
-        const layer: UnitSpec<Field> = {
+        const layer: UnitSpec<Field> = { 
             ...options,
             encoding: {},
 
@@ -108,7 +108,6 @@ export class VizComposer {
             theta: undefined,
             radius: undefined,
         };
-
 
         // First collect the encodings that the user specified himself
         const encoding: Encoding<Field> = layer.encoding!;
@@ -154,24 +153,29 @@ export class VizComposer {
         // Read specific options
         switch (type) {
             case proto.syntax.VizComponentType.AREA:
-                layer.mark = "area";
+                layer.mark = 'area';
                 break;
             case proto.syntax.VizComponentType.LINE:
-                layer.mark = "line";
+                layer.mark = 'line';
                 break;
             case proto.syntax.VizComponentType.SCATTER:
-                layer.mark = "point";
+                layer.mark = 'point';
                 break;
             case proto.syntax.VizComponentType.BAR:
-                layer.mark = "bar";
+                layer.mark = 'bar';
                 break;
             case proto.syntax.VizComponentType.PIE:
-                layer.mark = "arc";
+                layer.mark = 'arc';
                 break;
             default:
                 break;
         }
 
+        // Remove undefined attributes since vega complains about them
+        const clean = layer as any;
+        Object.keys(clean).forEach(key => clean[key] === undefined ? delete clean[key] : {});
+
+        // Store as vega lite layer
         this._inputVegaLiteSpec.transform?.push(...options.transform);
         this._inputVegaLiteSpec.layer.push(layer);
     }
@@ -187,18 +191,16 @@ export class VizComposer {
                 // XXX log warning
             }
             this._renderer = renderer;
-        }
-
+        };
         switch (type) {
             case proto.syntax.VizComponentType.VEGA: {
                 useRenderer(model.VizRendererType.BUILTIN_VEGA);
                 this._inputVegaLiteSpec.transform = options.transform;
-                this._inputVegaLiteSpec.layer = [{
-                    ...options,
-                    transform: undefined,
-                    title: undefined,
-                    position: undefined,
-                }];
+                const layer = { ...options};
+                delete layer.transform;
+                delete layer.title;
+                delete layer.position;
+                this._inputVegaLiteSpec.layer = [layer];
                 break;
             }
             case proto.syntax.VizComponentType.AREA:
@@ -305,8 +307,81 @@ export class VizComposer {
         spec.transform = spec.transform?.filter((t, i) => keepTransforms[i]);
     }
 
+    /// Analyze the vega encodings
     protected analyzeVegaEncodings(spec: TopLevel<NormalizedLayerSpec>) {
-        let table = this._tableStatistics.resolveTableInfo();
+        const table = this._tableStatistics.resolveTableInfo()!;
+
+        // Helper to analyze a scale definition
+        const analyzeScale = (enc: any, columnID: number) => {
+            // Does not define a scale?
+            if (!isScaleFieldDef(enc)) enc.scale = {};
+            const scale = enc.scale!;
+
+            // Resolve domain?
+            if (!scale.domain) {
+                scale.domain = [];
+                const resolver = new ResolveMinMaxDomain(this._tableStatistics, columnID, scale.domain);
+                this._vegaLiteEditOps.push(resolver);
+            }
+        };
+
+        // Analyze the field type
+        const analyzeFieldType = (enc: any, columnID: number) => {
+            if (!isTypedFieldDef(enc)) {
+                switch (table.columnTypes[columnID].typeId) {
+                    case proto.webdb.SQLTypeID.BOOLEAN:
+                    case proto.webdb.SQLTypeID.BIGINT:
+                    case proto.webdb.SQLTypeID.HUGEINT:
+                    case proto.webdb.SQLTypeID.TINYINT:
+                    case proto.webdb.SQLTypeID.SMALLINT:
+                    case proto.webdb.SQLTypeID.INTEGER:
+                    case proto.webdb.SQLTypeID.FLOAT:
+                    case proto.webdb.SQLTypeID.DOUBLE:
+                    case proto.webdb.SQLTypeID.DECIMAL:
+                        enc.type = "quantitative";
+                        break;
+
+                    case proto.webdb.SQLTypeID.CHAR:
+                    case proto.webdb.SQLTypeID.VARCHAR:
+                        enc.type = "nominal";
+                        break;
+
+                    case proto.webdb.SQLTypeID.DATE:
+                    case proto.webdb.SQLTypeID.TIME:
+                    case proto.webdb.SQLTypeID.TIMESTAMP:
+                    case proto.webdb.SQLTypeID.INTERVAL:
+                        enc.type = "temporal";
+                        break;
+
+                    default:
+                        break;
+                }
+            }
+        };
+
+        // Run general optimizations accross all layers
+        for (const layer of spec.layer) {
+            // Skip nested layers
+            if (!isUnitSpec(layer)) continue;
+
+            // Optimize encodings
+            for (const [_key, enc] of Object.entries(layer.encoding || {})) {
+                // Defines a field?
+                if (isFieldDef(enc) && enc.field) {
+                    const fieldName = enc.field.toString();
+                    const columnID = table.columnNameMapping.get(fieldName);
+                    if (columnID != undefined && columnID != null) {
+                        analyzeFieldType(enc, columnID);
+                        analyzeScale(enc, columnID);
+                    }
+                }
+            }
+        }
+    }
+
+    /// Switch query type to M5 if the spec allows it
+    public useM5IfPossible(spec: TopLevel<NormalizedLayerSpec>) {
+        const table = this._tableStatistics.resolveTableInfo()!;
 
         // Use m5 data source?
         let useM5 = true;
@@ -320,49 +395,34 @@ export class VizComposer {
                 continue;
             }
 
-            // Check x encoding.
-            // What about chart types with explicit x2 or inverted ones?
             const x = layer.encoding?.x;
             const y = layer.encoding?.y;
-            let xID: number | null = null;
-            let yID: number | null = null;
-            if (x && y) {
-                // Has field properties?
-                if (isFieldDef(x) && isFieldDef(y) && x.field && y.field) {
-                    useM5 &&= table?.columnNameMapping.has(x.field) || table?.columnNameMapping.has(y.field) || false;
-                    if (useM5) {
-                        m5Config = {
-                            attributeX: x.field!,
-                            attributeY: y.field!,
-                            domainX: [],
-                        };
-                        xID = table?.columnNameMapping.get(x.field)!;
-                        yID = table?.columnNameMapping.get(y.field)!;
-                        const resolver = new ResolveMinMaxDomain(this._tableStatistics, xID, m5Config.domainX);
-                        this._vegaLiteEditOps.push(resolver);
-                    }
-                }
-
+            if (x && y && isFieldDef(x) && isFieldDef(y) && x.field && y.field) {
                 // Has exlicit X scale property?
-                if (xID && isScaleFieldDef(x)) {
+                if (isScaleFieldDef(x)) {
                     const scale = x.scale!;
                     const scaleType = scale.type;
                     useM5 &&= scaleType ? hasContinuousDomain(scaleType) : true;
-                    if (!scale.domain) {
-                        scale.domain = [];
-                        const resolver = new ResolveMinMaxDomain(this._tableStatistics, xID, scale.domain);
-                        this._vegaLiteEditOps.push(resolver);
-                    }
                 }
 
                 // Has exlicit Y scale property?
-                if (yID && isScaleFieldDef(y)) {
-                    const scale = y.scale!;
-                    if (!scale.domain) {
-                        scale.domain = [];
-                        const resolver = new ResolveMinMaxDomain(this._tableStatistics, yID, scale.domain);
-                        this._vegaLiteEditOps.push(resolver);
-                    }
+                if (isScaleFieldDef(y)) {
+                    const scale = x.scale!;
+                    const scaleType = scale.type;
+                    useM5 &&= scaleType ? hasContinuousDomain(scaleType) : true;
+                }
+
+                // Has field properties?
+                useM5 &&= table.columnNameMapping.has(x.field) || table!.columnNameMapping.has(y.field) || false;
+                if (useM5) {
+                    m5Config = {
+                        attributeX: x.field!,
+                        attributeY: y.field!,
+                        domainX: [],
+                    };
+                    const xID = table.columnNameMapping.get(x.field)!;
+                    const resolver = new ResolveMinMaxDomain(this._tableStatistics, xID, m5Config.domainX);
+                    this._vegaLiteEditOps.push(resolver);
                 }
             }
         }
@@ -380,6 +440,7 @@ export class VizComposer {
             this._normalizedVegaLiteSpec = normalize(this._inputVegaLiteSpec) as TopLevel<NormalizedLayerSpec>;
             this.analyzeVegaEncodings(this._normalizedVegaLiteSpec);
             this.analyzeVegaTransforms(this._normalizedVegaLiteSpec);
+            this.useM5IfPossible(this._normalizedVegaLiteSpec);
             this._vegaLiteEditOps.map(o => o.prepare());
         }
     }

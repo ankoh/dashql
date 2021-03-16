@@ -53,8 +53,10 @@ VIZ foo USING VEGA (
                 ]),
                 columnTypes: [DOUBLE_TYPE, DOUBLE_TYPE],
                 statistics: Immutable.Map([
-                    [MAX_VALUE(0), [webdb.Value.DOUBLE(100.0)]],
                     [MIN_VALUE(0), [webdb.Value.DOUBLE(0.0)]],
+                    [MAX_VALUE(0), [webdb.Value.DOUBLE(100.0)]],
+                    [MIN_VALUE(1), [webdb.Value.DOUBLE(42.0)]],
+                    [MAX_VALUE(1), [webdb.Value.DOUBLE(2222.0)]],
                 ]),
             },
             expected: {
@@ -78,10 +80,16 @@ VIZ foo USING VEGA (
                                 x: {
                                     field: 'x',
                                     type: 'quantitative',
+                                    scale: {
+                                        domain: [0.0, 100.0],
+                                    },
                                 },
                                 y: {
                                     field: 'y',
                                     type: 'quantitative',
+                                    scale: {
+                                        domain: [42.0, 2222.0],
+                                    },
                                 },
                             },
                         },
@@ -108,8 +116,10 @@ VIZ foo USING LINE (
                 ]),
                 columnTypes: [DOUBLE_TYPE, DOUBLE_TYPE],
                 statistics: Immutable.Map([
-                    [MAX_VALUE(0), [webdb.Value.DOUBLE(100.0)]],
                     [MIN_VALUE(0), [webdb.Value.DOUBLE(0.0)]],
+                    [MAX_VALUE(0), [webdb.Value.DOUBLE(100.0)]],
+                    [MIN_VALUE(1), [webdb.Value.DOUBLE(42.0)]],
+                    [MAX_VALUE(1), [webdb.Value.DOUBLE(2222.0)]],
                 ]),
             },
             expected: {
@@ -133,10 +143,16 @@ VIZ foo USING LINE (
                                 x: {
                                     field: 'x',
                                     type: 'quantitative',
+                                    scale: {
+                                        domain: [0.0, 100.0],
+                                    },
                                 },
                                 y: {
                                     field: 'y',
                                     type: 'quantitative',
+                                    scale: {
+                                        domain: [42.0, 2222.0],
+                                    },
                                 },
                             },
                         },
