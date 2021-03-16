@@ -31,7 +31,7 @@ TEST(WebDB, LoadParquet) {
 
     auto con = duckdb::Connection{*db};
     auto result = con.Query(R"RAW(
-        SELECT * FROM parquet_scan('../../../webdb/test/studenten.parquet');
+        SELECT * FROM parquet_scan('./webdb/test/studenten.parquet');
     )RAW");
     ASSERT_STREQ(result->ToString().c_str(),
                  "MatrNr\tName\tSemester\t\nINTEGER\tVARCHAR\tINTEGER\t\n"
