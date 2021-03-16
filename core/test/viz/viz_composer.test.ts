@@ -31,7 +31,7 @@ const MIN_VALUE = (col: number) => model.buildTableStatisticsKey(model.TableStat
 
 const tests: [string, VizComposerTest][] = [
     [
-        'vega/line/m4',
+        'vega/line/m5',
         {
             query: `
 VIZ foo USING VEGA (
@@ -99,7 +99,7 @@ VIZ foo USING VEGA (
         },
     ],
     [
-        'completion/line/m4',
+        'completion/line/m5',
         {
             query: `
 VIZ foo USING LINE (
