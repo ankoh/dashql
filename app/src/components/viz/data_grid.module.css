@@ -21,7 +21,7 @@
     border-right: var(--datagrid_cell_headers_border);
     text-align: center;
     line-height: 24px;
-    background-color: --datagrid_cell_anchor_bg;
+    background-color: var(--datagrid_cell_anchor_bg);
 }
 
 .cell_header_col {
