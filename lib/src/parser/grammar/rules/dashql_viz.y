@@ -53,15 +53,11 @@ dashql_viz_type:
   | BOX         { $$ = Enum(@$, sx::VizComponentType::BOX); }
   | CANDLESTICK { $$ = Enum(@$, sx::VizComponentType::CANDLESTICK); }
   | ERROR       { $$ = Enum(@$, sx::VizComponentType::ERROR_BAR); }
-  | HISTOGRAM   { $$ = Enum(@$, sx::VizComponentType::HISTOGRAM); }
   | LINE        { $$ = Enum(@$, sx::VizComponentType::LINE); }
-  | NUMBER      { $$ = Enum(@$, sx::VizComponentType::NUMBER); }
   | PIE         { $$ = Enum(@$, sx::VizComponentType::PIE); }
   | POINT       { $$ = Enum(@$, sx::VizComponentType::SCATTER); }
   | SCATTER     { $$ = Enum(@$, sx::VizComponentType::SCATTER); }
   | TABLE       { $$ = Enum(@$, sx::VizComponentType::TABLE); }
-  | TEXT        { $$ = Enum(@$, sx::VizComponentType::TEXT); }
-  | VORONOI     { $$ = Enum(@$, sx::VizComponentType::VORONOI); }
   | VEGA        { $$ = Enum(@$, sx::VizComponentType::VEGA); }
   | %empty      { $$ = Enum(@$, sx::VizComponentType::VEGA); }
     ;
