@@ -13,13 +13,11 @@ export class ViewCreateActionLogic extends ProgramActionLogic {
         super(action_id, action, statement);
     }
 
-    public prepareExecution(_context: ActionContext) {}
+    public prepare(_context: ActionContext) {}
 
-    public async execute(context: ActionContext): Promise<model.ActionHandle> {
+    public async execute(context: ActionContext): Promise<void> {
         const script = this.script;
-        if (!script) {
-            return this.returnWithStatus(ActionStatusCode.COMPLETED);
-        }
+        if (!script) return;
 
         const db = context.platform.database;
         const table = await db.use(async (c: webdb.AsyncConnection) => {
@@ -49,8 +47,6 @@ export class ViewCreateActionLogic extends ProgramActionLogic {
                 data: [table]
             });
         }
-
-        return this.returnWithStatus(ActionStatusCode.COMPLETED);
     }
 };
 
@@ -59,11 +55,9 @@ export class ImportViewActionLogic extends SetupActionLogic {
         super(action_id, action);
     }
 
-    public prepareExecution(_context: ActionContext) {}
+    public prepare(_context: ActionContext) {}
 
-    public async execute(_context: ActionContext): Promise<ActionHandle> {
-        return this.returnWithStatus(ActionStatusCode.COMPLETED);
-    }
+    public async execute(_context: ActionContext): Promise<void> {}
 }
 
 export class DropViewActionLogic extends SetupActionLogic {
@@ -71,14 +65,13 @@ export class DropViewActionLogic extends SetupActionLogic {
         super(action_id, action);
     }
 
-    public prepareExecution(_context: ActionContext) {}
+    public prepare(_context: ActionContext) {}
 
-    public async execute(context: ActionContext): Promise<ActionHandle> {
+    public async execute(context: ActionContext): Promise<void> {
         const db = context.platform.database;
         await db.use(async (c: webdb.AsyncConnection) => {
             console.log(`DROP VIEW IF EXISTS ${this.buffer.targetNameShort()}`);
             await c.runQuery(`DROP VIEW IF EXISTS ${this.buffer.targetNameShort()}`);
         });
-        return this.returnWithStatus(ActionStatusCode.COMPLETED);
     }
 }

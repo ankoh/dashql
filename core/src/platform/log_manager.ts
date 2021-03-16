@@ -2,7 +2,11 @@ import * as webdb from '@dashql/webdb/dist/webdb_async';
 import * as model from "../model";
 import * as error from "../error";
 
-export class LogManager implements webdb.Logger {
+export interface Logger {
+    log(entry: model.LogEntryVariant): void;
+}
+
+export class LogManager implements Logger {
     // The store
     public _store: model.DerivedReduxStore;
 

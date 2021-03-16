@@ -10,13 +10,11 @@ export class UnnamedSelectLogic extends ProgramActionLogic {
         super(action_id, action, statement);
     }
 
-    public prepareExecution(_context: ActionContext) {}
+    public prepare(_context: ActionContext) {}
 
-    public async execute(context: ActionContext): Promise<ActionHandle> {
+    public async execute(context: ActionContext): Promise<void> {
         const script = this.script;
-        if (!script) {
-            return this.returnWithStatus(ActionStatusCode.COMPLETED);
-        }
+        if (!script) return;
 
         const db = context.platform.database;
         await db.use(async (c: webdb.AsyncConnection) => {
@@ -30,7 +28,5 @@ export class UnnamedSelectLogic extends ProgramActionLogic {
                 });
             }
         });
-
-        return this.returnWithStatus(ActionStatusCode.COMPLETED);
     }
 };
