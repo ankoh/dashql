@@ -183,8 +183,8 @@ export abstract class WebDBBindings {
     }
 
     /// Invoke the file system test
-    public fsTest(): void {
-        this.instance!.ccall('dashql_webdb_fs_basic_read', null, [], []);
+    public fsTest(): boolean {
+        return this.instance!.ccall('dashql_webdb_fs_test', 'boolean', [], []);
     }
 
     /// Encode query arguments

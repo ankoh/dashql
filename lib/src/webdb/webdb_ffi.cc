@@ -6,6 +6,7 @@
 #include "dashql/proto_generated.h"
 #include "dashql/webdb/filesystem.h"
 #include "dashql/webdb/webdb.h"
+#include "parquet-extension.hpp"
 
 using namespace dashql;
 using namespace dashql::webdb;
@@ -67,25 +68,24 @@ void dashql_webdb_analyze_query(FFIResponse* packed, ConnectionHdl connHdl, cons
 }
 
 /// Small test for WebDB file system
-void dashql_webdb_fs_basic_read() {
+bool dashql_webdb_fs_test(FFIResponse* packed) {
     duckdb::DBConfig config;
     config.file_system = std::make_unique<WebDBFileSystem>();
 
-    auto handle = config.file_system->OpenFile("./test/blob.txt", duckdb::FileFlags::FILE_FLAGS_READ);
-    std::cout << "reading from ./test/blob.txt:" << std::endl;
-    char buf[5];
-    int64_t len = 0;
-    while ((len = config.file_system->Read(*handle, &buf, 5)) > 0) {
-        std::cout.write(buf, len);
-    }
-
-    std::cout << std::endl;
-
-    std::cout << "scanning parquet from /home/dakror/Desktop/dashql/webdb/test/professoren.parquet:" << std::endl;
     auto db = std::make_unique<duckdb::DuckDB>(nullptr, &config);
+    db->LoadExtension<duckdb::ParquetExtension>();
     auto con = duckdb::Connection{*db};
-    auto result =
-        con.Query("SELECT * FROM parquet_scan('/home/dakror/Desktop/dashql/webdb/test/professoren.parquet');");
-    std::cout << "result: " << result->ToString() << std::endl;
+    auto result = con.Query("SELECT * FROM parquet_scan('./test/studenten.parquet');");
+    return result->ToString() ==
+           "MatrNr\tName\tSemester\t\nINTEGER\tVARCHAR\tINTEGER\t\n"
+           "[ Rows: 8]\n"
+           "24002\tXenokrates\t18\t\n"
+           "25403\tJonas\t12\t\n"
+           "26120\tFichte\t10\t\n"
+           "26830\tAristoxenos\t8\t\n"
+           "27550\tSchopenhauer\t6\t\n"
+           "28106\tCarnap\t3\t\n"
+           "29120\tTheophrastos\t2\t\n"
+           "29555\tFeuerbach\t2\t\n\n";
 }
 }
