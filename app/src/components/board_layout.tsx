@@ -20,6 +20,7 @@ type Props = {
 
 class BoardLayout extends React.Component<Props> {
     shouldComponentUpdate(nextProps: Props) {
+        if (nextProps.width != this.props.width) return true;
         const prev = this.props.vizData;
         const next = nextProps.vizData;
         let equal = prev.size == next.size;
