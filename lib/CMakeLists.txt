@@ -129,6 +129,8 @@ else ()
     set_property(TARGET duckdb APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${DUCKDB_INCLUDE_DIR})
     set_property(TARGET duckdb APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${DUCKDB_UTF8PROC_INCLUDE_DIR})
     set_property(TARGET duckdb APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${DUCKDB_FMT_INCLUDE_DIR})
+
+    include(${CMAKE_CURRENT_SOURCE_DIR}/../submodules/duckdb/extension/parquet/CMakeLists.txt)
 endif ()
 
 # ---------------------------------------------------------------------------
@@ -349,11 +351,11 @@ add_library(dashql_test
 )
 
 target_link_libraries(dashql_common dashql_proto flatbuffers spdlog rapidjson)
-target_link_libraries(dashql_extract dashql_proto flatbuffers spdlog duckdb rapidjson)
-target_link_libraries(dashql_analyzer dashql_parser dashql_common dashql_proto spdlog duckdb rapidjson)
+target_link_libraries(dashql_extract dashql_proto flatbuffers spdlog duckdb parquet_extension rapidjson)
+target_link_libraries(dashql_analyzer dashql_parser dashql_common dashql_proto spdlog duckdb parquet_extension rapidjson)
 target_link_libraries(dashql_dataframe dashql_common dashql_proto binaryen)
-target_link_libraries(dashql_webdb dashql_extract dashql_common dashql_proto duckdb spdlog)
-target_link_libraries(dashql_test dashql_webdb dashql_analyzer dashql_common dashql_proto pugixml gtest duckdb)
+target_link_libraries(dashql_webdb dashql_extract dashql_common dashql_proto duckdb parquet_extension spdlog)
+target_link_libraries(dashql_test dashql_webdb dashql_analyzer dashql_common dashql_proto pugixml gtest duckdb parquet_extension)
 
 # ---------------------------------------------------------------------------
 # Emscripten
