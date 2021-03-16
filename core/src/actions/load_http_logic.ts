@@ -11,23 +11,6 @@ export class LoadHTTPActionLogic extends ProgramActionLogic {
         super(action_id, action, statement);
     }
 
-    public prepareExecution(_context: ActionContext) {}
-
-    public async execute(context: ActionContext): Promise<ActionHandle> {
-        await utils.sleep(500);
-
-        const program = context.plan.program;
-        const stmt = this.origin;
-        const stmt_root = stmt.root_node();
-
-        // Build the load attribute
-
-        // 2) Send the request
-
-        // 3) Receive the response
-
-        // 4) Extract the response if it's an archive
-
-        return this.returnWithStatus(ActionStatusCode.COMPLETED);
-    }
+    public prepare(_context: ActionContext) {}
+    public async execute(_context: ActionContext): Promise<void> {}
 };

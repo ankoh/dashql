@@ -1,7 +1,7 @@
 import * as proto from '@dashql/proto';
 import { NativeBitmap, NativeStack, NativeMinHeap, NativeMinHeapKey, NativeMinHeapRank } from './utils';
 import { ActionLogic, ProtoAction, resolveSetupActionLogic, resolveProgramActionLogic } from './actions';
-import { ActionContext } from './actions';
+import { ActionContext, ActionError } from './actions';
 import { Platform } from './platform';
 import {
     ActionHandle,
@@ -13,18 +13,23 @@ import {
     mutate,
     Plan,
     getActionClass,
+    LogLevel,
+    LogOrigin,
+    LogTopic,
+    LogEvent,
 } from './model';
 
 export class ActionScheduler<ActionBuffer extends ProtoAction> {
-    /// The cancel promise
-    _interrupt: Promise<ActionHandle | null>;
+    /// The cancel promise.
+    /// Resolves to [null, null].
+    _interrupt: Promise<[ActionHandle | null, ActionError | null]>;
 
     /// The actions
     _actions: ActionLogic<ActionBuffer>[] = [];
     /// The pending actions
     _actionQueue: NativeMinHeap = new NativeMinHeap();
     /// The action promises
-    _actionPromises: (Promise<ActionHandle | null> | null)[] = [];
+    _actionPromises: (Promise<[ActionHandle, ActionError | null]> | null)[] = [];
 
     /// The scheduled actions
     _scheduledActions: NativeBitmap = new NativeBitmap();
@@ -33,8 +38,8 @@ export class ActionScheduler<ActionBuffer extends ProtoAction> {
     /// The failed actions
     _failedActions: NativeBitmap = new NativeBitmap();
 
-    constructor(interrupt: Promise<ActionHandle | null>) {
-        this._interrupt = interrupt;
+    constructor(interrupt: Promise<void>) {
+        this._interrupt = interrupt.then(() => [null, null]);
     }
 
     /// Get the scheduled actions
@@ -68,8 +73,8 @@ export class ActionScheduler<ActionBuffer extends ProtoAction> {
         return this._actions;
     }
     /// Set the scheduler interrupt promise
-    public set interrupt(promise: Promise<ActionHandle | null>) {
-        this._interrupt = promise;
+    public set interrupt(interrupt: Promise<void>) {
+        this._interrupt = interrupt.then(() => [null, null]);
     }
 
     /// Is there work left?
@@ -114,26 +119,33 @@ export class ActionScheduler<ActionBuffer extends ProtoAction> {
         }
 
         // Prepare all actions for execution
-        for (const next_action_idx of next_action_idcs) {
+        const logger = context.platform.logger;
+        for (let i = 0; i < next_action_idcs.length; ++i) {
+            const next_action_idx = next_action_idcs[i];
             const next_action = this._actions[next_action_idx];
-            //try {
-                next_action.prepareExecution(context);
-            //} catch (e) {
-            //    // XXX to logger
-            //    console.error(e);
-            //}
+            const err = next_action.prepareGuarded(context);
+            if (err != null) {
+                next_action_idcs[i] = -1;
+                logger.log({
+                    timestamp: new Date(),
+                    level: LogLevel.WARNING,
+                    origin: LogOrigin.ACTION_SCHEDULER,
+                    topic: LogTopic.PREPARE_ACTION,
+                    event: LogEvent.ERROR,
+                    value: err,
+                });
+            }
         }
         // Schedule all actions
         for (const next_action_idx of next_action_idcs) {
+            // Fiailed to prepare?
+            if (next_action_idx == -1) continue;
+            // Set action status to running
             const next_action = this._actions[next_action_idx];
             next_action.status = proto.action.ActionStatusCode.RUNNING;
             this._scheduledActions.set(next_action_idx);
-            //try {
-                this._actionPromises[next_action_idx] = next_action.execute(context);
-            //} catch(e) {
-            //    // XXX to logger
-            //    console.error(e);
-            //}
+            // Execute the action
+            this._actionPromises[next_action_idx] = next_action.executeGuarded(context);
         }
     }
 
@@ -151,23 +163,14 @@ export class ActionScheduler<ActionBuffer extends ProtoAction> {
         if (!this.workLeft()) return false;
 
         // Wait for next action to complete
-        let promises: Promise<ActionHandle | null>[] = [this._interrupt];
+        let promises: Promise<[ActionHandle | null, ActionError | null]>[] = [this._interrupt];
         this._actionPromises.forEach(p => {
             if (p) promises.push(p);
         });
 
-        let next: ActionHandle | null = null;
-        //try {
-            next = await Promise.race(promises);
-        //} catch(e) {
-        //    console.error(e);
-        //    // XXX to log
-        //    return this.workLeft();
-        //}
+        let [next, err] = await Promise.race(promises);
         if (next == null) {
-            /// Update interrupt promise since someone might have just replaced it.
-            this._actionPromises[0] = this._interrupt;
-            /// Return false to indicate that we're not yet done and let the graph scheduler figure out whats wrong.
+            /// Return true to indicate that we're not yet done and let the graph scheduler figure out whats wrong.
             return true;
         }
         diff.push(getActionIndex(next));
@@ -199,6 +202,19 @@ export class ActionScheduler<ActionBuffer extends ProtoAction> {
                 break;
         }
 
+        // Did the action fail?
+        // Log the error
+        if (err != null) {
+            context.platform.logger.log({
+                timestamp: new Date(),
+                level: LogLevel.WARNING,
+                origin: LogOrigin.ACTION_SCHEDULER,
+                topic: LogTopic.EXECUTE_ACTION,
+                event: LogEvent.ERROR,
+                value: err,
+            });
+        }
+
         // No more scheduled actions left?
         return this.workLeft();
     }
@@ -211,7 +227,7 @@ export class ActionGraphScheduler {
     _plan: Plan | null;
 
     /// The cancel promise
-    _interruptPromise: Promise<ActionHandle | null>;
+    _interruptPromise: Promise<void>;
     /// The cancel promise
     _interruptFunction: () => void;
     /// Has been canceled?
@@ -227,8 +243,8 @@ export class ActionGraphScheduler {
         this._platform = platform;
         this._plan = null;
         this._interruptFunction = () => {};
-        this._interruptPromise = new Promise((resolve: (value: any) => void, _reject: (reason?: void) => void) => {
-            this._interruptFunction = () => resolve(null);
+        this._interruptPromise = new Promise((resolve: () => void, _reject: (reason?: void) => void) => {
+            this._interruptFunction = () => resolve();
         });
         this._canceled = false;
         this._setupActions = new ActionScheduler<proto.action.SetupAction>(this._interruptPromise);
@@ -302,8 +318,8 @@ export class ActionGraphScheduler {
         // Setup a new interrupt promise
         const prev_interrupt = this._interruptFunction;
         this._interruptFunction = () => {};
-        this._interruptPromise = new Promise((resolve: (value: any) => void, _reject: (reason?: void) => void) => {
-            this._interruptFunction = () => resolve(null);
+        this._interruptPromise = new Promise((resolve: () => void, _reject: (reason?: void) => void) => {
+            this._interruptFunction = () => resolve();
         });
         this._setupActions.interrupt = this._interruptPromise;
         this._programActions.interrupt = this._interruptPromise;
@@ -332,8 +348,7 @@ export class ActionGraphScheduler {
                 const actionIdx = diff.top();
                 const action = scheduler.actions[actionIdx];
                 // Only propagate the most recent one
-                if (actionUpdates.get(action.actionId))
-                    continue;
+                if (actionUpdates.get(action.actionId)) continue;
                 // Mark the action as updated
                 actionUpdates.set(action.actionId, {
                     actionId: action.actionId,
@@ -347,7 +362,7 @@ export class ActionGraphScheduler {
                 ctx.platform.analyzer.updateActionStatus(
                     getActionClass(u.actionId),
                     getActionIndex(u.actionId),
-                    u.statusCode
+                    u.statusCode,
                 );
             }
             // Update all actions in the store

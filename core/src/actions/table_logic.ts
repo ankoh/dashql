@@ -34,13 +34,11 @@ export class CreateTableActionLogic extends ProgramActionLogic {
         super(action_id, action, statement);
     }
 
-    public prepareExecution(_context: ActionContext) {}
+    public prepare(_context: ActionContext) {}
 
-    public async execute(context: ActionContext): Promise<model.ActionHandle> {
+    public async execute(context: ActionContext): Promise<void> {
         const script = this.script;
-        if (!script) {
-            return this.returnWithStatus(ActionStatusCode.COMPLETED);
-        }
+        if (!script) return;
 
         const db = context.platform.database;
         const table = await db.use(async (c: webdb.AsyncConnection) => {
@@ -70,8 +68,6 @@ export class CreateTableActionLogic extends ProgramActionLogic {
                 data: [table]
             });
         }
-
-        return this.returnWithStatus(ActionStatusCode.COMPLETED);
     }
 };
 
@@ -80,11 +76,8 @@ export class ModifyTableActionLogic extends ProgramActionLogic {
         super(action_id, action, statement);
     }
 
-    public prepareExecution(_context: ActionContext) {}
-
-    public async execute(_context: ActionContext): Promise<model.ActionHandle> {
-        return this.returnWithStatus(ActionStatusCode.COMPLETED);
-    }
+    public prepare(_context: ActionContext) {}
+    public async execute(_context: ActionContext): Promise<void> {}
 };
 
 export class ImportTableActionLogic extends SetupActionLogic {
@@ -92,11 +85,8 @@ export class ImportTableActionLogic extends SetupActionLogic {
         super(action_id, action);
     }
 
-    public prepareExecution(_context: ActionContext) {}
-
-    public async execute(_context: ActionContext): Promise<model.ActionHandle> {
-        return this.returnWithStatus(ActionStatusCode.COMPLETED);
-    }
+    public prepare(_context: ActionContext) {}
+    public async execute(_context: ActionContext): Promise<void> {}
 }
 
 export class DropTableActionLogic extends SetupActionLogic {
@@ -104,13 +94,11 @@ export class DropTableActionLogic extends SetupActionLogic {
         super(action_id, action);
     }
 
-    public prepareExecution(_context: ActionContext) {}
-
-    public async execute(context: ActionContext): Promise<model.ActionHandle> {
+    public prepare(_context: ActionContext) {}
+    public async execute(context: ActionContext): Promise<void> {
         const db = context.platform.database;
         await db.use(async (c: webdb.AsyncConnection) => {
             await c.runQuery(`DROP TABLE IF EXISTS ${this.buffer.targetNameShort()}`);
         });
-        return this.returnWithStatus(ActionStatusCode.COMPLETED);
     }
 }

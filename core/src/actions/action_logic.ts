@@ -19,6 +19,8 @@ export interface ProtoAction {
     targetNameShort(): string | null;
 }
 
+export type ActionError = any;
+
 export abstract class ActionLogic<ActionBuffer extends ProtoAction> {
     /// The action id
     _action_id: ActionHandle;
@@ -65,16 +67,34 @@ export abstract class ActionLogic<ActionBuffer extends ProtoAction> {
         return this._blocker;
     }
 
-    /// Return with a status
-    protected returnWithStatus(status: proto.action.ActionStatusCode): ActionHandle {
-        this._status = status;
-        return this._action_id;
-    }
-
     /// Prepare an action for execution
-    public abstract prepareExecution(context: ActionContext): void;
+    public abstract prepare(context: ActionContext): void;
     /// Execute an action
-    public abstract execute(context: ActionContext): Promise<ActionHandle>;
+    public abstract execute(context: ActionContext): Promise<void>;
+
+    /// Prepare the execution guarded
+    public prepareGuarded(context: ActionContext): ActionError | null {
+        try {
+            this._status = proto.action.ActionStatusCode.RUNNING;
+            this.prepare(context);
+            return null;
+        } catch(e) {
+            this._status = proto.action.ActionStatusCode.FAILED;
+            return e;
+        }
+    }
+    /// Execute the action guarded
+    public async executeGuarded(context: ActionContext): Promise<[ActionHandle, ActionError | null]> {
+        try {
+            this._status = proto.action.ActionStatusCode.RUNNING;
+            await this.execute(context);
+            this._status = proto.action.ActionStatusCode.COMPLETED;
+            return [this._action_id, null];
+        } catch (e) {
+            this._status = proto.action.ActionStatusCode.FAILED;
+            return [this._action_id, e];
+        }
+    }
 }
 
 export abstract class ProgramActionLogic extends ActionLogic<proto.action.ProgramAction> {
