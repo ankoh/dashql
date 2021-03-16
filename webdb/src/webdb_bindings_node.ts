@@ -10,14 +10,18 @@ import fs from 'fs';
 export class NodeBlobStream implements BlobStream {
     buffer: Uint8Array;
     position: number;
+    path: string | null;
 
     public constructor(buffer: Uint8Array) {
         this.buffer = buffer;
         this.position = 0;
+        this.path = null;
     }
 
     public static fromFile(file: string): NodeBlobStream {
-        return new NodeBlobStream(new Uint8Array(fs.readFileSync(file)));
+        let stream = new NodeBlobStream(new Uint8Array(fs.readFileSync(file)));
+        stream.path = file;
+        return stream;
     }
 }
 
