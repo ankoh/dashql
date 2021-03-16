@@ -92,7 +92,9 @@ void WebDBFileSystem::RemoveFile(const std::string &filename) {
 
 void WebDBFileSystem::FileSync(duckdb::FileHandle &handle) { std::cerr << "FileSync not implemented" << std::endl; }
 
-void WebDBFileSystem::SetWorkingDirectory(const std::string &path) { std::cerr << " not implemented" << std::endl; }
+void WebDBFileSystem::SetWorkingDirectory(const std::string &path) {
+    std::cerr << "SetWorkingDirectory not implemented" << std::endl;
+}
 
 std::string WebDBFileSystem::GetWorkingDirectory() {
     std::cerr << "GetWorkingDirectory not implemented" << std::endl;
