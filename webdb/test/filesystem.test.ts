@@ -7,6 +7,8 @@ let worker: Worker;
 let db: webdb.AsyncWebDB;
 const logger = new webdb.ConsoleLogger();
 
+jest.setTimeout(30000);
+
 beforeAll(async () => {
     worker = new Worker(path.resolve(__dirname, '../dist/webdb_node_async.worker.js'));
     db = new webdb.AsyncWebDB(logger, worker);
@@ -19,7 +21,6 @@ afterAll(async () => {
 
 describe('FileSystem', () => {
     test('SimpleRead', async () => {
-        jest.setTimeout(30000);
         await db.fsTest();
     });
 });
