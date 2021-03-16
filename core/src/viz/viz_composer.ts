@@ -85,33 +85,12 @@ export class VizComposer {
         return this.table.columnNameMapping!.has(column);
     }
 
-    /// Report that the component is invalid
-    protected invalidComponent(
-        type: proto.syntax.VizComponentType,
-        modifiers: Map<proto.syntax.VizComponentTypeModifier, boolean>,
-        options: any,
-        reason: string,
-    ) {
-        console.error(reason);
-    }
-
-    /// Add a vega component
-    protected addVegaComponent(
+    /// Generate a vega layer
+    protected generateVegaLayer(
         type: proto.syntax.VizComponentType,
         modifiers: Map<proto.syntax.VizComponentTypeModifier, boolean>,
         options: any = null,
     ) {
-        /// Short-circuit raw vega specs
-        if (type == proto.syntax.VizComponentType.VEGA) {
-            this._inputVegaLiteSpec.transform?.push(...options.transform);
-            this._inputVegaLiteSpec.layer.push({
-                ...options,
-                title: undefined,
-                position: undefined,
-            });
-            return;
-        }
-
         /// Otherwise build the vega layer manually
         const layer: UnitSpec<Field> = {
             ...options,
@@ -203,8 +182,25 @@ export class VizComposer {
         modifiers: Map<proto.syntax.VizComponentTypeModifier, boolean>,
         options: any = null,
     ) {
+        const useRenderer = (renderer: model.VizRendererType) => {
+            if (this._renderer != null && this._renderer != model.VizRendererType.BUILTIN_VEGA) {
+                // XXX log warning
+            }
+            this._renderer = renderer;
+        }
+
         switch (type) {
-            case proto.syntax.VizComponentType.VEGA:
+            case proto.syntax.VizComponentType.VEGA: {
+                useRenderer(model.VizRendererType.BUILTIN_VEGA);
+                this._inputVegaLiteSpec.transform = options.transform;
+                this._inputVegaLiteSpec.layer = [{
+                    ...options,
+                    transform: undefined,
+                    title: undefined,
+                    position: undefined,
+                }];
+                break;
+            }
             case proto.syntax.VizComponentType.AREA:
             case proto.syntax.VizComponentType.AXIS:
             case proto.syntax.VizComponentType.BAR:
@@ -214,20 +210,12 @@ export class VizComposer {
             case proto.syntax.VizComponentType.LINE:
             case proto.syntax.VizComponentType.PIE:
             case proto.syntax.VizComponentType.SCATTER: {
-                if (this._renderer != null && this._renderer != model.VizRendererType.BUILTIN_VEGA) {
-                    this.invalidComponent(type, modifiers, options, 'viz component requires vega renderer');
-                    return;
-                }
-                // XXX conflicts
-                this._renderer = model.VizRendererType.BUILTIN_VEGA;
-                this.addVegaComponent(type, modifiers, options);
+                useRenderer(model.VizRendererType.BUILTIN_VEGA);
+                this.generateVegaLayer(type, modifiers, options);
                 break;
             }
             case proto.syntax.VizComponentType.TABLE: {
-                if (this._renderer != null && this._renderer != model.VizRendererType.BUILTIN_TABLE) {
-                    this.invalidComponent(type, modifiers, options, 'viz component requires vega table');
-                    return;
-                }
+                useRenderer(model.VizRendererType.BUILTIN_TABLE);
                 // XXX conflicts
                 this._renderer = model.VizRendererType.BUILTIN_TABLE;
                 break;
