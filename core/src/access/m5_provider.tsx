@@ -59,7 +59,7 @@ export const M5Provider: React.FunctionComponent<Props> = (props: Props) => {
     const binExpr = `round(${canvasWidth}*(${xName}-${xDomainMin})/(${xDomainMax}-${xDomainMin}))`;
 
     // Packs aggreagte and preserves all other columns.
-    // E.g.: min(x) as _p0_0, arg_min(y, x) as _p0_1, arg_min(z, x) as _p0_3
+    // E.g.: min(x) as _p0_0, arg_min(y, x) as _p0_1, arg_min(z, x) as _p0_2
     const agg = (point: number, agg: string, by: string, preserve: string[]) =>
         `${agg}(${by}) as _p${point}_${colID(by)}, ${preserve
             .map(c => `arg_${agg}(${c}, ${by}) as _p${point}_${colID(c)}`)
@@ -72,7 +72,7 @@ export const M5Provider: React.FunctionComponent<Props> = (props: Props) => {
     ].join(',\n');
 
     // Unpacks aggregated columns
-    // E.g.: _p0_x as x, _p0_y as y, _p0_z as z
+    // E.g.: _p0_0 as x, _p0_1 as y, _p0_2 as z
     const unpack = (point: number) => props.table.columnNames.map(n => `_p${point}_${colID(n)} as ${n}`).join(', ');
 
     const before = `
