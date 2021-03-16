@@ -194,10 +194,10 @@
                             </node>
                             <node key="DASHQL_OPTION_MARK" loc="152..158" text="'line'" />
                             <node key="DASHQL_OPTION_POSITION" type="OBJECT_DASHQL_OPTION_LIST" loc="87..131" text="(row = 0, ..eight = 4)">
-                                <node key="DASHQL_OPTION_COLUMN" loc="106..107" text="0" />
-                                <node key="DASHQL_OPTION_HEIGHT" loc="129..130" text="4" />
                                 <node key="DASHQL_OPTION_ROW" loc="94..95" text="0" />
+                                <node key="DASHQL_OPTION_COLUMN" loc="106..107" text="0" />
                                 <node key="DASHQL_OPTION_WIDTH" loc="117..118" text="6" />
+                                <node key="DASHQL_OPTION_HEIGHT" loc="129..130" text="4" />
                             </node>
                             <node key="DASHQL_OPTION_TITLE" loc="50..62" text="'Line Chart'" />
                         </node>

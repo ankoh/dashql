@@ -15,10 +15,10 @@
                             <node key="DASHQL_VIZ_COMPONENT_TYPE" value="BAR" />
                             <node key="DASHQL_VIZ_COMPONENT_TYPE_MODIFIERS" value="1" />
                             <node key="DASHQL_OPTION_POSITION" type="OBJECT_DASHQL_OPTION_LIST" loc="74..119" text="(row = 0, ..ight = 15)">
-                                <node key="DASHQL_OPTION_COLUMN" loc="93..94" text="0" />
-                                <node key="DASHQL_OPTION_HEIGHT" loc="116..118" text="15" />
                                 <node key="DASHQL_OPTION_ROW" loc="81..82" text="0" />
+                                <node key="DASHQL_OPTION_COLUMN" loc="93..94" text="0" />
                                 <node key="DASHQL_OPTION_WIDTH" loc="104..105" text="4" />
+                                <node key="DASHQL_OPTION_HEIGHT" loc="116..118" text="15" />
                             </node>
                             <node key="DASHQL_OPTION_X" type="OBJECT_SQL_COLUMN_REF" loc="137..138" text="a">
                                 <node key="SQL_COLUMN_REF_PATH">
@@ -86,10 +86,10 @@
                             <node key="DASHQL_VIZ_COMPONENT_TYPE" value="AREA" />
                             <node key="DASHQL_VIZ_COMPONENT_TYPE_MODIFIERS" value="1" />
                             <node key="DASHQL_OPTION_POSITION" type="OBJECT_DASHQL_OPTION_LIST" loc="103..147" text="(row = 8, ..eight = 5)">
-                                <node key="DASHQL_OPTION_COLUMN" loc="122..123" text="0" />
-                                <node key="DASHQL_OPTION_HEIGHT" loc="145..146" text="5" />
                                 <node key="DASHQL_OPTION_ROW" loc="110..111" text="8" />
+                                <node key="DASHQL_OPTION_COLUMN" loc="122..123" text="0" />
                                 <node key="DASHQL_OPTION_WIDTH" loc="133..134" text="6" />
+                                <node key="DASHQL_OPTION_HEIGHT" loc="145..146" text="5" />
                             </node>
                             <node key="DASHQL_OPTION_TITLE" loc="58..78" text="'Stacked A..rea Chart'" />
                         </node>

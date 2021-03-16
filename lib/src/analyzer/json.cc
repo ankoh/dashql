@@ -1,7 +1,12 @@
+#include "dashql/analyzer/json.h"
+
 #include <cctype>
+#include <iomanip>
+#include <stack>
+
 #include "dashql/analyzer/analyzer.h"
-#include "dashql/common/string.h"
 #include "dashql/common/memstream.h"
+#include "dashql/common/string.h"
 #include "dashql/parser/grammar/enums.h"
 #include "dashql/parser/grammar/options.h"
 #include "dashql/proto_generated.h"
@@ -11,7 +16,8 @@
 
 namespace dashql {
 
-template <typename Writer> static void writeOptionsAsJSONImpl(ProgramInstance& instance, size_t root_node_id, Writer& out) {
+template <typename Writer>
+static void writeOptionsAsJSONImpl(ProgramInstance& instance, size_t root_node_id, Writer& out) {
     std::string tmp;
 
     /// Use a single post-order DFS to build the json outument with the SAX API
@@ -105,7 +111,7 @@ template <typename Writer> static void writeOptionsAsJSONImpl(ProgramInstance& i
                     }
                     if (flatten) {
                         auto txt = trimview(instance.TextAt(node.location()), isNoQuote);
-                        out.String(txt.data(), txt.length(), false); // XXX Maybe emit numbers as well?
+                        out.String(txt.data(), txt.length(), false);  // XXX Maybe emit numbers as well?
                         pending.pop();
                         break;
                     }
@@ -113,19 +119,20 @@ template <typename Writer> static void writeOptionsAsJSONImpl(ProgramInstance& i
                     // Otherwise emit an object
                     out.StartObject();
 
-                    // Visit all children 
+                    // Visit all children
                     type = rapidjson::Type::kObjectType;
                     auto begin = node.children_begin_or_value();
+                    auto end = begin + node.children_count() - 1;
                     for (auto i = 0; i < node.children_count(); ++i) {
                         // Skip if not option
-                        auto& child = nodes[begin + i];
+                        auto& child = nodes[end - i];
                         if (child.node_type() == sx::NodeType::NONE ||
                             child.attribute_key() <= sx::AttributeKey::DASHQL_OPTION_KEYS_ ||
                             child.attribute_key() >= sx::AttributeKey::SQL_KEYS_) {
                             continue;
                         }
                         ++children;
-                        pending.push({begin + i, std::nullopt, 0});
+                        pending.push({end - i, std::nullopt, 0});
                     }
                 } else if (node_type_id > static_cast<uint32_t>(sx::NodeType::ENUM_KEYS_)) {
                     std::string_view txt = parser::getEnumText(node);
@@ -139,14 +146,95 @@ template <typename Writer> static void writeOptionsAsJSONImpl(ProgramInstance& i
     }
 }
 
-void writeOptionsAsJSON(ProgramInstance& instance, size_t node_id, std::ostream& raw_out, bool pretty = false) {
-    rapidjson::OStreamWrapper out{raw_out};
-    if (pretty) {
-        rapidjson::PrettyWriter writer{out};
-        writeOptionsAsJSONImpl(instance, node_id, writer);
-    } else {
-        rapidjson::Writer writer{out};
-        writeOptionsAsJSONImpl(instance, node_id, writer);
+namespace {
+
+constexpr size_t INDENTATION_CHARS = 4;
+
+enum NodeType {
+    OBJECT,
+    ARRAY,
+};
+
+struct SQLJSONWriter {
+    std::ostream& out;
+    std::stack<std::pair<NodeType, size_t>> node_stack;
+
+    SQLJSONWriter(std::ostream& out) : out(out) {}
+
+    void Key(const char* txt, size_t length, bool copy) {
+        auto& [node_type, children] = node_stack.top();
+        assert(node_type == NodeType::OBJECT);
+        if (children++ == 0) {
+            out << "(\n";
+        } else {
+            out << ",\n";
+        }
+        std::fill_n(std::ostream_iterator<char>{out}, node_stack.size() * INDENTATION_CHARS, ' ');
+        out << std::string_view{txt, length};
+        out << " = ";
+    }
+    void NextValue() {
+        auto& [node_type, children] = node_stack.top();
+        if (node_type == NodeType::ARRAY) {
+            children++;
+            out << "[";
+        }
+    }
+    void Bool(bool v) {
+        NextValue();
+        out << v;
+    }
+    void String(const char* txt, size_t length, bool copy) {
+        NextValue();
+        out << std::quoted(std::string_view{txt, length}, '\'');
+    }
+    void Uint(uint64_t v) {
+        NextValue();
+        out << v;
+    }
+    void Double(double v) {
+        NextValue();
+        out << v;
+    }
+    void StartObject() { node_stack.push({NodeType::OBJECT, 0}); }
+    void StartArray() { node_stack.push({NodeType::ARRAY, 0}); }
+    void EndObject(size_t count) {
+        if (node_stack.top().second > 0) {
+            out << "\n";
+            node_stack.pop();
+            std::fill_n(std::ostream_iterator<char>{out}, node_stack.size() * INDENTATION_CHARS, ' ');
+            out << ")";
+        } else {
+            node_stack.pop();
+        }
+    }
+    void EndArray(size_t count) {
+        if (node_stack.top().second > 0) out << "]";
+        node_stack.pop();
+    }
+};
+
+}  // namespace
+
+void writeOptionsAsJSON(ProgramInstance& instance, size_t node_id, std::ostream& raw_out, JSONWriterType writer) {
+    switch (writer) {
+        case JSONWriterType::JSON: {
+            rapidjson::OStreamWrapper out{raw_out};
+            rapidjson::Writer writer{out};
+            writeOptionsAsJSONImpl(instance, node_id, writer);
+            break;
+        }
+        case JSONWriterType::JSON_PRETTY: {
+            rapidjson::OStreamWrapper out{raw_out};
+            rapidjson::PrettyWriter writer{out};
+            writeOptionsAsJSONImpl(instance, node_id, writer);
+            break;
+        }
+        case JSONWriterType::SQLJSON_PRETTY: {
+            SQLJSONWriter writer{raw_out};
+            writeOptionsAsJSONImpl(instance, node_id, writer);
+            break;
+        }
     }
 }
 
