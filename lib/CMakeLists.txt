@@ -46,6 +46,7 @@ SET(CMAKE_MODULE_PATH
   ${CMAKE_MODULE_PATH}
 )
 
+include("${CMAKE_SOURCE_DIR}/cmake/duckdb-parquet.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/flatbuffers.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/benchmark.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/binaryen.cmake")
@@ -130,9 +131,8 @@ else ()
     set_property(TARGET duckdb APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${DUCKDB_UTF8PROC_INCLUDE_DIR})
     set_property(TARGET duckdb APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${DUCKDB_FMT_INCLUDE_DIR})
 
-    include(${CMAKE_CURRENT_SOURCE_DIR}/../submodules/duckdb/extension/parquet/CMakeLists.txt)
 endif ()
-
+    
 # ---------------------------------------------------------------------------
 # Proto
 
