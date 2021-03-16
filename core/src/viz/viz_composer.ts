@@ -332,10 +332,8 @@ export class VizComposer {
     protected async compileVegaSpec(spec: VegaLiteTLLayerSpec): Promise<v.Spec | null> {
         // Apply all edit operations (if any)
         const editPromises = this._vegaLiteEditOps.map(e => e.apply());
-        await Promise.all(editPromises);
         this._vegaLiteEditOps = [];
-
-        // Compile the spec
+        await Promise.all(editPromises);
         return vl.compile(spec).spec;
     }
 

@@ -10,11 +10,8 @@ export class ImportBlobActionLogic extends SetupActionLogic {
         super(action_id, action);
     }
 
-    public prepareExecution(_context: ActionContext) {}
-
-    public async execute(_context: ActionContext): Promise<ActionHandle> {
-        return this.returnWithStatus(ActionStatusCode.COMPLETED);
-    }
+    public prepare(_context: ActionContext) {}
+    public async execute(_context: ActionContext): Promise<void> {}
 }
 
 export class DropBlobActionLogic extends SetupActionLogic {
@@ -22,9 +19,6 @@ export class DropBlobActionLogic extends SetupActionLogic {
         super(action_id, action);
     }
 
-    public prepareExecution(_context: ActionContext) {}
-
-    public async execute(_context: ActionContext): Promise<ActionHandle> {
-        return this.returnWithStatus(ActionStatusCode.COMPLETED);
-    }
+    public prepare(_context: ActionContext) {}
+    public async execute(_context: ActionContext): Promise<void> {}
 }

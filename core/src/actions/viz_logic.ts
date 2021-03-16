@@ -55,6 +55,7 @@ export abstract class VizActionLogic extends ProgramActionLogic {
             const options = JSON.parse(optionsJSON);
             this._vizComposer.addComponent(type, mods, options)!;
         }
+
         // Combine all the components
         this._vizComposer.combineComponents();
     }
@@ -68,7 +69,7 @@ export class CreateVizActionLogic extends VizActionLogic {
         super(action_id, action, statement);
     }
 
-    public prepareExecution(context: ActionContext) {
+    public prepare(context: ActionContext) {
         this.configureVizComposer(context);
         this._rowCountPromise = context.platform.database.requestTableStatistics(
             this.tableNameQualified,
@@ -76,7 +77,7 @@ export class CreateVizActionLogic extends VizActionLogic {
         );
     }
 
-    public async execute(context: ActionContext): Promise<model.ActionHandle> {
+    public async execute(context: ActionContext): Promise<void> {
         // Make sure the row count is available in the vizzes
         await context.platform.database.evaluateTableStatistics(this.tableNameQualified);
         await this._rowCountPromise!;
@@ -105,7 +106,6 @@ export class CreateVizActionLogic extends VizActionLogic {
             type: model.StateMutationType.INSERT_PLAN_OBJECTS,
             data: [info],
         });
-        return this.returnWithStatus(ActionStatusCode.COMPLETED);
     }
 }
 
@@ -114,16 +114,15 @@ export class DropVizActionLogic extends SetupActionLogic {
         super(action_id, action);
     }
 
-    public prepareExecution(_context: ActionContext) {}
+    public prepare(_context: ActionContext) {}
 
-    public async execute(context: ActionContext): Promise<model.ActionHandle> {
+    public async execute(context: ActionContext): Promise<void> {
         const store = context.platform.store!;
         const objectId = this.buffer.objectId();
         model.mutate(store.dispatch, {
             type: model.StateMutationType.DELETE_PLAN_OBJECTS,
             data: [objectId],
         });
-        return this.returnWithStatus(ActionStatusCode.COMPLETED);
     }
 }
 
@@ -132,9 +131,7 @@ export class ImportVizActionLogic extends SetupActionLogic {
         super(action_id, action);
     }
 
-    public prepareExecution(_context: ActionContext) {}
+    public prepare(_context: ActionContext) {}
 
-    public async execute(_context: ActionContext): Promise<model.ActionHandle> {
-        return this.returnWithStatus(ActionStatusCode.COMPLETED);
-    }
+    public async execute(_context: ActionContext): Promise<void> {}
 }

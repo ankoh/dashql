@@ -4,13 +4,13 @@ import { DatabaseManager } from "./database_manager";
 import { DerivedReduxStore } from "../model";
 import { FileManager } from "./file_manager";
 import { HTTPManager } from "./http_manager";
-import { LogManager } from "./log_manager";
+import { Logger } from "./log_manager";
 
 export class Platform {
     /// The global application state
     _store: DerivedReduxStore;
     /// The logger
-    _logger: webdb.Logger;
+    _logger: Logger;
     /// The webdb
     _webdb: webdb.AsyncWebDB;
     /// The analyzer bindings
