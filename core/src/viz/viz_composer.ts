@@ -174,10 +174,11 @@ export class VizComposer {
         // Remove undefined attributes since vega complains about them
         const clean = layer as any;
         Object.keys(clean).forEach(key => clean[key] === undefined ? delete clean[key] : {});
+        Object.keys(clean.encoding).forEach(key => clean.encoding[key] === undefined ? delete clean.encoding[key] : {});
 
         // Store as vega lite layer
         this._inputVegaLiteSpec.transform?.push(...options.transform);
-        this._inputVegaLiteSpec.layer.push(layer);
+        this._inputVegaLiteSpec.layer.push(clean);
     }
 
     /// Analayze a single viz component
