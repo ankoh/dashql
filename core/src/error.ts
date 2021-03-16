@@ -36,8 +36,19 @@ export class VizLogicError extends LoggableError {
     protected _programInstance: ProgramInstance | null;
     constructor(message: string, program: ProgramInstance, logLevel: LogLevel = LogLevel.WARNING) {
         super(message);
+        this._logLevel = logLevel;
         this._message = message;
         this._programInstance = program;
+    }
+}
+
+// An viz composer error?
+export class VizComposerError extends LoggableError {
+    protected _message: string;
+    constructor(message: string, logLevel: LogLevel = LogLevel.WARNING) {
+        super(message);
+        this._logLevel = logLevel;
+        this._message = message;
     }
 }
 

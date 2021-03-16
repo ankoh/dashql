@@ -1,5 +1,6 @@
 import * as proto from '@dashql/proto';
 import * as model from '../model';
+import * as error from '../error';
 import * as platform from '../platform';
 import * as v from 'vega';
 import * as vl from 'vega-lite';
@@ -13,10 +14,12 @@ import { LayerSpec, NormalizedLayerSpec } from 'vega-lite/build/src/spec/layer';
 import { LogicalComposition } from 'vega-lite/build/src/logical';
 import { Predicate } from 'vega-lite/build/src/predicate';
 import { SortField } from 'vega-lite/build/src/sort';
+import { Encoding } from 'vega-lite/build/src/encoding';
 import { TopLevel } from 'vega-lite/build/src/spec/toplevel';
 import { hasContinuousDomain } from 'vega-lite/build/src/scale';
-import { isUnitSpec } from 'vega-lite/build/src/spec/unit';
+import { isUnitSpec, UnitSpec } from 'vega-lite/build/src/spec/unit';
 import { normalize } from 'vega-lite/build/src/normalize';
+import { defaultBarConfig } from 'vega-lite/build/src/mark';
 
 export type VegaLiteTLLayerSpec = TopLevel<LayerSpec<Field>>;
 
@@ -68,7 +71,7 @@ export class VizComposer {
         this._tableStatistics = statistics;
         this._inputVegaLiteSpec = {
             ...DEFAULT_VEGA_LITE_MIXINS,
-            layer: []
+            layer: [],
         };
     }
 
@@ -98,32 +101,100 @@ export class VizComposer {
         modifiers: Map<proto.syntax.VizComponentTypeModifier, boolean>,
         options: any = null,
     ) {
-        // XXX make smarter
-
-        // Read field encoding
-        const readFieldEncoding = (spec: any, field: string) => {
-            if (typeof spec[field] === 'string' || spec[field] instanceof String) {
-                return { field: field };
-            } else {
-                return spec.encoding?.[field];
-            }
-        };
-
-        if (options != null) {
+        /// Short-circuit raw vega specs
+        if (type == proto.syntax.VizComponentType.VEGA) {
             this._inputVegaLiteSpec.transform?.push(...options.transform);
             this._inputVegaLiteSpec.layer.push({
                 ...options,
                 title: undefined,
                 position: undefined,
-                x: undefined,
-                y: undefined,
-                encoding: {
-                    ...options.encoding,
-                    x: readFieldEncoding(options, 'x'),
-                    y: readFieldEncoding(options, 'y'),
-                },
             });
+            return;
         }
+
+        /// Otherwise build the vega layer manually
+        const layer: UnitSpec<Field> = {
+            ...options,
+            encoding: {},
+
+            // Clear all attributes that we subsumed
+            transform: undefined,
+            title: undefined,
+            position: undefined,
+            x: undefined,
+            y: undefined,
+            color: undefined,
+            shape: undefined,
+            size: undefined,
+            theta: undefined,
+            radius: undefined,
+        };
+
+
+        // First collect the encodings that the user specified himself
+        const encoding: Encoding<Field> = layer.encoding!;
+        const resolveEncoding = (options: any, field: string) => {
+            // Specified directly as encoding?
+            // E.g. the user wrote USING LINE (encoding = (x = _))
+            const f = options?.encoding?.[field];
+            if (f) {
+                // Specified as string?
+                if (typeof f === 'string' || f instanceof String) return { field: f };
+                // Assume the user gave us a valid encoding
+                return options.encoding?.[field];
+            }
+            // Is there a column with that name?
+            if (this.table.columnNameMapping.has(field)) {
+                return { field: field };
+            }
+            // Otherwise mark it as undefined
+            return undefined;
+        };
+        switch (type) {
+            case proto.syntax.VizComponentType.AREA:
+            case proto.syntax.VizComponentType.LINE:
+            case proto.syntax.VizComponentType.SCATTER:
+            case proto.syntax.VizComponentType.BAR:
+                encoding.x = resolveEncoding(options, 'x');
+                encoding.x2 = resolveEncoding(options, 'x2');
+                encoding.y = resolveEncoding(options, 'y');
+                encoding.color = resolveEncoding(options, 'color');
+                encoding.shape = resolveEncoding(options, 'shape');
+                encoding.size = resolveEncoding(options, 'size');
+                break;
+            case proto.syntax.VizComponentType.PIE:
+                encoding.theta = resolveEncoding(options, 'theta');
+                encoding.radius = resolveEncoding(options, 'radius');
+                encoding.shape = resolveEncoding(options, 'shape');
+                encoding.size = resolveEncoding(options, 'size');
+                break;
+            default:
+                break;
+        }
+
+        // Read specific options
+        switch (type) {
+            case proto.syntax.VizComponentType.AREA:
+                layer.mark = "area";
+                break;
+            case proto.syntax.VizComponentType.LINE:
+                layer.mark = "line";
+                break;
+            case proto.syntax.VizComponentType.SCATTER:
+                layer.mark = "point";
+                break;
+            case proto.syntax.VizComponentType.BAR:
+                layer.mark = "bar";
+                break;
+            case proto.syntax.VizComponentType.PIE:
+                layer.mark = "arc";
+                break;
+            default:
+                break;
+        }
+
+        this._inputVegaLiteSpec.transform?.push(...options.transform);
+        this._inputVegaLiteSpec.layer.push(layer);
     }
 
     /// Analayze a single viz component
@@ -140,11 +211,9 @@ export class VizComposer {
             case proto.syntax.VizComponentType.BOX:
             case proto.syntax.VizComponentType.CANDLESTICK:
             case proto.syntax.VizComponentType.ERROR_BAR:
-            case proto.syntax.VizComponentType.HISTOGRAM:
             case proto.syntax.VizComponentType.LINE:
             case proto.syntax.VizComponentType.PIE:
-            case proto.syntax.VizComponentType.SCATTER:
-            case proto.syntax.VizComponentType.VORONOI: {
+            case proto.syntax.VizComponentType.SCATTER: {
                 if (this._renderer != null && this._renderer != model.VizRendererType.BUILTIN_VEGA) {
                     this.invalidComponent(type, modifiers, options, 'viz component requires vega renderer');
                     return;
@@ -154,7 +223,6 @@ export class VizComposer {
                 this.addVegaComponent(type, modifiers, options);
                 break;
             }
-            case proto.syntax.VizComponentType.NUMBER:
             case proto.syntax.VizComponentType.TABLE: {
                 if (this._renderer != null && this._renderer != model.VizRendererType.BUILTIN_TABLE) {
                     this.invalidComponent(type, modifiers, options, 'viz component requires vega table');
