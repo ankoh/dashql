@@ -1,16 +1,18 @@
 // Copyright (c) 2020 The DashQL Authors
 
 import fs from 'fs';
-import { copyBlobStreamTo, WebDBBindings } from './webdb_bindings';
+import { copyBlobStreamTo } from './webdb_bindings';
 import { NodeBlobStream } from './webdb_bindings_node';
 import fg from 'fast-glob';
+import { WebDBRuntime } from './webdb_runtime';
 
 const decoder = new TextDecoder();
 const encoder = new TextEncoder();
 
-export var NodeWebDBRuntime = {
-    bindings: null as null | WebDBBindings,
-
+export var NodeWebDBRuntime: WebDBRuntime & {
+    blobMap: (NodeBlobStream | null)[];
+} = {
+    bindings: null,
     /// Blob Stream
 
     dashql_blob_stream_underflow(blobId: number, buf: number, size: number): number {
@@ -22,7 +24,7 @@ export var NodeWebDBRuntime = {
     /// File System
 
     // Dense file handle map
-    blobMap: [] as (NodeBlobStream | null)[],
+    blobMap: [],
 
     dashql_webdb_fs_read: function (blobId: number, buf: number, bytes: number) {
         if (blobId >= this.blobMap.length) return 0;
@@ -76,12 +78,13 @@ export var NodeWebDBRuntime = {
             this.blobMap[blobId] = null;
         }
     },
-    dashql_webdb_fs_file_get_size: function (blobId: number) {
+    dashql_webdb_fs_file_get_size: function (blobId: number): number {
         if (blobId < this.blobMap.length) {
             let blob = this.blobMap[blobId];
             if (blob == null) return 0;
             return blob.buffer.length;
         }
+        return 0;
     },
     dashql_webdb_fs_file_get_last_modified_time: function (blobId: number) {
         if (blobId < this.blobMap.length) {
