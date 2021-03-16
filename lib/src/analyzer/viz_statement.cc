@@ -30,57 +30,6 @@ namespace fb = flatbuffers;
 namespace dashql {
 namespace viz {
 
-class VizAttributePrinter {
-   protected:
-    /// The output
-    std::ostream& out;
-    /// Already started?
-    bool started;
-    /// Already finished?
-    bool finished;
-
-   public:
-    ~VizAttributePrinter();
-
-    /// Constructor
-    VizAttributePrinter(std::ostream& out);
-    /// Start a key
-    void AddKey(std::string_view key);
-    /// Start a value
-    std::ostream& AddValue();
-    /// Finish all options
-    void Finish();
-};
-
-VizAttributePrinter::VizAttributePrinter(std::ostream& out) : out(out), started(false), finished(false) {}
-VizAttributePrinter::~VizAttributePrinter() {
-    if (started && !finished) {
-        Finish();
-    }
-}
-
-/// Add a key
-void VizAttributePrinter::AddKey(std::string_view key) {
-    if (!started) {
-        started = true;
-        out << " (\n    ";
-    } else {
-        out << ",\n    ";
-    }
-    out << key;
-}
-
-/// Start a value
-std::ostream& VizAttributePrinter::AddValue() {
-    out << " = ";
-    return out;
-}
-/// Start a value
-void VizAttributePrinter::Finish() {
-    finished = true;
-    out << "\n)";
-}
-
 VizStatement::VizStatement(ProgramInstance& instance, size_t statement_id, size_t target_node_id)
     : instance_(instance), statement_id_(statement_id), target_node_id_(target_node_id), components_() {}
 
@@ -189,19 +138,19 @@ void VizComponent::ReadFrom(size_t node_id) {
                 .MatchEnum(sx::NodeType::ENUM_DASHQL_VIZ_COMPONENT_TYPE),
             sxm::Attribute(sx::AttributeKey::DASHQL_VIZ_COMPONENT_TYPE_MODIFIERS, ID_TYPE_MODIFIERS)
                 .MatchUI32Bitmap(),
+            sxm::Option(sx::AttributeKey::DASHQL_OPTION_ROW, ID_ROW),
             sxm::Option(sx::AttributeKey::DASHQL_OPTION_COLUMN, ID_COLUMN),
+            sxm::Option(sx::AttributeKey::DASHQL_OPTION_WIDTH, ID_WIDTH),
             sxm::Option(sx::AttributeKey::DASHQL_OPTION_HEIGHT, ID_HEIGHT),
             sxm::Option(sx::AttributeKey::DASHQL_OPTION_POSITION)
                 .MatchOptions()
                 .MatchChildren({
-                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_COLUMN, ID_POS_COLUMN),
-                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_HEIGHT, ID_POS_HEIGHT),
                     sxm::Option(sx::AttributeKey::DASHQL_OPTION_ROW, ID_POS_ROW),
+                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_COLUMN, ID_POS_COLUMN),
                     sxm::Option(sx::AttributeKey::DASHQL_OPTION_WIDTH, ID_POS_WIDTH),
+                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_HEIGHT, ID_POS_HEIGHT),
                 }),
-            sxm::Option(sx::AttributeKey::DASHQL_OPTION_ROW, ID_ROW),
             sxm::Option(sx::AttributeKey::DASHQL_OPTION_TITLE, ID_TITLE),
-            sxm::Option(sx::AttributeKey::DASHQL_OPTION_WIDTH, ID_WIDTH),
         });
     // clang-format on
 
@@ -295,7 +244,7 @@ std::unique_ptr<VizComponent> VizComponent::CreateFrom(VizStatement& stmt, size_
 
 /// Print the options as json
 void VizComponent::PrintOptionsAsJSON(std::ostream& out, bool pretty) const {
-    writeOptionsAsJSON(viz_stmt_.instance_, node_id_, out, pretty);
+    writeOptionsAsJSON(viz_stmt_.instance_, node_id_, out, pretty ? JSONWriterType::JSON_PRETTY : JSONWriterType::JSON);
 }
 
 /// Print common viz attributes
@@ -309,19 +258,8 @@ void VizComponent::PrintScript(std::ostream& out) const {
     // Print the type name
     out << " " << sx::VizComponentTypeTypeTable()->names[static_cast<uint32_t>(type_)];
 
-    // Print the position
-    VizAttributePrinter aout{out};
-    if (auto& p = position_; p.has_value()) {
-        aout.AddKey("position");
-        aout.AddValue() << "(row = " << p->row() << ", column = " << p->column() << ", width = " << p->width()
-                        << ", height = " << p->height() << ")";
-    }
-
-    // Print the title
-    if (auto& t = title_; t.has_value()) {
-        aout.AddKey("title");
-        aout.AddValue() << "'" << *t << "'";
-    }
+    out << " ";
+    writeOptionsAsJSON(viz_stmt_.instance_, node_id_, out, JSONWriterType::SQLJSON_PRETTY);
 }
 
 /// Pack as buffer
