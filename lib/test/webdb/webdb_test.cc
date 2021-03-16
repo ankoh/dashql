@@ -24,4 +24,14 @@ TEST(WebDB, InvalidSQL) {
     ASSERT_TRUE(expected.IsErr());
 }
 
+TEST(WebDB, LoadCSV) {
+    auto db = make_shared<duckdb::DuckDB>();
+    WebDB::Connection conn{db};
+    auto expected = conn.RunQuery(R"RAW(
+        SELECT * FROM read_csv_auto('/home/dakror/Desktop/dashql/lib/test/test.csv');
+    )RAW",
+                                  {});
+    ASSERT_TRUE(expected.IsOk());
+}
+
 }  // namespace

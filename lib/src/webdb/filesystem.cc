@@ -76,15 +76,19 @@ bool WebDBFileSystem::FileExists(const std::string &filename) {
     return dashql_webdb_fs_file_exists(filename.c_str(), filename.size());
 }
 
-std::string WebDBFileSystem::PathSeparator() {
-    std::cerr << "PathSeparator not implemented" << std::endl;
-    return {};
+void WebDBFileSystem::RemoveFile(const std::string &filename) {
+    std::cerr << "WebDBFileSystem not implemented" << std::endl;
 }
 
-std::string WebDBFileSystem::JoinPath(const std::string &a, const std::string &path) {
-    std::cerr << "JoinPath not implemented" << std::endl;
-    return {};
-}
+// std::string WebDBFileSystem::PathSeparator() {
+//     std::cerr << "PathSeparator not implemented" << std::endl;
+//     return {};
+// }
+//
+// std::string WebDBFileSystem::JoinPath(const std::string &a, const std::string &path) {
+//     std::cerr << "JoinPath not implemented" << std::endl;
+//     return {};
+// }
 
 void WebDBFileSystem::FileSync(duckdb::FileHandle &handle) { std::cerr << "FileSync not implemented" << std::endl; }
 
@@ -109,10 +113,10 @@ std::vector<std::string> WebDBFileSystem::Glob(const std::string &path) {
     return results;
 }
 
-duckdb::idx_t WebDBFileSystem::GetAvailableMemory() {
-    std::cerr << "GetAvailableMemory not implemented" << std::endl;
-    return {};
-}
+// duckdb::idx_t WebDBFileSystem::GetAvailableMemory() {
+//     std::cerr << "GetAvailableMemory not implemented" << std::endl;
+//     return {};
+// }
 
 }  // namespace webdb
 }  // namespace dashql
@@ -149,7 +153,8 @@ int64_t dashql_webdb_fs_write(dashql::BlobID blobId, void *buffer, int64_t bytes
 bool dashql_webdb_fs_directory_exists(const char *path, size_t pathLen) { return {}; };
 void dashql_webdb_fs_directory_create(const char *path, size_t pathLen) {}
 void dashql_webdb_fs_directory_remove(const char *path, size_t pathLen) {}
-bool dashql_webdb_fs_directory_list_files(const char *path, size_t pathLen) {}
+bool dashql_webdb_fs_directory_list_files(const char *path, size_t pathLen) { return {}; }
+void dashql_webdb_fs_glob(const char *path, size_t pathLen) {}
 
 dashql::BlobID dashql_webdb_fs_file_open(const char *path, size_t pathLen, uint8_t flags) { return {}; }
 void dashql_webdb_fs_file_close(dashql::BlobID blobId) {}

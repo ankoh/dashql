@@ -66,10 +66,10 @@ class WebDBFileSystem : public duckdb::FileSystem {
     bool FileExists(const std::string &filename) override;
     //! Remove a file from disk
     void RemoveFile(const std::string &filename) override;
-    //! Path separator for the current file system
-    std::string PathSeparator() override;
-    //! Join two paths together
-    std::string JoinPath(const std::string &a, const std::string &path) override;
+    // //! Path separator for the current file system
+    // std::string PathSeparator() override;
+    // //! Join two paths together
+    // std::string JoinPath(const std::string &a, const std::string &path) override;
     //! Sync a file handle to disk
     void FileSync(duckdb::FileHandle &handle) override;
 
@@ -83,8 +83,8 @@ class WebDBFileSystem : public duckdb::FileSystem {
     //! Runs a glob on the file system, returning a list of matching files
     std::vector<std::string> Glob(const std::string &path) override;
 
-    //! Returns the system-available memory in bytes
-    duckdb::idx_t GetAvailableMemory() override;
+    // //! Returns the system-available memory in bytes
+    // duckdb::idx_t GetAvailableMemory() override;
 };
 
 }  // namespace webdb
