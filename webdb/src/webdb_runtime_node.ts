@@ -77,16 +77,30 @@ export var NodeWebDBRuntime = {
         }
     },
     dashql_webdb_fs_file_get_size: function (blobId: number) {
-        throw Error('undefined');
+        if (blobId < this.blobMap.length) {
+            let blob = this.blobMap[blobId];
+            if (blob == null) return 0;
+            return blob.buffer.length;
+        }
     },
     dashql_webdb_fs_file_get_last_modified_time: function (blobId: number) {
-        throw Error('undefined');
+        if (blobId < this.blobMap.length) {
+            let blob = this.blobMap[blobId];
+            if (blob == null || blob.path == null) return 0;
+            return fs.statSync(blob.path).mtime.getTime();
+        }
+
+        return 0;
     },
     dashql_webdb_fs_file_move: function (fromPtr: number, fromLen: number, toPtr: number, toLen: number) {
         throw Error('undefined');
     },
     dashql_webdb_fs_file_set_pointer: function (blobId: number, location: number) {
-        throw Error('undefined');
+        if (blobId < this.blobMap.length) {
+            let blob = this.blobMap[blobId];
+            if (blob == null) return;
+            blob.position = location;
+        }
     },
     dashql_webdb_fs_file_exists: function (pathPtr: number, pathLen: number) {
         let result = fs.existsSync(

@@ -160,7 +160,10 @@ export abstract class AsyncWebDBDispatcher implements Logger {
                     this.sendOK(request);
                     break;
                 case AsyncWebDBRequestType.FS_TEST:
-                    this._bindings.fsTest();
+                    if (!this._bindings.fsTest()) {
+                        throw 'FS Test returned false';
+                    }
+
                     this.sendOK(request);
                     break;
             }
