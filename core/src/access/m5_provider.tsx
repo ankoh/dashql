@@ -76,7 +76,7 @@ SELECT * FROM (
     SELECT _ymax_x AS ${xName}, _ymax_y AS ${yName} FROM ${TMP_NAME}
 ) combined ORDER BY ${xName}
     `;
-    const after = `DROP TABLE ${TMP_NAME}`;
+    const after = `DROP TABLE IF EXISTS ${TMP_NAME}`;
 
     return (
         <QueryProvider logger={props.logger} database={props.database} query={{ before, data, after }}>
