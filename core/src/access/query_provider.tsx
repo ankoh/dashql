@@ -96,10 +96,26 @@ export class QueryProvider extends React.Component<Props, State> {
         this._inFlightQuery = this.props.query;
         const query = this.props.query;
         this._queryPromise = this.props.database.use(async conn => {
-            if (query.before) await conn.runQuery(query.before);
-            const result = await conn.runQuery(query.data, query.options);
-            if (query.after) await conn.runQuery(query.after);
-            return result;
+            let result: proto.webdb.QueryResult;
+            try {
+                if (query.before) {
+                    await conn.runQuery(query.before);
+                }
+                result = await conn.runQuery(query.data, query.options);
+                return result;
+            } catch (e) {
+                console.error(e);
+                throw e;
+
+            } finally {
+                try {
+                    if (query.after) {
+                        await conn.runQuery(query.after);
+                    }
+                } catch (e) {
+                    console.error(e);
+                }
+            }
         });
         this._queryPromise.then(this._querySucceeded).catch(this._queryFailed);
     }
