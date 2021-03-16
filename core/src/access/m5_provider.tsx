@@ -38,6 +38,9 @@ export const M5Provider: React.FunctionComponent<Props> = (props: Props) => {
     const xDomain = m5Config?.domainX!;
     const xDomainMin = xDomain[0];
     const xDomainMax = xDomain[1];
+    const notX = props.table.columnNames.filter(n => n != xName);
+    const notY = props.table.columnNames.filter(n => n != yName);
+    const colID = (n: string) => props.table.columnNameMapping.get(n) || 0;
 
     // Based on the idea of M4.
     //
@@ -53,27 +56,41 @@ export const M5Provider: React.FunctionComponent<Props> = (props: Props) => {
     // We use a temporary table to ensure that we do the aggregation only once.
     // (At the time of writing, DuckDB does not share common subtrees between UNION ALL).
     //
-    // TODO Use safe temporary table name
-    //
     const binExpr = `round(${canvasWidth}*(${xName}-${xDomainMin})/(${xDomainMax}-${xDomainMin}))`;
+
+    // Packs aggreagte and preserves all other columns.
+    // E.g.: min(x) as _p0_0, arg_min(y, x) as _p0_1, arg_min(z, x) as _p0_3
+    const agg = (point: number, agg: string, by: string, preserve: string[]) =>
+        `${agg}(${by}) as _p${point}_${colID(by)}, ${preserve
+            .map(c => `arg_${agg}(${c}, ${by}) as _p${point}_${colID(c)}`)
+            .join(', ')}`;
+    const aggs = [
+        agg(0, 'min', xName, notX),
+        agg(1, 'max', xName, notX),
+        agg(2, 'min', yName, notY),
+        agg(3, 'max', yName, notY),
+    ].join(',\n');
+
+    // Unpacks aggregated columns
+    // E.g.: _p0_x as x, _p0_y as y, _p0_z as z
+    const unpack = (point: number) => props.table.columnNames.map(n => `_p${point}_${colID(n)} as ${n}`).join(', ');
+
     const before = `
 CREATE TEMPORARY TABLE ${TMP_NAME} AS (
     SELECT ${binExpr} as k,
-        min(${xName}) as _xmin_x, arg_min(${yName}, ${xName}) as _xmin_y,
-        max(${xName}) as _xmax_x, arg_max(${yName}, ${xName}) as _xmax_y,
-        min(${yName}) as _ymin_y, arg_min(${xName}, ${yName}) as _ymin_x,
-        max(${yName}) as _ymax_y, arg_max(${xName}, ${yName}) as _ymax_x
+${aggs}
     FROM ${props.table.tableNameShort} GROUP BY k
 );  `;
+
     const data = `
 SELECT * FROM (
-    SELECT _xmin_x AS ${xName}, _xmin_y AS ${yName} FROM ${TMP_NAME}
+    SELECT ${unpack(0)} FROM ${TMP_NAME}
     UNION ALL
-    SELECT _xmax_x AS ${xName}, _xmax_y AS ${yName} FROM ${TMP_NAME}
+    SELECT ${unpack(1)} FROM ${TMP_NAME}
     UNION ALL
-    SELECT _ymin_x AS ${xName}, _ymin_y AS ${yName} FROM ${TMP_NAME}
+    SELECT ${unpack(2)} FROM ${TMP_NAME}
     UNION ALL
-    SELECT _ymax_x AS ${xName}, _ymax_y AS ${yName} FROM ${TMP_NAME}
+    SELECT ${unpack(3)} FROM ${TMP_NAME}
 ) combined ORDER BY ${xName}
     `;
     const after = `DROP TABLE IF EXISTS ${TMP_NAME}`;
