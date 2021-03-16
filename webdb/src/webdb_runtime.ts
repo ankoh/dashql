@@ -1,14 +1,27 @@
-// Copyright (c) 2020 The DashQL Authors
+export interface WebDBRuntime {
+    bindings: any;
+    dashql_blob_stream_underflow(blobId: number, buf: number, size: number): number;
+    dashql_webdb_fs_read(blobId: number, buf: number, bytes: number): number;
+    dashql_webdb_fs_write(blobId: number, buf: number, bytes: number): number;
+    dashql_webdb_fs_directory_exists(pathPtr: number, pathLen: number): boolean;
+    dashql_webdb_fs_directory_create(pathPtr: number, pathLen: number): void;
+    dashql_webdb_fs_directory_remove(pathPtr: number, pathLen: number): void;
+    dashql_webdb_fs_directory_list_files(pathPtr: number, pathLen: number): boolean;
+    dashql_webdb_fs_glob(pathPtr: number, pathLen: number): void;
+    dashql_webdb_fs_file_open(pathPtr: number, pathLen: number, flags: number): number;
+    dashql_webdb_fs_file_close(blobId: number): void;
+    dashql_webdb_fs_file_get_size(blobId: number): number;
+    dashql_webdb_fs_file_get_last_modified_time(blobId: number): number;
+    dashql_webdb_fs_file_move(fromPtr: number, fromLen: number, toPtr: number, toLen: number): void;
+    dashql_webdb_fs_file_set_pointer(blobId: number, location: number): void;
+    dashql_webdb_fs_file_exists(pathPtr: number, pathLen: number): boolean;
+    dashql_webdb_fs_file_remove(pathPtr: number, pathLen: number): void;
+}
 
-import { copyBlobStreamTo, WebDBBindings } from './webdb_bindings';
-import { WebDBRuntime } from './webdb_runtime';
-
-export var WebWebDBRuntime: WebDBRuntime = {
+export var DefaultWebDBRuntime: WebDBRuntime = {
     bindings: null,
-    dashql_blob_stream_underflow(blobId: number, buf: number, size: number): number {
-        let blobStream = this.bindings!.getBlobStreamById(blobId);
-        if (blobStream === undefined) return 0;
-        return copyBlobStreamTo(blobStream, this.bindings!.instance!.HEAPU8, buf, size);
+    dashql_blob_stream_underflow: function (blobId: number, buf: number, size: number) {
+        throw Error('undefined');
     },
     dashql_webdb_fs_read: function (blobId: number, buf: number, bytes: number) {
         throw Error('undefined');
