@@ -98,10 +98,10 @@
                         <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="31..194" text="LINE (&#10;   ..&#10;        )">
                             <node key="DASHQL_VIZ_COMPONENT_TYPE" value="LINE" />
                             <node key="DASHQL_OPTION_POSITION" type="OBJECT_DASHQL_OPTION_LIST" loc="61..184" text="(&#10;        ..         )">
-                                <node key="DASHQL_OPTION_COLUMN" loc="113..114" text="0" />
-                                <node key="DASHQL_OPTION_HEIGHT" loc="168..170" text="15" />
                                 <node key="DASHQL_OPTION_ROW" loc="85..86" text="0" />
+                                <node key="DASHQL_OPTION_COLUMN" loc="113..114" text="0" />
                                 <node key="DASHQL_OPTION_WIDTH" loc="140..141" text="4" />
+                                <node key="DASHQL_OPTION_HEIGHT" loc="168..170" text="15" />
                             </node>
                         </node>
                     </node>
