@@ -5,7 +5,7 @@ import * as model from '../model';
 import * as proto from '@dashql/proto';
 import { QueryProvider, Query } from './query_provider';
 
-// We run single-threaded at the moment, so deterministic output > true random temp names.
+// We run single-threaded at the moment, so deterministic output > true random temp names. (easy caching!)
 const TMP_NAME = '__TEMP__';
 
 interface Props {
