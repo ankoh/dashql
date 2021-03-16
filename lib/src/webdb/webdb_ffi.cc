@@ -81,10 +81,11 @@ void dashql_webdb_fs_basic_read() {
 
     std::cout << std::endl;
 
-    std::cout << "scanning csv from /home/dakror/Desktop/dashql/webdb/test/test.csv:" << std::endl;
+    std::cout << "scanning parquet from /home/dakror/Desktop/dashql/webdb/test/professoren.parquet:" << std::endl;
     auto db = std::make_unique<duckdb::DuckDB>(nullptr, &config);
     auto con = duckdb::Connection{*db};
-    auto result = con.Query("SELECT * FROM read_csv_auto('/home/dakror/Desktop/dashql/webdb/test/test.csv');");
+    auto result =
+        con.Query("SELECT * FROM parquet_scan('/home/dakror/Desktop/dashql/webdb/test/professoren.parquet');");
     std::cout << "result: " << result->ToString() << std::endl;
 }
 }
