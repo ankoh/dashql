@@ -36,19 +36,15 @@ enum VizComponentTypeModifier: uint8 {
 }
 
 enum VizComponentType: uint8 {
-    VEGA,
     AREA,
     AXIS,
     BAR,
     BOX,
     CANDLESTICK,
     ERROR_BAR,
-    HISTOGRAM,
     LINE,
-    NUMBER,
     PIE,
     SCATTER,
     TABLE,
-    TEXT,
-    VORONOI,
+    VEGA,
 }

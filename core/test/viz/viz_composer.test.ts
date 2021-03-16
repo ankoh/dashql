@@ -31,7 +31,7 @@ const MIN_VALUE = (col: number) => model.buildTableStatisticsKey(model.TableStat
 
 const tests: [string, VizComposerTest][] = [
     [
-        'nocompletion/m4',
+        'vega/line/m4',
         {
             query: `
 VIZ foo USING VEGA (
@@ -42,6 +42,61 @@ VIZ foo USING VEGA (
         x = (field = 'x', type = 'quantitative'),
         y = (field = 'y', type = 'quantitative')
     )
+);`,
+            table: {
+                tableNameQualified: 'global.foo',
+                tableNameShort: 'foo',
+                columnNames: ['x', 'y'],
+                columnNameMapping: new Map([
+                    ['x', 0],
+                    ['y', 1],
+                ]),
+                columnTypes: [DOUBLE_TYPE, DOUBLE_TYPE],
+                statistics: Immutable.Map([
+                    [MAX_VALUE(0), [webdb.Value.DOUBLE(100.0)]],
+                    [MIN_VALUE(0), [webdb.Value.DOUBLE(0.0)]],
+                ]),
+            },
+            expected: {
+                renderer: model.VizRendererType.BUILTIN_VEGA,
+                dataSource: {
+                    queryType: model.VizQueryType.M5,
+                    targetQualified: 'global.foo',
+                    m5Config: {
+                        attributeX: 'x',
+                        attributeY: 'y',
+                        domainX: [0.0, 100.0],
+                    },
+                    sampleSize: 10000,
+                },
+                vegaLite: {
+                    ...viz.DEFAULT_VEGA_LITE_MIXINS,
+                    layer: [
+                        {
+                            mark: 'line',
+                            encoding: {
+                                x: {
+                                    field: 'x',
+                                    type: 'quantitative',
+                                },
+                                y: {
+                                    field: 'y',
+                                    type: 'quantitative',
+                                },
+                            },
+                        },
+                    ],
+                },
+            },
+        },
+    ],
+    [
+        'completion/line/m4',
+        {
+            query: `
+VIZ foo USING LINE (
+    title = 'Line Chart',
+    position = (row = 0, column = 6, width = 6, height = 4)
 );`,
             table: {
                 tableNameQualified: 'global.foo',
