@@ -3,9 +3,10 @@
 import webdb_api_wasm from './webdb_wasm_node.wasm';
 import webdb_api_init from './webdb_wasm_node.js';
 import { WebDBModule } from './webdb_module';
-import { WebDBBindings, DefaultWebDBRuntime, BlobStream } from './webdb_bindings';
+import { WebDBBindings, BlobStream } from './webdb_bindings';
 import { Logger } from './log';
 import fs from 'fs';
+import { DefaultWebDBRuntime, WebDBRuntime } from './webdb_runtime';
 
 export class NodeBlobStream implements BlobStream {
     buffer: Uint8Array;
@@ -31,10 +32,10 @@ declare global {
 
 /// WebDB bindings for node.js
 export class WebDB extends WebDBBindings {
-    protected runtime: any;
+    protected runtime: WebDBRuntime;
     protected path: string;
 
-    public constructor(logger: Logger, runtime: any = DefaultWebDBRuntime, path: string | null = null) {
+    public constructor(logger: Logger, runtime: WebDBRuntime = DefaultWebDBRuntime, path: string | null = null) {
         super(logger);
         this.runtime = runtime;
         this.runtime.bindings = this;

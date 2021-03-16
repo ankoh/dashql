@@ -2,7 +2,7 @@
 
 import { AsyncWebDBDispatcher } from './async_webdb_dispatcher';
 import { AsyncWebDBResponseVariant, AsyncWebDBRequestVariant } from './async_webdb_message';
-import { WebDBBindings, copyBlobStreamTo } from './webdb_bindings';
+import { WebDBBindings } from './webdb_bindings';
 import { WebDB } from './webdb_bindings_web';
 import { WebWebDBRuntime } from './webdb_runtime_web';
 
