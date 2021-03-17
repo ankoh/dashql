@@ -14,6 +14,7 @@ interface Props {
     appContext: IAppContext;
     dbObjects: Immutable.Map<string, core.model.DatabaseTableInfo>;
     vizInfo: core.model.VizInfo;
+    editable?: boolean;
 }
 
 export class TableRenderer extends React.Component<Props> {
@@ -32,7 +33,7 @@ export class TableRenderer extends React.Component<Props> {
         const targetShort = table.tableNameShort;
         const targetQualified = table.tableNameQualified;
         return (
-            <VizCard title={this.props.vizInfo.title || `Table ${targetShort}`}>
+            <VizCard title={this.props.vizInfo.title || `Table ${targetShort}`} controls={this.props.editable}>
                 <ScanProvider logger={logger} database={db} targetName={targetShort} request={new core.access.ScanRequest().withRange(0, 1024)}>
                     {(data, requestData) => <DataGrid tableInfo={table} data={data} requestData={requestData} />}
                 </ScanProvider>

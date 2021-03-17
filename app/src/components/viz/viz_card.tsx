@@ -7,6 +7,7 @@ interface Props {
     children?: JSX.Element[] | JSX.Element;
     className?: string;
     title?: string;
+    controls?: boolean;
 }
 
 export const VizCard: React.FC<Props> = (props: Props) => {
@@ -16,9 +17,12 @@ export const VizCard: React.FC<Props> = (props: Props) => {
                 <div className={styles.title}>
                     {props.title}
                 </div>
-                <Button size="sm" variant="light" className={styles.settings}>
-                    <SettingsIcon fill='rgb(80, 80, 80)' width='14px' height='14px'  />
-                </Button>
+                {
+                    props.controls &&
+                    <Button size="sm" variant="light" className={styles.settings}>
+                        <SettingsIcon fill='rgb(80, 80, 80)' width='14px' height='14px'  />
+                    </Button>
+                }
             </div>
             <div className={styles.body}>
                 {props.children}

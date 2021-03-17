@@ -1,0 +1,71 @@
+@import "../vars.module.css";
+
+.container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+}
+
+.container > div {
+    display: flex;
+    min-width: 100%;
+    min-height: 100%;
+}
+
+.content_with_rulers {
+    display: grid;
+    width: 100%;
+    grid-template-rows: var(--board_ruler_size) minmax(calc(100% - var(--board_ruler_size)), max-content);
+    grid-template-columns: var(--board_ruler_size) 100%;
+}
+
+.ruler_corner {
+    grid-row: 1;
+    grid-column: 1;
+    background-color: rgb(255, 255, 255);
+    border-bottom: 1px solid rgb(200, 200, 200);
+}
+
+.ruler_top {
+    grid-row: 1;
+    grid-column: 2;
+    background-color: rgb(255, 255, 255);
+    position: relative;
+    border-bottom: 1px solid rgb(200, 200, 200);
+}
+
+.content_scroller {
+    grid-row: 2;
+    grid-column: 1 / span 2;
+}
+
+.content_container {
+    display: grid;
+    grid-template-columns: var(--board_ruler_size) calc(100% - 32px);
+    grid-template-rows: minmax(100%, max-content);
+    min-height: 100%;
+}
+
+.ruler_left {
+    grid-row: 1;
+    grid-column: 1;
+    background-color: rgb(255, 255, 255);
+    position: relative;
+    border-right: 1px solid rgb(200, 200, 200);
+}
+
+.ruler_canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.content {
+    grid-row: 1;
+    grid-column: 2;
+    min-height: 100%;
+}
