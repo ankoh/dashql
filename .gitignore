@@ -7,7 +7,7 @@
 /.ccls-cache
 /.emscripten_cache
 .DS_Store
-
+.vscode
 compile_commands.json
 
 /target
