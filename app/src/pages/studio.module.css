@@ -27,7 +27,7 @@
     font-size: 90%;
     line-height: var(--studio_program_info_height);
 
-    background: white;
+    background: rgb(250, 250, 250);
 }
 
 .program_info_entry {
