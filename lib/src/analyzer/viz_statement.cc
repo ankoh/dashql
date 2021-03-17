@@ -244,8 +244,7 @@ std::unique_ptr<VizComponent> VizComponent::CreateFrom(VizStatement& stmt, size_
 
 /// Print the options as json
 void VizComponent::PrintOptionsAsJSON(std::ostream& out, bool pretty) const {
-    writeOptionsAsJSON(viz_stmt_.instance_, node_id_, out, pretty ? JSONWriterType::JSON_PRETTY : JSONWriterType::JSON,
-                       viz_stmt_.patches_);
+    writeOptionsAsJSON(viz_stmt_.instance_, node_id_, out, pretty);
 }
 
 /// Print common viz attributes
@@ -260,7 +259,12 @@ void VizComponent::PrintScript(std::ostream& out) const {
     out << " " << sx::VizComponentTypeTypeTable()->names[static_cast<uint32_t>(type_)];
 
     out << " ";
-    writeOptionsAsJSON(viz_stmt_.instance_, node_id_, out, JSONWriterType::SQLJSON_PRETTY, viz_stmt_.patches_);
+
+    // Read DOM
+    auto options = readOptionsAsDOM(viz_stmt_.instance_, node_id_);
+    // XXX manipulate json (e.g. set position)
+
+    writeSQLJSON(options, out);
 }
 
 /// Pack as buffer
