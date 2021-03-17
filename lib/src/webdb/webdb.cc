@@ -18,6 +18,7 @@
 #include "duckdb/parser/parser.hpp"
 #include "duckdb/planner/planner.hpp"
 #include "flatbuffers/flatbuffers.h"
+#include "parquet-extension.hpp"
 #include "spdlog/spdlog.h"
 
 namespace fb = flatbuffers;
@@ -177,6 +178,7 @@ ExpectedBuffer<p::QueryPlan> WebDB::Connection::AnalyzeQuery(std::string_view te
 WebDB::WebDB() : database_(), connections_(), db_config_() {
     db_config_.file_system = std::make_unique<WebDBFileSystem>();
     database_ = std::make_shared<duckdb::DuckDB>(nullptr, &db_config_);
+    database_->LoadExtension<duckdb::ParquetExtension>();
 }
 
 /// Create a session
