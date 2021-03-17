@@ -13,6 +13,7 @@ interface Props {
     appContext: IAppContext;
     dbObjects: Immutable.Map<string, core.model.DatabaseTableInfo>;
     vizInfo: core.model.VizInfo;
+    editable?: boolean;
 }
 
 export class VegaRenderer extends React.Component<Props> {
@@ -77,7 +78,7 @@ export class VegaRenderer extends React.Component<Props> {
             return <div />;
         }
         return (
-            <VizCard title={this.props.vizInfo.title || 'Some Title'}>
+            <VizCard title={this.props.vizInfo.title || 'Some Title'} controls={this.props.editable}>
                 <AutoSizer>
                     {({width, height}) => this.renderContent(table, width, height)}
                 </AutoSizer>

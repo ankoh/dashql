@@ -1,6 +1,6 @@
 import * as React from 'react';
 import * as core from '@dashql/core';
-import { Board, EditorLoader, StudioCommandBar, StudioToolBar, BoardCommandBar } from '../components';
+import { BoardEditor, EditorLoader, StudioCommandBar, StudioToolBar, BoardCommandBar } from '../components';
 import { AppState, Dispatch } from '../model';
 import { connect } from 'react-redux';
 
@@ -34,7 +34,7 @@ class Studio extends React.Component<Props> {
                     <StudioToolBar />
                 </div>
                 <div className={styles.board}>
-                    <Board scaleFactor={1.0} />
+                    <BoardEditor immutable={false} scaleFactor={1.0} />
                 </div>
                 <StudioCommandBar />
                 <BoardCommandBar />

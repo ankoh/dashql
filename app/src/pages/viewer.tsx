@@ -1,10 +1,9 @@
 import * as React from 'react';
 import * as core from '@dashql/core';
-import { Board, BoardCommandBar } from '../components';
 import { AppState, Dispatch } from '../model';
 import { AutoSizer, withAutoSizer } from '../util/autosizer';
 import { Scrollbars, positionValues } from 'react-custom-scrollbars';
-import BoardLayout from '../components/board_layout';
+import { Board } from '../components';
 import { connect } from 'react-redux';
 
 import styles from './viewer.module.css';
@@ -22,7 +21,7 @@ class Viewer extends React.Component<Props> {
                         {({width, height}) =>
                             <div style={{width, height}}>
                                 <Scrollbars height={height} width={width}>
-                                    <BoardLayout className={styles.board_layout} width={width} />
+                                    <Board className={styles.board_layout} width={width} />
                                 </Scrollbars>
                             </div>
                         }
