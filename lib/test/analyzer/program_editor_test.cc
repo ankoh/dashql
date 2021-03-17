@@ -45,7 +45,15 @@ TEST(ProgramEditorTest, VizStatementAddPosition) {
         edit = Pack<proto::edit::ProgramEdit>(move(pe));
     }
 
-    auto expected = "VIZ weather_avg USING LINE (\n    position = (row = 1, column = 2, width = 3, height = 4)\n)";
+    auto expected = 
+R"RAW(VIZ weather_avg USING LINE (
+    position = (
+        row = 1,
+        column = 2,
+        width = 3,
+        height = 4
+    )
+))RAW";
     EXPECT_EQ(editor.Apply(*std::get<0>(edit)), expected);
 }
 
@@ -70,7 +78,16 @@ TEST(ProgramEditorTest, VizStatementUpdatePosition) {
         edit = Pack<proto::edit::ProgramEdit>(move(pe));
     }
 
-    auto expected = "VIZ weather_avg USING LINE (\n    position = (row = 6, column = 5, width = 4, height = 3),\n    title = 'sometitle'\n)";
+    auto expected = 
+R"RAW(VIZ weather_avg USING LINE (
+    title = 'sometitle',
+    position = (
+        row = 6,
+        column = 5,
+        width = 4,
+        height = 3
+    )
+))RAW";
     EXPECT_EQ(editor.Apply(*std::get<0>(edit)), expected);
 }
 
