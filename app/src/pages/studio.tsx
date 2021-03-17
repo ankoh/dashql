@@ -1,9 +1,7 @@
-import * as Immutable from 'immutable';
 import * as React from 'react';
 import * as core from '@dashql/core';
 import { Board, EditorLoader, StudioCommandBar, StudioToolBar, BoardCommandBar } from '../components';
 import { AppState, Dispatch } from '../model';
-import ProgramGraph from '../components/program_graph';
 import { connect } from 'react-redux';
 
 import styles from './studio.module.css';
