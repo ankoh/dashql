@@ -19,7 +19,7 @@ export const VizCard: React.FC<Props> = (props: Props) => {
                 </div>
                 {
                     props.controls &&
-                    <Button size="sm" variant="light" className={styles.settings}>
+                    <Button size="sm" variant="link" className={styles.settings}>
                         <SettingsIcon fill='rgb(80, 80, 80)' width='14px' height='14px'  />
                     </Button>
                 }
