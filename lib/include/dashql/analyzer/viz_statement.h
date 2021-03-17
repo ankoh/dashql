@@ -49,6 +49,8 @@ class VizStatement {
     std::optional<proto::analyzer::VizPosition> computed_position_ = std::nullopt;
     /// The title
     std::optional<std::string_view> title_ = std::nullopt;
+    /// The patches
+    std::unordered_map<size_t, std::pair<sx::AttributeKey, rapidjson::Document>> patches_;
 
    public:
     /// Constructor
