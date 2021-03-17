@@ -31,7 +31,7 @@ namespace dashql {
 namespace viz {
 
 VizStatement::VizStatement(ProgramInstance& instance, size_t statement_id, size_t target_node_id)
-    : instance_(instance), statement_id_(statement_id), target_node_id_(target_node_id), components_() {}
+    : instance_(instance), statement_id_(statement_id), target_node_id_(target_node_id), components_(), patches_() {}
 
 /// Read a viz statement
 std::unique_ptr<VizStatement> VizStatement::ReadFrom(ProgramInstance& instance, size_t stmt_id) {
@@ -244,7 +244,8 @@ std::unique_ptr<VizComponent> VizComponent::CreateFrom(VizStatement& stmt, size_
 
 /// Print the options as json
 void VizComponent::PrintOptionsAsJSON(std::ostream& out, bool pretty) const {
-    writeOptionsAsJSON(viz_stmt_.instance_, node_id_, out, pretty ? JSONWriterType::JSON_PRETTY : JSONWriterType::JSON);
+    writeOptionsAsJSON(viz_stmt_.instance_, node_id_, out, pretty ? JSONWriterType::JSON_PRETTY : JSONWriterType::JSON,
+                       viz_stmt_.patches_);
 }
 
 /// Print common viz attributes
@@ -259,7 +260,7 @@ void VizComponent::PrintScript(std::ostream& out) const {
     out << " " << sx::VizComponentTypeTypeTable()->names[static_cast<uint32_t>(type_)];
 
     out << " ";
-    writeOptionsAsJSON(viz_stmt_.instance_, node_id_, out, JSONWriterType::SQLJSON_PRETTY);
+    writeOptionsAsJSON(viz_stmt_.instance_, node_id_, out, JSONWriterType::SQLJSON_PRETTY, viz_stmt_.patches_);
 }
 
 /// Pack as buffer
