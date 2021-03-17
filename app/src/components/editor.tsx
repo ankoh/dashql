@@ -101,7 +101,8 @@ class Editor extends React.Component<Props> {
                     ...this.props.script,
                     text: editor.getValue(),
                     lineCount: editor.getModel()?.getLineCount() || 0,
-                    bytes: core.utils.estimateUTF16Length(editor.getValue())
+                    bytes: core.utils.estimateUTF16Length(editor.getValue()),
+                    modified: true
                 });
             }
         });
