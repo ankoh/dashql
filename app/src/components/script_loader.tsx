@@ -84,11 +84,10 @@ class ScriptLoader extends React.Component<Props, State> {
                 error: null,
             });
             this.props.updateScript({
-                text,
+                text, uri,
                 modified: false,
                 lineCount: core.utils.countLines(text),
                 bytes: core.utils.estimateUTF16Length(text),
-                fileName: uri || '-',
             });
         } catch (e) {
             this.setState({

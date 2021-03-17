@@ -1,17 +1,12 @@
-export interface ScriptRequest {
-    /// The script request
-    url?: string;
-}
-
 export interface Script {
     /// The program text
     text: string;
     /// Has been modified?
     modified: boolean;
+    /// The file name
+    uri?: string;
     /// The line count
     lineCount?: number;
     /// The file size
     bytes?: number;
-    /// The file name
-    fileName?: string;
 }

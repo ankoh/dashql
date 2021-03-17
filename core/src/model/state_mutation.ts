@@ -4,7 +4,7 @@ import * as utils from '../utils';
 import { LogEntryVariant } from './log';
 import { Plan } from './plan';
 import { ActionHandle, Action, ActionUpdate, ActionSchedulerStatus } from './action';
-import { DatabaseTableInfo, TableStatisticsKey } from './database_info';
+import { DatabaseTableInfo } from './database_info';
 import { PlanObjectID, PlanObject, PlanObjectType } from './plan_object';
 import { Script } from './script';
 import { Program, StatementStatus, deriveStatementStatusCode } from './program';

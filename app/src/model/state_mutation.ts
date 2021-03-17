@@ -7,7 +7,7 @@ import { LaunchStep, Status } from "./launch_step";
 export enum StateMutationType {
     CONFIGURE_APP           = 'CONFIGURE_APP',
     UPDATE_LAUNCH_STEP      = 'UPDATE_LAUNCH_STEP',
-    MARK_LAUNCH_COMPLETE     = 'SET_LAUNCH_COMPLETE',
+    MARK_LAUNCH_COMPLETE    = 'SET_LAUNCH_COMPLETE',
     OTHER                   = 'OTHER',
 }
 
