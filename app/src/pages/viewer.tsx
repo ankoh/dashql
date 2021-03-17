@@ -1,12 +1,16 @@
 import * as React from 'react';
-import * as core from '@dashql/core';
 import { AppState, Dispatch } from '../model';
-import { AutoSizer, withAutoSizer } from '../util/autosizer';
-import { Scrollbars, positionValues } from 'react-custom-scrollbars';
+import { AutoSizer } from '../util/autosizer';
+import { Scrollbars } from 'react-custom-scrollbars';
+import { CodeIcon } from '../svg/icons';
+import { Link } from 'react-router-dom';
 import { Board } from '../components';
 import { connect } from 'react-redux';
 
 import styles from './viewer.module.css';
+import styles_cmd from '../components/cmdbars.module.css';
+
+import logo from '../../public/logo_robot_grey.svg';
 
 interface Props {
     className?: string;
@@ -16,6 +20,14 @@ class Viewer extends React.Component<Props> {
     public render() {
         return (
             <div className={styles.container}>
+                <div className={styles.brand}>
+                    <div className={styles.brand_logo}>
+                        <img src={logo} />
+                    </div>
+                    <div className={styles.brand_name}>
+                        DashQL
+                    </div>
+                </div>
                 <div className={styles.board}>
                     <AutoSizer>
                         {({width, height}) =>
@@ -26,6 +38,11 @@ class Viewer extends React.Component<Props> {
                             </div>
                         }
                     </AutoSizer>
+                </div>
+                <div className={styles.cmdbar}>
+                    <Link to="/studio" className={styles_cmd.cmdbar_cmd}>
+                        <CodeIcon className={styles_cmd.cmdbar_icon} width={'20px'} height={'20px'} />
+                    </Link>
                 </div>
             </div>
         );

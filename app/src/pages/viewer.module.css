@@ -1,9 +1,11 @@
 @import "../vars.module.css";
 
 .container {
-    width: 100%;
-    height: 100%;
-    position: relative;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
 }
 
 .board {
@@ -16,4 +18,44 @@
 
 .board_layout {
     min-height: 100%;
+}
+
+.brand {
+    position: absolute;
+    top: 0px;
+    left: 8px;
+    display: grid;
+    grid-template-columns: 48px 200px;
+    grid-template-rows: 48px;
+}
+
+.brand_logo {
+    grid-row: 1;
+    grid-column: 1;
+    display: grid;
+    align-items: center;
+    justify-content: center;
+}
+
+.brand_logo > img {
+    width: 32px;
+    height: 32px;
+}
+
+.brand_name {
+    grid-row: 1;
+    grid-column: 2;
+    display: grid;
+    align-items: center;
+    font-weight: 800;
+    font-size: 110%;
+    color: #6c6c6c;
+}
+
+.cmdbar {
+    position: absolute;
+    top: 0px;
+    right: 0px;
+    width: 48px;
+    height: 48px;
 }
