@@ -18,7 +18,7 @@ class Studio extends React.Component<Props> {
             <div className={styles.studio}>
                 <div className={styles.program}>
                     <div className={styles.program_info}>
-                        <div className={styles.program_info_entry}>{this.props.script.uri}</div>
+                        <div className={styles.program_info_entry}>{this.props.script.uri}{this.props.script.modified ? '*' : ''}</div>
                         <div className={styles.program_info_flex} />
                         <div className={styles.program_info_entry}>
                             {this.props.program?.buffer.statementsLength() || 0} statements
