@@ -105,8 +105,12 @@ class VizComponent {
     /// Virtual destructor
     virtual ~VizComponent() = default;
 
+    /// Get the viz statement
+    auto& statement() const { return viz_stmt_; }
     /// Get the type
     auto& type() const { return type_; };
+    /// Get the viz statement
+    auto& position() { return position_; }
 
     /// Set the position
     void SetPosition(dashql::proto::analyzer::VizPosition pos) { position_ = pos; }
