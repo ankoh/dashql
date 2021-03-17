@@ -19,49 +19,40 @@
 
 namespace dashql {
 
+struct UnvisitedNode {
+    size_t node_id;
+    std::optional<rapidjson::Type> type;
+    size_t children;
+};
+
 template <typename Writer>
-static void writeOptionsAsJSONImpl(ProgramInstance& instance, size_t root_node_id, Writer& out,
-                                   const std::unordered_map<size_t, PatchedOption>& patches) {
-    using UnvisitedNode = std::tuple<size_t, std::optional<rapidjson::Type>, size_t>;
+static void writeOptions(ProgramInstance& instance, size_t root_node_id, Writer& out) {
     std::string tmp;
 
     /// Use a single post-order DFS to build the json output.
     auto& nodes = instance.program().nodes;
-    std::stack<std::variant<UnvisitedNode, const PatchedOption*>> pending;
-    pending.push(UnvisitedNode{root_node_id, std::nullopt, 0});
+    std::vector<UnvisitedNode> pending;
+    pending.push_back(UnvisitedNode{root_node_id, std::nullopt, 0});
     while (!pending.empty()) {
-        // Inline patched node?
-        if (std::holds_alternative<const PatchedOption*>(pending.top())) {
-            // Get name of option key and convert to camelCase
-            auto patch = std::get<const PatchedOption*>(pending.top());
-            auto text = parser::optionToString(patch->first);
-            assert(!text.empty());
-            auto key = parser::optionToCamelCase(text, tmp);
-            out.Key(key.data(), key.length(), true);
-            // Inline the raw json document as value
-            patch->second.Accept(out);
-            pending.pop();
-            continue;
-        }
-
         // Get the unvisited child node
-        auto& [node_id, type, children] = std::get<UnvisitedNode>(pending.top());
-        auto& node = nodes[node_id];
+        auto next = pending.back();
+        auto node_stack_id = pending.size() - 1;
+        auto& node = nodes[next.node_id];
 
         // Type already set?
         // That means we visited the nodes children already and are on our way up.
-        if (type.has_value()) {
-            switch (type.value()) {
+        if (next.type.has_value()) {
+            switch (next.type.value()) {
                 case rapidjson::Type::kArrayType:
-                    out.EndArray(children);
+                    out.EndArray(next.children);
                     break;
                 case rapidjson::Type::kObjectType:
-                    out.EndObject(children);
+                    out.EndObject(next.children);
                     break;
                 default:
                     break;
             }
-            pending.pop();
+            pending.pop_back();
             continue;
         }
 
@@ -79,16 +70,16 @@ static void writeOptionsAsJSONImpl(ProgramInstance& instance, size_t root_node_i
         // Not visited yet, check node type
         switch (node.node_type()) {
             case sx::NodeType::NONE:
-                pending.pop();
+                pending.pop_back();
                 break;
             case sx::NodeType::BOOL:
                 out.Bool(node.children_begin_or_value());
-                pending.pop();
+                pending.pop_back();
                 break;
             case sx::NodeType::UI32_BITMAP:
             case sx::NodeType::UI32:
                 out.Uint(node.children_begin_or_value());
-                pending.pop();
+                pending.pop_back();
                 break;
             case sx::NodeType::STRING_REF: {
                 auto txt = trimview(instance.TextAt(node.location()), isNoQuote);
@@ -100,20 +91,24 @@ static void writeOptionsAsJSONImpl(ProgramInstance& instance, size_t root_node_i
                 } else {
                     out.String(txt.data(), txt.length(), false);
                 }
-                pending.pop();
+                pending.pop_back();
                 break;
             }
             case sx::NodeType::ARRAY: {
-                out.StartArray();
-                type = rapidjson::Type::kArrayType;
+                pending.back().type = rapidjson::Type::kArrayType;
                 auto begin = node.children_begin_or_value();
-                for (auto i = 0; i < node.children_count(); ++i) {
-                    auto& child = nodes[begin + i];
+                auto count = node.children_count();
+                auto end = begin + count;
+                for (auto i = 0; i < count; ++i) {
+                    auto& child = nodes[end - i - 1];
                     if (child.node_type() == sx::NodeType::NONE || child.attribute_key() != sx::AttributeKey::NONE)
                         continue;
-                    ++children;
-                    pending.push(UnvisitedNode{begin + i, std::nullopt, 0});
+                    pending.push_back(UnvisitedNode{end - i - 1, std::nullopt, 0});
                 }
+                pending[node_stack_id].children = pending.size() - node_stack_id - 1;
+
+                // Start an array
+                out.StartArray();
                 break;
             }
             default: {
@@ -134,52 +129,36 @@ static void writeOptionsAsJSONImpl(ProgramInstance& instance, size_t root_node_i
                     if (flatten) {
                         auto txt = trimview(instance.TextAt(node.location()), isNoQuote);
                         out.String(txt.data(), txt.length(), false);  // XXX Maybe emit numbers as well?
-                        pending.pop();
+                        pending.pop_back();
                         break;
                     }
 
-                    // Otherwise emit an object
-                    out.StartObject();
-
                     // Visit all children
-                    type = rapidjson::Type::kObjectType;
+                    pending.back().type = rapidjson::Type::kObjectType;
                     auto begin = node.children_begin_or_value();
-                    std::vector<size_t> child_ids;
-                    for (auto i = 0; i < node.children_count(); ++i) {
+                    auto count = node.children_count();
+                    auto end = begin + count;
+                    for (auto i = 0; i < count; ++i) {
                         // Skip if not option
-                        auto& child = nodes[begin + i];
+                        auto& child = nodes[end - i - 1];
                         if (child.node_type() == sx::NodeType::NONE ||
                             child.attribute_key() <= sx::AttributeKey::DASHQL_OPTION_KEYS_ ||
                             child.attribute_key() >= sx::AttributeKey::SQL_KEYS_) {
                             continue;
                         }
-                        // Has patched attributes?
-                        // Write json document value directly.
-                        // XXX Maybe push onto the stack at the right place for ordering?
-                        if (auto iter = patches.find(node_id); iter != patches.end()) {
-                            auto& [key, doc] = iter->second;
-                            auto text = parser::optionToString(key);
-                            if (!text.empty()) {
-                                auto key = parser::optionToCamelCase(text, tmp);
-                                out.Key(key.data(), key.length(), true);
-                            };
-                            doc.Accept(out);
-                            continue;
-                        }
-                        child_ids.push_back(i);
+                        pending.push_back(UnvisitedNode{end - i - 1, std::nullopt, 0});
                     }
+                    pending[node_stack_id].children = pending.size() - node_stack_id - 1;
 
-                    // Push children in reverse order onto the DFS stack
-                    children = child_ids.size();
-                    for (auto iter = child_ids.rbegin(); iter != child_ids.rend(); ++iter) {
-                        pending.push(UnvisitedNode{*iter, std::nullopt, 0});
-                    }
+                    // Start an object
+                    out.StartObject();
+
                 } else if (node_type_id > static_cast<uint32_t>(sx::NodeType::ENUM_KEYS_)) {
                     std::string_view txt = parser::getEnumText(node);
                     out.String(txt.data(), txt.length(), false);  // never copy constant strings
-                    pending.pop();
+                    pending.pop_back();
                 } else {
-                    pending.pop();
+                    pending.pop_back();
                 }
             }
         }
@@ -197,12 +176,12 @@ enum NodeType {
 
 struct SQLJSONWriter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, SQLJSONWriter> {
     std::ostream& out;
-    std::stack<std::pair<NodeType, size_t>> node_stack;
+    std::vector<std::pair<NodeType, size_t>> node_stack;
 
     SQLJSONWriter(std::ostream& out) : out(out) {}
 
     bool Key(const char* txt, size_t length, bool copy) {
-        auto& [node_type, children] = node_stack.top();
+        auto& [node_type, children] = node_stack.back();
         assert(node_type == NodeType::OBJECT);
         if (children++ == 0) {
             out << "(\n";
@@ -215,7 +194,7 @@ struct SQLJSONWriter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, SQ
         return true;
     }
     void NextValue() {
-        auto& [node_type, children] = node_stack.top();
+        auto& [node_type, children] = node_stack.back();
         if (node_type == NodeType::ARRAY) {
             children++;
             out << "[";
@@ -257,53 +236,60 @@ struct SQLJSONWriter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, SQ
         return true;
     }
     bool StartObject() {
-        node_stack.push({NodeType::OBJECT, 0});
+        node_stack.push_back({NodeType::OBJECT, 0});
         return true;
     }
     bool StartArray() {
-        node_stack.push({NodeType::ARRAY, 0});
+        node_stack.push_back({NodeType::ARRAY, 0});
         return true;
     }
     bool EndObject(size_t count) {
-        if (node_stack.top().second > 0) {
+        if (node_stack.back().second > 0) {
             out << "\n";
-            node_stack.pop();
+            node_stack.pop_back();
             std::fill_n(std::ostream_iterator<char>{out}, node_stack.size() * INDENTATION_CHARS, ' ');
             out << ")";
         } else {
-            node_stack.pop();
+            node_stack.pop_back();
         }
         return true;
     }
     bool EndArray(size_t count) {
-        if (node_stack.top().second > 0) out << "]";
-        node_stack.pop();
+        if (node_stack.back().second > 0) out << "]";
+        node_stack.pop_back();
         return true;
     }
 };
 
 }  // namespace
 
-void writeOptionsAsJSON(ProgramInstance& instance, size_t node_id, std::ostream& raw_out, JSONWriterType writer,
-                        const std::unordered_map<size_t, std::pair<sx::AttributeKey, rapidjson::Document>>& patches) {
-    switch (writer) {
-        case JSONWriterType::JSON: {
-            rapidjson::OStreamWrapper out{raw_out};
-            rapidjson::Writer writer{out};
-            writeOptionsAsJSONImpl(instance, node_id, writer, patches);
-            break;
-        }
-        case JSONWriterType::JSON_PRETTY: {
-            rapidjson::OStreamWrapper out{raw_out};
-            rapidjson::PrettyWriter writer{out};
-            writeOptionsAsJSONImpl(instance, node_id, writer, patches);
-            break;
-        }
-        case JSONWriterType::SQLJSON_PRETTY: {
-            SQLJSONWriter writer{raw_out};
-            writeOptionsAsJSONImpl(instance, node_id, writer, patches);
-            break;
-        }
+// Read all options as DOM
+rapidjson::Document readOptionsAsDOM(ProgramInstance& instance, size_t node_id) {
+    rapidjson::Document doc;
+    auto generator = [&](auto& reader) {
+        writeOptions(instance, node_id, reader);
+        return true;
+    };
+    doc.Populate(generator);
+    return doc;
+}
+
+// Write document as SQLJSON
+void writeSQLJSON(const rapidjson::Document& doc, std::ostream& out) {
+    SQLJSONWriter writer{out};
+    doc.Accept(writer);
+}
+
+// Write all options directly as JSON.
+// This is more efficient than SQLJSON since we don't materialize an intermediate DOM.
+void writeOptionsAsJSON(ProgramInstance& instance, size_t node_id, std::ostream& raw_out, bool pretty) {
+    rapidjson::OStreamWrapper out{raw_out};
+    if (pretty) {
+        rapidjson::PrettyWriter writer{out};
+        writeOptions(instance, node_id, writer);
+    } else {
+        rapidjson::Writer writer{out};
+        writeOptions(instance, node_id, writer);
     }
 }
 

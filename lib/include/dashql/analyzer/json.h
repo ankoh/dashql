@@ -9,14 +9,13 @@
 
 namespace dashql {
 
-/// The writer type
-enum JSONWriterType { JSON, JSON_PRETTY, SQLJSON_PRETTY };
-
-using PatchedOption = std::pair<sx::AttributeKey, rapidjson::Document>;
-
-/// Read all options as JSON
-void writeOptionsAsJSON(ProgramInstance& instance, size_t node_id, std::ostream& out, JSONWriterType writer,
-                        const std::unordered_map<size_t, PatchedOption>& patches);
+/// Read all options as DOM
+rapidjson::Document readOptionsAsDOM(ProgramInstance& instance, size_t node_id);
+/// Write document as SQLJSON
+void writeSQLJSON(const rapidjson::Document& doc, std::ostream& out);
+/// Write all options directly as JSON.
+/// This is more efficient than SQLJSON since we don't materialize an intermediate DOM.
+void writeOptionsAsJSON(ProgramInstance& instance, size_t node_id, std::ostream& out, bool pretty = false);
 
 }  // namespace dashql
 
