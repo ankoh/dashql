@@ -1,3 +1,8 @@
+export interface ScriptRequest {
+    /// The script request
+    url?: string;
+}
+
 export interface Script {
     /// The program text
     text: string;
