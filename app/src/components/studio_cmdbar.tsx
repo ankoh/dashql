@@ -26,10 +26,23 @@ const DocumentDownloadAction = createAction(FileDownloadIcon);
 const DocumentUploadAction = createAction(FileUploadIcon);
 
 interface StudioCommandBarProps {
+    script: core.model.Script;
     resetPlan: () => void;
 }
 
 export class StudioCommandBar extends React.Component<StudioCommandBarProps> {
+    _downloadScriptAsFile = this.downloadScriptAsFile.bind(this);
+
+    // Download the script as a file
+    downloadScriptAsFile() {
+        const element = document.createElement("a");
+        const file = new Blob([this.props.script.text], {type: 'text/plain'});
+        element.href = URL.createObjectURL(file);
+        element.download = "script.dashql";
+        document.body.appendChild(element); // Required for this to work in FireFox
+        element.click();
+    }
+
     public render() {
         return (
             <div className={styles.cmdbar_studio}>
@@ -39,7 +52,7 @@ export class StudioCommandBar extends React.Component<StudioCommandBarProps> {
                 </div>
                 <div className={styles.cmdbar_cmdset} />
                 <div className={styles.cmdbar_cmdset}>
-                    <DocumentDownloadAction onClick={() => {}} />
+                    <DocumentDownloadAction onClick={this._downloadScriptAsFile} />
                     <DocumentUploadAction onClick={() => {}} />
                 </div>
             </div>
@@ -47,7 +60,9 @@ export class StudioCommandBar extends React.Component<StudioCommandBarProps> {
     }
 }
 
-const mapStateToProps = (_state: model.AppState) => ({});
+const mapStateToProps = (state: model.AppState) => ({
+    script: state.core.script
+});
 
 const mapDispatchToProps = (dispatch: model.Dispatch) => ({
     resetPlan: () => {
