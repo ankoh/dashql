@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { EyeIcon, IIconProps } from '../svg/icons';
+import { Link } from 'react-router-dom';
 
 import styles from './cmdbars.module.css';
 
@@ -23,7 +24,9 @@ export class BoardCommandBar extends React.Component<{}> {
             <div className={styles.cmdbar_board}>
                 <div className={styles.cmdbar_cmdset} />
                 <div className={styles.cmdbar_cmdset}>
-                    <ViewerAction />
+                    <Link to="/viewer" className={styles.cmdbar_cmd}>
+                        <EyeIcon className={styles.cmdbar_icon} width={'20px'} height={'20px'} />
+                    </Link>
                 </div>
             </div>
         );
