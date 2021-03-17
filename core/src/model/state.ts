@@ -7,6 +7,7 @@ import { DatabaseTableInfo } from './database_info';
 import { PlanObjectID, PlanObject } from './plan_object';
 import { Program, StatementStatus, ParameterValue } from './program';
 import { ProgramInstance } from './program_instance';
+import { Script } from './script';
 import { Store } from 'redux';
 
 export class CoreState {
@@ -14,13 +15,7 @@ export class CoreState {
     public logEntries: Immutable.List<LogEntryVariant>;
 
     /// The file name
-    public fileName: string;
-    /// The file size
-    public fileSize: number;
-    /// The file line count
-    public fileLineCount: number;
-    /// The program text
-    public programText: string;
+    public script: Script;
     /// The program
     public program: Program | null;
     /// The program parameters
@@ -49,10 +44,11 @@ export class CoreState {
     /// Constructor
     constructor() {
         this.logEntries = Immutable.List<LogEntryVariant>();
-        this.fileName = 'unnamed.dashql';
-        this.fileSize = 0;
-        this.fileLineCount = 0;
-        this.programText = '';
+        this.script = {
+            text: 'unnamed.dashql',
+            modified: false,
+            lineCount: 0,
+        };
         this.program = null;
         this.programParameters = Immutable.List<ParameterValue>();
         this.programInstance = null;

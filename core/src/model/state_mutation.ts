@@ -6,6 +6,7 @@ import { Plan } from './plan';
 import { ActionHandle, Action, ActionUpdate, ActionSchedulerStatus } from './action';
 import { DatabaseTableInfo, TableStatisticsKey } from './database_info';
 import { PlanObjectID, PlanObject, PlanObjectType } from './plan_object';
+import { Script } from './script';
 import { Program, StatementStatus, deriveStatementStatusCode } from './program';
 import { ProgramInstance } from './program_instance';
 import { CoreState } from './state';
@@ -25,9 +26,9 @@ export enum StateMutationType {
     SCHEDULER_READY = 'SCHEDULER_READY',
     SCHEDULE_PLAN = 'SCHEDULE_PLAN',
     RESET_PLAN = 'RESET_PLAN',
+    SET_SCRIPT = 'SET_SCRIPT',
     SET_PROGRAM = 'SET_PROGRAM',
     SET_PROGRAM_INSTANCE = 'SET_PROGRAM_INSTANCE',
-    SET_PROGRAM_TEXT = 'SET_PROGRAM_TEXT',
     REWRITE_PROGRAM = 'REWRITE_PROGRAM',
     UPDATE_PLAN_ACTIONS = 'UPDATE_PLAN_ACTIONS',
     INSERT_PLAN_OBJECTS = 'INSERT_PLAN_OBJECTS',
@@ -47,9 +48,9 @@ export type StateMutationVariant =
     | StateMutation<StateMutationType.SCHEDULER_READY, null>
     | StateMutation<StateMutationType.SCHEDULE_PLAN, [Plan, Action[]]>
     | StateMutation<StateMutationType.RESET_PLAN, null>
+    | StateMutation<StateMutationType.SET_SCRIPT, Script>
     | StateMutation<StateMutationType.SET_PROGRAM, Program>
     | StateMutation<StateMutationType.SET_PROGRAM_INSTANCE, ProgramInstance>
-    | StateMutation<StateMutationType.SET_PROGRAM_TEXT, [string, number]>
     | StateMutation<StateMutationType.REWRITE_PROGRAM, ProgramInstance>
     | StateMutation<StateMutationType.UPDATE_PLAN_ACTIONS, ActionUpdate[]>
     | StateMutation<StateMutationType.INSERT_PLAN_OBJECTS, PlanObject[]>
@@ -138,12 +139,10 @@ export class StateMutations {
                     schedulerStatus: ActionSchedulerStatus.Idle,
                 };
 
-            case StateMutationType.SET_PROGRAM_TEXT:
+            case StateMutationType.SET_SCRIPT:
                 return {
                     ...state,
-                    fileSize: utils.estimateUTF16Length(mutation.data[0]),
-                    fileLineCount: mutation.data[1],
-                    programText: mutation.data[0],
+                    script: mutation.data,
                 };
 
             case StateMutationType.SET_PROGRAM:
@@ -161,7 +160,13 @@ export class StateMutations {
             case StateMutationType.REWRITE_PROGRAM:
                 return {
                     ...state,
-                    programText: mutation.data.program.text,
+                    script: {
+                        ...state.script,
+                        modified: true,
+                        text: mutation.data.program.text,
+                        lineCount: utils.countLines(mutation.data.program.text),
+                        bytes: utils.estimateUTF16Length(mutation.data.program.text),
+                    },
                     program: mutation.data.program,
                     programInstance: mutation.data,
                 };

@@ -34,7 +34,7 @@ export class ScriptPipeline {
         this._scheduler = scheduler;
         const store = platform.store;
         const state = store.getState().core;
-        this._programText = state.programText;
+        this._programText = state.script.text;
         this._program = state.program;
         this._programParameters = state.programParameters;
         this._programInstance = state.programInstance;
@@ -106,8 +106,8 @@ export class ScriptPipeline {
         const next = this._platform.store.getState().core;
 
         // Program text changed?
-        if (next.programText !== this._programText) {
-            this._programText = next.programText;
+        if (next.script.text !== this._programText) {
+            this._programText = next.script.text;
 
             // Parse the new program if necessary
             if (next.program && next.program.text == this._programText) {

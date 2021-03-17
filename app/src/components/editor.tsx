@@ -13,10 +13,10 @@ import styles from './editor.module.css';
 type Props = {
     appContext: IAppContext;
     className?: string;
-    programText: string;
+    script: core.model.Script;
     program: core.model.Program;
 
-    updateProgramText: (txt: string, lines: number) => void;
+    updateScript: (script: core.model.Script) => void;
 };
 
 class Editor extends React.Component<Props> {
@@ -47,8 +47,8 @@ class Editor extends React.Component<Props> {
             return;
         }
         // Value changed?
-        if (this.editor && this.editor.getValue() !== this.props.programText) {
-            this.editor.setValue(this.props.programText);
+        if (this.editor && this.editor.getValue() !== this.props.script.text) {
+            this.editor.setValue(this.props.script.text);
         }
         // Layout editor
         if (this.monacoContainer) {
@@ -66,7 +66,7 @@ class Editor extends React.Component<Props> {
             this.editor = monaco.editor.create(this.monacoContainer, {
                 fontSize: 13,
                 language: 'sql',
-                value: this.props.programText,
+                value: this.props.script.text,
                 links: false,
                 minimap: {
                     enabled: false,
@@ -96,8 +96,13 @@ class Editor extends React.Component<Props> {
     public editorDidMount() {
         const editor = this.editor!;
         editor.onDidChangeModelContent(_event => {
-            if (editor.getValue() != this.props.programText) {
-                this.props.updateProgramText(editor.getValue(), editor.getModel()?.getLineCount() || 0);
+            if (editor.getValue() != this.props.script.text) {
+                this.props.updateScript({
+                    ...this.props.script,
+                    text: editor.getValue(),
+                    lineCount: editor.getModel()?.getLineCount() || 0,
+                    bytes: core.utils.estimateUTF16Length(editor.getValue())
+                });
             }
         });
         if (this.monacoContainer) {
@@ -247,15 +252,15 @@ class Editor extends React.Component<Props> {
 }
 
 const mapStateToProps = (state: model.AppState) => ({
-    programText: state.core.programText,
+    script: state.core.script,
     program: state.core.program || new core.model.Program(),
 });
 
 const mapDispatchToProps = (dispatch: model.Dispatch) => ({
-    updateProgramText: (txt: string, lines: number) =>
+    updateScript: (script: core.model.Script) =>
         model.mutate(dispatch, {
-            type: core.model.StateMutationType.SET_PROGRAM_TEXT,
-            data: [txt, lines],
+            type: core.model.StateMutationType.SET_SCRIPT,
+            data: script,
         }),
 });
 

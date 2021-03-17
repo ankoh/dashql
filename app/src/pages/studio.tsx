@@ -7,9 +7,7 @@ import { connect } from 'react-redux';
 import styles from './studio.module.css';
 
 interface Props {
-    fileName: string;
-    fileSize: number;
-    fileLineCount: number;
+    script: core.model.Script;
     program: core.model.Program | null;
     className?: string;
 }
@@ -20,15 +18,15 @@ class Studio extends React.Component<Props> {
             <div className={styles.studio}>
                 <div className={styles.program}>
                     <div className={styles.program_info}>
-                        <div className={styles.program_info_entry}>{this.props.fileName}</div>
+                        <div className={styles.program_info_entry}>{this.props.script.fileName}</div>
                         <div className={styles.program_info_flex} />
                         <div className={styles.program_info_entry}>
                             {this.props.program?.buffer.statementsLength() || 0} statements
                         </div>
                         <div className={styles.program_info_divider} />
-                        <div className={styles.program_info_entry}>{this.props.fileLineCount} lines</div>
+                        <div className={styles.program_info_entry}>{this.props.script.lineCount} lines</div>
                         <div className={styles.program_info_divider} />
-                        <div className={styles.program_info_entry}>{core.utils.formatBytes(this.props.fileSize)}</div>
+                        <div className={styles.program_info_entry}>{core.utils.formatBytes(this.props.script.bytes || 0)}</div>
                     </div>
                     <EditorLoader className={styles.program_editor} />
                     <StudioToolBar />
@@ -44,9 +42,7 @@ class Studio extends React.Component<Props> {
 }
 
 const mapStateToProps = (state: AppState) => ({
-    fileName: state.core.fileName,
-    fileSize: state.core.fileSize,
-    fileLineCount: state.core.fileLineCount,
+    script: state.core.script,
     program: state.core.program,
 });
 
