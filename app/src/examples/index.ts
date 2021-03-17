@@ -23,7 +23,7 @@ export async function loadExampleScript(script: ExampleScript, store: model.AppR
                 modified: false,
                 lineCount: core.utils.countLines(text),
                 bytes: core.utils.estimateUTF16Length(text),
-                fileName: `examples://${ExampleScript[script].toLowerCase().toString()}`
+                uri: `examples://${ExampleScript[script].toLowerCase().toString()}`
             }
         });
     } catch(e) {
