@@ -2,12 +2,14 @@ import * as React from 'react';
 import * as model from '../model';
 import * as core from '@dashql/core';
 import { connect } from 'react-redux';
-import { RouteComponentProps, withRouter } from 'react-router';
 import axios from 'axios';
+import { RouteComponentProps, withRouter } from 'react-router';
 
-interface Props {
+interface MatchParams {
     gist?: string;
+}
 
+interface Props extends RouteComponentProps<MatchParams> {
     progressComponent?: (progress: number) => React.ReactElement;
     errorComponent?: (error: string) => React.ReactElement;
     children: React.ReactElement;
@@ -23,7 +25,8 @@ enum ScriptLoaderStatus {
 }
 
 interface State {
-    request: string | null;
+    requestURL: string | null;
+    requestURI: string | null;
     status: ScriptLoaderStatus;
     error: any | null;
 }
@@ -32,30 +35,34 @@ class ScriptLoader extends React.Component<Props, State> {
     constructor(props: Props) {
         super(props);
         this.state = ScriptLoader.getDerivedStateFromProps(props, {
-            request: null, 
+            requestURL: null, 
+            requestURI: null, 
             status: ScriptLoaderStatus.SUCCEEDED,
             error: false,
         });
     }
 
     static getDerivedStateFromProps(nextProps: Props, prevState: State) {
-        let request = null;
-        console.log(nextProps);
-        if (nextProps.gist) {
-            request = `https://gist.githubusercontent.com/ankoh/${nextProps.gist}/raw`;
+        const gist = new URLSearchParams(nextProps.location.search).get("gist") || undefined;
+        let requestURL = null;
+        let requestURI = null;
+        if (gist) {
+            requestURI = `gist://${gist}`;
+            requestURL = `https://gist.githubusercontent.com/ankoh/${gist}/raw`;
         }
-        if (request == prevState.request) {
+        if (requestURI == prevState.requestURI) {
             return prevState;
         } else {
             return {
-                request,
+                requestURL,
+                requestURI,
                 status: ScriptLoaderStatus.PENDING,
                 error: null,
             };
         }
     }
 
-    async loadScriptFromURL(url: string, name: string) {
+    async loadScriptFromURL(url: string, uri: string) {
         this.setState({
             status: ScriptLoaderStatus.IN_FLIGHT,
             error: null,
@@ -81,7 +88,7 @@ class ScriptLoader extends React.Component<Props, State> {
                 modified: false,
                 lineCount: core.utils.countLines(text),
                 bytes: core.utils.estimateUTF16Length(text),
-                fileName: name || '-',
+                fileName: uri || '-',
             });
         } catch (e) {
             this.setState({
@@ -95,7 +102,7 @@ class ScriptLoader extends React.Component<Props, State> {
     loadScript() {
         if (this.state.status != ScriptLoaderStatus.PENDING)
             return;
-        this.loadScriptFromURL(this.state.request!, `gist://${this.props.gist}`);
+        this.loadScriptFromURL(this.state.requestURL!, this.state.requestURI!);
     }
 
     componentDidMount() {
@@ -133,4 +140,4 @@ const mapDispatchToProps = (dispatch: model.Dispatch) => ({
         }),
 });
 
-export default connect(mapStateToProps, mapDispatchToProps)(ScriptLoader);
+export default connect(mapStateToProps, mapDispatchToProps)(withRouter(ScriptLoader));

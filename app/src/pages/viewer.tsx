@@ -12,20 +12,14 @@ import { Scrollbars } from 'react-custom-scrollbars';
 import { connect } from 'react-redux';
 import { RouteComponentProps, withRouter } from 'react-router';
 
-interface MatchParams {
-    gist?: string;
-}
-
-interface Props extends RouteComponentProps<MatchParams> {
+interface Props {
     className?: string;
-    request: core.model.ScriptRequest;
 }
 
 class Viewer extends React.Component<Props> {
     public render() {
-        console.log(this.props.match);
         return (
-            <ScriptLoader gist={new URLSearchParams(this.props.location.search).get("gist") || undefined}>
+            <ScriptLoader>
                 <div className={styles.container}>
                     <div className={styles.brand}>
                         <div className={styles.brand_logo}>
@@ -60,4 +54,4 @@ const mapStateToProps = (state: AppState) => ({
 
 const mapDispatchToProps = (_dispatch: Dispatch) => ({});
 
-export default connect(mapStateToProps, mapDispatchToProps)(withRouter(Viewer));
+export default connect(mapStateToProps, mapDispatchToProps)(Viewer);
