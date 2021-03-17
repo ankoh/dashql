@@ -7,7 +7,7 @@ import { DatabaseTableInfo } from './database_info';
 import { PlanObjectID, PlanObject } from './plan_object';
 import { Program, StatementStatus, ParameterValue } from './program';
 import { ProgramInstance } from './program_instance';
-import { Script } from './script';
+import { Script, ScriptRequest } from './script';
 import { Store } from 'redux';
 
 export class CoreState {
