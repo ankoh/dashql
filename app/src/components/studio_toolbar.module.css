@@ -2,9 +2,8 @@
 
 .toolbar {
     position: relative;
-    grid-row: 2;
+    grid-row: 1;
     grid-column: 1;
-    border-top: 1px solid var(--border_color);
     border-right: 1px solid var(--border_color);
     background-color: rgb(255, 255, 255);
 }
