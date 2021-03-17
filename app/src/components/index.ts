@@ -3,6 +3,7 @@ import BoardEditor from "./board_editor";
 import Board from "./board";
 import EditorLoader from "./editor_loader";
 import ProgramGraph from "./program_graph";
+import ScriptLoader from "./script_loader";
 import StudioCommandBar from "./studio_cmdbar";
 import { StudioToolBar } from "./studio_toolbar";
 import { BoardCommandBar } from "./board_cmdbar";
@@ -16,6 +17,7 @@ export {
     BoardEditor,
     EditorLoader,
     ProgramGraph,
+    ScriptLoader,
     StatusIndicator,
     StudioCommandBar,
     StudioToolBar
