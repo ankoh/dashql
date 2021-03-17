@@ -21,7 +21,6 @@ class Studio extends React.Component<Props> {
         return (
             <div className={styles.studio}>
                 <div className={styles.program}>
-                    <ProgramGraph className={styles.program_graph} />
                     <div className={styles.program_info}>
                         <div className={styles.program_info_entry}>{this.props.fileName}</div>
                         <div className={styles.program_info_flex} />
