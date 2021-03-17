@@ -34,6 +34,7 @@ struct VizChangePositionOp : public VizEditOp {
         if (idx == 0) {
             proto::analyzer::VizPosition pos(edit.row(), edit.column(), edit.width(), edit.height());
             component.SetPosition(pos);
+            component.statement().specified_position() = &component.position().value();
         } else {
             component.ClearPosition();
         }

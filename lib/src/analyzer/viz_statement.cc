@@ -262,8 +262,23 @@ void VizComponent::PrintScript(std::ostream& out) const {
 
     // Read DOM
     auto options = readOptionsAsDOM(viz_stmt_.instance_, node_id_);
-    // XXX manipulate json (e.g. set position)
 
+    // Write the position
+    if (position_) {
+        options.RemoveMember("position");
+        if (&position_.value() == viz_stmt_.specified_position_) {
+            rapidjson::Value pos{rapidjson::kObjectType};
+            rapidjson::Value row{position_->row()};
+            rapidjson::Value column{position_->column()};
+            rapidjson::Value width{position_->width()};
+            rapidjson::Value height{position_->height()};
+            pos.AddMember("row", row, options.GetAllocator());
+            pos.AddMember("column", column, options.GetAllocator());
+            pos.AddMember("width", width, options.GetAllocator());
+            pos.AddMember("height", height, options.GetAllocator());
+            options.AddMember("position", std::move(pos), options.GetAllocator());
+        }
+    }
     writeSQLJSON(options, out);
 }
 
