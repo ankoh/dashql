@@ -24,9 +24,9 @@ function getFeatureTagLabel(tag: ScriptFeatureTag) {
         case ScriptFeatureTag.EXTRACT_JSON:
             return 'EXTRACT JSON';
         case ScriptFeatureTag.VIZ_LINE_CHART:
-            return 'LINE CHART';
+            return 'VIZ LINE';
         case ScriptFeatureTag.VIZ_TABLE:
-            return 'TABLE';
+            return 'VIZ TABLE';
         default:
             return '?';
     }
@@ -48,7 +48,7 @@ class Explorer extends React.Component<Props, State> {
     clearFocus() {
         this.setState({
             ...this.state,
-            filteredFeatures: this.state.filteredFeatures.clearAll(),
+            focusedExample: null,
         });
     }
 
@@ -88,7 +88,7 @@ class Explorer extends React.Component<Props, State> {
     renderScriptDetail(name: string) {
         const script = EXAMPLE_SCRIPT_MAP.get(name)!;
         return (
-            <motion.div layoutId={script.key}>
+            <motion.div className={styles.script_detail} layoutId={script.key}>
                 <motion.h5>{script.title}</motion.h5>
                 <motion.h2>{script.description}</motion.h2>
                 <motion.button onClick={this._clearFocus} />
