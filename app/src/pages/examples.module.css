@@ -89,7 +89,7 @@
 }
 
 .filter_grid {
-    padding: 8px 20px 8px 20px;
+    padding: 8px 20px 16px 20px;
     display: grid;
     grid-template-columns: repeat(9, 110px);
     grid-template-rows: auto;
