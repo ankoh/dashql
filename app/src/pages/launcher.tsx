@@ -4,7 +4,7 @@ import { AppState, Dispatch, LaunchStep, LaunchStepInfo, DEFAULT_LAUNCH_STEPS } 
 import { StatusIndicator } from '../components';
 import { connect } from 'react-redux';
 
-import logo from '../../public/logo.svg';
+import logo from '../../static/svg/logo/logo.svg';
 
 import styles from './launcher.module.css';
 
