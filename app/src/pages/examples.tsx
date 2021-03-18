@@ -135,8 +135,8 @@ class Explorer extends React.Component<Props, State> {
             <div className={styles.explorer}>
                 {this.renderFeatureFilters()}
                 <AnimateSharedLayout type="crossfade">
-                    {this.renderCollection(collections, 'collection1')}
-                    {this.renderCollection(collections, 'collection2')}
+                    {this.renderCollection(collections, 'Demos')}
+                    {this.renderCollection(collections, 'Visualization')}
                     <AnimatePresence>
                         {this.state.focusedExample && this.renderScriptDetail(this.state.focusedExample)}
                     </AnimatePresence>
