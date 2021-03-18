@@ -1,7 +1,15 @@
+@import "../vars.module.css";
 
 .explorer {
     height: 100%;
     width: 100%;
+}
+
+.collection {
+    padding: 16px;
+}
+
+.collection_name {
 }
 
 .collection_grid {
@@ -13,13 +21,23 @@
 }
 
 .filter_grid {
+    padding: 16px;
     display: grid;
-    grid-template-columns: repeat(9, 1fr);
+    grid-template-columns: repeat(9, 110px);
     grid-template-rows: auto;
     grid-column-gap: 16px;
     grid-row-gap: 16px;
 }
 
 .filter_tag {
+    padding: 2px;
+    border-radius: var(--border_radius);
+    font-size: 75%;
+    background: rgb(80, 80, 80);
+    color: white;
+    text-align: center;;
+}
 
+.filter_tag_active {
+    background: black!important;
 }
