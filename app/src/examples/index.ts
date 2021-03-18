@@ -4,6 +4,8 @@ import axios from 'axios';
 
 import example_helloworld from './helloworld.dashql';
 
+import icon_linechart from '../../static/svg/icons/line_chart_grey.svg';
+
 export enum ExampleScriptTag {
     HELLOWORLD
 }
@@ -47,6 +49,7 @@ export interface ExampleScriptMetadata {
     key: string;
     collection: string;
     title: string;
+    icon: string;
     description: string
     features: core.utils.NativeBitmap;
     url: string;
@@ -58,6 +61,7 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         collection: "Visualization",
         title: "Line Charts",
         description: "A test hello world script",
+        icon: icon_linechart,
         features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_)
             .set(ScriptFeatureTag.VIZ_LINE_CHART)
             .set(ScriptFeatureTag.VIZ_TABLE),
@@ -68,6 +72,7 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         collection: "Visualization",
         title: "Area Charts",
         description: "A second test hello world script",
+        icon: icon_linechart,
         features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_)
             .set(ScriptFeatureTag.VIZ_LINE_CHART)
             .set(ScriptFeatureTag.VIZ_TABLE),
@@ -78,6 +83,7 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         collection: "Demos",
         title: "Greeter",
         description: "A third test hello world script",
+        icon: icon_linechart,
         features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_)
             .set(ScriptFeatureTag.EXTRACT_CSV)
             .set(ScriptFeatureTag.VIZ_LINE_CHART)

@@ -7,6 +7,7 @@ import { motion, AnimateSharedLayout, AnimatePresence } from 'framer-motion';
 import { EXAMPLE_SCRIPTS, EXAMPLE_SCRIPT_MAP, ScriptFeatureTag, ExampleScriptMetadata } from '../examples';
 
 import styles from './examples.module.css';
+import icon_close from '../../static/svg/icons/close_grey.svg';
 
 interface Props {
     className?: string;
@@ -93,9 +94,14 @@ class Explorer extends React.Component<Props, State> {
         const script = EXAMPLE_SCRIPT_MAP.get(name)!;
         return (
             <motion.div className={styles.script_detail} layoutId={script.key}>
-                <motion.h2>{script.title}</motion.h2>
-                <motion.h5>{script.description}</motion.h5>
-                <motion.button onClick={this._clearFocus} />
+                <motion.div className={styles.example_icon}>
+                    <img src={script.icon} width="20" height="20" />
+                </motion.div>
+                <motion.span className={styles.example_title}>{script.title}</motion.span>
+                <motion.span className={styles.example_description}>{script.description}</motion.span>
+                <motion.button className={styles.example_unfocus} onClick={this._clearFocus}>
+                    <img src={icon_close} width="20" height="20" />
+                </motion.button>
             </motion.div>
         );
     }
@@ -115,8 +121,10 @@ class Explorer extends React.Component<Props, State> {
                             data-key={script.key}
                             onClick={this._focusExample}
                         >
-                            <motion.h2>{script.title}</motion.h2>
-                            <motion.h5>{script.description}</motion.h5>
+                            <motion.div className={styles.example_icon}>
+                                <img src={script.icon} width="20" height="20" />
+                            </motion.div>
+                            <motion.span className={styles.example_title}>{script.title}</motion.span>
                         </motion.div>
                     ))}
                 </div>
