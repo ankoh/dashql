@@ -1,7 +1,8 @@
 import * as React from 'react';
-import { SettingsIcon } from '../../svg/icons';
 import styles from './viz_card.module.css';
 import Button from 'react-bootstrap/Button';
+
+import icon_settings from '../../../static/svg/icons/settings_grey.svg';
 
 interface Props {
     children?: JSX.Element[] | JSX.Element;
@@ -20,7 +21,7 @@ export const VizCard: React.FC<Props> = (props: Props) => {
                 {
                     props.controls &&
                     <Button size="sm" variant="link" className={styles.settings}>
-                        <SettingsIcon fill='rgb(80, 80, 80)' width='14px' height='14px'  />
+                        <img src={icon_settings} width='14px' height='14px'/>
                     </Button>
                 }
             </div>
