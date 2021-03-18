@@ -12,7 +12,7 @@
     left: 50%;
     width: 400px;
     height: 300px;
-    margin-left: -100px;
+    margin-left: -200px;
     margin-top: -100px;
     background: white;
     border-radius: var(--border_radius);
@@ -20,8 +20,8 @@
     padding: 16px;
 
     display: grid;
-    grid-template-columns: 24px auto 48px;
-    grid-template-rows: 48px 48px 48px;
+    grid-template-columns: 24px auto 32px;
+    grid-template-rows: 32px 48px 48px;
 }
 
 .script_card {
@@ -54,6 +54,7 @@
 .example_unfocus {
     grid-row: 1;
     grid-column: 3;
+    padding: 0px!important;
 }
 
 .collection {
