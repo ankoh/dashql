@@ -28,7 +28,7 @@
 }
 
 .collection {
-    padding: 8px 16px;
+    padding: 8px 20px;
 }
 
 .collection_name {
@@ -45,7 +45,7 @@
 }
 
 .filter_grid {
-    padding: 16px;
+    padding: 20px 20px 8px 20px;
     display: grid;
     grid-template-columns: repeat(9, 110px);
     grid-template-rows: auto;
