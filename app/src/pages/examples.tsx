@@ -145,8 +145,13 @@ class Explorer extends React.Component<Props, State> {
         );
 
         return (
-            <div className={styles.explorer}>
-                {this.renderFeatureFilters()}
+            <div className={styles.root}>
+                <div className={styles.gallery_header}>
+                    <div className={styles.gallery_header_title}>Example Gallery</div>
+                    <div className={styles.gallery_filters}>
+                        {this.renderFeatureFilters()}
+                    </div>
+                </div>
                 <AnimateSharedLayout type="crossfade">
                     {this.renderCollection(collections, 'Demos')}
                     {this.renderCollection(collections, 'Visualization')}
