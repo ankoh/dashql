@@ -34,8 +34,10 @@ export async function loadExampleScript(script: ExampleScriptTag, store: model.A
 }
 
 export enum ScriptFeatureTag {
+    LOAD_HTTP,
     EXTRACT_CSV,
     EXTRACT_JSON,
+    EXTRACT_PARQUET,
     VIZ_TABLE,
     VIZ_LINE_CHART,
     _COUNT_
@@ -52,9 +54,9 @@ export interface ExampleScriptMetadata {
 
 export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
     {
-        key: "helloworld",
+        key: "viz/line",
         collection: "Visualization",
-        title: "Hello World",
+        title: "Line Charts",
         description: "A test hello world script",
         features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_)
             .set(ScriptFeatureTag.VIZ_LINE_CHART)
@@ -62,9 +64,9 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         url: example_helloworld
     },
     {
-        key: "helloworld2",
+        key: "viz/area",
         collection: "Visualization",
-        title: "Hello World 2",
+        title: "Area Charts",
         description: "A second test hello world script",
         features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_)
             .set(ScriptFeatureTag.VIZ_LINE_CHART)
@@ -74,9 +76,10 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
     {
         key: "demos/greeter",
         collection: "Demos",
-        title: "Greeter Script",
+        title: "Greeter",
         description: "A third test hello world script",
         features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_)
+            .set(ScriptFeatureTag.EXTRACT_CSV)
             .set(ScriptFeatureTag.VIZ_LINE_CHART)
             .set(ScriptFeatureTag.VIZ_TABLE),
         url: example_helloworld
