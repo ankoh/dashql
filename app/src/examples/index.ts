@@ -53,7 +53,7 @@ export interface ExampleScriptMetadata {
 export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
     {
         key: "helloworld",
-        collection: "collection1",
+        collection: "Visualization",
         title: "Hello World",
         description: "A test hello world script",
         features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_)
@@ -63,7 +63,7 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
     },
     {
         key: "helloworld2",
-        collection: "collection1",
+        collection: "Visualization",
         title: "Hello World 2",
         description: "A second test hello world script",
         features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_)
@@ -72,9 +72,9 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         url: example_helloworld
     },
     {
-        key: "helloworld3",
-        collection: "collection2",
-        title: "Hello World 3",
+        key: "demos/greeter",
+        collection: "Demos",
+        title: "Greeter Script",
         description: "A third test hello world script",
         features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_)
             .set(ScriptFeatureTag.VIZ_LINE_CHART)
