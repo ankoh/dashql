@@ -4,11 +4,11 @@ import axios from 'axios';
 
 import example_helloworld from '../static/examples/helloworld.dashql';
 
-import icon_linechart from '../static/svg/icons/line_chart_grey.svg';
-import icon_areachart from '../static/svg/icons/area_chart_grey.svg';
-import icon_script from '../static/svg/icons/script_solid_grey.svg';
-import icon_barchart from '../static/svg/icons/bar_chart_grey.svg';
-import icon_scatterchart from '../static/svg/icons/scatter_chart_grey.svg';
+import icon_linechart from '../static/svg/icons/line_chart.svg';
+import icon_areachart from '../static/svg/icons/area_chart.svg';
+import icon_script from '../static/svg/icons/script_solid.svg';
+import icon_barchart from '../static/svg/icons/bar_chart.svg';
+import icon_scatterchart from '../static/svg/icons/scatter_chart.svg';
 
 export enum ExampleScriptTag {
     HELLOWORLD
