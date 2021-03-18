@@ -19,10 +19,14 @@ interface State {
 
 function getFeatureTagLabel(tag: ScriptFeatureTag) {
     switch (tag) {
+        case ScriptFeatureTag.LOAD_HTTP:
+            return 'HTTP';
         case ScriptFeatureTag.EXTRACT_CSV:
-            return 'EXTRACT CSV';
+            return 'CSV';
         case ScriptFeatureTag.EXTRACT_JSON:
-            return 'EXTRACT JSON';
+            return 'JSON';
+        case ScriptFeatureTag.EXTRACT_PARQUET:
+            return 'PARQUET';
         case ScriptFeatureTag.VIZ_LINE_CHART:
             return 'LINE CHART';
         case ScriptFeatureTag.VIZ_TABLE:
