@@ -93,7 +93,7 @@
     display: grid;
     grid-template-columns: repeat(9, 110px);
     grid-template-rows: auto;
-    grid-column-gap: 16px;
+    grid-column-gap: 8px;
     grid-row-gap: 16px;
 }
 
