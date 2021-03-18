@@ -1,6 +1,7 @@
 import * as React from 'react';
 import * as core from '@dashql/core';
 import classNames from 'classnames';
+import Button from 'react-bootstrap/Button';
 import { AppState, Dispatch } from '../model';
 import { connect } from 'react-redux';
 import { motion, AnimateSharedLayout, AnimatePresence } from 'framer-motion';
@@ -99,9 +100,9 @@ class Explorer extends React.Component<Props, State> {
                 </motion.div>
                 <motion.span className={styles.example_title}>{script.title}</motion.span>
                 <motion.span className={styles.example_description}>{script.description}</motion.span>
-                <motion.button className={styles.example_unfocus} onClick={this._clearFocus}>
+                <Button size="sm" variant="light" className={styles.example_unfocus} onClick={this._clearFocus}>
                     <img src={icon_close} width="20" height="20" />
-                </motion.button>
+                </Button>
             </motion.div>
         );
     }
