@@ -11,7 +11,7 @@ import { auth } from '../auth';
 
 import styles from './navigation_bar.module.css';
 
-import logo from '../../public/logo.svg';
+import logo from '../../static/svg/logo/logo.svg';
 
 interface TabProps extends IIconProps {
     pathName: string;

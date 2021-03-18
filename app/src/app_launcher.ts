@@ -9,7 +9,7 @@ import analyzer_wasm from '@dashql/core/dist/dashql_analyzer.wasm';
 import webdb_wasm from '@dashql/webdb/dist/webdb.wasm';
 
 import axios from 'axios';
-import config_url from '../public/config.json';
+import config_url from '../static/config.json';
 
 function startStep(store: model.AppReduxStore, step: model.LaunchStep) {
     model.mutate(store.dispatch, {
