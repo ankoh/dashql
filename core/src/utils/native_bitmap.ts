@@ -58,7 +58,6 @@ export class NativeBitmap {
         this._buffer[entry_idx] |= 1 << bit_idx;
         return this;
     }
-
     /// Is a bit set?
     public isSet(index: number) {
         const entry_idx = index >> 5;
@@ -66,11 +65,22 @@ export class NativeBitmap {
         return (this._buffer[entry_idx] & (1 << bit_idx)) != 0;
     }
 
+
     /// Clear a bit
     public clear(index: number): NativeBitmap {
         const entry_idx = index >> 5;
         const bit_idx = index & 31;
         this._buffer[entry_idx] &= ~(1 << bit_idx);
+        return this;
+    }
+
+    /// Flip a bit
+    public flip(index: number): NativeBitmap {
+        if (this.isSet(index)) {
+            this.clear(index);
+        } else {
+            this.set(index);
+        }
         return this;
     }
 
