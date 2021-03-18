@@ -154,7 +154,10 @@ class Explorer extends React.Component<Props, State> {
                 </div>
                 <AnimateSharedLayout type="crossfade">
                     {this.renderCollection(collections, 'Demos')}
-                    {this.renderCollection(collections, 'Visualization')}
+                    {this.renderCollection(collections, 'Load')}
+                    {this.renderCollection(collections, 'Extract')}
+                    {this.renderCollection(collections, 'SQL')}
+                    {this.renderCollection(collections, 'Visualize')}
                     <AnimatePresence>
                         {this.state.focusedExample && this.renderScriptDetail(this.state.focusedExample)}
                     </AnimatePresence>
