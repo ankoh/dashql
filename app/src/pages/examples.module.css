@@ -82,7 +82,7 @@
 
 .collection_grid {
     display: grid;
-    grid-template-columns: repeat(8, minmax(200px, 1fr));
+    grid-template-columns: repeat(6, 1fr);
     grid-template-rows: repeat(auto-fit, auto);
     grid-column-gap: 16px;
     grid-row-gap: 16px;

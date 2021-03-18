@@ -43,7 +43,14 @@ export enum ScriptFeatureTag {
     EXTRACT_JSON,
     EXTRACT_PARQUET,
     VIZ_TABLE,
+    VIZ_MAP,
+    VIZ_STREAMGRAPH,
+    VIZ_PIE,
+    VIZ_HEATMAP,
+    VIZ_SCATTER_PLOT,
     VIZ_LINE_CHART,
+    VIZ_AREA_CHART,
+    VIZ_BAR_CHART,
     _COUNT_
 }
 
@@ -59,8 +66,32 @@ export interface ExampleScriptMetadata {
 
 export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
     {
+        key: "demos/helloworld",
+        collection: "Demos",
+        title: "Hello World",
+        description: "A third test hello world script",
+        icon: icon_script,
+        features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_)
+            .set(ScriptFeatureTag.EXTRACT_CSV)
+            .set(ScriptFeatureTag.VIZ_LINE_CHART)
+            .set(ScriptFeatureTag.VIZ_TABLE),
+        url: example_helloworld
+    },
+    {
+        key: "demos/unischema",
+        collection: "Demos",
+        title: "University Schema",
+        description: "A third test hello world script",
+        icon: icon_script,
+        features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_)
+            .set(ScriptFeatureTag.EXTRACT_CSV)
+            .set(ScriptFeatureTag.VIZ_LINE_CHART)
+            .set(ScriptFeatureTag.VIZ_TABLE),
+        url: example_helloworld
+    },
+    {
         key: "viz/line",
-        collection: "Visualization",
+        collection: "Visualize",
         title: "Line Charts",
         description: "A test hello world script",
         icon: icon_linechart,
@@ -71,27 +102,191 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
     },
     {
         key: "viz/area",
-        collection: "Visualization",
+        collection: "Visualize",
         title: "Area Charts",
         description: "A second test hello world script",
         icon: icon_areachart,
+        features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_)
+            .set(ScriptFeatureTag.VIZ_AREA_CHART)
+            .set(ScriptFeatureTag.VIZ_TABLE),
+        url: example_helloworld
+    },
+    {
+        key: "viz/bar",
+        collection: "Visualize",
+        title: "Bar Charts",
+        description: "Fooo",
+        icon: icon_areachart,
+        features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_)
+            .set(ScriptFeatureTag.VIZ_BAR_CHART)
+            .set(ScriptFeatureTag.VIZ_TABLE),
+        url: example_helloworld
+    },
+    {
+        key: "viz/scatter",
+        collection: "Visualize",
+        title: "Scatter Plots",
+        description: "Fooo",
+        icon: icon_areachart,
+        features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_)
+            .set(ScriptFeatureTag.VIZ_BAR_CHART)
+            .set(ScriptFeatureTag.VIZ_TABLE),
+        url: example_helloworld
+    },
+    {
+        key: "viz/streamgraph",
+        collection: "Visualize",
+        title: "Streamgraphs",
+        description: "Fooo",
+        icon: icon_areachart,
+        features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_)
+            .set(ScriptFeatureTag.VIZ_STREAMGRAPH)
+            .set(ScriptFeatureTag.VIZ_TABLE),
+        url: example_helloworld
+    },
+    {
+        key: "viz/pie",
+        collection: "Visualize",
+        title: "Pie Charts",
+        description: "Fooo",
+        icon: icon_areachart,
+        features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_)
+            .set(ScriptFeatureTag.VIZ_MAP)
+            .set(ScriptFeatureTag.VIZ_TABLE),
+        url: example_helloworld
+    },
+    {
+        key: "viz/heatmap",
+        collection: "Visualize",
+        title: "Heatmaps",
+        description: "Fooo",
+        icon: icon_areachart,
+        features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_)
+            .set(ScriptFeatureTag.VIZ_HEATMAP)
+            .set(ScriptFeatureTag.VIZ_TABLE),
+        url: example_helloworld
+    },
+    {
+        key: "viz/interaction",
+        collection: "Visualize",
+        title: "Interactivity",
+        description: "FOOOOO",
+        icon: icon_script,
         features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_)
             .set(ScriptFeatureTag.VIZ_LINE_CHART)
             .set(ScriptFeatureTag.VIZ_TABLE),
         url: example_helloworld
     },
     {
-        key: "demos/greeter",
-        collection: "Demos",
-        title: "Greeter",
-        description: "A third test hello world script",
+        key: "load/http",
+        collection: "Load",
+        title: "Static HTTP",
+        description: "FOOOOO",
         icon: icon_script,
         features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_)
-            .set(ScriptFeatureTag.EXTRACT_CSV)
             .set(ScriptFeatureTag.VIZ_LINE_CHART)
             .set(ScriptFeatureTag.VIZ_TABLE),
         url: example_helloworld
-    }
+    },
+    {
+        key: "load/httpparam",
+        collection: "Load",
+        title: "Dynamic HTTP",
+        description: "FOOOOO",
+        icon: icon_script,
+        features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_)
+            .set(ScriptFeatureTag.VIZ_LINE_CHART)
+            .set(ScriptFeatureTag.VIZ_TABLE),
+        url: example_helloworld
+    },
+    {
+        key: "extract/csv",
+        collection: "Extract",
+        title: "CSV Parsing",
+        description: "FOOOOO",
+        icon: icon_script,
+        features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_)
+            .set(ScriptFeatureTag.VIZ_LINE_CHART)
+            .set(ScriptFeatureTag.VIZ_TABLE),
+        url: example_helloworld
+    },
+    {
+        key: "extract/json",
+        collection: "Extract",
+        title: "JSON Parsing",
+        description: "FOOOOO",
+        icon: icon_script,
+        features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_)
+            .set(ScriptFeatureTag.VIZ_LINE_CHART)
+            .set(ScriptFeatureTag.VIZ_TABLE),
+        url: example_helloworld
+    },
+    {
+        key: "extract/parquet",
+        collection: "Extract",
+        title: "Parquet Import",
+        description: "FOOOOO",
+        icon: icon_script,
+        features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_)
+            .set(ScriptFeatureTag.VIZ_LINE_CHART)
+            .set(ScriptFeatureTag.VIZ_TABLE),
+        url: example_helloworld
+    },
+    {
+        key: "sql/apijoin",
+        collection: "SQL",
+        title: "Multiple Sources",
+        description: "FOOOOO",
+        icon: icon_script,
+        features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_)
+            .set(ScriptFeatureTag.VIZ_LINE_CHART)
+            .set(ScriptFeatureTag.VIZ_TABLE),
+        url: example_helloworld
+    },
+    {
+        key: "sql/explicitgrouping",
+        collection: "SQL",
+        title: "Explicit Grouping",
+        description: "FOOOOO",
+        icon: icon_script,
+        features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_)
+            .set(ScriptFeatureTag.VIZ_LINE_CHART)
+            .set(ScriptFeatureTag.VIZ_TABLE),
+        url: example_helloworld
+    },
+    {
+        key: "sql/movingavg",
+        collection: "SQL",
+        title: "Moving Avergage",
+        description: "FOOOOO",
+        icon: icon_script,
+        features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_)
+            .set(ScriptFeatureTag.VIZ_LINE_CHART)
+            .set(ScriptFeatureTag.VIZ_TABLE),
+        url: example_helloworld
+    },
+    {
+        key: "sql/runningsum",
+        collection: "SQL",
+        title: "Running Sum",
+        description: "FOOOOO",
+        icon: icon_script,
+        features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_)
+            .set(ScriptFeatureTag.VIZ_LINE_CHART)
+            .set(ScriptFeatureTag.VIZ_TABLE),
+        url: example_helloworld
+    },
+    {
+        key: "sql/incomplete",
+        collection: "SQL",
+        title: "Incomplete Data",
+        description: "FOOOOO",
+        icon: icon_script,
+        features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_)
+            .set(ScriptFeatureTag.VIZ_LINE_CHART)
+            .set(ScriptFeatureTag.VIZ_TABLE),
+        url: example_helloworld
+    },
 ];
 
 export const EXAMPLE_SCRIPT_MAP: Map<string, ExampleScriptMetadata> = new Map(EXAMPLE_SCRIPTS.map(e => [e.key, e]))
