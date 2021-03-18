@@ -4,11 +4,11 @@ import axios from 'axios';
 
 import example_helloworld from './helloworld.dashql';
 
-export enum ExampleScript {
+export enum ExampleScriptTag {
     HELLOWORLD
 }
 
-export async function loadExampleScript(script: ExampleScript, store: model.AppReduxStore) {
+export async function loadExampleScript(script: ExampleScriptTag, store: model.AppReduxStore) {
     try {
         const resp = await axios.get(example_helloworld);
         if (resp.status != 200) {
@@ -24,7 +24,7 @@ export async function loadExampleScript(script: ExampleScript, store: model.AppR
                 lineCount: core.utils.countLines(text),
                 bytes: core.utils.estimateUTF16Length(text),
                 uriPrefix: core.model.ScriptURIPrefix.EXAMPLES,
-                uriName: ExampleScript[script].toLowerCase().toString()
+                uriName: ExampleScriptTag[script].toLowerCase().toString()
             }
         });
     } catch(e) {
@@ -32,3 +32,55 @@ export async function loadExampleScript(script: ExampleScript, store: model.AppR
         console.error(`Loading example ${script.toString()} failed with error: ${e}`);
     }
 }
+
+export enum ScriptFeatureTag {
+    EXTRACT_CSV,
+    EXTRACT_JSON,
+    VIZ_TABLE,
+    VIZ_LINE_CHART,
+    _COUNT_
+}
+
+export interface ExampleScriptMetadata {
+    key: string;
+    collection: string;
+    title: string;
+    description: string
+    features: core.utils.NativeBitmap;
+    url: string;
+}
+
+export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
+    {
+        key: "helloworld",
+        collection: "collection1",
+        title: "Hello World",
+        description: "A test hello world script",
+        features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_)
+            .set(ScriptFeatureTag.VIZ_LINE_CHART)
+            .set(ScriptFeatureTag.VIZ_TABLE),
+        url: example_helloworld
+    },
+    {
+        key: "helloworld2",
+        collection: "collection1",
+        title: "Hello World 2",
+        description: "A second test hello world script",
+        features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_)
+            .set(ScriptFeatureTag.VIZ_LINE_CHART)
+            .set(ScriptFeatureTag.VIZ_TABLE),
+        url: example_helloworld
+    },
+    {
+        key: "helloworld3",
+        collection: "collection2",
+        title: "Hello World 3",
+        description: "A third test hello world script",
+        features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_)
+            .set(ScriptFeatureTag.VIZ_LINE_CHART)
+            .set(ScriptFeatureTag.VIZ_TABLE),
+        url: example_helloworld
+    }
+];
+
+export const EXAMPLE_SCRIPT_MAP: Map<string, ExampleScriptMetadata> = new Map(EXAMPLE_SCRIPTS.map(e => [e.key, e]))

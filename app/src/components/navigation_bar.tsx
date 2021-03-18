@@ -35,7 +35,7 @@ function createTab(path: string, Icon: React.FunctionComponent<IIconProps>): Rea
     };
 }
 const StudioTab = createTab('/studio', StudioIcon);
-const ExplorerTab = createTab('/explorer', LibraryBooksIcon);
+const ExamplesTab = createTab('/examples', LibraryBooksIcon);
 
 interface StatusPanelProps {
     icon: React.FunctionComponent<IIconProps>;
@@ -92,7 +92,7 @@ class NavigationBar extends React.Component<NavigationBarProps, NavigationBarSta
                 </div>
                 <div className={styles.tabs}>
                     <StudioTab pathName={this.props.location.pathname} />
-                    <ExplorerTab pathName={this.props.location.pathname} />
+                    <ExamplesTab pathName={this.props.location.pathname} />
                 </div>
                 <div className={styles.account} onClick={async () => auth()}>
                     <Avatar githubHandle="ankoh" size="36" round={true} />
