@@ -7,6 +7,8 @@ import example_helloworld from '../static/examples/helloworld.dashql';
 import icon_linechart from '../static/svg/icons/line_chart_grey.svg';
 import icon_areachart from '../static/svg/icons/area_chart_grey.svg';
 import icon_script from '../static/svg/icons/script_solid_grey.svg';
+import icon_barchart from '../static/svg/icons/bar_chart_grey.svg';
+import icon_scatterchart from '../static/svg/icons/scatter_chart_grey.svg';
 
 export enum ExampleScriptTag {
     HELLOWORLD
@@ -116,7 +118,7 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         collection: "Visualize",
         title: "Bar Charts",
         description: "Fooo",
-        icon: icon_areachart,
+        icon: icon_barchart,
         features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_)
             .set(ScriptFeatureTag.VIZ_BAR_CHART)
             .set(ScriptFeatureTag.VIZ_TABLE),
@@ -127,7 +129,7 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         collection: "Visualize",
         title: "Scatter Plots",
         description: "Fooo",
-        icon: icon_areachart,
+        icon: icon_scatterchart,
         features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_)
             .set(ScriptFeatureTag.VIZ_BAR_CHART)
             .set(ScriptFeatureTag.VIZ_TABLE),
@@ -233,9 +235,9 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         url: example_helloworld
     },
     {
-        key: "sql/apijoin",
+        key: "sql/complexjoins",
         collection: "SQL",
-        title: "Multiple Sources",
+        title: "Complex Joins",
         description: "FOOOOO",
         icon: icon_script,
         features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_)
@@ -277,9 +279,53 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         url: example_helloworld
     },
     {
-        key: "sql/incomplete",
+        key: "sql/generateseries",
         collection: "SQL",
-        title: "Incomplete Data",
+        title: "Sequence",
+        description: "FOOOOO",
+        icon: icon_script,
+        features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_)
+            .set(ScriptFeatureTag.VIZ_LINE_CHART)
+            .set(ScriptFeatureTag.VIZ_TABLE),
+        url: example_helloworld
+    },
+    {
+        key: "sql/approxmedian",
+        collection: "SQL",
+        title: "Approximative",
+        description: "FOOOOO",
+        icon: icon_script,
+        features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_)
+            .set(ScriptFeatureTag.VIZ_LINE_CHART)
+            .set(ScriptFeatureTag.VIZ_TABLE),
+        url: example_helloworld
+    },
+    {
+        key: "sql/sampling",
+        collection: "SQL",
+        title: "Sampling",
+        description: "FOOOOO",
+        icon: icon_script,
+        features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_)
+            .set(ScriptFeatureTag.VIZ_LINE_CHART)
+            .set(ScriptFeatureTag.VIZ_TABLE),
+        url: example_helloworld
+    },
+    {
+        key: "sql/patternmatching",
+        collection: "SQL",
+        title: "Pattern Matching",
+        description: "FOOOOO",
+        icon: icon_script,
+        features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_)
+            .set(ScriptFeatureTag.VIZ_LINE_CHART)
+            .set(ScriptFeatureTag.VIZ_TABLE),
+        url: example_helloworld
+    },
+    {
+        key: "sql/indexes",
+        collection: "SQL",
+        title: "Indexes",
         description: "FOOOOO",
         icon: icon_script,
         features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_)
