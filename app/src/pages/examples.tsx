@@ -7,36 +7,6 @@ import { EXAMPLE_SCRIPTS, EXAMPLE_SCRIPT_MAP, ScriptFeatureTag, ExampleScriptMet
 
 import styles from './examples.module.css';
 
-function ExampleScriptDetail(props: { script: ExampleScriptMetadata; close: () => void }) {
-    return (
-        <motion.div layoutId={props.script.key}>
-            <motion.h5>{props.script.title}</motion.h5>
-            <motion.h2>{props.script.description}</motion.h2>
-            <motion.button onClick={props.close} />
-        </motion.div>
-    );
-}
-
-function Collection(props: {
-    name: string;
-    scripts: ExampleScriptMetadata[];
-    onClick: React.MouseEventHandler<HTMLDivElement>;
-}) {
-    return (
-        <div>
-            <div>{props.name}</div>
-            <div>
-                {props.scripts.map(script => (
-                    <motion.div key={script.key} layoutId={script.key} data-key={script.key} onClick={props.onClick}>
-                        <motion.h5>{script.title}</motion.h5>
-                        <motion.h2>{script.description}</motion.h2>
-                    </motion.div>
-                ))}
-            </div>
-        </div>
-    );
-}
-
 interface Props {
     className?: string;
 }
@@ -44,6 +14,16 @@ interface Props {
 interface State {
     filteredFeatures: core.utils.NativeBitmap;
     focusedExample: string | null;
+}
+
+function getFeatureTagLabel(tag: ScriptFeatureTag) {
+    switch (tag) {
+        case ScriptFeatureTag.EXTRACT_CSV: return "EXTRACT CSV";
+        case ScriptFeatureTag.EXTRACT_JSON: return "EXTRACT JSON";
+        case ScriptFeatureTag.VIZ_LINE_CHART: return "LINE CHART";
+        case ScriptFeatureTag.VIZ_TABLE: return "TABLE";
+        default: return "?";
+    }
 }
 
 class Explorer extends React.Component<Props, State> {
@@ -72,6 +52,49 @@ class Explorer extends React.Component<Props, State> {
         });
     }
 
+    renderFeatureFilters() {
+        let features = [];
+        for (let i = 0; i < ScriptFeatureTag._COUNT_; ++i) {
+            features.push(
+                <div className={styles.filter_tag}>
+                    {getFeatureTagLabel(i as ScriptFeatureTag)}
+                </div>
+            );
+        }
+        return (
+            <div className={styles.filter_grid}>
+                {features}
+            </div>
+        );
+    }
+
+    renderScriptDetail(name: string) {
+        const script = EXAMPLE_SCRIPT_MAP.get(name)!;
+        return (
+            <motion.div layoutId={script.key}>
+                <motion.h5>{script.title}</motion.h5>
+                <motion.h2>{script.description}</motion.h2>
+                <motion.button onClick={this._clearFocus} />
+            </motion.div>
+        );
+    }
+
+    renderCollection(name: string, scripts: ExampleScriptMetadata[]) {
+        return (
+            <div>
+                <div>{name}</div>
+                <div className={styles.collection_grid}>
+                    {scripts.map(script => (
+                        <motion.div key={script.key} layoutId={script.key} data-key={script.key} onClick={this._focusExample}>
+                            <motion.h5>{script.title}</motion.h5>
+                            <motion.h2>{script.description}</motion.h2>
+                        </motion.div>
+                    ))}
+                </div>
+            </div>
+        );
+    }
+
     public render() {
         const collections = EXAMPLE_SCRIPTS.filter(s => s.features.containsUnsafe(this.state.filteredFeatures)).reduce(
             (o, script) => {
@@ -85,21 +108,11 @@ class Explorer extends React.Component<Props, State> {
 
         return (
             <div className={styles.explorer}>
+                {this.renderFeatureFilters()}
                 <AnimateSharedLayout type="crossfade">
-                    {collections.has('collection1') && (
-                        <Collection
-                            name="collection1"
-                            scripts={collections.get('collection1')!}
-                            onClick={this._focusExample}
-                        />
-                    )}
+                    {collections.has('collection1') && this.renderCollection("collection1", collections.get('collection1')!)}
                     <AnimatePresence>
-                        {this.state.focusedExample && (
-                            <ExampleScriptDetail
-                                script={EXAMPLE_SCRIPT_MAP.get(this.state.focusedExample!)!}
-                                close={this._clearFocus}
-                            />
-                        )}
+                        {this.state.focusedExample && this.renderScriptDetail(this.state.focusedExample)}
                     </AnimatePresence>
                 </AnimateSharedLayout>
             </div>

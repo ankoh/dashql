@@ -4,10 +4,22 @@
     width: 100%;
 }
 
-.group_cards {
+.collection_grid {
     display: grid;
-    grid-template-columns: repeat(6, 1fr);
+    grid-template-columns: repeat(6, 200px);
     grid-template-rows: repeat(auto-fit, 200px);
     grid-column-gap: 16px;
     grid-row-gap: 16px;
+}
+
+.filter_grid {
+    display: grid;
+    grid-template-columns: repeat(9, 1fr);
+    grid-template-rows: auto;
+    grid-column-gap: 16px;
+    grid-row-gap: 16px;
+}
+
+.filter_tag {
+
 }
