@@ -2,7 +2,7 @@ import * as React from 'react';
 import styles from './viz_card.module.css';
 import Button from 'react-bootstrap/Button';
 
-import icon_settings from '../../../static/svg/icons/settings_grey.svg';
+import icon_settings from '../../../static/svg/icons/settings.svg';
 
 interface Props {
     children?: JSX.Element[] | JSX.Element;

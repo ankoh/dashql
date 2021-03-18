@@ -71,6 +71,10 @@
     align-self: center;
 }
 
+.tab_icon {
+    color: white;
+}
+
 .tab:hover,
 .tab.active {
     background-color: var(--nav_tab_bg_active);
@@ -102,18 +106,19 @@
     color: var(--nav_status_fg_active);
 }
 
-.statusicon {
+.status_toggle {
     display: grid;
     width: 100%;
     height: 100%;
 }
 
-.statusicon > img {
+.status_icon {
     justify-self: center;
     align-self: center;
+    color: white;
 }
 
-.statuspanel {
+.status_panel {
     position: absolute;
     left: 96px;
     bottom: 16px;

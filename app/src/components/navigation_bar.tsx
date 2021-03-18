@@ -11,11 +11,11 @@ import { auth } from '../auth';
 import styles from './navigation_bar.module.css';
 
 import logo from '../../static/svg/logo/logo.svg';
-import icon_database from '../../static/svg/icons/database_white.svg';
-import icon_examples from '../../static/svg/icons/library_books_white.svg';
-import icon_log from '../../static/svg/icons/log_white.svg';
-import icon_studio from '../../static/svg/icons/dashboard_white.svg';
-import icon_tasks from '../../static/svg/icons/task_list_white.svg';
+import icon_database from '../../static/svg/icons/database.svg';
+import icon_examples from '../../static/svg/icons/library_books.svg';
+import icon_log from '../../static/svg/icons/log.svg';
+import icon_studio from '../../static/svg/icons/dashboard.svg';
+import icon_tasks from '../../static/svg/icons/task_list.svg';
 
 interface TabProps {
     pathName: string;
@@ -31,7 +31,9 @@ function createTab(path: string, icon: string): React.FunctionComponent<TabProps
             >
                 <Link to={path}>
                     <Button variant="link">
-                        <img src={icon} width="22px" height="22px" />
+                        <svg className={styles.tab_icon} width="22px" height="22px">
+                            <use xlinkHref={`${icon}#sym`} />
+                        </svg>
                     </Button>
                 </Link>
             </div>
@@ -58,10 +60,12 @@ function StatusPanel(props: StatusPanelProps) {
                 [styles.active]: expanded,
             })}
         >
-            <div className={styles.statusicon} onClick={() => props.onClick(props.statusID)}>
-                <img src={props.icon} width="22px" height="22px" />
+            <div className={styles.status_toggle} onClick={() => props.onClick(props.statusID)}>
+                <svg className={styles.status_icon} width="22px" height="22px">
+                    <use xlinkHref={`${props.icon}#sym`} />
+                </svg>
             </div>
-            {expanded && <div className={styles.statuspanel}>{props.children}</div>}
+            {expanded && <div className={styles.status_panel}>{props.children}</div>}
         </div>
     );
 }

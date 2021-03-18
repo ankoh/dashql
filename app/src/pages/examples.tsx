@@ -8,7 +8,7 @@ import { motion, AnimateSharedLayout, AnimatePresence } from 'framer-motion';
 import { EXAMPLE_SCRIPTS, EXAMPLE_SCRIPT_MAP, ScriptFeatureTag, ExampleScriptMetadata } from '../examples';
 
 import styles from './examples.module.css';
-import icon_close from '../../static/svg/icons/close_grey.svg';
+import icon_close from '../../static/svg/icons/close.svg';
 
 interface Props {
     className?: string;
