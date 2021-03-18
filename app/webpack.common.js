@@ -69,7 +69,7 @@ function configure(params) {
                     ],
                 },
                 {
-                    test: /public\/config\.json$/i,
+                    test: /static\/config\.json$/i,
                     type: 'javascript/auto',
                     loader: 'file-loader',
                     options: {
@@ -142,9 +142,9 @@ function configure(params) {
                 verbose: false,
             }),
             new HtmlWebpackPlugin({
-                template: './public/index.html',
+                template: './static/index.html',
                 filename: './index.html',
-                favicon: './public/favicon.ico',
+                favicon: './static/favicon.ico',
             }),
             new MiniCssExtractPlugin({
                 filename: './static/css/[id].[contenthash].css',
