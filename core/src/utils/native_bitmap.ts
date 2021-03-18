@@ -52,10 +52,11 @@ export class NativeBitmap {
     }
 
     /// Set a bit
-    public set(index: number) {
+    public set(index: number): NativeBitmap {
         const entry_idx = index >> 5;
         const bit_idx = index & 31;
         this._buffer[entry_idx] |= 1 << bit_idx;
+        return this;
     }
 
     /// Is a bit set?
@@ -66,10 +67,29 @@ export class NativeBitmap {
     }
 
     /// Clear a bit
-    public clear(index: number) {
+    public clear(index: number): NativeBitmap {
         const entry_idx = index >> 5;
         const bit_idx = index & 31;
         this._buffer[entry_idx] &= ~(1 << bit_idx);
+        return this;
+    }
+
+    /// Clear all bits
+    public clearAll(): NativeBitmap {
+        for (let i = 0; this._buffer.length; ++i) {
+            this._buffer[i] = 0;
+        }
+        return this;
+    }
+
+    /// Contains other bitmap that is equal in size?
+    public containsUnsafe(other: NativeBitmap) {
+        console.assert(this._size == other._size);
+        let contains = true;
+        for (let i = 0; i < this._buffer.length; ++i) {
+            contains &&= (other._buffer[i] & this._buffer[i]) == other._buffer[i];
+        }
+        return contains;
     }
 
     /// Get the entries (slow, only for debugging)

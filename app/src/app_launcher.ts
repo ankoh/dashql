@@ -94,7 +94,7 @@ export async function launchApp(ctx: IAppContext) {
 
     ctx.platform = new platform.BrowserPlatform(ctx.store, ctx.logger, webdb, analyzer);
     await ctx.platform.init();
-    await examples.loadExampleScript(examples.ExampleScript.HELLOWORLD, ctx.store);
+    await examples.loadExampleScript(examples.ExampleScriptTag.HELLOWORLD, ctx.store);
     model.mutate(ctx.store.dispatch, {
         type: model.StateMutationType.MARK_LAUNCH_COMPLETE,
         data: null,
