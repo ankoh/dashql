@@ -1,12 +1,12 @@
 import * as core from "@dashql/core";
-import * as model from "../model";
+import * as model from "./model";
 import axios from 'axios';
 
-import example_helloworld from './helloworld.dashql';
+import example_helloworld from '../static/examples/helloworld.dashql';
 
-import icon_linechart from '../../static/svg/icons/line_chart_grey.svg';
-import icon_areachart from '../../static/svg/icons/area_chart_grey.svg';
-import icon_script from '../../static/svg/icons/script_solid_grey.svg';
+import icon_linechart from '../static/svg/icons/line_chart_grey.svg';
+import icon_areachart from '../static/svg/icons/area_chart_grey.svg';
+import icon_script from '../static/svg/icons/script_solid_grey.svg';
 
 export enum ExampleScriptTag {
     HELLOWORLD
