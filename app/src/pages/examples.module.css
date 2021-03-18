@@ -51,6 +51,7 @@
 .example_icon {
     grid-row: 1;
     grid-column: 1;
+    color:rgb(80, 80, 80);
 }
 
 .example_title {

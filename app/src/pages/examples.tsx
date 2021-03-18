@@ -96,12 +96,16 @@ class Explorer extends React.Component<Props, State> {
         return (
             <motion.div className={styles.script_detail} layoutId={script.key}>
                 <motion.div className={styles.example_icon}>
-                    <img src={script.icon} width="20" height="20" />
+                    <svg width="20" height="20" >
+                        <use xlinkHref={`${script.icon}#sym`} />
+                    </svg>
                 </motion.div>
                 <motion.span className={styles.example_title}>{script.title}</motion.span>
                 <motion.span className={styles.example_description}>{script.description}</motion.span>
                 <Button size="sm" variant="light" className={styles.example_unfocus} onClick={this._clearFocus}>
-                    <img src={icon_close} width="20" height="20" />
+                    <svg width="20" height="20" >
+                        <use xlinkHref={`${icon_close}#sym`} />
+                    </svg>
                 </Button>
             </motion.div>
         );
@@ -123,7 +127,9 @@ class Explorer extends React.Component<Props, State> {
                             onClick={this._focusExample}
                         >
                             <motion.div className={styles.example_icon}>
-                                <img src={script.icon} width="20" height="20" />
+                                <svg width="20" height="20" >
+                                    <use xlinkHref={`${script.icon}#sym`} />
+                                </svg>
                             </motion.div>
                             <motion.span className={styles.example_title}>{script.title}</motion.span>
                         </motion.div>
