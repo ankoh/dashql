@@ -7,7 +7,7 @@ import { DatabaseTableInfo } from './database_info';
 import { PlanObjectID, PlanObject } from './plan_object';
 import { Program, StatementStatus, ParameterValue } from './program';
 import { ProgramInstance } from './program_instance';
-import { Script } from './script';
+import { Script, ScriptURIPrefix } from './script';
 import { Store } from 'redux';
 
 export class CoreState {
@@ -45,7 +45,9 @@ export class CoreState {
     constructor() {
         this.logEntries = Immutable.List<LogEntryVariant>();
         this.script = {
-            text: 'unnamed.dashql',
+            text: '',
+            uriPrefix: ScriptURIPrefix.TMP,
+            uriName: 'unnamed.dashql',
             modified: false,
             lineCount: 0,
         };

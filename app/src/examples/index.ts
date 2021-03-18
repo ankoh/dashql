@@ -23,7 +23,8 @@ export async function loadExampleScript(script: ExampleScript, store: model.AppR
                 modified: false,
                 lineCount: core.utils.countLines(text),
                 bytes: core.utils.estimateUTF16Length(text),
-                uri: `examples://${ExampleScript[script].toLowerCase().toString()}`
+                uriPrefix: core.model.ScriptURIPrefix.EXAMPLES,
+                uriName: ExampleScript[script].toLowerCase().toString()
             }
         });
     } catch(e) {
