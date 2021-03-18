@@ -28,7 +28,7 @@ interface Props {
 }
 
 export const M5Provider: React.FunctionComponent<Props> = (props: Props) => {
-    const canvasWidth = 1000;
+    const canvasWidth = 500;
     const m5Config = props.data.m5Config;
     console.assert(!!m5Config, 'M5 not configured!');
 
