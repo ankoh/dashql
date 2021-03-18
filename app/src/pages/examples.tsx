@@ -89,8 +89,8 @@ class Explorer extends React.Component<Props, State> {
         const script = EXAMPLE_SCRIPT_MAP.get(name)!;
         return (
             <motion.div className={styles.script_detail} layoutId={script.key}>
-                <motion.h5>{script.title}</motion.h5>
-                <motion.h2>{script.description}</motion.h2>
+                <motion.h2>{script.title}</motion.h2>
+                <motion.h5>{script.description}</motion.h5>
                 <motion.button onClick={this._clearFocus} />
             </motion.div>
         );
@@ -111,8 +111,8 @@ class Explorer extends React.Component<Props, State> {
                             data-key={script.key}
                             onClick={this._focusExample}
                         >
-                            <motion.h5>{script.title}</motion.h5>
-                            <motion.h2>{script.description}</motion.h2>
+                            <motion.h2>{script.title}</motion.h2>
+                            <motion.h5>{script.description}</motion.h5>
                         </motion.div>
                     ))}
                 </div>
