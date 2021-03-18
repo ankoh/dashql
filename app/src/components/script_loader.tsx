@@ -26,7 +26,7 @@ enum ScriptLoaderStatus {
 
 interface State {
     requestURL: string | null;
-    requestURI: string | null;
+    requestURI: [core.model.ScriptURIPrefix, string] | null;
     status: ScriptLoaderStatus;
     error: any | null;
 }
@@ -44,25 +44,25 @@ class ScriptLoader extends React.Component<Props, State> {
 
     static getDerivedStateFromProps(nextProps: Props, prevState: State) {
         const gist = new URLSearchParams(nextProps.location.search).get("gist") || undefined;
-        let requestURL = null;
-        let requestURI = null;
+        let url = null;
+        let uri: [core.model.ScriptURIPrefix, string] | null = null;
         if (gist) {
-            requestURI = `gist://${gist}`;
-            requestURL = `https://gist.githubusercontent.com/ankoh/${gist}/raw`;
+            uri = [core.model.ScriptURIPrefix.GITHUB_GIST, gist];
+            url = `https://gist.githubusercontent.com/ankoh/${gist}/raw`;
         }
-        if (requestURI == prevState.requestURI) {
+        if (!uri || (uri[0] == prevState.requestURI?.[0] && uri[1] == prevState.requestURI?.[1])) {
             return prevState;
         } else {
             return {
-                requestURL,
-                requestURI,
+                requestURL: url,
+                requestURI: uri,
                 status: ScriptLoaderStatus.PENDING,
                 error: null,
             };
         }
     }
 
-    async loadScriptFromURL(url: string, uri: string) {
+    async loadScriptFromURL(url: string, uri: [core.model.ScriptURIPrefix, string]) {
         this.setState({
             status: ScriptLoaderStatus.IN_FLIGHT,
             error: null,
@@ -84,7 +84,9 @@ class ScriptLoader extends React.Component<Props, State> {
                 error: null,
             });
             this.props.updateScript({
-                text, uri,
+                text,
+                uriPrefix: uri[0],
+                uriName: uri[1],
                 modified: false,
                 lineCount: core.utils.countLines(text),
                 bytes: core.utils.estimateUTF16Length(text),
