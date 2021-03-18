@@ -24,9 +24,9 @@ function getFeatureTagLabel(tag: ScriptFeatureTag) {
         case ScriptFeatureTag.EXTRACT_JSON:
             return 'EXTRACT JSON';
         case ScriptFeatureTag.VIZ_LINE_CHART:
-            return 'VIZ LINE';
+            return 'LINE CHART';
         case ScriptFeatureTag.VIZ_TABLE:
-            return 'VIZ TABLE';
+            return 'TABLE';
         default:
             return '?';
     }
@@ -105,6 +105,7 @@ class Explorer extends React.Component<Props, State> {
                 <div className={styles.collection_grid}>
                     {scripts.map(script => (
                         <motion.div
+                            className={styles.script_card}
                             key={script.key}
                             layoutId={script.key}
                             data-key={script.key}
