@@ -23,7 +23,7 @@
     text-align: center;
 
     display: grid;
-    grid-template-rows: 56px auto 56px calc(3 * 48px);
+    grid-template-rows: 56px auto 56px calc(3 * 48px + 4px);
 }
 
 .logo {
@@ -108,7 +108,7 @@
     height: 100%;
 }
 
-.statusicon > svg {
+.statusicon > img {
     justify-self: center;
     align-self: center;
 }

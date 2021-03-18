@@ -65,7 +65,7 @@ export function LineChartIcon(props: IIconProps) {
             width={props.width || '24px'}
             height={props.height || '24px'}
             viewBox="0 0 24 24"
-        >
+            >
             <path
                 d="M16,11.78L20.24,4.45L21.97,5.45L16.74,14.5L10.23,10.75L5.46,19H22V21H2V3H4V17.54L9.5,8L16,11.78Z"
                 fill={props.fill || '#ffffff'}
@@ -512,36 +512,6 @@ export function DatabaseIcon(props: IIconProps) {
     );
 }
 
-export function LogIcon(props: IIconProps) {
-    return (
-        <svg
-            className={props.className || 'icon'}
-            width={props.width || '24px'}
-            height={props.height || '24px'}
-            viewBox="0 0 24 24"
-        >
-            <g fill={props.fill || '#ffffff'} fillRule="evenodd">
-                <path d="M4 2V8H2V2H4M2 22H4V16H2V22M5 12C5 10.9 4.11 10 3 10C1.9 10 1 10.9 1 12C1 13.11 1.9 14 3 14C4.11 14 5 13.11 5 12M24 6V18C24 19.11 23.11 20 22 20H10C8.9 20 8 19.11 8 18V14L6 12L8 10V6C8 4.89 8.9 4 10 4H22C23.11 4 24 4.89 24 6M19 13H11V15H19V13M21 9H11V11H21V9Z" />
-            </g>
-        </svg>
-    );
-}
-
-export function TaskListIcon(props: IIconProps) {
-    return (
-        <svg
-            className={props.className || 'icon'}
-            width={props.width || '24px'}
-            height={props.height || '24px'}
-            viewBox="0 0 24 24"
-        >
-            <g fill={props.fill || '#ffffff'} fillRule="evenodd">
-                <path d="M3,5H9V11H3V5M5,7V9H7V7H5M11,7H21V9H11V7M11,15H21V17H11V15M5,20L1.5,16.5L2.91,15.09L5,17.17L9.59,12.59L11,14L5,20Z" />
-            </g>
-        </svg>
-    );
-}
-
 export function GitHubFaceIcon(props: IIconProps) {
     return (
         <svg
@@ -611,23 +581,6 @@ export function IconTemplate(props: IIconProps) {
             viewBox="0 0 24 24"
         >
             <g fill={props.fill || '#ffffff'} fillRule="evenodd"></g>
-        </svg>
-    );
-}
-
-export function StudioIcon(props: IIconProps) {
-    return (
-        <svg
-            className={props.className || 'icon'}
-            width={props.width || '24px'}
-            height={props.height || '24px'}
-            viewBox="0 0 24 24"
-        >
-            <path
-                d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"
-                fill={props.fill || '#ffffff'}
-                fillRule="nonzero"
-            />
         </svg>
     );
 }
@@ -785,23 +738,6 @@ export function ExpandMoreIcon(props: IIconProps) {
             viewBox="0 0 24 24"
         >
             <path d="M16.59 8.59L12 13.17 7.41 8.59 6 10l6 6 6-6z" fill={props.fill || '#ffffff'} fillRule="nonzero" />
-        </svg>
-    );
-}
-
-export function LibraryBooksIcon(props: IIconProps) {
-    return (
-        <svg
-            className={props.className || 'icon'}
-            width={props.width || '24px'}
-            height={props.height || '24px'}
-            viewBox="0 0 24 24"
-        >
-            <path
-                d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-1 9H9V9h10v2zm-4 4H9v-2h6v2zm4-8H9V5h10v2z"
-                fill={props.fill || '#ffffff'}
-                fillRule="nonzero"
-            />
         </svg>
     );
 }
