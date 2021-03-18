@@ -96,7 +96,9 @@ class Explorer extends React.Component<Props, State> {
         );
     }
 
-    renderCollection(name: string, scripts: ExampleScriptMetadata[]) {
+    renderCollection(collections: Map<string, ExampleScriptMetadata[]>, name: string) {
+        const scripts = collections.get(name);
+        if (!scripts) return undefined;
         return (
             <div className={styles.collection}>
                 <div className={styles.collection_name}>{name}</div>
@@ -132,8 +134,8 @@ class Explorer extends React.Component<Props, State> {
             <div className={styles.explorer}>
                 {this.renderFeatureFilters()}
                 <AnimateSharedLayout type="crossfade">
-                    {collections.has('collection1') &&
-                        this.renderCollection('collection1', collections.get('collection1')!)}
+                    {this.renderCollection(collections, 'collection1')}
+                    {this.renderCollection(collections, 'collection2')}
                     <AnimatePresence>
                         {this.state.focusedExample && this.renderScriptDetail(this.state.focusedExample)}
                     </AnimatePresence>
