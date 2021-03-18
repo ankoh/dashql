@@ -1,9 +1,23 @@
 @import "../vars.module.css";
 
-.explorer {
+.root {
     height: 100%;
     width: 100%;
     position: relative;
+}
+
+.gallery_header {
+    background: white;
+    border-bottom: 1px solid rgb(200, 200, 200);
+}
+
+.gallery_header_title {
+    font-size: 120%;
+    padding: 8px 20px;
+}
+
+.gallery_filters {
+    background: white;
 }
 
 .script_detail {
@@ -75,7 +89,7 @@
 }
 
 .filter_grid {
-    padding: 20px 20px 8px 20px;
+    padding: 8px 20px 8px 20px;
     display: grid;
     grid-template-columns: repeat(9, 110px);
     grid-template-rows: auto;
