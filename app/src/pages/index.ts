@@ -1,12 +1,12 @@
 import Launcher from "./launcher";
 import Studio from "./studio";
-import Explorer from "./explorer";
+import Examples from "./examples";
 import Viewer from "./viewer";
 export { NotFound } from "./not_found";
 
 export {
     Launcher,
     Studio,
-    Explorer,
+    Examples,
     Viewer
 }

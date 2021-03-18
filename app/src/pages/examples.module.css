@@ -1,0 +1,13 @@
+
+.explorer {
+    height: 100%;
+    width: 100%;
+}
+
+.group_cards {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    grid-template-rows: repeat(auto-fit, 200px);
+    grid-column-gap: 16px;
+    grid-row-gap: 16px;
+}
