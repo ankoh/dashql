@@ -24,11 +24,11 @@
     background: white;
     border-radius: var(--border_radius);
     border: 1px solid var(--example_border_color);
-    padding: 16px;
+    padding: 8px 16px;
 }
 
 .collection {
-    padding: 16px;
+    padding: 8px 16px;
 }
 
 .collection_name {
