@@ -21,7 +21,9 @@ export const VizCard: React.FC<Props> = (props: Props) => {
                 {
                     props.controls &&
                     <Button size="sm" variant="link" className={styles.settings}>
-                        <img src={icon_settings} width='14px' height='14px'/>
+                        <svg width='14px' height='14px'>
+                            <use xlinkHref={`${icon_settings}#sym`} />
+                        </svg>
                     </Button>
                 }
             </div>

@@ -1,13 +1,9 @@
-import * as Immutable from 'immutable';
 import * as React from 'react';
-import * as core from '@dashql/core';
-import { proto } from '@dashql/core';
-import { AppState, Dispatch } from '../model';
-import { connect } from 'react-redux';
-import { ActionStatusIndicator } from './status';
-import { ChevronRightIcon, CloseIcon } from '../svg/icons';
 import styles from './system_card.module.css';
 import classNames from 'classnames';
+
+import icon_chevron_right from '../../static/svg/icons/chevron_right.svg';
+import icon_close from '../../static/svg/icons/close.svg';
 
 interface Props {
     className?: string;
@@ -23,7 +19,9 @@ export class SystemCard extends React.Component<Props> {
                 <div className={styles.header}>
                     <div className={styles.header_title}>{this.props.title}</div>
                     <div className={styles.close} onClick={this.props.onClose}>
-                        <CloseIcon width="20px" height="20px" />
+                        <svg width="20px" height="20px">
+                            <use xlinkHref={`${icon_close}#sym`} />
+                        </svg>
                     </div>
                 </div>
                 {this.props.children}

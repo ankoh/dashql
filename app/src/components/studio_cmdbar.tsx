@@ -1,29 +1,35 @@
 import * as React from 'react';
 import * as core from '@dashql/core';
 import * as model from '../model';
-import { AutoRunIcon, FileUploadIcon, FileDownloadIcon, IIconProps, UndoIcon } from '../svg/icons';
 import { connect } from 'react-redux';
+
+import icon_autorun from '../../static/svg/icons/autorun.svg';
+import icon_file_upload from '../../static/svg/icons/file_upload.svg';
+import icon_file_download from '../../static/svg/icons/file_download.svg';
+import icon_undo from '../../static/svg/icons/undo.svg';
 
 import styles from './cmdbars.module.css';
 
-interface ActionProps extends IIconProps {
+interface ActionProps {
     onClick: () => void;
 }
 
-function createAction(Icon: React.FunctionComponent<ActionProps>): React.FunctionComponent<ActionProps> {
+function createAction(icon: string): React.FunctionComponent<ActionProps> {
     return (props: ActionProps) => {
         return (
             <div className={styles.cmdbar_cmd} onClick={props.onClick}>
-                <Icon className={styles.cmdbar_icon} width={'20px'} height={'20px'} {...props} />
+                <svg width="20px" height="20px">
+                    <use xlinkHref={`${icon}#sym`} />
+                </svg>
             </div>
         );
     };
 }
 
-const UndoAction = createAction(UndoIcon);
-const AutoRunAction = createAction(AutoRunIcon);
-const DocumentDownloadAction = createAction(FileDownloadIcon);
-const DocumentUploadAction = createAction(FileUploadIcon);
+const UndoAction = createAction(icon_undo);
+const AutoRunAction = createAction(icon_autorun);
+const DocumentDownloadAction = createAction(icon_file_download);
+const DocumentUploadAction = createAction(icon_file_upload);
 
 interface StudioCommandBarProps {
     script: core.model.Script;

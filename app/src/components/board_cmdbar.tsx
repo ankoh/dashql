@@ -1,22 +1,25 @@
 import * as React from 'react';
-import { EyeIcon, IIconProps } from '../svg/icons';
 import { Link } from 'react-router-dom';
 
 import styles from './cmdbars.module.css';
 
+import icon_eye from '../../static/svg/icons/eye.svg';
+
 class ActionProps {}
 
-function createAction(Icon: React.FunctionComponent<IIconProps>): React.FunctionComponent<IIconProps & ActionProps> {
-    return (props: IIconProps & ActionProps) => {
+function createAction(icon: string): React.FunctionComponent<ActionProps> {
+    return (_props: ActionProps) => {
         return (
             <div className={styles.cmdbar_cmd}>
-                <Icon className={styles.cmdbar_icon} width={'20px'} height={'20px'} {...props} />
+                <svg width="20px" height="20px">
+                    <use xlinkHref={`${icon}#sym`} />
+                </svg>
             </div>
         );
     };
 }
 
-const ViewerAction = createAction(EyeIcon);
+const ViewerAction = createAction(icon_eye);
 
 export class BoardCommandBar extends React.Component<{}> {
     public render() {
@@ -25,7 +28,7 @@ export class BoardCommandBar extends React.Component<{}> {
                 <div className={styles.cmdbar_cmdset} />
                 <div className={styles.cmdbar_cmdset}>
                     <Link to="/viewer" className={styles.cmdbar_cmd}>
-                        <EyeIcon className={styles.cmdbar_icon} width={'20px'} height={'20px'} />
+                        <ViewerAction />
                     </Link>
                 </div>
             </div>

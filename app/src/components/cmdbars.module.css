@@ -17,45 +17,22 @@
     width: calc(100% - 2 * var(--cmd_margin));
     height: calc(100% - 2 * var(--cmd_margin));
     display: grid;
+    justify-content: center;
+    align-items: center;
 
+    color: var(--cmd_fg);
     box-sizing: border-box;
     margin: var(--cmd_margin);
     border-radius: var(--border_radius);
 }
 .cmdbar_cmd:hover {
     background-color: var(--cmd_hover_bg);
-}
-.cmdbar_cmd:hover path {
-    fill: rgb(255, 255, 255);
-}
-.cmdbar_cmd:hover circle {
-    fill: rgb(255, 255, 255);
+    color: rgb(255, 255, 255);
 }
 .cmdbar_cmd.active {
     background-color: var(--cmd_hover_bg);
+    color: rgb(255, 255, 255);
 }
-
-.cmdbar_icon {
-    justify-self: center;
-    align-self: center;
-}
-.cmdbar_icon path {
-    fill: var(--cmd_fg);
-}
-.cmdbar_icon circle {
-    fill: var(--cmd_fg);
-}
-.cmdbar_icon.active {
-    justify-self: center;
-    align-self: center;
-}
-.cmdbar_icon.active path {
-    fill: rgb(255, 255, 255);
-}
-.cmdbar_icon.active circle {
-    fill: rgb(255, 255, 255);
-}
-
 .cmdbar_board {
     background-color: var(--cmd_bar_board_bg);
     grid-row: 1;

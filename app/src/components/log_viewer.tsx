@@ -2,20 +2,15 @@ import * as Immutable from 'immutable';
 import * as React from 'react';
 import * as webdb from '@dashql/webdb';
 import * as core from '@dashql/core';
-import { proto } from '@dashql/core';
 import { AppState, Dispatch } from '../model';
 import { connect } from 'react-redux';
 import { SystemCard } from './system_card';
 import { withCurrentTime } from './current_time';
-import { ActionStatusIndicator } from './status';
-import { ChevronRightIcon, CloseIcon } from '../svg/icons';
 import { List, ListRowProps, AutoSizer } from 'react-virtualized';
-import classnames from 'classnames';
+
+import icon_chevron_right from '../../static/svg/icons/chevron_right.svg';
 
 import styles from './log_viewer.module.css';
-
-import CLO = core.model.LogOrigin;
-import WLO = webdb.LogOrigin;
 
 const OVERSCAN_ROW_COUNT = 5;
 
@@ -32,7 +27,9 @@ function LogRow(props: LogRowProps) {
         <div className={styles.row}>
             <div className={styles.expand}>
                 <div className={styles.expand_icon}>
-                    <ChevronRightIcon width="18px" height="18px" />
+                    <svg width="18px" height="18px">
+                        <use xlinkHref={`${icon_chevron_right}#sym`} />
+                    </svg>
                 </div>
             </div>
             <div className={styles.origin}>

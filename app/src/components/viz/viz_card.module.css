@@ -45,6 +45,7 @@
     display: grid;
     justify-content: center;
     align-items: center;
+    color: rgb(80, 80, 80)!important;
 }
 
 .body {
