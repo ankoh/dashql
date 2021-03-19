@@ -21,16 +21,18 @@ interface State {
 
 function getFeatureTagLabel(tag: ScriptFeatureTag) {
     switch (tag) {
-        case ScriptFeatureTag.LOAD_HTTP:
+        case ScriptFeatureTag.HTTP_SOURCE:
             return 'HTTP';
-        case ScriptFeatureTag.EXTRACT_CSV:
+        case ScriptFeatureTag.DATA_CSV:
             return 'CSV';
-        case ScriptFeatureTag.EXTRACT_PARQUET:
+        case ScriptFeatureTag.DATA_PARQUET:
             return 'PARQUET';
-        case ScriptFeatureTag.VIZ_LINE_CHART:
-            return 'LINE CHART';
-        case ScriptFeatureTag.VIZ_TABLE:
-            return 'TABLE';
+        case ScriptFeatureTag.DYNAMIC_EXTRACT:
+            return 'DYNAMIC EXTRACT'
+        case ScriptFeatureTag.DYNAMIC_SQL:
+            return 'DYNAMIC SQL'
+        case ScriptFeatureTag.DYNAMIC_VIZ:
+            return 'DYNAMIC VIZ';
         default:
             return '?';
     }
