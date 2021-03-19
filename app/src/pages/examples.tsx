@@ -156,16 +156,18 @@ class Explorer extends React.Component<Props, State> {
                         {this.renderFeatureFilters()}
                     </div>
                 </div>
-                <AnimateSharedLayout type="crossfade">
-                    {this.renderCollection(collections, 'Demos')}
-                    {this.renderCollection(collections, 'Load')}
-                    {this.renderCollection(collections, 'Extract')}
-                    {this.renderCollection(collections, 'SQL')}
-                    {this.renderCollection(collections, 'Visualize')}
-                    <AnimatePresence>
-                        {this.state.focusedExample && this.renderScriptDetail(this.state.focusedExample)}
-                    </AnimatePresence>
-                </AnimateSharedLayout>
+                <div className={styles.gallery_body}>
+                    <AnimateSharedLayout type="crossfade">
+                        {this.renderCollection(collections, 'Demos')}
+                        {this.renderCollection(collections, 'Load')}
+                        {this.renderCollection(collections, 'Extract')}
+                        {this.renderCollection(collections, 'SQL')}
+                        {this.renderCollection(collections, 'Visualize')}
+                        <AnimatePresence>
+                            {this.state.focusedExample && this.renderScriptDetail(this.state.focusedExample)}
+                        </AnimatePresence>
+                    </AnimateSharedLayout>
+                </div>
             </div>
         );
     }
