@@ -7,7 +7,7 @@ import icon_arc_chart from '../../static/svg/icons/arc_chart.svg';
 import icon_bar_chart from '../../static/svg/icons/bar_chart.svg';
 import icon_database_import from '../../static/svg/icons/database_import.svg';
 import icon_database_search from '../../static/svg/icons/database_search.svg';
-import icon_file_document_plus from '../../static/svg/icons/file_document_plus.svg';
+import icon_package_down from '../../static/svg/icons/package_down.svg';
 import icon_line_chart from '../../static/svg/icons/line_chart.svg';
 import icon_plan from '../../static/svg/icons/plan.svg';
 import icon_table_chart from '../../static/svg/icons/table_chart.svg';
@@ -28,7 +28,7 @@ function createTool(icon: string): React.FunctionComponent<ToolProps> {
     };
 }
 const CreateVariable = createTool(icon_variable_box);
-const CreateLoad = createTool(icon_file_document_plus);
+const CreateLoad = createTool(icon_package_down);
 const CreateExtract = createTool(icon_database_import);
 const CreateQuery = createTool(icon_database_search);
 

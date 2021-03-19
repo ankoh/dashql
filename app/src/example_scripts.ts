@@ -4,14 +4,19 @@ import axios from 'axios';
 
 import example_helloworld from '../static/examples/helloworld.dashql';
 
+import icon_dashboard from '../static/svg/icons/dashboard.svg';
 import icon_linechart from '../static/svg/icons/line_chart.svg';
 import icon_areachart from '../static/svg/icons/area_chart.svg';
-import icon_script from '../static/svg/icons/script_solid.svg';
 import icon_barchart from '../static/svg/icons/bar_chart.svg';
+import icon_histogramchart from '../static/svg/icons/histogram_chart.svg';
 import icon_arcchart from '../static/svg/icons/arc_chart.svg';
 import icon_scatterchart from '../static/svg/icons/scatter_chart.svg';
+import icon_streamgraph from '../static/svg/icons/streamgraph.svg';
 import icon_heatmapchart from '../static/svg/icons/heatmap_chart.svg';
 import icon_gesture_tap_hold from '../static/svg/icons/gesture_tap_hold.svg';
+import icon_database_import from '../static/svg/icons/database_import.svg';
+import icon_database_search from '../static/svg/icons/database_search.svg';
+import icon_package_down from '../static/svg/icons/package_down.svg';
 
 export enum ExampleScriptTag {
     HELLOWORLD
@@ -74,7 +79,7 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         collection: "Demos",
         title: "Hello World",
         description: "A third test hello world script",
-        icon: icon_script,
+        icon: icon_dashboard,
         features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_)
             .set(ScriptFeatureTag.EXTRACT_CSV)
             .set(ScriptFeatureTag.VIZ_LINE_CHART)
@@ -86,7 +91,7 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         collection: "Demos",
         title: "University Schema",
         description: "A third test hello world script",
-        icon: icon_script,
+        icon: icon_dashboard,
         features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_)
             .set(ScriptFeatureTag.EXTRACT_CSV)
             .set(ScriptFeatureTag.VIZ_LINE_CHART)
@@ -127,6 +132,17 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         url: example_helloworld
     },
     {
+        key: "viz/histogram",
+        collection: "Visualize",
+        title: "Histogram Charts",
+        description: "Fooo",
+        icon: icon_histogramchart,
+        features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_)
+            .set(ScriptFeatureTag.VIZ_BAR_CHART)
+            .set(ScriptFeatureTag.VIZ_TABLE),
+        url: example_helloworld
+    },
+    {
         key: "viz/scatter",
         collection: "Visualize",
         title: "Scatter Plots",
@@ -142,7 +158,7 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         collection: "Visualize",
         title: "Streamgraphs",
         description: "Fooo",
-        icon: icon_areachart,
+        icon: icon_streamgraph,
         features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_)
             .set(ScriptFeatureTag.VIZ_STREAMGRAPH)
             .set(ScriptFeatureTag.VIZ_TABLE),
@@ -186,7 +202,7 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         collection: "Load",
         title: "Static HTTP",
         description: "FOOOOO",
-        icon: icon_script,
+        icon: icon_package_down,
         features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_)
             .set(ScriptFeatureTag.VIZ_LINE_CHART)
             .set(ScriptFeatureTag.VIZ_TABLE),
@@ -197,7 +213,7 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         collection: "Load",
         title: "Dynamic HTTP",
         description: "FOOOOO",
-        icon: icon_script,
+        icon: icon_package_down,
         features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_)
             .set(ScriptFeatureTag.VIZ_LINE_CHART)
             .set(ScriptFeatureTag.VIZ_TABLE),
@@ -208,7 +224,7 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         collection: "Extract",
         title: "CSV Parsing",
         description: "FOOOOO",
-        icon: icon_script,
+        icon: icon_database_import,
         features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_)
             .set(ScriptFeatureTag.VIZ_LINE_CHART)
             .set(ScriptFeatureTag.VIZ_TABLE),
@@ -219,7 +235,7 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         collection: "Extract",
         title: "Parquet Import",
         description: "FOOOOO",
-        icon: icon_script,
+        icon: icon_database_import,
         features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_)
             .set(ScriptFeatureTag.VIZ_LINE_CHART)
             .set(ScriptFeatureTag.VIZ_TABLE),
@@ -230,7 +246,7 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         collection: "SQL",
         title: "Complex Joins",
         description: "FOOOOO",
-        icon: icon_script,
+        icon: icon_database_search,
         features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_)
             .set(ScriptFeatureTag.VIZ_LINE_CHART)
             .set(ScriptFeatureTag.VIZ_TABLE),
@@ -241,7 +257,7 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         collection: "SQL",
         title: "Explicit Grouping",
         description: "FOOOOO",
-        icon: icon_script,
+        icon: icon_database_search,
         features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_)
             .set(ScriptFeatureTag.VIZ_LINE_CHART)
             .set(ScriptFeatureTag.VIZ_TABLE),
@@ -252,7 +268,7 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         collection: "SQL",
         title: "Moving Avergage",
         description: "FOOOOO",
-        icon: icon_script,
+        icon: icon_database_search,
         features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_)
             .set(ScriptFeatureTag.VIZ_LINE_CHART)
             .set(ScriptFeatureTag.VIZ_TABLE),
@@ -263,7 +279,7 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         collection: "SQL",
         title: "Running Sum",
         description: "FOOOOO",
-        icon: icon_script,
+        icon: icon_database_search,
         features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_)
             .set(ScriptFeatureTag.VIZ_LINE_CHART)
             .set(ScriptFeatureTag.VIZ_TABLE),
@@ -274,7 +290,7 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         collection: "SQL",
         title: "Approximative",
         description: "FOOOOO",
-        icon: icon_script,
+        icon: icon_database_search,
         features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_)
             .set(ScriptFeatureTag.VIZ_LINE_CHART)
             .set(ScriptFeatureTag.VIZ_TABLE),
@@ -285,7 +301,7 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         collection: "SQL",
         title: "Sampling",
         description: "FOOOOO",
-        icon: icon_script,
+        icon: icon_database_search,
         features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_)
             .set(ScriptFeatureTag.VIZ_LINE_CHART)
             .set(ScriptFeatureTag.VIZ_TABLE),
@@ -296,7 +312,7 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         collection: "SQL",
         title: "Pattern Matching",
         description: "FOOOOO",
-        icon: icon_script,
+        icon: icon_database_search,
         features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_)
             .set(ScriptFeatureTag.VIZ_LINE_CHART)
             .set(ScriptFeatureTag.VIZ_TABLE),
