@@ -42,7 +42,6 @@ export async function loadExampleScript(script: ExampleScriptTag, store: model.A
 export enum ScriptFeatureTag {
     LOAD_HTTP,
     EXTRACT_CSV,
-    EXTRACT_JSON,
     EXTRACT_PARQUET,
     VIZ_TABLE,
     VIZ_MAP,
@@ -205,17 +204,6 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         key: "extract/csv",
         collection: "Extract",
         title: "CSV Parsing",
-        description: "FOOOOO",
-        icon: icon_script,
-        features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_)
-            .set(ScriptFeatureTag.VIZ_LINE_CHART)
-            .set(ScriptFeatureTag.VIZ_TABLE),
-        url: example_helloworld
-    },
-    {
-        key: "extract/json",
-        collection: "Extract",
-        title: "JSON Parsing",
         description: "FOOOOO",
         icon: icon_script,
         features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_)
