@@ -310,17 +310,6 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
             .set(ScriptFeatureTag.VIZ_TABLE),
         url: example_helloworld
     },
-    {
-        key: "sql/indexes",
-        collection: "SQL",
-        title: "Indexes",
-        description: "FOOOOO",
-        icon: icon_script,
-        features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_)
-            .set(ScriptFeatureTag.VIZ_LINE_CHART)
-            .set(ScriptFeatureTag.VIZ_TABLE),
-        url: example_helloworld
-    },
 ];
 
 export const EXAMPLE_SCRIPT_MAP: Map<string, ExampleScriptMetadata> = new Map(EXAMPLE_SCRIPTS.map(e => [e.key, e]))
