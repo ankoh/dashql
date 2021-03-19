@@ -2,7 +2,7 @@
     "name": "@dashql/core",
     "version": "0.0.1",
     "description": "DashQL Core Library",
-    "license": "AGPL-3.0-or-later",
+    "license": "MPL-2.0",
     "dependencies": {
         "@dashql/dataframe": "file:../dataframe/",
         "@dashql/proto": "file:../proto/",
