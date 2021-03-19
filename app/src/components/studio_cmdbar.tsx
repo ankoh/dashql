@@ -59,7 +59,6 @@ export class StudioCommandBar extends React.Component<StudioCommandBarProps> {
                 <div className={styles.cmdbar_cmdset} />
                 <div className={styles.cmdbar_cmdset}>
                     <DocumentDownloadAction onClick={this._downloadScriptAsFile} />
-                    <DocumentUploadAction onClick={() => {}} />
                 </div>
             </div>
         );
