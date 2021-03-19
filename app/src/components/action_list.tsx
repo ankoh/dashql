@@ -6,8 +6,9 @@ import { AppState, Dispatch } from '../model';
 import { connect } from 'react-redux';
 import { SystemCard } from './system_card';
 import { ActionStatusIndicator } from './status';
-import { ChevronRightIcon, CloseIcon } from '../svg/icons';
 import styles from './action_list.module.css';
+
+import icon_chevron_right from '../../static/svg/icons/chevron_right.svg';
 
 function getSetupActionTypeLabel(type: proto.action.SetupActionType) {
     switch (type) {
@@ -80,7 +81,9 @@ class ActionList extends React.Component<Props> {
                 <div key={i} className={styles.action}>
                     <div className={styles.action_expand}>
                         <div className={styles.action_expand_icon}>
-                            <ChevronRightIcon width="18px" height="18px" />
+                            <svg width="18px" height="18px">
+                                <use xlinkHref={`${icon_chevron_right}#sym`} />
+                            </svg>
                         </div>
                     </div>
                     <div className={styles.action_status}>
@@ -99,7 +102,9 @@ class ActionList extends React.Component<Props> {
                 <div key={i} className={styles.action}>
                     <div className={styles.action_expand}>
                         <div className={styles.action_expand_icon}>
-                            <ChevronRightIcon width="18px" height="18px" />
+                            <svg width="18px" height="18px">
+                                <use xlinkHref={`${icon_chevron_right}#sym`} />
+                            </svg>
                         </div>
                     </div>
                     <div className={styles.action_status}>

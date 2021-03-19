@@ -28,12 +28,6 @@
     font-size: 80%;
 }
 
-.action_type {
-}
-
-.action_origin {
-}
-
 .action_expand {
     grid-row: 1;
     grid-column: 1;
@@ -42,25 +36,12 @@
 .action_status {
     grid-row: 1;
     grid-column: 2;
-    display: grid;
     width: 100%;
     height: 100%;
-}
-
-.action_status > svg {
-    justify-self: center;
-    align-self: center;
-}
-
-.action_expand_icon {
     display: grid;
-    width: 100%;
-    height: 100%;
-}
-
-.action_expand_icon > svg {
-    justify-self: center;
-    align-self: center;
+    justify-content: center;
+    align-items: center;
+    content: white;
 }
 
 .action_type {

@@ -1,54 +1,56 @@
 import * as React from 'react';
-import {
-    IIconProps,
-    AnalyticsIcon,
-    ArcChartIcon,
-    BarChartIcon,
-    DatabaseImportIcon,
-    DatabaseSearchIcon,
-    FileDocumentBoxPlusIcon,
-    LineChartIcon,
-    PlanIcon,
-    ScatterChartIcon,
-    TableChartIcon,
-    TextCardIcon,
-    VariableBoxIcon,
-} from '../svg/icons';
 import styles from './studio_toolbar.module.css';
 import classNames from 'classnames';
 
-class ToolProps {}
-function createTool(Icon: React.FunctionComponent<IIconProps>): React.FunctionComponent<IIconProps & ToolProps> {
-    return (props: IIconProps & ToolProps) => {
+import icon_analytics from '../../static/svg/icons/analytics.svg';
+import icon_arc_chart from '../../static/svg/icons/arc_chart.svg';
+import icon_bar_chart from '../../static/svg/icons/bar_chart.svg';
+import icon_database_import from '../../static/svg/icons/database_import.svg';
+import icon_database_search from '../../static/svg/icons/database_search.svg';
+import icon_file_document_plus from '../../static/svg/icons/file_document_plus.svg';
+import icon_line_chart from '../../static/svg/icons/line_chart.svg';
+import icon_plan from '../../static/svg/icons/plan.svg';
+import icon_table_chart from '../../static/svg/icons/table_chart.svg';
+import icon_text_card from '../../static/svg/icons/text_card.svg';
+import icon_scatter_chart from '../../static/svg/icons/scatter_chart.svg';
+import icon_variable_box from '../../static/svg/icons/variable_box.svg';
+
+interface ToolProps {}
+function createTool(icon: string): React.FunctionComponent<ToolProps> {
+    return (_props: ToolProps) => {
         return (
             <div className={styles.tool}>
-                <Icon className={styles.tool_icon} width={'20px'} height={'20px'} {...props} />
+                <svg width="20px" height="20px">
+                    <use xlinkHref={`${icon}#sym`} />
+                </svg>
             </div>
         );
     };
 }
-const CreateVariable = createTool(VariableBoxIcon);
-const CreateLoad = createTool(FileDocumentBoxPlusIcon);
-const CreateExtract = createTool(DatabaseImportIcon);
-const CreateQuery = createTool(DatabaseSearchIcon);
+const CreateVariable = createTool(icon_variable_box);
+const CreateLoad = createTool(icon_file_document_plus);
+const CreateExtract = createTool(icon_database_import);
+const CreateQuery = createTool(icon_database_search);
 
 class VizTypeProps {}
-function createVizType(Icon: React.FunctionComponent<IIconProps>): React.FunctionComponent<IIconProps & VizTypeProps> {
-    return (props: IIconProps & VizTypeProps) => {
+function createVizType(icon: string): React.FunctionComponent<VizTypeProps> {
+    return (_props: VizTypeProps) => {
         return (
             <div className={styles.viztype}>
-                <Icon className={styles.viztype_icon} width={'20px'} height={'20px'} {...props} />
+                <svg width="20px" height="20px">
+                    <use xlinkHref={`${icon}#sym`} />
+                </svg>
             </div>
         );
     };
 }
-const QueryPlanViz = createVizType(PlanIcon);
-const TextCardViz = createVizType(TextCardIcon);
-const TableViz = createVizType(TableChartIcon);
-const LineChartViz = createVizType(LineChartIcon);
-const BarChartViz = createVizType(BarChartIcon);
-const ScatterChartViz = createVizType(ScatterChartIcon);
-const PieChartViz = createVizType(ArcChartIcon);
+const QueryPlanViz = createVizType(icon_plan);
+const TextCardViz = createVizType(icon_text_card);
+const TableViz = createVizType(icon_table_chart);
+const LineChartViz = createVizType(icon_line_chart);
+const BarChartViz = createVizType(icon_bar_chart);
+const ScatterChartViz = createVizType(icon_scatter_chart);
+const PieChartViz = createVizType(icon_arc_chart);
 
 type ToolBarState = {
     vizExpanded: boolean;
@@ -76,13 +78,9 @@ export class StudioToolBar extends React.Component<{}, ToolBarState> {
                     })}
                     onClick={this.toggleViz.bind(this)}
                 >
-                    <AnalyticsIcon
-                        className={classNames(styles.tool_icon, {
-                            [styles.active]: this.state.vizExpanded,
-                        })}
-                        width={'20px'}
-                        height={'20px'}
-                    />
+                    <svg width="20px" height="20px">
+                        <use xlinkHref={`${icon_analytics}#sym`} />
+                    </svg>
                 </div>
                 {this.state.vizExpanded && (
                     <div className={styles.tool_sublist}>

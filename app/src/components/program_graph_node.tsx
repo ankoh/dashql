@@ -2,43 +2,35 @@ import * as React from 'react';
 import { Handle as ReactFlowHandle, Node as NodeData, Position } from 'react-flow-renderer';
 import { ActionStatusIndicator } from './status';
 import { proto } from '@dashql/core';
-import {
-    IIconProps,
-    AnalyticsIcon,
-    DatabaseImportIcon,
-    DatabaseSearchIcon,
-    FileDocumentBoxPlusIcon,
-    VariableBoxIcon,
-} from '../svg/icons';
+
+import icon_analytics from '../../static/svg/icons/analytics.svg';
+import icon_database_import from '../../static/svg/icons/database_import.svg';
+import icon_database_search from '../../static/svg/icons/database_search.svg';
+import icon_file_document_plus from '../../static/svg/icons/file_document_plus.svg';
+import icon_variable_box from '../../static/svg/icons/variable_box.svg';
 
 import styles from './program_graph.module.css';
 
-function StatementTypeIcon(props: IIconProps & { type: proto.syntax.StatementType }) {
-    switch (props.type) {
+function StatementTypeIcon(type: proto.syntax.StatementType): string {
+    switch (type) {
         case proto.syntax.StatementType.CREATE_TABLE:
-            return <DatabaseSearchIcon {...props} />;
         case proto.syntax.StatementType.CREATE_TABLE_AS:
-            return <DatabaseSearchIcon {...props} />;
         case proto.syntax.StatementType.CREATE_VIEW:
-            return <DatabaseSearchIcon {...props} />;
-        case proto.syntax.StatementType.EXTRACT_CSV:
-            return <DatabaseImportIcon {...props} />;
-        case proto.syntax.StatementType.EXTRACT_JSON:
-            return <DatabaseImportIcon {...props} />;
-        case proto.syntax.StatementType.LOAD_FILE:
-            return <FileDocumentBoxPlusIcon {...props} />;
-        case proto.syntax.StatementType.LOAD_HTTP:
-            return <FileDocumentBoxPlusIcon {...props} />;
-        case proto.syntax.StatementType.PARAMETER:
-            return <VariableBoxIcon {...props} />;
         case proto.syntax.StatementType.SELECT:
-            return <DatabaseSearchIcon {...props} />;
         case proto.syntax.StatementType.SELECT_INTO:
-            return <DatabaseSearchIcon {...props} />;
+            return icon_database_search
+        case proto.syntax.StatementType.EXTRACT_CSV:
+        case proto.syntax.StatementType.EXTRACT_JSON:
+            return icon_database_import;
+        case proto.syntax.StatementType.LOAD_FILE:
+        case proto.syntax.StatementType.LOAD_HTTP:
+            return icon_file_document_plus;
+        case proto.syntax.StatementType.PARAMETER:
+            return icon_variable_box;
         case proto.syntax.StatementType.VIZUALIZE:
-            return <AnalyticsIcon {...props} />;
+            return icon_analytics;
         default:
-            return <div />;
+            return icon_analytics;
     }
 }
 
@@ -54,13 +46,9 @@ export function StatementNode(props: StatementNodeData) {
     return (
         <div className={styles.node}>
             <div className={styles.node_type}>
-                <StatementTypeIcon
-                    className={styles.node_icon}
-                    fill="rgb(80, 80, 80)"
-                    width="22px"
-                    height="22px"
-                    type={props.data.statementType}
-                />
+                <svg width="22px" height="22px" style={{fill: "rgb(80, 80, 80)"}}>
+                    <use xlinkHref={`${StatementTypeIcon(props.data.statementType)}#sym`} />
+                </svg>
                 <ReactFlowHandle type="target" position={Position.Top} className={styles.node_handle_top} />
                 <ReactFlowHandle type="source" position={Position.Bottom} className={styles.node_handle_bottom} />
             </div>
