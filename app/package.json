@@ -1,6 +1,6 @@
 {
     "name": "dashql",
-    "license": "AGPL-3.0-or-later",
+    "license": "MPL-2.0",
     "private": true,
     "scripts": {
         "start": "webpack serve --config webpack.debug.js",
