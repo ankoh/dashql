@@ -2,6 +2,7 @@ import * as React from 'react';
 import * as core from '@dashql/core';
 import classNames from 'classnames';
 import Button from 'react-bootstrap/Button';
+import { withRouter, RouterProps } from 'react-router-dom';
 import { AppState, Dispatch } from '../model';
 import { connect } from 'react-redux';
 import { motion, AnimateSharedLayout, AnimatePresence } from 'framer-motion';
@@ -9,15 +10,6 @@ import { EXAMPLE_SCRIPTS, EXAMPLE_SCRIPT_MAP, ScriptFeatureTag, ExampleScriptMet
 
 import styles from './examples.module.css';
 import icon_close from '../../static/svg/icons/close.svg';
-
-interface Props {
-    className?: string;
-}
-
-interface State {
-    filteredFeatures: core.utils.NativeBitmap;
-    focusedExample: string | null;
-}
 
 function getFeatureTagLabel(tag: ScriptFeatureTag) {
     switch (tag) {
@@ -38,10 +30,21 @@ function getFeatureTagLabel(tag: ScriptFeatureTag) {
     }
 }
 
-class Explorer extends React.Component<Props, State> {
+interface Props extends RouterProps {
+    className?: string;
+}
+
+interface State {
+    filteredFeatures: core.utils.NativeBitmap;
+    focusedExample: string | null;
+}
+
+class Examples extends React.Component<Props, State> {
     _focusExample = this.focusExample.bind(this);
     _clearFocus = this.clearFocus.bind(this);
     _toggleFeature = this.toggleFeature.bind(this);
+    _viewDashboard = this.viewDashboard.bind(this);
+    _editDashboard = this.editDashboard.bind(this);
 
     constructor(props: Props) {
         super(props);
@@ -49,6 +52,14 @@ class Explorer extends React.Component<Props, State> {
             filteredFeatures: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_),
             focusedExample: null,
         };
+    }
+
+    viewDashboard() {
+        this.props.history.push('/viewer');
+    }
+
+    editDashboard() {
+        this.props.history.push('/studio');
     }
 
     clearFocus() {
@@ -95,18 +106,24 @@ class Explorer extends React.Component<Props, State> {
         const script = EXAMPLE_SCRIPT_MAP.get(name)!;
         return (
             <motion.div className={styles.script_detail} layoutId={script.key}>
-                <motion.div className={styles.example_icon}>
-                    <svg width="20" height="20" >
-                        <use xlinkHref={`${script.icon}#sym`} />
-                    </svg>
+                <motion.div className={styles.script_detail_header}>
+                    <motion.div className={styles.example_icon}>
+                        <svg width="20" height="20" >
+                            <use xlinkHref={`${script.icon}#sym`} />
+                        </svg>
+                    </motion.div>
+                    <motion.span className={styles.example_title}>{script.title}</motion.span>
+                    <Button size="sm" variant="light" className={styles.example_unfocus} onClick={this._clearFocus}>
+                        <svg width="20" height="20" >
+                            <use xlinkHref={`${icon_close}#sym`} />
+                        </svg>
+                    </Button>
                 </motion.div>
-                <motion.span className={styles.example_title}>{script.title}</motion.span>
                 <motion.span className={styles.example_description}>{script.description}</motion.span>
-                <Button size="sm" variant="light" className={styles.example_unfocus} onClick={this._clearFocus}>
-                    <svg width="20" height="20" >
-                        <use xlinkHref={`${icon_close}#sym`} />
-                    </svg>
-                </Button>
+                <motion.div className={styles.script_detail_actions}>
+                    <Button size="sm" onClick={this._viewDashboard}>View</Button>
+                    <Button size="sm" onClick={this._editDashboard}>Edit</Button>
+                </motion.div>
             </motion.div>
         );
     }
@@ -181,4 +198,4 @@ const mapStateToProps = (state: AppState) => ({});
 
 const mapDispatchToProps = (_dispatch: Dispatch) => ({});
 
-export default connect(mapStateToProps, mapDispatchToProps)(Explorer);
+export default connect(mapStateToProps, mapDispatchToProps)(withRouter(Examples));
