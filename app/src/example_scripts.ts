@@ -115,20 +115,20 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         url: example_helloworld
     },
     {
-        key: "viz/histogram",
-        collection: "Visualize",
-        title: "Histogram Charts",
-        description: "Fooo",
-        icon: icon_histogramchart,
-        features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_),
-        url: example_helloworld
-    },
-    {
         key: "viz/scatter",
         collection: "Visualize",
         title: "Scatter Plots",
         description: "Fooo",
         icon: icon_scatterchart,
+        features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_),
+        url: example_helloworld
+    },
+    {
+        key: "viz/histogram",
+        collection: "Visualize",
+        title: "Histograms",
+        description: "Fooo",
+        icon: icon_histogramchart,
         features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_),
         url: example_helloworld
     },
