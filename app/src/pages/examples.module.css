@@ -99,14 +99,14 @@
 .filter_grid {
     padding: 8px 20px 16px 20px;
     display: grid;
-    grid-template-columns: repeat(9, 110px);
+    grid-template-columns: repeat(8, max-content);
     grid-template-rows: auto;
     grid-column-gap: 8px;
     grid-row-gap: 16px;
 }
 
 .filter_tag {
-    padding: 2px;
+    padding: 2px 8px;
     border-radius: var(--border_radius);
     font-size: 75%;
     background: rgb(80, 80, 80);
