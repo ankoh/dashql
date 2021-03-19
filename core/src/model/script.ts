@@ -7,12 +7,12 @@ export enum ScriptURIPrefix {
 }
 
 export interface Script {
-    /// The program text
-    text: string;
     /// The URI prefix
     uriPrefix: ScriptURIPrefix;
     /// The URI name
     uriName: string;
+    /// The program text
+    text: string;
     /// Has been modified?
     modified: boolean;
     /// The line count
