@@ -2,6 +2,7 @@
     "name": "@dashql/proto",
     "version": "0.0.1",
     "description": "",
+    "license": "MPL-2.0",
     "main": "./dist/index.js",
     "types": "./dist/index.d.ts",
     "dependencies": {
