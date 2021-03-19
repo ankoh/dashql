@@ -2,7 +2,7 @@ import * as React from 'react';
 import * as core from '@dashql/core';
 import classNames from 'classnames';
 import Button from 'react-bootstrap/Button';
-import { withRouter, RouterProps } from 'react-router-dom';
+import { withRouter, RouteComponentProps } from 'react-router-dom';
 import { AppState, Dispatch } from '../model';
 import { connect } from 'react-redux';
 import { motion, AnimateSharedLayout, AnimatePresence } from 'framer-motion';
@@ -20,9 +20,9 @@ function getFeatureTagLabel(tag: ScriptFeatureTag) {
         case ScriptFeatureTag.DATA_PARQUET:
             return 'PARQUET';
         case ScriptFeatureTag.DYNAMIC_EXTRACT:
-            return 'DYNAMIC EXTRACT'
+            return 'DYNAMIC EXTRACT';
         case ScriptFeatureTag.DYNAMIC_SQL:
-            return 'DYNAMIC SQL'
+            return 'DYNAMIC SQL';
         case ScriptFeatureTag.DYNAMIC_VIZ:
             return 'DYNAMIC VIZ';
         default:
@@ -30,7 +30,7 @@ function getFeatureTagLabel(tag: ScriptFeatureTag) {
     }
 }
 
-interface Props extends RouterProps {
+interface Props extends RouteComponentProps<{}> {
     className?: string;
 }
 
@@ -41,10 +41,10 @@ interface State {
 
 class Examples extends React.Component<Props, State> {
     _focusExample = this.focusExample.bind(this);
+    _viewExample = this.viewExample.bind(this);
+    _editExample = this.editExample.bind(this);
     _clearFocus = this.clearFocus.bind(this);
     _toggleFeature = this.toggleFeature.bind(this);
-    _viewDashboard = this.viewDashboard.bind(this);
-    _editDashboard = this.editDashboard.bind(this);
 
     constructor(props: Props) {
         super(props);
@@ -54,11 +54,21 @@ class Examples extends React.Component<Props, State> {
         };
     }
 
-    viewDashboard() {
+    focusExample(elem: React.MouseEvent<HTMLDivElement>) {
+        const key = (elem.currentTarget as any).dataset.key;
+        const loaded = key !== this.state.focusedExample;
+        EXAMPLE_SCRIPT_MAP.get(key)!.icon
+        this.setState({
+            ...this.state,
+            focusedExample: key || null,
+        });
+    }
+
+    viewExample() {
         this.props.history.push('/viewer');
     }
 
-    editDashboard() {
+    editExample() {
         this.props.history.push('/studio');
     }
 
@@ -66,13 +76,6 @@ class Examples extends React.Component<Props, State> {
         this.setState({
             ...this.state,
             focusedExample: null,
-        });
-    }
-
-    focusExample(elem: React.MouseEvent<HTMLDivElement>) {
-        this.setState({
-            ...this.state,
-            focusedExample: (elem.currentTarget as any).dataset.key || null,
         });
     }
 
@@ -108,21 +111,25 @@ class Examples extends React.Component<Props, State> {
             <motion.div className={styles.script_detail} layoutId={script.key}>
                 <motion.div className={styles.script_detail_header}>
                     <motion.div className={styles.example_icon}>
-                        <svg width="20" height="20" >
+                        <svg width="20" height="20">
                             <use xlinkHref={`${script.icon}#sym`} />
                         </svg>
                     </motion.div>
                     <motion.span className={styles.example_title}>{script.title}</motion.span>
                     <Button size="sm" variant="light" className={styles.example_unfocus} onClick={this._clearFocus}>
-                        <svg width="20" height="20" >
+                        <svg width="20" height="20">
                             <use xlinkHref={`${icon_close}#sym`} />
                         </svg>
                     </Button>
                 </motion.div>
                 <motion.span className={styles.example_description}>{script.description}</motion.span>
                 <motion.div className={styles.script_detail_actions}>
-                    <Button size="sm" onClick={this._viewDashboard}>View</Button>
-                    <Button size="sm" onClick={this._editDashboard}>Edit</Button>
+                    <Button size="sm" onClick={this._viewExample}>
+                        View
+                    </Button>
+                    <Button size="sm" onClick={this._editExample}>
+                        Edit
+                    </Button>
                 </motion.div>
             </motion.div>
         );
@@ -138,7 +145,7 @@ class Examples extends React.Component<Props, State> {
                     {scripts.map(script => (
                         <motion.div
                             className={classNames(styles.script_card, {
-                                [styles.script_card_disabled]: !script.enabled
+                                [styles.script_card_disabled]: !script.enabled,
                             })}
                             key={script.key}
                             layoutId={script.key}
@@ -146,7 +153,7 @@ class Examples extends React.Component<Props, State> {
                             onClick={script.enabled ? this._focusExample : () => {}}
                         >
                             <motion.div className={styles.example_icon}>
-                                <svg width="20" height="20" >
+                                <svg width="20" height="20">
                                     <use xlinkHref={`${script.icon}#sym`} />
                                 </svg>
                             </motion.div>
@@ -173,9 +180,7 @@ class Examples extends React.Component<Props, State> {
             <div className={styles.root}>
                 <div className={styles.gallery_header}>
                     <div className={styles.gallery_header_title}>Example Gallery</div>
-                    <div className={styles.gallery_filters}>
-                        {this.renderFeatureFilters()}
-                    </div>
+                    <div className={styles.gallery_filters}>{this.renderFeatureFilters()}</div>
                 </div>
                 <div className={styles.gallery_body}>
                     <AnimateSharedLayout type="crossfade">

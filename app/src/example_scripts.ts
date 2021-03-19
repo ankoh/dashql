@@ -2,35 +2,6 @@ import * as core from "@dashql/core";
 import * as model from "./model";
 import axios from 'axios';
 
-export enum ExampleScriptTag {
-    HELLOWORLD
-}
-
-export async function loadExampleScript(script: ExampleScriptTag, store: model.AppReduxStore) {
-    try {
-        const resp = await axios.get(example_demo_helloworld);
-        if (resp.status != 200) {
-            console.error(`Loading example ${script.toString()} failed with error: ${resp.statusText}`);
-            return;
-        }
-        const text = resp.data as string;
-        model.mutate(store.dispatch, {
-            type: core.model.StateMutationType.SET_SCRIPT,
-            data: {
-                text,
-                modified: false,
-                lineCount: core.utils.countLines(text),
-                bytes: core.utils.estimateUTF16Length(text),
-                uriPrefix: core.model.ScriptURIPrefix.EXAMPLES,
-                uriName: ExampleScriptTag[script].toLowerCase().toString()
-            }
-        });
-    } catch(e) {
-        // XXX log to platform
-        console.error(`Loading example ${script.toString()} failed with error: ${e}`);
-    }
-}
-
 import example_demo_helloworld from '../static/examples/demo_helloworld.dashql';
 import example_demo_unischema from '../static/examples/demo_unischema.dashql';
 import example_extract_csv from '../static/examples/extract_csv.dashql';
@@ -92,7 +63,7 @@ export interface ExampleScriptMetadata {
 
 export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
     {
-        key: "demos/helloworld",
+        key: "demo_helloworld",
         collection: "Demos",
         title: "Hello World",
         description: "A third test hello world script",
@@ -103,7 +74,7 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         enabled: true
     },
     {
-        key: "demos/unischema",
+        key: "demo_unischema",
         collection: "Demos",
         title: "University Schema",
         description: "A third test hello world script",
@@ -113,7 +84,7 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         enabled: false
     },
     {
-        key: "viz/line",
+        key: "viz_line",
         collection: "Visualize",
         title: "Line Charts",
         description: "A test hello world script",
@@ -123,7 +94,7 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         enabled: false
     },
     {
-        key: "viz/area",
+        key: "viz_area",
         collection: "Visualize",
         title: "Area Charts",
         description: "A second test hello world script",
@@ -133,7 +104,7 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         enabled: false
     },
     {
-        key: "viz/bar",
+        key: "viz_bar",
         collection: "Visualize",
         title: "Bar Charts",
         description: "Fooo",
@@ -143,7 +114,7 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         enabled: false
     },
     {
-        key: "viz/pie",
+        key: "viz_pie",
         collection: "Visualize",
         title: "Pie Charts",
         description: "Fooo",
@@ -153,7 +124,7 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         enabled: false
     },
     {
-        key: "viz/scatter",
+        key: "viz_scatter",
         collection: "Visualize",
         title: "Scatter Plots",
         description: "Fooo",
@@ -163,7 +134,7 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         enabled: false
     },
     {
-        key: "viz/histogram",
+        key: "viz_histogram",
         collection: "Visualize",
         title: "Histograms",
         description: "Fooo",
@@ -173,7 +144,7 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         enabled: false
     },
     {
-        key: "viz/streamgraph",
+        key: "viz_streamgraph",
         collection: "Visualize",
         title: "Streamgraphs",
         description: "Fooo",
@@ -193,7 +164,7 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         enabled: false
     },
     {
-        key: "viz/interaction",
+        key: "viz_interaction",
         collection: "Visualize",
         title: "Interactivity",
         description: "FOOOOO",
@@ -203,7 +174,7 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         enabled: false
     },
     {
-        key: "load/http_static",
+        key: "load_http_static",
         collection: "Load",
         title: "Static HTTP",
         description: "FOOOOO",
@@ -213,17 +184,17 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         enabled: false
     },
     {
-        key: "load/http_dynamic",
+        key: "load_http_dynamic",
         collection: "Load",
         title: "Dynamic HTTP",
         description: "FOOOOO",
         icon: icon_package_down,
         features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_),
-        url: example_load_http_static,
+        url: example_load_http_dynamic,
         enabled: false
     },
     {
-        key: "extract/csv",
+        key: "extract_csv",
         collection: "Extract",
         title: "CSV Parsing",
         description: "FOOOOO",
@@ -233,7 +204,7 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         enabled: false
     },
     {
-        key: "extract/parquet",
+        key: "extract_parquet",
         collection: "Extract",
         title: "Parquet Import",
         description: "FOOOOO",
@@ -243,7 +214,7 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         enabled: false
     },
     {
-        key: "sql/complexjoins",
+        key: "sql_complex_joins",
         collection: "SQL",
         title: "Complex Joins",
         description: "FOOOOO",
@@ -253,7 +224,7 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         enabled: false
     },
     {
-        key: "sql/explicitgrouping",
+        key: "sql_explicit_grouping",
         collection: "SQL",
         title: "Explicit Grouping",
         description: "FOOOOO",
@@ -263,7 +234,7 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         enabled: false
     },
     {
-        key: "sql/movingavg",
+        key: "sql_movingavg",
         collection: "SQL",
         title: "Moving Avergage",
         description: "FOOOOO",
@@ -273,7 +244,7 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         enabled: false
     },
     {
-        key: "sql/runningsum",
+        key: "sql_runningsum",
         collection: "SQL",
         title: "Running Sum",
         description: "FOOOOO",
@@ -283,7 +254,7 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         enabled: false
     },
     {
-        key: "sql/approxmedian",
+        key: "sql_approxmedian",
         collection: "SQL",
         title: "Approximative",
         description: "FOOOOO",
@@ -293,7 +264,7 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         enabled: false
     },
     {
-        key: "sql/sampling",
+        key: "sql_sampling",
         collection: "SQL",
         title: "Sampling",
         description: "FOOOOO",
@@ -303,7 +274,7 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         enabled: false
     },
     {
-        key: "sql/patternmatching",
+        key: "sql_pattern_matching",
         collection: "SQL",
         title: "Pattern Matching",
         description: "FOOOOO",
@@ -315,3 +286,28 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
 ];
 
 export const EXAMPLE_SCRIPT_MAP: Map<string, ExampleScriptMetadata> = new Map(EXAMPLE_SCRIPTS.map(e => [e.key, e]))
+
+export async function loadScript(example: ExampleScriptMetadata, store: model.AppReduxStore) {
+    try {
+        const resp = await axios.get(example_demo_helloworld);
+        if (resp.status != 200) {
+            console.error(`Loading example ${example.key.toString()} failed with error: ${resp.statusText}`);
+            return;
+        }
+        const text = resp.data as string;
+        model.mutate(store.dispatch, {
+            type: core.model.StateMutationType.SET_SCRIPT,
+            data: {
+                uriPrefix: core.model.ScriptURIPrefix.EXAMPLES,
+                uriName: example.key,
+                text,
+                modified: false,
+                lineCount: core.utils.countLines(text),
+                bytes: core.utils.estimateUTF16Length(text),
+            }
+        });
+    } catch(e) {
+        // XXX log to platform
+        console.error(`Loading example ${example.key.toString()} failed with error: ${e}`);
+    }
+}
