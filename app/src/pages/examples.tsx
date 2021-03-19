@@ -25,8 +25,6 @@ function getFeatureTagLabel(tag: ScriptFeatureTag) {
             return 'HTTP';
         case ScriptFeatureTag.EXTRACT_CSV:
             return 'CSV';
-        case ScriptFeatureTag.EXTRACT_JSON:
-            return 'JSON';
         case ScriptFeatureTag.EXTRACT_PARQUET:
             return 'PARQUET';
         case ScriptFeatureTag.VIZ_LINE_CHART:
