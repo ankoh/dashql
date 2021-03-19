@@ -30,6 +30,7 @@
         "fsevents": "*"
     },
     "scripts": {
+        "link": "npm link ../proto",
         "build": "webpack --mode=production && node ./gendts.js",
         "test": "node ./node_modules/jest/bin/jest.js",
         "test:ci": "node ./node_modules/jest/bin/jest.js --ci --reporters=default --reporters=jest-junit"
