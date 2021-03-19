@@ -8,7 +8,10 @@ import icon_linechart from '../static/svg/icons/line_chart.svg';
 import icon_areachart from '../static/svg/icons/area_chart.svg';
 import icon_script from '../static/svg/icons/script_solid.svg';
 import icon_barchart from '../static/svg/icons/bar_chart.svg';
+import icon_arcchart from '../static/svg/icons/arc_chart.svg';
 import icon_scatterchart from '../static/svg/icons/scatter_chart.svg';
+import icon_heatmapchart from '../static/svg/icons/heatmap_chart.svg';
+import icon_gesture_tap_hold from '../static/svg/icons/gesture_tap_hold.svg';
 
 export enum ExampleScriptTag {
     HELLOWORLD
@@ -150,7 +153,7 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         collection: "Visualize",
         title: "Pie Charts",
         description: "Fooo",
-        icon: icon_areachart,
+        icon: icon_arcchart,
         features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_)
             .set(ScriptFeatureTag.VIZ_MAP)
             .set(ScriptFeatureTag.VIZ_TABLE),
@@ -161,7 +164,7 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         collection: "Visualize",
         title: "Heatmaps",
         description: "Fooo",
-        icon: icon_areachart,
+        icon: icon_heatmapchart,
         features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_)
             .set(ScriptFeatureTag.VIZ_HEATMAP)
             .set(ScriptFeatureTag.VIZ_TABLE),
@@ -172,7 +175,7 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         collection: "Visualize",
         title: "Interactivity",
         description: "FOOOOO",
-        icon: icon_script,
+        icon: icon_gesture_tap_hold,
         features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_)
             .set(ScriptFeatureTag.VIZ_LINE_CHART)
             .set(ScriptFeatureTag.VIZ_TABLE),
@@ -259,17 +262,6 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         key: "sql/runningsum",
         collection: "SQL",
         title: "Running Sum",
-        description: "FOOOOO",
-        icon: icon_script,
-        features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_)
-            .set(ScriptFeatureTag.VIZ_LINE_CHART)
-            .set(ScriptFeatureTag.VIZ_TABLE),
-        url: example_helloworld
-    },
-    {
-        key: "sql/generateseries",
-        collection: "SQL",
-        title: "Sequence",
         description: "FOOOOO",
         icon: icon_script,
         features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_)
