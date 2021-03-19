@@ -15,44 +15,19 @@
     margin: 4px;
     border-radius: var(--border_radius);
     font-weight: 600;
-    color: rgb(166, 166, 166);
     display: grid;
+    justify-content: center;
+    align-items: center;
+    color: var(--studio_tool_fg);
 }
 .tool:hover {
     background-color: var(--studio_tool_hover_bg);
-}
-.tool:hover path {
-    fill: rgb(255, 255, 255);
-}
-.tool:hover circle {
-    fill: rgb(255, 255, 255);
-}
-.tool.active {
-    background-color: var(--studio_tool_hover_bg);
-}
-.tool.small_font {
-    font-size: 9px !important;
+    color: rgb(255, 255, 255);
 }
 
-.tool_icon {
-    justify-self: center;
-    align-self: center;
-}
-.tool_icon path {
-    fill: var(--studio_tool_fg);
-}
-.tool_icon circle {
-    fill: var(--studio_tool_fg);
-}
-.tool_icon.active {
-    justify-self: center;
-    align-self: center;
-}
-.tool_icon.active path {
-    fill: rgb(255, 255, 255);
-}
-.tool_icon.active circle {
-    fill: rgb(255, 255, 255);
+.tool.active {
+    background-color: var(--studio_tool_hover_bg);
+    color: rgb(255, 255, 255);
 }
 
 .tool_sublist {
@@ -77,19 +52,13 @@
     height: 48px;
     width: 100%;
     box-sizing: border-box;
-    display: grid;
     border-radius: var(--border_radius);
+    color: var(--studio_viztype_fg);
+    display: grid;
+    justify-items: center;
+    align-content: center;
 }
 .viztype:hover {
     background-color: var(--studio_viztype_hover_bg);
-}
-.viztype_icon {
-    justify-self: center;
-    align-self: center;
-}
-.viztype_icon path {
-    fill: v_viztype_color;
-}
-.viztype_icon circle {
-    fill: v_viztype_color;
+    color: white;
 }
