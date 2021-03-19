@@ -31,8 +31,8 @@
     position: absolute;
     top: 50%;
     left: 50%;
-    width: 400px;
-    height: 300px;
+    width: 320px;
+    height: 260px;
     margin-left: -200px;
     margin-top: -100px;
     background: white;
@@ -41,8 +41,21 @@
     padding: 16px;
 
     display: grid;
-    grid-template-columns: 24px auto 32px;
-    grid-template-rows: 32px 48px 48px;
+    grid-template-rows: 32px auto min-content;
+}
+
+.script_detail_header {
+    grid-row: 1;
+    display: grid;
+    grid-template-columns: 32px auto 32px;
+}
+
+.script_detail_actions {
+    display: grid;
+    grid-template-columns: auto auto;
+    grid-column-gap: 16px;
+    height: auto;
+    box-sizing: border-box;;
 }
 
 .script_card {
@@ -63,6 +76,9 @@
     grid-row: 1;
     grid-column: 1;
     color:rgb(80, 80, 80);
+    display: grid;
+    align-items: center;
+    justify-items: center;
 }
 
 .example_title {
@@ -70,11 +86,12 @@
     grid-column: 2;
     font-weight: 500;
     margin-left: 8px;
+    display: grid;
+    align-items: center;
+    vertical-align: middle;
 }
 
 .example_description {
-    grid-row: 2;
-    grid-column: 1 / span 3;
 }
 
 .example_unfocus {
