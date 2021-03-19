@@ -5,7 +5,7 @@ import Button from 'react-bootstrap/Button';
 import { AppState, Dispatch } from '../model';
 import { connect } from 'react-redux';
 import { motion, AnimateSharedLayout, AnimatePresence } from 'framer-motion';
-import { EXAMPLE_SCRIPTS, EXAMPLE_SCRIPT_MAP, ScriptFeatureTag, ExampleScriptMetadata } from '../examples';
+import { EXAMPLE_SCRIPTS, EXAMPLE_SCRIPT_MAP, ScriptFeatureTag, ExampleScriptMetadata } from '../example_scripts';
 
 import styles from './examples.module.css';
 import icon_close from '../../static/svg/icons/close.svg';

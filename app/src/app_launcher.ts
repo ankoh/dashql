@@ -1,7 +1,7 @@
 import * as webdb from '@dashql/webdb/dist/webdb_async';
 import * as core from '@dashql/core';
 import * as model from './model';
-import * as examples from './examples';
+import * as examples from './example_scripts';
 import * as platform from './platform';
 import { IAppContext } from './app_context';
 
