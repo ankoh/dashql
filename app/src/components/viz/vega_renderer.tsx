@@ -26,9 +26,7 @@ export class VegaRenderer extends React.Component<Props> {
                             width: width,
                             height: height,
                         }}
-                        spec={{
-                            ...this.props.vizInfo.vegaSpec,
-                        }}
+                        spec={this.props.vizInfo.vegaSpec as any}
                         data={{ source: rows }}
                         width={width}
                         height={height}
