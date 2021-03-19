@@ -55,6 +55,10 @@
     grid-template-columns: 24px auto;
 }
 
+.script_card_disabled {
+    background: rgb(220, 220, 220);
+}
+
 .example_icon {
     grid-row: 1;
     grid-column: 1;

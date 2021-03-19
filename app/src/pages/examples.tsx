@@ -120,11 +120,13 @@ class Explorer extends React.Component<Props, State> {
                 <div className={styles.collection_grid}>
                     {scripts.map(script => (
                         <motion.div
-                            className={styles.script_card}
+                            className={classNames(styles.script_card, {
+                                [styles.script_card_disabled]: !script.enabled
+                            })}
                             key={script.key}
                             layoutId={script.key}
                             data-key={script.key}
-                            onClick={this._focusExample}
+                            onClick={script.enabled ? this._focusExample : () => {}}
                         >
                             <motion.div className={styles.example_icon}>
                                 <svg width="20" height="20" >
