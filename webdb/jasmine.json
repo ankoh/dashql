@@ -1,5 +1,5 @@
 {
-    "spec_dir": "./src/tests/node",
+    "spec_dir": "./test/",
     "spec_files": ["**/*.test.karma.ts"],
-    "helpers": ["jasmine/*.ts"]
+    "helpers": []
 }

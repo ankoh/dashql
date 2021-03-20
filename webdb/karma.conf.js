@@ -61,7 +61,7 @@ module.exports = function (config) {
                 chunks: false,
             },
         },
-        reporters: ['progress'],
+        reporters: ['dots', 'spec'],
         port: 9876,
         colors: true,
         logLevel: config.LOG_INFO,

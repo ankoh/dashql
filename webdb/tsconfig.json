@@ -11,7 +11,7 @@
         "declarationDir": "./dist/types/",
         "noImplicitAny": true,
         "esModuleInterop": true,
-        "types": ["emscripten", "node", "jest"],
+        "types": ["emscripten", "node", "jest", "jasmine"],
         "baseUrl": ".",
         "lib": ["es6", "webworker"]
     },
