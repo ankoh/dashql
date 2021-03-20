@@ -107,28 +107,28 @@ lib_debug: lib
 # Build the dashql_core javascript library
 .PHONY: core
 core:
-	npm --prefix ${ROOT_DIR}/core run build
+	yarn workspace @dashql/core build
 
 # Build the dashql_core javascript library
 .PHONY: core_watch
 core_watch:
-	npm --prefix ${ROOT_DIR}/core run build:watch
+	yarn workspace @dashql/core build:watch
 
 # Test the dashql_core javascript library
 .PHONY: core_tests
 core_tests:
-	npm --prefix ${ROOT_DIR}/core run test
+	yarn workspace @dashql/core test
 
 # Build the benchmarks
 .PHONY: benchmarks
 benchmarks:
-	npm --prefix ${ROOT_DIR}/benchmarks run build
+	yarn workspace @dashql/benchmarks build
 
 # Compile the flatbuffer schema
 .PHONY: proto
 proto:
 	${EXEC_ENVIRONMENT} ${ROOT_DIR}/scripts/generate_proto.sh
-	npm --prefix ${ROOT_DIR}/proto run build
+	yarn workspace @dashql/proto build
 
 # Build the dataframe wasm module with debug info
 .PHONY: dataframe
@@ -153,52 +153,47 @@ wasm_release:
 # Builds the app
 .PHONY: app
 app:
-	npm --prefix ${ROOT_DIR}/app run build:debug
+	yarn workspace dashql build:debug
 
 # Creates a release archive
 .PHONY: app_release
 app_release:
-	npm --prefix ${ROOT_DIR}/app run build:release
+	yarn workspace dashql build:release
 
 # Runs a node server with the release build
 .PHONY: app_release_server
 app_release_server:
-	npm --prefix ${ROOT_DIR}/app run serve:release
+	yarn workspace dashql serve:release
 
 # Starts the dev server
 .PHONY: app_start
 app_start:
-	npm --prefix ${ROOT_DIR}/app run start
+	yarn workspace dashql start
 
 # Build the webdb library
 .PHONY: webdb
 webdb:
-	npm --prefix ${ROOT_DIR}/webdb run build
+	yarn workspace @dashql/webdb build
 
 # Build the dataframe library
 .PHONY: dataframe
 dataframe:
-	npm --prefix ${ROOT_DIR}/dataframe run build
+	yarn workspace @dashql/dataframe build
 
 # Run the webdb javascript tests
 .PHONY: webdb_tests
 webdb_tests:
-	npm --prefix ${ROOT_DIR}/webdb run test
+	yarn workspace @dashql/webdb test
 
 # Run the dataframe javascript tests
 .PHONY: dataframe_tests
 dataframe_tests:
-	npm --prefix ${ROOT_DIR}/dataframe run test
+	yarn workspace @dashql/dataframe test
 
-# Install all npm packages
-.PHONY: npm_install
-npm_install:
-	npm --prefix ${ROOT_DIR}/benchmarks install
-	npm --prefix ${ROOT_DIR}/webdb install
-	npm --prefix ${ROOT_DIR}/dataframe install
-	npm --prefix ${ROOT_DIR}/core install
-	npm --prefix ${ROOT_DIR}/app install
-	npm --prefix ${ROOT_DIR}/proto install
+# Install all yarn packages
+.PHONY: yarn_install
+yarn_install:
+	yarn
 
 # ---------------------------------------------------------------------------
 # Environment
@@ -238,7 +233,7 @@ docker_ci_image:
 .PHONY: bootstrap
 bootstrap:
 	git submodule update --init --recursive
-	make docker_ci_image npm_install
+	make docker_ci_image yarn_install
 	make proto
 	make wasm dataframe_wasm
 	make webdb dataframe core

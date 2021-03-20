@@ -1,5 +1,6 @@
 {
     "name": "dashql",
+    "version": "0.0.0",
     "license": "MPL-2.0",
     "private": true,
     "scripts": {
@@ -14,9 +15,9 @@
         "node": ">=14.13"
     },
     "dependencies": {
-        "@dashql/core": "file:../core/",
-        "@dashql/proto": "file:../proto/",
-        "@dashql/webdb": "file:../webdb/",
+        "@dashql/core": "^0.0.1",
+        "@dashql/proto": "^0.0.3",
+        "@dashql/webdb": "^0.0.10",
         "axios": "^0.21.1",
         "bootstrap": "^4.6.0",
         "classnames": "^2.2.6",
@@ -57,7 +58,6 @@
         "@types/react-router-dom": "^5.1.7",
         "@types/react-virtualized": "^9.21.11",
         "@types/resize-observer-browser": "^0.1.5",
-        "benny": "^3.6.15",
         "clean-webpack-plugin": "^3.0.0",
         "css-loader": "^5.1.2",
         "express": "^4.17.1",
