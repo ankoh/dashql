@@ -203,8 +203,9 @@ export abstract class ChunkIterator {
     }
 
     /// Iterate over a boolean column
-    public *iterateBooleanColumn(
+    public iterateBooleanColumn(
         cid: number,
+        fn: (row: number, v: boolean | null) => void,
         ofs: number = 0,
         limit: number = 0,
     ) {
@@ -227,18 +228,19 @@ export abstract class ChunkIterator {
         const ub = limit > 0 ? Math.min(lb + limit, a.length) : a.length;
         if (n != null) {
             for (let i = lb; i < ub; ++i) {
-                yield n[i] ? null : a[i] != 0;
+                fn(i, n[i] ? null : a[i] != 0);
             }
         } else {
             for (let i = lb; i < ub; ++i) {
-                yield a[i] != 0;
+                fn(i, a[i] != 0);
             }
         }
     }
 
     /// Iterate over a string column
-    public *iterateStringColumn(
+    public iterateStringColumn(
         cid: number,
+        fn: (row: number, v: string | null) => void,
         ofs: number = 0,
         limit: number = 0,
     ) {
@@ -259,18 +261,19 @@ export abstract class ChunkIterator {
         const ub = limit > 0 ? Math.min(lb + limit, v.valuesLength()) : v.valuesLength();
         if (n != null) {
             for (let i = lb; i < ub; ++i) {
-                yield n[i] ? null : v.values(i);
+                fn(i, n[i] ? null : v.values(i));
             }
         } else {
             for (let i = lb; i < ub; ++i) {
-                yield v.values(i);
+                fn(i, v.values(i));
             }
         }
     }
 
     /// Iterate over a bigint column
-    public *iterateBigIntColumn(
+    public iterateBigIntColumn(
         cid: number,
+        fn: (row: number, v: bigint | null) => void,
         ofs: number = 0,
         limit: number = 0,
     ) {
@@ -292,18 +295,19 @@ export abstract class ChunkIterator {
         const ub = limit > 0 ? Math.min(lb + limit, v.valuesLength()) : v.valuesLength();
         if (n != null) {
             for (let i = lb; i < ub; ++i) {
-                yield n[i] ? null : BigInt(v.values(i)!.low);
+                fn(i, n[i] ? null : BigInt(v.values(i)!.low));
             }
         } else {
             for (let i = lb; i < ub; ++i) {
-                yield BigInt(v.values(i)!.low);
+                fn(i, BigInt(v.values(i)!.low));
             }
         }
     }
 
     /// Iterate over a hugeint column
-    public *iterateHugeIntColumn(
+    public iterateHugeIntColumn(
         cid: number,
+        fn: (row: number, v: bigint | null) => void,
         ofs: number = 0,
         limit: number = 0,
     ) {
@@ -328,11 +332,11 @@ export abstract class ChunkIterator {
         const ub = limit > 0 ? Math.min(lb + limit, v.valuesLength()) : v.valuesLength();
         if (n != null) {
             for (let i = lb; i < ub; ++i) {
-                yield n[i] ? null : bigintConverter(v.values(i)!);
+                fn(i, n[i] ? null : bigintConverter(v.values(i)!));
             }
         } else {
             for (let i = lb; i < ub; ++i) {
-                yield bigintConverter(v.values(i)!);
+                fn(i, bigintConverter(v.values(i)!));
             }
         }
     }
