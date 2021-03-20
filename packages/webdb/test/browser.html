@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+</head>
+
+<body>
+    <script src="../dist/webdb_async.js"></script>
+    <script>
+        var webdb = WebDB;
+
+        const logger = new webdb.ConsoleLogger();
+        const testRows = 3000;
+
+        var db;
+        var conn;
+        async function test() {
+            worker = new Worker('../dist/webdb_async.worker.js');
+            db = new webdb.AsyncWebDB(logger, worker);
+            await db.open('../src/webdb_wasm.wasm');
+
+            conn = await db.connect();
+
+            await db.ping();
+
+            //await db.ingestBlobStream(new webdb.WebBlobStream(await fetch('./data/blob.txt').then(r => r.blob())));
+
+            await db.fsTest();
+
+            await conn.disconnect();
+
+            await db.terminate();
+        }
+
+        test();
+    </script>
+</body>
+
+</html>
