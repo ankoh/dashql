@@ -10,7 +10,8 @@
         "declarationDir": "./dist",
         "noImplicitAny": true,
         "esModuleInterop": true,
-        "lib": ["es6"]
+        "lib": ["es6"],
+        "types": []
     },
     "files": ["./index.ts"]
 }
