@@ -7,12 +7,10 @@ const logger = new webdb.ConsoleLogger();
 beforeAll(async () => {
     db = new webdb.WebDB(logger, webdb.DefaultWebDBRuntime, "/base/dist/webdb.wasm");
     await db.open();
-    console.log(db);
 });
 
 beforeEach(() => {
     conn = db.connect();
-    console.log(conn);
 });
 
 afterEach(() => {
