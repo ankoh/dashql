@@ -61,9 +61,9 @@ export abstract class ChunkIterator {
         return this._tmp;
     }
 
-    /// Get the next chunk synchrnously
+    /// Get the next chunk synchronously
     abstract nextBlocking(): boolean;
-    /// Get the next chunk asynchrnously
+    /// Get the next chunk asynchronously
     abstract nextAsync(): Promise<boolean>;
 
     /// Collect exactly one entry
