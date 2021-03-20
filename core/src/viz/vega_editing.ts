@@ -47,16 +47,8 @@ function readDomainValues(type: webdb.SQLType, values: webdb.Value[], out: model
             console.warn('shortcut');
             break;
 
-        case proto.webdb.SQLTypeID.ANY:
-        case proto.webdb.SQLTypeID.UNKNOWN:
-        case proto.webdb.SQLTypeID.SQLNULL:
-        case proto.webdb.SQLTypeID.INVALID:
-        case proto.webdb.SQLTypeID.POINTER:
-        case proto.webdb.SQLTypeID.HASH:
-        case proto.webdb.SQLTypeID.STRUCT:
-        case proto.webdb.SQLTypeID.LIST:
+        default: 
             cast = (v: webdb.Value) => null;
-            console.error('invalid attribute type');
             break;
     }
     while (out.length < values.length) out.push(null);
