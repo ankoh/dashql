@@ -252,32 +252,33 @@ export class DataGrid extends React.Component<Props, State> {
                 offset,
                 limit,
                 (iter: webdb.ChunkIterator, chunkStart: number, skipHere: number, rowsHere: number) => {
-                    iter.iterateNumberColumn(
+                    let chunkRow = 0;
+                    for (const v of iter.iterateNumberColumn(
                         columnIndex,
-                        (chunkRow: number, v: number | null) => {
-                            const rowIndex = props.rowStartIndex + chunkStart + chunkRow - skipHere;
-                            const rowDatum = props.rowSizeAndPositionManager.getSizeAndPositionOfCell(rowIndex);
-                            const cell = this.renderAvailableDataCell(
-                                props,
-                                rowIndex,
-                                rowDatum,
-                                columnIndex,
-                                columnDatum,
-                                canCacheStyle,
-                                v,
-                                (key, style, value) => (
-                                    <div key={key} className={styles.cell_data} style={{ ...style }}>
-                                        {value}
-                                    </div>
-                                ),
-                            );
-                            if (cell) {
-                                cells.push(cell);
-                            }
-                        },
                         skipHere,
                         rowsHere,
-                    );
+                    )) {
+                        const rowIndex = props.rowStartIndex + chunkStart + chunkRow - skipHere;
+                        const rowDatum = props.rowSizeAndPositionManager.getSizeAndPositionOfCell(rowIndex);
+                        const cell = this.renderAvailableDataCell(
+                            props,
+                            rowIndex,
+                            rowDatum,
+                            columnIndex,
+                            columnDatum,
+                            canCacheStyle,
+                            v,
+                            (key, style, value) => (
+                                <div key={key} className={styles.cell_data} style={{ ...style }}>
+                                    {value}
+                                </div>
+                            ),
+                        );
+                        if (cell) {
+                            cells.push(cell);
+                        }
+                        chunkRow++;
+                    }
                 },
             );
         }
