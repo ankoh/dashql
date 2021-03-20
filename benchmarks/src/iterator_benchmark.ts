@@ -21,9 +21,9 @@ function main(db: webdb.WebDB) {
             let chunks = new webdb.ChunkArrayIterator(result);
             while (true) {
                 if (!chunks.nextBlocking()) break;
-                chunks.iterateBooleanColumn(0, (_row: number, _v: boolean | null) => {
+                for (const _ of chunks.iterateBooleanColumn(0)) {
                     noop();
-                });
+                }
             }
             conn.disconnect();
 
@@ -38,9 +38,9 @@ function main(db: webdb.WebDB) {
             let chunks = new webdb.ChunkArrayIterator(result);
             while (true) {
                 if (!chunks.nextBlocking()) break;
-                chunks.iterateNumberColumn(0, (_row: number, _v: number | null) => {
+                for (const _ of chunks.iterateNumberColumn(0)) {
                     noop();
-                });
+                }
             }
             conn.disconnect();
 
@@ -55,9 +55,9 @@ function main(db: webdb.WebDB) {
             let chunks = new webdb.ChunkArrayIterator(result);
             while (true) {
                 if (!chunks.nextBlocking()) break;
-                chunks.iterateNumberColumn(0, (_row: number, _v: number | null) => {
+                for (const _ of chunks.iterateNumberColumn(0)) {
                     noop();
-                });
+                }
             }
             conn.disconnect();
 
@@ -72,9 +72,9 @@ function main(db: webdb.WebDB) {
             let chunks = new webdb.ChunkArrayIterator(result);
             while (true) {
                 if (!chunks.nextBlocking()) break;
-                chunks.iterateNumberColumn(0, (_row: number, _v: number | null) => {
+                for (const _ of chunks.iterateNumberColumn(0)) {
                     noop();
-                });
+                }
             }
             conn.disconnect();
 
@@ -89,9 +89,9 @@ function main(db: webdb.WebDB) {
             let chunks = new webdb.ChunkArrayIterator(result);
             while (true) {
                 if (!chunks.nextBlocking()) break;
-                chunks.iterateBigIntColumn(0, (_row: number, _v: bigint | null) => {
+                for (const _ of chunks.iterateBigIntColumn(0)) {
                     noop();
-                });
+                }
             }
             conn.disconnect();
 
@@ -106,9 +106,9 @@ function main(db: webdb.WebDB) {
             let chunks = new webdb.ChunkArrayIterator(result);
             while (true) {
                 if (!chunks.nextBlocking()) break;
-                chunks.iterateHugeIntColumn(0, (_row: number, _v: bigint | null) => {
+                for (const _ of chunks.iterateHugeIntColumn(0)) {
                     noop();
-                });
+                }
             }
             conn.disconnect();
 
@@ -123,9 +123,9 @@ function main(db: webdb.WebDB) {
             let chunks = new webdb.ChunkArrayIterator(result);
             while (true) {
                 if (!chunks.nextBlocking()) break;
-                chunks.iterateNumberColumn(0, (_row: number, _v: number | null) => {
+                for (const _ of chunks.iterateNumberColumn(0)) {
                     noop();
-                });
+                }
             }
             conn.disconnect();
 
@@ -140,9 +140,9 @@ function main(db: webdb.WebDB) {
             let chunks = new webdb.ChunkArrayIterator(result);
             while (true) {
                 if (!chunks.nextBlocking()) break;
-                chunks.iterateNumberColumn(0, (_row: number, _v: number | null) => {
+                for (const _ of chunks.iterateNumberColumn(0)) {
                     noop();
-                });
+                }
             }
             conn.disconnect();
 
@@ -160,9 +160,9 @@ function main(db: webdb.WebDB) {
 
             while (true) {
                 if (!chunks.nextBlocking()) break;
-                chunks.iterateStringColumn(0, (_row: number, v: string | null) => {
+                for (const v of chunks.iterateStringColumn(0)) {
                     bytes += v!.length;
-                });
+                }
             }
             conn.disconnect();
         }),
@@ -192,9 +192,9 @@ function main(db: webdb.WebDB) {
                 let chunks = new webdb.ChunkArrayIterator(result);
                 while (true) {
                     if (!chunks.nextBlocking()) break;
-                    chunks.iterateBooleanColumn(0, (_row: number, _v: boolean | null) => {
+                    for (const _ of chunks.iterateBooleanColumn(0)) {
                         noop();
-                    });
+                    }
                 }
             };
         }),
@@ -210,9 +210,9 @@ function main(db: webdb.WebDB) {
                 let chunks = new webdb.ChunkArrayIterator(result);
                 while (true) {
                     if (!chunks.nextBlocking()) break;
-                    chunks.iterateNumberColumn(0, (_row: number, _v: number | null) => {
+                    for (const _ of chunks.iterateNumberColumn(0)) {
                         noop();
-                    });
+                    }
                 }
             };
         }),
@@ -228,9 +228,9 @@ function main(db: webdb.WebDB) {
                 let chunks = new webdb.ChunkArrayIterator(result);
                 while (true) {
                     if (!chunks.nextBlocking()) break;
-                    chunks.iterateNumberColumn(0, (_row: number, _v: number | null) => {
+                    for (const _ of chunks.iterateNumberColumn(0)) {
                         noop();
-                    });
+                    }
                 }
             };
         }),
@@ -246,9 +246,9 @@ function main(db: webdb.WebDB) {
                 let chunks = new webdb.ChunkArrayIterator(result);
                 while (true) {
                     if (!chunks.nextBlocking()) break;
-                    chunks.iterateNumberColumn(0, (_row: number, _v: number | null) => {
+                    for (const _ of chunks.iterateNumberColumn(0)) {
                         noop();
-                    });
+                    }
                 }
             };
         }),
@@ -264,9 +264,9 @@ function main(db: webdb.WebDB) {
                 let chunks = new webdb.ChunkArrayIterator(result);
                 while (true) {
                     if (!chunks.nextBlocking()) break;
-                    chunks.iterateBigIntColumn(0, (_row: number, _v: bigint | null) => {
+                    for (const _ of chunks.iterateBigIntColumn(0)) {
                         noop();
-                    });
+                    }
                 }
             };
         }),
@@ -282,9 +282,9 @@ function main(db: webdb.WebDB) {
                 let chunks = new webdb.ChunkArrayIterator(result);
                 while (true) {
                     if (!chunks.nextBlocking()) break;
-                    chunks.iterateHugeIntColumn(0, (_row: number, _v: bigint | null) => {
+                    for (const _ of chunks.iterateHugeIntColumn(0)) {
                         noop();
-                    });
+                    }
                 }
             };
         }),
@@ -300,9 +300,9 @@ function main(db: webdb.WebDB) {
                 let chunks = new webdb.ChunkArrayIterator(result);
                 while (true) {
                     if (!chunks.nextBlocking()) break;
-                    chunks.iterateNumberColumn(0, (_row: number, _v: number | null) => {
+                    for (const _ of chunks.iterateNumberColumn(0)) {
                         noop();
-                    });
+                    }
                 }
             };
         }),
@@ -318,9 +318,9 @@ function main(db: webdb.WebDB) {
                 let chunks = new webdb.ChunkArrayIterator(result);
                 while (true) {
                     if (!chunks.nextBlocking()) break;
-                    chunks.iterateNumberColumn(0, (_row: number, _v: number | null) => {
+                    for (const _ of chunks.iterateNumberColumn(0)) {
                         noop();
-                    });
+                    }
                 }
             };
         }),
@@ -338,9 +338,9 @@ function main(db: webdb.WebDB) {
 
                 while (true) {
                     if (!chunks.nextBlocking()) break;
-                    chunks.iterateStringColumn(0, (_row: number, v: string | null) => {
+                    for (const v of chunks.iterateStringColumn(0)) {
                         bytes += v!.length;
-                    });
+                    }
                 }
             };
         }),
@@ -367,9 +367,9 @@ function main(db: webdb.WebDB) {
             let chunks = new webdb.ChunkStreamIterator(conn, result);
             while (true) {
                 if (!chunks.nextBlocking()) break;
-                chunks.iterateBooleanColumn(0, (_row: number, _v: boolean | null) => {
+                for (const _ of chunks.iterateBooleanColumn(0)) {
                     noop();
-                });
+                }
             }
             conn.disconnect();
 
@@ -384,9 +384,9 @@ function main(db: webdb.WebDB) {
             let chunks = new webdb.ChunkStreamIterator(conn, result);
             while (true) {
                 if (!chunks.nextBlocking()) break;
-                chunks.iterateNumberColumn(0, (_row: number, _v: number | null) => {
+                for (const _ of chunks.iterateNumberColumn(0)) {
                     noop();
-                });
+                }
             }
             conn.disconnect();
 
@@ -401,9 +401,9 @@ function main(db: webdb.WebDB) {
             let chunks = new webdb.ChunkStreamIterator(conn, result);
             while (true) {
                 if (!chunks.nextBlocking()) break;
-                chunks.iterateNumberColumn(0, (_row: number, _v: number | null) => {
+                for (const _ of chunks.iterateNumberColumn(0)) {
                     noop();
-                });
+                }
             }
             conn.disconnect();
 
@@ -418,9 +418,9 @@ function main(db: webdb.WebDB) {
             let chunks = new webdb.ChunkStreamIterator(conn, result);
             while (true) {
                 if (!chunks.nextBlocking()) break;
-                chunks.iterateNumberColumn(0, (_row: number, _v: number | null) => {
+                for (const _ of chunks.iterateNumberColumn(0)) {
                     noop();
-                });
+                }
             }
             conn.disconnect();
 
@@ -435,9 +435,9 @@ function main(db: webdb.WebDB) {
             let chunks = new webdb.ChunkStreamIterator(conn, result);
             while (true) {
                 if (!chunks.nextBlocking()) break;
-                chunks.iterateBigIntColumn(0, (_row: number, _v: bigint | null) => {
+                for (const _ of chunks.iterateBigIntColumn(0)) {
                     noop();
-                });
+                }
             }
             conn.disconnect();
 
@@ -452,9 +452,9 @@ function main(db: webdb.WebDB) {
             let chunks = new webdb.ChunkStreamIterator(conn, result);
             while (true) {
                 if (!chunks.nextBlocking()) break;
-                chunks.iterateHugeIntColumn(0, (_row: number, _v: bigint | null) => {
+                for (const _ of chunks.iterateHugeIntColumn(0)) {
                     noop();
-                });
+                }
             }
             conn.disconnect();
 
@@ -469,9 +469,9 @@ function main(db: webdb.WebDB) {
             let chunks = new webdb.ChunkStreamIterator(conn, result);
             while (true) {
                 if (!chunks.nextBlocking()) break;
-                chunks.iterateNumberColumn(0, (_row: number, _v: number | null) => {
+                for (const _ of chunks.iterateNumberColumn(0)) {
                     noop();
-                });
+                }
             }
             conn.disconnect();
 
@@ -486,9 +486,9 @@ function main(db: webdb.WebDB) {
             let chunks = new webdb.ChunkStreamIterator(conn, result);
             while (true) {
                 if (!chunks.nextBlocking()) break;
-                chunks.iterateNumberColumn(0, (_row: number, _v: number | null) => {
+                for (const _ of chunks.iterateNumberColumn(0)) {
                     noop();
-                });
+                }
             }
             conn.disconnect();
 
@@ -505,9 +505,9 @@ function main(db: webdb.WebDB) {
 
             while (true) {
                 if (!chunks.nextBlocking()) break;
-                chunks.iterateStringColumn(0, (_row: number, v: string | null) => {
+                for (const v of chunks.iterateStringColumn(0)) {
                     bytes += v!.length;
-                });
+                }
             }
             conn.disconnect();
         }),

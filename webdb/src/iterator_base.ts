@@ -169,9 +169,8 @@ export abstract class ChunkIterator {
     }
 
     /// Iterate over a number column
-    public iterateNumberColumn(
+    public *iterateNumberColumn(
         cid: number,
-        fn: (row: number, v: number | null) => void,
         ofs: number = 0,
         limit: number = 0,
     ) {
@@ -194,11 +193,11 @@ export abstract class ChunkIterator {
         const ub = limit > 0 ? Math.min(lb + limit, a.length) : a.length;
         if (n != null) {
             for (let i = lb; i < ub; ++i) {
-                fn(i, n[i] ? null : a[i]);
+                yield n[i] ? null : a[i];
             }
         } else {
             for (let i = lb; i < ub; ++i) {
-                fn(i, a[i]);
+                yield a[i];
             }
         }
     }
