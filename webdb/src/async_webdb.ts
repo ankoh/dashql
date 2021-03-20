@@ -101,11 +101,11 @@ export class AsyncWebDB {
         this._workerShutdownResolver = () => {};
     }
 
-    /// Wait until worker is dead
+    /// Kill the worker
     public async terminate() {
         if (!this._worker) return;
         this._worker.terminate();
-        await this._workerShutdownPromise;
+        //await this._workerShutdownPromise; TODO deadlocking in karma?
         this._worker = null;
         this._workerShutdownPromise = null;
         this._workerShutdownResolver = () => {};
