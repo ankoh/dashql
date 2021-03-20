@@ -5,7 +5,7 @@ import { TmpBuffers } from './buffers';
 
 type ValueArray = Uint8Array | Float64Array | proto.VectorI64 | proto.VectorI128 | proto.VectorString;
 
-interface ChunkData {
+export interface ChunkData {
     columns: (ValueArray | null)[];
     nullmasks: (Int8Array | null)[];
     partitionBoundaries: Uint8Array | null;
@@ -248,25 +248,31 @@ export class RowProxyType {
             data.columns.push(null);
             data.nullmasks.push(nullmask);
         }
-        return this._ctor(data, 0) as T;
-    }
-
-    /// Proxy a single chunk row
-    public proxyChunkRow<T extends RowProxy>(chunk: webdb.QueryResultChunk | null): T {
-        if (!chunk || chunk.rowCount() == 0) {
-            return this.createEmptyRow<T>();
-        }
-        const data = RowProxyType.indexChunkData(chunk);
-        return this._ctor(data, 0) as T;
+        return this.proxyRow<T>(data, 0);
     }
 
     // Proxy rows in chunk
-    public proxyChunkRows<T extends RowProxy>(chunk: webdb.QueryResultChunk | null, out: T[] = []): T[] {
-        if (!chunk) return out;
-        const data = RowProxyType.indexChunkData(chunk);
-        for (let rowId = 0; rowId < chunk.rowCount(); ++rowId) {
-            out.push(this._ctor(data, rowId) as T);
+    public *proxyChunkRows<T extends RowProxy>(chunk: webdb.QueryResultChunk | null) {
+        if (chunk) {
+            const data = RowProxyType.indexChunkData(chunk);
+            for (let rowId = 0; rowId < chunk.rowCount(); ++rowId) {
+                yield this.proxyRow<T>(data, rowId);
+            }
+        }
+    }
+
+    // Proxy rows in chunk into an array.
+    public proxyChunkRowsArray<T extends RowProxy>(chunk: webdb.QueryResultChunk | null, out: T[] = []) {
+        if (chunk) {
+            const data = RowProxyType.indexChunkData(chunk);
+            for (let rowId = 0; rowId < chunk.rowCount(); ++rowId) {
+                out.push(this.proxyRow<T>(data, rowId));
+            }
         }
         return out;
+    }
+
+    public proxyRow<T extends RowProxy>(data: ChunkData, rowId: number): T {
+        return this._ctor(data, rowId) as T;
     }
 }
