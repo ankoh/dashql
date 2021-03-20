@@ -2,7 +2,7 @@
     "private": true,
     "workspaces": [
         "app",
-        "benchamrks",
+        "benchmarks",
         "core",
         "dataframe",
         "proto",
