@@ -3,6 +3,5 @@
     "compilerOptions": {
         "sourceMap": true
     },
-    "include": ["./src/**/*", "./test/**/*", "./types/*.d.ts"],
-    "exclude": ["./node_modules"]
+    "include": ["./src/**/*", "./test/**/*", "./types/*.d.ts"]
 }

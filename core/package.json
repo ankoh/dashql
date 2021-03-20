@@ -4,9 +4,9 @@
     "description": "DashQL Core Library",
     "license": "MPL-2.0",
     "dependencies": {
-        "@dashql/dataframe": "file:../dataframe/",
-        "@dashql/proto": "file:../proto/",
-        "@dashql/webdb": "file:../webdb/",
+        "@dashql/dataframe": "^0.0.8",
+        "@dashql/proto": "^0.0.3",
+        "@dashql/webdb": "^0.0.10",
         "axios": "^0.21.1",
         "canvas": "^2.7.0",
         "flatbuffers": "^1.12.0",
