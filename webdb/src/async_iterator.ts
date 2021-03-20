@@ -64,7 +64,7 @@ export class ChunkArrayIterator extends ChunkIterator {
     public rewind() {
         this._currentChunkID = -1;
     }
-    /// The the next chunk synchronous
+    /// Get the next chunk synchronous
     public nextBlocking(): boolean {
         if (this._currentChunkID + 1 >= this._chunks.length) {
             return false;
