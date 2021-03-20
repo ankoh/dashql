@@ -33,8 +33,8 @@
         "link": "npm link ../proto",
         "build": "webpack --mode=production && node ./gendts.js",
         "build:noexternals": "webpack -c  --mode=production && node ./gendts.js",
-        "test": "node ./node_modules/jest/bin/jest.js",
-        "test:ci": "node ./node_modules/jest/bin/jest.js --ci --reporters=default --reporters=jest-junit"
+        "test": "jest",
+        "test:ci": "jest --ci --reporters=default --reporters=jest-junit"
     },
     "files": [
         "dist/**/*.d.ts",
