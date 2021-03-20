@@ -1,22 +1,14 @@
 const path = require('path');
 const webpack = require('webpack');
-const nodeExternals = require('webpack-node-externals');
-const { CleanWebpackPlugin } = require('clean-webpack-plugin');
 
-const browserTarget = {
-    target: 'web',
+const base = {
     mode: 'production',
-    entry: {
-        webdb: './src/index_web.ts',
-        webdb_async: './src/index_async.ts',
-        'webdb_async.worker': './src/worker_web.ts',
-    },
     devtool: 'source-map',
     output: {
         filename: '[name].js',
         path: path.resolve(__dirname, 'dist'),
         publicPath: 'dist/',
-        library: 'WebDB',
+        library: 'webdb',
         libraryTarget: 'umd',
         umdNamedDefine: true,
         globalObject: 'this',
@@ -26,7 +18,8 @@ const browserTarget = {
         extensions: ['.ts', '.js'],
     },
     module: {
-        rules: [{
+        rules: [
+            {
                 test: /\.ts$/,
                 loader: 'ts-loader',
                 exclude: [/node_modules/, path.resolve(__dirname, 'test')],
@@ -73,21 +66,54 @@ const browserTarget = {
             paths: [/node_modules\/^(@dashql)/, path.resolve(__dirname, './dist/')],
         }),
     ],
-    externals: [nodeExternals({ importType: 'umd' })],
+    externals: {
+        '@dashql/proto': 'dashql/proto',
+        flatbuffers: 'flatbuffers',
+    },
 };
 
-const nodeTarget = {
-    ...browserTarget,
+const webTargets = {
+    ...base,
+    target: 'web',
+    entry: {
+        webdb: './src/index_web.ts',
+        webdb_async: './src/index_async.ts',
+    },
+};
+
+const webWorkerTarget = {
+    ...base,
+    target: 'web',
+    entry: {
+        'webdb_async.worker': './src/worker_web.ts',
+    },
+    externals: {},
+};
+
+const nodeTargets = {
+    ...base,
     target: 'node',
     entry: {
         webdb_node: './src/index_node.ts',
-        'webdb_node_async.worker': './src/worker_node.ts',
+        webdb_node_async: './src/index_async.ts',
     },
-    externals: [nodeExternals({ importType: 'umd' })],
 };
-nodeTarget.module.rules[0] = {
-    ...nodeTarget.module.rules[0],
+nodeTargets.module.rules[0] = {
+    ...base.module.rules[0],
     options: { configFile: 'tsconfig.node.json' },
 };
 
-module.exports = [browserTarget, nodeTarget];
+const nodeWorkerTarget = {
+    ...base,
+    target: 'node',
+    entry: {
+        'webdb_node_async.worker': './src/worker_node.ts',
+    },
+    externals: {},
+};
+nodeWorkerTarget.module.rules[0] = {
+    ...base.module.rules[0],
+    options: { configFile: 'tsconfig.node.json' },
+};
+
+module.exports = [webTargets, webWorkerTarget, nodeTargets, nodeWorkerTarget];

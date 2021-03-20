@@ -1,18 +1,18 @@
-import { beforeAll, beforeEach, afterEach, describe, test, expect } from '@jest/globals';
-import * as webdb from '../src/index_node';
-import * as path from 'path';
+import * as webdb from '../src/index_web';
 
 var db: webdb.WebDB;
 var conn: webdb.WebDBConnection;
 const logger = new webdb.ConsoleLogger();
 
 beforeAll(async () => {
-    db = new webdb.WebDB(logger, webdb.DefaultWebDBRuntime, path.resolve(__dirname, '../src/webdb_wasm.wasm'));
+    db = new webdb.WebDB(logger, webdb.DefaultWebDBRuntime, "/base/dist/webdb.wasm");
     await db.open();
+    console.log(db);
 });
 
 beforeEach(() => {
     conn = db.connect();
+    console.log(conn);
 });
 
 afterEach(() => {
@@ -21,7 +21,7 @@ afterEach(() => {
 
 describe('WebDBBindings', () => {
     describe('error handling', () => {
-        test('INVALID SQL', async () => {
+        it('INVALID SQL', async () => {
             let error: Error | null = null;
             try {
                 conn.sendQuery('INVALID');
