@@ -75,9 +75,9 @@ describe('QueryResultChunkStream', () => {
             let chunks = new webdb.ChunkStreamIterator(conn, result);
             let i = 0;
             while (chunks.nextBlocking()) {
-                chunks.iterateBigIntColumn(0, (_row: number, v: bigint | null) => {
+                for (const v of chunks.iterateBigIntColumn(0)) {
                     expect(v).toBe(BigInt(i++));
-                });
+                }
             }
             expect(i).toBe(testRows + 1);
         });
@@ -90,9 +90,9 @@ describe('QueryResultChunkStream', () => {
             let chunks = new webdb.ChunkStreamIterator(conn, result);
             let i = 0;
             while (chunks.nextBlocking()) {
-                chunks.iterateHugeIntColumn(0, (_row: number, v: bigint | null) => {
+                for (const v of chunks.iterateHugeIntColumn(0)) {
                     expect(v).toBe(BigInt(i++));
-                });
+                }
             }
             expect(i).toBe(testRows + 1);
         });
@@ -105,9 +105,9 @@ describe('QueryResultChunkStream', () => {
             let chunks = new webdb.ChunkStreamIterator(conn, result);
             let i = 0;
             while (chunks.nextBlocking()) {
-                chunks.iterateStringColumn(0, (_row: number, v: string | null) => {
+                for (const v of chunks.iterateStringColumn(0)) {
                     expect(v).toBe(String(i++));
-                });
+                }
             }
             expect(i).toBe(testRows + 1);
         });
@@ -120,9 +120,9 @@ describe('QueryResultChunkStream', () => {
             let chunks = new webdb.ChunkStreamIterator(conn, result);
             let i = 0;
             while (chunks.nextBlocking()) {
-                chunks.iterateBooleanColumn(0, (_row: number, v: boolean | null) => {
+                for (const v of chunks.iterateBooleanColumn(0)) {
                     expect(v).toBe(i++ > 0);
-                });
+                }
             }
             expect(i).toBe(testRows + 1);
         });
