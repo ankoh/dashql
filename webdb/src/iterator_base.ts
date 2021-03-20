@@ -3,7 +3,7 @@
 import { webdb as proto } from '@dashql/proto';
 import { Value } from './value';
 import { TmpBuffers } from './buffers';
-import { RowProxyType, RowProxy } from './proxy';
+import { RowProxyType, RowProxy, ChunkData } from './proxy';
 
 /// A chunk iterator base class
 export abstract class ChunkIterator {
@@ -11,8 +11,12 @@ export abstract class ChunkIterator {
     _resultBuffer: proto.QueryResult;
     /// The chunk id
     _currentChunkID: number;
+    /// The row id
+    _currentRowID: number;
     /// The current chunk
     _currentChunk: proto.QueryResultChunk | null;
+    /// The current chunk
+    _currentChunkData: ChunkData | null;
     /// The column types
     _columnTypes: proto.SQLType[];
     /// The row type
@@ -25,6 +29,8 @@ export abstract class ChunkIterator {
         this._resultBuffer = resultBuffer;
         this._currentChunkID = -1;
         this._currentChunk = null;
+        this._currentRowID = -1;
+        this._currentChunkData = null;
         this._columnTypes = new Array<proto.SQLType>();
         this._proxyType = null;
         this._tmp = new TmpBuffers();
@@ -66,12 +72,45 @@ export abstract class ChunkIterator {
     /// Get the next chunk asynchronously
     abstract nextAsync(): Promise<boolean>;
 
-    /// Collect exactly one entry
-    public collectOne<T extends RowProxy>(): T {
+    /// Iterate over row proxies across all chunks
+    public *iter<T extends RowProxy>() {
         if (!this._proxyType) {
             this._proxyType = new RowProxyType(this.result);
         }
-        return this._proxyType.proxyChunkRow<T>(this.currentChunk);
+        while (this.nextBlocking()) {
+            yield* this._proxyType.proxyChunkRows<T>(this.currentChunk);
+        }
+    }
+
+    /// Implement the iterator protocol for the chunk iterator
+    next<T extends RowProxy>(): IteratorResult<T> {
+        if (!this._proxyType) {
+            this._proxyType = new RowProxyType(this.result);
+        }
+
+        if (!this.currentChunk) {
+            return {done: true, value: null}
+        }
+
+        this._currentRowID++;
+
+        if (!this._currentChunkData) {
+            this._currentChunkData = RowProxyType.indexChunkData(this.currentChunk);
+        } else if (this._currentRowID >= this.currentChunk.rowCount()!) {
+            if (!this.nextBlocking()) {
+                return {done: true, value: null}
+            }
+            this._currentChunkData = RowProxyType.indexChunkData(this.currentChunk);
+        }
+
+        return {
+            done: false,
+            value: this._proxyType.proxyRow<T>(this._currentChunkData, this._currentRowID)
+        };
+    }
+
+    [Symbol.iterator]<T extends RowProxy>(): IterableIterator<T> {
+        return this;
     }
 
     /// Build the row proxies
@@ -79,7 +118,7 @@ export abstract class ChunkIterator {
         if (!this._proxyType) {
             this._proxyType = new RowProxyType(this.result);
         }
-        return this._proxyType.proxyChunkRows<T>(this.currentChunk, out);
+        return this._proxyType.proxyChunkRowsArray<T>(this.currentChunk, out);
     }
 
     /// Build row proxies for across all chunks
@@ -88,7 +127,7 @@ export abstract class ChunkIterator {
             this._proxyType = new RowProxyType(this.result);
         }
         while (this.nextBlocking()) {
-            this._proxyType.proxyChunkRows<T>(this.currentChunk, out);
+            this._proxyType.proxyChunkRowsArray<T>(this.currentChunk, out);
         }
         return out;
     }
@@ -100,7 +139,7 @@ export abstract class ChunkIterator {
         }
         let current: T[] = [];
         while (this.nextBlocking()) {
-            const rows = this._proxyType.proxyChunkRows<T>(this.currentChunk);
+            const rows = this._proxyType.proxyChunkRowsArray<T>(this.currentChunk);
             const bounds = this.currentChunk?.partitionBoundariesArray();
             if (!bounds || bounds.length < rows.length) {
                 current = current.concat(rows);
@@ -339,34 +378,6 @@ export abstract class ChunkIterator {
             for (let i = lb; i < ub; ++i) {
                 fn(i, bigintConverter(v.values(i)!));
             }
-        }
-    }
-
-    /// Helper to iterate over a blocking chunk iterator
-    public iterateAllBlocking(
-        offset: number,
-        limit: number,
-        fn: (iter: ChunkIterator, start: number, skipHere: number, rowsHere: number) => void,
-    ) {
-        let skip = offset;
-        let remaining = limit;
-        let start = 0;
-
-        while (remaining && this.nextBlocking()) {
-            const chunkRows = this.currentChunk!.rowCount();
-            const skipHere = Math.min(skip, chunkRows);
-            skip -= skipHere;
-            if (skipHere == chunkRows) {
-                continue;
-            }
-            const rowsHere = Math.min(chunkRows - skipHere, remaining);
-
-            // Run the function
-            fn(this, start, skipHere, rowsHere);
-
-            // Advance the chunk start
-            start += chunkRows - skipHere;
-            remaining -= rowsHere;
         }
     }
 }
