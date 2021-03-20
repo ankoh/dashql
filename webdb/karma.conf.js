@@ -29,6 +29,11 @@ const webpackConfig = {
                 test: /\.ts$/,
                 loader: 'ts-loader',
                 exclude: [/node_modules/],
+                options: {
+                    compilerOptions: {
+                        module: "esnext"
+                    }
+                }
             },
             {
                 test: /\.wasm$/,
@@ -48,7 +53,7 @@ module.exports = function (config) {
         files: [
             { pattern: 'test/test_index.js' },
             { pattern: 'dist/*.wasm', included: false, watched: false, served: true },
-            { pattern: 'src/*.wasm', included: false, watched: false, served: true }
+            { pattern: 'dist/*.js', included: false, watched: false, served: true },
         ],
         exclude: [],
         preprocessors: {

@@ -1,7 +1,19 @@
 {
-    "extends": "./tsconfig.json",
     "compilerOptions": {
-        "sourceMap": true
+        "outDir": "./dist/",
+        "target": "es6",
+        "module": "esnext",
+        "moduleResolution": "node",
+        "strict": true,
+        "sourceMap": true,
+        "declaration": true,
+        "declarationMap": true,
+        "declarationDir": "./dist/types/",
+        "noImplicitAny": true,
+        "esModuleInterop": true,
+        "types": ["emscripten", "node", "jest", "jasmine"],
+        "baseUrl": ".",
+        "lib": ["es6", "webworker"]
     },
     "include": ["./src/**/*", "./test/**/*", "./types/*.d.ts"]
 }
