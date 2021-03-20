@@ -29,6 +29,7 @@ const browserTarget = {
         rules: [{
                 test: /\.ts$/,
                 loader: 'ts-loader',
+                configFile: 'tsconfig.web.json',
                 exclude: [/node_modules/, path.resolve(__dirname, 'test')],
             },
             {
