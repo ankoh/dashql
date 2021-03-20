@@ -38,6 +38,7 @@ import icon_gesture_tap_hold from '../static/svg/icons/gesture_tap_hold.svg';
 import icon_database_import from '../static/svg/icons/database_import.svg';
 import icon_database_search from '../static/svg/icons/database_search.svg';
 import icon_package_down from '../static/svg/icons/package_down.svg';
+import { key } from "vega";
 
 
 export enum ScriptFeatureTag {
@@ -91,7 +92,7 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         icon: icon_linechart,
         features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_),
         url: example_viz_line_charts,
-        enabled: false
+        enabled: true
     },
     {
         key: "viz_area",
@@ -154,7 +155,7 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         enabled: false
     },
     {
-        key: "viz/heatmap",
+        key: "viz_heatmap",
         collection: "Visualize",
         title: "Heatmaps",
         description: "Fooo",
@@ -289,7 +290,7 @@ export const EXAMPLE_SCRIPT_MAP: Map<string, ExampleScriptMetadata> = new Map(EX
 
 export async function loadScript(example: ExampleScriptMetadata, store: model.AppReduxStore) {
     try {
-        const resp = await axios.get(example_demo_helloworld);
+        const resp = await axios.get(example.url);
         if (resp.status != 200) {
             console.error(`Loading example ${example.key.toString()} failed with error: ${resp.statusText}`);
             return;
@@ -298,9 +299,9 @@ export async function loadScript(example: ExampleScriptMetadata, store: model.Ap
         model.mutate(store.dispatch, {
             type: core.model.StateMutationType.SET_SCRIPT,
             data: {
+                text,
                 uriPrefix: core.model.ScriptURIPrefix.EXAMPLES,
                 uriName: example.key,
-                text,
                 modified: false,
                 lineCount: core.utils.countLines(text),
                 bytes: core.utils.estimateUTF16Length(text),

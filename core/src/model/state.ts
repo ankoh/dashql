@@ -4,7 +4,7 @@ import { Plan } from './plan';
 import { CachedFileData, CachedHTTPData } from './cache';
 import { ActionSchedulerStatus, ActionHandle, Action } from './action';
 import { DatabaseTableInfo } from './database_info';
-import { PlanObjectID, PlanObject } from './plan_object';
+import { PlanObject } from './plan_object';
 import { Program, StatementStatus, ParameterValue } from './program';
 import { ProgramInstance } from './program_instance';
 import { Script, ScriptURIPrefix } from './script';

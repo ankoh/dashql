@@ -5,7 +5,6 @@ import ReactGrid from 'react-grid-layout';
 import { Layout } from 'react-grid-layout';
 import { connect } from 'react-redux';
 import { IAppContext, withAppContext } from '../app_context';
-import { withAutoSizer } from '../util/autosizer';
 import VizComponent from './viz/viz_component';
 
 import './board.module.css';
