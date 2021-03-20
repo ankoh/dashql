@@ -4,7 +4,7 @@
     "description": "A Dataframe powered by WebAssembly",
     "license": "AGPL-3.0-or-later",
     "dependencies": {
-        "@dashql/proto": "file:../proto/",
+        "@dashql/proto": "^0.0.3",
         "flatbuffers": "^1.12.0",
         "fsevents": "*"
     },

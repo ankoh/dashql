@@ -16,6 +16,5 @@
         "lib": ["esnext", "es2020", "dom"],
         "baseUrl": ".",
         "allowJs": true
-    },
-    "exclude": ["./node_modules"]
+    }
 }
