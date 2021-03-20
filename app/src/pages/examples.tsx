@@ -1,7 +1,9 @@
 import * as React from 'react';
 import * as core from '@dashql/core';
+import * as examples from '../example_scripts';
 import classNames from 'classnames';
 import Button from 'react-bootstrap/Button';
+import { withAppContext, IAppContext } from '../app_context';
 import { withRouter, RouteComponentProps } from 'react-router-dom';
 import { AppState, Dispatch } from '../model';
 import { connect } from 'react-redux';
@@ -31,7 +33,9 @@ function getFeatureTagLabel(tag: ScriptFeatureTag) {
 }
 
 interface Props extends RouteComponentProps<{}> {
+    appContext: IAppContext;
     className?: string;
+    loadedScript: core.model.Script;
 }
 
 interface State {
@@ -56,8 +60,7 @@ class Examples extends React.Component<Props, State> {
 
     focusExample(elem: React.MouseEvent<HTMLDivElement>) {
         const key = (elem.currentTarget as any).dataset.key;
-        const loaded = key !== this.state.focusedExample;
-        EXAMPLE_SCRIPT_MAP.get(key)!.icon
+        examples.loadScript(EXAMPLE_SCRIPT_MAP.get(key)!, this.props.appContext.store);
         this.setState({
             ...this.state,
             focusedExample: key || null,
@@ -107,6 +110,10 @@ class Examples extends React.Component<Props, State> {
 
     renderScriptDetail(name: string) {
         const script = EXAMPLE_SCRIPT_MAP.get(name)!;
+        const scriptLoaded: boolean =
+            (this.props.loadedScript.uriPrefix == core.model.ScriptURIPrefix.EXAMPLES &&
+                this.props.loadedScript.uriName == name) ||
+            false;
         return (
             <motion.div className={styles.script_detail} layoutId={script.key}>
                 <motion.div className={styles.script_detail_header}>
@@ -124,10 +131,10 @@ class Examples extends React.Component<Props, State> {
                 </motion.div>
                 <motion.span className={styles.example_description}>{script.description}</motion.span>
                 <motion.div className={styles.script_detail_actions}>
-                    <Button size="sm" onClick={this._viewExample}>
+                    <Button size="sm" onClick={this._viewExample} disabled={!scriptLoaded}>
                         View
                     </Button>
-                    <Button size="sm" onClick={this._editExample}>
+                    <Button size="sm" onClick={this._editExample} disabled={!scriptLoaded}>
                         Edit
                     </Button>
                 </motion.div>
@@ -199,8 +206,10 @@ class Examples extends React.Component<Props, State> {
     }
 }
 
-const mapStateToProps = (state: AppState) => ({});
+const mapStateToProps = (state: AppState) => ({
+    loadedScript: state.core.script,
+});
 
 const mapDispatchToProps = (_dispatch: Dispatch) => ({});
 
-export default connect(mapStateToProps, mapDispatchToProps)(withRouter(Examples));
+export default connect(mapStateToProps, mapDispatchToProps)(withRouter(withAppContext(Examples)));
