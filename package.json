@@ -1,0 +1,11 @@
+{
+    "private": true,
+    "workspaces": [
+        "app",
+        "benchamrks",
+        "core",
+        "dataframe",
+        "proto",
+        "webdb"
+    ]
+}

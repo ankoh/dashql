@@ -15,6 +15,5 @@
         "baseUrl": ".",
         "lib": ["es6", "webworker"]
     },
-    "include": ["./src/**/*", "./types/*.d.ts", "./test/**/*.ts"],
-    "exclude": ["./node_modules"]
+    "include": ["./src/**/*", "./types/*.d.ts", "./test/**/*.ts"]
 }
