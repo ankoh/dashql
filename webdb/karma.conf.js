@@ -31,7 +31,7 @@ const webpackConfig = {
                 exclude: [/node_modules/],
             },
             {
-                test: /webdb_wasm(_node)?\.wasm$/,
+                test: /\.wasm$/,
                 type: 'javascript/auto',
                 loader: 'file-loader',
             },
@@ -46,11 +46,10 @@ module.exports = function (config) {
         basePath: './',
         frameworks: ['jasmine'],
         files: [
-            { pattern: 'test/test_index.js' }
+            { pattern: 'test/test_index.js' },
+            { pattern: 'dist/*.wasm', included: false, watched: false, served: true },
+            { pattern: 'src/*.wasm', included: false, watched: false, served: true }
         ],
-        proxies: {
-            "/dist/": "http://localhost:9876/base/dist/"
-        },
         exclude: [],
         preprocessors: {
             'test/test_index.js': ['webpack'],
@@ -65,9 +64,9 @@ module.exports = function (config) {
         reporters: ['progress'],
         port: 9876,
         colors: true,
-        logLevel: config.LOG_DEBUG,
+        logLevel: config.LOG_INFO,
         autoWatch: true,
         browsers: ['ChromeHeadless'],
-        singleRun: false
+        singleRun: true
     });
 };
