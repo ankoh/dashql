@@ -5,6 +5,16 @@ import { ProgramActionLogic } from "./action_logic";
 import { ActionContext } from "./action_context";
 import ActionStatusCode = proto.action.ActionStatusCode;
 
+
+function* enumerate<T>(iterable: Iterable<T>) {
+    let i = 0;
+
+    for (const x of iterable) {
+        yield [i, x] as const;
+        i++;
+    }
+}
+
 export class UnnamedSelectLogic extends ProgramActionLogic {
     constructor(action_id: ActionHandle, action: proto.action.ProgramAction, statement: Statement) {
         super(action_id, action, statement);
@@ -23,9 +33,9 @@ export class UnnamedSelectLogic extends ProgramActionLogic {
             const chunkIter = new webdb.ChunkStreamIterator(c, result);
             while (await chunkIter.nextAsync()) {
                 console.log(`rows ${chunkIter.rowCount} columns ${chunkIter.columnCount}`);
-                chunkIter.iterateNumberColumn(0, (row: number, v: number | null) => {
+                for (const [row, v] of enumerate(chunkIter.iterateNumberColumn(0))) {
                     console.log(`[${row}] ${v}`);
-                });
+                }
             }
         });
     }
