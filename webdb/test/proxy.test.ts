@@ -1,6 +1,4 @@
-import { beforeAll, beforeEach, afterEach, describe, test, expect } from '@jest/globals';
-import * as webdb from '../src/index_node';
-import * as path from 'path';
+import * as webdb from '../src/index_web';
 
 var db: webdb.WebDB;
 var conn: webdb.WebDBConnection;
@@ -8,7 +6,7 @@ const testRows = 3000;
 const logger = new webdb.ConsoleLogger();
 
 beforeAll(async () => {
-    db = new webdb.WebDB(logger, webdb.DefaultWebDBRuntime, path.resolve(__dirname, '../src/webdb_wasm.wasm'));
+    db = new webdb.WebDB(logger, webdb.DefaultWebDBRuntime, "/base/dist/webdb.wasm");
     await db.open();
 });
 
@@ -22,7 +20,7 @@ afterEach(() => {
 
 describe('RowProxy', () => {
     describe('single column, many rows', () => {
-        test('INTEGER', () => {
+        it('INTEGER', () => {
             const result = conn.sendQuery(`
                 SELECT v::INTEGER AS foo FROM generate_series(0, ${testRows}) as t(v);
             `);
@@ -41,7 +39,7 @@ describe('RowProxy', () => {
             }
         });
 
-        test('BIGINT', () => {
+        it('BIGINT', () => {
             const result = conn.sendQuery(`
                 SELECT v::BIGINT AS foo FROM generate_series(0, ${testRows}) as t(v);
             `);
@@ -60,7 +58,7 @@ describe('RowProxy', () => {
             }
         });
 
-        test('HUGEINT', () => {
+        it('HUGEINT', () => {
             const result = conn.sendQuery(`
                 SELECT v::HUGEINT AS foo FROM generate_series(0, ${testRows}) as t(v);
             `);
@@ -79,7 +77,7 @@ describe('RowProxy', () => {
             }
         });
 
-        test('STRING', () => {
+        it('STRING', () => {
             const result = conn.sendQuery(`
                 SELECT v::VARCHAR AS foo FROM generate_series(0, ${testRows}) as t(v);
             `);
@@ -98,7 +96,7 @@ describe('RowProxy', () => {
             }
         });
 
-        test('BOOLEAN', () => {
+        it('BOOLEAN', () => {
             const result = conn.sendQuery(`
                 SELECT v > 0 AS foo FROM generate_series(0, ${testRows}) as t(v);
             `);
@@ -121,7 +119,7 @@ describe('RowProxy', () => {
     });
 
     describe('multiple columns, many rows', () => {
-        test('ALLTYPES', () => {
+        it('ALLTYPES', () => {
             const result = conn.sendQuery(`
                 SELECT v::INTEGER AS foo, v::BIGINT as bar, v::VARCHAR as fizz, v > 0 as buzz FROM generate_series(0, ${testRows}) as t(v);
             `);
@@ -177,7 +175,7 @@ describe('RowProxy', () => {
     });
 
     describe('single column, chunked partition boundaries, single integer', () => {
-        test('INTEGER', () => {
+        it('INTEGER', () => {
             const result = conn.sendQuery(
                 `
                 SELECT v::INTEGER AS foo, (v::INTEGER / 100) AS bar FROM generate_series(0, ${testRows}) as t(v);
@@ -207,7 +205,7 @@ describe('RowProxy', () => {
     });
 
     describe('single column, chunked partition boundaries, 2 integers', () => {
-        test('INTEGER', () => {
+        it('INTEGER', () => {
             const result = conn.sendQuery(
                 `
                 SELECT v::INTEGER AS foo, (v::INTEGER / 200) AS bar, (v::INTEGER / 300) AS bam FROM generate_series(0, ${testRows}) as t(v);
@@ -240,7 +238,7 @@ describe('RowProxy', () => {
     });
 
     describe('single column, proxy partitions, 1 integer', () => {
-        test('INTEGER', () => {
+        it('INTEGER', () => {
             const result = conn.sendQuery(
                 `
                 SELECT v::INTEGER AS foo, (v::INTEGER / 100) AS bar FROM generate_series(0, ${testRows - 1}) as t(v);
