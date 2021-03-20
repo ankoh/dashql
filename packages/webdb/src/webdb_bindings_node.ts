@@ -56,12 +56,10 @@ export class WebDB extends WebDBBindings {
         WebAssembly.instantiate(buf, imports_rt).then(output => {
             let module = output.instance;
 
-            var global: any = typeof global !== 'undefined' ? global : typeof self !== 'undefined' ? self : {};
-            global.WebDBTrampoline = {};
-
+            globalThis.WebDBTrampoline = {};
             for (let func of Object.getOwnPropertyNames(this.runtime)) {
                 if (func == 'constructor') continue;
-                global.WebDBTrampoline[func] = <Function>Object.getOwnPropertyDescriptor(this.runtime, func)!.value;
+                globalThis.WebDBTrampoline[func] = <Function>Object.getOwnPropertyDescriptor(this.runtime, func)!.value;
             }
             success(module);
         });

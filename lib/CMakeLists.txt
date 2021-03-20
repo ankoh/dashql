@@ -457,7 +457,6 @@ if (EMSCRIPTEN)
             _dashql_webdb_fs_test \
         ]' \
         -s EXTRA_EXPORTED_RUNTIME_METHODS='[\"ccall\"]' \
-        --pre-js=${CMAKE_SOURCE_DIR}/pre-js.js \
         --js-library=${CMAKE_SOURCE_DIR}/js-stubs.js \
         ${ADDITIONAL_LINKER_FLAGS} \
         "

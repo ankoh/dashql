@@ -30,6 +30,7 @@ class Task<T, D, P> {
 
 type TaskVariant =
     | Task<AsyncWebDBRequestType.RESET, null, null>
+    | Task<AsyncWebDBRequestType.REGISTER_URL, string, null>
     | Task<AsyncWebDBRequestType.INGEST_BLOBSTREAM, BlobStream, null>
     | Task<AsyncWebDBRequestType.IMPORT_CSV, [number, BlobStream, string, string], null>
     | Task<AsyncWebDBRequestType.PING, null, null>

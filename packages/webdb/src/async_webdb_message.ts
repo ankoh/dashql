@@ -6,6 +6,7 @@ export enum AsyncWebDBRequestType {
     RESET = 'RESET',
     PING = 'PING',
     INGEST_BLOBSTREAM = 'INGEST_BLOBSTREAM',
+    REGISTER_URL = 'REGISTER_URL',
     IMPORT_CSV = 'IMPORT_CSV',
     FS_TEST = 'FS_TEST',
     OPEN = 'OPEN',
@@ -43,6 +44,7 @@ export type AsyncWebDBRequestVariant =
     | AsyncWebDBRequest<AsyncWebDBRequestType.RESET, null>
     | AsyncWebDBRequest<AsyncWebDBRequestType.PING, null>
     | AsyncWebDBRequest<AsyncWebDBRequestType.FS_TEST, null>
+    | AsyncWebDBRequest<AsyncWebDBRequestType.REGISTER_URL, string>
     | AsyncWebDBRequest<AsyncWebDBRequestType.INGEST_BLOBSTREAM, BlobStream>
     | AsyncWebDBRequest<AsyncWebDBRequestType.IMPORT_CSV, [number, BlobStream, string, string]>
     | AsyncWebDBRequest<AsyncWebDBRequestType.OPEN, string>
