@@ -30,9 +30,9 @@ describe('QueryResultChunkStream', () => {
             let chunks = new webdb.ChunkStreamIterator(conn, result);
             let i = 0;
             while (chunks.nextBlocking()) {
-                for (const v of chunks.iterateNumberColumn(0)) {
+                chunks.iterateNumberColumn(0, (_row: number, v: number | null) => {
                     expect(v).toBe(i++ & 127);
-                }
+                });
             }
             expect(i).toBe(testRows + 1);
         });
@@ -45,9 +45,9 @@ describe('QueryResultChunkStream', () => {
             let chunks = new webdb.ChunkStreamIterator(conn, result);
             let i = 0;
             while (chunks.nextBlocking()) {
-                for (const v of chunks.iterateNumberColumn(0)) {
+                chunks.iterateNumberColumn(0, (_row: number, v: number | null) => {
                     expect(v).toBe(i++ & 32767);
-                }
+                });
             }
             expect(i).toBe(testRows + 1);
         });
@@ -60,9 +60,9 @@ describe('QueryResultChunkStream', () => {
             let chunks = new webdb.ChunkStreamIterator(conn, result);
             let i = 0;
             while (chunks.nextBlocking()) {
-                for (const v of chunks.iterateNumberColumn(0)) {
+                chunks.iterateNumberColumn(0, (_row: number, v: number | null) => {
                     expect(v).toBe(i++);
-                }
+                });
             }
             expect(i).toBe(testRows + 1);
         });

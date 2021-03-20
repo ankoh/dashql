@@ -20,9 +20,9 @@ function main(db: webdb.WebDB) {
                     let chunks = new webdb.ChunkArrayIterator(result);
                     let sum = 0;
                     while (chunks.nextBlocking()) {
-                        for (const v of chunks.iterateNumberColumn(0)) {
+                        chunks.iterateNumberColumn(0, (_row: number, v: number | null) => {
                             sum += v!;
-                        }
+                        });
                     }
                     if (sum != (tupleCount * (tupleCount + 1)) / 2) {
                         console.log('WRONG RESULT');
