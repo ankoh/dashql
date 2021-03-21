@@ -67,7 +67,7 @@ const base = {
         }),
     ],
     externals: {
-        '@dashql/proto': 'dashql/proto',
+        '@dashql/proto': '@dashql/proto',
         flatbuffers: 'flatbuffers',
     },
 };

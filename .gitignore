@@ -3,6 +3,7 @@
 /.flatc
 /artifacts
 /reports
+/packages/reports
 /build
 /.ccls-cache
 /.emscripten_cache
