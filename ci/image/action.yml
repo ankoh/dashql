@@ -40,7 +40,7 @@ runs:
             -v ${{ inputs.yarn_cache }}:/mnt/yarn_cache/ \
             -v ${{ inputs.ccache }}:/mnt/ccache/ \
             -e EM_CACHE=/mnt/emscripten_cache \
-            -e YARN_CACHE=/mnt/yarn_cache \
+            -e YARN_CACHE_FOLDER=/mnt/yarn_cache \
             -e CCACHE_DIR=/mnt/ccache \
             -e CCACHE_BASEDIR=/wd/ \
             dashql/ci:${CI_IMAGE_TAG} \
