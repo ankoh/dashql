@@ -38,7 +38,7 @@
     },
     "scripts": {
         "build": "webpack --mode=production && node ./gendts.js",
-        "build:noexternals": "webpack -c  --mode=production && node ./gendts.js",
+        "build:noexternals": "webpack -c --mode=production && node ./gendts.js",
         "test": "karma start karma.conf.js",
         "test:ci": "karma start karma.conf.js"
     },

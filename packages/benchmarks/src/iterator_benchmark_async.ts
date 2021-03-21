@@ -333,7 +333,7 @@ async function main(db: webdb.AsyncWebDB) {
 }
 
 const logger = new webdb.VoidLogger();
-const worker = new Worker("../webdb/dist/webdb_node_async.worker.js");
+const worker = new Worker('../webdb/dist/webdb_node_async.worker.js');
 const db = new webdb.AsyncWebDB(logger, worker);
 db.open('../webdb/dist/webdb.wasm')
     .then(() => main(db))
