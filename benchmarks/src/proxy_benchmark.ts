@@ -30,7 +30,7 @@ function main(db: webdb.WebDB) {
                 };
             }),
 
-            benny.add('row proxies', () => {
+            benny.add('row proxies (collect)', () => {
                 let conn = db.connect();
                 let result = conn.runQuery(`
                     SELECT v::DOUBLE AS foo FROM generate_series(0, ${tupleCount}) as t(v);
@@ -46,6 +46,27 @@ function main(db: webdb.WebDB) {
                         for (const row of chunks.collect<Row>()) {
                             sum += row.foo!;
                         }
+                    }
+                    if (sum != (tupleCount * (tupleCount + 1)) / 2) {
+                        console.log('WRONG RESULT');
+                    }
+                };
+            }),
+
+            benny.add('row proxies (iter)', () => {
+                let conn = db.connect();
+                let result = conn.runQuery(`
+                    SELECT v::DOUBLE AS foo FROM generate_series(0, ${tupleCount}) as t(v);
+                `);
+                conn.disconnect();
+                return () => {
+                    const chunks = new webdb.ChunkArrayIterator(result);
+                    interface Row extends webdb.RowProxy {
+                        foo: number | null;
+                    }
+                    let sum = 0;
+                    for (const row of chunks.iter<Row>()) {
+                        sum += row.foo!;
                     }
                     if (sum != (tupleCount * (tupleCount + 1)) / 2) {
                         console.log('WRONG RESULT');
