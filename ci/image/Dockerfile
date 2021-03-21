@@ -12,6 +12,7 @@ RUN apt-get update -qq \
         openjdk-14-jdk \
         libpthread-stubs0-dev \
         libboost-all-dev \
+        libgbm-dev \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
