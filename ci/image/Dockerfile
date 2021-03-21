@@ -41,7 +41,7 @@ RUN mkdir -p /opt/nvm \
     && nvm alias default ${NODE_VERSION} \
     && nvm use default \
     && npm install --global yarn \
-    && chgrp -R actions /opt/nvm
+    && chown -R ${UID}:${GID} /opt/nvm
 
 ARG FLATBUFFER_COMMIT="338393f854eb5ba24761a22cd9316ff5cee4eab0"
 RUN mkdir -p /tmp/flatbuffers/build /tmp/flatbuffers/install \
@@ -70,14 +70,14 @@ RUN export RUSTUP_HOME=/opt/rust \
     && curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain ${RUST_VERSION} -y \
     && export PATH=$PATH:/opt/rust/bin \
     && rustup target add wasm32-unknown-unknown \
-    && chgrp -R actions /opt/rust
+    && chown -R ${UID}:${GID} /opt/rust
 
 ENV AZURE_CONFIG_DIR=/opt/azure
 RUN curl -sL https://aka.ms/InstallAzureCLIDeb | bash \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* \
     && mkdir -p /opt/azure \
-    && chgrp -R actions /opt/azure
+    && chown -R ${UID}:${GID} /opt/azure
 
 RUN source /opt/emsdk/emsdk_env.sh \
     && echo "export PATH=$PATH:/opt/rust/bin" >> /opt/env.sh \
@@ -90,7 +90,7 @@ RUN source /opt/emsdk/emsdk_env.sh \
     && echo "source /opt/nvm/nvm.sh" >> /opt/env.sh \
     && printf '#!/bin/bash\n. /opt/env.sh\nexec "$@"\n' > /opt/entrypoint.sh \
     && chmod +x /opt/entrypoint.sh \
-    && chgrp actions /opt/entrypoint.sh
+    && chown -R ${UID}:${GID} /opt/entrypoint.sh
 
 USER ${UNAME}
 
