@@ -3,8 +3,6 @@ import * as core from '@dashql/core';
 import * as benny from 'benny';
 import kleur from 'kleur';
 
-import wasmPath from '@dashql/webdb/dist/webdb.wasm';
-
 const noop = () => {};
 
 function main(db: webdb.WebDB) {
@@ -526,7 +524,7 @@ function main(db: webdb.WebDB) {
 }
 
 const logger = new webdb.VoidLogger();
-const db = new webdb.WebDB(logger, webdb.DefaultWebDBRuntime, wasmPath);
+const db = new webdb.WebDB(logger, webdb.DefaultWebDBRuntime, '../webdb/dist/webdb.wasm');
 db.open()
     .then(() => main(db))
     .catch(e => console.error(e));
