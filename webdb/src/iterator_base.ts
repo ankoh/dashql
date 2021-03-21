@@ -48,6 +48,28 @@ export class RowProxyIterator<T extends RowProxy> implements Iterable<RowProxy> 
     }
 }
 
+export class ColumnIterator<T> implements Iterable<T> {
+    idx: number;
+
+    constructor(start: number, private end: number,  private value: (idx: number) => T) {
+        this.idx = start;
+    }
+
+    next(): IteratorResult<T> {
+        if (this.idx >= this.end) {
+            return {done: true, value: null}
+        }
+
+        return {
+            done: false,
+            value: this.value(this.idx++)
+        };
+    }
+
+    [Symbol.iterator]() {
+        return this;
+    }
+}
 
 /** A chunk iterator base class */
 export abstract class ChunkIterator {
@@ -170,7 +192,7 @@ export abstract class ChunkIterator {
         return out;
     }
 
-    /// Read a value of a row
+    /* Read a value of a row */
     public readValue(rid = 0, cid: number = 0, v: Value = new Value()): Value {
         v.sqlType = this.columnTypes[cid];
         let c = this.currentChunk?.columns(cid, this.tmp.vector);
@@ -215,160 +237,135 @@ export abstract class ChunkIterator {
         return v;
     }
 
-    /// Iterate over a number column
+    /* Iterate over a number column */
     public iterateNumberColumn(
         cid: number,
-        fn: (row: number, v: number | null) => void,
         ofs: number = 0,
         limit: number = 0,
-    ) {
+    ): Iterable<number | null> {
         if (cid >= this.columnCount) {
             throw Error('column index out of bounds');
         }
         let c = this.currentChunk?.columns(cid, this.tmp.vector);
         if (c == null) {
-            return;
+            return [];
         }
         // XXX other types
         if (c.variantType() != proto.VectorVariant.VectorF64) {
-            return;
+            return [];
         }
         let v = c.variant(this.tmp.vectorF64)!;
         const a: Float64Array | null = v.valuesArray();
         const n: Int8Array | null = v.nullMaskArray();
-        if (a == null) return;
+        if (a == null) return [];
         const lb = ofs;
         const ub = limit > 0 ? Math.min(lb + limit, a.length) : a.length;
-        if (n != null) {
-            for (let i = lb; i < ub; ++i) {
-                fn(i, n[i] ? null : a[i]);
-            }
-        } else {
-            for (let i = lb; i < ub; ++i) {
-                fn(i, a[i]);
-            }
-        }
+
+        return new ColumnIterator(ofs, ub, n != null ?
+            (i: number) => n[i] ? null : a[i] :
+            (i: number) => a[i])
     }
 
-    /// Iterate over a boolean column
+    /* Iterate over a boolean column */
     public iterateBooleanColumn(
         cid: number,
-        fn: (row: number, v: boolean | null) => void,
         ofs: number = 0,
         limit: number = 0,
-    ) {
+    ): Iterable<boolean | null> {
         if (cid >= this.columnCount) {
             throw Error('column index out of bounds');
         }
         let c = this.currentChunk?.columns(cid, this.tmp.vector);
         if (c == null) {
-            return;
+            return [];
         }
         // XXX other types
         if (c.variantType() != proto.VectorVariant.VectorU8) {
-            return;
+            return [];
         }
         let v = c.variant(this.tmp.vectorU8)!;
         const a: Uint8Array | null = v.valuesArray();
         const n: Int8Array | null = v.nullMaskArray();
-        if (a == null) return;
+        if (a == null) return [];
         const lb = ofs;
         const ub = limit > 0 ? Math.min(lb + limit, a.length) : a.length;
-        if (n != null) {
-            for (let i = lb; i < ub; ++i) {
-                fn(i, n[i] ? null : a[i] != 0);
-            }
-        } else {
-            for (let i = lb; i < ub; ++i) {
-                fn(i, a[i] != 0);
-            }
-        }
+        
+        return new ColumnIterator(ofs, ub, n != null ?
+            (i: number) => n[i] ? null : a[i] != 0 :
+            (i: number) => a[i] != 0)
     }
 
-    /// Iterate over a string column
+    /* Iterate over a string column */
     public iterateStringColumn(
         cid: number,
-        fn: (row: number, v: string | null) => void,
         ofs: number = 0,
         limit: number = 0,
-    ) {
+    ): Iterable<string | null> {
         if (cid >= this.columnCount) {
             throw Error('column index out of bounds');
         }
         let c = this.currentChunk?.columns(cid, this.tmp.vector);
         if (c == null) {
-            return;
+            return [];
         }
         // XXX other types
         if (c.variantType() != proto.VectorVariant.VectorString) {
-            return;
+            return [];
         }
         let v = c.variant(this.tmp.vectorString)!;
         const n: Int8Array | null = v.nullMaskArray();
         const lb = ofs;
         const ub = limit > 0 ? Math.min(lb + limit, v.valuesLength()) : v.valuesLength();
-        if (n != null) {
-            for (let i = lb; i < ub; ++i) {
-                fn(i, n[i] ? null : v.values(i));
-            }
-        } else {
-            for (let i = lb; i < ub; ++i) {
-                fn(i, v.values(i));
-            }
-        }
+
+        return new ColumnIterator(ofs, ub, n != null ?
+            (i: number) => n[i] ? null : v.values(i) :
+            (i: number) => v.values(i))
     }
 
-    /// Iterate over a bigint column
+    /* Iterate over a bigint column */
     public iterateBigIntColumn(
         cid: number,
-        fn: (row: number, v: bigint | null) => void,
         ofs: number = 0,
         limit: number = 0,
-    ) {
+    ): Iterable<bigint | null> {
         if (cid >= this.columnCount) {
             throw Error('column index out of bounds');
         }
         let c = this.currentChunk?.columns(cid, this.tmp.vector);
         if (c == null) {
-            return;
+            return [];
         }
         // XXX other types
         if (c.variantType() != proto.VectorVariant.VectorI64) {
-            return;
+            return [];
         }
 
         let v = c.variant(this.tmp.vectorI64)!;
         const n: Int8Array | null = v.nullMaskArray();
         const lb = ofs;
         const ub = limit > 0 ? Math.min(lb + limit, v.valuesLength()) : v.valuesLength();
-        if (n != null) {
-            for (let i = lb; i < ub; ++i) {
-                fn(i, n[i] ? null : BigInt(v.values(i)!.low));
-            }
-        } else {
-            for (let i = lb; i < ub; ++i) {
-                fn(i, BigInt(v.values(i)!.low));
-            }
-        }
+
+        return new ColumnIterator(ofs, ub, n != null ?
+            (i: number) => n[i] ? null : BigInt(v.values(i)!.low) :
+            (i: number) => BigInt(v.values(i)!.low))
     }
 
-    /// Iterate over a hugeint column
+    /* Iterate over a hugeint column */
     public iterateHugeIntColumn(
         cid: number,
-        fn: (row: number, v: bigint | null) => void,
         ofs: number = 0,
         limit: number = 0,
-    ) {
+    ): Iterable<bigint | null> {
         if (cid >= this.columnCount) {
             throw Error('column index out of bounds');
         }
         let c = this.currentChunk?.columns(cid, this.tmp.vector);
         if (c == null) {
-            return;
+            return [];
         }
         // XXX other types
         if (c.variantType() != proto.VectorVariant.VectorI128) {
-            return;
+            return [];
         }
 
         const bigintConverter = (raw: proto.I128): bigint =>
@@ -378,14 +375,9 @@ export abstract class ChunkIterator {
         const n: Int8Array | null = v.nullMaskArray();
         const lb = ofs;
         const ub = limit > 0 ? Math.min(lb + limit, v.valuesLength()) : v.valuesLength();
-        if (n != null) {
-            for (let i = lb; i < ub; ++i) {
-                fn(i, n[i] ? null : bigintConverter(v.values(i)!));
-            }
-        } else {
-            for (let i = lb; i < ub; ++i) {
-                fn(i, bigintConverter(v.values(i)!));
-            }
-        }
+
+        return new ColumnIterator(ofs, ub, n != null ?
+            (i: number) => n[i] ? null : bigintConverter(v.values(i)!) :
+            (i: number) => bigintConverter(v.values(i)!))
     }
 }

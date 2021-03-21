@@ -23,9 +23,9 @@ async function main(db: webdb.AsyncWebDB) {
             let chunks = new webdb.ChunkArrayIterator(result);
             while (true) {
                 if (!chunks.nextBlocking()) break;
-                chunks.iterateBooleanColumn(0, (_row: number, _v: boolean | null) => {
+                for (const _ of chunks.iterateBooleanColumn(0)) {
                     noop();
-                });
+                }
             }
             await conn.disconnect();
             bytes = tupleCount * 1;
@@ -39,9 +39,9 @@ async function main(db: webdb.AsyncWebDB) {
             let chunks = new webdb.ChunkArrayIterator(result);
             while (true) {
                 if (!chunks.nextBlocking()) break;
-                chunks.iterateNumberColumn(0, (_row: number, _v: number | null) => {
+                for (const _ of chunks.iterateNumberColumn(0)) {
                     noop();
-                });
+                }
             }
             await conn.disconnect();
             bytes = tupleCount * 1;
@@ -56,9 +56,9 @@ async function main(db: webdb.AsyncWebDB) {
                 let chunks = new webdb.ChunkArrayIterator(result);
                 while (true) {
                     if (!chunks.nextBlocking()) break;
-                    chunks.iterateNumberColumn(0, (_row: number, _v: number | null) => {
+                    for (const _ of chunks.iterateNumberColumn(0)) {
                         noop();
-                    });
+                    }
                 }
                 await conn.disconnect();
             } catch (e) {
@@ -75,9 +75,9 @@ async function main(db: webdb.AsyncWebDB) {
             let chunks = new webdb.ChunkArrayIterator(result);
             while (true) {
                 if (!chunks.nextBlocking()) break;
-                chunks.iterateNumberColumn(0, (_row: number, _v: number | null) => {
+                for (const _ of chunks.iterateNumberColumn(0)) {
                     noop();
-                });
+                }
             }
             await conn.disconnect();
             bytes = tupleCount * 4;
@@ -91,9 +91,9 @@ async function main(db: webdb.AsyncWebDB) {
             let chunks = new webdb.ChunkArrayIterator(result);
             while (true) {
                 if (!chunks.nextBlocking()) break;
-                chunks.iterateBigIntColumn(0, (_row: number, _v: bigint | null) => {
+                for (const _ of chunks.iterateBigIntColumn(0)) {
                     noop();
-                });
+                }
             }
             await conn.disconnect();
             bytes = tupleCount * 8;
@@ -107,9 +107,9 @@ async function main(db: webdb.AsyncWebDB) {
             let chunks = new webdb.ChunkArrayIterator(result);
             while (true) {
                 if (!chunks.nextBlocking()) break;
-                chunks.iterateBigIntColumn(0, (_row: number, _v: bigint | null) => {
+                for (const _ of chunks.iterateBigIntColumn(0)) {
                     noop();
-                });
+                }
             }
             await conn.disconnect();
             bytes = tupleCount * 16;
@@ -123,9 +123,9 @@ async function main(db: webdb.AsyncWebDB) {
             let chunks = new webdb.ChunkArrayIterator(result);
             while (true) {
                 if (!chunks.nextBlocking()) break;
-                chunks.iterateNumberColumn(0, (_row: number, _v: number | null) => {
+                for (const _ of chunks.iterateNumberColumn(0)) {
                     noop();
-                });
+                }
             }
             await conn.disconnect();
             bytes = tupleCount * 4;
@@ -139,9 +139,9 @@ async function main(db: webdb.AsyncWebDB) {
             let chunks = new webdb.ChunkArrayIterator(result);
             while (true) {
                 if (!chunks.nextBlocking()) break;
-                chunks.iterateNumberColumn(0, (_row: number, _v: number | null) => {
+                for (const _ of chunks.iterateNumberColumn(0)) {
                     noop();
-                });
+                }
             }
             await conn.disconnect();
             bytes = tupleCount * 8;
@@ -157,9 +157,9 @@ async function main(db: webdb.AsyncWebDB) {
             bytes = 0;
             while (true) {
                 if (!chunks.nextBlocking()) break;
-                chunks.iterateStringColumn(0, (_row: number, v: string | null) => {
+                for (const v of chunks.iterateStringColumn(0)) {
                     bytes += v!.length;
-                });
+                }
             }
             await conn.disconnect();
         }),
@@ -186,9 +186,9 @@ async function main(db: webdb.AsyncWebDB) {
             let chunks = new webdb.ChunkStreamIterator(conn, result);
             while (true) {
                 if (!(await chunks.nextAsync())) break;
-                chunks.iterateBooleanColumn(0, (_row: number, _v: boolean | null) => {
+                for (const _ of chunks.iterateBooleanColumn(0)) {
                     noop();
-                });
+                }
             }
             await conn.disconnect();
             bytes = tupleCount * 1;
@@ -202,9 +202,9 @@ async function main(db: webdb.AsyncWebDB) {
             let chunks = new webdb.ChunkStreamIterator(conn, result);
             while (true) {
                 if (!(await chunks.nextAsync())) break;
-                chunks.iterateNumberColumn(0, (_row: number, _v: number | null) => {
+                for (const _ of chunks.iterateNumberColumn(0)) {
                     noop();
-                });
+                }
             }
             await conn.disconnect();
             bytes = tupleCount * 1;
@@ -218,9 +218,9 @@ async function main(db: webdb.AsyncWebDB) {
             let chunks = new webdb.ChunkStreamIterator(conn, result);
             while (true) {
                 if (!(await chunks.nextAsync())) break;
-                chunks.iterateNumberColumn(0, (_row: number, _v: number | null) => {
+                for (const _ of chunks.iterateNumberColumn(0)) {
                     noop();
-                });
+                }
             }
             await conn.disconnect();
             bytes = tupleCount * 2;
@@ -234,9 +234,9 @@ async function main(db: webdb.AsyncWebDB) {
             let chunks = new webdb.ChunkStreamIterator(conn, result);
             while (true) {
                 if (!(await chunks.nextAsync())) break;
-                chunks.iterateNumberColumn(0, (_row: number, _v: number | null) => {
+                for (const _ of chunks.iterateNumberColumn(0)) {
                     noop();
-                });
+                }
             }
             await conn.disconnect();
             bytes = tupleCount * 4;
@@ -250,9 +250,9 @@ async function main(db: webdb.AsyncWebDB) {
             let chunks = new webdb.ChunkStreamIterator(conn, result);
             while (true) {
                 if (!(await chunks.nextAsync())) break;
-                chunks.iterateBigIntColumn(0, (_row: number, _v: bigint | null) => {
+                for (const _ of chunks.iterateBigIntColumn(0)) {
                     noop();
-                });
+                }
             }
             await conn.disconnect();
             bytes = tupleCount * 8;
@@ -266,9 +266,9 @@ async function main(db: webdb.AsyncWebDB) {
             let chunks = new webdb.ChunkStreamIterator(conn, result);
             while (true) {
                 if (!(await chunks.nextAsync())) break;
-                chunks.iterateBigIntColumn(0, (_row: number, _v: bigint | null) => {
+                for (const _ of chunks.iterateBigIntColumn(0)) {
                     noop();
-                });
+                }
             }
             await conn.disconnect();
             bytes = tupleCount * 16;
@@ -282,9 +282,9 @@ async function main(db: webdb.AsyncWebDB) {
             let chunks = new webdb.ChunkStreamIterator(conn, result);
             while (true) {
                 if (!(await chunks.nextAsync())) break;
-                chunks.iterateNumberColumn(0, (_row: number, _v: number | null) => {
+                for (const _ of chunks.iterateNumberColumn(0)) {
                     noop();
-                });
+                }
             }
             await conn.disconnect();
             bytes = tupleCount * 4;
@@ -298,9 +298,9 @@ async function main(db: webdb.AsyncWebDB) {
             let chunks = new webdb.ChunkStreamIterator(conn, result);
             while (true) {
                 if (!(await chunks.nextAsync())) break;
-                chunks.iterateNumberColumn(0, (_row: number, _v: number | null) => {
+                for (const _ of chunks.iterateNumberColumn(0)) {
                     noop();
-                });
+                }
             }
             await conn.disconnect();
             bytes = tupleCount * 8;
@@ -315,9 +315,9 @@ async function main(db: webdb.AsyncWebDB) {
             bytes = 0;
             while (true) {
                 if (!(await chunks.nextAsync())) break;
-                chunks.iterateStringColumn(0, (_row: number, v: string | null) => {
+                for (const v of chunks.iterateStringColumn(0)) {
                     bytes += v!.length;
-                });
+                }
             }
             await conn.disconnect();
         }),

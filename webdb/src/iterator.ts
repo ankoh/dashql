@@ -4,21 +4,23 @@ import { ChunkIterator } from './iterator_base';
 import { WebDBConnection } from './webdb_bindings';
 import { webdb as proto } from '@dashql/proto';
 
-/// An iterator for blocking chunk streams
+/**
+ * An iterator for blocking chunk streams
+ */
 export class ChunkStreamIterator extends ChunkIterator {
-    /// The connection
+    /** The connection */
     _connection: WebDBConnection;
-    /// The current chunk buffer
+    /** The current chunk buffer */
     _currentChunkBuffer: proto.QueryResultChunk | null;
 
-    /// Constructor
+    /** Constructor */
     public constructor(connection: WebDBConnection, resultBuffer: proto.QueryResult) {
         super(resultBuffer);
         this._connection = connection;
         this._currentChunkBuffer = null;
     }
 
-    /// Get the next chunk
+    /** Get the next chunk */
     public nextBlocking(): boolean {
         let result = this._resultBuffer;
         if (++this._currentChunkID < result.dataChunksLength()) {
@@ -30,19 +32,20 @@ export class ChunkStreamIterator extends ChunkIterator {
         }
         return this._currentChunk.rowCount() > 0;
     }
-    /// Get the next chunk asynchronously
+    /** Get the next chunk asynchronously */
     public async nextAsync(): Promise<boolean> {
         console.error("The blocking stream iterator does not support asynchronous iteration");
         return Promise.resolve(false);
     }
 }
 
-/// An iterator for a chunk array
+/**
+ * An iterator for a chunk array
+ */
 export class ChunkArrayIterator extends ChunkIterator {
-    /// The chunks
+    /** The chunks */
     _chunks: proto.QueryResultChunk[];
 
-    /// Constructor
     public constructor(resultBuffer: proto.QueryResult, chunks: proto.QueryResultChunk[] = []) {
         super(resultBuffer);
         this._chunks = [];
@@ -57,11 +60,12 @@ export class ChunkArrayIterator extends ChunkIterator {
         }
     }
 
-    /// Restart the chunk iterator
+    /** Restart the chunk iterator */
     public rewind() {
         this._currentChunkID = -1;
     }
-    /// Get the next chunk
+    
+    /** Get the next chunk */
     public nextBlocking(): boolean {
         if (this._currentChunkID + 1 >= this._chunks.length) {
             return false;
@@ -70,7 +74,8 @@ export class ChunkArrayIterator extends ChunkIterator {
         this._currentChunk = this._chunks[this._currentChunkID];
         return true;
     }
-    /// Get the next chunk asynchronously
+
+    /** Get the next chunk asynchronously */
     public async nextAsync(): Promise<boolean> {
         console.error("The blocking array iterator does not support asynchronous iteration");
         return Promise.resolve(false);
