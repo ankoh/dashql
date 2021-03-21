@@ -147,7 +147,7 @@ describe('RowProxy', () => {
             }
         });
 
-        test('Iterator', () => {
+        it('Iterator', () => {
             const result = conn.sendQuery(`
                 SELECT v::INTEGER AS foo, v::BIGINT as bar, v::VARCHAR as fizz, v > 0 as buzz FROM generate_series(0, ${testRows}) as t(v);
             `);

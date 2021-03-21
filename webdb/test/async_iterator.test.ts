@@ -46,9 +46,9 @@ describe('QueryResultRowIterator', () => {
             let chunks = new webdb.ChunkStreamIterator(conn, result);
             let i = 0;
             while (await chunks.nextAsync()) {
-                chunks.iterateNumberColumn(0, (_row: number, v: number | null) => {
+                for (const v of chunks.iterateNumberColumn(0)) {
                     expect(v).toBe(i++ & 127);
-                });
+                }
             }
             expect(i).toBe(testRows + 1);
         });
