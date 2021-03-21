@@ -30,7 +30,8 @@
         "web-worker": "^1.0.0",
         "webpack": "^5.24.4",
         "webpack-cli": "^4.5.0",
-        "webpack-node-externals": "^2.5.2"
+        "webpack-node-externals": "^2.5.2",
+        "webpackbar": "^5.0.0-3"
     },
     "optionalDependencies": {
         "fsevents": "*"
