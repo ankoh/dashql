@@ -1,241 +1,241 @@
-name: "main"
+name: 'main'
 on:
-  push:
-    branches:
-      - master
-      - kohn/*
-  pull_request:
-    branches:
-      - master
+    push:
+        branches:
+            - master
+            - kohn/*
+    pull_request:
+        branches:
+            - master
 
 jobs:
-  linux_x86_debug:
-    name: Linux / x86 / Debug
-    runs-on: self-hosted
-    steps:
-    - uses: actions/checkout@v2
+    linux_x86_debug:
+        name: Linux / x86 / Debug
+        runs-on: self-hosted
+        steps:
+            - uses: actions/checkout@v2
 
-    - name: Prepare repository
-      uses: ./ci/image
-      with:
-        script: |-
-          make reset_duckdb
-          git submodule update --init --recursive
-          mkdir -p ./lib/build/debug ./reports
+            - name: Prepare repository
+              uses: ./ci/image
+              with:
+                  script: |-
+                      make reset_duckdb
+                      git submodule update --init --recursive
+                      mkdir -p ./lib/build/debug ./reports
 
-    - name: Compile flatbuffer schema
-      uses: ./ci/image
-      with:
-        script: |-
-            ./scripts/generate_proto.sh
+            - name: Compile flatbuffer schema
+              uses: ./ci/image
+              with:
+                  script: |-
+                      ./scripts/generate_proto.sh
 
-    - name: Build
-      uses: ./ci/image
-      with:
-        script: |-
-          cmake \
-              -S./lib/ \
-              -B./lib/build/debug \
-              -DCODE_COVERAGE=1 \
-              -DCMAKE_BUILD_TYPE=Debug \
-              -DCMAKE_C_COMPILER_LAUNCHER=ccache \
-              -DCMAKE_C_COMPILER=clang \
-              -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
-              -DCMAKE_CXX_COMPILER=clang++ \
-              -DCMAKE_BUILD_TYPE=Debug
-          ccache -s
-          make -C./lib/build/debug -j`nproc`
-          ccache -s
+            - name: Build
+              uses: ./ci/image
+              with:
+                  script: |-
+                      cmake \
+                          -S./lib/ \
+                          -B./lib/build/debug \
+                          -DCODE_COVERAGE=1 \
+                          -DCMAKE_BUILD_TYPE=Debug \
+                          -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+                          -DCMAKE_C_COMPILER=clang \
+                          -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+                          -DCMAKE_CXX_COMPILER=clang++ \
+                          -DCMAKE_BUILD_TYPE=Debug
+                      ccache -s
+                      make -C./lib/build/debug -j`nproc`
+                      ccache -s
 
-    - name: Test
-      uses: ./ci/image
-      with:
-        script: |-
-            export LLVM_PROFILE_FILE=./reports/lib.profraw
-            ./lib/build/debug/tester \
-                --source_dir=./lib/ \
-                --gtest_output=xml:./reports/tests_lib_debug.xml
+            - name: Test
+              uses: ./ci/image
+              with:
+                  script: |-
+                      export LLVM_PROFILE_FILE=./reports/lib.profraw
+                      ./lib/build/debug/tester \
+                          --source_dir=./lib/ \
+                          --gtest_output=xml:./reports/tests_lib_debug.xml
 
-    - name: Code Coverage
-      uses: ./ci/image
-      with:
-        script: |-
-            llvm-profdata merge \
-                -sparse ./reports/lib.profraw \
-                -o ./reports/lib.profdata
-            llvm-cov show ./lib/build/debug/tester \
-                --instr-profile ./reports/lib.profdata \
-                -ignore-filename-regex submodules \
-                > ./reports/coverage_lib.txt
+            - name: Code Coverage
+              uses: ./ci/image
+              with:
+                  script: |-
+                      llvm-profdata merge \
+                          -sparse ./reports/lib.profraw \
+                          -o ./reports/lib.profdata
+                      llvm-cov show ./lib/build/debug/tester \
+                          --instr-profile ./reports/lib.profdata \
+                          -ignore-filename-regex submodules \
+                          > ./reports/coverage_lib.txt
 
-    - uses: codecov/codecov-action@v1
-      with:
-        token: ${{ secrets.CODECOV_TOKEN }}
-        files: ./reports/coverage_lib.txt
-        flags: unittests
+            - uses: codecov/codecov-action@v1
+              with:
+                  token: ${{ secrets.CODECOV_TOKEN }}
+                  files: ./reports/coverage_lib.txt
+                  flags: unittests
 
-  linux_x86_release:
-    name: Linux / x86 / Release
-    runs-on: self-hosted
-    steps:
-    - uses: actions/checkout@v2
+    linux_x86_release:
+        name: Linux / x86 / Release
+        runs-on: self-hosted
+        steps:
+            - uses: actions/checkout@v2
 
-    - name: Prepare repository
-      uses: ./ci/image
-      with:
-        script: |-
-          make reset_duckdb
-          git submodule update --init --recursive
-          mkdir -p ./lib/build/release ./reports
+            - name: Prepare repository
+              uses: ./ci/image
+              with:
+                  script: |-
+                      make reset_duckdb
+                      git submodule update --init --recursive
+                      mkdir -p ./lib/build/release ./reports
 
-    - name: Compile flatbuffer schema
-      uses: ./ci/image
-      with:
-        script: |-
-            ./scripts/generate_proto.sh
+            - name: Compile flatbuffer schema
+              uses: ./ci/image
+              with:
+                  script: |-
+                      ./scripts/generate_proto.sh
 
-    - name: Build
-      uses: ./ci/image
-      with:
-        script: |-
-          cmake \
-              -S./lib/ \
-              -B./lib/build/release \
-              -DCMAKE_BUILD_TYPE=Release \
-              -DCMAKE_C_COMPILER_LAUNCHER=ccache \
-              -DCMAKE_C_COMPILER=clang \
-              -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
-              -DCMAKE_CXX_COMPILER=clang++ \
-              -DCMAKE_BUILD_TYPE=Release
-          ccache -s
-          make -C./lib/build/release -j`nproc`
-          ccache -s
+            - name: Build
+              uses: ./ci/image
+              with:
+                  script: |-
+                      cmake \
+                          -S./lib/ \
+                          -B./lib/build/release \
+                          -DCMAKE_BUILD_TYPE=Release \
+                          -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+                          -DCMAKE_C_COMPILER=clang \
+                          -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+                          -DCMAKE_CXX_COMPILER=clang++ \
+                          -DCMAKE_BUILD_TYPE=Release
+                      ccache -s
+                      make -C./lib/build/release -j`nproc`
+                      ccache -s
 
-    - name: Test
-      uses: ./ci/image
-      with:
-        script: |-
-            ./lib/build/release/tester \
-                --source_dir=./lib/ \
-                --gtest_output=xml:./reports/tests_lib_release.xml
+            - name: Test
+              uses: ./ci/image
+              with:
+                  script: |-
+                      ./lib/build/release/tester \
+                          --source_dir=./lib/ \
+                          --gtest_output=xml:./reports/tests_lib_release.xml
 
-  web:
-    name: Web
-    runs-on: self-hosted
-    needs:
-    - linux_x86_debug
-    - linux_x86_release
+    web:
+        name: Web
+        runs-on: self-hosted
+        needs:
+            - linux_x86_debug
+            - linux_x86_release
 
-    steps:
-    - uses: actions/checkout@v2
+        steps:
+            - uses: actions/checkout@v2
 
-    - name: Prepare repository
-      uses: ./ci/image
-      with:
-        script: |-
-          make reset_duckdb
-          git submodule update --init --recursive
-          mkdir -p ./lib/build/wasm/release ./reports
+            - name: Prepare repository
+              uses: ./ci/image
+              with:
+                  script: |-
+                      make reset_duckdb
+                      git submodule update --init --recursive
+                      mkdir -p ./lib/build/wasm/release ./reports
 
-    - name: Compile flatbuffer schema
-      uses: ./ci/image
-      with:
-        script: |-
-            ./scripts/generate_proto.sh
+            - name: Compile flatbuffer schema
+              uses: ./ci/image
+              with:
+                  script: |-
+                      ./scripts/generate_proto.sh
 
-    - name: Build WASM module
-      uses: ./ci/image
-      with:
-        script: |-
-            emcmake cmake \
-                -S./lib/ \
-                -B./lib/build/wasm/release \
-                -DCMAKE_BUILD_TYPE=Release \
-                -DCMAKE_C_COMPILER_LAUNCHER=ccache \
-                -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+            - name: Build WASM module
+              uses: ./ci/image
+              with:
+                  script: |-
+                      emcmake cmake \
+                          -S./lib/ \
+                          -B./lib/build/wasm/release \
+                          -DCMAKE_BUILD_TYPE=Release \
+                          -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+                          -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
 
-            emmake make \
-                -C./lib/build/wasm/release \
-                -j`nproc` \
-                webdb_wasm webdb_wasm_node analyzer_wasm analyzer_wasm_node
+                      emmake make \
+                          -C./lib/build/wasm/release \
+                          -j`nproc` \
+                          webdb_wasm webdb_wasm_node analyzer_wasm analyzer_wasm_node
 
-            cp ./lib/build/wasm/release/webdb_*.{wasm,js} ./packages/webdb/src/
-            cp ./lib/build/wasm/release/analyzer_*.{wasm,js} ./packages/core/src/analyzer/
+                      cp ./lib/build/wasm/release/webdb_*.{wasm,js} ./packages/webdb/src/
+                      cp ./lib/build/wasm/release/analyzer_*.{wasm,js} ./packages/core/src/analyzer/
 
-    - name: Build @dashql/proto
-      uses: ./ci/image
-      with:
-        script: |-
-            source /opt/env.sh
-            yarn --frozen-lockfile
-            yarn workspace @dashql/proto build
+            - name: Build @dashql/proto
+              uses: ./ci/image
+              with:
+                  script: |-
+                      source /opt/env.sh
+                      yarn --frozen-lockfile
+                      yarn workspace @dashql/proto build
 
-    - name: Build @dashql/webdb
-      uses: ./ci/image
-      with:
-        script: |-
-            source /opt/env.sh
-            yarn --frozen-lockfile
-            yarn workspace @dashql/webdb build
+            - name: Build @dashql/webdb
+              uses: ./ci/image
+              with:
+                  script: |-
+                      source /opt/env.sh
+                      yarn --frozen-lockfile
+                      yarn workspace @dashql/webdb build
 
-    - name: Build @dashql/core
-      uses: ./ci/image
-      with:
-        script: |-
-            source /opt/env.sh
-            yarn --frozen-lockfile
-            yarn workspace @dashql/core build
+            - name: Build @dashql/core
+              uses: ./ci/image
+              with:
+                  script: |-
+                      source /opt/env.sh
+                      yarn --frozen-lockfile
+                      yarn workspace @dashql/core build
 
-    - name: Build benchmarks
-      uses: ./ci/image
-      with:
-        script: |-
-            source /opt/env.sh
-            yarn --frozen-lockfile
-            yarn workspace @dashql/benchmarks build
+            - name: Build benchmarks
+              uses: ./ci/image
+              with:
+                  script: |-
+                      source /opt/env.sh
+                      yarn --frozen-lockfile
+                      yarn workspace @dashql/benchmarks build
 
-    - name: Test @dashql/webdb
-      uses: ./ci/image
-      with:
-        script: |-
-            source /opt/env.sh
-            yarn workspace @dashql/webdb test:ci
+            - name: Test @dashql/webdb
+              uses: ./ci/image
+              with:
+                  script: |-
+                      source /opt/env.sh
+                      yarn workspace @dashql/webdb test:ci
 
-    - name: Test @dashql/core
-      uses: ./ci/image
-      with:
-        script: |-
-            source /opt/env.sh
-            yarn workspace @dashql/core test:ci
+            - name: Test @dashql/core
+              uses: ./ci/image
+              with:
+                  script: |-
+                      source /opt/env.sh
+                      yarn workspace @dashql/core test:ci
 
-    - name: Build App
-      uses: ./ci/image
-      with:
-        script: |-
-            source /opt/env.sh
-            yarn --frozen-lockfile
-            yarn workspace @dashql/app build:release
+            - name: Build App
+              uses: ./ci/image
+              with:
+                  script: |-
+                      source /opt/env.sh
+                      yarn --frozen-lockfile
+                      yarn workspace @dashql/app build:release
 
-    - uses: codecov/codecov-action@v1
-      with:
-        token: ${{ secrets.CODECOV_TOKEN }}
-        files: ./reports/coverage_core.json,./reports/coverage_webdb.json
-        flags: unittests
+            - uses: codecov/codecov-action@v1
+              with:
+                  token: ${{ secrets.CODECOV_TOKEN }}
+                  files: ./reports/coverage_core.json,./reports/coverage_webdb.json
+                  flags: unittests
 
-    - name: Deploy to nightly.app.dashql.com
-      if: github.ref == 'refs/heads/master'
-      uses: ./ci/image
-      with:
-        script: |-
-            export AZ_PASS="${{ secrets.AZ_APP_PASS }}"
-            ./scripts/az_app_upload.sh app-nightly ./packages/app/build/release
-            ./scripts/az_app_old_rm.sh app-nightly '1 week'
+            - name: Deploy to nightly.app.dashql.com
+              if: github.ref == 'refs/heads/master'
+              uses: ./ci/image
+              with:
+                  script: |-
+                      export AZ_PASS="${{ secrets.AZ_APP_PASS }}"
+                      ./scripts/az_app_upload.sh app-nightly ./packages/app/build/release
+                      ./scripts/az_app_old_rm.sh app-nightly '1 week'
 
-    - name: Deploy to app.dashql.com
-      if: github.ref == 'refs/heads/stable'
-      uses: ./ci/image
-      with:
-        script: |-
-            export AZ_PASS="${{ secrets.AZ_APP_PASS }}"
-            ./scripts/az_app_upload.sh app ./packages/app/build/release
-            ./scripts/az_app_old_rm.sh app '1 week'
+            - name: Deploy to app.dashql.com
+              if: github.ref == 'refs/heads/stable'
+              uses: ./ci/image
+              with:
+                  script: |-
+                      export AZ_PASS="${{ secrets.AZ_APP_PASS }}"
+                      ./scripts/az_app_upload.sh app ./packages/app/build/release
+          t             ./scripts/az_app_old_rm.sh app '1 week'

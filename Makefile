@@ -156,22 +156,22 @@ wasm_release:
 # Builds the app
 .PHONY: app
 app:
-	yarn workspace dashql build:debug
+	yarn workspace @dashql/app build:debug
 
 # Creates a release archive
 .PHONY: app_release
 app_release:
-	yarn workspace dashql build:release
+	yarn workspace @dashql/app build:release
 
 # Runs a node server with the release build
 .PHONY: app_release_server
 app_release_server:
-	yarn workspace dashql serve:release
+	yarn workspace @dashql/app serve:release
 
 # Starts the dev server
 .PHONY: app_start
 app_start:
-	yarn workspace dashql start
+	yarn workspace @dashql/app start
 
 # Build the webdb library
 .PHONY: webdb
