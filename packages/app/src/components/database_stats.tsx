@@ -13,9 +13,7 @@ interface Props {
 class DatabaseStats extends React.Component<Props> {
     public render() {
         const height = 200;
-        return (
-            <SystemCard title="Database" onClose={this.props.onClose} />
-        );
+        return <SystemCard title="Database" onClose={this.props.onClose} />;
     }
 
     componentDidMount() {}
@@ -23,8 +21,7 @@ class DatabaseStats extends React.Component<Props> {
     componentDidUpdate(_prev: Readonly<Props>): void {}
 }
 
-const mapStateToProps = (state: AppState) => ({
-});
+const mapStateToProps = (state: AppState) => ({});
 
 const mapDispatchToProps = (_dispatch: Dispatch) => ({});
 

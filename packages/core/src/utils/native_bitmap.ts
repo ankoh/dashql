@@ -37,11 +37,11 @@ export class NativeBitmap {
     /// Are all bits set?
     public allSet(): boolean {
         if (this._buffer.length == 0) return true;
-        let r = 0xFFFFFFFF;
-        for (let i = 0; (i + 1) < this._buffer.length; ++i) {
+        let r = 0xffffffff;
+        for (let i = 0; i + 1 < this._buffer.length; ++i) {
             r &= this._buffer[i];
         }
-        let all_set = r == 0xFFFFFFFF;
+        let all_set = r == 0xffffffff;
         const last_idx = this._buffer.length - 1;
         const last = this._buffer[last_idx];
         const bits_in_last = this._size - (last_idx << 5);
@@ -64,7 +64,6 @@ export class NativeBitmap {
         const bit_idx = index & 31;
         return (this._buffer[entry_idx] & (1 << bit_idx)) != 0;
     }
-
 
     /// Clear a bit
     public clear(index: number): NativeBitmap {

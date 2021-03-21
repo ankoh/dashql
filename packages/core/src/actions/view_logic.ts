@@ -1,11 +1,11 @@
 import * as Immutable from 'immutable';
-import * as proto from "@dashql/proto";
-import * as webdb from "@dashql/webdb/dist/webdb_async";
-import * as model from "../model";
-import { ActionHandle } from "../model";
-import { ProgramActionLogic, SetupActionLogic } from "./action_logic";
-import { ActionContext } from "./action_context";
-import { collectTableInfo } from "./table_logic";
+import * as proto from '@dashql/proto';
+import * as webdb from '@dashql/webdb/dist/webdb_async';
+import * as model from '../model';
+import { ActionHandle } from '../model';
+import { ProgramActionLogic, SetupActionLogic } from './action_logic';
+import { ActionContext } from './action_context';
+import { collectTableInfo } from './table_logic';
 import ActionStatusCode = proto.action.ActionStatusCode;
 
 export class ViewCreateActionLogic extends ProgramActionLogic {
@@ -31,8 +31,8 @@ export class ViewCreateActionLogic extends ProgramActionLogic {
                 objectType: model.PlanObjectType.DATABASE_TABLE_INFO,
                 timeCreated: now,
                 timeUpdated: now,
-                tableNameQualified: this.buffer.targetNameQualified() || "",
-                tableNameShort: this.buffer.targetNameShort() || "",
+                tableNameQualified: this.buffer.targetNameQualified() || '',
+                tableNameShort: this.buffer.targetNameShort() || '',
                 columnNames: [],
                 columnNameMapping: new Map(),
                 columnTypes: [],
@@ -44,11 +44,11 @@ export class ViewCreateActionLogic extends ProgramActionLogic {
             const store = context.platform.store;
             model.mutate(store.dispatch, {
                 type: model.StateMutationType.INSERT_PLAN_OBJECTS,
-                data: [table]
+                data: [table],
             });
         }
     }
-};
+}
 
 export class ImportViewActionLogic extends SetupActionLogic {
     constructor(action_id: ActionHandle, action: proto.action.SetupAction) {

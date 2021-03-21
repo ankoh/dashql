@@ -35,15 +35,15 @@ class ScriptLoader extends React.Component<Props, State> {
     constructor(props: Props) {
         super(props);
         this.state = ScriptLoader.getDerivedStateFromProps(props, {
-            requestURL: null, 
-            requestURI: null, 
+            requestURL: null,
+            requestURI: null,
             status: ScriptLoaderStatus.SUCCEEDED,
             error: false,
         });
     }
 
     static getDerivedStateFromProps(nextProps: Props, prevState: State) {
-        const gist = new URLSearchParams(nextProps.location.search).get("gist") || undefined;
+        const gist = new URLSearchParams(nextProps.location.search).get('gist') || undefined;
         let url = null;
         let uri: [core.model.ScriptURIPrefix, string] | null = null;
         if (gist) {
@@ -101,8 +101,7 @@ class ScriptLoader extends React.Component<Props, State> {
     }
 
     loadScript() {
-        if (this.state.status != ScriptLoaderStatus.PENDING)
-            return;
+        if (this.state.status != ScriptLoaderStatus.PENDING) return;
         this.loadScriptFromURL(this.state.requestURL!, this.state.requestURI!);
     }
 

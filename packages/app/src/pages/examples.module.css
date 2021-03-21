@@ -1,4 +1,4 @@
-@import "../vars.module.css";
+@import '../vars.module.css';
 
 .root {
     height: 100%;
@@ -55,7 +55,7 @@
     grid-template-columns: auto auto;
     grid-column-gap: 16px;
     height: auto;
-    box-sizing: border-box;;
+    box-sizing: border-box;
 }
 
 .script_card {
@@ -75,7 +75,7 @@
 .example_icon {
     grid-row: 1;
     grid-column: 1;
-    color:rgb(80, 80, 80);
+    color: rgb(80, 80, 80);
     display: grid;
     align-items: center;
     justify-items: center;
@@ -97,7 +97,7 @@
 .example_unfocus {
     grid-row: 1;
     grid-column: 3;
-    padding: 0px!important;
+    padding: 0px !important;
 }
 
 .collection {
@@ -132,9 +132,9 @@
     font-size: 75%;
     background: rgb(80, 80, 80);
     color: white;
-    text-align: center;;
+    text-align: center;
 }
 
 .filter_tag_active {
-    background: black!important;
+    background: black !important;
 }

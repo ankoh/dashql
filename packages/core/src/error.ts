@@ -26,8 +26,12 @@ export class LoggableError extends ErrorBase {
         this._message = message;
     }
 
-    public get logLevel() { return this._logLevel; }
-    public get message() { return this._message; }
+    public get logLevel() {
+        return this._logLevel;
+    }
+    public get message() {
+        return this._message;
+    }
 }
 
 // An error within the viz logic

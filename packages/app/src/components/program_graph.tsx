@@ -188,8 +188,7 @@ class ProgramGraph extends React.Component<ProgramGraphProps, ProgramGraphState>
                     nodeTypes={{
                         custom: StatementNode,
                     }}
-                >
-                </ReactFlow>
+                ></ReactFlow>
             </div>
         );
     }

@@ -1,5 +1,5 @@
-import * as core from "@dashql/core";
-import * as model from "./model";
+import * as core from '@dashql/core';
+import * as model from './model';
 import axios from 'axios';
 
 import example_demo_helloworld from '../static/examples/demo_helloworld.dashql';
@@ -38,8 +38,7 @@ import icon_gesture_tap_hold from '../static/svg/icons/gesture_tap_hold.svg';
 import icon_database_import from '../static/svg/icons/database_import.svg';
 import icon_database_search from '../static/svg/icons/database_search.svg';
 import icon_package_down from '../static/svg/icons/package_down.svg';
-import { key } from "vega";
-
+import { key } from 'vega';
 
 export enum ScriptFeatureTag {
     HTTP_SOURCE,
@@ -48,7 +47,7 @@ export enum ScriptFeatureTag {
     DYNAMIC_EXTRACT,
     DYNAMIC_SQL,
     DYNAMIC_VIZ,
-    _COUNT_
+    _COUNT_,
 }
 
 export interface ExampleScriptMetadata {
@@ -56,7 +55,7 @@ export interface ExampleScriptMetadata {
     collection: string;
     title: string;
     icon: string;
-    description: string
+    description: string;
     features: core.utils.NativeBitmap;
     url: string;
     enabled: boolean;
@@ -64,229 +63,228 @@ export interface ExampleScriptMetadata {
 
 export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
     {
-        key: "demo_helloworld",
-        collection: "Demos",
-        title: "Hello World",
-        description: "A third test hello world script",
+        key: 'demo_helloworld',
+        collection: 'Demos',
+        title: 'Hello World',
+        description: 'A third test hello world script',
         icon: icon_dashboard,
-        features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_)
-            .set(ScriptFeatureTag.DATA_CSV),
+        features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_).set(ScriptFeatureTag.DATA_CSV),
         url: example_demo_helloworld,
-        enabled: true
+        enabled: true,
     },
     {
-        key: "demo_unischema",
-        collection: "Demos",
-        title: "University Schema",
-        description: "A third test hello world script",
+        key: 'demo_unischema',
+        collection: 'Demos',
+        title: 'University Schema',
+        description: 'A third test hello world script',
         icon: icon_dashboard,
         features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_),
         url: example_demo_unischema,
-        enabled: false
+        enabled: false,
     },
     {
-        key: "viz_line",
-        collection: "Visualize",
-        title: "Line Charts",
-        description: "A test hello world script",
+        key: 'viz_line',
+        collection: 'Visualize',
+        title: 'Line Charts',
+        description: 'A test hello world script',
         icon: icon_linechart,
         features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_),
         url: example_viz_line_charts,
-        enabled: true
+        enabled: true,
     },
     {
-        key: "viz_area",
-        collection: "Visualize",
-        title: "Area Charts",
-        description: "A second test hello world script",
+        key: 'viz_area',
+        collection: 'Visualize',
+        title: 'Area Charts',
+        description: 'A second test hello world script',
         icon: icon_areachart,
         features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_),
         url: example_viz_area_charts,
-        enabled: false
+        enabled: false,
     },
     {
-        key: "viz_bar",
-        collection: "Visualize",
-        title: "Bar Charts",
-        description: "Fooo",
+        key: 'viz_bar',
+        collection: 'Visualize',
+        title: 'Bar Charts',
+        description: 'Fooo',
         icon: icon_barchart,
         features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_),
         url: example_viz_bar_charts,
-        enabled: false
+        enabled: false,
     },
     {
-        key: "viz_pie",
-        collection: "Visualize",
-        title: "Pie Charts",
-        description: "Fooo",
+        key: 'viz_pie',
+        collection: 'Visualize',
+        title: 'Pie Charts',
+        description: 'Fooo',
         icon: icon_arcchart,
         features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_),
         url: example_viz_pie_charts,
-        enabled: false
+        enabled: false,
     },
     {
-        key: "viz_scatter",
-        collection: "Visualize",
-        title: "Scatter Plots",
-        description: "Fooo",
+        key: 'viz_scatter',
+        collection: 'Visualize',
+        title: 'Scatter Plots',
+        description: 'Fooo',
         icon: icon_scatterchart,
         features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_),
         url: example_viz_scatter_charts,
-        enabled: false
+        enabled: false,
     },
     {
-        key: "viz_histogram",
-        collection: "Visualize",
-        title: "Histograms",
-        description: "Fooo",
+        key: 'viz_histogram',
+        collection: 'Visualize',
+        title: 'Histograms',
+        description: 'Fooo',
         icon: icon_histogramchart,
         features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_),
         url: example_viz_histograms,
-        enabled: false
+        enabled: false,
     },
     {
-        key: "viz_streamgraph",
-        collection: "Visualize",
-        title: "Streamgraphs",
-        description: "Fooo",
+        key: 'viz_streamgraph',
+        collection: 'Visualize',
+        title: 'Streamgraphs',
+        description: 'Fooo',
         icon: icon_streamgraph,
         features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_),
         url: example_viz_streamgraphs,
-        enabled: false
+        enabled: false,
     },
     {
-        key: "viz_heatmap",
-        collection: "Visualize",
-        title: "Heatmaps",
-        description: "Fooo",
+        key: 'viz_heatmap',
+        collection: 'Visualize',
+        title: 'Heatmaps',
+        description: 'Fooo',
         icon: icon_heatmapchart,
         features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_),
         url: example_viz_heatmaps,
-        enabled: false
+        enabled: false,
     },
     {
-        key: "viz_interaction",
-        collection: "Visualize",
-        title: "Interactivity",
-        description: "FOOOOO",
+        key: 'viz_interaction',
+        collection: 'Visualize',
+        title: 'Interactivity',
+        description: 'FOOOOO',
         icon: icon_gesture_tap_hold,
         features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_),
         url: example_viz_interaction,
-        enabled: false
+        enabled: false,
     },
     {
-        key: "load_http_static",
-        collection: "Load",
-        title: "Static HTTP",
-        description: "FOOOOO",
+        key: 'load_http_static',
+        collection: 'Load',
+        title: 'Static HTTP',
+        description: 'FOOOOO',
         icon: icon_package_down,
         features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_),
         url: example_load_http_static,
-        enabled: false
+        enabled: false,
     },
     {
-        key: "load_http_dynamic",
-        collection: "Load",
-        title: "Dynamic HTTP",
-        description: "FOOOOO",
+        key: 'load_http_dynamic',
+        collection: 'Load',
+        title: 'Dynamic HTTP',
+        description: 'FOOOOO',
         icon: icon_package_down,
         features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_),
         url: example_load_http_dynamic,
-        enabled: false
+        enabled: false,
     },
     {
-        key: "extract_csv",
-        collection: "Extract",
-        title: "CSV Parsing",
-        description: "FOOOOO",
+        key: 'extract_csv',
+        collection: 'Extract',
+        title: 'CSV Parsing',
+        description: 'FOOOOO',
         icon: icon_database_import,
         features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_),
         url: example_extract_csv,
-        enabled: false
+        enabled: false,
     },
     {
-        key: "extract_parquet",
-        collection: "Extract",
-        title: "Parquet Import",
-        description: "FOOOOO",
+        key: 'extract_parquet',
+        collection: 'Extract',
+        title: 'Parquet Import',
+        description: 'FOOOOO',
         icon: icon_database_import,
         features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_),
         url: example_extract_parquet,
-        enabled: false
+        enabled: false,
     },
     {
-        key: "sql_complex_joins",
-        collection: "SQL",
-        title: "Complex Joins",
-        description: "FOOOOO",
+        key: 'sql_complex_joins',
+        collection: 'SQL',
+        title: 'Complex Joins',
+        description: 'FOOOOO',
         icon: icon_database_search,
         features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_),
         url: example_sql_complexjoins,
-        enabled: false
+        enabled: false,
     },
     {
-        key: "sql_explicit_grouping",
-        collection: "SQL",
-        title: "Explicit Grouping",
-        description: "FOOOOO",
+        key: 'sql_explicit_grouping',
+        collection: 'SQL',
+        title: 'Explicit Grouping',
+        description: 'FOOOOO',
         icon: icon_database_search,
         features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_),
         url: example_sql_explicitgrouping,
-        enabled: false
+        enabled: false,
     },
     {
-        key: "sql_movingavg",
-        collection: "SQL",
-        title: "Moving Avergage",
-        description: "FOOOOO",
+        key: 'sql_movingavg',
+        collection: 'SQL',
+        title: 'Moving Avergage',
+        description: 'FOOOOO',
         icon: icon_database_search,
         features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_),
         url: example_sql_movingavg,
-        enabled: false
+        enabled: false,
     },
     {
-        key: "sql_runningsum",
-        collection: "SQL",
-        title: "Running Sum",
-        description: "FOOOOO",
+        key: 'sql_runningsum',
+        collection: 'SQL',
+        title: 'Running Sum',
+        description: 'FOOOOO',
         icon: icon_database_search,
         features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_),
         url: example_sql_runningsum,
-        enabled: false
+        enabled: false,
     },
     {
-        key: "sql_approxmedian",
-        collection: "SQL",
-        title: "Approximative",
-        description: "FOOOOO",
+        key: 'sql_approxmedian',
+        collection: 'SQL',
+        title: 'Approximative',
+        description: 'FOOOOO',
         icon: icon_database_search,
         features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_),
         url: example_sql_approxmedian,
-        enabled: false
+        enabled: false,
     },
     {
-        key: "sql_sampling",
-        collection: "SQL",
-        title: "Sampling",
-        description: "FOOOOO",
+        key: 'sql_sampling',
+        collection: 'SQL',
+        title: 'Sampling',
+        description: 'FOOOOO',
         icon: icon_database_search,
         features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_),
         url: example_sql_sampling,
-        enabled: false
+        enabled: false,
     },
     {
-        key: "sql_pattern_matching",
-        collection: "SQL",
-        title: "Pattern Matching",
-        description: "FOOOOO",
+        key: 'sql_pattern_matching',
+        collection: 'SQL',
+        title: 'Pattern Matching',
+        description: 'FOOOOO',
         icon: icon_database_search,
         features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_),
         url: example_sql_patternmatching,
-        enabled: false
+        enabled: false,
     },
 ];
 
-export const EXAMPLE_SCRIPT_MAP: Map<string, ExampleScriptMetadata> = new Map(EXAMPLE_SCRIPTS.map(e => [e.key, e]))
+export const EXAMPLE_SCRIPT_MAP: Map<string, ExampleScriptMetadata> = new Map(EXAMPLE_SCRIPTS.map(e => [e.key, e]));
 
 export async function loadScript(example: ExampleScriptMetadata, store: model.AppReduxStore) {
     try {
@@ -305,9 +303,9 @@ export async function loadScript(example: ExampleScriptMetadata, store: model.Ap
                 modified: false,
                 lineCount: core.utils.countLines(text),
                 bytes: core.utils.estimateUTF16Length(text),
-            }
+            },
         });
-    } catch(e) {
+    } catch (e) {
         // XXX log to platform
         console.error(`Loading example ${example.key.toString()} failed with error: ${e}`);
     }

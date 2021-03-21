@@ -6,7 +6,6 @@ export default function createStore(): model.AppReduxStore {
         (state: model.AppState | undefined, variant: model.StateMutationVariant) => {
             if (!state) return new model.AppState();
             return model.AppStateMutation.reduce(state, variant);
-        }
+        },
     );
 }
-

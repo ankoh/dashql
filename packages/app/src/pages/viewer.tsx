@@ -50,8 +50,7 @@ class Viewer extends React.Component<Props> {
     }
 }
 
-const mapStateToProps = (state: AppState) => ({
-});
+const mapStateToProps = (state: AppState) => ({});
 
 const mapDispatchToProps = (_dispatch: Dispatch) => ({});
 

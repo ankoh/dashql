@@ -1,13 +1,13 @@
-import * as Immutable from  "immutable";
-import * as core from  "@dashql/core";
-import { AppConfig } from "./app_config";
-import { AppState } from "./state";
+import * as Immutable from 'immutable';
+import * as core from '@dashql/core';
+import { AppConfig } from './app_config';
+import { AppState } from './state';
 import { createTransform } from 'redux-persist';
 
 export interface PersistentAppState {
     core: core.model.PersistentCoreState;
     config: AppConfig | null;
-};
+}
 
 function createPersistentStateTransform(platform: core.platform.Platform) {
     return createTransform(
@@ -16,7 +16,7 @@ function createPersistentStateTransform(platform: core.platform.Platform) {
                 ...inbound,
                 launchComplete: false,
                 launchSteps: Immutable.Map(),
-                core: core.model.rehydrateState(inbound.core, platform)
+                core: core.model.rehydrateState(inbound.core, platform),
             };
         },
         (outbound: AppState, _key): PersistentAppState => {
@@ -25,7 +25,7 @@ function createPersistentStateTransform(platform: core.platform.Platform) {
                 core: core.model.persistState(outbound.core, platform),
             };
         },
-        {}
+        {},
     );
 }
 
