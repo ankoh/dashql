@@ -30,7 +30,6 @@
         "fsevents": "*"
     },
     "scripts": {
-        "link": "npm link ../proto",
         "build": "webpack --mode=production && node ./gendts.js",
         "build:noexternals": "webpack -c  --mode=production && node ./gendts.js",
         "test": "jest",
