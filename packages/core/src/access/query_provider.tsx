@@ -106,7 +106,6 @@ export class QueryProvider extends React.Component<Props, State> {
             } catch (e) {
                 console.error(e);
                 throw e;
-
             } finally {
                 try {
                     if (query.after) {

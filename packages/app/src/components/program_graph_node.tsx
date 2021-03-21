@@ -18,7 +18,7 @@ function StatementTypeIcon(type: proto.syntax.StatementType): string {
         case proto.syntax.StatementType.CREATE_VIEW:
         case proto.syntax.StatementType.SELECT:
         case proto.syntax.StatementType.SELECT_INTO:
-            return icon_database_search
+            return icon_database_search;
         case proto.syntax.StatementType.EXTRACT_CSV:
         case proto.syntax.StatementType.EXTRACT_JSON:
             return icon_database_import;
@@ -46,7 +46,7 @@ export function StatementNode(props: StatementNodeData) {
     return (
         <div className={styles.node}>
             <div className={styles.node_type}>
-                <svg width="22px" height="22px" style={{fill: "rgb(80, 80, 80)"}}>
+                <svg width="22px" height="22px" style={{ fill: 'rgb(80, 80, 80)' }}>
                     <use xlinkHref={`${StatementTypeIcon(props.data.statementType)}#sym`} />
                 </svg>
                 <ReactFlowHandle type="target" position={Position.Top} className={styles.node_handle_top} />

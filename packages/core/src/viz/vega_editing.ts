@@ -47,7 +47,7 @@ function readDomainValues(type: webdb.SQLType, values: webdb.Value[], out: model
             console.warn('shortcut');
             break;
 
-        default: 
+        default:
             cast = (v: webdb.Value) => null;
             break;
     }
@@ -77,14 +77,8 @@ export class ResolveMinMaxDomain extends VegaLiteEditOperation {
 
     /// Prepare the table statitistics
     prepare() {
-        const min = this._statistics.request(
-            model.TableStatisticsType.MINIMUM_VALUE,
-            this._attribute,
-        );
-        const max = this._statistics.request(
-            model.TableStatisticsType.MAXIMUM_VALUE,
-            this._attribute,
-        );
+        const min = this._statistics.request(model.TableStatisticsType.MINIMUM_VALUE, this._attribute);
+        const max = this._statistics.request(model.TableStatisticsType.MAXIMUM_VALUE, this._attribute);
         this._promises = [min, max];
         console.assert(this._out.length == 0);
         this._out.push(null);
@@ -121,10 +115,7 @@ export class ResolveCategorialDomain extends VegaLiteEditOperation {
 
     /// Request
     prepare() {
-        this._promise = this._statistics.request(
-            model.TableStatisticsType.DISTINCT_VALUES,
-            this._attribute,
-        );
+        this._promise = this._statistics.request(model.TableStatisticsType.DISTINCT_VALUES, this._attribute);
     }
 
     /// Evaluate table statistics and update the domain spec

@@ -102,7 +102,10 @@ const mapStateToProps = (state: model.AppState) => ({
         state.core.planObjects
             .filter(o => o.objectType == core.model.PlanObjectType.VIZ_INFO)
             .toArray()
-            .sort((l, r) => (l[1] as core.model.VizInfo).currentStatementId - (r[1] as core.model.VizInfo).currentStatementId)
+            .sort(
+                (l, r) =>
+                    (l[1] as core.model.VizInfo).currentStatementId - (r[1] as core.model.VizInfo).currentStatementId,
+            )
             .map(([k, v]) => [k, v as core.model.VizInfo]),
     ),
 });

@@ -1,10 +1,10 @@
 import * as webdb from '@dashql/webdb/dist/webdb_async';
-import { AnalyzerBindings } from "../analyzer";
-import { DatabaseManager } from "./database_manager";
-import { DerivedReduxStore } from "../model";
-import { FileManager } from "./file_manager";
-import { HTTPManager } from "./http_manager";
-import { Logger } from "./log_manager";
+import { AnalyzerBindings } from '../analyzer';
+import { DatabaseManager } from './database_manager';
+import { DerivedReduxStore } from '../model';
+import { FileManager } from './file_manager';
+import { HTTPManager } from './http_manager';
+import { Logger } from './log_manager';
 
 export class Platform {
     /// The global application state
@@ -32,12 +32,24 @@ export class Platform {
         this._httpManager = new HTTPManager(store);
     }
 
-    public get store() { return this._store; }
-    public get analyzer() { return this._analyzer; }
-    public get database() { return this._databaseManager; }
-    public get file() { return this._fileManager; }
-    public get http() { return this._httpManager; }
-    public get logger() { return this._logger; }
+    public get store() {
+        return this._store;
+    }
+    public get analyzer() {
+        return this._analyzer;
+    }
+    public get database() {
+        return this._databaseManager;
+    }
+    public get file() {
+        return this._fileManager;
+    }
+    public get http() {
+        return this._httpManager;
+    }
+    public get logger() {
+        return this._logger;
+    }
 
     public async init() {
         await this._databaseManager.init();

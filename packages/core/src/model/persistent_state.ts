@@ -1,12 +1,12 @@
-import { Platform } from  "../platform";
-import { CoreState } from  "./state";
-import { LogEntryVariant } from "./log";
-import { Script } from "./script";
+import { Platform } from '../platform';
+import { CoreState } from './state';
+import { LogEntryVariant } from './log';
+import { Script } from './script';
 
 export interface PersistentCoreState {
     logEntries: LogEntryVariant[];
     script: Script;
-};
+}
 
 export function persistState(state: CoreState, _platform: Platform): PersistentCoreState {
     return {

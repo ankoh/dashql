@@ -29,41 +29,47 @@ describe('Statement schema', () => {
         expect(program.buffer.statementsLength()).toEqual(1);
         const stmt = program.getStatement(0);
 
-        // Fully matching 
+        // Fully matching
         {
             const method = schema.enumNode(sx.NodeType.ENUM_DASHQL_LOAD_METHOD_TYPE, 0);
             const url = schema.stringNode();
-            stmt.matchSchema(schema.objectNode(sx.NodeType.OBJECT_DASHQL_LOAD, {
-                [Key.DASHQL_LOAD_METHOD]: method,
-                [Key.DASHQL_OPTION_URL]: url,
-            }));
+            stmt.matchSchema(
+                schema.objectNode(sx.NodeType.OBJECT_DASHQL_LOAD, {
+                    [Key.DASHQL_LOAD_METHOD]: method,
+                    [Key.DASHQL_OPTION_URL]: url,
+                }),
+            );
             expect(method.matching).toEqual(schema.Matching.MATCHED);
             expect(method.value).toEqual(sx.LoadMethodType.HTTP);
             expect(url.matching).toEqual(schema.Matching.MATCHED);
             expect(url.value).toEqual("'https://localhost/test'");
         }
 
-        // Type mismatch 
+        // Type mismatch
         {
             const method = schema.enumNode(sx.NodeType.ENUM_DASHQL_LOAD_METHOD_TYPE, 0);
             const url = schema.numberNode();
-            stmt.matchSchema(schema.objectNode(sx.NodeType.OBJECT_DASHQL_LOAD, {
-                [Key.DASHQL_LOAD_METHOD]: method,
-                [Key.DASHQL_OPTION_URL]: url,
-            }));
+            stmt.matchSchema(
+                schema.objectNode(sx.NodeType.OBJECT_DASHQL_LOAD, {
+                    [Key.DASHQL_LOAD_METHOD]: method,
+                    [Key.DASHQL_OPTION_URL]: url,
+                }),
+            );
             expect(method.matching).toEqual(schema.Matching.MATCHED);
             expect(method.value).toEqual(sx.LoadMethodType.HTTP);
             expect(url.matching).toEqual(schema.Matching.TYPE_MISMATCH);
         }
 
-        // Missing 
+        // Missing
         {
             const method = schema.enumNode(sx.NodeType.ENUM_DASHQL_LOAD_METHOD_TYPE, 0);
             const url = schema.numberNode();
-            stmt.matchSchema(schema.objectNode(sx.NodeType.OBJECT_DASHQL_LOAD, {
-                [Key.DASHQL_LOAD_METHOD]: method,
-                [Key.DASHQL_OPTION_X]: url,
-            }));
+            stmt.matchSchema(
+                schema.objectNode(sx.NodeType.OBJECT_DASHQL_LOAD, {
+                    [Key.DASHQL_LOAD_METHOD]: method,
+                    [Key.DASHQL_OPTION_X]: url,
+                }),
+            );
             expect(method.matching).toEqual(schema.Matching.MATCHED);
             expect(method.value).toEqual(sx.LoadMethodType.HTTP);
             expect(url.matching).toEqual(schema.Matching.MISSING);

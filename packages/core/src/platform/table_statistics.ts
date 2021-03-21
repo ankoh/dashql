@@ -97,8 +97,8 @@ export class DatabaseTableStatistics implements TableStatisticsResolver {
 
     /// Build a standalone query
     protected buildStandaloneQuery(_tableInfo: model.DatabaseTableInfo, _req: TableStatisticsRequest): string {
-        console.assert("There are no standalone table statistics at the moment");
-        return "";
+        console.assert('There are no standalone table statistics at the moment');
+        return '';
     }
 
     /// Request table statistics

@@ -16,7 +16,7 @@ export interface CacheEntry {
 export interface CachedFileData extends CacheEntry {
     /// The object URL
     objectURL: ObjectURL;
-};
+}
 
 /// A cached HTTP entry
 export interface CachedHTTPData extends CacheEntry {

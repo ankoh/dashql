@@ -1,5 +1,5 @@
 import { beforeAll, beforeEach, describe, test, expect } from '@jest/globals';
-import { analyzer, edit  } from '../src/index_node';
+import { analyzer, edit } from '../src/index_node';
 import * as path from 'path';
 
 var az: analyzer.AnalyzerBindings;
@@ -15,7 +15,7 @@ beforeEach(async () => {
 
 describe('Program editor', () => {
     test('add viz position', () => {
-        const p = az.parseProgram("VIZ weather_avg USING LINE");
+        const p = az.parseProgram('VIZ weather_avg USING LINE');
         const pi = az.instantiateProgram();
         expect(p.buffer.statementsLength()).toEqual(1);
         expect(pi).not.toEqual(null);
@@ -28,13 +28,12 @@ describe('Program editor', () => {
                     column: 2,
                     width: 3,
                     height: 4,
-                }
-            }
+                },
+            },
         ]);
         expect(n).not.toEqual(null);
         expect(n!.program.buffer.statementsLength()).toEqual(1);
-        const expected =
-`VIZ weather_avg USING LINE (
+        const expected = `VIZ weather_avg USING LINE (
     position = (
         row = 1,
         column = 2,
@@ -47,14 +46,15 @@ describe('Program editor', () => {
 
     test('update viz position', () => {
         const p = az.parseProgram(
-`VIZ weather_avg USING LINE (
+            `VIZ weather_avg USING LINE (
     position = (
         row = 1,
         column = 2,
         width = 3,
         height = 4
     )
-)`);
+)`,
+        );
         const pi = az.instantiateProgram();
         expect(p.buffer.statementsLength()).toEqual(1);
         expect(pi).not.toEqual(null);
@@ -67,13 +67,12 @@ describe('Program editor', () => {
                     column: 9,
                     width: 8,
                     height: 7,
-                }
-            }
+                },
+            },
         ]);
         expect(n).not.toEqual(null);
         expect(n!.program.buffer.statementsLength()).toEqual(1);
-        const expected =
-`VIZ weather_avg USING LINE (
+        const expected = `VIZ weather_avg USING LINE (
     position = (
         row = 10,
         column = 9,

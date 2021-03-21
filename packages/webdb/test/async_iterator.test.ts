@@ -9,7 +9,7 @@ const testRows = 3000;
 beforeAll(async () => {
     worker = new Worker('/base/dist/webdb_async.worker.js');
     db = new webdb.AsyncWebDB(logger, worker);
-    await db.open("/base/dist/webdb.wasm");
+    await db.open('/base/dist/webdb.wasm');
 });
 
 afterAll(async () => {
@@ -71,7 +71,7 @@ describe('QueryResultRowIterator', () => {
         //});
         //it('simple join', async () => {
         //    let result = await conn.sendQuery(`
-        //        SELECT studenten.MatrNr, vorlesungen.Titel 
+        //        SELECT studenten.MatrNr, vorlesungen.Titel
         //        FROM parquet_scan('./data/studenten.parquet') studenten
         //        INNER JOIN parquet_scan('./data/hoeren.parquet') hoeren ON (studenten.MatrNr = hoeren.MatrNr)
         //        INNER JOIN parquet_scan('./data/vorlesungen.parquet') vorlesungen ON (vorlesungen.VorlNr = hoeren.VorlNr);
@@ -82,7 +82,6 @@ describe('QueryResultRowIterator', () => {
         //        MatrNr: number | null;
         //        Titel: string | null;
         //    }
-
         //    let vals: object[] = [];
         //    while (await chunks.nextAsync()) {
         //        for (let row of chunks.collect<Row>()) {
@@ -92,7 +91,6 @@ describe('QueryResultRowIterator', () => {
         //            });
         //        }
         //    }
-
         //    expect(vals).toStrictEqual([
         //        { MatrNr: 26120, Titel: 'Grundzüge' },
         //        { MatrNr: 27550, Titel: 'Grundzüge' },

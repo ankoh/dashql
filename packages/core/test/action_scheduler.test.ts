@@ -19,14 +19,14 @@ let conn: webdb.AsyncWebDBConnection;
 beforeAll(async () => {
     ana = new analyzer.Analyzer({}, path.resolve(__dirname, '../src/analyzer/analyzer_wasm_node.wasm'));
     await ana.init();
-    worker = new Worker(path.resolve(__dirname, "../../webdb/dist/webdb_node_async.worker.js"));
+    worker = new Worker(path.resolve(__dirname, '../../webdb/dist/webdb_node_async.worker.js'));
     db = new webdb.AsyncWebDB(logger, worker);
 });
 
 beforeEach(async () => {
     try {
         await ana.reset();
-        await db.open(path.resolve(__dirname, "../../webdb/dist/webdb.wasm"));
+        await db.open(path.resolve(__dirname, '../../webdb/dist/webdb.wasm'));
         conn = await db.connect();
     } catch (e) {
         console.error(e);
@@ -127,14 +127,8 @@ describe('Action Scheduler', () => {
                 ProgramActionType.LOAD_HTTP,
                 ProgramActionType.EXTRACT_CSV,
             ]);
-            expect(scheduler.actions.map(a => a.buffer.dependsOnArray())).toEqual([
-                null,
-                new Uint32Array([0]),
-            ]);
-            expect(scheduler.actions.map(a => a.buffer.requiredForArray())).toEqual([
-                new Uint32Array([1]),
-                null,
-            ]);
+            expect(scheduler.actions.map(a => a.buffer.dependsOnArray())).toEqual([null, new Uint32Array([0])]);
+            expect(scheduler.actions.map(a => a.buffer.requiredForArray())).toEqual([new Uint32Array([1]), null]);
 
             const ctx = new actions.ActionContext(plat, plan!);
             const diff = new utils.NativeStack();

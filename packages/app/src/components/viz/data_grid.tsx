@@ -253,11 +253,7 @@ export class DataGrid extends React.Component<Props, State> {
                 limit,
                 (iter: webdb.ChunkIterator, chunkStart: number, skipHere: number, rowsHere: number) => {
                     let chunkRow = 0;
-                    for (const v of iter.iterateNumberColumn(
-                        columnIndex,
-                        skipHere,
-                        rowsHere,
-                    )) {
+                    for (const v of iter.iterateNumberColumn(columnIndex, skipHere, rowsHere)) {
                         const rowIndex = props.rowStartIndex + chunkStart + chunkRow - skipHere;
                         const rowDatum = props.rowSizeAndPositionManager.getSizeAndPositionOfCell(rowIndex);
                         const cell = this.renderAvailableDataCell(

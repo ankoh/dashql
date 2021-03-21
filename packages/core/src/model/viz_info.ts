@@ -38,7 +38,7 @@ export interface M5Config {
     attributeX: string;
     attributeY: string;
     domainX: DomainValues;
-};
+}
 
 export interface VizDataSource {
     readonly queryType: VizQueryType;
