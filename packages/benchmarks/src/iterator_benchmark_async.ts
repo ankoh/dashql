@@ -4,9 +4,6 @@ import * as core from '@dashql/core';
 import * as benny from 'benny';
 import kleur from 'kleur';
 
-import workerPath from '@dashql/webdb/dist/webdb_node_async.worker.js';
-import wasmPath from '@dashql/webdb/dist/webdb.wasm';
-
 const noop = () => {};
 
 async function main(db: webdb.AsyncWebDB) {
@@ -336,9 +333,9 @@ async function main(db: webdb.AsyncWebDB) {
 }
 
 const logger = new webdb.VoidLogger();
-const worker = new Worker(workerPath);
+const worker = new Worker("../webdb/dist/webdb_node_async.worker.js");
 const db = new webdb.AsyncWebDB(logger, worker);
-db.open(wasmPath)
+db.open('../webdb/dist/webdb.wasm')
     .then(() => main(db))
     .then(() => db.terminate())
     .catch(e => console.error(e));
