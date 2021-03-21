@@ -12,12 +12,12 @@ ${FLATC} --version \
 
 TMP=$(mktemp -d)
 
-SPEC_DIR="${PROJECT_ROOT}/proto/spec/"
+SPEC_DIR="${PROJECT_ROOT}/packages/proto/spec/"
 SPEC_INDEX="${SPEC_DIR}/proto.fbs"
 
-OUT_DIR_RS="${PROJECT_ROOT}/proto/gen"
-OUT_DIR_CPP="${PROJECT_ROOT}/proto/gen/include/dashql"
-OUT_DIR_JS="${PROJECT_ROOT}/proto/gen"
+OUT_DIR_RS="${PROJECT_ROOT}/packages/proto/gen"
+OUT_DIR_CPP="${PROJECT_ROOT}/packages/proto/gen/include/dashql"
+OUT_DIR_JS="${PROJECT_ROOT}/packages/proto/gen"
 
 set -x
 

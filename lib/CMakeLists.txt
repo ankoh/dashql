@@ -136,7 +136,7 @@ endif ()
 # ---------------------------------------------------------------------------
 # Proto
 
-add_subdirectory("${CMAKE_SOURCE_DIR}/../proto" "${CMAKE_BINARY_DIR}/proto/")
+add_subdirectory("${CMAKE_SOURCE_DIR}/../packages/proto" "${CMAKE_BINARY_DIR}/proto/")
 
 # ---------------------------------------------------------------------------
 # Headers
