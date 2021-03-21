@@ -9,9 +9,9 @@ inputs:
   emscripten_cache:
     description: "emscripten cache directory"
     default: /home/actions/.emscripten_cache
-  npm_cache:
-    description: "npm cache directory"
-    default: /home/actions/.npm_cache
+  yarn_cache:
+    description: "yarn cache directory"
+    default: /home/actions/.yarn_cache
   ccache:
     description: "ccache directory"
     default: /home/actions/.ccache
@@ -37,10 +37,10 @@ runs:
             --group-add actions \
             -v ${{ github.workspace }}:/wd/ \
             -v ${{ inputs.emscripten_cache }}:/mnt/emscripten_cache/ \
-            -v ${{ inputs.npm_cache }}:/mnt/npm_cache/ \
+            -v ${{ inputs.yarn_cache }}:/mnt/yarn_cache/ \
             -v ${{ inputs.ccache }}:/mnt/ccache/ \
             -e EM_CACHE=/mnt/emscripten_cache \
-            -e NPM_CACHE=/mnt/npm_cache \
+            -e YARN_CACHE=/mnt/yarn_cache \
             -e CCACHE_DIR=/mnt/ccache \
             -e CCACHE_BASEDIR=/wd/ \
             dashql/ci:${CI_IMAGE_TAG} \

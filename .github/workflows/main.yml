@@ -167,61 +167,59 @@ jobs:
       with:
         script: |-
             source /opt/env.sh
-            cd ./proto
-            npm ci --no-optional --cache /mnt/npm_cache
-            npm run build
+            yarn config set cache-folder /mnt/yarn_cache
+            yarn --frozen-lockfile
+            yarn workspace @dashql/proto build
 
     - name: Build @dashql/webdb
       uses: ./ci/image
       with:
         script: |-
             source /opt/env.sh
-            cd ./webdb
-            npm ci --no-optional --cache /mnt/npm_cache
-            npm run build
+            yarn config set cache-folder /mnt/yarn_cache
+            yarn --frozen-lockfile
+            yarn workspace @dashql/webdb build
 
     - name: Build @dashql/core
       uses: ./ci/image
       with:
         script: |-
             source /opt/env.sh
-            cd ./core
-            npm ci --no-optional --cache /mnt/npm_cache
-            npm run build
+            yarn config set cache-folder /mnt/yarn_cache
+            yarn --frozen-lockfile
+            yarn workspace @dashql/core build
 
     - name: Build benchmarks
       uses: ./ci/image
       with:
         script: |-
             source /opt/env.sh
-            cd ./benchmarks
-            npm ci --no-optional --cache /mnt/npm_cache
-            npm run build
+            yarn config set cache-folder /mnt/yarn_cache
+            yarn --frozen-lockfile
+            yarn workspace @dashql/benchmarks build
 
     - name: Test @dashql/webdb
       uses: ./ci/image
       with:
         script: |-
             source /opt/env.sh
-            cd ./webdb
-            npm run test:ci
+            yarn workspace @dashql/webdb test:ci
 
     - name: Test @dashql/core
       uses: ./ci/image
       with:
         script: |-
             source /opt/env.sh
-            cd ./core
-            npm run test:ci
+            yarn workspace @dashql/core test:ci
 
     - name: Build App
       uses: ./ci/image
       with:
         script: |-
             source /opt/env.sh
-            cd ./app
-            npm ci --no-optional --cache /mnt/npm_cache
-            npm run build:release
+            yarn config set cache-folder /mnt/yarn_cache
+            yarn --frozen-lockfile
+            yarn workspace @dashql/app build:release
 
     - uses: codecov/codecov-action@v1
       with:
