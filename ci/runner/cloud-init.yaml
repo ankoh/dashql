@@ -41,5 +41,5 @@ runcmd:
   - rm ./runner.tgz
 
   # Cache directories
-  - mkdir -p /home/actions/.emscripten_cache /home/actions/.npm_cache /home/actions/.ccache
-  - chown -R actions:actions /home/actions/.emscripten_cache /home/actions/.npm_cache /home/actions/.ccache
+  - mkdir -p /home/actions/.emscripten_cache /home/actions/.yarn_cache /home/actions/.ccache
+  - chown -R actions:actions /home/actions/.emscripten_cache /home/actions/.yarn_cache /home/actions/.ccache
