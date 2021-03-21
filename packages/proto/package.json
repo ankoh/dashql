@@ -11,7 +11,7 @@
     },
     "devDependencies": {
         "@types/flatbuffers": "^1.10.0",
-        "typescript": "^4.1.2"
+        "typescript": "^4.2.3"
     },
     "optionalDependencies": {
         "fsevents": "*"
