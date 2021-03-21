@@ -1,5 +1,6 @@
 const path = require('path');
 const webpack = require('webpack');
+const WebpackBar = require('webpackbar');
 
 const base = {
     mode: 'production',
@@ -62,6 +63,7 @@ const base = {
         },
     },
     plugins: [
+        new WebpackBar(),
         new webpack.WatchIgnorePlugin({
             paths: [/node_modules\/^(@dashql)/, path.resolve(__dirname, './dist/')],
         }),
