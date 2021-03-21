@@ -75,7 +75,7 @@ bool dashql_webdb_fs_test(FFIResponse* packed) {
     auto db = std::make_unique<duckdb::DuckDB>(nullptr, &config);
     db->LoadExtension<duckdb::ParquetExtension>();
     auto con = duckdb::Connection{*db};
-    auto result = con.Query("SELECT * FROM parquet_scan('./data/studenten.parquet');");
+    auto result = con.Query("SELECT * FROM parquet_scan('/data/studenten.parquet');");
     std::cout << result->ToString() << std::endl;
     return result->ToString() ==
            "MatrNr\tName\tSemester\t\nINTEGER\tVARCHAR\tINTEGER\t\n"

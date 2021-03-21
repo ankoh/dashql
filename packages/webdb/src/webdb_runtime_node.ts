@@ -16,9 +16,9 @@ export var NodeWebDBRuntime: WebDBRuntime & {
     /// Blob Stream
 
     dashql_blob_stream_underflow(blobId: number, buf: number, size: number): number {
-        let blobStream = this.bindings!.getBlobStreamById(blobId);
+        let blobStream = NodeWebDBRuntime.bindings!.getBlobStreamById(blobId);
         if (blobStream === undefined) return 0;
-        return copyBlobStreamTo(blobStream, this.bindings!.instance!.HEAPU8, buf, size);
+        return copyBlobStreamTo(blobStream, NodeWebDBRuntime.bindings!.instance!.HEAPU8, buf, size);
     },
 
     /// File System
@@ -27,11 +27,11 @@ export var NodeWebDBRuntime: WebDBRuntime & {
     blobMap: [],
 
     dashql_webdb_fs_read: function (blobId: number, buf: number, bytes: number) {
-        if (blobId >= this.blobMap.length) return 0;
-        let blobStream = this.blobMap[blobId];
+        if (blobId >= NodeWebDBRuntime.blobMap.length) return 0;
+        let blobStream = NodeWebDBRuntime.blobMap[blobId];
         if (blobStream === null) return 0;
 
-        return copyBlobStreamTo(blobStream, this.bindings!.instance!.HEAPU8, buf, bytes);
+        return copyBlobStreamTo(blobStream, NodeWebDBRuntime.bindings!.instance!.HEAPU8, buf, bytes);
     },
     dashql_webdb_fs_write: function (blobId: number, buf: number, bytes: number) {
         throw Error('undefined');
@@ -49,7 +49,7 @@ export var NodeWebDBRuntime: WebDBRuntime & {
         throw Error('undefined');
     },
     dashql_webdb_fs_glob: function (pathPtr: number, pathLen: number) {
-        let instance = this.bindings!.instance!;
+        let instance = NodeWebDBRuntime.bindings!.instance!;
         const path = decoder.decode(instance.HEAPU8.subarray(pathPtr, pathPtr + pathLen));
         for (let f of fg.sync(path)) {
             const data = encoder.encode(f);
@@ -60,35 +60,35 @@ export var NodeWebDBRuntime: WebDBRuntime & {
     },
     dashql_webdb_fs_file_open: function (pathPtr: number, pathLen: number, flags: number) {
         // TODO: respect flags
-        const path = decoder.decode(this.bindings!.instance!.HEAPU8.subarray(pathPtr, pathPtr + pathLen));
+        const path = decoder.decode(NodeWebDBRuntime.bindings!.instance!.HEAPU8.subarray(pathPtr, pathPtr + pathLen));
 
-        for (let i = 0; i < this.blobMap.length; i++) {
-            if (this.blobMap[i] === null) {
-                this.blobMap[i] = NodeBlobStream.fromFile(path);
+        for (let i = 0; i < NodeWebDBRuntime.blobMap.length; i++) {
+            if (NodeWebDBRuntime.blobMap[i] === null) {
+                NodeWebDBRuntime.blobMap[i] = NodeBlobStream.fromFile(path);
                 return i;
             }
         }
 
-        const id = this.blobMap.length;
-        this.blobMap.push(NodeBlobStream.fromFile(path));
+        const id = NodeWebDBRuntime.blobMap.length;
+        NodeWebDBRuntime.blobMap.push(NodeBlobStream.fromFile(path));
         return id;
     },
     dashql_webdb_fs_file_close: function (blobId: number) {
-        if (blobId < this.blobMap.length) {
-            this.blobMap[blobId] = null;
+        if (blobId < NodeWebDBRuntime.blobMap.length) {
+            NodeWebDBRuntime.blobMap[blobId] = null;
         }
     },
     dashql_webdb_fs_file_get_size: function (blobId: number): number {
-        if (blobId < this.blobMap.length) {
-            let blob = this.blobMap[blobId];
+        if (blobId < NodeWebDBRuntime.blobMap.length) {
+            let blob = NodeWebDBRuntime.blobMap[blobId];
             if (blob == null) return 0;
             return blob.buffer.length;
         }
         return 0;
     },
     dashql_webdb_fs_file_get_last_modified_time: function (blobId: number) {
-        if (blobId < this.blobMap.length) {
-            let blob = this.blobMap[blobId];
+        if (blobId < NodeWebDBRuntime.blobMap.length) {
+            let blob = NodeWebDBRuntime.blobMap[blobId];
             if (blob == null || blob.path == null) return 0;
             return fs.statSync(blob.path).mtime.getTime();
         }
@@ -99,15 +99,15 @@ export var NodeWebDBRuntime: WebDBRuntime & {
         throw Error('undefined');
     },
     dashql_webdb_fs_file_set_pointer: function (blobId: number, location: number) {
-        if (blobId < this.blobMap.length) {
-            let blob = this.blobMap[blobId];
+        if (blobId < NodeWebDBRuntime.blobMap.length) {
+            let blob = NodeWebDBRuntime.blobMap[blobId];
             if (blob == null) return;
             blob.position = location;
         }
     },
     dashql_webdb_fs_file_exists: function (pathPtr: number, pathLen: number) {
         let result = fs.existsSync(
-            decoder.decode(this.bindings!.instance!.HEAPU8.subarray(pathPtr, pathPtr + pathLen)),
+            decoder.decode(NodeWebDBRuntime.bindings!.instance!.HEAPU8.subarray(pathPtr, pathPtr + pathLen)),
         );
         return result;
     },

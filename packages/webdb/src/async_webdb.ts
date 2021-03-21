@@ -157,6 +157,7 @@ export class AsyncWebDB {
             case AsyncWebDBRequestType.PING:
             case AsyncWebDBRequestType.FS_TEST:
             case AsyncWebDBRequestType.INGEST_BLOBSTREAM:
+            case AsyncWebDBRequestType.REGISTER_URL:
             case AsyncWebDBRequestType.IMPORT_CSV:
             case AsyncWebDBRequestType.OPEN:
             case AsyncWebDBRequestType.DISCONNECT:
@@ -263,6 +264,15 @@ export class AsyncWebDB {
         const task = new Task<AsyncWebDBRequestType.DISCONNECT, ConnectionID, null>(
             AsyncWebDBRequestType.DISCONNECT,
             conn,
+        );
+        return await this.postTask(task);
+    }
+
+    /// Registers the given URL as a file to be possibly loaded by WebDB.
+    public async registerURL(url: string): Promise<null> {
+        const task = new Task<AsyncWebDBRequestType.REGISTER_URL, string, null>(
+            AsyncWebDBRequestType.REGISTER_URL,
+            url,
         );
         return await this.postTask(task);
     }

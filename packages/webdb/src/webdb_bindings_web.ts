@@ -35,10 +35,14 @@ export class WebDB extends WebDBBindings {
         this._blobs = new Map<string, Blob>();
     }
 
-    /// Registers the given URL as a file to be possibly loaded by WebDB and fetches the blob.
-    public async registerURL(url: string) {
-        let blob = await fetch(url).then(r => r.blob());
-        this._blobs.set(url, blob);
+    /// Registers the given URL as a file to be possibly loaded by WebDB.
+    public registerURL(url: string): Promise<null> {
+        return fetch(url)
+            .then(r => r.blob())
+            .then(b => {
+                this._blobs.set(url, b);
+                return null;
+            });
     }
 
     /// Get the URLs currently registered.

@@ -41,6 +41,12 @@ export class WebDB extends WebDBBindings {
         this.path = path;
     }
 
+    /// Registers the given URL as a file to be possibly loaded by WebDB.
+    public registerURL(url: string): Promise<null> {
+        // For node we can fetch any file using the file system, so explicit registration of files is not needed.
+        return Promise.resolve(null);
+    }
+
     /// Instantiate the wasm module
     protected instantiateWasm(
         imports: any,

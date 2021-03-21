@@ -62,6 +62,9 @@ export abstract class WebDBBindings {
         return this._instance;
     }
 
+    /// Registers the given URL as a file to be possibly loaded by WebDB and fetches the blob.
+    public abstract registerURL(url: string): Promise<null>;
+
     /// Instantiate the module
     protected abstract instantiate(moduleOverrides: Partial<WebDBModule>): Promise<WebDBModule>;
 
