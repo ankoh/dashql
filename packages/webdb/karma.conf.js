@@ -31,7 +31,7 @@ const webpackConfig = {
                 loader: 'ts-loader',
                 exclude: [/node_modules/],
                 options: {
-                    configFile: "./tsconfig.test.json"
+                    configFile:  __dirname + "/tsconfig.test.json"
                 }
             },
             {
