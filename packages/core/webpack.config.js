@@ -3,6 +3,7 @@ const webpack = require('webpack');
 const nodeExternals = require('webpack-node-externals');
 const { CleanWebpackPlugin } = require('clean-webpack-plugin');
 const WatchRunPlugin = require('./webpack/watch_run_plugin');
+const WebpackBar = require('webpackbar');
 
 const browserTarget = {
     target: 'web',
@@ -69,6 +70,7 @@ const browserTarget = {
         },
     },
     plugins: [
+        new WebpackBar(),
         new CleanWebpackPlugin({
             root: './dist',
             cleanOnceBeforeBuildPatterns: ['*.wasm', '**/*.d.ts', '**/*.map', '!.*'],
