@@ -7,6 +7,9 @@
 
 ROOT_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
 
+UID=${shell id -u}
+GID=${shell id -g}
+
 APP_RELEASE_DIR="${ROOT_DIR}/app/build/release"
 APP_RELEASE_TAG="$(shell git rev-parse --short HEAD)"
 APP_DEPLOY_TMP="${ROOT_DIR}/artifacts/tmp"
@@ -227,6 +230,8 @@ docker_ci_image:
 		--platform linux/amd64 \
 		-t ${CI_IMAGE_FULLY_QUALIFIED} \
 		-f ./ci/image/Dockerfile \
+		--build-arg UID=${UID} \
+		--build-arg GID=${GID} \
 		-
 
 # Build infrastructure and packages required for development

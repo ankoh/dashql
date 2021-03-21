@@ -18,7 +18,12 @@ RUN apt-get update -qq \
 COPY --from=emsdk /emsdk /opt/emsdk
 
 SHELL ["/bin/bash", "-c"]
-RUN groupadd -g 10101 actions
+
+ARG UNAME=actions
+ARG UID=1000
+ARG GID=1000
+RUN groupadd -g ${GID} -o ${UNAME} \
+    && useradd -m -g ${GID} -u ${UID} -s /bin/bash ${UNAME}
 
 ENV NVM_DIR=/opt/nvm
 ARG NVM_VERSION="v0.37.2"
@@ -30,7 +35,8 @@ RUN mkdir -p /opt/nvm \
     && nvm install ${NODE_VERSION} \
     && nvm alias default ${NODE_VERSION} \
     && nvm use default \
-    && npm install --global yarn
+    && npm install --global yarn \
+    && chgrp -R actions /opt/nvm
 
 ARG FLATBUFFER_COMMIT="338393f854eb5ba24761a22cd9316ff5cee4eab0"
 RUN mkdir -p /tmp/flatbuffers/build /tmp/flatbuffers/install \
@@ -59,20 +65,14 @@ RUN export RUSTUP_HOME=/opt/rust \
     && curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain ${RUST_VERSION} -y \
     && export PATH=$PATH:/opt/rust/bin \
     && rustup target add wasm32-unknown-unknown \
-    && chgrp -R actions /opt/rust \
-    && chmod -R g=u /opt/rust
+    && chgrp -R actions /opt/rust
 
 ENV AZURE_CONFIG_DIR=/opt/azure
 RUN curl -sL https://aka.ms/InstallAzureCLIDeb | bash \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* \
     && mkdir -p /opt/azure \
-    && chgrp -R actions /opt/azure \
-    && chmod -R g=u /opt/azure
-
-RUN mkdir -p /.cmake \
-    && chgrp -R actions /.cmake \
-    && chmod -R g=u /.cmake
+    && chgrp -R actions /opt/azure
 
 RUN source /opt/emsdk/emsdk_env.sh \
     && echo "export PATH=$PATH:/opt/rust/bin" >> /opt/env.sh \
@@ -84,7 +84,10 @@ RUN source /opt/emsdk/emsdk_env.sh \
     && echo "export AZURE_CONFIG_DIR=/opt/azure" >> /opt/env.sh \
     && echo "source /opt/nvm/nvm.sh" >> /opt/env.sh \
     && printf '#!/bin/bash\n. /opt/env.sh\nexec "$@"\n' > /opt/entrypoint.sh \
-    && chmod +x /opt/entrypoint.sh
+    && chmod +x /opt/entrypoint.sh \
+    && chgrp actions /opt/entrypoint.sh
+
+USER ${UNAME}
 
 ENTRYPOINT ["tini", "-v", "--", "/opt/entrypoint.sh"]
 WORKDIR /wd
