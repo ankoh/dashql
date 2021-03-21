@@ -238,4 +238,4 @@ jobs:
                   script: |-
                       export AZ_PASS="${{ secrets.AZ_APP_PASS }}"
                       ./scripts/az_app_upload.sh app ./packages/app/build/release
-          t             ./scripts/az_app_old_rm.sh app '1 week'
+                      ./scripts/az_app_old_rm.sh app '1 week'
