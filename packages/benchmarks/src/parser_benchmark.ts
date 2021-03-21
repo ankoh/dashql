@@ -2,8 +2,6 @@ import * as core from '@dashql/core';
 import * as benny from 'benny';
 import kleur from 'kleur';
 
-import analyzerPath from '@dashql/core/dist/dashql_analyzer.wasm';
-
 function main(analyzer: core.analyzer.AnalyzerBindings) {
     let script = '';
     benny.suite(
@@ -49,8 +47,7 @@ VIZ foo USING TABLE;
     );
 }
 
-const analyzerBindings = new core.analyzer.Analyzer({}, analyzerPath);
-analyzerBindings
-    .init()
+const analyzerBindings = new core.analyzer.Analyzer({}, '../core/dist/dashql_analyzer.wasm');
+analyzerBindings.init()
     .then(() => main(analyzerBindings))
     .catch(e => console.error(e));
