@@ -13,6 +13,7 @@ RUN apt-get update -qq \
         libpthread-stubs0-dev \
         libboost-all-dev \
         libgbm-dev \
+        libxkbcommon-dev \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
