@@ -50,9 +50,9 @@ describe('QueryResultRowIterator', () => {
             let chunks = new webdb.ChunkStreamIterator(conn, result);
             let i = 0;
             while (await chunks.nextAsync()) {
-                chunks.iterateNumberColumn(0, (_row: number, v: number | null) => {
+                for (const v of chunks.iterateNumberColumn(0)) {
                     expect(v).toBe(i++ & 127);
-                });
+                }
             }
             expect(i).toBe(testRows + 1);
         });
@@ -67,9 +67,9 @@ describe('QueryResultRowIterator', () => {
             let chunks = new webdb.ChunkStreamIterator(conn, result);
             let vals: number[] = [];
             while (await chunks.nextAsync()) {
-                chunks.iterateNumberColumn(0, (_row: number, v: number | null) => {
+                for (const v of chunks.iterateNumberColumn(0)) {
                     vals.push(v!);
-                });
+                }
             }
             expect(vals).toStrictEqual([24002, 25403, 26120, 26830, 27550, 28106, 29120, 29555]);
         });
