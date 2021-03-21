@@ -2,12 +2,13 @@ const path = require('path');
 const os = require('os');
 const fs = require('fs');
 
-const wd = path.join(os.tmpdir(), '_karma_webpack_');
+const wd = path.join(os.tmpdir(), '_karma_webpack_dashql_webdb_');
 console.log(wd);
 if (fs.existsSync(wd)) {
     fs.rmdirSync(wd, {recursive: true})
 }
 
+// TODO load existing webpack config
 const webpackConfig = {
     mode: 'development',
     output: {
