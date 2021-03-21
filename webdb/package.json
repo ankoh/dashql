@@ -43,9 +43,9 @@
         "link": "npm link ../proto",
         "build": "webpack --mode=production && node ./gendts.js",
         "build:noexternals": "webpack -c  --mode=production && node ./gendts.js",
-        "test": "jest",
-        "test:ci": "jest --ci --reporters=default --reporters=jest-junit",
-        "test:karma": "karma start karma.conf.js"
+        "test:old": "jest",
+        "test:old:ci": "jest --ci --reporters=default --reporters=jest-junit",
+        "test": "karma start karma.conf.js"
     },
     "files": [
         "dist/**/*.d.ts",
