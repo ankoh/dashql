@@ -19,6 +19,8 @@ OUT_DIR_RS="${PROJECT_ROOT}/proto/gen"
 OUT_DIR_CPP="${PROJECT_ROOT}/proto/gen/include/dashql"
 OUT_DIR_JS="${PROJECT_ROOT}/proto/gen"
 
+set -x
+
 mkdir -p ${OUT_DIR_RS} ${OUT_DIR_CPP} ${OUT_DIR_JS}
 
 # ${FLATC} -I ${SPEC_DIR} -o ${OUT_DIR_RS} ${SPEC_INDEX} --rust \
