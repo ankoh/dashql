@@ -46,7 +46,7 @@ export class VegaRenderer extends React.Component<Props> {
                         data={this.props.vizInfo.dataSource}
                         width={width}
                     >
-                        {(result) => vega(result, width, height)}
+                        {result => vega(result, width, height)}
                     </core.access.M5Provider>
                 );
             }
@@ -59,7 +59,7 @@ export class VegaRenderer extends React.Component<Props> {
                         table={table}
                         data={this.props.vizInfo.dataSource}
                     >
-                        {(result) => vega(result, width, height)}
+                        {result => vega(result, width, height)}
                     </core.access.SampleProvider>
                 );
             }
@@ -77,9 +77,7 @@ export class VegaRenderer extends React.Component<Props> {
         }
         return (
             <VizCard title={this.props.vizInfo.title || 'Some Title'} controls={this.props.editable}>
-                <AutoSizer>
-                    {({width, height}) => this.renderContent(table, width, height)}
-                </AutoSizer>
+                <AutoSizer>{({ width, height }) => this.renderContent(table, width, height)}</AutoSizer>
             </VizCard>
         );
     }

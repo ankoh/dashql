@@ -1,1 +1,1 @@
-export * from "./browser_platform";
+export * from './browser_platform';

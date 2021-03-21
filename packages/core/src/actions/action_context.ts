@@ -1,5 +1,5 @@
-import { Plan } from "../model";
-import { Platform } from "../platform";
+import { Plan } from '../model';
+import { Platform } from '../platform';
 
 export class ActionContext {
     /// The platform
@@ -13,7 +13,11 @@ export class ActionContext {
     }
 
     /// Get the platform
-    public get platform() { return this._platform; }
+    public get platform() {
+        return this._platform;
+    }
     /// Get the plan
-    public get plan() { return this._plan; }
-};
+    public get plan() {
+        return this._plan;
+    }
+}

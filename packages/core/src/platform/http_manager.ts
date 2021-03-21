@@ -32,7 +32,7 @@ class HTTPRequestCache extends LRUCache<HTTPData> {
     onInsert(_slot: number, next: HTTPData, evicted: HTTPData | null): void {
         mutate(this._store.dispatch, {
             type: StateMutationType.CACHE_HTTP_DATA,
-            data: [next as CachedHTTPData, evicted?.key || null]
+            data: [next as CachedHTTPData, evicted?.key || null],
         });
     }
 
@@ -40,7 +40,7 @@ class HTTPRequestCache extends LRUCache<HTTPData> {
     onHit(_slot: number, next: HTTPData): void {
         mutate(this._store.dispatch, {
             type: StateMutationType.HIT_CACHED_HTTP_DATA,
-            data: next.key
+            data: next.key,
         });
     }
 }
@@ -54,7 +54,7 @@ export class HTTPManager {
     _hasher: IHasher | null;
 
     /// Constructor
-    constructor(store: DerivedReduxStore,cache_size: number = REQUEST_CACHE_SIZE) {
+    constructor(store: DerivedReduxStore, cache_size: number = REQUEST_CACHE_SIZE) {
         this._store = store;
         this._request_cache = new HTTPRequestCache(store, cache_size);
         this._hasher = null;
@@ -89,7 +89,10 @@ export class HTTPManager {
     }
 
     /// Send a HTTP request
-    public async request(req: AxiosRequestConfig, onProgress: HTTPProgressHandler = (_sig: string, _event: ProgressEvent) => {}): Promise<HTTPData> {
+    public async request(
+        req: AxiosRequestConfig,
+        onProgress: HTTPProgressHandler = (_sig: string, _event: ProgressEvent) => {},
+    ): Promise<HTTPData> {
         const sig = this.hashRequest(req);
         const cached = this._request_cache.find(sig);
         if (cached) return cached;

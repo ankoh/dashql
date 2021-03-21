@@ -51,7 +51,7 @@ export abstract class VizActionLogic extends ProgramActionLogic {
             for (let i = 0; i < c.typeModifiersLength(); ++i) {
                 mods.set(c.typeModifiers(i)!, true);
             }
-            const optionsJSON = c.options() || "";
+            const optionsJSON = c.options() || '';
             const options = JSON.parse(optionsJSON);
             this._vizComposer.addComponent(type, mods, options)!;
         }

@@ -17,7 +17,7 @@ export class Semaphore {
         }
     }
 
-    public async acquire(): Promise<(() => void)> {
+    public async acquire(): Promise<() => void> {
         return new Promise<() => void>((resolve, _reject) => {
             var task = async () => {
                 var released = false;
@@ -39,7 +39,7 @@ export class Semaphore {
         try {
             const result = f();
             return result;
-        } catch(e) {
+        } catch (e) {
             throw e;
         } finally {
             release();
@@ -51,7 +51,7 @@ export class Semaphore {
         try {
             const result = await f();
             return result;
-        } catch(e) {
+        } catch (e) {
             throw e;
         } finally {
             release();

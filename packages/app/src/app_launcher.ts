@@ -14,21 +14,21 @@ import config_url from '../static/config.json';
 function startStep(store: model.AppReduxStore, step: model.LaunchStep) {
     model.mutate(store.dispatch, {
         type: model.StateMutationType.UPDATE_LAUNCH_STEP,
-        data: [step, model.Status.RUNNING, null]
+        data: [step, model.Status.RUNNING, null],
     });
 }
 
 function stepSucceeded(store: model.AppReduxStore, step: model.LaunchStep) {
     model.mutate(store.dispatch, {
         type: model.StateMutationType.UPDATE_LAUNCH_STEP,
-        data: [step, model.Status.COMPLETED, null]
+        data: [step, model.Status.COMPLETED, null],
     });
 }
 
 function stepFailed(store: model.AppReduxStore, step: model.LaunchStep, error: string | null = null) {
     model.mutate(store.dispatch, {
         type: model.StateMutationType.UPDATE_LAUNCH_STEP,
-        data: [step, model.Status.FAILED, error]
+        data: [step, model.Status.FAILED, error],
     });
 }
 
@@ -36,7 +36,7 @@ async function configureApp(store: model.AppReduxStore): Promise<model.AppConfig
     try {
         const resp = await axios.get(config_url);
         if (!model.isAppConfig(resp.data)) {
-            stepFailed(store, model.LaunchStep.CONFIGURE_APP, "invalid app config");
+            stepFailed(store, model.LaunchStep.CONFIGURE_APP, 'invalid app config');
             return null;
         }
         const config = resp.data as model.AppConfig;
@@ -46,7 +46,7 @@ async function configureApp(store: model.AppReduxStore): Promise<model.AppConfig
         });
         stepSucceeded(store, model.LaunchStep.CONFIGURE_APP);
         return config;
-    } catch(e) {
+    } catch (e) {
         console.error(e);
         stepFailed(store, model.LaunchStep.CONFIGURE_APP);
     }
@@ -56,12 +56,12 @@ async function configureApp(store: model.AppReduxStore): Promise<model.AppConfig
 async function initWebDB(store: model.AppReduxStore, logger: webdb.Logger): Promise<webdb.AsyncWebDB | null> {
     startStep(store, model.LaunchStep.INIT_WEBDB);
     try {
-        const dbWorker = new Worker(new URL('@dashql/webdb/dist/webdb_async.worker.js', import.meta.url))
+        const dbWorker = new Worker(new URL('@dashql/webdb/dist/webdb_async.worker.js', import.meta.url));
         const db = new webdb.AsyncWebDB(logger, dbWorker);
         await db.open(webdb_wasm);
         stepSucceeded(store, model.LaunchStep.INIT_WEBDB);
         return db;
-    } catch(e) {
+    } catch (e) {
         stepFailed(store, model.LaunchStep.INIT_WEBDB);
     }
     return null;
@@ -74,7 +74,7 @@ async function initAnalyzer(store: model.AppReduxStore): Promise<core.analyzer.A
         await analyzer.init();
         stepSucceeded(store, model.LaunchStep.INIT_ANALYZER);
         return analyzer;
-    } catch(e) {
+    } catch (e) {
         stepFailed(store, model.LaunchStep.INIT_ANALYZER);
     }
     return null;
@@ -87,7 +87,7 @@ export async function launchApp(ctx: IAppContext) {
     const webdbPromise = initWebDB(ctx.store, ctx.logger);
     const analyzerPromise = initAnalyzer(ctx.store);
 
-    const init = await Promise.all([webdbPromise, analyzerPromise])
+    const init = await Promise.all([webdbPromise, analyzerPromise]);
     if (init[0] == null || init[1] == null) return;
     const webdb = init[0];
     const analyzer = init[1];
@@ -95,7 +95,7 @@ export async function launchApp(ctx: IAppContext) {
     ctx.platform = new platform.BrowserPlatform(ctx.store, ctx.logger, webdb, analyzer);
     await ctx.platform.init();
 
-    const example = examples.EXAMPLE_SCRIPT_MAP.get("demo_helloworld")!;
+    const example = examples.EXAMPLE_SCRIPT_MAP.get('demo_helloworld')!;
     await examples.loadScript(example, ctx.store);
     model.mutate(ctx.store.dispatch, {
         type: model.StateMutationType.MARK_LAUNCH_COMPLETE,

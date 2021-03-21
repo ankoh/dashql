@@ -1,7 +1,7 @@
 // Copyright (c) 2020 The DashQL Authors
 
-export * from "./bindings";
-export * from "./analyzer_wasm_module";
+export * from './bindings';
+export * from './analyzer_wasm_module';
 
 import dashql_analyzer_wasm from './analyzer_wasm_node.wasm';
 import dashql_core_init from './analyzer_wasm_node.js';
@@ -19,16 +19,19 @@ export class Analyzer extends AnalyzerBindings {
         this.path = path ?? dashql_analyzer_wasm;
     }
 
-    protected instantiateWasm(imports: any, success: (module: WebAssembly.Module) => void): Emscripten.WebAssemblyExports {
+    protected instantiateWasm(
+        imports: any,
+        success: (module: WebAssembly.Module) => void,
+    ): Emscripten.WebAssemblyExports {
         const imports_rt: WebAssembly.Imports = {
             ...imports,
             env: {
                 ...imports.env,
-                ...this.runtime
-            }
+                ...this.runtime,
+            },
         };
         const buf = fs.readFileSync(this.path);
-        WebAssembly.instantiate(buf, imports_rt).then((output) => {
+        WebAssembly.instantiate(buf, imports_rt).then(output => {
             success(output.instance);
         });
         return [];
@@ -37,7 +40,7 @@ export class Analyzer extends AnalyzerBindings {
     protected instantiate(moduleOverrides: Partial<DashQLAnalyzerModule>): Promise<DashQLAnalyzerModule> {
         return dashql_core_init({
             ...moduleOverrides,
-            instantiateWasm: this.instantiateWasm.bind(this)
+            instantiateWasm: this.instantiateWasm.bind(this),
         });
     }
 }

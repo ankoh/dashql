@@ -25,7 +25,7 @@ const base = {
                 exclude: [/node_modules/, path.resolve(__dirname, 'test')],
                 options: {
                     configFile: 'tsconfig.web.json',
-                }
+                },
             },
             {
                 test: /webdb_wasm(_node)?\.wasm$/,

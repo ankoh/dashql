@@ -30,7 +30,7 @@ export class DatabaseManager {
     }
 
     /// Resolve table statistics
-    public resolveTableStatistics(qualifiedTableName: string) : TableStatisticsResolver | null {
+    public resolveTableStatistics(qualifiedTableName: string): TableStatisticsResolver | null {
         const prev = this._tableStatistics.get(qualifiedTableName);
         if (!!prev) return prev;
         const stats = new DatabaseTableStatistics(this, qualifiedTableName);

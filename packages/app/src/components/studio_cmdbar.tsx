@@ -41,10 +41,10 @@ export class StudioCommandBar extends React.Component<StudioCommandBarProps> {
 
     // Download the script as a file
     downloadScriptAsFile() {
-        const element = document.createElement("a");
-        const file = new Blob([this.props.script.text], {type: 'text/plain'});
+        const element = document.createElement('a');
+        const file = new Blob([this.props.script.text], { type: 'text/plain' });
         element.href = URL.createObjectURL(file);
-        element.download = "script.dashql";
+        element.download = 'script.dashql';
         document.body.appendChild(element); // Required for this to work in FireFox
         element.click();
     }
@@ -66,7 +66,7 @@ export class StudioCommandBar extends React.Component<StudioCommandBarProps> {
 }
 
 const mapStateToProps = (state: model.AppState) => ({
-    script: state.core.script
+    script: state.core.script,
 });
 
 const mapDispatchToProps = (dispatch: model.Dispatch) => ({

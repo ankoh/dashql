@@ -14,38 +14,36 @@ beforeEach(async () => {
 });
 
 describe('Parser', () => {
-   describe('errors', () => {
-       test('syntax error', async () => {
-           const r = analyzerBindings.parseProgram("?");
-           const p = r.buffer;
-           expect(p.statementsLength()).toEqual(0);
-           expect(p.errorsLength()).toEqual(1);
-       });
-   });
+    describe('errors', () => {
+        test('syntax error', async () => {
+            const r = analyzerBindings.parseProgram('?');
+            const p = r.buffer;
+            expect(p.statementsLength()).toEqual(0);
+            expect(p.errorsLength()).toEqual(1);
+        });
+    });
 
-   describe('single statements', () => {
-       test('select 1', async () => {
-           const r = analyzerBindings.parseProgram(`
+    describe('single statements', () => {
+        test('select 1', async () => {
+            const r = analyzerBindings.parseProgram(`
                select 1;
            `);
-           const p = r.buffer;
-           expect(p.errorsLength()).toEqual(0);
-           expect(p.statementsLength()).toEqual(1);
-       });
+            const p = r.buffer;
+            expect(p.errorsLength()).toEqual(0);
+            expect(p.statementsLength()).toEqual(1);
+        });
 
-       test('load http from url', async () => {
-           const r = analyzerBindings.parseProgram(`
+        test('load http from url', async () => {
+            const r = analyzerBindings.parseProgram(`
                 LOAD weather_csv FROM http (
                     url = 'https://localhost/test'
                 );
            `);
-           const p = r.buffer;
-           expect(p.errorsLength()).toEqual(0);
-           expect(p.statementsLength()).toEqual(1);
-       });
-   });
-
-
+            const p = r.buffer;
+            expect(p.errorsLength()).toEqual(0);
+            expect(p.statementsLength()).toEqual(1);
+        });
+    });
 
     // describe('node inspection', () => {
     //     test('multiple statements', () => {

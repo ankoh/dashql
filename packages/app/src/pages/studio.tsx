@@ -18,7 +18,11 @@ class Studio extends React.Component<Props> {
             <div className={styles.studio}>
                 <div className={styles.program}>
                     <div className={styles.program_info}>
-                        <div className={styles.program_info_entry}>{core.model.getScriptURIPrefixName(this.props.script.uriPrefix)}://{this.props.script.uriName}{this.props.script.modified ? '*' : ''}</div>
+                        <div className={styles.program_info_entry}>
+                            {core.model.getScriptURIPrefixName(this.props.script.uriPrefix)}://
+                            {this.props.script.uriName}
+                            {this.props.script.modified ? '*' : ''}
+                        </div>
                         <div className={styles.program_info_flex} />
                         <div className={styles.program_info_entry}>
                             {this.props.program?.buffer.statementsLength() || 0} statements
@@ -26,7 +30,9 @@ class Studio extends React.Component<Props> {
                         <div className={styles.program_info_divider} />
                         <div className={styles.program_info_entry}>{this.props.script.lineCount} lines</div>
                         <div className={styles.program_info_divider} />
-                        <div className={styles.program_info_entry}>{core.utils.formatBytes(this.props.script.bytes || 0)}</div>
+                        <div className={styles.program_info_entry}>
+                            {core.utils.formatBytes(this.props.script.bytes || 0)}
+                        </div>
                     </div>
                     <EditorLoader className={styles.program_editor} />
                     <StudioToolBar />

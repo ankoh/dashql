@@ -1,4 +1,3 @@
-
 export function estimateUTF16Length(s: string) {
     // Assuming the String is UTF-16
     let n = 0;
@@ -34,6 +33,5 @@ export function estimateUTF16Length(s: string) {
 }
 
 export function countLines(s: string) {
-    return (s.match(/\n/g) || '').length + 1
+    return (s.match(/\n/g) || '').length + 1;
 }
-

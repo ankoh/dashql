@@ -25,13 +25,14 @@ const browserTarget = {
         extensions: ['.ts', '.tsx', '.js', '.jsx', '.css'],
     },
     module: {
-        rules: [{
+        rules: [
+            {
                 test: /\.tsx?$/,
                 loader: 'ts-loader',
                 exclude: [/node_modules/, path.resolve(__dirname, 'test')],
                 options: {
                     configFile: 'tsconfig.web.json',
-                }
+                },
             },
             {
                 test: /analyzer_wasm(_node)?\.wasm$/,

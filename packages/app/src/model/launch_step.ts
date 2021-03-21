@@ -1,4 +1,4 @@
-import * as Immutable from "immutable";
+import * as Immutable from 'immutable';
 
 /// Status code
 export enum Status {
@@ -31,34 +31,39 @@ export interface LaunchStepInfo {
     error: string | null;
 }
 
-export const DEFAULT_LAUNCH_STEPS = [
-    LaunchStep.CONFIGURE_APP,
-    LaunchStep.INIT_ANALYZER,
-    LaunchStep.INIT_WEBDB,
-];
+export const DEFAULT_LAUNCH_STEPS = [LaunchStep.CONFIGURE_APP, LaunchStep.INIT_ANALYZER, LaunchStep.INIT_WEBDB];
 
 export function createLaunchSteps(): Immutable.Map<LaunchStep, LaunchStepInfo> {
     return Immutable.Map([
-        [LaunchStep.CONFIGURE_APP, {
-            label: "Configure the application",
-            status: Status.NONE,
-            startedAt: null,
-            lastUpdateAt: null,
-            error: null,
-        }],
-        [LaunchStep.INIT_ANALYZER, {
-            label: "Initialize the analyzer",
-            status: Status.NONE,
-            startedAt: null,
-            lastUpdateAt: null,
-            error: null,
-        }],
-        [LaunchStep.INIT_WEBDB, {
-            label: "Initialize the database",
-            status: Status.NONE,
-            startedAt: null,
-            lastUpdateAt: null,
-            error: null,
-        }]
+        [
+            LaunchStep.CONFIGURE_APP,
+            {
+                label: 'Configure the application',
+                status: Status.NONE,
+                startedAt: null,
+                lastUpdateAt: null,
+                error: null,
+            },
+        ],
+        [
+            LaunchStep.INIT_ANALYZER,
+            {
+                label: 'Initialize the analyzer',
+                status: Status.NONE,
+                startedAt: null,
+                lastUpdateAt: null,
+                error: null,
+            },
+        ],
+        [
+            LaunchStep.INIT_WEBDB,
+            {
+                label: 'Initialize the database',
+                status: Status.NONE,
+                startedAt: null,
+                lastUpdateAt: null,
+                error: null,
+            },
+        ],
     ]);
 }

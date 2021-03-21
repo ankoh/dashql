@@ -16,11 +16,17 @@ export class Plan {
     }
 
     /// Access the program
-    public get program() { return this.programInstance.program; }
+    public get program() {
+        return this.programInstance.program;
+    }
     /// Access the parameters
-    public get parameters() { return this.programInstance.parameters; }
+    public get parameters() {
+        return this.programInstance.parameters;
+    }
     /// Access the action graph
-    public get action_graph() { return this.buffer.actionGraph(); }
+    public get action_graph() {
+        return this.buffer.actionGraph();
+    }
 
     /// Iterate setup actions
     public iterateSetupActions(fn: (idx: number, node: proto.action.SetupAction) => void) {

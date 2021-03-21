@@ -23,7 +23,7 @@ export enum LogTopic {
 export enum LogEvent {
     OK = 1,
     ERROR = 2,
-    START = 3
+    START = 3,
 }
 
 export type LogEntry<O, T, E, V> = webdb.LogEntry<O, T, E, V>;
@@ -42,8 +42,7 @@ export type LogEntryVariant =
     | LogEntry<LogOrigin.SCAN_PROVIDER, LogTopic.REQUEST_SCAN, LogEvent.OK, undefined>
     | LogEntry<LogOrigin.ACTION_SCHEDULER, LogTopic.PREPARE_ACTION, LogEvent.ERROR, any>
     | LogEntry<LogOrigin.ACTION_SCHEDULER, LogTopic.EXECUTE_ACTION, LogEvent.ERROR, any>
-    | webdb.LogEntryVariant
-    ;
+    | webdb.LogEntryVariant;
 
 export function getLogLevelLabel(level: webdb.LogLevel) {
     return webdb.getLogLevelLabel(level);
@@ -56,21 +55,21 @@ export function getLogEventLabel(event: LogEvent | webdb.LogEvent) {
 export function getLogTopicLabel(topic: LogTopic | webdb.LogTopic) {
     switch (topic) {
         case LogTopic.DB_CONNECT:
-            return "CONNECT";
+            return 'CONNECT';
         case LogTopic.DB_DISCONNECT:
-            return "DISCONNECT";
+            return 'DISCONNECT';
         case LogTopic.PARSE_PROGRAM:
-            return "PARSE";
+            return 'PARSE';
         case LogTopic.INSTANTIATE_PROGRAM:
-            return "INSTANTIATE";
+            return 'INSTANTIATE';
         case LogTopic.SCHEDULE_PROGRAM:
-            return "SCHEDULE";
+            return 'SCHEDULE';
         case LogTopic.REQUEST_SCAN:
-            return "REQUEST";
+            return 'REQUEST';
         case LogTopic.PREPARE_ACTION:
-            return "PREPARE";
+            return 'PREPARE';
         case LogTopic.EXECUTE_ACTION:
-            return "EXECUTE";
+            return 'EXECUTE';
         default:
             return webdb.getLogTopicLabel(topic);
     }
@@ -79,13 +78,13 @@ export function getLogTopicLabel(topic: LogTopic | webdb.LogTopic) {
 export function getLogOriginLabel(origin: LogOrigin | webdb.LogOrigin) {
     switch (origin) {
         case LogOrigin.DB_MANAGER:
-            return "DATABASE ACCESS";
+            return 'DATABASE ACCESS';
         case LogOrigin.SCRIPT_PIPELINE:
-            return "SCRIPT PIPELINE";
+            return 'SCRIPT PIPELINE';
         case LogOrigin.SCAN_PROVIDER:
-            return "SCAN PROVIDER";
+            return 'SCAN PROVIDER';
         case LogOrigin.ACTION_SCHEDULER:
-            return "ACTION SCHEDULER";
+            return 'ACTION SCHEDULER';
         default:
             return webdb.getLogOriginLabel(origin);
     }

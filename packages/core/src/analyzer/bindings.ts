@@ -201,13 +201,18 @@ export abstract class AnalyzerBindings {
     }
 
     /// Update an action status
-    public updateActionStatus(action_class: proto.action.ActionClass, action_id: number, action_status: proto.action.ActionStatusCode) {
+    public updateActionStatus(
+        action_class: proto.action.ActionClass,
+        action_id: number,
+        action_status: proto.action.ActionStatusCode,
+    ) {
         if (!this._instance || !this._programInstance) return;
-        this._instance.ccall('dashql_analyzer_update_action_status', null, ['number', 'number', 'number'], [
-            action_class as number,
-            action_id,
-            action_status as number
-        ]);
+        this._instance.ccall(
+            'dashql_analyzer_update_action_status',
+            null,
+            ['number', 'number', 'number'],
+            [action_class as number, action_id, action_status as number],
+        );
     }
 
     /// Free memory

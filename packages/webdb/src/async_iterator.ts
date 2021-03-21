@@ -1,8 +1,6 @@
 // Copyright (c) 2020 The DashQL Authors
 
-import {
-    ChunkIterator,
-} from './iterator_base';
+import { ChunkIterator } from './iterator_base';
 import { AsyncConnection } from './async_webdb';
 import { webdb as proto } from '@dashql/proto';
 
@@ -18,7 +16,7 @@ export class ChunkStreamIterator extends ChunkIterator {
 
     /** Get the next chunk synchronously */
     public nextBlocking(): boolean {
-        console.error("The asynchronous stream iterator does not support blocking iteration");
+        console.error('The asynchronous stream iterator does not support blocking iteration');
         return false;
     }
 

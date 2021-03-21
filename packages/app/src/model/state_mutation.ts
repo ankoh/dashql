@@ -1,14 +1,14 @@
-import { model } from "@dashql/core";
-import { AppState } from "./state";
-import { AppConfig } from "./app_config";
-import { LaunchStep, Status } from "./launch_step";
+import { model } from '@dashql/core';
+import { AppState } from './state';
+import { AppConfig } from './app_config';
+import { LaunchStep, Status } from './launch_step';
 
 /// A mutation type
 export enum StateMutationType {
-    CONFIGURE_APP           = 'CONFIGURE_APP',
-    UPDATE_LAUNCH_STEP      = 'UPDATE_LAUNCH_STEP',
-    MARK_LAUNCH_COMPLETE    = 'SET_LAUNCH_COMPLETE',
-    OTHER                   = 'OTHER',
+    CONFIGURE_APP = 'CONFIGURE_APP',
+    UPDATE_LAUNCH_STEP = 'UPDATE_LAUNCH_STEP',
+    MARK_LAUNCH_COMPLETE = 'SET_LAUNCH_COMPLETE',
+    OTHER = 'OTHER',
 }
 
 /// An state mutation variant
@@ -16,8 +16,7 @@ export type StateMutationVariant =
     | model.StateMutation<StateMutationType.CONFIGURE_APP, AppConfig>
     | model.StateMutation<StateMutationType.UPDATE_LAUNCH_STEP, [LaunchStep, Status, string | null]>
     | model.StateMutation<StateMutationType.MARK_LAUNCH_COMPLETE, null>
-    | model.StateMutationVariant
-    ;
+    | model.StateMutationVariant;
 
 // The action dispatch
 export type Dispatch = (mutation: StateMutationVariant) => void;
@@ -28,10 +27,7 @@ export function mutate(dispatch: Dispatch, m: StateMutationVariant) {
 /// Mutation of the application state
 export class AppStateMutation {
     /// Set the editor program
-    public static reduce(
-        state: AppState = new AppState(),
-        mutation: StateMutationVariant,
-    ): AppState {
+    public static reduce(state: AppState = new AppState(), mutation: StateMutationVariant): AppState {
         switch (mutation.type) {
             case StateMutationType.CONFIGURE_APP:
                 return {
@@ -40,7 +36,7 @@ export class AppStateMutation {
                 };
             case StateMutationType.UPDATE_LAUNCH_STEP: {
                 const [step, status, error] = mutation.data;
-                const steps = state.launchSteps.withMutations((s) => {
+                const steps = state.launchSteps.withMutations(s => {
                     const info = s.get(step);
                     const now = new Date();
                     if (!info) return;
@@ -65,10 +61,12 @@ export class AppStateMutation {
             }
             default: {
                 const s = model.StateMutations.reduce(state.core, mutation);
-                return s === state.core ? state : {
-                    ...state,
-                    core: s 
-                };
+                return s === state.core
+                    ? state
+                    : {
+                          ...state,
+                          core: s,
+                      };
             }
         }
     }

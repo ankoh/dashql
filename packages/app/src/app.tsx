@@ -21,7 +21,8 @@ const store = model.createStore();
 const logger = new core.platform.LogManager(store);
 
 const ctx: IAppContext = {
-    store, logger,
+    store,
+    logger,
     platform: null,
 };
 

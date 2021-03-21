@@ -34,7 +34,7 @@ export class ChunkStreamIterator extends ChunkIterator {
     }
     /** Get the next chunk asynchronously */
     public async nextAsync(): Promise<boolean> {
-        console.error("The blocking stream iterator does not support asynchronous iteration");
+        console.error('The blocking stream iterator does not support asynchronous iteration');
         return Promise.resolve(false);
     }
 }
@@ -64,7 +64,7 @@ export class ChunkArrayIterator extends ChunkIterator {
     public rewind() {
         this._currentChunkID = -1;
     }
-    
+
     /** Get the next chunk */
     public nextBlocking(): boolean {
         if (this._currentChunkID + 1 >= this._chunks.length) {
@@ -77,7 +77,7 @@ export class ChunkArrayIterator extends ChunkIterator {
 
     /** Get the next chunk asynchronously */
     public async nextAsync(): Promise<boolean> {
-        console.error("The blocking array iterator does not support asynchronous iteration");
+        console.error('The blocking array iterator does not support asynchronous iteration');
         return Promise.resolve(false);
     }
 }

@@ -1,6 +1,6 @@
 import * as webdb from '@dashql/webdb/dist/webdb_async';
-import * as model from "../model";
-import * as error from "../error";
+import * as model from '../model';
+import * as error from '../error';
 
 export interface Logger {
     log(entry: model.LogEntryVariant): void;

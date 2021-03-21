@@ -34,7 +34,12 @@ export class TableRenderer extends React.Component<Props> {
         const targetQualified = table.tableNameQualified;
         return (
             <VizCard title={this.props.vizInfo.title || `Table ${targetShort}`} controls={this.props.editable}>
-                <ScanProvider logger={logger} database={db} targetName={targetShort} request={new core.access.ScanRequest().withRange(0, 1024)}>
+                <ScanProvider
+                    logger={logger}
+                    database={db}
+                    targetName={targetShort}
+                    request={new core.access.ScanRequest().withRange(0, 1024)}
+                >
                     {(data, requestData) => <DataGrid tableInfo={table} data={data} requestData={requestData} />}
                 </ScanProvider>
             </VizCard>

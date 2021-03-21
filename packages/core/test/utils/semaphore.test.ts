@@ -32,6 +32,5 @@ describe('Semaphore', () => {
         release2();
         await promise2;
         expect(counter).toEqual(2);
-
     });
 });

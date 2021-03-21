@@ -18,4 +18,3 @@ if (process.env.NODE_ENV === 'production') {
 } else {
     createStore = require('./store_dev').default;
 }
-

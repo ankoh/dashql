@@ -1,4 +1,4 @@
-@import "../vars.module.css";
+@import '../vars.module.css';
 
 .list {
     outline: none;
@@ -32,7 +32,6 @@
     text-align: right;
     color: var(--log_timestamp_color);
 }
-
 
 .expand {
     grid-row: 1;

@@ -5,7 +5,7 @@ const fs = require('fs');
 const wd = path.join(os.tmpdir(), '_karma_webpack_dashql_webdb_');
 console.log(wd);
 if (fs.existsSync(wd)) {
-    fs.rmdirSync(wd, {recursive: true})
+    fs.rmdirSync(wd, { recursive: true });
 }
 
 // TODO load existing webpack config
@@ -31,8 +31,8 @@ const webpackConfig = {
                 loader: 'ts-loader',
                 exclude: [/node_modules/],
                 options: {
-                    configFile:  __dirname + "/tsconfig.test.json"
-                }
+                    configFile: __dirname + '/tsconfig.test.json',
+                },
             },
             {
                 test: /\.wasm$/,
@@ -43,7 +43,7 @@ const webpackConfig = {
     },
 };
 
-process.env.CHROME_BIN = require('puppeteer').executablePath()
+process.env.CHROME_BIN = require('puppeteer').executablePath();
 
 module.exports = function (config) {
     config.set({
@@ -71,6 +71,6 @@ module.exports = function (config) {
         logLevel: config.LOG_INFO,
         autoWatch: true,
         browsers: ['ChromeHeadless'],
-        singleRun: true
+        singleRun: true,
     });
 };

@@ -1,7 +1,7 @@
 // Copyright (c) 2020 The DashQL Authors
 
-export * from "./bindings";
-export * from "./analyzer_wasm_module";
+export * from './bindings';
+export * from './analyzer_wasm_module';
 
 import dashql_analyzer_wasm from './analyzer_wasm.wasm';
 import dashql_core_init from './analyzer_wasm.js';
@@ -18,27 +18,30 @@ export class Analyzer extends AnalyzerBindings {
         this.path = path ?? dashql_analyzer_wasm;
     }
 
-    protected instantiateWasm(imports: any, success: (module: WebAssembly.Module) => void): Emscripten.WebAssemblyExports {
+    protected instantiateWasm(
+        imports: any,
+        success: (module: WebAssembly.Module) => void,
+    ): Emscripten.WebAssemblyExports {
         const imports_rt: WebAssembly.Imports = {
             ...imports,
             env: {
                 ...imports.env,
-                ...this.runtime
-            }
+                ...this.runtime,
+            },
         };
         if (WebAssembly.instantiateStreaming) {
-            WebAssembly.instantiateStreaming(fetch(this.path), imports_rt).then((output) => {
+            WebAssembly.instantiateStreaming(fetch(this.path), imports_rt).then(output => {
                 success(output.instance);
             });
         } else {
             fetch(this.path)
                 .then(resp => resp.arrayBuffer())
                 .then(bytes =>
-                    WebAssembly.instantiate(bytes, imports_rt).then((output) => {
+                    WebAssembly.instantiate(bytes, imports_rt).then(output => {
                         success(output.instance);
-                    })
+                    }),
                 )
-                .catch((error) => {
+                .catch(error => {
                     console.error('Failed to instantiate WASM:', error);
                 });
         }
@@ -48,7 +51,7 @@ export class Analyzer extends AnalyzerBindings {
     protected instantiate(moduleOverrides: Partial<DashQLAnalyzerModule>): Promise<DashQLAnalyzerModule> {
         return dashql_core_init({
             ...moduleOverrides,
-            instantiateWasm: this.instantiateWasm.bind(this)
+            instantiateWasm: this.instantiateWasm.bind(this),
         });
     }
 }

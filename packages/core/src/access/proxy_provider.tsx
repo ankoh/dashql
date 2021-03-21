@@ -52,13 +52,19 @@ interface ProxyPartitionsProviderState {
     partitions: webdb.RowProxy[][];
 }
 
-export class ProxyPartitionsProvider extends React.Component<ProxyPartitionsProviderProps, ProxyPartitionsProviderState> {
+export class ProxyPartitionsProvider extends React.Component<
+    ProxyPartitionsProviderProps,
+    ProxyPartitionsProviderState
+> {
     constructor(props: ProxyPartitionsProviderProps) {
         super(props);
         this.state = ProxyPartitionsProvider.getDerivedStateFromProps(props);
     }
 
-    public static getDerivedStateFromProps(nextProps: ProxyPartitionsProviderProps, prevState?: ProxyPartitionsProviderState) {
+    public static getDerivedStateFromProps(
+        nextProps: ProxyPartitionsProviderProps,
+        prevState?: ProxyPartitionsProviderState,
+    ) {
         if (prevState?.result == nextProps.result) {
             return prevState;
         }

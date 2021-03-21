@@ -1,7 +1,7 @@
-import * as Immutable from "immutable";
-import * as core from "@dashql/core";
-import { LaunchStep, LaunchStepInfo, createLaunchSteps } from "./launch_step";
-import { AppConfig } from "./app_config";
+import * as Immutable from 'immutable';
+import * as core from '@dashql/core';
+import { LaunchStep, LaunchStepInfo, createLaunchSteps } from './launch_step';
+import { AppConfig } from './app_config';
 
 export class AppState implements core.model.DerivedState {
     /// The launch is complete?

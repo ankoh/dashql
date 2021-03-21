@@ -1,4 +1,4 @@
-import { NativeMinHeap } from "../utils";
+import { NativeMinHeap } from '../utils';
 
 /// A LRU cache entry
 export interface LRUCacheEntry {
@@ -53,7 +53,7 @@ export abstract class LRUCache<Value extends LRUCacheEntry> {
         const i = this._lruQueue.top();
         const e = this._slots[i];
         if (e) {
-            this._slotMapping.delete(e.key)
+            this._slotMapping.delete(e.key);
         }
         this._slots[i] = v;
         this._slotMapping.set(v.key, i);

@@ -23,10 +23,15 @@ export interface Script {
 
 export function getScriptURIPrefixName(prefix: ScriptURIPrefix) {
     switch (prefix) {
-        case ScriptURIPrefix.TMP: return "tmp";
-        case ScriptURIPrefix.EXAMPLES: return "examples";
-        case ScriptURIPrefix.GITHUB_GIST: return "gist";
-        case ScriptURIPrefix.HTTP: return "http";
-        case ScriptURIPrefix.HTTPS: return "https";
+        case ScriptURIPrefix.TMP:
+            return 'tmp';
+        case ScriptURIPrefix.EXAMPLES:
+            return 'examples';
+        case ScriptURIPrefix.GITHUB_GIST:
+            return 'gist';
+        case ScriptURIPrefix.HTTP:
+            return 'http';
+        case ScriptURIPrefix.HTTPS:
+            return 'https';
     }
 }

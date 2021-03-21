@@ -15,19 +15,27 @@ export class NativeStack {
 
     /// Resize the buffer
     protected resize(newSize: number) {
-        let b = new Uint32Array(newSize)
+        let b = new Uint32Array(newSize);
         b.set(this._buffer);
         this._buffer = b;
     }
 
     /// Clear the stack
-    public clear() { return this._size = 0; }
+    public clear() {
+        return (this._size = 0);
+    }
     /// Is empty?
-    public empty(): boolean { return this._size <= 0; }
+    public empty(): boolean {
+        return this._size <= 0;
+    }
     /// Return the top element
-    public top(): number { return this._buffer[this._size - 1]; }
+    public top(): number {
+        return this._buffer[this._size - 1];
+    }
     /// Pop an element
-    public pop(): number { return this._buffer[--this._size]; }
+    public pop(): number {
+        return this._buffer[--this._size];
+    }
     /// Push a new element
     public push(v: number) {
         if (this._size >= this._buffer.length) {

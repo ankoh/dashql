@@ -5,8 +5,9 @@ import kleur from 'kleur';
 import analyzerPath from '@dashql/core/dist/dashql_analyzer.wasm';
 
 function main(analyzer: core.analyzer.AnalyzerBindings) {
-    let script = "";
-    benny.suite(`Scripts`,
+    let script = '';
+    benny.suite(
+        `Scripts`,
         benny.add('Demo script 1', () => {
             script = `
 -- Test script for development.
@@ -40,13 +41,16 @@ VIZ foo USING TABLE;
             let bytes = Buffer.byteLength(script);
             let byteThroughtput = bytes / duration;
             console.log(
-                `${kleur.cyan(result.name)} tp: ${core.utils.formatThousands(throughput)}/s dtp: ${core.utils.formatBytes(byteThroughtput)}/s`,
+                `${kleur.cyan(result.name)} tp: ${core.utils.formatThousands(
+                    throughput,
+                )}/s dtp: ${core.utils.formatBytes(byteThroughtput)}/s`,
             );
         }),
     );
 }
 
 const analyzerBindings = new core.analyzer.Analyzer({}, analyzerPath);
-analyzerBindings.init()
+analyzerBindings
+    .init()
     .then(() => main(analyzerBindings))
     .catch(e => console.error(e));

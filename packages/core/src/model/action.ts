@@ -1,5 +1,5 @@
-import * as proto from "@dashql/proto";
-import { LogEntry } from "./log";
+import * as proto from '@dashql/proto';
+import { LogEntry } from './log';
 
 /// An action id
 export type ActionHandle = number;
@@ -7,8 +7,8 @@ export type ActionHandle = number;
 /// The scheduler status
 export enum ActionSchedulerStatus {
     Idle = 0,
-    Working = 1
-};
+    Working = 1,
+}
 
 /// Build an action id
 export function buildActionHandle(action_idx: number, action_class: proto.action.ActionClass): ActionHandle {
@@ -64,4 +64,4 @@ export interface ActionUpdate {
     statusCode: proto.action.ActionStatusCode;
     /// The blocker (if any)
     blocker: proto.action.ActionBlocker | null;
-};
+}

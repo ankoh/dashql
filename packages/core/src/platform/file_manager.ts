@@ -26,7 +26,7 @@ class FileCache extends LRUCache<FileData> {
     onInsert(_slot: number, next: FileData, evicted: FileData | null): void {
         mutate(this._store.dispatch, {
             type: StateMutationType.CACHE_FILE_DATA,
-            data: [{ objectURL: next.objectURL} as CachedFileData, evicted?.key || null]
+            data: [{ objectURL: next.objectURL } as CachedFileData, evicted?.key || null],
         });
     }
 
@@ -34,7 +34,7 @@ class FileCache extends LRUCache<FileData> {
     onHit(_slot: number, next: FileData): void {
         mutate(this._store.dispatch, {
             type: StateMutationType.HIT_CACHED_FILE_DATA,
-            data: next.key
+            data: next.key,
         });
     }
 }
@@ -61,7 +61,7 @@ export class FileManager {
     public addFile(key: string, file: File): ObjectURL {
         return this._file_cache.insert({
             key: key,
-            objectURL: URL.createObjectURL(file) as string
+            objectURL: URL.createObjectURL(file) as string,
         }).objectURL;
     }
 }
