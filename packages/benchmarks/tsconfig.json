@@ -16,16 +16,14 @@
         "suppressImplicitAnyIndexErrors": true,
         "lib": ["ESNext.Array", "DOM", "DOM.Iterable"],
         "types": ["node"],
-        "baseUrl": ".",
+        "baseUrl": "."
     },
     "files": [
         "./src/iterator_benchmark.ts",
         "./src/iterator_benchmark_async.ts",
         "./src/parser_benchmark.ts",
-        "./src/proxy_benchmark.ts",
+        "./src/proxy_benchmark.ts"
     ],
-    "include": [
-        "./types/*",
-    ],
+    "include": ["./types/*"],
     "exclude": ["./node_modules/*"]
 }
