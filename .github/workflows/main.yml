@@ -167,7 +167,6 @@ jobs:
       with:
         script: |-
             source /opt/env.sh
-            yarn config set cache-folder /mnt/yarn_cache
             yarn --frozen-lockfile
             yarn workspace @dashql/proto build
 
@@ -176,7 +175,6 @@ jobs:
       with:
         script: |-
             source /opt/env.sh
-            yarn config set cache-folder /mnt/yarn_cache
             yarn --frozen-lockfile
             yarn workspace @dashql/webdb build
 
@@ -185,7 +183,6 @@ jobs:
       with:
         script: |-
             source /opt/env.sh
-            yarn config set cache-folder /mnt/yarn_cache
             yarn --frozen-lockfile
             yarn workspace @dashql/core build
 
@@ -194,7 +191,6 @@ jobs:
       with:
         script: |-
             source /opt/env.sh
-            yarn config set cache-folder /mnt/yarn_cache
             yarn --frozen-lockfile
             yarn workspace @dashql/benchmarks build
 
@@ -217,7 +213,6 @@ jobs:
       with:
         script: |-
             source /opt/env.sh
-            yarn config set cache-folder /mnt/yarn_cache
             yarn --frozen-lockfile
             yarn workspace @dashql/app build:release
 
