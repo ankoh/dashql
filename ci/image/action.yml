@@ -33,8 +33,6 @@ runs:
     - run: |-
         export CI_IMAGE_TAG=`cat ./ci/image/TAG`
         docker run --rm \
-            -u `id -u $USER` \
-            --group-add actions \
             -v ${{ github.workspace }}:/wd/ \
             -v ${{ inputs.emscripten_cache }}:/mnt/emscripten_cache/ \
             -v ${{ inputs.yarn_cache }}:/mnt/yarn_cache/ \
