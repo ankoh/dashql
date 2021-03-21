@@ -15,3 +15,5 @@ compile_commands.json
 # Miscellaneous
 .DS_Store
 /node_modules
+.vscode
+!.vscode/settings.json
