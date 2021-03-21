@@ -20,10 +20,10 @@ export class RowProxyIterator<T extends RowProxy> implements Iterable<RowProxy> 
 
     /* Get the next result from the iterator. */
     next(): IteratorResult<T> {
-        const {chunkIterator} = this;
+        const { chunkIterator } = this;
 
         if (!chunkIterator.currentChunk) {
-            return {done: true, value: null}
+            return { done: true, value: null };
         }
 
         this.currentRowID++;
@@ -31,7 +31,7 @@ export class RowProxyIterator<T extends RowProxy> implements Iterable<RowProxy> 
         if (this.currentRowID >= chunkIterator.currentChunk.rowCount()!) {
             // if there is no new chunk or the next chunk has length 0, end
             if (!chunkIterator.nextBlocking() || chunkIterator.currentChunk.rowCount() === 0) {
-                return {done: true, value: null}
+                return { done: true, value: null };
             }
             this.currentRowID = 0;
             this.currentChunkData = RowProxyType.indexChunkData(chunkIterator.currentChunk);
@@ -39,7 +39,7 @@ export class RowProxyIterator<T extends RowProxy> implements Iterable<RowProxy> 
 
         return {
             done: false,
-            value: this.proxyType!.proxyRow<T>(this.currentChunkData!, this.currentRowID)
+            value: this.proxyType!.proxyRow<T>(this.currentChunkData!, this.currentRowID),
         };
     }
 
@@ -51,18 +51,18 @@ export class RowProxyIterator<T extends RowProxy> implements Iterable<RowProxy> 
 export class ColumnIterator<T> implements Iterable<T> {
     idx: number;
 
-    constructor(start: number, private end: number,  private value: (idx: number) => T) {
+    constructor(start: number, private end: number, private value: (idx: number) => T) {
         this.idx = start;
     }
 
     next(): IteratorResult<T> {
         if (this.idx >= this.end) {
-            return {done: true, value: null}
+            return { done: true, value: null };
         }
 
         return {
             done: false,
-            value: this.value(this.idx++)
+            value: this.value(this.idx++),
         };
     }
 
@@ -136,7 +136,7 @@ export abstract class ChunkIterator {
         if (!this._proxyType) {
             this._proxyType = new RowProxyType(this.result);
         }
-        return this._proxyType
+        return this._proxyType;
     }
 
     /* Get the next chunk synchronously */
@@ -238,11 +238,7 @@ export abstract class ChunkIterator {
     }
 
     /* Iterate over a number column */
-    public iterateNumberColumn(
-        cid: number,
-        ofs: number = 0,
-        limit: number = 0,
-    ): Iterable<number | null> {
+    public iterateNumberColumn(cid: number, ofs: number = 0, limit: number = 0): Iterable<number | null> {
         if (cid >= this.columnCount) {
             throw Error('column index out of bounds');
         }
@@ -261,17 +257,11 @@ export abstract class ChunkIterator {
         const lb = ofs;
         const ub = limit > 0 ? Math.min(lb + limit, a.length) : a.length;
 
-        return new ColumnIterator(ofs, ub, n != null ?
-            (i: number) => n[i] ? null : a[i] :
-            (i: number) => a[i])
+        return new ColumnIterator(ofs, ub, n != null ? (i: number) => (n[i] ? null : a[i]) : (i: number) => a[i]);
     }
 
     /* Iterate over a boolean column */
-    public iterateBooleanColumn(
-        cid: number,
-        ofs: number = 0,
-        limit: number = 0,
-    ): Iterable<boolean | null> {
+    public iterateBooleanColumn(cid: number, ofs: number = 0, limit: number = 0): Iterable<boolean | null> {
         if (cid >= this.columnCount) {
             throw Error('column index out of bounds');
         }
@@ -289,18 +279,16 @@ export abstract class ChunkIterator {
         if (a == null) return [];
         const lb = ofs;
         const ub = limit > 0 ? Math.min(lb + limit, a.length) : a.length;
-        
-        return new ColumnIterator(ofs, ub, n != null ?
-            (i: number) => n[i] ? null : a[i] != 0 :
-            (i: number) => a[i] != 0)
+
+        return new ColumnIterator(
+            ofs,
+            ub,
+            n != null ? (i: number) => (n[i] ? null : a[i] != 0) : (i: number) => a[i] != 0,
+        );
     }
 
     /* Iterate over a string column */
-    public iterateStringColumn(
-        cid: number,
-        ofs: number = 0,
-        limit: number = 0,
-    ): Iterable<string | null> {
+    public iterateStringColumn(cid: number, ofs: number = 0, limit: number = 0): Iterable<string | null> {
         if (cid >= this.columnCount) {
             throw Error('column index out of bounds');
         }
@@ -317,17 +305,15 @@ export abstract class ChunkIterator {
         const lb = ofs;
         const ub = limit > 0 ? Math.min(lb + limit, v.valuesLength()) : v.valuesLength();
 
-        return new ColumnIterator(ofs, ub, n != null ?
-            (i: number) => n[i] ? null : v.values(i) :
-            (i: number) => v.values(i))
+        return new ColumnIterator(
+            ofs,
+            ub,
+            n != null ? (i: number) => (n[i] ? null : v.values(i)) : (i: number) => v.values(i),
+        );
     }
 
     /* Iterate over a bigint column */
-    public iterateBigIntColumn(
-        cid: number,
-        ofs: number = 0,
-        limit: number = 0,
-    ): Iterable<bigint | null> {
+    public iterateBigIntColumn(cid: number, ofs: number = 0, limit: number = 0): Iterable<bigint | null> {
         if (cid >= this.columnCount) {
             throw Error('column index out of bounds');
         }
@@ -345,17 +331,17 @@ export abstract class ChunkIterator {
         const lb = ofs;
         const ub = limit > 0 ? Math.min(lb + limit, v.valuesLength()) : v.valuesLength();
 
-        return new ColumnIterator(ofs, ub, n != null ?
-            (i: number) => n[i] ? null : BigInt(v.values(i)!.low) :
-            (i: number) => BigInt(v.values(i)!.low))
+        return new ColumnIterator(
+            ofs,
+            ub,
+            n != null
+                ? (i: number) => (n[i] ? null : BigInt(v.values(i)!.low))
+                : (i: number) => BigInt(v.values(i)!.low),
+        );
     }
 
     /* Iterate over a hugeint column */
-    public iterateHugeIntColumn(
-        cid: number,
-        ofs: number = 0,
-        limit: number = 0,
-    ): Iterable<bigint | null> {
+    public iterateHugeIntColumn(cid: number, ofs: number = 0, limit: number = 0): Iterable<bigint | null> {
         if (cid >= this.columnCount) {
             throw Error('column index out of bounds');
         }
@@ -376,9 +362,13 @@ export abstract class ChunkIterator {
         const lb = ofs;
         const ub = limit > 0 ? Math.min(lb + limit, v.valuesLength()) : v.valuesLength();
 
-        return new ColumnIterator(ofs, ub, n != null ?
-            (i: number) => n[i] ? null : bigintConverter(v.values(i)!) :
-            (i: number) => bigintConverter(v.values(i)!))
+        return new ColumnIterator(
+            ofs,
+            ub,
+            n != null
+                ? (i: number) => (n[i] ? null : bigintConverter(v.values(i)!))
+                : (i: number) => bigintConverter(v.values(i)!),
+        );
     }
 
     /// Helper to iterate over a blocking chunk iterator

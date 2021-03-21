@@ -7,17 +7,14 @@ function actionSanitizer(mutation: model.StateMutationVariant) {
 
 function stateSanitizer(state: model.AppStateMutation) {
     return {
-        ...state
+        ...state,
     };
 }
 
 /* tslint:disable */
 const windowIfDefined = typeof window === 'undefined' ? null : (window as any);
 let composeEnhancers = compose;
-if (
-    windowIfDefined &&
-    typeof windowIfDefined.__REDUX_DEVTOOLS_EXTENSION_COMPOSE__ === 'function'
-) {
+if (windowIfDefined && typeof windowIfDefined.__REDUX_DEVTOOLS_EXTENSION_COMPOSE__ === 'function') {
     composeEnhancers =
         windowIfDefined.__REDUX_DEVTOOLS_EXTENSION_COMPOSE__({
             stateSanitizer: stateSanitizer,
@@ -38,5 +35,3 @@ export default function createStore(): model.AppReduxStore {
     // Return the store
     return store;
 }
-
-

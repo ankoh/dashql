@@ -7,12 +7,12 @@ export function createStore(): DerivedReduxStore {
         (state: DerivedState | undefined, variant: StateMutationVariant) => {
             if (!state) return { core: new CoreState() };
             const s = StateMutations.reduce(state.core, variant);
-            return s === state.core ? state : {
-                ...state,
-                core: s 
-            };
-        }
+            return s === state.core
+                ? state
+                : {
+                      ...state,
+                      core: s,
+                  };
+        },
     );
 }
-
-

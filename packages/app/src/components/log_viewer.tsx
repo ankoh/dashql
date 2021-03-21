@@ -32,21 +32,11 @@ function LogRow(props: LogRowProps) {
                     </svg>
                 </div>
             </div>
-            <div className={styles.origin}>
-                {core.model.getLogLevelLabel(props.entry.level)}
-            </div>
-            <div className={styles.origin}>
-                {core.model.getLogOriginLabel(props.entry.origin)}
-            </div>
-            <div className={styles.topic}>
-                {core.model.getLogTopicLabel(props.entry.topic)}
-            </div>
-            <div className={styles.event}>
-                {core.model.getLogEventLabel(props.entry.event)}
-            </div>
-            <div className={styles.timestamp}>
-                {core.utils.getRelativeTime(tsLog, tsNow)}
-            </div>
+            <div className={styles.origin}>{core.model.getLogLevelLabel(props.entry.level)}</div>
+            <div className={styles.origin}>{core.model.getLogOriginLabel(props.entry.origin)}</div>
+            <div className={styles.topic}>{core.model.getLogTopicLabel(props.entry.topic)}</div>
+            <div className={styles.event}>{core.model.getLogEventLabel(props.entry.event)}</div>
+            <div className={styles.timestamp}>{core.utils.getRelativeTime(tsLog, tsNow)}</div>
         </div>
     );
 }
@@ -64,16 +54,14 @@ class LogViewer extends React.Component<Props> {
     protected _renderRow = this.renderRow.bind(this);
     protected _renderEmptyList = this.renderEmptyList.bind(this);
 
-    protected getRowHeight(args: {index: number}) {
+    protected getRowHeight(args: { index: number }) {
         return 42;
     }
 
     protected renderRow(props: ListRowProps) {
         const log = this.props.logs.get(props.index);
         if (!log) return <div />;
-        return (
-            <LogRow key={props.key} style={props.style} entry={log} currentTime={this.props.currentTime} />
-        );
+        return <LogRow key={props.key} style={props.style} entry={log} currentTime={this.props.currentTime} />;
     }
 
     protected renderEmptyList() {
@@ -85,7 +73,7 @@ class LogViewer extends React.Component<Props> {
         return (
             <SystemCard title="Log" onClose={this.props.onClose}>
                 <AutoSizer disableHeight>
-                    {({width}) => (
+                    {({ width }) => (
                         <List
                             className={styles.list}
                             currentTimeRef={this.props.currentTime}

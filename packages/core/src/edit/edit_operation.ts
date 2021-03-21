@@ -22,9 +22,7 @@ interface VizChangeOperation {
     height: number;
 }
 
-export type EditOperationVariant =
-    | EditOperation<EditOperationType.VIZ_CHANGE_POSITION, VizChangeOperation>
-    ;
+export type EditOperationVariant = EditOperation<EditOperationType.VIZ_CHANGE_POSITION, VizChangeOperation>;
 
 export function packProgramEdit(builder: flatbuffers.Builder, edits: EditOperationVariant[]): flatbuffers.Offset {
     let editOffsets: flatbuffers.Offset[] = [];
@@ -51,5 +49,4 @@ export function packProgramEdit(builder: flatbuffers.Builder, edits: EditOperati
     proto.edit.ProgramEdit.start(builder);
     proto.edit.ProgramEdit.addEdits(builder, editsVec);
     return proto.edit.ProgramEdit.end(builder);
-    
 }

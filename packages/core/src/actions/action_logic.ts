@@ -78,7 +78,7 @@ export abstract class ActionLogic<ActionBuffer extends ProtoAction> {
             this._status = proto.action.ActionStatusCode.RUNNING;
             this.prepare(context);
             return null;
-        } catch(e) {
+        } catch (e) {
             this._status = proto.action.ActionStatusCode.FAILED;
             return e;
         }
@@ -109,9 +109,13 @@ export abstract class ProgramActionLogic extends ActionLogic<proto.action.Progra
     }
 
     /// Return the origin
-    public get origin() { return this._origin; }
+    public get origin() {
+        return this._origin;
+    }
     /// Return the script
-    public get script() { return this._action.script() || null; }
+    public get script() {
+        return this._action.script() || null;
+    }
 }
 
 export abstract class SetupActionLogic extends ActionLogic<proto.action.SetupAction> {

@@ -67,7 +67,7 @@ export class NativeMinHeap {
     }
     /// Sift an element up
     protected siftUp(i: number) {
-        for (let p = Math.floor((i - 1) / 2); i > 0 && this.rank(p) >= this.rank(i);) {
+        for (let p = Math.floor((i - 1) / 2); i > 0 && this.rank(p) >= this.rank(i); ) {
             this.swapAt(i, p);
             i = p;
             p = Math.floor((i - 1) / 2);
@@ -93,13 +93,21 @@ export class NativeMinHeap {
         }
     }
     /// Is empty?
-    public empty(): boolean { return this._size <= 0; }
+    public empty(): boolean {
+        return this._size <= 0;
+    }
     /// Get the min element
-    public top(): number { return this._entries[0]; }
+    public top(): number {
+        return this._entries[0];
+    }
     /// Get the min element rank
-    public topRank(): number { return this._entries[1]; }
+    public topRank(): number {
+        return this._entries[1];
+    }
     /// Pop the back of the vector
-    protected popBack() { --this._size; }
+    protected popBack() {
+        --this._size;
+    }
     /// Pop the min element
     public pop() {
         this.swapAt(0, this._size - 1);

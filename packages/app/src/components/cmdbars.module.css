@@ -1,4 +1,4 @@
-@import "../vars.module.css";
+@import '../vars.module.css';
 
 .cmdbar_studio {
     background-color: var(--cmd_bar_bg);

@@ -92,7 +92,7 @@ export class VizComposer {
         options: any = null,
     ) {
         /// Otherwise build the vega layer manually
-        const layer: UnitSpec<Field> = { 
+        const layer: UnitSpec<Field> = {
             ...options,
             encoding: {},
 
@@ -173,8 +173,10 @@ export class VizComposer {
 
         // Remove undefined attributes since vega complains about them
         const clean = layer as any;
-        Object.keys(clean).forEach(key => clean[key] === undefined ? delete clean[key] : {});
-        Object.keys(clean.encoding).forEach(key => clean.encoding[key] === undefined ? delete clean.encoding[key] : {});
+        Object.keys(clean).forEach(key => (clean[key] === undefined ? delete clean[key] : {}));
+        Object.keys(clean.encoding).forEach(key =>
+            clean.encoding[key] === undefined ? delete clean.encoding[key] : {},
+        );
 
         // Store as vega lite layer
         this._inputVegaLiteSpec.transform?.push(...options.transform);
@@ -197,7 +199,7 @@ export class VizComposer {
             case proto.syntax.VizComponentType.VEGA: {
                 useRenderer(model.VizRendererType.BUILTIN_VEGA);
                 this._inputVegaLiteSpec.transform = options.transform;
-                const layer = { ...options};
+                const layer = { ...options };
                 delete layer.transform;
                 delete layer.title;
                 delete layer.position;
@@ -339,19 +341,19 @@ export class VizComposer {
                     case proto.webdb.SQLTypeID.FLOAT:
                     case proto.webdb.SQLTypeID.DOUBLE:
                     case proto.webdb.SQLTypeID.DECIMAL:
-                        enc.type = "quantitative";
+                        enc.type = 'quantitative';
                         break;
 
                     case proto.webdb.SQLTypeID.CHAR:
                     case proto.webdb.SQLTypeID.VARCHAR:
-                        enc.type = "nominal";
+                        enc.type = 'nominal';
                         break;
 
                     case proto.webdb.SQLTypeID.DATE:
                     case proto.webdb.SQLTypeID.TIME:
                     case proto.webdb.SQLTypeID.TIMESTAMP:
                     case proto.webdb.SQLTypeID.INTERVAL:
-                        enc.type = "temporal";
+                        enc.type = 'temporal';
                         break;
 
                     default:

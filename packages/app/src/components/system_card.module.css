@@ -1,4 +1,4 @@
-@import "../vars.module.css";
+@import '../vars.module.css';
 
 .panel {
     background: var(--sys_panel_bg);

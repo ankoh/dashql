@@ -1,109 +1,109 @@
 import { editor } from 'monaco-editor';
 
 export const theme: editor.IStandaloneThemeData = {
-    "base": "vs",
-    "inherit": true,
-    "rules": [
+    base: 'vs',
+    inherit: true,
+    rules: [
         {
-            "foreground": "c41a16",
-            "token": "string"
+            foreground: 'c41a16',
+            token: 'string',
         },
         {
-            "foreground": "1c00cf",
-            "token": "constant.numeric"
+            foreground: '1c00cf',
+            token: 'constant.numeric',
         },
         {
-            "foreground": "4682b4",
-            "token": "keyword"
+            foreground: '4682b4',
+            token: 'keyword',
         },
         {
-            "foreground": "000000",
-            "token": "keyword.operator"
+            foreground: '000000',
+            token: 'keyword.operator',
         },
         {
-            "foreground": "4682b4",
-            "token": "constant.language"
+            foreground: '4682b4',
+            token: 'constant.language',
         },
         {
-            "foreground": "990000",
-            "token": "support.class.exception"
+            foreground: '990000',
+            token: 'support.class.exception',
         },
         {
-            "foreground": "000000",
-            "token": "entity.name.function"
+            foreground: '000000',
+            token: 'entity.name.function',
         },
         {
-            "fontStyle": "bold underline",
-            "token": "entity.name.type"
+            fontStyle: 'bold underline',
+            token: 'entity.name.type',
         },
         {
-            "fontStyle": "italic",
-            "token": "variable.parameter"
+            fontStyle: 'italic',
+            token: 'variable.parameter',
         },
         {
-            "foreground": "007400",
-            "token": "comment"
+            foreground: '007400',
+            token: 'comment',
         },
         {
-            "foreground": "ff0000",
-            "token": "invalid"
+            foreground: 'ff0000',
+            token: 'invalid',
         },
         {
-            "background": "e71a1100",
-            "token": "invalid.deprecated.trailing-whitespace"
+            background: 'e71a1100',
+            token: 'invalid.deprecated.trailing-whitespace',
         },
         {
-            "foreground": "000000",
-            "background": "fafafafc",
-            "token": "text source"
+            foreground: '000000',
+            background: 'fafafafc',
+            token: 'text source',
         },
         {
-            "foreground": "4682b4",
-            "token": "meta.tag"
+            foreground: '4682b4',
+            token: 'meta.tag',
         },
         {
-            "foreground": "4682b4",
-            "token": "declaration.tag"
+            foreground: '4682b4',
+            token: 'declaration.tag',
         },
         {
-            "foreground": "000000",
-            "fontStyle": "bold",
-            "token": "support"
+            foreground: '000000',
+            fontStyle: 'bold',
+            token: 'support',
         },
         {
-            "foreground": "4682b4",
-            "token": "storage"
+            foreground: '4682b4',
+            token: 'storage',
         },
         {
-            "fontStyle": "bold underline",
-            "token": "entity.name.section"
+            fontStyle: 'bold underline',
+            token: 'entity.name.section',
         },
         {
-            "foreground": "000000",
-            "fontStyle": "bold",
-            "token": "entity.name.function.frame"
+            foreground: '000000',
+            fontStyle: 'bold',
+            token: 'entity.name.function.frame',
         },
         {
-            "foreground": "333333",
-            "token": "meta.tag.preprocessor.xml"
+            foreground: '333333',
+            token: 'meta.tag.preprocessor.xml',
         },
         {
-            "foreground": "994500",
-            "fontStyle": "italic",
-            "token": "entity.other.attribute-name"
+            foreground: '994500',
+            fontStyle: 'italic',
+            token: 'entity.other.attribute-name',
         },
         {
-            "foreground": "881280",
-            "token": "entity.name.tag"
-        }
+            foreground: '881280',
+            token: 'entity.name.tag',
+        },
     ],
-    "colors": {
-        "editor.foreground": "#000000",
-        "editor.background": "#FFFFFF",
-        "editor.selectionBackground": "#F0F0F0",
-        "editor.lineHighlightBackground": "#F0F0F0",
-        "editorCursor.foreground": "#000000",
-        "editorWhitespace.foreground": "#B3B3B3F4"
-    }
-}
+    colors: {
+        'editor.foreground': '#000000',
+        'editor.background': '#FFFFFF',
+        'editor.selectionBackground': '#F0F0F0',
+        'editor.lineHighlightBackground': '#F0F0F0',
+        'editorCursor.foreground': '#000000',
+        'editorWhitespace.foreground': '#B3B3B3F4',
+    },
+};
 export default theme;

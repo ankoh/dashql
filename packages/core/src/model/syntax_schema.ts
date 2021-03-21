@@ -1,4 +1,4 @@
-import * as proto from "@dashql/proto";
+import * as proto from '@dashql/proto';
 
 export enum SpecType {
     BOOL_SPEC = 'BOOL_SPEC',
@@ -13,7 +13,7 @@ export enum SpecType {
 export enum Matching {
     MISSING,
     TYPE_MISMATCH,
-    MATCHED
+    MATCHED,
 }
 
 interface Spec<NODE_TYPE, VALUE_TYPE> {
@@ -30,12 +30,11 @@ export type NodeSchema =
     | Spec<SpecType.ARRAY_SPEC, NodeSchema[]>
     | Spec<SpecType.ENUM_SPEC, number>
     | Spec<SpecType.OPTION_SPEC, ObjectSchema>
-    | Spec<SpecType.OBJECT_SPEC, ObjectSchema>
-    ;
+    | Spec<SpecType.OBJECT_SPEC, ObjectSchema>;
 
 type ObjectSchema = {
     readonly [key in proto.syntax.AttributeKey]?: NodeSchema;
-}
+};
 
 export function numberNode(value = 0): NodeSchema {
     return {
@@ -55,7 +54,7 @@ export function booleanNode(value: boolean = false): NodeSchema {
     };
 }
 
-export function stringNode(value: string = ""): NodeSchema {
+export function stringNode(value: string = ''): NodeSchema {
     return {
         specType: SpecType.STRING_SPEC,
         nodeType: null,

@@ -1,4 +1,4 @@
-@import "../vars.module.css";
+@import '../vars.module.css';
 
 .action_list_panel {
     background: var(--action_panel_bg);

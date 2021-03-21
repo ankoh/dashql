@@ -1,13 +1,16 @@
-import * as proto from "@dashql/proto";
-import * as webdb from "@dashql/webdb/dist/webdb_async";
-import * as model from "../model";
+import * as proto from '@dashql/proto';
+import * as webdb from '@dashql/webdb/dist/webdb_async';
+import * as model from '../model';
 import * as Immutable from 'immutable';
-import { ProgramActionLogic, SetupActionLogic } from "./action_logic";
-import { ActionContext } from "./action_context";
+import { ProgramActionLogic, SetupActionLogic } from './action_logic';
+import { ActionContext } from './action_context';
 import ActionStatusCode = proto.action.ActionStatusCode;
 
 /// XXX Delete this eventually in favor of the async statistics requests
-export async function collectTableInfo(conn: webdb.AsyncConnection, info: model.DatabaseTableInfo): Promise<model.DatabaseTableInfo> {
+export async function collectTableInfo(
+    conn: webdb.AsyncConnection,
+    info: model.DatabaseTableInfo,
+): Promise<model.DatabaseTableInfo> {
     // Get column names and types
     const limit0 = await conn.runQuery(`SELECT * FROM ${info.tableNameShort} LIMIT 0`);
     const columnNames: string[] = [];
@@ -52,8 +55,8 @@ export class CreateTableActionLogic extends ProgramActionLogic {
                 objectType: model.PlanObjectType.DATABASE_TABLE_INFO,
                 timeCreated: now,
                 timeUpdated: now,
-                tableNameQualified: this.buffer.targetNameQualified() || "",
-                tableNameShort: this.buffer.targetNameShort() || "",
+                tableNameQualified: this.buffer.targetNameQualified() || '',
+                tableNameShort: this.buffer.targetNameShort() || '',
                 columnNames: [],
                 columnNameMapping: new Map(),
                 columnTypes: [],
@@ -65,11 +68,11 @@ export class CreateTableActionLogic extends ProgramActionLogic {
             const store = context.platform.store;
             model.mutate(store.dispatch, {
                 type: model.StateMutationType.INSERT_PLAN_OBJECTS,
-                data: [table]
+                data: [table],
             });
         }
     }
-};
+}
 
 export class ModifyTableActionLogic extends ProgramActionLogic {
     constructor(action_id: model.ActionHandle, action: proto.action.ProgramAction, statement: model.Statement) {
@@ -78,7 +81,7 @@ export class ModifyTableActionLogic extends ProgramActionLogic {
 
     public prepare(_context: ActionContext) {}
     public async execute(_context: ActionContext): Promise<void> {}
-};
+}
 
 export class ImportTableActionLogic extends SetupActionLogic {
     constructor(action_id: model.ActionHandle, action: proto.action.SetupAction) {
