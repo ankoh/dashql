@@ -2,10 +2,10 @@
     "private": true,
     "workspaces": [
         "app",
-        "benchmarks",
-        "core",
-        "dataframe",
-        "proto",
-        "webdb"
+        "packaged/webdb",
+        "packages/benchmarks",
+        "packages/core",
+        "packages/dataframe",
+        "packages/proto"
     ]
 }
