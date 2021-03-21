@@ -380,4 +380,32 @@ export abstract class ChunkIterator {
             (i: number) => n[i] ? null : bigintConverter(v.values(i)!) :
             (i: number) => bigintConverter(v.values(i)!))
     }
+
+    /// Helper to iterate over a blocking chunk iterator
+    public iterateAllBlocking(
+        offset: number,
+        limit: number,
+        fn: (iter: ChunkIterator, start: number, skipHere: number, rowsHere: number) => void,
+    ) {
+        let skip = offset;
+        let remaining = limit;
+        let start = 0;
+
+        while (remaining && this.nextBlocking()) {
+            const chunkRows = this.currentChunk!.rowCount();
+            const skipHere = Math.min(skip, chunkRows);
+            skip -= skipHere;
+            if (skipHere == chunkRows) {
+                continue;
+            }
+            const rowsHere = Math.min(chunkRows - skipHere, remaining);
+
+            // Run the function
+            fn(this, start, skipHere, rowsHere);
+
+            // Advance the chunk start
+            start += chunkRows - skipHere;
+            remaining -= rowsHere;
+        }
+    }
 }
