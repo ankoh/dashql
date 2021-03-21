@@ -159,8 +159,12 @@ describe('RowProxy', () => {
                 buzz: boolean | null;
             }
             const chunks = new webdb.ChunkStreamIterator(conn, result);
+            const iter = chunks.iter<Row>();
+
+            expect(iter.columns).toEqual(['foo', 'bar', 'fizz', 'buzz']);
+
             let expected = 0;
-            for (const row of chunks.iter<Row>()) {
+            for (const row of iter) {
                 let e = expected++;
                 expect(row.foo).toBe(e);
                 expect(row.__attribute__(0)).toBe(e);
