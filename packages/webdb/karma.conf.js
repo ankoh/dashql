@@ -31,9 +31,7 @@ const webpackConfig = {
                 loader: 'ts-loader',
                 exclude: [/node_modules/],
                 options: {
-                    compilerOptions: {
-                        module: "esnext"
-                    }
+                    configFile: "./tsconfig.test.json"
                 }
             },
             {
