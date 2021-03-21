@@ -14,8 +14,10 @@ export class RowProxyIterator<T extends RowProxy> implements Iterable<RowProxy> 
     public columns: string[];
 
     constructor(private chunkIterator: ChunkIterator) {
-        this.columns = new Array(chunkIterator.columnCount).map(i => chunkIterator.result.columnNames(i));
-
+        this.columns = [];
+        for (let i = 0; i < chunkIterator.columnCount; ++i) {
+            this.columns.push(chunkIterator.result.columnNames(i));
+        }
         this.proxyType = chunkIterator.proxyType();
         if (chunkIterator.nextBlocking()) {
             this.currentChunkData = RowProxyType.indexChunkData(chunkIterator.currentChunk!);
