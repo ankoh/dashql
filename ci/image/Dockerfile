@@ -29,7 +29,8 @@ RUN mkdir -p /opt/nvm \
     && source ${NVM_DIR}/nvm.sh \
     && nvm install ${NODE_VERSION} \
     && nvm alias default ${NODE_VERSION} \
-    && nvm use default
+    && nvm use default \
+    && npm install --global yarn
 
 ARG FLATBUFFER_COMMIT="338393f854eb5ba24761a22cd9316ff5cee4eab0"
 RUN mkdir -p /tmp/flatbuffers/build /tmp/flatbuffers/install \
