@@ -10,7 +10,7 @@ ROOT_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
 UID=${shell id -u}
 GID=${shell id -g}
 
-APP_RELEASE_DIR="${ROOT_DIR}/app/build/release"
+APP_RELEASE_DIR="${ROOT_DIR}/packages/app/build/release"
 APP_RELEASE_TAG="$(shell git rev-parse --short HEAD)"
 APP_DEPLOY_TMP="${ROOT_DIR}/artifacts/tmp"
 
@@ -18,9 +18,9 @@ LIB_SOURCE_DIR="${ROOT_DIR}/lib"
 LIB_DEBUG_DIR="${ROOT_DIR}/lib/build/Debug"
 LIB_RELEASE_DIR="${ROOT_DIR}/lib/build/Release"
 LIB_RELWITHDEBINFO_DIR="${ROOT_DIR}/lib/build/RelWithDebInfo"
-CORE_WASM_DIR="${ROOT_DIR}/core/src/wasm"
-WEBDB_WASM_DIR="${ROOT_DIR}/webdb/src/wasm"
-DATAFRAME_WASM_DIR="${ROOT_DIR}/dataframe/src/wasm"
+CORE_WASM_DIR="${ROOT_DIR}/packages/core/src/wasm"
+WEBDB_WASM_DIR="${ROOT_DIR}/packages/webdb/src/wasm"
+DATAFRAME_WASM_DIR="${ROOT_DIR}/packages/dataframe/src/wasm"
 
 CI_IMAGE_NAMESPACE="dashql"
 CI_IMAGE_NAME="ci"
