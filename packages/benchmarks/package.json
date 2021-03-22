@@ -7,7 +7,7 @@
     "dependencies": {
         "@dashql/core": "^0.0.2",
         "@dashql/proto": "^0.0.3",
-        "@dashql/webdb": "^0.0.13",
+        "@dashql/webdb": "^0.0.14",
         "benny": "^3.6.15",
         "flatbuffers": "^1.12.0",
         "web-worker": "^1.0.0"
