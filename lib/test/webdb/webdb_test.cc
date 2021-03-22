@@ -5,6 +5,7 @@
 #include <sstream>
 
 #include "dashql/proto_generated.h"
+#include "dashql/test/config.h"
 #include "dashql/webdb/iterator.h"
 #include "duckdb/common/types/date.hpp"
 #include "duckdb/common/types/timestamp.hpp"
@@ -28,11 +29,11 @@ TEST(WebDB, InvalidSQL) {
 TEST(WebDB, LoadParquet) {
     auto db = make_shared<duckdb::DuckDB>();
     db->LoadExtension<duckdb::ParquetExtension>();
-
     auto con = duckdb::Connection{*db};
-    auto result = con.Query(R"RAW(
-        SELECT * FROM parquet_scan('./packages/webdb/data/studenten.parquet');
-    )RAW");
+    std::stringstream ss;
+    auto data = dashql::test::SOURCE_DIR / ".." / "data" / "uni" / "out" / "studenten.parquet";
+    ss << "SELECT * FROM parquet_scan('" << data.string() << "');";
+    auto result = con.Query(ss.str());
     ASSERT_STREQ(result->ToString().c_str(),
                  "MatrNr\tName\tSemester\t\nINTEGER\tVARCHAR\tINTEGER\t\n"
                  "[ Rows: 8]\n"
