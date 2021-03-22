@@ -1,7 +1,10 @@
-const { configure } = require('./webpack.common.js');
-const path = require('path');
+import { configure } from './webpack.common.js';
+import { fileURLToPath } from 'url';
+import path from 'path';
 
-module.exports = {
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+export default {
     ...configure({
         buildDir: path.resolve(__dirname, './build/debug'),
         tsLoaderOptions: {

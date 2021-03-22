@@ -1,10 +1,13 @@
-const path = require('path');
-const webpack = require('webpack');
-const nodeExternals = require('webpack-node-externals');
-const { CleanWebpackPlugin } = require('clean-webpack-plugin');
-const WatchRunPlugin = require('./webpack/watch_run_plugin');
-const WebpackBar = require('webpackbar');
-const CopyPlugin = require('copy-webpack-plugin');
+import path from 'path';
+import { fileURLToPath } from 'url';
+import webpack from 'webpack';
+import nodeExternals from 'webpack-node-externals';
+import { CleanWebpackPlugin } from 'clean-webpack-plugin';
+import WatchRunPlugin from './webpack/watch_run_plugin.js';
+import WebpackBar from 'webpackbar';
+import CopyPlugin from 'copy-webpack-plugin';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const browserTarget = {
     target: 'web',
@@ -94,4 +97,4 @@ const browserTarget = {
     externals: [nodeExternals({ importType: 'umd' })],
 };
 
-module.exports = [browserTarget];
+export default [browserTarget];
