@@ -222,15 +222,15 @@ jobs:
                   files: ./reports/coverage_core.json,./reports/coverage_webdb.json
                   flags: unittests
 
-            - name: Deploy to nightly.app.dashql.com
+            - name: Deploy to staging.app.dashql.com
               if: github.ref == 'refs/heads/master'
               uses: ./ci/image
               with:
                   script: |-
                       source /opt/env.sh
                       export AZ_PASS="${{ secrets.AZ_APP_PASS }}"
-                      ./scripts/az_app_upload.sh app-nightly ./packages/app/build/release
-                      ./scripts/az_app_old_rm.sh app-nightly '1 week'
+                      ./scripts/az_app_upload.sh app-staging ./packages/app/build/release
+                      ./scripts/az_app_old_rm.sh app-staging '1 week'
 
             - name: Deploy to app.dashql.com
               if: github.ref == 'refs/heads/stable'

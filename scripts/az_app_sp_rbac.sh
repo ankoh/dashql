@@ -24,3 +24,9 @@ az role assignment create \
     --assignee-principal-type ServicePrincipal \
     --role "Storage Blob Data Contributor" \
     --scope "${SCOPE_CONT}/app-nightly"
+
+az role assignment create \
+    --assignee-object-id "${APP_CI_OID}" \
+    --assignee-principal-type ServicePrincipal \
+    --role "Storage Blob Data Contributor" \
+    --scope "${SCOPE_CONT}/app-staging"
