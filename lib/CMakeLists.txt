@@ -425,10 +425,6 @@ if (EMSCRIPTEN)
     target_link_libraries(analyzer_wasm dashql_analyzer)
     set_target_properties(analyzer_wasm PROPERTIES LINK_FLAGS "${ANALYZER_WASM_LINKER_FLAGS} -s ENVIRONMENT='web'")
 
-    add_executable(analyzer_wasm_node ${CMAKE_SOURCE_DIR}/src/ffi_main.cc)
-    target_link_libraries(analyzer_wasm_node dashql_analyzer)
-    set_target_properties(analyzer_wasm_node PROPERTIES LINK_FLAGS "${ANALYZER_WASM_LINKER_FLAGS} -s ENVIRONMENT='node'")
-
     set(WEBDB_WASM_LINKER_FLAGS " \
         -s LLD_REPORT_UNDEFINED=1 \
         -s WARN_ON_UNDEFINED_SYMBOLS=0 \

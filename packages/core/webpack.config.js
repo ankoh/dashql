@@ -33,7 +33,7 @@ const browserTarget = {
                 loader: 'ts-loader',
                 exclude: [/node_modules/, path.resolve(__dirname, 'test')],
                 options: {
-                    configFile: 'tsconfig.web.json',
+                    configFile: 'tsconfig.json',
                 },
             },
             {
@@ -94,21 +94,4 @@ const browserTarget = {
     externals: [nodeExternals({ importType: 'umd' })],
 };
 
-const nodeTarget = {
-    ...browserTarget,
-    target: 'node',
-    entry: {
-        dashql_core_node: './src/index_node.ts',
-    },
-    plugins: [
-        new webpack.WatchIgnorePlugin({
-            paths: [/node_modules\/^(@dashql)/, path.resolve(__dirname, './dist/')],
-        }),
-    ],
-};
-nodeTarget.module.rules[0] = {
-    ...nodeTarget.module.rules[0],
-    options: { configFile: 'tsconfig.node.json' },
-};
-
-module.exports = [browserTarget, nodeTarget];
+module.exports = [browserTarget];
