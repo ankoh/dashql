@@ -60,9 +60,9 @@
         "dist/**/*.js",
         "dist/*.wasm"
     ],
-    "main": "./dist/dashql_core_node.js",
-    "module": "./dist/dashql_core_node.js",
-    "types": "./dist/types/src/index_node.d.ts",
+    "main": "./dist/dashql_core.js",
+    "module": "./dist/dashql_core.js",
+    "types": "./dist/dashql_core.d.ts",
     "browser": {
         "./dist/dashql_core_node.js": "./dist/dashql_core.js",
         "worker_threads": false,
