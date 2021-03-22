@@ -4,6 +4,7 @@ import { webdb as proto } from '@dashql/proto';
 import { Value } from './value';
 import { TmpBuffers } from './buffers';
 import { RowProxyType, RowProxy, ChunkData } from './proxy';
+import { ChunkArrayIterator } from './async_iterator';
 
 /** An iterator for row proxies of a chunk iterator. */
 export class RowProxyIterator<T extends RowProxy> implements Iterable<RowProxy> {
@@ -44,12 +45,14 @@ export class RowProxyIterator<T extends RowProxy> implements Iterable<RowProxy> 
         }
 
         return {
-            done: false,
             value: this.proxyType!.proxyRow<T>(this.currentChunkData!, this.currentRowID),
         };
     }
 
     [Symbol.iterator]() {
+        if (this.chunkIterator instanceof ChunkArrayIterator) {
+            this.chunkIterator.rewind();
+        }
         return this;
     }
 }
