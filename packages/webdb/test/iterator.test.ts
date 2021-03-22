@@ -125,4 +125,30 @@ describe('QueryResultChunkStream', () => {
             expect(i).toBe(testRows + 1);
         });
     });
+
+    describe('buffering column', () => {
+        it('TINYINT', () => {
+            let result = conn.sendQuery(`
+                SELECT (v & 127)::TINYINT FROM generate_series(0, ${testRows}) as t(v);
+            `);
+            expect(result.columnTypesLength()).toBe(1);
+            let chunkStream = new webdb.ChunkStreamIterator(conn, result);
+            let chunks = new webdb.BufferingChunkIterator(chunkStream);
+            let i = 0;
+            while (chunks.nextBlocking()) {
+                for (const v of chunks.iterateNumberColumn(0)) {
+                    expect(v).toBe(i++ & 127);
+                }
+            }
+            expect(i).toBe(testRows + 1);
+            chunks.rewind();
+            i = 0;
+            while (chunks.nextBlocking()) {
+                for (const v of chunks.iterateNumberColumn(0)) {
+                    expect(v).toBe(i++ & 127);
+                }
+            }
+            expect(i).toBe(testRows + 1);
+        });
+    });
 });

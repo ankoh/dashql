@@ -409,3 +409,83 @@ export abstract class ChunkIterator {
         }
     }
 }
+
+export interface RewindableIterator {
+    rewind(): void;
+}
+
+export function isRewindableIterator(iter: any): iter is RewindableIterator {
+    return typeof iter['rewind'] == 'function';
+}
+
+/**
+ * A higher-order iterator that buffers data from a chunk iterator
+ */
+export class BufferingChunkIterator extends ChunkIterator implements RewindableIterator {
+    /** The iterator */
+    _iterator: ChunkIterator;
+    /** The buffered chunks */
+    _chunks: proto.QueryResultChunk[];
+    /** Is the iterator depleted? */
+    _depleted: boolean;
+
+    public constructor(iter: ChunkIterator) {
+        super(iter.result);
+        this._iterator = iter;
+        this._chunks = [];
+        this._depleted = false;
+    }
+
+    /** Restart the chunk iterator */
+    public rewind() {
+        this._currentChunkID = -1;
+    }
+
+    /** Return the next buffered chunk */
+    protected nextBuffered(): boolean {
+        if (this._currentChunkID + 1 >= this._chunks.length) {
+            return false;
+        }
+        ++this._currentChunkID;
+        this._currentChunk = this._chunks[this._currentChunkID];
+        return true;
+    }
+
+    /** Get the next chunk */
+    public nextBlocking(): boolean {
+        // Already depleted?
+        if (this._depleted) {
+            return this.nextBuffered();
+        }
+
+        // Otherwise ask the iterator for more data
+        if (this._iterator.nextBlocking()) {
+            this._currentChunk = this._iterator.currentChunk!;
+            this._chunks.push(this._currentChunk);
+            ++this._currentChunkID;
+            return true;
+        } else {
+            this._depleted = true;
+            return false;
+        }
+    }
+
+    /** Get the next chunk asynchronously */
+    public async nextAsync(): Promise<boolean> {
+        // Already depleted?
+        if (this._depleted) {
+            return this.nextBuffered();
+        }
+
+        // Otherwise ask the iterator for more data
+        if (await this._iterator.nextAsync()) {
+            this._currentChunk = this._iterator.currentChunk!;
+            this._chunks.push(this._currentChunk);
+            ++this._currentChunkID;
+            return true;
+        } else {
+            this._depleted = true;
+            return false;
+        }
+    }
+}

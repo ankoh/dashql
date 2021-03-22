@@ -10,14 +10,11 @@ import { webdb as proto } from '@dashql/proto';
 export class ChunkStreamIterator extends ChunkIterator {
     /** The connection */
     _connection: WebDBConnection;
-    /** The current chunk buffer */
-    _currentChunkBuffer: proto.QueryResultChunk | null;
 
     /** Constructor */
     public constructor(connection: WebDBConnection, resultBuffer: proto.QueryResult) {
         super(resultBuffer);
         this._connection = connection;
-        this._currentChunkBuffer = null;
     }
 
     /** Get the next chunk */
@@ -28,7 +25,6 @@ export class ChunkStreamIterator extends ChunkIterator {
         } else {
             let chunkBuffer = this._connection.fetchQueryResults();
             this._currentChunk = chunkBuffer;
-            this._currentChunkBuffer = chunkBuffer;
         }
         return this._currentChunk.rowCount() > 0;
     }
