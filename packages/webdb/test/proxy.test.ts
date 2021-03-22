@@ -118,6 +118,33 @@ describe('RowProxy', () => {
         });
     });
 
+    describe('single column, many rows, rewinding', () => {
+        it('INTEGER', () => {
+            const result = conn.sendQuery(`
+                SELECT v::INTEGER AS foo FROM generate_series(0, ${testRows}) as t(v);
+            `);
+            expect(result.columnTypesLength()).toBe(1);
+            interface Row extends webdb.RowProxy {
+                foo: number | null;
+            }
+            const chunkStream = new webdb.ChunkStreamIterator(conn, result);
+            const chunks = new webdb.BufferingChunkIterator(chunkStream);
+            let test = () => {
+                let expected = 0;
+                while (chunks.nextBlocking()) {
+                    for (const row of chunks.collect<Row>()) {
+                        let e = expected++;
+                        expect(row.foo).toBe(e);
+                        expect(row.__attribute__(0)).toBe(e);
+                    }
+                }
+            };
+            test();
+            chunks.rewind();
+            test();
+        });
+    });
+
     describe('multiple columns, many rows', () => {
         it('ALLTYPES', () => {
             const result = conn.sendQuery(`

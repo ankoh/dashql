@@ -85,12 +85,8 @@ export abstract class ChunkIterator {
     _resultBuffer: proto.QueryResult;
     /* The chunk id */
     _currentChunkID: number;
-    /* The row id */
-    _currentRowID: number;
     /* The current chunk */
     _currentChunk: proto.QueryResultChunk | null;
-    /* The current chunk */
-    _currentChunkData: ChunkData | null;
     /* The column types */
     _columnTypes: proto.SQLType[];
     /* The row type */
@@ -102,8 +98,6 @@ export abstract class ChunkIterator {
         this._resultBuffer = resultBuffer;
         this._currentChunkID = -1;
         this._currentChunk = null;
-        this._currentRowID = -1;
-        this._currentChunkData = null;
         this._columnTypes = new Array<proto.SQLType>();
         this._proxyType = null;
         this._tmp = new TmpBuffers();
