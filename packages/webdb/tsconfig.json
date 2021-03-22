@@ -2,7 +2,7 @@
     "compilerOptions": {
         "outDir": "./dist/",
         "target": "es6",
-        "module": "es6",
+        "module": "es2020",
         "moduleResolution": "node",
         "strict": true,
         "sourceMap": true,
