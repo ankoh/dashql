@@ -1,6 +1,6 @@
 // Copyright (c) 2020 The DashQL Authors
 
-import { ChunkIterator } from './iterator_base';
+import { ChunkIterator, RewindableIterator } from './iterator_base';
 import { AsyncConnection } from './async_webdb';
 import { webdb as proto } from '@dashql/proto';
 
@@ -34,7 +34,7 @@ export class ChunkStreamIterator extends ChunkIterator {
 }
 
 /** An iterator for a chunk array */
-export class ChunkArrayIterator extends ChunkIterator {
+export class ChunkArrayIterator extends ChunkIterator implements RewindableIterator {
     /** The chunks */
     _chunks: proto.QueryResultChunk[];
 
