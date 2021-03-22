@@ -1,6 +1,7 @@
 const path = require('path');
 const os = require('os');
 const fs = require('fs');
+const puppeteer = require('puppeteer');
 
 const wd = path.join(os.tmpdir(), '_karma_webpack_dashql_webdb_');
 console.log(wd);
@@ -38,7 +39,7 @@ const webpackConfig = {
     },
 };
 
-process.env.CHROME_BIN = require('puppeteer').executablePath();
+process.env.CHROME_BIN = puppeteer.executablePath();
 
 module.exports = function (config) {
     config.set({

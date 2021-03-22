@@ -1,7 +1,7 @@
 // Copyright (c) 2020 The DashQL Authors
 
-import webdb_api_init from './webdb_wasm.js';
-import { WebDBModule } from './webdb_module';
+import WebDBWasm from './webdb_wasm.js';
+import WebDBModule from './webdb_module';
 import { WebDBBindings, BlobStream } from './webdb_bindings';
 import { Logger } from './log';
 import { DefaultWebDBRuntime, WebDBRuntime } from './webdb_runtime';
@@ -62,7 +62,7 @@ export class WebDB extends WebDBBindings {
 
     /// Instantiate the bindings
     protected instantiate(moduleOverrides: Partial<WebDBModule>): Promise<WebDBModule> {
-        return webdb_api_init({
+        return WebDBWasm({
             ...moduleOverrides,
             instantiateWasm: this.instantiateWasm.bind(this),
         });

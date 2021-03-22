@@ -2,7 +2,7 @@
     "compilerOptions": {
         "outDir": "./dist/",
         "target": "es2020",
-        "module": "commonjs",
+        "module": "es6",
         "moduleResolution": "node",
         "esModuleInterop": true,
         "allowSyntheticDefaultImports": true,
