@@ -29,6 +29,9 @@ module.exports = {
         contentBase: path.join(__dirname, './build/debug'),
         compress: true,
         port: 9001,
+        mimeTypes: {
+            'text/plain': ['dashql'],
+        },
         headers: {
             'Access-Control-Allow-Origin': '*',
             'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
