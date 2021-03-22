@@ -3,8 +3,6 @@
     "version": "0.0.3",
     "description": "",
     "license": "MPL-2.0",
-    "main": "./dist/index.js",
-    "types": "./dist/index.d.ts",
     "dependencies": {
         "flatbuffers": "^1.12.0",
         "fsevents": "*"
@@ -24,5 +22,9 @@
         "dist/gen/proto_generated.js",
         "dist/index.d.ts",
         "dist/index.js"
-    ]
+    ],
+    "type": "module",
+    "main": "./dist/index.js",
+    "module": "./dist/index.js",
+    "types": "./dist/index.d.ts"
 }

@@ -1,6 +1,4 @@
-'use strict';
-
-class WatchRunPlugin {
+export default class WatchRunPlugin {
     apply(compiler) {
         compiler.hooks.watchRun.tap('WatchRun', comp => {
             if (comp.modifiedFiles) {
@@ -12,5 +10,3 @@ class WatchRunPlugin {
         });
     }
 }
-
-module.exports = WatchRunPlugin;
