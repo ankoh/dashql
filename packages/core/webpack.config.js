@@ -4,6 +4,7 @@ const nodeExternals = require('webpack-node-externals');
 const { CleanWebpackPlugin } = require('clean-webpack-plugin');
 const WatchRunPlugin = require('./webpack/watch_run_plugin');
 const WebpackBar = require('webpackbar');
+const CopyPlugin = require('copy-webpack-plugin');
 
 const browserTarget = {
     target: 'web',
@@ -73,9 +74,17 @@ const browserTarget = {
         new WebpackBar(),
         new CleanWebpackPlugin({
             root: './dist',
-            cleanOnceBeforeBuildPatterns: ['*.wasm', '**/*.d.ts', '**/*.map', '!.*'],
+            cleanOnceBeforeBuildPatterns: ['**/*.d.ts', '**/*.map', '!.*'],
             cleanOnceAfterBuildPatterns: [],
             verbose: false,
+        }),
+        new CopyPlugin({
+            patterns: [
+                {
+                    from: path.resolve(__dirname, './src/analyzer/analyzer_wasm.wasm'),
+                    to: path.resolve(__dirname, './dist/dashql_analyzer.wasm'),
+                },
+            ],
         }),
         new WatchRunPlugin(),
         new webpack.WatchIgnorePlugin({
@@ -92,12 +101,6 @@ const nodeTarget = {
         dashql_core_node: './src/index_node.ts',
     },
     plugins: [
-        new CleanWebpackPlugin({
-            root: './dist',
-            cleanOnceBeforeBuildPatterns: ['*.wasm', '!.*'],
-            cleanOnceAfterBuildPatterns: [],
-            verbose: false,
-        }),
         new webpack.WatchIgnorePlugin({
             paths: [/node_modules\/^(@dashql)/, path.resolve(__dirname, './dist/')],
         }),

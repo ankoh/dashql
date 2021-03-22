@@ -43,12 +43,12 @@ export interface M5Config {
 export interface VizDataSource {
     readonly queryType: VizQueryType;
     readonly targetQualified: string;
-    readonly filters?: LogicalComposition<Predicate>[];
-    readonly aggregates?: AggregatedFieldDef[];
-    readonly orderBy?: SortField[];
-    readonly m5Config?: M5Config;
-    readonly rowCount?: number;
-    readonly sampleSize?: number;
+    readonly filters: LogicalComposition<Predicate>[] | null;
+    readonly aggregates: AggregatedFieldDef[] | null;
+    readonly orderBy: SortField[] | null;
+    readonly m5Config: M5Config | null;
+    readonly rowCount: number | null;
+    readonly sampleSize: number;
 }
 
 export interface VizPosition {

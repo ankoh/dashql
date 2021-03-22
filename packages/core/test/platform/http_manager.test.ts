@@ -1,5 +1,4 @@
-import { beforeEach, afterEach, describe, test, expect } from '@jest/globals';
-import { platform, model } from '../../src/index_node';
+import { platform, model } from '../../src/index_web';
 import { mockHTTP, HTTPMock, encodeTextBody, decodeTextBody } from '../mocks/http_mock';
 
 let httpMock: HTTPMock;
@@ -13,9 +12,9 @@ afterEach(() => {
 });
 
 describe('HTTPManager', () => {
-    test('init', () => {});
+    it('init', () => {});
 
-    test('fetch', async () => {
+    it('fetch', async () => {
         const store = model.createStore();
         const http = new platform.HTTPManager(store, 2);
         await http.init();
@@ -35,7 +34,13 @@ describe('HTTPManager', () => {
             expect(decodeTextBody(new Uint8Array(r.response.data))).toBe(body);
         };
         let expect404 = async (url: string) => {
-            expect(http.request({ url: url })).rejects.toThrow(new Error('Request failed with status code 404'));
+            try {
+                const resp = await http.request({ url: url });
+            } catch (e) {
+                // check 404?
+                return;
+            }
+            fail('Request failed with status code 404');
         };
 
         await expectBody('http://localhost/file1', 'body1');

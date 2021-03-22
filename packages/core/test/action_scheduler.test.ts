@@ -1,8 +1,6 @@
-import { beforeAll, afterAll, beforeEach, afterEach, describe, test, expect } from '@jest/globals';
-import { analyzer, model, actions, platform, ActionScheduler, utils } from '../src/index_node';
+import { analyzer, model, actions, platform, ActionScheduler, utils } from '../src/index_web';
 import * as webdb from '@dashql/webdb/dist/webdb_async';
 import * as proto from '@dashql/proto';
-import * as path from 'path';
 import Worker from 'web-worker';
 
 import ActionStatus = proto.action.ActionStatusCode;
@@ -11,22 +9,22 @@ import ProgramActionType = proto.action.ProgramActionType;
 
 const logger = new webdb.VoidLogger();
 
-let ana: analyzer.AnalyzerBindings;
+let az: analyzer.AnalyzerBindings;
 let worker: Worker;
 let db: webdb.AsyncWebDB;
 let conn: webdb.AsyncWebDBConnection;
 
 beforeAll(async () => {
-    ana = new analyzer.Analyzer({}, path.resolve(__dirname, '../src/analyzer/analyzer_wasm_node.wasm'));
-    await ana.init();
-    worker = new Worker(path.resolve(__dirname, '../../webdb/dist/webdb_node_async.worker.js'));
+    az = new analyzer.Analyzer({}, '/static/analyzer_wasm.wasm');
+    await az.init();
+    worker = new Worker('/static/webdb_async.worker.js');
     db = new webdb.AsyncWebDB(logger, worker);
 });
 
 beforeEach(async () => {
     try {
-        await ana.reset();
-        await db.open(path.resolve(__dirname, '../../webdb/dist/webdb.wasm'));
+        await az.reset();
+        await db.open('/static/webdb.wasm');
         conn = await db.connect();
     } catch (e) {
         console.error(e);
@@ -39,7 +37,6 @@ afterEach(async () => {
 });
 
 afterAll(async () => {
-    await db.terminate();
     worker.terminate();
 });
 
@@ -66,14 +63,14 @@ function resolveProgramActionLogic(plan: model.Plan) {
 
 describe('Action Scheduler', () => {
     describe('program actions', () => {
-        test('single table', async () => {
+        it('single table', async () => {
             const store = model.createStore();
-            const plat = new platform.Platform(store, logger, db, ana);
+            const plat = new platform.Platform(store, logger, db, az);
             await plat.init();
 
-            const program = ana.parseProgram('CREATE TABLE a AS SELECT 1');
-            ana.instantiateProgram();
-            const plan = ana.planProgram();
+            const program = az.parseProgram('CREATE TABLE a AS SELECT 1');
+            az.instantiateProgram();
+            const plan = az.planProgram();
             const graph = plan!.buffer.actionGraph()!;
             expect(program.buffer.statementsLength()).toBe(1);
             expect(graph.setupActionsLength()).toBe(0);
@@ -96,19 +93,19 @@ describe('Action Scheduler', () => {
             expect(scheduler.actions[0].status).toBe(ActionStatus.COMPLETED);
         });
 
-        test('chain', async () => {
+        it('chain', async () => {
             const store = model.createStore();
-            const plat = new platform.Platform(store, logger, db, ana);
+            const plat = new platform.Platform(store, logger, db, az);
             await plat.init();
 
-            const program = ana.parseProgram(`
+            const program = az.parseProgram(`
                 LOAD weather_csv FROM http (
                     url = 'https://localhost/test'
                 );
                 EXTRACT weather FROM weather_csv USING CSV;
             `);
-            ana.instantiateProgram();
-            const plan = ana.planProgram();
+            az.instantiateProgram();
+            const plan = az.planProgram();
             const graph = plan!.buffer.actionGraph()!;
             expect(program.buffer.statementsLength()).toBe(2);
             expect(graph.setupActionsLength()).toBe(0);
@@ -140,18 +137,18 @@ describe('Action Scheduler', () => {
             expect(workLeft).toBe(false);
         });
 
-        test('tree', async () => {
+        it('tree', async () => {
             const store = model.createStore();
-            const plat = new platform.Platform(store, logger, db, ana);
+            const plat = new platform.Platform(store, logger, db, az);
             await plat.init();
 
-            const program = ana.parseProgram(`
+            const program = az.parseProgram(`
                 CREATE TABLE weather AS SELECT 1;
                 VIZ weather USING TABLE;
                 VIZ weather USING TABLE;
             `);
-            ana.instantiateProgram();
-            const plan = ana.planProgram();
+            az.instantiateProgram();
+            const plan = az.planProgram();
             const graph = plan!.buffer.actionGraph()!;
             expect(program.buffer.statementsLength()).toBe(3);
             expect(graph.setupActionsLength()).toBe(0);
@@ -195,18 +192,18 @@ describe('Action Scheduler', () => {
             expect(workLeft).toBe(false);
         });
 
-        test('independent', async () => {
+        it('independent', async () => {
             const store = model.createStore();
-            const plat = new platform.Platform(store, logger, db, ana);
+            const plat = new platform.Platform(store, logger, db, az);
             await plat.init();
 
-            const program = ana.parseProgram(`
+            const program = az.parseProgram(`
                 CREATE TABLE A AS SELECT 1;
                 CREATE TABLE B AS SELECT 1;
                 CREATE TABLE C AS SELECT 1;
             `);
-            ana.instantiateProgram();
-            const plan = ana.planProgram();
+            az.instantiateProgram();
+            const plan = az.planProgram();
             const graph = plan!.buffer.actionGraph()!;
             expect(program.buffer.statementsLength()).toBe(3);
             expect(graph.setupActionsLength()).toBe(0);

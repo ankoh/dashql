@@ -1,6 +1,5 @@
 // Copyright (c) 2020 The DashQL Authors
 
-import webdb_api_wasm from './webdb_wasm_node.wasm';
 import webdb_api_init from './webdb_wasm_node.js';
 import { WebDBModule } from './webdb_module';
 import { WebDBBindings, BlobStream } from './webdb_bindings';
@@ -35,11 +34,11 @@ export class WebDB extends WebDBBindings {
     protected runtime: WebDBRuntime;
     protected path: string;
 
-    public constructor(logger: Logger, runtime: WebDBRuntime = DefaultWebDBRuntime, path: string | null = null) {
+    public constructor(logger: Logger, runtime: WebDBRuntime, path: string) {
         super(logger);
         this.runtime = runtime;
         this.runtime.bindings = this;
-        this.path = path ?? webdb_api_wasm;
+        this.path = path;
     }
 
     /// Instantiate the wasm module

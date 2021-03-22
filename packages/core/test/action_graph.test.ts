@@ -1,11 +1,9 @@
-import { beforeAll, beforeEach, describe, test, expect } from '@jest/globals';
-import { analyzer } from '../src/index_node';
-import * as path from 'path';
+import { analyzer } from '../src/index_web';
 
 var analyzerBindings: analyzer.AnalyzerBindings;
 
 beforeAll(async () => {
-    analyzerBindings = new analyzer.Analyzer({}, path.resolve(__dirname, '../src/analyzer/analyzer_wasm_node.wasm'));
+    analyzerBindings = new analyzer.Analyzer({}, '/base/src/analyzer/analyzer_wasm.wasm');
     await analyzerBindings.init();
 });
 
@@ -15,7 +13,7 @@ beforeEach(async () => {
 
 describe('Action Scheduler', () => {
     describe('program actions', () => {
-        test('select 1', async () => {
+        it('select 1', async () => {
             const program = analyzerBindings.parseProgram('select 1');
             analyzerBindings.instantiateProgram();
             expect(program.buffer.statementsLength()).toBe(1);

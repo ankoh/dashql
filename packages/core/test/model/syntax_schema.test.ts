@@ -1,6 +1,4 @@
-import { beforeAll, beforeEach, describe, test, expect } from '@jest/globals';
-import { analyzer, model } from '../../src/index_node';
-import * as path from 'path';
+import { analyzer, model } from '../../src/index_web';
 import * as proto from '@dashql/proto';
 import schema = model.schema;
 import sx = proto.syntax;
@@ -10,7 +8,7 @@ import Key = proto.syntax.AttributeKey;
 var analyzerBindings: analyzer.AnalyzerBindings;
 
 beforeAll(async () => {
-    analyzerBindings = new analyzer.Analyzer({}, path.resolve(__dirname, '../../src/analyzer/analyzer_wasm_node.wasm'));
+    analyzerBindings = new analyzer.Analyzer({}, '/base/src/analyzer/analyzer_wasm.wasm');
     await analyzerBindings.init();
 });
 
@@ -19,7 +17,7 @@ beforeEach(async () => {
 });
 
 describe('Statement schema', () => {
-    test('simple load statement', () => {
+    it('simple load statement', () => {
         const program = analyzerBindings.parseProgram(`
             LOAD weather_csv FROM http (
                 url = 'https://localhost/test'

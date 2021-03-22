@@ -1,9 +1,8 @@
-import { describe, test, expect } from '@jest/globals';
-import * as core from '../../src/index_node';
+import * as core from '../../src/index_web';
 import Mutex = core.utils.Mutex;
 
 describe('Semaphore', () => {
-    test('simple ops', async () => {
+    it('simple ops', async () => {
         const mtx1 = new Mutex();
         const mtx2 = new Mutex();
         const mtx3 = new Mutex();

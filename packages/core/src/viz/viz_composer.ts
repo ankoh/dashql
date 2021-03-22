@@ -41,21 +41,21 @@ export class VizComposer {
     _tableStatistics: platform.TableStatisticsResolver;
 
     /// The renderer type
-    _renderer?: model.VizRendererType;
+    _renderer: model.VizRendererType | null = null;
     /// The query type
-    _queryType?: model.VizQueryType;
+    _queryType: model.VizQueryType | null = null;
     /// The filters (if any)
-    _filters?: LogicalComposition<Predicate>[];
+    _filters: LogicalComposition<Predicate>[] | null = null;
     /// The aggregates
-    _aggregates?: AggregatedFieldDef[];
+    _aggregates: AggregatedFieldDef[] | null = null;
     /// The data ordering (if any)
-    _orderBy?: SortField[];
+    _orderBy: SortField[] | null = null;
     /// The M5 X-attributes (if any)
-    _m5Config?: model.M5Config;
+    _m5Config: model.M5Config | null = null;
     /// The row count (if known)
-    _rowCount?: number;
+    _rowCount: number | null = null;
     /// The max sample size (if any)
-    _sampleSize?: number;
+    _sampleSize: number | null = null;
 
     /// The vega-lite spec.
     /// We only want to construct layer specs here.
@@ -308,6 +308,7 @@ export class VizComposer {
 
         // Filter transforms
         spec.transform = spec.transform?.filter((t, i) => keepTransforms[i]);
+        if (!spec.transform) delete spec.transform;
     }
 
     /// Analyze the vega encodings
@@ -433,7 +434,7 @@ export class VizComposer {
         // Use m5 sampling?
         if (useM5) {
             this._queryType = model.VizQueryType.M5;
-            this._m5Config = m5Config || undefined;
+            this._m5Config = m5Config;
         }
     }
 
@@ -475,7 +476,7 @@ export class VizComposer {
                 aggregates: this._aggregates,
                 orderBy: this._orderBy,
                 m5Config: this._m5Config,
-                rowCount: undefined,
+                rowCount: null,
                 sampleSize: 10000,
             },
             vegaLiteSpec: this._normalizedVegaLiteSpec,

@@ -11,6 +11,7 @@ export * as model from './model';
 export * as platform from './platform';
 export * as utils from './utils';
 export * as edit from './edit';
+export * as viz from './viz';
 export * from './action_scheduler';
 export * from './script_pipeline';
 
