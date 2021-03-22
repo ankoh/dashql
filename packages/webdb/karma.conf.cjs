@@ -5,18 +5,20 @@ const puppeteer = require('puppeteer');
 
 process.env.CHROME_BIN = puppeteer.executablePath();
 
-module.exports = function (config) {
+module.exports = function(config) {
     config.set({
-        basePath: './',
+        basePath: '../..',
         frameworks: ['jasmine'],
         files: [
-            { pattern: 'dist/tests-browser.js' },
-            { pattern: 'dist/*.wasm', included: false, watched: false, served: true },
-            { pattern: 'dist/*.js', included: false, watched: false, served: true },
+            { pattern: 'packages/webdb/dist/tests-browser.js' },
+            { pattern: 'packages/webdb/dist/*.wasm', included: false, watched: false, served: true },
+            { pattern: 'packages/webdb/dist/*.js', included: false, watched: false, served: true },
+            { pattern: 'data/uni/out/*.parquet', included: false, watched: false, served: true },
         ],
         proxies: {
-            '/static/webdb.wasm': '/base/dist/webdb.wasm',
-            '/static/webdb-async.worker.js': '/base/dist/webdb-async.worker.js',
+            '/static/webdb.wasm': '/base/packages/webdb/dist/webdb.wasm',
+            '/static/webdb-async.worker.js': '/base/packages/webdb/dist/webdb-async.worker.js',
+            '/data/': '/base/data/uni/out/',
         },
         exclude: [],
         reporters: ['spec'],
