@@ -6,7 +6,7 @@
     "dependencies": {
         "@dashql/dataframe": "^0.0.8",
         "@dashql/proto": "^0.0.3",
-        "@dashql/webdb": "^0.0.13",
+        "@dashql/webdb": "^0.0.14",
         "axios": "^0.21.1",
         "canvas": "^2.7.0",
         "flatbuffers": "^1.12.0",
