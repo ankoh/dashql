@@ -1,4 +1,4 @@
-import * as proto from './gen/proto_generated';
+import * as proto from './gen/proto_generated.js';
 
 export import analyzer = proto.dashql.proto.analyzer;
 export import action = proto.dashql.proto.action;
