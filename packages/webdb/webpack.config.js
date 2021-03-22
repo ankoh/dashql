@@ -1,6 +1,7 @@
 const path = require('path');
 const webpack = require('webpack');
 const WebpackBar = require('webpackbar');
+const CopyPlugin = require('copy-webpack-plugin');
 
 const base = {
     mode: 'production',
@@ -26,14 +27,6 @@ const base = {
                 exclude: [/node_modules/, path.resolve(__dirname, 'test')],
                 options: {
                     configFile: 'tsconfig.web.json',
-                },
-            },
-            {
-                test: /webdb_wasm(_node)?\.wasm$/,
-                type: 'javascript/auto',
-                loader: 'file-loader',
-                options: {
-                    name: 'webdb.wasm',
                 },
             },
         ],
@@ -64,6 +57,14 @@ const base = {
     },
     plugins: [
         new WebpackBar(),
+        new CopyPlugin({
+            patterns: [
+                {
+                    from: path.resolve(__dirname, './src/webdb_wasm.wasm'),
+                    to: path.resolve(__dirname, './dist/webdb.wasm'),
+                },
+            ],
+        }),
         new webpack.WatchIgnorePlugin({
             paths: [/node_modules\/^(@dashql)/, path.resolve(__dirname, './dist/')],
         }),

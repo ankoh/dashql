@@ -1,22 +1,20 @@
-import { beforeAll, beforeEach, describe, test, expect } from '@jest/globals';
-import { analyzer } from '../src/index_node';
-import * as path from 'path';
+import { analyzer } from '../src/index_web';
 
-var analyzerBindings: analyzer.AnalyzerBindings;
+var az: analyzer.AnalyzerBindings;
 
 beforeAll(async () => {
-    analyzerBindings = new analyzer.Analyzer({}, path.resolve(__dirname, '../src/analyzer/analyzer_wasm_node.wasm'));
-    await analyzerBindings.init();
+    az = new analyzer.Analyzer({}, '/base/src/analyzer/analyzer_wasm.wasm');
+    await az.init();
 });
 
 beforeEach(async () => {
-    analyzerBindings.reset();
+    az.reset();
 });
 
 describe('Parser', () => {
     describe('errors', () => {
-        test('syntax error', async () => {
-            const r = analyzerBindings.parseProgram('?');
+        it('syntax error', async () => {
+            const r = az.parseProgram('?');
             const p = r.buffer;
             expect(p.statementsLength()).toEqual(0);
             expect(p.errorsLength()).toEqual(1);
@@ -24,8 +22,8 @@ describe('Parser', () => {
     });
 
     describe('single statements', () => {
-        test('select 1', async () => {
-            const r = analyzerBindings.parseProgram(`
+        it('select 1', async () => {
+            const r = az.parseProgram(`
                select 1;
            `);
             const p = r.buffer;
@@ -33,8 +31,8 @@ describe('Parser', () => {
             expect(p.statementsLength()).toEqual(1);
         });
 
-        test('load http from url', async () => {
-            const r = analyzerBindings.parseProgram(`
+        it('load http from url', async () => {
+            const r = az.parseProgram(`
                 LOAD weather_csv FROM http (
                     url = 'https://localhost/test'
                 );
@@ -46,7 +44,7 @@ describe('Parser', () => {
     });
 
     // describe('node inspection', () => {
-    //     test('multiple statements', () => {
+    //     it('multiple statements', () => {
     //         const m = core.parse(`
     //             declare parameter a type integer;
     //             select 1 into b;

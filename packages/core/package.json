@@ -1,6 +1,6 @@
 {
     "name": "@dashql/core",
-    "version": "0.0.1",
+    "version": "0.0.2",
     "description": "DashQL Core Library",
     "license": "MPL-2.0",
     "dependencies": {
@@ -23,9 +23,16 @@
         "@types/react": ">=16.8.0",
         "axios-mock-adapter": "^1.19.0",
         "clean-webpack-plugin": "^3.0.0",
+        "copy-webpack-plugin": "^8.0.0",
         "file-loader": "^6.2.0",
+        "jasmine-spec-reporter": "^6.0.0",
         "jest": "^26.6.3",
         "jest-junit": "^12.0.0",
+        "karma": "^6.2.0",
+        "karma-chrome-launcher": "^3.1.0",
+        "karma-jasmine": "^4.0.1",
+        "karma-spec-reporter": "^0.0.32",
+        "karma-webpack": "^5.0.0",
         "react": "^17.0.1",
         "react-dom": "^17.0.1",
         "ts-jest": "^26.5.4",
@@ -49,10 +56,8 @@
     "scripts": {
         "build:watch": "webpack --watch --progress --mode=production",
         "build": "webpack --mode=production && node ./gendts.js",
-        "test": "node ./node_modules/.bin/jest",
-        "test:debug": "node --inspect ./node_modules/.bin/jest",
-        "test:silent": "node ./node_modules/.bin/jest --silent",
-        "test:ci": "node ./node_modules/.bin/jest --ci --reporters=default --reporters=jest-junit"
+        "test": "karma start karma.conf.js",
+        "test:ci": "karma start karma.conf.js"
     },
     "files": [
         "dist/**/*.d.ts",

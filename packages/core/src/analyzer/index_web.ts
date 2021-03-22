@@ -3,7 +3,6 @@
 export * from './bindings';
 export * from './analyzer_wasm_module';
 
-import dashql_analyzer_wasm from './analyzer_wasm.wasm';
 import dashql_core_init from './analyzer_wasm.js';
 import { DashQLAnalyzerModule } from './analyzer_wasm_module';
 import { AnalyzerBindings, AnalyzerRuntime } from './bindings';
@@ -12,10 +11,10 @@ export class Analyzer extends AnalyzerBindings {
     protected runtime: AnalyzerRuntime;
     protected path: string;
 
-    public constructor(runtime: AnalyzerRuntime = {}, path: string | null = null) {
+    public constructor(runtime: AnalyzerRuntime, path: string) {
         super();
         this.runtime = runtime;
-        this.path = path ?? dashql_analyzer_wasm;
+        this.path = path;
     }
 
     protected instantiateWasm(

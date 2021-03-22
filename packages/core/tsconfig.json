@@ -12,9 +12,9 @@
         "noImplicitAny": true,
         "esModuleInterop": true,
         "jsx": "react",
-        "types": ["emscripten", "jest", "node"],
+        "types": ["emscripten", "node", "jasmine"],
         "lib": ["es6", "es2020", "dom"],
         "baseUrl": "."
     },
-    "include": ["./src/**/*", "./types/*.d.ts", "./test/**/*.ts"]
+    "include": ["./src/**/*", "./types/*.d.ts"]
 }

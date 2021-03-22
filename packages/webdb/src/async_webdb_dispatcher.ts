@@ -14,7 +14,7 @@ export abstract class AsyncWebDBDispatcher implements Logger {
     _nextMessageId: number = 0;
 
     /// Instantiate the wasm module
-    protected abstract open(path: string | null): Promise<WebDBBindings>;
+    protected abstract open(path: string): Promise<WebDBBindings>;
     /// Post a response to the main thread
     protected abstract postMessage(response: AsyncWebDBResponseVariant, transfer: ArrayBuffer[]): void;
 

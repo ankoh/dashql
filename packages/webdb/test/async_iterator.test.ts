@@ -7,9 +7,9 @@ const logger = new webdb.ConsoleLogger();
 const testRows = 3000;
 
 beforeAll(async () => {
-    worker = new Worker('/base/dist/webdb_async.worker.js');
+    worker = new Worker('/static/webdb_async.worker.js');
     db = new webdb.AsyncWebDB(logger, worker);
-    await db.open('/base/dist/webdb.wasm');
+    await db.open('/static/webdb.wasm');
 });
 
 afterAll(async () => {

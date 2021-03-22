@@ -1,5 +1,4 @@
-import { describe, test, expect } from '@jest/globals';
-import * as core from '../../src/index_node';
+import * as core from '../../src/index_web';
 
 enum TestOpType {
     POP,
@@ -36,26 +35,31 @@ const tests: [string, [number, number][], TestOp[]][] = [
 ];
 
 describe('NativeMinHeap', () => {
-    test.each(tests)('ops_%s', (_name, input, ops) => {
-        input.sort((l: [number, number], r: [number, number]) => l[1] - r[1]);
-        const heap = new core.utils.NativeMinHeap(input);
-        for (const op of ops) {
-            switch (op.type) {
-                case TestOpType.DEC:
-                    heap.decrementRank(op.key, op.value);
-                    break;
-                case TestOpType.INC:
-                    heap.incrementRank(op.key, op.value);
-                    break;
-                case TestOpType.SET:
-                    heap.setRank(op.key, op.value);
-                    break;
-                default:
-                    expect(heap.empty()).toBe(false);
-                    expect(heap.top()).toBe(op.key);
-                    heap.pop();
-                    break;
+    tests.forEach(element => {
+        const name = element[0];
+        const input = element[1];
+        const ops = element[2];
+        it(name, () => {
+            input.sort((l: [number, number], r: [number, number]) => l[1] - r[1]);
+            const heap = new core.utils.NativeMinHeap(input);
+            for (const op of ops) {
+                switch (op.type) {
+                    case TestOpType.DEC:
+                        heap.decrementRank(op.key, op.value);
+                        break;
+                    case TestOpType.INC:
+                        heap.incrementRank(op.key, op.value);
+                        break;
+                    case TestOpType.SET:
+                        heap.setRank(op.key, op.value);
+                        break;
+                    default:
+                        expect(heap.empty()).toBe(false);
+                        expect(heap.top()).toBe(op.key);
+                        heap.pop();
+                        break;
+                }
             }
-        }
+        });
     });
 });
