@@ -1,10 +1,13 @@
-const childProcess = require('child_process');
-const path = require('path');
-const webpack = require('webpack');
-const HtmlWebpackPlugin = require('html-webpack-plugin');
-const { CleanWebpackPlugin } = require('clean-webpack-plugin');
-const MiniCssExtractPlugin = require('mini-css-extract-plugin');
-const MonacoWebpackPlugin = require('monaco-editor-webpack-plugin');
+import childProcess from 'child_process';
+import { fileURLToPath } from 'url';
+import path from 'path';
+import webpack from 'webpack';
+import HtmlWebpackPlugin from 'html-webpack-plugin';
+import { CleanWebpackPlugin } from 'clean-webpack-plugin';
+import MiniCssExtractPlugin from 'mini-css-extract-plugin';
+import MonacoWebpackPlugin from 'monaco-editor-webpack-plugin';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 /// IMPORTANT
 ///
@@ -26,7 +29,7 @@ const GITHUB_OAUTH_VERSION = childProcess.execSync(`cat ${GITHUB_OAUTH_VERSION_F
 /// For example, we may want to provide a docker image for on-premise deployments that mounts a user-provided config.
 const CONFIG_PATH = 'static/config.[contenthash].json';
 
-function configure(params) {
+export function configure(params) {
     return {
         target: 'web',
         entry: {
@@ -162,7 +165,3 @@ function configure(params) {
         ],
     };
 }
-
-module.exports = {
-    configure,
-};

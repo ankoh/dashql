@@ -61,6 +61,7 @@
         "dist/**/*.js",
         "dist/*.wasm"
     ],
+    "type": "module",
     "main": "./dist/dashql_core.js",
     "module": "./dist/dashql_core.js",
     "types": "./dist/dashql_core.d.ts",

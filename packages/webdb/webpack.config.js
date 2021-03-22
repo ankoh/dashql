@@ -1,7 +1,10 @@
-const path = require('path');
-const webpack = require('webpack');
-const WebpackBar = require('webpackbar');
-const CopyPlugin = require('copy-webpack-plugin');
+import path from 'path';
+import { fileURLToPath } from 'url';
+import webpack from 'webpack';
+import WebpackBar from 'webpackbar';
+import CopyPlugin from 'copy-webpack-plugin';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const LIBRARY_UMD = {
     filename: '[name].js',
@@ -97,7 +100,7 @@ const base = {
     ],
 };
 
-module.exports = [
+export default [
     /// Web Sync, UMD, Externals
     /// Web Async, UMD, Externals
     {

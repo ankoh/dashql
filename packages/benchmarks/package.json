@@ -26,6 +26,5 @@
     "scripts": {
         "build": "../../node_modules/typescript/bin/tsc"
     },
-    "main": "./dist/webdb_node.js",
-    "types": "./dist/webdb/src/index_node.d.ts"
+    "type": "module"
 }

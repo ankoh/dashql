@@ -49,7 +49,9 @@
         "dist/**/*.js",
         "dist/*.wasm"
     ],
+    "type": "module",
     "main": "./dist/webdb_node.js",
+    "module": "./dist/webdb_node.js",
     "types": "./dist/webdb_node.d.ts",
     "browser": {
         "./dist/webdb_node.js": "./dist/webdb.js",
