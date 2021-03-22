@@ -45,7 +45,7 @@ export type AsyncWebDBRequestVariant =
     | AsyncWebDBRequest<AsyncWebDBRequestType.FS_TEST, null>
     | AsyncWebDBRequest<AsyncWebDBRequestType.INGEST_BLOBSTREAM, BlobStream>
     | AsyncWebDBRequest<AsyncWebDBRequestType.IMPORT_CSV, [number, BlobStream, string, string]>
-    | AsyncWebDBRequest<AsyncWebDBRequestType.OPEN, string | null>
+    | AsyncWebDBRequest<AsyncWebDBRequestType.OPEN, string>
     | AsyncWebDBRequest<AsyncWebDBRequestType.CONNECT, null>
     | AsyncWebDBRequest<AsyncWebDBRequestType.DISCONNECT, number>
     | AsyncWebDBRequest<AsyncWebDBRequestType.RUN_QUERY, [number, string, QueryRunOptions]>

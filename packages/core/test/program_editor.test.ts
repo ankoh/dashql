@@ -1,11 +1,9 @@
-import { beforeAll, beforeEach, describe, test, expect } from '@jest/globals';
-import { analyzer, edit } from '../src/index_node';
-import * as path from 'path';
+import { analyzer, edit } from '../src/index_web';
 
 var az: analyzer.AnalyzerBindings;
 
 beforeAll(async () => {
-    az = new analyzer.Analyzer({}, path.resolve(__dirname, '../src/analyzer/analyzer_wasm_node.wasm'));
+    az = new analyzer.Analyzer({}, '/base/src/analyzer/analyzer_wasm.wasm');
     await az.init();
 });
 
@@ -14,7 +12,7 @@ beforeEach(async () => {
 });
 
 describe('Program editor', () => {
-    test('add viz position', () => {
+    it('add viz position', () => {
         const p = az.parseProgram('VIZ weather_avg USING LINE');
         const pi = az.instantiateProgram();
         expect(p.buffer.statementsLength()).toEqual(1);
@@ -44,7 +42,7 @@ describe('Program editor', () => {
         expect(n!.program.text).toEqual(expected);
     });
 
-    test('update viz position', () => {
+    it('update viz position', () => {
         const p = az.parseProgram(
             `VIZ weather_avg USING LINE (
     position = (

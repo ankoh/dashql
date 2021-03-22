@@ -2,7 +2,7 @@ const path = require('path');
 const os = require('os');
 const fs = require('fs');
 
-const wd = path.join(os.tmpdir(), '_karma_webpack_dashql_webdb_');
+const wd = path.join(os.tmpdir(), '_karma_webpack_dashql_core_');
 console.log(wd);
 if (fs.existsSync(wd)) {
     fs.rmdirSync(wd, { recursive: true });
@@ -22,12 +22,12 @@ const webpackConfig = {
     },
     watch: false,
     resolve: {
-        extensions: ['.ts', '.js'],
+        extensions: ['.ts', '.js', '.tsx'],
     },
     module: {
         rules: [
             {
-                test: /\.ts$/,
+                test: /\.tsx?$/,
                 loader: 'ts-loader',
                 exclude: [/node_modules/],
                 options: {
@@ -46,12 +46,14 @@ module.exports = function (config) {
         frameworks: ['jasmine'],
         files: [
             { pattern: 'test/**/*.test.ts' },
-            { pattern: 'dist/*.wasm', included: false, watched: false, served: true },
-            { pattern: 'dist/*.js', included: false, watched: false, served: true },
+            { pattern: 'src/analyzer/analyzer_wasm.wasm', included: false, watched: false, served: true },
+            { pattern: '../webdb/dist/webdb.wasm', included: false, watched: false, served: true },
+            { pattern: '../webdb/dist/webdb_async.worker.js', included: false, watched: false, served: true },
         ],
         proxies: {
-            '/static/webdb.wasm': '/base/dist/webdb.wasm',
-            '/static/webdb_async.worker.js': '/base/dist/webdb_async.worker.js',
+            '/static/analyzer_wasm.wasm': '/base/src/analyzer/analyzer_wasm.wasm',
+            '/static/webdb.wasm': '/absolute' + path.resolve('../webdb/dist/webdb.wasm'),
+            '/static/webdb_async.worker.js': '/absolute' + path.resolve('../webdb/dist/webdb_async.worker.js'),
         },
         preprocessors: {
             'test/**/*.test.ts': ['webpack'],

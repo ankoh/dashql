@@ -194,6 +194,7 @@ export class AsyncWebDB {
 
     /// Received an error
     protected onError(event: ErrorEvent) {
+        console.error(event);
         console.error('error in webdb worker: ' + event.message);
         this._pendingRequests.clear();
     }
