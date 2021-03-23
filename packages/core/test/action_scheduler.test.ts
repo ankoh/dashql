@@ -16,7 +16,7 @@ let conn: webdb.AsyncWebDBConnection;
 beforeAll(async () => {
     az = new analyzer.Analyzer({}, '/static/analyzer_wasm.wasm');
     await az.init();
-    worker = new Worker('/static/webdb_async.worker.js');
+    worker = new Worker('/static/webdb-async.worker.js');
     db = new webdb.AsyncWebDB(logger, worker);
 });
 
