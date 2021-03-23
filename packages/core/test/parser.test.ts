@@ -1,4 +1,4 @@
-import { analyzer } from '../src/index_web';
+import { analyzer } from '../src';
 
 var az: analyzer.AnalyzerBindings;
 

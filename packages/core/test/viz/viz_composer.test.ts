@@ -1,7 +1,6 @@
 import * as webdb from '@dashql/webdb';
 import * as Immutable from 'immutable';
-import { analyzer } from '../../src/index_web';
-import { model, proto, viz } from '../../src/index_web';
+import { analyzer, model, proto, viz } from '../../src';
 
 interface VizComposerTestExpectation {
     renderer: model.VizRendererType;

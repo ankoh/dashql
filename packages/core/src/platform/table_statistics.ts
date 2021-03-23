@@ -1,5 +1,5 @@
 import * as Immutable from 'immutable';
-import * as webdb from '@dashql/webdb/dist/webdb_async';
+import * as webdb from '@dashql/webdb/dist/webdb-async.module';
 import * as model from '../model';
 import * as platform from '../platform';
 
