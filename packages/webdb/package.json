@@ -38,12 +38,10 @@
         "dist/*.wasm"
     ],
     "type": "module",
-    "main": "./dist/webdb_node.js",
-    "module": "./dist/webdb_node.mjs",
+    "main": "./dist/webdb.js",
+    "module": "./dist/webdb.mjs",
     "types": "./dist/webdb.d.ts",
     "browser": {
-        "./dist/webdb_node.js": "./dist/webdb.js",
-        "./dist/webdb_node.mjs": "./dist/webdb.mjs",
         "perf_hooks": false,
         "fs": false,
         "buffer": false
