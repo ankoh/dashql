@@ -38,7 +38,7 @@
         "fsevents": "*"
     },
     "scripts": {
-        "build": "tsc -v --emitDeclarationOnly && node bundle.mjs",
+        "build": "tsc --emitDeclarationOnly && node bundle.mjs",
         "test": "karma start karma.conf.cjs"
     },
     "files": [
@@ -47,8 +47,8 @@
         "dist/*.wasm"
     ],
     "type": "module",
-    "module": "./dist/dashql-core.js",
-    "types": "./dist/dashql-core.d.ts",
+    "module": "./dist/dashql-core.module.js",
+    "types": "./dist/dashql-core.module.d.ts",
     "browser": {
         "worker_threads": false,
         "perf_hooks": false,

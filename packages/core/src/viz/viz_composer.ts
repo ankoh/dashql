@@ -1,25 +1,23 @@
 import * as proto from '@dashql/proto';
 import * as model from '../model';
-import * as error from '../error';
 import * as platform from '../platform';
 import * as v from 'vega';
 import * as vl from 'vega-lite';
-import * as vlt from 'vega-lite/build/src/transform';
+import * as vlt from 'vega-lite/build/src/transform.js';
 
 import { VegaLiteEditOperation, ResolveMinMaxDomain } from './vega_editing';
 
-import { AggregatedFieldDef } from 'vega-lite/build/src/transform';
-import { Field, isScaleFieldDef, isFieldDef, isTypedFieldDef } from 'vega-lite/build/src/channeldef';
-import { LayerSpec, NormalizedLayerSpec } from 'vega-lite/build/src/spec/layer';
-import { LogicalComposition } from 'vega-lite/build/src/logical';
-import { Predicate } from 'vega-lite/build/src/predicate';
-import { SortField } from 'vega-lite/build/src/sort';
-import { Encoding } from 'vega-lite/build/src/encoding';
-import { TopLevel } from 'vega-lite/build/src/spec/toplevel';
-import { hasContinuousDomain } from 'vega-lite/build/src/scale';
-import { isUnitSpec, UnitSpec } from 'vega-lite/build/src/spec/unit';
-import { normalize } from 'vega-lite/build/src/normalize';
-import { defaultBarConfig } from 'vega-lite/build/src/mark';
+import { AggregatedFieldDef } from 'vega-lite/build/src/transform.js';
+import { Field, isScaleFieldDef, isFieldDef, isTypedFieldDef } from 'vega-lite/build/src/channeldef.js';
+import { LayerSpec, NormalizedLayerSpec } from 'vega-lite/build/src/spec/layer.js';
+import { LogicalComposition } from 'vega-lite/build/src/logical.js';
+import { Predicate } from 'vega-lite/build/src/predicate.js';
+import { SortField } from 'vega-lite/build/src/sort.js';
+import { Encoding } from 'vega-lite/build/src/encoding.js';
+import { TopLevel } from 'vega-lite/build/src/spec/toplevel.js';
+import { hasContinuousDomain } from 'vega-lite/build/src/scale.js';
+import { isUnitSpec, UnitSpec } from 'vega-lite/build/src/spec/unit.js';
+import { normalize } from 'vega-lite/build/src/normalize/index.js';
 
 export type VegaLiteTLLayerSpec = TopLevel<LayerSpec<Field>>;
 

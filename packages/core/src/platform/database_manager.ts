@@ -1,4 +1,4 @@
-import * as webdb from '@dashql/webdb/dist/webdb-async.module';
+import * as webdb from '@dashql/webdb/dist/webdb-async.module.js';
 import * as model from '../model';
 import { TableStatisticsResolver, DatabaseTableStatistics } from './table_statistics';
 import { Mutex } from '../utils';
