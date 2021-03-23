@@ -1,5 +1,5 @@
 import * as proto from '@dashql/proto';
-import * as webdb from '@dashql/webdb/dist/webdb_async';
+import * as webdb from '@dashql/webdb/dist/webdb-async.module';
 import { ActionHandle, Statement } from '../model';
 import { ProgramActionLogic } from './action_logic';
 import { ActionContext } from './action_context';

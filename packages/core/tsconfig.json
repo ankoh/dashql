@@ -16,5 +16,6 @@
         "lib": ["es6", "es2020", "dom"],
         "baseUrl": "."
     },
-    "include": ["./src/**/*", "./types/*.d.ts"]
+    "include": ["./src/**/*", "./types/*.d.ts", "./test/**/*"],
+    "exclude": ["./node_modules", "../../node_modules"]
 }

@@ -1,4 +1,3 @@
-import * as webdb from '@dashql/webdb/dist/webdb_async';
 import * as model from '../model';
 import * as error from '../error';
 

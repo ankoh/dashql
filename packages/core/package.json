@@ -4,11 +4,9 @@
     "description": "DashQL Core Library",
     "license": "MPL-2.0",
     "dependencies": {
-        "@dashql/dataframe": "^0.0.8",
         "@dashql/proto": "^0.0.3",
         "@dashql/webdb": "^0.0.14",
         "axios": "^0.21.1",
-        "canvas": "^2.7.0",
         "flatbuffers": "^1.12.0",
         "hash-wasm": "^4.5.0",
         "immutable": "^4.0.0-rc.12",
@@ -21,27 +19,15 @@
         "@types/flatbuffers": "^1.10.0",
         "@types/react": ">=16.8.0",
         "axios-mock-adapter": "^1.19.0",
-        "clean-webpack-plugin": "^3.0.0",
-        "copy-webpack-plugin": "^8.0.0",
         "esbuild": "^0.9.6",
-        "file-loader": "^6.2.0",
-        "jasmine-spec-reporter": "^6.0.0",
         "karma": "^6.2.0",
         "karma-chrome-launcher": "^3.1.0",
         "karma-firefox-launcher": "^2.1.0",
         "karma-jasmine": "^4.0.1",
         "karma-spec-reporter": "^0.0.32",
-        "karma-webpack": "^5.0.0",
         "react": "^17.0.1",
         "react-dom": "^17.0.1",
-        "ts-loader": "^8.0.18",
-        "ts-mockito": "^2.6.1",
-        "typescript": "^4.2.3",
-        "web-worker": "^1.0.0",
-        "webpack": "^5.27.1",
-        "webpack-cli": "^4.5.0",
-        "webpack-node-externals": "^2.5.2",
-        "webpackbar": "^5.0.0-3"
+        "typescript": "^4.2.3"
     },
     "peerDependencies": {
         "@types/react": "^17.0.3",
@@ -52,10 +38,8 @@
         "fsevents": "*"
     },
     "scripts": {
-        "build:watch": "webpack --watch --progress --mode=production",
-        "build": "webpack --mode=production && node ./gendts.js",
-        "test": "karma start karma.conf.js",
-        "test:ci": "karma start karma.conf.js"
+        "build": "tsc -v --emitDeclarationOnly && node bundle.mjs",
+        "test": "karma start karma.conf.cjs"
     },
     "files": [
         "dist/**/*.d.ts",
@@ -63,23 +47,12 @@
         "dist/*.wasm"
     ],
     "type": "module",
-    "main": "./dist/dashql_core.js",
-    "module": "./dist/dashql_core.js",
-    "types": "./dist/dashql_core.d.ts",
+    "module": "./dist/dashql-core.js",
+    "types": "./dist/dashql-core.d.ts",
     "browser": {
         "worker_threads": false,
         "perf_hooks": false,
         "fs": false,
         "buffer": false
-    },
-    "jest-junit": {
-        "suiteName": "Javascript",
-        "outputDirectory": "../reports",
-        "outputName": "tests_core.xml",
-        "uniqueOutputName": "false",
-        "classNameTemplate": "{classname}",
-        "titleTemplate": "{title}",
-        "ancestorSeparator": " › ",
-        "usePathForSuiteName": "true"
     }
 }
