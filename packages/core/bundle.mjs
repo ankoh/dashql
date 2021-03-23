@@ -34,10 +34,10 @@ const EXTERNALS = [
     'vega-lite',
 ];
 
-console.log('[ ESBUILD ] dashql-core.mjs');
+console.log('[ ESBUILD ] dashql-core.module.js');
 esbuild.build({
     entryPoints: ['./src/index.ts'],
-    outfile: 'dist/dashql-core.mjs',
+    outfile: 'dist/dashql-core.module.js',
     platform: 'browser',
     format: 'esm',
     target: TARGET,
@@ -51,7 +51,7 @@ esbuild.build({
 console.log('[ ESBUILD ] tests-browser.js');
 esbuild.build({
     entryPoints: ['./test/index.ts'],
-    outfile: 'dist/tests.js',
+    outfile: 'dist/tests-browser.js',
     platform: 'browser',
     format: 'iife',
     target: TARGET,
@@ -65,4 +65,4 @@ esbuild.build({
 // Write delcaration files
 
 // Node declarations
-fs.writeFile(path.join(dist, 'dashql-core.d.ts'), "export * from './types/src/index.d.ts';", printErr);
+fs.writeFile(path.join(dist, 'dashql-core.module.d.ts'), "export * from './types/src/index.d.ts';", printErr);
