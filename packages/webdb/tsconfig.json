@@ -2,7 +2,7 @@
     "compilerOptions": {
         "outDir": "./dist/",
         "target": "es6",
-        "module": "es2020",
+        "module": "es6",
         "moduleResolution": "node",
         "strict": true,
         "sourceMap": true,
@@ -11,9 +11,10 @@
         "declarationDir": "./dist/types/",
         "noImplicitAny": true,
         "esModuleInterop": true,
+        "downlevelIteration": true,
         "types": ["emscripten", "node", "jasmine"],
         "baseUrl": ".",
         "lib": ["es6", "webworker"]
     },
-    "include": ["./src/**/*", "./types/*.d.ts"]
+    "include": ["./src/**/*", "./types/*.d.ts", "./test/**/*"]
 }
