@@ -1,4 +1,4 @@
-import * as webdb from '@dashql/webdb/dist/webdb-async.module';
+import * as webdb from '@dashql/webdb/dist/webdb-async.module.js';
 import * as React from 'react';
 import * as proto from '@dashql/proto';
 

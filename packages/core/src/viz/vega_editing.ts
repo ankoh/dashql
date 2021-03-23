@@ -1,11 +1,7 @@
 import * as platform from '../platform';
 import * as model from '../model';
-import * as v from 'vega';
-import * as vl from 'vega-lite';
-import * as utils from '../utils';
 import * as webdb from '@dashql/webdb';
 import * as proto from '@dashql/proto';
-import { DateTime } from 'vega-lite/build/src/datetime';
 
 export abstract class VegaLiteEditOperation {
     /// Prepare the completion

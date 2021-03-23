@@ -1,4 +1,4 @@
-import * as webdb from '@dashql/webdb/dist/webdb-async.module';
+import * as webdb from '@dashql/webdb/dist/webdb-async.module.js';
 
 export import LogLevel = webdb.LogLevel;
 
