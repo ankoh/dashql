@@ -1,4 +1,4 @@
-import * as core from '../../src/index_web';
+import * as core from '../../src/';
 import Mutex = core.utils.Mutex;
 
 describe('Semaphore', () => {

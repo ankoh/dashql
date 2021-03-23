@@ -1,7 +1,6 @@
-import { analyzer, model, actions, platform, ActionScheduler, utils } from '../src/index_web';
-import * as webdb from '@dashql/webdb/dist/webdb_async';
+import { analyzer, model, actions, platform, ActionScheduler, utils } from '../src';
+import * as webdb from '@dashql/webdb/dist/webdb-async.module';
 import * as proto from '@dashql/proto';
-import Worker from 'web-worker';
 
 import ActionStatus = proto.action.ActionStatusCode;
 import ActionClass = proto.action.ActionClass;

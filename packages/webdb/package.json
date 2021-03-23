@@ -39,7 +39,7 @@
         "dist/*.wasm"
     ],
     "main": "./dist/webdb.js",
-    "module": "./dist/webdb.mjs",
+    "module": "./dist/webdb.module.js",
     "types": "./dist/webdb.d.ts",
     "browser": {
         "perf_hooks": false,

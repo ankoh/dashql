@@ -1,4 +1,4 @@
-import { analyzer, model } from '../../src/index_web';
+import { analyzer, model } from '../../src/';
 import * as proto from '@dashql/proto';
 import schema = model.schema;
 import sx = proto.syntax;
