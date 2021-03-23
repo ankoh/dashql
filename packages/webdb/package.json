@@ -30,6 +30,7 @@
     },
     "scripts": {
         "build": "tsc --emitDeclarationOnly && node bundle.mjs",
+        "test:node": "jasmine ./dist/tests-node.cjs",
         "test:browser": "karma start karma.conf.cjs"
     },
     "files": [
@@ -37,7 +38,6 @@
         "dist/**/*.js",
         "dist/*.wasm"
     ],
-    "type": "module",
     "main": "./dist/webdb.js",
     "module": "./dist/webdb.mjs",
     "types": "./dist/webdb.d.ts",

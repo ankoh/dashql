@@ -209,6 +209,22 @@ esbuild.build({
     sourcemap: 'external',
 });
 
+console.log('[ ESBUILD ] tests-node.cjs');
+esbuild.build({
+    entryPoints: ['./test/node/index.ts'],
+    outfile: 'dist/tests-node.cjs',
+    platform: 'node',
+    format: 'cjs',
+    target: TARGET,
+    bundle: true,
+    minify: false,
+    sourcemap: 'external',
+});
+
+// XXX
+// Bundling tests for node is a bit problematic right now.
+// The package itself is a module
+
 // -------------------------------
 // Write delcaration files
 
