@@ -7,6 +7,9 @@ function printErr(err) {
     if (err) return console.log(err);
 }
 
+// Bundling node is a bit problematic right now.
+// The web worker ponyfill is commonjs (dynamic require) and prevents us from releasing an async node module.
+
 // -------------------------------
 // Copy WASM files
 
@@ -220,10 +223,6 @@ esbuild.build({
     minify: false,
     sourcemap: 'external',
 });
-
-// XXX
-// Bundling tests for node is a bit problematic right now.
-// The package itself is a module
 
 // -------------------------------
 // Write delcaration files
