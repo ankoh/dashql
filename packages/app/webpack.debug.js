@@ -4,19 +4,22 @@ import path from 'path';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-export default {
-    ...configure({
-        buildDir: path.resolve(__dirname, './build/debug'),
-        tsLoaderOptions: {
-            compilerOptions: {
-                configFile: './tsconfig.json',
-                sourceMap: true,
-            },
+const base = configure({
+    buildDir: path.resolve(__dirname, './build/debug'),
+    tsLoaderOptions: {
+        compilerOptions: {
+            configFile: './tsconfig.json',
+            sourceMap: true,
         },
-        extractCss: false,
-        cssIdentifier: '[local]_[hash:base64]',
-    }),
+    },
+    extractCss: false,
+    cssIdentifier: '[local]_[hash:base64]',
+});
+
+export default {
+    ...base,
     output: {
+        ...base.output,
         devtoolModuleFilenameTemplate: 'file:///[absolute-resource-path]', // map to source with absolute file path not webpack:// protocol
     },
     mode: 'development',

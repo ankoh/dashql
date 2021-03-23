@@ -1,8 +1,8 @@
 {
     "compilerOptions": {
         "outDir": "./build/ts/",
-        "target": "es6",
-        "module": "es6",
+        "target": "es2020",
+        "module": "es2020",
         "moduleResolution": "node",
         "sourceMap": true,
         "noImplicitAny": true,
@@ -12,10 +12,6 @@
         "jsx": "react",
         "plugins": [{ "name": "typescript-plugin-css-modules" }],
         "baseUrl": ".",
-        "paths": {
-            "@dashql/proto": ["../proto/index.ts"],
-            "immutable": ["./node_modules/immutable"]
-        },
         "lib": ["es6", "es2020", "dom"]
     },
     "exclude": ["./test/**/*.ts", "./node_modules"],

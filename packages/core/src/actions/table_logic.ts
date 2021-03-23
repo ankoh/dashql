@@ -1,5 +1,5 @@
 import * as proto from '@dashql/proto';
-import * as webdb from '@dashql/webdb/dist/webdb-async.module';
+import * as webdb from '@dashql/webdb/dist/webdb-async.module.js';
 import * as model from '../model';
 import * as Immutable from 'immutable';
 import { ProgramActionLogic, SetupActionLogic } from './action_logic';

@@ -1,4 +1,4 @@
-import * as webdb from '@dashql/webdb/dist/webdb-async.module';
+import * as webdb from '@dashql/webdb/dist/webdb-async.module.js';
 import { AnalyzerBindings } from '../analyzer';
 import { DatabaseManager } from './database_manager';
 import { DerivedReduxStore } from '../model';
