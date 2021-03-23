@@ -178,20 +178,10 @@ app_start:
 webdb:
 	yarn workspace @dashql/webdb build
 
-# Build the dataframe library
-.PHONY: dataframe
-dataframe:
-	yarn workspace @dashql/dataframe build
-
 # Run the webdb javascript tests
 .PHONY: webdb_tests
 webdb_tests:
 	yarn workspace @dashql/webdb test
-
-# Run the dataframe javascript tests
-.PHONY: dataframe_tests
-dataframe_tests:
-	yarn workspace @dashql/dataframe test
 
 # Install all yarn packages
 .PHONY: yarn_install
@@ -240,8 +230,8 @@ bootstrap:
 	git submodule update --init --recursive
 	make docker_ci_image yarn_install
 	make proto
-	make wasm dataframe_wasm
-	make webdb dataframe core
+	make wasm
+	make webdb core
 
 # ---------------------------------------------------------------------------
 # Data
