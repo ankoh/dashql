@@ -32,20 +32,8 @@ esbuild.build({
     format: 'iife',
     target: TARGET,
     bundle: true,
-    minify: false,
-    define: { 'process.env.NODE_ENV': '"production"' },
-    sourcemap: 'external',
-});
-
-console.log('[ ESBUILD ] webdb.min.js');
-esbuild.build({
-    entryPoints: ['./src/targets/sync_browser.ts'],
-    outfile: 'dist/webdb.min.js',
-    platform: 'browser',
-    format: 'iife',
-    target: TARGET,
-    bundle: true,
     minify: true,
+    define: { 'process.env.NODE_ENV': '"production"' },
     sourcemap: 'external',
 });
 
@@ -57,7 +45,7 @@ esbuild.build({
     format: 'esm',
     target: TARGET,
     bundle: true,
-    minify: false,
+    minify: true,
     sourcemap: 'external',
     external: EXTERNALS,
 });
@@ -66,18 +54,6 @@ console.log('[ ESBUILD ] webdb-async.js');
 esbuild.build({
     entryPoints: ['./src/targets/async_browser.ts'],
     outfile: 'dist/webdb-async.js',
-    platform: 'browser',
-    format: 'iife',
-    target: TARGET,
-    bundle: true,
-    minify: false,
-    sourcemap: 'external',
-});
-
-console.log('[ ESBUILD ] webdb-async.min.js');
-esbuild.build({
-    entryPoints: ['./src/targets/async_browser.ts'],
-    outfile: 'dist/webdb-async.min.js',
     platform: 'browser',
     format: 'iife',
     target: TARGET,
@@ -94,7 +70,7 @@ esbuild.build({
     format: 'esm',
     target: TARGET,
     bundle: true,
-    minify: false,
+    minify: true,
     sourcemap: 'external',
     external: EXTERNALS,
 });
@@ -103,18 +79,6 @@ console.log('[ ESBUILD ] webdb-async.worker.js');
 esbuild.build({
     entryPoints: ['./src/targets/async_worker_browser.ts'],
     outfile: 'dist/webdb-async.worker.js',
-    platform: 'browser',
-    format: 'iife',
-    target: TARGET,
-    bundle: true,
-    minify: false,
-    sourcemap: 'external',
-});
-
-console.log('[ ESBUILD ] webdb-async.worker.min.js');
-esbuild.build({
-    entryPoints: ['./src/targets/async_worker_browser.ts'],
-    outfile: 'dist/webdb-async.worker.min.js',
     platform: 'browser',
     format: 'iife',
     target: TARGET,
@@ -134,18 +98,6 @@ esbuild.build({
     format: 'cjs',
     target: TARGET,
     bundle: true,
-    minify: false,
-    sourcemap: 'external',
-});
-
-console.log('[ ESBUILD ] webdb-node.min.js');
-esbuild.build({
-    entryPoints: ['./src/targets/sync_node.ts'],
-    outfile: 'dist/webdb-node.min.js',
-    platform: 'node',
-    format: 'cjs',
-    target: TARGET,
-    bundle: true,
     minify: true,
     sourcemap: 'external',
 });
@@ -158,18 +110,6 @@ esbuild.build({
     format: 'cjs',
     target: TARGET,
     bundle: true,
-    minify: false,
-    sourcemap: 'external',
-});
-
-console.log('[ ESBUILD ] webdb-node-async.min.js');
-esbuild.build({
-    entryPoints: ['./src/targets/async_node.ts'],
-    outfile: 'dist/webdb-node-async.min.js',
-    platform: 'node',
-    format: 'cjs',
-    target: TARGET,
-    bundle: true,
     minify: true,
     sourcemap: 'external',
 });
@@ -178,18 +118,6 @@ console.log('[ ESBUILD ] webdb-node-async.worker.js');
 esbuild.build({
     entryPoints: ['./src/targets/async_worker_node.ts'],
     outfile: 'dist/webdb-node-async.worker.js',
-    platform: 'node',
-    format: 'cjs',
-    target: TARGET,
-    bundle: true,
-    minify: false,
-    sourcemap: 'external',
-});
-
-console.log('[ ESBUILD ] webdb-node-async.worker.min.js');
-esbuild.build({
-    entryPoints: ['./src/targets/async_worker_node.ts'],
-    outfile: 'dist/webdb-node-async.worker.min.js',
     platform: 'node',
     format: 'cjs',
     target: TARGET,

@@ -1,4 +1,4 @@
-import * as webdb from '@dashql/webdb/dist/webdb_async';
+import * as webdb from '@dashql/webdb/dist/webdb-async.module';
 import * as core from '@dashql/core';
 import * as model from './model';
 import * as examples from './example_scripts';
@@ -56,7 +56,7 @@ async function configureApp(store: model.AppReduxStore): Promise<model.AppConfig
 async function initWebDB(store: model.AppReduxStore, logger: webdb.Logger): Promise<webdb.AsyncWebDB | null> {
     startStep(store, model.LaunchStep.INIT_WEBDB);
     try {
-        const dbWorker = new Worker(new URL('@dashql/webdb/dist/webdb_async.worker.js', import.meta.url));
+        const dbWorker = new Worker(new URL('@dashql/webdb/dist/webdb-async.worker.js', import.meta.url));
         const db = new webdb.AsyncWebDB(logger, dbWorker);
         await db.open(webdb_wasm);
         stepSucceeded(store, model.LaunchStep.INIT_WEBDB);
