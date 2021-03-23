@@ -1,10 +1,10 @@
 // Copyright (c) 2020 The DashQL Authors
 
-import { AsyncWebDBDispatcher } from './async_webdb_dispatcher';
-import { AsyncWebDBResponseVariant, AsyncWebDBRequestVariant } from './async_webdb_message';
-import { WebDBBindings } from './webdb_bindings';
-import { WebDB } from './webdb_bindings_node';
-import { NodeWebDBRuntime } from './webdb_runtime_node';
+import { AsyncWebDBDispatcher } from '../async_webdb_dispatcher';
+import { AsyncWebDBResponseVariant, AsyncWebDBRequestVariant } from '../async_webdb_message';
+import { WebDBBindings } from '../webdb_bindings';
+import { WebDB } from '../webdb_bindings_node';
+import { NodeWebDBRuntime } from '../webdb_runtime_node';
 
 /// The webdb worker API for node.js workers
 class NodeWorker extends AsyncWebDBDispatcher {
