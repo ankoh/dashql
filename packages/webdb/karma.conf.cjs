@@ -10,7 +10,7 @@ module.exports = function (config) {
         basePath: './',
         frameworks: ['jasmine'],
         files: [
-            { pattern: 'dist/webdb-tests.js' },
+            { pattern: 'dist/tests-browser.js' },
             { pattern: 'dist/*.wasm', included: false, watched: false, served: true },
             { pattern: 'dist/*.js', included: false, watched: false, served: true },
         ],

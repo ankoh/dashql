@@ -1,4 +1,4 @@
-import * as webdb from '../src/index_async';
+import * as webdb from '../../src/targets/async_browser';
 
 let worker: Worker;
 let db: webdb.AsyncWebDB;
