@@ -375,6 +375,7 @@ if (EMSCRIPTEN)
         -s DISABLE_EXCEPTION_CATCHING=0 \
         -s MODULARIZE=1 \
         -s FILESYSTEM=0 \
+        -s EXPORT_ES6=1 \
         -s EXPORT_NAME='DashQLTable' \
         -s EXPORTED_FUNCTIONS='[ \
             _main, \
@@ -405,6 +406,7 @@ if (EMSCRIPTEN)
         -s DISABLE_EXCEPTION_CATCHING=0 \
         -s MODULARIZE=1 \
         -s FILESYSTEM=0 \
+        -s EXPORT_ES6=1 \
         -s EXPORT_NAME='DashQLAnalyzer' \
         -s EXPORTED_FUNCTIONS='[ \
             _main, \
@@ -435,6 +437,7 @@ if (EMSCRIPTEN)
         -s DISABLE_EXCEPTION_CATCHING=0 \
         -s MODULARIZE=1 \
         -s FILESYSTEM=0 \
+        -s EXPORT_ES6=1 \
         -s EXPORT_NAME='DashQLWebDB' \
         -s EXPORTED_FUNCTIONS='[ \
             _main, \

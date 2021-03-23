@@ -13,8 +13,10 @@
         "esModuleInterop": true,
         "downlevelIteration": true,
         "types": ["emscripten", "node", "jasmine"],
+        "typeRoots": ["./types", "./node_modules/@types", "../../node_modules/@types"],
         "baseUrl": ".",
         "lib": ["es6", "webworker"]
     },
-    "include": ["./src/**/*", "./types/*.d.ts", "./test/**/*"]
+    "include": ["./src/**/*", "./types/*.d.ts", "./test/**/*"],
+    "exclude": ["./test/node/**/*"]
 }
