@@ -20,6 +20,7 @@
         "karma-jasmine": "^4.0.1",
         "karma-spec-reporter": "^0.0.32",
         "puppeteer": "^8.0.0",
+        "source-map-support": "^0.5.19",
         "ts-node": "^9.1.1",
         "typescript": "^4.2.3"
     },
@@ -28,7 +29,7 @@
     },
     "scripts": {
         "build": "tsc --emitDeclarationOnly && node bundle.mjs",
-        "test:node": "jasmine ./dist/tests-node.js",
+        "test:node": "NODE_OPTIONS='-r source-map-support/register' jasmine ./dist/tests-node.js",
         "test:browser": "karma start karma.conf.cjs",
         "test": "npm run test:browser && npm run test:node"
     },
