@@ -16,56 +16,18 @@ function printErr(err) {
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const dist = path.resolve(__dirname, 'dist');
 const src = path.resolve(__dirname, 'src');
-fs.copyFile(path.resolve(src, 'webdb_wasm.wasm'), path.resolve(dist, 'webdb.wasm'), printErr);
+fs.copyFile(path.resolve(src, 'bindings', 'webdb_wasm.wasm'), path.resolve(dist, 'webdb.wasm'), printErr);
 
 // -------------------------------
-// BROWSER
+// ESM
 
 const TARGET = 'es2020';
 const EXTERNALS = ['flatbuffers', '@dashql/proto'];
 
-console.log('[ ESBUILD ] webdb.js');
-esbuild.build({
-    entryPoints: ['./src/targets/sync_browser.ts'],
-    outfile: 'dist/webdb.js',
-    platform: 'browser',
-    format: 'iife',
-    target: TARGET,
-    bundle: true,
-    minify: true,
-    define: { 'process.env.NODE_ENV': '"production"' },
-    sourcemap: 'external',
-});
-
 console.log('[ ESBUILD ] webdb.module.js');
 esbuild.build({
-    entryPoints: ['./src/targets/sync_browser.ts'],
+    entryPoints: ['./src/index.ts'],
     outfile: 'dist/webdb.module.js',
-    platform: 'browser',
-    format: 'esm',
-    target: TARGET,
-    bundle: true,
-    minify: true,
-    sourcemap: 'external',
-    external: EXTERNALS,
-});
-
-console.log('[ ESBUILD ] webdb-async.js');
-esbuild.build({
-    entryPoints: ['./src/targets/async_browser.ts'],
-    outfile: 'dist/webdb-async.js',
-    platform: 'browser',
-    format: 'iife',
-    target: TARGET,
-    bundle: true,
-    minify: true,
-    sourcemap: 'external',
-});
-
-console.log('[ ESBUILD ] webdb-async.module.js');
-esbuild.build({
-    entryPoints: ['./src/targets/async_browser.ts'],
-    outfile: 'dist/webdb-async.module.js',
     platform: 'neutral',
     format: 'esm',
     target: TARGET,
@@ -75,10 +37,38 @@ esbuild.build({
     external: EXTERNALS,
 });
 
-console.log('[ ESBUILD ] webdb-async.worker.js');
+// -------------------------------
+// Browser
+
+console.log('[ ESBUILD ] webdb-serial.js');
 esbuild.build({
-    entryPoints: ['./src/targets/async_worker_browser.ts'],
-    outfile: 'dist/webdb-async.worker.js',
+    entryPoints: ['./src/platform/browser/index_serial.ts'],
+    outfile: 'dist/webdb-serial.js',
+    platform: 'browser',
+    format: 'iife',
+    target: TARGET,
+    bundle: true,
+    minify: true,
+    define: { 'process.env.NODE_ENV': '"production"' },
+    sourcemap: 'external',
+});
+
+console.log('[ ESBUILD ] webdb-parallel.js');
+esbuild.build({
+    entryPoints: ['./src/platform/browser/index_parallel.ts'],
+    outfile: 'dist/webdb-parallel.js',
+    platform: 'browser',
+    format: 'iife',
+    target: TARGET,
+    bundle: true,
+    minify: true,
+    sourcemap: 'external',
+});
+
+console.log('[ ESBUILD ] webdb-parallel.worker.js');
+esbuild.build({
+    entryPoints: ['./src/platform/browser/worker.ts'],
+    outfile: 'dist/webdb-parallel.worker.js',
     platform: 'browser',
     format: 'iife',
     target: TARGET,
@@ -90,10 +80,10 @@ esbuild.build({
 // -------------------------------
 // NODE
 
-console.log('[ ESBUILD ] webdb-node.js');
+console.log('[ ESBUILD ] webdb-node-serial.js');
 esbuild.build({
-    entryPoints: ['./src/targets/sync_node.ts'],
-    outfile: 'dist/webdb-node.js',
+    entryPoints: ['./src/platform/node/index_serial.ts'],
+    outfile: 'dist/webdb-node-serial.js',
     platform: 'node',
     format: 'cjs',
     target: TARGET,
@@ -102,10 +92,10 @@ esbuild.build({
     sourcemap: 'external',
 });
 
-console.log('[ ESBUILD ] webdb-node-async.js');
+console.log('[ ESBUILD ] webdb-node-parallel.js');
 esbuild.build({
-    entryPoints: ['./src/targets/async_node.ts'],
-    outfile: 'dist/webdb-node-async.js',
+    entryPoints: ['./src/platform/node/index_parallel.ts'],
+    outfile: 'dist/webdb-node-parallel.js',
     platform: 'node',
     format: 'cjs',
     target: TARGET,
@@ -114,10 +104,22 @@ esbuild.build({
     sourcemap: 'external',
 });
 
-console.log('[ ESBUILD ] webdb-node-async.worker.js');
+console.log('[ ESBUILD ] webdb-node-parallel.worker.js');
 esbuild.build({
-    entryPoints: ['./src/targets/async_worker_node.ts'],
-    outfile: 'dist/webdb-node-async.worker.js',
+    entryPoints: ['./src/platform/node/worker.ts'],
+    outfile: 'dist/webdb-node-parallel.worker.js',
+    platform: 'node',
+    format: 'cjs',
+    target: TARGET,
+    bundle: true,
+    minify: true,
+    sourcemap: 'external',
+});
+
+console.log('[ ESBUILD ] node-webworker.js');
+esbuild.build({
+    entryPoints: ['./src/platform/node/node_webworker.js'],
+    outfile: 'dist/node-webworker.js',
     platform: 'node',
     format: 'cjs',
     target: TARGET,
@@ -156,43 +158,29 @@ esbuild.build({
 // -------------------------------
 // Write delcaration files
 
-// Node declarations
-fs.writeFile(path.join(dist, 'webdb-node.d.ts'), "export * from './types/src/targets/sync_node';", printErr);
-fs.writeFile(path.join(dist, 'webdb-node.min.d.ts'), "export * from './types/src/targets/sync_node';", printErr);
-fs.writeFile(path.join(dist, 'webdb-node-async.d.ts'), "export * from './types/src/targets/sync_node';", printErr);
-fs.writeFile(path.join(dist, 'webdb-node-async.min.d.ts'), "export * from './types/src/targets/sync_node';", printErr);
+// ESM declarations
+fs.writeFile(path.join(dist, 'webdb.module.d.ts'), "export * from './types/src/';", printErr);
+
+// Browser declarations
 fs.writeFile(
-    path.join(dist, 'webdb-node-async.worker.d.ts'),
-    "export * from './types/src/targets/async_worker_node';",
+    path.join(dist, 'webdb-serial.d.ts'),
+    "export * from './types/src/platform/browser/index_serial';",
     printErr,
 );
 fs.writeFile(
-    path.join(dist, 'webdb-node-async.worker.min.d.ts'),
-    "export * from './types/src/targets/async_worker_node';",
+    path.join(dist, 'webdb-parallel.d.ts'),
+    "export * from './types/src/platform/browser/index_parallel';",
     printErr,
 );
 
-// Browser declarations
-fs.writeFile(path.join(dist, 'webdb.d.ts'), "export * from './types/src/targets/sync_browser';", printErr);
-fs.writeFile(path.join(dist, 'webdb.min.d.ts'), "export * from './types/src/targets/sync_node';", printErr);
-fs.writeFile(path.join(dist, 'webdb.module.d.ts'), "export * from './types/src/targets/sync_browser';", printErr);
+// Node declarations
 fs.writeFile(
-    path.join(dist, 'webdb-async.module.d.ts'),
-    "export * from './types/src/targets/async_browser';",
+    path.join(dist, 'webdb-node-serial.d.ts'),
+    "export * from './types/src/platform/node/index_serial';",
     printErr,
 );
 fs.writeFile(
-    path.join(dist, 'webdb-async.min.d.ts'),
-    "export * from './types/src/targets/async_worker_browser';",
-    printErr,
-);
-fs.writeFile(
-    path.join(dist, 'webdb-async.worker.d.ts'),
-    "export * from './types/src/targets/async_worker_browser';",
-    printErr,
-);
-fs.writeFile(
-    path.join(dist, 'webdb-async.worker.min.d.ts'),
-    "export * from './types/src/targets/async_worker_browser';",
+    path.join(dist, 'webdb-node-parallel.d.ts'),
+    "export * from './types/src/platform/node/index_parallel';",
     printErr,
 );

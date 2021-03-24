@@ -1,7 +1,7 @@
 // Copyright (c) 2020 The DashQL Authors
 
-import { ChunkIterator, RewindableIterator } from './iterator_base';
-import { WebDBConnection } from './webdb_bindings';
+import { ChunkIterator, RewindableIterator } from '../common/iterator_base';
+import { WebDBConnection } from '../bindings';
 import { webdb as proto } from '@dashql/proto';
 
 /**

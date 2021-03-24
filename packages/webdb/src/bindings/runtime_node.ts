@@ -1,10 +1,10 @@
 // Copyright (c) 2020 The DashQL Authors
 
 import fs from 'fs';
-import { copyBlobStreamTo } from './webdb_bindings';
-import { NodeBlobStream } from './webdb_bindings_node';
+import { copyBlobStreamTo } from '../bindings';
+import { NodeBlobStream } from '../bindings/bindings_node';
 import fg from 'fast-glob';
-import { WebDBRuntime } from './webdb_runtime';
+import { WebDBRuntime } from './runtime_base';
 
 const decoder = new TextDecoder();
 const encoder = new TextEncoder();

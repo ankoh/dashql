@@ -1,14 +1,14 @@
-import * as webdb from '../../src/targets/async_browser';
+import * as webdb from '../../src/';
 
 let worker: Worker;
-let db: webdb.AsyncWebDB;
-var conn: webdb.AsyncWebDBConnection;
+let db: webdb.parallel.AsyncWebDB;
+var conn: webdb.parallel.AsyncWebDBConnection;
 const logger = new webdb.ConsoleLogger();
 const testRows = 3000;
 
 beforeAll(async () => {
-    worker = new Worker('/static/webdb-async.worker.js');
-    db = new webdb.AsyncWebDB(logger, worker);
+    worker = new Worker('/static/webdb-parallel.worker.js');
+    db = new webdb.parallel.AsyncWebDB(logger, worker);
     await db.open('/static/webdb.wasm');
 });
 
@@ -42,7 +42,7 @@ describe('QueryResultRowIterator', () => {
                 SELECT (v & 127)::TINYINT FROM generate_series(0, ${testRows}) as t(v);
             `);
             expect(result.columnTypesLength()).toBe(1);
-            let chunks = new webdb.ChunkStreamIterator(conn, result);
+            let chunks = new webdb.parallel.ChunkStreamIterator(conn, result);
             let i = 0;
             while (await chunks.nextAsync()) {
                 for (const v of chunks.iterateNumberColumn(0)) {

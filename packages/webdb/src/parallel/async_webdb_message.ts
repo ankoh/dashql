@@ -1,6 +1,5 @@
-import { LogEntryVariant } from './log';
-import { QueryRunOptions } from './query_options';
-import { BlobStream } from './webdb_bindings';
+import { QueryRunOptions, LogEntryVariant } from '../common';
+import { BlobStream } from '../bindings';
 
 export enum AsyncWebDBRequestType {
     RESET = 'RESET',

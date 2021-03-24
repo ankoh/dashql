@@ -1,4 +1,4 @@
-import * as webdb from '../../src/targets/sync_browser';
+import * as webdb from '../../src/platform/browser/index_serial';
 
 var db: webdb.WebDB;
 var conn: webdb.WebDBConnection;

@@ -1,11 +1,11 @@
-import { WebDBBindings } from './webdb_bindings';
+import { WebDBBindings } from '../bindings';
 import {
     AsyncWebDBResponseVariant,
     AsyncWebDBRequestVariant,
     AsyncWebDBRequestType,
     AsyncWebDBResponseType,
 } from './async_webdb_message';
-import { Logger, LogEntryVariant } from './log';
+import { Logger, LogEntryVariant } from '../common';
 
 export abstract class AsyncWebDBDispatcher implements Logger {
     /// The bindings
