@@ -16,7 +16,7 @@ module.exports = function (config) {
         ],
         proxies: {
             '/static/webdb.wasm': '/base/dist/webdb.wasm',
-            '/static/webdb-async.worker.js': '/base/dist/webdb-async.worker.js',
+            '/static/webdb-browser-parallel.worker.js': '/base/dist/webdb-browser-parallel.worker.js',
         },
         exclude: [],
         reporters: ['spec'],

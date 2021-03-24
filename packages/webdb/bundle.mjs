@@ -24,11 +24,37 @@ fs.copyFile(path.resolve(src, 'bindings', 'webdb_wasm.wasm'), path.resolve(dist,
 const TARGET = 'es2020';
 const EXTERNALS = ['flatbuffers', '@dashql/proto'];
 
-console.log('[ ESBUILD ] webdb.module.js');
+console.log('[ ESBUILD ] webdb-core.module.js');
 esbuild.build({
     entryPoints: ['./src/index.ts'],
-    outfile: 'dist/webdb.module.js',
+    outfile: 'dist/webdb-core.module.js',
     platform: 'neutral',
+    format: 'esm',
+    target: TARGET,
+    bundle: true,
+    minify: true,
+    sourcemap: 'external',
+    external: EXTERNALS,
+});
+
+console.log('[ ESBUILD ] webdb-browser.module.js');
+esbuild.build({
+    entryPoints: ['./src/platform/browser/index_module.ts'],
+    outfile: 'dist/webdb-browser.module.js',
+    platform: 'browser',
+    format: 'esm',
+    target: TARGET,
+    bundle: true,
+    minify: true,
+    sourcemap: 'external',
+    external: EXTERNALS,
+});
+
+console.log('[ ESBUILD ] webdb-node.module.js');
+esbuild.build({
+    entryPoints: ['./src/platform/node/index_module.ts'],
+    outfile: 'dist/webdb-node.module.js',
+    platform: 'node',
     format: 'esm',
     target: TARGET,
     bundle: true,
@@ -40,10 +66,10 @@ esbuild.build({
 // -------------------------------
 // Browser
 
-console.log('[ ESBUILD ] webdb-serial.js');
+console.log('[ ESBUILD ] webdb-browser-serial.js');
 esbuild.build({
     entryPoints: ['./src/platform/browser/index_serial.ts'],
-    outfile: 'dist/webdb-serial.js',
+    outfile: 'dist/webdb-browser-serial.js',
     platform: 'browser',
     format: 'iife',
     target: TARGET,
@@ -53,10 +79,10 @@ esbuild.build({
     sourcemap: 'external',
 });
 
-console.log('[ ESBUILD ] webdb-parallel.js');
+console.log('[ ESBUILD ] webdb-browser-parallel.js');
 esbuild.build({
     entryPoints: ['./src/platform/browser/index_parallel.ts'],
-    outfile: 'dist/webdb-parallel.js',
+    outfile: 'dist/webdb-browser-parallel.js',
     platform: 'browser',
     format: 'iife',
     target: TARGET,
@@ -65,10 +91,10 @@ esbuild.build({
     sourcemap: 'external',
 });
 
-console.log('[ ESBUILD ] webdb-parallel.worker.js');
+console.log('[ ESBUILD ] webdb-browser-parallel.worker.js');
 esbuild.build({
     entryPoints: ['./src/platform/browser/worker.ts'],
-    outfile: 'dist/webdb-parallel.worker.js',
+    outfile: 'dist/webdb-browser-parallel.worker.js',
     platform: 'browser',
     format: 'iife',
     target: TARGET,
@@ -160,15 +186,25 @@ esbuild.build({
 
 // ESM declarations
 fs.writeFile(path.join(dist, 'webdb.module.d.ts'), "export * from './types/src/';", printErr);
+fs.writeFile(
+    path.join(dist, 'webdb-browser.module.d.ts'),
+    "export * from './types/src/platform/browser/index_module';",
+    printErr,
+);
+fs.writeFile(
+    path.join(dist, 'webdb-node.module.d.ts'),
+    "export * from './types/src/platform/node/index_module';",
+    printErr,
+);
 
 // Browser declarations
 fs.writeFile(
-    path.join(dist, 'webdb-serial.d.ts'),
+    path.join(dist, 'webdb-browser-serial.d.ts'),
     "export * from './types/src/platform/browser/index_serial';",
     printErr,
 );
 fs.writeFile(
-    path.join(dist, 'webdb-parallel.d.ts'),
+    path.join(dist, 'webdb-browser-parallel.d.ts'),
     "export * from './types/src/platform/browser/index_parallel';",
     printErr,
 );
