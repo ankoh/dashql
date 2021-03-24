@@ -35,7 +35,7 @@ describe('HTTPManager', () => {
         };
         let expect404 = async (url: string) => {
             try {
-                const resp = await http.request({ url: url });
+                await http.request({ url: url });
             } catch (e) {
                 // check 404?
                 return;

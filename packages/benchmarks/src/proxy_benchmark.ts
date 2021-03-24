@@ -1,10 +1,11 @@
-import * as webdb from '@dashql/webdb';
-import * as core from '@dashql/core';
+import { WebDB } from '@dashql/webdb/dist/webdb-node.module.js';
+import * as webdb from '@dashql/webdb/dist/webdb.module.js';
+import * as core from '@dashql/core/dist/dashql-core.module.js';
 import * as benny from 'benny';
-import * as path from 'path';
+import path from 'path';
 import kleur from 'kleur';
 
-function main(db: webdb.WebDB) {
+function main(db: WebDB) {
     let tupleSize = 8;
     for (const tupleCount of [1000, 10000, 1000000, 10000000]) {
         benny.suite(
@@ -12,19 +13,23 @@ function main(db: webdb.WebDB) {
             benny.add('column scan', () => {
                 let conn = db.connect();
                 let result = conn.runQuery(`
-                    SELECT v::DOUBLE AS foo FROM generate_series(0, ${tupleCount}) as t(v);
+                    SELECT v::DOUBLE AS foo FROM generate_series(1, ${tupleCount}) as t(v);
                 `);
                 conn.disconnect();
                 return () => {
-                    let chunks = new webdb.ChunkArrayIterator(result);
+                    let chunks = new webdb.serial.ChunkArrayIterator(result);
                     let sum = 0;
+                    let count = 0;
                     while (chunks.nextBlocking()) {
                         for (const v of chunks.iterateNumberColumn(0)) {
                             sum += v!;
+                            ++count;
                         }
                     }
-                    if (sum != (tupleCount * (tupleCount + 1)) / 2) {
-                        console.log('WRONG RESULT');
+                    if (count != tupleCount || sum != (tupleCount * (tupleCount + 1)) / 2) {
+                        console.log(
+                            `1 WRONG RESULT ${count} ${tupleCount} ${sum} ${(tupleCount * (tupleCount + 1)) / 2}`,
+                        );
                     }
                 };
             }),
@@ -32,22 +37,26 @@ function main(db: webdb.WebDB) {
             benny.add('row proxies (collect)', () => {
                 let conn = db.connect();
                 let result = conn.runQuery(`
-                    SELECT v::DOUBLE AS foo FROM generate_series(0, ${tupleCount}) as t(v);
+                    SELECT v::DOUBLE AS foo FROM generate_series(1, ${tupleCount}) as t(v);
                 `);
                 conn.disconnect();
                 return () => {
-                    const chunks = new webdb.ChunkArrayIterator(result);
+                    const chunks = new webdb.serial.ChunkArrayIterator(result);
                     interface Row extends webdb.RowProxy {
                         foo: number | null;
                     }
                     let sum = 0;
+                    let count = 0;
                     while (chunks.nextBlocking()) {
                         for (const row of chunks.collect<Row>()) {
                             sum += row.foo!;
+                            ++count;
                         }
                     }
-                    if (sum != (tupleCount * (tupleCount + 1)) / 2) {
-                        console.log('WRONG RESULT');
+                    if (count != tupleCount || sum != (tupleCount * (tupleCount + 1)) / 2) {
+                        console.log(
+                            `2 WRONG RESULT ${count} ${tupleCount} ${sum} ${(tupleCount * (tupleCount + 1)) / 2}`,
+                        );
                     }
                 };
             }),
@@ -55,20 +64,24 @@ function main(db: webdb.WebDB) {
             benny.add('row proxies (iter)', () => {
                 let conn = db.connect();
                 let result = conn.runQuery(`
-                    SELECT v::DOUBLE AS foo FROM generate_series(0, ${tupleCount}) as t(v);
+                    SELECT v::DOUBLE AS foo FROM generate_series(1, ${tupleCount}) as t(v);
                 `);
                 conn.disconnect();
                 return () => {
-                    const chunks = new webdb.ChunkArrayIterator(result);
+                    const chunks = new webdb.serial.ChunkArrayIterator(result);
                     interface Row extends webdb.RowProxy {
                         foo: number | null;
                     }
                     let sum = 0;
+                    let count = 0;
                     for (const row of chunks.iter<Row>()) {
                         sum += row.foo!;
+                        ++count;
                     }
-                    if (sum != (tupleCount * (tupleCount + 1)) / 2) {
-                        console.log('WRONG RESULT');
+                    if (count != tupleCount || sum != (tupleCount * (tupleCount + 1)) / 2) {
+                        console.log(
+                            `3 WRONG RESULT ${count} ${tupleCount} ${sum} ${(tupleCount * (tupleCount + 1)) / 2}`,
+                        );
                     }
                 };
             }),
@@ -89,7 +102,7 @@ function main(db: webdb.WebDB) {
 }
 
 const logger = new webdb.VoidLogger();
-const db = new webdb.WebDB(logger, webdb.DefaultWebDBRuntime, path.join(__dirname, '../../webdb/dist/webdb.wasm'));
+const db = new WebDB(logger, webdb.DefaultWebDBRuntime, path.join(__dirname, '../../webdb/dist/webdb.wasm'));
 db.open()
     .then(() => main(db))
     .catch(e => console.error(e));

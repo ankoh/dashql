@@ -1,14 +1,14 @@
 // Copyright (c) 2020 The DashQL Authors
 
 import { PlanObject } from './plan_object';
+import * as v from 'vega';
+import { TopLevelSpec } from 'vega-lite/build/src/spec/index.js';
 import { AggregatedFieldDef } from 'vega-lite/build/src/transform.js';
 import { LogicalComposition } from 'vega-lite/build/src/logical.js';
 import { Predicate } from 'vega-lite/build/src/predicate.js';
 import { SortField } from 'vega-lite/build/src/sort.js';
 import { DateTime } from 'vega-lite/build/src/datetime.js';
 import { ExprRef } from 'vega-lite/build/src/expr.js';
-import * as v from 'vega';
-import * as vl from 'vega-lite';
 
 export enum VizRendererType {
     BUILTIN_TABLE,
@@ -20,7 +20,7 @@ export interface VizInfo extends PlanObject {
     readonly currentStatementId: number;
     readonly position: VizPosition;
     readonly title: string | null;
-    readonly vegaLiteSpec: vl.TopLevelSpec | null;
+    readonly vegaLiteSpec: TopLevelSpec | null;
     readonly vegaSpec: v.Spec | null;
     readonly dataSource: VizDataSource;
 }

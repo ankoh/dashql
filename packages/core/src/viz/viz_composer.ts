@@ -2,11 +2,11 @@ import * as proto from '@dashql/proto';
 import * as model from '../model';
 import * as platform from '../platform';
 import * as v from 'vega';
-import * as vl from 'vega-lite';
-import * as vlt from 'vega-lite/build/src/transform.js';
 
 import { VegaLiteEditOperation, ResolveMinMaxDomain } from './vega_editing';
 
+import * as vlt from 'vega-lite/build/src/transform.js';
+import { compile as compileVL } from 'vega-lite/build/src/compile/compile.js';
 import { AggregatedFieldDef } from 'vega-lite/build/src/transform.js';
 import { Field, isScaleFieldDef, isFieldDef, isTypedFieldDef } from 'vega-lite/build/src/channeldef.js';
 import { LayerSpec, NormalizedLayerSpec } from 'vega-lite/build/src/spec/layer.js';
@@ -453,14 +453,13 @@ export class VizComposer {
         const editPromises = this._vegaLiteEditOps.map(e => e.apply());
         this._vegaLiteEditOps = [];
         await Promise.all(editPromises);
-        return vl.compile(spec).spec;
+        return compileVL(spec).spec;
     }
 
     /// Build the actual viz object that is passed to the renderer.
     /// The function is async since we may have to wait for database requests.
     public async compile(): Promise<Pick<model.VizInfo, 'renderer' | 'dataSource' | 'vegaLiteSpec' | 'vegaSpec'>> {
         const table = this.table;
-        const now = new Date();
         let vegaSpec = null;
         if (this._renderer == model.VizRendererType.BUILTIN_VEGA) {
             vegaSpec = await this.compileVegaSpec(this._normalizedVegaLiteSpec!);

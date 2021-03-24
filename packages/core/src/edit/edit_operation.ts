@@ -1,6 +1,5 @@
 // Copyright (c) 2020 The DashQL Authors
 
-import { flatbuffers } from 'flatbuffers';
 import * as proto from '@dashql/proto';
 
 import VizChangePos = proto.edit.VizChangePosition;
@@ -24,10 +23,10 @@ interface VizChangeOperation {
 
 export type EditOperationVariant = EditOperation<EditOperationType.VIZ_CHANGE_POSITION, VizChangeOperation>;
 
-export function packProgramEdit(builder: flatbuffers.Builder, edits: EditOperationVariant[]): flatbuffers.Offset {
-    let editOffsets: flatbuffers.Offset[] = [];
+export function packProgramEdit(builder: proto.fb.Builder, edits: EditOperationVariant[]): proto.fb.Offset {
+    let editOffsets: proto.fb.Offset[] = [];
     for (const e of edits) {
-        let ofs: flatbuffers.Offset;
+        let ofs: proto.fb.Offset;
         let op: proto.edit.EditOperationVariant;
         let stmt: number = e.statement_id;
         switch (e.type) {

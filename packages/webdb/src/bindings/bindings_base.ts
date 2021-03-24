@@ -1,8 +1,7 @@
 // Copyright (c) 2020 The DashQL Authors
 
 import { WebDBModule } from './webdb_module';
-import { webdb as proto } from '@dashql/proto';
-import { flatbuffers } from 'flatbuffers';
+import { webdb as proto, fb as flatbuffers } from '@dashql/proto';
 import { Logger, QueryRunOptions } from '../common';
 
 /// Decode a string

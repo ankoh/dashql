@@ -2,7 +2,7 @@
     "compilerOptions": {
         "outDir": "./dist/",
         "target": "es2020",
-        "module": "es6",
+        "module": "es2020",
         "moduleResolution": "node",
         "esModuleInterop": true,
         "allowSyntheticDefaultImports": true,
@@ -15,15 +15,15 @@
         "resolveJsonModule": true,
         "suppressImplicitAnyIndexErrors": true,
         "lib": ["ESNext.Array", "DOM", "DOM.Iterable"],
-        "types": ["node"],
+        "types": [],
         "baseUrl": "."
     },
     "files": [
-        "./src/iterator_benchmark.ts",
         "./src/iterator_benchmark_async.ts",
+        "./src/iterator_benchmark.ts",
         "./src/parser_benchmark.ts",
         "./src/proxy_benchmark.ts"
     ],
     "include": ["./types/*"],
-    "exclude": ["./node_modules/*"]
+    "exclude": ["./node_modules/*", "../../node_modules/*"]
 }
