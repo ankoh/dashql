@@ -123,9 +123,9 @@ core_tests:
 	yarn workspace @dashql/core test
 
 # Build the benchmarks
-.PHONY: benchmarks
-benchmarks:
-	yarn workspace @dashql/benchmarks build
+.PHONY: bench
+bench:
+	yarn workspace @dashql/bench build
 
 # Compile the flatbuffer schema
 .PHONY: proto

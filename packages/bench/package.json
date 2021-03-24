@@ -1,5 +1,5 @@
 {
-    "name": "@dashql/benchmarks",
+    "name": "@dashql/bench",
     "version": "0.0.0",
     "private": true,
     "author": "Andre Kohn <kohn.a@outlook.com>",
