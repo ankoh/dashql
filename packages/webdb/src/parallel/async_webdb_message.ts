@@ -4,9 +4,8 @@ import { BlobStream } from '../bindings';
 export enum AsyncWebDBRequestType {
     RESET = 'RESET',
     PING = 'PING',
-    INGEST_BLOBSTREAM = 'INGEST_BLOBSTREAM',
+    REGISTER_URL = 'REGISTER_URL',
     IMPORT_CSV = 'IMPORT_CSV',
-    FS_TEST = 'FS_TEST',
     OPEN = 'OPEN',
     CONNECT = 'CONNECT',
     DISCONNECT = 'DISCONNECT',
@@ -41,9 +40,8 @@ export type AsyncWebDBResponse<T, P> = {
 export type AsyncWebDBRequestVariant =
     | AsyncWebDBRequest<AsyncWebDBRequestType.RESET, null>
     | AsyncWebDBRequest<AsyncWebDBRequestType.PING, null>
-    | AsyncWebDBRequest<AsyncWebDBRequestType.FS_TEST, null>
-    | AsyncWebDBRequest<AsyncWebDBRequestType.INGEST_BLOBSTREAM, BlobStream>
-    | AsyncWebDBRequest<AsyncWebDBRequestType.IMPORT_CSV, [number, BlobStream, string, string]>
+    | AsyncWebDBRequest<AsyncWebDBRequestType.REGISTER_URL, string>
+    | AsyncWebDBRequest<AsyncWebDBRequestType.IMPORT_CSV, [number, number, string, string]>
     | AsyncWebDBRequest<AsyncWebDBRequestType.OPEN, string>
     | AsyncWebDBRequest<AsyncWebDBRequestType.CONNECT, null>
     | AsyncWebDBRequest<AsyncWebDBRequestType.DISCONNECT, number>
