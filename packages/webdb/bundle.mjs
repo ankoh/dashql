@@ -154,7 +154,7 @@ esbuild.build({
     target: TARGET,
     bundle: true,
     minify: false,
-    sourcemap: 'inline',
+    sourcemap: 'both',
 });
 
 console.log('[ ESBUILD ] tests-node.js');
@@ -166,7 +166,7 @@ esbuild.build({
     target: TARGET,
     bundle: true,
     minify: false,
-    sourcemap: 'inline',
+    sourcemap: 'both',
 });
 
 // -------------------------------
