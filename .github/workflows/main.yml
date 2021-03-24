@@ -219,9 +219,7 @@ jobs:
             - uses: codecov/codecov-action@v1
               with:
                   token: ${{ secrets.CODECOV_TOKEN }}
-                  files:
-                      - ./packages/core/coverage/coverage.json
-                      - ./packages/webdb/coverage/coverage.json
+                  files: ./packages/core/coverage/coverage.json,./packages/webdb/coverage/coverage.json
                   flags: unittests
 
             - name: Deploy to staging.app.dashql.com
