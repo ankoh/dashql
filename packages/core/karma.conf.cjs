@@ -26,7 +26,7 @@ module.exports = function (config) {
                 '/absolute' + path.resolve('../webdb/dist/webdb-browser-parallel.worker.js'),
         },
         exclude: [],
-        reporters: ['spec'],
+        reporters: ['dots'],
         port: 9876,
         colors: true,
         logLevel: config.LOG_INFO,
