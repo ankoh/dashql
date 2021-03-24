@@ -147,7 +147,7 @@ esbuild.build({
 
 console.log('[ ESBUILD ] tests-browser.js');
 esbuild.build({
-    entryPoints: ['./test/browser/index.ts'],
+    entryPoints: ['./test/index_browser.ts'],
     outfile: 'dist/tests-browser.js',
     platform: 'browser',
     format: 'iife',
@@ -159,7 +159,7 @@ esbuild.build({
 
 console.log('[ ESBUILD ] tests-node.js');
 esbuild.build({
-    entryPoints: ['./test/node/index.ts'],
+    entryPoints: ['./test/index_node.ts'],
     outfile: 'dist/tests-node.js',
     platform: 'node',
     format: 'cjs',
