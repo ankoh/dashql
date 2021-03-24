@@ -1,9 +1,10 @@
 import { analyzer, edit } from '../src';
+import { Analyzer } from '../src/index_browser';
 
 var az: analyzer.AnalyzerBindings;
 
 beforeAll(async () => {
-    az = new analyzer.Analyzer({}, '/base/src/analyzer/analyzer_wasm.wasm');
+    az = new Analyzer({}, '/base/src/analyzer/analyzer_wasm.wasm');
     await az.init();
 });
 

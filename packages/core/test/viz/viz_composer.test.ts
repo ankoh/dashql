@@ -1,6 +1,7 @@
 import * as webdb from '@dashql/webdb';
 import * as Immutable from 'immutable';
 import { analyzer, model, proto, viz } from '../../src';
+import { Analyzer } from '../../src/index_browser';
 
 interface VizComposerTestExpectation {
     renderer: model.VizRendererType;
@@ -197,7 +198,7 @@ class FakeStatisticsResolver {
 
 var ana: analyzer.AnalyzerBindings;
 beforeAll(async () => {
-    ana = new analyzer.Analyzer({}, '/base/src/analyzer/analyzer_wasm.wasm');
+    ana = new Analyzer({}, '/base/src/analyzer/analyzer_wasm.wasm');
     await ana.init();
 });
 beforeEach(async () => {

@@ -1,4 +1,4 @@
-import * as webdb from '@dashql/webdb/dist/webdb-async.module.js';
+import * as webdb from '@dashql/webdb/dist/webdb.module.js';
 import * as React from 'react';
 import * as proto from '@dashql/proto';
 
@@ -22,7 +22,7 @@ export class ProxyProvider extends React.Component<ProxyProviderProps, ProxyProv
         if (prevState?.result == nextProps.result) {
             return prevState;
         }
-        const chunks = new webdb.ChunkArrayIterator(nextProps.result);
+        const chunks = new webdb.parallel.ChunkArrayIterator(nextProps.result);
         return {
             result: nextProps.result,
             rows: chunks.collectAllBlocking(),
@@ -68,7 +68,7 @@ export class ProxyPartitionsProvider extends React.Component<
         if (prevState?.result == nextProps.result) {
             return prevState;
         }
-        const chunks = new webdb.ChunkArrayIterator(nextProps.result);
+        const chunks = new webdb.parallel.ChunkArrayIterator(nextProps.result);
         const partitions = chunks.collectPartitionsBlocking();
         return {
             result: nextProps.result,

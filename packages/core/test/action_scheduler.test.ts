@@ -1,5 +1,6 @@
 import { analyzer, model, actions, platform, ActionScheduler, utils } from '../src';
-import * as webdb from '@dashql/webdb/dist/webdb-async.module.js';
+import { Analyzer } from '../src/index_browser';
+import * as webdb from '@dashql/webdb/dist/webdb.module.js';
 import * as proto from '@dashql/proto';
 
 import ActionStatus = proto.action.ActionStatusCode;
@@ -10,14 +11,14 @@ const logger = new webdb.VoidLogger();
 
 let az: analyzer.AnalyzerBindings;
 let worker: Worker;
-let db: webdb.AsyncWebDB;
-let conn: webdb.AsyncWebDBConnection;
+let db: webdb.parallel.AsyncWebDB;
+let conn: webdb.parallel.AsyncWebDBConnection;
 
 beforeAll(async () => {
-    az = new analyzer.Analyzer({}, '/static/analyzer_wasm.wasm');
+    az = new Analyzer({}, '/static/analyzer_wasm.wasm');
     await az.init();
-    worker = new Worker('/static/webdb-async.worker.js');
-    db = new webdb.AsyncWebDB(logger, worker);
+    worker = new Worker('/static/webdb-browser-parallel.worker.js');
+    db = new webdb.parallel.AsyncWebDB(logger, worker);
 });
 
 beforeEach(async () => {
