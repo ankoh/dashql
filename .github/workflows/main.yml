@@ -16,7 +16,7 @@ jobs:
             - uses: actions/checkout@v2
 
             - name: Prepare repository
-              uses: ./ci/image
+              uses: ./actions/image
               with:
                   script: |-
                       make reset_duckdb
@@ -24,13 +24,13 @@ jobs:
                       mkdir -p ./lib/build/debug ./reports
 
             - name: Compile flatbuffer schema
-              uses: ./ci/image
+              uses: ./actions/image
               with:
                   script: |-
                       ./scripts/generate_proto.sh
 
             - name: Build
-              uses: ./ci/image
+              uses: ./actions/image
               with:
                   script: |-
                       cmake \
@@ -48,7 +48,7 @@ jobs:
                       ccache -s
 
             - name: Test
-              uses: ./ci/image
+              uses: ./actions/image
               with:
                   script: |-
                       export LLVM_PROFILE_FILE=./reports/lib.profraw
@@ -57,7 +57,7 @@ jobs:
                           --gtest_output=xml:./reports/tests_lib_debug.xml
 
             - name: Code Coverage
-              uses: ./ci/image
+              uses: ./actions/image
               with:
                   script: |-
                       llvm-profdata merge \
@@ -81,7 +81,7 @@ jobs:
             - uses: actions/checkout@v2
 
             - name: Prepare repository
-              uses: ./ci/image
+              uses: ./actions/image
               with:
                   script: |-
                       make reset_duckdb
@@ -89,13 +89,13 @@ jobs:
                       mkdir -p ./lib/build/release ./reports
 
             - name: Compile flatbuffer schema
-              uses: ./ci/image
+              uses: ./actions/image
               with:
                   script: |-
                       ./scripts/generate_proto.sh
 
             - name: Build
-              uses: ./ci/image
+              uses: ./actions/image
               with:
                   script: |-
                       cmake \
@@ -112,7 +112,7 @@ jobs:
                       ccache -s
 
             - name: Test
-              uses: ./ci/image
+              uses: ./actions/image
               with:
                   script: |-
                       ./lib/build/release/tester \
@@ -130,7 +130,7 @@ jobs:
             - uses: actions/checkout@v2
 
             - name: Prepare repository
-              uses: ./ci/image
+              uses: ./actions/image
               with:
                   script: |-
                       make reset_duckdb
@@ -138,13 +138,13 @@ jobs:
                       mkdir -p ./lib/build/wasm/release ./reports
 
             - name: Compile flatbuffer schema
-              uses: ./ci/image
+              uses: ./actions/image
               with:
                   script: |-
                       ./scripts/generate_proto.sh
 
             - name: Build WASM module
-              uses: ./ci/image
+              uses: ./actions/image
               with:
                   script: |-
                       emcmake cmake \
@@ -163,7 +163,7 @@ jobs:
                       cp ./lib/build/wasm/release/analyzer_*.{wasm,js} ./packages/core/src/analyzer/
 
             - name: Build @dashql/proto
-              uses: ./ci/image
+              uses: ./actions/image
               with:
                   script: |-
                       source /opt/env.sh
@@ -171,7 +171,7 @@ jobs:
                       yarn workspace @dashql/proto build
 
             - name: Build @dashql/webdb
-              uses: ./ci/image
+              uses: ./actions/image
               with:
                   script: |-
                       source /opt/env.sh
@@ -179,7 +179,7 @@ jobs:
                       yarn workspace @dashql/webdb build
 
             - name: Build @dashql/core
-              uses: ./ci/image
+              uses: ./actions/image
               with:
                   script: |-
                       source /opt/env.sh
@@ -187,7 +187,7 @@ jobs:
                       yarn workspace @dashql/core build
 
             - name: Build benchmarks
-              uses: ./ci/image
+              uses: ./actions/image
               with:
                   script: |-
                       source /opt/env.sh
@@ -195,21 +195,21 @@ jobs:
                       yarn workspace @dashql/bench build
 
             - name: Test @dashql/webdb
-              uses: ./ci/image
+              uses: ./actions/image
               with:
                   script: |-
                       source /opt/env.sh
                       yarn workspace @dashql/webdb test:ci
 
             - name: Test @dashql/core
-              uses: ./ci/image
+              uses: ./actions/image
               with:
                   script: |-
                       source /opt/env.sh
                       yarn workspace @dashql/core test:ci
 
             - name: Build App
-              uses: ./ci/image
+              uses: ./actions/image
               with:
                   script: |-
                       source /opt/env.sh
@@ -224,7 +224,7 @@ jobs:
 
             - name: Deploy to staging.app.dashql.com
               if: github.ref == 'refs/heads/master'
-              uses: ./ci/image
+              uses: ./actions/image
               with:
                   script: |-
                       source /opt/env.sh
@@ -234,7 +234,7 @@ jobs:
 
             - name: Deploy to app.dashql.com
               if: github.ref == 'refs/heads/stable'
-              uses: ./ci/image
+              uses: ./actions/image
               with:
                   script: |-
                       source /opt/env.sh

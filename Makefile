@@ -24,7 +24,7 @@ DATAFRAME_WASM_DIR="${ROOT_DIR}/packages/dataframe/src/wasm"
 
 CI_IMAGE_NAMESPACE="dashql"
 CI_IMAGE_NAME="ci"
-CI_IMAGE_TAG="$(shell cat ./ci/image/TAG)"
+CI_IMAGE_TAG="$(shell cat ./actions/image/TAG)"
 CI_IMAGE_FULLY_QUALIFIED="${CI_IMAGE_NAMESPACE}/${CI_IMAGE_NAME}:${CI_IMAGE_TAG}"
 IN_IMAGE_MOUNTS=-v${ROOT_DIR}:${ROOT_DIR} -v${ROOT_DIR}/.emscripten_cache/:/mnt/emscripten_cache/ -v${ROOT_DIR}/.ccache/:/mnt/ccache/
 IN_IMAGE_ENV=-e CCACHE_DIR=/mnt/ccache -e CCACHE_BASEDIR=${ROOT_DIR}/lib/ -e EM_CACHE=/mnt/emscripten_cache/
@@ -226,10 +226,10 @@ clean:
 # Build the docker dev image
 .PHONY: docker_ci_image
 docker_ci_image:
-	tar -cvf - ./ci/image/Dockerfile | docker build \
+	tar -cvf - ./actions/image/Dockerfile | docker build \
 		--platform linux/amd64 \
 		-t ${CI_IMAGE_FULLY_QUALIFIED} \
-		-f ./ci/image/Dockerfile \
+		-f ./actions/image/Dockerfile \
 		--build-arg UID=${UID} \
 		--build-arg GID=${GID} \
 		-
