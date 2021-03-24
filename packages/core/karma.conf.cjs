@@ -7,6 +7,14 @@ process.env.CHROME_BIN = require('puppeteer').executablePath();
 module.exports = function (config) {
     config.set({
         basePath: './',
+        plugins: [
+            'karma-jasmine',
+            'karma-chrome-launcher',
+            'karma-firefox-launcher',
+            'karma-sourcemap-loader',
+            'karma-spec-reporter',
+            'karma-coverage',
+        ],
         frameworks: ['jasmine'],
         files: [
             { pattern: 'dist/tests-browser.js' },
@@ -19,6 +27,9 @@ module.exports = function (config) {
                 served: true,
             },
         ],
+        preprocessors: {
+            '**/*.js': ['sourcemap', 'coverage'],
+        },
         proxies: {
             '/static/analyzer_wasm.wasm': '/base/src/analyzer/analyzer_wasm.wasm',
             '/static/webdb.wasm': '/absolute' + path.resolve('../webdb/dist/webdb.wasm'),
@@ -26,7 +37,7 @@ module.exports = function (config) {
                 '/absolute' + path.resolve('../webdb/dist/webdb-browser-parallel.worker.js'),
         },
         exclude: [],
-        reporters: ['dots'],
+        reporters: ['dots', 'coverage'],
         port: 9876,
         colors: true,
         logLevel: config.LOG_INFO,
@@ -37,6 +48,18 @@ module.exports = function (config) {
             ChromeHeadlessNoSandbox: {
                 base: 'ChromeHeadless',
                 flags: ['--no-sandbox'],
+            },
+        },
+        coverageReporter: {
+            type: 'json',
+            dir: './coverage/',
+            subdir: function (browser) {
+                return browser.toLowerCase().split(/[ /-]/)[0];
+            },
+        },
+        client: {
+            jasmine: {
+                failFast: true,
             },
         },
     });
