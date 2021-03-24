@@ -1,7 +1,5 @@
 import * as webdb from '../../src/';
 
-const testRows = 3000;
-
 export function testBindings(db: () => webdb.WebDBBindings) {
     var conn: webdb.WebDBConnection;
 

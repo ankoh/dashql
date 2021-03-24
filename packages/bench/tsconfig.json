@@ -2,7 +2,7 @@
     "compilerOptions": {
         "outDir": "./dist/",
         "target": "es2020",
-        "module": "es2020",
+        "module": "commonjs",
         "moduleResolution": "node",
         "esModuleInterop": true,
         "allowSyntheticDefaultImports": true,
@@ -18,12 +18,7 @@
         "types": [],
         "baseUrl": "."
     },
-    "files": [
-        "./src/iterator_benchmark_async.ts",
-        "./src/iterator_benchmark.ts",
-        "./src/parser_benchmark.ts",
-        "./src/proxy_benchmark.ts"
-    ],
+    "files": ["./src/iterator_benchmark.ts", "./src/parser_benchmark.ts", "./src/proxy_benchmark.ts"],
     "include": ["./types/*"],
     "exclude": ["./node_modules/*", "../../node_modules/*"]
 }
