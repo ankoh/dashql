@@ -5,9 +5,6 @@ import rimraf from 'rimraf';
 import mkdir from 'make-dir';
 import { fileURLToPath } from 'url';
 
-// Bundling node is a bit problematic right now.
-// The web worker ponyfill is commonjs (dynamic require) and prevents us from releasing an async node module.
-
 function printErr(err) {
     if (err) return console.log(err);
 }
