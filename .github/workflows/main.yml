@@ -192,7 +192,7 @@ jobs:
                   script: |-
                       source /opt/env.sh
                       yarn --frozen-lockfile
-                      yarn workspace @dashql/benchmarks build
+                      yarn workspace @dashql/bench build
 
             - name: Test @dashql/webdb
               uses: ./ci/image

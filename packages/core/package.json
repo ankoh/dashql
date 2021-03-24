@@ -38,7 +38,8 @@
     },
     "scripts": {
         "build": "tsc --emitDeclarationOnly && node bundle.mjs",
-        "test": "karma start karma.conf.cjs"
+        "test": "karma start karma.conf.cjs",
+        "test:ci": "karma start karma.conf.cjs"
     },
     "files": [
         "dist/**/*.d.ts",
