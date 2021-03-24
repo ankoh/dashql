@@ -8,7 +8,7 @@ import { RowProxyType, RowProxy, ChunkData } from './proxy';
 /** An iterator for row proxies of a chunk iterator. */
 export class RowProxyIterator<T extends RowProxy> implements Iterable<RowProxy> {
     private nextRowID: number = 0;
-    private currentChunkData?: ChunkData;
+    private currentChunkData: ChunkData | null = null;
     private proxyType: RowProxyType;
     public columns: string[];
 
@@ -25,24 +25,27 @@ export class RowProxyIterator<T extends RowProxy> implements Iterable<RowProxy> 
 
     /* Get the next result from the iterator. */
     next(): IteratorResult<T> {
+        // No chunk available?
         const { chunkIterator } = this;
         if (!chunkIterator.currentChunk) {
             return { done: true, value: null };
         }
 
-        // Reached end of current chunk? - Try to get the next one
-        let row = this.nextRowID++;
-        if (row >= chunkIterator.currentChunk.rowCount()!) {
-            if (!chunkIterator.nextBlocking() || chunkIterator.currentChunk.rowCount() === 0) {
-                return { done: true, value: null };
-            }
-            this.nextRowID = 0;
-            this.currentChunkData = RowProxyType.indexChunkData(chunkIterator.currentChunk);
-            return this.next();
+        // Still in bounds?
+        const row = this.nextRowID++;
+        if (row < this.chunkIterator.currentChunk!.rowCount()) {
+            return {
+                value: this.proxyType!.proxyRow<T>(this.currentChunkData!, row),
+            };
         }
-        return {
-            value: this.proxyType!.proxyRow<T>(this.currentChunkData!, row),
-        };
+        // Try to fetch next chunk
+        this.nextRowID = 0;
+        if (!chunkIterator.nextBlocking() || chunkIterator.currentChunk.rowCount() === 0) {
+            this.currentChunkData = null;
+            return { done: true, value: null };
+        }
+        this.currentChunkData = RowProxyType.indexChunkData(chunkIterator.currentChunk);
+        return this.next();
     }
 
     [Symbol.iterator]() {
