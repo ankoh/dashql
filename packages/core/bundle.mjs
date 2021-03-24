@@ -1,20 +1,28 @@
 import esbuild from 'esbuild';
 import fs from 'fs';
 import path from 'path';
+import rimraf from 'rimraf';
+import mkdir from 'make-dir';
 import { fileURLToPath } from 'url';
+
+// Bundling node is a bit problematic right now.
+// The web worker ponyfill is commonjs (dynamic require) and prevents us from releasing an async node module.
 
 function printErr(err) {
     if (err) return console.log(err);
 }
 
-// Bundling node is a bit problematic right now.
-// The web worker ponyfill is commonjs (dynamic require) and prevents us from releasing an async node module.
+// -------------------------------
+// Clear directory
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const dist = path.resolve(__dirname, 'dist');
+rimraf.sync(dist);
+mkdir.sync(dist);
 
 // -------------------------------
 // Copy WASM files
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const dist = path.resolve(__dirname, 'dist');
 const src = path.resolve(__dirname, 'src');
 fs.copyFile(path.resolve(src, 'analyzer', 'analyzer_wasm.wasm'), path.resolve(dist, 'dashql_analyzer.wasm'), printErr);
 
