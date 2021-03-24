@@ -1,10 +1,9 @@
 // Copyright (c) 2020 The DashQL Authors
 
-import WebDBModule from './webdb_module';
+import { WebDBModule } from './webdb_module';
 import { webdb as proto } from '@dashql/proto';
 import { flatbuffers } from 'flatbuffers';
-import { Logger } from './log';
-import { QueryRunOptions } from './query_options';
+import { Logger, QueryRunOptions } from '../common';
 
 /// Decode a string
 function decodeString(buffer: Uint8Array): string {

@@ -1,4 +1,4 @@
-import * as webdb from '../../src/targets/sync_node';
+import * as webdb from '../../src/platform/node/index_serial';
 import path from 'path';
 
 var db: webdb.WebDB;
