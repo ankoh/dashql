@@ -8,7 +8,8 @@
         "@dashql/core": "^0.0.2",
         "@dashql/proto": "^0.0.3",
         "@dashql/webdb": "^0.0.14",
-        "benny": "^3.6.15"
+        "benny": "^3.6.15",
+        "web-worker": "^1.0.0"
     },
     "devDependencies": {
         "@types/benchmark": "^2.1.0",
