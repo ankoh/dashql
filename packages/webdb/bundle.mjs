@@ -178,7 +178,7 @@ esbuild.build({
 });
 
 // -------------------------------
-// Write delcaration files
+// Write declaration files
 
 // ESM declarations
 fs.writeFile(path.join(dist, 'webdb.module.d.ts'), "export * from './types/src/';", printErr);
