@@ -31,7 +31,8 @@
         "build": "tsc --emitDeclarationOnly && node bundle.mjs",
         "test:node": "NODE_OPTIONS='-r source-map-support/register' jasmine ./dist/tests-node.js",
         "test:browser": "karma start karma.conf.cjs",
-        "test": "npm run test:browser && npm run test:node"
+        "test": "npm run test:browser && npm run test:node",
+        "test:ci": "npm run test:browser && npm run test:node"
     },
     "files": [
         "dist/**/*.d.ts",
