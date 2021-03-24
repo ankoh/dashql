@@ -2,7 +2,7 @@
 
 import { webdb as proto } from '@dashql/proto';
 
-/// The temporary vector buffers
+/** The temporary vector buffers */
 export class TmpBuffers {
     vector: proto.Vector;
     vectorU8: proto.VectorU8;
@@ -12,7 +12,6 @@ export class TmpBuffers {
     vectorInterval: proto.VectorInterval;
     vectorString: proto.VectorString;
 
-    /// Constructor
     constructor() {
         this.vector = new proto.Vector();
         this.vectorU8 = new proto.VectorU8();

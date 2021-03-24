@@ -29,7 +29,7 @@ declare global {
     var WebDBTrampoline: any;
 }
 
-/// WebDB bindings for node.js
+/** WebDB bindings for node.js */
 export class WebDB extends WebDBBindings {
     protected runtime: WebDBRuntime;
     protected path: string;
@@ -41,7 +41,7 @@ export class WebDB extends WebDBBindings {
         this.path = path;
     }
 
-    /// Instantiate the wasm module
+    /** Instantiate the wasm module */
     protected instantiateWasm(
         imports: any,
         success: (module: WebAssembly.Module) => void,
@@ -68,7 +68,7 @@ export class WebDB extends WebDBBindings {
         return [];
     }
 
-    /// Instantiate the bindings
+    /** Instantiate the bindings */
     protected instantiate(moduleOverrides: Partial<WebDBModule>): Promise<WebDBModule> {
         return WebDBWasm({
             ...moduleOverrides,

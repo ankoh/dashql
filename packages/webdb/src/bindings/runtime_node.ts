@@ -13,7 +13,9 @@ export var NodeWebDBRuntime: WebDBRuntime & {
     blobMap: (NodeBlobStream | null)[];
 } = {
     bindings: null,
-    /// Blob Stream
+    //
+    // Blob Stream
+    //
 
     dashql_blob_stream_underflow(blobId: number, buf: number, size: number): number {
         let blobStream = this.bindings!.getBlobStreamById(blobId);
@@ -21,7 +23,9 @@ export var NodeWebDBRuntime: WebDBRuntime & {
         return copyBlobStreamTo(blobStream, this.bindings!.instance!.HEAPU8, buf, size);
     },
 
-    /// File System
+    //
+    // File System
+    //
 
     // Dense file handle map
     blobMap: [],

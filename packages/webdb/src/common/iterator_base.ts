@@ -374,7 +374,7 @@ export abstract class ChunkIterator {
         );
     }
 
-    /// Helper to iterate over a blocking chunk iterator
+    /** Helper to iterate over a blocking chunk iterator */
     public iterateAllBlocking(
         offset: number,
         limit: number,
