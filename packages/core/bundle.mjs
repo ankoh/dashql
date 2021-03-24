@@ -62,18 +62,16 @@ esbuild.build({
     define: { 'process.env.NODE_ENV': '"production"' },
 });
 
-console.log('[ ESBUILD ] dashql-core-node.module.js');
+console.log('[ ESBUILD ] dashql-core-node.js');
 esbuild.build({
     entryPoints: ['./src/index_node.ts'],
-    outfile: 'dist/dashql-core-node.module.js',
+    outfile: 'dist/dashql-core-node.js',
     platform: 'node',
-    format: 'esm',
+    format: 'cjs',
     target: TARGET,
     bundle: true,
     minify: false,
     sourcemap: 'external',
-    external: EXTERNALS,
-    define: { 'process.env.NODE_ENV': '"production"' },
 });
 
 console.log('[ ESBUILD ] tests-browser.js');
@@ -98,5 +96,4 @@ fs.writeFile(
     "export * from './types/src/index_browser';",
     printErr,
 );
-fs.writeFile(path.join(dist, 'dashql-core-node.module.d.ts'), "export * from './types/src/index_node';", printErr);
-fs.writeFile(path.join(dist, 'node-webworker.d.ts'), "export * from './types/src/platform/node/node_';", printErr);
+fs.writeFile(path.join(dist, 'dashql-core-node.d.ts'), "export * from './types/src/index_node';", printErr);

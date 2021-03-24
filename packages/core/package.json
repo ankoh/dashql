@@ -45,7 +45,6 @@
         "dist/**/*.js",
         "dist/*.wasm"
     ],
-    "type": "module",
     "module": "./dist/dashql-core.module.js",
     "types": "./dist/dashql-core.module.d.ts",
     "browser": {

@@ -1,12 +1,11 @@
-import { WebDB } from '../../webdb/dist/webdb-node.module.js';
-import * as webdb from '../../webdb/dist/webdb.module.js';
-import * as core from '../../core/dist/dashql-core.module.js';
+import * as webdb from '../../webdb/dist/webdb-node-serial.js';
+import * as core from '../../core/dist/dashql-core-node.js';
 import * as benny from 'benny';
 import kleur from 'kleur';
 
 const noop = () => {};
 
-function main(db: WebDB) {
+function main(db: webdb.WebDB) {
     let tupleCount = 1000000;
     let bytes = 0;
 
@@ -17,7 +16,7 @@ function main(db: WebDB) {
             let result = conn.runQuery(`
                 SELECT v > 0 FROM generate_series(0, ${tupleCount}) as t(v);
             `);
-            let chunks = new webdb.serial.ChunkArrayIterator(result);
+            let chunks = new webdb.ChunkArrayIterator(result);
             while (true) {
                 if (!chunks.nextBlocking()) break;
                 for (const _ of chunks.iterateBooleanColumn(0)) {
@@ -34,7 +33,7 @@ function main(db: WebDB) {
             let result = conn.runQuery(`
                 SELECT (v & 127)::TINYINT FROM generate_series(0, ${tupleCount}) as t(v);
             `);
-            let chunks = new webdb.serial.ChunkArrayIterator(result);
+            let chunks = new webdb.ChunkArrayIterator(result);
             while (true) {
                 if (!chunks.nextBlocking()) break;
                 for (const _ of chunks.iterateNumberColumn(0)) {
@@ -51,7 +50,7 @@ function main(db: WebDB) {
             let result = conn.runQuery(`
                 SELECT (v & 32767)::SMALLINT FROM generate_series(0, ${tupleCount}) as t(v);
             `);
-            let chunks = new webdb.serial.ChunkArrayIterator(result);
+            let chunks = new webdb.ChunkArrayIterator(result);
             while (true) {
                 if (!chunks.nextBlocking()) break;
                 for (const _ of chunks.iterateNumberColumn(0)) {
@@ -68,7 +67,7 @@ function main(db: WebDB) {
             let result = conn.runQuery(`
                 SELECT v::INTEGER FROM generate_series(0, ${tupleCount}) as t(v);
             `);
-            let chunks = new webdb.serial.ChunkArrayIterator(result);
+            let chunks = new webdb.ChunkArrayIterator(result);
             while (true) {
                 if (!chunks.nextBlocking()) break;
                 for (const _ of chunks.iterateNumberColumn(0)) {
@@ -85,7 +84,7 @@ function main(db: WebDB) {
             let result = conn.runQuery(`
                 SELECT v::BIGINT FROM generate_series(0, ${tupleCount}) as t(v);
             `);
-            let chunks = new webdb.serial.ChunkArrayIterator(result);
+            let chunks = new webdb.ChunkArrayIterator(result);
             while (true) {
                 if (!chunks.nextBlocking()) break;
                 for (const _ of chunks.iterateBigIntColumn(0)) {
@@ -102,7 +101,7 @@ function main(db: WebDB) {
             let result = conn.runQuery(`
                 SELECT v::HUGEINT FROM generate_series(0, ${tupleCount}) as t(v);
             `);
-            let chunks = new webdb.serial.ChunkArrayIterator(result);
+            let chunks = new webdb.ChunkArrayIterator(result);
             while (true) {
                 if (!chunks.nextBlocking()) break;
                 for (const _ of chunks.iterateHugeIntColumn(0)) {
@@ -119,7 +118,7 @@ function main(db: WebDB) {
             let result = conn.runQuery(`
                 SELECT v::FLOAT FROM generate_series(0, ${tupleCount}) as t(v);
             `);
-            let chunks = new webdb.serial.ChunkArrayIterator(result);
+            let chunks = new webdb.ChunkArrayIterator(result);
             while (true) {
                 if (!chunks.nextBlocking()) break;
                 for (const _ of chunks.iterateNumberColumn(0)) {
@@ -136,7 +135,7 @@ function main(db: WebDB) {
             let result = conn.runQuery(`
                 SELECT v::DOUBLE FROM generate_series(0, ${tupleCount}) as t(v);
             `);
-            let chunks = new webdb.serial.ChunkArrayIterator(result);
+            let chunks = new webdb.ChunkArrayIterator(result);
             while (true) {
                 if (!chunks.nextBlocking()) break;
                 for (const _ of chunks.iterateNumberColumn(0)) {
@@ -153,7 +152,7 @@ function main(db: WebDB) {
             let result = conn.runQuery(`
                 SELECT v::VARCHAR FROM generate_series(0, ${tupleCount}) as t(v);
             `);
-            let chunks = new webdb.serial.ChunkArrayIterator(result);
+            let chunks = new webdb.ChunkArrayIterator(result);
 
             bytes = 0;
 
@@ -188,7 +187,7 @@ function main(db: WebDB) {
             bytes = tupleCount * 1;
             conn.disconnect();
             return () => {
-                let chunks = new webdb.serial.ChunkArrayIterator(result);
+                let chunks = new webdb.ChunkArrayIterator(result);
                 while (true) {
                     if (!chunks.nextBlocking()) break;
                     for (const _ of chunks.iterateBooleanColumn(0)) {
@@ -206,7 +205,7 @@ function main(db: WebDB) {
             bytes = tupleCount * 1;
             conn.disconnect();
             return () => {
-                let chunks = new webdb.serial.ChunkArrayIterator(result);
+                let chunks = new webdb.ChunkArrayIterator(result);
                 while (true) {
                     if (!chunks.nextBlocking()) break;
                     for (const _ of chunks.iterateNumberColumn(0)) {
@@ -224,7 +223,7 @@ function main(db: WebDB) {
             bytes = tupleCount * 2;
             conn.disconnect();
             return () => {
-                let chunks = new webdb.serial.ChunkArrayIterator(result);
+                let chunks = new webdb.ChunkArrayIterator(result);
                 while (true) {
                     if (!chunks.nextBlocking()) break;
                     for (const _ of chunks.iterateNumberColumn(0)) {
@@ -242,7 +241,7 @@ function main(db: WebDB) {
             bytes = tupleCount * 4;
             conn.disconnect();
             return () => {
-                let chunks = new webdb.serial.ChunkArrayIterator(result);
+                let chunks = new webdb.ChunkArrayIterator(result);
                 while (true) {
                     if (!chunks.nextBlocking()) break;
                     for (const _ of chunks.iterateNumberColumn(0)) {
@@ -260,7 +259,7 @@ function main(db: WebDB) {
             bytes = tupleCount * 8;
             conn.disconnect();
             return () => {
-                let chunks = new webdb.serial.ChunkArrayIterator(result);
+                let chunks = new webdb.ChunkArrayIterator(result);
                 while (true) {
                     if (!chunks.nextBlocking()) break;
                     for (const _ of chunks.iterateBigIntColumn(0)) {
@@ -278,7 +277,7 @@ function main(db: WebDB) {
             bytes = tupleCount * 16;
             conn.disconnect();
             return () => {
-                let chunks = new webdb.serial.ChunkArrayIterator(result);
+                let chunks = new webdb.ChunkArrayIterator(result);
                 while (true) {
                     if (!chunks.nextBlocking()) break;
                     for (const _ of chunks.iterateHugeIntColumn(0)) {
@@ -296,7 +295,7 @@ function main(db: WebDB) {
             bytes = tupleCount * 4;
             conn.disconnect();
             return () => {
-                let chunks = new webdb.serial.ChunkArrayIterator(result);
+                let chunks = new webdb.ChunkArrayIterator(result);
                 while (true) {
                     if (!chunks.nextBlocking()) break;
                     for (const _ of chunks.iterateNumberColumn(0)) {
@@ -314,7 +313,7 @@ function main(db: WebDB) {
             bytes = tupleCount * 8;
             conn.disconnect();
             return () => {
-                let chunks = new webdb.serial.ChunkArrayIterator(result);
+                let chunks = new webdb.ChunkArrayIterator(result);
                 while (true) {
                     if (!chunks.nextBlocking()) break;
                     for (const _ of chunks.iterateNumberColumn(0)) {
@@ -333,7 +332,7 @@ function main(db: WebDB) {
             conn.disconnect();
             return () => {
                 bytes = 0;
-                let chunks = new webdb.serial.ChunkArrayIterator(result);
+                let chunks = new webdb.ChunkArrayIterator(result);
 
                 while (true) {
                     if (!chunks.nextBlocking()) break;
@@ -363,7 +362,7 @@ function main(db: WebDB) {
             let result = conn.sendQuery(`
                 SELECT v > 0 FROM generate_series(0, ${tupleCount}) as t(v);
             `);
-            let chunks = new webdb.serial.ChunkStreamIterator(conn, result);
+            let chunks = new webdb.ChunkStreamIterator(conn, result);
             while (true) {
                 if (!chunks.nextBlocking()) break;
                 for (const _ of chunks.iterateBooleanColumn(0)) {
@@ -380,7 +379,7 @@ function main(db: WebDB) {
             let result = conn.sendQuery(`
                 SELECT (v & 127)::TINYINT FROM generate_series(0, ${tupleCount}) as t(v);
             `);
-            let chunks = new webdb.serial.ChunkStreamIterator(conn, result);
+            let chunks = new webdb.ChunkStreamIterator(conn, result);
             while (true) {
                 if (!chunks.nextBlocking()) break;
                 for (const _ of chunks.iterateNumberColumn(0)) {
@@ -397,7 +396,7 @@ function main(db: WebDB) {
             let result = conn.sendQuery(`
                 SELECT (v & 32767)::SMALLINT FROM generate_series(0, ${tupleCount}) as t(v);
             `);
-            let chunks = new webdb.serial.ChunkStreamIterator(conn, result);
+            let chunks = new webdb.ChunkStreamIterator(conn, result);
             while (true) {
                 if (!chunks.nextBlocking()) break;
                 for (const _ of chunks.iterateNumberColumn(0)) {
@@ -414,7 +413,7 @@ function main(db: WebDB) {
             let result = conn.sendQuery(`
                 SELECT v::INTEGER FROM generate_series(0, ${tupleCount}) as t(v);
             `);
-            let chunks = new webdb.serial.ChunkStreamIterator(conn, result);
+            let chunks = new webdb.ChunkStreamIterator(conn, result);
             while (true) {
                 if (!chunks.nextBlocking()) break;
                 for (const _ of chunks.iterateNumberColumn(0)) {
@@ -431,7 +430,7 @@ function main(db: WebDB) {
             let result = conn.sendQuery(`
                 SELECT v::BIGINT FROM generate_series(0, ${tupleCount}) as t(v);
             `);
-            let chunks = new webdb.serial.ChunkStreamIterator(conn, result);
+            let chunks = new webdb.ChunkStreamIterator(conn, result);
             while (true) {
                 if (!chunks.nextBlocking()) break;
                 for (const _ of chunks.iterateBigIntColumn(0)) {
@@ -448,7 +447,7 @@ function main(db: WebDB) {
             let result = conn.sendQuery(`
                 SELECT v::HUGEINT FROM generate_series(0, ${tupleCount}) as t(v);
             `);
-            let chunks = new webdb.serial.ChunkStreamIterator(conn, result);
+            let chunks = new webdb.ChunkStreamIterator(conn, result);
             while (true) {
                 if (!chunks.nextBlocking()) break;
                 for (const _ of chunks.iterateHugeIntColumn(0)) {
@@ -465,7 +464,7 @@ function main(db: WebDB) {
             let result = conn.sendQuery(`
                 SELECT v::FLOAT FROM generate_series(0, ${tupleCount}) as t(v);
             `);
-            let chunks = new webdb.serial.ChunkStreamIterator(conn, result);
+            let chunks = new webdb.ChunkStreamIterator(conn, result);
             while (true) {
                 if (!chunks.nextBlocking()) break;
                 for (const _ of chunks.iterateNumberColumn(0)) {
@@ -482,7 +481,7 @@ function main(db: WebDB) {
             let result = conn.sendQuery(`
                 SELECT v::DOUBLE FROM generate_series(0, ${tupleCount}) as t(v);
             `);
-            let chunks = new webdb.serial.ChunkStreamIterator(conn, result);
+            let chunks = new webdb.ChunkStreamIterator(conn, result);
             while (true) {
                 if (!chunks.nextBlocking()) break;
                 for (const _ of chunks.iterateNumberColumn(0)) {
@@ -499,7 +498,7 @@ function main(db: WebDB) {
             let result = conn.sendQuery(`
                 SELECT v::VARCHAR FROM generate_series(0, ${tupleCount}) as t(v);
             `);
-            let chunks = new webdb.serial.ChunkStreamIterator(conn, result);
+            let chunks = new webdb.ChunkStreamIterator(conn, result);
             bytes = 0;
 
             while (true) {
@@ -525,7 +524,7 @@ function main(db: WebDB) {
 }
 
 const logger = new webdb.VoidLogger();
-const db = new WebDB(logger, webdb.DefaultWebDBRuntime, '../webdb/dist/webdb.wasm');
+const db = new webdb.WebDB(logger, webdb.DefaultWebDBRuntime, '../webdb/dist/webdb.wasm');
 db.open()
     .then(() => main(db))
     .catch(e => console.error(e));
