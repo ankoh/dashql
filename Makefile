@@ -241,7 +241,8 @@ bootstrap:
 	make docker_ci_image yarn_install
 	make proto
 	make wasm
-	make webdb core
+	make webdb
+	make core
 
 # ---------------------------------------------------------------------------
 # Data
