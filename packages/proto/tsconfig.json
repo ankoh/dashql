@@ -11,7 +11,10 @@
         "noImplicitAny": true,
         "esModuleInterop": true,
         "lib": ["es6"],
-        "types": []
+        "types": [],
+        "paths": {
+            "flatbuffers": ["../../node_modules/flatbuffers/js/flatbuffers.mjs"]
+        }
     },
     "files": ["./index.ts"]
 }

@@ -92,11 +92,11 @@ esbuild.build({
 // -------------------------------
 // Write delcaration files
 
-// Node declarations
-fs.writeFile(path.join(dist, 'dashql-core.module.d.ts'), "export * from './types/src/index.d.ts';", printErr);
+fs.writeFile(path.join(dist, 'dashql-core.module.d.ts'), "export * from './types/src/';", printErr);
 fs.writeFile(
     path.join(dist, 'dashql-core-browser.module.d.ts'),
-    "export * from './types/src/index_browser.d.ts';",
+    "export * from './types/src/index_browser';",
     printErr,
 );
-fs.writeFile(path.join(dist, 'dashql-core-node.module.d.ts'), "export * from './types/src/index_node.d.ts';", printErr);
+fs.writeFile(path.join(dist, 'dashql-core-node.module.d.ts'), "export * from './types/src/index_node';", printErr);
+fs.writeFile(path.join(dist, 'node-webworker.d.ts'), "export * from './types/src/platform/node/node_';", printErr);

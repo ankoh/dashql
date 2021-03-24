@@ -4,7 +4,6 @@ import * as model from '../model';
 import * as Immutable from 'immutable';
 import { ProgramActionLogic, SetupActionLogic } from './action_logic';
 import { ActionContext } from './action_context';
-import ActionStatusCode = proto.action.ActionStatusCode;
 
 /// XXX Delete this eventually in favor of the async statistics requests
 export async function collectTableInfo(

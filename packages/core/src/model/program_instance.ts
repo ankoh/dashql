@@ -1,11 +1,9 @@
 // Copyright (c) 2020 The DashQL Authors
 
 import * as Immutable from 'immutable';
-import { Program, Node } from './program';
+import { Program } from './program';
 import * as proto from '@dashql/proto';
 import * as webdb from '@dashql/webdb';
-import { PhysicalType } from '@dashql/webdb';
-import value from '*.wasm';
 
 export class ProgramInstance {
     /// The program

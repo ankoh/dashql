@@ -22,9 +22,10 @@ export class ChunkStreamIterator extends ChunkIterator {
 
     /** Get the next chunk asynchronously */
     public async nextAsync(): Promise<boolean> {
-        let result = this._resultBuffer;
-        if (++this._currentChunkID < result.dataChunksLength()) {
-            this._currentChunk = result.dataChunks(this._currentChunkID, this._currentChunk!)!;
+        const result = this._resultBuffer;
+        const next = this._nextChunkID++;
+        if (next < result.dataChunksLength()) {
+            this._currentChunk = result.dataChunks(next, this._currentChunk!)!;
         } else {
             let chunkBuffer = await this._connection.fetchQueryResults();
             this._currentChunk = chunkBuffer;
@@ -52,31 +53,26 @@ export class ChunkArrayIterator extends ChunkIterator implements RewindableItera
         }
     }
 
-    /** Get the current chunk (if available) */
-    public get currentChunk() {
-        return this._chunks[this._currentChunkID];
-    }
-
     /** Restart the chunk iterator */
     public rewind() {
-        this._currentChunkID = -1;
+        this._nextChunkID = 0;
     }
 
     /** Get the next chunk synchronous */
     public nextBlocking(): boolean {
-        if (this._currentChunkID + 1 >= this._chunks.length) {
+        if (this._nextChunkID >= this._chunks.length) {
             return false;
         }
-        this._currentChunk = this._chunks[++this._currentChunkID];
+        this._currentChunk = this._chunks[this._nextChunkID++];
         return true;
     }
 
     /** Get the next chunk */
     public async nextAsync(): Promise<boolean> {
-        if (this._currentChunkID + 1 >= this._chunks.length) {
+        if (this._nextChunkID >= this._chunks.length) {
             return false;
         }
-        this._currentChunk = this._chunks[++this._currentChunkID];
+        this._currentChunk = this._chunks[this._nextChunkID++];
         return true;
     }
 }

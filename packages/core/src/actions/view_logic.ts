@@ -6,7 +6,6 @@ import { ActionHandle } from '../model';
 import { ProgramActionLogic, SetupActionLogic } from './action_logic';
 import { ActionContext } from './action_context';
 import { collectTableInfo } from './table_logic';
-import ActionStatusCode = proto.action.ActionStatusCode;
 
 export class ViewCreateActionLogic extends ProgramActionLogic {
     constructor(action_id: ActionHandle, action: proto.action.ProgramAction, statement: model.Statement) {

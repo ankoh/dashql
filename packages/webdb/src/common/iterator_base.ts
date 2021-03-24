@@ -7,10 +7,9 @@ import { RowProxyType, RowProxy, ChunkData } from './proxy';
 
 /** An iterator for row proxies of a chunk iterator. */
 export class RowProxyIterator<T extends RowProxy> implements Iterable<RowProxy> {
-    private currentRowID: number = -1;
+    private nextRowID: number = 0;
     private currentChunkData?: ChunkData;
     private proxyType: RowProxyType;
-
     public columns: string[];
 
     constructor(private chunkIterator: ChunkIterator) {
@@ -27,24 +26,22 @@ export class RowProxyIterator<T extends RowProxy> implements Iterable<RowProxy> 
     /* Get the next result from the iterator. */
     next(): IteratorResult<T> {
         const { chunkIterator } = this;
-
         if (!chunkIterator.currentChunk) {
             return { done: true, value: null };
         }
 
-        this.currentRowID++;
-
-        if (this.currentRowID >= chunkIterator.currentChunk.rowCount()!) {
-            // if there is no new chunk or the next chunk has length 0, end
+        // Reached end of current chunk? - Try to get the next one
+        let row = this.nextRowID++;
+        if (row >= chunkIterator.currentChunk.rowCount()!) {
             if (!chunkIterator.nextBlocking() || chunkIterator.currentChunk.rowCount() === 0) {
                 return { done: true, value: null };
             }
-            this.currentRowID = 0;
+            this.nextRowID = 0;
             this.currentChunkData = RowProxyType.indexChunkData(chunkIterator.currentChunk);
+            return this.next();
         }
-
         return {
-            value: this.proxyType!.proxyRow<T>(this.currentChunkData!, this.currentRowID),
+            value: this.proxyType!.proxyRow<T>(this.currentChunkData!, row),
         };
     }
 
@@ -84,7 +81,7 @@ export abstract class ChunkIterator {
     /* The result buffer */
     _resultBuffer: proto.QueryResult;
     /* The chunk id */
-    _currentChunkID: number;
+    _nextChunkID: number;
     /* The current chunk */
     _currentChunk: proto.QueryResultChunk | null;
     /* The column types */
@@ -96,7 +93,7 @@ export abstract class ChunkIterator {
 
     public constructor(resultBuffer: proto.QueryResult) {
         this._resultBuffer = resultBuffer;
-        this._currentChunkID = -1;
+        this._nextChunkID = 0;
         this._currentChunk = null;
         this._columnTypes = new Array<proto.SQLType>();
         this._proxyType = null;
@@ -431,23 +428,22 @@ export class BufferingChunkIterator extends ChunkIterator implements RewindableI
 
     /** Restart the chunk iterator */
     public rewind() {
-        this._currentChunkID = -1;
+        this._nextChunkID = 0;
     }
 
     /** Return the next buffered chunk */
     protected nextBuffered(): boolean {
-        if (this._currentChunkID + 1 >= this._chunks.length) {
+        if (this._nextChunkID >= this._chunks.length) {
             return false;
         }
-        ++this._currentChunkID;
-        this._currentChunk = this._chunks[this._currentChunkID];
+        this._currentChunk = this._chunks[this._nextChunkID++];
         return true;
     }
 
     /** Get the next chunk */
     public nextBlocking(): boolean {
         // Already depleted?
-        if (this._depleted) {
+        if (this._nextChunkID < this._chunks.length || this._depleted) {
             return this.nextBuffered();
         }
 
@@ -455,7 +451,7 @@ export class BufferingChunkIterator extends ChunkIterator implements RewindableI
         if (this._iterator.nextBlocking()) {
             this._currentChunk = this._iterator.currentChunk!;
             this._chunks.push(this._currentChunk);
-            ++this._currentChunkID;
+            this._nextChunkID++;
             return true;
         } else {
             this._depleted = true;
@@ -474,7 +470,7 @@ export class BufferingChunkIterator extends ChunkIterator implements RewindableI
         if (await this._iterator.nextAsync()) {
             this._currentChunk = this._iterator.currentChunk!;
             this._chunks.push(this._currentChunk);
-            ++this._currentChunkID;
+            this._nextChunkID++;
             return true;
         } else {
             this._depleted = true;

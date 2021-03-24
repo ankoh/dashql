@@ -19,9 +19,10 @@ export class ChunkStreamIterator extends ChunkIterator {
 
     /** Get the next chunk */
     public nextBlocking(): boolean {
-        let result = this._resultBuffer;
-        if (++this._currentChunkID < result.dataChunksLength()) {
-            this._currentChunk = result.dataChunks(this._currentChunkID, this._currentChunk!)!;
+        const result = this._resultBuffer;
+        const next = this._nextChunkID++;
+        if (next < result.dataChunksLength()) {
+            this._currentChunk = result.dataChunks(next, this._currentChunk!)!;
         } else {
             let chunkBuffer = this._connection.fetchQueryResults();
             this._currentChunk = chunkBuffer;
@@ -58,16 +59,15 @@ export class ChunkArrayIterator extends ChunkIterator implements RewindableItera
 
     /** Restart the chunk iterator */
     public rewind() {
-        this._currentChunkID = -1;
+        this._nextChunkID = 0;
     }
 
     /** Get the next chunk */
     public nextBlocking(): boolean {
-        if (this._currentChunkID + 1 >= this._chunks.length) {
+        if (this._nextChunkID >= this._chunks.length) {
             return false;
         }
-        ++this._currentChunkID;
-        this._currentChunk = this._chunks[this._currentChunkID];
+        this._currentChunk = this._chunks[this._nextChunkID++];
         return true;
     }
 

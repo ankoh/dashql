@@ -174,7 +174,7 @@ describe('RowProxy', () => {
             }
         });
 
-        it('Iterator', () => {
+        it('streaming iterator', () => {
             const result = conn.sendQuery(`
                 SELECT v::INTEGER AS foo, v::BIGINT as bar, v::VARCHAR as fizz, v > 0 as buzz FROM generate_series(0, ${testRows}) as t(v);
             `);
@@ -187,7 +187,35 @@ describe('RowProxy', () => {
             }
             const chunks = new webdb.ChunkStreamIterator(conn, result);
             const iter = chunks.iter<Row>();
+            expect(iter.columns).toEqual(['foo', 'bar', 'fizz', 'buzz']);
 
+            let expected = 0;
+            for (const row of iter) {
+                let e = expected++;
+                expect(row.foo).toBe(e);
+                expect(row.__attribute__(0)).toBe(e);
+                expect(row.bar).toBe(BigInt(e));
+                expect(row.__attribute__(1)).toBe(BigInt(e));
+                expect(row.fizz).toBe(String(e));
+                expect(row.__attribute__(2)).toBe(String(e));
+                expect(row.buzz).toBe(e > 0);
+                expect(row.__attribute__(3)).toBe(e > 0);
+            }
+        });
+
+        it('buffered iterator', () => {
+            const result = conn.runQuery(`
+                SELECT v::INTEGER AS foo, v::BIGINT as bar, v::VARCHAR as fizz, v > 0 as buzz FROM generate_series(0, ${testRows}) as t(v);
+            `);
+            expect(result.columnTypesLength()).toBe(4);
+            interface Row extends webdb.RowProxy {
+                foo: number | null;
+                bar: bigint | null;
+                fizz: string | null;
+                buzz: boolean | null;
+            }
+            const chunks = new webdb.ChunkArrayIterator(result);
+            const iter = chunks.iter<Row>();
             expect(iter.columns).toEqual(['foo', 'bar', 'fizz', 'buzz']);
 
             let expected = 0;
