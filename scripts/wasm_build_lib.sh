@@ -41,7 +41,7 @@ emcmake cmake \
 emmake make \
     -C"${CPP_SOURCE_DIR}/build/wasm/${MODE}" \
     -j${CORES} \
-    webdb_wasm webdb_wasm_node analyzer_wasm
+    webdb_wasm webdb_wasm_node analyzer_wasm analyzer_wasm_node
 
 cp ${CPP_SOURCE_DIR}/build/wasm/${MODE}/webdb_*.{wasm,js} "${WEBDB_LIB_DIR}"
 cp ${CPP_SOURCE_DIR}/build/wasm/${MODE}/analyzer_*.{wasm,js} "${ANALYZER_LIB_DIR}"
