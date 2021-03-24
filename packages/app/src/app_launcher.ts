@@ -1,5 +1,5 @@
-import * as webdb from '@dashql/webdb/dist/webdb-async.module.js';
-import * as core from '@dashql/core';
+import * as webdb from '@dashql/webdb/dist/webdb.module.js';
+import { Analyzer } from '@dashql/core/dist/dashql-core-browser.module.js';
 import * as model from './model';
 import * as examples from './example_scripts';
 import * as platform from './platform';
@@ -53,11 +53,11 @@ async function configureApp(store: model.AppReduxStore): Promise<model.AppConfig
     return null;
 }
 
-async function initWebDB(store: model.AppReduxStore, logger: webdb.Logger): Promise<webdb.AsyncWebDB | null> {
+async function initWebDB(store: model.AppReduxStore, logger: webdb.Logger): Promise<webdb.parallel.AsyncWebDB | null> {
     startStep(store, model.LaunchStep.INIT_WEBDB);
     try {
-        const dbWorker = new Worker(new URL('@dashql/webdb/dist/webdb-async.worker.js', import.meta.url));
-        const db = new webdb.AsyncWebDB(logger, dbWorker);
+        const dbWorker = new Worker(new URL('@dashql/webdb/dist/webdb-browser-parallel.worker.js', import.meta.url));
+        const db = new webdb.parallel.AsyncWebDB(logger, dbWorker);
         await db.open(webdb_wasm);
         stepSucceeded(store, model.LaunchStep.INIT_WEBDB);
         return db;
@@ -67,10 +67,10 @@ async function initWebDB(store: model.AppReduxStore, logger: webdb.Logger): Prom
     return null;
 }
 
-async function initAnalyzer(store: model.AppReduxStore): Promise<core.analyzer.Analyzer | null> {
+async function initAnalyzer(store: model.AppReduxStore): Promise<Analyzer | null> {
     startStep(store, model.LaunchStep.INIT_ANALYZER);
     try {
-        const analyzer = new core.analyzer.Analyzer({}, analyzer_wasm);
+        const analyzer = new Analyzer({}, analyzer_wasm);
         await analyzer.init();
         stepSucceeded(store, model.LaunchStep.INIT_ANALYZER);
         return analyzer;
