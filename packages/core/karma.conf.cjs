@@ -12,12 +12,18 @@ module.exports = function (config) {
             { pattern: 'dist/tests-browser.js' },
             { pattern: 'src/analyzer/analyzer_wasm.wasm', included: false, watched: false, served: true },
             { pattern: '../webdb/dist/webdb.wasm', included: false, watched: false, served: true },
-            { pattern: '../webdb/dist/webdb-async.worker.js', included: false, watched: false, served: true },
+            {
+                pattern: '../webdb/dist/webdb-browser-parallel.worker.js',
+                included: false,
+                watched: false,
+                served: true,
+            },
         ],
         proxies: {
             '/static/analyzer_wasm.wasm': '/base/src/analyzer/analyzer_wasm.wasm',
             '/static/webdb.wasm': '/absolute' + path.resolve('../webdb/dist/webdb.wasm'),
-            '/static/webdb-async.worker.js': '/absolute' + path.resolve('../webdb/dist/webdb-async.worker.js'),
+            '/static/webdb-browser-parallel.worker.js':
+                '/absolute' + path.resolve('../webdb/dist/webdb-browser-parallel.worker.js'),
         },
         exclude: [],
         reporters: ['spec'],

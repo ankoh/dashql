@@ -1,5 +1,5 @@
 import * as proto from '@dashql/proto';
-import * as webdb from '@dashql/webdb/dist/webdb-async.module.js';
+import * as webdb from '@dashql/webdb/dist/webdb.module.js';
 import { ActionHandle, Statement } from '../model';
 import { ProgramActionLogic } from './action_logic';
 import { ActionContext } from './action_context';
@@ -17,10 +17,10 @@ export class UnnamedSelectLogic extends ProgramActionLogic {
         if (!script) return;
 
         const db = context.platform.database;
-        await db.use(async (c: webdb.AsyncConnection) => {
+        await db.use(async (c: webdb.parallel.AsyncConnection) => {
             const result = await c.runQuery(script);
 
-            const chunkIter = new webdb.ChunkStreamIterator(c, result);
+            const chunkIter = new webdb.parallel.ChunkStreamIterator(c, result);
             while (await chunkIter.nextAsync()) {
                 console.log(`rows ${chunkIter.rowCount} columns ${chunkIter.columnCount}`);
                 let row = 0;

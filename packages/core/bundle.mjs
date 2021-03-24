@@ -48,6 +48,34 @@ esbuild.build({
     define: { 'process.env.NODE_ENV': '"production"' },
 });
 
+console.log('[ ESBUILD ] dashql-core-browser.module.js');
+esbuild.build({
+    entryPoints: ['./src/index_browser.ts'],
+    outfile: 'dist/dashql-core-browser.module.js',
+    platform: 'browser',
+    format: 'esm',
+    target: TARGET,
+    bundle: true,
+    minify: false,
+    sourcemap: 'external',
+    external: EXTERNALS,
+    define: { 'process.env.NODE_ENV': '"production"' },
+});
+
+console.log('[ ESBUILD ] dashql-core-node.module.js');
+esbuild.build({
+    entryPoints: ['./src/index_node.ts'],
+    outfile: 'dist/dashql-core-node.module.js',
+    platform: 'node',
+    format: 'esm',
+    target: TARGET,
+    bundle: true,
+    minify: false,
+    sourcemap: 'external',
+    external: EXTERNALS,
+    define: { 'process.env.NODE_ENV': '"production"' },
+});
+
 console.log('[ ESBUILD ] tests-browser.js');
 esbuild.build({
     entryPoints: ['./test/index.ts'],
@@ -66,3 +94,9 @@ esbuild.build({
 
 // Node declarations
 fs.writeFile(path.join(dist, 'dashql-core.module.d.ts'), "export * from './types/src/index.d.ts';", printErr);
+fs.writeFile(
+    path.join(dist, 'dashql-core-browser.module.d.ts'),
+    "export * from './types/src/index_browser.d.ts';",
+    printErr,
+);
+fs.writeFile(path.join(dist, 'dashql-core-node.module.d.ts'), "export * from './types/src/index_node.d.ts';", printErr);
