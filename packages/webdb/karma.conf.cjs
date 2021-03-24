@@ -19,7 +19,7 @@ module.exports = function (config) {
             '/static/webdb-browser-parallel.worker.js': '/base/dist/webdb-browser-parallel.worker.js',
         },
         exclude: [],
-        reporters: ['spec'],
+        reporters: ['dots'],
         port: 9876,
         colors: true,
         logLevel: config.LOG_INFO,

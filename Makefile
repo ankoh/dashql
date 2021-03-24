@@ -183,6 +183,16 @@ webdb:
 webdb_tests:
 	yarn workspace @dashql/webdb test
 
+# Run the webdb javascript tests in browser
+.PHONY: webdb_tests_browser
+webdb_tests_browser:
+	yarn workspace @dashql/webdb test:browser
+
+# Run the webdb javascript tests on nodejs
+.PHONY: webdb_tests_node
+webdb_tests_node:
+	yarn workspace @dashql/webdb test:node
+
 # Install all yarn packages
 .PHONY: yarn_install
 yarn_install:
