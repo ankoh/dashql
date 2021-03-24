@@ -1,11 +1,10 @@
-import { WebDB } from '@dashql/webdb/dist/webdb-node.module.js';
-import * as webdb from '@dashql/webdb/dist/webdb.module.js';
-import * as core from '@dashql/core/dist/dashql-core.module.js';
+import * as webdb from '../../webdb/dist/webdb-node-serial.js';
+import * as core from '../../core/dist/dashql-core-node.js';
 import * as benny from 'benny';
 import path from 'path';
 import kleur from 'kleur';
 
-function main(db: WebDB) {
+function main(db: webdb.WebDB) {
     let tupleSize = 8;
     for (const tupleCount of [1000, 10000, 1000000, 10000000]) {
         benny.suite(
@@ -17,7 +16,7 @@ function main(db: WebDB) {
                 `);
                 conn.disconnect();
                 return () => {
-                    let chunks = new webdb.serial.ChunkArrayIterator(result);
+                    let chunks = new webdb.ChunkArrayIterator(result);
                     let sum = 0;
                     let count = 0;
                     while (chunks.nextBlocking()) {
@@ -41,7 +40,7 @@ function main(db: WebDB) {
                 `);
                 conn.disconnect();
                 return () => {
-                    const chunks = new webdb.serial.ChunkArrayIterator(result);
+                    const chunks = new webdb.ChunkArrayIterator(result);
                     interface Row extends webdb.RowProxy {
                         foo: number | null;
                     }
@@ -68,7 +67,7 @@ function main(db: WebDB) {
                 `);
                 conn.disconnect();
                 return () => {
-                    const chunks = new webdb.serial.ChunkArrayIterator(result);
+                    const chunks = new webdb.ChunkArrayIterator(result);
                     interface Row extends webdb.RowProxy {
                         foo: number | null;
                     }
@@ -102,7 +101,7 @@ function main(db: WebDB) {
 }
 
 const logger = new webdb.VoidLogger();
-const db = new WebDB(logger, webdb.DefaultWebDBRuntime, path.join(__dirname, '../../webdb/dist/webdb.wasm'));
+const db = new webdb.WebDB(logger, webdb.DefaultWebDBRuntime, path.join(__dirname, '../../webdb/dist/webdb.wasm'));
 db.open()
     .then(() => main(db))
     .catch(e => console.error(e));
