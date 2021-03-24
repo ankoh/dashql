@@ -18,7 +18,6 @@
         "types": [],
         "baseUrl": "."
     },
-    "files": ["./src/iterator_benchmark.ts", "./src/parser_benchmark.ts", "./src/proxy_benchmark.ts"],
-    "include": ["./types/*"],
+    "include": ["./src/*.ts", "./types/*"],
     "exclude": ["./node_modules/*", "../../node_modules/*"]
 }
