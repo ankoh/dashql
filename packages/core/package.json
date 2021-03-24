@@ -7,7 +7,6 @@
         "@dashql/proto": "^0.0.3",
         "@dashql/webdb": "^0.0.14",
         "axios": "^0.21.1",
-        "flatbuffers": "^1.12.0",
         "hash-wasm": "^4.5.0",
         "immutable": "^4.0.0-rc.12",
         "redux": "^4.0.5",
@@ -15,22 +14,19 @@
         "vega-lite": "^5.0.0"
     },
     "devDependencies": {
-        "@types/emscripten": "^1.39.4",
         "@types/react": ">=16.8.0",
         "axios-mock-adapter": "^1.19.0",
         "esbuild": "^0.9.6",
-        "istanbul": "^0.4.5",
         "karma": "^6.2.0",
         "karma-chrome-launcher": "^3.1.0",
         "karma-coverage": "^2.0.3",
         "karma-firefox-launcher": "^2.1.0",
         "karma-jasmine": "^4.0.1",
-        "karma-sourcemap-loader": "^0.3.8",
         "karma-spec-reporter": "^0.0.32",
         "nyc": "^15.1.0",
         "react": "^17.0.1",
         "react-dom": "^17.0.1",
-        "remap-istanbul": "^0.13.0",
+        "puppeteer": "^8.0.0",
         "typescript": "^4.2.3"
     },
     "peerDependencies": {
@@ -43,8 +39,10 @@
     },
     "scripts": {
         "build": "tsc --emitDeclarationOnly && node bundle.mjs",
+        "report": "node ./coverage.mjs",
         "test": "karma start karma.conf.cjs",
-        "test:ci": "karma start karma.conf.cjs"
+        "test:cov": "karma start karma.conf.cov.cjs && npm run report",
+        "test:ci": "npm run test:cov"
     },
     "files": [
         "dist/**/*.d.ts",

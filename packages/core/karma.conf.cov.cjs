@@ -11,6 +11,7 @@ module.exports = function (config) {
             'karma-firefox-launcher',
             'karma-sourcemap-loader',
             'karma-spec-reporter',
+            'karma-coverage',
         ],
         frameworks: ['jasmine'],
         files: [
@@ -25,7 +26,7 @@ module.exports = function (config) {
             },
         ],
         preprocessors: {
-            '**/*.js': ['sourcemap'],
+            '**/*.js': ['sourcemap', 'coverage'],
         },
         proxies: {
             '/static/analyzer_wasm.wasm': '/base/src/analyzer/analyzer_wasm.wasm',
@@ -34,7 +35,7 @@ module.exports = function (config) {
                 '/absolute' + path.resolve('../webdb/dist/webdb-browser-parallel.worker.js'),
         },
         exclude: [],
-        reporters: ['dots'],
+        reporters: ['dots', 'coverage'],
         port: 9876,
         colors: true,
         logLevel: config.LOG_INFO,

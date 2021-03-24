@@ -1,6 +1,3 @@
-const path = require('path');
-const os = require('os');
-const fs = require('fs');
 const puppeteer = require('puppeteer');
 
 process.env.CHROME_BIN = puppeteer.executablePath();
@@ -14,7 +11,6 @@ module.exports = function (config) {
             'karma-firefox-launcher',
             'karma-sourcemap-loader',
             'karma-spec-reporter',
-            'karma-coverage',
         ],
         frameworks: ['jasmine'],
         files: [
@@ -23,14 +19,14 @@ module.exports = function (config) {
             { pattern: 'dist/*.js', included: false, watched: false, served: true },
         ],
         preprocessors: {
-            '**/*.js': ['sourcemap', 'coverage'],
+            '**/*.js': ['sourcemap'],
         },
         proxies: {
             '/static/webdb.wasm': '/base/dist/webdb.wasm',
             '/static/webdb-browser-parallel.worker.js': '/base/dist/webdb-browser-parallel.worker.js',
         },
         exclude: [],
-        reporters: ['dots', 'coverage'],
+        reporters: ['dots'],
         port: 9876,
         colors: true,
         logLevel: config.LOG_INFO,
