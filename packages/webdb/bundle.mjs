@@ -24,10 +24,10 @@ fs.copyFile(path.resolve(src, 'bindings', 'webdb_wasm.wasm'), path.resolve(dist,
 const TARGET = 'es2020';
 const EXTERNALS = ['flatbuffers', '@dashql/proto'];
 
-console.log('[ ESBUILD ] webdb-core.module.js');
+console.log('[ ESBUILD ] webdb.module.js');
 esbuild.build({
     entryPoints: ['./src/index.ts'],
-    outfile: 'dist/webdb-core.module.js',
+    outfile: 'dist/webdb.module.js',
     platform: 'neutral',
     format: 'esm',
     target: TARGET,
