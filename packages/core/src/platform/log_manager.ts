@@ -1,5 +1,4 @@
 import * as model from '../model';
-import * as error from '../error';
 
 export interface Logger {
     log(entry: model.LogEntryVariant): void;

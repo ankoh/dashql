@@ -1,4 +1,5 @@
-import * as core from '@dashql/core';
+import { Analyzer } from '../../core/dist/dashql-core-node.module.js';
+import * as core from '../../core/dist/dashql-core.module.js';
 import * as benny from 'benny';
 import kleur from 'kleur';
 
@@ -47,7 +48,7 @@ VIZ foo USING TABLE;
     );
 }
 
-const analyzerBindings = new core.analyzer.Analyzer({}, '../core/dist/dashql_analyzer.wasm');
+const analyzerBindings = new Analyzer({}, '../core/dist/dashql_analyzer.wasm');
 analyzerBindings
     .init()
     .then(() => main(analyzerBindings))

@@ -92,7 +92,6 @@ export class QueryProvider extends React.Component<Props, State> {
         if (!!this.state.query && queryEquals(this.props.query, this.state.query)) {
             return;
         }
-        const text = this.props.query;
         this._inFlightQuery = this.props.query;
         const query = this.props.query;
         this._queryPromise = this.props.database.use(async conn => {

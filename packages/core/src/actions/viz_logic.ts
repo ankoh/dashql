@@ -6,8 +6,6 @@ import { VizComposer } from '../viz/viz_composer';
 import { ProgramActionLogic, SetupActionLogic } from './action_logic';
 import { ActionContext } from './action_context';
 
-import ActionStatusCode = proto.action.ActionStatusCode;
-
 export abstract class VizActionLogic extends ProgramActionLogic {
     /// The viz spec
     _vizSpec: proto.analyzer.VizSpec | null = null;

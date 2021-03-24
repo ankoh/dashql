@@ -1,7 +1,6 @@
 // Copyright (c) 2020 The DashQL Authors
 
-import { webdb as proto } from '@dashql/proto';
-import { flatbuffers } from 'flatbuffers';
+import { webdb as proto, fb as flatbuffers } from '@dashql/proto';
 import { AsyncWebDBRequestType, AsyncWebDBResponseType, AsyncWebDBResponseVariant } from './async_webdb_message';
 import { QueryRunOptions, Logger, LogLevel, LogTopic, LogOrigin, LogEvent } from '../common';
 import { BlobStream } from '../bindings';

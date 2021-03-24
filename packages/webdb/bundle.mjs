@@ -142,18 +142,6 @@ esbuild.build({
     sourcemap: 'external',
 });
 
-console.log('[ ESBUILD ] node-webworker.js');
-esbuild.build({
-    entryPoints: ['./src/platform/node/node_webworker.js'],
-    outfile: 'dist/node-webworker.js',
-    platform: 'node',
-    format: 'cjs',
-    target: TARGET,
-    bundle: true,
-    minify: true,
-    sourcemap: 'external',
-});
-
 // -------------------------------
 // Tests
 

@@ -16,4 +16,5 @@ export function getRelativeTime(to: Date, from: Date = new Date()) {
             return rtf.format(Math.round(elapsed / unitInMs), unitName);
         }
     }
+    return '';
 }

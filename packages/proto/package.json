@@ -15,16 +15,13 @@
         "fsevents": "*"
     },
     "scripts": {
-        "build": "tsc"
+        "build": "tsc --emitDeclarationOnly && node bundle.mjs"
     },
-    "files": [
-        "dist/gen/proto_generated.d.ts",
-        "dist/gen/proto_generated.js",
-        "dist/index.d.ts",
-        "dist/index.js"
+    "include": [
+        "./gen/proto_generated.ts"
     ],
     "type": "module",
-    "main": "./dist/index.js",
-    "module": "./dist/index.js",
-    "types": "./dist/index.d.ts"
+    "main": "./dist/dashql-proto.module.js",
+    "module": "./dist/dashql-proto.module.js",
+    "types": "./dist/dashql-proto.module.d.ts"
 }

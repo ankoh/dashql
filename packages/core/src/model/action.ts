@@ -1,5 +1,4 @@
 import * as proto from '@dashql/proto';
-import { LogEntry } from './log';
 
 /// An action id
 export type ActionHandle = number;

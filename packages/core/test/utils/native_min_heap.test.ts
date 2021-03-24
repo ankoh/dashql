@@ -21,12 +21,12 @@ function POP(key: number) {
 function DEC(key: number, by: number = 1) {
     return { type: TestOpType.DEC, key: key, value: by };
 }
-function INC(key: number, by: number = 1) {
-    return { type: TestOpType.INC, key: key, value: by };
-}
-function SET(key: number, rank: number = 1) {
-    return { type: TestOpType.SET, key: key, value: rank };
-}
+//function INC(key: number, by: number = 1) {
+//    return { type: TestOpType.INC, key: key, value: by };
+//}
+//function SET(key: number, rank: number = 1) {
+//    return { type: TestOpType.SET, key: key, value: rank };
+//}
 
 const tests: [string, [number, number][], TestOp[]][] = [
     ['simple_1', [PUSH(0, 0)], [POP(0)]],

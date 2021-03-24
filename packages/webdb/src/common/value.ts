@@ -1,7 +1,6 @@
 // Copyright (c) 2020 The DashQL Authors
 
-import { webdb as proto } from '@dashql/proto';
-import { flatbuffers } from 'flatbuffers';
+import { webdb as proto, fb as flatbuffers } from '@dashql/proto';
 
 /// A sql type
 export interface SQLType {

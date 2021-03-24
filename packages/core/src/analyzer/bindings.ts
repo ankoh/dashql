@@ -3,7 +3,6 @@
 import { DashQLAnalyzerModule } from './analyzer_wasm_module';
 import { EditOperationVariant, packProgramEdit } from '../edit';
 import { Plan, Program, ProgramInstance, ParameterValue } from '../model';
-import { flatbuffers } from 'flatbuffers';
 import * as Immutable from 'immutable';
 import * as proto from '@dashql/proto';
 
@@ -90,10 +89,10 @@ export abstract class AnalyzerBindings {
     }
 
     /// Copy a flatbuffer
-    protected copyFlatbuffer(buffer: Uint8Array): flatbuffers.ByteBuffer {
+    protected copyFlatbuffer(buffer: Uint8Array): proto.fb.ByteBuffer {
         var copy = new Uint8Array(new ArrayBuffer(buffer.byteLength));
         copy.set(buffer);
-        return new flatbuffers.ByteBuffer(copy);
+        return new proto.fb.ByteBuffer(copy);
     }
 
     /// Parse a string and return a flatbuffer
@@ -127,8 +126,8 @@ export abstract class AnalyzerBindings {
     public instantiateProgram(params: Immutable.List<ParameterValue> = Immutable.List()): ProgramInstance | null {
         if (!this._instance || !this._program) return null;
 
-        const builder = new flatbuffers.Builder();
-        const paramOfs: flatbuffers.Offset[] = params
+        const builder = new proto.fb.Builder();
+        const paramOfs: proto.fb.Offset[] = params
             .map(param => {
                 proto.analyzer.ParameterValue.start(builder);
                 proto.analyzer.ParameterValue.addStatementId(builder, param.statement);
@@ -177,7 +176,7 @@ export abstract class AnalyzerBindings {
         const params = this._programInstance.parameters;
 
         // Pack the edits
-        const builder = new flatbuffers.Builder();
+        const builder = new proto.fb.Builder();
         const editOfs = packProgramEdit(builder, edits);
         builder.finish(editOfs);
         const editBuffer = builder.dataBuffer();
@@ -193,7 +192,7 @@ export abstract class AnalyzerBindings {
 
         // Replace the program instance
         const text = replacement.programText();
-        const textUTF8 = replacement.programText(flatbuffers.Encoding.UTF8_BYTES);
+        const textUTF8 = replacement.programText(proto.fb.Encoding.UTF8_BYTES);
         this._program = new Program(text!, textUTF8 as Uint8Array, replacement.program()!);
         this._programInstance = new ProgramInstance(this._program, params, replacement.annotations()!);
 

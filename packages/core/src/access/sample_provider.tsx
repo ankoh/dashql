@@ -23,8 +23,6 @@ interface Props {
 }
 
 export const SampleProvider: React.FunctionComponent<Props> = (props: Props) => {
-    const db = props.table;
-
     // Build select
     let orderBy = '';
     if (props.data.orderBy && props.data.orderBy.length > 0) {
