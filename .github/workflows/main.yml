@@ -159,7 +159,7 @@ jobs:
                           -j`nproc` \
                           webdb_wasm webdb_wasm_node analyzer_wasm
 
-                      cp ./lib/build/wasm/release/webdb_*.{wasm,js} ./packages/webdb/src/
+                      cp ./lib/build/wasm/release/webdb_*.{wasm,js} ./packages/webdb/src/bindings/
                       cp ./lib/build/wasm/release/analyzer_*.{wasm,js} ./packages/core/src/analyzer/
 
             - name: Build @dashql/proto
