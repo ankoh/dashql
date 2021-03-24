@@ -2,13 +2,13 @@
 
 import { webdb as proto, fb as flatbuffers } from '@dashql/proto';
 
-/// A sql type
+/** A sql type */
 export interface SQLType {
-    /// A type id
+    /** A type id */
     typeId: proto.SQLTypeID;
-    /// The width
+    /** The width */
     width: number;
-    /// The scale
+    /** The scale */
     scale: number;
 }
 
@@ -27,7 +27,7 @@ export function getSQLType(t: proto.SQLType | null) {
     };
 }
 
-/// A physical type
+/** A physical type */
 export enum PhysicalType {
     NULL_,
     NUMBER,
@@ -37,24 +37,24 @@ export enum PhysicalType {
     INTERVAL,
 }
 
-/// A value
+/** A value */
 export class Value {
-    /// The type
+    /** The type */
     _logicalType: SQLType;
-    /// The value
+    /** The value */
     _physicalType: PhysicalType;
-    /// The number value
+    /** The number value */
     _value_number?: number;
-    /// The long value
+    /** The long value */
     _value_long?: flatbuffers.Long;
-    /// The i128 value
+    /** The i128 value */
     _value_i128?: proto.I128;
-    /// The interval value
+    /** The interval value */
     _value_interval?: proto.Interval;
-    /// The string value
+    /** The string value */
     _value_string?: string;
 
-    /// Constructor
+    /** Constructor */
     public constructor(
         type: SQLType = {
             typeId: proto.SQLTypeID.INVALID,
@@ -66,19 +66,19 @@ export class Value {
         this._physicalType = PhysicalType.NULL_;
     }
 
-    /// Get the sql type
+    /** Get the sql type */
     public get logicalType() {
         return this._logicalType;
     }
-    /// Set the sql type
+    /** Set the sql type */
     public set sqlType(v: proto.SQLType) {
         this._logicalType = getSQLType(v);
     }
-    /// Is null?
+    /** Is null? */
     public isNull(): boolean {
         return this._physicalType == PhysicalType.NULL_;
     }
-    /// Reset a value
+    /** Reset a value */
     public setNull(isNull: boolean = true) {
         if (!isNull) return;
         this._physicalType = PhysicalType.NULL_;
@@ -87,33 +87,33 @@ export class Value {
         this._value_i128 = undefined;
         this._value_interval = undefined;
     }
-    /// Set a number
+    /** Set a number */
     public setNumber(v: number) {
         this._physicalType = PhysicalType.NUMBER;
         this._value_number = v;
     }
-    /// Set a long
+    /** Set a long */
     public setLong(v: flatbuffers.Long) {
         this._physicalType = PhysicalType.LONG;
         this._value_long = v;
     }
-    /// Set an i128
+    /** Set an i128 */
     public setI128(v: proto.I128) {
         this._physicalType = PhysicalType.I128;
         this._value_i128 = v;
     }
-    /// Set an interval
+    /** Set an interval */
     public setInterval(v: proto.Interval) {
         this._physicalType = PhysicalType.INTERVAL;
         this._value_interval = v;
     }
-    /// Set an interval
+    /** Set an interval */
     public setString(v: string) {
         this._physicalType = PhysicalType.STRING;
         this._value_string = v;
     }
 
-    /// Cast as floating point number
+    /** Cast as floating point number */
     public castAsFloat(): number {
         switch (this._physicalType) {
             case PhysicalType.NUMBER:
@@ -129,7 +129,7 @@ export class Value {
         }
     }
 
-    /// As integer value
+    /** As integer value */
     public castAsInteger(): number {
         switch (this._physicalType) {
             case PhysicalType.NUMBER:
@@ -145,7 +145,7 @@ export class Value {
         }
     }
 
-    /// As string value
+    /** As string value */
     public castAsString(): string {
         switch (this._physicalType) {
             case PhysicalType.NUMBER:
@@ -157,13 +157,13 @@ export class Value {
         }
     }
 
-    /// Print for script
+    /** Print for script */
     public printScript(): string {
         // XXX
         return this.castAsString();
     }
 
-    /// Read from proto
+    /** Read from proto */
     public static FromProto(buffer: proto.SQLValue, v: Value | null = null) {
         v = v || new Value();
         v.sqlType = buffer.logicalType()!;
