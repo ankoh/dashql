@@ -31,7 +31,6 @@ export class ChunkStreamIterator extends ChunkIterator {
     }
     /** Get the next chunk asynchronously */
     public async nextAsync(): Promise<boolean> {
-        console.error('The blocking stream iterator does not support asynchronous iteration');
         return Promise.resolve(false);
     }
 }
@@ -52,14 +51,13 @@ export class ChunkArrayIterator extends ChunkIterator implements RewindableItera
         for (let i = 0; i < chunks.length; ++i) {
             this._chunks.push(chunks[i]);
         }
-        if (this._chunks.length == 0 || this._chunks[this._chunks.length - 1].rowCount() == 0) {
-            this._chunks.push(new proto.QueryResultChunk());
-        }
     }
 
     /** Restart the chunk iterator */
     public rewind() {
-        this._nextChunkID = 0;
+        if (this._chunks.length == 0) return;
+        this._currentChunk = this._chunks[0];
+        this._nextChunkID = 1;
     }
 
     /** Get the next chunk */
