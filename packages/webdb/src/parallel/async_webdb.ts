@@ -28,10 +28,9 @@ class Task<T, D, P> {
 
 type TaskVariant =
     | Task<AsyncWebDBRequestType.RESET, null, null>
-    | Task<AsyncWebDBRequestType.INGEST_BLOBSTREAM, BlobStream, null>
-    | Task<AsyncWebDBRequestType.IMPORT_CSV, [number, BlobStream, string, string], null>
+    | Task<AsyncWebDBRequestType.IMPORT_CSV, [number, number, string, string], null>
     | Task<AsyncWebDBRequestType.PING, null, null>
-    | Task<AsyncWebDBRequestType.FS_TEST, null, null>
+    | Task<AsyncWebDBRequestType.REGISTER_URL, string, null>
     | Task<AsyncWebDBRequestType.OPEN, string | null, null>
     | Task<AsyncWebDBRequestType.CONNECT, null, ConnectionID>
     | Task<AsyncWebDBRequestType.DISCONNECT, ConnectionID, null>
@@ -152,8 +151,7 @@ export class AsyncWebDB {
         switch (task.type) {
             case AsyncWebDBRequestType.RESET:
             case AsyncWebDBRequestType.PING:
-            case AsyncWebDBRequestType.FS_TEST:
-            case AsyncWebDBRequestType.INGEST_BLOBSTREAM:
+            case AsyncWebDBRequestType.REGISTER_URL:
             case AsyncWebDBRequestType.IMPORT_CSV:
             case AsyncWebDBRequestType.OPEN:
             case AsyncWebDBRequestType.DISCONNECT:
@@ -219,25 +217,20 @@ export class AsyncWebDB {
         await this.postTask(task);
     }
 
-    /** Submit a blobstream data payload to webdb */
-    public async ingestBlobStream(blobStream: BlobStream) {
-        const task = new Task<AsyncWebDBRequestType.INGEST_BLOBSTREAM, BlobStream, null>(
-            AsyncWebDBRequestType.INGEST_BLOBSTREAM,
-            blobStream,
+    /// Registers the given URL as a file to be possibly loaded by WebDB.
+    public async registerURL(url: string): Promise<null> {
+        const task = new Task<AsyncWebDBRequestType.REGISTER_URL, string, null>(
+            AsyncWebDBRequestType.REGISTER_URL,
+            url,
         );
-        await this.postTask(task);
+        return await this.postTask(task);
     }
 
-    /** Import csv from a blob stream */
-    public async importCSV(
-        conn: ConnectionID,
-        blobStream: BlobStream,
-        schemaName: string,
-        tableName: string,
-    ): Promise<null> {
-        const task = new Task<AsyncWebDBRequestType.IMPORT_CSV, [number, BlobStream, string, string], null>(
+    /// Import csv from a blob stream
+    public async importCSV(conn: ConnectionID, blobId: number, schemaName: string, tableName: string): Promise<null> {
+        const task = new Task<AsyncWebDBRequestType.IMPORT_CSV, [number, number, string, string], null>(
             AsyncWebDBRequestType.IMPORT_CSV,
-            [conn, blobStream, schemaName, tableName],
+            [conn, blobId, schemaName, tableName],
         );
         return await this.postTask(task);
     }
@@ -264,13 +257,7 @@ export class AsyncWebDB {
         return await this.postTask(task);
     }
 
-    /** Invoke the file system test */
-    public async fsTest(): Promise<null> {
-        const task = new Task<AsyncWebDBRequestType.FS_TEST, null, null>(AsyncWebDBRequestType.FS_TEST, null);
-        return await this.postTask(task);
-    }
-
-    /** Run a query */
+    /// Run a query
     public async runQuery(conn: ConnectionID, text: string, options: QueryRunOptions = {}): Promise<proto.QueryResult> {
         const task = new Task<AsyncWebDBRequestType.RUN_QUERY, [ConnectionID, string, QueryRunOptions], Uint8Array>(
             AsyncWebDBRequestType.RUN_QUERY,
@@ -361,8 +348,8 @@ export class AsyncWebDBConnection implements AsyncConnection {
         return this._instance.fetchQueryResults(this._conn);
     }
 
-    /** Import csv from a blob stream */
-    public async importCSV(blobStream: BlobStream, schemaName: string, tableName: string) {
-        return this._instance.importCSV(this._conn, blobStream, schemaName, tableName);
+    /// Import csv from a blob stream
+    public async importCSV(blobId: number, schemaName: string, tableName: string) {
+        return this._instance.importCSV(this._conn, blobId, schemaName, tableName);
     }
 }

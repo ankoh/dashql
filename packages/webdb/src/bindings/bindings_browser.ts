@@ -2,20 +2,10 @@
 
 import WebDBWasm from './webdb_wasm.js';
 import { WebDBModule } from './webdb_module';
-import { WebDBBindings, BlobStream } from './bindings_base';
+import { WebDBBindings } from './bindings_base';
 import { Logger } from '../common';
 import { WebDBRuntime } from './runtime_base';
-
-export class WebBlobStream implements BlobStream {
-    buffer: Uint8Array;
-    position: number;
-
-    public constructor(blob: Blob) {
-        const reader = new FileReaderSync();
-        this.buffer = new Uint8Array(reader.readAsArrayBuffer(blob));
-        this.position = 0;
-    }
-}
+import { WebBlobStream } from './runtime_browser';
 
 /** WebDB bindings for the browser */
 export class WebDB extends WebDBBindings {
@@ -29,7 +19,14 @@ export class WebDB extends WebDBBindings {
         this.path = path;
     }
 
-    /** Instantiate the wasm module */
+    /// Registers the given URL as a file to be possibly loaded by WebDB. Returns the Blob ID
+    public registerURL(url: string): Promise<number> {
+        return fetch(url)
+            .then(r => r.blob())
+            .then(b => this.runtime.dashql_add_blob_stream(new WebBlobStream(b, url)));
+    }
+
+    /// Instantiate the wasm module
     protected instantiateWasm(
         imports: any,
         success: (module: WebAssembly.Module) => void,

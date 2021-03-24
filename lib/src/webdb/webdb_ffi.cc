@@ -66,26 +66,4 @@ void dashql_webdb_analyze_query(FFIResponse* packed, ConnectionHdl connHdl, cons
     auto r = c->AnalyzeQuery(text);
     FFIResponseBuffer::GetInstance().Store(*packed, std::move(r));
 }
-
-/// Small test for WebDB file system
-bool dashql_webdb_fs_test(FFIResponse* packed) {
-    duckdb::DBConfig config;
-    config.file_system = std::make_unique<WebDBFileSystem>();
-
-    auto db = std::make_unique<duckdb::DuckDB>(nullptr, &config);
-    db->LoadExtension<duckdb::ParquetExtension>();
-    auto con = duckdb::Connection{*db};
-    auto result = con.Query("SELECT * FROM parquet_scan('./data/studenten.parquet');");
-    return result->ToString() ==
-           "MatrNr\tName\tSemester\t\nINTEGER\tVARCHAR\tINTEGER\t\n"
-           "[ Rows: 8]\n"
-           "24002\tXenokrates\t18\t\n"
-           "25403\tJonas\t12\t\n"
-           "26120\tFichte\t10\t\n"
-           "26830\tAristoxenos\t8\t\n"
-           "27550\tSchopenhauer\t6\t\n"
-           "28106\tCarnap\t3\t\n"
-           "29120\tTheophrastos\t2\t\n"
-           "29555\tFeuerbach\t2\t\n\n";
-}
 }

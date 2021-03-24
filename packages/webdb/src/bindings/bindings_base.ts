@@ -20,21 +20,7 @@ function copyFlatbuffer(buffer: Uint8Array): flatbuffers.ByteBuffer {
     return new flatbuffers.ByteBuffer(copy);
 }
 
-export interface BlobStream {
-    buffer: Uint8Array;
-    position: number;
-}
-
-// As a global function because when passing the object to the webworker it turns into a POJO
-export function copyBlobStreamTo(blobStream: BlobStream, dest: Uint8Array, pos: number, length: number): number {
-    if (blobStream.position >= blobStream.buffer.length) return 0;
-    let size = Math.min(length, blobStream.buffer.length - blobStream.position);
-    dest.set(blobStream.buffer.slice(blobStream.position, blobStream.position + size), pos);
-    blobStream.position += size;
-    return size;
-}
-
-/** The proxy for either the browser- order node-based WebDB API */
+/// The proxy for either the browser- order node-based WebDB API
 export abstract class WebDBBindings {
     /** The logger */
     private _logger: Logger;
@@ -44,8 +30,6 @@ export abstract class WebDBBindings {
     private _openPromise: Promise<void> | null = null;
     /** The resolver for the open promise (called by onRuntimeInitialized) */
     private _openPromiseResolver: () => void = () => {};
-    /** The blob "file-handle" map of currently open blob streams */
-    private _blobMap = new Map<number, BlobStream>();
 
     constructor(logger: Logger) {
         this._logger = logger;
@@ -60,7 +44,10 @@ export abstract class WebDBBindings {
         return this._instance;
     }
 
-    /** Instantiate the module */
+    /// Registers the given URL as a file to be possibly loaded by WebDB. Returns the Blob ID
+    public abstract registerURL(url: string): Promise<number>;
+
+    /// Instantiate the module
     protected abstract instantiate(moduleOverrides: Partial<WebDBModule>): Promise<WebDBModule>;
 
     /** Open the database */
@@ -128,12 +115,7 @@ export abstract class WebDBBindings {
         this.instance!.ccall('dashql_webdb_disconnect', null, ['number'], [conn]);
     }
 
-    /** Invoke the file system test */
-    public fsTest(): boolean {
-        return this.instance!.ccall('dashql_webdb_fs_test', 'boolean', [], []);
-    }
-
-    /** Encode query arguments */
+    /// Encode query arguments
     protected encodeQueryArguments(text: string, options: QueryRunOptions = {}): number {
         const instance = this.instance!;
         const builder = new flatbuffers.Builder();
@@ -210,32 +192,14 @@ export abstract class WebDBBindings {
         return plan;
     }
 
-    /** Ingest a blob */
-    public ingestBlobStream(blobStream: BlobStream): void {
-        const blobId = this._blobMap.size;
-        this._blobMap.set(blobId, blobStream);
-        this.instance!.ccall('dashql_blob_stream_consume', null, ['number'], [blobId]);
-        this._blobMap.delete(blobId);
-    }
-
-    /** Get a blobstream by its ID */
-    public getBlobStreamById(blobId: number): BlobStream | undefined {
-        return this._blobMap.get(blobId);
-    }
-
-    /** Import csv from a blob stream */
-    public importCSV(conn: number, blobStream: BlobStream, schemaName: string, tableName: string): void {
-        const blobId = this._blobMap.size;
-        this._blobMap.set(blobId, blobStream);
-
+    /// Import csv from a blob stream
+    public importCSV(conn: number, blobId: number, schemaName: string, tableName: string): void {
         let instance = this.instance!;
         let [s, d, n] = this.callSRet(
             'dashql_extract_import_csv',
             ['number', 'number', 'string', 'string'],
             [conn, blobId, schemaName, tableName],
         );
-
-        this._blobMap.delete(blobId);
 
         let mem = instance.HEAPU8.subarray(d, d + n);
         if (s !== proto.StatusCode.SUCCESS) {
@@ -281,7 +245,7 @@ export class WebDBConnection {
         return this._bindings.analyzeQuery(this._conn, _text);
     }
 
-    public importCSV(blobStream: BlobStream, schemaName: string, tableName: string): void {
-        this._bindings.importCSV(this._conn, blobStream, schemaName, tableName);
+    public importCSV(blobId: number, schemaName: string, tableName: string): void {
+        this._bindings.importCSV(this._conn, blobId, schemaName, tableName);
     }
 }
