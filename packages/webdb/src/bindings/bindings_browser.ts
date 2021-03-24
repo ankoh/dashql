@@ -1,10 +1,10 @@
 // Copyright (c) 2020 The DashQL Authors
 
 import WebDBWasm from './webdb_wasm.js';
-import WebDBModule from './webdb_module';
-import { WebDBBindings, BlobStream } from './webdb_bindings';
-import { Logger } from './log';
-import { DefaultWebDBRuntime, WebDBRuntime } from './webdb_runtime';
+import { WebDBModule } from './webdb_module';
+import { WebDBBindings, BlobStream } from './bindings_base';
+import { Logger } from '../common';
+import { WebDBRuntime } from './runtime_base';
 
 export class WebBlobStream implements BlobStream {
     buffer: Uint8Array;

@@ -1,9 +1,9 @@
 // Copyright (c) 2020 The DashQL Authors
 
-import { copyBlobStreamTo, WebDBBindings } from './webdb_bindings';
-import { WebDBRuntime } from './webdb_runtime';
+import { copyBlobStreamTo } from './bindings_base';
+import { WebDBRuntime } from './runtime_base';
 
-export var WebWebDBRuntime: WebDBRuntime = {
+export var BrowserWebDBRuntime: WebDBRuntime = {
     bindings: null,
     dashql_blob_stream_underflow(blobId: number, buf: number, size: number): number {
         let blobStream = this.bindings!.getBlobStreamById(blobId);

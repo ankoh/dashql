@@ -3,9 +3,8 @@
 import { webdb as proto } from '@dashql/proto';
 import { flatbuffers } from 'flatbuffers';
 import { AsyncWebDBRequestType, AsyncWebDBResponseType, AsyncWebDBResponseVariant } from './async_webdb_message';
-import { Logger, LogLevel, LogTopic, LogOrigin, LogEvent } from './log';
-import { QueryRunOptions } from './query_options';
-import { BlobStream } from './webdb_bindings';
+import { QueryRunOptions, Logger, LogLevel, LogTopic, LogOrigin, LogEvent } from '../common';
+import { BlobStream } from '../bindings';
 
 type ConnectionID = number;
 
