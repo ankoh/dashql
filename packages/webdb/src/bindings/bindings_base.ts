@@ -4,7 +4,7 @@ import { WebDBModule } from './webdb_module';
 import { webdb as proto, fb as flatbuffers } from '@dashql/proto';
 import { Logger, QueryRunOptions } from '../common';
 
-/// Decode a string
+/** Decode a string */
 function decodeString(buffer: Uint8Array): string {
     var result = '';
     for (var i = 0; i < buffer.length; i++) {
@@ -13,7 +13,7 @@ function decodeString(buffer: Uint8Array): string {
     return result;
 }
 
-/// Copy a flatbuffer
+/** Copy a flatbuffer */
 function copyFlatbuffer(buffer: Uint8Array): flatbuffers.ByteBuffer {
     var copy = new Uint8Array(new ArrayBuffer(buffer.byteLength));
     copy.set(buffer);
@@ -34,36 +34,36 @@ export function copyBlobStreamTo(blobStream: BlobStream, dest: Uint8Array, pos: 
     return size;
 }
 
-/// The proxy for either the browser- order node-based WebDB API
+/** The proxy for either the browser- order node-based WebDB API */
 export abstract class WebDBBindings {
-    /// The logger
+    /** The logger */
     private _logger: Logger;
-    /// The instance
+    /** The instance */
     private _instance: WebDBModule | null = null;
-    /// The loading promise
+    /** The loading promise */
     private _openPromise: Promise<void> | null = null;
-    /// The resolver for the open promise (called by onRuntimeInitialized)
+    /** The resolver for the open promise (called by onRuntimeInitialized) */
     private _openPromiseResolver: () => void = () => {};
-    /// The blob "file-handle" map of currently open blob streams
+    /** The blob "file-handle" map of currently open blob streams */
     private _blobMap = new Map<number, BlobStream>();
 
     constructor(logger: Logger) {
         this._logger = logger;
     }
 
-    /// Get the logger
+    /** Get the logger */
     public get logger() {
         return this._logger;
     }
-    /// Get the instance
+    /** Get the instance */
     public get instance() {
         return this._instance;
     }
 
-    /// Instantiate the module
+    /** Instantiate the module */
     protected abstract instantiate(moduleOverrides: Partial<WebDBModule>): Promise<WebDBModule>;
 
-    /// Open the database
+    /** Open the database */
     public async open() {
         // Already opened?
         if (this._instance != null) {
@@ -116,24 +116,24 @@ export abstract class WebDBBindings {
         return [status, data, dataSize];
     }
 
-    /// Connect to database
+    /** Connect to database */
     public connect(): WebDBConnection {
         let instance = this._instance!;
         let conn = instance.ccall('dashql_webdb_connect', 'number', [], []);
         return new WebDBConnection(this, conn);
     }
 
-    /// Disconnect from database
+    /** Disconnect from database */
     public disconnect(conn: number): void {
         this.instance!.ccall('dashql_webdb_disconnect', null, ['number'], [conn]);
     }
 
-    /// Invoke the file system test
+    /** Invoke the file system test */
     public fsTest(): boolean {
         return this.instance!.ccall('dashql_webdb_fs_test', 'boolean', [], []);
     }
 
-    /// Encode query arguments
+    /** Encode query arguments */
     protected encodeQueryArguments(text: string, options: QueryRunOptions = {}): number {
         const instance = this.instance!;
         const builder = new flatbuffers.Builder();
@@ -156,7 +156,7 @@ export abstract class WebDBBindings {
         return argsPtr;
     }
 
-    /// Send a query and return the full result
+    /** Send a query and return the full result */
     public runQuery(conn: number, text: string, options: QueryRunOptions = {}): proto.QueryResult {
         const instance = this.instance!;
         const args = this.encodeQueryArguments(text, options);
@@ -170,7 +170,7 @@ export abstract class WebDBBindings {
         return res;
     }
 
-    /// Send a query and return a result stream
+    /** Send a query and return a result stream */
     public sendQuery(conn: number, text: string, options: QueryRunOptions = {}): proto.QueryResult {
         const instance = this.instance!;
         const args = this.encodeQueryArguments(text, options);
@@ -184,7 +184,7 @@ export abstract class WebDBBindings {
         return res;
     }
 
-    /// Fetch query results
+    /** Fetch query results */
     public fetchQueryResults(conn: number): proto.QueryResultChunk {
         let instance = this.instance!;
         let [s, d, n] = this.callSRet('dashql_webdb_fetch_query_results', ['number'], [conn]);
@@ -197,7 +197,7 @@ export abstract class WebDBBindings {
         return res;
     }
 
-    /// Analyze a query
+    /** Analyze a query */
     public analyzeQuery(conn: number, _text: string): proto.QueryPlan {
         let instance = this.instance!;
         let [s, d, n] = this.callSRet('dashql_webdb_analyze_query', ['number'], [conn]);
@@ -210,7 +210,7 @@ export abstract class WebDBBindings {
         return plan;
     }
 
-    /// Ingest a blob
+    /** Ingest a blob */
     public ingestBlobStream(blobStream: BlobStream): void {
         const blobId = this._blobMap.size;
         this._blobMap.set(blobId, blobStream);
@@ -218,12 +218,12 @@ export abstract class WebDBBindings {
         this._blobMap.delete(blobId);
     }
 
-    /// Get a blobstream by its ID
+    /** Get a blobstream by its ID */
     public getBlobStreamById(blobId: number): BlobStream | undefined {
         return this._blobMap.get(blobId);
     }
 
-    /// Import csv from a blob stream
+    /** Import csv from a blob stream */
     public importCSV(conn: number, blobStream: BlobStream, schemaName: string, tableName: string): void {
         const blobId = this._blobMap.size;
         this._blobMap.set(blobId, blobStream);
@@ -244,14 +244,14 @@ export abstract class WebDBBindings {
     }
 }
 
-/// A thin helper to memoize the connection id
+/** A thin helper to memoize the connection id */
 export class WebDBConnection {
-    /// The bindings
+    /** The bindings */
     _bindings: WebDBBindings;
-    /// The connection handle
+    /** The connection handle */
     _conn: number;
 
-    /// Constructor
+    /** Constructor */
     constructor(bindings: WebDBBindings, conn: number) {
         this._bindings = bindings;
         this._conn = conn;

@@ -5,14 +5,14 @@ import { WebDB } from '../../bindings/bindings_browser';
 import { WebDBBindings } from '../../bindings';
 import { BrowserWebDBRuntime } from '../../bindings/runtime_browser';
 
-/// The webdb worker API for web workers
+/** The webdb worker API for web workers */
 class WebWorker extends AsyncWebDBDispatcher {
-    /// Post a response back to the main thread
+    /** Post a response back to the main thread */
     protected postMessage(response: AsyncWebDBResponseVariant, transfer: ArrayBuffer[]) {
         globalThis.postMessage(response, transfer);
     }
 
-    /// Instantiate the wasm module
+    /** Instantiate the wasm module */
     protected async open(path: string): Promise<WebDBBindings> {
         const bindings = new WebDB(this, BrowserWebDBRuntime, path);
         await bindings.open();
@@ -20,7 +20,7 @@ class WebWorker extends AsyncWebDBDispatcher {
     }
 }
 
-/// Register the worker
+/** Register the worker */
 export function registerWorker() {
     const api = new WebWorker();
     globalThis.onmessage = async (event: MessageEvent<AsyncWebDBRequestVariant>) => {

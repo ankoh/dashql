@@ -8,17 +8,17 @@ import {
 import { Logger, LogEntryVariant } from '../common';
 
 export abstract class AsyncWebDBDispatcher implements Logger {
-    /// The bindings
+    /** The bindings */
     _bindings: WebDBBindings | null = null;
-    /// The next message id
+    /** The next message id */
     _nextMessageId: number = 0;
 
-    /// Instantiate the wasm module
+    /** Instantiate the wasm module */
     protected abstract open(path: string): Promise<WebDBBindings>;
-    /// Post a response to the main thread
+    /** Post a response to the main thread */
     protected abstract postMessage(response: AsyncWebDBResponseVariant, transfer: ArrayBuffer[]): void;
 
-    /// Send log entry to the main thread
+    /** Send log entry to the main thread */
     public log(entry: LogEntryVariant) {
         this.postMessage(
             {
@@ -31,7 +31,7 @@ export abstract class AsyncWebDBDispatcher implements Logger {
         );
     }
 
-    /// Send plain OK without further data
+    /** Send plain OK without further data */
     protected sendOK(request: AsyncWebDBRequestVariant) {
         this.postMessage(
             {
@@ -44,7 +44,7 @@ export abstract class AsyncWebDBDispatcher implements Logger {
         );
     }
 
-    /// Fail with an error
+    /** Fail with an error */
     protected failWith(request: AsyncWebDBRequestVariant, data: any) {
         this.postMessage(
             {
@@ -58,7 +58,7 @@ export abstract class AsyncWebDBDispatcher implements Logger {
         return;
     }
 
-    /// Process a request from the main thread
+    /** Process a request from the main thread */
     public async onMessage(request: AsyncWebDBRequestVariant) {
         // First process those requests that don't need bindings
         switch (request.type) {

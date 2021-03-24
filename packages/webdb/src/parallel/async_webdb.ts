@@ -40,25 +40,25 @@ type TaskVariant =
     | Task<AsyncWebDBRequestType.FETCH_QUERY_RESULTS, ConnectionID, Uint8Array>;
 
 export class AsyncWebDB {
-    /// The message handler
+    /** The message handler */
     _onMessageHandler: (event: MessageEvent) => void;
-    /// The error handler
+    /** The error handler */
     _onErrorHandler: (event: ErrorEvent) => void;
-    /// The close handler
+    /** The close handler */
     _onCloseHandler: () => void;
 
-    /// The logger
+    /** The logger */
     _logger: Logger;
-    /// The worker
+    /** The worker */
     _worker: Worker | null = null;
-    /// The promise for the worker shutdown
+    /** The promise for the worker shutdown */
     _workerShutdownPromise: Promise<null> | null = null;
-    /// Make the worker as terminated
+    /** Make the worker as terminated */
     _workerShutdownResolver: (value: PromiseLike<null> | null) => void = () => {};
 
-    /// The next message id
+    /** The next message id */
     _nextMessageId: number = 0;
-    /// The pending requests
+    /** The pending requests */
     _pendingRequests: Map<number, TaskVariant> = new Map();
 
     constructor(logger: Logger, worker: Worker | null = null) {
@@ -69,12 +69,12 @@ export class AsyncWebDB {
         if (worker != null) this.attach(worker);
     }
 
-    /// Get the logger
+    /** Get the logger */
     public get logger() {
         return this._logger;
     }
 
-    /// Attach to worker
+    /** Attach to worker */
     protected attach(worker: Worker) {
         this._worker = worker;
         this._worker.addEventListener('message', this._onMessageHandler);
@@ -87,7 +87,7 @@ export class AsyncWebDB {
         );
     }
 
-    /// Detach from worker
+    /** Detach from worker */
     public detach() {
         if (!this._worker) return;
         this._worker.removeEventListener('message', this._onMessageHandler);
@@ -99,7 +99,7 @@ export class AsyncWebDB {
         this._workerShutdownResolver = () => {};
     }
 
-    /// Kill the worker
+    /** Kill the worker */
     public async terminate() {
         if (!this._worker) return;
         this._worker.terminate();
@@ -109,7 +109,7 @@ export class AsyncWebDB {
         this._workerShutdownResolver = () => {};
     }
 
-    /// Post a task
+    /** Post a task */
     protected async postTask(task: TaskVariant): Promise<any> {
         if (!this._worker) {
             console.error('cannot send a message since the worker is not set!');
@@ -125,7 +125,7 @@ export class AsyncWebDB {
         return await task.promise;
     }
 
-    /// Received a message
+    /** Received a message */
     protected onMessage(event: MessageEvent) {
         const response = event.data as AsyncWebDBResponseVariant;
 
@@ -190,14 +190,14 @@ export class AsyncWebDB {
         task.promiseRejecter(new Error('unexpected response type: ' + response.type.toString()));
     }
 
-    /// Received an error
+    /** Received an error */
     protected onError(event: ErrorEvent) {
         console.error(event);
         console.error('error in webdb worker: ' + event.message);
         this._pendingRequests.clear();
     }
 
-    /// The worker was closed
+    /** The worker was closed */
     protected onClose() {
         this._workerShutdownResolver(null);
         if (this._pendingRequests.size != 0) {
@@ -207,19 +207,19 @@ export class AsyncWebDB {
         this._pendingRequests.clear();
     }
 
-    /// Reset the webdb
+    /** Reset the webdb */
     public async reset(): Promise<null> {
         const task = new Task<AsyncWebDBRequestType.RESET, null, null>(AsyncWebDBRequestType.RESET, null);
         return await this.postTask(task);
     }
 
-    /// Ping the worker thread
+    /** Ping the worker thread */
     public async ping() {
         const task = new Task<AsyncWebDBRequestType.PING, null, null>(AsyncWebDBRequestType.PING, null);
         await this.postTask(task);
     }
 
-    /// Submit a blobstream data payload to webdb
+    /** Submit a blobstream data payload to webdb */
     public async ingestBlobStream(blobStream: BlobStream) {
         const task = new Task<AsyncWebDBRequestType.INGEST_BLOBSTREAM, BlobStream, null>(
             AsyncWebDBRequestType.INGEST_BLOBSTREAM,
@@ -228,7 +228,7 @@ export class AsyncWebDB {
         await this.postTask(task);
     }
 
-    /// Import csv from a blob stream
+    /** Import csv from a blob stream */
     public async importCSV(
         conn: ConnectionID,
         blobStream: BlobStream,
@@ -242,20 +242,20 @@ export class AsyncWebDB {
         return await this.postTask(task);
     }
 
-    /// Open the database
+    /** Open the database */
     public async open(wasm: string | null): Promise<null> {
         const task = new Task<AsyncWebDBRequestType.OPEN, string | null, null>(AsyncWebDBRequestType.OPEN, wasm);
         return await this.postTask(task);
     }
 
-    /// Connect to the database
+    /** Connect to the database */
     public async connect(): Promise<AsyncWebDBConnection> {
         const task = new Task<AsyncWebDBRequestType.CONNECT, null, ConnectionID>(AsyncWebDBRequestType.CONNECT, null);
         const conn = await this.postTask(task);
         return new AsyncWebDBConnection(this, conn);
     }
 
-    /// Disconnect from the database
+    /** Disconnect from the database */
     public async disconnect(conn: ConnectionID): Promise<null> {
         const task = new Task<AsyncWebDBRequestType.DISCONNECT, ConnectionID, null>(
             AsyncWebDBRequestType.DISCONNECT,
@@ -264,13 +264,13 @@ export class AsyncWebDB {
         return await this.postTask(task);
     }
 
-    /// Invoke the file system test
+    /** Invoke the file system test */
     public async fsTest(): Promise<null> {
         const task = new Task<AsyncWebDBRequestType.FS_TEST, null, null>(AsyncWebDBRequestType.FS_TEST, null);
         return await this.postTask(task);
     }
 
-    /// Run a query
+    /** Run a query */
     public async runQuery(conn: ConnectionID, text: string, options: QueryRunOptions = {}): Promise<proto.QueryResult> {
         const task = new Task<AsyncWebDBRequestType.RUN_QUERY, [ConnectionID, string, QueryRunOptions], Uint8Array>(
             AsyncWebDBRequestType.RUN_QUERY,
@@ -281,7 +281,7 @@ export class AsyncWebDB {
         return proto.QueryResult.getRoot(bb);
     }
 
-    /// Send a query
+    /** Send a query */
     public async sendQuery(
         conn: ConnectionID,
         text: string,
@@ -296,7 +296,7 @@ export class AsyncWebDB {
         return proto.QueryResult.getRoot(bb);
     }
 
-    /// Fetch query results
+    /** Fetch query results */
     public async fetchQueryResults(conn: ConnectionID): Promise<proto.QueryResultChunk> {
         const task = new Task<AsyncWebDBRequestType.FETCH_QUERY_RESULTS, ConnectionID, Uint8Array>(
             AsyncWebDBRequestType.FETCH_QUERY_RESULTS,
@@ -308,38 +308,37 @@ export class AsyncWebDB {
     }
 }
 
-/// An async connection.
-/// This interface will enable us to swap webdb with a native version.
+/** An async connection. */
+/** This interface will enable us to swap webdb with a native version. */
 export interface AsyncConnection {
-    /// Disconnect from the database
+    /** Disconnect from the database */
     disconnect(): Promise<null>;
-    /// Run a query
+    /** Run a query */
     runQuery(text: string, options?: QueryRunOptions): Promise<proto.QueryResult>;
-    /// Send a query
+    /** Send a query */
     sendQuery(text: string): Promise<proto.QueryResult>;
-    /// Fetch query results
+    /** Fetch query results */
     fetchQueryResults(): Promise<proto.QueryResultChunk>;
 }
 
-/// A thin helper to memoize the connection id
+/** A thin helper to memoize the connection id */
 export class AsyncWebDBConnection implements AsyncConnection {
-    /// The async webdb
+    /** The async webdb */
     _instance: AsyncWebDB;
-    /// The conn handle
+    /** The conn handle */
     _conn: number;
 
-    /// Constructor
     constructor(instance: AsyncWebDB, conn: number) {
         this._instance = instance;
         this._conn = conn;
     }
 
-    /// Disconnect from the database
+    /** Disconnect from the database */
     public async disconnect(): Promise<null> {
         return this._instance.disconnect(this._conn);
     }
 
-    /// Run a query
+    /** Run a query */
     public async runQuery(text: string, options?: QueryRunOptions): Promise<proto.QueryResult> {
         this._instance.logger.log({
             timestamp: new Date(),
@@ -352,17 +351,17 @@ export class AsyncWebDBConnection implements AsyncConnection {
         return this._instance.runQuery(this._conn, text, options);
     }
 
-    /// Send a query
+    /** Send a query */
     public async sendQuery(text: string, options?: QueryRunOptions): Promise<proto.QueryResult> {
         return this._instance.sendQuery(this._conn, text, options);
     }
 
-    /// Fetch query results
+    /** Fetch query results */
     public async fetchQueryResults(): Promise<proto.QueryResultChunk> {
         return this._instance.fetchQueryResults(this._conn);
     }
 
-    /// Import csv from a blob stream
+    /** Import csv from a blob stream */
     public async importCSV(blobStream: BlobStream, schemaName: string, tableName: string) {
         return this._instance.importCSV(this._conn, blobStream, schemaName, tableName);
     }
