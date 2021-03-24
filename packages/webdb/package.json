@@ -33,7 +33,7 @@
     },
     "scripts": {
         "build": "tsc && node bundle.mjs",
-        "test:node:cov": "nyc report -r json --report-dir ./coverage/node",
+        "report": "node ./coverage.mjs",
         "test:node": "nyc -r json --report-dir ./coverage jasmine ./dist/tests-node.js",
         "test:browser": "karma start karma.conf.cjs",
         "test": "npm run test:browser && npm run test:node",
