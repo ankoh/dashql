@@ -151,19 +151,12 @@ export abstract class AsyncWebDBDispatcher implements Logger {
                     );
                     break;
                 }
-                case AsyncWebDBRequestType.INGEST_BLOBSTREAM:
-                    this._bindings.ingestBlobStream(request.data);
-                    this.sendOK(request);
-                    break;
                 case AsyncWebDBRequestType.IMPORT_CSV:
                     this._bindings.importCSV(request.data[0], request.data[1], request.data[2], request.data[3]);
                     this.sendOK(request);
                     break;
-                case AsyncWebDBRequestType.FS_TEST:
-                    if (!this._bindings.fsTest()) {
-                        throw 'FS Test returned false';
-                    }
-
+                case AsyncWebDBRequestType.REGISTER_URL:
+                    await this._bindings.registerURL(request.data);
                     this.sendOK(request);
                     break;
             }

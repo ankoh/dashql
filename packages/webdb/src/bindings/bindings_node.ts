@@ -2,28 +2,11 @@
 
 import WebDBWasm from './webdb_wasm_node.js';
 import { WebDBModule } from './webdb_module';
-import { WebDBBindings, BlobStream } from './bindings_base';
+import { WebDBBindings } from './bindings_base';
 import { Logger } from '../common';
 import fs from 'fs';
 import { WebDBRuntime } from './runtime_base';
-
-export class NodeBlobStream implements BlobStream {
-    buffer: Uint8Array;
-    position: number;
-    path: string | null;
-
-    public constructor(buffer: Uint8Array) {
-        this.buffer = buffer;
-        this.position = 0;
-        this.path = null;
-    }
-
-    public static fromFile(file: string): NodeBlobStream {
-        let stream = new NodeBlobStream(new Uint8Array(fs.readFileSync(file)));
-        stream.path = file;
-        return stream;
-    }
-}
+import { NodeWebDBRuntime, NodeBlobStream } from './runtime_node';
 
 declare global {
     var WebDBTrampoline: any;
@@ -33,7 +16,6 @@ declare global {
 export class WebDB extends WebDBBindings {
     protected runtime: WebDBRuntime;
     protected path: string;
-
     public constructor(logger: Logger, runtime: WebDBRuntime, path: string) {
         super(logger);
         this.runtime = runtime;
@@ -41,7 +23,20 @@ export class WebDB extends WebDBBindings {
         this.path = path;
     }
 
-    /** Instantiate the wasm module */
+    /// Registers the given URL as a file to be possibly loaded by WebDB. Returns the Blob ID
+    public registerURL(url: string): Promise<number> {
+        let runtime: typeof NodeWebDBRuntime = <typeof NodeWebDBRuntime>this.runtime;
+        try {
+            const id = runtime.blobMap.length;
+            // TODO: This reads the file already, make asynchronous and only on demand
+            runtime.blobMap.push(NodeBlobStream.fromFile(url));
+            return Promise.resolve(id);
+        } catch (error) {
+            return Promise.reject(error);
+        }
+    }
+
+    /// Instantiate the wasm module
     protected instantiateWasm(
         imports: any,
         success: (module: WebAssembly.Module) => void,
