@@ -3,81 +3,8 @@
 import { webdb as proto } from '@dashql/proto';
 import { Value } from './value';
 import { TmpBuffers } from './buffers';
-import { RowProxyType, RowProxy, ChunkData } from './proxy';
-
-/** An iterator for row proxies of a chunk iterator. */
-export class RowProxyIterator<T extends RowProxy> implements Iterable<RowProxy> {
-    private nextRowID: number = 0;
-    private currentChunkData: ChunkData | null = null;
-    private proxyType: RowProxyType;
-    public columns: string[];
-
-    constructor(private chunkIterator: ChunkIterator) {
-        this.columns = [];
-        for (let i = 0; i < chunkIterator.columnCount; ++i) {
-            this.columns.push(chunkIterator.result.columnNames(i));
-        }
-        this.proxyType = chunkIterator.proxyType();
-        if (chunkIterator.nextBlocking()) {
-            this.currentChunkData = RowProxyType.indexChunkData(chunkIterator.currentChunk!);
-        }
-    }
-
-    /* Get the next result from the iterator. */
-    next(): IteratorResult<T> {
-        // No chunk available?
-        const { chunkIterator } = this;
-        if (!chunkIterator.currentChunk) {
-            return { done: true, value: null };
-        }
-
-        // Still in bounds?
-        const row = this.nextRowID++;
-        if (row < this.chunkIterator.currentChunk!.rowCount()) {
-            return {
-                value: this.proxyType!.proxyRow<T>(this.currentChunkData!, row),
-            };
-        }
-        // Try to fetch next chunk
-        this.nextRowID = 0;
-        if (!chunkIterator.nextBlocking() || chunkIterator.currentChunk.rowCount() === 0) {
-            this.currentChunkData = null;
-            return { done: true, value: null };
-        }
-        this.currentChunkData = RowProxyType.indexChunkData(chunkIterator.currentChunk);
-        return this.next();
-    }
-
-    [Symbol.iterator]() {
-        if (isRewindableIterator(this.chunkIterator)) {
-            this.chunkIterator.rewind();
-        }
-        return this;
-    }
-}
-
-export class ColumnIterator<T> implements Iterable<T> {
-    idx: number;
-
-    constructor(start: number, private end: number, private value: (idx: number) => T) {
-        this.idx = start;
-    }
-
-    next(): IteratorResult<T> {
-        if (this.idx >= this.end) {
-            return { done: true, value: null };
-        }
-
-        return {
-            done: false,
-            value: this.value(this.idx++),
-        };
-    }
-
-    [Symbol.iterator]() {
-        return this;
-    }
-}
+import { RowProxyType, RowProxy } from './proxy';
+import { ColumnIterator } from './column_iterator';
 
 /** A chunk iterator base class */
 export abstract class ChunkIterator {
@@ -150,11 +77,6 @@ export abstract class ChunkIterator {
     public collect<T extends RowProxy>(out: T[] = []): T[] {
         const proxyType = this.proxyType();
         return proxyType.proxyChunkRowsArray<T>(this.currentChunk, out);
-    }
-
-    /* Iterate over row proxies across all chunks */
-    public iter<T extends RowProxy>(): Iterable<T> & { columns: string[] } {
-        return new RowProxyIterator<T>(this);
     }
 
     /* Build row proxies for across all chunks */
@@ -399,85 +321,6 @@ export abstract class ChunkIterator {
             // Advance the chunk start
             start += chunkRows - skipHere;
             remaining -= rowsHere;
-        }
-    }
-}
-
-export interface RewindableIterator {
-    rewind(): void;
-}
-
-export function isRewindableIterator(iter: any): iter is RewindableIterator {
-    return typeof iter['rewind'] == 'function';
-}
-
-/**
- * A higher-order iterator that buffers data from a chunk iterator
- */
-export class BufferingChunkIterator extends ChunkIterator implements RewindableIterator {
-    /** The iterator */
-    _iterator: ChunkIterator;
-    /** The buffered chunks */
-    _chunks: proto.QueryResultChunk[];
-    /** Is the iterator depleted? */
-    _depleted: boolean;
-
-    public constructor(iter: ChunkIterator) {
-        super(iter.result);
-        this._iterator = iter;
-        this._chunks = [];
-        this._depleted = false;
-    }
-
-    /** Restart the chunk iterator */
-    public rewind() {
-        this._nextChunkID = 0;
-    }
-
-    /** Return the next buffered chunk */
-    protected nextBuffered(): boolean {
-        if (this._nextChunkID >= this._chunks.length) {
-            return false;
-        }
-        this._currentChunk = this._chunks[this._nextChunkID++];
-        return true;
-    }
-
-    /** Get the next chunk */
-    public nextBlocking(): boolean {
-        // Already depleted?
-        if (this._nextChunkID < this._chunks.length || this._depleted) {
-            return this.nextBuffered();
-        }
-
-        // Otherwise ask the iterator for more data
-        if (this._iterator.nextBlocking()) {
-            this._currentChunk = this._iterator.currentChunk!;
-            this._chunks.push(this._currentChunk);
-            this._nextChunkID++;
-            return true;
-        } else {
-            this._depleted = true;
-            return false;
-        }
-    }
-
-    /** Get the next chunk asynchronously */
-    public async nextAsync(): Promise<boolean> {
-        // Already depleted?
-        if (this._depleted) {
-            return this.nextBuffered();
-        }
-
-        // Otherwise ask the iterator for more data
-        if (await this._iterator.nextAsync()) {
-            this._currentChunk = this._iterator.currentChunk!;
-            this._chunks.push(this._currentChunk);
-            this._nextChunkID++;
-            return true;
-        } else {
-            this._depleted = true;
-            return false;
         }
     }
 }
