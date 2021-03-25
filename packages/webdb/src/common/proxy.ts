@@ -115,13 +115,19 @@ export class RowProxyType {
     _result: proto.QueryResult;
     /** The row constructor */
     _ctor: RowProxyCtor;
+    /** The column names */
+    _columnNames: string[];
+
+    public get columnNames() {
+        return this._columnNames;
+    }
 
     constructor(result: proto.QueryResult) {
         this._result = result;
-        let columnNames: string[] = [];
-        let columnProxies: AttributeProxy[] = [];
+        const columnProxies: AttributeProxy[] = [];
+        this._columnNames = [];
         for (let columnId = 0; columnId < result.columnTypesLength(); ++columnId) {
-            columnNames.push(result.columnNames(columnId));
+            this._columnNames.push(result.columnNames(columnId));
             switch (result.columnTypes(columnId)!.typeId()) {
                 case proto.SQLTypeID.TINYINT:
                 case proto.SQLTypeID.SMALLINT:
@@ -176,7 +182,7 @@ export class RowProxyType {
                     break;
             }
         }
-        this._ctor = defineRowProxyType(columnNames, columnProxies);
+        this._ctor = defineRowProxyType(this.columnNames, columnProxies);
     }
 
     /** Index the chunk data */
@@ -251,14 +257,20 @@ export class RowProxyType {
     }
 
     /** Proxy rows in chunk into an array */
-    public proxyChunkRowsArray<T extends RowProxy>(chunk: webdb.QueryResultChunk | null, out: T[] = []) {
+    public proxyChunkRowsArray<T extends RowProxy>(
+        chunk: webdb.QueryResultChunk | null,
+        out: T[] & { columns?: string[] } = [],
+    ) {
         if (chunk) {
             const data = RowProxyType.indexChunkData(chunk);
             for (let rowId = 0; rowId < chunk.rowCount(); ++rowId) {
                 out.push(this.proxyRow<T>(data, rowId));
             }
         }
-        return out;
+        if (out.columns === undefined) {
+            out.columns = this.columnNames;
+        }
+        return out as T[] & { columns: string[] };
     }
 
     /** Get proxy for a single row */
