@@ -48,9 +48,10 @@
         "test:ci": "npm run test:cov"
     },
     "files": [
-        "dist/**/*.d.ts",
-        "dist/**/*.js",
-        "dist/*.wasm"
+        "dist/types/**/*.d.ts",
+        "dist/chunk*.js",
+        "dist/dashql-*.js",
+        "dist/dashql-*.wasm"
     ],
     "module": "./dist/dashql-core.module.js",
     "types": "./dist/dashql-core.module.d.ts",
