@@ -13,10 +13,9 @@ function printErr(err) {
 }
 
 // -------------------------------
-// Copy WASM files
+// Clear directory
 
-const __dirname = path.dirname(fileURLToPath(
-    import.meta.url));
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const dist = path.resolve(__dirname, 'dist');
 rimraf.sync(dist);
 mkdir.sync(dist);
