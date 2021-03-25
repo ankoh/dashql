@@ -21,7 +21,7 @@ mkdir.sync(dist);
 // Copy WASM files
 
 const src = path.resolve(__dirname, 'src');
-fs.copyFile(path.resolve(src, 'analyzer', 'analyzer_wasm.wasm'), path.resolve(dist, 'dashql_analyzer.wasm'), printErr);
+fs.copyFile(path.resolve(src, 'analyzer', 'analyzer_wasm.wasm'), path.resolve(dist, 'dashql-analyzer.wasm'), printErr);
 
 // -------------------------------
 // BROWSER

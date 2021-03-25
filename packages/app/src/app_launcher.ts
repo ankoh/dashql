@@ -5,7 +5,7 @@ import * as examples from './example_scripts';
 import * as platform from './platform';
 import { IAppContext } from './app_context';
 
-import analyzer_wasm from '@dashql/core/dist/dashql_analyzer.wasm';
+import analyzer_wasm from '@dashql/core/dist/dashql-analyzer.wasm';
 import webdb_wasm from '@dashql/webdb/dist/webdb.wasm';
 
 import axios from 'axios';

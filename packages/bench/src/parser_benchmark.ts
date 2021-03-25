@@ -47,7 +47,7 @@ VIZ foo USING TABLE;
     );
 }
 
-const analyzerBindings = new core.Analyzer({}, '../core/dist/dashql_analyzer.wasm');
+const analyzerBindings = new core.Analyzer({}, '../core/dist/dashql-analyzer.wasm');
 analyzerBindings
     .init()
     .then(() => main(analyzerBindings))
