@@ -1,6 +1,6 @@
 {
     "name": "@dashql/webdb",
-    "version": "0.0.14",
+    "version": "0.0.16",
     "description": "DuckDB powered by WebAssembly",
     "author": "Andre Kohn <kohn.a@outlook.com>",
     "license": "MPL-2.0",
@@ -42,9 +42,9 @@
         "test:ci": "npm run test:cov"
     },
     "files": [
-        "dist/**/*.d.ts",
-        "dist/**/*.js",
-        "dist/*.wasm"
+        "dist/types/**/*.d.ts",
+        "dist/webdb*.js",
+        "dist/webdb.wasm"
     ],
     "main": "./dist/webdb-node-serial.js",
     "types": "./dist/webdb-node-serial.d.ts",
