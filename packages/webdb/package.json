@@ -46,11 +46,11 @@
         "dist/webdb*.js",
         "dist/webdb.wasm"
     ],
-    "main": "./dist/webdb-node-serial.js",
-    "types": "./dist/webdb-node-serial.d.ts",
+    "main": "./dist/webdb-node.js",
+    "types": "./dist/webdb-node.d.ts",
     "module": "./dist/webdb.module.js",
     "browser": {
-        "./dist/webdb-node-serial.js": "./dist/webdb-browser-serial.js",
+        "./dist/webdb-node.js": "./dist/webdb-browser.js",
         "worker_threads": false,
         "perf_hooks": false,
         "fs": false,

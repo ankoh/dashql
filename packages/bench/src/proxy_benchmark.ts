@@ -1,4 +1,4 @@
-import * as webdb from '../../webdb/dist/webdb-node-serial.js';
+import * as webdb from '../../webdb/dist/webdb-node.js';
 import * as core from '../../core/dist/dashql-core-node.js';
 import * as benny from 'benny';
 import path from 'path';
@@ -16,7 +16,7 @@ function main(db: webdb.WebDB) {
                 `);
                 conn.disconnect();
                 return () => {
-                    let chunks = new webdb.ChunkArrayIterator(result);
+                    let chunks = new webdb.StaticChunkIterator(result);
                     let sum = 0;
                     let count = 0;
                     while (chunks.nextBlocking()) {
@@ -40,7 +40,7 @@ function main(db: webdb.WebDB) {
                 `);
                 conn.disconnect();
                 return () => {
-                    const chunks = new webdb.ChunkArrayIterator(result);
+                    const chunks = new webdb.StaticChunkIterator(result);
                     interface Row extends webdb.RowProxy {
                         foo: number | null;
                     }
@@ -67,7 +67,7 @@ function main(db: webdb.WebDB) {
                 `);
                 conn.disconnect();
                 return () => {
-                    const chunks = new webdb.ChunkArrayIterator(result);
+                    const chunks = new webdb.StaticChunkIterator(result);
                     interface Row extends webdb.RowProxy {
                         foo: number | null;
                     }
