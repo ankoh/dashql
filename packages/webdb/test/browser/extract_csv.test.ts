@@ -2,14 +2,14 @@ import { WebBlobStream } from 'src/bindings/runtime_browser';
 import * as webdb from '../../src/';
 
 let worker: Worker;
-let db: webdb.parallel.AsyncWebDB;
-var conn: webdb.parallel.AsyncWebDBConnection;
+let db: webdb.AsyncWebDB;
+var conn: webdb.AsyncWebDBConnection;
 const logger = new webdb.ConsoleLogger();
 const encoder = new TextEncoder();
 
 beforeAll(async () => {
     worker = new Worker('/static/webdb-browser-parallel.worker.js');
-    db = new webdb.parallel.AsyncWebDB(logger, worker);
+    db = new webdb.AsyncWebDB(logger, worker);
     await db.open('/static/webdb.wasm');
 });
 

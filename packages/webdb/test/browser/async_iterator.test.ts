@@ -53,7 +53,7 @@ describe('QueryResultRowIterator', () => {
 
             let result = await conn.sendQuery(`SELECT MatrNr FROM parquet_scan('/data/studenten.parquet');`);
             expect(result.columnTypesLength()).toBe(1);
-            let chunks = new webdb.parallel.ChunkStreamIterator(conn, result);
+            let chunks = new webdb.AsyncChunkStreamIterator(conn, result);
             let vals: number[] = [];
             while (await chunks.nextAsync()) {
                 for (const v of chunks.iterateNumberColumn(0)) {
@@ -75,7 +75,7 @@ describe('QueryResultRowIterator', () => {
                INNER JOIN parquet_scan('/data/vorlesungen.parquet') vorlesungen ON (vorlesungen.VorlNr = hoeren.VorlNr);
            `);
             expect(result.columnTypesLength()).toBe(2);
-            let chunks = new webdb.parallel.ChunkStreamIterator(conn, result);
+            let chunks = new webdb.AsyncChunkStreamIterator(conn, result);
             interface Row extends webdb.RowProxy {
                 MatrNr: number | null;
                 Titel: string | null;
