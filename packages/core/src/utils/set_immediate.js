@@ -103,7 +103,7 @@
         // * https://developer.mozilla.org/en/DOM/window.postMessage
         // * http://www.whatwg.org/specs/web-apps/current-work/multipage/comms.html#crossDocumentMessages
 
-        const messagePrefix = 'setImmediate$' + Math.random() + '$';
+        const messagePrefix = `setImmediate$${Math.random()}$`;
         const onGlobalMessage = function (event) {
             if (event.source === global && typeof event.data === 'string' && event.data.indexOf(messagePrefix) === 0) {
                 runIfPresent(+event.data.slice(messagePrefix.length));
