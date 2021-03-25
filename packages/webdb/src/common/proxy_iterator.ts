@@ -7,13 +7,12 @@ export class RowProxyIterator<T extends RowProxy> implements Iterable<RowProxy> 
     private nextRowID: number = 0;
     private currentChunkData: ChunkData | null = null;
     private proxyType: RowProxyType;
-    public columns: string[];
+    /** The column names in the proxy. */
+    public get columns() {
+        return this.proxyType.columnNames;
+    }
 
     constructor(private chunkIterator: ChunkIterator) {
-        this.columns = [];
-        for (let i = 0; i < chunkIterator.columnCount; ++i) {
-            this.columns.push(chunkIterator.result.columnNames(i));
-        }
         this.proxyType = chunkIterator.proxyType();
         if (chunkIterator.nextBlocking()) {
             this.currentChunkData = RowProxyType.indexChunkData(chunkIterator.currentChunk!);
