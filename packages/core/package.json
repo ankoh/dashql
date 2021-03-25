@@ -4,8 +4,8 @@
     "description": "DashQL Core Library",
     "license": "MPL-2.0",
     "dependencies": {
-        "@dashql/proto": "^0.0.3",
-        "@dashql/webdb": "^0.0.16",
+        "@dashql/proto": "^0.0.4",
+        "@dashql/webdb": "^0.0.17",
         "axios": "^0.21.1",
         "hash-wasm": "^4.5.0",
         "immutable": "^4.0.0-rc.12",
