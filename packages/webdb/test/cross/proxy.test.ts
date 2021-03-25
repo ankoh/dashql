@@ -23,7 +23,7 @@ export function testProxies(db: () => webdb.WebDBBindings) {
                 interface Row extends webdb.RowProxy {
                     foo: number | null;
                 }
-                const chunks = new webdb.serial.ChunkStreamIterator(conn, result);
+                const chunks = new webdb.ChunkStreamIterator(conn, result);
                 let expected = 0;
                 while (chunks.nextBlocking()) {
                     for (const row of chunks.collect<Row>()) {
@@ -42,7 +42,7 @@ export function testProxies(db: () => webdb.WebDBBindings) {
                 interface Row extends webdb.RowProxy {
                     foo: bigint | null;
                 }
-                const chunks = new webdb.serial.ChunkStreamIterator(conn, result);
+                const chunks = new webdb.ChunkStreamIterator(conn, result);
                 let expected = 0;
                 while (chunks.nextBlocking()) {
                     for (const row of chunks.collect<Row>()) {
@@ -61,7 +61,7 @@ export function testProxies(db: () => webdb.WebDBBindings) {
                 interface Row extends webdb.RowProxy {
                     foo: bigint | null;
                 }
-                const chunks = new webdb.serial.ChunkStreamIterator(conn, result);
+                const chunks = new webdb.ChunkStreamIterator(conn, result);
                 let expected = 0;
                 while (chunks.nextBlocking()) {
                     for (const row of chunks.collect<Row>()) {
@@ -80,7 +80,7 @@ export function testProxies(db: () => webdb.WebDBBindings) {
                 interface Row extends webdb.RowProxy {
                     foo: string | null;
                 }
-                const chunks = new webdb.serial.ChunkStreamIterator(conn, result);
+                const chunks = new webdb.ChunkStreamIterator(conn, result);
                 let expected = 0;
                 while (chunks.nextBlocking()) {
                     for (const row of chunks.collect<Row>()) {
@@ -99,7 +99,7 @@ export function testProxies(db: () => webdb.WebDBBindings) {
                 interface Row extends webdb.RowProxy {
                     foo: boolean | null;
                 }
-                const chunks = new webdb.serial.ChunkStreamIterator(conn, result);
+                const chunks = new webdb.ChunkStreamIterator(conn, result);
                 let counter = 0;
                 while (chunks.nextBlocking()) {
                     for (const row of chunks.collect<Row>()) {
@@ -122,8 +122,8 @@ export function testProxies(db: () => webdb.WebDBBindings) {
                 interface Row extends webdb.RowProxy {
                     foo: number | null;
                 }
-                const chunkStream = new webdb.serial.ChunkStreamIterator(conn, result);
-                const chunks = new webdb.BufferingChunkIterator(chunkStream);
+                const chunkStream = new webdb.ChunkStreamIterator(conn, result);
+                const chunks = new webdb.MaterializingChunkIterator(chunkStream);
                 let test = () => {
                     let expected = 0;
                     while (chunks.nextBlocking()) {
@@ -152,7 +152,7 @@ export function testProxies(db: () => webdb.WebDBBindings) {
                     fizz: string | null;
                     buzz: boolean | null;
                 }
-                const chunks = new webdb.serial.ChunkStreamIterator(conn, result);
+                const chunks = new webdb.ChunkStreamIterator(conn, result);
                 let expected = 0;
                 while (chunks.nextBlocking()) {
                     for (const row of chunks.collect<Row>()) {
@@ -180,7 +180,7 @@ export function testProxies(db: () => webdb.WebDBBindings) {
                     fizz: string | null;
                     buzz: boolean | null;
                 }
-                const chunks = new webdb.serial.ChunkStreamIterator(conn, result);
+                const chunks = new webdb.ChunkStreamIterator(conn, result);
                 const iter = chunks.iter<Row>();
                 expect(iter.columns).toEqual(['foo', 'bar', 'fizz', 'buzz']);
 
@@ -209,7 +209,7 @@ export function testProxies(db: () => webdb.WebDBBindings) {
                     fizz: string | null;
                     buzz: boolean | null;
                 }
-                const chunks = new webdb.serial.ChunkArrayIterator(result);
+                const chunks = new webdb.StaticChunkIterator(result);
                 const iter = chunks.iter<Row>();
                 expect(iter.columns).toEqual(['foo', 'bar', 'fizz', 'buzz']);
 
@@ -243,7 +243,7 @@ export function testProxies(db: () => webdb.WebDBBindings) {
                     foo: number | null;
                     bar: number | null;
                 }
-                const chunks = new webdb.serial.ChunkStreamIterator(conn, result);
+                const chunks = new webdb.ChunkStreamIterator(conn, result);
                 let expected = 0;
                 while (chunks.nextBlocking()) {
                     for (const row of chunks.collect<Row>()) {
@@ -274,7 +274,7 @@ export function testProxies(db: () => webdb.WebDBBindings) {
                     bar: number | null;
                     bam: number | null;
                 }
-                const chunks = new webdb.serial.ChunkStreamIterator(conn, result);
+                const chunks = new webdb.ChunkStreamIterator(conn, result);
                 let expected = 0;
                 while (chunks.nextBlocking()) {
                     for (const row of chunks.collect<Row>()) {
@@ -308,7 +308,7 @@ export function testProxies(db: () => webdb.WebDBBindings) {
         //            foo: number | null;
         //            bar: number | null;
         //        }
-        //        const chunks = new webdb.serial.ChunkStreamIterator(conn, result);
+        //        const chunks = new webdb.ChunkStreamIterator(conn, result);
         //        const partitions = chunks.collectPartitionsBlocking<Row>();
         //        expect(partitions.length).toBe(Math.ceil((testRows - 1) / 100));
         //        let expected = 0;

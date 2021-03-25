@@ -2,5 +2,5 @@
 
 export * from './bindings';
 export * from './common';
-export * as parallel from './parallel';
-export * as serial from './serial';
+export * from './parallel';
+export * from './serial';

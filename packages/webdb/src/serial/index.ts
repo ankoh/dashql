@@ -1,1 +1,1 @@
-export * from './iterator';
+export * from './stream_iterator';

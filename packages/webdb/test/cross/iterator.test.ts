@@ -20,7 +20,7 @@ export function testIterator(db: () => webdb.WebDBBindings) {
                     SELECT (v & 127)::TINYINT FROM generate_series(0, ${testRows}) as t(v);
                 `);
                 expect(result.columnTypesLength()).toBe(1);
-                let chunks = new webdb.serial.ChunkStreamIterator(conn, result);
+                let chunks = new webdb.ChunkStreamIterator(conn, result);
                 let i = 0;
                 while (chunks.nextBlocking()) {
                     for (const v of chunks.iterateNumberColumn(0)) {
@@ -35,7 +35,7 @@ export function testIterator(db: () => webdb.WebDBBindings) {
                     SELECT (v & 32767)::SMALLINT FROM generate_series(0, ${testRows}) as t(v);
                 `);
                 expect(result.columnTypesLength()).toBe(1);
-                let chunks = new webdb.serial.ChunkStreamIterator(conn, result);
+                let chunks = new webdb.ChunkStreamIterator(conn, result);
                 let i = 0;
                 while (chunks.nextBlocking()) {
                     for (const v of chunks.iterateNumberColumn(0)) {
@@ -50,7 +50,7 @@ export function testIterator(db: () => webdb.WebDBBindings) {
                     SELECT v::INTEGER FROM generate_series(0, ${testRows}) as t(v);
                 `);
                 expect(result.columnTypesLength()).toBe(1);
-                let chunks = new webdb.serial.ChunkStreamIterator(conn, result);
+                let chunks = new webdb.ChunkStreamIterator(conn, result);
                 let i = 0;
                 while (chunks.nextBlocking()) {
                     for (const v of chunks.iterateNumberColumn(0)) {
@@ -65,7 +65,7 @@ export function testIterator(db: () => webdb.WebDBBindings) {
                     SELECT v::BIGINT FROM generate_series(0, ${testRows}) as t(v);
                 `);
                 expect(result.columnTypesLength()).toBe(1);
-                let chunks = new webdb.serial.ChunkStreamIterator(conn, result);
+                let chunks = new webdb.ChunkStreamIterator(conn, result);
                 let i = 0;
                 while (chunks.nextBlocking()) {
                     for (const v of chunks.iterateBigIntColumn(0)) {
@@ -80,7 +80,7 @@ export function testIterator(db: () => webdb.WebDBBindings) {
                     SELECT v::HUGEINT FROM generate_series(0, ${testRows}) as t(v);
                 `);
                 expect(result.columnTypesLength()).toBe(1);
-                let chunks = new webdb.serial.ChunkStreamIterator(conn, result);
+                let chunks = new webdb.ChunkStreamIterator(conn, result);
                 let i = 0;
                 while (chunks.nextBlocking()) {
                     for (const v of chunks.iterateHugeIntColumn(0)) {
@@ -95,7 +95,7 @@ export function testIterator(db: () => webdb.WebDBBindings) {
                     SELECT v::VARCHAR FROM generate_series(0, ${testRows}) as t(v);
                 `);
                 expect(result.columnTypesLength()).toBe(1);
-                let chunks = new webdb.serial.ChunkStreamIterator(conn, result);
+                let chunks = new webdb.ChunkStreamIterator(conn, result);
                 let i = 0;
                 while (chunks.nextBlocking()) {
                     for (const v of chunks.iterateStringColumn(0)) {
@@ -110,7 +110,7 @@ export function testIterator(db: () => webdb.WebDBBindings) {
                     SELECT v > 0 FROM generate_series(0, ${testRows}) as t(v);
                 `);
                 expect(result.columnTypesLength()).toBe(1);
-                let chunks = new webdb.serial.ChunkStreamIterator(conn, result);
+                let chunks = new webdb.ChunkStreamIterator(conn, result);
                 let i = 0;
                 while (chunks.nextBlocking()) {
                     for (const v of chunks.iterateBooleanColumn(0)) {
@@ -127,8 +127,8 @@ export function testIterator(db: () => webdb.WebDBBindings) {
                     SELECT (v & 127)::TINYINT FROM generate_series(0, ${testRows}) as t(v);
                 `);
                 expect(result.columnTypesLength()).toBe(1);
-                let chunkStream = new webdb.serial.ChunkStreamIterator(conn, result);
-                let chunks = new webdb.BufferingChunkIterator(chunkStream);
+                let chunkStream = new webdb.ChunkStreamIterator(conn, result);
+                let chunks = new webdb.MaterializingChunkIterator(chunkStream);
                 let i = 0;
                 while (chunks.nextBlocking()) {
                     for (const v of chunks.iterateNumberColumn(0)) {
