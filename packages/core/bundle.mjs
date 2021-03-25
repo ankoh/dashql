@@ -41,35 +41,23 @@ const EXTERNALS = [
 
 console.log('[ ESBUILD ] dashql-core.module.js');
 esbuild.build({
-    entryPoints: ['./src/index.ts'],
-    outfile: 'dist/dashql-core.module.js',
-    platform: 'browser',
+    entryPoints: ['./src/targets/dashql-core.module.ts', './src/targets/dashql-core-browser.module.ts'],
+    entryNames: '[name]',
+    outdir: './dist',
+    platform: 'neutral',
     format: 'esm',
     target: TARGET,
+    splitting: true,
     bundle: true,
     minify: false,
     sourcemap: 'external',
-    external: EXTERNALS,
-    define: { 'process.env.NODE_ENV': '"production"' },
-});
-
-console.log('[ ESBUILD ] dashql-core-browser.module.js');
-esbuild.build({
-    entryPoints: ['./src/index_browser.ts'],
-    outfile: 'dist/dashql-core-browser.module.js',
-    platform: 'browser',
-    format: 'esm',
-    target: TARGET,
-    bundle: true,
-    minify: false,
-    sourcemap: 'external',
-    external: EXTERNALS,
+    external: [...EXTERNALS, 'fs', 'path', 'fast-glob'],
     define: { 'process.env.NODE_ENV': '"production"' },
 });
 
 console.log('[ ESBUILD ] dashql-core-node.js');
 esbuild.build({
-    entryPoints: ['./src/index_node.ts'],
+    entryPoints: ['./src/targets/dashql-core-node.ts'],
     outfile: 'dist/dashql-core-node.js',
     platform: 'node',
     format: 'cjs',
@@ -95,10 +83,18 @@ esbuild.build({
 // -------------------------------
 // Write delcaration files
 
-fs.writeFile(path.join(dist, 'dashql-core.module.d.ts'), "export * from './types/src/';", printErr);
 fs.writeFile(
-    path.join(dist, 'dashql-core-browser.module.d.ts'),
-    "export * from './types/src/index_browser';",
+    path.join(dist, 'dashql-core.module.d.ts'),
+    "export * from './types/src/targets/dashql-core.module';",
     printErr,
 );
-fs.writeFile(path.join(dist, 'dashql-core-node.d.ts'), "export * from './types/src/index_node';", printErr);
+fs.writeFile(
+    path.join(dist, 'dashql-core-browser.module.d.ts'),
+    "export * from './types/src/targets/dashql-core-browser.module';",
+    printErr,
+);
+fs.writeFile(
+    path.join(dist, 'dashql-core-node.d.ts'),
+    "export * from './types/src/targets/dashql-core-node';",
+    printErr,
+);
