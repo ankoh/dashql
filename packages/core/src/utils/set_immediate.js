@@ -5,11 +5,11 @@
         return;
     }
 
-    var nextHandle = 1; // Spec says greater than zero
-    var tasksByHandle = {};
-    var currentlyRunningATask = false;
-    var doc = global.document;
-    var registerImmediate;
+    let nextHandle = 1; // Spec says greater than zero
+    const tasksByHandle = {};
+    let currentlyRunningATask = false;
+    const doc = global.document;
+    let registerImmediate;
 
     function setImmediate(callback) {
         // Callback can either be a function or a string
@@ -17,12 +17,12 @@
             callback = new Function(String(callback}));
         }
         // Copy function arguments
-        var args = new Array(arguments.length - 1);
-        for (var i = 0; i < args.length; i++) {
+        const args = new Array(arguments.length - 1);
+        for (let i = 0; i < args.length; i++) {
             args[i] = arguments[i + 1];
         }
         // Store and register the task
-        var task = { callback: callback, args: args };
+        const task = { callback: callback, args: args };
         tasksByHandle[nextHandle] = task;
         registerImmediate(nextHandle);
         return nextHandle++;
@@ -33,8 +33,8 @@
     }
 
     function run(task) {
-        var callback = task.callback;
-        var args = task.args;
+        const callback = task.callback;
+        const args = task.args;
         switch (args.length) {
             case 0:
                 callback();
@@ -62,7 +62,7 @@
             // "too much recursion" error.
             setTimeout(runIfPresent, 0, handle);
         } else {
-            var task = tasksByHandle[handle];
+            const task = tasksByHandle[handle];
             if (task) {
                 currentlyRunningATask = true;
                 try {
@@ -87,8 +87,8 @@
         // The test against `importScripts` prevents this implementation from being installed inside a web worker,
         // where `global.postMessage` means something completely different and can't be used for this purpose.
         if (global.postMessage && !global.importScripts) {
-            var postMessageIsAsynchronous = true;
-            var oldOnMessage = global.onmessage;
+            let postMessageIsAsynchronous = true;
+            const oldOnMessage = global.onmessage;
             global.onmessage = function () {
                 postMessageIsAsynchronous = false;
             };
@@ -103,8 +103,8 @@
         // * https://developer.mozilla.org/en/DOM/window.postMessage
         // * http://www.whatwg.org/specs/web-apps/current-work/multipage/comms.html#crossDocumentMessages
 
-        var messagePrefix = `setImmediate$${Math.random()}$`;
-        var onGlobalMessage = function (event) {
+        const messagePrefix = 'setImmediate$' + Math.random() + '$';
+        const onGlobalMessage = function (event) {
             if (event.source === global && typeof event.data === 'string' && event.data.indexOf(messagePrefix) === 0) {
                 runIfPresent(+event.data.slice(messagePrefix.length));
             }
@@ -122,9 +122,9 @@
     }
 
     function installMessageChannelImplementation() {
-        var channel = new MessageChannel();
+        const channel = new MessageChannel();
         channel.port1.onmessage = function (event) {
-            var handle = event.data;
+            const handle = event.data;
             runIfPresent(handle);
         };
 
@@ -134,11 +134,11 @@
     }
 
     function installReadyStateChangeImplementation() {
-        var html = doc.documentElement;
+        const html = doc.documentElement;
         registerImmediate = function (handle) {
             // Create a <script> element; its readystatechange event will be fired asynchronously once it is inserted
             // into the document. Do so, thus queuing up the task. Remember to clean up once it's been called.
-            var script = doc.createElement('script');
+            let script = doc.createElement('script');
             script.onreadystatechange = function () {
                 runIfPresent(handle);
                 script.onreadystatechange = null;
@@ -156,7 +156,7 @@
     }
 
     // If supported, we should attach to the prototype of global, since that is where setTimeout et al. live.
-    var attachTo = Object.getPrototypeOf && Object.getPrototypeOf(global);
+    let attachTo = Object.getPrototypeOf && Object.getPrototypeOf(global);
     attachTo = attachTo && attachTo.setTimeout ? attachTo : global;
 
     // Don't get fooled by e.g. browserify environments.

@@ -8,11 +8,11 @@ export function mockHTTP(): HTTPMock {
 }
 
 export function encodeTextBody(body: string) {
-    var encoder = new TextEncoder();
+    const encoder = new TextEncoder();
     return encoder.encode(body).buffer;
 }
 
 export function decodeTextBody(body: ArrayBuffer) {
-    var decoder = new TextDecoder();
+    const decoder = new TextDecoder();
     return decoder.decode(body);
 }

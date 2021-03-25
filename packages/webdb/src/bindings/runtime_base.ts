@@ -34,7 +34,7 @@ export interface WebDBRuntime {
     dashql_webdb_fs_file_remove(pathPtr: number, pathLen: number): void;
 }
 
-export var DefaultWebDBRuntime: WebDBRuntime = {
+export const DefaultWebDBRuntime: WebDBRuntime = {
     bindings: null,
     dashql_add_blob_stream: function (blob_stream: BlobStream): number {
         throw Error('undefined');

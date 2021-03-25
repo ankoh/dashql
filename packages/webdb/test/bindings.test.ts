@@ -1,7 +1,7 @@
 import * as webdb from '../src/';
 
 export function testBindings(db: () => webdb.WebDBBindings) {
-    var conn: webdb.WebDBConnection;
+    let conn: webdb.WebDBConnection;
 
     beforeEach(() => {
         conn = db().connect();
