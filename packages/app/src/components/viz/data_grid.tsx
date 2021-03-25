@@ -244,7 +244,7 @@ export class DataGrid extends React.Component<Props, State> {
         for (let columnIndex = props.columnStartIndex; columnIndex <= props.columnStopIndex; columnIndex++) {
             const columnDatum = props.columnSizeAndPositionManager.getSizeAndPositionOfCell(columnIndex);
 
-            const iter = new webdb.parallel.ChunkArrayIterator(data);
+            const iter = new webdb.StaticChunkIterator(data);
             const offset = props.rowStartIndex - this.props.data!.request.begin;
             const limit = props.rowStopIndex - props.rowStartIndex + 1;
 

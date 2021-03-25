@@ -53,11 +53,11 @@ async function configureApp(store: model.AppReduxStore): Promise<model.AppConfig
     return null;
 }
 
-async function initWebDB(store: model.AppReduxStore, logger: webdb.Logger): Promise<webdb.parallel.AsyncWebDB | null> {
+async function initWebDB(store: model.AppReduxStore, logger: webdb.Logger): Promise<webdb.AsyncWebDB | null> {
     startStep(store, model.LaunchStep.INIT_WEBDB);
     try {
         const dbWorker = new Worker(new URL('@dashql/webdb/dist/webdb-browser-parallel.worker.js', import.meta.url));
-        const db = new webdb.parallel.AsyncWebDB(logger, dbWorker);
+        const db = new webdb.AsyncWebDB(logger, dbWorker);
         await db.open(webdb_wasm);
         stepSucceeded(store, model.LaunchStep.INIT_WEBDB);
         return db;
