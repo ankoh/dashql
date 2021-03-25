@@ -267,7 +267,7 @@ export class RowProxyType {
                 out.push(this.proxyRow<T>(data, rowId));
             }
         }
-        if (!out.columns) {
+        if (out.columns === undefined) {
             out.columns = this.columnNames;
         }
         return out as T[] & { columns: string[] };
