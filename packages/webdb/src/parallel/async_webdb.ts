@@ -195,13 +195,13 @@ export class AsyncWebDB {
                 }
                 break;
         }
-        task.promiseRejecter(new Error('unexpected response type: ' + response.type.toString()));
+        task.promiseRejecter(new Error(`unexpected response type: ${response.type.toString()}`));
     }
 
     /** Received an error */
     protected onError(event: ErrorEvent) {
         console.error(event);
-        console.error('error in webdb worker: ' + event.message);
+        console.error(`error in webdb worker: ${event.message}`);
         this._pendingRequests.clear();
     }
 
