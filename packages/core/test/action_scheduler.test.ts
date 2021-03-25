@@ -11,14 +11,14 @@ const logger = new webdb.VoidLogger();
 
 let az: analyzer.AnalyzerBindings;
 let worker: Worker;
-let db: webdb.parallel.AsyncWebDB;
-let conn: webdb.parallel.AsyncWebDBConnection;
+let db: webdb.AsyncWebDB;
+let conn: webdb.AsyncWebDBConnection;
 
 beforeAll(async () => {
     az = new Analyzer({}, '/static/analyzer_wasm.wasm');
     await az.init();
     worker = new Worker('/static/webdb-browser-parallel.worker.js');
-    db = new webdb.parallel.AsyncWebDB(logger, worker);
+    db = new webdb.AsyncWebDB(logger, worker);
 });
 
 beforeEach(async () => {
