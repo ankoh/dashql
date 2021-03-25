@@ -1,4 +1,4 @@
-import * as webdb from '../../src/';
+import * as webdb from '../src/';
 
 export function testBindings(db: () => webdb.WebDBBindings) {
     var conn: webdb.WebDBConnection;
