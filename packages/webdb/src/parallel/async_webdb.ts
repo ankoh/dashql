@@ -3,7 +3,6 @@
 import { webdb as proto, fb as flatbuffers } from '@dashql/proto';
 import { AsyncWebDBRequestType, AsyncWebDBResponseType, AsyncWebDBResponseVariant } from './async_webdb_message';
 import { QueryRunOptions, Logger, LogLevel, LogTopic, LogOrigin, LogEvent } from '../common';
-import { BlobStream } from '../bindings';
 
 type ConnectionID = number;
 
@@ -30,7 +29,7 @@ type TaskVariant =
     | Task<AsyncWebDBRequestType.RESET, null, null>
     | Task<AsyncWebDBRequestType.IMPORT_CSV, [number, number, string, string], null>
     | Task<AsyncWebDBRequestType.PING, null, null>
-    | Task<AsyncWebDBRequestType.REGISTER_URL, string, null>
+    | Task<AsyncWebDBRequestType.REGISTER_URL, string, number>
     | Task<AsyncWebDBRequestType.OPEN, string | null, null>
     | Task<AsyncWebDBRequestType.CONNECT, null, ConnectionID>
     | Task<AsyncWebDBRequestType.DISCONNECT, ConnectionID, null>
@@ -151,11 +150,16 @@ export class AsyncWebDB {
         switch (task.type) {
             case AsyncWebDBRequestType.RESET:
             case AsyncWebDBRequestType.PING:
-            case AsyncWebDBRequestType.REGISTER_URL:
             case AsyncWebDBRequestType.IMPORT_CSV:
             case AsyncWebDBRequestType.OPEN:
             case AsyncWebDBRequestType.DISCONNECT:
                 if (response.type == AsyncWebDBResponseType.OK) {
+                    task.promiseResolver(response.data);
+                    return;
+                }
+                break;
+            case AsyncWebDBRequestType.REGISTER_URL:
+                if (response.type == AsyncWebDBResponseType.BLOB_ID) {
                     task.promiseResolver(response.data);
                     return;
                 }
@@ -218,8 +222,8 @@ export class AsyncWebDB {
     }
 
     /// Registers the given URL as a file to be possibly loaded by WebDB.
-    public async registerURL(url: string): Promise<null> {
-        const task = new Task<AsyncWebDBRequestType.REGISTER_URL, string, null>(
+    public async registerURL(url: string): Promise<number> {
+        const task = new Task<AsyncWebDBRequestType.REGISTER_URL, string, number>(
             AsyncWebDBRequestType.REGISTER_URL,
             url,
         );

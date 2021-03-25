@@ -156,8 +156,16 @@ export abstract class AsyncWebDBDispatcher implements Logger {
                     this.sendOK(request);
                     break;
                 case AsyncWebDBRequestType.REGISTER_URL:
-                    await this._bindings.registerURL(request.data);
-                    this.sendOK(request);
+                    let blobId = await this._bindings.registerURL(request.data);
+                    this.postMessage(
+                        {
+                            messageId: this._nextMessageId++,
+                            requestId: request.messageId,
+                            type: AsyncWebDBResponseType.BLOB_ID,
+                            data: blobId,
+                        },
+                        [],
+                    );
                     break;
             }
         } catch (e) {
