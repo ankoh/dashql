@@ -6,7 +6,7 @@ import { WebDBBindings } from './bindings_base';
 import { Logger } from '../common';
 import fs from 'fs';
 import { WebDBRuntime } from './runtime_base';
-import { NodeWebDBRuntime, NodeBlobStream } from './runtime_node';
+import { NodeBlobStream } from './runtime_node';
 
 declare global {
     var WebDBTrampoline: any;
@@ -25,15 +25,7 @@ export class WebDB extends WebDBBindings {
 
     /// Registers the given URL as a file to be possibly loaded by WebDB. Returns the Blob ID
     public registerURL(url: string): Promise<number> {
-        let runtime: typeof NodeWebDBRuntime = <typeof NodeWebDBRuntime>this.runtime;
-        try {
-            const id = runtime.blobMap.length;
-            // TODO: This reads the file already, make asynchronous and only on demand
-            runtime.blobMap.push(NodeBlobStream.fromFile(url));
-            return Promise.resolve(id);
-        } catch (error) {
-            return Promise.reject(error);
-        }
+        return Promise.resolve(this.runtime.dashql_add_blob_stream(new NodeBlobStream(url)));
     }
 
     /// Instantiate the wasm module

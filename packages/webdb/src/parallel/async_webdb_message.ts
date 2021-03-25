@@ -1,5 +1,4 @@
 import { QueryRunOptions, LogEntryVariant } from '../common';
-import { BlobStream } from '../bindings';
 
 export enum AsyncWebDBRequestType {
     RESET = 'RESET',
@@ -18,6 +17,7 @@ export enum AsyncWebDBResponseType {
     LOG = 'LOG',
     OK = 'OK',
     ERROR = 'ERROR',
+    BLOB_ID = 'BLOB_ID',
     CONNECTION_INFO = 'CONNECTION_INFO',
     QUERY_RESULT = 'QUERY_RESULT',
     QUERY_RESULT_CHUNK = 'QUERY_RESULT_CHUNK',
@@ -54,6 +54,7 @@ export type AsyncWebDBResponseVariant =
     | AsyncWebDBResponse<AsyncWebDBResponseType.OK, null>
     | AsyncWebDBResponse<AsyncWebDBResponseType.ERROR, any>
     | AsyncWebDBResponse<AsyncWebDBResponseType.CONNECTION_INFO, number>
+    | AsyncWebDBResponse<AsyncWebDBResponseType.BLOB_ID, number>
     | AsyncWebDBResponse<AsyncWebDBResponseType.QUERY_RESULT, Uint8Array>
     | AsyncWebDBResponse<AsyncWebDBResponseType.QUERY_RESULT_CHUNK, Uint8Array>
     | AsyncWebDBResponse<AsyncWebDBResponseType.QUERY_PLAN, Uint8Array>;

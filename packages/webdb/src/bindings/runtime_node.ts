@@ -12,18 +12,10 @@ export class NodeBlobStream implements BlobStream {
     buffer: Uint8Array | null;
     position: number;
 
-    public constructor() {
+    public constructor(url: string) {
         this.buffer = null;
         this.position = 0;
-        this.url = null;
-    }
-
-    public static fromFile(file: string): NodeBlobStream {
-        let stream = new NodeBlobStream();
-        // TODO: This ready synchronously but not on the worker
-        stream.buffer = new Uint8Array(fs.readFileSync(file));
-        stream.url = file;
-        return stream;
+        this.url = url;
     }
 }
 
@@ -48,7 +40,24 @@ export var NodeWebDBRuntime: WebDBRuntime & {
         return id;
     },
     dashql_blob_stream_underflow(blobId: number, buf: number, size: number): number {
-        return NodeWebDBRuntime.dashql_webdb_fs_read(blobId, buf, size);
+        if (blobId >= NodeWebDBRuntime.blobMap.length) return 0;
+        let blobStream = NodeWebDBRuntime.blobMap[blobId];
+        if (blobStream === null) return 0;
+
+        if (!blobStream.buffer) {
+            // Open file on-demand
+            blobStream.buffer = fs.readFileSync(blobStream.url!);
+            blobStream.position = 0;
+        }
+
+        let read = copyBlobStreamTo(blobStream, NodeWebDBRuntime.bindings!.instance!.HEAPU8, buf, size);
+
+        if (read == 0 && size > 0) {
+            // Stream exhausted, close
+            NodeWebDBRuntime.blobMap[blobId] = null;
+        }
+
+        return read;
     },
 
     //
@@ -100,11 +109,21 @@ export var NodeWebDBRuntime: WebDBRuntime & {
     },
     dashql_webdb_fs_file_open: function (pathPtr: number, pathLen: number, flags: number) {
         // TODO: respect flags
-        const path = decoder.decode(NodeWebDBRuntime.bindings!.instance!.HEAPU8.subarray(pathPtr, pathPtr + pathLen));
+        let instance = NodeWebDBRuntime.bindings!.instance!;
+        const path = decoder.decode(instance.HEAPU8.subarray(pathPtr, pathPtr + pathLen));
 
-        const id = NodeWebDBRuntime.blobMap.length;
-        NodeWebDBRuntime.blobMap.push(NodeBlobStream.fromFile(path));
-        return id;
+        for (let i = 0; i < NodeWebDBRuntime.blobMap.length; i++) {
+            let blob = NodeWebDBRuntime.blobMap[i];
+            if (blob && blob.url == path) {
+                if (!blob.buffer) {
+                    blob.buffer = fs.readFileSync(blob.url);
+                }
+                blob.position = 0;
+                return i;
+            }
+        }
+
+        throw Error('File not found or cannot be opened: ' + path);
     },
     dashql_webdb_fs_file_close: function (blobId: number) {
         if (blobId < NodeWebDBRuntime.blobMap.length) {
