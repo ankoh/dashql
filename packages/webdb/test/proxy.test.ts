@@ -1,4 +1,4 @@
-import * as webdb from '../../src/';
+import * as webdb from '../src/';
 
 const testRows = 3000;
 

@@ -38,7 +38,7 @@ export function testAsyncIterator(db: () => webdb.AsyncWebDB, basedir: string) {
         });
 
         describe('uni-schema from parquet', () => {
-            it('single table', async () => {
+            /* it('single table', async () => {
                 await db().registerURL(`${basedir}/studenten.parquet`);
 
                 let result = await conn.sendQuery(`SELECT MatrNr FROM parquet_scan('${basedir}/studenten.parquet');`);
@@ -51,7 +51,7 @@ export function testAsyncIterator(db: () => webdb.AsyncWebDB, basedir: string) {
                     }
                 }
                 expect(vals).toEqual([24002, 25403, 26120, 26830, 27550, 28106, 29120, 29555]);
-            });
+            });*/
 
             it('simple join', async () => {
                 await db().registerURL(`${basedir}/studenten.parquet`);
