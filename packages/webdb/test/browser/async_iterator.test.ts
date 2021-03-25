@@ -54,12 +54,10 @@ describe('QueryResultRowIterator', () => {
     });
 
     describe('uni-schema from parquet', () => {
-        /*it('single table', async () => {
+        it('single table', async () => {
             await db.registerURL('/data/studenten.parquet');
 
-            let result = await conn.sendQuery(`
-               SELECT MatrNr FROM parquet_scan('/data/studenten.parquet');
-           `);
+            let result = await conn.sendQuery(`SELECT MatrNr FROM parquet_scan('/data/studenten.parquet');`);
             expect(result.columnTypesLength()).toBe(1);
             let chunks = new webdb.parallel.ChunkStreamIterator(conn, result);
             let vals: number[] = [];
@@ -69,7 +67,8 @@ describe('QueryResultRowIterator', () => {
                 }
             }
             expect(vals).toEqual([24002, 25403, 26120, 26830, 27550, 28106, 29120, 29555]);
-        });*/
+        });
+
         it('simple join', async () => {
             await db.registerURL('/data/studenten.parquet');
             await db.registerURL('/data/hoeren.parquet');
