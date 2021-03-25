@@ -169,7 +169,12 @@ export abstract class AsyncWebDBDispatcher implements Logger {
                     break;
             }
         } catch (e) {
-            return this.failWith(request, e);
+            // Workaround for Firefox not being able to perform structured-clone on Native Errors
+            // https://bugzilla.mozilla.org/show_bug.cgi?id=1556604
+            let obj: any = {};
+            Object.getOwnPropertyNames(e).forEach(key => (obj[key] = e[key]));
+
+            return this.failWith(request, obj);
         }
     }
 }
