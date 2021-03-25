@@ -3,7 +3,7 @@ import * as webdb from '../src/';
 const testRows = 3000;
 
 export function testAsyncIterator(db: () => webdb.AsyncWebDB, basedir: string) {
-    var conn: webdb.AsyncWebDBConnection;
+    let conn: webdb.AsyncWebDBConnection;
 
     beforeEach(async () => {
         conn = await db().connect();
