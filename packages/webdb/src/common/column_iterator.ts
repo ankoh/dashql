@@ -1,9 +1,13 @@
 /** A column iterator */
 export class ColumnIterator<T> implements Iterable<T> {
-    idx: number;
+    protected idx: number;
+    protected end: number;
+    protected getter: (idx: number) => T;
 
-    constructor(start: number, private end: number, private value: (idx: number) => T) {
+    constructor(start: number, end: number, getter: (idx: number) => T) {
         this.idx = start;
+        this.end = end;
+        this.getter = getter;
     }
 
     next(): IteratorResult<T> {
@@ -12,7 +16,7 @@ export class ColumnIterator<T> implements Iterable<T> {
         }
         return {
             done: false,
-            value: this.value(this.idx++),
+            value: this.getter(this.idx++),
         };
     }
 
