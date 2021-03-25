@@ -1,5 +1,4 @@
-import * as webdb from '../../src/platform/browser/index_serial';
-import path from 'path';
+import * as webdb from '../../src/targets/webdb-browser-serial';
 
 let db: webdb.WebDB | null = null;
 
