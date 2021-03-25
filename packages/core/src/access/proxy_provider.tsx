@@ -22,7 +22,7 @@ export class ProxyProvider extends React.Component<ProxyProviderProps, ProxyProv
         if (prevState?.result == nextProps.result) {
             return prevState;
         }
-        const chunks = new webdb.parallel.ChunkArrayIterator(nextProps.result);
+        const chunks = new webdb.StaticChunkIterator(nextProps.result);
         return {
             result: nextProps.result,
             rows: chunks.collectAllBlocking(),
@@ -68,7 +68,7 @@ export class ProxyPartitionsProvider extends React.Component<
         if (prevState?.result == nextProps.result) {
             return prevState;
         }
-        const chunks = new webdb.parallel.ChunkArrayIterator(nextProps.result);
+        const chunks = new webdb.StaticChunkIterator(nextProps.result);
         const partitions = chunks.collectPartitionsBlocking();
         return {
             result: nextProps.result,

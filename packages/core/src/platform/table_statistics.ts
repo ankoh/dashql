@@ -140,10 +140,10 @@ export class DatabaseTableStatistics implements TableStatisticsResolver {
             try {
                 // Query the associative aggregates
                 const query = this.buildAssociativeAggregateQuery(tableInfo);
-                const result = await this._databaseManager.use(async (conn: webdb.parallel.AsyncConnection) => {
+                const result = await this._databaseManager.use(async (conn: webdb.AsyncConnection) => {
                     return await conn.runQuery(query);
                 });
-                const iter = new webdb.parallel.ChunkArrayIterator(result);
+                const iter = new webdb.StaticChunkIterator(result);
                 if (!iter.nextBlocking() || iter.rowCount == 0) {
                     // Received no values, reject all requests
                     for (const req of this._associativeAggregates) {
@@ -174,12 +174,12 @@ export class DatabaseTableStatistics implements TableStatisticsResolver {
             try {
                 // Evaluate the query
                 const query = this.buildStandaloneQuery(tableInfo, req);
-                const result = await this._databaseManager.use(async (conn: webdb.parallel.AsyncConnection) => {
+                const result = await this._databaseManager.use(async (conn: webdb.AsyncConnection) => {
                     return await conn.runQuery(query);
                 });
                 // Collect the values
                 let v = [];
-                const iter = new webdb.parallel.ChunkArrayIterator(result);
+                const iter = new webdb.StaticChunkIterator(result);
                 while (iter.nextBlocking()) {
                     for (let i = 0; i < iter.rowCount; ++i) {
                         v.push(iter.readValue(i, 0));

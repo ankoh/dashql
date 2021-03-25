@@ -16,10 +16,10 @@ export class UnnamedSelectLogic extends ProgramActionLogic {
         if (!script) return;
 
         const db = context.platform.database;
-        await db.use(async (c: webdb.parallel.AsyncConnection) => {
+        await db.use(async (c: webdb.AsyncConnection) => {
             const result = await c.runQuery(script);
 
-            const chunkIter = new webdb.parallel.ChunkStreamIterator(c, result);
+            const chunkIter = new webdb.AsyncChunkStreamIterator(c, result);
             while (await chunkIter.nextAsync()) {
                 console.log(`rows ${chunkIter.rowCount} columns ${chunkIter.columnCount}`);
                 let row = 0;

@@ -7,7 +7,7 @@ import { ActionContext } from './action_context';
 
 /// XXX Delete this eventually in favor of the async statistics requests
 export async function collectTableInfo(
-    conn: webdb.parallel.AsyncConnection,
+    conn: webdb.AsyncConnection,
     info: model.DatabaseTableInfo,
 ): Promise<model.DatabaseTableInfo> {
     // Get column names and types
@@ -43,7 +43,7 @@ export class CreateTableActionLogic extends ProgramActionLogic {
         if (!script) return;
 
         const db = context.platform.database;
-        const table = await db.use(async (c: webdb.parallel.AsyncConnection) => {
+        const table = await db.use(async (c: webdb.AsyncConnection) => {
             /// First run the query
             await c.runQuery(script);
 
@@ -99,7 +99,7 @@ export class DropTableActionLogic extends SetupActionLogic {
     public prepare(_context: ActionContext) {}
     public async execute(context: ActionContext): Promise<void> {
         const db = context.platform.database;
-        await db.use(async (c: webdb.parallel.AsyncConnection) => {
+        await db.use(async (c: webdb.AsyncConnection) => {
             await c.runQuery(`DROP TABLE IF EXISTS ${this.buffer.targetNameShort()}`);
         });
     }
