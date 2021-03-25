@@ -1,8 +1,9 @@
 // Copyright (c) 2020 The DashQL Authors
 
-const path = require('path');
-const fs = require('fs');
-const pkgNames = ['core', 'webdb', 'app', 'proto', 'benchmarks'];
+import path from 'path';
+import fs from 'fs';
+
+const pkgNames = ['core', 'webdb', 'app', 'proto', 'bench'];
 const pkgs = new Map();
 
 // Read all packages
