@@ -39,7 +39,25 @@ export var BrowserWebDBRuntime: WebDBRuntime & {
         return id;
     },
     dashql_blob_stream_underflow(blobId: number, buf: number, size: number): number {
-        return BrowserWebDBRuntime.dashql_webdb_fs_read(blobId, buf, size);
+        if (blobId >= BrowserWebDBRuntime.blobMap.length) return 0;
+        let blobStream = BrowserWebDBRuntime.blobMap[blobId];
+        if (blobStream === null) return 0;
+
+        if (!blobStream.buffer) {
+            // Open file on-demand
+            const reader = new FileReaderSync();
+            blobStream.buffer = new Uint8Array(reader.readAsArrayBuffer(blobStream.blob));
+            blobStream.position = 0;
+        }
+
+        let read = copyBlobStreamTo(blobStream, BrowserWebDBRuntime.bindings!.instance!.HEAPU8, buf, size);
+
+        if (read == 0 && size > 0) {
+            // Stream exhausted, close
+            BrowserWebDBRuntime.blobMap[blobId] = null;
+        }
+
+        return read;
     },
     dashql_webdb_fs_read: function (blobId: number, buf: number, bytes: number) {
         if (blobId >= BrowserWebDBRuntime.blobMap.length) return 0;
