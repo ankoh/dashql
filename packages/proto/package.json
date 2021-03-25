@@ -1,6 +1,6 @@
 {
     "name": "@dashql/proto",
-    "version": "0.0.3",
+    "version": "0.0.4",
     "description": "",
     "license": "MPL-2.0",
     "dependencies": {
@@ -20,8 +20,13 @@
     "include": [
         "./gen/proto_generated.ts"
     ],
+    "files": [
+        "dist/gen/*.d.ts",
+        "dist/gen/*.js",
+        "dist/index.*",
+        "dist/dashql-proto.module.*"
+    ],
     "type": "module",
-    "main": "./dist/dashql-proto.module.js",
     "module": "./dist/dashql-proto.module.js",
     "types": "./dist/dashql-proto.module.d.ts"
 }
