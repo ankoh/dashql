@@ -9,7 +9,11 @@ import { BrowserWebDBRuntime } from '../bindings/runtime_browser';
 class WebWorker extends AsyncWebDBDispatcher {
     /** Post a response back to the main thread */
     protected postMessage(response: AsyncWebDBResponseVariant, transfer: ArrayBuffer[]) {
-        globalThis.postMessage(response, transfer);
+        try {
+            globalThis.postMessage(response, transfer);
+        } catch (error) {
+            throw Error(error);
+        }
     }
 
     /** Instantiate the wasm module */
