@@ -17,7 +17,7 @@
     "dependencies": {
         "@dashql/core": "^0.0.2",
         "@dashql/proto": "^0.0.4",
-        "@dashql/webdb": "^0.0.18",
+        "@dashql/webdb": "^0.0.19",
         "axios": "^0.21.1",
         "bootstrap": "^4.6.0",
         "classnames": "^2.2.6",
