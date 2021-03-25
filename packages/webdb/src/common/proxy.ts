@@ -251,14 +251,21 @@ export class RowProxyType {
     }
 
     /** Proxy rows in chunk into an array */
-    public proxyChunkRowsArray<T extends RowProxy>(chunk: webdb.QueryResultChunk | null, out: T[] = []) {
+    public proxyChunkRowsArray<T extends RowProxy>(
+        chunk: webdb.QueryResultChunk | null,
+        columns: string[],
+        out: T[] & { columns?: string[] } = [],
+    ) {
         if (chunk) {
             const data = RowProxyType.indexChunkData(chunk);
             for (let rowId = 0; rowId < chunk.rowCount(); ++rowId) {
                 out.push(this.proxyRow<T>(data, rowId));
             }
         }
-        return out;
+        if (!out.columns) {
+            out.columns = columns;
+        }
+        return out as T[] & { columns: string[] };
     }
 
     /** Get proxy for a single row */

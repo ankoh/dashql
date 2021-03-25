@@ -16,6 +16,8 @@ export abstract class ChunkIterator {
     _currentChunk: proto.QueryResultChunk | null;
     /* The column types */
     _columnTypes: proto.SQLType[];
+    /* The column names */
+    _columnNames: string[];
     /* The row type */
     _proxyType: RowProxyType | null;
     /* The temporary flatbuffer objects */
@@ -25,7 +27,8 @@ export abstract class ChunkIterator {
         this._resultBuffer = resultBuffer;
         this._nextChunkID = 0;
         this._currentChunk = null;
-        this._columnTypes = new Array<proto.SQLType>();
+        this._columnTypes = [];
+        this._columnNames = [];
         this._proxyType = null;
         this._tmp = new TmpBuffers();
 
@@ -34,6 +37,7 @@ export abstract class ChunkIterator {
             let t = new proto.SQLType();
             this.result.columnTypes(i, t);
             this._columnTypes.push(t);
+            this._columnNames.push(this.result.columnNames(i));
         }
     }
     /* Get the result */
@@ -47,6 +51,10 @@ export abstract class ChunkIterator {
     /* Get the column count */
     public get columnTypes() {
         return this._columnTypes;
+    }
+    /* Get the column count */
+    public get columnNames() {
+        return this._columnNames;
     }
     /* Get the row count */
     public get rowCount() {
@@ -74,27 +82,29 @@ export abstract class ChunkIterator {
     abstract nextAsync(): Promise<boolean>;
 
     /* Build the row proxies for this chunk */
-    public collect<T extends RowProxy>(out: T[] = []): T[] {
+    public collect<T extends RowProxy>(out: T[] & { columns?: string[] } = []): T[] & { columns: string[] } {
         const proxyType = this.proxyType();
-        return proxyType.proxyChunkRowsArray<T>(this.currentChunk, out);
+        return proxyType.proxyChunkRowsArray<T>(this.currentChunk, this.columnNames, out);
     }
 
     /* Build row proxies for across all chunks */
-    public collectAllBlocking<T extends RowProxy>(out: T[] = []): T[] {
+    public collectAllBlocking<T extends RowProxy>(out: T[] & { columns?: string[] } = []) {
         const proxyType = this.proxyType();
         while (this.nextBlocking()) {
-            proxyType.proxyChunkRowsArray<T>(this.currentChunk, out);
+            proxyType.proxyChunkRowsArray<T>(this.currentChunk, this.columnNames, out);
         }
 
         return out;
     }
 
     /* Build row proxy partitions across all chunks */
-    public collectPartitionsBlocking<T extends RowProxy>(out: T[][] = []): T[][] {
+    public collectPartitionsBlocking<T extends RowProxy>(
+        out: (T[] & { columns?: string[] })[] = [],
+    ): (T[] & { columns?: string[] })[] {
         const proxyType = this.proxyType();
-        let current: T[] = [];
+        let current: T[] & { columns?: string[] } = [];
         while (this.nextBlocking()) {
-            const rows = proxyType.proxyChunkRowsArray<T>(this.currentChunk);
+            const rows = proxyType.proxyChunkRowsArray<T>(this.currentChunk, this.columnNames);
             const bounds = this.currentChunk?.partitionBoundariesArray();
             if (!bounds || bounds.length < rows.length) {
                 current = current.concat(rows);
