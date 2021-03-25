@@ -39,9 +39,7 @@ export var BrowserWebDBRuntime: WebDBRuntime & {
         return id;
     },
     dashql_blob_stream_underflow(blobId: number, buf: number, size: number): number {
-        let blobStream = BrowserWebDBRuntime.bindings!.getBlobStreamById(blobId);
-        if (blobStream === undefined) return 0;
-        return copyBlobStreamTo(blobStream, BrowserWebDBRuntime.bindings!.instance!.HEAPU8, buf, size);
+        return BrowserWebDBRuntime.dashql_webdb_fs_read(blobId, buf, size);
     },
     dashql_webdb_fs_read: function (blobId: number, buf: number, bytes: number) {
         if (blobId >= BrowserWebDBRuntime.blobMap.length) return 0;
@@ -89,14 +87,17 @@ export var BrowserWebDBRuntime: WebDBRuntime & {
 
         for (let i = 0; i < BrowserWebDBRuntime.blobMap.length; i++) {
             let blob = BrowserWebDBRuntime.blobMap[i];
-            if (blob && blob.url == path && !blob.buffer) {
-                const reader = new FileReaderSync();
-                blob.buffer = new Uint8Array(reader.readAsArrayBuffer(blob.blob));
+            if (blob && blob.url == path) {
+                if (!blob.buffer) {
+                    const reader = new FileReaderSync();
+                    blob.buffer = new Uint8Array(reader.readAsArrayBuffer(blob.blob));
+                }
+                blob.position = 0;
                 return i;
             }
         }
 
-        return 0;
+        throw Error('File not found or cannot be opened: ' + path);
     },
     dashql_webdb_fs_file_close: function (blobId: number) {
         if (blobId < BrowserWebDBRuntime.blobMap.length) {
