@@ -26,56 +26,55 @@ afterEach(async () => {
 
 describe('Extract CSV', () => {
     it('SimpleColumns', async () => {
-        let blobId = await db.registerURL(
-            URL.createObjectURL(new Blob([encoder.encode('1,2,3\n4,5,4\n7,8,9').buffer], { type: 'text/plain' })),
-        );
-        let result = await conn.importCSV(blobId, 'test_schema', 'test_table');
-        // expectAsync(result).toBeResolvedTo(null);
+        let url = URL.createObjectURL(new Blob([encoder.encode('1,2,3\n4,5,4\n7,8,9').buffer], { type: 'text/plain' }));
+        let blobId = await db.registerURL(url);
+        await expectAsync(conn.importCSV(blobId, 'test_schema', 'test_table')).toBeResolvedTo(null);
+        URL.revokeObjectURL(url);
     });
 
-    /*it('InvalidCSV', async () => {
+    it('InvalidCSV', async () => {
         let test = async function (text: string, error: string) {
-            let blobId = await db.registerURL(
-                URL.createObjectURL(new Blob([encoder.encode(text).buffer], { type: 'text/plain' })),
-            );
-            expectAsync(conn.importCSV(blobId, 'test_schema', 'test_table')).toBeRejectedWith(error);
+            let url = URL.createObjectURL(new Blob([encoder.encode(text).buffer], { type: 'text/plain' }));
+            let blobId = await db.registerURL(url);
+            await expectAsync(conn.importCSV(blobId, 'test_schema', 'test_table')).toBeRejectedWithError(error);
+            URL.revokeObjectURL(url);
         };
 
         // Column mismatch
-        test('1,2,3,X\n4,5,6\n7,8,9\n', 'Line 0: expected 3 values per row, but got more.');
-        test('1,2,3\n4,5,6,X\n7,8,9\n', 'Line 1: expected 3 values per row, but got more.');
-        test('1,2,3\n4,5,6\n7,8,9,X\n', 'Line 2: expected 3 values per row, but got more.');
-        test('1,2\n4,5,6\n7,8,9\n', 'Line 1: expected 3 values per row, but got 2.');
-        test('1,2,3\n4,5\n7,8,9\n', 'Line 2: expected 3 values per row, but got 2.');
-        test('1,2,3\n4,5,6\n7,8\n', 'Line 3: expected 3 values per row, but got 2.');
+        await test('1,2,3,X\n4,5,6\n7,8,9\n', 'Line 0: expected 3 values per row, but got more.');
+        await test('1,2,3\n4,5,6,X\n7,8,9\n', 'Line 1: expected 3 values per row, but got more.');
+        await test('1,2,3\n4,5,6\n7,8,9,X\n', 'Line 2: expected 3 values per row, but got more.');
+        await test('1,2\n4,5,6\n7,8,9\n', 'Line 1: expected 3 values per row, but got 2.');
+        await test('1,2,3\n4,5\n7,8,9\n', 'Line 2: expected 3 values per row, but got 2.');
+        await test('1,2,3\n4,5,6\n7,8\n', 'Line 3: expected 3 values per row, but got 2.');
 
         // Unterminated quotes
-        test('"1,2,3\n4,5,6\n7,8,9\n', 'Line 0: unterminated quotes.');
-        test('1,2,"3\n4,5,6\n7,8,9\n', 'Line 0: unterminated quotes.');
-        test(
+        await test('"1,2,3\n4,5,6\n7,8,9\n', 'Line 0: unterminated quotes.');
+        await test('1,2,"3\n4,5,6\n7,8,9\n', 'Line 0: unterminated quotes.');
+        await test(
             '1,2,3"\n4,5,6\n7,8,9\n',
             "Conversion Error: Could not convert string '3\"' to INT32 in column 0 between line 0 and 3",
         );
-        test('1,2,3\n"4,5,6\n7,8,9\n', 'Line 1: unterminated quotes.');
-        test(
+        await test('1,2,3\n"4,5,6\n7,8,9\n', 'Line 1: unterminated quotes.');
+        await test(
             '1,2,3\n4",5,6\n7,8,9\n',
             "Conversion Error: Could not convert string '4\"' to INT32 in column 0 between line 0 and 3",
         );
-        test('1,2,3\n4,5,6\n7,8,9\n"', 'Line 3: unterminated quotes.');
+        await test('1,2,3\n4,5,6\n7,8,9\n"', 'Line 3: unterminated quotes.');
 
         // Invalid Escapes
-        test(
+        await test(
             '\\1,2,3\n4,5,6\n7,8,9\n',
             "Conversion Error: Could not convert string '\\1' to INT32 in column 0 between line 0 and 3",
         );
-        test(
+        await test(
             '1\\,2,3\n4,5,6\n7,8,9\n',
             "Conversion Error: Could not convert string '1\\' to INT32 in column 0 between line 0 and 3",
         );
-        test(
+        await test(
             '1,2,\\3\n4,5,6\n7,8,9\n',
             "Conversion Error: Could not convert string '\\3' to INT32 in column 0 between line 0 and 3",
         );
-        test('1,2,3\\\n4,5,6\n7,8,9\n\\', 'Line 4: expected 3 values per row, but got 1.');
-    });*/
+        await test('1,2,3\\\n4,5,6\n7,8,9\n\\', 'Line 4: expected 3 values per row, but got 1.');
+    });
 });

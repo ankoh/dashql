@@ -2,9 +2,9 @@ const puppeteer = require('puppeteer');
 
 process.env.CHROME_BIN = puppeteer.executablePath();
 
-module.exports = function (config) {
+module.exports = function(config) {
     config.set({
-        basePath: './',
+        basePath: '../..',
         plugins: [
             'karma-jasmine',
             'karma-chrome-launcher',
@@ -15,16 +15,17 @@ module.exports = function (config) {
         ],
         frameworks: ['jasmine'],
         files: [
-            { pattern: 'dist/tests-browser.js' },
-            { pattern: 'dist/*.wasm', included: false, watched: false, served: true },
-            { pattern: 'dist/*.js', included: false, watched: false, served: true },
+            { pattern: 'packages/webdb/dist/tests-browser.js' },
+            { pattern: 'packages/webdb/dist/*.wasm', included: false, watched: false, served: true },
+            { pattern: 'packages/webdb/dist/*.js', included: false, watched: false, served: true },
+            { pattern: 'data/uni/out/*.parquet', included: false, watched: false, served: true },
         ],
         preprocessors: {
             '**/*.js': ['sourcemap', 'coverage'],
         },
         proxies: {
-            '/static/webdb.wasm': '/base/dist/webdb.wasm',
-            '/static/webdb-browser-parallel.worker.js': '/base/dist/webdb-browser-parallel.worker.js',
+            '/static/': '/base/packages/webdb/dist/',
+            '/data/': '/base/data/uni/out/',
         },
         exclude: [],
         reporters: ['dots', 'coverage'],
@@ -43,7 +44,7 @@ module.exports = function (config) {
         coverageReporter: {
             type: 'json',
             dir: './coverage/',
-            subdir: function (browser) {
+            subdir: function(browser) {
                 return browser.toLowerCase().split(/[ /-]/)[0];
             },
         },

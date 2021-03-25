@@ -142,7 +142,13 @@ export class AsyncWebDB {
 
         // Request failed?
         if (response.type == AsyncWebDBResponseType.ERROR) {
-            task.promiseRejecter(response.data);
+            // Workaround for Firefox not being able to perform structured-clone on Native Errors
+            // https://bugzilla.mozilla.org/show_bug.cgi?id=1556604
+            let e = new Error(response.data.message);
+            e.name = response.data.name;
+            e.stack = response.data.stack;
+
+            task.promiseRejecter(e);
             return;
         }
 
