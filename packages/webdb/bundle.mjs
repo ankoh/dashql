@@ -15,7 +15,8 @@ function printErr(err) {
 // -------------------------------
 // Copy WASM files
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const __dirname = path.dirname(fileURLToPath(
+    import.meta.url));
 const dist = path.resolve(__dirname, 'dist');
 rimraf.sync(dist);
 mkdir.sync(dist);
@@ -159,6 +160,8 @@ esbuild.build({
     bundle: true,
     minify: false,
     sourcemap: 'both',
+    // web-worker polyfill needs to be excluded from bundling due to their dynamic require messing with bundled modules
+    external: ['web-worker'],
 });
 
 // -------------------------------
