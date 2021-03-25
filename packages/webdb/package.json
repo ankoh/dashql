@@ -1,6 +1,6 @@
 {
     "name": "@dashql/webdb",
-    "version": "0.0.18",
+    "version": "0.0.19",
     "description": "DuckDB powered by WebAssembly",
     "author": "Andre Kohn <kohn.a@outlook.com>",
     "license": "MPL-2.0",
