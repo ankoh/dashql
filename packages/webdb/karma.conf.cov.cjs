@@ -43,7 +43,7 @@ module.exports = function(config) {
         },
         coverageReporter: {
             type: 'json',
-            dir: './coverage/',
+            dir: './packages/webdb/coverage/',
             subdir: function(browser) {
                 return browser.toLowerCase().split(/[ /-]/)[0];
             },
