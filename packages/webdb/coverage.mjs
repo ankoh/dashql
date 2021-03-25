@@ -21,7 +21,7 @@ fs.copyFileSync(cov_chrome, path.resolve(cov_all, 'chrome.json'));
 fs.copyFileSync(cov_firefox, path.resolve(cov_all, 'firefox.json'));
 fs.copyFileSync(cov_node, path.resolve(cov_all, 'node.json'));
 
-out = spawnSync(nyc, ['merge', cov_all, cov_out], {
+const out = spawnSync(nyc, ['merge', cov_all, cov_out], {
     encoding: 'utf8',
     shell: true,
     cov,
