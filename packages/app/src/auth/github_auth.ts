@@ -19,7 +19,7 @@ function getOAuthState() {
     OAUTH_STATE = '';
     const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
     const charactersLength = characters.length;
-    for (var i = 0; i < 20; i++) {
+    for (let i = 0; i < 20; i++) {
         OAUTH_STATE += characters.charAt(Math.floor(Math.random() * charactersLength));
     }
     return OAUTH_STATE;

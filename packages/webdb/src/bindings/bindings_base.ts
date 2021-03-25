@@ -6,8 +6,8 @@ import { Logger, QueryRunOptions } from '../common';
 
 /** Decode a string */
 function decodeString(buffer: Uint8Array): string {
-    var result = '';
-    for (var i = 0; i < buffer.length; i++) {
+    let result = '';
+    for (let i = 0; i < buffer.length; i++) {
         result += String.fromCharCode(buffer[i]);
     }
     return result;
@@ -15,7 +15,7 @@ function decodeString(buffer: Uint8Array): string {
 
 /** Copy a flatbuffer */
 function copyFlatbuffer(buffer: Uint8Array): flatbuffers.ByteBuffer {
-    var copy = new Uint8Array(new ArrayBuffer(buffer.byteLength));
+    const copy = new Uint8Array(new ArrayBuffer(buffer.byteLength));
     copy.set(buffer);
     return new flatbuffers.ByteBuffer(copy);
 }
