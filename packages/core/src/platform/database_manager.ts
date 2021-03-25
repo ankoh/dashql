@@ -11,17 +11,17 @@ import { Mutex } from '../utils';
 ///
 export class DatabaseManager {
     /// The async webdb
-    _webdb: webdb.parallel.AsyncWebDB;
+    _webdb: webdb.AsyncWebDB;
     // The store
     _store: model.DerivedReduxStore;
     /// The connection
-    _connection: webdb.parallel.AsyncConnection | null;
+    _connection: webdb.AsyncConnection | null;
     /// The connection mutex
     _connectionMutex: Mutex;
     /// The table statistics requests
     _tableStatistics: Map<string, TableStatisticsResolver>;
 
-    constructor(db: webdb.parallel.AsyncWebDB, store: model.DerivedReduxStore) {
+    constructor(db: webdb.AsyncWebDB, store: model.DerivedReduxStore) {
         this._webdb = db;
         this._store = store;
         this._connection = null;
@@ -44,7 +44,7 @@ export class DatabaseManager {
     }
 
     /// Use the connection
-    public async use<T>(f: (conn: webdb.parallel.AsyncConnection) => Promise<T>): Promise<T> {
+    public async use<T>(f: (conn: webdb.AsyncConnection) => Promise<T>): Promise<T> {
         return await this._connectionMutex.useAsync(async () => {
             if (!this._connection) {
                 throw new Error('not connected');

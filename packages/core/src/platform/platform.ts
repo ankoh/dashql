@@ -12,7 +12,7 @@ export class Platform {
     /// The logger
     _logger: Logger;
     /// The webdb
-    _webdb: webdb.parallel.AsyncWebDB;
+    _webdb: webdb.AsyncWebDB;
     /// The analyzer bindings
     _analyzer: AnalyzerBindings;
     /// The database manager
@@ -22,12 +22,7 @@ export class Platform {
     /// The HTTP manager
     _httpManager: HTTPManager;
 
-    constructor(
-        store: DerivedReduxStore,
-        logger: webdb.Logger,
-        webdb: webdb.parallel.AsyncWebDB,
-        analyzer: AnalyzerBindings,
-    ) {
+    constructor(store: DerivedReduxStore, logger: webdb.Logger, webdb: webdb.AsyncWebDB, analyzer: AnalyzerBindings) {
         this._store = store;
         this._logger = logger;
         this._webdb = webdb;
