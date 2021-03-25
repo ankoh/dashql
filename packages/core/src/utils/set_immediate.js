@@ -14,7 +14,7 @@
     function setImmediate(callback) {
         // Callback can either be a function or a string
         if (typeof callback !== 'function') {
-            callback = new Function('' + callback);
+            callback = new Function(`${callback}`);
         }
         // Copy function arguments
         var args = new Array(arguments.length - 1);
@@ -103,7 +103,7 @@
         // * https://developer.mozilla.org/en/DOM/window.postMessage
         // * http://www.whatwg.org/specs/web-apps/current-work/multipage/comms.html#crossDocumentMessages
 
-        var messagePrefix = 'setImmediate$' + Math.random() + '$';
+        var messagePrefix = `setImmediate$${Math.random()}$`;
         var onGlobalMessage = function (event) {
             if (event.source === global && typeof event.data === 'string' && event.data.indexOf(messagePrefix) === 0) {
                 runIfPresent(+event.data.slice(messagePrefix.length));
