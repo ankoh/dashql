@@ -29,12 +29,6 @@ describe('AsyncWebDB', () => {
     });
 });
 
-// describe('AsyncWebDB', () => {
-//     it('blob stream', async () => {
-//         await db.ingestBlobStream(NodeBlobStream.fromFile('./data/blob.txt'));
-//     });
-// });
-
 describe('QueryResultRowIterator', () => {
     describe('single column', () => {
         it('TINYINT', async () => {
