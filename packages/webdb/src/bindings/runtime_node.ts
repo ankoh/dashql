@@ -94,7 +94,7 @@ export var NodeWebDBRuntime: WebDBRuntime & {
         const path = decoder.decode(instance.HEAPU8.subarray(pathPtr, pathPtr + pathLen));
         let re = globToRegexp(path);
         for (let blob of NodeWebDBRuntime.blobMap) {
-            if (blob && blob.url && re.test(blob.url)) {
+            if (blob && blob.url && !blob.buffer && re.test(blob.url)) {
                 const data = encoder.encode(blob.url);
                 const ptr = instance.stackAlloc(data.length);
                 instance.HEAPU8.set(data, ptr);
