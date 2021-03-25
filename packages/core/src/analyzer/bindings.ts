@@ -90,7 +90,7 @@ export abstract class AnalyzerBindings {
 
     /// Copy a flatbuffer
     protected copyFlatbuffer(buffer: Uint8Array): proto.fb.ByteBuffer {
-        var copy = new Uint8Array(new ArrayBuffer(buffer.byteLength));
+        const copy = new Uint8Array(new ArrayBuffer(buffer.byteLength));
         copy.set(buffer);
         return new proto.fb.ByteBuffer(copy);
     }
