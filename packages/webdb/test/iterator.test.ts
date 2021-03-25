@@ -3,7 +3,7 @@ import * as webdb from '../src/';
 const testRows = 3000;
 
 export function testIterator(db: () => webdb.WebDBBindings) {
-    var conn: webdb.WebDBConnection;
+    let conn: webdb.WebDBConnection;
 
     beforeEach(() => {
         conn = db().connect();

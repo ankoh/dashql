@@ -1,7 +1,7 @@
 import { analyzer } from '../src/';
 import { Analyzer } from '../src/index_browser';
 
-var analyzerBindings: analyzer.AnalyzerBindings;
+let analyzerBindings: analyzer.AnalyzerBindings;
 
 beforeAll(async () => {
     analyzerBindings = new Analyzer({}, '/base/src/analyzer/analyzer_wasm.wasm');

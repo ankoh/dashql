@@ -4,7 +4,7 @@ const encoder = new TextEncoder();
 
 export function testExtractCSV(db: () => webdb.AsyncWebDB, tmp_file: (buf: Uint8Array) => string) {
     describe('Extract CSV', () => {
-        var conn: webdb.AsyncWebDBConnection;
+        let conn: webdb.AsyncWebDBConnection;
 
         beforeEach(async () => {
             conn = await db().connect();

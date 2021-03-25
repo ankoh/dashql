@@ -6,7 +6,7 @@ import sx = proto.syntax;
 
 import Key = proto.syntax.AttributeKey;
 
-var analyzerBindings: analyzer.AnalyzerBindings;
+let analyzerBindings: analyzer.AnalyzerBindings;
 
 beforeAll(async () => {
     analyzerBindings = new Analyzer({}, '/base/src/analyzer/analyzer_wasm.wasm');

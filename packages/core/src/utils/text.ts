@@ -14,7 +14,7 @@ export function estimateUTF16Length(s: string) {
             n += 3;
         } else if (hi < 0xdc00) {
             // [0xD800, 0xDBFF]
-            var lo = s.charCodeAt(++i);
+            const lo = s.charCodeAt(++i);
             if (i < l && lo >= 0xdc00 && lo <= 0xdfff) {
                 // Followed by [0xDC00, 0xDFFF]
                 n += 4;
