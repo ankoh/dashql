@@ -3,4 +3,3 @@
 export * from './bindings';
 export * from './common';
 export * from './parallel';
-export * from './serial';

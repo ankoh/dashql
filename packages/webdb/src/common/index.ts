@@ -7,4 +7,5 @@ export * from './proxy_iterator';
 export * from './proxy';
 export * from './query_options';
 export * from './static_iterator';
+export * from './stream_iterator';
 export * from './value';
