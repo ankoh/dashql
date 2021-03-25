@@ -14,7 +14,7 @@
     function setImmediate(callback) {
         // Callback can either be a function or a string
         if (typeof callback !== 'function') {
-            callback = new Function(`${callback}`);
+            callback = new Function(String(callback}));
         }
         // Copy function arguments
         var args = new Array(arguments.length - 1);
