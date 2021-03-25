@@ -36,55 +36,55 @@ export interface WebDBRuntime {
 
 export const DefaultWebDBRuntime: WebDBRuntime = {
     bindings: null,
-    dashql_add_blob_stream: function (blob_stream: BlobStream): number {
+    dashql_add_blob_stream: (blob_stream: BlobStream): number => {
         throw Error('undefined');
     },
-    dashql_blob_stream_underflow: function (blobId: number, buf: number, size: number) {
+    dashql_blob_stream_underflow: (blobId: number, buf: number, size: number) => {
         throw Error('undefined');
     },
-    dashql_webdb_fs_read: function (blobId: number, buf: number, bytes: number) {
+    dashql_webdb_fs_read: (blobId: number, buf: number, bytes: number) => {
         throw Error('undefined');
     },
-    dashql_webdb_fs_write: function (blobId: number, buf: number, bytes: number) {
+    dashql_webdb_fs_write: (blobId: number, buf: number, bytes: number) => {
         throw Error('undefined');
     },
-    dashql_webdb_fs_directory_exists: function (pathPtr: number, pathLen: number) {
+    dashql_webdb_fs_directory_exists: (pathPtr: number, pathLen: number) => {
         throw Error('undefined');
     },
-    dashql_webdb_fs_directory_create: function (pathPtr: number, pathLen: number) {
+    dashql_webdb_fs_directory_create: (pathPtr: number, pathLen: number) => {
         throw Error('undefined');
     },
-    dashql_webdb_fs_directory_remove: function (pathPtr: number, pathLen: number) {
+    dashql_webdb_fs_directory_remove: (pathPtr: number, pathLen: number) => {
         throw Error('undefined');
     },
-    dashql_webdb_fs_directory_list_files: function (pathPtr: number, pathLen: number) {
+    dashql_webdb_fs_directory_list_files: (pathPtr: number, pathLen: number) => {
         throw Error('undefined');
     },
-    dashql_webdb_fs_glob: function (pathPtr: number, pathLen: number) {
+    dashql_webdb_fs_glob: (pathPtr: number, pathLen: number) => {
         throw Error('undefined');
     },
-    dashql_webdb_fs_file_open: function (pathPtr: number, pathLen: number, flags: number) {
+    dashql_webdb_fs_file_open: (pathPtr: number, pathLen: number, flags: number) => {
         throw Error('undefined');
     },
-    dashql_webdb_fs_file_close: function (blobId: number) {
+    dashql_webdb_fs_file_close: (blobId: number) => {
         throw Error('undefined');
     },
-    dashql_webdb_fs_file_get_size: function (blobId: number) {
+    dashql_webdb_fs_file_get_size: (blobId: number) => {
         throw Error('undefined');
     },
-    dashql_webdb_fs_file_get_last_modified_time: function (blobId: number) {
+    dashql_webdb_fs_file_get_last_modified_time: (blobId: number) => {
         throw Error('undefined');
     },
-    dashql_webdb_fs_file_move: function (fromPtr: number, fromLen: number, toPtr: number, toLen: number) {
+    dashql_webdb_fs_file_move: (fromPtr: number, fromLen: number, toPtr: number, toLen: number) => {
         throw Error('undefined');
     },
-    dashql_webdb_fs_file_set_pointer: function (blobId: number, location: number) {
+    dashql_webdb_fs_file_set_pointer: (blobId: number, location: number) => {
         throw Error('undefined');
     },
-    dashql_webdb_fs_file_exists: function (pathPtr: number, pathLen: number) {
+    dashql_webdb_fs_file_exists: (pathPtr: number, pathLen: number) => {
         throw Error('undefined');
     },
-    dashql_webdb_fs_file_remove: function (pathPtr: number, pathLen: number) {
+    dashql_webdb_fs_file_remove: (pathPtr: number, pathLen: number) => {
         throw Error('undefined');
     },
 };
