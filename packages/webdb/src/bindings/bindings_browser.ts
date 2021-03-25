@@ -7,6 +7,10 @@ import { Logger } from '../common';
 import { WebDBRuntime } from './runtime_base';
 import { WebBlobStream } from './runtime_browser';
 
+declare global {
+    var WebDBTrampoline: any;
+}
+
 /** WebDB bindings for the browser */
 export class WebDB extends WebDBBindings {
     protected runtime: WebDBRuntime;
@@ -40,6 +44,14 @@ export class WebDB extends WebDBBindings {
         };
         if (WebAssembly.instantiateStreaming) {
             WebAssembly.instantiateStreaming(fetch(this.path), imports_rt).then(output => {
+                globalThis.WebDBTrampoline = {};
+
+                for (let func of Object.getOwnPropertyNames(this.runtime)) {
+                    if (func == 'constructor') continue;
+                    globalThis.WebDBTrampoline[func] = <Function>(
+                        Object.getOwnPropertyDescriptor(this.runtime, func)!.value
+                    );
+                }
                 success(output.instance);
             });
         } else {
@@ -47,6 +59,14 @@ export class WebDB extends WebDBBindings {
                 .then(resp => resp.arrayBuffer())
                 .then(bytes =>
                     WebAssembly.instantiate(bytes, imports_rt).then(output => {
+                        globalThis.WebDBTrampoline = {};
+
+                        for (let func of Object.getOwnPropertyNames(this.runtime)) {
+                            if (func == 'constructor') continue;
+                            globalThis.WebDBTrampoline[func] = <Function>(
+                                Object.getOwnPropertyDescriptor(this.runtime, func)!.value
+                            );
+                        }
                         success(output.instance);
                     }),
                 )
