@@ -4,6 +4,7 @@ export enum AsyncWebDBRequestType {
     RESET = 'RESET',
     PING = 'PING',
     REGISTER_URL = 'REGISTER_URL',
+    OPEN_URL = 'OPEN_URL',
     IMPORT_CSV = 'IMPORT_CSV',
     OPEN = 'OPEN',
     CONNECT = 'CONNECT',
@@ -41,6 +42,7 @@ export type AsyncWebDBRequestVariant =
     | AsyncWebDBRequest<AsyncWebDBRequestType.RESET, null>
     | AsyncWebDBRequest<AsyncWebDBRequestType.PING, null>
     | AsyncWebDBRequest<AsyncWebDBRequestType.REGISTER_URL, string>
+    | AsyncWebDBRequest<AsyncWebDBRequestType.OPEN_URL, string>
     | AsyncWebDBRequest<AsyncWebDBRequestType.IMPORT_CSV, [number, number, string, string]>
     | AsyncWebDBRequest<AsyncWebDBRequestType.OPEN, string>
     | AsyncWebDBRequest<AsyncWebDBRequestType.CONNECT, null>
@@ -53,8 +55,8 @@ export type AsyncWebDBResponseVariant =
     | AsyncWebDBResponse<AsyncWebDBResponseType.LOG, LogEntryVariant>
     | AsyncWebDBResponse<AsyncWebDBResponseType.OK, null>
     | AsyncWebDBResponse<AsyncWebDBResponseType.ERROR, any>
-    | AsyncWebDBResponse<AsyncWebDBResponseType.CONNECTION_INFO, number>
     | AsyncWebDBResponse<AsyncWebDBResponseType.BLOB_ID, number>
+    | AsyncWebDBResponse<AsyncWebDBResponseType.CONNECTION_INFO, number>
     | AsyncWebDBResponse<AsyncWebDBResponseType.QUERY_RESULT, Uint8Array>
     | AsyncWebDBResponse<AsyncWebDBResponseType.QUERY_RESULT_CHUNK, Uint8Array>
     | AsyncWebDBResponse<AsyncWebDBResponseType.QUERY_PLAN, Uint8Array>;
