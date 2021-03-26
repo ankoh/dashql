@@ -2,7 +2,7 @@ import * as Immutable from 'immutable';
 import * as proto from '@dashql/proto';
 import * as webdb from '@dashql/webdb/dist/webdb.module.js';
 import * as model from '../model';
-import { ActionHandle } from '../model';
+import { ActionHandle, PlanObject } from '../model';
 import { ProgramActionLogic, SetupActionLogic } from './action_logic';
 import { ActionContext } from './action_context';
 import { collectTableInfo } from './table_logic';
@@ -12,8 +12,8 @@ export class ViewCreateActionLogic extends ProgramActionLogic {
         super(action_id, action, statement);
     }
 
-    public prepare(_context: ActionContext) {}
-
+    public prepare(_context: ActionContext, _planObjects: PlanObject[]): void {}
+    public willExecute(_context: ActionContext) {}
     public async execute(context: ActionContext): Promise<void> {
         const script = this.script;
         if (!script) return;
@@ -55,7 +55,7 @@ export class ImportViewActionLogic extends SetupActionLogic {
     }
 
     public prepare(_context: ActionContext) {}
-
+    public willExecute(_context: ActionContext) {}
     public async execute(_context: ActionContext): Promise<void> {}
 }
 
@@ -65,7 +65,7 @@ export class DropViewActionLogic extends SetupActionLogic {
     }
 
     public prepare(_context: ActionContext) {}
-
+    public willExecute(_context: ActionContext) {}
     public async execute(context: ActionContext): Promise<void> {
         const db = context.platform.database;
         await db.use(async (c: webdb.AsyncConnection) => {

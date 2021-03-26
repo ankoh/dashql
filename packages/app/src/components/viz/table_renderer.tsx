@@ -25,7 +25,8 @@ export class TableRenderer extends React.Component<Props> {
     public render() {
         const logger = this.props.appContext.platform!.logger;
         const db = this.props.appContext.platform!.database;
-        const table = this.props.dbObjects.get(this.props.vizInfo.dataSource.targetQualified);
+        const data = this.props.vizInfo.dataSource!;
+        const table = this.props.dbObjects.get(data.targetQualified);
         if (!table) {
             return <div />;
         }

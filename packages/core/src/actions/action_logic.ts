@@ -1,4 +1,5 @@
 import * as proto from '@dashql/proto';
+import * as model from '../model';
 import { ActionHandle, Statement, getActionClass, getActionIndex } from '../model';
 import { ActionContext } from './action_context';
 
@@ -67,16 +68,18 @@ export abstract class ActionLogic<ActionBuffer extends ProtoAction> {
         return this._blocker;
     }
 
-    /// Prepare an action for execution
-    public abstract prepare(context: ActionContext): void;
+    /// Prepare an action
+    public abstract prepare(context: ActionContext, planObjects: model.PlanObject[]): void;
+    /// Will execute an action
+    public abstract willExecute(context: ActionContext): void;
     /// Execute an action
     public abstract execute(context: ActionContext): Promise<void>;
 
     /// Prepare the execution guarded
-    public prepareGuarded(context: ActionContext): ActionError | null {
+    public willExecuteGuarded(context: ActionContext): ActionError | null {
         try {
             this._status = proto.action.ActionStatusCode.RUNNING;
-            this.prepare(context);
+            this.willExecute(context);
             return null;
         } catch (e) {
             this._status = proto.action.ActionStatusCode.FAILED;
