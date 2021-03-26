@@ -156,7 +156,11 @@ export abstract class AsyncWebDBDispatcher implements Logger {
                     this.sendOK(request);
                     break;
                 case AsyncWebDBRequestType.REGISTER_URL:
-                    let blobId = await this._bindings.registerURL(request.data);
+                    await this._bindings.registerURL(request.data);
+                    this.sendOK(request);
+                    break;
+                case AsyncWebDBRequestType.OPEN_URL: {
+                    let blobId = this._bindings.openURL(request.data);
                     this.postMessage(
                         {
                             messageId: this._nextMessageId++,
@@ -167,6 +171,7 @@ export abstract class AsyncWebDBDispatcher implements Logger {
                         [],
                     );
                     break;
+                }
             }
         } catch (e) {
             // Workaround for Firefox not being able to perform structured-clone on Native Errors

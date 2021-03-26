@@ -15,13 +15,17 @@ export function testExtractCSV(db: () => webdb.AsyncWebDB, tmp_file: (buf: Uint8
         });
 
         it('SimpleColumns', async () => {
-            let blobId = await db().registerURL(tmp_file(encoder.encode('1,2,3\n4,5,4\n7,8,9')));
+            const file = tmp_file(encoder.encode('1,2,3\n4,5,4\n7,8,9'));
+            await db().registerURL(file);
+            const blobId = await db().openURL(file);
             await expectAsync(conn.importCSV(blobId, 'test_schema', 'test_table')).toBeResolvedTo(null);
         });
 
         it('InvalidCSV', async () => {
             let test = async function (text: string, error: string) {
-                let blobId = await db().registerURL(tmp_file(encoder.encode(text)));
+                const file = tmp_file(encoder.encode(text));
+                await db().registerURL(file);
+                const blobId = await db().openURL(file);
                 await expectAsync(conn.importCSV(blobId, 'test_schema', 'test_table')).toBeRejectedWithError(error);
             };
 
