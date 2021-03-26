@@ -15,12 +15,13 @@ export interface StatementNodeData extends NodeData {
 }
 
 export function StatementNode(props: StatementNodeData) {
+    const fill = props.data.focused ? 'rgb(80, 80, 80)' : 'rgba(80, 80, 80, 0.3)';
     return (
         <div className={styles.node}>
             <div className={styles.node_status}>
                 <ActionStatusIndicator
                     className={styles.node_status_spinner}
-                    fill={props.data.focused ? 'rgb(80, 80, 80)' : 'rgba(80, 80, 80, 0.3)'}
+                    fill={fill}
                     width="14px"
                     height="14px"
                     status={props.data.actionStatus}
