@@ -2,6 +2,7 @@ import * as React from 'react';
 import * as core from '@dashql/core';
 import TableRenderer from './table_renderer';
 import VegaRenderer from './vega_renderer';
+import VizProgress from './viz_progress';
 import { VizCard } from './viz_card';
 
 interface Props {
@@ -19,10 +20,14 @@ export class VizComponent extends React.Component<Props> {
         }
     }
 
+    public renderProgress() {
+        return <VizProgress vizInfo={this.props.vizInfo} />;
+    }
+
     public render() {
         return (
             <VizCard title={this.props.vizInfo.title || 'Some Title'} controls={this.props.editable}>
-                {this.renderViz()}
+                {this.renderProgress()}
             </VizCard>
         );
     }
