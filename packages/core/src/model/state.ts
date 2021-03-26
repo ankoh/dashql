@@ -20,6 +20,8 @@ export class CoreState {
     public program: Program | null;
     /// The program parameters
     public programParameters: Immutable.List<ParameterValue>;
+    /// The program dependencies
+    public programDependencies: Map<number, number[]>;
     /// The program instance
     public programInstance: ProgramInstance | null;
 
@@ -53,6 +55,7 @@ export class CoreState {
         };
         this.program = null;
         this.programParameters = Immutable.List<ParameterValue>();
+        this.programDependencies = new Map();
         this.programInstance = null;
         this.schedulerStatus = ActionSchedulerStatus.Idle;
         this.plan = null;
