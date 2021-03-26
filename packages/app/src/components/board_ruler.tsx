@@ -88,8 +88,6 @@ export class Ruler extends React.Component<RulerProps, RulerState> {
         // Scale the canvas dimensions
         canvas.width = this.props.width * this.state.dpr;
         canvas.height = this.props.height * this.state.dpr;
-        //canvas.width = this.props.width;
-        //canvas.height = this.props.height;
 
         // Prepare the 2D context
         let context = canvas.getContext('2d')!;
