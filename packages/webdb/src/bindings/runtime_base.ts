@@ -1,21 +1,39 @@
-export interface BlobStream {
-    url: string | null;
-    buffer: Uint8Array | null;
+export class BlobStream {
+    id: number;
+    handle: BlobHandle;
     position: number;
+
+    public constructor(id: number, handle: BlobHandle) {
+        this.id = id;
+        this.handle = handle;
+        this.position = 0;
+    }
+
+    public copyTo(dest: Uint8Array, pos: number, length: number): number {
+        if (this.position >= this.handle.buffer!.length) return 0;
+        let size = Math.min(length, this.handle.buffer!.length - this.position);
+        dest.set(this.handle.buffer!.slice(this.position, this.position + size), pos);
+        this.position += size;
+        return size;
+    }
 }
 
-// As a global function because when passing the object to the webworker it turns into a POJO
-export function copyBlobStreamTo(blobStream: BlobStream, dest: Uint8Array, pos: number, length: number): number {
-    if (blobStream.position >= blobStream.buffer!.length) return 0;
-    let size = Math.min(length, blobStream.buffer!.length - blobStream.position);
-    dest.set(blobStream.buffer!.slice(blobStream.position, blobStream.position + size), pos);
-    blobStream.position += size;
-    return size;
+export abstract class BlobHandle {
+    url: string;
+    buffer: Uint8Array | null;
+
+    public constructor(url: string) {
+        this.url = url;
+        this.buffer = null;
+    }
+
+    public abstract open(): void;
 }
 
 export interface WebDBRuntime {
     bindings: any;
-    dashql_add_blob_stream(blob_stream: BlobStream): number;
+    dashql_add_blob_handle(blob_handle: BlobHandle): void;
+    dashql_blob_stream_open(url: string): number;
     dashql_blob_stream_underflow(blobId: number, buf: number, size: number): number;
     dashql_webdb_fs_read(blobId: number, buf: number, bytes: number): number;
     dashql_webdb_fs_write(blobId: number, buf: number, bytes: number): number;
@@ -36,7 +54,10 @@ export interface WebDBRuntime {
 
 export const DefaultWebDBRuntime: WebDBRuntime = {
     bindings: null,
-    dashql_add_blob_stream: (blob_stream: BlobStream): number => {
+    dashql_add_blob_handle: (blob_handle: BlobHandle): number => {
+        throw Error('undefined');
+    },
+    dashql_blob_stream_open: (url: string): number => {
         throw Error('undefined');
     },
     dashql_blob_stream_underflow: (blobId: number, buf: number, size: number) => {
