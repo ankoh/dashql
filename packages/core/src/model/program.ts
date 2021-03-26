@@ -14,6 +14,8 @@ export class Program {
     public readonly textBuffer: Uint8Array;
     /// The program
     public readonly buffer: sx.Program;
+    /// The statement dependencies
+    public readonly statementDependencies: Map<number, number[]>;
 
     /// Constructor
     public constructor(
@@ -24,6 +26,14 @@ export class Program {
         this.text = text;
         this.textBuffer = textBuffer;
         this.buffer = program;
+
+        /// Build statement dependencies
+        this.statementDependencies = new Map<number, number[]>();
+        this.iterateDependencies((_: number, dep: sx.Dependency) => {
+            let deps = this.statementDependencies.get(dep.targetStatement()) || [];
+            deps.push(dep.sourceStatement());
+            this.statementDependencies.set(dep.targetStatement(), deps);
+        });
     }
 
     /// Access the text
@@ -59,7 +69,7 @@ export class Program {
         return count;
     }
 
-    /// Iterate over statements
+    /// Iterate over dependencies
     public iterateDependencies(fn: (idx: number, node: sx.Dependency) => void): number {
         let dep = new sx.Dependency();
         const count = this.buffer.dependenciesLength();
