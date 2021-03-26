@@ -1,0 +1,62 @@
+@import '../../vars.module.css';
+
+.container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    background-color: rgb(240, 240, 240);
+}
+
+.controls {
+    top: 16px;
+    right: 16px;
+    left: unset !important;
+    bottom: unset !important;
+}
+
+.node {
+    height: 100%;
+    width: 100%;
+    box-sizing: border-box;
+    position: relative;
+}
+
+.node_type {
+    border: 1px solid var(--pgraph_node_border_color);
+    border-radius: var(--pgraph_node_border_radius);
+    background: white;
+    justify-self: center;
+    align-self: center;
+    width: 100%;
+    height: 100%;
+    display: grid;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+}
+
+.node_handle_top {
+    left: 50%;
+    background: none !important;
+    border: none !important;
+}
+
+.node_handle_bottom {
+    left: 50%;
+    background: none !important;
+    border: none !important;
+}
+
+.node_icon {
+}
+
+.node_status {
+    width: 100%;
+    height: 100%;
+    display: grid;
+}
+
+.node_status_spinner {
+    justify-self: center;
+    align-self: center;
+}
