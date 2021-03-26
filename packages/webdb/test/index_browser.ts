@@ -19,12 +19,14 @@ import { testProxies } from './proxy.test';
 import { testBindings } from './bindings.test';
 import { testIterator } from './iterator.test';
 import { testAsyncIterator } from './async_iterator.test';
+import { testFilesystem } from './filesystem.test';
 import { testExtractCSV } from './extract_csv.test';
 
 testProxies(() => db!);
 testBindings(() => db!);
 testIterator(() => db!);
-testAsyncIterator(() => adb!, '/data');
+testAsyncIterator(() => adb!);
+testFilesystem(() => adb!, '/data');
 testExtractCSV(
     () => adb!,
     (buf: Uint8Array) => URL.createObjectURL(new Blob([buf.buffer], { type: 'text/plain' })),
