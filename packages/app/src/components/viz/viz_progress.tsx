@@ -18,6 +18,7 @@ const NODE_SIZE = {
     width: NODE_WIDTH,
     height: NODE_HEIGHT,
 };
+const NODE_OPACITY = 0.3;
 
 interface ExtendedEdgeData extends EdgeData {
     sourceId: number;
@@ -111,7 +112,6 @@ class VizProgress extends React.Component<VizProgressProps, VizProgressState> {
                 targetId: dep.targetStatement(),
                 target: dep.targetStatement().toString(),
                 type: 'step',
-                animated: false,
                 data: {
                     focused: focus.isSet(dep.targetStatement()),
                 },
@@ -164,24 +164,20 @@ class VizProgress extends React.Component<VizProgressProps, VizProgressState> {
             }),
             edges: state.edges.map(e => {
                 const target = props.programStatus.get(e.targetId)!.status;
-                let animated = false;
-                let opacity = e.data.focused ? 1.0 : 0.3;
+                let opacity = e.data.focused ? 1.0 : NODE_OPACITY;
                 switch (target) {
                     case proto.action.ActionStatusCode.RUNNING:
                     case proto.action.ActionStatusCode.BLOCKED:
-                        animated = true;
                         break;
                     case proto.action.ActionStatusCode.NONE:
-                        opacity = 0.3;
+                        opacity = NODE_OPACITY;
                         break;
                     case proto.action.ActionStatusCode.COMPLETED:
                     case proto.action.ActionStatusCode.FAILED:
-                        animated = false;
                         break;
                 }
                 return {
                     ...e,
-                    animated: animated,
                     style: {
                         opacity,
                         strokeWidth: 2,
