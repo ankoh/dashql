@@ -17,6 +17,10 @@ interface Props {
 
 class Viewer extends React.Component<Props> {
     public render() {
+        const rowHeight = 50;
+        const columnCount = 12;
+        const padding: [number, number] = [40, 40];
+        const margin: [number, number] = [10, 10];
         return (
             <ScriptLoader>
                 <div className={styles.container}>
@@ -31,7 +35,14 @@ class Viewer extends React.Component<Props> {
                             {({ width, height }) => (
                                 <div style={{ width, height }}>
                                     <Scrollbars height={height} width={width}>
-                                        <Board className={styles.board_layout} width={width} />
+                                        <Board
+                                            className={styles.board_layout}
+                                            width={width}
+                                            rowHeight={rowHeight}
+                                            columnCount={columnCount}
+                                            containerPadding={padding}
+                                            elementMargin={margin}
+                                        />
                                     </Scrollbars>
                                 </div>
                             )}

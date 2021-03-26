@@ -22,14 +22,13 @@
 .ruler_corner {
     grid-row: 1;
     grid-column: 1;
-    background-color: rgb(255, 255, 255);
-    border-bottom: 1px solid rgb(200, 200, 200);
+    background-color: var(--board_ruler_bg);
 }
 
 .ruler_top {
     grid-row: 1;
     grid-column: 2;
-    background-color: rgb(255, 255, 255);
+    background-color: var(--board_ruler_bg);
     position: relative;
     border-bottom: 1px solid rgb(200, 200, 200);
 }
@@ -49,7 +48,7 @@
 .ruler_left {
     grid-row: 1;
     grid-column: 1;
-    background-color: rgb(255, 255, 255);
+    background-color: var(--board_ruler_bg);
     position: relative;
     border-right: 1px solid rgb(200, 200, 200);
 }
