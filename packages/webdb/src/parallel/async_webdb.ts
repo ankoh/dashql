@@ -29,7 +29,8 @@ type TaskVariant =
     | Task<AsyncWebDBRequestType.RESET, null, null>
     | Task<AsyncWebDBRequestType.IMPORT_CSV, [number, number, string, string], null>
     | Task<AsyncWebDBRequestType.PING, null, null>
-    | Task<AsyncWebDBRequestType.REGISTER_URL, string, number>
+    | Task<AsyncWebDBRequestType.REGISTER_URL, string, null>
+    | Task<AsyncWebDBRequestType.OPEN_URL, string, number>
     | Task<AsyncWebDBRequestType.OPEN, string | null, null>
     | Task<AsyncWebDBRequestType.CONNECT, null, ConnectionID>
     | Task<AsyncWebDBRequestType.DISCONNECT, ConnectionID, null>
@@ -157,6 +158,7 @@ export class AsyncWebDB {
             case AsyncWebDBRequestType.RESET:
             case AsyncWebDBRequestType.PING:
             case AsyncWebDBRequestType.IMPORT_CSV:
+            case AsyncWebDBRequestType.REGISTER_URL:
             case AsyncWebDBRequestType.OPEN:
             case AsyncWebDBRequestType.DISCONNECT:
                 if (response.type == AsyncWebDBResponseType.OK) {
@@ -164,7 +166,7 @@ export class AsyncWebDB {
                     return;
                 }
                 break;
-            case AsyncWebDBRequestType.REGISTER_URL:
+            case AsyncWebDBRequestType.OPEN_URL:
                 if (response.type == AsyncWebDBResponseType.BLOB_ID) {
                     task.promiseResolver(response.data);
                     return;
@@ -228,11 +230,17 @@ export class AsyncWebDB {
     }
 
     /// Registers the given URL as a file to be possibly loaded by WebDB.
-    public async registerURL(url: string): Promise<number> {
-        const task = new Task<AsyncWebDBRequestType.REGISTER_URL, string, number>(
+    public async registerURL(url: string): Promise<null> {
+        const task = new Task<AsyncWebDBRequestType.REGISTER_URL, string, null>(
             AsyncWebDBRequestType.REGISTER_URL,
             url,
         );
+        return await this.postTask(task);
+    }
+
+    /// Open a file previously registered by the given URL. Returns the Blob ID
+    public async openURL(url: string): Promise<number> {
+        const task = new Task<AsyncWebDBRequestType.OPEN_URL, string, number>(AsyncWebDBRequestType.OPEN_URL, url);
         return await this.postTask(task);
     }
 

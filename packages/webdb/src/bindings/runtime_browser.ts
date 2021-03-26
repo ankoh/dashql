@@ -1,70 +1,73 @@
 // Copyright (c) 2020 The DashQL Authors
 
-import { WebDBRuntime, copyBlobStreamTo, BlobStream } from './runtime_base';
+import { WebDBRuntime, BlobStream, BlobHandle } from './runtime_base';
 import globToRegexp from 'glob-to-regexp';
 
 const decoder = new TextDecoder();
 const encoder = new TextEncoder();
 
-export class WebBlobStream implements BlobStream {
-    url: string | null;
-    buffer: Uint8Array | null;
-    position: number;
-
+export class WebBlobHandle extends BlobHandle {
     blob: Blob;
 
-    public constructor(blob: Blob, url: string | null) {
+    public constructor(blob: Blob, url: string) {
+        super(url);
         this.blob = blob;
-        this.url = url;
-        this.buffer = null;
-        this.position = 0;
+    }
+
+    public open(): void {
+        const reader = new FileReaderSync();
+        this.buffer = new Uint8Array(reader.readAsArrayBuffer(this.blob));
     }
 }
 
 export var BrowserWebDBRuntime: WebDBRuntime & {
-    blobMap: (WebBlobStream | null)[];
+    handleMap: Map<string, WebBlobHandle>;
+    streamMap: Map<number, BlobStream>;
+    streamCounter: number;
 } = {
-    blobMap: [],
+    handleMap: new Map<string, WebBlobHandle>(),
+    streamMap: new Map<number, BlobStream>(),
+    streamCounter: 1,
     bindings: null,
-    dashql_add_blob_stream: function (blob_stream: BlobStream): number {
-        for (let i = 0; i < BrowserWebDBRuntime.blobMap.length; i++) {
-            if (BrowserWebDBRuntime.blobMap[i] === null) {
-                BrowserWebDBRuntime.blobMap[i] = <WebBlobStream>blob_stream;
-                return i;
-            }
+
+    dashql_add_blob_handle: function (blob_handle: BlobHandle): void {
+        if (BrowserWebDBRuntime.handleMap.has(blob_handle.url)) {
+            throw Error('URL already registered: ' + blob_handle.url);
+        }
+        BrowserWebDBRuntime.handleMap.set(blob_handle.url, <WebBlobHandle>blob_handle);
+    },
+    dashql_blob_stream_open: function (url: string): number {
+        const handle = BrowserWebDBRuntime.handleMap.get(url);
+        if (!handle) throw Error('File not found or cannot be opened: ' + url);
+
+        if (!handle.buffer) {
+            handle.open();
         }
 
-        const id = BrowserWebDBRuntime.blobMap.length;
-        BrowserWebDBRuntime.blobMap.push(<WebBlobStream>blob_stream);
+        const id = BrowserWebDBRuntime.streamCounter;
+        const stream = new BlobStream(id, handle);
+        BrowserWebDBRuntime.streamMap.set(id, stream);
+        BrowserWebDBRuntime.streamCounter++;
         return id;
     },
     dashql_blob_stream_underflow(blobId: number, buf: number, size: number): number {
-        if (blobId >= BrowserWebDBRuntime.blobMap.length) return 0;
-        let blobStream = BrowserWebDBRuntime.blobMap[blobId];
-        if (blobStream === null) return 0;
+        let stream = BrowserWebDBRuntime.streamMap.get(blobId);
+        if (!stream) return 0;
 
-        if (!blobStream.buffer) {
-            // Open file on-demand
-            const reader = new FileReaderSync();
-            blobStream.buffer = new Uint8Array(reader.readAsArrayBuffer(blobStream.blob));
-            blobStream.position = 0;
-        }
-
-        let read = copyBlobStreamTo(blobStream, BrowserWebDBRuntime.bindings!.instance!.HEAPU8, buf, size);
+        const read = stream.copyTo(BrowserWebDBRuntime.bindings!.instance!.HEAPU8, buf, size);
 
         if (read == 0 && size > 0) {
             // Stream exhausted, close
-            BrowserWebDBRuntime.blobMap[blobId] = null;
+            BrowserWebDBRuntime.streamMap.delete(blobId);
         }
 
         return read;
     },
     dashql_webdb_fs_read: function (blobId: number, buf: number, bytes: number) {
-        if (blobId >= BrowserWebDBRuntime.blobMap.length) return 0;
-        let blobStream = BrowserWebDBRuntime.blobMap[blobId];
-        if (blobStream === null) return 0;
+        let stream = BrowserWebDBRuntime.streamMap.get(blobId);
+        if (!stream) return 0;
 
-        return copyBlobStreamTo(blobStream, BrowserWebDBRuntime.bindings!.instance!.HEAPU8, buf, bytes);
+        return stream.copyTo(BrowserWebDBRuntime.bindings!.instance!.HEAPU8, buf, bytes);
     },
     dashql_webdb_fs_write: function (blobId: number, buf: number, bytes: number) {
         throw Error('undefined');
@@ -85,9 +88,9 @@ export var BrowserWebDBRuntime: WebDBRuntime & {
         let instance = BrowserWebDBRuntime.bindings!.instance!;
         const path = decoder.decode(instance.HEAPU8.subarray(pathPtr, pathPtr + pathLen));
         let re = globToRegexp(path);
-        for (let blob of BrowserWebDBRuntime.blobMap) {
-            if (blob && blob.url && !blob.buffer && re.test(blob.url)) {
-                const data = encoder.encode(blob.url);
+        for (let url in BrowserWebDBRuntime.handleMap) {
+            if (re.test(url)) {
+                const data = encoder.encode(url);
                 const ptr = instance.stackAlloc(data.length);
                 instance.HEAPU8.set(data, ptr);
                 BrowserWebDBRuntime.bindings!.instance!.ccall(
@@ -102,33 +105,15 @@ export var BrowserWebDBRuntime: WebDBRuntime & {
     dashql_webdb_fs_file_open: function (pathPtr: number, pathLen: number, flags: number) {
         let instance = BrowserWebDBRuntime.bindings!.instance!;
         const path = decoder.decode(instance.HEAPU8.subarray(pathPtr, pathPtr + pathLen));
-
-        for (let i = 0; i < BrowserWebDBRuntime.blobMap.length; i++) {
-            let blob = BrowserWebDBRuntime.blobMap[i];
-            if (blob && blob.url == path) {
-                if (!blob.buffer) {
-                    const reader = new FileReaderSync();
-                    blob.buffer = new Uint8Array(reader.readAsArrayBuffer(blob.blob));
-                }
-                blob.position = 0;
-                return i;
-            }
-        }
-
-        throw Error('File not found or cannot be opened: ' + path);
+        return BrowserWebDBRuntime.dashql_blob_stream_open(path);
     },
     dashql_webdb_fs_file_close: function (blobId: number) {
-        if (blobId < BrowserWebDBRuntime.blobMap.length) {
-            BrowserWebDBRuntime.blobMap[blobId] = null;
-        }
+        BrowserWebDBRuntime.streamMap.delete(blobId);
     },
     dashql_webdb_fs_file_get_size: function (blobId: number) {
-        if (blobId < BrowserWebDBRuntime.blobMap.length) {
-            let blob = BrowserWebDBRuntime.blobMap[blobId];
-            if (!blob) return 0;
-            return blob.blob.size;
-        }
-        return 0;
+        let stream = BrowserWebDBRuntime.streamMap.get(blobId);
+        if (!stream) return 0;
+        return stream.handle.buffer!.length;
     },
     dashql_webdb_fs_file_get_last_modified_time: function (blobId: number) {
         // TODO: Keep fetch response header to answer BrowserWebDBRuntime
@@ -138,17 +123,14 @@ export var BrowserWebDBRuntime: WebDBRuntime & {
         throw Error('undefined');
     },
     dashql_webdb_fs_file_set_pointer: function (blobId: number, location: number) {
-        if (blobId < BrowserWebDBRuntime.blobMap.length) {
-            let blob = BrowserWebDBRuntime.blobMap[blobId];
-            if (blob == null) return;
-            blob.position = location;
-        }
+        let stream = BrowserWebDBRuntime.streamMap.get(blobId);
+        if (stream) stream.position = location;
     },
     dashql_webdb_fs_file_exists: function (pathPtr: number, pathLen: number) {
         let instance = BrowserWebDBRuntime.bindings!.instance!;
         const path = decoder.decode(instance.HEAPU8.subarray(pathPtr, pathPtr + pathLen));
-        for (let blob of BrowserWebDBRuntime.blobMap) {
-            if (blob && blob.url == path && !blob.buffer) {
+        for (let url in BrowserWebDBRuntime.handleMap) {
+            if (url == path) {
                 return true;
             }
         }
