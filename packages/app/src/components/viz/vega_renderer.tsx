@@ -6,7 +6,6 @@ import * as model from '../../model';
 import { connect } from 'react-redux';
 import { AutoSizer } from '../../util/autosizer';
 import { IAppContext, withAppContext } from '../../app_context';
-import { VizCard } from './viz_card';
 import { Vega } from 'react-vega';
 
 interface Props {
@@ -75,11 +74,7 @@ export class VegaRenderer extends React.Component<Props> {
         if (!table) {
             return <div />;
         }
-        return (
-            <VizCard title={this.props.vizInfo.title || 'Some Title'} controls={this.props.editable}>
-                <AutoSizer>{({ width, height }) => this.renderContent(table, width, height)}</AutoSizer>
-            </VizCard>
-        );
+        return <AutoSizer>{({ width, height }) => this.renderContent(table, width, height)}</AutoSizer>;
     }
 }
 
