@@ -26,13 +26,15 @@ afterAll(() => {});
 import { testProxies } from './proxy.test';
 import { testBindings } from './bindings.test';
 import { testIterator } from './iterator.test';
+import { testFilesystem } from './filesystem.test';
 import { testAsyncIterator } from './async_iterator.test';
 import { testExtractCSV } from './extract_csv.test';
 
 testProxies(() => db!);
 testBindings(() => db!);
 testIterator(() => db!);
-testAsyncIterator(() => adb!, path.resolve(__dirname, '../../../data/uni/out'));
+testAsyncIterator(() => adb!);
+testFilesystem(() => adb!, path.resolve(__dirname, '../../../data/uni/out'));
 testExtractCSV(
     () => adb!,
     (buf: Uint8Array) => tmp.sync(Buffer.from(buf)),
