@@ -25,9 +25,12 @@ export var NodeWebDBRuntime: WebDBRuntime & {
 
     dashql_add_blob_handle: function (blob_handle: BlobHandle): void {
         if (NodeWebDBRuntime.handleMap.has(blob_handle.url)) {
-            throw Error('URL already registered: ' + blob_handle.url);
+            // Somewhat silently fail adding duplicate blob handle
+            // Not overwriting entry since blobstreams refer to their handle
+            console.info('URL already registered: ' + blob_handle.url);
+        } else {
+            NodeWebDBRuntime.handleMap.set(blob_handle.url, <NodeBlobHandle>blob_handle);
         }
-        NodeWebDBRuntime.handleMap.set(blob_handle.url, <NodeBlobHandle>blob_handle);
     },
     dashql_blob_stream_open: function (url: string): number {
         const handle = NodeWebDBRuntime.handleMap.get(url);
@@ -81,7 +84,7 @@ export var NodeWebDBRuntime: WebDBRuntime & {
         let instance = NodeWebDBRuntime.bindings!.instance!;
         const path = decoder.decode(instance.HEAPU8.subarray(pathPtr, pathPtr + pathLen));
         let re = globToRegexp(path);
-        for (let url in NodeWebDBRuntime.handleMap) {
+        for (let url of NodeWebDBRuntime.handleMap.keys()) {
             if (re.test(url)) {
                 const data = encoder.encode(url);
                 const ptr = instance.stackAlloc(data.length);
@@ -124,13 +127,7 @@ export var NodeWebDBRuntime: WebDBRuntime & {
     dashql_webdb_fs_file_exists: function (pathPtr: number, pathLen: number) {
         let instance = NodeWebDBRuntime.bindings!.instance!;
         const path = decoder.decode(instance.HEAPU8.subarray(pathPtr, pathPtr + pathLen));
-        for (let url in NodeWebDBRuntime.handleMap) {
-            if (url == path) {
-                return true;
-            }
-        }
-
-        return false;
+        return NodeWebDBRuntime.handleMap.has(path);
     },
     dashql_webdb_fs_file_remove: function (pathPtr: number, pathLen: number) {
         throw Error('undefined');
