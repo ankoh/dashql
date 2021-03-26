@@ -15,7 +15,7 @@ export interface StatementNodeData extends NodeData {
 }
 
 export function StatementNode(props: StatementNodeData) {
-    const fill = props.data.focused ? 'rgb(80, 80, 80)' : 'rgba(80, 80, 80, 0.3)';
+    const fill = props.data.focused ? 'rgb(80, 80, 80)' : 'rgba(80, 80, 80, 0.25)';
     return (
         <div className={styles.node}>
             <div className={styles.node_status}>

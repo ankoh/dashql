@@ -72,6 +72,7 @@ describe('Action Scheduler', () => {
             az.instantiateProgram();
             const plan = az.planProgram();
             const graph = plan!.buffer.actionGraph()!;
+            const ctx = new actions.ActionContext(plat, plan!);
             expect(program.buffer.statementsLength()).toBe(1);
             expect(graph.setupActionsLength()).toBe(0);
             expect(graph.programActionsLength()).toBe(1);
@@ -86,7 +87,6 @@ describe('Action Scheduler', () => {
             expect(scheduler.actions[0].status).toBe(ActionStatus.NONE);
 
             const diff = new utils.NativeStack();
-            const ctx = new actions.ActionContext(plat, plan!);
 
             const workLeft = await scheduler.executeFirst(ctx, diff);
             expect(workLeft).toBe(false);
@@ -107,6 +107,7 @@ describe('Action Scheduler', () => {
             az.instantiateProgram();
             const plan = az.planProgram();
             const graph = plan!.buffer.actionGraph()!;
+            const ctx = new actions.ActionContext(plat, plan!);
             expect(program.buffer.statementsLength()).toBe(2);
             expect(graph.setupActionsLength()).toBe(0);
             expect(graph.programActionsLength()).toBe(2);
@@ -127,7 +128,6 @@ describe('Action Scheduler', () => {
             expect(scheduler.actions.map(a => a.buffer.dependsOnArray())).toEqual([null, new Uint32Array([0])]);
             expect(scheduler.actions.map(a => a.buffer.requiredForArray())).toEqual([new Uint32Array([1]), null]);
 
-            const ctx = new actions.ActionContext(plat, plan!);
             const diff = new utils.NativeStack();
             let workLeft = await scheduler.executeFirst(ctx, diff);
             expect(scheduler.actions[0].status).toBe(ActionStatus.COMPLETED);
@@ -150,6 +150,7 @@ describe('Action Scheduler', () => {
             az.instantiateProgram();
             const plan = az.planProgram();
             const graph = plan!.buffer.actionGraph()!;
+            const ctx = new actions.ActionContext(plat, plan!);
             expect(program.buffer.statementsLength()).toBe(3);
             expect(graph.setupActionsLength()).toBe(0);
             expect(graph.programActionsLength()).toBe(3);
@@ -179,7 +180,6 @@ describe('Action Scheduler', () => {
                 null,
             ]);
 
-            const ctx = new actions.ActionContext(plat, plan!);
             const diff = new utils.NativeStack();
             let workLeft = await scheduler.executeFirst(ctx, diff);
             expect(scheduler.actions[0].status).toBe(ActionStatus.COMPLETED);
@@ -205,6 +205,7 @@ describe('Action Scheduler', () => {
             az.instantiateProgram();
             const plan = az.planProgram();
             const graph = plan!.buffer.actionGraph()!;
+            const ctx = new actions.ActionContext(plat, plan!);
             expect(program.buffer.statementsLength()).toBe(3);
             expect(graph.setupActionsLength()).toBe(0);
             expect(graph.programActionsLength()).toBe(3);
@@ -226,7 +227,6 @@ describe('Action Scheduler', () => {
             expect(scheduler.actions.map(a => a.buffer.dependsOnArray())).toEqual([null, null, null]);
             expect(scheduler.actions.map(a => a.buffer.requiredForArray())).toEqual([null, null, null]);
 
-            const ctx = new actions.ActionContext(plat, plan!);
             const diff = new utils.NativeStack();
             let workLeft = await scheduler.executeFirst(ctx, diff);
             expect(workLeft).toBe(true);

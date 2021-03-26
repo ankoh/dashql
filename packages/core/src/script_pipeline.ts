@@ -1,6 +1,7 @@
 import * as Immutable from 'immutable';
 import * as model from './model';
 import { Platform } from './platform';
+import { ActionContext } from './actions';
 import { ActionGraphScheduler } from './action_scheduler';
 
 const MIN_INPUT_DELAY = 300;
@@ -164,15 +165,11 @@ export class ScriptPipeline {
         if (!plan) return;
 
         // Schedule the plan
-        const infos = this._scheduler.prepare(plan);
-        if (infos.length == 0) return;
-        model.mutate(this._platform.store.dispatch, {
-            type: model.StateMutationType.SCHEDULE_PLAN,
-            data: [plan, infos],
-        });
+        const ctx = new ActionContext(this._platform, plan);
+        this._scheduler.prepare(ctx);
 
         // Execute the plan
-        await this._scheduler.execute();
+        await this._scheduler.execute(ctx);
 
         // Scheduler is ready again
         model.mutate(this._platform.store.dispatch, {

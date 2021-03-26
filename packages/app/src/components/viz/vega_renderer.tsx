@@ -17,7 +17,7 @@ interface Props {
 
 export class VegaRenderer extends React.Component<Props> {
     protected renderContent(table: core.model.DatabaseTableInfo, width: number, height: number) {
-        let vega = (result: proto.webdb.QueryResult, width: number, height: number) => (
+        const vega = (result: proto.webdb.QueryResult, width: number, height: number) => (
             <core.access.ProxyProvider result={result}>
                 {rows => (
                     <Vega
@@ -34,15 +34,16 @@ export class VegaRenderer extends React.Component<Props> {
                 )}
             </core.access.ProxyProvider>
         );
+        console.assert(!!this.props.vizInfo.dataSource);
 
-        switch (this.props.vizInfo.dataSource.queryType) {
+        switch (this.props.vizInfo.dataSource!.queryType) {
             case core.model.VizQueryType.M5: {
                 return (
                     <core.access.M5Provider
                         logger={this.props.appContext.platform!.logger}
                         database={this.props.appContext.platform!.database}
                         table={table}
-                        data={this.props.vizInfo.dataSource}
+                        data={this.props.vizInfo.dataSource!}
                         width={width}
                     >
                         {result => vega(result, width, height)}
@@ -56,7 +57,7 @@ export class VegaRenderer extends React.Component<Props> {
                         logger={this.props.appContext.platform!.logger}
                         database={this.props.appContext.platform!.database}
                         table={table}
-                        data={this.props.vizInfo.dataSource}
+                        data={this.props.vizInfo.dataSource!}
                     >
                         {result => vega(result, width, height)}
                     </core.access.SampleProvider>
@@ -69,7 +70,7 @@ export class VegaRenderer extends React.Component<Props> {
     }
 
     public render() {
-        const targetQualified = this.props.vizInfo.dataSource.targetQualified;
+        const targetQualified = this.props.vizInfo.dataSource!.targetQualified;
         const table = this.props.dbObjects.get(targetQualified);
         if (!table) {
             return <div />;

@@ -7,6 +7,7 @@ import {
     ActionHandle,
     Action,
     ActionUpdate,
+    PlanObject,
     buildActionHandle,
     getActionIndex,
     StateMutationType,
@@ -18,6 +19,7 @@ import {
     LogTopic,
     LogEvent,
 } from './model';
+import * as model from './model';
 
 export class ActionScheduler<ActionBuffer extends ProtoAction> {
     /// The cancel promise.
@@ -123,7 +125,7 @@ export class ActionScheduler<ActionBuffer extends ProtoAction> {
         for (let i = 0; i < next_action_idcs.length; ++i) {
             const next_action_idx = next_action_idcs[i];
             const next_action = this._actions[next_action_idx];
-            const err = next_action.prepareGuarded(context);
+            const err = next_action.willExecuteGuarded(context);
             if (err != null) {
                 next_action_idcs[i] = -1;
                 logger.log({
@@ -161,6 +163,9 @@ export class ActionScheduler<ActionBuffer extends ProtoAction> {
     public async execute(context: ActionContext, diff: NativeStack): Promise<boolean> {
         // Nothing to do?
         if (!this.workLeft()) return false;
+
+        // Flush any action updates
+        this.flushUpdates(context, diff);
 
         // Wait for next action to complete
         let promises: Promise<[ActionHandle | null, ActionError | null]>[] = [this._interrupt];
@@ -218,6 +223,40 @@ export class ActionScheduler<ActionBuffer extends ProtoAction> {
         // No more scheduled actions left?
         return this.workLeft();
     }
+
+    /// Flush teh action updates
+    public flushUpdates(ctx: ActionContext, diff: NativeStack) {
+        if (diff.empty()) return;
+
+        // Synchronize all the diffed actions
+        let actionUpdates: Map<number, ActionUpdate> = new Map();
+        for (; !diff.empty(); diff.pop()) {
+            const actionIdx = diff.top();
+            const action = this.actions[actionIdx];
+            // Only propagate the most recent one
+            if (actionUpdates.get(action.actionId)) continue;
+            // Mark the action as updated
+            actionUpdates.set(action.actionId, {
+                actionId: action.actionId,
+                statusCode: action.status,
+                blocker: action.blocker,
+            });
+        }
+        // Update the action status in the analyzer
+        for (const [_, u] of actionUpdates) {
+            // Update the action status in the analyzer
+            ctx.platform.analyzer.updateActionStatus(
+                getActionClass(u.actionId),
+                getActionIndex(u.actionId),
+                u.statusCode,
+            );
+        }
+        // Update all actions in the store
+        mutate(ctx.platform.store.dispatch, {
+            type: StateMutationType.UPDATE_PLAN_ACTIONS,
+            data: Array.from(actionUpdates, ([_k, v]) => v),
+        });
+    }
 }
 
 export class ActionGraphScheduler {
@@ -252,14 +291,15 @@ export class ActionGraphScheduler {
     }
 
     /// Reset the scheduler
-    public prepare(plan: Plan): Action[] {
+    public prepare(ctx: ActionContext) {
         this._canceled = false;
-        this._plan = plan;
-        const program = plan.program!;
-        const graph = plan.action_graph!;
+        this._plan = ctx.plan;
+        const program = ctx.plan.program!;
+        const graph = ctx.plan.action_graph!;
         const now = new Date();
 
         // Translate the setup actions
+        let planObjects: PlanObject[] = [];
         let actionInfos: Action[] = [];
         let setupLogic = [];
         for (let i = 0; i < graph.setupActionsLength(); ++i) {
@@ -308,9 +348,26 @@ export class ActionGraphScheduler {
                 timeScheduled: null,
                 timeLastUpdate: now,
             });
+            programLogic[i].prepare(ctx, planObjects);
         }
         this._programActions.prepare(programLogic);
-        return actionInfos;
+
+        mutate(ctx.platform.store.dispatch, {
+            type: model.StateMutationType.SCHEDULE_PLAN,
+            data: [ctx.plan, actionInfos],
+        });
+
+        // Prepare all actions
+        for (const action of setupLogic) {
+            action.prepare(ctx, planObjects);
+        }
+        for (const action of programLogic) {
+            action.prepare(ctx, planObjects);
+        }
+        mutate(ctx.platform.store.dispatch, {
+            type: model.StateMutationType.INSERT_PLAN_OBJECTS,
+            data: planObjects,
+        });
     }
 
     /// Interrupt the scheduler
@@ -340,52 +397,19 @@ export class ActionGraphScheduler {
         diff: NativeStack,
         scheduler: ActionScheduler<ActionBuffer>,
     ) {
-        const updateActions = (diff: NativeStack) => {
-            if (diff.empty()) return;
-            // Synchronize all the diffed actions
-            let actionUpdates: Map<number, ActionUpdate> = new Map();
-            for (; !diff.empty(); diff.pop()) {
-                const actionIdx = diff.top();
-                const action = scheduler.actions[actionIdx];
-                // Only propagate the most recent one
-                if (actionUpdates.get(action.actionId)) continue;
-                // Mark the action as updated
-                actionUpdates.set(action.actionId, {
-                    actionId: action.actionId,
-                    statusCode: action.status,
-                    blocker: action.blocker,
-                });
-            }
-            // Update the action status in the analyzer
-            for (const [_, u] of actionUpdates) {
-                // Update the action status in the analyzer
-                ctx.platform.analyzer.updateActionStatus(
-                    getActionClass(u.actionId),
-                    getActionIndex(u.actionId),
-                    u.statusCode,
-                );
-            }
-            // Update all actions in the store
-            mutate(ctx.platform.store.dispatch, {
-                type: StateMutationType.UPDATE_PLAN_ACTIONS,
-                data: Array.from(actionUpdates, ([_k, v]) => v),
-            });
-        };
-
         for (
             let workLeft = await scheduler.executeFirst(ctx, diff);
             workLeft;
-            diff.clear(), workLeft = await scheduler.execute(ctx, diff)
+            workLeft = await scheduler.execute(ctx, diff)
         ) {
-            updateActions(diff);
+            scheduler.flushUpdates(ctx, diff);
         }
-        updateActions(diff);
+        scheduler.flushUpdates(ctx, diff);
     }
 
     /// Execute the entire action graph
-    public async execute() {
+    public async execute(ctx: ActionContext) {
         if (this._plan == null) return;
-        const ctx = new ActionContext(this._platform, this._plan);
         const diff = new NativeStack(64);
         await this.executeActions(ctx, diff, this._setupActions);
         diff.clear();

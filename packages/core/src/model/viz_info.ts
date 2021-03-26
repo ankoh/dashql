@@ -16,13 +16,13 @@ export enum VizRendererType {
 }
 
 export interface VizInfo extends PlanObject {
-    readonly renderer: VizRendererType;
     readonly currentStatementId: number;
     readonly position: VizPosition;
     readonly title: string | null;
+    readonly renderer: VizRendererType | null;
     readonly vegaLiteSpec: TopLevelSpec | null;
     readonly vegaSpec: v.Spec | null;
-    readonly dataSource: VizDataSource;
+    readonly dataSource: VizDataSource | null;
 }
 
 export enum VizQueryType {

@@ -37,7 +37,7 @@ export class CreateTableActionLogic extends ProgramActionLogic {
     }
 
     public prepare(_context: ActionContext) {}
-
+    public willExecute(_context: ActionContext) {}
     public async execute(context: ActionContext): Promise<void> {
         const script = this.script;
         if (!script) return;
@@ -79,6 +79,7 @@ export class ModifyTableActionLogic extends ProgramActionLogic {
     }
 
     public prepare(_context: ActionContext) {}
+    public willExecute(_context: ActionContext) {}
     public async execute(_context: ActionContext): Promise<void> {}
 }
 
@@ -88,6 +89,7 @@ export class ImportTableActionLogic extends SetupActionLogic {
     }
 
     public prepare(_context: ActionContext) {}
+    public willExecute(_context: ActionContext) {}
     public async execute(_context: ActionContext): Promise<void> {}
 }
 
@@ -97,6 +99,7 @@ export class DropTableActionLogic extends SetupActionLogic {
     }
 
     public prepare(_context: ActionContext) {}
+    public willExecute(_context: ActionContext) {}
     public async execute(context: ActionContext): Promise<void> {
         const db = context.platform.database;
         await db.use(async (c: webdb.AsyncConnection) => {

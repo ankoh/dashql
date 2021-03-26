@@ -1,5 +1,5 @@
 import * as proto from '@dashql/proto';
-import { ActionHandle } from '../model';
+import { ActionHandle, PlanObject } from '../model';
 import { SetupActionLogic } from './action_logic';
 import { ActionContext } from './action_context';
 
@@ -8,7 +8,8 @@ export class ImportBlobActionLogic extends SetupActionLogic {
         super(action_id, action);
     }
 
-    public prepare(_context: ActionContext) {}
+    public prepare(_context: ActionContext, _planObjects: PlanObject[]): void {}
+    public willExecute(_context: ActionContext) {}
     public async execute(_context: ActionContext): Promise<void> {}
 }
 
@@ -17,6 +18,7 @@ export class DropBlobActionLogic extends SetupActionLogic {
         super(action_id, action);
     }
 
-    public prepare(_context: ActionContext) {}
+    public prepare(_context: ActionContext, _planObjects: PlanObject[]): void {}
+    public willExecute(_context: ActionContext) {}
     public async execute(_context: ActionContext): Promise<void> {}
 }
