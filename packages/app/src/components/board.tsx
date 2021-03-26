@@ -16,6 +16,10 @@ type Props = {
     vizData: Map<string, core.model.VizInfo>;
     rewriteProgram: (instance: core.model.ProgramInstance) => void;
     editable?: boolean;
+    columnCount: number;
+    rowHeight: number;
+    containerPadding: [number, number];
+    elementMargin: [number, number];
 };
 
 class BoardLayout extends React.Component<Props> {
@@ -76,16 +80,17 @@ class BoardLayout extends React.Component<Props> {
             <ReactGrid
                 className={this.props.className}
                 resizeHandles={['se']}
-                cols={12}
                 width={this.props.width}
-                rowHeight={50}
+                cols={this.props.columnCount}
+                rowHeight={this.props.rowHeight}
                 compactType={null}
                 isDraggable={!!this.props.editable}
                 isResizable={!!this.props.editable}
                 onDragStop={this.onItemLayoutChanged}
                 onResizeStop={this.onItemLayoutChanged}
                 layout={this.getLayout(this.props.vizData)}
-                containerPadding={[40, 40]}
+                containerPadding={this.props.containerPadding}
+                margin={this.props.elementMargin}
             >
                 {Array.from(this.props.vizData).map(([k, v]) => (
                     <div key={k}>
