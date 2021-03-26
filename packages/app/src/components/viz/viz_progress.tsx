@@ -2,13 +2,7 @@ import * as Immutable from 'immutable';
 import * as React from 'react';
 import * as core from '@dashql/core';
 import * as dagre from 'dagre';
-import ReactFlow, {
-    ReactFlowProvider,
-    FlowElement,
-    Edge as EdgeData,
-    useStoreState,
-    useStoreActions,
-} from 'react-flow-renderer';
+import ReactFlow, { ReactFlowProvider, FlowElement, Edge as EdgeData, useStoreState } from 'react-flow-renderer';
 import classNames from 'classnames';
 import { AppState, Dispatch } from '../../model';
 import { StatementNode, StatementNodeData } from './viz_progress_node';
@@ -28,6 +22,9 @@ const NODE_SIZE = {
 interface ExtendedEdgeData extends EdgeData {
     sourceId: number;
     targetId: number;
+    data: {
+        focused: boolean;
+    };
 }
 
 interface VizProgressProps {
@@ -62,9 +59,27 @@ class VizProgress extends React.Component<VizProgressProps, VizProgressState> {
             };
         }
 
+        // Collect all transitive dependencies
+        const focus = new core.utils.NativeBitmap(props.program.buffer.statementsLength());
+        const depDFS: number[] = [];
+        const depMapping = props.program.statementDependencies;
+        focus.set(props.vizInfo.currentStatementId);
+        depDFS.push(props.vizInfo.currentStatementId);
+        while (depDFS.length > 0) {
+            const top = depDFS.pop()!;
+            const deps = depMapping.get(top);
+            if (!deps) continue;
+            for (const dep of deps) {
+                if (!focus.isSet(dep)) {
+                    focus.set(dep);
+                    depDFS.push(dep);
+                }
+            }
+        }
+
         // We use dagre to do the layouting and render the graph with react-flow afterwards
         let nodes: StatementNodeData[] = [];
-        let edges: ExtendedEdgeData[] = [];
+        const edges: ExtendedEdgeData[] = [];
         const g = new dagre.graphlib.Graph().setGraph({
             nodesep: 24,
             ranksep: 24,
@@ -83,6 +98,7 @@ class VizProgress extends React.Component<VizProgressProps, VizProgressState> {
                 data: {
                     statementType: stmt.statement_type,
                     actionStatus: proto.action.ActionStatusCode.NONE,
+                    focused: focus.isSet(idx),
                 },
             });
         });
@@ -92,12 +108,12 @@ class VizProgress extends React.Component<VizProgressProps, VizProgressState> {
                 id: 'e:' + idx.toString(),
                 sourceId: dep.sourceStatement(),
                 source: dep.sourceStatement().toString(),
-                targetId: dep.sourceStatement(),
+                targetId: dep.targetStatement(),
                 target: dep.targetStatement().toString(),
                 type: 'step',
                 animated: false,
-                style: {
-                    opacity: 1.0,
+                data: {
+                    focused: focus.isSet(dep.targetStatement()),
                 },
             });
         });
@@ -142,20 +158,21 @@ class VizProgress extends React.Component<VizProgressProps, VizProgressState> {
                         data: {
                             statementType: n.data.statementType,
                             actionStatus: s,
+                            focused: n.data.focused,
                         },
                     };
             }),
             edges: state.edges.map(e => {
                 const target = props.programStatus.get(e.targetId)!.status;
                 let animated = false;
-                let opacity = 1.0;
+                let opacity = e.data.focused ? 1.0 : 0.3;
                 switch (target) {
                     case proto.action.ActionStatusCode.RUNNING:
                     case proto.action.ActionStatusCode.BLOCKED:
                         animated = true;
                         break;
                     case proto.action.ActionStatusCode.NONE:
-                        opacity = 0.5;
+                        opacity = 0.3;
                         break;
                     case proto.action.ActionStatusCode.COMPLETED:
                     case proto.action.ActionStatusCode.FAILED:
@@ -166,7 +183,9 @@ class VizProgress extends React.Component<VizProgressProps, VizProgressState> {
                     ...e,
                     animated: animated,
                     style: {
-                        opacity: opacity,
+                        opacity,
+                        strokeWidth: 2,
+                        stroke: 'rgb(80, 80, 80)',
                     },
                 };
             }),

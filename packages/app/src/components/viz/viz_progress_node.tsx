@@ -10,6 +10,7 @@ export interface StatementNodeData extends NodeData {
     data: {
         statementType: proto.syntax.StatementType;
         actionStatus: proto.action.ActionStatusCode | null;
+        focused: boolean;
     };
 }
 
@@ -19,7 +20,7 @@ export function StatementNode(props: StatementNodeData) {
             <div className={styles.node_status}>
                 <ActionStatusIndicator
                     className={styles.node_status_spinner}
-                    fill="rgb(80, 80, 80)"
+                    fill={props.data.focused ? 'rgb(80, 80, 80)' : 'rgba(80, 80, 80, 0.3)'}
                     width="14px"
                     height="14px"
                     status={props.data.actionStatus}
