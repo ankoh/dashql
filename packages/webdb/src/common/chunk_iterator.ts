@@ -187,6 +187,51 @@ export abstract class ChunkIterator {
         return new ColumnIterator(ofs, ub, n != null ? (i: number) => (n[i] ? null : a[i]) : (i: number) => a[i]);
     }
 
+    /* Iterate over a number column */
+    public iterateDateColumn(cid: number, ofs: number = 0, limit: number = 0): Iterable<Date | null> {
+        if (cid >= this.columnCount) {
+            throw Error('column index out of bounds');
+        }
+        let c = this.currentChunk?.columns(cid, this.tmp.vector);
+        if (c == null) {
+            return [];
+        }
+        if (c.variantType() == proto.VectorVariant.VectorF64) {
+            let v = c.variant(this.tmp.vectorF64)!;
+            const a: Float64Array | null = v.valuesArray();
+            const n: Int8Array | null = v.nullMaskArray();
+            if (a == null) return [];
+            const lb = ofs;
+            const ub = limit > 0 ? Math.min(lb + limit, a.length) : a.length;
+
+            const transform = (val: number): Date => {
+                let date = new Date(0);
+                date.setUTCDate(Math.trunc(val) + 1);
+                return date;
+            };
+
+            return new ColumnIterator(
+                ofs,
+                ub,
+                n != null ? (i: number) => (n[i] ? null : transform(a[i])) : (i: number) => transform(a[i]),
+            );
+        } else if (c.variantType() == proto.VectorVariant.VectorI64) {
+            let v = c.variant(this.tmp.vectorI64)!;
+            const n: Int8Array | null = v.nullMaskArray();
+            const lb = ofs;
+            const ub = limit > 0 ? Math.min(lb + limit, v.valuesLength()) : v.valuesLength();
+
+            return new ColumnIterator(
+                ofs,
+                ub,
+                n != null
+                    ? (i: number) => (n[i] ? null : new Date(Math.trunc(v.values(i)!.toFloat64()) / 1000))
+                    : (i: number) => new Date(Math.trunc(v.values(i)!.toFloat64()) / 1000),
+            );
+        }
+        return [];
+    }
+
     /* Iterate over a boolean column */
     public iterateBooleanColumn(cid: number, ofs: number = 0, limit: number = 0): Iterable<boolean | null> {
         if (cid >= this.columnCount) {
@@ -262,8 +307,8 @@ export abstract class ChunkIterator {
             ofs,
             ub,
             n != null
-                ? (i: number) => (n[i] ? null : BigInt(v.values(i)!.low))
-                : (i: number) => BigInt(v.values(i)!.low),
+                ? (i: number) => (n[i] ? null : BigInt(Math.trunc(v.values(i)!.toFloat64())))
+                : (i: number) => BigInt(Math.trunc(v.values(i)!.toFloat64())),
         );
     }
 
@@ -282,7 +327,7 @@ export abstract class ChunkIterator {
         }
 
         const bigintConverter = (raw: proto.I128): bigint =>
-            (BigInt(raw.upper().low) << BigInt(64)) | BigInt(raw.lower().low);
+            (BigInt(Math.trunc(raw.upper().toFloat64())) << BigInt(64)) | BigInt(Math.trunc(raw.lower().toFloat64()));
 
         let v = c.variant(this.tmp.vectorI128)!;
         const n: Int8Array | null = v.nullMaskArray();

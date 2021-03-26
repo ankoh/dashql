@@ -11,12 +11,14 @@ export interface ChunkData {
     partitionBoundaries: Uint8Array | null;
 }
 
+type DateAttributeProxy = (chunk: ChunkData, row: number) => Date | null;
 type BigIntAttributeProxy = (chunk: ChunkData, row: number) => bigint | null;
 type BooleanAttributeProxy = (chunk: ChunkData, row: number) => boolean | null;
 type IntegerAttributeProxy = (chunk: ChunkData, row: number) => number | null;
 type FloatAttributeProxy = (chunk: ChunkData, row: number) => number | null;
 type StringAttributeProxy = (chunk: ChunkData, row: number) => string | null;
 type AttributeProxy =
+    | DateAttributeProxy
     | BigIntAttributeProxy
     | BooleanAttributeProxy
     | IntegerAttributeProxy
@@ -37,12 +39,20 @@ function checkNull<T>(
         chunk.nullmasks[column] && chunk.nullmasks[column]![row] ? null : fn(column, chunk, row);
 }
 
+function readDate(column: number, chunk: ChunkData, row: number): Date | null {
+    let date = new Date(0);
+    date.setUTCDate(Math.trunc((chunk.columns[column] as Float64Array)[row]) + 1);
+    return date;
+}
+function readTime(column: number, chunk: ChunkData, row: number): Date | null {
+    return new Date(Math.trunc((chunk.columns[column] as proto.VectorI64).values(row)!.toFloat64()) / 1000);
+}
 function readBigInt(column: number, chunk: ChunkData, row: number): bigint | null {
-    return BigInt((chunk.columns[column] as proto.VectorI64).values(row)!.low);
+    return BigInt(Math.trunc((chunk.columns[column] as proto.VectorI64).values(row)!.toFloat64()));
 }
 function readHugeInt(column: number, chunk: ChunkData, row: number): bigint | null {
     const val = (chunk.columns[column] as proto.VectorI128).values(row)!;
-    return (BigInt(val.upper().low) << BigInt(64)) | BigInt(val.lower().low);
+    return (BigInt(Math.trunc(val.upper().toFloat64())) << BigInt(64)) | BigInt(Math.trunc(val.lower().toFloat64()));
 }
 function readBoolean(column: number, chunk: ChunkData, row: number): boolean | null {
     return (chunk.columns[column] as Uint8Array)[row] != 0;
@@ -68,7 +78,7 @@ export interface RowProxy {
     __chunkData__: ChunkData;
     __chunkRow__: number;
     __is_partition_boundary__: boolean;
-    __attribute__: (i: number) => bigint | number | string | boolean | null;
+    __attribute__: (i: number) => Date | bigint | number | string | boolean | null;
 }
 
 /** Define a row proxy type */
@@ -163,9 +173,17 @@ export class RowProxyType {
                     break;
                 }
 
-                case proto.SQLTypeID.DATE:
+                case proto.SQLTypeID.DATE: {
+                    columnProxies.push(readColumn(columnId, checkNull(readDate)));
+                    break;
+                }
+
                 case proto.SQLTypeID.TIME:
-                case proto.SQLTypeID.TIMESTAMP:
+                case proto.SQLTypeID.TIMESTAMP: {
+                    columnProxies.push(readColumn(columnId, checkNull(readTime)));
+                    break;
+                }
+
                 case proto.SQLTypeID.DECIMAL:
                 case proto.SQLTypeID.VARBINARY:
                 case proto.SQLTypeID.BLOB:
@@ -178,6 +196,7 @@ export class RowProxyType {
                 case proto.SQLTypeID.HASH:
                 case proto.SQLTypeID.STRUCT:
                 case proto.SQLTypeID.LIST:
+                    console.log(result.columnTypes(columnId)!.typeId());
                     columnProxies.push(returnNull);
                     break;
             }

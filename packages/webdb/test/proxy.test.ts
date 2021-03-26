@@ -14,6 +14,41 @@ export function testProxies(db: () => webdb.WebDBBindings) {
             conn.disconnect();
         });
 
+        describe('single column, single row', () => {
+            it('DATE', () => {
+                const result = conn.sendQuery(`SELECT DATE '2021-03-25' as foo;`);
+                expect(result.columnTypesLength()).toBe(1);
+                interface Row extends webdb.RowProxy {
+                    foo: Date | null;
+                }
+                const chunks = new webdb.ChunkStreamIterator(conn, result);
+                const rows = chunks.collectAllBlocking<Row>();
+                expect(rows[0].foo!).toEqual(new Date(Date.UTC(2021, 2, 25)));
+            });
+
+            it('TIME', () => {
+                const result = conn.sendQuery(`SELECT TIME '18:20:00' as foo;`);
+                expect(result.columnTypesLength()).toBe(1);
+                interface Row extends webdb.RowProxy {
+                    foo: Date | null;
+                }
+                const chunks = new webdb.ChunkStreamIterator(conn, result);
+                const rows = chunks.collectAllBlocking<Row>();
+                expect(rows[0].foo!).toEqual(new Date('1970-01-01T18:20:00Z'));
+            });
+
+            it('TIMESTAMP', () => {
+                const result = conn.sendQuery(`SELECT TIMESTAMP '2021-03-25 18:20:00' as foo;`);
+                expect(result.columnTypesLength()).toBe(1);
+                interface Row extends webdb.RowProxy {
+                    foo: Date | null;
+                }
+                const chunks = new webdb.ChunkStreamIterator(conn, result);
+                const rows = chunks.collectAllBlocking<Row>();
+                expect(rows[0].foo!).toEqual(new Date('2021-03-25T18:20:00Z'));
+            });
+        });
+
         describe('single column, many rows', () => {
             it('INTEGER', () => {
                 const result = conn.sendQuery(`
