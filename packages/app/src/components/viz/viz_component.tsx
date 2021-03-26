@@ -12,6 +12,9 @@ interface Props {
 
 export class VizComponent extends React.Component<Props> {
     public renderViz() {
+        if (this.props.vizInfo.renderer == null) {
+            return <VizProgress vizInfo={this.props.vizInfo} />;
+        }
         switch (this.props.vizInfo.renderer) {
             case core.model.VizRendererType.BUILTIN_TABLE:
                 return <TableRenderer vizInfo={this.props.vizInfo} editable={this.props.editable} />;
@@ -20,14 +23,10 @@ export class VizComponent extends React.Component<Props> {
         }
     }
 
-    public renderProgress() {
-        return <VizProgress vizInfo={this.props.vizInfo} />;
-    }
-
     public render() {
         return (
             <VizCard title={this.props.vizInfo.title || 'Some Title'} controls={this.props.editable}>
-                {this.renderProgress()}
+                {this.renderViz()}
             </VizCard>
         );
     }

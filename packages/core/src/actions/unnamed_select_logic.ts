@@ -1,6 +1,6 @@
 import * as proto from '@dashql/proto';
 import * as webdb from '@dashql/webdb/dist/webdb.module.js';
-import { ActionHandle, Statement } from '../model';
+import { ActionHandle, Statement, PlanObject } from '../model';
 import { ProgramActionLogic } from './action_logic';
 import { ActionContext } from './action_context';
 
@@ -9,8 +9,8 @@ export class UnnamedSelectLogic extends ProgramActionLogic {
         super(action_id, action, statement);
     }
 
-    public prepare(_context: ActionContext) {}
-
+    public prepare(_context: ActionContext, _planObjects: PlanObject[]): void {}
+    public willExecute(_context: ActionContext) {}
     public async execute(context: ActionContext): Promise<void> {
         const script = this.script;
         if (!script) return;

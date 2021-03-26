@@ -23,18 +23,11 @@ export abstract class VizActionLogic extends ProgramActionLogic {
 
     /// Read context info
     public configureVizComposer(context: ActionContext) {
-        // Get the program instance
-        const programInstance = context.plan.programInstance;
-        // Get viz spec
-        this._vizSpec = programInstance.vizSpecs.get(this.origin.statementId) || null;
-        if (!this._vizSpec) {
-            throw new error.VizLogicError('viz spec does not exist', programInstance);
-        }
         // Get the table info
+        const programInstance = context.plan.programInstance;
         const store = context.platform.store;
         const tableInfo = store.getState().core.planDatabaseTables.get(this.tableNameQualified) || null;
         if (!tableInfo) {
-            console.log(store.getState().core.planDatabaseTables.toArray());
             throw new error.VizLogicError(`target table ${this.tableNameQualified} does not exist`, programInstance);
         }
         // Build the composer
@@ -67,7 +60,40 @@ export class CreateVizActionLogic extends VizActionLogic {
         super(action_id, action, statement);
     }
 
-    public prepare(context: ActionContext) {
+    public prepare(context: ActionContext, planObjects: model.PlanObject[]): void {
+        // Get the program instance
+        const programInstance = context.plan.programInstance;
+        // Get viz spec
+        this._vizSpec = programInstance.vizSpecs.get(this.origin.statementId) || null;
+        if (!this._vizSpec) {
+            throw new error.VizLogicError('viz spec does not exist', programInstance);
+        }
+        // Get position
+        const posReader = this._vizSpec!.position()!;
+        const pos: model.VizPosition = {
+            row: posReader.row(),
+            column: posReader.column(),
+            width: posReader.width(),
+            height: posReader.height(),
+        };
+        const now = new Date();
+        const info: model.VizInfo = {
+            objectId: this.buffer.objectId(),
+            objectType: model.PlanObjectType.VIZ_INFO,
+            timeCreated: now,
+            timeUpdated: now,
+            currentStatementId: this.origin.statementId,
+            position: pos,
+            title: this._vizSpec!.title() || null,
+            renderer: null,
+            vegaLiteSpec: null,
+            vegaSpec: null,
+            dataSource: null,
+        };
+        planObjects.push(info);
+    }
+
+    public willExecute(context: ActionContext) {
         this.configureVizComposer(context);
         this._rowCountPromise = context.platform.database.requestTableStatistics(
             this.tableNameQualified,
@@ -80,29 +106,22 @@ export class CreateVizActionLogic extends VizActionLogic {
         await context.platform.database.evaluateTableStatistics(this.tableNameQualified);
         await this._rowCountPromise!;
 
-        // Build the viz info and store it in redux
-        const posReader = this._vizSpec!.position()!;
-        const pos: model.VizPosition = {
-            row: posReader.row(),
-            column: posReader.column(),
-            width: posReader.width(),
-            height: posReader.height(),
-        };
-        const spec = await this._vizComposer!.compile();
+        // Get viz info
+        const oid = this.buffer.objectId().toString();
+        const state = context.platform.store.getState();
+        let viz = state.core.planObjects.get(oid) as model.VizInfo;
+
+        // Create new viz object
         const now = new Date();
-        const info: model.VizInfo = {
-            objectId: this.buffer.objectId(),
-            objectType: model.PlanObjectType.VIZ_INFO,
-            timeCreated: now,
-            timeUpdated: now,
-            title: this._vizSpec!.title() || null,
-            position: pos,
-            currentStatementId: this.origin.statementId,
+        const spec = await this._vizComposer!.compile();
+        viz = {
+            ...viz,
             ...spec,
+            timeUpdated: now,
         };
         model.mutate(context.platform.store.dispatch, {
             type: model.StateMutationType.INSERT_PLAN_OBJECTS,
-            data: [info],
+            data: [viz],
         });
     }
 }
@@ -113,7 +132,7 @@ export class DropVizActionLogic extends SetupActionLogic {
     }
 
     public prepare(_context: ActionContext) {}
-
+    public willExecute(_context: ActionContext) {}
     public async execute(context: ActionContext): Promise<void> {
         const store = context.platform.store!;
         const objectId = this.buffer.objectId();
@@ -130,6 +149,6 @@ export class ImportVizActionLogic extends SetupActionLogic {
     }
 
     public prepare(_context: ActionContext) {}
-
+    public willExecute(_context: ActionContext) {}
     public async execute(_context: ActionContext): Promise<void> {}
 }
