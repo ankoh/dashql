@@ -3,7 +3,6 @@ import * as React from 'react';
 import * as core from '@dashql/core';
 import * as model from '../../model';
 import { connect } from 'react-redux';
-import { VizCard } from './viz_card';
 import { IAppContext, withAppContext } from '../../app_context';
 
 import DataGrid from './data_grid';
@@ -31,18 +30,15 @@ export class TableRenderer extends React.Component<Props> {
             return <div />;
         }
         const targetShort = table.tableNameShort;
-        const targetQualified = table.tableNameQualified;
         return (
-            <VizCard title={this.props.vizInfo.title || `Table ${targetShort}`} controls={this.props.editable}>
-                <ScanProvider
-                    logger={logger}
-                    database={db}
-                    targetName={targetShort}
-                    request={new core.access.ScanRequest().withRange(0, 1024)}
-                >
-                    {(data, requestData) => <DataGrid tableInfo={table} data={data} requestData={requestData} />}
-                </ScanProvider>
-            </VizCard>
+            <ScanProvider
+                logger={logger}
+                database={db}
+                targetName={targetShort}
+                request={new core.access.ScanRequest().withRange(0, 1024)}
+            >
+                {(data, requestData) => <DataGrid tableInfo={table} data={data} requestData={requestData} />}
+            </ScanProvider>
         );
     }
 }
