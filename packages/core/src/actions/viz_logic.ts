@@ -110,6 +110,7 @@ export class CreateVizActionLogic extends VizActionLogic {
         const oid = this.buffer.objectId().toString();
         const state = context.platform.store.getState();
         let viz = state.core.planObjects.get(oid) as model.VizInfo;
+        console.assert(viz !== undefined, 'missing initial viz object');
 
         // Create new viz object
         const now = new Date();
