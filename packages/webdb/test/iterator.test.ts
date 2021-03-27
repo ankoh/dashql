@@ -121,7 +121,7 @@ export function testIterator(db: () => webdb.WebDBBindings) {
             });
 
             it('DATE', () => {
-                const result = conn.sendQuery(`SELECT DATE '2021-03-25' as foo;`);
+                const result = conn.sendQuery(`SELECT DATE '2021-03-25 18:20:00' as foo;`);
                 expect(result.columnTypesLength()).toBe(1);
                 const chunks = new webdb.ChunkStreamIterator(conn, result);
                 chunks.nextBlocking();
@@ -133,7 +133,7 @@ export function testIterator(db: () => webdb.WebDBBindings) {
             });
 
             it('TIME', () => {
-                const result = conn.sendQuery(`SELECT TIME '18:20:00' as foo;`);
+                const result = conn.sendQuery(`SELECT TIME '2021-03-25 18:20:00' as foo;`);
                 expect(result.columnTypesLength()).toBe(1);
                 interface Row extends webdb.RowProxy {
                     foo: Date | null;
