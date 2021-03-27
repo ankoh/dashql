@@ -40,8 +40,12 @@ export class ActionScheduler<ActionBuffer extends ProtoAction> {
     /// The failed actions
     _failedActions: NativeBitmap = new NativeBitmap();
 
-    constructor(interrupt: Promise<void>) {
+    /// Callback to store the action updates
+    _storeActionUpdates: (logic: ActionUpdate[]) => void;
+
+    constructor(interrupt: Promise<void>, storeActionUpdates: (logic: ActionUpdate[]) => void) {
         this._interrupt = interrupt.then(() => [null, null]);
+        this._storeActionUpdates = storeActionUpdates;
     }
 
     /// Get the scheduled actions
@@ -50,7 +54,7 @@ export class ActionScheduler<ActionBuffer extends ProtoAction> {
     }
 
     /// Prepare the scheduler
-    public prepare(actions: ActionLogic<ActionBuffer>[]) {
+    public prepare(ctx: ActionContext, actions: ActionLogic<ActionBuffer>[]) {
         this._actions = actions;
         this._actionPromises = [];
 
@@ -68,6 +72,14 @@ export class ActionScheduler<ActionBuffer extends ProtoAction> {
         this._scheduledActions.reset(this._actions.length);
         this._completedActions.reset(this._actions.length);
         this._failedActions.reset(this._actions.length);
+
+        // Prepare all actions
+        let objects: model.PlanObject[] = [];
+        actions.forEach((a, i) => a.prepare(ctx, objects));
+        model.mutate(ctx.platform.store.dispatch, {
+            type: model.StateMutationType.INSERT_PLAN_OBJECTS,
+            data: objects,
+        });
     }
 
     /// Get the actions
@@ -165,7 +177,7 @@ export class ActionScheduler<ActionBuffer extends ProtoAction> {
         if (!this.workLeft()) return false;
 
         // Flush any action updates
-        this.flushUpdates(context, diff);
+        this.flushActionUpdates(context, diff);
 
         // Wait for next action to complete
         let promises: Promise<[ActionHandle | null, ActionError | null]>[] = [this._interrupt];
@@ -220,15 +232,17 @@ export class ActionScheduler<ActionBuffer extends ProtoAction> {
             });
         }
 
+        // Flush any action updates
+        this.flushActionUpdates(context, diff);
         // No more scheduled actions left?
         return this.workLeft();
     }
 
     /// Flush teh action updates
-    public flushUpdates(ctx: ActionContext, diff: NativeStack) {
+    public flushActionUpdates(_ctx: ActionContext, diff: NativeStack) {
         if (diff.empty()) return;
 
-        // Synchronize all the diffed actions
+        // Synchronize all actions in the diff
         let actionUpdates: Map<number, ActionUpdate> = new Map();
         for (; !diff.empty(); diff.pop()) {
             const actionIdx = diff.top();
@@ -242,20 +256,7 @@ export class ActionScheduler<ActionBuffer extends ProtoAction> {
                 blocker: action.blocker,
             });
         }
-        // Update the action status in the analyzer
-        for (const [_, u] of actionUpdates) {
-            // Update the action status in the analyzer
-            ctx.platform.analyzer.updateActionStatus(
-                getActionClass(u.actionId),
-                getActionIndex(u.actionId),
-                u.statusCode,
-            );
-        }
-        // Update all actions in the store
-        mutate(ctx.platform.store.dispatch, {
-            type: StateMutationType.UPDATE_PLAN_ACTIONS,
-            data: Array.from(actionUpdates, ([_k, v]) => v),
-        });
+        this._storeActionUpdates(Array.from(actionUpdates, ([_k, v]) => v));
     }
 }
 
@@ -286,8 +287,32 @@ export class ActionGraphScheduler {
             this._interruptFunction = () => resolve();
         });
         this._canceled = false;
-        this._setupActions = new ActionScheduler<proto.action.SetupAction>(this._interruptPromise);
-        this._programActions = new ActionScheduler<proto.action.ProgramAction>(this._interruptPromise);
+
+        // Setup the schedulers
+        const storeActionUpdates = this.storeActionUpdates.bind(this);
+        this._setupActions = new ActionScheduler<proto.action.SetupAction>(this._interruptPromise, storeActionUpdates);
+        this._programActions = new ActionScheduler<proto.action.ProgramAction>(
+            this._interruptPromise,
+            storeActionUpdates,
+        );
+    }
+
+    /// Update the action status in redux and wasm
+    protected storeActionUpdates(actionUpdates: ActionUpdate[]) {
+        // Update the action status in the analyzer
+        for (const u of actionUpdates) {
+            // Update the action status in the analyzer
+            this._platform.analyzer.updateActionStatus(
+                getActionClass(u.actionId),
+                getActionIndex(u.actionId),
+                u.statusCode,
+            );
+        }
+        // Update all actions in the store
+        mutate(this._platform.store.dispatch, {
+            type: StateMutationType.UPDATE_PLAN_ACTIONS,
+            data: actionUpdates,
+        });
     }
 
     /// Reset the scheduler
@@ -323,7 +348,7 @@ export class ActionGraphScheduler {
                 timeLastUpdate: now,
             });
         }
-        this._setupActions.prepare(setupLogic);
+        this._setupActions.prepare(ctx, setupLogic);
 
         // Translate the program actions
         let programLogic = [];
@@ -348,9 +373,8 @@ export class ActionGraphScheduler {
                 timeScheduled: null,
                 timeLastUpdate: now,
             });
-            programLogic[i].prepare(ctx, planObjects);
         }
-        this._programActions.prepare(programLogic);
+        this._programActions.prepare(ctx, programLogic);
 
         mutate(ctx.platform.store.dispatch, {
             type: model.StateMutationType.SCHEDULE_PLAN,
@@ -401,10 +425,7 @@ export class ActionGraphScheduler {
             let workLeft = await scheduler.executeFirst(ctx, diff);
             workLeft;
             workLeft = await scheduler.execute(ctx, diff)
-        ) {
-            scheduler.flushUpdates(ctx, diff);
-        }
-        scheduler.flushUpdates(ctx, diff);
+        ) {}
     }
 
     /// Execute the entire action graph

@@ -221,7 +221,7 @@ export class StateMutations {
                         for (const update of mutation.data) {
                             let a = actions.get(update.actionId);
                             if (!a) {
-                                console.warn(`UPDATE_ACTIONS refers to unknown action id: ${update.actionId}`);
+                                console.warn(`UPDATE_PLAN_ACTIONS refers to unknown action id: ${update.actionId}`);
                                 continue;
                             }
                             actions.set(update.actionId, {
