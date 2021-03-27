@@ -1,7 +1,9 @@
 import * as React from 'react';
+import { AppContextConsumer } from 'src/app_context';
 
 import styles from './board_editor.module.css';
 
+const CORNER_COLOR = 'rgb(210, 210, 210)';
 const TICK_COLOR = 'rgb(180, 180, 180)';
 const TICK_WIDTH = 1;
 
@@ -72,12 +74,14 @@ export class Ruler extends React.Component<RulerProps, RulerState> {
         const ub = length - this.props.containerPadding;
         let ticks = new Array<Tick>();
         let stepLength = ub - lb;
-        if (this.props.stepLength) {
+        if (this.props.stepCount !== undefined) {
+            stepLength = (ub - lb) / this.props.stepCount;
+        } else if (this.props.stepLength !== undefined) {
             stepLength = this.props.stepLength + this.props.tickMargin;
-        } else if (this.props.stepCount) {
-            stepLength = (ub - lb - this.props.tickMargin * (this.props.stepCount - 1)) / this.props.stepCount;
         }
-        for (let x = lb - this.props.tickMargin / 2.0; x <= ub; x += stepLength) {
+        const cnt = Math.trunc((ub - lb) / stepLength);
+        let x = lb + stepLength;
+        for (let i = 1; i < cnt; ++i, x += stepLength) {
             ticks.push(new Tick([x, thickness - 0.5], [x, thickness / 2 - 0.5]));
         }
         return ticks;
@@ -93,25 +97,44 @@ export class Ruler extends React.Component<RulerProps, RulerState> {
         let context = canvas.getContext('2d')!;
         context.strokeStyle = TICK_COLOR;
         context.lineWidth = TICK_WIDTH;
+        context.fillStyle = CORNER_COLOR;
         context.scale(this.state.dpr, this.state.dpr);
         context.textBaseline = 'top';
 
         if (this.props.orientation === RulerOrientation.Horizontal) {
-            context.textAlign = 'left';
             context.beginPath();
             this.state.ticks.forEach(t => {
                 context.moveTo(t.begin[0], t.begin[1]);
                 context.lineTo(t.end[0], t.end[1]);
             });
             context.stroke();
+
+            context.beginPath();
+            context.rect(0, 0, this.props.containerPadding, this.props.height);
+            context.rect(
+                this.props.width - this.props.containerPadding,
+                0,
+                this.props.containerPadding,
+                this.props.height,
+            );
+            context.fill();
         } else {
-            context.textAlign = 'right';
             context.beginPath();
             this.state.ticks.forEach(t => {
                 context.moveTo(t.begin[0], t.begin[1]);
                 context.lineTo(t.end[0], t.end[1]);
             });
             context.stroke();
+
+            context.beginPath();
+            context.rect(0, 0, this.props.width, this.props.containerPadding);
+            context.rect(
+                0,
+                this.props.height - this.props.containerPadding,
+                this.props.width,
+                this.props.containerPadding,
+            );
+            context.fill();
         }
     }
 
@@ -137,9 +160,14 @@ export class Ruler extends React.Component<RulerProps, RulerState> {
 
     render() {
         return (
-            <div className={this.props.className}>
-                <canvas className={styles.ruler_canvas} ref={this.canvas} />
-            </div>
+            <canvas
+                className={this.props.className}
+                ref={this.canvas}
+                style={{
+                    width: this.props.width,
+                    height: this.props.height,
+                }}
+            />
         );
     }
 }

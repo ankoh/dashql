@@ -51,7 +51,7 @@ export class BoardEditor extends React.Component<IBoardEditorProps, {}> {
                                 <div className={styles.content_container}>
                                     <Board
                                         className={styles.content}
-                                        width={width - 32}
+                                        width={width - rulerThickness}
                                         editable={true}
                                         columnCount={columnCount}
                                         rowHeight={rowHeight}
@@ -62,7 +62,7 @@ export class BoardEditor extends React.Component<IBoardEditorProps, {}> {
                                         <AutoSizer disableWidth>
                                             {s => (
                                                 <Ruler
-                                                    width={32}
+                                                    width={rulerThickness}
                                                     height={s.height}
                                                     orientation={RulerOrientation.Vertical}
                                                     scaleFactor={this.props.scaleFactor}
