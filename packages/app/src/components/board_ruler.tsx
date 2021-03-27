@@ -3,7 +3,7 @@ import { AppContextConsumer } from 'src/app_context';
 
 import styles from './board_editor.module.css';
 
-const CORNER_COLOR = 'rgb(210, 210, 210)';
+const CORNER_COLOR = 'rgb(240, 240, 240)';
 const TICK_COLOR = 'rgb(180, 180, 180)';
 const TICK_WIDTH = 1;
 
@@ -123,6 +123,16 @@ export class Ruler extends React.Component<RulerProps, RulerState> {
                 this.props.height,
             );
             context.fill();
+
+            context.beginPath();
+            context.moveTo(this.props.containerPadding, 0);
+            context.lineTo(this.props.containerPadding, this.props.height - 1);
+            context.stroke();
+
+            context.beginPath();
+            context.moveTo(this.props.width - this.props.containerPadding, 0);
+            context.lineTo(this.props.width - this.props.containerPadding, this.props.height - 1);
+            context.stroke();
         } else {
             context.beginPath();
             this.state.ticks.forEach(t => {
@@ -132,14 +142,24 @@ export class Ruler extends React.Component<RulerProps, RulerState> {
             context.stroke();
 
             context.beginPath();
-            context.rect(0, 0, this.props.width, this.props.containerPadding);
+            context.rect(0, 0, this.props.width - 1, this.props.containerPadding);
             context.rect(
                 0,
                 this.props.height - this.props.containerPadding,
-                this.props.width,
+                this.props.width - 1,
                 this.props.containerPadding,
             );
             context.fill();
+
+            context.beginPath();
+            context.moveTo(0, this.props.containerPadding);
+            context.lineTo(this.props.width, this.props.containerPadding);
+            context.stroke();
+
+            context.beginPath();
+            context.moveTo(0, this.props.height - this.props.containerPadding);
+            context.lineTo(this.props.width, this.props.height - this.props.containerPadding);
+            context.stroke();
         }
     }
 
