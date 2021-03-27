@@ -13,6 +13,7 @@ import { VizCard } from './viz_card';
 import { VirtualScrollbars, PositionValues } from '../virtual_scrollbars';
 
 import styles from './data_grid.module.css';
+import { ChunkIterator } from '@dashql/webdb/dist/webdb.module.js';
 
 type Props = {
     tableInfo: core.model.DatabaseTableInfo;
@@ -248,35 +249,47 @@ export class DataGrid extends React.Component<Props, State> {
             const offset = props.rowStartIndex - this.props.data!.request.begin;
             const limit = props.rowStopIndex - props.rowStartIndex + 1;
 
-            iter.iterateAllBlocking(
-                offset,
-                limit,
-                (iter: webdb.ChunkIterator, chunkStart: number, skipHere: number, rowsHere: number) => {
-                    let chunkRow = 0;
-                    for (const v of iter.iterateNumberColumn(columnIndex, skipHere, rowsHere)) {
-                        const rowIndex = props.rowStartIndex + chunkStart + chunkRow;
-                        const rowDatum = props.rowSizeAndPositionManager.getSizeAndPositionOfCell(rowIndex);
-                        const cell = this.renderAvailableDataCell(
-                            props,
-                            rowIndex,
-                            rowDatum,
-                            columnIndex,
-                            columnDatum,
-                            canCacheStyle,
-                            v,
-                            (key, style, value) => (
-                                <div key={key} className={styles.cell_data} style={{ ...style }}>
-                                    {value}
-                                </div>
-                            ),
-                        );
-                        if (cell) {
-                            cells.push(cell);
-                        }
-                        chunkRow++;
+            let skip = offset;
+            let remaining = limit;
+            let start = 0;
+
+            while (remaining && iter.nextBlocking()) {
+                const chunkRows = iter.currentChunk!.rowCount();
+                const skipHere = Math.min(skip, chunkRows);
+                skip -= skipHere;
+                if (skipHere == chunkRows) {
+                    continue;
+                }
+                const rowsHere = Math.min(chunkRows - skipHere, remaining);
+
+                let chunkRow = 0;
+                for (const v of iter.iterateNumberColumn(columnIndex, skipHere, rowsHere)) {
+                    const rowIndex = props.rowStartIndex + start + chunkRow;
+                    const rowDatum = props.rowSizeAndPositionManager.getSizeAndPositionOfCell(rowIndex);
+                    const cell = this.renderAvailableDataCell(
+                        props,
+                        rowIndex,
+                        rowDatum,
+                        columnIndex,
+                        columnDatum,
+                        canCacheStyle,
+                        v,
+                        (key, style, value) => (
+                            <div key={key} className={styles.cell_data} style={{ ...style }}>
+                                {value}
+                            </div>
+                        ),
+                    );
+                    if (cell) {
+                        cells.push(cell);
                     }
-                },
-            );
+                    chunkRow++;
+                }
+
+                // Advance the chunk start
+                start += chunkRows - skipHere;
+                remaining -= rowsHere;
+            }
         }
         return cells;
     }
