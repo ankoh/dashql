@@ -66,41 +66,26 @@ async function main(db: webdb.AsyncWebDB) {
 
     db.registerURL(lineitemPath);
 
-    let result = await conn.runQuery(
-        `select l_orderkey,l_shipdate
-        from parquet_scan('${lineitemPath}') lineitem LIMIT 5`,
-    );
-
+    let result = await conn.runQuery(`select * from parquet_scan('${lineitemPath}') lineitem LIMIT 5`);
     const chunks = new webdb.StaticChunkIterator(result);
     interface Row extends webdb.RowProxy {
-        l_orderkey: bigint;
-        // l_partkey: number;
-        // l_suppkey: number;
-        // l_linenumber: number;
-        // l_quantity: number;
-        // l_extendedprice: number;
-        // l_discount: number;
-        // l_tax: number;
-        // l_returnflag: string;
-        // l_linestatus: string;
+        l_orderkey: number;
+        l_partkey: number;
+        l_suppkey: number;
+        l_linenumber: number;
+        l_quantity: number;
+        l_extendedprice: number;
+        l_discount: number;
+        l_tax: number;
+        l_returnflag: string;
+        l_linestatus: string;
         l_shipdate: Date;
-        // l_commitdate: Date;
-        // l_receiptdate: Date;
-        // l_shipinstruct: string;
-        // l_shipmode: string;
-        // l_comment: string;
+        l_commitdate: Date;
+        l_receiptdate: Date;
+        l_shipinstruct: string;
+        l_shipmode: string;
+        l_comment: string;
     }
-
-    //     while (chunks.nextBlocking()) {
-    //         for (let x of chunks.iterateBigIntColumn(0)) {
-    //             console.log(x);
-    //         }
-    //         for (let x of chunks.iterateDateColumn(1)) {
-    //             console.log(x);
-    //         }
-    //     }
-    //
-    //     chunks.rewind();
 
     const rows = chunks.collectAllBlocking<Row>();
     console.log(

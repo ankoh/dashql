@@ -206,13 +206,13 @@ export class RowProxyType {
 
     /** Index the chunk data */
     public static indexChunkData(chunk: webdb.QueryResultChunk) {
-        let tmp = new TmpBuffers();
         const data: ChunkData = {
             columns: [],
             nullmasks: [],
             partitionBoundaries: chunk.partitionBoundariesArray() || null,
         };
         for (let columnId = 0; columnId < chunk.columnsLength(); ++columnId) {
+            let tmp = new TmpBuffers();
             const column = chunk.columns(columnId)!;
             switch (column.variantType()) {
                 case proto.VectorVariant.VectorU8: {
