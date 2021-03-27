@@ -1,7 +1,4 @@
 import * as React from 'react';
-import { AppContextConsumer } from 'src/app_context';
-
-import styles from './board_editor.module.css';
 
 const CORNER_COLOR = 'rgb(240, 240, 240)';
 const TICK_COLOR = 'rgb(180, 180, 180)';
@@ -69,7 +66,7 @@ export class Ruler extends React.Component<RulerProps, RulerState> {
     }
 
     // Layout implementation for both, the horizontal and the vertical ruler
-    layoutImpl(length: number, thickness: number, scaleFactor: number): Array<Tick> {
+    layoutImpl(length: number, thickness: number, _scaleFactor: number): Array<Tick> {
         const lb = this.props.containerPadding;
         const ub = length - this.props.containerPadding;
         let ticks = new Array<Tick>();
@@ -79,7 +76,7 @@ export class Ruler extends React.Component<RulerProps, RulerState> {
         } else if (this.props.stepLength !== undefined) {
             stepLength = this.props.stepLength + this.props.tickMargin;
         }
-        const cnt = Math.trunc((ub - lb) / stepLength);
+        const cnt = Math.ceil((ub - lb) / stepLength);
         let x = lb + stepLength;
         for (let i = 1; i < cnt; ++i, x += stepLength) {
             ticks.push(
