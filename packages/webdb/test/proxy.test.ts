@@ -180,7 +180,7 @@ export function testProxies(db: () => webdb.WebDBBindings) {
                 const result = conn.sendQuery(`
                     SELECT 
                         v::INTEGER AS foo, v::BIGINT as bar, v::VARCHAR as fizz, v > 0 as buzz,
-                        '2021-03-25 18:20:00'::DATE, '2021-03-25 18:20:00'::TIME, '2021-03-25 18:20:00'::TIMESTAMP
+                        '2021-03-25 18:20:00'::DATE as tic, '2021-03-25 18:20:00'::TIME as tac, '2021-03-25 18:20:00'::TIMESTAMP as toe
                     FROM generate_series(0, ${testRows}) as t(v);
                 `);
                 expect(result.columnTypesLength()).toBe(7);
@@ -220,7 +220,7 @@ export function testProxies(db: () => webdb.WebDBBindings) {
                 const result = conn.sendQuery(`
                     SELECT 
                         v::INTEGER AS foo, v::BIGINT as bar, v::VARCHAR as fizz, v > 0 as buzz,
-                        '2021-03-25 18:20:00'::DATE, '2021-03-25 18:20:00'::TIME, '2021-03-25 18:20:00'::TIMESTAMP
+                        '2021-03-25 18:20:00'::DATE as tic, '2021-03-25 18:20:00'::TIME as tac, '2021-03-25 18:20:00'::TIMESTAMP as toe
                     FROM generate_series(0, ${testRows}) as t(v);
                 `);
                 expect(result.columnTypesLength()).toBe(7);
@@ -261,7 +261,7 @@ export function testProxies(db: () => webdb.WebDBBindings) {
                 const result = conn.runQuery(`
                     SELECT 
                         v::INTEGER AS foo, v::BIGINT as bar, v::VARCHAR as fizz, v > 0 as buzz,
-                        '2021-03-25 18:20:00'::DATE, '2021-03-25 18:20:00'::TIME, '2021-03-25 18:20:00'::TIMESTAMP
+                        '2021-03-25 18:20:00'::DATE as tic, '2021-03-25 18:20:00'::TIME as tac, '2021-03-25 18:20:00'::TIMESTAMP as toe
                     FROM generate_series(0, ${testRows}) as t(v);
                 `);
                 expect(result.columnTypesLength()).toBe(7);
@@ -302,7 +302,7 @@ export function testProxies(db: () => webdb.WebDBBindings) {
                 const result = conn.runQuery(`
                     SELECT 
                         v::INTEGER AS foo, v::BIGINT as bar, v::VARCHAR as fizz, v > 0 as buzz,
-                        '2021-03-25 18:20:00'::DATE, '2021-03-25 18:20:00'::TIME, '2021-03-25 18:20:00'::TIMESTAMP 
+                        '2021-03-25 18:20:00'::DATE as tic, '2021-03-25 18:20:00'::TIME as tac, '2021-03-25 18:20:00'::TIMESTAMP as toe 
                     FROM generate_series(0, ${testRows}) as t(v);
                 `);
                 expect(result.columnTypesLength()).toBe(7);
