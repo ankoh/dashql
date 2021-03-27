@@ -66,7 +66,7 @@ function readDoubleAsInteger(column: number, chunk: ChunkData, row: number): num
 function readString(column: number, chunk: ChunkData, row: number): string | null {
     return (chunk.columns[column] as proto.VectorString).values(row);
 }
-function returnNull(chunk: ChunkData, row: number) {
+function returnNull(chunk: ChunkData, row: number): null {
     return null;
 }
 
