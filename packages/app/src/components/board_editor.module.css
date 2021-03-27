@@ -22,14 +22,13 @@
 .ruler_corner {
     grid-row: 1;
     grid-column: 1;
-    background-color: var(--board_ruler_bg);
+    background-color: var(--board_ruler_corner_bg);
 }
 
 .ruler_top {
     grid-row: 1;
     grid-column: 2;
     background-color: var(--board_ruler_bg);
-    position: relative;
     border-bottom: 1px solid rgb(200, 200, 200);
 }
 
@@ -51,16 +50,6 @@
     background-color: var(--board_ruler_bg);
     position: relative;
     border-right: 1px solid rgb(200, 200, 200);
-}
-
-.ruler_canvas {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    width: 100%;
-    height: 100%;
 }
 
 .content {
