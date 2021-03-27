@@ -5,7 +5,7 @@ import { WebDBModule } from './webdb_module';
 import { WebDBBindings } from './bindings_base';
 import { Logger } from '../common';
 import { WebDBRuntime } from './runtime_base';
-import { WebBlobHandle } from 'src/targets/webdb-browser-serial.js';
+import { WebBlobHandle } from './runtime_browser';
 
 declare global {
     var WebDBTrampoline: any;
