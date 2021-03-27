@@ -348,7 +348,6 @@ export class ActionGraphScheduler {
                 timeLastUpdate: now,
             });
         }
-        this._setupActions.prepare(ctx, setupLogic);
 
         // Translate the program actions
         let programLogic = [];
@@ -374,12 +373,13 @@ export class ActionGraphScheduler {
                 timeLastUpdate: now,
             });
         }
-        this._programActions.prepare(ctx, programLogic);
 
         mutate(ctx.platform.store.dispatch, {
             type: model.StateMutationType.SCHEDULE_PLAN,
             data: [ctx.plan, actionInfos],
         });
+        this._setupActions.prepare(ctx, setupLogic);
+        this._programActions.prepare(ctx, programLogic);
 
         // Prepare all actions
         for (const action of setupLogic) {
