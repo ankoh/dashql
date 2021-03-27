@@ -82,7 +82,12 @@ export class Ruler extends React.Component<RulerProps, RulerState> {
         const cnt = Math.trunc((ub - lb) / stepLength);
         let x = lb + stepLength;
         for (let i = 1; i < cnt; ++i, x += stepLength) {
-            ticks.push(new Tick([x, thickness - 0.5], [x, thickness / 2 - 0.5]));
+            ticks.push(
+                new Tick(
+                    [x - this.props.tickMargin / 2, thickness - 0.5],
+                    [x - this.props.tickMargin / 2, thickness / 2 - 0.5],
+                ),
+            );
         }
         return ticks;
     }
