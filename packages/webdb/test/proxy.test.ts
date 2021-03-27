@@ -1,6 +1,6 @@
 import * as webdb from '../src/';
 
-const testRows = 3000;
+const testRows = 3;
 
 export function testProxies(db: () => webdb.WebDBBindings) {
     let conn: webdb.WebDBConnection;
@@ -16,7 +16,7 @@ export function testProxies(db: () => webdb.WebDBBindings) {
 
         describe('single column, single row', () => {
             it('DATE', () => {
-                const result = conn.sendQuery(`SELECT DATE '2021-03-25' as foo;`);
+                const result = conn.sendQuery(`SELECT '2021-03-25 18:20:00'::DATE as foo;`);
                 expect(result.columnTypesLength()).toBe(1);
                 interface Row extends webdb.RowProxy {
                     foo: Date | null;
@@ -27,7 +27,7 @@ export function testProxies(db: () => webdb.WebDBBindings) {
             });
 
             it('TIME', () => {
-                const result = conn.sendQuery(`SELECT TIME '18:20:00' as foo;`);
+                const result = conn.sendQuery(`SELECT '2021-03-25 18:20:00'::TIME as foo;`);
                 expect(result.columnTypesLength()).toBe(1);
                 interface Row extends webdb.RowProxy {
                     foo: Date | null;
@@ -38,7 +38,7 @@ export function testProxies(db: () => webdb.WebDBBindings) {
             });
 
             it('TIMESTAMP', () => {
-                const result = conn.sendQuery(`SELECT TIMESTAMP '2021-03-25 18:20:00' as foo;`);
+                const result = conn.sendQuery(`SELECT '2021-03-25 18:20:00'::TIMESTAMP as foo;`);
                 expect(result.columnTypesLength()).toBe(1);
                 interface Row extends webdb.RowProxy {
                     foo: Date | null;
@@ -178,14 +178,20 @@ export function testProxies(db: () => webdb.WebDBBindings) {
         describe('multiple columns, many rows', () => {
             it('ALLTYPES', () => {
                 const result = conn.sendQuery(`
-                    SELECT v::INTEGER AS foo, v::BIGINT as bar, v::VARCHAR as fizz, v > 0 as buzz FROM generate_series(0, ${testRows}) as t(v);
+                    SELECT 
+                        v::INTEGER AS foo, v::BIGINT as bar, v::VARCHAR as fizz, v > 0 as buzz,
+                        '2021-03-25 18:20:00'::DATE, '2021-03-25 18:20:00'::TIME, '2021-03-25 18:20:00'::TIMESTAMP
+                    FROM generate_series(0, ${testRows}) as t(v);
                 `);
-                expect(result.columnTypesLength()).toBe(4);
+                expect(result.columnTypesLength()).toBe(7);
                 interface Row extends webdb.RowProxy {
                     foo: number | null;
                     bar: bigint | null;
                     fizz: string | null;
                     buzz: boolean | null;
+                    tic: Date | null;
+                    tac: Date | null;
+                    toe: Date | null;
                 }
                 const chunks = new webdb.ChunkStreamIterator(conn, result);
                 let expected = 0;
@@ -200,24 +206,36 @@ export function testProxies(db: () => webdb.WebDBBindings) {
                         expect(row.__attribute__(2)).toBe(String(e));
                         expect(row.buzz).toBe(e > 0);
                         expect(row.__attribute__(3)).toBe(e > 0);
+                        expect(row.tic).toEqual(new Date(Date.UTC(2021, 2, 25)));
+                        expect(row.__attribute__(4)).toEqual(new Date(Date.UTC(2021, 2, 25)));
+                        expect(row.tac).toEqual(new Date('1970-01-01T18:20:00Z'));
+                        expect(row.__attribute__(5)).toEqual(new Date('1970-01-01T18:20:00Z'));
+                        expect(row.toe).toEqual(new Date('2021-03-25T18:20:00Z'));
+                        expect(row.__attribute__(6)).toEqual(new Date('2021-03-25T18:20:00Z'));
                     }
                 }
             });
 
             it('streaming iterator', () => {
                 const result = conn.sendQuery(`
-                    SELECT v::INTEGER AS foo, v::BIGINT as bar, v::VARCHAR as fizz, v > 0 as buzz FROM generate_series(0, ${testRows}) as t(v);
+                    SELECT 
+                        v::INTEGER AS foo, v::BIGINT as bar, v::VARCHAR as fizz, v > 0 as buzz,
+                        '2021-03-25 18:20:00'::DATE, '2021-03-25 18:20:00'::TIME, '2021-03-25 18:20:00'::TIMESTAMP
+                    FROM generate_series(0, ${testRows}) as t(v);
                 `);
-                expect(result.columnTypesLength()).toBe(4);
+                expect(result.columnTypesLength()).toBe(7);
                 interface Row extends webdb.RowProxy {
                     foo: number | null;
                     bar: bigint | null;
                     fizz: string | null;
                     buzz: boolean | null;
+                    tic: Date | null;
+                    tac: Date | null;
+                    toe: Date | null;
                 }
                 const chunks = new webdb.ChunkStreamIterator(conn, result);
                 const iter = chunks.iter<Row>();
-                expect(iter.columns).toEqual(['foo', 'bar', 'fizz', 'buzz']);
+                expect(iter.columns).toEqual(['foo', 'bar', 'fizz', 'buzz', 'tic', 'tac', 'toe']);
 
                 let expected = 0;
                 for (const row of iter) {
@@ -230,23 +248,35 @@ export function testProxies(db: () => webdb.WebDBBindings) {
                     expect(row.__attribute__(2)).toBe(String(e));
                     expect(row.buzz).toBe(e > 0);
                     expect(row.__attribute__(3)).toBe(e > 0);
+                    expect(row.tic).toEqual(new Date(Date.UTC(2021, 2, 25)));
+                    expect(row.__attribute__(4)).toEqual(new Date(Date.UTC(2021, 2, 25)));
+                    expect(row.tac).toEqual(new Date('1970-01-01T18:20:00Z'));
+                    expect(row.__attribute__(5)).toEqual(new Date('1970-01-01T18:20:00Z'));
+                    expect(row.toe).toEqual(new Date('2021-03-25T18:20:00Z'));
+                    expect(row.__attribute__(6)).toEqual(new Date('2021-03-25T18:20:00Z'));
                 }
             });
 
             it('buffered iterator', () => {
                 const result = conn.runQuery(`
-                    SELECT v::INTEGER AS foo, v::BIGINT as bar, v::VARCHAR as fizz, v > 0 as buzz FROM generate_series(0, ${testRows}) as t(v);
+                    SELECT 
+                        v::INTEGER AS foo, v::BIGINT as bar, v::VARCHAR as fizz, v > 0 as buzz,
+                        '2021-03-25 18:20:00'::DATE, '2021-03-25 18:20:00'::TIME, '2021-03-25 18:20:00'::TIMESTAMP
+                    FROM generate_series(0, ${testRows}) as t(v);
                 `);
-                expect(result.columnTypesLength()).toBe(4);
+                expect(result.columnTypesLength()).toBe(7);
                 interface Row extends webdb.RowProxy {
                     foo: number | null;
                     bar: bigint | null;
                     fizz: string | null;
                     buzz: boolean | null;
+                    tic: Date | null;
+                    tac: Date | null;
+                    toe: Date | null;
                 }
                 const chunks = new webdb.StaticChunkIterator(result);
                 const iter = chunks.iter<Row>();
-                expect(iter.columns).toEqual(['foo', 'bar', 'fizz', 'buzz']);
+                expect(iter.columns).toEqual(['foo', 'bar', 'fizz', 'buzz', 'tic', 'tac', 'toe']);
 
                 let expected = 0;
                 for (const row of iter) {
@@ -259,23 +289,35 @@ export function testProxies(db: () => webdb.WebDBBindings) {
                     expect(row.__attribute__(2)).toBe(String(e));
                     expect(row.buzz).toBe(e > 0);
                     expect(row.__attribute__(3)).toBe(e > 0);
+                    expect(row.tic).toEqual(new Date(Date.UTC(2021, 2, 25)));
+                    expect(row.__attribute__(4)).toEqual(new Date(Date.UTC(2021, 2, 25)));
+                    expect(row.tac).toEqual(new Date('1970-01-01T18:20:00Z'));
+                    expect(row.__attribute__(5)).toEqual(new Date('1970-01-01T18:20:00Z'));
+                    expect(row.toe).toEqual(new Date('2021-03-25T18:20:00Z'));
+                    expect(row.__attribute__(6)).toEqual(new Date('2021-03-25T18:20:00Z'));
                 }
             });
 
             it('collect all blocking', () => {
                 const result = conn.runQuery(`
-                    SELECT v::INTEGER AS foo, v::BIGINT as bar, v::VARCHAR as fizz, v > 0 as buzz FROM generate_series(0, ${testRows}) as t(v);
+                    SELECT 
+                        v::INTEGER AS foo, v::BIGINT as bar, v::VARCHAR as fizz, v > 0 as buzz,
+                        '2021-03-25 18:20:00'::DATE, '2021-03-25 18:20:00'::TIME, '2021-03-25 18:20:00'::TIMESTAMP 
+                    FROM generate_series(0, ${testRows}) as t(v);
                 `);
-                expect(result.columnTypesLength()).toBe(4);
+                expect(result.columnTypesLength()).toBe(7);
                 interface Row extends webdb.RowProxy {
                     foo: number | null;
                     bar: bigint | null;
                     fizz: string | null;
                     buzz: boolean | null;
+                    tic: Date | null;
+                    tac: Date | null;
+                    toe: Date | null;
                 }
                 const chunks = new webdb.StaticChunkIterator(result);
                 const array = chunks.collectAllBlocking<Row>();
-                expect(array.columns).toEqual(['foo', 'bar', 'fizz', 'buzz']);
+                expect(array.columns).toEqual(['foo', 'bar', 'fizz', 'buzz', 'tic', 'tac', 'toe']);
 
                 let expected = 0;
                 for (const row of array) {
@@ -288,6 +330,12 @@ export function testProxies(db: () => webdb.WebDBBindings) {
                     expect(row.__attribute__(2)).toBe(String(e));
                     expect(row.buzz).toBe(e > 0);
                     expect(row.__attribute__(3)).toBe(e > 0);
+                    expect(row.tic).toEqual(new Date(Date.UTC(2021, 2, 25)));
+                    expect(row.__attribute__(4)).toEqual(new Date(Date.UTC(2021, 2, 25)));
+                    expect(row.tac).toEqual(new Date('1970-01-01T18:20:00Z'));
+                    expect(row.__attribute__(5)).toEqual(new Date('1970-01-01T18:20:00Z'));
+                    expect(row.toe).toEqual(new Date('2021-03-25T18:20:00Z'));
+                    expect(row.__attribute__(6)).toEqual(new Date('2021-03-25T18:20:00Z'));
                 }
             });
         });

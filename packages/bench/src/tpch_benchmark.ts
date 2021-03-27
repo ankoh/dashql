@@ -22,8 +22,8 @@ async function main(db: webdb.AsyncWebDB) {
         l_extendedprice: { type: 'DOUBLE' },
         l_discount: { type: 'DOUBLE' },
         l_tax: { type: 'DOUBLE' },
-        l_returnflag: { type: 'INT_8' },
-        l_linestatus: { type: 'INT_8' },
+        l_returnflag: { type: 'UTF8' },
+        l_linestatus: { type: 'UTF8' },
         l_shipdate: { type: 'TIMESTAMP_MILLIS' },
         l_commitdate: { type: 'TIMESTAMP_MILLIS' },
         l_receiptdate: { type: 'TIMESTAMP_MILLIS' },
@@ -34,10 +34,13 @@ async function main(db: webdb.AsyncWebDB) {
     let lineitemPath = path.resolve(__dirname, 'lineitem.parquet');
     let lineitemWriter = await parquet.ParquetWriter.openFile(lineitemSchema, lineitemPath);
 
+    let c = 0;
     for (let file of fg.sync(`${dbPath}/lineitem.tbl.[0-9]*`)) {
         for (let row of parse(fs.readFileSync(file), {
             delimiter: '|',
         })) {
+            if (c++ > 4) break;
+            console.log(row);
             await lineitemWriter.appendRow({
                 l_orderkey: parseInt(row[0]),
                 l_partkey: parseInt(row[1]),
@@ -47,8 +50,8 @@ async function main(db: webdb.AsyncWebDB) {
                 l_extendedprice: parseFloat(row[5]),
                 l_discount: parseFloat(row[6]),
                 l_tax: parseFloat(row[7]),
-                l_returnflag: row[8].charCodeAt(0),
-                l_linestatus: row[9].charCodeAt(0),
+                l_returnflag: row[8],
+                l_linestatus: row[9],
                 l_shipdate: new Date(row[10]),
                 l_commitdate: new Date(row[11]),
                 l_receiptdate: new Date(row[12]),
@@ -63,31 +66,45 @@ async function main(db: webdb.AsyncWebDB) {
 
     db.registerURL(lineitemPath);
 
-    let result = await conn.runQuery(`select * from parquet_scan('${lineitemPath}') lineitem LIMIT 5`);
+    let result = await conn.runQuery(
+        `select l_orderkey,l_shipdate
+        from parquet_scan('${lineitemPath}') lineitem LIMIT 5`,
+    );
 
     const chunks = new webdb.StaticChunkIterator(result);
     interface Row extends webdb.RowProxy {
-        l_orderkey: number;
-        l_partkey: number;
-        l_suppkey: number;
-        l_linenumber: number;
-        l_quantity: number;
-        l_extendedprice: number;
-        l_discount: number;
-        l_tax: number;
-        l_returnflag: number;
-        l_linestatus: number;
+        l_orderkey: bigint;
+        // l_partkey: number;
+        // l_suppkey: number;
+        // l_linenumber: number;
+        // l_quantity: number;
+        // l_extendedprice: number;
+        // l_discount: number;
+        // l_tax: number;
+        // l_returnflag: string;
+        // l_linestatus: string;
         l_shipdate: Date;
-        l_commitdate: Date;
-        l_receiptdate: Date;
-        l_shipinstruct: string;
-        l_shipmode: string;
-        l_comment: string;
+        // l_commitdate: Date;
+        // l_receiptdate: Date;
+        // l_shipinstruct: string;
+        // l_shipmode: string;
+        // l_comment: string;
     }
+
+    //     while (chunks.nextBlocking()) {
+    //         for (let x of chunks.iterateBigIntColumn(0)) {
+    //             console.log(x);
+    //         }
+    //         for (let x of chunks.iterateDateColumn(1)) {
+    //             console.log(x);
+    //         }
+    //     }
+    //
+    //     chunks.rewind();
 
     const rows = chunks.collectAllBlocking<Row>();
     console.log(
-        rows.map(row => {
+        rows.map((row: Row) => {
             let o = {};
             rows.columns.forEach((x: string) => {
                 o[x] = row[x];
