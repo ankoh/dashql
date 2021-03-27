@@ -249,22 +249,10 @@ export class DataGrid extends React.Component<Props, State> {
             const offset = props.rowStartIndex - this.props.data!.request.begin;
             const limit = props.rowStopIndex - props.rowStartIndex + 1;
 
-            let skip = offset;
-            let remaining = limit;
-            let start = 0;
-
-            while (remaining && iter.nextBlocking()) {
-                const chunkRows = iter.currentChunk!.rowCount();
-                const skipHere = Math.min(skip, chunkRows);
-                skip -= skipHere;
-                if (skipHere == chunkRows) {
-                    continue;
-                }
-                const rowsHere = Math.min(chunkRows - skipHere, remaining);
-
+            this.iterateAllBlocking(iter, offset, limit, (chunkStart: number, skipHere: number, rowsHere: number) => {
                 let chunkRow = 0;
                 for (const v of iter.iterateNumberColumn(columnIndex, skipHere, rowsHere)) {
-                    const rowIndex = props.rowStartIndex + start + chunkRow;
+                    const rowIndex = props.rowStartIndex + chunkStart + chunkRow;
                     const rowDatum = props.rowSizeAndPositionManager.getSizeAndPositionOfCell(rowIndex);
                     const cell = this.renderAvailableDataCell(
                         props,
@@ -285,13 +273,38 @@ export class DataGrid extends React.Component<Props, State> {
                     }
                     chunkRow++;
                 }
-
-                // Advance the chunk start
-                start += chunkRows - skipHere;
-                remaining -= rowsHere;
-            }
+            });
         }
         return cells;
+    }
+
+    /** Helper to iterate over a blocking chunk iterator */
+    private iterateAllBlocking(
+        iter: ChunkIterator,
+        offset: number,
+        limit: number,
+        fn: (start: number, skipHere: number, rowsHere: number) => void,
+    ) {
+        let skip = offset;
+        let remaining = limit;
+        let start = 0;
+
+        while (remaining && iter.nextBlocking()) {
+            const chunkRows = iter.currentChunk!.rowCount();
+            const skipHere = Math.min(skip, chunkRows);
+            skip -= skipHere;
+            if (skipHere == chunkRows) {
+                continue;
+            }
+            const rowsHere = Math.min(chunkRows - skipHere, remaining);
+
+            // Run the function
+            fn(start, skipHere, rowsHere);
+
+            // Advance the chunk start
+            start += chunkRows - skipHere;
+            remaining -= rowsHere;
+        }
     }
 
     /// Compute the column width
