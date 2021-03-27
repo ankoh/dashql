@@ -82,6 +82,7 @@ export abstract class ActionLogic<ActionBuffer extends ProtoAction> {
             this.willExecute(context);
             return null;
         } catch (e) {
+            console.error(e);
             this._status = proto.action.ActionStatusCode.FAILED;
             return e;
         }
@@ -94,6 +95,7 @@ export abstract class ActionLogic<ActionBuffer extends ProtoAction> {
             this._status = proto.action.ActionStatusCode.COMPLETED;
             return [this._action_id, null];
         } catch (e) {
+            console.error(e);
             this._status = proto.action.ActionStatusCode.FAILED;
             return [this._action_id, e];
         }
