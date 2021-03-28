@@ -12,7 +12,6 @@
         "benny": "^3.6.15",
         "csv-parse": "^4.15.3",
         "fast-glob": "^3.2.5",
-        "parquetjs": "^0.11.2",
         "web-worker": "^1.0.0"
     },
     "devDependencies": {

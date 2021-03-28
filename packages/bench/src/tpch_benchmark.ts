@@ -8,22 +8,25 @@ import * as fs from 'fs';
 import path from 'path';
 const workerPath = path.resolve(__dirname, '../../webdb/dist/webdb-node-parallel.worker.js');
 const wasmPath = path.resolve(__dirname, '../../webdb/dist/webdb.wasm');
-const dbPath = '/home/dakror/Desktop/2.18.0_rc2/ref_data/1';
+const dbPath = '/home/dakror/Desktop/2.18.0_rc2/dbgen';
+const parquetPath = '../../../data/tpch';
 
 async function main(db: webdb.AsyncWebDB) {
     let conn = await db.connect();
     // assemble parquets
-    let nationPath = path.resolve(__dirname, 'nation.parquet');
-    {
+    let basePath = path.resolve(__dirname, parquetPath);
+    let nationPath = path.resolve(basePath, 'nation.parquet');
+    db.registerURL(nationPath);
+    if (!fs.existsSync(nationPath)) {
         var schema = new parquet.ParquetSchema({
-            n_nationkey: { type: 'INT32' },
-            n_name: { type: 'UTF8' },
-            n_regionkey: { type: 'INT32' },
-            n_comment: { type: 'UTF8' },
+            n_nationkey: { compression: 'GZIP', type: 'INT32' },
+            n_name: { compression: 'GZIP', type: 'UTF8' },
+            n_regionkey: { compression: 'GZIP', type: 'INT32' },
+            n_comment: { compression: 'GZIP', type: 'UTF8' },
         });
         let writer = await parquet.ParquetWriter.openFile(schema, nationPath);
 
-        for (let file of fg.sync(`${dbPath}/nation.tbl.[0-9]*`)) {
+        for (let file of fg.sync(`${dbPath}/nation.tbl*`)) {
             for (let row of parse(fs.readFileSync(file), {
                 delimiter: '|',
             })) {
@@ -36,19 +39,19 @@ async function main(db: webdb.AsyncWebDB) {
             }
         }
         await writer.close();
-        db.registerURL(nationPath);
     }
 
-    let regionPath = path.resolve(__dirname, 'region.parquet');
-    {
+    let regionPath = path.resolve(basePath, 'region.parquet');
+    db.registerURL(regionPath);
+    if (!fs.existsSync(regionPath)) {
         var schema = new parquet.ParquetSchema({
-            r_regionkey: { type: 'INT32' },
-            r_name: { type: 'UTF8' },
-            r_comment: { type: 'UTF8' },
+            r_regionkey: { compression: 'GZIP', type: 'INT32' },
+            r_name: { compression: 'GZIP', type: 'UTF8' },
+            r_comment: { compression: 'GZIP', type: 'UTF8' },
         });
         let writer = await parquet.ParquetWriter.openFile(schema, regionPath);
 
-        for (let file of fg.sync(`${dbPath}/region.tbl.[0-9]*`)) {
+        for (let file of fg.sync(`${dbPath}/region.tbl*`)) {
             for (let row of parse(fs.readFileSync(file), {
                 delimiter: '|',
             })) {
@@ -60,25 +63,26 @@ async function main(db: webdb.AsyncWebDB) {
             }
         }
         await writer.close();
-        db.registerURL(regionPath);
     }
 
-    let partPath = path.resolve(__dirname, 'part.parquet');
-    {
+    let partPath = path.resolve(basePath, 'part.parquet');
+    db.registerURL(partPath);
+    if (!fs.existsSync(partPath)) {
         var schema = new parquet.ParquetSchema({
-            p_partkey: { type: 'INT64' },
-            p_name: { type: 'UTF8' },
-            p_mfgr: { type: 'UTF8' },
-            p_brand: { type: 'UTF8' },
-            p_type: { type: 'UTF8' },
-            p_size: { type: 'INT32' },
-            p_container: { type: 'UTF8' },
-            p_retailprice: { type: 'DOUBLE' },
-            p_comment: { type: 'UTF8' },
+            p_partkey: { compression: 'GZIP', type: 'INT64' },
+            p_name: { compression: 'GZIP', type: 'UTF8' },
+            p_mfgr: { compression: 'GZIP', type: 'UTF8' },
+            p_brand: { compression: 'GZIP', type: 'UTF8' },
+            p_compression: 'GZIP',
+            type: { compression: 'GZIP', type: 'UTF8' },
+            p_size: { compression: 'GZIP', type: 'INT32' },
+            p_container: { compression: 'GZIP', type: 'UTF8' },
+            p_retailprice: { compression: 'GZIP', type: 'DOUBLE' },
+            p_comment: { compression: 'GZIP', type: 'UTF8' },
         });
         let writer = await parquet.ParquetWriter.openFile(schema, partPath);
 
-        for (let file of fg.sync(`${dbPath}/part.tbl.[0-9]*`)) {
+        for (let file of fg.sync(`${dbPath}/part.tbl*`)) {
             for (let row of parse(fs.readFileSync(file), {
                 delimiter: '|',
             })) {
@@ -87,7 +91,8 @@ async function main(db: webdb.AsyncWebDB) {
                     p_name: row[1],
                     p_mfgr: row[2],
                     p_brand: row[3],
-                    p_type: row[4],
+                    p_compression: 'GZIP',
+                    type: row[4],
                     p_size: parseInt(row[5]),
                     p_container: row[6],
                     p_retailprice: parseFloat(row[7]),
@@ -96,23 +101,23 @@ async function main(db: webdb.AsyncWebDB) {
             }
         }
         await writer.close();
-        db.registerURL(partPath);
     }
 
-    let supplierPath = path.resolve(__dirname, 'supplier.parquet');
-    {
+    let supplierPath = path.resolve(basePath, 'supplier.parquet');
+    db.registerURL(supplierPath);
+    if (!fs.existsSync(supplierPath)) {
         var schema = new parquet.ParquetSchema({
-            s_suppkey: { type: 'INT64' },
-            s_name: { type: 'UTF8' },
-            s_address: { type: 'UTF8' },
-            s_nationkey: { type: 'INT32' },
-            s_phone: { type: 'UTF8' },
-            s_acctbal: { type: 'DOUBLE' },
-            s_comment: { type: 'UTF8' },
+            s_suppkey: { compression: 'GZIP', type: 'INT64' },
+            s_name: { compression: 'GZIP', type: 'UTF8' },
+            s_address: { compression: 'GZIP', type: 'UTF8' },
+            s_nationkey: { compression: 'GZIP', type: 'INT32' },
+            s_phone: { compression: 'GZIP', type: 'UTF8' },
+            s_acctbal: { compression: 'GZIP', type: 'DOUBLE' },
+            s_comment: { compression: 'GZIP', type: 'UTF8' },
         });
         let writer = await parquet.ParquetWriter.openFile(schema, supplierPath);
 
-        for (let file of fg.sync(`${dbPath}/supplier.tbl.[0-9]*`)) {
+        for (let file of fg.sync(`${dbPath}/supplier.tbl*`)) {
             for (let row of parse(fs.readFileSync(file), {
                 delimiter: '|',
             })) {
@@ -128,21 +133,21 @@ async function main(db: webdb.AsyncWebDB) {
             }
         }
         await writer.close();
-        db.registerURL(supplierPath);
     }
 
-    let partsuppPath = path.resolve(__dirname, 'partsupp.parquet');
-    {
+    let partsuppPath = path.resolve(basePath, 'partsupp.parquet');
+    db.registerURL(partsuppPath);
+    if (!fs.existsSync(partsuppPath)) {
         var schema = new parquet.ParquetSchema({
-            ps_partkey: { type: 'INT64' },
-            ps_suppkey: { type: 'INT64' },
-            ps_availqty: { type: 'INT64' },
-            ps_supplycost: { type: 'DOUBLE' },
-            ps_comment: { type: 'UTF8' },
+            ps_partkey: { compression: 'GZIP', type: 'INT64' },
+            ps_suppkey: { compression: 'GZIP', type: 'INT64' },
+            ps_availqty: { compression: 'GZIP', type: 'INT64' },
+            ps_supplycost: { compression: 'GZIP', type: 'DOUBLE' },
+            ps_comment: { compression: 'GZIP', type: 'UTF8' },
         });
         let writer = await parquet.ParquetWriter.openFile(schema, partsuppPath);
 
-        for (let file of fg.sync(`${dbPath}/partsupp.tbl.[0-9]*`)) {
+        for (let file of fg.sync(`${dbPath}/partsupp.tbl*`)) {
             for (let row of parse(fs.readFileSync(file), {
                 delimiter: '|',
             })) {
@@ -156,24 +161,24 @@ async function main(db: webdb.AsyncWebDB) {
             }
         }
         await writer.close();
-        db.registerURL(partsuppPath);
     }
 
-    let customerPath = path.resolve(__dirname, 'customer.parquet');
-    {
+    let customerPath = path.resolve(basePath, 'customer.parquet');
+    db.registerURL(customerPath);
+    if (!fs.existsSync(customerPath)) {
         var schema = new parquet.ParquetSchema({
-            c_custkey: { type: 'INT64' },
-            c_name: { type: 'UTF8' },
-            c_address: { type: 'UTF8' },
-            c_nationkey: { type: 'INT32' },
-            c_phone: { type: 'UTF8' },
-            c_acctbal: { type: 'DOUBLE' },
-            c_mktsegment: { type: 'UTF8' },
-            c_comment: { type: 'UTF8' },
+            c_custkey: { compression: 'GZIP', type: 'INT64' },
+            c_name: { compression: 'GZIP', type: 'UTF8' },
+            c_address: { compression: 'GZIP', type: 'UTF8' },
+            c_nationkey: { compression: 'GZIP', type: 'INT32' },
+            c_phone: { compression: 'GZIP', type: 'UTF8' },
+            c_acctbal: { compression: 'GZIP', type: 'DOUBLE' },
+            c_mktsegment: { compression: 'GZIP', type: 'UTF8' },
+            c_comment: { compression: 'GZIP', type: 'UTF8' },
         });
         let writer = await parquet.ParquetWriter.openFile(schema, customerPath);
 
-        for (let file of fg.sync(`${dbPath}/customer.tbl.[0-9]*`)) {
+        for (let file of fg.sync(`${dbPath}/customer.tbl*`)) {
             for (let row of parse(fs.readFileSync(file), {
                 delimiter: '|',
             })) {
@@ -190,25 +195,25 @@ async function main(db: webdb.AsyncWebDB) {
             }
         }
         await writer.close();
-        db.registerURL(customerPath);
     }
 
-    let ordersPath = path.resolve(__dirname, 'orders.parquet');
-    {
+    let ordersPath = path.resolve(basePath, 'orders.parquet');
+    db.registerURL(ordersPath);
+    if (!fs.existsSync(ordersPath)) {
         var schema = new parquet.ParquetSchema({
-            o_orderkey: { type: 'INT64' },
-            o_custkey: { type: 'INT64' },
-            o_orderstatus: { type: 'UTF8' },
-            o_totalprice: { type: 'DOUBLE' },
-            o_orderdate: { type: 'TIMESTAMP_MILLIS' },
-            o_orderpriority: { type: 'UTF8' },
-            o_clerk: { type: 'UTF8' },
-            o_shippriority: { type: 'INT32' },
-            o_comment: { type: 'UTF8' },
+            o_orderkey: { compression: 'GZIP', type: 'INT64' },
+            o_custkey: { compression: 'GZIP', type: 'INT64' },
+            o_orderstatus: { compression: 'GZIP', type: 'UTF8' },
+            o_totalprice: { compression: 'GZIP', type: 'DOUBLE' },
+            o_orderdate: { compression: 'GZIP', type: 'TIMESTAMP_MILLIS' },
+            o_orderpriority: { compression: 'GZIP', type: 'UTF8' },
+            o_clerk: { compression: 'GZIP', type: 'UTF8' },
+            o_shippriority: { compression: 'GZIP', type: 'INT32' },
+            o_comment: { compression: 'GZIP', type: 'UTF8' },
         });
         let writer = await parquet.ParquetWriter.openFile(schema, ordersPath);
 
-        for (let file of fg.sync(`${dbPath}/orders.tbl.[0-9]*`)) {
+        for (let file of fg.sync(`${dbPath}/orders.tbl*`)) {
             for (let row of parse(fs.readFileSync(file), {
                 delimiter: '|',
             })) {
@@ -226,32 +231,32 @@ async function main(db: webdb.AsyncWebDB) {
             }
         }
         await writer.close();
-        db.registerURL(ordersPath);
     }
 
-    let lineitemPath = path.resolve(__dirname, 'lineitem.parquet');
-    {
+    let lineitemPath = path.resolve(basePath, 'lineitem.parquet');
+    db.registerURL(lineitemPath);
+    if (!fs.existsSync(lineitemPath)) {
         var schema = new parquet.ParquetSchema({
-            l_orderkey: { type: 'INT64' },
-            l_partkey: { type: 'INT64' },
-            l_suppkey: { type: 'INT64' },
-            l_linenumber: { type: 'INT64' },
-            l_quantity: { type: 'DOUBLE' },
-            l_extendedprice: { type: 'DOUBLE' },
-            l_discount: { type: 'DOUBLE' },
-            l_tax: { type: 'DOUBLE' },
-            l_returnflag: { type: 'UTF8' },
-            l_linestatus: { type: 'UTF8' },
-            l_shipdate: { type: 'TIMESTAMP_MILLIS' },
-            l_commitdate: { type: 'TIMESTAMP_MILLIS' },
-            l_receiptdate: { type: 'TIMESTAMP_MILLIS' },
-            l_shipinstruct: { type: 'UTF8' },
-            l_shipmode: { type: 'UTF8' },
-            l_comment: { type: 'UTF8' },
+            l_orderkey: { compression: 'GZIP', type: 'INT64' },
+            l_partkey: { compression: 'GZIP', type: 'INT64' },
+            l_suppkey: { compression: 'GZIP', type: 'INT64' },
+            l_linenumber: { compression: 'GZIP', type: 'INT64' },
+            l_quantity: { compression: 'GZIP', type: 'DOUBLE' },
+            l_extendedprice: { compression: 'GZIP', type: 'DOUBLE' },
+            l_discount: { compression: 'GZIP', type: 'DOUBLE' },
+            l_tax: { compression: 'GZIP', type: 'DOUBLE' },
+            l_returnflag: { compression: 'GZIP', type: 'UTF8' },
+            l_linestatus: { compression: 'GZIP', type: 'UTF8' },
+            l_shipdate: { compression: 'GZIP', type: 'TIMESTAMP_MILLIS' },
+            l_commitdate: { compression: 'GZIP', type: 'TIMESTAMP_MILLIS' },
+            l_receiptdate: { compression: 'GZIP', type: 'TIMESTAMP_MILLIS' },
+            l_shipinstruct: { compression: 'GZIP', type: 'UTF8' },
+            l_shipmode: { compression: 'GZIP', type: 'UTF8' },
+            l_comment: { compression: 'GZIP', type: 'UTF8' },
         });
         let writer = await parquet.ParquetWriter.openFile(schema, lineitemPath);
 
-        for (let file of fg.sync(`${dbPath}/lineitem.tbl.[0-9]*`)) {
+        for (let file of fg.sync(`${dbPath}/lineitem.tbl*`)) {
             for (let row of parse(fs.readFileSync(file), {
                 delimiter: '|',
             })) {
@@ -276,14 +281,12 @@ async function main(db: webdb.AsyncWebDB) {
             }
         }
         await writer.close();
-        db.registerURL(lineitemPath);
     }
 
     // perform queries
 
-    let basePath = path.resolve(__dirname);
     const queries: string[] = [
-        `
+        /*   `
     select
         l_returnflag,
         l_linestatus,
@@ -402,7 +405,7 @@ async function main(db: webdb.AsyncWebDB) {
         parquet_scan('${basePath}/customer.parquet') customer,
         parquet_scan('${basePath}/orders.parquet') orders,
         parquet_scan('${basePath}/lineitem.parquet') lineitem,
-        parquet_scan('${basePath}/customer.parquet') supplier,
+        parquet_scan('${basePath}/supplier.parquet') supplier,
         parquet_scan('${basePath}/nation.parquet') nation,
         parquet_scan('${basePath}/region.parquet') region
     where
@@ -617,7 +620,7 @@ async function main(db: webdb.AsyncWebDB) {
         end) as low_line_count
     from
         parquet_scan('${basePath}/orders.parquet') orders,
-        parquet_scan('${basePath}/partsupp.parquet') lineitem
+        parquet_scan('${basePath}/lineitem.parquet') lineitem
     where
         o_orderkey = l_orderkey
         and l_shipmode in ('AIR', 'SHIP')
@@ -817,7 +820,7 @@ async function main(db: webdb.AsyncWebDB) {
             and p_size between 1 and 15
             and l_shipmode in ('AIR', 'AIR REG')
             and l_shipinstruct = 'DELIVER IN PERSON'
-        )`,
+        )`,*/
         `
     select
         s_name,
@@ -937,9 +940,14 @@ async function main(db: webdb.AsyncWebDB) {
     ];
 
     for (const query of queries) {
-        let result = await conn.runQuery(query);
-        const chunks = new webdb.StaticChunkIterator(result);
-        chunks.collectAllBlocking();
+        try {
+            let result = await conn.runQuery(query);
+            const chunks = new webdb.StaticChunkIterator(result);
+            chunks.collectAllBlocking();
+        } catch (e) {
+            console.error(query);
+            throw e;
+        }
     }
 
     // const rows = chunks.collectAllBlocking();
