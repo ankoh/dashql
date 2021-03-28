@@ -15,7 +15,8 @@ function printErr(err) {
 // -------------------------------
 // Clear directory
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const __dirname = path.dirname(fileURLToPath(
+    import.meta.url));
 const dist = path.resolve(__dirname, 'dist');
 rimraf.sync(dist);
 mkdir.sync(dist);
@@ -46,8 +47,8 @@ esbuild.build({
     target: TARGET,
     splitting: true,
     bundle: true,
-    minify: true,
-    sourcemap: 'external',
+    minify: false,
+    sourcemap: 'both',
     external: [...EXTERNALS, 'fs', 'path', 'fast-glob'],
 });
 
@@ -63,9 +64,9 @@ esbuild.build({
     globalName: 'webdb',
     target: TARGET,
     bundle: true,
-    minify: true,
+    minify: false,
     define: { 'process.env.NODE_ENV': '"production"' },
-    sourcemap: 'external',
+    sourcemap: 'both',
 });
 
 console.log('[ ESBUILD ] webdb-browser-parallel.js');
@@ -77,8 +78,8 @@ esbuild.build({
     globalName: 'webdb',
     target: TARGET,
     bundle: true,
-    minify: true,
-    sourcemap: 'external',
+    minify: false,
+    sourcemap: 'both',
 });
 
 console.log('[ ESBUILD ] webdb-browser-parallel.worker.js');
@@ -90,8 +91,8 @@ esbuild.build({
     globalName: 'webdb',
     target: TARGET,
     bundle: true,
-    minify: true,
-    sourcemap: 'external',
+    minify: false,
+    sourcemap: 'both',
 });
 
 // -------------------------------
@@ -105,8 +106,8 @@ esbuild.build({
     format: 'cjs',
     target: TARGET,
     bundle: true,
-    minify: true,
-    sourcemap: 'external',
+    minify: false,
+    sourcemap: 'both',
 });
 
 console.log('[ ESBUILD ] webdb-node-parallel.js');
@@ -117,8 +118,8 @@ esbuild.build({
     format: 'cjs',
     target: TARGET,
     bundle: true,
-    minify: true,
-    sourcemap: 'external',
+    minify: false,
+    sourcemap: 'both',
 });
 
 console.log('[ ESBUILD ] webdb-node-parallel.worker.js');
@@ -129,8 +130,8 @@ esbuild.build({
     format: 'cjs',
     target: TARGET,
     bundle: true,
-    minify: true,
-    sourcemap: 'external',
+    minify: false,
+    sourcemap: 'both',
 });
 
 // -------------------------------

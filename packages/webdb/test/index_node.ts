@@ -10,14 +10,14 @@ let worker: Worker | null = null;
 
 beforeAll(async () => {
     db = new webdb_serial.WebDB(
-        new webdb_serial.ConsoleLogger(),
+        new webdb_serial.VoidLogger(),
         webdb_serial.DefaultWebDBRuntime,
         path.resolve(__dirname, './webdb.wasm'),
     );
     await db.open();
 
     worker = new Worker(path.resolve(__dirname, './webdb-node-parallel.worker.js'));
-    adb = new webdb_parallel.AsyncWebDB(new webdb_parallel.ConsoleLogger(), worker);
+    adb = new webdb_parallel.AsyncWebDB(new webdb_parallel.VoidLogger(), worker);
     await adb.open(path.resolve(__dirname, './webdb.wasm'));
 });
 

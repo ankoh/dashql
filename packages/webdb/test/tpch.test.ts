@@ -1,5 +1,7 @@
 import * as webdb from '../src/';
 
+jasmine.DEFAULT_TIMEOUT_INTERVAL = 1000000;
+
 export function testTPCH(db: () => webdb.AsyncWebDB, basePath: string) {
     let conn: webdb.AsyncWebDBConnection;
 
@@ -690,7 +692,7 @@ export function testTPCH(db: () => webdb.AsyncWebDB, basePath: string) {
                 const chunks = new webdb.StaticChunkIterator(result);
                 const rows = chunks.collectAllBlocking();
                 expect(rows[0].__attribute__(0)).not.toBeNull();
-            });
+            }, 300000);
             it('second aggregation, was fine', async () => {
                 let result = await conn.runQuery(
                     `
@@ -704,8 +706,9 @@ export function testTPCH(db: () => webdb.AsyncWebDB, basePath: string) {
                 const chunks = new webdb.StaticChunkIterator(result);
                 const rows = chunks.collectAllBlocking();
                 expect(rows[0].__attribute__(0)).not.toBeNull();
-            });
+            }, 300000);
             it('both aggregations, was failing', async () => {
+                debugger;
                 let result = await conn.runQuery(
                     `
                 select
@@ -720,10 +723,10 @@ export function testTPCH(db: () => webdb.AsyncWebDB, basePath: string) {
                 const rows = chunks.collectAllBlocking();
                 expect(rows[0].__attribute__(0)).not.toBeNull();
                 expect(rows[0].__attribute__(1)).not.toBeNull();
-            });
+            }, 300000);
         });
 
-        it('blocking static chunks', async () => {
+        /*it('blocking static chunks', async () => {
             // for (const query of queries) {
             //     let result = await conn.runQuery(query);
             //     const chunks = new webdb.StaticChunkIterator(result);
@@ -748,6 +751,6 @@ export function testTPCH(db: () => webdb.AsyncWebDB, basePath: string) {
                     return o;
                 }),
             );
-        });
+        });*/
     });
 }

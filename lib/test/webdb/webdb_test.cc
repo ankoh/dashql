@@ -47,4 +47,21 @@ TEST(WebDB, LoadParquet) {
                  "29555\tFeuerbach\t2\t\n\n");
 }
 
+TEST(WebDB, CodecTest) {
+    auto db = WebDB::GetInstance();
+    auto con = db.Connect();
+
+    std::stringstream ss;
+    auto data = dashql::test::SOURCE_DIR / ".." / "data" / "tpch" / "lineitem.parquet";
+    ss << "select sum(l_quantity) as sum_qty, sum(l_extendedprice * (1 - l_discount) * (1 + l_tax)) as sum_charge "
+          "from parquet_scan('"
+       << data.string()
+       << "') lineitem "
+          "where l_shipdate::DATE <= date '1996-12-01' - interval '86' day";
+
+    auto result = con->RunQuery(ss.str());
+
+    db.Disconnect(con);
+}
+
 }  // namespace

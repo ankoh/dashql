@@ -4,8 +4,6 @@
 
 #include <flatbuffers/flatbuffers.h>
 
-#include <iostream>
-
 #include "dashql/proto_generated.h"
 #include "duckdb/common/vector_operations/unary_executor.hpp"
 #include "duckdb/common/vector_operations/vector_operations.hpp"
@@ -237,11 +235,13 @@ static fb::Offset<p::Vector> writeStringCol(fb::FlatBufferBuilder &builder, duck
 fb::Offset<p::QueryResultChunk> WriteQueryResultChunk(flatbuffers::FlatBufferBuilder &builder,
                                                       duckdb::QueryResult &result, uint64_t queryID,
                                                       duckdb::DataChunk *chunk_ptr,
-                                                      const PartitionBoundaries& partition_mask) {
+                                                      const PartitionBoundaries &partition_mask) {
     duckdb::DataChunk tmp;
     auto &chunk = (!!chunk_ptr) ? *chunk_ptr : tmp;
     auto size = chunk.size();
     auto vectors = chunk.Orrify();
+
+    std::cout << "size: " << (int)size << std::endl;
 
     // Write chunk columns
     std::vector<fb::Offset<p::Vector>> columns;
@@ -253,6 +253,8 @@ fb::Offset<p::QueryResultChunk> WriteQueryResultChunk(flatbuffers::FlatBufferBui
         // Ref: src/common/types.cpp
         // We only need to encode types that are actually used in LogicalType::GetInternalType.
         // We try to catch this via tests.
+
+        std::cout << std::to_string((uint8_t)l_Type.id()) << '=' << std::to_string((uint8_t)p_type) << std::endl;
 
         // Write result column
         auto column = [&]() -> fb::Offset<p::Vector> {
@@ -268,6 +270,7 @@ fb::Offset<p::QueryResultChunk> WriteQueryResultChunk(flatbuffers::FlatBufferBui
                 case duckdb::PhysicalType::INT32:
                     return writeCol<int32_t, double>(builder, p_type, vec, size);
                 case duckdb::PhysicalType::INT64:
+                case duckdb::PhysicalType::TIME64:
                     return writeCol<int64_t, int64_t>(builder, p_type, vec, size);
                 case duckdb::PhysicalType::INT128:
                     return writeI128Col(builder, p_type, vec, size);
@@ -281,6 +284,8 @@ fb::Offset<p::QueryResultChunk> WriteQueryResultChunk(flatbuffers::FlatBufferBui
                 case duckdb::PhysicalType::STRING:
                     return writeStringCol(builder, vec, size);
                 default:
+                    std::cout << "Missing codec type p" << std::to_string((uint8_t)l_Type.id()) << "=l"
+                              << std::to_string((uint8_t)p_type) << std::endl;
                     assert(false);
                     /// XXX
             }
@@ -293,8 +298,9 @@ fb::Offset<p::QueryResultChunk> WriteQueryResultChunk(flatbuffers::FlatBufferBui
     auto column_offset = builder.CreateVector(columns);
 
     // Write partition mask
-    uint8_t* partition_boundaries_ptr;
-    auto partition_boundaries_ofs = builder.CreateUninitializedVector<uint8_t>(partition_mask.size(), &partition_boundaries_ptr);
+    uint8_t *partition_boundaries_ptr;
+    auto partition_boundaries_ofs =
+        builder.CreateUninitializedVector<uint8_t>(partition_mask.size(), &partition_boundaries_ptr);
     for (unsigned i = 0; i < partition_mask.size(); ++i) {
         partition_boundaries_ptr[i] = partition_mask[i];
     }

@@ -6,7 +6,7 @@ let adb: webdb_parallel.AsyncWebDB | null = null;
 let worker: Worker | null = null;
 
 beforeAll(async () => {
-    const logger = new webdb_serial.ConsoleLogger();
+    const logger = new webdb_serial.VoidLogger();
     db = new webdb_serial.WebDB(logger, webdb_serial.DefaultWebDBRuntime, '/static/webdb.wasm');
     await db.open();
 
