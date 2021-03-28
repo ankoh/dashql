@@ -6,19 +6,17 @@ import * as benny from 'benny';
 import path from 'path';
 const workerPath = path.resolve(__dirname, '../../webdb/dist/webdb-node-parallel.worker.js');
 const wasmPath = path.resolve(__dirname, '../../webdb/dist/webdb.wasm');
-const parquetPath = '../../../data/tpch';
 
 async function main(db: webdb.AsyncWebDB) {
-    let basePath = path.resolve(__dirname, parquetPath);
-    const tables = ['nation', 'region', 'part', 'supplier', 'partsupp', 'customer', 'orders', 'lineitem'];
-    for (const t of tables) {
-        db.registerURL(path.resolve(basePath, t + '.parquet'));
-    }
+    const queries = (dir: string) => {
+        let basePath = path.resolve(__dirname, dir);
+        const tables = ['nation', 'region', 'part', 'supplier', 'partsupp', 'customer', 'orders', 'lineitem'];
+        for (const t of tables) {
+            db.registerURL(path.resolve(basePath, t + '.parquet'));
+        }
 
-    // perform queries
-
-    const queries: string[] = [
-        `
+        return [
+            `
     select
         l_returnflag,
         l_linestatus,
@@ -40,7 +38,7 @@ async function main(db: webdb.AsyncWebDB) {
     order by
         l_returnflag,
         l_linestatus`,
-        `
+            `
     select
         s_acctbal,
         s_name,
@@ -84,7 +82,7 @@ async function main(db: webdb.AsyncWebDB) {
         n_name,
         s_name,
         p_partkey`,
-        `
+            `
     select
         l_orderkey,
         sum(l_extendedprice * (1 - l_discount)) as revenue,
@@ -107,7 +105,7 @@ async function main(db: webdb.AsyncWebDB) {
     order by
         revenue desc,
         o_orderdate`,
-        `
+            `
     select
         o_orderpriority,
         count(*) as order_count
@@ -129,7 +127,7 @@ async function main(db: webdb.AsyncWebDB) {
         o_orderpriority
     order by
         o_orderpriority`,
-        `
+            `
     select
         n_name,
         sum(l_extendedprice * (1 - l_discount)) as revenue
@@ -154,7 +152,7 @@ async function main(db: webdb.AsyncWebDB) {
         n_name
     order by
         revenue desc`,
-        `
+            `
     select
         sum(l_extendedprice * l_discount) as revenue
     from
@@ -164,7 +162,7 @@ async function main(db: webdb.AsyncWebDB) {
         and l_shipdate < date '1997-01-01' + interval '1' year
         and l_discount between 0.06 - 0.01 and 0.06 + 0.01
         and l_quantity < 25`,
-        `
+            `
     select
         supp_nation,
         cust_nation,
@@ -204,7 +202,7 @@ async function main(db: webdb.AsyncWebDB) {
         supp_nation,
         cust_nation,
         l_year`,
-        `
+            `
     select
         o_year,
         sum(case
@@ -242,7 +240,7 @@ async function main(db: webdb.AsyncWebDB) {
         o_year
     order by
         o_year`,
-        `
+            `
     select
         nation,
         o_year,
@@ -275,7 +273,7 @@ async function main(db: webdb.AsyncWebDB) {
     order by
         nation,
         o_year desc`,
-        `
+            `
     select
         c_custkey,
         c_name,
@@ -307,7 +305,7 @@ async function main(db: webdb.AsyncWebDB) {
         c_comment
     order by
         revenue desc`,
-        `
+            `
     select
         ps_partkey,
         sum(ps_supplycost * ps_availqty) as value
@@ -335,7 +333,7 @@ async function main(db: webdb.AsyncWebDB) {
             )
     order by
         value desc`,
-        `
+            `
     select
         l_shipmode,
         sum(case
@@ -364,7 +362,7 @@ async function main(db: webdb.AsyncWebDB) {
         l_shipmode
     order by
         l_shipmode`,
-        `
+            `
     select
         c_count,
         count(*) as custdist
@@ -386,7 +384,7 @@ async function main(db: webdb.AsyncWebDB) {
     order by
         custdist desc,
         c_count desc`,
-        `
+            `
     select
         100.00 * sum(case
             when p_type like 'PROMO%'
@@ -400,7 +398,7 @@ async function main(db: webdb.AsyncWebDB) {
         l_partkey = p_partkey
         and l_shipdate >= date '1997-09-01'
         and l_shipdate < date '1997-09-01' + interval '1' month`,
-        `
+            `
     create view revenue0 (supplier_no, total_revenue) as
         select
             l_suppkey,
@@ -435,7 +433,7 @@ async function main(db: webdb.AsyncWebDB) {
         s_suppkey;
     
     drop view revenue0`,
-        `
+            `
     select
         p_brand,
         p_type,
@@ -466,7 +464,7 @@ async function main(db: webdb.AsyncWebDB) {
         p_brand,
         p_type,
         p_size`,
-        `
+            `
     select
         sum(l_extendedprice) / 7.0 as avg_yearly
     from
@@ -484,7 +482,7 @@ async function main(db: webdb.AsyncWebDB) {
             where
                 l_partkey = p_partkey
         )`,
-        `
+            `
     select
         c_name,
         c_custkey,
@@ -517,7 +515,7 @@ async function main(db: webdb.AsyncWebDB) {
     order by
         o_totalprice desc,
         o_orderdate`,
-        `
+            `
     select
         sum(l_extendedprice* (1 - l_discount)) as revenue
     from
@@ -553,7 +551,7 @@ async function main(db: webdb.AsyncWebDB) {
             and l_shipmode in ('AIR', 'AIR REG')
             and l_shipinstruct = 'DELIVER IN PERSON'
         )`,
-        `
+            `
     select
         s_name,
         s_address
@@ -591,7 +589,7 @@ async function main(db: webdb.AsyncWebDB) {
         and n_name = 'GERMANY'
     order by
         s_name`,
-        `
+            `
     select
         s_name,
         count(*) as numwait
@@ -631,7 +629,7 @@ async function main(db: webdb.AsyncWebDB) {
     order by
         numwait desc,
         s_name`,
-        `
+            `
     select
         cntrycode,
         count(*) as numcust,
@@ -669,12 +667,34 @@ async function main(db: webdb.AsyncWebDB) {
         cntrycode
     order by
         cntrycode`,
-    ];
+        ];
+    };
 
     await benny.suite(
-        `TPCH | static proxy | materialized`,
-        ...queries.map((query: string, index: number) =>
-            benny.add('query ' + (index + 1), async () => {
+        `TPCH 0.01 | static proxy | materialized`,
+        ...queries('../../../data/tpch/0.01').map((query: string, index: number) =>
+            benny.add('query ' + index, async () => {
+                try {
+                    let conn = await db.connect();
+                    let result = await conn.runQuery(query);
+                    const chunks = new webdb.StaticChunkIterator(result);
+                    chunks.collectAllBlocking();
+                    await conn.disconnect();
+                } catch (error) {
+                    await console.error(`Error in query ${index}:\n` + error);
+                }
+            }),
+        ),
+        benny.cycle((result: any, _summary: any) => {
+            let duration = result.details.median;
+            console.log(`${kleur.cyan(result.name)} ${duration.toFixed(3)} s`);
+        }),
+    );
+
+    await benny.suite(
+        `TPCH 0.1 | static proxy | materialized`,
+        ...queries('../../../data/tpch/0.1').map((query: string, index: number) =>
+            benny.add('query ' + index, async () => {
                 try {
                     let conn = await db.connect();
                     let result = await conn.runQuery(query);

@@ -17,4 +17,4 @@ compile_commands.json
 /node_modules
 .vscode
 !.vscode/settings.json
-data/tpch/*.parquet
+data/tpch/*/*.parquet
