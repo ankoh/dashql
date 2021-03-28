@@ -3,11 +3,13 @@
 #include <sstream>
 
 #include "dashql/proto_generated.h"
+#include "dashql/test/config.h"
 #include "dashql/webdb/iterator.h"
 #include "dashql/webdb/webdb.h"
 #include "duckdb/common/types.hpp"
 #include "duckdb/common/vector_size.hpp"
 #include "gtest/gtest.h"
+#include "parquet-extension.hpp"
 
 using namespace dashql::webdb;
 using namespace std;
@@ -45,6 +47,55 @@ TEST(DuckDBTests, SQLTypeIDs) {
     ASSERT_EQ(static_cast<uint8_t>(dt::HASH), static_cast<uint8_t>(pt::HASH));
     ASSERT_EQ(static_cast<uint8_t>(dt::STRUCT), static_cast<uint8_t>(pt::STRUCT));
     ASSERT_EQ(static_cast<uint8_t>(dt::LIST), static_cast<uint8_t>(pt::LIST));
+}
+
+TEST(DuckDBTests, PassingDuckDBRegression1) {
+    auto db = make_shared<duckdb::DuckDB>();
+    db->LoadExtension<duckdb::ParquetExtension>();
+    auto con = duckdb::Connection{*db};
+    std::stringstream ss;
+    auto data = dashql::test::SOURCE_DIR / ".." / "data" / "tpch" / "lineitem.parquet";
+    ss << "select sum(l_quantity) as sum_qty "
+          "from parquet_scan('"
+       << data.string()
+       << "') lineitem "
+          "where l_shipdate::DATE <= date '1996-12-01' - interval '86' day";
+    auto result = con.Query(ss.str());
+    ASSERT_TRUE(result->success);
+    ASSERT_NE(result->GetValue(0, 0), NULL);
+}
+
+TEST(DuckDBTests, PassingDuckDBRegression2) {
+    auto db = make_shared<duckdb::DuckDB>();
+    db->LoadExtension<duckdb::ParquetExtension>();
+    auto con = duckdb::Connection{*db};
+    std::stringstream ss;
+    auto data = dashql::test::SOURCE_DIR / ".." / "data" / "tpch" / "lineitem.parquet";
+    ss << "sum(l_extendedprice * (1 - l_discount) * (1 + l_tax)) as sum_charge "
+          "from parquet_scan('"
+       << data.string()
+       << "') lineitem "
+          "where l_shipdate::DATE <= date '1996-12-01' - interval '86' day";
+    auto result = con.Query(ss.str());
+    ASSERT_TRUE(result->success);
+    ASSERT_NE(result->GetValue(0, 0), NULL);
+}
+
+TEST(DuckDBTests, FailingDuckDBRegression) {
+    auto db = make_shared<duckdb::DuckDB>();
+    db->LoadExtension<duckdb::ParquetExtension>();
+    auto con = duckdb::Connection{*db};
+    std::stringstream ss;
+    auto data = dashql::test::SOURCE_DIR / ".." / "data" / "tpch" / "lineitem.parquet";
+    ss << "select sum(l_quantity) as sum_qty, sum(l_extendedprice * (1 - l_discount) * (1 + l_tax)) as sum_charge "
+          "from parquet_scan('"
+       << data.string()
+       << "') lineitem "
+          "where l_shipdate::DATE <= date '1996-12-01' - interval '86' day";
+    auto result = con.Query(ss.str());
+    ASSERT_TRUE(result->success);
+    ASSERT_NE(result->GetValue(0, 0), NULL);
+    ASSERT_NE(result->GetValue(1, 0), NULL);
 }
 
 }  // namespace
