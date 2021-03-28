@@ -71,7 +71,7 @@ TEST(DuckDBTests, PassingDuckDBRegression2) {
     auto con = duckdb::Connection{*db};
     std::stringstream ss;
     auto data = dashql::test::SOURCE_DIR / ".." / "data" / "tpch" / "lineitem.parquet";
-    ss << "sum(l_extendedprice * (1 - l_discount) * (1 + l_tax)) as sum_charge "
+    ss << "select sum(l_extendedprice * (1 - l_discount) * (1 + l_tax)) as sum_charge "
           "from parquet_scan('"
        << data.string()
        << "') lineitem "
