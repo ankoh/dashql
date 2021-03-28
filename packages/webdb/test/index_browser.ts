@@ -21,13 +21,15 @@ import { testIterator } from './iterator.test';
 import { testAsyncIterator } from './async_iterator.test';
 import { testFilesystem } from './filesystem.test';
 import { testExtractCSV } from './extract_csv.test';
+import { testTPCH } from './tpch.test';
 
-testProxies(() => db!);
-testBindings(() => db!);
-testIterator(() => db!);
-testAsyncIterator(() => adb!);
-testFilesystem(() => adb!, '/data');
-testExtractCSV(
-    () => adb!,
-    (buf: Uint8Array) => URL.createObjectURL(new Blob([buf.buffer], { type: 'text/plain' })),
-);
+// testProxies(() => db!);
+// testBindings(() => db!);
+// testIterator(() => db!);
+// testAsyncIterator(() => adb!);
+// testFilesystem(() => adb!, '/data/uni');
+// testExtractCSV(
+//     () => adb!,
+//     (buf: Uint8Array) => URL.createObjectURL(new Blob([buf.buffer], { type: 'text/plain' })),
+// );
+testTPCH(() => adb!, '/data/tpch');

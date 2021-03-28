@@ -196,7 +196,6 @@ export class RowProxyType {
                 case proto.SQLTypeID.HASH:
                 case proto.SQLTypeID.STRUCT:
                 case proto.SQLTypeID.LIST:
-                    console.log(result.columnTypes(columnId)!.typeId());
                     columnProxies.push(returnNull);
                     break;
             }

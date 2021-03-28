@@ -29,13 +29,15 @@ import { testIterator } from './iterator.test';
 import { testFilesystem } from './filesystem.test';
 import { testAsyncIterator } from './async_iterator.test';
 import { testExtractCSV } from './extract_csv.test';
+import { testTPCH } from './tpch.test';
 
-testProxies(() => db!);
-testBindings(() => db!);
-testIterator(() => db!);
-testAsyncIterator(() => adb!);
-testFilesystem(() => adb!, path.resolve(__dirname, '../../../data/uni/out'));
-testExtractCSV(
-    () => adb!,
-    (buf: Uint8Array) => tmp.sync(Buffer.from(buf)),
-);
+// testProxies(() => db!);
+// testBindings(() => db!);
+// testIterator(() => db!);
+// testAsyncIterator(() => adb!);
+// testFilesystem(() => adb!, path.resolve(__dirname, '../../../data/uni/out'));
+// testExtractCSV(
+//     () => adb!,
+//     (buf: Uint8Array) => tmp.sync(Buffer.from(buf)),
+// );
+testTPCH(() => adb!, path.resolve(__dirname, '../../../data/tpch'));

@@ -1,28 +1,27 @@
-import Worker from 'web-worker';
-import * as webdb from '@dashql/webdb/dist/webdb-node-parallel';
-import * as fg from 'fast-glob';
-import parse from 'csv-parse/lib/sync';
-import * as parquet from 'parquetjs';
+import * as webdb from '../src/';
 
-import path from 'path';
-const workerPath = path.resolve(__dirname, '../../webdb/dist/webdb-node-parallel.worker.js');
-const wasmPath = path.resolve(__dirname, '../../webdb/dist/webdb.wasm');
-const dbPath = '/home/dakror/Desktop/2.18.0_rc2/dbgen';
-const parquetPath = '../../../data/tpch';
+export function testTPCH(db: () => webdb.AsyncWebDB, basePath: string) {
+    let conn: webdb.AsyncWebDBConnection;
 
-async function main(db: webdb.AsyncWebDB) {
-    let conn = await db.connect();
+    beforeAll(async () => {
+        const tables = ['nation', 'region', 'part', 'supplier', 'partsupp', 'customer', 'orders', 'lineitem'];
+        for (const t of tables) {
+            await db().registerURL(`${basePath}/${t}.parquet`);
+        }
+    });
 
-    let basePath = path.resolve(__dirname, parquetPath);
-    const tables = ['nation', 'region', 'part', 'supplier', 'partsupp', 'customer', 'orders', 'lineitem'];
-    for (const t of tables) {
-        db.registerURL(path.resolve(basePath, t + '.parquet'));
-    }
+    beforeEach(async () => {
+        conn = await db().connect();
+    });
+
+    afterEach(async () => {
+        await conn.disconnect();
+    });
 
     // perform queries
 
     const queries: string[] = [
-        /*   `
+        `
     select
         l_returnflag,
         l_linestatus,
@@ -37,13 +36,14 @@ async function main(db: webdb.AsyncWebDB) {
     from
         parquet_scan('${basePath}/lineitem.parquet') lineitem
     where
-        l_shipdate <= date '1998-12-01' - interval '86' day
+        l_shipdate::DATE <= date '1996-12-01' - interval '86' day
     group by
         l_returnflag,
         l_linestatus
     order by
         l_returnflag,
         l_linestatus`,
+        /*
         `
     select
         s_acctbal,
@@ -556,7 +556,7 @@ async function main(db: webdb.AsyncWebDB) {
             and p_size between 1 and 15
             and l_shipmode in ('AIR', 'AIR REG')
             and l_shipinstruct = 'DELIVER IN PERSON'
-        )`,*/
+        )`,
         `
     select
         s_name,
@@ -672,36 +672,79 @@ async function main(db: webdb.AsyncWebDB) {
     group by
         cntrycode
     order by
-        cntrycode`,
+        cntrycode`,*/
     ];
 
-    for (const query of queries) {
-        try {
-            let result = await conn.runQuery(query);
+    describe('TPCH', () => {
+        describe('duckdb regression', () => {
+            it('first aggregation, was fine', async () => {
+                let result = await conn.runQuery(
+                    `
+                select
+                    sum(l_quantity) as sum_qty
+                from
+                    parquet_scan('${basePath}/lineitem.parquet') lineitem
+                where
+                    l_shipdate::DATE <= date '1996-12-01' - interval '86' day`,
+                );
+                const chunks = new webdb.StaticChunkIterator(result);
+                expect(chunks.collectAllBlocking()[0].__attribute__(0)).not.toBeNull();
+            });
+            it('second aggregation, was fine', async () => {
+                let result = await conn.runQuery(
+                    `
+                select
+                    sum(l_extendedprice * (1 - l_discount) * (1 + l_tax)) as sum_charge
+                from
+                    parquet_scan('${basePath}/lineitem.parquet') lineitem
+                where
+                    l_shipdate::DATE <= date '1996-12-01' - interval '86' day`,
+                );
+                const chunks = new webdb.StaticChunkIterator(result);
+                expect(chunks.collectAllBlocking()[0].__attribute__(0)).not.toBeNull();
+            });
+            it('both aggregations, was failing', async () => {
+                let result = await conn.runQuery(
+                    `
+                select
+                    sum(l_quantity) as sum_qty,
+                    sum(l_extendedprice * (1 - l_discount) * (1 + l_tax)) as sum_charge
+                from
+                    parquet_scan('${basePath}/lineitem.parquet') lineitem
+                where
+                    l_shipdate::DATE <= date '1996-12-01' - interval '86' day`,
+                );
+                const chunks = new webdb.StaticChunkIterator(result);
+                expect(chunks.collectAllBlocking()[0].__attribute__(0)).not.toBeNull();
+                expect(chunks.collectAllBlocking()[0].__attribute__(1)).not.toBeNull();
+            });
+        });
+
+        it('blocking static chunks', async () => {
+            // for (const query of queries) {
+            //     let result = await conn.runQuery(query);
+            //     const chunks = new webdb.StaticChunkIterator(result);
+            //     expect(chunks.collectAllBlocking()).not.toHaveSize(0);
+            // }
+            let result = await conn.runQuery(
+                `
+            select
+                sum(l_quantity) as sum_qty,
+                sum(l_extendedprice * (1 - l_discount) * (1 + l_tax)) as sum_charge
+            from
+                parquet_scan('${basePath}/lineitem.parquet') lineitem
+            where
+                l_shipdate::DATE <= date '1996-12-01' - interval '86' day`,
+            );
             const chunks = new webdb.StaticChunkIterator(result);
-            chunks.collectAllBlocking();
-        } catch (e) {
-            console.error(query);
-            throw e;
-        }
-    }
-
-    // const rows = chunks.collectAllBlocking();
-    // console.log(
-    //     rows.map((row: webdb.RowProxy) => {
-    //         let o = {};
-    //         rows.columns.forEach((col: string) => {
-    //             o[col] = row[col];
-    //         });
-    //         return o;
-    //     }),
-    // );
+            const rows = chunks.collectAllBlocking();
+            console.log(
+                rows.map((row: any) => {
+                    let o: any = {};
+                    rows.columns!.forEach((l: string) => (o[l] = row[l]));
+                    return o;
+                }),
+            );
+        });
+    });
 }
-
-const logger = new webdb.VoidLogger();
-const worker = new Worker(workerPath);
-const db = new webdb.AsyncWebDB(logger, worker);
-db.open(wasmPath)
-    .then(() => main(db))
-    .then(() => db.terminate())
-    .catch(e => console.error(e));
