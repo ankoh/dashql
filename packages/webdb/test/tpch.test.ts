@@ -688,7 +688,8 @@ export function testTPCH(db: () => webdb.AsyncWebDB, basePath: string) {
                     l_shipdate::DATE <= date '1996-12-01' - interval '86' day`,
                 );
                 const chunks = new webdb.StaticChunkIterator(result);
-                expect(chunks.collectAllBlocking()[0].__attribute__(0)).not.toBeNull();
+                const rows = chunks.collectAllBlocking();
+                expect(rows[0].__attribute__(0)).not.toBeNull();
             });
             it('second aggregation, was fine', async () => {
                 let result = await conn.runQuery(
@@ -701,7 +702,8 @@ export function testTPCH(db: () => webdb.AsyncWebDB, basePath: string) {
                     l_shipdate::DATE <= date '1996-12-01' - interval '86' day`,
                 );
                 const chunks = new webdb.StaticChunkIterator(result);
-                expect(chunks.collectAllBlocking()[0].__attribute__(0)).not.toBeNull();
+                const rows = chunks.collectAllBlocking();
+                expect(rows[0].__attribute__(0)).not.toBeNull();
             });
             it('both aggregations, was failing', async () => {
                 let result = await conn.runQuery(
@@ -715,8 +717,9 @@ export function testTPCH(db: () => webdb.AsyncWebDB, basePath: string) {
                     l_shipdate::DATE <= date '1996-12-01' - interval '86' day`,
                 );
                 const chunks = new webdb.StaticChunkIterator(result);
-                expect(chunks.collectAllBlocking()[0].__attribute__(0)).not.toBeNull();
-                expect(chunks.collectAllBlocking()[0].__attribute__(1)).not.toBeNull();
+                const rows = chunks.collectAllBlocking();
+                expect(rows[0].__attribute__(0)).not.toBeNull();
+                expect(rows[0].__attribute__(1)).not.toBeNull();
             });
         });
 
