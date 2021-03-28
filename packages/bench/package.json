@@ -8,7 +8,6 @@
         "@dashql/core": "^0.0.2",
         "@dashql/proto": "^0.0.4",
         "@dashql/webdb": "^0.0.20",
-        "@types/parquetjs": "^0.10.2",
         "benny": "^3.6.15",
         "csv-parse": "^4.15.3",
         "fast-glob": "^3.2.5",
