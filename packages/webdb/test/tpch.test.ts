@@ -45,7 +45,6 @@ export function testTPCH(db: () => webdb.AsyncWebDB, basePath: string) {
     order by
         l_returnflag,
         l_linestatus`,
-        /*
         `
     select
         s_acctbal,
@@ -674,12 +673,12 @@ export function testTPCH(db: () => webdb.AsyncWebDB, basePath: string) {
     group by
         cntrycode
     order by
-        cntrycode`,*/
+        cntrycode`,
     ];
 
     describe('TPCH', () => {
         describe('duckdb regression', () => {
-            /*it('first aggregation, was fine', async () => {
+            it('first aggregation, was fine', async () => {
                 let result = await conn.runQuery(
                     `
                 select
@@ -706,7 +705,7 @@ export function testTPCH(db: () => webdb.AsyncWebDB, basePath: string) {
                 const chunks = new webdb.StaticChunkIterator(result);
                 const rows = chunks.collectAllBlocking();
                 expect(rows[0].__attribute__(0)).not.toBeNull();
-            }, 300000);*/
+            }, 300000);
             it('both aggregations, was failing', async () => {
                 debugger;
                 let result = await conn.runQuery(
@@ -726,31 +725,12 @@ export function testTPCH(db: () => webdb.AsyncWebDB, basePath: string) {
             }, 300000);
         });
 
-        /*it('blocking static chunks', async () => {
-            // for (const query of queries) {
-            //     let result = await conn.runQuery(query);
-            //     const chunks = new webdb.StaticChunkIterator(result);
-            //     expect(chunks.collectAllBlocking()).not.toHaveSize(0);
-            // }
-            let result = await conn.runQuery(
-                `
-            select
-                sum(l_quantity) as sum_qty,
-                sum(l_extendedprice * (1 - l_discount) * (1 + l_tax)) as sum_charge
-            from
-                parquet_scan('${basePath}/lineitem.parquet') lineitem
-            where
-                l_shipdate::DATE <= date '1996-12-01' - interval '86' day`,
-            );
-            const chunks = new webdb.StaticChunkIterator(result);
-            const rows = chunks.collectAllBlocking();
-            console.log(
-                rows.map((row: any) => {
-                    let o: any = {};
-                    rows.columns!.forEach((l: string) => (o[l] = row[l]));
-                    return o;
-                }),
-            );
-        });*/
+        it('blocking static chunks', async () => {
+            for (const query of queries) {
+                let result = await conn.runQuery(query);
+                const chunks = new webdb.StaticChunkIterator(result);
+                expect(chunks.collectAllBlocking()).not.toHaveSize(0);
+            }
+        });
     });
 }

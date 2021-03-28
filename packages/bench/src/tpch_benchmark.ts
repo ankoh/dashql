@@ -1,18 +1,14 @@
 import Worker from 'web-worker';
 import * as webdb from '@dashql/webdb/dist/webdb-node-parallel';
-import * as fg from 'fast-glob';
-import parse from 'csv-parse/lib/sync';
-import * as parquet from 'parquetjs';
 
+import kleur from 'kleur';
+import * as benny from 'benny';
 import path from 'path';
 const workerPath = path.resolve(__dirname, '../../webdb/dist/webdb-node-parallel.worker.js');
 const wasmPath = path.resolve(__dirname, '../../webdb/dist/webdb.wasm');
-const dbPath = '/home/dakror/Desktop/2.18.0_rc2/dbgen';
 const parquetPath = '../../../data/tpch';
 
 async function main(db: webdb.AsyncWebDB) {
-    let conn = await db.connect();
-
     let basePath = path.resolve(__dirname, parquetPath);
     const tables = ['nation', 'region', 'part', 'supplier', 'partsupp', 'customer', 'orders', 'lineitem'];
     for (const t of tables) {
@@ -22,7 +18,7 @@ async function main(db: webdb.AsyncWebDB) {
     // perform queries
 
     const queries: string[] = [
-        /*   `
+        `
     select
         l_returnflag,
         l_linestatus,
@@ -179,7 +175,7 @@ async function main(db: webdb.AsyncWebDB) {
             select
                 n1.n_name as supp_nation,
                 n2.n_name as cust_nation,
-                extract(year from l_shipdate) as l_year,
+                extract(year from l_shipdate::DATE) as l_year,
                 l_extendedprice * (1 - l_discount) as volume
             from
                 parquet_scan('${basePath}/supplier.parquet') supplier,
@@ -218,7 +214,7 @@ async function main(db: webdb.AsyncWebDB) {
     from
         (
             select
-                extract(year from o_orderdate) as o_year,
+                extract(year from o_orderdate::DATE) as o_year,
                 l_extendedprice * (1 - l_discount) as volume,
                 n2.n_name as nation
             from
@@ -255,7 +251,7 @@ async function main(db: webdb.AsyncWebDB) {
         (
             select
                 n_name as nation,
-                extract(year from o_orderdate) as o_year,
+                extract(year from o_orderdate::DATE) as o_year,
                 l_extendedprice * (1 - l_discount) - ps_supplycost * l_quantity as amount
             from
                 parquet_scan('${basePath}/part.parquet') part,
@@ -556,7 +552,7 @@ async function main(db: webdb.AsyncWebDB) {
             and p_size between 1 and 15
             and l_shipmode in ('AIR', 'AIR REG')
             and l_shipinstruct = 'DELIVER IN PERSON'
-        )`,*/
+        )`,
         `
     select
         s_name,
@@ -675,27 +671,26 @@ async function main(db: webdb.AsyncWebDB) {
         cntrycode`,
     ];
 
-    for (const query of queries) {
-        try {
-            let result = await conn.runQuery(query);
-            const chunks = new webdb.StaticChunkIterator(result);
-            chunks.collectAllBlocking();
-        } catch (e) {
-            console.error(query);
-            throw e;
-        }
-    }
-
-    // const rows = chunks.collectAllBlocking();
-    // console.log(
-    //     rows.map((row: webdb.RowProxy) => {
-    //         let o = {};
-    //         rows.columns.forEach((col: string) => {
-    //             o[col] = row[col];
-    //         });
-    //         return o;
-    //     }),
-    // );
+    await benny.suite(
+        `TPCH | static proxy | materialized`,
+        ...queries.map((query: string, index: number) =>
+            benny.add('query ' + (index + 1), async () => {
+                try {
+                    let conn = await db.connect();
+                    let result = await conn.runQuery(query);
+                    const chunks = new webdb.StaticChunkIterator(result);
+                    chunks.collectAllBlocking();
+                    await conn.disconnect();
+                } catch (error) {
+                    await console.error(`Error in query ${index}:\n` + error);
+                }
+            }),
+        ),
+        benny.cycle((result: any, _summary: any) => {
+            let duration = result.details.median;
+            console.log(`${kleur.cyan(result.name)} ${duration.toFixed(3)} s`);
+        }),
+    );
 }
 
 const logger = new webdb.VoidLogger();
