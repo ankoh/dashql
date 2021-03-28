@@ -48,7 +48,7 @@ TEST(WebDB, LoadParquet) {
 }
 
 TEST(WebDB, CodecTest) {
-    auto db = WebDB::GetInstance();
+    auto& db = WebDB::GetInstance();
     auto con = db.Connect();
 
     std::stringstream ss;

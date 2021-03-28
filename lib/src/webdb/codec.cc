@@ -4,6 +4,8 @@
 
 #include <flatbuffers/flatbuffers.h>
 
+#include <iostream>
+
 #include "dashql/proto_generated.h"
 #include "duckdb/common/vector_operations/unary_executor.hpp"
 #include "duckdb/common/vector_operations/vector_operations.hpp"
@@ -241,8 +243,6 @@ fb::Offset<p::QueryResultChunk> WriteQueryResultChunk(flatbuffers::FlatBufferBui
     auto size = chunk.size();
     auto vectors = chunk.Orrify();
 
-    std::cout << "size: " << (int)size << std::endl;
-
     // Write chunk columns
     std::vector<fb::Offset<p::Vector>> columns;
     for (size_t column_id = 0; column_id < chunk.ColumnCount(); ++column_id) {
@@ -253,8 +253,6 @@ fb::Offset<p::QueryResultChunk> WriteQueryResultChunk(flatbuffers::FlatBufferBui
         // Ref: src/common/types.cpp
         // We only need to encode types that are actually used in LogicalType::GetInternalType.
         // We try to catch this via tests.
-
-        std::cout << std::to_string((uint8_t)l_Type.id()) << '=' << std::to_string((uint8_t)p_type) << std::endl;
 
         // Write result column
         auto column = [&]() -> fb::Offset<p::Vector> {

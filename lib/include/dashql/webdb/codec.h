@@ -3,8 +3,6 @@
 #ifndef INCLUDE_DASHQL_WEBDB_CODEC_H_
 #define INCLUDE_DASHQL_WEBDB_CODEC_H_
 
-#include <iostream>
-
 #include "dashql/common/span.h"
 #include "dashql/proto_generated.h"
 #include "dashql/webdb/partitioner.h"
@@ -23,7 +21,6 @@ template <typename T, bool WITH_NULL, typename OP> void iterateVector(duckdb::Ve
             auto n = false;
             if constexpr (WITH_NULL) n = (*vec.nullmask)[s];
             auto& d = reinterpret_cast<T*>(vec.data)[s];
-            std::cout << "iters " << d << ',' << n << std::endl;
             op(i, d, n);
         }
     } else {
@@ -32,7 +29,6 @@ template <typename T, bool WITH_NULL, typename OP> void iterateVector(duckdb::Ve
             auto n = false;
             if constexpr (WITH_NULL) n = (*vec.nullmask)[i];
             op(i, d, n);
-            std::cout << "itern " << d << ',' << n << std::endl;
         }
     }
 }

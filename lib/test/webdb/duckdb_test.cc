@@ -60,9 +60,10 @@ TEST(DuckDBTests, PassingDuckDBRegression1) {
        << data.string()
        << "') lineitem "
           "where l_shipdate::DATE <= date '1996-12-01' - interval '86' day";
-    auto result = con.Query(ss.str());
+    auto result = con.SendQuery(ss.str());
     ASSERT_TRUE(result->success);
-    ASSERT_NE(result->GetValue(0, 0), NULL);
+    auto content = result->Fetch();
+    ASSERT_FALSE(content->GetValue(0, 0).is_null);
 }
 
 TEST(DuckDBTests, PassingDuckDBRegression2) {
@@ -76,12 +77,13 @@ TEST(DuckDBTests, PassingDuckDBRegression2) {
        << data.string()
        << "') lineitem "
           "where l_shipdate::DATE <= date '1996-12-01' - interval '86' day";
-    auto result = con.Query(ss.str());
+    auto result = con.SendQuery(ss.str());
     ASSERT_TRUE(result->success);
-    ASSERT_NE(result->GetValue(0, 0), NULL);
+    auto content = result->Fetch();
+    ASSERT_FALSE(content->GetValue(0, 0).is_null);
 }
 
-TEST(DuckDBTests, FailingDuckDBRegression) {
+TEST(DuckDBTests, FailingDuckDBRegression1) {
     auto db = make_shared<duckdb::DuckDB>();
     db->LoadExtension<duckdb::ParquetExtension>();
     auto con = duckdb::Connection{*db};
@@ -94,8 +96,27 @@ TEST(DuckDBTests, FailingDuckDBRegression) {
           "where l_shipdate::DATE <= date '1996-12-01' - interval '86' day";
     auto result = con.Query(ss.str());
     ASSERT_TRUE(result->success);
-    ASSERT_NE(result->GetValue(0, 0), NULL);
-    ASSERT_NE(result->GetValue(1, 0), NULL);
+    auto content = result->Fetch();
+    ASSERT_FALSE(content->GetValue(0, 0).is_null);
+    ASSERT_FALSE(content->GetValue(1, 0).is_null);
+}
+
+TEST(DuckDBTests, FailingDuckDBRegression2) {
+    auto db = make_shared<duckdb::DuckDB>();
+    db->LoadExtension<duckdb::ParquetExtension>();
+    auto con = duckdb::Connection{*db};
+    std::stringstream ss;
+    auto data = dashql::test::SOURCE_DIR / ".." / "data" / "tpch" / "lineitem.parquet";
+    ss << "select sum(l_quantity) as sum_qty, sum(l_extendedprice * (1 - l_discount) * (1 + l_tax)) as sum_charge "
+          "from parquet_scan('"
+       << data.string()
+       << "') lineitem "
+          "where l_shipdate::DATE <= date '1996-12-01' - interval '86' day";
+    auto result = con.SendQuery(ss.str());
+    ASSERT_TRUE(result->success);
+    auto content = result->Fetch();
+    ASSERT_FALSE(content->GetValue(0, 0).is_null);
+    ASSERT_FALSE(content->GetValue(1, 0).is_null);
 }
 
 }  // namespace

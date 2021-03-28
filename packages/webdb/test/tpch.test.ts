@@ -679,7 +679,7 @@ export function testTPCH(db: () => webdb.AsyncWebDB, basePath: string) {
 
     describe('TPCH', () => {
         describe('duckdb regression', () => {
-            it('first aggregation, was fine', async () => {
+            /*it('first aggregation, was fine', async () => {
                 let result = await conn.runQuery(
                     `
                 select
@@ -706,7 +706,7 @@ export function testTPCH(db: () => webdb.AsyncWebDB, basePath: string) {
                 const chunks = new webdb.StaticChunkIterator(result);
                 const rows = chunks.collectAllBlocking();
                 expect(rows[0].__attribute__(0)).not.toBeNull();
-            }, 300000);
+            }, 300000);*/
             it('both aggregations, was failing', async () => {
                 debugger;
                 let result = await conn.runQuery(
