@@ -1,6 +1,6 @@
 // Copyright (c) 2020 The DashQL Authors
 
-import { webdb as proto } from '@dashql/proto';
+import { duckdb as proto } from '@dashql/proto';
 import { Value } from './value';
 import { TmpBuffers } from './buffers';
 import { RowProxyType, RowProxy } from './proxy';

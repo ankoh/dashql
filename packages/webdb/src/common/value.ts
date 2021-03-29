@@ -1,6 +1,6 @@
 // Copyright (c) 2020 The DashQL Authors
 
-import { webdb as proto, fb as flatbuffers } from '@dashql/proto';
+import { duckdb as proto, fb as flatbuffers } from '@dashql/proto';
 
 /** A sql type */
 export interface SQLType {
