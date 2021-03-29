@@ -18,7 +18,7 @@ module.exports = function(config) {
             { pattern: 'packages/webdb/dist/*.wasm', included: false, watched: false, served: true },
             { pattern: 'packages/webdb/dist/*.js', included: false, watched: false, served: true },
             { pattern: 'data/uni/out/*.parquet', included: false, watched: false, served: true },
-            { pattern: 'data/tpch/*.parquet', included: false, watched: false, served: true },
+            { pattern: 'data/tpch/*/*.parquet', included: false, watched: false, served: true },
         ],
         preprocessors: {
             '**/*.js': ['sourcemap'],

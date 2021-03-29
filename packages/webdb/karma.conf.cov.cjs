@@ -19,13 +19,15 @@ module.exports = function(config) {
             { pattern: 'packages/webdb/dist/*.wasm', included: false, watched: false, served: true },
             { pattern: 'packages/webdb/dist/*.js', included: false, watched: false, served: true },
             { pattern: 'data/uni/out/*.parquet', included: false, watched: false, served: true },
+            { pattern: 'data/tpch/*/*.parquet', included: false, watched: false, served: true },
         ],
         preprocessors: {
             '**/*.js': ['sourcemap', 'coverage'],
         },
         proxies: {
             '/static/': '/base/packages/webdb/dist/',
-            '/data/': '/base/data/uni/out/',
+            '/data/uni/': '/base/data/uni/out/',
+            '/data/tpch/': '/base/data/tpch/',
         },
         exclude: [],
         reporters: ['dots', 'coverage'],
