@@ -109,13 +109,13 @@ export abstract class WebDBBindings {
     /** Connect to database */
     public connect(): WebDBConnection {
         let instance = this._instance!;
-        let conn = instance.ccall('dashql_webdb_connect', 'number', [], []);
+        let conn = instance.ccall('duckdb_web_connect', 'number', [], []);
         return new WebDBConnection(this, conn);
     }
 
     /** Disconnect from database */
     public disconnect(conn: number): void {
-        this.instance!.ccall('dashql_webdb_disconnect', null, ['number'], [conn]);
+        this.instance!.ccall('duckdb_web_disconnect', null, ['number'], [conn]);
     }
 
     /// Encode query arguments
@@ -145,7 +145,7 @@ export abstract class WebDBBindings {
     public runQuery(conn: number, text: string, options: QueryRunOptions = {}): proto.QueryResult {
         const instance = this.instance!;
         const args = this.encodeQueryArguments(text, options);
-        const [s, d, n] = this.callSRet('dashql_webdb_run_query', ['number', 'number'], [conn, args]);
+        const [s, d, n] = this.callSRet('duckdb_web_run_query', ['number', 'number'], [conn, args]);
         const mem = instance.HEAPU8.subarray(d, d + n);
         if (s !== proto.StatusCode.SUCCESS) {
             throw new Error(decodeString(mem));
@@ -159,7 +159,7 @@ export abstract class WebDBBindings {
     public sendQuery(conn: number, text: string, options: QueryRunOptions = {}): proto.QueryResult {
         const instance = this.instance!;
         const args = this.encodeQueryArguments(text, options);
-        const [s, d, n] = this.callSRet('dashql_webdb_send_query', ['number', 'number'], [conn, args]);
+        const [s, d, n] = this.callSRet('duckdb_web_send_query', ['number', 'number'], [conn, args]);
         const mem = instance.HEAPU8.subarray(d, d + n);
         if (s !== proto.StatusCode.SUCCESS) {
             throw new Error(decodeString(mem));
@@ -172,7 +172,7 @@ export abstract class WebDBBindings {
     /** Fetch query results */
     public fetchQueryResults(conn: number): proto.QueryResultChunk {
         let instance = this.instance!;
-        let [s, d, n] = this.callSRet('dashql_webdb_fetch_query_results', ['number'], [conn]);
+        let [s, d, n] = this.callSRet('duckdb_web_fetch_query_results', ['number'], [conn]);
         let mem = instance.HEAPU8.subarray(d, d + n);
         if (s !== proto.StatusCode.SUCCESS) {
             throw new Error(decodeString(mem));
@@ -185,7 +185,7 @@ export abstract class WebDBBindings {
     /** Analyze a query */
     public analyzeQuery(conn: number, _text: string): proto.QueryPlan {
         let instance = this.instance!;
-        let [s, d, n] = this.callSRet('dashql_webdb_analyze_query', ['number'], [conn]);
+        let [s, d, n] = this.callSRet('duckdb_web_analyze_query', ['number'], [conn]);
         let mem = instance.HEAPU8.subarray(d, d + n);
         if (s !== proto.StatusCode.SUCCESS) {
             throw new Error(decodeString(mem));
