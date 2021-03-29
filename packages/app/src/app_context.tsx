@@ -1,11 +1,11 @@
-import * as webdb from '@dashql/webdb/dist/webdb.module.js';
+import * as duckdb from '@dashql/duckdb/dist/duckdb.module.js';
 import * as React from 'react';
 import * as model from './model';
 import * as platform from './platform';
 
 export interface IAppContext {
     store: model.AppReduxStore;
-    logger: webdb.Logger;
+    logger: duckdb.Logger;
     platform: platform.BrowserPlatform | null;
 }
 

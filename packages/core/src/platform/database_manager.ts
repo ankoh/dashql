@@ -1,4 +1,4 @@
-import * as webdb from '@dashql/webdb/dist/webdb.module.js';
+import * as duckdb from '@dashql/duckdb/dist/duckdb.module.js';
 import * as model from '../model';
 import { TableStatisticsResolver, DatabaseTableStatistics } from './table_statistics';
 import { Mutex } from '../utils';
@@ -10,19 +10,19 @@ import { Mutex } from '../utils';
 /// bundling as electron app or when connecting to a dedicated accelerator server.
 ///
 export class DatabaseManager {
-    /// The async webdb
-    _webdb: webdb.AsyncWebDB;
+    /// The async duckdb
+    _duckdb: duckdb.AsyncDuckDB;
     // The store
     _store: model.DerivedReduxStore;
     /// The connection
-    _connection: webdb.AsyncConnection | null;
+    _connection: duckdb.AsyncConnection | null;
     /// The connection mutex
     _connectionMutex: Mutex;
     /// The table statistics requests
     _tableStatistics: Map<string, TableStatisticsResolver>;
 
-    constructor(db: webdb.AsyncWebDB, store: model.DerivedReduxStore) {
-        this._webdb = db;
+    constructor(db: duckdb.AsyncDuckDB, store: model.DerivedReduxStore) {
+        this._duckdb = db;
         this._store = store;
         this._connection = null;
         this._connectionMutex = new Mutex();
@@ -44,7 +44,7 @@ export class DatabaseManager {
     }
 
     /// Use the connection
-    public async use<T>(f: (conn: webdb.AsyncConnection) => Promise<T>): Promise<T> {
+    public async use<T>(f: (conn: duckdb.AsyncConnection) => Promise<T>): Promise<T> {
         return await this._connectionMutex.useAsync(async () => {
             if (!this._connection) {
                 throw new Error('not connected');
@@ -65,7 +65,7 @@ export class DatabaseManager {
     public async connect() {
         const conn = await this._connectionMutex.useAsync(async () => {
             if (!!this._connection) return this._connection;
-            return await this._webdb.connect();
+            return await this._duckdb.connect();
         });
         this._connection = conn;
         return this._connection;
@@ -90,7 +90,7 @@ export class DatabaseManager {
         qualifiedTableName: string,
         type: model.TableStatisticsType,
         columnId: number = 0,
-    ): Promise<webdb.Value[]> {
+    ): Promise<duckdb.Value[]> {
         let queue = this._tableStatistics.get(qualifiedTableName);
         if (!queue) {
             queue = new DatabaseTableStatistics(this, qualifiedTableName);

@@ -1,4 +1,4 @@
-import * as duckdb from '@dashql/webdb';
+import * as duckdb from '@dashql/duckdb';
 import * as Immutable from 'immutable';
 import { analyzer, model, proto, viz } from '../../src';
 import { Analyzer } from '../../src/index_browser';

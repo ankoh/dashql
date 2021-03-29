@@ -1,6 +1,6 @@
 import * as Immutable from 'immutable';
 import * as React from 'react';
-import * as webdb from '@dashql/webdb';
+import * as duckdb from '@dashql/duckdb';
 import * as core from '@dashql/core';
 import { AppState, Dispatch } from '../model';
 import { connect } from 'react-redux';

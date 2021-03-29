@@ -1,4 +1,4 @@
-import * as webdb from '@dashql/webdb/dist/webdb.module.js';
+import * as duckdb from '@dashql/duckdb/dist/duckdb.module.js';
 import * as model from '../model';
 import * as platform from '../platform';
 
@@ -7,7 +7,7 @@ export class TableStatisticsRequest {
     /// The statistics type
     _key: model.TableStatisticsKey;
     /// The promise resolvers
-    _promiseResolvers: ((value: webdb.Value[]) => void)[];
+    _promiseResolvers: ((value: duckdb.Value[]) => void)[];
     /// The promise rejecters
     _promiseRejecters: ((e: any) => void)[];
     /// The value id
@@ -37,9 +37,9 @@ export interface TableStatisticsResolver {
     /// Resolve the table info
     resolveTableInfo(): model.DatabaseTableInfo | null;
     /// Request table statistics
-    request(type: model.TableStatisticsType, columnId: number): Promise<webdb.Value[]>;
+    request(type: model.TableStatisticsType, columnId: number): Promise<duckdb.Value[]>;
     /// Evaluate table statistics
-    evaluate(): Promise<Map<model.TableStatisticsKey, webdb.Value[]>>;
+    evaluate(): Promise<Map<model.TableStatisticsKey, duckdb.Value[]>>;
 }
 
 /// A queue for table statistics
@@ -101,7 +101,7 @@ export class DatabaseTableStatistics implements TableStatisticsResolver {
     }
 
     /// Request table statistics
-    public async request(type: model.TableStatisticsType, columnId: number = 0): Promise<webdb.Value[]> {
+    public async request(type: model.TableStatisticsType, columnId: number = 0): Promise<duckdb.Value[]> {
         const key = model.buildTableStatisticsKey(type, columnId);
         const prev = this._requests.get(key);
         const table = this._databaseManager.resolveTableInfo(this._qualifiedTableName);
@@ -129,9 +129,9 @@ export class DatabaseTableStatistics implements TableStatisticsResolver {
         }
     }
 
-    public async evaluate(): Promise<Map<model.TableStatisticsKey, webdb.Value[]>> {
+    public async evaluate(): Promise<Map<model.TableStatisticsKey, duckdb.Value[]>> {
         // Resolve the table info
-        const stats: Map<model.TableStatisticsKey, webdb.Value[]> = new Map();
+        const stats: Map<model.TableStatisticsKey, duckdb.Value[]> = new Map();
         const tableInfo = this._databaseManager.resolveTableInfo(this._qualifiedTableName);
         if (!tableInfo) return stats;
 
@@ -140,10 +140,10 @@ export class DatabaseTableStatistics implements TableStatisticsResolver {
             try {
                 // Query the associative aggregates
                 const query = this.buildAssociativeAggregateQuery(tableInfo);
-                const result = await this._databaseManager.use(async (conn: webdb.AsyncConnection) => {
+                const result = await this._databaseManager.use(async (conn: duckdb.AsyncConnection) => {
                     return await conn.runQuery(query);
                 });
-                const iter = new webdb.StaticChunkIterator(result);
+                const iter = new duckdb.StaticChunkIterator(result);
                 if (!iter.nextBlocking() || iter.rowCount == 0) {
                     // Received no values, reject all requests
                     for (const req of this._associativeAggregates) {
@@ -174,12 +174,12 @@ export class DatabaseTableStatistics implements TableStatisticsResolver {
             try {
                 // Evaluate the query
                 const query = this.buildStandaloneQuery(tableInfo, req);
-                const result = await this._databaseManager.use(async (conn: webdb.AsyncConnection) => {
+                const result = await this._databaseManager.use(async (conn: duckdb.AsyncConnection) => {
                     return await conn.runQuery(query);
                 });
                 // Collect the values
                 let v = [];
-                const iter = new webdb.StaticChunkIterator(result);
+                const iter = new duckdb.StaticChunkIterator(result);
                 while (iter.nextBlocking()) {
                     for (let i = 0; i < iter.rowCount; ++i) {
                         v.push(iter.readValue(i, 0));

@@ -1,4 +1,4 @@
-import * as duckdb from '@dashql/webdb/dist/webdb.module.js';
+import * as duckdb from '@dashql/duckdb/dist/duckdb.module.js';
 import * as React from 'react';
 import * as proto from '@dashql/proto';
 

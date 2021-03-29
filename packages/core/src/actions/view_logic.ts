@@ -1,6 +1,6 @@
 import * as Immutable from 'immutable';
 import * as proto from '@dashql/proto';
-import * as webdb from '@dashql/webdb/dist/webdb.module.js';
+import * as duckdb from '@dashql/duckdb/dist/duckdb.module.js';
 import * as model from '../model';
 import { ActionHandle, PlanObject } from '../model';
 import { ProgramActionLogic, SetupActionLogic } from './action_logic';
@@ -19,7 +19,7 @@ export class ViewCreateActionLogic extends ProgramActionLogic {
         if (!script) return;
 
         const db = context.platform.database;
-        const table = await db.use(async (c: webdb.AsyncConnection) => {
+        const table = await db.use(async (c: duckdb.AsyncConnection) => {
             /// First run the query
             await c.runQuery(script);
 
@@ -68,7 +68,7 @@ export class DropViewActionLogic extends SetupActionLogic {
     public willExecute(_context: ActionContext) {}
     public async execute(context: ActionContext): Promise<void> {
         const db = context.platform.database;
-        await db.use(async (c: webdb.AsyncConnection) => {
+        await db.use(async (c: duckdb.AsyncConnection) => {
             console.log(`DROP VIEW IF EXISTS ${this.buffer.targetNameShort()}`);
             await c.runQuery(`DROP VIEW IF EXISTS ${this.buffer.targetNameShort()}`);
         });
