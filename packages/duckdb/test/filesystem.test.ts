@@ -1,7 +1,7 @@
-import * as webdb from '../src/';
+import * as duckdb from '../src/';
 
-export function testFilesystem(db: () => webdb.AsyncDuckDB, basedir: string) {
-    let conn: webdb.AsyncDuckDBConnection;
+export function testFilesystem(db: () => duckdb.AsyncDuckDB, basedir: string) {
+    let conn: duckdb.AsyncDuckDBConnection;
 
     beforeEach(async () => {
         conn = await db().connect();
@@ -15,7 +15,7 @@ export function testFilesystem(db: () => webdb.AsyncDuckDB, basedir: string) {
         let test = async () => {
             let result = await conn.sendQuery(`SELECT MatrNr FROM parquet_scan('${basedir}/studenten.parquet');`);
             expect(result.columnTypesLength()).toBe(1);
-            let chunks = new webdb.AsyncChunkStreamIterator(conn, result);
+            let chunks = new duckdb.AsyncChunkStreamIterator(conn, result);
             let vals: number[] = [];
             while (await chunks.nextAsync()) {
                 for (const v of chunks.iterateNumberColumn(0)) {
@@ -50,7 +50,7 @@ export function testFilesystem(db: () => webdb.AsyncDuckDB, basedir: string) {
 
             let result = await conn.sendQuery(`SELECT MatrNr FROM parquet_scan('${basedir}/studenten.parquet');`);
             expect(result.columnTypesLength()).toBe(1);
-            let chunks = new webdb.AsyncChunkStreamIterator(conn, result);
+            let chunks = new duckdb.AsyncChunkStreamIterator(conn, result);
             let vals: number[] = [];
             while (await chunks.nextAsync()) {
                 for (const v of chunks.iterateNumberColumn(0)) {
@@ -72,8 +72,8 @@ export function testFilesystem(db: () => webdb.AsyncDuckDB, basedir: string) {
                     INNER JOIN parquet_scan('${basedir}/vorlesungen.parquet') vorlesungen ON (vorlesungen.VorlNr = hoeren.VorlNr);
                 `);
             expect(result.columnTypesLength()).toBe(2);
-            let chunks = new webdb.AsyncChunkStreamIterator(conn, result);
-            interface Row extends webdb.RowProxy {
+            let chunks = new duckdb.AsyncChunkStreamIterator(conn, result);
+            interface Row extends duckdb.RowProxy {
                 MatrNr: number | null;
                 Titel: string | null;
             }

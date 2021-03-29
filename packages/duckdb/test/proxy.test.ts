@@ -1,9 +1,9 @@
-import * as webdb from '../src/';
+import * as duckdb from '../src/';
 
 const testRows = 3000;
 
-export function testProxies(db: () => webdb.DuckDBBindings) {
-    let conn: webdb.DuckDBConnection;
+export function testProxies(db: () => duckdb.DuckDBBindings) {
+    let conn: duckdb.DuckDBConnection;
 
     describe('RowProxy', () => {
         beforeEach(() => {
@@ -20,10 +20,10 @@ export function testProxies(db: () => webdb.DuckDBBindings) {
                     SELECT v::INTEGER AS foo FROM generate_series(0, ${testRows}) as t(v);
                 `);
                 expect(result.columnTypesLength()).toBe(1);
-                interface Row extends webdb.RowProxy {
+                interface Row extends duckdb.RowProxy {
                     foo: number | null;
                 }
-                const chunks = new webdb.ChunkStreamIterator(conn, result);
+                const chunks = new duckdb.ChunkStreamIterator(conn, result);
                 let expected = 0;
                 while (chunks.nextBlocking()) {
                     for (const row of chunks.collect<Row>()) {
@@ -39,10 +39,10 @@ export function testProxies(db: () => webdb.DuckDBBindings) {
                     SELECT v::BIGINT AS foo FROM generate_series(0, ${testRows}) as t(v);
                 `);
                 expect(result.columnTypesLength()).toBe(1);
-                interface Row extends webdb.RowProxy {
+                interface Row extends duckdb.RowProxy {
                     foo: bigint | null;
                 }
-                const chunks = new webdb.ChunkStreamIterator(conn, result);
+                const chunks = new duckdb.ChunkStreamIterator(conn, result);
                 let expected = 0;
                 while (chunks.nextBlocking()) {
                     for (const row of chunks.collect<Row>()) {
@@ -58,10 +58,10 @@ export function testProxies(db: () => webdb.DuckDBBindings) {
                     SELECT v::HUGEINT AS foo FROM generate_series(0, ${testRows}) as t(v);
                 `);
                 expect(result.columnTypesLength()).toBe(1);
-                interface Row extends webdb.RowProxy {
+                interface Row extends duckdb.RowProxy {
                     foo: bigint | null;
                 }
-                const chunks = new webdb.ChunkStreamIterator(conn, result);
+                const chunks = new duckdb.ChunkStreamIterator(conn, result);
                 let expected = 0;
                 while (chunks.nextBlocking()) {
                     for (const row of chunks.collect<Row>()) {
@@ -77,10 +77,10 @@ export function testProxies(db: () => webdb.DuckDBBindings) {
                     SELECT v::VARCHAR AS foo FROM generate_series(0, ${testRows}) as t(v);
                 `);
                 expect(result.columnTypesLength()).toBe(1);
-                interface Row extends webdb.RowProxy {
+                interface Row extends duckdb.RowProxy {
                     foo: string | null;
                 }
-                const chunks = new webdb.ChunkStreamIterator(conn, result);
+                const chunks = new duckdb.ChunkStreamIterator(conn, result);
                 let expected = 0;
                 while (chunks.nextBlocking()) {
                     for (const row of chunks.collect<Row>()) {
@@ -96,10 +96,10 @@ export function testProxies(db: () => webdb.DuckDBBindings) {
                     SELECT v > 0 AS foo FROM generate_series(0, ${testRows}) as t(v);
                 `);
                 expect(result.columnTypesLength()).toBe(1);
-                interface Row extends webdb.RowProxy {
+                interface Row extends duckdb.RowProxy {
                     foo: boolean | null;
                 }
-                const chunks = new webdb.ChunkStreamIterator(conn, result);
+                const chunks = new duckdb.ChunkStreamIterator(conn, result);
                 let counter = 0;
                 while (chunks.nextBlocking()) {
                     for (const row of chunks.collect<Row>()) {
@@ -119,11 +119,11 @@ export function testProxies(db: () => webdb.DuckDBBindings) {
                     SELECT v::INTEGER AS foo FROM generate_series(0, ${testRows}) as t(v);
                 `);
                 expect(result.columnTypesLength()).toBe(1);
-                interface Row extends webdb.RowProxy {
+                interface Row extends duckdb.RowProxy {
                     foo: number | null;
                 }
-                const chunkStream = new webdb.ChunkStreamIterator(conn, result);
-                const chunks = new webdb.MaterializingChunkIterator(chunkStream);
+                const chunkStream = new duckdb.ChunkStreamIterator(conn, result);
+                const chunks = new duckdb.MaterializingChunkIterator(chunkStream);
                 let test = () => {
                     let expected = 0;
                     while (chunks.nextBlocking()) {
@@ -146,13 +146,13 @@ export function testProxies(db: () => webdb.DuckDBBindings) {
                     SELECT v::INTEGER AS foo, v::BIGINT as bar, v::VARCHAR as fizz, v > 0 as buzz FROM generate_series(0, ${testRows}) as t(v);
                 `);
                 expect(result.columnTypesLength()).toBe(4);
-                interface Row extends webdb.RowProxy {
+                interface Row extends duckdb.RowProxy {
                     foo: number | null;
                     bar: bigint | null;
                     fizz: string | null;
                     buzz: boolean | null;
                 }
-                const chunks = new webdb.ChunkStreamIterator(conn, result);
+                const chunks = new duckdb.ChunkStreamIterator(conn, result);
                 let expected = 0;
                 while (chunks.nextBlocking()) {
                     for (const row of chunks.collect<Row>()) {
@@ -174,13 +174,13 @@ export function testProxies(db: () => webdb.DuckDBBindings) {
                     SELECT v::INTEGER AS foo, v::BIGINT as bar, v::VARCHAR as fizz, v > 0 as buzz FROM generate_series(0, ${testRows}) as t(v);
                 `);
                 expect(result.columnTypesLength()).toBe(4);
-                interface Row extends webdb.RowProxy {
+                interface Row extends duckdb.RowProxy {
                     foo: number | null;
                     bar: bigint | null;
                     fizz: string | null;
                     buzz: boolean | null;
                 }
-                const chunks = new webdb.ChunkStreamIterator(conn, result);
+                const chunks = new duckdb.ChunkStreamIterator(conn, result);
                 const iter = chunks.iter<Row>();
                 expect(iter.columns).toEqual(['foo', 'bar', 'fizz', 'buzz']);
 
@@ -203,13 +203,13 @@ export function testProxies(db: () => webdb.DuckDBBindings) {
                     SELECT v::INTEGER AS foo, v::BIGINT as bar, v::VARCHAR as fizz, v > 0 as buzz FROM generate_series(0, ${testRows}) as t(v);
                 `);
                 expect(result.columnTypesLength()).toBe(4);
-                interface Row extends webdb.RowProxy {
+                interface Row extends duckdb.RowProxy {
                     foo: number | null;
                     bar: bigint | null;
                     fizz: string | null;
                     buzz: boolean | null;
                 }
-                const chunks = new webdb.StaticChunkIterator(result);
+                const chunks = new duckdb.StaticChunkIterator(result);
                 const iter = chunks.iter<Row>();
                 expect(iter.columns).toEqual(['foo', 'bar', 'fizz', 'buzz']);
 
@@ -232,13 +232,13 @@ export function testProxies(db: () => webdb.DuckDBBindings) {
                     SELECT v::INTEGER AS foo, v::BIGINT as bar, v::VARCHAR as fizz, v > 0 as buzz FROM generate_series(0, ${testRows}) as t(v);
                 `);
                 expect(result.columnTypesLength()).toBe(4);
-                interface Row extends webdb.RowProxy {
+                interface Row extends duckdb.RowProxy {
                     foo: number | null;
                     bar: bigint | null;
                     fizz: string | null;
                     buzz: boolean | null;
                 }
-                const chunks = new webdb.StaticChunkIterator(result);
+                const chunks = new duckdb.StaticChunkIterator(result);
                 const array = chunks.collectAllBlocking<Row>();
                 expect(array.columns).toEqual(['foo', 'bar', 'fizz', 'buzz']);
 
@@ -268,11 +268,11 @@ export function testProxies(db: () => webdb.DuckDBBindings) {
                     },
                 );
                 expect(result.columnTypesLength()).toBe(2);
-                interface Row extends webdb.RowProxy {
+                interface Row extends duckdb.RowProxy {
                     foo: number | null;
                     bar: number | null;
                 }
-                const chunks = new webdb.ChunkStreamIterator(conn, result);
+                const chunks = new duckdb.ChunkStreamIterator(conn, result);
                 let expected = 0;
                 while (chunks.nextBlocking()) {
                     for (const row of chunks.collect<Row>()) {
@@ -298,12 +298,12 @@ export function testProxies(db: () => webdb.DuckDBBindings) {
                     },
                 );
                 expect(result.columnTypesLength()).toBe(3);
-                interface Row extends webdb.RowProxy {
+                interface Row extends duckdb.RowProxy {
                     foo: number | null;
                     bar: number | null;
                     bam: number | null;
                 }
-                const chunks = new webdb.ChunkStreamIterator(conn, result);
+                const chunks = new duckdb.ChunkStreamIterator(conn, result);
                 let expected = 0;
                 while (chunks.nextBlocking()) {
                     for (const row of chunks.collect<Row>()) {
@@ -333,11 +333,11 @@ export function testProxies(db: () => webdb.DuckDBBindings) {
         //            },
         //        );
         //        expect(result.columnTypesLength()).toBe(2);
-        //        interface Row extends webdb.RowProxy {
+        //        interface Row extends duckdb.RowProxy {
         //            foo: number | null;
         //            bar: number | null;
         //        }
-        //        const chunks = new webdb.ChunkStreamIterator(conn, result);
+        //        const chunks = new duckdb.ChunkStreamIterator(conn, result);
         //        const partitions = chunks.collectPartitionsBlocking<Row>();
         //        expect(partitions.length).toBe(Math.ceil((testRows - 1) / 100));
         //        let expected = 0;
