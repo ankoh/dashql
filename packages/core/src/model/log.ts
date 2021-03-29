@@ -1,6 +1,6 @@
-import * as webdb from '@dashql/webdb/dist/webdb.module.js';
+import * as duckdb from '@dashql/duckdb/dist/duckdb.module.js';
 
-export import LogLevel = webdb.LogLevel;
+export import LogLevel = duckdb.LogLevel;
 
 export enum LogOrigin {
     DB_MANAGER = 1001,
@@ -26,7 +26,7 @@ export enum LogEvent {
     START = 3,
 }
 
-export type LogEntry<O, T, E, V> = webdb.LogEntry<O, T, E, V>;
+export type LogEntry<O, T, E, V> = duckdb.LogEntry<O, T, E, V>;
 
 export type LogEntryVariant =
     | LogEntry<LogOrigin.DB_MANAGER, LogTopic.DB_CONNECT, LogEvent.START, undefined>
@@ -42,17 +42,17 @@ export type LogEntryVariant =
     | LogEntry<LogOrigin.SCAN_PROVIDER, LogTopic.REQUEST_SCAN, LogEvent.OK, undefined>
     | LogEntry<LogOrigin.ACTION_SCHEDULER, LogTopic.PREPARE_ACTION, LogEvent.ERROR, any>
     | LogEntry<LogOrigin.ACTION_SCHEDULER, LogTopic.EXECUTE_ACTION, LogEvent.ERROR, any>
-    | webdb.LogEntryVariant;
+    | duckdb.LogEntryVariant;
 
-export function getLogLevelLabel(level: webdb.LogLevel) {
-    return webdb.getLogLevelLabel(level);
+export function getLogLevelLabel(level: duckdb.LogLevel) {
+    return duckdb.getLogLevelLabel(level);
 }
 
-export function getLogEventLabel(event: LogEvent | webdb.LogEvent) {
-    return webdb.getLogEventLabel(event);
+export function getLogEventLabel(event: LogEvent | duckdb.LogEvent) {
+    return duckdb.getLogEventLabel(event);
 }
 
-export function getLogTopicLabel(topic: LogTopic | webdb.LogTopic) {
+export function getLogTopicLabel(topic: LogTopic | duckdb.LogTopic) {
     switch (topic) {
         case LogTopic.DB_CONNECT:
             return 'CONNECT';
@@ -71,11 +71,11 @@ export function getLogTopicLabel(topic: LogTopic | webdb.LogTopic) {
         case LogTopic.EXECUTE_ACTION:
             return 'EXECUTE';
         default:
-            return webdb.getLogTopicLabel(topic);
+            return duckdb.getLogTopicLabel(topic);
     }
 }
 
-export function getLogOriginLabel(origin: LogOrigin | webdb.LogOrigin) {
+export function getLogOriginLabel(origin: LogOrigin | duckdb.LogOrigin) {
     switch (origin) {
         case LogOrigin.DB_MANAGER:
             return 'DATABASE ACCESS';
@@ -86,6 +86,6 @@ export function getLogOriginLabel(origin: LogOrigin | webdb.LogOrigin) {
         case LogOrigin.ACTION_SCHEDULER:
             return 'ACTION SCHEDULER';
         default:
-            return webdb.getLogOriginLabel(origin);
+            return duckdb.getLogOriginLabel(origin);
     }
 }

@@ -3,7 +3,7 @@
 import * as Immutable from 'immutable';
 import { Program } from './program';
 import * as proto from '@dashql/proto';
-import * as webdb from '@dashql/webdb';
+import * as duckdb from '@dashql/duckdb';
 
 export class ProgramInstance {
     /// The program
@@ -13,7 +13,7 @@ export class ProgramInstance {
     /// The instantiated program
     public readonly annotations: proto.analyzer.ProgramAnnotations;
     /// The evaluated nodes
-    public readonly evaluatedNodes: Map<number, webdb.Value>;
+    public readonly evaluatedNodes: Map<number, duckdb.Value>;
     /// The viz specs
     public readonly vizSpecs: Map<number, proto.analyzer.VizSpec>;
     /// The time when the program was created
@@ -30,7 +30,7 @@ export class ProgramInstance {
 
         for (let i = 0; i < annotations.evaluatedNodesLength(); ++i) {
             const node = annotations.evaluatedNodes(i)!;
-            this.evaluatedNodes.set(node.nodeId(), webdb.Value.FromProto(node.value()!));
+            this.evaluatedNodes.set(node.nodeId(), duckdb.Value.FromProto(node.value()!));
         }
         for (let i = 0; i < annotations.vizSpecsLength(); ++i) {
             const spec = annotations.vizSpecs(i)!;
@@ -39,11 +39,11 @@ export class ProgramInstance {
     }
 
     /// Read a node as a SQL value
-    public readNodeValue(i: number, v: webdb.Value | null = null): webdb.Value {
+    public readNodeValue(i: number, v: duckdb.Value | null = null): duckdb.Value {
         if (this.evaluatedNodes.has(i)) {
             return this.evaluatedNodes.get(i)!;
         }
-        v = v || new webdb.Value();
+        v = v || new duckdb.Value();
         v.setNull();
         const n = this.program.getNode(i);
         const nt = n.nodeType;
@@ -65,7 +65,7 @@ export class ProgramInstance {
         return v;
     }
 
-    public readNodeValueIfValid(i: number, v: webdb.Value | null = null): webdb.Value | null {
+    public readNodeValueIfValid(i: number, v: duckdb.Value | null = null): duckdb.Value | null {
         if (i == 0xffffffff) return null;
         return this.readNodeValue(i, v);
     }

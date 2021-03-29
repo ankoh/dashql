@@ -87,20 +87,20 @@ if (EMSCRIPTEN)
     # Load duckdb.wasm archive
     include(FetchContent)
     FetchContent_Declare(
-        duckdb_wasm
+        duckdb_wasm_prebuilt
         URL "https://github.com/dashql/duckdb/releases/download/0.2.4.1/duckdb-wasm32-nothreads.zip"
         URL_HASH "SHA256=1ac85c1e2e7fadcd86a5a3befff87aae2d1d2ad615d664e2228357777ff8a2a9"
     )
-    FetchContent_GetProperties(duckdb_wasm)
-    if(NOT duckdb_wasm_POPULATED)
-        FetchContent_Populate(duckdb_wasm)
+    FetchContent_GetProperties(duckdb_wasm_prebuilt)
+    if(NOT duckdb_wasm_prebuilt_POPULATED)
+        FetchContent_Populate(duckdb_wasm_prebuilt)
     endif()
 
     # Command to extract archive
-    set(DUCKDB_WASM_ARCHIVE ${duckdb_wasm_SOURCE_DIR}/duckdb-wasm32-nothreads.zip)
+    set(DUCKDB_WASM_ARCHIVE ${duckdb_wasm_prebuilt_SOURCE_DIR}/duckdb-wasm32-nothreads.zip)
     set(DUCKDB_WASM_OUT ${CMAKE_BINARY_DIR}/duckdb.wasm)
     add_custom_target(
-        duckdb_wasm
+        duckdb_wasm_prebuilt
         COMMAND ${CMAKE_COMMAND} -E remove ${DUCKDB_WASM_OUT}
         COMMAND ${CMAKE_COMMAND} -E tar xvz ${DUCKDB_WASM_ARCHIVE}
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
@@ -108,7 +108,7 @@ if (EMSCRIPTEN)
 
     # INTERFACE library to link prebuilt wasmt
     add_library(duckdb INTERFACE)
-    add_dependencies(duckdb duckdb_wasm)
+    add_dependencies(duckdb duckdb_wasm_prebuilt)
     target_compile_options(duckdb INTERFACE -DDUCKDB_NO_THREADS=1)
     target_link_libraries(duckdb INTERFACE ${CMAKE_BINARY_DIR}/duckdb.wasm)
     set_property(TARGET duckdb APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${DUCKDB_INCLUDE_DIR})
@@ -433,7 +433,7 @@ if (EMSCRIPTEN)
     target_link_libraries(analyzer_wasm_node dashql_analyzer)
     set_target_properties(analyzer_wasm_node PROPERTIES LINK_FLAGS "${ANALYZER_WASM_LINKER_FLAGS} -s ENVIRONMENT='node'")
 
-    set(WEBDB_WASM_LINKER_FLAGS " \
+    set(DUCKDB_WASM_LINKER_FLAGS " \
         -s LLD_REPORT_UNDEFINED=1 \
         -s WARN_ON_UNDEFINED_SYMBOLS=0 \
         -s ALLOW_MEMORY_GROWTH=1 \
@@ -442,15 +442,15 @@ if (EMSCRIPTEN)
         -s MODULARIZE=1 \
         -s FILESYSTEM=0 \
         -s EXPORT_ES6=1 \
-        -s EXPORT_NAME='DashQLWebDB' \
+        -s EXPORT_NAME='DuckDB' \
         -s EXPORTED_FUNCTIONS='[ \
             _main, \
             _malloc, \
             _free, \
             _dashql_clear_response, \
-            _dashql_blob_stream_consume, \
             _dashql_extract_import_csv, \
             _duckdb_web_analyze_query, \
+            _duckdb_web_blob_stream_consume, \
             _duckdb_web_connect, \
             _duckdb_web_disconnect, \
             _duckdb_web_fetch_query_results, \
@@ -465,13 +465,13 @@ if (EMSCRIPTEN)
         "
         )
 
-    add_executable(webdb_wasm ${CMAKE_SOURCE_DIR}/src/ffi_main.cc)
-    target_link_libraries(webdb_wasm duckdb_web flatbuffers spdlog)
-    set_target_properties(webdb_wasm PROPERTIES LINK_FLAGS "${WEBDB_WASM_LINKER_FLAGS} -s ENVIRONMENT='web'")
+    add_executable(duckdb_wasm ${CMAKE_SOURCE_DIR}/src/ffi_main.cc)
+    target_link_libraries(duckdb_wasm duckdb_web flatbuffers spdlog)
+    set_target_properties(duckdb_wasm PROPERTIES LINK_FLAGS "${DUCKDB_WASM_LINKER_FLAGS} -s ENVIRONMENT='web'")
 
-    add_executable(webdb_wasm_node ${CMAKE_SOURCE_DIR}/src/ffi_main.cc)
-    target_link_libraries(webdb_wasm_node duckdb_web flatbuffers spdlog)
-    set_target_properties(webdb_wasm_node PROPERTIES LINK_FLAGS "${WEBDB_WASM_LINKER_FLAGS} -s ENVIRONMENT='node'")
+    add_executable(duckdb_wasm_node ${CMAKE_SOURCE_DIR}/src/ffi_main.cc)
+    target_link_libraries(duckdb_wasm_node duckdb_web flatbuffers spdlog)
+    set_target_properties(duckdb_wasm_node PROPERTIES LINK_FLAGS "${DUCKDB_WASM_LINKER_FLAGS} -s ENVIRONMENT='node'")
 else()
 
 

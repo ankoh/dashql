@@ -1,6 +1,6 @@
 import * as platform from '../platform';
 import * as model from '../model';
-import * as duckdb from '@dashql/webdb';
+import * as duckdb from '@dashql/duckdb';
 import * as proto from '@dashql/proto';
 
 export abstract class VegaLiteEditOperation {

@@ -238,6 +238,16 @@
     lodash "^4.17.19"
     to-fast-properties "^2.0.0"
 
+"@dashql/webdb@^0.0.20":
+  version "0.0.20"
+  resolved "https://registry.yarnpkg.com/@dashql/webdb/-/webdb-0.0.20.tgz#951d406b3e158b3c896540f12084b9301135190a"
+  integrity sha512-+61NWR2RFUqSGjGPVaIcsNWUF2USUCn1ei7ndbXYXgReS/a2TFH19iCfIbMX0imT592zfgGBlAvCWhOQLXLy9w==
+  dependencies:
+    "@dashql/proto" "^0.0.4"
+    glob-to-regexp "^0.4.1"
+  optionalDependencies:
+    fsevents "*"
+
 "@discoveryjs/json-ext@^0.5.0":
   version "0.5.2"
   resolved "https://registry.yarnpkg.com/@discoveryjs/json-ext/-/json-ext-0.5.2.tgz#8f03a22a04de437254e8ce8cc84ba39689288752"

@@ -1,5 +1,5 @@
 import * as proto from '@dashql/proto';
-import * as webdb from '@dashql/webdb';
+import * as duckdb from '@dashql/duckdb';
 import * as model from '../model';
 import * as error from '../error';
 import { VizComposer } from '../viz/viz_composer';
@@ -54,7 +54,7 @@ export abstract class VizActionLogic extends ProgramActionLogic {
 
 export class CreateVizActionLogic extends VizActionLogic {
     /// The promise to get the row count
-    _rowCountPromise: Promise<webdb.Value[]> | null = null;
+    _rowCountPromise: Promise<duckdb.Value[]> | null = null;
 
     constructor(action_id: model.ActionHandle, action: proto.action.ProgramAction, statement: model.Statement) {
         super(action_id, action, statement);

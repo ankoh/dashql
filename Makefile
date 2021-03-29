@@ -19,7 +19,7 @@ LIB_DEBUG_DIR="${ROOT_DIR}/lib/build/Debug"
 LIB_RELEASE_DIR="${ROOT_DIR}/lib/build/Release"
 LIB_RELWITHDEBINFO_DIR="${ROOT_DIR}/lib/build/RelWithDebInfo"
 CORE_WASM_DIR="${ROOT_DIR}/packages/core/src/wasm"
-WEBDB_WASM_DIR="${ROOT_DIR}/packages/webdb/src/wasm"
+DUCKDB_WASM_DIR="${ROOT_DIR}/packages/duckdb/src/wasm"
 DATAFRAME_WASM_DIR="${ROOT_DIR}/packages/dataframe/src/wasm"
 
 CI_IMAGE_NAMESPACE="dashql"
@@ -173,25 +173,25 @@ app_release_server:
 app_start:
 	yarn workspace @dashql/app start
 
-# Build the webdb library
-.PHONY: webdb
-webdb:
-	yarn workspace @dashql/webdb build
+# Build the duckdb library
+.PHONY: duckdb
+duckdb:
+	yarn workspace @dashql/duckdb build
 
-# Run the webdb javascript tests
-.PHONY: webdb_tests
-webdb_tests:
-	yarn workspace @dashql/webdb test
+# Run the duckdb javascript tests
+.PHONY: duckdb_tests
+duckdb_tests:
+	yarn workspace @dashql/duckdb test
 
-# Run the webdb javascript tests in browser
-.PHONY: webdb_tests_browser
-webdb_tests_browser:
-	yarn workspace @dashql/webdb test:browser
+# Run the duckdb javascript tests in browser
+.PHONY: duckdb_tests_browser
+duckdb_tests_browser:
+	yarn workspace @dashql/duckdb test:browser
 
-# Run the webdb javascript tests on nodejs
-.PHONY: webdb_tests_node
-webdb_tests_node:
-	yarn workspace @dashql/webdb test:node
+# Run the duckdb javascript tests on nodejs
+.PHONY: duckdb_tests_node
+duckdb_tests_node:
+	yarn workspace @dashql/duckdb test:node
 
 # Install all yarn packages
 .PHONY: yarn_install
@@ -241,7 +241,7 @@ bootstrap:
 	make docker_ci_image yarn_install
 	make proto
 	make wasm
-	make webdb
+	make duckdb
 	make core
 
 # ---------------------------------------------------------------------------

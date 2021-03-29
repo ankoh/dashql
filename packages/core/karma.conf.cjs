@@ -16,9 +16,9 @@ module.exports = function (config) {
         files: [
             { pattern: 'dist/tests-browser.js' },
             { pattern: 'src/analyzer/analyzer_wasm.wasm', included: false, watched: false, served: true },
-            { pattern: '../webdb/dist/webdb.wasm', included: false, watched: false, served: true },
+            { pattern: '../duckdb/dist/duckdb.wasm', included: false, watched: false, served: true },
             {
-                pattern: '../webdb/dist/webdb-browser-parallel.worker.js',
+                pattern: '../duckdb/dist/duckdb-browser-parallel.worker.js',
                 included: false,
                 watched: false,
                 served: true,
@@ -29,9 +29,9 @@ module.exports = function (config) {
         },
         proxies: {
             '/static/analyzer_wasm.wasm': '/base/src/analyzer/analyzer_wasm.wasm',
-            '/static/webdb.wasm': '/absolute' + path.resolve('../webdb/dist/webdb.wasm'),
-            '/static/webdb-browser-parallel.worker.js':
-                '/absolute' + path.resolve('../webdb/dist/webdb-browser-parallel.worker.js'),
+            '/static/duckdb.wasm': '/absolute' + path.resolve('../duckdb/dist/duckdb.wasm'),
+            '/static/duckdb-browser-parallel.worker.js':
+                '/absolute' + path.resolve('../duckdb/dist/duckdb-browser-parallel.worker.js'),
         },
         exclude: [],
         reporters: ['dots'],

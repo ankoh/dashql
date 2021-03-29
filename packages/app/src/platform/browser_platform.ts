@@ -1,4 +1,4 @@
-import * as webdb from '@dashql/webdb/dist/webdb-browser-parallel.js';
+import * as duckdb from '@dashql/duckdb/dist/duckdb-browser-parallel.js';
 import * as core from '@dashql/core';
 import * as model from '../model';
 
@@ -10,11 +10,11 @@ export class BrowserPlatform extends core.platform.Platform {
 
     constructor(
         store: model.AppReduxStore,
-        logger: webdb.Logger,
-        webdb: webdb.AsyncWebDB,
+        logger: duckdb.Logger,
+        duckdb: duckdb.AsyncDuckDB,
         analyzer: core.analyzer.AnalyzerBindings,
     ) {
-        super(store, logger, webdb, analyzer);
+        super(store, logger, duckdb, analyzer);
         this._store = store;
         this._scheduler = new core.ActionGraphScheduler(this);
         this._scriptPipeline = new core.ScriptPipeline(this, this._scheduler);

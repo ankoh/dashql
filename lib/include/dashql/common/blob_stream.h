@@ -93,7 +93,7 @@ class CachingBlobStreamBuffer : public BlobStreamBufferBase {
 
 extern "C" {
 
-size_t dashql_blob_stream_underflow(dashql::BlobID, char*, size_t);
+size_t duckdb_web_blob_stream_underflow(dashql::BlobID, char*, size_t);
 }
 
 #endif  // INCLUDE_DASHQL_COMMON_STREAMS_H_
