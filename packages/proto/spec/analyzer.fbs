@@ -9,12 +9,12 @@ namespace dashql.proto.analyzer;
 
 table NodeValue {
     node_id: uint32;
-    value: webdb.SQLValue;
+    value: duckdb.web.proto.SQLValue;
 }
 
 table ParameterValue {
     statement_id: uint32;
-    value: webdb.SQLValue;
+    value: duckdb.web.proto.SQLValue;
 }
 
 enum NodeErrorCode: uint8 {

@@ -1,6 +1,6 @@
 // Copyright (c) 2020 The DashQL Authors
 
-#include "dashql/webdb/iterator.h"
+#include "duckdb/web/iterator.h"
 
 #include <optional>
 #include <random>
@@ -12,12 +12,12 @@
 #include "dashql/proto_generated.h"
 #include "duckdb/common/types/date.hpp"
 
-namespace p = dashql::proto::webdb;
+namespace p = duckdb::web::proto;
 using duckdb::hugeint_t;
 using duckdb::interval_t;
 
-namespace dashql {
-namespace webdb {
+namespace duckdb {
+namespace web {
 
 // Constructor
 QueryResultIterator::QueryResultIterator(WebDB::Connection& connection, const p::QueryResult& result)
@@ -40,13 +40,13 @@ QueryResultIterator::QueryResultIterator(WebDB::Connection& connection, const p:
 }
 
 /// Advance the iterator
-Signal QueryResultIterator::Next() {
+dashql::Signal QueryResultIterator::Next() {
     // Reached end?
-    if (IsEnd()) return Signal::OK();
+    if (IsEnd()) return dashql::Signal::OK();
 
     // Still in current chunk?
     ++globalRowIndex;
-    if (chunk_row() < chunk->row_count()) return Signal::OK();
+    if (chunk_row() < chunk->row_count()) return dashql::Signal::OK();
 
     // Get next chunk (if neccessary)
     ++chunkID;
@@ -59,7 +59,7 @@ Signal QueryResultIterator::Next() {
         chunkBuffer = result.ReleaseBuffer();
     }
     chunkRowBegin = globalRowIndex;
-    return Signal::OK();
+    return dashql::Signal::OK();
 }
 
 /// Is at end?
@@ -183,5 +183,5 @@ duckdb::Value QueryResultIterator::GetValue(size_t col_idx) const {
     return duckdb::Value{};
 }
 
-}  // namespace webdb
-}  // namespace dashql
+}  // namespace web
+}  // namespace duckdb

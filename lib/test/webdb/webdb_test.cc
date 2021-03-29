@@ -1,18 +1,18 @@
 // Copyright (c) 2020 The DashQL Authors
 
-#include "dashql/webdb/webdb.h"
+#include "duckdb/web/webdb.h"
 
 #include <sstream>
 
 #include "dashql/proto_generated.h"
 #include "dashql/test/config.h"
-#include "dashql/webdb/iterator.h"
 #include "duckdb/common/types/date.hpp"
 #include "duckdb/common/types/timestamp.hpp"
+#include "duckdb/web/iterator.h"
 #include "gtest/gtest.h"
 #include "parquet-extension.hpp"
 
-using namespace dashql::webdb;
+using namespace duckdb::web;
 using namespace std;
 
 namespace {

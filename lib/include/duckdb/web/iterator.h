@@ -1,14 +1,14 @@
 // Copyright (c) 2020 The DashQL Authors
 
-#ifndef INCLUDE_DASHQL_WEBDB_ITERATOR_H_
-#define INCLUDE_DASHQL_WEBDB_ITERATOR_H_
+#ifndef INCLUDE_DUCKDB_WEB_ITERATOR_H_
+#define INCLUDE_DUCKDB_WEB_ITERATOR_H_
 
 #include "dashql/common/expected.h"
 #include "dashql/proto_generated.h"
-#include "dashql/webdb/webdb.h"
+#include "duckdb/web/webdb.h"
 
-namespace dashql {
-namespace webdb {
+namespace duckdb {
+namespace web {
 
 /// The query result forward iterator
 struct QueryResultIterator {
@@ -16,7 +16,7 @@ struct QueryResultIterator {
     /// The connection
     WebDB::Connection& connection;
     /// The query result
-    const proto::webdb::QueryResult& result;
+    const proto::QueryResult& result;
     /// The global row index
     uint64_t globalRowIndex;
     /// The chunk row begin
@@ -26,11 +26,11 @@ struct QueryResultIterator {
     /// The chunk buffer (if any)
     flatbuffers::DetachedBuffer chunkBuffer;
     /// The chunk
-    const proto::webdb::QueryResultChunk* chunk;
+    const proto::QueryResultChunk* chunk;
 
    public:
     /// Constructor
-    QueryResultIterator(WebDB::Connection& connection, const proto::webdb::QueryResult& result);
+    QueryResultIterator(WebDB::Connection& connection, const proto::QueryResult& result);
 
     /// Get the column types
     auto column_count() const { return result.column_types()->size(); }
@@ -46,7 +46,7 @@ struct QueryResultIterator {
     /// Is a partition boundary?
     bool IsPartitionBoundary() const;
     /// Advance the iterator
-    Signal Next();
+    dashql::Signal Next();
     /// Iterator increment
     QueryResultIterator& operator++() {
         Next();
@@ -56,7 +56,7 @@ struct QueryResultIterator {
     duckdb::Value GetValue(size_t col_idx) const;
 };
 
-}  // namespace webdb
-}  // namespace dashql
+}  // namespace web
+}  // namespace duckdb
 
-#endif  // INCLUDE_DASHQL_WEBDB_ITERATOR_H_
+#endif  // INCLUDE_DUCKDB_WEB_ITERATOR_H_

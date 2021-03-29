@@ -1,6 +1,6 @@
 // Copyright (c) 2020 The DashQL Authors
 
-#include "dashql/webdb/codec.h"
+#include "duckdb/web/codec.h"
 
 #include <flatbuffers/flatbuffers.h>
 
@@ -12,11 +12,11 @@
 #include "duckdb/planner/logical_operator.hpp"
 
 namespace fb = flatbuffers;
-namespace p = dashql::proto::webdb;
+namespace p = duckdb::web::proto;
 using namespace duckdb;
 
-namespace dashql {
-namespace webdb {
+namespace duckdb {
+namespace web {
 
 #define LOGICAL_OPERATOR_TYPES        \
     X(LOGICAL_INVALID)                \
@@ -237,7 +237,7 @@ static fb::Offset<p::Vector> writeStringCol(fb::FlatBufferBuilder &builder, duck
 fb::Offset<p::QueryResultChunk> WriteQueryResultChunk(flatbuffers::FlatBufferBuilder &builder,
                                                       duckdb::QueryResult &result, uint64_t queryID,
                                                       duckdb::DataChunk *chunk_ptr,
-                                                      const PartitionBoundaries& partition_mask) {
+                                                      const PartitionBoundaries &partition_mask) {
     duckdb::DataChunk tmp;
     auto &chunk = (!!chunk_ptr) ? *chunk_ptr : tmp;
     auto size = chunk.size();
@@ -293,8 +293,9 @@ fb::Offset<p::QueryResultChunk> WriteQueryResultChunk(flatbuffers::FlatBufferBui
     auto column_offset = builder.CreateVector(columns);
 
     // Write partition mask
-    uint8_t* partition_boundaries_ptr;
-    auto partition_boundaries_ofs = builder.CreateUninitializedVector<uint8_t>(partition_mask.size(), &partition_boundaries_ptr);
+    uint8_t *partition_boundaries_ptr;
+    auto partition_boundaries_ofs =
+        builder.CreateUninitializedVector<uint8_t>(partition_mask.size(), &partition_boundaries_ptr);
     for (unsigned i = 0; i < partition_mask.size(); ++i) {
         partition_boundaries_ptr[i] = partition_mask[i];
     }
@@ -429,5 +430,5 @@ fb::Offset<p::QueryPlan> WriteQueryPlan(fb::FlatBufferBuilder &builder, duckdb::
     return plan_builder.Finish();
 }
 
-}  // namespace webdb
-}  // namespace dashql
+}  // namespace web
+}  // namespace duckdb

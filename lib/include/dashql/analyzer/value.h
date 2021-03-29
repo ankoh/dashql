@@ -5,7 +5,7 @@
 
 #include "dashql/common/expected.h"
 #include "dashql/proto_generated.h"
-#include "dashql/webdb/webdb.h"
+#include "duckdb/web/webdb.h"
 
 namespace dashql {
 
@@ -24,7 +24,7 @@ class Value {
     enum class PhysicalType { NULL_, I64, F64, STRING, STRING_VIEW };
 
     /// The logical type
-    proto::webdb::SQLType logical_type_;
+    duckdb::web::proto::SQLType logical_type_;
     /// The physical type
     PhysicalType physical_type_;
     /// The data.
@@ -56,11 +56,11 @@ class Value {
     /// Create an empty NULL value
     Value();
     /// Create an empty NULL value of the specified type
-    Value(proto::webdb::SQLTypeID type);
+    Value(duckdb::web::proto::SQLTypeID type);
     /// Create an empty NULL value of the specified type
-    Value(proto::webdb::SQLType type);
+    Value(duckdb::web::proto::SQLType type);
     /// Create from flatbuffer object
-    Value(const proto::webdb::SQLValue& val);
+    Value(const duckdb::web::proto::SQLValue& val);
 
     /// Explicit move constructor
     Value(Value&& other) noexcept;
@@ -108,16 +108,16 @@ class Value {
     Value CopyShallow() const;
 
     /// Pack as flatbuffer
-    flatbuffers::Offset<proto::webdb::SQLValue> Pack(flatbuffers::FlatBufferBuilder& builder) const;
+    flatbuffers::Offset<duckdb::web::proto::SQLValue> Pack(flatbuffers::FlatBufferBuilder& builder) const;
     /// Unpack from flatbuffer
-    static Value UnPack(const proto::webdb::SQLValue& val);
+    static Value UnPack(const duckdb::web::proto::SQLValue& val);
 
     /// Parse a value from text
-    static proto::webdb::SQLType ParseType(std::string_view type);
+    static duckdb::web::proto::SQLType ParseType(std::string_view type);
     /// Parse a value from text
     static Value Parse(std::string_view type, std::string_view data, bool string_refs = false);
     /// Create a Numeric value of the specified type with the specified value
-    static Value Numeric(proto::webdb::SQLType type, int64_t value);
+    static Value Numeric(duckdb::web::proto::SQLType type, int64_t value);
 
     /// Create a boolean value from a specified value
     static Value BOOLEAN(int8_t value);
