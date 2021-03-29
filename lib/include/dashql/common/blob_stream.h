@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "dashql/common/pod_vector.h"
+#include "duckdb/common/file_system.hpp"
 
 namespace dashql {
 
@@ -87,6 +88,54 @@ class CachingBlobStreamBuffer : public BlobStreamBufferBase {
     /// Derived classes can override this behavior to modify the gptr and egptr internal pointers in such a way
     /// that more characters from the input sequence may be made accessible through the buffer.
     int_type underflow() override;
+};
+
+class FileSystemStreamBuffer : public std::streambuf {
+   public:
+    FileSystemStreamBuffer(duckdb::FileSystem& file_system, duckdb::FileHandle& file_handle)
+        : file_system(file_system), file_handle(file_handle), pos(0) {}
+
+   protected:
+    FileSystemStreamBuffer* setbuf(char_type*, std::streamsize) override { return this; }
+
+    pos_type seekoff(off_type off, std::ios_base::seekdir dir, std::ios_base::openmode) override {  //
+        if (dir == std::ios_base::beg) {
+            pos = off;
+        } else if (dir == std::ios_base::end) {
+            pos = file_system.GetFileSize(file_handle) - off;
+        } else {
+            pos += off;
+        }
+
+        file_system.Se(file_handle, pos);
+
+        return pos;
+    }
+
+    pos_type seekpos(pos_type pos, std::ios_base::openmode dir) override {  //
+        return {};
+    }
+
+    std::streamsize showmanyc() override {  //
+        return {};
+    }
+
+    int_type underflow() override {  //
+        return {};
+    }
+
+    int_type uflow() override {  //
+        return {};
+    }
+
+    std::streamsize xsgetn(char_type* s, std::streamsize count) override {  //
+        return {};
+    }
+
+   private:
+    duckdb::FileSystem& file_system;
+    duckdb::FileHandle& file_handle;
+    pos_type pos;
 };
 
 }  // namespace dashql
