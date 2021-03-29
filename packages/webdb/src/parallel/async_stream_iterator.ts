@@ -2,7 +2,7 @@
 
 import { ChunkIterator } from '../common/chunk_iterator';
 import { AsyncConnection } from './async_webdb';
-import { webdb as proto } from '@dashql/proto';
+import { duckdb as proto } from '@dashql/proto';
 
 /** An iterator for async chunk streams */
 export class AsyncChunkStreamIterator extends ChunkIterator {
@@ -30,6 +30,6 @@ export class AsyncChunkStreamIterator extends ChunkIterator {
             let chunkBuffer = await this._connection.fetchQueryResults();
             this._currentChunk = chunkBuffer;
         }
-        return this._currentChunk.rowCount() > 0;
+        return this._currentChunk!.rowCount() > 0;
     }
 }

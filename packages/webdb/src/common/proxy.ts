@@ -1,6 +1,6 @@
 // Copyright (c) 2020 The DashQL Authors
 
-import { webdb as proto, webdb } from '@dashql/proto';
+import { duckdb as proto } from '@dashql/proto';
 import { TmpBuffers } from './buffers';
 
 type ValueArray = Uint8Array | Float64Array | proto.VectorI64 | proto.VectorI128 | proto.VectorString;
@@ -186,7 +186,7 @@ export class RowProxyType {
     }
 
     /** Index the chunk data */
-    public static indexChunkData(chunk: webdb.QueryResultChunk) {
+    public static indexChunkData(chunk: proto.QueryResultChunk) {
         let tmp = new TmpBuffers();
         const data: ChunkData = {
             columns: [],
@@ -258,7 +258,7 @@ export class RowProxyType {
 
     /** Proxy rows in chunk into an array */
     public proxyChunkRowsArray<T extends RowProxy>(
-        chunk: webdb.QueryResultChunk | null,
+        chunk: proto.QueryResultChunk | null,
         out: T[] & { columns?: string[] } = [],
     ) {
         if (chunk) {
