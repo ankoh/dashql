@@ -27,14 +27,14 @@
         "make-dir": "^3.1.0",
         "nyc": "^15.1.0",
         "puppeteer": "^8.0.0",
-        "react": "^17.0.1",
+        "react": "^17.0.2",
         "react-dom": "^17.0.2",
         "rimraf": "^3.0.2",
         "typescript": "^4.2.3"
     },
     "peerDependencies": {
         "@types/react": "^17.0.3",
-        "react": "^17.0.1",
+        "react": "^17.0.2",
         "react-dom": "^17.0.2"
     },
     "optionalDependencies": {
