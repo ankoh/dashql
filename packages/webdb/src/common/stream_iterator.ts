@@ -2,7 +2,7 @@
 
 import { ChunkIterator } from '../common/chunk_iterator';
 import { WebDBConnection } from '../bindings';
-import { webdb as proto } from '@dashql/proto';
+import { duckdb as proto } from '@dashql/proto';
 import { RowProxy } from '../common/proxy';
 import { RowProxyIterator } from '../common/proxy_iterator';
 
