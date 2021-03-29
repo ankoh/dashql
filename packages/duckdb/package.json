@@ -1,11 +1,11 @@
 {
     "name": "@dashql/duckdb",
-    "version": "0.0.20",
+    "version": "0.0.22",
     "description": "DuckDB powered by WebAssembly",
     "author": "Andre Kohn <kohn.a@outlook.com>",
     "license": "MPL-2.0",
     "dependencies": {
-        "@dashql/proto": "^0.0.4",
+        "@dashql/proto": "^0.0.5",
         "glob-to-regexp": "^0.4.1"
     },
     "devDependencies": {
