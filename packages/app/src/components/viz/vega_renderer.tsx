@@ -17,7 +17,7 @@ interface Props {
 
 export class VegaRenderer extends React.Component<Props> {
     protected renderContent(table: core.model.DatabaseTableInfo, width: number, height: number) {
-        const vega = (result: proto.webdb.QueryResult, width: number, height: number) => (
+        const vega = (result: proto.duckdb.QueryResult, width: number, height: number) => (
             <core.access.ProxyProvider result={result}>
                 {rows => (
                     <Vega
