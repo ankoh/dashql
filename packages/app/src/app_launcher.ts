@@ -1,4 +1,4 @@
-import * as webdb from '@dashql/webdb/dist/webdb.module.js';
+import * as duckdb from '@dashql/duckdb/dist/duckdb.module.js';
 import { Analyzer } from '@dashql/core/dist/dashql-core-browser.module.js';
 import * as model from './model';
 import * as examples from './example_scripts';
@@ -6,7 +6,7 @@ import * as platform from './platform';
 import { IAppContext } from './app_context';
 
 import analyzer_wasm from '@dashql/core/dist/dashql-analyzer.wasm';
-import webdb_wasm from '@dashql/webdb/dist/webdb.wasm';
+import duckdb_wasm from '@dashql/duckdb/dist/duckdb.wasm';
 
 import axios from 'axios';
 import config_url from '../static/config.json';
@@ -53,12 +53,12 @@ async function configureApp(store: model.AppReduxStore): Promise<model.AppConfig
     return null;
 }
 
-async function initWebDB(store: model.AppReduxStore, logger: webdb.Logger): Promise<webdb.AsyncWebDB | null> {
+async function initDuckDB(store: model.AppReduxStore, logger: duckdb.Logger): Promise<duckdb.AsyncDuckDB | null> {
     startStep(store, model.LaunchStep.INIT_WEBDB);
     try {
-        const dbWorker = new Worker(new URL('@dashql/webdb/dist/webdb-browser-parallel.worker.js', import.meta.url));
-        const db = new webdb.AsyncWebDB(logger, dbWorker);
-        await db.open(webdb_wasm);
+        const dbWorker = new Worker(new URL('@dashql/duckdb/dist/duckdb-browser-parallel.worker.js', import.meta.url));
+        const db = new duckdb.AsyncDuckDB(logger, dbWorker);
+        await db.open(duckdb_wasm);
         stepSucceeded(store, model.LaunchStep.INIT_WEBDB);
         return db;
     } catch (e) {
@@ -84,15 +84,15 @@ export async function launchApp(ctx: IAppContext) {
     const config = await configureApp(ctx.store);
     if (!config) return;
 
-    const webdbPromise = initWebDB(ctx.store, ctx.logger);
+    const duckdbPromise = initDuckDB(ctx.store, ctx.logger);
     const analyzerPromise = initAnalyzer(ctx.store);
 
-    const init = await Promise.all([webdbPromise, analyzerPromise]);
+    const init = await Promise.all([duckdbPromise, analyzerPromise]);
     if (init[0] == null || init[1] == null) return;
-    const webdb = init[0];
+    const duckdb = init[0];
     const analyzer = init[1];
 
-    ctx.platform = new platform.BrowserPlatform(ctx.store, ctx.logger, webdb, analyzer);
+    ctx.platform = new platform.BrowserPlatform(ctx.store, ctx.logger, duckdb, analyzer);
     await ctx.platform.init();
 
     const example = examples.EXAMPLE_SCRIPT_MAP.get('demo_helloworld')!;

@@ -1,5 +1,5 @@
 import * as proto from '@dashql/proto';
-import * as webdb from '@dashql/webdb/dist/webdb.module.js';
+import * as duckdb from '@dashql/duckdb/dist/duckdb.module.js';
 import * as model from '../model';
 import * as Immutable from 'immutable';
 import { ProgramActionLogic, SetupActionLogic } from './action_logic';
@@ -7,19 +7,19 @@ import { ActionContext } from './action_context';
 
 /// XXX Delete this eventually in favor of the async statistics requests
 export async function collectTableInfo(
-    conn: webdb.AsyncConnection,
+    conn: duckdb.AsyncConnection,
     info: model.DatabaseTableInfo,
 ): Promise<model.DatabaseTableInfo> {
     // Get column names and types
     const limit0 = await conn.runQuery(`SELECT * FROM ${info.tableNameShort} LIMIT 0`);
     const columnNames: string[] = [];
     const columnNameMapping: Map<string, number> = new Map();
-    const columnTypes: webdb.SQLType[] = [];
+    const columnTypes: duckdb.SQLType[] = [];
     for (let ci = 0; ci < limit0.columnNamesLength(); ++ci) {
         const name = limit0.columnNames(ci);
         columnNames.push(name);
         columnNameMapping.set(name, ci);
-        columnTypes.push(webdb.getSQLType(limit0.columnTypes(ci)));
+        columnTypes.push(duckdb.getSQLType(limit0.columnTypes(ci)));
     }
     const timeUpdated = new Date();
     return {
@@ -43,7 +43,7 @@ export class CreateTableActionLogic extends ProgramActionLogic {
         if (!script) return;
 
         const db = context.platform.database;
-        const table = await db.use(async (c: webdb.AsyncConnection) => {
+        const table = await db.use(async (c: duckdb.AsyncConnection) => {
             /// First run the query
             await c.runQuery(script);
 
@@ -102,7 +102,7 @@ export class DropTableActionLogic extends SetupActionLogic {
     public willExecute(_context: ActionContext) {}
     public async execute(context: ActionContext): Promise<void> {
         const db = context.platform.database;
-        await db.use(async (c: webdb.AsyncConnection) => {
+        await db.use(async (c: duckdb.AsyncConnection) => {
             await c.runQuery(`DROP TABLE IF EXISTS ${this.buffer.targetNameShort()}`);
         });
     }

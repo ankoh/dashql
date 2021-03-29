@@ -1,5 +1,5 @@
 import * as React from 'react';
-import * as webdb from '@dashql/webdb/dist/webdb.module.js';
+import * as duckdb from '@dashql/duckdb/dist/duckdb.module.js';
 import * as core from '@dashql/core';
 import {
     Grid,
@@ -13,7 +13,7 @@ import { VizCard } from './viz_card';
 import { VirtualScrollbars, PositionValues } from '../virtual_scrollbars';
 
 import styles from './data_grid.module.css';
-import { ChunkIterator } from '@dashql/webdb/dist/webdb.module.js';
+import { ChunkIterator } from '@dashql/duckdb/dist/duckdb.module.js';
 
 type Props = {
     tableInfo: core.model.DatabaseTableInfo;
@@ -245,7 +245,7 @@ export class DataGrid extends React.Component<Props, State> {
         for (let columnIndex = props.columnStartIndex; columnIndex <= props.columnStopIndex; columnIndex++) {
             const columnDatum = props.columnSizeAndPositionManager.getSizeAndPositionOfCell(columnIndex);
 
-            const iter = new webdb.StaticChunkIterator(data);
+            const iter = new duckdb.StaticChunkIterator(data);
             const offset = props.rowStartIndex - this.props.data!.request.begin;
             const limit = props.rowStopIndex - props.rowStartIndex + 1;
 

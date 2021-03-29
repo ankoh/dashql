@@ -2,7 +2,7 @@
 
 import * as Immutable from 'immutable';
 import { PlanObject } from './plan_object';
-import * as webdb from '@dashql/webdb';
+import * as duckdb from '@dashql/duckdb';
 
 /// A database table info
 export interface DatabaseTableInfo extends PlanObject {
@@ -15,9 +15,9 @@ export interface DatabaseTableInfo extends PlanObject {
     /// The column name indices
     readonly columnNameMapping: Map<string, number>;
     /// The column type
-    readonly columnTypes: webdb.SQLType[];
+    readonly columnTypes: duckdb.SQLType[];
     /// The statistics
-    readonly statistics: Immutable.Map<TableStatisticsType, webdb.Value[]>;
+    readonly statistics: Immutable.Map<TableStatisticsType, duckdb.Value[]>;
 }
 
 /// A column summary type

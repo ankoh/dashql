@@ -1,10 +1,10 @@
-import * as webdb from '../../webdb/dist/webdb-node.js';
+import * as duckdb from '../../duckdb/dist/duckdb-node.js';
 import * as core from '../../core/dist/dashql-core-node.js';
 import * as benny from 'benny';
 import path from 'path';
 import kleur from 'kleur';
 
-function main(db: webdb.WebDB) {
+function main(db: duckdb.DuckDB) {
     let tupleSize = 8;
     for (const tupleCount of [1000, 10000, 1000000, 10000000]) {
         benny.suite(
@@ -16,7 +16,7 @@ function main(db: webdb.WebDB) {
                 `);
                 conn.disconnect();
                 return () => {
-                    let chunks = new webdb.StaticChunkIterator(result);
+                    let chunks = new duckdb.StaticChunkIterator(result);
                     let sum = 0;
                     let count = 0;
                     while (chunks.nextBlocking()) {
@@ -40,8 +40,8 @@ function main(db: webdb.WebDB) {
                 `);
                 conn.disconnect();
                 return () => {
-                    const chunks = new webdb.StaticChunkIterator(result);
-                    interface Row extends webdb.RowProxy {
+                    const chunks = new duckdb.StaticChunkIterator(result);
+                    interface Row extends duckdb.RowProxy {
                         foo: number | null;
                     }
                     let sum = 0;
@@ -67,8 +67,8 @@ function main(db: webdb.WebDB) {
                 `);
                 conn.disconnect();
                 return () => {
-                    const chunks = new webdb.StaticChunkIterator(result);
-                    interface Row extends webdb.RowProxy {
+                    const chunks = new duckdb.StaticChunkIterator(result);
+                    interface Row extends duckdb.RowProxy {
                         foo: number | null;
                     }
                     let sum = 0;
@@ -100,8 +100,12 @@ function main(db: webdb.WebDB) {
     }
 }
 
-const logger = new webdb.VoidLogger();
-const db = new webdb.WebDB(logger, webdb.DefaultWebDBRuntime, path.join(__dirname, '../../webdb/dist/webdb.wasm'));
+const logger = new duckdb.VoidLogger();
+const db = new duckdb.DuckDB(
+    logger,
+    duckdb.DefaultDuckDBRuntime,
+    path.join(__dirname, '../../duckdb/dist/duckdb.wasm'),
+);
 db.open()
     .then(() => main(db))
     .catch(e => console.error(e));

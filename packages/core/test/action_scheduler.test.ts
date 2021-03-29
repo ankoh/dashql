@@ -1,30 +1,30 @@
 import { analyzer, model, actions, platform, ActionScheduler, utils } from '../src';
 import { Analyzer } from '../src/index_browser';
-import * as webdb from '@dashql/webdb/dist/webdb.module.js';
+import * as duckdb from '@dashql/duckdb/dist/duckdb.module.js';
 import * as proto from '@dashql/proto';
 
 import ActionStatus = proto.action.ActionStatusCode;
 import ActionClass = proto.action.ActionClass;
 import ProgramActionType = proto.action.ProgramActionType;
 
-const logger = new webdb.VoidLogger();
+const logger = new duckdb.VoidLogger();
 
 let az: analyzer.AnalyzerBindings;
 let worker: Worker;
-let db: webdb.AsyncWebDB;
-let conn: webdb.AsyncWebDBConnection;
+let db: duckdb.AsyncDuckDB;
+let conn: duckdb.AsyncDuckDBConnection;
 
 beforeAll(async () => {
     az = new Analyzer({}, '/static/analyzer_wasm.wasm');
     await az.init();
-    worker = new Worker('/static/webdb-browser-parallel.worker.js');
-    db = new webdb.AsyncWebDB(logger, worker);
+    worker = new Worker('/static/duckdb-browser-parallel.worker.js');
+    db = new duckdb.AsyncDuckDB(logger, worker);
 });
 
 beforeEach(async () => {
     try {
         await az.reset();
-        await db.open('/static/webdb.wasm');
+        await db.open('/static/duckdb.wasm');
         conn = await db.connect();
     } catch (e) {
         console.error(e);

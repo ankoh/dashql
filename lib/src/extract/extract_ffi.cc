@@ -32,7 +32,7 @@ void dashql_extract_import_csv(FFIResponse* packed, ConnectionHdl connHdl, BlobI
     CSVParserOptions options;
     options.force_not_null = {false, false, false};
     options.sql_types = column_types;
-    BlobStreamBuffer blob_streambuf(dashql_blob_stream_underflow, blobId);
+    BlobStreamBuffer blob_streambuf(duckdb_web_blob_stream_underflow, blobId);
     std::istream blob_stream{&blob_streambuf};
     SimpleCSVParser parser{options, blob_stream};
     auto rc = parser.Parse(128, &output_chunk);

@@ -28,7 +28,7 @@ fs.copyFile(path.resolve(src, 'analyzer', 'analyzer_wasm.wasm'), path.resolve(di
 
 const TARGET = 'es2020';
 const EXTERNALS = [
-    '@dashql/webdb',
+    '@dashql/duckdb',
     '@dashql/proto',
     'flatbuffers',
     'axios',

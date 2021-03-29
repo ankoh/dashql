@@ -1,4 +1,4 @@
-import * as webdb from '@dashql/webdb/dist/webdb.module.js';
+import * as duckdb from '@dashql/duckdb/dist/duckdb.module.js';
 import { AnalyzerBindings } from '../analyzer';
 import { DatabaseManager } from './database_manager';
 import { DerivedReduxStore } from '../model';
@@ -11,8 +11,8 @@ export class Platform {
     _store: DerivedReduxStore;
     /// The logger
     _logger: Logger;
-    /// The webdb
-    _webdb: webdb.AsyncWebDB;
+    /// The duckdb
+    _duckdb: duckdb.AsyncDuckDB;
     /// The analyzer bindings
     _analyzer: AnalyzerBindings;
     /// The database manager
@@ -22,12 +22,17 @@ export class Platform {
     /// The HTTP manager
     _httpManager: HTTPManager;
 
-    constructor(store: DerivedReduxStore, logger: webdb.Logger, webdb: webdb.AsyncWebDB, analyzer: AnalyzerBindings) {
+    constructor(
+        store: DerivedReduxStore,
+        logger: duckdb.Logger,
+        duckdb: duckdb.AsyncDuckDB,
+        analyzer: AnalyzerBindings,
+    ) {
         this._store = store;
         this._logger = logger;
-        this._webdb = webdb;
+        this._duckdb = duckdb;
         this._analyzer = analyzer;
-        this._databaseManager = new DatabaseManager(this._webdb, this._store);
+        this._databaseManager = new DatabaseManager(this._duckdb, this._store);
         this._fileManager = new FileManager(store);
         this._httpManager = new HTTPManager(store);
     }
