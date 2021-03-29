@@ -66,28 +66,28 @@ export var BrowserWebDBRuntime: WebDBRuntime & {
 
         return read;
     },
-    dashql_webdb_fs_read: function (blobId: number, buf: number, bytes: number) {
+    duckdb_web_fs_read: function (blobId: number, buf: number, bytes: number) {
         let stream = BrowserWebDBRuntime.streamMap.get(blobId);
         if (!stream) return 0;
 
         return stream.copyTo(BrowserWebDBRuntime.bindings!.instance!.HEAPU8, buf, bytes);
     },
-    dashql_webdb_fs_write: function (blobId: number, buf: number, bytes: number) {
+    duckdb_web_fs_write: function (blobId: number, buf: number, bytes: number) {
         throw Error('undefined');
     },
-    dashql_webdb_fs_directory_exists: function (pathPtr: number, pathLen: number) {
+    duckdb_web_fs_directory_exists: function (pathPtr: number, pathLen: number) {
         throw Error('undefined');
     },
-    dashql_webdb_fs_directory_create: function (pathPtr: number, pathLen: number) {
+    duckdb_web_fs_directory_create: function (pathPtr: number, pathLen: number) {
         throw Error('undefined');
     },
-    dashql_webdb_fs_directory_remove: function (pathPtr: number, pathLen: number) {
+    duckdb_web_fs_directory_remove: function (pathPtr: number, pathLen: number) {
         throw Error('undefined');
     },
-    dashql_webdb_fs_directory_list_files: function (pathPtr: number, pathLen: number) {
+    duckdb_web_fs_directory_list_files: function (pathPtr: number, pathLen: number) {
         throw Error('undefined');
     },
-    dashql_webdb_fs_glob: function (pathPtr: number, pathLen: number) {
+    duckdb_web_fs_glob: function (pathPtr: number, pathLen: number) {
         let instance = BrowserWebDBRuntime.bindings!.instance!;
         const path = decoder.decode(instance.HEAPU8.subarray(pathPtr, pathPtr + pathLen));
         let re = globToRegexp(path);
@@ -97,7 +97,7 @@ export var BrowserWebDBRuntime: WebDBRuntime & {
                 const ptr = instance.stackAlloc(data.length);
                 instance.HEAPU8.set(data, ptr);
                 BrowserWebDBRuntime.bindings!.instance!.ccall(
-                    'dashql_webdb_fs_glob_callback',
+                    'duckdb_web_fs_glob_callback',
                     null,
                     ['number', 'number'],
                     [ptr, data.length],
@@ -105,36 +105,36 @@ export var BrowserWebDBRuntime: WebDBRuntime & {
             }
         }
     },
-    dashql_webdb_fs_file_open: function (pathPtr: number, pathLen: number, flags: number) {
+    duckdb_web_fs_file_open: function (pathPtr: number, pathLen: number, flags: number) {
         let instance = BrowserWebDBRuntime.bindings!.instance!;
         const path = decoder.decode(instance.HEAPU8.subarray(pathPtr, pathPtr + pathLen));
         return BrowserWebDBRuntime.dashql_blob_stream_open(path);
     },
-    dashql_webdb_fs_file_close: function (blobId: number) {
+    duckdb_web_fs_file_close: function (blobId: number) {
         BrowserWebDBRuntime.streamMap.delete(blobId);
     },
-    dashql_webdb_fs_file_get_size: function (blobId: number) {
+    duckdb_web_fs_file_get_size: function (blobId: number) {
         let stream = BrowserWebDBRuntime.streamMap.get(blobId);
         if (!stream) return 0;
         return stream.handle.buffer!.length;
     },
-    dashql_webdb_fs_file_get_last_modified_time: function (blobId: number) {
+    duckdb_web_fs_file_get_last_modified_time: function (blobId: number) {
         // TODO: Keep fetch response header to answer BrowserWebDBRuntime
         return 0;
     },
-    dashql_webdb_fs_file_move: function (fromPtr: number, fromLen: number, toPtr: number, toLen: number) {
+    duckdb_web_fs_file_move: function (fromPtr: number, fromLen: number, toPtr: number, toLen: number) {
         throw Error('undefined');
     },
-    dashql_webdb_fs_file_set_pointer: function (blobId: number, location: number) {
+    duckdb_web_fs_file_set_pointer: function (blobId: number, location: number) {
         let stream = BrowserWebDBRuntime.streamMap.get(blobId);
         if (stream) stream.position = location;
     },
-    dashql_webdb_fs_file_exists: function (pathPtr: number, pathLen: number) {
+    duckdb_web_fs_file_exists: function (pathPtr: number, pathLen: number) {
         let instance = BrowserWebDBRuntime.bindings!.instance!;
         const path = decoder.decode(instance.HEAPU8.subarray(pathPtr, pathPtr + pathLen));
         return BrowserWebDBRuntime.handleMap.has(path);
     },
-    dashql_webdb_fs_file_remove: function (pathPtr: number, pathLen: number) {
+    duckdb_web_fs_file_remove: function (pathPtr: number, pathLen: number) {
         throw Error('undefined');
     },
 };
