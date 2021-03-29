@@ -1,4 +1,4 @@
-import * as webdb from '@dashql/webdb';
+import * as duckdb from '@dashql/webdb';
 import * as Immutable from 'immutable';
 import { analyzer, model, proto, viz } from '../../src';
 import { Analyzer } from '../../src/index_browser';
@@ -16,8 +16,8 @@ interface VizComposerTest {
     expected: VizComposerTestExpectation;
 }
 
-const DOUBLE_TYPE: webdb.SQLType = {
-    typeId: proto.webdb.SQLTypeID.DOUBLE,
+const DOUBLE_TYPE: duckdb.SQLType = {
+    typeId: proto.duckdb.SQLTypeID.DOUBLE,
     width: 0,
     scale: 0,
 };
@@ -49,10 +49,10 @@ VIZ foo USING VEGA (
             ]),
             columnTypes: [DOUBLE_TYPE, DOUBLE_TYPE],
             statistics: Immutable.Map([
-                [MIN_VALUE(0), [webdb.Value.DOUBLE(0.0)]],
-                [MAX_VALUE(0), [webdb.Value.DOUBLE(100.0)]],
-                [MIN_VALUE(1), [webdb.Value.DOUBLE(42.0)]],
-                [MAX_VALUE(1), [webdb.Value.DOUBLE(2222.0)]],
+                [MIN_VALUE(0), [duckdb.Value.DOUBLE(0.0)]],
+                [MAX_VALUE(0), [duckdb.Value.DOUBLE(100.0)]],
+                [MIN_VALUE(1), [duckdb.Value.DOUBLE(42.0)]],
+                [MAX_VALUE(1), [duckdb.Value.DOUBLE(2222.0)]],
             ]),
         },
         expected: {
@@ -114,10 +114,10 @@ VIZ foo USING LINE (
             ]),
             columnTypes: [DOUBLE_TYPE, DOUBLE_TYPE],
             statistics: Immutable.Map([
-                [MIN_VALUE(0), [webdb.Value.DOUBLE(0.0)]],
-                [MAX_VALUE(0), [webdb.Value.DOUBLE(100.0)]],
-                [MIN_VALUE(1), [webdb.Value.DOUBLE(42.0)]],
-                [MAX_VALUE(1), [webdb.Value.DOUBLE(2222.0)]],
+                [MIN_VALUE(0), [duckdb.Value.DOUBLE(0.0)]],
+                [MAX_VALUE(0), [duckdb.Value.DOUBLE(100.0)]],
+                [MIN_VALUE(1), [duckdb.Value.DOUBLE(42.0)]],
+                [MAX_VALUE(1), [duckdb.Value.DOUBLE(2222.0)]],
             ]),
         },
         expected: {
@@ -182,7 +182,7 @@ class FakeStatisticsResolver {
         return this._table;
     }
     /// Request table statistics
-    public request(type: model.TableStatisticsType, columnId: number): Promise<webdb.Value[]> {
+    public request(type: model.TableStatisticsType, columnId: number): Promise<duckdb.Value[]> {
         const key = model.buildTableStatisticsKey(type, columnId);
         const values = this._table.statistics.get(key);
         if (values) {
@@ -191,7 +191,7 @@ class FakeStatisticsResolver {
         throw new Error(`unexpected statistics request: type=${model.TableStatisticsType[type]} column=${columnId}`);
     }
     /// Evaluate table statistics
-    public evaluate(): Promise<Map<model.TableStatisticsKey, webdb.Value[]>> {
+    public evaluate(): Promise<Map<model.TableStatisticsKey, duckdb.Value[]>> {
         return Promise.resolve(new Map(this._table.statistics.toArray()));
     }
 }

@@ -1,6 +1,6 @@
 import * as platform from '../platform';
 import * as model from '../model';
-import * as webdb from '@dashql/webdb';
+import * as duckdb from '@dashql/webdb';
 import * as proto from '@dashql/proto';
 
 export abstract class VegaLiteEditOperation {
@@ -10,41 +10,41 @@ export abstract class VegaLiteEditOperation {
     abstract apply(): Promise<void>;
 }
 
-function readDomainValues(type: webdb.SQLType, values: webdb.Value[], out: model.DomainValues) {
-    let cast: (v: webdb.Value) => model.DomainValue;
+function readDomainValues(type: duckdb.SQLType, values: duckdb.Value[], out: model.DomainValues) {
+    let cast: (v: duckdb.Value) => model.DomainValue;
     switch (type.typeId) {
-        case proto.webdb.SQLTypeID.BOOLEAN:
-        case proto.webdb.SQLTypeID.TINYINT:
-        case proto.webdb.SQLTypeID.SMALLINT:
-        case proto.webdb.SQLTypeID.INTEGER:
-            cast = (v: webdb.Value) => v.castAsInteger();
+        case proto.duckdb.SQLTypeID.BOOLEAN:
+        case proto.duckdb.SQLTypeID.TINYINT:
+        case proto.duckdb.SQLTypeID.SMALLINT:
+        case proto.duckdb.SQLTypeID.INTEGER:
+            cast = (v: duckdb.Value) => v.castAsInteger();
             break;
 
-        case proto.webdb.SQLTypeID.FLOAT:
-        case proto.webdb.SQLTypeID.DECIMAL:
-        case proto.webdb.SQLTypeID.DOUBLE:
-            cast = (v: webdb.Value) => v.castAsFloat();
+        case proto.duckdb.SQLTypeID.FLOAT:
+        case proto.duckdb.SQLTypeID.DECIMAL:
+        case proto.duckdb.SQLTypeID.DOUBLE:
+            cast = (v: duckdb.Value) => v.castAsFloat();
             break;
 
-        case proto.webdb.SQLTypeID.CHAR:
-        case proto.webdb.SQLTypeID.VARCHAR:
-        case proto.webdb.SQLTypeID.VARBINARY:
-        case proto.webdb.SQLTypeID.BLOB:
-            cast = (v: webdb.Value) => v.castAsString();
+        case proto.duckdb.SQLTypeID.CHAR:
+        case proto.duckdb.SQLTypeID.VARCHAR:
+        case proto.duckdb.SQLTypeID.VARBINARY:
+        case proto.duckdb.SQLTypeID.BLOB:
+            cast = (v: duckdb.Value) => v.castAsString();
             break;
 
-        case proto.webdb.SQLTypeID.DATE:
-        case proto.webdb.SQLTypeID.BIGINT:
-        case proto.webdb.SQLTypeID.TIMESTAMP:
-        case proto.webdb.SQLTypeID.INTERVAL:
-        case proto.webdb.SQLTypeID.HUGEINT:
-        case proto.webdb.SQLTypeID.TIME:
-            cast = (v: webdb.Value) => v.castAsString();
+        case proto.duckdb.SQLTypeID.DATE:
+        case proto.duckdb.SQLTypeID.BIGINT:
+        case proto.duckdb.SQLTypeID.TIMESTAMP:
+        case proto.duckdb.SQLTypeID.INTERVAL:
+        case proto.duckdb.SQLTypeID.HUGEINT:
+        case proto.duckdb.SQLTypeID.TIME:
+            cast = (v: duckdb.Value) => v.castAsString();
             console.warn('shortcut');
             break;
 
         default:
-            cast = (v: webdb.Value) => null;
+            cast = (v: duckdb.Value) => null;
             break;
     }
     while (out.length < values.length) out.push(null);
@@ -61,7 +61,7 @@ export class ResolveMinMaxDomain extends VegaLiteEditOperation {
     /// The domain object
     _out: model.DomainValues;
     /// The promises
-    _promises: Promise<webdb.Value[]>[];
+    _promises: Promise<duckdb.Value[]>[];
 
     constructor(stats: platform.TableStatisticsResolver, attribute: number, out: model.DomainValues) {
         super();
@@ -99,7 +99,7 @@ export class ResolveCategorialDomain extends VegaLiteEditOperation {
     /// The domain object
     _out: model.DomainValues;
     /// The promise
-    _promise: Promise<webdb.Value[]> | null;
+    _promise: Promise<duckdb.Value[]> | null;
 
     constructor(stats: platform.TableStatisticsResolver, attribute: number, out: model.DomainValues) {
         super();

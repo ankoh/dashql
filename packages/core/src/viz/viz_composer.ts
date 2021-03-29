@@ -331,27 +331,27 @@ export class VizComposer {
         const analyzeFieldType = (enc: any, columnID: number) => {
             if (!isTypedFieldDef(enc)) {
                 switch (table.columnTypes[columnID].typeId) {
-                    case proto.webdb.SQLTypeID.BOOLEAN:
-                    case proto.webdb.SQLTypeID.BIGINT:
-                    case proto.webdb.SQLTypeID.HUGEINT:
-                    case proto.webdb.SQLTypeID.TINYINT:
-                    case proto.webdb.SQLTypeID.SMALLINT:
-                    case proto.webdb.SQLTypeID.INTEGER:
-                    case proto.webdb.SQLTypeID.FLOAT:
-                    case proto.webdb.SQLTypeID.DOUBLE:
-                    case proto.webdb.SQLTypeID.DECIMAL:
+                    case proto.duckdb.SQLTypeID.BOOLEAN:
+                    case proto.duckdb.SQLTypeID.BIGINT:
+                    case proto.duckdb.SQLTypeID.HUGEINT:
+                    case proto.duckdb.SQLTypeID.TINYINT:
+                    case proto.duckdb.SQLTypeID.SMALLINT:
+                    case proto.duckdb.SQLTypeID.INTEGER:
+                    case proto.duckdb.SQLTypeID.FLOAT:
+                    case proto.duckdb.SQLTypeID.DOUBLE:
+                    case proto.duckdb.SQLTypeID.DECIMAL:
                         enc.type = 'quantitative';
                         break;
 
-                    case proto.webdb.SQLTypeID.CHAR:
-                    case proto.webdb.SQLTypeID.VARCHAR:
+                    case proto.duckdb.SQLTypeID.CHAR:
+                    case proto.duckdb.SQLTypeID.VARCHAR:
                         enc.type = 'nominal';
                         break;
 
-                    case proto.webdb.SQLTypeID.DATE:
-                    case proto.webdb.SQLTypeID.TIME:
-                    case proto.webdb.SQLTypeID.TIMESTAMP:
-                    case proto.webdb.SQLTypeID.INTERVAL:
+                    case proto.duckdb.SQLTypeID.DATE:
+                    case proto.duckdb.SQLTypeID.TIME:
+                    case proto.duckdb.SQLTypeID.TIMESTAMP:
+                    case proto.duckdb.SQLTypeID.INTERVAL:
                         enc.type = 'temporal';
                         break;
 
