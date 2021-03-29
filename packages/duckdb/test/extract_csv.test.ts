@@ -1,10 +1,10 @@
-import * as webdb from '../src/';
+import * as duckdb from '../src/';
 
 const encoder = new TextEncoder();
 
-export function testExtractCSV(db: () => webdb.AsyncDuckDB, tmp_file: (buf: Uint8Array) => string) {
+export function testExtractCSV(db: () => duckdb.AsyncDuckDB, tmp_file: (buf: Uint8Array) => string) {
     describe('Extract CSV', () => {
-        let conn: webdb.AsyncDuckDBConnection;
+        let conn: duckdb.AsyncDuckDBConnection;
 
         beforeEach(async () => {
             conn = await db().connect();

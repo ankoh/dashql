@@ -1,7 +1,7 @@
-import * as webdb from '../src/';
+import * as duckdb from '../src/';
 
-export function testBindings(db: () => webdb.DuckDBBindings) {
-    let conn: webdb.DuckDBConnection;
+export function testBindings(db: () => duckdb.DuckDBBindings) {
+    let conn: duckdb.DuckDBConnection;
 
     beforeEach(() => {
         conn = db().connect();
