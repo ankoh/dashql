@@ -5143,18 +5143,20 @@ react-draggable@^4.0.0, react-draggable@^4.0.3, react-draggable@^4.4.3:
     classnames "^2.2.5"
     prop-types "^15.6.0"
 
-react-flow-renderer@^9.3.2:
-  version "9.3.2"
-  resolved "https://registry.yarnpkg.com/react-flow-renderer/-/react-flow-renderer-9.3.2.tgz#ed34ae89ce4a3cb482efd769645acf56973f9abb"
-  integrity sha512-3jLxj+Rjz7wqQeFkpgdZVbGV0O+j5e6je9j2GDUK75pnLF3iJ4C/EhwiYwbU3uU14iHqnvbv3qjxFvkx2eceAw==
+react-flow-renderer@^9.4.0:
+  version "9.4.0"
+  resolved "https://registry.yarnpkg.com/react-flow-renderer/-/react-flow-renderer-9.4.0.tgz#19dceac8148ca32ca182026e9074997dde223bcc"
+  integrity sha512-jv3w2RnoK5CC4tSKD48x9HWoaZZFjQbGAtu5lIeYtmgBKRaOFrA2t+zxgdenSALAXd2k9J+L5hXlY18FvtBmmA==
   dependencies:
     "@babel/runtime" "^7.13.10"
+    "@types/d3" "^6.3.0"
+    "@types/react-redux" "^7.1.16"
     classcat "^5.0.3"
     d3-selection "^2.0.0"
     d3-zoom "^2.0.0"
     fast-deep-equal "^3.1.3"
     react-draggable "^4.4.3"
-    react-redux "^7.2.2"
+    react-redux "^7.2.3"
     redux "^4.0.5"
 
 react-grid-layout@^1.2.4:
@@ -5192,12 +5194,13 @@ react-overlays@^5.0.0:
     uncontrollable "^7.0.0"
     warning "^4.0.3"
 
-react-redux@^7.2.2:
-  version "7.2.2"
-  resolved "https://registry.yarnpkg.com/react-redux/-/react-redux-7.2.2.tgz#03862e803a30b6b9ef8582dadcc810947f74b736"
-  integrity sha512-8+CQ1EvIVFkYL/vu6Olo7JFLWop1qRUeb46sGtIMDCSpgwPQq8fPLpirIB0iTqFe9XYEFPHssdX8/UwN6pAkEA==
+react-redux@^7.2.2, react-redux@^7.2.3:
+  version "7.2.3"
+  resolved "https://registry.yarnpkg.com/react-redux/-/react-redux-7.2.3.tgz#4c084618600bb199012687da9e42123cca3f0be9"
+  integrity sha512-ZhAmQ1lrK+Pyi0ZXNMUZuYxYAZd59wFuVDGUt536kSGdD0ya9Q7BfsE95E3TsFLE3kOSFp5m6G5qbatE+Ic1+w==
   dependencies:
     "@babel/runtime" "^7.12.1"
+    "@types/react-redux" "^7.1.16"
     hoist-non-react-statics "^3.3.2"
     loose-envify "^1.4.0"
     prop-types "^15.7.2"
