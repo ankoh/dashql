@@ -11,38 +11,38 @@ static std::vector<std::string> *glob_results = {};
 namespace duckdb {
 namespace web {
 
-void WebDBFileHandle::Close() { dashql_webdb_fs_file_close(blob_id); }
+void WebDBFileHandle::Close() { duckdb_web_fs_file_close(blob_id); }
 
 std::unique_ptr<duckdb::FileHandle> WebDBFileSystem::OpenFile(const char *path, uint8_t flags,
                                                               duckdb::FileLockType lock) {
     return std::make_unique<WebDBFileHandle>(*this, std::string(path),
-                                             dashql_webdb_fs_file_open(path, std::strlen(path), flags));
+                                             duckdb_web_fs_file_open(path, std::strlen(path), flags));
 }
 
 void WebDBFileSystem::Read(duckdb::FileHandle &handle, void *buffer, int64_t nr_bytes, duckdb::idx_t location) {
-    dashql_webdb_fs_file_set_pointer(((WebDBFileHandle &)handle).blob_id, location);
-    dashql_webdb_fs_read(((WebDBFileHandle &)handle).blob_id, buffer, nr_bytes);
+    duckdb_web_fs_file_set_pointer(((WebDBFileHandle &)handle).blob_id, location);
+    duckdb_web_fs_read(((WebDBFileHandle &)handle).blob_id, buffer, nr_bytes);
 }
 
 void WebDBFileSystem::Write(duckdb::FileHandle &handle, void *buffer, int64_t nr_bytes, duckdb::idx_t location) {
-    dashql_webdb_fs_file_set_pointer(((WebDBFileHandle &)handle).blob_id, location);
-    dashql_webdb_fs_write(((WebDBFileHandle &)handle).blob_id, buffer, nr_bytes);
+    duckdb_web_fs_file_set_pointer(((WebDBFileHandle &)handle).blob_id, location);
+    duckdb_web_fs_write(((WebDBFileHandle &)handle).blob_id, buffer, nr_bytes);
 }
 
 int64_t WebDBFileSystem::Read(duckdb::FileHandle &handle, void *buffer, int64_t nr_bytes) {
-    return dashql_webdb_fs_read(((WebDBFileHandle &)handle).blob_id, buffer, nr_bytes);
+    return duckdb_web_fs_read(((WebDBFileHandle &)handle).blob_id, buffer, nr_bytes);
 }
 
 int64_t WebDBFileSystem::Write(duckdb::FileHandle &handle, void *buffer, int64_t nr_bytes) {
-    return dashql_webdb_fs_write(((WebDBFileHandle &)handle).blob_id, buffer, nr_bytes);
+    return duckdb_web_fs_write(((WebDBFileHandle &)handle).blob_id, buffer, nr_bytes);
 }
 
 int64_t WebDBFileSystem::GetFileSize(duckdb::FileHandle &handle) {
-    return dashql_webdb_fs_file_get_size(((WebDBFileHandle &)handle).blob_id);
+    return duckdb_web_fs_file_get_size(((WebDBFileHandle &)handle).blob_id);
 }
 
 time_t WebDBFileSystem::GetLastModifiedTime(duckdb::FileHandle &handle) {
-    return dashql_webdb_fs_file_get_last_modified_time(((WebDBFileHandle &)handle).blob_id);
+    return duckdb_web_fs_file_get_last_modified_time(((WebDBFileHandle &)handle).blob_id);
 }
 
 void WebDBFileSystem::Truncate(duckdb::FileHandle &handle, int64_t new_size) {
@@ -50,30 +50,30 @@ void WebDBFileSystem::Truncate(duckdb::FileHandle &handle, int64_t new_size) {
 }
 
 bool WebDBFileSystem::DirectoryExists(const std::string &directory) {
-    return dashql_webdb_fs_directory_exists(directory.c_str(), directory.size());
+    return duckdb_web_fs_directory_exists(directory.c_str(), directory.size());
 }
 
 void WebDBFileSystem::CreateDirectory(const std::string &directory) {
-    dashql_webdb_fs_directory_create(directory.c_str(), directory.size());
+    duckdb_web_fs_directory_create(directory.c_str(), directory.size());
 }
 
 void WebDBFileSystem::RemoveDirectory(const std::string &directory) {
-    return dashql_webdb_fs_directory_remove(directory.c_str(), directory.size());
+    return duckdb_web_fs_directory_remove(directory.c_str(), directory.size());
 }
 
 bool WebDBFileSystem::ListFiles(const std::string &directory, const std::function<void(std::string, bool)> &callback) {
     list_files_callback = &callback;
-    bool result = dashql_webdb_fs_directory_list_files(directory.c_str(), directory.size());
+    bool result = duckdb_web_fs_directory_list_files(directory.c_str(), directory.size());
     list_files_callback = {};
     return result;
 }
 
 void WebDBFileSystem::MoveFile(const std::string &source, const std::string &target) {
-    dashql_webdb_fs_file_move(source.c_str(), source.size(), target.c_str(), target.size());
+    duckdb_web_fs_file_move(source.c_str(), source.size(), target.c_str(), target.size());
 }
 
 bool WebDBFileSystem::FileExists(const std::string &filename) {
-    return dashql_webdb_fs_file_exists(filename.c_str(), filename.size());
+    return duckdb_web_fs_file_exists(filename.c_str(), filename.size());
 }
 
 void WebDBFileSystem::RemoveFile(const std::string &filename) {
@@ -109,7 +109,7 @@ std::string WebDBFileSystem::GetHomeDirectory() {
 std::vector<std::string> WebDBFileSystem::Glob(const std::string &path) {
     std::vector<std::string> results;
     glob_results = &results;
-    dashql_webdb_fs_glob(path.c_str(), path.size());
+    duckdb_web_fs_glob(path.c_str(), path.size());
     glob_results = {};
 
     return results;
@@ -124,47 +124,47 @@ std::vector<std::string> WebDBFileSystem::Glob(const std::string &path) {
 }  // namespace duckdb
 
 extern "C" {
-extern int64_t dashql_webdb_fs_read(dashql::BlobID blobId, void *buffer, int64_t bytes);
-extern int64_t dashql_webdb_fs_write(dashql::BlobID blobId, void *buffer, int64_t bytes);
+extern int64_t duckdb_web_fs_read(dashql::BlobID blobId, void *buffer, int64_t bytes);
+extern int64_t duckdb_web_fs_write(dashql::BlobID blobId, void *buffer, int64_t bytes);
 
-extern void dashql_webdb_fs_directory_remove(const char *path, size_t pathLen);
-extern bool dashql_webdb_fs_directory_exists(const char *path, size_t pathLen);
-extern void dashql_webdb_fs_directory_create(const char *path, size_t pathLen);
-extern bool dashql_webdb_fs_directory_list_files(const char *path, size_t pathLen);
+extern void duckdb_web_fs_directory_remove(const char *path, size_t pathLen);
+extern bool duckdb_web_fs_directory_exists(const char *path, size_t pathLen);
+extern void duckdb_web_fs_directory_create(const char *path, size_t pathLen);
+extern bool duckdb_web_fs_directory_list_files(const char *path, size_t pathLen);
 
-extern void dashql_webdb_fs_glob(const char *path, size_t pathLen);
+extern void duckdb_web_fs_glob(const char *path, size_t pathLen);
 
-void dashql_webdb_fs_directory_list_files_callback(const char *path, size_t pathLen, bool is_dir) {
+void duckdb_web_fs_directory_list_files_callback(const char *path, size_t pathLen, bool is_dir) {
     (*list_files_callback)(std::string(path, pathLen), is_dir);
 }
-void dashql_webdb_fs_glob_callback(const char *path, size_t pathLen) { glob_results->emplace_back(path, pathLen); }
+void duckdb_web_fs_glob_callback(const char *path, size_t pathLen) { glob_results->emplace_back(path, pathLen); }
 
-extern dashql::BlobID dashql_webdb_fs_file_open(const char *path, size_t pathLen, uint8_t flags);
-extern void dashql_webdb_fs_file_close(dashql::BlobID blobId);
-extern int64_t dashql_webdb_fs_file_get_size(dashql::BlobID blobId);
-extern time_t dashql_webdb_fs_file_get_last_modified_time(dashql::BlobID blobId);
-extern void dashql_webdb_fs_file_move(const char *from, size_t fromLen, const char *to, size_t toLen);
-extern void dashql_webdb_fs_file_set_pointer(dashql::BlobID blobId, duckdb::idx_t location);
-extern bool dashql_webdb_fs_file_exists(const char *path, size_t pathLen);
-extern bool dashql_webdb_fs_file_remove(const char *path, size_t pathLen);
+extern dashql::BlobID duckdb_web_fs_file_open(const char *path, size_t pathLen, uint8_t flags);
+extern void duckdb_web_fs_file_close(dashql::BlobID blobId);
+extern int64_t duckdb_web_fs_file_get_size(dashql::BlobID blobId);
+extern time_t duckdb_web_fs_file_get_last_modified_time(dashql::BlobID blobId);
+extern void duckdb_web_fs_file_move(const char *from, size_t fromLen, const char *to, size_t toLen);
+extern void duckdb_web_fs_file_set_pointer(dashql::BlobID blobId, duckdb::idx_t location);
+extern bool duckdb_web_fs_file_exists(const char *path, size_t pathLen);
+extern bool duckdb_web_fs_file_remove(const char *path, size_t pathLen);
 
 #ifndef EMSCRIPTEN
-int64_t dashql_webdb_fs_read(dashql::BlobID blobId, void *buffer, int64_t bytes) { return {}; }
-int64_t dashql_webdb_fs_write(dashql::BlobID blobId, void *buffer, int64_t bytes) { return {}; }
+int64_t duckdb_web_fs_read(dashql::BlobID blobId, void *buffer, int64_t bytes) { return {}; }
+int64_t duckdb_web_fs_write(dashql::BlobID blobId, void *buffer, int64_t bytes) { return {}; }
 
-bool dashql_webdb_fs_directory_exists(const char *path, size_t pathLen) { return {}; };
-void dashql_webdb_fs_directory_create(const char *path, size_t pathLen) {}
-void dashql_webdb_fs_directory_remove(const char *path, size_t pathLen) {}
-bool dashql_webdb_fs_directory_list_files(const char *path, size_t pathLen) { return {}; }
-void dashql_webdb_fs_glob(const char *path, size_t pathLen) {}
+bool duckdb_web_fs_directory_exists(const char *path, size_t pathLen) { return {}; };
+void duckdb_web_fs_directory_create(const char *path, size_t pathLen) {}
+void duckdb_web_fs_directory_remove(const char *path, size_t pathLen) {}
+bool duckdb_web_fs_directory_list_files(const char *path, size_t pathLen) { return {}; }
+void duckdb_web_fs_glob(const char *path, size_t pathLen) {}
 
-dashql::BlobID dashql_webdb_fs_file_open(const char *path, size_t pathLen, uint8_t flags) { return {}; }
-void dashql_webdb_fs_file_close(dashql::BlobID blobId) {}
-int64_t dashql_webdb_fs_file_get_size(dashql::BlobID blobId) { return {}; };
-time_t dashql_webdb_fs_file_get_last_modified_time(dashql::BlobID blobId) { return {}; };
-void dashql_webdb_fs_file_move(const char *from, size_t fromLen, const char *to, size_t toLen) {}
-void dashql_webdb_fs_file_set_pointer(dashql::BlobID blobId, duckdb::idx_t location) {}
-bool dashql_webdb_fs_file_exists(const char *path, size_t pathLen) { return {}; };
-bool dashql_webdb_fs_file_remove(const char *path, size_t pathLen) { return {}; };
+dashql::BlobID duckdb_web_fs_file_open(const char *path, size_t pathLen, uint8_t flags) { return {}; }
+void duckdb_web_fs_file_close(dashql::BlobID blobId) {}
+int64_t duckdb_web_fs_file_get_size(dashql::BlobID blobId) { return {}; };
+time_t duckdb_web_fs_file_get_last_modified_time(dashql::BlobID blobId) { return {}; };
+void duckdb_web_fs_file_move(const char *from, size_t fromLen, const char *to, size_t toLen) {}
+void duckdb_web_fs_file_set_pointer(dashql::BlobID blobId, duckdb::idx_t location) {}
+bool duckdb_web_fs_file_exists(const char *path, size_t pathLen) { return {}; };
+bool duckdb_web_fs_file_remove(const char *path, size_t pathLen) { return {}; };
 #endif
 }

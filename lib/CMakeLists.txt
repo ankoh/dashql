@@ -354,7 +354,7 @@ target_link_libraries(dashql_common dashql_proto flatbuffers spdlog rapidjson)
 target_link_libraries(dashql_extract dashql_proto flatbuffers spdlog duckdb parquet_extension rapidjson)
 target_link_libraries(dashql_analyzer dashql_parser dashql_common dashql_proto spdlog duckdb parquet_extension rapidjson)
 target_link_libraries(dashql_dataframe dashql_common dashql_proto binaryen)
-target_link_libraries(duckdb_web dashql_common dashql_proto duckdb parquet_extension spdlog)
+target_link_libraries(duckdb_web dashql_common dashql_extract dashql_proto duckdb parquet_extension spdlog)
 target_link_libraries(dashql_test duckdb_web dashql_analyzer dashql_common dashql_proto pugixml gtest duckdb parquet_extension)
 
 # ---------------------------------------------------------------------------
@@ -448,16 +448,16 @@ if (EMSCRIPTEN)
             _malloc, \
             _free, \
             _dashql_clear_response, \
-            _dashql_webdb_connect, \
-            _dashql_webdb_disconnect, \
-            _dashql_webdb_run_query, \
-            _dashql_webdb_send_query, \
-            _dashql_webdb_fetch_query_results, \
-            _dashql_webdb_analyze_query, \
             _dashql_blob_stream_consume, \
             _dashql_extract_import_csv, \
-            _dashql_webdb_fs_directory_list_files_callback, \
-            _dashql_webdb_fs_glob_callback \
+            _duckdb_web_analyze_query, \
+            _duckdb_web_connect, \
+            _duckdb_web_disconnect, \
+            _duckdb_web_fetch_query_results, \
+            _duckdb_web_fs_directory_list_files_callback, \
+            _duckdb_web_fs_glob_callback, \
+            _duckdb_web_run_query, \
+            _duckdb_web_send_query \
         ]' \
         -s EXTRA_EXPORTED_RUNTIME_METHODS='[\"ccall\"]' \
         --js-library=${CMAKE_SOURCE_DIR}/js-stubs.js \
@@ -466,11 +466,11 @@ if (EMSCRIPTEN)
         )
 
     add_executable(webdb_wasm ${CMAKE_SOURCE_DIR}/src/ffi_main.cc)
-    target_link_libraries(webdb_wasm dashql_webdb flatbuffers spdlog)
+    target_link_libraries(webdb_wasm duckdb_web flatbuffers spdlog)
     set_target_properties(webdb_wasm PROPERTIES LINK_FLAGS "${WEBDB_WASM_LINKER_FLAGS} -s ENVIRONMENT='web'")
 
     add_executable(webdb_wasm_node ${CMAKE_SOURCE_DIR}/src/ffi_main.cc)
-    target_link_libraries(webdb_wasm_node dashql_webdb flatbuffers spdlog)
+    target_link_libraries(webdb_wasm_node duckdb_web flatbuffers spdlog)
     set_target_properties(webdb_wasm_node PROPERTIES LINK_FLAGS "${WEBDB_WASM_LINKER_FLAGS} -s ENVIRONMENT='node'")
 else()
 
@@ -504,7 +504,7 @@ if(NOT EMSCRIPTEN)
     )
     set (TEST_LIBS
         dashql_test
-        dashql_extract dashql_analyzer dashql_dataframe dashql_webdb dashql_common
+        dashql_extract dashql_analyzer dashql_dataframe duckdb_web dashql_common
         dashql_proto
         wasm_api
         flatbuffers gtest gmock gflags
@@ -529,7 +529,7 @@ if(NOT EMSCRIPTEN)
         ${CMAKE_SOURCE_DIR}/bench/bm_result_codec.cc
     )
     target_link_libraries(bm_result_codec
-        dashql_webdb
+        duckdb_web
         dashql_proto
         benchmark
         flatbuffers gtest gmock Threads::Threads)
