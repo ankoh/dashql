@@ -1,15 +1,15 @@
-import * as webdb from '@dashql/webdb/dist/webdb.module.js';
+import * as duckdb from '@dashql/webdb/dist/webdb.module.js';
 import * as React from 'react';
 import * as proto from '@dashql/proto';
 
 interface ProxyProviderProps {
-    result: proto.webdb.QueryResult;
-    children: (rows: webdb.RowProxy[], result: proto.webdb.QueryResult) => React.ReactNode;
+    result: proto.duckdb.QueryResult;
+    children: (rows: duckdb.RowProxy[], result: proto.duckdb.QueryResult) => React.ReactNode;
 }
 
 interface ProxyProviderState {
-    result: proto.webdb.QueryResult;
-    rows: webdb.RowProxy[];
+    result: proto.duckdb.QueryResult;
+    rows: duckdb.RowProxy[];
 }
 
 export class ProxyProvider extends React.Component<ProxyProviderProps, ProxyProviderState> {
@@ -22,7 +22,7 @@ export class ProxyProvider extends React.Component<ProxyProviderProps, ProxyProv
         if (prevState?.result == nextProps.result) {
             return prevState;
         }
-        const chunks = new webdb.StaticChunkIterator(nextProps.result);
+        const chunks = new duckdb.StaticChunkIterator(nextProps.result);
         return {
             result: nextProps.result,
             rows: chunks.collectAllBlocking(),
@@ -34,22 +34,22 @@ export class ProxyProvider extends React.Component<ProxyProviderProps, ProxyProv
     }
 }
 
-export function withRowProxies(fn: (rows: webdb.RowProxy[], result: proto.webdb.QueryResult) => React.ReactNode) {
-    return (result: proto.webdb.QueryResult): React.ReactNode => (
+export function withRowProxies(fn: (rows: duckdb.RowProxy[], result: proto.duckdb.QueryResult) => React.ReactNode) {
+    return (result: proto.duckdb.QueryResult): React.ReactNode => (
         <ProxyProvider result={result}>
-            {(rows: webdb.RowProxy[], result: proto.webdb.QueryResult) => fn(rows, result)}
+            {(rows: duckdb.RowProxy[], result: proto.duckdb.QueryResult) => fn(rows, result)}
         </ProxyProvider>
     );
 }
 
 interface ProxyPartitionsProviderProps {
-    result: proto.webdb.QueryResult;
-    children: (rows: webdb.RowProxy[][], result: proto.webdb.QueryResult) => React.ReactNode;
+    result: proto.duckdb.QueryResult;
+    children: (rows: duckdb.RowProxy[][], result: proto.duckdb.QueryResult) => React.ReactNode;
 }
 
 interface ProxyPartitionsProviderState {
-    result: proto.webdb.QueryResult;
-    partitions: webdb.RowProxy[][];
+    result: proto.duckdb.QueryResult;
+    partitions: duckdb.RowProxy[][];
 }
 
 export class ProxyPartitionsProvider extends React.Component<
@@ -68,7 +68,7 @@ export class ProxyPartitionsProvider extends React.Component<
         if (prevState?.result == nextProps.result) {
             return prevState;
         }
-        const chunks = new webdb.StaticChunkIterator(nextProps.result);
+        const chunks = new duckdb.StaticChunkIterator(nextProps.result);
         const partitions = chunks.collectPartitionsBlocking();
         return {
             result: nextProps.result,
@@ -82,11 +82,11 @@ export class ProxyPartitionsProvider extends React.Component<
 }
 
 export function withRowProxyPartitions(
-    fn: (partitions: webdb.RowProxy[][], result: proto.webdb.QueryResult) => React.ReactNode,
+    fn: (partitions: duckdb.RowProxy[][], result: proto.duckdb.QueryResult) => React.ReactNode,
 ) {
-    return (result: proto.webdb.QueryResult): React.ReactNode => (
+    return (result: proto.duckdb.QueryResult): React.ReactNode => (
         <ProxyPartitionsProvider result={result}>
-            {(partitions: webdb.RowProxy[][], result: proto.webdb.QueryResult) => fn(partitions, result)}
+            {(partitions: duckdb.RowProxy[][], result: proto.duckdb.QueryResult) => fn(partitions, result)}
         </ProxyPartitionsProvider>
     );
 }

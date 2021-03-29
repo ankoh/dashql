@@ -1,4 +1,4 @@
-import * as webdb from '@dashql/webdb/dist/webdb.module.js';
+import * as duckdb from '@dashql/webdb/dist/webdb.module.js';
 import * as React from 'react';
 import * as platform from '../platform';
 import * as proto from '@dashql/proto';
@@ -73,12 +73,12 @@ export interface ScanResult {
     /// The scan request
     request: ScanRequest;
     /// The query result buffer
-    result: proto.webdb.QueryResult;
+    result: proto.duckdb.QueryResult;
 }
 
 interface Props {
     /// The log manager
-    logger: webdb.Logger;
+    logger: duckdb.Logger;
     /// The database manager
     database: platform.DatabaseManager;
     /// The table name

@@ -1,4 +1,4 @@
-import * as webdb from '@dashql/webdb/dist/webdb.module.js';
+import * as duckdb from '@dashql/webdb/dist/webdb.module.js';
 import * as React from 'react';
 import * as platform from '../platform';
 import * as proto from '@dashql/proto';
@@ -7,7 +7,7 @@ export interface Query {
     before?: string;
     data: string;
     after?: string;
-    options?: webdb.QueryRunOptions;
+    options?: duckdb.QueryRunOptions;
 }
 
 function queryEquals(l: Query, r: Query) {
@@ -15,13 +15,13 @@ function queryEquals(l: Query, r: Query) {
         l.data == r.data &&
         ((!l.before && !r.before) || l.before == r.before) &&
         ((!l.after && !r.after) || l.after == r.after) &&
-        webdb.queryOptionsEqual(l.options, r.options)
+        duckdb.queryOptionsEqual(l.options, r.options)
     );
 }
 
 interface Props {
     /// The log manager
-    logger: webdb.Logger;
+    logger: duckdb.Logger;
     /// The database manager
     database: platform.DatabaseManager;
     /// The query
@@ -31,14 +31,14 @@ interface Props {
     /// The in-flight component
     inFlightComponent?: ((query: Query) => React.ReactNode) | null;
     /// The children
-    children: (result: proto.webdb.QueryResult) => React.ReactNode;
+    children: (result: proto.duckdb.QueryResult) => React.ReactNode;
 }
 
 interface State {
     /// The query
     query: Query | null;
     /// The query result
-    queryResult: proto.webdb.QueryResult | null;
+    queryResult: proto.duckdb.QueryResult | null;
     /// The error
     error: string | null;
 }
@@ -53,7 +53,7 @@ export class QueryProvider extends React.Component<Props, State> {
     /// The scheduled query
     _inFlightQuery: Query | null = null;
     /// The query promise
-    _queryPromise: Promise<proto.webdb.QueryResult> | null = null;
+    _queryPromise: Promise<proto.duckdb.QueryResult> | null = null;
 
     constructor(props: Props) {
         super(props);
@@ -64,7 +64,7 @@ export class QueryProvider extends React.Component<Props, State> {
         };
     }
 
-    protected querySucceeded(result: proto.webdb.QueryResult) {
+    protected querySucceeded(result: proto.duckdb.QueryResult) {
         const query = this._inFlightQuery;
         this._inFlightQuery = null;
         this._queryPromise = null;
@@ -95,7 +95,7 @@ export class QueryProvider extends React.Component<Props, State> {
         this._inFlightQuery = this.props.query;
         const query = this.props.query;
         this._queryPromise = this.props.database.use(async conn => {
-            let result: proto.webdb.QueryResult;
+            let result: proto.duckdb.QueryResult;
             try {
                 if (query.before) {
                     await conn.runQuery(query.before);
