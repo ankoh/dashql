@@ -40,4 +40,4 @@ import { testTPCH } from './tpch.test';
 //     () => adb!,
 //     (buf: Uint8Array) => tmp.sync(Buffer.from(buf)),
 // );
-testTPCH(() => adb!, path.resolve(__dirname, '../../../data/tpch'));
+testTPCH(() => adb!, path.resolve(__dirname, '../../../data/tpch/1.0'));

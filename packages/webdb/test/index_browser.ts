@@ -32,4 +32,4 @@ import { testTPCH } from './tpch.test';
 //     () => adb!,
 //     (buf: Uint8Array) => URL.createObjectURL(new Blob([buf.buffer], { type: 'text/plain' })),
 // );
-testTPCH(() => adb!, '/data/tpch');
+testTPCH(() => adb!, '/data/tpch/0.1');

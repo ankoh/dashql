@@ -22,11 +22,8 @@ export function testTPCH(db: () => webdb.AsyncWebDB, basePath: string) {
 
     // perform queries
 
-    const queries: string[] = [
-        `
-    select
-        l_returnflag,
-        l_linestatus,
+    /*
+    
         sum(l_quantity) as sum_qty,
         sum(l_extendedprice) as sum_base_price,
         sum(l_extendedprice * (1 - l_discount)) as sum_disc_price,
@@ -35,10 +32,19 @@ export function testTPCH(db: () => webdb.AsyncWebDB, basePath: string) {
         avg(l_extendedprice) as avg_price,
         avg(l_discount) as avg_disc,
         count(*) as count_order
+    */
+    const queries: string[] = [
+        `
+    select
+        l_returnflag,
+        l_linestatus,
+        avg(l_extendedprice) as avg_price,
+        avg(l_discount) as avg_disc,
+        count(*) as count_order
     from
         parquet_scan('${basePath}/lineitem.parquet') lineitem
     where
-        l_shipdate::DATE <= date '1996-12-01' - interval '86' day
+        l_shipdate::DATE <= date '1998-12-01' - interval '86' day
     group by
         l_returnflag,
         l_linestatus
@@ -180,7 +186,7 @@ export function testTPCH(db: () => webdb.AsyncWebDB, basePath: string) {
             select
                 n1.n_name as supp_nation,
                 n2.n_name as cust_nation,
-                extract(year from l_shipdate) as l_year,
+                extract(year from l_shipdate::DATE) as l_year,
                 l_extendedprice * (1 - l_discount) as volume
             from
                 parquet_scan('${basePath}/supplier.parquet') supplier,
@@ -199,7 +205,7 @@ export function testTPCH(db: () => webdb.AsyncWebDB, basePath: string) {
                     (n1.n_name = 'JORDAN' and n2.n_name = 'RUSSIA')
                     or (n1.n_name = 'RUSSIA' and n2.n_name = 'JORDAN')
                 )
-                and l_shipdate between date '1995-01-01' and date '1996-12-31'
+                and l_shipdate between date '1995-01-01' and date '1998-12-31'
         ) as shipping
     group by
         supp_nation,
@@ -219,7 +225,7 @@ export function testTPCH(db: () => webdb.AsyncWebDB, basePath: string) {
     from
         (
             select
-                extract(year from o_orderdate) as o_year,
+                extract(year from o_orderdate::DATE) as o_year,
                 l_extendedprice * (1 - l_discount) as volume,
                 n2.n_name as nation
             from
@@ -240,7 +246,7 @@ export function testTPCH(db: () => webdb.AsyncWebDB, basePath: string) {
                 and n1.n_regionkey = r_regionkey
                 and r_name = 'EUROPE'
                 and s_nationkey = n2.n_nationkey
-                and o_orderdate between date '1995-01-01' and date '1996-12-31'
+                and o_orderdate between date '1995-01-01' and date '1998-12-31'
                 and p_type = 'LARGE ANODIZED COPPER'
         ) as all_nations
     group by
@@ -256,7 +262,7 @@ export function testTPCH(db: () => webdb.AsyncWebDB, basePath: string) {
         (
             select
                 n_name as nation,
-                extract(year from o_orderdate) as o_year,
+                extract(year from o_orderdate::DATE) as o_year,
                 l_extendedprice * (1 - l_discount) - ps_supplycost * l_quantity as amount
             from
                 parquet_scan('${basePath}/part.parquet') part,
@@ -677,7 +683,7 @@ export function testTPCH(db: () => webdb.AsyncWebDB, basePath: string) {
     ];
 
     describe('TPCH', () => {
-        describe('duckdb regression', () => {
+        /*describe('duckdb regression', () => {
             it('first aggregation, was fine', async () => {
                 let result = await conn.runQuery(
                     `
@@ -686,7 +692,7 @@ export function testTPCH(db: () => webdb.AsyncWebDB, basePath: string) {
                 from
                     parquet_scan('${basePath}/lineitem.parquet') lineitem
                 where
-                    l_shipdate::DATE <= date '1996-12-01' - interval '86' day`,
+                    l_shipdate::DATE <= date '1998-12-01' - interval '86' day`,
                 );
                 const chunks = new webdb.StaticChunkIterator(result);
                 const rows = chunks.collectAllBlocking();
@@ -700,7 +706,7 @@ export function testTPCH(db: () => webdb.AsyncWebDB, basePath: string) {
                 from
                     parquet_scan('${basePath}/lineitem.parquet') lineitem
                 where
-                    l_shipdate::DATE <= date '1996-12-01' - interval '86' day`,
+                    l_shipdate::DATE <= date '1998-12-01' - interval '86' day`,
                 );
                 const chunks = new webdb.StaticChunkIterator(result);
                 const rows = chunks.collectAllBlocking();
@@ -716,21 +722,30 @@ export function testTPCH(db: () => webdb.AsyncWebDB, basePath: string) {
                 from
                     parquet_scan('${basePath}/lineitem.parquet') lineitem
                 where
-                    l_shipdate::DATE <= date '1996-12-01' - interval '86' day`,
+                    l_shipdate::DATE <= date '1998-12-01' - interval '86' day`,
                 );
                 const chunks = new webdb.StaticChunkIterator(result);
                 const rows = chunks.collectAllBlocking();
                 expect(rows[0].__attribute__(0)).not.toBeNull();
                 expect(rows[0].__attribute__(1)).not.toBeNull();
             }, 300000);
-        });
+        });*/
 
         it('blocking static chunks', async () => {
-            for (const query of queries) {
-                let result = await conn.runQuery(query);
+            console.log('up');
+            let from = new Date();
+            // for (const query of queries) {
+            for (let i = 0; i < 10; i++) {
+                let result = await conn.runQuery(queries[0]);
                 const chunks = new webdb.StaticChunkIterator(result);
-                expect(chunks.collectAllBlocking()).not.toHaveSize(0);
+                let rows = chunks.collectAllBlocking();
+                console.log(rows.length);
+                // expect(chunks.collectAllBlocking()).not.toHaveSize(0);
             }
+            // }
+
+            let to = new Date();
+            console.log('down, ' + (to.getTime() - from.getTime()) / 10 / 1000 + 's');
         });
     });
 }

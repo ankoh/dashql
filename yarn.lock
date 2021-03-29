@@ -667,13 +667,6 @@
   resolved "https://registry.yarnpkg.com/@types/minimatch/-/minimatch-3.0.3.tgz#3dca0e3f33b200fc7d1139c0cd96c1268cadfd9d"
   integrity sha512-tHq6qdbT9U1IRSGf14CL0pUlULksvY9OZ+5eEgl1N7t+OA3tGvNpxJCzuKQlsNgCVwbAs670L1vcVQi8j9HjnA==
 
-"@types/node-int64@*":
-  version "0.4.29"
-  resolved "https://registry.yarnpkg.com/@types/node-int64/-/node-int64-0.4.29.tgz#8c7c16a7c1195ae4f8beaa903b0018ac66291d16"
-  integrity sha512-rHXvenLTj/CcsmNAebaBOhxQ2MqEGl3yXZZcZ21XYR+gzGTTcpOy2N4IxpvTCz48loyQNatHvfn6GhIbbZ1R3Q==
-  dependencies:
-    "@types/node" "*"
-
 "@types/node@*", "@types/node@>=10.0.0":
   version "14.14.35"
   resolved "https://registry.yarnpkg.com/@types/node/-/node-14.14.35.tgz#42c953a4e2b18ab931f72477e7012172f4ffa313"
@@ -683,13 +676,6 @@
   version "14.14.37"
   resolved "https://registry.yarnpkg.com/@types/node/-/node-14.14.37.tgz#a3dd8da4eb84a996c36e331df98d82abd76b516e"
   integrity sha512-XYmBiy+ohOR4Lh5jE379fV2IU+6Jn4g5qASinhitfyO71b/sCo6MKsMLF5tc7Zf2CE8hViVQyYSobJNke8OvUw==
-
-"@types/parquetjs@^0.10.2":
-  version "0.10.2"
-  resolved "https://registry.yarnpkg.com/@types/parquetjs/-/parquetjs-0.10.2.tgz#9ca4c1d5455821eb4177557f598869afe67bb5c2"
-  integrity sha512-Nb19yvWM0LDHssmfEVXYWHtKOxEW1Es9MtqSdQjZH/52MkNT7+bOYp+5iLJ4lnJehxTFdZx9DTR9j537oXDzYg==
-  dependencies:
-    "@types/node-int64" "*"
 
 "@types/prop-types@*", "@types/prop-types@^15.7.3":
   version "15.7.3"
