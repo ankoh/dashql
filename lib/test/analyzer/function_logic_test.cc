@@ -9,7 +9,7 @@
 
 using namespace std;
 using namespace dashql;
-using namespace webdb;
+using namespace duckdb::web;
 
 namespace {
 
@@ -36,11 +36,7 @@ TEST(FormatTest, StringParameter) {
     auto arg1 = Value::VARCHAR(Ref, "foo {} {}");
     auto arg2 = Value::BIGINT(static_cast<int64_t>(1));
     auto arg3 = Value::VARCHAR(Ref, "'bar'");
-    std::array<const Value*, 3> args{
-        &arg1,
-        &arg2,
-        &arg3
-    };
+    std::array<const Value*, 3> args{&arg1, &arg2, &arg3};
     auto fmt = FunctionLogic::Resolve("format", args);
     auto res = fmt->Evaluate(args);
     ASSERT_TRUE(res.IsOk());

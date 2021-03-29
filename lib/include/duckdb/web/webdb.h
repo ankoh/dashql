@@ -1,7 +1,7 @@
 // Copyright (c) 2020 The DashQL Authors
 
-#ifndef INCLUDE_DASHQL_WEBDB_WEBDB_H_
-#define INCLUDE_DASHQL_WEBDB_WEBDB_H_
+#ifndef INCLUDE_DUCKDB_WEB_WEBDB_H_
+#define INCLUDE_DUCKDB_WEB_WEBDB_H_
 
 #include <cstring>
 #include <initializer_list>
@@ -13,11 +13,11 @@
 #include "dashql/common/ffi_response.h"
 #include "dashql/common/span.h"
 #include "dashql/proto_generated.h"
-#include "dashql/webdb/partitioner.h"
 #include "duckdb.hpp"
+#include "duckdb/web/partitioner.h"
 
-namespace dashql {
-namespace webdb {
+namespace duckdb {
+namespace web {
 
 struct QueryRunOptions {
     /// Partition boundary keys
@@ -60,13 +60,13 @@ class WebDB {
         auto& GetConnection() { return connection_; }
 
         /// Run a SQL query
-        ExpectedBuffer<proto::webdb::QueryResult> RunQuery(std::string_view text, const QueryRunOptions& args = {});
+        dashql::ExpectedBuffer<proto::QueryResult> RunQuery(std::string_view text, const QueryRunOptions& args = {});
         /// Send a SQL query
-        ExpectedBuffer<proto::webdb::QueryResult> SendQuery(std::string_view text, const QueryRunOptions& args = {});
+        dashql::ExpectedBuffer<proto::QueryResult> SendQuery(std::string_view text, const QueryRunOptions& args = {});
         /// Fetch query results
-        ExpectedBuffer<proto::webdb::QueryResultChunk> FetchQueryResults();
+        dashql::ExpectedBuffer<proto::QueryResultChunk> FetchQueryResults();
         /// Analyze a SQL query
-        ExpectedBuffer<proto::webdb::QueryPlan> AnalyzeQuery(std::string_view text);
+        dashql::ExpectedBuffer<proto::QueryPlan> AnalyzeQuery(std::string_view text);
     };
 
    protected:
@@ -90,7 +90,7 @@ class WebDB {
     static WebDB& GetInstance();
 };
 
-}  // namespace webdb
-}  // namespace dashql
+}  // namespace web
+}  // namespace duckdb
 
 #endif  // INCLUDE_DUCKDB_WEB_WEBDB_H_

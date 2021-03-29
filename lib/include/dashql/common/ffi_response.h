@@ -10,7 +10,7 @@
 #include "dashql/proto_generated.h"
 #include "flatbuffers/flatbuffers.h"
 
-using StatusCode = dashql::proto::webdb::StatusCode;
+using StatusCode = duckdb::web::proto::StatusCode;
 
 namespace dashql {
 

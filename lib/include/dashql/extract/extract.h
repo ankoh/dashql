@@ -19,13 +19,13 @@
 #include "dashql/common/expected.h"
 #include "dashql/common/raw_buffer.h"
 #include "dashql/proto_generated.h"
-#include "dashql/webdb/webdb.h"
 #include "duckdb/execution/operator/persistent/buffered_csv_reader.hpp"
+#include "duckdb/web/webdb.h"
 
 namespace dashql {
 
 /// Extract csv
-Signal ExtractCSV(webdb::WebDB::Connection& connection, BlobStreamBuffer& blob_streambuf,
+Signal ExtractCSV(duckdb::web::WebDB::Connection& connection, BlobStreamBuffer& blob_streambuf,
                   duckdb::BufferedCSVReaderOptions csv_options, std::vector<duckdb::LogicalType>&& csv_col_types,
                   const std::string& schema_name, const std::string& table_name);
 

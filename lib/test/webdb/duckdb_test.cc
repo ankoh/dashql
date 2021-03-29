@@ -3,15 +3,15 @@
 #include <sstream>
 
 #include "dashql/proto_generated.h"
-#include "dashql/webdb/iterator.h"
-#include "dashql/webdb/webdb.h"
 #include "duckdb/common/types.hpp"
 #include "duckdb/common/vector_size.hpp"
+#include "duckdb/web/iterator.h"
+#include "duckdb/web/webdb.h"
 #include "gtest/gtest.h"
 
-using namespace dashql::webdb;
+using namespace duckdb::web;
 using namespace std;
-namespace p = dashql::proto::webdb;
+namespace p = duckdb::web::proto;
 
 namespace {
 

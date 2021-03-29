@@ -6,7 +6,7 @@
 namespace dashql {
 
 /// Extract csv
-Signal ExtractCSV(webdb::WebDB::Connection& connection, BlobStreamBuffer& blob_streambuf,
+Signal ExtractCSV(duckdb::web::WebDB::Connection& connection, BlobStreamBuffer& blob_streambuf,
                   duckdb::BufferedCSVReaderOptions csv_options, std::vector<duckdb::LogicalType>&& csv_col_types,
                   const std::string& schema_name, const std::string& table_name) {
     // Parse csv blob

@@ -4,7 +4,7 @@ include "webdb/query_plan.fbs";
 include "webdb/sql_type.fbs";
 include "webdb/vector.fbs";
 
-namespace dashql.proto.webdb;
+namespace duckdb.web.proto;
 
 table ImportDataChunk {
     table_id: uint64;

@@ -2,7 +2,7 @@
 
 include "webdb/sql_type.fbs";
 
-namespace dashql.proto.webdb;
+namespace duckdb.web.proto;
 
 enum PhysicalType: uint8 {
     NULL_,
