@@ -10,10 +10,10 @@
 #include "dashql/extract/csv_sniffer.h"
 #include "dashql/extract/extract.h"
 #include "dashql/proto_generated.h"
-#include "dashql/webdb/webdb.h"
+#include "duckdb/web/webdb.h"
 
 using namespace dashql;
-using namespace dashql::webdb;
+using namespace duckdb::web;
 
 extern "C" {
 

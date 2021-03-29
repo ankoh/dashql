@@ -1,22 +1,22 @@
 // Copyright (c) 2020 The DashQL Authors
 
-#include "dashql/webdb/iterator.h"
+#include "duckdb/web/iterator.h"
 
 #include <sstream>
 
 #include "dashql/proto_generated.h"
-#include "dashql/webdb/webdb.h"
 #include "duckdb/common/operator/add.hpp"
 #include "duckdb/common/operator/numeric_binary_operators.hpp"
 #include "duckdb/common/types/date.hpp"
 #include "duckdb/common/types/time.hpp"
 #include "duckdb/common/types/timestamp.hpp"
+#include "duckdb/web/webdb.h"
 #include "gtest/gtest.h"
 
 using namespace duckdb;
-using namespace dashql::webdb;
+using namespace duckdb::web;
 using namespace std;
-namespace p = dashql::proto::webdb;
+namespace p = duckdb::web::proto;
 
 namespace {
 

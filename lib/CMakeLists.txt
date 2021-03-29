@@ -335,13 +335,13 @@ add_library(dashql_analyzer
     ${CMAKE_SOURCE_DIR}/src/analyzer/viz_statement.cc
 )
 
-add_library(dashql_webdb
-    ${CMAKE_SOURCE_DIR}/src/webdb/codec.cc
-    ${CMAKE_SOURCE_DIR}/src/webdb/filesystem.cc
-    ${CMAKE_SOURCE_DIR}/src/webdb/iterator.cc
-    ${CMAKE_SOURCE_DIR}/src/webdb/partitioner.cc
-    ${CMAKE_SOURCE_DIR}/src/webdb/webdb.cc
-    ${CMAKE_SOURCE_DIR}/src/webdb/webdb_ffi.cc
+add_library(duckdb_web
+    ${CMAKE_SOURCE_DIR}/src/duckdb/web/codec.cc
+    ${CMAKE_SOURCE_DIR}/src/duckdb/web/filesystem.cc
+    ${CMAKE_SOURCE_DIR}/src/duckdb/web/iterator.cc
+    ${CMAKE_SOURCE_DIR}/src/duckdb/web/partitioner.cc
+    ${CMAKE_SOURCE_DIR}/src/duckdb/web/webdb.cc
+    ${CMAKE_SOURCE_DIR}/src/duckdb/web/webdb_ffi.cc
 )
 
 add_library(dashql_test
@@ -354,8 +354,8 @@ target_link_libraries(dashql_common dashql_proto flatbuffers spdlog rapidjson)
 target_link_libraries(dashql_extract dashql_proto flatbuffers spdlog duckdb parquet_extension rapidjson)
 target_link_libraries(dashql_analyzer dashql_parser dashql_common dashql_proto spdlog duckdb parquet_extension rapidjson)
 target_link_libraries(dashql_dataframe dashql_common dashql_proto binaryen)
-target_link_libraries(dashql_webdb dashql_extract dashql_common dashql_proto duckdb parquet_extension spdlog)
-target_link_libraries(dashql_test dashql_webdb dashql_analyzer dashql_common dashql_proto pugixml gtest duckdb parquet_extension)
+target_link_libraries(duckdb_web dashql_common dashql_proto duckdb parquet_extension spdlog)
+target_link_libraries(dashql_test duckdb_web dashql_analyzer dashql_common dashql_proto pugixml gtest duckdb parquet_extension)
 
 # ---------------------------------------------------------------------------
 # Emscripten

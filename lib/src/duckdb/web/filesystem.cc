@@ -1,6 +1,6 @@
 // Copyright (c) 2020 The DashQL Authors
 
-#include "dashql/webdb/filesystem.h"
+#include "duckdb/web/filesystem.h"
 
 #include <string>
 #include <vector>
@@ -8,8 +8,8 @@
 static const std::function<void(std::string, bool)> *list_files_callback = {};
 static std::vector<std::string> *glob_results = {};
 
-namespace dashql {
-namespace webdb {
+namespace duckdb {
+namespace web {
 
 void WebDBFileHandle::Close() { dashql_webdb_fs_file_close(blob_id); }
 
@@ -120,8 +120,8 @@ std::vector<std::string> WebDBFileSystem::Glob(const std::string &path) {
 //     return {};
 // }
 
-}  // namespace webdb
-}  // namespace dashql
+}  // namespace web
+}  // namespace duckdb
 
 extern "C" {
 extern int64_t dashql_webdb_fs_read(dashql::BlobID blobId, void *buffer, int64_t bytes);

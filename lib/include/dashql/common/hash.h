@@ -4,6 +4,8 @@
 #define INCLUDE_DASHQL_COMMON_HASH_H_
 
 #include <array>
+#include <cstddef>
+#include <functional>
 
 namespace dashql {
 

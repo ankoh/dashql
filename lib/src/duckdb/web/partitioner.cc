@@ -1,15 +1,15 @@
-#include "dashql/webdb/partitioner.h"
+#include "duckdb/web/partitioner.h"
 
 #include <string_view>
 #include <vector>
 
-#include "dashql/webdb/codec.h"
 #include "duckdb/common/types.hpp"
 #include "duckdb/common/types/string_type.hpp"
 #include "duckdb/common/types/vector.hpp"
+#include "duckdb/web/codec.h"
 
-namespace dashql {
-namespace webdb {
+namespace duckdb {
+namespace web {
 
 Partitioner::Partitioner(const duckdb::QueryResult& result, nonstd::span<const uint32_t> columns)
     : query_result_(result), partition_columns_(columns.begin(), columns.end()), previous_values_() {
@@ -111,5 +111,5 @@ void Partitioner::consumeChunk(duckdb::DataChunk& chunk, PartitionBoundaries& ou
     }
 }
 
-}  // namespace webdb
-}  // namespace dashql
+}  // namespace web
+}  // namespace duckdb

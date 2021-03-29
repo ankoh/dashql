@@ -4,12 +4,11 @@
 
 #include "dashql/common/ffi_response.h"
 #include "dashql/proto_generated.h"
-#include "dashql/webdb/filesystem.h"
-#include "dashql/webdb/webdb.h"
+#include "duckdb/web/filesystem.h"
+#include "duckdb/web/webdb.h"
 #include "parquet-extension.hpp"
 
-using namespace dashql;
-using namespace dashql::webdb;
+using namespace duckdb::web;
 
 extern "C" {
 
@@ -30,40 +29,40 @@ void* dashql_webdb_access_buffer(ConnectionHdl /*connHdl*/, BufferHdl bufferHdl)
 }
 
 /// Run a query
-void dashql_webdb_run_query(FFIResponse* packed, ConnectionHdl connHdl, const void* args_buffer) {
-    auto* args = flatbuffers::GetRoot<proto::webdb::QueryArguments>(args_buffer);
+void dashql_webdb_run_query(dashql::FFIResponse* packed, ConnectionHdl connHdl, const void* args_buffer) {
+    auto* args = flatbuffers::GetRoot<proto::QueryArguments>(args_buffer);
     QueryRunOptions options;
     if (auto pb = args->partition_boundaries()) {
         options.partition_boundaries = {pb->begin(), pb->end()};
     }
     auto c = reinterpret_cast<WebDB::Connection*>(connHdl);
     auto r = c->RunQuery(args->script()->string_view(), options);
-    FFIResponseBuffer::GetInstance().Store(*packed, std::move(r));
+    dashql::FFIResponseBuffer::GetInstance().Store(*packed, std::move(r));
 }
 
 /// Send a query
-void dashql_webdb_send_query(FFIResponse* packed, ConnectionHdl connHdl, const void* args_buffer) {
-    auto* args = flatbuffers::GetRoot<proto::webdb::QueryArguments>(args_buffer);
+void dashql_webdb_send_query(dashql::FFIResponse* packed, ConnectionHdl connHdl, const void* args_buffer) {
+    auto* args = flatbuffers::GetRoot<proto::QueryArguments>(args_buffer);
     QueryRunOptions options;
     if (auto pb = args->partition_boundaries()) {
         options.partition_boundaries = {pb->begin(), pb->end()};
     }
     auto c = reinterpret_cast<WebDB::Connection*>(connHdl);
     auto r = c->SendQuery(args->script()->string_view(), options);
-    FFIResponseBuffer::GetInstance().Store(*packed, std::move(r));
+    dashql::FFIResponseBuffer::GetInstance().Store(*packed, std::move(r));
 }
 
 /// Fetch query results
-void dashql_webdb_fetch_query_results(FFIResponse* packed, ConnectionHdl connHdl) {
+void dashql_webdb_fetch_query_results(dashql::FFIResponse* packed, ConnectionHdl connHdl) {
     auto c = reinterpret_cast<WebDB::Connection*>(connHdl);
     auto r = c->FetchQueryResults();
-    FFIResponseBuffer::GetInstance().Store(*packed, std::move(r));
+    dashql::FFIResponseBuffer::GetInstance().Store(*packed, std::move(r));
 }
 
 /// Analyze a query
-void dashql_webdb_analyze_query(FFIResponse* packed, ConnectionHdl connHdl, const char* text) {
+void dashql_webdb_analyze_query(dashql::FFIResponse* packed, ConnectionHdl connHdl, const char* text) {
     auto c = reinterpret_cast<WebDB::Connection*>(connHdl);
     auto r = c->AnalyzeQuery(text);
-    FFIResponseBuffer::GetInstance().Store(*packed, std::move(r));
+    dashql::FFIResponseBuffer::GetInstance().Store(*packed, std::move(r));
 }
 }

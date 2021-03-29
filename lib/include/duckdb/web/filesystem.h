@@ -1,14 +1,14 @@
 // Copyright (c) 2020 The DashQL Authors
 
-#ifndef INCLUDE_DASHQL_WEBDB_FILESYSTEM_H_
-#define INCLUDE_DASHQL_WEBDB_FILESYSTEM_H_
+#ifndef INCLUDE_DUCKDB_WEB_FILESYSTEM_H_
+#define INCLUDE_DUCKDB_WEB_FILESYSTEM_H_
 
 #include "dashql/common/blob_stream.h"
 #include "duckdb/common/constants.hpp"
 #include "duckdb/common/file_system.hpp"
 
-namespace dashql {
-namespace webdb {
+namespace duckdb {
+namespace web {
 
 class WebDBFileHandle : public duckdb::FileHandle {
    public:
@@ -87,8 +87,8 @@ class WebDBFileSystem : public duckdb::FileSystem {
     // duckdb::idx_t GetAvailableMemory() override;
 };
 
-}  // namespace webdb
-}  // namespace dashql
+}  // namespace web
+}  // namespace duckdb
 
 extern "C" {
 int64_t dashql_webdb_fs_read(dashql::BlobID blobId, void *buffer, int64_t bytes);

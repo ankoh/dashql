@@ -1,14 +1,14 @@
 // Copyright (c) 2020 The DashQL Authors
 
-#ifndef INCLUDE_DASHQL_WEBDB_PARTITIONER_H_
-#define INCLUDE_DASHQL_WEBDB_PARTITIONER_H_
+#ifndef INCLUDE_DUCKDB_WEB_PARTITIONER_H_
+#define INCLUDE_DUCKDB_WEB_PARTITIONER_H_
 
 #include "dashql/common/span.h"
 #include "duckdb/common/types/data_chunk.hpp"
 #include "duckdb/main/query_result.hpp"
 
-namespace dashql {
-namespace webdb {
+namespace duckdb {
+namespace web {
 
 using PartitionBoundaries = std::vector<bool>;
 
@@ -33,11 +33,11 @@ class Partitioner {
     /// Constructor
     Partitioner(const duckdb::QueryResult& result, nonstd::span<const uint32_t> columns);
 
-    /// Consume the next query result chunk 
+    /// Consume the next query result chunk
     void consumeChunk(duckdb::DataChunk& chunk, PartitionBoundaries& out);
 };
 
-}  // namespace webdb
-}  // namespace dashql
+}  // namespace web
+}  // namespace duckdb
 
-#endif  // INCLUDE_DASHQL_WEBDB_PARTITIONER_H_
+#endif  // INCLUDE_DUCKDB_WEB_PARTITIONER_H_
