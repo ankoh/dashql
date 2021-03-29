@@ -57,7 +57,7 @@ TEST(WebDB, CodecTest) {
           "from parquet_scan('"
        << data.string()
        << "') lineitem "
-          "where l_shipdate::DATE <= date '1996-12-01' - interval '86' day";
+          "where l_shipdate::DATE <= date '1998-12-01' - interval '86' day";
 
     auto result = con->RunQuery(ss.str());
 

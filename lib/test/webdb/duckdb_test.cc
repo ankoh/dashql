@@ -59,7 +59,7 @@ TEST(DuckDBTests, PassingDuckDBRegression1) {
           "from parquet_scan('"
        << data.string()
        << "') lineitem "
-          "where l_shipdate::DATE <= date '1996-12-01' - interval '86' day";
+          "where l_shipdate::DATE <= date '1998-12-01' - interval '86' day";
     auto result = con.SendQuery(ss.str());
     ASSERT_TRUE(result->success);
     auto content = result->Fetch();
@@ -76,7 +76,7 @@ TEST(DuckDBTests, PassingDuckDBRegression2) {
           "from parquet_scan('"
        << data.string()
        << "') lineitem "
-          "where l_shipdate::DATE <= date '1996-12-01' - interval '86' day";
+          "where l_shipdate::DATE <= date '1998-12-01' - interval '86' day";
     auto result = con.SendQuery(ss.str());
     ASSERT_TRUE(result->success);
     auto content = result->Fetch();
@@ -93,7 +93,7 @@ TEST(DuckDBTests, FailingDuckDBRegression1) {
           "from parquet_scan('"
        << data.string()
        << "') lineitem "
-          "where l_shipdate::DATE <= date '1996-12-01' - interval '86' day";
+          "where l_shipdate::DATE <= date '1998-12-01' - interval '86' day";
     auto result = con.Query(ss.str());
     ASSERT_TRUE(result->success);
     auto content = result->Fetch();
@@ -111,7 +111,7 @@ TEST(DuckDBTests, FailingDuckDBRegression2) {
           "from parquet_scan('"
        << data.string()
        << "') lineitem "
-          "where l_shipdate::DATE <= date '1996-12-01' - interval '86' day";
+          "where l_shipdate::DATE <= date '1998-12-01' - interval '86' day";
     auto result = con.SendQuery(ss.str());
     ASSERT_TRUE(result->success);
     auto content = result->Fetch();
