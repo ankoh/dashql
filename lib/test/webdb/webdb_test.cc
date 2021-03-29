@@ -4,11 +4,12 @@
 
 #include <sstream>
 
+#include "dashql/common/blob_stream.h"
 #include "dashql/proto_generated.h"
 #include "dashql/test/config.h"
 #include "duckdb/common/types/date.hpp"
 #include "duckdb/common/types/timestamp.hpp"
-#include "duckdb/web/iterator.h"
+#include "duckdb/execution/operator/persistent/buffered_csv_reader.hpp"
 #include "gtest/gtest.h"
 #include "parquet-extension.hpp"
 
@@ -45,6 +46,26 @@ TEST(WebDB, LoadParquet) {
                  "28106\tCarnap\t3\t\n"
                  "29120\tTheophrastos\t2\t\n"
                  "29555\tFeuerbach\t2\t\n\n");
+}
+
+TEST(WebDB, LoadCSV) {
+    using LT = duckdb::LogicalType;
+
+    auto db = make_shared<duckdb::DuckDB>();
+    auto data = dashql::test::SOURCE_DIR / ".." / "data" / "uni" / "out" / "test.csv";
+    duckdb::BufferedCSVReaderOptions options;
+    options.auto_detect = true;
+    std::vector<duckdb::LogicalType> column_types{LT::INTEGER, LT::INTEGER, LT::INTEGER};
+    duckdb::DataChunk output_chunk;
+    auto str = data.string();
+    auto fh = db->GetFileSystem().OpenFile(str, duckdb::FileFlags::FILE_FLAGS_READ);
+    dashql::FileSystemStreamBuffer streambuf(db->GetFileSystem(), *fh);
+    try {
+        duckdb::BufferedCSVReader reader(options, column_types, std::make_unique<std::istream>(&streambuf));
+        reader.ParseCSV(output_chunk);
+    } catch (std::exception const& e) {
+        std::cout << e.what() << std::endl;
+    }
 }
 
 }  // namespace

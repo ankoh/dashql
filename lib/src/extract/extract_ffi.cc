@@ -10,7 +10,8 @@
 #include "dashql/extract/csv_sniffer.h"
 #include "dashql/extract/extract.h"
 #include "dashql/proto_generated.h"
-#include "duckdb/web/webdb.h"
+#include "dashql/webdb/webdb.h"
+#include "duckdb/execution/operator/persistent/buffered_csv_reader.hpp"
 
 using namespace dashql;
 using namespace duckdb::web;
@@ -28,14 +29,16 @@ void dashql_extract_import_csv(FFIResponse* packed, ConnectionHdl connHdl, BlobI
     std::vector<duckdb::LogicalType> column_types{LT::INTEGER, LT::INTEGER, LT::INTEGER};
     duckdb::DataChunk output_chunk;
     output_chunk.Initialize(column_types);
+    BlobStreamBuffer blob_streambuf(dashql_blob_stream_underflow, blobId);
 
-    CSVParserOptions options;
-    options.force_not_null = {false, false, false};
-    options.sql_types = column_types;
-    BlobStreamBuffer blob_streambuf(duckdb_web_blob_stream_underflow, blobId);
-    std::istream blob_stream{&blob_streambuf};
-    SimpleCSVParser parser{options, blob_stream};
-    auto rc = parser.Parse(128, &output_chunk);
-    FFIResponseBuffer::GetInstance().Store(*packed, std::move(rc));
+    duckdb::BufferedCSVReaderOptions options;
+    options.auto_detect = true;
+    try {
+        duckdb::BufferedCSVReader reader(options, column_types, std::make_unique<std::istream>(&blob_streambuf));
+        reader.ParseCSV(output_chunk);
+        FFIResponseBuffer::GetInstance().Store(*packed, Signal::OK());
+    } catch (std::exception const& e) {
+        FFIResponseBuffer::GetInstance().Store(*packed, Error(ErrorCode::CSV_PARSER_ERROR, e.what()));
+    }
 }
 }
