@@ -25,7 +25,7 @@
         "framer-motion": "^4.0.0",
         "immutable": "^4.0.0-rc.12",
         "monaco-editor": "^0.23.0",
-        "react": "^17.0.1",
+        "react": "^17.0.2",
         "react-avatar": "^3.10.0",
         "react-bootstrap": "^1.5.2",
         "react-custom-scrollbars": "^4.2.1",
@@ -84,7 +84,7 @@
     },
     "peerDependencies": {
         "@types/react": "^17.0.3",
-        "react": "^17.0.1",
+        "react": "^17.0.2",
         "react-dom": "^17.0.2"
     },
     "optionalDependencies": {
