@@ -1,4 +1,4 @@
-import * as webdb from '@dashql/webdb/dist/webdb.module.js';
+import * as duckdb from '@dashql/webdb/dist/webdb.module.js';
 import * as React from 'react';
 import * as platform from '../platform';
 import * as model from '../model';
@@ -7,7 +7,7 @@ import { QueryProvider } from './query_provider';
 
 interface Props {
     /// The log manager
-    logger: webdb.Logger;
+    logger: duckdb.Logger;
     /// The database manager
     database: platform.DatabaseManager;
     /// The table info
@@ -17,9 +17,9 @@ interface Props {
     /// The error component
     errorComponent?: ((error: string) => React.ReactNode) | null;
     /// The in-flight component
-    inFlightComponent?: ((query: string, queryOptions: webdb.QueryRunOptions) => React.ReactNode) | null;
+    inFlightComponent?: ((query: string, queryOptions: duckdb.QueryRunOptions) => React.ReactNode) | null;
     /// The children
-    children: (result: proto.webdb.QueryResult) => React.ReactNode;
+    children: (result: proto.duckdb.QueryResult) => React.ReactNode;
 }
 
 export const SampleProvider: React.FunctionComponent<Props> = (props: Props) => {

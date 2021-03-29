@@ -1,4 +1,4 @@
-import * as webdb from '@dashql/webdb/dist/webdb.module.js';
+import * as duckdb from '@dashql/webdb/dist/webdb.module.js';
 import * as React from 'react';
 import * as platform from '../platform';
 import * as model from '../model';
@@ -10,7 +10,7 @@ const TMP_NAME = '__TEMP__';
 
 interface Props {
     /// The log manager
-    logger: webdb.Logger;
+    logger: duckdb.Logger;
     /// The database manager
     database: platform.DatabaseManager;
     /// The table info
@@ -24,7 +24,7 @@ interface Props {
     /// The in-flight component
     inFlightComponent?: ((query: Query) => React.ReactNode) | null;
     /// The children
-    children: (result: proto.webdb.QueryResult) => React.ReactNode;
+    children: (result: proto.duckdb.QueryResult) => React.ReactNode;
 }
 
 export const M5Provider: React.FunctionComponent<Props> = (props: Props) => {
