@@ -22,13 +22,13 @@ void dashql_analyzer_parse_program(FFIResponse* response, const char* text) {
 
 void dashql_analyzer_instantiate_program(FFIResponse* response, const void* args_buffer) {
     auto* args = flatbuffers::GetRoot<proto::analyzer::ProgramInstantiation>(args_buffer);
-    std::vector<InputValue> params;
-    if (auto values = args->parameters(); values && values->size() > 0) {
-        for (unsigned i = 0; i < args->parameters()->size(); ++i) {
-            params.push_back(InputValue::UnPack(*values->Get(i)));
+    std::vector<InputValue> inputs;
+    if (auto values = args->input_values(); values && values->size() > 0) {
+        for (unsigned i = 0; i < args->input_values()->size(); ++i) {
+            inputs.push_back(InputValue::UnPack(*values->Get(i)));
         }
     }
-    if (auto rc = Analyzer::GetInstance().InstantiateProgram(move(params)); !rc) {
+    if (auto rc = Analyzer::GetInstance().InstantiateProgram(move(inputs)); !rc) {
         FFIResponseBuffer::GetInstance().Store(*response, std::move(rc.ReleaseError()));
         return;
     }

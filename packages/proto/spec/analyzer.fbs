@@ -28,7 +28,7 @@ table NodeError {
 }
 
 table ProgramInstantiation {
-    parameters: [InputValue];
+    input_values: [InputValue];
 }
 
 table LinterMessage {
@@ -65,7 +65,7 @@ table Card {
 }
 
 table ProgramAnnotations {
-    parameters: [InputValue];
+    input_values: [InputValue];
     evaluated_nodes: [NodeValue];
     node_errors: [NodeError];
     linter_messages: [LinterMessage];

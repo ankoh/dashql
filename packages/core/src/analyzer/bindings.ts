@@ -127,7 +127,7 @@ export abstract class AnalyzerBindings {
         if (!this._instance || !this._program) return null;
 
         const builder = new proto.fb.Builder();
-        const paramOfs: proto.fb.Offset[] = params
+        const inputOfs: proto.fb.Offset[] = params
             .map(param => {
                 proto.analyzer.InputValue.start(builder);
                 proto.analyzer.InputValue.addStatementId(builder, param.statement);
@@ -135,8 +135,8 @@ export abstract class AnalyzerBindings {
                 return proto.analyzer.InputValue.end(builder);
             })
             .toArray();
-        const paramVectorOfs = proto.analyzer.ProgramInstantiation.createParametersVector(builder, paramOfs);
-        const args = proto.analyzer.ProgramInstantiation.create(builder, paramVectorOfs);
+        const inputVectorOfs = proto.analyzer.ProgramInstantiation.createInputValuesVector(builder, inputOfs);
+        const args = proto.analyzer.ProgramInstantiation.create(builder, inputVectorOfs);
         builder.finish(args);
 
         // Copy the arguments into the wasm module

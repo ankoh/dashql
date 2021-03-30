@@ -81,13 +81,13 @@ Expected<std::string> ProgramInstance::RenderStatementText(size_t stmt_id) const
 /// Pack the evaluated nodes
 flatbuffers::Offset<proto::analyzer::ProgramAnnotations> ProgramInstance::PackAnnotations(
     flatbuffers::FlatBufferBuilder& builder) const {
-    // Pack parameters
-    std::vector<flatbuffers::Offset<proto::analyzer::InputValue>> param_offsets;
-    param_offsets.reserve(input_values_.size());
+    // Pack input values
+    std::vector<flatbuffers::Offset<proto::analyzer::InputValue>> input_offsets;
+    input_offsets.reserve(input_values_.size());
     for (auto& param : input_values_) {
-        param_offsets.push_back(param.Pack(builder));
+        input_offsets.push_back(param.Pack(builder));
     }
-    auto param_vec = builder.CreateVector(param_offsets);
+    auto input_vec = builder.CreateVector(input_offsets);
 
     // Pack the evaluated nodes
     std::vector<flatbuffers::Offset<proto::analyzer::NodeValue>> eval_nodes;
@@ -112,7 +112,7 @@ flatbuffers::Offset<proto::analyzer::ProgramAnnotations> ProgramInstance::PackAn
 
     // Encode the plan result
     proto::analyzer::ProgramAnnotationsBuilder annotations{builder};
-    annotations.add_parameters(param_vec);
+    annotations.add_input_values(input_vec);
     annotations.add_evaluated_nodes(eval_node_vec);
     annotations.add_cards(cards_vec);
     // XXX node errors

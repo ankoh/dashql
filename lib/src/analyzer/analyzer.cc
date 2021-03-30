@@ -150,22 +150,22 @@ Signal Analyzer::ParseProgram(std::string_view text) {
     return Signal::OK();
 }
 
-// Evaluate the parameter values
+// Evaluate the input values
 void Analyzer::EvaluateInputValues(ProgramInstance& instance) {
     auto& program = instance.program();
     auto& input_values = instance.input_values();
 
-    // Map parameter values to statements
+    // Map input values to statements
     std::unordered_map<size_t, const InputValue*> source_values;
     source_values.reserve(input_values.size());
     for (auto& p : input_values) {
         source_values.insert({p.statement_id, &p});
     }
-    // Map parameter statements to referring nodes
+    // Map input statements to referring nodes
     for (auto& dep : program.dependencies) {
         if (auto iter = source_values.find(dep.source_statement()); iter != source_values.end()) {
-            auto& param_value = iter->second;
-            instance.evaluated_nodes_.Insert(dep.target_node(), {dep.target_node(), param_value->value.CopyDeep()});
+            auto& input_value = iter->second;
+            instance.evaluated_nodes_.Insert(dep.target_node(), {dep.target_node(), input_value->value.CopyDeep()});
         }
     }
 }
@@ -222,14 +222,14 @@ void Analyzer::ComputeCardPositions(ProgramInstance& instance) {
     }
 }
 
-/// Instantiate a program with parameters
-Signal Analyzer::InstantiateProgram(std::vector<InputValue> params) {
+/// Instantiate a program with inputs
+Signal Analyzer::InstantiateProgram(std::vector<InputValue> inputs) {
     // Create program instance.
     // Note that we copy the shared pointer here and leave the parser output intact.
-    // That allows us to re-instantiate the program with new parameter values without parsing it again.
-    auto next_instance = std::make_unique<ProgramInstance>(volatile_program_text_, volatile_program_, move(params));
+    // That allows us to re-instantiate the program with new input values without parsing it again.
+    auto next_instance = std::make_unique<ProgramInstance>(volatile_program_text_, volatile_program_, move(inputs));
 
-    // Evaluate the given parameter values.
+    // Evaluate the given input values.
     EvaluateInputValues(*next_instance);
     // Evaluate and propagate constant values.
     PropagateConstants(*next_instance);
@@ -259,15 +259,15 @@ Signal Analyzer::EditProgram(const proto::edit::ProgramEdit& edit) {
     ParseProgram(updated_text);
 
     // Instantiate the new program
-    std::vector<InputValue> params;
-    params.reserve(program_instance_->input_values().size());
+    std::vector<InputValue> inputs;
+    inputs.reserve(program_instance_->input_values().size());
     for (auto& p : program_instance_->input_values()) {
-        params.push_back({
+        inputs.push_back({
             p.statement_id,
             p.value.CopyDeep(),
         });
     }
-    InstantiateProgram(std::move(params));
+    InstantiateProgram(std::move(inputs));
 
     // XXX Error handling.
     //     Rewriting a syntactically incorrect program?
