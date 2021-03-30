@@ -27,7 +27,7 @@ export class ViewCreateActionLogic extends ProgramActionLogic {
             const now = new Date();
             return await collectTableInfo(c, {
                 objectId: this.buffer.objectId(),
-                objectType: model.PlanObjectType.DATABASE_TABLE_INFO,
+                objectType: model.PlanObjectType.DATABASE_TABLE,
                 timeCreated: now,
                 timeUpdated: now,
                 tableNameQualified: this.buffer.targetNameQualified() || '',

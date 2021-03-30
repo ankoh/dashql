@@ -39,9 +39,10 @@ export class VizComposer {
     _tableStatistics: platform.TableStatisticsResolver;
 
     /// The renderer type
-    _renderer: model.VizRendererType | null = null;
+    _renderer: model.CardRenderer | null = null;
+
     /// The query type
-    _queryType: model.VizQueryType | null = null;
+    _dataResolver: model.CardDataResolver | null = null;
     /// The filters (if any)
     _filters: LogicalComposition<Predicate>[] | null = null;
     /// The aggregates
@@ -187,15 +188,15 @@ export class VizComposer {
         modifiers: Map<proto.syntax.VizComponentTypeModifier, boolean>,
         options: any = null,
     ) {
-        const useRenderer = (renderer: model.VizRendererType) => {
-            if (this._renderer != null && this._renderer != model.VizRendererType.BUILTIN_VEGA) {
+        const useRenderer = (renderer: model.CardRenderer) => {
+            if (this._renderer != null && this._renderer != model.CardRenderer.BUILTIN_VEGA) {
                 // XXX log warning
             }
             this._renderer = renderer;
         };
         switch (type) {
             case proto.syntax.VizComponentType.VEGA: {
-                useRenderer(model.VizRendererType.BUILTIN_VEGA);
+                useRenderer(model.CardRenderer.BUILTIN_VEGA);
                 this._inputVegaLiteSpec.transform = options.transform;
                 const layer = { ...options };
                 delete layer.transform;
@@ -213,14 +214,14 @@ export class VizComposer {
             case proto.syntax.VizComponentType.LINE:
             case proto.syntax.VizComponentType.PIE:
             case proto.syntax.VizComponentType.SCATTER: {
-                useRenderer(model.VizRendererType.BUILTIN_VEGA);
+                useRenderer(model.CardRenderer.BUILTIN_VEGA);
                 this.generateVegaLayer(type, modifiers, options);
                 break;
             }
             case proto.syntax.VizComponentType.TABLE: {
-                useRenderer(model.VizRendererType.BUILTIN_TABLE);
+                useRenderer(model.CardRenderer.BUILTIN_TABLE);
                 // XXX conflicts
-                this._renderer = model.VizRendererType.BUILTIN_TABLE;
+                this._renderer = model.CardRenderer.BUILTIN_TABLE;
                 break;
             }
         }
@@ -256,7 +257,7 @@ export class VizComposer {
             if (noRewrites) break;
 
             // Force properties?
-            let forceQueryType: model.VizQueryType | null = null;
+            let forceQueryType: model.CardDataResolver | null = null;
             let forceSampleSize: number = DEFAULT_SAMPLE_SIZE;
 
             if (vlt.isAggregate(transform)) {
@@ -268,38 +269,38 @@ export class VizComposer {
                 // We should be smarter here very soon.
 
                 noRewrites = true;
-                forceQueryType = model.VizQueryType.RESERVOIR_SAMPLE;
+                forceQueryType = model.CardDataResolver.RESERVOIR_SAMPLE;
             } else if (vlt.isCalculate(transform)) {
                 // We could push calulcate down to the database if when parsing the expression.
                 // For now, we will just stop rewriting.
                 noRewrites = true;
-                forceQueryType = model.VizQueryType.RESERVOIR_SAMPLE;
+                forceQueryType = model.CardDataResolver.RESERVOIR_SAMPLE;
             } else if (vlt.isFilter(transform)) {
                 // Filtering breaks with sampling.
                 // We should push down the filter under the sampling.
                 // Check if the attribute is simple enough.
-                forceQueryType = model.VizQueryType.RESERVOIR_SAMPLE;
+                forceQueryType = model.CardDataResolver.RESERVOIR_SAMPLE;
 
                 // XXX Check if filter expression can be pushed to SQL
             } else if (vlt.isTimeUnit(transform)) {
                 // Time grouping?
                 // We could do that in the database if the target field is not a transform.
-                forceQueryType = model.VizQueryType.RESERVOIR_SAMPLE;
+                forceQueryType = model.CardDataResolver.RESERVOIR_SAMPLE;
             } else if (vlt.isSample(transform)) {
                 // Adjust sample size
-                forceQueryType = model.VizQueryType.RESERVOIR_SAMPLE;
+                forceQueryType = model.CardDataResolver.RESERVOIR_SAMPLE;
                 forceSampleSize = transform.sample;
                 keepTransforms[i] = false;
             }
 
             // Set query and sample size
             if (forceQueryType) {
-                if (this._queryType && this._queryType != forceQueryType) {
+                if (this._dataResolver && this._dataResolver != forceQueryType) {
                     // XXX Emit error
-                    console.error('Incompatible query type');
+                    console.error('Incompatible data resolver');
                     break;
                 }
-                this._queryType = forceQueryType;
+                this._dataResolver = forceQueryType;
             }
             this._sampleSize = forceSampleSize;
         }
@@ -431,7 +432,7 @@ export class VizComposer {
 
         // Use m5 sampling?
         if (useM5) {
-            this._queryType = model.VizQueryType.M5;
+            this._dataResolver = model.CardDataResolver.M5;
             this._m5Config = m5Config;
         }
     }
@@ -458,16 +459,16 @@ export class VizComposer {
 
     /// Build the actual viz object that is passed to the renderer.
     /// The function is async since we may have to wait for database requests.
-    public async compile(): Promise<Pick<model.VizInfo, 'renderer' | 'dataSource' | 'vegaLiteSpec' | 'vegaSpec'>> {
+    public async compile(): Promise<Pick<model.Card, 'cardRenderer' | 'dataSource' | 'vegaLiteSpec' | 'vegaSpec'>> {
         const table = this.table;
         let vegaSpec = null;
-        if (this._renderer == model.VizRendererType.BUILTIN_VEGA) {
+        if (this._renderer == model.CardRenderer.BUILTIN_VEGA) {
             vegaSpec = await this.compileVegaSpec(this._normalizedVegaLiteSpec!);
         }
         return {
-            renderer: this._renderer || model.VizRendererType.BUILTIN_TABLE,
+            cardRenderer: this._renderer || model.CardRenderer.BUILTIN_TABLE,
             dataSource: {
-                queryType: this._queryType || model.VizQueryType.RESERVOIR_SAMPLE,
+                dataResolver: this._dataResolver || model.CardDataResolver.RESERVOIR_SAMPLE,
                 targetQualified: table.tableNameQualified,
                 filters: this._filters,
                 aggregates: this._aggregates,

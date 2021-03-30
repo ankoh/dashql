@@ -72,8 +72,8 @@ export class DatabaseManager {
     }
 
     /// Resolve table info
-    public resolveTableInfo(qualifiedTableName: string): model.DatabaseTableInfo | null {
-        return this._store.getState().core.planDatabaseTables.get(qualifiedTableName) || null;
+    public resolveTableInfo(qualifiedTableName: string): model.DatabaseTable | null {
+        return this._store.getState().core.databaseTables.get(qualifiedTableName) || null;
     }
 
     /// Request table statistics.
