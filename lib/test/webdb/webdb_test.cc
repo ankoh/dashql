@@ -57,14 +57,21 @@ TEST(WebDB, LoadCSV) {
     options.auto_detect = true;
     std::vector<duckdb::LogicalType> column_types{LT::INTEGER, LT::INTEGER, LT::INTEGER};
     duckdb::DataChunk output_chunk;
+    output_chunk.Initialize(column_types);
     auto str = data.string();
     auto fh = db->GetFileSystem().OpenFile(str, duckdb::FileFlags::FILE_FLAGS_READ);
     dashql::FileSystemStreamBuffer streambuf(db->GetFileSystem(), *fh);
+
     try {
         duckdb::BufferedCSVReader reader(options, column_types, std::make_unique<std::istream>(&streambuf));
         reader.ParseCSV(output_chunk);
+        ASSERT_STREQ(output_chunk.ToString().c_str(),
+                     "Chunk - [3 Columns]\n"
+                     "- FLAT INTEGER: 3 = [ 1, 4, 7]\n"
+                     "- FLAT INTEGER: 3 = [ 2, 5, 8]\n"
+                     "- FLAT INTEGER: 3 = [ 3, 4, 9]\n");
     } catch (std::exception const& e) {
-        std::cout << e.what() << std::endl;
+        FAIL() << e.what();
     }
 }
 
