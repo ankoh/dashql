@@ -10,7 +10,6 @@
 #include "dashql/extract/csv_sniffer.h"
 #include "dashql/extract/extract.h"
 #include "dashql/proto_generated.h"
-#include "dashql/webdb/webdb.h"
 #include "duckdb/execution/operator/persistent/buffered_csv_reader.hpp"
 
 using namespace dashql;
@@ -29,7 +28,7 @@ void dashql_extract_import_csv(FFIResponse* packed, ConnectionHdl connHdl, BlobI
     std::vector<duckdb::LogicalType> column_types{LT::INTEGER, LT::INTEGER, LT::INTEGER};
     duckdb::DataChunk output_chunk;
     output_chunk.Initialize(column_types);
-    BlobStreamBuffer blob_streambuf(dashql_blob_stream_underflow, blobId);
+    BlobStreamBuffer blob_streambuf(duckdb_web_blob_stream_underflow, blobId);
 
     duckdb::BufferedCSVReaderOptions options;
     options.auto_detect = true;
@@ -37,7 +36,7 @@ void dashql_extract_import_csv(FFIResponse* packed, ConnectionHdl connHdl, BlobI
         duckdb::BufferedCSVReader reader(options, column_types, std::make_unique<std::istream>(&blob_streambuf));
         reader.ParseCSV(output_chunk);
         FFIResponseBuffer::GetInstance().Store(*packed, Signal::OK());
-    } catch (std::exception const& e) {
+    } catch (const std::exception& e) {
         FFIResponseBuffer::GetInstance().Store(*packed, Error(ErrorCode::CSV_PARSER_ERROR, e.what()));
     }
 }
