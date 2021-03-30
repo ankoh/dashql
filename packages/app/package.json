@@ -22,7 +22,7 @@
         "bootstrap": "^4.6.0",
         "classnames": "^2.2.6",
         "dagre": "^0.8.5",
-        "framer-motion": "^4.0.0",
+        "framer-motion": "^4.0.3",
         "immutable": "^4.0.0-rc.12",
         "monaco-editor": "^0.23.0",
         "react": "^17.0.2",
