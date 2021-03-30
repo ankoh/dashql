@@ -8,7 +8,7 @@ import { ActionContext } from './action_context';
 
 export abstract class VizActionLogic extends ProgramActionLogic {
     /// The viz spec
-    _vizSpec: proto.analyzer.VizSpec | null = null;
+    _card: proto.analyzer.Card | null = null;
     /// The viz composer
     _vizComposer: VizComposer | null = null;
 
@@ -26,7 +26,7 @@ export abstract class VizActionLogic extends ProgramActionLogic {
         // Get the table info
         const programInstance = context.plan.programInstance;
         const store = context.platform.store;
-        const tableInfo = store.getState().core.planDatabaseTables.get(this.tableNameQualified) || null;
+        const tableInfo = store.getState().core.databaseTables.get(this.tableNameQualified) || null;
         if (!tableInfo) {
             throw new error.VizLogicError(`target table ${this.tableNameQualified} does not exist`, programInstance);
         }
@@ -35,8 +35,8 @@ export abstract class VizActionLogic extends ProgramActionLogic {
         this._vizComposer = new VizComposer(stats);
 
         // Read the component specs and add them to the compose
-        for (let i = 0; i < this._vizSpec.componentsLength(); ++i) {
-            const c = this._vizSpec.components(i)!;
+        for (let i = 0; i < this._card.vizComponentsLength(); ++i) {
+            const c = this._card.vizComponents(i)!;
             const type = c.type()!;
             let mods: Map<proto.syntax.VizComponentTypeModifier, boolean> = new Map();
             for (let i = 0; i < c.typeModifiersLength(); ++i) {
@@ -64,28 +64,29 @@ export class CreateVizActionLogic extends VizActionLogic {
         // Get the program instance
         const programInstance = context.plan.programInstance;
         // Get viz spec
-        this._vizSpec = programInstance.vizSpecs.get(this.origin.statementId) || null;
-        if (!this._vizSpec) {
+        this._card = programInstance.cards.get(this.origin.statementId) || null;
+        if (!this._card) {
             throw new error.VizLogicError('viz spec does not exist', programInstance);
         }
         // Get position
-        const posReader = this._vizSpec!.position()!;
-        const pos: model.VizPosition = {
+        const posReader = this._card!.position()!;
+        const pos: model.CardPosition = {
             row: posReader.row(),
             column: posReader.column(),
             width: posReader.width(),
             height: posReader.height(),
         };
         const now = new Date();
-        const info: model.VizInfo = {
+        const info: model.Card = {
             objectId: this.buffer.objectId(),
-            objectType: model.PlanObjectType.VIZ_INFO,
+            objectType: model.PlanObjectType.CARD,
             timeCreated: now,
             timeUpdated: now,
-            currentStatementId: this.origin.statementId,
+            cardType: proto.analyzer.CardType.BUILTIN_VIZ,
+            cardRenderer: null,
+            statementID: this.origin.statementId,
             position: pos,
-            title: this._vizSpec!.title() || null,
-            renderer: null,
+            title: this._card!.title() || null,
             vegaLiteSpec: null,
             vegaSpec: null,
             dataSource: null,
@@ -109,20 +110,20 @@ export class CreateVizActionLogic extends VizActionLogic {
         // Get viz info
         const oid = this.buffer.objectId().toString();
         const state = context.platform.store.getState();
-        let viz = state.core.planObjects.get(oid) as model.VizInfo;
-        console.assert(viz !== undefined, 'missing initial viz object');
+        let card = state.core.cards.get(oid) as model.Card;
+        console.assert(card !== undefined, 'missing initial card object');
 
         // Create new viz object
         const now = new Date();
         const spec = await this._vizComposer!.compile();
-        viz = {
-            ...viz,
+        card = {
+            ...card,
             ...spec,
             timeUpdated: now,
         };
         model.mutate(context.platform.store.dispatch, {
             type: model.StateMutationType.INSERT_PLAN_OBJECTS,
-            data: [viz],
+            data: [card],
         });
     }
 }

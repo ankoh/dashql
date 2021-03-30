@@ -4,8 +4,8 @@ import * as Immutable from 'immutable';
 import { PlanObject } from './plan_object';
 import * as duckdb from '@dashql/duckdb';
 
-/// A database table info
-export interface DatabaseTableInfo extends PlanObject {
+/// A database table
+export interface DatabaseTable extends PlanObject {
     /// The qualified table name
     readonly tableNameQualified: string;
     /// The short table name

@@ -14,9 +14,9 @@ interface Props {
     /// The database manager
     database: platform.DatabaseManager;
     /// The table info
-    table: model.DatabaseTableInfo;
+    table: model.DatabaseTable;
     /// The viz data query
-    data: model.VizDataSource;
+    data: model.CardDataSource;
     /// The width of the container
     width: number;
     /// The error component

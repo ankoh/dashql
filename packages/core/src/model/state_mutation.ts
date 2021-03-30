@@ -4,7 +4,8 @@ import * as utils from '../utils';
 import { LogEntryVariant } from './log';
 import { Plan } from './plan';
 import { ActionHandle, Action, ActionUpdate, ActionSchedulerStatus } from './action';
-import { DatabaseTableInfo } from './database_info';
+import { DatabaseTable } from './database_table';
+import { Card } from './card';
 import { PlanObjectID, PlanObject, PlanObjectType } from './plan_object';
 import { Script } from './script';
 import { Program, StatementStatus, deriveStatementStatusCode } from './program';
@@ -56,7 +57,7 @@ export type StateMutationVariant =
     | StateMutation<StateMutationType.INSERT_PLAN_OBJECTS, PlanObject[]>
     | StateMutation<StateMutationType.DELETE_PLAN_OBJECTS, PlanObjectID[]>
     | StateMutation<StateMutationType.DELETE_TABLE_INFO, string>
-    | StateMutation<StateMutationType.UPDATE_TABLE_INFO, [string, Partial<DatabaseTableInfo>]>
+    | StateMutation<StateMutationType.UPDATE_TABLE_INFO, [string, Partial<DatabaseTable>]>
     | StateMutation<StateMutationType.CACHE_FILE_DATA, [CachedFileData, string | null]>
     | StateMutation<StateMutationType.CACHE_HTTP_DATA, [CachedHTTPData, string | null]>
     | StateMutation<StateMutationType.HIT_CACHED_FILE_DATA, string>
@@ -239,15 +240,18 @@ export class StateMutations {
             case StateMutationType.INSERT_PLAN_OBJECTS:
                 return {
                     ...state,
-                    planObjects: state.planObjects.withMutations(os => {
+                    cards: state.cards.withMutations(os => {
                         for (const o of mutation.data) {
-                            os.set(o.objectId.toString(), o);
+                            if (o.objectType == PlanObjectType.CARD) {
+                                const t = o as Card;
+                                os.set(t.objectId.toString(), t);
+                            }
                         }
                     }),
-                    planDatabaseTables: state.planDatabaseTables.withMutations(os => {
+                    databaseTables: state.databaseTables.withMutations(os => {
                         for (const o of mutation.data) {
-                            if (o.objectType == PlanObjectType.DATABASE_TABLE_INFO) {
-                                const t = o as DatabaseTableInfo;
+                            if (o.objectType == PlanObjectType.DATABASE_TABLE) {
+                                const t = o as DatabaseTable;
                                 os.set(t.tableNameQualified, t);
                             }
                         }
@@ -257,36 +261,31 @@ export class StateMutations {
             case StateMutationType.DELETE_PLAN_OBJECTS:
                 return {
                     ...state,
-                    planObjects: state.planObjects.withMutations(os => {
-                        os.deleteAll(mutation.data.map(k => k.toString()));
-                    }),
+                    databaseTables: state.databaseTables.deleteAll(mutation.data.map(k => k.toString())),
+                    cards: state.cards.deleteAll(mutation.data.map(k => k.toString())),
                 };
 
             case StateMutationType.DELETE_TABLE_INFO: {
-                const info = state.planDatabaseTables.get(mutation.data);
+                const info = state.databaseTables.get(mutation.data);
                 if (!info) {
                     return state;
                 }
-                const objectID = info.objectId;
                 return {
                     ...state,
-                    planObjects: state.planObjects.delete(objectID.toString()),
-                    planDatabaseTables: state.planDatabaseTables.delete(mutation.data),
+                    databaseTables: state.databaseTables.delete(mutation.data),
                 };
             }
 
             case StateMutationType.UPDATE_TABLE_INFO: {
-                const table = state.planDatabaseTables.get(mutation.data[0]);
+                const table = state.databaseTables.get(mutation.data[0]);
                 if (!table) return state;
                 const next = {
                     ...table,
                     ...mutation.data[1],
                 };
-                const key = table.objectId.toString();
                 return {
                     ...state,
-                    planObjects: state.planObjects.set(key, next),
-                    planDatabaseTables: state.planDatabaseTables.set(table.tableNameQualified, next),
+                    databaseTables: state.databaseTables.set(table.tableNameQualified, next),
                 };
             }
 

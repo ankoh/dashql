@@ -35,7 +35,7 @@ export class TableStatisticsRequest {
 /// A resolver for table statistics
 export interface TableStatisticsResolver {
     /// Resolve the table info
-    resolveTableInfo(): model.DatabaseTableInfo | null;
+    resolveTableInfo(): model.DatabaseTable | null;
     /// Request table statistics
     request(type: model.TableStatisticsType, columnId: number): Promise<duckdb.Value[]>;
     /// Evaluate table statistics
@@ -64,12 +64,12 @@ export class DatabaseTableStatistics implements TableStatisticsResolver {
     }
 
     /// Resolve the table info
-    public resolveTableInfo(): model.DatabaseTableInfo | null {
+    public resolveTableInfo(): model.DatabaseTable | null {
         return this._databaseManager.resolveTableInfo(this._qualifiedTableName);
     }
 
     /// Build the associative aggregate query
-    protected buildAssociativeAggregateQuery(tableInfo: model.DatabaseTableInfo): string {
+    protected buildAssociativeAggregateQuery(tableInfo: model.DatabaseTable): string {
         let out = 'SELECT ';
         let value_id = 0;
         for (let req of this._associativeAggregates) {
@@ -95,7 +95,7 @@ export class DatabaseTableStatistics implements TableStatisticsResolver {
     }
 
     /// Build a standalone query
-    protected buildStandaloneQuery(_tableInfo: model.DatabaseTableInfo, _req: TableStatisticsRequest): string {
+    protected buildStandaloneQuery(_tableInfo: model.DatabaseTable, _req: TableStatisticsRequest): string {
         console.assert('There are no standalone table statistics at the moment');
         return '';
     }
