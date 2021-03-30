@@ -3,7 +3,7 @@
 include "action.fbs";
 include "syntax/program.fbs";
 include "syntax/dashql_syntax.fbs";
-include "webdb/sql_value.fbs";
+include "duckdb/sql_value.fbs";
 
 namespace dashql.proto.analyzer;
 
