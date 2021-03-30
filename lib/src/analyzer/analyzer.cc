@@ -185,7 +185,17 @@ void Analyzer::PropagateConstants(ProgramInstance& instance) {
     }
 }
 
-/// Analyze the viz specs
+/// Analyze the input statements
+void Analyzer::AnalyzeInputStatements(ProgramInstance& instance) {
+    auto& program = instance.program();
+    for (size_t stmt_id = 0; stmt_id < program.statements.size(); ++stmt_id) {
+        auto input = InputStatement::ReadFrom(instance, stmt_id);
+        if (!input) continue;
+        instance.input_statements_.push_back(std::move(input));
+    }
+}
+
+/// Analyze the viz statements
 void Analyzer::AnalyzeVizStatements(ProgramInstance& instance) {
     auto& program = instance.program();
     for (size_t stmt_id = 0; stmt_id < program.statements.size(); ++stmt_id) {

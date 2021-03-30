@@ -67,6 +67,8 @@ class ProgramInstance {
     std::vector<NodeError> node_errors_;
     /// The linter messages
     std::vector<LinterMessage> linter_messages_;
+    /// The input statements
+    std::vector<std::unique_ptr<InputStatement>> input_statements_;
     /// The viz statements
     std::vector<std::unique_ptr<VizStatement>> viz_statements_;
 
