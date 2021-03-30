@@ -167,7 +167,7 @@ NodeID ParserDriver::AddNode(sx::Node node) {
     switch (node.node_type()) {
         case sx::NodeType::OBJECT_DASHQL_VIZ:
         case sx::NodeType::OBJECT_DASHQL_LOAD:
-        case sx::NodeType::OBJECT_DASHQL_PARAMETER:
+        case sx::NodeType::OBJECT_DASHQL_INPUT:
             if (auto [name, name_id] = FindAttribute(node, Key::DASHQL_STATEMENT_NAME); name) {
                 current_statement_.name = AsQualifiedName(*name, true);
             }
@@ -385,8 +385,8 @@ void ParserDriver::AddStatement(sx::Node node) {
             }
             break;
 
-        case sx::NodeType::OBJECT_DASHQL_PARAMETER:
-            stmt_type = sx::StatementType::PARAMETER;
+        case sx::NodeType::OBJECT_DASHQL_INPUT:
+            stmt_type = sx::StatementType::INPUT;
             break;
 
         case sx::NodeType::OBJECT_SQL_CREATE_AS:

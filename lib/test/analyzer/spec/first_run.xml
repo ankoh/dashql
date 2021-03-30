@@ -1,17 +1,17 @@
 <test name="param">
     <step>
         <text>
-            DECLARE PARAMETER country TYPE TEXT;
+            INPUT country TYPE TEXT;
         </text>
-        <parameters>
-            <parameter statement="0" type="VARCHAR" value="DE" />
-        </parameters>
+        <inputs>
+            <input statement="0" type="VARCHAR" value="DE" />
+        </inputs>
         <evaluations />
         <visualizations />
         <graph next_object_id="1">
             <setup />
             <program>
-                <action origin="0" type="PARAMETER" status="NONE" object_id="0">
+                <action origin="0" type="INPUT" status="NONE" object_id="0">
                     <target name_qualified="global.country" name_short="country" />
                 </action>
             </program>
@@ -23,7 +23,7 @@
         <text>
             SELECT 1 INTO a;
         </text>
-        <parameters />
+        <inputs />
         <evaluations />
         <visualizations />
         <graph next_object_id="1">
@@ -40,23 +40,23 @@
 <test name="param_load">
     <step>
         <text>
-            DECLARE PARAMETER country TYPE TEXT;
+            INPUT country TYPE TEXT;
             LOAD weather_csv FROM http (
                 url = format('https://cdn.dashql.com/demo/weather/{}', global.country)
             );
             EXTRACT weather FROM weather_csv USING CSV;
         </text>
-        <parameters>
-            <parameter statement="0" type="VARCHAR" value="DE" />
-        </parameters>
+        <inputs>
+            <input statement="0" type="VARCHAR" value="DE" />
+        </inputs>
         <evaluations>
-            <eval type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" loc="113..177" text="format('ht..l.country)" />
+            <eval type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" loc="101..165" text="format('ht..l.country)" />
         </evaluations>
         <visualizations />
         <graph next_object_id="3">
             <setup />
             <program>
-                <action origin="0" type="PARAMETER" status="NONE" object_id="0">
+                <action origin="0" type="INPUT" status="NONE" object_id="0">
                     <target name_qualified="global.country" name_short="country" />
                     <required_for>
                         <ref action="1" />
@@ -84,23 +84,23 @@
 <test name="param_load_extract">
     <step>
         <text>
-            DECLARE PARAMETER country TYPE TEXT;
+            INPUT country TYPE TEXT;
             LOAD weather_csv FROM http (
                 url = format('https://cdn.dashql.com/demo/weather/{}', global.country)
             );
             EXTRACT weather FROM weather_csv USING CSV;
         </text>
-        <parameters>
-            <parameter statement="0" type="VARCHAR" value="DE" />
-        </parameters>
+        <inputs>
+            <input statement="0" type="VARCHAR" value="DE" />
+        </inputs>
         <evaluations>
-            <eval type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" loc="113..177" text="format('ht..l.country)" />
+            <eval type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" loc="101..165" text="format('ht..l.country)" />
         </evaluations>
         <visualizations />
         <graph next_object_id="3">
             <setup />
             <program>
-                <action origin="0" type="PARAMETER" status="NONE" object_id="0">
+                <action origin="0" type="INPUT" status="NONE" object_id="0">
                     <target name_qualified="global.country" name_short="country" />
                     <required_for>
                         <ref action="1" />
@@ -128,24 +128,24 @@
 <test name="param_load_extract_select">
     <step>
         <text>
-            DECLARE PARAMETER country TYPE TEXT;
+            INPUT country TYPE TEXT;
             LOAD weather_csv FROM http (
                 url = format('https://cdn.dashql.com/demo/weather/{}', global.country)
             );
             EXTRACT weather FROM weather_csv USING CSV;
             SELECT * INTO weather_avg FROM weather;
         </text>
-        <parameters>
-            <parameter statement="0" type="VARCHAR" value="DE" />
-        </parameters>
+        <inputs>
+            <input statement="0" type="VARCHAR" value="DE" />
+        </inputs>
         <evaluations>
-            <eval type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" loc="113..177" text="format('ht..l.country)" />
+            <eval type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" loc="101..165" text="format('ht..l.country)" />
         </evaluations>
         <visualizations />
         <graph next_object_id="4">
             <setup />
             <program>
-                <action origin="0" type="PARAMETER" status="NONE" object_id="0">
+                <action origin="0" type="INPUT" status="NONE" object_id="0">
                     <target name_qualified="global.country" name_short="country" />
                     <required_for>
                         <ref action="1" />
@@ -183,7 +183,7 @@
 <test name="two_vizzes">
     <step>
         <text>
-            DECLARE PARAMETER country TYPE TEXT;
+            INPUT country TYPE TEXT;
             LOAD weather_csv FROM http (
                 url = format('https://cdn.dashql.com/demo/weather/{}', global.country)
             );
@@ -192,21 +192,21 @@
             VIZ weather_avg USING LINE;
             VIZ weather_avg USING TABLE;
         </text>
-        <parameters>
-            <parameter statement="0" type="VARCHAR" value="DE" />
-        </parameters>
+        <inputs>
+            <input statement="0" type="VARCHAR" value="DE" />
+        </inputs>
         <evaluations>
-            <eval type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" loc="113..177" text="format('ht..l.country)" />
+            <eval type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" loc="101..165" text="format('ht..l.country)" />
         </evaluations>
         <visualizations>
             <visualization>
-                <target loc="317..328" text="weather_avg" />
+                <target loc="305..316" text="weather_avg" />
                 <components>
                     <component type="LINE">{}</component>
                 </components>
             </visualization>
             <visualization>
-                <target loc="357..368" text="weather_avg" />
+                <target loc="345..356" text="weather_avg" />
                 <components>
                     <component type="TABLE">{}</component>
                 </components>
@@ -215,7 +215,7 @@
         <graph next_object_id="6">
             <setup />
             <program>
-                <action origin="0" type="PARAMETER" status="NONE" object_id="0">
+                <action origin="0" type="INPUT" status="NONE" object_id="0">
                     <target name_qualified="global.country" name_short="country" />
                     <required_for>
                         <ref action="1" />
@@ -269,7 +269,7 @@
 <test name="two_tables_two_vizzes">
     <step>
         <text>
-            DECLARE PARAMETER country TYPE TEXT;
+            INPUT country TYPE TEXT;
             LOAD weather_csv FROM http (
                 url = format('https://cdn.dashql.com/demo/weather/{}', global.country)
             );
@@ -279,21 +279,21 @@
             VIZ weather_avg USING LINE;
             VIZ weather_binned USING BAR;
         </text>
-        <parameters>
-            <parameter statement="0" type="VARCHAR" value="DE" />
-        </parameters>
+        <inputs>
+            <input statement="0" type="VARCHAR" value="DE" />
+        </inputs>
         <evaluations>
-            <eval type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" loc="113..177" text="format('ht..l.country)" />
+            <eval type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" loc="101..165" text="format('ht..l.country)" />
         </evaluations>
         <visualizations>
             <visualization>
-                <target loc="372..383" text="weather_avg" />
+                <target loc="360..371" text="weather_avg" />
                 <components>
                     <component type="LINE">{}</component>
                 </components>
             </visualization>
             <visualization>
-                <target loc="412..426" text="weather_binned" />
+                <target loc="400..414" text="weather_binned" />
                 <components>
                     <component type="BAR">{}</component>
                 </components>
@@ -302,7 +302,7 @@
         <graph next_object_id="7">
             <setup />
             <program>
-                <action origin="0" type="PARAMETER" status="NONE" object_id="0">
+                <action origin="0" type="INPUT" status="NONE" object_id="0">
                     <target name_qualified="global.country" name_short="country" />
                     <required_for>
                         <ref action="1" />
@@ -366,8 +366,8 @@
 <test name="integer_interpolation">
     <step>
         <text>
-            DECLARE PARAMETER country TYPE TEXT;
-            DECLARE PARAMETER month TYPE INTEGER;
+            INPUT country TYPE TEXT;
+            INPUT month TYPE INTEGER;
             LOAD weather_csv FROM http (
                 url = format('https://cdn.dashql.com/demo/weather/{}', global.country)
             );
@@ -377,24 +377,24 @@
             VIZ weather_avg USING LINE;
             VIZ weather_binned USING BAR;
         </text>
-        <parameters>
-            <parameter statement="0" type="VARCHAR" value="DE" />
-            <parameter statement="1" type="BIGINT" value="5" />
-        </parameters>
+        <inputs>
+            <input statement="0" type="VARCHAR" value="DE" />
+            <input statement="1" type="BIGINT" value="5" />
+        </inputs>
         <evaluations>
-            <eval type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" loc="163..227" text="format('ht..l.country)" />
-            <eval type="BIGINT" value="5" loc="446..458" text="global.month" />
-            <eval type="BIGINT" value="5" loc="364..376" text="global.month" />
+            <eval type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" loc="139..203" text="format('ht..l.country)" />
+            <eval type="BIGINT" value="5" loc="422..434" text="global.month" />
+            <eval type="BIGINT" value="5" loc="340..352" text="global.month" />
         </evaluations>
         <visualizations>
             <visualization>
-                <target loc="476..487" text="weather_avg" />
+                <target loc="452..463" text="weather_avg" />
                 <components>
                     <component type="LINE">{}</component>
                 </components>
             </visualization>
             <visualization>
-                <target loc="516..530" text="weather_binned" />
+                <target loc="492..506" text="weather_binned" />
                 <components>
                     <component type="BAR">{}</component>
                 </components>
@@ -403,13 +403,13 @@
         <graph next_object_id="8">
             <setup />
             <program>
-                <action origin="0" type="PARAMETER" status="NONE" object_id="0">
+                <action origin="0" type="INPUT" status="NONE" object_id="0">
                     <target name_qualified="global.country" name_short="country" />
                     <required_for>
                         <ref action="2" />
                     </required_for>
                 </action>
-                <action origin="1" type="PARAMETER" status="NONE" object_id="1">
+                <action origin="1" type="INPUT" status="NONE" object_id="1">
                     <target name_qualified="global.month" name_short="month" />
                     <required_for>
                         <ref action="4" />
@@ -476,33 +476,33 @@
 <test name="text_interpolation">
     <step>
         <text>
-            DECLARE PARAMETER country TYPE TEXT;
-            DECLARE PARAMETER city TYPE TEXT;
+            INPUT country TYPE TEXT;
+            INPUT city TYPE TEXT;
             LOAD weather_csv FROM http (
                 url = format('https://cdn.dashql.com/demo/weather/{}', global.country)
             );
             EXTRACT weather FROM weather_csv USING CSV;
             SELECT * INTO weather_avg FROM weather WHERE city = global.city;
         </text>
-        <parameters>
-            <parameter statement="0" type="VARCHAR" value="DE" />
-            <parameter statement="1" type="VARCHAR" value="MUC" />
-        </parameters>
+        <inputs>
+            <input statement="0" type="VARCHAR" value="DE" />
+            <input statement="1" type="VARCHAR" value="MUC" />
+        </inputs>
         <evaluations>
-            <eval type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" loc="159..223" text="format('ht..l.country)" />
-            <eval type="VARCHAR" value="MUC" loc="359..370" text="global.city" />
+            <eval type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" loc="135..199" text="format('ht..l.country)" />
+            <eval type="VARCHAR" value="MUC" loc="335..346" text="global.city" />
         </evaluations>
         <visualizations />
         <graph next_object_id="5">
             <setup />
             <program>
-                <action origin="0" type="PARAMETER" status="NONE" object_id="0">
+                <action origin="0" type="INPUT" status="NONE" object_id="0">
                     <target name_qualified="global.country" name_short="country" />
                     <required_for>
                         <ref action="2" />
                     </required_for>
                 </action>
-                <action origin="1" type="PARAMETER" status="NONE" object_id="1">
+                <action origin="1" type="INPUT" status="NONE" object_id="1">
                     <target name_qualified="global.city" name_short="city" />
                     <required_for>
                         <ref action="4" />
@@ -541,9 +541,9 @@
 <test name="extract_join">
     <step>
         <text>
-            DECLARE PARAMETER country1 TYPE TEXT;
-            DECLARE PARAMETER country2 TYPE TEXT;
-            DECLARE PARAMETER month TYPE INTEGER;
+            INPUT country1 TYPE TEXT;
+            INPUT country2 TYPE TEXT;
+            INPUT month TYPE INTEGER;
             LOAD country1_weather_csv FROM http (
                 url = format('https://cdn.dashql.com/demo/weather/{}', global.country1)
             );
@@ -555,19 +555,19 @@
             SELECT * INTO countries_joined FROM country1_weather c1, country2_weather c2 WHERE c1.month = c2.month AND c2.month = global.month;
             VIZ countries_joined USING LINE;
         </text>
-        <parameters>
-            <parameter statement="0" type="VARCHAR" value="DE" />
-            <parameter statement="1" type="VARCHAR" value="US" />
-            <parameter statement="2" type="BIGINT" value="5" />
-        </parameters>
+        <inputs>
+            <input statement="0" type="VARCHAR" value="DE" />
+            <input statement="1" type="VARCHAR" value="US" />
+            <input statement="2" type="BIGINT" value="5" />
+        </inputs>
         <evaluations>
-            <eval type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/US'" loc="376..441" text="format('ht...country2)" />
-            <eval type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" loc="223..288" text="format('ht...country1)" />
-            <eval type="BIGINT" value="5" loc="735..747" text="global.month" />
+            <eval type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/US'" loc="340..405" text="format('ht...country2)" />
+            <eval type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" loc="187..252" text="format('ht...country1)" />
+            <eval type="BIGINT" value="5" loc="699..711" text="global.month" />
         </evaluations>
         <visualizations>
             <visualization>
-                <target loc="765..781" text="countries_joined" />
+                <target loc="729..745" text="countries_joined" />
                 <components>
                     <component type="LINE">{}</component>
                 </components>
@@ -576,19 +576,19 @@
         <graph next_object_id="9">
             <setup />
             <program>
-                <action origin="0" type="PARAMETER" status="NONE" object_id="0">
+                <action origin="0" type="INPUT" status="NONE" object_id="0">
                     <target name_qualified="global.country1" name_short="country1" />
                     <required_for>
                         <ref action="3" />
                     </required_for>
                 </action>
-                <action origin="1" type="PARAMETER" status="NONE" object_id="1">
+                <action origin="1" type="INPUT" status="NONE" object_id="1">
                     <target name_qualified="global.country2" name_short="country2" />
                     <required_for>
                         <ref action="4" />
                     </required_for>
                 </action>
-                <action origin="2" type="PARAMETER" status="NONE" object_id="2">
+                <action origin="2" type="INPUT" status="NONE" object_id="2">
                     <target name_qualified="global.month" name_short="month" />
                     <required_for>
                         <ref action="7" />
@@ -658,7 +658,7 @@
             CREATE TABLE foo AS SELECT v::INTEGER FROM generate_series(0, 100) AS t(v);
             VIZ foo USING TABLE;
         </text>
-        <parameters />
+        <inputs />
         <evaluations />
         <visualizations>
             <visualization>
@@ -699,7 +699,7 @@
                 title = 'sometitle',
             ), LINE, SCATTER, X AXIS(scale = 'time'), Y AXIS(scale = 'log');
         </text>
-        <parameters />
+        <inputs />
         <evaluations />
         <visualizations>
             <visualization title="sometitle">
@@ -741,7 +741,7 @@
                 )
             );
         </text>
-        <parameters />
+        <inputs />
         <evaluations />
         <visualizations>
             <visualization title="Line Chart">

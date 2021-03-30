@@ -24,12 +24,12 @@ X(sx::CombineModifier, sx::NodeType::ENUM_SQL_COMBINE_MODIFIER)
 X(sx::CombineOperation, sx::NodeType::ENUM_SQL_COMBINE_OPERATION)
 X(sx::ExpressionFunction, sx::NodeType::ENUM_SQL_EXPRESSION_FUNCTION)
 X(sx::ExtractMethodType, sx::NodeType::ENUM_DASHQL_EXTRACT_METHOD_TYPE)
+X(sx::InputType, sx::NodeType::ENUM_DASHQL_INPUT_TYPE)
 X(sx::LoadMethodType, sx::NodeType::ENUM_DASHQL_LOAD_METHOD_TYPE)
 X(sx::NumericTypeTag, sx::NodeType::ENUM_SQL_NUMERIC_TYPE_TAG)
 X(sx::OnCommitOption, sx::NodeType::ENUM_SQL_ON_COMMIT_OPTION)
 X(sx::OrderDirection, sx::NodeType::ENUM_SQL_ORDER_DIRECTION)
 X(sx::OrderNullRule, sx::NodeType::ENUM_SQL_ORDER_NULL_RULE)
-X(sx::ParameterType, sx::NodeType::ENUM_DASHQL_PARAMETER_TYPE)
 X(sx::TempType, sx::NodeType::ENUM_SQL_TEMP_TYPE)
 X(sx::VizComponentType, sx::NodeType::ENUM_DASHQL_VIZ_COMPONENT_TYPE)
 X(sx::WindowBoundDirection, sx::NodeType::ENUM_SQL_WINDOW_BOUND_DIRECTION)
@@ -38,7 +38,7 @@ X(sx::WindowExclusionMode, sx::NodeType::ENUM_SQL_WINDOW_EXCLUSION_MODE)
 X(sx::WindowRangeMode, sx::NodeType::ENUM_SQL_WINDOW_RANGE_MODE)
 #undef X
 
-    const char* getEnumText(const sx::Node& target);
+const char* getEnumText(const sx::Node& target);
 
 }  // namespace parser
 }  // namespace dashql

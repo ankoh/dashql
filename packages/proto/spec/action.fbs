@@ -64,7 +64,7 @@ table SetupAction {
 
 enum ProgramActionType: uint8 {
     NONE = 0,
-    PARAMETER,
+    INPUT,
     LOAD_FILE,
     LOAD_HTTP,
     EXTRACT_JSON,

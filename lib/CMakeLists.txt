@@ -190,8 +190,8 @@ set(GRAMMAR_KEYWORDS
 set(GRAMMAR_RULES
     ${CMAKE_SOURCE_DIR}/src/parser/grammar/rules/dashql_common.y
     ${CMAKE_SOURCE_DIR}/src/parser/grammar/rules/dashql_extract.y
+    ${CMAKE_SOURCE_DIR}/src/parser/grammar/rules/dashql_input.y
     ${CMAKE_SOURCE_DIR}/src/parser/grammar/rules/dashql_load.y
-    ${CMAKE_SOURCE_DIR}/src/parser/grammar/rules/dashql_param.y
     ${CMAKE_SOURCE_DIR}/src/parser/grammar/rules/dashql_query.y
     ${CMAKE_SOURCE_DIR}/src/parser/grammar/rules/dashql_statement.y
     ${CMAKE_SOURCE_DIR}/src/parser/grammar/rules/dashql_viz.y
@@ -203,8 +203,8 @@ set(GRAMMAR_RULES
 set(GRAMMAR_TYPES
     ${CMAKE_SOURCE_DIR}/src/parser/grammar/rules/dashql_common.yh
     ${CMAKE_SOURCE_DIR}/src/parser/grammar/rules/dashql_extract.yh
+    ${CMAKE_SOURCE_DIR}/src/parser/grammar/rules/dashql_input.yh
     ${CMAKE_SOURCE_DIR}/src/parser/grammar/rules/dashql_load.yh
-    ${CMAKE_SOURCE_DIR}/src/parser/grammar/rules/dashql_param.yh
     ${CMAKE_SOURCE_DIR}/src/parser/grammar/rules/dashql_query.yh
     ${CMAKE_SOURCE_DIR}/src/parser/grammar/rules/dashql_statement.yh
     ${CMAKE_SOURCE_DIR}/src/parser/grammar/rules/dashql_viz.yh
@@ -326,7 +326,7 @@ add_library(dashql_analyzer
     ${CMAKE_SOURCE_DIR}/src/analyzer/analyzer_ffi.cc
     ${CMAKE_SOURCE_DIR}/src/analyzer/function_logic.cc
     ${CMAKE_SOURCE_DIR}/src/analyzer/json.cc
-    ${CMAKE_SOURCE_DIR}/src/analyzer/parameter_value.cc
+    ${CMAKE_SOURCE_DIR}/src/analyzer/input_value.cc
     ${CMAKE_SOURCE_DIR}/src/analyzer/program_editor.cc
     ${CMAKE_SOURCE_DIR}/src/analyzer/program_instance.cc
     ${CMAKE_SOURCE_DIR}/src/analyzer/program_matcher.cc

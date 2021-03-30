@@ -7,7 +7,7 @@
 
 #include "dashql/analyzer/action_planner.h"
 #include "dashql/analyzer/function_logic.h"
-#include "dashql/analyzer/parameter_value.h"
+#include "dashql/analyzer/input_value.h"
 #include "dashql/analyzer/program_editor.h"
 #include "dashql/analyzer/stmt/input_stmt.h"
 #include "dashql/analyzer/stmt/viz_stmt.h"
@@ -151,14 +151,14 @@ Signal Analyzer::ParseProgram(std::string_view text) {
 }
 
 // Evaluate the parameter values
-void Analyzer::EvaluateParameterValues(ProgramInstance& instance) {
+void Analyzer::EvaluateInputValues(ProgramInstance& instance) {
     auto& program = instance.program();
-    auto& parameter_values = instance.parameter_values();
+    auto& input_values = instance.input_values();
 
     // Map parameter values to statements
-    std::unordered_map<size_t, const ParameterValue*> source_values;
-    source_values.reserve(parameter_values.size());
-    for (auto& p : parameter_values) {
+    std::unordered_map<size_t, const InputValue*> source_values;
+    source_values.reserve(input_values.size());
+    for (auto& p : input_values) {
         source_values.insert({p.statement_id, &p});
     }
     // Map parameter statements to referring nodes
@@ -223,14 +223,14 @@ void Analyzer::ComputeCardPositions(ProgramInstance& instance) {
 }
 
 /// Instantiate a program with parameters
-Signal Analyzer::InstantiateProgram(std::vector<ParameterValue> params) {
+Signal Analyzer::InstantiateProgram(std::vector<InputValue> params) {
     // Create program instance.
     // Note that we copy the shared pointer here and leave the parser output intact.
     // That allows us to re-instantiate the program with new parameter values without parsing it again.
     auto next_instance = std::make_unique<ProgramInstance>(volatile_program_text_, volatile_program_, move(params));
 
     // Evaluate the given parameter values.
-    EvaluateParameterValues(*next_instance);
+    EvaluateInputValues(*next_instance);
     // Evaluate and propagate constant values.
     PropagateConstants(*next_instance);
     // Analyze the viz specs
@@ -259,9 +259,9 @@ Signal Analyzer::EditProgram(const proto::edit::ProgramEdit& edit) {
     ParseProgram(updated_text);
 
     // Instantiate the new program
-    std::vector<ParameterValue> params;
-    params.reserve(program_instance_->parameter_values().size());
-    for (auto& p : program_instance_->parameter_values()) {
+    std::vector<InputValue> params;
+    params.reserve(program_instance_->input_values().size());
+    for (auto& p : program_instance_->input_values()) {
         params.push_back({
             p.statement_id,
             p.value.CopyDeep(),

@@ -22,10 +22,10 @@ void dashql_analyzer_parse_program(FFIResponse* response, const char* text) {
 
 void dashql_analyzer_instantiate_program(FFIResponse* response, const void* args_buffer) {
     auto* args = flatbuffers::GetRoot<proto::analyzer::ProgramInstantiation>(args_buffer);
-    std::vector<ParameterValue> params;
+    std::vector<InputValue> params;
     if (auto values = args->parameters(); values && values->size() > 0) {
         for (unsigned i = 0; i < args->parameters()->size(); ++i) {
-            params.push_back(ParameterValue::UnPack(*values->Get(i)));
+            params.push_back(InputValue::UnPack(*values->Get(i)));
         }
     }
     if (auto rc = Analyzer::GetInstance().InstantiateProgram(move(params)); !rc) {
@@ -66,5 +66,4 @@ void dashql_analyzer_update_action_status(uint8_t action_class, size_t action_id
     auto s = static_cast<proto::action::ActionStatusCode>(status_code);
     Analyzer::GetInstance().UpdateActionStatus(ac, action_id, s);
 }
-
 }

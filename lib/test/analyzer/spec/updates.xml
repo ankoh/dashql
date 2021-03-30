@@ -1,24 +1,24 @@
 <test name="parameter_update_load">
     <step>
         <text>
-            DECLARE PARAMETER country TYPE TEXT (
+            INPUT country TYPE TEXT (
                 default_value = 'DE'
             );
             LOAD weather_csv FROM http (
                 url = format('https://cdn.dashql.com/demo/weather/{}', global.country)
             );
         </text>
-        <parameters>
-            <parameter statement="0" type="VARCHAR" value="DE" />
-        </parameters>
+        <inputs>
+            <input statement="0" type="VARCHAR" value="DE" />
+        </inputs>
         <evaluations>
-            <eval type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" loc="166..230" text="format('ht..l.country)" />
+            <eval type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" loc="154..218" text="format('ht..l.country)" />
         </evaluations>
         <visualizations />
         <graph next_object_id="2">
             <setup />
             <program>
-                <action origin="0" type="PARAMETER" status="COMPLETED" object_id="0">
+                <action origin="0" type="INPUT" status="COMPLETED" object_id="0">
                     <target name_qualified="global.country" name_short="country" />
                     <required_for>
                         <ref action="1" />
@@ -35,18 +35,18 @@
     </step>
     <step>
         <text>
-            DECLARE PARAMETER country TYPE TEXT (
+            INPUT country TYPE TEXT (
                 default_value = 'DE'
             );
             LOAD weather_csv FROM http (
                 url = format('https://cdn.dashql.com/demo/weather/{}', global.country)
             );
         </text>
-        <parameters>
-            <parameter statement="0" type="VARCHAR" value="US" />
-        </parameters>
+        <inputs>
+            <input statement="0" type="VARCHAR" value="US" />
+        </inputs>
         <evaluations>
-            <eval type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/US'" loc="166..230" text="format('ht..l.country)" />
+            <eval type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/US'" loc="154..218" text="format('ht..l.country)" />
         </evaluations>
         <visualizations />
         <graph next_object_id="4">
@@ -56,7 +56,7 @@
                 </action>
             </setup>
             <program>
-                <action origin="0" type="PARAMETER" status="NONE" object_id="2">
+                <action origin="0" type="INPUT" status="NONE" object_id="2">
                     <target name_qualified="global.country" name_short="country" />
                     <required_for>
                         <ref action="1" />
@@ -81,7 +81,7 @@
 
             VIZ foo USING TABLE;
         </text>
-        <parameters />
+        <inputs />
         <evaluations />
         <visualizations>
             <visualization>
@@ -122,7 +122,7 @@
                 pos = (r = 5, c = 1, w = 8, h = 4)
             );
         </text>
-        <parameters />
+        <inputs />
         <evaluations />
         <visualizations>
             <visualization>
@@ -167,7 +167,7 @@
 
             VIZ foo USING TABLE;
         </text>
-        <parameters />
+        <inputs />
         <evaluations />
         <visualizations>
             <visualization>
@@ -208,7 +208,7 @@
                 pos = (r = 5, c = 1, w = 8, h = 4)
             );
         </text>
-        <parameters />
+        <inputs />
         <evaluations />
         <visualizations>
             <visualization>

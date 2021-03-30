@@ -8,8 +8,8 @@ import * as duckdb from '@dashql/duckdb';
 export class ProgramInstance {
     /// The program
     public readonly program: Program;
-    /// The parameters
-    public readonly parameters: Immutable.List<any>;
+    /// The input values
+    public readonly inputValues: Immutable.List<any>;
     /// The instantiated program
     public readonly annotations: proto.analyzer.ProgramAnnotations;
     /// The evaluated nodes
@@ -20,9 +20,13 @@ export class ProgramInstance {
     public readonly cards: Map<number, proto.analyzer.Card>;
 
     /// Constructor
-    public constructor(program: Program, params: Immutable.List<any>, annotations: proto.analyzer.ProgramAnnotations) {
+    public constructor(
+        program: Program,
+        inputValues: Immutable.List<any>,
+        annotations: proto.analyzer.ProgramAnnotations,
+    ) {
         this.program = program;
-        this.parameters = params;
+        this.inputValues = inputValues;
         this.annotations = annotations;
         this.evaluatedNodes = new Map();
         this.createdAt = new Date();

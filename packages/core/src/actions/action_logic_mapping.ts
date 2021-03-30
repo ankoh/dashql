@@ -59,7 +59,7 @@ export function resolveProgramActionLogic(
             return new LoadFileActionLogic(id, a, s);
         case ProgramActionType.LOAD_HTTP:
             return new LoadHTTPActionLogic(id, a, s);
-        case ProgramActionType.PARAMETER:
+        case ProgramActionType.INPUT:
             return new ParameterActionLogic(id, a, s);
         case ProgramActionType.CREATE_TABLE:
             return new CreateTableActionLogic(id, a, s);

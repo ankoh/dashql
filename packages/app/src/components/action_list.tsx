@@ -43,8 +43,8 @@ function getProgramActionTypeLabel(type: proto.action.ProgramActionType) {
             return 'LOAD FILE';
         case proto.action.ProgramActionType.LOAD_HTTP:
             return 'LOAD HTTP';
-        case proto.action.ProgramActionType.PARAMETER:
-            return 'DEFINE PARAMETER';
+        case proto.action.ProgramActionType.INPUT:
+            return 'DEFINE INPUT';
         case proto.action.ProgramActionType.CREATE_TABLE:
             return 'CREATE TABLE';
         case proto.action.ProgramActionType.MODIFY_TABLE:

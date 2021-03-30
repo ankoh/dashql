@@ -17,8 +17,8 @@ export class ScriptPipeline {
     _programText: string;
     /// The previous program
     _program: model.Program | null;
-    /// The previous program parameters
-    _programParameters: Immutable.List<any>;
+    /// The program input
+    _programInputValues: Immutable.List<any>;
     /// The previous program instance
     _programInstance: model.ProgramInstance | null;
 
@@ -37,7 +37,7 @@ export class ScriptPipeline {
         const state = store.getState().core;
         this._programText = state.script.text;
         this._program = state.program;
-        this._programParameters = state.programParameters;
+        this._programInputValues = state.programInputValues;
         this._programInstance = state.programInstance;
         this._debounceTimeout = null;
         this._programParsedAt = 0;
@@ -90,7 +90,7 @@ export class ScriptPipeline {
         }
 
         // Instantiate the new program
-        const instance = this._platform.analyzer.instantiateProgram(this._programParameters);
+        const instance = this._platform.analyzer.instantiateProgram(this._programInputValues);
         // Instantiation failed?
         // XXX log error
         if (!instance) return;
@@ -126,16 +126,16 @@ export class ScriptPipeline {
         }
 
         // Program or parameters changed?
-        if (next.program !== this._program || next.programParameters !== this._programParameters) {
+        if (next.program !== this._program || next.programInputValues !== this._programInputValues) {
             this._program = next.program;
-            this._programParameters = next.programParameters;
+            this._programInputValues = next.programInputValues;
             if (!this._program) return;
 
             // Instantiate the new program if necessary
             if (
                 next.programInstance &&
                 next.programInstance.program == this._program &&
-                next.programInstance.parameters == this._programParameters
+                next.programInstance.inputValues == this._programInputValues
             ) {
                 // Instance can be replaced directly (might be the result of a rewrite)
                 this._programInstance = next.programInstance;

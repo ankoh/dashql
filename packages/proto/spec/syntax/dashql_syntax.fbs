@@ -2,7 +2,7 @@
 
 namespace dashql.proto.syntax;
 
-enum ParameterType: uint8 {
+enum InputType: uint8 {
     NONE = 0,
     INTEGER = 1,
     FLOAT = 2,

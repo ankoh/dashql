@@ -118,13 +118,13 @@ void generate_analyzer_tests(const std::filesystem::path& source_dir) {
 
             Analyzer analyzer;
 
-            for (auto inst: test.children("step")) {
+            for (auto inst : test.children("step")) {
                 // Unpack previous program
                 auto inst_text = inst.child("text").text().get();
                 auto inst_params = inst.child("parameters");
-                std::vector<ParameterValue> inst_params_vec;
+                std::vector<InputValue> inst_params_vec;
                 for (auto& param : inst_params.children()) {
-                    inst_params_vec.push_back(AnalyzerTest::GetParameter(param));
+                    inst_params_vec.push_back(AnalyzerTest::GetInputValue(param));
                 }
 
                 // Parse, instantiate and plan the previous program

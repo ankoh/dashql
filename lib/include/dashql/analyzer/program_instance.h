@@ -11,7 +11,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include "dashql/analyzer/parameter_value.h"
+#include "dashql/analyzer/input_value.h"
 #include "dashql/analyzer/program_linter.h"
 #include "dashql/analyzer/stmt/input_stmt.h"
 #include "dashql/analyzer/stmt/viz_stmt.h"
@@ -58,7 +58,7 @@ class ProgramInstance {
     /// The program
     std::shared_ptr<sx::ProgramT> program_;
     /// The parameter values
-    std::vector<ParameterValue> parameter_values_;
+    std::vector<InputValue> input_values_;
     /// The evaluated nodes (if any)
     /// Note that we deliberately store the root node id within the value as well since
     /// UNION FIND might just pick a different representative.
@@ -74,12 +74,11 @@ class ProgramInstance {
 
    public:
     /// Constructor
-    ProgramInstance(std::string_view text, std::shared_ptr<sx::ProgramT> program,
-                    std::vector<ParameterValue> params = {})
+    ProgramInstance(std::string_view text, std::shared_ptr<sx::ProgramT> program, std::vector<InputValue> params = {})
         : ProgramInstance(std::make_shared<std::string>(text), move(program), move(params)) {}
     /// Constructor
     ProgramInstance(std::shared_ptr<std::string> text, std::shared_ptr<sx::ProgramT> program,
-                    std::vector<ParameterValue> params = {});
+                    std::vector<InputValue> params = {});
 
     /// Get the program text
     auto& program_text() const { return *program_text_; }
@@ -88,7 +87,7 @@ class ProgramInstance {
     /// Get the program
     auto& program() { return *program_; }
     /// Get the parameter values
-    auto& parameter_values() const { return parameter_values_; }
+    auto& input_values() const { return input_values_; }
     /// Get the evaluate nodes
     auto& evaluated_nodes() const { return evaluated_nodes_; }
     /// Get the viz statements
@@ -98,8 +97,8 @@ class ProgramInstance {
     void AddNodeError(NodeError&& error);
     /// Add a linter message
     void Add(LinterMessage msg);
-    /// Find the parameter value
-    const ParameterValue* FindParameterValue(size_t stmt_id) const;
+    /// Find the input value value
+    const InputValue* FindInputValue(size_t stmt_id) const;
     /// Find an evaluated node
     const NodeValue* FindEvaluatedNode(size_t node_id) { return evaluated_nodes_.Find(node_id); }
     /// Get the text at a location
