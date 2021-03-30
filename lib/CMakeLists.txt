@@ -451,7 +451,6 @@ if (EMSCRIPTEN)
             _dashql_clear_response, \
             _dashql_extract_import_csv, \
             _duckdb_web_analyze_query, \
-            _duckdb_web_blob_stream_consume, \
             _duckdb_web_connect, \
             _duckdb_web_disconnect, \
             _duckdb_web_fetch_query_results, \

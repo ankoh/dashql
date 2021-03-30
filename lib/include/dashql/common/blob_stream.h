@@ -90,57 +90,27 @@ class CachingBlobStreamBuffer : public BlobStreamBufferBase {
     int_type underflow() override;
 };
 
+/// FileSystemStreamBuffer is a wrapper for istreams over the DuckDB FileSystem.
+/// Supplied by the file system and a handle, this class can be wrapped in an istream and be used opaquely.
 class FileSystemStreamBuffer : public std::streambuf {
    public:
-    FileSystemStreamBuffer(duckdb::FileSystem& file_system, duckdb::FileHandle& file_handle)
-        : file_system_(file_system),
-          file_handle_(file_handle),
-          pos_(0),
-          file_size_(file_system_.GetFileSize(file_handle_)) {}
+    FileSystemStreamBuffer(duckdb::FileSystem& file_system, duckdb::FileHandle& file_handle);
 
    protected:
-    pos_type seekoff(off_type off, std::ios_base::seekdir dir, std::ios_base::openmode) override {
-        if (dir == std::ios_base::beg) {
-            pos_ = off;
-        } else if (dir == std::ios_base::end) {
-            pos_ = file_size_ - off;
-        } else {
-            pos_ += off;
-        }
+    std::streamsize showmanyc() override;
 
-        return pos_;
-    }
+    pos_type seekoff(off_type off, std::ios_base::seekdir dir, std::ios_base::openmode) override;
 
-    pos_type seekpos(pos_type pos, std::ios_base::openmode) override {
-        pos_ = pos;
-        return pos_;
-    }
+    pos_type seekpos(pos_type pos, std::ios_base::openmode) override;
 
-    std::streamsize showmanyc() override {  //
-        return file_size_ - pos_;
-    }
-
-    int_type underflow() override {
-        if (pos_ >= file_size_) return EOF;
-
-        int_type out;
-        file_system_.Read(file_handle_, &out, 1, pos_);
-        return out;
-    }
-
-    std::streamsize xsgetn(char_type* s, std::streamsize count) override {
-        auto read = std::min(count, showmanyc());
-        if (read == EOF) return EOF;
-        file_system_.Read(file_handle_, s, read, pos_);
-        pos_ += read;
-        return read;
-    }
+    int_type underflow() override;
 
    private:
     duckdb::FileSystem& file_system_;
     duckdb::FileHandle& file_handle_;
-    pos_type pos_;
     int64_t file_size_;
+    pos_type file_pos_;
+    PodVector<char> buffer_;
 };
 
 }  // namespace dashql
