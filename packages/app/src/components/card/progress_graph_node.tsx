@@ -3,7 +3,7 @@ import { Handle as ReactFlowHandle, Node as NodeData, Position } from 'react-flo
 import { ActionStatusIndicator } from '../status';
 import { proto } from '@dashql/core';
 
-import styles from './viz_progress.module.css';
+import styles from './progress_graph.module.css';
 
 export interface StatementNodeData extends NodeData {
     statementId: number;

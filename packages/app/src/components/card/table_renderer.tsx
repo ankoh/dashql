@@ -11,8 +11,8 @@ import ScanProvider = core.access.ScanProvider;
 
 interface Props {
     appContext: IAppContext;
-    dbObjects: Immutable.Map<string, core.model.DatabaseTableInfo>;
-    vizInfo: core.model.VizInfo;
+    tables: Immutable.Map<string, core.model.DatabaseTable>;
+    card: core.model.Card;
     editable?: boolean;
 }
 
@@ -25,8 +25,8 @@ export class TableRenderer extends React.Component<Props> {
     public render() {
         const logger = this.props.appContext.platform!.logger;
         const db = this.props.appContext.platform!.database;
-        const data = this.props.vizInfo.dataSource!;
-        const table = this.props.dbObjects.get(data.targetQualified);
+        const data = this.props.card.dataSource!;
+        const table = this.props.tables.get(data.targetQualified);
         if (!table) {
             return <div />;
         }
@@ -38,14 +38,14 @@ export class TableRenderer extends React.Component<Props> {
                 targetName={targetShort}
                 request={new core.access.ScanRequest().withRange(0, 1024)}
             >
-                {(data, requestData) => <DataGrid tableInfo={table} data={data} requestData={requestData} />}
+                {(data, requestData) => <DataGrid table={table} data={data} requestData={requestData} />}
             </ScanProvider>
         );
     }
 }
 
 const mapStateToProps = (state: model.AppState) => ({
-    dbObjects: state.core.planDatabaseTables,
+    tables: state.core.databaseTables,
 });
 
 const mapDispatchToProps = (_dispatch: model.Dispatch) => ({});

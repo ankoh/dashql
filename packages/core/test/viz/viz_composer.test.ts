@@ -4,7 +4,7 @@ import { analyzer, model, proto, viz } from '../../src';
 import { Analyzer } from '../../src/index_browser';
 
 interface VizComposerTestExpectation {
-    cardRenderer: model.CardRenderer;
+    cardRenderer: model.CardRendererType;
     dataSource: model.CardDataSource;
     vegaLite: any;
 }
@@ -56,7 +56,7 @@ VIZ foo USING VEGA (
             ]),
         },
         expected: {
-            cardRenderer: model.CardRenderer.BUILTIN_VEGA,
+            cardRenderer: model.CardRendererType.BUILTIN_VEGA,
             dataSource: {
                 dataResolver: model.CardDataResolver.M5,
                 targetQualified: 'global.foo',
@@ -121,7 +121,7 @@ VIZ foo USING LINE (
             ]),
         },
         expected: {
-            cardRenderer: model.CardRenderer.BUILTIN_VEGA,
+            cardRenderer: model.CardRendererType.BUILTIN_VEGA,
             dataSource: {
                 dataResolver: model.CardDataResolver.M5,
                 targetQualified: 'global.foo',
