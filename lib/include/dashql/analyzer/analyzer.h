@@ -57,8 +57,8 @@ class Analyzer {
     void PropagateConstants(ProgramInstance& instance);
     /// Analyze the viz statements
     void AnalyzeVizStatements(ProgramInstance& instance);
-    /// Compute the viz positions
-    void ComputeVizPositions(ProgramInstance& instance);
+    /// Compute the card positions
+    void ComputeCardPositions(ProgramInstance& instance);
 
    public:
     /// Constructor
@@ -74,7 +74,8 @@ class Analyzer {
     auto planned_graph() const { return planned_graph_.get(); }
 
     /// Update the action status
-    void UpdateActionStatus(proto::action::ActionClass action_class, size_t action_id, proto::action::ActionStatusCode status);
+    void UpdateActionStatus(proto::action::ActionClass action_class, size_t action_id,
+                            proto::action::ActionStatusCode status);
 
     /// Parse a program
     Signal ParseProgram(std::string_view text);

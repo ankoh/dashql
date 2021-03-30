@@ -36,7 +36,7 @@ table LinterMessage {
     message: string;
 }
 
-struct VizPosition {
+struct CardPosition {
     row: uint32;
     column: uint32;
     width: uint32;
@@ -49,19 +49,27 @@ table VizComponent {
     options: string;
 }
 
-table VizSpec {
+enum CardType: uint8 {
+    BUILTIN_INPUT,
+    BUILTIN_VIZ,
+}
+
+table Card {
+    card_type: CardType;
     statement_id: uint32;
     title: string;
-    position: VizPosition;
-    components: [VizComponent];
+    position: CardPosition;
+    input_type: duckdb.web.proto.SQLType;
+    input_options: string;
+    viz_components: [VizComponent];
 }
 
 table ProgramAnnotations {
     parameters: [ParameterValue];
     evaluated_nodes: [NodeValue];
-    viz_specs: [VizSpec];
     node_errors: [NodeError];
     linter_messages: [LinterMessage];
+    cards: [Card];
 }
 
 table ProgramReplacement {

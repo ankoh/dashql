@@ -13,8 +13,9 @@
 
 #include "dashql/analyzer/parameter_value.h"
 #include "dashql/analyzer/program_linter.h"
+#include "dashql/analyzer/stmt/input_stmt.h"
+#include "dashql/analyzer/stmt/viz_stmt.h"
 #include "dashql/analyzer/value.h"
-#include "dashql/analyzer/viz_statement.h"
 #include "dashql/common/enum.h"
 #include "dashql/common/expected.h"
 #include "dashql/common/span.h"
@@ -67,7 +68,7 @@ class ProgramInstance {
     /// The linter messages
     std::vector<LinterMessage> linter_messages_;
     /// The viz statements
-    std::vector<std::unique_ptr<viz::VizStatement>> viz_statements_;
+    std::vector<std::unique_ptr<VizStatement>> viz_statements_;
 
    public:
     /// Constructor
@@ -108,7 +109,7 @@ class ProgramInstance {
     Value ReadNodeValue(size_t node_id);
     /// Read a node value if it is valid
     inline Value ReadNodeValueOrNull(size_t node_id) {
-        if (node_id == viz::INVALID_NODE_ID) return Value{};
+        if (node_id == INVALID_NODE_ID) return Value{};
         return ReadNodeValue(node_id);
     }
 
