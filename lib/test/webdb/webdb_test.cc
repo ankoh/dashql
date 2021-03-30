@@ -48,7 +48,7 @@ TEST(WebDB, LoadParquet) {
                  "29555\tFeuerbach\t2\t\n\n");
 }
 
-TEST(WebDB, LoadCSV) {
+TEST(WebDB, LoadCSVIStream) {
     using LT = duckdb::LogicalType;
 
     auto db = make_shared<duckdb::DuckDB>();
@@ -69,7 +69,7 @@ TEST(WebDB, LoadCSV) {
                      "Chunk - [3 Columns]\n"
                      "- FLAT INTEGER: 3 = [ 1, 4, 7]\n"
                      "- FLAT INTEGER: 3 = [ 2, 5, 8]\n"
-                     "- FLAT INTEGER: 3 = [ 3, 4, 9]\n");
+                     "- FLAT INTEGER: 3 = [ 3, 6, 9]\n");
     } catch (std::exception const& e) {
         FAIL() << e.what();
     }
