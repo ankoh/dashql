@@ -56,7 +56,7 @@ static const std::unordered_map<sx::StatementType, StatementTranslation>& Statem
 #define X(STMT_TYPE, PROGRAM_ACTION, RENDER_SCRIPT) \
     {sx::StatementType::STMT_TYPE, {proto::action::ProgramActionType::PROGRAM_ACTION, RENDER_SCRIPT}},
     X(NONE, NONE, false)
-    X(PARAMETER, PARAMETER, false)
+    X(INPUT, INPUT, false)
     X(LOAD_FILE, LOAD_FILE, false)
     X(LOAD_HTTP, LOAD_HTTP, false)
     X(EXTRACT_JSON, EXTRACT_JSON, false)
@@ -147,7 +147,7 @@ static std::unordered_map<ProgramActionType, ProgramActionInvalidation> ACTION_T
     {ProgramActionType::ACTION,                                         \
      {SetupActionType::IMPORT_ACTION, SetupActionType::DROP_ACTION, ProgramActionType::UPDATE_ACTION, PROPAGATE}},
     X(NONE, NONE, NONE, NONE, false)
-    X(PARAMETER, NONE, NONE, NONE, false)
+    X(INPUT, NONE, NONE, NONE, false)
     X(LOAD_FILE, IMPORT_BLOB, DROP_BLOB, NONE, false)
     X(LOAD_HTTP, IMPORT_BLOB, DROP_BLOB, NONE, false)
     X(EXTRACT_JSON, IMPORT_TABLE, DROP_TABLE, NONE, false)
@@ -266,12 +266,12 @@ Signal ActionPlanner::IdentifyApplicableActions() {
                     break;
                 }
 
-                // Parameter action?
+                // Input action?
                 // Then we also have to check whether the parameter value stayed the same.
                 // A changed parameter will propagate via the applicability.
-                if (a.action_type == proto::action::ProgramActionType::PARAMETER) {
-                    auto* prev_param = prev_program_->FindParameterValue(*diff_op.source());
-                    auto* next_param = next_program_.FindParameterValue(*diff_op.target());
+                if (a.action_type == proto::action::ProgramActionType::INPUT) {
+                    auto* prev_param = prev_program_->FindInputValue(*diff_op.source());
+                    auto* next_param = next_program_.FindInputValue(*diff_op.target());
                     if (*prev_param != *next_param) {
                         invalidate(prev_action_id);
                         break;

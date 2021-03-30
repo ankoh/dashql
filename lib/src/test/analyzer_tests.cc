@@ -41,17 +41,17 @@ void AnalyzerTest::EncodePlan(pugi::xml_node root, const ProgramInstance& instan
     auto setup_action_type_tt = proto::action::SetupActionTypeTypeTable();
     auto program_action_type_tt = proto::action::ProgramActionTypeTypeTable();
     auto action_status_tt = proto::action::ActionStatusCodeTypeTable();
-    auto parameter_type_tt = duckdb::web::proto::SQLTypeIDTypeTable();
+    auto input_type_tt = duckdb::web::proto::SQLTypeIDTypeTable();
     auto viz_component_type_tt = proto::syntax::VizComponentTypeTypeTable();
 
     std::string program_text{instance.program_text()};
     root.append_child("text").text().set(program_text.c_str());
 
-    auto params = root.append_child("parameters");
-    for (auto& param : instance.parameter_values()) {
+    auto params = root.append_child("inputs");
+    for (auto& param : instance.input_values()) {
         auto type_str = param.value.PrintType();
         auto value_str = param.value.PrintValue();
-        auto p = params.append_child("parameter");
+        auto p = params.append_child("input");
         p.append_attribute("statement").set_value(param.statement_id);
         p.append_attribute("type").set_value(type_str.c_str());
         p.append_attribute("value").set_value(value_str.c_str());
@@ -146,19 +146,19 @@ proto::action::ActionStatusCode AnalyzerTest::GetActionStatus(std::string_view t
     return proto::action::ActionStatusCode::NONE;
 }
 
-// Read a parameter type
-proto::syntax::ParameterType AnalyzerTest::GetParameterType(std::string_view type) {
-    auto tt = proto::syntax::ParameterTypeTypeTable();
+// Read a input type
+proto::syntax::InputType AnalyzerTest::GetInputType(std::string_view type) {
+    auto tt = proto::syntax::InputTypeTypeTable();
     auto& names = tt->names;
     auto& num_elems = tt->num_elems;
     for (unsigned i = 0; i < num_elems; ++i) {
-        if (type == std::string_view{names[i]}) return static_cast<proto::syntax::ParameterType>(i);
+        if (type == std::string_view{names[i]}) return static_cast<proto::syntax::InputType>(i);
     }
-    return proto::syntax::ParameterType::NONE;
+    return proto::syntax::InputType::NONE;
 }
 
-// Read a parameter
-ParameterValue AnalyzerTest::GetParameter(const pugi::xml_node& node) {
+// Read a input
+InputValue AnalyzerTest::GetInputValue(const pugi::xml_node& node) {
     auto stmt = node.attribute("statement").as_int();
     auto value = node.attribute("value").as_string();
     auto type = node.attribute("type").as_string();
@@ -209,10 +209,10 @@ void AnalyzerTest::LoadTests(std::filesystem::path& source_dir) {
                 auto& s = t.steps.back();
                 // Read program text
                 s.program_text = step.child("text").last_child().value();
-                // Read parameters
-                auto params = step.child("parameters");
-                for (auto& param : params.children()) {
-                    s.parameters.push_back(AnalyzerTest::GetParameter(param));
+                // Read input
+                auto inputs = step.child("inputs");
+                for (auto& input : inputs.children()) {
+                    s.input_values.push_back(AnalyzerTest::GetInputValue(input));
                 }
                 // Read full expected analyzer output
                 pugi::xml_document expected;

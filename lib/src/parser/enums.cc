@@ -1,5 +1,7 @@
 #include "dashql/parser/grammar/enums.h"
 
+#include "dashql/proto_generated.h"
+
 namespace dashql {
 namespace parser {
 
@@ -11,8 +13,8 @@ const char* getEnumText(const sx::Node& target) {
     switch (nt) {
         case sx::NodeType::ENUM_DASHQL_VIZ_COMPONENT_TYPE:
             return sx::VizComponentTypeTypeTable()->names[v];
-        case sx::NodeType::ENUM_DASHQL_PARAMETER_TYPE:
-            return sx::ParameterTypeTypeTable()->names[v];
+        case sx::NodeType::ENUM_DASHQL_INPUT_TYPE:
+            return sx::InputTypeTypeTable()->names[v];
         case sx::NodeType::ENUM_DASHQL_LOAD_METHOD_TYPE:
             return sx::LoadMethodTypeTypeTable()->names[v];
         case sx::NodeType::ENUM_DASHQL_EXTRACT_METHOD_TYPE:

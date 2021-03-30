@@ -1,0 +1,2 @@
+%type <sx::Node> dashql_input;
+%type <sx::Node> dashql_input_type;

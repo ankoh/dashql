@@ -1,7 +1,7 @@
 // Copyright (c) 2020 The DashQL Authors
 
-#ifndef INCLUDE_DASHQL_ANALYZER_PARAMETER_VALUE_H_
-#define INCLUDE_DASHQL_ANALYZER_PARAMETER_VALUE_H_
+#ifndef INCLUDE_DASHQL_ANALYZER_INPUT_VALUE_H_
+#define INCLUDE_DASHQL_ANALYZER_INPUT_VALUE_H_
 
 #include <iostream>
 #include <optional>
@@ -20,33 +20,33 @@
 namespace dashql {
 
 /// An parameter value
-struct ParameterValue {
+struct InputValue {
     /// The statement id
     size_t statement_id;
     /// The value
     Value value;
 
     /// Constructor
-    ParameterValue(size_t statement_id = 0, Value value = {});
+    InputValue(size_t statement_id = 0, Value value = {});
     /// Copy constructor
-    ParameterValue(const ParameterValue& other);
+    InputValue(const InputValue& other);
     /// Move constructor
-    ParameterValue(ParameterValue&& other);
+    InputValue(InputValue&& other);
 
     /// Copy assignment
-    ParameterValue& operator=(const ParameterValue& other);
+    InputValue& operator=(const InputValue& other);
     /// Move assignment
-    ParameterValue& operator=(ParameterValue&& other);
+    InputValue& operator=(InputValue&& other);
 
     /// Compare two parameter values
-    bool operator==(const ParameterValue& other) const;
+    bool operator==(const InputValue& other) const;
     /// Compare two parameter values
-    bool operator!=(const ParameterValue& other) const;
+    bool operator!=(const InputValue& other) const;
 
     /// Pack the parameter value
-    flatbuffers::Offset<proto::analyzer::ParameterValue> Pack(flatbuffers::FlatBufferBuilder& builder) const;
+    flatbuffers::Offset<proto::analyzer::InputValue> Pack(flatbuffers::FlatBufferBuilder& builder) const;
     /// Read from a parameter value
-    static ParameterValue UnPack(const proto::analyzer::ParameterValue&);
+    static InputValue UnPack(const proto::analyzer::InputValue&);
 };
 
 }  // namespace dashql

@@ -2,7 +2,7 @@
 
 import { DashQLAnalyzerModule } from './analyzer_wasm_module';
 import { EditOperationVariant, packProgramEdit } from '../edit';
-import { Plan, Program, ProgramInstance, ParameterValue } from '../model';
+import { Plan, Program, ProgramInstance, InputValue } from '../model';
 import * as Immutable from 'immutable';
 import * as proto from '@dashql/proto';
 
@@ -123,16 +123,16 @@ export abstract class AnalyzerBindings {
     }
 
     /// Instantiate program
-    public instantiateProgram(params: Immutable.List<ParameterValue> = Immutable.List()): ProgramInstance | null {
+    public instantiateProgram(params: Immutable.List<InputValue> = Immutable.List()): ProgramInstance | null {
         if (!this._instance || !this._program) return null;
 
         const builder = new proto.fb.Builder();
         const paramOfs: proto.fb.Offset[] = params
             .map(param => {
-                proto.analyzer.ParameterValue.start(builder);
-                proto.analyzer.ParameterValue.addStatementId(builder, param.statement);
+                proto.analyzer.InputValue.start(builder);
+                proto.analyzer.InputValue.addStatementId(builder, param.statement);
                 // XXX add value
-                return proto.analyzer.ParameterValue.end(builder);
+                return proto.analyzer.InputValue.end(builder);
             })
             .toArray();
         const paramVectorOfs = proto.analyzer.ProgramInstantiation.createParametersVector(builder, paramOfs);
@@ -173,7 +173,7 @@ export abstract class AnalyzerBindings {
     /// Edit a program
     public editProgram(edits: EditOperationVariant[]): ProgramInstance | null {
         if (!this._instance || !this._programInstance) return null;
-        const params = this._programInstance.parameters;
+        const input = this._programInstance.inputValues;
 
         // Pack the edits
         const builder = new proto.fb.Builder();
@@ -194,7 +194,7 @@ export abstract class AnalyzerBindings {
         const text = replacement.programText();
         const textUTF8 = replacement.programText(proto.fb.Encoding.UTF8_BYTES);
         this._program = new Program(text!, textUTF8 as Uint8Array, replacement.program()!);
-        this._programInstance = new ProgramInstance(this._program, params, replacement.annotations()!);
+        this._programInstance = new ProgramInstance(this._program, input, replacement.annotations()!);
 
         return this._programInstance;
     }

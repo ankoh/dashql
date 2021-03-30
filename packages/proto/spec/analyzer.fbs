@@ -12,7 +12,7 @@ table NodeValue {
     value: duckdb.web.proto.SQLValue;
 }
 
-table ParameterValue {
+table InputValue {
     statement_id: uint32;
     value: duckdb.web.proto.SQLValue;
 }
@@ -28,7 +28,7 @@ table NodeError {
 }
 
 table ProgramInstantiation {
-    parameters: [ParameterValue];
+    parameters: [InputValue];
 }
 
 table LinterMessage {
@@ -65,7 +65,7 @@ table Card {
 }
 
 table ProgramAnnotations {
-    parameters: [ParameterValue];
+    parameters: [InputValue];
     evaluated_nodes: [NodeValue];
     node_errors: [NodeError];
     linter_messages: [LinterMessage];

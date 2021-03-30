@@ -15,7 +15,7 @@ opt_dashql_statement:
   | %empty                         { $$ = Null(); }
 
 dashql_statement:
-    dashql_parameter_declaration   { $$ = $1; }
+    dashql_input                  { $$ = $1; }
   | dashql_load_statement          { $$ = $1; }
   | dashql_extract_statement       { $$ = $1; }
   | dashql_query_statement         { $$ = $1; }

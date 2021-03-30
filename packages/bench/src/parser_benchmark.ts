@@ -10,7 +10,7 @@ function main(analyzer: core.analyzer.AnalyzerBindings) {
             script = `
 -- Test script for development.
 
-DECLARE PARAMETER country TYPE TEXT (
+INPUT country TYPE TEXT (
     default_value = 'DE'
 );
 
