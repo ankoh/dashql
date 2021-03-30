@@ -7,7 +7,7 @@
     "dependencies": {
         "@dashql/core": "^0.0.2",
         "@dashql/proto": "^0.0.5",
-        "@dashql/webdb": "^0.0.20",
+        "@dashql/duckdb": "^0.0.22",
         "benny": "^3.6.15",
         "web-worker": "^1.0.0"
     },

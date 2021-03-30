@@ -8,11 +8,11 @@ include "syntax/sql_syntax.fbs";
 include "syntax/dashql_syntax.fbs";
 include "syntax/program.fbs";
 
-include "webdb/error.fbs";
-include "webdb/import.fbs";
-include "webdb/query_plan.fbs";
-include "webdb/query_result.fbs";
-include "webdb/sql_type.fbs";
-include "webdb/sql_value.fbs";
-include "webdb/vector.fbs";
+include "duckdb/error.fbs";
+include "duckdb/import.fbs";
+include "duckdb/query_plan.fbs";
+include "duckdb/query_result.fbs";
+include "duckdb/sql_type.fbs";
+include "duckdb/sql_value.fbs";
+include "duckdb/vector.fbs";
 
