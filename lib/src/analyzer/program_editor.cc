@@ -4,9 +4,8 @@
 #include <stack>
 #include <unordered_map>
 
+#include "dashql/analyzer/stmt/viz_stmt.h"
 #include "dashql/analyzer/syntax_matcher.h"
-#include "dashql/analyzer/viz_statement.h"
-#include "dashql/analyzer/viz_statement.h"
 #include "dashql/common/span.h"
 #include "dashql/common/substring_buffer.h"
 #include "dashql/proto_generated.h"
@@ -21,18 +20,20 @@ struct VizEditOp {
     /// Destructor
     virtual ~VizEditOp() = default;
     /// Edit a component
-    virtual void EditComponent(size_t idx, viz::VizComponent& component) = 0;
+    virtual void EditComponent(size_t idx, VizComponent& component) = 0;
 };
 
 struct VizChangePositionOp : public VizEditOp {
     /// The position
     const proto::edit::VizChangePosition& edit;
     /// Constructor
-    VizChangePositionOp(const proto::edit::VizChangePosition& edit) : edit(edit) { key = sx::AttributeKey::DASHQL_OPTION_POSITION; }
+    VizChangePositionOp(const proto::edit::VizChangePosition& edit) : edit(edit) {
+        key = sx::AttributeKey::DASHQL_OPTION_POSITION;
+    }
     /// Edit a component
-    void EditComponent(size_t idx, viz::VizComponent& component) {
+    void EditComponent(size_t idx, VizComponent& component) {
         if (idx == 0) {
-            proto::analyzer::VizPosition pos(edit.row(), edit.column(), edit.width(), edit.height());
+            proto::analyzer::CardPosition pos(edit.row(), edit.column(), edit.width(), edit.height());
             component.SetPosition(pos);
             component.statement().specified_position() = &component.position().value();
         } else {
@@ -46,7 +47,7 @@ std::string ProgramEditor::RewriteVizStatement(size_t stmt_id,
                                                nonstd::span<const proto::edit::EditOperation*> edits) const {
     auto& stmt = *instance_.program().statements[stmt_id];
     auto& root = instance_.program().nodes[stmt.root_node];
-    auto viz = viz::VizStatement::ReadFrom(instance_, stmt_id);
+    auto viz = VizStatement::ReadFrom(instance_, stmt_id);
     if (!viz) {
         return std::string{instance_.TextAt(root.location())};
     }
@@ -69,7 +70,7 @@ std::string ProgramEditor::RewriteVizStatement(size_t stmt_id,
     // Apply edit operations to all components
     auto& components = viz->components();
     for (auto i = 0; i < components.size(); ++i) {
-        for (auto& op: ops) {
+        for (auto& op : ops) {
             op->EditComponent(i, *components[i]);
         }
     }
