@@ -93,49 +93,54 @@ class CachingBlobStreamBuffer : public BlobStreamBufferBase {
 class FileSystemStreamBuffer : public std::streambuf {
    public:
     FileSystemStreamBuffer(duckdb::FileSystem& file_system, duckdb::FileHandle& file_handle)
-        : file_system(file_system), file_handle(file_handle), pos(0) {}
+        : file_system_(file_system),
+          file_handle_(file_handle),
+          pos_(0),
+          file_size_(file_system_.GetFileSize(file_handle_)) {}
 
    protected:
-    FileSystemStreamBuffer* setbuf(char_type*, std::streamsize) override { return this; }
-
-    pos_type seekoff(off_type off, std::ios_base::seekdir dir, std::ios_base::openmode) override {  //
+    pos_type seekoff(off_type off, std::ios_base::seekdir dir, std::ios_base::openmode) override {
         if (dir == std::ios_base::beg) {
-            pos = off;
+            pos_ = off;
         } else if (dir == std::ios_base::end) {
-            pos = file_system.GetFileSize(file_handle) - off;
+            pos_ = file_size_ - off;
         } else {
-            pos += off;
+            pos_ += off;
         }
 
-        file_system.Se(file_handle, pos);
-
-        return pos;
+        return pos_;
     }
 
-    pos_type seekpos(pos_type pos, std::ios_base::openmode dir) override {  //
-        return {};
+    pos_type seekpos(pos_type pos, std::ios_base::openmode) override {
+        pos_ = pos;
+        return pos_;
     }
 
     std::streamsize showmanyc() override {  //
-        return {};
+        return file_size_ - pos_;
     }
 
-    int_type underflow() override {  //
-        return {};
+    int_type underflow() override {
+        if (pos_ >= file_size_) return EOF;
+
+        int_type out;
+        file_system_.Read(file_handle_, &out, 1, pos_);
+        return out;
     }
 
-    int_type uflow() override {  //
-        return {};
-    }
-
-    std::streamsize xsgetn(char_type* s, std::streamsize count) override {  //
-        return {};
+    std::streamsize xsgetn(char_type* s, std::streamsize count) override {
+        auto read = std::min(count, showmanyc());
+        if (read == EOF) return EOF;
+        file_system_.Read(file_handle_, s, read, pos_);
+        pos_ += read;
+        return read;
     }
 
    private:
-    duckdb::FileSystem& file_system;
-    duckdb::FileHandle& file_handle;
-    pos_type pos;
+    duckdb::FileSystem& file_system_;
+    duckdb::FileHandle& file_handle_;
+    pos_type pos_;
+    int64_t file_size_;
 };
 
 }  // namespace dashql
