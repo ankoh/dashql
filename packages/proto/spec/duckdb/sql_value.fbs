@@ -1,6 +1,6 @@
 // Copyright (c) 2020 The DashQL Authors
 
-include "webdb/sql_type.fbs";
+include "duckdb/sql_type.fbs";
 
 namespace duckdb.web.proto;
 

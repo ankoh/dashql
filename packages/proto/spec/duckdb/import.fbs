@@ -1,8 +1,8 @@
 // Copyright (c) 2020 The DashQL Authors
 
-include "webdb/query_plan.fbs";
-include "webdb/sql_type.fbs";
-include "webdb/vector.fbs";
+include "duckdb/query_plan.fbs";
+include "duckdb/sql_type.fbs";
+include "duckdb/vector.fbs";
 
 namespace duckdb.web.proto;
 
