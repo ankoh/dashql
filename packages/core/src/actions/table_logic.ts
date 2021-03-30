@@ -8,8 +8,8 @@ import { ActionContext } from './action_context';
 /// XXX Delete this eventually in favor of the async statistics requests
 export async function collectTableInfo(
     conn: duckdb.AsyncConnection,
-    info: model.DatabaseTableInfo,
-): Promise<model.DatabaseTableInfo> {
+    info: model.DatabaseTable,
+): Promise<model.DatabaseTable> {
     // Get column names and types
     const limit0 = await conn.runQuery(`SELECT * FROM ${info.tableNameShort} LIMIT 0`);
     const columnNames: string[] = [];
@@ -51,7 +51,7 @@ export class CreateTableActionLogic extends ProgramActionLogic {
             const now = new Date();
             return await collectTableInfo(c, {
                 objectId: this.buffer.objectId(),
-                objectType: model.PlanObjectType.DATABASE_TABLE_INFO,
+                objectType: model.PlanObjectType.DATABASE_TABLE,
                 timeCreated: now,
                 timeUpdated: now,
                 tableNameQualified: this.buffer.targetNameQualified() || '',

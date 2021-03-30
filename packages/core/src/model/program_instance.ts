@@ -14,10 +14,10 @@ export class ProgramInstance {
     public readonly annotations: proto.analyzer.ProgramAnnotations;
     /// The evaluated nodes
     public readonly evaluatedNodes: Map<number, duckdb.Value>;
-    /// The viz specs
-    public readonly vizSpecs: Map<number, proto.analyzer.VizSpec>;
     /// The time when the program was created
     public readonly createdAt: Date;
+    /// The cards
+    public readonly cards: Map<number, proto.analyzer.Card>;
 
     /// Constructor
     public constructor(program: Program, params: Immutable.List<any>, annotations: proto.analyzer.ProgramAnnotations) {
@@ -25,16 +25,16 @@ export class ProgramInstance {
         this.parameters = params;
         this.annotations = annotations;
         this.evaluatedNodes = new Map();
-        this.vizSpecs = new Map();
         this.createdAt = new Date();
+        this.cards = new Map();
 
         for (let i = 0; i < annotations.evaluatedNodesLength(); ++i) {
             const node = annotations.evaluatedNodes(i)!;
             this.evaluatedNodes.set(node.nodeId(), duckdb.Value.FromProto(node.value()!));
         }
-        for (let i = 0; i < annotations.vizSpecsLength(); ++i) {
-            const spec = annotations.vizSpecs(i)!;
-            this.vizSpecs.set(spec.statementId(), spec);
+        for (let i = 0; i < annotations.cardsLength(); ++i) {
+            const spec = annotations.cards(i)!;
+            this.cards.set(spec.statementId(), spec);
         }
     }
 

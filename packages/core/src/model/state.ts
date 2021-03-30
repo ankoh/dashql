@@ -3,8 +3,8 @@ import { LogEntryVariant } from './log';
 import { Plan } from './plan';
 import { CachedFileData, CachedHTTPData } from './cache';
 import { ActionSchedulerStatus, ActionHandle, Action } from './action';
-import { DatabaseTableInfo } from './database_info';
-import { PlanObject } from './plan_object';
+import { DatabaseTable } from './database_table';
+import { Card } from './card';
 import { Program, StatementStatus, ParameterValue } from './program';
 import { ProgramInstance } from './program_instance';
 import { Script, ScriptURIPrefix } from './script';
@@ -31,12 +31,12 @@ export class CoreState {
     public plan: Plan | null;
     /// The planned program status
     public planProgramStatus: Immutable.List<StatementStatus>;
-    /// The plan objects
-    public planObjects: Immutable.Map<string, PlanObject>;
-    /// The plan database tables
-    public planDatabaseTables: Immutable.Map<string, DatabaseTableInfo>;
     /// The setup actions
     public planActions: Immutable.Map<ActionHandle, Action>;
+    /// The database tables
+    public databaseTables: Immutable.Map<string, DatabaseTable>;
+    /// The cards
+    public cards: Immutable.Map<string, Card>;
 
     /// The cached files
     public cachedFileData: Immutable.Map<string, CachedFileData>;
@@ -60,9 +60,9 @@ export class CoreState {
         this.schedulerStatus = ActionSchedulerStatus.Idle;
         this.plan = null;
         this.planProgramStatus = Immutable.List<StatementStatus>();
-        this.planObjects = Immutable.Map<string, PlanObject>();
-        this.planDatabaseTables = Immutable.Map<string, DatabaseTableInfo>();
         this.planActions = Immutable.Map<ActionHandle, Action>();
+        this.databaseTables = Immutable.Map<string, DatabaseTable>();
+        this.cards = Immutable.Map<string, Card>();
         this.cachedFileData = Immutable.Map<string, CachedFileData>();
         this.cachedHTTPData = Immutable.Map<string, CachedHTTPData>();
     }

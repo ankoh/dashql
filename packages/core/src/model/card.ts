@@ -1,7 +1,8 @@
 // Copyright (c) 2020 The DashQL Authors
 
-import { PlanObject } from './plan_object';
+import * as proto from '@dashql/proto';
 import * as v from 'vega';
+import { PlanObject } from './plan_object';
 import { TopLevelSpec } from 'vega-lite/build/src/spec/index.js';
 import { AggregatedFieldDef } from 'vega-lite/build/src/transform.js';
 import { LogicalComposition } from 'vega-lite/build/src/logical.js';
@@ -10,25 +11,22 @@ import { SortField } from 'vega-lite/build/src/sort.js';
 import { DateTime } from 'vega-lite/build/src/datetime.js';
 import { ExprRef } from 'vega-lite/build/src/expr.js';
 
-export enum VizRendererType {
+export enum CardRenderer {
+    BUILTIN_INPUT_TEXT,
+    BUILTIN_INPUT_SELECT,
     BUILTIN_TABLE,
     BUILTIN_VEGA,
 }
 
-export interface VizInfo extends PlanObject {
-    readonly currentStatementId: number;
-    readonly position: VizPosition;
+export interface Card extends PlanObject {
+    readonly cardType: proto.analyzer.CardType | null;
+    readonly cardRenderer: CardRenderer;
+    readonly statementID: number;
+    readonly position: CardPosition;
     readonly title: string | null;
-    readonly renderer: VizRendererType | null;
     readonly vegaLiteSpec: TopLevelSpec | null;
     readonly vegaSpec: v.Spec | null;
-    readonly dataSource: VizDataSource | null;
-}
-
-export enum VizQueryType {
-    PIECEWISE_SCAN,
-    RESERVOIR_SAMPLE,
-    M5,
+    readonly dataSource: CardDataSource | null;
 }
 
 export type DomainValue = null | string | number | boolean | ExprRef | v.SignalRef | DateTime;
@@ -40,8 +38,14 @@ export interface M5Config {
     domainX: DomainValues;
 }
 
-export interface VizDataSource {
-    readonly queryType: VizQueryType;
+export enum CardDataResolver {
+    PIECEWISE_SCAN,
+    RESERVOIR_SAMPLE,
+    M5,
+}
+
+export interface CardDataSource {
+    readonly dataResolver: CardDataResolver;
     readonly targetQualified: string;
     readonly filters: LogicalComposition<Predicate>[] | null;
     readonly aggregates: AggregatedFieldDef[] | null;
@@ -51,7 +55,7 @@ export interface VizDataSource {
     readonly sampleSize: number;
 }
 
-export interface VizPosition {
+export interface CardPosition {
     readonly row: number;
     readonly column: number;
     readonly width: number;

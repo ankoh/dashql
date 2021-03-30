@@ -2,10 +2,10 @@
 
 /// A plan object type
 export enum PlanObjectType {
-    DATABASE_TABLE_INFO,
-    VIZ_INFO,
+    DATABASE_TABLE,
+    CARD,
 }
-/// A plan obbject id
+/// A plan object id
 export type PlanObjectID = number;
 
 /// A plan object

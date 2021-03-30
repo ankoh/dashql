@@ -4,15 +4,15 @@ import { analyzer, model, proto, viz } from '../../src';
 import { Analyzer } from '../../src/index_browser';
 
 interface VizComposerTestExpectation {
-    renderer: model.VizRendererType;
-    dataSource: model.VizDataSource;
+    cardRenderer: model.CardRenderer;
+    dataSource: model.CardDataSource;
     vegaLite: any;
 }
 
 interface VizComposerTest {
     name: string;
     query: string;
-    table: Omit<model.DatabaseTableInfo, keyof model.PlanObject>;
+    table: Omit<model.DatabaseTable, keyof model.PlanObject>;
     expected: VizComposerTestExpectation;
 }
 
@@ -56,9 +56,9 @@ VIZ foo USING VEGA (
             ]),
         },
         expected: {
-            renderer: model.VizRendererType.BUILTIN_VEGA,
+            cardRenderer: model.CardRenderer.BUILTIN_VEGA,
             dataSource: {
-                queryType: model.VizQueryType.M5,
+                dataResolver: model.CardDataResolver.M5,
                 targetQualified: 'global.foo',
                 m5Config: {
                     attributeX: 'x',
@@ -121,9 +121,9 @@ VIZ foo USING LINE (
             ]),
         },
         expected: {
-            renderer: model.VizRendererType.BUILTIN_VEGA,
+            cardRenderer: model.CardRenderer.BUILTIN_VEGA,
             dataSource: {
-                queryType: model.VizQueryType.M5,
+                dataResolver: model.CardDataResolver.M5,
                 targetQualified: 'global.foo',
                 m5Config: {
                     attributeX: 'x',
@@ -165,20 +165,20 @@ VIZ foo USING LINE (
 ];
 
 class FakeStatisticsResolver {
-    _table: model.DatabaseTableInfo;
+    _table: model.DatabaseTable;
 
     constructor(test: VizComposerTest) {
         const now = new Date();
         this._table = {
             objectId: 0,
-            objectType: model.PlanObjectType.DATABASE_TABLE_INFO,
+            objectType: model.PlanObjectType.DATABASE_TABLE,
             timeCreated: now,
             timeUpdated: now,
             ...test.table,
         };
     }
     /// Resolve the table info
-    public resolveTableInfo(): model.DatabaseTableInfo | null {
+    public resolveTableInfo(): model.DatabaseTable | null {
         return this._table;
     }
     /// Request table statistics
@@ -216,17 +216,17 @@ describe('VizComposer', () => {
             // Instantiate the query for the viz specs
             const instance = ana.instantiateProgram();
             expect(instance).not.toBe(null);
-            expect(instance!.vizSpecs.size).toBe(1);
-            expect(instance!.vizSpecs.has(0)).toBe(true);
+            expect(instance!.cards.size).toBe(1);
+            expect(instance!.cards.has(0)).toBe(true);
 
             // Prepare the composer
             const stats = new FakeStatisticsResolver(test);
             const composer = new viz.VizComposer(stats);
 
             // Read the parsed viz spec and pass all components to the composer
-            const spec = instance!.vizSpecs.get(0)!;
-            for (let i = 0; i < spec.componentsLength(); ++i) {
-                const c = spec.components(i)!;
+            const spec = instance!.cards.get(0)!;
+            for (let i = 0; i < spec.vizComponentsLength(); ++i) {
+                const c = spec.vizComponents(i)!;
                 const type = c.type()!;
                 let mods: Map<proto.syntax.VizComponentTypeModifier, boolean> = new Map();
                 for (let i = 0; i < c.typeModifiersLength(); ++i) {
@@ -238,7 +238,7 @@ describe('VizComposer', () => {
             }
             composer.combineComponents();
             const out = await composer.compile()!;
-            expect(out.renderer).toBe(test.expected.renderer);
+            expect(out.cardRenderer).toBe(test.expected.cardRenderer);
             expect(out.dataSource).toEqual(test.expected.dataSource);
             expect(out.vegaLiteSpec).toEqual(test.expected.vegaLite);
         });
