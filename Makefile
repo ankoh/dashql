@@ -174,23 +174,23 @@ app_start:
 	yarn workspace @dashql/app start
 
 # Build the duckdb library
-.PHONY: duckdb
-duckdb:
+.PHONY: duckdb_web
+duckdb_web:
 	yarn workspace @dashql/duckdb build
 
 # Run the duckdb javascript tests
-.PHONY: duckdb_tests
-duckdb_tests:
+.PHONY: duckdb_web_tests
+duckdb_web_tests:
 	yarn workspace @dashql/duckdb test
 
 # Run the duckdb javascript tests in browser
-.PHONY: duckdb_tests_browser
-duckdb_tests_browser:
+.PHONY: duckdb_web_tests_browser
+duckdb_web_tests_browser:
 	yarn workspace @dashql/duckdb test:browser
 
 # Run the duckdb javascript tests on nodejs
-.PHONY: duckdb_tests_node
-duckdb_tests_node:
+.PHONY: duckdb_web_tests_node
+duckdb_web_tests_node:
 	yarn workspace @dashql/duckdb test:node
 
 # Install all yarn packages
@@ -241,8 +241,16 @@ bootstrap:
 	make docker_ci_image yarn_install
 	make proto
 	make wasm
-	make duckdb
+	make duckdb_web
 	make core
+
+# Run all js tests
+jstests:
+	make proto
+	make duckdb_web
+	make duckdb_web_tests
+	make core
+	make core_tests
 
 # ---------------------------------------------------------------------------
 # Data
