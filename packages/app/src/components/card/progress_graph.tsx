@@ -5,12 +5,12 @@ import * as dagre from 'dagre';
 import ReactFlow, { ReactFlowProvider, FlowElement, Edge as EdgeData, useStoreState } from 'react-flow-renderer';
 import classNames from 'classnames';
 import { AppState, Dispatch } from '../../model';
-import { StatementNode, StatementNodeData } from './viz_progress_node';
+import { StatementNode, StatementNodeData } from './progress_graph_node';
 import { connect, useStore } from 'react-redux';
 import { proto } from '@dashql/core';
 
 import sx = proto.syntax;
-import styles from './viz_progress.module.css';
+import styles from './progress_graph.module.css';
 
 const NODE_WIDTH = 16;
 const NODE_HEIGHT = 16;
@@ -28,14 +28,14 @@ interface ExtendedEdgeData extends EdgeData {
     };
 }
 
-interface VizProgressProps {
+interface ProgressGraphProps {
     program: core.model.Program | null;
     programStatus: Immutable.List<core.model.StatementStatus>;
     className?: string;
-    vizInfo: core.model.VizInfo;
+    card: core.model.Card;
 }
 
-interface VizProgressState {
+interface ProgressGraphState {
     program: core.model.Program | null;
     programStatus: Immutable.List<core.model.StatementStatus>;
     nodes: StatementNodeData[];
@@ -43,13 +43,13 @@ interface VizProgressState {
     center: [number, number];
 }
 
-class VizProgress extends React.Component<VizProgressProps, VizProgressState> {
-    constructor(props: VizProgressProps) {
+class ProgressGraph extends React.Component<ProgressGraphProps, ProgressGraphState> {
+    constructor(props: ProgressGraphProps) {
         super(props);
-        this.state = VizProgress.rebuild(props);
+        this.state = ProgressGraph.rebuild(props);
     }
 
-    protected static rebuild(props: VizProgressProps): VizProgressState {
+    protected static rebuild(props: ProgressGraphProps): ProgressGraphState {
         if (!props.program) {
             return {
                 program: null,
@@ -64,8 +64,8 @@ class VizProgress extends React.Component<VizProgressProps, VizProgressState> {
         const focus = new core.utils.NativeBitmap(props.program.buffer.statementsLength());
         const depDFS: number[] = [];
         const depMapping = props.program.statementDependencies;
-        focus.set(props.vizInfo.currentStatementId);
-        depDFS.push(props.vizInfo.currentStatementId);
+        focus.set(props.card.statementID);
+        depDFS.push(props.card.statementID);
         while (depDFS.length > 0) {
             const top = depDFS.pop()!;
             const deps = depMapping.get(top);
@@ -136,7 +136,7 @@ class VizProgress extends React.Component<VizProgressProps, VizProgressState> {
                 },
             };
         });
-        return VizProgress.updateState(props, {
+        return ProgressGraph.updateState(props, {
             program: props.program,
             programStatus: props.programStatus,
             nodes: nodes,
@@ -145,7 +145,7 @@ class VizProgress extends React.Component<VizProgressProps, VizProgressState> {
         });
     }
 
-    protected static updateState(props: VizProgressProps, state: VizProgressState): VizProgressState {
+    protected static updateState(props: ProgressGraphProps, state: ProgressGraphState): ProgressGraphState {
         return {
             ...state,
             nodes: state.nodes.map(n => {
@@ -188,11 +188,11 @@ class VizProgress extends React.Component<VizProgressProps, VizProgressState> {
         };
     }
 
-    public static getDerivedStateFromProps(props: VizProgressProps, state: VizProgressState) {
+    public static getDerivedStateFromProps(props: ProgressGraphProps, state: ProgressGraphState) {
         if (props.program !== state.program) {
-            return VizProgress.rebuild(props);
+            return ProgressGraph.rebuild(props);
         }
-        return VizProgress.updateState(props, state);
+        return ProgressGraph.updateState(props, state);
     }
 
     protected static CenterFlow(props: { center: [number, number]; children: React.ReactElement }) {
@@ -213,7 +213,7 @@ class VizProgress extends React.Component<VizProgressProps, VizProgressState> {
         return (
             <div className={classNames(styles.container, this.props.className)}>
                 <ReactFlowProvider>
-                    <VizProgress.CenterFlow center={this.state.center}>
+                    <ProgressGraph.CenterFlow center={this.state.center}>
                         <ReactFlow
                             elements={(this.state.nodes as FlowElement[]).concat(this.state.edges as FlowElement[])}
                             nodesDraggable={false}
@@ -227,7 +227,7 @@ class VizProgress extends React.Component<VizProgressProps, VizProgressState> {
                                 custom: StatementNode,
                             }}
                         />
-                    </VizProgress.CenterFlow>
+                    </ProgressGraph.CenterFlow>
                 </ReactFlowProvider>
             </div>
         );
@@ -241,4 +241,4 @@ const mapStateToProps = (state: AppState) => ({
 
 const mapDispatchToProps = (_dispatch: Dispatch) => ({});
 
-export default connect(mapStateToProps, mapDispatchToProps)(VizProgress);
+export default connect(mapStateToProps, mapDispatchToProps)(ProgressGraph);

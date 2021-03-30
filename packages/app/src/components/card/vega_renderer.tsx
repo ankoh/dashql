@@ -10,13 +10,13 @@ import { Vega } from 'react-vega';
 
 interface Props {
     appContext: IAppContext;
-    dbObjects: Immutable.Map<string, core.model.DatabaseTableInfo>;
-    vizInfo: core.model.VizInfo;
+    tables: Immutable.Map<string, core.model.DatabaseTable>;
+    card: core.model.Card;
     editable?: boolean;
 }
 
 export class VegaRenderer extends React.Component<Props> {
-    protected renderContent(table: core.model.DatabaseTableInfo, width: number, height: number) {
+    protected renderContent(table: core.model.DatabaseTable, width: number, height: number) {
         const vega = (result: proto.duckdb.QueryResult, width: number, height: number) => (
             <core.access.ProxyProvider result={result}>
                 {rows => (
@@ -25,7 +25,7 @@ export class VegaRenderer extends React.Component<Props> {
                             width: width,
                             height: height,
                         }}
-                        spec={this.props.vizInfo.vegaSpec as any}
+                        spec={this.props.card.vegaSpec as any}
                         data={{ source: rows }}
                         width={width}
                         height={height}
@@ -34,16 +34,16 @@ export class VegaRenderer extends React.Component<Props> {
                 )}
             </core.access.ProxyProvider>
         );
-        console.assert(!!this.props.vizInfo.dataSource);
+        console.assert(!!this.props.card.dataSource);
 
-        switch (this.props.vizInfo.dataSource!.queryType) {
-            case core.model.VizQueryType.M5: {
+        switch (this.props.card.dataSource!.dataResolver) {
+            case core.model.CardDataResolver.M5: {
                 return (
                     <core.access.M5Provider
                         logger={this.props.appContext.platform!.logger}
                         database={this.props.appContext.platform!.database}
                         table={table}
-                        data={this.props.vizInfo.dataSource!}
+                        data={this.props.card.dataSource!}
                         width={width}
                     >
                         {result => vega(result, width, height)}
@@ -51,13 +51,13 @@ export class VegaRenderer extends React.Component<Props> {
                 );
             }
 
-            case core.model.VizQueryType.RESERVOIR_SAMPLE: {
+            case core.model.CardDataResolver.RESERVOIR_SAMPLE: {
                 return (
                     <core.access.SampleProvider
                         logger={this.props.appContext.platform!.logger}
                         database={this.props.appContext.platform!.database}
                         table={table}
-                        data={this.props.vizInfo.dataSource!}
+                        data={this.props.card.dataSource!}
                     >
                         {result => vega(result, width, height)}
                     </core.access.SampleProvider>
@@ -70,8 +70,8 @@ export class VegaRenderer extends React.Component<Props> {
     }
 
     public render() {
-        const targetQualified = this.props.vizInfo.dataSource!.targetQualified;
-        const table = this.props.dbObjects.get(targetQualified);
+        const targetQualified = this.props.card.dataSource!.targetQualified;
+        const table = this.props.tables.get(targetQualified);
         if (!table) {
             return <div />;
         }
@@ -80,7 +80,7 @@ export class VegaRenderer extends React.Component<Props> {
 }
 
 const mapStateToProps = (state: model.AppState) => ({
-    dbObjects: state.core.planDatabaseTables,
+    tables: state.core.databaseTables,
 });
 
 const mapDispatchToProps = (_dispatch: model.Dispatch) => ({});

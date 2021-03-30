@@ -1,5 +1,5 @@
 import * as React from 'react';
-import styles from './viz_card.module.css';
+import styles from './card_frame.module.css';
 import Button from 'react-bootstrap/Button';
 
 import icon_settings from '../../../static/svg/icons/settings.svg';
@@ -11,7 +11,7 @@ interface Props {
     controls?: boolean;
 }
 
-export const VizCard: React.FC<Props> = (props: Props) => {
+export const CardFrame: React.FC<Props> = (props: Props) => {
     return (
         <div className={styles.container}>
             <div className={styles.header}>
