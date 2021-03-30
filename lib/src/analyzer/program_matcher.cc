@@ -535,8 +535,7 @@ std::vector<ProgramMatcher::DiffOp> ProgramMatcher::ComputeDiff() {
 }
 
 // Do parameter values equal?
-bool ProgramMatcher::ParameterValuesEqual(const proto::analyzer::ParameterValueT* l,
-                                          const proto::analyzer::ParameterValueT* r) {
+bool ProgramMatcher::InputValuesEqual(const proto::analyzer::InputValueT* l, const proto::analyzer::InputValueT* r) {
     auto& lv = *l->value;
     auto& rv = *r->value;
     auto values_equal = lv.is_null == rv.is_null && lv.data_f64 == rv.data_f64 && lv.data_i64 == rv.data_i64 &&

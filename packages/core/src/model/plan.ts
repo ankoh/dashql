@@ -20,8 +20,8 @@ export class Plan {
         return this.programInstance.program;
     }
     /// Access the parameters
-    public get parameters() {
-        return this.programInstance.parameters;
+    public get input_values() {
+        return this.programInstance.inputValues;
     }
     /// Access the action graph
     public get action_graph() {

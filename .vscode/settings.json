@@ -19,5 +19,8 @@
     },
     "[dockerfile]": {
         "editor.formatOnSave": false
+    },
+    "[xml]": {
+        "editor.formatOnSave": false
     }
 }

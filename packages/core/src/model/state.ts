@@ -5,7 +5,7 @@ import { CachedFileData, CachedHTTPData } from './cache';
 import { ActionSchedulerStatus, ActionHandle, Action } from './action';
 import { DatabaseTable } from './database_table';
 import { Card } from './card';
-import { Program, StatementStatus, ParameterValue } from './program';
+import { Program, StatementStatus, InputValue } from './program';
 import { ProgramInstance } from './program_instance';
 import { Script, ScriptURIPrefix } from './script';
 import { Store } from 'redux';
@@ -18,8 +18,8 @@ export class CoreState {
     public script: Script;
     /// The program
     public program: Program | null;
-    /// The program parameters
-    public programParameters: Immutable.List<ParameterValue>;
+    /// The program input values
+    public programInputValues: Immutable.List<InputValue>;
     /// The program dependencies
     public programDependencies: Map<number, number[]>;
     /// The program instance
@@ -54,7 +54,7 @@ export class CoreState {
             lineCount: 0,
         };
         this.program = null;
-        this.programParameters = Immutable.List<ParameterValue>();
+        this.programInputValues = Immutable.List<InputValue>();
         this.programDependencies = new Map();
         this.programInstance = null;
         this.schedulerStatus = ActionSchedulerStatus.Idle;

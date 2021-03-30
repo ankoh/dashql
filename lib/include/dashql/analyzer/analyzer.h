@@ -14,7 +14,7 @@
 #include <variant>
 #include <vector>
 
-#include "dashql/analyzer/parameter_value.h"
+#include "dashql/analyzer/input_value.h"
 #include "dashql/analyzer/program_instance.h"
 #include "dashql/common/blob_stream.h"
 #include "dashql/common/expected.h"
@@ -52,7 +52,7 @@ class Analyzer {
     /// Evaluate constants
     const Value* TryEvaluateFunctionCall(ProgramInstance& instance, size_t node_id) const;
     /// Evaluate the given parameter values
-    void EvaluateParameterValues(ProgramInstance& instance);
+    void EvaluateInputValues(ProgramInstance& instance);
     /// Evaluate constants
     void PropagateConstants(ProgramInstance& instance);
     /// Analyze the input statements
@@ -82,7 +82,7 @@ class Analyzer {
     /// Parse a program
     Signal ParseProgram(std::string_view text);
     /// Instantiate the last program
-    Signal InstantiateProgram(std::vector<ParameterValue> params);
+    Signal InstantiateProgram(std::vector<InputValue> params);
     /// Edit the last program
     Signal EditProgram(const proto::edit::ProgramEdit& edit);
     /// Plan the last program

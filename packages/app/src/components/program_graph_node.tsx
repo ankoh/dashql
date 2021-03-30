@@ -25,7 +25,7 @@ function StatementTypeIcon(type: proto.syntax.StatementType): string {
         case proto.syntax.StatementType.LOAD_FILE:
         case proto.syntax.StatementType.LOAD_HTTP:
             return icon_file_document_plus;
-        case proto.syntax.StatementType.PARAMETER:
+        case proto.syntax.StatementType.INPUT:
             return icon_variable_box;
         case proto.syntax.StatementType.VIZUALIZE:
             return icon_analytics;

@@ -42,21 +42,21 @@ TEST_P(AnalyzerSpecTests, Test) {
     auto* test = GetParam();
 
     Analyzer analyzer;
-    for (auto& step: test->steps) {
+    for (auto& step : test->steps) {
         // Parse, instantiate and plan the program
         auto rc = analyzer.ParseProgram(step.program_text);
         ASSERT_TRUE(rc.IsOk());
-        rc = analyzer.InstantiateProgram(step.parameters);
+        rc = analyzer.InstantiateProgram(step.input_values);
         ASSERT_TRUE(rc.IsOk());
         rc = analyzer.PlanProgram();
         ASSERT_TRUE(rc.IsOk());
 
         // Update the action status for the next step
-        for (unsigned i = 0; i < step.setupActionStatusCodes.size(); ++i) 
+        for (unsigned i = 0; i < step.setupActionStatusCodes.size(); ++i)
             analyzer.UpdateActionStatus(proto::action::ActionClass::SETUP_ACTION, i, step.setupActionStatusCodes[i]);
-        for (unsigned i = 0; i < step.programActionStatusCodes.size(); ++i) 
-            analyzer.UpdateActionStatus(proto::action::ActionClass::PROGRAM_ACTION, i, step.programActionStatusCodes[i]);
-
+        for (unsigned i = 0; i < step.programActionStatusCodes.size(); ++i)
+            analyzer.UpdateActionStatus(proto::action::ActionClass::PROGRAM_ACTION, i,
+                                        step.programActionStatusCodes[i]);
 
         // Encode the test output
         pugi::xml_document out;

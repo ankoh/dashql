@@ -81,7 +81,7 @@ export class Program {
     }
 }
 
-export interface ParameterValue {
+export interface InputValue {
     statement: number;
 }
 

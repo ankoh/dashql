@@ -14,10 +14,10 @@ namespace dashql {
 
 // Constructor
 ProgramInstance::ProgramInstance(std::shared_ptr<std::string> text, std::shared_ptr<sx::ProgramT> program,
-                                 std::vector<ParameterValue> params)
+                                 std::vector<InputValue> params)
     : program_text_(move(text)),
       program_(move(program)),
-      parameter_values_(move(params)),
+      input_values_(move(params)),
       evaluated_nodes_(program_->nodes.size()),
       node_errors_(),
       linter_messages_(),
@@ -30,9 +30,9 @@ void ProgramInstance::AddNodeError(NodeError&& error) { node_errors_.push_back(s
 void ProgramInstance::Add(LinterMessage msg) { linter_messages_.push_back(std::move(msg)); }
 
 // Find a parameter value
-const ParameterValue* ProgramInstance::FindParameterValue(size_t stmt_id) const {
+const InputValue* ProgramInstance::FindInputValue(size_t stmt_id) const {
     // XXX check if valid
-    return &parameter_values_[stmt_id];
+    return &input_values_[stmt_id];
 }
 
 /// Read a node value
@@ -82,9 +82,9 @@ Expected<std::string> ProgramInstance::RenderStatementText(size_t stmt_id) const
 flatbuffers::Offset<proto::analyzer::ProgramAnnotations> ProgramInstance::PackAnnotations(
     flatbuffers::FlatBufferBuilder& builder) const {
     // Pack parameters
-    std::vector<flatbuffers::Offset<proto::analyzer::ParameterValue>> param_offsets;
-    param_offsets.reserve(parameter_values_.size());
-    for (auto& param : parameter_values_) {
+    std::vector<flatbuffers::Offset<proto::analyzer::InputValue>> param_offsets;
+    param_offsets.reserve(input_values_.size());
+    for (auto& param : input_values_) {
         param_offsets.push_back(param.Pack(builder));
     }
     auto param_vec = builder.CreateVector(param_offsets);
