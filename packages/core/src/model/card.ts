@@ -11,7 +11,7 @@ import { SortField } from 'vega-lite/build/src/sort.js';
 import { DateTime } from 'vega-lite/build/src/datetime.js';
 import { ExprRef } from 'vega-lite/build/src/expr.js';
 
-export enum CardRenderer {
+export enum CardRendererType {
     BUILTIN_INPUT_TEXT,
     BUILTIN_INPUT_SELECT,
     BUILTIN_TABLE,
@@ -20,7 +20,7 @@ export enum CardRenderer {
 
 export interface Card extends PlanObject {
     readonly cardType: proto.analyzer.CardType | null;
-    readonly cardRenderer: CardRenderer;
+    readonly cardRenderer: CardRendererType;
     readonly statementID: number;
     readonly position: CardPosition;
     readonly title: string | null;

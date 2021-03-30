@@ -1,3 +1,4 @@
+import * as Immutable from 'immutable';
 import * as core from '@dashql/core';
 import * as React from 'react';
 import * as model from '../model';
@@ -5,7 +6,7 @@ import ReactGrid from 'react-grid-layout';
 import { Layout } from 'react-grid-layout';
 import { connect } from 'react-redux';
 import { IAppContext, withAppContext } from '../app_context';
-import VizComponent from './viz/viz_component';
+import { CardRenderer } from './card';
 
 import './board.module.css';
 
@@ -13,7 +14,7 @@ type Props = {
     appContext: IAppContext;
     className?: string;
     width: number;
-    vizData: Map<string, core.model.VizInfo>;
+    cards: Immutable.Map<string, core.model.Card>;
     rewriteProgram: (instance: core.model.ProgramInstance) => void;
     editable?: boolean;
     columnCount: number;
@@ -24,15 +25,7 @@ type Props = {
 
 class BoardLayout extends React.Component<Props> {
     shouldComponentUpdate(nextProps: Props) {
-        if (nextProps.width != this.props.width) return true;
-        const prev = this.props.vizData;
-        const next = nextProps.vizData;
-        let equal = prev.size == next.size;
-        for (let [k, v] of next) {
-            const p = prev.get(k);
-            equal = equal && v === p;
-        }
-        return !equal;
+        return nextProps.width != this.props.width || nextProps.cards !== this.props.cards;
     }
 
     onItemLayoutChanged = (
@@ -43,8 +36,8 @@ class BoardLayout extends React.Component<Props> {
         _event: MouseEvent,
         _element: HTMLElement,
     ) => {
-        const info = this.props.vizData.get(oldItem.i)!;
-        const stmt = info.currentStatementId;
+        const card = this.props.cards.get(oldItem.i)!;
+        const stmt = card.statementID;
 
         const analyzer = this.props.appContext.platform!.analyzer;
         const next = analyzer.editProgram([
@@ -64,8 +57,8 @@ class BoardLayout extends React.Component<Props> {
         }
     };
 
-    getLayout(data: Map<string, core.model.VizInfo>) {
-        const l = Array.from(data).map(([key, data]) => ({
+    getLayout(data: Immutable.Map<string, core.model.Card>) {
+        const l = data.toArray().map(([key, data]) => ({
             i: key,
             x: data.position.column,
             y: data.position.row,
@@ -88,13 +81,13 @@ class BoardLayout extends React.Component<Props> {
                 isResizable={!!this.props.editable}
                 onDragStop={this.onItemLayoutChanged}
                 onResizeStop={this.onItemLayoutChanged}
-                layout={this.getLayout(this.props.vizData)}
+                layout={this.getLayout(this.props.cards)}
                 containerPadding={this.props.containerPadding}
                 margin={this.props.elementMargin}
             >
-                {Array.from(this.props.vizData).map(([k, v]) => (
+                {Array.from(this.props.cards).map(([k, v]) => (
                     <div key={k}>
-                        <VizComponent vizInfo={v} editable={this.props.editable} />
+                        <CardRenderer card={v} editable={this.props.editable} />
                     </div>
                 ))}
             </ReactGrid>
@@ -103,16 +96,7 @@ class BoardLayout extends React.Component<Props> {
 }
 
 const mapStateToProps = (state: model.AppState) => ({
-    vizData: new Map(
-        state.core.planObjects
-            .filter(o => o.objectType == core.model.PlanObjectType.VIZ_INFO)
-            .toArray()
-            .sort(
-                (l, r) =>
-                    (l[1] as core.model.VizInfo).currentStatementId - (r[1] as core.model.VizInfo).currentStatementId,
-            )
-            .map(([k, v]) => [k, v as core.model.VizInfo]),
-    ),
+    cards: state.core.cards,
 });
 
 const mapDispatchToProps = (dispatch: model.Dispatch) => ({

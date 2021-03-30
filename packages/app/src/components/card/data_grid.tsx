@@ -9,14 +9,13 @@ import {
     defaultCellRangeRenderer,
     SizeAndPositionData,
 } from 'react-virtualized';
-import { VizCard } from './viz_card';
 import { VirtualScrollbars, PositionValues } from '../virtual_scrollbars';
 
 import styles from './data_grid.module.css';
 import { ChunkIterator } from '@dashql/duckdb/dist/duckdb.module.js';
 
 type Props = {
-    tableInfo: core.model.DatabaseTableInfo;
+    table: core.model.DatabaseTable;
     data: core.access.ScanResult | null;
     requestData: (request: core.access.ScanRequest) => void;
 };
@@ -58,13 +57,13 @@ export class DataGrid extends React.Component<Props, State> {
 
     /// Get the column count
     public get columnCount() {
-        return this.props.tableInfo.columnNames.length;
+        return this.props.table.columnNames.length;
     }
 
     /// Get the row count
     public get rowCount(): number {
         const key = core.model.buildTableStatisticsKey(core.model.TableStatisticsType.COUNT_STAR);
-        return this.props.tableInfo.statistics.get(key)![0].castAsInteger() || 0;
+        return this.props.table.statistics.get(key)![0].castAsInteger() || 0;
     }
 
     /// Scroll handler
