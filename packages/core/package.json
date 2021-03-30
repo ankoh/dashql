@@ -7,7 +7,7 @@
         "@dashql/proto": "^0.0.5",
         "@dashql/duckdb": "^0.0.22",
         "axios": "^0.21.1",
-        "hash-wasm": "^4.5.0",
+        "hash-wasm": "^4.6.0",
         "immutable": "^4.0.0-rc.12",
         "redux": "^4.0.5",
         "vega": "^5.20.0",
