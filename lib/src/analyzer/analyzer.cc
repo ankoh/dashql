@@ -9,8 +9,9 @@
 #include "dashql/analyzer/function_logic.h"
 #include "dashql/analyzer/parameter_value.h"
 #include "dashql/analyzer/program_editor.h"
+#include "dashql/analyzer/stmt/input_stmt.h"
+#include "dashql/analyzer/stmt/viz_stmt.h"
 #include "dashql/analyzer/syntax_matcher.h"
-#include "dashql/analyzer/viz_statement.h"
 #include "dashql/common/substring_buffer.h"
 #include "dashql/parser/parser_driver.h"
 #include "dashql/proto_generated.h"
@@ -52,7 +53,9 @@ const Value* Analyzer::TryEvaluateConstant(ProgramInstance& instance, size_t nod
         case sx::NodeType::UI32:
         case sx::NodeType::UI32_BITMAP:
         case sx::NodeType::STRING_REF:
-            return &instance.evaluated_nodes_.Insert(node_id, {node_id, Value::VARCHAR(Ref, instance.TextAt(node.location()))})->value;
+            return &instance.evaluated_nodes_
+                        .Insert(node_id, {node_id, Value::VARCHAR(Ref, instance.TextAt(node.location()))})
+                        ->value;
         default:
             return nullptr;
     }
@@ -128,7 +131,8 @@ Analyzer::Analyzer()
     for (unsigned i = 0; i < PLANNER_LOG_SIZE; ++i) program_log_.push_back(nullptr);
 }
 
-void Analyzer::UpdateActionStatus(proto::action::ActionClass action_class, size_t action_id, proto::action::ActionStatusCode status) {
+void Analyzer::UpdateActionStatus(proto::action::ActionClass action_class, size_t action_id,
+                                  proto::action::ActionStatusCode status) {
     if (action_class == proto::action::ActionClass::SETUP_ACTION) {
         if (!planned_graph_ || action_id >= planned_graph_->setup_actions.size()) return;
         planned_graph_->setup_actions[action_id]->action_status_code = status;
@@ -185,25 +189,25 @@ void Analyzer::PropagateConstants(ProgramInstance& instance) {
 void Analyzer::AnalyzeVizStatements(ProgramInstance& instance) {
     auto& program = instance.program();
     for (size_t stmt_id = 0; stmt_id < program.statements.size(); ++stmt_id) {
-        auto viz = viz::VizStatement::ReadFrom(instance, stmt_id);
+        auto viz = VizStatement::ReadFrom(instance, stmt_id);
         if (!viz) continue;
         instance.viz_statements_.push_back(std::move(viz));
     }
 }
 
 /// Compute the viz positions
-void Analyzer::ComputeVizPositions(ProgramInstance& instance) {
-    std::vector<proto::analyzer::VizPosition*> positions;
+void Analyzer::ComputeCardPositions(ProgramInstance& instance) {
+    std::vector<proto::analyzer::CardPosition*> positions;
     positions.reserve(instance.viz_statements().size());
-    for (auto& stmt: instance.viz_statements()) {
+    for (auto& stmt : instance.viz_statements()) {
         auto& specified = stmt->specified_position();
-        stmt->computed_position() = !!specified ? *specified : proto::analyzer::VizPosition(0, 0, 0, 0);
+        stmt->computed_position() = !!specified ? *specified : proto::analyzer::CardPosition(0, 0, 0, 0);
         positions.push_back(&stmt->computed_position().value());
     }
     /// XXX Compute meaningful positions
-    for (auto* pos: positions) {
+    for (auto* pos : positions) {
         if (pos->width() == 0 || pos->height() == 0) {
-            *pos = proto::analyzer::VizPosition(0, 0, 0, 0);
+            *pos = proto::analyzer::CardPosition(0, 0, 0, 0);
         }
     }
 }
@@ -222,7 +226,7 @@ Signal Analyzer::InstantiateProgram(std::vector<ParameterValue> params) {
     // Analyze the viz specs
     AnalyzeVizStatements(*next_instance);
     // Compute the viz positions
-    ComputeVizPositions(*next_instance);
+    ComputeCardPositions(*next_instance);
 
     // XXX Best-effort semantics check.
     //     Everything that we miss here will crash later in DuckDB.
@@ -283,7 +287,8 @@ flatbuffers::Offset<proto::syntax::Program> Analyzer::PackProgram(flatbuffers::F
 }
 
 /// Pack the program annotations
-flatbuffers::Offset<proto::analyzer::ProgramAnnotations> Analyzer::PackProgramAnnotations(flatbuffers::FlatBufferBuilder& builder) {
+flatbuffers::Offset<proto::analyzer::ProgramAnnotations> Analyzer::PackProgramAnnotations(
+    flatbuffers::FlatBufferBuilder& builder) {
     assert(!!program_instance_.get());
     return program_instance_->PackAnnotations(builder);
 }

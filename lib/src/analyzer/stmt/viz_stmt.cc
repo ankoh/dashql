@@ -1,4 +1,4 @@
-#include "dashql/analyzer/viz_statement.h"
+#include "dashql/analyzer/stmt/viz_stmt.h"
 
 #include <flatbuffers/flatbuffers.h>
 #include <rapidjson/rapidjson.h>
@@ -28,7 +28,6 @@
 namespace fb = flatbuffers;
 
 namespace dashql {
-namespace viz {
 
 VizStatement::VizStatement(ProgramInstance& instance, size_t statement_id, size_t target_node_id)
     : instance_(instance), statement_id_(statement_id), target_node_id_(target_node_id), components_(), patches_() {}
@@ -57,11 +56,11 @@ std::unique_ptr<VizStatement> VizStatement::ReadFrom(ProgramInstance& instance, 
     auto viz = std::make_unique<VizStatement>(instance, stmt_id, matches[0].node_id);
 
     // Read all components
-    std::vector<std::unique_ptr<viz::VizComponent>> components;
+    std::vector<std::unique_ptr<VizComponent>> components;
     components.reserve(comps_node.children_count());
     for (auto cid = 0; cid < comps_node.children_count(); ++cid) {
         auto begin = comps_node.children_begin_or_value();
-        auto comp = viz::VizComponent::CreateFrom(*viz, begin + cid);
+        auto comp = VizComponent::CreateFrom(*viz, begin + cid);
         components.push_back(move(comp));
     }
     viz->components_ = std::move(components);
@@ -84,7 +83,7 @@ void VizStatement::PrintScript(std::ostream& out) const {
 }
 
 /// Pack the viz specs
-flatbuffers::Offset<proto::analyzer::VizSpec> VizStatement::Pack(flatbuffers::FlatBufferBuilder& builder) const {
+flatbuffers::Offset<proto::analyzer::Card> VizStatement::PackCard(flatbuffers::FlatBufferBuilder& builder) const {
     // Pack components
     std::vector<fb::Offset<proto::analyzer::VizComponent>> component_offsets;
     for (auto& c : components_) {
@@ -101,12 +100,13 @@ flatbuffers::Offset<proto::analyzer::VizSpec> VizStatement::Pack(flatbuffers::Fl
 
     // Build viz spec
     assert(computed_position_.has_value());
-    proto::analyzer::VizSpecBuilder spec_builder{builder};
-    spec_builder.add_statement_id(statement_id_);
-    spec_builder.add_components(component_ofs_vec);
-    spec_builder.add_position(&computed_position_.value());
-    if (title_offset) spec_builder.add_title(*title_offset);
-    return spec_builder.Finish();
+    proto::analyzer::CardBuilder card_builder{builder};
+    card_builder.add_card_type(dashql::proto::analyzer::CardType::BUILTIN_VIZ);
+    card_builder.add_statement_id(statement_id_);
+    card_builder.add_position(&computed_position_.value());
+    if (title_offset) card_builder.add_title(*title_offset);
+    card_builder.add_viz_components(component_ofs_vec);
+    return card_builder.Finish();
 }
 
 /// Constructor
@@ -190,7 +190,7 @@ void VizComponent::ReadFrom(size_t node_id) {
             auto c = viz_stmt_.instance_.ReadNodeValueOrNull(pos_column).CastAsUI64().value_or(0);
             auto w = viz_stmt_.instance_.ReadNodeValueOrNull(pos_width).CastAsUI64().value_or(0);
             auto h = viz_stmt_.instance_.ReadNodeValueOrNull(pos_height).CastAsUI64().value_or(0);
-            position_ = proto::analyzer::VizPosition(r, c, w, h);
+            position_ = proto::analyzer::CardPosition(r, c, w, h);
             viz_stmt_.specified_position() = &position_.value();
         }
     }
@@ -308,5 +308,4 @@ flatbuffers::Offset<proto::analyzer::VizComponent> VizComponent::Pack(flatbuffer
     return cb.Finish();
 }
 
-}  // namespace viz
 }  // namespace dashql

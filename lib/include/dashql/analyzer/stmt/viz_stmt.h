@@ -1,7 +1,7 @@
 // Copyright (c) 2020 The DashQL Authors
 
-#ifndef INCLUDE_DASHQL_ANALYZER_VIZ_STATMENT_H_
-#define INCLUDE_DASHQL_ANALYZER_VIZ_STATMENT_H_
+#ifndef INCLUDE_DASHQL_ANALYZER_STMT_VIZ_STMT_H_
+#define INCLUDE_DASHQL_ANALYZER_STMT_VIZ_STMT_H_
 
 #include <flatbuffers/flatbuffers.h>
 
@@ -25,8 +25,6 @@ namespace dashql {
 
 class ProgramInstance;
 
-namespace viz {
-
 class VizComponent;
 class VizAttributePrinter;
 
@@ -44,9 +42,9 @@ class VizStatement {
     std::vector<std::unique_ptr<VizComponent>> components_ = {};
     /// The provided position.
     /// The owner of the position is the actual component.
-    proto::analyzer::VizPosition* specified_position_ = nullptr;
+    proto::analyzer::CardPosition* specified_position_ = nullptr;
     /// The computed position
-    std::optional<proto::analyzer::VizPosition> computed_position_ = std::nullopt;
+    std::optional<proto::analyzer::CardPosition> computed_position_ = std::nullopt;
     /// The title
     std::optional<std::string_view> title_ = std::nullopt;
     /// The patches
@@ -70,7 +68,7 @@ class VizStatement {
     /// Print as script
     void PrintScript(std::ostream& out) const;
     /// Pack the viz specs
-    flatbuffers::Offset<proto::analyzer::VizSpec> Pack(flatbuffers::FlatBufferBuilder& builder) const;
+    flatbuffers::Offset<proto::analyzer::Card> PackCard(flatbuffers::FlatBufferBuilder& builder) const;
 
     /// Read a viz statement
     static std::unique_ptr<VizStatement> ReadFrom(ProgramInstance& instance, size_t statement_id);
@@ -90,7 +88,7 @@ class VizComponent {
     /// The type modifiers
     uint32_t type_modifiers_ = 0;
     /// The position (if any)
-    std::optional<proto::analyzer::VizPosition> position_ = std::nullopt;
+    std::optional<proto::analyzer::CardPosition> position_ = std::nullopt;
     /// The title (if any)
     std::optional<std::string> title_ = std::nullopt;
 
@@ -113,7 +111,7 @@ class VizComponent {
     auto& position() { return position_; }
 
     /// Set the position
-    void SetPosition(dashql::proto::analyzer::VizPosition pos) { position_ = pos; }
+    void SetPosition(dashql::proto::analyzer::CardPosition pos) { position_ = pos; }
     /// Clear the position (if any)
     void ClearPosition() { position_.reset(); }
     /// Read the viz component
@@ -132,7 +130,6 @@ class VizComponent {
     static std::unique_ptr<VizComponent> CreateFrom(VizStatement& stmt, size_t node_id);
 };
 
-}  // namespace viz
 }  // namespace dashql
 
 #endif

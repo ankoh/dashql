@@ -8,7 +8,7 @@
 #include <stack>
 #include <unordered_set>
 
-#include "dashql/analyzer/viz_statement.h"
+#include "dashql/analyzer/stmt/viz_stmt.h"
 #include "dashql/proto_generated.h"
 #include "dashql/test/grammar_tests.h"
 
@@ -21,7 +21,7 @@ void AnalyzerTest::EncodePlan(pugi::xml_node root, const ProgramInstance& instan
     auto& text = instance.program_text();
 
     auto add_raw_attr = [&](pugi::xml_node node, const char* attr, size_t node_id) {
-        if (node_id < viz::INVALID_NODE_ID) {
+        if (node_id < INVALID_NODE_ID) {
             std::string text{instance.TextAt(nodes[node_id].location())};
             node.append_attribute(attr).set_value(text.c_str());
         }
