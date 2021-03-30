@@ -21,6 +21,7 @@ ProgramInstance::ProgramInstance(std::shared_ptr<std::string> text, std::shared_
       evaluated_nodes_(program_->nodes.size()),
       node_errors_(),
       linter_messages_(),
+      input_statements_(),
       viz_statements_() {}
 
 // Add a node error
@@ -101,6 +102,9 @@ flatbuffers::Offset<proto::analyzer::ProgramAnnotations> ProgramInstance::PackAn
 
     // Pack the viz statements
     std::vector<flatbuffers::Offset<proto::analyzer::Card>> cards;
+    for (auto& input : input_statements_) {
+        cards.push_back(input->PackCard(builder));
+    }
     for (auto& viz : viz_statements_) {
         cards.push_back(viz->PackCard(builder));
     }

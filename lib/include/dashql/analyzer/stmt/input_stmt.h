@@ -54,7 +54,7 @@ class InputStatement {
     /// Print as script
     void PrintScript(std::ostream& out) const;
     /// Pack the viz specs
-    flatbuffers::Offset<proto::analyzer::Card> Pack(flatbuffers::FlatBufferBuilder& builder) const;
+    flatbuffers::Offset<proto::analyzer::Card> PackCard(flatbuffers::FlatBufferBuilder& builder) const;
 
     /// Read a viz statement
     static std::unique_ptr<InputStatement> ReadFrom(ProgramInstance& instance, size_t statement_id);

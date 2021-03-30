@@ -1,7 +1,5 @@
 cmake_minimum_required(VERSION 2.8.12)
 
-project(ParquetExtension)
-
 set(DUCKDB_BASE_DIR ${CMAKE_CURRENT_LIST_DIR}/../../submodules/duckdb/extension/parquet)
 
 include_directories(
