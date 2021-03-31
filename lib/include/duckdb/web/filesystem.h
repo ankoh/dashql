@@ -87,6 +87,30 @@ class WebDBFileSystem : public duckdb::FileSystem {
     // duckdb::idx_t GetAvailableMemory() override;
 };
 
+constexpr size_t FS_STREAMBUF_SIZE = 16 * 1024;
+/// FileSystemStreamBuffer is a wrapper for istreams over the DuckDB FileSystem.
+/// Supplied by the file system and a handle, this class can be wrapped in an istream and be used opaquely.
+class FileSystemStreamBuffer : public std::streambuf {
+   public:
+    FileSystemStreamBuffer(duckdb::FileSystem &file_system, duckdb::FileHandle &file_handle);
+
+   protected:
+    std::streamsize showmanyc() override;
+
+    pos_type seekoff(off_type off, std::ios_base::seekdir dir, std::ios_base::openmode) override;
+
+    pos_type seekpos(pos_type pos, std::ios_base::openmode) override;
+
+    int_type underflow() override;
+
+   private:
+    duckdb::FileSystem &file_system_;
+    duckdb::FileHandle &file_handle_;
+    int64_t file_size_;
+    pos_type file_pos_;
+    std::vector<char> buffer_;
+};
+
 }  // namespace web
 }  // namespace duckdb
 

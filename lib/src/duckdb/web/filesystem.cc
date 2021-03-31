@@ -120,6 +120,52 @@ std::vector<std::string> WebDBFileSystem::Glob(const std::string &path) {
 //     return {};
 // }
 
+FileSystemStreamBuffer::FileSystemStreamBuffer(duckdb::FileSystem &file_system, duckdb::FileHandle &file_handle)
+    : file_system_(file_system),
+      file_handle_(file_handle),
+      file_size_(file_system_.GetFileSize(file_handle_)),
+      file_pos_(0) {
+    buffer_.reserve(FS_STREAMBUF_SIZE);
+}
+
+std::streamsize FileSystemStreamBuffer::showmanyc() {
+    if (egptr() - gptr() == 0) {
+        underflow();
+    }
+    return egptr() - gptr();
+}
+
+FileSystemStreamBuffer::pos_type FileSystemStreamBuffer::seekoff(FileSystemStreamBuffer::off_type off,
+                                                                 std::ios_base::seekdir dir, std::ios_base::openmode) {
+    if (dir == std::ios_base::beg) {
+        file_pos_ = off;
+    } else if (dir == std::ios_base::end) {
+        file_pos_ = file_size_ - off;
+    } else {
+        file_pos_ += off;
+    }
+
+    return file_pos_;
+}
+
+FileSystemStreamBuffer::pos_type FileSystemStreamBuffer::seekpos(FileSystemStreamBuffer::pos_type pos,
+                                                                 std::ios_base::openmode) {
+    file_pos_ = pos;
+    return file_pos_;
+}
+
+FileSystemStreamBuffer::int_type FileSystemStreamBuffer::underflow() {
+    if (gptr() < egptr()) return *gptr();
+    if (file_pos_ >= file_size_) return std::streambuf::traits_type::eof();
+
+    auto read = std::min(file_size_ - file_pos_, (int64_t)buffer_.capacity());
+    buffer_.resize(read);
+    file_system_.Read(file_handle_, &buffer_[0], read, file_pos_);
+    setg(&buffer_[0], &buffer_[0], &buffer_[0] + buffer_.size());
+    file_pos_ += read;
+    return *gptr();
+}
+
 }  // namespace web
 }  // namespace duckdb
 

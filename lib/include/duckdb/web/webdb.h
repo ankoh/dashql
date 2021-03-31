@@ -59,6 +59,8 @@ class WebDB {
         /// Get a connection
         auto& GetConnection() { return connection_; }
 
+        /// Get the filesystem attached to the database of this connection
+        duckdb::FileSystem& GetFileSystem();
         /// Run a SQL query
         dashql::ExpectedBuffer<proto::QueryResult> RunQuery(std::string_view text, const QueryRunOptions& args = {});
         /// Send a SQL query
@@ -85,6 +87,9 @@ class WebDB {
     Connection* Connect();
     /// End a connection
     void Disconnect(Connection* connection);
+
+    /// Get the filesystem attached to the database
+    duckdb::FileSystem& GetFileSystem();
 
     /// Get the static webdb instance
     static WebDB& GetInstance();

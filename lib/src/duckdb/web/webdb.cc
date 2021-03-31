@@ -44,6 +44,9 @@ WebDB::Connection::Connection(std::shared_ptr<duckdb::DuckDB> db)
       current_query_result_(),
       current_stream_partitioner_() {}
 
+/// Get the filesystem attached to the database of this connection
+duckdb::FileSystem& WebDB::Connection::GetFileSystem() { return database_->GetFileSystem(); }
+
 /// Run a SQL query
 dashql::ExpectedBuffer<p::QueryResult> WebDB::Connection::RunQuery(std::string_view text,
                                                                    const QueryRunOptions& options) {
@@ -191,6 +194,9 @@ WebDB::Connection* WebDB::Connect() {
     connections_.insert({conn_ptr, move(conn)});
     return conn_ptr;
 }
+
+/// Get the filesystem attached to the database
+duckdb::FileSystem& WebDB::GetFileSystem() { return database_->GetFileSystem(); }
 
 /// End a session
 void WebDB::Disconnect(Connection* session) { connections_.erase(session); }
