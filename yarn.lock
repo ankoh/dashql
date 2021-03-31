@@ -2485,10 +2485,10 @@ es6-error@^4.0.1:
   resolved "https://registry.yarnpkg.com/es6-error/-/es6-error-4.1.1.tgz#9e3af407459deed47e9a91f9b885a84eb05c561d"
   integrity sha512-Um/+FxMr9CISWh0bi5Zv0iOD+4cFh5qLeks1qhAopKVAJw3drgKbKySikp7wGhDL0HPeaja0P5ULZrxLkniUVg==
 
-esbuild@^0.11.0:
-  version "0.11.0"
-  resolved "https://registry.yarnpkg.com/esbuild/-/esbuild-0.11.0.tgz#1a54ab199a144af76fee1399702efa11be99d31f"
-  integrity sha512-soxN5dic/pDMM0LKLUKmpOY/MVfF+6n3RHLS2ez0YQoM0dmd2tTs/hmAC4pxfhm2Pvn/28UtMJyFedRYC+8olA==
+esbuild@^0.11.2:
+  version "0.11.2"
+  resolved "https://registry.yarnpkg.com/esbuild/-/esbuild-0.11.2.tgz#3b995e107f2054d9090402b98a3b79ceffd05eb6"
+  integrity sha512-8d5FCQrR+juXC2u9zjTQ3+IYiuFuaWyKYwmApFJLquTrYNbk36H/+MkRQeTuOJg7IjUchRX2Ulwo1zRYXZ1pUg==
 
 escalade@^3.1.1:
   version "3.1.1"
