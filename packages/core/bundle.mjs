@@ -14,8 +14,10 @@ function printErr(err) {
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const dist = path.resolve(__dirname, 'dist');
-rimraf.sync(dist);
 mkdir.sync(dist);
+rimraf.sync(dist + '/*.wasm');
+rimraf.sync(dist + '/*.js');
+rimraf.sync(dist + '/*.js.map');
 
 // -------------------------------
 // Copy WASM files
