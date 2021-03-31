@@ -138,7 +138,7 @@ proto:
 dataframe_wasm:
 	${EXEC_ENVIRONMENT} ${ROOT_DIR}/scripts/wasm_build_dataframe.sh Fast
 
-# Build the dataframe wasm module with debug info
+# Build the dataframe wasm module
 .PHONY: dataframe
 dataframe_wasm_release:
 	${EXEC_ENVIRONMENT} ${ROOT_DIR}/scripts/wasm_build_dataframe.sh Release
@@ -147,6 +147,11 @@ dataframe_wasm_release:
 .PHONY: wasm
 wasm:
 	${EXEC_ENVIRONMENT} ${ROOT_DIR}/scripts/wasm_build_lib.sh Fast
+
+# Build the wasm modules with all debug info
+.PHONY: wasm_debug
+wasm_debug:
+	${EXEC_ENVIRONMENT} ${ROOT_DIR}/scripts/wasm_build_lib.sh Debug
 
 # Build the wasm modules
 .PHONY: wasm_release
