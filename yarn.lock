@@ -238,25 +238,6 @@
     lodash "^4.17.19"
     to-fast-properties "^2.0.0"
 
-"@dashql/proto@^0.0.4":
-  version "0.0.4"
-  resolved "https://registry.yarnpkg.com/@dashql/proto/-/proto-0.0.4.tgz#076224a9a232893bda322be67eb704d40e62795e"
-  integrity sha512-JhsNfcr2Yh2nUF5tW7+wUlVuCUJv/+hu+JIWWhtqtG8hqq9L9TNisTC0nnCAIkSB7HNnYMcMszWqw5WDCh+yJQ==
-  dependencies:
-    flatbuffers "^1.12.0"
-  optionalDependencies:
-    fsevents "*"
-
-"@dashql/webdb@^0.0.20":
-  version "0.0.20"
-  resolved "https://registry.yarnpkg.com/@dashql/webdb/-/webdb-0.0.20.tgz#951d406b3e158b3c896540f12084b9301135190a"
-  integrity sha512-+61NWR2RFUqSGjGPVaIcsNWUF2USUCn1ei7ndbXYXgReS/a2TFH19iCfIbMX0imT592zfgGBlAvCWhOQLXLy9w==
-  dependencies:
-    "@dashql/proto" "^0.0.4"
-    glob-to-regexp "^0.4.1"
-  optionalDependencies:
-    fsevents "*"
-
 "@discoveryjs/json-ext@^0.5.0":
   version "0.5.2"
   resolved "https://registry.yarnpkg.com/@discoveryjs/json-ext/-/json-ext-0.5.2.tgz#8f03a22a04de437254e8ce8cc84ba39689288752"
@@ -6290,10 +6271,10 @@ totalist@^1.0.0:
   resolved "https://registry.yarnpkg.com/totalist/-/totalist-1.1.0.tgz#a4d65a3e546517701e3e5c37a47a70ac97fe56df"
   integrity sha512-gduQwd1rOdDMGxFG1gEvhV88Oirdo2p+KjoYFU7k2g+i7n6AFFbDQ5kMPUsW0pNbfQsB/cwXvT1i4Bue0s9g5g==
 
-ts-loader@^8.0.18:
-  version "8.0.18"
-  resolved "https://registry.yarnpkg.com/ts-loader/-/ts-loader-8.0.18.tgz#b2385cbe81c34ad9f997915129cdde3ad92a61ea"
-  integrity sha512-hRZzkydPX30XkLaQwJTDcWDoxZHK6IrEMDQpNd7tgcakFruFkeUp/aY+9hBb7BUGb+ZWKI0jiOGMo0MckwzdDQ==
+ts-loader@^8.1.0:
+  version "8.1.0"
+  resolved "https://registry.yarnpkg.com/ts-loader/-/ts-loader-8.1.0.tgz#d6292487df279c7cc79b6d3b70bb9d31682b693e"
+  integrity sha512-YiQipGGAFj2zBfqLhp28yUvPP9jUGqHxRzrGYuc82Z2wM27YIHbElXiaZDc93c3x0mz4zvBmS6q/DgExpdj37A==
   dependencies:
     chalk "^4.1.0"
     enhanced-resolve "^4.0.0"
