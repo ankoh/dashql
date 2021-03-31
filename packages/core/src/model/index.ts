@@ -2,6 +2,7 @@ export * from './action';
 export * from './cache';
 export * from './card';
 export * from './database_table';
+export * from './input';
 export * from './log';
 export * from './persistent_state';
 export * from './plan';

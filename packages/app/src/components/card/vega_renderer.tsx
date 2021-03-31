@@ -7,6 +7,7 @@ import { connect } from 'react-redux';
 import { AutoSizer } from '../../util/autosizer';
 import { IAppContext, withAppContext } from '../../app_context';
 import { Vega } from 'react-vega';
+import { CardFrame } from './card_frame';
 
 interface Props {
     appContext: IAppContext;
@@ -75,7 +76,11 @@ export class VegaRenderer extends React.Component<Props> {
         if (!table) {
             return <div />;
         }
-        return <AutoSizer>{({ width, height }) => this.renderContent(table, width, height)}</AutoSizer>;
+        return (
+            <CardFrame title={this.props.card.title || 'Some Title'} controls={this.props.editable}>
+                <AutoSizer>{({ width, height }) => this.renderContent(table, width, height)}</AutoSizer>
+            </CardFrame>
+        );
     }
 }
 

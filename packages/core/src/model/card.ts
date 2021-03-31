@@ -3,6 +3,7 @@
 import * as proto from '@dashql/proto';
 import * as v from 'vega';
 import { PlanObject } from './plan_object';
+import { InputOptions } from './input';
 import { TopLevelSpec } from 'vega-lite/build/src/spec/index.js';
 import { AggregatedFieldDef } from 'vega-lite/build/src/transform.js';
 import { LogicalComposition } from 'vega-lite/build/src/logical.js';
@@ -13,7 +14,7 @@ import { ExprRef } from 'vega-lite/build/src/expr.js';
 
 export enum CardRendererType {
     BUILTIN_INPUT_TEXT,
-    BUILTIN_INPUT_SELECT,
+    BUILTIN_INPUT_FILE,
     BUILTIN_TABLE,
     BUILTIN_VEGA,
 }
@@ -24,6 +25,7 @@ export interface Card extends PlanObject {
     readonly statementID: number;
     readonly position: CardPosition;
     readonly title: string | null;
+    readonly inputOptions: InputOptions | null;
     readonly vegaLiteSpec: TopLevelSpec | null;
     readonly vegaSpec: v.Spec | null;
     readonly dataSource: CardDataSource | null;

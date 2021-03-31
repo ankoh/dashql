@@ -388,6 +388,8 @@ export class ActionGraphScheduler {
         for (const action of programLogic) {
             action.prepare(ctx, planObjects);
         }
+
+        // Insert all plan objects
         mutate(ctx.platform.store.dispatch, {
             type: model.StateMutationType.INSERT_PLAN_OBJECTS,
             data: planObjects,

@@ -4,6 +4,7 @@ import * as core from '@dashql/core';
 import * as model from '../../model';
 import { connect } from 'react-redux';
 import { IAppContext, withAppContext } from '../../app_context';
+import { CardFrame } from './card_frame';
 
 import DataGrid from './data_grid';
 
@@ -32,14 +33,16 @@ export class TableRenderer extends React.Component<Props> {
         }
         const targetShort = table.tableNameShort;
         return (
-            <ScanProvider
-                logger={logger}
-                database={db}
-                targetName={targetShort}
-                request={new core.access.ScanRequest().withRange(0, 1024)}
-            >
-                {(data, requestData) => <DataGrid table={table} data={data} requestData={requestData} />}
-            </ScanProvider>
+            <CardFrame title={this.props.card.title || 'Some Title'} controls={this.props.editable}>
+                <ScanProvider
+                    logger={logger}
+                    database={db}
+                    targetName={targetShort}
+                    request={new core.access.ScanRequest().withRange(0, 1024)}
+                >
+                    {(data, requestData) => <DataGrid table={table} data={data} requestData={requestData} />}
+                </ScanProvider>
+            </CardFrame>
         );
     }
 }
