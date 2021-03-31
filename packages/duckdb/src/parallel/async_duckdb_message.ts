@@ -4,8 +4,11 @@ export enum AsyncDuckDBRequestType {
     RESET = 'RESET',
     PING = 'PING',
     REGISTER_URL = 'REGISTER_URL',
+    UNREGISTER_URL = 'UNREGISTER_URL',
     OPEN_URL = 'OPEN_URL',
+    IMPORT_JSON = 'IMPORT_JSON',
     IMPORT_CSV = 'IMPORT_CSV',
+    IMPORT_PARQUET = 'IMPORT_PARQUET',
     OPEN = 'OPEN',
     CONNECT = 'CONNECT',
     DISCONNECT = 'DISCONNECT',
@@ -42,8 +45,11 @@ export type AsyncDuckDBRequestVariant =
     | AsyncDuckDBRequest<AsyncDuckDBRequestType.RESET, null>
     | AsyncDuckDBRequest<AsyncDuckDBRequestType.PING, null>
     | AsyncDuckDBRequest<AsyncDuckDBRequestType.REGISTER_URL, string>
+    | AsyncDuckDBRequest<AsyncDuckDBRequestType.UNREGISTER_URL, string>
     | AsyncDuckDBRequest<AsyncDuckDBRequestType.OPEN_URL, string>
+    | AsyncDuckDBRequest<AsyncDuckDBRequestType.IMPORT_JSON, [number, string, string, string]>
     | AsyncDuckDBRequest<AsyncDuckDBRequestType.IMPORT_CSV, [number, string, string, string]>
+    | AsyncDuckDBRequest<AsyncDuckDBRequestType.IMPORT_PARQUET, [number, string, string, string]>
     | AsyncDuckDBRequest<AsyncDuckDBRequestType.OPEN, string>
     | AsyncDuckDBRequest<AsyncDuckDBRequestType.CONNECT, null>
     | AsyncDuckDBRequest<AsyncDuckDBRequestType.DISCONNECT, number>

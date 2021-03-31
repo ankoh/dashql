@@ -27,9 +27,12 @@ class Task<T, D, P> {
 
 type TaskVariant =
     | Task<AsyncDuckDBRequestType.RESET, null, null>
+    | Task<AsyncDuckDBRequestType.IMPORT_JSON, [number, string, string, string], null>
     | Task<AsyncDuckDBRequestType.IMPORT_CSV, [number, string, string, string], null>
+    | Task<AsyncDuckDBRequestType.IMPORT_PARQUET, [number, string, string, string], null>
     | Task<AsyncDuckDBRequestType.PING, null, null>
     | Task<AsyncDuckDBRequestType.REGISTER_URL, string, null>
+    | Task<AsyncDuckDBRequestType.UNREGISTER_URL, string, null>
     | Task<AsyncDuckDBRequestType.OPEN_URL, string, number>
     | Task<AsyncDuckDBRequestType.OPEN, string | null, null>
     | Task<AsyncDuckDBRequestType.CONNECT, null, ConnectionID>
@@ -157,8 +160,11 @@ export class AsyncDuckDB {
         switch (task.type) {
             case AsyncDuckDBRequestType.RESET:
             case AsyncDuckDBRequestType.PING:
+            case AsyncDuckDBRequestType.IMPORT_JSON:
             case AsyncDuckDBRequestType.IMPORT_CSV:
+            case AsyncDuckDBRequestType.IMPORT_PARQUET:
             case AsyncDuckDBRequestType.REGISTER_URL:
+            case AsyncDuckDBRequestType.UNREGISTER_URL:
             case AsyncDuckDBRequestType.OPEN:
             case AsyncDuckDBRequestType.DISCONNECT:
                 if (response.type == AsyncDuckDBResponseType.OK) {
@@ -238,16 +244,53 @@ export class AsyncDuckDB {
         return await this.postTask(task);
     }
 
+    /// Unregisters the given URL as a file to be possibly loaded by DuckDB.
+    public async unregisterURL(url: string): Promise<null> {
+        const task = new Task<AsyncDuckDBRequestType.UNREGISTER_URL, string, null>(
+            AsyncDuckDBRequestType.UNREGISTER_URL,
+            url,
+        );
+        return await this.postTask(task);
+    }
+
     /// Open a file previously registered by the given URL. Returns the Blob ID
     public async openURL(url: string): Promise<number> {
         const task = new Task<AsyncDuckDBRequestType.OPEN_URL, string, number>(AsyncDuckDBRequestType.OPEN_URL, url);
         return await this.postTask(task);
     }
 
-    /// Import csv from a given URL
+    /// Import string-provided JSON into the given table
+    public async importJSON(
+        conn: ConnectionID,
+        jsonString: string,
+        schemaName: string,
+        tableName: string,
+    ): Promise<null> {
+        const task = new Task<AsyncDuckDBRequestType.IMPORT_JSON, [number, string, string, string], null>(
+            AsyncDuckDBRequestType.IMPORT_JSON,
+            [conn, jsonString, schemaName, tableName],
+        );
+        return await this.postTask(task);
+    }
+
+    /// Import CSV from an URL into the given table
     public async importCSV(conn: ConnectionID, filePath: string, schemaName: string, tableName: string): Promise<null> {
         const task = new Task<AsyncDuckDBRequestType.IMPORT_CSV, [number, string, string, string], null>(
             AsyncDuckDBRequestType.IMPORT_CSV,
+            [conn, filePath, schemaName, tableName],
+        );
+        return await this.postTask(task);
+    }
+
+    /// Import Parquet from an URL into the given table
+    public async importParquet(
+        conn: ConnectionID,
+        filePath: string,
+        schemaName: string,
+        tableName: string,
+    ): Promise<null> {
+        const task = new Task<AsyncDuckDBRequestType.IMPORT_PARQUET, [number, string, string, string], null>(
+            AsyncDuckDBRequestType.IMPORT_PARQUET,
             [conn, filePath, schemaName, tableName],
         );
         return await this.postTask(task);
@@ -366,8 +409,18 @@ export class AsyncDuckDBConnection implements AsyncConnection {
         return this._instance.fetchQueryResults(this._conn);
     }
 
-    /// Import csv from a given URL
-    public async importCSV(filePath: string, schemaName: string, tableName: string) {
+    /// Import string-provided JSON into the given table
+    public async importJSON(jsonString: string, schemaName: string, tableName: string): Promise<null> {
+        return this._instance.importJSON(this._conn, jsonString, schemaName, tableName);
+    }
+
+    /// Import CSV from an URL into the given table
+    public async importCSV(filePath: string, schemaName: string, tableName: string): Promise<null> {
         return this._instance.importCSV(this._conn, filePath, schemaName, tableName);
+    }
+
+    /// Import Parquet from an URL into the given table
+    public async importParquet(filePath: string, schemaName: string, tableName: string): Promise<null> {
+        return this._instance.importParquet(this._conn, filePath, schemaName, tableName);
     }
 }

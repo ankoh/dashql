@@ -30,6 +30,11 @@ export class DuckDB extends DuckDBBindings {
             .then(b => this.runtime.duckdb_web_add_blob_handle(new WebBlobHandle(b, url)));
     }
 
+    /// Unregisters the given URL
+    public unregisterURL(url: string): void {
+        this.runtime.duckdb_web_remove_blob_handle(url);
+    }
+
     /// Open a file previously registered by the given URL. Returns the Blob ID
     public openURL(url: string): number {
         return this.runtime.duckdb_web_blob_stream_open(url);

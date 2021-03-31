@@ -151,8 +151,16 @@ export abstract class AsyncDuckDBDispatcher implements Logger {
                     );
                     break;
                 }
+                case AsyncDuckDBRequestType.IMPORT_JSON:
+                    this._bindings.importJSON(request.data[0], request.data[1], request.data[2], request.data[3]);
+                    this.sendOK(request);
+                    break;
                 case AsyncDuckDBRequestType.IMPORT_CSV:
                     this._bindings.importCSV(request.data[0], request.data[1], request.data[2], request.data[3]);
+                    this.sendOK(request);
+                    break;
+                case AsyncDuckDBRequestType.IMPORT_PARQUET:
+                    this._bindings.importParquet(request.data[0], request.data[1], request.data[2], request.data[3]);
                     this.sendOK(request);
                     break;
                 case AsyncDuckDBRequestType.REGISTER_URL:

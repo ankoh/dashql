@@ -32,6 +32,9 @@ export var NodeDuckDBRuntime: DuckDBRuntime & {
             NodeDuckDBRuntime.handleMap.set(blob_handle.url, <NodeBlobHandle>blob_handle);
         }
     },
+    duckdb_web_remove_blob_handle: function (url: string): void {
+        NodeDuckDBRuntime.handleMap.delete(url);
+    },
     duckdb_web_blob_stream_open: function (url: string): number {
         const handle = NodeDuckDBRuntime.handleMap.get(url);
         if (!handle) throw Error('File not found or cannot be opened: ' + url);

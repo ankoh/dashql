@@ -47,6 +47,9 @@ export abstract class DuckDBBindings {
     /// Registers the given URL as a file to be possibly loaded by DuckDB.
     public abstract registerURL(url: string): Promise<void>;
 
+    /// Unregisters the given URL
+    public abstract unregisterURL(url: string): void;
+
     /// Open a file previously registered by the given URL. Returns the Blob ID
     public abstract openURL(url: string): number;
 
@@ -195,19 +198,39 @@ export abstract class DuckDBBindings {
         return plan;
     }
 
-    /// Import csv from a given URL
-    public importCSV(conn: number, filePath: string, schemaName: string, tableName: string): void {
+    /// Import string-provided JSON into the given table
+    public importJSON(conn: number, jsonString: string, schemaName: string, tableName: string): void {
         let instance = this.instance!;
         let [s, d, n] = this.callSRet(
-            'duckdb_web_import_csv',
+            'duckdb_web_import_json',
             ['number', 'string', 'string', 'string'],
-            [conn, filePath, schemaName, tableName],
+            [conn, jsonString, schemaName, tableName],
         );
 
         let mem = instance.HEAPU8.subarray(d, d + n);
         if (s !== proto.StatusCode.SUCCESS) {
             throw new Error(decodeString(mem));
         }
+    }
+
+    /// Import CSV from an URL into the given table
+    public importCSV(conn: number, filePath: string, schemaName: string, tableName: string): Promise<void> {
+        return this.registerURL(filePath)
+            .then(() => {
+                this.runQuery(conn, `INSERT INTO ${tableName} SELECT * FROM read_csv_auto("${filePath}")`);
+                return Promise.resolve();
+            })
+            .then(() => this.unregisterURL(filePath));
+    }
+
+    /// Import Parquet from an URL into the given table
+    public importParquet(conn: number, filePath: string, schemaName: string, tableName: string): Promise<void> {
+        return this.registerURL(filePath)
+            .then(() => {
+                this.runQuery(conn, `INSERT INTO ${tableName} SELECT * FROM parquet_scan("${filePath}")`);
+                return Promise.resolve();
+            })
+            .then(() => this.unregisterURL(filePath));
     }
 }
 
@@ -248,7 +271,15 @@ export class DuckDBConnection {
         return this._bindings.analyzeQuery(this._conn, _text);
     }
 
+    public importJSON(jsonString: string, schemaName: string, tableName: string): void {
+        this._bindings.importJSON(this._conn, jsonString, schemaName, tableName);
+    }
+
     public importCSV(filePath: string, schemaName: string, tableName: string): void {
         this._bindings.importCSV(this._conn, filePath, schemaName, tableName);
+    }
+
+    public importParquet(filePath: string, schemaName: string, tableName: string): void {
+        this._bindings.importParquet(this._conn, filePath, schemaName, tableName);
     }
 }
