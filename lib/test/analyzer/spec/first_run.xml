@@ -8,7 +8,7 @@
         </inputs>
         <evaluations />
         <cards>
-            <input />
+            <input name="country" component="TEXT" />
         </cards>
         <graph next_object_id="1">
             <setup />
@@ -55,7 +55,7 @@
             <eval type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" loc="115..179" text="format('ht..l.country)" />
         </evaluations>
         <cards>
-            <input />
+            <input name="country" component="TEXT" />
         </cards>
         <graph next_object_id="3">
             <setup />
@@ -101,7 +101,7 @@
             <eval type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" loc="115..179" text="format('ht..l.country)" />
         </evaluations>
         <cards>
-            <input />
+            <input name="country" component="TEXT" />
         </cards>
         <graph next_object_id="3">
             <setup />
@@ -148,7 +148,7 @@
             <eval type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" loc="115..179" text="format('ht..l.country)" />
         </evaluations>
         <cards>
-            <input />
+            <input name="country" component="TEXT" />
         </cards>
         <graph next_object_id="4">
             <setup />
@@ -207,7 +207,7 @@
             <eval type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" loc="115..179" text="format('ht..l.country)" />
         </evaluations>
         <cards>
-            <input />
+            <input name="country" component="TEXT" />
             <visualization>
                 <target loc="319..330" text="weather_avg" />
                 <components>
@@ -295,7 +295,7 @@
             <eval type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" loc="115..179" text="format('ht..l.country)" />
         </evaluations>
         <cards>
-            <input />
+            <input name="country" component="TEXT" />
             <visualization>
                 <target loc="374..385" text="weather_avg" />
                 <components>
@@ -397,8 +397,8 @@
             <eval type="BIGINT" value="5" loc="365..377" text="global.month" />
         </evaluations>
         <cards>
-            <input />
-            <input />
+            <input name="country" component="TEXT" />
+            <input name="month" component="TEXT" />
             <visualization>
                 <target loc="477..488" text="weather_avg" />
                 <components>
@@ -505,8 +505,8 @@
             <eval type="VARCHAR" value="MUC" loc="363..374" text="global.city" />
         </evaluations>
         <cards>
-            <input />
-            <input />
+            <input name="country" component="TEXT" />
+            <input name="city" component="TEXT" />
         </cards>
         <graph next_object_id="5">
             <setup />
@@ -581,9 +581,9 @@
             <eval type="BIGINT" value="5" loc="738..750" text="global.month" />
         </evaluations>
         <cards>
-            <input />
-            <input />
-            <input />
+            <input name="country1" component="TEXT" />
+            <input name="country2" component="TEXT" />
+            <input name="month" component="TEXT" />
             <visualization>
                 <target loc="768..784" text="countries_joined" />
                 <components>
