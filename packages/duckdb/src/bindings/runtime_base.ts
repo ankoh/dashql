@@ -34,7 +34,6 @@ export interface DuckDBRuntime {
     bindings: any;
     duckdb_web_add_blob_handle(blob_handle: BlobHandle): void;
     duckdb_web_blob_stream_open(url: string): number;
-    duckdb_web_blob_stream_underflow(blobId: number, buf: number, size: number): number;
     duckdb_web_fs_read(blobId: number, buf: number, bytes: number): number;
     duckdb_web_fs_write(blobId: number, buf: number, bytes: number): number;
     duckdb_web_fs_directory_exists(pathPtr: number, pathLen: number): boolean;
@@ -58,9 +57,6 @@ export const DefaultDuckDBRuntime: DuckDBRuntime = {
         throw Error('undefined');
     },
     duckdb_web_blob_stream_open: (url: string): number => {
-        throw Error('undefined');
-    },
-    duckdb_web_blob_stream_underflow: (blobId: number, buf: number, size: number) => {
         throw Error('undefined');
     },
     duckdb_web_fs_read: (blobId: number, buf: number, bytes: number) => {
