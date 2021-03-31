@@ -31,7 +31,7 @@ import { testAsyncIterator } from './async_iterator.test';
 import { testExtractCSV } from './extract_csv.test';
 
 // Loading debug symbols, especially for WASM take insanely long so we just disable the test timeout
-jasmine.DEFAULT_TIMEOUT_INTERVAL = 999999999;
+jasmine.DEFAULT_TIMEOUT_INTERVAL = 30000;
 
 testProxies(() => db!);
 testBindings(() => db!);
