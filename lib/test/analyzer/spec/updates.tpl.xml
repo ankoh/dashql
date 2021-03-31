@@ -1,7 +1,7 @@
 <test name="parameter_update_load">
     <step>
         <text>
-            INPUT country TYPE TEXT (
+            INPUT country TYPE VARCHAR USING TEXT (
                 default_value = 'DE'
             );
             LOAD weather_csv FROM http (
@@ -20,7 +20,7 @@
     </step>
     <step>
         <text>
-            INPUT country TYPE TEXT (
+            INPUT country TYPE VARCHAR USING TEXT (
                 default_value = 'DE'
             );
             LOAD weather_csv FROM http (

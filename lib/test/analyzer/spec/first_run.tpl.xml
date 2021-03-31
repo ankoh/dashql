@@ -1,7 +1,7 @@
 <test name="param">
     <step>
         <text>
-            INPUT country TYPE TEXT;
+            INPUT country TYPE VARCHAR USING TEXT;
         </text>
         <parameters>
             <parameter type="VARCHAR" statement="0" value="DE" />
@@ -18,7 +18,7 @@
 <test name="param_load">
     <step>
         <text>
-            INPUT country TYPE TEXT;
+            INPUT country TYPE VARCHAR USING TEXT;
             LOAD weather_csv FROM http (
                 url = format('https://cdn.dashql.com/demo/weather/{}', global.country)
             );
@@ -32,7 +32,7 @@
 <test name="param_load_extract">
     <step>
         <text>
-            INPUT country TYPE TEXT;
+            INPUT country TYPE VARCHAR USING TEXT;
             LOAD weather_csv FROM http (
                 url = format('https://cdn.dashql.com/demo/weather/{}', global.country)
             );
@@ -46,7 +46,7 @@
 <test name="param_load_extract_select">
     <step>
         <text>
-            INPUT country TYPE TEXT;
+            INPUT country TYPE VARCHAR USING TEXT;
             LOAD weather_csv FROM http (
                 url = format('https://cdn.dashql.com/demo/weather/{}', global.country)
             );
@@ -61,7 +61,7 @@
 <test name="two_vizzes">
     <step>
         <text>
-            INPUT country TYPE TEXT;
+            INPUT country TYPE VARCHAR USING TEXT;
             LOAD weather_csv FROM http (
                 url = format('https://cdn.dashql.com/demo/weather/{}', global.country)
             );
@@ -78,7 +78,7 @@
 <test name="two_tables_two_vizzes">
     <step>
         <text>
-            INPUT country TYPE TEXT;
+            INPUT country TYPE VARCHAR USING TEXT;
             LOAD weather_csv FROM http (
                 url = format('https://cdn.dashql.com/demo/weather/{}', global.country)
             );
@@ -96,8 +96,8 @@
 <test name="integer_interpolation">
     <step>
         <text>
-            INPUT country TYPE TEXT;
-            INPUT month TYPE INTEGER;
+            INPUT country TYPE VARCHAR USING TEXT;
+            INPUT month TYPE INTEGER USING TEXT;
             LOAD weather_csv FROM http (
                 url = format('https://cdn.dashql.com/demo/weather/{}', global.country)
             );
@@ -116,8 +116,8 @@
 <test name="text_interpolation">
     <step>
         <text>
-            INPUT country TYPE TEXT;
-            INPUT city TYPE TEXT;
+            INPUT country TYPE VARCHAR USING TEXT;
+            INPUT city TYPE VARCHAR USING TEXT;
             LOAD weather_csv FROM http (
                 url = format('https://cdn.dashql.com/demo/weather/{}', global.country)
             );
@@ -133,9 +133,9 @@
 <test name="extract_join">
     <step>
         <text>
-            INPUT country1 TYPE TEXT;
-            INPUT country2 TYPE TEXT;
-            INPUT month TYPE INTEGER;
+            INPUT country1 TYPE VARCHAR USING TEXT;
+            INPUT country2 TYPE VARCHAR USING TEXT;
+            INPUT month TYPE INTEGER USING TEXT;
             LOAD country1_weather_csv FROM http (
                 url = format('https://cdn.dashql.com/demo/weather/{}', global.country1)
             );

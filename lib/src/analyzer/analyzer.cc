@@ -233,9 +233,11 @@ Signal Analyzer::InstantiateProgram(std::vector<InputValue> inputs) {
     EvaluateInputValues(*next_instance);
     // Evaluate and propagate constant values.
     PropagateConstants(*next_instance);
-    // Analyze the viz specs
+    // Analyze the input statements
+    AnalyzeInputStatements(*next_instance);
+    // Analyze the viz statements
     AnalyzeVizStatements(*next_instance);
-    // Compute the viz positions
+    // Compute the card positions
     ComputeCardPositions(*next_instance);
 
     // XXX Best-effort semantics check.
