@@ -4,7 +4,6 @@
 
 #include <sstream>
 
-#include "dashql/common/blob_stream.h"
 #include "dashql/proto_generated.h"
 #include "dashql/test/config.h"
 #include "duckdb/common/types/date.hpp"

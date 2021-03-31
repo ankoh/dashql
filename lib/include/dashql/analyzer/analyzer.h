@@ -16,7 +16,6 @@
 
 #include "dashql/analyzer/input_value.h"
 #include "dashql/analyzer/program_instance.h"
-#include "dashql/common/blob_stream.h"
 #include "dashql/common/expected.h"
 #include "dashql/common/raw_buffer.h"
 #include "dashql/proto_generated.h"

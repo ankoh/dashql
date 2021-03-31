@@ -300,19 +300,10 @@ target_link_libraries(dashql_parser dashql_proto)
 # Libraries
 
 add_library(dashql_common
-    ${CMAKE_SOURCE_DIR}/src/common/blob_stream.cc
     ${CMAKE_SOURCE_DIR}/src/common/ffi_response.cc
     ${CMAKE_SOURCE_DIR}/src/common/pattern_search.cc
     ${CMAKE_SOURCE_DIR}/src/common/substring_buffer.cc
     ${CMAKE_SOURCE_DIR}/src/common/union_find.cc
-)
-
-add_library(dashql_extract
-    ${CMAKE_SOURCE_DIR}/src/extract/csv_extract.cc
-    ${CMAKE_SOURCE_DIR}/src/extract/csv_parser.cc
-    ${CMAKE_SOURCE_DIR}/src/extract/csv_sniffer.cc
-    ${CMAKE_SOURCE_DIR}/src/extract/extract.cc
-    ${CMAKE_SOURCE_DIR}/src/extract/extract_ffi.cc
 )
 
 add_library(dashql_dataframe
@@ -347,15 +338,13 @@ add_library(duckdb_web
 
 add_library(dashql_test
     ${CMAKE_SOURCE_DIR}/src/test/analyzer_tests.cc
-    ${CMAKE_SOURCE_DIR}/src/test/blob_stream_tests.cc
     ${CMAKE_SOURCE_DIR}/src/test/grammar_tests.cc
 )
 
 target_link_libraries(dashql_common dashql_proto flatbuffers spdlog rapidjson)
-target_link_libraries(dashql_extract dashql_proto flatbuffers spdlog duckdb parquet_extension rapidjson)
 target_link_libraries(dashql_analyzer dashql_parser dashql_common dashql_proto spdlog duckdb parquet_extension rapidjson)
 target_link_libraries(dashql_dataframe dashql_common dashql_proto binaryen)
-target_link_libraries(duckdb_web dashql_common dashql_extract dashql_proto duckdb parquet_extension spdlog)
+target_link_libraries(duckdb_web dashql_common dashql_proto duckdb parquet_extension spdlog)
 target_link_libraries(dashql_test duckdb_web dashql_analyzer dashql_common dashql_proto pugixml gtest duckdb parquet_extension)
 
 # ---------------------------------------------------------------------------
@@ -449,7 +438,6 @@ if (EMSCRIPTEN)
             _malloc, \
             _free, \
             _dashql_clear_response, \
-            _dashql_extract_import_csv, \
             _duckdb_web_analyze_query, \
             _duckdb_web_connect, \
             _duckdb_web_disconnect, \
@@ -457,7 +445,8 @@ if (EMSCRIPTEN)
             _duckdb_web_fs_directory_list_files_callback, \
             _duckdb_web_fs_glob_callback, \
             _duckdb_web_run_query, \
-            _duckdb_web_send_query \
+            _duckdb_web_send_query, \
+            _duckdb_web_import_csv \
         ]' \
         -s EXTRA_EXPORTED_RUNTIME_METHODS='[\"ccall\"]' \
         --js-library=${CMAKE_SOURCE_DIR}/js-stubs.js \
@@ -493,9 +482,6 @@ if(NOT EMSCRIPTEN)
         ${CMAKE_SOURCE_DIR}/test/common/union_find_test.cc
         ${CMAKE_SOURCE_DIR}/test/dataframe/dataframe_test.cc
         ${CMAKE_SOURCE_DIR}/test/dataframe/hellowasm_test.cc
-        ${CMAKE_SOURCE_DIR}/test/extract/csv_parser_test.cc
-        ${CMAKE_SOURCE_DIR}/test/extract/csv_sniffer_test.cc
-        ${CMAKE_SOURCE_DIR}/test/extract/extract_test.cc
         ${CMAKE_SOURCE_DIR}/test/parser/grammar_spec_tests.cc
         ${CMAKE_SOURCE_DIR}/test/tester.cc
         ${CMAKE_SOURCE_DIR}/test/webdb/duckdb_test.cc
@@ -504,7 +490,7 @@ if(NOT EMSCRIPTEN)
     )
     set (TEST_LIBS
         dashql_test
-        dashql_extract dashql_analyzer dashql_dataframe duckdb_web dashql_common
+        dashql_analyzer dashql_dataframe duckdb_web dashql_common
         dashql_proto
         wasm_api
         flatbuffers gtest gmock gflags
