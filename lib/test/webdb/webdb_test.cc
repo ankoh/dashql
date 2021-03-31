@@ -10,6 +10,7 @@
 #include "duckdb/common/types/date.hpp"
 #include "duckdb/common/types/timestamp.hpp"
 #include "duckdb/execution/operator/persistent/buffered_csv_reader.hpp"
+#include "duckdb/web/filesystem.h"
 #include "gtest/gtest.h"
 #include "parquet-extension.hpp"
 
@@ -60,7 +61,7 @@ TEST(WebDB, LoadCSVIStream) {
     output_chunk.Initialize(column_types);
     auto str = data.string();
     auto fh = db->GetFileSystem().OpenFile(str, duckdb::FileFlags::FILE_FLAGS_READ);
-    dashql::FileSystemStreamBuffer streambuf(db->GetFileSystem(), *fh);
+    duckdb::web::FileSystemStreamBuffer streambuf(db->GetFileSystem(), *fh);
 
     try {
         duckdb::BufferedCSVReader reader(options, column_types, std::make_unique<std::istream>(&streambuf));

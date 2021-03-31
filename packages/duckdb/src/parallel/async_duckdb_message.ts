@@ -43,7 +43,7 @@ export type AsyncDuckDBRequestVariant =
     | AsyncDuckDBRequest<AsyncDuckDBRequestType.PING, null>
     | AsyncDuckDBRequest<AsyncDuckDBRequestType.REGISTER_URL, string>
     | AsyncDuckDBRequest<AsyncDuckDBRequestType.OPEN_URL, string>
-    | AsyncDuckDBRequest<AsyncDuckDBRequestType.IMPORT_CSV, [number, number, string, string]>
+    | AsyncDuckDBRequest<AsyncDuckDBRequestType.IMPORT_CSV, [number, string, string, string]>
     | AsyncDuckDBRequest<AsyncDuckDBRequestType.OPEN, string>
     | AsyncDuckDBRequest<AsyncDuckDBRequestType.CONNECT, null>
     | AsyncDuckDBRequest<AsyncDuckDBRequestType.DISCONNECT, number>
