@@ -195,13 +195,13 @@ export abstract class DuckDBBindings {
         return plan;
     }
 
-    /// Import csv from a blob stream
-    public importCSV(conn: number, blobId: number, schemaName: string, tableName: string): void {
+    /// Import csv from a given URL
+    public importCSV(conn: number, filePath: string, schemaName: string, tableName: string): void {
         let instance = this.instance!;
         let [s, d, n] = this.callSRet(
             'dashql_extract_import_csv',
-            ['number', 'number', 'string', 'string'],
-            [conn, blobId, schemaName, tableName],
+            ['number', 'string', 'string', 'string'],
+            [conn, filePath, schemaName, tableName],
         );
 
         let mem = instance.HEAPU8.subarray(d, d + n);
@@ -248,7 +248,7 @@ export class DuckDBConnection {
         return this._bindings.analyzeQuery(this._conn, _text);
     }
 
-    public importCSV(blobId: number, schemaName: string, tableName: string): void {
-        this._bindings.importCSV(this._conn, blobId, schemaName, tableName);
+    public importCSV(filePath: string, schemaName: string, tableName: string): void {
+        this._bindings.importCSV(this._conn, filePath, schemaName, tableName);
     }
 }
