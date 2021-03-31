@@ -31,18 +31,16 @@ void dashql_extract_import_csv(FFIResponse* packed, ConnectionHdl connHdl, const
     output_chunk.Initialize(column_types);
 
     duckdb::BufferedCSVReaderOptions options;
-    options.auto_detect = true;
+    options.num_cols = 3;
     auto& fs = WebDB::GetInstance().GetFileSystem();
     auto handle = fs.OpenFile(filePath, duckdb::FileFlags::FILE_FLAGS_READ);
     duckdb::web::FileSystemStreamBuffer streambuf(fs, *handle);
-    std::istream str(&streambuf);
-    std::cout << str.rdbuf() << std::endl;
-    // try {
-    //     duckdb::BufferedCSVReader reader(options, column_types, std::make_unique<std::istream>(&streambuf));
-    //     reader.ParseCSV(output_chunk);
-    //     FFIResponseBuffer::GetInstance().Store(*packed, Signal::OK());
-    // } catch (const std::exception& e) {
-    //     FFIResponseBuffer::GetInstance().Store(*packed, Error(ErrorCode::CSV_PARSER_ERROR) << e.what());
-    // }
+    try {
+        duckdb::BufferedCSVReader reader(options, column_types, std::make_unique<std::istream>(&streambuf));
+        reader.ParseCSV(output_chunk);
+        FFIResponseBuffer::GetInstance().Store(*packed, Signal::OK());
+    } catch (const std::exception& e) {
+        FFIResponseBuffer::GetInstance().Store(*packed, Error(ErrorCode::CSV_PARSER_ERROR) << e.what());
+    }
 }
 }
