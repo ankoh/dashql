@@ -31,6 +31,10 @@ class InputStatement {
     ProgramInstance& instance_;
     /// The statement id
     const size_t statement_id_;
+    /// The statement name
+    std::string statement_name_ = {};
+    /// The input component type
+    sx::InputComponentType component_type = sx::InputComponentType::TEXT;
     /// The specified position
     std::optional<proto::analyzer::CardPosition> specified_position_ = std::nullopt;
     /// The title
