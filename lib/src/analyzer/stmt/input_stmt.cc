@@ -2,14 +2,15 @@
 
 #include "dashql/analyzer/json.h"
 #include "dashql/analyzer/syntax_matcher.h"
+#include "dashql/common/string.h"
 #include "dashql/proto_generated.h"
 
 namespace fb = flatbuffers;
 
 namespace dashql {
 
-InputStatement::InputStatement(ProgramInstance& instance, size_t statement_id, size_t target_node_id)
-    : instance_(instance), statement_id_(statement_id), target_node_id_(target_node_id), patches_() {}
+InputStatement::InputStatement(ProgramInstance& instance, size_t statement_id)
+    : instance_(instance), statement_id_(statement_id), patches_() {}
 
 std::unique_ptr<InputStatement> InputStatement::ReadFrom(ProgramInstance& instance, size_t stmt_id) {
     auto& program = instance.program();
@@ -52,12 +53,8 @@ std::unique_ptr<InputStatement> InputStatement::ReadFrom(ProgramInstance& instan
     std::array<NodeMatch, 11> matches;
     schema.Match(instance, stmt->root_node, matches);
 
-    // Report that option is not unique
-    auto report_not_unique = [&](size_t node_id, std::string_view key) {
-        if (node_id == INVALID_NODE_ID) return;
-        instance.Add(LinterMessage{LinterMessageCode::OPTION_NOT_UNIQUE, node_id}
-                     << "option '" << key << "' must be unique across components");
-    };
+    // Create the viz statement
+    auto input = std::make_unique<InputStatement>(instance, stmt_id);
 
     /// Get position attributes
     auto& i = instance;
@@ -65,20 +62,29 @@ std::unique_ptr<InputStatement> InputStatement::ReadFrom(ProgramInstance& instan
     auto pos_column = SelectAltOption(i, "position.column", matches[ID_POS_COLUMN].node_id, matches[ID_COLUMN].node_id);
     auto pos_width = SelectAltOption(i, "position.width", matches[ID_POS_WIDTH].node_id, matches[ID_WIDTH].node_id);
     auto pos_height = SelectAltOption(i, "position.height", matches[ID_POS_HEIGHT].node_id, matches[ID_HEIGHT].node_id);
-    std::optional<proto::analyzer::CardPosition> specified_position;
     if (AnyOptionSet({pos_row, pos_column, pos_width, pos_height})) {
         auto r = instance.ReadNodeValueOrNull(pos_row).CastAsUI64().value_or(0);
         auto c = instance.ReadNodeValueOrNull(pos_column).CastAsUI64().value_or(0);
         auto w = instance.ReadNodeValueOrNull(pos_width).CastAsUI64().value_or(0);
         auto h = instance.ReadNodeValueOrNull(pos_height).CastAsUI64().value_or(0);
-        specified_position = proto::analyzer::CardPosition(r, c, w, h);
+        input->specified_position_ = proto::analyzer::CardPosition(r, c, w, h);
     }
 
-    return nullptr;
+    /// Get the title attribute
+    if (matches[ID_TITLE]) {
+        auto title = instance.ReadNodeValueOrNull(matches[ID_TITLE].node_id).PrintValue();
+        trim(title, isNoQuote);
+        input->title_ = std::move(title);
+    }
+
+    return input;
 }
 
 /// Pack the viz specs
 flatbuffers::Offset<proto::analyzer::Card> InputStatement::PackCard(flatbuffers::FlatBufferBuilder& builder) const {
+    auto& program = instance_.program();
+    auto& stmt = program.statements[statement_id_];
+
     // Pack title (if any)
     std::optional<fb::Offset<fb::String>> title_offset = std::nullopt;
     if (title_) {
@@ -89,7 +95,7 @@ flatbuffers::Offset<proto::analyzer::Card> InputStatement::PackCard(flatbuffers:
     flatbuffers::Offset<flatbuffers::String> options;
     {
         std::stringstream out;
-        writeOptionsAsJSON(instance_, target_node_id_, out, false);
+        writeOptionsAsJSON(instance_, stmt->root_node, out, false);
         options = builder.CreateString(out.str());
     }
 
