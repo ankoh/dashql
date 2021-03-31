@@ -28,7 +28,7 @@ export abstract class VizActionLogic extends ProgramActionLogic {
         const store = context.platform.store;
         const tableInfo = store.getState().core.databaseTables.get(this.tableNameQualified) || null;
         if (!tableInfo) {
-            throw new error.VizLogicError(`target table ${this.tableNameQualified} does not exist`, programInstance);
+            throw new error.ActionLogicError(`target table ${this.tableNameQualified} does not exist`, programInstance);
         }
         // Build the composer
         const stats = context.platform._databaseManager.resolveTableStatistics(tableInfo.tableNameQualified)!;
@@ -66,7 +66,7 @@ export class CreateVizActionLogic extends VizActionLogic {
         // Get viz spec
         this._card = programInstance.cards.get(this.origin.statementId) || null;
         if (!this._card) {
-            throw new error.VizLogicError('viz spec does not exist', programInstance);
+            throw new error.ActionLogicError('card spec does not exist', programInstance);
         }
         // Get position
         const posReader = this._card!.position()!;
@@ -87,6 +87,7 @@ export class CreateVizActionLogic extends VizActionLogic {
             statementID: this.origin.statementId,
             position: pos,
             title: this._card!.title() || null,
+            inputOptions: null,
             vegaLiteSpec: null,
             vegaSpec: null,
             dataSource: null,

@@ -1,0 +1,21 @@
+@import '../../vars.module.css';
+
+.container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    border-radius: var(--border_radius);
+    border: 1px solid var(--vizcard_border_color);
+    box-sizing: border-box;
+    font-size: 0.7em;
+    background-color: var(--vizcard_header_bg);
+    display: grid;
+    align-items: center;
+    justify-items: center;
+    grid-template-columns: 48px auto;
+}
+
+.input_group {
+    grid-column: 2;
+    width: calc(100% - 16px);
+}

@@ -7,7 +7,7 @@ import { ExtractCSVActionLogic } from './extract_csv_logic';
 import { ExtractJsonActionLogic } from './extract_json_logic';
 import { LoadFileActionLogic } from './load_file_logic';
 import { LoadHTTPActionLogic } from './load_http_logic';
-import { ParameterActionLogic } from './parameter_logic';
+import { InputActionLogic } from './input_logic';
 import {
     CreateTableActionLogic,
     DropTableActionLogic,
@@ -60,7 +60,7 @@ export function resolveProgramActionLogic(
         case ProgramActionType.LOAD_HTTP:
             return new LoadHTTPActionLogic(id, a, s);
         case ProgramActionType.INPUT:
-            return new ParameterActionLogic(id, a, s);
+            return new InputActionLogic(id, a, s);
         case ProgramActionType.CREATE_TABLE:
             return new CreateTableActionLogic(id, a, s);
         case ProgramActionType.MODIFY_TABLE:
