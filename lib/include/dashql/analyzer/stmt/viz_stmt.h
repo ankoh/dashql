@@ -3,8 +3,6 @@
 #ifndef INCLUDE_DASHQL_ANALYZER_STMT_VIZ_STMT_H_
 #define INCLUDE_DASHQL_ANALYZER_STMT_VIZ_STMT_H_
 
-#include <flatbuffers/flatbuffers.h>
-
 #include <iostream>
 #include <limits>
 #include <optional>
@@ -39,7 +37,7 @@ class VizStatement {
     /// The target
     const size_t target_node_id_;
     /// The components
-    std::vector<std::unique_ptr<VizComponent>> components_ = {};
+    std::vector<std::unique_ptr<VizComponent>> components_;
     /// The provided position.
     /// The owner of the position is the actual component.
     proto::analyzer::CardPosition* specified_position_ = nullptr;
@@ -91,11 +89,6 @@ class VizComponent {
     std::optional<proto::analyzer::CardPosition> position_ = std::nullopt;
     /// The title (if any)
     std::optional<std::string> title_ = std::nullopt;
-
-    /// Select an option
-    bool AnyOptionSet(std::initializer_list<size_t> node_ids) const;
-    /// Select an option with alternative
-    size_t SelectAltOption(std::string_view label, size_t node_id, size_t alt_node_id) const;
 
    public:
     /// Constructor

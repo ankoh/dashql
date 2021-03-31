@@ -59,7 +59,8 @@ table Card {
     statement_id: uint32;
     title: string;
     position: CardPosition;
-    input_type: duckdb.web.proto.SQLType;
+    input_component: syntax.InputComponentType;
+    input_value_type: duckdb.web.proto.SQLType;
     input_options: string;
     viz_components: [VizComponent];
 }

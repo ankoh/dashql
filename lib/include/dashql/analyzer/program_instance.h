@@ -5,6 +5,7 @@
 
 #include <iostream>
 #include <limits>
+#include <memory>
 #include <optional>
 #include <sstream>
 #include <tuple>
@@ -42,6 +43,11 @@ class ProgramInstance {
         size_t root_node_id;
         /// The value
         Value value;
+
+        /// Move constructor
+        NodeValue(NodeValue&& other) = default;
+        /// Move assignment
+        NodeValue& operator=(NodeValue&& other) = default;
     };
 
     /// An error associated with a node
@@ -67,7 +73,7 @@ class ProgramInstance {
     std::vector<NodeError> node_errors_;
     /// The linter messages
     std::vector<LinterMessage> linter_messages_;
-    /// The input statements
+    ///// The input statements
     std::vector<std::unique_ptr<InputStatement>> input_statements_;
     /// The viz statements
     std::vector<std::unique_ptr<VizStatement>> viz_statements_;
@@ -80,6 +86,11 @@ class ProgramInstance {
     ProgramInstance(std::shared_ptr<std::string> text, std::shared_ptr<sx::ProgramT> program,
                     std::vector<InputValue> params = {});
 
+    /// Move constructor
+    ProgramInstance(ProgramInstance&& other) = default;
+    /// Move assignment
+    ProgramInstance& operator=(ProgramInstance&& other) = default;
+
     /// Get the program text
     auto& program_text() const { return *program_text_; }
     /// Get the program
@@ -90,6 +101,8 @@ class ProgramInstance {
     auto& input_values() const { return input_values_; }
     /// Get the evaluate nodes
     auto& evaluated_nodes() const { return evaluated_nodes_; }
+    /// Get the input statements
+    auto& input_statements() const { return input_statements_; }
     /// Get the viz statements
     auto& viz_statements() const { return viz_statements_; }
 
