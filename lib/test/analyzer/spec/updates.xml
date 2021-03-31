@@ -15,7 +15,7 @@
             <eval type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" loc="168..232" text="format('ht..l.country)" />
         </evaluations>
         <cards>
-            <input />
+            <input name="country" component="TEXT" />
         </cards>
         <graph next_object_id="2">
             <setup />
@@ -51,7 +51,7 @@
             <eval type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/US'" loc="168..232" text="format('ht..l.country)" />
         </evaluations>
         <cards>
-            <input />
+            <input name="country" component="TEXT" />
         </cards>
         <graph next_object_id="4">
             <setup>

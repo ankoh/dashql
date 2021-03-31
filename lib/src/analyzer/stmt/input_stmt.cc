@@ -33,7 +33,8 @@ std::unique_ptr<InputStatement> InputStatement::ReadFrom(ProgramInstance& instan
     constexpr size_t ID_TITLE = 8;
     constexpr size_t ID_TYPE = 9;
     constexpr size_t ID_INPUT_COMPONENT_TYPE = 10;
-    constexpr size_t ID_STATEMENT_NAME = 11;
+    constexpr size_t ID_INPUT_VALUE_TYPE = 11;
+    constexpr size_t ID_STATEMENT_NAME = 12;
 
     // clang-format off
     static const auto schema = sxm::Element()
@@ -41,8 +42,8 @@ std::unique_ptr<InputStatement> InputStatement::ReadFrom(ProgramInstance& instan
         .MatchChildren({
             sxm::Option(sx::AttributeKey::DASHQL_INPUT_COMPONENT_TYPE, ID_INPUT_COMPONENT_TYPE)
                 .MatchEnum(sx::NodeType::ENUM_DASHQL_INPUT_COMPONENT_TYPE),
-            sxm::Option(sx::AttributeKey::DASHQL_STATEMENT_NAME, ID_STATEMENT_NAME)
-                .MatchString(),
+            sxm::Option(sx::AttributeKey::DASHQL_INPUT_VALUE_TYPE, ID_INPUT_VALUE_TYPE),
+            sxm::Option(sx::AttributeKey::DASHQL_STATEMENT_NAME, ID_STATEMENT_NAME),
             sxm::Option(sx::AttributeKey::DASHQL_OPTION_ROW, ID_ROW),
             sxm::Option(sx::AttributeKey::DASHQL_OPTION_COLUMN, ID_COLUMN),
             sxm::Option(sx::AttributeKey::DASHQL_OPTION_WIDTH, ID_WIDTH),
@@ -59,11 +60,30 @@ std::unique_ptr<InputStatement> InputStatement::ReadFrom(ProgramInstance& instan
         });
     // clang-format on
 
-    std::array<NodeMatch, 12> matches;
+    std::array<NodeMatch, 13> matches;
     schema.Match(instance, stmt->root_node, matches);
 
     // Create the viz statement
     auto input = std::make_unique<InputStatement>(instance, stmt_id);
+
+    /// Get the statement name
+    if (matches[ID_STATEMENT_NAME]) {
+        // XXX Read actual statement name
+        auto loc = instance.program().nodes[matches[ID_STATEMENT_NAME].node_id].location();
+        auto name = instance.TextAt(loc);
+        input->statement_name_ = name;
+    }
+
+    /// Get the input type
+    if (matches[ID_INPUT_COMPONENT_TYPE]) {
+        auto type = matches[ID_INPUT_COMPONENT_TYPE].DataAsEnum<sx::InputComponentType>();
+        input->component_type_ = type;
+    }
+
+    /// Get the component type
+    if (matches[ID_INPUT_VALUE_TYPE]) {
+        // XXX READ SQL TYPE
+    }
 
     /// Get position attributes
     auto& i = instance;
