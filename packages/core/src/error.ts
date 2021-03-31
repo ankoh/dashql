@@ -35,7 +35,7 @@ export class LoggableError extends ErrorBase {
 }
 
 // An error within the viz logic
-export class VizLogicError extends LoggableError {
+export class ActionLogicError extends LoggableError {
     protected _message: string;
     protected _programInstance: ProgramInstance | null;
     constructor(message: string, program: ProgramInstance, logLevel: LogLevel = LogLevel.WARNING) {
