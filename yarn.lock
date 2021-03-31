@@ -238,25 +238,6 @@
     lodash "^4.17.19"
     to-fast-properties "^2.0.0"
 
-"@dashql/proto@^0.0.4":
-  version "0.0.4"
-  resolved "https://registry.yarnpkg.com/@dashql/proto/-/proto-0.0.4.tgz#076224a9a232893bda322be67eb704d40e62795e"
-  integrity sha512-JhsNfcr2Yh2nUF5tW7+wUlVuCUJv/+hu+JIWWhtqtG8hqq9L9TNisTC0nnCAIkSB7HNnYMcMszWqw5WDCh+yJQ==
-  dependencies:
-    flatbuffers "^1.12.0"
-  optionalDependencies:
-    fsevents "*"
-
-"@dashql/webdb@^0.0.20":
-  version "0.0.20"
-  resolved "https://registry.yarnpkg.com/@dashql/webdb/-/webdb-0.0.20.tgz#951d406b3e158b3c896540f12084b9301135190a"
-  integrity sha512-+61NWR2RFUqSGjGPVaIcsNWUF2USUCn1ei7ndbXYXgReS/a2TFH19iCfIbMX0imT592zfgGBlAvCWhOQLXLy9w==
-  dependencies:
-    "@dashql/proto" "^0.0.4"
-    glob-to-regexp "^0.4.1"
-  optionalDependencies:
-    fsevents "*"
-
 "@discoveryjs/json-ext@^0.5.0":
   version "0.5.2"
   resolved "https://registry.yarnpkg.com/@discoveryjs/json-ext/-/json-ext-0.5.2.tgz#8f03a22a04de437254e8ce8cc84ba39689288752"
@@ -3943,10 +3924,10 @@ karma-webpack@^5.0.0:
     minimatch "^3.0.4"
     webpack-merge "^4.1.5"
 
-karma@^6.2.0:
-  version "6.2.0"
-  resolved "https://registry.yarnpkg.com/karma/-/karma-6.2.0.tgz#5302ca36390b146f635b3427982afe0a94c72ff7"
-  integrity sha512-pCB8eNxGgdIdZeC885rbhZ/VyuOPNHUIDNL9EaaMf1NVzpvTjMO8a7zRTn51ZJhOOOxCSpalUdT1A8x76LyVqg==
+karma@^6.3.2:
+  version "6.3.2"
+  resolved "https://registry.yarnpkg.com/karma/-/karma-6.3.2.tgz#24b62fbae3e8b5218cc32a0dac49ad08a541e76d"
+  integrity sha512-fo4Wt0S99/8vylZMxNj4cBFyOBBnC1bewZ0QOlePij/2SZVWxqbyLeIddY13q6URa2EpLRW8ixvFRUMjkmo1bw==
   dependencies:
     body-parser "^1.19.0"
     braces "^3.0.2"
