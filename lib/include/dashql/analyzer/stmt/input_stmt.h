@@ -33,9 +33,11 @@ class InputStatement {
     const size_t statement_id_;
     /// The statement name
     std::string statement_name_ = {};
-    /// The input component type
-    sx::InputComponentType component_type = sx::InputComponentType::TEXT;
-    /// The specified position
+    /// The value type
+    duckdb::web::proto::SQLType value_type_ = duckdb::web::proto::SQLType();
+    /// The component type
+    std::optional<sx::InputComponentType> component_type_ = std::nullopt;
+    /// The position option
     std::optional<proto::analyzer::CardPosition> specified_position_ = std::nullopt;
     /// The title
     std::optional<std::string> title_ = std::nullopt;
@@ -47,6 +49,10 @@ class InputStatement {
     InputStatement(ProgramInstance& instance, size_t statement_id);
     /// Get the instance
     auto& instance() { return instance_; }
+    /// Get the statement name
+    auto& statement_name() { return statement_name_; }
+    /// Get the component type
+    auto& component_type() { return component_type_; }
     /// Get the specified position
     auto& specified_position() { return specified_position_; }
     /// Get the title

@@ -1608,10 +1608,10 @@
         <statements>
             <statement type="INPUT" name="global.a">
                 <node type="OBJECT_DASHQL_INPUT" loc="9..40" text="input a ty..using text">
+                    <node key="DASHQL_INPUT_COMPONENT_TYPE" value="TEXT" />
                     <node key="DASHQL_INPUT_VALUE_TYPE" type="OBJECT_SQL_TYPENAME" loc="22..29" text="integer">
                         <node key="SQL_TYPENAME_TYPE" value="INT4" />
                     </node>
-                    <node key="DASHQL_INPUT_COMPONENT_TYPE" value="TEXT" />
                     <node key="DASHQL_STATEMENT_NAME">
                         <node loc="15..16" text="a" />
                     </node>
@@ -1691,10 +1691,10 @@
         <statements>
             <statement type="INPUT" name="global.month">
                 <node type="OBJECT_DASHQL_INPUT" loc="9..44" text="input mont..using text">
+                    <node key="DASHQL_INPUT_COMPONENT_TYPE" value="TEXT" />
                     <node key="DASHQL_INPUT_VALUE_TYPE" type="OBJECT_SQL_TYPENAME" loc="26..33" text="integer">
                         <node key="SQL_TYPENAME_TYPE" value="INT4" />
                     </node>
-                    <node key="DASHQL_INPUT_COMPONENT_TYPE" value="TEXT" />
                     <node key="DASHQL_STATEMENT_NAME">
                         <node loc="15..20" text="month" />
                     </node>
