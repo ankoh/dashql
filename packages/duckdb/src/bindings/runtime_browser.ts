@@ -53,19 +53,6 @@ export var BrowserDuckDBRuntime: DuckDBRuntime & {
         BrowserDuckDBRuntime.streamCounter++;
         return id;
     },
-    duckdb_web_blob_stream_underflow(blobId: number, buf: number, size: number): number {
-        let stream = BrowserDuckDBRuntime.streamMap.get(blobId);
-        if (!stream) return 0;
-
-        const read = stream.copyTo(BrowserDuckDBRuntime.bindings!.instance!.HEAPU8, buf, size);
-
-        if (read == 0 && size > 0) {
-            // Stream exhausted, close
-            BrowserDuckDBRuntime.streamMap.delete(blobId);
-        }
-
-        return read;
-    },
     duckdb_web_fs_read: function (blobId: number, buf: number, bytes: number) {
         let stream = BrowserDuckDBRuntime.streamMap.get(blobId);
         if (!stream) return 0;

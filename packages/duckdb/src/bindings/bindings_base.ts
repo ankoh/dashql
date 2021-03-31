@@ -199,7 +199,7 @@ export abstract class DuckDBBindings {
     public importCSV(conn: number, filePath: string, schemaName: string, tableName: string): void {
         let instance = this.instance!;
         let [s, d, n] = this.callSRet(
-            'dashql_extract_import_csv',
+            'duckdb_web_import_csv',
             ['number', 'string', 'string', 'string'],
             [conn, filePath, schemaName, tableName],
         );
