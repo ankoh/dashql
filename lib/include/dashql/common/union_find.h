@@ -82,11 +82,15 @@ template <typename T> class SparseUnionFind {
    public:
     /// Constructor
     SparseUnionFind(size_t capacity) : entries_() { entries_.reserve(capacity); }
+    /// Explicit move constructor
+    SparseUnionFind(SparseUnionFind&& other) = default;
+    /// Explicit move constructor
+    SparseUnionFind& operator=(SparseUnionFind&& other) = default;
 
     /// Insert a value
     const T* Insert(size_t id, T value) {
         assert(!entries_.count(id));
-        auto [iter, ok] = entries_.insert(std::make_pair(id, Entry(id, 0, std::move(value))));
+        auto [iter, ok] = entries_.emplace(id, Entry(id, 0, std::move(value)));
         return &iter->second.value;
     }
 

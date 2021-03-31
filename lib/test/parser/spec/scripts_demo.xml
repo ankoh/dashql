@@ -31,7 +31,7 @@
         <statements>
             <statement type="INPUT" name="global.country">
                 <node type="OBJECT_DASHQL_INPUT" loc="278..346" text="INPUT coun..&#10;        )">
-                    <node key="DASHQL_INPUT_TYPE" value="TEXT" />
+                    <node key="DASHQL_INPUT_COMPONENT_TYPE" value="TEXT" />
                     <node key="DASHQL_STATEMENT_NAME">
                         <node loc="284..291" text="country" />
                     </node>

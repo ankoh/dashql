@@ -44,7 +44,7 @@ struct AnalyzerTest {
     /// Get an action status code
     static proto::action::ActionStatusCode GetActionStatus(std::string_view type);
     /// Read a parameter type
-    static proto::syntax::InputType GetInputType(std::string_view type);
+    static proto::syntax::InputComponentType GetInputType(std::string_view type);
     /// Get a parameter
     static InputValue GetInputValue(const pugi::xml_node& node);
 

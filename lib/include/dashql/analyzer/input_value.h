@@ -14,7 +14,6 @@
 #include "dashql/common/enum.h"
 #include "dashql/common/expected.h"
 #include "dashql/common/span.h"
-#include "dashql/common/union_find.h"
 #include "dashql/proto_generated.h"
 
 namespace dashql {
