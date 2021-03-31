@@ -6,7 +6,8 @@
         -- Declare a dynamic input field on top of your dashboard.
         -- Ref: https://docs.dashql.com/grammar/param
         INPUT country TYPE VARCHAR USING TEXT (
-            default_value = 'DE'
+            default_value = 'DE',
+            position = (row = 0, column = 0, width = 6, height = 4)
         );
 
         -- Load data from external sources like HTTP REST APIs.
