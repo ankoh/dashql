@@ -10,7 +10,7 @@
         "hash-wasm": "^4.6.0",
         "immutable": "^4.0.0-rc.12",
         "redux": "^4.0.5",
-        "vega": "^5.20.0",
+        "vega": "^5.20.2",
         "vega-lite": "^5.0.0"
     },
     "devDependencies": {
