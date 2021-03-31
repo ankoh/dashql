@@ -123,7 +123,7 @@ std::vector<std::string> WebDBFileSystem::Glob(const std::string &path) {
 FileSystemStreamBuffer::FileSystemStreamBuffer(duckdb::FileSystem &file_system, duckdb::FileHandle &file_handle)
     : file_system_(file_system),
       file_handle_(file_handle),
-      file_size_(file_system_.GetFileSize(file_handle_)),
+      file_size_(file_system_.GetFileSize(file_handle)),
       file_pos_(0) {
     buffer_.reserve(FS_STREAMBUF_SIZE);
 }
@@ -158,7 +158,7 @@ FileSystemStreamBuffer::int_type FileSystemStreamBuffer::underflow() {
     if (gptr() < egptr()) return *gptr();
     if (file_pos_ >= file_size_) return std::streambuf::traits_type::eof();
 
-    auto read = std::min(file_size_ - file_pos_, (int64_t)buffer_.capacity());
+    auto read = std::min(file_size_ - (int64_t)file_pos_, (int64_t)buffer_.capacity());
     buffer_.resize(read);
     file_system_.Read(file_handle_, &buffer_[0], read, file_pos_);
     setg(&buffer_[0], &buffer_[0], &buffer_[0] + buffer_.size());
