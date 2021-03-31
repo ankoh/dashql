@@ -3,4 +3,5 @@
 /node_modules
 /duckdb_webapi.*
 /dist
+/docs
 *.d.ts.map
