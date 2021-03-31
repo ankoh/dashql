@@ -174,10 +174,11 @@ void VizComponent::ReadFrom(size_t node_id) {
     };
 
     /// Get position attributes
-    auto pos_row = SelectAltOption("position.row", matches[ID_POS_ROW].node_id, matches[ID_ROW].node_id);
-    auto pos_column = SelectAltOption("position.column", matches[ID_POS_COLUMN].node_id, matches[ID_COLUMN].node_id);
-    auto pos_width = SelectAltOption("position.width", matches[ID_POS_WIDTH].node_id, matches[ID_WIDTH].node_id);
-    auto pos_height = SelectAltOption("position.height", matches[ID_POS_HEIGHT].node_id, matches[ID_HEIGHT].node_id);
+    auto& i = instance;
+    auto pos_row = SelectAltOption(i, "position.row", matches[ID_POS_ROW].node_id, matches[ID_ROW].node_id);
+    auto pos_column = SelectAltOption(i, "position.column", matches[ID_POS_COLUMN].node_id, matches[ID_COLUMN].node_id);
+    auto pos_width = SelectAltOption(i, "position.width", matches[ID_POS_WIDTH].node_id, matches[ID_WIDTH].node_id);
+    auto pos_height = SelectAltOption(i, "position.height", matches[ID_POS_HEIGHT].node_id, matches[ID_HEIGHT].node_id);
     if (AnyOptionSet({pos_row, pos_column, pos_width, pos_height})) {
         // Already provided by a previous component?
         if (viz_stmt_.specified_position()) {
@@ -206,33 +207,6 @@ void VizComponent::ReadFrom(size_t node_id) {
             viz_stmt_.title() = title_;
         }
     }
-}
-
-/// Select an option
-bool VizComponent::AnyOptionSet(std::initializer_list<size_t> node_ids) const {
-    bool any = false;
-    for (auto node_id : node_ids) {
-        any |= node_id < INVALID_NODE_ID;
-    }
-    return any;
-}
-
-/// Select an option with alternative
-size_t VizComponent::SelectAltOption(std::string_view label, size_t node_id, size_t alt_node_id) const {
-    auto& instance = viz_stmt_.instance();
-    size_t selection = INVALID_NODE_ID;
-    if (node_id < INVALID_NODE_ID) {
-        selection = node_id;
-        if (alt_node_id < INVALID_NODE_ID) {
-            instance.Add(LinterMessage{LinterMessageCode::OPTION_ALTERNATIVE_STYLE, alt_node_id}
-                         << "option superseded by '" << label << "'");
-        }
-    } else if (alt_node_id < INVALID_NODE_ID) {
-        selection = alt_node_id;
-        instance.Add(LinterMessage{LinterMessageCode::OPTION_ALTERNATIVE_STYLE, alt_node_id}
-                     << "option should be specified as '" << label << "'");
-    }
-    return selection;
 }
 
 /// Read component from a node
@@ -293,7 +267,7 @@ flatbuffers::Offset<proto::analyzer::VizComponent> VizComponent::Pack(flatbuffer
     auto modifiers_vec = builder.CreateVector(modifiers);
 
     // Print the spec
-    std::optional<flatbuffers::Offset<flatbuffers::String>> spec;
+    flatbuffers::Offset<flatbuffers::String> spec;
     {
         std::stringstream out;
         PrintOptionsAsJSON(out, false);
@@ -304,7 +278,7 @@ flatbuffers::Offset<proto::analyzer::VizComponent> VizComponent::Pack(flatbuffer
     proto::analyzer::VizComponentBuilder cb{builder};
     cb.add_type(type_);
     cb.add_type_modifiers(modifiers_vec);
-    if (spec) cb.add_options(*spec);
+    cb.add_options(spec);
     return cb.Finish();
 }
 

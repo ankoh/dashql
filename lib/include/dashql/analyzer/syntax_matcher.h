@@ -113,9 +113,7 @@ struct SyntaxMatcher {
 
     /// Add children
     inline SyntaxMatcher& MatchChildren(std::initializer_list<SyntaxMatcher> c) {
-        assert(std::is_sorted(c.begin(), c.end(), [&](auto& l, auto& r) {
-            return l.attribute_key < r.attribute_key;
-        }));
+        assert(std::is_sorted(c.begin(), c.end(), [&](auto& l, auto& r) { return l.attribute_key < r.attribute_key; }));
         children = std::move(c);
         return *this;
     }
@@ -173,6 +171,11 @@ struct SyntaxMatcher {
     bool Match(const ProgramInstance& program, size_t node_id, nonstd::span<NodeMatch> matching) const;
 };
 using sxm = SyntaxMatcher;
+
+/// Is any option node set?
+bool AnyOptionSet(std::initializer_list<size_t> node_ids);
+/// Select an option with alternative
+size_t SelectAltOption(ProgramInstance& instance, std::string_view label, size_t node_id, size_t alt_node_id);
 
 }  // namespace dashql
 

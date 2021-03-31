@@ -1608,7 +1608,7 @@
         <statements>
             <statement type="INPUT" name="global.a">
                 <node type="OBJECT_DASHQL_INPUT" loc="9..29" text="input a ty..pe integer">
-                    <node key="DASHQL_INPUT_TYPE" value="INTEGER" />
+                    <node key="DASHQL_INPUT_COMPONENT_TYPE" value="INTEGER" />
                     <node key="DASHQL_STATEMENT_NAME">
                         <node loc="15..16" text="a" />
                     </node>
@@ -1688,7 +1688,7 @@
         <statements>
             <statement type="INPUT" name="global.month">
                 <node type="OBJECT_DASHQL_INPUT" loc="9..33" text="input mont..pe integer">
-                    <node key="DASHQL_INPUT_TYPE" value="INTEGER" />
+                    <node key="DASHQL_INPUT_COMPONENT_TYPE" value="INTEGER" />
                     <node key="DASHQL_STATEMENT_NAME">
                         <node loc="15..20" text="month" />
                     </node>

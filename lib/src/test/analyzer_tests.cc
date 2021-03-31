@@ -147,14 +147,14 @@ proto::action::ActionStatusCode AnalyzerTest::GetActionStatus(std::string_view t
 }
 
 // Read a input type
-proto::syntax::InputType AnalyzerTest::GetInputType(std::string_view type) {
-    auto tt = proto::syntax::InputTypeTypeTable();
+proto::syntax::InputComponentType AnalyzerTest::GetInputType(std::string_view type) {
+    auto tt = proto::syntax::InputComponentTypeTypeTable();
     auto& names = tt->names;
     auto& num_elems = tt->num_elems;
     for (unsigned i = 0; i < num_elems; ++i) {
-        if (type == std::string_view{names[i]}) return static_cast<proto::syntax::InputType>(i);
+        if (type == std::string_view{names[i]}) return static_cast<proto::syntax::InputComponentType>(i);
     }
-    return proto::syntax::InputType::NONE;
+    return proto::syntax::InputComponentType::NONE;
 }
 
 // Read a input

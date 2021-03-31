@@ -174,4 +174,30 @@ bool SyntaxMatcher::Match(const ProgramInstance& program, size_t root_id, nonstd
     return full_match;
 }
 
+/// Select an option
+bool AnyOptionSet(std::initializer_list<size_t> node_ids) {
+    bool any = false;
+    for (auto node_id : node_ids) {
+        any |= node_id < INVALID_NODE_ID;
+    }
+    return any;
+}
+
+/// Select an option with alternative
+size_t SelectAltOption(ProgramInstance& instance, std::string_view label, size_t node_id, size_t alt_node_id) {
+    size_t selection = INVALID_NODE_ID;
+    if (node_id < INVALID_NODE_ID) {
+        selection = node_id;
+        if (alt_node_id < INVALID_NODE_ID) {
+            instance.Add(LinterMessage{LinterMessageCode::OPTION_ALTERNATIVE_STYLE, alt_node_id}
+                         << "option superseded by '" << label << "'");
+        }
+    } else if (alt_node_id < INVALID_NODE_ID) {
+        selection = alt_node_id;
+        instance.Add(LinterMessage{LinterMessageCode::OPTION_ALTERNATIVE_STYLE, alt_node_id}
+                     << "option should be specified as '" << label << "'");
+    }
+    return selection;
+}
+
 }  // namespace dashql
