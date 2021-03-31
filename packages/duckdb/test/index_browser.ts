@@ -25,11 +25,11 @@ import { testExtractCSV } from './extract_csv.test';
 // Loading debug symbols, especially for WASM take insanely long so we just disable the test timeout
 jasmine.DEFAULT_TIMEOUT_INTERVAL = 999999999;
 
-// testProxies(() => db!);
-// testBindings(() => db!);
-// testIterator(() => db!);
-// testAsyncIterator(() => adb!);
-// testFilesystem(() => adb!, '/data');
+testProxies(() => db!);
+testBindings(() => db!);
+testIterator(() => db!);
+testAsyncIterator(() => adb!);
+testFilesystem(() => adb!, '/data');
 testExtractCSV(
     () => adb!,
     (buf: Uint8Array) => URL.createObjectURL(new Blob([buf.buffer], { type: 'text/plain' })),
