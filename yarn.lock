@@ -238,25 +238,6 @@
     lodash "^4.17.19"
     to-fast-properties "^2.0.0"
 
-"@dashql/proto@^0.0.4":
-  version "0.0.4"
-  resolved "https://registry.yarnpkg.com/@dashql/proto/-/proto-0.0.4.tgz#076224a9a232893bda322be67eb704d40e62795e"
-  integrity sha512-JhsNfcr2Yh2nUF5tW7+wUlVuCUJv/+hu+JIWWhtqtG8hqq9L9TNisTC0nnCAIkSB7HNnYMcMszWqw5WDCh+yJQ==
-  dependencies:
-    flatbuffers "^1.12.0"
-  optionalDependencies:
-    fsevents "*"
-
-"@dashql/webdb@^0.0.20":
-  version "0.0.20"
-  resolved "https://registry.yarnpkg.com/@dashql/webdb/-/webdb-0.0.20.tgz#951d406b3e158b3c896540f12084b9301135190a"
-  integrity sha512-+61NWR2RFUqSGjGPVaIcsNWUF2USUCn1ei7ndbXYXgReS/a2TFH19iCfIbMX0imT592zfgGBlAvCWhOQLXLy9w==
-  dependencies:
-    "@dashql/proto" "^0.0.4"
-    glob-to-regexp "^0.4.1"
-  optionalDependencies:
-    fsevents "*"
-
 "@discoveryjs/json-ext@^0.5.0":
   version "0.5.2"
   resolved "https://registry.yarnpkg.com/@discoveryjs/json-ext/-/json-ext-0.5.2.tgz#8f03a22a04de437254e8ce8cc84ba39689288752"
@@ -5164,10 +5145,10 @@ react-draggable@^4.0.0, react-draggable@^4.0.3, react-draggable@^4.4.3:
     classnames "^2.2.5"
     prop-types "^15.6.0"
 
-react-flow-renderer@^9.4.0:
-  version "9.4.0"
-  resolved "https://registry.yarnpkg.com/react-flow-renderer/-/react-flow-renderer-9.4.0.tgz#19dceac8148ca32ca182026e9074997dde223bcc"
-  integrity sha512-jv3w2RnoK5CC4tSKD48x9HWoaZZFjQbGAtu5lIeYtmgBKRaOFrA2t+zxgdenSALAXd2k9J+L5hXlY18FvtBmmA==
+react-flow-renderer@^9.4.2:
+  version "9.4.2"
+  resolved "https://registry.yarnpkg.com/react-flow-renderer/-/react-flow-renderer-9.4.2.tgz#e1c6167e909cd935e1c8ed92ce33c9c8b64bd73e"
+  integrity sha512-oc8sMMn5gSrcbHpiQ6umK+yH22m/RyBxlFh3wCTiEIqv5r8RACcbf1fe4+7KVc4TnhDc+5Z6ATaBZc6SmtE7vA==
   dependencies:
     "@babel/runtime" "^7.13.10"
     "@types/d3" "^6.3.0"
