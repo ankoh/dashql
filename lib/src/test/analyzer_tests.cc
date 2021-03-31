@@ -67,9 +67,23 @@ void AnalyzerTest::EncodePlan(pugi::xml_node root, const ProgramInstance& instan
         EncodeLocation(e, instance.program().nodes[node_value.root_node_id].location(), instance.program_text());
     });
 
-    auto vizzes = root.append_child("visualizations");
+    auto cards = root.append_child("cards");
+    for (auto& viz : instance.input_statements()) {
+        auto i = cards.append_child("input");
+        if (auto& title = viz->title(); title.has_value()) {
+            std::string copy{*title};
+            i.append_attribute("title").set_value(copy.c_str());
+        }
+        if (auto pos = viz->specified_position()) {
+            auto p = i.append_child("position");
+            p.append_attribute("row") = pos->row();
+            p.append_attribute("column") = pos->column();
+            p.append_attribute("width") = pos->width();
+            p.append_attribute("height") = pos->height();
+        }
+    }
     for (auto& viz : instance.viz_statements()) {
-        auto v = vizzes.append_child("visualization");
+        auto v = cards.append_child("visualization");
         if (auto& title = viz->title(); title.has_value()) {
             std::string copy{*title};
             v.append_attribute("title").set_value(copy.c_str());
@@ -154,7 +168,7 @@ proto::syntax::InputComponentType AnalyzerTest::GetInputType(std::string_view ty
     for (unsigned i = 0; i < num_elems; ++i) {
         if (type == std::string_view{names[i]}) return static_cast<proto::syntax::InputComponentType>(i);
     }
-    return proto::syntax::InputComponentType::NONE;
+    return proto::syntax::InputComponentType::TEXT;
 }
 
 // Read a input

@@ -16,6 +16,11 @@ std::unique_ptr<InputStatement> InputStatement::ReadFrom(ProgramInstance& instan
     auto& program = instance.program();
     auto& stmt = program.statements[stmt_id];
 
+    // Eagerly abort if not an input statement
+    if (program.nodes[stmt->root_node].node_type() != sx::NodeType::OBJECT_DASHQL_INPUT) {
+        return nullptr;
+    }
+
     // Extract important metadata for the analyzer
     constexpr size_t ID_POS_ROW = 0;
     constexpr size_t ID_POS_COLUMN = 1;
@@ -27,11 +32,17 @@ std::unique_ptr<InputStatement> InputStatement::ReadFrom(ProgramInstance& instan
     constexpr size_t ID_HEIGHT = 7;
     constexpr size_t ID_TITLE = 8;
     constexpr size_t ID_TYPE = 9;
+    constexpr size_t ID_INPUT_COMPONENT_TYPE = 10;
+    constexpr size_t ID_STATEMENT_NAME = 11;
 
     // clang-format off
     static const auto schema = sxm::Element()
         .MatchObject(sx::NodeType::OBJECT_DASHQL_INPUT)
         .MatchChildren({
+            sxm::Option(sx::AttributeKey::DASHQL_INPUT_COMPONENT_TYPE, ID_INPUT_COMPONENT_TYPE)
+                .MatchEnum(sx::NodeType::ENUM_DASHQL_INPUT_COMPONENT_TYPE),
+            sxm::Option(sx::AttributeKey::DASHQL_STATEMENT_NAME, ID_STATEMENT_NAME)
+                .MatchString(),
             sxm::Option(sx::AttributeKey::DASHQL_OPTION_ROW, ID_ROW),
             sxm::Option(sx::AttributeKey::DASHQL_OPTION_COLUMN, ID_COLUMN),
             sxm::Option(sx::AttributeKey::DASHQL_OPTION_WIDTH, ID_WIDTH),
@@ -45,12 +56,10 @@ std::unique_ptr<InputStatement> InputStatement::ReadFrom(ProgramInstance& instan
                     sxm::Option(sx::AttributeKey::DASHQL_OPTION_HEIGHT, ID_POS_HEIGHT),
                 }),
             sxm::Option(sx::AttributeKey::DASHQL_OPTION_TITLE, ID_TITLE),
-            sxm::Option(sx::AttributeKey::DASHQL_OPTION_TYPE, ID_TYPE)
-                .MatchEnum(sx::NodeType::ENUM_DASHQL_INPUT_COMPONENT_TYPE),
         });
     // clang-format on
 
-    std::array<NodeMatch, 11> matches;
+    std::array<NodeMatch, 12> matches;
     schema.Match(instance, stmt->root_node, matches);
 
     // Create the viz statement

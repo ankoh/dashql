@@ -3,14 +3,8 @@
 namespace dashql.proto.syntax;
 
 enum InputComponentType: uint8 {
-    NONE = 0,
-    INTEGER = 1,
-    FLOAT = 2,
-    TEXT = 3,
-    DATE = 4,
-    DATETIME = 5,
-    TIME = 6,
-    FILE = 7,
+    TEXT = 0,
+    FILE = 1,
 }
 
 enum LoadMethodType: uint8 {

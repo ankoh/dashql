@@ -1600,64 +1600,67 @@
 </test>
 <test name="select_column_ref_expr_1">
     <input>
-        input a type integer;
+        input a type integer using text;
         select 1 into b;
         select c from b where c = global.a + 1
     </input>
     <expected>
         <statements>
             <statement type="INPUT" name="global.a">
-                <node type="OBJECT_DASHQL_INPUT" loc="9..29" text="input a ty..pe integer">
-                    <node key="DASHQL_INPUT_COMPONENT_TYPE" value="INTEGER" />
+                <node type="OBJECT_DASHQL_INPUT" loc="9..40" text="input a ty..using text">
+                    <node key="DASHQL_INPUT_VALUE_TYPE" type="OBJECT_SQL_TYPENAME" loc="22..29" text="integer">
+                        <node key="SQL_TYPENAME_TYPE" value="INT4" />
+                    </node>
+                    <node key="DASHQL_INPUT_COMPONENT_TYPE" value="TEXT" />
                     <node key="DASHQL_STATEMENT_NAME">
                         <node loc="15..16" text="a" />
                     </node>
                 </node>
             </statement>
             <statement type="SELECT_INTO" name="global.b">
-                <node type="OBJECT_SQL_SELECT" loc="39..54" text="select 1 into b">
-                    <node key="SQL_SELECT_INTO" type="OBJECT_SQL_INTO" loc="53..54" text="b">
+                <node type="OBJECT_SQL_SELECT" loc="50..65" text="select 1 into b">
+                    <node key="SQL_SELECT_INTO" type="OBJECT_SQL_INTO" loc="64..65" text="b">
                         <node key="SQL_TEMP_NAME">
-                            <node loc="53..54" text="b" />
+                            <node loc="64..65" text="b" />
                         </node>
                         <node key="SQL_TEMP_TYPE" value="DEFAULT" />
                     </node>
                     <node key="SQL_SELECT_TARGETS">
-                        <node loc="46..47" text="1" />
+                        <node loc="57..58" text="1" />
                     </node>
                 </node>
             </statement>
             <statement type="SELECT" name="global.b">
-                <node type="OBJECT_SQL_SELECT" loc="64..102" text="select c f..obal.a + 1">
+                <node type="OBJECT_SQL_SELECT" loc="75..113" text="select c f..obal.a + 1">
                     <node key="SQL_SELECT_FROM">
-                        <node type="OBJECT_SQL_TABLE_REF" loc="78..79" text="b">
+                        <node type="OBJECT_SQL_TABLE_REF" loc="89..90" text="b">
                             <node key="SQL_TABLE_INHERIT" value="true" />
                             <node key="SQL_TABLE_NAME">
-                                <node loc="78..79" text="b" />
+                                <node loc="89..90" text="b" />
                             </node>
                         </node>
                     </node>
                     <node key="SQL_SELECT_TARGETS">
-                        <node type="OBJECT_SQL_COLUMN_REF" loc="71..72" text="c">
+                        <node type="OBJECT_SQL_COLUMN_REF" loc="82..83" text="c">
                             <node key="SQL_COLUMN_REF_PATH">
-                                <node loc="71..72" text="c" />
+                                <node loc="82..83" text="c" />
                             </node>
                         </node>
                     </node>
-                    <node key="SQL_SELECT_WHERE" type="OBJECT_SQL_EXPRESSION" loc="86..102" text="c = global.a + 1">
-                        <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="86..87" text="c">
+                    <node key="SQL_SELECT_WHERE" type="OBJECT_SQL_EXPRESSION" loc="97..113" text="c = global.a + 1">
+                        <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="97..98" text="c">
                             <node key="SQL_COLUMN_REF_PATH">
-                                <node loc="86..87" text="c" />
+                                <node loc="97..98" text="c" />
                             </node>
                         </node>
-                        <node key="SQL_EXPRESSION_ARG1" type="OBJECT_SQL_EXPRESSION" loc="90..102" text="global.a + 1">
-                            <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="90..98" text="global.a">
+                        <node key="SQL_EXPRESSION_ARG1" type="OBJECT_SQL_EXPRESSION" loc="101..113" text="global.a + 1">
+                            <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="101..109" text="global.a">
                                 <node key="SQL_COLUMN_REF_PATH">
-                                    <node loc="90..96" text="global" />
-                                    <node loc="97..98" text="a" />
+                                    <node loc="101..107" text="global" />
+                                    <node loc="108..109" text="a" />
                                 </node>
                             </node>
-                            <node key="SQL_EXPRESSION_ARG1" loc="101..102" text="1" />
+                            <node key="SQL_EXPRESSION_ARG1" loc="112..113" text="1" />
                             <node key="SQL_EXPRESSION_FUNCTION" value="PLUS" />
                         </node>
                         <node key="SQL_EXPRESSION_FUNCTION" value="EQUAL" />
@@ -1668,83 +1671,86 @@
         <errors />
         <line_breaks>
             <line_break loc="0..1" text="&#10;" />
-            <line_break loc="30..31" text="&#10;" />
-            <line_break loc="55..56" text="&#10;" />
-            <line_break loc="102..103" text="&#10;" />
+            <line_break loc="41..42" text="&#10;" />
+            <line_break loc="66..67" text="&#10;" />
+            <line_break loc="113..114" text="&#10;" />
         </line_breaks>
         <comments />
         <dependencies>
-            <dependency type="TABLE_REF" source="1" target="2" loc="78..79" text="b" />
-            <dependency type="COLUMN_REF" source="0" target="2" loc="90..98" text="global.a" />
+            <dependency type="TABLE_REF" source="1" target="2" loc="89..90" text="b" />
+            <dependency type="COLUMN_REF" source="0" target="2" loc="101..109" text="global.a" />
         </dependencies>
     </expected>
 </test>
 <test name="select_column_ref_expr_2">
     <input>
-        input month type integer;
+        input month type integer using text;
         select * into countries_joined from country1_weather c1, country2_weather c2 where c1.month = c2.month and c2.month = global.month
     </input>
     <expected>
         <statements>
             <statement type="INPUT" name="global.month">
-                <node type="OBJECT_DASHQL_INPUT" loc="9..33" text="input mont..pe integer">
-                    <node key="DASHQL_INPUT_COMPONENT_TYPE" value="INTEGER" />
+                <node type="OBJECT_DASHQL_INPUT" loc="9..44" text="input mont..using text">
+                    <node key="DASHQL_INPUT_VALUE_TYPE" type="OBJECT_SQL_TYPENAME" loc="26..33" text="integer">
+                        <node key="SQL_TYPENAME_TYPE" value="INT4" />
+                    </node>
+                    <node key="DASHQL_INPUT_COMPONENT_TYPE" value="TEXT" />
                     <node key="DASHQL_STATEMENT_NAME">
                         <node loc="15..20" text="month" />
                     </node>
                 </node>
             </statement>
             <statement type="SELECT_INTO" name="global.countries_joined">
-                <node type="OBJECT_SQL_SELECT" loc="43..173" text="select * i..obal.month">
+                <node type="OBJECT_SQL_SELECT" loc="54..184" text="select * i..obal.month">
                     <node key="SQL_SELECT_FROM">
-                        <node type="OBJECT_SQL_TABLE_REF" loc="79..98" text="country1_weather c1">
-                            <node key="SQL_TABLE_ALIAS" loc="96..98" text="c1" />
+                        <node type="OBJECT_SQL_TABLE_REF" loc="90..109" text="country1_weather c1">
+                            <node key="SQL_TABLE_ALIAS" loc="107..109" text="c1" />
                             <node key="SQL_TABLE_INHERIT" value="true" />
                             <node key="SQL_TABLE_NAME">
-                                <node loc="79..95" text="country1_weather" />
+                                <node loc="90..106" text="country1_weather" />
                             </node>
                         </node>
-                        <node type="OBJECT_SQL_TABLE_REF" loc="100..119" text="country2_weather c2">
-                            <node key="SQL_TABLE_ALIAS" loc="117..119" text="c2" />
+                        <node type="OBJECT_SQL_TABLE_REF" loc="111..130" text="country2_weather c2">
+                            <node key="SQL_TABLE_ALIAS" loc="128..130" text="c2" />
                             <node key="SQL_TABLE_INHERIT" value="true" />
                             <node key="SQL_TABLE_NAME">
-                                <node loc="100..116" text="country2_weather" />
+                                <node loc="111..127" text="country2_weather" />
                             </node>
                         </node>
                     </node>
-                    <node key="SQL_SELECT_INTO" type="OBJECT_SQL_INTO" loc="57..73" text="countries_joined">
+                    <node key="SQL_SELECT_INTO" type="OBJECT_SQL_INTO" loc="68..84" text="countries_joined">
                         <node key="SQL_TEMP_NAME">
-                            <node loc="57..73" text="countries_joined" />
+                            <node loc="68..84" text="countries_joined" />
                         </node>
                         <node key="SQL_TEMP_TYPE" value="DEFAULT" />
                     </node>
-                    <node key="SQL_SELECT_WHERE" type="OBJECT_SQL_EXPRESSION" loc="126..173" text="c1.month =..obal.month">
-                        <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_EXPRESSION" loc="126..145" text="c1.month = c2.month">
-                            <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="126..134" text="c1.month">
+                    <node key="SQL_SELECT_WHERE" type="OBJECT_SQL_EXPRESSION" loc="137..184" text="c1.month =..obal.month">
+                        <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_EXPRESSION" loc="137..156" text="c1.month = c2.month">
+                            <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="137..145" text="c1.month">
                                 <node key="SQL_COLUMN_REF_PATH">
-                                    <node loc="126..128" text="c1" />
-                                    <node loc="129..134" text="month" />
+                                    <node loc="137..139" text="c1" />
+                                    <node loc="140..145" text="month" />
                                 </node>
                             </node>
-                            <node key="SQL_EXPRESSION_ARG1" type="OBJECT_SQL_COLUMN_REF" loc="137..145" text="c2.month">
+                            <node key="SQL_EXPRESSION_ARG1" type="OBJECT_SQL_COLUMN_REF" loc="148..156" text="c2.month">
                                 <node key="SQL_COLUMN_REF_PATH">
-                                    <node loc="137..139" text="c2" />
-                                    <node loc="140..145" text="month" />
+                                    <node loc="148..150" text="c2" />
+                                    <node loc="151..156" text="month" />
                                 </node>
                             </node>
                             <node key="SQL_EXPRESSION_FUNCTION" value="EQUAL" />
                         </node>
-                        <node key="SQL_EXPRESSION_ARG1" type="OBJECT_SQL_EXPRESSION" loc="150..173" text="c2.month =..obal.month">
-                            <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="150..158" text="c2.month">
+                        <node key="SQL_EXPRESSION_ARG1" type="OBJECT_SQL_EXPRESSION" loc="161..184" text="c2.month =..obal.month">
+                            <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="161..169" text="c2.month">
                                 <node key="SQL_COLUMN_REF_PATH">
-                                    <node loc="150..152" text="c2" />
-                                    <node loc="153..158" text="month" />
+                                    <node loc="161..163" text="c2" />
+                                    <node loc="164..169" text="month" />
                                 </node>
                             </node>
-                            <node key="SQL_EXPRESSION_ARG1" type="OBJECT_SQL_COLUMN_REF" loc="161..173" text="global.month">
+                            <node key="SQL_EXPRESSION_ARG1" type="OBJECT_SQL_COLUMN_REF" loc="172..184" text="global.month">
                                 <node key="SQL_COLUMN_REF_PATH">
-                                    <node loc="161..167" text="global" />
-                                    <node loc="168..173" text="month" />
+                                    <node loc="172..178" text="global" />
+                                    <node loc="179..184" text="month" />
                                 </node>
                             </node>
                             <node key="SQL_EXPRESSION_FUNCTION" value="EQUAL" />
@@ -1757,12 +1763,12 @@
         <errors />
         <line_breaks>
             <line_break loc="0..1" text="&#10;" />
-            <line_break loc="34..35" text="&#10;" />
-            <line_break loc="173..174" text="&#10;" />
+            <line_break loc="45..46" text="&#10;" />
+            <line_break loc="184..185" text="&#10;" />
         </line_breaks>
         <comments />
         <dependencies>
-            <dependency type="COLUMN_REF" source="0" target="1" loc="161..173" text="global.month" />
+            <dependency type="COLUMN_REF" source="0" target="1" loc="172..184" text="global.month" />
         </dependencies>
     </expected>
 </test>
