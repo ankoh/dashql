@@ -31,26 +31,22 @@ class InputStatement {
     ProgramInstance& instance_;
     /// The statement id
     const size_t statement_id_;
-    /// The target
-    const size_t target_node_id_;
     /// The specified position
     std::optional<proto::analyzer::CardPosition> specified_position_ = std::nullopt;
     /// The title
-    std::optional<std::string_view> title_ = std::nullopt;
+    std::optional<std::string> title_ = std::nullopt;
     /// The patches
     std::unordered_map<size_t, std::pair<sx::AttributeKey, rapidjson::Document>> patches_;
 
    public:
     /// Constructor
-    InputStatement(ProgramInstance& instance, size_t statement_id, size_t target_node_id);
+    InputStatement(ProgramInstance& instance, size_t statement_id);
     /// Get the instance
     auto& instance() { return instance_; }
     /// Get the specified position
     auto& specified_position() { return specified_position_; }
     /// Get the title
     auto& title() { return title_; }
-    /// Get the target node
-    auto target_node_id() const { return target_node_id_; }
     /// Print as script
     void PrintScript(std::ostream& out) const;
     /// Pack the viz specs
