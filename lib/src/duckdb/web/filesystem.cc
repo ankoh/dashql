@@ -170,8 +170,8 @@ FileSystemStreamBuffer::int_type FileSystemStreamBuffer::underflow() {
 }  // namespace duckdb
 
 extern "C" {
-extern int64_t duckdb_web_fs_read(dashql::BlobID blobId, void *buffer, int64_t bytes);
-extern int64_t duckdb_web_fs_write(dashql::BlobID blobId, void *buffer, int64_t bytes);
+extern ssize_t duckdb_web_fs_read(dashql::BlobID blobId, void *buffer, ssize_t bytes);
+extern ssize_t duckdb_web_fs_write(dashql::BlobID blobId, void *buffer, ssize_t bytes);
 
 extern void duckdb_web_fs_directory_remove(const char *path, size_t pathLen);
 extern bool duckdb_web_fs_directory_exists(const char *path, size_t pathLen);
@@ -187,7 +187,7 @@ void duckdb_web_fs_glob_callback(const char *path, size_t pathLen) { glob_result
 
 extern dashql::BlobID duckdb_web_fs_file_open(const char *path, size_t pathLen, uint8_t flags);
 extern void duckdb_web_fs_file_close(dashql::BlobID blobId);
-extern int64_t duckdb_web_fs_file_get_size(dashql::BlobID blobId);
+extern ssize_t duckdb_web_fs_file_get_size(dashql::BlobID blobId);
 extern time_t duckdb_web_fs_file_get_last_modified_time(dashql::BlobID blobId);
 extern void duckdb_web_fs_file_move(const char *from, size_t fromLen, const char *to, size_t toLen);
 extern void duckdb_web_fs_file_set_pointer(dashql::BlobID blobId, duckdb::idx_t location);
