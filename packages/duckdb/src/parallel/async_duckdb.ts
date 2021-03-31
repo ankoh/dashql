@@ -27,7 +27,7 @@ class Task<T, D, P> {
 
 type TaskVariant =
     | Task<AsyncDuckDBRequestType.RESET, null, null>
-    | Task<AsyncDuckDBRequestType.IMPORT_CSV, [number, number, string, string], null>
+    | Task<AsyncDuckDBRequestType.IMPORT_CSV, [number, string, string, string], null>
     | Task<AsyncDuckDBRequestType.PING, null, null>
     | Task<AsyncDuckDBRequestType.REGISTER_URL, string, null>
     | Task<AsyncDuckDBRequestType.OPEN_URL, string, number>
@@ -244,11 +244,11 @@ export class AsyncDuckDB {
         return await this.postTask(task);
     }
 
-    /// Import csv from a blob stream
-    public async importCSV(conn: ConnectionID, blobId: number, schemaName: string, tableName: string): Promise<null> {
-        const task = new Task<AsyncDuckDBRequestType.IMPORT_CSV, [number, number, string, string], null>(
+    /// Import csv from a given URL
+    public async importCSV(conn: ConnectionID, filePath: string, schemaName: string, tableName: string): Promise<null> {
+        const task = new Task<AsyncDuckDBRequestType.IMPORT_CSV, [number, string, string, string], null>(
             AsyncDuckDBRequestType.IMPORT_CSV,
-            [conn, blobId, schemaName, tableName],
+            [conn, filePath, schemaName, tableName],
         );
         return await this.postTask(task);
     }
@@ -366,8 +366,8 @@ export class AsyncDuckDBConnection implements AsyncConnection {
         return this._instance.fetchQueryResults(this._conn);
     }
 
-    /// Import csv from a blob stream
-    public async importCSV(blobId: number, schemaName: string, tableName: string) {
-        return this._instance.importCSV(this._conn, blobId, schemaName, tableName);
+    /// Import csv from a given URL
+    public async importCSV(filePath: string, schemaName: string, tableName: string) {
+        return this._instance.importCSV(this._conn, filePath, schemaName, tableName);
     }
 }

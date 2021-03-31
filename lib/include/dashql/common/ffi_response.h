@@ -3,6 +3,7 @@
 #ifndef INCLUDE_DASHQL_COMMON_FFI_RESPONSE_H_
 #define INCLUDE_DASHQL_COMMON_FFI_RESPONSE_H_
 
+#include <iostream>
 #include <variant>
 
 #include "dashql/common/error.h"
