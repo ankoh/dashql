@@ -40,25 +40,25 @@ type TaskVariant =
 
 export class AsyncDuckDB {
     /** The message handler */
-    _onMessageHandler: (event: MessageEvent) => void;
+    protected _onMessageHandler: (event: MessageEvent) => void;
     /** The error handler */
-    _onErrorHandler: (event: ErrorEvent) => void;
+    protected _onErrorHandler: (event: ErrorEvent) => void;
     /** The close handler */
-    _onCloseHandler: () => void;
+    protected _onCloseHandler: () => void;
 
     /** The logger */
-    _logger: Logger;
+    protected _logger: Logger;
     /** The worker */
-    _worker: Worker | null = null;
+    protected _worker: Worker | null = null;
     /** The promise for the worker shutdown */
-    _workerShutdownPromise: Promise<null> | null = null;
+    protected _workerShutdownPromise: Promise<null> | null = null;
     /** Make the worker as terminated */
-    _workerShutdownResolver: (value: PromiseLike<null> | null) => void = () => {};
+    protected _workerShutdownResolver: (value: PromiseLike<null> | null) => void = () => {};
 
     /** The next message id */
-    _nextMessageId: number = 0;
+    protected _nextMessageId: number = 0;
     /** The pending requests */
-    _pendingRequests: Map<number, TaskVariant> = new Map();
+    protected _pendingRequests: Map<number, TaskVariant> = new Map();
 
     constructor(logger: Logger, worker: Worker | null = null) {
         this._logger = logger;

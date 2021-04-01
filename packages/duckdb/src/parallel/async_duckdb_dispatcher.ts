@@ -9,9 +9,9 @@ import { Logger, LogEntryVariant } from '../common';
 
 export abstract class AsyncDuckDBDispatcher implements Logger {
     /** The bindings */
-    _bindings: DuckDBBindings | null = null;
+    protected _bindings: DuckDBBindings | null = null;
     /** The next message id */
-    _nextMessageId: number = 0;
+    protected _nextMessageId: number = 0;
 
     /** Instantiate the wasm module */
     protected abstract open(path: string): Promise<DuckDBBindings>;
