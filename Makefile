@@ -183,6 +183,11 @@ app_start:
 duckdb_web:
 	yarn workspace @dashql/duckdb build
 
+# Build the duckdb docs
+.PHONY: duckdb_web_docs
+duckdb_web_docs:
+	yarn workspace @dashql/duckdb docs
+
 # Run the duckdb javascript tests
 .PHONY: duckdb_web_tests
 duckdb_web_tests:
