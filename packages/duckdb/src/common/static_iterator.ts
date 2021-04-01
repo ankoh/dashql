@@ -11,32 +11,32 @@ import { RowProxyIterator } from './proxy_iterator';
  */
 export class StaticChunkIterator extends ChunkIterator implements RewindableIterator {
     /** The chunks */
-    _chunks: proto.QueryResultChunk[];
+    protected chunks: proto.QueryResultChunk[];
 
     public constructor(resultBuffer: proto.QueryResult, additional: proto.QueryResultChunk[] = []) {
         super(resultBuffer);
-        this._chunks = [];
+        this.chunks = [];
         for (let i = 0; i < this.result.dataChunksLength(); ++i) {
-            this._chunks.push(this.result.dataChunks(i)!);
+            this.chunks.push(this.result.dataChunks(i)!);
         }
         for (let i = 0; i < additional.length; ++i) {
-            this._chunks.push(additional[i]);
+            this.chunks.push(additional[i]);
         }
     }
 
     /** Restart the chunk iterator */
     public rewind() {
-        if (this._chunks.length == 0) return;
-        this._currentChunk = this._chunks[0];
+        if (this.chunks.length == 0) return;
+        this._currentChunk = this.chunks[0];
         this._nextChunkID = 1;
     }
 
     /** Get the next chunk */
     public nextBlocking(): boolean {
-        if (this._nextChunkID >= this._chunks.length) {
+        if (this._nextChunkID >= this.chunks.length) {
             return false;
         }
-        this._currentChunk = this._chunks[this._nextChunkID++];
+        this._currentChunk = this.chunks[this._nextChunkID++];
         return true;
     }
 

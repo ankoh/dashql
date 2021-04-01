@@ -4,7 +4,7 @@ import { duckdb as proto } from '@dashql/proto';
 import { ChunkIterator } from './chunk_iterator';
 
 /**
- * An iterator that can be rewinded
+ * An iterator that can be rewound
  */
 export interface RewindableIterator {
     rewind(): void;
@@ -22,11 +22,11 @@ export function isRewindableIterator(iter: any): iter is RewindableIterator {
  */
 export class MaterializingChunkIterator extends ChunkIterator implements RewindableIterator {
     /** The iterator */
-    _iterator: ChunkIterator;
+    protected _iterator: ChunkIterator;
     /** The buffered chunks */
-    _chunks: proto.QueryResultChunk[];
+    protected _chunks: proto.QueryResultChunk[];
     /** Is the iterator depleted? */
-    _depleted: boolean;
+    protected _depleted: boolean;
 
     public constructor(iter: ChunkIterator) {
         super(iter.result);

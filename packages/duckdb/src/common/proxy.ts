@@ -111,19 +111,16 @@ function defineRowProxyType(columnNames: string[], columnProxies: AttributeProxy
 
 /** A row proxy type definition */
 export class RowProxyType {
-    /** The query result */
-    _result: proto.QueryResult;
     /** The row constructor */
-    _ctor: RowProxyCtor;
+    protected ctor: RowProxyCtor;
     /** The column names */
-    _columnNames: string[];
+    protected _columnNames: string[];
 
     public get columnNames() {
         return this._columnNames;
     }
 
-    constructor(result: proto.QueryResult) {
-        this._result = result;
+    constructor(protected result: proto.QueryResult) {
         const columnProxies: AttributeProxy[] = [];
         this._columnNames = [];
         for (let columnId = 0; columnId < result.columnTypesLength(); ++columnId) {
@@ -182,7 +179,7 @@ export class RowProxyType {
                     break;
             }
         }
-        this._ctor = defineRowProxyType(this.columnNames, columnProxies);
+        this.ctor = defineRowProxyType(this.columnNames, columnProxies);
     }
 
     /** Index the chunk data */
@@ -246,7 +243,7 @@ export class RowProxyType {
             nullmasks: [],
             partitionBoundaries: null,
         };
-        const n = this._result.columnTypesLength();
+        const n = this.result.columnTypesLength();
         for (let i = 0; i < n; ++i) {
             const nullmask = new Int8Array(1);
             nullmask[0] = 1;
@@ -275,6 +272,6 @@ export class RowProxyType {
 
     /** Get proxy for a single row */
     public proxyRow<T extends RowProxy>(data: ChunkData, rowId: number): T {
-        return this._ctor(data, rowId) as T;
+        return this.ctor(data, rowId) as T;
     }
 }
