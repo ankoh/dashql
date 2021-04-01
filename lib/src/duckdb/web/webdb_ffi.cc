@@ -4,7 +4,12 @@
 
 #include "dashql/common/ffi_response.h"
 #include "dashql/proto_generated.h"
+#include "duckdb/catalog/catalog.hpp"
 #include "duckdb/execution/operator/persistent/buffered_csv_reader.hpp"
+#include "duckdb/main/client_context.hpp"
+#include "duckdb/parser/parsed_data/create_schema_info.hpp"
+#include "duckdb/parser/parsed_data/create_table_info.hpp"
+#include "duckdb/planner/binder.hpp"
 #include "duckdb/web/filesystem.h"
 #include "duckdb/web/webdb.h"
 #include "parquet-extension.hpp"
@@ -77,17 +82,62 @@ void duckdb_web_import_csv(dashql::FFIResponse* packed, ConnectionHdl connHdl, c
     auto& fs = WebDB::GetInstance().GetFileSystem();
     auto handle = fs.OpenFile(filePath, duckdb::FileFlags::FILE_FLAGS_READ);
     duckdb::web::FileSystemStreamBuffer streambuf(fs, *handle);
+
+    std::vector<duckdb::ColumnDefinition> columns;
+
+    // Parse CSV
     try {
         duckdb::BufferedCSVReader reader(options, {}, std::make_unique<std::istream>(&streambuf));
         output_chunk.Initialize(reader.sql_types);
-
         reader.ParseCSV(output_chunk);
-        dashql::FFIResponseBuffer::GetInstance().Store(*packed, dashql::Signal::OK());
+
+        for (size_t i = 0; i < reader.col_names.size(); i++) {
+            columns.emplace_back(reader.col_names[i], reader.sql_types[i]);
+        }
     } catch (const std::exception& e) {
         dashql::FFIResponseBuffer::GetInstance().Store(*packed, dashql::Error(dashql::ErrorCode::CSV_PARSER_ERROR)
                                                                     << e.what());
+        return;
     }
+
+    // Create Table
+    auto& ctx = *c->GetConnection().context;
+    auto& catalog = duckdb::Catalog::GetCatalog(ctx);
+
+    duckdb::SchemaCatalogEntry* schema = nullptr;
+    try {
+        schema = catalog.GetSchema(ctx, schemaName);
+    } catch (duckdb::CatalogException const& e) {
+        auto info = std::make_unique<duckdb::CreateSchemaInfo>();
+        info->schema = schemaName;
+        schema = (duckdb::SchemaCatalogEntry*)catalog.CreateSchema(ctx, info.get());
+    }
+
+    try {
+        auto info = std::make_unique<duckdb::CreateTableInfo>(schemaName, tableName);
+        info->columns = columns;
+
+        duckdb::Binder binder(ctx);
+        auto bound_info = binder.BindCreateTableInfo(move(info));
+        catalog.CreateTable(ctx, bound_info.get());
+    } catch (const std::exception& e) {
+        dashql::FFIResponseBuffer::GetInstance().Store(*packed, dashql::Error(dashql::ErrorCode::CSV_PARSER_ERROR)
+                                                                    << e.what());
+        return;
+    }
+
+    // Insert Data
+    try {
+        ctx.Append(*ctx.TableInfo(schemaName, tableName), output_chunk);
+    } catch (const std::exception& e) {
+        dashql::FFIResponseBuffer::GetInstance().Store(*packed, dashql::Error(dashql::ErrorCode::CSV_PARSER_ERROR)
+                                                                    << e.what());
+        return;
+    }
+
+    dashql::FFIResponseBuffer::GetInstance().Store(*packed, dashql::Signal::OK());
 }
+
 void duckdb_web_import_json(dashql::FFIResponse* packed, ConnectionHdl connHdl, const char* jsonString,
                             const char* schemaName, const char* tableName) {}
 }
