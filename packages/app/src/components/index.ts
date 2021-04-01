@@ -1,4 +1,5 @@
-export { NavBar, withNavBar } from './navigation_bar';
+export { withNavBar as withNavBar } from './navbar';
+export { withNavBar as withMinimalNavBar } from './navbar_minimal';
 import BoardEditor from './board_editor';
 import Board from './board';
 import EditorLoader from './editor_loader';
