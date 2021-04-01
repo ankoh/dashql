@@ -129,6 +129,54 @@ export class CreateVizActionLogic extends VizActionLogic {
     }
 }
 
+export class UpdateVizActionLogic extends VizActionLogic {
+    /// The promise to get the row count
+    _rowCountPromise: Promise<duckdb.Value[]> | null = null;
+
+    constructor(action_id: model.ActionHandle, action: proto.action.ProgramAction, statement: model.Statement) {
+        super(action_id, action, statement);
+    }
+
+    public prepare(context: ActionContext, _planObjects: model.PlanObject[]): void {
+        const state = context.platform.store.getState();
+        const objectID = this.buffer.objectId().toString();
+        console.assert(state.core.cards.has(objectID), 'The card must already exist');
+    }
+
+    public willExecute(context: ActionContext) {
+        this.configureVizComposer(context);
+        this._rowCountPromise = context.platform.database.requestTableStatistics(
+            this.tableNameQualified,
+            model.TableStatisticsType.COUNT_STAR,
+        );
+    }
+
+    public async execute(context: ActionContext): Promise<void> {
+        // Make sure the row count is available in the vizzes
+        await context.platform.database.evaluateTableStatistics(this.tableNameQualified);
+        await this._rowCountPromise!;
+
+        // Get viz info
+        const oid = this.buffer.objectId().toString();
+        const state = context.platform.store.getState();
+        let card = state.core.cards.get(oid) as model.Card;
+        console.assert(card !== undefined, 'missing initial card object');
+
+        // Create new viz object
+        const now = new Date();
+        const spec = await this._vizComposer!.compile();
+        card = {
+            ...card,
+            ...spec,
+            timeUpdated: now,
+        };
+        model.mutate(context.platform.store.dispatch, {
+            type: model.StateMutationType.INSERT_PLAN_OBJECTS,
+            data: [card],
+        });
+    }
+}
+
 export class DropVizActionLogic extends SetupActionLogic {
     constructor(action_id: model.ActionHandle, action: proto.action.SetupAction) {
         super(action_id, action);
