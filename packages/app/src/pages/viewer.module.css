@@ -38,8 +38,8 @@
 }
 
 .brand_logo > img {
-    width: 32px;
-    height: 32px;
+    width: 36px;
+    height: 36px;
 }
 
 .brand_name {
@@ -48,7 +48,7 @@
     display: grid;
     align-items: center;
     font-weight: 800;
-    font-size: 110%;
+    font-size: 120%;
     color: #6c6c6c;
 }
 
