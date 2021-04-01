@@ -217,7 +217,7 @@ export abstract class DuckDBBindings {
     public importCSV(conn: number, filePath: string, schemaName: string, tableName: string): Promise<void> {
         return this.registerURL(filePath)
             .then(() => {
-                this.runQuery(conn, `INSERT INTO ${tableName} SELECT * FROM read_csv_auto("${filePath}")`);
+                this.runQuery(conn, `CREATE TABLE ${tableName} AS SELECT * FROM read_csv_auto("${filePath}")`);
                 return Promise.resolve();
             })
             .then(() => this.unregisterURL(filePath));
@@ -227,7 +227,7 @@ export abstract class DuckDBBindings {
     public importParquet(conn: number, filePath: string, schemaName: string, tableName: string): Promise<void> {
         return this.registerURL(filePath)
             .then(() => {
-                this.runQuery(conn, `INSERT INTO ${tableName} SELECT * FROM parquet_scan("${filePath}")`);
+                this.runQuery(conn, `CREATE TABLE ${tableName} AS SELECT * FROM parquet_scan("${filePath}")`);
                 return Promise.resolve();
             })
             .then(() => this.unregisterURL(filePath));
