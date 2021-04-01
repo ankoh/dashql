@@ -19,7 +19,7 @@ export class BoardEditor extends React.Component<IBoardEditorProps, {}> {
     }
 
     public render() {
-        const rowHeight = 50;
+        const rowHeight = 48;
         const columnCount = 12;
         const containerPadding: [number, number] = [32, 32];
         const elementMargin: [number, number] = [10, 10];

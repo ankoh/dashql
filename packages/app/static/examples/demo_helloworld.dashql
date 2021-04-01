@@ -1,5 +1,5 @@
 INPUT country TYPE VARCHAR USING TEXT (
-    position = (row = 0, column = 0, width = 4, height = 1)
+    position = (row = 0, column = 0, width = 3, height = 1)
 );
 
 CREATE VIEW foo AS

@@ -15,11 +15,12 @@ export class InputActionLogic extends ProgramActionLogic {
 
     public prepare(context: ActionContext, planObjects: PlanObject[]): void {
         // Get the program instance
-        const programInstance = context.plan.programInstance;
+        const instance = context.plan.programInstance;
+        const stmt = instance.program.getStatement(this.origin.statementId);
         // Get card
-        this._card = programInstance.cards.get(this.origin.statementId) || null;
+        this._card = instance.cards.get(this.origin.statementId) || null;
         if (!this._card) {
-            throw new error.ActionLogicError('card does not exist', programInstance);
+            throw new error.ActionLogicError('card does not exist', instance);
         }
         // Get the input component type
         let renderer = null;
@@ -49,7 +50,7 @@ export class InputActionLogic extends ProgramActionLogic {
             cardRenderer: renderer,
             statementID: this.origin.statementId,
             position: pos,
-            title: this._card!.title() || null,
+            title: this._card!.title() || stmt.targetNameShort || null,
             inputOptions: JSON.parse(this._card.inputOptions()) as model.InputOptions,
             vegaLiteSpec: null,
             vegaSpec: null,
