@@ -16,7 +16,7 @@ import {
 } from './table_logic';
 import { UnnamedSelectLogic } from './unnamed_select_logic';
 import { ViewCreateActionLogic, ImportViewActionLogic, DropViewActionLogic } from './view_logic';
-import { CreateVizActionLogic, DropVizActionLogic, ImportVizActionLogic } from './viz_logic';
+import { CreateVizActionLogic, UpdateVizActionLogic, DropVizActionLogic, ImportVizActionLogic } from './viz_logic';
 
 import SetupActionType = proto.action.SetupActionType;
 import ProgramActionType = proto.action.ProgramActionType;
@@ -70,8 +70,9 @@ export function resolveProgramActionLogic(
         case ProgramActionType.CREATE_VIEW:
             return new ViewCreateActionLogic(id, a, s);
         case ProgramActionType.CREATE_VIZ:
-        case ProgramActionType.UPDATE_VIZ:
             return new CreateVizActionLogic(id, a, s);
+        case ProgramActionType.UPDATE_VIZ:
+            return new UpdateVizActionLogic(id, a, s);
     }
     return null;
 }
