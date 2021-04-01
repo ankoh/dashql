@@ -16,8 +16,8 @@
 
 .input_prefix {
     grid-column: 1;
-    font-size: 85%;
-    padding-left: 8px;
+    font-size: 0.8rem;
+    margin-left: 12px;
 }
 
 .input_group_container {
