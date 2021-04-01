@@ -68,6 +68,7 @@ class Editor extends React.Component<Props> {
                 language: 'sql',
                 value: this.props.script.text,
                 links: false,
+                wordWrap: 'on',
                 minimap: {
                     enabled: false,
                 },
