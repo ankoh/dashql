@@ -19,7 +19,8 @@ export class InputRenderer extends React.Component<Props> {
     public render() {
         return (
             <div className={styles.container}>
-                <div className={styles.input_group}>
+                <div className={styles.input_prefix}>{this.props.card.title || ''}</div>
+                <div className={styles.input_group_container}>
                     <InputGroup size="sm">
                         <FormControl aria-label="Default" aria-describedby="inputGroup-sizing-default" />
                     </InputGroup>
