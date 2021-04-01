@@ -24,12 +24,6 @@ class Viewer extends React.Component<Props> {
         return (
             <ScriptLoader>
                 <div className={styles.container}>
-                    <div className={styles.brand}>
-                        <div className={styles.brand_logo}>
-                            <img src={logo} />
-                        </div>
-                        <div className={styles.brand_name}>DashQL</div>
-                    </div>
                     <div className={styles.board}>
                         <AutoSizer>
                             {({ width, height }) => (

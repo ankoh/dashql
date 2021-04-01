@@ -1,0 +1,29 @@
+.system {
+    height: var(--system_button_height);
+    margin: var(--system_button_margin);
+    box-sizing: border-box;
+    border-radius: var(--border_radius);
+}
+
+.system:hover,
+.system.active {
+    background-color: var(--system_bg_active);
+    color: var(--system_fg_active);
+}
+
+.system_toggle {
+    display: grid;
+    width: 100%;
+    height: 100%;
+}
+
+.system_icon {
+    justify-self: center;
+    align-self: center;
+}
+
+.system_panel {
+    position: absolute;
+    left: 80px;
+    bottom: 16px;
+}
