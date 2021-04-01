@@ -17,7 +17,7 @@ interface Props {
 
 class Viewer extends React.Component<Props> {
     public render() {
-        const rowHeight = 50;
+        const rowHeight = 48;
         const columnCount = 12;
         const padding: [number, number] = [40, 40];
         const margin: [number, number] = [10, 10];
