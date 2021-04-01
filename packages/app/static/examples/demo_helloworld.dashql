@@ -3,7 +3,11 @@ INPUT country TYPE VARCHAR USING TEXT (
 );
 
 CREATE VIEW foo AS
-    SELECT v::INTEGER AS x, (sin(v / 50000.0) * 100 + 100)::INTEGER AS y, (random() * 10)::INTEGER as cat10, (random() * 100)::INTEGER as cat100
+    SELECT
+        v::INTEGER AS x,
+        (sin(v / 50000.0) * 100 + 100)::INTEGER AS y,
+        (random() * 10)::INTEGER as cat10,
+        (random() * 100)::INTEGER as cat100
     FROM generate_series(0, 1000000) AS a(v);
 
 VIZ foo USING VEGA (
