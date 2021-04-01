@@ -6,12 +6,8 @@ import { duckdb as proto } from '@dashql/proto';
 
 /** An iterator for async chunk streams */
 export class AsyncChunkStreamIterator extends ChunkIterator {
-    /** The connection */
-    _connection: AsyncConnection;
-
-    public constructor(connection: AsyncConnection, resultBuffer: proto.QueryResult) {
+    public constructor(protected connection: AsyncConnection, resultBuffer: proto.QueryResult) {
         super(resultBuffer);
-        this._connection = connection;
     }
 
     /** Get the next chunk synchronously */
@@ -27,7 +23,7 @@ export class AsyncChunkStreamIterator extends ChunkIterator {
         if (next < result.dataChunksLength()) {
             this._currentChunk = result.dataChunks(next, this._currentChunk!)!;
         } else {
-            let chunkBuffer = await this._connection.fetchQueryResults();
+            let chunkBuffer = await this.connection.fetchQueryResults();
             this._currentChunk = chunkBuffer;
         }
         return this._currentChunk!.rowCount() > 0;

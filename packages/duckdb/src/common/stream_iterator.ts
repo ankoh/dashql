@@ -10,13 +10,9 @@ import { RowProxyIterator } from '../common/proxy_iterator';
  * An iterator for blocking chunk streams
  */
 export class ChunkStreamIterator extends ChunkIterator {
-    /** The connection */
-    _connection: DuckDBConnection;
-
     /** Constructor */
-    public constructor(connection: DuckDBConnection, resultBuffer: proto.QueryResult) {
+    public constructor(protected connection: DuckDBConnection, resultBuffer: proto.QueryResult) {
         super(resultBuffer);
-        this._connection = connection;
     }
 
     /** Get the next chunk */
@@ -26,7 +22,7 @@ export class ChunkStreamIterator extends ChunkIterator {
         if (next < result.dataChunksLength()) {
             this._currentChunk = result.dataChunks(next, this._currentChunk!)!;
         } else {
-            let chunkBuffer = this._connection.fetchQueryResults();
+            let chunkBuffer = this.connection.fetchQueryResults();
             this._currentChunk = chunkBuffer;
         }
         return this._currentChunk.rowCount() > 0;

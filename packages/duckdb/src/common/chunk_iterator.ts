@@ -9,17 +9,17 @@ import { ColumnIterator } from './column_iterator';
 /** A chunk iterator base class */
 export abstract class ChunkIterator {
     /* The result buffer */
-    _resultBuffer: proto.QueryResult;
+    protected _resultBuffer: proto.QueryResult;
     /* The chunk id */
-    _nextChunkID: number;
+    protected _nextChunkID: number;
     /* The current chunk */
-    _currentChunk: proto.QueryResultChunk | null;
+    protected _currentChunk: proto.QueryResultChunk | null;
     /* The column types */
-    _columnTypes: proto.SQLType[];
+    protected _columnTypes: proto.SQLType[];
     /* The row type */
-    _proxyType: RowProxyType | null;
+    protected _proxyType: RowProxyType | null;
     /* The temporary flatbuffer objects */
-    _tmp: TmpBuffers;
+    protected _tmp: TmpBuffers;
 
     public constructor(resultBuffer: proto.QueryResult) {
         this._resultBuffer = resultBuffer;
@@ -36,7 +36,8 @@ export abstract class ChunkIterator {
             this._columnTypes.push(t);
         }
     }
-    /* Get the result */
+
+    /* Get the result buffer */
     public get result() {
         return this._resultBuffer;
     }
@@ -44,7 +45,7 @@ export abstract class ChunkIterator {
     public get columnCount() {
         return this._columnTypes.length;
     }
-    /* Get the column count */
+    /* Get the column types */
     public get columnTypes() {
         return this._columnTypes;
     }
