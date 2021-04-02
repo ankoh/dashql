@@ -7,6 +7,7 @@
 #include "dashql/analyzer/program_instance.h"
 #include "dashql/parser/parser_driver.h"
 #include "dashql/parser/scanner.h"
+#include "dashql/proto_generated.h"
 #include "flatbuffers/flatbuffers.h"
 #include "gtest/gtest.h"
 
@@ -33,11 +34,8 @@ TEST(ProgramEditorTest, VizStatementAddPosition) {
     std::pair<const proto::edit::ProgramEdit*, flatbuffers::DetachedBuffer> edit;
     {
         auto e = std::make_unique<proto::edit::EditOperationT>();
-        proto::edit::VizChangePositionT changePos;
-        changePos.row = 1;
-        changePos.column = 2;
-        changePos.width = 3;
-        changePos.height = 4;
+        proto::edit::CardPositionUpdateT changePos;
+        changePos.position = std::make_unique<proto::analyzer::CardPosition>(1, 2, 3, 4);
         e->statement_id = 0;
         e->variant.Set(move(changePos));
         auto pe = std::make_unique<proto::edit::ProgramEditT>();
@@ -45,8 +43,8 @@ TEST(ProgramEditorTest, VizStatementAddPosition) {
         edit = Pack<proto::edit::ProgramEdit>(move(pe));
     }
 
-    auto expected = 
-R"RAW(VIZ weather_avg USING LINE (
+    auto expected =
+        R"RAW(VIZ weather_avg USING LINE (
     position = (
         row = 1,
         column = 2,
@@ -58,7 +56,9 @@ R"RAW(VIZ weather_avg USING LINE (
 }
 
 TEST(ProgramEditorTest, VizStatementUpdatePosition) {
-    auto txt = "VIZ weather_avg USING LINE (\n    position = (row = 1, column = 2, width = 3, height = 4),\n    title = 'sometitle'\n)";
+    auto txt =
+        "VIZ weather_avg USING LINE (\n    position = (row = 1, column = 2, width = 3, height = 4),\n    title = "
+        "'sometitle'\n)";
     ProgramInstance instance{txt, move(parser::ParserDriver::Parse(txt))};
     ASSERT_EQ(instance.program().statements.size(), 1);
 
@@ -66,11 +66,8 @@ TEST(ProgramEditorTest, VizStatementUpdatePosition) {
     std::pair<const proto::edit::ProgramEdit*, flatbuffers::DetachedBuffer> edit;
     {
         auto e = std::make_unique<proto::edit::EditOperationT>();
-        proto::edit::VizChangePositionT changePos;
-        changePos.row = 6;
-        changePos.column = 5;
-        changePos.width = 4;
-        changePos.height = 3;
+        proto::edit::CardPositionUpdateT changePos;
+        changePos.position = std::make_unique<proto::analyzer::CardPosition>(6, 5, 4, 3);
         e->statement_id = 0;
         e->variant.Set(move(changePos));
         auto pe = std::make_unique<proto::edit::ProgramEditT>();
@@ -78,8 +75,8 @@ TEST(ProgramEditorTest, VizStatementUpdatePosition) {
         edit = Pack<proto::edit::ProgramEdit>(move(pe));
     }
 
-    auto expected = 
-R"RAW(VIZ weather_avg USING LINE (
+    auto expected =
+        R"RAW(VIZ weather_avg USING LINE (
     title = 'sometitle',
     position = (
         row = 6,

@@ -33,6 +33,11 @@
             <statement type="INPUT" name="global.country">
                 <node type="OBJECT_DASHQL_INPUT" loc="278..429" text="INPUT coun..&#10;        )">
                     <node key="DASHQL_INPUT_COMPONENT_TYPE" value="TEXT" />
+                    <node key="DASHQL_INPUT_VALUE_TYPE" type="OBJECT_SQL_TYPENAME" loc="297..304" text="VARCHAR">
+                        <node key="SQL_TYPENAME_TYPE" type="OBJECT_SQL_CHARACTER_TYPE" loc="297..304" text="VARCHAR">
+                            <node key="SQL_CHARACTER_TYPE_TAG" value="VARCHAR" />
+                        </node>
+                    </node>
                     <node key="DASHQL_STATEMENT_NAME">
                         <node loc="284..291" text="country" />
                     </node>

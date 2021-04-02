@@ -24,6 +24,8 @@ const char* getEnumText(const sx::Node& target) {
             return sx::TempTypeTypeTable()->names[v];
         case sx::NodeType::ENUM_SQL_CONST_TYPE:
             return sx::AConstTypeTypeTable()->names[v];
+        case sx::NodeType::ENUM_SQL_CHARACTER_TYPE_TAG:
+            return sx::CharacterTypeTagTypeTable()->names[v];
         case sx::NodeType::ENUM_SQL_EXPRESSION_FUNCTION:
             return sx::ExpressionFunctionTypeTable()->names[v];
         case sx::NodeType::ENUM_SQL_ORDER_DIRECTION:

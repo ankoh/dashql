@@ -28,34 +28,25 @@ class BoardLayout extends React.Component<Props> {
         return nextProps.width != this.props.width || nextProps.cards !== this.props.cards;
     }
 
-    onItemLayoutChanged = (
-        _layout: Layout[],
-        oldItem: Layout,
-        newItem: Layout,
-        _placeholder: Layout,
-        _event: MouseEvent,
-        _element: HTMLElement,
-    ) => {
-        const card = this.props.cards.get(oldItem.i)!;
-        const stmt = card.statementID;
-
-        const analyzer = this.props.appContext.platform!.analyzer;
-        const next = analyzer.editProgram([
-            {
-                type: core.edit.EditOperationType.VIZ_CHANGE_POSITION,
-                statement_id: stmt,
-                data: {
-                    row: newItem.y,
-                    column: newItem.x,
-                    width: newItem.w,
-                    height: newItem.h,
+    onLayoutChanged(layout: Layout[]) {
+        const updates: core.edit.EditOperationVariant[] = layout.map(l => ({
+            statementID: this.props.cards.get(l.i)!.statementID,
+            type: core.edit.EditOperationType.UPDATE_CARD_POSITION,
+            data: {
+                position: {
+                    row: l.y,
+                    column: l.x,
+                    width: l.w,
+                    height: l.h,
                 },
             },
-        ]);
+        }));
+        const analyzer = this.props.appContext.platform!.analyzer;
+        const next = analyzer.editProgram(updates);
         if (next) {
             this.props.rewriteProgram(next);
         }
-    };
+    }
 
     getLayout(data: Immutable.Map<string, core.model.Card>) {
         const l = data.toArray().map(([key, data]) => ({
@@ -79,8 +70,7 @@ class BoardLayout extends React.Component<Props> {
                 compactType={null}
                 isDraggable={!!this.props.editable}
                 isResizable={!!this.props.editable}
-                onDragStop={this.onItemLayoutChanged}
-                onResizeStop={this.onItemLayoutChanged}
+                onLayoutChange={this.onLayoutChanged.bind(this)}
                 layout={this.getLayout(this.props.cards)}
                 containerPadding={this.props.containerPadding}
                 margin={this.props.elementMargin}

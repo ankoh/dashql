@@ -76,7 +76,7 @@ void VizStatement::PrintScript(std::ostream& out) const {
     out << " USING";
     for (auto i = 0; i < components_.size(); ++i) {
         if (i > 0) {
-            out << ", ";
+            out << ",";
         }
         components_[i]->PrintScript(out);
     }

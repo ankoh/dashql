@@ -9,8 +9,13 @@ namespace fb = flatbuffers;
 
 namespace dashql {
 
-InputStatement::InputStatement(ProgramInstance& instance, size_t statement_id)
-    : instance_(instance), statement_id_(statement_id), patches_() {}
+InputStatement::InputStatement(ProgramInstance& instance, size_t statement_id, size_t statement_name_node,
+                               size_t type_node)
+    : instance_(instance),
+      statement_id_(statement_id),
+      statement_name_node_(statement_name_node),
+      type_node_(type_node),
+      patches_() {}
 
 std::unique_ptr<InputStatement> InputStatement::ReadFrom(ProgramInstance& instance, size_t stmt_id) {
     auto& program = instance.program();
@@ -63,26 +68,18 @@ std::unique_ptr<InputStatement> InputStatement::ReadFrom(ProgramInstance& instan
     std::array<NodeMatch, 13> matches;
     schema.Match(instance, stmt->root_node, matches);
 
+    assert(matches[ID_STATEMENT_NAME]);
+    assert(matches[ID_INPUT_VALUE_TYPE]);
+    auto statement_name_node = matches[ID_STATEMENT_NAME].node_id;
+    auto type_node = matches[ID_INPUT_VALUE_TYPE].node_id;
+
     // Create the viz statement
-    auto input = std::make_unique<InputStatement>(instance, stmt_id);
+    auto input = std::make_unique<InputStatement>(instance, stmt_id, statement_name_node, type_node);
 
-    /// Get the statement name
-    if (matches[ID_STATEMENT_NAME]) {
-        // XXX Read actual statement name
-        auto loc = instance.program().nodes[matches[ID_STATEMENT_NAME].node_id].location();
-        auto name = instance.TextAt(loc);
-        input->statement_name_ = name;
-    }
-
-    /// Get the input type
+    /// Get the component type
     if (matches[ID_INPUT_COMPONENT_TYPE]) {
         auto type = matches[ID_INPUT_COMPONENT_TYPE].DataAsEnum<sx::InputComponentType>();
         input->component_type_ = type;
-    }
-
-    /// Get the component type
-    if (matches[ID_INPUT_VALUE_TYPE]) {
-        // XXX READ SQL TYPE
     }
 
     /// Get position attributes
@@ -96,7 +93,7 @@ std::unique_ptr<InputStatement> InputStatement::ReadFrom(ProgramInstance& instan
         auto c = instance.ReadNodeValueOrNull(pos_column).CastAsUI64().value_or(0);
         auto w = instance.ReadNodeValueOrNull(pos_width).CastAsUI64().value_or(0);
         auto h = instance.ReadNodeValueOrNull(pos_height).CastAsUI64().value_or(0);
-        input->specified_position_ = proto::analyzer::CardPosition(r, c, w, h);
+        input->position_ = proto::analyzer::CardPosition(r, c, w, h);
     }
 
     /// Get the title attribute
@@ -107,6 +104,46 @@ std::unique_ptr<InputStatement> InputStatement::ReadFrom(ProgramInstance& instan
     }
 
     return input;
+}
+
+/// Print statement as script
+void InputStatement::PrintScript(std::ostream& out) const {
+    auto& program = instance_.program();
+    auto& nodes = instance_.program().nodes;
+    auto& stmt = program.statements[statement_id_];
+
+    // Write prefix
+    out << "INPUT ";
+    out << instance_.TextAt(nodes[statement_name_node_].location());
+    out << " TYPE ";
+    out << instance_.TextAt(nodes[type_node_].location());
+    if (component_type_) {
+        out << " USING ";
+        auto tt = proto::syntax::InputComponentTypeTypeTable();
+        auto name = tt->names[static_cast<size_t>(component_type_.value())];
+        out << name;
+    }
+
+    // Read options as DOM
+    auto options = readOptionsAsDOM(instance_, stmt->root_node);
+
+    // Update position
+    if (position_) {
+        options.RemoveMember("position");
+        if (position_) {
+            rapidjson::Value pos{rapidjson::kObjectType};
+            rapidjson::Value row{position_->row()};
+            rapidjson::Value column{position_->column()};
+            rapidjson::Value width{position_->width()};
+            rapidjson::Value height{position_->height()};
+            pos.AddMember("row", row, options.GetAllocator());
+            pos.AddMember("column", column, options.GetAllocator());
+            pos.AddMember("width", width, options.GetAllocator());
+            pos.AddMember("height", height, options.GetAllocator());
+            options.AddMember("position", std::move(pos), options.GetAllocator());
+        }
+    }
+    writeSQLJSON(options, out);
 }
 
 /// Pack the viz specs
@@ -129,12 +166,11 @@ flatbuffers::Offset<proto::analyzer::Card> InputStatement::PackCard(flatbuffers:
     }
 
     // Build viz spec
-    assert(specified_position_.has_value());
     proto::analyzer::CardBuilder cb{builder};
     cb.add_card_type(dashql::proto::analyzer::CardType::BUILTIN_VIZ);
     cb.add_statement_id(statement_id_);
-    cb.add_position(&specified_position_.value());
     cb.add_input_options(options);
+    if (position_) cb.add_position(&position_.value());
     if (title_offset) cb.add_title(*title_offset);
     return cb.Finish();
 }
