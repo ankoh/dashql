@@ -26,7 +26,7 @@ function createTab(path: string, icon: string): React.FunctionComponent<TabProps
             >
                 <Link to={path}>
                     <Button variant="link">
-                        <svg className={styles.tab_icon} width="22px" height="22px">
+                        <svg className={styles.tab_icon} width="20px" height="20px">
                             <use xlinkHref={`${icon}#sym`} />
                         </svg>
                     </Button>
