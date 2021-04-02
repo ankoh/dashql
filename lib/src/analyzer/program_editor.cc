@@ -4,6 +4,7 @@
 #include <stack>
 #include <unordered_map>
 
+#include "dashql/analyzer/stmt/input_stmt.h"
 #include "dashql/analyzer/stmt/viz_stmt.h"
 #include "dashql/analyzer/syntax_matcher.h"
 #include "dashql/common/span.h"
@@ -25,16 +26,15 @@ struct VizEditOp {
 
 struct VizChangePositionOp : public VizEditOp {
     /// The position
-    const proto::edit::VizChangePosition& edit;
+    const proto::edit::CardPositionUpdate& edit;
     /// Constructor
-    VizChangePositionOp(const proto::edit::VizChangePosition& edit) : edit(edit) {
+    VizChangePositionOp(const proto::edit::CardPositionUpdate& edit) : edit(edit) {
         key = sx::AttributeKey::DASHQL_OPTION_POSITION;
     }
     /// Edit a component
     void EditComponent(size_t idx, VizComponent& component) {
         if (idx == 0) {
-            proto::analyzer::CardPosition pos(edit.row(), edit.column(), edit.width(), edit.height());
-            component.SetPosition(pos);
+            component.SetPosition(*edit.position());
             component.statement().specified_position() = &component.position().value();
         } else {
             component.ClearPosition();
@@ -57,9 +57,9 @@ std::string ProgramEditor::RewriteVizStatement(size_t stmt_id,
     ops.reserve(edits.size());
     for (auto* e : edits) {
         switch (e->variant_type()) {
-            case proto::edit::EditOperationVariant::VizChangePosition: {
-                auto viz = e->variant_as_VizChangePosition();
-                ops.push_back(std::make_unique<VizChangePositionOp>(*e->variant_as_VizChangePosition()));
+            case proto::edit::EditOperationVariant::CardPositionUpdate: {
+                auto viz = e->variant_as_CardPositionUpdate();
+                ops.push_back(std::make_unique<VizChangePositionOp>(*e->variant_as_CardPositionUpdate()));
                 break;
             }
             default:
@@ -78,6 +78,35 @@ std::string ProgramEditor::RewriteVizStatement(size_t stmt_id,
     // Print the statement
     std::stringstream out;
     viz->PrintScript(out);
+    return out.str();
+}
+
+/// Rewrite a standard statement
+std::string ProgramEditor::RewriteInputStatement(size_t stmt_id,
+                                                 nonstd::span<const proto::edit::EditOperation*> edits) const {
+    auto& stmt = *instance_.program().statements[stmt_id];
+    auto& root = instance_.program().nodes[stmt.root_node];
+    auto input = InputStatement::ReadFrom(instance_, stmt_id);
+    if (!input) {
+        return std::string{instance_.TextAt(root.location())};
+    }
+
+    // Apply all edits directly
+    for (auto* e : edits) {
+        switch (e->variant_type()) {
+            case proto::edit::EditOperationVariant::CardPositionUpdate: {
+                auto up = e->variant_as_CardPositionUpdate();
+                input->position() = *up->position();
+                break;
+            }
+            default:
+                break;
+        }
+    }
+
+    // Print the statement
+    std::stringstream out;
+    input->PrintScript(out);
     return out.str();
 }
 
@@ -103,6 +132,10 @@ std::string ProgramEditor::Apply(const proto::edit::ProgramEdit& pe) {
         auto& stmt = *instance_.program().statements[stmt_id];
         auto& stmt_root = instance_.program().nodes[stmt.root_node];
         switch (stmt.statement_type) {
+            case sx::StatementType::INPUT: {
+                buffer.Replace(stmt_root.location(), RewriteInputStatement(stmt_id, stmt_ops));
+                break;
+            }
             case sx::StatementType::VIZUALIZE: {
                 buffer.Replace(stmt_root.location(), RewriteVizStatement(stmt_id, stmt_ops));
                 break;

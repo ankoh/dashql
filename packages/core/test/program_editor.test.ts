@@ -20,13 +20,15 @@ describe('Program editor', () => {
         expect(pi).not.toEqual(null);
         const n = az.editProgram([
             {
-                type: edit.EditOperationType.VIZ_CHANGE_POSITION,
-                statement_id: 0,
+                type: edit.EditOperationType.UPDATE_CARD_POSITION,
+                statementID: 0,
                 data: {
-                    row: 1,
-                    column: 2,
-                    width: 3,
-                    height: 4,
+                    position: {
+                        row: 1,
+                        column: 2,
+                        width: 3,
+                        height: 4,
+                    },
                 },
             },
         ]);
@@ -59,13 +61,15 @@ describe('Program editor', () => {
         expect(pi).not.toEqual(null);
         const n = az.editProgram([
             {
-                type: edit.EditOperationType.VIZ_CHANGE_POSITION,
-                statement_id: 0,
+                type: edit.EditOperationType.UPDATE_CARD_POSITION,
+                statementID: 0,
                 data: {
-                    row: 10,
-                    column: 9,
-                    width: 8,
-                    height: 7,
+                    position: {
+                        row: 10,
+                        column: 9,
+                        width: 8,
+                        height: 7,
+                    },
                 },
             },
         ]);

@@ -4,15 +4,12 @@ include "analyzer.fbs";
 
 namespace dashql.proto.edit;
 
-table VizChangePosition {
-    row: uint32;
-    column: uint32;
-    width: uint32;
-    height: uint32;
+table CardPositionUpdate {
+    position: analyzer.CardPosition;
 }
 
 union EditOperationVariant {
-    VizChangePosition
+    CardPositionUpdate
 }
 
 table EditOperation {
