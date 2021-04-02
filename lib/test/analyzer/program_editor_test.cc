@@ -25,6 +25,36 @@ std::pair<const FB*, flatbuffers::DetachedBuffer> Pack(std::unique_ptr<typename 
     return {flatbuffers::GetRoot<FB>(buffer.data()), move(buffer)};
 }
 
+TEST(ProgramEditorTest, InputStatementAddPosition) {
+    auto txt = "INPUT weather_avg TYPE INTEGER USING TEXT";
+    ProgramInstance instance{txt, move(parser::ParserDriver::Parse(txt))};
+    ASSERT_EQ(instance.program().statements.size(), 1);
+
+    ProgramEditor editor{instance};
+    std::pair<const proto::edit::ProgramEdit*, flatbuffers::DetachedBuffer> edit;
+    {
+        auto e = std::make_unique<proto::edit::EditOperationT>();
+        proto::edit::CardPositionUpdateT changePos;
+        changePos.position = std::make_unique<proto::analyzer::CardPosition>(1, 2, 3, 4);
+        e->statement_id = 0;
+        e->variant.Set(move(changePos));
+        auto pe = std::make_unique<proto::edit::ProgramEditT>();
+        pe->edits.push_back(move(e));
+        edit = Pack<proto::edit::ProgramEdit>(move(pe));
+    }
+
+    auto expected =
+        R"RAW(INPUT weather_avg TYPE INTEGER USING TEXT (
+    position = (
+        row = 1,
+        column = 2,
+        width = 3,
+        height = 4
+    )
+))RAW";
+    EXPECT_EQ(editor.Apply(*std::get<0>(edit)), expected);
+}
+
 TEST(ProgramEditorTest, VizStatementAddPosition) {
     auto txt = "VIZ weather_avg USING LINE";
     ProgramInstance instance{txt, move(parser::ParserDriver::Parse(txt))};
