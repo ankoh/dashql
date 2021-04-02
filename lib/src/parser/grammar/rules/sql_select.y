@@ -729,7 +729,7 @@ sql_simple_typename:
     sql_generic_type                    { $$ = {}; }
   | sql_numeric                         { $$ = $1; }
   | sql_bit                             { $$ = {}; }
-  | sql_const_character                 { $$ = {}; }
+  | sql_const_character                 { $$ = $1; }
   | sql_const_datetime                  { $$ = {}; }
   | sql_const_interval sql_opt_interval { $$ = {}; }
   | sql_const_interval '(' ICONST ')'   { $$ = {}; }
@@ -749,7 +749,7 @@ sql_simple_typename:
 sql_const_typename:
     sql_numeric         { $$ = $1; }
   | sql_const_bit       { $$ = {}; }
-  | sql_character       { $$ = {}; }
+  | sql_character       { $$ = $1; }
   | sql_const_datetime  { $$ = {}; }
     ;
 
@@ -834,31 +834,31 @@ sql_bit_without_length:
 // The following implements CHAR() and VARCHAR().
 
 sql_character:
-    sql_character_with_length
-  | sql_character_without_length
+    sql_character_with_length     { $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_CHARACTER_TYPE, move($1)); }
+  | sql_character_without_length  { $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_CHARACTER_TYPE, move($1)); }
     ;
 
 sql_const_character:
-    sql_character_with_length
-  | sql_character_without_length
+    sql_character_with_length     { $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_CHARACTER_TYPE, move($1)); }
+  | sql_character_without_length  { $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_CHARACTER_TYPE, move($1)); }
     ;
 
 sql_character_with_length:
-    sql_character '(' ICONST ')'
+    sql_character_without_length '(' ICONST ')'  { $1.push_back(Key::SQL_CHARACTER_TYPE_LENGTH << String(@3)); $$ = move($1); }
     ;
 
 sql_character_without_length:
-    CHARACTER sql_opt_varying
-  | CHAR_P sql_opt_varying
-  | VARCHAR
-  | NATIONAL CHARACTER sql_opt_varying
-  | NATIONAL CHAR_P sql_opt_varying 
-  | NCHAR sql_opt_varying
+    CHARACTER sql_opt_varying           { $$ = NodeVector{ Key::SQL_CHARACTER_TYPE_TAG << Enum(@$, $2 ? sx::CharacterTypeTag::VARCHAR : sx::CharacterTypeTag::BLANK_PADDED_CHAR) }; }
+  | CHAR_P sql_opt_varying              { $$ = NodeVector{ Key::SQL_CHARACTER_TYPE_TAG << Enum(@$, $2 ? sx::CharacterTypeTag::VARCHAR : sx::CharacterTypeTag::BLANK_PADDED_CHAR) }; }
+  | VARCHAR                             { $$ = NodeVector{ Key::SQL_CHARACTER_TYPE_TAG << Enum(@$, sx::CharacterTypeTag::VARCHAR) }; }
+  | NATIONAL CHARACTER sql_opt_varying  { $$ = NodeVector{ Key::SQL_CHARACTER_TYPE_TAG << Enum(@$, $3 ? sx::CharacterTypeTag::VARCHAR : sx::CharacterTypeTag::BLANK_PADDED_CHAR) }; }
+  | NATIONAL CHAR_P sql_opt_varying     { $$ = NodeVector{ Key::SQL_CHARACTER_TYPE_TAG << Enum(@$, $3 ? sx::CharacterTypeTag::VARCHAR : sx::CharacterTypeTag::BLANK_PADDED_CHAR) }; }
+  | NCHAR sql_opt_varying               { $$ = NodeVector{ Key::SQL_CHARACTER_TYPE_TAG << Enum(@$, $2 ? sx::CharacterTypeTag::VARCHAR : sx::CharacterTypeTag::BLANK_PADDED_CHAR) }; }
     ;
 
 sql_opt_varying:
-    VARYING
-  | %empty
+    VARYING       { $$ = false; }
+  | %empty        { $$ = true; }
     ;
 
 // SQL date/time types

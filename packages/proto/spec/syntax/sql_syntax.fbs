@@ -126,3 +126,8 @@ enum OnCommitOption: uint8 {
     PRESERVE_ROWS,
     NOOP
 }
+
+enum CharacterTypeTag: uint8 {
+    VARCHAR,
+    BLANK_PADDED_CHAR
+}

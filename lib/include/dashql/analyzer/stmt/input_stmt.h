@@ -31,14 +31,16 @@ class InputStatement {
     ProgramInstance& instance_;
     /// The statement id
     const size_t statement_id_;
-    /// The statement name
-    std::string statement_name_ = {};
+    /// The id statement name node
+    const size_t statement_name_node_;
+    /// The id of the value type node
+    const size_t type_node_;
     /// The value type
     duckdb::web::proto::SQLType value_type_ = duckdb::web::proto::SQLType();
     /// The component type
     std::optional<sx::InputComponentType> component_type_ = std::nullopt;
     /// The position option
-    std::optional<proto::analyzer::CardPosition> specified_position_ = std::nullopt;
+    std::optional<proto::analyzer::CardPosition> position_ = std::nullopt;
     /// The title
     std::optional<std::string> title_ = std::nullopt;
     /// The patches
@@ -46,15 +48,15 @@ class InputStatement {
 
    public:
     /// Constructor
-    InputStatement(ProgramInstance& instance, size_t statement_id);
+    InputStatement(ProgramInstance& instance, size_t statement_id, size_t statement_name_node, size_t type_node);
     /// Get the instance
     auto& instance() { return instance_; }
     /// Get the statement name
-    auto& statement_name() { return statement_name_; }
+    auto& statement_name_node() { return statement_name_node_; }
     /// Get the component type
     auto& component_type() { return component_type_; }
     /// Get the specified position
-    auto& specified_position() { return specified_position_; }
+    auto& position() { return position_; }
     /// Get the title
     auto& title() { return title_; }
     /// Print as script

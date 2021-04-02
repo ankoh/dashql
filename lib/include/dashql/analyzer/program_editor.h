@@ -26,6 +26,8 @@ class ProgramEditor {
     /// The current program
     ProgramInstance& instance_;
 
+    /// Rewrite an inpout statement
+    std::string RewriteInputStatement(size_t stmt_id, nonstd::span<const proto::edit::EditOperation*> edit) const;
     /// Rewrite a viz statement
     std::string RewriteVizStatement(size_t stmt_id, nonstd::span<const proto::edit::EditOperation*> edit) const;
 

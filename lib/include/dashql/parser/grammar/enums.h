@@ -22,6 +22,7 @@ using ExprFunc = sx::ExpressionFunction;
 X(sx::AConstType, sx::NodeType::ENUM_SQL_CONST_TYPE)
 X(sx::CombineModifier, sx::NodeType::ENUM_SQL_COMBINE_MODIFIER)
 X(sx::CombineOperation, sx::NodeType::ENUM_SQL_COMBINE_OPERATION)
+X(sx::CharacterTypeTag, sx::NodeType::ENUM_SQL_CHARACTER_TYPE_TAG)
 X(sx::ExpressionFunction, sx::NodeType::ENUM_SQL_EXPRESSION_FUNCTION)
 X(sx::ExtractMethodType, sx::NodeType::ENUM_DASHQL_EXTRACT_METHOD_TYPE)
 X(sx::InputComponentType, sx::NodeType::ENUM_DASHQL_INPUT_COMPONENT_TYPE)

@@ -1,3 +1,6 @@
+
+%type <NodeVector> sql_character_with_length;
+%type <NodeVector> sql_character_without_length;
 %type <NodeVector> sql_cte_list;
 %type <NodeVector> sql_expr_list;
 %type <NodeVector> sql_frame_extent;
@@ -38,14 +41,17 @@
 %type <NodeVector> sql_window_clause;
 %type <NodeVector> sql_window_definition_list;
 %type <NodeVector> sql_with_clause;
+%type <bool> sql_opt_varying;
 %type <sx::Node> sql_a_expr;
 %type <sx::Node> sql_a_expr_const;
 %type <sx::Node> sql_alias_clause;
 %type <sx::Node> sql_all_op;
 %type <sx::Node> sql_all_or_distinct;
 %type <sx::Node> sql_c_expr;
+%type <sx::Node> sql_character;
 %type <sx::Node> sql_columnref;
 %type <sx::Node> sql_common_table_expr;
+%type <sx::Node> sql_const_character;
 %type <sx::Node> sql_const_typename;
 %type <sx::Node> sql_distinct_clause;
 %type <sx::Node> sql_frame_bound;
