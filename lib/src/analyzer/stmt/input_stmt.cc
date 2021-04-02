@@ -122,6 +122,7 @@ void InputStatement::PrintScript(std::ostream& out) const {
         auto tt = proto::syntax::InputComponentTypeTypeTable();
         auto name = tt->names[static_cast<size_t>(component_type_.value())];
         out << name;
+        out << " ";
     }
 
     // Read options as DOM
