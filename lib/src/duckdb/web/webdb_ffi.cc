@@ -115,7 +115,7 @@ void duckdb_web_import_csv(dashql::FFIResponse* packed, ConnectionHdl connHdl, c
 
     try {
         auto info = std::make_unique<duckdb::CreateTableInfo>(schemaName, tableName);
-        info->columns = columns;
+        info->columns = std::move(columns);
 
         duckdb::Binder binder(ctx);
         auto bound_info = binder.BindCreateTableInfo(move(info));
