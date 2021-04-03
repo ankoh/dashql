@@ -24,11 +24,21 @@ type Props = {
 };
 
 class BoardLayout extends React.Component<Props> {
+    _dirty: boolean;
+
+    constructor(props: Props) {
+        super(props);
+        this._dirty = false;
+    }
+
     shouldComponentUpdate(nextProps: Props) {
         return nextProps.width != this.props.width || nextProps.cards !== this.props.cards;
     }
 
     onLayoutChanged(layout: Layout[]) {
+        if (!this._dirty) return;
+        this._dirty = false;
+        console.log('foo');
         const updates: core.edit.EditOperationVariant[] = layout.map(l => ({
             statementID: this.props.cards.get(l.i)!.statementID,
             type: core.edit.EditOperationType.UPDATE_CARD_POSITION,
@@ -59,6 +69,10 @@ class BoardLayout extends React.Component<Props> {
         return l;
     }
 
+    markDirty() {
+        this._dirty = true;
+    }
+
     render() {
         return (
             <ReactGrid
@@ -70,6 +84,8 @@ class BoardLayout extends React.Component<Props> {
                 compactType={null}
                 isDraggable={!!this.props.editable}
                 isResizable={!!this.props.editable}
+                onDragStart={this.markDirty.bind(this)}
+                onResizeStart={this.markDirty.bind(this)}
                 onLayoutChange={this.onLayoutChanged.bind(this)}
                 layout={this.getLayout(this.props.cards)}
                 containerPadding={this.props.containerPadding}
