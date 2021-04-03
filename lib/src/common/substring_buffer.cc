@@ -1,6 +1,7 @@
 #include "dashql/common/substring_buffer.h"
 
 #include <iostream>
+#include <regex>
 
 namespace dashql {
 
@@ -34,23 +35,25 @@ proto::syntax::Location SubstringBuffer::ApplyPatches(proto::syntax::Location lo
         a -= (begin >= ofs) * adjust;
         b -= (end >= ofs) * adjust;
     }
+    assert(a >= substring_loc_.offset());
+    assert(b >= a);
     return {a, b - a};
 }
 
 /// Intersect with the buffer range?
 bool SubstringBuffer::Intersects(proto::syntax::Location loc) const { return CheckBounds(loc).length() > 0; }
 
-// Replace a substring
+/// Replace a substring
 void SubstringBuffer::Replace(proto::syntax::Location loc, std::string_view value) {
     auto patched_loc = ApplyPatches(CheckBounds(loc));
     buffer_.replace(patched_loc.offset() - substring_loc_.offset(), patched_loc.length(), value);
     if (value.length() < patched_loc.length()) {
         auto diff = patched_loc.length() - value.length();
-        shorten_.push_back({patched_loc.offset() + diff, diff});
+        shorten_.push_back({loc.offset() + diff, diff});
     } else if (value.length() > patched_loc.length()) {
         auto diff = value.length() - patched_loc.length();
         lengthen_.push_back({
-            patched_loc.offset() + patched_loc.length(),
+            loc.offset() + loc.length(),
             diff,
         });
     }

@@ -49,4 +49,30 @@ TEST(SubstringBufferTest, NumberSequenceSubstring) {
     ASSERT_EQ(buffer.Finish(), "0 A B 2 E 5 6 7 8 C D ");
 }
 
+TEST(SubstringBufferTest, RawText) {
+    auto txt = R"RAW(
+AAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAAAA
+BBBBBBBBBBBBBBBBBBBB
+BBBBBBBBBBBBBBBBBBBB
+CCCCCCCCCCCCCCCCCCCC
+CCCCCCCCCCCCCCCCCCCC)RAW";
+    std::string_view txt_view{txt, std::strlen(txt)};
+    SubstringBuffer buffer{txt_view, sx::Location(0, std::strlen(txt))};
+    buffer.Replace(sx::Location(22, 42), "DDDDDDDDDDDDDDDDDDDD\n");
+    ASSERT_EQ(buffer.Finish(), R"RAW(
+AAAAAAAAAAAAAAAAAAAA
+DDDDDDDDDDDDDDDDDDDD
+BBBBBBBBBBBBBBBBBBBB
+CCCCCCCCCCCCCCCCCCCC
+CCCCCCCCCCCCCCCCCCCC)RAW");
+    buffer.Replace(sx::Location(64, 21), "DDDDDDDDDDDDDDDDDDDD\n");
+    ASSERT_EQ(buffer.Finish(), R"RAW(
+AAAAAAAAAAAAAAAAAAAA
+DDDDDDDDDDDDDDDDDDDD
+DDDDDDDDDDDDDDDDDDDD
+CCCCCCCCCCCCCCCCCCCC
+CCCCCCCCCCCCCCCCCCCC)RAW");
+}
+
 }  // namespace
