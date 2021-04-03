@@ -4,12 +4,8 @@
 
 #include "dashql/common/ffi_response.h"
 #include "dashql/proto_generated.h"
-#include "duckdb/catalog/catalog.hpp"
 #include "duckdb/execution/operator/persistent/buffered_csv_reader.hpp"
 #include "duckdb/main/client_context.hpp"
-#include "duckdb/parser/parsed_data/create_schema_info.hpp"
-#include "duckdb/parser/parsed_data/create_table_info.hpp"
-#include "duckdb/planner/binder.hpp"
 #include "duckdb/web/filesystem.h"
 #include "duckdb/web/webdb.h"
 #include "parquet-extension.hpp"
@@ -100,35 +96,29 @@ void duckdb_web_import_csv(dashql::FFIResponse* packed, ConnectionHdl connHdl, c
         return;
     }
 
-    // Create Table
-    auto& ctx = *c->GetConnection().context;
-    auto& catalog = duckdb::Catalog::GetCatalog(ctx);
+    std::string schemaStr(schemaName);
+    std::string tableStr(tableName);
 
-    duckdb::SchemaCatalogEntry* schema = nullptr;
-    try {
-        schema = catalog.GetSchema(ctx, schemaName);
-    } catch (duckdb::CatalogException const& e) {
-        auto info = std::make_unique<duckdb::CreateSchemaInfo>();
-        info->schema = schemaName;
-        schema = (duckdb::SchemaCatalogEntry*)catalog.CreateSchema(ctx, info.get());
+    c->RunQuery("CREATE SCHEMA \"" + schemaStr + "\";");
+
+    std::string create = "CREATE TABLE \"" + schemaStr + "\".\"" + tableStr + "\" (";
+    for (size_t i = 0; i < columns.size(); ++i) {
+        auto const& c = columns[i];
+        create += c.name + " " + c.type.ToString();
+        if (i < columns.size() - 1) create += ",";
     }
+    create += ");";
 
-    try {
-        auto info = std::make_unique<duckdb::CreateTableInfo>(schemaName, tableName);
-        info->columns = std::move(columns);
-
-        duckdb::Binder binder(ctx);
-        auto bound_info = binder.BindCreateTableInfo(move(info));
-        catalog.CreateTable(ctx, bound_info.get());
-    } catch (const std::exception& e) {
-        dashql::FFIResponseBuffer::GetInstance().Store(*packed, dashql::Error(dashql::ErrorCode::CSV_PARSER_ERROR)
-                                                                    << e.what());
-        return;
+    auto createTable = c->RunQuery(create);
+    if (!createTable.IsOk()) {
+        dashql::FFIResponseBuffer::GetInstance().Store(*packed, createTable.ReleaseError());
     }
 
     // Insert Data
     try {
-        ctx.Append(*ctx.TableInfo(schemaName, tableName), output_chunk);
+        auto& ctx = *c->GetConnection().context;
+        auto table = ctx.TableInfo(schemaStr, tableStr);
+        ctx.Append(*table, output_chunk);
     } catch (const std::exception& e) {
         dashql::FFIResponseBuffer::GetInstance().Store(*packed, dashql::Error(dashql::ErrorCode::CSV_PARSER_ERROR)
                                                                     << e.what());

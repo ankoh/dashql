@@ -217,8 +217,17 @@ export abstract class DuckDBBindings {
     public importCSV(conn: number, filePath: string, schemaName: string, tableName: string): Promise<void> {
         return this.registerURL(filePath)
             .then(() => {
-                this.runQuery(conn, `CREATE TABLE ${tableName} AS SELECT * FROM read_csv_auto("${filePath}")`);
-                return Promise.resolve();
+                let instance = this.instance!;
+                let [s, d, n] = this.callSRet(
+                    'duckdb_web_import_csv',
+                    ['number', 'string', 'string', 'string'],
+                    [conn, filePath, schemaName, tableName],
+                );
+
+                let mem = instance.HEAPU8.subarray(d, d + n);
+                if (s !== proto.StatusCode.SUCCESS) {
+                    throw new Error(decodeString(mem));
+                }
             })
             .then(() => this.unregisterURL(filePath));
     }

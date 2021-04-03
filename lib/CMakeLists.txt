@@ -447,7 +447,8 @@ if (EMSCRIPTEN)
             _duckdb_web_fs_glob_callback, \
             _duckdb_web_run_query, \
             _duckdb_web_send_query, \
-            _duckdb_web_import_json \
+            _duckdb_web_import_json, \
+            _duckdb_web_import_csv \
         ]' \
         -s EXTRA_EXPORTED_RUNTIME_METHODS='[\"ccall\"]' \
         --js-library=${CMAKE_SOURCE_DIR}/js-stubs.js \
