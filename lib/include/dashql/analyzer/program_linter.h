@@ -59,6 +59,8 @@ struct LinterMessage {
     }
 };
 
+using LinterReport = std::unordered_map<size_t, LinterMessage>;
+
 }  // namespace dashql
 
 #endif  // INCLUDE_DASHQL_ANALYZER_PROGRAM_LINTER_H_

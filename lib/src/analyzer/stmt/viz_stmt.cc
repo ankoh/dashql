@@ -8,7 +8,8 @@
 #include <stack>
 #include <unordered_map>
 
-#include "dashql/analyzer/json.h"
+#include "dashql/analyzer/json_patch.h"
+#include "dashql/analyzer/json_writer.h"
 #include "dashql/analyzer/program_editor.h"
 #include "dashql/analyzer/program_instance.h"
 #include "dashql/analyzer/program_linter.h"
@@ -47,8 +48,10 @@ std::unique_ptr<VizStatement> VizStatement::ReadFrom(ProgramInstance& instance, 
     // clang-format on
 
     // Match root
-    std::array<NodeMatch, 2> matches;
-    if (!schema.Match(instance, stmt->root_node, matches)) return nullptr;
+    auto matches = schema.Match(instance, stmt->root_node, 2);
+    if (!matches.IsFullMatch()) {
+        return nullptr;
+    }
     auto comps_node_id = matches[1].node_id;
     auto& comps_node = program.nodes[comps_node_id];
 
@@ -112,96 +115,94 @@ flatbuffers::Offset<proto::analyzer::Card> VizStatement::PackCard(flatbuffers::F
 /// Constructor
 VizComponent::VizComponent(VizStatement& viz, size_t node_id) : viz_stmt_(viz), node_id_(node_id) {}
 
+constexpr size_t SX_TYPE = 0;
+constexpr size_t SX_TYPE_MODIFIERS = 1;
+constexpr size_t SX_POS_ROW = 2;
+constexpr size_t SX_POS_COLUMN = 3;
+constexpr size_t SX_POS_WIDTH = 4;
+constexpr size_t SX_POS_HEIGHT = 5;
+constexpr size_t SX_ROW = 6;
+constexpr size_t SX_COLUMN = 7;
+constexpr size_t SX_WIDTH = 8;
+constexpr size_t SX_HEIGHT = 9;
+constexpr size_t SX_TITLE = 10;
+
 /// Read common viz attributes.
 void VizComponent::ReadFrom(size_t node_id) {
     auto& instance = viz_stmt_.instance();
     auto& nodes = instance.program().nodes;
 
-    // Extract important metadata for the analyzer
-    constexpr size_t ID_TYPE = 0;
-    constexpr size_t ID_TYPE_MODIFIERS = 1;
-    constexpr size_t ID_POS_ROW = 2;
-    constexpr size_t ID_POS_COLUMN = 3;
-    constexpr size_t ID_POS_WIDTH = 4;
-    constexpr size_t ID_POS_HEIGHT = 5;
-    constexpr size_t ID_ROW = 6;
-    constexpr size_t ID_COLUMN = 7;
-    constexpr size_t ID_WIDTH = 8;
-    constexpr size_t ID_HEIGHT = 9;
-    constexpr size_t ID_TITLE = 10;
-
     // clang-format off
     static const auto schema = sxm::Element()
         .MatchObject(sx::NodeType::OBJECT_DASHQL_VIZ_COMPONENT)
         .MatchChildren({
-            sxm::Attribute(sx::AttributeKey::DASHQL_VIZ_COMPONENT_TYPE, ID_TYPE)
+            sxm::Attribute(sx::AttributeKey::DASHQL_VIZ_COMPONENT_TYPE, SX_TYPE)
                 .MatchEnum(sx::NodeType::ENUM_DASHQL_VIZ_COMPONENT_TYPE),
-            sxm::Attribute(sx::AttributeKey::DASHQL_VIZ_COMPONENT_TYPE_MODIFIERS, ID_TYPE_MODIFIERS)
+            sxm::Attribute(sx::AttributeKey::DASHQL_VIZ_COMPONENT_TYPE_MODIFIERS, SX_TYPE_MODIFIERS)
                 .MatchUI32Bitmap(),
-            sxm::Option(sx::AttributeKey::DASHQL_OPTION_ROW, ID_ROW),
-            sxm::Option(sx::AttributeKey::DASHQL_OPTION_COLUMN, ID_COLUMN),
-            sxm::Option(sx::AttributeKey::DASHQL_OPTION_WIDTH, ID_WIDTH),
-            sxm::Option(sx::AttributeKey::DASHQL_OPTION_HEIGHT, ID_HEIGHT),
+            sxm::Option(sx::AttributeKey::DASHQL_OPTION_ROW, SX_ROW),
+            sxm::Option(sx::AttributeKey::DASHQL_OPTION_COLUMN, SX_COLUMN),
+            sxm::Option(sx::AttributeKey::DASHQL_OPTION_WIDTH, SX_WIDTH),
+            sxm::Option(sx::AttributeKey::DASHQL_OPTION_HEIGHT, SX_HEIGHT),
             sxm::Option(sx::AttributeKey::DASHQL_OPTION_POSITION)
                 .MatchOptions()
                 .MatchChildren({
-                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_ROW, ID_POS_ROW),
-                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_COLUMN, ID_POS_COLUMN),
-                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_WIDTH, ID_POS_WIDTH),
-                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_HEIGHT, ID_POS_HEIGHT),
+                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_ROW, SX_POS_ROW),
+                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_COLUMN, SX_POS_COLUMN),
+                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_WIDTH, SX_POS_WIDTH),
+                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_HEIGHT, SX_POS_HEIGHT),
                 }),
-            sxm::Option(sx::AttributeKey::DASHQL_OPTION_TITLE, ID_TITLE),
+            sxm::Option(sx::AttributeKey::DASHQL_OPTION_TITLE, SX_TITLE),
         });
     // clang-format on
 
-    std::array<NodeMatch, 11> matches;
-    schema.Match(viz_stmt_.instance(), node_id, matches);
+    auto matches = schema.Match(viz_stmt_.instance(), node_id, 11);
 
     // Read type
-    if (matches[ID_TYPE]) {
-        type_ = matches[ID_TYPE].DataAsEnum<sx::VizComponentType>();
+    if (matches[SX_TYPE]) {
+        type_ = matches[SX_TYPE].DataAsEnum<sx::VizComponentType>();
     }
     // Read type modifiers
-    if (matches[ID_TYPE_MODIFIERS]) {
-        type_modifiers_ = matches[ID_TYPE_MODIFIERS].DataAsI64();
+    if (matches[SX_TYPE_MODIFIERS]) {
+        type_modifiers_ = matches[SX_TYPE_MODIFIERS].DataAsI64();
     }
 
     // Report that option is not unique
     auto report_not_unique = [this](size_t node_id, std::string_view key) {
         if (node_id == INVALID_NODE_ID) return;
-        viz_stmt_.instance().Add(LinterMessage{LinterMessageCode::OPTION_NOT_UNIQUE, node_id}
-                                 << "option '" << key << "' must be unique across components");
+        viz_stmt_.instance().AddLinterMessage(LinterMessageCode::OPTION_NOT_UNIQUE, node_id)
+            << "option '" << key << "' must be unique across components";
     };
 
     /// Get position attributes
     auto& i = instance;
-    auto pos_row = SelectAltOption(i, "position.row", matches[ID_POS_ROW].node_id, matches[ID_ROW].node_id);
-    auto pos_column = SelectAltOption(i, "position.column", matches[ID_POS_COLUMN].node_id, matches[ID_COLUMN].node_id);
-    auto pos_width = SelectAltOption(i, "position.width", matches[ID_POS_WIDTH].node_id, matches[ID_WIDTH].node_id);
-    auto pos_height = SelectAltOption(i, "position.height", matches[ID_POS_HEIGHT].node_id, matches[ID_HEIGHT].node_id);
-    if (AnyOptionSet({pos_row, pos_column, pos_width, pos_height})) {
+    auto pos_row = matches.SelectAlt(SX_POS_ROW, SX_ROW);
+    auto pos_column = matches.SelectAlt(SX_POS_COLUMN, SX_COLUMN);
+    auto pos_width = matches.SelectAlt(SX_POS_WIDTH, SX_WIDTH);
+    auto pos_height = matches.SelectAlt(SX_POS_HEIGHT, SX_HEIGHT);
+    if (matches.HasAny({pos_row, pos_column, pos_width, pos_height})) {
         // Already provided by a previous component?
         if (viz_stmt_.specified_position()) {
-            report_not_unique(pos_row, "position.row");
-            report_not_unique(pos_column, "position.column");
-            report_not_unique(pos_width, "position.width");
-            report_not_unique(pos_height, "position.height");
+            report_not_unique(pos_row->node_id, "position.row");
+            report_not_unique(pos_column->node_id, "position.column");
+            report_not_unique(pos_width->node_id, "position.width");
+            report_not_unique(pos_height->node_id, "position.height");
         } else {
-            auto r = viz_stmt_.instance_.ReadNodeValueOrNull(pos_row).CastAsUI64().value_or(0);
-            auto c = viz_stmt_.instance_.ReadNodeValueOrNull(pos_column).CastAsUI64().value_or(0);
-            auto w = viz_stmt_.instance_.ReadNodeValueOrNull(pos_width).CastAsUI64().value_or(0);
-            auto h = viz_stmt_.instance_.ReadNodeValueOrNull(pos_height).CastAsUI64().value_or(0);
+            auto r = viz_stmt_.instance_.ReadNodeValueOrNull(pos_row->node_id).CastAsUI64().value_or(0);
+            auto c = viz_stmt_.instance_.ReadNodeValueOrNull(pos_column->node_id).CastAsUI64().value_or(0);
+            auto w = viz_stmt_.instance_.ReadNodeValueOrNull(pos_width->node_id).CastAsUI64().value_or(0);
+            auto h = viz_stmt_.instance_.ReadNodeValueOrNull(pos_height->node_id).CastAsUI64().value_or(0);
             position_ = proto::analyzer::CardPosition(r, c, w, h);
             viz_stmt_.specified_position() = &position_.value();
         }
     }
 
     /// Get the title attribute
-    if (matches[ID_TITLE]) {
+    if (matches[SX_TITLE]) {
         if (viz_stmt_.title()) {
-            report_not_unique(matches[ID_TITLE].node_id, "title");
+            report_not_unique(matches[SX_TITLE].node_id, "title");
         } else {
-            auto title = viz_stmt_.instance_.ReadNodeValueOrNull(matches[ID_TITLE].node_id).PrintValue();
+            auto title = viz_stmt_.instance_.ReadNodeValueOrNull(matches[SX_TITLE].node_id).PrintValue();
             trim(title, isNoQuote);
             title_ = std::move(title);
             viz_stmt_.title() = title_;
@@ -218,7 +219,8 @@ std::unique_ptr<VizComponent> VizComponent::CreateFrom(VizStatement& stmt, size_
 
 /// Print the options as json
 void VizComponent::PrintOptionsAsJSON(std::ostream& out, bool pretty) const {
-    writeOptionsAsJSON(viz_stmt_.instance_, node_id_, out, pretty);
+    json::NodeWriter writer{viz_stmt_.instance_, node_id_};
+    writer.writeOptionsAsJSON(out, pretty);
 }
 
 /// Print common viz attributes
@@ -228,32 +230,39 @@ void VizComponent::PrintScript(std::ostream& out) const {
         if ((modifiers & 0b1) == 0) continue;
         out << " " << sx::VizComponentTypeModifierTypeTable()->names[i];
     }
-
     // Print the type name
-    out << " " << sx::VizComponentTypeTypeTable()->names[static_cast<uint32_t>(type_)];
+    out << " " << sx::VizComponentTypeTypeTable()->names[static_cast<uint32_t>(type_)] << " ";
 
-    out << " ";
-
-    // Read DOM
-    auto options = readOptionsAsDOM(viz_stmt_.instance_, node_id_);
-
+    // Create document writer
+    json::NodeWriter writer{viz_stmt_.instance_, node_id_};
     // Write the position
     if (position_) {
-        options.RemoveMember("position");
+        writer.patch().Ignore({
+            SX_ROW,
+            SX_COLUMN,
+            SX_WIDTH,
+            SX_HEIGHT,
+            SX_POS_ROW,
+            SX_POS_COLUMN,
+            SX_POS_WIDTH,
+            SX_POS_HEIGHT,
+        });
         if (&position_.value() == viz_stmt_.specified_position_) {
-            rapidjson::Value pos{rapidjson::kObjectType};
-            rapidjson::Value row{position_->row()};
-            rapidjson::Value column{position_->column()};
-            rapidjson::Value width{position_->width()};
-            rapidjson::Value height{position_->height()};
-            pos.AddMember("row", row, options.GetAllocator());
-            pos.AddMember("column", column, options.GetAllocator());
-            pos.AddMember("width", width, options.GetAllocator());
-            pos.AddMember("height", height, options.GetAllocator());
-            options.AddMember("position", std::move(pos), options.GetAllocator());
+            json::SAXNodeBuilder node{sx::AttributeKey::DASHQL_OPTION_POSITION};
+            node.StartObject();
+            node.Key("row");
+            node.Uint(position_->row());
+            node.Key("column");
+            node.Uint(position_->column());
+            node.Key("width");
+            node.Uint(position_->width());
+            node.Key("height");
+            node.Uint(position_->height());
+            node.EndObject(4);
+            writer.patch().Append(node_id_, node.Finish());
         }
     }
-    writeSQLJSON(options, out);
+    writer.writeOptionsAsSQLJSON(out);
 }
 
 /// Pack as buffer

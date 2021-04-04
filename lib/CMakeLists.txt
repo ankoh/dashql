@@ -316,7 +316,8 @@ add_library(dashql_analyzer
     ${CMAKE_SOURCE_DIR}/src/analyzer/analyzer.cc
     ${CMAKE_SOURCE_DIR}/src/analyzer/analyzer_ffi.cc
     ${CMAKE_SOURCE_DIR}/src/analyzer/function_logic.cc
-    ${CMAKE_SOURCE_DIR}/src/analyzer/json.cc
+    ${CMAKE_SOURCE_DIR}/src/analyzer/json_patch.cc
+    ${CMAKE_SOURCE_DIR}/src/analyzer/json_writer.cc
     ${CMAKE_SOURCE_DIR}/src/analyzer/input_value.cc
     ${CMAKE_SOURCE_DIR}/src/analyzer/program_editor.cc
     ${CMAKE_SOURCE_DIR}/src/analyzer/program_instance.cc

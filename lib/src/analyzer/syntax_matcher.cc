@@ -3,6 +3,7 @@
 #include <istream>
 #include <streambuf>
 
+#include "dashql/analyzer/program_linter.h"
 #include "dashql/common/memstream.h"
 #include "dashql/common/variant.h"
 #include "dashql/proto_generated.h"
@@ -65,15 +66,15 @@ double NodeMatch::DataAsDouble() const {
 }
 
 /// Match a matcher
-bool SyntaxMatcher::Match(const ProgramInstance& program, size_t root_id, nonstd::span<NodeMatch> out) const {
-    bool full_match = true;
+SchemaMap SyntaxMatcher::Match(const ProgramInstance& program, size_t root_id, size_t match_size) const {
+    SchemaMap index{*this, match_size};
 
     // Helper to get matching output
     NodeMatch tmp;
     auto getOut = [&](const SyntaxMatcher& matcher) -> NodeMatch& {
         if (matcher.matching_id == DISCARD_SYNTAX_MATCH) return tmp;
-        assert(matcher.matching_id < out.size());
-        return out[matcher.matching_id];
+        assert(matcher.matching_id < index.matches.size());
+        return index.matches[matcher.matching_id];
     };
 
     // Match the matcher with a DFS
@@ -95,7 +96,7 @@ bool SyntaxMatcher::Match(const ProgramInstance& program, size_t root_id, nonstd
         // Compare node type
         if (top.matcher.node_type != sx::NodeType::NONE && top.matcher.node_type != top_node.node_type()) {
             matching.status = NodeMatchStatus::TYPE_MISMATCH;
-            full_match = false;
+            index.full_match = false;
             continue;
         }
 
@@ -119,7 +120,7 @@ bool SyntaxMatcher::Match(const ProgramInstance& program, size_t root_id, nonstd
                     matching.data = program.TextAt(top_node.location());
                 } else {
                     matching.status = NodeMatchStatus::MISSING;
-                    full_match = false;
+                    index.full_match = false;
                 }
                 break;
             case SyntaxMatcherType::ENUM:
@@ -136,7 +137,7 @@ bool SyntaxMatcher::Match(const ProgramInstance& program, size_t root_id, nonstd
                 }
                 for (unsigned i = 0; i < unmatched; ++i) {
                     getOut(top.matcher.children[visit + i]).status = NodeMatchStatus::MISSING;
-                    full_match = false;
+                    index.full_match = false;
                 }
                 break;
             }
@@ -155,7 +156,7 @@ bool SyntaxMatcher::Match(const ProgramInstance& program, size_t root_id, nonstd
                         ++h;
                     } else if (have.attribute_key() > expected.attribute_key) {
                         getOut(expected).status = NodeMatchStatus::MISSING;
-                        full_match = false;
+                        index.full_match = false;
                         ++e;
                     } else {
                         pending.push_back({top_node.children_begin_or_value() + h, expected});
@@ -165,39 +166,42 @@ bool SyntaxMatcher::Match(const ProgramInstance& program, size_t root_id, nonstd
                 }
                 for (; e < top.matcher.children.size(); ++e) {
                     getOut(top.matcher.children[e]).status = NodeMatchStatus::MISSING;
-                    full_match = false;
+                    index.full_match = false;
                 }
                 break;
             }
         }
     }
-    return full_match;
+    return index;
 }
 
 /// Select an option
-bool AnyOptionSet(std::initializer_list<size_t> node_ids) {
+bool SchemaMap::HasAny(std::initializer_list<size_t> ids) const {
     bool any = false;
-    for (auto node_id : node_ids) {
-        any |= node_id < INVALID_NODE_ID;
+    for (auto id : ids) {
+        any |= matches[id].IsMatched();
+    }
+    return any;
+}
+
+/// Select an option
+bool SchemaMap::HasAny(std::initializer_list<const NodeMatch*> nodes) const {
+    bool any = false;
+    for (auto* node : nodes) {
+        any |= node && node->IsMatched();
     }
     return any;
 }
 
 /// Select an option with alternative
-size_t SelectAltOption(ProgramInstance& instance, std::string_view label, size_t node_id, size_t alt_node_id) {
-    size_t selection = INVALID_NODE_ID;
-    if (node_id < INVALID_NODE_ID) {
-        selection = node_id;
-        if (alt_node_id < INVALID_NODE_ID) {
-            instance.Add(LinterMessage{LinterMessageCode::OPTION_ALTERNATIVE_STYLE, alt_node_id}
-                         << "option superseded by '" << label << "'");
-        }
-    } else if (alt_node_id < INVALID_NODE_ID) {
-        selection = alt_node_id;
-        instance.Add(LinterMessage{LinterMessageCode::OPTION_ALTERNATIVE_STYLE, alt_node_id}
-                     << "option should be specified as '" << label << "'");
+const NodeMatch* SchemaMap::SelectAlt(size_t id, size_t alt_id) const {
+    const NodeMatch* match = nullptr;
+    if (matches[id].node_id < INVALID_NODE_ID) {
+        match = &matches[id];
+    } else if (matches[alt_id].node_id < INVALID_NODE_ID) {
+        match = &matches[alt_id];
     }
-    return selection;
+    return match;
 }
 
 }  // namespace dashql

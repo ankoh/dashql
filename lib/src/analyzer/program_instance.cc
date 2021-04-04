@@ -27,7 +27,10 @@ ProgramInstance::ProgramInstance(std::shared_ptr<std::string> text, std::shared_
 // Add a node error
 void ProgramInstance::AddNodeError(NodeError&& error) { node_errors_.push_back(std::move(error)); }
 // Add a linter message
-void ProgramInstance::Add(LinterMessage msg) { linter_messages_.push_back(std::move(msg)); }
+LinterMessage& ProgramInstance::AddLinterMessage(LinterMessageCode code, size_t node_id) {
+    linter_messages_.emplace_back(code, node_id);
+    return linter_messages_.back();
+}
 
 // Find a parameter value
 const InputValue* ProgramInstance::FindInputValue(size_t stmt_id) const {
