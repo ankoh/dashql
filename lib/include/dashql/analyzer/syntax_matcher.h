@@ -11,6 +11,7 @@
 #include <variant>
 
 #include "dashql/analyzer/program_instance.h"
+#include "dashql/analyzer/program_linter.h"
 #include "dashql/common/enum.h"
 #include "dashql/common/span.h"
 #include "dashql/proto_generated.h"
@@ -46,6 +47,8 @@ struct NodeMatch {
     /// The value (if any)
     std::variant<std::monostate, bool, uint32_t, std::string_view> data = std::monostate();
 
+    /// Is matched?
+    bool IsMatched() const { return status == NodeMatchStatus::MATCHED; }
     /// Has a value?
     bool HasData() const { return !std::holds_alternative<std::monostate>(data); }
     /// Get the value as string ref
@@ -62,7 +65,38 @@ struct NodeMatch {
         return static_cast<T>(!!v ? *v : 0);
     }
     /// Matched
-    operator bool() const { return status == NodeMatchStatus::MATCHED; }
+    operator bool() const { return IsMatched(); }
+};
+
+class SyntaxMatcher;
+
+/// The syntax match gives us constant time to all expected attributes in a node.
+class SchemaMap {
+    friend class SyntaxMatcher;
+
+   protected:
+    /// The schema
+    const SyntaxMatcher& schema;
+    /// The node matches
+    std::vector<NodeMatch> matches;
+    /// Is a full match?
+    bool full_match;
+
+   public:
+    /// Constructor
+    SchemaMap(const SyntaxMatcher& schema, size_t size) : schema(schema), matches(size), full_match(true) {}
+
+    /// Subscript operator
+    const NodeMatch& operator[](size_t id) const { return matches[id]; };
+
+    /// Is full match?
+    bool IsFullMatch() const { return full_match; }
+    /// Is any node set?
+    bool HasAny(std::initializer_list<size_t> ids) const;
+    /// Is any node set?
+    bool HasAny(std::initializer_list<const NodeMatch*> matches) const;
+    /// Select a node with alternative
+    const NodeMatch* SelectAlt(size_t id, size_t alt_id) const;
 };
 
 /// Use uint32_t max as NULL matching id
@@ -168,14 +202,9 @@ struct SyntaxMatcher {
     }
 
     /// Match a schema
-    bool Match(const ProgramInstance& program, size_t node_id, nonstd::span<NodeMatch> matching) const;
+    SchemaMap Match(const ProgramInstance& program, size_t node_id, size_t match_size) const;
 };
 using sxm = SyntaxMatcher;
-
-/// Is any option node set?
-bool AnyOptionSet(std::initializer_list<size_t> node_ids);
-/// Select an option with alternative
-size_t SelectAltOption(ProgramInstance& instance, std::string_view label, size_t node_id, size_t alt_node_id);
 
 }  // namespace dashql
 

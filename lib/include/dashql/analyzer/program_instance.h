@@ -106,10 +106,13 @@ class ProgramInstance {
     /// Get the viz statements
     auto& viz_statements() const { return viz_statements_; }
 
+    /// Get the viz statements
+    auto& linter_messages() { return linter_messages_; }
+
     /// Add a node error
     void AddNodeError(NodeError&& error);
     /// Add a linter message
-    void Add(LinterMessage msg);
+    LinterMessage& AddLinterMessage(LinterMessageCode code, size_t node_id);
     /// Find the input value value
     const InputValue* FindInputValue(size_t stmt_id) const;
     /// Find an evaluated node
