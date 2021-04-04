@@ -43,20 +43,19 @@ TEST(SyntaxMatcherTest, LoadStatement) {
         });
     // clang-format on
 
-    std::array<NodeMatch, 5> matching;
-    auto full_match = schema.Match(instance, stmt_root_id, matching);
+    auto matches = schema.Match(instance, stmt_root_id, 5);
 
-    EXPECT_EQ(matching[0].status, NodeMatchStatus::MATCHED);
-    EXPECT_EQ(matching[1].status, NodeMatchStatus::MATCHED);
-    EXPECT_EQ(matching[2].status, NodeMatchStatus::MATCHED);
-    EXPECT_EQ(matching[3].status, NodeMatchStatus::MATCHED);
-    EXPECT_EQ(matching[4].status, NodeMatchStatus::MATCHED);
-    EXPECT_TRUE(full_match);
+    EXPECT_EQ(matches[0].status, NodeMatchStatus::MATCHED);
+    EXPECT_EQ(matches[1].status, NodeMatchStatus::MATCHED);
+    EXPECT_EQ(matches[2].status, NodeMatchStatus::MATCHED);
+    EXPECT_EQ(matches[3].status, NodeMatchStatus::MATCHED);
+    EXPECT_EQ(matches[4].status, NodeMatchStatus::MATCHED);
+    EXPECT_TRUE(matches.IsFullMatch());
 
-    ASSERT_TRUE(std::holds_alternative<std::string_view>(matching[3].data));
-    ASSERT_EQ(std::get<std::string_view>(matching[3].data), "weather_csv");
-    ASSERT_TRUE(std::holds_alternative<std::string_view>(matching[4].data));
-    ASSERT_EQ(std::get<std::string_view>(matching[4].data), "'https://localhost/test'");
+    ASSERT_TRUE(std::holds_alternative<std::string_view>(matches[3].data));
+    ASSERT_EQ(std::get<std::string_view>(matches[3].data), "weather_csv");
+    ASSERT_TRUE(std::holds_alternative<std::string_view>(matches[4].data));
+    ASSERT_EQ(std::get<std::string_view>(matches[4].data), "'https://localhost/test'");
 }
 
 TEST(SyntaxMatcherTest, MinimalError) {
@@ -79,11 +78,9 @@ TEST(SyntaxMatcherTest, MinimalError) {
         });
     // clang-format on
 
-    std::array<NodeMatch, 2> matching;
-    schema.Match(instance, stmt_root_id, matching);
-
-    EXPECT_EQ(matching[0].status, NodeMatchStatus::MATCHED);
-    EXPECT_EQ(matching[1].status, NodeMatchStatus::MATCHED);
+    auto matches = schema.Match(instance, stmt_root_id, 2);
+    EXPECT_EQ(matches[0].status, NodeMatchStatus::MATCHED);
+    EXPECT_EQ(matches[1].status, NodeMatchStatus::MATCHED);
 }
 
 TEST(SyntaxMatcherTest, VizStatementPositionShort) {
@@ -132,15 +129,13 @@ TEST(SyntaxMatcherTest, VizStatementPositionShort) {
         });
     // clang-format on
 
-    std::array<NodeMatch, 12> matching;
-    schema.Match(instance, stmt_root_id, matching);
-
-    EXPECT_EQ(matching[0].status, NodeMatchStatus::MATCHED);
-    EXPECT_EQ(matching[1].status, NodeMatchStatus::MATCHED);
-    EXPECT_EQ(matching[2].status, NodeMatchStatus::MATCHED);
-    EXPECT_EQ(matching[3].status, NodeMatchStatus::MATCHED);
-    EXPECT_EQ(matching[4].status, NodeMatchStatus::MISSING);
-    EXPECT_EQ(matching[5].status, NodeMatchStatus::MISSING);
+    auto matches = schema.Match(instance, stmt_root_id, 12);
+    EXPECT_EQ(matches[0].status, NodeMatchStatus::MATCHED);
+    EXPECT_EQ(matches[1].status, NodeMatchStatus::MATCHED);
+    EXPECT_EQ(matches[2].status, NodeMatchStatus::MATCHED);
+    EXPECT_EQ(matches[3].status, NodeMatchStatus::MATCHED);
+    EXPECT_EQ(matches[4].status, NodeMatchStatus::MISSING);
+    EXPECT_EQ(matches[5].status, NodeMatchStatus::MISSING);
 }
 
 TEST(SyntaxMatcherTest, LoadStatementFormat) {
@@ -191,31 +186,29 @@ TEST(SyntaxMatcherTest, LoadStatementFormat) {
     });
     // clang-format on
 
-    std::array<NodeMatch, 10> matching;
-    auto full_match = schema.Match(instance, stmt_root_id, matching);
+    auto matches = schema.Match(instance, stmt_root_id, 10);
+    EXPECT_EQ(matches[0].status, NodeMatchStatus::MATCHED);
+    EXPECT_EQ(matches[1].status, NodeMatchStatus::MATCHED);
+    EXPECT_EQ(matches[2].status, NodeMatchStatus::MATCHED);
+    EXPECT_EQ(matches[3].status, NodeMatchStatus::MATCHED);
+    EXPECT_EQ(matches[4].status, NodeMatchStatus::MATCHED);
+    EXPECT_EQ(matches[5].status, NodeMatchStatus::MATCHED);
+    EXPECT_EQ(matches[6].status, NodeMatchStatus::MATCHED);
+    EXPECT_EQ(matches[7].status, NodeMatchStatus::MATCHED);
+    EXPECT_EQ(matches[8].status, NodeMatchStatus::MATCHED);
+    EXPECT_EQ(matches[9].status, NodeMatchStatus::MATCHED);
+    EXPECT_TRUE(matches.IsFullMatch());
 
-    EXPECT_EQ(matching[0].status, NodeMatchStatus::MATCHED);
-    EXPECT_EQ(matching[1].status, NodeMatchStatus::MATCHED);
-    EXPECT_EQ(matching[2].status, NodeMatchStatus::MATCHED);
-    EXPECT_EQ(matching[3].status, NodeMatchStatus::MATCHED);
-    EXPECT_EQ(matching[4].status, NodeMatchStatus::MATCHED);
-    EXPECT_EQ(matching[5].status, NodeMatchStatus::MATCHED);
-    EXPECT_EQ(matching[6].status, NodeMatchStatus::MATCHED);
-    EXPECT_EQ(matching[7].status, NodeMatchStatus::MATCHED);
-    EXPECT_EQ(matching[8].status, NodeMatchStatus::MATCHED);
-    EXPECT_EQ(matching[9].status, NodeMatchStatus::MATCHED);
-    EXPECT_TRUE(full_match);
-
-    ASSERT_TRUE(std::holds_alternative<std::string_view>(matching[3].data));
-    ASSERT_EQ(std::get<std::string_view>(matching[3].data), "weather_csv");
-    ASSERT_TRUE(std::holds_alternative<std::string_view>(matching[6].data));
-    ASSERT_EQ(std::get<std::string_view>(matching[6].data), "format");
-    ASSERT_TRUE(std::holds_alternative<std::string_view>(matching[7].data));
-    ASSERT_EQ(std::get<std::string_view>(matching[7].data), "'https://cdn.dashql.com/demo/weather/%s'");
-    ASSERT_TRUE(std::holds_alternative<std::string_view>(matching[8].data));
-    ASSERT_EQ(std::get<std::string_view>(matching[8].data), "global");
-    ASSERT_TRUE(std::holds_alternative<std::string_view>(matching[9].data));
-    ASSERT_EQ(std::get<std::string_view>(matching[9].data), "country");
+    ASSERT_TRUE(std::holds_alternative<std::string_view>(matches[3].data));
+    ASSERT_EQ(std::get<std::string_view>(matches[3].data), "weather_csv");
+    ASSERT_TRUE(std::holds_alternative<std::string_view>(matches[6].data));
+    ASSERT_EQ(std::get<std::string_view>(matches[6].data), "format");
+    ASSERT_TRUE(std::holds_alternative<std::string_view>(matches[7].data));
+    ASSERT_EQ(std::get<std::string_view>(matches[7].data), "'https://cdn.dashql.com/demo/weather/%s'");
+    ASSERT_TRUE(std::holds_alternative<std::string_view>(matches[8].data));
+    ASSERT_EQ(std::get<std::string_view>(matches[8].data), "global");
+    ASSERT_TRUE(std::holds_alternative<std::string_view>(matches[9].data));
+    ASSERT_EQ(std::get<std::string_view>(matches[9].data), "country");
 }
 
 }  // namespace
