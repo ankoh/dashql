@@ -70,7 +70,7 @@ void AnalyzerTest::EncodePlan(pugi::xml_node root, const ProgramInstance& instan
     auto cards = root.append_child("cards");
     for (auto& in : instance.input_statements()) {
         auto i = cards.append_child("input");
-        auto name = std::string(instance.TextAt(nodes[in->statement_name_node()].location()));
+        std::string name{in->GetStatementName()};
         i.append_attribute("name").set_value(name.c_str());
         if (auto& comp = in->component_type(); comp.has_value()) {
             auto comp_name = sx::InputComponentTypeTypeTable()->names[static_cast<size_t>(comp.value())];
@@ -95,7 +95,7 @@ void AnalyzerTest::EncodePlan(pugi::xml_node root, const ProgramInstance& instan
             v.append_attribute("title").set_value(copy.c_str());
         }
         auto target = v.append_child("target");
-        EncodeLocation(target, instance.program().nodes[viz->target_node_id()].location(), instance.program_text());
+        EncodeLocation(target, viz->GetTarget(), instance.program_text());
         if (auto pos = viz->specified_position()) {
             auto p = v.append_child("position");
             p.append_attribute("row") = pos->row();

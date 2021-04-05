@@ -13,13 +13,12 @@
 #include <unordered_map>
 #include <variant>
 
+#include "dashql/analyzer/syntax_matcher.h"
 #include "dashql/common/enum.h"
 #include "dashql/common/span.h"
 #include "dashql/parser/parser_driver.h"
 #include "dashql/proto_generated.h"
 #include "rapidjson/document.h"
-
-namespace sx = dashql::proto::syntax;
 
 namespace dashql {
 
@@ -31,10 +30,8 @@ class InputStatement {
     ProgramInstance& instance_;
     /// The statement id
     const size_t statement_id_;
-    /// The id statement name node
-    const size_t statement_name_node_;
-    /// The id of the value type node
-    const size_t type_node_;
+    /// The schema map
+    const ASTIndex ast_;
     /// The value type
     duckdb::web::proto::SQLType value_type_ = duckdb::web::proto::SQLType();
     /// The component type
@@ -43,22 +40,22 @@ class InputStatement {
     std::optional<proto::analyzer::CardPosition> position_ = std::nullopt;
     /// The title
     std::optional<std::string> title_ = std::nullopt;
-    /// The patches
-    std::unordered_map<size_t, std::pair<sx::AttributeKey, rapidjson::Document>> patches_;
 
    public:
     /// Constructor
-    InputStatement(ProgramInstance& instance, size_t statement_id, size_t statement_name_node, size_t type_node);
+    InputStatement(ProgramInstance& instance, size_t statement_id, ASTIndex ast);
     /// Get the instance
     auto& instance() { return instance_; }
-    /// Get the statement name
-    auto& statement_name_node() { return statement_name_node_; }
+    /// Get the ast
+    auto& ast() { return ast_; }
     /// Get the component type
     auto& component_type() { return component_type_; }
     /// Get the specified position
     auto& position() { return position_; }
     /// Get the title
     auto& title() { return title_; }
+    /// Get the statement name
+    std::string_view GetStatementName() const;
     /// Print as script
     void PrintScript(std::ostream& out) const;
     /// Pack the viz specs

@@ -3,7 +3,10 @@
 #include <istream>
 #include <streambuf>
 
+#include "dashql/analyzer/program_instance.h"
 #include "dashql/analyzer/program_linter.h"
+#include "dashql/analyzer/stmt/input_stmt.h"
+#include "dashql/analyzer/stmt/viz_stmt.h"
 #include "dashql/common/memstream.h"
 #include "dashql/common/variant.h"
 #include "dashql/proto_generated.h"
@@ -66,12 +69,12 @@ double NodeMatch::DataAsDouble() const {
 }
 
 /// Match a matcher
-SchemaMap SyntaxMatcher::Match(const ProgramInstance& program, size_t root_id, size_t match_size) const {
-    SchemaMap index{*this, match_size};
+ASTIndex ASTMatcher::Match(const ProgramInstance& program, size_t root_id, size_t match_size) const {
+    ASTIndex index{*this, match_size};
 
     // Helper to get matching output
     NodeMatch tmp;
-    auto getOut = [&](const SyntaxMatcher& matcher) -> NodeMatch& {
+    auto getOut = [&](const ASTMatcher& matcher) -> NodeMatch& {
         if (matcher.matching_id == DISCARD_SYNTAX_MATCH) return tmp;
         assert(matcher.matching_id < index.matches.size());
         return index.matches[matcher.matching_id];
@@ -80,7 +83,7 @@ SchemaMap SyntaxMatcher::Match(const ProgramInstance& program, size_t root_id, s
     // Match the matcher with a DFS
     struct Step {
         size_t node_id;
-        const SyntaxMatcher& matcher;
+        const ASTMatcher& matcher;
     };
     std::vector<Step> pending;
     pending.reserve(8);
@@ -102,19 +105,19 @@ SchemaMap SyntaxMatcher::Match(const ProgramInstance& program, size_t root_id, s
 
         // Match the node spec
         switch (top.matcher.node_spec) {
-            case SyntaxMatcherType::BOOL:
+            case ASTMatcherType::BOOL:
                 matching.status = NodeMatchStatus::MATCHED;
                 matching.data = top_node.children_begin_or_value() != 0;
                 break;
-            case SyntaxMatcherType::UI32:
+            case ASTMatcherType::UI32:
                 matching.status = NodeMatchStatus::MATCHED;
                 matching.data = top_node.children_begin_or_value();
                 break;
-            case SyntaxMatcherType::UI32_BITMAP:
+            case ASTMatcherType::UI32_BITMAP:
                 matching.status = NodeMatchStatus::MATCHED;
                 matching.data = top_node.children_begin_or_value();
                 break;
-            case SyntaxMatcherType::STRING:
+            case ASTMatcherType::STRING:
                 if (top_node.node_type() == sx::NodeType::STRING_REF) {
                     matching.status = NodeMatchStatus::MATCHED;
                     matching.data = program.TextAt(top_node.location());
@@ -123,11 +126,11 @@ SchemaMap SyntaxMatcher::Match(const ProgramInstance& program, size_t root_id, s
                     index.full_match = false;
                 }
                 break;
-            case SyntaxMatcherType::ENUM:
+            case ASTMatcherType::ENUM:
                 matching.status = NodeMatchStatus::MATCHED;
                 matching.data = top_node.children_begin_or_value();
                 break;
-            case SyntaxMatcherType::ARRAY: {
+            case ASTMatcherType::ARRAY: {
                 matching.status = NodeMatchStatus::MATCHED;
                 auto visit = std::min<size_t>(top_node.children_count(), top.matcher.children.size());
                 auto unmatched = top.matcher.children.size() - visit;
@@ -141,7 +144,7 @@ SchemaMap SyntaxMatcher::Match(const ProgramInstance& program, size_t root_id, s
                 }
                 break;
             }
-            case SyntaxMatcherType::OBJECT: {
+            case ASTMatcherType::OBJECT: {
                 matching.status = NodeMatchStatus::MATCHED;
                 nonstd::span<const sx::Node> children{
                     program.program().nodes.data() + top_node.children_begin_or_value(), top_node.children_count()};
@@ -176,7 +179,7 @@ SchemaMap SyntaxMatcher::Match(const ProgramInstance& program, size_t root_id, s
 }
 
 /// Select an option
-bool SchemaMap::HasAny(std::initializer_list<size_t> ids) const {
+bool ASTIndex::HasAny(std::initializer_list<size_t> ids) const {
     bool any = false;
     for (auto id : ids) {
         any |= matches[id].IsMatched();
@@ -185,7 +188,7 @@ bool SchemaMap::HasAny(std::initializer_list<size_t> ids) const {
 }
 
 /// Select an option
-bool SchemaMap::HasAny(std::initializer_list<const NodeMatch*> nodes) const {
+bool ASTIndex::HasAny(std::initializer_list<const NodeMatch*> nodes) const {
     bool any = false;
     for (auto* node : nodes) {
         any |= node && node->IsMatched();
@@ -194,7 +197,7 @@ bool SchemaMap::HasAny(std::initializer_list<const NodeMatch*> nodes) const {
 }
 
 /// Select an option with alternative
-const NodeMatch* SchemaMap::SelectAlt(size_t id, size_t alt_id) const {
+const NodeMatch* ASTIndex::SelectAlt(size_t id, size_t alt_id) const {
     const NodeMatch* match = nullptr;
     if (matches[id].node_id < INVALID_NODE_ID) {
         match = &matches[id];

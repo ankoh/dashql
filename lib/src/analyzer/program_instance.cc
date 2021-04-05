@@ -5,6 +5,8 @@
 #include <stack>
 
 #include "dashql/analyzer/program_linter.h"
+#include "dashql/analyzer/stmt/input_stmt.h"
+#include "dashql/analyzer/stmt/viz_stmt.h"
 #include "dashql/common/memstream.h"
 #include "dashql/common/substring_buffer.h"
 #include "dashql/common/variant.h"
