@@ -34,15 +34,16 @@ constexpr size_t SX_TARGET = 0;
 constexpr size_t SX_COMPONENTS = 1;
 constexpr size_t SX_TYPE = 2;
 constexpr size_t SX_TYPE_MODIFIERS = 3;
-constexpr size_t SX_POS_ROW = 4;
-constexpr size_t SX_POS_COLUMN = 5;
-constexpr size_t SX_POS_WIDTH = 6;
-constexpr size_t SX_POS_HEIGHT = 7;
-constexpr size_t SX_ROW = 8;
-constexpr size_t SX_COLUMN = 9;
-constexpr size_t SX_WIDTH = 10;
-constexpr size_t SX_HEIGHT = 11;
-constexpr size_t SX_TITLE = 11;
+constexpr size_t SX_POS = 4;
+constexpr size_t SX_POS_ROW = 5;
+constexpr size_t SX_POS_COLUMN = 6;
+constexpr size_t SX_POS_WIDTH = 7;
+constexpr size_t SX_POS_HEIGHT = 8;
+constexpr size_t SX_ROW = 9;
+constexpr size_t SX_COLUMN = 10;
+constexpr size_t SX_WIDTH = 11;
+constexpr size_t SX_HEIGHT = 12;
+constexpr size_t SX_TITLE = 13;
 
 VizStatement::VizStatement(ProgramInstance& instance, size_t statement_id, ASTIndex ast)
     : instance_(instance), statement_id_(statement_id), ast_(std::move(ast)), components_(), patches_() {}
@@ -153,7 +154,7 @@ std::unique_ptr<VizComponent> VizComponent::ReadFrom(VizStatement& stmt, size_t 
             sxm::Option(sx::AttributeKey::DASHQL_OPTION_COLUMN, SX_COLUMN),
             sxm::Option(sx::AttributeKey::DASHQL_OPTION_WIDTH, SX_WIDTH),
             sxm::Option(sx::AttributeKey::DASHQL_OPTION_HEIGHT, SX_HEIGHT),
-            sxm::Option(sx::AttributeKey::DASHQL_OPTION_POSITION)
+            sxm::Option(sx::AttributeKey::DASHQL_OPTION_POSITION, SX_POS)
                 .MatchOptions()
                 .MatchChildren({
                     sxm::Option(sx::AttributeKey::DASHQL_OPTION_ROW, SX_POS_ROW),
@@ -165,7 +166,7 @@ std::unique_ptr<VizComponent> VizComponent::ReadFrom(VizStatement& stmt, size_t 
         });
     // clang-format on
 
-    auto ast = schema.Match(stmt.instance(), node_id, 13);
+    auto ast = schema.Match(stmt.instance(), node_id, 14);
     auto comp = std::make_unique<VizComponent>(stmt, node_id, std::move(ast));
 
     // Read type
@@ -208,11 +209,11 @@ std::unique_ptr<VizComponent> VizComponent::ReadFrom(VizStatement& stmt, size_t 
     }
 
     /// Get the title attribute
-    if (comp->ast_[SX_TITLE]) {
+    if (auto match = comp->ast_[SX_TITLE]; match) {
         if (stmt.title()) {
-            report_not_unique(comp->ast_[SX_TITLE].node_id, "title");
+            report_not_unique(match.node_id, "title");
         } else {
-            auto title = stmt.instance_.ReadNodeValueOrNull(comp->ast_[SX_TITLE].node_id).PrintValue();
+            auto title = stmt.instance_.ReadNodeValueOrNull(match.node_id).PrintValue();
             trim(title, isNoQuote);
             comp->title_ = std::move(title);
             stmt.title() = comp->title_;
@@ -246,6 +247,7 @@ void VizComponent::PrintScript(std::ostream& out) const {
             SX_COLUMN,
             SX_WIDTH,
             SX_HEIGHT,
+            SX_POS,
             SX_POS_ROW,
             SX_POS_COLUMN,
             SX_POS_WIDTH,

@@ -12,19 +12,20 @@ namespace dashql {
 InputStatement::InputStatement(ProgramInstance& instance, size_t statement_id, ASTIndex ast)
     : instance_(instance), statement_id_(statement_id), ast_(ast) {}
 
-constexpr size_t SX_POS_ROW = 0;
-constexpr size_t SX_POS_COLUMN = 1;
-constexpr size_t SX_POS_WIDTH = 2;
-constexpr size_t SX_POS_HEIGHT = 3;
-constexpr size_t SX_ROW = 4;
-constexpr size_t SX_COLUMN = 5;
-constexpr size_t SX_WIDTH = 6;
-constexpr size_t SX_HEIGHT = 7;
-constexpr size_t SX_TITLE = 8;
-constexpr size_t SX_TYPE = 9;
-constexpr size_t SX_INPUT_COMPONENT_TYPE = 10;
-constexpr size_t SX_INPUT_VALUE_TYPE = 11;
-constexpr size_t SX_STATEMENT_NAME = 12;
+constexpr size_t SX_POS = 0;
+constexpr size_t SX_POS_ROW = 1;
+constexpr size_t SX_POS_COLUMN = 2;
+constexpr size_t SX_POS_WIDTH = 3;
+constexpr size_t SX_POS_HEIGHT = 4;
+constexpr size_t SX_ROW = 5;
+constexpr size_t SX_COLUMN = 6;
+constexpr size_t SX_WIDTH = 7;
+constexpr size_t SX_HEIGHT = 8;
+constexpr size_t SX_TITLE = 9;
+constexpr size_t SX_TYPE = 10;
+constexpr size_t SX_INPUT_COMPONENT_TYPE = 11;
+constexpr size_t SX_INPUT_VALUE_TYPE = 12;
+constexpr size_t SX_STATEMENT_NAME = 13;
 
 std::unique_ptr<InputStatement> InputStatement::ReadFrom(ProgramInstance& instance, size_t stmt_id) {
     auto& program = instance.program();
@@ -47,7 +48,7 @@ std::unique_ptr<InputStatement> InputStatement::ReadFrom(ProgramInstance& instan
             sxm::Option(sx::AttributeKey::DASHQL_OPTION_COLUMN, SX_COLUMN),
             sxm::Option(sx::AttributeKey::DASHQL_OPTION_WIDTH, SX_WIDTH),
             sxm::Option(sx::AttributeKey::DASHQL_OPTION_HEIGHT, SX_HEIGHT),
-            sxm::Option(sx::AttributeKey::DASHQL_OPTION_POSITION)
+            sxm::Option(sx::AttributeKey::DASHQL_OPTION_POSITION, SX_POS)
                 .MatchOptions()
                 .MatchChildren({
                     sxm::Option(sx::AttributeKey::DASHQL_OPTION_ROW, SX_POS_ROW),
@@ -59,7 +60,7 @@ std::unique_ptr<InputStatement> InputStatement::ReadFrom(ProgramInstance& instan
         });
     // clang-format on
 
-    auto matches = schema.Match(instance, stmt->root_node, 13);
+    auto matches = schema.Match(instance, stmt->root_node, 14);
 
     assert(matches[SX_STATEMENT_NAME]);
     assert(matches[SX_INPUT_VALUE_TYPE]);
