@@ -44,10 +44,6 @@ std::unique_ptr<InputStatement> InputStatement::ReadFrom(ProgramInstance& instan
                 .MatchEnum(sx::NodeType::ENUM_DASHQL_INPUT_COMPONENT_TYPE),
             sxm::Option(sx::AttributeKey::DASHQL_INPUT_VALUE_TYPE, SX_INPUT_VALUE_TYPE),
             sxm::Option(sx::AttributeKey::DASHQL_STATEMENT_NAME, SX_STATEMENT_NAME),
-            sxm::Option(sx::AttributeKey::DASHQL_OPTION_ROW, SX_ROW),
-            sxm::Option(sx::AttributeKey::DASHQL_OPTION_COLUMN, SX_COLUMN),
-            sxm::Option(sx::AttributeKey::DASHQL_OPTION_WIDTH, SX_WIDTH),
-            sxm::Option(sx::AttributeKey::DASHQL_OPTION_HEIGHT, SX_HEIGHT),
             sxm::Option(sx::AttributeKey::DASHQL_OPTION_POSITION, SX_POS)
                 .MatchOptions()
                 .MatchChildren({
@@ -56,6 +52,10 @@ std::unique_ptr<InputStatement> InputStatement::ReadFrom(ProgramInstance& instan
                     sxm::Option(sx::AttributeKey::DASHQL_OPTION_WIDTH, SX_POS_WIDTH),
                     sxm::Option(sx::AttributeKey::DASHQL_OPTION_HEIGHT, SX_POS_HEIGHT),
                 }),
+            sxm::Option(sx::AttributeKey::DASHQL_OPTION_ROW, SX_ROW),
+            sxm::Option(sx::AttributeKey::DASHQL_OPTION_COLUMN, SX_COLUMN),
+            sxm::Option(sx::AttributeKey::DASHQL_OPTION_WIDTH, SX_WIDTH),
+            sxm::Option(sx::AttributeKey::DASHQL_OPTION_HEIGHT, SX_HEIGHT),
             sxm::Option(sx::AttributeKey::DASHQL_OPTION_TITLE, SX_TITLE),
         });
     // clang-format on

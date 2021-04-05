@@ -766,7 +766,7 @@
                 <target loc="17..20" text="foo" />
                 <position row="0" column="6" width="6" height="4" />
                 <components>
-                    <component type="VEGA">{"encoding":{"x":{"field":"x","type":"quantitative"},"y":{"field":"y","type":"quantitative"}},"mark":"line","position":{"row":0.0,"column":6.0,"width":6.0,"height":4.0},"title":"Line Chart"}</component>
+                    <component type="VEGA">{"position":{"row":0.0,"column":6.0,"width":6.0,"height":4.0},"title":"Line Chart","encoding":{"x":{"field":"x","type":"quantitative"},"y":{"field":"y","type":"quantitative"}},"mark":"line"}</component>
                 </components>
             </visualization>
         </cards>
