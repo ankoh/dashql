@@ -287,9 +287,7 @@ static void writeOptions(ProgramInstance& instance, size_t root_node_id, json::D
                             auto lk = nodes[begin + l].attribute_key();
                             auto rk = to_append->at(r).key;
                             if (lk < rk) {
-                                auto& child = nodes[begin + l];
-                                if (child.attribute_key() > sx::AttributeKey::DASHQL_OPTION_KEYS_ &&
-                                    child.attribute_key() < sx::AttributeKey::SQL_KEYS_) {
+                                if (lk > sx::AttributeKey::DASHQL_OPTION_KEYS_ && lk < sx::AttributeKey::SQL_KEYS_) {
                                     pending.push_back(ExistingNode{begin + l, std::nullopt, 0});
                                 }
                                 ++l;
@@ -303,7 +301,11 @@ static void writeOptions(ProgramInstance& instance, size_t root_node_id, json::D
                             }
                         }
                         for (; l < count; ++l) {
-                            pending.push_back(ExistingNode{begin + l, std::nullopt, 0});
+                            auto& child = nodes[begin + l];
+                            if (child.attribute_key() > sx::AttributeKey::DASHQL_OPTION_KEYS_ &&
+                                child.attribute_key() < sx::AttributeKey::SQL_KEYS_) {
+                                pending.push_back(ExistingNode{begin + l, std::nullopt, 0});
+                            }
                         }
                         for (; r < to_append->size(); ++r) {
                             pending.push_back({&to_append->at(r)});

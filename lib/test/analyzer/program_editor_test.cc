@@ -107,13 +107,13 @@ TEST(ProgramEditorTest, VizStatementUpdatePosition) {
 
     auto expected =
         R"RAW(VIZ weather_avg USING LINE (
-    title = 'sometitle',
     position = (
         row = 6,
         column = 5,
         width = 4,
         height = 3
-    )
+    ),
+    title = 'sometitle'
 ))RAW";
     EXPECT_EQ(editor.Apply(*std::get<0>(edit)), expected);
 }
@@ -144,8 +144,8 @@ VIZ foo USING VEGA (
 );
 
 VIZ foo USING AREA (
-    title = 'Area Chart',
     position = (row = 1, column = 6, width = 6, height = 4),
+    title = 'Area Chart'
 );
     )RAW";
     ProgramInstance instance{txt, move(parser::ParserDriver::Parse(txt))};
@@ -181,13 +181,13 @@ VIZ foo USING AREA (
 
     auto expected = R"RAW(
 INPUT country TYPE VARCHAR USING TEXT (
-    title = 'Country',
     position = (
         row = 6,
         column = 5,
         width = 4,
         height = 3
-    )
+    ),
+    title = 'Country'
 );
 
 CREATE VIEW foo AS
@@ -199,7 +199,6 @@ CREATE VIEW foo AS
     FROM generate_series(0, 1000000) AS a(v);
 
 VIZ foo USING VEGA (
-    title = 'Line Chart',
     encoding = (
         x = (
             field = 'x',
@@ -216,17 +215,18 @@ VIZ foo USING VEGA (
         column = 8,
         width = 7,
         height = 6
-    )
+    ),
+    title = 'Line Chart'
 );
 
 VIZ foo USING AREA (
-    title = 'Area Chart',
     position = (
         row = 13,
         column = 12,
         width = 11,
         height = 10
-    )
+    ),
+    title = 'Area Chart'
 );
     )RAW";
     EXPECT_EQ(editor.Apply(*std::get<0>(edit)), expected);
