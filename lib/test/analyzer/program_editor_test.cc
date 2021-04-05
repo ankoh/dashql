@@ -199,6 +199,13 @@ CREATE VIEW foo AS
     FROM generate_series(0, 1000000) AS a(v);
 
 VIZ foo USING VEGA (
+    position = (
+        row = 9,
+        column = 8,
+        width = 7,
+        height = 6
+    ),
+    title = 'Line Chart',
     encoding = (
         x = (
             field = 'x',
@@ -209,14 +216,7 @@ VIZ foo USING VEGA (
             type = 'quantitative'
         )
     ),
-    mark = 'line',
-    position = (
-        row = 9,
-        column = 8,
-        width = 7,
-        height = 6
-    ),
-    title = 'Line Chart'
+    mark = 'line'
 );
 
 VIZ foo USING AREA (
