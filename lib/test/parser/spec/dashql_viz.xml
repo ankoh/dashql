@@ -222,8 +222,8 @@
                                     <node key="DASHQL_OPTION_TYPE" loc="161..170" text="'nominal'" />
                                 </node>
                                 <node key="DASHQL_OPTION_Y" type="OBJECT_DASHQL_OPTION_LIST" loc="211..317" text="(&#10;        ..         )">
-                                    <node key="DASHQL_OPTION_AGGREGATE" loc="245..252" text="'count'" />
                                     <node key="DASHQL_OPTION_TITLE" loc="282..298" text="'Number of cars'" />
+                                    <node key="DASHQL_OPTION_AGGREGATE" loc="245..252" text="'count'" />
                                 </node>
                             </node>
                             <node key="DASHQL_OPTION_MARK" loc="49..54" text="'bar'" />
@@ -291,9 +291,9 @@
                                     </node>
                                 </node>
                                 <node key="DASHQL_OPTION_Y" type="OBJECT_DASHQL_OPTION_LIST" loc="175..312" text="(&#10;        ..         )">
+                                    <node key="DASHQL_OPTION_TITLE" loc="282..294" text="'population'" />
                                     <node key="DASHQL_OPTION_AGGREGATE" loc="209..214" text="'sum'" />
                                     <node key="DASHQL_OPTION_FIELD" loc="244..252" text="'people'" />
-                                    <node key="DASHQL_OPTION_TITLE" loc="282..294" text="'population'" />
                                 </node>
                             </node>
                             <node key="DASHQL_OPTION_MARK" loc="49..54" text="'bar'" />

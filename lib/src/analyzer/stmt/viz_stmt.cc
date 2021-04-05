@@ -150,10 +150,6 @@ std::unique_ptr<VizComponent> VizComponent::ReadFrom(VizStatement& stmt, size_t 
                 .MatchEnum(sx::NodeType::ENUM_DASHQL_VIZ_COMPONENT_TYPE),
             sxm::Attribute(sx::AttributeKey::DASHQL_VIZ_COMPONENT_TYPE_MODIFIERS, SX_TYPE_MODIFIERS)
                 .MatchUI32Bitmap(),
-            sxm::Option(sx::AttributeKey::DASHQL_OPTION_ROW, SX_ROW),
-            sxm::Option(sx::AttributeKey::DASHQL_OPTION_COLUMN, SX_COLUMN),
-            sxm::Option(sx::AttributeKey::DASHQL_OPTION_WIDTH, SX_WIDTH),
-            sxm::Option(sx::AttributeKey::DASHQL_OPTION_HEIGHT, SX_HEIGHT),
             sxm::Option(sx::AttributeKey::DASHQL_OPTION_POSITION, SX_POS)
                 .MatchOptions()
                 .MatchChildren({
@@ -162,6 +158,10 @@ std::unique_ptr<VizComponent> VizComponent::ReadFrom(VizStatement& stmt, size_t 
                     sxm::Option(sx::AttributeKey::DASHQL_OPTION_WIDTH, SX_POS_WIDTH),
                     sxm::Option(sx::AttributeKey::DASHQL_OPTION_HEIGHT, SX_POS_HEIGHT),
                 }),
+            sxm::Option(sx::AttributeKey::DASHQL_OPTION_ROW, SX_ROW),
+            sxm::Option(sx::AttributeKey::DASHQL_OPTION_COLUMN, SX_COLUMN),
+            sxm::Option(sx::AttributeKey::DASHQL_OPTION_WIDTH, SX_WIDTH),
+            sxm::Option(sx::AttributeKey::DASHQL_OPTION_HEIGHT, SX_HEIGHT),
             sxm::Option(sx::AttributeKey::DASHQL_OPTION_TITLE, SX_TITLE),
         });
     // clang-format on
