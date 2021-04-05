@@ -9,6 +9,7 @@
 
 #include "dashql/analyzer/analyzer.h"
 #include "dashql/analyzer/json_sax.h"
+#include "dashql/analyzer/syntax_matcher.h"
 #include "dashql/common/memstream.h"
 #include "dashql/common/string.h"
 #include "dashql/parser/grammar/enums.h"
@@ -34,7 +35,7 @@ struct SQLJSONWriter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, SQ
     std::ostream& out;
     std::vector<std::pair<NodeType, size_t>> node_stack;
 
-    SQLJSONWriter(std::ostream& out) : out(out) {}
+    SQLJSONWriter(std::ostream& out) : out(out), node_stack() {}
 
     bool Key(const char* txt, size_t length, bool copy) {
         auto& [node_type, children] = node_stack.back();
@@ -134,11 +135,16 @@ static void writeOptions(ProgramInstance& instance, size_t root_node_id, json::D
     pending.push_back(ExistingNode{.node_id = root_node_id, .type = std::nullopt, .children = 0});
     while (!pending.empty()) {
         // Get the unvisited child node
-        auto top = pending.back();
+        auto& top = pending.back();
 
         // Is SAX node on DFS stack? - emit directly.
         // Could either be an attribute value or an array element.
         if (auto sax = std::get_if<const json::SAXNode*>(&top); sax) {
+            auto text = parser::optionToString((*sax)->key);
+            if (!text.empty()) {
+                auto key = parser::optionToCamelCase(text, tmp);
+                out.Key(key.data(), key.length(), true);
+            };
             (*sax)->Write(out);
             pending.pop_back();
             continue;
@@ -152,9 +158,9 @@ static void writeOptions(ProgramInstance& instance, size_t root_node_id, json::D
         }
 
         // Are there any patches attached to this node id?
-        auto& node = nodes[next.node_id];
+        auto node = nodes[next.node_id];
         auto node_stack_id = pending.size() - 1;
-        std::vector<SAXNode>* to_append = patch.append.count(next.node_id) ? &patch.append.at(next.node_id) : nullptr;
+        auto* to_append = patch.append.count(next.node_id) ? &patch.append.at(next.node_id) : nullptr;
 
         // Type already set?
         // That means we visited the nodes children already and are on our way up.
@@ -265,15 +271,11 @@ static void writeOptions(ProgramInstance& instance, size_t root_node_id, json::D
                     if (!to_append) {
                         // Collect all children
                         for (auto i = 0; i < count; ++i) {
-                            // Skip if not option
                             auto& child = nodes[end - i - 1];
-                            if (child.node_type() == sx::NodeType::NONE ||
-                                child.attribute_key() <= sx::AttributeKey::DASHQL_OPTION_KEYS_ ||
-                                child.attribute_key() >= sx::AttributeKey::SQL_KEYS_) {
-                                continue;
+                            if (child.attribute_key() > sx::AttributeKey::DASHQL_OPTION_KEYS_ &&
+                                child.attribute_key() < sx::AttributeKey::SQL_KEYS_) {
+                                pending.push_back(ExistingNode{end - i - 1, std::nullopt, 0});
                             }
-                            // Otherwise visit the node later
-                            pending.push_back(ExistingNode{end - i - 1, std::nullopt, 0});
                         }
                     } else {
                         // Push patched nodes as last array elements (if any)
@@ -285,7 +287,11 @@ static void writeOptions(ProgramInstance& instance, size_t root_node_id, json::D
                             auto lk = nodes[begin + l].attribute_key();
                             auto rk = to_append->at(r).key;
                             if (lk < rk) {
-                                pending.push_back(ExistingNode{begin + l, std::nullopt, 0});
+                                auto& child = nodes[begin + l];
+                                if (child.attribute_key() > sx::AttributeKey::DASHQL_OPTION_KEYS_ &&
+                                    child.attribute_key() < sx::AttributeKey::SQL_KEYS_) {
+                                    pending.push_back(ExistingNode{begin + l, std::nullopt, 0});
+                                }
                                 ++l;
                             } else if (lk > rk) {
                                 pending.push_back({&to_append->at(r)});
@@ -302,14 +308,12 @@ static void writeOptions(ProgramInstance& instance, size_t root_node_id, json::D
                         for (; r < to_append->size(); ++r) {
                             pending.push_back({&to_append->at(r)});
                         }
-                        std::reverse(pending.begin() + node_stack_id, pending.end());
+                        std::reverse(pending.begin() + node_stack_id + 1, pending.end());
                     }
                     // Set the correct amount of children
                     std::get<ExistingNode>(pending[node_stack_id]).children = pending.size() - node_stack_id - 1;
-
                     // Start an object
                     out.StartObject();
-
                 } else if (node_type_id > static_cast<uint32_t>(sx::NodeType::ENUM_KEYS_)) {
                     std::string_view txt = parser::getEnumText(node);
                     out.String(txt.data(), txt.length(), false);  // never copy constant strings
@@ -324,18 +328,19 @@ static void writeOptions(ProgramInstance& instance, size_t root_node_id, json::D
 
 }  // namespace
 
-NodeWriter::NodeWriter(ProgramInstance& instance, size_t node_id) : instance_(instance), node_id_(node_id) {}
+DocumentWriter::DocumentWriter(ProgramInstance& instance, size_t node_id, const ASTIndex& ast)
+    : instance_(instance), node_id_(node_id), patch_(ast) {}
 
 // Read all options as DOM
 // Write document as SQLJSON
-void NodeWriter::writeOptionsAsSQLJSON(std::ostream& out, bool pretty) {
+void DocumentWriter::writeOptionsAsSQLJSON(std::ostream& out, bool pretty) {
     SQLJSONWriter writer{out};
     writeOptions(instance_, node_id_, patch_, writer);
 }
 
 // Write all options directly as JSON.
 // This is more efficient than SQLJSON since we don't materialize an intermediate DOM.
-void NodeWriter::writeOptionsAsJSON(std::ostream& raw_out, bool pretty) {
+void DocumentWriter::writeOptionsAsJSON(std::ostream& raw_out, bool pretty) {
     rapidjson::OStreamWrapper out{raw_out};
     if (pretty) {
         rapidjson::PrettyWriter writer{out};

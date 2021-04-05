@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "dashql/analyzer/program_instance.h"
+#include "dashql/common/variant.h"
 #include "dashql/proto_generated.h"
 #include "rapidjson/document.h"
 #include "rapidjson/writer.h"
@@ -72,6 +73,17 @@ struct SAXNode {
                     out.Uint64(std::get<uint64_t>(op.argument));
                     break;
                 case json::SAXOpTag::KEY:
+                    std::visit(
+                        [&out](auto&& arg) {
+                            using T = std::decay_t<decltype(arg)>;
+                            if constexpr (std::is_same_v<T, std::string>) {
+                                out.Key(arg.data(), arg.length(), true);
+                            }
+                            if constexpr (std::is_same_v<T, std::string_view>) {
+                                out.Key(arg.data(), arg.length(), false);
+                            }
+                        },
+                        op.argument);
                     break;
                 case json::SAXOpTag::OBJECT_END:
                     out.EndObject(std::get<int64_t>(op.argument));

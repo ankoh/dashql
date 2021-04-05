@@ -124,7 +124,7 @@ void InputStatement::PrintScript(std::ostream& out) const {
     }
 
     // Create document writer
-    json::NodeWriter writer{instance_, stmt->root_node};
+    json::DocumentWriter writer{instance_, stmt->root_node, ast_};
     // Update position
     if (position_) {
         writer.patch().Ignore({
@@ -168,7 +168,7 @@ flatbuffers::Offset<proto::analyzer::Card> InputStatement::PackCard(flatbuffers:
     flatbuffers::Offset<flatbuffers::String> options;
     {
         std::stringstream out;
-        json::NodeWriter writer{instance_, stmt->root_node};
+        json::DocumentWriter writer{instance_, stmt->root_node, ast_};
         writer.writeOptionsAsJSON(out);
         options = builder.CreateString(out.str());
     }

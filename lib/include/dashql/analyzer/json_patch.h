@@ -14,13 +14,18 @@ namespace dashql {
 namespace json {
 
 struct DocumentPatch {
-    /// Nodes to ignore
+    /// The AST index
+    const ASTIndex& ast;
+    /// The nodes to ignore
     std::unordered_set<size_t> ignore = {};
-    /// Node to append
+    /// The nodes to append
     std::unordered_map<size_t, std::vector<SAXNode>> append = {};
 
+    /// Constructor
+    DocumentPatch(const ASTIndex& ast);
+
     /// Ignore a node id
-    DocumentPatch& Ignore(std::initializer_list<size_t> node_id);
+    DocumentPatch& Ignore(std::initializer_list<size_t> ast_ids);
     /// Ignore a node id
     DocumentPatch& Append(size_t node_id, SAXNode node);
 };
