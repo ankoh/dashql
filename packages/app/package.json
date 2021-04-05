@@ -20,7 +20,7 @@
         "@dashql/duckdb": "^0.0.22",
         "axios": "^0.21.1",
         "bootstrap": "^4.6.0",
-        "classnames": "^2.3.0",
+        "classnames": "^2.3.1",
         "dagre": "^0.8.5",
         "framer-motion": "^4.1.2",
         "immutable": "^4.0.0-rc.12",
