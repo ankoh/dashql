@@ -55,9 +55,9 @@ std::unique_ptr<VizStatement> VizStatement::ReadFrom(ProgramInstance& instance, 
     static const auto schema = sxm::Element()
         .MatchObject(sx::NodeType::OBJECT_DASHQL_VIZ)
         .MatchChildren({
-            sxm::Attribute(sx::AttributeKey::DASHQL_VIZ_COMPONENTS, 1)
+            sxm::Attribute(sx::AttributeKey::DASHQL_VIZ_COMPONENTS, SX_COMPONENTS)
                 .MatchArray(),
-            sxm::Attribute(sx::AttributeKey::DASHQL_VIZ_TARGET, 0),
+            sxm::Attribute(sx::AttributeKey::DASHQL_VIZ_TARGET, SX_TARGET),
         });
     // clang-format on
 
@@ -66,7 +66,7 @@ std::unique_ptr<VizStatement> VizStatement::ReadFrom(ProgramInstance& instance, 
     if (!ast.IsFullMatch()) {
         return nullptr;
     }
-    auto comps_node_id = ast[1].node_id;
+    auto comps_node_id = ast[SX_COMPONENTS].node_id;
     auto& comps_node = program.nodes[comps_node_id];
 
     // Create the viz statement
@@ -223,7 +223,7 @@ std::unique_ptr<VizComponent> VizComponent::ReadFrom(VizStatement& stmt, size_t 
 
 /// Print the options as json
 void VizComponent::PrintOptionsAsJSON(std::ostream& out, bool pretty) const {
-    json::NodeWriter writer{viz_stmt_.instance_, node_id_};
+    json::DocumentWriter writer{viz_stmt_.instance_, node_id_, ast_};
     writer.writeOptionsAsJSON(out, pretty);
 }
 
@@ -238,7 +238,7 @@ void VizComponent::PrintScript(std::ostream& out) const {
     out << " " << sx::VizComponentTypeTypeTable()->names[static_cast<uint32_t>(type_)] << " ";
 
     // Create document writer
-    json::NodeWriter writer{viz_stmt_.instance_, node_id_};
+    json::DocumentWriter writer{viz_stmt_.instance_, node_id_, ast_};
     // Write the position
     if (position_) {
         writer.patch().Ignore({
