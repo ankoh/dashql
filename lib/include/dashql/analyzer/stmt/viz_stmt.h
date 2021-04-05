@@ -11,13 +11,12 @@
 #include <unordered_map>
 #include <variant>
 
+#include "dashql/analyzer/syntax_matcher.h"
 #include "dashql/common/enum.h"
 #include "dashql/common/span.h"
 #include "dashql/parser/parser_driver.h"
 #include "dashql/proto_generated.h"
 #include "rapidjson/document.h"
-
-namespace sx = dashql::proto::syntax;
 
 namespace dashql {
 
@@ -34,8 +33,8 @@ class VizStatement {
     ProgramInstance& instance_;
     /// The statement id
     const size_t statement_id_;
-    /// The target
-    const size_t target_node_id_;
+    /// The AST index
+    const ASTIndex ast_;
     /// The components
     std::vector<std::unique_ptr<VizComponent>> components_;
     /// The provided position.
@@ -50,9 +49,11 @@ class VizStatement {
 
    public:
     /// Constructor
-    VizStatement(ProgramInstance& instance, size_t statement_id, size_t target_node_id);
+    VizStatement(ProgramInstance& instance, size_t statement_id, ASTIndex ast);
     /// Get the instance
     auto& instance() { return instance_; }
+    /// Get the ast
+    auto& ast() { return ast_; }
     /// Get the component
     auto& components() { return components_; }
     /// Get the specified position
@@ -61,8 +62,8 @@ class VizStatement {
     auto& computed_position() { return computed_position_; }
     /// Get the title
     auto& title() { return title_; }
-    /// Get the target node
-    auto target_node_id() const { return target_node_id_; }
+    /// Get the target text
+    sx::Location GetTarget() const;
     /// Print as script
     void PrintScript(std::ostream& out) const;
     /// Pack the viz specs
@@ -72,15 +73,14 @@ class VizStatement {
     static std::unique_ptr<VizStatement> ReadFrom(ProgramInstance& instance, size_t statement_id);
 };
 
-using NodeID = uint32_t;
-constexpr NodeID INVALID_NODE_ID = std::numeric_limits<NodeID>::max();
-
 class VizComponent {
    protected:
     /// The unique properties
     VizStatement& viz_stmt_;
     /// The node id
     size_t node_id_;
+    /// The AST index
+    const ASTIndex ast_;
     /// The type
     sx::VizComponentType type_ = sx::VizComponentType::TABLE;
     /// The type modifiers
@@ -92,12 +92,14 @@ class VizComponent {
 
    public:
     /// Constructor
-    VizComponent(VizStatement& stmt, size_t node_id);
+    VizComponent(VizStatement& stmt, size_t node_id, ASTIndex ast);
     /// Virtual destructor
     virtual ~VizComponent() = default;
 
     /// Get the viz statement
     auto& statement() const { return viz_stmt_; }
+    /// Get the ast
+    auto& ast() { return ast_; }
     /// Get the type
     auto& type() const { return type_; };
     /// Get the viz statement
@@ -120,7 +122,7 @@ class VizComponent {
     /// Pack as buffer
     flatbuffers::Offset<proto::analyzer::VizComponent> Pack(flatbuffers::FlatBufferBuilder& builder) const;
     /// Read component from a node
-    static std::unique_ptr<VizComponent> CreateFrom(VizStatement& stmt, size_t node_id);
+    static std::unique_ptr<VizComponent> ReadFrom(VizStatement& stmt, size_t node_id);
 };
 
 }  // namespace dashql

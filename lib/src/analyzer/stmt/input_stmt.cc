@@ -9,13 +9,8 @@ namespace fb = flatbuffers;
 
 namespace dashql {
 
-InputStatement::InputStatement(ProgramInstance& instance, size_t statement_id, size_t statement_name_node,
-                               size_t type_node)
-    : instance_(instance),
-      statement_id_(statement_id),
-      statement_name_node_(statement_name_node),
-      type_node_(type_node),
-      patches_() {}
+InputStatement::InputStatement(ProgramInstance& instance, size_t statement_id, ASTIndex ast)
+    : instance_(instance), statement_id_(statement_id), ast_(ast) {}
 
 constexpr size_t SX_POS_ROW = 0;
 constexpr size_t SX_POS_COLUMN = 1;
@@ -72,7 +67,7 @@ std::unique_ptr<InputStatement> InputStatement::ReadFrom(ProgramInstance& instan
     auto type_node = matches[SX_INPUT_VALUE_TYPE].node_id;
 
     // Create the viz statement
-    auto input = std::make_unique<InputStatement>(instance, stmt_id, statement_name_node, type_node);
+    auto input = std::make_unique<InputStatement>(instance, stmt_id, matches);
 
     /// Get the component type
     if (matches[SX_INPUT_COMPONENT_TYPE]) {
@@ -104,6 +99,11 @@ std::unique_ptr<InputStatement> InputStatement::ReadFrom(ProgramInstance& instan
     return input;
 }
 
+std::string_view InputStatement::GetStatementName() const {
+    auto& node = instance_.program().nodes[ast_[SX_STATEMENT_NAME].node_id];
+    return instance_.TextAt(node.location());
+}
+
 /// Print statement as script
 void InputStatement::PrintScript(std::ostream& out) const {
     auto& program = instance_.program();
@@ -112,9 +112,9 @@ void InputStatement::PrintScript(std::ostream& out) const {
 
     // Write prefix
     out << "INPUT ";
-    out << instance_.TextAt(nodes[statement_name_node_].location());
+    out << instance_.TextAt(nodes[ast_[SX_STATEMENT_NAME].node_id].location());
     out << " TYPE ";
-    out << instance_.TextAt(nodes[type_node_].location());
+    out << instance_.TextAt(nodes[ast_[SX_INPUT_VALUE_TYPE].node_id].location());
     if (component_type_) {
         out << " USING ";
         auto tt = proto::syntax::InputComponentTypeTypeTable();

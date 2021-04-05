@@ -10,7 +10,6 @@
 #include <unordered_map>
 #include <variant>
 
-#include "dashql/analyzer/program_instance.h"
 #include "dashql/analyzer/program_linter.h"
 #include "dashql/common/enum.h"
 #include "dashql/common/span.h"
@@ -20,8 +19,10 @@ namespace dashql {
 
 namespace sx = proto::syntax;
 
+struct ProgramInstance;
+
 /// A node spec type
-enum SyntaxMatcherType {
+enum ASTMatcherType {
     ARRAY,
     BOOL,
     ENUM,
@@ -68,15 +69,15 @@ struct NodeMatch {
     operator bool() const { return IsMatched(); }
 };
 
-class SyntaxMatcher;
+class ASTMatcher;
 
 /// The syntax match gives us constant time to all expected attributes in a node.
-class SchemaMap {
-    friend class SyntaxMatcher;
+class ASTIndex {
+    friend class ASTMatcher;
 
    protected:
     /// The schema
-    const SyntaxMatcher& schema;
+    const ASTMatcher& schema;
     /// The node matches
     std::vector<NodeMatch> matches;
     /// Is a full match?
@@ -84,7 +85,7 @@ class SchemaMap {
 
    public:
     /// Constructor
-    SchemaMap(const SyntaxMatcher& schema, size_t size) : schema(schema), matches(size), full_match(true) {}
+    ASTIndex(const ASTMatcher& schema, size_t size) : schema(schema), matches(size), full_match(true) {}
 
     /// Subscript operator
     const NodeMatch& operator[](size_t id) const { return matches[id]; };
@@ -103,9 +104,9 @@ class SchemaMap {
 constexpr size_t DISCARD_SYNTAX_MATCH = std::numeric_limits<uint32_t>::max();
 
 /// A syntax matcher
-struct SyntaxMatcher {
+struct ASTMatcher {
     /// The matcher type
-    SyntaxMatcherType node_spec = SyntaxMatcherType::OBJECT;
+    ASTMatcherType node_spec = ASTMatcherType::OBJECT;
     /// The attribute key (if any)
     sx::AttributeKey attribute_key = sx::AttributeKey::NONE;
     /// The node type
@@ -113,11 +114,11 @@ struct SyntaxMatcher {
     /// The matching identifier (if any)
     size_t matching_id = DISCARD_SYNTAX_MATCH;
     /// The children (if any)
-    std::vector<SyntaxMatcher> children = {};
+    std::vector<ASTMatcher> children = {};
 
-    static inline SyntaxMatcher Element(size_t matching = DISCARD_SYNTAX_MATCH) {
+    static inline ASTMatcher Element(size_t matching = DISCARD_SYNTAX_MATCH) {
         return {
-            .node_spec = SyntaxMatcherType::OBJECT,
+            .node_spec = ASTMatcherType::OBJECT,
             .attribute_key = sx::AttributeKey::NONE,
             .node_type = sx::NodeType::NONE,
             .matching_id = matching,
@@ -125,9 +126,9 @@ struct SyntaxMatcher {
         };
     }
 
-    static inline SyntaxMatcher Attribute(sx::AttributeKey key, size_t matching = DISCARD_SYNTAX_MATCH) {
+    static inline ASTMatcher Attribute(sx::AttributeKey key, size_t matching = DISCARD_SYNTAX_MATCH) {
         return {
-            .node_spec = SyntaxMatcherType::OBJECT,
+            .node_spec = ASTMatcherType::OBJECT,
             .attribute_key = key,
             .node_type = sx::NodeType::NONE,
             .matching_id = matching,
@@ -135,9 +136,9 @@ struct SyntaxMatcher {
         };
     }
 
-    static inline SyntaxMatcher Option(sx::AttributeKey key, size_t matching = DISCARD_SYNTAX_MATCH) {
+    static inline ASTMatcher Option(sx::AttributeKey key, size_t matching = DISCARD_SYNTAX_MATCH) {
         return {
-            .node_spec = SyntaxMatcherType::OBJECT,
+            .node_spec = ASTMatcherType::OBJECT,
             .attribute_key = key,
             .node_type = sx::NodeType::NONE,
             .matching_id = matching,
@@ -146,65 +147,65 @@ struct SyntaxMatcher {
     }
 
     /// Add children
-    inline SyntaxMatcher& MatchChildren(std::initializer_list<SyntaxMatcher> c) {
+    inline ASTMatcher& MatchChildren(std::initializer_list<ASTMatcher> c) {
         assert(std::is_sorted(c.begin(), c.end(), [&](auto& l, auto& r) { return l.attribute_key < r.attribute_key; }));
         children = std::move(c);
         return *this;
     }
 
     /// Create an object
-    constexpr inline SyntaxMatcher& MatchObject(sx::NodeType type) {
-        node_spec = SyntaxMatcherType::OBJECT;
+    constexpr inline ASTMatcher& MatchObject(sx::NodeType type) {
+        node_spec = ASTMatcherType::OBJECT;
         node_type = type;
         return *this;
     }
     /// Create options
-    constexpr inline SyntaxMatcher& MatchOptions() {
-        node_spec = SyntaxMatcherType::OBJECT;
+    constexpr inline ASTMatcher& MatchOptions() {
+        node_spec = ASTMatcherType::OBJECT;
         node_type = sx::NodeType::OBJECT_DASHQL_OPTION_LIST;
         return *this;
     }
     /// Create an array
-    constexpr inline SyntaxMatcher& MatchArray() {
-        node_spec = SyntaxMatcherType::ARRAY;
+    constexpr inline ASTMatcher& MatchArray() {
+        node_spec = ASTMatcherType::ARRAY;
         node_type = sx::NodeType::ARRAY;
         return *this;
     }
     /// Create a string
-    constexpr inline SyntaxMatcher& MatchString() {
-        node_spec = SyntaxMatcherType::STRING;
+    constexpr inline ASTMatcher& MatchString() {
+        node_spec = ASTMatcherType::STRING;
         node_type = sx::NodeType::NONE;
         return *this;
     }
     /// Create a boolean
-    constexpr inline SyntaxMatcher& MatchBool() {
-        node_spec = SyntaxMatcherType::BOOL;
+    constexpr inline ASTMatcher& MatchBool() {
+        node_spec = ASTMatcherType::BOOL;
         node_type = sx::NodeType::BOOL;
         return *this;
     }
     /// Create an enum
-    constexpr inline SyntaxMatcher& MatchEnum(sx::NodeType type) {
-        node_spec = SyntaxMatcherType::ENUM;
+    constexpr inline ASTMatcher& MatchEnum(sx::NodeType type) {
+        node_spec = ASTMatcherType::ENUM;
         node_type = type;
         return *this;
     }
     /// Create an integer
-    constexpr inline SyntaxMatcher& MatchUI32() {
-        node_spec = SyntaxMatcherType::UI32;
+    constexpr inline ASTMatcher& MatchUI32() {
+        node_spec = ASTMatcherType::UI32;
         node_type = sx::NodeType::UI32;
         return *this;
     }
     /// Create an integer bitmap
-    constexpr inline SyntaxMatcher& MatchUI32Bitmap() {
-        node_spec = SyntaxMatcherType::UI32_BITMAP;
+    constexpr inline ASTMatcher& MatchUI32Bitmap() {
+        node_spec = ASTMatcherType::UI32_BITMAP;
         node_type = sx::NodeType::UI32_BITMAP;
         return *this;
     }
 
     /// Match a schema
-    SchemaMap Match(const ProgramInstance& program, size_t node_id, size_t match_size) const;
+    ASTIndex Match(const ProgramInstance& program, size_t node_id, size_t match_size) const;
 };
-using sxm = SyntaxMatcher;
+using sxm = ASTMatcher;
 
 }  // namespace dashql
 

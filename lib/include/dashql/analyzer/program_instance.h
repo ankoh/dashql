@@ -27,6 +27,9 @@ namespace dashql {
 
 namespace sx = proto::syntax;
 
+using NodeID = uint32_t;
+constexpr NodeID INVALID_NODE_ID = std::numeric_limits<NodeID>::max();
+
 /// A program instance.
 ///
 /// A program instance represents the program configured by the user at a given point in time.

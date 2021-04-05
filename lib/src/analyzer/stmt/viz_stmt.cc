@@ -30,8 +30,22 @@ namespace fb = flatbuffers;
 
 namespace dashql {
 
-VizStatement::VizStatement(ProgramInstance& instance, size_t statement_id, size_t target_node_id)
-    : instance_(instance), statement_id_(statement_id), target_node_id_(target_node_id), components_(), patches_() {}
+constexpr size_t SX_TARGET = 0;
+constexpr size_t SX_COMPONENTS = 1;
+constexpr size_t SX_TYPE = 2;
+constexpr size_t SX_TYPE_MODIFIERS = 3;
+constexpr size_t SX_POS_ROW = 4;
+constexpr size_t SX_POS_COLUMN = 5;
+constexpr size_t SX_POS_WIDTH = 6;
+constexpr size_t SX_POS_HEIGHT = 7;
+constexpr size_t SX_ROW = 8;
+constexpr size_t SX_COLUMN = 9;
+constexpr size_t SX_WIDTH = 10;
+constexpr size_t SX_HEIGHT = 11;
+constexpr size_t SX_TITLE = 11;
+
+VizStatement::VizStatement(ProgramInstance& instance, size_t statement_id, ASTIndex ast)
+    : instance_(instance), statement_id_(statement_id), ast_(std::move(ast)), components_(), patches_() {}
 
 /// Read a viz statement
 std::unique_ptr<VizStatement> VizStatement::ReadFrom(ProgramInstance& instance, size_t stmt_id) {
@@ -48,26 +62,32 @@ std::unique_ptr<VizStatement> VizStatement::ReadFrom(ProgramInstance& instance, 
     // clang-format on
 
     // Match root
-    auto matches = schema.Match(instance, stmt->root_node, 2);
-    if (!matches.IsFullMatch()) {
+    auto ast = schema.Match(instance, stmt->root_node, 2);
+    if (!ast.IsFullMatch()) {
         return nullptr;
     }
-    auto comps_node_id = matches[1].node_id;
+    auto comps_node_id = ast[1].node_id;
     auto& comps_node = program.nodes[comps_node_id];
 
     // Create the viz statement
-    auto viz = std::make_unique<VizStatement>(instance, stmt_id, matches[0].node_id);
+    auto viz = std::make_unique<VizStatement>(instance, stmt_id, std::move(ast));
 
     // Read all components
     std::vector<std::unique_ptr<VizComponent>> components;
     components.reserve(comps_node.children_count());
     for (auto cid = 0; cid < comps_node.children_count(); ++cid) {
         auto begin = comps_node.children_begin_or_value();
-        auto comp = VizComponent::CreateFrom(*viz, begin + cid);
+        auto comp = VizComponent::ReadFrom(*viz, begin + cid);
         components.push_back(move(comp));
     }
     viz->components_ = std::move(components);
     return viz;
+}
+
+/// Get the target text
+sx::Location VizStatement::GetTarget() const {
+    auto& nodes = instance_.program().nodes;
+    return nodes[ast_[SX_TARGET].node_id].location();
 }
 
 /// Print statement as script
@@ -75,7 +95,7 @@ void VizStatement::PrintScript(std::ostream& out) const {
     auto& nodes = instance_.program().nodes;
 
     out << "VIZ ";
-    out << instance_.TextAt(nodes[target_node_id_].location());
+    out << instance_.TextAt(nodes[ast_[SX_TARGET].node_id].location());
     out << " USING";
     for (auto i = 0; i < components_.size(); ++i) {
         if (i > 0) {
@@ -113,23 +133,12 @@ flatbuffers::Offset<proto::analyzer::Card> VizStatement::PackCard(flatbuffers::F
 }
 
 /// Constructor
-VizComponent::VizComponent(VizStatement& viz, size_t node_id) : viz_stmt_(viz), node_id_(node_id) {}
-
-constexpr size_t SX_TYPE = 0;
-constexpr size_t SX_TYPE_MODIFIERS = 1;
-constexpr size_t SX_POS_ROW = 2;
-constexpr size_t SX_POS_COLUMN = 3;
-constexpr size_t SX_POS_WIDTH = 4;
-constexpr size_t SX_POS_HEIGHT = 5;
-constexpr size_t SX_ROW = 6;
-constexpr size_t SX_COLUMN = 7;
-constexpr size_t SX_WIDTH = 8;
-constexpr size_t SX_HEIGHT = 9;
-constexpr size_t SX_TITLE = 10;
+VizComponent::VizComponent(VizStatement& viz, size_t node_id, ASTIndex ast)
+    : viz_stmt_(viz), node_id_(node_id), ast_(std::move(ast)) {}
 
 /// Read common viz attributes.
-void VizComponent::ReadFrom(size_t node_id) {
-    auto& instance = viz_stmt_.instance();
+std::unique_ptr<VizComponent> VizComponent::ReadFrom(VizStatement& stmt, size_t node_id) {
+    auto& instance = stmt.instance();
     auto& nodes = instance.program().nodes;
 
     // clang-format off
@@ -156,65 +165,60 @@ void VizComponent::ReadFrom(size_t node_id) {
         });
     // clang-format on
 
-    auto matches = schema.Match(viz_stmt_.instance(), node_id, 11);
+    auto ast = schema.Match(stmt.instance(), node_id, 13);
+    auto comp = std::make_unique<VizComponent>(stmt, node_id, std::move(ast));
 
     // Read type
-    if (matches[SX_TYPE]) {
-        type_ = matches[SX_TYPE].DataAsEnum<sx::VizComponentType>();
+    if (comp->ast_[SX_TYPE]) {
+        comp->type_ = comp->ast_[SX_TYPE].DataAsEnum<sx::VizComponentType>();
     }
     // Read type modifiers
-    if (matches[SX_TYPE_MODIFIERS]) {
-        type_modifiers_ = matches[SX_TYPE_MODIFIERS].DataAsI64();
+    if (comp->ast_[SX_TYPE_MODIFIERS]) {
+        comp->type_modifiers_ = comp->ast_[SX_TYPE_MODIFIERS].DataAsI64();
     }
 
     // Report that option is not unique
-    auto report_not_unique = [this](size_t node_id, std::string_view key) {
+    auto report_not_unique = [&](size_t node_id, std::string_view key) {
         if (node_id == INVALID_NODE_ID) return;
-        viz_stmt_.instance().AddLinterMessage(LinterMessageCode::OPTION_NOT_UNIQUE, node_id)
+        instance.AddLinterMessage(LinterMessageCode::OPTION_NOT_UNIQUE, node_id)
             << "option '" << key << "' must be unique across components";
     };
 
     /// Get position attributes
     auto& i = instance;
-    auto pos_row = matches.SelectAlt(SX_POS_ROW, SX_ROW);
-    auto pos_column = matches.SelectAlt(SX_POS_COLUMN, SX_COLUMN);
-    auto pos_width = matches.SelectAlt(SX_POS_WIDTH, SX_WIDTH);
-    auto pos_height = matches.SelectAlt(SX_POS_HEIGHT, SX_HEIGHT);
-    if (matches.HasAny({pos_row, pos_column, pos_width, pos_height})) {
+    auto pos_row = comp->ast_.SelectAlt(SX_POS_ROW, SX_ROW);
+    auto pos_column = comp->ast_.SelectAlt(SX_POS_COLUMN, SX_COLUMN);
+    auto pos_width = comp->ast_.SelectAlt(SX_POS_WIDTH, SX_WIDTH);
+    auto pos_height = comp->ast_.SelectAlt(SX_POS_HEIGHT, SX_HEIGHT);
+    if (comp->ast_.HasAny({pos_row, pos_column, pos_width, pos_height})) {
         // Already provided by a previous component?
-        if (viz_stmt_.specified_position()) {
+        if (stmt.specified_position()) {
             report_not_unique(pos_row->node_id, "position.row");
             report_not_unique(pos_column->node_id, "position.column");
             report_not_unique(pos_width->node_id, "position.width");
             report_not_unique(pos_height->node_id, "position.height");
         } else {
-            auto r = viz_stmt_.instance_.ReadNodeValueOrNull(pos_row->node_id).CastAsUI64().value_or(0);
-            auto c = viz_stmt_.instance_.ReadNodeValueOrNull(pos_column->node_id).CastAsUI64().value_or(0);
-            auto w = viz_stmt_.instance_.ReadNodeValueOrNull(pos_width->node_id).CastAsUI64().value_or(0);
-            auto h = viz_stmt_.instance_.ReadNodeValueOrNull(pos_height->node_id).CastAsUI64().value_or(0);
-            position_ = proto::analyzer::CardPosition(r, c, w, h);
-            viz_stmt_.specified_position() = &position_.value();
+            auto r = stmt.instance_.ReadNodeValueOrNull(pos_row->node_id).CastAsUI64().value_or(0);
+            auto c = stmt.instance_.ReadNodeValueOrNull(pos_column->node_id).CastAsUI64().value_or(0);
+            auto w = stmt.instance_.ReadNodeValueOrNull(pos_width->node_id).CastAsUI64().value_or(0);
+            auto h = stmt.instance_.ReadNodeValueOrNull(pos_height->node_id).CastAsUI64().value_or(0);
+            comp->position_ = proto::analyzer::CardPosition(r, c, w, h);
+            stmt.specified_position() = &comp->position_.value();
         }
     }
 
     /// Get the title attribute
-    if (matches[SX_TITLE]) {
-        if (viz_stmt_.title()) {
-            report_not_unique(matches[SX_TITLE].node_id, "title");
+    if (comp->ast_[SX_TITLE]) {
+        if (stmt.title()) {
+            report_not_unique(comp->ast_[SX_TITLE].node_id, "title");
         } else {
-            auto title = viz_stmt_.instance_.ReadNodeValueOrNull(matches[SX_TITLE].node_id).PrintValue();
+            auto title = stmt.instance_.ReadNodeValueOrNull(comp->ast_[SX_TITLE].node_id).PrintValue();
             trim(title, isNoQuote);
-            title_ = std::move(title);
-            viz_stmt_.title() = title_;
+            comp->title_ = std::move(title);
+            stmt.title() = comp->title_;
         }
     }
-}
-
-/// Read component from a node
-std::unique_ptr<VizComponent> VizComponent::CreateFrom(VizStatement& stmt, size_t node_id) {
-    auto c = std::make_unique<VizComponent>(stmt, node_id);
-    c->ReadFrom(node_id);
-    return c;
+    return comp;
 }
 
 /// Print the options as json
