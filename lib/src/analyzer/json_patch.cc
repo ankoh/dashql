@@ -11,6 +11,7 @@ DocumentPatch::DocumentPatch(const ASTIndex& ast) : ast(ast) {}
 /// Ignore a node id
 DocumentPatch& DocumentPatch::Ignore(std::initializer_list<size_t> ast_ids) {
     for (auto ast_id : ast_ids) {
+        if (!ast[ast_id].IsMatched()) continue;
         ignore.insert(ast[ast_id].node_id);
     }
     return *this;
