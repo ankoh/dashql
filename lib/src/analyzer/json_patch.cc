@@ -1,12 +1,17 @@
 #include "dashql/analyzer/json_patch.h"
 
+#include "dashql/analyzer/syntax_matcher.h"
+
 namespace dashql {
 namespace json {
 
+/// Constructor
+DocumentPatch::DocumentPatch(const ASTIndex& ast) : ast(ast) {}
+
 /// Ignore a node id
-DocumentPatch& DocumentPatch::Ignore(std::initializer_list<size_t> node_ids) {
-    for (auto node_id : node_ids) {
-        ignore.insert(node_id);
+DocumentPatch& DocumentPatch::Ignore(std::initializer_list<size_t> ast_ids) {
+    for (auto ast_id : ast_ids) {
+        ignore.insert(ast[ast_id].node_id);
     }
     return *this;
 }

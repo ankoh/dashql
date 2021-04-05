@@ -75,12 +75,12 @@ lib_release:
 # Test the core library
 .PHONY: lib_tests
 lib_tests: lib
-	${LIB_DEBUG_DIR}/tester --source_dir ${LIB_SOURCE_DIR} --gtest_filter="ProgramEditorTest.InputStatementAddPosition"
+	${LIB_DEBUG_DIR}/tester --source_dir ${LIB_SOURCE_DIR}
 
 # Debug the core library
 .PHONY: lib_tests
 lib_tests_lldb: lib
-	lldb ${LIB_DEBUG_DIR}/tester -- --source_dir ${LIB_SOURCE_DIR} --gtest_filter="ProgramEditorTest.InputStatementAddPosition"
+	lldb ${LIB_DEBUG_DIR}/tester -- --source_dir ${LIB_SOURCE_DIR}
 
 # Test the core library
 .PHONY: lib_tests_relwithdebinfo

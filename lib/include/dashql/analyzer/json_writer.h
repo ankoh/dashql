@@ -7,13 +7,14 @@
 #include "dashql/analyzer/json_patch.h"
 #include "dashql/analyzer/json_sax.h"
 #include "dashql/analyzer/program_instance.h"
+#include "dashql/analyzer/syntax_matcher.h"
 #include "dashql/proto_generated.h"
 #include "rapidjson/document.h"
 
 namespace dashql {
 namespace json {
 
-class NodeWriter {
+class DocumentWriter {
    protected:
     /// The instance
     ProgramInstance& instance_;
@@ -24,7 +25,7 @@ class NodeWriter {
 
    public:
     /// Constructor
-    NodeWriter(ProgramInstance& instance, size_t node_id);
+    DocumentWriter(ProgramInstance& instance, size_t node_id, const ASTIndex& ast);
 
     /// Get the patch
     auto& patch() { return patch_; }
