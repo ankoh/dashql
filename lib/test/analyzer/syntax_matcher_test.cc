@@ -4,6 +4,7 @@
 
 #include <sstream>
 
+#include "dashql/analyzer/program_instance.h"
 #include "dashql/parser/parser_driver.h"
 #include "dashql/parser/scanner.h"
 #include "dashql/proto_generated.h"
@@ -15,7 +16,7 @@ using namespace dashql;
 
 namespace {
 
-TEST(SyntaxMatcherTest, LoadStatement) {
+TEST(ASTMatcherTest, LoadStatement) {
     auto txt = R"CSV(
         LOAD weather_csv FROM http (
             url = 'https://localhost/test'
@@ -58,7 +59,7 @@ TEST(SyntaxMatcherTest, LoadStatement) {
     ASSERT_EQ(std::get<std::string_view>(matches[4].data), "'https://localhost/test'");
 }
 
-TEST(SyntaxMatcherTest, MinimalError) {
+TEST(ASTMatcherTest, MinimalError) {
     auto txt = R"CSV(
         VIZ weather_avg USING LINE (
             position = (row = 1, column = 2, width = 4, height = 15)
@@ -83,7 +84,7 @@ TEST(SyntaxMatcherTest, MinimalError) {
     EXPECT_EQ(matches[1].status, NodeMatchStatus::MATCHED);
 }
 
-TEST(SyntaxMatcherTest, VizStatementPositionShort) {
+TEST(ASTMatcherTest, VizStatementPositionShort) {
     auto txt = R"CSV(
         VIZ weather_avg USING LINE (
             position = (row = 1, column = 2, width = 4, height = 15)
@@ -138,7 +139,7 @@ TEST(SyntaxMatcherTest, VizStatementPositionShort) {
     EXPECT_EQ(matches[5].status, NodeMatchStatus::MISSING);
 }
 
-TEST(SyntaxMatcherTest, LoadStatementFormat) {
+TEST(ASTMatcherTest, LoadStatementFormat) {
     auto txt = R"CSV(
         LOAD weather_csv FROM http (
             url = format('https://cdn.dashql.com/demo/weather/%s', global.country)

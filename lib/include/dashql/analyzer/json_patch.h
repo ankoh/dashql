@@ -14,15 +14,10 @@ namespace dashql {
 namespace json {
 
 struct DocumentPatch {
-    /// The syntax matcher
-    SchemaMap& schema;
     /// Nodes to ignore
     std::unordered_set<size_t> ignore = {};
     /// Node to append
     std::unordered_map<size_t, std::vector<SAXNode>> append = {};
-
-    /// Constructor
-    DocumentPatch(SchemaMap& schema);
 
     /// Ignore a node id
     DocumentPatch& Ignore(std::initializer_list<size_t> node_id);
