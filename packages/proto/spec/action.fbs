@@ -39,6 +39,7 @@ enum SetupActionType: uint8 {
 
     IMPORT_MIN,
 
+    IMPORT_INPUT,
     IMPORT_BLOB,
     IMPORT_TABLE,
     IMPORT_VIEW,
@@ -46,6 +47,7 @@ enum SetupActionType: uint8 {
 
     DROP_MIN,
 
+    DROP_INPUT,
     DROP_BLOB,
     DROP_VIEW,
     DROP_TABLE,
