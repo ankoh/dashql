@@ -3,12 +3,14 @@
 #include "dashql/parser/parser_driver.h"
 
 #include <iostream>
+#include <regex>
 #include <sstream>
 #include <unordered_map>
 #include <unordered_set>
 
 #include "dashql/common/error.h"
 #include "dashql/common/hash.h"
+#include "dashql/common/string.h"
 #include "dashql/common/variant.h"
 #include "dashql/parser/grammar/nodes.h"
 #include "dashql/parser/parser.h"
@@ -341,6 +343,8 @@ sx::Node ParserDriver::AddObject(sx::Location loc, sx::NodeType type, nonstd::sp
     return sx::Node(loc, type, sx::AttributeKey::NONE, NO_PARENT, begin, n);
 }
 
+static std::regex LOAD_URI_HTTP{"^https?://.*"};
+
 /// Add a statement
 void ParserDriver::AddStatement(sx::Node node) {
     if (node.node_type() == sx::NodeType::NONE) {
@@ -354,7 +358,17 @@ void ParserDriver::AddStatement(sx::Node node) {
             break;
 
         case sx::NodeType::OBJECT_DASHQL_LOAD:
-            if (auto [m, _] = FindAttribute(node, Key::DASHQL_LOAD_METHOD); m) {
+            // Has URI? Try to infer the load type
+            if (auto [m, _] = FindAttribute(node, Key::DASHQL_LOAD_URI); m) {
+                auto uri = std::string{trimview(scanner_.TextAt(m->location()), isNoQuote)};
+                if (std::regex_match(uri, LOAD_URI_HTTP)) {
+                    stmt_type = sx::StatementType::LOAD_HTTP;
+                } else {
+                    stmt_type = sx::StatementType::NONE;
+                }
+            }
+            // Has method?
+            else if (auto [m, _] = FindAttribute(node, Key::DASHQL_LOAD_METHOD); m) {
                 switch (static_cast<sx::LoadMethodType>(m->children_begin_or_value())) {
                     case sx::LoadMethodType::FILE:
                         stmt_type = sx::StatementType::LOAD_FILE;
@@ -377,6 +391,9 @@ void ParserDriver::AddStatement(sx::Node node) {
                         break;
                     case sx::ExtractMethodType::CSV:
                         stmt_type = sx::StatementType::EXTRACT_CSV;
+                        break;
+                    case sx::ExtractMethodType::PARQUET:
+                        stmt_type = sx::StatementType::EXTRACT_PARQUET;
                         break;
                     default:
                         stmt_type = sx::StatementType::NONE;

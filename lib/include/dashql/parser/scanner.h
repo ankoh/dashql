@@ -11,8 +11,6 @@
 #include "dashql/parser/parser.h"
 #include "dashql/proto_generated.h"
 
-namespace sx = dashql::proto::syntax;
-
 namespace dashql {
 namespace parser {
 
