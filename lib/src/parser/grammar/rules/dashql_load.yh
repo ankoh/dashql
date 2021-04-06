@@ -1,2 +1,2 @@
-%type <sx::Node> dashql_load_statement;
 %type <sx::Node> dashql_load_method;
+%type <sx::Node> dashql_load_statement;
