@@ -46,6 +46,11 @@ SET(CMAKE_MODULE_PATH
   ${CMAKE_MODULE_PATH}
 )
 
+include("${CMAKE_SOURCE_DIR}/cmake/double-conversion.cmake")
+include("${CMAKE_SOURCE_DIR}/cmake/flatc.cmake")
+include("${CMAKE_SOURCE_DIR}/cmake/boost.cmake")
+include("${CMAKE_SOURCE_DIR}/cmake/thrift.cmake")
+include("${CMAKE_SOURCE_DIR}/cmake/arrow.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/duckdb-parquet.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/flatbuffers.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/benchmark.cmake")
@@ -345,7 +350,7 @@ add_library(dashql_test
 target_link_libraries(dashql_common dashql_proto flatbuffers spdlog rapidjson)
 target_link_libraries(dashql_analyzer dashql_parser dashql_common dashql_proto spdlog duckdb parquet_extension rapidjson)
 target_link_libraries(dashql_dataframe dashql_common dashql_proto binaryen)
-target_link_libraries(duckdb_web dashql_common dashql_proto duckdb parquet_extension spdlog)
+target_link_libraries(duckdb_web dashql_common dashql_proto duckdb parquet_extension spdlog arrow)
 target_link_libraries(dashql_test duckdb_web dashql_analyzer dashql_common dashql_proto pugixml gtest duckdb parquet_extension)
 
 # ---------------------------------------------------------------------------
