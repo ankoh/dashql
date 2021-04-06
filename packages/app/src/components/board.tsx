@@ -38,7 +38,6 @@ class BoardLayout extends React.Component<Props> {
     onLayoutChanged(layout: Layout[]) {
         if (!this._dirty) return;
         this._dirty = false;
-        console.log('foo');
         const updates: core.edit.EditOperationVariant[] = layout.map(l => ({
             statementID: this.props.cards.get(l.i)!.statementID,
             type: core.edit.EditOperationType.UPDATE_CARD_POSITION,
