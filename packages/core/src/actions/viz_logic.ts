@@ -122,6 +122,8 @@ export class CreateVizActionLogic extends VizActionLogic {
             ...spec,
             timeUpdated: now,
         };
+
+        console.log(card);
         model.mutate(context.platform.store.dispatch, {
             type: model.StateMutationType.INSERT_PLAN_OBJECTS,
             data: [card],
@@ -138,9 +140,15 @@ export class UpdateVizActionLogic extends VizActionLogic {
     }
 
     public prepare(context: ActionContext, _planObjects: model.PlanObject[]): void {
+        const programInstance = context.plan.programInstance;
         const state = context.platform.store.getState();
         const objectID = this.buffer.objectId().toString();
         console.assert(state.core.cards.has(objectID), 'The card must already exist');
+
+        this._card = programInstance.cards.get(this.origin.statementId) || null;
+        if (!this._card) {
+            throw new error.ActionLogicError('card spec does not exist', context.plan.programInstance);
+        }
     }
 
     public willExecute(context: ActionContext) {
@@ -170,6 +178,7 @@ export class UpdateVizActionLogic extends VizActionLogic {
             ...spec,
             timeUpdated: now,
         };
+        console.log(card);
         model.mutate(context.platform.store.dispatch, {
             type: model.StateMutationType.INSERT_PLAN_OBJECTS,
             data: [card],
