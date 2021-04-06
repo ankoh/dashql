@@ -102,4 +102,46 @@ export function testFilesystem(db: () => duckdb.AsyncDuckDB, basedir: string) {
             ]);
         });
     });
+
+    describe('JSON imports', () => {
+        it('Basic Import', async () => {
+            let data: any = [
+                { MatrNr: 26120, Titel: 'Grundzüge' },
+                { MatrNr: 27550, Titel: 'Grundzüge' },
+                { MatrNr: 27550, Titel: 'Logik' },
+                { MatrNr: 28106, Titel: 'Ethik' },
+                { MatrNr: 28106, Titel: 'Wissenschaftstheorie' },
+                { MatrNr: 28106, Titel: 'Bioethik' },
+                { MatrNr: 28106, Titel: 'Der Wieer Kreis' },
+                { MatrNr: 29120, Titel: 'Grundzüge' },
+                { MatrNr: 29120, Titel: 'Ethik' },
+                { MatrNr: 29120, Titel: 'Mäeutik' },
+                { MatrNr: 29555, Titel: 'Glaube und Wissen' },
+                { MatrNr: 25403, Titel: 'Glaube und Wissen' },
+            ];
+            let json = JSON.stringify(data);
+
+            await expectAsync(conn.importJSON(json, 'json_schema', 'json_table')).toBeResolvedTo(null);
+            let result = await conn.sendQuery(`
+                    SELECT MatrNr, Titel FROM json_schema.json_table
+                `);
+            expect(result.columnTypesLength()).toBe(2);
+            let chunks = new duckdb.AsyncChunkStreamIterator(conn, result);
+            interface Row extends duckdb.RowProxy {
+                MatrNr: number | null;
+                Titel: string | null;
+            }
+            let vals: object[] = [];
+            while (await chunks.nextAsync()) {
+                for (let row of chunks.collect<Row>()) {
+                    vals.push({
+                        MatrNr: row.MatrNr,
+                        Titel: row.Titel,
+                    });
+                }
+            }
+
+            expect(vals).toEqual(data);
+        });
+    });
 }
