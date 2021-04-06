@@ -489,6 +489,7 @@ if(NOT EMSCRIPTEN)
         ${CMAKE_SOURCE_DIR}/test/webdb/duckdb_test.cc
         ${CMAKE_SOURCE_DIR}/test/webdb/iterator_test.cc
         ${CMAKE_SOURCE_DIR}/test/webdb/webdb_test.cc
+        ${CMAKE_SOURCE_DIR}/test/webdb/ffi_test.cc
     )
     set (TEST_LIBS
         dashql_test

@@ -182,7 +182,9 @@ dashql::ExpectedBuffer<p::QueryPlan> WebDB::Connection::AnalyzeQuery(std::string
 
 /// Constructor
 WebDB::WebDB() : database_(), connections_(), db_config_() {
+#ifdef EMSCRIPTEN
     db_config_.file_system = std::make_unique<WebDBFileSystem>();
+#endif
     database_ = std::make_shared<duckdb::DuckDB>(nullptr, &db_config_);
     database_->LoadExtension<duckdb::ParquetExtension>();
 }

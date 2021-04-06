@@ -214,32 +214,28 @@ export abstract class DuckDBBindings {
     }
 
     /// Import CSV from an URL into the given table
-    public importCSV(conn: number, filePath: string, schemaName: string, tableName: string): Promise<void> {
-        return this.registerURL(filePath)
-            .then(() => {
-                let instance = this.instance!;
-                let [s, d, n] = this.callSRet(
-                    'duckdb_web_import_csv',
-                    ['number', 'string', 'string', 'string'],
-                    [conn, filePath, schemaName, tableName],
-                );
+    public async importCSV(conn: number, filePath: string, schemaName: string, tableName: string) {
+        await this.registerURL(filePath);
+        let instance = this.instance!;
+        let [s, d, n] = this.callSRet(
+            'duckdb_web_import_csv',
+            ['number', 'string', 'string', 'string'],
+            [conn, filePath, schemaName, tableName],
+        );
 
-                let mem = instance.HEAPU8.subarray(d, d + n);
-                if (s !== proto.StatusCode.SUCCESS) {
-                    throw new Error(decodeString(mem));
-                }
-            })
-            .then(() => this.unregisterURL(filePath));
+        let mem = instance.HEAPU8.subarray(d, d + n);
+        if (s !== proto.StatusCode.SUCCESS) {
+            throw new Error(decodeString(mem));
+        }
+        await this.unregisterURL(filePath);
     }
 
     /// Import Parquet from an URL into the given table
-    public importParquet(conn: number, filePath: string, schemaName: string, tableName: string): Promise<void> {
-        return this.registerURL(filePath)
-            .then(() => {
-                this.runQuery(conn, `CREATE TABLE ${tableName} AS SELECT * FROM parquet_scan("${filePath}")`);
-                return Promise.resolve();
-            })
-            .then(() => this.unregisterURL(filePath));
+    public async importParquet(conn: number, filePath: string, schemaName: string, tableName: string) {
+        await this.registerURL(filePath);
+        this.runQuery(conn, `CREATE SCHEMA IF NOT EXISTS ${schemaName}`);
+        this.runQuery(conn, `CREATE TABLE ${schemaName}.${tableName} AS SELECT * FROM parquet_scan("${filePath}")`);
+        await this.unregisterURL(filePath);
     }
 }
 

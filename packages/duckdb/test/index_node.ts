@@ -26,17 +26,18 @@ import { testBindings } from './bindings.test';
 import { testIterator } from './iterator.test';
 import { testFilesystem } from './filesystem.test';
 import { testAsyncIterator } from './async_iterator.test';
-import { testExtractCSV } from './extract_csv.test';
+import { testImportData } from './import_data.test';
 
 // Loading debug symbols, especially for WASM take insanely long so we just disable the test timeout
 jasmine.DEFAULT_TIMEOUT_INTERVAL = 30000;
 
-testProxies(() => db!);
-testBindings(() => db!);
-testIterator(() => db!);
-testAsyncIterator(() => adb!);
-testFilesystem(() => adb!, path.resolve(__dirname, '../../../data/uni/out'));
-testExtractCSV(
+// testProxies(() => db!);
+// testBindings(() => db!);
+// testIterator(() => db!);
+// testAsyncIterator(() => adb!);
+// testFilesystem(() => adb!, path.resolve(__dirname, '../../../data/uni/out'));
+testImportData(
     () => adb!,
     (buf: Uint8Array) => tmp.sync(Buffer.from(buf)),
+    path.resolve(__dirname, '../../../data/uni/out'),
 );

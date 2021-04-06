@@ -1,9 +1,11 @@
 // Copyright (c) 2020 The DashQL Authors
 
+#include "duckdb/web/webdb_ffi.h"
+
 #include <iostream>
+#include <unordered_map>
 #include <unordered_set>
 
-#include "dashql/common/ffi_response.h"
 #include "dashql/proto_generated.h"
 #include "duckdb/execution/operator/persistent/buffered_csv_reader.hpp"
 #include "duckdb/main/appender.hpp"
@@ -104,36 +106,42 @@ void duckdb_web_import_csv(dashql::FFIResponse* packed, ConnectionHdl connHdl, c
     std::string schemaStr(schemaName);
     std::string tableStr(tableName);
 
-    c->RunQuery("CREATE IGNORE SCHEMA \"" + schemaStr + "\";");
+    auto createSchema = c->RunQuery("CREATE SCHEMA IF NOT EXISTS " + schemaStr);
+    if (createSchema.IsErr()) {
+        dashql::FFIResponseBuffer::GetInstance().Store(*packed, std::move(createSchema.ReleaseError()));
+        return;
+    }
 
-    std::string create = "CREATE TABLE \"" + schemaStr + "\".\"" + tableStr + "\" (";
+    std::string create = "CREATE TABLE " + schemaStr + "." + tableStr + " (";
     for (size_t i = 0; i < columns.size(); ++i) {
         auto const& c = columns[i];
         create += c.name + " " + c.type.ToString();
-        if (i < columns.size() - 1) create += ",";
+        if (i < columns.size() - 1) create += ',';
     }
     create += ");";
 
     auto createTable = c->RunQuery(create);
-    if (!createTable.IsOk()) {
-        dashql::FFIResponseBuffer::GetInstance().Store(*packed, createTable.ReleaseError());
+    if (createTable.IsErr()) {
+        dashql::FFIResponseBuffer::GetInstance().Store(*packed, std::move(createTable.ReleaseError()));
         return;
     }
+
+    dashql::FFIResponseBuffer::GetInstance().Store(*packed, dashql::Signal::OK());
 
     // Insert Data
     try {
         auto& ctx = *c->GetConnection().context;
         auto table = ctx.TableInfo(schemaStr, tableStr);
         ctx.Append(*table, output_chunk);
+
+        dashql::FFIResponseBuffer::GetInstance().Store(*packed, dashql::Signal::OK());
     } catch (const std::exception& e) {
         dashql::FFIResponseBuffer::GetInstance().Store(*packed, dashql::Error(dashql::ErrorCode::CSV_PARSER_ERROR)
                                                                     << e.what());
-        return;
     }
-
-    dashql::FFIResponseBuffer::GetInstance().Store(*packed, dashql::Signal::OK());
 }
 
+/// Import JSON from string
 void duckdb_web_import_json(dashql::FFIResponse* packed, ConnectionHdl connHdl, const char* jsonString,
                             const char* schemaName, const char* tableName) {
     auto c = reinterpret_cast<WebDB::Connection*>(connHdl);
@@ -162,7 +170,8 @@ void duckdb_web_import_json(dashql::FFIResponse* packed, ConnectionHdl connHdl, 
     auto const& array = document.GetArray();
 
     std::vector<duckdb::ColumnDefinition> columns;
-    std::unordered_set<const char*> nullColumns;
+    std::unordered_map<std::string, duckdb::LogicalType> typedColumns;
+    std::unordered_set<std::string> nullColumns;
 
     // go through array to collect first per-column type information
     // (need to check multiple rows in case a value is null)
@@ -177,7 +186,7 @@ void duckdb_web_import_json(dashql::FFIResponse* packed, ConnectionHdl connHdl, 
 
         for (auto const& member : row.GetObject()) {
             duckdb::LogicalType type;
-            auto const name = member.name.GetString();
+            const std::string name(member.name.GetString());
             switch (member.value.GetType()) {
                 case rapidjson::Type::kTrueType:
                 case rapidjson::Type::kFalseType:
@@ -213,10 +222,20 @@ void duckdb_web_import_json(dashql::FFIResponse* packed, ConnectionHdl connHdl, 
                     return;
             }
 
+            auto existing = typedColumns.find(name);
+
             if (type != duckdb::LogicalType::INVALID) {
+                if (existing != typedColumns.end() && existing->second != type) {
+                    dashql::FFIResponseBuffer::GetInstance().Store(
+                        *packed, dashql::Error(dashql::ErrorCode::CSV_PARSER_ERROR)
+                                     << "Conflicting value types encountered for column \"" << name << '"');
+                    return;
+                }
                 nullColumns.erase(name);
-                columns.emplace_back(std::string(name), type);
-            } else {
+                typedColumns.emplace(name, type);
+                columns.emplace_back(name, type);
+            } else if (existing == typedColumns.end()) {
+                // only mark as null column if no type previously encountered
                 nullColumns.emplace(name);
             }
         }
@@ -234,22 +253,22 @@ void duckdb_web_import_json(dashql::FFIResponse* packed, ConnectionHdl connHdl, 
         return;
     }
 
-    auto createSchema = c->RunQuery("CREATE SCHEMA \"" + schemaStr + "\";");
-    if (!createSchema.IsOk()) {
+    auto createSchema = c->RunQuery("CREATE SCHEMA IF NOT EXISTS " + schemaStr);
+    if (createSchema.IsErr()) {
         dashql::FFIResponseBuffer::GetInstance().Store(*packed, createSchema.ReleaseError());
         return;
     }
 
-    std::string create = "CREATE TABLE \"" + schemaStr + "\".\"" + tableStr + "\" (";
+    std::string create = "CREATE TABLE " + schemaStr + "." + tableStr + " (";
     for (size_t i = 0; i < columns.size(); ++i) {
         auto const& c = columns[i];
-        create += '"' + c.name + "\" " + c.type.ToString();
+        create += c.name + " " + c.type.ToString();
         if (i < columns.size() - 1) create += ",";
     }
     create += ");";
 
     auto createTable = c->RunQuery(create);
-    if (!createTable.IsOk()) {
+    if (createTable.IsErr()) {
         dashql::FFIResponseBuffer::GetInstance().Store(*packed, createTable.ReleaseError());
         return;
     }
