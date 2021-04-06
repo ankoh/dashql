@@ -148,7 +148,7 @@ static std::unordered_map<ProgramActionType, ProgramActionInvalidation> ACTION_T
     {ProgramActionType::ACTION,                                         \
      {SetupActionType::IMPORT_ACTION, SetupActionType::DROP_ACTION, ProgramActionType::UPDATE_ACTION, PROPAGATE}},
     X(NONE, NONE, NONE, NONE, false)
-    X(INPUT, NONE, NONE, NONE, false)
+    X(INPUT, IMPORT_INPUT, DROP_INPUT, NONE, false)
     X(LOAD_FILE, IMPORT_BLOB, DROP_BLOB, NONE, false)
     X(LOAD_HTTP, IMPORT_BLOB, DROP_BLOB, NONE, false)
     X(EXTRACT_JSON, IMPORT_TABLE, DROP_TABLE, NONE, false)
