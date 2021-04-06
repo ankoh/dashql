@@ -55,6 +55,9 @@
         </cards>
         <graph next_object_id="4">
             <setup>
+                <action type="DROP_INPUT" status="NONE" object_id="0">
+                    <target name_qualified="global.country" name_short="country" />
+                </action>
                 <action type="DROP_BLOB" status="NONE" object_id="1">
                     <target name_qualified="global.weather_csv" name_short="weather_csv" />
                 </action>

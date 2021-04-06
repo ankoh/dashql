@@ -2,7 +2,7 @@ import * as proto from '@dashql/proto';
 import * as model from '../model';
 import * as error from '../error';
 import { ActionHandle, Statement, PlanObject, CardRendererType } from '../model';
-import { ProgramActionLogic } from './action_logic';
+import { ProgramActionLogic, SetupActionLogic } from './action_logic';
 import { ActionContext } from './action_context';
 
 export class InputActionLogic extends ProgramActionLogic {
@@ -59,6 +59,33 @@ export class InputActionLogic extends ProgramActionLogic {
         planObjects.push(info);
     }
 
+    public willExecute(_context: ActionContext) {}
+    public async execute(_context: ActionContext): Promise<void> {}
+}
+
+export class DropInputActionLogic extends SetupActionLogic {
+    constructor(action_id: model.ActionHandle, action: proto.action.SetupAction) {
+        super(action_id, action);
+    }
+
+    public prepare(_context: ActionContext) {}
+    public willExecute(_context: ActionContext) {}
+    public async execute(context: ActionContext): Promise<void> {
+        const store = context.platform.store!;
+        const objectId = this.buffer.objectId();
+        model.mutate(store.dispatch, {
+            type: model.StateMutationType.DELETE_PLAN_OBJECTS,
+            data: [objectId],
+        });
+    }
+}
+
+export class ImportInputActionLogic extends SetupActionLogic {
+    constructor(action_id: model.ActionHandle, action: proto.action.SetupAction) {
+        super(action_id, action);
+    }
+
+    public prepare(_context: ActionContext) {}
     public willExecute(_context: ActionContext) {}
     public async execute(_context: ActionContext): Promise<void> {}
 }

@@ -8,7 +8,7 @@ import { ExtractJsonActionLogic } from './extract_json_logic';
 import { ExtractParquetActionLogic } from './extract_parquet_logic';
 import { LoadFileActionLogic } from './load_file_logic';
 import { LoadHTTPActionLogic } from './load_http_logic';
-import { InputActionLogic } from './input_logic';
+import { InputActionLogic, DropInputActionLogic, ImportInputActionLogic } from './input_logic';
 import {
     CreateTableActionLogic,
     DropTableActionLogic,
@@ -25,6 +25,8 @@ import ProgramActionType = proto.action.ProgramActionType;
 /// Translate a setup action
 export function resolveSetupActionLogic(id: ActionHandle, a: proto.action.SetupAction): SetupActionLogic | null {
     switch (a.actionType()) {
+        case SetupActionType.DROP_INPUT:
+            return new DropInputActionLogic(id, a);
         case SetupActionType.DROP_BLOB:
             return new DropBlobActionLogic(id, a);
         case SetupActionType.DROP_TABLE:
@@ -33,6 +35,8 @@ export function resolveSetupActionLogic(id: ActionHandle, a: proto.action.SetupA
             return new DropViewActionLogic(id, a);
         case SetupActionType.DROP_VIZ:
             return new DropVizActionLogic(id, a);
+        case SetupActionType.IMPORT_INPUT:
+            return new ImportInputActionLogic(id, a);
         case SetupActionType.IMPORT_BLOB:
             return new ImportBlobActionLogic(id, a);
         case SetupActionType.IMPORT_TABLE:
