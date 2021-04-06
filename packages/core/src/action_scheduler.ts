@@ -54,7 +54,7 @@ export class ActionScheduler<ActionBuffer extends ProtoAction> {
     }
 
     /// Prepare the scheduler
-    public prepare(ctx: ActionContext, actions: ActionLogic<ActionBuffer>[]) {
+    public prepare(_ctx: ActionContext, actions: ActionLogic<ActionBuffer>[]) {
         this._actions = actions;
         this._actionPromises = [];
 
@@ -73,13 +73,18 @@ export class ActionScheduler<ActionBuffer extends ProtoAction> {
         this._completedActions.reset(this._actions.length);
         this._failedActions.reset(this._actions.length);
 
-        // Prepare all actions
-        let objects: model.PlanObject[] = [];
-        actions.forEach((a, i) => a.prepare(ctx, objects));
-        model.mutate(ctx.platform.store.dispatch, {
-            type: model.StateMutationType.INSERT_PLAN_OBJECTS,
-            data: objects,
-        });
+        for (let i = 0; i < actions.length; ++i) {
+            switch (actions[i].status) {
+                case proto.action.ActionStatusCode.COMPLETED:
+                    this._completedActions.set(i);
+                    break;
+                case proto.action.ActionStatusCode.FAILED:
+                    this._failedActions.set(i);
+                    break;
+                default:
+                    break;
+            }
+        }
     }
 
     /// Get the actions
@@ -383,10 +388,14 @@ export class ActionGraphScheduler {
 
         // Prepare all actions
         for (const action of setupLogic) {
-            action.prepare(ctx, planObjects);
+            if (action.status == proto.action.ActionStatusCode.NONE) {
+                action.prepare(ctx, planObjects);
+            }
         }
         for (const action of programLogic) {
-            action.prepare(ctx, planObjects);
+            if (action.status == proto.action.ActionStatusCode.NONE) {
+                action.prepare(ctx, planObjects);
+            }
         }
 
         // Insert all plan objects
