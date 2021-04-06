@@ -16,7 +16,7 @@
                     <node key="DASHQL_OPTION_URL" loc="48..95" text="'https://s..e/all.zip'" />
                 </node>
             </statement>
-            <statement type="NONE" name="global.assistenten">
+            <statement type="EXTRACT_PARQUET" name="global.assistenten">
                 <node type="OBJECT_DASHQL_EXTRACT" loc="115..180" text="EXTRACT as..NG PARQUET">
                     <node key="DASHQL_EXTRACT_DATA">
                         <node loc="140..143" text="uni" />
@@ -54,7 +54,7 @@
     </input>
     <expected>
         <statements>
-            <statement type="NONE" name="global.uni">
+            <statement type="LOAD_HTTP" name="global.uni">
                 <node type="OBJECT_DASHQL_LOAD" loc="9..70" text="LOAD uni F..e/all.zip'">
                     <node key="DASHQL_LOAD_URI" loc="23..70" text="'https://s..e/all.zip'" />
                     <node key="DASHQL_STATEMENT_NAME">
@@ -62,7 +62,7 @@
                     </node>
                 </node>
             </statement>
-            <statement type="NONE" name="global.vorlesungen">
+            <statement type="EXTRACT_PARQUET" name="global.vorlesungen">
                 <node type="OBJECT_DASHQL_EXTRACT" loc="80..145" text="EXTRACT vo..NG PARQUET">
                     <node key="DASHQL_EXTRACT_DATA">
                         <node loc="105..108" text="uni" />
@@ -76,7 +76,7 @@
                     </node>
                 </node>
             </statement>
-            <statement type="NONE" name="global.hoeren">
+            <statement type="EXTRACT_PARQUET" name="global.hoeren">
                 <node type="OBJECT_DASHQL_EXTRACT" loc="155..210" text="EXTRACT ho..NG PARQUET">
                     <node key="DASHQL_EXTRACT_DATA">
                         <node loc="175..178" text="uni" />
@@ -90,7 +90,7 @@
                     </node>
                 </node>
             </statement>
-            <statement type="NONE" name="global.studenten">
+            <statement type="EXTRACT_PARQUET" name="global.studenten">
                 <node type="OBJECT_DASHQL_EXTRACT" loc="220..281" text="EXTRACT st..NG PARQUET">
                     <node key="DASHQL_EXTRACT_DATA">
                         <node loc="243..246" text="uni" />

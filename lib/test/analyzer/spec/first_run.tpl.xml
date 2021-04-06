@@ -193,3 +193,14 @@
         <parameters />
     </step>
 </test>
+<test name="extract_uni_zip_infer">
+    <step>
+        <text>
+            LOAD uni FROM 'https://static.dashql.com/data/uni/de/all.zip';
+            EXTRACT vorlesungen FROM uni['vorlesungen.parquet'] USING PARQUET;
+            EXTRACT hoeren FROM uni['hoeren.parquet'] USING PARQUET;
+            EXTRACT studenten FROM uni['studenten.parquet'] USING PARQUET;
+        </text>
+        <parameters />
+    </step>
+</test>
