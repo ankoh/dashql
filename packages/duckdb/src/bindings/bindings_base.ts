@@ -234,7 +234,7 @@ export abstract class DuckDBBindings {
     public async importParquet(conn: number, filePath: string, schemaName: string, tableName: string) {
         await this.registerURL(filePath);
         this.runQuery(conn, `CREATE SCHEMA IF NOT EXISTS ${schemaName}`);
-        this.runQuery(conn, `CREATE TABLE ${schemaName}.${tableName} AS SELECT * FROM parquet_scan("${filePath}")`);
+        this.runQuery(conn, `CREATE TABLE ${schemaName}.${tableName} AS SELECT * FROM parquet_scan('${filePath}')`);
         await this.unregisterURL(filePath);
     }
 }

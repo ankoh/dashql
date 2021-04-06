@@ -58,8 +58,8 @@ TEST(FFI, ImportParquet) {
         auto data = dashql::test::SOURCE_DIR / ".." / "data" / "uni" / "out" / "studenten.parquet";
         builder.Finish(proto::CreateQueryArgumentsDirect(
             builder,
-            (std::string("CREATE TABLE test_schema.parquet_table AS SELECT * FROM parquet_scan(\"") + data.string() +
-             std::string("\")"))
+            (std::string("CREATE TABLE test_schema.parquet_table AS SELECT * FROM parquet_scan('") + data.string() +
+             std::string("')"))
                 .c_str(),
             {}));
         duckdb_web_run_query(&response, conn, builder.GetBufferPointer());
