@@ -123,7 +123,6 @@ export class CreateVizActionLogic extends VizActionLogic {
             timeUpdated: now,
         };
 
-        console.log(card);
         model.mutate(context.platform.store.dispatch, {
             type: model.StateMutationType.INSERT_PLAN_OBJECTS,
             data: [card],
@@ -139,16 +138,40 @@ export class UpdateVizActionLogic extends VizActionLogic {
         super(action_id, action, statement);
     }
 
-    public prepare(context: ActionContext, _planObjects: model.PlanObject[]): void {
+    public prepare(context: ActionContext, planObjects: model.PlanObject[]): void {
         const programInstance = context.plan.programInstance;
         const state = context.platform.store.getState();
         const objectID = this.buffer.objectId().toString();
-        console.assert(state.core.cards.has(objectID), 'The card must already exist');
+        const cardObject = state.core.cards.get(objectID);
+        if (!cardObject) {
+            throw new error.ActionLogicError('card object does not exist', context.plan.programInstance);
+        }
 
         this._card = programInstance.cards.get(this.origin.statementId) || null;
         if (!this._card) {
             throw new error.ActionLogicError('card spec does not exist', context.plan.programInstance);
         }
+
+        const posReader = this._card!.position()!;
+        const pos: model.CardPosition = {
+            row: posReader.row(),
+            column: posReader.column(),
+            width: posReader.width(),
+            height: posReader.height(),
+        };
+        const now = new Date();
+        const next: model.Card = {
+            ...cardObject,
+            timeUpdated: now,
+            cardRenderer: null,
+            statementID: this.origin.statementId,
+            position: pos,
+            title: this._card!.title() || null,
+            vegaLiteSpec: null,
+            vegaSpec: null,
+            dataSource: null,
+        };
+        planObjects.push(next);
     }
 
     public willExecute(context: ActionContext) {
@@ -178,7 +201,6 @@ export class UpdateVizActionLogic extends VizActionLogic {
             ...spec,
             timeUpdated: now,
         };
-        console.log(card);
         model.mutate(context.platform.store.dispatch, {
             type: model.StateMutationType.INSERT_PLAN_OBJECTS,
             data: [card],
