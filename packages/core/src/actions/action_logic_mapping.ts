@@ -5,6 +5,7 @@ import { ActionHandle, Statement } from '../model';
 import { ImportBlobActionLogic, DropBlobActionLogic } from './blob_logic';
 import { ExtractCSVActionLogic } from './extract_csv_logic';
 import { ExtractJsonActionLogic } from './extract_json_logic';
+import { ExtractParquetActionLogic } from './extract_parquet_logic';
 import { LoadFileActionLogic } from './load_file_logic';
 import { LoadHTTPActionLogic } from './load_http_logic';
 import { InputActionLogic } from './input_logic';
@@ -41,6 +42,7 @@ export function resolveSetupActionLogic(id: ActionHandle, a: proto.action.SetupA
         case SetupActionType.IMPORT_VIZ:
             return new ImportVizActionLogic(id, a);
     }
+    console.error('unknown setup action type');
     return null;
 }
 
@@ -55,6 +57,8 @@ export function resolveProgramActionLogic(
             return new ExtractCSVActionLogic(id, a, s);
         case ProgramActionType.EXTRACT_JSON:
             return new ExtractJsonActionLogic(id, a, s);
+        case ProgramActionType.EXTRACT_PARQUET:
+            return new ExtractParquetActionLogic(id, a, s);
         case ProgramActionType.LOAD_FILE:
             return new LoadFileActionLogic(id, a, s);
         case ProgramActionType.LOAD_HTTP:
@@ -74,5 +78,6 @@ export function resolveProgramActionLogic(
         case ProgramActionType.UPDATE_VIZ:
             return new UpdateVizActionLogic(id, a, s);
     }
+    console.error('unknown program action type');
     return null;
 }
