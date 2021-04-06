@@ -11,4 +11,5 @@ dashql_extract_statement:
 dashql_extract_method:
     CSV     { $$ = Enum(@$, sx::ExtractMethodType::CSV); }
   | JSON    { $$ = Enum(@$, sx::ExtractMethodType::JSON); }
+  | PARQUET { $$ = Enum(@$, sx::ExtractMethodType::PARQUET); }
     ;

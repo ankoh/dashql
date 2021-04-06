@@ -1,0 +1,123 @@
+<test name="extract_uni_zip_http">
+    <input>
+        LOAD uni FROM http (
+            url = 'https://static.dashql.com/data/uni/de/all.zip'
+        );
+        EXTRACT assistenten FROM uni['assistenten.parquet'] USING PARQUET;
+    </input>
+    <expected>
+        <statements>
+            <statement type="LOAD_HTTP" name="global.uni">
+                <node type="OBJECT_DASHQL_LOAD" loc="9..105" text="LOAD uni F..&#10;        )">
+                    <node key="DASHQL_LOAD_METHOD" value="HTTP" />
+                    <node key="DASHQL_STATEMENT_NAME">
+                        <node loc="14..17" text="uni" />
+                    </node>
+                    <node key="DASHQL_OPTION_URL" loc="48..95" text="'https://s..e/all.zip'" />
+                </node>
+            </statement>
+            <statement type="NONE" name="global.assistenten">
+                <node type="OBJECT_DASHQL_EXTRACT" loc="115..180" text="EXTRACT as..NG PARQUET">
+                    <node key="DASHQL_EXTRACT_DATA">
+                        <node loc="140..143" text="uni" />
+                        <node type="OBJECT_SQL_INDIRECTION" loc="143..166" text="['assisten...parquet']">
+                            <node key="SQL_INDIRECTION_INDEX" loc="144..165" text="'assistent..n.parquet'" />
+                        </node>
+                    </node>
+                    <node key="DASHQL_EXTRACT_METHOD" value="PARQUET" />
+                    <node key="DASHQL_STATEMENT_NAME">
+                        <node loc="123..134" text="assistenten" />
+                    </node>
+                </node>
+            </statement>
+        </statements>
+        <errors />
+        <line_breaks>
+            <line_break loc="0..1" text="&#10;" />
+            <line_break loc="29..30" text="&#10;" />
+            <line_break loc="95..96" text="&#10;" />
+            <line_break loc="106..107" text="&#10;" />
+            <line_break loc="181..182" text="&#10;" />
+        </line_breaks>
+        <comments />
+        <dependencies>
+            <dependency type="TABLE_REF" source="0" target="1" loc="140..166" text="uni['assis...parquet']" />
+        </dependencies>
+    </expected>
+</test>
+<test name="extract_uni_zip_infer">
+    <input>
+        LOAD uni FROM 'https://static.dashql.com/data/uni/de/all.zip';
+        EXTRACT vorlesungen FROM uni['vorlesungen.parquet'] USING PARQUET;
+        EXTRACT hoeren FROM uni['hoeren.parquet'] USING PARQUET;
+        EXTRACT studenten FROM uni['studenten.parquet'] USING PARQUET;
+    </input>
+    <expected>
+        <statements>
+            <statement type="NONE" name="global.uni">
+                <node type="OBJECT_DASHQL_LOAD" loc="9..70" text="LOAD uni F..e/all.zip'">
+                    <node key="DASHQL_LOAD_URI" loc="23..70" text="'https://s..e/all.zip'" />
+                    <node key="DASHQL_STATEMENT_NAME">
+                        <node loc="14..17" text="uni" />
+                    </node>
+                </node>
+            </statement>
+            <statement type="NONE" name="global.vorlesungen">
+                <node type="OBJECT_DASHQL_EXTRACT" loc="80..145" text="EXTRACT vo..NG PARQUET">
+                    <node key="DASHQL_EXTRACT_DATA">
+                        <node loc="105..108" text="uni" />
+                        <node type="OBJECT_SQL_INDIRECTION" loc="108..131" text="['vorlesun...parquet']">
+                            <node key="SQL_INDIRECTION_INDEX" loc="109..130" text="'vorlesung..n.parquet'" />
+                        </node>
+                    </node>
+                    <node key="DASHQL_EXTRACT_METHOD" value="PARQUET" />
+                    <node key="DASHQL_STATEMENT_NAME">
+                        <node loc="88..99" text="vorlesungen" />
+                    </node>
+                </node>
+            </statement>
+            <statement type="NONE" name="global.hoeren">
+                <node type="OBJECT_DASHQL_EXTRACT" loc="155..210" text="EXTRACT ho..NG PARQUET">
+                    <node key="DASHQL_EXTRACT_DATA">
+                        <node loc="175..178" text="uni" />
+                        <node type="OBJECT_SQL_INDIRECTION" loc="178..196" text="['hoeren.parquet']">
+                            <node key="SQL_INDIRECTION_INDEX" loc="179..195" text="'hoeren.parquet'" />
+                        </node>
+                    </node>
+                    <node key="DASHQL_EXTRACT_METHOD" value="PARQUET" />
+                    <node key="DASHQL_STATEMENT_NAME">
+                        <node loc="163..169" text="hoeren" />
+                    </node>
+                </node>
+            </statement>
+            <statement type="NONE" name="global.studenten">
+                <node type="OBJECT_DASHQL_EXTRACT" loc="220..281" text="EXTRACT st..NG PARQUET">
+                    <node key="DASHQL_EXTRACT_DATA">
+                        <node loc="243..246" text="uni" />
+                        <node type="OBJECT_SQL_INDIRECTION" loc="246..267" text="['studente...parquet']">
+                            <node key="SQL_INDIRECTION_INDEX" loc="247..266" text="'studenten.parquet'" />
+                        </node>
+                    </node>
+                    <node key="DASHQL_EXTRACT_METHOD" value="PARQUET" />
+                    <node key="DASHQL_STATEMENT_NAME">
+                        <node loc="228..237" text="studenten" />
+                    </node>
+                </node>
+            </statement>
+        </statements>
+        <errors />
+        <line_breaks>
+            <line_break loc="0..1" text="&#10;" />
+            <line_break loc="71..72" text="&#10;" />
+            <line_break loc="146..147" text="&#10;" />
+            <line_break loc="211..212" text="&#10;" />
+            <line_break loc="282..283" text="&#10;" />
+        </line_breaks>
+        <comments />
+        <dependencies>
+            <dependency type="TABLE_REF" source="0" target="1" loc="105..131" text="uni['vorle...parquet']" />
+            <dependency type="TABLE_REF" source="0" target="2" loc="175..196" text="uni['hoere...parquet']" />
+            <dependency type="TABLE_REF" source="0" target="3" loc="243..267" text="uni['stude...parquet']" />
+        </dependencies>
+    </expected>
+</test>
