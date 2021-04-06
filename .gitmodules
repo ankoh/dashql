@@ -28,3 +28,12 @@
 [submodule "submodules/wasm-c-api"]
 	path = submodules/wasm-c-api
 	url = https://github.com/WebAssembly/wasm-c-api.git
+[submodule "submodules/arrow"]
+	path = submodules/arrow
+	url = https://github.com/apache/arrow
+[submodule "submodules/thrift"]
+	path = submodules/thrift
+	url = https://github.com/apache/thrift
+[submodule "submodules/double-conversion"]
+	path = submodules/double-conversion
+	url = https://github.com/google/double-conversion
