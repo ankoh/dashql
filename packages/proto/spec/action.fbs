@@ -67,8 +67,9 @@ enum ProgramActionType: uint8 {
     INPUT,
     LOAD_FILE,
     LOAD_HTTP,
-    EXTRACT_JSON,
     EXTRACT_CSV,
+    EXTRACT_JSON,
+    EXTRACT_PARQUET,
     CREATE_VIEW,
     CREATE_TABLE,
     MODIFY_TABLE,
@@ -86,22 +87,5 @@ table ProgramAction {
     object_id: uint32;
     target_name_qualified: string;
     target_name_short: string;
-    script: string;
-}
-
-// ---------------------------------------------------------------------------
-// Dynamic actions
-
-enum DynamicActionType: uint8 {
-    NONE = 0,
-    QUERY_SCALAR,
-    QUERY_TABLE,
-}
-
-table DynamicAction {
-    action_type: DynamicActionType;
-    action_status_code: ActionStatusCode;
-    origin_statement: uint32;
-    object_id: uint32;
     script: string;
 }

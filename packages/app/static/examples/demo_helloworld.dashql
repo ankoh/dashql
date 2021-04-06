@@ -3,6 +3,11 @@ INPUT country TYPE VARCHAR USING TEXT (
     position = (row = 0, column = 0, width = 3, height = 1)
 );
 
+LOAD uni FROM 'https://static.dashql.com/data/uni/de/all.zip';
+EXTRACT vorlesungen FROM uni['vorlesungen.parquet'] USING PARQUET;
+EXTRACT hoeren FROM uni['hoeren.parquet'] USING PARQUET;
+EXTRACT studenten FROM uni['studenten.parquet'] USING PARQUET;
+
 CREATE VIEW foo AS
     SELECT
         v::INTEGER AS x,

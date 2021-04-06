@@ -780,3 +780,47 @@
         </graph>
     </step>
 </test>
+<test name="extract_uni_zip_infer">
+    <step>
+        <text>
+            LOAD uni FROM 'https://static.dashql.com/data/uni/de/all.zip';
+            EXTRACT vorlesungen FROM uni['vorlesungen.parquet'] USING PARQUET;
+            EXTRACT hoeren FROM uni['hoeren.parquet'] USING PARQUET;
+            EXTRACT studenten FROM uni['studenten.parquet'] USING PARQUET;
+        </text>
+        <inputs />
+        <evaluations />
+        <cards />
+        <graph next_object_id="4">
+            <setup />
+            <program>
+                <action origin="0" type="LOAD_HTTP" status="NONE" object_id="0">
+                    <target name_qualified="global.uni" name_short="uni" />
+                    <required_for>
+                        <ref action="1" />
+                        <ref action="2" />
+                        <ref action="3" />
+                    </required_for>
+                </action>
+                <action origin="1" type="EXTRACT_PARQUET" status="NONE" object_id="1">
+                    <target name_qualified="global.vorlesungen" name_short="vorlesungen" />
+                    <depends_on>
+                        <ref action="0" />
+                    </depends_on>
+                </action>
+                <action origin="2" type="EXTRACT_PARQUET" status="NONE" object_id="2">
+                    <target name_qualified="global.hoeren" name_short="hoeren" />
+                    <depends_on>
+                        <ref action="0" />
+                    </depends_on>
+                </action>
+                <action origin="3" type="EXTRACT_PARQUET" status="NONE" object_id="3">
+                    <target name_qualified="global.studenten" name_short="studenten" />
+                    <depends_on>
+                        <ref action="0" />
+                    </depends_on>
+                </action>
+            </program>
+        </graph>
+    </step>
+</test>
