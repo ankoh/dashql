@@ -31,11 +31,11 @@ import { testImportData } from './import_data.test';
 // Loading debug symbols, especially for WASM take insanely long so we just disable the test timeout
 jasmine.DEFAULT_TIMEOUT_INTERVAL = 30000;
 
-// testProxies(() => db!);
-// testBindings(() => db!);
-// testIterator(() => db!);
-// testAsyncIterator(() => adb!);
-// testFilesystem(() => adb!, path.resolve(__dirname, '../../../data/uni/out'));
+testProxies(() => db!);
+testBindings(() => db!);
+testIterator(() => db!);
+testAsyncIterator(() => adb!);
+testFilesystem(() => adb!, path.resolve(__dirname, '../../../data/uni/out'));
 testImportData(
     () => adb!,
     (buf: Uint8Array) => tmp.sync(Buffer.from(buf)),
