@@ -5186,10 +5186,10 @@ react-draggable@^4.0.0, react-draggable@^4.0.3, react-draggable@^4.4.3:
     classnames "^2.2.5"
     prop-types "^15.6.0"
 
-react-flow-renderer@^9.4.3:
-  version "9.4.3"
-  resolved "https://registry.yarnpkg.com/react-flow-renderer/-/react-flow-renderer-9.4.3.tgz#63e5163aba2f2b5de9e54fb1b9aa737e938254f7"
-  integrity sha512-SKTbUmhpBx80KOBuqk2+baiDYDn+/0ZsTZ1PO5vxR3sZNgkBer7ReQvoMdYj4pt8agW6SE3biRnL6eoi2vgwrw==
+react-flow-renderer@^9.4.4:
+  version "9.4.4"
+  resolved "https://registry.yarnpkg.com/react-flow-renderer/-/react-flow-renderer-9.4.4.tgz#28cca56bd41e75dc1c9a07ffb25cce1dc0273bbd"
+  integrity sha512-sqBJWy0BMYExYOFX80ClD2B31Wiqo0A/66lL8Q7vHh9uRE19KMU4I3gfElHE8Xl+BRW/U3Jtodq80ucYiebxuA==
   dependencies:
     "@babel/runtime" "^7.13.10"
     "@types/d3" "^6.3.0"
