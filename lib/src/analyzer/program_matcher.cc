@@ -4,7 +4,7 @@
 #include <stack>
 #include <unordered_map>
 
-#include "dashql/common/span.h"
+#include "nonstd/span.h"
 
 namespace dashql {
 

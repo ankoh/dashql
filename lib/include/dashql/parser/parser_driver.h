@@ -14,8 +14,8 @@
 #include <variant>
 #include <vector>
 
-#include "dashql/common/span.h"
 #include "dashql/proto_generated.h"
+#include "nonstd/span.h"
 
 namespace dashql {
 namespace parser {

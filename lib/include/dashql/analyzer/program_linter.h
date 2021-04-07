@@ -6,8 +6,8 @@
 #include <sstream>
 #include <variant>
 
-#include "dashql/common/span.h"
 #include "flatbuffers/flatbuffers.h"
+#include "nonstd/span.h"
 
 namespace dashql {
 
