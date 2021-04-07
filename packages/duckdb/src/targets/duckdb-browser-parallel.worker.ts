@@ -1,6 +1,6 @@
 // Copyright (c) 2020 The DashQL Authors
 
-import { AsyncDuckDBDispatcher, AsyncDuckDBResponseVariant, AsyncDuckDBRequestVariant } from '../parallel';
+import { AsyncDuckDBDispatcher, WorkerResponseVariant, WorkerRequestVariant } from '../parallel';
 import { DuckDB } from '../bindings/bindings_browser';
 import { DuckDBBindings } from '../bindings';
 import { BrowserDuckDBRuntime } from '../bindings/runtime_browser';
@@ -8,7 +8,7 @@ import { BrowserDuckDBRuntime } from '../bindings/runtime_browser';
 /** The duckdb worker API for web workers */
 class WebWorker extends AsyncDuckDBDispatcher {
     /** Post a response back to the main thread */
-    protected postMessage(response: AsyncDuckDBResponseVariant, transfer: ArrayBuffer[]) {
+    protected postMessage(response: WorkerResponseVariant, transfer: ArrayBuffer[]) {
         globalThis.postMessage(response, transfer);
     }
 
@@ -23,7 +23,7 @@ class WebWorker extends AsyncDuckDBDispatcher {
 /** Register the worker */
 export function registerWorker() {
     const api = new WebWorker();
-    globalThis.onmessage = async (event: MessageEvent<AsyncDuckDBRequestVariant>) => {
+    globalThis.onmessage = async (event: MessageEvent<WorkerRequestVariant>) => {
         await api.onMessage(event.data);
     };
 }
