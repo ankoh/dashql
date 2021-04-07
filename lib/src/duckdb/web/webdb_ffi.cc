@@ -1,9 +1,9 @@
 // Copyright (c) 2020 The DashQL Authors
 
-#include <arrow/status.h>
-
 #include <iostream>
 
+#include "arrow/buffer.h"
+#include "arrow/status.h"
 #include "dashql/common/ffi_response.h"
 #include "dashql/proto_generated.h"
 #include "duckdb/execution/operator/persistent/buffered_csv_reader.hpp"
@@ -27,19 +27,19 @@ struct FFIResponse {
 /// A response buffer
 class FFIResponseBuffer {
    protected:
-    /// The response error (if any)
-    std::optional<arrow::Status> status_;
     /// The status message
     std::string status_message_;
+    /// The arrow buffer (if any)
+    std::shared_ptr<arrow::Buffer> arrow_buffer_;
 
    public:
     /// Constructor
-    FFIResponseBuffer() { Clear(); }
+    FFIResponseBuffer() : status_message_(), arrow_buffer_() { Clear(); }
 
     /// Clear the response buffer
     void Clear() {
-        status_.reset();
         status_message_.clear();
+        arrow_buffer_.reset();
     }
 
     /// Store the detached flatbuffer
@@ -54,13 +54,13 @@ class FFIResponseBuffer {
     }
 
     /// Store the detached flatbuffer
-    void Store(FFIResponse& response, arrow::Result<nonstd::span<uint8_t>> result) {
+    void Store(FFIResponse& response, arrow::Result<std::shared_ptr<arrow::Buffer>> result) {
         Clear();
         response.statusCode = static_cast<uint64_t>(result.status().code());
         if (result.ok()) {
-            auto value = result.ValueUnsafe();
-            response.dataPtr = reinterpret_cast<uintptr_t>(value.data());
-            response.dataSize = value.size();
+            arrow_buffer_ = result.ValueUnsafe();
+            response.dataPtr = reinterpret_cast<uintptr_t>(arrow_buffer_->data());
+            response.dataSize = arrow_buffer_->size();
         } else {
             status_message_ = result.status().message();
             response.dataPtr = reinterpret_cast<uintptr_t>(status_message_.data());
