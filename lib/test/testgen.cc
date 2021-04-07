@@ -8,7 +8,6 @@
 #include <vector>
 
 #include "dashql/analyzer/analyzer.h"
-#include "dashql/common/span.h"
 #include "dashql/parser/parser_driver.h"
 #include "dashql/proto_generated.h"
 #include "dashql/test/analyzer_tests.h"
@@ -16,6 +15,7 @@
 #include "flatbuffers/flatbuffers.h"
 #include "gtest/gtest.h"
 #include "gtest/internal/gtest-internal.h"
+#include "nonstd/span.h"
 
 using namespace dashql;
 using namespace dashql::test;

@@ -8,8 +8,8 @@
 
 #include "dashql/analyzer/program_instance.h"
 #include "dashql/common/expected.h"
-#include "dashql/common/span.h"
 #include "dashql/proto_generated.h"
+#include "nonstd/span.h"
 
 namespace dashql {
 

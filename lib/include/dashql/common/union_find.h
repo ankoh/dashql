@@ -8,7 +8,7 @@
 #include <unordered_set>
 #include <vector>
 
-#include "dashql/common/span.h"
+#include "nonstd/span.h"
 
 namespace dashql {
 

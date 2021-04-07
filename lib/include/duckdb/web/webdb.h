@@ -7,68 +7,56 @@
 #include <initializer_list>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 
-#include "dashql/common/expected.h"
+#include "arrow/io/buffered.h"
+#include "arrow/io/interfaces.h"
+#include "arrow/ipc/writer.h"
 #include "dashql/common/ffi_response.h"
-#include "dashql/common/span.h"
 #include "dashql/proto_generated.h"
 #include "duckdb.hpp"
-#include "duckdb/web/partitioner.h"
+#include "duckdb/main/query_result.hpp"
+#include "duckdb/web/stream_buffer.h"
+#include "nonstd/span.h"
 
 namespace duckdb {
 namespace web {
-
-struct QueryRunOptions {
-    /// Partition boundary keys
-    std::vector<uint32_t> partition_boundaries = {};
-
-    /// Constructor
-    QueryRunOptions() = default;
-    /// Set partition boundary columns
-    QueryRunOptions& WithPartitionBoundaries(std::initializer_list<uint32_t> columns) {
-        partition_boundaries = {columns};
-        return *this;
-    }
-};
 
 class WebDB {
    public:
     /// A connection
     class Connection {
-       public:
        protected:
         /// The database
         std::shared_ptr<duckdb::DuckDB> database_;
         /// The connection
         duckdb::Connection connection_;
+        /// The output stream buffer
+        StreamBuffer output_stream_buffer_;
 
-        /// The current query id
-        uint64_t current_query_id_;
-        /// The current query result (if any)
+        /// The current result (if any)
         std::unique_ptr<duckdb::QueryResult> current_query_result_;
-        /// The stream partitioniner (if any)
-        std::unique_ptr<Partitioner> current_stream_partitioner_;
+        /// The current schema (if any)
+        std::shared_ptr<arrow::Schema> current_schema_;
+        /// The current record writer (if any)
+        std::shared_ptr<arrow::ipc::RecordBatchWriter> current_output_stream_;
 
        public:
         /// Constructor
         Connection(std::shared_ptr<duckdb::DuckDB> database);
-        /// Destructor
-        ~Connection() = default;
 
         /// Get a connection
         auto& GetConnection() { return connection_; }
 
         /// Get the filesystem attached to the database of this connection
         duckdb::FileSystem& GetFileSystem();
-        /// Run a SQL query
-        dashql::ExpectedBuffer<proto::QueryResult> RunQuery(std::string_view text, const QueryRunOptions& args = {});
-        /// Send a SQL query
-        dashql::ExpectedBuffer<proto::QueryResult> SendQuery(std::string_view text, const QueryRunOptions& args = {});
-        /// Fetch query results
-        dashql::ExpectedBuffer<proto::QueryResultChunk> FetchQueryResults();
-        /// Analyze a SQL query
-        dashql::ExpectedBuffer<proto::QueryPlan> AnalyzeQuery(std::string_view text);
+        /// Run a query and return an arrow buffer
+        arrow::Result<nonstd::span<uint8_t>> RunQuery(std::string_view text);
+        /// Send a query and return an arrow buffer
+        arrow::Result<duckdb::QueryResult*> SendQuery(std::string_view text);
+        /// Fetch query results and return an arrow buffer
+        arrow::Result<nonstd::span<uint8_t>> FetchQueryResults();
     };
 
    protected:
@@ -76,7 +64,7 @@ class WebDB {
     std::shared_ptr<duckdb::DuckDB> database_;
     /// The connections
     std::unordered_map<Connection*, std::unique_ptr<Connection>> connections_;
-
+    /// The database config
     duckdb::DBConfig db_config_;
 
    public:

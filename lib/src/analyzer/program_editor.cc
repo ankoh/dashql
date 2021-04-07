@@ -7,9 +7,9 @@
 #include "dashql/analyzer/stmt/input_stmt.h"
 #include "dashql/analyzer/stmt/viz_stmt.h"
 #include "dashql/analyzer/syntax_matcher.h"
-#include "dashql/common/span.h"
 #include "dashql/common/substring_buffer.h"
 #include "dashql/proto_generated.h"
+#include "nonstd/span.h"
 
 namespace dashql {
 
