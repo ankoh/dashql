@@ -7,9 +7,9 @@
 #include <optional>
 #include <string_view>
 
-#include "dashql/common/span.h"
 #include "dashql/parser/parser.h"
 #include "dashql/proto_generated.h"
+#include "nonstd/span.h"
 
 namespace dashql {
 namespace parser {

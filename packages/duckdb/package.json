@@ -5,6 +5,7 @@
     "author": "Andre Kohn <kohn.a@outlook.com>",
     "license": "MPL-2.0",
     "dependencies": {
+        "@apache-arrow/ts": "^3.0.0",
         "@dashql/proto": "^0.0.5",
         "glob-to-regexp": "^0.4.1"
     },

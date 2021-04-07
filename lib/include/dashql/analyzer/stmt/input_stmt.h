@@ -15,9 +15,9 @@
 
 #include "dashql/analyzer/syntax_matcher.h"
 #include "dashql/common/enum.h"
-#include "dashql/common/span.h"
 #include "dashql/parser/parser_driver.h"
 #include "dashql/proto_generated.h"
+#include "nonstd/span.h"
 #include "rapidjson/document.h"
 
 namespace dashql {

@@ -24,7 +24,7 @@ TEST(WebDB, InvalidSQL) {
     auto expected = conn.SendQuery(R"RAW(
         INVALID SQL
     )RAW");
-    ASSERT_TRUE(expected.IsErr());
+    ASSERT_FALSE(expected.ok());
 }
 
 TEST(WebDB, LoadParquet) {

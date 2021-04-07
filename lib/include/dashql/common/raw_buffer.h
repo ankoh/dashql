@@ -5,7 +5,7 @@
 
 #include <memory>
 
-#include "dashql/common/span.h"
+#include "nonstd/span.h"
 
 namespace dashql {
 

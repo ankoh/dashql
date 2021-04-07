@@ -12,8 +12,8 @@
 
 #include "dashql/analyzer/program_linter.h"
 #include "dashql/common/enum.h"
-#include "dashql/common/span.h"
 #include "dashql/proto_generated.h"
+#include "nonstd/span.h"
 
 namespace dashql {
 

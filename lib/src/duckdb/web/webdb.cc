@@ -2,27 +2,23 @@
 
 #include "duckdb/web/webdb.h"
 
+#include <arrow/c/bridge.h>
+
 #include <cstdio>
 #include <memory>
 #include <optional>
 #include <string_view>
 #include <unordered_map>
 
-#include "dashql/proto_generated.h"
+#include "arrow/io/memory.h"
+#include "arrow/ipc/writer.h"
+#include "arrow/result.h"
+#include "arrow/status.h"
 #include "duckdb.hpp"
-#include "duckdb/common/vector_operations/vector_operations.hpp"
-#include "duckdb/main/client_context.hpp"
-#include "duckdb/parser/parser.hpp"
-#include "duckdb/planner/planner.hpp"
-#include "duckdb/web/codec.h"
+#include "duckdb/common/arrow.hpp"
+#include "duckdb/main/query_result.hpp"
 #include "duckdb/web/filesystem.h"
-#include "duckdb/web/partitioner.h"
-#include "flatbuffers/flatbuffers.h"
 #include "parquet-extension.hpp"
-#include "spdlog/spdlog.h"
-
-namespace fb = flatbuffers;
-namespace p = duckdb::web::proto;
 
 namespace duckdb {
 namespace web {
@@ -30,98 +26,69 @@ namespace web {
 /// Get the static webdb instance
 WebDB& WebDB::GetInstance() {
     static std::unique_ptr<WebDB> db = nullptr;
-    if (db == nullptr) {
-        db = std::make_unique<WebDB>();
-    }
     return *db;
 }
 
 /// Constructor
 WebDB::Connection::Connection(std::shared_ptr<duckdb::DuckDB> db)
-    : database_(std::move(db)),
-      connection_(*database_),
-      current_query_id_(),
-      current_query_result_(),
-      current_stream_partitioner_() {}
+    : database_(std::move(db)), connection_(*database_), current_query_result_() {}
 
 /// Get the filesystem attached to the database of this connection
 duckdb::FileSystem& WebDB::Connection::GetFileSystem() { return database_->GetFileSystem(); }
 
-/// Run a SQL query
-dashql::ExpectedBuffer<p::QueryResult> WebDB::Connection::RunQuery(std::string_view text,
-                                                                   const QueryRunOptions& options) {
+arrow::Result<nonstd::span<uint8_t>> WebDB::Connection::RunQuery(std::string_view text) {
     try {
         // Send the query
         auto result = connection_.SendQuery(std::string{text});
-        if (!result->success) return {dashql::ErrorCode::QUERY_FAILED, move(result->error)};
+        if (!result->success) return arrow::Status{arrow::StatusCode::ExecutionError, move(result->error)};
         current_query_result_.reset();
-        current_stream_partitioner_.reset();
-        auto query_id = ++current_query_id_;
+        current_schema_.reset();
 
-        // Create stream partitioner (if necessary)
-        std::optional<Partitioner> partitioner = std::nullopt;
-        if (!options.partition_boundaries.empty()) {
-            partitioner.emplace(Partitioner{*result, options.partition_boundaries});
-        }
-        PartitionBoundaries partitionBoundaries;
+        // Configure the output writer
+        ArrowSchema raw_schema;
+        result->ToArrowSchema(&raw_schema);
+        ARROW_ASSIGN_OR_RAISE(auto schema, arrow::ImportSchema(&raw_schema));
+        ARROW_ASSIGN_OR_RAISE(auto out, arrow::ipc::MakeFileWriter(&output_stream_buffer_, schema));
 
-        // Encode result chunks
-        fb::FlatBufferBuilder builder{1024};
-        std::vector<flatbuffers::Offset<proto::QueryResultChunk>> chunks;
+        // Write chunk stream
         for (auto chunk = result->Fetch(); !!chunk && chunk->size() > 0; chunk = result->Fetch()) {
-            // Pass chunk to stream partitioner
-            if (partitioner) {
-                if (partitionBoundaries.size() < chunk->size()) {
-                    partitionBoundaries.resize(chunk->size(), 0);
-                }
-                std::fill(partitionBoundaries.begin(), partitionBoundaries.begin() + chunk->size(), 0);
-                partitioner->consumeChunk(*chunk, partitionBoundaries);
-            }
+            // Import the data chunk as record batch
+            ArrowArray array;
+            chunk->ToArrowArray(&array);
+            ARROW_ASSIGN_OR_RAISE(auto batch, arrow::ImportRecordBatch(&array, schema));
 
-            // Write flatbuffer
-            auto chunk_ofs = WriteQueryResultChunk(builder, *result, query_id, chunk.get(), partitionBoundaries);
-            chunks.push_back(chunk_ofs);
+            // Write record batch to the output stream
+            ARROW_RETURN_NOT_OK(out->WriteRecordBatch(*batch));
         }
-        auto chunkVec = builder.CreateVector(std::move(chunks));
+        ARROW_RETURN_NOT_OK(out->Close());
 
-        // Write the result buffer
-        auto query_result_ofs = WriteQueryResult(builder, *result, query_id, chunkVec);
-        builder.Finish(query_result_ofs);
-        return {builder.Release()};
+        return output_stream_buffer_.Access();
     } catch (std::exception& e) {
-        return {dashql::ErrorCode::QUERY_FAILED, e.what()};
+        return arrow::Status{arrow::StatusCode::ExecutionError, e.what()};
     }
 }
 
-/// Start a SQL query
-dashql::ExpectedBuffer<p::QueryResult> WebDB::Connection::SendQuery(std::string_view text,
-                                                                    const QueryRunOptions& options) {
+arrow::Result<duckdb::QueryResult*> WebDB::Connection::SendQuery(std::string_view text) {
     try {
         // Send the query
         auto result = connection_.SendQuery(std::string{text});
-        if (!result->success) return {dashql::ErrorCode::QUERY_FAILED, move(result->error)};
+        if (!result->success) return arrow::Status{arrow::StatusCode::ExecutionError, move(result->error)};
         current_query_result_ = move(result);
-        current_stream_partitioner_.reset();
 
-        // Create stream partitioner (if necessary)
-        if (!options.partition_boundaries.empty()) {
-            current_stream_partitioner_ = std::make_unique<Partitioner>(*result, options.partition_boundaries);
-        }
+        // Setup record batch stream
+        ArrowSchema raw_schema;
+        result->ToArrowSchema(&raw_schema);
+        ARROW_ASSIGN_OR_RAISE(current_schema_, arrow::ImportSchema(&raw_schema));
+        ARROW_ASSIGN_OR_RAISE(current_output_stream_,
+                              arrow::ipc::MakeFileWriter(&output_stream_buffer_, current_schema_));
 
-        // Encode no result chunks
-        fb::FlatBufferBuilder builder{1024};
-        std::vector<flatbuffers::Offset<proto::QueryResultChunk>> chunks;
-        auto chunkVec = builder.CreateVector(std::move(chunks));
-        auto query_result_ofs = WriteQueryResult(builder, *current_query_result_, ++current_query_id_, chunkVec);
-        builder.Finish(query_result_ofs);
-        return {builder.Release()};
+        return current_query_result_.get();
     } catch (std::exception& e) {
-        return {dashql::ErrorCode::QUERY_FAILED, e.what()};
+        return arrow::Status{arrow::StatusCode::ExecutionError, e.what()};
     }
 }
 
-/// Fetch query results
-dashql::ExpectedBuffer<p::QueryResultChunk> WebDB::Connection::FetchQueryResults() {
+arrow::Result<nonstd::span<uint8_t>> WebDB::Connection::FetchQueryResults() {
     try {
         // Fetch data if a query is active
         std::unique_ptr<duckdb::DataChunk> chunk;
@@ -131,53 +98,22 @@ dashql::ExpectedBuffer<p::QueryResultChunk> WebDB::Connection::FetchQueryResults
             types = current_query_result_->types;
         }
         if (!current_query_result_->success)
-            return {dashql::ErrorCode::QUERY_FAILED, move(current_query_result_->error)};
+            return arrow::Status{arrow::StatusCode::ExecutionError, move(current_query_result_->error)};
 
-        // Encode the partition mask (if configured)
-        PartitionBoundaries partitionBoundaries;
-        if (current_stream_partitioner_ && !!chunk) {
-            partitionBoundaries.resize(chunk->size(), 0);
-            current_stream_partitioner_->consumeChunk(*chunk, partitionBoundaries);
-        }
+        // Import the data chunk as record batch
+        ArrowArray array;
+        chunk->ToArrowArray(&array);
+        ARROW_ASSIGN_OR_RAISE(auto batch, arrow::ImportRecordBatch(&array, current_schema_));
 
-        // Get query result
-        fb::FlatBufferBuilder builder{128};
-        auto ofs =
-            WriteQueryResultChunk(builder, *current_query_result_, current_query_id_, chunk.get(), partitionBoundaries);
-        builder.Finish(ofs);
+        // Write record batch
+        ARROW_RETURN_NOT_OK(output_stream_buffer_.Clear());
+        ARROW_RETURN_NOT_OK(current_output_stream_->WriteRecordBatch(*batch));
 
-        // Last chunk?
-        if (chunk && chunk->size() == 0) current_query_result_.reset();
-        return {builder.Release()};
+        // Return view into buffer
+        return output_stream_buffer_.Access();
     } catch (std::exception& e) {
-        return {dashql::ErrorCode::QUERY_FAILED, e.what()};
+        return arrow::Status{arrow::StatusCode::ExecutionError, e.what()};
     }
-}
-
-/// Analyze a SQL query
-dashql::ExpectedBuffer<p::QueryPlan> WebDB::Connection::AnalyzeQuery(std::string_view text) {
-    // Parse the statements
-    duckdb::Connection conn{*database_};
-    duckdb::Parser parser;
-    parser.ParseQuery(std::string(text));
-
-    // Begin transaction
-    conn.context->transaction.BeginTransaction();
-    // Invalid statement count?
-    if (parser.statements.size() != 1) return dashql::ErrorCode::INVALID_REQUEST;
-
-    // Plan the query
-    duckdb::Planner planner{*conn.context};
-    planner.CreatePlan(move(*parser.statements.begin()));
-    conn.context->transaction.Rollback();
-
-    // Write the plan buffer
-    fb::FlatBufferBuilder builder{1024};
-    auto plan_ofs = WriteQueryPlan(builder, *planner.plan);
-
-    // Return buffer
-    builder.Finish(plan_ofs);
-    return {builder.Release()};
 }
 
 /// Constructor
