@@ -1,8 +1,8 @@
 // Copyright (c) 2020 The DashQL Authors
 
-import { duckdb as proto, fb as flatbuffers } from '@dashql/proto';
-import { AsyncDuckDBRequestType, AsyncDuckDBResponseType, AsyncDuckDBResponseVariant } from './async_duckdb_message';
-import { QueryRunOptions, Logger, LogLevel, LogTopic, LogOrigin, LogEvent } from '../common';
+import { WorkerRequestType, WorkerResponseType, WorkerResponseVariant } from './worker_request';
+import { Logger } from '../log';
+import { AsyncDuckDBConnection } from './async_connection';
 
 type ConnectionID = number;
 
@@ -26,17 +26,17 @@ class Task<T, D, P> {
 }
 
 type TaskVariant =
-    | Task<AsyncDuckDBRequestType.RESET, null, null>
-    | Task<AsyncDuckDBRequestType.IMPORT_CSV, [number, string, string, string], null>
-    | Task<AsyncDuckDBRequestType.PING, null, null>
-    | Task<AsyncDuckDBRequestType.REGISTER_URL, string, null>
-    | Task<AsyncDuckDBRequestType.OPEN_URL, string, number>
-    | Task<AsyncDuckDBRequestType.OPEN, string | null, null>
-    | Task<AsyncDuckDBRequestType.CONNECT, null, ConnectionID>
-    | Task<AsyncDuckDBRequestType.DISCONNECT, ConnectionID, null>
-    | Task<AsyncDuckDBRequestType.SEND_QUERY, [ConnectionID, string, QueryRunOptions], Uint8Array>
-    | Task<AsyncDuckDBRequestType.RUN_QUERY, [ConnectionID, string, QueryRunOptions], Uint8Array>
-    | Task<AsyncDuckDBRequestType.FETCH_QUERY_RESULTS, ConnectionID, Uint8Array>;
+    | Task<WorkerRequestType.RESET, null, null>
+    | Task<WorkerRequestType.IMPORT_CSV, [number, string, string, string], null>
+    | Task<WorkerRequestType.PING, null, null>
+    | Task<WorkerRequestType.REGISTER_URL, string, null>
+    | Task<WorkerRequestType.OPEN_URL, string, number>
+    | Task<WorkerRequestType.OPEN, string | null, null>
+    | Task<WorkerRequestType.CONNECT, null, ConnectionID>
+    | Task<WorkerRequestType.DISCONNECT, ConnectionID, null>
+    | Task<WorkerRequestType.SEND_QUERY, [ConnectionID, string], Uint8Array>
+    | Task<WorkerRequestType.RUN_QUERY, [ConnectionID, string], Uint8Array>
+    | Task<WorkerRequestType.FETCH_QUERY_RESULTS, ConnectionID, Uint8Array>;
 
 export class AsyncDuckDB {
     /** The message handler */
@@ -126,10 +126,10 @@ export class AsyncDuckDB {
 
     /** Received a message */
     protected onMessage(event: MessageEvent) {
-        const response = event.data as AsyncDuckDBResponseVariant;
+        const response = event.data as WorkerResponseVariant;
 
         // Short-circuit unassociated log entries
-        if (response.type == AsyncDuckDBResponseType.LOG) {
+        if (response.type == WorkerResponseType.LOG) {
             this._logger.log(response.data);
         }
 
@@ -142,7 +142,7 @@ export class AsyncDuckDB {
         this._pendingRequests.delete(response.requestId);
 
         // Request failed?
-        if (response.type == AsyncDuckDBResponseType.ERROR) {
+        if (response.type == WorkerResponseType.ERROR) {
             // Workaround for Firefox not being able to perform structured-clone on Native Errors
             // https://bugzilla.mozilla.org/show_bug.cgi?id=1556604
             let e = new Error(response.data.message);
@@ -155,43 +155,43 @@ export class AsyncDuckDB {
 
         // Otherwise differentiate between the tasks first
         switch (task.type) {
-            case AsyncDuckDBRequestType.RESET:
-            case AsyncDuckDBRequestType.PING:
-            case AsyncDuckDBRequestType.IMPORT_CSV:
-            case AsyncDuckDBRequestType.REGISTER_URL:
-            case AsyncDuckDBRequestType.OPEN:
-            case AsyncDuckDBRequestType.DISCONNECT:
-                if (response.type == AsyncDuckDBResponseType.OK) {
+            case WorkerRequestType.RESET:
+            case WorkerRequestType.PING:
+            case WorkerRequestType.IMPORT_CSV:
+            case WorkerRequestType.REGISTER_URL:
+            case WorkerRequestType.OPEN:
+            case WorkerRequestType.DISCONNECT:
+                if (response.type == WorkerResponseType.OK) {
                     task.promiseResolver(response.data);
                     return;
                 }
                 break;
-            case AsyncDuckDBRequestType.OPEN_URL:
-                if (response.type == AsyncDuckDBResponseType.BLOB_ID) {
+            case WorkerRequestType.OPEN_URL:
+                if (response.type == WorkerResponseType.BLOB_ID) {
                     task.promiseResolver(response.data);
                     return;
                 }
                 break;
-            case AsyncDuckDBRequestType.CONNECT:
-                if (response.type == AsyncDuckDBResponseType.CONNECTION_INFO) {
+            case WorkerRequestType.CONNECT:
+                if (response.type == WorkerResponseType.CONNECTION_INFO) {
                     task.promiseResolver(response.data);
                     return;
                 }
                 break;
-            case AsyncDuckDBRequestType.RUN_QUERY:
-                if (response.type == AsyncDuckDBResponseType.QUERY_RESULT) {
+            case WorkerRequestType.RUN_QUERY:
+                if (response.type == WorkerResponseType.QUERY_RESULT) {
                     task.promiseResolver(response.data);
                     return;
                 }
                 break;
-            case AsyncDuckDBRequestType.SEND_QUERY:
-                if (response.type == AsyncDuckDBResponseType.QUERY_RESULT) {
+            case WorkerRequestType.SEND_QUERY:
+                if (response.type == WorkerResponseType.QUERY_RESULT) {
                     task.promiseResolver(response.data);
                     return;
                 }
                 break;
-            case AsyncDuckDBRequestType.FETCH_QUERY_RESULTS:
-                if (response.type == AsyncDuckDBResponseType.QUERY_RESULT_CHUNK) {
+            case WorkerRequestType.FETCH_QUERY_RESULTS:
+                if (response.type == WorkerResponseType.QUERY_RESULT_CHUNK) {
                     task.promiseResolver(response.data);
                     return;
                 }
@@ -219,35 +219,32 @@ export class AsyncDuckDB {
 
     /** Reset the duckdb */
     public async reset(): Promise<null> {
-        const task = new Task<AsyncDuckDBRequestType.RESET, null, null>(AsyncDuckDBRequestType.RESET, null);
+        const task = new Task<WorkerRequestType.RESET, null, null>(WorkerRequestType.RESET, null);
         return await this.postTask(task);
     }
 
     /** Ping the worker thread */
     public async ping() {
-        const task = new Task<AsyncDuckDBRequestType.PING, null, null>(AsyncDuckDBRequestType.PING, null);
+        const task = new Task<WorkerRequestType.PING, null, null>(WorkerRequestType.PING, null);
         await this.postTask(task);
     }
 
     /// Registers the given URL as a file to be possibly loaded by DuckDB.
     public async registerURL(url: string): Promise<null> {
-        const task = new Task<AsyncDuckDBRequestType.REGISTER_URL, string, null>(
-            AsyncDuckDBRequestType.REGISTER_URL,
-            url,
-        );
+        const task = new Task<WorkerRequestType.REGISTER_URL, string, null>(WorkerRequestType.REGISTER_URL, url);
         return await this.postTask(task);
     }
 
     /// Open a file previously registered by the given URL. Returns the Blob ID
     public async openURL(url: string): Promise<number> {
-        const task = new Task<AsyncDuckDBRequestType.OPEN_URL, string, number>(AsyncDuckDBRequestType.OPEN_URL, url);
+        const task = new Task<WorkerRequestType.OPEN_URL, string, number>(WorkerRequestType.OPEN_URL, url);
         return await this.postTask(task);
     }
 
     /// Import csv from a given URL
     public async importCSV(conn: ConnectionID, filePath: string, schemaName: string, tableName: string): Promise<null> {
-        const task = new Task<AsyncDuckDBRequestType.IMPORT_CSV, [number, string, string, string], null>(
-            AsyncDuckDBRequestType.IMPORT_CSV,
+        const task = new Task<WorkerRequestType.IMPORT_CSV, [number, string, string, string], null>(
+            WorkerRequestType.IMPORT_CSV,
             [conn, filePath, schemaName, tableName],
         );
         return await this.postTask(task);
@@ -255,119 +252,47 @@ export class AsyncDuckDB {
 
     /** Open the database */
     public async open(wasm: string | null): Promise<null> {
-        const task = new Task<AsyncDuckDBRequestType.OPEN, string | null, null>(AsyncDuckDBRequestType.OPEN, wasm);
+        const task = new Task<WorkerRequestType.OPEN, string | null, null>(WorkerRequestType.OPEN, wasm);
         return await this.postTask(task);
     }
 
     /** Connect to the database */
     public async connect(): Promise<AsyncDuckDBConnection> {
-        const task = new Task<AsyncDuckDBRequestType.CONNECT, null, ConnectionID>(AsyncDuckDBRequestType.CONNECT, null);
+        const task = new Task<WorkerRequestType.CONNECT, null, ConnectionID>(WorkerRequestType.CONNECT, null);
         const conn = await this.postTask(task);
         return new AsyncDuckDBConnection(this, conn);
     }
 
     /** Disconnect from the database */
     public async disconnect(conn: ConnectionID): Promise<null> {
-        const task = new Task<AsyncDuckDBRequestType.DISCONNECT, ConnectionID, null>(
-            AsyncDuckDBRequestType.DISCONNECT,
-            conn,
-        );
+        const task = new Task<WorkerRequestType.DISCONNECT, ConnectionID, null>(WorkerRequestType.DISCONNECT, conn);
         return await this.postTask(task);
     }
 
     /// Run a query
-    public async runQuery(conn: ConnectionID, text: string, options: QueryRunOptions = {}): Promise<proto.QueryResult> {
-        const task = new Task<AsyncDuckDBRequestType.RUN_QUERY, [ConnectionID, string, QueryRunOptions], Uint8Array>(
-            AsyncDuckDBRequestType.RUN_QUERY,
-            [conn, text, options],
+    public async runQuery(conn: ConnectionID, text: string): Promise<Uint8Array> {
+        const task = new Task<WorkerRequestType.RUN_QUERY, [ConnectionID, string], Uint8Array>(
+            WorkerRequestType.RUN_QUERY,
+            [conn, text],
         );
-        const mem = await this.postTask(task);
-        const bb = new flatbuffers.ByteBuffer(mem);
-        return proto.QueryResult.getRoot(bb);
+        return await this.postTask(task);
     }
 
     /** Send a query */
-    public async sendQuery(
-        conn: ConnectionID,
-        text: string,
-        options: QueryRunOptions = {},
-    ): Promise<proto.QueryResult> {
-        const task = new Task<AsyncDuckDBRequestType.SEND_QUERY, [ConnectionID, string, QueryRunOptions], Uint8Array>(
-            AsyncDuckDBRequestType.SEND_QUERY,
-            [conn, text, options],
+    public async sendQuery(conn: ConnectionID, text: string): Promise<Uint8Array> {
+        const task = new Task<WorkerRequestType.SEND_QUERY, [ConnectionID, string], Uint8Array>(
+            WorkerRequestType.SEND_QUERY,
+            [conn, text],
         );
-        const mem = await this.postTask(task);
-        const bb = new flatbuffers.ByteBuffer(mem);
-        return proto.QueryResult.getRoot(bb);
+        return await this.postTask(task);
     }
 
     /** Fetch query results */
-    public async fetchQueryResults(conn: ConnectionID): Promise<proto.QueryResultChunk> {
-        const task = new Task<AsyncDuckDBRequestType.FETCH_QUERY_RESULTS, ConnectionID, Uint8Array>(
-            AsyncDuckDBRequestType.FETCH_QUERY_RESULTS,
+    public async fetchQueryResults(conn: ConnectionID): Promise<Uint8Array> {
+        const task = new Task<WorkerRequestType.FETCH_QUERY_RESULTS, ConnectionID, Uint8Array>(
+            WorkerRequestType.FETCH_QUERY_RESULTS,
             conn,
         );
-        const mem = await this.postTask(task);
-        const bb = new flatbuffers.ByteBuffer(mem);
-        return proto.QueryResultChunk.getRoot(bb);
-    }
-}
-
-/** An async connection. */
-/** This interface will enable us to swap duckdb with a native version. */
-export interface AsyncConnection {
-    /** Disconnect from the database */
-    disconnect(): Promise<null>;
-    /** Run a query */
-    runQuery(text: string, options?: QueryRunOptions): Promise<proto.QueryResult>;
-    /** Send a query */
-    sendQuery(text: string): Promise<proto.QueryResult>;
-    /** Fetch query results */
-    fetchQueryResults(): Promise<proto.QueryResultChunk>;
-}
-
-/** A thin helper to memoize the connection id */
-export class AsyncDuckDBConnection implements AsyncConnection {
-    /** The async duckdb */
-    _instance: AsyncDuckDB;
-    /** The conn handle */
-    _conn: number;
-
-    constructor(instance: AsyncDuckDB, conn: number) {
-        this._instance = instance;
-        this._conn = conn;
-    }
-
-    /** Disconnect from the database */
-    public async disconnect(): Promise<null> {
-        return this._instance.disconnect(this._conn);
-    }
-
-    /** Run a query */
-    public async runQuery(text: string, options?: QueryRunOptions): Promise<proto.QueryResult> {
-        this._instance.logger.log({
-            timestamp: new Date(),
-            level: LogLevel.INFO,
-            origin: LogOrigin.ASYNC_WEBDB,
-            topic: LogTopic.QUERY,
-            event: LogEvent.RUN,
-            value: text,
-        });
-        return this._instance.runQuery(this._conn, text, options);
-    }
-
-    /** Send a query */
-    public async sendQuery(text: string, options?: QueryRunOptions): Promise<proto.QueryResult> {
-        return this._instance.sendQuery(this._conn, text, options);
-    }
-
-    /** Fetch query results */
-    public async fetchQueryResults(): Promise<proto.QueryResultChunk> {
-        return this._instance.fetchQueryResults(this._conn);
-    }
-
-    /// Import csv from a given URL
-    public async importCSV(filePath: string, schemaName: string, tableName: string) {
-        return this._instance.importCSV(this._conn, filePath, schemaName, tableName);
+        return await this.postTask(task);
     }
 }
