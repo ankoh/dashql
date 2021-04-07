@@ -27,6 +27,76 @@ TEST(WebDB, InvalidSQL) {
     ASSERT_TRUE(expected.IsErr());
 }
 
+TEST(WebDB, LoadCSV) {
+    auto db = make_shared<duckdb::DuckDB>();
+    WebDB::Connection conn{db};
+    auto data = dashql::test::SOURCE_DIR / ".." / "data" / "uni" / "out" / "test.csv";
+    auto expected = conn.ImportCSV(data.string(), "test_schema", "test_table");
+    ASSERT_TRUE(expected.IsOk());
+}
+
+TEST(WebDB, LoadJSONRowMajor) {
+    auto db = make_shared<duckdb::DuckDB>();
+    WebDB::Connection conn{db};
+    auto expected = conn.ImportJSON(R"([
+            {"MatrNr":26120,"Titel":"Grundzüge"},
+            {"MatrNr":27550,"Titel":"Grundzüge"},
+            {"MatrNr":27550,"Titel":"Logik"},
+            {"MatrNr":28106,"Titel":"Ethik"},
+            {"MatrNr":28106,"Titel":"Wissenschaftstheorie"},
+            {"MatrNr":28106,"Titel":"Bioethik"},
+            {"MatrNr":28106,"Titel":"Der Wieer Kreis"},
+            {"MatrNr":29120,"Titel":"Grundzüge"},
+            {"MatrNr":29120,"Titel":"Ethik"},
+            {"MatrNr":29120,"Titel":"Mäeutik"},
+            {"MatrNr":29555,"Titel":"Glaube und Wissen"},
+            {"MatrNr":25403,"Titel":"Glaube und Wissen"}])",
+                                    "json_schema", "test_table5");
+    ASSERT_TRUE(expected.IsOk());
+}
+
+TEST(WebDB, LoadJSONRowMajorInconsistent) {
+    auto db = make_shared<duckdb::DuckDB>();
+    WebDB::Connection conn{db};
+    auto expected = conn.ImportJSON(R"([
+            {"MatrNr":26120,"Titel":"Grundzüge"},
+            {"MatrNr":27550,"Titel":"Grundzüge"},
+            {"MatrNr":27550,"Titel":"Logik"},
+            {"MatrNr":28106},
+            {"MatrNr":28106,"Titel":"Wissenschaftstheorie"},
+            {"MatrNr":28106,"Titel":"Bioethik"},
+            {"MatrNr":28106,"Titel":"Der Wieer Kreis"},
+            {"MatrNr":29120,"Titel":"Grundzüge"},
+            {"MatrNr":29120,"Titel":"Ethik"},
+            {"MatrNr":29120,"Titel":"Mäeutik"},
+            {"MatrNr":29555,"Titel":"Glaube und Wissen"},
+            {"MatrNr":25403,"Titel":"Glaube und Wissen"}])",
+                                    "json_schema", "test_table6");
+    ASSERT_TRUE(expected.IsErr());
+}
+
+TEST(WebDB, LoadJSONColumnMajor) {
+    auto db = make_shared<duckdb::DuckDB>();
+    WebDB::Connection conn{db};
+    auto expected = conn.ImportJSON(R"({
+        "PersNr": [2125, 2126, 2127, 2133, 2134, 2136, 2137],
+        "Name": ["Sokrates", "Russel", "Kopernikus", "Popper", "Augustinus", "Curie", "Kant"]
+    })",
+                                    "json_schema", "test_table7");
+    ASSERT_TRUE(expected.IsOk());
+}
+
+TEST(WebDB, LoadJSONColumnMajorInconsistent) {
+    auto db = make_shared<duckdb::DuckDB>();
+    WebDB::Connection conn{db};
+    auto expected = conn.ImportJSON(R"({
+        "PersNr": [2125, 2126, 2127, 2133, 2134, 2136, 2137],
+        "Name": ["Sokrates", "Russel", "Popper", "Augustinus", "Curie", "Kant"]
+    })",
+                                    "json_schema", "test_table8");
+    ASSERT_TRUE(expected.IsErr());
+}
+
 TEST(WebDB, LoadParquet) {
     auto db = make_shared<duckdb::DuckDB>();
     db->LoadExtension<duckdb::ParquetExtension>();

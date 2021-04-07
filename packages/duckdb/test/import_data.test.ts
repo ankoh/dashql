@@ -29,87 +29,153 @@ export function testImportData(db: () => duckdb.AsyncDuckDB, tmp_file: (buf: Uin
     });
 
     describe('JSON', () => {
-        it('Basic', async () => {
-            let data = [
-                { MatrNr: 26120, Titel: 'Grundzüge' },
-                { MatrNr: 27550, Titel: 'Grundzüge' },
-                { MatrNr: 27550, Titel: 'Logik' },
-                { MatrNr: 28106, Titel: 'Ethik' },
-                { MatrNr: 28106, Titel: 'Wissenschaftstheorie' },
-                { MatrNr: 28106, Titel: 'Bioethik' },
-                { MatrNr: 28106, Titel: 'Der Wieer Kreis' },
-                { MatrNr: 29120, Titel: 'Grundzüge' },
-                { MatrNr: 29120, Titel: 'Ethik' },
-                { MatrNr: 29120, Titel: 'Mäeutik' },
-                { MatrNr: 29555, Titel: 'Glaube und Wissen' },
-                { MatrNr: 25403, Titel: 'Glaube und Wissen' },
-            ];
-            let json = JSON.stringify(data);
+        describe('Row major', () => {
+            it('Basic', async () => {
+                let data = [
+                    { MatrNr: 26120, Titel: 'Grundzüge' },
+                    { MatrNr: 27550, Titel: 'Grundzüge' },
+                    { MatrNr: 27550, Titel: 'Logik' },
+                    { MatrNr: 28106, Titel: 'Ethik' },
+                    { MatrNr: 28106, Titel: 'Wissenschaftstheorie' },
+                    { MatrNr: 28106, Titel: 'Bioethik' },
+                    { MatrNr: 28106, Titel: 'Der Wieer Kreis' },
+                    { MatrNr: 29120, Titel: 'Grundzüge' },
+                    { MatrNr: 29120, Titel: 'Ethik' },
+                    { MatrNr: 29120, Titel: 'Mäeutik' },
+                    { MatrNr: 29555, Titel: 'Glaube und Wissen' },
+                    { MatrNr: 25403, Titel: 'Glaube und Wissen' },
+                ];
+                let json = JSON.stringify(data);
 
-            await expectAsync(conn.importJSON(json, 'json_schema', 'json_table')).toBeResolvedTo(null);
-            let result = await conn.sendQuery('SELECT MatrNr, Titel FROM json_schema.json_table');
-            expect(result.columnTypesLength()).toBe(2);
-            let chunks = new duckdb.AsyncChunkStreamIterator(conn, result);
-            interface Row extends duckdb.RowProxy {
-                matrnr: number | null;
-                titel: string | null;
-            }
-            let vals: object[] = [];
-            while (await chunks.nextAsync()) {
-                for (let row of chunks.collect<Row>()) {
-                    vals.push({
-                        MatrNr: row.matrnr,
-                        Titel: row.titel,
-                    });
+                await expectAsync(conn.importJSON(json, 'json_schema', 'json_table')).toBeResolvedTo(null);
+                let result = await conn.sendQuery('SELECT MatrNr, Titel FROM json_schema.json_table');
+                expect(result.columnTypesLength()).toBe(2);
+                let chunks = new duckdb.AsyncChunkStreamIterator(conn, result);
+                interface Row extends duckdb.RowProxy {
+                    matrnr: number | null;
+                    titel: string | null;
                 }
-            }
+                let vals: object[] = [];
+                while (await chunks.nextAsync()) {
+                    for (let row of chunks.collect<Row>()) {
+                        vals.push({
+                            MatrNr: row.matrnr,
+                            Titel: row.titel,
+                        });
+                    }
+                }
 
-            expect(vals).toEqual(data);
+                expect(vals).toEqual(data);
+            });
+
+            it('Nulls', async () => {
+                let data = [
+                    { MatrNr: 26120, Titel: null },
+                    { MatrNr: null, Titel: 'Grundzüge' },
+                    { MatrNr: 27550, Titel: 'Logik' },
+                    { MatrNr: null, Titel: null },
+                    { MatrNr: 25403, Titel: 'Glaube und Wissen' },
+                ];
+                let json = JSON.stringify(data);
+
+                await expectAsync(conn.importJSON(json, 'json_schema', 'json_table2')).toBeResolvedTo(null);
+
+                let result = await conn.sendQuery('SELECT matrnr, titel FROM json_schema.json_table2');
+                expect(result.columnTypesLength()).toBe(2);
+                let chunks = new duckdb.AsyncChunkStreamIterator(conn, result);
+                interface Row extends duckdb.RowProxy {
+                    matrnr: number | null;
+                    titel: string | null;
+                }
+                let vals: object[] = [];
+                while (await chunks.nextAsync()) {
+                    for (let row of chunks.collect<Row>()) {
+                        vals.push({
+                            MatrNr: row.matrnr,
+                            Titel: row.titel,
+                        });
+                    }
+                }
+
+                expect(vals).toEqual(data);
+            });
+
+            it('Mixed Types', async () => {
+                let data = [
+                    { MatrNr: 26120, Titel: null },
+                    { MatrNr: 'Text', Titel: 'Grundzüge' },
+                    { MatrNr: 27550, Titel: 'Logik' },
+                    { MatrNr: null, Titel: null },
+                    { MatrNr: 25403, Titel: 'Glaube und Wissen' },
+                ];
+                let json = JSON.stringify(data);
+
+                await expectAsync(conn.importJSON(json, 'json_schema', 'json_table2')).toBeRejected();
+            });
+
+            it('Missing column value', async () => {
+                let data = [
+                    { MatrNr: 26120, Titel: null },
+                    { MatrNr: 'Text', Titel: 'Grundzüge' },
+                    { MatrNr: 27550 },
+                    { MatrNr: null, Titel: null },
+                    { MatrNr: 25403, Titel: 'Glaube und Wissen' },
+                ];
+                let json = JSON.stringify(data);
+
+                await expectAsync(conn.importJSON(json, 'json_schema', 'json_table3')).toBeRejected();
+            });
         });
 
-        it('Nulls', async () => {
-            let data = [
-                { MatrNr: 26120, Titel: null },
-                { MatrNr: null, Titel: 'Grundzüge' },
-                { MatrNr: 27550, Titel: 'Logik' },
-                { MatrNr: null, Titel: null },
-                { MatrNr: 25403, Titel: 'Glaube und Wissen' },
-            ];
-            let json = JSON.stringify(data);
+        describe('Column major', () => {
+            it('Basic', async () => {
+                let data = {
+                    PersNr: [2125, 2126, 2127, 2133, 2134, 2136, 2137],
+                    Name: ['Sokrates', 'Russel', 'Kopernikus', 'Popper', 'Augustinus', 'Curie', 'Kant'],
+                };
+                let json = JSON.stringify(data);
 
-            await expectAsync(conn.importJSON(json, 'json_schema', 'json_table2')).toBeResolvedTo(null);
-
-            let result = await conn.sendQuery('SELECT matrnr, titel FROM json_schema.json_table2');
-            expect(result.columnTypesLength()).toBe(2);
-            let chunks = new duckdb.AsyncChunkStreamIterator(conn, result);
-            interface Row extends duckdb.RowProxy {
-                matrnr: number | null;
-                titel: string | null;
-            }
-            let vals: object[] = [];
-            while (await chunks.nextAsync()) {
-                for (let row of chunks.collect<Row>()) {
-                    vals.push({
-                        MatrNr: row.matrnr,
-                        Titel: row.titel,
-                    });
+                await expectAsync(conn.importJSON(json, 'json_schema', 'json_table10')).toBeResolvedTo(null);
+                let result = await conn.sendQuery('SELECT PersNr, Name FROM json_schema.json_table10');
+                expect(result.columnTypesLength()).toBe(2);
+                let chunks = new duckdb.AsyncChunkStreamIterator(conn, result);
+                interface Row extends duckdb.RowProxy {
+                    persnr: number | null;
+                    name: string | null;
                 }
-            }
+                let vals: { PersNr: (number | null)[]; Name: (string | null)[] } = {
+                    PersNr: [],
+                    Name: [],
+                };
+                while (await chunks.nextAsync()) {
+                    for (let row of chunks.collect<Row>()) {
+                        vals.PersNr.push(row.persnr);
+                        vals.Name.push(row.name);
+                    }
+                }
 
-            expect(vals).toEqual(data);
-        });
+                expect(vals).toEqual(data);
+            });
 
-        it('Mixed Types', async () => {
-            let data = [
-                { MatrNr: 26120, Titel: null },
-                { MatrNr: 'Text', Titel: 'Grundzüge' },
-                { MatrNr: 27550, Titel: 'Logik' },
-                { MatrNr: null, Titel: null },
-                { MatrNr: 25403, Titel: 'Glaube und Wissen' },
-            ];
-            let json = JSON.stringify(data);
+            it('Mixed Types', async () => {
+                let data = {
+                    PersNr: [2125, 2126, 2127, 2133, 2134, 2136, 2137],
+                    Name: ['Sokrates', 23, 'Kopernikus', 'Popper', 'Augustinus', 'Curie', 'Kant'],
+                };
+                let json = JSON.stringify(data);
 
-            await expectAsync(conn.importJSON(json, 'json_schema', 'json_table2')).toBeRejected();
+                await expectAsync(conn.importJSON(json, 'json_schema', 'json_table11')).toBeRejected();
+            });
+
+            it('Inconsistent lengths', async () => {
+                let data = {
+                    PersNr: [2125, 2126, 2127, 2133, 2134, 2136, 2137],
+                    Name: ['Sokrates', 'Kopernikus', 'Popper', 'Augustinus', 'Curie', 'Kant'],
+                };
+                let json = JSON.stringify(data);
+
+                await expectAsync(conn.importJSON(json, 'json_schema', 'json_table12')).toBeRejected();
+            });
         });
     });
 }

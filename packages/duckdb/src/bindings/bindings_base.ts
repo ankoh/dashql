@@ -198,8 +198,20 @@ export abstract class DuckDBBindings {
         return plan;
     }
 
-    /// Import string-provided JSON into the given table
-    public importJSON(conn: number, jsonString: string, schemaName: string, tableName: string): void {
+    /// Import JSON (either already as string or raw, as object of columns or array of rows) into the given table
+    public importJSON(
+        conn: number,
+        json: string | object | Array<object>,
+        schemaName: string,
+        tableName: string,
+    ): void {
+        let jsonString;
+        if (typeof json == 'string') {
+            jsonString = json;
+        } else {
+            jsonString = JSON.stringify(json);
+        }
+
         let instance = this.instance!;
         let [s, d, n] = this.callSRet(
             'duckdb_web_import_json',
@@ -276,7 +288,15 @@ export class DuckDBConnection {
         return this._bindings.analyzeQuery(this._conn, _text);
     }
 
-    public importJSON(jsonString: string, schemaName: string, tableName: string): void {
+    /// Import JSON (either already as string or raw, as object of columns or array of rows) into the given table
+    public importJSON(json: string | object | Array<object>, schemaName: string, tableName: string): void {
+        let jsonString;
+        if (typeof json == 'string') {
+            jsonString = json;
+        } else {
+            jsonString = JSON.stringify(json);
+        }
+
         this._bindings.importJSON(this._conn, jsonString, schemaName, tableName);
     }
 

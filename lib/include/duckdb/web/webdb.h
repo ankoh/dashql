@@ -7,6 +7,7 @@
 #include <initializer_list>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 
 #include "dashql/common/expected.h"
@@ -15,6 +16,7 @@
 #include "dashql/proto_generated.h"
 #include "duckdb.hpp"
 #include "duckdb/web/partitioner.h"
+#include "rapidjson/document.h"
 
 namespace duckdb {
 namespace web {
@@ -50,6 +52,9 @@ class WebDB {
         /// The stream partitioniner (if any)
         std::unique_ptr<Partitioner> current_stream_partitioner_;
 
+        dashql::Signal ImportJSONColumnMajor(rapidjson::Document const& json, std::string schema, std::string table);
+        dashql::Signal ImportJSONRowMajor(rapidjson::Document const& json, std::string schema, std::string table);
+
        public:
         /// Constructor
         Connection(std::shared_ptr<duckdb::DuckDB> database);
@@ -69,6 +74,10 @@ class WebDB {
         dashql::ExpectedBuffer<proto::QueryResultChunk> FetchQueryResults();
         /// Analyze a SQL query
         dashql::ExpectedBuffer<proto::QueryPlan> AnalyzeQuery(std::string_view text);
+        /// Import CSV from a file
+        dashql::Signal ImportCSV(std::string filePath, std::string schema, std::string table);
+        /// Import JSON string (object of columns or array of rows) into the given table
+        dashql::Signal ImportJSON(std::string_view json, std::string schema, std::string table);
     };
 
    protected:

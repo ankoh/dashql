@@ -259,13 +259,20 @@ export class AsyncDuckDB {
         return await this.postTask(task);
     }
 
-    /// Import string-provided JSON into the given table
+    /// Import JSON (either already as string or raw, as object of columns or array of rows) into the given table
     public async importJSON(
         conn: ConnectionID,
-        jsonString: string,
+        json: string | object | Array<object>,
         schemaName: string,
         tableName: string,
     ): Promise<null> {
+        let jsonString;
+        if (typeof json == 'string') {
+            jsonString = json;
+        } else {
+            jsonString = JSON.stringify(json);
+        }
+
         const task = new Task<AsyncDuckDBRequestType.IMPORT_JSON, [number, string, string, string], null>(
             AsyncDuckDBRequestType.IMPORT_JSON,
             [conn, jsonString, schemaName, tableName],
@@ -409,9 +416,13 @@ export class AsyncDuckDBConnection implements AsyncConnection {
         return this._instance.fetchQueryResults(this._conn);
     }
 
-    /// Import string-provided JSON into the given table
-    public async importJSON(jsonString: string, schemaName: string, tableName: string): Promise<null> {
-        return this._instance.importJSON(this._conn, jsonString, schemaName, tableName);
+    /// Import JSON (either already as string or raw, as object of columns or array of rows) into the given table
+    public async importJSON(
+        json: string | object | Array<object>,
+        schemaName: string,
+        tableName: string,
+    ): Promise<null> {
+        return this._instance.importJSON(this._conn, json, schemaName, tableName);
     }
 
     /// Import CSV from an URL into the given table
