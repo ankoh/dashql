@@ -80,7 +80,7 @@ arrow::Result<duckdb::QueryResult*> WebDB::Connection::SendQuery(std::string_vie
         result->ToArrowSchema(&raw_schema);
         ARROW_ASSIGN_OR_RAISE(current_schema_, arrow::ImportSchema(&raw_schema));
         ARROW_ASSIGN_OR_RAISE(current_output_stream_,
-                              arrow::ipc::MakeFileWriter(&output_stream_buffer_, current_schema_));
+                              arrow::ipc::MakeStreamWriter(&output_stream_buffer_, current_schema_));
 
         return current_query_result_.get();
     } catch (std::exception& e) {
