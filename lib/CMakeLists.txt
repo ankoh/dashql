@@ -442,7 +442,6 @@ if (EMSCRIPTEN)
             _malloc, \
             _free, \
             _duckdb_web_clear_response, \
-            _duckdb_web_analyze_query, \
             _duckdb_web_connect, \
             _duckdb_web_disconnect, \
             _duckdb_web_fetch_query_results, \

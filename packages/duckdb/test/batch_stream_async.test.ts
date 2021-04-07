@@ -1,8 +1,9 @@
 import * as duckdb from '../src/';
+import * as arrow from 'apache-arrow';
 
 const testRows = 3000;
 
-export function testAsyncIterator(db: () => duckdb.AsyncDuckDB) {
+export function testAsyncBatchStream(db: () => duckdb.AsyncDuckDB) {
     let conn: duckdb.AsyncDuckDBConnection;
 
     beforeEach(async () => {
@@ -22,16 +23,14 @@ export function testAsyncIterator(db: () => duckdb.AsyncDuckDB) {
     describe('QueryResultRowIterator', () => {
         describe('single column', () => {
             it('TINYINT', async () => {
-                let result = await conn.sendQuery(
-                    `SELECT (v & 127)::TINYINT FROM generate_series(0, ${testRows}) as t(v);`,
+                const result = await conn.sendQuery(
+                    `SELECT (v & 127)::TINYINT AS foo FROM generate_series(0, ${testRows}) as t(v);`,
                 );
-                expect(result.columnTypesLength()).toBe(1);
-                let chunks = new duckdb.AsyncChunkStreamIterator(conn, result);
                 let i = 0;
-                while (await chunks.nextAsync()) {
-                    for (const v of chunks.iterateNumberColumn(0)) {
-                        expect(v).toBe(i++ & 127);
-                    }
+                const table = await arrow.Table.from(result);
+                expect(table.numCols).toBe(1);
+                for (const row of table.getColumnAt(0)!) {
+                    expect(row).toBe(i++ & 127);
                 }
                 expect(i).toBe(testRows + 1);
             });

@@ -32,7 +32,7 @@ fs.copyFile(path.resolve(src, 'bindings', 'duckdb_wasm.wasm'), path.resolve(dist
 // ESM
 
 const TARGET = 'es2020';
-const EXTERNALS = ['flatbuffers', '@dashql/proto'];
+const EXTERNALS = ['flatbuffers', '@dashql/proto', 'apache-arrow'];
 
 console.log('[ ESBUILD ] duckdb.module.js');
 esbuild.build({
