@@ -25,9 +25,9 @@ afterAll(() => {});
 
 import { testProxies } from './proxy.test';
 import { testBindings } from './bindings.test';
-import { testIterator } from './iterator.test';
+import { testIterator } from './batch_stream.test';
 import { testFilesystem } from './filesystem.test';
-import { testAsyncIterator } from './async_iterator.test';
+import { testAsyncBatchStream } from './batch_stream_async.test';
 import { testExtractCSV } from './extract_csv.test';
 
 // Loading debug symbols, especially for WASM take insanely long so we just disable the test timeout
@@ -36,7 +36,7 @@ jasmine.DEFAULT_TIMEOUT_INTERVAL = 30000;
 testProxies(() => db!);
 testBindings(() => db!);
 testIterator(() => db!);
-testAsyncIterator(() => adb!);
+testAsyncBatchStream(() => adb!);
 testFilesystem(() => adb!, path.resolve(__dirname, '../../../data/uni/out'));
 testExtractCSV(
     () => adb!,

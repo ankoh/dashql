@@ -17,8 +17,8 @@ beforeAll(async () => {
 
 import { testProxies } from './proxy.test';
 import { testBindings } from './bindings.test';
-import { testIterator } from './iterator.test';
-import { testAsyncIterator } from './async_iterator.test';
+import { testIterator } from './batch_stream.test';
+import { testAsyncBatchStream } from './batch_stream_async.test';
 import { testFilesystem } from './filesystem.test';
 import { testExtractCSV } from './extract_csv.test';
 
@@ -28,7 +28,7 @@ jasmine.DEFAULT_TIMEOUT_INTERVAL = 30000;
 testProxies(() => db!);
 testBindings(() => db!);
 testIterator(() => db!);
-testAsyncIterator(() => adb!);
+testAsyncBatchStream(() => adb!);
 testFilesystem(() => adb!, '/data');
 testExtractCSV(
     () => adb!,

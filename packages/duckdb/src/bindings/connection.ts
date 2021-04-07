@@ -1,6 +1,6 @@
 // Copyright (c) 2020 The DashQL Authors
 
-import * as arrow from '@apache-arrow/ts';
+import * as arrow from 'apache-arrow';
 
 interface IDuckDBBindings {
     disconnect(conn: number): void;
@@ -74,7 +74,7 @@ export class DuckDBConnection {
         const reader = arrow.RecordBatchReader.from<T>(buffer);
         console.assert(reader.isSync());
         console.assert(reader.isFile());
-        return new arrow.RecordBatchFileReader(reader);
+        return reader as arrow.RecordBatchFileReader;
     }
 
     public sendQuery<T extends { [key: string]: arrow.DataType } = any>(
@@ -85,7 +85,7 @@ export class DuckDBConnection {
         const reader = arrow.RecordBatchReader.from<T>(iter);
         console.assert(reader.isSync());
         console.assert(reader.isStream());
-        return new arrow.RecordBatchStreamReader(reader);
+        return reader as arrow.RecordBatchStreamReader;
     }
 
     public importCSV(filePath: string, schemaName: string, tableName: string): void {
