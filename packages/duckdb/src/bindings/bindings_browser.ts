@@ -2,8 +2,8 @@
 
 import DuckDBWasm from './duckdb_wasm.js';
 import { DuckDBModule } from './duckdb_module';
-import { DuckDBBindings } from './bindings_base';
-import { Logger } from '../common';
+import { DuckDBBindings } from './bindings';
+import { Logger } from '../log';
 import { DuckDBRuntime } from './runtime_base';
 import { WebBlobHandle } from './runtime_browser';
 

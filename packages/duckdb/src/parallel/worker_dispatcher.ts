@@ -1,11 +1,6 @@
 import { DuckDBBindings } from '../bindings';
-import {
-    AsyncDuckDBResponseVariant,
-    AsyncDuckDBRequestVariant,
-    AsyncDuckDBRequestType,
-    AsyncDuckDBResponseType,
-} from './async_duckdb_message';
-import { Logger, LogEntryVariant } from '../common';
+import { WorkerResponseVariant, WorkerRequestVariant, WorkerRequestType, WorkerResponseType } from './worker_request';
+import { Logger, LogEntryVariant } from '../log';
 
 export abstract class AsyncDuckDBDispatcher implements Logger {
     /** The bindings */
@@ -16,7 +11,7 @@ export abstract class AsyncDuckDBDispatcher implements Logger {
     /** Instantiate the wasm module */
     protected abstract open(path: string): Promise<DuckDBBindings>;
     /** Post a response to the main thread */
-    protected abstract postMessage(response: AsyncDuckDBResponseVariant, transfer: ArrayBuffer[]): void;
+    protected abstract postMessage(response: WorkerResponseVariant, transfer: ArrayBuffer[]): void;
 
     /** Send log entry to the main thread */
     public log(entry: LogEntryVariant) {
@@ -24,7 +19,7 @@ export abstract class AsyncDuckDBDispatcher implements Logger {
             {
                 messageId: this._nextMessageId++,
                 requestId: 0,
-                type: AsyncDuckDBResponseType.LOG,
+                type: WorkerResponseType.LOG,
                 data: entry,
             },
             [],
@@ -32,12 +27,12 @@ export abstract class AsyncDuckDBDispatcher implements Logger {
     }
 
     /** Send plain OK without further data */
-    protected sendOK(request: AsyncDuckDBRequestVariant) {
+    protected sendOK(request: WorkerRequestVariant) {
         this.postMessage(
             {
                 messageId: this._nextMessageId++,
                 requestId: request.messageId,
-                type: AsyncDuckDBResponseType.OK,
+                type: WorkerResponseType.OK,
                 data: null,
             },
             [],
@@ -45,12 +40,12 @@ export abstract class AsyncDuckDBDispatcher implements Logger {
     }
 
     /** Fail with an error */
-    protected failWith(request: AsyncDuckDBRequestVariant, data: any) {
+    protected failWith(request: WorkerRequestVariant, data: any) {
         this.postMessage(
             {
                 messageId: this._nextMessageId++,
                 requestId: request.messageId,
-                type: AsyncDuckDBResponseType.ERROR,
+                type: WorkerResponseType.ERROR,
                 data: data,
             },
             [],
@@ -59,13 +54,13 @@ export abstract class AsyncDuckDBDispatcher implements Logger {
     }
 
     /** Process a request from the main thread */
-    public async onMessage(request: AsyncDuckDBRequestVariant) {
+    public async onMessage(request: WorkerRequestVariant) {
         // First process those requests that don't need bindings
         switch (request.type) {
-            case AsyncDuckDBRequestType.PING:
+            case WorkerRequestType.PING:
                 this.sendOK(request);
                 return;
-            case AsyncDuckDBRequestType.OPEN:
+            case WorkerRequestType.OPEN:
                 if (this._bindings != null) {
                     this.failWith(request, new Error('duckdb already initialized'));
                 }
@@ -89,83 +84,80 @@ export abstract class AsyncDuckDBDispatcher implements Logger {
         // Catch every exception and forward it as error message to the main thread
         try {
             switch (request.type) {
-                case AsyncDuckDBRequestType.RESET:
+                case WorkerRequestType.RESET:
                     this._bindings = null;
                     this.sendOK(request);
                     break;
-                case AsyncDuckDBRequestType.CONNECT:
+                case WorkerRequestType.CONNECT:
                     const conn = this._bindings.connect();
                     this.postMessage(
                         {
                             messageId: this._nextMessageId++,
                             requestId: request.messageId,
-                            type: AsyncDuckDBResponseType.CONNECTION_INFO,
+                            type: WorkerResponseType.CONNECTION_INFO,
                             data: conn.handle,
                         },
                         [],
                     );
                     break;
-                case AsyncDuckDBRequestType.DISCONNECT:
+                case WorkerRequestType.DISCONNECT:
                     this._bindings.disconnect(request.data);
                     this.sendOK(request);
                     break;
-                case AsyncDuckDBRequestType.RUN_QUERY: {
-                    const result = this._bindings.runQuery(request.data[0], request.data[1], request.data[2]);
-                    const bytes = result.bb!.bytes();
+                case WorkerRequestType.RUN_QUERY: {
+                    const result = this._bindings.runQuery(request.data[0], request.data[1]);
                     this.postMessage(
                         {
                             messageId: this._nextMessageId++,
                             requestId: request.messageId,
-                            type: AsyncDuckDBResponseType.QUERY_RESULT,
-                            data: result.bb!.bytes(),
+                            type: WorkerResponseType.QUERY_RESULT,
+                            data: result,
                         },
-                        [bytes.buffer],
+                        [result],
                     );
                     break;
                 }
-                case AsyncDuckDBRequestType.SEND_QUERY: {
-                    const result = this._bindings.sendQuery(request.data[0], request.data[1], request.data[2]);
-                    const bytes = result.bb!.bytes();
+                case WorkerRequestType.SEND_QUERY: {
+                    const result = this._bindings.sendQuery(request.data[0], request.data[1]);
                     this.postMessage(
                         {
                             messageId: this._nextMessageId++,
                             requestId: request.messageId,
-                            type: AsyncDuckDBResponseType.QUERY_RESULT,
-                            data: bytes,
+                            type: WorkerResponseType.QUERY_RESULT,
+                            data: result,
                         },
-                        [bytes.buffer],
+                        [result],
                     );
                     break;
                 }
-                case AsyncDuckDBRequestType.FETCH_QUERY_RESULTS: {
+                case WorkerRequestType.FETCH_QUERY_RESULTS: {
                     const result = this._bindings.fetchQueryResults(request.data);
-                    const bytes = result.bb!.bytes();
                     this.postMessage(
                         {
                             messageId: this._nextMessageId++,
                             requestId: request.messageId,
-                            type: AsyncDuckDBResponseType.QUERY_RESULT_CHUNK,
-                            data: result.bb!.bytes(),
+                            type: WorkerResponseType.QUERY_RESULT_CHUNK,
+                            data: result,
                         },
-                        [bytes.buffer],
+                        [result],
                     );
                     break;
                 }
-                case AsyncDuckDBRequestType.IMPORT_CSV:
+                case WorkerRequestType.IMPORT_CSV:
                     this._bindings.importCSV(request.data[0], request.data[1], request.data[2], request.data[3]);
                     this.sendOK(request);
                     break;
-                case AsyncDuckDBRequestType.REGISTER_URL:
+                case WorkerRequestType.REGISTER_URL:
                     await this._bindings.registerURL(request.data);
                     this.sendOK(request);
                     break;
-                case AsyncDuckDBRequestType.OPEN_URL: {
+                case WorkerRequestType.OPEN_URL: {
                     let blobId = this._bindings.openURL(request.data);
                     this.postMessage(
                         {
                             messageId: this._nextMessageId++,
                             requestId: request.messageId,
-                            type: AsyncDuckDBResponseType.BLOB_ID,
+                            type: WorkerResponseType.BLOB_ID,
                             data: blobId,
                         },
                         [],

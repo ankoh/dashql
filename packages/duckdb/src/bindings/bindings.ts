@@ -1,8 +1,9 @@
 // Copyright (c) 2020 The DashQL Authors
 
 import { DuckDBModule } from './duckdb_module';
-import { duckdb as proto, fb as flatbuffers } from '@dashql/proto';
-import { Logger, QueryRunOptions } from '../common';
+import { Logger } from '../log';
+import { DuckDBConnection } from './connection';
+import { StatusCode } from '../status';
 
 /** Decode a string */
 function decodeString(buffer: Uint8Array): string {
@@ -119,27 +120,29 @@ export abstract class DuckDBBindings {
     }
 
     /** Send a query and return the full result */
-    public runQuery(conn: number, text: string, options: QueryRunOptions = {}): Uint8Array {
+    public runQuery(conn: number, text: string): Uint8Array {
         const instance = this.instance!;
         const [s, d, n] = this.callSRet('duckdb_web_run_query', ['number', 'string'], [conn, text]);
         const mem = instance.HEAPU8.subarray(d, d + n);
-        if (s !== proto.StatusCode.SUCCESS) {
+        if (s !== StatusCode.SUCCESS) {
             throw new Error(decodeString(mem));
         }
         const res = memcpy(mem);
-        instance.ccall('dashql_clear_response', null, [], []);
+        instance.ccall('duckdb_web_clear_response', null, [], []);
         return res;
     }
 
     /** Send a query asynchronously. Results have to be fetched with `fetchQueryResults` */
-    public sendQuery(conn: number, text: string): void {
+    public sendQuery(conn: number, text: string): Uint8Array {
         const instance = this.instance!;
         const [s, d, n] = this.callSRet('duckdb_web_send_query', ['number', 'string'], [conn, text]);
         const mem = instance.HEAPU8.subarray(d, d + n);
-        if (s !== proto.StatusCode.SUCCESS) {
+        if (s !== StatusCode.SUCCESS) {
             throw new Error(decodeString(mem));
         }
-        instance.ccall('dashql_clear_response', null, [], []);
+        const res = memcpy(mem);
+        instance.ccall('duckdb_web_clear_response', null, [], []);
+        return res;
     }
 
     /** Fetch query results */
@@ -147,11 +150,11 @@ export abstract class DuckDBBindings {
         const instance = this.instance!;
         const [s, d, n] = this.callSRet('duckdb_web_fetch_query_results', ['number'], [conn]);
         const mem = instance.HEAPU8.subarray(d, d + n);
-        if (s !== proto.StatusCode.SUCCESS) {
+        if (s !== StatusCode.SUCCESS) {
             throw new Error(decodeString(mem));
         }
         const res = memcpy(mem);
-        instance.ccall('dashql_clear_response', null, [], []);
+        instance.ccall('duckdb_web_clear_response', null, [], []);
         return res;
     }
 
@@ -165,46 +168,8 @@ export abstract class DuckDBBindings {
         );
 
         let mem = instance.HEAPU8.subarray(d, d + n);
-        if (s !== proto.StatusCode.SUCCESS) {
+        if (s !== StatusCode.SUCCESS) {
             throw new Error(decodeString(mem));
         }
-    }
-}
-
-/** A thin helper to memoize the connection id */
-export class DuckDBConnection {
-    /** The bindings */
-    _bindings: DuckDBBindings;
-    /** The connection handle */
-    _conn: number;
-
-    /** Constructor */
-    constructor(bindings: DuckDBBindings, conn: number) {
-        this._bindings = bindings;
-        this._conn = conn;
-    }
-
-    public get handle() {
-        return this._conn;
-    }
-
-    public disconnect(): void {
-        this._bindings.disconnect(this._conn);
-    }
-
-    public runQuery(text: string): Uint8Array {
-        return this._bindings.runQuery(this._conn, text);
-    }
-
-    public sendQuery(text: string): void {
-        return this._bindings.sendQuery(this._conn, text);
-    }
-
-    public fetchQueryResults(): Uint8Array {
-        return this._bindings.fetchQueryResults(this._conn);
-    }
-
-    public importCSV(filePath: string, schemaName: string, tableName: string): void {
-        this._bindings.importCSV(this._conn, filePath, schemaName, tableName);
     }
 }

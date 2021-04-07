@@ -441,7 +441,7 @@ if (EMSCRIPTEN)
             _main, \
             _malloc, \
             _free, \
-            _dashql_clear_response, \
+            _duckdb_web_clear_response, \
             _duckdb_web_analyze_query, \
             _duckdb_web_connect, \
             _duckdb_web_disconnect, \
