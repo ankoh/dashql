@@ -1,7 +1,7 @@
 // Copyright (c) 2020 The DashQL Authors
 
 import { Logger, LogLevel, LogTopic, LogOrigin, LogEvent } from '../log';
-import * as arrow from '@apache-arrow/ts';
+import * as arrow from 'apache-arrow';
 
 interface IAsyncDuckDB {
     logger: Logger;
@@ -57,9 +57,11 @@ export interface AsyncConnection {
     /** Disconnect from the database */
     disconnect(): Promise<null>;
     /** Run a query */
-    runQuery(text: string): Promise<Uint8Array>;
+    runQuery<T extends { [key: string]: arrow.DataType } = any>(text: string): Promise<arrow.RecordBatchFileReader<T>>;
     /** Send a query */
-    sendQuery(text: string): Promise<Uint8Array>;
+    sendQuery<T extends { [key: string]: arrow.DataType } = any>(
+        text: string,
+    ): Promise<arrow.AsyncRecordBatchStreamReader<T>>;
 }
 
 /** A thin helper to memoize the connection id */
@@ -82,7 +84,7 @@ export class AsyncDuckDBConnection implements AsyncConnection {
     /** Run a query */
     public async runQuery<T extends { [key: string]: arrow.DataType } = any>(
         text: string,
-    ): arrow.RecordBatchFileReader<T> {
+    ): Promise<arrow.RecordBatchFileReader<T>> {
         this._instance.logger.log({
             timestamp: new Date(),
             level: LogLevel.INFO,
@@ -95,13 +97,13 @@ export class AsyncDuckDBConnection implements AsyncConnection {
         const reader = arrow.RecordBatchReader.from<T>(buffer);
         console.assert(reader.isSync());
         console.assert(reader.isFile());
-        return new arrow.RecordBatchFileReader(reader);
+        return reader as arrow.RecordBatchFileReader;
     }
 
     /** Send a query */
     public async sendQuery<T extends { [key: string]: arrow.DataType } = any>(
         text: string,
-    ): arrow.AsyncRecordBatchStreamReader {
+    ): Promise<arrow.AsyncRecordBatchStreamReader<T>> {
         this._instance.logger.log({
             timestamp: new Date(),
             level: LogLevel.INFO,
@@ -115,7 +117,7 @@ export class AsyncDuckDBConnection implements AsyncConnection {
         const reader = arrow.RecordBatchReader.from<T>(iter);
         console.assert(reader.isAsync());
         console.assert(reader.isStream());
-        return new arrow.AsyncRecordBatchStreamReader(reader);
+        return (reader as unknown) as arrow.AsyncRecordBatchStreamReader<T>; // XXX
     }
 
     /// Import csv from a given URL
