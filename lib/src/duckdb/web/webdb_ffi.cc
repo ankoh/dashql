@@ -84,6 +84,9 @@ extern "C" {
 using ConnectionHdl = uintptr_t;
 using BufferHdl = uintptr_t;
 
+/// Clear the response buffer
+void duckdb_web_clear_response() { FFIResponseBuffer::GetInstance().Clear(); }
+
 /// Create a conn
 ConnectionHdl duckdb_web_connect() { return reinterpret_cast<ConnectionHdl>(WebDB::GetInstance().Connect()); }
 /// End a conn
