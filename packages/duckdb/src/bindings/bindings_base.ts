@@ -13,11 +13,11 @@ function decodeString(buffer: Uint8Array): string {
     return result;
 }
 
-/** Copy a flatbuffer */
-function copyFlatbuffer(buffer: Uint8Array): flatbuffers.ByteBuffer {
+/** Copy a Uint8Array */
+function memcpy(buffer: Uint8Array): Uint8Array {
     const copy = new Uint8Array(new ArrayBuffer(buffer.byteLength));
     copy.set(buffer);
-    return new flatbuffers.ByteBuffer(copy);
+    return copy;
 }
 
 /// The proxy for either the browser- order node-based DuckDB API
@@ -118,81 +118,41 @@ export abstract class DuckDBBindings {
         this.instance!.ccall('duckdb_web_disconnect', null, ['number'], [conn]);
     }
 
-    /// Encode query arguments
-    protected encodeQueryArguments(text: string, options: QueryRunOptions = {}): number {
-        const instance = this.instance!;
-        const builder = new flatbuffers.Builder();
-        const partitionBoundaries = proto.QueryArguments.createPartitionBoundariesVector(
-            builder,
-            options.partitionBoundaries || [],
-        );
-        const scriptOfs = builder.createString(text);
-        proto.QueryArguments.start(builder);
-        proto.QueryArguments.addScript(builder, scriptOfs);
-        proto.QueryArguments.addPartitionBoundaries(builder, partitionBoundaries);
-        const args = proto.QueryArguments.end(builder);
-        builder.finish(args);
-        const argsBuffer = builder.dataBuffer();
-
-        // Copy the arguments into the wasm module
-        const argsMem = argsBuffer.bytes().subarray(argsBuffer.position());
-        const argsPtr = instance.stackAlloc(argsMem.length);
-        instance.HEAPU8.set(argsMem, argsPtr);
-        return argsPtr;
-    }
-
     /** Send a query and return the full result */
-    public runQuery(conn: number, text: string, options: QueryRunOptions = {}): proto.QueryResult {
+    public runQuery(conn: number, text: string, options: QueryRunOptions = {}): Uint8Array {
         const instance = this.instance!;
-        const args = this.encodeQueryArguments(text, options);
-        const [s, d, n] = this.callSRet('duckdb_web_run_query', ['number', 'number'], [conn, args]);
+        const [s, d, n] = this.callSRet('duckdb_web_run_query', ['number', 'string'], [conn, text]);
         const mem = instance.HEAPU8.subarray(d, d + n);
         if (s !== proto.StatusCode.SUCCESS) {
             throw new Error(decodeString(mem));
         }
-        const res = proto.QueryResult.getRoot(copyFlatbuffer(mem));
+        const res = memcpy(mem);
         instance.ccall('dashql_clear_response', null, [], []);
         return res;
     }
 
-    /** Send a query and return a result stream */
-    public sendQuery(conn: number, text: string, options: QueryRunOptions = {}): proto.QueryResult {
+    /** Send a query asynchronously. Results have to be fetched with `fetchQueryResults` */
+    public sendQuery(conn: number, text: string): void {
         const instance = this.instance!;
-        const args = this.encodeQueryArguments(text, options);
-        const [s, d, n] = this.callSRet('duckdb_web_send_query', ['number', 'number'], [conn, args]);
+        const [s, d, n] = this.callSRet('duckdb_web_send_query', ['number', 'string'], [conn, text]);
         const mem = instance.HEAPU8.subarray(d, d + n);
         if (s !== proto.StatusCode.SUCCESS) {
             throw new Error(decodeString(mem));
         }
-        const res = proto.QueryResult.getRoot(copyFlatbuffer(mem));
         instance.ccall('dashql_clear_response', null, [], []);
-        return res;
     }
 
     /** Fetch query results */
-    public fetchQueryResults(conn: number): proto.QueryResultChunk {
-        let instance = this.instance!;
-        let [s, d, n] = this.callSRet('duckdb_web_fetch_query_results', ['number'], [conn]);
-        let mem = instance.HEAPU8.subarray(d, d + n);
+    public fetchQueryResults(conn: number): Uint8Array {
+        const instance = this.instance!;
+        const [s, d, n] = this.callSRet('duckdb_web_fetch_query_results', ['number'], [conn]);
+        const mem = instance.HEAPU8.subarray(d, d + n);
         if (s !== proto.StatusCode.SUCCESS) {
             throw new Error(decodeString(mem));
         }
-        let res = proto.QueryResultChunk.getRoot(copyFlatbuffer(mem));
+        const res = memcpy(mem);
         instance.ccall('dashql_clear_response', null, [], []);
         return res;
-    }
-
-    /** Analyze a query */
-    public analyzeQuery(conn: number, _text: string): proto.QueryPlan {
-        let instance = this.instance!;
-        let [s, d, n] = this.callSRet('duckdb_web_analyze_query', ['number'], [conn]);
-        let mem = instance.HEAPU8.subarray(d, d + n);
-        if (s !== proto.StatusCode.SUCCESS) {
-            throw new Error(decodeString(mem));
-        }
-        let plan = proto.QueryPlan.getRoot(copyFlatbuffer(mem));
-        instance.ccall('dashql_clear_response', null, [], []);
-        return plan;
     }
 
     /// Import csv from a given URL
@@ -232,20 +192,16 @@ export class DuckDBConnection {
         this._bindings.disconnect(this._conn);
     }
 
-    public runQuery(text: string, options: QueryRunOptions = {}): proto.QueryResult {
-        return this._bindings.runQuery(this._conn, text, options);
+    public runQuery(text: string): Uint8Array {
+        return this._bindings.runQuery(this._conn, text);
     }
 
-    public sendQuery(text: string, options: QueryRunOptions = {}): proto.QueryResult {
-        return this._bindings.sendQuery(this._conn, text, options);
+    public sendQuery(text: string): void {
+        return this._bindings.sendQuery(this._conn, text);
     }
 
-    public fetchQueryResults(): proto.QueryResultChunk {
+    public fetchQueryResults(): Uint8Array {
         return this._bindings.fetchQueryResults(this._conn);
-    }
-
-    public analyzeQuery(_text: string): proto.QueryPlan {
-        return this._bindings.analyzeQuery(this._conn, _text);
     }
 
     public importCSV(filePath: string, schemaName: string, tableName: string): void {
