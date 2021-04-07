@@ -1,5 +1,7 @@
 // Copyright (c) 2020 The DashQL Authors
 
+#include <arrow/status.h>
+
 #include <iostream>
 
 #include "dashql/common/ffi_response.h"
@@ -7,9 +9,75 @@
 #include "duckdb/execution/operator/persistent/buffered_csv_reader.hpp"
 #include "duckdb/web/filesystem.h"
 #include "duckdb/web/webdb.h"
-#include "parquet-extension.hpp"
 
 using namespace duckdb::web;
+
+namespace {
+
+/// A packed response
+struct FFIResponse {
+    /// The status code
+    uint64_t statusCode;
+    /// The data ptr (if any)
+    uint64_t dataPtr;
+    /// The data size
+    uint64_t dataSize;
+} __attribute((packed));
+
+/// A response buffer
+class FFIResponseBuffer {
+   protected:
+    /// The response error (if any)
+    std::optional<arrow::Status> status_;
+    /// The status message
+    std::string status_message_;
+
+   public:
+    /// Constructor
+    FFIResponseBuffer() { Clear(); }
+
+    /// Clear the response buffer
+    void Clear() {
+        status_.reset();
+        status_message_.clear();
+    }
+
+    /// Store the detached flatbuffer
+    void Store(FFIResponse& response, arrow::Status status) {
+        Clear();
+        response.statusCode = static_cast<uint64_t>(status.code());
+        if (!status.ok()) {
+            status_message_ = status.message();
+            response.dataPtr = reinterpret_cast<uintptr_t>(status_message_.data());
+            response.dataSize = reinterpret_cast<uintptr_t>(status_message_.size());
+        }
+    }
+
+    /// Store the detached flatbuffer
+    void Store(FFIResponse& response, arrow::Result<nonstd::span<uint8_t>> result) {
+        Clear();
+        response.statusCode = static_cast<uint64_t>(result.status().code());
+        if (result.ok()) {
+            auto value = result.ValueUnsafe();
+            response.dataPtr = reinterpret_cast<uintptr_t>(value.data());
+            response.dataSize = value.size();
+        } else {
+            status_message_ = result.status().message();
+            response.dataPtr = reinterpret_cast<uintptr_t>(status_message_.data());
+            response.dataSize = reinterpret_cast<uintptr_t>(status_message_.size());
+        }
+    }
+
+    /// Get the instance
+    static FFIResponseBuffer& GetInstance();
+};
+
+FFIResponseBuffer& FFIResponseBuffer::GetInstance() {
+    static FFIResponseBuffer instance;
+    return instance;
+}
+
+}  // namespace
 
 extern "C" {
 
@@ -30,41 +98,24 @@ void* duckdb_web_access_buffer(ConnectionHdl /*connHdl*/, BufferHdl bufferHdl) {
 }
 
 /// Run a query
-void duckdb_web_run_query(dashql::FFIResponse* packed, ConnectionHdl connHdl, const void* args_buffer) {
-    auto* args = flatbuffers::GetRoot<proto::QueryArguments>(args_buffer);
-    QueryRunOptions options;
-    if (auto pb = args->partition_boundaries()) {
-        options.partition_boundaries = {pb->begin(), pb->end()};
-    }
+void duckdb_web_run_query(FFIResponse* packed, ConnectionHdl connHdl, const char* script) {
     auto c = reinterpret_cast<WebDB::Connection*>(connHdl);
-    auto r = c->RunQuery(args->script()->string_view(), options);
-    dashql::FFIResponseBuffer::GetInstance().Store(*packed, std::move(r));
+    auto r = c->RunQuery(script);
+    FFIResponseBuffer::GetInstance().Store(*packed, std::move(r));
 }
 
 /// Send a query
-void duckdb_web_send_query(dashql::FFIResponse* packed, ConnectionHdl connHdl, const void* args_buffer) {
-    auto* args = flatbuffers::GetRoot<proto::QueryArguments>(args_buffer);
-    QueryRunOptions options;
-    if (auto pb = args->partition_boundaries()) {
-        options.partition_boundaries = {pb->begin(), pb->end()};
-    }
+void duckdb_web_send_query(FFIResponse* packed, ConnectionHdl connHdl, const char* script) {
     auto c = reinterpret_cast<WebDB::Connection*>(connHdl);
-    auto r = c->SendQuery(args->script()->string_view(), options);
-    dashql::FFIResponseBuffer::GetInstance().Store(*packed, std::move(r));
+    auto r = c->SendQuery(script);
+    FFIResponseBuffer::GetInstance().Store(*packed, r.status());
 }
 
 /// Fetch query results
-void duckdb_web_fetch_query_results(dashql::FFIResponse* packed, ConnectionHdl connHdl) {
+void duckdb_web_fetch_query_results(FFIResponse* packed, ConnectionHdl connHdl) {
     auto c = reinterpret_cast<WebDB::Connection*>(connHdl);
     auto r = c->FetchQueryResults();
-    dashql::FFIResponseBuffer::GetInstance().Store(*packed, std::move(r));
-}
-
-/// Analyze a query
-void duckdb_web_analyze_query(dashql::FFIResponse* packed, ConnectionHdl connHdl, const char* text) {
-    auto c = reinterpret_cast<WebDB::Connection*>(connHdl);
-    auto r = c->AnalyzeQuery(text);
-    dashql::FFIResponseBuffer::GetInstance().Store(*packed, std::move(r));
+    FFIResponseBuffer::GetInstance().Store(*packed, std::move(r));
 }
 
 /// Import CSV from a file

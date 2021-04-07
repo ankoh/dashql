@@ -334,10 +334,8 @@ add_library(dashql_analyzer
 )
 
 add_library(duckdb_web
-    ${CMAKE_SOURCE_DIR}/src/duckdb/web/codec.cc
     ${CMAKE_SOURCE_DIR}/src/duckdb/web/filesystem.cc
-    ${CMAKE_SOURCE_DIR}/src/duckdb/web/iterator.cc
-    ${CMAKE_SOURCE_DIR}/src/duckdb/web/partitioner.cc
+    ${CMAKE_SOURCE_DIR}/src/duckdb/web/stream_buffer.cc
     ${CMAKE_SOURCE_DIR}/src/duckdb/web/webdb.cc
     ${CMAKE_SOURCE_DIR}/src/duckdb/web/webdb_ffi.cc
 )
@@ -347,8 +345,8 @@ add_library(dashql_test
     ${CMAKE_SOURCE_DIR}/src/test/grammar_tests.cc
 )
 
-target_link_libraries(dashql_common dashql_proto flatbuffers spdlog rapidjson)
-target_link_libraries(dashql_analyzer dashql_parser dashql_common dashql_proto spdlog duckdb parquet_extension rapidjson)
+target_link_libraries(dashql_common dashql_proto flatbuffers spdlog rapidjson arrow)
+target_link_libraries(dashql_analyzer dashql_parser dashql_common dashql_proto spdlog duckdb parquet_extension rapidjson arrow)
 target_link_libraries(dashql_dataframe dashql_common dashql_proto binaryen)
 target_link_libraries(duckdb_web dashql_common dashql_proto duckdb parquet_extension spdlog arrow)
 target_link_libraries(dashql_test duckdb_web dashql_analyzer dashql_common dashql_proto pugixml gtest duckdb parquet_extension)
@@ -491,7 +489,6 @@ if(NOT EMSCRIPTEN)
         ${CMAKE_SOURCE_DIR}/test/parser/grammar_spec_tests.cc
         ${CMAKE_SOURCE_DIR}/test/tester.cc
         ${CMAKE_SOURCE_DIR}/test/webdb/duckdb_test.cc
-        ${CMAKE_SOURCE_DIR}/test/webdb/iterator_test.cc
         ${CMAKE_SOURCE_DIR}/test/webdb/webdb_test.cc
     )
     set (TEST_LIBS
