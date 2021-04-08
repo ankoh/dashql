@@ -86,21 +86,6 @@ function main(db: duckdb.DuckDB) {
             bytes = tupleCount * 8;
         }),
 
-        benny.add('HUGEINT', () => {
-            const conn = db.connect();
-            const result = conn.runQuery(`
-                SELECT v::HUGEINT FROM generate_series(0, ${tupleCount}) as t(v);
-            `);
-            for (const batch of result) {
-                for (const _v of batch.getChildAt(0)!) {
-                    noop();
-                }
-            }
-            conn.disconnect();
-
-            bytes = tupleCount * 16;
-        }),
-
         benny.add('FLOAT', () => {
             const conn = db.connect();
             const result = conn.runQuery(`
@@ -229,22 +214,6 @@ function main(db: duckdb.DuckDB) {
                 SELECT v::BIGINT FROM generate_series(0, ${tupleCount}) as t(v);
             `);
             bytes = tupleCount * 8;
-            conn.disconnect();
-            return () => {
-                for (const batch of result) {
-                    for (const _v of batch.getChildAt(0)!) {
-                        noop();
-                    }
-                }
-            };
-        }),
-
-        benny.add('HUGEINT', () => {
-            const conn = db.connect();
-            const result = conn.runQuery(`
-                SELECT v::HUGEINT FROM generate_series(0, ${tupleCount}) as t(v);
-            `);
-            bytes = tupleCount * 16;
             conn.disconnect();
             return () => {
                 for (const batch of result) {
@@ -390,21 +359,6 @@ function main(db: duckdb.DuckDB) {
             conn.disconnect();
 
             bytes = tupleCount * 8;
-        }),
-
-        benny.add('HUGEINT', () => {
-            const conn = db.connect();
-            const result = conn.sendQuery(`
-                SELECT v::HUGEINT FROM generate_series(0, ${tupleCount}) as t(v);
-            `);
-            for (const batch of result) {
-                for (const _v of batch.getChildAt(0)!) {
-                    noop();
-                }
-            }
-            conn.disconnect();
-
-            bytes = tupleCount * 16;
         }),
 
         benny.add('FLOAT', () => {
