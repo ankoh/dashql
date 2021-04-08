@@ -5,41 +5,33 @@ import * as arrow from 'apache-arrow';
 interface IDuckDBBindings {
     disconnect(conn: number): void;
     runQuery(conn: number, text: string): Uint8Array;
-    sendQuery(conn: number, text: string): Uint8Array;
+    sendQuery(conn: number, text: string): void;
     fetchQueryResults(conn: number): Uint8Array;
     importCSV(conn: number, filePath: string, schemaName: string, tableName: string): void;
 }
 
 /** A result stream iterator */
 class ResultStreamIterator implements Iterable<Uint8Array> {
-    /** The schema */
-    _schema: Uint8Array;
-    /** Started reading from the stream? */
-    _started: boolean;
     /** Reached end of stream? */
     _eos: boolean;
 
-    constructor(protected bindings: IDuckDBBindings, protected conn: number, protected schema: Uint8Array) {
-        this._schema = schema;
-        this._started = false;
+    constructor(protected bindings: IDuckDBBindings, protected conn: number) {
         this._eos = false;
     }
 
     next(): IteratorResult<Uint8Array> {
-        if (!this._started) {
-            this._started = true;
-            return { done: false, value: this._schema };
-        }
         if (this._eos) {
             return { done: true, value: null };
         }
-        const buffer = this.bindings.fetchQueryResults(this.conn);
-        if (buffer.length == 0) {
+        const bufferI8 = this.bindings.fetchQueryResults(this.conn);
+        const bufferI32 = new Int32Array(bufferI8.buffer);
+        const isEOS = bufferI32.length == 0 || (bufferI32.length == 2 && bufferI32[0] == -1 && bufferI32[1] == 0);
+        if (isEOS) {
             this._eos = true;
             return { done: true, value: null };
         }
         return {
-            value: buffer,
+            value: bufferI8,
         };
     }
 
@@ -81,10 +73,13 @@ export class DuckDBConnection {
         text: string,
     ): arrow.RecordBatchStreamReader<T> {
         const header = this._bindings.sendQuery(this._conn, text);
-        const iter = new ResultStreamIterator(this._bindings, this._conn, header);
+        const iter = new ResultStreamIterator(this._bindings, this._conn);
+        console.log('hm');
         const reader = arrow.RecordBatchReader.from<T>(iter);
+        console.log(reader);
         console.assert(reader.isSync());
         console.assert(reader.isStream());
+        console.log(reader);
         return reader as arrow.RecordBatchStreamReader;
     }
 
