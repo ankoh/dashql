@@ -33,14 +33,10 @@ class WebDB {
         /// The connection
         duckdb::Connection connection_;
 
-        /// The output buffer (if any)
-        StreamBuffer output_stream_buffer_;
         /// The current result (if any)
         std::unique_ptr<duckdb::QueryResult> current_query_result_;
         /// The current arrow schema (if any)
         std::shared_ptr<arrow::Schema> current_schema_;
-        /// The current batch writer (if any)
-        std::shared_ptr<arrow::ipc::RecordBatchWriter> current_batch_writer_;
 
        public:
         /// Constructor
@@ -54,9 +50,9 @@ class WebDB {
         /// Run a query and return an arrow buffer
         arrow::Result<std::shared_ptr<arrow::Buffer>> RunQuery(std::string_view text);
         /// Send a query and return an arrow buffer
-        arrow::Status SendQuery(std::string_view text);
+        arrow::Result<std::shared_ptr<arrow::Buffer>> SendQuery(std::string_view text);
         /// Fetch query results and return an arrow buffer
-        arrow::Result<nonstd::span<const uint8_t>> FetchQueryResults();
+        arrow::Result<std::shared_ptr<arrow::Buffer>> FetchQueryResults();
     };
 
    protected:

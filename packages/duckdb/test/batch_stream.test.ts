@@ -48,10 +48,8 @@ export function testIterator(db: () => duckdb.DuckDBBindings) {
                 let result = conn.sendQuery(`
                     SELECT v::INTEGER AS v FROM generate_series(0, ${testRows}) as t(v);
                 `);
-                console.log('query sent');
                 let i = 0;
                 for (const batch of result) {
-                    console.log(batch);
                     expect(batch.numCols).toBe(1);
                     for (const row of batch) {
                         expect(row!.v).toBe(i++);
