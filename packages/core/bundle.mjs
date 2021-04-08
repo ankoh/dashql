@@ -79,7 +79,7 @@ esbuild.build({
     target: TARGET,
     bundle: true,
     minify: false,
-    sourcemap: 'both',
+    sourcemap: 'external',
     define: { 'process.env.NODE_ENV': '"production"' },
 });
 
