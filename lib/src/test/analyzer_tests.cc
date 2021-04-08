@@ -41,7 +41,7 @@ void AnalyzerTest::EncodePlan(pugi::xml_node root, const ProgramInstance& instan
     auto setup_action_type_tt = proto::action::SetupActionTypeTypeTable();
     auto program_action_type_tt = proto::action::ProgramActionTypeTypeTable();
     auto action_status_tt = proto::action::ActionStatusCodeTypeTable();
-    auto input_type_tt = duckdb::web::proto::SQLTypeIDTypeTable();
+    auto input_type_tt = proto::sql::SQLTypeIDTypeTable();
     auto viz_component_type_tt = proto::syntax::VizComponentTypeTypeTable();
 
     std::string program_text{instance.program_text()};

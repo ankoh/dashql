@@ -5,13 +5,12 @@
 #include "dashql/proto_generated.h"
 #include "duckdb/common/types.hpp"
 #include "duckdb/common/vector_size.hpp"
-#include "duckdb/web/iterator.h"
 #include "duckdb/web/webdb.h"
 #include "gtest/gtest.h"
 
 using namespace duckdb::web;
 using namespace std;
-namespace p = duckdb::web::proto;
+namespace p = dashql::proto::sql;
 
 namespace {
 

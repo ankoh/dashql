@@ -22,7 +22,7 @@ DataframeHandle dashql_dataframe(AlgebraTreeHandle algebraTreeHandle) {
 void dashql_dataframe_get_module(FFIResponse* response, DataframeHandle dataframeHandle) {
     auto& dataframe = reinterpret_cast<Dataframe&>(dataframeHandle);
     auto& module = dataframe.module;
-    response->statusCode = static_cast<size_t>(StatusCode::SUCCESS);
+    response->statusCode = 0;
     response->dataPtr = reinterpret_cast<uint64_t>(module.data());
     response->dataSize = module.size();
 }
