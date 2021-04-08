@@ -21,10 +21,8 @@ async function main(db: duckdb.AsyncDuckDB) {
             const result = await conn.runQuery(`
                 SELECT v > 0 FROM generate_series(0, ${tupleCount}) as t(v);
             `);
-            for (const batch of result) {
-                for (const _v of batch.getChildAt(0)!) {
-                    noop();
-                }
+            for (const _v of result.getChildAt(0)) {
+                noop();
             }
             await conn.disconnect();
             bytes = tupleCount * 1;
@@ -35,10 +33,8 @@ async function main(db: duckdb.AsyncDuckDB) {
             const result = await conn.runQuery(`
             SELECT (v & 127)::TINYINT FROM generate_series(0, ${tupleCount}) as t(v);
             `);
-            for (const batch of result) {
-                for (const _v of batch.getChildAt(0)!) {
-                    noop();
-                }
+            for (const _v of result.getChildAt(0)) {
+                noop();
             }
             await conn.disconnect();
             bytes = tupleCount * 1;
@@ -49,10 +45,8 @@ async function main(db: duckdb.AsyncDuckDB) {
             const result = await conn.runQuery(`
                 SELECT (v & 32767)::SMALLINT FROM generate_series(0, ${tupleCount}) as t(v);
             `);
-            for (const batch of result) {
-                for (const _v of batch.getChildAt(0)!) {
-                    noop();
-                }
+            for (const _v of result.getChildAt(0)) {
+                noop();
             }
             await conn.disconnect();
             bytes = tupleCount * 2;
@@ -63,10 +57,8 @@ async function main(db: duckdb.AsyncDuckDB) {
             const result = await conn.runQuery(`
                 SELECT v::INTEGER FROM generate_series(0, ${tupleCount}) as t(v);
             `);
-            for (const batch of result) {
-                for (const _v of batch.getChildAt(0)!) {
-                    noop();
-                }
+            for (const _v of result.getChildAt(0)) {
+                noop();
             }
             await conn.disconnect();
             bytes = tupleCount * 4;
@@ -77,10 +69,8 @@ async function main(db: duckdb.AsyncDuckDB) {
             const result = await conn.runQuery(`
                 SELECT v::BIGINT FROM generate_series(0, ${tupleCount}) as t(v);
             `);
-            for (const batch of result) {
-                for (const _v of batch.getChildAt(0)!) {
-                    noop();
-                }
+            for (const _v of result.getChildAt(0)) {
+                noop();
             }
             await conn.disconnect();
             bytes = tupleCount * 8;
@@ -91,10 +81,8 @@ async function main(db: duckdb.AsyncDuckDB) {
             const result = await conn.runQuery(`
                 SELECT v::FLOAT FROM generate_series(0, ${tupleCount}) as t(v);
             `);
-            for (const batch of result) {
-                for (const _v of batch.getChildAt(0)!) {
-                    noop();
-                }
+            for (const _v of result.getChildAt(0)) {
+                noop();
             }
             await conn.disconnect();
             bytes = tupleCount * 4;
@@ -105,10 +93,8 @@ async function main(db: duckdb.AsyncDuckDB) {
             const result = await conn.runQuery(`
                 SELECT v::DOUBLE FROM generate_series(0, ${tupleCount}) as t(v);
             `);
-            for (const batch of result) {
-                for (const _v of batch.getChildAt(0)!) {
-                    noop();
-                }
+            for (const _v of result.getChildAt(0)) {
+                noop();
             }
             await conn.disconnect();
             bytes = tupleCount * 8;
@@ -120,11 +106,9 @@ async function main(db: duckdb.AsyncDuckDB) {
                 SELECT v::VARCHAR FROM generate_series(0, ${tupleCount}) as t(v);
             `);
             bytes = 0;
-            for (const batch of result) {
-                for (const v of batch.getChildAt(0)!) {
-                    noop();
-                    bytes += v!.length;
-                }
+            for (const v of result.getChildAt(0)) {
+                noop();
+                bytes += v!.length;
             }
             await conn.disconnect();
         }),
