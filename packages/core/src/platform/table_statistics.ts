@@ -177,8 +177,7 @@ export class DatabaseTableStatistics implements TableStatisticsResolver {
                 const result = await this._databaseManager.use(async (conn: duckdb.AsyncConnection) => {
                     return await conn.runQuery(query);
                 });
-                const table = arrow.Table.from(result);
-                stats.set(req.key, table.getColumnAt(0));
+                stats.set(req.key, result.getColumnAt(0));
             } catch (e) {
                 // Reject all promises
                 for (const reject of req._promiseRejecters) {

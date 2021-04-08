@@ -12,13 +12,12 @@ export async function collectTableInfo(
     info: model.DatabaseTable,
 ): Promise<model.DatabaseTable> {
     // Get column names and types
-    const limit0Batches = await conn.runQuery(`SELECT * FROM ${info.tableNameShort} LIMIT 0`);
-    const limit0Table = await arrow.Table.from(limit0Batches);
+    const limit0 = await conn.runQuery(`SELECT * FROM ${info.tableNameShort} LIMIT 0`);
     const columnNames: string[] = [];
     const columnNameMapping: Map<string, number> = new Map();
     const columnTypes: arrow.DataType[] = [];
-    for (let ci = 0; ci < limit0Table.schema.fields.length; ++ci) {
-        const field = limit0Table.schema.fields[ci];
+    for (let ci = 0; ci < limit0.schema.fields.length; ++ci) {
+        const field = limit0.schema.fields[ci];
         columnNames.push(field.name);
         columnNameMapping.set(field.name, ci);
         columnTypes.push(field.type);
