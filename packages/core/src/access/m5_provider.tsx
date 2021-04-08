@@ -2,7 +2,7 @@ import * as duckdb from '@dashql/duckdb/dist/duckdb.module.js';
 import * as React from 'react';
 import * as platform from '../platform';
 import * as model from '../model';
-import * as proto from '@dashql/proto';
+import * as arrow from 'apache-arrow';
 import { QueryProvider, Query } from './query_provider';
 
 // We run single-threaded at the moment, so deterministic output > true random temp names. (easy caching!)
@@ -24,7 +24,7 @@ interface Props {
     /// The in-flight component
     inFlightComponent?: ((query: Query) => React.ReactNode) | null;
     /// The children
-    children: (result: proto.duckdb.QueryResult) => React.ReactNode;
+    children: (result: arrow.Table) => React.ReactNode;
 }
 
 export const M5Provider: React.FunctionComponent<Props> = (props: Props) => {

@@ -1,6 +1,7 @@
 import * as proto from '@dashql/proto';
 import * as model from '../model';
 import * as platform from '../platform';
+import * as arrow from 'apache-arrow';
 import * as v from 'vega';
 
 import { VegaLiteEditOperation, ResolveMinMaxDomain } from './vega_editing';
@@ -332,27 +333,22 @@ export class VizComposer {
         const analyzeFieldType = (enc: any, columnID: number) => {
             if (!isTypedFieldDef(enc)) {
                 switch (table.columnTypes[columnID].typeId) {
-                    case proto.duckdb.SQLTypeID.BOOLEAN:
-                    case proto.duckdb.SQLTypeID.BIGINT:
-                    case proto.duckdb.SQLTypeID.HUGEINT:
-                    case proto.duckdb.SQLTypeID.TINYINT:
-                    case proto.duckdb.SQLTypeID.SMALLINT:
-                    case proto.duckdb.SQLTypeID.INTEGER:
-                    case proto.duckdb.SQLTypeID.FLOAT:
-                    case proto.duckdb.SQLTypeID.DOUBLE:
-                    case proto.duckdb.SQLTypeID.DECIMAL:
+                    case arrow.Type.Bool:
+                    case arrow.Type.Int:
+                    case arrow.Type.Float:
+                    case arrow.Type.Decimal:
+                    case arrow.Type.Bool:
                         enc.type = 'quantitative';
                         break;
 
-                    case proto.duckdb.SQLTypeID.CHAR:
-                    case proto.duckdb.SQLTypeID.VARCHAR:
+                    case arrow.Type.Utf8:
                         enc.type = 'nominal';
                         break;
 
-                    case proto.duckdb.SQLTypeID.DATE:
-                    case proto.duckdb.SQLTypeID.TIME:
-                    case proto.duckdb.SQLTypeID.TIMESTAMP:
-                    case proto.duckdb.SQLTypeID.INTERVAL:
+                    case arrow.Type.Date:
+                    case arrow.Type.Time:
+                    case arrow.Type.Timestamp:
+                    case arrow.Type.Interval:
                         enc.type = 'temporal';
                         break;
 
