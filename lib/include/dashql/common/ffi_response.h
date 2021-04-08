@@ -11,9 +11,9 @@
 #include "dashql/proto_generated.h"
 #include "flatbuffers/flatbuffers.h"
 
-using StatusCode = duckdb::web::proto::StatusCode;
-
 namespace dashql {
+
+constexpr uint64_t SUCCESS = 0;
 
 /// A packed response
 struct FFIResponse {
@@ -47,7 +47,7 @@ class FFIResponseBuffer {
     void Store(FFIResponse& response, flatbuffers::DetachedBuffer&& buffer) {
         Clear();
         proto_buffer_ = std::move(buffer);
-        response.statusCode = static_cast<size_t>(StatusCode::SUCCESS);
+        response.statusCode = SUCCESS;
         response.dataPtr = reinterpret_cast<uintptr_t>(proto_buffer_.data());
         response.dataSize = proto_buffer_.size();
     }
@@ -69,7 +69,7 @@ class FFIResponseBuffer {
         if (result) {
             Clear();
             proto_buffer_ = {};
-            response.statusCode = static_cast<size_t>(StatusCode::SUCCESS);
+            response.statusCode = SUCCESS;
             response.dataPtr = 0;
             response.dataSize = proto_buffer_.size();
         } else {
@@ -91,7 +91,7 @@ class FFIResponseBuffer {
         if (result) {
             Clear();
             auto buffer = result.GetBuffer();
-            response.statusCode = static_cast<size_t>(StatusCode::SUCCESS);
+            response.statusCode = SUCCESS;
             response.dataPtr = reinterpret_cast<uintptr_t>(buffer.data());
             response.dataSize = buffer.size();
         } else {

@@ -24,7 +24,7 @@ class Value {
     enum class PhysicalType { NULL_, I64, F64, STRING, STRING_VIEW };
 
     /// The logical type
-    duckdb::web::proto::SQLType logical_type_;
+    proto::sql::SQLType logical_type_;
     /// The physical type
     PhysicalType physical_type_;
     /// The data.
@@ -56,11 +56,11 @@ class Value {
     /// Create an empty NULL value
     Value();
     /// Create an empty NULL value of the specified type
-    Value(duckdb::web::proto::SQLTypeID type);
+    Value(proto::sql::SQLTypeID type);
     /// Create an empty NULL value of the specified type
-    Value(duckdb::web::proto::SQLType type);
+    Value(proto::sql::SQLType type);
     /// Create from flatbuffer object
-    Value(const duckdb::web::proto::SQLValue& val);
+    Value(const proto::sql::SQLValue& val);
 
     /// Explicit move constructor
     Value(Value&& other) noexcept;
@@ -108,16 +108,16 @@ class Value {
     Value CopyShallow() const;
 
     /// Pack as flatbuffer
-    flatbuffers::Offset<duckdb::web::proto::SQLValue> Pack(flatbuffers::FlatBufferBuilder& builder) const;
+    flatbuffers::Offset<proto::sql::SQLValue> Pack(flatbuffers::FlatBufferBuilder& builder) const;
     /// Unpack from flatbuffer
-    static Value UnPack(const duckdb::web::proto::SQLValue& val);
+    static Value UnPack(const proto::sql::SQLValue& val);
 
     /// Parse a value from text
-    static duckdb::web::proto::SQLType ParseType(std::string_view type);
+    static proto::sql::SQLType ParseType(std::string_view type);
     /// Parse a value from text
     static Value Parse(std::string_view type, std::string_view data, bool string_refs = false);
     /// Create a Numeric value of the specified type with the specified value
-    static Value Numeric(duckdb::web::proto::SQLType type, int64_t value);
+    static Value Numeric(proto::sql::SQLType type, int64_t value);
 
     /// Create a boolean value from a specified value
     static Value BOOLEAN(int8_t value);
