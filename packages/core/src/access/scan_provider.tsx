@@ -1,7 +1,7 @@
 import * as duckdb from '@dashql/duckdb/dist/duckdb.module.js';
 import * as React from 'react';
 import * as platform from '../platform';
-import * as proto from '@dashql/proto';
+import * as arrow from 'apache-arrow';
 
 type RequestScanFn = (request: ScanRequest) => void;
 
@@ -73,7 +73,7 @@ export interface ScanResult {
     /// The scan request
     request: ScanRequest;
     /// The query result buffer
-    result: proto.duckdb.QueryResult;
+    result: arrow.Table;
 }
 
 interface Props {
@@ -148,7 +148,7 @@ export class ScanProvider extends React.Component<Props, State> {
         });
         return {
             request,
-            result,
+            result: arrow.Table.from(result),
         };
     }
 

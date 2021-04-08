@@ -1,5 +1,6 @@
 import * as duckdb from '@dashql/duckdb/dist/duckdb.module.js';
 import * as model from '../model';
+import * as arrow from 'apache-arrow';
 import { TableStatisticsResolver, DatabaseTableStatistics } from './table_statistics';
 import { Mutex } from '../utils';
 
@@ -90,7 +91,7 @@ export class DatabaseManager {
         qualifiedTableName: string,
         type: model.TableStatisticsType,
         columnId: number = 0,
-    ): Promise<duckdb.Value[]> {
+    ): Promise<arrow.Column> {
         let queue = this._tableStatistics.get(qualifiedTableName);
         if (!queue) {
             queue = new DatabaseTableStatistics(this, qualifiedTableName);
