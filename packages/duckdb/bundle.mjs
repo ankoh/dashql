@@ -93,7 +93,7 @@ esbuild.build({
     target: TARGET,
     bundle: true,
     minify: true,
-    sourcemap: 'both',
+    sourcemap: 'external',
 });
 
 // -------------------------------
@@ -134,7 +134,7 @@ esbuild.build({
     target: TARGET,
     bundle: true,
     minify: true,
-    sourcemap: 'both',
+    sourcemap: 'external',
     external: [...EXTERNALS],
 });
 
@@ -151,7 +151,7 @@ esbuild.build({
     target: TARGET,
     bundle: true,
     minify: false,
-    sourcemap: 'both',
+    sourcemap: 'external',
 });
 
 console.log('[ ESBUILD ] tests-node.js');
@@ -163,7 +163,7 @@ esbuild.build({
     target: TARGET,
     bundle: true,
     minify: false,
-    sourcemap: 'both',
+    sourcemap: 'external',
     // web-worker polyfill needs to be excluded from bundling due to their dynamic require messing with bundled modules
     external: ['web-worker'],
 });
