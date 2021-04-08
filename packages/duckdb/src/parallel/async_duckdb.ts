@@ -34,7 +34,7 @@ type TaskVariant =
     | Task<WorkerRequestType.OPEN, string | null, null>
     | Task<WorkerRequestType.CONNECT, null, ConnectionID>
     | Task<WorkerRequestType.DISCONNECT, ConnectionID, null>
-    | Task<WorkerRequestType.SEND_QUERY, [ConnectionID, string], null>
+    | Task<WorkerRequestType.SEND_QUERY, [ConnectionID, string], Uint8Array>
     | Task<WorkerRequestType.RUN_QUERY, [ConnectionID, string], Uint8Array>
     | Task<WorkerRequestType.FETCH_QUERY_RESULTS, ConnectionID, Uint8Array>;
 
@@ -279,8 +279,8 @@ export class AsyncDuckDB {
     }
 
     /** Send a query */
-    public async sendQuery(conn: ConnectionID, text: string): Promise<null> {
-        const task = new Task<WorkerRequestType.SEND_QUERY, [ConnectionID, string], null>(
+    public async sendQuery(conn: ConnectionID, text: string): Promise<Uint8Array> {
+        const task = new Task<WorkerRequestType.SEND_QUERY, [ConnectionID, string], Uint8Array>(
             WorkerRequestType.SEND_QUERY,
             [conn, text],
         );

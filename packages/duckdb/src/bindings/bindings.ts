@@ -133,14 +133,16 @@ export abstract class DuckDBBindings {
     }
 
     /** Send a query asynchronously. Results have to be fetched with `fetchQueryResults` */
-    public sendQuery(conn: number, text: string): void {
+    public sendQuery(conn: number, text: string): Uint8Array {
         const instance = this.instance!;
         const [s, d, n] = this.callSRet('duckdb_web_send_query', ['number', 'string'], [conn, text]);
+        const mem = instance.HEAPU8.subarray(d, d + n);
         if (s !== StatusCode.SUCCESS) {
-            const mem = instance.HEAPU8.subarray(d, d + n);
             throw new Error(decodeString(mem));
         }
+        const res = memcpy(mem);
         instance.ccall('duckdb_web_clear_response', null, [], []);
+        return res;
     }
 
     /** Fetch query results */
