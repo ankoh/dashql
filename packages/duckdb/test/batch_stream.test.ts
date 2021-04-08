@@ -3,7 +3,7 @@ import * as arrow from 'apache-arrow';
 
 const testRows = 10000;
 
-export function testIterator(db: () => duckdb.DuckDBBindings) {
+export function testBatchStream(db: () => duckdb.DuckDBBindings) {
     let conn: duckdb.DuckDBConnection;
 
     beforeEach(() => {
