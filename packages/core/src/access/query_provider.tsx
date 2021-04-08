@@ -93,13 +93,11 @@ export class QueryProvider extends React.Component<Props, State> {
         this._inFlightQuery = this.props.query;
         const query = this.props.query;
         this._queryPromise = this.props.database.use(async conn => {
-            let result: arrow.Table;
             try {
                 if (query.before) {
                     await conn.runQuery(query.before);
                 }
-                result = await conn.runQuery(query.data);
-                return result;
+                return await conn.runQuery(query.data);
             } catch (e) {
                 console.error(e);
                 throw e;
