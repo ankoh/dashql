@@ -15,9 +15,8 @@ beforeAll(async () => {
     await adb.open('/static/duckdb.wasm');
 });
 
-import { testProxies } from './proxy.test';
 import { testBindings } from './bindings.test';
-import { testIterator } from './batch_stream.test';
+import { testBatchStream } from './batch_stream.test';
 import { testAsyncBatchStream } from './batch_stream_async.test';
 import { testFilesystem } from './filesystem.test';
 import { testExtractCSV } from './extract_csv.test';
@@ -25,11 +24,10 @@ import { testExtractCSV } from './extract_csv.test';
 // Loading debug symbols, especially for WASM take insanely long so we just disable the test timeout
 jasmine.DEFAULT_TIMEOUT_INTERVAL = 30000;
 
-//testProxies(() => db!);
-//testBindings(() => db!);
-testIterator(() => db!);
+testBindings(() => db!);
+testBatchStream(() => db!);
 testAsyncBatchStream(() => adb!);
-//testFilesystem(() => adb!, '/data');
+testFilesystem(() => adb!, '/data');
 //testExtractCSV(
 //    () => adb!,
 //    (buf: Uint8Array) => URL.createObjectURL(new Blob([buf.buffer], { type: 'text/plain' })),
