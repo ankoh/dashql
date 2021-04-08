@@ -22,6 +22,7 @@ export enum WorkerResponseType {
     CONNECTION_INFO = 'CONNECTION_INFO',
     QUERY_RESULT = 'QUERY_RESULT',
     QUERY_RESULT_CHUNK = 'QUERY_RESULT_CHUNK',
+    QUERY_START = 'QUERY_START',
     QUERY_PLAN = 'QUERY_PLAN',
 }
 
@@ -59,4 +60,5 @@ export type WorkerResponseVariant =
     | WorkerResponse<WorkerResponseType.CONNECTION_INFO, number>
     | WorkerResponse<WorkerResponseType.QUERY_RESULT, Uint8Array>
     | WorkerResponse<WorkerResponseType.QUERY_RESULT_CHUNK, Uint8Array>
+    | WorkerResponse<WorkerResponseType.QUERY_START, null>
     | WorkerResponse<WorkerResponseType.QUERY_PLAN, Uint8Array>;

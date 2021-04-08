@@ -45,11 +45,9 @@ class StreamBuffer : public arrow::io::OutputStream {
     /// Reset the stream buffer
     arrow::Status Reset(int64_t initial_capacity = 1024, arrow::MemoryPool* pool = arrow::default_memory_pool());
     /// Clear the buffer
-    arrow::Status Clear();
+    void Clear();
     /// Get the buffer
-    nonstd::span<uint8_t> Access() {
-        return nonstd::span<uint8_t>{mutable_data_, static_cast<unsigned long>(position_)};
-    }
+    nonstd::span<const uint8_t> Access();
 };
 
 }  // namespace web
