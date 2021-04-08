@@ -34,6 +34,7 @@ class ResultStreamIterator implements AsyncIterable<Uint8Array> {
             return { done: true, value: null };
         }
         return {
+            done: false,
             value: bufferI8,
         };
     }
