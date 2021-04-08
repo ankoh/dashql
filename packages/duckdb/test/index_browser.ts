@@ -28,7 +28,7 @@ testBindings(() => db!);
 testBatchStream(() => db!);
 testAsyncBatchStream(() => adb!);
 testFilesystem(() => adb!, '/data');
-//testExtractCSV(
-//    () => adb!,
-//    (buf: Uint8Array) => URL.createObjectURL(new Blob([buf.buffer], { type: 'text/plain' })),
-//);
+testExtractCSV(
+    () => adb!,
+    (buf: Uint8Array) => URL.createObjectURL(new Blob([buf.buffer], { type: 'text/plain' })),
+);
