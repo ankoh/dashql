@@ -12,14 +12,12 @@ function main(db: duckdb.DuckDB) {
     benny.suite(
         `Chunks | 1 column | 1m rows | materialized`,
         benny.add('BOOLEAN', () => {
-            let conn = db.connect();
-            let result = conn.runQuery(`
+            const conn = db.connect();
+            const result = conn.runQuery(`
                 SELECT v > 0 FROM generate_series(0, ${tupleCount}) as t(v);
             `);
-            let chunks = new duckdb.StaticChunkIterator(result);
-            while (true) {
-                if (!chunks.nextBlocking()) break;
-                for (const _ of chunks.iterateBooleanColumn(0)) {
+            for (const batch of result) {
+                for (const _v of batch.getChildAt(0)!) {
                     noop();
                 }
             }
@@ -29,14 +27,12 @@ function main(db: duckdb.DuckDB) {
         }),
 
         benny.add('TINYINT', () => {
-            let conn = db.connect();
-            let result = conn.runQuery(`
+            const conn = db.connect();
+            const result = conn.runQuery(`
                 SELECT (v & 127)::TINYINT FROM generate_series(0, ${tupleCount}) as t(v);
             `);
-            let chunks = new duckdb.StaticChunkIterator(result);
-            while (true) {
-                if (!chunks.nextBlocking()) break;
-                for (const _ of chunks.iterateNumberColumn(0)) {
+            for (const batch of result) {
+                for (const _v of batch.getChildAt(0)!) {
                     noop();
                 }
             }
@@ -46,14 +42,12 @@ function main(db: duckdb.DuckDB) {
         }),
 
         benny.add('SMALLINT', () => {
-            let conn = db.connect();
-            let result = conn.runQuery(`
+            const conn = db.connect();
+            const result = conn.runQuery(`
                 SELECT (v & 32767)::SMALLINT FROM generate_series(0, ${tupleCount}) as t(v);
             `);
-            let chunks = new duckdb.StaticChunkIterator(result);
-            while (true) {
-                if (!chunks.nextBlocking()) break;
-                for (const _ of chunks.iterateNumberColumn(0)) {
+            for (const batch of result) {
+                for (const _v of batch.getChildAt(0)!) {
                     noop();
                 }
             }
@@ -63,14 +57,12 @@ function main(db: duckdb.DuckDB) {
         }),
 
         benny.add('INTEGER', () => {
-            let conn = db.connect();
-            let result = conn.runQuery(`
+            const conn = db.connect();
+            const result = conn.runQuery(`
                 SELECT v::INTEGER FROM generate_series(0, ${tupleCount}) as t(v);
             `);
-            let chunks = new duckdb.StaticChunkIterator(result);
-            while (true) {
-                if (!chunks.nextBlocking()) break;
-                for (const _ of chunks.iterateNumberColumn(0)) {
+            for (const batch of result) {
+                for (const _v of batch.getChildAt(0)!) {
                     noop();
                 }
             }
@@ -80,14 +72,12 @@ function main(db: duckdb.DuckDB) {
         }),
 
         benny.add('BIGINT', () => {
-            let conn = db.connect();
-            let result = conn.runQuery(`
+            const conn = db.connect();
+            const result = conn.runQuery(`
                 SELECT v::BIGINT FROM generate_series(0, ${tupleCount}) as t(v);
             `);
-            let chunks = new duckdb.StaticChunkIterator(result);
-            while (true) {
-                if (!chunks.nextBlocking()) break;
-                for (const _ of chunks.iterateBigIntColumn(0)) {
+            for (const batch of result) {
+                for (const _v of batch.getChildAt(0)!) {
                     noop();
                 }
             }
@@ -97,14 +87,12 @@ function main(db: duckdb.DuckDB) {
         }),
 
         benny.add('HUGEINT', () => {
-            let conn = db.connect();
-            let result = conn.runQuery(`
+            const conn = db.connect();
+            const result = conn.runQuery(`
                 SELECT v::HUGEINT FROM generate_series(0, ${tupleCount}) as t(v);
             `);
-            let chunks = new duckdb.StaticChunkIterator(result);
-            while (true) {
-                if (!chunks.nextBlocking()) break;
-                for (const _ of chunks.iterateHugeIntColumn(0)) {
+            for (const batch of result) {
+                for (const _v of batch.getChildAt(0)!) {
                     noop();
                 }
             }
@@ -114,14 +102,12 @@ function main(db: duckdb.DuckDB) {
         }),
 
         benny.add('FLOAT', () => {
-            let conn = db.connect();
-            let result = conn.runQuery(`
+            const conn = db.connect();
+            const result = conn.runQuery(`
                 SELECT v::FLOAT FROM generate_series(0, ${tupleCount}) as t(v);
             `);
-            let chunks = new duckdb.StaticChunkIterator(result);
-            while (true) {
-                if (!chunks.nextBlocking()) break;
-                for (const _ of chunks.iterateNumberColumn(0)) {
+            for (const batch of result) {
+                for (const _v of batch.getChildAt(0)!) {
                     noop();
                 }
             }
@@ -131,14 +117,12 @@ function main(db: duckdb.DuckDB) {
         }),
 
         benny.add('DOUBLE', () => {
-            let conn = db.connect();
-            let result = conn.runQuery(`
+            const conn = db.connect();
+            const result = conn.runQuery(`
                 SELECT v::DOUBLE FROM generate_series(0, ${tupleCount}) as t(v);
             `);
-            let chunks = new duckdb.StaticChunkIterator(result);
-            while (true) {
-                if (!chunks.nextBlocking()) break;
-                for (const _ of chunks.iterateNumberColumn(0)) {
+            for (const batch of result) {
+                for (const _v of batch.getChildAt(0)!) {
                     noop();
                 }
             }
@@ -148,17 +132,13 @@ function main(db: duckdb.DuckDB) {
         }),
 
         benny.add('STRING', () => {
-            let conn = db.connect();
-            let result = conn.runQuery(`
+            const conn = db.connect();
+            const result = conn.runQuery(`
                 SELECT v::VARCHAR FROM generate_series(0, ${tupleCount}) as t(v);
             `);
-            let chunks = new duckdb.StaticChunkIterator(result);
-
             bytes = 0;
-
-            while (true) {
-                if (!chunks.nextBlocking()) break;
-                for (const v of chunks.iterateStringColumn(0)) {
+            for (const batch of result) {
+                for (const v of batch.getChildAt(0)!) {
                     bytes += v!.length;
                 }
             }
@@ -178,19 +158,17 @@ function main(db: duckdb.DuckDB) {
     );
 
     benny.suite(
-        `Chunks | 1 column | 1m rows | materialized | measuring only scanning`,
+        `Chunks | 1 column | 1m rows | materialized | only scanning`,
         benny.add('BOOLEAN', () => {
-            let conn = db.connect();
-            let result = conn.runQuery(`
+            const conn = db.connect();
+            const result = conn.runQuery(`
                 SELECT v > 0 FROM generate_series(0, ${tupleCount}) as t(v);
             `);
             bytes = tupleCount * 1;
             conn.disconnect();
             return () => {
-                let chunks = new duckdb.StaticChunkIterator(result);
-                while (true) {
-                    if (!chunks.nextBlocking()) break;
-                    for (const _ of chunks.iterateBooleanColumn(0)) {
+                for (const batch of result) {
+                    for (const _v of batch.getChildAt(0)!) {
                         noop();
                     }
                 }
@@ -198,17 +176,15 @@ function main(db: duckdb.DuckDB) {
         }),
 
         benny.add('TINYINT', () => {
-            let conn = db.connect();
-            let result = conn.runQuery(`
+            const conn = db.connect();
+            const result = conn.runQuery(`
                 SELECT (v & 127)::TINYINT FROM generate_series(0, ${tupleCount}) as t(v);
             `);
             bytes = tupleCount * 1;
             conn.disconnect();
             return () => {
-                let chunks = new duckdb.StaticChunkIterator(result);
-                while (true) {
-                    if (!chunks.nextBlocking()) break;
-                    for (const _ of chunks.iterateNumberColumn(0)) {
+                for (const batch of result) {
+                    for (const _v of batch.getChildAt(0)!) {
                         noop();
                     }
                 }
@@ -216,17 +192,15 @@ function main(db: duckdb.DuckDB) {
         }),
 
         benny.add('SMALLINT', () => {
-            let conn = db.connect();
-            let result = conn.runQuery(`
+            const conn = db.connect();
+            const result = conn.runQuery(`
                 SELECT (v & 32767)::SMALLINT FROM generate_series(0, ${tupleCount}) as t(v);
             `);
             bytes = tupleCount * 2;
             conn.disconnect();
             return () => {
-                let chunks = new duckdb.StaticChunkIterator(result);
-                while (true) {
-                    if (!chunks.nextBlocking()) break;
-                    for (const _ of chunks.iterateNumberColumn(0)) {
+                for (const batch of result) {
+                    for (const _v of batch.getChildAt(0)!) {
                         noop();
                     }
                 }
@@ -234,17 +208,15 @@ function main(db: duckdb.DuckDB) {
         }),
 
         benny.add('INTEGER', () => {
-            let conn = db.connect();
-            let result = conn.runQuery(`
+            const conn = db.connect();
+            const result = conn.runQuery(`
                 SELECT v::INTEGER FROM generate_series(0, ${tupleCount}) as t(v);
             `);
             bytes = tupleCount * 4;
             conn.disconnect();
             return () => {
-                let chunks = new duckdb.StaticChunkIterator(result);
-                while (true) {
-                    if (!chunks.nextBlocking()) break;
-                    for (const _ of chunks.iterateNumberColumn(0)) {
+                for (const batch of result) {
+                    for (const _v of batch.getChildAt(0)!) {
                         noop();
                     }
                 }
@@ -252,17 +224,15 @@ function main(db: duckdb.DuckDB) {
         }),
 
         benny.add('BIGINT', () => {
-            let conn = db.connect();
-            let result = conn.runQuery(`
+            const conn = db.connect();
+            const result = conn.runQuery(`
                 SELECT v::BIGINT FROM generate_series(0, ${tupleCount}) as t(v);
             `);
             bytes = tupleCount * 8;
             conn.disconnect();
             return () => {
-                let chunks = new duckdb.StaticChunkIterator(result);
-                while (true) {
-                    if (!chunks.nextBlocking()) break;
-                    for (const _ of chunks.iterateBigIntColumn(0)) {
+                for (const batch of result) {
+                    for (const _v of batch.getChildAt(0)!) {
                         noop();
                     }
                 }
@@ -270,17 +240,15 @@ function main(db: duckdb.DuckDB) {
         }),
 
         benny.add('HUGEINT', () => {
-            let conn = db.connect();
-            let result = conn.runQuery(`
+            const conn = db.connect();
+            const result = conn.runQuery(`
                 SELECT v::HUGEINT FROM generate_series(0, ${tupleCount}) as t(v);
             `);
             bytes = tupleCount * 16;
             conn.disconnect();
             return () => {
-                let chunks = new duckdb.StaticChunkIterator(result);
-                while (true) {
-                    if (!chunks.nextBlocking()) break;
-                    for (const _ of chunks.iterateHugeIntColumn(0)) {
+                for (const batch of result) {
+                    for (const _v of batch.getChildAt(0)!) {
                         noop();
                     }
                 }
@@ -288,17 +256,15 @@ function main(db: duckdb.DuckDB) {
         }),
 
         benny.add('FLOAT', () => {
-            let conn = db.connect();
-            let result = conn.runQuery(`
+            const conn = db.connect();
+            const result = conn.runQuery(`
                 SELECT v::FLOAT FROM generate_series(0, ${tupleCount}) as t(v);
             `);
             bytes = tupleCount * 4;
             conn.disconnect();
             return () => {
-                let chunks = new duckdb.StaticChunkIterator(result);
-                while (true) {
-                    if (!chunks.nextBlocking()) break;
-                    for (const _ of chunks.iterateNumberColumn(0)) {
+                for (const batch of result) {
+                    for (const _v of batch.getChildAt(0)!) {
                         noop();
                     }
                 }
@@ -306,17 +272,15 @@ function main(db: duckdb.DuckDB) {
         }),
 
         benny.add('DOUBLE', () => {
-            let conn = db.connect();
-            let result = conn.runQuery(`
+            const conn = db.connect();
+            const result = conn.runQuery(`
                 SELECT v::DOUBLE FROM generate_series(0, ${tupleCount}) as t(v);
             `);
             bytes = tupleCount * 8;
             conn.disconnect();
             return () => {
-                let chunks = new duckdb.StaticChunkIterator(result);
-                while (true) {
-                    if (!chunks.nextBlocking()) break;
-                    for (const _ of chunks.iterateNumberColumn(0)) {
+                for (const batch of result) {
+                    for (const _v of batch.getChildAt(0)!) {
                         noop();
                     }
                 }
@@ -324,19 +288,15 @@ function main(db: duckdb.DuckDB) {
         }),
 
         benny.add('STRING', () => {
-            let conn = db.connect();
-            let result = conn.runQuery(`
+            const conn = db.connect();
+            const result = conn.runQuery(`
                 SELECT v::VARCHAR FROM generate_series(0, ${tupleCount}) as t(v);
             `);
-
             conn.disconnect();
             return () => {
                 bytes = 0;
-                let chunks = new duckdb.StaticChunkIterator(result);
-
-                while (true) {
-                    if (!chunks.nextBlocking()) break;
-                    for (const v of chunks.iterateStringColumn(0)) {
+                for (const batch of result) {
+                    for (const v of batch.getChildAt(0)!) {
                         bytes += v!.length;
                     }
                 }
@@ -358,14 +318,12 @@ function main(db: duckdb.DuckDB) {
     benny.suite(
         `Chunks | 1 column | 1m rows | streaming`,
         benny.add('BOOLEAN', () => {
-            let conn = db.connect();
-            let result = conn.sendQuery(`
+            const conn = db.connect();
+            const result = conn.sendQuery(`
                 SELECT v > 0 FROM generate_series(0, ${tupleCount}) as t(v);
             `);
-            let chunks = new duckdb.ChunkStreamIterator(conn, result);
-            while (true) {
-                if (!chunks.nextBlocking()) break;
-                for (const _ of chunks.iterateBooleanColumn(0)) {
+            for (const batch of result) {
+                for (const _v of batch.getChildAt(0)!) {
                     noop();
                 }
             }
@@ -375,14 +333,12 @@ function main(db: duckdb.DuckDB) {
         }),
 
         benny.add('TINYINT', () => {
-            let conn = db.connect();
-            let result = conn.sendQuery(`
+            const conn = db.connect();
+            const result = conn.sendQuery(`
                 SELECT (v & 127)::TINYINT FROM generate_series(0, ${tupleCount}) as t(v);
             `);
-            let chunks = new duckdb.ChunkStreamIterator(conn, result);
-            while (true) {
-                if (!chunks.nextBlocking()) break;
-                for (const _ of chunks.iterateNumberColumn(0)) {
+            for (const batch of result) {
+                for (const _v of batch.getChildAt(0)!) {
                     noop();
                 }
             }
@@ -392,14 +348,12 @@ function main(db: duckdb.DuckDB) {
         }),
 
         benny.add('SMALLINT', () => {
-            let conn = db.connect();
-            let result = conn.sendQuery(`
+            const conn = db.connect();
+            const result = conn.sendQuery(`
                 SELECT (v & 32767)::SMALLINT FROM generate_series(0, ${tupleCount}) as t(v);
             `);
-            let chunks = new duckdb.ChunkStreamIterator(conn, result);
-            while (true) {
-                if (!chunks.nextBlocking()) break;
-                for (const _ of chunks.iterateNumberColumn(0)) {
+            for (const batch of result) {
+                for (const _v of batch.getChildAt(0)!) {
                     noop();
                 }
             }
@@ -409,14 +363,12 @@ function main(db: duckdb.DuckDB) {
         }),
 
         benny.add('INTEGER', () => {
-            let conn = db.connect();
-            let result = conn.sendQuery(`
+            const conn = db.connect();
+            const result = conn.sendQuery(`
                 SELECT v::INTEGER FROM generate_series(0, ${tupleCount}) as t(v);
             `);
-            let chunks = new duckdb.ChunkStreamIterator(conn, result);
-            while (true) {
-                if (!chunks.nextBlocking()) break;
-                for (const _ of chunks.iterateNumberColumn(0)) {
+            for (const batch of result) {
+                for (const _v of batch.getChildAt(0)!) {
                     noop();
                 }
             }
@@ -426,14 +378,12 @@ function main(db: duckdb.DuckDB) {
         }),
 
         benny.add('BIGINT', () => {
-            let conn = db.connect();
-            let result = conn.sendQuery(`
+            const conn = db.connect();
+            const result = conn.sendQuery(`
                 SELECT v::BIGINT FROM generate_series(0, ${tupleCount}) as t(v);
             `);
-            let chunks = new duckdb.ChunkStreamIterator(conn, result);
-            while (true) {
-                if (!chunks.nextBlocking()) break;
-                for (const _ of chunks.iterateBigIntColumn(0)) {
+            for (const batch of result) {
+                for (const _v of batch.getChildAt(0)!) {
                     noop();
                 }
             }
@@ -443,14 +393,12 @@ function main(db: duckdb.DuckDB) {
         }),
 
         benny.add('HUGEINT', () => {
-            let conn = db.connect();
-            let result = conn.sendQuery(`
+            const conn = db.connect();
+            const result = conn.sendQuery(`
                 SELECT v::HUGEINT FROM generate_series(0, ${tupleCount}) as t(v);
             `);
-            let chunks = new duckdb.ChunkStreamIterator(conn, result);
-            while (true) {
-                if (!chunks.nextBlocking()) break;
-                for (const _ of chunks.iterateHugeIntColumn(0)) {
+            for (const batch of result) {
+                for (const _v of batch.getChildAt(0)!) {
                     noop();
                 }
             }
@@ -460,14 +408,12 @@ function main(db: duckdb.DuckDB) {
         }),
 
         benny.add('FLOAT', () => {
-            let conn = db.connect();
-            let result = conn.sendQuery(`
+            const conn = db.connect();
+            const result = conn.sendQuery(`
                 SELECT v::FLOAT FROM generate_series(0, ${tupleCount}) as t(v);
             `);
-            let chunks = new duckdb.ChunkStreamIterator(conn, result);
-            while (true) {
-                if (!chunks.nextBlocking()) break;
-                for (const _ of chunks.iterateNumberColumn(0)) {
+            for (const batch of result) {
+                for (const _v of batch.getChildAt(0)!) {
                     noop();
                 }
             }
@@ -477,14 +423,12 @@ function main(db: duckdb.DuckDB) {
         }),
 
         benny.add('DOUBLE', () => {
-            let conn = db.connect();
-            let result = conn.sendQuery(`
+            const conn = db.connect();
+            const result = conn.sendQuery(`
                 SELECT v::DOUBLE FROM generate_series(0, ${tupleCount}) as t(v);
             `);
-            let chunks = new duckdb.ChunkStreamIterator(conn, result);
-            while (true) {
-                if (!chunks.nextBlocking()) break;
-                for (const _ of chunks.iterateNumberColumn(0)) {
+            for (const batch of result) {
+                for (const _v of batch.getChildAt(0)!) {
                     noop();
                 }
             }
@@ -494,16 +438,13 @@ function main(db: duckdb.DuckDB) {
         }),
 
         benny.add('STRING', () => {
-            let conn = db.connect();
-            let result = conn.sendQuery(`
+            const conn = db.connect();
+            const result = conn.sendQuery(`
                 SELECT v::VARCHAR FROM generate_series(0, ${tupleCount}) as t(v);
             `);
-            let chunks = new duckdb.ChunkStreamIterator(conn, result);
             bytes = 0;
-
-            while (true) {
-                if (!chunks.nextBlocking()) break;
-                for (const v of chunks.iterateStringColumn(0)) {
+            for (const batch of result) {
+                for (const v of batch.getChildAt(0)!) {
                     bytes += v!.length;
                 }
             }
