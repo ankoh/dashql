@@ -109,7 +109,7 @@ export class AsyncDuckDBConnection implements AsyncConnection {
         });
         const header = await this._instance.sendQuery(this._conn, text);
         const iter = new ResultStreamIterator(this._instance, this._conn, header);
-        const reader = arrow.RecordBatchReader.from<T>(iter);
+        const reader = await arrow.RecordBatchReader.from<T>(iter);
         console.assert(reader.isAsync());
         console.assert(reader.isStream());
         return (reader as unknown) as arrow.AsyncRecordBatchStreamReader<T>; // XXX

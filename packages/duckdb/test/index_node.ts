@@ -10,14 +10,14 @@ let worker: Worker | null = null;
 
 beforeAll(async () => {
     db = new duckdb_serial.DuckDB(
-        new duckdb_serial.ConsoleLogger(),
+        new duckdb_serial.VoidLogger(),
         duckdb_serial.DefaultDuckDBRuntime,
         path.resolve(__dirname, './duckdb.wasm'),
     );
     await db.open();
 
     worker = new Worker(path.resolve(__dirname, './duckdb-node-parallel.worker.js'));
-    adb = new duckdb_parallel.AsyncDuckDB(new duckdb_parallel.ConsoleLogger(), worker);
+    adb = new duckdb_parallel.AsyncDuckDB(new duckdb_parallel.VoidLogger(), worker);
     await adb.open(path.resolve(__dirname, './duckdb.wasm'));
 });
 
@@ -36,7 +36,7 @@ jasmine.DEFAULT_TIMEOUT_INTERVAL = 30000;
 //testProxies(() => db!);
 //testBindings(() => db!);
 testIterator(() => db!);
-//testAsyncBatchStream(() => adb!);
+testAsyncBatchStream(() => adb!);
 //testFilesystem(() => adb!, path.resolve(__dirname, '../../../data/uni/out'));
 //testExtractCSV(
 //    () => adb!,

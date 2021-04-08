@@ -113,7 +113,7 @@ export abstract class AsyncDuckDBDispatcher implements Logger {
                             type: WorkerResponseType.QUERY_RESULT,
                             data: result,
                         },
-                        [result],
+                        [result.buffer],
                     );
                     break;
                 }
@@ -126,7 +126,7 @@ export abstract class AsyncDuckDBDispatcher implements Logger {
                             type: WorkerResponseType.QUERY_START,
                             data: result,
                         },
-                        [result],
+                        [result.buffer],
                     );
                     break;
                 }
@@ -139,7 +139,7 @@ export abstract class AsyncDuckDBDispatcher implements Logger {
                             type: WorkerResponseType.QUERY_RESULT_CHUNK,
                             data: result,
                         },
-                        [result],
+                        [result.buffer],
                     );
                     break;
                 }
