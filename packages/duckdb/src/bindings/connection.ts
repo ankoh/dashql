@@ -15,8 +15,11 @@ class ResultStreamIterator implements Iterable<Uint8Array> {
     /** Reached end of stream? */
     _eos: boolean;
 
+    _n: number;
+
     constructor(protected bindings: IDuckDBBindings, protected conn: number) {
         this._eos = false;
+        this._n = 0;
     }
 
     next(): IteratorResult<Uint8Array> {
@@ -24,6 +27,7 @@ class ResultStreamIterator implements Iterable<Uint8Array> {
             return { done: true, value: null };
         }
         const bufferI8 = this.bindings.fetchQueryResults(this.conn);
+        debugger;
         const bufferI32 = new Int32Array(bufferI8.buffer);
         const isEOS = bufferI32.length == 0 || (bufferI32.length == 2 && bufferI32[0] == -1 && bufferI32[1] == 0);
         if (isEOS) {
@@ -31,6 +35,7 @@ class ResultStreamIterator implements Iterable<Uint8Array> {
             return { done: true, value: null };
         }
         return {
+            done: false,
             value: bufferI8,
         };
     }
@@ -74,8 +79,9 @@ export class DuckDBConnection {
     ): arrow.RecordBatchStreamReader<T> {
         const header = this._bindings.sendQuery(this._conn, text);
         const iter = new ResultStreamIterator(this._bindings, this._conn);
-        console.log('hm');
+        console.log('from start');
         const reader = arrow.RecordBatchReader.from<T>(iter);
+        console.log('from end');
         console.log(reader);
         console.assert(reader.isSync());
         console.assert(reader.isStream());
