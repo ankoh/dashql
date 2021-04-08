@@ -17,14 +17,12 @@ async function main(db: duckdb.AsyncDuckDB) {
     await benny.suite(
         `Chunks | 1 column | 1m rows | materialized`,
         benny.add('BOOLEAN', async () => {
-            let conn = await db.connect();
-            let result = await conn.runQuery(`
-            SELECT v > 0 FROM generate_series(0, ${tupleCount}) as t(v);
+            const conn = await db.connect();
+            const result = await conn.runQuery(`
+                SELECT v > 0 FROM generate_series(0, ${tupleCount}) as t(v);
             `);
-            let chunks = new duckdb.StaticChunkIterator(result);
-            while (true) {
-                if (!chunks.nextBlocking()) break;
-                for (const _ of chunks.iterateBooleanColumn(0)) {
+            for (const batch of result) {
+                for (const _v of batch.getChildAt(0)!) {
                     noop();
                 }
             }
@@ -33,14 +31,12 @@ async function main(db: duckdb.AsyncDuckDB) {
         }),
 
         benny.add('TINYINT', async () => {
-            let conn = await db.connect();
-            let result = await conn.runQuery(`
+            const conn = await db.connect();
+            const result = await conn.runQuery(`
             SELECT (v & 127)::TINYINT FROM generate_series(0, ${tupleCount}) as t(v);
             `);
-            let chunks = new duckdb.StaticChunkIterator(result);
-            while (true) {
-                if (!chunks.nextBlocking()) break;
-                for (const _ of chunks.iterateNumberColumn(0)) {
+            for (const batch of result) {
+                for (const _v of batch.getChildAt(0)!) {
                     noop();
                 }
             }
@@ -49,34 +45,26 @@ async function main(db: duckdb.AsyncDuckDB) {
         }),
 
         benny.add('SMALLINT', async () => {
-            try {
-                let conn = await db.connect();
-                let result = await conn.runQuery(`
+            const conn = await db.connect();
+            const result = await conn.runQuery(`
                 SELECT (v & 32767)::SMALLINT FROM generate_series(0, ${tupleCount}) as t(v);
             `);
-                let chunks = new duckdb.StaticChunkIterator(result);
-                while (true) {
-                    if (!chunks.nextBlocking()) break;
-                    for (const _ of chunks.iterateNumberColumn(0)) {
-                        noop();
-                    }
+            for (const batch of result) {
+                for (const _v of batch.getChildAt(0)!) {
+                    noop();
                 }
-                await conn.disconnect();
-            } catch (e) {
-                console.error(e);
             }
+            await conn.disconnect();
             bytes = tupleCount * 2;
         }),
 
         benny.add('INTEGER', async () => {
-            let conn = await db.connect();
-            let result = await conn.runQuery(`
+            const conn = await db.connect();
+            const result = await conn.runQuery(`
                 SELECT v::INTEGER FROM generate_series(0, ${tupleCount}) as t(v);
             `);
-            let chunks = new duckdb.StaticChunkIterator(result);
-            while (true) {
-                if (!chunks.nextBlocking()) break;
-                for (const _ of chunks.iterateNumberColumn(0)) {
+            for (const batch of result) {
+                for (const _v of batch.getChildAt(0)!) {
                     noop();
                 }
             }
@@ -85,14 +73,12 @@ async function main(db: duckdb.AsyncDuckDB) {
         }),
 
         benny.add('BIGINT', async () => {
-            let conn = await db.connect();
-            let result = await conn.runQuery(`
+            const conn = await db.connect();
+            const result = await conn.runQuery(`
                 SELECT v::BIGINT FROM generate_series(0, ${tupleCount}) as t(v);
             `);
-            let chunks = new duckdb.StaticChunkIterator(result);
-            while (true) {
-                if (!chunks.nextBlocking()) break;
-                for (const _ of chunks.iterateBigIntColumn(0)) {
+            for (const batch of result) {
+                for (const _v of batch.getChildAt(0)!) {
                     noop();
                 }
             }
@@ -101,14 +87,12 @@ async function main(db: duckdb.AsyncDuckDB) {
         }),
 
         benny.add('HUGEINT', async () => {
-            let conn = await db.connect();
-            let result = await conn.runQuery(`
+            const conn = await db.connect();
+            const result = await conn.runQuery(`
                 SELECT v::HUGEINT FROM generate_series(0, ${tupleCount}) as t(v);
             `);
-            let chunks = new duckdb.StaticChunkIterator(result);
-            while (true) {
-                if (!chunks.nextBlocking()) break;
-                for (const _ of chunks.iterateBigIntColumn(0)) {
+            for (const batch of result) {
+                for (const _v of batch.getChildAt(0)!) {
                     noop();
                 }
             }
@@ -117,14 +101,12 @@ async function main(db: duckdb.AsyncDuckDB) {
         }),
 
         benny.add('FLOAT', async () => {
-            let conn = await db.connect();
-            let result = await conn.runQuery(`
+            const conn = await db.connect();
+            const result = await conn.runQuery(`
                 SELECT v::FLOAT FROM generate_series(0, ${tupleCount}) as t(v);
             `);
-            let chunks = new duckdb.StaticChunkIterator(result);
-            while (true) {
-                if (!chunks.nextBlocking()) break;
-                for (const _ of chunks.iterateNumberColumn(0)) {
+            for (const batch of result) {
+                for (const _v of batch.getChildAt(0)!) {
                     noop();
                 }
             }
@@ -133,14 +115,12 @@ async function main(db: duckdb.AsyncDuckDB) {
         }),
 
         benny.add('DOUBLE', async () => {
-            let conn = await db.connect();
-            let result = await conn.runQuery(`
+            const conn = await db.connect();
+            const result = await conn.runQuery(`
                 SELECT v::DOUBLE FROM generate_series(0, ${tupleCount}) as t(v);
             `);
-            let chunks = new duckdb.StaticChunkIterator(result);
-            while (true) {
-                if (!chunks.nextBlocking()) break;
-                for (const _ of chunks.iterateNumberColumn(0)) {
+            for (const batch of result) {
+                for (const _v of batch.getChildAt(0)!) {
                     noop();
                 }
             }
@@ -149,16 +129,14 @@ async function main(db: duckdb.AsyncDuckDB) {
         }),
 
         benny.add('STRING', async () => {
-            let conn = await db.connect();
-            let result = await conn.runQuery(`
+            const conn = await db.connect();
+            const result = await conn.runQuery(`
                 SELECT v::VARCHAR FROM generate_series(0, ${tupleCount}) as t(v);
             `);
-            let chunks = new duckdb.StaticChunkIterator(result);
-
             bytes = 0;
-            while (true) {
-                if (!chunks.nextBlocking()) break;
-                for (const v of chunks.iterateStringColumn(0)) {
+            for (const batch of result) {
+                for (const v of batch.getChildAt(0)!) {
+                    noop();
                     bytes += v!.length;
                 }
             }
@@ -180,14 +158,12 @@ async function main(db: duckdb.AsyncDuckDB) {
     await benny.suite(
         `Chunks | 1 column | 1m rows | streaming`,
         benny.add('BOOLEAN', async () => {
-            let conn = await db.connect();
-            let result = await conn.sendQuery(`
+            const conn = await db.connect();
+            const result = await conn.sendQuery(`
                 SELECT v > 0 FROM generate_series(0, ${tupleCount}) as t(v);
             `);
-            let chunks = new duckdb.AsyncChunkStreamIterator(conn, result);
-            while (true) {
-                if (!(await chunks.nextAsync())) break;
-                for (const _ of chunks.iterateBooleanColumn(0)) {
+            for await (const batch of result) {
+                for (const _v of batch.getChildAt(0)!) {
                     noop();
                 }
             }
@@ -196,14 +172,12 @@ async function main(db: duckdb.AsyncDuckDB) {
         }),
 
         benny.add('TINYINT', async () => {
-            let conn = await db.connect();
-            let result = await conn.sendQuery(`
+            const conn = await db.connect();
+            const result = await conn.sendQuery(`
                 SELECT (v & 127)::TINYINT FROM generate_series(0, ${tupleCount}) as t(v);
             `);
-            let chunks = new duckdb.AsyncChunkStreamIterator(conn, result);
-            while (true) {
-                if (!(await chunks.nextAsync())) break;
-                for (const _ of chunks.iterateNumberColumn(0)) {
+            for await (const batch of result) {
+                for (const _v of batch.getChildAt(0)!) {
                     noop();
                 }
             }
@@ -212,14 +186,12 @@ async function main(db: duckdb.AsyncDuckDB) {
         }),
 
         benny.add('SMALLINT', async () => {
-            let conn = await db.connect();
-            let result = await conn.sendQuery(`
+            const conn = await db.connect();
+            const result = await conn.sendQuery(`
                 SELECT (v & 32767)::SMALLINT FROM generate_series(0, ${tupleCount}) as t(v);
             `);
-            let chunks = new duckdb.AsyncChunkStreamIterator(conn, result);
-            while (true) {
-                if (!(await chunks.nextAsync())) break;
-                for (const _ of chunks.iterateNumberColumn(0)) {
+            for await (const batch of result) {
+                for (const _v of batch.getChildAt(0)!) {
                     noop();
                 }
             }
@@ -228,14 +200,12 @@ async function main(db: duckdb.AsyncDuckDB) {
         }),
 
         benny.add('INTEGER', async () => {
-            let conn = await db.connect();
-            let result = await conn.sendQuery(`
+            const conn = await db.connect();
+            const result = await conn.sendQuery(`
                 SELECT v::INTEGER FROM generate_series(0, ${tupleCount}) as t(v);
             `);
-            let chunks = new duckdb.AsyncChunkStreamIterator(conn, result);
-            while (true) {
-                if (!(await chunks.nextAsync())) break;
-                for (const _ of chunks.iterateNumberColumn(0)) {
+            for await (const batch of result) {
+                for (const _v of batch.getChildAt(0)!) {
                     noop();
                 }
             }
@@ -244,14 +214,12 @@ async function main(db: duckdb.AsyncDuckDB) {
         }),
 
         benny.add('BIGINT', async () => {
-            let conn = await db.connect();
-            let result = await conn.sendQuery(`
+            const conn = await db.connect();
+            const result = await conn.sendQuery(`
                 SELECT v::BIGINT FROM generate_series(0, ${tupleCount}) as t(v);
             `);
-            let chunks = new duckdb.AsyncChunkStreamIterator(conn, result);
-            while (true) {
-                if (!(await chunks.nextAsync())) break;
-                for (const _ of chunks.iterateBigIntColumn(0)) {
+            for await (const batch of result) {
+                for (const _v of batch.getChildAt(0)!) {
                     noop();
                 }
             }
@@ -260,14 +228,12 @@ async function main(db: duckdb.AsyncDuckDB) {
         }),
 
         benny.add('HUGEINT', async () => {
-            let conn = await db.connect();
-            let result = await conn.sendQuery(`
+            const conn = await db.connect();
+            const result = await conn.sendQuery(`
                 SELECT v::HUGEINT FROM generate_series(0, ${tupleCount}) as t(v);
             `);
-            let chunks = new duckdb.AsyncChunkStreamIterator(conn, result);
-            while (true) {
-                if (!(await chunks.nextAsync())) break;
-                for (const _ of chunks.iterateBigIntColumn(0)) {
+            for await (const batch of result) {
+                for (const _v of batch.getChildAt(0)!) {
                     noop();
                 }
             }
@@ -276,14 +242,12 @@ async function main(db: duckdb.AsyncDuckDB) {
         }),
 
         benny.add('FLOAT', async () => {
-            let conn = await db.connect();
-            let result = await conn.sendQuery(`
+            const conn = await db.connect();
+            const result = await conn.sendQuery(`
                 SELECT v::FLOAT FROM generate_series(0, ${tupleCount}) as t(v);
             `);
-            let chunks = new duckdb.AsyncChunkStreamIterator(conn, result);
-            while (true) {
-                if (!(await chunks.nextAsync())) break;
-                for (const _ of chunks.iterateNumberColumn(0)) {
+            for await (const batch of result) {
+                for (const _v of batch.getChildAt(0)!) {
                     noop();
                 }
             }
@@ -292,14 +256,12 @@ async function main(db: duckdb.AsyncDuckDB) {
         }),
 
         benny.add('DOUBLE', async () => {
-            let conn = await db.connect();
-            let result = await conn.sendQuery(`
+            const conn = await db.connect();
+            const result = await conn.sendQuery(`
                 SELECT v::DOUBLE FROM generate_series(0, ${tupleCount}) as t(v);
             `);
-            let chunks = new duckdb.AsyncChunkStreamIterator(conn, result);
-            while (true) {
-                if (!(await chunks.nextAsync())) break;
-                for (const _ of chunks.iterateNumberColumn(0)) {
+            for await (const batch of result) {
+                for (const _v of batch.getChildAt(0)!) {
                     noop();
                 }
             }
@@ -308,15 +270,13 @@ async function main(db: duckdb.AsyncDuckDB) {
         }),
 
         benny.add('STRING', async () => {
-            let conn = await db.connect();
-            let result = await conn.sendQuery(`
+            const conn = await db.connect();
+            const result = await conn.sendQuery(`
                 SELECT v::VARCHAR FROM generate_series(0, ${tupleCount}) as t(v);
             `);
-            let chunks = new duckdb.AsyncChunkStreamIterator(conn, result);
             bytes = 0;
-            while (true) {
-                if (!(await chunks.nextAsync())) break;
-                for (const v of chunks.iterateStringColumn(0)) {
+            for await (const batch of result) {
+                for (const v of batch.getChildAt(0)!) {
                     bytes += v!.length;
                 }
             }
