@@ -1,5 +1,4 @@
 import * as proto from '@dashql/proto';
-import * as duckdb from '@dashql/duckdb/dist/duckdb.module.js';
 import { ActionHandle, Statement, PlanObject } from '../model';
 import { ProgramActionLogic } from './action_logic';
 import { ActionContext } from './action_context';
@@ -11,22 +10,5 @@ export class UnnamedSelectLogic extends ProgramActionLogic {
 
     public prepare(_context: ActionContext, _planObjects: PlanObject[]): void {}
     public willExecute(_context: ActionContext) {}
-    public async execute(context: ActionContext): Promise<void> {
-        const script = this.script;
-        if (!script) return;
-
-        const db = context.platform.database;
-        await db.use(async (c: duckdb.AsyncConnection) => {
-            const result = await c.runQuery(script);
-
-            const chunkIter = new duckdb.AsyncChunkStreamIterator(c, result);
-            while (await chunkIter.nextAsync()) {
-                console.log(`rows ${chunkIter.rowCount} columns ${chunkIter.columnCount}`);
-                let row = 0;
-                for (const v of chunkIter.iterateNumberColumn(0)) {
-                    console.log(`[${row++}] ${v}`);
-                }
-            }
-        });
-    }
+    public async execute(context: ActionContext): Promise<void> {}
 }

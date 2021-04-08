@@ -1,7 +1,7 @@
 import * as proto from '@dashql/proto';
-import * as duckdb from '@dashql/duckdb';
 import * as model from '../model';
 import * as error from '../error';
+import * as arrow from 'apache-arrow';
 import { VizComposer } from '../viz/viz_composer';
 import { ProgramActionLogic, SetupActionLogic } from './action_logic';
 import { ActionContext } from './action_context';
@@ -54,7 +54,7 @@ export abstract class VizActionLogic extends ProgramActionLogic {
 
 export class CreateVizActionLogic extends VizActionLogic {
     /// The promise to get the row count
-    _rowCountPromise: Promise<duckdb.Value[]> | null = null;
+    _rowCountPromise: Promise<arrow.Column> | null = null;
 
     constructor(action_id: model.ActionHandle, action: proto.action.ProgramAction, statement: model.Statement) {
         super(action_id, action, statement);
@@ -132,7 +132,7 @@ export class CreateVizActionLogic extends VizActionLogic {
 
 export class UpdateVizActionLogic extends VizActionLogic {
     /// The promise to get the row count
-    _rowCountPromise: Promise<duckdb.Value[]> | null = null;
+    _rowCountPromise: Promise<arrow.Column> | null = null;
 
     constructor(action_id: model.ActionHandle, action: proto.action.ProgramAction, statement: model.Statement) {
         super(action_id, action, statement);

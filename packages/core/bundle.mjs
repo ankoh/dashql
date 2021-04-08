@@ -32,6 +32,7 @@ const TARGET = 'es2020';
 const EXTERNALS = [
     '@dashql/duckdb',
     '@dashql/proto',
+    'apache-arrow',
     'flatbuffers',
     'axios',
     'hash-wasm',

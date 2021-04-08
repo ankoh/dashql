@@ -1,6 +1,7 @@
 import * as proto from '@dashql/proto';
 import * as duckdb from '@dashql/duckdb/dist/duckdb.module.js';
 import * as model from '../model';
+import * as arrow from 'apache-arrow';
 import * as Immutable from 'immutable';
 import { ProgramActionLogic, SetupActionLogic } from './action_logic';
 import { ActionContext } from './action_context';
@@ -11,15 +12,16 @@ export async function collectTableInfo(
     info: model.DatabaseTable,
 ): Promise<model.DatabaseTable> {
     // Get column names and types
-    const limit0 = await conn.runQuery(`SELECT * FROM ${info.tableNameShort} LIMIT 0`);
+    const limit0Batches = await conn.runQuery(`SELECT * FROM ${info.tableNameShort} LIMIT 0`);
+    const limit0Table = await arrow.Table.from(limit0Batches);
     const columnNames: string[] = [];
     const columnNameMapping: Map<string, number> = new Map();
-    const columnTypes: duckdb.SQLType[] = [];
-    for (let ci = 0; ci < limit0.columnNamesLength(); ++ci) {
-        const name = limit0.columnNames(ci);
-        columnNames.push(name);
-        columnNameMapping.set(name, ci);
-        columnTypes.push(duckdb.getSQLType(limit0.columnTypes(ci)));
+    const columnTypes: arrow.DataType[] = [];
+    for (let ci = 0; ci < limit0Table.schema.fields.length; ++ci) {
+        const field = limit0Table.schema.fields[ci];
+        columnNames.push(field.name);
+        columnNameMapping.set(field.name, ci);
+        columnTypes.push(field.type);
     }
     const timeUpdated = new Date();
     return {

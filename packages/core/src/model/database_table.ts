@@ -2,7 +2,7 @@
 
 import * as Immutable from 'immutable';
 import { PlanObject } from './plan_object';
-import * as duckdb from '@dashql/duckdb';
+import * as arrow from 'apache-arrow';
 
 /// A database table
 export interface DatabaseTable extends PlanObject {
@@ -15,9 +15,9 @@ export interface DatabaseTable extends PlanObject {
     /// The column name indices
     readonly columnNameMapping: Map<string, number>;
     /// The column type
-    readonly columnTypes: duckdb.SQLType[];
+    readonly columnTypes: arrow.DataType[];
     /// The statistics
-    readonly statistics: Immutable.Map<TableStatisticsType, duckdb.Value[]>;
+    readonly statistics: Immutable.Map<TableStatisticsType, arrow.Column>;
 }
 
 /// A column summary type
