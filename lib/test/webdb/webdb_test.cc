@@ -27,6 +27,20 @@ TEST(WebDB, InvalidSQL) {
     ASSERT_FALSE(expected.ok());
 }
 
+TEST(WebDB, RunQuery) {
+    auto db = make_shared<duckdb::DuckDB>();
+    WebDB::Connection conn{db};
+    auto buffer = conn.RunQuery("SELECT (v & 127)::TINYINT FROM generate_series(0, 2000) as t(v);");
+    ASSERT_TRUE(buffer.ok());
+}
+
+TEST(WebDB, SendQuery) {
+    auto db = make_shared<duckdb::DuckDB>();
+    WebDB::Connection conn{db};
+    auto buffer = conn.SendQuery("SELECT (v & 127)::TINYINT FROM generate_series(0, 2000) as t(v);");
+    ASSERT_TRUE(buffer.ok());
+}
+
 TEST(WebDB, LoadParquet) {
     auto db = make_shared<duckdb::DuckDB>();
     db->LoadExtension<duckdb::ParquetExtension>();
