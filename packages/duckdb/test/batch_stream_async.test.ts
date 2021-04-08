@@ -35,6 +35,62 @@ export function testAsyncBatchStream(db: () => duckdb.AsyncDuckDB) {
                 }
                 expect(i).toBe(testRows + 1);
             });
+
+            it('SMALLINT', async () => {
+                const result = await conn.sendQuery(`
+                    SELECT (v & 32767)::SMALLINT AS v FROM generate_series(0, ${testRows}) as t(v);
+                `);
+                let i = 0;
+                for await (const batch of result) {
+                    expect(batch.numCols).toBe(1);
+                    for (const v of batch.getChildAt(0)!) {
+                        expect(v).toBe(i++ & 32767);
+                    }
+                }
+                expect(i).toBe(testRows + 1);
+            });
+
+            it('INTEGER', async () => {
+                const result = await conn.sendQuery(`
+                    SELECT v::INTEGER AS v FROM generate_series(0, ${testRows}) as t(v);
+                `);
+                let i = 0;
+                for await (const batch of result) {
+                    expect(batch.numCols).toBe(1);
+                    for (const v of batch.getChildAt(0)!) {
+                        expect(v).toBe(i++);
+                    }
+                }
+                expect(i).toBe(testRows + 1);
+            });
+
+            it('BIGINT', async () => {
+                const result = await conn.sendQuery(`
+                    SELECT v::BIGINT AS v FROM generate_series(0, ${testRows}) as t(v);
+                `);
+                let i = 0;
+                for await (const batch of result) {
+                    expect(batch.numCols).toBe(1);
+                    for (const v of batch.getChildAt(0)!) {
+                        expect(v.valueOf()).toBe(i++);
+                    }
+                }
+                expect(i).toBe(testRows + 1);
+            });
+
+            it('STRING', async () => {
+                const result = await conn.sendQuery(`
+                    SELECT v::VARCHAR AS v FROM generate_series(0, ${testRows}) as t(v);
+                `);
+                let i = 0;
+                for await (const batch of result) {
+                    expect(batch.numCols).toBe(1);
+                    for (const v of batch.getChildAt(0)!) {
+                        expect(v).toBe(String(i++));
+                    }
+                }
+                expect(i).toBe(testRows + 1);
+            });
         });
     });
 }
