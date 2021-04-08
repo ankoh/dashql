@@ -9,11 +9,10 @@
         "@dashql/proto": "^0.0.5",
         "@dashql/duckdb": "^0.0.23",
         "benny": "^3.6.15",
-        "web-worker": "^1.0.0"
+        "web-worker": "^1.0.0",
+        "kleur": "^4.1.4"
     },
     "devDependencies": {
-        "@types/benchmark": "^2.1.0",
-        "kleur": "^4.1.4",
         "typescript": "^4.2.4"
     },
     "optionalDependencies": {
