@@ -1,6 +1,6 @@
 import * as Immutable from 'immutable';
 import * as React from 'react';
-import * as proto from '@dashql/proto';
+import * as arrow from 'apache-arrow';
 import * as core from '@dashql/core';
 import * as model from '../../model';
 import { connect } from 'react-redux';
@@ -18,22 +18,18 @@ interface Props {
 
 export class VegaRenderer extends React.Component<Props> {
     protected renderContent(table: core.model.DatabaseTable, width: number, height: number) {
-        const vega = (result: proto.duckdb.QueryResult, width: number, height: number) => (
-            <core.access.ProxyProvider result={result}>
-                {rows => (
-                    <Vega
-                        style={{
-                            width: width,
-                            height: height,
-                        }}
-                        spec={this.props.card.vegaSpec as any}
-                        data={{ source: rows }}
-                        width={width}
-                        height={height}
-                        actions={false}
-                    />
-                )}
-            </core.access.ProxyProvider>
+        const vega = (result: arrow.Table, width: number, height: number) => (
+            <Vega
+                style={{
+                    width: width,
+                    height: height,
+                }}
+                spec={this.props.card.vegaSpec as any}
+                data={{ source: result.toArray() }}
+                width={width}
+                height={height}
+                actions={false}
+            />
         );
         console.assert(!!this.props.card.dataSource);
 
