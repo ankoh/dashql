@@ -32,7 +32,7 @@ fs.copyFile(path.resolve(src, 'bindings', 'duckdb_wasm.wasm'), path.resolve(dist
 // ESM
 
 const TARGET = 'es2020';
-const EXTERNALS = ['flatbuffers', '@dashql/proto', 'apache-arrow'];
+const EXTERNALS = ['apache-arrow'];
 
 console.log('[ ESBUILD ] duckdb.module.js');
 esbuild.build({
@@ -68,6 +68,7 @@ esbuild.build({
     minify: true,
     define: { 'process.env.NODE_ENV': '"production"' },
     sourcemap: 'external',
+    external: [...EXTERNALS],
 });
 
 console.log('[ ESBUILD ] duckdb-browser-parallel.js');
@@ -81,6 +82,7 @@ esbuild.build({
     bundle: true,
     minify: true,
     sourcemap: 'external',
+    external: [...EXTERNALS],
 });
 
 console.log('[ ESBUILD ] duckdb-browser-parallel.worker.js');
@@ -109,6 +111,7 @@ esbuild.build({
     bundle: true,
     minify: true,
     sourcemap: 'external',
+    external: [...EXTERNALS],
 });
 
 console.log('[ ESBUILD ] duckdb-node-parallel.js');
@@ -121,6 +124,7 @@ esbuild.build({
     bundle: true,
     minify: true,
     sourcemap: 'external',
+    external: [...EXTERNALS],
 });
 
 console.log('[ ESBUILD ] duckdb-node-parallel.worker.js');
@@ -133,6 +137,7 @@ esbuild.build({
     bundle: true,
     minify: true,
     sourcemap: 'both',
+    external: [...EXTERNALS],
 });
 
 // -------------------------------

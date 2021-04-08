@@ -64,12 +64,12 @@ export class DuckDBConnection {
         this._bindings.disconnect(this._conn);
     }
 
-    public runQuery<T extends { [key: string]: arrow.DataType } = any>(text: string): arrow.RecordBatchFileReader<T> {
+    public runQuery<T extends { [key: string]: arrow.DataType } = any>(text: string): arrow.Table<T> {
         const buffer = this._bindings.runQuery(this._conn, text);
         const reader = arrow.RecordBatchReader.from<T>(buffer);
         console.assert(reader.isSync());
         console.assert(reader.isFile());
-        return reader as arrow.RecordBatchFileReader;
+        return arrow.Table.from(reader as arrow.RecordBatchFileReader);
     }
 
     public sendQuery<T extends { [key: string]: arrow.DataType } = any>(

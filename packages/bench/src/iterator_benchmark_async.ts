@@ -86,20 +86,6 @@ async function main(db: duckdb.AsyncDuckDB) {
             bytes = tupleCount * 8;
         }),
 
-        benny.add('HUGEINT', async () => {
-            const conn = await db.connect();
-            const result = await conn.runQuery(`
-                SELECT v::HUGEINT FROM generate_series(0, ${tupleCount}) as t(v);
-            `);
-            for (const batch of result) {
-                for (const _v of batch.getChildAt(0)!) {
-                    noop();
-                }
-            }
-            await conn.disconnect();
-            bytes = tupleCount * 16;
-        }),
-
         benny.add('FLOAT', async () => {
             const conn = await db.connect();
             const result = await conn.runQuery(`
@@ -225,20 +211,6 @@ async function main(db: duckdb.AsyncDuckDB) {
             }
             await conn.disconnect();
             bytes = tupleCount * 8;
-        }),
-
-        benny.add('HUGEINT', async () => {
-            const conn = await db.connect();
-            const result = await conn.sendQuery(`
-                SELECT v::HUGEINT FROM generate_series(0, ${tupleCount}) as t(v);
-            `);
-            for await (const batch of result) {
-                for (const _v of batch.getChildAt(0)!) {
-                    noop();
-                }
-            }
-            await conn.disconnect();
-            bytes = tupleCount * 16;
         }),
 
         benny.add('FLOAT', async () => {
