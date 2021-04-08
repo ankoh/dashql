@@ -92,6 +92,22 @@ export function testAsyncBatchStream(db: () => duckdb.AsyncDuckDB) {
                 expect(i).toBe(testRows + 1);
             });
         });
+
+        describe('scripts', () => {
+            it('test1', async () => {
+                const result = await conn.sendQuery(`
+                    SELECT v::INTEGER AS x, (sin(v) * 100 + 100)::INTEGER AS y FROM generate_series(0, ${testRows}) as t(v)
+                `);
+                let i = 0;
+                for await (const batch of result) {
+                    expect(batch.numCols).toBe(2);
+                    for (const row of batch) {
+                        expect(row!.x).toBe(i++);
+                    }
+                }
+                expect(i).toBe(testRows + 1);
+            });
+        });
     });
 
     describe('Arrow Record-Batches Column-Major', () => {
