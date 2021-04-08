@@ -60,5 +60,5 @@ export type WorkerResponseVariant =
     | WorkerResponse<WorkerResponseType.CONNECTION_INFO, number>
     | WorkerResponse<WorkerResponseType.QUERY_RESULT, Uint8Array>
     | WorkerResponse<WorkerResponseType.QUERY_RESULT_CHUNK, Uint8Array>
-    | WorkerResponse<WorkerResponseType.QUERY_START, null>
+    | WorkerResponse<WorkerResponseType.QUERY_START, Uint8Array>
     | WorkerResponse<WorkerResponseType.QUERY_PLAN, Uint8Array>;

@@ -48,27 +48,18 @@ class FFIResponseBuffer {
         }
     }
 
-    void Store(FFIResponse& response, arrow::Result<nonstd::span<const uint8_t>> result) {
-        Clear();
-        response.statusCode = static_cast<uint64_t>(result.status().code());
-        if (result.ok()) {
-            auto value = result.ValueUnsafe();
-            response.dataPtr = reinterpret_cast<uintptr_t>(value.data());
-            response.dataSize = reinterpret_cast<uintptr_t>(value.size());
-        } else {
-            status_message_ = result.status().message();
-            response.dataPtr = reinterpret_cast<uintptr_t>(status_message_.data());
-            response.dataSize = reinterpret_cast<uintptr_t>(status_message_.size());
-        }
-    }
-
     void Store(FFIResponse& response, arrow::Result<std::shared_ptr<arrow::Buffer>> result) {
         Clear();
         response.statusCode = static_cast<uint64_t>(result.status().code());
         if (result.ok()) {
             arrow_buffer_ = result.ValueUnsafe();
-            response.dataPtr = reinterpret_cast<uintptr_t>(arrow_buffer_->data());
-            response.dataSize = arrow_buffer_->size();
+            if (arrow_buffer_) {
+                response.dataPtr = reinterpret_cast<uintptr_t>(arrow_buffer_->data());
+                response.dataSize = arrow_buffer_->size();
+            } else {
+                response.dataPtr = 0;
+                response.dataSize = 0;
+            }
         } else {
             status_message_ = result.status().message();
             response.dataPtr = reinterpret_cast<uintptr_t>(status_message_.data());
