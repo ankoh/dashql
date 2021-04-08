@@ -16,8 +16,9 @@
     },
     "dependencies": {
         "@dashql/core": "^0.0.2",
-        "@dashql/proto": "^0.0.5",
         "@dashql/duckdb": "^0.0.22",
+        "@dashql/proto": "^0.0.5",
+        "apache-arrow": "^3.0.0",
         "axios": "^0.21.1",
         "bootstrap": "^4.6.0",
         "classnames": "^2.3.1",

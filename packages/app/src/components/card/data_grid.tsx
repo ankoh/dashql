@@ -1,6 +1,6 @@
 import * as React from 'react';
-import * as duckdb from '@dashql/duckdb/dist/duckdb.module.js';
 import * as core from '@dashql/core';
+import * as arrow from 'apache-arrow';
 import {
     Grid,
     GridCellProps,
@@ -12,7 +12,6 @@ import {
 import { VirtualScrollbars, PositionValues } from '../virtual_scrollbars';
 
 import styles from './data_grid.module.css';
-import { ChunkIterator } from '@dashql/duckdb/dist/duckdb.module.js';
 
 type Props = {
     table: core.model.DatabaseTable;
@@ -63,7 +62,7 @@ export class DataGrid extends React.Component<Props, State> {
     /// Get the row count
     public get rowCount(): number {
         const key = core.model.buildTableStatisticsKey(core.model.TableStatisticsType.COUNT_STAR);
-        return this.props.table.statistics.get(key)![0].castAsInteger() || 0;
+        return this.props.table.statistics.get(key)!.get(0) || 0;
     }
 
     /// Scroll handler
@@ -244,66 +243,33 @@ export class DataGrid extends React.Component<Props, State> {
         for (let columnIndex = props.columnStartIndex; columnIndex <= props.columnStopIndex; columnIndex++) {
             const columnDatum = props.columnSizeAndPositionManager.getSizeAndPositionOfCell(columnIndex);
 
-            const iter = new duckdb.StaticChunkIterator(data);
             const offset = props.rowStartIndex - this.props.data!.request.begin;
             const limit = props.rowStopIndex - props.rowStartIndex + 1;
+            let rowIndex = props.rowStartIndex;
 
-            this.iterateAllBlocking(iter, offset, limit, (chunkStart: number, skipHere: number, rowsHere: number) => {
-                let chunkRow = 0;
-                for (const v of iter.iterateNumberColumn(columnIndex, skipHere, rowsHere)) {
-                    const rowIndex = props.rowStartIndex + chunkStart + chunkRow;
-                    const rowDatum = props.rowSizeAndPositionManager.getSizeAndPositionOfCell(rowIndex);
-                    const cell = this.renderAvailableDataCell(
-                        props,
-                        rowIndex,
-                        rowDatum,
-                        columnIndex,
-                        columnDatum,
-                        canCacheStyle,
-                        v,
-                        (key, style, value) => (
-                            <div key={key} className={styles.cell_data} style={{ ...style }}>
-                                {value}
-                            </div>
-                        ),
-                    );
-                    if (cell) {
-                        cells.push(cell);
-                    }
-                    chunkRow++;
+            for (const value of data.getColumnAt(columnIndex)!.slice(offset, offset + limit)) {
+                const rowDatum = props.rowSizeAndPositionManager.getSizeAndPositionOfCell(rowIndex);
+                const cell = this.renderAvailableDataCell(
+                    props,
+                    rowIndex,
+                    rowDatum,
+                    columnIndex,
+                    columnDatum,
+                    canCacheStyle,
+                    value,
+                    (key, style, value) => (
+                        <div key={key} className={styles.cell_data} style={{ ...style }}>
+                            {value}
+                        </div>
+                    ),
+                );
+                if (cell) {
+                    cells.push(cell);
                 }
-            });
+                ++rowIndex;
+            }
         }
         return cells;
-    }
-
-    /** Helper to iterate over a blocking chunk iterator */
-    private iterateAllBlocking(
-        iter: ChunkIterator,
-        offset: number,
-        limit: number,
-        fn: (start: number, skipHere: number, rowsHere: number) => void,
-    ) {
-        let skip = offset;
-        let remaining = limit;
-        let start = 0;
-
-        while (remaining && iter.nextBlocking()) {
-            const chunkRows = iter.currentChunk!.rowCount();
-            const skipHere = Math.min(skip, chunkRows);
-            skip -= skipHere;
-            if (skipHere == chunkRows) {
-                continue;
-            }
-            const rowsHere = Math.min(chunkRows - skipHere, remaining);
-
-            // Run the function
-            fn(start, skipHere, rowsHere);
-
-            // Advance the chunk start
-            start += chunkRows - skipHere;
-            remaining -= rowsHere;
-        }
     }
 
     /// Compute the column width
