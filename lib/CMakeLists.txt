@@ -46,12 +46,13 @@ SET(CMAKE_MODULE_PATH
   ${CMAKE_MODULE_PATH}
 )
 
+include("${CMAKE_SOURCE_DIR}/cmake/duckdb.cmake")
+include("${CMAKE_SOURCE_DIR}/cmake/duckdb-parquet.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/double-conversion.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/flatc.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/boost.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/thrift.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/arrow.cmake")
-include("${CMAKE_SOURCE_DIR}/cmake/duckdb-parquet.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/flatbuffers.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/benchmark.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/binaryen.cmake")
@@ -87,56 +88,6 @@ set(DUCKDB_INCLUDE_DIR "${DUCKDB_SOURCE_DIR}/src/include")
 set(DUCKDB_UTF8PROC_INCLUDE_DIR "${DUCKDB_SOURCE_DIR}/third_party/utf8proc/include")
 set(DUCKDB_FMT_INCLUDE_DIR "${DUCKDB_SOURCE_DIR}/third_party/fmt/include")
 set(DUCKDB_AMALGAMATION "${DUCKDB_SOURCE_DIR}/src/amalgamation/duckdb.cpp")
-
-if (EMSCRIPTEN) 
-    # Load duckdb.wasm archive
-    include(FetchContent)
-    FetchContent_Declare(
-        duckdb_wasm_prebuilt
-        URL "https://github.com/dashql/duckdb/releases/download/0.2.4.1/duckdb-wasm32-nothreads.zip"
-        URL_HASH "SHA256=1ac85c1e2e7fadcd86a5a3befff87aae2d1d2ad615d664e2228357777ff8a2a9"
-    )
-    FetchContent_GetProperties(duckdb_wasm_prebuilt)
-    if(NOT duckdb_wasm_prebuilt_POPULATED)
-        FetchContent_Populate(duckdb_wasm_prebuilt)
-    endif()
-
-    # Command to extract archive
-    set(DUCKDB_WASM_ARCHIVE ${duckdb_wasm_prebuilt_SOURCE_DIR}/duckdb-wasm32-nothreads.zip)
-    set(DUCKDB_WASM_OUT ${CMAKE_BINARY_DIR}/duckdb.wasm)
-    add_custom_target(
-        duckdb_wasm_prebuilt
-        COMMAND ${CMAKE_COMMAND} -E remove ${DUCKDB_WASM_OUT}
-        COMMAND ${CMAKE_COMMAND} -E tar xvz ${DUCKDB_WASM_ARCHIVE}
-        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-    )
-
-    # INTERFACE library to link prebuilt wasmt
-    add_library(duckdb INTERFACE)
-    add_dependencies(duckdb duckdb_wasm_prebuilt)
-    target_compile_options(duckdb INTERFACE -DDUCKDB_NO_THREADS=1)
-    target_link_libraries(duckdb INTERFACE ${CMAKE_BINARY_DIR}/duckdb.wasm)
-    set_property(TARGET duckdb APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${DUCKDB_INCLUDE_DIR})
-    set_property(TARGET duckdb APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${DUCKDB_UTF8PROC_INCLUDE_DIR})
-    set_property(TARGET duckdb APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${DUCKDB_FMT_INCLUDE_DIR})
-
-else ()
-
-    # Amalgamate DuckDB
-    find_package(Python3 COMPONENTS Interpreter REQUIRED)
-    add_custom_command(OUTPUT ${DUCKDB_AMALGAMATION}
-        COMMAND ${Python3_EXECUTABLE} "${DUCKDB_SOURCE_DIR}/scripts/amalgamation.py"
-        WORKING_DIRECTORY "${DUCKDB_SOURCE_DIR}"
-    )
-
-    # Compile library
-    add_library(duckdb ${DUCKDB_AMALGAMATION})
-    target_compile_options(duckdb PUBLIC -DDUCKDB_NO_THREADS=1)
-    set_property(TARGET duckdb APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${DUCKDB_INCLUDE_DIR})
-    set_property(TARGET duckdb APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${DUCKDB_UTF8PROC_INCLUDE_DIR})
-    set_property(TARGET duckdb APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${DUCKDB_FMT_INCLUDE_DIR})
-
-endif ()
     
 # ---------------------------------------------------------------------------
 # Proto
@@ -345,7 +296,7 @@ add_library(dashql_test
     ${CMAKE_SOURCE_DIR}/src/test/grammar_tests.cc
 )
 
-target_link_libraries(dashql_common dashql_proto flatbuffers spdlog rapidjson arrow)
+target_link_libraries(dashql_common dashql_proto flatbuffers spdlog rapidjson arrow duckdb)
 target_link_libraries(dashql_analyzer dashql_parser dashql_common dashql_proto spdlog duckdb parquet_extension rapidjson arrow)
 target_link_libraries(dashql_dataframe dashql_common dashql_proto binaryen)
 target_link_libraries(duckdb_web dashql_common dashql_proto duckdb parquet_extension spdlog arrow)
