@@ -29,8 +29,8 @@ export function testAsyncBatchStream(db: () => duckdb.AsyncDuckDB) {
                 let i = 0;
                 const table = await arrow.Table.from(result);
                 expect(table.numCols).toBe(1);
-                for (const row of table.getColumnAt(0)!) {
-                    expect(row).toBe(i++ & 127);
+                for (const v of table.getColumnAt(0)!) {
+                    expect(v).toBe(i++ & 127);
                 }
                 expect(i).toBe(testRows + 1);
             });

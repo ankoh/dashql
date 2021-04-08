@@ -123,10 +123,10 @@ export abstract class AsyncDuckDBDispatcher implements Logger {
                         {
                             messageId: this._nextMessageId++,
                             requestId: request.messageId,
-                            type: WorkerResponseType.QUERY_RESULT,
-                            data: result,
+                            type: WorkerResponseType.QUERY_START,
+                            data: null,
                         },
-                        [result],
+                        [],
                     );
                     break;
                 }

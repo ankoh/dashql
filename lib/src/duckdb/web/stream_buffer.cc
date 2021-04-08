@@ -52,15 +52,15 @@ arrow::Status StreamBuffer::Write(const void* data, int64_t nbytes) {
         }
         memcpy(mutable_data_ + position_, data, nbytes);
         position_ += nbytes;
+        std::cout << "WRITE " << position_ - nbytes << " -> " << position_ << std::endl;
     }
     return arrow::Status::OK();
 }
 
-arrow::Status StreamBuffer::Clear() {
+void StreamBuffer::Clear() {
     is_open_ = true;
     position_ = 0;
     mutable_data_ = buffer_->mutable_data();
-    return arrow::Status::OK();
 }
 
 arrow::Status StreamBuffer::Reset(int64_t initial_capacity, arrow::MemoryPool* pool) {
@@ -71,6 +71,8 @@ arrow::Status StreamBuffer::Reset(int64_t initial_capacity, arrow::MemoryPool* p
     mutable_data_ = buffer_->mutable_data();
     return arrow::Status::OK();
 }
+
+nonstd::span<const uint8_t> StreamBuffer::Access() { return {buffer_->data(), static_cast<size_t>(position_)}; }
 
 }  // namespace web
 }  // namespace duckdb

@@ -2,19 +2,19 @@
 
 #include "duckdb/web/webdb.h"
 
-#include <arrow/c/bridge.h>
-#include <arrow/type_fwd.h>
-
 #include <cstdio>
 #include <memory>
 #include <optional>
 #include <string_view>
 #include <unordered_map>
 
+#include "arrow/buffer.h"
+#include "arrow/c/bridge.h"
 #include "arrow/io/memory.h"
 #include "arrow/ipc/writer.h"
 #include "arrow/result.h"
 #include "arrow/status.h"
+#include "arrow/type_fwd.h"
 #include "duckdb.hpp"
 #include "duckdb/common/arrow.hpp"
 #include "duckdb/main/query_result.hpp"
@@ -26,7 +26,7 @@ namespace web {
 
 /// Get the static webdb instance
 WebDB& WebDB::GetInstance() {
-    static std::unique_ptr<WebDB> db = nullptr;
+    static std::unique_ptr<WebDB> db = std::make_unique<WebDB>();
     return *db;
 }
 
@@ -45,12 +45,11 @@ arrow::Result<std::shared_ptr<arrow::Buffer>> WebDB::Connection::RunQuery(std::s
         current_query_result_.reset();
         current_schema_.reset();
 
-        ARROW_ASSIGN_OR_RAISE(auto out, arrow::io::BufferOutputStream::Create());
-
         // Configure the output writer
         ArrowSchema raw_schema;
         result->ToArrowSchema(&raw_schema);
         ARROW_ASSIGN_OR_RAISE(auto schema, arrow::ImportSchema(&raw_schema));
+        ARROW_ASSIGN_OR_RAISE(auto out, arrow::io::BufferOutputStream::Create());
         ARROW_ASSIGN_OR_RAISE(auto writer, arrow::ipc::MakeFileWriter(out, schema));
 
         // Write chunk stream
@@ -70,45 +69,59 @@ arrow::Result<std::shared_ptr<arrow::Buffer>> WebDB::Connection::RunQuery(std::s
     }
 }
 
-arrow::Result<std::shared_ptr<arrow::Buffer>> WebDB::Connection::SendQuery(std::string_view text) {
+arrow::Status WebDB::Connection::SendQuery(std::string_view text) {
     try {
         // Send the query
         auto result = connection_.SendQuery(std::string{text});
         if (!result->success) return arrow::Status{arrow::StatusCode::ExecutionError, move(result->error)};
         current_query_result_ = move(result);
         current_schema_.reset();
+        ARROW_RETURN_NOT_OK(output_stream_buffer_.Reset());
 
         // Import the schema
         ArrowSchema raw_schema;
-        result->ToArrowSchema(&raw_schema);
+        current_query_result_->ToArrowSchema(&raw_schema);
         ARROW_ASSIGN_OR_RAISE(current_schema_, arrow::ImportSchema(&raw_schema));
-
-        // Serialize the schema
-        return arrow::ipc::SerializeSchema(*current_schema_);
+        ARROW_ASSIGN_OR_RAISE(current_batch_writer_,
+                              arrow::ipc::MakeStreamWriter(&output_stream_buffer_, current_schema_));
+        return arrow::Status::OK();
     } catch (std::exception& e) {
         return arrow::Status{arrow::StatusCode::ExecutionError, e.what()};
     }
 }
 
-arrow::Result<std::shared_ptr<arrow::Buffer>> WebDB::Connection::FetchQueryResults() {
+arrow::Result<nonstd::span<const uint8_t>> WebDB::Connection::FetchQueryResults() {
     try {
         // Fetch data if a query is active
+        output_stream_buffer_.Clear();
         std::unique_ptr<duckdb::DataChunk> chunk;
-        nonstd::span<duckdb::LogicalType> types;
-        if (current_query_result_ != nullptr) {
-            chunk = current_query_result_->Fetch();
-            types = current_query_result_->types;
+        if (current_query_result_ == nullptr) {
+            return output_stream_buffer_.Access();
         }
-        if (!current_query_result_->success)
-            return arrow::Status{arrow::StatusCode::ExecutionError, move(current_query_result_->error)};
 
-        // Import the data chunk as record batch
+        // Fetch next result chunk
+        chunk = current_query_result_->Fetch();
+        if (!current_query_result_->success) {
+            return arrow::Status{arrow::StatusCode::ExecutionError, move(current_query_result_->error)};
+        }
+
+        // Reached end?
+        if (!chunk) {
+            current_batch_writer_->Close().ok();
+            current_batch_writer_.reset();
+            current_query_result_.reset();
+            current_schema_.reset();
+            return output_stream_buffer_.Access();
+        }
+
+        // Serialize the record batch
         ArrowArray array;
         chunk->ToArrowArray(&array);
         ARROW_ASSIGN_OR_RAISE(auto batch, arrow::ImportRecordBatch(&array, current_schema_));
+        ARROW_RETURN_NOT_OK(current_batch_writer_->WriteRecordBatch(*batch));
 
-        // Serialize the record batch
-        return arrow::ipc::SerializeRecordBatch(*batch, arrow::ipc::IpcWriteOptions::Defaults());
+        // Return the pointer to the stream buffer
+        return output_stream_buffer_.Access();
     } catch (std::exception& e) {
         return arrow::Status{arrow::StatusCode::ExecutionError, e.what()};
     }

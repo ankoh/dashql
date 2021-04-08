@@ -14,7 +14,6 @@ using namespace duckdb::web;
 
 namespace {
 
-/// A packed response
 struct FFIResponse {
     /// The status code
     uint64_t statusCode;
@@ -24,7 +23,6 @@ struct FFIResponse {
     uint64_t dataSize;
 } __attribute((packed));
 
-/// A response buffer
 class FFIResponseBuffer {
    protected:
     /// The status message
@@ -33,16 +31,13 @@ class FFIResponseBuffer {
     std::shared_ptr<arrow::Buffer> arrow_buffer_;
 
    public:
-    /// Constructor
     FFIResponseBuffer() : status_message_(), arrow_buffer_() { Clear(); }
 
-    /// Clear the response buffer
     void Clear() {
         status_message_.clear();
         arrow_buffer_.reset();
     }
 
-    /// Store the detached flatbuffer
     void Store(FFIResponse& response, arrow::Status status) {
         Clear();
         response.statusCode = static_cast<uint64_t>(status.code());
@@ -53,7 +48,20 @@ class FFIResponseBuffer {
         }
     }
 
-    /// Store the detached flatbuffer
+    void Store(FFIResponse& response, arrow::Result<nonstd::span<const uint8_t>> result) {
+        Clear();
+        response.statusCode = static_cast<uint64_t>(result.status().code());
+        if (result.ok()) {
+            auto value = result.ValueUnsafe();
+            response.dataPtr = reinterpret_cast<uintptr_t>(value.data());
+            response.dataSize = reinterpret_cast<uintptr_t>(value.size());
+        } else {
+            status_message_ = result.status().message();
+            response.dataPtr = reinterpret_cast<uintptr_t>(status_message_.data());
+            response.dataSize = reinterpret_cast<uintptr_t>(status_message_.size());
+        }
+    }
+
     void Store(FFIResponse& response, arrow::Result<std::shared_ptr<arrow::Buffer>> result) {
         Clear();
         response.statusCode = static_cast<uint64_t>(result.status().code());
@@ -88,7 +96,10 @@ using BufferHdl = uintptr_t;
 void duckdb_web_clear_response() { FFIResponseBuffer::GetInstance().Clear(); }
 
 /// Create a conn
-ConnectionHdl duckdb_web_connect() { return reinterpret_cast<ConnectionHdl>(WebDB::GetInstance().Connect()); }
+ConnectionHdl duckdb_web_connect() {
+    auto conn = reinterpret_cast<ConnectionHdl>(WebDB::GetInstance().Connect());
+    return conn;
+}
 /// End a conn
 void duckdb_web_disconnect(ConnectionHdl connHdl) {
     auto c = reinterpret_cast<WebDB::Connection*>(connHdl);
@@ -111,7 +122,7 @@ void duckdb_web_run_query(FFIResponse* packed, ConnectionHdl connHdl, const char
 void duckdb_web_send_query(FFIResponse* packed, ConnectionHdl connHdl, const char* script) {
     auto c = reinterpret_cast<WebDB::Connection*>(connHdl);
     auto r = c->SendQuery(script);
-    FFIResponseBuffer::GetInstance().Store(*packed, r.status());
+    FFIResponseBuffer::GetInstance().Store(*packed, std::move(r));
 }
 
 /// Fetch query results
