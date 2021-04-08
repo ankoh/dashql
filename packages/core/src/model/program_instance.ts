@@ -3,7 +3,6 @@
 import * as Immutable from 'immutable';
 import { Program } from './program';
 import * as proto from '@dashql/proto';
-import * as duckdb from '@dashql/duckdb';
 
 export class ProgramInstance {
     /// The program
@@ -12,8 +11,6 @@ export class ProgramInstance {
     public readonly inputValues: Immutable.List<any>;
     /// The instantiated program
     public readonly annotations: proto.analyzer.ProgramAnnotations;
-    /// The evaluated nodes
-    public readonly evaluatedNodes: Map<number, duckdb.Value>;
     /// The time when the program was created
     public readonly createdAt: Date;
     /// The cards
@@ -28,49 +25,12 @@ export class ProgramInstance {
         this.program = program;
         this.inputValues = inputValues;
         this.annotations = annotations;
-        this.evaluatedNodes = new Map();
         this.createdAt = new Date();
         this.cards = new Map();
 
-        for (let i = 0; i < annotations.evaluatedNodesLength(); ++i) {
-            const node = annotations.evaluatedNodes(i)!;
-            this.evaluatedNodes.set(node.nodeId(), duckdb.Value.FromProto(node.value()!));
-        }
         for (let i = 0; i < annotations.cardsLength(); ++i) {
             const spec = annotations.cards(i)!;
             this.cards.set(spec.statementId(), spec);
         }
-    }
-
-    /// Read a node as a SQL value
-    public readNodeValue(i: number, v: duckdb.Value | null = null): duckdb.Value {
-        if (this.evaluatedNodes.has(i)) {
-            return this.evaluatedNodes.get(i)!;
-        }
-        v = v || new duckdb.Value();
-        v.setNull();
-        const n = this.program.getNode(i);
-        const nt = n.nodeType;
-        switch (nt) {
-            case proto.syntax.NodeType.BOOL:
-            case proto.syntax.NodeType.UI32:
-            case proto.syntax.NodeType.UI32_BITMAP:
-                v.setNumber(n.assumeNumber());
-                break;
-            case proto.syntax.NodeType.STRING_REF:
-                v.setString(n.assumeString());
-                break;
-            default:
-                if (nt > proto.syntax.NodeType.ENUM_KEYS_ && nt < proto.syntax.NodeType.OBJECT_KEYS_) {
-                    v.setNumber(n.assumeNumber());
-                }
-                break;
-        }
-        return v;
-    }
-
-    public readNodeValueIfValid(i: number, v: duckdb.Value | null = null): duckdb.Value | null {
-        if (i == 0xffffffff) return null;
-        return this.readNodeValue(i, v);
     }
 }

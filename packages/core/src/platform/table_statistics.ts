@@ -1,13 +1,14 @@
 import * as duckdb from '@dashql/duckdb/dist/duckdb.module.js';
 import * as model from '../model';
 import * as platform from '../platform';
+import * as arrow from 'apache-arrow';
 
 /// A column statistics request
 export class TableStatisticsRequest {
     /// The statistics type
     _key: model.TableStatisticsKey;
     /// The promise resolvers
-    _promiseResolvers: ((value: duckdb.Value[]) => void)[];
+    _promiseResolvers: ((value: arrow.Column) => void)[];
     /// The promise rejecters
     _promiseRejecters: ((e: any) => void)[];
     /// The value id
@@ -37,9 +38,9 @@ export interface TableStatisticsResolver {
     /// Resolve the table info
     resolveTableInfo(): model.DatabaseTable | null;
     /// Request table statistics
-    request(type: model.TableStatisticsType, columnId: number): Promise<duckdb.Value[]>;
+    request(type: model.TableStatisticsType, columnId: number): Promise<arrow.Column>;
     /// Evaluate table statistics
-    evaluate(): Promise<Map<model.TableStatisticsKey, duckdb.Value[]>>;
+    evaluate(): Promise<Map<model.TableStatisticsKey, arrow.Column>>;
 }
 
 /// A queue for table statistics
@@ -101,7 +102,7 @@ export class DatabaseTableStatistics implements TableStatisticsResolver {
     }
 
     /// Request table statistics
-    public async request(type: model.TableStatisticsType, columnId: number = 0): Promise<duckdb.Value[]> {
+    public async request(type: model.TableStatisticsType, columnId: number = 0): Promise<arrow.Column> {
         const key = model.buildTableStatisticsKey(type, columnId);
         const prev = this._requests.get(key);
         const table = this._databaseManager.resolveTableInfo(this._qualifiedTableName);
@@ -129,9 +130,9 @@ export class DatabaseTableStatistics implements TableStatisticsResolver {
         }
     }
 
-    public async evaluate(): Promise<Map<model.TableStatisticsKey, duckdb.Value[]>> {
+    public async evaluate(): Promise<Map<model.TableStatisticsKey, arrow.Column>> {
         // Resolve the table info
-        const stats: Map<model.TableStatisticsKey, duckdb.Value[]> = new Map();
+        const stats: Map<model.TableStatisticsKey, arrow.Column> = new Map();
         const tableInfo = this._databaseManager.resolveTableInfo(this._qualifiedTableName);
         if (!tableInfo) return stats;
 
@@ -143,8 +144,8 @@ export class DatabaseTableStatistics implements TableStatisticsResolver {
                 const result = await this._databaseManager.use(async (conn: duckdb.AsyncConnection) => {
                     return await conn.runQuery(query);
                 });
-                const iter = new duckdb.StaticChunkIterator(result);
-                if (!iter.nextBlocking() || iter.rowCount == 0) {
+                const table = arrow.Table.from(result);
+                if (table.count() == 0) {
                     // Received no values, reject all requests
                     for (const req of this._associativeAggregates) {
                         for (const reject of req._promiseRejecters) {
@@ -155,8 +156,8 @@ export class DatabaseTableStatistics implements TableStatisticsResolver {
                 } else {
                     // Update the statistics
                     for (const req of this._associativeAggregates) {
-                        if (req._valueId >= iter.columnCount) continue;
-                        stats.set(req.key, [iter.readValue(0, req._valueId)]);
+                        if (req._valueId >= table.numCols) continue;
+                        stats.set(req.key, table.getColumnAt(req._valueId));
                     }
                 }
             } catch (e) {
@@ -177,15 +178,8 @@ export class DatabaseTableStatistics implements TableStatisticsResolver {
                 const result = await this._databaseManager.use(async (conn: duckdb.AsyncConnection) => {
                     return await conn.runQuery(query);
                 });
-                // Collect the values
-                let v = [];
-                const iter = new duckdb.StaticChunkIterator(result);
-                while (iter.nextBlocking()) {
-                    for (let i = 0; i < iter.rowCount; ++i) {
-                        v.push(iter.readValue(i, 0));
-                    }
-                }
-                stats.set(req.key, v);
+                const table = arrow.Table.from(result);
+                stats.set(req.key, table.getColumnAt(0));
             } catch (e) {
                 // Reject all promises
                 for (const reject of req._promiseRejecters) {

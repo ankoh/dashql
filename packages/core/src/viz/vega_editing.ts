@@ -1,56 +1,12 @@
 import * as platform from '../platform';
 import * as model from '../model';
-import * as duckdb from '@dashql/duckdb';
-import * as proto from '@dashql/proto';
+import * as arrow from 'apache-arrow';
 
 export abstract class VegaLiteEditOperation {
     /// Prepare the completion
     abstract prepare(): void;
     /// Apply the edit operation
     abstract apply(): Promise<void>;
-}
-
-function readDomainValues(type: duckdb.SQLType, values: duckdb.Value[], out: model.DomainValues) {
-    let cast: (v: duckdb.Value) => model.DomainValue;
-    switch (type.typeId) {
-        case proto.duckdb.SQLTypeID.BOOLEAN:
-        case proto.duckdb.SQLTypeID.TINYINT:
-        case proto.duckdb.SQLTypeID.SMALLINT:
-        case proto.duckdb.SQLTypeID.INTEGER:
-            cast = (v: duckdb.Value) => v.castAsInteger();
-            break;
-
-        case proto.duckdb.SQLTypeID.FLOAT:
-        case proto.duckdb.SQLTypeID.DECIMAL:
-        case proto.duckdb.SQLTypeID.DOUBLE:
-            cast = (v: duckdb.Value) => v.castAsFloat();
-            break;
-
-        case proto.duckdb.SQLTypeID.CHAR:
-        case proto.duckdb.SQLTypeID.VARCHAR:
-        case proto.duckdb.SQLTypeID.VARBINARY:
-        case proto.duckdb.SQLTypeID.BLOB:
-            cast = (v: duckdb.Value) => v.castAsString();
-            break;
-
-        case proto.duckdb.SQLTypeID.DATE:
-        case proto.duckdb.SQLTypeID.BIGINT:
-        case proto.duckdb.SQLTypeID.TIMESTAMP:
-        case proto.duckdb.SQLTypeID.INTERVAL:
-        case proto.duckdb.SQLTypeID.HUGEINT:
-        case proto.duckdb.SQLTypeID.TIME:
-            cast = (v: duckdb.Value) => v.castAsString();
-            console.warn('shortcut');
-            break;
-
-        default:
-            cast = (v: duckdb.Value) => null;
-            break;
-    }
-    while (out.length < values.length) out.push(null);
-    for (let i = 0; i < values.length; ++i) {
-        out[i] = cast(values[i]);
-    }
 }
 
 export class ResolveMinMaxDomain extends VegaLiteEditOperation {
@@ -61,7 +17,7 @@ export class ResolveMinMaxDomain extends VegaLiteEditOperation {
     /// The domain object
     _out: model.DomainValues;
     /// The promises
-    _promises: Promise<duckdb.Value[]>[];
+    _promises: Promise<arrow.Column>[];
 
     constructor(stats: platform.TableStatisticsResolver, attribute: number, out: model.DomainValues) {
         super();
@@ -84,10 +40,7 @@ export class ResolveMinMaxDomain extends VegaLiteEditOperation {
     /// Evaluate table statistics and update the domain spec
     async apply(): Promise<void> {
         const results = await Promise.all(this._promises!);
-        const flatResults = results.map(r => r[0]);
-        const table = this._statistics.resolveTableInfo()!;
-        const type = table.columnTypes[this._attribute];
-        readDomainValues(type, flatResults, this._out);
+        this._out = results.map(r => r[0]);
     }
 }
 
@@ -99,7 +52,7 @@ export class ResolveCategorialDomain extends VegaLiteEditOperation {
     /// The domain object
     _out: model.DomainValues;
     /// The promise
-    _promise: Promise<duckdb.Value[]> | null;
+    _promise: Promise<arrow.Column> | null;
 
     constructor(stats: platform.TableStatisticsResolver, attribute: number, out: model.DomainValues) {
         super();
@@ -116,9 +69,6 @@ export class ResolveCategorialDomain extends VegaLiteEditOperation {
 
     /// Evaluate table statistics and update the domain spec
     async apply(): Promise<void> {
-        const results = await this._promise!;
-        const table = this._statistics.resolveTableInfo()!;
-        const type = table.columnTypes[this._attribute];
-        readDomainValues(type, [results[0]], this._out);
+        this._out = (await this._promise!).toArray();
     }
 }

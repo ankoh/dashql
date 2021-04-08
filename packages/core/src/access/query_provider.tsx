@@ -1,21 +1,19 @@
 import * as duckdb from '@dashql/duckdb/dist/duckdb.module.js';
 import * as React from 'react';
 import * as platform from '../platform';
-import * as proto from '@dashql/proto';
+import * as arrow from 'apache-arrow';
 
 export interface Query {
     before?: string;
     data: string;
     after?: string;
-    options?: duckdb.QueryRunOptions;
 }
 
 function queryEquals(l: Query, r: Query) {
     return (
         l.data == r.data &&
         ((!l.before && !r.before) || l.before == r.before) &&
-        ((!l.after && !r.after) || l.after == r.after) &&
-        duckdb.queryOptionsEqual(l.options, r.options)
+        ((!l.after && !r.after) || l.after == r.after)
     );
 }
 
@@ -31,14 +29,14 @@ interface Props {
     /// The in-flight component
     inFlightComponent?: ((query: Query) => React.ReactNode) | null;
     /// The children
-    children: (result: proto.duckdb.QueryResult) => React.ReactNode;
+    children: (result: arrow.Table) => React.ReactNode;
 }
 
 interface State {
     /// The query
     query: Query | null;
     /// The query result
-    queryResult: proto.duckdb.QueryResult | null;
+    queryResult: arrow.Table | null;
     /// The error
     error: string | null;
 }
@@ -53,7 +51,7 @@ export class QueryProvider extends React.Component<Props, State> {
     /// The scheduled query
     _inFlightQuery: Query | null = null;
     /// The query promise
-    _queryPromise: Promise<proto.duckdb.QueryResult> | null = null;
+    _queryPromise: Promise<arrow.Table> | null = null;
 
     constructor(props: Props) {
         super(props);
@@ -64,7 +62,7 @@ export class QueryProvider extends React.Component<Props, State> {
         };
     }
 
-    protected querySucceeded(result: proto.duckdb.QueryResult) {
+    protected querySucceeded(result: arrow.Table) {
         const query = this._inFlightQuery;
         this._inFlightQuery = null;
         this._queryPromise = null;
@@ -95,12 +93,12 @@ export class QueryProvider extends React.Component<Props, State> {
         this._inFlightQuery = this.props.query;
         const query = this.props.query;
         this._queryPromise = this.props.database.use(async conn => {
-            let result: proto.duckdb.QueryResult;
+            let result: arrow.Table;
             try {
                 if (query.before) {
                     await conn.runQuery(query.before);
                 }
-                result = await conn.runQuery(query.data, query.options);
+                result = arrow.Table.from(await conn.runQuery(query.data));
                 return result;
             } catch (e) {
                 console.error(e);
