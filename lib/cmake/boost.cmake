@@ -10,8 +10,8 @@ if (EMSCRIPTEN)
 
     ExternalProject_Add(boost_ep
         BUILD_IN_SOURCE 1
-        URL http://dl.bintray.com/boostorg/release/1.68.0/source/boost_1_68_0.tar.gz
-        URL_HASH "SHA256=da3411ea45622579d419bfda66f45cd0f8c32a181d84adfa936f5688388995cf"
+        URL http://dl.bintray.com/boostorg/release/1.75.0/source/boost_1_75_0.tar.gz
+        URL_HASH "SHA256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         PREFIX "${CMAKE_BINARY_DIR}/third_party/boost"
         INSTALL_DIR "${CMAKE_BINARY_DIR}/third_party/boost/install"
         CONFIGURE_COMMAND ./bootstrap.sh
