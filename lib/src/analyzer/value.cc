@@ -19,9 +19,7 @@ namespace dashql {
 
 namespace {
 
-duckdb::web::proto::SQLType NOTYPE() {
-    return duckdb::web::proto::SQLType(duckdb::web::proto::SQLTypeID::INVALID, 0, 0);
-}
+proto::sql::SQLType NOTYPE() { return proto::sql::SQLType(proto::sql::SQLTypeID::INVALID, 0, 0); }
 
 }  // namespace
 
@@ -29,14 +27,14 @@ duckdb::web::proto::SQLType NOTYPE() {
 Value::Value() : logical_type_(NOTYPE()), physical_type_(PhysicalType::NULL_), data_str_buffer_(), data_str_() {}
 
 // Constructor
-Value::Value(duckdb::web::proto::SQLTypeID type)
-    : logical_type_(duckdb::web::proto::SQLType(type, 0, 0)),
+Value::Value(proto::sql::SQLTypeID type)
+    : logical_type_(proto::sql::SQLType(type, 0, 0)),
       physical_type_(PhysicalType::NULL_),
       data_str_buffer_(),
       data_str_() {}
 
 // Constructor
-Value::Value(duckdb::web::proto::SQLType type)
+Value::Value(proto::sql::SQLType type)
     : logical_type_(type), physical_type_(PhysicalType::NULL_), data_str_buffer_(), data_str_() {}
 
 // Move construction
@@ -99,7 +97,7 @@ void Value::SetData(std::string_view value) {
 /// Cast as bool
 std::optional<bool> Value::CastAsBool() const {
     if (physical_type_ == PhysicalType::NULL_) return std::nullopt;
-    using T = duckdb::web::proto::SQLTypeID;
+    using T = proto::sql::SQLTypeID;
     switch (logical_type_.type_id()) {
         case T::BOOLEAN:
         case T::BIGINT:
@@ -124,7 +122,7 @@ std::optional<bool> Value::CastAsBool() const {
 /// Cast as integer
 std::optional<int64_t> Value::CastAsUI64() const {
     if (physical_type_ == PhysicalType::NULL_) return std::nullopt;
-    using T = duckdb::web::proto::SQLTypeID;
+    using T = proto::sql::SQLTypeID;
     switch (logical_type_.type_id()) {
         case T::BOOLEAN:
         case T::BIGINT:
@@ -147,15 +145,15 @@ std::optional<int64_t> Value::CastAsUI64() const {
 }
 
 void Value::PrintType(std::ostream& out) const {
-    using T = duckdb::web::proto::SQLTypeID;
-    out << duckdb::web::proto::EnumNameSQLTypeID(logical_type_.type_id());
+    using T = proto::sql::SQLTypeID;
+    out << proto::sql::EnumNameSQLTypeID(logical_type_.type_id());
     if (logical_type_.type_id() == T::DECIMAL) {
         out << "(" << logical_type_.width() << "," << logical_type_.scale() << ")";
     }
 }
 
 void Value::PrintValue(std::ostream& out) const {
-    using T = duckdb::web::proto::SQLTypeID;
+    using T = proto::sql::SQLTypeID;
     switch (logical_type_.type_id()) {
         case T::BOOLEAN:
             out << ((data_.i64 != 0) ? "true" : "false");
@@ -188,7 +186,7 @@ void Value::PrintValue(std::ostream& out) const {
 }
 
 void Value::PrintValueAsScript(std::ostream& out) const {
-    using T = duckdb::web::proto::SQLTypeID;
+    using T = proto::sql::SQLTypeID;
     switch (logical_type_.type_id()) {
         case T::BOOLEAN:
             out << ((data_.i64 != 0) ? "true" : "false");
@@ -317,30 +315,30 @@ Value Value::CopyDeep() const {
 }
 
 // Pack as flatbuffer
-flatbuffers::Offset<duckdb::web::proto::SQLValue> Value::Pack(flatbuffers::FlatBufferBuilder& builder) const {
+flatbuffers::Offset<proto::sql::SQLValue> Value::Pack(flatbuffers::FlatBufferBuilder& builder) const {
     std::optional<flatbuffers::Offset<flatbuffers::String>> str = std::nullopt;
     if (!data_str_.empty()) str = builder.CreateString(data_str_);
-    duckdb::web::proto::SQLValueBuilder v{builder};
+    proto::sql::SQLValueBuilder v{builder};
     v.add_logical_type(&logical_type_);
     v.add_is_null(is_null());
     switch (physical_type_) {
         case Value::PhysicalType::NULL_:
-            v.add_physical_type(duckdb::web::proto::PhysicalType::NULL_);
+            v.add_physical_type(proto::sql::PhysicalType::NULL_);
             break;
         case Value::PhysicalType::I64:
-            v.add_physical_type(duckdb::web::proto::PhysicalType::I64);
+            v.add_physical_type(proto::sql::PhysicalType::I64);
             v.add_data_i64(data_.i64);
             break;
         case Value::PhysicalType::F64:
-            v.add_physical_type(duckdb::web::proto::PhysicalType::F64);
+            v.add_physical_type(proto::sql::PhysicalType::F64);
             v.add_data_f64(data_.f64);
             break;
         case Value::PhysicalType::STRING:
-            v.add_physical_type(duckdb::web::proto::PhysicalType::STRING);
+            v.add_physical_type(proto::sql::PhysicalType::STRING);
             v.add_data_str(*str);
             break;
         case Value::PhysicalType::STRING_VIEW:
-            v.add_physical_type(duckdb::web::proto::PhysicalType::STRING);
+            v.add_physical_type(proto::sql::PhysicalType::STRING);
             v.add_data_str(*str);
             break;
     }
@@ -348,12 +346,12 @@ flatbuffers::Offset<duckdb::web::proto::SQLValue> Value::Pack(flatbuffers::FlatB
 }
 
 // Unpack from flatbuffer
-Value Value::UnPack(const duckdb::web::proto::SQLValue& val) {
+Value Value::UnPack(const proto::sql::SQLValue& val) {
     Value v{*val.logical_type()};
     if (val.is_null()) {
         return v;
     }
-    using T = duckdb::web::proto::PhysicalType;
+    using T = proto::sql::PhysicalType;
     switch (val.physical_type()) {
         case T::NULL_:
             v.physical_type_ = PhysicalType::NULL_;
@@ -384,14 +382,14 @@ template <typename T> T ParseNumber(std::string_view sv) {
 }
 
 // Parse a type
-duckdb::web::proto::SQLType Value::ParseType(std::string_view type) {
-    using T = duckdb::web::proto::SQLTypeID;
+proto::sql::SQLType Value::ParseType(std::string_view type) {
+    using T = proto::sql::SQLTypeID;
     static const std::unordered_map<std::string_view, T> TYPE_NAMES{
         {"NOTYPE", T::INVALID}, {"BOOLEAN", T::BOOLEAN},     {"BIGINT", T::BIGINT}, {"DATE", T::DATE},
         {"TIME", T::TIME},      {"TIMESTAMP", T::TIMESTAMP}, {"DOUBLE", T::DOUBLE}, {"VARCHAR", T::VARCHAR},
     };
     if (auto iter = TYPE_NAMES.find(type); iter != TYPE_NAMES.end()) {
-        return duckdb::web::proto::SQLType(iter->second, 0, 0);
+        return proto::sql::SQLType(iter->second, 0, 0);
     }
     std::string regex_buffer{type};
 
@@ -406,7 +404,7 @@ duckdb::web::proto::SQLType Value::ParseType(std::string_view type) {
         int64_t scale = 0;
         if (match.size() >= 1) width = ParseNumber<int64_t>(get_sv(match[0]));
         if (match.size() >= 2) scale = ParseNumber<int64_t>(get_sv(match[1]));
-        return duckdb::web::proto::SQLType(T::DECIMAL, width, scale);
+        return proto::sql::SQLType(T::DECIMAL, width, scale);
     }
     return NOTYPE();
 }
@@ -416,7 +414,7 @@ Value Value::Parse(std::string_view type_str, std::string_view value_str, bool s
     if (value_str == "NULL") {
         return Value{type};
     }
-    using T = duckdb::web::proto::SQLTypeID;
+    using T = proto::sql::SQLTypeID;
     switch (type.type_id()) {
         case T::BIGINT:
             return Value::BIGINT(ParseNumber<int64_t>(value_str));
@@ -439,21 +437,21 @@ Value Value::Parse(std::string_view type_str, std::string_view value_str, bool s
 
 // Create a boolean value from a specified value
 Value Value::BOOLEAN(int8_t value) {
-    Value result{duckdb::web::proto::SQLTypeID::BOOLEAN};
+    Value result{proto::sql::SQLTypeID::BOOLEAN};
     result.SetData(static_cast<int64_t>(value));
     return result;
 }
 
 // Create an integer value from a specified value
 Value Value::BIGINT(int64_t value) {
-    Value result{duckdb::web::proto::SQLTypeID::BIGINT};
+    Value result{proto::sql::SQLTypeID::BIGINT};
     result.SetData(value);
     return result;
 }
 
 // Create a date value from a specified date
 Value Value::DATE(date_t date) {
-    Value result{duckdb::web::proto::SQLTypeID::DATE};
+    Value result{proto::sql::SQLTypeID::DATE};
     result.SetData(static_cast<int64_t>(date));
     return result;
 }
@@ -465,7 +463,7 @@ Value Value::DATE(int32_t year, int32_t month, int32_t day) {
 
 // Create a time value from a specified time
 Value Value::TIME(dtime_t time) {
-    Value result{duckdb::web::proto::SQLTypeID::TIME};
+    Value result{proto::sql::SQLTypeID::TIME};
     result.SetData(static_cast<int64_t>(time));
     return result;
 }
@@ -482,7 +480,7 @@ Value Value::TIMESTAMP(date_t date, dtime_t time) {
 
 // Create a timestamp value from a specified timestamp
 Value Value::TIMESTAMP(timestamp_t timestamp) {
-    Value result{duckdb::web::proto::SQLTypeID::TIMESTAMP};
+    Value result{proto::sql::SQLTypeID::TIMESTAMP};
     result.SetData(static_cast<int64_t>(timestamp));
     return result;
 }
@@ -496,25 +494,25 @@ Value Value::TIMESTAMP(int32_t year, int32_t month, int32_t day, int32_t hour, i
 
 // Decimal values
 Value Value::DECIMAL(int64_t value, uint8_t width, uint8_t scale) {
-    Value result{duckdb::web::proto::SQLTypeID::TIMESTAMP};
+    Value result{proto::sql::SQLTypeID::TIMESTAMP};
     result.SetData(value);
     return result;
 }
 // Create a double value from a specified value
 Value Value::DOUBLE(double value) {
-    Value result{duckdb::web::proto::SQLTypeID::DOUBLE};
+    Value result{proto::sql::SQLTypeID::DOUBLE};
     result.SetData(value);
     return result;
 }
 // Create a varchar from a string value
 Value Value::VARCHAR(std::string value) {
-    Value result{duckdb::web::proto::SQLTypeID::VARCHAR};
+    Value result{proto::sql::SQLTypeID::VARCHAR};
     result.SetData(move(value));
     return result;
 }
 // Create a varchar from a string view
 Value Value::VARCHAR(RefTag, std::string_view value) {
-    Value result{duckdb::web::proto::SQLTypeID::VARCHAR};
+    Value result{proto::sql::SQLTypeID::VARCHAR};
     result.SetData(value);
     return result;
 }

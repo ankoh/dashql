@@ -5,7 +5,6 @@ export import action = proto.dashql.proto.action;
 export import syntax = proto.dashql.proto.syntax;
 
 export import edit = proto.dashql.proto.edit;
-
-export import duckdb = proto.duckdb.web.proto;
+export import sql = proto.dashql.proto.sql;
 
 export { flatbuffers as fb } from 'flatbuffers';
