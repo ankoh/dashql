@@ -20,17 +20,18 @@ export function testAsyncBatchStream(db: () => duckdb.AsyncDuckDB) {
         });
     });
 
-    describe('QueryResultRowIterator', () => {
+    describe('Arrow Record-Batches Row-Major', () => {
         describe('single column', () => {
             it('TINYINT', async () => {
-                const result = await conn.sendQuery(
-                    `SELECT (v & 127)::TINYINT AS foo FROM generate_series(0, ${testRows}) as t(v);`,
-                );
+                const result = await conn.sendQuery(`
+                    SELECT (v & 127)::TINYINT AS v FROM generate_series(0, ${testRows}) as t(v);
+                `);
                 let i = 0;
-                const table = await arrow.Table.from(result);
-                expect(table.numCols).toBe(1);
-                for (const v of table.getColumnAt(0)!) {
-                    expect(v).toBe(i++ & 127);
+                for await (const batch of result) {
+                    expect(batch.numCols).toBe(1);
+                    for (const row of batch) {
+                        expect(row!.v).toBe(i++ & 127);
+                    }
                 }
                 expect(i).toBe(testRows + 1);
             });
