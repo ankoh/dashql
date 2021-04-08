@@ -148,7 +148,7 @@ export class ScanProvider extends React.Component<Props, State> {
         });
         return {
             request,
-            result: arrow.Table.from(result),
+            result,
         };
     }
 

@@ -10,20 +10,18 @@ function main(db: duckdb.DuckDB) {
     for (const tupleCount of [1000, 10000, 1000000, 10000000]) {
         benny.suite(
             `Single DOUBLE column | ${tupleCount} rows`,
-            benny.add('columns (batches)', () => {
+            benny.add('columns (iterator)', () => {
                 const conn = db.connect();
-                const result = conn.runQuery(`
+                const result = conn.runQuery<{ foo: arrow.Float64 }>(`
                     SELECT v::DOUBLE AS foo FROM generate_series(1, ${tupleCount}) as t(v);
                 `);
                 conn.disconnect();
                 return () => {
                     let sum = 0;
                     let count = 0;
-                    for (const batch of result) {
-                        for (const v of batch.getChildAt(0)!) {
-                            sum += v!;
-                            ++count;
-                        }
+                    for (const v of result.getColumnAt(0)) {
+                        sum += v!;
+                        ++count;
                     }
                     if (count != tupleCount || sum != (tupleCount * (tupleCount + 1)) / 2) {
                         console.log(
@@ -33,20 +31,18 @@ function main(db: duckdb.DuckDB) {
                 };
             }),
 
-            benny.add('rows (batches)', () => {
+            benny.add('rows (iterator)', () => {
                 const conn = db.connect();
-                const result = conn.runQuery(`
+                const result = conn.runQuery<{ foo: arrow.Float64 }>(`
                     SELECT v::DOUBLE AS foo FROM generate_series(1, ${tupleCount}) as t(v);
                 `);
                 conn.disconnect();
                 return () => {
                     let sum = 0;
                     let count = 0;
-                    for (const batch of result) {
-                        for (const row of batch) {
-                            sum += row.foo!;
-                            ++count;
-                        }
+                    for (const row of result) {
+                        sum += row.foo!;
+                        ++count;
                     }
                     if (count != tupleCount || sum != (tupleCount * (tupleCount + 1)) / 2) {
                         console.log(
@@ -56,20 +52,27 @@ function main(db: duckdb.DuckDB) {
                 };
             }),
 
-            benny.add('rows (table)', () => {
+            benny.add('columns (scan + bind)', () => {
                 const conn = db.connect();
-                const result = conn.runQuery(`
+                const table = conn.runQuery<{ foo: arrow.Float64 }>(`
                     SELECT v::DOUBLE AS foo FROM generate_series(1, ${tupleCount}) as t(v);
                 `);
-                const table = arrow.Table.from(result);
                 conn.disconnect();
                 return () => {
                     let sum = 0;
                     let count = 0;
-                    for (const row of table) {
-                        sum += row.foo!;
-                        ++count;
-                    }
+                    let action: (index: number) => void;
+                    table.scan(
+                        index => {
+                            action(index);
+                        },
+                        batch => {
+                            action = (index: number) => {
+                                sum += batch.getChildAt(0).get(index);
+                                ++count;
+                            };
+                        },
+                    );
                     if (count != tupleCount || sum != (tupleCount * (tupleCount + 1)) / 2) {
                         console.log(
                             `3 WRONG RESULT ${count} ${tupleCount} ${sum} ${(tupleCount * (tupleCount + 1)) / 2}`,

@@ -98,7 +98,7 @@ export class QueryProvider extends React.Component<Props, State> {
                 if (query.before) {
                     await conn.runQuery(query.before);
                 }
-                result = arrow.Table.from(await conn.runQuery(query.data));
+                result = await conn.runQuery(query.data);
                 return result;
             } catch (e) {
                 console.error(e);
