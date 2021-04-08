@@ -68,7 +68,6 @@ esbuild.build({
     minify: true,
     define: { 'process.env.NODE_ENV': '"production"' },
     sourcemap: 'external',
-    external: [...EXTERNALS],
 });
 
 console.log('[ ESBUILD ] duckdb-browser-parallel.js');
@@ -82,7 +81,6 @@ esbuild.build({
     bundle: true,
     minify: true,
     sourcemap: 'external',
-    external: [...EXTERNALS],
 });
 
 console.log('[ ESBUILD ] duckdb-browser-parallel.worker.js');

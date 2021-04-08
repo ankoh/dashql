@@ -40,7 +40,8 @@ export class ResolveMinMaxDomain extends VegaLiteEditOperation {
     /// Evaluate table statistics and update the domain spec
     async apply(): Promise<void> {
         const results = await Promise.all(this._promises!);
-        this._out = results.map(r => r[0]);
+        this._out[0] = results[0].get(0);
+        this._out[1] = results[1].get(0);
     }
 }
 
