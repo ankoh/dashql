@@ -33,7 +33,7 @@ testBindings(() => db!);
 testBatchStream(() => db!);
 testAsyncBatchStream(() => adb!);
 testFilesystem(() => adb!, path.resolve(__dirname, '../../../data/uni/out'));
-//testExtractCSV(
-//    () => adb!,
-//    (buf: Uint8Array) => tmp.sync(Buffer.from(buf)),
-//);
+testExtractCSV(
+    () => adb!,
+    (buf: Uint8Array) => tmp.sync(Buffer.from(buf)),
+);
