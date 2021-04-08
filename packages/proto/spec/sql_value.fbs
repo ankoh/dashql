@@ -1,8 +1,8 @@
 // Copyright (c) 2020 The DashQL Authors
 
-include "duckdb/sql_type.fbs";
+include "sql_type.fbs";
 
-namespace duckdb.web.proto;
+namespace dashql.proto.sql;
 
 enum PhysicalType: uint8 {
     NULL_,

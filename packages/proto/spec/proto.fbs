@@ -3,16 +3,9 @@
 include "action.fbs";
 include "analyzer.fbs";
 include "edit.fbs";
+include "sql_type.fbs";
+include "sql_value.fbs";
 
 include "syntax/sql_syntax.fbs";
 include "syntax/dashql_syntax.fbs";
 include "syntax/program.fbs";
-
-include "duckdb/error.fbs";
-include "duckdb/import.fbs";
-include "duckdb/query_plan.fbs";
-include "duckdb/query_result.fbs";
-include "duckdb/sql_type.fbs";
-include "duckdb/sql_value.fbs";
-include "duckdb/vector.fbs";
-

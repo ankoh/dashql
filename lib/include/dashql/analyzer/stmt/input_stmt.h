@@ -33,7 +33,7 @@ class InputStatement {
     /// The schema map
     const ASTIndex ast_;
     /// The value type
-    duckdb::web::proto::SQLType value_type_ = duckdb::web::proto::SQLType();
+    proto::sql::SQLType value_type_ = proto::sql::SQLType();
     /// The component type
     std::optional<sx::InputComponentType> component_type_ = std::nullopt;
     /// The position option
