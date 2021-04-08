@@ -141,10 +141,9 @@ export class DatabaseTableStatistics implements TableStatisticsResolver {
             try {
                 // Query the associative aggregates
                 const query = this.buildAssociativeAggregateQuery(tableInfo);
-                const result = await this._databaseManager.use(async (conn: duckdb.AsyncConnection) => {
+                const table = await this._databaseManager.use(async (conn: duckdb.AsyncConnection) => {
                     return await conn.runQuery(query);
                 });
-                const table = arrow.Table.from(result);
                 if (table.count() == 0) {
                     // Received no values, reject all requests
                     for (const req of this._associativeAggregates) {

@@ -52,7 +52,7 @@ export interface AsyncConnection {
     /** Disconnect from the database */
     disconnect(): Promise<null>;
     /** Run a query */
-    runQuery<T extends { [key: string]: arrow.DataType } = any>(text: string): Promise<arrow.RecordBatchFileReader<T>>;
+    runQuery<T extends { [key: string]: arrow.DataType } = any>(text: string): Promise<arrow.Table<T>>;
     /** Send a query */
     sendQuery<T extends { [key: string]: arrow.DataType } = any>(
         text: string,
@@ -77,9 +77,7 @@ export class AsyncDuckDBConnection implements AsyncConnection {
     }
 
     /** Run a query */
-    public async runQuery<T extends { [key: string]: arrow.DataType } = any>(
-        text: string,
-    ): Promise<arrow.RecordBatchFileReader<T>> {
+    public async runQuery<T extends { [key: string]: arrow.DataType } = any>(text: string): Promise<arrow.Table<T>> {
         this._instance.logger.log({
             timestamp: new Date(),
             level: LogLevel.INFO,
@@ -92,7 +90,7 @@ export class AsyncDuckDBConnection implements AsyncConnection {
         const reader = arrow.RecordBatchReader.from<T>(buffer);
         console.assert(reader.isSync());
         console.assert(reader.isFile());
-        return reader as arrow.RecordBatchFileReader;
+        return arrow.Table.from(reader as arrow.RecordBatchFileReader);
     }
 
     /** Send a query */
