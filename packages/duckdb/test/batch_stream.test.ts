@@ -1,7 +1,7 @@
 import * as duckdb from '../src/';
 import * as arrow from 'apache-arrow';
 
-const testRows = 3000;
+const testRows = 60000;
 
 export function testIterator(db: () => duckdb.DuckDBBindings) {
     let conn: duckdb.DuckDBConnection;
