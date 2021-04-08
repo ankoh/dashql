@@ -6,7 +6,7 @@ let adb: duckdb_parallel.AsyncDuckDB | null = null;
 let worker: Worker | null = null;
 
 beforeAll(async () => {
-    const logger = new duckdb_serial.ConsoleLogger();
+    const logger = new duckdb_serial.VoidLogger();
     db = new duckdb_serial.DuckDB(logger, duckdb_serial.DefaultDuckDBRuntime, '/static/duckdb.wasm');
     await db.open();
 
@@ -28,7 +28,7 @@ jasmine.DEFAULT_TIMEOUT_INTERVAL = 30000;
 //testProxies(() => db!);
 //testBindings(() => db!);
 testIterator(() => db!);
-//testAsyncBatchStream(() => adb!);
+testAsyncBatchStream(() => adb!);
 //testFilesystem(() => adb!, '/data');
 //testExtractCSV(
 //    () => adb!,
