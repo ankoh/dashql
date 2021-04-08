@@ -2,6 +2,8 @@
 
 #include "duckdb/web/webdb.h"
 
+#include <arrow/ipc/options.h>
+
 #include <cstdio>
 #include <memory>
 #include <optional>
@@ -69,34 +71,32 @@ arrow::Result<std::shared_ptr<arrow::Buffer>> WebDB::Connection::RunQuery(std::s
     }
 }
 
-arrow::Status WebDB::Connection::SendQuery(std::string_view text) {
+arrow::Result<std::shared_ptr<arrow::Buffer>> WebDB::Connection::SendQuery(std::string_view text) {
     try {
         // Send the query
         auto result = connection_.SendQuery(std::string{text});
         if (!result->success) return arrow::Status{arrow::StatusCode::ExecutionError, move(result->error)};
         current_query_result_ = move(result);
         current_schema_.reset();
-        ARROW_RETURN_NOT_OK(output_stream_buffer_.Reset());
 
         // Import the schema
         ArrowSchema raw_schema;
         current_query_result_->ToArrowSchema(&raw_schema);
         ARROW_ASSIGN_OR_RAISE(current_schema_, arrow::ImportSchema(&raw_schema));
-        ARROW_ASSIGN_OR_RAISE(current_batch_writer_,
-                              arrow::ipc::MakeStreamWriter(&output_stream_buffer_, current_schema_));
-        return arrow::Status::OK();
+
+        // Serialize the schema
+        return arrow::ipc::SerializeSchema(*current_schema_);
     } catch (std::exception& e) {
         return arrow::Status{arrow::StatusCode::ExecutionError, e.what()};
     }
 }
 
-arrow::Result<nonstd::span<const uint8_t>> WebDB::Connection::FetchQueryResults() {
+arrow::Result<std::shared_ptr<arrow::Buffer>> WebDB::Connection::FetchQueryResults() {
     try {
         // Fetch data if a query is active
-        output_stream_buffer_.Clear();
         std::unique_ptr<duckdb::DataChunk> chunk;
         if (current_query_result_ == nullptr) {
-            return output_stream_buffer_.Access();
+            return nullptr;
         }
 
         // Fetch next result chunk
@@ -107,21 +107,16 @@ arrow::Result<nonstd::span<const uint8_t>> WebDB::Connection::FetchQueryResults(
 
         // Reached end?
         if (!chunk) {
-            current_batch_writer_->Close().ok();
-            current_batch_writer_.reset();
             current_query_result_.reset();
             current_schema_.reset();
-            return output_stream_buffer_.Access();
+            return nullptr;
         }
 
         // Serialize the record batch
         ArrowArray array;
         chunk->ToArrowArray(&array);
         ARROW_ASSIGN_OR_RAISE(auto batch, arrow::ImportRecordBatch(&array, current_schema_));
-        ARROW_RETURN_NOT_OK(current_batch_writer_->WriteRecordBatch(*batch));
-
-        // Return the pointer to the stream buffer
-        return output_stream_buffer_.Access();
+        return arrow::ipc::SerializeRecordBatch(*batch, arrow::ipc::IpcWriteOptions::Defaults());
     } catch (std::exception& e) {
         return arrow::Status{arrow::StatusCode::ExecutionError, e.what()};
     }
