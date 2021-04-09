@@ -24,15 +24,15 @@ export interface ZipArchiveFileInfo {
 
 export class ZipArchive {
     _bindings: MinizBindings;
-    _url: string;
+    _archiveID: number;
 
-    constructor(bindings: MinizBindings, url: string) {
+    constructor(bindings: MinizBindings, archiveID: number) {
         this._bindings = bindings;
-        this._url = url;
+        this._archiveID = archiveID;
     }
 
-    getFiles(): ZipArchive[] {
-        return this._bindings.getFiles(this._url);
+    getFileStats(): ZipArchiveFileInfo[] {
+        return this._bindings.getFiles(this._archiveID);
     }
 }
 
@@ -44,13 +44,22 @@ export class MinizBindings {
         this._duckdb = duckdb;
     }
 
-    getFiles(url: string): ZipArchive[] {
-        const [s, d, n] = this._duckdb.callSRet('duckdb_web_mz_file_stats', ['number', 'string'], [url]);
+    public open(blobID: number): ZipArchive {
+        const [s, d, n] = this._duckdb.callSRet('duckdb_web_minz_open', ['number', 'number'], [blobID]);
+        if (s !== StatusCode.SUCCESS) {
+            throw new Error(this._duckdb.readString(d, n));
+        }
+        this._duckdb.dropResponseBuffers();
+        return new ZipArchive(this, d);
+    }
+
+    public getFiles(archiveID: number): ZipArchiveFileInfo[] {
+        const [s, d, n] = this._duckdb.callSRet('duckdb_web_miniz_file_stats', ['number'], [archiveID]);
         if (s !== StatusCode.SUCCESS) {
             throw new Error(this._duckdb.readString(d, n));
         }
         const res = this._duckdb.readString(d, n);
         this._duckdb.dropResponseBuffers();
-        return JSON.parse(res) as ZipArchive[];
+        return JSON.parse(res) as ZipArchiveFileInfo[];
     }
 }
