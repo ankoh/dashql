@@ -1,42 +1,15 @@
 // Copyright (c) 2020 The DashQL Authors
 
-import { WorkerRequestType, WorkerResponseType, WorkerResponseVariant } from './worker_request';
+import {
+    WorkerRequestType,
+    WorkerResponseType,
+    WorkerResponseVariant,
+    WorkerTaskVariant,
+    WorkerTask,
+    ConnectionID,
+} from './worker_request';
 import { Logger } from '../log';
 import { AsyncDuckDBConnection } from './async_connection';
-
-type ConnectionID = number;
-
-class Task<T, D, P> {
-    readonly type: T;
-    readonly data: D;
-    promise: Promise<P>;
-    promiseResolver: (value: P | PromiseLike<P>) => void = () => {};
-    promiseRejecter: (value: any) => void = () => {};
-
-    constructor(type: T, data: D) {
-        this.type = type;
-        this.data = data;
-        this.promise = new Promise<P>(
-            (resolve: (value: P | PromiseLike<P>) => void, reject: (reason?: void) => void) => {
-                this.promiseResolver = resolve;
-                this.promiseRejecter = reject;
-            },
-        );
-    }
-}
-
-type TaskVariant =
-    | Task<WorkerRequestType.RESET, null, null>
-    | Task<WorkerRequestType.IMPORT_CSV, [number, string, string, string], null>
-    | Task<WorkerRequestType.PING, null, null>
-    | Task<WorkerRequestType.REGISTER_URL, string, null>
-    | Task<WorkerRequestType.OPEN_URL, string, number>
-    | Task<WorkerRequestType.OPEN, string | null, null>
-    | Task<WorkerRequestType.CONNECT, null, ConnectionID>
-    | Task<WorkerRequestType.DISCONNECT, ConnectionID, null>
-    | Task<WorkerRequestType.SEND_QUERY, [ConnectionID, string], Uint8Array>
-    | Task<WorkerRequestType.RUN_QUERY, [ConnectionID, string], Uint8Array>
-    | Task<WorkerRequestType.FETCH_QUERY_RESULTS, ConnectionID, Uint8Array>;
 
 export class AsyncDuckDB {
     /** The message handler */
@@ -58,7 +31,7 @@ export class AsyncDuckDB {
     /** The next message id */
     protected _nextMessageId: number = 0;
     /** The pending requests */
-    protected _pendingRequests: Map<number, TaskVariant> = new Map();
+    protected _pendingRequests: Map<number, WorkerTaskVariant> = new Map();
 
     constructor(logger: Logger, worker: Worker | null = null) {
         this._logger = logger;
@@ -109,7 +82,7 @@ export class AsyncDuckDB {
     }
 
     /** Post a task */
-    protected async postTask(task: TaskVariant): Promise<any> {
+    protected async postTask(task: WorkerTaskVariant): Promise<any> {
         if (!this._worker) {
             console.error('cannot send a message since the worker is not set!');
             return;
@@ -219,31 +192,31 @@ export class AsyncDuckDB {
 
     /** Reset the duckdb */
     public async reset(): Promise<null> {
-        const task = new Task<WorkerRequestType.RESET, null, null>(WorkerRequestType.RESET, null);
+        const task = new WorkerTask<WorkerRequestType.RESET, null, null>(WorkerRequestType.RESET, null);
         return await this.postTask(task);
     }
 
     /** Ping the worker thread */
     public async ping() {
-        const task = new Task<WorkerRequestType.PING, null, null>(WorkerRequestType.PING, null);
+        const task = new WorkerTask<WorkerRequestType.PING, null, null>(WorkerRequestType.PING, null);
         await this.postTask(task);
     }
 
     /// Registers the given URL as a file to be possibly loaded by DuckDB.
     public async registerURL(url: string): Promise<null> {
-        const task = new Task<WorkerRequestType.REGISTER_URL, string, null>(WorkerRequestType.REGISTER_URL, url);
+        const task = new WorkerTask<WorkerRequestType.REGISTER_URL, string, null>(WorkerRequestType.REGISTER_URL, url);
         return await this.postTask(task);
     }
 
     /// Open a file previously registered by the given URL. Returns the Blob ID
     public async openURL(url: string): Promise<number> {
-        const task = new Task<WorkerRequestType.OPEN_URL, string, number>(WorkerRequestType.OPEN_URL, url);
+        const task = new WorkerTask<WorkerRequestType.OPEN_URL, string, number>(WorkerRequestType.OPEN_URL, url);
         return await this.postTask(task);
     }
 
     /// Import csv from a given URL
     public async importCSV(conn: ConnectionID, filePath: string, schemaName: string, tableName: string): Promise<null> {
-        const task = new Task<WorkerRequestType.IMPORT_CSV, [number, string, string, string], null>(
+        const task = new WorkerTask<WorkerRequestType.IMPORT_CSV, [number, string, string, string], null>(
             WorkerRequestType.IMPORT_CSV,
             [conn, filePath, schemaName, tableName],
         );
@@ -252,26 +225,29 @@ export class AsyncDuckDB {
 
     /** Open the database */
     public async open(wasm: string | null): Promise<null> {
-        const task = new Task<WorkerRequestType.OPEN, string | null, null>(WorkerRequestType.OPEN, wasm);
+        const task = new WorkerTask<WorkerRequestType.OPEN, string | null, null>(WorkerRequestType.OPEN, wasm);
         return await this.postTask(task);
     }
 
     /** Connect to the database */
     public async connect(): Promise<AsyncDuckDBConnection> {
-        const task = new Task<WorkerRequestType.CONNECT, null, ConnectionID>(WorkerRequestType.CONNECT, null);
+        const task = new WorkerTask<WorkerRequestType.CONNECT, null, ConnectionID>(WorkerRequestType.CONNECT, null);
         const conn = await this.postTask(task);
         return new AsyncDuckDBConnection(this, conn);
     }
 
     /** Disconnect from the database */
     public async disconnect(conn: ConnectionID): Promise<null> {
-        const task = new Task<WorkerRequestType.DISCONNECT, ConnectionID, null>(WorkerRequestType.DISCONNECT, conn);
+        const task = new WorkerTask<WorkerRequestType.DISCONNECT, ConnectionID, null>(
+            WorkerRequestType.DISCONNECT,
+            conn,
+        );
         return await this.postTask(task);
     }
 
     /// Run a query
     public async runQuery(conn: ConnectionID, text: string): Promise<Uint8Array> {
-        const task = new Task<WorkerRequestType.RUN_QUERY, [ConnectionID, string], Uint8Array>(
+        const task = new WorkerTask<WorkerRequestType.RUN_QUERY, [ConnectionID, string], Uint8Array>(
             WorkerRequestType.RUN_QUERY,
             [conn, text],
         );
@@ -280,7 +256,7 @@ export class AsyncDuckDB {
 
     /** Send a query */
     public async sendQuery(conn: ConnectionID, text: string): Promise<Uint8Array> {
-        const task = new Task<WorkerRequestType.SEND_QUERY, [ConnectionID, string], Uint8Array>(
+        const task = new WorkerTask<WorkerRequestType.SEND_QUERY, [ConnectionID, string], Uint8Array>(
             WorkerRequestType.SEND_QUERY,
             [conn, text],
         );
@@ -289,7 +265,7 @@ export class AsyncDuckDB {
 
     /** Fetch query results */
     public async fetchQueryResults(conn: ConnectionID): Promise<Uint8Array> {
-        const task = new Task<WorkerRequestType.FETCH_QUERY_RESULTS, ConnectionID, Uint8Array>(
+        const task = new WorkerTask<WorkerRequestType.FETCH_QUERY_RESULTS, ConnectionID, Uint8Array>(
             WorkerRequestType.FETCH_QUERY_RESULTS,
             conn,
         );
