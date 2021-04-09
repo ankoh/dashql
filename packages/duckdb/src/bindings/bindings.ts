@@ -5,22 +5,6 @@ import { Logger } from '../log';
 import { DuckDBConnection } from './connection';
 import { StatusCode } from '../status';
 
-/** Decode a string */
-function decodeString(buffer: Uint8Array): string {
-    let result = '';
-    for (let i = 0; i < buffer.length; i++) {
-        result += String.fromCharCode(buffer[i]);
-    }
-    return result;
-}
-
-/** Copy a Uint8Array */
-function memcpy(buffer: Uint8Array): Uint8Array {
-    const copy = new Uint8Array(new ArrayBuffer(buffer.byteLength));
-    copy.set(buffer);
-    return copy;
-}
-
 /// The proxy for either the browser- order node-based DuckDB API
 export abstract class DuckDBBindings {
     /** The logger */
@@ -44,15 +28,13 @@ export abstract class DuckDBBindings {
     public get instance() {
         return this._instance;
     }
+    /// Instantiate the module
+    protected abstract instantiate(moduleOverrides: Partial<DuckDBModule>): Promise<DuckDBModule>;
 
     /// Registers the given URL as a file to be possibly loaded by DuckDB.
     public abstract registerURL(url: string): Promise<void>;
-
     /// Open a file previously registered by the given URL. Returns the Blob ID
     public abstract openURL(url: string): number;
-
-    /// Instantiate the module
-    protected abstract instantiate(moduleOverrides: Partial<DuckDBModule>): Promise<DuckDBModule>;
 
     /** Open the database */
     public async open() {
@@ -107,6 +89,29 @@ export abstract class DuckDBBindings {
         return [status, data, dataSize];
     }
 
+    /** Delete response buffers */
+    public dropResponseBuffers() {
+        this.instance!.ccall('duckdb_web_clear_response', null, [], []);
+    }
+
+    /** Decode a string */
+    public readString(begin: number, length: number): string {
+        const buffer = this.instance!.HEAPU8.subarray(begin, begin + length);
+        let result = '';
+        for (let i = 0; i < buffer.length; i++) {
+            result += String.fromCharCode(buffer[i]);
+        }
+        return result;
+    }
+
+    /** Copy a Uint8Array */
+    public copyBuffer(begin: number, length: number): Uint8Array {
+        const buffer = this.instance!.HEAPU8.subarray(begin, begin + length);
+        const copy = new Uint8Array(new ArrayBuffer(buffer.byteLength));
+        copy.set(buffer);
+        return copy;
+    }
+
     /** Connect to database */
     public connect(): DuckDBConnection {
         let instance = this._instance!;
@@ -123,12 +128,11 @@ export abstract class DuckDBBindings {
     public runQuery(conn: number, text: string): Uint8Array {
         const instance = this.instance!;
         const [s, d, n] = this.callSRet('duckdb_web_run_query', ['number', 'string'], [conn, text]);
-        const mem = instance.HEAPU8.subarray(d, d + n);
         if (s !== StatusCode.SUCCESS) {
-            throw new Error(decodeString(mem));
+            throw new Error(this.readString(d, n));
         }
-        const res = memcpy(mem);
-        instance.ccall('duckdb_web_clear_response', null, [], []);
+        const res = this.copyBuffer(d, n);
+        this.dropResponseBuffers();
         return res;
     }
 
@@ -136,12 +140,11 @@ export abstract class DuckDBBindings {
     public sendQuery(conn: number, text: string): Uint8Array {
         const instance = this.instance!;
         const [s, d, n] = this.callSRet('duckdb_web_send_query', ['number', 'string'], [conn, text]);
-        const mem = instance.HEAPU8.subarray(d, d + n);
         if (s !== StatusCode.SUCCESS) {
-            throw new Error(decodeString(mem));
+            throw new Error(this.readString(d, n));
         }
-        const res = memcpy(mem);
-        instance.ccall('duckdb_web_clear_response', null, [], []);
+        const res = this.copyBuffer(d, n);
+        this.dropResponseBuffers();
         return res;
     }
 
@@ -149,12 +152,11 @@ export abstract class DuckDBBindings {
     public fetchQueryResults(conn: number): Uint8Array {
         const instance = this.instance!;
         const [s, d, n] = this.callSRet('duckdb_web_fetch_query_results', ['number'], [conn]);
-        const mem = instance.HEAPU8.subarray(d, d + n);
         if (s !== StatusCode.SUCCESS) {
-            throw new Error(decodeString(mem));
+            throw new Error(this.readString(d, n));
         }
-        const res = memcpy(mem);
-        instance.ccall('duckdb_web_clear_response', null, [], []);
+        const res = this.copyBuffer(d, n);
+        this.dropResponseBuffers();
         return res;
     }
 
@@ -166,10 +168,8 @@ export abstract class DuckDBBindings {
             ['number', 'string', 'string', 'string'],
             [conn, filePath, schemaName, tableName],
         );
-
-        let mem = instance.HEAPU8.subarray(d, d + n);
         if (s !== StatusCode.SUCCESS) {
-            throw new Error(decodeString(mem));
+            throw new Error(this.readString(d, n));
         }
     }
 }

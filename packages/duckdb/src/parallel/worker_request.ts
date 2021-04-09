@@ -1,4 +1,8 @@
+// Copyright (c) 2020 The DashQL Authors
+
 import { LogEntryVariant } from '../log';
+
+export type ConnectionID = number;
 
 export enum WorkerRequestType {
     RESET = 'RESET',
@@ -39,6 +43,25 @@ export type WorkerResponse<T, P> = {
     readonly data: P;
 };
 
+export class WorkerTask<T, D, P> {
+    readonly type: T;
+    readonly data: D;
+    promise: Promise<P>;
+    promiseResolver: (value: P | PromiseLike<P>) => void = () => {};
+    promiseRejecter: (value: any) => void = () => {};
+
+    constructor(type: T, data: D) {
+        this.type = type;
+        this.data = data;
+        this.promise = new Promise<P>(
+            (resolve: (value: P | PromiseLike<P>) => void, reject: (reason?: void) => void) => {
+                this.promiseResolver = resolve;
+                this.promiseRejecter = reject;
+            },
+        );
+    }
+}
+
 export type WorkerRequestVariant =
     | WorkerRequest<WorkerRequestType.RESET, null>
     | WorkerRequest<WorkerRequestType.PING, null>
@@ -62,3 +85,16 @@ export type WorkerResponseVariant =
     | WorkerResponse<WorkerResponseType.QUERY_RESULT_CHUNK, Uint8Array>
     | WorkerResponse<WorkerResponseType.QUERY_START, Uint8Array>
     | WorkerResponse<WorkerResponseType.QUERY_PLAN, Uint8Array>;
+
+export type WorkerTaskVariant =
+    | WorkerTask<WorkerRequestType.RESET, null, null>
+    | WorkerTask<WorkerRequestType.IMPORT_CSV, [number, string, string, string], null>
+    | WorkerTask<WorkerRequestType.PING, null, null>
+    | WorkerTask<WorkerRequestType.REGISTER_URL, string, null>
+    | WorkerTask<WorkerRequestType.OPEN_URL, string, number>
+    | WorkerTask<WorkerRequestType.OPEN, string | null, null>
+    | WorkerTask<WorkerRequestType.CONNECT, null, ConnectionID>
+    | WorkerTask<WorkerRequestType.DISCONNECT, ConnectionID, null>
+    | WorkerTask<WorkerRequestType.SEND_QUERY, [ConnectionID, string], Uint8Array>
+    | WorkerTask<WorkerRequestType.RUN_QUERY, [ConnectionID, string], Uint8Array>
+    | WorkerTask<WorkerRequestType.FETCH_QUERY_RESULTS, ConnectionID, Uint8Array>;
