@@ -443,7 +443,6 @@ if(NOT EMSCRIPTEN)
         dashql_test
         dashql_analyzer dashql_dataframe duckdb_web dashql_common
         dashql_proto
-        wasm_api
         flatbuffers gtest gmock gflags
         Threads::Threads
     )
