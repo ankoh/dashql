@@ -10,6 +10,7 @@ ExternalProject_Add(
     PREFIX "${CMAKE_BINARY_DIR}/third_party/gflags"
     INSTALL_DIR "${CMAKE_BINARY_DIR}/third_party/gflags/install"
     CMAKE_ARGS
+        -G${CMAKE_GENERATOR}
         -DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/third_party/gflags/install
         -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
         -DCMAKE_CXX_COMPILER_LAUNCHER=${CMAKE_CXX_COMPILER_LAUNCHER}
