@@ -30,6 +30,7 @@ endif ()
 set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
 set(THREADS_PREFER_PTHREAD_FLAG TRUE)
 find_package(Threads REQUIRED)
+set (THREAD_LIBS Threads::Threads)
 
 # ---------------------------------------------------------------------------
 # Parallelism
@@ -49,6 +50,7 @@ SET(CMAKE_MODULE_PATH
 include("${CMAKE_SOURCE_DIR}/cmake/duckdb.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/double-conversion.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/flatc.cmake")
+include("${CMAKE_SOURCE_DIR}/cmake/boost.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/thrift.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/arrow.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/flatbuffers.cmake")
@@ -294,7 +296,6 @@ if (EMSCRIPTEN)
     endif ()
 
     set(ANALYZER_WASM_LINKER_FLAGS " \
-        -s LLD_REPORT_UNDEFINED=1 \
         -s WARN_ON_UNDEFINED_SYMBOLS=1 \
         -s ALLOW_MEMORY_GROWTH=1 \
         -s USE_PTHREADS=0 \
@@ -329,7 +330,6 @@ if (EMSCRIPTEN)
     set_target_properties(analyzer_wasm_node PROPERTIES LINK_FLAGS "${ANALYZER_WASM_LINKER_FLAGS} -s ENVIRONMENT='node'")
 
     set(DUCKDB_WASM_LINKER_FLAGS " \
-        -s LLD_REPORT_UNDEFINED=1 \
         -s WARN_ON_UNDEFINED_SYMBOLS=0 \
         -s ALLOW_MEMORY_GROWTH=1 \
         -s USE_PTHREADS=0 \
@@ -394,7 +394,7 @@ if(NOT EMSCRIPTEN)
         dashql_analyzer duckdb_web dashql_common
         dashql_proto
         flatbuffers gtest gmock gflags
-        Threads::Threads
+        ${THREAD_LIBS}
     )
 
     add_executable(tester ${TEST_CC})
@@ -404,20 +404,4 @@ if(NOT EMSCRIPTEN)
         ${CMAKE_SOURCE_DIR}/test/testgen.cc
     )
     target_link_libraries(testgen ${TEST_LIBS})
-endif()
-
-# ---------------------------------------------------------------------------
-# Benchmarks
-
-if(NOT EMSCRIPTEN)
-
-    add_executable(bm_result_codec
-        ${CMAKE_SOURCE_DIR}/bench/bm_result_codec.cc
-    )
-    target_link_libraries(bm_result_codec
-        duckdb_web
-        dashql_proto
-        benchmark
-        flatbuffers gtest gmock Threads::Threads)
-
 endif()
