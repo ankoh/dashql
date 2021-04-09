@@ -1,3 +1,5 @@
+// Copyright (c) 2020 The DashQL Authors
+
 import { DuckDBBindings } from '../bindings';
 import { WorkerResponseVariant, WorkerRequestVariant, WorkerRequestType, WorkerResponseType } from './worker_request';
 import { Logger, LogEntryVariant } from '../log';
