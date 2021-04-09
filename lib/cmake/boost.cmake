@@ -1,102 +1,26 @@
 # Copyright (c) 2020 The DashQL Authors
 
-include(ExternalProject)
-include(ProcessorCount)
-ProcessorCount(NPROCS)
+set (BOOST_VERSION 1.68.0)
+set (BOOST_TARBALL boost_1_68_0.tar.gz)
+set (BOOST_URL "http://dl.bintray.com/boostorg/release/${BOOST_VERSION}/source/${BOOST_TARBALL}")
 
-if (EMSCRIPTEN)
-
-    # With emscripten, we need to sync the version with the bundled version of arrow!
-
-    ExternalProject_Add(boost_ep
-        BUILD_IN_SOURCE 1
-        URL http://dl.bintray.com/boostorg/release/1.68.0/source/boost_1_68_0.tar.gz
-        URL_HASH "SHA256=da3411ea45622579d419bfda66f45cd0f8c32a181d84adfa936f5688388995cf"
-        PREFIX "${CMAKE_BINARY_DIR}/third_party/boost"
-        INSTALL_DIR "${CMAKE_BINARY_DIR}/third_party/boost/install"
-        CONFIGURE_COMMAND ./bootstrap.sh
-            --without-icu
-            --with-libraries=system,filesystem,regex
-            --prefix=<INSTALL_DIR>
-        BUILD_COMMAND ./b2
-            -j${NPROCS}
-            --disable-icu
-            toolset=emscripten
-            link=static
-            variant=release
-            threading=single
-            runtime-link=static
-            filesystem regex system
-            install
-        INSTALL_COMMAND ""
-        BUILD_BYPRODUCTS
-            <INSTALL_DIR>/lib/libboost_system.bc
-            <INSTALL_DIR>/lib/libboost_filesystem.bc
-            <INSTALL_DIR>/lib/libboost_regex.bc
-    )
-
-    ExternalProject_Get_Property(boost_ep install_dir)
-    set(BOOST_INCLUDE_DIR ${install_dir}/include)
-    set(BOOST_INCLUDE_DIRS ${install_dir}/include)
-    set(BOOST_LIBRARY_DIR ${install_dir}/lib)
-
-    set(BOOST_ROOT ${install_dir})
-    set(BOOST_SYSTEM_LIBRARY ${BOOST_LIBRARY_DIR}/libboost_system.bc)
-    set(BOOST_REGEX_LIBRARY ${BOOST_LIBRARY_DIR}/libboost_regex.bc)
-    set(BOOST_FILESYSTEM_LIBRARY ${BOOST_LIBRARY_DIR}/libboost_filesystem.bc)
-
-else()
-
-    ExternalProject_Add(boost_ep
-        BUILD_IN_SOURCE 1
-        URL http://dl.bintray.com/boostorg/release/1.75.0/source/boost_1_75_0.tar.gz
-        URL_HASH "SHA256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-        PREFIX "${CMAKE_BINARY_DIR}/third_party/boost"
-        INSTALL_DIR "${CMAKE_BINARY_DIR}/third_party/boost/install"
-        CONFIGURE_COMMAND ./bootstrap.sh
-            --without-icu
-            --with-libraries=system,filesystem,regex
-            --prefix=<INSTALL_DIR>
-        BUILD_COMMAND ./b2
-            -j${NPROCS}
-            --disable-icu
-            link=static
-            variant=release
-            visibility=global
-            threading=single
-            runtime-link=static
-            filesystem regex system
-            install
-        INSTALL_COMMAND ""
-        BUILD_BYPRODUCTS
-            <INSTALL_DIR>/lib/libboost_system.a
-            <INSTALL_DIR>/lib/libboost_filesystem.a
-            <INSTALL_DIR>/lib/libboost_regex.a
-    )
-
-    ExternalProject_Get_Property(boost_ep install_dir)
-    set(BOOST_INCLUDE_DIR ${install_dir}/include)
-    set(BOOST_INCLUDE_DIRS ${install_dir}/include)
-    set(BOOST_LIBRARY_DIR ${install_dir}/lib)
-
-    set(BOOST_ROOT ${install_dir})
-    set(BOOST_SYSTEM_LIBRARY ${BOOST_LIBRARY_DIR}/libboost_system.a)
-    set(BOOST_REGEX_LIBRARY ${BOOST_LIBRARY_DIR}/libboost_regex.a)
-    set(BOOST_FILESYSTEM_LIBRARY ${BOOST_LIBRARY_DIR}/libboost_filesystem.a)
-
-endif()
+set(BOOST_INSTALL_DIR "${CMAKE_BINARY_DIR}/third_party/boost/install")
+set(BOOST_INCLUDE_DIR "${BOOST_INSTALL_DIR}/include")
+set(BOOST_LIBRARY_DIR "${BOOST_INSTALL_DIR}/lib")
 
 file(MAKE_DIRECTORY ${BOOST_INCLUDE_DIR})
 file(MAKE_DIRECTORY ${BOOST_LIBRARY_DIR})
 
-add_library(boost_system STATIC IMPORTED)
-set_property(TARGET boost_system PROPERTY IMPORTED_LOCATION ${BOOST_SYSTEM_LIBRARY})
-set_property(TARGET boost_system APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${BOOST_INCLUDE_DIR})
+include(FetchContent)
+FetchContent_Declare(
+    boost
+    URL ${BOOST_URL}
+)
 
-add_library(boost_filesystem STATIC IMPORTED)
-set_property(TARGET boost_filesystem PROPERTY IMPORTED_LOCATION ${BOOST_FILESYSTEM_LIBRARY})
-set_property(TARGET boost_filesystem APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${BOOST_INCLUDE_DIR})
+FetchContent_GetProperties(boost)
+if(NOT boost_POPULATED)
+    FetchContent_Populate(boost)
+    file(COPY ${boost_SOURCE_DIR}/boost DESTINATION ${BOOST_INCLUDE_DIR})
+endif()
 
-add_library(boost_regex STATIC IMPORTED)
-set_property(TARGET boost_regex PROPERTY IMPORTED_LOCATION ${BOOST_REGEX_LIBRARY})
-set_property(TARGET boost_regex APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${BOOST_INCLUDE_DIR})
+set(BOOST_ROOT ${boost_SOURCE_DIR})
