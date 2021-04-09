@@ -49,7 +49,8 @@ else()
 
     ExternalProject_Add(boost_ep
         BUILD_IN_SOURCE 1
-        URL "http://sourceforge.net/projects/boost/files/boost/1.69.0/boost_1_69_0.tar.gz"
+        URL http://dl.bintray.com/boostorg/release/1.75.0/source/boost_1_75_0.tar.gz
+        URL_HASH "SHA256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         PREFIX "${CMAKE_BINARY_DIR}/third_party/boost"
         INSTALL_DIR "${CMAKE_BINARY_DIR}/third_party/boost/install"
         CONFIGURE_COMMAND ./bootstrap.sh
