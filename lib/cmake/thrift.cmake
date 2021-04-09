@@ -35,10 +35,6 @@ ExternalProject_Add(
         -DWITH_JAVA=OFF
         -DWITH_LIBEVENT=OFF
         -DBUILD_CPP=ON
-        -DBOOST_ROOT=${BOOST_ROOT}
-        -DBOOST_INCLUDEDIR=${BOOST_INCLUDE_DIR}
-        -DBOOST_LIBRARYDIR=${BOOST_LIBRARY_DIR}
-        -DBoost_INCLUDE_DIR=${BOOST_INCLUDE_DIR}
     DOWNLOAD_COMMAND ""
     UPDATE_COMMAND ""
     BUILD_BYPRODUCTS
@@ -55,7 +51,6 @@ add_library(thrift STATIC IMPORTED)
 set_property(TARGET thrift PROPERTY IMPORTED_LOCATION ${THRIFT_LIBRARY_PATH})
 set_property(TARGET thrift APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${THRIFT_INCLUDE_DIR})
 
-add_dependencies(thrift_ep boost_ep)
 add_dependencies(thrift thrift_ep)
 
 ExternalProject_Add(
