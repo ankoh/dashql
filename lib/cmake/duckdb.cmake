@@ -2,6 +2,8 @@
 
 include(ExternalProject)
 
+# DuckDB
+
 ExternalProject_Add(
     duckdb_ep
     SOURCE_DIR "${CMAKE_SOURCE_DIR}/../submodules/duckdb"
@@ -17,6 +19,7 @@ ExternalProject_Add(
         -DCMAKE_MODULE_PATH=${CMAKE_MODULE_PATH}
         -DCMAKE_BUILD_TYPE=Release
         -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>
+        -DBUILD_PARQUET_EXTENSION=TRUE
         -DBUILD_SHELL=FALSE
         -DBUILD_UNITTESTS=FALSE
     BUILD_BYPRODUCTS
@@ -27,21 +30,25 @@ ExternalProject_Add(
         <INSTALL_DIR>/lib/libminiz.a
         <INSTALL_DIR>/lib/libpg_query.a
         <INSTALL_DIR>/lib/libutf8proc.a
+        <BINARY_DIR>/extension/parquet/libparquet_extension.a
 )
 
 ExternalProject_Get_Property(duckdb_ep install_dir)
+ExternalProject_Get_Property(duckdb_ep binary_dir)
 
 set(DUCKDB_SOURCE_DIR "${CMAKE_SOURCE_DIR}/../submodules/duckdb")
 set(DUCKDB_INCLUDE_DIR "${install_dir}/include")
 set(DUCKDB_UTF8PROC_INCLUDE_DIR "${DUCKDB_SOURCE_DIR}/third_party/utf8proc/include")
 set(DUCKDB_FMT_INCLUDE_DIR "${DUCKDB_SOURCE_DIR}/third_party/fmt/include")
 set(DUCKDB_LIBRARY_PATH "${install_dir}/lib/libduckdb_static.a")
-
 file(MAKE_DIRECTORY ${DUCKDB_INCLUDE_DIR})
+
 add_library(duckdb STATIC IMPORTED)
 set_property(TARGET duckdb PROPERTY IMPORTED_LOCATION ${DUCKDB_LIBRARY_PATH})
 
 target_link_libraries(duckdb
+    INTERFACE ${binary_dir}/extension/parquet/libparquet_extension.a
+    INTERFACE ${install_dir}/lib/libduckdb_re2.a
     INTERFACE ${install_dir}/lib/libduckdb_re2.a
     INTERFACE ${install_dir}/lib/libfmt.a
     INTERFACE ${install_dir}/lib/libhyperloglog.a
@@ -54,6 +61,12 @@ target_include_directories(duckdb
     INTERFACE ${DUCKDB_INCLUDE_DIR}
     INTERFACE ${DUCKDB_FMT_INCLUDE_DIR}
     INTERFACE ${DUCKDB_UTF8PROC_INCLUDE_DIR}
+    INTERFACE ${DUCKDB_SOURCE_DIR}/third_party/parquet
+    INTERFACE ${DUCKDB_SOURCE_DIR}/third_party/snappy
+    INTERFACE ${DUCKDB_SOURCE_DIR}/third_party/miniz
+    INTERFACE ${DUCKDB_SOURCE_DIR}/third_party/thrift
+    INTERFACE ${DUCKDB_SOURCE_DIR}/third_party/zstd
+    INTERFACE ${DUCKDB_SOURCE_DIR}/extension/parquet/include
 )
 
 add_dependencies(duckdb duckdb_ep)
