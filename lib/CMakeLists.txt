@@ -53,13 +53,11 @@ include("${CMAKE_SOURCE_DIR}/cmake/thrift.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/arrow.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/flatbuffers.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/benchmark.cmake")
-include("${CMAKE_SOURCE_DIR}/cmake/binaryen.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/googletest.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/gflags.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/rapidjson.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/pugixml.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/spdlog.cmake")
-include("${CMAKE_SOURCE_DIR}/cmake/wasm-c-api.cmake")
 
 # ---------------------------------------------------------------------------
 # Code coverage
@@ -77,15 +75,6 @@ if(CODE_COVERAGE)
         message(FATAL_ERROR "Code coverage requires Clang or GCC. Aborting.")
     endif()
 endif()
-
-# ---------------------------------------------------------------------------
-# DuckDB
-
-set(DUCKDB_SOURCE_DIR "${CMAKE_SOURCE_DIR}/../submodules/duckdb")
-set(DUCKDB_INCLUDE_DIR "${DUCKDB_SOURCE_DIR}/src/include")
-set(DUCKDB_UTF8PROC_INCLUDE_DIR "${DUCKDB_SOURCE_DIR}/third_party/utf8proc/include")
-set(DUCKDB_FMT_INCLUDE_DIR "${DUCKDB_SOURCE_DIR}/third_party/fmt/include")
-set(DUCKDB_AMALGAMATION "${DUCKDB_SOURCE_DIR}/src/amalgamation/duckdb.cpp")
     
 # ---------------------------------------------------------------------------
 # Proto
@@ -260,11 +249,6 @@ add_library(dashql_common
     ${CMAKE_SOURCE_DIR}/src/common/union_find.cc
 )
 
-add_library(dashql_dataframe
-    ${CMAKE_SOURCE_DIR}/src/dataframe/dataframe.cc
-    ${CMAKE_SOURCE_DIR}/src/dataframe/dataframe_ffi.cc
-)
-
 add_library(dashql_analyzer
     ${CMAKE_SOURCE_DIR}/src/analyzer/action_planner.cc
     ${CMAKE_SOURCE_DIR}/src/analyzer/analyzer.cc
@@ -296,7 +280,6 @@ add_library(dashql_test
 
 target_link_libraries(dashql_common dashql_proto flatbuffers spdlog rapidjson arrow duckdb)
 target_link_libraries(dashql_analyzer dashql_parser dashql_common dashql_proto spdlog duckdb rapidjson arrow)
-target_link_libraries(dashql_dataframe dashql_common dashql_proto binaryen)
 target_link_libraries(duckdb_web dashql_common dashql_proto duckdb spdlog arrow)
 target_link_libraries(dashql_test duckdb_web dashql_analyzer dashql_common dashql_proto pugixml gtest duckdb)
 
@@ -309,37 +292,6 @@ if (EMSCRIPTEN)
     if (WASM_FAST_LINKING)
         set(ADDITIONAL_LINKER_FLAGS -O0)
     endif ()
-
-    set(DATAFRAME_WASM_LINKER_FLAGS " \
-        -s LLD_REPORT_UNDEFINED=1 \
-        -s WARN_ON_UNDEFINED_SYMBOLS=1 \
-        -s ALLOW_MEMORY_GROWTH=1 \
-        -s USE_PTHREADS=0 \
-        -s DISABLE_EXCEPTION_CATCHING=0 \
-        -s MODULARIZE=1 \
-        -s FILESYSTEM=0 \
-        -s EXPORT_ES6=1 \
-        -s EXPORT_NAME='DashQLTable' \
-        -s EXPORTED_FUNCTIONS='[ \
-            _main, \
-            _malloc, \
-            _free, \
-            _dashql_dataframe_algebra_tree, \
-            _dashql_dataframe, \
-            _dashql_dataframe_get_module \
-        ]' \
-        -s EXTRA_EXPORTED_RUNTIME_METHODS='[\"ccall\"]' \
-        ${ADDITIONAL_LINKER_FLAGS} \
-        "
-    )
-
-    add_executable(dataframe_wasm ${CMAKE_SOURCE_DIR}/src/ffi_main.cc)
-    target_link_libraries(dataframe_wasm dashql_dataframe)
-    set_target_properties(dataframe_wasm PROPERTIES LINK_FLAGS "${DATAFRAME_WASM_LINKER_FLAGS} -s ENVIRONMENT='web'")
-
-    add_executable(dataframe_wasm_node ${CMAKE_SOURCE_DIR}/src/ffi_main.cc)
-    target_link_libraries(dataframe_wasm_node dashql_dataframe)
-    set_target_properties(dataframe_wasm_node PROPERTIES LINK_FLAGS "${DATAFRAME_WASM_LINKER_FLAGS} -s ENVIRONMENT='node'")
 
     set(ANALYZER_WASM_LINKER_FLAGS " \
         -s LLD_REPORT_UNDEFINED=1 \
@@ -432,8 +384,6 @@ if(NOT EMSCRIPTEN)
         ${CMAKE_SOURCE_DIR}/test/common/substring_buffer_test.cc
         ${CMAKE_SOURCE_DIR}/test/common/topological_sort_test.cc
         ${CMAKE_SOURCE_DIR}/test/common/union_find_test.cc
-        ${CMAKE_SOURCE_DIR}/test/dataframe/dataframe_test.cc
-        ${CMAKE_SOURCE_DIR}/test/dataframe/hellowasm_test.cc
         ${CMAKE_SOURCE_DIR}/test/parser/grammar_spec_tests.cc
         ${CMAKE_SOURCE_DIR}/test/tester.cc
         ${CMAKE_SOURCE_DIR}/test/webdb/duckdb_test.cc
@@ -441,7 +391,7 @@ if(NOT EMSCRIPTEN)
     )
     set (TEST_LIBS
         dashql_test
-        dashql_analyzer dashql_dataframe duckdb_web dashql_common
+        dashql_analyzer duckdb_web dashql_common
         dashql_proto
         flatbuffers gtest gmock gflags
         Threads::Threads
