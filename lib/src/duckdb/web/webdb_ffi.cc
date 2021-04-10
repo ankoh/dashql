@@ -4,79 +4,13 @@
 
 #include "arrow/buffer.h"
 #include "arrow/status.h"
-#include "dashql/common/ffi_response.h"
 #include "dashql/proto_generated.h"
 #include "duckdb/execution/operator/persistent/buffered_csv_reader.hpp"
+#include "duckdb/web/ffi_response.h"
 #include "duckdb/web/filesystem.h"
 #include "duckdb/web/webdb.h"
 
 using namespace duckdb::web;
-
-namespace {
-
-struct FFIResponse {
-    /// The status code
-    uint64_t statusCode;
-    /// The data ptr (if any)
-    uint64_t dataPtr;
-    /// The data size
-    uint64_t dataSize;
-} __attribute((packed));
-
-class FFIResponseBuffer {
-   protected:
-    /// The status message
-    std::string status_message_;
-    /// The arrow buffer (if any)
-    std::shared_ptr<arrow::Buffer> arrow_buffer_;
-
-   public:
-    FFIResponseBuffer() : status_message_(), arrow_buffer_() { Clear(); }
-
-    void Clear() {
-        status_message_.clear();
-        arrow_buffer_.reset();
-    }
-
-    void Store(FFIResponse& response, arrow::Status status) {
-        Clear();
-        response.statusCode = static_cast<uint64_t>(status.code());
-        if (!status.ok()) {
-            status_message_ = status.message();
-            response.dataPtr = reinterpret_cast<uintptr_t>(status_message_.data());
-            response.dataSize = reinterpret_cast<uintptr_t>(status_message_.size());
-        }
-    }
-
-    void Store(FFIResponse& response, arrow::Result<std::shared_ptr<arrow::Buffer>> result) {
-        Clear();
-        response.statusCode = static_cast<uint64_t>(result.status().code());
-        if (result.ok()) {
-            arrow_buffer_ = result.ValueUnsafe();
-            if (arrow_buffer_) {
-                response.dataPtr = reinterpret_cast<uintptr_t>(arrow_buffer_->data());
-                response.dataSize = arrow_buffer_->size();
-            } else {
-                response.dataPtr = 0;
-                response.dataSize = 0;
-            }
-        } else {
-            status_message_ = result.status().message();
-            response.dataPtr = reinterpret_cast<uintptr_t>(status_message_.data());
-            response.dataSize = reinterpret_cast<uintptr_t>(status_message_.size());
-        }
-    }
-
-    /// Get the instance
-    static FFIResponseBuffer& GetInstance();
-};
-
-FFIResponseBuffer& FFIResponseBuffer::GetInstance() {
-    static FFIResponseBuffer instance;
-    return instance;
-}
-
-}  // namespace
 
 extern "C" {
 

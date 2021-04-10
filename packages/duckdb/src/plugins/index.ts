@@ -1,4 +1,4 @@
 // Copyright (c) 2020 The DashQL Authors
 
-export * from './miniz_plugin';
-export * from './miniz_bindings';
+export * from './zip_plugin';
+export * from './zip_bindings';
