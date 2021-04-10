@@ -1,23 +1,14 @@
 // Copyright (c) 2020 The DashQL Authors
 
-import { DuckDBRuntime, BlobStream, BlobHandle } from './runtime_base';
+import { DuckDBRuntime, BlobStream } from './runtime_base';
 import globToRegexp from 'glob-to-regexp';
 
 const decoder = new TextDecoder();
 const encoder = new TextEncoder();
 
-export class WebBlobHandle extends BlobHandle {
+interface WebBlobHandle {
     blob: Blob;
-
-    public constructor(blob: Blob, url: string) {
-        super(url);
-        this.blob = blob;
-    }
-
-    public open(): void {
-        const reader = new FileReaderSync();
-        this.buffer = new Uint8Array(reader.readAsArrayBuffer(this.blob));
-    }
+    url: string;
 }
 
 export var BrowserDuckDBRuntime: DuckDBRuntime & {
@@ -30,34 +21,42 @@ export var BrowserDuckDBRuntime: DuckDBRuntime & {
     streamCounter: 1,
     bindings: null,
 
-    duckdb_web_add_blob_handle: function (blob_handle: BlobHandle): void {
-        if (BrowserDuckDBRuntime.handleMap.has(blob_handle.url)) {
+    duckdb_web_add_blob_handle: function (handle: object): void {
+        let web_handle = <WebBlobHandle>handle;
+        if (BrowserDuckDBRuntime.handleMap.has(web_handle.url)) {
             // Somewhat silently fail adding duplicate blob handle
             // Not overwriting entry since blobstreams refer to their handle
-            console.info('URL already registered: ' + blob_handle.url);
+            console.info('URL already registered: ' + web_handle.url);
         } else {
-            BrowserDuckDBRuntime.handleMap.set(blob_handle.url, <WebBlobHandle>blob_handle);
+            BrowserDuckDBRuntime.handleMap.set(web_handle.url, web_handle);
         }
     },
     duckdb_web_blob_stream_open: function (url: string): number {
         const handle = BrowserDuckDBRuntime.handleMap.get(url);
         if (!handle) throw Error('File not found or cannot be opened: ' + url);
 
-        if (!handle.buffer) {
-            handle.open();
-        }
-
         const id = BrowserDuckDBRuntime.streamCounter;
-        const stream = new BlobStream(id, handle);
+        const stream = { id: id, url: handle.url, position: 0 };
         BrowserDuckDBRuntime.streamMap.set(id, stream);
         BrowserDuckDBRuntime.streamCounter++;
         return id;
     },
     duckdb_web_fs_read: function (blobId: number, buf: number, bytes: number) {
+        const reader = new FileReaderSync();
+
         let stream = BrowserDuckDBRuntime.streamMap.get(blobId);
         if (!stream) return 0;
+        let handle = BrowserDuckDBRuntime.handleMap.get(stream.url);
+        if (!handle) return 0;
 
-        return stream.copyTo(BrowserDuckDBRuntime.bindings!.instance!.HEAPU8, buf, bytes);
+        // TODO: investigate if this kind of ad-hoc creation of small blobs is slower
+        // than creating big chunks and managing those as pages
+        const size = Math.min(bytes, handle.blob.size - stream.position);
+        const blob = handle.blob.slice(stream.position, stream.position + size);
+        let heap: Uint8Array = BrowserDuckDBRuntime.bindings!.instance!.HEAPU8;
+        heap.set(new Uint8Array(reader.readAsArrayBuffer(blob)), buf);
+        stream.position += size;
+        return size;
     },
     duckdb_web_fs_write: function (blobId: number, buf: number, bytes: number) {
         throw Error('undefined');
@@ -103,7 +102,7 @@ export var BrowserDuckDBRuntime: DuckDBRuntime & {
     duckdb_web_fs_file_get_size: function (blobId: number) {
         let stream = BrowserDuckDBRuntime.streamMap.get(blobId);
         if (!stream) return 0;
-        return stream.handle.buffer!.length;
+        return BrowserDuckDBRuntime.handleMap.get(stream.url)!.blob.size;
     },
     duckdb_web_fs_file_get_last_modified_time: function (blobId: number) {
         // TODO: Keep fetch response header to answer BrowserDuckDBRuntime

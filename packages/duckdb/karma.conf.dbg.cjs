@@ -2,7 +2,7 @@ const puppeteer = require('puppeteer');
 
 process.env.CHROME_BIN = puppeteer.executablePath();
 
-module.exports = function (config) {
+module.exports = function(config) {
     config.set({
         basePath: '../..',
         plugins: ['karma-jasmine', 'karma-chrome-launcher', 'karma-sourcemap-loader', 'karma-jasmine-html-reporter'],
@@ -11,15 +11,15 @@ module.exports = function (config) {
             { pattern: 'packages/duckdb/dist/tests-browser.js' },
             { pattern: 'packages/duckdb/dist/*.wasm', included: false, watched: false, served: true },
             { pattern: 'packages/duckdb/dist/*.js', included: false, watched: false, served: true },
-            { pattern: 'data/uni/out/*.parquet', included: false, watched: false, served: true },
-            { pattern: 'data/uni/out/*.zip', included: false, watched: false, served: true },
+            { pattern: 'data/**/*.parquet', included: false, watched: false, served: true },
+            { pattern: 'data/**/*.zip', included: false, watched: false, served: true },
         ],
         preprocessors: {
             '**/*.js': ['sourcemap'],
         },
         proxies: {
             '/static/': '/base/packages/duckdb/dist/',
-            '/data/': '/base/data/uni/out/',
+            '/data/': '/base/data/',
         },
         exclude: [],
         reporters: ['kjhtml'],
@@ -28,7 +28,7 @@ module.exports = function (config) {
         logLevel: config.LOG_INFO,
         autoWatch: true,
         singleRun: false,
-        browsers: ['Chrome'],
+        browsers: [],
         client: {
             jasmine: {
                 failFast: true,
