@@ -6,7 +6,7 @@ export interface BlobStream {
 
 export interface DuckDBRuntime {
     bindings: any;
-    duckdb_web_add_blob_handle(handle: object): void;
+    duckdb_web_add_blob_handle(handle: any): void;
     duckdb_web_blob_stream_open(url: string): number;
     duckdb_web_fs_read(blobId: number, buf: number, bytes: number): number;
     duckdb_web_fs_write(blobId: number, buf: number, bytes: number): number;
@@ -27,7 +27,7 @@ export interface DuckDBRuntime {
 
 export const DefaultDuckDBRuntime: DuckDBRuntime = {
     bindings: null,
-    duckdb_web_add_blob_handle: (handle: object): number => {
+    duckdb_web_add_blob_handle: (handle: any): number => {
         throw Error('undefined');
     },
     duckdb_web_blob_stream_open: (url: string): number => {

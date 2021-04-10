@@ -6,9 +6,14 @@ import globToRegexp from 'glob-to-regexp';
 const decoder = new TextDecoder();
 const encoder = new TextEncoder();
 
+const pageSize = 1024;
+const maxPages = 10;
+
 interface WebBlobHandle {
-    blob: Blob;
     url: string;
+    blob: Blob;
+    page_queue: number[];
+    pages: Map<number, Uint8Array>;
 }
 
 export var BrowserDuckDBRuntime: DuckDBRuntime & {
@@ -21,14 +26,18 @@ export var BrowserDuckDBRuntime: DuckDBRuntime & {
     streamCounter: 1,
     bindings: null,
 
-    duckdb_web_add_blob_handle: function (handle: object): void {
-        let web_handle = <WebBlobHandle>handle;
-        if (BrowserDuckDBRuntime.handleMap.has(web_handle.url)) {
+    duckdb_web_add_blob_handle: function (handle: any): void {
+        if (BrowserDuckDBRuntime.handleMap.has(handle.url)) {
             // Somewhat silently fail adding duplicate blob handle
             // Not overwriting entry since blobstreams refer to their handle
-            console.info('URL already registered: ' + web_handle.url);
+            console.info('URL already registered: ' + handle.url);
         } else {
-            BrowserDuckDBRuntime.handleMap.set(web_handle.url, web_handle);
+            BrowserDuckDBRuntime.handleMap.set(handle.url, {
+                url: handle.url,
+                blob: handle.blob,
+                page_queue: [],
+                pages: new Map<number, Uint8Array>(),
+            });
         }
     },
     duckdb_web_blob_stream_open: function (url: string): number {
@@ -36,27 +45,52 @@ export var BrowserDuckDBRuntime: DuckDBRuntime & {
         if (!handle) throw Error('File not found or cannot be opened: ' + url);
 
         const id = BrowserDuckDBRuntime.streamCounter;
-        const stream = { id: id, url: handle.url, position: 0 };
+        const stream = { id: id, url: handle.url, position: 0, page_queue: [], pages: new Map<number, Uint8Array>() };
         BrowserDuckDBRuntime.streamMap.set(id, stream);
         BrowserDuckDBRuntime.streamCounter++;
         return id;
     },
     duckdb_web_fs_read: function (blobId: number, buf: number, bytes: number) {
         const reader = new FileReaderSync();
+        const loader = (handle: WebBlobHandle, page: number): Uint8Array => {
+            if (!handle.pages.has(page)) {
+                while (handle.page_queue.length > maxPages) {
+                    handle.pages.delete(handle.page_queue.shift()!);
+                }
+
+                handle.page_queue.push(page);
+                const blob = handle.blob.slice(page * pageSize, (page + 1) * pageSize);
+                handle.pages.set(page, new Uint8Array(reader.readAsArrayBuffer(blob)));
+            }
+
+            // Move page to back of queue due to recent access
+            handle.page_queue.push(handle.page_queue.splice(handle.page_queue.indexOf(page), 1)[0]);
+
+            return handle.pages.get(page)!;
+        };
 
         let stream = BrowserDuckDBRuntime.streamMap.get(blobId);
         if (!stream) return 0;
         let handle = BrowserDuckDBRuntime.handleMap.get(stream.url);
         if (!handle) return 0;
 
-        // TODO: investigate if this kind of ad-hoc creation of small blobs is slower
-        // than creating big chunks and managing those as pages
-        const size = Math.min(bytes, handle.blob.size - stream.position);
-        const blob = handle.blob.slice(stream.position, stream.position + size);
         let heap: Uint8Array = BrowserDuckDBRuntime.bindings!.instance!.HEAPU8;
-        heap.set(new Uint8Array(reader.readAsArrayBuffer(blob)), buf);
-        stream.position += size;
-        return size;
+        let read = 0;
+
+        while (bytes > 0) {
+            const pageId = Math.trunc(stream.position / pageSize);
+            const page = loader(handle, pageId);
+
+            const pageStart = stream.position - pageId * pageSize;
+            const size = Math.min(bytes, page.length - pageStart);
+            heap.set(page.subarray(pageStart, pageStart + size), buf);
+            buf += size;
+            stream.position += size;
+            bytes -= size;
+            read += size;
+        }
+
+        return read;
     },
     duckdb_web_fs_write: function (blobId: number, buf: number, bytes: number) {
         throw Error('undefined');
