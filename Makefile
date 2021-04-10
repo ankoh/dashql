@@ -276,4 +276,4 @@ pkg_uni:
 	cargo +nightly build --manifest-path="${UNI_SCHEMA_DIR}/Cargo.toml" --release
 	mkdir -p ${UNI_SCHEMA_OUT}
 	${UNI_SCHEMA_PKG} ${UNI_SCHEMA_OUT}
-	cd ${UNI_SCHEMA_OUT} && rm -f ./tables.zip && zip ./tables.zip ./*.parquet
+	cd ${UNI_SCHEMA_OUT} && rm -f ./all.zip && zip ./all.zip ./*.parquet
