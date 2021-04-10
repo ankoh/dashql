@@ -127,7 +127,7 @@ export abstract class DuckDBBindings {
     /** Send a query and return the full result */
     public runQuery(conn: number, text: string): Uint8Array {
         const instance = this.instance!;
-        const [s, d, n] = this.callSRet('duckdb_web_run_query', ['number', 'string'], [conn, text]);
+        const [s, d, n] = this.callSRet('duckdb_web_query_run', ['number', 'string'], [conn, text]);
         if (s !== StatusCode.SUCCESS) {
             throw new Error(this.readString(d, n));
         }
@@ -139,7 +139,7 @@ export abstract class DuckDBBindings {
     /** Send a query asynchronously. Results have to be fetched with `fetchQueryResults` */
     public sendQuery(conn: number, text: string): Uint8Array {
         const instance = this.instance!;
-        const [s, d, n] = this.callSRet('duckdb_web_send_query', ['number', 'string'], [conn, text]);
+        const [s, d, n] = this.callSRet('duckdb_web_query_send', ['number', 'string'], [conn, text]);
         if (s !== StatusCode.SUCCESS) {
             throw new Error(this.readString(d, n));
         }
@@ -151,7 +151,7 @@ export abstract class DuckDBBindings {
     /** Fetch query results */
     public fetchQueryResults(conn: number): Uint8Array {
         const instance = this.instance!;
-        const [s, d, n] = this.callSRet('duckdb_web_fetch_query_results', ['number'], [conn]);
+        const [s, d, n] = this.callSRet('duckdb_web_query_fetch_results', ['number'], [conn]);
         if (s !== StatusCode.SUCCESS) {
             throw new Error(this.readString(d, n));
         }
@@ -164,7 +164,7 @@ export abstract class DuckDBBindings {
     public importCSV(conn: number, filePath: string, schemaName: string, tableName: string): void {
         let instance = this.instance!;
         let [s, d, n] = this.callSRet(
-            'duckdb_web_import_csv',
+            'duckdb_web_csv_import',
             ['number', 'string', 'string', 'string'],
             [conn, filePath, schemaName, tableName],
         );
