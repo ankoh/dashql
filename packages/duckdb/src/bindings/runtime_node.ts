@@ -1,7 +1,7 @@
 // Copyright (c) 2020 The DashQL Authors
 
 import fs from 'fs';
-import { DuckDBRuntime, BlobStream } from './runtime_base';
+import { DuckDBRuntime } from './runtime_base';
 import globToRegexp from 'glob-to-regexp';
 
 const decoder = new TextDecoder();
@@ -11,6 +11,12 @@ interface NodeBlobHandle {
     url: string;
     handle: number;
     stat: fs.Stats;
+}
+
+export interface BlobStream {
+    id: number;
+    handle: NodeBlobHandle;
+    position: number;
 }
 
 export var NodeDuckDBRuntime: DuckDBRuntime & {
@@ -33,25 +39,13 @@ export var NodeDuckDBRuntime: DuckDBRuntime & {
             NodeDuckDBRuntime.handleMap.set(node_handle.url, node_handle);
         }
     },
-    duckdb_web_blob_stream_open: function (url: string): number {
-        const handle = NodeDuckDBRuntime.handleMap.get(url);
-        if (!handle) throw Error('File not found or cannot be opened: ' + url);
-
-        const id = NodeDuckDBRuntime.streamCounter;
-        const stream = { id: id, url: url, position: 0 };
-        NodeDuckDBRuntime.streamMap.set(id, stream);
-        NodeDuckDBRuntime.streamCounter++;
-        return id;
-    },
     duckdb_web_fs_read: function (blobId: number, buf: number, bytes: number) {
         let stream = NodeDuckDBRuntime.streamMap.get(blobId);
         if (!stream) return 0;
-        let handle = NodeDuckDBRuntime.handleMap.get(stream.url);
-        if (!handle) return 0;
 
-        const size = Math.min(bytes, handle.stat.size - stream.position);
+        const size = Math.min(bytes, stream.handle.stat.size - stream.position);
         let heap: Uint8Array = NodeDuckDBRuntime.bindings!.instance!.HEAPU8;
-        fs.readSync(handle.handle, heap, buf, size, stream.position);
+        fs.readSync(stream.handle.handle, heap, buf, size, stream.position);
         stream.position += size;
         return size;
     },
@@ -92,7 +86,15 @@ export var NodeDuckDBRuntime: DuckDBRuntime & {
         // TODO: respect flags
         let instance = NodeDuckDBRuntime.bindings!.instance!;
         const path = decoder.decode(instance.HEAPU8.subarray(pathPtr, pathPtr + pathLen));
-        return NodeDuckDBRuntime.duckdb_web_blob_stream_open(path);
+
+        const handle = NodeDuckDBRuntime.handleMap.get(path);
+        if (!handle) throw Error('File not found or cannot be opened: ' + path);
+
+        const id = NodeDuckDBRuntime.streamCounter;
+        const stream = { id: id, handle: handle, position: 0 };
+        NodeDuckDBRuntime.streamMap.set(id, stream);
+        NodeDuckDBRuntime.streamCounter++;
+        return id;
     },
     duckdb_web_fs_file_close: function (blobId: number) {
         NodeDuckDBRuntime.streamMap.delete(blobId);
@@ -100,16 +102,12 @@ export var NodeDuckDBRuntime: DuckDBRuntime & {
     duckdb_web_fs_file_get_size: function (blobId: number): number {
         let stream = NodeDuckDBRuntime.streamMap.get(blobId);
         if (!stream) return 0;
-        let handle = NodeDuckDBRuntime.handleMap.get(stream.url);
-        if (!handle) return 0;
-        return handle.stat.size;
+        return stream.handle.stat.size;
     },
     duckdb_web_fs_file_get_last_modified_time: function (blobId: number) {
         let stream = NodeDuckDBRuntime.streamMap.get(blobId);
         if (!stream) return 0;
-        let handle = NodeDuckDBRuntime.handleMap.get(stream.url);
-        if (!handle) return 0;
-        return handle.stat.mtime.getTime();
+        return stream.handle.stat.mtime.getTime();
     },
     duckdb_web_fs_file_move: function (fromPtr: number, fromLen: number, toPtr: number, toLen: number) {
         throw Error('undefined');
