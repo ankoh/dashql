@@ -3,7 +3,7 @@
 import { DuckDBBindings } from '../bindings';
 import { StatusCode } from '../status';
 
-export interface ZipArchiveFileInfo {
+export interface ZipArchiveEntryInfo {
     fileIndex: number;
     fileName: string;
     versionMadeBy: number;
@@ -12,7 +12,6 @@ export interface ZipArchiveFileInfo {
     crc32: number;
     bitFlag: number;
     method: number;
-    time: number;
     sizeCompressed: number;
     sizeUncompressed: number;
     attributesInternal: number;
@@ -21,6 +20,18 @@ export interface ZipArchiveFileInfo {
     isEncrypted: boolean;
     isSupported: boolean;
     comment: string;
+}
+
+export class ZipArchiveEntry {
+    _bindings: ZipBindings;
+    _archiveID: number;
+    _info: ZipArchiveEntryInfo;
+
+    constructor(bindings: ZipBindings, archiveID: number, info: ZipArchiveEntryInfo) {
+        this._bindings = bindings;
+        this._archiveID = archiveID;
+        this._info = info;
+    }
 }
 
 export class ZipArchive {
@@ -32,8 +43,12 @@ export class ZipArchive {
         this._archiveID = archiveID;
     }
 
-    getFileStats(): ZipArchiveFileInfo[] {
-        return this._bindings.getFiles(this._archiveID);
+    getEntryCount(): number {
+        return this._bindings.getEntryCount(this._archiveID);
+    }
+
+    getEntry(entryID: number): ZipArchiveEntryInfo {
+        return this._bindings.getEntryInfo(this._archiveID, entryID);
     }
 }
 
@@ -45,8 +60,8 @@ export class ZipBindings {
         this._duckdb = duckdb;
     }
 
-    public open(blobID: number): ZipArchive {
-        const [s, d, n] = this._duckdb.callSRet('duckdb_web_miniz_open', ['number', 'number'], [blobID]);
+    public loadFile(path: string): ZipArchive {
+        const [s, d, n] = this._duckdb.callSRet('duckdb_web_zip_load_file', ['number', 'string'], [path]);
         if (s !== StatusCode.SUCCESS) {
             throw new Error(this._duckdb.readString(d, n));
         }
@@ -54,13 +69,26 @@ export class ZipBindings {
         return new ZipArchive(this, d);
     }
 
-    public getFiles(archiveID: number): ZipArchiveFileInfo[] {
-        const [s, d, n] = this._duckdb.callSRet('duckdb_web_miniz_file_stats', ['number'], [archiveID]);
+    public getEntryCount(archiveID: number): number {
+        const [s, d, n] = this._duckdb.callSRet('duckdb_web_zip_read_entry_count', ['number'], [archiveID]);
+        if (s !== StatusCode.SUCCESS) {
+            throw new Error(this._duckdb.readString(d, n));
+        }
+        this._duckdb.dropResponseBuffers();
+        return d;
+    }
+
+    public getEntryInfo(archiveID: number, entryID: number): ZipArchiveEntryInfo {
+        const [s, d, n] = this._duckdb.callSRet(
+            'duckdb_web_zip_read_entry_info',
+            ['number', 'number'],
+            [archiveID, entryID],
+        );
         if (s !== StatusCode.SUCCESS) {
             throw new Error(this._duckdb.readString(d, n));
         }
         const res = this._duckdb.readString(d, n);
         this._duckdb.dropResponseBuffers();
-        return JSON.parse(res) as ZipArchiveFileInfo[];
+        return JSON.parse(res) as ZipArchiveEntryInfo;
     }
 }

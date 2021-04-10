@@ -81,4 +81,11 @@ void duckdb_web_import_csv(dashql::FFIResponse* packed, ConnectionHdl connHdl, c
                                                                     << e.what());
     }
 }
+
+/// Load zip from file
+void duckdb_web_zip_load_file(dashql::FFIResponse* packed, const char* filePath) {}
+/// Get the zip entry count
+void duckdb_web_zip_read_entry_count(dashql::FFIResponse* packed, size_t archiveID) {}
+/// Get the zip entry count
+void duckdb_web_zip_read_entry_info(dashql::FFIResponse* packed, size_t archiveID, size_t entryID) {}
 }
