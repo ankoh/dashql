@@ -12,13 +12,10 @@ declare global {
 
 /** DuckDB bindings for the browser */
 export class DuckDB extends DuckDBBindings {
-    protected runtime: DuckDBRuntime;
     protected path: string;
 
     public constructor(logger: Logger, runtime: DuckDBRuntime, path: string) {
-        super(logger);
-        this.runtime = runtime;
-        this.runtime.bindings = this;
+        super(logger, runtime);
         this.path = path;
     }
 
@@ -26,7 +23,7 @@ export class DuckDB extends DuckDBBindings {
     public registerURL(url: string): Promise<void> {
         return fetch(url)
             .then(r => r.blob())
-            .then(b => this.runtime.duckdb_web_add_blob_handle({ url: url, blob: b }));
+            .then(b => this._runtime.duckdb_web_add_handle(url, b));
     }
 
     /// Instantiate the wasm module
@@ -38,17 +35,17 @@ export class DuckDB extends DuckDBBindings {
             ...imports,
             env: {
                 ...imports.env,
-                ...this.runtime,
+                ...this._runtime,
             },
         };
         if (WebAssembly.instantiateStreaming) {
             WebAssembly.instantiateStreaming(fetch(this.path), imports_rt).then(output => {
                 globalThis.DuckDBTrampoline = {};
 
-                for (let func of Object.getOwnPropertyNames(this.runtime)) {
+                for (let func of Object.getOwnPropertyNames(this._runtime)) {
                     if (func == 'constructor') continue;
                     globalThis.DuckDBTrampoline[func] = <Function>(
-                        Object.getOwnPropertyDescriptor(this.runtime, func)!.value
+                        Object.getOwnPropertyDescriptor(this._runtime, func)!.value
                     );
                 }
                 success(output.instance);
@@ -60,10 +57,10 @@ export class DuckDB extends DuckDBBindings {
                     WebAssembly.instantiate(bytes, imports_rt).then(output => {
                         globalThis.DuckDBTrampoline = {};
 
-                        for (let func of Object.getOwnPropertyNames(this.runtime)) {
+                        for (let func of Object.getOwnPropertyNames(this._runtime)) {
                             if (func == 'constructor') continue;
                             globalThis.DuckDBTrampoline[func] = <Function>(
-                                Object.getOwnPropertyDescriptor(this.runtime, func)!.value
+                                Object.getOwnPropertyDescriptor(this._runtime, func)!.value
                             );
                         }
                         success(output.instance);

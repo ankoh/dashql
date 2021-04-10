@@ -3,6 +3,7 @@ import * as duckdb_parallel from '../src/targets/duckdb-node-parallel';
 import path from 'path';
 import Worker from 'web-worker';
 import * as tmp from 'temp-write';
+import fs from 'fs';
 
 let db: duckdb_serial.DuckDB | null = null;
 let adb: duckdb_parallel.AsyncDuckDB | null = null;
@@ -33,8 +34,12 @@ jasmine.DEFAULT_TIMEOUT_INTERVAL = 60000;
 testBindings(() => db!);
 testBatchStream(() => db!);
 testAsyncBatchStream(() => adb!);
+testFilesystem(
+    () => adb!,
+    path.resolve(__dirname, '../../../data'),
+    (url: string) => Promise.resolve(fs.readFileSync(url).toString()),
+);
 testZip(() => db!, path.resolve(__dirname, '../../../data'));
-testFilesystem(() => adb!, path.resolve(__dirname, '../../../data'));
 testExtractCSV(
     () => adb!,
     (buf: Uint8Array) => tmp.sync(Buffer.from(buf)),

@@ -4,6 +4,7 @@ import { DuckDBModule } from './duckdb_module';
 import { Logger } from '../log';
 import { DuckDBConnection } from './connection';
 import { StatusCode } from '../status';
+import { DuckDBRuntime } from './runtime_base';
 
 /// The proxy for either the browser- order node-based DuckDB API
 export abstract class DuckDBBindings {
@@ -15,9 +16,13 @@ export abstract class DuckDBBindings {
     private _openPromise: Promise<void> | null = null;
     /** The resolver for the open promise (called by onRuntimeInitialized) */
     private _openPromiseResolver: () => void = () => {};
+    /** Backend-dependent native-glue code for DuckDB */
+    protected _runtime: DuckDBRuntime;
 
-    constructor(logger: Logger) {
+    constructor(logger: Logger, runtime: DuckDBRuntime) {
         this._logger = logger;
+        this._runtime = runtime;
+        this._runtime.bindings = this;
     }
 
     /** Get the logger */
@@ -31,6 +36,11 @@ export abstract class DuckDBBindings {
 
     /// Registers the given URL as a file to be possibly loaded by DuckDB.
     public abstract registerURL(url: string): Promise<void>;
+
+    /// Get the absolute URL for a file written to or loaded by DuckDB.
+    public getAbsoluteURL(url: string): string | null {
+        return this._runtime.duckdb_web_get_absolute_url(url);
+    }
 
     /// Instantiate the module
     protected abstract instantiate(moduleOverrides: Partial<DuckDBModule>): Promise<DuckDBModule>;
