@@ -5,7 +5,6 @@ import { DuckDBModule } from './duckdb_module';
 import { DuckDBBindings } from './bindings';
 import { Logger } from '../log';
 import { DuckDBRuntime } from './runtime_base';
-import { WebBlobHandle } from './runtime_browser';
 
 declare global {
     var DuckDBTrampoline: any;
@@ -27,7 +26,7 @@ export class DuckDB extends DuckDBBindings {
     public registerURL(url: string): Promise<void> {
         return fetch(url)
             .then(r => r.blob())
-            .then(b => this.runtime.duckdb_web_add_blob_handle(new WebBlobHandle(b, url)));
+            .then(b => this.runtime.duckdb_web_add_blob_handle({ url: url, blob: b }));
     }
 
     /// Open a file previously registered by the given URL. Returns the Blob ID

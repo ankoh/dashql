@@ -33,8 +33,8 @@ jasmine.DEFAULT_TIMEOUT_INTERVAL = 30000;
 testBindings(() => db!);
 testBatchStream(() => db!);
 testAsyncBatchStream(() => adb!);
-testFilesystem(() => adb!, path.resolve(__dirname, '../../../data/uni/out'));
-testZip(() => db!, '/data');
+testZip(() => db!, path.resolve(__dirname, '../../../data'));
+testFilesystem(() => adb!, path.resolve(__dirname, '../../../data'));
 testExtractCSV(
     () => adb!,
     (buf: Uint8Array) => tmp.sync(Buffer.from(buf)),
