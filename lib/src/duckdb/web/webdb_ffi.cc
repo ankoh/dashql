@@ -90,16 +90,22 @@ static void RaiseExtensionNotLoaded(FFIResponse* packed, std::string_view ext) {
 /// Load zip from file
 void duckdb_web_zip_load_file(FFIResponse* packed, const char* filePath) {
     auto& webdb = WebDB::GetInstance();
-    if (!webdb.Zip()) return RaiseExtensionNotLoaded(packed, "zip");
+    auto* zip = webdb.Zip();
+    if (!zip) return RaiseExtensionNotLoaded(packed, "zip");
+    auto status = zip->LoadFromFile(filePath);
 }
 /// Get the zip entry count
 void duckdb_web_zip_read_entry_count(FFIResponse* packed, size_t archiveID) {
     auto& webdb = WebDB::GetInstance();
-    if (!webdb.Zip()) return RaiseExtensionNotLoaded(packed, "zip");
+    auto* zip = webdb.Zip();
+    if (zip) return RaiseExtensionNotLoaded(packed, "zip");
+    auto count = zip->GetEntryCount(archiveID);
 }
 /// Get the zip entry count
 void duckdb_web_zip_read_entry_info(FFIResponse* packed, size_t archiveID, size_t entryID) {
     auto& webdb = WebDB::GetInstance();
-    if (!webdb.Zip()) return RaiseExtensionNotLoaded(packed, "zip");
+    auto* zip = webdb.Zip();
+    if (zip) return RaiseExtensionNotLoaded(packed, "zip");
+    auto entry_info = zip->GetEntryInfoAsJSON(archiveID, entryID);
 }
 }
