@@ -346,12 +346,12 @@ if (EMSCRIPTEN)
             _duckdb_web_clear_response, \
             _duckdb_web_connect, \
             _duckdb_web_disconnect, \
-            _duckdb_web_fetch_query_results, \
+            _duckdb_web_csv_import, \
             _duckdb_web_fs_directory_list_files_callback, \
             _duckdb_web_fs_glob_callback, \
-            _duckdb_web_run_query, \
-            _duckdb_web_send_query, \
-            _duckdb_web_import_csv, \
+            _duckdb_web_query_fetch_results, \
+            _duckdb_web_query_run, \
+            _duckdb_web_query_send, \
             _duckdb_web_zip_load_file, \
             _duckdb_web_zip_read_entry_count, \
             _duckdb_web_zip_read_entry_info \
