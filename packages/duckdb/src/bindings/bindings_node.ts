@@ -13,19 +13,16 @@ declare global {
 
 /** DuckDB bindings for node.js */
 export class DuckDB extends DuckDBBindings {
-    protected runtime: DuckDBRuntime;
     protected path: string;
     public constructor(logger: Logger, runtime: DuckDBRuntime, path: string) {
-        super(logger);
-        this.runtime = runtime;
-        this.runtime.bindings = this;
+        super(logger, runtime);
         this.path = path;
     }
 
     /// Registers the given URL as a file to be possibly loaded by DuckDB. Returns the Blob ID
     public registerURL(url: string): Promise<void> {
         return Promise.resolve(
-            this.runtime.duckdb_web_add_blob_handle({
+            this._runtime.duckdb_web_add_handle(url, {
                 url: url,
                 handle: fs.openSync(url, 'r'),
                 stat: fs.statSync(url),
@@ -50,10 +47,10 @@ export class DuckDB extends DuckDBBindings {
 
             globalThis.DuckDBTrampoline = {};
 
-            for (let func of Object.getOwnPropertyNames(this.runtime)) {
+            for (let func of Object.getOwnPropertyNames(this._runtime)) {
                 if (func == 'constructor') continue;
                 globalThis.DuckDBTrampoline[func] = <Function>(
-                    Object.getOwnPropertyDescriptor(this.runtime, func)!.value
+                    Object.getOwnPropertyDescriptor(this._runtime, func)!.value
                 );
             }
             success(module);

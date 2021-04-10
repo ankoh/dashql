@@ -42,19 +42,33 @@ export var BrowserDuckDBRuntime: DuckDBRuntime & {
     streamCounter: 1,
     bindings: null,
 
-    duckdb_web_add_blob_handle: function (handle: any): void {
-        if (BrowserDuckDBRuntime.readHandleMap.has(handle.url)) {
+    duckdb_web_add_handle: function (url: string, handle: any): void {
+        if (BrowserDuckDBRuntime.readHandleMap.has(url)) {
             // Somewhat silently fail adding duplicate blob handle
             // Not overwriting entry since blobstreams refer to their handle
-            console.info('URL already registered: ' + handle.url);
+            console.info('URL already registered: ' + url);
         } else {
-            BrowserDuckDBRuntime.readHandleMap.set(handle.url, {
-                url: handle.url,
-                blob: handle.blob,
+            BrowserDuckDBRuntime.readHandleMap.set(url, {
+                url: url,
+                blob: handle,
                 page_queue: [],
                 pages: new Map<number, Uint8Array>(),
             });
         }
+    },
+    duckdb_web_get_absolute_url(url: string): string | null {
+        let read_handle = BrowserDuckDBRuntime.readHandleMap.get(url);
+        if (read_handle) {
+            return read_handle.url;
+        }
+
+        let write_handle = BrowserDuckDBRuntime.writeHandleMap.get(url);
+        if (write_handle) {
+            // XXX: This creates a memory leak
+            return URL.createObjectURL(new Blob(write_handle.parts));
+        }
+
+        return null;
     },
     duckdb_web_fs_read: function (blobId: number, buf: number, bytes: number) {
         const reader = new FileReaderSync();
@@ -97,15 +111,6 @@ export var BrowserDuckDBRuntime: DuckDBRuntime & {
         }
 
         return read;
-
-        //
-        // ad-hoc creation of small blobs is slower than creating big chunks and managing those as pages
-        //
-        // const size = Math.min(bytes, handle.blob.size - stream.position);
-        // const blob = handle.blob.slice(stream.position, stream.position + size);
-        // heap.set(new Uint8Array(reader.readAsArrayBuffer(blob)), buf);
-        // stream.position += size;
-        // return size;
     },
     duckdb_web_fs_write: function (blobId: number, buf: number, bytes: number) {
         let stream = BrowserDuckDBRuntime.streamMap.get(blobId);
