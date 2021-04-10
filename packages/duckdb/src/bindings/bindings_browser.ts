@@ -29,11 +29,6 @@ export class DuckDB extends DuckDBBindings {
             .then(b => this.runtime.duckdb_web_add_blob_handle({ url: url, blob: b }));
     }
 
-    /// Open a file previously registered by the given URL. Returns the Blob ID
-    public openURL(url: string): number {
-        return this.runtime.duckdb_web_blob_stream_open(url);
-    }
-
     /// Instantiate the wasm module
     protected instantiateWasm(
         imports: any,

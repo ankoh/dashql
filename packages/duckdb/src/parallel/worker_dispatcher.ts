@@ -153,19 +153,6 @@ export abstract class AsyncDuckDBDispatcher implements Logger {
                     await this._bindings.registerURL(request.data);
                     this.sendOK(request);
                     break;
-                case WorkerRequestType.OPEN_URL: {
-                    let blobId = this._bindings.openURL(request.data);
-                    this.postMessage(
-                        {
-                            messageId: this._nextMessageId++,
-                            requestId: request.messageId,
-                            type: WorkerResponseType.BLOB_ID,
-                            data: blobId,
-                        },
-                        [],
-                    );
-                    break;
-                }
             }
         } catch (e) {
             // Workaround for Firefox not being able to perform structured-clone on Native Errors
