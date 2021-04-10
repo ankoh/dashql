@@ -37,28 +37,28 @@ void* duckdb_web_access_buffer(ConnectionHdl /*connHdl*/, BufferHdl bufferHdl) {
 }
 
 /// Run a query
-void duckdb_web_run_query(FFIResponse* packed, ConnectionHdl connHdl, const char* script) {
+void duckdb_web_query_run(FFIResponse* packed, ConnectionHdl connHdl, const char* script) {
     auto c = reinterpret_cast<WebDB::Connection*>(connHdl);
     auto r = c->RunQuery(script);
     FFIResponseBuffer::GetInstance().Store(*packed, std::move(r));
 }
 
 /// Send a query
-void duckdb_web_send_query(FFIResponse* packed, ConnectionHdl connHdl, const char* script) {
+void duckdb_web_query_send(FFIResponse* packed, ConnectionHdl connHdl, const char* script) {
     auto c = reinterpret_cast<WebDB::Connection*>(connHdl);
     auto r = c->SendQuery(script);
     FFIResponseBuffer::GetInstance().Store(*packed, std::move(r));
 }
 
 /// Fetch query results
-void duckdb_web_fetch_query_results(FFIResponse* packed, ConnectionHdl connHdl) {
+void duckdb_web_query_fetch_results(FFIResponse* packed, ConnectionHdl connHdl) {
     auto c = reinterpret_cast<WebDB::Connection*>(connHdl);
     auto r = c->FetchQueryResults();
     FFIResponseBuffer::GetInstance().Store(*packed, std::move(r));
 }
 
 /// Import CSV from a file
-void duckdb_web_import_csv(dashql::FFIResponse* packed, ConnectionHdl connHdl, const char* filePath,
+void duckdb_web_csv_import(dashql::FFIResponse* packed, ConnectionHdl connHdl, const char* filePath,
                            const char* schemaName, const char* tableName) {
     auto c = reinterpret_cast<WebDB::Connection*>(connHdl);
     using LT = duckdb::LogicalType;
