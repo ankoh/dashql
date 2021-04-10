@@ -113,7 +113,7 @@ export var BrowserDuckDBRuntime: DuckDBRuntime & {
         let heap: Uint8Array = BrowserDuckDBRuntime.bindings!.instance!.HEAPU8;
         let handle = <WriteWebBlobHandle>stream.handle;
         if (stream.position == handle.size) {
-            const part = heap.subarray(buf, buf + bytes);
+            const part = new Uint8Array(heap.buffer.slice(buf, buf + bytes));
             handle.parts.push(part);
             handle.size += part.length;
             stream.position += part.length;
