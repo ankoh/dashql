@@ -2,12 +2,14 @@
 
 #include "duckdb/web/ffi_response.h"
 
+#include <cstdint>
+
 #include "arrow/buffer.h"
 
 namespace duckdb {
 namespace web {
 
-FFIResponseBuffer::FFIResponseBuffer() : status_message_(), arrow_buffer_() {}
+FFIResponseBuffer::FFIResponseBuffer() : status_message_(), string_buffer_(), arrow_buffer_() {}
 
 void FFIResponseBuffer::Clear() {
     status_message_.clear();
@@ -36,6 +38,20 @@ void FFIResponseBuffer::Store(FFIResponse& response, arrow::Result<std::shared_p
             response.dataPtr = 0;
             response.dataSize = 0;
         }
+    } else {
+        status_message_ = result.status().message();
+        response.dataPtr = reinterpret_cast<uintptr_t>(status_message_.data());
+        response.dataSize = reinterpret_cast<uintptr_t>(status_message_.size());
+    }
+}
+
+void FFIResponseBuffer::Store(FFIResponse& response, arrow::Result<std::string> result) {
+    Clear();
+    response.statusCode = static_cast<uint64_t>(result.status().code());
+    if (result.ok()) {
+        string_buffer_ = result.ValueUnsafe();
+        response.dataPtr = reinterpret_cast<uintptr_t>(string_buffer_.data());
+        response.dataSize = reinterpret_cast<uintptr_t>(string_buffer_.size());
     } else {
         status_message_ = result.status().message();
         response.dataPtr = reinterpret_cast<uintptr_t>(status_message_.data());

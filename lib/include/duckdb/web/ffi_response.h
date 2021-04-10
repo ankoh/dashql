@@ -23,6 +23,8 @@ class FFIResponseBuffer {
    protected:
     /// The status message
     std::string status_message_;
+    /// The string buffer (if any)
+    std::string string_buffer_;
     /// The arrow buffer (if any)
     std::shared_ptr<arrow::Buffer> arrow_buffer_;
 
@@ -36,6 +38,8 @@ class FFIResponseBuffer {
     void Store(FFIResponse& response, arrow::Status status);
     /// Store the result buffer
     void Store(FFIResponse& response, arrow::Result<std::shared_ptr<arrow::Buffer>> result);
+    /// Store the result string
+    void Store(FFIResponse& response, arrow::Result<std::string> result);
 
     /// Get the instance
     static FFIResponseBuffer& GetInstance();
