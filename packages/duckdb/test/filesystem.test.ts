@@ -89,32 +89,37 @@ export function testFilesystem(db: () => duckdb.AsyncDuckDB, basedir: string) {
 
         it('Huge file', async () => {
             await db().registerURL(`${basedir}/tpch/5/orders.parquet`);
-            let min = Infinity,
-                max = -Infinity,
-                sum = 0,
-                nums = 0;
-            for (let i = 0; i < 5; i++) {
-                let from = performance.now();
-                const result = await conn.sendQuery(`
+            const result = await conn.sendQuery(`
                     SELECT o_orderkey
                     FROM parquet_scan('${basedir}/tpch/5/orders.parquet');
                 `);
-                let num = 0;
-                for await (const batch of result) {
-                    expect(batch.numCols).toBe(1);
-                    for (const v of batch.getChildAt(0)!) {
-                        num++;
-                    }
+            let num = 0;
+            for await (const batch of result) {
+                expect(batch.numCols).toBe(1);
+                for (const v of batch.getChildAt(0)!) {
+                    num++;
                 }
-
-                expect(num).toBe(7500000);
-                let diff = performance.now() - from;
-                min = Math.min(min, diff);
-                max = Math.max(max, diff);
-                sum += diff;
-                nums++;
-                console.info(`min: ${min}, max: ${max}, avg: ${sum / nums}`);
             }
+
+            expect(num).toBe(7500000);
+        });
+    });
+    describe('Writing', () => {
+        it('Copy To', async () => {
+            await db().registerURL(`${basedir}/uni/out/studenten.parquet`);
+            await conn.runQuery(
+                `CREATE TABLE studenten AS SELECT * FROM parquet_scan('${basedir}/uni/out/studenten.parquet');`,
+            );
+            await conn.runQuery(`COPY studenten TO 'studenten.csv' WITH (HEADER 1, DELIMITER ';');`);
+        });
+        it('Copy To And read again', async () => {
+            await db().registerURL(`${basedir}/uni/out/studenten.parquet`);
+            await conn.runQuery(
+                `CREATE TABLE studenten AS SELECT * FROM parquet_scan('${basedir}/uni/out/studenten.parquet');`,
+            );
+            await conn.runQuery(`COPY studenten TO 'studenten.csv' WITH (HEADER 1, DELIMITER ';');`);
+
+            await conn.runQuery(`CREATE TABLE studenten2 AS SELECT * FROM read_csv_auto('studenten.csv');`);
         });
     });
 }
