@@ -2,7 +2,7 @@ const puppeteer = require('puppeteer');
 
 process.env.CHROME_BIN = puppeteer.executablePath();
 
-module.exports = function (config) {
+module.exports = function(config) {
     config.set({
         basePath: '../..',
         plugins: [
@@ -18,15 +18,15 @@ module.exports = function (config) {
             { pattern: 'packages/duckdb/dist/tests-browser.js' },
             { pattern: 'packages/duckdb/dist/*.wasm', included: false, watched: false, served: true },
             { pattern: 'packages/duckdb/dist/*.js', included: false, watched: false, served: true },
-            { pattern: 'data/uni/out/*.parquet', included: false, watched: false, served: true },
-            { pattern: 'data/uni/out/*.zip', included: false, watched: false, served: true },
+            { pattern: 'data/**/*.parquet', included: false, watched: false, served: true },
+            { pattern: 'data/**/*.zip', included: false, watched: false, served: true },
         ],
         preprocessors: {
             '**/*.js': ['sourcemap', 'coverage'],
         },
         proxies: {
             '/static/': '/base/packages/duckdb/dist/',
-            '/data/': '/base/data/uni/out/',
+            '/data/': '/base/data/',
         },
         exclude: [],
         reporters: ['dots', 'coverage'],
@@ -45,7 +45,7 @@ module.exports = function (config) {
         coverageReporter: {
             type: 'json',
             dir: './packages/duckdb/coverage/',
-            subdir: function (browser) {
+            subdir: function(browser) {
                 return browser.toLowerCase().split(/[ /-]/)[0];
             },
         },

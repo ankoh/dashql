@@ -23,7 +23,8 @@ import { testExtractCSV } from './extract_csv.test';
 import { testZip } from './zip.test';
 
 // Loading debug symbols, especially for WASM take insanely long so we just disable the test timeout
-jasmine.DEFAULT_TIMEOUT_INTERVAL = 30000;
+jasmine.DEFAULT_TIMEOUT_INTERVAL = 3000000;
+// jasmine.DEFAULT_TIMEOUT_INTERVAL = 30000;
 
 testBindings(() => db!);
 testBatchStream(() => db!);
