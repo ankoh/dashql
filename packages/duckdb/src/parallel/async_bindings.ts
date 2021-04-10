@@ -139,12 +139,6 @@ export class AsyncDuckDB {
                     return;
                 }
                 break;
-            case WorkerRequestType.OPEN_URL:
-                if (response.type == WorkerResponseType.BLOB_ID) {
-                    task.promiseResolver(response.data);
-                    return;
-                }
-                break;
             case WorkerRequestType.CONNECT:
                 if (response.type == WorkerResponseType.CONNECTION_INFO) {
                     task.promiseResolver(response.data);
@@ -205,12 +199,6 @@ export class AsyncDuckDB {
     /// Registers the given URL as a file to be possibly loaded by DuckDB.
     public async registerURL(url: string): Promise<null> {
         const task = new WorkerTask<WorkerRequestType.REGISTER_URL, string, null>(WorkerRequestType.REGISTER_URL, url);
-        return await this.postTask(task);
-    }
-
-    /// Open a file previously registered by the given URL. Returns the Blob ID
-    public async openURL(url: string): Promise<number> {
-        const task = new WorkerTask<WorkerRequestType.OPEN_URL, string, number>(WorkerRequestType.OPEN_URL, url);
         return await this.postTask(task);
     }
 

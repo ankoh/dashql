@@ -28,13 +28,12 @@ export abstract class DuckDBBindings {
     public get instance() {
         return this._instance;
     }
-    /// Instantiate the module
-    protected abstract instantiate(moduleOverrides: Partial<DuckDBModule>): Promise<DuckDBModule>;
 
     /// Registers the given URL as a file to be possibly loaded by DuckDB.
     public abstract registerURL(url: string): Promise<void>;
-    /// Open a file previously registered by the given URL. Returns the Blob ID
-    public abstract openURL(url: string): number;
+
+    /// Instantiate the module
+    protected abstract instantiate(moduleOverrides: Partial<DuckDBModule>): Promise<DuckDBModule>;
 
     /** Open the database */
     public async open() {

@@ -8,7 +8,6 @@ export enum WorkerRequestType {
     RESET = 'RESET',
     PING = 'PING',
     REGISTER_URL = 'REGISTER_URL',
-    OPEN_URL = 'OPEN_URL',
     IMPORT_CSV = 'IMPORT_CSV',
     OPEN = 'OPEN',
     CONNECT = 'CONNECT',
@@ -66,7 +65,6 @@ export type WorkerRequestVariant =
     | WorkerRequest<WorkerRequestType.RESET, null>
     | WorkerRequest<WorkerRequestType.PING, null>
     | WorkerRequest<WorkerRequestType.REGISTER_URL, string>
-    | WorkerRequest<WorkerRequestType.OPEN_URL, string>
     | WorkerRequest<WorkerRequestType.IMPORT_CSV, [number, string, string, string]>
     | WorkerRequest<WorkerRequestType.OPEN, string>
     | WorkerRequest<WorkerRequestType.CONNECT, null>
@@ -79,7 +77,6 @@ export type WorkerResponseVariant =
     | WorkerResponse<WorkerResponseType.LOG, LogEntryVariant>
     | WorkerResponse<WorkerResponseType.OK, null>
     | WorkerResponse<WorkerResponseType.ERROR, any>
-    | WorkerResponse<WorkerResponseType.BLOB_ID, number>
     | WorkerResponse<WorkerResponseType.CONNECTION_INFO, number>
     | WorkerResponse<WorkerResponseType.QUERY_RESULT, Uint8Array>
     | WorkerResponse<WorkerResponseType.QUERY_RESULT_CHUNK, Uint8Array>
@@ -91,7 +88,6 @@ export type WorkerTaskVariant =
     | WorkerTask<WorkerRequestType.IMPORT_CSV, [number, string, string, string], null>
     | WorkerTask<WorkerRequestType.PING, null, null>
     | WorkerTask<WorkerRequestType.REGISTER_URL, string, null>
-    | WorkerTask<WorkerRequestType.OPEN_URL, string, number>
     | WorkerTask<WorkerRequestType.OPEN, string | null, null>
     | WorkerTask<WorkerRequestType.CONNECT, null, ConnectionID>
     | WorkerTask<WorkerRequestType.DISCONNECT, ConnectionID, null>
