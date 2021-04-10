@@ -29,15 +29,19 @@ export var NodeDuckDBRuntime: DuckDBRuntime & {
     streamCounter: 1,
     bindings: null,
 
-    duckdb_web_add_blob_handle: function (handle: any): void {
+    duckdb_web_add_handle: function (url: any, handle: any): void {
         let node_handle = <NodeBlobHandle>handle;
-        if (NodeDuckDBRuntime.handleMap.has(node_handle.url)) {
+        if (NodeDuckDBRuntime.handleMap.has(url)) {
             // Somewhat silently fail adding duplicate blob handle
             // Not overwriting entry since blobstreams refer to their handle
-            console.info('URL already registered: ' + node_handle.url);
+            console.info('URL already registered: ' + url);
         } else {
-            NodeDuckDBRuntime.handleMap.set(node_handle.url, node_handle);
+            NodeDuckDBRuntime.handleMap.set(url, node_handle);
         }
+    },
+    duckdb_web_get_absolute_url(url: string): string | null {
+        // return path.resolve full url
+        return null;
     },
     duckdb_web_fs_read: function (blobId: number, buf: number, bytes: number) {
         let stream = NodeDuckDBRuntime.streamMap.get(blobId);

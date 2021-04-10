@@ -139,6 +139,12 @@ export class AsyncDuckDB {
                     return;
                 }
                 break;
+            case WorkerRequestType.GET_ABSOLUTE_URL:
+                if (response.type == WorkerResponseType.ABSOLUTE_URL) {
+                    task.promiseResolver(response.data);
+                    return;
+                }
+                break;
             case WorkerRequestType.CONNECT:
                 if (response.type == WorkerResponseType.CONNECTION_INFO) {
                     task.promiseResolver(response.data);
@@ -256,6 +262,15 @@ export class AsyncDuckDB {
         const task = new WorkerTask<WorkerRequestType.FETCH_QUERY_RESULTS, ConnectionID, Uint8Array>(
             WorkerRequestType.FETCH_QUERY_RESULTS,
             conn,
+        );
+        return await this.postTask(task);
+    }
+
+    /** Get the absolute URL for a file written to or loaded by DuckDB. */
+    public async getAbsoluteURL(url: string): Promise<string | null> {
+        const task = new Task<WorkerRequestType.GET_ABSOLUTE_URL, string, string | null>(
+            WorkerRequestType.GET_ABSOLUTE_URL,
+            url,
         );
         return await this.postTask(task);
     }

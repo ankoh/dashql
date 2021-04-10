@@ -1,7 +1,11 @@
 import * as duckdb from '../src/';
 import * as arrow from 'apache-arrow';
 
-export function testFilesystem(db: () => duckdb.AsyncDuckDB, basedir: string) {
+export function testFilesystem(
+    db: () => duckdb.AsyncDuckDB,
+    basedir: string,
+    absolute_file_reader: (url: string) => Promise<string>,
+) {
     let conn: duckdb.AsyncDuckDBConnection;
 
     beforeEach(async () => {
@@ -111,15 +115,19 @@ export function testFilesystem(db: () => duckdb.AsyncDuckDB, basedir: string) {
                 `CREATE TABLE studenten AS SELECT * FROM parquet_scan('${basedir}/uni/out/studenten.parquet');`,
             );
             await conn.runQuery(`COPY studenten TO 'studenten.csv' WITH (HEADER 1, DELIMITER ';');`);
-        });
-        it('Copy To And read again', async () => {
-            await db().registerURL(`${basedir}/uni/out/studenten.parquet`);
-            await conn.runQuery(
-                `CREATE TABLE studenten AS SELECT * FROM parquet_scan('${basedir}/uni/out/studenten.parquet');`,
-            );
-            await conn.runQuery(`COPY studenten TO 'studenten.csv' WITH (HEADER 1, DELIMITER ';');`);
-
-            await conn.runQuery(`CREATE TABLE studenten2 AS SELECT * FROM read_csv_auto('studenten.csv');`);
+            const url = await db().getAbsoluteURL('studenten.csv');
+            expect(url).not.toBeNull();
+            const data = await absolute_file_reader(url!);
+            expect(data).toBe(`MatrNr;Name;Semester
+24002;Xenokrates;18
+25403;Jonas;12
+26120;Fichte;10
+26830;Aristoxenos;8
+27550;Schopenhauer;6
+28106;Carnap;3
+29120;Theophrastos;2
+29555;Feuerbach;2
+`);
         });
     });
 }
