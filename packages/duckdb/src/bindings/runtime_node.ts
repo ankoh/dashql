@@ -23,7 +23,7 @@ export var NodeDuckDBRuntime: DuckDBRuntime & {
     streamCounter: 1,
     bindings: null,
 
-    duckdb_web_add_blob_handle: function (handle: object): void {
+    duckdb_web_add_blob_handle: function (handle: any): void {
         let node_handle = <NodeBlobHandle>handle;
         if (NodeDuckDBRuntime.handleMap.has(node_handle.url)) {
             // Somewhat silently fail adding duplicate blob handle
