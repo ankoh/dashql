@@ -6,8 +6,8 @@ import globToRegexp from 'glob-to-regexp';
 const decoder = new TextDecoder();
 const encoder = new TextEncoder();
 
-const pageSize = 1024;
-const maxPages = 10;
+const pageSize = 1024 * 1024;
+const maxPages = 32;
 
 interface WebBlobHandle {
     url: string;
@@ -63,8 +63,10 @@ export var BrowserDuckDBRuntime: DuckDBRuntime & {
                 handle.pages.set(page, new Uint8Array(reader.readAsArrayBuffer(blob)));
             }
 
-            // Move page to back of queue due to recent access
-            handle.page_queue.push(handle.page_queue.splice(handle.page_queue.indexOf(page), 1)[0]);
+            if (handle.page_queue[handle.page_queue.length - 1] != page) {
+                // Move page to back of queue due to recent access
+                handle.page_queue.push(handle.page_queue.splice(handle.page_queue.indexOf(page), 1)[0]);
+            }
 
             return handle.pages.get(page)!;
         };
@@ -91,6 +93,15 @@ export var BrowserDuckDBRuntime: DuckDBRuntime & {
         }
 
         return read;
+
+        //
+        // ad-hoc creation of small blobs is slower than creating big chunks and managing those as pages
+        //
+        // const size = Math.min(bytes, handle.blob.size - stream.position);
+        // const blob = handle.blob.slice(stream.position, stream.position + size);
+        // heap.set(new Uint8Array(reader.readAsArrayBuffer(blob)), buf);
+        // stream.position += size;
+        // return size;
     },
     duckdb_web_fs_write: function (blobId: number, buf: number, bytes: number) {
         throw Error('undefined');
