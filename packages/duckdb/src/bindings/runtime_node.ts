@@ -1,16 +1,16 @@
 // Copyright (c) 2020 The DashQL Authors
 
 import fs from 'fs';
-import { DuckDBRuntime, BlobHandle, BlobStream } from './runtime_base';
+import { DuckDBRuntime, BlobStream } from './runtime_base';
 import globToRegexp from 'glob-to-regexp';
 
 const decoder = new TextDecoder();
 const encoder = new TextEncoder();
 
-export class NodeBlobHandle extends BlobHandle {
-    public open(): void {
-        this.buffer = fs.readFileSync(this.url);
-    }
+interface NodeBlobHandle {
+    url: string;
+    handle: number;
+    stat: fs.Stats;
 }
 
 export var NodeDuckDBRuntime: DuckDBRuntime & {
@@ -23,25 +23,22 @@ export var NodeDuckDBRuntime: DuckDBRuntime & {
     streamCounter: 1,
     bindings: null,
 
-    duckdb_web_add_blob_handle: function (blob_handle: BlobHandle): void {
-        if (NodeDuckDBRuntime.handleMap.has(blob_handle.url)) {
+    duckdb_web_add_blob_handle: function (handle: object): void {
+        let node_handle = <NodeBlobHandle>handle;
+        if (NodeDuckDBRuntime.handleMap.has(node_handle.url)) {
             // Somewhat silently fail adding duplicate blob handle
             // Not overwriting entry since blobstreams refer to their handle
-            console.info('URL already registered: ' + blob_handle.url);
+            console.info('URL already registered: ' + node_handle.url);
         } else {
-            NodeDuckDBRuntime.handleMap.set(blob_handle.url, <NodeBlobHandle>blob_handle);
+            NodeDuckDBRuntime.handleMap.set(node_handle.url, node_handle);
         }
     },
     duckdb_web_blob_stream_open: function (url: string): number {
         const handle = NodeDuckDBRuntime.handleMap.get(url);
         if (!handle) throw Error('File not found or cannot be opened: ' + url);
 
-        if (!handle.buffer) {
-            handle.open();
-        }
-
         const id = NodeDuckDBRuntime.streamCounter;
-        const stream = new BlobStream(id, handle);
+        const stream = { id: id, url: url, position: 0 };
         NodeDuckDBRuntime.streamMap.set(id, stream);
         NodeDuckDBRuntime.streamCounter++;
         return id;
@@ -49,8 +46,14 @@ export var NodeDuckDBRuntime: DuckDBRuntime & {
     duckdb_web_fs_read: function (blobId: number, buf: number, bytes: number) {
         let stream = NodeDuckDBRuntime.streamMap.get(blobId);
         if (!stream) return 0;
+        let handle = NodeDuckDBRuntime.handleMap.get(stream.url);
+        if (!handle) return 0;
 
-        return stream.copyTo(NodeDuckDBRuntime.bindings!.instance!.HEAPU8, buf, bytes);
+        const size = Math.min(bytes, handle.stat.size - stream.position);
+        let heap: Uint8Array = NodeDuckDBRuntime.bindings!.instance!.HEAPU8;
+        fs.readSync(handle.handle, heap, buf, size, stream.position);
+        stream.position += size;
+        return size;
     },
     duckdb_web_fs_write: function (blobId: number, buf: number, bytes: number) {
         throw Error('undefined');
@@ -97,12 +100,16 @@ export var NodeDuckDBRuntime: DuckDBRuntime & {
     duckdb_web_fs_file_get_size: function (blobId: number): number {
         let stream = NodeDuckDBRuntime.streamMap.get(blobId);
         if (!stream) return 0;
-        return stream.handle.buffer!.length;
+        let handle = NodeDuckDBRuntime.handleMap.get(stream.url);
+        if (!handle) return 0;
+        return handle.stat.size;
     },
     duckdb_web_fs_file_get_last_modified_time: function (blobId: number) {
         let stream = NodeDuckDBRuntime.streamMap.get(blobId);
         if (!stream) return 0;
-        return fs.statSync(stream.handle.url).mtime.getTime();
+        let handle = NodeDuckDBRuntime.handleMap.get(stream.url);
+        if (!handle) return 0;
+        return handle.stat.mtime.getTime();
     },
     duckdb_web_fs_file_move: function (fromPtr: number, fromLen: number, toPtr: number, toLen: number) {
         throw Error('undefined');

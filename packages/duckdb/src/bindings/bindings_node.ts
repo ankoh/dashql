@@ -6,7 +6,6 @@ import { DuckDBBindings } from './bindings';
 import { Logger } from '../log';
 import fs from 'fs';
 import { DuckDBRuntime } from './runtime_base';
-import { NodeBlobHandle } from './runtime_node';
 
 declare global {
     var DuckDBTrampoline: any;
@@ -25,7 +24,13 @@ export class DuckDB extends DuckDBBindings {
 
     /// Registers the given URL as a file to be possibly loaded by DuckDB. Returns the Blob ID
     public registerURL(url: string): Promise<void> {
-        return Promise.resolve(this.runtime.duckdb_web_add_blob_handle(new NodeBlobHandle(url)));
+        return Promise.resolve(
+            this.runtime.duckdb_web_add_blob_handle({
+                url: url,
+                handle: fs.openSync(url, 'r'),
+                stat: fs.statSync(url),
+            }),
+        );
     }
 
     /// Open a file previously registered by the given URL. Returns the Blob ID
