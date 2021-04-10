@@ -36,9 +36,9 @@ class Zipper {
     /// Load zip from a buffer
     arrow::Result<size_t> LoadFromFile(const char* path);
     /// Get the number of files in the archive
-    arrow::Result<size_t> GetFileCount(size_t archiveID);
-    /// Get the file info as JSON
-    arrow::Result<std::string> GetFileInfoAsJSON(size_t archiveID, size_t fileID);
+    arrow::Result<size_t> GetEntryCount(size_t archiveID);
+    /// Get the entry info as JSON
+    arrow::Result<std::string> GetEntryInfoAsJSON(size_t archiveID, size_t entryID);
 };
 
 }  // namespace web

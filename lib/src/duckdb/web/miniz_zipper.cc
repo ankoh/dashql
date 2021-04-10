@@ -40,15 +40,15 @@ arrow::Result<size_t> Zipper::LoadFromFile(const char* path) {
     return archive_id;
 }
 
-/// Get the number of files in the archive
-arrow::Result<size_t> Zipper::GetFileCount(size_t archiveID) {
+/// Get the number of entries in the archive
+arrow::Result<size_t> Zipper::GetEntryCount(size_t archiveID) {
     auto iter = loaded_archives_.find(archiveID);
     if (iter == loaded_archives_.end()) return 0;
     return duckdb_miniz::mz_zip_reader_get_num_files(&iter->second.archive);
 }
 
-/// Get the file info as JSON
-arrow::Result<std::string> Zipper::GetFileInfoAsJSON(size_t archiveID, size_t fileID) {
+/// Get the entry info as JSON
+arrow::Result<std::string> Zipper::GetEntryInfoAsJSON(size_t archiveID, size_t fileID) {
     auto iter = loaded_archives_.find(archiveID);
     if (iter == loaded_archives_.end()) return "";
     duckdb_miniz::mz_zip_archive_file_stat stat;
