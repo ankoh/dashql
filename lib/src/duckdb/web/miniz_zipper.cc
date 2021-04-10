@@ -1,9 +1,8 @@
 #include "duckdb/web/miniz_zipper.h"
 
-#include <ctime>
 #include <duckdb/common/file_system.hpp>
 
-#include "duckdb/web/miniz_archive.h"
+#include "miniz.hpp"
 #include "rapidjson/stringbuffer.h"
 #include "rapidjson/writer.h"
 
@@ -93,11 +92,6 @@ arrow::Result<std::string> Zipper::GetFileInfoAsJSON(size_t archiveID, size_t fi
     writer.Bool(stat.m_is_supported);
     writer.Key("comment");
     writer.String(stat.m_comment, stat.m_comment_size);
-    auto* tm = std::gmtime(&stat.m_time);
-    if (tm != nullptr) {
-        writer.Key("time");
-        writer.Int64(std::mktime(tm));
-    }
     writer.EndObject();
 
     return out.GetString();

@@ -8,7 +8,7 @@
 #include "arrow/result.h"
 #include "duckdb.hpp"
 #include "duckdb/web/filesystem.h"
-#include "duckdb/web/miniz_archive.h"
+#include "miniz.hpp"
 
 namespace duckdb {
 namespace web {
