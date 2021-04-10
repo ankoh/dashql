@@ -63,7 +63,7 @@ class WebDB {
     /// The database config
     duckdb::DBConfig db_config_;
 
-    /// The zipper
+    /// The zipper (if loaded)
     std::unique_ptr<Zipper> zip_;
 
    public:
@@ -78,7 +78,7 @@ class WebDB {
     /// Get the filesystem attached to the database
     duckdb::FileSystem& GetFileSystem();
     /// Get the zipper
-    auto& Zip() { return *zip_; }
+    auto* Zip() { return zip_.get(); }
 
     /// Get the static webdb instance
     static WebDB& GetInstance();
