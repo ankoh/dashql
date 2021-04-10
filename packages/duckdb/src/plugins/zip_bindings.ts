@@ -8,10 +8,11 @@ export interface ZipArchiveFileInfo {
     fileName: string;
     versionMadeBy: number;
     versionNeeded: number;
+    headerOffset: number;
+    crc32: number;
     bitFlag: number;
     method: number;
-    time: string;
-    crc32: number;
+    time: number;
     sizeCompressed: number;
     sizeUncompressed: number;
     attributesInternal: number;
@@ -23,10 +24,10 @@ export interface ZipArchiveFileInfo {
 }
 
 export class ZipArchive {
-    _bindings: MinizBindings;
+    _bindings: ZipBindings;
     _archiveID: number;
 
-    constructor(bindings: MinizBindings, archiveID: number) {
+    constructor(bindings: ZipBindings, archiveID: number) {
         this._bindings = bindings;
         this._archiveID = archiveID;
     }
@@ -36,7 +37,7 @@ export class ZipArchive {
     }
 }
 
-export class MinizBindings {
+export class ZipBindings {
     /// The DuckDB bindings
     _duckdb: DuckDBBindings;
 
@@ -45,7 +46,7 @@ export class MinizBindings {
     }
 
     public open(blobID: number): ZipArchive {
-        const [s, d, n] = this._duckdb.callSRet('duckdb_web_minz_open', ['number', 'number'], [blobID]);
+        const [s, d, n] = this._duckdb.callSRet('duckdb_web_miniz_open', ['number', 'number'], [blobID]);
         if (s !== StatusCode.SUCCESS) {
             throw new Error(this._duckdb.readString(d, n));
         }

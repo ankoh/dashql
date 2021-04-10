@@ -17,6 +17,7 @@
 #include "dashql/proto_generated.h"
 #include "duckdb.hpp"
 #include "duckdb/main/query_result.hpp"
+#include "duckdb/web/miniz_zipper.h"
 #include "nonstd/span.h"
 
 namespace duckdb {
@@ -62,6 +63,9 @@ class WebDB {
     /// The database config
     duckdb::DBConfig db_config_;
 
+    /// The zipper
+    std::unique_ptr<Zipper> zip_;
+
    public:
     /// Constructor
     WebDB();
@@ -73,6 +77,8 @@ class WebDB {
 
     /// Get the filesystem attached to the database
     duckdb::FileSystem& GetFileSystem();
+    /// Get the zipper
+    auto& Zip() { return *zip_; }
 
     /// Get the static webdb instance
     static WebDB& GetInstance();
