@@ -82,10 +82,24 @@ void duckdb_web_csv_import(dashql::FFIResponse* packed, ConnectionHdl connHdl, c
     }
 }
 
+static void RaiseExtensionNotLoaded(FFIResponse* packed, std::string_view ext) {
+    FFIResponseBuffer::GetInstance().Store(
+        *packed, arrow::Status(arrow::StatusCode::NotImplemented, "Extension is not loaded: " + std::string{ext}));
+}
+
 /// Load zip from file
-void duckdb_web_zip_load_file(dashql::FFIResponse* packed, const char* filePath) {}
+void duckdb_web_zip_load_file(FFIResponse* packed, const char* filePath) {
+    auto& webdb = WebDB::GetInstance();
+    if (!webdb.Zip()) return RaiseExtensionNotLoaded(packed, "zip");
+}
 /// Get the zip entry count
-void duckdb_web_zip_read_entry_count(dashql::FFIResponse* packed, size_t archiveID) {}
+void duckdb_web_zip_read_entry_count(FFIResponse* packed, size_t archiveID) {
+    auto& webdb = WebDB::GetInstance();
+    if (!webdb.Zip()) return RaiseExtensionNotLoaded(packed, "zip");
+}
 /// Get the zip entry count
-void duckdb_web_zip_read_entry_info(dashql::FFIResponse* packed, size_t archiveID, size_t entryID) {}
+void duckdb_web_zip_read_entry_info(FFIResponse* packed, size_t archiveID, size_t entryID) {
+    auto& webdb = WebDB::GetInstance();
+    if (!webdb.Zip()) return RaiseExtensionNotLoaded(packed, "zip");
+}
 }
