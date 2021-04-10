@@ -93,7 +93,7 @@ export function testFilesystem(db: () => duckdb.AsyncDuckDB, basedir: string) {
                 max = -Infinity,
                 sum = 0,
                 nums = 0;
-            for (let i = 0; i < 10; i++) {
+            for (let i = 0; i < 5; i++) {
                 let from = performance.now();
                 const result = await conn.sendQuery(`
                     SELECT o_orderkey
