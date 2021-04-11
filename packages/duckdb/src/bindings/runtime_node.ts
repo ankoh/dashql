@@ -1,8 +1,9 @@
 // Copyright (c) 2020 The DashQL Authors
 
 import fs from 'fs';
-import { DuckDBRuntime } from './runtime_base';
+import { DuckDBRuntime, FileFlags } from './runtime_base';
 import globToRegexp from 'glob-to-regexp';
+import path from 'path';
 
 const decoder = new TextDecoder();
 const encoder = new TextEncoder();
@@ -40,8 +41,10 @@ export var NodeDuckDBRuntime: DuckDBRuntime & {
         }
     },
     duckdb_web_get_absolute_url(url: string): string | null {
-        // return path.resolve full url
-        return null;
+        let handle = NodeDuckDBRuntime.handleMap.has(url);
+        if (!handle) return null;
+
+        return path.resolve(url);
     },
     duckdb_web_fs_read: function (blobId: number, buf: number, bytes: number) {
         let stream = NodeDuckDBRuntime.streamMap.get(blobId);
@@ -54,7 +57,14 @@ export var NodeDuckDBRuntime: DuckDBRuntime & {
         return size;
     },
     duckdb_web_fs_write: function (blobId: number, buf: number, bytes: number) {
-        throw Error('undefined');
+        let stream = NodeDuckDBRuntime.streamMap.get(blobId);
+        if (!stream) return 0;
+
+        const heap: Uint8Array = NodeDuckDBRuntime.bindings!.instance!.HEAPU8;
+        const slice = heap.subarray(buf, buf + bytes);
+        const written = fs.writeSync(stream.handle.handle, slice, 0, slice.length, stream.position);
+        stream.position += written;
+        return written;
     },
     duckdb_web_fs_directory_exists: function (pathPtr: number, pathLen: number) {
         throw Error('undefined');
@@ -87,18 +97,39 @@ export var NodeDuckDBRuntime: DuckDBRuntime & {
         }
     },
     duckdb_web_fs_file_open: function (pathPtr: number, pathLen: number, flags: number) {
-        // TODO: respect flags
+        // TODO: Respect all flags
         let instance = NodeDuckDBRuntime.bindings!.instance!;
         const path = decoder.decode(instance.HEAPU8.subarray(pathPtr, pathPtr + pathLen));
 
-        const handle = NodeDuckDBRuntime.handleMap.get(path);
-        if (!handle) throw Error('File not found or cannot be opened: ' + path);
+        if ((flags & FileFlags.FILE_FLAGS_READ) == FileFlags.FILE_FLAGS_READ) {
+            const handle = NodeDuckDBRuntime.handleMap.get(path);
+            if (!handle) throw Error('File not found or cannot be opened: ' + path);
 
-        const id = NodeDuckDBRuntime.streamCounter;
-        const stream = { id: id, handle: handle, position: 0 };
-        NodeDuckDBRuntime.streamMap.set(id, stream);
-        NodeDuckDBRuntime.streamCounter++;
-        return id;
+            const id = NodeDuckDBRuntime.streamCounter;
+            const stream = { id: id, handle: handle, position: 0 };
+            NodeDuckDBRuntime.streamMap.set(id, stream);
+            NodeDuckDBRuntime.streamCounter++;
+            return id;
+        } else if ((flags & FileFlags.FILE_FLAGS_WRITE) == FileFlags.FILE_FLAGS_WRITE) {
+            let handle = NodeDuckDBRuntime.handleMap.get(path);
+            if (handle) throw Error('File is already opened: ' + path);
+
+            handle = {
+                url: path,
+                handle: fs.openSync(path, 'w'),
+                stat: new fs.Stats(),
+            };
+
+            NodeDuckDBRuntime.handleMap.set(path, handle);
+
+            const id = NodeDuckDBRuntime.streamCounter;
+            const stream = { id: id, handle: handle, position: 0 };
+            NodeDuckDBRuntime.streamMap.set(id, stream);
+            NodeDuckDBRuntime.streamCounter++;
+            return id;
+        } else {
+            throw Error('Unsupported file flags: ' + flags);
+        }
     },
     duckdb_web_fs_file_close: function (blobId: number) {
         NodeDuckDBRuntime.streamMap.delete(blobId);
