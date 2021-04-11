@@ -168,9 +168,8 @@ export abstract class AsyncDuckDBDispatcher implements Logger {
         } catch (e) {
             // Workaround for Firefox not being able to perform structured-clone on Native Errors
             // https://bugzilla.mozilla.org/show_bug.cgi?id=1556604
-            let obj: any = {};
-            Object.getOwnPropertyNames(e).forEach(key => (obj[key] = e[key]));
-
+            const obj: any = {};
+            for (const m of ['name', 'message', 'stack']) if (e[m] !== undefined) obj[m] = e[m];
             return this.failWith(request, obj);
         }
     }
