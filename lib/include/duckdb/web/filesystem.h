@@ -125,6 +125,7 @@ void duckdb_web_fs_directory_list_files_callback(const char *path, size_t pathLe
 void duckdb_web_fs_glob(const char *path, size_t pathLen);
 void duckdb_web_fs_glob_callback(const char *path, size_t pathLen);
 
+void duckdb_web_fs_file_sync(size_t blobId);
 size_t duckdb_web_fs_file_open(const char *path, size_t pathLen, uint8_t flags);
 void duckdb_web_fs_file_close(size_t blobId);
 ssize_t duckdb_web_fs_file_get_size(size_t blobId);

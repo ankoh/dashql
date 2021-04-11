@@ -10,6 +10,7 @@ export interface DuckDBRuntime {
     duckdb_web_fs_directory_list_files(pathPtr: number, pathLen: number): boolean;
     duckdb_web_fs_glob(pathPtr: number, pathLen: number): void;
     duckdb_web_fs_file_open(pathPtr: number, pathLen: number, flags: number): number;
+    duckdb_web_fs_file_sync(blobId: number): void;
     duckdb_web_fs_file_close(blobId: number): void;
     duckdb_web_fs_file_get_size(blobId: number): number;
     duckdb_web_fs_file_get_last_modified_time(blobId: number): number;
@@ -67,6 +68,9 @@ export const DefaultDuckDBRuntime: DuckDBRuntime = {
         throw Error('undefined');
     },
     duckdb_web_fs_file_close: (blobId: number) => {
+        throw Error('undefined');
+    },
+    duckdb_web_fs_file_sync: (blobId: number) => {
         throw Error('undefined');
     },
     duckdb_web_fs_file_get_size: (blobId: number) => {

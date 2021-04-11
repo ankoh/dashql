@@ -91,7 +91,9 @@ void WebDBFileSystem::RemoveFile(const std::string &filename) {
 //     return {};
 // }
 
-void WebDBFileSystem::FileSync(duckdb::FileHandle &handle) { std::cout << "FileSync not implemented" << std::endl; }
+void WebDBFileSystem::FileSync(duckdb::FileHandle &handle) {
+    return duckdb_web_fs_file_sync(((WebDBFileHandle &)handle).blob_id);
+}
 
 void WebDBFileSystem::SetWorkingDirectory(const std::string &path) {
     std::cout << "SetWorkingDirectory not implemented" << std::endl;
@@ -186,6 +188,7 @@ void duckdb_web_fs_directory_list_files_callback(const char *path, size_t pathLe
 }
 void duckdb_web_fs_glob_callback(const char *path, size_t pathLen) { glob_results->emplace_back(path, pathLen); }
 
+extern void duckdb_web_fs_file_sync(size_t blobId);
 extern size_t duckdb_web_fs_file_open(const char *path, size_t pathLen, uint8_t flags);
 extern void duckdb_web_fs_file_close(size_t blobId);
 extern ssize_t duckdb_web_fs_file_get_size(size_t blobId);
@@ -205,6 +208,7 @@ void duckdb_web_fs_directory_remove(const char *path, size_t pathLen) {}
 bool duckdb_web_fs_directory_list_files(const char *path, size_t pathLen) { return {}; }
 void duckdb_web_fs_glob(const char *path, size_t pathLen) {}
 
+void duckdb_web_fs_file_sync(size_t blobId) {}
 size_t duckdb_web_fs_file_open(const char *path, size_t pathLen, uint8_t flags) { return {}; }
 void duckdb_web_fs_file_close(size_t blobId) {}
 int64_t duckdb_web_fs_file_get_size(size_t blobId) { return {}; };

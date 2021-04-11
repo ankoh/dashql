@@ -134,6 +134,9 @@ export var NodeDuckDBRuntime: DuckDBRuntime & {
     duckdb_web_fs_file_close: function (blobId: number) {
         NodeDuckDBRuntime.streamMap.delete(blobId);
     },
+    duckdb_web_fs_file_sync: function (blobId: number) {
+        // noop
+    },
     duckdb_web_fs_file_get_size: function (blobId: number): number {
         let stream = NodeDuckDBRuntime.streamMap.get(blobId);
         if (!stream) return 0;

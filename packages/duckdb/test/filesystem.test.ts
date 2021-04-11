@@ -109,12 +109,12 @@ export function testFilesystem(
         });
     });
     describe('Writing', () => {
-        it('Copy To', async () => {
+        it('Copy To CSV', async () => {
             await db().registerURL(`${basedir}/uni/out/studenten.parquet`);
             await conn.runQuery(
                 `CREATE TABLE studenten AS SELECT * FROM parquet_scan('${basedir}/uni/out/studenten.parquet');`,
             );
-            await conn.runQuery(`COPY studenten TO 'studenten.csv' WITH (HEADER 1, DELIMITER ';');`);
+            await conn.runQuery(`COPY studenten TO 'studenten.csv' WITH (HEADER 1, DELIMITER ';', FORMAT CSV);`);
             const url = await db().getAbsoluteURL('studenten.csv');
             expect(url).not.toBeNull();
             const data = await absolute_file_reader(url!);
@@ -128,6 +128,32 @@ export function testFilesystem(
 29120;Theophrastos;2
 29555;Feuerbach;2
 `);
+        });
+        it('Copy To Parquet', async () => {
+            await db().registerURL(`${basedir}/uni/out/studenten.parquet`);
+            await conn.runQuery(
+                `CREATE TABLE studenten2 AS SELECT * FROM parquet_scan('${basedir}/uni/out/studenten.parquet');`,
+            );
+            await conn.runQuery(`COPY studenten2 TO 'studenten2.parquet' (FORMAT PARQUET);`);
+            const url = await db().getAbsoluteURL('studenten2.parquet');
+            expect(url).not.toBeNull();
+        });
+
+        it('Copy To Parquet And Load Again', async () => {
+            await db().registerURL(`${basedir}/uni/out/studenten.parquet`);
+            await conn.runQuery(
+                `CREATE TABLE studenten3 AS SELECT * FROM parquet_scan('${basedir}/uni/out/studenten.parquet');`,
+            );
+            await conn.runQuery(`COPY studenten3 TO 'studenten3.parquet' (FORMAT PARQUET);`);
+            const url = await db().getAbsoluteURL('studenten3.parquet');
+            expect(url).not.toBeNull();
+            await db().registerURL(url!);
+            await conn.runQuery(`CREATE TABLE studenten4 AS SELECT * FROM parquet_scan('${url}');`);
+            const result = await conn.sendQuery(`SELECT MatrNr FROM studenten4;`);
+            const table = await arrow.Table.from<{ MatrNr: arrow.Int }>(result);
+            expect(table.getColumnAt(0)?.toArray()).toEqual(
+                new Int32Array([24002, 25403, 26120, 26830, 27550, 28106, 29120, 29555]),
+            );
         });
     });
 }
