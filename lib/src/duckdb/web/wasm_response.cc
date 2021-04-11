@@ -16,54 +16,40 @@ void WASMResponseBuffer::Clear() {
     result_arrow_.reset();
 }
 
-void WASMResponseBuffer::Store(WASMResponse& response, arrow::Status status) {
+bool WASMResponseBuffer::Store(WASMResponse& response, arrow::Status status) {
     Clear();
     response.statusCode = static_cast<uint64_t>(status.code());
     if (!status.ok()) {
         status_message_ = status.message();
         response.dataOrValue = reinterpret_cast<uintptr_t>(status_message_.data());
         response.dataSize = reinterpret_cast<uintptr_t>(status_message_.size());
-        return;
+        return false;
     }
+    return true;
 }
 
 void WASMResponseBuffer::Store(WASMResponse& response, arrow::Result<std::shared_ptr<arrow::Buffer>> result) {
-    Clear();
-    response.statusCode = static_cast<uint64_t>(result.status().code());
-    if (!result.ok()) {
-        status_message_ = result.status().message();
-        response.dataOrValue = reinterpret_cast<uintptr_t>(status_message_.data());
-        response.dataSize = reinterpret_cast<uintptr_t>(status_message_.size());
-        return;
-    }
-    result_arrow_ = result.ValueUnsafe();
+    if (!Store(response, result.status())) return;
+    result_arrow_ = std::move(result.ValueUnsafe());
     response.dataOrValue = reinterpret_cast<uintptr_t>(result_arrow_->data());
     response.dataSize = result_arrow_->size();
 }
 
 void WASMResponseBuffer::Store(WASMResponse& response, arrow::Result<std::string> result) {
-    Clear();
-    response.statusCode = static_cast<uint64_t>(result.status().code());
-    if (!result.ok()) {
-        status_message_ = result.status().message();
-        response.dataOrValue = reinterpret_cast<uintptr_t>(status_message_.data());
-        response.dataSize = reinterpret_cast<uintptr_t>(status_message_.size());
-        return;
-    }
-    result_str_ = result.ValueUnsafe();
+    if (!Store(response, result.status())) return;
+    result_str_ = std::move(result.ValueUnsafe());
     response.dataOrValue = reinterpret_cast<uintptr_t>(result_str_.data());
     response.dataSize = reinterpret_cast<uintptr_t>(result_str_.size());
 }
 
 void WASMResponseBuffer::Store(WASMResponse& response, arrow::Result<double> result) {
-    Clear();
-    response.statusCode = static_cast<uint64_t>(result.status().code());
-    if (!result.ok()) {
-        status_message_ = result.status().message();
-        response.dataOrValue = reinterpret_cast<uintptr_t>(status_message_.data());
-        response.dataSize = reinterpret_cast<uintptr_t>(status_message_.size());
-        return;
-    }
+    if (!Store(response, result.status())) return;
+    response.dataOrValue = result.ValueUnsafe();
+    response.dataSize = 0;
+}
+
+void WASMResponseBuffer::Store(WASMResponse& response, arrow::Result<size_t> result) {
+    if (!Store(response, result.status())) return;
     response.dataOrValue = result.ValueUnsafe();
     response.dataSize = 0;
 }
