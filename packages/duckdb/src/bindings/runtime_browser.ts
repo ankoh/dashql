@@ -158,6 +158,7 @@ export var BrowserDuckDBRuntime: DuckDBRuntime & {
         }
     },
     duckdb_web_fs_file_open: function (pathPtr: number, pathLen: number, flags: number) {
+        // TODO: Respect all flags
         let instance = BrowserDuckDBRuntime.bindings!.instance!;
         const path = decoder.decode(instance.HEAPU8.subarray(pathPtr, pathPtr + pathLen));
 
