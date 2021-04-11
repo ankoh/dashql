@@ -150,8 +150,16 @@ export abstract class AsyncDuckDBDispatcher implements Logger {
                     this.sendOK(request);
                     break;
                 case WorkerRequestType.REGISTER_URL:
-                    await this._bindings.registerURL(request.data);
-                    this.sendOK(request);
+                    const success = await this._bindings.registerURL(request.data);
+                    this.postMessage(
+                        {
+                            messageId: this._nextMessageId++,
+                            requestId: request.messageId,
+                            type: WorkerResponseType.SUCCESS,
+                            data: success,
+                        },
+                        [],
+                    );
                     break;
                 case WorkerRequestType.GET_OBJECT_URL:
                     this.postMessage(

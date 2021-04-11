@@ -34,8 +34,8 @@ export abstract class DuckDBBindings {
         return this._instance;
     }
 
-    /// Registers the given URL as a file to be possibly loaded by DuckDB.
-    public abstract registerURL(url: string): Promise<void>;
+    /// Registers the given URL as a file to be possibly loaded by DuckDB. Returns true on success, false otherwise.
+    public abstract registerURL(url: string): Promise<boolean>;
 
     /// Get the URL for a file written to or loaded by DuckDB.
     public getObjectURL(url: string): string | null {

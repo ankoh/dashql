@@ -131,10 +131,15 @@ export class AsyncDuckDB {
             case WorkerRequestType.RESET:
             case WorkerRequestType.PING:
             case WorkerRequestType.IMPORT_CSV:
-            case WorkerRequestType.REGISTER_URL:
             case WorkerRequestType.OPEN:
             case WorkerRequestType.DISCONNECT:
                 if (response.type == WorkerResponseType.OK) {
+                    task.promiseResolver(response.data);
+                    return;
+                }
+                break;
+            case WorkerRequestType.REGISTER_URL:
+                if (response.type == WorkerResponseType.SUCCESS) {
                     task.promiseResolver(response.data);
                     return;
                 }
@@ -202,9 +207,12 @@ export class AsyncDuckDB {
         await this.postTask(task);
     }
 
-    /// Registers the given URL as a file to be possibly loaded by DuckDB.
-    public async registerURL(url: string): Promise<null> {
-        const task = new WorkerTask<WorkerRequestType.REGISTER_URL, string, null>(WorkerRequestType.REGISTER_URL, url);
+    /// Registers the given URL as a file to be possibly loaded by DuckDB. Returns true on success, false otherwise.
+    public async registerURL(url: string): Promise<boolean> {
+        const task = new WorkerTask<WorkerRequestType.REGISTER_URL, string, boolean>(
+            WorkerRequestType.REGISTER_URL,
+            url,
+        );
         return await this.postTask(task);
     }
 

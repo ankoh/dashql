@@ -27,17 +27,17 @@ export function testFilesystem(
             );
         };
         it('URL used once', async () => {
-            await db().registerURL(`${basedir}/uni/out/studenten.parquet`);
+            expect(await db().registerURL(`${basedir}/uni/out/studenten.parquet`)).toBeTruthy();
             await test();
         });
         it('URL re-registered', async () => {
-            await db().registerURL(`${basedir}/uni/out/studenten.parquet`);
+            expect(await db().registerURL(`${basedir}/uni/out/studenten.parquet`)).toBeTruthy();
             await test();
-            await db().registerURL(`${basedir}/uni/out/studenten.parquet`);
+            expect(await db().registerURL(`${basedir}/uni/out/studenten.parquet`)).toBeTruthy();
             await test();
         });
         it('URL used twice', async () => {
-            await db().registerURL(`${basedir}/uni/out/studenten.parquet`);
+            expect(await db().registerURL(`${basedir}/uni/out/studenten.parquet`)).toBeTruthy();
             await test();
             await test();
         });
@@ -45,7 +45,7 @@ export function testFilesystem(
 
     describe('Parquet Scans', () => {
         it('single table', async () => {
-            await db().registerURL(`${basedir}/uni/out/studenten.parquet`);
+            expect(await db().registerURL(`${basedir}/uni/out/studenten.parquet`)).toBeTruthy();
             const result = await conn.sendQuery(
                 `SELECT MatrNr FROM parquet_scan('${basedir}/uni/out/studenten.parquet');`,
             );
@@ -56,9 +56,9 @@ export function testFilesystem(
         });
 
         it('simple join', async () => {
-            await db().registerURL(`${basedir}/uni/out/studenten.parquet`);
-            await db().registerURL(`${basedir}/uni/out/hoeren.parquet`);
-            await db().registerURL(`${basedir}/uni/out/vorlesungen.parquet`);
+            expect(await db().registerURL(`${basedir}/uni/out/studenten.parquet`)).toBeTruthy();
+            expect(await db().registerURL(`${basedir}/uni/out/hoeren.parquet`)).toBeTruthy();
+            expect(await db().registerURL(`${basedir}/uni/out/vorlesungen.parquet`)).toBeTruthy();
 
             const result = await conn.sendQuery(`
                     SELECT studenten.MatrNr, vorlesungen.Titel
@@ -92,22 +92,26 @@ export function testFilesystem(
         });
 
         it('Huge file', async () => {
-            await db().registerURL(`${basedir}/tpch/5/orders.parquet`);
-            const result = await conn.sendQuery(`
+            if (!(await db().registerURL(`${basedir}/tpch/5/orders.parquet`))) {
+                pending('Missing TPCH files');
+            } else {
+                const result = await conn.sendQuery(`
                     SELECT o_orderkey
                     FROM parquet_scan('${basedir}/tpch/5/orders.parquet');
                 `);
-            let num = 0;
-            for await (const batch of result) {
-                expect(batch.numCols).toBe(1);
-                for (const v of batch.getChildAt(0)!) {
-                    num++;
+                let num = 0;
+                for await (const batch of result) {
+                    expect(batch.numCols).toBe(1);
+                    for (const v of batch.getChildAt(0)!) {
+                        num++;
+                    }
                 }
-            }
 
-            expect(num).toBe(7500000);
+                expect(num).toBe(7500000);
+            }
         });
     });
+
     describe('Writing', () => {
         it('Copy To CSV', async () => {
             await db().registerURL(`${basedir}/uni/out/studenten.parquet`);
