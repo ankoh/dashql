@@ -10,7 +10,7 @@
 namespace duckdb {
 namespace web {
 
-struct FFIResponse {
+struct WASMResponse {
     /// The status code
     double statusCode;
     /// The data ptr of value (if any)
@@ -19,7 +19,7 @@ struct FFIResponse {
     double dataSize;
 } __attribute((packed));
 
-class FFIResponseBuffer {
+class WASMResponseBuffer {
    protected:
     /// The status message
     std::string status_message_;
@@ -30,21 +30,21 @@ class FFIResponseBuffer {
 
    public:
     /// Constructor
-    FFIResponseBuffer();
+    WASMResponseBuffer();
 
     /// Clear the response buffer
     void Clear();
     /// Store the arrow status
-    void Store(FFIResponse& response, arrow::Status status);
+    void Store(WASMResponse& response, arrow::Status status);
     /// Store the result buffer
-    void Store(FFIResponse& response, arrow::Result<std::shared_ptr<arrow::Buffer>> result);
+    void Store(WASMResponse& response, arrow::Result<std::shared_ptr<arrow::Buffer>> result);
     /// Store the result string
-    void Store(FFIResponse& response, arrow::Result<std::string> result);
+    void Store(WASMResponse& response, arrow::Result<std::string> result);
     /// Store the result double
-    void Store(FFIResponse& response, arrow::Result<double> result);
+    void Store(WASMResponse& response, arrow::Result<double> result);
 
     /// Get the instance
-    static FFIResponseBuffer& GetInstance();
+    static WASMResponseBuffer& GetInstance();
 };
 
 }  // namespace web

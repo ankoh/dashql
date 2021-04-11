@@ -13,7 +13,6 @@
 #include "arrow/io/buffered.h"
 #include "arrow/io/interfaces.h"
 #include "arrow/ipc/writer.h"
-#include "dashql/common/ffi_response.h"
 #include "dashql/proto_generated.h"
 #include "duckdb.hpp"
 #include "duckdb/main/query_result.hpp"

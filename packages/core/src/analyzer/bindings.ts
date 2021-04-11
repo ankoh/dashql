@@ -73,9 +73,9 @@ export abstract class AnalyzerBindings {
 
         // Read the response
         // XXX: wasm64 will break here.
-        let status = instance.HEAPU32[(response >> 2) + 0];
-        let data = instance.HEAPU32[(response >> 2) + 2];
-        let dataSize = instance.HEAPU32[(response >> 2) + 4];
+        let status = instance.HEAPF64[(response >> 3) + 0];
+        let data = instance.HEAPF64[(response >> 3) + 1];
+        let dataSize = instance.HEAPF64[(response >> 3) + 2];
 
         // Restore the stack
         instance.stackRestore(stackPointer);

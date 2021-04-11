@@ -25,6 +25,7 @@ import { testBatchStream } from './batch_stream.test';
 import { testFilesystem } from './filesystem.test';
 import { testAsyncBatchStream } from './batch_stream_async.test';
 import { testExtractCSV } from './extract_csv.test';
+import { testZip } from './zip.test';
 
 // Loading debug symbols, especially for WASM take insanely long so we just disable the test timeout
 jasmine.DEFAULT_TIMEOUT_INTERVAL = 30000;
@@ -33,6 +34,7 @@ testBindings(() => db!);
 testBatchStream(() => db!);
 testAsyncBatchStream(() => adb!);
 testFilesystem(() => adb!, path.resolve(__dirname, '../../../data/uni/out'));
+testZip(() => db!, '/data');
 testExtractCSV(
     () => adb!,
     (buf: Uint8Array) => tmp.sync(Buffer.from(buf)),

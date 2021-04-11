@@ -245,7 +245,7 @@ target_link_libraries(dashql_parser dashql_proto)
 # Libraries
 
 add_library(dashql_common
-    ${CMAKE_SOURCE_DIR}/src/common/ffi_response.cc
+    ${CMAKE_SOURCE_DIR}/src/common/wasm_response.cc
     ${CMAKE_SOURCE_DIR}/src/common/pattern_search.cc
     ${CMAKE_SOURCE_DIR}/src/common/substring_buffer.cc
     ${CMAKE_SOURCE_DIR}/src/common/union_find.cc
@@ -254,7 +254,7 @@ add_library(dashql_common
 add_library(dashql_analyzer
     ${CMAKE_SOURCE_DIR}/src/analyzer/action_planner.cc
     ${CMAKE_SOURCE_DIR}/src/analyzer/analyzer.cc
-    ${CMAKE_SOURCE_DIR}/src/analyzer/analyzer_ffi.cc
+    ${CMAKE_SOURCE_DIR}/src/analyzer/analyzer_api.cc
     ${CMAKE_SOURCE_DIR}/src/analyzer/function_logic.cc
     ${CMAKE_SOURCE_DIR}/src/analyzer/json_patch.cc
     ${CMAKE_SOURCE_DIR}/src/analyzer/json_writer.cc
@@ -269,11 +269,11 @@ add_library(dashql_analyzer
 )
 
 add_library(duckdb_web
-    ${CMAKE_SOURCE_DIR}/src/duckdb/web/ffi_response.cc
+    ${CMAKE_SOURCE_DIR}/src/duckdb/web/wasm_response.cc
     ${CMAKE_SOURCE_DIR}/src/duckdb/web/filesystem.cc
     ${CMAKE_SOURCE_DIR}/src/duckdb/web/miniz_zipper.cc
     ${CMAKE_SOURCE_DIR}/src/duckdb/web/webdb.cc
-    ${CMAKE_SOURCE_DIR}/src/duckdb/web/webdb_ffi.cc
+    ${CMAKE_SOURCE_DIR}/src/duckdb/web/webdb_api.cc
 )
 
 add_library(dashql_test
@@ -322,11 +322,11 @@ if (EMSCRIPTEN)
         "
     )
 
-    add_executable(analyzer_wasm ${CMAKE_SOURCE_DIR}/src/ffi_main.cc)
+    add_executable(analyzer_wasm ${CMAKE_SOURCE_DIR}/src/wasm_main.cc)
     target_link_libraries(analyzer_wasm dashql_analyzer)
     set_target_properties(analyzer_wasm PROPERTIES LINK_FLAGS "${ANALYZER_WASM_LINKER_FLAGS} -s ENVIRONMENT='web'")
 
-    add_executable(analyzer_wasm_node ${CMAKE_SOURCE_DIR}/src/ffi_main.cc)
+    add_executable(analyzer_wasm_node ${CMAKE_SOURCE_DIR}/src/wasm_main.cc)
     target_link_libraries(analyzer_wasm_node dashql_analyzer)
     set_target_properties(analyzer_wasm_node PROPERTIES LINK_FLAGS "${ANALYZER_WASM_LINKER_FLAGS} -s ENVIRONMENT='node'")
 
@@ -362,11 +362,11 @@ if (EMSCRIPTEN)
         "
         )
 
-    add_executable(duckdb_wasm ${CMAKE_SOURCE_DIR}/src/ffi_main.cc)
+    add_executable(duckdb_wasm ${CMAKE_SOURCE_DIR}/src/wasm_main.cc)
     target_link_libraries(duckdb_wasm duckdb_web flatbuffers spdlog)
     set_target_properties(duckdb_wasm PROPERTIES LINK_FLAGS "${DUCKDB_WASM_LINKER_FLAGS} -s ENVIRONMENT='web'")
 
-    add_executable(duckdb_wasm_node ${CMAKE_SOURCE_DIR}/src/ffi_main.cc)
+    add_executable(duckdb_wasm_node ${CMAKE_SOURCE_DIR}/src/wasm_main.cc)
     target_link_libraries(duckdb_wasm_node duckdb_web flatbuffers spdlog)
     set_target_properties(duckdb_wasm_node PROPERTIES LINK_FLAGS "${DUCKDB_WASM_LINKER_FLAGS} -s ENVIRONMENT='node'")
 else()
