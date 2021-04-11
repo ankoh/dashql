@@ -72,7 +72,6 @@ export abstract class AnalyzerBindings {
         instance.ccall(funcName, null, argTypes, args);
 
         // Read the response
-        // XXX: wasm64 will break here.
         let status = instance.HEAPF64[(response >> 3) + 0];
         let data = instance.HEAPF64[(response >> 3) + 1];
         let dataSize = instance.HEAPF64[(response >> 3) + 2];
