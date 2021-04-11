@@ -56,7 +56,7 @@ export var BrowserDuckDBRuntime: DuckDBRuntime & {
             });
         }
     },
-    duckdb_web_get_absolute_url(url: string): string | null {
+    duckdb_web_get_object_url(url: string): string | null {
         let read_handle = BrowserDuckDBRuntime.readHandleMap.get(url);
         if (read_handle) {
             return read_handle.url;

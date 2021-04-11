@@ -37,9 +37,9 @@ export abstract class DuckDBBindings {
     /// Registers the given URL as a file to be possibly loaded by DuckDB.
     public abstract registerURL(url: string): Promise<void>;
 
-    /// Get the absolute URL for a file written to or loaded by DuckDB.
-    public getAbsoluteURL(url: string): string | null {
-        return this._runtime.duckdb_web_get_absolute_url(url);
+    /// Get the URL for a file written to or loaded by DuckDB.
+    public getObjectURL(url: string): string | null {
+        return this._runtime.duckdb_web_get_object_url(url);
     }
 
     /// Instantiate the module

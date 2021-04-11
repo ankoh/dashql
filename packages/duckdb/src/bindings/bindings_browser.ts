@@ -20,10 +20,10 @@ export class DuckDB extends DuckDBBindings {
     }
 
     /// Registers the given URL as a file to be possibly loaded by DuckDB.
-    public registerURL(url: string): Promise<void> {
-        return fetch(url)
-            .then(r => r.blob())
-            .then(b => this._runtime.duckdb_web_add_handle(url, b));
+    public async registerURL(url: string): Promise<void> {
+        const data = await fetch(url);
+        const blob = await data.blob();
+        this._runtime.duckdb_web_add_handle(url, blob);
     }
 
     /// Instantiate the wasm module
