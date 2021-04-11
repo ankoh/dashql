@@ -173,6 +173,9 @@ FileSystemStreamBuffer::int_type FileSystemStreamBuffer::underflow() {
 }  // namespace duckdb
 
 extern "C" {
+extern ssize_t duckdb_web_fs_tell(size_t blobId);
+extern void duckdb_web_fs_advance(size_t blobId, ssize_t bytes);
+extern ssize_t duckdb_web_fs_peek(size_t blobId, void *buffer, ssize_t bytes);
 extern ssize_t duckdb_web_fs_read(size_t blobId, void *buffer, ssize_t bytes);
 extern ssize_t duckdb_web_fs_write(size_t blobId, void *buffer, ssize_t bytes);
 
