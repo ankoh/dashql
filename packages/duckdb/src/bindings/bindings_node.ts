@@ -20,14 +20,12 @@ export class DuckDB extends DuckDBBindings {
     }
 
     /// Registers the given URL as a file to be possibly loaded by DuckDB. Returns the Blob ID
-    public registerURL(url: string): Promise<void> {
-        return Promise.resolve(
-            this._runtime.duckdb_web_add_handle(url, {
-                url: url,
-                handle: fs.openSync(url, 'r'),
-                stat: fs.statSync(url),
-            }),
-        );
+    public async registerURL(url: string): Promise<void> {
+        this._runtime.duckdb_web_add_handle(url, {
+            url: url,
+            handle: fs.openSync(url, 'r'),
+            stat: fs.statSync(url),
+        });
     }
 
     /// Instantiate the wasm module

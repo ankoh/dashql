@@ -153,13 +153,13 @@ export abstract class AsyncDuckDBDispatcher implements Logger {
                     await this._bindings.registerURL(request.data);
                     this.sendOK(request);
                     break;
-                case WorkerRequestType.GET_ABSOLUTE_URL:
+                case WorkerRequestType.GET_OBJECT_URL:
                     this.postMessage(
                         {
                             messageId: this._nextMessageId++,
                             requestId: request.messageId,
-                            type: WorkerResponseType.ABSOLUTE_URL,
-                            data: this._bindings.getAbsoluteURL(request.data),
+                            type: WorkerResponseType.OBJECT_URL,
+                            data: this._bindings.getObjectURL(request.data),
                         },
                         [],
                     );
