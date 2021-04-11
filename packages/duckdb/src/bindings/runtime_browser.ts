@@ -30,6 +30,41 @@ export interface BlobStream {
     position: number;
 }
 
+function readPage(handle: ReadWebBlobHandle, reader: FileReaderSync, page: number): Uint8Array {
+    if (!handle.pages.has(page)) {
+        while (handle.page_queue.length > maxPages) {
+            handle.pages.delete(handle.page_queue.shift()!);
+        }
+        handle.page_queue.push(page);
+        const blob = handle.blob.slice(page * pageSize, (page + 1) * pageSize);
+        handle.pages.set(page, new Uint8Array(reader.readAsArrayBuffer(blob)));
+    }
+
+    if (handle.page_queue[handle.page_queue.length - 1] != page) {
+        // Move page to back of queue due to recent access
+        handle.page_queue.push(handle.page_queue.splice(handle.page_queue.indexOf(page), 1)[0]);
+    }
+    return handle.pages.get(page)!;
+}
+
+function readBytes(stream: BlobStream, buf: number, bytes: number) {
+    const reader = new FileReaderSync();
+    const heap: Uint8Array = BrowserDuckDBRuntime.bindings!.instance!.HEAPU8;
+    let read = 0;
+    while (bytes > 0) {
+        const pageId = Math.trunc(stream.position / pageSize);
+        const page = readPage(stream.handle as ReadWebBlobHandle, reader, pageId);
+        const pageStart = stream.position - pageId * pageSize;
+        const size = Math.min(bytes, page.length - pageStart);
+        heap.set(page.subarray(pageStart, pageStart + size), buf);
+        buf += size;
+        stream.position += size;
+        bytes -= size;
+        read += size;
+    }
+    return read;
+}
+
 export var BrowserDuckDBRuntime: DuckDBRuntime & {
     readHandleMap: Map<string, ReadWebBlobHandle>;
     writeHandleMap: Map<string, WriteWebBlobHandle>;
@@ -82,49 +117,17 @@ export var BrowserDuckDBRuntime: DuckDBRuntime & {
         return bytes;
     },
     duckdb_web_fs_peek: (blobId: number, buf: number, bytes: number) => {
-        throw Error('undefined');
-    },
-    duckdb_web_fs_read: function (blobId: number, buf: number, bytes: number) {
-        const reader = new FileReaderSync();
-        const loader = (handle: ReadWebBlobHandle, page: number): Uint8Array => {
-            if (!handle.pages.has(page)) {
-                while (handle.page_queue.length > maxPages) {
-                    handle.pages.delete(handle.page_queue.shift()!);
-                }
-
-                handle.page_queue.push(page);
-                const blob = handle.blob.slice(page * pageSize, (page + 1) * pageSize);
-                handle.pages.set(page, new Uint8Array(reader.readAsArrayBuffer(blob)));
-            }
-
-            if (handle.page_queue[handle.page_queue.length - 1] != page) {
-                // Move page to back of queue due to recent access
-                handle.page_queue.push(handle.page_queue.splice(handle.page_queue.indexOf(page), 1)[0]);
-            }
-
-            return handle.pages.get(page)!;
-        };
-
         let stream = BrowserDuckDBRuntime.streamMap.get(blobId);
         if (!stream) return 0;
-
-        let heap: Uint8Array = BrowserDuckDBRuntime.bindings!.instance!.HEAPU8;
-        let read = 0;
-
-        while (bytes > 0) {
-            const pageId = Math.trunc(stream.position / pageSize);
-            const page = loader(<ReadWebBlobHandle>stream.handle, pageId);
-
-            const pageStart = stream.position - pageId * pageSize;
-            const size = Math.min(bytes, page.length - pageStart);
-            heap.set(page.subarray(pageStart, pageStart + size), buf);
-            buf += size;
-            stream.position += size;
-            bytes -= size;
-            read += size;
-        }
-
-        return read;
+        let prev = stream.position;
+        let n = readBytes(stream, buf, bytes);
+        stream.position = prev;
+        return n;
+    },
+    duckdb_web_fs_read: function (blobId: number, buf: number, bytes: number) {
+        let stream = BrowserDuckDBRuntime.streamMap.get(blobId);
+        if (!stream) return 0;
+        return readBytes(stream, buf, bytes);
     },
     duckdb_web_fs_write: function (blobId: number, buf: number, bytes: number) {
         let stream = BrowserDuckDBRuntime.streamMap.get(blobId);
