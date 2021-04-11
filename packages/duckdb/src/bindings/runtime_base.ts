@@ -2,6 +2,9 @@ export interface DuckDBRuntime {
     bindings: any;
     duckdb_web_add_handle(url: string, handle: any): void;
     duckdb_web_get_object_url(url: string): string | null;
+    duckdb_web_fs_tell(blobId: number): number;
+    duckdb_web_fs_advance(blobId: number, bytes: number): void;
+    duckdb_web_fs_peek(blobId: number, buf: number, bytes: number): number;
     duckdb_web_fs_read(blobId: number, buf: number, bytes: number): number;
     duckdb_web_fs_write(blobId: number, buf: number, bytes: number): number;
     duckdb_web_fs_directory_exists(pathPtr: number, pathLen: number): boolean;
@@ -41,6 +44,15 @@ export const DefaultDuckDBRuntime: DuckDBRuntime = {
         throw Error('undefined');
     },
     duckdb_web_get_object_url: (url: string): string | null => {
+        throw Error('undefined');
+    },
+    duckdb_web_fs_tell: (blobId: number) => {
+        throw Error('undefined');
+    },
+    duckdb_web_fs_advance: (blobId: number, bytes: number) => {
+        throw Error('undefined');
+    },
+    duckdb_web_fs_peek: (blobId: number, buf: number, bytes: number) => {
         throw Error('undefined');
     },
     duckdb_web_fs_read: (blobId: number, buf: number, bytes: number) => {
