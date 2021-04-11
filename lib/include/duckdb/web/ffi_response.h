@@ -12,21 +12,21 @@ namespace web {
 
 struct FFIResponse {
     /// The status code
-    uint64_t statusCode;
-    /// The data ptr (if any)
-    uint64_t dataPtr;
+    double statusCode;
+    /// The data ptr of value (if any)
+    double dataOrValue;
     /// The data size
-    uint64_t dataSize;
+    double dataSize;
 } __attribute((packed));
 
 class FFIResponseBuffer {
    protected:
     /// The status message
     std::string status_message_;
-    /// The string buffer (if any)
-    std::string string_buffer_;
-    /// The arrow buffer (if any)
-    std::shared_ptr<arrow::Buffer> arrow_buffer_;
+    /// The string result buffer (if any)
+    std::string result_str_;
+    /// The arrow result buffer (if any)
+    std::shared_ptr<arrow::Buffer> result_arrow_;
 
    public:
     /// Constructor
@@ -40,6 +40,8 @@ class FFIResponseBuffer {
     void Store(FFIResponse& response, arrow::Result<std::shared_ptr<arrow::Buffer>> result);
     /// Store the result string
     void Store(FFIResponse& response, arrow::Result<std::string> result);
+    /// Store the result double
+    void Store(FFIResponse& response, arrow::Result<double> result);
 
     /// Get the instance
     static FFIResponseBuffer& GetInstance();
