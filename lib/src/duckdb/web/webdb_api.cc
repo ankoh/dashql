@@ -91,7 +91,8 @@ void duckdb_web_zip_load_file(WASMResponse* packed, const char* filePath) {
     auto& webdb = WebDB::GetInstance();
     auto* zip = webdb.Zip();
     if (!zip) return RaiseExtensionNotLoaded(packed, "zip");
-    auto status = zip->LoadFromFile(filePath);
+    auto archiveID = zip->LoadFromFile(filePath);
+    WASMResponseBuffer::GetInstance().Store(*packed, archiveID);
 }
 /// Get the zip entry count
 void duckdb_web_zip_read_entry_count(WASMResponse* packed, size_t archiveID) {
@@ -99,6 +100,7 @@ void duckdb_web_zip_read_entry_count(WASMResponse* packed, size_t archiveID) {
     auto* zip = webdb.Zip();
     if (zip) return RaiseExtensionNotLoaded(packed, "zip");
     auto count = zip->GetEntryCount(archiveID);
+    WASMResponseBuffer::GetInstance().Store(*packed, count);
 }
 /// Get the zip entry count
 void duckdb_web_zip_read_entry_info(WASMResponse* packed, size_t archiveID, size_t entryID) {
@@ -106,5 +108,6 @@ void duckdb_web_zip_read_entry_info(WASMResponse* packed, size_t archiveID, size
     auto* zip = webdb.Zip();
     if (zip) return RaiseExtensionNotLoaded(packed, "zip");
     auto entry_info = zip->GetEntryInfoAsJSON(archiveID, entryID);
+    WASMResponseBuffer::GetInstance().Store(*packed, entry_info);
 }
 }

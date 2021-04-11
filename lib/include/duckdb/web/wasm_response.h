@@ -34,14 +34,17 @@ class WASMResponseBuffer {
 
     /// Clear the response buffer
     void Clear();
-    /// Store the arrow status
-    void Store(WASMResponse& response, arrow::Status status);
+    /// Store the arrow status.
+    /// Returns wheather the result was OK
+    bool Store(WASMResponse& response, arrow::Status status);
     /// Store the result buffer
     void Store(WASMResponse& response, arrow::Result<std::shared_ptr<arrow::Buffer>> result);
     /// Store the result string
     void Store(WASMResponse& response, arrow::Result<std::string> result);
     /// Store the result double
     void Store(WASMResponse& response, arrow::Result<double> result);
+    /// Store the result size_t
+    void Store(WASMResponse& response, arrow::Result<size_t> result);
 
     /// Get the instance
     static WASMResponseBuffer& GetInstance();
