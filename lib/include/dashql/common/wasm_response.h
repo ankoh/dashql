@@ -16,7 +16,7 @@ namespace dashql {
 constexpr uint64_t SUCCESS = 0;
 
 /// A packed response
-struct FFIResponse {
+struct WASMResponse {
     /// The status code
     double statusCode;
     /// The data ptr (if any)
@@ -26,7 +26,7 @@ struct FFIResponse {
 } __attribute((packed));
 
 /// A response buffer
-class FFIResponseBuffer {
+class WASMResponseBuffer {
    protected:
     /// The response flatbuffer (if any)
     flatbuffers::DetachedBuffer proto_buffer_;
@@ -35,7 +35,7 @@ class FFIResponseBuffer {
 
    public:
     /// Constructor
-    FFIResponseBuffer() { Clear(); }
+    WASMResponseBuffer() { Clear(); }
 
     /// Clear the response buffer
     void Clear() {
@@ -44,7 +44,7 @@ class FFIResponseBuffer {
     }
 
     /// Store the detached flatbuffer
-    void Store(FFIResponse& response, flatbuffers::DetachedBuffer&& buffer) {
+    void Store(WASMResponse& response, flatbuffers::DetachedBuffer&& buffer) {
         Clear();
         proto_buffer_ = std::move(buffer);
         response.statusCode = SUCCESS;
@@ -53,7 +53,7 @@ class FFIResponseBuffer {
     }
 
     /// Store the error
-    void Store(FFIResponse& response, Error&& err) {
+    void Store(WASMResponse& response, Error&& err) {
         Clear();
         error_ = std::move(err);
         auto m = error_->message();
@@ -65,7 +65,7 @@ class FFIResponseBuffer {
     }
 
     /// Store the signal
-    void Store(FFIResponse& response, Signal&& result) {
+    void Store(WASMResponse& response, Signal&& result) {
         if (result) {
             Clear();
             proto_buffer_ = {};
@@ -78,7 +78,7 @@ class FFIResponseBuffer {
     }
 
     /// Store the packed response
-    template <typename T> void Store(FFIResponse& response, ExpectedBuffer<T>&& result) {
+    template <typename T> void Store(WASMResponse& response, ExpectedBuffer<T>&& result) {
         if (result) {
             Store(response, result.ReleaseBuffer());
         } else {
@@ -87,7 +87,7 @@ class FFIResponseBuffer {
     }
 
     /// Store the packed response
-    template <typename T> void Store(FFIResponse& response, ExpectedBufferRef<T>&& result) {
+    template <typename T> void Store(WASMResponse& response, ExpectedBufferRef<T>&& result) {
         if (result) {
             Clear();
             auto buffer = result.GetBuffer();
@@ -100,7 +100,7 @@ class FFIResponseBuffer {
     }
 
     /// Get the static response
-    static FFIResponseBuffer& GetInstance();
+    static WASMResponseBuffer& GetInstance();
 };
 
 }  // namespace dashql

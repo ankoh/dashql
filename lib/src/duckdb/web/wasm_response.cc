@@ -1,6 +1,6 @@
 // Copyright (c) 2020 The DashQL Authors
 
-#include "duckdb/web/ffi_response.h"
+#include "duckdb/web/wasm_response.h"
 
 #include <cstdint>
 
@@ -9,14 +9,14 @@
 namespace duckdb {
 namespace web {
 
-FFIResponseBuffer::FFIResponseBuffer() : status_message_(), result_str_(), result_arrow_() {}
+WASMResponseBuffer::WASMResponseBuffer() : status_message_(), result_str_(), result_arrow_() {}
 
-void FFIResponseBuffer::Clear() {
+void WASMResponseBuffer::Clear() {
     result_str_ = "";
     result_arrow_.reset();
 }
 
-void FFIResponseBuffer::Store(FFIResponse& response, arrow::Status status) {
+void WASMResponseBuffer::Store(WASMResponse& response, arrow::Status status) {
     Clear();
     response.statusCode = static_cast<uint64_t>(status.code());
     if (!status.ok()) {
@@ -27,7 +27,7 @@ void FFIResponseBuffer::Store(FFIResponse& response, arrow::Status status) {
     }
 }
 
-void FFIResponseBuffer::Store(FFIResponse& response, arrow::Result<std::shared_ptr<arrow::Buffer>> result) {
+void WASMResponseBuffer::Store(WASMResponse& response, arrow::Result<std::shared_ptr<arrow::Buffer>> result) {
     Clear();
     response.statusCode = static_cast<uint64_t>(result.status().code());
     if (!result.ok()) {
@@ -41,7 +41,7 @@ void FFIResponseBuffer::Store(FFIResponse& response, arrow::Result<std::shared_p
     response.dataSize = result_arrow_->size();
 }
 
-void FFIResponseBuffer::Store(FFIResponse& response, arrow::Result<std::string> result) {
+void WASMResponseBuffer::Store(WASMResponse& response, arrow::Result<std::string> result) {
     Clear();
     response.statusCode = static_cast<uint64_t>(result.status().code());
     if (!result.ok()) {
@@ -55,7 +55,7 @@ void FFIResponseBuffer::Store(FFIResponse& response, arrow::Result<std::string> 
     response.dataSize = reinterpret_cast<uintptr_t>(result_str_.size());
 }
 
-void FFIResponseBuffer::Store(FFIResponse& response, arrow::Result<double> result) {
+void WASMResponseBuffer::Store(WASMResponse& response, arrow::Result<double> result) {
     Clear();
     response.statusCode = static_cast<uint64_t>(result.status().code());
     if (!result.ok()) {
@@ -69,8 +69,8 @@ void FFIResponseBuffer::Store(FFIResponse& response, arrow::Result<double> resul
 }
 
 /// Get the instance
-FFIResponseBuffer& FFIResponseBuffer::GetInstance() {
-    static FFIResponseBuffer buffer;
+WASMResponseBuffer& WASMResponseBuffer::GetInstance() {
+    static WASMResponseBuffer buffer;
     return buffer;
 }
 
