@@ -22,6 +22,7 @@ export enum WorkerResponseType {
     LOG = 'LOG',
     OK = 'OK',
     ERROR = 'ERROR',
+    SUCCESS = 'SUCCESS',
     BLOB_ID = 'BLOB_ID',
     OBJECT_URL = 'OBJECT_URL',
     CONNECTION_INFO = 'CONNECTION_INFO',
@@ -80,6 +81,7 @@ export type WorkerResponseVariant =
     | WorkerResponse<WorkerResponseType.LOG, LogEntryVariant>
     | WorkerResponse<WorkerResponseType.OK, null>
     | WorkerResponse<WorkerResponseType.ERROR, any>
+    | WorkerResponse<WorkerResponseType.SUCCESS, boolean>
     | WorkerResponse<WorkerResponseType.OBJECT_URL, string | null>
     | WorkerResponse<WorkerResponseType.CONNECTION_INFO, number>
     | WorkerResponse<WorkerResponseType.QUERY_RESULT, Uint8Array>
@@ -91,7 +93,7 @@ export type WorkerTaskVariant =
     | WorkerTask<WorkerRequestType.RESET, null, null>
     | WorkerTask<WorkerRequestType.IMPORT_CSV, [number, string, string, string], null>
     | WorkerTask<WorkerRequestType.PING, null, null>
-    | WorkerTask<WorkerRequestType.REGISTER_URL, string, null>
+    | WorkerTask<WorkerRequestType.REGISTER_URL, string, boolean>
     | WorkerTask<WorkerRequestType.GET_OBJECT_URL, string, string | null>
     | WorkerTask<WorkerRequestType.OPEN, string | null, null>
     | WorkerTask<WorkerRequestType.CONNECT, null, ConnectionID>
