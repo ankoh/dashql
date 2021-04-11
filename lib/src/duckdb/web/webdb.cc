@@ -127,6 +127,7 @@ WebDB::WebDB() : database_(), connections_(), db_config_() {
     db_config_.file_system = std::make_unique<WebDBFileSystem>();
     database_ = std::make_shared<duckdb::DuckDB>(nullptr, &db_config_);
     database_->LoadExtension<duckdb::ParquetExtension>();
+    zip_ = std::make_unique<Zipper>(database_->GetFileSystem());
 }
 
 /// Create a session

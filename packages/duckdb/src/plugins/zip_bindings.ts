@@ -61,7 +61,7 @@ export class ZipBindings {
     }
 
     public loadFile(path: string): ZipArchive {
-        const [s, d, n] = this._duckdb.callSRet('duckdb_web_zip_load_file', ['number', 'string'], [path]);
+        const [s, d, n] = this._duckdb.callSRet('duckdb_web_zip_load_file', ['string'], [path]);
         if (s !== StatusCode.SUCCESS) {
             throw new Error(this._duckdb.readString(d, n));
         }
