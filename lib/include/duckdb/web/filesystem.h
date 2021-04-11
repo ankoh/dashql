@@ -3,6 +3,8 @@
 #ifndef INCLUDE_DUCKDB_WEB_FILESYSTEM_H_
 #define INCLUDE_DUCKDB_WEB_FILESYSTEM_H_
 
+#include <arrow/util/string_view.h>
+
 #include "duckdb/common/constants.hpp"
 #include "duckdb/common/file_system.hpp"
 
@@ -27,6 +29,9 @@ class WebDBFileSystem : public duckdb::FileSystem {
    public:
     WebDBFileSystem() {}
     virtual ~WebDBFileSystem() {}
+
+    //! Set the file pointer of a file handle to a specified location. Reads and writes will happen from this location
+    void SetFilePointer(FileHandle &handle, idx_t location);
 
     std::unique_ptr<duckdb::FileHandle> OpenFile(const char *path, uint8_t flags,
                                                  duckdb::FileLockType lock = duckdb::FileLockType::NO_LOCK) override;
@@ -114,6 +119,9 @@ class FileSystemStreamBuffer : public std::streambuf {
 }  // namespace duckdb
 
 extern "C" {
+ssize_t duckdb_web_fs_tell(size_t blobId);
+void duckdb_web_fs_advance(size_t blobId, ssize_t bytes);
+ssize_t duckdb_web_fs_peek(size_t blobId, void *buffer, ssize_t bytes);
 ssize_t duckdb_web_fs_read(size_t blobId, void *buffer, ssize_t bytes);
 ssize_t duckdb_web_fs_write(size_t blobId, void *buffer, ssize_t bytes);
 

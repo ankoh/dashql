@@ -46,6 +46,26 @@ export var NodeDuckDBRuntime: DuckDBRuntime & {
 
         return path.resolve(url);
     },
+    duckdb_web_fs_tell: (blobId: number) => {
+        let stream = NodeDuckDBRuntime.streamMap.get(blobId);
+        if (!stream) return 0;
+        return stream.position;
+    },
+    duckdb_web_fs_advance: (blobId: number, bytes: number) => {
+        let stream = NodeDuckDBRuntime.streamMap.get(blobId);
+        if (!stream) return 0;
+        stream.position += bytes;
+        return bytes;
+    },
+    duckdb_web_fs_peek: (blobId: number, buf: number, bytes: number) => {
+        let stream = NodeDuckDBRuntime.streamMap.get(blobId);
+        if (!stream) return 0;
+
+        const size = Math.min(bytes, stream.handle.stat.size - stream.position);
+        let heap: Uint8Array = NodeDuckDBRuntime.bindings!.instance!.HEAPU8;
+        fs.readSync(stream.handle.handle, heap, buf, size, stream.position);
+        return size;
+    },
     duckdb_web_fs_read: function (blobId: number, buf: number, bytes: number) {
         let stream = NodeDuckDBRuntime.streamMap.get(blobId);
         if (!stream) return 0;
