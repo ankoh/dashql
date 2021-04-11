@@ -268,7 +268,7 @@ export class AsyncDuckDB {
 
     /** Get the absolute URL for a file written to or loaded by DuckDB. */
     public async getAbsoluteURL(url: string): Promise<string | null> {
-        const task = new Task<WorkerRequestType.GET_ABSOLUTE_URL, string, string | null>(
+        const task = new WorkerTask<WorkerRequestType.GET_ABSOLUTE_URL, string, string | null>(
             WorkerRequestType.GET_ABSOLUTE_URL,
             url,
         );
