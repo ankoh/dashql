@@ -92,6 +92,7 @@ export type WorkerTaskVariant =
     | WorkerTask<WorkerRequestType.IMPORT_CSV, [number, string, string, string], null>
     | WorkerTask<WorkerRequestType.PING, null, null>
     | WorkerTask<WorkerRequestType.REGISTER_URL, string, null>
+    | WorkerTask<WorkerRequestType.GET_ABSOLUTE_URL, string, string | null>
     | WorkerTask<WorkerRequestType.OPEN, string | null, null>
     | WorkerTask<WorkerRequestType.CONNECT, null, ConnectionID>
     | WorkerTask<WorkerRequestType.DISCONNECT, ConnectionID, null>
