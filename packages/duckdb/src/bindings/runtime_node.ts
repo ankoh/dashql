@@ -40,7 +40,7 @@ export var NodeDuckDBRuntime: DuckDBRuntime & {
             NodeDuckDBRuntime.handleMap.set(url, node_handle);
         }
     },
-    duckdb_web_get_absolute_url(url: string): string | null {
+    duckdb_web_get_object_url(url: string): string | null {
         let handle = NodeDuckDBRuntime.handleMap.has(url);
         if (!handle) return null;
 

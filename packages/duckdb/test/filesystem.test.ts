@@ -115,7 +115,7 @@ export function testFilesystem(
                 `CREATE TABLE studenten AS SELECT * FROM parquet_scan('${basedir}/uni/out/studenten.parquet');`,
             );
             await conn.runQuery(`COPY studenten TO 'studenten.csv' WITH (HEADER 1, DELIMITER ';', FORMAT CSV);`);
-            const url = await db().getAbsoluteURL('studenten.csv');
+            const url = await db().getObjectURL('studenten.csv');
             expect(url).not.toBeNull();
             const data = await absolute_file_reader(url!);
             expect(data).toBe(`MatrNr;Name;Semester
@@ -135,7 +135,7 @@ export function testFilesystem(
                 `CREATE TABLE studenten2 AS SELECT * FROM parquet_scan('${basedir}/uni/out/studenten.parquet');`,
             );
             await conn.runQuery(`COPY studenten2 TO 'studenten2.parquet' (FORMAT PARQUET);`);
-            const url = await db().getAbsoluteURL('studenten2.parquet');
+            const url = await db().getObjectURL('studenten2.parquet');
             expect(url).not.toBeNull();
         });
 
@@ -145,7 +145,7 @@ export function testFilesystem(
                 `CREATE TABLE studenten3 AS SELECT * FROM parquet_scan('${basedir}/uni/out/studenten.parquet');`,
             );
             await conn.runQuery(`COPY studenten3 TO 'studenten3.parquet' (FORMAT PARQUET);`);
-            const url = await db().getAbsoluteURL('studenten3.parquet');
+            const url = await db().getObjectURL('studenten3.parquet');
             expect(url).not.toBeNull();
             await db().registerURL(url!);
             await conn.runQuery(`CREATE TABLE studenten4 AS SELECT * FROM parquet_scan('${url}');`);
