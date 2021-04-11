@@ -18,11 +18,11 @@ constexpr uint64_t SUCCESS = 0;
 /// A packed response
 struct FFIResponse {
     /// The status code
-    uint64_t statusCode;
+    double statusCode;
     /// The data ptr (if any)
-    uint64_t dataPtr;
+    double dataOrValue;
     /// The data size
-    uint64_t dataSize;
+    double dataSize;
 } __attribute((packed));
 
 /// A response buffer
@@ -48,7 +48,7 @@ class FFIResponseBuffer {
         Clear();
         proto_buffer_ = std::move(buffer);
         response.statusCode = SUCCESS;
-        response.dataPtr = reinterpret_cast<uintptr_t>(proto_buffer_.data());
+        response.dataOrValue = reinterpret_cast<uintptr_t>(proto_buffer_.data());
         response.dataSize = proto_buffer_.size();
     }
 
@@ -60,7 +60,7 @@ class FFIResponseBuffer {
         m = m == nullptr ? "" : m;
         proto_buffer_ = {};
         response.statusCode = static_cast<size_t>(error_->code());
-        response.dataPtr = reinterpret_cast<uintptr_t>(m);
+        response.dataOrValue = reinterpret_cast<uintptr_t>(m);
         response.dataSize = strlen(m);
     }
 
@@ -70,7 +70,7 @@ class FFIResponseBuffer {
             Clear();
             proto_buffer_ = {};
             response.statusCode = SUCCESS;
-            response.dataPtr = 0;
+            response.dataOrValue = 0;
             response.dataSize = proto_buffer_.size();
         } else {
             Store(response, result.ReleaseError());
@@ -92,7 +92,7 @@ class FFIResponseBuffer {
             Clear();
             auto buffer = result.GetBuffer();
             response.statusCode = SUCCESS;
-            response.dataPtr = reinterpret_cast<uintptr_t>(buffer.data());
+            response.dataOrValue = reinterpret_cast<uintptr_t>(buffer.data());
             response.dataSize = buffer.size();
         } else {
             Store(response, result.ReleaseError());
