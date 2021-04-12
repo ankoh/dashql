@@ -65,8 +65,8 @@ class Scanner {
     /// Delete the copy assignment
     Scanner& operator=(const Scanner& other) = delete;
 
-    /// Scan entire input
-    void Scan();
+    /// Scan entire input and produce all tokens
+    void Produce();
 
     /// Get the scanner state pointer
     auto* state() { return scanner_state_ptr_; }
