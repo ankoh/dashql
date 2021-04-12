@@ -85,7 +85,7 @@ Parser::symbol_type Scanner::ReadInteger(sx::Location loc) {
 }
 
 /// Produce all tokens
-void Scanner::Scan() {
+void Scanner::Produce() {
     Parser::symbol_type current_token;
     std::optional<Parser::symbol_type> lookahead_token_;
 

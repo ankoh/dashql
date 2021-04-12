@@ -460,7 +460,7 @@ std::shared_ptr<sx::ProgramT> ParserDriver::Parse(std::string_view in, bool trac
     padded_buffer.push_back(0);
 
     Scanner scanner{padded_buffer};
-    scanner.Scan();
+    scanner.Produce();
     ParserDriver driver{scanner};
 
     dashql::parser::Parser parser(driver);
