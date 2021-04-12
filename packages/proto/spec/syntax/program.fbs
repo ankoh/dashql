@@ -516,7 +516,7 @@ enum HighlightingTokenType: uint8 {
 table Highlighting {
     token_offsets: [uint32];
     token_types: [HighlightingTokenType];
-    line_breaks: [uint32];
+    token_breaks: [uint32];
 }
 
 table Program {
