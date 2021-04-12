@@ -56,7 +56,10 @@ void Scanner::AddError(sx::Location location, const char* message) { errors_.pus
 void Scanner::AddError(sx::Location location, std::string&& message) { errors_.push_back({location, move(message)}); }
 
 /// Add a line break
-void Scanner::AddLineBreak(sx::Location location) { line_breaks_.push_back(location); }
+void Scanner::AddLineBreak(sx::Location location) {
+    line_breaks_.push_back(location);
+    token_line_breaks_.push_back(tokens_.size());
+}
 
 /// Add a comment
 void Scanner::AddComment(sx::Location location) { comments_.push_back(location); }
