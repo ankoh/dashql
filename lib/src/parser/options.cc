@@ -25,8 +25,10 @@ constexpr size_t MAX_OPTION_KEY_LENGTH = std::max<size_t>({
 /// Get option as text
 std::string_view optionToString(sx::AttributeKey key) {
     switch (key) {
-#define X(NAME, TOKEN) case sx::AttributeKey::TOKEN: return NAME;
-    #include "../parser/grammar/lists/dashql_option_keys.list"
+#define X(NAME, TOKEN)            \
+    case sx::AttributeKey::TOKEN: \
+        return NAME;
+#include "../parser/grammar/lists/dashql_option_keys.list"
 #undef X
         default:
             return "";
@@ -44,13 +46,11 @@ sx::AttributeKey optionFromString(std::string_view text) {
     for (unsigned i = 0; i < text.size(); ++i) buffer[i] = ::tolower(text[i]);
     std::string_view text_lc{buffer.data(), text.size()};
 
-    // Find the keyword
-    if (auto iter = DASHQL_OPTIONS.find(text_lc); iter != DASHQL_OPTIONS.end())
-        return iter->second;
+    // Find the option
+    if (auto iter = DASHQL_OPTIONS.find(text_lc); iter != DASHQL_OPTIONS.end()) return iter->second;
 
     return sx::AttributeKey::NONE;
 }
-
 
 /// Map an option.
 /// Registers an error if the (key, value) combination is not supported.
@@ -86,6 +86,9 @@ sx::Node Option(ParserDriver& driver, sx::Location loc, std::vector<sx::Location
             driver.AddError(loc, err_msg.str());
             return Null();
         }
+
+        // Register as option key in scanner (for syntax highlighting)
+        driver.scanner().MarkAsOptionKey(key_loc);
     }
 
     // Build the options

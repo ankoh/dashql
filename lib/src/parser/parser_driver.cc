@@ -447,6 +447,7 @@ std::shared_ptr<sx::ProgramT> ParserDriver::Finish() {
         err->message = move(msg);
         program->errors.push_back(move(err));
     }
+    program->highlighting = scanner_.BuildHighlighting();
     program->line_breaks = scanner_.ReleaseLineBreaks();
     program->comments = scanner_.ReleaseComments();
     program->dependencies = move(dependencies_);
