@@ -69,7 +69,7 @@ void duckdb_web_csv_import(WASMResponse* packed, ConnectionHdl connHdl, const ch
 
     duckdb::BufferedCSVReaderOptions options;
     options.num_cols = 3;
-    auto& fs = WebDB::GetInstance().GetFileSystem();
+    auto& fs = WebDB::GetInstance().filesystem();
     auto handle = fs.OpenFile(filePath, duckdb::FileFlags::FILE_FLAGS_READ);
     duckdb::web::FileSystemStreamBuffer streambuf(fs, *handle);
     try {
@@ -89,25 +89,22 @@ static void RaiseExtensionNotLoaded(WASMResponse* packed, std::string_view ext) 
 /// Load zip from file
 void duckdb_web_zip_load_file(WASMResponse* packed, const char* filePath) {
     auto& webdb = WebDB::GetInstance();
-    auto* zip = webdb.Zip();
-    if (!zip) return RaiseExtensionNotLoaded(packed, "zip");
-    auto archiveID = zip->LoadFromFile(filePath);
+    if (!webdb.zip()) return RaiseExtensionNotLoaded(packed, "zip");
+    auto archiveID = webdb.zip()->LoadFromFile(filePath);
     WASMResponseBuffer::GetInstance().Store(*packed, archiveID);
 }
 /// Get the zip entry count
 void duckdb_web_zip_read_entry_count(WASMResponse* packed, size_t archiveID) {
     auto& webdb = WebDB::GetInstance();
-    auto* zip = webdb.Zip();
-    if (zip) return RaiseExtensionNotLoaded(packed, "zip");
-    auto count = zip->GetEntryCount(archiveID);
+    if (!webdb.zip()) return RaiseExtensionNotLoaded(packed, "zip");
+    auto count = webdb.zip()->GetEntryCount(archiveID);
     WASMResponseBuffer::GetInstance().Store(*packed, count);
 }
 /// Get the zip entry count
 void duckdb_web_zip_read_entry_info(WASMResponse* packed, size_t archiveID, size_t entryID) {
     auto& webdb = WebDB::GetInstance();
-    auto* zip = webdb.Zip();
-    if (zip) return RaiseExtensionNotLoaded(packed, "zip");
-    auto entry_info = zip->GetEntryInfoAsJSON(archiveID, entryID);
+    if (!webdb.zip()) return RaiseExtensionNotLoaded(packed, "zip");
+    auto entry_info = webdb.zip()->GetEntryInfoAsJSON(archiveID, entryID);
     WASMResponseBuffer::GetInstance().Store(*packed, entry_info);
 }
 }

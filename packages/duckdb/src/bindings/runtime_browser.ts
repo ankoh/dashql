@@ -105,25 +105,6 @@ export var BrowserDuckDBRuntime: DuckDBRuntime & {
 
         return null;
     },
-    duckdb_web_fs_tell: (blobId: number) => {
-        let stream = BrowserDuckDBRuntime.streamMap.get(blobId);
-        if (!stream) return 0;
-        return stream.position;
-    },
-    duckdb_web_fs_advance: (blobId: number, bytes: number) => {
-        let stream = BrowserDuckDBRuntime.streamMap.get(blobId);
-        if (!stream) return 0;
-        stream.position += bytes;
-        return bytes;
-    },
-    duckdb_web_fs_peek: (blobId: number, buf: number, bytes: number) => {
-        let stream = BrowserDuckDBRuntime.streamMap.get(blobId);
-        if (!stream) return 0;
-        let prev = stream.position;
-        let n = readBytes(stream, buf, bytes);
-        stream.position = prev;
-        return n;
-    },
     duckdb_web_fs_read: function (blobId: number, buf: number, bytes: number) {
         let stream = BrowserDuckDBRuntime.streamMap.get(blobId);
         if (!stream) return 0;
