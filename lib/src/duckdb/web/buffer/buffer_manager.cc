@@ -11,8 +11,8 @@ namespace duckdb {
 namespace web {
 
 /// Constructor
-BufferFrame::BufferFrame(uint64_t page_id, size_t size, list_position fifo_position, list_position lru_position)
-    : page_id(page_id), buffer(), fifo_position(fifo_position), lru_position(lru_position) {}
+BufferFrame::BufferFrame(uint64_t frame_id, size_t size, list_position fifo_position, list_position lru_position)
+    : frame_id(frame_id), fifo_position(fifo_position), lru_position(lru_position) {}
 
 /// Lock the frame
 void BufferFrame::Lock(bool exclusive) {
@@ -31,7 +31,7 @@ void BufferFrame::Unlock() {
 
 /// Constructor
 BufferManager::BufferManager(size_t page_size, size_t page_count)
-    : page_size(page_size), page_count(page_count), files(), frames(), fifo(), lru() {}
+    : page_size(page_size), files(), free_file_ids(), next_file_id(), frames(), fifo(), lru() {}
 
 /// Destructor
 BufferManager::~BufferManager() {
@@ -40,9 +40,56 @@ BufferManager::~BufferManager() {
     }
 }
 
+uint16_t BufferManager::AddFile(std::string_view path) {
+    // Already added?
+    if (auto iter = file_ids.find(path); iter != file_ids.end()) {
+        return iter->second;
+    }
+    // Allocate file id
+    uint16_t file_id;
+    if (!free_file_ids.empty()) {
+        file_id = free_file_ids.top();
+        free_file_ids.pop();
+    } else {
+        ++next_file_id;
+    }
+    file_paths.insert({file_id, std::string{path}});
+    // Return file id
+    return file_id;
+}
+
+void BufferManager::FlushFile(uint16_t file_id) {
+    // Find file path
+    auto iter = file_paths.find(file_id);
+    if (iter != file_paths.end()) {
+        return;
+    }
+    auto path = std::move(iter->second);
+
+    // Find all frames
+    auto lb = frames.lower_bound(BuildFrameID(file_id));
+    auto ub = frames.lower_bound(BuildFrameID(file_id + 1));
+    for (auto iter = lb; iter != ub; ++iter) {
+        FlushPage(iter->second);
+        if (iter->second.lru_position != lru.end()) {
+            lru.erase(iter->second.lru_position);
+        } else {
+            assert(iter->second.fifo_position != fifo.end());
+            fifo.erase(iter->second.fifo_position);
+        }
+    }
+    frames.erase(lb, ub);
+
+    // Erase file mappings
+    file_paths.erase(file_id);
+    file_ids.erase(path);
+    files.erase(file_id);
+    free_file_ids.push(file_id);
+}
+
 void BufferManager::LoadFrame(BufferFrame& page) {
-    auto file_id = GetFileID(page.page_id);
-    auto page_id = GetPageID(page.page_id);
+    auto file_id = GetFileID(page.frame_id);
+    auto page_id = GetPageID(page.frame_id);
 
     // Was the file opened already?
     File* file;
@@ -50,8 +97,9 @@ void BufferManager::LoadFrame(BufferFrame& page) {
         file = it->second.get();
     } else {
         // Open file in WRITE mode because we may have to write dirty pages to it.
-        auto filename = std::to_string(file_id);
-        file = files.insert({file_id, File::OpenFile(filename.c_str(), File::WRITE)}).first->second.get();
+        auto iter = file_paths.find(file_id);
+        assert(iter != file_paths.end());
+        file = files.insert({file_id, File::OpenFile(iter->second.c_str(), File::WRITE)}).first->second.get();
     }
 
     // When the file is too small, resize it and zero out the data for it.
@@ -66,8 +114,8 @@ void BufferManager::LoadFrame(BufferFrame& page) {
 }
 
 void BufferManager::FlushPage(BufferFrame& page) {
-    auto file_id = GetFileID(page.page_id);
-    auto page_id = GetPageID(page.page_id);
+    auto file_id = GetFileID(page.frame_id);
+    auto page_id = GetPageID(page.frame_id);
     auto& file = *files.find(file_id)->second;
     file.WriteBlock(page.buffer.data(), page_id * page_size, page_size);
     page.is_dirty = false;
@@ -106,7 +154,7 @@ std::vector<char> BufferManager::AllocatePage() {
     }
     // Erase from dictionary
     auto buffer = std::move(page_to_evict->buffer);
-    frames.erase(page_to_evict->page_id);
+    frames.erase(page_to_evict->frame_id);
     return buffer;
 }
 
@@ -147,26 +195,11 @@ void BufferManager::UnfixPage(BufferFrame& frame, bool is_dirty) {
     frame.Unlock();
 }
 
-void BufferManager::FlushFile(uint16_t file_id) {
-    auto lb = frames.lower_bound(BuildFrameID(file_id));
-    auto ub = frames.lower_bound(BuildFrameID(file_id + 1));
-    for (auto iter = lb; iter != ub; ++iter) {
-        FlushPage(iter->second);
-        if (iter->second.lru_position != lru.end()) {
-            lru.erase(iter->second.lru_position);
-        } else {
-            assert(iter->second.fifo_position != fifo.end());
-            fifo.erase(iter->second.fifo_position);
-        }
-    }
-    frames.erase(lb, ub);
-}
-
 std::vector<uint64_t> BufferManager::get_fifo_list() const {
     std::vector<uint64_t> fifo_list;
     fifo_list.reserve(fifo.size());
     for (auto* page : fifo) {
-        fifo_list.push_back(page->page_id);
+        fifo_list.push_back(page->frame_id);
     }
     return fifo_list;
 }
@@ -175,7 +208,7 @@ std::vector<uint64_t> BufferManager::get_lru_list() const {
     std::vector<uint64_t> lru_list;
     lru_list.reserve(lru.size());
     for (auto* page : lru) {
-        lru_list.push_back(page->page_id);
+        lru_list.push_back(page->frame_id);
     }
     return lru_list;
 }
