@@ -22,16 +22,9 @@ class File {
     virtual size_t Size() const = 0;
     /// Resizes the file to `new_size`.
     virtual void Resize(size_t new_size) = 0;
-    /// Reads a block of the file. `offset + size` must not be larger than `size()`.
+    /// Reads a block of the file.
+    /// `offset + size` must not be larger than `size()`.
     virtual void ReadBlock(size_t offset, size_t size, char* block) = 0;
-
-    /// Reads a block of the file and returns it.
-    std::unique_ptr<char[]> ReadBlock(size_t offset, size_t size) {
-        auto block = std::make_unique<char[]>(size);
-        ReadBlock(offset, size, block.get());
-        return block;
-    }
-
     /// Writes a block to the file.
     /// `offset + size` must not be larger than `size()`.
     /// If you want to write past the end of the file, use `resize()` first.
