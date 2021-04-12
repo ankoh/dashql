@@ -270,7 +270,7 @@ add_library(dashql_analyzer
 )
 
 add_library(duckdb_web
-    ${CMAKE_SOURCE_DIR}/src/duckdb/web/arrow_io.cc
+    ${CMAKE_SOURCE_DIR}/src/duckdb/web/arrow_ifstream.cc
     ${CMAKE_SOURCE_DIR}/src/duckdb/web/filesystem.cc
     ${CMAKE_SOURCE_DIR}/src/duckdb/web/miniz_zipper.cc
     ${CMAKE_SOURCE_DIR}/src/duckdb/web/wasm_response.cc
@@ -390,10 +390,11 @@ if(NOT EMSCRIPTEN)
         ${CMAKE_SOURCE_DIR}/test/common/substring_buffer_test.cc
         ${CMAKE_SOURCE_DIR}/test/common/topological_sort_test.cc
         ${CMAKE_SOURCE_DIR}/test/common/union_find_test.cc
+        ${CMAKE_SOURCE_DIR}/test/duckdb/arrow_ifstream_test.cc
+        ${CMAKE_SOURCE_DIR}/test/duckdb/duckdb_test.cc
+        ${CMAKE_SOURCE_DIR}/test/duckdb/webdb_test.cc
         ${CMAKE_SOURCE_DIR}/test/parser/grammar_spec_tests.cc
         ${CMAKE_SOURCE_DIR}/test/tester.cc
-        ${CMAKE_SOURCE_DIR}/test/webdb/duckdb_test.cc
-        ${CMAKE_SOURCE_DIR}/test/webdb/webdb_test.cc
     )
     set (TEST_LIBS
         dashql_test

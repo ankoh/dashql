@@ -21,7 +21,7 @@
 #include "duckdb.hpp"
 #include "duckdb/common/arrow.hpp"
 #include "duckdb/main/query_result.hpp"
-#include "duckdb/web/arrow_io.h"
+#include "duckdb/web/arrow_ifstream.h"
 #include "duckdb/web/filesystem.h"
 #include "parquet-extension.hpp"
 
@@ -30,7 +30,7 @@ namespace web {
 
 /// Get the static webdb instance
 WebDB& WebDB::GetInstance() {
-    static std::unique_ptr<WebDB> db = std::make_unique<WebDB>(std::make_unique<WebDBFileSystem>());
+    static std::unique_ptr<WebDB> db = std::make_unique<WebDB>(std::make_unique<WebFileSystem>());
     return *db;
 }
 
