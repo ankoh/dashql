@@ -54,6 +54,8 @@ class Scanner {
 
     /// All tokens
     std::vector<Parser::symbol_type> tokens_ = {};
+    /// All token linebreaks
+    std::vector<size_t> token_line_breaks_ = {};
     /// The next token index
     size_t next_token_index_ = 0;
 
