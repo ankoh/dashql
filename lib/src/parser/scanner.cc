@@ -58,11 +58,13 @@ void Scanner::AddError(sx::Location location, std::string&& message) { errors_.p
 /// Add a line break
 void Scanner::AddLineBreak(sx::Location location) {
     line_breaks_.push_back(location);
-    token_line_breaks_.push_back(tokens_.size());
+    symbol_line_breaks_.push_back(symbols_.size());
 }
 
 /// Add a comment
 void Scanner::AddComment(sx::Location location) { comments_.push_back(location); }
+/// Mark a location as start of an option key
+void Scanner::MarkAsOptionKey(sx::Location location) { option_key_offsets_.insert(location.offset()); }
 
 /// Read a parameter
 Parser::symbol_type Scanner::ReadParameter(sx::Location loc) {
@@ -89,47 +91,47 @@ Parser::symbol_type Scanner::ReadInteger(sx::Location loc) {
 
 /// Produce all tokens
 void Scanner::Produce() {
-    Parser::symbol_type current_token;
-    std::optional<Parser::symbol_type> lookahead_token_;
+    Parser::symbol_type current_symbol;
+    std::optional<Parser::symbol_type> lookahead_symbol_;
 
     // Function to get next token
     auto next = [&]() {
         // Have lookahead?
-        Parser::symbol_type current_token;
-        if (lookahead_token_) {
-            current_token.move(*lookahead_token_);
-            lookahead_token_.reset();
+        Parser::symbol_type current_symbol;
+        if (lookahead_symbol_) {
+            current_symbol.move(*lookahead_symbol_);
+            lookahead_symbol_.reset();
         } else {
             auto t = dashql_yylex(scanner_state_ptr_);
-            current_token.move(t);
+            current_symbol.move(t);
         }
 
         // Requires additional lookahead?
-        switch (current_token.kind()) {
+        switch (current_symbol.kind()) {
             case Parser::symbol_kind::S_NOT:
             case Parser::symbol_kind::S_NULLS_P:
             case Parser::symbol_kind::S_WITH:
                 break;
             default:
-                return current_token;
+                return current_symbol;
         }
 
         // Get next token
-        auto next_token = dashql_yylex(scanner_state_ptr_);
-        auto next_token_kind = next_token.kind();
-        lookahead_token_.emplace(std::move(next_token));
+        auto next_symbol = dashql_yylex(scanner_state_ptr_);
+        auto next_symbol_kind = next_symbol.kind();
+        lookahead_symbol_.emplace(std::move(next_symbol));
 
         // Should replace current token?
-        switch (current_token.kind()) {
+        switch (current_symbol.kind()) {
             case Parser::symbol_kind::S_NOT:
                 // Replace NOT by NOT_LA if it's followed by BETWEEN, IN, etc
-                switch (next_token_kind) {
+                switch (next_symbol_kind) {
                     case Parser::symbol_kind::S_BETWEEN:
                     case Parser::symbol_kind::S_IN_P:
                     case Parser::symbol_kind::S_LIKE:
                     case Parser::symbol_kind::S_ILIKE:
                     case Parser::symbol_kind::S_SIMILAR:
-                        return Parser::make_NOT_LA(current_token.location);
+                        return Parser::make_NOT_LA(current_symbol.location);
                     default:
                         break;
                 }
@@ -137,20 +139,20 @@ void Scanner::Produce() {
 
             case Parser::symbol_kind::S_NULLS_P:
                 // Replace NULLS_P by NULLS_LA if it's followed by FIRST or LAST
-                switch (next_token_kind) {
+                switch (next_symbol_kind) {
                     case Parser::symbol_kind::S_FIRST_P:
                     case Parser::symbol_kind::S_LAST_P:
-                        return Parser::make_NULLS_LA(current_token.location);
+                        return Parser::make_NULLS_LA(current_symbol.location);
                     default:
                         break;
                 }
                 break;
             case Parser::symbol_kind::S_WITH:
                 // Replace WITH by WITH_LA if it's followed by TIME or ORDINALITY
-                switch (next_token_kind) {
+                switch (next_symbol_kind) {
                     case Parser::symbol_kind::S_TIME:
                     case Parser::symbol_kind::S_ORDINALITY:
-                        return Parser::make_WITH_LA(current_token.location);
+                        return Parser::make_WITH_LA(current_symbol.location);
                     default:
                         break;
                 }
@@ -158,24 +160,24 @@ void Scanner::Produce() {
             default:
                 break;
         }
-        return current_token;
+        return current_symbol;
     };
 
     // Collect all tokens until we hit EOF
-    if (tokens_.empty()) {
+    if (symbols_.empty()) {
         while (true) {
             auto token = next();
-            tokens_.push_back(token);
+            symbols_.push_back(token);
             if (token.kind() == Parser::symbol_kind::S_YYEOF) break;
         }
     }
-    next_token_index_ = 0;
+    next_symbol_index_ = 0;
 }
 
 /// Get the next symbole
 Parser::symbol_type Scanner::Next() {
-    assert(next_token_index_ < tokens_.size());
-    return tokens_[next_token_index_++];
+    assert(next_symbol_index_ < symbols_.size());
+    return symbols_[next_symbol_index_++];
 }
 
 }  // namespace parser

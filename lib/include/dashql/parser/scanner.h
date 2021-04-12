@@ -6,6 +6,7 @@
 #include <charconv>
 #include <optional>
 #include <string_view>
+#include <unordered_set>
 
 #include "dashql/parser/parser.h"
 #include "dashql/proto_generated.h"
@@ -51,13 +52,15 @@ class Scanner {
     std::vector<sx::Location> line_breaks_ = {};
     /// The comments
     std::vector<sx::Location> comments_ = {};
+    /// The option keys
+    std::unordered_set<size_t> option_key_offsets_ = {};
 
-    /// All tokens
-    std::vector<Parser::symbol_type> tokens_ = {};
-    /// All token linebreaks
-    std::vector<size_t> token_line_breaks_ = {};
-    /// The next token index
-    size_t next_token_index_ = 0;
+    /// All symbols
+    std::vector<Parser::symbol_type> symbols_ = {};
+    /// All symbols linebreaks
+    std::vector<size_t> symbol_line_breaks_ = {};
+    /// The next symbol index
+    size_t next_symbol_index_ = 0;
 
    public:
     /// Constructor
@@ -78,6 +81,8 @@ class Scanner {
     auto& line_breaks() { return line_breaks_; }
     /// Get the comments
     auto& comments() { return comments_; }
+    /// Get the option key offsets
+    auto& option_key_offsets() { return option_key_offsets_; }
     /// Access the input
     std::string_view input_text() {
         assert(input_buffer_.size() >= 2);
@@ -88,6 +93,8 @@ class Scanner {
     auto&& ReleaseLineBreaks() { return move(line_breaks_); }
     /// Release the comments
     auto&& ReleaseComments() { return move(comments_); }
+    /// Pack syntax highlighting
+    std::unique_ptr<proto::syntax::HighlightingT> BuildHighlighting();
 
     /// Get the text at location
     std::string_view TextAt(sx::Location loc);
@@ -110,6 +117,8 @@ class Scanner {
     void AddLineBreak(sx::Location location);
     /// Add a comment
     void AddComment(sx::Location location);
+    /// Mark as option key
+    void MarkAsOptionKey(sx::Location location);
 
     /// Read a parameter
     Parser::symbol_type ReadParameter(sx::Location loc);
