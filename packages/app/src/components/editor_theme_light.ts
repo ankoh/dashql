@@ -5,96 +5,33 @@ export const theme: editor.IStandaloneThemeData = {
     inherit: true,
     rules: [
         {
-            foreground: 'c41a16',
             token: 'string',
+            foreground: 'c41a16',
         },
         {
+            token: 'literal',
             foreground: '1c00cf',
-            token: 'constant.numeric',
         },
         {
-            foreground: '4682b4',
             token: 'keyword',
+            foreground: '4682b4',
+            fontStyle: 'bold',
         },
         {
-            foreground: '000000',
             token: 'keyword.operator',
-        },
-        {
-            foreground: '4682b4',
-            token: 'constant.language',
-        },
-        {
-            foreground: '990000',
-            token: 'support.class.exception',
-        },
-        {
             foreground: '000000',
-            token: 'entity.name.function',
         },
         {
-            fontStyle: 'bold underline',
-            token: 'entity.name.type',
+            token: 'identifier',
+            foreground: '000000',
         },
         {
+            token: 'option.key',
             fontStyle: 'italic',
-            token: 'variable.parameter',
         },
         {
-            foreground: '007400',
             token: 'comment',
-        },
-        {
-            foreground: 'ff0000',
-            token: 'invalid',
-        },
-        {
-            background: 'e71a1100',
-            token: 'invalid.deprecated.trailing-whitespace',
-        },
-        {
-            foreground: '000000',
-            background: 'fafafafc',
-            token: 'text source',
-        },
-        {
-            foreground: '4682b4',
-            token: 'meta.tag',
-        },
-        {
-            foreground: '4682b4',
-            token: 'declaration.tag',
-        },
-        {
-            foreground: '000000',
-            fontStyle: 'bold',
-            token: 'support',
-        },
-        {
-            foreground: '4682b4',
-            token: 'storage',
-        },
-        {
-            fontStyle: 'bold underline',
-            token: 'entity.name.section',
-        },
-        {
-            foreground: '000000',
-            fontStyle: 'bold',
-            token: 'entity.name.function.frame',
-        },
-        {
-            foreground: '333333',
-            token: 'meta.tag.preprocessor.xml',
-        },
-        {
-            foreground: '994500',
-            fontStyle: 'italic',
-            token: 'entity.other.attribute-name',
-        },
-        {
-            foreground: '881280',
-            token: 'entity.name.tag',
+            foreground: '007400',
         },
     ],
     colors: {
