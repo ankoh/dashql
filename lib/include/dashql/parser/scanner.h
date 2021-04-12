@@ -27,33 +27,35 @@ class Scanner {
     /// The full input buffer
     nonstd::span<char> input_buffer_;
     /// The invalid input buffer
-    std::array<char, 2> null_buffer_;
+    std::array<char, 2> null_buffer_ = {};
 
     /// The scanner state
-    std::array<char, YY_SCANNER_STATE_SIZE> scanner_state_mem_;
+    std::array<char, YY_SCANNER_STATE_SIZE> scanner_state_mem_ = {};
     /// The buffer state
-    std::array<char, YY_BUFFER_STATE_SIZE> scanner_buffer_state_mem_;
+    std::array<char, YY_BUFFER_STATE_SIZE> scanner_buffer_state_mem_ = {};
     /// The scanner buffer stack
-    std::array<void*, 2> scanner_buffer_stack_;
+    std::array<void*, 2> scanner_buffer_stack_ = {};
     /// The address of the scanner state
-    void* scanner_state_ptr_;
-
-    /// The lookahead token (if any)
-    std::optional<Parser::symbol_type> lookahead_token_;
+    void* scanner_state_ptr_ = nullptr;
 
     /// The begin of the comment
-    sx::Location comment_begin_;
+    sx::Location comment_begin_ = sx::Location();
     /// The comment depth
-    int comment_depth_;
+    int comment_depth_ = 0;
     /// The begin of the literal
-    sx::Location literal_begin_;
+    sx::Location literal_begin_ = sx::Location();
 
     /// The scanner errors
-    std::vector<std::pair<sx::Location, std::string>> errors_;
+    std::vector<std::pair<sx::Location, std::string>> errors_ = {};
     /// The line breaks
-    std::vector<sx::Location> line_breaks_;
+    std::vector<sx::Location> line_breaks_ = {};
     /// The comments
-    std::vector<sx::Location> comments_;
+    std::vector<sx::Location> comments_ = {};
+
+    /// All tokens
+    std::vector<Parser::symbol_type> tokens_ = {};
+    /// The next token index
+    size_t next_token_index_ = 0;
 
    public:
     /// Constructor
@@ -62,6 +64,9 @@ class Scanner {
     Scanner(const Scanner& other) = delete;
     /// Delete the copy assignment
     Scanner& operator=(const Scanner& other) = delete;
+
+    /// Scan entire input
+    void Scan();
 
     /// Get the scanner state pointer
     auto* state() { return scanner_state_ptr_; }
