@@ -508,7 +508,14 @@ struct Dependency {
 enum HighlightingTokenType: uint8 {
     NONE,
     KEYWORD,
-    LITERAL,
+    LITERAL_INTEGER,
+    LITERAL_FLOAT,
+    LITERAL_STRING,
+    LITERAL_BINARY,
+    LITERAL_HEX,
+    LITERAL_BOOLEAN,
+    OPERATOR,
+    IDENTIFIER,
     COMMENT,
     OPTION_KEY,
 }

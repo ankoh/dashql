@@ -20,6 +20,26 @@ static const sx::HighlightingTokenType MapToken(Parser::symbol_kind_type symbol)
 #include "./grammar/lists/sql_type_func_keywords.list"
 #include "./grammar/lists/sql_unreserved_keywords.list"
 #undef X
+        case Parser::symbol_kind_type::S_STRING_LITERAL:
+        case Parser::symbol_kind_type::S_SCONST:
+        case Parser::symbol_kind_type::S_USCONST:
+            return proto::syntax::HighlightingTokenType::LITERAL_STRING;
+        case Parser::symbol_kind_type::S_ICONST:
+            return proto::syntax::HighlightingTokenType::LITERAL_INTEGER;
+        case Parser::symbol_kind_type::S_FCONST:
+            return proto::syntax::HighlightingTokenType::LITERAL_FLOAT;
+        case Parser::symbol_kind_type::S_BCONST:
+            return proto::syntax::HighlightingTokenType::LITERAL_BINARY;
+        case Parser::symbol_kind_type::S_XCONST:
+            return proto::syntax::HighlightingTokenType::LITERAL_HEX;
+        case Parser::symbol_kind_type::S_BOOLEAN_LITERAL:
+            return proto::syntax::HighlightingTokenType::LITERAL_BOOLEAN;
+        case Parser::symbol_kind_type::S_Op:
+            return proto::syntax::HighlightingTokenType::OPERATOR;
+        case Parser::symbol_kind_type::S_IDENT:
+        case Parser::symbol_kind_type::S_UIDENT:
+        case Parser::symbol_kind_type::S_IDENTIFIER:
+            return proto::syntax::HighlightingTokenType::IDENTIFIER;
         default:
             return proto::syntax::HighlightingTokenType::NONE;
     };
