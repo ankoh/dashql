@@ -99,6 +99,28 @@ class TokensProvider implements monaco.languages.TokensProvider {
                 case proto.syntax.HighlightingTokenType.KEYWORD:
                     token.scopes = 'keyword';
                     break;
+                case proto.syntax.HighlightingTokenType.LITERAL_INTEGER:
+                case proto.syntax.HighlightingTokenType.LITERAL_FLOAT:
+                case proto.syntax.HighlightingTokenType.LITERAL_HEX:
+                case proto.syntax.HighlightingTokenType.LITERAL_BOOLEAN:
+                case proto.syntax.HighlightingTokenType.LITERAL_BINARY:
+                    token.scopes = 'literal';
+                    break;
+                case proto.syntax.HighlightingTokenType.LITERAL_STRING:
+                    token.scopes = 'string';
+                    break;
+                case proto.syntax.HighlightingTokenType.COMMENT:
+                    token.scopes = 'comment';
+                    break;
+                case proto.syntax.HighlightingTokenType.OPERATOR:
+                    token.scopes = 'keyword.operator';
+                    break;
+                case proto.syntax.HighlightingTokenType.OPTION_KEY:
+                    token.scopes = 'option.key';
+                    break;
+                case proto.syntax.HighlightingTokenType.IDENTIFIER:
+                    token.scopes = '';
+                    break;
                 // XXX
             }
             result.tokens.push(token);
