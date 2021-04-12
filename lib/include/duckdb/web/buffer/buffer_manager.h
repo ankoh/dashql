@@ -105,7 +105,7 @@ class BufferManager {
     /// loaded page is used.
     BufferFrame& FixPage(uint64_t frame_id, bool exclusive);
     /// Takes a `BufferFrame` reference that was returned by an earlier call to
-    /// `fix_page()` and unfixes it. When `is_dirty` is / true, the page is
+    /// `FixPage()` and unfixes it. When `is_dirty` is / true, the page is
     /// written back to disk eventually.
     void UnfixPage(BufferFrame& frame, bool is_dirty);
 
@@ -114,13 +114,13 @@ class BufferManager {
     /// Returns the page ids of all pages that are in the LRU list in LRU order.
     std::vector<uint64_t> get_lru_list() const;
 
-    /// Returns the frame id for a given page id which is contained in the 32
+    /// Returns the file id for a given frame id which is contained in the 16
     /// most significant bits of the page id.
     static constexpr uint16_t GetFileID(uint64_t page_id) { return page_id >> 48; }
-    /// Returns the page id within its frame for a given page id. This
+    /// Returns the page id within its file for a given frame id. This
     /// corresponds to the 48 least significant bits of the page id.
     static constexpr uint64_t GetPageID(uint64_t page_id) { return page_id & ((1ull << 48) - 1); }
-    /// Build a file page id
+    /// Build a frame id from file and page ids
     static constexpr uint64_t BuildFrameID(uint32_t file_id, uint32_t page_id = 0) {
         return (static_cast<uint64_t>(file_id) << 32) | static_cast<uint64_t>(page_id);
     }
