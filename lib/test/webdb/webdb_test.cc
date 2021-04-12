@@ -19,8 +19,8 @@ using namespace std;
 namespace {
 
 TEST(WebDB, InvalidSQL) {
-    auto db = make_shared<duckdb::DuckDB>();
-    WebDB::Connection conn{db};
+    auto db = make_shared<WebDB>();
+    WebDB::Connection conn{*db};
     auto expected = conn.SendQuery(R"RAW(
         INVALID SQL
     )RAW");
@@ -28,27 +28,26 @@ TEST(WebDB, InvalidSQL) {
 }
 
 TEST(WebDB, RunQuery) {
-    auto db = make_shared<duckdb::DuckDB>();
-    WebDB::Connection conn{db};
+    auto db = make_shared<WebDB>();
+    WebDB::Connection conn{*db};
     auto buffer = conn.RunQuery("SELECT (v & 127)::TINYINT FROM generate_series(0, 2000) as t(v);");
     ASSERT_TRUE(buffer.ok());
 }
 
 TEST(WebDB, SendQuery) {
-    auto db = make_shared<duckdb::DuckDB>();
-    WebDB::Connection conn{db};
+    auto db = make_shared<WebDB>();
+    WebDB::Connection conn{*db};
     auto buffer = conn.SendQuery("SELECT (v & 127)::TINYINT FROM generate_series(0, 2000) as t(v);");
     ASSERT_TRUE(buffer.ok());
 }
 
 TEST(WebDB, LoadParquet) {
-    auto db = make_shared<duckdb::DuckDB>();
-    db->LoadExtension<duckdb::ParquetExtension>();
-    auto con = duckdb::Connection{*db};
+    auto db = make_shared<WebDB>();
+    WebDB::Connection conn{*db};
     std::stringstream ss;
     auto data = dashql::test::SOURCE_DIR / ".." / "data" / "uni" / "out" / "studenten.parquet";
     ss << "SELECT * FROM parquet_scan('" << data.string() << "');";
-    auto result = con.Query(ss.str());
+    auto result = conn.connection().Query(ss.str());
     ASSERT_STREQ(result->ToString().c_str(),
                  "MatrNr\tName\tSemester\t\nINTEGER\tVARCHAR\tINTEGER\t\n"
                  "[ Rows: 8]\n"

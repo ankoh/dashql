@@ -2,9 +2,6 @@ export interface DuckDBRuntime {
     bindings: any;
     duckdb_web_add_handle(url: string, handle: any): void;
     duckdb_web_get_object_url(url: string): string | null;
-    duckdb_web_fs_tell(blobId: number): number;
-    duckdb_web_fs_advance(blobId: number, bytes: number): void;
-    duckdb_web_fs_peek(blobId: number, buf: number, bytes: number): number;
     duckdb_web_fs_read(blobId: number, buf: number, bytes: number): number;
     duckdb_web_fs_write(blobId: number, buf: number, bytes: number): number;
     duckdb_web_fs_directory_exists(pathPtr: number, pathLen: number): boolean;
@@ -15,8 +12,8 @@ export interface DuckDBRuntime {
     duckdb_web_fs_file_open(pathPtr: number, pathLen: number, flags: number): number;
     duckdb_web_fs_file_sync(blobId: number): void;
     duckdb_web_fs_file_close(blobId: number): void;
-    duckdb_web_fs_file_get_size(blobId: number): number;
     duckdb_web_fs_file_get_last_modified_time(blobId: number): number;
+    duckdb_web_fs_file_get_size(blobId: number): number;
     duckdb_web_fs_file_move(fromPtr: number, fromLen: number, toPtr: number, toLen: number): void;
     duckdb_web_fs_file_set_pointer(blobId: number, location: number): void;
     duckdb_web_fs_file_exists(pathPtr: number, pathLen: number): boolean;
@@ -44,15 +41,6 @@ export const DefaultDuckDBRuntime: DuckDBRuntime = {
         throw Error('undefined');
     },
     duckdb_web_get_object_url: (url: string): string | null => {
-        throw Error('undefined');
-    },
-    duckdb_web_fs_tell: (blobId: number) => {
-        throw Error('undefined');
-    },
-    duckdb_web_fs_advance: (blobId: number, bytes: number) => {
-        throw Error('undefined');
-    },
-    duckdb_web_fs_peek: (blobId: number, buf: number, bytes: number) => {
         throw Error('undefined');
     },
     duckdb_web_fs_read: (blobId: number, buf: number, bytes: number) => {
@@ -85,10 +73,10 @@ export const DefaultDuckDBRuntime: DuckDBRuntime = {
     duckdb_web_fs_file_sync: (blobId: number) => {
         throw Error('undefined');
     },
-    duckdb_web_fs_file_get_size: (blobId: number) => {
+    duckdb_web_fs_file_get_last_modified_time: (blobId: number) => {
         throw Error('undefined');
     },
-    duckdb_web_fs_file_get_last_modified_time: (blobId: number) => {
+    duckdb_web_fs_file_get_size: (blobId: number) => {
         throw Error('undefined');
     },
     duckdb_web_fs_file_move: (fromPtr: number, fromLen: number, toPtr: number, toLen: number) => {

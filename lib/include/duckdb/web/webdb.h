@@ -16,6 +16,7 @@
 #include "dashql/proto_generated.h"
 #include "duckdb.hpp"
 #include "duckdb/main/query_result.hpp"
+#include "duckdb/web/filesystem.h"
 #include "duckdb/web/miniz_zipper.h"
 #include "nonstd/span.h"
 
@@ -27,8 +28,8 @@ class WebDB {
     /// A connection
     class Connection {
        protected:
-        /// The database
-        std::shared_ptr<duckdb::DuckDB> database_;
+        /// The webdb
+        WebDB& webdb_;
         /// The connection
         duckdb::Connection connection_;
 
@@ -39,22 +40,27 @@ class WebDB {
 
        public:
         /// Constructor
-        Connection(std::shared_ptr<duckdb::DuckDB> database);
+        Connection(WebDB& webdb);
 
         /// Get a connection
-        auto& GetConnection() { return connection_; }
+        auto& connection() { return connection_; }
+        /// Get the filesystem
+        SeekableFileSystem& filesystem();
 
-        /// Get the filesystem attached to the database of this connection
-        duckdb::FileSystem& GetFileSystem();
         /// Run a query and return an arrow buffer
         arrow::Result<std::shared_ptr<arrow::Buffer>> RunQuery(std::string_view text);
         /// Send a query and return an arrow buffer
         arrow::Result<std::shared_ptr<arrow::Buffer>> SendQuery(std::string_view text);
         /// Fetch query results and return an arrow buffer
         arrow::Result<std::shared_ptr<arrow::Buffer>> FetchQueryResults();
+
+        /// Import a csv file
+        arrow::Result<size_t> ImortCSV(const char* path);
     };
 
    protected:
+    /// The filesystem
+    SeekableFileSystem* filesystem_;
     /// The (shared) database
     std::shared_ptr<duckdb::DuckDB> database_;
     /// The connections
@@ -67,17 +73,19 @@ class WebDB {
 
    public:
     /// Constructor
-    WebDB();
+    WebDB(std::unique_ptr<SeekableFileSystem> filesystem = std::make_unique<SeekableFileSystem>());
+
+    /// Get the filesystem
+    auto& filesystem() { return *filesystem_; }
+    /// Get the database
+    auto& database() { return *database_; }
+    /// Get the zipper
+    auto* zip() { return zip_.get(); }
 
     /// Create a connection
     Connection* Connect();
     /// End a connection
     void Disconnect(Connection* connection);
-
-    /// Get the filesystem attached to the database
-    duckdb::FileSystem& GetFileSystem();
-    /// Get the zipper
-    auto* Zip() { return zip_.get(); }
 
     /// Get the static webdb instance
     static WebDB& GetInstance();
