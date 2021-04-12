@@ -69,9 +69,9 @@ std::unique_ptr<sx::HighlightingT> Scanner::BuildHighlighting() {
 
     // Build highlighting
     auto hl = std::make_unique<sx::HighlightingT>();
-    hl->line_breaks = std::move(breaks);
     hl->token_offsets = std::move(offsets);
     hl->token_types = std::move(types);
+    hl->token_breaks = std::move(breaks);
     return hl;
 }
 

@@ -1,6 +1,7 @@
 import * as React from 'react';
 import * as monaco from 'monaco-editor/esm/vs/editor/editor.api';
 import * as core from '@dashql/core';
+import * as proto from '@dashql/proto';
 import { AutoSizer } from '../util/autosizer';
 import { connect } from 'react-redux';
 import { IAppContext, withAppContext } from '../app_context';
@@ -18,6 +19,89 @@ type Props = {
 
     updateScript: (script: core.model.Script) => void;
 };
+
+/** Dummy state to propagate the line number through the TokensProvider API.
+ *  We rely on the fact here that the model passes this state from line to line sequentially.
+ *  Ref: https://microsoft.github.io/monaco-editor/api/interfaces/monaco.languages.istate.html
+ *
+ *  This is hacky but the tokenize() function gets a single string as input instead of a line number.
+ *  That is super useless to us since we already have all the tokens.
+ */
+class TokensProviderState implements monaco.languages.IState {
+    /** Constructor */
+    constructor(protected _lineNumber: number = -1) {}
+    /** Get the line number */
+    public get lineNumber() {
+        return this._lineNumber;
+    }
+    public advance() {
+        this._lineNumber += 1;
+    }
+    /** Equality check */
+    equals(other: TokensProviderState) {
+        return this._lineNumber == other._lineNumber;
+    }
+    /** Clone the state */
+    clone() {
+        return new TokensProviderState(this._lineNumber);
+    }
+}
+
+class TokensProvider implements monaco.languages.TokensProvider {
+    /// The redux store
+    _store: model.AppReduxStore;
+
+    constructor(store: model.AppReduxStore) {
+        this._store = store;
+    }
+
+    getInitialState(): monaco.languages.IState {
+        return new TokensProviderState();
+    }
+
+    tokenize(_line: string, state: TokensProviderState): monaco.languages.ILineTokens {
+        state.advance();
+        let result: monaco.languages.ILineTokens = {
+            tokens: [],
+            endState: state,
+        };
+
+        // Get highlighting data
+        const store = this._store.getState();
+        const buffer = store.core.program?.buffer;
+        const hl = buffer?.highlighting();
+        if (!hl) return result;
+
+        // Line break valid?
+        const tokenBreaks = hl.tokenBreaksArray()!;
+        const tokenOffsets = hl.tokenOffsetsArray()!;
+        const tokenTypes = hl.tokenTypesArray()!;
+
+        // Resolve token range & lineOffset
+        // breaks[0] refers to the offset of the first token after linebreak 0
+        const tokenBegin = state.lineNumber == 0 ? 0 : tokenBreaks[state.lineNumber - 1];
+        const tokenEnd = state.lineNumber < tokenBreaks.length ? tokenBreaks[state.lineNumber] : tokenOffsets.length;
+
+        const prevLineBreak = buffer?.lineBreaks(state.lineNumber - 1);
+        const lineOffset = prevLineBreak ? prevLineBreak.offset() + prevLineBreak.length() : 0;
+
+        // Read all tokens
+        for (let i = tokenBegin; i < tokenEnd; ++i) {
+            let token = {
+                startIndex: tokenOffsets[i] - lineOffset,
+                scopes: '',
+            };
+            switch (tokenTypes[i] as proto.syntax.HighlightingTokenType) {
+                case proto.syntax.HighlightingTokenType.KEYWORD:
+                    token.scopes = 'keyword';
+                    break;
+                // XXX
+            }
+            result.tokens.push(token);
+        }
+        return result;
+    }
+}
 
 class Editor extends React.Component<Props> {
     // The monaco container
@@ -63,9 +147,14 @@ class Editor extends React.Component<Props> {
     /// Init the monaco editor
     protected initMonaco() {
         if (this.monacoContainer) {
+            monaco.languages.register({ id: 'dashql' });
+            monaco.languages.setTokensProvider('dashql', new TokensProvider(this.props.appContext.store));
+            monaco.editor.defineTheme('dashql', monaco_theme);
+            monaco.editor.setTheme('dashql');
+
             this.editor = monaco.editor.create(this.monacoContainer, {
                 fontSize: 13,
-                language: 'sql',
+                language: 'dashql',
                 value: this.props.script.text,
                 links: false,
                 wordWrap: 'on',
@@ -76,10 +165,6 @@ class Editor extends React.Component<Props> {
             });
             this.editor.setPosition({ column: 0, lineNumber: 0 });
             this.editor.focus();
-
-            // Set theme
-            monaco.editor.defineTheme('dashql', monaco_theme);
-            monaco.editor.setTheme('dashql');
 
             // Finalize the editor
             this.editorDidMount();
@@ -181,75 +266,6 @@ class Editor extends React.Component<Props> {
             }
             monaco.editor.setModelMarkers(data, 'DashQL', markers);
         }
-    }
-
-    public replace(location: core.proto.syntax.Location, text: string | null) {
-        /// Get monaco editor
-        if (!this.editor) {
-            return;
-        }
-
-        /// Get monaco model
-        const model = this.editor.getModel();
-        if (!model) {
-            return;
-        }
-
-        // Determine edit range
-        const begin = model.getPositionAt(location.offset());
-        const end = model.getPositionAt(location.offset() + location.length());
-        const range = {
-            startLineNumber: begin.lineNumber,
-            startColumn: begin.column,
-            endLineNumber: end.lineNumber,
-            endColumn: end.column,
-        };
-        while (true) {
-            const nextCharacterRange = {
-                startLineNumber: range.endLineNumber,
-                startColumn: range.endColumn,
-                endLineNumber: range.endLineNumber,
-                endColumn: range.endColumn,
-            };
-
-            if (nextCharacterRange.endColumn == (model.getLineLength(nextCharacterRange.endLineNumber) ?? 0) + 1) {
-                nextCharacterRange.endLineNumber += 1;
-                nextCharacterRange.endColumn = 1;
-            } else {
-                nextCharacterRange.endColumn += 1;
-            }
-
-            const nextCharacter = model.getValueInRange(nextCharacterRange);
-            if (nextCharacter != '\n') {
-                break;
-            } else {
-                range.endLineNumber = nextCharacterRange.endLineNumber;
-                range.endColumn = nextCharacterRange.endColumn;
-            }
-        }
-
-        // Pad text with newlines
-        let paddedText = text;
-        if (paddedText != null) {
-            if (!(range.endLineNumber == 1 && range.endColumn == 1)) {
-                paddedText = '\n\n' + paddedText;
-            }
-            if (
-                range.endLineNumber == model.getLineCount() &&
-                range.endColumn == model.getLineLength(range.endLineNumber) + 1
-            ) {
-                paddedText = paddedText + '\n';
-            } else if (range.endColumn == 1 || range.endColumn == model.getLineLength(range.endLineNumber) + 1) {
-                paddedText = paddedText + '\n\n';
-            }
-        }
-
-        // Apply the edits
-        this.editor.executeEdits(
-            '',
-            [{ range: range as monaco.Range, text: paddedText }],
-            [monaco.Selection.fromPositions({ lineNumber: 1, column: 1 }, { lineNumber: 1, column: 1 })],
-        );
     }
 }
 
