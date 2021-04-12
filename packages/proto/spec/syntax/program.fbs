@@ -505,6 +505,20 @@ struct Dependency {
     target_node: uint32;
 }
 
+enum HighlightingTokenType: uint8 {
+    NONE,
+    KEYWORD,
+    LITERAL,
+    COMMENT,
+    OPTION_KEY,
+}
+
+table Highlighting {
+    token_offsets: [uint32];
+    token_types: [HighlightingTokenType];
+    line_breaks: [uint32];
+}
+
 table Program {
     nodes: [Node];
     statements: [Statement];
@@ -512,4 +526,5 @@ table Program {
     line_breaks: [Location];
     comments: [Location];
     dependencies: [Dependency];
+    highlighting: Highlighting;
 }
