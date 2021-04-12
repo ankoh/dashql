@@ -31,18 +31,18 @@ void BufferFrame::Unlock() {
 
 /// Constructor
 BufferManager::BufferManager(size_t page_size, size_t page_count)
-    : page_size(page_size), page_count(page_count), files(), pages(), fifo(), lru() {}
+    : page_size(page_size), page_count(page_count), files(), frames(), fifo(), lru() {}
 
 /// Destructor
 BufferManager::~BufferManager() {
-    for (auto& entry : pages) {
+    for (auto& entry : frames) {
         FlushPage(entry.second);
     }
 }
 
-void BufferManager::LoadPage(BufferFrame& page) {
+void BufferManager::LoadFrame(BufferFrame& page) {
     auto file_id = GetFileID(page.page_id);
-    auto file_page_id = GetFilePageID(page.page_id);
+    auto page_id = GetPageID(page.page_id);
 
     // Was the file opened already?
     File* file;
@@ -56,24 +56,24 @@ void BufferManager::LoadPage(BufferFrame& page) {
 
     // When the file is too small, resize it and zero out the data for it.
     // As the bytes in the file are zeroed anyway, we don't have to read the zeroes from disk.
-    if (file->Size() < (file_page_id + 1) * page_size) {
-        file->Resize((file_page_id + 1) * page_size);
+    if (file->Size() < (page_id + 1) * page_size) {
+        file->Resize((page_id + 1) * page_size);
         std::memset(page.buffer.data(), 0, page_size);
     } else {
-        file->ReadBlock(file_page_id * page_size, page_size, page.buffer.data());
+        file->ReadBlock(page_id * page_size, page_size, page.buffer.data());
     }
     page.is_dirty = false;
 }
 
 void BufferManager::FlushPage(BufferFrame& page) {
     auto file_id = GetFileID(page.page_id);
-    auto page_id = GetFilePageID(page.page_id);
+    auto page_id = GetPageID(page.page_id);
     auto& file = *files.find(file_id)->second;
     file.WriteBlock(page.buffer.data(), page_id * page_size, page_size);
     page.is_dirty = false;
 }
 
-BufferFrame* BufferManager::FindPageToEvict() {
+BufferFrame* BufferManager::FindFrameToEvict() {
     // Try FIFO list first
     for (auto* page : fifo) {
         if (page->num_users == 0) return page;
@@ -87,7 +87,7 @@ BufferFrame* BufferManager::FindPageToEvict() {
 
 std::vector<char> BufferManager::AllocatePage() {
     // Find a page to evict
-    auto* page_to_evict = FindPageToEvict();
+    auto* page_to_evict = FindFrameToEvict();
     if (page_to_evict == nullptr) {
         std::vector<char> buffer;
         buffer.resize(page_size);
@@ -106,14 +106,14 @@ std::vector<char> BufferManager::AllocatePage() {
     }
     // Erase from dictionary
     auto buffer = std::move(page_to_evict->buffer);
-    pages.erase(page_to_evict->page_id);
+    frames.erase(page_to_evict->page_id);
     return buffer;
 }
 
 /// Fix a page
 BufferFrame& BufferManager::FixPage(uint64_t page_id, bool exclusive) {
     // Does the page exist?
-    if (auto it = pages.find(page_id); it != pages.end()) {
+    if (auto it = frames.find(page_id); it != frames.end()) {
         auto& page = it->second;
 
         // Is page in LRU queue?
@@ -131,25 +131,25 @@ BufferFrame& BufferManager::FixPage(uint64_t page_id, bool exclusive) {
     }
 
     // Create a new page and don't insert it in the queues, yet.
-    assert(pages.find(page_id) == pages.end());
-    auto& page = pages.insert({page_id, BufferFrame{page_id, page_size, fifo.end(), lru.end()}}).first->second;
-    page.buffer = AllocatePage();
-    page.fifo_position = fifo.insert(fifo.end(), &page);
-    page.Lock(exclusive);
+    assert(frames.find(page_id) == frames.end());
+    auto& frame = frames.insert({page_id, BufferFrame{page_id, page_size, fifo.end(), lru.end()}}).first->second;
+    frame.buffer = AllocatePage();
+    frame.fifo_position = fifo.insert(fifo.end(), &frame);
+    frame.Lock(exclusive);
 
     // Load the data
-    LoadPage(page);
-    return page;
+    LoadFrame(frame);
+    return frame;
 }
 
-void BufferManager::UnfixPage(BufferFrame& page, bool is_dirty) {
-    page.is_dirty = page.is_dirty || is_dirty;
-    page.Unlock();
+void BufferManager::UnfixPage(BufferFrame& frame, bool is_dirty) {
+    frame.is_dirty = frame.is_dirty || is_dirty;
+    frame.Unlock();
 }
 
-void BufferManager::WritePages(uint32_t file_id) {
-    auto lb = pages.lower_bound(static_cast<uint64_t>(file_id) << 32);
-    auto ub = pages.lower_bound(static_cast<uint64_t>(file_id + 1) << 32);
+void BufferManager::FlushFile(uint16_t file_id) {
+    auto lb = frames.lower_bound(BuildFrameID(file_id));
+    auto ub = frames.lower_bound(BuildFrameID(file_id + 1));
     for (auto iter = lb; iter != ub; ++iter) {
         FlushPage(iter->second);
         if (iter->second.lru_position != lru.end()) {
@@ -159,7 +159,7 @@ void BufferManager::WritePages(uint32_t file_id) {
             fifo.erase(iter->second.fifo_position);
         }
     }
-    pages.erase(lb, ub);
+    frames.erase(lb, ub);
 }
 
 std::vector<uint64_t> BufferManager::get_fifo_list() const {

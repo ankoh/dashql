@@ -59,22 +59,22 @@ class BufferManager {
     /// The page count
     size_t page_count;
 
-    /// Maps segment ids to their files
-    std::unordered_map<uint32_t, std::unique_ptr<File>> files;
+    /// Maps frame ids to their files
+    std::unordered_map<uint16_t, std::unique_ptr<File>> files;
     /// Maps page_ids to BufferFrame objects of all pages that are currently in memory
-    std::map<uint64_t, BufferFrame> pages;
+    std::map<uint64_t, BufferFrame> frames;
     /// FIFO list of pages
     std::list<BufferFrame*> fifo;
     /// LRU list of pages
     std::list<BufferFrame*> lru;
 
     /// Loads the page from disk
-    void LoadPage(BufferFrame& page);
+    void LoadFrame(BufferFrame& page);
     /// Writes the page to disk if it is dirty
     void FlushPage(BufferFrame& page);
     /// Returns the next page that can be evicted.
     /// Returns nullptr, when no page can be evicted.
-    BufferFrame* FindPageToEvict();
+    BufferFrame* FindFrameToEvict();
     /// Evicts a page from the buffer manager.
     /// Returns the data pointer of the evicted page or nullptr when no page can be evicted.
     std::vector<char> AllocatePage();
@@ -85,28 +85,34 @@ class BufferManager {
     /// Destructor
     ~BufferManager();
 
+    /// Get the page size
+    auto GetPageSize() const { return page_size; }
     /// Returns a reference to a `BufferFrame` object for a given page id. When
     /// the page is not loaded into memory, it is read from disk. Otherwise the
     /// loaded page is used.
-    BufferFrame& FixPage(uint64_t page_id, bool exclusive);
+    BufferFrame& FixPage(uint64_t frame_id, bool exclusive);
     /// Takes a `BufferFrame` reference that was returned by an earlier call to
     /// `fix_page()` and unfixes it. When `is_dirty` is / true, the page is
     /// written back to disk eventually.
-    void UnfixPage(BufferFrame& page, bool is_dirty);
-    /// Write pages back
-    void WritePages(uint32_t page_id);
+    void UnfixPage(BufferFrame& frame, bool is_dirty);
+    /// Write all pages of a file
+    void FlushFile(uint16_t file_id);
 
     /// Returns the page ids of all pages that are in the FIFO list in FIFO order.
     std::vector<uint64_t> get_fifo_list() const;
     /// Returns the page ids of all pages that are in the LRU list in LRU order.
     std::vector<uint64_t> get_lru_list() const;
 
-    /// Returns the segment id for a given page id which is contained in the 32
+    /// Returns the frame id for a given page id which is contained in the 32
     /// most significant bits of the page id.
-    static constexpr uint16_t GetFileID(uint64_t page_id) { return page_id >> 32; }
-    /// Returns the page id within its segment for a given page id. This
+    static constexpr uint16_t GetFileID(uint64_t page_id) { return page_id >> 48; }
+    /// Returns the page id within its frame for a given page id. This
     /// corresponds to the 48 least significant bits of the page id.
-    static constexpr uint64_t GetFilePageID(uint64_t page_id) { return page_id & ((1ull << 32) - 1); }
+    static constexpr uint64_t GetPageID(uint64_t page_id) { return page_id & ((1ull << 48) - 1); }
+    /// Build a file page id
+    static constexpr uint64_t BuildFrameID(uint32_t file_id, uint32_t page_id = 0) {
+        return (static_cast<uint64_t>(file_id) << 32) | static_cast<uint64_t>(page_id);
+    }
 };
 
 }  // namespace web
