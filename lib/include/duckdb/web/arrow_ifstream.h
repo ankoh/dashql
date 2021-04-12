@@ -11,12 +11,12 @@
 namespace duckdb {
 namespace web {
 
-class WebDBInputFileStream : virtual public arrow::io::InputStream {
+class InputFileStream : virtual public arrow::io::InputStream {
    protected:
     /// The file system
     duckdb::web::SeekableFileSystem& file_system_;
     /// The file handle
-    std::unique_ptr<duckdb::web::WebDBFileHandle> file_handle_;
+    std::unique_ptr<duckdb::FileHandle> file_handle_;
     /// The temporary buffer (if any)
     std::shared_ptr<arrow::ResizableBuffer> tmp_;
     /// The file position
@@ -24,9 +24,9 @@ class WebDBInputFileStream : virtual public arrow::io::InputStream {
 
    public:
     /// Constructor
-    WebDBInputFileStream(duckdb::web::WebDBFileSystem& fs, std::unique_ptr<duckdb::web::WebDBFileHandle> handle);
+    InputFileStream(duckdb::web::SeekableFileSystem& fs, const char* path);
     /// Destructor
-    ~WebDBInputFileStream() override;
+    ~InputFileStream() override;
 
     /// File interface
 
@@ -93,7 +93,7 @@ class WebDBInputFileStream : virtual public arrow::io::InputStream {
     /// \brief Return true if InputStream is capable of zero copy Buffer reads
     ///
     /// Zero copy reads imply the use of Buffer-returning Read() overloads.
-    bool supports_zero_copy() const override;
+    bool supports_zero_copy() const override { return false; }
 };
 
 }  // namespace web

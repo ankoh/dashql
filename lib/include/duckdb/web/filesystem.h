@@ -35,12 +35,12 @@ class SeekableFileSystem : public duckdb::FileSystem {
     virtual void SetFilePointer(duckdb::FileHandle &handle, size_t pos);
 };
 
-class WebDBFileSystem : public SeekableFileSystem {
+class WebFileSystem : public SeekableFileSystem {
    public:
     /// Constructor
-    WebDBFileSystem() {}
+    WebFileSystem() {}
     /// Destructor
-    virtual ~WebDBFileSystem() {}
+    virtual ~WebFileSystem() {}
 
     /// Set the current position in the file
     void SetFilePointer(duckdb::FileHandle &handle, size_t pos) override;
