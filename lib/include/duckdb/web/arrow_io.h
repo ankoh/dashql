@@ -11,20 +11,22 @@
 namespace duckdb {
 namespace web {
 
-class WebDBFile : virtual public arrow::io::InputStream {
+class WebDBInputFileStream : virtual public arrow::io::InputStream {
    protected:
     /// The file system
-    duckdb::web::WebDBFileSystem& file_system_;
+    duckdb::web::SeekableFileSystem& file_system_;
     /// The file handle
     std::unique_ptr<duckdb::web::WebDBFileHandle> file_handle_;
     /// The temporary buffer (if any)
     std::shared_ptr<arrow::ResizableBuffer> tmp_;
+    /// The file position
+    size_t file_position_;
 
    public:
     /// Constructor
-    WebDBFile(duckdb::web::WebDBFileSystem& fs, std::unique_ptr<duckdb::web::WebDBFileHandle> handle);
+    WebDBInputFileStream(duckdb::web::WebDBFileSystem& fs, std::unique_ptr<duckdb::web::WebDBFileHandle> handle);
     /// Destructor
-    ~WebDBFile() override;
+    ~WebDBInputFileStream() override;
 
     /// File interface
 
