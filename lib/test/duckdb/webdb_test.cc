@@ -66,7 +66,7 @@ TEST(WebDB, LoadParquet) {
 //     using LT = duckdb::LogicalType;
 //
 //     auto db = make_shared<duckdb::DuckDB>();
-//     auto data = dashql::test::SOURCE_DIR / ".." / "data" / "uni" / "out" / "test.csv";
+//     auto data = dashql::test::SOURCE_DIR / ".." / "data" / "test.csv";
 //     duckdb::BufferedCSVReaderOptions options;
 //     options.auto_detect = true;
 //     std::vector<duckdb::LogicalType> column_types{LT::INTEGER, LT::INTEGER, LT::INTEGER};

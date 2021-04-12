@@ -24,7 +24,7 @@ arrow::Status InputFileStream::Abort() { return arrow::Status::OK(); }
 
 arrow::Result<int64_t> InputFileStream::Tell() const { return file_position_; }
 
-bool InputFileStream::closed() const { return file_handle_ != nullptr; }
+bool InputFileStream::closed() const { return file_handle_ == nullptr; }
 
 arrow::Result<int64_t> InputFileStream::Read(int64_t nbytes, void* out) {
     auto n = file_system_.Read(*file_handle_, out, nbytes);
