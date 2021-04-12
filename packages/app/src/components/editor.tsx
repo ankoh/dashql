@@ -82,8 +82,12 @@ class TokensProvider implements monaco.languages.TokensProvider {
         const tokenBegin = state.lineNumber == 0 ? 0 : tokenBreaks[state.lineNumber - 1];
         const tokenEnd = state.lineNumber < tokenBreaks.length ? tokenBreaks[state.lineNumber] : tokenOffsets.length;
 
-        const prevLineBreak = buffer?.lineBreaks(state.lineNumber - 1);
-        const lineOffset = prevLineBreak ? prevLineBreak.offset() + prevLineBreak.length() : 0;
+        // Resolve line offset
+        let lineOffset = 0;
+        if (state.lineNumber > 0) {
+            const prevLineBreak = buffer?.lineBreaks(state.lineNumber - 1);
+            lineOffset = prevLineBreak ? prevLineBreak.offset() + prevLineBreak.length() : 0;
+        }
 
         // Read all tokens
         for (let i = tokenBegin; i < tokenEnd; ++i) {
@@ -99,6 +103,8 @@ class TokensProvider implements monaco.languages.TokensProvider {
             }
             result.tokens.push(token);
         }
+        console.log(state.lineNumber);
+        console.log(result);
         return result;
     }
 }
