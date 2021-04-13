@@ -3,68 +3,50 @@
 import fs from 'fs';
 import { DuckDBRuntime, FileFlags } from './runtime_base';
 import globToRegexp from 'glob-to-regexp';
-import path from 'path';
+import p from 'path';
 
 const decoder = new TextDecoder();
 const encoder = new TextEncoder();
 
-interface NodeBlobHandle {
-    url: string;
-    handle: number;
+interface NodeFile {
+    fileID: number;
+    fd: number;
+    path: string;
     stat: fs.Stats;
 }
 
-export interface BlobStream {
-    id: number;
-    handle: NodeBlobHandle;
-    position: number;
-}
-
 export var NodeDuckDBRuntime: DuckDBRuntime & {
-    handleMap: Map<string, NodeBlobHandle>;
-    streamMap: Map<number, BlobStream>;
-    streamCounter: number;
+    fileByPath: Map<string, NodeFile>;
+    fileByID: Map<number, NodeFile>;
+    nextFileID: number;
 } = {
-    handleMap: new Map<string, NodeBlobHandle>(),
-    streamMap: new Map<number, BlobStream>(),
-    streamCounter: 1,
+    fileByPath: new Map<string, NodeFile>(),
+    fileByID: new Map<number, NodeFile>(),
+    nextFileID: 0,
     bindings: null,
 
-    duckdb_web_add_handle: function (url: any, handle: any): void {
-        let node_handle = <NodeBlobHandle>handle;
-        if (NodeDuckDBRuntime.handleMap.has(url)) {
-            // Somewhat silently fail adding duplicate blob handle
-            // Not overwriting entry since blobstreams refer to their handle
-            console.info('URL already registered: ' + url);
-        } else {
-            NodeDuckDBRuntime.handleMap.set(url, node_handle);
-        }
+    duckdb_web_add_handle: function (path: any, handle: any): void {
+        if (NodeDuckDBRuntime.fileByPath.has(path)) return;
+        NodeDuckDBRuntime.fileByPath.set(path, handle);
+        NodeDuckDBRuntime.fileByID.set(path, handle);
     },
-    duckdb_web_get_object_url(url: string): string | null {
-        let handle = NodeDuckDBRuntime.handleMap.has(url);
+    duckdb_web_get_object_url(path: string): string | null {
+        let handle = NodeDuckDBRuntime.fileByPath.has(path);
         if (!handle) return null;
-
-        return path.resolve(url);
+        return p.resolve(path);
     },
-    duckdb_web_fs_read: function (fileId: number, buf: number, bytes: number) {
-        let stream = NodeDuckDBRuntime.streamMap.get(fileId);
-        if (!stream) return 0;
-
-        const size = Math.min(bytes, stream.handle.stat.size - stream.position);
+    duckdb_web_fs_read: function (fileId: number, buf: number, bytes: number, location: number) {
+        const file = NodeDuckDBRuntime.fileByID.get(fileId);
+        if (!file) return 0;
         let heap: Uint8Array = NodeDuckDBRuntime.bindings!.instance!.HEAPU8;
-        fs.readSync(stream.handle.handle, heap, buf, size, stream.position);
-        stream.position += size;
-        return size;
+        return fs.readSync(file.fd, heap, buf, bytes, location);
     },
-    duckdb_web_fs_write: function (fileId: number, buf: number, bytes: number) {
-        let stream = NodeDuckDBRuntime.streamMap.get(fileId);
-        if (!stream) return 0;
-
+    duckdb_web_fs_write: function (fileId: number, buf: number, bytes: number, location: number) {
+        const file = NodeDuckDBRuntime.fileByID.get(fileId);
+        if (!file) return 0;
         const heap: Uint8Array = NodeDuckDBRuntime.bindings!.instance!.HEAPU8;
         const slice = heap.subarray(buf, buf + bytes);
-        const written = fs.writeSync(stream.handle.handle, slice, 0, slice.length, stream.position);
-        stream.position += written;
-        return written;
+        return fs.writeSync(file.fd, slice, 0, slice.length, location);
     },
     duckdb_web_fs_directory_exists: function (pathPtr: number, pathLen: number) {
         throw Error('undefined');
@@ -82,9 +64,9 @@ export var NodeDuckDBRuntime: DuckDBRuntime & {
         let instance = NodeDuckDBRuntime.bindings!.instance!;
         const path = decoder.decode(instance.HEAPU8.subarray(pathPtr, pathPtr + pathLen));
         let re = globToRegexp(path);
-        for (let url of NodeDuckDBRuntime.handleMap.keys()) {
-            if (re.test(url)) {
-                const data = encoder.encode(url);
+        for (let path of NodeDuckDBRuntime.fileByPath.keys()) {
+            if (re.test(path)) {
+                const data = encoder.encode(path);
                 const ptr = instance.stackAlloc(data.length);
                 instance.HEAPU8.set(data, ptr);
                 NodeDuckDBRuntime.bindings!.instance!.ccall(
@@ -97,67 +79,49 @@ export var NodeDuckDBRuntime: DuckDBRuntime & {
         }
     },
     duckdb_web_fs_file_open: function (pathPtr: number, pathLen: number, flags: number) {
-        // TODO: Respect all flags
-        let instance = NodeDuckDBRuntime.bindings!.instance!;
+        const instance = NodeDuckDBRuntime.bindings!.instance!;
         const path = decoder.decode(instance.HEAPU8.subarray(pathPtr, pathPtr + pathLen));
+        const file = NodeDuckDBRuntime.fileByPath.get(path);
+        if (file) return file.fileID;
 
-        if ((flags & FileFlags.FILE_FLAGS_READ) == FileFlags.FILE_FLAGS_READ) {
-            const handle = NodeDuckDBRuntime.handleMap.get(path);
-            if (!handle) throw Error('File not found or cannot be opened: ' + path);
-
-            const id = NodeDuckDBRuntime.streamCounter;
-            const stream = { id: id, handle: handle, position: 0 };
-            NodeDuckDBRuntime.streamMap.set(id, stream);
-            NodeDuckDBRuntime.streamCounter++;
-            return id;
-        } else if ((flags & FileFlags.FILE_FLAGS_WRITE) == FileFlags.FILE_FLAGS_WRITE) {
-            let handle = NodeDuckDBRuntime.handleMap.get(path);
-            if (handle) throw Error('File is already opened: ' + path);
-
-            handle = {
-                url: path,
-                handle: fs.openSync(path, 'w'),
-                stat: new fs.Stats(),
-            };
-
-            NodeDuckDBRuntime.handleMap.set(path, handle);
-
-            const id = NodeDuckDBRuntime.streamCounter;
-            const stream = { id: id, handle: handle, position: 0 };
-            NodeDuckDBRuntime.streamMap.set(id, stream);
-            NodeDuckDBRuntime.streamCounter++;
-            return id;
-        } else {
-            throw Error('Unsupported file flags: ' + flags);
-        }
+        // Just always open with WRITE for now.
+        // Buffer manager will have to do that anyway.
+        const fd = fs.openSync(path, 'w');
+        const stat = fs.fstatSync(fd);
+        const fileID = NodeDuckDBRuntime.nextFileID++;
+        const newFile = {
+            fileID,
+            path: path,
+            fd,
+            stat,
+        };
+        NodeDuckDBRuntime.fileByPath.set(path, newFile);
+        NodeDuckDBRuntime.fileByID.set(fileID, newFile);
+        return fileID;
     },
     duckdb_web_fs_file_close: function (fileId: number) {
-        NodeDuckDBRuntime.streamMap.delete(fileId);
-    },
-    duckdb_web_fs_file_sync: function (fileId: number) {
-        // noop
+        const file = NodeDuckDBRuntime.fileByID.get(fileId);
+        if (!file) return;
+        NodeDuckDBRuntime.fileByID.delete(fileId);
+        NodeDuckDBRuntime.fileByPath.delete(file.path);
     },
     duckdb_web_fs_file_get_size: function (fileId: number): number {
-        let stream = NodeDuckDBRuntime.streamMap.get(fileId);
-        if (!stream) return 0;
-        return stream.handle.stat.size;
+        const file = NodeDuckDBRuntime.fileByID.get(fileId);
+        if (!file) return 0;
+        return file.stat.size;
     },
     duckdb_web_fs_file_get_last_modified_time: function (fileId: number) {
-        let stream = NodeDuckDBRuntime.streamMap.get(fileId);
-        if (!stream) return 0;
-        return stream.handle.stat.mtime.getTime();
+        const file = NodeDuckDBRuntime.fileByID.get(fileId);
+        if (!file) return 0;
+        return file.stat.mtime.getTime();
     },
     duckdb_web_fs_file_move: function (fromPtr: number, fromLen: number, toPtr: number, toLen: number) {
         throw Error('undefined');
     },
-    duckdb_web_fs_file_set_pointer: function (fileId: number, location: number) {
-        let stream = NodeDuckDBRuntime.streamMap.get(fileId);
-        if (stream) stream.position = location;
-    },
     duckdb_web_fs_file_exists: function (pathPtr: number, pathLen: number) {
         let instance = NodeDuckDBRuntime.bindings!.instance!;
         const path = decoder.decode(instance.HEAPU8.subarray(pathPtr, pathPtr + pathLen));
-        return NodeDuckDBRuntime.handleMap.has(path);
+        return NodeDuckDBRuntime.fileByPath.has(path);
     },
     duckdb_web_fs_file_remove: function (pathPtr: number, pathLen: number) {
         throw Error('undefined');
