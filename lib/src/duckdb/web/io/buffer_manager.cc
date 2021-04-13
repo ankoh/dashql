@@ -50,7 +50,7 @@ BufferManager::BufferManager(size_t page_size_bits)
 /// Destructor
 BufferManager::~BufferManager() {
     for (auto& entry : frames) {
-        FlushPage(entry.second);
+        FlushFrame(entry.second);
     }
 }
 
@@ -90,7 +90,7 @@ void BufferManager::FlushFile(FileRef& file_ref) {
     auto lb = frames.lower_bound(BuildFrameID(file_ref.file_id_));
     auto ub = frames.lower_bound(BuildFrameID(file_ref.file_id_ + 1));
     for (auto iter = lb; iter != ub; ++iter) {
-        FlushPage(iter->second);
+        FlushFrame(iter->second);
         if (iter->second.lru_position != lru.end()) {
             lru.erase(iter->second.lru_position);
         } else {
@@ -119,7 +119,7 @@ void BufferManager::ReleaseFile(BufferManager::FileRef&& file_ref) {
     auto lb = frames.lower_bound(BuildFrameID(file_id));
     auto ub = frames.lower_bound(BuildFrameID(file_id + 1));
     for (auto iter = lb; iter != ub; ++iter) {
-        FlushPage(iter->second);
+        FlushFrame(iter->second);
         if (iter->second.lru_position != lru.end()) {
             lru.erase(iter->second.lru_position);
         } else {
@@ -160,7 +160,7 @@ void BufferManager::LoadFrame(BufferFrame& page) {
     page.is_dirty = false;
 }
 
-void BufferManager::FlushPage(BufferFrame& page) {
+void BufferManager::FlushFrame(BufferFrame& page) {
     auto file_id = GetFileID(page.frame_id);
     auto page_id = GetPageID(page.frame_id);
     auto page_size = GetPageSize();
@@ -192,7 +192,7 @@ std::vector<char> BufferManager::AllocatePage() {
     }
     // Is dirty? Flush the page
     if (page_to_evict->is_dirty) {
-        FlushPage(*page_to_evict);
+        FlushFrame(*page_to_evict);
     }
     // Erase from queues
     if (page_to_evict->lru_position != lru.end()) {
