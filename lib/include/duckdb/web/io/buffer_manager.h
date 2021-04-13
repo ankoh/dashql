@@ -151,9 +151,9 @@ class BufferManager {
     /// Create a file ref
     FileRef CreateFileRef(RegisteredFile& file);
     /// Loads the page from disk
-    void LoadFrame(BufferFrame& page);
+    void LoadFrame(BufferFrame& frame);
     /// Writes the page to disk if it is dirty
-    void FlushPage(BufferFrame& page);
+    void FlushFrame(BufferFrame& frame);
     /// Returns the next page that can be evicted.
     /// Returns nullptr, when no page can be evicted.
     BufferFrame* FindFrameToEvict();
@@ -163,8 +163,8 @@ class BufferManager {
 
    public:
     /// Constructor.
-    /// Use 16KiB pages by default (1 << 14)
-    BufferManager(size_t page_size_bits = 14);
+    /// Use 8KiB pages by default (1 << 13)
+    BufferManager(size_t page_size_bits = 13);
     /// Destructor
     ~BufferManager();
 
