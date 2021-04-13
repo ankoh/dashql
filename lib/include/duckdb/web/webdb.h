@@ -17,7 +17,7 @@
 #include "duckdb.hpp"
 #include "duckdb/main/query_result.hpp"
 #include "duckdb/web/io/buffer_manager.h"
-#include "duckdb/web/io/filesystem.h"
+#include "duckdb/web/io/buffered_filesystem.h"
 #include "duckdb/web/miniz_zipper.h"
 #include "nonstd/span.h"
 
@@ -46,7 +46,7 @@ class WebDB {
         /// Get a connection
         auto& connection() { return connection_; }
         /// Get the filesystem
-        io::FileSystem& filesystem();
+        duckdb::FileSystem& filesystem();
 
         /// Run a query and return an arrow buffer
         arrow::Result<std::shared_ptr<arrow::Buffer>> RunQuery(std::string_view text);
@@ -60,8 +60,6 @@ class WebDB {
     };
 
    protected:
-    /// The filesystem
-    io::FileSystem* filesystem_;
     /// The buffer manager
     io::BufferManager buffer_manager_;
     /// The (shared) database
@@ -79,7 +77,7 @@ class WebDB {
     WebDB();
 
     /// Get the filesystem
-    auto& filesystem() { return *filesystem_; }
+    auto& filesystem() { return database_->GetFileSystem(); }
     /// Get the database
     auto& database() { return *database_; }
     /// Get the zipper

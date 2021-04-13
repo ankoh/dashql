@@ -6,7 +6,6 @@
 #include "arrow/status.h"
 #include "dashql/proto_generated.h"
 #include "duckdb/execution/operator/persistent/buffered_csv_reader.hpp"
-#include "duckdb/web/io/filesystem.h"
 #include "duckdb/web/wasm_response.h"
 #include "duckdb/web/webdb.h"
 
