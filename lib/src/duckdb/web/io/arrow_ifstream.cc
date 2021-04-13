@@ -38,12 +38,17 @@ bool InputFileStream::closed() const { return static_cast<bool>(file_); }
 
 /// Read at most nbytes bytes from the file
 arrow::Result<int64_t> InputFileStream::Read(int64_t nbytes, void* out) {
-    auto n = std::min<size_t>(nbytes, buffer_manager_.GetPageSize());
-    auto page_id = file_position_ >> buffer_manager_.GetPageSizeShift();
-    auto page = buffer_manager_.FixPage(file_, page_id, false);
-    std::memcpy(out, page.GetData(), n);
-    file_position_ += n;
-    return n;
+    int64_t read = 0;
+    while (nbytes > 0) {
+        auto n = std::min<size_t>(nbytes, buffer_manager_.GetPageSize());
+        auto page_id = file_position_ >> buffer_manager_.GetPageSizeShift();
+        auto page = buffer_manager_.FixPage(file_, page_id, false);
+        std::memcpy(out, page.GetData(), n);
+        nbytes -= n;
+        file_position_ += n;
+        read += n;
+    }
+    return read;
 }
 
 /// Read at most nbytes bytes from the file
@@ -68,7 +73,7 @@ arrow::Result<arrow::util::string_view> InputFileStream::Peek(int64_t nbytes) {
     auto n = std::min<size_t>(nbytes, buffer_manager_.GetPageSize());
     auto page_id = file_position_ >> buffer_manager_.GetPageSizeShift();
     tmp_page_ = std::move(buffer_manager_.FixPage(file_, page_id, false));
-    return arrow::util::string_view{static_cast<const char*>(tmp_page_->data()), n};
+    return arrow::util::string_view{static_cast<const char*>(tmp_page_->GetData()), n};
 }
 
 }  // namespace io
