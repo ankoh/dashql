@@ -17,12 +17,11 @@ namespace io {
 
 extern "C" {
 extern size_t duckdb_web_fs_file_open(const char *path, size_t pathLen, uint8_t flags);
-extern void duckdb_web_fs_file_close(size_t blobId);
-extern time_t duckdb_web_fs_file_get_last_modified_time(size_t blobId);
-extern ssize_t duckdb_web_fs_file_get_size(size_t blobId);
-extern ssize_t duckdb_web_fs_read(size_t blobId, void *buffer, ssize_t bytes);
-extern ssize_t duckdb_web_fs_write(size_t blobId, void *buffer, ssize_t bytes);
-extern void duckdb_web_fs_file_sync(size_t blobId);
+extern void duckdb_web_fs_file_close(size_t fileId);
+extern time_t duckdb_web_fs_file_get_last_modified_time(size_t fileId);
+extern ssize_t duckdb_web_fs_file_get_size(size_t fileId);
+extern ssize_t duckdb_web_fs_read(size_t fileId, void *buffer, ssize_t bytes);
+extern ssize_t duckdb_web_fs_write(size_t fileId, void *buffer, ssize_t bytes);
 
 extern void duckdb_web_fs_directory_remove(const char *path, size_t pathLen);
 extern bool duckdb_web_fs_directory_exists(const char *path, size_t pathLen);
@@ -37,7 +36,7 @@ void duckdb_web_fs_directory_list_files_callback(const char *path, size_t pathLe
 void duckdb_web_fs_glob_callback(const char *path, size_t pathLen) { glob_results->emplace_back(path, pathLen); }
 
 extern void duckdb_web_fs_file_move(const char *from, size_t fromLen, const char *to, size_t toLen);
-extern void duckdb_web_fs_file_set_pointer(size_t blobId, size_t location);
+extern void duckdb_web_fs_file_set_pointer(size_t fileId, size_t location);
 extern bool duckdb_web_fs_file_exists(const char *path, size_t pathLen);
 extern bool duckdb_web_fs_file_remove(const char *path, size_t pathLen);
 }
@@ -122,7 +121,7 @@ void WebFileSystem::RemoveFile(const std::string &filename) {
 // }
 
 void WebFileSystem::FileSync(duckdb::FileHandle &handle) {
-    return duckdb_web_fs_file_sync(((WebFileHandle &)handle).file_id);
+    // Noop, runtime writes directly
 }
 
 void WebFileSystem::SetWorkingDirectory(const std::string &path) {
@@ -155,12 +154,12 @@ std::vector<std::string> WebFileSystem::Glob(const std::string &path) {
 #ifndef EMSCRIPTEN
 extern "C" {
 size_t duckdb_web_fs_file_open(const char *path, size_t pathLen, uint8_t flags) { return 0; }
-void duckdb_web_fs_file_close(size_t blobId) {}
-time_t duckdb_web_fs_file_get_last_modified_time(size_t blobId) { return 0; }
-ssize_t duckdb_web_fs_file_get_size(size_t blobId) { return 0; }
-ssize_t duckdb_web_fs_read(size_t blobId, void *buffer, ssize_t bytes) { return 0; }
-ssize_t duckdb_web_fs_write(size_t blobId, void *buffer, ssize_t bytes) { return 0; }
-void duckdb_web_fs_file_sync(size_t blobId) {}
+void duckdb_web_fs_file_close(size_t fileId) {}
+time_t duckdb_web_fs_file_get_last_modified_time(size_t fileId) { return 0; }
+ssize_t duckdb_web_fs_file_get_size(size_t fileId) { return 0; }
+ssize_t duckdb_web_fs_read(size_t fileId, void *buffer, ssize_t bytes) { return 0; }
+ssize_t duckdb_web_fs_write(size_t fileId, void *buffer, ssize_t bytes) { return 0; }
+void duckdb_web_fs_file_sync(size_t fileId) {}
 
 bool duckdb_web_fs_directory_exists(const char *path, size_t pathLen) { return {}; };
 void duckdb_web_fs_directory_create(const char *path, size_t pathLen) {}
@@ -169,7 +168,7 @@ bool duckdb_web_fs_directory_list_files(const char *path, size_t pathLen) { retu
 void duckdb_web_fs_glob(const char *path, size_t pathLen) {}
 
 void duckdb_web_fs_file_move(const char *from, size_t fromLen, const char *to, size_t toLen) {}
-void duckdb_web_fs_file_set_pointer(size_t blobId, size_t location) {}
+void duckdb_web_fs_file_set_pointer(size_t fileId, size_t location) {}
 bool duckdb_web_fs_file_exists(const char *path, size_t pathLen) { return {}; };
 bool duckdb_web_fs_file_remove(const char *path, size_t pathLen) { return {}; };
 }
