@@ -18,26 +18,24 @@ export function testFilesystem(
 
     describe('URL registration', () => {
         let test = async () => {
-            const result = await conn.sendQuery(
-                `SELECT MatrNr FROM parquet_scan('${basedir}/uni/out/studenten.parquet');`,
-            );
+            const result = await conn.sendQuery(`SELECT MatrNr FROM parquet_scan('studenten.parquet');`);
             const table = await arrow.Table.from<{ MatrNr: arrow.Int }>(result);
             expect(table.getColumnAt(0)?.toArray()).toEqual(
                 new Int32Array([24002, 25403, 26120, 26830, 27550, 28106, 29120, 29555]),
             );
         };
         it('URL used once', async () => {
-            expect(await db().registerURL(`${basedir}/uni/out/studenten.parquet`)).toBeTruthy();
+            expect(await db().addFilePath('studenten.parquet', `${basedir}/uni/out/studenten.parquet`)).toBeTruthy();
             await test();
         });
         it('URL re-registered', async () => {
-            expect(await db().registerURL(`${basedir}/uni/out/studenten.parquet`)).toBeTruthy();
+            expect(await db().addFilePath('studenten.parquet', `${basedir}/uni/out/studenten.parquet`)).toBeTruthy();
             await test();
-            expect(await db().registerURL(`${basedir}/uni/out/studenten.parquet`)).toBeTruthy();
+            expect(await db().addFilePath('studenten.parquet', `${basedir}/uni/out/studenten.parquet`)).toBeTruthy();
             await test();
         });
         it('URL used twice', async () => {
-            expect(await db().registerURL(`${basedir}/uni/out/studenten.parquet`)).toBeTruthy();
+            expect(await db().addFilePath('studenten.parquet', `${basedir}/uni/out/studenten.parquet`)).toBeTruthy();
             await test();
             await test();
         });
@@ -45,10 +43,8 @@ export function testFilesystem(
 
     describe('Parquet Scans', () => {
         it('single table', async () => {
-            expect(await db().registerURL(`${basedir}/uni/out/studenten.parquet`)).toBeTruthy();
-            const result = await conn.sendQuery(
-                `SELECT MatrNr FROM parquet_scan('${basedir}/uni/out/studenten.parquet');`,
-            );
+            expect(await db().addFilePath('studenten.parquet', `${basedir}/uni/out/studenten.parquet`)).toBeTruthy();
+            const result = await conn.sendQuery(`SELECT MatrNr FROM parquet_scan('studenten.parquet');`);
             const table = await arrow.Table.from<{ MatrNr: arrow.Int }>(result);
             expect(table.getColumnAt(0)?.toArray()).toEqual(
                 new Int32Array([24002, 25403, 26120, 26830, 27550, 28106, 29120, 29555]),
@@ -56,15 +52,17 @@ export function testFilesystem(
         });
 
         it('simple join', async () => {
-            expect(await db().registerURL(`${basedir}/uni/out/studenten.parquet`)).toBeTruthy();
-            expect(await db().registerURL(`${basedir}/uni/out/hoeren.parquet`)).toBeTruthy();
-            expect(await db().registerURL(`${basedir}/uni/out/vorlesungen.parquet`)).toBeTruthy();
+            expect(await db().addFilePath('studenten.parquet', `${basedir}/uni/out/studenten.parquet`)).toBeTruthy();
+            expect(await db().addFilePath('hoeren.parquet', `${basedir}/uni/out/hoeren.parquet`)).toBeTruthy();
+            expect(
+                await db().addFilePath('vorlesungen.parquet', `${basedir}/uni/out/vorlesungen.parquet`),
+            ).toBeTruthy();
 
             const result = await conn.sendQuery(`
                     SELECT studenten.MatrNr, vorlesungen.Titel
-                    FROM parquet_scan('${basedir}/uni/out/studenten.parquet') studenten
-                    INNER JOIN parquet_scan('${basedir}/uni/out/hoeren.parquet') hoeren ON (studenten.MatrNr = hoeren.MatrNr)
-                    INNER JOIN parquet_scan('${basedir}/uni/out/vorlesungen.parquet') vorlesungen ON (vorlesungen.VorlNr = hoeren.VorlNr);
+                    FROM parquet_scan('studenten.parquet') studenten
+                    INNER JOIN parquet_scan('hoeren.parquet') hoeren ON (studenten.MatrNr = hoeren.MatrNr)
+                    INNER JOIN parquet_scan('vorlesungen.parquet') vorlesungen ON (vorlesungen.VorlNr = hoeren.VorlNr);
                 `);
             const table = await arrow.Table.from<{ MatrNr: arrow.Int; Titel: arrow.Utf8 }>(result);
             expect(table.numCols).toBe(2);
@@ -92,12 +90,12 @@ export function testFilesystem(
         });
 
         it('Huge file', async () => {
-            if (!(await db().registerURL(`${basedir}/tpch/5/orders.parquet`))) {
+            if (!(await db().addFilePath('orders.parquet', `${basedir}/tpch/5/orders.parquet`))) {
                 pending('Missing TPCH files');
             } else {
                 const result = await conn.sendQuery(`
                     SELECT o_orderkey
-                    FROM parquet_scan('${basedir}/tpch/5/orders.parquet');
+                    FROM parquet_scan('orders.parquet');
                 `);
                 let num = 0;
                 for await (const batch of result) {
@@ -114,12 +112,11 @@ export function testFilesystem(
 
     describe('Writing', () => {
         it('Copy To CSV', async () => {
-            await db().registerURL(`${basedir}/uni/out/studenten.parquet`);
-            await conn.runQuery(
-                `CREATE TABLE studenten AS SELECT * FROM parquet_scan('${basedir}/uni/out/studenten.parquet');`,
-            );
+            await db().addFilePath('studenten.parquet', `${basedir}/uni/out/studenten.parquet`);
+            const id = await db().addFilePath('studenten.csv', `${basedir}/.tmp/studenten.csv`);
+            await conn.runQuery(`CREATE TABLE studenten AS SELECT * FROM parquet_scan('studenten.parquet');`);
             await conn.runQuery(`COPY studenten TO 'studenten.csv' WITH (HEADER 1, DELIMITER ';', FORMAT CSV);`);
-            const url = await db().getObjectURL('studenten.csv');
+            const url = await db().getFileObjectURL(id);
             expect(url).not.toBeNull();
             const data = await absolute_file_reader(url!);
             expect(data).toBe(`MatrNr;Name;Semester
@@ -134,25 +131,22 @@ export function testFilesystem(
 `);
         });
         it('Copy To Parquet', async () => {
-            await db().registerURL(`${basedir}/uni/out/studenten.parquet`);
-            await conn.runQuery(
-                `CREATE TABLE studenten2 AS SELECT * FROM parquet_scan('${basedir}/uni/out/studenten.parquet');`,
-            );
+            await db().addFilePath('studenten.parquet', `${basedir}/uni/out/studenten.parquet`);
+            const id = await db().addFilePath('studenten2.parquet', `${basedir}/.tmp/studenten.parquet`);
+            await conn.runQuery(`CREATE TABLE studenten2 AS SELECT * FROM parquet_scan('studenten.parquet');`);
             await conn.runQuery(`COPY studenten2 TO 'studenten2.parquet' (FORMAT PARQUET);`);
-            const url = await db().getObjectURL('studenten2.parquet');
+            const url = await db().getFileObjectURL(id);
             expect(url).not.toBeNull();
         });
 
         it('Copy To Parquet And Load Again', async () => {
-            await db().registerURL(`${basedir}/uni/out/studenten.parquet`);
-            await conn.runQuery(
-                `CREATE TABLE studenten3 AS SELECT * FROM parquet_scan('${basedir}/uni/out/studenten.parquet');`,
-            );
+            await db().addFilePath('studenten.parquet', `${basedir}/uni/out/studenten.parquet`);
+            const id = await db().addFilePath('studenten3.parquet', `${basedir}/.tmp/studenten3.parquet`);
+            await conn.runQuery(`CREATE TABLE studenten3 AS SELECT * FROM parquet_scan('studenten.parquet');`);
             await conn.runQuery(`COPY studenten3 TO 'studenten3.parquet' (FORMAT PARQUET);`);
-            const url = await db().getObjectURL('studenten3.parquet');
+            const url = await db().getFileObjectURL(id);
             expect(url).not.toBeNull();
-            await db().registerURL(url!);
-            await conn.runQuery(`CREATE TABLE studenten4 AS SELECT * FROM parquet_scan('${url}');`);
+            await conn.runQuery(`CREATE TABLE studenten4 AS SELECT * FROM parquet_scan('studenten3.parquet');`);
             const result = await conn.sendQuery(`SELECT MatrNr FROM studenten4;`);
             const table = await arrow.Table.from<{ MatrNr: arrow.Int }>(result);
             expect(table.getColumnAt(0)?.toArray()).toEqual(

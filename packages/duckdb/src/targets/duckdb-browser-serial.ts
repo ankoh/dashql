@@ -4,4 +4,5 @@ export * from '../log';
 export * from '../status';
 export * from '../bindings';
 export * from '../bindings/bindings_browser';
-export * from '../bindings/runtime_browser';
+export { BrowserRuntime } from '../bindings/runtime_browser';
+export { DefaultRuntime } from '../bindings/runtime_default';
