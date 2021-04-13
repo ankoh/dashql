@@ -38,27 +38,16 @@ bool InputFileStream::closed() const { return static_cast<bool>(file_); }
 
 /// Read at most nbytes bytes from the file
 arrow::Result<int64_t> InputFileStream::Read(int64_t nbytes, void* out) {
-    int64_t read = 0;
-    while (nbytes > 0) {
-        auto n = std::min<size_t>(nbytes, buffer_manager_.GetPageSize());
-        auto page_id = file_position_ >> buffer_manager_.GetPageSizeShift();
-        auto page = buffer_manager_.FixPage(file_, page_id, false);
-        std::memcpy(out, page.GetData(), n);
-        nbytes -= n;
-        file_position_ += n;
-        read += n;
-    }
-    return read;
+    buffer_manager_.Read(file_, out, nbytes, file_position_);
+    file_position_ += nbytes;
+    return nbytes;
 }
 
 /// Read at most nbytes bytes from the file
 arrow::Result<std::shared_ptr<arrow::Buffer>> InputFileStream::Read(int64_t nbytes) {
-    auto n = std::min<size_t>(nbytes, buffer_manager_.GetPageSize());
-    auto page_id = buffer_manager_.GetPageIDFromOffset(file_position_);
-    auto page = buffer_manager_.FixPage(file_, page_id, false);
-    ARROW_ASSIGN_OR_RAISE(auto buffer, arrow::AllocateBuffer(n));
-    std::memcpy(buffer->mutable_data(), page.GetData(), n);
-    file_position_ += n;
+    ARROW_ASSIGN_OR_RAISE(auto buffer, arrow::AllocateBuffer(nbytes));
+    buffer_manager_.Read(file_, buffer->mutable_data(), nbytes, file_position_);
+    file_position_ += nbytes;
     return buffer;
 }
 

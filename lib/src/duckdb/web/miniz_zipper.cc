@@ -10,7 +10,8 @@ namespace duckdb {
 namespace web {
 
 /// Constructor
-Zipper::Zipper(duckdb::FileSystem& filesystem) : filesystem_(filesystem), next_achive_id_(), loaded_archives_() {}
+Zipper::Zipper(io::BufferManager& buffer_manager)
+    : buffer_manager_(buffer_manager), next_achive_id_(), loaded_archives_() {}
 
 /// Open a file
 arrow::Result<size_t> Zipper::LoadFromFile(const char* path) {
@@ -20,8 +21,8 @@ arrow::Result<size_t> Zipper::LoadFromFile(const char* path) {
     std::unique_ptr<uint8_t[]> buffer = nullptr;
     size_t buffer_size = 0;
     {
-        auto handle = filesystem_.OpenFile(path, duckdb::FileFlags::FILE_FLAGS_READ);
-        buffer_size = filesystem_.GetFileSize(*handle);
+        auto file = buffer_manager_.AddFile(path);
+        buffer_size = buffer_manager_.GetFileSize(file);
         buffer = std::unique_ptr<uint8_t[]>(new uint8_t[buffer_size]());
         auto read = filesystem_.Read(*handle, buffer.get(), buffer_size);
         assert(read == buffer_size);
