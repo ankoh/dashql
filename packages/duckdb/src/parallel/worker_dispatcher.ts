@@ -145,29 +145,63 @@ export abstract class AsyncDuckDBDispatcher implements Logger {
                     );
                     break;
                 }
-                case WorkerRequestType.IMPORT_CSV:
-                    this._bindings.importCSV(request.data[0], request.data[1], request.data[2], request.data[3]);
-                    this.sendOK(request);
-                    break;
-                case WorkerRequestType.REGISTER_URL:
-                    const success = await this._bindings.registerURL(request.data);
+                case WorkerRequestType.ADD_FILE_PATH: {
+                    const fileID = await this._bindings.addFilePath(request.data[0], request.data[1]);
                     this.postMessage(
                         {
                             messageId: this._nextMessageId++,
                             requestId: request.messageId,
-                            type: WorkerResponseType.SUCCESS,
-                            data: success,
+                            type: WorkerResponseType.REGISTERED_FILE,
+                            data: fileID,
                         },
                         [],
                     );
                     break;
-                case WorkerRequestType.GET_OBJECT_URL:
+                }
+                case WorkerRequestType.ADD_FILE_BLOB: {
+                    const fileID = await this._bindings.addFileBlob(request.data[0], request.data[1]);
                     this.postMessage(
                         {
                             messageId: this._nextMessageId++,
                             requestId: request.messageId,
-                            type: WorkerResponseType.OBJECT_URL,
-                            data: this._bindings.getObjectURL(request.data),
+                            type: WorkerResponseType.REGISTERED_FILE,
+                            data: fileID,
+                        },
+                        [],
+                    );
+                    break;
+                }
+                case WorkerRequestType.ADD_FILE_BUFFER: {
+                    const fileID = await this._bindings.addFileBuffer(request.data[0], request.data[1]);
+                    this.postMessage(
+                        {
+                            messageId: this._nextMessageId++,
+                            requestId: request.messageId,
+                            type: WorkerResponseType.REGISTERED_FILE,
+                            data: fileID,
+                        },
+                        [],
+                    );
+                    break;
+                }
+                case WorkerRequestType.GET_FILE_OBJECT_URL:
+                    this.postMessage(
+                        {
+                            messageId: this._nextMessageId++,
+                            requestId: request.messageId,
+                            type: WorkerResponseType.FILE_OBJECT_URL,
+                            data: this._bindings.getFileObjectURL(request.data),
+                        },
+                        [],
+                    );
+                    break;
+                case WorkerRequestType.GET_FILE_BUFFER:
+                    this.postMessage(
+                        {
+                            messageId: this._nextMessageId++,
+                            requestId: request.messageId,
+                            type: WorkerResponseType.FILE_BUFFER,
+                            data: this._bindings.getFileBuffer(request.data),
                         },
                         [],
                     );

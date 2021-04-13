@@ -34,16 +34,29 @@ export abstract class DuckDBBindings {
         return this._instance;
     }
 
-    /// Registers the given URL as a file to be possibly loaded by DuckDB. Returns true on success, false otherwise.
-    public abstract registerURL(url: string): Promise<boolean>;
-
-    /// Get the URL for a file written to or loaded by DuckDB.
-    public getObjectURL(url: string): string | null {
-        return this._runtime.duckdb_web_get_object_url(url);
-    }
-
     /// Instantiate the module
     protected abstract instantiate(moduleOverrides: Partial<DuckDBModule>): Promise<DuckDBModule>;
+
+    /// Add file path
+    public addFilePath(url: string, path: string): number {
+        return this._runtime.duckdb_web_add_file_path(url, path);
+    }
+    /// Add file blob
+    public addFileBlob(url: string, data: any): number {
+        return this._runtime.duckdb_web_add_file_blob(url, data);
+    }
+    /// Add file buffer
+    public addFileBuffer(url: string, buffer: Uint8Array): number {
+        return this._runtime.duckdb_web_add_file_buffer(url, buffer);
+    }
+    /// Get the file object URL
+    public getFileObjectURL(fileId: number): string | null {
+        return this._runtime.duckdb_web_get_file_object_url(fileId);
+    }
+    /// Get the file buffer
+    public getFileBuffer(fileId: number): Uint8Array | null {
+        return this._runtime.duckdb_web_get_file_buffer(fileId);
+    }
 
     /** Open the database */
     public async open() {
