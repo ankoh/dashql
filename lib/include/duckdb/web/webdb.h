@@ -16,7 +16,7 @@
 #include "dashql/proto_generated.h"
 #include "duckdb.hpp"
 #include "duckdb/main/query_result.hpp"
-#include "duckdb/web/filesystem.h"
+#include "duckdb/web/io/filesystem.h"
 #include "duckdb/web/miniz_zipper.h"
 #include "nonstd/span.h"
 

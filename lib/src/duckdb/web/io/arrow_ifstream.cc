@@ -1,11 +1,11 @@
 // Copyright (c) 2020 The DashQL Authors
 
-#include "duckdb/web/arrow_ifstream.h"
+#include "duckdb/web/io/arrow_ifstream.h"
 
 #include "arrow/buffer.h"
 #include "arrow/result.h"
 #include "duckdb/common/file_system.hpp"
-#include "duckdb/web/filesystem.h"
+#include "duckdb/web/io/filesystem.h"
 
 namespace duckdb {
 namespace web {

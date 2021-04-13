@@ -6,7 +6,7 @@
 #include "arrow/io/interfaces.h"
 #include "duckdb/common/constants.hpp"
 #include "duckdb/common/file_system.hpp"
-#include "duckdb/web/filesystem.h"
+#include "duckdb/web/io/filesystem.h"
 
 namespace duckdb {
 namespace web {
