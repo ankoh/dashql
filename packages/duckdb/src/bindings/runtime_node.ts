@@ -1,7 +1,7 @@
 // Copyright (c) 2020 The DashQL Authors
 
 import fs from 'fs';
-import { DuckDBRuntime, FileFlags } from './runtime_base';
+import { DuckDBRuntime } from './runtime_base';
 import globToRegexp from 'glob-to-regexp';
 import p from 'path';
 
