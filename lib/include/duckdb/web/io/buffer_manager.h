@@ -71,8 +71,8 @@ class BufferManager {
         std::string path;
         /// The file
         std::unique_ptr<duckdb::FileHandle> handle;
-        /// THe file size
-        std::optional<size_t> file_size;
+        /// The file size
+        size_t file_size;
         /// The references
         size_t references;
 
@@ -165,6 +165,8 @@ class BufferManager {
     /// LRU list of pages
     std::list<BufferFrame*> lru = {};
 
+    /// Evict all file frames
+    void EvictFileFrames(RegisteredFile& file);
     /// Release a file ref
     void ReleaseFile(RegisteredFile& file);
     /// Loads the page from disk
@@ -209,7 +211,7 @@ class BufferManager {
     /// the page is not loaded into memory, it is read from disk. Otherwise the
     /// loaded page is used.
     BufferRef FixPage(const FileRef& file, uint64_t page_id, bool exclusive);
-    /// Write all pages of a file
+    /// Flush all file frames to disk
     void FlushFile(const FileRef& file);
 
     /// Read at most n bytes
