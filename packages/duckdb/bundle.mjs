@@ -50,7 +50,7 @@ esbuild.build({
     bundle: true,
     minify: true,
     sourcemap: 'external',
-    external: [...EXTERNALS, 'fs', 'path', 'fast-glob'],
+    external: [...EXTERNALS, 'fs', 'path', 'fast-glob', 'temp-write'],
 });
 
 // -------------------------------
