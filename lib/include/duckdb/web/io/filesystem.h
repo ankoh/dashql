@@ -8,15 +8,20 @@
 #include "duckdb/common/constants.hpp"
 #include "duckdb/common/file_system.hpp"
 #include "duckdb/web/io/buffer_manager.h"
+#include "duckdb/web/io/file.h"
 
 namespace duckdb {
 namespace web {
 namespace io {
 
 class FileHandle : public duckdb::FileHandle {
+    friend class FileSystem;
+
    protected:
-    /// The file
-    BufferManager::FileRef file_;
+    /// The file buffers
+    std::shared_ptr<File> file_;
+    /// The file buffers
+    BufferManager::FileRef file_buffers_;
     /// The file position
     size_t file_position_;
     /// Close the file
@@ -24,8 +29,10 @@ class FileHandle : public duckdb::FileHandle {
 
    public:
     /// Constructor
-    FileHandle(duckdb::FileSystem &file_system, BufferManager::FileRef file)
-        : duckdb::FileHandle(file_system, std::string{file.GetPath()}), file_(std::move(file)), file_position_(0) {}
+    FileHandle(duckdb::FileSystem &file_system, BufferManager::FileRef file_buffers)
+        : duckdb::FileHandle(file_system, std::string{file_buffers.GetPath()}),
+          file_buffers_(std::move(file_buffers)),
+          file_position_(0) {}
     /// Delete copy constructor
     FileHandle(const FileHandle &) = delete;
     /// Destructor
@@ -33,6 +40,8 @@ class FileHandle : public duckdb::FileHandle {
 
     /// Get file
     auto &GetFile() { return file_; }
+    /// Get file buffers
+    auto &GetBuffers() { return file_buffers_; }
 };
 
 class FileSystem : public duckdb::FileSystem {
@@ -60,6 +69,8 @@ class FileSystem : public duckdb::FileSystem {
     int64_t Read(duckdb::FileHandle &handle, void *buffer, int64_t nr_bytes) override;
     /// Write nr_bytes from the buffer into the file, moving the file pointer forward by nr_bytes.
     int64_t Write(duckdb::FileHandle &handle, void *buffer, int64_t nr_bytes) override;
+    /// Sync a file handle to disk
+    void FileSync(duckdb::FileHandle &handle) override;
 
     /// Returns the file size of a file handle, returns -1 on error
     int64_t GetFileSize(duckdb::FileHandle &handle) override;
@@ -88,8 +99,6 @@ class FileSystem : public duckdb::FileSystem {
     // std::string PathSeparator() override;
     // /// Join two paths together
     // std::string JoinPath(const std::string &a, const std::string &path) override;
-    /// Sync a file handle to disk
-    void FileSync(duckdb::FileHandle &handle) override;
 
     /// Sets the working directory
     void SetWorkingDirectory(const std::string &path) override;
