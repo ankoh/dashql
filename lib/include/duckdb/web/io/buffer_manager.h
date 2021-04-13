@@ -14,6 +14,8 @@
 #include <vector>
 
 #include "duckdb/common/file_system.hpp"
+#include "duckdb/web/io/default_filesystem.h"
+#include "duckdb/web/io/web_filesystem.h"
 
 namespace duckdb {
 namespace web {
@@ -171,7 +173,8 @@ class BufferManager {
    public:
     /// Constructor.
     /// Use 8KiB pages by default (1 << 13)
-    BufferManager(std::unique_ptr<duckdb::FileSystem> filesystem, size_t page_size_bits = 13);
+    BufferManager(std::unique_ptr<duckdb::FileSystem> filesystem = io::CreateDefaultFileSystem(),
+                  size_t page_size_bits = 13);
     /// Destructor
     ~BufferManager();
 
