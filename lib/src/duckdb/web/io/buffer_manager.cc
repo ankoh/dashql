@@ -220,6 +220,7 @@ void BufferManager::LoadFrame(BufferFrame& frame) {
 }
 
 void BufferManager::FlushFrame(BufferFrame& frame) {
+    assert(frame.num_users == 0);
     auto file_id = GetFileID(frame.frame_id);
     auto page_id = GetPageID(frame.frame_id);
     auto page_size = GetPageSize();
@@ -343,6 +344,13 @@ size_t BufferManager::Write(const FileRef& file, void* in, size_t bytes, size_t 
     write_here = std::min<size_t>(write_here, data.size());
     std::memcpy(data.data() + skip_here, static_cast<char*>(in), write_here);
     return write_here;
+}
+
+void BufferManager::Truncate(const FileRef& file_ref, size_t new_size) {
+    FlushFile(file_ref);
+    auto* file = file_ref.file_;
+    filesystem->Truncate(*file->handle, new_size);
+    file->file_size = new_size;
 }
 
 std::vector<uint64_t> BufferManager::get_fifo_list() const {
