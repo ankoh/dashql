@@ -30,11 +30,13 @@ class File {
     /// If you want to write past the end of the file, use `resize()` first.
     /// This function must not be used when the file was opened in `READ` mode.
     virtual void WriteBlock(const char* block, size_t offset, size_t size) = 0;
+    /// Returns the file last modified time of a file handle, returns timespec with zero on all attributes on error
+    virtual time_t GetLastModifiedTime() = 0;
 
     /// Opens a file with the given mode. Existing files are never overwritten
-    static std::unique_ptr<File> OpenFile(const char* filename, Mode mode);
+    static std::shared_ptr<File> OpenFile(const char* filename, Mode mode);
     /// Opens a temporary file in `WRITE` mode. The file will be deleted automatically after use.
-    static std::unique_ptr<File> MakeTemporaryFile();
+    static std::shared_ptr<File> MakeTemporaryFile();
 };
 
 }  // namespace web

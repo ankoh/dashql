@@ -8,6 +8,8 @@
 #include <vector>
 
 #include "duckdb/common/file_system.hpp"
+#include "duckdb/web/io/buffer_manager.h"
+#include "duckdb/web/io/file.h"
 #include "duckdb/web/io/filesystem.h"
 #include "duckdb/web/io/filesystem_api.h"
 
@@ -26,7 +28,8 @@ std::unique_ptr<duckdb::FileHandle> FileSystem::OpenFile(const char *path, uint8
 }
 
 void FileSystem::Read(duckdb::FileHandle &handle, void *buffer, int64_t nr_bytes, duckdb::idx_t location) {
-    auto &file = static_cast<FileHandle &>(handle).GetFile();
+    auto &file_hdl = static_cast<FileHandle &>(handle);
+    auto &file = file_hdl.GetBuffers();
     while (nr_bytes > 0) {
         auto n = std::min<size_t>(buffer_manager_.GetPageSize(), nr_bytes);
         auto page_id = buffer_manager_.GetPageIDFromOffset(location);
@@ -35,10 +38,12 @@ void FileSystem::Read(duckdb::FileHandle &handle, void *buffer, int64_t nr_bytes
         nr_bytes -= n;
         location += n;
     }
+    file_hdl.file_position_ = location;
 }
 
 void FileSystem::Write(duckdb::FileHandle &handle, void *buffer, int64_t nr_bytes, duckdb::idx_t location) {
-    auto &file = static_cast<FileHandle &>(handle).GetFile();
+    auto &file_hdl = static_cast<FileHandle &>(handle);
+    auto &file = file_hdl.GetBuffers();
     while (nr_bytes > 0) {
         auto n = std::min<size_t>(buffer_manager_.GetPageSize(), nr_bytes);
         auto page_id = buffer_manager_.GetPageIDFromOffset(location);
@@ -48,26 +53,41 @@ void FileSystem::Write(duckdb::FileHandle &handle, void *buffer, int64_t nr_byte
         location += n;
         buffer_manager_.UnfixPage(std::move(page), true);
     }
+    file_hdl.file_position_ = location;
 }
 
 int64_t FileSystem::Read(duckdb::FileHandle &handle, void *buffer, int64_t nr_bytes) {
-    return duckdb_web_fs_read(((WebDBFileHandle &)handle).blob_id, buffer, nr_bytes);
+    auto &file_hdl = static_cast<FileHandle &>(handle);
+    Read(file_hdl, buffer, nr_bytes, file_hdl.file_position_);
+    return nr_bytes;
 }
 
 int64_t FileSystem::Write(duckdb::FileHandle &handle, void *buffer, int64_t nr_bytes) {
-    return duckdb_web_fs_write(((WebDBFileHandle &)handle).blob_id, buffer, nr_bytes);
+    auto &file_hdl = static_cast<FileHandle &>(handle);
+    Write(file_hdl, buffer, nr_bytes, file_hdl.file_position_);
+    return nr_bytes;
+}
+
+/// Sync a file handle to disk
+void FileSystem::FileSync(duckdb::FileHandle &handle) {
+    auto &file_hdl = static_cast<FileHandle &>(handle);
+    auto &file = file_hdl.GetBuffers();
+    buffer_manager_.FlushFile(file);
 }
 
 int64_t FileSystem::GetFileSize(duckdb::FileHandle &handle) {
-    return duckdb_web_fs_file_get_size(((WebDBFileHandle &)handle).blob_id);
+    auto &file_hdl = static_cast<FileHandle &>(handle);
+    return file_hdl.GetFile()->Size();
 }
 
 time_t FileSystem::GetLastModifiedTime(duckdb::FileHandle &handle) {
-    return duckdb_web_fs_file_get_last_modified_time(((WebDBFileHandle &)handle).blob_id);
+    auto &file_hdl = static_cast<FileHandle &>(handle);
+    return file_hdl.GetFile()->GetLastModifiedTime();
 }
 
 void FileSystem::Truncate(duckdb::FileHandle &handle, int64_t new_size) {
-    std::cout << "Truncate not implemented" << std::endl;
+    auto &file_hdl = static_cast<FileHandle &>(handle);
+    return file_hdl.GetFile()->Resize(new_size);
 }
 
 bool FileSystem::DirectoryExists(const std::string &directory) {
@@ -108,10 +128,6 @@ void FileSystem::RemoveFile(const std::string &filename) { std::cout << "FileSys
 //     std::cout << "JoinPath not implemented" << std::endl;
 //     return {};
 // }
-
-void FileSystem::FileSync(duckdb::FileHandle &handle) {
-    return duckdb_web_fs_file_sync(((WebDBFileHandle &)handle).blob_id);
-}
 
 void FileSystem::SetWorkingDirectory(const std::string &path) {
     std::cout << "SetWorkingDirectory not implemented" << std::endl;
