@@ -7,7 +7,7 @@
 
 #include "arrow/result.h"
 #include "duckdb.hpp"
-#include "duckdb/web/io/filesystem.h"
+#include "duckdb/web/io/buffer_manager.h"
 #include "miniz.hpp"
 
 namespace duckdb {
@@ -23,7 +23,7 @@ struct ZipArchive {
 class Zipper {
    protected:
     /// The filesystem
-    duckdb::FileSystem& filesystem_;
+    io::BufferManager& buffer_manager_;
     /// The next archive id
     size_t next_achive_id_;
     /// The loaded archives
@@ -31,7 +31,7 @@ class Zipper {
 
    public:
     /// Constructor
-    Zipper(duckdb::FileSystem& filesystem);
+    Zipper(io::BufferManager& buffer_manager);
 
     /// Load zip from a buffer
     arrow::Result<size_t> LoadFromFile(const char* path);

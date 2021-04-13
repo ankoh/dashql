@@ -1,60 +1,44 @@
 // Copyright (c) 2020 The DashQL Authors
 
-#ifndef INCLUDE_DUCKDB_WEB_FILESYSTEM_H_
-#define INCLUDE_DUCKDB_WEB_FILESYSTEM_H_
-
-#include <arrow/util/string_view.h>
-
-#include <cstddef>
+#ifndef INCLUDE_DUCKDB_WEB_IO_WEB_FILESYSTEM_H_
+#define INCLUDE_DUCKDB_WEB_IO_WEB_FILESYSTEM_H_
 
 #include "duckdb/common/constants.hpp"
 #include "duckdb/common/file_system.hpp"
-#include "duckdb/web/io/buffer_manager.h"
 
 namespace duckdb {
 namespace web {
 namespace io {
 
-class BufferedFileHandle : public duckdb::FileHandle {
-    friend class BufferedFileSystem;
+/// Create the default filesystem depending on the platform
+std::unique_ptr<duckdb::FileSystem> CreateDefaultFileSystem();
+
+class WebFileHandle : public duckdb::FileHandle {
+    friend class WebFileSystem;
 
    protected:
-    /// The file buffers
-    BufferManager::FileRef file_buffers_;
-    /// The file position
-    size_t file_position_;
+    /// The file id
+    size_t file_id;
+
     /// Close the file
     void Close() override;
 
    public:
     /// Constructor
-    BufferedFileHandle(duckdb::FileSystem &file_system, BufferManager::FileRef file_buffers)
-        : duckdb::FileHandle(file_system, std::string{file_buffers.GetPath()}),
-          file_buffers_(std::move(file_buffers)),
-          file_position_(0) {}
+    WebFileHandle(duckdb::FileSystem &file_system, std::string path, size_t file_id)
+        : duckdb::FileHandle(file_system, path), file_id(file_id) {}
     /// Delete copy constructor
-    BufferedFileHandle(const BufferedFileHandle &) = delete;
+    WebFileHandle(const WebFileHandle &) = delete;
     /// Destructor
-    virtual ~BufferedFileHandle() {}
-
-    /// Get file
-    auto &GetFileHandle() { return file_buffers_.GetHandle(); }
-    /// Get file buffers
-    auto &GetBuffers() { return file_buffers_; }
+    virtual ~WebFileHandle() {}
 };
 
-class BufferedFileSystem : public duckdb::FileSystem {
-   protected:
-    /// The buffer manager
-    BufferManager &buffer_manager_;
-    /// The inner file system
-    duckdb::FileSystem &filesystem_;
-
+class WebFileSystem : public duckdb::FileSystem {
    public:
     /// Constructor
-    BufferedFileSystem(BufferManager &buffer_manager);
+    WebFileSystem() {}
     /// Destructor
-    virtual ~BufferedFileSystem() {}
+    virtual ~WebFileSystem() {}
 
     /// Open a file
     std::unique_ptr<duckdb::FileHandle> OpenFile(const char *path, uint8_t flags,
@@ -70,8 +54,6 @@ class BufferedFileSystem : public duckdb::FileSystem {
     int64_t Read(duckdb::FileHandle &handle, void *buffer, int64_t nr_bytes) override;
     /// Write nr_bytes from the buffer into the file, moving the file pointer forward by nr_bytes.
     int64_t Write(duckdb::FileHandle &handle, void *buffer, int64_t nr_bytes) override;
-    /// Sync a file handle to disk
-    void FileSync(duckdb::FileHandle &handle) override;
 
     /// Returns the file size of a file handle, returns -1 on error
     int64_t GetFileSize(duckdb::FileHandle &handle) override;
@@ -81,37 +63,37 @@ class BufferedFileSystem : public duckdb::FileSystem {
     /// the file
     void Truncate(duckdb::FileHandle &handle, int64_t new_size) override;
 
+    /// Check if a directory exists
+    bool DirectoryExists(const std::string &directory) override;
     /// Create a directory if it does not exist
-    void CreateDirectory(const std::string &directory) override { return filesystem_.CreateDirectory(directory); }
+    void CreateDirectory(const std::string &directory) override;
     /// Recursively remove a directory and all files in it
     void RemoveDirectory(const std::string &directory) override;
     /// List files in a directory, invoking the callback method for each one with (filename, is_dir)
-    bool ListFiles(const std::string &directory, const std::function<void(std::string, bool)> &callback) override {
-        return filesystem_.ListFiles(directory, callback);
-    }
+    bool ListFiles(const std::string &directory, const std::function<void(std::string, bool)> &callback) override;
     /// Move a file from source path to the target, StorageManager relies on this being an atomic action for ACID
     /// properties
     void MoveFile(const std::string &source, const std::string &target) override;
     /// Check if a file exists
-    bool FileExists(const std::string &filename) override { return filesystem_.FileExists(filename); }
+    bool FileExists(const std::string &filename) override;
     /// Remove a file from disk
     void RemoveFile(const std::string &filename) override;
-    /// Path separator for the current file system
-    std::string PathSeparator() override { return filesystem_.PathSeparator(); }
-    /// Join two paths together
-    std::string JoinPath(const std::string &a, const std::string &path) override {
-        return filesystem_.JoinPath(a, path);
-    }
+    // /// Path separator for the current file system
+    // std::string PathSeparator() override;
+    // /// Join two paths together
+    // std::string JoinPath(const std::string &a, const std::string &path) override;
+    /// Sync a file handle to disk
+    void FileSync(duckdb::FileHandle &handle) override;
 
     /// Sets the working directory
     void SetWorkingDirectory(const std::string &path) override;
     /// Gets the working directory
-    std::string GetWorkingDirectory() override { return filesystem_.GetWorkingDirectory(); }
+    std::string GetWorkingDirectory() override;
     /// Gets the users home directory
-    std::string GetHomeDirectory() override { return filesystem_.GetHomeDirectory(); }
+    std::string GetHomeDirectory() override;
 
     /// Runs a glob on the file system, returning a list of matching files
-    std::vector<std::string> Glob(const std::string &path) override { return filesystem_.Glob(path); }
+    std::vector<std::string> Glob(const std::string &path) override;
 
     // /// Returns the system-available memory in bytes
     // duckdb::idx_t GetAvailableMemory() override;

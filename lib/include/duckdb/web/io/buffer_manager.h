@@ -14,7 +14,6 @@
 #include <vector>
 
 #include "duckdb/common/file_system.hpp"
-#include "duckdb/web/io/file.h"
 
 namespace duckdb {
 namespace web {
@@ -98,7 +97,7 @@ class BufferManager {
         /// Get path
         auto& GetPath() const { return file_->path; }
         /// Get handle
-        auto& GetHandle() const { return file_->handle; }
+        auto& GetHandle() const { return *file_->handle; }
         /// Release the file ref
         void Release();
         /// Is set?
@@ -112,7 +111,7 @@ class BufferManager {
        protected:
         /// The buffer manager
         BufferManager* buffer_manager_;
-        /// The frame id
+        /// The frame i#include "duckdb/web/io/file.h"
         const uint64_t frame_id_;
         /// The data
         void* data_;
@@ -139,7 +138,7 @@ class BufferManager {
     const size_t page_size_bits;
 
     /// The actual filesystem
-    std::shared_ptr<duckdb::FileSystem> filesystem;
+    std::unique_ptr<duckdb::FileSystem> filesystem;
     /// Maps frame ids to their files
     std::unordered_map<uint16_t, std::unique_ptr<RegisteredFile>> files = {};
     /// The file ids
@@ -172,24 +171,26 @@ class BufferManager {
    public:
     /// Constructor.
     /// Use 8KiB pages by default (1 << 13)
-    BufferManager(std::shared_ptr<duckdb::FileSystem> filesystem, size_t page_size_bits = 13);
+    BufferManager(std::unique_ptr<duckdb::FileSystem> filesystem, size_t page_size_bits = 13);
     /// Destructor
     ~BufferManager();
 
+    /// Get the filesystem
+    auto& GetFileSystem() { return filesystem; }
+    /// Get the page size
+    size_t GetPageSize() const { return 1 << page_size_bits; }
+    /// Get the page shift
+    auto GetPageSizeShift() const { return page_size_bits; }
     /// Get a page id from an offset
     size_t GetPageIDFromOffset(size_t offset) { return offset >> page_size_bits; }
 
     /// Add a file
     FileRef AddFile(std::string_view path, std::unique_ptr<duckdb::FileHandle> file = nullptr);
-    /// Write all pages of a file
-    void FlushFile(FileRef& file);
     /// Release a file ref
     void ReleaseFile(FileRef&& file);
+    /// Get The file size
+    void GetFileSize(FileRef& file);
 
-    /// Get the page size
-    size_t GetPageSize() const { return 1 << page_size_bits; }
-    /// Get the page shift
-    auto GetPageSizeShift() const { return page_size_bits; }
     /// Returns a reference to a `BufferFrame` object for a given page id. When
     /// the page is not loaded into memory, it is read from disk. Otherwise the
     /// loaded page is used.
@@ -198,6 +199,8 @@ class BufferManager {
     /// `FixPage()` and unfixes it. When `is_dirty` is / true, the page is
     /// written back to disk eventually.
     void UnfixPage(BufferRef buffer, bool is_dirty);
+    /// Write all pages of a file
+    void FlushFile(FileRef& file);
 
     /// Returns the page ids of all pages that are in the FIFO list in FIFO order.
     std::vector<uint64_t> get_fifo_list() const;

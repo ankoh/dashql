@@ -22,7 +22,9 @@
 #include "duckdb/common/arrow.hpp"
 #include "duckdb/main/query_result.hpp"
 #include "duckdb/web/io/arrow_ifstream.h"
-#include "duckdb/web/io/filesystem.h"
+#include "duckdb/web/io/buffered_filesystem.h"
+#include "duckdb/web/io/default_filesystem.h"
+#include "duckdb/web/io/web_filesystem.h"
 #include "parquet-extension.hpp"
 
 namespace duckdb {
@@ -30,15 +32,12 @@ namespace web {
 
 /// Get the static webdb instance
 WebDB& WebDB::GetInstance() {
-    static std::unique_ptr<WebDB> db = std::make_unique<WebDB>(std::make_unique<WebFileSystem>());
+    static std::unique_ptr<WebDB> db = std::make_unique<WebDB>();
     return *db;
 }
 
 /// Constructor
 WebDB::Connection::Connection(WebDB& webdb) : webdb_(webdb), connection_(*webdb.database_), current_query_result_() {}
-
-/// Get the filesystem attached to the database of this connection
-SeekableFileSystem& WebDB::Connection::filesystem() { return *webdb_.filesystem_; }
 
 arrow::Result<std::shared_ptr<arrow::Buffer>> WebDB::Connection::RunQuery(std::string_view text) {
     try {
@@ -131,12 +130,12 @@ arrow::Result<size_t> WebDB::Connection::ImortCSV(const char* path) {
 }
 
 /// Constructor
-WebDB::WebDB(std::unique_ptr<SeekableFileSystem> fs) : database_(), connections_(), db_config_() {
-    filesystem_ = fs.get();
-    db_config_.file_system = std::move(fs);
+WebDB::WebDB() : buffer_manager_(io::CreateDefaultFileSystem()), database_(), connections_(), db_config_() {
+    auto buffered_filesystem = std::make_unique<io::BufferedFileSystem>(buffer_manager_);
+    db_config_.file_system = std::move(std::move(buffered_filesystem));
     database_ = std::make_shared<duckdb::DuckDB>(nullptr, &db_config_);
     database_->LoadExtension<duckdb::ParquetExtension>();
-    zip_ = std::make_unique<Zipper>(database_->GetFileSystem());
+    zip_ = std::make_unique<Zipper>(buffer_manager_);
 }
 
 /// Create a session

@@ -45,8 +45,8 @@ void BufferFrame::Unlock() {
 }
 
 /// Constructor
-BufferManager::BufferManager(std::shared_ptr<duckdb::FileSystem> filesystem, size_t page_size_bits)
-    : page_size_bits(page_size_bits), filesystem(filesystem) {}
+BufferManager::BufferManager(std::unique_ptr<duckdb::FileSystem> filesystem, size_t page_size_bits)
+    : page_size_bits(page_size_bits), filesystem(std::move(filesystem)) {}
 
 /// Destructor
 BufferManager::~BufferManager() {
@@ -55,7 +55,7 @@ BufferManager::~BufferManager() {
     }
 }
 
-BufferManager::FileRef BufferManager::AddFile(std::string_view path, std::unique_ptr<duckdb::FileHandle> file) {
+BufferManager::FileRef BufferManager::AddFile(std::string_view path, std::unique_ptr<duckdb::FileHandle> handle) {
     // Already added?
     if (auto iter = files_by_path.find(path); iter != files_by_path.end()) {
         return CreateFileRef(*files.at(iter->second));
@@ -74,9 +74,13 @@ BufferManager::FileRef BufferManager::AddFile(std::string_view path, std::unique
     } else {
         ++allocated_file_ids;
     }
-    auto iter = files.insert({file_id, std::make_unique<RegisteredFile>(file_id, path, std::move(file))});
-    // Return file id
-    return CreateFileRef(*iter.first->second);
+    // Create file
+    auto iter = files.insert({file_id, std::make_unique<RegisteredFile>(file_id, path, std::move(handle))});
+    auto& file = *iter.first->second;
+    if (!file.handle) {
+        file.handle = filesystem->OpenFile(file.path.c_str(), duckdb::FileFlags::FILE_FLAGS_WRITE);
+    }
+    return CreateFileRef(file);
 }
 
 void BufferManager::FlushFile(FileRef& file_ref) {
@@ -138,9 +142,9 @@ void BufferManager::ReleaseFile(BufferManager::FileRef&& file_ref) {
     --allocated_file_ids;
 }
 
-void BufferManager::LoadFrame(BufferFrame& page) {
-    auto file_id = GetFileID(page.frame_id);
-    auto page_id = GetPageID(page.frame_id);
+void BufferManager::LoadFrame(BufferFrame& frame) {
+    auto file_id = GetFileID(frame.frame_id);
+    auto page_id = GetPageID(frame.frame_id);
     auto page_size = GetPageSize();
 
     // Was the file opened already?
@@ -148,18 +152,17 @@ void BufferManager::LoadFrame(BufferFrame& page) {
     auto& finfo = *files.at(file_id);
     if (!finfo.handle) {
         // Open file in WRITE mode because we may have to write dirty pages to it.
-        finfo.handle = filesystem->OpenFile(finfo.path.c_str(), duckdb::FileFlags::FILE_FLAGS_WRITE);
     }
 
     // When the file is too small, resize it and zero out the data for it.
     // As the bytes in the file are zeroed anyway, we don't have to read the zeroes from disk.
     if (filesystem->GetFileSize(*finfo.handle) < (page_id + 1) * page_size) {
         filesystem->Truncate(*finfo.handle, (page_id + 1) * page_size);
-        std::memset(page.buffer.data(), 0, page_size);
+        std::memset(frame.buffer.data(), 0, page_size);
     } else {
-        filesystem->Read(*finfo.handle, page.buffer.data(), page_size, page_id * page_size);
+        filesystem->Read(*finfo.handle, frame.buffer.data(), page_size, page_id * page_size);
     }
-    page.is_dirty = false;
+    frame.is_dirty = false;
 }
 
 void BufferManager::FlushFrame(BufferFrame& page) {
