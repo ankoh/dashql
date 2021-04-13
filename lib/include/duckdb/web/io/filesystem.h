@@ -7,43 +7,44 @@
 
 #include "duckdb/common/constants.hpp"
 #include "duckdb/common/file_system.hpp"
+#include "duckdb/web/io/buffer_manager.h"
 
 namespace duckdb {
 namespace web {
+namespace io {
 
-class WebDBFileHandle : public duckdb::FileHandle {
-   public:
-    /// Constructor
-    WebDBFileHandle(duckdb::FileSystem &file_system, std::string path, size_t blob_id)
-        : duckdb::FileHandle(file_system, path), blob_id(blob_id) {}
-    /// Destructor
-    WebDBFileHandle(const WebDBFileHandle &) = delete;
-    virtual ~WebDBFileHandle() {}
-
+class FileHandle : public duckdb::FileHandle {
    protected:
+    /// The file
+    BufferManager::FileRef file_;
+    /// The file position
+    size_t file_position_;
+    /// Close the file
     void Close() override;
 
    public:
-    size_t blob_id;
+    /// Constructor
+    FileHandle(duckdb::FileSystem &file_system, BufferManager::FileRef file)
+        : duckdb::FileHandle(file_system, std::string{file.GetPath()}), file_(std::move(file)), file_position_(0) {}
+    /// Delete copy constructor
+    FileHandle(const FileHandle &) = delete;
+    /// Destructor
+    virtual ~FileHandle() {}
+
+    /// Get file
+    auto &GetFile() { return file_; }
 };
 
-class SeekableFileSystem : public duckdb::FileSystem {
-   public:
-    virtual ~SeekableFileSystem();
+class FileSystem : public duckdb::FileSystem {
+   protected:
+    /// The buffer manager
+    BufferManager &buffer_manager_;
 
-    /// Set the current position in the file
-    virtual void SetFilePointer(duckdb::FileHandle &handle, size_t pos);
-};
-
-class WebFileSystem : public SeekableFileSystem {
    public:
     /// Constructor
-    WebFileSystem() {}
+    FileSystem(BufferManager &buffer_manager);
     /// Destructor
-    virtual ~WebFileSystem() {}
-
-    /// Set the current position in the file
-    void SetFilePointer(duckdb::FileHandle &handle, size_t pos) override;
+    virtual ~FileSystem() {}
 
     /// Open a file
     std::unique_ptr<duckdb::FileHandle> OpenFile(const char *path, uint8_t flags,
@@ -104,6 +105,7 @@ class WebFileSystem : public SeekableFileSystem {
     // duckdb::idx_t GetAvailableMemory() override;
 };
 
+}  // namespace io
 }  // namespace web
 }  // namespace duckdb
 
