@@ -49,19 +49,25 @@ export var NodeDuckDBRuntime: DuckDBRuntime & {
         return fs.writeSync(file.fd, slice, 0, slice.length, location);
     },
     duckdb_web_fs_directory_exists: function (pathPtr: number, pathLen: number) {
-        throw Error('undefined');
+        const instance = NodeDuckDBRuntime.bindings!.instance!;
+        const path = decoder.decode(instance.HEAPU8.subarray(pathPtr, pathPtr + pathLen));
+        return fs.existsSync(path);
     },
     duckdb_web_fs_directory_create: function (pathPtr: number, pathLen: number) {
-        throw Error('undefined');
+        const instance = NodeDuckDBRuntime.bindings!.instance!;
+        const path = decoder.decode(instance.HEAPU8.subarray(pathPtr, pathPtr + pathLen));
+        return fs.mkdirSync(path);
     },
     duckdb_web_fs_directory_remove: function (pathPtr: number, pathLen: number) {
-        throw Error('undefined');
+        const instance = NodeDuckDBRuntime.bindings!.instance!;
+        const path = decoder.decode(instance.HEAPU8.subarray(pathPtr, pathPtr + pathLen));
+        return fs.rmdirSync(path);
     },
     duckdb_web_fs_directory_list_files: function (pathPtr: number, pathLen: number) {
         throw Error('undefined');
     },
     duckdb_web_fs_glob: function (pathPtr: number, pathLen: number) {
-        let instance = NodeDuckDBRuntime.bindings!.instance!;
+        const instance = NodeDuckDBRuntime.bindings!.instance!;
         const path = decoder.decode(instance.HEAPU8.subarray(pathPtr, pathPtr + pathLen));
         let re = globToRegexp(path);
         for (let path of NodeDuckDBRuntime.fileByPath.keys()) {
@@ -116,14 +122,19 @@ export var NodeDuckDBRuntime: DuckDBRuntime & {
         return file.stat.mtime.getTime();
     },
     duckdb_web_fs_file_move: function (fromPtr: number, fromLen: number, toPtr: number, toLen: number) {
-        throw Error('undefined');
+        const instance = NodeDuckDBRuntime.bindings!.instance!;
+        const fromPath = decoder.decode(instance.HEAPU8.subarray(fromPtr, fromPtr + fromLen));
+        const toPath = decoder.decode(instance.HEAPU8.subarray(toPtr, toPtr + toLen));
+        return fs.renameSync(fromPath, toPath);
     },
     duckdb_web_fs_file_exists: function (pathPtr: number, pathLen: number) {
-        let instance = NodeDuckDBRuntime.bindings!.instance!;
+        const instance = NodeDuckDBRuntime.bindings!.instance!;
         const path = decoder.decode(instance.HEAPU8.subarray(pathPtr, pathPtr + pathLen));
         return NodeDuckDBRuntime.fileByPath.has(path);
     },
     duckdb_web_fs_file_remove: function (pathPtr: number, pathLen: number) {
-        throw Error('undefined');
+        const instance = NodeDuckDBRuntime.bindings!.instance!;
+        const path = decoder.decode(instance.HEAPU8.subarray(pathPtr, pathPtr + pathLen));
+        return fs.rmSync(path);
     },
 };
