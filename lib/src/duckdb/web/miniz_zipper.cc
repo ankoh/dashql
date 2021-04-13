@@ -21,7 +21,7 @@ arrow::Result<size_t> Zipper::LoadFromFile(const char* path) {
     std::unique_ptr<uint8_t[]> buffer = nullptr;
     size_t buffer_size = 0;
     {
-        auto file = buffer_manager_.AddFile(path);
+        auto file = buffer_manager_.OpenFile(path);
         buffer_size = buffer_manager_.GetFileSize(file);
         buffer = std::unique_ptr<uint8_t[]>(new uint8_t[buffer_size]());
         buffer_manager_.Read(file, buffer.get(), buffer_size, 0);
