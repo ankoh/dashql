@@ -19,6 +19,18 @@ namespace duckdb {
 namespace web {
 namespace io {
 
+/// Constructor
+void BufferedFileHandle::Close() { file_buffers_.Release(); }
+
+/// Constructor
+BufferedFileHandle::BufferedFileHandle(duckdb::FileSystem &file_system, BufferManager::FileRef file_buffers)
+    : duckdb::FileHandle(file_system, std::string{file_buffers.GetPath()}),
+      file_buffers_(std::move(file_buffers)),
+      file_position_(0) {}
+
+/// Constructor
+BufferedFileHandle::~BufferedFileHandle() { file_buffers_.Release(); }
+
 BufferedFileSystem::BufferedFileSystem(BufferManager &buffer_manager)
     : buffer_manager_(buffer_manager), filesystem_(*buffer_manager.GetFileSystem()) {}
 

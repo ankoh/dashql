@@ -23,19 +23,17 @@ class BufferedFileHandle : public duckdb::FileHandle {
     BufferManager::FileRef file_buffers_;
     /// The file position
     size_t file_position_;
+
     /// Close the file
     void Close() override;
 
    public:
     /// Constructor
-    BufferedFileHandle(duckdb::FileSystem &file_system, BufferManager::FileRef file_buffers)
-        : duckdb::FileHandle(file_system, std::string{file_buffers.GetPath()}),
-          file_buffers_(std::move(file_buffers)),
-          file_position_(0) {}
-    /// Delete copy constructor
-    BufferedFileHandle(const BufferedFileHandle &) = delete;
+    BufferedFileHandle(duckdb::FileSystem &file_system, BufferManager::FileRef file_buffers);
+    /// Move Constructor
+    explicit BufferedFileHandle(BufferedFileHandle &&) = delete;
     /// Destructor
-    virtual ~BufferedFileHandle() {}
+    ~BufferedFileHandle() override;
 
     /// Get file
     auto &GetFileHandle() { return file_buffers_.GetHandle(); }

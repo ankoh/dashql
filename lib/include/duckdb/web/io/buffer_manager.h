@@ -84,10 +84,9 @@ class BufferManager {
         /// The buffer manager
         BufferManager& buffer_manager_;
         /// The file id
-        const RegisteredFile* file_;
+        RegisteredFile* file_;
         /// The constructor
-        explicit FileRef(BufferManager& buffer_manager, const RegisteredFile* file)
-            : buffer_manager_(buffer_manager), file_(file) {}
+        explicit FileRef(BufferManager& buffer_manager, RegisteredFile& file);
 
        public:
         /// Move constructor
@@ -96,14 +95,14 @@ class BufferManager {
         ~FileRef();
         /// Move assignment
         FileRef& operator=(FileRef&& other);
+        /// Is set?
+        operator bool() const { return !!file_; }
         /// Get path
         auto& GetPath() const { return file_->path; }
         /// Get handle
         auto& GetHandle() const { return *file_->handle; }
         /// Release the file ref
         void Release();
-        /// Is set?
-        operator bool() const;
     };
 
     /// A buffer reference
@@ -112,13 +111,15 @@ class BufferManager {
 
        protected:
         /// The buffer manager
-        BufferManager* buffer_manager_;
-        /// The frame i#include "duckdb/web/io/file.h"
-        const uint64_t frame_id_;
+        BufferManager& buffer_manager_;
+        /// The frame id
+        std::optional<uint64_t> frame_id_;
         /// The data
         void* data_;
+        /// Is dirty?
+        bool is_dirty_;
         /// The constructor
-        explicit BufferRef(uint64_t frame_id, void* data) : frame_id_(frame_id), data_(data) {}
+        explicit BufferRef(BufferManager& buffer_manager, uint64_t frame_id, void* data);
 
        public:
         /// Move constructor
@@ -127,12 +128,14 @@ class BufferManager {
         ~BufferRef();
         /// Move assignment
         BufferRef& operator=(BufferRef&& other);
+        /// Is set?
+        operator bool() const { return !!data_; }
         /// Access the data
         auto* GetData() { return data_; }
         /// Release the file ref
         void Release();
-        /// Is set?
-        operator bool() const;
+        /// Mark as dirty
+        void MarkAsDirty() { is_dirty_ = false; }
     };
 
    protected:
@@ -157,8 +160,8 @@ class BufferManager {
     /// LRU list of pages
     std::list<BufferFrame*> lru = {};
 
-    /// Create a file ref
-    FileRef CreateFileRef(RegisteredFile& file);
+    /// Release a file ref
+    void ReleaseFile(RegisteredFile& file);
     /// Loads the page from disk
     void LoadFrame(BufferFrame& frame);
     /// Writes the page to disk if it is dirty
@@ -169,6 +172,11 @@ class BufferManager {
     /// Evicts a page from the buffer manager.
     /// Returns the data pointer of the evicted page or nullptr when no page can be evicted.
     std::vector<char> AllocatePage();
+
+    /// Takes a `BufferFrame` reference that was returned by an earlier call to
+    /// `FixPage()` and unfixes it. When `is_dirty` is / true, the page is
+    /// written back to disk eventually.
+    void UnfixPage(size_t frame_id, bool is_dirty);
 
    public:
     /// Constructor.
@@ -189,26 +197,20 @@ class BufferManager {
 
     /// Add a file
     FileRef AddFile(std::string_view path, std::unique_ptr<duckdb::FileHandle> file = nullptr);
-    /// Release a file ref
-    void ReleaseFile(FileRef&& file);
     /// Get The file size
-    size_t GetFileSize(FileRef& file);
+    size_t GetFileSize(const FileRef& file);
 
     /// Returns a reference to a `BufferFrame` object for a given page id. When
     /// the page is not loaded into memory, it is read from disk. Otherwise the
     /// loaded page is used.
-    BufferRef FixPage(FileRef& file, uint64_t page_id, bool exclusive);
-    /// Takes a `BufferFrame` reference that was returned by an earlier call to
-    /// `FixPage()` and unfixes it. When `is_dirty` is / true, the page is
-    /// written back to disk eventually.
-    void UnfixPage(BufferRef buffer, bool is_dirty);
+    BufferRef FixPage(const FileRef& file, uint64_t page_id, bool exclusive);
     /// Write all pages of a file
-    void FlushFile(FileRef& file);
+    void FlushFile(const FileRef& file);
 
     /// Read bytes
-    void Read(FileRef& file, void* buffer, size_t bytes, size_t location);
+    void Read(const FileRef& file, void* buffer, size_t bytes, size_t location);
     /// WRite bytes
-    void Write(FileRef& file, void* buffer, size_t bytes, size_t location);
+    void Write(const FileRef& file, void* buffer, size_t bytes, size_t location);
 
     /// Returns the page ids of all pages that are in the FIFO list in FIFO order.
     std::vector<uint64_t> get_fifo_list() const;
