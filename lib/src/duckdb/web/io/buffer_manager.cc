@@ -2,6 +2,7 @@
 
 #include <cassert>
 #include <cstring>
+#include <duckdb/common/file_system.hpp>
 #include <limits>
 #include <memory>
 #include <string>
@@ -44,8 +45,8 @@ void BufferFrame::Unlock() {
 }
 
 /// Constructor
-BufferManager::BufferManager(size_t page_size_bits)
-    : page_size_bits(page_size_bits), files(), free_file_ids(), allocated_file_ids(), frames(), fifo(), lru() {}
+BufferManager::BufferManager(std::shared_ptr<duckdb::FileSystem> filesystem, size_t page_size_bits)
+    : page_size_bits(page_size_bits), filesystem(filesystem) {}
 
 /// Destructor
 BufferManager::~BufferManager() {
@@ -54,10 +55,10 @@ BufferManager::~BufferManager() {
     }
 }
 
-BufferManager::FileRef BufferManager::AddFile(std::string_view path, std::shared_ptr<File> file) {
+BufferManager::FileRef BufferManager::AddFile(std::string_view path, std::unique_ptr<duckdb::FileHandle> file) {
     // Already added?
     if (auto iter = files_by_path.find(path); iter != files_by_path.end()) {
-        return CreateFileRef(files.at(iter->second));
+        return CreateFileRef(*files.at(iter->second));
     }
     // More than
     if (allocated_file_ids == std::numeric_limits<uint16_t>::max()) {
@@ -73,22 +74,23 @@ BufferManager::FileRef BufferManager::AddFile(std::string_view path, std::shared
     } else {
         ++allocated_file_ids;
     }
-    auto iter = files.insert({file_id, RegisteredFile{file_id, std::string{path}, std::move(file)}});
+    auto iter = files.insert({file_id, std::make_unique<RegisteredFile>(file_id, path, std::move(file))});
     // Return file id
-    return CreateFileRef(iter.first->second);
+    return CreateFileRef(*iter.first->second);
 }
 
 void BufferManager::FlushFile(FileRef& file_ref) {
     // Remove buffered file
-    auto iter = files.find(file_ref.file_id_);
+    auto file_id = file_ref.file_->file_id;
+    auto iter = files.find(file_id);
     if (iter != files.end()) {
         return;
     }
     auto& file = iter->second;
 
     // Find all frames
-    auto lb = frames.lower_bound(BuildFrameID(file_ref.file_id_));
-    auto ub = frames.lower_bound(BuildFrameID(file_ref.file_id_ + 1));
+    auto lb = frames.lower_bound(BuildFrameID(file_id));
+    auto ub = frames.lower_bound(BuildFrameID(file_id + 1));
     for (auto iter = lb; iter != ub; ++iter) {
         FlushFrame(iter->second);
         if (iter->second.lru_position != lru.end()) {
@@ -104,11 +106,11 @@ void BufferManager::ReleaseFile(BufferManager::FileRef&& file_ref) {
     if (!file_ref) return;
 
     // Get the file
-    auto file_id = file_ref.file_id_;
-    auto file_iter = files.find(file_ref.file_id_);
+    auto file_id = file_ref.file_->file_id;
+    auto file_iter = files.find(file_id);
     if (file_iter != files.end()) return;
-    auto& file = file_iter->second;
-    file_ref.buffer_manager_ = nullptr;
+    auto& file = *file_iter->second;
+    file_ref.file_ = nullptr;
 
     // Any open file references?
     assert(file.references > 0);
@@ -143,19 +145,19 @@ void BufferManager::LoadFrame(BufferFrame& page) {
 
     // Was the file opened already?
     assert(files.count(file_id));
-    auto& finfo = files.at(file_id);
-    if (!finfo.file) {
+    auto& finfo = *files.at(file_id);
+    if (!finfo.handle) {
         // Open file in WRITE mode because we may have to write dirty pages to it.
-        finfo.file = File::OpenFile(finfo.path.c_str(), File::WRITE);
+        finfo.handle = filesystem->OpenFile(finfo.path.c_str(), duckdb::FileFlags::FILE_FLAGS_WRITE);
     }
 
     // When the file is too small, resize it and zero out the data for it.
     // As the bytes in the file are zeroed anyway, we don't have to read the zeroes from disk.
-    if (finfo.file->Size() < (page_id + 1) * page_size) {
-        finfo.file->Resize((page_id + 1) * page_size);
+    if (filesystem->GetFileSize(*finfo.handle) < (page_id + 1) * page_size) {
+        filesystem->Truncate(*finfo.handle, (page_id + 1) * page_size);
         std::memset(page.buffer.data(), 0, page_size);
     } else {
-        finfo.file->ReadBlock(page_id * page_size, page_size, page.buffer.data());
+        filesystem->Read(*finfo.handle, page.buffer.data(), page_size, page_id * page_size);
     }
     page.is_dirty = false;
 }
@@ -164,8 +166,8 @@ void BufferManager::FlushFrame(BufferFrame& page) {
     auto file_id = GetFileID(page.frame_id);
     auto page_id = GetPageID(page.frame_id);
     auto page_size = GetPageSize();
-    auto& finfo = files.at(file_id);
-    finfo.file->WriteBlock(page.buffer.data(), page_id * page_size, page_size);
+    auto& finfo = *files.at(file_id);
+    filesystem->Write(*finfo.handle, page.buffer.data(), page_size, page_id * page_size);
     page.is_dirty = false;
 }
 
@@ -208,9 +210,10 @@ std::vector<char> BufferManager::AllocatePage() {
 }
 
 /// Fix a page
-BufferManager::BufferRef BufferManager::FixPage(FileRef& file, uint64_t page_id, bool exclusive) {
+BufferManager::BufferRef BufferManager::FixPage(FileRef& file_ref, uint64_t page_id, bool exclusive) {
     // Does the page exist?
-    auto frame_id = BuildFrameID(file.file_id_, page_id);
+    auto file_id = file_ref.file_->file_id;
+    auto frame_id = BuildFrameID(file_id, page_id);
     if (auto it = frames.find(frame_id); it != frames.end()) {
         auto& frame = it->second;
 

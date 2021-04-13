@@ -16,6 +16,7 @@
 #include "dashql/proto_generated.h"
 #include "duckdb.hpp"
 #include "duckdb/main/query_result.hpp"
+#include "duckdb/web/io/buffer_manager.h"
 #include "duckdb/web/io/filesystem.h"
 #include "duckdb/web/miniz_zipper.h"
 #include "nonstd/span.h"
@@ -45,7 +46,7 @@ class WebDB {
         /// Get a connection
         auto& connection() { return connection_; }
         /// Get the filesystem
-        SeekableFileSystem& filesystem();
+        io::FileSystem& filesystem();
 
         /// Run a query and return an arrow buffer
         arrow::Result<std::shared_ptr<arrow::Buffer>> RunQuery(std::string_view text);
@@ -60,7 +61,9 @@ class WebDB {
 
    protected:
     /// The filesystem
-    SeekableFileSystem* filesystem_;
+    io::FileSystem* filesystem_;
+    /// The buffer manager
+    io::BufferManager buffer_manager_;
     /// The (shared) database
     std::shared_ptr<duckdb::DuckDB> database_;
     /// The connections
@@ -73,7 +76,7 @@ class WebDB {
 
    public:
     /// Constructor
-    WebDB(std::unique_ptr<SeekableFileSystem> filesystem = std::make_unique<SeekableFileSystem>());
+    WebDB();
 
     /// Get the filesystem
     auto& filesystem() { return *filesystem_; }

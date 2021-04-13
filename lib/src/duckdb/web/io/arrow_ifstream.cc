@@ -5,7 +5,7 @@
 #include "arrow/buffer.h"
 #include "arrow/result.h"
 #include "duckdb/common/file_system.hpp"
-#include "duckdb/web/io/filesystem.h"
+#include "duckdb/web/io/buffer_manager.h"
 
 namespace duckdb {
 namespace web {

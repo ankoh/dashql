@@ -19,8 +19,6 @@ class FileHandle : public duckdb::FileHandle {
 
    protected:
     /// The file buffers
-    std::shared_ptr<File> file_;
-    /// The file buffers
     BufferManager::FileRef file_buffers_;
     /// The file position
     size_t file_position_;
@@ -39,7 +37,7 @@ class FileHandle : public duckdb::FileHandle {
     virtual ~FileHandle() {}
 
     /// Get file
-    auto &GetFile() { return file_; }
+    auto &GetFileHandle() { return file_buffers_.GetHandle(); }
     /// Get file buffers
     auto &GetBuffers() { return file_buffers_; }
 };
