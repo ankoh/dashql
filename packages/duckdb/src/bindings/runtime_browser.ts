@@ -6,7 +6,7 @@ import globToRegexp from 'glob-to-regexp';
 const decoder = new TextDecoder();
 const encoder = new TextEncoder();
 
-interface RuntimeFile {
+interface BrowserRuntimeFile {
     fileID: number;
     url: string;
     blob: Blob | null;
@@ -14,13 +14,13 @@ interface RuntimeFile {
     lastModified: Date;
 }
 
-const Runtime: DuckDBRuntime & {
-    filesByPath: Map<string, RuntimeFile>;
-    filesByID: Map<number, RuntimeFile>;
+export const BrowserRuntime: DuckDBRuntime & {
+    filesByPath: Map<string, BrowserRuntimeFile>;
+    filesByID: Map<number, BrowserRuntimeFile>;
     nextFileID: number;
 } = {
-    filesByPath: new Map<string, RuntimeFile>(),
-    filesByID: new Map<number, RuntimeFile>(),
+    filesByPath: new Map<string, BrowserRuntimeFile>(),
+    filesByID: new Map<number, BrowserRuntimeFile>(),
     nextFileID: 0,
     bindings: null,
 
@@ -28,37 +28,37 @@ const Runtime: DuckDBRuntime & {
         throw Error('cannot register a file path');
     },
     duckdb_web_add_file_blob(url: string, blob: any): number {
-        const file = Runtime.filesByPath.get(url);
+        const file = BrowserRuntime.filesByPath.get(url);
         if (file) return file.fileID;
-        const fileID = Runtime.nextFileID++;
-        const newFile: RuntimeFile = {
+        const fileID = BrowserRuntime.nextFileID++;
+        const newFile: BrowserRuntimeFile = {
             fileID,
             url,
             blob,
             buffer: null,
             lastModified: new Date(),
         };
-        Runtime.filesByPath.set(url, newFile);
-        Runtime.filesByID.set(fileID, newFile);
+        BrowserRuntime.filesByPath.set(url, newFile);
+        BrowserRuntime.filesByID.set(fileID, newFile);
         return fileID;
     },
     duckdb_web_add_file_buffer: function (url: string, buffer: Uint8Array) {
-        const file = Runtime.filesByPath.get(url);
+        const file = BrowserRuntime.filesByPath.get(url);
         if (file) return file.fileID;
-        const fileID = Runtime.nextFileID++;
-        const newFile: RuntimeFile = {
+        const fileID = BrowserRuntime.nextFileID++;
+        const newFile: BrowserRuntimeFile = {
             fileID,
             url,
             blob: null,
             buffer: buffer,
             lastModified: new Date(),
         };
-        Runtime.filesByPath.set(url, newFile);
-        Runtime.filesByID.set(fileID, newFile);
+        BrowserRuntime.filesByPath.set(url, newFile);
+        BrowserRuntime.filesByID.set(fileID, newFile);
         return fileID;
     },
     duckdb_web_get_file_object_url(fileId: number): string | null {
-        const file = Runtime.filesByID.get(fileId);
+        const file = BrowserRuntime.filesByID.get(fileId);
         if (!file) return null;
         if (file.buffer) {
             return URL.createObjectURL(new Blob([file.buffer]));
@@ -67,7 +67,7 @@ const Runtime: DuckDBRuntime & {
         }
     },
     duckdb_web_get_file_buffer(fileId: number): Uint8Array | null {
-        const file = Runtime.filesByID.get(fileId);
+        const file = BrowserRuntime.filesByID.get(fileId);
         if (!file) return null;
         if (file.buffer) {
             return file.buffer;
@@ -76,9 +76,9 @@ const Runtime: DuckDBRuntime & {
         }
     },
     duckdb_web_fs_read: function (fileId: number, buf: number, bytes: number, location: number) {
-        const file = Runtime.filesByID.get(fileId);
+        const file = BrowserRuntime.filesByID.get(fileId);
         if (!file) return 0;
-        const instance = Runtime.bindings!.instance!;
+        const instance = BrowserRuntime.bindings!.instance!;
         const dst = instance.HEAPU8.subarray(buf, buf + bytes);
         // We copy the blob only if the file was written to
         if (file.buffer) {
@@ -94,9 +94,9 @@ const Runtime: DuckDBRuntime & {
         return 0;
     },
     duckdb_web_fs_write: function (fileId: number, buf: number, bytes: number, location: number) {
-        const file = Runtime.filesByID.get(fileId);
+        const file = BrowserRuntime.filesByID.get(fileId);
         if (!file) return 0;
-        const instance = Runtime.bindings!.instance!;
+        const instance = BrowserRuntime.bindings!.instance!;
         const src = instance.HEAPU8.subarray(buf, buf + bytes);
         // Copy entire blob on first write
         if (!file.buffer) {
@@ -107,7 +107,7 @@ const Runtime: DuckDBRuntime & {
         return bytes;
     },
     duckdb_web_fs_directory_exists: function (pathPtr: number, pathLen: number) {
-        // TODO check if theres any RuntimeFile with prefix
+        // TODO check if theres any BrowserRuntimeFile with prefix
         return false;
     },
     duckdb_web_fs_directory_create: function (pathPtr: number, pathLen: number) {},
@@ -117,15 +117,15 @@ const Runtime: DuckDBRuntime & {
         return false;
     },
     duckdb_web_fs_glob: function (pathPtr: number, pathLen: number) {
-        const instance = Runtime.bindings!.instance!;
+        const instance = BrowserRuntime.bindings!.instance!;
         const path = decoder.decode(instance.HEAPU8.subarray(pathPtr, pathPtr + pathLen));
         const re = globToRegexp(path);
-        for (const url of Runtime.filesByPath.keys()) {
+        for (const url of BrowserRuntime.filesByPath.keys()) {
             if (re.test(url)) {
                 const data = encoder.encode(url);
                 const ptr = instance.stackAlloc(data.length);
                 instance.HEAPU8.set(data, ptr);
-                Runtime.bindings!.instance!.ccall(
+                BrowserRuntime.bindings!.instance!.ccall(
                     'duckdb_web_fs_glob_callback',
                     null,
                     ['number', 'number'],
@@ -135,9 +135,9 @@ const Runtime: DuckDBRuntime & {
         }
     },
     duckdb_web_fs_file_open: function (pathPtr: number, pathLen: number, flags: number) {
-        const instance = Runtime.bindings!.instance!;
+        const instance = BrowserRuntime.bindings!.instance!;
         const path = decoder.decode(instance.HEAPU8.subarray(pathPtr, pathPtr + pathLen));
-        const file = Runtime.filesByPath.get(path);
+        const file = BrowserRuntime.filesByPath.get(path);
         if (file) return file.fileID;
 
         throw Error('File not found: ' + path);
@@ -146,36 +146,36 @@ const Runtime: DuckDBRuntime & {
         // Noop
     },
     duckdb_web_fs_file_get_size: function (fileId: number) {
-        const file = Runtime.filesByID.get(fileId);
+        const file = BrowserRuntime.filesByID.get(fileId);
         if (!file) return 0;
         return file.buffer ? file.buffer.length : file.blob!.size;
     },
     duckdb_web_fs_file_get_last_modified_time: function (fileId: number) {
-        const file = Runtime.filesByID.get(fileId);
+        const file = BrowserRuntime.filesByID.get(fileId);
         if (!file) return 0;
         return file.lastModified.getTime();
     },
     duckdb_web_fs_file_move: function (fromPtr: number, fromLen: number, toPtr: number, toLen: number) {
-        const instance = Runtime.bindings!.instance!;
+        const instance = BrowserRuntime.bindings!.instance!;
         const fromPath = decoder.decode(instance.HEAPU8.subarray(fromPtr, fromPtr + fromLen));
         const toPath = decoder.decode(instance.HEAPU8.subarray(toPtr, toPtr + toLen));
-        const file = Runtime.filesByPath.get(fromPath);
+        const file = BrowserRuntime.filesByPath.get(fromPath);
         if (!file) return;
 
         file.url = toPath;
-        Runtime.filesByPath.delete(fromPath);
-        Runtime.filesByPath.set(toPath, file);
+        BrowserRuntime.filesByPath.delete(fromPath);
+        BrowserRuntime.filesByPath.set(toPath, file);
     },
     duckdb_web_fs_file_exists: function (pathPtr: number, pathLen: number) {
-        const instance = Runtime.bindings!.instance!;
+        const instance = BrowserRuntime.bindings!.instance!;
         const path = decoder.decode(instance.HEAPU8.subarray(pathPtr, pathPtr + pathLen));
-        const file = Runtime.filesByPath.get(path);
+        const file = BrowserRuntime.filesByPath.get(path);
         return !!file;
     },
     duckdb_web_fs_file_remove: function (pathPtr: number, pathLen: number) {
-        const instance = Runtime.bindings!.instance!;
+        const instance = BrowserRuntime.bindings!.instance!;
         const path = decoder.decode(instance.HEAPU8.subarray(pathPtr, pathPtr + pathLen));
-        Runtime.filesByPath.delete(path);
+        BrowserRuntime.filesByPath.delete(path);
     },
 };
-export default Runtime;
+export default BrowserRuntime;

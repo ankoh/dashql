@@ -10,7 +10,6 @@ interface IAsyncDuckDB {
     runQuery(conn: number, text: string): Promise<Uint8Array>;
     sendQuery(conn: number, text: string): Promise<Uint8Array>;
     fetchQueryResults(conn: number): Promise<Uint8Array>;
-    importCSV(conn: number, filePath: string, schemaName: string, tableName: string): Promise<null>;
 }
 
 /** An async result stream iterator */
@@ -111,10 +110,5 @@ export class AsyncDuckDBConnection implements AsyncConnection {
         console.assert(reader.isAsync());
         console.assert(reader.isStream());
         return (reader as unknown) as arrow.AsyncRecordBatchStreamReader<T>; // XXX
-    }
-
-    /// Import csv from a given URL
-    public async importCSV(filePath: string, schemaName: string, tableName: string) {
-        return await this._instance.importCSV(this._conn, filePath, schemaName, tableName);
     }
 }
