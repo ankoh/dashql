@@ -7,9 +7,11 @@ export type ConnectionID = number;
 export enum WorkerRequestType {
     RESET = 'RESET',
     PING = 'PING',
-    REGISTER_URL = 'REGISTER_URL',
-    GET_OBJECT_URL = 'GET_OBJECT_URL',
-    IMPORT_CSV = 'IMPORT_CSV',
+    ADD_FILE_PATH = 'ADD_FILE_PATH',
+    ADD_FILE_BLOB = 'ADD_FILE_BLOB',
+    ADD_FILE_BUFFER = 'ADD_FILE_BUFFER',
+    GET_FILE_OBJECT_URL = 'GET_FILE_OBJECT_URL',
+    GET_FILE_BUFFER = 'GET_FILE_BUFFER',
     OPEN = 'OPEN',
     CONNECT = 'CONNECT',
     DISCONNECT = 'DISCONNECT',
@@ -23,13 +25,14 @@ export enum WorkerResponseType {
     OK = 'OK',
     ERROR = 'ERROR',
     SUCCESS = 'SUCCESS',
-    BLOB_ID = 'BLOB_ID',
-    OBJECT_URL = 'OBJECT_URL',
     CONNECTION_INFO = 'CONNECTION_INFO',
+    FILE_BUFFER = 'FILE_BUFFER',
+    FILE_OBJECT_URL = 'FILE_OBJECT_URL',
+    QUERY_PLAN = 'QUERY_PLAN',
     QUERY_RESULT = 'QUERY_RESULT',
     QUERY_RESULT_CHUNK = 'QUERY_RESULT_CHUNK',
     QUERY_START = 'QUERY_START',
-    QUERY_PLAN = 'QUERY_PLAN',
+    REGISTERED_FILE = 'REGISTERED_FILE',
 }
 
 export type WorkerRequest<T, P> = {
@@ -67,9 +70,11 @@ export class WorkerTask<T, D, P> {
 export type WorkerRequestVariant =
     | WorkerRequest<WorkerRequestType.RESET, null>
     | WorkerRequest<WorkerRequestType.PING, null>
-    | WorkerRequest<WorkerRequestType.REGISTER_URL, string>
-    | WorkerRequest<WorkerRequestType.GET_OBJECT_URL, string>
-    | WorkerRequest<WorkerRequestType.IMPORT_CSV, [number, string, string, string]>
+    | WorkerRequest<WorkerRequestType.ADD_FILE_PATH, [string, string]>
+    | WorkerRequest<WorkerRequestType.ADD_FILE_BLOB, [string, any]>
+    | WorkerRequest<WorkerRequestType.ADD_FILE_BUFFER, [string, Uint8Array]>
+    | WorkerRequest<WorkerRequestType.GET_FILE_OBJECT_URL, number>
+    | WorkerRequest<WorkerRequestType.GET_FILE_BUFFER, number>
     | WorkerRequest<WorkerRequestType.OPEN, string>
     | WorkerRequest<WorkerRequestType.CONNECT, null>
     | WorkerRequest<WorkerRequestType.DISCONNECT, number>
@@ -82,7 +87,9 @@ export type WorkerResponseVariant =
     | WorkerResponse<WorkerResponseType.OK, null>
     | WorkerResponse<WorkerResponseType.ERROR, any>
     | WorkerResponse<WorkerResponseType.SUCCESS, boolean>
-    | WorkerResponse<WorkerResponseType.OBJECT_URL, string | null>
+    | WorkerResponse<WorkerResponseType.REGISTERED_FILE, number>
+    | WorkerResponse<WorkerResponseType.FILE_BUFFER, Uint8Array | null>
+    | WorkerResponse<WorkerResponseType.FILE_OBJECT_URL, string | null>
     | WorkerResponse<WorkerResponseType.CONNECTION_INFO, number>
     | WorkerResponse<WorkerResponseType.QUERY_RESULT, Uint8Array>
     | WorkerResponse<WorkerResponseType.QUERY_RESULT_CHUNK, Uint8Array>
@@ -91,10 +98,12 @@ export type WorkerResponseVariant =
 
 export type WorkerTaskVariant =
     | WorkerTask<WorkerRequestType.RESET, null, null>
-    | WorkerTask<WorkerRequestType.IMPORT_CSV, [number, string, string, string], null>
     | WorkerTask<WorkerRequestType.PING, null, null>
-    | WorkerTask<WorkerRequestType.REGISTER_URL, string, boolean>
-    | WorkerTask<WorkerRequestType.GET_OBJECT_URL, string, string | null>
+    | WorkerTask<WorkerRequestType.ADD_FILE_PATH, [string, string], number>
+    | WorkerTask<WorkerRequestType.ADD_FILE_BLOB, [string, any], number>
+    | WorkerTask<WorkerRequestType.ADD_FILE_BUFFER, [string, Uint8Array], number>
+    | WorkerTask<WorkerRequestType.GET_FILE_OBJECT_URL, null, string | null>
+    | WorkerTask<WorkerRequestType.GET_FILE_BUFFER, null, Uint8Array | null>
     | WorkerTask<WorkerRequestType.OPEN, string | null, null>
     | WorkerTask<WorkerRequestType.CONNECT, null, ConnectionID>
     | WorkerTask<WorkerRequestType.DISCONNECT, ConnectionID, null>
