@@ -34,17 +34,17 @@ export function testFilesystem(
             );
         };
         it('URL used once', async () => {
-            expect(await db().addFileBuffer('studenten.parquet', studenten!)).toBeTruthy();
+            await db().addFileBuffer('studenten.parquet', studenten!);
             await test();
         });
         it('URL re-registered', async () => {
-            expect(await db().addFileBuffer('studenten.parquet', studenten!)).toBeTruthy();
+            await db().addFileBuffer('studenten.parquet', studenten!);
             await test();
-            expect(await db().addFileBuffer('studenten.parquet', studenten!)).toBeTruthy();
+            await db().addFileBuffer('studenten.parquet', studenten!);
             await test();
         });
         it('URL used twice', async () => {
-            expect(await db().addFileBuffer('studenten.parquet', studenten!)).toBeTruthy();
+            await db().addFileBuffer('studenten.parquet', studenten!);
             await test();
             await test();
         });
@@ -52,7 +52,7 @@ export function testFilesystem(
 
     describe('Parquet Scans', () => {
         it('single table', async () => {
-            expect(await db().addFileBuffer('studenten.parquet', studenten!)).toBeTruthy();
+            await db().addFileBuffer('studenten.parquet', studenten!);
             const result = await conn.sendQuery(`SELECT MatrNr FROM parquet_scan('studenten.parquet');`);
             const table = await arrow.Table.from<{ MatrNr: arrow.Int }>(result);
             expect(table.getColumnAt(0)?.toArray()).toEqual(
@@ -61,9 +61,9 @@ export function testFilesystem(
         });
 
         it('simple join', async () => {
-            expect(await db().addFileBuffer('studenten.parquet', studenten!)).toBeTruthy();
-            expect(await db().addFileBuffer('hoeren.parquet', hoeren!)).toBeTruthy();
-            expect(await db().addFileBuffer('vorlesungen.parquet', vorlesungen!)).toBeTruthy();
+            await db().addFileBuffer('studenten.parquet', studenten!);
+            await db().addFileBuffer('hoeren.parquet', hoeren!);
+            await db().addFileBuffer('vorlesungen.parquet', vorlesungen!);
 
             const result = await conn.sendQuery(`
                     SELECT studenten.MatrNr, vorlesungen.Titel

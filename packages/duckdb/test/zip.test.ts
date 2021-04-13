@@ -14,7 +14,8 @@ export function testZip(db: () => duckdb.DuckDBBindings, basedir: string) {
 
     describe('Zipper', () => {
         it('Zip entries', async () => {
-            await db().addFilePath('all.zip', `${basedir}/uni/out/all.zip`);
+            const all = new Uint8Array(await (await fetch(`${basedir}/uni/out/all.zip`)).arrayBuffer());
+            await db().addFileBuffer('all.zip', all);
             // XXX revisit with default duckdb runtime
 
             //const zip = new duckdb.ZipBindings(db());
