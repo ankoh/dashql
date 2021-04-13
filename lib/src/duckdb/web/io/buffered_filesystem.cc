@@ -43,27 +43,59 @@ std::unique_ptr<duckdb::FileHandle> BufferedFileSystem::OpenFile(const char *pat
 void BufferedFileSystem::Read(duckdb::FileHandle &handle, void *buffer, int64_t nr_bytes, duckdb::idx_t location) {
     auto &file_hdl = static_cast<BufferedFileHandle &>(handle);
     auto &file = file_hdl.GetBuffers();
-    buffer_manager_.Read(file, buffer, nr_bytes, location);
-    file_hdl.file_position_ = location + nr_bytes;
+    auto reader = static_cast<char *>(buffer);
+
+    // Read page-wise
+    auto file_size = buffer_manager_.GetFileSize(file);
+    while (nr_bytes > 0 && location < file_size) {
+        auto n = buffer_manager_.Read(file, buffer, nr_bytes, location);
+        reader += n;
+        location += n;
+        nr_bytes -= n;
+    }
+    file_hdl.file_position_ = location;
+
+    // Requested to read past end?
+    if (location >= file_size && nr_bytes > 0) {
+        assert(false);
+    }
 }
 
 void BufferedFileSystem::Write(duckdb::FileHandle &handle, void *buffer, int64_t nr_bytes, duckdb::idx_t location) {
     auto &file_hdl = static_cast<BufferedFileHandle &>(handle);
     auto &file = file_hdl.GetBuffers();
-    buffer_manager_.Write(file, buffer, nr_bytes, location);
-    file_hdl.file_position_ = location + nr_bytes;
+    auto writer = static_cast<char *>(buffer);
+
+    // Write page-wise
+    auto file_size = buffer_manager_.GetFileSize(file);
+    while (nr_bytes > 0 && location < file_size) {
+        auto n = buffer_manager_.Write(file, buffer, nr_bytes, location);
+        writer += n;
+        location += n;
+        nr_bytes -= n;
+    }
+    file_hdl.file_position_ = location;
+
+    // Requested to read past end?
+    if (location >= file_size && nr_bytes > 0) {
+        assert(false);
+    }
 }
 
 int64_t BufferedFileSystem::Read(duckdb::FileHandle &handle, void *buffer, int64_t nr_bytes) {
     auto &file_hdl = static_cast<BufferedFileHandle &>(handle);
-    Read(file_hdl, buffer, nr_bytes, file_hdl.file_position_);
-    return nr_bytes;
+    auto &file = file_hdl.GetBuffers();
+    auto n = buffer_manager_.Read(file, buffer, nr_bytes, file_hdl.file_position_);
+    file_hdl.file_position_ += n;
+    return n;
 }
 
 int64_t BufferedFileSystem::Write(duckdb::FileHandle &handle, void *buffer, int64_t nr_bytes) {
     auto &file_hdl = static_cast<BufferedFileHandle &>(handle);
-    Write(file_hdl, buffer, nr_bytes, file_hdl.file_position_);
-    return nr_bytes;
+    auto &file = file_hdl.GetBuffers();
+    auto n = buffer_manager_.Write(file, buffer, nr_bytes, file_hdl.file_position_);
+    file_hdl.file_position_ += n;
+    return n;
 }
 
 /// Sync a file handle to disk

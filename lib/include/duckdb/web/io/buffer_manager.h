@@ -95,7 +95,7 @@ class BufferManager {
 
        public:
         /// Move constructor
-        FileRef(FileRef&& other) = default;
+        FileRef(FileRef&& other);
         /// Destructor
         ~FileRef();
         /// Move assignment
@@ -212,10 +212,10 @@ class BufferManager {
     /// Write all pages of a file
     void FlushFile(const FileRef& file);
 
-    /// Read bytes
-    void Read(const FileRef& file, void* buffer, size_t bytes, size_t location);
-    /// WRite bytes
-    void Write(const FileRef& file, void* buffer, size_t bytes, size_t location);
+    /// Read at most n bytes
+    size_t Read(const FileRef& file, void* buffer, size_t n, size_t offset);
+    /// Write at most n bytes
+    size_t Write(const FileRef& file, void* buffer, size_t n, size_t offset);
 
     /// Returns the page ids of all pages that are in the FIFO list in FIFO order.
     std::vector<uint64_t> get_fifo_list() const;

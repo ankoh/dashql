@@ -3,6 +3,7 @@
 #include <cassert>
 #include <cstring>
 #include <duckdb/common/file_system.hpp>
+#include <iostream>
 #include <limits>
 #include <memory>
 #include <string>
@@ -10,7 +11,7 @@
 #include <utility>
 
 /// Build a frame id
-static constexpr uint16_t BuildFrameID(uint16_t file_id, uint64_t page_id = 0) {
+static constexpr uint64_t BuildFrameID(uint16_t file_id, uint64_t page_id = 0) {
     assert(page_id < (1ull << 48));
     return (page_id & (1ull << 48)) | (static_cast<uint64_t>(file_id) << 48);
 }
@@ -53,6 +54,11 @@ BufferManager::RegisteredFile::RegisteredFile(uint16_t file_id, std::string_view
 BufferManager::FileRef::FileRef(BufferManager& buffer_manager, RegisteredFile& file)
     : buffer_manager_(buffer_manager), file_(&file) {
     ++file.references;
+}
+
+/// Constructor
+BufferManager::FileRef::FileRef(FileRef&& other) : buffer_manager_(other.buffer_manager_), file_(other.file_) {
+    other.file_ = nullptr;
 }
 
 /// Destructor
@@ -106,7 +112,7 @@ BufferManager::BufferRef::~BufferRef() { Release(); }
 
 /// Constructor
 void BufferManager::BufferRef::Release() {
-    if (frame_id_) {
+    if (frame_id_.has_value()) {
         buffer_manager_.UnfixPage(*frame_id_, is_dirty_);
         frame_id_.reset();
         data_ = {};
@@ -120,6 +126,7 @@ BufferManager::BufferManager(std::unique_ptr<duckdb::FileSystem> filesystem, siz
 /// Destructor
 BufferManager::~BufferManager() {
     for (auto& entry : frames) {
+        assert(entry.second.num_users == 0);
         FlushFrame(entry.second);
     }
 }
@@ -155,8 +162,6 @@ BufferManager::FileRef BufferManager::AddFile(std::string_view path, std::unique
 
 void BufferManager::FlushFile(const FileRef& file_ref) {
     auto file_id = file_ref.file_->file_id;
-
-    // Find all frames
     auto lb = frames.lower_bound(BuildFrameID(file_id));
     auto ub = frames.lower_bound(BuildFrameID(file_id + 1));
     for (auto iter = lb; iter != ub; ++iter) {
@@ -211,7 +216,7 @@ void BufferManager::LoadFrame(BufferFrame& frame) {
     frame.is_dirty = false;
 
     // Read data into frame
-    filesystem->Read(*file.handle, frame.buffer.data(), page_size, frame.data_size);
+    filesystem->Read(*file.handle, frame.buffer.data(), frame.data_size, page_id * page_size);
 }
 
 void BufferManager::FlushFrame(BufferFrame& frame) {
@@ -220,8 +225,9 @@ void BufferManager::FlushFrame(BufferFrame& frame) {
     auto page_size = GetPageSize();
 
     // Write data from frame
+    assert(files.count(file_id));
     auto& file = *files.at(file_id);
-    filesystem->Write(*file.handle, frame.buffer.data(), page_size, frame.data_size);
+    filesystem->Write(*file.handle, frame.buffer.data(), frame.data_size, page_id * page_size);
     frame.is_dirty = false;
 }
 
@@ -302,43 +308,38 @@ BufferManager::BufferRef BufferManager::FixPage(const FileRef& file_ref, uint64_
 
 void BufferManager::UnfixPage(size_t frame_id, bool is_dirty) {
     auto iter = frames.find(frame_id);
-    if (iter != frames.end()) return;
+    if (iter == frames.end()) return;
     auto& frame = iter->second;
     frame.is_dirty = frame.is_dirty || is_dirty;
     frame.Unlock();
 }
 
-void BufferManager::Read(const FileRef& file, void* out, size_t bytes, size_t offset) {
-    auto* writer = static_cast<char*>(out);
-    while (bytes > 0) {
-        auto page_id = offset >> GetPageSizeShift();
-        auto skip_here = std::max<size_t>(offset, page_id * GetPageSize());
-        auto read_here = std::min<size_t>(bytes, GetPageSize() - skip_here);
+size_t BufferManager::Read(const FileRef& file, void* out, size_t n, size_t offset) {
+    // Determine page & offset
+    auto page_id = offset >> GetPageSizeShift();
+    auto skip_here = offset - page_id * GetPageSize();
+    auto read_here = std::min<size_t>(n, GetPageSize() - skip_here);
 
-        auto page = FixPage(file, page_id, false);
-        auto data = page.GetData();
-        read_here = std::min<size_t>(read_here, data.size());
-        std::memcpy(out, data.data() + skip_here, read_here);
-        bytes -= read_here;
-        writer += read_here;
-    }
+    // Read page
+    auto page = FixPage(file, page_id, false);
+    auto data = page.GetData();
+    read_here = std::min<size_t>(read_here, data.size());
+    std::memcpy(static_cast<char*>(out), data.data() + skip_here, read_here);
+    return read_here;
 }
 
-void BufferManager::Write(const FileRef& file, void* in, size_t bytes, size_t offset) {
-    auto* reader = static_cast<char*>(in);
-    size_t total = 0;
-    while (bytes > 0) {
-        auto page_id = offset >> GetPageSizeShift();
-        auto skip_here = std::max<size_t>(offset, page_id * GetPageSize());
-        auto write_here = std::min<size_t>(bytes, GetPageSize() - skip_here);
+size_t BufferManager::Write(const FileRef& file, void* in, size_t bytes, size_t offset) {
+    // Determine page & offset
+    auto page_id = offset >> GetPageSizeShift();
+    auto skip_here = offset - page_id * GetPageSize();
+    auto write_here = std::min<size_t>(bytes, GetPageSize() - skip_here);
 
-        auto page = FixPage(file, page_id, false);
-        auto data = page.GetData();
-        write_here = std::min<size_t>(write_here, data.size());
-        std::memcpy(data.data() + skip_here, reader, write_here);
-        bytes -= write_here;
-        reader += write_here;
-    }
+    // Write page
+    auto page = FixPage(file, page_id, false);
+    auto data = page.GetData();
+    write_here = std::min<size_t>(write_here, data.size());
+    std::memcpy(data.data() + skip_here, static_cast<char*>(in), write_here);
+    return write_here;
 }
 
 std::vector<uint64_t> BufferManager::get_fifo_list() const {
