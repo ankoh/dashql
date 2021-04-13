@@ -16,6 +16,7 @@
 #include "duckdb/common/file_system.hpp"
 #include "duckdb/web/io/default_filesystem.h"
 #include "duckdb/web/io/web_filesystem.h"
+#include "nonstd/span.h"
 
 namespace duckdb {
 namespace web {
@@ -33,6 +34,8 @@ class BufferFrame {
     uint64_t frame_id;
     /// The data buffer
     std::vector<char> buffer;
+    /// The data size
+    size_t data_size = 0;
 
     /// How many times this page has been fixed
     size_t num_users = 0;
@@ -55,7 +58,7 @@ class BufferFrame {
     /// Constructor
     BufferFrame(uint64_t frame_id, size_t size, list_position fifo_position, list_position lru_position);
     /// Returns a pointer to this page data
-    void* GetData() { return buffer.data(); }
+    nonstd::span<char> GetData() { return {buffer.data(), data_size}; }
 };
 
 class BufferManager {
@@ -68,6 +71,8 @@ class BufferManager {
         std::string path;
         /// The file
         std::unique_ptr<duckdb::FileHandle> handle;
+        /// THe file size
+        std::optional<size_t> file_size;
         /// The references
         size_t references;
 
@@ -115,11 +120,11 @@ class BufferManager {
         /// The frame id
         std::optional<uint64_t> frame_id_;
         /// The data
-        void* data_;
+        nonstd::span<char> data_;
         /// Is dirty?
         bool is_dirty_;
         /// The constructor
-        explicit BufferRef(BufferManager& buffer_manager, uint64_t frame_id, void* data);
+        explicit BufferRef(BufferManager& buffer_manager, uint64_t frame_id, nonstd::span<char> data);
 
        public:
         /// Move constructor
@@ -129,9 +134,9 @@ class BufferManager {
         /// Move assignment
         BufferRef& operator=(BufferRef&& other);
         /// Is set?
-        operator bool() const { return !!data_; }
+        operator bool() const { return frame_id_.has_value(); }
         /// Access the data
-        auto* GetData() { return data_; }
+        auto GetData() { return data_; }
         /// Release the file ref
         void Release();
         /// Mark as dirty
