@@ -4,4 +4,5 @@ export * from '../log';
 export * from '../status';
 export * from '../bindings';
 export * from '../bindings/bindings_node';
-export * from '../bindings/runtime_node';
+export { NodeRuntime } from '../bindings/runtime_node';
+export { DefaultRuntime } from '../bindings/runtime_default';

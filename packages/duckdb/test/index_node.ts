@@ -11,7 +11,7 @@ let worker: Worker | null = null;
 
 beforeAll(async () => {
     const logger = new duckdb_serial.VoidLogger();
-    db = new duckdb_serial.DuckDB(logger, duckdb_serial.NodeDuckDBRuntime, path.resolve(__dirname, './duckdb.wasm'));
+    db = new duckdb_serial.DuckDB(logger, duckdb_serial.NodeRuntime, path.resolve(__dirname, './duckdb.wasm'));
     await db.open();
 
     worker = new Worker(path.resolve(__dirname, './duckdb-node-parallel.worker.js'));
