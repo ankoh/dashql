@@ -24,8 +24,7 @@ arrow::Result<size_t> Zipper::LoadFromFile(const char* path) {
         auto file = buffer_manager_.AddFile(path);
         buffer_size = buffer_manager_.GetFileSize(file);
         buffer = std::unique_ptr<uint8_t[]>(new uint8_t[buffer_size]());
-        auto read = filesystem_.Read(*handle, buffer.get(), buffer_size);
-        assert(read == buffer_size);
+        buffer_manager_.Read(file, buffer.get(), buffer_size, 0);
     }
 
     // Load the miniz archive
