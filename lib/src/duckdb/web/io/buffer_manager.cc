@@ -131,7 +131,7 @@ BufferManager::~BufferManager() {
     }
 }
 
-BufferManager::FileRef BufferManager::AddFile(std::string_view path, std::unique_ptr<duckdb::FileHandle> handle) {
+BufferManager::FileRef BufferManager::OpenFile(std::string_view path, std::unique_ptr<duckdb::FileHandle> handle) {
     // Already added?
     if (auto iter = files_by_path.find(path); iter != files_by_path.end()) {
         return FileRef{*this, *files.at(iter->second)};
@@ -270,7 +270,10 @@ std::vector<char> BufferManager::AllocatePage() {
 }
 
 /// Get the file size
-size_t BufferManager::GetFileSize(const FileRef& file) { return filesystem->GetFileSize(file.GetHandle()); }
+size_t BufferManager::GetFileSize(const FileRef& file) {
+    assert(file.file_->file_size.has_value());
+    return *file.file_->file_size;
+}
 
 /// Fix a page
 BufferManager::BufferRef BufferManager::FixPage(const FileRef& file_ref, uint64_t page_id, bool exclusive) {

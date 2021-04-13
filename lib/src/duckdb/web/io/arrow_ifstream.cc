@@ -15,7 +15,7 @@ namespace io {
 
 /// Constructor
 InputFileStream::InputFileStream(BufferManager& buffer_manager, std::string_view path)
-    : buffer_manager_(buffer_manager), file_(buffer_manager_.AddFile(path)) {}
+    : buffer_manager_(buffer_manager), file_(buffer_manager_.OpenFile(path)) {}
 
 /// Destructor
 InputFileStream::~InputFileStream() {
