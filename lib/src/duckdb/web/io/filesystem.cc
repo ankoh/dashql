@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "duckdb/common/file_system.hpp"
+#include "duckdb/web/io/filesystem_api.h"
 
 static const std::function<void(std::string, bool)> *list_files_callback = {};
 static std::vector<std::string> *glob_results = {};
@@ -131,104 +132,5 @@ std::vector<std::string> WebFileSystem::Glob(const std::string &path) {
     return results;
 }
 
-// duckdb::idx_t WebFileSystem::GetAvailableMemory() {
-//     std::cout << "GetAvailableMemory not implemented" << std::endl;
-//     return {};
-// }
-
-FileSystemStreamBuffer::FileSystemStreamBuffer(duckdb::FileSystem &file_system, duckdb::FileHandle &file_handle)
-    : file_system_(file_system),
-      file_handle_(file_handle),
-      file_size_(file_system_.GetFileSize(file_handle)),
-      file_pos_(0) {
-    buffer_.reserve(FS_STREAMBUF_SIZE);
-}
-
-std::streamsize FileSystemStreamBuffer::showmanyc() {
-    if (egptr() - gptr() == 0) {
-        underflow();
-    }
-    return egptr() - gptr();
-}
-
-FileSystemStreamBuffer::pos_type FileSystemStreamBuffer::seekoff(FileSystemStreamBuffer::off_type off,
-                                                                 std::ios_base::seekdir dir, std::ios_base::openmode) {
-    if (dir == std::ios_base::beg) {
-        file_pos_ = off;
-    } else if (dir == std::ios_base::end) {
-        file_pos_ = file_size_ - off;
-    } else {
-        file_pos_ += off;
-    }
-
-    return file_pos_;
-}
-
-FileSystemStreamBuffer::pos_type FileSystemStreamBuffer::seekpos(FileSystemStreamBuffer::pos_type pos,
-                                                                 std::ios_base::openmode) {
-    file_pos_ = pos;
-    return file_pos_;
-}
-
-FileSystemStreamBuffer::int_type FileSystemStreamBuffer::underflow() {
-    if (gptr() < egptr()) return *gptr();
-    if (file_pos_ >= file_size_) return std::streambuf::traits_type::eof();
-
-    auto read = std::min(file_size_ - (int64_t)file_pos_, (int64_t)buffer_.capacity());
-    buffer_.resize(read);
-    file_system_.Read(file_handle_, &buffer_[0], read, file_pos_);
-    setg(&buffer_[0], &buffer_[0], &buffer_[0] + buffer_.size());
-    file_pos_ += read;
-    return *gptr();
-}
-
 }  // namespace web
 }  // namespace duckdb
-
-extern "C" {
-extern ssize_t duckdb_web_fs_read(size_t blobId, void *buffer, ssize_t bytes);
-extern ssize_t duckdb_web_fs_write(size_t blobId, void *buffer, ssize_t bytes);
-
-extern void duckdb_web_fs_directory_remove(const char *path, size_t pathLen);
-extern bool duckdb_web_fs_directory_exists(const char *path, size_t pathLen);
-extern void duckdb_web_fs_directory_create(const char *path, size_t pathLen);
-extern bool duckdb_web_fs_directory_list_files(const char *path, size_t pathLen);
-
-extern void duckdb_web_fs_glob(const char *path, size_t pathLen);
-
-void duckdb_web_fs_directory_list_files_callback(const char *path, size_t pathLen, bool is_dir) {
-    (*list_files_callback)(std::string(path, pathLen), is_dir);
-}
-void duckdb_web_fs_glob_callback(const char *path, size_t pathLen) { glob_results->emplace_back(path, pathLen); }
-
-extern void duckdb_web_fs_file_sync(size_t blobId);
-extern size_t duckdb_web_fs_file_open(const char *path, size_t pathLen, uint8_t flags);
-extern void duckdb_web_fs_file_close(size_t blobId);
-extern ssize_t duckdb_web_fs_file_get_size(size_t blobId);
-extern time_t duckdb_web_fs_file_get_last_modified_time(size_t blobId);
-extern void duckdb_web_fs_file_move(const char *from, size_t fromLen, const char *to, size_t toLen);
-extern void duckdb_web_fs_file_set_pointer(size_t blobId, size_t location);
-extern bool duckdb_web_fs_file_exists(const char *path, size_t pathLen);
-extern bool duckdb_web_fs_file_remove(const char *path, size_t pathLen);
-
-#ifndef EMSCRIPTEN
-int64_t duckdb_web_fs_read(size_t blobId, void *buffer, int64_t bytes) { return {}; }
-int64_t duckdb_web_fs_write(size_t blobId, void *buffer, int64_t bytes) { return {}; }
-
-bool duckdb_web_fs_directory_exists(const char *path, size_t pathLen) { return {}; };
-void duckdb_web_fs_directory_create(const char *path, size_t pathLen) {}
-void duckdb_web_fs_directory_remove(const char *path, size_t pathLen) {}
-bool duckdb_web_fs_directory_list_files(const char *path, size_t pathLen) { return {}; }
-void duckdb_web_fs_glob(const char *path, size_t pathLen) {}
-
-void duckdb_web_fs_file_sync(size_t blobId) {}
-size_t duckdb_web_fs_file_open(const char *path, size_t pathLen, uint8_t flags) { return {}; }
-void duckdb_web_fs_file_close(size_t blobId) {}
-int64_t duckdb_web_fs_file_get_size(size_t blobId) { return {}; };
-time_t duckdb_web_fs_file_get_last_modified_time(size_t blobId) { return {}; };
-void duckdb_web_fs_file_move(const char *from, size_t fromLen, const char *to, size_t toLen) {}
-void duckdb_web_fs_file_set_pointer(size_t blobId, size_t location) {}
-bool duckdb_web_fs_file_exists(const char *path, size_t pathLen) { return {}; };
-bool duckdb_web_fs_file_remove(const char *path, size_t pathLen) { return {}; };
-#endif
-}
