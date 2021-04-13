@@ -351,7 +351,6 @@ if (EMSCRIPTEN)
             _duckdb_web_clear_response, \
             _duckdb_web_connect, \
             _duckdb_web_disconnect, \
-            _duckdb_web_csv_import, \
             _duckdb_web_fs_directory_list_files_callback, \
             _duckdb_web_fs_glob_callback, \
             _duckdb_web_query_fetch_results, \
