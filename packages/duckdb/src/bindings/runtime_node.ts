@@ -4,6 +4,7 @@ import fs from 'fs';
 import { DuckDBRuntime } from './runtime_base';
 import globToRegexp from 'glob-to-regexp';
 import p from 'path';
+import tmp from 'temp-write';
 
 const decoder = new TextDecoder();
 const encoder = new TextEncoder();
@@ -14,6 +15,23 @@ interface NodeRuntimeFile {
     path: string;
     stat: fs.Stats;
 }
+
+// Always open with WRITE for now.
+// Buffer manager will have to do that anyway.
+const openFile = (path: string) => {
+    const fd = fs.openSync(path, 'w');
+    const stat = fs.fstatSync(fd);
+    const fileID = NodeRuntime.nextFileID++;
+    const newFile = {
+        fileID,
+        path: path,
+        fd,
+        stat,
+    };
+    NodeRuntime.filesByPath.set(path, newFile);
+    NodeRuntime.filesByID.set(fileID, newFile);
+    return fileID;
+};
 
 export const NodeRuntime: DuckDBRuntime & {
     filesByPath: Map<string, NodeRuntimeFile>;
@@ -28,27 +46,16 @@ export const NodeRuntime: DuckDBRuntime & {
     duckdb_web_add_file_blob: function (url: string, blob: any) {
         throw Error('cannot register a file blob');
     },
-    duckdb_web_add_file_buffer: function (url: string, buffer: Uint8Array) {
-        throw Error('cannot register a file buffer');
+    duckdb_web_add_file_buffer: function (url: string, array: Uint8Array) {
+        const path = tmp.sync(Buffer.from(array));
+        const file = NodeRuntime.filesByPath.get(url);
+        if (file) return file.fileID;
+        return openFile(path);
     },
     duckdb_web_add_file_path: function (url: string, path: string) {
         const file = NodeRuntime.filesByPath.get(url);
         if (file) return file.fileID;
-
-        // Always open with WRITE for now.
-        // Buffer manager will have to do that anyway.
-        const fd = fs.openSync(path, 'w');
-        const stat = fs.fstatSync(fd);
-        const fileID = NodeRuntime.nextFileID++;
-        const newFile = {
-            fileID,
-            path: path,
-            fd,
-            stat,
-        };
-        NodeRuntime.filesByPath.set(path, newFile);
-        NodeRuntime.filesByID.set(fileID, newFile);
-        return fileID;
+        return openFile(path);
     },
     duckdb_web_get_file_object_url(fileId: number): string | null {
         const file = NodeRuntime.filesByID.get(fileId);
@@ -114,18 +121,7 @@ export const NodeRuntime: DuckDBRuntime & {
         const path = decoder.decode(instance.HEAPU8.subarray(pathPtr, pathPtr + pathLen));
         const file = NodeRuntime.filesByPath.get(path);
         if (file) return file.fileID;
-        const fd = fs.openSync(path, 'w');
-        const stat = fs.fstatSync(fd);
-        const fileID = NodeRuntime.nextFileID++;
-        const newFile = {
-            fileID,
-            path: path,
-            fd,
-            stat,
-        };
-        NodeRuntime.filesByPath.set(path, newFile);
-        NodeRuntime.filesByID.set(fileID, newFile);
-        return fileID;
+        return openFile(path);
     },
     duckdb_web_fs_file_close: function (fileId: number) {
         const file = NodeRuntime.filesByID.get(fileId);
