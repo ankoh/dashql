@@ -200,8 +200,8 @@ class BufferManager {
     /// Get a page id from an offset
     size_t GetPageIDFromOffset(size_t offset) { return offset >> page_size_bits; }
 
-    /// Add a file
-    FileRef AddFile(std::string_view path, std::unique_ptr<duckdb::FileHandle> file = nullptr);
+    /// Open a file
+    FileRef OpenFile(std::string_view path, std::unique_ptr<duckdb::FileHandle> file = nullptr);
     /// Get The file size
     size_t GetFileSize(const FileRef& file);
 

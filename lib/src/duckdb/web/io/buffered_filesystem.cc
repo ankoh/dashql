@@ -36,7 +36,7 @@ BufferedFileSystem::BufferedFileSystem(BufferManager &buffer_manager)
 
 std::unique_ptr<duckdb::FileHandle> BufferedFileSystem::OpenFile(const char *path, uint8_t flags,
                                                                  duckdb::FileLockType lock) {
-    auto file = buffer_manager_.AddFile(std::string_view{path});
+    auto file = buffer_manager_.OpenFile(std::string_view{path});
     return std::make_unique<BufferedFileHandle>(*this, std::move(file));
 }
 
@@ -76,7 +76,7 @@ void BufferedFileSystem::Write(duckdb::FileHandle &handle, void *buffer, int64_t
     }
     file_hdl.file_position_ = location;
 
-    // Requested to read past end?
+    // Requested to write past end?
     if (location >= file_size && nr_bytes > 0) {
         assert(false);
     }
