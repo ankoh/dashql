@@ -6,40 +6,38 @@
 #include "arrow/io/interfaces.h"
 #include "duckdb/common/constants.hpp"
 #include "duckdb/common/file_system.hpp"
-#include "duckdb/web/io/filesystem.h"
+#include "duckdb/web/io/buffer_manager.h"
 
 namespace duckdb {
 namespace web {
+namespace io {
 
 class InputFileStream : virtual public arrow::io::InputStream {
    protected:
     /// The file system
-    duckdb::web::SeekableFileSystem& file_system_;
-    /// The file handle
-    std::unique_ptr<duckdb::FileHandle> file_handle_;
-    /// The temporary buffer (if any)
-    std::shared_ptr<arrow::ResizableBuffer> tmp_;
+    BufferManager& buffer_manager_;
+    /// The file id
+    BufferManager::FileRef file_;
     /// The file position
-    size_t file_position_;
+    size_t file_position_ = 0;
+    /// The temporarily fixed page
+    std::optional<BufferManager::BufferRef> tmp_page_ = std::nullopt;
 
    public:
     /// Constructor
-    InputFileStream(duckdb::web::SeekableFileSystem& fs, const char* path);
+    InputFileStream(io::BufferManager& buffer_manager, std::string_view path);
     /// Destructor
     ~InputFileStream() override;
 
     /// File interface
 
-    /// \brief Close the stream cleanly
-    ///
-    /// For writable streams, this will attempt to flush any pending data
-    /// before releasing the underlying resource.
+    /// Close the stream cleanly
     ///
     /// After Close() is called, closed() returns true and the stream is not
     /// available for further operations.
     arrow::Status Close() override;
 
-    /// \brief Close the stream abruptly
+    /// Close the stream abruptly
     ///
     /// This method does not guarantee that any pending data is flushed.
     /// It merely releases any underlying resource used by the stream for
@@ -57,13 +55,13 @@ class InputFileStream : virtual public arrow::io::InputStream {
 
     /// Readable
 
-    /// \brief Read data from current file position.
+    /// Read data from current file position.
     ///
     /// Read at most `nbytes` from the current file position into `out`.
     /// The number of bytes read is returned.
     arrow::Result<int64_t> Read(int64_t nbytes, void* out) override;
 
-    /// \brief Read data from current file position.
+    /// Read data from current file position.
     ///
     /// Read at most `nbytes` from the current file position. Less bytes may
     /// be read if EOF is reached. This method updates the current file position.
@@ -79,9 +77,9 @@ class InputFileStream : virtual public arrow::io::InputStream {
     /// \return Status
     arrow::Status Advance(int64_t nbytes);
 
-    /// \brief Return zero-copy string_view to upcoming bytes.
+    /// Return zero-copy string_view to upcoming bytes.
     ///
-    /// Do not modify the stream position.  The view becomes invalid after
+    /// Do not modify the stream position. The view becomes invalid after
     /// any operation on the stream.  May trigger buffering if the requested
     /// size is larger than the number of buffered bytes.
     ///
@@ -90,12 +88,15 @@ class InputFileStream : virtual public arrow::io::InputStream {
     /// \param[in] nbytes the maximum number of bytes to see
     arrow::Result<arrow::util::string_view> Peek(int64_t nbytes) override;
 
-    /// \brief Return true if InputStream is capable of zero copy Buffer reads
+    /// Return true if InputStream is capable of zero copy Buffer reads
     ///
     /// Zero copy reads imply the use of Buffer-returning Read() overloads.
+    ///
+    /// XXX We could
     bool supports_zero_copy() const override { return false; }
 };
 
+}  // namespace io
 }  // namespace web
 }  // namespace duckdb
 
