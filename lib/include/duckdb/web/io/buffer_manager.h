@@ -125,12 +125,12 @@ class BufferManager {
         /// The path
         std::string path;
         /// The file
-        std::unique_ptr<File> file;
+        std::shared_ptr<File> file;
         /// The references
         size_t references;
 
         /// Constructor
-        RegisteredFile(uint16_t file_id, std::string_view path, std::unique_ptr<File> file = nullptr);
+        RegisteredFile(uint16_t file_id, std::string_view path, std::shared_ptr<File> file = nullptr);
     };
 
     /// The page size
@@ -176,7 +176,7 @@ class BufferManager {
     size_t GetPageIDFromOffset(size_t offset) { return offset >> page_size_bits; }
 
     /// Add a file
-    FileRef AddFile(std::string_view path);
+    FileRef AddFile(std::string_view path, std::shared_ptr<File> file = nullptr);
     /// Write all pages of a file
     void FlushFile(FileRef& file);
     /// Release a file ref

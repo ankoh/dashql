@@ -54,7 +54,7 @@ BufferManager::~BufferManager() {
     }
 }
 
-BufferManager::FileRef BufferManager::AddFile(std::string_view path) {
+BufferManager::FileRef BufferManager::AddFile(std::string_view path, std::shared_ptr<File> file) {
     // Already added?
     if (auto iter = files_by_path.find(path); iter != files_by_path.end()) {
         return CreateFileRef(files.at(iter->second));
@@ -73,7 +73,7 @@ BufferManager::FileRef BufferManager::AddFile(std::string_view path) {
     } else {
         ++allocated_file_ids;
     }
-    auto iter = files.insert({file_id, RegisteredFile{file_id, std::string{path}}});
+    auto iter = files.insert({file_id, RegisteredFile{file_id, std::string{path}, std::move(file)}});
     // Return file id
     return CreateFileRef(iter.first->second);
 }
