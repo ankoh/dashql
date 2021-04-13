@@ -62,7 +62,8 @@ arrow::Result<arrow::util::string_view> InputFileStream::Peek(int64_t nbytes) {
     auto n = std::min<size_t>(nbytes, buffer_manager_.GetPageSize());
     auto page_id = file_position_ >> buffer_manager_.GetPageSizeShift();
     tmp_page_ = std::move(buffer_manager_.FixPage(file_, page_id, false));
-    return arrow::util::string_view{static_cast<const char*>(tmp_page_->GetData()), n};
+    auto data = tmp_page_->GetData();
+    return arrow::util::string_view{data.data(), data.size()};
 }
 
 }  // namespace io
