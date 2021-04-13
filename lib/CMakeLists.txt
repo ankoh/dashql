@@ -270,10 +270,10 @@ add_library(dashql_analyzer
 )
 
 add_library(duckdb_web
-    ${CMAKE_SOURCE_DIR}/src/duckdb/web/io/buffer_manager.cc
     ${CMAKE_SOURCE_DIR}/src/duckdb/web/io/arrow_ifstream.cc
-    ${CMAKE_SOURCE_DIR}/src/duckdb/web/io/filesystem.cc
-    ${CMAKE_SOURCE_DIR}/src/duckdb/web/io/filesystem_api_stubs.cc
+    ${CMAKE_SOURCE_DIR}/src/duckdb/web/io/buffer_manager.cc
+    ${CMAKE_SOURCE_DIR}/src/duckdb/web/io/buffered_filesystem.cc
+    ${CMAKE_SOURCE_DIR}/src/duckdb/web/io/web_filesystem.cc
     ${CMAKE_SOURCE_DIR}/src/duckdb/web/miniz_zipper.cc
     ${CMAKE_SOURCE_DIR}/src/duckdb/web/wasm_response.cc
     ${CMAKE_SOURCE_DIR}/src/duckdb/web/webdb.cc
