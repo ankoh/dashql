@@ -216,6 +216,8 @@ class BufferManager {
     size_t Read(const FileRef& file, void* buffer, size_t n, size_t offset);
     /// Write at most n bytes
     size_t Write(const FileRef& file, void* buffer, size_t n, size_t offset);
+    /// Truncate the file
+    void Truncate(const FileRef& file, size_t new_size);
 
     /// Returns the page ids of all pages that are in the FIFO list in FIFO order.
     std::vector<uint64_t> get_fifo_list() const;
