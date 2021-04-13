@@ -13,6 +13,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include "duckdb/common/file_system.hpp"
 #include "duckdb/web/io/file.h"
 
 namespace duckdb {
@@ -57,6 +58,22 @@ class BufferFrame {
 };
 
 class BufferManager {
+   protected:
+    /// A registered file
+    struct RegisteredFile {
+        /// The file id
+        uint16_t file_id;
+        /// The path
+        std::string path;
+        /// The file
+        std::unique_ptr<duckdb::FileHandle> handle;
+        /// The references
+        size_t references;
+
+        /// Constructor
+        RegisteredFile(uint16_t file_id, std::string_view path, std::unique_ptr<duckdb::FileHandle> file = nullptr);
+    };
+
    public:
     /// A file reference
     class FileRef {
@@ -64,14 +81,12 @@ class BufferManager {
 
        protected:
         /// The buffer manager
-        BufferManager* buffer_manager_;
+        BufferManager& buffer_manager_;
         /// The file id
-        const uint16_t file_id_;
-        /// The path
-        const std::string_view file_path_;
+        const RegisteredFile* file_;
         /// The constructor
-        explicit FileRef(BufferManager* buffer_manager, uint16_t file_id, std::string_view file_path)
-            : buffer_manager_(buffer_manager), file_id_(file_id), file_path_(file_path) {}
+        explicit FileRef(BufferManager& buffer_manager, const RegisteredFile* file)
+            : buffer_manager_(buffer_manager), file_(file) {}
 
        public:
         /// Move constructor
@@ -81,7 +96,9 @@ class BufferManager {
         /// Move assignment
         FileRef& operator=(FileRef&& other);
         /// Get path
-        auto GetPath() const { return file_path_; }
+        auto& GetPath() const { return file_->path; }
+        /// Get handle
+        auto& GetHandle() const { return file_->handle; }
         /// Release the file ref
         void Release();
         /// Is set?
@@ -118,26 +135,13 @@ class BufferManager {
     };
 
    protected:
-    /// A registered file
-    struct RegisteredFile {
-        /// The file id
-        uint16_t file_id;
-        /// The path
-        std::string path;
-        /// The file
-        std::shared_ptr<File> file;
-        /// The references
-        size_t references;
-
-        /// Constructor
-        RegisteredFile(uint16_t file_id, std::string_view path, std::shared_ptr<File> file = nullptr);
-    };
-
     /// The page size
     const size_t page_size_bits;
 
+    /// The actual filesystem
+    std::shared_ptr<duckdb::FileSystem> filesystem;
     /// Maps frame ids to their files
-    std::unordered_map<uint16_t, RegisteredFile> files = {};
+    std::unordered_map<uint16_t, std::unique_ptr<RegisteredFile>> files = {};
     /// The file ids
     std::unordered_map<std::string_view, uint16_t> files_by_path = {};
     /// The free file ids
@@ -148,9 +152,9 @@ class BufferManager {
     /// Maps page_ids to BufferFrame objects of all pages that are currently in memory
     std::map<uint64_t, BufferFrame> frames = {};
     /// FIFO list of pages
-    std::list<BufferFrame*> fifo;
+    std::list<BufferFrame*> fifo = {};
     /// LRU list of pages
-    std::list<BufferFrame*> lru;
+    std::list<BufferFrame*> lru = {};
 
     /// Create a file ref
     FileRef CreateFileRef(RegisteredFile& file);
@@ -168,7 +172,7 @@ class BufferManager {
    public:
     /// Constructor.
     /// Use 8KiB pages by default (1 << 13)
-    BufferManager(size_t page_size_bits = 13);
+    BufferManager(std::shared_ptr<duckdb::FileSystem> filesystem, size_t page_size_bits = 13);
     /// Destructor
     ~BufferManager();
 
@@ -176,7 +180,7 @@ class BufferManager {
     size_t GetPageIDFromOffset(size_t offset) { return offset >> page_size_bits; }
 
     /// Add a file
-    FileRef AddFile(std::string_view path, std::shared_ptr<File> file = nullptr);
+    FileRef AddFile(std::string_view path, std::unique_ptr<duckdb::FileHandle> file = nullptr);
     /// Write all pages of a file
     void FlushFile(FileRef& file);
     /// Release a file ref
