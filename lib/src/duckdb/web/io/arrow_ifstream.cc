@@ -18,10 +18,14 @@ InputFileStream::InputFileStream(BufferManager& buffer_manager, std::string_view
     : buffer_manager_(buffer_manager), file_(buffer_manager_.AddFile(path)) {}
 
 /// Destructor
-InputFileStream::~InputFileStream() = default;
+InputFileStream::~InputFileStream() {
+    tmp_page_.reset();
+    file_.Release();
+};
 
 /// Close the input file stream
 arrow::Status InputFileStream::Close() {
+    tmp_page_.reset();
     file_.Release();
     return arrow::Status::OK();
 }
@@ -34,31 +38,19 @@ arrow::Status InputFileStream::Abort() {
 
 /// Return the position in the file
 arrow::Result<int64_t> InputFileStream::Tell() const { return file_position_; }
-
 /// Is the stream closed?
 bool InputFileStream::closed() const { return !static_cast<bool>(file_); }
 
 /// Read at most nbytes bytes from the file
 arrow::Result<int64_t> InputFileStream::Read(int64_t nbytes, void* out) {
+    tmp_page_.reset();
     auto n = buffer_manager_.Read(file_, out, nbytes, file_position_);
     file_position_ += n;
     return n;
 }
 
-namespace {
-
-struct FixedPage : public arrow::Buffer {
-    BufferManager::BufferRef buffer;
-    FixedPage(BufferManager::BufferRef buffer, nonstd::span<char> view)
-        : arrow::Buffer(reinterpret_cast<uint8_t*>(view.data()), view.size()), buffer(std::move(buffer)) {}
-    ~FixedPage() {}
-    FixedPage(const FixedPage& other) = delete;
-};
-
-}  // namespace
-
-/// Read at most nbytes bytes from the file
-arrow::Result<std::shared_ptr<arrow::Buffer>> InputFileStream::Read(int64_t nbytes) {
+/// Peek at most nbytes bytes from the file
+arrow::Result<InputFileStream::PageView> InputFileStream::PeekView(int64_t nbytes) {
     // Determine page & offset
     auto page_id = file_position_ >> buffer_manager_.GetPageSizeShift();
     auto skip_here = file_position_ - page_id * buffer_manager_.GetPageSize();
@@ -68,28 +60,28 @@ arrow::Result<std::shared_ptr<arrow::Buffer>> InputFileStream::Read(int64_t nbyt
     auto page = buffer_manager_.FixPage(file_, page_id, false);
     assert(skip_here <= page.GetData().size());
     auto data = page.GetData().subspan(skip_here);
-    file_position_ += data.size();
-    return std::make_shared<FixedPage>(std::move(page), data);
+    return PageView{std::move(page), data};
+}
+
+/// Read at most nbytes bytes from the file
+arrow::Result<std::shared_ptr<arrow::Buffer>> InputFileStream::Read(int64_t nbytes) {
+    ARROW_ASSIGN_OR_RAISE(auto view, PeekView(nbytes));
+    file_position_ += view.size();
+    return std::make_shared<InputFileStream::PageView>(std::move(view));
 }
 
 /// Advance the file position by nbytes bytes
 arrow::Status InputFileStream::Advance(int64_t nbytes) {
+    tmp_page_.reset();
     file_position_ += nbytes;
     return arrow::Status::OK();
 }
 
 /// Read at most nbytes bytes from the file without advancing the file position
 arrow::Result<arrow::util::string_view> InputFileStream::Peek(int64_t nbytes) {
-    // Determine page & offset
-    auto page_id = file_position_ >> buffer_manager_.GetPageSizeShift();
-    auto skip_here = file_position_ - page_id * buffer_manager_.GetPageSize();
-    auto read_here = std::min<size_t>(nbytes, buffer_manager_.GetPageSize() - skip_here);
-
-    // Peek page
-    tmp_page_ = buffer_manager_.FixPage(file_, page_id, false);
-    assert(skip_here <= tmp_page_->GetData().size());
-    auto data = tmp_page_->GetData().subspan(skip_here);
-    return arrow::util::string_view{data.data(), data.size()};
+    ARROW_ASSIGN_OR_RAISE(auto view, PeekView(nbytes));
+    tmp_page_ = std::move(view);
+    return arrow::util::string_view{*tmp_page_};
 }
 
 }  // namespace io

@@ -3,6 +3,7 @@
 #ifndef INCLUDE_DUCKDB_WEB_ARROW_STREAMS_H_
 #define INCLUDE_DUCKDB_WEB_ARROW_STREAMS_H_
 
+#include "arrow/buffer.h"
 #include "arrow/io/interfaces.h"
 #include "duckdb/common/constants.hpp"
 #include "duckdb/common/file_system.hpp"
@@ -14,6 +15,26 @@ namespace io {
 
 class InputFileStream : virtual public arrow::io::InputStream {
    protected:
+    /// An arrow buffer for a view into a fixed page
+    struct PageView : public arrow::Buffer {
+        /// The buffer ref which will unfix the page on destruction
+        BufferManager::BufferRef buffer;
+        /// Constructor
+        PageView(BufferManager::BufferRef buffer, nonstd::span<char> view)
+            : arrow::Buffer(reinterpret_cast<uint8_t*>(view.data()), view.size()), buffer(std::move(buffer)) {}
+        /// Constructor
+        PageView(PageView&& other) : arrow::Buffer(other.data(), other.size()), buffer(std::move(other.buffer)) {}
+        /// Destructor
+        ~PageView() = default;
+        /// Deleted copy constructor
+        PageView(const PageView& other) = delete;
+        /// Move assginment
+        PageView& operator=(PageView&& other) {
+            buffer = std::move(other.buffer);
+            return *this;
+        }
+    };
+
     /// The file system
     BufferManager& buffer_manager_;
     /// The file id
@@ -21,7 +42,10 @@ class InputFileStream : virtual public arrow::io::InputStream {
     /// The file position
     size_t file_position_ = 0;
     /// The temporarily fixed page
-    std::optional<BufferManager::BufferRef> tmp_page_ = std::nullopt;
+    std::optional<PageView> tmp_page_ = std::nullopt;
+
+    /// Read data from current file position without advancing the position
+    arrow::Result<PageView> PeekView(int64_t nbytes);
 
    public:
     /// Constructor
