@@ -16,33 +16,33 @@ interface NodeFile {
 }
 
 export var NodeDuckDBRuntime: DuckDBRuntime & {
-    fileByPath: Map<string, NodeFile>;
-    fileByID: Map<number, NodeFile>;
+    filesByPath: Map<string, NodeFile>;
+    filesByID: Map<number, NodeFile>;
     nextFileID: number;
 } = {
-    fileByPath: new Map<string, NodeFile>(),
-    fileByID: new Map<number, NodeFile>(),
+    filesByPath: new Map<string, NodeFile>(),
+    filesByID: new Map<number, NodeFile>(),
     nextFileID: 0,
     bindings: null,
 
     duckdb_web_add_handle: function (path: any, handle: any): void {
-        if (NodeDuckDBRuntime.fileByPath.has(path)) return;
-        NodeDuckDBRuntime.fileByPath.set(path, handle);
-        NodeDuckDBRuntime.fileByID.set(path, handle);
+        if (NodeDuckDBRuntime.filesByPath.has(path)) return;
+        NodeDuckDBRuntime.filesByPath.set(path, handle);
+        NodeDuckDBRuntime.filesByID.set(path, handle);
     },
     duckdb_web_get_object_url(path: string): string | null {
-        let handle = NodeDuckDBRuntime.fileByPath.has(path);
+        let handle = NodeDuckDBRuntime.filesByPath.has(path);
         if (!handle) return null;
         return p.resolve(path);
     },
     duckdb_web_fs_read: function (fileId: number, buf: number, bytes: number, location: number) {
-        const file = NodeDuckDBRuntime.fileByID.get(fileId);
+        const file = NodeDuckDBRuntime.filesByID.get(fileId);
         if (!file) return 0;
         let heap: Uint8Array = NodeDuckDBRuntime.bindings!.instance!.HEAPU8;
         return fs.readSync(file.fd, heap, buf, bytes, location);
     },
     duckdb_web_fs_write: function (fileId: number, buf: number, bytes: number, location: number) {
-        const file = NodeDuckDBRuntime.fileByID.get(fileId);
+        const file = NodeDuckDBRuntime.filesByID.get(fileId);
         if (!file) return 0;
         const heap: Uint8Array = NodeDuckDBRuntime.bindings!.instance!.HEAPU8;
         const slice = heap.subarray(buf, buf + bytes);
@@ -70,7 +70,7 @@ export var NodeDuckDBRuntime: DuckDBRuntime & {
         const instance = NodeDuckDBRuntime.bindings!.instance!;
         const path = decoder.decode(instance.HEAPU8.subarray(pathPtr, pathPtr + pathLen));
         let re = globToRegexp(path);
-        for (let path of NodeDuckDBRuntime.fileByPath.keys()) {
+        for (let path of NodeDuckDBRuntime.filesByPath.keys()) {
             if (re.test(path)) {
                 const data = encoder.encode(path);
                 const ptr = instance.stackAlloc(data.length);
@@ -87,7 +87,7 @@ export var NodeDuckDBRuntime: DuckDBRuntime & {
     duckdb_web_fs_file_open: function (pathPtr: number, pathLen: number, flags: number) {
         const instance = NodeDuckDBRuntime.bindings!.instance!;
         const path = decoder.decode(instance.HEAPU8.subarray(pathPtr, pathPtr + pathLen));
-        const file = NodeDuckDBRuntime.fileByPath.get(path);
+        const file = NodeDuckDBRuntime.filesByPath.get(path);
         if (file) return file.fileID;
 
         // Just always open with WRITE for now.
@@ -101,23 +101,23 @@ export var NodeDuckDBRuntime: DuckDBRuntime & {
             fd,
             stat,
         };
-        NodeDuckDBRuntime.fileByPath.set(path, newFile);
-        NodeDuckDBRuntime.fileByID.set(fileID, newFile);
+        NodeDuckDBRuntime.filesByPath.set(path, newFile);
+        NodeDuckDBRuntime.filesByID.set(fileID, newFile);
         return fileID;
     },
     duckdb_web_fs_file_close: function (fileId: number) {
-        const file = NodeDuckDBRuntime.fileByID.get(fileId);
+        const file = NodeDuckDBRuntime.filesByID.get(fileId);
         if (!file) return;
-        NodeDuckDBRuntime.fileByID.delete(fileId);
-        NodeDuckDBRuntime.fileByPath.delete(file.path);
+        NodeDuckDBRuntime.filesByID.delete(fileId);
+        NodeDuckDBRuntime.filesByPath.delete(file.path);
     },
     duckdb_web_fs_file_get_size: function (fileId: number): number {
-        const file = NodeDuckDBRuntime.fileByID.get(fileId);
+        const file = NodeDuckDBRuntime.filesByID.get(fileId);
         if (!file) return 0;
         return file.stat.size;
     },
     duckdb_web_fs_file_get_last_modified_time: function (fileId: number) {
-        const file = NodeDuckDBRuntime.fileByID.get(fileId);
+        const file = NodeDuckDBRuntime.filesByID.get(fileId);
         if (!file) return 0;
         return file.stat.mtime.getTime();
     },
@@ -130,7 +130,7 @@ export var NodeDuckDBRuntime: DuckDBRuntime & {
     duckdb_web_fs_file_exists: function (pathPtr: number, pathLen: number) {
         const instance = NodeDuckDBRuntime.bindings!.instance!;
         const path = decoder.decode(instance.HEAPU8.subarray(pathPtr, pathPtr + pathLen));
-        return NodeDuckDBRuntime.fileByPath.has(path);
+        return NodeDuckDBRuntime.filesByPath.has(path);
     },
     duckdb_web_fs_file_remove: function (pathPtr: number, pathLen: number) {
         const instance = NodeDuckDBRuntime.bindings!.instance!;
