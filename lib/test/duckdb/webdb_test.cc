@@ -9,7 +9,6 @@
 #include "duckdb/common/types/date.hpp"
 #include "duckdb/common/types/timestamp.hpp"
 #include "duckdb/execution/operator/persistent/buffered_csv_reader.hpp"
-#include "duckdb/web/io/filesystem.h"
 #include "gtest/gtest.h"
 #include "parquet-extension.hpp"
 
