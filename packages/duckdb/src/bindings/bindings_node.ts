@@ -13,28 +13,13 @@ declare global {
 
 /** DuckDB bindings for node.js */
 export class DuckDB extends DuckDBBindings {
+    /// The path of the wasm module
     protected path: string;
+
+    /// Constructor
     public constructor(logger: Logger, runtime: DuckDBRuntime, path: string) {
         super(logger, runtime);
         this.path = path;
-    }
-
-    /// Registers the given URL as a file to be possibly loaded by DuckDB. Returns true on success, false otherwise.
-    public async registerURL(url: string): Promise<boolean> {
-        if (fs.existsSync(url)) {
-            try {
-                this._runtime.duckdb_web_add_handle(url, {
-                    url: url,
-                    handle: fs.openSync(url, 'r'),
-                    stat: fs.statSync(url),
-                });
-                return true;
-            } catch (e) {
-                return false;
-            }
-        }
-
-        return false;
     }
 
     /// Instantiate the wasm module
