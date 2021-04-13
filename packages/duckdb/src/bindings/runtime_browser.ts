@@ -1,152 +1,131 @@
 // Copyright (c) 2020 The DashQL Authors
 
-import { DuckDBRuntime, FileFlags } from './runtime_base';
+import { DuckDBRuntime } from './runtime_base';
 import globToRegexp from 'glob-to-regexp';
 
 const decoder = new TextDecoder();
 const encoder = new TextEncoder();
 
-const pageSize = 1024 * 1024;
-const maxPages = 32;
-
-interface WebBlobHandle {
+interface RuntimeFile {
+    fileID: number;
     url: string;
+    blob: Blob | null;
+    buffer: Uint8Array | null;
+    lastModified: Date;
 }
 
-interface WriteWebBlobHandle extends WebBlobHandle {
-    parts: Uint8Array[];
-    size: number;
-}
-
-interface ReadWebBlobHandle extends WebBlobHandle {
-    blob: Blob;
-    page_queue: number[];
-    pages: Map<number, Uint8Array>;
-}
-
-export interface BlobStream {
-    id: number;
-    handle: WebBlobHandle;
-    position: number;
-}
-
-function readPage(handle: ReadWebBlobHandle, reader: FileReaderSync, page: number): Uint8Array {
-    if (!handle.pages.has(page)) {
-        while (handle.page_queue.length > maxPages) {
-            handle.pages.delete(handle.page_queue.shift()!);
-        }
-        handle.page_queue.push(page);
-        const blob = handle.blob.slice(page * pageSize, (page + 1) * pageSize);
-        handle.pages.set(page, new Uint8Array(reader.readAsArrayBuffer(blob)));
-    }
-
-    if (handle.page_queue[handle.page_queue.length - 1] != page) {
-        // Move page to back of queue due to recent access
-        handle.page_queue.push(handle.page_queue.splice(handle.page_queue.indexOf(page), 1)[0]);
-    }
-    return handle.pages.get(page)!;
-}
-
-function readBytes(stream: BlobStream, buf: number, bytes: number) {
-    const reader = new FileReaderSync();
-    const heap: Uint8Array = BrowserDuckDBRuntime.bindings!.instance!.HEAPU8;
-    let read = 0;
-    while (bytes > 0) {
-        const pageId = Math.trunc(stream.position / pageSize);
-        const page = readPage(stream.handle as ReadWebBlobHandle, reader, pageId);
-        const pageStart = stream.position - pageId * pageSize;
-        const size = Math.min(bytes, page.length - pageStart);
-        heap.set(page.subarray(pageStart, pageStart + size), buf);
-        buf += size;
-        stream.position += size;
-        bytes -= size;
-        read += size;
-    }
-    return read;
-}
-
-export var BrowserDuckDBRuntime: DuckDBRuntime & {
-    readHandleMap: Map<string, ReadWebBlobHandle>;
-    writeHandleMap: Map<string, WriteWebBlobHandle>;
-    streamMap: Map<number, BlobStream>;
-    streamCounter: number;
+const Runtime: DuckDBRuntime & {
+    filesByPath: Map<string, RuntimeFile>;
+    filesByID: Map<number, RuntimeFile>;
+    nextFileID: number;
 } = {
-    readHandleMap: new Map<string, ReadWebBlobHandle>(),
-    writeHandleMap: new Map<string, WriteWebBlobHandle>(),
-    streamMap: new Map<number, BlobStream>(),
-    streamCounter: 1,
+    filesByPath: new Map<string, RuntimeFile>(),
+    filesByID: new Map<number, RuntimeFile>(),
+    nextFileID: 0,
     bindings: null,
 
-    duckdb_web_add_handle: function (url: string, handle: any): void {
-        if (BrowserDuckDBRuntime.readHandleMap.has(url)) {
-            // Somewhat silently fail adding duplicate blob handle
-            // Not overwriting entry since blobstreams refer to their handle
-            console.info('URL already registered: ' + url);
+    duckdb_web_add_file_path(url: string, path: string): number {
+        throw Error('cannot register a file path');
+    },
+    duckdb_web_add_file_blob(url: string, blob: any): number {
+        const file = Runtime.filesByPath.get(url);
+        if (file) return file.fileID;
+        const fileID = Runtime.nextFileID++;
+        const newFile: RuntimeFile = {
+            fileID,
+            url,
+            blob,
+            buffer: null,
+            lastModified: new Date(),
+        };
+        Runtime.filesByPath.set(url, newFile);
+        Runtime.filesByID.set(fileID, newFile);
+        return fileID;
+    },
+    duckdb_web_add_file_buffer: function (url: string, buffer: Uint8Array) {
+        const file = Runtime.filesByPath.get(url);
+        if (file) return file.fileID;
+        const fileID = Runtime.nextFileID++;
+        const newFile: RuntimeFile = {
+            fileID,
+            url,
+            blob: null,
+            buffer: buffer,
+            lastModified: new Date(),
+        };
+        Runtime.filesByPath.set(url, newFile);
+        Runtime.filesByID.set(fileID, newFile);
+        return fileID;
+    },
+    duckdb_web_get_file_object_url(fileId: number): string | null {
+        const file = Runtime.filesByID.get(fileId);
+        if (!file) return null;
+        if (file.buffer) {
+            return URL.createObjectURL(new Blob([file.buffer]));
         } else {
-            BrowserDuckDBRuntime.readHandleMap.set(url, {
-                url: url,
-                blob: handle,
-                page_queue: [],
-                pages: new Map<number, Uint8Array>(),
-            });
+            return URL.createObjectURL(file.blob);
         }
     },
-    duckdb_web_get_object_url(url: string): string | null {
-        let read_handle = BrowserDuckDBRuntime.readHandleMap.get(url);
-        if (read_handle) {
-            return read_handle.url;
+    duckdb_web_get_file_buffer(fileId: number): Uint8Array | null {
+        const file = Runtime.filesByID.get(fileId);
+        if (!file) return null;
+        if (file.buffer) {
+            return file.buffer;
+        } else {
+            return new Uint8Array(new FileReaderSync().readAsArrayBuffer(file.blob!));
         }
-
-        let write_handle = BrowserDuckDBRuntime.writeHandleMap.get(url);
-        if (write_handle) {
-            // XXX: This creates a memory leak
-            return URL.createObjectURL(new Blob(write_handle.parts));
-        }
-
-        return null;
     },
     duckdb_web_fs_read: function (fileId: number, buf: number, bytes: number, location: number) {
-        let stream = BrowserDuckDBRuntime.streamMap.get(fileId);
-        if (!stream) return 0;
-        return readBytes(stream, buf, bytes);
+        const file = Runtime.filesByID.get(fileId);
+        if (!file) return 0;
+        const instance = Runtime.bindings!.instance!;
+        const dst = instance.HEAPU8.subarray(buf, buf + bytes);
+        // We copy the blob only if the file was written to
+        if (file.buffer) {
+            const src = file.buffer.subarray(location, location + bytes);
+            dst.set(src);
+            return bytes;
+        } else {
+            const blob = file.blob!.slice(location, location + bytes);
+            const src = new Uint8Array(new FileReaderSync().readAsArrayBuffer(blob));
+            dst.set(src);
+            return bytes;
+        }
+        return 0;
     },
     duckdb_web_fs_write: function (fileId: number, buf: number, bytes: number, location: number) {
-        let stream = BrowserDuckDBRuntime.streamMap.get(fileId);
-        if (!stream) return 0;
-        let heap: Uint8Array = BrowserDuckDBRuntime.bindings!.instance!.HEAPU8;
-        let handle = <WriteWebBlobHandle>stream.handle;
-        if (stream.position == handle.size) {
-            const part = new Uint8Array(heap.buffer.slice(buf, buf + bytes));
-            handle.parts.push(part);
-            handle.size += part.length;
-            stream.position += part.length;
-            return part.length;
-        } else {
-            throw Error('Random write not supported');
+        const file = Runtime.filesByID.get(fileId);
+        if (!file) return 0;
+        const instance = Runtime.bindings!.instance!;
+        const src = instance.HEAPU8.subarray(buf, buf + bytes);
+        // Copy entire blob on first write
+        if (!file.buffer) {
+            file.buffer = new Uint8Array(new FileReaderSync().readAsArrayBuffer(file.blob!));
         }
+        const dst = file.buffer.subarray(location, location + bytes);
+        dst.set(src);
+        return bytes;
     },
     duckdb_web_fs_directory_exists: function (pathPtr: number, pathLen: number) {
-        throw Error('undefined');
+        // TODO check if theres any RuntimeFile with prefix
+        return false;
     },
-    duckdb_web_fs_directory_create: function (pathPtr: number, pathLen: number) {
-        throw Error('undefined');
-    },
-    duckdb_web_fs_directory_remove: function (pathPtr: number, pathLen: number) {
-        throw Error('undefined');
-    },
+    duckdb_web_fs_directory_create: function (pathPtr: number, pathLen: number) {},
+    duckdb_web_fs_directory_remove: function (pathPtr: number, pathLen: number) {},
     duckdb_web_fs_directory_list_files: function (pathPtr: number, pathLen: number) {
-        throw Error('undefined');
+        // TODO list files
+        return false;
     },
     duckdb_web_fs_glob: function (pathPtr: number, pathLen: number) {
-        let instance = BrowserDuckDBRuntime.bindings!.instance!;
+        const instance = Runtime.bindings!.instance!;
         const path = decoder.decode(instance.HEAPU8.subarray(pathPtr, pathPtr + pathLen));
-        let re = globToRegexp(path);
-        for (let url of BrowserDuckDBRuntime.readHandleMap.keys()) {
+        const re = globToRegexp(path);
+        for (const url of Runtime.filesByPath.keys()) {
             if (re.test(url)) {
                 const data = encoder.encode(url);
                 const ptr = instance.stackAlloc(data.length);
                 instance.HEAPU8.set(data, ptr);
-                BrowserDuckDBRuntime.bindings!.instance!.ccall(
+                Runtime.bindings!.instance!.ccall(
                     'duckdb_web_fs_glob_callback',
                     null,
                     ['number', 'number'],
@@ -156,67 +135,47 @@ export var BrowserDuckDBRuntime: DuckDBRuntime & {
         }
     },
     duckdb_web_fs_file_open: function (pathPtr: number, pathLen: number, flags: number) {
-        // TODO: Respect all flags
-        let instance = BrowserDuckDBRuntime.bindings!.instance!;
+        const instance = Runtime.bindings!.instance!;
         const path = decoder.decode(instance.HEAPU8.subarray(pathPtr, pathPtr + pathLen));
+        const file = Runtime.filesByPath.get(path);
+        if (file) return file.fileID;
 
-        if ((flags & FileFlags.FILE_FLAGS_READ) == FileFlags.FILE_FLAGS_READ) {
-            const handle = BrowserDuckDBRuntime.readHandleMap.get(path);
-            if (!handle) throw Error('File not found or cannot be opened: ' + path);
-
-            const id = BrowserDuckDBRuntime.streamCounter;
-            BrowserDuckDBRuntime.streamMap.set(id, {
-                id: id,
-                handle: handle,
-                position: 0,
-            });
-            BrowserDuckDBRuntime.streamCounter++;
-            return id;
-        } else if ((flags & FileFlags.FILE_FLAGS_WRITE) == FileFlags.FILE_FLAGS_WRITE) {
-            let handle = BrowserDuckDBRuntime.writeHandleMap.get(path);
-            if (handle) throw Error('File is already opened: ' + path);
-
-            handle = {
-                url: path,
-                parts: [],
-                size: 0,
-            };
-
-            BrowserDuckDBRuntime.writeHandleMap.set(path, handle);
-
-            const id = BrowserDuckDBRuntime.streamCounter;
-            BrowserDuckDBRuntime.streamMap.set(id, {
-                id: id,
-                handle: handle,
-                position: 0,
-            });
-            BrowserDuckDBRuntime.streamCounter++;
-            return id;
-        } else {
-            throw Error('Unsupported file flags: ' + flags);
-        }
+        throw Error('File not found: ' + path);
     },
     duckdb_web_fs_file_close: function (fileId: number) {
-        BrowserDuckDBRuntime.streamMap.delete(fileId);
+        // Noop
     },
     duckdb_web_fs_file_get_size: function (fileId: number) {
-        let stream = BrowserDuckDBRuntime.streamMap.get(fileId);
-        if (!stream) return 0;
-        return (<ReadWebBlobHandle>BrowserDuckDBRuntime.readHandleMap.get(stream.handle.url)!).blob.size;
+        const file = Runtime.filesByID.get(fileId);
+        if (!file) return 0;
+        return file.buffer ? file.buffer.length : file.blob!.size;
     },
     duckdb_web_fs_file_get_last_modified_time: function (fileId: number) {
-        // TODO: Keep fetch response header to answer BrowserDuckDBRuntime
-        return 0;
+        const file = Runtime.filesByID.get(fileId);
+        if (!file) return 0;
+        return file.lastModified.getTime();
     },
     duckdb_web_fs_file_move: function (fromPtr: number, fromLen: number, toPtr: number, toLen: number) {
-        throw Error('undefined');
+        const instance = Runtime.bindings!.instance!;
+        const fromPath = decoder.decode(instance.HEAPU8.subarray(fromPtr, fromPtr + fromLen));
+        const toPath = decoder.decode(instance.HEAPU8.subarray(toPtr, toPtr + toLen));
+        const file = Runtime.filesByPath.get(fromPath);
+        if (!file) return;
+
+        file.url = toPath;
+        Runtime.filesByPath.delete(fromPath);
+        Runtime.filesByPath.set(toPath, file);
     },
     duckdb_web_fs_file_exists: function (pathPtr: number, pathLen: number) {
-        let instance = BrowserDuckDBRuntime.bindings!.instance!;
+        const instance = Runtime.bindings!.instance!;
         const path = decoder.decode(instance.HEAPU8.subarray(pathPtr, pathPtr + pathLen));
-        return BrowserDuckDBRuntime.readHandleMap.has(path);
+        const file = Runtime.filesByPath.get(path);
+        return !!file;
     },
     duckdb_web_fs_file_remove: function (pathPtr: number, pathLen: number) {
-        throw Error('undefined');
+        const instance = Runtime.bindings!.instance!;
+        const path = decoder.decode(instance.HEAPU8.subarray(pathPtr, pathPtr + pathLen));
+        Runtime.filesByPath.delete(path);
     },
 };
+export default Runtime;
