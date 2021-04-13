@@ -13,7 +13,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include "duckdb/web/buffer/file.h"
+#include "duckdb/web/io/file.h"
 
 namespace duckdb {
 namespace web {
@@ -55,19 +55,28 @@ class BufferFrame {
 
 class BufferManager {
    protected:
+    /// A registered file
+    struct RegisteredFile {
+        /// The path
+        std::string path;
+        /// The file
+        std::unique_ptr<File> file;
+
+        /// Constructor
+        RegisteredFile(std::string_view path, std::unique_ptr<File> file = nullptr);
+    };
+
     /// The page size
     const size_t page_size;
 
     /// Maps frame ids to their files
-    std::unordered_map<uint16_t, std::unique_ptr<File>> files = {};
+    std::unordered_map<uint16_t, RegisteredFile> files = {};
+    /// The file ids
+    std::unordered_map<std::string_view, uint16_t> files_by_path = {};
     /// The free file ids
     std::stack<uint16_t> free_file_ids = {};
     /// The next allocated file ids
-    uint16_t next_file_id = 0;
-    /// The file ids
-    std::unordered_map<std::string_view, uint16_t> file_ids = {};
-    /// The file names
-    std::unordered_map<uint16_t, std::string> file_paths = {};
+    uint16_t allocated_file_ids = 0;
 
     /// Maps page_ids to BufferFrame objects of all pages that are currently in memory
     std::map<uint64_t, BufferFrame> frames = {};

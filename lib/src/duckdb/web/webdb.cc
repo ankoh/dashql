@@ -21,8 +21,8 @@
 #include "duckdb.hpp"
 #include "duckdb/common/arrow.hpp"
 #include "duckdb/main/query_result.hpp"
-#include "duckdb/web/arrow_ifstream.h"
-#include "duckdb/web/filesystem.h"
+#include "duckdb/web/io/arrow_ifstream.h"
+#include "duckdb/web/io/filesystem.h"
 #include "parquet-extension.hpp"
 
 namespace duckdb {

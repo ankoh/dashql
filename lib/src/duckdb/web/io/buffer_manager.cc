@@ -1,7 +1,8 @@
-#include "duckdb/web/buffer/buffer_manager.h"
+#include "duckdb/web/io/buffer_manager.h"
 
 #include <cassert>
 #include <cstring>
+#include <limits>
 #include <memory>
 #include <string>
 #include <tuple>
@@ -31,7 +32,7 @@ void BufferFrame::Unlock() {
 
 /// Constructor
 BufferManager::BufferManager(size_t page_size, size_t page_count)
-    : page_size(page_size), files(), free_file_ids(), next_file_id(), frames(), fifo(), lru() {}
+    : page_size(page_size), files(), free_file_ids(), allocated_file_ids(), frames(), fifo(), lru() {}
 
 /// Destructor
 BufferManager::~BufferManager() {
@@ -42,8 +43,14 @@ BufferManager::~BufferManager() {
 
 uint16_t BufferManager::AddFile(std::string_view path) {
     // Already added?
-    if (auto iter = file_ids.find(path); iter != file_ids.end()) {
+    if (auto iter = files_by_path.find(path); iter != files_by_path.end()) {
         return iter->second;
+    }
+    // More than
+    if (allocated_file_ids == std::numeric_limits<uint16_t>::max()) {
+        // XXX User wants to open more than 65535 files at the same time.
+        //     We don't support that.
+        throw "todo: something meaningful";
     }
     // Allocate file id
     uint16_t file_id;
@@ -51,20 +58,21 @@ uint16_t BufferManager::AddFile(std::string_view path) {
         file_id = free_file_ids.top();
         free_file_ids.pop();
     } else {
-        ++next_file_id;
+        ++allocated_file_ids;
     }
-    file_paths.insert({file_id, std::string{path}});
+    files.insert({file_id, RegisteredFile{std::string{path}}});
     // Return file id
     return file_id;
 }
 
 void BufferManager::FlushFile(uint16_t file_id) {
-    // Find file path
-    auto iter = file_paths.find(file_id);
-    if (iter != file_paths.end()) {
+    // Remove buffered file
+    auto iter = files.find(file_id);
+    if (iter != files.end()) {
         return;
     }
-    auto path = std::move(iter->second);
+    auto file = std::move(iter->second);
+    files.erase(file_id);
 
     // Find all frames
     auto lb = frames.lower_bound(BuildFrameID(file_id));
@@ -80,11 +88,10 @@ void BufferManager::FlushFile(uint16_t file_id) {
     }
     frames.erase(lb, ub);
 
-    // Erase file mappings
-    file_paths.erase(file_id);
-    file_ids.erase(path);
-    files.erase(file_id);
+    // Release file id
+    files_by_path.erase(file.path);
     free_file_ids.push(file_id);
+    --allocated_file_ids;
 }
 
 void BufferManager::LoadFrame(BufferFrame& page) {
@@ -92,23 +99,20 @@ void BufferManager::LoadFrame(BufferFrame& page) {
     auto page_id = GetPageID(page.frame_id);
 
     // Was the file opened already?
-    File* file;
-    if (auto it = files.find(file_id); it != files.end()) {
-        file = it->second.get();
-    } else {
+    assert(files.count(file_id));
+    auto& finfo = files.at(file_id);
+    if (!finfo.file) {
         // Open file in WRITE mode because we may have to write dirty pages to it.
-        auto iter = file_paths.find(file_id);
-        assert(iter != file_paths.end());
-        file = files.insert({file_id, File::OpenFile(iter->second.c_str(), File::WRITE)}).first->second.get();
+        finfo.file = File::OpenFile(finfo.path.c_str(), File::WRITE);
     }
 
     // When the file is too small, resize it and zero out the data for it.
     // As the bytes in the file are zeroed anyway, we don't have to read the zeroes from disk.
-    if (file->Size() < (page_id + 1) * page_size) {
-        file->Resize((page_id + 1) * page_size);
+    if (finfo.file->Size() < (page_id + 1) * page_size) {
+        finfo.file->Resize((page_id + 1) * page_size);
         std::memset(page.buffer.data(), 0, page_size);
     } else {
-        file->ReadBlock(page_id * page_size, page_size, page.buffer.data());
+        finfo.file->ReadBlock(page_id * page_size, page_size, page.buffer.data());
     }
     page.is_dirty = false;
 }
@@ -116,8 +120,8 @@ void BufferManager::LoadFrame(BufferFrame& page) {
 void BufferManager::FlushPage(BufferFrame& page) {
     auto file_id = GetFileID(page.frame_id);
     auto page_id = GetPageID(page.frame_id);
-    auto& file = *files.find(file_id)->second;
-    file.WriteBlock(page.buffer.data(), page_id * page_size, page_size);
+    auto& finfo = files.at(file_id);
+    finfo.file->WriteBlock(page.buffer.data(), page_id * page_size, page_size);
     page.is_dirty = false;
 }
 
