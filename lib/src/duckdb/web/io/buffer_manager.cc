@@ -45,6 +45,74 @@ void BufferFrame::Unlock() {
 }
 
 /// Constructor
+BufferManager::RegisteredFile::RegisteredFile(uint16_t file_id, std::string_view path,
+                                              std::unique_ptr<duckdb::FileHandle> handle)
+    : file_id(file_id), path(path), handle(std::move(handle)), references(0) {}
+
+/// Constructor
+BufferManager::FileRef::FileRef(BufferManager& buffer_manager, RegisteredFile& file)
+    : buffer_manager_(buffer_manager), file_(&file) {
+    ++file.references;
+}
+
+/// Destructor
+BufferManager::FileRef::~FileRef() { Release(); }
+
+/// Release the file ref
+void BufferManager::FileRef::Release() {
+    if (file_) {
+        buffer_manager_.ReleaseFile(*file_);
+        file_ = nullptr;
+    }
+}
+
+/// Destructor
+BufferManager::FileRef& BufferManager::FileRef::operator=(FileRef&& other) {
+    assert(&buffer_manager_ == &other.buffer_manager_);
+    Release();
+    file_ = other.file_;
+    other.file_ = nullptr;
+    return *this;
+}
+
+/// Constructor
+BufferManager::BufferRef::BufferRef(BufferManager& buffer_manager, uint64_t frame_id, void* data)
+    : buffer_manager_(buffer_manager), frame_id_(frame_id), data_(data), is_dirty_(false) {}
+
+/// Move Constructor
+BufferManager::BufferRef::BufferRef(BufferRef&& other)
+    : buffer_manager_(other.buffer_manager_),
+      frame_id_(std::move(other.frame_id_)),
+      data_(other.data_),
+      is_dirty_(other.is_dirty_) {
+    other.frame_id_.reset();
+}
+
+/// Move Constructor
+BufferManager::BufferRef& BufferManager::BufferRef::operator=(BufferRef&& other) {
+    assert(&buffer_manager_ == &other.buffer_manager_);
+    Release();
+    frame_id_ = other.frame_id_;
+    data_ = other.data_;
+    is_dirty_ = other.is_dirty_;
+    other.frame_id_.reset();
+    other.data_ = nullptr;
+    return *this;
+}
+
+/// Destructor
+BufferManager::BufferRef::~BufferRef() { Release(); }
+
+/// Constructor
+void BufferManager::BufferRef::Release() {
+    if (frame_id_) {
+        buffer_manager_.UnfixPage(*frame_id_, is_dirty_);
+        frame_id_.reset();
+        data_ = nullptr;
+    }
+}
+
+/// Constructor
 BufferManager::BufferManager(std::unique_ptr<duckdb::FileSystem> filesystem, size_t page_size_bits)
     : page_size_bits(page_size_bits), filesystem(std::move(filesystem)) {}
 
@@ -58,7 +126,7 @@ BufferManager::~BufferManager() {
 BufferManager::FileRef BufferManager::AddFile(std::string_view path, std::unique_ptr<duckdb::FileHandle> handle) {
     // Already added?
     if (auto iter = files_by_path.find(path); iter != files_by_path.end()) {
-        return CreateFileRef(*files.at(iter->second));
+        return FileRef{*this, *files.at(iter->second)};
     }
     // More than
     if (allocated_file_ids == std::numeric_limits<uint16_t>::max()) {
@@ -80,10 +148,10 @@ BufferManager::FileRef BufferManager::AddFile(std::string_view path, std::unique
     if (!file.handle) {
         file.handle = filesystem->OpenFile(file.path.c_str(), duckdb::FileFlags::FILE_FLAGS_WRITE);
     }
-    return CreateFileRef(file);
+    return FileRef{*this, file};
 }
 
-void BufferManager::FlushFile(FileRef& file_ref) {
+void BufferManager::FlushFile(const FileRef& file_ref) {
     // Remove buffered file
     auto file_id = file_ref.file_->file_id;
     auto iter = files.find(file_id);
@@ -106,15 +174,12 @@ void BufferManager::FlushFile(FileRef& file_ref) {
     }
 }
 
-void BufferManager::ReleaseFile(BufferManager::FileRef&& file_ref) {
-    if (!file_ref) return;
-
+void BufferManager::ReleaseFile(RegisteredFile& finfo) {
     // Get the file
-    auto file_id = file_ref.file_->file_id;
+    auto file_id = finfo.file_id;
     auto file_iter = files.find(file_id);
     if (file_iter != files.end()) return;
     auto& file = *file_iter->second;
-    file_ref.file_ = nullptr;
 
     // Any open file references?
     assert(file.references > 0);
@@ -213,10 +278,10 @@ std::vector<char> BufferManager::AllocatePage() {
 }
 
 /// Get the file size
-size_t BufferManager::GetFileSize(FileRef& file) { return filesystem->GetFileSize(file.GetHandle()); }
+size_t BufferManager::GetFileSize(const FileRef& file) { return filesystem->GetFileSize(file.GetHandle()); }
 
 /// Fix a page
-BufferManager::BufferRef BufferManager::FixPage(FileRef& file_ref, uint64_t page_id, bool exclusive) {
+BufferManager::BufferRef BufferManager::FixPage(const FileRef& file_ref, uint64_t page_id, bool exclusive) {
     // Does the page exist?
     auto file_id = file_ref.file_->file_id;
     auto frame_id = BuildFrameID(file_id, page_id);
@@ -234,7 +299,7 @@ BufferManager::BufferRef BufferManager::FixPage(FileRef& file_ref, uint64_t page
             frame.lru_position = lru.insert(lru.end(), &frame);
         }
         frame.Lock(exclusive);
-        return BufferRef{frame_id, frame.GetData()};
+        return BufferRef{*this, frame_id, frame.GetData()};
     }
 
     // Create a new page and don't insert it in the queues, yet.
@@ -246,20 +311,18 @@ BufferManager::BufferRef BufferManager::FixPage(FileRef& file_ref, uint64_t page
 
     // Load the data
     LoadFrame(frame);
-    return BufferRef{frame_id, frame.GetData()};
+    return BufferRef{*this, frame_id, frame.GetData()};
 }
 
-void BufferManager::UnfixPage(BufferRef buffer, bool is_dirty) {
-    auto iter = frames.find(buffer.frame_id_);
+void BufferManager::UnfixPage(size_t frame_id, bool is_dirty) {
+    auto iter = frames.find(frame_id);
     if (iter != frames.end()) return;
     auto& frame = iter->second;
     frame.is_dirty = frame.is_dirty || is_dirty;
     frame.Unlock();
-    buffer.buffer_manager_ = nullptr;
-    buffer.data_ = nullptr;
 }
 
-void BufferManager::Read(FileRef& file, void* out, size_t bytes, size_t offset) {
+void BufferManager::Read(const FileRef& file, void* out, size_t bytes, size_t offset) {
     auto* writer = static_cast<char*>(out);
     while (bytes > 0) {
         auto page_id = offset >> GetPageSizeShift();
@@ -273,7 +336,7 @@ void BufferManager::Read(FileRef& file, void* out, size_t bytes, size_t offset) 
     }
 }
 
-void BufferManager::Write(FileRef& file, void* in, size_t bytes, size_t offset) {
+void BufferManager::Write(const FileRef& file, void* in, size_t bytes, size_t offset) {
     auto* reader = static_cast<char*>(in);
     size_t total = 0;
     while (bytes > 0) {
