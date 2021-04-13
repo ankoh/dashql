@@ -57,30 +57,6 @@ void duckdb_web_query_fetch_results(WASMResponse* packed, ConnectionHdl connHdl)
     WASMResponseBuffer::GetInstance().Store(*packed, std::move(r));
 }
 
-/// Import CSV from a file
-void duckdb_web_csv_import(WASMResponse* packed, ConnectionHdl connHdl, const char* filePath, const char* schemaName,
-                           const char* tableName) {
-    auto c = reinterpret_cast<WebDB::Connection*>(connHdl);
-    using LT = duckdb::LogicalType;
-
-    std::vector<duckdb::LogicalType> column_types{LT::INTEGER, LT::INTEGER, LT::INTEGER};
-    duckdb::DataChunk output_chunk;
-    output_chunk.Initialize(column_types);
-
-    duckdb::BufferedCSVReaderOptions options;
-    options.num_cols = 3;
-    auto& fs = WebDB::GetInstance().filesystem();
-    auto handle = fs.OpenFile(filePath, duckdb::FileFlags::FILE_FLAGS_READ);
-    duckdb::web::FileSystemStreamBuffer streambuf(fs, *handle);
-    try {
-        duckdb::BufferedCSVReader reader(options, column_types, std::make_unique<std::istream>(&streambuf));
-        reader.ParseCSV(output_chunk);
-        WASMResponseBuffer::GetInstance().Store(*packed, arrow::Status::OK());
-    } catch (const std::exception& e) {
-        WASMResponseBuffer::GetInstance().Store(*packed, arrow::Status(arrow::StatusCode::ExecutionError, e.what()));
-    }
-}
-
 static void RaiseExtensionNotLoaded(WASMResponse* packed, std::string_view ext) {
     WASMResponseBuffer::GetInstance().Store(
         *packed, arrow::Status(arrow::StatusCode::NotImplemented, "Extension is not loaded: " + std::string{ext}));

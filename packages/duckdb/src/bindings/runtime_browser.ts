@@ -105,13 +105,13 @@ export var BrowserDuckDBRuntime: DuckDBRuntime & {
 
         return null;
     },
-    duckdb_web_fs_read: function (blobId: number, buf: number, bytes: number) {
-        let stream = BrowserDuckDBRuntime.streamMap.get(blobId);
+    duckdb_web_fs_read: function (fileId: number, buf: number, bytes: number) {
+        let stream = BrowserDuckDBRuntime.streamMap.get(fileId);
         if (!stream) return 0;
         return readBytes(stream, buf, bytes);
     },
-    duckdb_web_fs_write: function (blobId: number, buf: number, bytes: number) {
-        let stream = BrowserDuckDBRuntime.streamMap.get(blobId);
+    duckdb_web_fs_write: function (fileId: number, buf: number, bytes: number) {
+        let stream = BrowserDuckDBRuntime.streamMap.get(fileId);
         if (!stream) return 0;
         let heap: Uint8Array = BrowserDuckDBRuntime.bindings!.instance!.HEAPU8;
         let handle = <WriteWebBlobHandle>stream.handle;
@@ -196,26 +196,26 @@ export var BrowserDuckDBRuntime: DuckDBRuntime & {
             throw Error('Unsupported file flags: ' + flags);
         }
     },
-    duckdb_web_fs_file_close: function (blobId: number) {
-        BrowserDuckDBRuntime.streamMap.delete(blobId);
+    duckdb_web_fs_file_close: function (fileId: number) {
+        BrowserDuckDBRuntime.streamMap.delete(fileId);
     },
-    duckdb_web_fs_file_sync: function (blobId: number) {
+    duckdb_web_fs_file_sync: function (fileId: number) {
         // noop
     },
-    duckdb_web_fs_file_get_size: function (blobId: number) {
-        let stream = BrowserDuckDBRuntime.streamMap.get(blobId);
+    duckdb_web_fs_file_get_size: function (fileId: number) {
+        let stream = BrowserDuckDBRuntime.streamMap.get(fileId);
         if (!stream) return 0;
         return (<ReadWebBlobHandle>BrowserDuckDBRuntime.readHandleMap.get(stream.handle.url)!).blob.size;
     },
-    duckdb_web_fs_file_get_last_modified_time: function (blobId: number) {
+    duckdb_web_fs_file_get_last_modified_time: function (fileId: number) {
         // TODO: Keep fetch response header to answer BrowserDuckDBRuntime
         return 0;
     },
     duckdb_web_fs_file_move: function (fromPtr: number, fromLen: number, toPtr: number, toLen: number) {
         throw Error('undefined');
     },
-    duckdb_web_fs_file_set_pointer: function (blobId: number, location: number) {
-        let stream = BrowserDuckDBRuntime.streamMap.get(blobId);
+    duckdb_web_fs_file_set_pointer: function (fileId: number, location: number) {
+        let stream = BrowserDuckDBRuntime.streamMap.get(fileId);
         if (stream) stream.position = location;
     },
     duckdb_web_fs_file_exists: function (pathPtr: number, pathLen: number) {
