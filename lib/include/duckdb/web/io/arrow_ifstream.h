@@ -93,7 +93,7 @@ class InputFileStream : virtual public arrow::io::InputStream {
     /// Zero copy reads imply the use of Buffer-returning Read() overloads.
     ///
     /// XXX We could
-    bool supports_zero_copy() const override { return false; }
+    bool supports_zero_copy() const override { return true; }
 };
 
 }  // namespace io
