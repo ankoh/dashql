@@ -130,7 +130,6 @@ export class AsyncDuckDB {
         switch (task.type) {
             case WorkerRequestType.RESET:
             case WorkerRequestType.PING:
-            case WorkerRequestType.IMPORT_CSV:
             case WorkerRequestType.OPEN:
             case WorkerRequestType.DISCONNECT:
                 if (response.type == WorkerResponseType.OK) {
@@ -138,14 +137,32 @@ export class AsyncDuckDB {
                     return;
                 }
                 break;
-            case WorkerRequestType.REGISTER_URL:
-                if (response.type == WorkerResponseType.SUCCESS) {
+            case WorkerRequestType.ADD_FILE_PATH:
+                if (response.type == WorkerResponseType.REGISTERED_FILE) {
                     task.promiseResolver(response.data);
                     return;
                 }
                 break;
-            case WorkerRequestType.GET_OBJECT_URL:
-                if (response.type == WorkerResponseType.OBJECT_URL) {
+            case WorkerRequestType.ADD_FILE_BLOB:
+                if (response.type == WorkerResponseType.REGISTERED_FILE) {
+                    task.promiseResolver(response.data);
+                    return;
+                }
+                break;
+            case WorkerRequestType.ADD_FILE_BUFFER:
+                if (response.type == WorkerResponseType.REGISTERED_FILE) {
+                    task.promiseResolver(response.data);
+                    return;
+                }
+                break;
+            case WorkerRequestType.GET_FILE_OBJECT_URL:
+                if (response.type == WorkerResponseType.FILE_OBJECT_URL) {
+                    task.promiseResolver(response.data);
+                    return;
+                }
+                break;
+            case WorkerRequestType.GET_FILE_BUFFER:
+                if (response.type == WorkerResponseType.FILE_BUFFER) {
                     task.promiseResolver(response.data);
                     return;
                 }
@@ -207,24 +224,6 @@ export class AsyncDuckDB {
         await this.postTask(task);
     }
 
-    /// Registers the given URL as a file to be possibly loaded by DuckDB. Returns true on success, false otherwise.
-    public async registerURL(url: string): Promise<boolean> {
-        const task = new WorkerTask<WorkerRequestType.REGISTER_URL, string, boolean>(
-            WorkerRequestType.REGISTER_URL,
-            url,
-        );
-        return await this.postTask(task);
-    }
-
-    /// Import csv from a given URL
-    public async importCSV(conn: ConnectionID, filePath: string, schemaName: string, tableName: string): Promise<null> {
-        const task = new WorkerTask<WorkerRequestType.IMPORT_CSV, [number, string, string, string], null>(
-            WorkerRequestType.IMPORT_CSV,
-            [conn, filePath, schemaName, tableName],
-        );
-        return await this.postTask(task);
-    }
-
     /** Open the database */
     public async open(wasm: string | null): Promise<null> {
         const task = new WorkerTask<WorkerRequestType.OPEN, string | null, null>(WorkerRequestType.OPEN, wasm);
@@ -274,11 +273,47 @@ export class AsyncDuckDB {
         return await this.postTask(task);
     }
 
-    /** Get the URL for a file written to or loaded by DuckDB. */
-    public async getObjectURL(url: string): Promise<string | null> {
-        const task = new WorkerTask<WorkerRequestType.GET_OBJECT_URL, string, string | null>(
-            WorkerRequestType.GET_OBJECT_URL,
-            url,
+    /** Register a file path. */
+    public async addFilePath(url: string, path: string): Promise<number> {
+        const task = new WorkerTask<WorkerRequestType.ADD_FILE_PATH, [string, string], number>(
+            WorkerRequestType.ADD_FILE_PATH,
+            [url, path],
+        );
+        return await this.postTask(task);
+    }
+
+    /** Register a file blob. */
+    public async addFileBlob(url: string, blob: any): Promise<number> {
+        const task = new WorkerTask<WorkerRequestType.ADD_FILE_BLOB, [string, any], number>(
+            WorkerRequestType.ADD_FILE_BLOB,
+            [url, blob],
+        );
+        return await this.postTask(task);
+    }
+
+    /** Register a file buffer. */
+    public async addFileBuffer(url: string, buffer: Uint8Array): Promise<number> {
+        const task = new WorkerTask<WorkerRequestType.ADD_FILE_BUFFER, [string, Uint8Array], number>(
+            WorkerRequestType.ADD_FILE_BUFFER,
+            [url, buffer],
+        );
+        return await this.postTask(task);
+    }
+
+    /** Get file object URL. */
+    public async getFileObjectURL(file_id: number): Promise<string | null> {
+        const task = new WorkerTask<WorkerRequestType.GET_FILE_OBJECT_URL, number, string | null>(
+            WorkerRequestType.GET_FILE_OBJECT_URL,
+            file_id,
+        );
+        return await this.postTask(task);
+    }
+
+    /** Get file buffer. */
+    public async getFileBuffer(file_id: number): Promise<Uint8Array | null> {
+        const task = new WorkerTask<WorkerRequestType.GET_FILE_BUFFER, number, Uint8Array | null>(
+            WorkerRequestType.GET_FILE_BUFFER,
+            file_id,
         );
         return await this.postTask(task);
     }

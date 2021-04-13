@@ -102,8 +102,8 @@ export type WorkerTaskVariant =
     | WorkerTask<WorkerRequestType.ADD_FILE_PATH, [string, string], number>
     | WorkerTask<WorkerRequestType.ADD_FILE_BLOB, [string, any], number>
     | WorkerTask<WorkerRequestType.ADD_FILE_BUFFER, [string, Uint8Array], number>
-    | WorkerTask<WorkerRequestType.GET_FILE_OBJECT_URL, null, string | null>
-    | WorkerTask<WorkerRequestType.GET_FILE_BUFFER, null, Uint8Array | null>
+    | WorkerTask<WorkerRequestType.GET_FILE_OBJECT_URL, number, string | null>
+    | WorkerTask<WorkerRequestType.GET_FILE_BUFFER, number, Uint8Array | null>
     | WorkerTask<WorkerRequestType.OPEN, string | null, null>
     | WorkerTask<WorkerRequestType.CONNECT, null, ConnectionID>
     | WorkerTask<WorkerRequestType.DISCONNECT, ConnectionID, null>

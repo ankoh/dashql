@@ -7,7 +7,7 @@ let worker: Worker | null = null;
 
 beforeAll(async () => {
     const logger = new duckdb_serial.VoidLogger();
-    db = new duckdb_serial.DuckDB(logger, duckdb_serial.BrowserDuckDBRuntime, '/static/duckdb.wasm');
+    db = new duckdb_serial.DuckDB(logger, duckdb_serial.BrowserRuntime, '/static/duckdb.wasm');
     await db.open();
 
     worker = new Worker('/static/duckdb-browser-parallel.worker.js');
