@@ -212,6 +212,9 @@ std::vector<char> BufferManager::AllocatePage() {
     return buffer;
 }
 
+/// Get the file size
+size_t BufferManager::GetFileSize(FileRef& file) { return filesystem->GetFileSize(file.GetHandle()); }
+
 /// Fix a page
 BufferManager::BufferRef BufferManager::FixPage(FileRef& file_ref, uint64_t page_id, bool exclusive) {
     // Does the page exist?
@@ -254,6 +257,35 @@ void BufferManager::UnfixPage(BufferRef buffer, bool is_dirty) {
     frame.Unlock();
     buffer.buffer_manager_ = nullptr;
     buffer.data_ = nullptr;
+}
+
+void BufferManager::Read(FileRef& file, void* out, size_t bytes, size_t offset) {
+    auto* writer = static_cast<char*>(out);
+    while (bytes > 0) {
+        auto page_id = offset >> GetPageSizeShift();
+        auto skip_here = std::max<size_t>(offset, page_id * GetPageSize());
+        auto read_here = std::min<size_t>(bytes, GetPageSize() - skip_here);
+
+        auto page = FixPage(file, page_id, false);
+        std::memcpy(out, static_cast<char*>(page.GetData()) + skip_here, read_here);
+        bytes -= read_here;
+        writer += read_here;
+    }
+}
+
+void BufferManager::Write(FileRef& file, void* in, size_t bytes, size_t offset) {
+    auto* reader = static_cast<char*>(in);
+    size_t total = 0;
+    while (bytes > 0) {
+        auto page_id = offset >> GetPageSizeShift();
+        auto skip_here = std::max<size_t>(offset, page_id * GetPageSize());
+        auto write_here = std::min<size_t>(bytes, GetPageSize() - skip_here);
+
+        auto page = FixPage(file, page_id, false);
+        std::memcpy(static_cast<char*>(page.GetData()) + skip_here, reader, write_here);
+        bytes -= write_here;
+        reader += write_here;
+    }
 }
 
 std::vector<uint64_t> BufferManager::get_fifo_list() const {
