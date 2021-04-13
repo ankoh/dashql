@@ -107,7 +107,7 @@ void BufferedFileSystem::FileSync(duckdb::FileHandle &handle) {
 
 int64_t BufferedFileSystem::GetFileSize(duckdb::FileHandle &handle) {
     auto &buffered_hdl = static_cast<BufferedFileHandle &>(handle);
-    return filesystem_.GetFileSize(buffered_hdl.GetFileHandle());
+    return buffer_manager_.GetFileSize(buffered_hdl.GetBuffers());
 }
 
 time_t BufferedFileSystem::GetLastModifiedTime(duckdb::FileHandle &handle) {
@@ -117,7 +117,7 @@ time_t BufferedFileSystem::GetLastModifiedTime(duckdb::FileHandle &handle) {
 
 void BufferedFileSystem::Truncate(duckdb::FileHandle &handle, int64_t new_size) {
     auto &buffered_hdl = static_cast<BufferedFileHandle &>(handle);
-    return filesystem_.Truncate(buffered_hdl.GetFileHandle(), new_size);
+    return buffer_manager_.Truncate(buffered_hdl.GetBuffers(), new_size);
 }
 
 void BufferedFileSystem::RemoveDirectory(const std::string &directory) {
