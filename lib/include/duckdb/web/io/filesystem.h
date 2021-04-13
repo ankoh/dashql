@@ -104,54 +104,7 @@ class WebFileSystem : public SeekableFileSystem {
     // duckdb::idx_t GetAvailableMemory() override;
 };
 
-constexpr size_t FS_STREAMBUF_SIZE = 16 * 1024;
-/// FileSystemStreamBuffer is a wrapper for istreams over the DuckDB FileSystem.
-/// Supplied by the file system and a handle, this class can be wrapped in an istream and be used opaquely.
-class FileSystemStreamBuffer : public std::streambuf {
-   public:
-    FileSystemStreamBuffer(duckdb::FileSystem &file_system, duckdb::FileHandle &file_handle);
-
-   protected:
-    std::streamsize showmanyc() override;
-
-    pos_type seekoff(off_type off, std::ios_base::seekdir dir, std::ios_base::openmode) override;
-
-    pos_type seekpos(pos_type pos, std::ios_base::openmode) override;
-
-    int_type underflow() override;
-
-   private:
-    duckdb::FileSystem &file_system_;
-    duckdb::FileHandle &file_handle_;
-    ssize_t file_size_;
-    pos_type file_pos_;
-    std::vector<char> buffer_;
-};
-
 }  // namespace web
 }  // namespace duckdb
-
-extern "C" {
-ssize_t duckdb_web_fs_read(size_t blobId, void *buffer, ssize_t bytes);
-ssize_t duckdb_web_fs_write(size_t blobId, void *buffer, ssize_t bytes);
-
-bool duckdb_web_fs_directory_exists(const char *path, size_t pathLen);
-void duckdb_web_fs_directory_create(const char *path, size_t pathLen);
-void duckdb_web_fs_directory_remove(const char *path, size_t pathLen);
-bool duckdb_web_fs_directory_list_files(const char *path, size_t pathLen);
-void duckdb_web_fs_directory_list_files_callback(const char *path, size_t pathLen, bool is_dir);
-void duckdb_web_fs_glob(const char *path, size_t pathLen);
-void duckdb_web_fs_glob_callback(const char *path, size_t pathLen);
-
-void duckdb_web_fs_file_sync(size_t blobId);
-size_t duckdb_web_fs_file_open(const char *path, size_t pathLen, uint8_t flags);
-void duckdb_web_fs_file_close(size_t blobId);
-ssize_t duckdb_web_fs_file_get_size(size_t blobId);
-time_t duckdb_web_fs_file_get_last_modified_time(size_t blobId);
-void duckdb_web_fs_file_move(const char *from, size_t fromLen, const char *to, size_t toLen);
-void duckdb_web_fs_file_set_pointer(size_t blobId, size_t location);
-bool duckdb_web_fs_file_exists(const char *path, size_t pathLen);
-bool duckdb_web_fs_file_remove(const char *path, size_t pathLen);
-}
 
 #endif

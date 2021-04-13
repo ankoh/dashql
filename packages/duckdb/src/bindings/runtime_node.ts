@@ -46,8 +46,8 @@ export var NodeDuckDBRuntime: DuckDBRuntime & {
 
         return path.resolve(url);
     },
-    duckdb_web_fs_read: function (blobId: number, buf: number, bytes: number) {
-        let stream = NodeDuckDBRuntime.streamMap.get(blobId);
+    duckdb_web_fs_read: function (fileId: number, buf: number, bytes: number) {
+        let stream = NodeDuckDBRuntime.streamMap.get(fileId);
         if (!stream) return 0;
 
         const size = Math.min(bytes, stream.handle.stat.size - stream.position);
@@ -56,8 +56,8 @@ export var NodeDuckDBRuntime: DuckDBRuntime & {
         stream.position += size;
         return size;
     },
-    duckdb_web_fs_write: function (blobId: number, buf: number, bytes: number) {
-        let stream = NodeDuckDBRuntime.streamMap.get(blobId);
+    duckdb_web_fs_write: function (fileId: number, buf: number, bytes: number) {
+        let stream = NodeDuckDBRuntime.streamMap.get(fileId);
         if (!stream) return 0;
 
         const heap: Uint8Array = NodeDuckDBRuntime.bindings!.instance!.HEAPU8;
@@ -131,27 +131,27 @@ export var NodeDuckDBRuntime: DuckDBRuntime & {
             throw Error('Unsupported file flags: ' + flags);
         }
     },
-    duckdb_web_fs_file_close: function (blobId: number) {
-        NodeDuckDBRuntime.streamMap.delete(blobId);
+    duckdb_web_fs_file_close: function (fileId: number) {
+        NodeDuckDBRuntime.streamMap.delete(fileId);
     },
-    duckdb_web_fs_file_sync: function (blobId: number) {
+    duckdb_web_fs_file_sync: function (fileId: number) {
         // noop
     },
-    duckdb_web_fs_file_get_size: function (blobId: number): number {
-        let stream = NodeDuckDBRuntime.streamMap.get(blobId);
+    duckdb_web_fs_file_get_size: function (fileId: number): number {
+        let stream = NodeDuckDBRuntime.streamMap.get(fileId);
         if (!stream) return 0;
         return stream.handle.stat.size;
     },
-    duckdb_web_fs_file_get_last_modified_time: function (blobId: number) {
-        let stream = NodeDuckDBRuntime.streamMap.get(blobId);
+    duckdb_web_fs_file_get_last_modified_time: function (fileId: number) {
+        let stream = NodeDuckDBRuntime.streamMap.get(fileId);
         if (!stream) return 0;
         return stream.handle.stat.mtime.getTime();
     },
     duckdb_web_fs_file_move: function (fromPtr: number, fromLen: number, toPtr: number, toLen: number) {
         throw Error('undefined');
     },
-    duckdb_web_fs_file_set_pointer: function (blobId: number, location: number) {
-        let stream = NodeDuckDBRuntime.streamMap.get(blobId);
+    duckdb_web_fs_file_set_pointer: function (fileId: number, location: number) {
+        let stream = NodeDuckDBRuntime.streamMap.get(fileId);
         if (stream) stream.position = location;
     },
     duckdb_web_fs_file_exists: function (pathPtr: number, pathLen: number) {
