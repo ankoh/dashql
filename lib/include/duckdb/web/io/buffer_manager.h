@@ -17,6 +17,9 @@
 
 namespace duckdb {
 namespace web {
+namespace io {
+
+class BufferManager;
 
 class BufferFrame {
    protected:
@@ -50,24 +53,84 @@ class BufferFrame {
     /// Constructor
     BufferFrame(uint64_t frame_id, size_t size, list_position fifo_position, list_position lru_position);
     /// Returns a pointer to this page data
-    auto* GetData() const { return buffer.data(); }
+    void* GetData() { return buffer.data(); }
 };
 
 class BufferManager {
+   public:
+    /// A file reference
+    class FileRef {
+        friend class BufferManager;
+
+       protected:
+        /// The buffer manager
+        BufferManager* buffer_manager_;
+        /// The file id
+        const uint16_t file_id_;
+        /// The constructor
+        explicit FileRef(BufferManager* buffer_manager, uint16_t file_id)
+            : buffer_manager_(buffer_manager), file_id_(file_id) {}
+
+       public:
+        /// Move constructor
+        FileRef(FileRef&& other) = default;
+        /// Destructor
+        ~FileRef();
+        /// Move assignment
+        FileRef& operator=(FileRef&& other);
+        /// Release the file ref
+        void Release();
+        /// Is set?
+        operator bool() const;
+    };
+
+    /// A buffer reference
+    class BufferRef {
+        friend class BufferManager;
+
+       protected:
+        /// The buffer manager
+        BufferManager* buffer_manager_;
+        /// The frame id
+        const uint64_t frame_id_;
+        /// The data
+        void* data_;
+        /// The constructor
+        explicit BufferRef(uint64_t frame_id, void* data) : frame_id_(frame_id), data_(data) {}
+
+       public:
+        /// Move constructor
+        BufferRef(BufferRef&& other);
+        /// Destructor
+        ~BufferRef();
+        /// Move assignment
+        BufferRef& operator=(BufferRef&& other);
+        /// Access the data
+        void* data() { return data_; }
+        /// Release the file ref
+        void Release();
+        /// Is set?
+        operator bool() const;
+    };
+
    protected:
     /// A registered file
     struct RegisteredFile {
+        /// The file id
+        uint16_t file_id;
         /// The path
         std::string path;
         /// The file
         std::unique_ptr<File> file;
+        /// The references
+        size_t references;
 
         /// Constructor
-        RegisteredFile(std::string_view path, std::unique_ptr<File> file = nullptr);
+        RegisteredFile(uint16_t file_id, std::string_view path, std::unique_ptr<File> file = nullptr);
     };
 
     /// The page size
-    const size_t page_size;
+    const size_t page_size_bits;
 
     /// Maps frame ids to their files
     std::unordered_map<uint16_t, RegisteredFile> files = {};
@@ -85,6 +148,8 @@ class BufferManager {
     /// LRU list of pages
     std::list<BufferFrame*> lru;
 
+    /// Create a file ref
+    FileRef CreateFileRef(RegisteredFile& file);
     /// Loads the page from disk
     void LoadFrame(BufferFrame& page);
     /// Writes the page to disk if it is dirty
@@ -97,44 +162,39 @@ class BufferManager {
     std::vector<char> AllocatePage();
 
    public:
-    /// Constructor
-    BufferManager(size_t page_size, size_t page_count);
+    /// Constructor.
+    /// Use 16KiB pages by default (1 << 14)
+    BufferManager(size_t page_size_bits = 14);
     /// Destructor
     ~BufferManager();
 
     /// Add a file
-    uint16_t AddFile(std::string_view path);
+    FileRef AddFile(std::string_view path);
     /// Write all pages of a file
-    void FlushFile(uint16_t file_id);
+    void FlushFile(FileRef& file);
+    /// Release a file ref
+    void ReleaseFile(FileRef&& file);
 
     /// Get the page size
-    auto GetPageSize() const { return page_size; }
+    size_t GetPageSize() const { return 1 << page_size_bits; }
+    /// Get the page shift
+    auto GetPageSizeShift() const { return page_size_bits; }
     /// Returns a reference to a `BufferFrame` object for a given page id. When
     /// the page is not loaded into memory, it is read from disk. Otherwise the
     /// loaded page is used.
-    BufferFrame& FixPage(uint64_t frame_id, bool exclusive);
+    BufferRef FixPage(FileRef& file, uint64_t page_id, bool exclusive);
     /// Takes a `BufferFrame` reference that was returned by an earlier call to
     /// `FixPage()` and unfixes it. When `is_dirty` is / true, the page is
     /// written back to disk eventually.
-    void UnfixPage(BufferFrame& frame, bool is_dirty);
+    void UnfixPage(BufferRef buffer, bool is_dirty);
 
     /// Returns the page ids of all pages that are in the FIFO list in FIFO order.
     std::vector<uint64_t> get_fifo_list() const;
     /// Returns the page ids of all pages that are in the LRU list in LRU order.
     std::vector<uint64_t> get_lru_list() const;
-
-    /// Returns the file id for a given frame id which is contained in the 16
-    /// most significant bits of the page id.
-    static constexpr uint16_t GetFileID(uint64_t page_id) { return page_id >> 48; }
-    /// Returns the page id within its file for a given frame id. This
-    /// corresponds to the 48 least significant bits of the page id.
-    static constexpr uint64_t GetPageID(uint64_t page_id) { return page_id & ((1ull << 48) - 1); }
-    /// Build a frame id from file and page ids
-    static constexpr uint64_t BuildFrameID(uint32_t file_id, uint32_t page_id = 0) {
-        return (static_cast<uint64_t>(file_id) << 32) | static_cast<uint64_t>(page_id);
-    }
 };
 
+}  // namespace io
 }  // namespace web
 }  // namespace duckdb
 
