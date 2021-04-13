@@ -160,8 +160,8 @@ BufferManager::FileRef BufferManager::OpenFile(std::string_view path, std::uniqu
     return FileRef{*this, file};
 }
 
-void BufferManager::FlushFile(const FileRef& file_ref) {
-    auto file_id = file_ref.file_->file_id;
+void BufferManager::EvictFileFrames(RegisteredFile& file) {
+    auto file_id = file.file_id;
     auto lb = frames.lower_bound(BuildFrameID(file_id));
     auto ub = frames.lower_bound(BuildFrameID(file_id + 1));
     for (auto iter = lb; iter != ub; ++iter) {
@@ -182,22 +182,11 @@ void BufferManager::ReleaseFile(RegisteredFile& file) {
     --file.references;
     if (file.references > 0) return;
 
-    // Find all frames
-    auto file_id = file.file_id;
-    auto lb = frames.lower_bound(BuildFrameID(file_id));
-    auto ub = frames.lower_bound(BuildFrameID(file_id + 1));
-    for (auto iter = lb; iter != ub; ++iter) {
-        FlushFrame(iter->second);
-        if (iter->second.lru_position != lru.end()) {
-            lru.erase(iter->second.lru_position);
-        } else {
-            assert(iter->second.fifo_position != fifo.end());
-            fifo.erase(iter->second.fifo_position);
-        }
-    }
-    frames.erase(lb, ub);
+    // Evict all file frames
+    EvictFileFrames(file);
 
     // Release file id
+    auto file_id = file.file_id;
     files_by_path.erase(file.path);
     free_file_ids.push(file_id);
     files.erase(file_id);
@@ -212,7 +201,7 @@ void BufferManager::LoadFrame(BufferFrame& frame) {
     // Determine the actual size of the frame
     assert(files.count(file_id));
     auto& file = *files.at(file_id);
-    frame.data_size = *file.file_size - page_id * page_size;
+    frame.data_size = file.file_size - page_id * page_size;
     frame.is_dirty = false;
 
     // Read data into frame
@@ -220,7 +209,6 @@ void BufferManager::LoadFrame(BufferFrame& frame) {
 }
 
 void BufferManager::FlushFrame(BufferFrame& frame) {
-    assert(frame.num_users == 0);
     auto file_id = GetFileID(frame.frame_id);
     auto page_id = GetPageID(frame.frame_id);
     auto page_size = GetPageSize();
@@ -271,10 +259,7 @@ std::vector<char> BufferManager::AllocatePage() {
 }
 
 /// Get the file size
-size_t BufferManager::GetFileSize(const FileRef& file) {
-    assert(file.file_->file_size.has_value());
-    return *file.file_->file_size;
-}
+size_t BufferManager::GetFileSize(const FileRef& file) { return file.file_->file_size; }
 
 /// Fix a page
 BufferManager::BufferRef BufferManager::FixPage(const FileRef& file_ref, uint64_t page_id, bool exclusive) {
@@ -318,6 +303,15 @@ void BufferManager::UnfixPage(size_t frame_id, bool is_dirty) {
     frame.Unlock();
 }
 
+void BufferManager::FlushFile(const FileRef& file_ref) {
+    auto file_id = file_ref.file_->file_id;
+    auto lb = frames.lower_bound(BuildFrameID(file_id));
+    auto ub = frames.lower_bound(BuildFrameID(file_id + 1));
+    for (auto iter = lb; iter != ub; ++iter) {
+        FlushFrame(iter->second);
+    }
+}
+
 size_t BufferManager::Read(const FileRef& file, void* out, size_t n, size_t offset) {
     // Determine page & offset
     auto page_id = offset >> GetPageSizeShift();
@@ -347,8 +341,8 @@ size_t BufferManager::Write(const FileRef& file, void* in, size_t bytes, size_t 
 }
 
 void BufferManager::Truncate(const FileRef& file_ref, size_t new_size) {
-    FlushFile(file_ref);
     auto* file = file_ref.file_;
+    EvictFileFrames(*file);
     filesystem->Truncate(*file->handle, new_size);
     file->file_size = new_size;
 }
