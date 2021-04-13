@@ -189,7 +189,7 @@ class BufferManager {
     /// Release a file ref
     void ReleaseFile(FileRef&& file);
     /// Get The file size
-    void GetFileSize(FileRef& file);
+    size_t GetFileSize(FileRef& file);
 
     /// Returns a reference to a `BufferFrame` object for a given page id. When
     /// the page is not loaded into memory, it is read from disk. Otherwise the
@@ -201,6 +201,11 @@ class BufferManager {
     void UnfixPage(BufferRef buffer, bool is_dirty);
     /// Write all pages of a file
     void FlushFile(FileRef& file);
+
+    /// Read bytes
+    void Read(FileRef& file, void* buffer, size_t bytes, size_t location);
+    /// WRite bytes
+    void Write(FileRef& file, void* buffer, size_t bytes, size_t location);
 
     /// Returns the page ids of all pages that are in the FIFO list in FIFO order.
     std::vector<uint64_t> get_fifo_list() const;
