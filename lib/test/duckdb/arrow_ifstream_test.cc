@@ -1,6 +1,6 @@
 // Copyright (c) 2020 The DashQL Authors
 
-#include "duckdb/web/arrow_ifstream.h"
+#include "duckdb/web/io/arrow_ifstream.h"
 
 #include <sstream>
 

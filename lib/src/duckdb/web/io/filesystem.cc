@@ -1,6 +1,6 @@
 // Copyright (c) 2020 The DashQL Authors
 
-#include "duckdb/web/filesystem.h"
+#include "duckdb/web/io/filesystem.h"
 
 #include <iostream>
 #include <string>
