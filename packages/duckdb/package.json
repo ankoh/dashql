@@ -59,6 +59,7 @@
     "module": "./dist/duckdb.module.js",
     "browser": {
         "./dist/duckdb-node.js": "./dist/duckdb-browser.js",
+        "glob-to-regexp": false,
         "worker_threads": false,
         "perf_hooks": false,
         "fs": false,

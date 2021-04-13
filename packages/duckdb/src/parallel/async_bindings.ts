@@ -273,6 +273,15 @@ export class AsyncDuckDB {
         return await this.postTask(task);
     }
 
+    /** Register a file buffer. */
+    public async addFile(url: string): Promise<number> {
+        const task = new WorkerTask<WorkerRequestType.ADD_FILE_BUFFER, [string, Uint8Array], number>(
+            WorkerRequestType.ADD_FILE_BUFFER,
+            [url, new Uint8Array()],
+        );
+        return await this.postTask(task);
+    }
+
     /** Register a file path. */
     public async addFilePath(url: string, path: string): Promise<number> {
         const task = new WorkerTask<WorkerRequestType.ADD_FILE_PATH, [string, string], number>(
