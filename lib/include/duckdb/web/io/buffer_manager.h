@@ -67,9 +67,11 @@ class BufferManager {
         BufferManager* buffer_manager_;
         /// The file id
         const uint16_t file_id_;
+        /// The path
+        const std::string_view file_path_;
         /// The constructor
-        explicit FileRef(BufferManager* buffer_manager, uint16_t file_id)
-            : buffer_manager_(buffer_manager), file_id_(file_id) {}
+        explicit FileRef(BufferManager* buffer_manager, uint16_t file_id, std::string_view file_path)
+            : buffer_manager_(buffer_manager), file_id_(file_id), file_path_(file_path) {}
 
        public:
         /// Move constructor
@@ -78,6 +80,8 @@ class BufferManager {
         ~FileRef();
         /// Move assignment
         FileRef& operator=(FileRef&& other);
+        /// Get path
+        auto GetPath() const { return file_path_; }
         /// Release the file ref
         void Release();
         /// Is set?
@@ -106,7 +110,7 @@ class BufferManager {
         /// Move assignment
         BufferRef& operator=(BufferRef&& other);
         /// Access the data
-        void* data() { return data_; }
+        auto* GetData() { return data_; }
         /// Release the file ref
         void Release();
         /// Is set?
@@ -167,6 +171,9 @@ class BufferManager {
     BufferManager(size_t page_size_bits = 13);
     /// Destructor
     ~BufferManager();
+
+    /// Get a page id from an offset
+    size_t GetPageIDFromOffset(size_t offset) { return offset >> page_size_bits; }
 
     /// Add a file
     FileRef AddFile(std::string_view path);
