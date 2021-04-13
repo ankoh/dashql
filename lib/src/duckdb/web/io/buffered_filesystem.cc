@@ -31,30 +31,15 @@ std::unique_ptr<duckdb::FileHandle> BufferedFileSystem::OpenFile(const char *pat
 void BufferedFileSystem::Read(duckdb::FileHandle &handle, void *buffer, int64_t nr_bytes, duckdb::idx_t location) {
     auto &file_hdl = static_cast<BufferedFileHandle &>(handle);
     auto &file = file_hdl.GetBuffers();
-    while (nr_bytes > 0) {
-        auto n = std::min<size_t>(buffer_manager_.GetPageSize(), nr_bytes);
-        auto page_id = buffer_manager_.GetPageIDFromOffset(location);
-        auto page = buffer_manager_.FixPage(file, page_id, false);
-        std::memcpy(buffer, page.GetData(), n);
-        nr_bytes -= n;
-        location += n;
-    }
-    file_hdl.file_position_ = location;
+    buffer_manager_.Read(file, buffer, nr_bytes, location);
+    file_hdl.file_position_ = location + nr_bytes;
 }
 
 void BufferedFileSystem::Write(duckdb::FileHandle &handle, void *buffer, int64_t nr_bytes, duckdb::idx_t location) {
     auto &file_hdl = static_cast<BufferedFileHandle &>(handle);
     auto &file = file_hdl.GetBuffers();
-    while (nr_bytes > 0) {
-        auto n = std::min<size_t>(buffer_manager_.GetPageSize(), nr_bytes);
-        auto page_id = buffer_manager_.GetPageIDFromOffset(location);
-        auto page = buffer_manager_.FixPage(file, page_id, true);
-        std::memcpy(page.GetData(), buffer, n);
-        nr_bytes -= n;
-        location += n;
-        buffer_manager_.UnfixPage(std::move(page), true);
-    }
-    file_hdl.file_position_ = location;
+    buffer_manager_.Write(file, buffer, nr_bytes, location);
+    file_hdl.file_position_ = location + nr_bytes;
 }
 
 int64_t BufferedFileSystem::Read(duckdb::FileHandle &handle, void *buffer, int64_t nr_bytes) {
