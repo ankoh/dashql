@@ -48,7 +48,7 @@ export const BrowserRuntime: DuckDBRuntime & {
         const fileID = BrowserRuntime.nextFileID++;
         const newFile: BrowserRuntimeFile = {
             fileID,
-            url: url,
+            url,
             buffer,
             blob: null,
             lastModified: new Date(),
@@ -137,7 +137,7 @@ export const BrowserRuntime: DuckDBRuntime & {
         if (file) return file.fileID;
         throw Error('File not found: ' + path);
     },
-    duckdb_web_fs_file_close: function (_fileId: number) {
+    duckdb_web_fs_file_close: function (fileId: number) {
         // Noop
     },
     duckdb_web_fs_file_get_size: function (fileId: number) {
