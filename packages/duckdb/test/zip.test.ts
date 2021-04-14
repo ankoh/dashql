@@ -1,7 +1,10 @@
 import * as duckdb from '../src/';
 //import * as arrow from 'apache-arrow';
 
-export function testZip(db: () => duckdb.DuckDBBindings, resolveData: (url: string) => Promise<Uint8Array | null>) {
+export function testZip(
+    db: () => duckdb.DuckDBBindings,
+    resolveData: (url: string) => Promise<Uint8Array | null>,
+): void {
     let conn: duckdb.DuckDBConnection;
 
     beforeEach(async () => {

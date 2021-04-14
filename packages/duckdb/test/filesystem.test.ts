@@ -3,7 +3,10 @@ import * as arrow from 'apache-arrow';
 
 const decoder = new TextDecoder();
 
-export function testFilesystem(db: () => duckdb.AsyncDuckDB, resolveData: (url: string) => Promise<Uint8Array | null>) {
+export function testFilesystem(
+    db: () => duckdb.AsyncDuckDB,
+    resolveData: (url: string) => Promise<Uint8Array | null>,
+): void {
     let conn: duckdb.AsyncDuckDBConnection;
 
     beforeEach(async () => {
@@ -15,7 +18,7 @@ export function testFilesystem(db: () => duckdb.AsyncDuckDB, resolveData: (url: 
     });
 
     describe('File buffer registration', () => {
-        let test = async () => {
+        const test = async () => {
             const result = await conn.sendQuery(`SELECT MatrNr FROM parquet_scan('studenten.parquet');`);
             const table = await arrow.Table.from<{ MatrNr: arrow.Int }>(result);
             expect(table.getColumnAt(0)?.toArray()).toEqual(
@@ -76,7 +79,7 @@ export function testFilesystem(db: () => duckdb.AsyncDuckDB, resolveData: (url: 
                 `);
             const table = await arrow.Table.from<{ MatrNr: arrow.Int; Titel: arrow.Utf8 }>(result);
             expect(table.numCols).toBe(2);
-            let flat = [];
+            const flat = [];
             for (const row of table) {
                 flat.push({
                     MatrNr: row.MatrNr,
@@ -110,10 +113,12 @@ export function testFilesystem(db: () => duckdb.AsyncDuckDB, resolveData: (url: 
                     FROM parquet_scan('orders.parquet');
                 `);
                 let num = 0;
+                let maxV = 0;
                 for await (const batch of result) {
                     expect(batch.numCols).toBe(1);
                     for (const v of batch.getChildAt(0)!) {
                         num++;
+                        maxV = Math.max(maxV, v);
                     }
                 }
                 expect(num).toBe(7500000);

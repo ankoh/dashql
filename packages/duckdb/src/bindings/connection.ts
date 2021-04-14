@@ -56,7 +56,7 @@ export class DuckDBConnection {
         this._conn = conn;
     }
 
-    public get handle() {
+    public get handle(): number {
         return this._conn;
     }
 

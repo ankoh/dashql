@@ -8,7 +8,7 @@ export abstract class AsyncDuckDBDispatcher implements Logger {
     /** The bindings */
     protected _bindings: DuckDBBindings | null = null;
     /** The next message id */
-    protected _nextMessageId: number = 0;
+    protected _nextMessageId = 0;
 
     /** Instantiate the wasm module */
     protected abstract open(path: string): Promise<DuckDBBindings>;
@@ -16,7 +16,7 @@ export abstract class AsyncDuckDBDispatcher implements Logger {
     protected abstract postMessage(response: WorkerResponseVariant, transfer: ArrayBuffer[]): void;
 
     /** Send log entry to the main thread */
-    public log(entry: LogEntryVariant) {
+    public log(entry: LogEntryVariant): void {
         this.postMessage(
             {
                 messageId: this._nextMessageId++,
@@ -29,7 +29,7 @@ export abstract class AsyncDuckDBDispatcher implements Logger {
     }
 
     /** Send plain OK without further data */
-    protected sendOK(request: WorkerRequestVariant) {
+    protected sendOK(request: WorkerRequestVariant): void {
         this.postMessage(
             {
                 messageId: this._nextMessageId++,
@@ -42,7 +42,7 @@ export abstract class AsyncDuckDBDispatcher implements Logger {
     }
 
     /** Fail with an error */
-    protected failWith(request: WorkerRequestVariant, data: any) {
+    protected failWith(request: WorkerRequestVariant, data: Error): void {
         this.postMessage(
             {
                 messageId: this._nextMessageId++,
@@ -56,7 +56,7 @@ export abstract class AsyncDuckDBDispatcher implements Logger {
     }
 
     /** Process a request from the main thread */
-    public async onMessage(request: WorkerRequestVariant) {
+    public async onMessage(request: WorkerRequestVariant): Promise<void> {
         // First process those requests that don't need bindings
         switch (request.type) {
             case WorkerRequestType.PING:
@@ -94,7 +94,7 @@ export abstract class AsyncDuckDBDispatcher implements Logger {
                     this._bindings.flushFiles();
                     this.sendOK(request);
                     break;
-                case WorkerRequestType.CONNECT:
+                case WorkerRequestType.CONNECT: {
                     const conn = this._bindings.connect();
                     this.postMessage(
                         {
@@ -106,6 +106,7 @@ export abstract class AsyncDuckDBDispatcher implements Logger {
                         [],
                     );
                     break;
+                }
                 case WorkerRequestType.DISCONNECT:
                     this._bindings.disconnect(request.data);
                     this.sendOK(request);

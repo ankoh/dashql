@@ -128,9 +128,9 @@ export const NodeRuntime: DuckDBRuntime & {
     },
     duckdb_web_fs_glob: (pathPtr: number, pathLen: number) => {
         const inst = NodeRuntime.bindings!.instance!;
-        const path = decoder.decode(inst.HEAPU8.subarray(pathPtr, pathPtr + pathLen));
-        const re = globToRegexp(path);
-        for (let path of NodeRuntime.filesByURL.keys()) {
+        const glob = decoder.decode(inst.HEAPU8.subarray(pathPtr, pathPtr + pathLen));
+        const re = globToRegexp(glob);
+        for (const path of NodeRuntime.filesByURL.keys()) {
             if (re.test(path)) {
                 const data = encoder.encode(path);
                 const ptr = inst.stackAlloc(data.length);
