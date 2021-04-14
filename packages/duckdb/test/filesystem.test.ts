@@ -115,7 +115,6 @@ export function testFilesystem(
                         num++;
                     }
                 }
-
                 expect(num).toBe(7500000);
             }
         });
