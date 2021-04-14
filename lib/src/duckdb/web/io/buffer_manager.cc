@@ -140,7 +140,7 @@ BufferManager::FileRef BufferManager::OpenFile(std::string_view path, std::uniqu
     if (allocated_file_ids == std::numeric_limits<uint16_t>::max()) {
         // XXX User wants to open more than 65535 files at the same time.
         //     We don't support that.
-        throw "todo: throw something meaningful";
+        throw std::runtime_error("cannot open more than 65535 files");
     }
     // Allocate file id
     uint16_t file_id;
@@ -186,11 +186,9 @@ void BufferManager::ReleaseFile(RegisteredFile& file) {
     EvictFileFrames(file);
 
     // Release file id
-    auto file_id = file.file_id;
     files_by_path.erase(file.path);
-    free_file_ids.push(file_id);
-    files.erase(file_id);
-    --allocated_file_ids;
+    files.erase(file.file_id);
+    free_file_ids.push(file.file_id);
 }
 
 void BufferManager::LoadFrame(BufferFrame& frame) {

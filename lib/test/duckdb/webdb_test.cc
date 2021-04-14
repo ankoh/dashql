@@ -60,6 +60,39 @@ TEST(WebDB, LoadParquet) {
                  "29555\tFeuerbach\t2\t\n\n");
 }
 
+TEST(WebDB, LoadParquetTwice) {
+    auto db = make_shared<WebDB>();
+    WebDB::Connection conn{*db};
+    std::stringstream ss;
+    auto data = dashql::test::SOURCE_DIR / ".." / "data" / "uni" / "out" / "studenten.parquet";
+    ss << "SELECT * FROM parquet_scan('" << data.string() << "');";
+    auto query = ss.str();
+    auto result = conn.connection().Query(query);
+    ASSERT_STREQ(result->ToString().c_str(),
+                 "MatrNr\tName\tSemester\t\nINTEGER\tVARCHAR\tINTEGER\t\n"
+                 "[ Rows: 8]\n"
+                 "24002\tXenokrates\t18\t\n"
+                 "25403\tJonas\t12\t\n"
+                 "26120\tFichte\t10\t\n"
+                 "26830\tAristoxenos\t8\t\n"
+                 "27550\tSchopenhauer\t6\t\n"
+                 "28106\tCarnap\t3\t\n"
+                 "29120\tTheophrastos\t2\t\n"
+                 "29555\tFeuerbach\t2\t\n\n");
+    result = conn.connection().Query(query);
+    ASSERT_STREQ(result->ToString().c_str(),
+                 "MatrNr\tName\tSemester\t\nINTEGER\tVARCHAR\tINTEGER\t\n"
+                 "[ Rows: 8]\n"
+                 "24002\tXenokrates\t18\t\n"
+                 "25403\tJonas\t12\t\n"
+                 "26120\tFichte\t10\t\n"
+                 "26830\tAristoxenos\t8\t\n"
+                 "27550\tSchopenhauer\t6\t\n"
+                 "28106\tCarnap\t3\t\n"
+                 "29120\tTheophrastos\t2\t\n"
+                 "29555\tFeuerbach\t2\t\n\n");
+}
+
 // XXX Wrong result
 // TEST(WebDB, LoadCSVIStream) {
 //     using LT = duckdb::LogicalType;
