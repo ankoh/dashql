@@ -10,8 +10,9 @@ jasmine.DEFAULT_TIMEOUT_INTERVAL = 60000;
 // Resolve a buffer by fetching from disk
 const dataDir = path.resolve(__dirname, '../../../data');
 const resolveBuffer = (url: string) => {
-    if (!fs.existsSync(`${dataDir}/${url}`)) return null;
-    return new Uint8Array(fs.readFileSync(`${dataDir}/${url}`));
+    const p = path.resolve(dataDir, url);
+    if (!fs.existsSync(p)) return null;
+    return new Uint8Array(fs.readFileSync(p));
 };
 
 // Resolve test data
