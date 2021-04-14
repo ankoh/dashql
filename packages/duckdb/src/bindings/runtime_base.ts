@@ -9,6 +9,7 @@ export interface DuckDBRuntime {
     duckdb_web_fs_file_close(fileId: number): void;
     duckdb_web_fs_file_get_last_modified_time(fileId: number): number;
     duckdb_web_fs_file_get_size(fileId: number): number;
+    duckdb_web_fs_file_truncate(fileId: number, newSize: number): void;
     duckdb_web_fs_read(fileId: number, buf: number, bytes: number, location: number): number;
     duckdb_web_fs_write(fileId: number, buf: number, bytes: number, location: number): number;
     duckdb_web_fs_directory_remove(pathPtr: number, pathLen: number): void;
