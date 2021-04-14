@@ -50,7 +50,7 @@ export const MinimalRuntime: DuckDBRuntime & {
         const file = MinimalRuntime.filesByID.get(fileId);
         return file?.buffer || null;
     },
-    duckdb_web_fs_read: function (fileId: number, buf: number, bytes: number, location: number) {
+    duckdb_web_fs_read: (fileId: number, buf: number, bytes: number, location: number) => {
         const file = MinimalRuntime.filesByID.get(fileId);
         if (!file || !file.buffer) return 0;
         const inst = MinimalRuntime.bindings!.instance!;
@@ -59,7 +59,7 @@ export const MinimalRuntime: DuckDBRuntime & {
         dst.set(src);
         return bytes;
     },
-    duckdb_web_fs_write: function (fileId: number, buf: number, bytes: number, location: number) {
+    duckdb_web_fs_write: (fileId: number, buf: number, bytes: number, location: number) => {
         const file = MinimalRuntime.filesByID.get(fileId);
         if (!file) return 0;
         const inst = MinimalRuntime.bindings!.instance!;
@@ -98,7 +98,7 @@ export const MinimalRuntime: DuckDBRuntime & {
         throw Error(`File not found: ${path}`);
     },
     duckdb_web_fs_file_close: (fileId: number) => {},
-    duckdb_web_fs_file_get_size: function (fileId: number) {
+    duckdb_web_fs_file_get_size: (fileId: number) => {
         const file = MinimalRuntime.filesByID.get(fileId);
         if (!file) return 0;
         return file.buffer.length;
