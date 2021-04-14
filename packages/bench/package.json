@@ -28,6 +28,6 @@
     },
     "scripts": {
         "build": "tsc",
-        "lint": "eslint --config ./.eslintrc.js {src,test}/**/*.ts"
+        "lint": "eslint {src,test}/**/*.ts"
     }
 }
