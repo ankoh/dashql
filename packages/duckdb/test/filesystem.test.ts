@@ -1,31 +1,20 @@
 import * as duckdb from '../src/';
 import * as arrow from 'apache-arrow';
 
-export function testFilesystem(
-    db: () => duckdb.AsyncDuckDB,
-    basedir: string,
-    absolute_file_reader: (url: string) => Promise<string>,
-) {
-    let conn: duckdb.AsyncDuckDBConnection;
+const decoder = new TextDecoder();
 
-    let studenten: Uint8Array | null = null;
-    let hoeren: Uint8Array | null = null;
-    let vorlesungen: Uint8Array | null = null;
+export function testFilesystem(db: () => duckdb.AsyncDuckDB, resolveData: (url: string) => Promise<Uint8Array | null>) {
+    let conn: duckdb.AsyncDuckDBConnection;
 
     beforeEach(async () => {
         conn = await db().connect();
-        if (!studenten) {
-            studenten = new Uint8Array(await (await fetch(`${basedir}/uni/out/studenten.parquet`)).arrayBuffer());
-            hoeren = new Uint8Array(await (await fetch(`${basedir}/uni/out/hoeren.parquet`)).arrayBuffer());
-            vorlesungen = new Uint8Array(await (await fetch(`${basedir}/uni/out/vorlesungen.parquet`)).arrayBuffer());
-        }
     });
 
     afterEach(async () => {
         await conn.disconnect();
     });
 
-    describe('URL registration', () => {
+    describe('File buffer registration', () => {
         let test = async () => {
             const result = await conn.sendQuery(`SELECT MatrNr FROM parquet_scan('studenten.parquet');`);
             const table = await arrow.Table.from<{ MatrNr: arrow.Int }>(result);
@@ -33,17 +22,20 @@ export function testFilesystem(
                 new Int32Array([24002, 25403, 26120, 26830, 27550, 28106, 29120, 29555]),
             );
         };
-        it('URL used once', async () => {
+        it('File buffer used once', async () => {
+            const studenten = await resolveData('/uni/studenten.parquet');
             await db().addFileBuffer('studenten.parquet', studenten!);
             await test();
         });
-        it('URL re-registered', async () => {
+        it('File buffer re-registered', async () => {
+            const studenten = await resolveData('/uni/studenten.parquet');
             await db().addFileBuffer('studenten.parquet', studenten!);
             await test();
             await db().addFileBuffer('studenten.parquet', studenten!);
             await test();
         });
-        it('URL used twice', async () => {
+        it('File buffer used twice', async () => {
+            const studenten = await resolveData('/uni/studenten.parquet');
             await db().addFileBuffer('studenten.parquet', studenten!);
             await test();
             await test();
@@ -52,6 +44,7 @@ export function testFilesystem(
 
     describe('Parquet Scans', () => {
         it('single table', async () => {
+            const studenten = await resolveData('/uni/studenten.parquet');
             await db().addFileBuffer('studenten.parquet', studenten!);
             const result = await conn.sendQuery(`SELECT MatrNr FROM parquet_scan('studenten.parquet');`);
             const table = await arrow.Table.from<{ MatrNr: arrow.Int }>(result);
@@ -61,6 +54,9 @@ export function testFilesystem(
         });
 
         it('simple join', async () => {
+            const studenten = await resolveData('/uni/studenten.parquet');
+            const hoeren = await resolveData('/uni/hoeren.parquet');
+            const vorlesungen = await resolveData('/uni/vorlesungen.parquet');
             await db().addFileBuffer('studenten.parquet', studenten!);
             await db().addFileBuffer('hoeren.parquet', hoeren!);
             await db().addFileBuffer('vorlesungen.parquet', vorlesungen!);
@@ -97,13 +93,11 @@ export function testFilesystem(
         });
 
         it('Huge file', async () => {
-            const orders = await fetch(`${basedir}/tpch/5/orders.parquet`);
-            if (!orders.ok) {
+            const orders = await resolveData('/tpch/5/orders.parquet');
+            if (!orders) {
                 pending('Missing TPCH files');
             } else {
-                const buffer = await orders.arrayBuffer();
-                const bufferU8 = new Uint8Array(buffer);
-                await db().addFileBuffer('orders.parquet', bufferU8);
+                await db().addFileBuffer('orders.parquet', orders);
                 const result = await conn.sendQuery(`
                     SELECT o_orderkey
                     FROM parquet_scan('orders.parquet');
@@ -122,14 +116,15 @@ export function testFilesystem(
 
     describe('Writing', () => {
         it('Copy To CSV', async () => {
+            const studenten = await resolveData('/uni/studenten.parquet');
             await db().addFileBuffer('studenten.parquet', studenten!);
-            const id = await db().addFile('studenten.csv');
+            const outID = await db().addFile('studenten.csv');
             await conn.runQuery(`CREATE TABLE studenten AS SELECT * FROM parquet_scan('studenten.parquet');`);
             await conn.runQuery(`COPY studenten TO 'studenten.csv' WITH (HEADER 1, DELIMITER ';', FORMAT CSV);`);
-            const url = await db().getFileObjectURL(id);
-            expect(url).not.toBeNull();
-            const data = await absolute_file_reader(url!);
-            expect(data).toBe(`MatrNr;Name;Semester
+            const outBuffer = await db().getFileBuffer(outID);
+            expect(outBuffer).not.toBeNull();
+            const text = decoder.decode(outBuffer!);
+            expect(text).toBe(`MatrNr;Name;Semester
 24002;Xenokrates;18
 25403;Jonas;12
 26120;Fichte;10
@@ -141,20 +136,22 @@ export function testFilesystem(
 `);
         });
         it('Copy To Parquet', async () => {
+            const studenten = await resolveData('/uni/studenten.parquet');
             await db().addFileBuffer('studenten.parquet', studenten!);
-            const id = await db().addFile('studenten2.parquet');
+            const outID = await db().addFile('studenten2.parquet');
             await conn.runQuery(`CREATE TABLE studenten2 AS SELECT * FROM parquet_scan('studenten.parquet');`);
             await conn.runQuery(`COPY studenten2 TO 'studenten2.parquet' (FORMAT PARQUET);`);
-            const url = await db().getFileObjectURL(id);
+            const url = await db().getFileObjectURL(outID);
             expect(url).not.toBeNull();
         });
 
         it('Copy To Parquet And Load Again', async () => {
+            const studenten = await resolveData('/uni/studenten.parquet');
             await db().addFileBuffer('studenten.parquet', studenten!);
-            const id = await db().addFile('studenten3.parquet');
+            const outID = await db().addFile('studenten3.parquet');
             await conn.runQuery(`CREATE TABLE studenten3 AS SELECT * FROM parquet_scan('studenten.parquet');`);
             await conn.runQuery(`COPY studenten3 TO 'studenten3.parquet' (FORMAT PARQUET);`);
-            const url = await db().getFileObjectURL(id);
+            const url = await db().getFileObjectURL(outID);
             expect(url).not.toBeNull();
             await conn.runQuery(`CREATE TABLE studenten4 AS SELECT * FROM parquet_scan('studenten3.parquet');`);
             const result = await conn.sendQuery(`SELECT MatrNr FROM studenten4;`);
