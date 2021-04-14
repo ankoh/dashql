@@ -1,7 +1,7 @@
 import * as duckdb from '../src/';
 //import * as arrow from 'apache-arrow';
 
-export function testZip(db: () => duckdb.DuckDBBindings, basedir: string) {
+export function testZip(db: () => duckdb.DuckDBBindings, resolveData: (url: string) => Promise<Uint8Array | null>) {
     let conn: duckdb.DuckDBConnection;
 
     beforeEach(async () => {
@@ -14,8 +14,8 @@ export function testZip(db: () => duckdb.DuckDBBindings, basedir: string) {
 
     describe('Zipper', () => {
         it('Zip entries', async () => {
-            const all = new Uint8Array(await (await fetch(`${basedir}/uni/out/all.zip`)).arrayBuffer());
-            await db().addFileBuffer('all.zip', all);
+            const all = await resolveData('uni/all.zip');
+            await db().addFileBuffer('all.zip', all!);
             // XXX revisit with default duckdb runtime
 
             //const zip = new duckdb.ZipBindings(db());
