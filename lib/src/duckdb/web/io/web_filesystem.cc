@@ -15,6 +15,7 @@ static std::vector<std::string> *glob_results = {};
 extern "C" {
 extern size_t duckdb_web_fs_file_open(const char *path, size_t pathLen, uint8_t flags);
 extern void duckdb_web_fs_file_close(size_t fileId);
+extern void duckdb_web_fs_file_truncate(size_t fileId, size_t newSize);
 extern time_t duckdb_web_fs_file_get_last_modified_time(size_t fileId);
 extern ssize_t duckdb_web_fs_file_get_size(size_t fileId);
 extern ssize_t duckdb_web_fs_read(size_t fileId, void *buffer, ssize_t bytes, size_t location);
@@ -72,15 +73,18 @@ int64_t WebFileSystem::Write(duckdb::FileHandle &handle, void *buffer, int64_t n
 }
 
 int64_t WebFileSystem::GetFileSize(duckdb::FileHandle &handle) {
-    return duckdb_web_fs_file_get_size(((WebFileHandle &)handle).file_id);
+    auto &file_hdl = static_cast<WebFileHandle &>(handle);
+    return duckdb_web_fs_file_get_size(file_hdl.file_id);
 }
 
 time_t WebFileSystem::GetLastModifiedTime(duckdb::FileHandle &handle) {
-    return duckdb_web_fs_file_get_last_modified_time(((WebFileHandle &)handle).file_id);
+    auto &file_hdl = static_cast<WebFileHandle &>(handle);
+    return duckdb_web_fs_file_get_last_modified_time(file_hdl.file_id);
 }
 
 void WebFileSystem::Truncate(duckdb::FileHandle &handle, int64_t new_size) {
-    std::cout << "Truncate not implemented" << std::endl;
+    auto &file_hdl = static_cast<WebFileHandle &>(handle);
+    duckdb_web_fs_file_truncate(file_hdl.file_id, new_size);
 }
 
 bool WebFileSystem::DirectoryExists(const std::string &directory) {
@@ -159,6 +163,7 @@ std::vector<std::string> WebFileSystem::Glob(const std::string &path) {
 extern "C" {
 size_t duckdb_web_fs_file_open(const char *path, size_t pathLen, uint8_t flags) { return 0; }
 void duckdb_web_fs_file_close(size_t fileId) {}
+void duckdb_web_fs_file_truncate(size_t fileId, size_t newSize);
 time_t duckdb_web_fs_file_get_last_modified_time(size_t fileId) { return 0; }
 ssize_t duckdb_web_fs_file_get_size(size_t fileId) { return 0; }
 ssize_t duckdb_web_fs_read(size_t fileId, void *buffer, ssize_t bytes, size_t location) { return 0; }
