@@ -92,7 +92,7 @@ class BufferManager {
        protected:
         /// The buffer manager
         BufferManager& buffer_manager_;
-        /// The file id
+        /// The file
         RegisteredFile* file_;
         /// The constructor
         explicit FileRef(BufferManager& buffer_manager, RegisteredFile& file);
@@ -121,14 +121,10 @@ class BufferManager {
        protected:
         /// The buffer manager
         BufferManager& buffer_manager_;
-        /// The frame id
-        std::optional<uint64_t> frame_id_;
-        /// The data
-        nonstd::span<char> data_;
-        /// Is dirty?
-        bool is_dirty_;
+        /// The file
+        BufferFrame* frame_;
         /// The constructor
-        explicit BufferRef(BufferManager& buffer_manager, uint64_t frame_id, nonstd::span<char> data);
+        explicit BufferRef(BufferManager& buffer_manager, BufferFrame& frame);
 
        public:
         /// Move constructor
@@ -138,13 +134,13 @@ class BufferManager {
         /// Move assignment
         BufferRef& operator=(BufferRef&& other);
         /// Is set?
-        operator bool() const { return frame_id_.has_value(); }
+        operator bool() const { return !!frame_; }
         /// Access the data
-        auto& GetData() { return data_; }
+        auto GetData() { return frame_->GetData(); }
         /// Release the file ref
         void Release();
         /// Mark as dirty
-        void MarkAsDirty() { is_dirty_ = false; }
+        void MarkAsDirty() { frame_->is_dirty = true; }
         /// Require a frame size
         void RequireSize(size_t n);
     };
