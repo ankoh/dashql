@@ -1,6 +1,33 @@
 import * as duckdb_serial from '../src/targets/duckdb-browser-serial';
 import * as duckdb_parallel from '../src/targets/duckdb-browser-parallel';
 
+// Loading debug symbols, especially for WASM take insanely long so we just disable the test timeout
+jasmine.DEFAULT_TIMEOUT_INTERVAL = 60000;
+
+// Resolve a buffer by fetching from disk
+const resolveBuffer = async (url: string) => {
+    const req = await fetch(`/data/${url}`);
+    if (!req.ok) return null;
+    return new Uint8Array(await req.arrayBuffer());
+};
+
+// Resolve test data
+const resolveData = async (url: string) => {
+    switch (url) {
+        case '/uni/studenten.parquet':
+            return await resolveBuffer('/uni/out/studenten.parquet');
+        case '/uni/hoeren.parquet':
+            return await resolveBuffer('/uni/out/hoeren.parquet');
+        case '/uni/vorlesungen.parquet':
+            return await resolveBuffer('/uni/out/vorlesungen.parquet');
+        case '/tpch/5/orders.parquet':
+            return await resolveBuffer('/tpch/5/orders.parquet');
+        default:
+            return null;
+    }
+};
+
+// Test environment
 let db: duckdb_serial.DuckDB | null = null;
 let adb: duckdb_parallel.AsyncDuckDB | null = null;
 let worker: Worker | null = null;
@@ -19,22 +46,10 @@ import { testBindings } from './bindings.test';
 import { testBatchStream } from './batch_stream.test';
 import { testAsyncBatchStream } from './batch_stream_async.test';
 import { testFilesystem } from './filesystem.test';
-import { testExtractCSV } from './extract_csv.test';
 import { testZip } from './zip.test';
-
-// Loading debug symbols, especially for WASM take insanely long so we just disable the test timeout
-jasmine.DEFAULT_TIMEOUT_INTERVAL = 60000;
 
 testBindings(() => db!);
 testBatchStream(() => db!);
 testAsyncBatchStream(() => adb!);
-testFilesystem(
-    () => adb!,
-    '/data',
-    (url: string) => fetch(url).then(r => r.text()),
-);
-testZip(() => db!, '/data');
-testExtractCSV(
-    () => adb!,
-    (buf: Uint8Array) => URL.createObjectURL(new Blob([buf.buffer], { type: 'text/plain' })),
-);
+testFilesystem(() => adb!, resolveData);
+testZip(() => db!, resolveData);
