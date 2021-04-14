@@ -47,10 +47,10 @@ export const NodeRuntime: DuckDBRuntime & {
     nextFileID: 0,
     bindings: null,
 
-    duckdb_web_add_file_blob: function (_url: string, _blob: any) {
+    duckdb_web_add_file_blob: (_url: string, _blob: any) => {
         throw Error('cannot register a file blob');
     },
-    duckdb_web_add_file_buffer: function (url: string, array: Uint8Array) {
+    duckdb_web_add_file_buffer: (url: string, array: Uint8Array) => {
         const file = NodeRuntime.filesByURL.get(url);
         if (file) return file.fileID;
         const fileID = NodeRuntime.nextFileID++;
@@ -66,24 +66,24 @@ export const NodeRuntime: DuckDBRuntime & {
         NodeRuntime.filesByID.set(fileID, newFile);
         return fileID;
     },
-    duckdb_web_add_file_path: function (url: string, path: string) {
+    duckdb_web_add_file_path: (url: string, path: string) => {
         const file = NodeRuntime.filesByURL.get(url);
         if (file) return file.fileID;
         return openFile(path);
     },
-    duckdb_web_get_file_object_url(fileId: number): string | null {
+    duckdb_web_get_file_object_url: (fileId: number): string | null => {
         const file = NodeRuntime.filesByID.get(fileId);
         if (!file) return null;
         if (file.buffer) return tmp.sync(Buffer.from(file.buffer));
         return p.resolve(file.path);
     },
-    duckdb_web_get_file_buffer(fileId: number): Uint8Array | null {
+    duckdb_web_get_file_buffer: (fileId: number): Uint8Array | null => {
         const file = NodeRuntime.filesByID.get(fileId);
         if (!file) return null;
         if (file.buffer) return file.buffer;
         return fs.readFileSync(file.fd!);
     },
-    duckdb_web_fs_read: function (fileId: number, buf: number, bytes: number, location: number) {
+    duckdb_web_fs_read: (fileId: number, buf: number, bytes: number, location: number) => {
         const file = NodeRuntime.filesByID.get(fileId);
         if (!file) return 0;
         const inst = NodeRuntime.bindings!.instance!;
@@ -95,7 +95,7 @@ export const NodeRuntime: DuckDBRuntime & {
         }
         return fs.readSync(file.fd!, heap, buf, bytes, location);
     },
-    duckdb_web_fs_write: function (fileId: number, buf: number, bytes: number, location: number) {
+    duckdb_web_fs_write: (fileId: number, buf: number, bytes: number, location: number) => {
         const file = NodeRuntime.filesByID.get(fileId);
         if (!file) return 0;
         const inst = NodeRuntime.bindings!.instance!;
@@ -108,25 +108,25 @@ export const NodeRuntime: DuckDBRuntime & {
         }
         return fs.writeSync(file.fd!, src, 0, src.length, location);
     },
-    duckdb_web_fs_directory_exists: function (pathPtr: number, pathLen: number) {
+    duckdb_web_fs_directory_exists: (pathPtr: number, pathLen: number) => {
         const inst = NodeRuntime.bindings!.instance!;
         const path = decoder.decode(inst.HEAPU8.subarray(pathPtr, pathPtr + pathLen));
-        return this.filesByURL.has(path) && fs.existsSync(path);
+        return NodeRuntime.filesByURL.has(path) && fs.existsSync(path);
     },
-    duckdb_web_fs_directory_create: function (pathPtr: number, pathLen: number) {
+    duckdb_web_fs_directory_create: (pathPtr: number, pathLen: number) => {
         const inst = NodeRuntime.bindings!.instance!;
         const path = decoder.decode(inst.HEAPU8.subarray(pathPtr, pathPtr + pathLen));
         return fs.mkdirSync(path);
     },
-    duckdb_web_fs_directory_remove: function (pathPtr: number, pathLen: number) {
+    duckdb_web_fs_directory_remove: (pathPtr: number, pathLen: number) => {
         const inst = NodeRuntime.bindings!.instance!;
         const path = decoder.decode(inst.HEAPU8.subarray(pathPtr, pathPtr + pathLen));
         return fs.rmdirSync(path);
     },
-    duckdb_web_fs_directory_list_files: function (pathPtr: number, pathLen: number) {
+    duckdb_web_fs_directory_list_files: (_pathPtr: number, _pathLen: number) => {
         throw Error('cannot list files');
     },
-    duckdb_web_fs_glob: function (pathPtr: number, pathLen: number) {
+    duckdb_web_fs_glob: (pathPtr: number, pathLen: number) => {
         const inst = NodeRuntime.bindings!.instance!;
         const path = decoder.decode(inst.HEAPU8.subarray(pathPtr, pathPtr + pathLen));
         const re = globToRegexp(path);
@@ -144,25 +144,25 @@ export const NodeRuntime: DuckDBRuntime & {
             }
         }
     },
-    duckdb_web_fs_file_open: function (pathPtr: number, pathLen: number, _flags: number) {
+    duckdb_web_fs_file_open: (pathPtr: number, pathLen: number, _flags: number) => {
         const inst = NodeRuntime.bindings!.instance!;
         const path = decoder.decode(inst.HEAPU8.subarray(pathPtr, pathPtr + pathLen));
         const file = NodeRuntime.filesByURL.get(path);
         if (file) return file.fileID;
         return openFile(path);
     },
-    duckdb_web_fs_file_close: function (fileId: number) {
+    duckdb_web_fs_file_close: (fileId: number) => {
         const file = NodeRuntime.filesByID.get(fileId);
         if (!file) return;
         NodeRuntime.filesByID.delete(fileId);
         NodeRuntime.filesByURL.delete(file.path);
     },
-    duckdb_web_fs_file_get_size: function (fileId: number): number {
+    duckdb_web_fs_file_get_size: (fileId: number): number => {
         const file = NodeRuntime.filesByID.get(fileId);
         if (!file) return 0;
         return file.size;
     },
-    duckdb_web_fs_file_truncate: function (fileId: number, newSize: number) {
+    duckdb_web_fs_file_truncate: (fileId: number, newSize: number) => {
         const file = NodeRuntime.filesByID.get(fileId);
         if (!file) return 0;
         if (file.buffer) {
@@ -174,28 +174,28 @@ export const NodeRuntime: DuckDBRuntime & {
         }
         fs.truncateSync(file.path, newSize);
     },
-    duckdb_web_fs_file_get_last_modified_time: function (fileId: number) {
+    duckdb_web_fs_file_get_last_modified_time: (fileId: number) => {
         const file = NodeRuntime.filesByID.get(fileId);
         if (!file) return 0;
         return file.lastModified;
     },
-    duckdb_web_fs_file_move: function (fromPtr: number, fromLen: number, toPtr: number, toLen: number) {
+    duckdb_web_fs_file_move: (fromPtr: number, fromLen: number, toPtr: number, toLen: number) => {
         const inst = NodeRuntime.bindings!.instance!;
         const fromPath = decoder.decode(inst.HEAPU8.subarray(fromPtr, fromPtr + fromLen));
         const toPath = decoder.decode(inst.HEAPU8.subarray(toPtr, toPtr + toLen));
-        const file = this.filesByURL.get(fromPath);
+        const file = NodeRuntime.filesByURL.get(fromPath);
         if (file && file.buffer) return;
         return fs.renameSync(fromPath, toPath);
     },
-    duckdb_web_fs_file_exists: function (pathPtr: number, pathLen: number) {
+    duckdb_web_fs_file_exists: (pathPtr: number, pathLen: number) => {
         const inst = NodeRuntime.bindings!.instance!;
         const path = decoder.decode(inst.HEAPU8.subarray(pathPtr, pathPtr + pathLen));
         return NodeRuntime.filesByURL.has(path) && fs.existsSync(path);
     },
-    duckdb_web_fs_file_remove: function (pathPtr: number, pathLen: number) {
+    duckdb_web_fs_file_remove: (pathPtr: number, pathLen: number) => {
         const inst = NodeRuntime.bindings!.instance!;
         const path = decoder.decode(inst.HEAPU8.subarray(pathPtr, pathPtr + pathLen));
-        const file = this.filesByURL.get(path);
+        const file = NodeRuntime.filesByURL.get(path);
         if (file && file.buffer) return;
         return fs.rmSync(path);
     },
