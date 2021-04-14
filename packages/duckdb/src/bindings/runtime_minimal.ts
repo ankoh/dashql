@@ -109,6 +109,13 @@ export const MinimalRuntime: DuckDBRuntime & {
         if (!file) return 0;
         return file.buffer.length;
     },
+    duckdb_web_fs_file_truncate: function (fileId: number, newSize: number) {
+        const file = MinimalRuntime.filesByID.get(fileId);
+        if (!file) return 0;
+        const newBuffer = new Uint8Array(newSize);
+        newBuffer.set(file.buffer.subarray(0, Math.min(file.buffer.length, newSize)));
+        file.buffer = newBuffer;
+    },
     duckdb_web_fs_file_get_last_modified_time: function (fileId: number) {
         const file = MinimalRuntime.filesByID.get(fileId);
         if (!file) return 0;
