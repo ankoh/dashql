@@ -51,19 +51,18 @@ export const NodeRuntime: DuckDBRuntime & {
         throw Error('cannot register a file blob');
     },
     duckdb_web_add_file_buffer: function (url: string, array: Uint8Array) {
-        const path = tmp.sync(Buffer.from(array));
         const file = NodeRuntime.filesByURL.get(url);
         if (file) return file.fileID;
         const fileID = NodeRuntime.nextFileID++;
         const newFile: NodeRuntimeFile = {
             fileID,
-            path: path,
+            path: url,
             fd: null,
             buffer: array,
             size: array.length,
             lastModified: new Date().getTime(),
         };
-        NodeRuntime.filesByURL.set(path, newFile);
+        NodeRuntime.filesByURL.set(url, newFile);
         NodeRuntime.filesByID.set(fileID, newFile);
         return fileID;
     },
