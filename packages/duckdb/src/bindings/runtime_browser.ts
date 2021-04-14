@@ -103,16 +103,10 @@ export const BrowserRuntime: DuckDBRuntime & {
         dst.set(src);
         return bytes;
     },
-    duckdb_web_fs_directory_exists: (_pathPtr: number, _pathLen: number) => {
-        // TODO check if theres any BrowserRuntimeFile with prefix
-        return false;
-    },
+    duckdb_web_fs_directory_exists: (_pathPtr: number, _pathLen: number) => false,
     duckdb_web_fs_directory_create: (_pathPtr: number, _pathLen: number) => {},
     duckdb_web_fs_directory_remove: (_pathPtr: number, _pathLen: number) => {},
-    duckdb_web_fs_directory_list_files: (_pathPtr: number, _pathLen: number) => {
-        // TODO list files
-        return false;
-    },
+    duckdb_web_fs_directory_list_files: (_pathPtr: number, _pathLen: number) => false,
     duckdb_web_fs_glob: (pathPtr: number, pathLen: number) => {
         const inst = BrowserRuntime.bindings!.instance!;
         const path = decoder.decode(inst.HEAPU8.subarray(pathPtr, pathPtr + pathLen));
