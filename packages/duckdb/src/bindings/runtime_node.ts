@@ -88,14 +88,11 @@ export const NodeRuntime: DuckDBRuntime & {
         if (!file) return 0;
         const inst = NodeRuntime.bindings!.instance!;
         const heap = inst.HEAPU8;
-        console.log(`READ ${fileId} ${buf} ${bytes} ${location}`);
         if (file.buffer) {
-            console.log(`BUFFER`);
             const dst = inst.HEAPU8.subarray(buf, buf + bytes);
             dst.set(file.buffer);
             return file.buffer.byteLength;
         }
-        console.log(`FILE`);
         return fs.readSync(file.fd!, heap, buf, bytes, location);
     },
     duckdb_web_fs_write: function (fileId: number, buf: number, bytes: number, location: number) {
@@ -103,12 +100,13 @@ export const NodeRuntime: DuckDBRuntime & {
         if (!file) return 0;
         const inst = NodeRuntime.bindings!.instance!;
         const heap = inst.HEAPU8;
-        const dst = heap.subarray(buf, buf + bytes);
+        const src = heap.subarray(buf, buf + bytes);
         if (file.buffer) {
-            dst.set(file.buffer);
+            const dst = file.buffer.subarray(location, bytes);
+            dst.set(src);
             return file.buffer.byteLength;
         }
-        return fs.writeSync(file.fd!, dst, 0, dst.length, location);
+        return fs.writeSync(file.fd!, src, 0, src.length, location);
     },
     duckdb_web_fs_directory_exists: function (pathPtr: number, pathLen: number) {
         const inst = NodeRuntime.bindings!.instance!;
