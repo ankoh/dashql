@@ -26,11 +26,11 @@ export abstract class DuckDBBindings {
     }
 
     /** Get the logger */
-    public get logger() {
+    public get logger(): Logger {
         return this._logger;
     }
     /** Get the instance */
-    public get instance() {
+    public get instance(): DuckDBModule | null {
         return this._instance;
     }
 
@@ -42,6 +42,7 @@ export abstract class DuckDBBindings {
         return this._runtime.duckdb_web_add_file_path(url, path);
     }
     /// Add file blob
+    // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
     public addFileBlob(url: string, data: any): number {
         return this._runtime.duckdb_web_add_file_blob(url, data);
     }
@@ -59,7 +60,7 @@ export abstract class DuckDBBindings {
     }
 
     /** Open the database */
-    public async open() {
+    public async open(): Promise<void> {
         // Already opened?
         if (this._instance != null) {
             return;
@@ -89,11 +90,11 @@ export abstract class DuckDBBindings {
     // Call a core function with packed response buffer
     public callSRet(funcName: string, argTypes: Array<Emscripten.JSType>, args: Array<any>): [number, number, number] {
         // Save the stack
-        let instance = this._instance!;
-        let stackPointer = instance.stackSave();
+        const instance = this._instance!;
+        const stackPointer = instance.stackSave();
 
         // Allocate the packed response buffer
-        let response = instance.stackAlloc(3 * 8);
+        const response = instance.stackAlloc(3 * 8);
         argTypes.unshift('number');
         args.unshift(response);
 
@@ -101,9 +102,9 @@ export abstract class DuckDBBindings {
         instance.ccall(funcName, null, argTypes, args);
 
         // Read the response
-        let status = instance.HEAPF64[(response >> 3) + 0];
-        let data = instance.HEAPF64[(response >> 3) + 1];
-        let dataSize = instance.HEAPF64[(response >> 3) + 2];
+        const status = instance.HEAPF64[(response >> 3) + 0];
+        const data = instance.HEAPF64[(response >> 3) + 1];
+        const dataSize = instance.HEAPF64[(response >> 3) + 2];
 
         // Restore the stack
         instance.stackRestore(stackPointer);
@@ -111,7 +112,7 @@ export abstract class DuckDBBindings {
     }
 
     /** Delete response buffers */
-    public dropResponseBuffers() {
+    public dropResponseBuffers(): void {
         this.instance!.ccall('duckdb_web_clear_response', null, [], []);
     }
 
@@ -134,14 +135,14 @@ export abstract class DuckDBBindings {
     }
 
     /** Flush all files */
-    public flushFiles() {
+    public flushFiles(): void {
         this.instance!.ccall('duckdb_web_flush_files', null, [], []);
     }
 
     /** Connect to database */
     public connect(): DuckDBConnection {
-        let instance = this._instance!;
-        let conn = instance.ccall('duckdb_web_connect', 'number', [], []);
+        const instance = this._instance!;
+        const conn = instance.ccall('duckdb_web_connect', 'number', [], []);
         return new DuckDBConnection(this, conn);
     }
 
@@ -152,7 +153,6 @@ export abstract class DuckDBBindings {
 
     /** Send a query and return the full result */
     public runQuery(conn: number, text: string): Uint8Array {
-        const instance = this.instance!;
         const [s, d, n] = this.callSRet('duckdb_web_query_run', ['number', 'string'], [conn, text]);
         if (s !== StatusCode.SUCCESS) {
             throw new Error(this.readString(d, n));
@@ -164,7 +164,6 @@ export abstract class DuckDBBindings {
 
     /** Send a query asynchronously. Results have to be fetched with `fetchQueryResults` */
     public sendQuery(conn: number, text: string): Uint8Array {
-        const instance = this.instance!;
         const [s, d, n] = this.callSRet('duckdb_web_query_send', ['number', 'string'], [conn, text]);
         if (s !== StatusCode.SUCCESS) {
             throw new Error(this.readString(d, n));
@@ -176,7 +175,6 @@ export abstract class DuckDBBindings {
 
     /** Fetch query results */
     public fetchQueryResults(conn: number): Uint8Array {
-        const instance = this.instance!;
         const [s, d, n] = this.callSRet('duckdb_web_query_fetch_results', ['number'], [conn]);
         if (s !== StatusCode.SUCCESS) {
             throw new Error(this.readString(d, n));
@@ -188,8 +186,7 @@ export abstract class DuckDBBindings {
 
     /// Import csv from a given URL
     public importCSV(conn: number, filePath: string, schemaName: string, tableName: string): void {
-        let instance = this.instance!;
-        let [s, d, n] = this.callSRet(
+        const [s, d, n] = this.callSRet(
             'duckdb_web_csv_import',
             ['number', 'string', 'string', 'string'],
             [conn, filePath, schemaName, tableName],

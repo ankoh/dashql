@@ -21,7 +21,7 @@ class WebWorker extends AsyncDuckDBDispatcher {
 }
 
 /** Register the worker */
-export function registerWorker() {
+export function registerWorker(): void {
     const api = new WebWorker();
     globalThis.onmessage = async (event: MessageEvent<WorkerRequestVariant>) => {
         await api.onMessage(event.data);

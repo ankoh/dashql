@@ -3,7 +3,7 @@ import * as arrow from 'apache-arrow';
 
 const testRows = 10000;
 
-export function testAsyncBatchStream(db: () => duckdb.AsyncDuckDB) {
+export function testAsyncBatchStream(db: () => duckdb.AsyncDuckDB): void {
     let conn: duckdb.AsyncDuckDBConnection;
 
     beforeEach(async () => {

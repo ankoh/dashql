@@ -7,6 +7,7 @@ import { Logger } from '../log';
 import { DuckDBRuntime } from './runtime_base';
 
 declare global {
+    // eslint-disable-next-line no-var
     var DuckDBTrampoline: any;
 }
 
@@ -23,6 +24,7 @@ export class DuckDB extends DuckDBBindings {
 
     /// Instantiate the wasm module
     protected instantiateWasm(
+        // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
         imports: any,
         success: (module: WebAssembly.Module) => void,
     ): Emscripten.WebAssemblyExports {
@@ -37,11 +39,9 @@ export class DuckDB extends DuckDBBindings {
             WebAssembly.instantiateStreaming(fetch(this.path), imports_rt).then(output => {
                 globalThis.DuckDBTrampoline = {};
 
-                for (let func of Object.getOwnPropertyNames(this._runtime)) {
+                for (const func of Object.getOwnPropertyNames(this._runtime)) {
                     if (func == 'constructor') continue;
-                    globalThis.DuckDBTrampoline[func] = <Function>(
-                        Object.getOwnPropertyDescriptor(this._runtime, func)!.value
-                    );
+                    globalThis.DuckDBTrampoline[func] = Object.getOwnPropertyDescriptor(this._runtime, func)!.value;
                 }
                 success(output.instance);
             });
@@ -52,11 +52,12 @@ export class DuckDB extends DuckDBBindings {
                     WebAssembly.instantiate(bytes, imports_rt).then(output => {
                         globalThis.DuckDBTrampoline = {};
 
-                        for (let func of Object.getOwnPropertyNames(this._runtime)) {
+                        for (const func of Object.getOwnPropertyNames(this._runtime)) {
                             if (func == 'constructor') continue;
-                            globalThis.DuckDBTrampoline[func] = <Function>(
-                                Object.getOwnPropertyDescriptor(this._runtime, func)!.value
-                            );
+                            globalThis.DuckDBTrampoline[func] = Object.getOwnPropertyDescriptor(
+                                this._runtime,
+                                func,
+                            )!.value;
                         }
                         success(output.instance);
                     }),

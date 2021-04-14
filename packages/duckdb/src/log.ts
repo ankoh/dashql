@@ -70,7 +70,7 @@ export class ConsoleLogger implements Logger {
     }
 }
 
-export function getLogLevelLabel(level: LogLevel) {
+export function getLogLevelLabel(level: LogLevel): string {
     switch (level) {
         case LogLevel.DEBUG:
             return 'DEBUG';
@@ -85,7 +85,7 @@ export function getLogLevelLabel(level: LogLevel) {
     }
 }
 
-export function getLogEventLabel(event: LogEvent) {
+export function getLogEventLabel(event: LogEvent): string {
     switch (event) {
         case LogEvent.OK:
             return 'OK';
@@ -100,7 +100,7 @@ export function getLogEventLabel(event: LogEvent) {
     }
 }
 
-export function getLogTopicLabel(topic: LogTopic) {
+export function getLogTopicLabel(topic: LogTopic): string {
     switch (topic) {
         case LogTopic.CONNECT:
             return 'CONNECT';
@@ -119,7 +119,7 @@ export function getLogTopicLabel(topic: LogTopic) {
     }
 }
 
-export function getLogOriginLabel(origin: LogOrigin) {
+export function getLogOriginLabel(origin: LogOrigin): string {
     switch (origin) {
         case LogOrigin.WEB_WORKER:
             return 'WEB WORKER';
