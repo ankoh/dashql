@@ -90,6 +90,10 @@ export abstract class AsyncDuckDBDispatcher implements Logger {
                     this._bindings = null;
                     this.sendOK(request);
                     break;
+                case WorkerRequestType.FLUSH_FILES:
+                    this._bindings.flushFiles();
+                    this.sendOK(request);
+                    break;
                 case WorkerRequestType.CONNECT:
                     const conn = this._bindings.connect();
                     this.postMessage(

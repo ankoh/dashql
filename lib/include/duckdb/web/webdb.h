@@ -54,9 +54,6 @@ class WebDB {
         arrow::Result<std::shared_ptr<arrow::Buffer>> SendQuery(std::string_view text);
         /// Fetch query results and return an arrow buffer
         arrow::Result<std::shared_ptr<arrow::Buffer>> FetchQueryResults();
-
-        /// Import a csv file
-        arrow::Result<size_t> ImortCSV(const char* path);
     };
 
    protected:
@@ -87,6 +84,8 @@ class WebDB {
     Connection* Connect();
     /// End a connection
     void Disconnect(Connection* connection);
+    /// Flush all file buffers
+    void FlushFiles();
 
     /// Get the static webdb instance
     static WebDB& GetInstance();

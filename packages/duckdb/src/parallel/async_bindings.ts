@@ -137,6 +137,12 @@ export class AsyncDuckDB {
                     return;
                 }
                 break;
+            case WorkerRequestType.FLUSH_FILES:
+                if (response.type == WorkerResponseType.OK) {
+                    task.promiseResolver(response.data);
+                    return;
+                }
+                break;
             case WorkerRequestType.ADD_FILE_PATH:
                 if (response.type == WorkerResponseType.REGISTERED_FILE) {
                     task.promiseResolver(response.data);
@@ -222,6 +228,12 @@ export class AsyncDuckDB {
     public async ping() {
         const task = new WorkerTask<WorkerRequestType.PING, null, null>(WorkerRequestType.PING, null);
         await this.postTask(task);
+    }
+
+    /** Flush all files */
+    public async flushFiles(): Promise<null> {
+        const task = new WorkerTask<WorkerRequestType.FLUSH_FILES, null, null>(WorkerRequestType.FLUSH_FILES, null);
+        return await this.postTask(task);
     }
 
     /** Open the database */

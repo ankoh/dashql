@@ -133,6 +133,11 @@ export abstract class DuckDBBindings {
         return copy;
     }
 
+    /** Flush all files */
+    public flushFiles() {
+        this.instance!.ccall('duckdb_web_flush_files', null, [], []);
+    }
+
     /** Connect to database */
     public connect(): DuckDBConnection {
         let instance = this._instance!;
