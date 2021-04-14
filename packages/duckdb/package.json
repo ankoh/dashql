@@ -54,7 +54,7 @@
         "test": "npm run test:browser && npm run test:node",
         "test:cov": "npm run test:browser:cov && npm run test:node:cov && npm run report",
         "test:ci": "npm run test:cov",
-        "lint": "eslint --config ./.eslintrc.js {src,test}/**/*.ts"
+        "lint": "eslint {src,test}/**/*.ts"
     },
     "files": [
         "dist/types/**/*.d.ts",
