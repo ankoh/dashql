@@ -22,6 +22,16 @@ static constexpr uint16_t GetFileID(uint64_t page_id) { return page_id >> 48; }
 /// corresponds to the 48 least significant bits of the page id.
 static constexpr uint64_t GetPageID(uint64_t page_id) { return page_id & ((1ull << 48) - 1); }
 
+/// Helper to dump bytes
+static void dumpBytes(nonstd::span<char> bytes, size_t line_width = 30) {
+    for (int i = 0; i < bytes.size(); i++) {
+        auto c = bytes[i];
+        if (i % line_width == 0) std::cout << "\n";
+        std::cout << (std::isalnum(c) ? c : '.');
+    }
+    std::cout << std::endl;
+}
+
 namespace duckdb {
 namespace web {
 namespace io {
@@ -66,7 +76,7 @@ BufferManager::FileRef::~FileRef() { Release(); }
 
 /// Release the file ref
 void BufferManager::FileRef::Release() {
-    if (file_) {
+    if (!!file_) {
         buffer_manager_.ReleaseFile(*file_);
         file_ = nullptr;
     }
@@ -82,28 +92,21 @@ BufferManager::FileRef& BufferManager::FileRef::operator=(FileRef&& other) {
 }
 
 /// Constructor
-BufferManager::BufferRef::BufferRef(BufferManager& buffer_manager, uint64_t frame_id, nonstd::span<char> data)
-    : buffer_manager_(buffer_manager), frame_id_(frame_id), data_(data), is_dirty_(false) {}
+BufferManager::BufferRef::BufferRef(BufferManager& buffer_manager, BufferFrame& frame)
+    : buffer_manager_(buffer_manager), frame_(&frame) {}
 
 /// Move Constructor
 BufferManager::BufferRef::BufferRef(BufferRef&& other)
-    : buffer_manager_(other.buffer_manager_),
-      frame_id_(std::move(other.frame_id_)),
-      data_(other.data_),
-      is_dirty_(other.is_dirty_) {
-    other.frame_id_.reset();
-    other.data_ = {};
+    : buffer_manager_(other.buffer_manager_), frame_(std::move(other.frame_)) {
+    other.frame_ = nullptr;
 }
 
 /// Move Constructor
 BufferManager::BufferRef& BufferManager::BufferRef::operator=(BufferRef&& other) {
     assert(&buffer_manager_ == &other.buffer_manager_);
     Release();
-    frame_id_ = other.frame_id_;
-    data_ = other.data_;
-    is_dirty_ = other.is_dirty_;
-    other.frame_id_.reset();
-    other.data_ = {};
+    frame_ = other.frame_;
+    other.frame_ = nullptr;
     return *this;
 }
 
@@ -112,22 +115,24 @@ BufferManager::BufferRef::~BufferRef() { Release(); }
 
 /// Constructor
 void BufferManager::BufferRef::Release() {
-    if (frame_id_.has_value()) {
-        buffer_manager_.UnfixPage(*frame_id_, is_dirty_);
-        frame_id_.reset();
-        data_ = {};
+    if (!!frame_) {
+        buffer_manager_.UnfixPage(frame_->frame_id, frame_->is_dirty);
+        frame_ = nullptr;
     }
 }
 
 /// Require a buffer frame to be of a certain size
 void BufferManager::BufferRef::RequireSize(size_t n) {
-    if (!frame_id_ || n < data_.size()) return;
-    auto file_id = GetFileID(*frame_id_);
-    auto page_id = GetPageID(*frame_id_);
+    if (!frame_ || n < frame_->data_size) return;
+    n = std::min<size_t>(n, buffer_manager_.GetPageSize());
+    auto frame_id = frame_->frame_id;
+    auto page_id = GetPageID(frame_id);
+    auto file_id = GetFileID(frame_id);
     auto file_iter = buffer_manager_.files.find(file_id);
     if (file_iter == buffer_manager_.files.end()) return;
     auto required = page_id * buffer_manager_.GetPageSize() + n;
     buffer_manager_.RequireFileSize(*file_iter->second, required);
+    frame_->data_size = n;
 }
 
 /// Constructor
@@ -239,6 +244,9 @@ void BufferManager::FlushFrame(BufferFrame& frame) {
     auto& file = *files.at(file_id);
     GrowFileIfRequired(file);
 
+    std::cout << "Flush: " << std::endl;
+    dumpBytes(frame.GetData());
+
     // Write page to disk
     filesystem->Write(*file.handle, frame.buffer.data(), frame.data_size, page_id * page_size);
     frame.is_dirty = false;
@@ -304,7 +312,7 @@ BufferManager::BufferRef BufferManager::FixPage(const FileRef& file_ref, uint64_
             frame.lru_position = lru.insert(lru.end(), &frame);
         }
         frame.Lock(exclusive);
-        return BufferRef{*this, frame_id, frame.GetData()};
+        return BufferRef{*this, frame};
     }
 
     // Create a new page and don't insert it in the queues, yet.
@@ -316,7 +324,7 @@ BufferManager::BufferRef BufferManager::FixPage(const FileRef& file_ref, uint64_
 
     // Load the data
     LoadFrame(frame);
-    return BufferRef{*this, frame_id, frame.GetData()};
+    return BufferRef{*this, frame};
 }
 
 void BufferManager::UnfixPage(size_t frame_id, bool is_dirty) {
@@ -364,14 +372,11 @@ size_t BufferManager::Write(const FileRef& file, void* in, size_t bytes, size_t 
 
     // Write page
     auto page = FixPage(file, page_id, false);
-    auto& data = page.GetData();
     write_here = std::min<size_t>(write_here, GetPageSize());
-    auto ub = skip_here + write_here;
-    if (ub > data.size()) {
-        page.data_ = {page.data_.data(), ub};
-        RequireFileSize(*file.file_, ub);
-    }
+    page.RequireSize(skip_here + write_here);
+    auto data = page.GetData();
     std::memcpy(data.data() + skip_here, static_cast<char*>(in), write_here);
+    page.MarkAsDirty();
     return write_here;
 }
 
