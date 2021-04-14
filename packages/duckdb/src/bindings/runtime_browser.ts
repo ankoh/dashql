@@ -97,6 +97,7 @@ export const BrowserRuntime: DuckDBRuntime & {
         // Copy entire blob on first write
         if (!file.buffer) {
             file.buffer = new Uint8Array(new FileReaderSync().readAsArrayBuffer(file.blob!));
+            file.blob = null;
         }
         const dst = file.buffer.subarray(location, location + bytes);
         dst.set(src);
@@ -144,6 +145,18 @@ export const BrowserRuntime: DuckDBRuntime & {
         const file = BrowserRuntime.filesByID.get(fileId);
         if (!file) return 0;
         return file.buffer ? file.buffer.length : file.blob!.size;
+    },
+    duckdb_web_fs_file_truncate: function (fileId: number, newSize: number) {
+        const file = BrowserRuntime.filesByID.get(fileId);
+        if (!file) return 0;
+        let buffer = file.buffer;
+        if (!buffer) {
+            buffer = new Uint8Array(new FileReaderSync().readAsArrayBuffer(file.blob!));
+        }
+        const newBuffer = new Uint8Array(newSize);
+        newBuffer.set(buffer.subarray(0, Math.min(buffer.length, newSize)));
+        file.buffer = newBuffer;
+        file.blob = null;
     },
     duckdb_web_fs_file_get_last_modified_time: function (fileId: number) {
         const file = BrowserRuntime.filesByID.get(fileId);
