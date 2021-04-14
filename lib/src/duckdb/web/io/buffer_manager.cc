@@ -119,6 +119,17 @@ void BufferManager::BufferRef::Release() {
     }
 }
 
+/// Require a buffer frame to be of a certain size
+void BufferManager::BufferRef::RequireSize(size_t n) {
+    if (!frame_id_ || n < data_.size()) return;
+    auto file_id = GetFileID(*frame_id_);
+    auto page_id = GetPageID(*frame_id_);
+    auto file_iter = buffer_manager_.files.find(file_id);
+    if (file_iter == buffer_manager_.files.end()) return;
+    auto required = page_id * buffer_manager_.GetPageSize() + n;
+    buffer_manager_.RequireFileSize(*file_iter->second, required);
+}
+
 /// Constructor
 BufferManager::BufferManager(std::unique_ptr<duckdb::FileSystem> filesystem, size_t page_size_bits)
     : page_size_bits(page_size_bits), filesystem(std::move(filesystem)) {}
@@ -157,6 +168,7 @@ BufferManager::FileRef BufferManager::OpenFile(std::string_view path, std::uniqu
         file.handle = filesystem->OpenFile(file.path.c_str(), duckdb::FileFlags::FILE_FLAGS_WRITE);
     }
     file.file_size = filesystem->GetFileSize(*file.handle);
+    file.file_size_required = file.file_size;
     return FileRef{*this, file};
 }
 
@@ -174,6 +186,16 @@ void BufferManager::EvictFileFrames(RegisteredFile& file) {
         }
     }
     frames.erase(lb, ub);
+}
+
+void BufferManager::RequireFileSize(RegisteredFile& file, size_t bytes) {
+    file.file_size_required = std::max(file.file_size_required, file.file_size);
+}
+
+void BufferManager::GrowFileIfRequired(RegisteredFile& file) {
+    if (file.file_size_required <= file.file_size) return;
+    filesystem->Truncate(*file.handle, file.file_size_required);
+    file.file_size = file.file_size_required;
 }
 
 void BufferManager::ReleaseFile(RegisteredFile& file) {
@@ -215,6 +237,9 @@ void BufferManager::FlushFrame(BufferFrame& frame) {
     // Write data from frame
     assert(files.count(file_id));
     auto& file = *files.at(file_id);
+    GrowFileIfRequired(file);
+
+    // Write page to disk
     filesystem->Write(*file.handle, frame.buffer.data(), frame.data_size, page_id * page_size);
     frame.is_dirty = false;
 }
@@ -339,8 +364,13 @@ size_t BufferManager::Write(const FileRef& file, void* in, size_t bytes, size_t 
 
     // Write page
     auto page = FixPage(file, page_id, false);
-    auto data = page.GetData();
-    write_here = std::min<size_t>(write_here, data.size());
+    auto& data = page.GetData();
+    write_here = std::min<size_t>(write_here, GetPageSize());
+    auto ub = skip_here + write_here;
+    if (ub > data.size()) {
+        page.data_ = {page.data_.data(), ub};
+        RequireFileSize(*file.file_, ub);
+    }
     std::memcpy(data.data() + skip_here, static_cast<char*>(in), write_here);
     return write_here;
 }
@@ -350,6 +380,7 @@ void BufferManager::Truncate(const FileRef& file_ref, size_t new_size) {
     EvictFileFrames(*file);
     filesystem->Truncate(*file->handle, new_size);
     file->file_size = new_size;
+    file->file_size_required = file->file_size;
 }
 
 std::vector<uint64_t> BufferManager::get_fifo_list() const {
