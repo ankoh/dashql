@@ -27,8 +27,8 @@ const openFile = (path: string) => {
     const newFile: NodeRuntimeFile = {
         fileID,
         path,
-        fd,
         buffer: null,
+        fd,
         size: stat.size,
         lastModified: stat.mtime.getTime(),
     };
@@ -90,7 +90,7 @@ export const NodeRuntime: DuckDBRuntime & {
         const heap = inst.HEAPU8;
         if (file.buffer) {
             const dst = inst.HEAPU8.subarray(buf, buf + bytes);
-            dst.src(file.buffer);
+            dst.set(file.buffer);
             return file.buffer.byteLength;
         }
         return fs.readSync(file.fd!, heap, buf, bytes, location);
@@ -102,7 +102,7 @@ export const NodeRuntime: DuckDBRuntime & {
         const heap = inst.HEAPU8;
         const dst = heap.subarray(buf, buf + bytes);
         if (file.buffer) {
-            dst.src(file.buffer);
+            dst.set(file.buffer);
             return file.buffer.byteLength;
         }
         return fs.writeSync(file.fd!, dst, 0, dst.length, location);
