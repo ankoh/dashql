@@ -24,10 +24,10 @@ export const BrowserRuntime: DuckDBRuntime & {
     nextFileID: 0,
     bindings: null,
 
-    duckdb_web_add_file_path(url: string, path: string): number {
+    duckdb_web_add_file_path: (_url: string, _path: string) => {
         throw Error('cannot register a file path');
     },
-    duckdb_web_add_file_blob(url: string, blob: any): number {
+    duckdb_web_add_file_blob: (url: string, blob: any) => {
         const file = BrowserRuntime.filesByURL.get(url);
         if (file) return file.fileID;
         const fileID = BrowserRuntime.nextFileID++;
@@ -42,7 +42,7 @@ export const BrowserRuntime: DuckDBRuntime & {
         BrowserRuntime.filesByID.set(fileID, newFile);
         return fileID;
     },
-    duckdb_web_add_file_buffer: function (url: string, buffer: Uint8Array) {
+    duckdb_web_add_file_buffer: (url: string, buffer: Uint8Array) => {
         const file = BrowserRuntime.filesByURL.get(url);
         if (file) return file.fileID;
         const fileID = BrowserRuntime.nextFileID++;
@@ -57,7 +57,7 @@ export const BrowserRuntime: DuckDBRuntime & {
         BrowserRuntime.filesByID.set(fileID, newFile);
         return fileID;
     },
-    duckdb_web_get_file_object_url(fileId: number): string | null {
+    duckdb_web_get_file_object_url: (fileId: number): string | null => {
         const file = BrowserRuntime.filesByID.get(fileId);
         if (!file) return null;
         if (file.buffer) {
@@ -66,13 +66,13 @@ export const BrowserRuntime: DuckDBRuntime & {
             return URL.createObjectURL(file.blob);
         }
     },
-    duckdb_web_get_file_buffer(fileId: number): Uint8Array | null {
+    duckdb_web_get_file_buffer: (fileId: number): Uint8Array | null => {
         const file = BrowserRuntime.filesByID.get(fileId);
         if (!file) return null;
         if (file.buffer) return file.buffer;
         return new Uint8Array(new FileReaderSync().readAsArrayBuffer(file.blob!));
     },
-    duckdb_web_fs_read: function (fileId: number, buf: number, bytes: number, location: number) {
+    duckdb_web_fs_read: (fileId: number, buf: number, bytes: number, location: number) => {
         const file = BrowserRuntime.filesByID.get(fileId);
         if (!file) return 0;
         const inst = BrowserRuntime.bindings!.instance!;
@@ -89,7 +89,7 @@ export const BrowserRuntime: DuckDBRuntime & {
             return bytes;
         }
     },
-    duckdb_web_fs_write: function (fileId: number, buf: number, bytes: number, location: number) {
+    duckdb_web_fs_write: (fileId: number, buf: number, bytes: number, location: number) => {
         const file = BrowserRuntime.filesByID.get(fileId);
         if (!file) return 0;
         const inst = BrowserRuntime.bindings!.instance!;
@@ -103,17 +103,17 @@ export const BrowserRuntime: DuckDBRuntime & {
         dst.set(src);
         return bytes;
     },
-    duckdb_web_fs_directory_exists: function (_pathPtr: number, _pathLen: number) {
+    duckdb_web_fs_directory_exists: (_pathPtr: number, _pathLen: number) => {
         // TODO check if theres any BrowserRuntimeFile with prefix
         return false;
     },
-    duckdb_web_fs_directory_create: function (_pathPtr: number, _pathLen: number) {},
-    duckdb_web_fs_directory_remove: function (_pathPtr: number, _pathLen: number) {},
-    duckdb_web_fs_directory_list_files: function (_pathPtr: number, _pathLen: number) {
+    duckdb_web_fs_directory_create: (_pathPtr: number, _pathLen: number) => {},
+    duckdb_web_fs_directory_remove: (_pathPtr: number, _pathLen: number) => {},
+    duckdb_web_fs_directory_list_files: (_pathPtr: number, _pathLen: number) => {
         // TODO list files
         return false;
     },
-    duckdb_web_fs_glob: function (pathPtr: number, pathLen: number) {
+    duckdb_web_fs_glob: (pathPtr: number, pathLen: number) => {
         const inst = BrowserRuntime.bindings!.instance!;
         const path = decoder.decode(inst.HEAPU8.subarray(pathPtr, pathPtr + pathLen));
         const re = globToRegexp(path);
@@ -131,22 +131,22 @@ export const BrowserRuntime: DuckDBRuntime & {
             }
         }
     },
-    duckdb_web_fs_file_open: function (pathPtr: number, pathLen: number, _flags: number) {
+    duckdb_web_fs_file_open: (pathPtr: number, pathLen: number, _flags: number) => {
         const inst = BrowserRuntime.bindings!.instance!;
         const path = decoder.decode(inst.HEAPU8.subarray(pathPtr, pathPtr + pathLen));
         const file = BrowserRuntime.filesByURL.get(path);
         if (file) return file.fileID;
-        throw Error('File not found: ' + path);
+        throw Error(`File not found: ${path}`);
     },
-    duckdb_web_fs_file_close: function (fileId: number) {
+    duckdb_web_fs_file_close: (_fileId: number) => {
         // Noop
     },
-    duckdb_web_fs_file_get_size: function (fileId: number) {
+    duckdb_web_fs_file_get_size: (fileId: number) => {
         const file = BrowserRuntime.filesByID.get(fileId);
         if (!file) return 0;
         return file.buffer ? file.buffer.length : file.blob!.size;
     },
-    duckdb_web_fs_file_truncate: function (fileId: number, newSize: number) {
+    duckdb_web_fs_file_truncate: (fileId: number, newSize: number) => {
         const file = BrowserRuntime.filesByID.get(fileId);
         if (!file) return 0;
         let buffer = file.buffer;
@@ -158,12 +158,12 @@ export const BrowserRuntime: DuckDBRuntime & {
         file.buffer = newBuffer;
         file.blob = null;
     },
-    duckdb_web_fs_file_get_last_modified_time: function (fileId: number) {
+    duckdb_web_fs_file_get_last_modified_time: (fileId: number) => {
         const file = BrowserRuntime.filesByID.get(fileId);
         if (!file) return 0;
         return file.lastModified.getTime();
     },
-    duckdb_web_fs_file_move: function (fromPtr: number, fromLen: number, toPtr: number, toLen: number) {
+    duckdb_web_fs_file_move: (fromPtr: number, fromLen: number, toPtr: number, toLen: number) => {
         const inst = BrowserRuntime.bindings!.instance!;
         const fromPath = decoder.decode(inst.HEAPU8.subarray(fromPtr, fromPtr + fromLen));
         const toPath = decoder.decode(inst.HEAPU8.subarray(toPtr, toPtr + toLen));
@@ -173,13 +173,13 @@ export const BrowserRuntime: DuckDBRuntime & {
         BrowserRuntime.filesByURL.delete(fromPath);
         BrowserRuntime.filesByURL.set(toPath, file);
     },
-    duckdb_web_fs_file_exists: function (pathPtr: number, pathLen: number) {
+    duckdb_web_fs_file_exists: (pathPtr: number, pathLen: number) => {
         const inst = BrowserRuntime.bindings!.instance!;
         const path = decoder.decode(inst.HEAPU8.subarray(pathPtr, pathPtr + pathLen));
         const file = BrowserRuntime.filesByURL.get(path);
         return !!file;
     },
-    duckdb_web_fs_file_remove: function (pathPtr: number, pathLen: number) {
+    duckdb_web_fs_file_remove: (pathPtr: number, pathLen: number) => {
         const inst = BrowserRuntime.bindings!.instance!;
         const path = decoder.decode(inst.HEAPU8.subarray(pathPtr, pathPtr + pathLen));
         BrowserRuntime.filesByURL.delete(path);
