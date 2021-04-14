@@ -7,6 +7,7 @@ export type ConnectionID = number;
 export enum WorkerRequestType {
     RESET = 'RESET',
     PING = 'PING',
+    FLUSH_FILES = 'FLUSH_FILES',
     ADD_FILE_PATH = 'ADD_FILE_PATH',
     ADD_FILE_BLOB = 'ADD_FILE_BLOB',
     ADD_FILE_BUFFER = 'ADD_FILE_BUFFER',
@@ -70,6 +71,7 @@ export class WorkerTask<T, D, P> {
 export type WorkerRequestVariant =
     | WorkerRequest<WorkerRequestType.RESET, null>
     | WorkerRequest<WorkerRequestType.PING, null>
+    | WorkerRequest<WorkerRequestType.FLUSH_FILES, null>
     | WorkerRequest<WorkerRequestType.ADD_FILE_PATH, [string, string]>
     | WorkerRequest<WorkerRequestType.ADD_FILE_BLOB, [string, any]>
     | WorkerRequest<WorkerRequestType.ADD_FILE_BUFFER, [string, Uint8Array]>
@@ -99,6 +101,7 @@ export type WorkerResponseVariant =
 export type WorkerTaskVariant =
     | WorkerTask<WorkerRequestType.RESET, null, null>
     | WorkerTask<WorkerRequestType.PING, null, null>
+    | WorkerTask<WorkerRequestType.FLUSH_FILES, null, null>
     | WorkerTask<WorkerRequestType.ADD_FILE_PATH, [string, string], number>
     | WorkerTask<WorkerRequestType.ADD_FILE_BLOB, [string, any], number>
     | WorkerTask<WorkerRequestType.ADD_FILE_BUFFER, [string, Uint8Array], number>

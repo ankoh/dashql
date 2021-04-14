@@ -122,13 +122,6 @@ arrow::Result<std::shared_ptr<arrow::Buffer>> WebDB::Connection::FetchQueryResul
     }
 }
 
-/// Import a csv file
-arrow::Result<size_t> WebDB::Connection::ImortCSV(const char* path) {
-    auto& fs = webdb_.database_->GetFileSystem();
-    auto handle = fs.OpenFile(path, duckdb::FileFlags::FILE_FLAGS_READ);
-    return 0;
-}
-
 /// Constructor
 WebDB::WebDB() : buffer_manager_(io::CreateDefaultFileSystem()), database_(), connections_(), db_config_() {
     auto buffered_filesystem = std::make_unique<io::BufferedFileSystem>(buffer_manager_);
@@ -148,6 +141,8 @@ WebDB::Connection* WebDB::Connect() {
 
 /// End a session
 void WebDB::Disconnect(Connection* session) { connections_.erase(session); }
+/// Flush all file buffers
+void WebDB::FlushFiles() { buffer_manager_.Flush(); }
 
 }  // namespace web
 }  // namespace duckdb

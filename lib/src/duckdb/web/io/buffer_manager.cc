@@ -210,6 +210,7 @@ void BufferManager::FlushFrame(BufferFrame& frame) {
     auto file_id = GetFileID(frame.frame_id);
     auto page_id = GetPageID(frame.frame_id);
     auto page_size = GetPageSize();
+    if (!frame.is_dirty) return;
 
     // Write data from frame
     assert(files.count(file_id));
@@ -307,6 +308,12 @@ void BufferManager::FlushFile(const FileRef& file_ref) {
     auto ub = frames.lower_bound(BuildFrameID(file_id + 1));
     for (auto iter = lb; iter != ub; ++iter) {
         FlushFrame(iter->second);
+    }
+}
+
+void BufferManager::Flush() {
+    for (auto& frame : frames) {
+        FlushFrame(frame.second);
     }
 }
 
