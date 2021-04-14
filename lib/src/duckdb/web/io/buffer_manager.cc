@@ -23,6 +23,7 @@ static constexpr uint16_t GetFileID(uint64_t page_id) { return page_id >> 48; }
 static constexpr uint64_t GetPageID(uint64_t page_id) { return page_id & ((1ull << 48) - 1); }
 
 /// Helper to dump bytes
+#if 0
 static void dumpBytes(nonstd::span<char> bytes, size_t line_width = 30) {
     for (int i = 0; i < bytes.size(); i++) {
         auto c = bytes[i];
@@ -31,6 +32,10 @@ static void dumpBytes(nonstd::span<char> bytes, size_t line_width = 30) {
     }
     std::cout << std::endl;
 }
+#define DEBUG_DUMP_BYTES(bytes) dumpBytes(bytes)
+#else
+#define DEBUG_DUMP_BYTES(bytes)
+#endif
 
 namespace duckdb {
 namespace web {
@@ -244,8 +249,7 @@ void BufferManager::FlushFrame(BufferFrame& frame) {
     auto& file = *files.at(file_id);
     GrowFileIfRequired(file);
 
-    std::cout << "Flush: " << std::endl;
-    dumpBytes(frame.GetData());
+    DEBUG_DUMP_BYTES(frame.GetData());
 
     // Write page to disk
     filesystem->Write(*file.handle, frame.buffer.data(), frame.data_size, page_id * page_size);
