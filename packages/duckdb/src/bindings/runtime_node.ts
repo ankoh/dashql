@@ -102,9 +102,10 @@ export const NodeRuntime: DuckDBRuntime & {
         const heap = inst.HEAPU8;
         const src = heap.subarray(buf, buf + bytes);
         if (file.buffer) {
-            const dst = file.buffer.subarray(location, bytes);
+            console.log(`WRITE ${location}..${location + bytes} ${file.buffer.byteLength}`);
+            const dst = file.buffer.subarray(location, location + bytes);
             dst.set(src);
-            return file.buffer.byteLength;
+            return bytes;
         }
         return fs.writeSync(file.fd!, src, 0, src.length, location);
     },
@@ -163,6 +164,7 @@ export const NodeRuntime: DuckDBRuntime & {
         return file.size;
     },
     duckdb_web_fs_file_truncate: function (fileId: number, newSize: number) {
+        console.log('TRUNCATE');
         const file = NodeRuntime.filesByID.get(fileId);
         if (!file) return 0;
         if (file.buffer) {
