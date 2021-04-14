@@ -6,20 +6,28 @@
     "license": "MPL-2.0",
     "dependencies": {
         "@dashql/core": "^0.0.2",
-        "@dashql/proto": "^0.0.5",
         "@dashql/duckdb": "^0.0.23",
+        "@dashql/proto": "^0.0.5",
+        "@types/benchmark": "^2.1.0",
         "benny": "^3.6.15",
-        "web-worker": "^1.0.0",
         "kleur": "^4.1.4",
-        "@types/benchmark": "^2.1.0"
+        "prettier": "^2.2.1",
+        "web-worker": "^1.0.0"
     },
     "devDependencies": {
+        "@typescript-eslint/eslint-plugin": "^4.22.0",
+        "@typescript-eslint/parser": "^4.22.0",
+        "eslint": "^7.24.0",
+        "eslint-plugin-jasmine": "^4.1.2",
+        "eslint-plugin-prettier": "^3.3.1",
+        "prettier": "^2.2.1",
         "typescript": "^4.2.4"
     },
     "optionalDependencies": {
         "fsevents": "*"
     },
     "scripts": {
-        "build": "tsc"
+        "build": "tsc",
+        "lint": "eslint --config ./.eslintrc.js {src,test}/**/*.ts"
     }
 }
