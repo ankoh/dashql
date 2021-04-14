@@ -6,7 +6,7 @@ jasmine.DEFAULT_TIMEOUT_INTERVAL = 60000;
 
 // Resolve a buffer by fetching from disk
 const resolveBuffer = async (url: string) => {
-    const req = await fetch(`/data/${url}`);
+    const req = await fetch(`/data${url}`);
     if (!req.ok) return null;
     return new Uint8Array(await req.arrayBuffer());
 };

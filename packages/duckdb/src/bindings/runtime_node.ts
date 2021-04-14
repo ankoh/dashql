@@ -88,11 +88,14 @@ export const NodeRuntime: DuckDBRuntime & {
         if (!file) return 0;
         const inst = NodeRuntime.bindings!.instance!;
         const heap = inst.HEAPU8;
+        console.log(`READ ${fileId} ${buf} ${bytes} ${location}`);
         if (file.buffer) {
+            console.log(`BUFFER`);
             const dst = inst.HEAPU8.subarray(buf, buf + bytes);
             dst.set(file.buffer);
             return file.buffer.byteLength;
         }
+        console.log(`FILE`);
         return fs.readSync(file.fd!, heap, buf, bytes, location);
     },
     duckdb_web_fs_write: function (fileId: number, buf: number, bytes: number, location: number) {
