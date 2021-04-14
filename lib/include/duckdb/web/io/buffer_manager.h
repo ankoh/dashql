@@ -73,6 +73,10 @@ class BufferManager {
         std::unique_ptr<duckdb::FileHandle> handle;
         /// The file size
         size_t file_size;
+        /// The required file size.
+        /// We grow files on flush if the user wrote past the end.
+        /// For that purpose, we maintain a required file size here that can be bumped through RequireFileSize.
+        size_t file_size_required;
         /// The references
         size_t references;
 
@@ -136,11 +140,13 @@ class BufferManager {
         /// Is set?
         operator bool() const { return frame_id_.has_value(); }
         /// Access the data
-        auto GetData() { return data_; }
+        auto& GetData() { return data_; }
         /// Release the file ref
         void Release();
         /// Mark as dirty
         void MarkAsDirty() { is_dirty_ = false; }
+        /// Require a frame size
+        void RequireSize(size_t n);
     };
 
    protected:
@@ -167,6 +173,10 @@ class BufferManager {
 
     /// Evict all file frames
     void EvictFileFrames(RegisteredFile& file);
+    /// Grow a file if required
+    void GrowFileIfRequired(RegisteredFile& file);
+    /// Require the file size to be at lest bytes large
+    void RequireFileSize(RegisteredFile& file, size_t bytes);
     /// Release a file ref
     void ReleaseFile(RegisteredFile& file);
     /// Loads the page from disk
