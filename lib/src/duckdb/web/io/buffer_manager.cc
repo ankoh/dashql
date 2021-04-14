@@ -132,7 +132,7 @@ void BufferManager::BufferRef::RequireSize(size_t n) {
     if (file_iter == buffer_manager_.files.end()) return;
     auto required = page_id * buffer_manager_.GetPageSize() + n;
     buffer_manager_.RequireFileSize(*file_iter->second, required);
-    frame_->data_size = n;
+    frame_->data_size = std::max<size_t>(n, frame_->data_size);
 }
 
 /// Constructor
@@ -194,7 +194,7 @@ void BufferManager::EvictFileFrames(RegisteredFile& file) {
 }
 
 void BufferManager::RequireFileSize(RegisteredFile& file, size_t bytes) {
-    file.file_size_required = std::max(file.file_size_required, file.file_size);
+    file.file_size_required = std::max(file.file_size_required, bytes);
 }
 
 void BufferManager::GrowFileIfRequired(RegisteredFile& file) {

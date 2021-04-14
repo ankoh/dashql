@@ -164,7 +164,7 @@ export const NodeRuntime: DuckDBRuntime & {
         return file.size;
     },
     duckdb_web_fs_file_truncate: function (fileId: number, newSize: number) {
-        console.log('TRUNCATE');
+        console.log(`TRUNCATE to ${newSize}`);
         const file = NodeRuntime.filesByID.get(fileId);
         if (!file) return 0;
         if (file.buffer) {
