@@ -68,15 +68,11 @@ export const MinimalRuntime: DuckDBRuntime & {
         dst.set(src);
         return bytes;
     },
-    duckdb_web_fs_directory_exists: function (pathPtr: number, pathLen: number) {
-        return false;
-    },
-    duckdb_web_fs_directory_create: function (pathPtr: number, pathLen: number) {},
-    duckdb_web_fs_directory_remove: function (pathPtr: number, pathLen: number) {},
-    duckdb_web_fs_directory_list_files: function (pathPtr: number, pathLen: number) {
-        return false;
-    },
-    duckdb_web_fs_glob: function (pathPtr: number, pathLen: number) {
+    duckdb_web_fs_directory_exists: (pathPtr: number, pathLen: number) => false,
+    duckdb_web_fs_directory_create: (pathPtr: number, pathLen: number) => {},
+    duckdb_web_fs_directory_remove: (pathPtr: number, pathLen: number) => {},
+    duckdb_web_fs_directory_list_files: (pathPtr: number, pathLen: number) => false,
+    duckdb_web_fs_glob: (pathPtr: number, pathLen: number) => {
         const inst = MinimalRuntime.bindings!.instance!;
         const path = decoder.decode(inst.HEAPU8.subarray(pathPtr, pathPtr + pathLen));
         const re = globToRegexp(path);
@@ -94,34 +90,32 @@ export const MinimalRuntime: DuckDBRuntime & {
             }
         }
     },
-    duckdb_web_fs_file_open: function (pathPtr: number, pathLen: number, flags: number) {
+    duckdb_web_fs_file_open: (pathPtr: number, pathLen: number, flags: number) => {
         const inst = MinimalRuntime.bindings!.instance!;
         const path = decoder.decode(inst.HEAPU8.subarray(pathPtr, pathPtr + pathLen));
         const file = MinimalRuntime.filesByURL.get(path);
         if (file) return file.fileID;
         throw Error(`File not found: ${path}`);
     },
-    duckdb_web_fs_file_close: function (fileId: number) {
-        // Noop
-    },
+    duckdb_web_fs_file_close: (fileId: number) => {},
     duckdb_web_fs_file_get_size: function (fileId: number) {
         const file = MinimalRuntime.filesByID.get(fileId);
         if (!file) return 0;
         return file.buffer.length;
     },
-    duckdb_web_fs_file_truncate: function (fileId: number, newSize: number) {
+    duckdb_web_fs_file_truncate: (fileId: number, newSize: number) => {
         const file = MinimalRuntime.filesByID.get(fileId);
         if (!file) return 0;
         const newBuffer = new Uint8Array(newSize);
         newBuffer.set(file.buffer.subarray(0, Math.min(file.buffer.length, newSize)));
         file.buffer = newBuffer;
     },
-    duckdb_web_fs_file_get_last_modified_time: function (fileId: number) {
+    duckdb_web_fs_file_get_last_modified_time: (fileId: number) => {
         const file = MinimalRuntime.filesByID.get(fileId);
         if (!file) return 0;
         return file.lastModified.getTime();
     },
-    duckdb_web_fs_file_move: function (fromPtr: number, fromLen: number, toPtr: number, toLen: number) {
+    duckdb_web_fs_file_move: (fromPtr: number, fromLen: number, toPtr: number, toLen: number) => {
         const inst = MinimalRuntime.bindings!.instance!;
         const fromPath = decoder.decode(inst.HEAPU8.subarray(fromPtr, fromPtr + fromLen));
         const toPath = decoder.decode(inst.HEAPU8.subarray(toPtr, toPtr + toLen));
@@ -131,13 +125,13 @@ export const MinimalRuntime: DuckDBRuntime & {
         MinimalRuntime.filesByURL.delete(fromPath);
         MinimalRuntime.filesByURL.set(toPath, file);
     },
-    duckdb_web_fs_file_exists: function (pathPtr: number, pathLen: number) {
+    duckdb_web_fs_file_exists: (pathPtr: number, pathLen: number) => {
         const inst = MinimalRuntime.bindings!.instance!;
         const path = decoder.decode(inst.HEAPU8.subarray(pathPtr, pathPtr + pathLen));
         const file = MinimalRuntime.filesByURL.get(path);
         return !!file;
     },
-    duckdb_web_fs_file_remove: function (pathPtr: number, pathLen: number) {
+    duckdb_web_fs_file_remove: (pathPtr: number, pathLen: number) => {
         const inst = MinimalRuntime.bindings!.instance!;
         const path = decoder.decode(inst.HEAPU8.subarray(pathPtr, pathPtr + pathLen));
         MinimalRuntime.filesByURL.delete(path);
