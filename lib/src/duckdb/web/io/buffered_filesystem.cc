@@ -48,7 +48,7 @@ void BufferedFileSystem::Read(duckdb::FileHandle &handle, void *buffer, int64_t 
     // Read page-wise
     auto file_size = buffer_manager_.GetFileSize(file);
     while (nr_bytes > 0 && location < file_size) {
-        auto n = buffer_manager_.Read(file, buffer, nr_bytes, location);
+        auto n = buffer_manager_.Read(file, reader, nr_bytes, location);
         reader += n;
         location += n;
         nr_bytes -= n;
@@ -69,7 +69,7 @@ void BufferedFileSystem::Write(duckdb::FileHandle &handle, void *buffer, int64_t
     // Write page-wise
     auto file_size = buffer_manager_.GetFileSize(file);
     while (nr_bytes > 0 && location < file_size) {
-        auto n = buffer_manager_.Write(file, buffer, nr_bytes, location);
+        auto n = buffer_manager_.Write(file, writer, nr_bytes, location);
         writer += n;
         location += n;
         nr_bytes -= n;
