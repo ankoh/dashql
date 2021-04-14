@@ -99,7 +99,7 @@ export const MinimalRuntime: DuckDBRuntime & {
         const path = decoder.decode(inst.HEAPU8.subarray(pathPtr, pathPtr + pathLen));
         const file = MinimalRuntime.filesByURL.get(path);
         if (file) return file.fileID;
-        throw Error('File not found: ' + path);
+        throw Error(`File not found: ${path}`);
     },
     duckdb_web_fs_file_close: function (fileId: number) {
         // Noop
