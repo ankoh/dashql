@@ -29,26 +29,27 @@ void duckdb_web_disconnect(ConnectionHdl connHdl) {
     auto c = reinterpret_cast<WebDB::Connection*>(connHdl);
     WebDB::GetInstance().Disconnect(c);
 }
-
 /// Access a buffer
 void* duckdb_web_access_buffer(ConnectionHdl /*connHdl*/, BufferHdl bufferHdl) {
     return reinterpret_cast<void*>(bufferHdl);
 }
-
+/// Flush all file buffers
+void duckdb_web_flush_files() {
+    auto& webdb = WebDB::GetInstance();
+    webdb.FlushFiles();
+}
 /// Run a query
 void duckdb_web_query_run(WASMResponse* packed, ConnectionHdl connHdl, const char* script) {
     auto c = reinterpret_cast<WebDB::Connection*>(connHdl);
     auto r = c->RunQuery(script);
     WASMResponseBuffer::GetInstance().Store(*packed, std::move(r));
 }
-
 /// Send a query
 void duckdb_web_query_send(WASMResponse* packed, ConnectionHdl connHdl, const char* script) {
     auto c = reinterpret_cast<WebDB::Connection*>(connHdl);
     auto r = c->SendQuery(script);
     WASMResponseBuffer::GetInstance().Store(*packed, std::move(r));
 }
-
 /// Fetch query results
 void duckdb_web_query_fetch_results(WASMResponse* packed, ConnectionHdl connHdl) {
     auto c = reinterpret_cast<WebDB::Connection*>(connHdl);

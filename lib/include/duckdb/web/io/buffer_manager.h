@@ -213,6 +213,8 @@ class BufferManager {
     BufferRef FixPage(const FileRef& file, uint64_t page_id, bool exclusive);
     /// Flush all file frames to disk
     void FlushFile(const FileRef& file);
+    /// Flush all outstanding frames to disk
+    void Flush();
 
     /// Read at most n bytes
     size_t Read(const FileRef& file, void* buffer, size_t n, size_t offset);
