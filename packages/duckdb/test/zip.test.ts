@@ -14,7 +14,8 @@ export function testZip(db: () => duckdb.DuckDBBindings, resolveData: (url: stri
 
     describe('Zipper', () => {
         it('Zip entries', async () => {
-            const all = await resolveData('uni/all.zip');
+            const all = await resolveData('/uni/all.zip');
+            expect(all).not.toBeNull();
             await db().addFileBuffer('all.zip', all!);
             // XXX revisit with default duckdb runtime
 
