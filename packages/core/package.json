@@ -16,8 +16,14 @@
     },
     "devDependencies": {
         "@types/react": ">=16.8.0",
+        "@typescript-eslint/eslint-plugin": "^4.22.0",
+        "@typescript-eslint/parser": "^4.22.0",
         "axios-mock-adapter": "^1.19.0",
         "esbuild": "^0.11.10",
+        "eslint": "^7.24.0",
+        "eslint-config-prettier": "^8.2.0",
+        "eslint-plugin-jasmine": "^4.1.2",
+        "prettier": "^2.2.1",
         "karma": "^6.3.2",
         "karma-chrome-launcher": "^3.1.0",
         "karma-coverage": "^2.0.3",
@@ -46,7 +52,8 @@
         "report": "node ./coverage.mjs",
         "test": "karma start karma.conf.cjs",
         "test:cov": "karma start karma.conf.cov.cjs && npm run report",
-        "test:ci": "npm run test:cov"
+        "test:ci": "npm run test:cov",
+        "lint": "eslint --config ./.eslintrc.js {src,test}/**/*.ts"
     },
     "files": [
         "dist/types/**/*.d.ts",

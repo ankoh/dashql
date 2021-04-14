@@ -9,7 +9,8 @@
         "build:release": "NODE_OPTIONS='--max-old-space-size=4096' webpack --config webpack.release.js",
         "analyze:debug": "webpack --config webpack.debug.js --analyze",
         "analyze:release": "webpack --config webpack.release.js --analyze",
-        "serve:release": "node ./server.js"
+        "serve:release": "node ./server.js",
+        "lint": "eslint --config ./.eslintrc.js {src,test}/**/*.ts"
     },
     "engines": {
         "node": ">=14.13"
@@ -58,8 +59,14 @@
         "@types/react-router-dom": "^5.1.7",
         "@types/react-virtualized": "^9.21.11",
         "@types/resize-observer-browser": "^0.1.5",
+        "@typescript-eslint/eslint-plugin": "^4.22.0",
+        "@typescript-eslint/parser": "^4.22.0",
         "clean-webpack-plugin": "^3.0.0",
         "css-loader": "^5.2.1",
+        "eslint": "^7.24.0",
+        "eslint-config-prettier": "^8.2.0",
+        "eslint-plugin-jasmine": "^4.1.2",
+        "prettier": "^2.2.1",
         "file-loader": "^6.2.0",
         "html-webpack-plugin": "^5.3.1",
         "jasmine-spec-reporter": "^7.0.0",
