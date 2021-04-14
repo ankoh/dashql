@@ -1,6 +1,6 @@
 import * as duckdb from '../src/';
 
-export function testBindings(db: () => duckdb.DuckDBBindings) {
+export function testBindings(db: () => duckdb.DuckDBBindings): void {
     let conn: duckdb.DuckDBConnection;
 
     beforeEach(() => {

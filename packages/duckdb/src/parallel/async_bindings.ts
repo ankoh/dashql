@@ -29,7 +29,7 @@ export class AsyncDuckDB {
     protected _workerShutdownResolver: (value: PromiseLike<null> | null) => void = () => {};
 
     /** The next message id */
-    protected _nextMessageId: number = 0;
+    protected _nextMessageId = 0;
     /** The pending requests */
     protected _pendingRequests: Map<number, WorkerTaskVariant> = new Map();
 
@@ -42,12 +42,12 @@ export class AsyncDuckDB {
     }
 
     /** Get the logger */
-    public get logger() {
+    public get logger(): Logger {
         return this._logger;
     }
 
     /** Attach to worker */
-    protected attach(worker: Worker) {
+    protected attach(worker: Worker): void {
         this._worker = worker;
         this._worker.addEventListener('message', this._onMessageHandler);
         this._worker.addEventListener('error', this._onErrorHandler);
@@ -60,7 +60,7 @@ export class AsyncDuckDB {
     }
 
     /** Detach from worker */
-    public detach() {
+    public detach(): void {
         if (!this._worker) return;
         this._worker.removeEventListener('message', this._onMessageHandler);
         this._worker.removeEventListener('error', this._onErrorHandler);
@@ -72,7 +72,7 @@ export class AsyncDuckDB {
     }
 
     /** Kill the worker */
-    public async terminate() {
+    public async terminate(): Promise<void> {
         if (!this._worker) return;
         this._worker.terminate();
         //await this._workerShutdownPromise; TODO deadlocking in karma?
@@ -98,7 +98,7 @@ export class AsyncDuckDB {
     }
 
     /** Received a message */
-    protected onMessage(event: MessageEvent) {
+    protected onMessage(event: MessageEvent): void {
         const response = event.data as WorkerResponseVariant;
 
         // Short-circuit unassociated log entries
@@ -118,7 +118,7 @@ export class AsyncDuckDB {
         if (response.type == WorkerResponseType.ERROR) {
             // Workaround for Firefox not being able to perform structured-clone on Native Errors
             // https://bugzilla.mozilla.org/show_bug.cgi?id=1556604
-            let e = new Error(response.data.message);
+            const e = new Error(response.data.message);
             e.name = response.data.name;
             e.stack = response.data.stack;
 
@@ -202,14 +202,14 @@ export class AsyncDuckDB {
     }
 
     /** Received an error */
-    protected onError(event: ErrorEvent) {
+    protected onError(event: ErrorEvent): void {
         console.error(event);
         console.error(`error in duckdb worker: ${event.message}`);
         this._pendingRequests.clear();
     }
 
     /** The worker was closed */
-    protected onClose() {
+    protected onClose(): void {
         this._workerShutdownResolver(null);
         if (this._pendingRequests.size != 0) {
             console.warn(`worker terminated with ${this._pendingRequests.size} pending requests`);
@@ -225,7 +225,7 @@ export class AsyncDuckDB {
     }
 
     /** Ping the worker thread */
-    public async ping() {
+    public async ping(): Promise<any> {
         const task = new WorkerTask<WorkerRequestType.PING, null, null>(WorkerRequestType.PING, null);
         await this.postTask(task);
     }
@@ -304,6 +304,7 @@ export class AsyncDuckDB {
     }
 
     /** Register a file blob. */
+    // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
     public async addFileBlob(url: string, blob: any): Promise<number> {
         const task = new WorkerTask<WorkerRequestType.ADD_FILE_BLOB, [string, any], number>(
             WorkerRequestType.ADD_FILE_BLOB,
