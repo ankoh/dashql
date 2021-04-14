@@ -17,6 +17,7 @@ export function testFilesystem(db: () => duckdb.AsyncDuckDB, resolveData: (url: 
     describe('File buffer registration', () => {
         let test = async () => {
             const result = await conn.sendQuery(`SELECT MatrNr FROM parquet_scan('studenten.parquet');`);
+            console.log(`DONE`);
             const table = await arrow.Table.from<{ MatrNr: arrow.Int }>(result);
             expect(table.getColumnAt(0)?.toArray()).toEqual(
                 new Int32Array([24002, 25403, 26120, 26830, 27550, 28106, 29120, 29555]),
