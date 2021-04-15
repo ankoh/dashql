@@ -57,6 +57,8 @@ class BufferFrame {
    public:
     /// Constructor
     BufferFrame(uint64_t frame_id, size_t size, list_position fifo_position, list_position lru_position);
+    /// Get number of users
+    auto GetUserCount() const { return num_users; }
     /// Returns a pointer to this page data
     nonstd::span<char> GetData() { return {buffer.data(), data_size}; }
 };
@@ -106,6 +108,8 @@ class BufferManager {
         FileRef& operator=(FileRef&& other);
         /// Is set?
         operator bool() const { return !!file_; }
+        /// Get file id
+        auto& GetFileID() const { return file_->file_id; }
         /// Get path
         auto& GetPath() const { return file_->path; }
         /// Get handle
@@ -197,7 +201,7 @@ class BufferManager {
     BufferManager(std::unique_ptr<duckdb::FileSystem> filesystem = io::CreateDefaultFileSystem(),
                   size_t page_size_bits = 13);
     /// Destructor
-    ~BufferManager();
+    virtual ~BufferManager();
 
     /// Get the filesystem
     auto& GetFileSystem() { return filesystem; }
@@ -230,9 +234,9 @@ class BufferManager {
     void Truncate(const FileRef& file, size_t new_size);
 
     /// Returns the page ids of all pages that are in the FIFO list in FIFO order.
-    std::vector<uint64_t> get_fifo_list() const;
+    std::vector<uint64_t> GetFIFOList() const;
     /// Returns the page ids of all pages that are in the LRU list in LRU order.
-    std::vector<uint64_t> get_lru_list() const;
+    std::vector<uint64_t> GetLRUList() const;
 };
 
 }  // namespace io

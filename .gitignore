@@ -1,6 +1,8 @@
 /.cache
 /.ccache
+.tmp
 /.flatc
+/.testfile*
 /artifacts
 /reports
 /packages/reports

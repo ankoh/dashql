@@ -14,10 +14,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_FLAGS -std=c++17)
-
-if (WITH_ASAN)
-    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fsanitize=address")
-endif ()
+#set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fsanitize=address")
 
 # DuckDB makes heavy use of exceptions so there's no way around that
 if (EMSCRIPTEN)
@@ -389,11 +386,11 @@ if(NOT EMSCRIPTEN)
         ${CMAKE_SOURCE_DIR}/test/analyzer/program_editor_test.cc
         ${CMAKE_SOURCE_DIR}/test/analyzer/program_matcher_test.cc
         ${CMAKE_SOURCE_DIR}/test/analyzer/syntax_matcher_test.cc
-        ${CMAKE_SOURCE_DIR}/test/common/pod_vector_test.cc
         ${CMAKE_SOURCE_DIR}/test/common/substring_buffer_test.cc
         ${CMAKE_SOURCE_DIR}/test/common/topological_sort_test.cc
         ${CMAKE_SOURCE_DIR}/test/common/union_find_test.cc
         ${CMAKE_SOURCE_DIR}/test/duckdb/arrow_ifstream_test.cc
+        ${CMAKE_SOURCE_DIR}/test/duckdb/buffer_manager_test.cc
         ${CMAKE_SOURCE_DIR}/test/duckdb/duckdb_test.cc
         ${CMAKE_SOURCE_DIR}/test/duckdb/webdb_test.cc
         ${CMAKE_SOURCE_DIR}/test/parser/grammar_spec_tests.cc
