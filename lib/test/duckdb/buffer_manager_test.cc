@@ -11,6 +11,7 @@
 #include <cstring>
 #include <filesystem>
 #include <fstream>
+#include <initializer_list>
 #include <memory>
 #include <random>
 #include <thread>
@@ -166,6 +167,58 @@ TEST(BufferManagerTest, Eviction) {
     expected_lru = {0};
     EXPECT_EQ(expected_fifo, buffer_manager->GetFIFOList());
     EXPECT_EQ(expected_lru, buffer_manager->GetLRUList());
+}
+
+// NOLINTNEXTLINE
+TEST(BufferManagerTest, LRUManagament) {
+    auto buffer_manager = std::make_shared<TestableBufferManager>();
+    auto filepath = CreateTestFile();
+    std::ofstream(filepath).close();
+    fs::resize_file(filepath, 4 * buffer_manager->GetPageSize());
+    auto file = buffer_manager->OpenFile(filepath.c_str());
+    std::vector<io::BufferManager::BufferRef> hold;
+
+    auto make_vec = [](std::initializer_list<uint64_t> values = {}) { return std::vector<uint64_t>{values}; };
+
+    EXPECT_EQ(buffer_manager->GetFIFOList(), make_vec());
+    EXPECT_EQ(buffer_manager->GetLRUList(), make_vec());
+
+    buffer_manager->FixPage(file, 0, false);
+    EXPECT_EQ(buffer_manager->GetFIFOList(), make_vec({0}));
+    EXPECT_EQ(buffer_manager->GetLRUList(), make_vec());
+
+    buffer_manager->FixPage(file, 0, false);
+    EXPECT_EQ(buffer_manager->GetFIFOList(), make_vec());
+    EXPECT_EQ(buffer_manager->GetLRUList(), make_vec({0}));
+
+    buffer_manager->FixPage(file, 1, false);
+    EXPECT_EQ(buffer_manager->GetFIFOList(), make_vec({1}));
+    EXPECT_EQ(buffer_manager->GetLRUList(), make_vec());
+
+    hold.push_back(buffer_manager->FixPage(file, 1, false));
+    EXPECT_EQ(buffer_manager->GetFIFOList(), make_vec());
+    EXPECT_EQ(buffer_manager->GetLRUList(), make_vec({1}));
+
+    hold.push_back(buffer_manager->FixPage(file, 2, false));
+    EXPECT_EQ(buffer_manager->GetFIFOList(), make_vec({2}));
+    EXPECT_EQ(buffer_manager->GetLRUList(), make_vec({1}));
+
+    hold.push_back(buffer_manager->FixPage(file, 2, false));
+    EXPECT_EQ(buffer_manager->GetFIFOList(), make_vec());
+    EXPECT_EQ(buffer_manager->GetLRUList(), make_vec({1, 2}));
+
+    hold.push_back(buffer_manager->FixPage(file, 1, false));
+    EXPECT_EQ(buffer_manager->GetFIFOList(), make_vec());
+    EXPECT_EQ(buffer_manager->GetLRUList(), make_vec({2, 1}));
+
+    hold.clear();
+    hold.push_back(buffer_manager->FixPage(file, 0, false));
+    EXPECT_EQ(buffer_manager->GetFIFOList(), make_vec({0}));
+    EXPECT_EQ(buffer_manager->GetLRUList(), make_vec({1}));
+
+    hold.push_back(buffer_manager->FixPage(file, 2, false));
+    EXPECT_EQ(buffer_manager->GetFIFOList(), make_vec({0, 2}));
+    EXPECT_EQ(buffer_manager->GetLRUList(), make_vec({}));
 }
 
 }  // namespace
