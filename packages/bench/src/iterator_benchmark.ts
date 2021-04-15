@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import * as duckdb from '../../duckdb/dist/duckdb-node.js';
 import * as core from '../../core/dist/dashql-core-node.js';
 import * as benny from 'benny';
@@ -6,7 +7,7 @@ import kleur from 'kleur';
 const noop = () => {};
 
 function main(db: duckdb.DuckDB) {
-    let tupleCount = 1000000;
+    const tupleCount = 1000000;
     let bytes = 0;
 
     benny.suite(
@@ -115,9 +116,9 @@ function main(db: duckdb.DuckDB) {
         }),
 
         benny.cycle((result: any, _summary: any) => {
-            let duration = result.details.median;
-            let tupleThroughput = tupleCount / duration;
-            let dataThroughput = bytes / duration;
+            const duration = result.details.median;
+            const tupleThroughput = tupleCount / duration;
+            const dataThroughput = bytes / duration;
             console.log(
                 `${kleur.cyan(result.name)} t: ${duration.toFixed(3)} s ttp: ${core.utils.formatThousands(
                     tupleThroughput,
@@ -241,9 +242,9 @@ function main(db: duckdb.DuckDB) {
         }),
 
         benny.cycle((result: any, _summary: any) => {
-            let duration = result.details.median;
-            let tupleThroughput = tupleCount / duration;
-            let dataThroughput = bytes / duration;
+            const duration = result.details.median;
+            const tupleThroughput = tupleCount / duration;
+            const dataThroughput = bytes / duration;
             console.log(
                 `${kleur.cyan(result.name)} t: ${duration.toFixed(3)} s ttp: ${core.utils.formatThousands(
                     tupleThroughput,
@@ -374,9 +375,9 @@ function main(db: duckdb.DuckDB) {
         }),
 
         benny.cycle((result: any, _summary: any) => {
-            let duration = result.details.median;
-            let tupleThroughput = tupleCount / duration;
-            let dataThroughput = bytes / duration;
+            const duration = result.details.median;
+            const tupleThroughput = tupleCount / duration;
+            const dataThroughput = bytes / duration;
             console.log(
                 `${kleur.cyan(result.name)} t: ${duration.toFixed(3)} s ttp: ${core.utils.formatThousands(
                     tupleThroughput,
