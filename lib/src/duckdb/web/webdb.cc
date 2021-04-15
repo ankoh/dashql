@@ -73,19 +73,18 @@ arrow::Result<std::shared_ptr<arrow::Buffer>> WebDB::Connection::RunQuery(std::s
                 cols.push_back(array.children[i]);
             }
             // XXX
-            ARROW_ASSIGN_OR_RAISE(auto batch, arrow::ImportRecordBatch(&array, schema));
-
             // Write record batch to the output stream
+            ARROW_ASSIGN_OR_RAISE(auto batch, arrow::ImportRecordBatch(&array, schema));
             ARROW_RETURN_NOT_OK(writer->WriteRecordBatch(*batch));
             // XXX
-            for (auto i = 0; i < raw_schema.n_children; ++i) {
-                cols[i]->release(cols[i]);
+            for (auto* col : cols) {
+                col->release(col);
             }
             // XXX
         }
         // XXX
-        for (auto i = 0; i < raw_schema.n_children; ++i) {
-            cols[i]->release(cols[i]);
+        for (auto* schema : cols) {
+            schema->release(schema);
         }
         // XXX
         ARROW_RETURN_NOT_OK(writer->Close());
@@ -117,8 +116,8 @@ arrow::Result<std::shared_ptr<arrow::Buffer>> WebDB::Connection::SendQuery(std::
         ARROW_ASSIGN_OR_RAISE(auto schema, arrow::ImportSchema(&raw_schema));
 
         // XXX
-        for (auto i = 0; i < raw_schema.n_children; ++i) {
-            cols[i]->release(cols[i]);
+        for (auto* col : cols) {
+            col->release(col);
         }
         // XXX
 
