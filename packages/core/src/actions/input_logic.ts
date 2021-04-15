@@ -59,7 +59,7 @@ export class InputActionLogic extends ProgramActionLogic {
         planObjects.push(info);
     }
 
-    public willExecute(_context: ActionContext) {}
+    public willExecute(_context: ActionContext): void {}
     public async execute(_context: ActionContext): Promise<void> {}
 }
 
@@ -68,8 +68,8 @@ export class DropInputActionLogic extends SetupActionLogic {
         super(action_id, action);
     }
 
-    public prepare(_context: ActionContext) {}
-    public willExecute(_context: ActionContext) {}
+    public prepare(_context: ActionContext): void {}
+    public willExecute(_context: ActionContext): void {}
     public async execute(context: ActionContext): Promise<void> {
         const store = context.platform.store!;
         const objectId = this.buffer.objectId();
@@ -85,7 +85,7 @@ export class ImportInputActionLogic extends SetupActionLogic {
         super(action_id, action);
     }
 
-    public prepare(_context: ActionContext) {}
-    public willExecute(_context: ActionContext) {}
+    public prepare(_context: ActionContext): void {}
+    public willExecute(_context: ActionContext): void {}
     public async execute(_context: ActionContext): Promise<void> {}
 }

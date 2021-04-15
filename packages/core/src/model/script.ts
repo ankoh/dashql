@@ -21,7 +21,7 @@ export interface Script {
     bytes?: number;
 }
 
-export function getScriptURIPrefixName(prefix: ScriptURIPrefix) {
+export function getScriptURIPrefixName(prefix: ScriptURIPrefix): string {
     switch (prefix) {
         case ScriptURIPrefix.TMP:
             return 'tmp';

@@ -1,8 +1,8 @@
-export function estimateUTF16Length(s: string) {
+export function estimateUTF16Length(s: string): number {
     // Assuming the String is UTF-16
     let n = 0;
     for (let i = 0, l = s.length; i < l; i++) {
-        let hi = s.charCodeAt(i);
+        const hi = s.charCodeAt(i);
         if (hi < 0x0080) {
             // [0x0000, 0x007F]
             n += 1;
@@ -32,6 +32,6 @@ export function estimateUTF16Length(s: string) {
     return n;
 }
 
-export function countLines(s: string) {
+export function countLines(s: string): number {
     return (s.match(/\n/g) || '').length + 1;
 }

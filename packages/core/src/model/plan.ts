@@ -1,5 +1,7 @@
 // Copyright (c) 2020 The DashQL Authors
 
+import Immutable from 'immutable';
+import { Program } from './program';
 import { ProgramInstance } from './program_instance';
 import * as proto from '@dashql/proto';
 
@@ -16,20 +18,20 @@ export class Plan {
     }
 
     /// Access the program
-    public get program() {
+    public get program(): Program {
         return this.programInstance.program;
     }
     /// Access the parameters
-    public get input_values() {
+    public get input_values(): Immutable.List<any> {
         return this.programInstance.inputValues;
     }
     /// Access the action graph
-    public get action_graph() {
+    public get action_graph(): proto.action.ActionGraph | null {
         return this.buffer.actionGraph();
     }
 
     /// Iterate setup actions
-    public iterateSetupActions(fn: (idx: number, node: proto.action.SetupAction) => void) {
+    public iterateSetupActions(fn: (idx: number, node: proto.action.SetupAction) => void): void {
         const graph = this.buffer.actionGraph();
         if (!graph) return;
         const count = graph.setupActionsLength();
@@ -39,7 +41,7 @@ export class Plan {
         }
     }
     /// Iterate setup actions in reverse order
-    public iterateSetupActionsReverse(fn: (idx: number, node: proto.action.SetupAction) => void) {
+    public iterateSetupActionsReverse(fn: (idx: number, node: proto.action.SetupAction) => void): void {
         const graph = this.buffer.actionGraph();
         if (!graph) return;
         const count = graph.setupActionsLength();
@@ -50,7 +52,7 @@ export class Plan {
         }
     }
     /// Iterate program actions
-    public iterateProgramActions(fn: (idx: number, node: proto.action.ProgramAction) => void) {
+    public iterateProgramActions(fn: (idx: number, node: proto.action.ProgramAction) => void): void {
         const graph = this.buffer.actionGraph();
         if (!graph) return;
         const count = graph.programActionsLength();
@@ -64,7 +66,7 @@ export class Plan {
     public mapProgramActions<T>(fn: (idx: number, node: proto.action.ProgramAction) => T): T[] {
         const graph = this.buffer.actionGraph();
         if (!graph) return [];
-        let mapped: T[] = [];
+        const mapped: T[] = [];
         mapped.length = graph.programActionsLength();
         this.iterateProgramActions((i, n) => {
             mapped[i] = fn(i, n);
@@ -76,7 +78,7 @@ export class Plan {
     public mapSetupActions<T>(fn: (idx: number, node: proto.action.SetupAction) => T): T[] {
         const graph = this.buffer.actionGraph();
         if (!graph) return [];
-        let mapped: T[] = [];
+        const mapped: T[] = [];
         mapped.length = graph.programActionsLength();
         this.iterateSetupActions((i, n) => {
             mapped[i] = fn(i, n);

@@ -6,6 +6,7 @@ import { Plan, Program, ProgramInstance, InputValue } from '../model';
 import * as Immutable from 'immutable';
 import * as proto from '@dashql/proto';
 
+// eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface AnalyzerRuntime {}
 
 /// The proxy for either the browser- order node-based DashQLAnalyzer API
@@ -26,7 +27,7 @@ export abstract class AnalyzerBindings {
     protected abstract instantiate(moduleOverrides: Partial<DashQLAnalyzerModule>): Promise<DashQLAnalyzerModule>;
 
     /// Init the module
-    public async init() {
+    public async init(): Promise<void> {
         // Already opened?
         if (this._instance != null) {
             return;
@@ -60,11 +61,11 @@ export abstract class AnalyzerBindings {
         args: Array<any>,
     ): [number, number, number] {
         // Save the stack
-        let instance = this._instance!;
-        let stackPointer = instance.stackSave();
+        const instance = this._instance!;
+        const stackPointer = instance.stackSave();
 
         // Allocate the packed response buffer
-        let response = instance.stackAlloc(3 * 8);
+        const response = instance.stackAlloc(3 * 8);
         argTypes.unshift('number');
         args.unshift(response);
 
@@ -72,9 +73,9 @@ export abstract class AnalyzerBindings {
         instance.ccall(funcName, null, argTypes, args);
 
         // Read the response
-        let status = instance.HEAPF64[(response >> 3) + 0];
-        let data = instance.HEAPF64[(response >> 3) + 1];
-        let dataSize = instance.HEAPF64[(response >> 3) + 2];
+        const status = instance.HEAPF64[(response >> 3) + 0];
+        const data = instance.HEAPF64[(response >> 3) + 1];
+        const dataSize = instance.HEAPF64[(response >> 3) + 2];
 
         // Restore the stack
         instance.stackRestore(stackPointer);
@@ -82,8 +83,8 @@ export abstract class AnalyzerBindings {
     }
 
     /// Reset the analyzer
-    public reset() {
-        let instance = this._instance!;
+    public reset(): void {
+        const instance = this._instance!;
         return instance.ccall('dashql_analyzer_reset', null, [], []);
     }
 
@@ -96,21 +97,21 @@ export abstract class AnalyzerBindings {
 
     /// Parse a string and return a flatbuffer
     public parseProgram(text: string): Program {
-        let instance = this._instance!;
-        let stackPointer = instance.stackSave();
+        const instance = this._instance!;
+        const stackPointer = instance.stackSave();
 
         /// Encode the utf8 string and append 2 zero bytes for flex
-        let encoder = new TextEncoder();
-        let textUTF8 = encoder.encode(text);
-        let textMem = instance.stackAlloc(textUTF8.length + 2);
+        const encoder = new TextEncoder();
+        const textUTF8 = encoder.encode(text);
+        const textMem = instance.stackAlloc(textUTF8.length + 2);
         instance.HEAPU8.set(textUTF8, textMem);
         instance.HEAPU8[textMem + textUTF8.length] = 0;
         instance.HEAPU8[textMem + textUTF8.length + 1] = 0;
 
         /// Call the parse function
-        let [ptr, ofs, size] = this.callSRet('dashql_analyzer_parse_program', ['number'], [textMem]);
-        let mem = this.copyFlatbuffer(instance.HEAPU8.subarray(ptr + ofs, ptr + ofs + size));
-        let program = proto.syntax.Program.getRoot(mem);
+        const [ptr, ofs, size] = this.callSRet('dashql_analyzer_parse_program', ['number'], [textMem]);
+        const mem = this.copyFlatbuffer(instance.HEAPU8.subarray(ptr + ofs, ptr + ofs + size));
+        const program = proto.syntax.Program.getRoot(mem);
         instance.ccall('dashql_clear_response', null, [], []);
 
         /// Clear the utf8 string buffer
@@ -203,7 +204,7 @@ export abstract class AnalyzerBindings {
         action_class: proto.action.ActionClass,
         action_id: number,
         action_status: proto.action.ActionStatusCode,
-    ) {
+    ): void {
         if (!this._instance || !this._programInstance) return;
         this._instance.ccall(
             'dashql_analyzer_update_action_status',
@@ -214,7 +215,7 @@ export abstract class AnalyzerBindings {
     }
 
     /// Free memory
-    public free(ptr: number, _size: number) {
+    public free(ptr: number, _size: number): void {
         if (!this._instance) return;
         this._instance._free(ptr);
     }

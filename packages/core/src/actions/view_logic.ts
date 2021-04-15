@@ -13,7 +13,7 @@ export class ViewCreateActionLogic extends ProgramActionLogic {
     }
 
     public prepare(_context: ActionContext, _planObjects: PlanObject[]): void {}
-    public willExecute(_context: ActionContext) {}
+    public willExecute(_context: ActionContext): void {}
     public async execute(context: ActionContext): Promise<void> {
         const script = this.script;
         if (!script) return;
@@ -54,8 +54,8 @@ export class ImportViewActionLogic extends SetupActionLogic {
         super(action_id, action);
     }
 
-    public prepare(_context: ActionContext) {}
-    public willExecute(_context: ActionContext) {}
+    public prepare(_context: ActionContext): void {}
+    public willExecute(_context: ActionContext): void {}
     public async execute(_context: ActionContext): Promise<void> {}
 }
 
@@ -64,8 +64,8 @@ export class DropViewActionLogic extends SetupActionLogic {
         super(action_id, action);
     }
 
-    public prepare(_context: ActionContext) {}
-    public willExecute(_context: ActionContext) {}
+    public prepare(_context: ActionContext): void {}
+    public willExecute(_context: ActionContext): void {}
     public async execute(context: ActionContext): Promise<void> {
         const db = context.platform.database;
         await db.use(async (c: duckdb.AsyncConnection) => {

@@ -28,7 +28,7 @@ export class ResolveMinMaxDomain extends VegaLiteEditOperation {
     }
 
     /// Prepare the table statitistics
-    prepare() {
+    prepare(): void {
         const min = this._statistics.request(model.TableStatisticsType.MINIMUM_VALUE, this._attribute);
         const max = this._statistics.request(model.TableStatisticsType.MAXIMUM_VALUE, this._attribute);
         this._promises = [min, max];
@@ -64,7 +64,7 @@ export class ResolveCategorialDomain extends VegaLiteEditOperation {
     }
 
     /// Request
-    prepare() {
+    prepare(): void {
         this._promise = this._statistics.request(model.TableStatisticsType.DISTINCT_VALUES, this._attribute);
     }
 

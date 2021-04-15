@@ -1,10 +1,10 @@
 import * as core from '../../src/';
 
 enum TestOpType {
-    POP,
-    DEC,
-    INC,
-    SET,
+    POP_OP,
+    DEC_OP,
+    INC_OP,
+    SET_OP,
 }
 interface TestOp {
     type: TestOpType;
@@ -16,10 +16,10 @@ function PUSH(key: number, rank: number): [number, number] {
     return [key, rank];
 }
 function POP(key: number) {
-    return { type: TestOpType.POP, key: key, value: 0 };
+    return { type: TestOpType.POP_OP, key: key, value: 0 };
 }
-function DEC(key: number, by: number = 1) {
-    return { type: TestOpType.DEC, key: key, value: by };
+function DEC(key: number, by = 1) {
+    return { type: TestOpType.DEC_OP, key: key, value: by };
 }
 //function INC(key: number, by: number = 1) {
 //    return { type: TestOpType.INC, key: key, value: by };
@@ -44,13 +44,13 @@ describe('NativeMinHeap', () => {
             const heap = new core.utils.NativeMinHeap(input);
             for (const op of ops) {
                 switch (op.type) {
-                    case TestOpType.DEC:
+                    case TestOpType.DEC_OP:
                         heap.decrementRank(op.key, op.value);
                         break;
-                    case TestOpType.INC:
+                    case TestOpType.INC_OP:
                         heap.incrementRank(op.key, op.value);
                         break;
-                    case TestOpType.SET:
+                    case TestOpType.SET_OP:
                         heap.setRank(op.key, op.value);
                         break;
                     default:

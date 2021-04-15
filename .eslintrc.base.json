@@ -5,8 +5,7 @@
     "extends": ["eslint:recommended", "plugin:@typescript-eslint/recommended", "plugin:prettier/recommended"],
     "env": {
         "browser": true,
-        "node": true,
-        "jasmine": true
+        "node": true
     },
     "rules": {
         "prettier/prettier": "warn",

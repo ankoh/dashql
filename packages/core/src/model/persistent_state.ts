@@ -16,7 +16,7 @@ export function persistState(state: CoreState, _platform: Platform): PersistentC
 }
 
 export function rehydrateState(persisted: PersistentCoreState, _platform: Platform): CoreState {
-    let state = new CoreState();
+    const state = new CoreState();
     state.script = persisted.script;
     return state;
 }

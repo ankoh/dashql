@@ -33,7 +33,7 @@ export abstract class LRUCache<Value extends LRUCacheEntry> {
     protected abstract onHit(slot: number, newEntry: Value): void;
 
     /// Use a slot?
-    protected use(slot: number) {
+    protected use(slot: number): void {
         this._lruQueue.setRank(slot, ++this._clock);
     }
 
