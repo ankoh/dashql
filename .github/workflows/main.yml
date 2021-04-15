@@ -19,13 +19,13 @@ jobs:
                       make reset_duckdb
                       git submodule update --init --recursive
                       ./scripts/generate_proto.sh
-                      yarn --frozen-lockfile
 
             - name: Lint @dashql/duckdb
               uses: ./actions/image
               with:
                   script: |-
                       source /opt/env.sh
+                      yarn --frozen-lockfile
                       yarn workspace @dashql/duckdb run lint
 
             - name: Lint @dashql/core
@@ -33,6 +33,7 @@ jobs:
               with:
                   script: |-
                       source /opt/env.sh
+                      yarn --frozen-lockfile
                       yarn workspace @dashql/core run lint
 
             - name: Lint @dashql/bench
@@ -40,6 +41,7 @@ jobs:
               with:
                   script: |-
                       source /opt/env.sh
+                      yarn --frozen-lockfile
                       yarn workspace @dashql/bench run lint
 
             - name: Lint @dashql/app
@@ -47,6 +49,7 @@ jobs:
               with:
                   script: |-
                       source /opt/env.sh
+                      yarn --frozen-lockfile
                       yarn workspace @dashql/app run lint
 
     linux_x86_debug:
