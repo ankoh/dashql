@@ -76,7 +76,7 @@ export class VizComposer {
     }
 
     /// Get the table
-    protected get table() {
+    protected get table(): model.DatabaseTable {
         return this._tableStatistics.resolveTableInfo()!;
     }
 
@@ -90,7 +90,7 @@ export class VizComposer {
         type: proto.syntax.VizComponentType,
         modifiers: Map<proto.syntax.VizComponentTypeModifier, boolean>,
         options: any = null,
-    ) {
+    ): void {
         /// Otherwise build the vega layer manually
         const layer: UnitSpec<Field> = {
             ...options,
@@ -111,15 +111,15 @@ export class VizComposer {
 
         // First collect the encodings that the user specified himself
         const encoding: Encoding<Field> = layer.encoding!;
-        const resolveEncoding = (options: any, field: string) => {
+        const resolveEncoding = (opt: any, field: string) => {
             // Specified directly as encoding?
             // E.g. the user wrote USING LINE (encoding = (x = _))
-            const f = options?.encoding?.[field];
+            const f = opt?.encoding?.[field];
             if (f) {
                 // Specified as string?
                 if (typeof f === 'string' || f instanceof String) return { field: f };
                 // Assume the user gave us a valid encoding
-                return options.encoding?.[field];
+                return opt.encoding?.[field];
             }
             // Is there a column with that name?
             if (this.table.columnNameMapping.has(field)) {
@@ -188,7 +188,7 @@ export class VizComposer {
         type: proto.syntax.VizComponentType,
         modifiers: Map<proto.syntax.VizComponentTypeModifier, boolean>,
         options: any = null,
-    ) {
+    ): void {
         const useRenderer = (renderer: model.CardRendererType) => {
             if (this._renderer != null && this._renderer != model.CardRendererType.BUILTIN_VEGA) {
                 // XXX log warning
@@ -229,8 +229,8 @@ export class VizComposer {
     }
 
     /// Analyze the vega transforms
-    protected analyzeVegaTransforms(spec: TopLevel<NormalizedLayerSpec>) {
-        let keepTransforms: boolean[] = [];
+    protected analyzeVegaTransforms(spec: TopLevel<NormalizedLayerSpec>): void {
+        const keepTransforms: boolean[] = [];
         let noRewrites = false;
 
         for (let i = 0; i < (spec.transform?.length || 0); ++i) {
@@ -312,7 +312,7 @@ export class VizComposer {
     }
 
     /// Analyze the vega encodings
-    protected analyzeVegaEncodings(spec: TopLevel<NormalizedLayerSpec>) {
+    protected analyzeVegaEncodings(spec: TopLevel<NormalizedLayerSpec>): void {
         const table = this._tableStatistics.resolveTableInfo()!;
 
         // Helper to analyze a scale definition
@@ -333,7 +333,6 @@ export class VizComposer {
         const analyzeFieldType = (enc: any, columnID: number) => {
             if (!isTypedFieldDef(enc)) {
                 switch (table.columnTypes[columnID].typeId) {
-                    case arrow.Type.Bool:
                     case arrow.Type.Int:
                     case arrow.Type.Float:
                     case arrow.Type.Decimal:
@@ -364,7 +363,7 @@ export class VizComposer {
             if (!isUnitSpec(layer)) continue;
 
             // Optimize encodings
-            for (const [_key, enc] of Object.entries(layer.encoding || {})) {
+            for (const [, enc] of Object.entries(layer.encoding || {})) {
                 // Defines a field?
                 if (isFieldDef(enc) && enc.field) {
                     const fieldName = enc.field.toString();
@@ -379,7 +378,7 @@ export class VizComposer {
     }
 
     /// Switch query type to M5 if the spec allows it
-    public useM5IfPossible(spec: TopLevel<NormalizedLayerSpec>) {
+    public useM5IfPossible(spec: TopLevel<NormalizedLayerSpec>): void {
         const table = this._tableStatistics.resolveTableInfo()!;
 
         // Use m5 data source?
@@ -433,7 +432,7 @@ export class VizComposer {
         }
     }
 
-    public combineComponents() {
+    public combineComponents(): void {
         // Instrument vega spec?
         if (this._inputVegaLiteSpec) {
             this._normalizedVegaLiteSpec = normalize(this._inputVegaLiteSpec) as TopLevel<NormalizedLayerSpec>;

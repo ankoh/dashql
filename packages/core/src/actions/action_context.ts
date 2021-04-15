@@ -13,11 +13,11 @@ export class ActionContext {
     }
 
     /// Get the platform
-    public get platform() {
+    public get platform(): Platform {
         return this._platform;
     }
     /// Get the plan
-    public get plan() {
+    public get plan(): Plan {
         return this._plan;
     }
 }

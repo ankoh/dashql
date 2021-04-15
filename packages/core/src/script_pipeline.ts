@@ -45,7 +45,7 @@ export class ScriptPipeline {
     }
 
     /// Debounce instantiation again
-    protected debounceInstantiation(delta: number) {
+    protected debounceInstantiation(delta: number): void {
         if (this._debounceTimeout != null) {
             clearTimeout(this._debounceTimeout!);
         }
@@ -56,7 +56,7 @@ export class ScriptPipeline {
     /// If a user is currently writing a SQL statment, we should not rerun the sql script with every keystroke.
     ///
     /// We might want to add a heuristic to check wheather a sql query is likely very expensive at the moment.
-    protected instantiateProgram() {
+    protected instantiateProgram(): void {
         if (!this._program) return;
         const nowMS = new Date().getTime();
 
@@ -103,7 +103,7 @@ export class ScriptPipeline {
     }
 
     /// Handler to detect changes
-    protected detectChanges() {
+    protected detectChanges(): void {
         const next = this._platform.store.getState().core;
 
         // Program text changed?
@@ -160,7 +160,7 @@ export class ScriptPipeline {
     }
 
     /// Execute a plan
-    protected async planProgram() {
+    protected async planProgram(): Promise<void> {
         const plan = this._platform.analyzer.planProgram();
         if (!plan) return;
 

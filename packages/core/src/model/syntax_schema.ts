@@ -45,7 +45,7 @@ export function numberNode(value = 0): NodeSchema {
     };
 }
 
-export function booleanNode(value: boolean = false): NodeSchema {
+export function booleanNode(value = false): NodeSchema {
     return {
         specType: SpecType.BOOL_SPEC,
         nodeType: proto.syntax.NodeType.BOOL,
@@ -54,7 +54,7 @@ export function booleanNode(value: boolean = false): NodeSchema {
     };
 }
 
-export function stringNode(value: string = ''): NodeSchema {
+export function stringNode(value = ''): NodeSchema {
     return {
         specType: SpecType.STRING_SPEC,
         nodeType: null,
@@ -63,7 +63,7 @@ export function stringNode(value: string = ''): NodeSchema {
     };
 }
 
-export function enumNode(enumType: proto.syntax.NodeType, defaultValue: number = 0): NodeSchema {
+export function enumNode(enumType: proto.syntax.NodeType, defaultValue = 0): NodeSchema {
     return {
         specType: SpecType.ENUM_SPEC,
         nodeType: enumType,

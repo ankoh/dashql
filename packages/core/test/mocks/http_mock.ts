@@ -7,12 +7,12 @@ export function mockHTTP(): HTTPMock {
     return new MockAdapter(axios);
 }
 
-export function encodeTextBody(body: string) {
+export function encodeTextBody(body: string): ArrayBuffer {
     const encoder = new TextEncoder();
     return encoder.encode(body).buffer;
 }
 
-export function decodeTextBody(body: ArrayBuffer) {
+export function decodeTextBody(body: ArrayBuffer): string {
     const decoder = new TextDecoder();
     return decoder.decode(body);
 }

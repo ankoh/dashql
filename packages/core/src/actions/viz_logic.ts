@@ -17,12 +17,12 @@ export abstract class VizActionLogic extends ProgramActionLogic {
     }
 
     /// Get the qualified table name
-    protected get tableNameQualified() {
+    protected get tableNameQualified(): string {
         return this.buffer.targetNameQualified()!;
     }
 
     /// Read context info
-    public configureVizComposer(context: ActionContext) {
+    public configureVizComposer(context: ActionContext): void {
         // Get the table info
         const programInstance = context.plan.programInstance;
         const store = context.platform.store;
@@ -38,9 +38,9 @@ export abstract class VizActionLogic extends ProgramActionLogic {
         for (let i = 0; i < this._card.vizComponentsLength(); ++i) {
             const c = this._card.vizComponents(i)!;
             const type = c.type()!;
-            let mods: Map<proto.syntax.VizComponentTypeModifier, boolean> = new Map();
-            for (let i = 0; i < c.typeModifiersLength(); ++i) {
-                mods.set(c.typeModifiers(i)!, true);
+            const mods: Map<proto.syntax.VizComponentTypeModifier, boolean> = new Map();
+            for (let j = 0; j < c.typeModifiersLength(); ++i) {
+                mods.set(c.typeModifiers(j)!, true);
             }
             const optionsJSON = c.options() || '';
             const options = JSON.parse(optionsJSON);
@@ -95,7 +95,7 @@ export class CreateVizActionLogic extends VizActionLogic {
         planObjects.push(info);
     }
 
-    public willExecute(context: ActionContext) {
+    public willExecute(context: ActionContext): void {
         this.configureVizComposer(context);
         this._rowCountPromise = context.platform.database.requestTableStatistics(
             this.tableNameQualified,
@@ -174,7 +174,7 @@ export class UpdateVizActionLogic extends VizActionLogic {
         planObjects.push(next);
     }
 
-    public willExecute(context: ActionContext) {
+    public willExecute(context: ActionContext): void {
         this.configureVizComposer(context);
         this._rowCountPromise = context.platform.database.requestTableStatistics(
             this.tableNameQualified,
@@ -213,8 +213,8 @@ export class DropVizActionLogic extends SetupActionLogic {
         super(action_id, action);
     }
 
-    public prepare(_context: ActionContext) {}
-    public willExecute(_context: ActionContext) {}
+    public prepare(_context: ActionContext): void {}
+    public willExecute(_context: ActionContext): void {}
     public async execute(context: ActionContext): Promise<void> {
         const store = context.platform.store!;
         const objectId = this.buffer.objectId();
@@ -230,7 +230,7 @@ export class ImportVizActionLogic extends SetupActionLogic {
         super(action_id, action);
     }
 
-    public prepare(_context: ActionContext) {}
-    public willExecute(_context: ActionContext) {}
+    public prepare(_context: ActionContext): void {}
+    public willExecute(_context: ActionContext): void {}
     public async execute(_context: ActionContext): Promise<void> {}
 }

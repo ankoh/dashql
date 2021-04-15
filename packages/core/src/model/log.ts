@@ -1,6 +1,5 @@
 import * as duckdb from '@dashql/duckdb/dist/duckdb.module.js';
-
-export import LogLevel = duckdb.LogLevel;
+export { LogLevel } from '@dashql/duckdb/dist/duckdb.module.js';
 
 export enum LogOrigin {
     DB_MANAGER = 1001,
@@ -44,15 +43,15 @@ export type LogEntryVariant =
     | LogEntry<LogOrigin.ACTION_SCHEDULER, LogTopic.EXECUTE_ACTION, LogEvent.ERROR, any>
     | duckdb.LogEntryVariant;
 
-export function getLogLevelLabel(level: duckdb.LogLevel) {
+export function getLogLevelLabel(level: duckdb.LogLevel): string {
     return duckdb.getLogLevelLabel(level);
 }
 
-export function getLogEventLabel(event: LogEvent | duckdb.LogEvent) {
+export function getLogEventLabel(event: LogEvent | duckdb.LogEvent): string {
     return duckdb.getLogEventLabel(event);
 }
 
-export function getLogTopicLabel(topic: LogTopic | duckdb.LogTopic) {
+export function getLogTopicLabel(topic: LogTopic | duckdb.LogTopic): string {
     switch (topic) {
         case LogTopic.DB_CONNECT:
             return 'CONNECT';
@@ -75,7 +74,7 @@ export function getLogTopicLabel(topic: LogTopic | duckdb.LogTopic) {
     }
 }
 
-export function getLogOriginLabel(origin: LogOrigin | duckdb.LogOrigin) {
+export function getLogOriginLabel(origin: LogOrigin | duckdb.LogOrigin): string {
     switch (origin) {
         case LogOrigin.DB_MANAGER:
             return 'DATABASE ACCESS';

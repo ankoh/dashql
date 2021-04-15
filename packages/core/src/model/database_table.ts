@@ -31,7 +31,7 @@ export enum TableStatisticsType {
 /// A table statistics key
 export type TableStatisticsKey = number;
 /// Build a key for table statistics by concatenating the type and the column idx
-export function buildTableStatisticsKey(type: TableStatisticsType, column_id: number = 0): TableStatisticsKey {
+export function buildTableStatisticsKey(type: TableStatisticsType, column_id = 0): TableStatisticsKey {
     return (column_id << 3) | (type as number);
 }
 /// Extract the statistics type from a table statistics key

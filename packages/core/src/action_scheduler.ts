@@ -49,17 +49,17 @@ export class ActionScheduler<ActionBuffer extends ProtoAction> {
     }
 
     /// Get the scheduled actions
-    public get scheduled() {
+    public get scheduled(): NativeBitmap {
         return this._scheduledActions;
     }
 
     /// Prepare the scheduler
-    public prepare(ctx: ActionContext, actions: ActionLogic<ActionBuffer>[], planObjects: model.PlanObject[]) {
+    public prepare(ctx: ActionContext, actions: ActionLogic<ActionBuffer>[], planObjects: model.PlanObject[]): void {
         this._actions = actions;
         this._actionPromises = [];
 
         // Build the dependency heap
-        let deps: [NativeMinHeapKey, NativeMinHeapRank][] = [];
+        const deps: [NativeMinHeapKey, NativeMinHeapRank][] = [];
         deps.length = actions.length;
         for (let i = 0; i < actions.length; ++i) {
             deps[i] = [i, actions[i].buffer.dependsOnLength()];
@@ -89,7 +89,7 @@ export class ActionScheduler<ActionBuffer extends ProtoAction> {
     }
 
     /// Get the actions
-    public get actions() {
+    public get actions(): ActionLogic<ActionBuffer>[] {
         return this._actions;
     }
     /// Set the scheduler interrupt promise
@@ -116,9 +116,9 @@ export class ActionScheduler<ActionBuffer extends ProtoAction> {
 
     /// Schedule all actions that can be scheduled.
     /// An action can be scheduled if its rank is zero in the dependency heap.
-    protected scheduleNext(context: ActionContext, diff: NativeStack) {
+    protected scheduleNext(context: ActionContext, diff: NativeStack): void {
         // Collect next actions
-        let next_action_idcs: number[] = [];
+        const next_action_idcs: number[] = [];
         while (!this._actionQueue.empty() && this._actionQueue.topRank() == 0) {
             const action_idx = this._actionQueue.top();
             this._actionQueue.pop();
@@ -186,12 +186,12 @@ export class ActionScheduler<ActionBuffer extends ProtoAction> {
         this.flushActionUpdates(context, diff);
 
         // Wait for next action to complete
-        let promises: Promise<[ActionHandle | null, ActionError | null]>[] = [this._interrupt];
+        const promises: Promise<[ActionHandle | null, ActionError | null]>[] = [this._interrupt];
         this._actionPromises.forEach(p => {
             if (p) promises.push(p);
         });
 
-        let [next, err] = await Promise.race(promises);
+        const [next, err] = await Promise.race(promises);
         if (next == null) {
             /// Return true to indicate that we're not yet done and let the graph scheduler figure out whats wrong.
             return true;
@@ -245,11 +245,11 @@ export class ActionScheduler<ActionBuffer extends ProtoAction> {
     }
 
     /// Flush teh action updates
-    public flushActionUpdates(_ctx: ActionContext, diff: NativeStack) {
+    public flushActionUpdates(_ctx: ActionContext, diff: NativeStack): void {
         if (diff.empty()) return;
 
         // Synchronize all actions in the diff
-        let actionUpdates: Map<number, ActionUpdate> = new Map();
+        const actionUpdates: Map<number, ActionUpdate> = new Map();
         for (; !diff.empty(); diff.pop()) {
             const actionIdx = diff.top();
             const action = this.actions[actionIdx];
@@ -304,7 +304,7 @@ export class ActionGraphScheduler {
     }
 
     /// Update the action status in redux and wasm
-    protected storeActionUpdates(actionUpdates: ActionUpdate[]) {
+    protected storeActionUpdates(actionUpdates: ActionUpdate[]): void {
         // Update the action status in the analyzer
         for (const u of actionUpdates) {
             // Update the action status in the analyzer
@@ -322,7 +322,7 @@ export class ActionGraphScheduler {
     }
 
     /// Reset the scheduler
-    public prepare(ctx: ActionContext) {
+    public prepare(ctx: ActionContext): void {
         this._canceled = false;
         this._plan = ctx.plan;
         const program = ctx.plan.program!;
@@ -330,9 +330,9 @@ export class ActionGraphScheduler {
         const now = new Date();
 
         // Translate the setup actions
-        let planObjects: PlanObject[] = [];
-        let actionInfos: Action[] = [];
-        let setupLogic = [];
+        const planObjects: PlanObject[] = [];
+        const actionInfos: Action[] = [];
+        const setupLogic = [];
         for (let i = 0; i < graph.setupActionsLength(); ++i) {
             const actionId = buildActionHandle(i, proto.action.ActionClass.SETUP_ACTION);
             const a = graph.setupActions(i)!;
@@ -356,7 +356,7 @@ export class ActionGraphScheduler {
         }
 
         // Translate the program actions
-        let programLogic = [];
+        const programLogic = [];
         for (let i = 0; i < graph.programActionsLength(); ++i) {
             const actionId = buildActionHandle(i, proto.action.ActionClass.PROGRAM_ACTION);
             const a = graph.programActions(i)!;
@@ -395,7 +395,7 @@ export class ActionGraphScheduler {
     }
 
     /// Interrupt the scheduler
-    protected interrupt() {
+    protected interrupt(): void {
         // Setup a new interrupt promise
         const prev_interrupt = this._interruptFunction;
         this._interruptFunction = () => {};
@@ -410,7 +410,7 @@ export class ActionGraphScheduler {
     }
 
     /// Cancel the scheduler
-    public cancel() {
+    public cancel(): void {
         this._canceled = true;
         this.interrupt();
     }
@@ -420,16 +420,16 @@ export class ActionGraphScheduler {
         ctx: ActionContext,
         diff: NativeStack,
         scheduler: ActionScheduler<ActionBuffer>,
-    ) {
+    ): Promise<void> {
         for (
             let workLeft = await scheduler.executeFirst(ctx, diff);
             workLeft;
             workLeft = await scheduler.execute(ctx, diff)
-        ) {}
+        );
     }
 
     /// Execute the entire action graph
-    public async execute(ctx: ActionContext) {
+    public async execute(ctx: ActionContext): Promise<void> {
         if (this._plan == null) return;
         const diff = new NativeStack(64);
         await this.executeActions(ctx, diff, this._setupActions);

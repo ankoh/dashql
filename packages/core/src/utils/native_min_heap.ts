@@ -21,7 +21,7 @@ export class NativeMinHeap {
     }
 
     /// Build the heap with entries
-    public build(entries: [NativeMinHeapKey, NativeMinHeapRank][] = []) {
+    public build(entries: [NativeMinHeapKey, NativeMinHeapRank][] = []): void {
         if (this._entries.length < entries.length) {
             this._entries = new Uint32Array(2 * entries.length);
             this._index = new Uint32Array(entries.length);
@@ -35,7 +35,7 @@ export class NativeMinHeap {
     }
 
     /// Build the default heap
-    public buildDefault(size: number) {
+    public buildDefault(size: number): void {
         this._entries = new Uint32Array(2 * size);
         this._index = new Uint32Array(size);
         this._size = size;
@@ -55,7 +55,7 @@ export class NativeMinHeap {
         return this._entries[2 * index + 1];
     }
     /// Swap two positions
-    protected swapAt(i: number, j: number) {
+    protected swapAt(i: number, j: number): void {
         this._index[this.value(i)] = j;
         this._index[this.value(j)] = i;
         const v = this.value(i);
@@ -66,7 +66,7 @@ export class NativeMinHeap {
         this._entries[2 * j + 1] = r;
     }
     /// Sift an element up
-    protected siftUp(i: number) {
+    protected siftUp(i: number): void {
         for (let p = Math.floor((i - 1) / 2); i > 0 && this.rank(p) >= this.rank(i); ) {
             this.swapAt(i, p);
             i = p;
@@ -74,7 +74,8 @@ export class NativeMinHeap {
         }
     }
     /// Sift an element down
-    protected siftDown(i: number) {
+    protected siftDown(i: number): void {
+        // eslint-disable-next-line no-constant-condition
         while (true) {
             const l = 2 * i + 1;
             const r = 2 * i + 2;
@@ -105,29 +106,29 @@ export class NativeMinHeap {
         return this._entries[1];
     }
     /// Pop the back of the vector
-    protected popBack() {
+    protected popBack(): void {
         --this._size;
     }
     /// Pop the min element
-    public pop() {
+    public pop(): void {
         this.swapAt(0, this._size - 1);
         this.popBack();
         this.siftDown(0);
     }
     /// Decrement a key
-    public decrementRank(key: NativeMinHeapKey, by: number = 1) {
+    public decrementRank(key: NativeMinHeapKey, by = 1): void {
         const i = this._index[key];
         this._entries[2 * i + 1] -= Math.min(this._entries[2 * i + 1], by);
         this.siftUp(i);
     }
     /// Increment a key
-    public incrementRank(key: NativeMinHeapKey, by: number = 1) {
+    public incrementRank(key: NativeMinHeapKey, by = 1): void {
         const i = this._index[key];
         this._entries[2 * i + 1] += Math.min(this._entries[2 * i + 1], by);
         this.siftDown(i);
     }
     /// Set a key
-    public setRank(key: NativeMinHeapKey, rank: number) {
+    public setRank(key: NativeMinHeapKey, rank: number): void {
         const i = this._index[key];
         const prev = this._entries[2 * i + 1];
         this._entries[2 * i + 1] = rank;
@@ -138,7 +139,7 @@ export class NativeMinHeap {
         }
     }
     /// Get the current rank of a key
-    public getRank(key: NativeMinHeapKey) {
+    public getRank(key: NativeMinHeapKey): number {
         return this.rank(this._index[key]);
     }
 }

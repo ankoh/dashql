@@ -20,11 +20,11 @@ export interface CardPositionUpdate {
 export type EditOperationVariant = EditOperation<EditOperationType.UPDATE_CARD_POSITION, CardPositionUpdate>;
 
 export function packProgramEdit(builder: proto.fb.Builder, edits: EditOperationVariant[]): proto.fb.Offset {
-    let editOffsets: proto.fb.Offset[] = [];
+    const editOffsets: proto.fb.Offset[] = [];
     for (const e of edits) {
         let ofs: proto.fb.Offset;
         let op: proto.edit.EditOperationVariant;
-        let stmt = e.statementID;
+        const stmt = e.statementID;
         switch (e.type) {
             case EditOperationType.UPDATE_CARD_POSITION: {
                 const pos = e.data.position;
@@ -36,7 +36,7 @@ export function packProgramEdit(builder: proto.fb.Builder, edits: EditOperationV
         }
         editOffsets.push(proto.edit.EditOperation.create(builder, stmt, op, ofs));
     }
-    let editsVec = proto.edit.ProgramEdit.createEditsVector(builder, editOffsets);
+    const editsVec = proto.edit.ProgramEdit.createEditsVector(builder, editOffsets);
 
     proto.edit.ProgramEdit.start(builder);
     proto.edit.ProgramEdit.addEdits(builder, editsVec);

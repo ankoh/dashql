@@ -26,10 +26,10 @@ export class LoggableError extends ErrorBase {
         this._message = message;
     }
 
-    public get logLevel() {
+    public get logLevel(): LogLevel {
         return this._logLevel;
     }
-    public get message() {
+    public get message(): string {
         return this._message;
     }
 }

@@ -33,14 +33,14 @@ export class DatabaseManager {
     /// Resolve table statistics
     public resolveTableStatistics(qualifiedTableName: string): TableStatisticsResolver | null {
         const prev = this._tableStatistics.get(qualifiedTableName);
-        if (!!prev) return prev;
+        if (prev) return prev;
         const stats = new DatabaseTableStatistics(this, qualifiedTableName);
         this._tableStatistics.set(qualifiedTableName, stats);
         return stats;
     }
 
     /// Setup the database connection
-    public async init() {
+    public async init(): Promise<void> {
         await this.connect();
     }
 
@@ -55,7 +55,7 @@ export class DatabaseManager {
     }
 
     /// Disconnect the connection
-    public async disconnect() {
+    public async disconnect(): Promise<void> {
         return await this._connectionMutex.useAsync(async () => {
             if (!this._connection) return;
             await this._connection.disconnect();
@@ -63,9 +63,9 @@ export class DatabaseManager {
     }
 
     /// Create a new connection
-    public async connect() {
+    public async connect(): Promise<duckdb.AsyncConnection> {
         const conn = await this._connectionMutex.useAsync(async () => {
-            if (!!this._connection) return this._connection;
+            if (this._connection) return this._connection;
             return await this._duckdb.connect();
         });
         this._connection = conn;
@@ -90,7 +90,7 @@ export class DatabaseManager {
     public async requestTableStatistics(
         qualifiedTableName: string,
         type: model.TableStatisticsType,
-        columnId: number = 0,
+        columnId = 0,
     ): Promise<arrow.Column> {
         let queue = this._tableStatistics.get(qualifiedTableName);
         if (!queue) {
@@ -101,7 +101,7 @@ export class DatabaseManager {
     }
 
     /// Evaluate pending table statistics
-    public async evaluateTableStatistics(qualifiedTableName: string) {
+    public async evaluateTableStatistics(qualifiedTableName: string): Promise<void> {
         // Resolve the table info.
         // If it doesn't exit we have nothing to do.
         const tableInfo = this.resolveTableInfo(qualifiedTableName);
@@ -116,9 +116,9 @@ export class DatabaseManager {
 
         /// Build the query text
         const results = await queue.evaluate();
-        const stats = tableInfo.statistics.withMutations(stats => {
+        const stats = tableInfo.statistics.withMutations(s => {
             for (const [k, vs] of results) {
-                stats.set(k, vs);
+                s.set(k, vs);
             }
         });
         model.mutate(this._store.dispatch, {

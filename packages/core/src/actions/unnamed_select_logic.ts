@@ -9,6 +9,6 @@ export class UnnamedSelectLogic extends ProgramActionLogic {
     }
 
     public prepare(_context: ActionContext, _planObjects: PlanObject[]): void {}
-    public willExecute(_context: ActionContext) {}
+    public willExecute(_context: ActionContext): void {}
     public async execute(context: ActionContext): Promise<void> {}
 }

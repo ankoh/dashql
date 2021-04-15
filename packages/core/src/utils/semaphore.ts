@@ -6,10 +6,10 @@ export class Semaphore {
         this.count = count;
     }
 
-    private schedule() {
+    private schedule(): void {
         if (this.count > 0 && this.tasks.length > 0) {
             this.count--;
-            let next = this.tasks.shift();
+            const next = this.tasks.shift();
             if (next === undefined) {
                 throw 'Unexpected undefined value in tasks list';
             }
@@ -39,20 +39,16 @@ export class Semaphore {
         try {
             const result = f();
             return result;
-        } catch (e) {
-            throw e;
         } finally {
             release();
         }
     }
 
-    public async useAsync<T>(f: () => Promise<T>) {
+    public async useAsync<T>(f: () => Promise<T>): Promise<T> {
         const release = await this.acquire();
         try {
             const result = await f();
             return result;
-        } catch (e) {
-            throw e;
         } finally {
             release();
         }

@@ -22,13 +22,13 @@ export class TableStatisticsRequest {
         this._valueId = 0;
     }
 
-    public get key() {
+    public get key(): model.TableStatisticsKey {
         return this._key;
     }
-    public get type() {
+    public get type(): model.TableStatisticsType {
         return model.getTableStatisticsType(this._key);
     }
-    public get columnId() {
+    public get columnId(): number {
         return model.getTableStatisticsColumn(this._key);
     }
 }
@@ -73,8 +73,8 @@ export class DatabaseTableStatistics implements TableStatisticsResolver {
     protected buildAssociativeAggregateQuery(tableInfo: model.DatabaseTable): string {
         let out = 'SELECT ';
         let value_id = 0;
-        for (let req of this._associativeAggregates) {
-            let column_name = tableInfo.columnNames[req.columnId];
+        for (const req of this._associativeAggregates) {
+            const column_name = tableInfo.columnNames[req.columnId];
             req._valueId = value_id++;
             if (req._valueId > 0) {
                 out += ', ';
@@ -102,7 +102,7 @@ export class DatabaseTableStatistics implements TableStatisticsResolver {
     }
 
     /// Request table statistics
-    public async request(type: model.TableStatisticsType, columnId: number = 0): Promise<arrow.Column> {
+    public async request(type: model.TableStatisticsType, columnId = 0): Promise<arrow.Column> {
         const key = model.buildTableStatisticsKey(type, columnId);
         const prev = this._requests.get(key);
         const table = this._databaseManager.resolveTableInfo(this._qualifiedTableName);
@@ -187,7 +187,7 @@ export class DatabaseTableStatistics implements TableStatisticsResolver {
         }
 
         // Resolve all values
-        for (const [_key, req] of this._requests) {
+        for (const [, req] of this._requests) {
             const values = stats.get(req.key)!;
             for (const resolve of req._promiseResolvers) {
                 resolve(values);
