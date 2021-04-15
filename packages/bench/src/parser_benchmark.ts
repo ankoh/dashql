@@ -34,10 +34,10 @@ VIZ foo USING TABLE;
         }),
 
         benny.cycle((result: any, _summary: any) => {
-            let duration = result.details.median;
-            let throughput = 1 / duration;
-            let bytes = Buffer.byteLength(script);
-            let byteThroughtput = bytes / duration;
+            const duration = result.details.median;
+            const throughput = 1 / duration;
+            const bytes = Buffer.byteLength(script);
+            const byteThroughtput = bytes / duration;
             console.log(
                 `${kleur.cyan(result.name)} tp: ${core.utils.formatThousands(
                     throughput,

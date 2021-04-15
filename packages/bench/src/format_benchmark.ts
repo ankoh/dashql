@@ -6,7 +6,7 @@ import path from 'path';
 import kleur from 'kleur';
 
 function main(db: duckdb.DuckDB) {
-    let tupleSize = 8;
+    const tupleSize = 8;
     for (const tupleCount of [1000, 10000, 1000000, 10000000]) {
         benny.suite(
             `Single DOUBLE column | ${tupleCount} rows`,
@@ -82,10 +82,10 @@ function main(db: duckdb.DuckDB) {
             }),
 
             benny.cycle((result: any, _summary: any) => {
-                let bytes = tupleCount * tupleSize;
-                let duration = result.details.median;
-                let tupleThroughput = tupleCount / duration;
-                let dataThroughput = bytes / duration;
+                const bytes = tupleCount * tupleSize;
+                const duration = result.details.median;
+                const tupleThroughput = tupleCount / duration;
+                const dataThroughput = bytes / duration;
                 console.log(
                     `${kleur.cyan(result.name)} t: ${duration.toFixed(3)} s ttp: ${core.utils.formatThousands(
                         tupleThroughput,
