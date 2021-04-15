@@ -11,10 +11,10 @@ export class BrowserPlatform extends core.platform.Platform {
     constructor(
         store: model.AppReduxStore,
         logger: duckdb.Logger,
-        duckdb: duckdb.AsyncDuckDB,
+        db: duckdb.AsyncDuckDB,
         analyzer: core.analyzer.AnalyzerBindings,
     ) {
-        super(store, logger, duckdb, analyzer);
+        super(store, logger, db, analyzer);
         this._store = store;
         this._scheduler = new core.ActionGraphScheduler(this);
         this._scriptPipeline = new core.ScriptPipeline(this, this._scheduler);

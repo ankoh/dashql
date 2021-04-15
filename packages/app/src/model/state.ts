@@ -5,7 +5,7 @@ import { AppConfig } from './app_config';
 
 export class AppState implements core.model.DerivedState {
     /// The launch is complete?
-    public launchComplete: boolean = false;
+    public launchComplete = false;
     /// The launch progress
     public launchSteps: Immutable.Map<LaunchStep, LaunchStepInfo> = createLaunchSteps();
     /// The app config
