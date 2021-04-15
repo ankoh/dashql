@@ -38,7 +38,6 @@ import icon_gesture_tap_hold from '../static/svg/icons/gesture_tap_hold.svg';
 import icon_database_import from '../static/svg/icons/database_import.svg';
 import icon_database_search from '../static/svg/icons/database_search.svg';
 import icon_package_down from '../static/svg/icons/package_down.svg';
-import { key } from 'vega';
 
 export enum ScriptFeatureTag {
     HTTP_SOURCE,
@@ -286,7 +285,7 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
 
 export const EXAMPLE_SCRIPT_MAP: Map<string, ExampleScriptMetadata> = new Map(EXAMPLE_SCRIPTS.map(e => [e.key, e]));
 
-export async function loadScript(example: ExampleScriptMetadata, store: model.AppReduxStore) {
+export async function loadScript(example: ExampleScriptMetadata, store: model.AppReduxStore): Promise<void> {
     try {
         const resp = await axios.get(example.url);
         if (resp.status != 200) {

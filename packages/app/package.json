@@ -10,7 +10,7 @@
         "analyze:debug": "webpack --config webpack.debug.js --analyze",
         "analyze:release": "webpack --config webpack.release.js --analyze",
         "serve:release": "node ./server.js",
-        "lint": "eslint --config ./.eslintrc.js {src,test}/**/*.ts"
+        "lint": "eslint {src,test}/**/*.ts"
     },
     "engines": {
         "node": ">=14.13"

@@ -36,7 +36,7 @@ function receiveMessage(event: any) {
 }
 
 /// Authorize the user
-export async function auth() {
+export async function auth(): Promise<void> {
     const redirect_uri = encodeURIComponent(OAUTH_REDIRECT_URI);
     const state = getOAuthState();
     const scopes = encodeURIComponent(OAUTH_SCOPES);

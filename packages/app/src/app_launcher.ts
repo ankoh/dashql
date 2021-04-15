@@ -80,7 +80,7 @@ async function initAnalyzer(store: model.AppReduxStore): Promise<Analyzer | null
     return null;
 }
 
-export async function launchApp(ctx: IAppContext) {
+export async function launchApp(ctx: IAppContext): Promise<void> {
     const config = await configureApp(ctx.store);
     if (!config) return;
 
@@ -89,10 +89,10 @@ export async function launchApp(ctx: IAppContext) {
 
     const init = await Promise.all([duckdbPromise, analyzerPromise]);
     if (init[0] == null || init[1] == null) return;
-    const duckdb = init[0];
+    const db = init[0];
     const analyzer = init[1];
 
-    ctx.platform = new platform.BrowserPlatform(ctx.store, ctx.logger, duckdb, analyzer);
+    ctx.platform = new platform.BrowserPlatform(ctx.store, ctx.logger, db, analyzer);
     await ctx.platform.init();
 
     const example = examples.EXAMPLE_SCRIPT_MAP.get('demo_helloworld')!;
