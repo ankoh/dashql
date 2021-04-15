@@ -28,6 +28,6 @@
     },
     "scripts": {
         "build": "tsc",
-        "lint": "eslint {src,test}/**/*.ts"
+        "lint": "yarn run eslint {src,test}/**/*.ts"
     }
 }
