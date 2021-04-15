@@ -21,7 +21,7 @@ export type StateMutationVariant =
 // The action dispatch
 export type Dispatch = (mutation: StateMutationVariant) => void;
 // Mutate the store
-export function mutate(dispatch: Dispatch, m: StateMutationVariant) {
+export function mutate(dispatch: Dispatch, m: StateMutationVariant): void {
     return dispatch(m);
 }
 /// Mutation of the application state
