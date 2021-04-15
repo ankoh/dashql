@@ -11,6 +11,6 @@ namespace test {
 extern std::filesystem::path SOURCE_DIR;
 
 }
-}
+}  // namespace dashql
 
 #endif

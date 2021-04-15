@@ -1,12 +1,13 @@
 // Copyright (c) 2020 The DashQL Authors
 
+#include <string_view>
+
 #include "dashql/parser/parser_driver.h"
 #include "dashql/test/analyzer_tests.h"
 #include "dashql/test/grammar_tests.h"
-#include "gtest/gtest.h"
 #include "gflags/gflags.h"
+#include "gtest/gtest.h"
 #include "pugixml.hpp"
-#include <string_view>
 
 using namespace dashql;
 using namespace dashql::test;
@@ -19,7 +20,7 @@ namespace test {
 std::filesystem::path SOURCE_DIR;
 
 }
-}
+}  // namespace dashql
 
 int main(int argc, char* argv[]) {
     gflags::AllowCommandLineReparsing();
