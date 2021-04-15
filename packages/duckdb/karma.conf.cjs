@@ -2,7 +2,7 @@ const puppeteer = require('puppeteer');
 
 process.env.CHROME_BIN = puppeteer.executablePath();
 
-module.exports = function(config) {
+module.exports = function (config) {
     config.set({
         basePath: '../..',
         plugins: [
@@ -31,7 +31,7 @@ module.exports = function(config) {
         reporters: ['dots'],
         port: 9876,
         colors: true,
-        logLevel: config.LOG_INFO,
+        logLevel: config.LOG_ERROR,
         autoWatch: true,
         singleRun: true,
         browsers: ['ChromeHeadlessNoSandbox', 'FirefoxHeadless'],
@@ -44,7 +44,7 @@ module.exports = function(config) {
         coverageReporter: {
             type: 'json',
             dir: './packages/duckdb/coverage/',
-            subdir: function(browser) {
+            subdir: function (browser) {
                 return browser.toLowerCase().split(/[ /-]/)[0];
             },
         },
