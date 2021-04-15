@@ -13,14 +13,14 @@
 /// Build a frame id
 static constexpr uint64_t BuildFrameID(uint16_t file_id, uint64_t page_id = 0) {
     assert(page_id < (1ull << 48));
-    return (page_id & (1ull << 48)) | (static_cast<uint64_t>(file_id) << 48);
+    return (page_id & ((1ull << 48) - 1)) | (static_cast<uint64_t>(file_id) << 48);
 }
 /// Returns the file id for a given frame id which is contained in the 16
 /// most significant bits of the page id.
-static constexpr uint16_t GetFileID(uint64_t page_id) { return page_id >> 48; }
+static constexpr uint16_t GetFileID(uint64_t frame_id) { return frame_id >> 48; }
 /// Returns the page id within its file for a given frame id. This
 /// corresponds to the 48 least significant bits of the page id.
-static constexpr uint64_t GetPageID(uint64_t page_id) { return page_id & ((1ull << 48) - 1); }
+static constexpr uint64_t GetPageID(uint64_t frame_id) { return frame_id & ((1ull << 48) - 1); }
 
 /// Helper to dump bytes
 #if 0
@@ -157,7 +157,7 @@ BufferManager::FileRef BufferManager::OpenFile(std::string_view path, std::uniqu
     if (auto iter = files_by_path.find(path); iter != files_by_path.end()) {
         return FileRef{*this, *files.at(iter->second)};
     }
-    // More than
+    // File id overflow?
     if (allocated_file_ids == std::numeric_limits<uint16_t>::max()) {
         // XXX User wants to open more than 65535 files at the same time.
         //     We don't support that.
@@ -169,13 +169,15 @@ BufferManager::FileRef BufferManager::OpenFile(std::string_view path, std::uniqu
         file_id = free_file_ids.top();
         free_file_ids.pop();
     } else {
-        ++allocated_file_ids;
+        file_id = allocated_file_ids++;
     }
     // Create file
-    auto iter = files.insert({file_id, std::make_unique<RegisteredFile>(file_id, path, std::move(handle))});
-    auto& file = *iter.first->second;
+    auto file_ptr = std::make_unique<RegisteredFile>(file_id, path, std::move(handle));
+    auto& file = *file_ptr;
+    files.insert({file_id, std::move(file_ptr)});
     if (!file.handle) {
-        file.handle = filesystem->OpenFile(file.path.c_str(), duckdb::FileFlags::FILE_FLAGS_WRITE);
+        file.handle = filesystem->OpenFile(
+            file.path.c_str(), duckdb::FileFlags::FILE_FLAGS_WRITE | duckdb::FileFlags::FILE_FLAGS_FILE_CREATE);
     }
     file.file_size = filesystem->GetFileSize(*file.handle);
     file.file_size_required = file.file_size;
@@ -219,8 +221,9 @@ void BufferManager::ReleaseFile(RegisteredFile& file) {
 
     // Release file id
     files_by_path.erase(file.path);
-    files.erase(file.file_id);
-    free_file_ids.push(file.file_id);
+    auto file_id = file.file_id;
+    files.erase(file_id);
+    free_file_ids.push(file_id);
 }
 
 void BufferManager::LoadFrame(BufferFrame& frame) {
@@ -231,10 +234,11 @@ void BufferManager::LoadFrame(BufferFrame& frame) {
     // Determine the actual size of the frame
     assert(files.count(file_id));
     auto& file = *files.at(file_id);
-    frame.data_size = file.file_size - page_id * page_size;
+    frame.data_size = std::min<size_t>(file.file_size - page_id * page_size, GetPageSize());
     frame.is_dirty = false;
 
     // Read data into frame
+    assert(frame.data_size <= GetPageSize());
     filesystem->Read(*file.handle, frame.buffer.data(), frame.data_size, page_id * page_size);
 }
 
@@ -290,7 +294,8 @@ std::vector<char> BufferManager::AllocatePage() {
     }
     // Erase from dictionary
     auto buffer = std::move(page_to_evict->buffer);
-    frames.erase(page_to_evict->frame_id);
+    auto frame_id = page_to_evict->frame_id;
+    frames.erase(frame_id);
     return buffer;
 }
 
@@ -300,6 +305,7 @@ size_t BufferManager::GetFileSize(const FileRef& file) { return file.file_->file
 /// Fix a page
 BufferManager::BufferRef BufferManager::FixPage(const FileRef& file_ref, uint64_t page_id, bool exclusive) {
     // Does the page exist?
+    assert(file_ref.file_ != nullptr);
     auto file_id = file_ref.file_->file_id;
     auto frame_id = BuildFrameID(file_id, page_id);
     if (auto it = frames.find(frame_id); it != frames.end()) {
@@ -392,7 +398,7 @@ void BufferManager::Truncate(const FileRef& file_ref, size_t new_size) {
     file->file_size_required = file->file_size;
 }
 
-std::vector<uint64_t> BufferManager::get_fifo_list() const {
+std::vector<uint64_t> BufferManager::GetFIFOList() const {
     std::vector<uint64_t> fifo_list;
     fifo_list.reserve(fifo.size());
     for (auto* page : fifo) {
@@ -401,7 +407,7 @@ std::vector<uint64_t> BufferManager::get_fifo_list() const {
     return fifo_list;
 }
 
-std::vector<uint64_t> BufferManager::get_lru_list() const {
+std::vector<uint64_t> BufferManager::GetLRUList() const {
     std::vector<uint64_t> lru_list;
     lru_list.reserve(lru.size());
     for (auto* page : lru) {
