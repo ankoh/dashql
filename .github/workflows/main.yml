@@ -8,9 +8,52 @@ on:
             - master
 
 jobs:
+    eslint:
+        name: ESLint
+        runs-on: self-hosted
+        steps:
+            - name: Prepare repository
+              uses: ./actions/image
+              with:
+                  script: |-
+                      make reset_duckdb
+                      git submodule update --init --recursive
+                      ./scripts/generate_proto.sh
+                      yarn --frozen-lockfile
+
+            - name: Lint @dashql/duckdb
+              uses: ./actions/image
+              with:
+                  script: |-
+                      source /opt/env.sh
+                      yarn workspace @dashql/duckdb run lint
+
+            - name: Lint @dashql/core
+              uses: ./actions/image
+              with:
+                  script: |-
+                      source /opt/env.sh
+                      yarn workspace @dashql/core run lint
+
+            - name: Lint @dashql/bench
+              uses: ./actions/image
+              with:
+                  script: |-
+                      source /opt/env.sh
+                      yarn workspace @dashql/bench run lint
+
+            - name: Lint @dashql/app
+              uses: ./actions/image
+              with:
+                  script: |-
+                      source /opt/env.sh
+                      yarn workspace @dashql/app run lint
+
     linux_x86_debug:
         name: Linux / x86 / Debug
         runs-on: self-hosted
+        needs:
+            - eslint
         steps:
             - uses: actions/checkout@v2
 
@@ -76,6 +119,8 @@ jobs:
     linux_x86_release:
         name: Linux / x86 / Release
         runs-on: self-hosted
+        needs:
+            - eslint
         steps:
             - uses: actions/checkout@v2
 
@@ -118,8 +163,8 @@ jobs:
                           --source_dir=./lib/ \
                           --gtest_output=xml:./reports/tests_lib_release.xml
 
-    web:
-        name: Web
+    app:
+        name: App
         runs-on: self-hosted
         needs:
             - linux_x86_debug
