@@ -55,6 +55,7 @@ target_link_libraries(duckdb
     INTERFACE ${install_dir}/lib/libminiz.a
     INTERFACE ${install_dir}/lib/libpg_query.a
     INTERFACE ${install_dir}/lib/libutf8proc.a
+    INTERFACE dl
 )
 
 target_include_directories(duckdb
