@@ -12,6 +12,8 @@ jobs:
         name: ESLint
         runs-on: self-hosted
         steps:
+            - uses: actions/checkout@v2
+
             - name: Prepare repository
               uses: ./actions/image
               with:
