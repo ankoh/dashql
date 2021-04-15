@@ -66,13 +66,15 @@ BufferManager::RegisteredFile::RegisteredFile(uint16_t file_id, std::string_view
     : file_id(file_id), path(path), handle(std::move(handle)), references(0) {}
 
 /// Constructor
-BufferManager::FileRef::FileRef(BufferManager& buffer_manager, RegisteredFile& file)
-    : buffer_manager_(buffer_manager), file_(&file) {
+BufferManager::FileRef::FileRef(std::shared_ptr<BufferManager> buffer_manager, RegisteredFile& file)
+    : buffer_manager_(std::move(buffer_manager)), file_(&file) {
     ++file.references;
 }
 
 /// Constructor
-BufferManager::FileRef::FileRef(FileRef&& other) : buffer_manager_(other.buffer_manager_), file_(other.file_) {
+BufferManager::FileRef::FileRef(FileRef&& other)
+    : buffer_manager_(std::move(other.buffer_manager_)), file_(other.file_) {
+    other.buffer_manager_ = nullptr;
     other.file_ = nullptr;
 }
 
@@ -82,35 +84,38 @@ BufferManager::FileRef::~FileRef() { Release(); }
 /// Release the file ref
 void BufferManager::FileRef::Release() {
     if (!!file_) {
-        buffer_manager_.ReleaseFile(*file_);
+        buffer_manager_->ReleaseFile(*file_);
+        buffer_manager_ = nullptr;
         file_ = nullptr;
     }
 }
 
 /// Destructor
 BufferManager::FileRef& BufferManager::FileRef::operator=(FileRef&& other) {
-    assert(&buffer_manager_ == &other.buffer_manager_);
     Release();
+    buffer_manager_ = std::move(other.buffer_manager_);
     file_ = other.file_;
     other.file_ = nullptr;
     return *this;
 }
 
 /// Constructor
-BufferManager::BufferRef::BufferRef(BufferManager& buffer_manager, BufferFrame& frame)
-    : buffer_manager_(buffer_manager), frame_(&frame) {}
+BufferManager::BufferRef::BufferRef(std::shared_ptr<BufferManager> buffer_manager, BufferFrame& frame)
+    : buffer_manager_(std::move(buffer_manager)), frame_(&frame) {}
 
 /// Move Constructor
 BufferManager::BufferRef::BufferRef(BufferRef&& other)
-    : buffer_manager_(other.buffer_manager_), frame_(std::move(other.frame_)) {
+    : buffer_manager_(std::move(other.buffer_manager_)), frame_(std::move(other.frame_)) {
+    other.buffer_manager_ = nullptr;
     other.frame_ = nullptr;
 }
 
 /// Move Constructor
 BufferManager::BufferRef& BufferManager::BufferRef::operator=(BufferRef&& other) {
-    assert(&buffer_manager_ == &other.buffer_manager_);
     Release();
+    buffer_manager_ = std::move(other.buffer_manager_);
     frame_ = other.frame_;
+    other.buffer_manager_ = nullptr;
     other.frame_ = nullptr;
     return *this;
 }
@@ -121,7 +126,8 @@ BufferManager::BufferRef::~BufferRef() { Release(); }
 /// Constructor
 void BufferManager::BufferRef::Release() {
     if (!!frame_) {
-        buffer_manager_.UnfixPage(frame_->frame_id, frame_->is_dirty);
+        buffer_manager_->UnfixPage(frame_->frame_id, frame_->is_dirty);
+        buffer_manager_ = nullptr;
         frame_ = nullptr;
     }
 }
@@ -129,14 +135,14 @@ void BufferManager::BufferRef::Release() {
 /// Require a buffer frame to be of a certain size
 void BufferManager::BufferRef::RequireSize(size_t n) {
     if (!frame_ || n < frame_->data_size) return;
-    n = std::min<size_t>(n, buffer_manager_.GetPageSize());
+    n = std::min<size_t>(n, buffer_manager_->GetPageSize());
     auto frame_id = frame_->frame_id;
     auto page_id = GetPageID(frame_id);
     auto file_id = GetFileID(frame_id);
-    auto file_iter = buffer_manager_.files.find(file_id);
-    if (file_iter == buffer_manager_.files.end()) return;
-    auto required = page_id * buffer_manager_.GetPageSize() + n;
-    buffer_manager_.RequireFileSize(*file_iter->second, required);
+    auto file_iter = buffer_manager_->files.find(file_id);
+    if (file_iter == buffer_manager_->files.end()) return;
+    auto required = page_id * buffer_manager_->GetPageSize() + n;
+    buffer_manager_->RequireFileSize(*file_iter->second, required);
     frame_->data_size = std::max<size_t>(n, frame_->data_size);
 }
 
@@ -155,7 +161,7 @@ BufferManager::~BufferManager() {
 BufferManager::FileRef BufferManager::OpenFile(std::string_view path, std::unique_ptr<duckdb::FileHandle> handle) {
     // Already added?
     if (auto iter = files_by_path.find(path); iter != files_by_path.end()) {
-        return FileRef{*this, *files.at(iter->second)};
+        return FileRef{shared_from_this(), *files.at(iter->second)};
     }
     // File id overflow?
     if (allocated_file_ids == std::numeric_limits<uint16_t>::max()) {
@@ -181,7 +187,7 @@ BufferManager::FileRef BufferManager::OpenFile(std::string_view path, std::uniqu
     }
     file.file_size = filesystem->GetFileSize(*file.handle);
     file.file_size_required = file.file_size;
-    return FileRef{*this, file};
+    return FileRef{shared_from_this(), file};
 }
 
 void BufferManager::EvictFileFrames(RegisteredFile& file) {
@@ -322,7 +328,7 @@ BufferManager::BufferRef BufferManager::FixPage(const FileRef& file_ref, uint64_
             frame.lru_position = lru.insert(lru.end(), &frame);
         }
         frame.Lock(exclusive);
-        return BufferRef{*this, frame};
+        return BufferRef{shared_from_this(), frame};
     }
 
     // Create a new page and don't insert it in the queues, yet.
@@ -334,7 +340,7 @@ BufferManager::BufferRef BufferManager::FixPage(const FileRef& file_ref, uint64_
 
     // Load the data
     LoadFrame(frame);
-    return BufferRef{*this, frame};
+    return BufferRef{shared_from_this(), frame};
 }
 
 void BufferManager::UnfixPage(size_t frame_id, bool is_dirty) {

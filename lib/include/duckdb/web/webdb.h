@@ -58,7 +58,7 @@ class WebDB {
 
    protected:
     /// The buffer manager
-    io::BufferManager buffer_manager_;
+    std::shared_ptr<io::BufferManager> buffer_manager_;
     /// The (shared) database
     std::shared_ptr<duckdb::DuckDB> database_;
     /// The connections

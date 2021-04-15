@@ -14,8 +14,8 @@ namespace web {
 namespace io {
 
 /// Constructor
-InputFileStream::InputFileStream(BufferManager& buffer_manager, std::string_view path)
-    : buffer_manager_(buffer_manager), file_(buffer_manager_.OpenFile(path)) {}
+InputFileStream::InputFileStream(std::shared_ptr<BufferManager> buffer_manager, std::string_view path)
+    : buffer_manager_(std::move(buffer_manager)), file_(buffer_manager_->OpenFile(path)) {}
 
 /// Destructor
 InputFileStream::~InputFileStream() {
@@ -44,7 +44,7 @@ bool InputFileStream::closed() const { return !static_cast<bool>(file_); }
 /// Read at most nbytes bytes from the file
 arrow::Result<int64_t> InputFileStream::Read(int64_t nbytes, void* out) {
     tmp_page_.reset();
-    auto n = buffer_manager_.Read(file_, out, nbytes, file_position_);
+    auto n = buffer_manager_->Read(file_, out, nbytes, file_position_);
     file_position_ += n;
     return n;
 }
@@ -52,12 +52,12 @@ arrow::Result<int64_t> InputFileStream::Read(int64_t nbytes, void* out) {
 /// Peek at most nbytes bytes from the file
 arrow::Result<InputFileStream::PageView> InputFileStream::PeekView(int64_t nbytes) {
     // Determine page & offset
-    auto page_id = file_position_ >> buffer_manager_.GetPageSizeShift();
-    auto skip_here = file_position_ - page_id * buffer_manager_.GetPageSize();
-    auto read_here = std::min<size_t>(nbytes, buffer_manager_.GetPageSize() - skip_here);
+    auto page_id = file_position_ >> buffer_manager_->GetPageSizeShift();
+    auto skip_here = file_position_ - page_id * buffer_manager_->GetPageSize();
+    auto read_here = std::min<size_t>(nbytes, buffer_manager_->GetPageSize() - skip_here);
 
     // Read page
-    auto page = buffer_manager_.FixPage(file_, page_id, false);
+    auto page = buffer_manager_->FixPage(file_, page_id, false);
     assert(skip_here <= page.GetData().size());
     auto data = page.GetData().subspan(skip_here);
     return PageView{std::move(page), data};
