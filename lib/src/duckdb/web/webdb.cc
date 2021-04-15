@@ -6,6 +6,7 @@
 
 #include <cstdio>
 #include <duckdb/common/file_system.hpp>
+#include <duckdb/common/types/data_chunk.hpp>
 #include <memory>
 #include <optional>
 #include <string_view>
@@ -18,6 +19,7 @@
 #include "arrow/result.h"
 #include "arrow/status.h"
 #include "arrow/type_fwd.h"
+#include "dashql/common/defer.h"
 #include "duckdb.hpp"
 #include "duckdb/common/arrow.hpp"
 #include "duckdb/main/query_result.hpp"
@@ -50,6 +52,12 @@ arrow::Result<std::shared_ptr<arrow::Buffer>> WebDB::Connection::RunQuery(std::s
         // Configure the output writer
         ArrowSchema raw_schema;
         result->ToArrowSchema(&raw_schema);
+        // XXX
+        std::vector<ArrowSchema*> cols;
+        for (auto i = 0; i < raw_schema.n_children; ++i) {
+            cols.push_back(raw_schema.children[i]);
+        }
+        // XXX
         ARROW_ASSIGN_OR_RAISE(auto schema, arrow::ImportSchema(&raw_schema));
         ARROW_ASSIGN_OR_RAISE(auto out, arrow::io::BufferOutputStream::Create());
         ARROW_ASSIGN_OR_RAISE(auto writer, arrow::ipc::MakeFileWriter(out, schema));
@@ -59,11 +67,27 @@ arrow::Result<std::shared_ptr<arrow::Buffer>> WebDB::Connection::RunQuery(std::s
             // Import the data chunk as record batch
             ArrowArray array;
             chunk->ToArrowArray(&array);
+            // XXX
+            std::vector<ArrowArray*> cols;
+            for (auto i = 0; i < array.n_children; ++i) {
+                cols.push_back(array.children[i]);
+            }
+            // XXX
             ARROW_ASSIGN_OR_RAISE(auto batch, arrow::ImportRecordBatch(&array, schema));
 
             // Write record batch to the output stream
             ARROW_RETURN_NOT_OK(writer->WriteRecordBatch(*batch));
+            // XXX
+            for (auto i = 0; i < raw_schema.n_children; ++i) {
+                cols[i]->release(cols[i]);
+            }
+            // XXX
         }
+        // XXX
+        for (auto i = 0; i < raw_schema.n_children; ++i) {
+            cols[i]->release(cols[i]);
+        }
+        // XXX
         ARROW_RETURN_NOT_OK(writer->Close());
         return out->Finish();
     } catch (std::exception& e) {
@@ -82,10 +106,24 @@ arrow::Result<std::shared_ptr<arrow::Buffer>> WebDB::Connection::SendQuery(std::
         // Import the schema
         ArrowSchema raw_schema;
         current_query_result_->ToArrowSchema(&raw_schema);
-        ARROW_ASSIGN_OR_RAISE(current_schema_, arrow::ImportSchema(&raw_schema));
+
+        // XXX
+        std::vector<ArrowSchema*> cols;
+        for (auto i = 0; i < raw_schema.n_children; ++i) {
+            cols.push_back(raw_schema.children[i]);
+        }
+        // XXX
+
+        ARROW_ASSIGN_OR_RAISE(auto schema, arrow::ImportSchema(&raw_schema));
+
+        // XXX
+        for (auto i = 0; i < raw_schema.n_children; ++i) {
+            cols[i]->release(cols[i]);
+        }
+        // XXX
 
         // Serialize the schema
-        return arrow::ipc::SerializeSchema(*current_schema_);
+        return arrow::ipc::SerializeSchema(*schema);
     } catch (std::exception& e) {
         return arrow::Status{arrow::StatusCode::ExecutionError, e.what()};
     }
