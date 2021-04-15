@@ -19,7 +19,7 @@ jobs:
                       make reset_duckdb
                       git submodule update --init --recursive
                       ./scripts/generate_proto.sh
-                      yarn --frozen-lockfile
+                      yarn install --frozen-lockfile
 
             - name: Lint @dashql/duckdb
               uses: ./actions/image
@@ -180,6 +180,7 @@ jobs:
                       make reset_duckdb
                       git submodule update --init --recursive
                       mkdir -p ./lib/build/wasm/release ./reports
+                      yarn install --frozen-lockfile
 
             - name: Compile flatbuffer schema
               uses: ./actions/image
@@ -211,7 +212,6 @@ jobs:
               with:
                   script: |-
                       source /opt/env.sh
-                      yarn --frozen-lockfile
                       yarn workspace @dashql/proto build
 
             - name: Build @dashql/duckdb
@@ -219,7 +219,6 @@ jobs:
               with:
                   script: |-
                       source /opt/env.sh
-                      yarn --frozen-lockfile
                       yarn workspace @dashql/duckdb build
 
             - name: Build @dashql/core
@@ -227,7 +226,6 @@ jobs:
               with:
                   script: |-
                       source /opt/env.sh
-                      yarn --frozen-lockfile
                       yarn workspace @dashql/core build
 
             - name: Build benchmarks
@@ -235,7 +233,6 @@ jobs:
               with:
                   script: |-
                       source /opt/env.sh
-                      yarn --frozen-lockfile
                       yarn workspace @dashql/bench build
 
             - name: Test @dashql/duckdb
@@ -257,7 +254,6 @@ jobs:
               with:
                   script: |-
                       source /opt/env.sh
-                      yarn --frozen-lockfile
                       yarn workspace @dashql/app build:release
 
             - uses: codecov/codecov-action@v1
