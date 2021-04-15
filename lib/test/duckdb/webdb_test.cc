@@ -30,14 +30,14 @@ TEST(WebDB, RunQuery) {
     auto db = make_shared<WebDB>();
     WebDB::Connection conn{*db};
     auto buffer = conn.RunQuery("SELECT (v & 127)::TINYINT FROM generate_series(0, 2000) as t(v);");
-    ASSERT_TRUE(buffer.ok());
+    ASSERT_TRUE(buffer.ok()) << buffer.status().message();
 }
 
 TEST(WebDB, SendQuery) {
     auto db = make_shared<WebDB>();
     WebDB::Connection conn{*db};
     auto buffer = conn.SendQuery("SELECT (v & 127)::TINYINT FROM generate_series(0, 2000) as t(v);");
-    ASSERT_TRUE(buffer.ok());
+    ASSERT_TRUE(buffer.ok()) << buffer.status().message();
 }
 
 TEST(WebDB, LoadParquet) {
