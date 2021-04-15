@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import Worker from 'web-worker';
 import * as duckdb from '@dashql/duckdb/dist/duckdb-node-parallel.js';
 import * as core from '@dashql/core/dist/dashql-core-node.js';
@@ -11,7 +12,7 @@ const wasmPath = path.resolve(__dirname, '../../duckdb/dist/duckdb.wasm');
 const noop = () => {};
 
 async function main(db: duckdb.AsyncDuckDB) {
-    let tupleCount = 1000000;
+    const tupleCount = 1000000;
     let bytes = 0;
 
     await benny.suite(
@@ -114,9 +115,9 @@ async function main(db: duckdb.AsyncDuckDB) {
         }),
 
         benny.cycle((result: any, _summary: any) => {
-            let duration = result.details.median;
-            let tupleThroughput = tupleCount / duration;
-            let dataThroughput = bytes / duration;
+            const duration = result.details.median;
+            const tupleThroughput = tupleCount / duration;
+            const dataThroughput = bytes / duration;
             console.log(
                 `${kleur.cyan(result.name)} t: ${duration.toFixed(3)} s ttp: ${core.utils.formatThousands(
                     tupleThroughput,
@@ -240,9 +241,9 @@ async function main(db: duckdb.AsyncDuckDB) {
         }),
 
         benny.cycle((result: any, _summary: any) => {
-            let duration = result.details.median;
-            let tupleThroughput = tupleCount / duration;
-            let dataThroughput = bytes / duration;
+            const duration = result.details.median;
+            const tupleThroughput = tupleCount / duration;
+            const dataThroughput = bytes / duration;
             console.log(
                 `${kleur.cyan(result.name)} t: ${duration.toFixed(3)} s ttp: ${core.utils.formatThousands(
                     tupleThroughput,
