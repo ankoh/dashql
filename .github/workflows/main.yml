@@ -8,8 +8,8 @@ on:
             - master
 
 jobs:
-    linux_x86_debug:
-        name: Linux / x86 / Debug
+    eslint:
+        name: ESLint
         runs-on: self-hosted
         steps:
             - uses: actions/checkout@v2
@@ -18,7 +18,50 @@ jobs:
               uses: ./actions/image
               with:
                   script: |-
-                      make reset_duckdb
+                      git submodule update --init --recursive
+                      yarn install --frozen-lockfile
+                      ./scripts/generate_proto.sh
+
+            - name: Lint @dashql/duckdb
+              uses: ./actions/image
+              with:
+                  script: |-
+                      source /opt/env.sh
+                      yarn workspace @dashql/duckdb run lint
+
+            - name: Lint @dashql/core
+              uses: ./actions/image
+              with:
+                  script: |-
+                      source /opt/env.sh
+                      yarn workspace @dashql/core run lint
+
+            - name: Lint @dashql/bench
+              uses: ./actions/image
+              with:
+                  script: |-
+                      source /opt/env.sh
+                      yarn workspace @dashql/bench run lint
+
+            - name: Lint @dashql/app
+              uses: ./actions/image
+              with:
+                  script: |-
+                      source /opt/env.sh
+                      yarn workspace @dashql/app run lint
+
+    linux_x86_debug:
+        name: Linux / x86 / Debug
+        runs-on: self-hosted
+        needs:
+            - eslint
+        steps:
+            - uses: actions/checkout@v2
+
+            - name: Prepare repository
+              uses: ./actions/image
+              with:
+                  script: |-
                       git submodule update --init --recursive
                       mkdir -p ./lib/build/debug ./reports
 
@@ -76,6 +119,8 @@ jobs:
     linux_x86_release:
         name: Linux / x86 / Release
         runs-on: self-hosted
+        needs:
+            - eslint
         steps:
             - uses: actions/checkout@v2
 
@@ -83,7 +128,6 @@ jobs:
               uses: ./actions/image
               with:
                   script: |-
-                      make reset_duckdb
                       git submodule update --init --recursive
                       mkdir -p ./lib/build/release ./reports
 
@@ -118,8 +162,8 @@ jobs:
                           --source_dir=./lib/ \
                           --gtest_output=xml:./reports/tests_lib_release.xml
 
-    web:
-        name: Web
+    app:
+        name: App
         runs-on: self-hosted
         needs:
             - linux_x86_debug
@@ -132,9 +176,9 @@ jobs:
               uses: ./actions/image
               with:
                   script: |-
-                      make reset_duckdb
                       git submodule update --init --recursive
                       mkdir -p ./lib/build/wasm/release ./reports
+                      yarn install --frozen-lockfile
 
             - name: Compile flatbuffer schema
               uses: ./actions/image
@@ -166,7 +210,6 @@ jobs:
               with:
                   script: |-
                       source /opt/env.sh
-                      yarn --frozen-lockfile
                       yarn workspace @dashql/proto build
 
             - name: Build @dashql/duckdb
@@ -174,7 +217,6 @@ jobs:
               with:
                   script: |-
                       source /opt/env.sh
-                      yarn --frozen-lockfile
                       yarn workspace @dashql/duckdb build
 
             - name: Build @dashql/core
@@ -182,7 +224,6 @@ jobs:
               with:
                   script: |-
                       source /opt/env.sh
-                      yarn --frozen-lockfile
                       yarn workspace @dashql/core build
 
             - name: Build benchmarks
@@ -190,7 +231,6 @@ jobs:
               with:
                   script: |-
                       source /opt/env.sh
-                      yarn --frozen-lockfile
                       yarn workspace @dashql/bench build
 
             - name: Test @dashql/duckdb
@@ -212,7 +252,6 @@ jobs:
               with:
                   script: |-
                       source /opt/env.sh
-                      yarn --frozen-lockfile
                       yarn workspace @dashql/app build:release
 
             - uses: codecov/codecov-action@v1
