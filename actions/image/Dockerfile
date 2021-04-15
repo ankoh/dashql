@@ -42,11 +42,11 @@ RUN groupadd -g ${GID} -o ${UNAME} \
     && useradd -m -g ${GID} -u ${UID} -s /bin/bash ${UNAME}
 
 ENV NVM_DIR=/opt/nvm
-ARG NVM_VERSION="v0.38"
+ARG NVM_VERSION="v0.38.0"
 ARG NODE_VERSION="v15.14"
 RUN mkdir -p /opt/nvm \
     && ls -lisah /opt/nvm \
-    && curl https://raw.githubusercontent.com/creationix/nvm/${NVM_VERSION}/install.sh | bash \
+    && curl https://raw.githubusercontent.com/nvm-sh/nvm/${NVM_VERSION}/install.sh | bash \
     && source ${NVM_DIR}/nvm.sh \
     && nvm install ${NODE_VERSION} \
     && nvm alias default ${NODE_VERSION} \
