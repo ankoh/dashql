@@ -10,6 +10,7 @@
 #include <cstdio>
 #include <cstring>
 #include <filesystem>
+#include <fstream>
 #include <memory>
 #include <random>
 #include <thread>
@@ -132,6 +133,39 @@ TEST(BufferManagerTest, PersistentRestart) {
         }
     }
     files.clear();
+}
+
+// NOLINTNEXTLINE
+TEST(BufferManagerTest, Eviction) {
+    TestableBufferManager buffer_manager;
+    auto filepath = CreateTestFile();
+    std::ofstream(filepath).close();
+    fs::resize_file(filepath, 10 * buffer_manager.GetPageSize());
+    auto file = buffer_manager.OpenFile(filepath.c_str());
+
+    std::vector<uint64_t> expected_fifo;
+    std::vector<uint64_t> expected_lru;
+
+    // Frame-reuse
+    for (uint64_t i = 0; i < 10; ++i) {
+        buffer_manager.FixPage(file, i, false);
+        ASSERT_EQ(buffer_manager.GetFrames().size(), 1);
+    }
+
+    std::vector<io::BufferManager::BufferRef> pages;
+    for (uint64_t i = 0; i < 10; ++i) {
+        pages.push_back(buffer_manager.FixPage(file, i, false));
+        ASSERT_EQ(buffer_manager.GetFrames().size(), i + 1);
+    }
+    expected_fifo = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+    EXPECT_EQ(expected_fifo, buffer_manager.GetFIFOList());
+    EXPECT_TRUE(buffer_manager.GetLRUList().empty());
+
+    buffer_manager.FixPage(file, 0, false);
+    expected_fifo = {1, 2, 3, 4, 5, 6, 7, 8, 9};
+    expected_lru = {0};
+    EXPECT_EQ(expected_fifo, buffer_manager.GetFIFOList());
+    EXPECT_EQ(expected_lru, buffer_manager.GetLRUList());
 }
 
 }  // namespace
