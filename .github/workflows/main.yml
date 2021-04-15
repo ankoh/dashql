@@ -26,28 +26,28 @@ jobs:
               with:
                   script: |-
                       source /opt/env.sh
-                      yarn --cwd ./packages/duckdb run lint
+                      yarn workspace @dashql/duckdb lint
 
             - name: Lint @dashql/core
               uses: ./actions/image
               with:
                   script: |-
                       source /opt/env.sh
-                      yarn --cwd ./packages/core run lint
+                      yarn workspace @dashql/core lint
 
             - name: Lint @dashql/bench
               uses: ./actions/image
               with:
                   script: |-
                       source /opt/env.sh
-                      yarn --cwd ./packages/bench run lint
+                      yarn workspace @dashql/bench lint
 
             - name: Lint @dashql/app
               uses: ./actions/image
               with:
                   script: |-
                       source /opt/env.sh
-                      yarn --cwd ./packages/app run lint
+                      yarn workspace @dashql/app lint
 
     linux_x86_debug:
         name: Linux / x86 / Debug
