@@ -8,7 +8,7 @@ import { Card } from './card';
 import { Program, StatementStatus, InputValue } from './program';
 import { ProgramInstance } from './program_instance';
 import { Script, ScriptURIPrefix } from './script';
-import { Store } from 'redux';
+import { Store, Unsubscribe } from 'redux';
 
 export class CoreState {
     /// The log entries
@@ -81,7 +81,7 @@ export function observeStore<T>(
     store: DerivedReduxStore,
     select: (state: DerivedState) => T,
     onChange: (v: T) => void,
-) {
+): Unsubscribe {
     let prev: T | null = null;
     const stateChanged = () => {
         const next = select(store.getState());

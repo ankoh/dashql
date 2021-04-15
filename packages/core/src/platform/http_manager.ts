@@ -61,14 +61,14 @@ export class HTTPManager {
     }
 
     /// Init the http manager
-    public async init() {
+    public async init(): Promise<void> {
         this._hasher = await createSHA256();
     }
 
     /// Hash a request
     protected hashRequest(req: AxiosRequestConfig): string {
         console.assert(this._hasher != null, 'hasher must be initialized');
-        let hasher = this._hasher!;
+        const hasher = this._hasher!;
         hasher.init();
         if (req.url) {
             hasher.update(req.url);

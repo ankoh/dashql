@@ -9,7 +9,7 @@ export class ImportBlobActionLogic extends SetupActionLogic {
     }
 
     public prepare(_context: ActionContext, _planObjects: PlanObject[]): void {}
-    public willExecute(_context: ActionContext) {}
+    public willExecute(_context: ActionContext): void {}
     public async execute(_context: ActionContext): Promise<void> {}
 }
 
@@ -19,6 +19,6 @@ export class DropBlobActionLogic extends SetupActionLogic {
     }
 
     public prepare(_context: ActionContext, _planObjects: PlanObject[]): void {}
-    public willExecute(_context: ActionContext) {}
+    public willExecute(_context: ActionContext): void {}
     public async execute(_context: ActionContext): Promise<void> {}
 }

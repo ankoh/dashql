@@ -13,7 +13,7 @@ export class LogManager implements Logger {
         this._store = store;
     }
 
-    public log(entry: model.LogEntryVariant) {
+    public log(entry: model.LogEntryVariant): void {
         // Log errors and warnings to console
         switch (entry.level) {
             case model.LogLevel.WARNING:

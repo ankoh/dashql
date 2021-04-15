@@ -68,7 +68,7 @@ export type StateMutationDispatcher = (mutation: StateMutationVariant) => void;
 // The action dispatch
 export type Dispatch = (mutation: StateMutationVariant) => void;
 // Mutate the store
-export function mutate(dispatch: Dispatch, m: StateMutationVariant) {
+export function mutate(dispatch: Dispatch, m: StateMutationVariant): void {
     return dispatch(m);
 }
 
@@ -218,9 +218,9 @@ export class StateMutations {
                         }
                     }),
                     planActions: state.planActions.withMutations(actions => {
-                        let now = new Date();
+                        const now = new Date();
                         for (const update of mutation.data) {
-                            let a = actions.get(update.actionId);
+                            const a = actions.get(update.actionId);
                             if (!a) {
                                 console.warn(`UPDATE_PLAN_ACTIONS refers to unknown action id: ${update.actionId}`);
                                 continue;

@@ -18,11 +18,7 @@ export class Program {
     public readonly statementDependencies: Map<number, number[]>;
 
     /// Constructor
-    public constructor(
-        text: string = '',
-        textBuffer: Uint8Array = new Uint8Array(0),
-        program: sx.Program = new sx.Program(),
-    ) {
+    public constructor(text = '', textBuffer: Uint8Array = new Uint8Array(0), program: sx.Program = new sx.Program()) {
         this.text = text;
         this.textBuffer = textBuffer;
         this.buffer = program;
@@ -30,7 +26,7 @@ export class Program {
         /// Build statement dependencies
         this.statementDependencies = new Map<number, number[]>();
         this.iterateDependencies((_: number, dep: sx.Dependency) => {
-            let deps = this.statementDependencies.get(dep.targetStatement()) || [];
+            const deps = this.statementDependencies.get(dep.targetStatement()) || [];
             deps.push(dep.sourceStatement());
             this.statementDependencies.set(dep.targetStatement(), deps);
         });
@@ -97,19 +93,19 @@ export class Node {
         this.buffer = node;
     }
     /// Get the module
-    public get programBuffer() {
+    public get programBuffer(): sx.Program {
         return this.program.buffer;
     }
     /// Get the parent
-    public get parent() {
+    public get parent(): number {
         return this.buffer.parent();
     }
     /// Get the key
-    public get key() {
+    public get key(): sx.AttributeKey {
         return this.buffer.attributeKey();
     }
     /// Get the node type
-    public get nodeType() {
+    public get nodeType(): sx.NodeType {
         return this.buffer.nodeType();
     }
 
@@ -127,7 +123,7 @@ export class Node {
     }
 
     /// Is an object?
-    public isObject() {
+    public isObject(): boolean {
         return this.buffer.nodeType() >= sx.NodeType.OBJECT_KEYS_;
     }
     /// Get as boolean
@@ -156,8 +152,8 @@ export class Node {
 
     /// Find an attribute
     public findAttribute(key: sx.AttributeKey, n: Node | null = null): Node | null {
-        let children_begin = this.buffer.childrenBeginOrValue();
-        let children_count = this.buffer.childrenCount();
+        const children_begin = this.buffer.childrenBeginOrValue();
+        const children_count = this.buffer.childrenCount();
         n = n || new Node(this.program);
         let lb = children_begin;
         let c = children_count;
@@ -224,7 +220,7 @@ export class NodePath {
     }
 
     /// Visit a new node
-    visit(nodeId: number, node: Node) {
+    visit(nodeId: number, node: Node): void {
         // Pop from path until we find our parent
         const parent_id = node.parent;
         while (this.steps.length > 0 && this.steps[this.steps.length - 1].nodeId != parent_id) {
@@ -252,22 +248,22 @@ export class Statement {
     _statement: sx.Statement;
 
     /// Constructor
-    public constructor(module: Program, statementId: number = -1, statement: sx.Statement = new sx.Statement()) {
+    public constructor(module: Program, statementId = -1, statement: sx.Statement = new sx.Statement()) {
         this._program = module;
         this._statementId = statementId;
         this._statement = statement;
     }
 
     /// Get the module buffer
-    public get program() {
+    public get program(): Program {
         return this._program;
     }
     /// Get the module buffer
-    public get programBuffer() {
+    public get programBuffer(): sx.Program {
         return this._program.buffer;
     }
     /// Get the statement id
-    public get statementId() {
+    public get statementId(): number {
         return this._statementId;
     }
     /// Set the statement id
@@ -275,7 +271,7 @@ export class Statement {
         this._statementId = id;
     }
     /// Get the statement buffer
-    public get statement() {
+    public get statement(): sx.Statement {
         return this._statement;
     }
     /// Set the statement buffer
@@ -283,28 +279,28 @@ export class Statement {
         this._statement = s;
     }
     /// Get the statement type
-    public get statement_type() {
+    public get statement_type(): sx.StatementType {
         return this._statement.statementType();
     }
     /// Get the short name
-    public get targetNameShort() {
+    public get targetNameShort(): string {
         return this._statement.nameShort();
     }
     /// Get the qualified name
-    public get targetNameQualified() {
+    public get targetNameQualified(): string {
         return this._statement.nameQualified();
     }
     /// Get the root
-    public get root() {
+    public get root(): number {
         return this._statement.rootNode();
     }
     /// Get the root node
-    public root_node(n: Node | null = null) {
+    public root_node(n: Node | null = null): Node {
         return this.program.getNode(this._statement.rootNode(), n)!;
     }
 
     /// Perform a pre-order DFS traversal
-    public traversePreOrder(visit: (nodeId: number, node: Node, path: NodePath) => void) {
+    public traversePreOrder(visit: (nodeId: number, node: Node, path: NodePath) => void): void {
         // Prepare the DFS
         const path = new NodePath(this._statementId);
         const pending_cap = this.programBuffer.nodesLength() / this.programBuffer.statementsLength();
@@ -341,7 +337,7 @@ export class Statement {
     public traverse(
         visit_preorder: (nodeId: number, node: Node, path: NodePath) => void,
         visit_postorder: (nodeId: number, node: Node) => void,
-    ) {
+    ): void {
         // Prepare the DFS
         const path = new NodePath(this._statementId);
         const pending_cap = this.programBuffer.nodesLength() / this.programBuffer.statementsLength();
@@ -386,8 +382,8 @@ export class Statement {
     }
 
     /// Match a schema
-    public matchSchema(spec: schema.NodeSchema) {
-        let mappedNodes: Map<number, schema.NodeSchema> = new Map();
+    public matchSchema(spec: schema.NodeSchema): void {
+        const mappedNodes: Map<number, schema.NodeSchema> = new Map();
         this.traversePreOrder((nodeId: number, node: Node, path: NodePath) => {
             const step = path.steps[path.steps.length - 1];
 

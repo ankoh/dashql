@@ -40,23 +40,23 @@ export abstract class ActionLogic<ActionBuffer extends ProtoAction> {
     }
 
     /// Get the action id
-    public get actionId() {
+    public get actionId(): number {
         return this._action_id;
     }
     /// Get the action class
-    public get actionClass() {
+    public get actionClass(): proto.action.ActionClass {
         return getActionClass(this._action_id);
     }
     /// Get the action index
-    public get actionIndex() {
+    public get actionIndex(): number {
         return getActionIndex(this._action_id);
     }
     /// Get the flatbuffer
-    public get buffer() {
+    public get buffer(): ActionBuffer {
         return this._action;
     }
     /// Get the status
-    public get status() {
+    public get status(): proto.action.ActionStatusCode {
         return this._status;
     }
     /// Set the action status
@@ -64,7 +64,7 @@ export abstract class ActionLogic<ActionBuffer extends ProtoAction> {
         this._status = status;
     }
     /// Get the blocker
-    public get blocker() {
+    public get blocker(): proto.action.ActionBlocker {
         return this._blocker;
     }
 
@@ -114,11 +114,11 @@ export abstract class ProgramActionLogic extends ActionLogic<proto.action.Progra
     }
 
     /// Return the origin
-    public get origin() {
+    public get origin(): Statement {
         return this._origin;
     }
     /// Return the script
-    public get script() {
+    public get script(): string | null {
         return this._action.script() || null;
     }
 }

@@ -41,7 +41,7 @@ afterAll(async () => {
 });
 
 function resolveProgramActionLogic(plan: model.Plan) {
-    let r: actions.ActionLogic<proto.action.ProgramAction>[] = [];
+    const r: actions.ActionLogic<proto.action.ProgramAction>[] = [];
     const graph = plan.action_graph;
     expect(graph).toBeDefined();
     expect(graph).not.toBeNull();

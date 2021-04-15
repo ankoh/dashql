@@ -7,13 +7,13 @@ export class NativeBitmap {
     /// The size of the buffer
     _size: number;
 
-    public constructor(size: number = 0) {
+    public constructor(size = 0) {
         this._buffer = new Uint32Array((size >> 5) + 1);
         this._size = size;
     }
 
     /// Reset the bitmap to a new size
-    public reset(newSize: number) {
+    public reset(newSize: number): void {
         const n = newSize >> 5;
         if (n > this._buffer.length) {
             this._buffer = new Uint32Array(n);
@@ -59,7 +59,7 @@ export class NativeBitmap {
         return this;
     }
     /// Is a bit set?
-    public isSet(index: number) {
+    public isSet(index: number): boolean {
         const entry_idx = index >> 5;
         const bit_idx = index & 31;
         return (this._buffer[entry_idx] & (1 << bit_idx)) != 0;
@@ -92,7 +92,7 @@ export class NativeBitmap {
     }
 
     /// Contains other bitmap that is equal in size?
-    public containsUnsafe(other: NativeBitmap) {
+    public containsUnsafe(other: NativeBitmap): boolean {
         console.assert(this._size == other._size);
         let contains = true;
         for (let i = 0; i < this._buffer.length; ++i) {
@@ -102,8 +102,8 @@ export class NativeBitmap {
     }
 
     /// Get the entries (slow, only for debugging)
-    public entries() {
-        let buffer = [];
+    public entries(): number[] {
+        const buffer = [];
         for (let i = 0; i < this._size; ++i) {
             if (this.isSet(i)) {
                 buffer.push(i);

@@ -224,9 +224,9 @@ describe('VizComposer', () => {
             for (let i = 0; i < spec.vizComponentsLength(); ++i) {
                 const c = spec.vizComponents(i)!;
                 const type = c.type()!;
-                let mods: Map<proto.syntax.VizComponentTypeModifier, boolean> = new Map();
-                for (let i = 0; i < c.typeModifiersLength(); ++i) {
-                    mods.set(c.typeModifiers(i)!, true);
+                const mods: Map<proto.syntax.VizComponentTypeModifier, boolean> = new Map();
+                for (let j = 0; j < c.typeModifiersLength(); ++j) {
+                    mods.set(c.typeModifiers(j)!, true);
                 }
                 const optionsJSON = c.options() || '';
                 const options = JSON.parse(optionsJSON);

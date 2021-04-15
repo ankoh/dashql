@@ -15,6 +15,7 @@ export class Analyzer extends AnalyzerBindings {
     }
 
     protected instantiateWasm(
+        // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
         imports: any,
         success: (module: WebAssembly.Module) => void,
     ): Emscripten.WebAssemblyExports {

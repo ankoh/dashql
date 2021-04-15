@@ -29,11 +29,11 @@ describe('HTTPManager', () => {
             .onGet('http://localhost/file4')
             .reply(200, encodeTextBody('body4'));
 
-        let expectBody = async (url: string, body: string) => {
-            let r = await http.request({ url: url });
+        const expectBody = async (url: string, body: string) => {
+            const r = await http.request({ url: url });
             expect(decodeTextBody(new Uint8Array(r.response.data))).toBe(body);
         };
-        let expect404 = async (url: string) => {
+        const expect404 = async (url: string) => {
             try {
                 await http.request({ url: url });
             } catch (e) {

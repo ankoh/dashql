@@ -9,7 +9,7 @@ const TIME_UNITS: [Intl.RelativeTimeFormatUnit, number][] = [
 
 const rtf = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
 
-export function getRelativeTime(to: Date, from: Date = new Date()) {
+export function getRelativeTime(to: Date, from: Date = new Date()): string {
     const elapsed = to.getTime() - from.getTime();
     for (const [unitName, unitInMs] of TIME_UNITS) {
         if (Math.abs(elapsed) > unitInMs || unitName == 'second') {
