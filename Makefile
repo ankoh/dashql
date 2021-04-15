@@ -205,6 +205,14 @@ duckdb_tests_debug: duckdb
 duckdb_tests_node: duckdb
 	yarn workspace @dashql/duckdb test:node
 
+# Line library
+.PHONY: lint_lib
+lint_lib:
+	python3 ./scripts/run_clang_format.py \
+	--exclude ./lib/build \
+	--exclude ./lib/third_party \
+	-r ./lib/
+
 # Install all yarn packages
 .PHONY: yarn_install
 yarn_install:
@@ -257,6 +265,7 @@ bootstrap:
 	make core
 
 # Run all js tests
+.PHONY: jstests
 jstests:
 	make proto
 	make duckdb
