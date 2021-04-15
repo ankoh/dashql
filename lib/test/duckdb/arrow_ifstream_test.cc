@@ -19,7 +19,7 @@ using namespace std;
 namespace {
 
 TEST(ArrowInputFileStream, LoadJSON) {
-    io::BufferManager buffer_manager;
+    auto buffer_manager = std::make_shared<io::BufferManager>();
     auto path = dashql::test::SOURCE_DIR / ".." / "data" / "test.json";
     auto pathStr = path.string();
     auto input = std::make_shared<io::InputFileStream>(buffer_manager, pathStr.c_str());
@@ -41,7 +41,7 @@ TEST(ArrowInputFileStream, LoadJSON) {
 }
 
 TEST(ArrowInputFileStream, LoadCSV) {
-    io::BufferManager buffer_manager;
+    auto buffer_manager = std::make_shared<io::BufferManager>();
     auto path = dashql::test::SOURCE_DIR / ".." / "data" / "test.csv";
     auto pathStr = path.string();
     auto input = std::make_shared<io::InputFileStream>(buffer_manager, pathStr.c_str());

@@ -63,7 +63,7 @@ class BufferFrame {
     nonstd::span<char> GetData() { return {buffer.data(), data_size}; }
 };
 
-class BufferManager {
+class BufferManager : public std::enable_shared_from_this<BufferManager> {
    protected:
     /// A registered file
     struct RegisteredFile {
@@ -93,11 +93,11 @@ class BufferManager {
 
        protected:
         /// The buffer manager
-        BufferManager& buffer_manager_;
+        std::shared_ptr<BufferManager> buffer_manager_;
         /// The file
         RegisteredFile* file_;
         /// The constructor
-        explicit FileRef(BufferManager& buffer_manager, RegisteredFile& file);
+        explicit FileRef(std::shared_ptr<BufferManager> buffer_manager, RegisteredFile& file);
 
        public:
         /// Move constructor
@@ -124,11 +124,11 @@ class BufferManager {
 
        protected:
         /// The buffer manager
-        BufferManager& buffer_manager_;
+        std::shared_ptr<BufferManager> buffer_manager_;
         /// The file
         BufferFrame* frame_;
         /// The constructor
-        explicit BufferRef(BufferManager& buffer_manager, BufferFrame& frame);
+        explicit BufferRef(std::shared_ptr<BufferManager> buffer_manager, BufferFrame& frame);
 
        public:
         /// Move constructor

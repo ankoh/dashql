@@ -23,7 +23,7 @@ struct ZipArchive {
 class Zipper {
    protected:
     /// The filesystem
-    io::BufferManager& buffer_manager_;
+    std::shared_ptr<io::BufferManager> buffer_manager_;
     /// The next archive id
     size_t next_achive_id_;
     /// The loaded archives
@@ -31,7 +31,7 @@ class Zipper {
 
    public:
     /// Constructor
-    Zipper(io::BufferManager& buffer_manager);
+    Zipper(std::shared_ptr<io::BufferManager> buffer_manager);
 
     /// Load zip from a buffer
     arrow::Result<size_t> LoadFromFile(const char* path);
