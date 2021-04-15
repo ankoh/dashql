@@ -187,22 +187,22 @@ duckdb_docs:
 
 # Run the duckdb javascript tests
 .PHONY: duckdb_tests
-duckdb_tests:
+duckdb_tests: duckdb
 	yarn workspace @dashql/duckdb test
 
 # Run the duckdb javascript tests in browser
 .PHONY: duckdb_tests_browser
-duckdb_tests_browser:
+duckdb_tests_browser: duckdb
 	yarn workspace @dashql/duckdb test:browser
 
 # Run the duckdb javascript tests in browser
 .PHONY: duckdb_tests_browser
-duckdb_tests_debug:
+duckdb_tests_debug: duckdb
 	yarn workspace @dashql/duckdb test:browser:dbg
 
 # Run the duckdb javascript tests on nodejs
 .PHONY: duckdb_tests_node
-duckdb_tests_node:
+duckdb_tests_node: duckdb
 	yarn workspace @dashql/duckdb test:node
 
 # Install all yarn packages
