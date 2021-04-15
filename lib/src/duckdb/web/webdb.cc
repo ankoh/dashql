@@ -76,18 +76,20 @@ arrow::Result<std::shared_ptr<arrow::Buffer>> WebDB::Connection::RunQuery(std::s
             // Write record batch to the output stream
             ARROW_ASSIGN_OR_RAISE(auto batch, arrow::ImportRecordBatch(&array, schema));
             ARROW_RETURN_NOT_OK(writer->WriteRecordBatch(*batch));
+
             // XXX
             for (auto* col : cols) {
                 col->release(col);
             }
             // XXX
         }
+        ARROW_RETURN_NOT_OK(writer->Close());
+
         // XXX
         for (auto* schema : cols) {
             schema->release(schema);
         }
         // XXX
-        ARROW_RETURN_NOT_OK(writer->Close());
         return out->Finish();
     } catch (std::exception& e) {
         return arrow::Status{arrow::StatusCode::ExecutionError, e.what()};
@@ -113,7 +115,10 @@ arrow::Result<std::shared_ptr<arrow::Buffer>> WebDB::Connection::SendQuery(std::
         }
         // XXX
 
-        ARROW_ASSIGN_OR_RAISE(auto schema, arrow::ImportSchema(&raw_schema));
+        ARROW_ASSIGN_OR_RAISE(current_schema_, arrow::ImportSchema(&raw_schema));
+
+        // Serialize the schema
+        auto schema_buffer = arrow::ipc::SerializeSchema(*current_schema_);
 
         // XXX
         for (auto* col : cols) {
@@ -121,8 +126,7 @@ arrow::Result<std::shared_ptr<arrow::Buffer>> WebDB::Connection::SendQuery(std::
         }
         // XXX
 
-        // Serialize the schema
-        return arrow::ipc::SerializeSchema(*schema);
+        return schema_buffer;
     } catch (std::exception& e) {
         return arrow::Status{arrow::StatusCode::ExecutionError, e.what()};
     }
