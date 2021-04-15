@@ -205,13 +205,21 @@ duckdb_tests_debug: duckdb
 duckdb_tests_node: duckdb
 	yarn workspace @dashql/duckdb test:node
 
-# Line library
-.PHONY: lint_lib
-lint_lib:
+# C++ formatting
+.PHONY: clang_format
+clang_format:
 	python3 ./scripts/run_clang_format.py \
 	--exclude ./lib/build \
 	--exclude ./lib/third_party \
 	-r ./lib/
+
+# JS formatting
+.PHONY: eslint
+eslint:
+	yarn workspace @dashql/duckdb run lint
+	yarn workspace @dashql/core run lint
+	yarn workspace @dashql/bench run lint
+	yarn workspace @dashql/app run lint
 
 # Install all yarn packages
 .PHONY: yarn_install
