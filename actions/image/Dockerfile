@@ -3,7 +3,7 @@ FROM ubuntu:20.10
 RUN apt-get update -qq \
     && DEBIAN_FRONTEND=noninteractive apt-get install -y \
         tini build-essential git \
-        ccache cmake ninja-build llvm clang clang-tidy curl python python3 \
+        ccache cmake ninja-build llvm clang clang-format clang-tidy curl python python3 \
         bison flex \
         brotli rsync \
         openjdk-14-jdk \
