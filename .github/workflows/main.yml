@@ -16,10 +16,9 @@ jobs:
               uses: ./actions/image
               with:
                   script: |-
-                      make reset_duckdb
                       git submodule update --init --recursive
-                      ./scripts/generate_proto.sh
                       yarn install --frozen-lockfile
+                      ./scripts/generate_proto.sh
 
             - name: Lint @dashql/duckdb
               uses: ./actions/image
@@ -61,7 +60,6 @@ jobs:
               uses: ./actions/image
               with:
                   script: |-
-                      make reset_duckdb
                       git submodule update --init --recursive
                       mkdir -p ./lib/build/debug ./reports
 
@@ -128,7 +126,6 @@ jobs:
               uses: ./actions/image
               with:
                   script: |-
-                      make reset_duckdb
                       git submodule update --init --recursive
                       mkdir -p ./lib/build/release ./reports
 
@@ -177,7 +174,6 @@ jobs:
               uses: ./actions/image
               with:
                   script: |-
-                      make reset_duckdb
                       git submodule update --init --recursive
                       mkdir -p ./lib/build/wasm/release ./reports
                       yarn install --frozen-lockfile
