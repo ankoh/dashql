@@ -44,13 +44,13 @@ class BufferedFileHandle : public duckdb::FileHandle {
 class BufferedFileSystem : public duckdb::FileSystem {
    protected:
     /// The buffer manager
-    BufferManager &buffer_manager_;
+    std::shared_ptr<BufferManager> buffer_manager_;
     /// The inner file system
     duckdb::FileSystem &filesystem_;
 
    public:
     /// Constructor
-    BufferedFileSystem(BufferManager &buffer_manager);
+    BufferedFileSystem(std::shared_ptr<BufferManager> buffer_manager);
     /// Destructor
     virtual ~BufferedFileSystem() {}
 

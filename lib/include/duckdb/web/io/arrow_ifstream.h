@@ -36,7 +36,7 @@ class InputFileStream : virtual public arrow::io::InputStream {
     };
 
     /// The file system
-    BufferManager& buffer_manager_;
+    std::shared_ptr<BufferManager> buffer_manager_;
     /// The file id
     BufferManager::FileRef file_;
     /// The file position
@@ -49,7 +49,7 @@ class InputFileStream : virtual public arrow::io::InputStream {
 
    public:
     /// Constructor
-    InputFileStream(io::BufferManager& buffer_manager, std::string_view path);
+    InputFileStream(std::shared_ptr<io::BufferManager> buffer_manager, std::string_view path);
     /// Destructor
     ~InputFileStream() override;
 
@@ -116,7 +116,6 @@ class InputFileStream : virtual public arrow::io::InputStream {
     ///
     /// Zero copy reads imply the use of Buffer-returning Read() overloads.
     ///
-    /// XXX We could
     bool supports_zero_copy() const override { return true; }
 };
 
