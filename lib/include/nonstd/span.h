@@ -742,7 +742,7 @@ inline void throw_out_of_range(size_t idx, size_t size) {
     throw std::out_of_range(buffer);
 }
 
-#else  // MEMBER_AT
+#else   // MEMBER_AT
 
 inline void throw_out_of_range(size_t /*idx*/, size_t /*size*/) {
     throw std::out_of_range("span::at(): index outside span");
