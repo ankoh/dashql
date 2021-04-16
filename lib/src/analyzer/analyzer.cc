@@ -195,6 +195,12 @@ void Analyzer::AnalyzeInputStatements(ProgramInstance& instance) {
     }
 }
 
+/// Analyze the load statements
+void Analyzer::AnalyzeLoadStatements(ProgramInstance& instance) { (void)instance; }
+
+/// Analyze the extract statements
+void Analyzer::AnalyzeExtractStatements(ProgramInstance& instance) { (void)instance; }
+
 /// Analyze the viz statements
 void Analyzer::AnalyzeVizStatements(ProgramInstance& instance) {
     auto& program = instance.program();
@@ -233,9 +239,10 @@ Signal Analyzer::InstantiateProgram(std::vector<InputValue> inputs) {
     EvaluateInputValues(*next_instance);
     // Evaluate and propagate constant values.
     PropagateConstants(*next_instance);
-    // Analyze the input statements
+    // Analyze the statements
     AnalyzeInputStatements(*next_instance);
-    // Analyze the viz statements
+    AnalyzeLoadStatements(*next_instance);
+    AnalyzeExtractStatements(*next_instance);
     AnalyzeVizStatements(*next_instance);
     // Compute the card positions
     ComputeCardPositions(*next_instance);
