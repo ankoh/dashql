@@ -126,9 +126,9 @@ flatbuffers::Offset<proto::analyzer::Card> VizStatement::PackCard(flatbuffers::F
     assert(computed_position_.has_value());
     proto::analyzer::CardBuilder card_builder{builder};
     card_builder.add_card_type(dashql::proto::analyzer::CardType::BUILTIN_VIZ);
+    card_builder.add_card_position(&computed_position_.value());
+    if (title_offset) card_builder.add_card_title(*title_offset);
     card_builder.add_statement_id(statement_id_);
-    card_builder.add_position(&computed_position_.value());
-    if (title_offset) card_builder.add_title(*title_offset);
     card_builder.add_viz_components(component_ofs_vec);
     return card_builder.Finish();
 }

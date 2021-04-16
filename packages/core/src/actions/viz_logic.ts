@@ -69,7 +69,7 @@ export class CreateVizActionLogic extends VizActionLogic {
             throw new error.ActionLogicError('card spec does not exist', programInstance);
         }
         // Get position
-        const posReader = this._card!.position()!;
+        const posReader = this._card!.cardPosition()!;
         const pos: model.CardPosition = {
             row: posReader.row(),
             column: posReader.column(),
@@ -86,7 +86,7 @@ export class CreateVizActionLogic extends VizActionLogic {
             cardRenderer: null,
             statementID: this.origin.statementId,
             position: pos,
-            title: this._card!.title() || null,
+            title: this._card!.cardTitle() || null,
             inputOptions: null,
             vegaLiteSpec: null,
             vegaSpec: null,
@@ -152,7 +152,7 @@ export class UpdateVizActionLogic extends VizActionLogic {
             throw new error.ActionLogicError('card spec does not exist', context.plan.programInstance);
         }
 
-        const posReader = this._card!.position()!;
+        const posReader = this._card!.cardPosition()!;
         const pos: model.CardPosition = {
             row: posReader.row(),
             column: posReader.column(),
@@ -166,7 +166,7 @@ export class UpdateVizActionLogic extends VizActionLogic {
             cardRenderer: null,
             statementID: this.origin.statementId,
             position: pos,
-            title: this._card!.title() || null,
+            title: this._card!.cardTitle() || null,
             vegaLiteSpec: null,
             vegaSpec: null,
             dataSource: null,

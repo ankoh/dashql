@@ -33,7 +33,7 @@ export class InputActionLogic extends ProgramActionLogic {
                 break;
         }
         // Get position
-        const posReader = this._card!.position()!;
+        const posReader = this._card!.cardPosition()!;
         const pos: model.CardPosition = {
             row: posReader.row(),
             column: posReader.column(),
@@ -50,7 +50,7 @@ export class InputActionLogic extends ProgramActionLogic {
             cardRenderer: renderer,
             statementID: this.origin.statementId,
             position: pos,
-            title: this._card!.title() || stmt.targetNameShort || null,
+            title: this._card!.cardTitle() || stmt.targetNameShort || null,
             inputOptions: JSON.parse(this._card.inputOptions()) as model.InputOptions,
             vegaLiteSpec: null,
             vegaSpec: null,
