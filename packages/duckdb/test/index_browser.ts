@@ -16,6 +16,8 @@ const resolveData = async (url: string) => {
     switch (url) {
         case '/uni/all.zip':
             return await resolveBuffer('/uni/out/all.zip');
+        case '/uni/assistenten.parquet':
+            return await resolveBuffer('/uni/out/assistenten.parquet');
         case '/uni/studenten.parquet':
             return await resolveBuffer('/uni/out/studenten.parquet');
         case '/uni/hoeren.parquet':
