@@ -140,5 +140,44 @@ arrow::Result<std::string> Zipper::ReadEntryInfoAsJSON(size_t entryID) {
     return out.GetString();
 }
 
+struct ExtractToBufferManagerState {
+    /// The buffer manager
+    io::BufferManager& buffer_manager;
+    /// The file
+    io::BufferManager::FileRef& file;
+
+    /// Constructor
+    ExtractToBufferManagerState(io::BufferManager& buffer_manager, io::BufferManager::FileRef& file)
+        : buffer_manager(buffer_manager), file(file) {}
+};
+
+size_t extractToBufferManager(void* p_opaque, duckdb_miniz::mz_uint64 file_ofs, const void* p_buf, size_t n) {
+    assert(p_opaque != nullptr);
+    auto* state = reinterpret_cast<ExtractToBufferManagerState*>(p_opaque);
+    return state->buffer_manager.Write(state->file, p_buf, n, file_ofs);
+}
+
+/// Extract an entry to a file
+arrow::Result<size_t> Zipper::ExtractEntryToFile(size_t entryID, const char* path) {
+    if (!current_reader_) return 0;
+    duckdb_miniz::mz_zip_archive_file_stat stat;
+    duckdb_miniz::mz_zip_reader_file_stat(&current_reader_->archive, entryID, &stat);
+
+    // Truncate the file
+    auto out = buffer_manager_->OpenFile(path);
+    buffer_manager_->Truncate(out, stat.m_uncomp_size);
+
+    // Extract file
+    ExtractToBufferManagerState extract_state{*buffer_manager_, out};
+    auto ok = duckdb_miniz::mz_zip_reader_extract_to_callback(&current_reader_->archive, entryID,
+                                                              &extractToBufferManager, &extract_state, 0);
+    if (!ok) {
+        auto error = duckdb_miniz::mz_zip_get_last_error(&current_reader_->archive);
+        auto msg = duckdb_miniz::mz_zip_get_error_string(error);
+        return arrow::Status{arrow::StatusCode::ExecutionError, std::move(msg)};
+    }
+    return stat.m_uncomp_size;
+}
+
 }  // namespace web
 }  // namespace duckdb
