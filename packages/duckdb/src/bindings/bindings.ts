@@ -118,12 +118,8 @@ export abstract class DuckDBBindings {
 
     /** Decode a string */
     public readString(begin: number, length: number): string {
-        const buffer = this.instance!.HEAPU8.subarray(begin, begin + length);
-        let result = '';
-        for (let i = 0; i < buffer.length; i++) {
-            result += String.fromCharCode(buffer[i]);
-        }
-        return result;
+        const decoder = new TextDecoder();
+        return decoder.decode(this.instance!.HEAPU8.subarray(begin, begin + length));
     }
 
     /** Copy a Uint8Array */
