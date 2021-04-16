@@ -71,8 +71,8 @@ interface Props {
 
 class ActionList extends React.Component<Props> {
     public renderActions(plan: core.model.Plan) {
-        let setup_actions: JSX.Element[] = [];
-        let program_actions: JSX.Element[] = [];
+        const setup_actions: JSX.Element[] = [];
+        const program_actions: JSX.Element[] = [];
         plan.iterateSetupActionsReverse((i: number, o: proto.action.SetupAction) => {
             const actionId = core.model.buildActionHandle(i, proto.action.ActionClass.SETUP_ACTION);
             const actionInfo = this.props.planActions.get(actionId);

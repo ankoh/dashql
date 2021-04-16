@@ -58,12 +58,12 @@ class BoardLayout extends React.Component<Props> {
     }
 
     getLayout(data: Immutable.Map<string, core.model.Card>) {
-        const l = data.toArray().map(([key, data]) => ({
+        const l = data.toArray().map(([key, d]) => ({
             i: key,
-            x: data.position.column,
-            y: data.position.row,
-            w: data.position.width || 8,
-            h: data.position.height || 4,
+            x: d.position.column,
+            y: d.position.row,
+            w: d.position.width || 8,
+            h: d.position.height || 4,
         }));
         return l;
     }

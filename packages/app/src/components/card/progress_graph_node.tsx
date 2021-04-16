@@ -14,7 +14,7 @@ export interface StatementNodeData extends NodeData {
     };
 }
 
-export function StatementNode(props: StatementNodeData) {
+export function StatementNode(props: StatementNodeData): React.ReactElement {
     const fill = props.data.focused ? 'rgb(80, 80, 80)' : 'rgba(80, 80, 80, 0.25)';
     return (
         <div className={styles.node}>

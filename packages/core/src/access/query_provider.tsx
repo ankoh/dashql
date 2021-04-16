@@ -62,7 +62,7 @@ export class QueryProvider extends React.Component<Props, State> {
         };
     }
 
-    protected querySucceeded(result: arrow.Table) {
+    protected querySucceeded(result: arrow.Table): void {
         const query = this._inFlightQuery;
         this._inFlightQuery = null;
         this._queryPromise = null;
@@ -73,7 +73,8 @@ export class QueryProvider extends React.Component<Props, State> {
         });
     }
 
-    protected queryFailed(e: any) {
+    // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
+    protected queryFailed(e: any): void {
         console.error(e);
         const query = this._inFlightQuery;
         this._inFlightQuery = null;
@@ -85,7 +86,7 @@ export class QueryProvider extends React.Component<Props, State> {
         });
     }
 
-    protected evaluate() {
+    protected evaluate(): void {
         if (this._inFlightQuery != null) return;
         if (!!this.state.query && queryEquals(this.props.query, this.state.query)) {
             return;
@@ -114,22 +115,22 @@ export class QueryProvider extends React.Component<Props, State> {
         this._queryPromise.then(this._querySucceeded).catch(this._queryFailed);
     }
 
-    componentDidMount() {
+    componentDidMount(): void {
         this.evaluate();
     }
 
-    componentDidUpdate(prevProps: Props, prevState: State) {
+    componentDidUpdate(prevProps: Props, prevState: State): void {
         this.evaluate();
     }
 
-    componentWillUnmount() {
+    componentWillUnmount(): void {
         if (this._queryPromise) {
             // XXX cancel the in-flight query
         }
     }
 
     // Pass the scan function to the child
-    render() {
+    render(): React.ReactNode {
         // Query in flight?
         if (this._inFlightQuery && this.props.inFlightComponent) {
             return this.props.inFlightComponent(this._inFlightQuery);

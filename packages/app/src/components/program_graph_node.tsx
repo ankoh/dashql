@@ -42,7 +42,7 @@ export interface StatementNodeData extends NodeData {
     };
 }
 
-export function StatementNode(props: StatementNodeData) {
+export function StatementNode(props: StatementNodeData): React.ReactElement {
     return (
         <div className={styles.node}>
             <div className={styles.node_type}>

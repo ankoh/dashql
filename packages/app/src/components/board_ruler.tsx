@@ -47,7 +47,7 @@ export class Ruler extends React.Component<RulerProps, RulerState> {
     constructor(props: RulerProps) {
         super(props);
         this.canvas = React.createRef();
-        let ticks = this.layout();
+        const ticks = this.layout();
         this.state = {
             dpr: global.window?.devicePixelRatio ?? 2,
             ticks: ticks,
@@ -59,7 +59,7 @@ export class Ruler extends React.Component<RulerProps, RulerState> {
         if (this.props.orientation === RulerOrientation.Horizontal) {
             return this.layoutImpl(this.props.width, this.props.height, this.props.scaleFactor);
         } else {
-            let ticks = this.layoutImpl(this.props.height, this.props.width, this.props.scaleFactor);
+            const ticks = this.layoutImpl(this.props.height, this.props.width, this.props.scaleFactor);
             ticks.forEach(t => t.transpose());
             return ticks;
         }
@@ -69,7 +69,7 @@ export class Ruler extends React.Component<RulerProps, RulerState> {
     layoutImpl(length: number, thickness: number, _scaleFactor: number): Array<Tick> {
         const lb = this.props.containerPadding;
         const ub = length - this.props.containerPadding;
-        let ticks = new Array<Tick>();
+        const ticks = new Array<Tick>();
         let stepLength = ub - lb;
         if (this.props.stepCount !== undefined) {
             stepLength = (ub - lb) / this.props.stepCount;
@@ -85,13 +85,13 @@ export class Ruler extends React.Component<RulerProps, RulerState> {
     }
 
     // Draw the ruler
-    draw(canvas: HTMLCanvasElement) {
+    draw(canvas: HTMLCanvasElement): void {
         // Scale the canvas dimensions
         canvas.width = this.props.width * this.state.dpr;
         canvas.height = this.props.height * this.state.dpr;
 
         // Prepare the 2D context
-        let context = canvas.getContext('2d')!;
+        const context = canvas.getContext('2d')!;
         context.strokeStyle = TICK_COLOR;
         context.lineWidth = TICK_WIDTH;
         context.fillStyle = CORNER_COLOR;
@@ -156,16 +156,16 @@ export class Ruler extends React.Component<RulerProps, RulerState> {
     }
 
     // Draw the ruler after mount
-    componentDidMount() {
+    componentDidMount(): void {
         if (this.canvas.current) {
             this.draw(this.canvas.current);
         }
     }
 
     // Draw the ruler after update
-    componentDidUpdate(prevProps: RulerProps) {
+    componentDidUpdate(prevProps: RulerProps): void {
         if (this.props !== prevProps) {
-            let ticks = this.layout();
+            const ticks = this.layout();
             this.setState({
                 dpr: global.window?.devicePixelRatio ?? 2,
                 ticks: ticks,
@@ -175,7 +175,7 @@ export class Ruler extends React.Component<RulerProps, RulerState> {
         }
     }
 
-    render() {
+    render(): React.ReactElement {
         return (
             <canvas
                 className={this.props.className}

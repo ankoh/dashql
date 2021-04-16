@@ -17,6 +17,7 @@ export function withAppContext<
     ALL_PROPS extends { appContext?: IAppContext },
     RAW_PROPS = Pick<ALL_PROPS, Exclude<keyof ALL_PROPS, 'appContext'>>
 >(Component: React.ComponentClass<ALL_PROPS> | React.FunctionComponent<ALL_PROPS>): React.FunctionComponent<RAW_PROPS> {
+    // eslint-disable-next-line react/display-name
     return (props: RAW_PROPS) => {
         return (
             <AppContextConsumer>
