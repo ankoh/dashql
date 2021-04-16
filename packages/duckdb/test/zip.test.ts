@@ -1,5 +1,5 @@
 import * as duckdb from '../src/';
-//import * as arrow from 'apache-arrow';
+import * as arrow from 'apache-arrow';
 
 export function testZip(
     db: () => duckdb.DuckDBBindings,
@@ -62,6 +62,41 @@ export function testZip(
 
             const assistentenWritten = db().getFileBuffer(outID);
             expect(assistenten).toEqual(assistentenWritten);
+        });
+
+        it('Scan Extracted', async () => {
+            const all = await resolveData('/uni/all.zip')!;
+            expect(all).not.toBeNull();
+            await db().addFileBuffer('/uni/all.zip', all!);
+            await db().addFileBuffer('/out/assistenten.parquet', new Uint8Array());
+
+            const zip = new duckdb.ZipBindings(db());
+            zip.loadFile('/uni/all.zip');
+            zip.extractEntryToFile(0, '/out/assistenten.parquet');
+
+            const table = await conn.runQuery<{
+                PersNr: arrow.Int;
+                Name: arrow.Utf8;
+                Fachgebiet: arrow.Utf8;
+                Boss: arrow.Int;
+            }>("SELECT * FROM parquet_scan('/out/assistenten.parquet')");
+
+            // Test values
+            expect(table.numCols).toBe(4);
+            const expected = [
+                { PersNr: 3002, Name: 'Platon', Fachgebiet: 'Ideenlehre', Boss: 2125 },
+                { PersNr: 3003, Name: 'Aristoteles', Fachgebiet: 'Syllogistik', Boss: 2125 },
+                { PersNr: 3004, Name: 'Wittgenstein', Fachgebiet: 'Sprachteorie', Boss: 2126 },
+                { PersNr: 3005, Name: 'Rhetikus', Fachgebiet: 'Planetenbewegung', Boss: 2127 },
+                { PersNr: 3006, Name: 'Newton', Fachgebiet: 'Keplersche Gesetze', Boss: 2127 },
+                { PersNr: 3007, Name: 'Spinoza', Fachgebiet: 'Gott und Natur', Boss: 2126 },
+            ];
+            for (const [i, row] of Array.from(table.toArray()).entries()) {
+                expect(row.PersNr).toEqual(expected[i].PersNr);
+                expect(row.Name).toEqual(expected[i].Name);
+                expect(row.Fachgebiet).toEqual(expected[i].Fachgebiet);
+                expect(row.Boss).toEqual(expected[i].Boss);
+            }
         });
     });
 }
