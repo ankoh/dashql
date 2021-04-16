@@ -13,7 +13,7 @@ import { VirtualScrollbars, PositionValues } from '../virtual_scrollbars';
 import styles from './data_grid.module.css';
 
 type Props = {
-    table: core.model.DatabaseTable;
+    table: core.model.Table;
     data: core.access.ScanResult | null;
     requestData: (request: core.access.ScanRequest) => void;
 };

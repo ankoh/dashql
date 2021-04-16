@@ -12,7 +12,7 @@ import ScanProvider = core.access.ScanProvider;
 
 interface Props {
     appContext: IAppContext;
-    tables: Immutable.Map<string, core.model.DatabaseTable>;
+    tables: Immutable.Map<string, core.model.Table>;
     card: core.model.Card;
     editable?: boolean;
 }
@@ -48,7 +48,7 @@ export class TableRenderer extends React.Component<Props> {
 }
 
 const mapStateToProps = (state: model.AppState) => ({
-    tables: state.core.databaseTables,
+    tables: state.core.planState.tables,
 });
 
 const mapDispatchToProps = (_dispatch: model.Dispatch) => ({});
