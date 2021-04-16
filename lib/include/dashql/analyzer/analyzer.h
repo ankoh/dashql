@@ -54,9 +54,13 @@ class Analyzer {
     void EvaluateInputValues(ProgramInstance& instance);
     /// Evaluate constants
     void PropagateConstants(ProgramInstance& instance);
-    /// Analyze the input statements
+    /// Analyze input statements
     void AnalyzeInputStatements(ProgramInstance& instance);
-    /// Analyze the viz statements
+    /// Analyze load statements
+    void AnalyzeLoadStatements(ProgramInstance& instance);
+    /// Analyze extract statements
+    void AnalyzeExtractStatements(ProgramInstance& instance);
+    /// Analyze viz statements
     void AnalyzeVizStatements(ProgramInstance& instance);
     /// Compute the card positions
     void ComputeCardPositions(ProgramInstance& instance);
