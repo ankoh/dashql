@@ -229,7 +229,7 @@ class BufferManager : public std::enable_shared_from_this<BufferManager> {
     /// Read at most n bytes
     size_t Read(const FileRef& file, void* buffer, size_t n, size_t offset);
     /// Write at most n bytes
-    size_t Write(const FileRef& file, void* buffer, size_t n, size_t offset);
+    size_t Write(const FileRef& file, const void* buffer, size_t n, size_t offset);
     /// Truncate the file
     void Truncate(const FileRef& file, size_t new_size);
 
