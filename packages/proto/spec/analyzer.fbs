@@ -46,12 +46,17 @@ table InputStatement {
 /// A load statement
 table LoadStatement {
     statement_id: uint32;
+    method: syntax.LoadMethodType;
     options: string;
 }
 
 /// An extract statement
 table ExtractStatement {
     statement_id: uint32;
+    target_name_qualified: string;
+    target_name_short: string;
+    target_indirection: string;
+    method: syntax.ExtractMethodType;
     options: string;
 }
 
