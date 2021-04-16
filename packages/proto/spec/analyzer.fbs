@@ -7,35 +7,67 @@ include "sql_value.fbs";
 
 namespace dashql.proto.analyzer;
 
+/// A linter message that stores a suggestion per node
+table LinterMessage {
+    node_id: uint32;
+    message: string;
+}
+
+/// A SQL value for an evaluated node
 table NodeValue {
     node_id: uint32;
     value: sql.SQLValue;
 }
 
-table InputValue {
-    statement_id: uint32;
-    value: sql.SQLValue;
-}
-
+/// A node error code
 enum NodeErrorCode: uint8 {
     INVALID_INPUT
 }
 
+/// A node error
 table NodeError {
     node_id: uint32;
     code: NodeErrorCode;
     message: string;
 }
 
+/// An input value
+table InputValue {
+    statement_id: uint32;
+    value: sql.SQLValue;
+}
+
+/// An input statement
+table InputStatement {
+    statement_id: uint32;
+    value: sql.SQLValue;
+}
+
+/// A load statement
+table LoadStatement {
+    statement_id: uint32;
+    options: string;
+}
+
+/// An extract statement
+table ExtractStatement {
+    statement_id: uint32;
+    options: string;
+}
+
+/// Parameters for the program instantiation
 table ProgramInstantiation {
     input_values: [InputValue];
 }
 
-table LinterMessage {
-    node_id: uint32;
-    message: string;
+/// A viz component
+table VizComponent {
+    type: syntax.VizComponentType;
+    type_modifiers: [syntax.VizComponentTypeModifier];
+    options: string;
 }
 
+/// A card position
 struct CardPosition {
     row: uint32;
     column: uint32;
@@ -43,17 +75,13 @@ struct CardPosition {
     height: uint32;
 }
 
-table VizComponent {
-    type: syntax.VizComponentType;
-    type_modifiers: [syntax.VizComponentTypeModifier];
-    options: string;
-}
-
+/// A card type
 enum CardType: uint8 {
     BUILTIN_INPUT,
     BUILTIN_VIZ,
 }
 
+/// A card model
 table Card {
     card_type: CardType;
     statement_id: uint32;
@@ -65,20 +93,26 @@ table Card {
     viz_components: [VizComponent];
 }
 
+/// Annotations for a parsed program.
+/// Parsed Program -> Instanitated Program -> Plan
 table ProgramAnnotations {
     input_values: [InputValue];
+    node_error_messages: [NodeError];
+    node_linter_messages: [LinterMessage];
     evaluated_nodes: [NodeValue];
-    node_errors: [NodeError];
-    linter_messages: [LinterMessage];
+    statements_load: [LoadStatement];
+    statements_extract: [ExtractStatement];
     cards: [Card];
 }
 
+/// A full program replacement
 table ProgramReplacement {
     program_text: string;
     program: syntax.Program;
     annotations: analyzer.ProgramAnnotations;
 }
 
+/// A plan
 table Plan {
     action_graph: action.ActionGraph;
 }
