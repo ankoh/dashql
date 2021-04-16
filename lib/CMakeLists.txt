@@ -394,6 +394,7 @@ if(NOT EMSCRIPTEN)
         ${CMAKE_SOURCE_DIR}/test/duckdb/duckdb_test.cc
         ${CMAKE_SOURCE_DIR}/test/duckdb/webdb_test.cc
         ${CMAKE_SOURCE_DIR}/test/parser/grammar_spec_tests.cc
+        ${CMAKE_SOURCE_DIR}/test/duckdb/miniz_zipper_test.cc
         ${CMAKE_SOURCE_DIR}/test/tester.cc
     )
     set (TEST_LIBS
