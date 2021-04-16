@@ -50,8 +50,8 @@ type ToolBarState = {
     vizExpanded: boolean;
 };
 export class StudioToolBar extends React.Component<Record<string, unknown>, ToolBarState> {
-    constructor() {
-        super({});
+    constructor(props: Record<string, unknown>) {
+        super(props);
         this.state = {
             vizExpanded: false,
         };

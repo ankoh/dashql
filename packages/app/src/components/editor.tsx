@@ -125,8 +125,6 @@ class TokensProvider implements monaco.languages.TokensProvider {
             }
             result.tokens.push(token);
         }
-        console.log(state.lineNumber);
-        console.log(result);
         return result;
     }
 }
