@@ -2,6 +2,7 @@
 
 #include "duckdb/web/miniz_zipper.h"
 
+#include <iostream>
 #include <sstream>
 
 #include "arrow/csv/api.h"
@@ -13,6 +14,7 @@
 #include "duckdb/web/io/buffer_manager.h"
 #include "duckdb/web/io/web_filesystem.h"
 #include "gtest/gtest.h"
+#include "rapidjson/document.h"
 
 using namespace duckdb::web;
 using namespace std;
@@ -31,6 +33,20 @@ TEST(ZipperTest, LoadFile) {
     auto maybeCount = zipper.GetEntryCount();
     ASSERT_TRUE(maybeCount.ok()) << maybeCount.status().message();
     ASSERT_EQ(maybeCount.ValueUnsafe(), 7);
+
+    std::vector<std::string> expectedFileNames = {
+        "assistenten.parquet", "hoeren.parquet",      "professoren.parquet",   "pruefen.parquet",
+        "studenten.parquet",   "vorlesungen.parquet", "vorraussetzen.parquet",
+    };
+
+    for (size_t i = 0; i < 7; ++i) {
+        auto maybeInfo = zipper.GetEntryInfoAsJSON(i);
+        ASSERT_TRUE(maybeInfo.ok()) << maybeInfo.status().message();
+
+        rapidjson::Document doc;
+        doc.Parse(maybeInfo.ValueUnsafe().c_str());
+        ASSERT_EQ(doc["fileName"].GetString(), expectedFileNames[i]);
+    }
 }
 
 }  // namespace
