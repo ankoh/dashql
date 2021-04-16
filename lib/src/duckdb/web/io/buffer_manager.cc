@@ -380,7 +380,7 @@ size_t BufferManager::Read(const FileRef& file, void* out, size_t n, size_t offs
     return read_here;
 }
 
-size_t BufferManager::Write(const FileRef& file, void* in, size_t bytes, size_t offset) {
+size_t BufferManager::Write(const FileRef& file, const void* in, size_t bytes, size_t offset) {
     // Determine page & offset
     auto page_id = offset >> GetPageSizeShift();
     auto skip_here = offset - page_id * GetPageSize();
@@ -391,7 +391,7 @@ size_t BufferManager::Write(const FileRef& file, void* in, size_t bytes, size_t 
     write_here = std::min<size_t>(write_here, GetPageSize());
     page.RequireSize(skip_here + write_here);
     auto data = page.GetData();
-    std::memcpy(data.data() + skip_here, static_cast<char*>(in), write_here);
+    std::memcpy(data.data() + skip_here, static_cast<const char*>(in), write_here);
     page.MarkAsDirty();
     return write_here;
 }
