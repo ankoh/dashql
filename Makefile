@@ -79,7 +79,7 @@ lib_release:
 # Test the core library
 .PHONY: lib_tests
 lib_tests: lib
-	${LIB_DEBUG_DIR}/tester --source_dir ${LIB_SOURCE_DIR} --gtest_filter=*Zipper*
+	${LIB_DEBUG_DIR}/tester --source_dir ${LIB_SOURCE_DIR}
 
 # Debug the core library
 .PHONY: lib_tests
