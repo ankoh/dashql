@@ -1,5 +1,4 @@
 import * as React from 'react';
-import logo from '../../static/svg/logo/logo_robot_grey.svg';
 import styles from './viewer.module.css';
 import styles_cmd from '../components/cmdbars.module.css';
 import { AppState, Dispatch } from '../model';

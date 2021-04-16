@@ -15,57 +15,51 @@ import icon_text_card from '../../static/svg/icons/text_card.svg';
 import icon_scatter_chart from '../../static/svg/icons/scatter_chart.svg';
 import icon_variable_box from '../../static/svg/icons/variable_box.svg';
 
-interface ToolProps {}
-function createTool(icon: string): React.FunctionComponent<ToolProps> {
-    return (_props: ToolProps) => {
-        return (
-            <div className={styles.tool}>
-                <svg width="20px" height="20px">
-                    <use xlinkHref={`${icon}#sym`} />
-                </svg>
-            </div>
-        );
-    };
+function Tool(props: { icon: string }): React.ReactElement {
+    return (
+        <div className={styles.tool}>
+            <svg width="20px" height="20px">
+                <use xlinkHref={`${props.icon}#sym`} />
+            </svg>
+        </div>
+    );
 }
-const CreateVariable = createTool(icon_variable_box);
-const CreateLoad = createTool(icon_package_down);
-const CreateExtract = createTool(icon_database_import);
-const CreateQuery = createTool(icon_database_search);
+const CreateVariable = () => <Tool icon={icon_variable_box} />;
+const CreateLoad = () => <Tool icon={icon_package_down} />;
+const CreateExtract = () => <Tool icon={icon_database_import} />;
+const CreateQuery = () => <Tool icon={icon_database_search} />;
 
-class VizTypeProps {}
-function createVizType(icon: string): React.FunctionComponent<VizTypeProps> {
-    return (_props: VizTypeProps) => {
-        return (
-            <div className={styles.viztype}>
-                <svg width="20px" height="20px">
-                    <use xlinkHref={`${icon}#sym`} />
-                </svg>
-            </div>
-        );
-    };
+function VizType(props: { icon: string }): React.ReactElement {
+    return (
+        <div className={styles.viztype}>
+            <svg width="20px" height="20px">
+                <use xlinkHref={`${props.icon}#sym`} />
+            </svg>
+        </div>
+    );
 }
-const QueryPlanViz = createVizType(icon_plan);
-const TextCardViz = createVizType(icon_text_card);
-const TableViz = createVizType(icon_table_chart);
-const LineChartViz = createVizType(icon_line_chart);
-const BarChartViz = createVizType(icon_bar_chart);
-const ScatterChartViz = createVizType(icon_scatter_chart);
-const PieChartViz = createVizType(icon_arc_chart);
+const QueryPlanViz = () => <VizType icon={icon_plan} />;
+const TextCardViz = () => <VizType icon={icon_text_card} />;
+const TableViz = () => <VizType icon={icon_table_chart} />;
+const LineChartViz = () => <VizType icon={icon_line_chart} />;
+const BarChartViz = () => <VizType icon={icon_bar_chart} />;
+const ScatterChartViz = () => <VizType icon={icon_scatter_chart} />;
+const PieChartViz = () => <VizType icon={icon_arc_chart} />;
 
 type ToolBarState = {
     vizExpanded: boolean;
 };
-export class StudioToolBar extends React.Component<{}, ToolBarState> {
-    constructor(props: {}) {
-        super(props);
+export class StudioToolBar extends React.Component<Record<string, unknown>, ToolBarState> {
+    constructor() {
+        super({});
         this.state = {
             vizExpanded: false,
         };
     }
-    protected toggleViz() {
+    protected toggleViz(): void {
         this.setState({ ...this.state, vizExpanded: !this.state.vizExpanded });
     }
-    public render() {
+    public render(): React.ReactElement {
         return (
             <div className={styles.toolbar}>
                 <CreateVariable />

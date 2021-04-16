@@ -13,12 +13,12 @@ interface IBoardEditorProps {
     immutable: boolean;
 }
 
-export class BoardEditor extends React.Component<IBoardEditorProps, {}> {
+export class BoardEditor extends React.Component<IBoardEditorProps> {
     constructor(props: IBoardEditorProps) {
         super(props);
     }
 
-    public render() {
+    public render(): React.ReactElement {
         const rowHeight = 48;
         const columnCount = 12;
         const containerPadding: [number, number] = [32, 32];

@@ -57,7 +57,7 @@ export class VirtualScrollbars extends React.Component<Props, State> {
         });
     }
 
-    static getDerivedStateFromProps(props: Props, state: State) {
+    static getDerivedStateFromProps(props: Props, state: State): State {
         const maxElementSize = getMaxElementSize();
         const adjustedWidth = Math.min(props.innerWidth, maxElementSize);
         const adjustedHeight = Math.min(props.innerHeight, maxElementSize);
@@ -70,7 +70,7 @@ export class VirtualScrollbars extends React.Component<Props, State> {
         };
     }
 
-    protected onScrollFrame(pos: positionValues) {
+    protected onScrollFrame(pos: positionValues): void {
         const p: PositionValues = {
             clientWidth: pos.clientWidth,
             clientHeight: pos.clientHeight,
@@ -90,13 +90,13 @@ export class VirtualScrollbars extends React.Component<Props, State> {
         }
     }
 
-    protected onScrollStop() {
+    protected onScrollStop(): void {
         if (this.props.onScrollStop) {
             this.props.onScrollStop();
         }
     }
 
-    public render() {
+    public render(): React.ReactElement {
         return (
             <Scrollbars
                 className={this.props.className}

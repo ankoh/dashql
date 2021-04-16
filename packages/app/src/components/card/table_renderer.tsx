@@ -23,7 +23,7 @@ export class TableRenderer extends React.Component<Props> {
     }
 
     /// Render the table
-    public render() {
+    public render(): React.ReactElement {
         const logger = this.props.appContext.platform!.logger;
         const db = this.props.appContext.platform!.database;
         const data = this.props.card.dataSource!;
@@ -40,7 +40,7 @@ export class TableRenderer extends React.Component<Props> {
                     targetName={targetShort}
                     request={new core.access.ScanRequest().withRange(0, 1024)}
                 >
-                    {(data, requestData) => <DataGrid table={table} data={data} requestData={requestData} />}
+                    {(d, r) => <DataGrid table={table} data={d} requestData={r} />}
                 </ScanProvider>
             </CardFrame>
         );

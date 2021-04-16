@@ -1,13 +1,12 @@
 import * as React from 'react';
 import SystemIndicators from './system_indicators';
-import { withRouter, RouteComponentProps, Link } from 'react-router-dom';
+import { withRouter, RouteComponentProps } from 'react-router-dom';
 
 import styles from './navbar.module.css';
 
 import logo from '../../static/svg/logo/logo.svg';
 
-interface RouteParams {}
-interface Props extends RouteComponentProps<RouteParams> {}
+type Props = RouteComponentProps<Record<string, string | undefined>>;
 
 class NavBarImpl extends React.Component<Props> {
     constructor(props: Props) {
@@ -29,6 +28,7 @@ class NavBarImpl extends React.Component<Props> {
 export const NavBar = withRouter(NavBarImpl);
 
 export function withNavBar<P>(Component: React.ComponentType<P>): React.FunctionComponent<P> {
+    // eslint-disable-next-line react/display-name
     return (props: P) => {
         return (
             <div className={styles.container}>

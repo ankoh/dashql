@@ -12,34 +12,25 @@ import logo from '../../static/svg/logo/logo.svg';
 import icon_examples from '../../static/svg/icons/library_books.svg';
 import icon_studio from '../../static/svg/icons/dashboard.svg';
 
-interface TabProps {
-    pathName: string;
+function Tab(props: { route: string; location: string; icon: string }): React.ReactElement {
+    return (
+        <div
+            key={props.route}
+            className={classNames(styles.tab, {
+                [styles.active]: props.location == props.route,
+            })}
+        >
+            <Link to={props.route}>
+                <Button variant="link">
+                    <svg className={styles.tab_icon} width="20px" height="20px">
+                        <use xlinkHref={`${props.icon}#sym`} />
+                    </svg>
+                </Button>
+            </Link>
+        </div>
+    );
 }
-function createTab(path: string, icon: string): React.FunctionComponent<TabProps> {
-    return (props: TabProps) => {
-        return (
-            <div
-                key={path}
-                className={classNames(styles.tab, {
-                    [styles.active]: props.pathName == path,
-                })}
-            >
-                <Link to={path}>
-                    <Button variant="link">
-                        <svg className={styles.tab_icon} width="20px" height="20px">
-                            <use xlinkHref={`${icon}#sym`} />
-                        </svg>
-                    </Button>
-                </Link>
-            </div>
-        );
-    };
-}
-const StudioTab = createTab('/studio', icon_studio);
-const ExamplesTab = createTab('/examples', icon_examples);
-
-interface RouteParams {}
-interface Props extends RouteComponentProps<RouteParams> {}
+type Props = RouteComponentProps<Record<string, string | undefined>>;
 
 class NavBarImpl extends React.Component<Props> {
     constructor(props: Props) {
@@ -53,8 +44,8 @@ class NavBarImpl extends React.Component<Props> {
                     <img src={logo} />
                 </div>
                 <div className={styles.tabs}>
-                    <StudioTab pathName={this.props.location.pathname} />
-                    <ExamplesTab pathName={this.props.location.pathname} />
+                    <Tab route="/studio" location={this.props.location.pathname} icon={icon_studio} />
+                    <Tab route="/examples" location={this.props.location.pathname} icon={icon_examples} />
                 </div>
                 <div className={styles.account} onClick={async () => auth()}>
                     <Avatar githubHandle="ankoh" size="36" round={true} />
@@ -68,6 +59,7 @@ class NavBarImpl extends React.Component<Props> {
 export const NavBar = withRouter(NavBarImpl);
 
 export function withNavBar<P>(Component: React.ComponentType<P>): React.FunctionComponent<P> {
+    // eslint-disable-next-line react/display-name
     return (props: P) => {
         return (
             <div className={styles.container}>

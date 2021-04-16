@@ -35,7 +35,7 @@ export const M5Provider: React.FunctionComponent<Props> = (props: Props) => {
     // Get x and y attributes
     const xName = m5Config!.attributeX!;
     const yName = m5Config!.attributeY!;
-    const xDomain = m5Config?.domainX!;
+    const xDomain = m5Config!.domainX!;
     const xDomainMin = xDomain[0];
     const xDomainMax = xDomain[1];
     const notX = props.table.columnNames.filter(n => n != xName);
@@ -60,9 +60,9 @@ export const M5Provider: React.FunctionComponent<Props> = (props: Props) => {
 
     // Packs aggreagte and preserves all other columns.
     // E.g.: min(x) as _p0_0, arg_min(y, x) as _p0_1, arg_min(z, x) as _p0_2
-    const agg = (point: number, agg: string, by: string, preserve: string[]) =>
-        `${agg}(${by}) as _p${point}_${colID(by)}, ${preserve
-            .map(c => `arg_${agg}(${c}, ${by}) as _p${point}_${colID(c)}`)
+    const agg = (point: number, func: string, by: string, preserve: string[]) =>
+        `${func}(${by}) as _p${point}_${colID(by)}, ${preserve
+            .map(c => `arg_${func}(${c}, ${by}) as _p${point}_${colID(c)}`)
             .join(', ')}`;
     const aggs = [
         agg(0, 'min', xName, notX),

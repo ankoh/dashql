@@ -28,7 +28,7 @@ export const SampleProvider: React.FunctionComponent<Props> = (props: Props) => 
     if (props.data.orderBy && props.data.orderBy.length > 0) {
         orderBy = ` ORDER BY ${props.data.orderBy.map(o => o.field + ' ' + (o.order || '')).join(',')}`;
     }
-    let sampling = ` TABLESAMPLE RESERVOIR(${props.data.sampleSize} ROWS)`;
+    const sampling = ` TABLESAMPLE RESERVOIR(${props.data.sampleSize} ROWS)`;
 
     const script = `SELECT * FROM ${props.table.tableNameShort}${sampling}${orderBy}`;
     return (

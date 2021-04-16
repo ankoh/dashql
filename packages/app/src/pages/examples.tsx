@@ -32,7 +32,7 @@ function getFeatureTagLabel(tag: ScriptFeatureTag) {
     }
 }
 
-interface Props extends RouteComponentProps<{}> {
+interface Props extends RouteComponentProps {
     appContext: IAppContext;
     className?: string;
     loadedScript: core.model.Script;
@@ -90,7 +90,7 @@ class Examples extends React.Component<Props, State> {
     }
 
     renderFeatureFilters() {
-        let features = [];
+        const features = [];
         for (let i = 0; i < ScriptFeatureTag._COUNT_; ++i) {
             features.push(
                 <div
@@ -175,7 +175,7 @@ class Examples extends React.Component<Props, State> {
     public render() {
         const collections = EXAMPLE_SCRIPTS.filter(s => s.features.containsUnsafe(this.state.filteredFeatures)).reduce(
             (o, script) => {
-                let c = o.get(script.collection) || [];
+                const c = o.get(script.collection) || [];
                 c.push(script);
                 o.set(script.collection, c);
                 return o;

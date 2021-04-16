@@ -2,7 +2,7 @@ import * as Immutable from 'immutable';
 import * as React from 'react';
 import * as core from '@dashql/core';
 import * as dagre from 'dagre';
-import ReactFlow, { Controls, FlowElement, Edge as EdgeData } from 'react-flow-renderer';
+import ReactFlow, { FlowElement, Edge as EdgeData } from 'react-flow-renderer';
 import classNames from 'classnames';
 import { AppState, Dispatch } from '../model';
 import { StatementNode, StatementNodeData } from './program_graph_node';
@@ -55,7 +55,7 @@ class ProgramGraph extends React.Component<ProgramGraphProps, ProgramGraphState>
 
         // We use dagre to do the layouting and render the graph with react-flow afterwards
         let nodes: StatementNodeData[] = [];
-        let edges: ExtendedEdgeData[] = [];
+        const edges: ExtendedEdgeData[] = [];
         const g = new dagre.graphlib.Graph().setGraph({
             nodesep: 40,
             ranksep: 80,

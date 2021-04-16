@@ -61,7 +61,7 @@ class TokensProvider implements monaco.languages.TokensProvider {
 
     tokenize(_line: string, state: TokensProviderState): monaco.languages.ILineTokens {
         state.advance();
-        let result: monaco.languages.ILineTokens = {
+        const result: monaco.languages.ILineTokens = {
             tokens: [],
             endState: state,
         };
@@ -91,7 +91,7 @@ class TokensProvider implements monaco.languages.TokensProvider {
 
         // Read all tokens
         for (let i = tokenBegin; i < tokenEnd; ++i) {
-            let token = {
+            const token = {
                 startIndex: tokenOffsets[i] - lineOffset,
                 scopes: '',
             };

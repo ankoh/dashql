@@ -1,5 +1,4 @@
 import * as React from 'react';
-import classNames from 'classnames';
 
 interface Props {
     refreshRate: number;
@@ -55,6 +54,7 @@ export function withCurrentTime<
     OUT_PROPS extends { currentTime?: Date; updateCurrentTime: () => void },
     IN_PROPS = Pick<OUT_PROPS, Exclude<keyof OUT_PROPS, 'currentTime' | 'updateCurrentTime'>>
 >(Component: React.ComponentType<OUT_PROPS>, refreshRate: number): React.FunctionComponent<IN_PROPS> {
+    // eslint-disable-next-line react/display-name
     return (props: IN_PROPS) => {
         return (
             <CurrentTime refreshRate={refreshRate}>

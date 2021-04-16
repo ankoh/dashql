@@ -16,7 +16,7 @@ interface Props {
 }
 
 export class InputRenderer extends React.Component<Props> {
-    public render() {
+    public render(): React.ReactElement {
         return (
             <div className={styles.container}>
                 <div className={styles.input_prefix}>{this.props.card.title || ''}</div>

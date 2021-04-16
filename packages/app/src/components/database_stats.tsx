@@ -11,8 +11,7 @@ interface Props {
 }
 
 class DatabaseStats extends React.Component<Props> {
-    public render() {
-        const height = 200;
+    public render(): React.ReactElement {
         return <SystemCard title="Database" onClose={this.props.onClose} />;
     }
 
