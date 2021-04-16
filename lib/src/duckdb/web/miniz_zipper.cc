@@ -90,13 +90,13 @@ arrow::Status Zipper::LoadFromFile(const char* path) {
 };
 
 /// Get the number of entries in the archive
-arrow::Result<size_t> Zipper::GetEntryCount() {
+arrow::Result<size_t> Zipper::ReadEntryCount() {
     if (!current_reader_) return 0;
     return duckdb_miniz::mz_zip_reader_get_num_files(&current_reader_->archive);
 }
 
 /// Get the entry info as JSON
-arrow::Result<std::string> Zipper::GetEntryInfoAsJSON(size_t entryID) {
+arrow::Result<std::string> Zipper::ReadEntryInfoAsJSON(size_t entryID) {
     if (!current_reader_) return "";
     duckdb_miniz::mz_zip_archive_file_stat stat;
     duckdb_miniz::mz_zip_reader_file_stat(&current_reader_->archive, entryID, &stat);
