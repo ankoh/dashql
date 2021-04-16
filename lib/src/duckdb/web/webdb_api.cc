@@ -83,4 +83,11 @@ void duckdb_web_zip_read_entry_info(WASMResponse* packed, size_t entryID) {
     auto entry_info = webdb.zip()->ReadEntryInfoAsJSON(entryID);
     WASMResponseBuffer::GetInstance().Store(*packed, entry_info);
 }
+/// Extract entry to file
+void duckdb_web_zip_extract_entry_to_file(WASMResponse* packed, size_t entryID, const char* out) {
+    auto& webdb = WebDB::GetInstance();
+    if (!webdb.zip()) return RaiseExtensionNotLoaded(packed, "zip");
+    auto bytes = webdb.zip()->ExtractEntryToFile(entryID, out);
+    WASMResponseBuffer::GetInstance().Store(*packed, bytes);
+}
 }

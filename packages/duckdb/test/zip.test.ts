@@ -16,7 +16,7 @@ export function testZip(
     });
 
     describe('Zipper', () => {
-        it('Zip entries', async () => {
+        it('Entry Info', async () => {
             const all = await resolveData('/uni/all.zip');
             expect(all).not.toBeNull();
             await db().addFileBuffer('/uni/all.zip', all!);
@@ -24,7 +24,7 @@ export function testZip(
             const zip = new duckdb.ZipBindings(db());
             zip.loadFile('/uni/all.zip');
 
-            const entryCount = zip.getEntryCount();
+            const entryCount = zip.readEntryCount();
             expect(entryCount).toBe(7);
 
             const expectedFileNames = [
@@ -37,9 +37,31 @@ export function testZip(
                 'vorraussetzen.parquet',
             ];
             for (let i = 0; i < entryCount; ++i) {
-                const entry = zip.getEntryInfo(i);
+                const entry = zip.readEntryInfo(i);
                 expect(entry.fileName).toEqual(expectedFileNames[i]);
             }
+        });
+
+        it('Extraction', async () => {
+            const all = await resolveData('/uni/all.zip')!;
+            const assistenten = await resolveData('/uni/assistenten.parquet')!;
+            expect(all).not.toBeNull();
+            await db().addFileBuffer('/uni/all.zip', all!);
+            const outID = await db().addFileBuffer('/out/assistenten.parquet', new Uint8Array());
+
+            const zip = new duckdb.ZipBindings(db());
+            zip.loadFile('/uni/all.zip');
+
+            const entryCount = zip.readEntryCount();
+            expect(entryCount).toBe(7);
+            const entry = zip.readEntryInfo(0);
+            expect(entry.fileName).toEqual('assistenten.parquet');
+
+            const written = zip.extractEntryToFile(0, '/out/assistenten.parquet');
+            expect(written).toEqual(assistenten!.length);
+
+            const assistentenWritten = db().getFileBuffer(outID);
+            expect(assistenten).toEqual(assistentenWritten);
         });
     });
 }

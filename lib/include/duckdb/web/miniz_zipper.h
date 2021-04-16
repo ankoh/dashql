@@ -42,13 +42,13 @@ class Zipper {
     Zipper(std::shared_ptr<io::BufferManager> buffer_manager);
 
     /// Load zip from a buffer
-    arrow::Status LoadFromFile(const char* path);
+    arrow::Status LoadFromFile(std::string_view path);
     /// Read the number of files in the archive
     arrow::Result<size_t> ReadEntryCount();
     /// Read the entry info as JSON
     arrow::Result<std::string> ReadEntryInfoAsJSON(size_t entryID);
     /// Extract an entry to a file
-    arrow::Result<size_t> ExtractEntryToFile(size_t entryID, const char* path);
+    arrow::Result<size_t> ExtractEntryToFile(size_t entryID, std::string_view path);
 };
 
 }  // namespace web

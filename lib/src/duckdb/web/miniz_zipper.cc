@@ -30,7 +30,7 @@ Zipper::Zipper(std::shared_ptr<io::BufferManager> buffer_manager) : buffer_manag
 /// +-----------|------------------------------+|
 ///             +-------------------------------+
 ///
-arrow::Status Zipper::LoadFromFile(const char* path) {
+arrow::Status Zipper::LoadFromFile(std::string_view path) {
     // Read the full file into the buffer.
     /// XXX Miniz currently does not support streaming archive extraction.
     ///     We'd actually prefer reading the file incrementally.
@@ -158,7 +158,7 @@ size_t extractToBufferManager(void* p_opaque, duckdb_miniz::mz_uint64 file_ofs, 
 }
 
 /// Extract an entry to a file
-arrow::Result<size_t> Zipper::ExtractEntryToFile(size_t entryID, const char* path) {
+arrow::Result<size_t> Zipper::ExtractEntryToFile(size_t entryID, std::string_view path) {
     if (!current_reader_) return 0;
     duckdb_miniz::mz_zip_archive_file_stat stat;
     duckdb_miniz::mz_zip_reader_file_stat(&current_reader_->archive, entryID, &stat);
