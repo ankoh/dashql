@@ -3,6 +3,7 @@
 #ifndef INCLUDE_DUCKDB_WEB_MINIZ_ZIPPER_H_
 #define INCLUDE_DUCKDB_WEB_MINIZ_ZIPPER_H_
 
+#include <optional>
 #include <unordered_map>
 
 #include "arrow/result.h"
@@ -13,32 +14,39 @@
 namespace duckdb {
 namespace web {
 
-struct ZipArchive {
+struct ZipReader {
     /// The file buffer
-    std::unique_ptr<uint8_t[]> file_buffer;
+    std::unique_ptr<char[]> file_buffer = nullptr;
     /// The full file buffer
     duckdb_miniz::mz_zip_archive archive;
+    /// The data including the global directory
+    nonstd::span<char> archive_data = {};
+    /// The archive comment
+    std::string archive_comment = {};
+
+    /// Constructor
+    ZipReader();
+    /// Destructor
+    ~ZipReader();
 };
 
 class Zipper {
    protected:
     /// The filesystem
     std::shared_ptr<io::BufferManager> buffer_manager_;
-    /// The next archive id
-    size_t next_achive_id_;
     /// The loaded archives
-    std::unordered_map<size_t, ZipArchive> loaded_archives_;
+    std::optional<ZipReader> current_reader_ = std::nullopt;
 
    public:
     /// Constructor
     Zipper(std::shared_ptr<io::BufferManager> buffer_manager);
 
     /// Load zip from a buffer
-    arrow::Result<size_t> LoadFromFile(const char* path);
+    arrow::Status LoadFromFile(const char* path);
     /// Get the number of files in the archive
-    arrow::Result<size_t> GetEntryCount(size_t archiveID);
+    arrow::Result<size_t> GetEntryCount();
     /// Get the entry info as JSON
-    arrow::Result<std::string> GetEntryInfoAsJSON(size_t archiveID, size_t entryID);
+    arrow::Result<std::string> GetEntryInfoAsJSON(size_t entryID);
 };
 
 }  // namespace web

@@ -19,11 +19,11 @@ export function testZip(
         it('Zip entries', async () => {
             const all = await resolveData('/uni/all.zip');
             expect(all).not.toBeNull();
-            await db().addFileBuffer('all.zip', all!);
+            await db().addFileBuffer('/uni/all.zip', all!);
             // XXX revisit with default duckdb runtime
 
-            //const zip = new duckdb.ZipBindings(db());
-            //const archive = zip.loadFile(`${basedir}/all.zip`);
+            const zip = new duckdb.ZipBindings(db());
+            zip.loadFile('/uni/all.zip');
             //expect(archive.getEntryCount()).toBe(7);
         });
     });

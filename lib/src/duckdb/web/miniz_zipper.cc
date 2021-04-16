@@ -1,7 +1,9 @@
 #include "duckdb/web/miniz_zipper.h"
 
 #include <duckdb/common/file_system.hpp>
+#include <iostream>
 
+#include "arrow/status.h"
 #include "miniz.hpp"
 #include "rapidjson/stringbuffer.h"
 #include "rapidjson/writer.h"
@@ -10,56 +12,98 @@ namespace duckdb {
 namespace web {
 
 /// Constructor
-Zipper::Zipper(std::shared_ptr<io::BufferManager> buffer_manager)
-    : buffer_manager_(std::move(buffer_manager)), next_achive_id_(), loaded_archives_() {}
+ZipReader::ZipReader() { std::memset(&archive, 0, sizeof(duckdb_miniz::mz_zip_archive)); }
+/// Destructor
+ZipReader::~ZipReader() { duckdb_miniz::mz_zip_reader_end(&archive); }
 
-/// Open a file
-arrow::Result<size_t> Zipper::LoadFromFile(const char* path) {
+/// Constructor
+Zipper::Zipper(std::shared_ptr<io::BufferManager> buffer_manager) : buffer_manager_(std::move(buffer_manager)) {}
+
+/// Open a zip archive.
+///
+/// The central directory of the zip file sits at the end of the zip archive.
+/// The file entries within the central directory point backwards into the file.
+/// Archive files can have trailing comments that have their length stored as last field in the dictionary.
+///
+/// |-----------|--------------|--------------|xxxxxxxxxxxxxxcc|
+/// |           |                              ||
+/// +-----------|------------------------------+|
+///             +-------------------------------+
+///
+arrow::Status Zipper::LoadFromFile(const char* path) {
     // Read the full file into the buffer.
     /// XXX Miniz currently does not support streaming archive extraction.
     ///     We'd actually prefer reading the file incrementally.
-    std::unique_ptr<uint8_t[]> buffer = nullptr;
+    std::unique_ptr<char[]> buffer = nullptr;
     size_t buffer_size = 0;
     {
         auto file = buffer_manager_->OpenFile(path);
         buffer_size = buffer_manager_->GetFileSize(file);
-        buffer = std::unique_ptr<uint8_t[]>(new uint8_t[buffer_size]());
+        buffer = std::unique_ptr<char[]>(new char[buffer_size]());
         buffer_manager_->Read(file, buffer.get(), buffer_size, 0);
     }
+    if (buffer_size == 0) return arrow::Status::OK();
 
-    // Load the miniz archive
-    duckdb_miniz::mz_zip_archive archive;
-    auto ok = duckdb_miniz::mz_zip_reader_init_mem(&archive, buffer.get(), buffer_size, 0);
-    if (!ok) {
-        return arrow::Status{arrow::StatusCode::ExecutionError, "failed to read zip archive"};
+    // Cut trailing archive comment
+    nonstd::span<char> archive_data;
+    std::string archive_comment;
+    {
+        archive_data = nonstd::span<char>{buffer.get(), buffer.get() + buffer_size};
+        ssize_t position = archive_data.size() - 1;
+        for (; position >= 3; position--) {
+            if (archive_data[position - 3] == 'P' && archive_data[position - 2] == 'K' &&
+                archive_data[position - 1] == '\x05' && archive_data[position] == '\x06') {
+                position = position + 17;
+                break;
+            }
+        }
+        if (position == 3) {
+            return arrow::Status{arrow::StatusCode::ExecutionError, "didn't find end of central directory signature"};
+        }
+        auto comment_length = static_cast<uint16_t>(archive_data[position + 1]);
+        comment_length = static_cast<uint16_t>(comment_length << 8) + static_cast<uint16_t>(archive_data[position]);
+        position += 2;
+
+        if (comment_length != 0) {
+            archive_comment = {archive_data.data() + position, static_cast<size_t>(comment_length)};
+            archive_data = archive_data.subspan(0, archive_data.size() - comment_length);
+            archive_data[archive_data.size() - 1] = 0;
+            archive_data[archive_data.size() - 2] = 0;
+        }
     }
 
     // Register as loaded archive
-    auto archive_id = next_achive_id_++;
-    loaded_archives_.insert({archive_id, ZipArchive{.file_buffer = std::move(buffer), .archive = std::move(archive)}});
-    return archive_id;
-}
+    auto& reader = current_reader_.emplace();
+    reader.file_buffer = std::move(buffer);
+    reader.archive_comment = std::move(archive_comment);
+    reader.archive_data = std::move(archive_data);
+
+    // Load the miniz archive
+    auto ok = duckdb_miniz::mz_zip_reader_init_mem(&reader.archive, archive_data.data(), archive_data.size(), 0);
+    if (!ok) {
+        auto error = duckdb_miniz::mz_zip_get_last_error(&reader.archive);
+        auto msg = duckdb_miniz::mz_zip_get_error_string(error);
+        return arrow::Status{arrow::StatusCode::ExecutionError, std::move(msg)};
+    }
+
+    return arrow::Status::OK();
+};
 
 /// Get the number of entries in the archive
-arrow::Result<size_t> Zipper::GetEntryCount(size_t archiveID) {
-    auto iter = loaded_archives_.find(archiveID);
-    if (iter == loaded_archives_.end()) return 0;
-    return duckdb_miniz::mz_zip_reader_get_num_files(&iter->second.archive);
+arrow::Result<size_t> Zipper::GetEntryCount() {
+    if (!current_reader_) return 0;
+    return duckdb_miniz::mz_zip_reader_get_num_files(&current_reader_->archive);
 }
 
 /// Get the entry info as JSON
-arrow::Result<std::string> Zipper::GetEntryInfoAsJSON(size_t archiveID, size_t fileID) {
-    auto iter = loaded_archives_.find(archiveID);
-    if (iter == loaded_archives_.end()) return "";
+arrow::Result<std::string> Zipper::GetEntryInfoAsJSON(size_t entryID) {
+    if (!current_reader_) return "";
     duckdb_miniz::mz_zip_archive_file_stat stat;
-    duckdb_miniz::mz_zip_reader_file_stat(&iter->second.archive, fileID, &stat);
+    duckdb_miniz::mz_zip_reader_file_stat(&current_reader_->archive, entryID, &stat);
 
-    // Write JSON with the SAX api
     rapidjson::StringBuffer out;
     rapidjson::Writer writer(out);
     writer.StartObject();
-    writer.Key("fileIndex");
-    writer.Uint(fileID);
     writer.Key("fileName");
     writer.String(stat.m_filename, std::strlen(stat.m_filename));
     writer.Key("versionMadeBy");
@@ -93,7 +137,6 @@ arrow::Result<std::string> Zipper::GetEntryInfoAsJSON(size_t archiveID, size_t f
     writer.Key("comment");
     writer.String(stat.m_comment, stat.m_comment_size);
     writer.EndObject();
-
     return out.GetString();
 }
 
