@@ -91,7 +91,9 @@ export function testZip(
                 { PersNr: 3006, Name: 'Newton', Fachgebiet: 'Keplersche Gesetze', Boss: 2127 },
                 { PersNr: 3007, Name: 'Spinoza', Fachgebiet: 'Gott und Natur', Boss: 2126 },
             ];
-            for (const [i, row] of Array.from(table.toArray()).entries()) {
+            let rowIdx = 0;
+            for (const row of table.toArray()) {
+                const i = rowIdx++;
                 expect(row.PersNr).toEqual(expected[i].PersNr);
                 expect(row.Name).toEqual(expected[i].Name);
                 expect(row.Fachgebiet).toEqual(expected[i].Fachgebiet);
