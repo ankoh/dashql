@@ -36,7 +36,7 @@ export class TableStatisticsRequest {
 /// A resolver for table statistics
 export interface TableStatisticsResolver {
     /// Resolve the table info
-    resolveTableInfo(): model.DatabaseTable | null;
+    resolveTableInfo(): model.Table | null;
     /// Request table statistics
     request(type: model.TableStatisticsType, columnId: number): Promise<arrow.Column>;
     /// Evaluate table statistics
@@ -44,7 +44,7 @@ export interface TableStatisticsResolver {
 }
 
 /// A queue for table statistics
-export class DatabaseTableStatistics implements TableStatisticsResolver {
+export class TableStatistics implements TableStatisticsResolver {
     /// The database manager
     _databaseManager: platform.DatabaseManager;
     /// The table name
@@ -65,12 +65,12 @@ export class DatabaseTableStatistics implements TableStatisticsResolver {
     }
 
     /// Resolve the table info
-    public resolveTableInfo(): model.DatabaseTable | null {
+    public resolveTableInfo(): model.Table | null {
         return this._databaseManager.resolveTableInfo(this._qualifiedTableName);
     }
 
     /// Build the associative aggregate query
-    protected buildAssociativeAggregateQuery(tableInfo: model.DatabaseTable): string {
+    protected buildAssociativeAggregateQuery(tableInfo: model.Table): string {
         let out = 'SELECT ';
         let value_id = 0;
         for (const req of this._associativeAggregates) {
@@ -96,7 +96,7 @@ export class DatabaseTableStatistics implements TableStatisticsResolver {
     }
 
     /// Build a standalone query
-    protected buildStandaloneQuery(_tableInfo: model.DatabaseTable, _req: TableStatisticsRequest): string {
+    protected buildStandaloneQuery(_tableInfo: model.Table, _req: TableStatisticsRequest): string {
         console.assert('There are no standalone table statistics at the moment');
         return '';
     }

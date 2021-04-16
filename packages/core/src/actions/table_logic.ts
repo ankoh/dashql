@@ -7,10 +7,7 @@ import { ProgramActionLogic, SetupActionLogic } from './action_logic';
 import { ActionContext } from './action_context';
 
 /// XXX Delete this eventually in favor of the async statistics requests
-export async function collectTableInfo(
-    conn: duckdb.AsyncConnection,
-    info: model.DatabaseTable,
-): Promise<model.DatabaseTable> {
+export async function collectTableInfo(conn: duckdb.AsyncConnection, info: model.Table): Promise<model.Table> {
     // Get column names and types
     const limit0 = await conn.runQuery(`SELECT * FROM ${info.tableNameShort} LIMIT 0`);
     const columnNames: string[] = [];

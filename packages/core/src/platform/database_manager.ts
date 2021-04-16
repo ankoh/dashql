@@ -1,7 +1,7 @@
 import * as duckdb from '@dashql/duckdb/dist/duckdb.module.js';
 import * as model from '../model';
 import * as arrow from 'apache-arrow';
-import { TableStatisticsResolver, DatabaseTableStatistics } from './table_statistics';
+import { TableStatisticsResolver, TableStatistics } from './table_statistics';
 import { Mutex } from '../utils';
 
 /// An database manager.
@@ -34,7 +34,7 @@ export class DatabaseManager {
     public resolveTableStatistics(qualifiedTableName: string): TableStatisticsResolver | null {
         const prev = this._tableStatistics.get(qualifiedTableName);
         if (prev) return prev;
-        const stats = new DatabaseTableStatistics(this, qualifiedTableName);
+        const stats = new TableStatistics(this, qualifiedTableName);
         this._tableStatistics.set(qualifiedTableName, stats);
         return stats;
     }
@@ -73,8 +73,8 @@ export class DatabaseManager {
     }
 
     /// Resolve table info
-    public resolveTableInfo(qualifiedTableName: string): model.DatabaseTable | null {
-        return this._store.getState().core.databaseTables.get(qualifiedTableName) || null;
+    public resolveTableInfo(qualifiedTableName: string): model.Table | null {
+        return this._store.getState().core.planState.tables.get(qualifiedTableName) || null;
     }
 
     /// Request table statistics.
@@ -94,7 +94,7 @@ export class DatabaseManager {
     ): Promise<arrow.Column> {
         let queue = this._tableStatistics.get(qualifiedTableName);
         if (!queue) {
-            queue = new DatabaseTableStatistics(this, qualifiedTableName);
+            queue = new TableStatistics(this, qualifiedTableName);
             this._tableStatistics.set(qualifiedTableName, queue);
         }
         return queue.request(columnId, type);

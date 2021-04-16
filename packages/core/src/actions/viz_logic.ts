@@ -26,7 +26,7 @@ export abstract class VizActionLogic extends ProgramActionLogic {
         // Get the table info
         const programInstance = context.plan.programInstance;
         const store = context.platform.store;
-        const tableInfo = store.getState().core.databaseTables.get(this.tableNameQualified) || null;
+        const tableInfo = store.getState().core.planState.tables.get(this.tableNameQualified) || null;
         if (!tableInfo) {
             throw new error.ActionLogicError(`target table ${this.tableNameQualified} does not exist`, programInstance);
         }
@@ -111,7 +111,7 @@ export class CreateVizActionLogic extends VizActionLogic {
         // Get viz info
         const oid = this.buffer.objectId().toString();
         const state = context.platform.store.getState();
-        let card = state.core.cards.get(oid) as model.Card;
+        let card = state.core.planState.cards.get(oid) as model.Card;
         console.assert(card !== undefined, 'missing initial card object');
 
         // Create new viz object
@@ -142,7 +142,7 @@ export class UpdateVizActionLogic extends VizActionLogic {
         const programInstance = context.plan.programInstance;
         const state = context.platform.store.getState();
         const objectID = this.buffer.objectId().toString();
-        const cardObject = state.core.cards.get(objectID);
+        const cardObject = state.core.planState.cards.get(objectID);
         if (!cardObject) {
             throw new error.ActionLogicError('card object does not exist', context.plan.programInstance);
         }
@@ -190,7 +190,7 @@ export class UpdateVizActionLogic extends VizActionLogic {
         // Get viz info
         const oid = this.buffer.objectId().toString();
         const state = context.platform.store.getState();
-        let card = state.core.cards.get(oid) as model.Card;
+        let card = state.core.planState.cards.get(oid) as model.Card;
         console.assert(card !== undefined, 'missing initial card object');
 
         // Create new viz object

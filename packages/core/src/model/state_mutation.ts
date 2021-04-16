@@ -1,13 +1,12 @@
-import * as Immutable from 'immutable';
 import * as proto from '@dashql/proto';
 import * as utils from '../utils';
+import * as plan_state from './plan_state';
 import { LogEntryVariant } from './log';
 import { Plan } from './plan';
-import { ActionHandle, Action, ActionUpdate, ActionSchedulerStatus } from './action';
-import { DatabaseTable } from './database_table';
-import { Card } from './card';
-import { PlanObjectID, PlanObject, PlanObjectType } from './plan_object';
+import { Action, ActionUpdate, ActionSchedulerStatus } from './action';
+import { PlanObjectID, PlanObject } from './plan_object';
 import { Script } from './script';
+import { Table } from './table';
 import { Program, StatementStatus, deriveStatementStatusCode } from './program';
 import { ProgramInstance } from './program_instance';
 import { CoreState } from './state';
@@ -57,7 +56,7 @@ export type StateMutationVariant =
     | StateMutation<StateMutationType.INSERT_PLAN_OBJECTS, PlanObject[]>
     | StateMutation<StateMutationType.DELETE_PLAN_OBJECTS, PlanObjectID[]>
     | StateMutation<StateMutationType.DELETE_TABLE_INFO, string>
-    | StateMutation<StateMutationType.UPDATE_TABLE_INFO, [string, Partial<DatabaseTable>]>
+    | StateMutation<StateMutationType.UPDATE_TABLE_INFO, [string, Partial<Table>]>
     | StateMutation<StateMutationType.CACHE_FILE_DATA, [CachedFileData, string | null]>
     | StateMutation<StateMutationType.CACHE_HTTP_DATA, [CachedHTTPData, string | null]>
     | StateMutation<StateMutationType.HIT_CACHED_FILE_DATA, string>
@@ -72,281 +71,198 @@ export function mutate(dispatch: Dispatch, m: StateMutationVariant): void {
     return dispatch(m);
 }
 
-export class StateMutations {
-    public static reduce(state: CoreState, mutation: StateMutationVariant): CoreState {
-        switch (mutation.type) {
-            case StateMutationType.LOG_PUSH_ENTRY:
-                return {
-                    ...state,
-                    logEntries: state.logEntries.withMutations(list => {
-                        list.unshift(mutation.data);
-                        if (list.size > MAX_LOG_SIZE) {
-                            list.pop();
-                        }
-                    }),
-                };
+function reduceImpl(state: CoreState, mutation: StateMutationVariant): CoreState {
+    switch (mutation.type) {
+        case StateMutationType.LOG_PUSH_ENTRY:
+            return {
+                ...state,
+                logEntries: state.logEntries.withMutations(list => {
+                    list.unshift(mutation.data);
+                    if (list.size > MAX_LOG_SIZE) {
+                        list.pop();
+                    }
+                }),
+            };
 
-            case StateMutationType.RESET_PLAN: {
-                if (state.schedulerStatus !== ActionSchedulerStatus.Idle) {
-                    return state;
-                }
-                return {
-                    ...state,
-                    schedulerStatus: ActionSchedulerStatus.Idle,
-                    plan: null,
-                    planProgramStatus: Immutable.List<StatementStatus>(),
-                    planActions: Immutable.Map<ActionHandle, Action>(),
-                };
+        case StateMutationType.RESET_PLAN: {
+            if (state.schedulerStatus !== ActionSchedulerStatus.Idle) {
+                return state;
             }
+            return {
+                ...state,
+                schedulerStatus: ActionSchedulerStatus.Idle,
+                plan: null,
+                planState: plan_state.resetStatus(state.planState),
+            };
+        }
 
-            case StateMutationType.SCHEDULE_PLAN: {
-                const stmt: StatementStatus[] = [];
-                for (let i = 0; i < state.program!.buffer.statementsLength(); ++i) {
-                    stmt.push({
-                        status: proto.action.ActionStatusCode.NONE,
-                        totalActions: 0,
-                        runningActions: 0,
-                        blockedActions: 0,
-                        failedActions: 0,
-                        completedActions: 0,
-                    });
+        case StateMutationType.SCHEDULE_PLAN: {
+            const status: StatementStatus[] = [];
+            for (let i = 0; i < state.program!.buffer.statementsLength(); ++i) {
+                status.push({
+                    status: proto.action.ActionStatusCode.NONE,
+                    totalActions: 0,
+                    runningActions: 0,
+                    blockedActions: 0,
+                    failedActions: 0,
+                    completedActions: 0,
+                });
+            }
+            mutation.data[1].forEach(a => {
+                if (a.originStatement != null) {
+                    ++status[a.originStatement].totalActions;
+
+                    // Already done?
+                    // This may happen on import.
+                    if (a.statusCode == proto.action.ActionStatusCode.COMPLETED) {
+                        ++status[a.originStatement].completedActions;
+                    }
                 }
-                mutation.data[1].forEach(a => {
-                    if (a.originStatement != null) {
-                        ++stmt[a.originStatement].totalActions;
+            });
+            for (const s of status) {
+                s.status = deriveStatementStatusCode(s);
+            }
+            return {
+                ...state,
+                schedulerStatus: ActionSchedulerStatus.Working,
+                plan: mutation.data[0],
+                planState: plan_state.resetStatus(state.planState, status, mutation.data[1]),
+            };
+        }
 
-                        // Already done?
-                        // This may happen on import.
-                        if (a.statusCode == proto.action.ActionStatusCode.COMPLETED) {
-                            ++stmt[a.originStatement].completedActions;
+        case StateMutationType.SCHEDULER_READY:
+            return {
+                ...state,
+                schedulerStatus: ActionSchedulerStatus.Idle,
+            };
+
+        case StateMutationType.SET_SCRIPT:
+            return {
+                ...state,
+                script: mutation.data,
+            };
+
+        case StateMutationType.SET_PROGRAM:
+            return {
+                ...state,
+                program: mutation.data,
+            };
+
+        case StateMutationType.SET_PROGRAM_INSTANCE:
+            return {
+                ...state,
+                programInstance: mutation.data,
+            };
+
+        case StateMutationType.REWRITE_PROGRAM:
+            return {
+                ...state,
+                script: {
+                    ...state.script,
+                    modified: true,
+                    text: mutation.data.program.text,
+                    lineCount: utils.countLines(mutation.data.program.text),
+                    bytes: utils.estimateUTF16Length(mutation.data.program.text),
+                },
+                program: mutation.data.program,
+                programInstance: mutation.data,
+            };
+
+        case StateMutationType.UPDATE_PLAN_ACTIONS: {
+            return {
+                ...state,
+                planState: plan_state.updateStatus(state.planState, mutation.data),
+            };
+        }
+
+        case StateMutationType.INSERT_PLAN_OBJECTS:
+            return {
+                ...state,
+                planState: plan_state.insertObjects(state.planState, mutation.data),
+            };
+
+        case StateMutationType.DELETE_PLAN_OBJECTS:
+            return {
+                ...state,
+                planState: plan_state.deleteObjects(state.planState, mutation.data),
+            };
+
+        case StateMutationType.DELETE_TABLE_INFO: {
+            return {
+                ...state,
+                planState: plan_state.deleteTable(state.planState, mutation.data),
+            };
+        }
+
+        case StateMutationType.UPDATE_TABLE_INFO:
+            return {
+                ...state,
+                planState: plan_state.updateTable(state.planState, mutation.data[0], mutation.data[1]),
+            };
+
+        case StateMutationType.CACHE_FILE_DATA:
+            return {
+                ...state,
+                cachedFileData: state.cachedFileData.withMutations(c => {
+                    const [next, evict] = mutation.data;
+                    if (evict != null) {
+                        const v = c.get(evict);
+                        c.delete(evict);
+                        if (v !== undefined) {
+                            URL.revokeObjectURL(v.objectURL);
                         }
                     }
-                });
-                for (const s of stmt) {
-                    s.status = deriveStatementStatusCode(s);
-                }
-                return {
-                    ...state,
-                    schedulerStatus: ActionSchedulerStatus.Working,
-                    plan: mutation.data[0],
-                    planProgramStatus: Immutable.List<StatementStatus>(stmt),
-                    planActions: Immutable.Map<ActionHandle, Action>(mutation.data[1].map(a => [a.actionId, a])),
-                };
-            }
+                    c.set(next.key, next);
+                }),
+            };
 
-            case StateMutationType.SCHEDULER_READY:
-                return {
-                    ...state,
-                    schedulerStatus: ActionSchedulerStatus.Idle,
-                };
+        case StateMutationType.CACHE_HTTP_DATA:
+            return {
+                ...state,
+                cachedHTTPData: state.cachedHTTPData.withMutations(c => {
+                    const [next, evict] = mutation.data;
+                    if (evict != null) {
+                        c.delete(evict);
+                    }
+                    c.set(next.key, next);
+                }),
+            };
 
-            case StateMutationType.SET_SCRIPT:
-                return {
-                    ...state,
-                    script: mutation.data,
-                };
+        case StateMutationType.HIT_CACHED_FILE_DATA:
+            return {
+                ...state,
+                cachedFileData: state.cachedFileData.withMutations(c => {
+                    const e = c.get(mutation.data);
+                    if (!e) return;
+                    c.set(e.key, {
+                        ...e,
+                        timeLastAccess: new Date(),
+                        accessCount: ++e.accessCount,
+                    });
+                }),
+            };
 
-            case StateMutationType.SET_PROGRAM:
-                return {
-                    ...state,
-                    program: mutation.data,
-                };
+        case StateMutationType.HIT_CACHED_HTTP_DATA:
+            return {
+                ...state,
+                cachedHTTPData: state.cachedHTTPData.withMutations(c => {
+                    const e = c.get(mutation.data);
+                    if (!e) return;
+                    c.set(e.key, {
+                        ...e,
+                        timeLastAccess: new Date(),
+                        accessCount: ++e.accessCount,
+                    });
+                }),
+            };
 
-            case StateMutationType.SET_PROGRAM_INSTANCE:
-                return {
-                    ...state,
-                    programInstance: mutation.data,
-                };
+        default:
+            return state;
+    }
+}
 
-            case StateMutationType.REWRITE_PROGRAM:
-                return {
-                    ...state,
-                    script: {
-                        ...state.script,
-                        modified: true,
-                        text: mutation.data.program.text,
-                        lineCount: utils.countLines(mutation.data.program.text),
-                        bytes: utils.estimateUTF16Length(mutation.data.program.text),
-                    },
-                    program: mutation.data.program,
-                    programInstance: mutation.data,
-                };
-
-            case StateMutationType.UPDATE_PLAN_ACTIONS: {
-                return {
-                    ...state,
-                    planProgramStatus: state.planProgramStatus.withMutations(status => {
-                        for (const update of mutation.data) {
-                            const action = state.planActions.get(update.actionId);
-                            if (!action || action.originStatement == null || action.statusCode == update.statusCode) {
-                                continue;
-                            }
-                            const origin = { ...status.get(action.originStatement)! };
-                            switch (action.statusCode) {
-                                case proto.action.ActionStatusCode.NONE:
-                                    break;
-                                case proto.action.ActionStatusCode.BLOCKED:
-                                    --origin.blockedActions;
-                                    break;
-                                case proto.action.ActionStatusCode.RUNNING:
-                                    --origin.runningActions;
-                                    break;
-                                case proto.action.ActionStatusCode.COMPLETED:
-                                    --origin.completedActions;
-                                    break;
-                                case proto.action.ActionStatusCode.FAILED:
-                                    --origin.failedActions;
-                            }
-                            switch (update.statusCode) {
-                                case proto.action.ActionStatusCode.NONE:
-                                    break;
-                                case proto.action.ActionStatusCode.BLOCKED:
-                                    ++origin.blockedActions;
-                                    break;
-                                case proto.action.ActionStatusCode.RUNNING:
-                                    ++origin.runningActions;
-                                    break;
-                                case proto.action.ActionStatusCode.COMPLETED:
-                                    ++origin.completedActions;
-                                    break;
-                                case proto.action.ActionStatusCode.FAILED:
-                                    ++origin.failedActions;
-                                    break;
-                            }
-                            origin.status = deriveStatementStatusCode(origin);
-                            status.set(action.originStatement, origin);
-                        }
-                    }),
-                    planActions: state.planActions.withMutations(actions => {
-                        const now = new Date();
-                        for (const update of mutation.data) {
-                            const a = actions.get(update.actionId);
-                            if (!a) {
-                                console.warn(`UPDATE_PLAN_ACTIONS refers to unknown action id: ${update.actionId}`);
-                                continue;
-                            }
-                            actions.set(update.actionId, {
-                                ...a,
-                                statusCode: update.statusCode,
-                                blocker: update.blocker,
-                                timeScheduled: a.timeCreated || now,
-                                timeLastUpdate: now,
-                            });
-                        }
-                    }),
-                };
-            }
-
-            case StateMutationType.INSERT_PLAN_OBJECTS:
-                return {
-                    ...state,
-                    cards: state.cards.withMutations(os => {
-                        for (const o of mutation.data) {
-                            if (o.objectType == PlanObjectType.CARD) {
-                                const t = o as Card;
-                                os.set(t.objectId.toString(), t);
-                            }
-                        }
-                    }),
-                    databaseTables: state.databaseTables.withMutations(os => {
-                        for (const o of mutation.data) {
-                            if (o.objectType == PlanObjectType.DATABASE_TABLE) {
-                                const t = o as DatabaseTable;
-                                os.set(t.tableNameQualified, t);
-                            }
-                        }
-                    }),
-                };
-
-            case StateMutationType.DELETE_PLAN_OBJECTS:
-                return {
-                    ...state,
-                    databaseTables: state.databaseTables.deleteAll(mutation.data.map(k => k.toString())),
-                    cards: state.cards.deleteAll(mutation.data.map(k => k.toString())),
-                };
-
-            case StateMutationType.DELETE_TABLE_INFO: {
-                const info = state.databaseTables.get(mutation.data);
-                if (!info) {
-                    return state;
-                }
-                return {
-                    ...state,
-                    databaseTables: state.databaseTables.delete(mutation.data),
-                };
-            }
-
-            case StateMutationType.UPDATE_TABLE_INFO: {
-                const table = state.databaseTables.get(mutation.data[0]);
-                if (!table) return state;
-                const next = {
-                    ...table,
-                    ...mutation.data[1],
-                };
-                return {
-                    ...state,
-                    databaseTables: state.databaseTables.set(table.tableNameQualified, next),
-                };
-            }
-
-            case StateMutationType.CACHE_FILE_DATA:
-                return {
-                    ...state,
-                    cachedFileData: state.cachedFileData.withMutations(c => {
-                        const [next, evict] = mutation.data;
-                        if (evict != null) {
-                            const v = c.get(evict);
-                            c.delete(evict);
-                            if (v !== undefined) {
-                                URL.revokeObjectURL(v.objectURL);
-                            }
-                        }
-                        c.set(next.key, next);
-                    }),
-                };
-
-            case StateMutationType.CACHE_HTTP_DATA:
-                return {
-                    ...state,
-                    cachedHTTPData: state.cachedHTTPData.withMutations(c => {
-                        const [next, evict] = mutation.data;
-                        if (evict != null) {
-                            c.delete(evict);
-                        }
-                        c.set(next.key, next);
-                    }),
-                };
-
-            case StateMutationType.HIT_CACHED_FILE_DATA:
-                return {
-                    ...state,
-                    cachedFileData: state.cachedFileData.withMutations(c => {
-                        const e = c.get(mutation.data);
-                        if (!e) return;
-                        c.set(e.key, {
-                            ...e,
-                            timeLastAccess: new Date(),
-                            accessCount: ++e.accessCount,
-                        });
-                    }),
-                };
-
-            case StateMutationType.HIT_CACHED_HTTP_DATA:
-                return {
-                    ...state,
-                    cachedHTTPData: state.cachedHTTPData.withMutations(c => {
-                        const e = c.get(mutation.data);
-                        if (!e) return;
-                        c.set(e.key, {
-                            ...e,
-                            timeLastAccess: new Date(),
-                            accessCount: ++e.accessCount,
-                        });
-                    }),
-                };
-
-            default:
-                return state;
-        }
+export class StateMutations {
+    public static reduce(state: CoreState, mutation: StateMutationVariant): CoreState {
+        return reduceImpl(state, mutation);
     }
 }

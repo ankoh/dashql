@@ -2,10 +2,9 @@ import * as Immutable from 'immutable';
 import { LogEntryVariant } from './log';
 import { Plan } from './plan';
 import { CachedFileData, CachedHTTPData } from './cache';
-import { ActionSchedulerStatus, ActionHandle, Action } from './action';
-import { DatabaseTable } from './database_table';
-import { Card } from './card';
-import { Program, StatementStatus, InputValue } from './program';
+import { ActionSchedulerStatus } from './action';
+import { PlanState, createPlanState } from './plan_state';
+import { Program, InputValue } from './program';
 import { ProgramInstance } from './program_instance';
 import { Script, ScriptURIPrefix } from './script';
 import { Store, Unsubscribe } from 'redux';
@@ -29,14 +28,8 @@ export class CoreState {
     public schedulerStatus: ActionSchedulerStatus;
     /// The plan
     public plan: Plan | null;
-    /// The planned program status
-    public planProgramStatus: Immutable.List<StatementStatus>;
-    /// The setup actions
-    public planActions: Immutable.Map<ActionHandle, Action>;
     /// The database tables
-    public databaseTables: Immutable.Map<string, DatabaseTable>;
-    /// The cards
-    public cards: Immutable.Map<string, Card>;
+    public planState: PlanState;
 
     /// The cached files
     public cachedFileData: Immutable.Map<string, CachedFileData>;
@@ -59,10 +52,7 @@ export class CoreState {
         this.programInstance = null;
         this.schedulerStatus = ActionSchedulerStatus.Idle;
         this.plan = null;
-        this.planProgramStatus = Immutable.List<StatementStatus>();
-        this.planActions = Immutable.Map<ActionHandle, Action>();
-        this.databaseTables = Immutable.Map<string, DatabaseTable>();
-        this.cards = Immutable.Map<string, Card>();
+        this.planState = createPlanState();
         this.cachedFileData = Immutable.Map<string, CachedFileData>();
         this.cachedHTTPData = Immutable.Map<string, CachedHTTPData>();
     }
