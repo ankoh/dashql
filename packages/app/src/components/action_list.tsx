@@ -138,7 +138,7 @@ class ActionList extends React.Component<Props> {
 
 const mapStateToProps = (state: AppState) => ({
     plan: state.core.plan,
-    planActions: state.core.planActions,
+    planActions: state.core.planState.actions,
 });
 
 const mapDispatchToProps = (_dispatch: Dispatch) => ({});

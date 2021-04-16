@@ -5,7 +5,7 @@ import { PlanObject } from './plan_object';
 import * as arrow from 'apache-arrow';
 
 /// A database table
-export interface DatabaseTable extends PlanObject {
+export interface Table extends PlanObject {
     /// The qualified table name
     readonly tableNameQualified: string;
     /// The short table name

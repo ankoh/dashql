@@ -12,7 +12,7 @@ interface VizComposerTestExpectation {
 interface VizComposerTest {
     name: string;
     query: string;
-    table: Omit<model.DatabaseTable, keyof model.PlanObject>;
+    table: Omit<model.Table, keyof model.PlanObject>;
     expected: VizComposerTestExpectation;
 }
 
@@ -161,7 +161,7 @@ VIZ foo USING LINE (
 ];
 
 class FakeStatisticsResolver {
-    _table: model.DatabaseTable;
+    _table: model.Table;
 
     constructor(test: VizComposerTest) {
         const now = new Date();
@@ -174,7 +174,7 @@ class FakeStatisticsResolver {
         };
     }
     /// Resolve the table info
-    public resolveTableInfo(): model.DatabaseTable | null {
+    public resolveTableInfo(): model.Table | null {
         return this._table;
     }
     /// Request table statistics

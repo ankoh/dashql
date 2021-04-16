@@ -101,7 +101,7 @@ class BoardLayout extends React.Component<Props> {
 }
 
 const mapStateToProps = (state: model.AppState) => ({
-    cards: state.core.cards,
+    cards: state.core.planState.cards,
 });
 
 const mapDispatchToProps = (dispatch: model.Dispatch) => ({

@@ -11,13 +11,13 @@ import { CardFrame } from './card_frame';
 
 interface Props {
     appContext: IAppContext;
-    tables: Immutable.Map<string, core.model.DatabaseTable>;
+    tables: Immutable.Map<string, core.model.Table>;
     card: core.model.Card;
     editable?: boolean;
 }
 
 export class VegaRenderer extends React.Component<Props> {
-    protected renderContent(table: core.model.DatabaseTable, width: number, height: number): React.ReactElement {
+    protected renderContent(table: core.model.Table, width: number, height: number): React.ReactElement {
         const vega = (result: arrow.Table, w: number, h: number) => (
             <Vega
                 style={{
@@ -81,7 +81,7 @@ export class VegaRenderer extends React.Component<Props> {
 }
 
 const mapStateToProps = (state: model.AppState) => ({
-    tables: state.core.databaseTables,
+    tables: state.core.planState.tables,
 });
 
 const mapDispatchToProps = (_dispatch: model.Dispatch) => ({});

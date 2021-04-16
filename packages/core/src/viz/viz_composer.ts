@@ -76,7 +76,7 @@ export class VizComposer {
     }
 
     /// Get the table
-    protected get table(): model.DatabaseTable {
+    protected get table(): model.Table {
         return this._tableStatistics.resolveTableInfo()!;
     }
 

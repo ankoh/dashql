@@ -236,7 +236,7 @@ class ProgressGraph extends React.Component<ProgressGraphProps, ProgressGraphSta
 
 const mapStateToProps = (state: AppState) => ({
     program: state.core.plan?.program || null,
-    programStatus: state.core.planProgramStatus,
+    programStatus: state.core.planState.status,
 });
 
 const mapDispatchToProps = (_dispatch: Dispatch) => ({});
