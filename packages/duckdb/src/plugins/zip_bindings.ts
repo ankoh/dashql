@@ -49,7 +49,7 @@ export class ZipBindings {
         this._duckdb.dropResponseBuffers();
     }
 
-    public getEntryCount(): number {
+    public readEntryCount(): number {
         const [s, d, n] = this._duckdb.callSRet('duckdb_web_zip_read_entry_count', [], []);
         if (s !== StatusCode.SUCCESS) {
             throw new Error(this._duckdb.readString(d, n));
@@ -58,7 +58,7 @@ export class ZipBindings {
         return d;
     }
 
-    public getEntryInfo(entryID: number): ZipArchiveEntryInfo {
+    public readEntryInfo(entryID: number): ZipArchiveEntryInfo {
         const [s, d, n] = this._duckdb.callSRet('duckdb_web_zip_read_entry_info', ['number'], [entryID]);
         if (s !== StatusCode.SUCCESS) {
             throw new Error(this._duckdb.readString(d, n));
@@ -66,5 +66,18 @@ export class ZipBindings {
         const res = this._duckdb.readString(d, n);
         this._duckdb.dropResponseBuffers();
         return JSON.parse(res) as ZipArchiveEntryInfo;
+    }
+
+    public extractEntryToFile(entryID: number, file: string): number {
+        const [s, d, n] = this._duckdb.callSRet(
+            'duckdb_web_zip_extract_entry_to_file',
+            ['number', 'string'],
+            [entryID, file],
+        );
+        if (s !== StatusCode.SUCCESS) {
+            throw new Error(this._duckdb.readString(d, n));
+        }
+        this._duckdb.dropResponseBuffers();
+        return d;
     }
 }

@@ -356,7 +356,8 @@ if (EMSCRIPTEN)
             _duckdb_web_query_send, \
             _duckdb_web_zip_load_file, \
             _duckdb_web_zip_read_entry_count, \
-            _duckdb_web_zip_read_entry_info \
+            _duckdb_web_zip_read_entry_info, \
+            _duckdb_web_zip_extract_entry_to_file \
         ]' \
         -s EXTRA_EXPORTED_RUNTIME_METHODS='[\"ccall\"]' \
         --js-library=${CMAKE_SOURCE_DIR}/js-stubs.js \
