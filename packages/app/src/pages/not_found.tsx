@@ -1,9 +1,7 @@
 import * as React from 'react';
 
-export interface NotFoundProps {}
-
-export class NotFound extends React.Component<NotFoundProps, {}> {
-    render() {
+export class NotFound extends React.Component {
+    render(): React.ReactElement {
         return <h1>Page not found!</h1>;
     }
 }

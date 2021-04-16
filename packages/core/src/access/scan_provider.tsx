@@ -7,16 +7,16 @@ type RequestScanFn = (request: ScanRequest) => void;
 
 export class ScanRequest {
     /// The offset of a range
-    offset: number = 0;
+    offset = 0;
     /// The limit of a range
-    limit: number = 0;
+    limit = 0;
     /// The sample size
-    sample: number = 0;
+    sample = 0;
     /// The overscan
-    overscan: number = 0;
+    overscan = 0;
 
     /// Configure range
-    public withRange(offset: number, limit: number, overscan: number = 0): ScanRequest {
+    public withRange(offset: number, limit: number, overscan = 0): ScanRequest {
         this.offset = offset;
         this.limit = limit;
         this.overscan = overscan;
@@ -30,11 +30,11 @@ export class ScanRequest {
     }
 
     /// Get begin of scan range
-    get begin() {
+    get begin(): number {
         return Math.max(this.offset, this.overscan) - this.overscan;
     }
     /// Get end of scan range
-    get end() {
+    get end(): number {
         return this.offset + this.limit + this.overscan;
     }
 
@@ -119,7 +119,7 @@ export class ScanProvider extends React.Component<Props, State> {
     }
 
     /// Request a range
-    protected requestScan(request: ScanRequest) {
+    protected requestScan(request: ScanRequest): void {
         if (this.state.result && this.state.result.request.includesRequest(request)) {
             return;
         }
@@ -153,7 +153,7 @@ export class ScanProvider extends React.Component<Props, State> {
     }
 
     /// Process the query result
-    protected processQueryResult(result: ScanResult) {
+    protected processQueryResult(result: ScanResult): void {
         this._queryPromise = null;
         this._queryInFlight = null;
         setImmediate(this._schedule);
@@ -163,7 +163,7 @@ export class ScanProvider extends React.Component<Props, State> {
     }
 
     /// Schedule a queued query if no query is in-flight
-    protected schedule() {
+    protected schedule(): void {
         if (this._queryInFlight || !this._queryQueued) return;
         this._queryInFlight = this._queryQueued;
         this._queryQueued = null;
@@ -172,7 +172,7 @@ export class ScanProvider extends React.Component<Props, State> {
     }
 
     /// Schedule a query the data cannot be served from the cached results
-    protected scheduleIfNecessary(req: ScanRequest) {
+    protected scheduleIfNecessary(req: ScanRequest): void {
         // Included in cached range?
         if (this.state.result && this.state.result.request.includesRequest(req)) {
             return;
@@ -189,13 +189,13 @@ export class ScanProvider extends React.Component<Props, State> {
     }
 
     /// Load initial data
-    public componentDidMount() {
+    public componentDidMount(): void {
         if (!this.state.request) return;
         this.scheduleIfNecessary(this.state.request);
     }
 
     /// Check if we have to query new data
-    public componentDidUpdate(_prevProps: Props, prevState: State) {
+    public componentDidUpdate(_prevProps: Props, prevState: State): void {
         // Did limit and offset change?
         if (this.state.request && this.state.request !== prevState.request) {
             this.scheduleIfNecessary(this.state.request);
@@ -203,14 +203,14 @@ export class ScanProvider extends React.Component<Props, State> {
         }
     }
 
-    componentWillUnmount() {
+    componentWillUnmount(): void {
         if (this._queryPromise) {
             // XXX cancel the query
         }
     }
 
     // Pass the scan function to the child
-    render() {
+    render(): React.ReactElement {
         if (!this.state.result) {
             return <div />;
         }

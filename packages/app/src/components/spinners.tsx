@@ -8,7 +8,7 @@ interface IRectangleWaveSpinnerProps {
 }
 
 export class RectangleWaveSpinner extends React.PureComponent<IRectangleWaveSpinnerProps> {
-    public render() {
+    public render(): React.ReactElement {
         const s = {
             backgroundColor: this.props.color || 'white',
         };

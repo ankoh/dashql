@@ -1,6 +1,5 @@
 import * as React from 'react';
 import * as core from '@dashql/core';
-import * as arrow from 'apache-arrow';
 import {
     Grid,
     GridCellProps,
@@ -55,7 +54,7 @@ export class DataGrid extends React.Component<Props, State> {
     }
 
     /// Get the column count
-    public get columnCount() {
+    public get columnCount(): number {
         return this.props.table.columnNames.length;
     }
 
@@ -66,7 +65,7 @@ export class DataGrid extends React.Component<Props, State> {
     }
 
     /// Scroll handler
-    public onScroll(pos: PositionValues) {
+    public onScroll(pos: PositionValues): void {
         const firstVisibleRow = Math.min(
             Math.trunc((pos.scrollTop * pos.verticalScaling) / this.state.rowHeight),
             this.rowCount!,
@@ -83,7 +82,7 @@ export class DataGrid extends React.Component<Props, State> {
     }
 
     /// Scroll stop handler
-    public onScrollStop() {
+    public onScrollStop(): void {
         const ofs = this.state.firstVisibleRow;
         const count = this.state.visibleRows;
         const end = Math.min(ofs + count, this.rowCount!);
@@ -147,7 +146,6 @@ export class DataGrid extends React.Component<Props, State> {
         let after: React.ReactNode[] = [];
         if (props.rowStopIndex >= dataEnd) {
             props.rowStartIndex = dataEnd;
-            props.rowStopIndex = props.rowStopIndex;
             after = defaultCellRangeRenderer(props);
         }
 
@@ -176,8 +174,8 @@ export class DataGrid extends React.Component<Props, State> {
         canCacheStyle: boolean,
         value: T,
         renderCell: (key: string, style: React.CSSProperties, v: T) => React.ReactNode,
-    ) {
-        let key = `${rowIndex}-${columnIndex}`;
+    ): React.ReactNode {
+        const key = `${rowIndex}-${columnIndex}`;
         let style: React.CSSProperties;
 
         // Cache style objects so shallow-compare doesn't re-render unnecessarily.
@@ -230,7 +228,7 @@ export class DataGrid extends React.Component<Props, State> {
     /// Render a data cell range that is backed by query results
     public renderAvailableDataCellRange(props: GridCellRangeProps): React.ReactNode[] {
         const data = this.props.data!.result;
-        let cells: React.ReactNode[] = [];
+        const cells: React.ReactNode[] = [];
 
         // Can use style cache?
         const areOffsetsAdjusted =
@@ -257,9 +255,9 @@ export class DataGrid extends React.Component<Props, State> {
                     columnDatum,
                     canCacheStyle,
                     value,
-                    (key, style, value) => (
+                    (key, style, v) => (
                         <div key={key} className={styles.cell_data} style={{ ...style }}>
-                            {value}
+                            {v}
                         </div>
                     ),
                 );
@@ -273,16 +271,16 @@ export class DataGrid extends React.Component<Props, State> {
     }
 
     /// Compute the column width
-    protected computeColumnWidth(clientWidth: number, rowHeaderWidth: number) {
-        let available = clientWidth - rowHeaderWidth;
+    protected computeColumnWidth(clientWidth: number, rowHeaderWidth: number): number {
+        const available = clientWidth - rowHeaderWidth;
         let equalWidths = available;
         if (this.columnCount > 0) equalWidths = available / this.columnCount;
-        let minWidth = 80;
+        const minWidth = 80;
         return Math.max(equalWidths, minWidth);
     }
 
     /// Render the table
-    public render() {
+    public render(): React.ReactElement {
         return (
             <AutoSizer>
                 {({ width, height }) => {

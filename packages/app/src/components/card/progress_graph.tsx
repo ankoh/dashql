@@ -6,7 +6,7 @@ import ReactFlow, { ReactFlowProvider, FlowElement, Edge as EdgeData, useStoreSt
 import classNames from 'classnames';
 import { AppState, Dispatch } from '../../model';
 import { StatementNode, StatementNodeData } from './progress_graph_node';
-import { connect, useStore } from 'react-redux';
+import { connect } from 'react-redux';
 import { proto } from '@dashql/core';
 
 import sx = proto.syntax;

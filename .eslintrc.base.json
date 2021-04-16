@@ -1,8 +1,13 @@
 {
     "root": true,
     "parser": "@typescript-eslint/parser",
-    "plugins": ["@typescript-eslint", "prettier"],
-    "extends": ["eslint:recommended", "plugin:@typescript-eslint/recommended", "plugin:prettier/recommended"],
+    "plugins": ["@typescript-eslint", "prettier", "react"],
+    "extends": [
+        "eslint:recommended",
+        "plugin:@typescript-eslint/recommended",
+        "plugin:prettier/recommended",
+        "plugin:react/recommended"
+    ],
     "env": {
         "browser": true,
         "node": true
@@ -33,5 +38,12 @@
         "no-return-assign": "error",
         "no-useless-call": "error",
         "no-useless-concat": "error"
+    },
+    "settings": {
+        "react": {
+            "pragma": "React",
+            "fragment": "Fragment",
+            "version": "detect"
+        }
     }
 }

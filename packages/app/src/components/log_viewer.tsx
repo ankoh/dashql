@@ -1,6 +1,5 @@
 import * as Immutable from 'immutable';
 import * as React from 'react';
-import * as duckdb from '@dashql/duckdb';
 import * as core from '@dashql/core';
 import { AppState, Dispatch } from '../model';
 import { connect } from 'react-redux';
@@ -69,7 +68,6 @@ class LogViewer extends React.Component<Props> {
     }
 
     public render() {
-        const height = 200;
         return (
             <SystemCard title="Log" onClose={this.props.onClose}>
                 <AutoSizer disableHeight>

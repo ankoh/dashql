@@ -2,7 +2,6 @@ import * as React from 'react';
 import styles from './system_card.module.css';
 import classNames from 'classnames';
 
-import icon_chevron_right from '../../static/svg/icons/chevron_right.svg';
 import icon_close from '../../static/svg/icons/close.svg';
 
 interface Props {
@@ -13,7 +12,7 @@ interface Props {
 }
 
 export class SystemCard extends React.Component<Props> {
-    public render() {
+    public render(): React.ReactElement {
         return (
             <div className={classNames(styles.panel, this.props.className)}>
                 <div className={styles.header}>

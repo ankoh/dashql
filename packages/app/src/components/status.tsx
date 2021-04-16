@@ -131,7 +131,7 @@ interface IActionStatusIndicatorProps {
     fill?: string;
 }
 
-export function ActionStatusIndicator(props: IActionStatusIndicatorProps) {
+export function ActionStatusIndicator(props: IActionStatusIndicatorProps): React.ReactElement {
     let mappedStatus = Status.NONE;
     switch (props.status) {
         case proto.action.ActionStatusCode.NONE:
@@ -150,7 +150,7 @@ export function ActionStatusIndicator(props: IActionStatusIndicatorProps) {
             mappedStatus = Status.RUNNING;
             break;
     }
-    let mappedProps: IStatusIndicatorProps = {
+    const mappedProps: IStatusIndicatorProps = {
         ...props,
         status: mappedStatus,
     };

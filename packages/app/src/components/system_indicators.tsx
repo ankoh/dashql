@@ -52,13 +52,13 @@ class SystemIndicators extends React.Component<Props, State> {
         };
     }
 
-    protected toggleTab(tab: number) {
+    protected toggleTab(tab: number): void {
         this.setState({
             ...this.state,
             expandedPanel: this.state.expandedPanel == tab ? null : tab,
         });
     }
-    public render() {
+    public render(): React.ReactElement {
         return (
             <div className={this.props.className}>
                 <SystemPanel

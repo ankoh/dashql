@@ -4,7 +4,6 @@ import * as model from '../model';
 import { connect } from 'react-redux';
 
 import icon_autorun from '../../static/svg/icons/autorun.svg';
-import icon_file_upload from '../../static/svg/icons/file_upload.svg';
 import icon_file_download from '../../static/svg/icons/file_download.svg';
 import icon_undo from '../../static/svg/icons/undo.svg';
 
@@ -14,22 +13,15 @@ interface ActionProps {
     onClick: () => void;
 }
 
-function createAction(icon: string): React.FunctionComponent<ActionProps> {
-    return (props: ActionProps) => {
-        return (
-            <div className={styles.cmdbar_cmd} onClick={props.onClick}>
-                <svg width="20px" height="20px">
-                    <use xlinkHref={`${icon}#sym`} />
-                </svg>
-            </div>
-        );
-    };
+function Action(props: ActionProps & { icon: string }): React.ReactElement {
+    return (
+        <div className={styles.cmdbar_cmd} onClick={props.onClick}>
+            <svg width="20px" height="20px">
+                <use xlinkHref={`${props.icon}#sym`} />
+            </svg>
+        </div>
+    );
 }
-
-const UndoAction = createAction(icon_undo);
-const AutoRunAction = createAction(icon_autorun);
-const DocumentDownloadAction = createAction(icon_file_download);
-const DocumentUploadAction = createAction(icon_file_upload);
 
 interface StudioCommandBarProps {
     script: core.model.Script;
@@ -40,7 +32,7 @@ export class StudioCommandBar extends React.Component<StudioCommandBarProps> {
     _downloadScriptAsFile = this.downloadScriptAsFile.bind(this);
 
     // Download the script as a file
-    downloadScriptAsFile() {
+    downloadScriptAsFile(): void {
         const element = document.createElement('a');
         const file = new Blob([this.props.script.text], { type: 'text/plain' });
         element.href = URL.createObjectURL(file);
@@ -49,16 +41,16 @@ export class StudioCommandBar extends React.Component<StudioCommandBarProps> {
         element.click();
     }
 
-    public render() {
+    public render(): React.ReactElement {
         return (
             <div className={styles.cmdbar_studio}>
                 <div className={styles.cmdbar_cmdset}>
-                    <AutoRunAction onClick={() => this.props.resetPlan()} />
-                    <UndoAction onClick={() => {}} />
+                    <Action icon={icon_autorun} onClick={this.props.resetPlan} />
+                    <Action icon={icon_undo} onClick={() => {}} />
                 </div>
                 <div className={styles.cmdbar_cmdset} />
                 <div className={styles.cmdbar_cmdset}>
-                    <DocumentDownloadAction onClick={this._downloadScriptAsFile} />
+                    <Action icon={icon_file_download} onClick={this._downloadScriptAsFile} />
                 </div>
             </div>
         );

@@ -11,7 +11,7 @@ interface Props {
 }
 
 export class VizComponent extends React.Component<Props> {
-    public render() {
+    public render(): React.ReactElement {
         if (this.props.card.cardRenderer == null) {
             return <ProgressGraph card={this.props.card} />;
         }
