@@ -20,11 +20,26 @@ export function testZip(
             const all = await resolveData('/uni/all.zip');
             expect(all).not.toBeNull();
             await db().addFileBuffer('/uni/all.zip', all!);
-            // XXX revisit with default duckdb runtime
 
             const zip = new duckdb.ZipBindings(db());
             zip.loadFile('/uni/all.zip');
-            //expect(archive.getEntryCount()).toBe(7);
+
+            const entryCount = zip.getEntryCount();
+            expect(entryCount).toBe(7);
+
+            const expectedFileNames = [
+                'assistenten.parquet',
+                'hoeren.parquet',
+                'professoren.parquet',
+                'pruefen.parquet',
+                'studenten.parquet',
+                'vorlesungen.parquet',
+                'vorraussetzen.parquet',
+            ];
+            for (let i = 0; i < entryCount; ++i) {
+                const entry = zip.getEntryInfo(i);
+                expect(entry.fileName).toEqual(expectedFileNames[i]);
+            }
         });
     });
 }
