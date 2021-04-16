@@ -177,10 +177,10 @@ flatbuffers::Offset<proto::analyzer::Card> InputStatement::PackCard(flatbuffers:
     // Build viz spec
     proto::analyzer::CardBuilder cb{builder};
     cb.add_card_type(dashql::proto::analyzer::CardType::BUILTIN_VIZ);
+    if (position_) cb.add_card_position(&position_.value());
+    if (title_offset) cb.add_card_title(*title_offset);
     cb.add_statement_id(statement_id_);
     cb.add_input_options(options);
-    if (position_) cb.add_position(&position_.value());
-    if (title_offset) cb.add_title(*title_offset);
     return cb.Finish();
 }
 
