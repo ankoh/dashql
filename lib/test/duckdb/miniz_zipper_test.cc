@@ -30,7 +30,7 @@ TEST(ZipperTest, LoadFile) {
     auto loadOK = zipper.LoadFromFile(path.c_str());
     ASSERT_TRUE(loadOK.ok()) << loadOK.message();
 
-    auto maybeCount = zipper.GetEntryCount();
+    auto maybeCount = zipper.ReadEntryCount();
     ASSERT_TRUE(maybeCount.ok()) << maybeCount.status().message();
     ASSERT_EQ(maybeCount.ValueUnsafe(), 7);
 
@@ -40,7 +40,7 @@ TEST(ZipperTest, LoadFile) {
     };
 
     for (size_t i = 0; i < 7; ++i) {
-        auto maybeInfo = zipper.GetEntryInfoAsJSON(i);
+        auto maybeInfo = zipper.ReadEntryInfoAsJSON(i);
         ASSERT_TRUE(maybeInfo.ok()) << maybeInfo.status().message();
 
         rapidjson::Document doc;
