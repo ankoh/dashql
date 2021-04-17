@@ -359,7 +359,7 @@ void ParserDriver::AddStatement(sx::Node node) {
 
         case sx::NodeType::OBJECT_DASHQL_LOAD:
             // Has URI? Try to infer the load type
-            if (auto [m, _] = FindAttribute(node, Key::DASHQL_LOAD_URI); m) {
+            if (auto [m, _] = FindAttribute(node, Key::DASHQL_LOAD_FROM_URI); m) {
                 auto uri = std::string{trimview(scanner_.TextAt(m->location()), isNoQuote)};
                 if (std::regex_match(uri, LOAD_URI_HTTP)) {
                     stmt_type = sx::StatementType::LOAD_HTTP;

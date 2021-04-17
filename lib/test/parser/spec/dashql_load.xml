@@ -56,7 +56,7 @@
         <statements>
             <statement type="LOAD_HTTP" name="global.uni">
                 <node type="OBJECT_DASHQL_LOAD" loc="9..70" text="LOAD uni F..e/all.zip'">
-                    <node key="DASHQL_LOAD_URI" loc="23..70" text="'https://s..e/all.zip'" />
+                    <node key="DASHQL_LOAD_FROM_URI" loc="23..70" text="'https://s..e/all.zip'" />
                     <node key="DASHQL_STATEMENT_NAME">
                         <node loc="14..17" text="uni" />
                     </node>
