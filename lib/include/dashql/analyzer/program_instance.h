@@ -14,7 +14,9 @@
 
 #include "dashql/analyzer/input_value.h"
 #include "dashql/analyzer/program_linter.h"
+#include "dashql/analyzer/stmt/extract_stmt.h"
 #include "dashql/analyzer/stmt/input_stmt.h"
+#include "dashql/analyzer/stmt/load_stmt.h"
 #include "dashql/analyzer/stmt/viz_stmt.h"
 #include "dashql/analyzer/value.h"
 #include "dashql/common/enum.h"
@@ -73,13 +75,17 @@ class ProgramInstance {
     /// UNION FIND might just pick a different representative.
     SparseUnionFind<NodeValue> evaluated_nodes_;
     /// The node errors
-    std::vector<NodeError> node_errors_;
+    std::vector<NodeError> node_errors_ = {};
     /// The linter messages
-    std::vector<LinterMessage> linter_messages_;
-    ///// The input statements
-    std::vector<std::unique_ptr<InputStatement>> input_statements_;
+    std::vector<LinterMessage> linter_messages_ = {};
+    /// The input statements
+    std::vector<std::unique_ptr<InputStatement>> input_statements_ = {};
+    /// The load statements
+    std::vector<std::unique_ptr<LoadStatement>> load_statements_ = {};
+    /// The extract statements
+    std::vector<std::unique_ptr<LoadStatement>> extract_statements_ = {};
     /// The viz statements
-    std::vector<std::unique_ptr<VizStatement>> viz_statements_;
+    std::vector<std::unique_ptr<VizStatement>> viz_statements_ = {};
 
    public:
     /// Constructor
