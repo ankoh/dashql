@@ -138,14 +138,14 @@ arrow::Result<std::shared_ptr<arrow::Buffer>> WebDB::Connection::FetchQueryResul
 #define SET_OPTION_CHAR(source, target, member)                                                                       \
     if (source.HasMember(#member)) {                                                                                  \
         if (!source[#member].IsString()) return arrow::Status::Invalid(#source "." #member " expected to be String"); \
-        target.member = source[#member].GetString().at(0);                                                            \
+        target.member = source[#member].GetString()[0];                                                               \
     }
 
 #define SET_OPTION_ARRAY(source, target, member, value_type)                                                        \
     if (source.HasMember(#member)) {                                                                                \
         if (!source[#member].IsArray()) return arrow::Status::Invalid(#source "." #member " expected to be array"); \
         for (auto const& val : source[#member].GetArray()) {                                                        \
-            if (!val.is##value_type()) {                                                                            \
+            if (!val.Is##value_type()) {                                                                            \
                 return arrow::Status::Invalid(#source "." #member " values expected to be " #value_type);           \
             }                                                                                                       \
             target.member.push_back(source[#member].Get##value_type());                                             \
@@ -175,26 +175,44 @@ arrow::Status WebDB::Connection::ImportCSV(std::string_view path, std::string_vi
     }
     if (document.HasMember("parse")) {
         auto const& obj = document["parse"];
-        SET_OPTION(obj, parse_options, quoting, Boolean);
-        SET_OPTION(obj, parse_options, double_quote, Boolean);
-        SET_OPTION(obj, parse_options, escaping, Boolean);
-        SET_OPTION(obj, parse_options, newlines_in_values, Boolean);
-        SET_OPTION(obj, parse_options, ignore_empty_lines, Boolean);
+        SET_OPTION(obj, parse_options, quoting, Bool);
+        SET_OPTION(obj, parse_options, double_quote, Bool);
+        SET_OPTION(obj, parse_options, escaping, Bool);
+        SET_OPTION(obj, parse_options, newlines_in_values, Bool);
+        SET_OPTION(obj, parse_options, ignore_empty_lines, Bool);
         SET_OPTION_CHAR(obj, parse_options, delimiter);
         SET_OPTION_CHAR(obj, parse_options, quote_char);
         SET_OPTION_CHAR(obj, parse_options, escape_char);
     }
     if (document.HasMember("convert")) {
         auto const& obj = document["convert"];
-        SET_OPTION(obj, convert_options, check_utf8, Boolean);
-        SET_OPTION(obj, convert_options, strings_can_be_null, Boolean);
-        SET_OPTION(obj, convert_options, auto_dict_encode, Boolean);
-        SET_OPTION(obj, convert_options, auto_dict_max_cardinality, Integer);
-        SET_OPTION(obj, convert_options, include_missing_columns, Boolean);
+        SET_OPTION(obj, convert_options, check_utf8, Bool);
+        SET_OPTION(obj, convert_options, strings_can_be_null, Bool);
+        SET_OPTION(obj, convert_options, auto_dict_encode, Bool);
+        SET_OPTION(obj, convert_options, auto_dict_max_cardinality, Int);
+        SET_OPTION(obj, convert_options, include_missing_columns, Bool);
         SET_OPTION_ARRAY(obj, convert_options, null_values, String);
         SET_OPTION_ARRAY(obj, convert_options, true_values, String);
         SET_OPTION_ARRAY(obj, convert_options, false_values, String);
         SET_OPTION_ARRAY(obj, convert_options, include_columns, String);
+    }
+
+    std::string schema_name;
+    std::string table_name;
+
+    if (document.HasMember("import")) {
+        auto const& obj = document["import"];
+        if (obj.HasMember("schema")) {
+            if (!obj["schema"].IsString()) return arrow::Status::Invalid("import.schema expected to be String");
+            schema_name = obj.GetString();
+        }
+        if (!obj.HasMember("table")) {
+            return arrow::Status::Invalid("Required member import.table not present");
+        }
+        if (!obj["table"].IsString()) return arrow::Status::Invalid("import.table expected to be String");
+        table_name = obj.GetString();
+    } else {
+        return arrow::Status::Invalid("Required member \"import\" not present");
     }
 
     auto res_reader = arrow::csv::TableReader::Make(io_context, input, read_options, parse_options, convert_options);
