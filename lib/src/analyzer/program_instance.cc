@@ -20,11 +20,7 @@ ProgramInstance::ProgramInstance(std::shared_ptr<std::string> text, std::shared_
     : program_text_(move(text)),
       program_(move(program)),
       input_values_(move(params)),
-      evaluated_nodes_(program_->nodes.size()),
-      node_errors_(),
-      linter_messages_(),
-      // input_statements_(),
-      viz_statements_() {}
+      evaluated_nodes_(program_->nodes.size()) {}
 
 // Add a node error
 void ProgramInstance::AddNodeError(NodeError&& error) { node_errors_.push_back(std::move(error)); }

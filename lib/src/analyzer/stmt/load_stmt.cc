@@ -10,6 +10,9 @@ namespace ana = dashql::proto::analyzer;
 
 namespace dashql {
 
+LoadStatement::LoadStatement(ProgramInstance& instance, size_t statement_id, ASTIndex ast)
+    : instance_(instance), statement_id_(statement_id), ast_(ast) {}
+
 std::unique_ptr<LoadStatement> LoadStatement::ReadFrom(ProgramInstance& instance, size_t stmt_id) {
     // clang-format off
     auto& program = instance.program();

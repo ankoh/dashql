@@ -196,7 +196,14 @@ void Analyzer::AnalyzeInputStatements(ProgramInstance& instance) {
 }
 
 /// Analyze the load statements
-void Analyzer::AnalyzeLoadStatements(ProgramInstance& instance) { (void)instance; }
+void Analyzer::AnalyzeLoadStatements(ProgramInstance& instance) {
+    auto& program = instance.program();
+    for (size_t stmt_id = 0; stmt_id < program.statements.size(); ++stmt_id) {
+        auto input = LoadStatement::ReadFrom(instance, stmt_id);
+        if (!input) continue;
+        instance.load_statements_.push_back(std::move(input));
+    }
+}
 
 /// Analyze the extract statements
 void Analyzer::AnalyzeExtractStatements(ProgramInstance& instance) { (void)instance; }
