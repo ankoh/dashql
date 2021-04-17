@@ -5,34 +5,14 @@ import Worker from 'web-worker';
 import fs from 'fs';
 
 // Loading debug symbols, especially for WASM take insanely long so we just disable the test timeout
-jasmine.DEFAULT_TIMEOUT_INTERVAL = 60000;
+// jasmine.DEFAULT_TIMEOUT_INTERVAL = 1000;
 
 // Resolve a buffer by fetching from disk
-const dataDir = path.resolve(__dirname, '../../../data');
-const resolveBuffer = (url: string) => {
+const dataDir = path.resolve(__dirname, '../../../');
+const resolveBuffer = async (url: string) => {
     const p = path.join(dataDir, url);
     if (!fs.existsSync(p)) return null;
     return new Uint8Array(fs.readFileSync(p));
-};
-
-// Resolve test data
-const resolveData = async (url: string) => {
-    switch (url) {
-        case '/uni/all.zip':
-            return await resolveBuffer('/uni/out/all.zip');
-        case '/uni/assistenten.parquet':
-            return await resolveBuffer('/uni/out/assistenten.parquet');
-        case '/uni/studenten.parquet':
-            return await resolveBuffer('/uni/out/studenten.parquet');
-        case '/uni/hoeren.parquet':
-            return await resolveBuffer('/uni/out/hoeren.parquet');
-        case '/uni/vorlesungen.parquet':
-            return await resolveBuffer('/uni/out/vorlesungen.parquet');
-        case '/tpch/5/orders.parquet':
-            return await resolveBuffer('/tpch/5/orders.parquet');
-        default:
-            return null;
-    }
 };
 
 // Test environment
@@ -59,5 +39,5 @@ import { testZip } from './zip.test';
 testBindings(() => db!);
 testBatchStream(() => db!);
 testAsyncBatchStream(() => adb!);
-testFilesystem(() => adb!, resolveData);
-testZip(() => db!, resolveData);
+testFilesystem(() => adb!, resolveBuffer);
+testZip(() => db!, resolveBuffer);

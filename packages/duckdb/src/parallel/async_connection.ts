@@ -2,6 +2,7 @@
 
 import { Logger, LogLevel, LogTopic, LogOrigin, LogEvent } from '../log';
 import * as arrow from 'apache-arrow';
+import { ImportCSVOptions } from '../bindings/connection';
 
 interface IAsyncDuckDB {
     logger: Logger;
@@ -10,6 +11,7 @@ interface IAsyncDuckDB {
     runQuery(conn: number, text: string): Promise<Uint8Array>;
     sendQuery(conn: number, text: string): Promise<Uint8Array>;
     fetchQueryResults(conn: number): Promise<Uint8Array>;
+    importCSV(conn: number, path: string, options: ImportCSVOptions): Promise<null>;
 }
 
 /** An async result stream iterator */
@@ -56,6 +58,8 @@ export interface AsyncConnection {
     sendQuery<T extends { [key: string]: arrow.DataType } = any>(
         text: string,
     ): Promise<arrow.AsyncRecordBatchStreamReader<T>>;
+    /// Import CSV from given path with additional options in JSON format
+    importCSV(path: string, options: ImportCSVOptions): Promise<null>;
 }
 
 /** A thin helper to memoize the connection id */
@@ -110,5 +114,9 @@ export class AsyncDuckDBConnection implements AsyncConnection {
         console.assert(reader.isAsync());
         console.assert(reader.isStream());
         return (reader as unknown) as arrow.AsyncRecordBatchStreamReader<T>; // XXX
+    }
+
+    public async importCSV(path: string, options: ImportCSVOptions) {
+        return this._instance.importCSV(this._conn, path, options);
     }
 }

@@ -211,6 +211,10 @@ export abstract class AsyncDuckDBDispatcher implements Logger {
                         [],
                     );
                     break;
+                case WorkerRequestType.IMPORT_CSV:
+                    this._bindings.importCSV(request.data[0], request.data[1], request.data[2]);
+                    this.sendOK(request);
+                    break;
             }
         } catch (e) {
             // Workaround for Firefox not being able to perform structured-clone on Native Errors

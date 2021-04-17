@@ -2,7 +2,7 @@
 
 import { DuckDBModule } from './duckdb_module';
 import { Logger } from '../log';
-import { DuckDBConnection } from './connection';
+import { DuckDBConnection, ImportCSVOptions } from './connection';
 import { StatusCode } from '../status';
 import { DuckDBRuntime } from './runtime_base';
 
@@ -186,12 +186,13 @@ export abstract class DuckDBBindings {
         return res;
     }
 
-    /// Import csv from a given URL
-    public importCSV(conn: number, filePath: string, schemaName: string, tableName: string): void {
+    /// Import CSV from given path with additional options in JSON format
+    public importCSV(conn: number, path: string, options: ImportCSVOptions | string): void {
+        const optionsJson = typeof options == 'string' ? options: JSON.stringify(options); 
         const [s, d, n] = this.callSRet(
-            'duckdb_web_csv_import',
-            ['number', 'string', 'string', 'string'],
-            [conn, filePath, schemaName, tableName],
+            'duckdb_web_import_csv',
+            ['number', 'string', 'string'],
+            [conn, path, optionsJson],
         );
         if (s !== StatusCode.SUCCESS) {
             throw new Error(this.readString(d, n));

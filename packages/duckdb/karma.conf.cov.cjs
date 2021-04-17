@@ -18,8 +18,7 @@ module.exports = function(config) {
             { pattern: 'packages/duckdb/dist/tests-browser.js' },
             { pattern: 'packages/duckdb/dist/*.wasm', included: false, watched: false, served: true },
             { pattern: 'packages/duckdb/dist/*.js', included: false, watched: false, served: true },
-            { pattern: 'data/**/*.parquet', included: false, watched: false, served: true },
-            { pattern: 'data/**/*.zip', included: false, watched: false, served: true },
+            { pattern: 'data/**/*', included: false, watched: false, served: true },
         ],
         preprocessors: {
             '**/*.js': ['sourcemap', 'coverage'],

@@ -7,7 +7,30 @@ interface IDuckDBBindings {
     runQuery(conn: number, text: string): Uint8Array;
     sendQuery(conn: number, text: string): Uint8Array;
     fetchQueryResults(conn: number): Uint8Array;
-    importCSV(conn: number, filePath: string, schemaName: string, tableName: string): void;
+    importCSV(conn: number, path: string, options: ImportCSVOptions | string): void;
+}
+
+export interface ImportCSVOptions {
+    read?: {
+        block_size?: number;
+        skip_rows?: number;
+        autogenerate_column_names?: boolean;
+        column_names?: string[];
+    };
+    parse?: {
+        quoting?: boolean;
+        double_quote?: boolean;
+        escaping?: boolean;
+        newlines_in_values?: boolean;
+        ignore_empty_lines?: boolean;
+        delimiter?: string;
+        quote_char?: string;
+        escape_char?: string;
+    };
+    import: {
+        schema?: string;
+        table: string;
+    };
 }
 
 /** A result stream iterator */
@@ -83,7 +106,7 @@ export class DuckDBConnection {
         return reader as arrow.RecordBatchStreamReader;
     }
 
-    public importCSV(filePath: string, schemaName: string, tableName: string): void {
-        this._bindings.importCSV(this._conn, filePath, schemaName, tableName);
+    public importCSV(path: string, options: ImportCSVOptions | string): void {
+        this._bindings.importCSV(this._conn, path, options);
     }
 }

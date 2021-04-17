@@ -13,6 +13,7 @@ export enum WorkerRequestType {
     ADD_FILE_BUFFER = 'ADD_FILE_BUFFER',
     GET_FILE_OBJECT_URL = 'GET_FILE_OBJECT_URL',
     GET_FILE_BUFFER = 'GET_FILE_BUFFER',
+    IMPORT_CSV = 'IMPORT_CSV',
     OPEN = 'OPEN',
     CONNECT = 'CONNECT',
     DISCONNECT = 'DISCONNECT',
@@ -77,6 +78,7 @@ export type WorkerRequestVariant =
     | WorkerRequest<WorkerRequestType.ADD_FILE_BUFFER, [string, Uint8Array]>
     | WorkerRequest<WorkerRequestType.GET_FILE_OBJECT_URL, number>
     | WorkerRequest<WorkerRequestType.GET_FILE_BUFFER, number>
+    | WorkerRequest<WorkerRequestType.IMPORT_CSV, [number, string, string]>
     | WorkerRequest<WorkerRequestType.OPEN, string>
     | WorkerRequest<WorkerRequestType.CONNECT, null>
     | WorkerRequest<WorkerRequestType.DISCONNECT, number>
@@ -107,6 +109,7 @@ export type WorkerTaskVariant =
     | WorkerTask<WorkerRequestType.ADD_FILE_BUFFER, [string, Uint8Array], number>
     | WorkerTask<WorkerRequestType.GET_FILE_OBJECT_URL, number, string | null>
     | WorkerTask<WorkerRequestType.GET_FILE_BUFFER, number, Uint8Array | null>
+    | WorkerTask<WorkerRequestType.IMPORT_CSV, [number, string, string], null>
     | WorkerTask<WorkerRequestType.OPEN, string | null, null>
     | WorkerTask<WorkerRequestType.CONNECT, null, ConnectionID>
     | WorkerTask<WorkerRequestType.DISCONNECT, ConnectionID, null>

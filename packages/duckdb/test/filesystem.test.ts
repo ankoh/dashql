@@ -26,13 +26,13 @@ export function testFilesystem(
             );
         };
         it('File buffer used once', async () => {
-            const studenten = await resolveData('/uni/studenten.parquet');
+            const studenten = await resolveData('/data/uni/out/studenten.parquet');
             expect(studenten).not.toBeNull();
             await db().addFileBuffer('studenten.parquet', studenten!);
             await test();
         });
         it('File buffer re-registered', async () => {
-            const studenten = await resolveData('/uni/studenten.parquet');
+            const studenten = await resolveData('/data/uni/out/studenten.parquet');
             expect(studenten).not.toBeNull();
             await db().addFileBuffer('studenten.parquet', studenten!);
             await test();
@@ -40,7 +40,7 @@ export function testFilesystem(
             await test();
         });
         it('File buffer used twice', async () => {
-            const studenten = await resolveData('/uni/studenten.parquet');
+            const studenten = await resolveData('/data/uni/out/studenten.parquet');
             expect(studenten).not.toBeNull();
             await db().addFileBuffer('studenten.parquet', studenten!);
             await test();
@@ -50,7 +50,7 @@ export function testFilesystem(
 
     describe('Parquet Scans', () => {
         it('single table', async () => {
-            const studenten = await resolveData('/uni/studenten.parquet');
+            const studenten = await resolveData('/data/uni/out/studenten.parquet');
             expect(studenten).not.toBeNull();
             await db().addFileBuffer('studenten.parquet', studenten!);
             const result = await conn.sendQuery(`SELECT MatrNr FROM parquet_scan('studenten.parquet');`);
@@ -61,9 +61,9 @@ export function testFilesystem(
         });
 
         it('simple join', async () => {
-            const studenten = await resolveData('/uni/studenten.parquet');
-            const hoeren = await resolveData('/uni/hoeren.parquet');
-            const vorlesungen = await resolveData('/uni/vorlesungen.parquet');
+            const studenten = await resolveData('/data/uni/out/studenten.parquet');
+            const hoeren = await resolveData('/data/uni/out/hoeren.parquet');
+            const vorlesungen = await resolveData('/data/uni/out/vorlesungen.parquet');
             expect(studenten).not.toBeNull();
             expect(hoeren).not.toBeNull();
             expect(vorlesungen).not.toBeNull();
@@ -103,7 +103,7 @@ export function testFilesystem(
         });
 
         it('Huge file', async () => {
-            const orders = await resolveData('/tpch/5/orders.parquet');
+            const orders = await resolveData('/data/tpch/5/orders.parquet');
             if (!orders) {
                 pending('Missing TPCH files');
             } else {
@@ -126,9 +126,28 @@ export function testFilesystem(
         });
     });
 
+    describe('Import', () => {
+        it('CSV', async () => {
+            const studenten = await resolveData('/data/uni/out/studenten.csv');
+            expect(studenten).not.toBeNull();
+            await db().addFileBuffer('studenten.csv', studenten!);
+            await conn.importCSV('studenten.csv', {
+                import: {
+                    schema: 'csv_schema',
+                    table: 'csv_table',
+                },
+            });
+            const result = await conn.sendQuery(`SELECT MatrNr FROM csv_schema.csv_table;`);
+            const table = await arrow.Table.from<{ MatrNr: arrow.Int }>(result);
+            expect(table.getColumnAt(0)?.toArray()).toEqual(
+                new Int32Array([24002, 25403, 26120, 26830, 27550, 28106, 29120, 29555]),
+            );
+        });
+    });
+
     describe('Writing', () => {
         it('Copy To CSV', async () => {
-            const studenten = await resolveData('/uni/studenten.parquet');
+            const studenten = await resolveData('/data/uni/out/studenten.parquet');
             expect(studenten).not.toBeNull();
             await db().addFileBuffer('studenten.parquet', studenten!);
             const outID = await db().addFile('studenten.csv');
@@ -149,7 +168,7 @@ export function testFilesystem(
 `);
         });
         it('Copy To Parquet', async () => {
-            const studenten = await resolveData('/uni/studenten.parquet');
+            const studenten = await resolveData('/data/uni/out/studenten.parquet');
             expect(studenten).not.toBeNull();
             await db().addFileBuffer('studenten.parquet', studenten!);
             const outID = await db().addFile('studenten2.parquet');
@@ -160,7 +179,7 @@ export function testFilesystem(
         });
 
         it('Copy To Parquet And Load Again', async () => {
-            const studenten = await resolveData('/uni/studenten.parquet');
+            const studenten = await resolveData('/data/uni/out/studenten.parquet');
             expect(studenten).not.toBeNull();
             await db().addFileBuffer('studenten.parquet', studenten!);
             const outID = await db().addFile('studenten3.parquet');

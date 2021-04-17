@@ -17,12 +17,12 @@ export function testZip(
 
     describe('Zipper', () => {
         it('Entry Info', async () => {
-            const all = await resolveData('/uni/all.zip');
+            const all = await resolveData('/data/uni/out/all.zip');
             expect(all).not.toBeNull();
-            await db().addFileBuffer('/uni/all.zip', all!);
+            await db().addFileBuffer('/data/uni/out/all.zip', all!);
 
             const zip = new duckdb.ZipBindings(db());
-            zip.loadFile('/uni/all.zip');
+            zip.loadFile('/data/uni/out/all.zip');
 
             const entryCount = zip.readEntryCount();
             expect(entryCount).toBe(7);
@@ -43,14 +43,14 @@ export function testZip(
         });
 
         it('Extraction', async () => {
-            const all = await resolveData('/uni/all.zip')!;
-            const assistenten = await resolveData('/uni/assistenten.parquet')!;
+            const all = await resolveData('/data/uni/out/all.zip')!;
+            const assistenten = await resolveData('/data/uni/out/assistenten.parquet')!;
             expect(all).not.toBeNull();
-            await db().addFileBuffer('/uni/all.zip', all!);
+            await db().addFileBuffer('/data/uni/out/all.zip', all!);
             const outID = await db().addFileBuffer('/out/assistenten.parquet', new Uint8Array());
 
             const zip = new duckdb.ZipBindings(db());
-            zip.loadFile('/uni/all.zip');
+            zip.loadFile('/data/uni/out/all.zip');
 
             const entryCount = zip.readEntryCount();
             expect(entryCount).toBe(7);
@@ -65,13 +65,13 @@ export function testZip(
         });
 
         it('Scan Extracted', async () => {
-            const all = await resolveData('/uni/all.zip')!;
+            const all = await resolveData('/data/uni/out/all.zip')!;
             expect(all).not.toBeNull();
-            await db().addFileBuffer('/uni/all.zip', all!);
+            await db().addFileBuffer('/data/uni/out/all.zip', all!);
             await db().addFileBuffer('/out/assistenten.parquet', new Uint8Array());
 
             const zip = new duckdb.ZipBindings(db());
-            zip.loadFile('/uni/all.zip');
+            zip.loadFile('/data/uni/out/all.zip');
             zip.extractEntryToFile(0, '/out/assistenten.parquet');
 
             const table = await conn.runQuery<{

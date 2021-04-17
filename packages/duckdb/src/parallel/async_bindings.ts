@@ -10,6 +10,7 @@ import {
 } from './worker_request';
 import { Logger } from '../log';
 import { AsyncDuckDBConnection } from './async_connection';
+import { ImportCSVOptions } from 'src/bindings';
 
 export class AsyncDuckDB {
     /** The message handler */
@@ -336,6 +337,16 @@ export class AsyncDuckDB {
         const task = new WorkerTask<WorkerRequestType.GET_FILE_BUFFER, number, Uint8Array | null>(
             WorkerRequestType.GET_FILE_BUFFER,
             file_id,
+        );
+        return await this.postTask(task);
+    }
+
+    /// Import CSV from given path with additional options in JSON format
+    public async importCSV(conn: number, path: string, options: ImportCSVOptions | string) {
+        const optionsJson = typeof options == 'string' ? options : JSON.stringify(options);
+        const task = new WorkerTask<WorkerRequestType.IMPORT_CSV, [number, string, string], null>(
+            WorkerRequestType.IMPORT_CSV,
+            [conn, path, optionsJson],
         );
         return await this.postTask(task);
     }
