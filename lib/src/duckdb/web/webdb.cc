@@ -215,20 +215,14 @@ arrow::Status WebDB::Connection::ImportCSV(std::string_view path, std::string_vi
         return arrow::Status::Invalid("Required member \"import\" not present");
     }
 
-    auto res_reader = arrow::csv::TableReader::Make(io_context, input, read_options, parse_options, convert_options);
+    auto res_reader =
+        arrow::csv::StreamingReader::Make(io_context, input, read_options, parse_options, convert_options);
     if (!res_reader.ok()) {
         return res_reader.status();
     }
     auto reader = res_reader.ValueUnsafe();
-
-    auto maybe_table = reader->Read();
-    if (!maybe_table.ok()) {
-        return maybe_table.status();
-    }
-    auto table = maybe_table.ValueUnsafe();
     ArrowArrayStream stream;
-    auto batch_reader = std::make_shared<arrow::TableBatchReader>(*table);
-    auto status = arrow::ExportRecordBatchReader(batch_reader, &stream);
+    auto status = arrow::ExportRecordBatchReader(reader, &stream);
     if (!status.ok()) {
         return status;
     }
