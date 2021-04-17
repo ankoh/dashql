@@ -265,8 +265,10 @@ add_library(dashql_analyzer
     ${CMAKE_SOURCE_DIR}/src/analyzer/program_matcher.cc
     ${CMAKE_SOURCE_DIR}/src/analyzer/syntax_matcher.cc
     ${CMAKE_SOURCE_DIR}/src/analyzer/value.cc
-    ${CMAKE_SOURCE_DIR}/src/analyzer/stmt/viz_stmt.cc
+    ${CMAKE_SOURCE_DIR}/src/analyzer/stmt/extract_stmt.cc
     ${CMAKE_SOURCE_DIR}/src/analyzer/stmt/input_stmt.cc
+    ${CMAKE_SOURCE_DIR}/src/analyzer/stmt/load_stmt.cc
+    ${CMAKE_SOURCE_DIR}/src/analyzer/stmt/viz_stmt.cc
 )
 
 add_library(duckdb_web

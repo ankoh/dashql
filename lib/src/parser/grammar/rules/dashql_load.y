@@ -10,5 +10,5 @@ dashql_load_statement:
 dashql_load_method:
     HTTP    { $$ = Key::DASHQL_LOAD_METHOD << Enum(@$, sx::LoadMethodType::HTTP); }
   | FILE    { $$ = Key::DASHQL_LOAD_METHOD << Enum(@$, sx::LoadMethodType::FILE); }
-  | SCONST  { $$ = Key::DASHQL_LOAD_URI << String(@1); }
+  | SCONST  { $$ = Key::DASHQL_LOAD_FROM_URI << String(@1); }
     ;
