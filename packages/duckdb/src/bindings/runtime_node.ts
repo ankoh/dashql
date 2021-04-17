@@ -71,6 +71,10 @@ export const NodeRuntime: DuckDBRuntime & {
         if (file) return file.fileID;
         return openFile(path);
     },
+    duckdb_web_get_file_path: (fileId: number): string | null => {
+        const file = NodeRuntime.filesByID.get(fileId);
+        return !!file ? file.path : null;
+    },
     duckdb_web_get_file_object_url: (fileId: number): string | null => {
         const file = NodeRuntime.filesByID.get(fileId);
         if (!file) return null;
@@ -87,12 +91,13 @@ export const NodeRuntime: DuckDBRuntime & {
         const file = NodeRuntime.filesByID.get(fileId);
         if (!file) return 0;
         const inst = NodeRuntime.bindings!.instance!;
-        const heap = inst.HEAPU8;
+        const heap: Uint8Array = inst.HEAPU8;
         if (file.buffer) {
-            const dst = inst.HEAPU8.subarray(buf, buf + bytes);
-            dst.set(file.buffer);
-            return file.buffer.byteLength;
+            const src = file.buffer.subarray(location, location + bytes);
+            heap.set(src, buf);
+            return src.byteLength;
         }
+
         return fs.readSync(file.fd!, heap, buf, bytes, location);
     },
     duckdb_web_fs_write: (fileId: number, buf: number, bytes: number, location: number) => {

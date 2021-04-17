@@ -134,7 +134,6 @@ export function testFilesystem(
             const outID = await db().addFile('studenten.csv');
             await conn.runQuery(`CREATE TABLE studenten AS SELECT * FROM parquet_scan('studenten.parquet');`);
             await conn.runQuery(`COPY studenten TO 'studenten.csv' WITH (HEADER 1, DELIMITER ';', FORMAT CSV);`);
-            await db().flushFiles();
             const outBuffer = await db().getFileBuffer(outID);
             expect(outBuffer).not.toBeNull();
             const text = decoder.decode(outBuffer!);
@@ -167,7 +166,6 @@ export function testFilesystem(
             const outID = await db().addFile('studenten3.parquet');
             await conn.runQuery(`CREATE TABLE studenten3 AS SELECT * FROM parquet_scan('studenten.parquet');`);
             await conn.runQuery(`COPY studenten3 TO 'studenten3.parquet' (FORMAT PARQUET);`);
-            await db().flushFiles();
             const url = await db().getFileObjectURL(outID);
             expect(url).not.toBeNull();
             await conn.runQuery(`CREATE TABLE studenten4 AS SELECT * FROM parquet_scan('studenten3.parquet');`);

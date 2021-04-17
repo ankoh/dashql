@@ -26,6 +26,10 @@ export const MinimalRuntime: DuckDBRuntime & {
     duckdb_web_add_file_path(url: string, path: string): number {
         throw Error('cannot register a file path');
     },
+    duckdb_web_get_file_path: (fileId: number): string | null => {
+        const file = MinimalRuntime.filesByID.get(fileId);
+        return !!file ? file.url : null;
+    },
     duckdb_web_add_file_blob(url: string, data: any): number {
         throw Error('cannot register a file blob');
     },
@@ -54,10 +58,9 @@ export const MinimalRuntime: DuckDBRuntime & {
         const file = MinimalRuntime.filesByID.get(fileId);
         if (!file || !file.buffer) return 0;
         const inst = MinimalRuntime.bindings!.instance!;
-        const dst = inst.HEAPU8.subarray(buf, buf + bytes);
         const src = file.buffer.subarray(location, location + bytes);
-        dst.set(src);
-        return bytes;
+        inst.HEAPU8.set(src, buf);
+        return src.byteLength;
     },
     duckdb_web_fs_write: (fileId: number, buf: number, bytes: number, location: number) => {
         const file = MinimalRuntime.filesByID.get(fileId);

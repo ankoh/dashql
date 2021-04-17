@@ -223,6 +223,8 @@ class BufferManager : public std::enable_shared_from_this<BufferManager> {
     BufferRef FixPage(const FileRef& file, uint64_t page_id, bool exclusive);
     /// Flush all file frames to disk
     void FlushFile(const FileRef& file);
+    /// Flush file matching name to disk
+    void FlushFile(std::string_view path);
     /// Flush all outstanding frames to disk
     void Flush();
 
