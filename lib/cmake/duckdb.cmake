@@ -4,6 +4,11 @@ include(ExternalProject)
 
 # DuckDB
 
+set(DUCKDB_BUILD_TYPE ${CMAKE_BUILD_TYPE})
+if (EMSCRIPTEN)
+    set(DUCKDB_BUILD_TYPE Release)
+endif ()
+
 ExternalProject_Add(
     duckdb_ep
     SOURCE_DIR "${CMAKE_SOURCE_DIR}/../submodules/duckdb"
@@ -17,7 +22,7 @@ ExternalProject_Add(
         -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
         -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}
         -DCMAKE_MODULE_PATH=${CMAKE_MODULE_PATH}
-        -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+        -DCMAKE_BUILD_TYPE=${DUCKDB_BUILD_TYPE}
         -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>
         -DBUILD_PARQUET_EXTENSION=TRUE
         -DBUILD_SHELL=FALSE
