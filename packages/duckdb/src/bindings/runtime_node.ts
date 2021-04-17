@@ -73,7 +73,7 @@ export const NodeRuntime: DuckDBRuntime & {
     },
     duckdb_web_get_file_path: (fileId: number): string | null => {
         const file = NodeRuntime.filesByID.get(fileId);
-        return !!file ? file.path : null;
+        return file ? file.path : null;
     },
     duckdb_web_get_file_object_url: (fileId: number): string | null => {
         const file = NodeRuntime.filesByID.get(fileId);
