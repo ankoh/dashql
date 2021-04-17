@@ -2,11 +2,7 @@
 
 #include "duckdb/web/webdb.h"
 
-#include <arrow/ipc/options.h>
-
 #include <cstdio>
-#include <duckdb/common/file_system.hpp>
-#include <duckdb/common/types/data_chunk.hpp>
 #include <memory>
 #include <optional>
 #include <string_view>
@@ -16,6 +12,7 @@
 #include "arrow/c/bridge.h"
 #include "arrow/csv/api.h"
 #include "arrow/io/memory.h"
+#include "arrow/ipc/options.h"
 #include "arrow/ipc/writer.h"
 #include "arrow/json/api.h"
 #include "arrow/result.h"
@@ -24,6 +21,8 @@
 #include "dashql/common/defer.h"
 #include "duckdb.hpp"
 #include "duckdb/common/arrow.hpp"
+#include "duckdb/common/file_system.hpp"
+#include "duckdb/common/types/data_chunk.hpp"
 #include "duckdb/main/query_result.hpp"
 #include "duckdb/web/io/arrow_ifstream.h"
 #include "duckdb/web/io/buffered_filesystem.h"
