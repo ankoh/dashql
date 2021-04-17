@@ -350,6 +350,7 @@ if (EMSCRIPTEN)
             _free, \
             _duckdb_web_clear_response, \
             _duckdb_web_flush_files, \
+            _duckdb_web_flush_file, \
             _duckdb_web_connect, \
             _duckdb_web_disconnect, \
             _duckdb_web_fs_directory_list_files_callback, \

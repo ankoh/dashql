@@ -86,6 +86,8 @@ class WebDB {
     void Disconnect(Connection* connection);
     /// Flush all file buffers
     void FlushFiles();
+    /// Flush file by path
+    void FlushFile(std::string_view path);
 
     /// Get the static webdb instance
     static WebDB& GetInstance();

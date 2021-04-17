@@ -360,6 +360,16 @@ void BufferManager::FlushFile(const FileRef& file_ref) {
     }
 }
 
+void BufferManager::FlushFile(std::string_view path) {
+    if (auto file = files_by_path.find(path); file != files_by_path.end()) {
+        auto lb = frames.lower_bound(BuildFrameID(file->second));
+        auto ub = frames.lower_bound(BuildFrameID(file->second + 1));
+        for (auto iter = lb; iter != ub; ++iter) {
+            FlushFrame(iter->second);
+        }
+    }
+}
+
 void BufferManager::Flush() {
     for (auto& frame : frames) {
         FlushFrame(frame.second);
