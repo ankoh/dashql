@@ -38,6 +38,11 @@ void duckdb_web_flush_files() {
     auto& webdb = WebDB::GetInstance();
     webdb.FlushFiles();
 }
+/// Flush file buffer by path
+void duckdb_web_flush_file(const char* path) {
+    auto& webdb = WebDB::GetInstance();
+    webdb.FlushFile(path);
+}
 /// Run a query
 void duckdb_web_query_run(WASMResponse* packed, ConnectionHdl connHdl, const char* script) {
     auto c = reinterpret_cast<WebDB::Connection*>(connHdl);

@@ -23,9 +23,12 @@ export const BrowserRuntime: DuckDBRuntime & {
     filesByID: new Map<number, BrowserRuntimeFile>(),
     nextFileID: 0,
     bindings: null,
-
     duckdb_web_add_file_path: (_url: string, _path: string) => {
         throw Error('cannot register a file path');
+    },
+    duckdb_web_get_file_path: (fileId: number): string | null => {
+        const file = BrowserRuntime.filesByID.get(fileId);
+        return !!file ? file.url : null;
     },
     duckdb_web_add_file_blob: (url: string, blob: any) => {
         const file = BrowserRuntime.filesByURL.get(url);
@@ -76,17 +79,16 @@ export const BrowserRuntime: DuckDBRuntime & {
         const file = BrowserRuntime.filesByID.get(fileId);
         if (!file) return 0;
         const inst = BrowserRuntime.bindings!.instance!;
-        const dst = inst.HEAPU8.subarray(buf, buf + bytes);
         // We copy the blob only if the file was written to
         if (file.buffer) {
             const src = file.buffer.subarray(location, location + bytes);
-            dst.set(src);
-            return bytes;
+            inst.HEAPU8.set(src, buf);
+            return src.byteLength;
         } else {
             const blob = file.blob!.slice(location, location + bytes);
             const src = new Uint8Array(new FileReaderSync().readAsArrayBuffer(blob));
-            dst.set(src);
-            return bytes;
+            inst.HEAPU8.set(src, buf);
+            return src.byteLength;
         }
     },
     duckdb_web_fs_write: (fileId: number, buf: number, bytes: number, location: number) => {
