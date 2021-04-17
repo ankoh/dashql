@@ -149,6 +149,8 @@ WebDB::Connection* WebDB::Connect() {
 void WebDB::Disconnect(Connection* session) { connections_.erase(session); }
 /// Flush all file buffers
 void WebDB::FlushFiles() { buffer_manager_->Flush(); }
+/// Flush file by path
+void WebDB::FlushFile(std::string_view path) { buffer_manager_->FlushFile(path); }
 
 }  // namespace web
 }  // namespace duckdb

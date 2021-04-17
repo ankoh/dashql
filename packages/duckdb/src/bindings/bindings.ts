@@ -52,10 +52,16 @@ export abstract class DuckDBBindings {
     }
     /// Get the file object URL
     public getFileObjectURL(fileId: number): string | null {
+        const path = this._runtime.duckdb_web_get_file_path(fileId);
+        if (!path) return null;
+        this.instance!.ccall('duckdb_web_flush_file', null, ['string'], [path]);
         return this._runtime.duckdb_web_get_file_object_url(fileId);
     }
     /// Get the file buffer
     public getFileBuffer(fileId: number): Uint8Array | null {
+        const path = this._runtime.duckdb_web_get_file_path(fileId);
+        if (!path) return null;
+        this.instance!.ccall('duckdb_web_flush_file', null, ['string'], [path]);
         return this._runtime.duckdb_web_get_file_buffer(fileId);
     }
 

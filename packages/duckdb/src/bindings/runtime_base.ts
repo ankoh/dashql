@@ -1,6 +1,7 @@
 export interface DuckDBRuntime {
     bindings: any;
     duckdb_web_add_file_path(url: string, path: string): number;
+    duckdb_web_get_file_path(fileId: number): string | null;
     duckdb_web_add_file_blob(url: string, data: any): number;
     duckdb_web_add_file_buffer(url: string, buffer: Uint8Array): number;
     duckdb_web_get_file_object_url(fileId: number): string | null;
