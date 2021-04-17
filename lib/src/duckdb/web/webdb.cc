@@ -3,6 +3,7 @@
 #include "duckdb/web/webdb.h"
 
 #include <cstdio>
+#include <iostream>
 #include <memory>
 #include <optional>
 #include <string_view>
@@ -17,6 +18,7 @@
 #include "arrow/json/api.h"
 #include "arrow/result.h"
 #include "arrow/status.h"
+#include "arrow/table.h"
 #include "arrow/type_fwd.h"
 #include "dashql/common/defer.h"
 #include "duckdb.hpp"
@@ -196,20 +198,20 @@ arrow::Status WebDB::Connection::ImportCSV(std::string_view path, std::string_vi
         SET_OPTION_ARRAY(obj, convert_options, include_columns, String);
     }
 
-    std::string schema_name;
+    std::string schema_name = DEFAULT_SCHEMA;
     std::string table_name;
 
     if (document.HasMember("import")) {
         auto const& obj = document["import"];
         if (obj.HasMember("schema")) {
             if (!obj["schema"].IsString()) return arrow::Status::Invalid("import.schema expected to be String");
-            schema_name = obj.GetString();
+            schema_name = obj["schema"].GetString();
         }
         if (!obj.HasMember("table")) {
             return arrow::Status::Invalid("Required member import.table not present");
         }
         if (!obj["table"].IsString()) return arrow::Status::Invalid("import.table expected to be String");
-        table_name = obj.GetString();
+        table_name = obj["table"].GetString();
     } else {
         return arrow::Status::Invalid("Required member \"import\" not present");
     }
@@ -225,8 +227,17 @@ arrow::Status WebDB::Connection::ImportCSV(std::string_view path, std::string_vi
         return maybe_table.status();
     }
     auto table = maybe_table.ValueUnsafe();
+    ArrowArrayStream stream;
+    auto batch_reader = std::make_shared<arrow::TableBatchReader>(*table);
+    auto status = arrow::ExportRecordBatchReader(batch_reader, &stream);
+    if (!status.ok()) {
+        return status;
+    }
 
-    // import now
+    RunQuery("CREATE SCHEMA IF NOT EXISTS " + schema_name);
+    connection_.TableFunction("arrow_scan", {duckdb::Value::POINTER((uintptr_t)&stream)})
+        ->Create(schema_name, table_name);
+
     return arrow::Status::OK();
 }
 
