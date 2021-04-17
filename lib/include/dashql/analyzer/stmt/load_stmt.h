@@ -39,6 +39,8 @@ class LoadStatement {
     sx::Location GetTarget() const;
     /// Print as script
     void PrintScript(std::ostream& out) const;
+    /// Pack the extract statement
+    flatbuffers::Offset<proto::analyzer::LoadStatement> Pack(flatbuffers::FlatBufferBuilder& builder) const;
 
     /// Read a viz statement
     static std::unique_ptr<LoadStatement> ReadFrom(ProgramInstance& instance, size_t statement_id);
