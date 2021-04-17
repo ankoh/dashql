@@ -28,7 +28,7 @@ export const MinimalRuntime: DuckDBRuntime & {
     },
     duckdb_web_get_file_path: (fileId: number): string | null => {
         const file = MinimalRuntime.filesByID.get(fileId);
-        return !!file ? file.url : null;
+        return file ? file.url : null;
     },
     duckdb_web_add_file_blob(url: string, data: any): number {
         throw Error('cannot register a file blob');
