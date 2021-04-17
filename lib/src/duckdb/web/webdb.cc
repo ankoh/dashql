@@ -3,7 +3,6 @@
 #include "duckdb/web/webdb.h"
 
 #include <cstdio>
-#include <iostream>
 #include <memory>
 #include <optional>
 #include <string_view>
@@ -149,7 +148,7 @@ arrow::Result<std::shared_ptr<arrow::Buffer>> WebDB::Connection::FetchQueryResul
             if (!val.Is##value_type()) {                                                                            \
                 return arrow::Status::Invalid(#source "." #member " values expected to be " #value_type);           \
             }                                                                                                       \
-            target.member.push_back(source[#member].Get##value_type());                                             \
+            target.member.push_back(val.Get##value_type());                                                         \
         }                                                                                                           \
     }
 
@@ -234,7 +233,10 @@ arrow::Status WebDB::Connection::ImportCSV(std::string_view path, std::string_vi
         return status;
     }
 
-    RunQuery("CREATE SCHEMA IF NOT EXISTS " + schema_name);
+    auto create_status = RunQuery("CREATE SCHEMA IF NOT EXISTS " + schema_name);
+    if (!create_status.ok()) {
+        return create_status.status();
+    }
     connection_.TableFunction("arrow_scan", {duckdb::Value::POINTER((uintptr_t)&stream)})
         ->Create(schema_name, table_name);
 
