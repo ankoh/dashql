@@ -33,7 +33,6 @@
 #include "rapidjson/document.h"
 #include "rapidjson/error/en.h"
 #include "rapidjson/reader.h"
-#include "rapidjson/schema.h"
 
 namespace duckdb {
 namespace web {
@@ -130,139 +129,11 @@ arrow::Result<std::shared_ptr<arrow::Buffer>> WebDB::Connection::FetchQueryResul
     }
 }
 
-const char* csv_options_schema = R"({
-    "type": "object",
-    "properties": {
-        "read": {
-            "type": "object",
-            "properties": {
-                "block_size": {
-                    "type": "integer"
-                },
-                "skip_rows": {
-                    "type": "integer"
-                },
-                "column_names": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "autogenerate_column_names": {
-                    "type": "boolean"
-                }
-            }
-        },
-        "parse": {
-            "type": "object",
-            "properties": {
-                "delimiter": {
-                    "type": "string"
-                },
-                "quoting": {
-                    "type": "boolean"
-                },
-                "quote_char": {
-                    "type": "string"
-                },
-                "double_quote": {
-                    "type": "boolean"
-                },
-                "escaping": {
-                    "type": "boolean"
-                },
-                "escape_char": {
-                    "type": "string"
-                },
-                "newlines_in_values": {
-                    "type": "boolean"
-                },
-                "ignore_empty_lines": {
-                    "type": "boolean"
-                }
-            }
-        },
-        "convert": {
-            "type": "object",
-            "properties": {
-                "check_utf8": {
-                    "type": "boolean"
-                },
-                "strings_can_be_null": {
-                    "type": "boolean"
-                },
-                "null_values": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "true_values": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "false_values": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "auto_dict_encode": {
-                    "type": "boolean"
-                },
-                "auto_dict_max_cardinality": {
-                    "type": "integer"
-                },
-                "include_columns": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "include_missing_columns": {
-                    "type": "boolean"
-                }
-            }
-        },
-        "import": {
-            "type": "object",
-            "properties": {
-                "schema": {
-                    "type": "string"
-                },
-                "table": {
-                    "type": "string"
-                }
-            },
-            "required": [
-                "table"
-            ]
-        }
-    },
-    "required": [
-        "import"
-    ]
-})";
-
 arrow::Status WebDB::Connection::ImportCSV(std::string_view path, std::string_view options) {
-    static rapidjson::Document schema;
-    if (schema.IsEmpty()) {
-        rapidjson::ParseResult ok = schema.Parse(csv_options_schema);
-        if (!ok) {
-            return arrow::Status::Invalid(rapidjson::GetParseError_En(ok.Code()));
-        }
-    }
-
     rapidjson::Document document;
     rapidjson::ParseResult ok = document.Parse(options.data());
     if (!ok) {
         return arrow::Status::Invalid(rapidjson::GetParseError_En(ok.Code()));
-    }
-
-    rapidjson::SchemaValidator validator(schema);
-    if (!document.Accept(validator)) {
     }
 
     auto input = std::make_shared<io::InputFileStream>(webdb_.buffer_manager_, path.data());
