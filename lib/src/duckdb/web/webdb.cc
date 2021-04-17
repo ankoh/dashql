@@ -14,8 +14,10 @@
 
 #include "arrow/buffer.h"
 #include "arrow/c/bridge.h"
+#include "arrow/csv/api.h"
 #include "arrow/io/memory.h"
 #include "arrow/ipc/writer.h"
+#include "arrow/json/api.h"
 #include "arrow/result.h"
 #include "arrow/status.h"
 #include "arrow/type_fwd.h"
@@ -28,6 +30,10 @@
 #include "duckdb/web/io/default_filesystem.h"
 #include "duckdb/web/io/web_filesystem.h"
 #include "parquet-extension.hpp"
+#include "rapidjson/document.h"
+#include "rapidjson/error/en.h"
+#include "rapidjson/reader.h"
+#include "rapidjson/schema.h"
 
 namespace duckdb {
 namespace web {
@@ -122,6 +128,201 @@ arrow::Result<std::shared_ptr<arrow::Buffer>> WebDB::Connection::FetchQueryResul
     } catch (std::exception& e) {
         return arrow::Status{arrow::StatusCode::ExecutionError, e.what()};
     }
+}
+
+const char* csv_options_schema = R"({
+    "type": "object",
+    "properties": {
+        "read": {
+            "type": "object",
+            "properties": {
+                "block_size": {
+                    "type": "integer"
+                },
+                "skip_rows": {
+                    "type": "integer"
+                },
+                "column_names": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "autogenerate_column_names": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "parse": {
+            "type": "object",
+            "properties": {
+                "delimiter": {
+                    "type": "string"
+                },
+                "quoting": {
+                    "type": "boolean"
+                },
+                "quote_char": {
+                    "type": "string"
+                },
+                "double_quote": {
+                    "type": "boolean"
+                },
+                "escaping": {
+                    "type": "boolean"
+                },
+                "escape_char": {
+                    "type": "string"
+                },
+                "newlines_in_values": {
+                    "type": "boolean"
+                },
+                "ignore_empty_lines": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "convert": {
+            "type": "object",
+            "properties": {
+                "check_utf8": {
+                    "type": "boolean"
+                },
+                "strings_can_be_null": {
+                    "type": "boolean"
+                },
+                "null_values": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "true_values": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "false_values": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "auto_dict_encode": {
+                    "type": "boolean"
+                },
+                "auto_dict_max_cardinality": {
+                    "type": "integer"
+                },
+                "include_columns": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "include_missing_columns": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "import": {
+            "type": "object",
+            "properties": {
+                "schema": {
+                    "type": "string"
+                },
+                "table": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "table"
+            ]
+        }
+    },
+    "required": [
+        "import"
+    ]
+})";
+
+arrow::Status WebDB::Connection::ImportCSV(std::string_view path, std::string_view options) {
+    static rapidjson::Document schema;
+    if (schema.IsEmpty()) {
+        rapidjson::ParseResult ok = schema.Parse(csv_options_schema);
+        if (!ok) {
+            return arrow::Status::Invalid(rapidjson::GetParseError_En(ok.Code()));
+        }
+    }
+
+    rapidjson::Document document;
+    rapidjson::ParseResult ok = document.Parse(options.data());
+    if (!ok) {
+        return arrow::Status::Invalid(rapidjson::GetParseError_En(ok.Code()));
+    }
+
+    rapidjson::SchemaValidator validator(schema);
+    if (!document.Accept(validator)) {
+    }
+
+    auto input = std::make_shared<io::InputFileStream>(webdb_.buffer_manager_, path.data());
+
+    auto io_context = arrow::io::default_io_context();
+    auto read_options = arrow::csv::ReadOptions::Defaults();
+    read_options.use_threads = false;
+    if (document.HasMember("read")) {
+        auto const& read = document["read"];
+        if (read.HasMember("block_size")) {
+            if (!read["block_size"].IsInt()) {
+                return arrow::Status::Invalid("read.block_size expected to be integer");
+            }
+            read_options.block_size = read["block_size"].GetInt();
+        }
+        if (read.HasMember("skip_rows")) {
+            if (!read["skip_rows"].IsInt()) {
+                return arrow::Status::Invalid("read.skip_rows expected to be integer");
+            }
+            read_options.skip_rows = read["skip_rows"].GetInt();
+        }
+        if (read.HasMember("column_names")) {
+            if (!read["column_names"].IsArray()) {
+                return arrow::Status::Invalid("read.column_names expected to be array");
+            }
+            for (auto const& val : read["column_names"].GetArray()) {
+                if (!val.IsString()) {
+                    return arrow::Status::Invalid("read.column_names values expected to be strings");
+                }
+                read_options.column_names.push_back(val.GetString());
+            }
+        }
+        if (read.HasMember("autogenerate_column_names")) {
+            if (!read["autogenerate_column_names"].IsBool()) {
+                return arrow::Status::Invalid("read.autogenerate_column_names expected to be boolean");
+            }
+            read_options.autogenerate_column_names = read["autogenerate_column_names"].GetBool();
+        }
+    }
+    auto parse_options = arrow::csv::ParseOptions::Defaults();
+    auto convert_options = arrow::csv::ConvertOptions::Defaults();
+
+    auto res_reader = arrow::csv::TableReader::Make(io_context, input, read_options, parse_options, convert_options);
+    if (!res_reader.ok()) {
+        return res_reader.status();
+    }
+    auto reader = res_reader.ValueUnsafe();
+
+    auto maybe_table = reader->Read();
+    if (!maybe_table.ok()) {
+        return maybe_table.status();
+    }
+    auto table = maybe_table.ValueUnsafe();
+
+    // import now
+    return arrow::Status::OK();
+}
+
+arrow::Status WebDB::Connection::ImportJSON(std::string_view path, std::string_view options) {
+    return arrow::Status::OK();
 }
 
 /// Constructor

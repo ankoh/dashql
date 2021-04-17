@@ -54,6 +54,10 @@ class WebDB {
         arrow::Result<std::shared_ptr<arrow::Buffer>> SendQuery(std::string_view text);
         /// Fetch query results and return an arrow buffer
         arrow::Result<std::shared_ptr<arrow::Buffer>> FetchQueryResults();
+        /// Import CSV from given path with additional options in JSON format
+        arrow::Status ImportCSV(std::string_view path, std::string_view options);
+        /// Import JSON from given path with additional options in JSON format
+        arrow::Status ImportJSON(std::string_view path, std::string_view options);
     };
 
    protected:

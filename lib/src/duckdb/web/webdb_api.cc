@@ -95,4 +95,17 @@ void duckdb_web_zip_extract_entry_to_file(WASMResponse* packed, size_t entryID, 
     auto bytes = webdb.zip()->ExtractEntryToFile(entryID, out);
     WASMResponseBuffer::GetInstance().Store(*packed, bytes);
 }
+/// Import CSV from a file
+void duckdb_web_import_csv(WASMResponse* packed, ConnectionHdl connHdl, const char* path, const char* options) {
+    auto c = reinterpret_cast<WebDB::Connection*>(connHdl);
+    auto r = c->ImportCSV(path, options);
+    WASMResponseBuffer::GetInstance().Store(*packed, std::move(r));
+}
+
+/// Import JSON from a file
+void duckdb_web_import_json(WASMResponse* packed, ConnectionHdl connHdl, const char* path, const char* options) {
+    auto c = reinterpret_cast<WebDB::Connection*>(connHdl);
+    auto r = c->ImportJSON(path, options);
+    WASMResponseBuffer::GetInstance().Store(*packed, std::move(r));
+}
 }
