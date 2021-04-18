@@ -168,6 +168,7 @@ arrow::Status WebDB::Connection::ImportCSV(std::string_view path, std::string_vi
     auto convert_options = arrow::csv::ConvertOptions::Defaults();
     if (document.HasMember("read")) {
         auto const& obj = document["read"];
+        if (!obj.IsObject()) return arrow::Status::Invalid("read expected to be Object");
         SET_OPTION(obj, read_options, block_size, Int);
         SET_OPTION(obj, read_options, skip_rows, Int);
         SET_OPTION(obj, read_options, autogenerate_column_names, Bool);
@@ -175,6 +176,7 @@ arrow::Status WebDB::Connection::ImportCSV(std::string_view path, std::string_vi
     }
     if (document.HasMember("parse")) {
         auto const& obj = document["parse"];
+        if (!obj.IsObject()) return arrow::Status::Invalid("parse expected to be Object");
         SET_OPTION(obj, parse_options, quoting, Bool);
         SET_OPTION(obj, parse_options, double_quote, Bool);
         SET_OPTION(obj, parse_options, escaping, Bool);
@@ -186,6 +188,7 @@ arrow::Status WebDB::Connection::ImportCSV(std::string_view path, std::string_vi
     }
     if (document.HasMember("convert")) {
         auto const& obj = document["convert"];
+        if (!obj.IsObject()) return arrow::Status::Invalid("convert expected to be Object");
         SET_OPTION(obj, convert_options, check_utf8, Bool);
         SET_OPTION(obj, convert_options, strings_can_be_null, Bool);
         SET_OPTION(obj, convert_options, auto_dict_encode, Bool);
@@ -202,6 +205,7 @@ arrow::Status WebDB::Connection::ImportCSV(std::string_view path, std::string_vi
 
     if (document.HasMember("import")) {
         auto const& obj = document["import"];
+        if (!obj.IsObject()) return arrow::Status::Invalid("import expected to be Object");
         if (obj.HasMember("schema")) {
             if (!obj["schema"].IsString()) return arrow::Status::Invalid("import.schema expected to be String");
             schema_name = obj["schema"].GetString();
@@ -215,26 +219,30 @@ arrow::Status WebDB::Connection::ImportCSV(std::string_view path, std::string_vi
         return arrow::Status::Invalid("Required member \"import\" not present");
     }
 
-    auto res_reader =
-        arrow::csv::StreamingReader::Make(io_context, input, read_options, parse_options, convert_options);
-    if (!res_reader.ok()) {
-        return res_reader.status();
-    }
-    auto reader = res_reader.ValueUnsafe();
-    ArrowArrayStream stream;
-    auto status = arrow::ExportRecordBatchReader(reader, &stream);
-    if (!status.ok()) {
-        return status;
-    }
+    try {
+        auto res_reader =
+            arrow::csv::StreamingReader::Make(io_context, input, read_options, parse_options, convert_options);
+        if (!res_reader.ok()) {
+            return res_reader.status();
+        }
+        auto reader = res_reader.ValueUnsafe();
+        ArrowArrayStream stream;
+        auto status = arrow::ExportRecordBatchReader(reader, &stream);
+        if (!status.ok()) {
+            return status;
+        }
 
-    auto create_status = RunQuery("CREATE SCHEMA IF NOT EXISTS " + schema_name);
-    if (!create_status.ok()) {
-        return create_status.status();
-    }
-    connection_.TableFunction("arrow_scan", {duckdb::Value::POINTER((uintptr_t)&stream)})
-        ->Create(schema_name, table_name);
+        auto create_status = RunQuery("CREATE SCHEMA IF NOT EXISTS " + schema_name);
+        if (!create_status.ok()) {
+            return create_status.status();
+        }
+        connection_.TableFunction("arrow_scan", {duckdb::Value::POINTER((uintptr_t)&stream)})
+            ->Create(schema_name, table_name);
 
-    return arrow::Status::OK();
+        return arrow::Status::OK();
+    } catch (std::exception const& e) {
+        return arrow::Status::UnknownError(e.what());
+    }
 }
 
 arrow::Status WebDB::Connection::ImportJSON(std::string_view path, std::string_view options) {
