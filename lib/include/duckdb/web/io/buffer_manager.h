@@ -114,6 +114,8 @@ class BufferManager : public std::enable_shared_from_this<BufferManager> {
         auto& GetPath() const { return file_->path; }
         /// Get handle
         auto& GetHandle() const { return *file_->handle; }
+        /// Get the size
+        auto GetSize() const { return file_->file_size_required; }
         /// Release the file ref
         void Release();
     };
