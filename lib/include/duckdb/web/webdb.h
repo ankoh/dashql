@@ -77,6 +77,8 @@ class WebDB {
     auto& filesystem() { return database_->GetFileSystem(); }
     /// Get the database
     auto& database() { return *database_; }
+    /// Get the buffer manager
+    auto& buffer_manager() { return *buffer_manager_; }
     /// Get the zipper
     auto* zip() { return zip_.get(); }
 
