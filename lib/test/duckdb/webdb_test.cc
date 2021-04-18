@@ -9,6 +9,7 @@
 #include "duckdb/common/types/date.hpp"
 #include "duckdb/common/types/timestamp.hpp"
 #include "duckdb/execution/operator/persistent/buffered_csv_reader.hpp"
+#include "duckdb/web/io/streambuf.h"
 #include "gtest/gtest.h"
 #include "parquet-extension.hpp"
 
@@ -93,23 +94,27 @@ TEST(WebDB, LoadParquetTwice) {
                  "29555\tFeuerbach\t2\t\n\n");
 }
 
-// XXX Wrong result
 // TEST(WebDB, LoadCSVIStream) {
 //     using LT = duckdb::LogicalType;
 //
-//     auto db = make_shared<duckdb::DuckDB>();
 //     auto data = dashql::test::SOURCE_DIR / ".." / "data" / "test.csv";
+//
+//     // Create database
+//     auto buffer_manager = std::make_shared<io::BufferManager>(io::CreateDefaultFileSystem());
+//     auto buffered_filesystem = std::make_unique<io::BufferedFileSystem>(buffer_manager);
+//     duckdb::DBConfig db_config;
+//     db_config.file_system = std::move(buffered_filesystem);
+//
+//     auto db = make_shared<duckdb::DuckDB>(nullptr, &db_config);
 //     duckdb::BufferedCSVReaderOptions options;
-//     options.auto_detect = true;
+//     options.delimiter = ',';
 //     std::vector<duckdb::LogicalType> column_types{LT::INTEGER, LT::INTEGER, LT::INTEGER};
 //     duckdb::DataChunk output_chunk;
 //     output_chunk.Initialize(column_types);
-//     auto str = data.string();
-//     auto fh = db->GetFileSystem().OpenFile(str, duckdb::FileFlags::FILE_FLAGS_READ);
-//     duckdb::web::FileSystemStreamBuffer streambuf(db->GetFileSystem(), *fh);
 //
+//     auto input = std::make_shared<io::InputStreamBuffer>(buffer_manager, data.c_str());
 //     try {
-//         duckdb::BufferedCSVReader reader(options, column_types, std::make_unique<std::istream>(&streambuf));
+//         duckdb::BufferedCSVReader reader(options, column_types, std::make_unique<std::istream>(input.get()));
 //         reader.ParseCSV(output_chunk);
 //         ASSERT_STREQ(output_chunk.ToString().c_str(),
 //                      "Chunk - [3 Columns]\n"
