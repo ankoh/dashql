@@ -28,6 +28,9 @@ class LoadStatement {
     /// The AST index
     const ASTIndex ast_;
 
+    /// The method
+    sx::LoadMethodType method_;
+
    public:
     /// Constructor
     LoadStatement(ProgramInstance& instance, size_t statement_id, ASTIndex ast);
@@ -39,6 +42,8 @@ class LoadStatement {
     sx::Location GetTarget() const;
     /// Print as script
     void PrintScript(std::ostream& out) const;
+    /// Print the options as json
+    void PrintOptionsAsJSON(std::ostream& out, bool pretty = false) const;
     /// Pack the extract statement
     flatbuffers::Offset<proto::analyzer::LoadStatement> Pack(flatbuffers::FlatBufferBuilder& builder) const;
 
