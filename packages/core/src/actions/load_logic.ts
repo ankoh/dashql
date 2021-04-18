@@ -21,5 +21,6 @@ export class LoadActionLogic extends ProgramActionLogic {
         }
 
         console.log(`load method: ${proto.syntax.LoadMethodType[load.method()].toString()}`);
+        console.log(load.options);
     }
 }

@@ -283,11 +283,11 @@ export class Statement {
         return this._statement.statementType();
     }
     /// Get the short name
-    public get targetNameShort(): string {
+    public get nameShort(): string {
         return this._statement.nameShort();
     }
     /// Get the qualified name
-    public get targetNameQualified(): string {
+    public get nameQualified(): string {
         return this._statement.nameQualified();
     }
     /// Get the root
