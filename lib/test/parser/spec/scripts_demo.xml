@@ -50,7 +50,7 @@
                     <node key="DASHQL_OPTION_TITLE" loc="338..347" text="'Country'" />
                 </node>
             </statement>
-            <statement type="LOAD_HTTP" name="global.weather_csv">
+            <statement type="LOAD" name="global.weather_csv">
                 <node type="OBJECT_DASHQL_LOAD" loc="554..675" text="LOAD weath..&#10;        )">
                     <node key="DASHQL_LOAD_METHOD" value="HTTP" />
                     <node key="DASHQL_STATEMENT_NAME">
@@ -70,7 +70,7 @@
                     </node>
                 </node>
             </statement>
-            <statement type="EXTRACT_CSV" name="global.weather">
+            <statement type="EXTRACT" name="global.weather">
                 <node type="OBJECT_DASHQL_EXTRACT" loc="786..828" text="EXTRACT we.. USING CSV">
                     <node key="DASHQL_EXTRACT_DATA">
                         <node loc="807..818" text="weather_csv" />

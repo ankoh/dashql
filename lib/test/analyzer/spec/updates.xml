@@ -26,7 +26,7 @@
                         <ref action="1" />
                     </required_for>
                 </action>
-                <action origin="1" type="LOAD_HTTP" status="NONE" object_id="1">
+                <action origin="1" type="LOAD" status="NONE" object_id="1">
                     <target name_qualified="global.weather_csv" name_short="weather_csv" />
                     <depends_on>
                         <ref action="0" />
@@ -69,7 +69,7 @@
                         <ref action="1" />
                     </required_for>
                 </action>
-                <action origin="1" type="LOAD_HTTP" status="NONE" object_id="3">
+                <action origin="1" type="LOAD" status="NONE" object_id="3">
                     <target name_qualified="global.weather_csv" name_short="weather_csv" />
                     <depends_on>
                         <ref action="0" />

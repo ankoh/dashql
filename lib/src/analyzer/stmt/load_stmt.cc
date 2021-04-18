@@ -1,6 +1,9 @@
 #include "dashql/analyzer/stmt/load_stmt.h"
 
+#include <regex>
+
 #include "dashql/analyzer/program_instance.h"
+#include "dashql/common/string.h"
 #include "dashql/proto_generated.h"
 
 constexpr size_t SX_LOAD_METHOD = 0;
@@ -12,6 +15,8 @@ namespace dashql {
 
 LoadStatement::LoadStatement(ProgramInstance& instance, size_t statement_id, ASTIndex ast)
     : instance_(instance), statement_id_(statement_id), ast_(ast) {}
+
+static std::regex LOAD_URI_HTTP{"^https?://.*"};
 
 std::unique_ptr<LoadStatement> LoadStatement::ReadFrom(ProgramInstance& instance, size_t stmt_id) {
     // clang-format off
@@ -31,13 +36,19 @@ std::unique_ptr<LoadStatement> LoadStatement::ReadFrom(ProgramInstance& instance
     auto ast = schema.Match(instance, stmt->root_node, 2);
 
     // Get load method
-    if (ast[SX_LOAD_METHOD]) {
-        auto node_id = ast[SX_LOAD_METHOD].node_id;
-        auto& node = program.nodes[node_id];
+    auto method = sx::LoadMethodType::NONE;
+    if (auto m = ast[SX_LOAD_METHOD]; m) {
+        method = m.DataAsEnum<sx::LoadMethodType>();
     }
-    if (ast[SX_LOAD_FROM_URI]) {
+    if (auto m = ast[SX_LOAD_FROM_URI]; m) {
         auto node_id = ast[SX_LOAD_FROM_URI].node_id;
         auto& node = program.nodes[node_id];
+
+        // Match method prefixes
+        auto uri = std::string{trimview(instance.TextAt(node.location()), isNoQuote)};
+        if (std::regex_match(uri, LOAD_URI_HTTP)) {
+            method = sx::LoadMethodType::HTTP;
+        }
     }
 
     auto load = std::make_unique<LoadStatement>(instance, stmt_id, std::move(ast));

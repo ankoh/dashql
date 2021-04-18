@@ -459,11 +459,8 @@ enum AttributeKey: uint16 {
 enum StatementType: uint8 {
     NONE,
     INPUT,
-    LOAD_FILE,
-    LOAD_HTTP,
-    EXTRACT_CSV,
-    EXTRACT_JSON,
-    EXTRACT_PARQUET,
+    LOAD,
+    EXTRACT,
     SELECT,
     SELECT_INTO,
     CREATE_TABLE,
