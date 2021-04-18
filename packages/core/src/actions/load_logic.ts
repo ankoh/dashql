@@ -10,5 +10,16 @@ export class LoadActionLogic extends ProgramActionLogic {
 
     public prepare(_context: ActionContext, _planObjects: PlanObject[]): void {}
     public willExecute(_context: ActionContext): void {}
-    public async execute(_context: ActionContext): Promise<void> {}
+
+    public async execute(context: ActionContext): Promise<void> {
+        const instance = context.plan.programInstance;
+        const stmtId = this._origin.statementId;
+        const load = instance.loadStatements.get(stmtId);
+        if (!load) {
+            console.log(`missing information for load statement ${stmtId}`);
+            return;
+        }
+
+        console.log(`load method: ${proto.syntax.LoadMethodType[load.method()].toString()}`);
+    }
 }

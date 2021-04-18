@@ -20,6 +20,7 @@ export class ExtractActionLogic extends ProgramActionLogic {
             return;
         }
 
-        console.log(`indirection: ${xtr.targetIndirection()}`);
+        console.log(`extract method: ${proto.syntax.ExtractMethodType[xtr.method()].toString()}`);
+        console.log(`extraction indirection: ${xtr.targetIndirection()}`);
     }
 }

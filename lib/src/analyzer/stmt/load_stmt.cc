@@ -2,6 +2,8 @@
 
 #include <regex>
 
+#include "dashql/analyzer/json_patch.h"
+#include "dashql/analyzer/json_writer.h"
 #include "dashql/analyzer/program_instance.h"
 #include "dashql/common/string.h"
 #include "dashql/proto_generated.h"
@@ -34,30 +36,51 @@ std::unique_ptr<LoadStatement> LoadStatement::ReadFrom(ProgramInstance& instance
 
     // Match root
     auto ast = schema.Match(instance, stmt->root_node, 2);
+    auto load = std::make_unique<LoadStatement>(instance, stmt_id, std::move(ast));
 
     // Get load method
-    auto method = sx::LoadMethodType::NONE;
-    if (auto m = ast[SX_LOAD_METHOD]; m) {
-        method = m.DataAsEnum<sx::LoadMethodType>();
+    load->method_ = sx::LoadMethodType::NONE;
+    if (auto m = load->ast_[SX_LOAD_METHOD]; m) {
+        load->method_ = m.DataAsEnum<sx::LoadMethodType>();
     }
-    if (auto m = ast[SX_LOAD_FROM_URI]; m) {
-        auto node_id = ast[SX_LOAD_FROM_URI].node_id;
+    if (auto m = load->ast_[SX_LOAD_FROM_URI]; m) {
+        auto node_id = load->ast_[SX_LOAD_FROM_URI].node_id;
         auto& node = program.nodes[node_id];
 
         // Match method prefixes
         auto uri = std::string{trimview(instance.TextAt(node.location()), isNoQuote)};
         if (std::regex_match(uri, LOAD_URI_HTTP)) {
-            method = sx::LoadMethodType::HTTP;
+            load->method_ = sx::LoadMethodType::HTTP;
         }
     }
-
-    auto load = std::make_unique<LoadStatement>(instance, stmt_id, std::move(ast));
     return load;
+}
+
+/// Print the options as json
+void LoadStatement::PrintOptionsAsJSON(std::ostream& out, bool pretty) const {
+    auto& program = instance_.program();
+    auto& stmt = program.statements[statement_id_];
+    json::DocumentWriter writer{instance_, stmt->root_node, ast_};
+    writer.writeOptionsAsJSON(out, pretty);
 }
 
 /// Pack the extract statement
 fb::Offset<ana::LoadStatement> LoadStatement::Pack(fb::FlatBufferBuilder& builder) const {
+    auto& program = instance_.program();
+    auto& stmt = program.statements[statement_id_];
+
+    // Print the options
+    flatbuffers::Offset<flatbuffers::String> options;
+    {
+        std::stringstream out;
+        PrintOptionsAsJSON(out, false);
+        options = builder.CreateString(out.str());
+    }
+
     proto::analyzer::LoadStatementBuilder eb{builder};
+    eb.add_statement_id(statement_id_);
+    eb.add_method(method_);
+    eb.add_options(options);
     return eb.Finish();
 }
 

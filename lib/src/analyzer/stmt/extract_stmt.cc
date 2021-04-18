@@ -78,8 +78,8 @@ fb::Offset<ana::ExtractStatement> ExtractStatement::Pack(fb::FlatBufferBuilder& 
     auto& stmt = program.statements[statement_id_];
 
     // Create target strings
-    auto target_short = builder.CreateString(stmt->name_short);
-    auto target_qualified = builder.CreateString(stmt->name_qualified);
+    // auto target_short = builder.CreateString(stmt->name_short);
+    // auto target_qualified = builder.CreateString(stmt->name_qualified);
 
     // Encode indirection
     std::optional<fb::Offset<fb::String>> indirection;
