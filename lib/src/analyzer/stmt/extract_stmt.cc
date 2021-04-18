@@ -3,6 +3,7 @@
 #include "dashql/analyzer/json_patch.h"
 #include "dashql/analyzer/json_writer.h"
 #include "dashql/analyzer/program_instance.h"
+#include "dashql/common/string.h"
 #include "dashql/proto_generated.h"
 #include "rapidjson/ostreamwrapper.h"
 #include "rapidjson/prettywriter.h"
@@ -57,7 +58,7 @@ std::unique_ptr<ExtractStatement> ExtractStatement::ReadFrom(ProgramInstance& in
     std::optional<std::string_view> indirection;
     if (xtr->ast_[SX_DATA_INDIRECTION]) {
         auto& node = program.nodes[xtr->ast_[SX_DATA_INDIRECTION].node_id];
-        xtr->indirection_ = instance.TextAt(node.location());
+        xtr->indirection_ = trimview(instance.TextAt(node.location()), isNoQuote);
     }
 
     return xtr;
@@ -82,7 +83,7 @@ fb::Offset<ana::ExtractStatement> ExtractStatement::Pack(fb::FlatBufferBuilder& 
 
     // Encode indirection
     std::optional<fb::Offset<fb::String>> indirection;
-    if (indirection) indirection = builder.CreateString(*indirection_);
+    if (indirection_) indirection = builder.CreateString(*indirection_);
 
     // Print the options
     flatbuffers::Offset<flatbuffers::String> options;

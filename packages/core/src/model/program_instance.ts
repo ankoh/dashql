@@ -13,6 +13,10 @@ export class ProgramInstance {
     public readonly annotations: proto.analyzer.ProgramAnnotations;
     /// The time when the program was created
     public readonly createdAt: Date;
+    /// The load statements
+    public readonly loadStatements: Map<number, proto.analyzer.LoadStatement>;
+    /// The load statements
+    public readonly extractStatements: Map<number, proto.analyzer.ExtractStatement>;
     /// The cards
     public readonly cards: Map<number, proto.analyzer.Card>;
 
@@ -26,8 +30,17 @@ export class ProgramInstance {
         this.inputValues = inputValues;
         this.annotations = annotations;
         this.createdAt = new Date();
+        this.loadStatements = new Map();
+        this.extractStatements = new Map();
         this.cards = new Map();
-
+        for (let i = 0; i < annotations.statementsLoadLength(); ++i) {
+            const s = annotations.statementsLoad(i)!;
+            this.loadStatements.set(s.statementId(), s);
+        }
+        for (let i = 0; i < annotations.statementsExtractLength(); ++i) {
+            const s = annotations.statementsExtract(i)!;
+            this.extractStatements.set(s.statementId(), s);
+        }
         for (let i = 0; i < annotations.cardsLength(); ++i) {
             const spec = annotations.cards(i)!;
             this.cards.set(spec.statementId(), spec);

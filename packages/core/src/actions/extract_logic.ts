@@ -10,5 +10,16 @@ export class ExtractActionLogic extends ProgramActionLogic {
 
     public prepare(_context: ActionContext, _planObjects: PlanObject[]): void {}
     public willExecute(_context: ActionContext): void {}
-    public async execute(_context: ActionContext): Promise<void> {}
+
+    public async execute(context: ActionContext): Promise<void> {
+        const instance = context.plan.programInstance;
+        const stmtId = this._origin.statementId;
+        const xtr = instance.extractStatements.get(stmtId);
+        if (!xtr) {
+            console.log(`missing information for extract statement ${stmtId}`);
+            return;
+        }
+
+        console.log(`indirection: ${xtr.targetIndirection()}`);
+    }
 }
