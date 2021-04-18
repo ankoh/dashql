@@ -1,7 +1,13 @@
 #include "dashql/analyzer/stmt/extract_stmt.h"
 
+#include "dashql/analyzer/json_patch.h"
+#include "dashql/analyzer/json_writer.h"
 #include "dashql/analyzer/program_instance.h"
 #include "dashql/proto_generated.h"
+#include "rapidjson/ostreamwrapper.h"
+#include "rapidjson/prettywriter.h"
+#include "rapidjson/stringbuffer.h"
+#include "rapidjson/writer.h"
 
 constexpr size_t SX_DATA_SOURCE = 0;
 constexpr size_t SX_DATA_INDIRECTION = 2;
@@ -40,21 +46,56 @@ std::unique_ptr<ExtractStatement> ExtractStatement::ReadFrom(ProgramInstance& in
 
     // Match root
     auto ast = schema.Match(instance, stmt->root_node, 3);
+    auto xtr = std::make_unique<ExtractStatement>(instance, stmt_id, std::move(ast));
+
+    // Read attributes
+    xtr->extract_method_ = ast[SX_METHOD].DataAsEnum<sx::ExtractMethodType>();
 
     // Get indirections
     std::optional<std::string_view> indirection;
     if (ast[SX_DATA_INDIRECTION]) {
         auto& node = program.nodes[ast[SX_DATA_INDIRECTION].node_id];
-        indirection = instance.TextAt(node.location());
+        xtr->indirection_ = instance.TextAt(node.location());
     }
 
-    auto extract = std::make_unique<ExtractStatement>(instance, stmt_id, std::move(ast));
-    return extract;
+    return xtr;
+}
+
+/// Print the options as json
+void ExtractStatement::PrintOptionsAsJSON(std::ostream& out, bool pretty) const {
+    auto& program = instance_.program();
+    auto& stmt = program.statements[statement_id_];
+    json::DocumentWriter writer{instance_, stmt->root_node, ast_};
+    writer.writeOptionsAsJSON(out, pretty);
 }
 
 /// Pack the extract statement
 fb::Offset<ana::ExtractStatement> ExtractStatement::Pack(fb::FlatBufferBuilder& builder) const {
+    auto& program = instance_.program();
+    auto& stmt = program.statements[statement_id_];
+
+    // Create target strings
+    auto target_short = builder.CreateString(stmt->name_short);
+    auto target_qualified = builder.CreateString(stmt->name_qualified);
+
+    // Encode indirection
+    std::optional<fb::Offset<fb::String>> indirection;
+    if (indirection) indirection = builder.CreateString(*indirection_);
+
+    // Print the options
+    flatbuffers::Offset<flatbuffers::String> options;
+    {
+        std::stringstream out;
+        PrintOptionsAsJSON(out, false);
+        options = builder.CreateString(out.str());
+    }
+
+    // Build extract statement
     proto::analyzer::ExtractStatementBuilder eb{builder};
+    eb.add_statement_id(statement_id_);
+    if (indirection) eb.add_target_indirection(*indirection);
+    eb.add_method(extract_method_);
+    eb.add_options(options);
     return eb.Finish();
 }
 

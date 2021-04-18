@@ -27,6 +27,10 @@ class ExtractStatement {
     const size_t statement_id_;
     /// The AST index
     const ASTIndex ast_;
+    /// The extract method
+    proto::syntax::ExtractMethodType extract_method_;
+    /// The indirection
+    std::optional<std::string> indirection_ = std::nullopt;
 
    public:
     /// Constructor
@@ -37,6 +41,8 @@ class ExtractStatement {
     auto& ast() { return ast_; }
     /// Get the target text
     sx::Location GetTarget() const;
+    /// Print the options as json
+    void PrintOptionsAsJSON(std::ostream& out, bool pretty = false) const;
     /// Print as script
     void PrintScript(std::ostream& out) const;
     /// Pack the extract statement
