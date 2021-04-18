@@ -132,6 +132,7 @@ export class AsyncDuckDB {
             case WorkerRequestType.RESET:
             case WorkerRequestType.PING:
             case WorkerRequestType.OPEN:
+            case WorkerRequestType.IMPORT_CSV:
             case WorkerRequestType.DISCONNECT:
                 if (response.type == WorkerResponseType.OK) {
                     task.promiseResolver(response.data);
