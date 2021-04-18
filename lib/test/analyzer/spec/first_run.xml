@@ -66,7 +66,7 @@
                         <ref action="1" />
                     </required_for>
                 </action>
-                <action origin="1" type="LOAD_HTTP" status="NONE" object_id="1">
+                <action origin="1" type="LOAD" status="NONE" object_id="1">
                     <target name_qualified="global.weather_csv" name_short="weather_csv" />
                     <depends_on>
                         <ref action="0" />
@@ -75,7 +75,7 @@
                         <ref action="2" />
                     </required_for>
                 </action>
-                <action origin="2" type="EXTRACT_CSV" status="NONE" object_id="2">
+                <action origin="2" type="EXTRACT" status="NONE" object_id="2">
                     <target name_qualified="global.weather" name_short="weather" />
                     <depends_on>
                         <ref action="1" />
@@ -112,7 +112,7 @@
                         <ref action="1" />
                     </required_for>
                 </action>
-                <action origin="1" type="LOAD_HTTP" status="NONE" object_id="1">
+                <action origin="1" type="LOAD" status="NONE" object_id="1">
                     <target name_qualified="global.weather_csv" name_short="weather_csv" />
                     <depends_on>
                         <ref action="0" />
@@ -121,7 +121,7 @@
                         <ref action="2" />
                     </required_for>
                 </action>
-                <action origin="2" type="EXTRACT_CSV" status="NONE" object_id="2">
+                <action origin="2" type="EXTRACT" status="NONE" object_id="2">
                     <target name_qualified="global.weather" name_short="weather" />
                     <depends_on>
                         <ref action="1" />
@@ -159,7 +159,7 @@
                         <ref action="1" />
                     </required_for>
                 </action>
-                <action origin="1" type="LOAD_HTTP" status="NONE" object_id="1">
+                <action origin="1" type="LOAD" status="NONE" object_id="1">
                     <target name_qualified="global.weather_csv" name_short="weather_csv" />
                     <depends_on>
                         <ref action="0" />
@@ -168,7 +168,7 @@
                         <ref action="2" />
                     </required_for>
                 </action>
-                <action origin="2" type="EXTRACT_CSV" status="NONE" object_id="2">
+                <action origin="2" type="EXTRACT" status="NONE" object_id="2">
                     <target name_qualified="global.weather" name_short="weather" />
                     <depends_on>
                         <ref action="1" />
@@ -230,7 +230,7 @@
                         <ref action="1" />
                     </required_for>
                 </action>
-                <action origin="1" type="LOAD_HTTP" status="NONE" object_id="1">
+                <action origin="1" type="LOAD" status="NONE" object_id="1">
                     <target name_qualified="global.weather_csv" name_short="weather_csv" />
                     <depends_on>
                         <ref action="0" />
@@ -239,7 +239,7 @@
                         <ref action="2" />
                     </required_for>
                 </action>
-                <action origin="2" type="EXTRACT_CSV" status="NONE" object_id="2">
+                <action origin="2" type="EXTRACT" status="NONE" object_id="2">
                     <target name_qualified="global.weather" name_short="weather" />
                     <depends_on>
                         <ref action="1" />
@@ -318,7 +318,7 @@
                         <ref action="1" />
                     </required_for>
                 </action>
-                <action origin="1" type="LOAD_HTTP" status="NONE" object_id="1">
+                <action origin="1" type="LOAD" status="NONE" object_id="1">
                     <target name_qualified="global.weather_csv" name_short="weather_csv" />
                     <depends_on>
                         <ref action="0" />
@@ -327,7 +327,7 @@
                         <ref action="2" />
                     </required_for>
                 </action>
-                <action origin="2" type="EXTRACT_CSV" status="NONE" object_id="2">
+                <action origin="2" type="EXTRACT" status="NONE" object_id="2">
                     <target name_qualified="global.weather" name_short="weather" />
                     <depends_on>
                         <ref action="1" />
@@ -428,7 +428,7 @@
                         <ref action="5" />
                     </required_for>
                 </action>
-                <action origin="2" type="LOAD_HTTP" status="NONE" object_id="2">
+                <action origin="2" type="LOAD" status="NONE" object_id="2">
                     <target name_qualified="global.weather_csv" name_short="weather_csv" />
                     <depends_on>
                         <ref action="0" />
@@ -437,7 +437,7 @@
                         <ref action="3" />
                     </required_for>
                 </action>
-                <action origin="3" type="EXTRACT_CSV" status="NONE" object_id="3">
+                <action origin="3" type="EXTRACT" status="NONE" object_id="3">
                     <target name_qualified="global.weather" name_short="weather" />
                     <depends_on>
                         <ref action="2" />
@@ -523,7 +523,7 @@
                         <ref action="4" />
                     </required_for>
                 </action>
-                <action origin="2" type="LOAD_HTTP" status="NONE" object_id="2">
+                <action origin="2" type="LOAD" status="NONE" object_id="2">
                     <target name_qualified="global.weather_csv" name_short="weather_csv" />
                     <depends_on>
                         <ref action="0" />
@@ -532,7 +532,7 @@
                         <ref action="3" />
                     </required_for>
                 </action>
-                <action origin="3" type="EXTRACT_CSV" status="NONE" object_id="3">
+                <action origin="3" type="EXTRACT" status="NONE" object_id="3">
                     <target name_qualified="global.weather" name_short="weather" />
                     <depends_on>
                         <ref action="2" />
@@ -612,7 +612,7 @@
                         <ref action="7" />
                     </required_for>
                 </action>
-                <action origin="3" type="LOAD_HTTP" status="NONE" object_id="3">
+                <action origin="3" type="LOAD" status="NONE" object_id="3">
                     <target name_qualified="global.country1_weather_csv" name_short="country1_weather_csv" />
                     <depends_on>
                         <ref action="0" />
@@ -621,7 +621,7 @@
                         <ref action="5" />
                     </required_for>
                 </action>
-                <action origin="4" type="LOAD_HTTP" status="NONE" object_id="4">
+                <action origin="4" type="LOAD" status="NONE" object_id="4">
                     <target name_qualified="global.country2_weather_csv" name_short="country2_weather_csv" />
                     <depends_on>
                         <ref action="1" />
@@ -630,7 +630,7 @@
                         <ref action="6" />
                     </required_for>
                 </action>
-                <action origin="5" type="EXTRACT_CSV" status="NONE" object_id="5">
+                <action origin="5" type="EXTRACT" status="NONE" object_id="5">
                     <target name_qualified="global.country1_weather" name_short="country1_weather" />
                     <depends_on>
                         <ref action="3" />
@@ -639,7 +639,7 @@
                         <ref action="7" />
                     </required_for>
                 </action>
-                <action origin="6" type="EXTRACT_CSV" status="NONE" object_id="6">
+                <action origin="6" type="EXTRACT" status="NONE" object_id="6">
                     <target name_qualified="global.country2_weather" name_short="country2_weather" />
                     <depends_on>
                         <ref action="4" />
@@ -794,7 +794,7 @@
         <graph next_object_id="4">
             <setup />
             <program>
-                <action origin="0" type="LOAD_HTTP" status="NONE" object_id="0">
+                <action origin="0" type="LOAD" status="NONE" object_id="0">
                     <target name_qualified="global.uni" name_short="uni" />
                     <required_for>
                         <ref action="1" />
@@ -802,19 +802,19 @@
                         <ref action="3" />
                     </required_for>
                 </action>
-                <action origin="1" type="EXTRACT_PARQUET" status="NONE" object_id="1">
+                <action origin="1" type="EXTRACT" status="NONE" object_id="1">
                     <target name_qualified="global.vorlesungen" name_short="vorlesungen" />
                     <depends_on>
                         <ref action="0" />
                     </depends_on>
                 </action>
-                <action origin="2" type="EXTRACT_PARQUET" status="NONE" object_id="2">
+                <action origin="2" type="EXTRACT" status="NONE" object_id="2">
                     <target name_qualified="global.hoeren" name_short="hoeren" />
                     <depends_on>
                         <ref action="0" />
                     </depends_on>
                 </action>
-                <action origin="3" type="EXTRACT_PARQUET" status="NONE" object_id="3">
+                <action origin="3" type="EXTRACT" status="NONE" object_id="3">
                     <target name_qualified="global.studenten" name_short="studenten" />
                     <depends_on>
                         <ref action="0" />

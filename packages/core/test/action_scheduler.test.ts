@@ -123,8 +123,8 @@ describe('Action Scheduler', () => {
                 expect(a.status).toBe(ActionStatus.NONE);
             });
             expect(scheduler.actions.map(a => a.buffer.actionType())).toEqual([
-                ProgramActionType.LOAD_HTTP,
-                ProgramActionType.EXTRACT_CSV,
+                ProgramActionType.LOAD,
+                ProgramActionType.EXTRACT,
             ]);
             expect(scheduler.actions.map(a => a.buffer.dependsOnArray())).toEqual([null, new Uint32Array([0])]);
             expect(scheduler.actions.map(a => a.buffer.requiredForArray())).toEqual([new Uint32Array([1]), null]);
