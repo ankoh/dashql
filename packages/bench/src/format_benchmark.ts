@@ -1,17 +1,16 @@
-import * as duckdb from '../../duckdb/dist/duckdb-node.js';
-import * as core from '../../core/dist/dashql-core-node.js';
 import * as benny from 'benny';
 import * as arrow from 'apache-arrow';
-import path from 'path';
+import * as duckdb from '@dashql/duckdb/src';
+import * as core from '@dashql/core/src';
 import kleur from 'kleur';
 
-function main(db: duckdb.DuckDB) {
+export function benchmarkFormat(db: () => duckdb.DuckDBBindings) {
     const tupleSize = 8;
     for (const tupleCount of [1000, 10000, 1000000, 10000000]) {
         benny.suite(
             `Single DOUBLE column | ${tupleCount} rows`,
             benny.add('columns (iterator)', () => {
-                const conn = db.connect();
+                const conn = db().connect();
                 const result = conn.runQuery<{ foo: arrow.Float64 }>(`
                     SELECT v::DOUBLE AS foo FROM generate_series(1, ${tupleCount}) as t(v);
                 `);
@@ -32,7 +31,7 @@ function main(db: duckdb.DuckDB) {
             }),
 
             benny.add('rows (iterator)', () => {
-                const conn = db.connect();
+                const conn = db().connect();
                 const result = conn.runQuery<{ foo: arrow.Float64 }>(`
                     SELECT v::DOUBLE AS foo FROM generate_series(1, ${tupleCount}) as t(v);
                 `);
@@ -53,7 +52,7 @@ function main(db: duckdb.DuckDB) {
             }),
 
             benny.add('columns (scan + bind)', () => {
-                const conn = db.connect();
+                const conn = db().connect();
                 const table = conn.runQuery<{ foo: arrow.Float64 }>(`
                     SELECT v::DOUBLE AS foo FROM generate_series(1, ${tupleCount}) as t(v);
                 `);
@@ -95,9 +94,9 @@ function main(db: duckdb.DuckDB) {
         );
     }
 }
-
-const logger = new duckdb.VoidLogger();
-const db = new duckdb.DuckDB(logger, duckdb.NodeRuntime, path.join(__dirname, '../../duckdb/dist/duckdb.wasm'));
-db.open()
-    .then(() => main(db))
-    .catch(e => console.error(e));
+//
+// const logger = new duckdb.VoidLogger();
+// const db = new duckdb.DuckDB(logger, duckdb.NodeRuntime, path.join(__dirname, '../../duckdb/dist/duckdb.wasm'));
+// db.open()
+//     .then(() => main(db))
+//     .catch(e => console.error(e));
