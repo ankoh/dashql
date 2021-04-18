@@ -123,7 +123,7 @@ core_watch:
 
 # Test the dashql_core javascript library
 .PHONY: core_tests
-core_tests:
+core_tests: core
 	yarn workspace @dashql/core test
 
 # Build the benchmarks
@@ -276,9 +276,7 @@ bootstrap:
 .PHONY: jstests
 jstests:
 	make proto
-	make duckdb
 	make duckdb_tests
-	make core
 	make core_tests
 
 # ---------------------------------------------------------------------------

@@ -18,7 +18,7 @@
     </input>
     <expected>
         <statements>
-            <statement type="LOAD_HTTP" name="global.weather_csv">
+            <statement type="LOAD" name="global.weather_csv">
                 <node type="OBJECT_DASHQL_LOAD" loc="9..90" text="LOAD weath..&#10;        )">
                     <node key="DASHQL_LOAD_METHOD" value="HTTP" />
                     <node key="DASHQL_STATEMENT_NAME">
@@ -47,7 +47,7 @@
     </input>
     <expected>
         <statements>
-            <statement type="LOAD_HTTP" name="global.weather_csv">
+            <statement type="LOAD" name="global.weather_csv">
                 <node type="OBJECT_DASHQL_LOAD" loc="9..130" text="LOAD weath..&#10;        )">
                     <node key="DASHQL_LOAD_METHOD" value="HTTP" />
                     <node key="DASHQL_STATEMENT_NAME">

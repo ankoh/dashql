@@ -35,16 +35,12 @@ function getSetupActionTypeLabel(type: proto.action.SetupActionType) {
 
 function getProgramActionTypeLabel(type: proto.action.ProgramActionType) {
     switch (type) {
-        case proto.action.ProgramActionType.EXTRACT_CSV:
-            return 'EXTRACT CSV';
-        case proto.action.ProgramActionType.EXTRACT_JSON:
-            return 'EXTRACT JSON';
-        case proto.action.ProgramActionType.LOAD_FILE:
-            return 'LOAD FILE';
-        case proto.action.ProgramActionType.LOAD_HTTP:
-            return 'LOAD HTTP';
+        case proto.action.ProgramActionType.EXTRACT:
+            return 'EXTRACT';
+        case proto.action.ProgramActionType.LOAD:
+            return 'LOAD';
         case proto.action.ProgramActionType.INPUT:
-            return 'DEFINE INPUT';
+            return 'INPUT';
         case proto.action.ProgramActionType.CREATE_TABLE:
             return 'CREATE TABLE';
         case proto.action.ProgramActionType.MODIFY_TABLE:

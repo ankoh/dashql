@@ -67,11 +67,8 @@ table SetupAction {
 enum ProgramActionType: uint8 {
     NONE = 0,
     INPUT,
-    LOAD_FILE,
-    LOAD_HTTP,
-    EXTRACT_CSV,
-    EXTRACT_JSON,
-    EXTRACT_PARQUET,
+    LOAD,
+    EXTRACT,
     CREATE_VIEW,
     CREATE_TABLE,
     MODIFY_TABLE,

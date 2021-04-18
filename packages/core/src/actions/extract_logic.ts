@@ -1,9 +1,9 @@
 import * as proto from '@dashql/proto';
-import { ActionHandle, Statement, PlanObject } from '../model';
+import { ActionHandle, PlanObject, Statement } from '../model';
 import { ProgramActionLogic } from './action_logic';
 import { ActionContext } from './action_context';
 
-export class ExtractJsonActionLogic extends ProgramActionLogic {
+export class ExtractActionLogic extends ProgramActionLogic {
     constructor(action_id: ActionHandle, action: proto.action.ProgramAction, statement: Statement) {
         super(action_id, action, statement);
     }

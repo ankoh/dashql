@@ -358,48 +358,11 @@ void ParserDriver::AddStatement(sx::Node node) {
             break;
 
         case sx::NodeType::OBJECT_DASHQL_LOAD:
-            // Has URI? Try to infer the load type
-            if (auto [m, _] = FindAttribute(node, Key::DASHQL_LOAD_FROM_URI); m) {
-                auto uri = std::string{trimview(scanner_.TextAt(m->location()), isNoQuote)};
-                if (std::regex_match(uri, LOAD_URI_HTTP)) {
-                    stmt_type = sx::StatementType::LOAD_HTTP;
-                } else {
-                    stmt_type = sx::StatementType::NONE;
-                }
-            }
-            // Has method?
-            else if (auto [m, _] = FindAttribute(node, Key::DASHQL_LOAD_METHOD); m) {
-                switch (static_cast<sx::LoadMethodType>(m->children_begin_or_value())) {
-                    case sx::LoadMethodType::FILE:
-                        stmt_type = sx::StatementType::LOAD_FILE;
-                        break;
-                    case sx::LoadMethodType::HTTP:
-                        stmt_type = sx::StatementType::LOAD_HTTP;
-                        break;
-                    default:
-                        stmt_type = sx::StatementType::NONE;
-                        break;
-                }
-            }
+            stmt_type = sx::StatementType::LOAD;
             break;
 
         case sx::NodeType::OBJECT_DASHQL_EXTRACT:
-            if (auto [m, _] = FindAttribute(node, Key::DASHQL_EXTRACT_METHOD); m) {
-                switch (static_cast<sx::ExtractMethodType>(m->children_begin_or_value())) {
-                    case sx::ExtractMethodType::JSON:
-                        stmt_type = sx::StatementType::EXTRACT_JSON;
-                        break;
-                    case sx::ExtractMethodType::CSV:
-                        stmt_type = sx::StatementType::EXTRACT_CSV;
-                        break;
-                    case sx::ExtractMethodType::PARQUET:
-                        stmt_type = sx::StatementType::EXTRACT_PARQUET;
-                        break;
-                    default:
-                        stmt_type = sx::StatementType::NONE;
-                        break;
-                }
-            }
+            stmt_type = sx::StatementType::EXTRACT;
             break;
 
         case sx::NodeType::OBJECT_DASHQL_INPUT:
