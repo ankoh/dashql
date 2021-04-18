@@ -1,4 +1,5 @@
 export enum LogLevel {
+    NONE = 0,
     DEBUG = 1,
     INFO = 2,
     WARNING = 3,
@@ -6,32 +7,29 @@ export enum LogLevel {
 }
 
 export enum LogTopic {
+    NONE = 0,
     CONNECT = 1,
     DISCONNECT = 2,
     OPEN = 3,
     QUERY = 4,
-    ITER_NEXT = 5,
-    ITER_REWIND = 6,
 }
 
 export enum LogEvent {
+    NONE = 0,
     OK = 1,
     ERROR = 2,
     START = 3,
     RUN = 4,
+    CAPTURE = 5,
 }
 
 export enum LogOrigin {
+    NONE = 0,
     WEB_WORKER = 1,
     NODE_WORKER = 2,
     BINDINGS = 3,
-    CHUNK_BUFFER = 4,
-    CHUNK_STREAM = 5,
-    ROW_ITERATOR = 6,
-    ASYNC_WEBDB = 7,
-    ASYNC_CHUNK_BUFFER = 8,
-    ASYNC_CHUNK_STREAM = 9,
-    ASYNC_ROW_ITERATOR = 10,
+    ASYNC_WEBDB = 4,
+    ASYNC_ROW_ITERATOR = 5,
 }
 
 export type LogEntry<O, T, E, V> = {
@@ -72,6 +70,8 @@ export class ConsoleLogger implements Logger {
 
 export function getLogLevelLabel(level: LogLevel): string {
     switch (level) {
+        case LogLevel.NONE:
+            return 'NONE';
         case LogLevel.DEBUG:
             return 'DEBUG';
         case LogLevel.INFO:
@@ -87,6 +87,8 @@ export function getLogLevelLabel(level: LogLevel): string {
 
 export function getLogEventLabel(event: LogEvent): string {
     switch (event) {
+        case LogEvent.NONE:
+            return 'NONE';
         case LogEvent.OK:
             return 'OK';
         case LogEvent.ERROR:
@@ -95,6 +97,8 @@ export function getLogEventLabel(event: LogEvent): string {
             return 'START';
         case LogEvent.RUN:
             return 'RUN';
+        case LogEvent.CAPTURE:
+            return 'CAPTURE';
         default:
             return '?';
     }
@@ -110,10 +114,6 @@ export function getLogTopicLabel(topic: LogTopic): string {
             return 'OPEN';
         case LogTopic.QUERY:
             return 'QUERY';
-        case LogTopic.ITER_NEXT:
-            return 'NEXT';
-        case LogTopic.ITER_REWIND:
-            return 'REWIND';
         default:
             return '?';
     }
@@ -121,26 +121,16 @@ export function getLogTopicLabel(topic: LogTopic): string {
 
 export function getLogOriginLabel(origin: LogOrigin): string {
     switch (origin) {
+        case LogOrigin.NONE:
+            return 'NONE';
         case LogOrigin.WEB_WORKER:
             return 'WEB WORKER';
         case LogOrigin.NODE_WORKER:
             return 'NODE WORKER';
         case LogOrigin.BINDINGS:
             return 'WEBDB BINDINGS';
-        case LogOrigin.CHUNK_BUFFER:
-            return 'CHUNK BUFFER';
-        case LogOrigin.CHUNK_STREAM:
-            return 'CHUNK STREAM';
-        case LogOrigin.ROW_ITERATOR:
-            return 'ROW ITERATOR';
         case LogOrigin.ASYNC_WEBDB:
             return 'WEBDB';
-        case LogOrigin.ASYNC_CHUNK_BUFFER:
-            return 'CHUNK BUFFER';
-        case LogOrigin.ASYNC_CHUNK_STREAM:
-            return 'CHUNK STREAM';
-        case LogOrigin.ASYNC_ROW_ITERATOR:
-            return 'ROW ITERATOR';
         default:
             return '?';
     }

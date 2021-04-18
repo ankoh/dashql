@@ -101,7 +101,21 @@ flatbuffers::Offset<proto::analyzer::ProgramAnnotations> ProgramInstance::PackAn
     });
     auto eval_node_vec = builder.CreateVector(eval_nodes);
 
-    // Pack the viz statements
+    // Pack the loads
+    std::vector<flatbuffers::Offset<proto::analyzer::LoadStatement>> loads;
+    for (auto& load : load_statements_) {
+        loads.push_back(load->Pack(builder));
+    }
+    auto loads_vec = builder.CreateVector(loads);
+
+    // Pack the extracts
+    std::vector<flatbuffers::Offset<proto::analyzer::ExtractStatement>> extracts;
+    for (auto& extract : extract_statements_) {
+        extracts.push_back(extract->Pack(builder));
+    }
+    auto extracts_vec = builder.CreateVector(extracts);
+
+    // Pack the cards
     std::vector<flatbuffers::Offset<proto::analyzer::Card>> cards;
     for (auto& input : input_statements_) {
         cards.push_back(input->PackCard(builder));
@@ -113,8 +127,10 @@ flatbuffers::Offset<proto::analyzer::ProgramAnnotations> ProgramInstance::PackAn
 
     // Encode the plan result
     proto::analyzer::ProgramAnnotationsBuilder annotations{builder};
-    annotations.add_input_values(input_vec);
     annotations.add_evaluated_nodes(eval_node_vec);
+    annotations.add_input_values(input_vec);
+    annotations.add_statements_load(loads_vec);
+    annotations.add_statements_extract(extracts_vec);
     annotations.add_cards(cards_vec);
     // XXX node errors
     // XXX linter messages

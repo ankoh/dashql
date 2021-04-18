@@ -2,13 +2,16 @@ import * as duckdb from '@dashql/duckdb/dist/duckdb.module.js';
 export { LogLevel } from '@dashql/duckdb/dist/duckdb.module.js';
 
 export enum LogOrigin {
+    NONE = 0,
     DB_MANAGER = 1001,
     SCRIPT_PIPELINE = 1002,
     SCAN_PROVIDER = 1003,
     ACTION_SCHEDULER = 1004,
+    EXTRACT_LOGIC = 1005,
 }
 
 export enum LogTopic {
+    NONE = 0,
     DB_CONNECT = 1001,
     DB_DISCONNECT = 1002,
     PARSE_PROGRAM = 1003,
@@ -17,17 +20,20 @@ export enum LogTopic {
     REQUEST_SCAN = 1006,
     PREPARE_ACTION = 1007,
     EXECUTE_ACTION = 1008,
+    EXTRACT_EXECUTE = 1009,
 }
 
 export enum LogEvent {
     OK = 1,
     ERROR = 2,
     START = 3,
+    CAPTURE = 4,
 }
 
 export type LogEntry<O, T, E, V> = duckdb.LogEntry<O, T, E, V>;
 
 export type LogEntryVariant =
+    | LogEntry<LogOrigin.NONE, LogTopic.NONE, LogEvent.CAPTURE, any>
     | LogEntry<LogOrigin.DB_MANAGER, LogTopic.DB_CONNECT, LogEvent.START, undefined>
     | LogEntry<LogOrigin.DB_MANAGER, LogTopic.DB_CONNECT, LogEvent.OK, undefined>
     | LogEntry<LogOrigin.DB_MANAGER, LogTopic.DB_CONNECT, LogEvent.ERROR, undefined>
@@ -53,6 +59,8 @@ export function getLogEventLabel(event: LogEvent | duckdb.LogEvent): string {
 
 export function getLogTopicLabel(topic: LogTopic | duckdb.LogTopic): string {
     switch (topic) {
+        case LogTopic.NONE:
+            return 'NONE';
         case LogTopic.DB_CONNECT:
             return 'CONNECT';
         case LogTopic.DB_DISCONNECT:
@@ -69,6 +77,8 @@ export function getLogTopicLabel(topic: LogTopic | duckdb.LogTopic): string {
             return 'PREPARE';
         case LogTopic.EXECUTE_ACTION:
             return 'EXECUTE';
+        case LogTopic.EXTRACT_EXECUTE:
+            return 'EXTRACT';
         default:
             return duckdb.getLogTopicLabel(topic);
     }
@@ -76,6 +86,8 @@ export function getLogTopicLabel(topic: LogTopic | duckdb.LogTopic): string {
 
 export function getLogOriginLabel(origin: LogOrigin | duckdb.LogOrigin): string {
     switch (origin) {
+        case LogOrigin.NONE:
+            return 'NONE';
         case LogOrigin.DB_MANAGER:
             return 'DATABASE ACCESS';
         case LogOrigin.SCRIPT_PIPELINE:
@@ -84,6 +96,8 @@ export function getLogOriginLabel(origin: LogOrigin | duckdb.LogOrigin): string 
             return 'SCAN PROVIDER';
         case LogOrigin.ACTION_SCHEDULER:
             return 'ACTION SCHEDULER';
+        case LogOrigin.EXTRACT_LOGIC:
+            return 'EXTRACT LOGIC';
         default:
             return duckdb.getLogOriginLabel(origin);
     }
