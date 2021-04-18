@@ -50,7 +50,7 @@ export class InputActionLogic extends ProgramActionLogic {
             cardRenderer: renderer,
             statementID: this.origin.statementId,
             position: pos,
-            title: this._card!.cardTitle() || stmt.targetNameShort || null,
+            title: this._card!.cardTitle() || stmt.nameShort || null,
             inputOptions: JSON.parse(this._card.inputOptions()) as model.InputOptions,
             vegaLiteSpec: null,
             vegaSpec: null,
