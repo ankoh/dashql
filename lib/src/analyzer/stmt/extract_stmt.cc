@@ -49,12 +49,14 @@ std::unique_ptr<ExtractStatement> ExtractStatement::ReadFrom(ProgramInstance& in
     auto xtr = std::make_unique<ExtractStatement>(instance, stmt_id, std::move(ast));
 
     // Read attributes
-    xtr->extract_method_ = ast[SX_METHOD].DataAsEnum<sx::ExtractMethodType>();
+    if (xtr->ast_[SX_METHOD]) {
+        xtr->extract_method_ = xtr->ast_[SX_METHOD].DataAsEnum<sx::ExtractMethodType>();
+    }
 
     // Get indirections
     std::optional<std::string_view> indirection;
-    if (ast[SX_DATA_INDIRECTION]) {
-        auto& node = program.nodes[ast[SX_DATA_INDIRECTION].node_id];
+    if (xtr->ast_[SX_DATA_INDIRECTION]) {
+        auto& node = program.nodes[xtr->ast_[SX_DATA_INDIRECTION].node_id];
         xtr->indirection_ = instance.TextAt(node.location());
     }
 

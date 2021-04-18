@@ -83,7 +83,7 @@ class ProgramInstance {
     /// The load statements
     std::vector<std::unique_ptr<LoadStatement>> load_statements_ = {};
     /// The extract statements
-    std::vector<std::unique_ptr<LoadStatement>> extract_statements_ = {};
+    std::vector<std::unique_ptr<ExtractStatement>> extract_statements_ = {};
     /// The viz statements
     std::vector<std::unique_ptr<VizStatement>> viz_statements_ = {};
 
