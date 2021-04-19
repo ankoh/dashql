@@ -181,7 +181,6 @@ void ParserDriver::ComputeDependencies() {
     for (unsigned i = 0; i < statements_.size(); ++i) {
         auto& stmt = statements_[i];
         auto name = stmt.name.WithoutIndex().WithDefaultSchema(options_.global_namespace);
-        std::cout << "STATEMENT " << name.ToString() << std::endl;
         names.insert({name, i});
     }
 
@@ -192,7 +191,6 @@ void ParserDriver::ComputeDependencies() {
         // Resolve all table refs
         for (auto& [node, ref] : stmt.table_refs) {
             auto name = ref.WithoutIndex().WithDefaultSchema(options_.global_namespace);
-            std::cout << "TABLE REF " << name.ToString() << std::endl;
             if (auto iter = names.find(name); iter != names.end() && iter->second != i) {
                 dependencies_.push_back(sx::Dependency(sx::DependencyType::TABLE_REF, iter->second, i, node));
             }
@@ -201,11 +199,33 @@ void ParserDriver::ComputeDependencies() {
         // Resolve all column refs
         for (auto& ref_id : stmt.column_refs) {
             auto& ref = nodes_[ref_id];
+
             if (auto path_id = FindAttribute(ref, Key::SQL_COLUMN_REF_PATH); path_id) {
-                auto path = QualifiedNameView::ReadFrom(nodes_, text, *path_id)
-                                .WithoutIndex()
-                                .WithDefaultSchema(options_.global_namespace);
-                if (auto iter = names.find(path); iter != names.end() && iter->second != i) {
+                auto& path = nodes_[*path_id];
+                auto begin = path.children_begin_or_value();
+
+                std::vector<std::string_view> elems;
+                for (auto i = 0; i < path.children_count(); ++i) {
+                    auto& child = nodes_[begin + i];
+                    auto elem = text.substr(child.location().offset(), child.location().length());
+                    elems.push_back(elem);
+                }
+
+                QualifiedNameView maybeName{
+                    .catalog = {},
+                    .schema = {},
+                    .relation = {},
+                    .index_value = {},
+                };
+                switch (elems.size()) {
+                    case 2:
+                        maybeName.schema = elems[0];
+                        maybeName.relation = elems[1];
+                        break;
+                    default:
+                        continue;
+                }
+                if (auto iter = names.find(maybeName); iter != names.end() && iter->second != i) {
                     dependencies_.push_back(sx::Dependency(sx::DependencyType::COLUMN_REF, iter->second, i, ref_id));
                 }
             }

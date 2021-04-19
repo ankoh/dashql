@@ -50,8 +50,8 @@
                     </node>
                     <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLE_REF" loc="19..30" text="weather_avg">
                         <node key="SQL_TABLE_INHERIT" value="true" />
-                        <node key="SQL_TABLE_NAME">
-                            <node loc="19..30" text="weather_avg" />
+                        <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="19..30" text="weather_avg">
+                            <node key="SQL_QUALIFIED_NAME_RELATION" loc="19..30" text="weather_avg" />
                         </node>
                     </node>
                 </node>
@@ -96,8 +96,8 @@
                     </node>
                     <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLE_REF" loc="13..16" text="foo">
                         <node key="SQL_TABLE_INHERIT" value="true" />
-                        <node key="SQL_TABLE_NAME">
-                            <node loc="13..16" text="foo" />
+                        <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="13..16" text="foo">
+                            <node key="SQL_QUALIFIED_NAME_RELATION" loc="13..16" text="foo" />
                         </node>
                     </node>
                 </node>
@@ -161,8 +161,8 @@
                     </node>
                     <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLE_REF" loc="13..16" text="foo">
                         <node key="SQL_TABLE_INHERIT" value="true" />
-                        <node key="SQL_TABLE_NAME">
-                            <node loc="13..16" text="foo" />
+                        <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="13..16" text="foo">
+                            <node key="SQL_QUALIFIED_NAME_RELATION" loc="13..16" text="foo" />
                         </node>
                     </node>
                 </node>
@@ -231,8 +231,8 @@
                     </node>
                     <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLE_REF" loc="13..16" text="foo">
                         <node key="SQL_TABLE_INHERIT" value="true" />
-                        <node key="SQL_TABLE_NAME">
-                            <node loc="13..16" text="foo" />
+                        <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="13..16" text="foo">
+                            <node key="SQL_QUALIFIED_NAME_RELATION" loc="13..16" text="foo" />
                         </node>
                     </node>
                 </node>
@@ -301,8 +301,8 @@
                     </node>
                     <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLE_REF" loc="13..16" text="foo">
                         <node key="SQL_TABLE_INHERIT" value="true" />
-                        <node key="SQL_TABLE_NAME">
-                            <node loc="13..16" text="foo" />
+                        <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="13..16" text="foo">
+                            <node key="SQL_QUALIFIED_NAME_RELATION" loc="13..16" text="foo" />
                         </node>
                     </node>
                 </node>

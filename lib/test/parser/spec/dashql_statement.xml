@@ -18,11 +18,11 @@
     </input>
     <expected>
         <statements>
-            <statement type="LOAD" name="global.weather_csv">
+            <statement type="LOAD" name="weather_csv">
                 <node type="OBJECT_DASHQL_LOAD" loc="9..90" text="LOAD weath..&#10;        )">
                     <node key="DASHQL_LOAD_METHOD" value="HTTP" />
-                    <node key="DASHQL_STATEMENT_NAME">
-                        <node loc="14..25" text="weather_csv" />
+                    <node key="DASHQL_STATEMENT_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="14..25" text="weather_csv">
+                        <node key="SQL_QUALIFIED_NAME_RELATION" loc="14..25" text="weather_csv" />
                     </node>
                     <node key="DASHQL_OPTION_URL" loc="56..80" text="'https://l..host/test'" />
                 </node>
@@ -47,11 +47,11 @@
     </input>
     <expected>
         <statements>
-            <statement type="LOAD" name="global.weather_csv">
+            <statement type="LOAD" name="weather_csv">
                 <node type="OBJECT_DASHQL_LOAD" loc="9..130" text="LOAD weath..&#10;        )">
                     <node key="DASHQL_LOAD_METHOD" value="HTTP" />
-                    <node key="DASHQL_STATEMENT_NAME">
-                        <node loc="14..25" text="weather_csv" />
+                    <node key="DASHQL_STATEMENT_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="14..25" text="weather_csv">
+                        <node key="SQL_QUALIFIED_NAME_RELATION" loc="14..25" text="weather_csv" />
                     </node>
                     <node key="DASHQL_OPTION_URL" type="OBJECT_DASHQL_FUNCTION_CALL" loc="56..120" text="format('ht..l.country)">
                         <node key="SQL_FUNCTION_ARGUMENTS">
@@ -107,8 +107,8 @@
                     </node>
                     <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLE_REF" loc="13..24" text="weather_avg">
                         <node key="SQL_TABLE_INHERIT" value="true" />
-                        <node key="SQL_TABLE_NAME">
-                            <node loc="13..24" text="weather_avg" />
+                        <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="13..24" text="weather_avg">
+                            <node key="SQL_QUALIFIED_NAME_RELATION" loc="13..24" text="weather_avg" />
                         </node>
                     </node>
                 </node>
@@ -147,8 +147,8 @@
                     </node>
                     <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLE_REF" loc="13..24" text="weather_avg">
                         <node key="SQL_TABLE_INHERIT" value="true" />
-                        <node key="SQL_TABLE_NAME">
-                            <node loc="13..24" text="weather_avg" />
+                        <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="13..24" text="weather_avg">
+                            <node key="SQL_QUALIFIED_NAME_RELATION" loc="13..24" text="weather_avg" />
                         </node>
                     </node>
                 </node>

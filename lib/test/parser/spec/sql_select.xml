@@ -365,8 +365,8 @@
                     <node key="SQL_SELECT_FROM">
                         <node type="OBJECT_SQL_TABLE_REF" loc="23..24" text="b">
                             <node key="SQL_TABLE_INHERIT" value="true" />
-                            <node key="SQL_TABLE_NAME">
-                                <node loc="23..24" text="b" />
+                            <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="23..24" text="b">
+                                <node key="SQL_QUALIFIED_NAME_RELATION" loc="23..24" text="b" />
                             </node>
                         </node>
                     </node>
@@ -400,9 +400,9 @@
                     <node key="SQL_SELECT_FROM">
                         <node type="OBJECT_SQL_TABLE_REF" loc="23..26" text="b.c">
                             <node key="SQL_TABLE_INHERIT" value="true" />
-                            <node key="SQL_TABLE_NAME">
-                                <node loc="23..24" text="b" />
-                                <node loc="25..26" text="c" />
+                            <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="23..26" text="b.c">
+                                <node key="SQL_QUALIFIED_NAME_RELATION" loc="25..26" text="c" />
+                                <node key="SQL_QUALIFIED_NAME_SCHEMA" loc="23..24" text="b" />
                             </node>
                         </node>
                     </node>
@@ -436,9 +436,9 @@
                     <node key="SQL_SELECT_FROM">
                         <node type="OBJECT_SQL_TABLE_REF" loc="23..31" text="only b.c">
                             <node key="SQL_TABLE_INHERIT" value="false" />
-                            <node key="SQL_TABLE_NAME">
-                                <node loc="28..29" text="b" />
-                                <node loc="30..31" text="c" />
+                            <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="28..31" text="b.c">
+                                <node key="SQL_QUALIFIED_NAME_RELATION" loc="30..31" text="c" />
+                                <node key="SQL_QUALIFIED_NAME_SCHEMA" loc="28..29" text="b" />
                             </node>
                         </node>
                     </node>
@@ -473,9 +473,9 @@
                         <node type="OBJECT_SQL_TABLE_REF" loc="23..31" text="b.c as d">
                             <node key="SQL_TABLE_ALIAS" loc="30..31" text="d" />
                             <node key="SQL_TABLE_INHERIT" value="true" />
-                            <node key="SQL_TABLE_NAME">
-                                <node loc="23..24" text="b" />
-                                <node loc="25..26" text="c" />
+                            <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="23..26" text="b.c">
+                                <node key="SQL_QUALIFIED_NAME_RELATION" loc="25..26" text="c" />
+                                <node key="SQL_QUALIFIED_NAME_SCHEMA" loc="23..24" text="b" />
                             </node>
                         </node>
                     </node>
@@ -509,14 +509,14 @@
                     <node key="SQL_SELECT_FROM">
                         <node type="OBJECT_SQL_TABLE_REF" loc="23..24" text="b">
                             <node key="SQL_TABLE_INHERIT" value="true" />
-                            <node key="SQL_TABLE_NAME">
-                                <node loc="23..24" text="b" />
+                            <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="23..24" text="b">
+                                <node key="SQL_QUALIFIED_NAME_RELATION" loc="23..24" text="b" />
                             </node>
                         </node>
                         <node type="OBJECT_SQL_TABLE_REF" loc="26..27" text="c">
                             <node key="SQL_TABLE_INHERIT" value="true" />
-                            <node key="SQL_TABLE_NAME">
-                                <node loc="26..27" text="c" />
+                            <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="26..27" text="c">
+                                <node key="SQL_QUALIFIED_NAME_RELATION" loc="26..27" text="c" />
                             </node>
                         </node>
                     </node>
@@ -545,25 +545,25 @@
     </input>
     <expected>
         <statements>
-            <statement type="SELECT_INTO" name="global.b">
+            <statement type="SELECT_INTO" name="b">
                 <node type="OBJECT_SQL_SELECT" loc="9..34" text="select a i.. from c, d">
                     <node key="SQL_SELECT_FROM">
                         <node type="OBJECT_SQL_TABLE_REF" loc="30..31" text="c">
                             <node key="SQL_TABLE_INHERIT" value="true" />
-                            <node key="SQL_TABLE_NAME">
-                                <node loc="30..31" text="c" />
+                            <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="30..31" text="c">
+                                <node key="SQL_QUALIFIED_NAME_RELATION" loc="30..31" text="c" />
                             </node>
                         </node>
                         <node type="OBJECT_SQL_TABLE_REF" loc="33..34" text="d">
                             <node key="SQL_TABLE_INHERIT" value="true" />
-                            <node key="SQL_TABLE_NAME">
-                                <node loc="33..34" text="d" />
+                            <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="33..34" text="d">
+                                <node key="SQL_QUALIFIED_NAME_RELATION" loc="33..34" text="d" />
                             </node>
                         </node>
                     </node>
                     <node key="SQL_SELECT_INTO" type="OBJECT_SQL_INTO" loc="23..24" text="b">
-                        <node key="SQL_TEMP_NAME">
-                            <node loc="23..24" text="b" />
+                        <node key="SQL_TEMP_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="23..24" text="b">
+                            <node key="SQL_QUALIFIED_NAME_RELATION" loc="23..24" text="b" />
                         </node>
                         <node key="SQL_TEMP_TYPE" value="DEFAULT" />
                     </node>
@@ -597,8 +597,8 @@
                     <node key="SQL_SELECT_FROM">
                         <node type="OBJECT_SQL_TABLE_REF" loc="23..24" text="b">
                             <node key="SQL_TABLE_INHERIT" value="true" />
-                            <node key="SQL_TABLE_NAME">
-                                <node loc="23..24" text="b" />
+                            <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="23..24" text="b">
+                                <node key="SQL_QUALIFIED_NAME_RELATION" loc="23..24" text="b" />
                             </node>
                         </node>
                     </node>
@@ -635,8 +635,8 @@
                     <node key="SQL_SELECT_FROM">
                         <node type="OBJECT_SQL_TABLE_REF" loc="23..24" text="b">
                             <node key="SQL_TABLE_INHERIT" value="true" />
-                            <node key="SQL_TABLE_NAME">
-                                <node loc="23..24" text="b" />
+                            <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="23..24" text="b">
+                                <node key="SQL_QUALIFIED_NAME_RELATION" loc="23..24" text="b" />
                             </node>
                         </node>
                     </node>
@@ -675,8 +675,8 @@
                     <node key="SQL_SELECT_FROM">
                         <node type="OBJECT_SQL_TABLE_REF" loc="23..24" text="b">
                             <node key="SQL_TABLE_INHERIT" value="true" />
-                            <node key="SQL_TABLE_NAME">
-                                <node loc="23..24" text="b" />
+                            <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="23..24" text="b">
+                                <node key="SQL_QUALIFIED_NAME_RELATION" loc="23..24" text="b" />
                             </node>
                         </node>
                     </node>
@@ -725,8 +725,8 @@
                     <node key="SQL_SELECT_FROM">
                         <node type="OBJECT_SQL_TABLE_REF" loc="23..24" text="b">
                             <node key="SQL_TABLE_INHERIT" value="true" />
-                            <node key="SQL_TABLE_NAME">
-                                <node loc="23..24" text="b" />
+                            <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="23..24" text="b">
+                                <node key="SQL_QUALIFIED_NAME_RELATION" loc="23..24" text="b" />
                             </node>
                         </node>
                     </node>
@@ -787,8 +787,8 @@
                     <node key="SQL_SELECT_FROM">
                         <node type="OBJECT_SQL_TABLE_REF" loc="23..24" text="b">
                             <node key="SQL_TABLE_INHERIT" value="true" />
-                            <node key="SQL_TABLE_NAME">
-                                <node loc="23..24" text="b" />
+                            <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="23..24" text="b">
+                                <node key="SQL_QUALIFIED_NAME_RELATION" loc="23..24" text="b" />
                             </node>
                         </node>
                     </node>
@@ -850,8 +850,8 @@
                     <node key="SQL_SELECT_FROM">
                         <node type="OBJECT_SQL_TABLE_REF" loc="23..24" text="b">
                             <node key="SQL_TABLE_INHERIT" value="true" />
-                            <node key="SQL_TABLE_NAME">
-                                <node loc="23..24" text="b" />
+                            <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="23..24" text="b">
+                                <node key="SQL_QUALIFIED_NAME_RELATION" loc="23..24" text="b" />
                             </node>
                         </node>
                     </node>
@@ -925,8 +925,8 @@
                     <node key="SQL_SELECT_FROM">
                         <node type="OBJECT_SQL_TABLE_REF" loc="32..33" text="b">
                             <node key="SQL_TABLE_INHERIT" value="true" />
-                            <node key="SQL_TABLE_NAME">
-                                <node loc="32..33" text="b" />
+                            <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="32..33" text="b">
+                                <node key="SQL_QUALIFIED_NAME_RELATION" loc="32..33" text="b" />
                             </node>
                         </node>
                     </node>
@@ -967,8 +967,8 @@
                     <node key="SQL_SELECT_FROM">
                         <node type="OBJECT_SQL_TABLE_REF" loc="39..40" text="b">
                             <node key="SQL_TABLE_INHERIT" value="true" />
-                            <node key="SQL_TABLE_NAME">
-                                <node loc="39..40" text="b" />
+                            <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="39..40" text="b">
+                                <node key="SQL_QUALIFIED_NAME_RELATION" loc="39..40" text="b" />
                             </node>
                         </node>
                     </node>
@@ -1003,8 +1003,8 @@
                     <node key="SQL_SELECT_FROM">
                         <node type="OBJECT_SQL_TABLE_REF" loc="25..26" text="b">
                             <node key="SQL_TABLE_INHERIT" value="true" />
-                            <node key="SQL_TABLE_NAME">
-                                <node loc="25..26" text="b" />
+                            <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="25..26" text="b">
+                                <node key="SQL_QUALIFIED_NAME_RELATION" loc="25..26" text="b" />
                             </node>
                         </node>
                     </node>
@@ -1113,8 +1113,8 @@
                 <node type="OBJECT_SQL_SELECT" loc="9..16" text="TABLE a">
                     <node key="SQL_SELECT_TABLE" type="OBJECT_SQL_TABLE_REF" loc="9..16" text="TABLE a">
                         <node key="SQL_TABLE_INHERIT" value="true" />
-                        <node key="SQL_TABLE_NAME">
-                            <node loc="15..16" text="a" />
+                        <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="15..16" text="a">
+                            <node key="SQL_QUALIFIED_NAME_RELATION" loc="15..16" text="a" />
                         </node>
                     </node>
                 </node>
@@ -1557,11 +1557,11 @@
     </input>
     <expected>
         <statements>
-            <statement type="SELECT_INTO" name="global.b">
+            <statement type="SELECT_INTO" name="b">
                 <node type="OBJECT_SQL_SELECT" loc="9..24" text="select 1 into b">
                     <node key="SQL_SELECT_INTO" type="OBJECT_SQL_INTO" loc="23..24" text="b">
-                        <node key="SQL_TEMP_NAME">
-                            <node loc="23..24" text="b" />
+                        <node key="SQL_TEMP_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="23..24" text="b">
+                            <node key="SQL_QUALIFIED_NAME_RELATION" loc="23..24" text="b" />
                         </node>
                         <node key="SQL_TEMP_TYPE" value="DEFAULT" />
                     </node>
@@ -1570,13 +1570,13 @@
                     </node>
                 </node>
             </statement>
-            <statement type="SELECT" name="global.b">
+            <statement type="SELECT" name="b">
                 <node type="OBJECT_SQL_SELECT" loc="34..49" text="select 1 from b">
                     <node key="SQL_SELECT_FROM">
                         <node type="OBJECT_SQL_TABLE_REF" loc="48..49" text="b">
                             <node key="SQL_TABLE_INHERIT" value="true" />
-                            <node key="SQL_TABLE_NAME">
-                                <node loc="48..49" text="b" />
+                            <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="48..49" text="b">
+                                <node key="SQL_QUALIFIED_NAME_RELATION" loc="48..49" text="b" />
                             </node>
                         </node>
                     </node>
@@ -1606,22 +1606,22 @@
     </input>
     <expected>
         <statements>
-            <statement type="INPUT" name="global.a">
+            <statement type="INPUT" name="a">
                 <node type="OBJECT_DASHQL_INPUT" loc="9..40" text="input a ty..using text">
                     <node key="DASHQL_INPUT_COMPONENT_TYPE" value="TEXT" />
                     <node key="DASHQL_INPUT_VALUE_TYPE" type="OBJECT_SQL_TYPENAME" loc="22..29" text="integer">
                         <node key="SQL_TYPENAME_TYPE" value="INT4" />
                     </node>
-                    <node key="DASHQL_STATEMENT_NAME">
-                        <node loc="15..16" text="a" />
+                    <node key="DASHQL_STATEMENT_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="15..16" text="a">
+                        <node key="SQL_QUALIFIED_NAME_RELATION" loc="15..16" text="a" />
                     </node>
                 </node>
             </statement>
-            <statement type="SELECT_INTO" name="global.b">
+            <statement type="SELECT_INTO" name="b">
                 <node type="OBJECT_SQL_SELECT" loc="50..65" text="select 1 into b">
                     <node key="SQL_SELECT_INTO" type="OBJECT_SQL_INTO" loc="64..65" text="b">
-                        <node key="SQL_TEMP_NAME">
-                            <node loc="64..65" text="b" />
+                        <node key="SQL_TEMP_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="64..65" text="b">
+                            <node key="SQL_QUALIFIED_NAME_RELATION" loc="64..65" text="b" />
                         </node>
                         <node key="SQL_TEMP_TYPE" value="DEFAULT" />
                     </node>
@@ -1630,13 +1630,13 @@
                     </node>
                 </node>
             </statement>
-            <statement type="SELECT" name="global.b">
+            <statement type="SELECT" name="b">
                 <node type="OBJECT_SQL_SELECT" loc="75..113" text="select c f..obal.a + 1">
                     <node key="SQL_SELECT_FROM">
                         <node type="OBJECT_SQL_TABLE_REF" loc="89..90" text="b">
                             <node key="SQL_TABLE_INHERIT" value="true" />
-                            <node key="SQL_TABLE_NAME">
-                                <node loc="89..90" text="b" />
+                            <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="89..90" text="b">
+                                <node key="SQL_QUALIFIED_NAME_RELATION" loc="89..90" text="b" />
                             </node>
                         </node>
                     </node>
@@ -1689,38 +1689,38 @@
     </input>
     <expected>
         <statements>
-            <statement type="INPUT" name="global.month">
+            <statement type="INPUT" name="month">
                 <node type="OBJECT_DASHQL_INPUT" loc="9..44" text="input mont..using text">
                     <node key="DASHQL_INPUT_COMPONENT_TYPE" value="TEXT" />
                     <node key="DASHQL_INPUT_VALUE_TYPE" type="OBJECT_SQL_TYPENAME" loc="26..33" text="integer">
                         <node key="SQL_TYPENAME_TYPE" value="INT4" />
                     </node>
-                    <node key="DASHQL_STATEMENT_NAME">
-                        <node loc="15..20" text="month" />
+                    <node key="DASHQL_STATEMENT_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="15..20" text="month">
+                        <node key="SQL_QUALIFIED_NAME_RELATION" loc="15..20" text="month" />
                     </node>
                 </node>
             </statement>
-            <statement type="SELECT_INTO" name="global.countries_joined">
+            <statement type="SELECT_INTO" name="countries_joined">
                 <node type="OBJECT_SQL_SELECT" loc="54..184" text="select * i..obal.month">
                     <node key="SQL_SELECT_FROM">
                         <node type="OBJECT_SQL_TABLE_REF" loc="90..109" text="country1_weather c1">
                             <node key="SQL_TABLE_ALIAS" loc="107..109" text="c1" />
                             <node key="SQL_TABLE_INHERIT" value="true" />
-                            <node key="SQL_TABLE_NAME">
-                                <node loc="90..106" text="country1_weather" />
+                            <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="90..106" text="country1_weather">
+                                <node key="SQL_QUALIFIED_NAME_RELATION" loc="90..106" text="country1_weather" />
                             </node>
                         </node>
                         <node type="OBJECT_SQL_TABLE_REF" loc="111..130" text="country2_weather c2">
                             <node key="SQL_TABLE_ALIAS" loc="128..130" text="c2" />
                             <node key="SQL_TABLE_INHERIT" value="true" />
-                            <node key="SQL_TABLE_NAME">
-                                <node loc="111..127" text="country2_weather" />
+                            <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="111..127" text="country2_weather">
+                                <node key="SQL_QUALIFIED_NAME_RELATION" loc="111..127" text="country2_weather" />
                             </node>
                         </node>
                     </node>
                     <node key="SQL_SELECT_INTO" type="OBJECT_SQL_INTO" loc="68..84" text="countries_joined">
-                        <node key="SQL_TEMP_NAME">
-                            <node loc="68..84" text="countries_joined" />
+                        <node key="SQL_TEMP_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="68..84" text="countries_joined">
+                            <node key="SQL_QUALIFIED_NAME_RELATION" loc="68..84" text="countries_joined" />
                         </node>
                         <node key="SQL_TEMP_TYPE" value="DEFAULT" />
                     </node>
@@ -1778,7 +1778,7 @@
     </input>
     <expected>
         <statements>
-            <statement type="SELECT_INTO" name="global.a">
+            <statement type="SELECT_INTO" name="a">
                 <node type="OBJECT_SQL_SELECT" loc="9..63" text="select v i..0) as t(v)">
                     <node key="SQL_SELECT_FROM">
                         <node type="OBJECT_SQL_FUNCTABLE" loc="30..63" text="generate_s..0) as t(v)">
@@ -1796,8 +1796,8 @@
                         </node>
                     </node>
                     <node key="SQL_SELECT_INTO" type="OBJECT_SQL_INTO" loc="23..24" text="a">
-                        <node key="SQL_TEMP_NAME">
-                            <node loc="23..24" text="a" />
+                        <node key="SQL_TEMP_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="23..24" text="a">
+                            <node key="SQL_QUALIFIED_NAME_RELATION" loc="23..24" text="a" />
                         </node>
                         <node key="SQL_TEMP_TYPE" value="DEFAULT" />
                     </node>
