@@ -340,8 +340,9 @@ BufferManager::BufferRef BufferManager::FixPage(const FileRef& file_ref, uint64_
 
     // Create a new page and don't insert it in the queues, yet.
     assert(frames.find(frame_id) == frames.end());
+    auto buffer = AllocateFrameBuffer();
     auto& frame = frames.insert({frame_id, BufferFrame{frame_id, GetPageSize(), fifo.end(), lru.end()}}).first->second;
-    frame.buffer = AllocateFrameBuffer();
+    frame.buffer = std::move(buffer);
     frame.fifo_position = fifo.insert(fifo.end(), &frame);
     frame.Lock(exclusive);
 
