@@ -99,7 +99,6 @@ TEST(WebDB, LoadCSVIStream) {
 
     auto data = dashql::test::SOURCE_DIR / ".." / "data" / "test.csv";
 
-    // Create database
     duckdb::BufferedCSVReaderOptions options;
     options.auto_detect = true;
     std::vector<duckdb::LogicalType> column_types{LT::INTEGER, LT::INTEGER, LT::INTEGER};
