@@ -41,10 +41,10 @@ export interface Action {
     originStatement: number | null;
     /// The object id
     objectId: number | null;
-    /// The qualified target name
-    targetNameQualified: string;
-    /// The short target name
-    targetNameShort: string;
+    /// The qualified name
+    nameQualified: string;
+    /// The short name
+    nameShort: string;
     /// The script (if any)
     script: string | null;
 
