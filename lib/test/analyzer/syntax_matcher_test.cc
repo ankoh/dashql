@@ -34,9 +34,9 @@ TEST(ASTMatcherTest, LoadStatement) {
             sxm::Attribute(sx::AttributeKey::DASHQL_LOAD_METHOD, 1)
                 .MatchEnum(sx::NodeType::ENUM_DASHQL_LOAD_METHOD_TYPE),
             sxm::Attribute(sx::AttributeKey::DASHQL_STATEMENT_NAME, 2)
-                .MatchArray()
+                .MatchObject(sx::NodeType::OBJECT_SQL_QUALIFIED_NAME)
                 .MatchChildren({
-                    sxm::Element(3)
+                    sxm::Attribute(sx::AttributeKey::SQL_QUALIFIED_NAME_RELATION, 3)
                         .MatchString()
                 }),
             sxm::Attribute(sx::AttributeKey::DASHQL_OPTION_URL, 4)
@@ -157,9 +157,9 @@ TEST(ASTMatcherTest, LoadStatementFormat) {
             sxm::Attribute(sx::AttributeKey::DASHQL_LOAD_METHOD, 1)
                 .MatchEnum(sx::NodeType::ENUM_DASHQL_LOAD_METHOD_TYPE),
             sxm::Attribute(sx::AttributeKey::DASHQL_STATEMENT_NAME, 2)
-                .MatchArray()
+                .MatchObject(sx::NodeType::OBJECT_SQL_QUALIFIED_NAME)
                 .MatchChildren({
-                    sxm::Element(3)
+                    sxm::Attribute(sx::AttributeKey::SQL_QUALIFIED_NAME_RELATION, 3)
                         .MatchString()
                 }),
             sxm::Attribute(sx::AttributeKey::DASHQL_OPTION_URL, 4)
