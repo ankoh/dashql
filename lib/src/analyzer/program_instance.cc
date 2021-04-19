@@ -8,6 +8,7 @@
 #include "dashql/analyzer/stmt/input_stmt.h"
 #include "dashql/analyzer/stmt/viz_stmt.h"
 #include "dashql/common/memstream.h"
+#include "dashql/common/string.h"
 #include "dashql/common/substring_buffer.h"
 #include "dashql/common/variant.h"
 #include "dashql/proto_generated.h"
@@ -56,6 +57,64 @@ Value ProgramInstance::ReadNodeValue(size_t node_id) {
             break;
     }
     return v;
+}
+
+/// Read a node value
+ProgramInstance::QualifiedName ProgramInstance::ReadQualifiedName(size_t node_id, bool lift_global) {
+    auto& node = program_->nodes[node_id];
+    QualifiedName qn;
+
+    // clang-format off
+    static const auto indirectSchema = sxm::Element()
+        .MatchObject(sx::NodeType::OBJECT_SQL_INDIRECTION_INDEX)
+        .MatchChildren({
+            sxm::Attribute(sx::AttributeKey::SQL_INDIRECTION_INDEX_VALUE, 0)
+                .MatchString()
+        });
+    // clang-format on
+    auto indirection = [&]() -> std::optional<std::string_view> {
+        auto ast = indirectSchema.Match(*this, node_id, 1);
+        if (!ast.IsFullMatch()) return std::nullopt;
+        return TextAt(program_->nodes[ast[0].node_id].location());
+    };
+
+    // Is string?
+    if (node.node_type() == sx::NodeType::STRING_REF) {
+        qn.name = TextAt(node.location());
+    }
+
+    // Is array?
+    else if (node.node_type() == sx::NodeType::ARRAY) {
+        auto begin = node.children_begin_or_value();
+        auto count = node.children_count();
+        switch (count) {
+            case 0:
+                break;
+            case 1:
+                qn.name = trimview(TextAt(program_->nodes[begin].location()), isNoQuote);
+                break;
+            case 2:
+                qn.schema = trimview(TextAt(program_->nodes[begin].location()), isNoQuote);
+                qn.name = trimview(TextAt(program_->nodes[begin + 1].location()), isNoQuote);
+                break;
+            case 3:
+            default:
+                qn.schema = trimview(TextAt(program_->nodes[begin].location()), isNoQuote);
+                qn.name = trimview(TextAt(program_->nodes[begin + 1].location()), isNoQuote);
+                break;
+        }
+    }
+
+    // Is table ref?
+    else if (node.node_type() == sx::NodeType::OBJECT_SQL_TABLE_REF) {
+        if (auto name_id = FindAttribute(node, sx::AttributeKey::SQL_TABLE_NAME); name_id) {
+            return ReadQualifiedName(*name_id, true);
+        }
+    }
+
+    // Lift into global namespace?
+    if (qn.schema.empty() && lift_global) qn.schema = script_options_.global_namespace;
+    return qn;
 }
 
 // Collect the statement options
@@ -138,7 +197,7 @@ flatbuffers::Offset<proto::analyzer::ProgramAnnotations> ProgramInstance::PackAn
 }
 
 /// Find an attribute
-const sx::Node* ProgramInstance::FindAttribute(const sx::Node& origin, sx::AttributeKey key) const {
+std::optional<size_t> ProgramInstance::FindAttribute(const sx::Node& origin, sx::AttributeKey key) const {
     auto children_begin = origin.children_begin_or_value();
     auto children_count = origin.children_count();
     auto lb = children_begin;
@@ -155,10 +214,10 @@ const sx::Node* ProgramInstance::FindAttribute(const sx::Node& origin, sx::Attri
         }
     }
     if (lb >= children_begin + children_count) {
-        return nullptr;
+        return std::nullopt;
     }
     auto& n = program_->nodes[lb];
-    return (n.attribute_key() == key) ? &n : nullptr;
+    return (n.attribute_key() == key) ? std::optional<size_t>{lb} : std::nullopt;
 }
 
 }  // namespace dashql

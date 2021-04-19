@@ -34,9 +34,9 @@ std::unique_ptr<ExtractStatement> ExtractStatement::ReadFrom(ProgramInstance& in
                     sxm::Element(SX_DATA_SOURCE)
                         .MatchString(),
                     sxm::Element()
-                        .MatchObject(sx::NodeType::OBJECT_SQL_INDIRECTION)
+                        .MatchObject(sx::NodeType::OBJECT_SQL_INDIRECTION_INDEX)
                         .MatchChildren({
-                            sxm::Attribute(sx::AttributeKey::SQL_INDIRECTION_INDEX, SX_DATA_INDIRECTION)
+                            sxm::Attribute(sx::AttributeKey::SQL_INDIRECTION_INDEX_VALUE, SX_DATA_INDIRECTION)
                                 .MatchString()
                         }),
                 }),
