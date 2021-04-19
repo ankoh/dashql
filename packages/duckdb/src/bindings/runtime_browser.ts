@@ -144,7 +144,7 @@ export const BrowserRuntime: DuckDBRuntime & {
     },
     duckdb_web_fs_file_truncate: (fileId: number, newSize: number) => {
         const file = BrowserRuntime.filesByID.get(fileId);
-        if (!file) return 0;
+        if (!file) return;
         let buffer = file.buffer;
         if (!buffer) {
             buffer = new Uint8Array(new FileReaderSync().readAsArrayBuffer(file.blob!));

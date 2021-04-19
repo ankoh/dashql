@@ -1,15 +1,15 @@
-import * as benny from 'benny';
+import * as benchmark from 'benchmark';
 import * as arrow from 'apache-arrow';
-import * as duckdb from '@dashql/duckdb/src';
-import * as core from '@dashql/core/src';
+import * as duckdb from '@dashql/duckdb/src/';
 import kleur from 'kleur';
+import { formatBytes } from './common';
 
 export function benchmarkFormat(db: () => duckdb.DuckDBBindings) {
     const tupleSize = 8;
     for (const tupleCount of [1000, 10000, 1000000, 10000000]) {
-        benny.suite(
-            `Single DOUBLE column | ${tupleCount} rows`,
-            benny.add('columns (iterator)', () => {
+        let suite = new benchmark.Suite(`Single DOUBLE column | ${tupleCount} rows`);
+        suite
+            .add('columns (iterator)', () => {
                 const conn = db().connect();
                 const result = conn.runQuery<{ foo: arrow.Float64 }>(`
                     SELECT v::DOUBLE AS foo FROM generate_series(1, ${tupleCount}) as t(v);
@@ -18,7 +18,7 @@ export function benchmarkFormat(db: () => duckdb.DuckDBBindings) {
                 return () => {
                     let sum = 0;
                     let count = 0;
-                    for (const v of result.getColumnAt(0)) {
+                    for (const v of result.getColumnAt(0)!) {
                         sum += v!;
                         ++count;
                     }
@@ -28,9 +28,8 @@ export function benchmarkFormat(db: () => duckdb.DuckDBBindings) {
                         );
                     }
                 };
-            }),
-
-            benny.add('rows (iterator)', () => {
+            })
+            .add('rows (iterator)', () => {
                 const conn = db().connect();
                 const result = conn.runQuery<{ foo: arrow.Float64 }>(`
                     SELECT v::DOUBLE AS foo FROM generate_series(1, ${tupleCount}) as t(v);
@@ -49,9 +48,8 @@ export function benchmarkFormat(db: () => duckdb.DuckDBBindings) {
                         );
                     }
                 };
-            }),
-
-            benny.add('columns (scan + bind)', () => {
+            })
+            .add('columns (scan + bind)', () => {
                 const conn = db().connect();
                 const table = conn.runQuery<{ foo: arrow.Float64 }>(`
                     SELECT v::DOUBLE AS foo FROM generate_series(1, ${tupleCount}) as t(v);
@@ -67,7 +65,7 @@ export function benchmarkFormat(db: () => duckdb.DuckDBBindings) {
                         },
                         batch => {
                             action = (index: number) => {
-                                sum += batch.getChildAt(0).get(index);
+                                sum += batch.getChildAt(0)!.get(index);
                                 ++count;
                             };
                         },
@@ -78,25 +76,30 @@ export function benchmarkFormat(db: () => duckdb.DuckDBBindings) {
                         );
                     }
                 };
-            }),
-
-            benny.cycle((result: any, _summary: any) => {
+            })
+            .on('cycle', (e: any) => {
+                console.log(e);
+                const bytes = tupleCount * tupleSize;
+                const duration = e.target.stats.mean;
+                const tupleThroughput = tupleCount / duration;
+                const dataThroughput = bytes / duration;
+                console.log(
+                    `${kleur.cyan(e.target.name)} t: ${duration.toFixed(3)} s ttp: ${Math.round(
+                        tupleThroughput,
+                    )}/s dtp: ${formatBytes(dataThroughput)}/s`,
+                );
+            })
+            .run();
+        /*.on('cycle', (result: any, _summary: any) => {
                 const bytes = tupleCount * tupleSize;
                 const duration = result.details.median;
                 const tupleThroughput = tupleCount / duration;
                 const dataThroughput = bytes / duration;
                 console.log(
-                    `${kleur.cyan(result.name)} t: ${duration.toFixed(3)} s ttp: ${core.utils.formatThousands(
-                        tupleThroughput,
-                    )}/s dtp: ${core.utils.formatBytes(dataThroughput)}/s`,
+                    `${kleur.cyan(result.name)} t: ${duration.toFixed(
+                        3,
+                    )} s ttp: ${tupleThroughput}/s dtp: ${dataThroughput}/s`,
                 );
-            }),
-        );
+            }),*/
     }
 }
-//
-// const logger = new duckdb.VoidLogger();
-// const db = new duckdb.DuckDB(logger, duckdb.NodeRuntime, path.join(__dirname, '../../duckdb/dist/duckdb.wasm'));
-// db.open()
-//     .then(() => main(db))
-//     .catch(e => console.error(e));

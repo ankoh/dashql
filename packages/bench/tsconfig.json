@@ -1,9 +1,15 @@
 {
     "compilerOptions": {
-        "outDir": "./dist/",
+        "outDir": "./dist/build/",
         "target": "es2020",
-        "module": "commonjs",
+        "module": "es2020",
         "moduleResolution": "node",
+        "strict": true,
+        "sourceMap": true,
+        "declaration": true,
+        "declarationMap": true,
+        "declarationDir": "./dist/types/",
+        "downlevelIteration": true,
         "esModuleInterop": true,
         "allowSyntheticDefaultImports": true,
         "noImplicitAny": true,
@@ -19,8 +25,8 @@
         // https://issues.apache.org/jira/browse/ARROW-10794
         "skipLibCheck": true,
 
-        "lib": ["ESNext.Array", "DOM", "DOM.Iterable"],
-        "types": [],
+        "lib": ["ESNext.Array", "DOM", "DOM.Iterable", "es6", "webworker"],
+        "types": ["emscripten", "node"],
         "baseUrl": "."
     },
     "include": ["./src/*.ts", "./types/*"],
