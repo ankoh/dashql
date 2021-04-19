@@ -16,6 +16,7 @@
 #include "dashql/proto_generated.h"
 #include "duckdb.hpp"
 #include "duckdb/main/query_result.hpp"
+#include "duckdb/web/arrow_inserter.h"
 #include "duckdb/web/io/buffer_manager.h"
 #include "duckdb/web/io/buffered_filesystem.h"
 #include "duckdb/web/miniz_zipper.h"
@@ -35,9 +36,11 @@ class WebDB {
         duckdb::Connection connection_;
 
         /// The current result (if any)
-        std::unique_ptr<duckdb::QueryResult> current_query_result_;
+        std::unique_ptr<duckdb::QueryResult> current_query_result_ = nullptr;
         /// The current arrow schema (if any)
-        std::shared_ptr<arrow::Schema> current_schema_;
+        std::shared_ptr<arrow::Schema> current_schema_ = nullptr;
+        /// The current arrow inserter (if any)
+        std::unique_ptr<ArrowInserter> current_arrow_ = nullptr;
 
        public:
         /// Constructor
