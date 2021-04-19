@@ -62,7 +62,7 @@ struct QualifiedNameView {
         }
     };
 
-    /// Read a qualified name
+    /// Read from a qualified name
     static QualifiedNameView ReadFrom(nonstd::span<proto::syntax::Node> nodes, std::string_view text, size_t root_id);
 };
 

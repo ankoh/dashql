@@ -4,11 +4,10 @@
     </input>
     <expected>
         <statements>
-            <statement type="CREATE_VIEW" name="global.foo">
+            <statement type="CREATE_VIEW" name="foo">
                 <node type="OBJECT_SQL_VIEW" loc="9..36" text="create vie..s select 1">
-                    <node loc="21..24" text="foo" />
-                    <node key="SQL_VIEW_NAME">
-                        <node loc="21..24" text="foo" />
+                    <node key="SQL_VIEW_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="21..24" text="foo">
+                        <node key="SQL_QUALIFIED_NAME_RELATION" loc="21..24" text="foo" />
                     </node>
                     <node key="SQL_VIEW_STATEMENT" type="OBJECT_SQL_VIEW" loc="28..36" text="select 1">
                         <node key="SQL_SELECT_TARGETS">
