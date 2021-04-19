@@ -52,8 +52,8 @@ export class CreateTableActionLogic extends ProgramActionLogic {
                 objectType: model.PlanObjectType.DATABASE_TABLE,
                 timeCreated: now,
                 timeUpdated: now,
-                tableNameQualified: this.buffer.targetNameQualified() || '',
-                tableNameShort: this.buffer.targetNameShort() || '',
+                tableNameQualified: this.buffer.nameQualified() || '',
+                tableNameShort: this.buffer.nameShort() || '',
                 columnNames: [],
                 columnNameMapping: new Map(),
                 columnTypes: [],
@@ -101,7 +101,7 @@ export class DropTableActionLogic extends SetupActionLogic {
     public async execute(context: ActionContext): Promise<void> {
         const db = context.platform.database;
         await db.use(async (c: duckdb.AsyncConnection) => {
-            await c.runQuery(`DROP TABLE IF EXISTS ${this.buffer.targetNameShort()}`);
+            await c.runQuery(`DROP TABLE IF EXISTS ${this.buffer.nameShort()}`);
         });
     }
 }

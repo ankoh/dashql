@@ -60,8 +60,8 @@ table SetupAction {
     depends_on: [uint32];
     required_for: [uint32];
     object_id: uint32;
-    target_name_qualified: string;
-    target_name_short: string;
+    name_qualified: string;
+    name_short: string;
 }
 
 enum ProgramActionType: uint8 {
@@ -84,7 +84,7 @@ table ProgramAction {
     required_for: [uint32];
     origin_statement: uint32;
     object_id: uint32;
-    target_name_qualified: string;
-    target_name_short: string;
+    name_qualified: string;
+    name_short: string;
     script: string;
 }

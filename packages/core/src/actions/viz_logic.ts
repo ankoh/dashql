@@ -18,7 +18,7 @@ export abstract class VizActionLogic extends ProgramActionLogic {
 
     /// Get the qualified table name
     protected get tableNameQualified(): string {
-        return this.buffer.targetNameQualified()!;
+        return this.buffer.nameQualified()!;
     }
 
     /// Read context info
