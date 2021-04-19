@@ -11,7 +11,7 @@ namespace duckdb {
 namespace web {
 namespace io {
 
-class InputStreamBuffer : public std::streambuf {
+class InputFileStreamBuffer : public std::streambuf {
    private:
     /// The buffer manager
     std::shared_ptr<BufferManager> buffer_manager_;
@@ -58,12 +58,13 @@ class InputStreamBuffer : public std::streambuf {
 
    public:
     /// Constructor
-    InputStreamBuffer(std::shared_ptr<BufferManager> buffer_manager, std::string_view path)
+    InputFileStreamBuffer(std::shared_ptr<BufferManager> buffer_manager, std::string_view path)
         : buffer_manager_(std::move(buffer_manager)),
           file_(buffer_manager_->OpenFile(path)),
           buffer_(buffer_manager_->FixPage(file_, 0, false)),
-          next_page_id_(0) {
-        NextPage();
+          next_page_id_(1) {
+        auto data = buffer_.GetData();
+        setg(data.data(), data.data(), data.data() + data.size());
     }
 };
 
