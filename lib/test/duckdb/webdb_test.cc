@@ -100,18 +100,13 @@ TEST(WebDB, LoadCSVIStream) {
     auto data = dashql::test::SOURCE_DIR / ".." / "data" / "test.csv";
 
     // Create database
-    auto buffer_manager = std::make_shared<io::BufferManager>(io::CreateDefaultFileSystem());
-    auto buffered_filesystem = std::make_unique<io::BufferedFileSystem>(buffer_manager);
-    duckdb::DBConfig db_config;
-    db_config.file_system = std::move(buffered_filesystem);
-
-    auto db = make_shared<duckdb::DuckDB>(nullptr, &db_config);
     duckdb::BufferedCSVReaderOptions options;
     options.auto_detect = true;
     std::vector<duckdb::LogicalType> column_types{LT::INTEGER, LT::INTEGER, LT::INTEGER};
     duckdb::DataChunk output_chunk;
     output_chunk.Initialize(column_types);
 
+    auto buffer_manager = std::make_shared<io::BufferManager>(io::CreateDefaultFileSystem());
     auto input = std::make_shared<io::InputFileStreamBuffer>(buffer_manager, data.c_str());
     try {
         duckdb::BufferedCSVReader reader(options, column_types, std::make_unique<std::istream>(input.get()));
