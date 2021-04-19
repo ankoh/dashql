@@ -43,7 +43,7 @@
         "redux": "^4.0.5",
         "redux-persist": "^6.0.0",
         "vega": "^5.20.2",
-        "vega-lite": "^5.0.0"
+        "vega-lite": "^5.1.0"
     },
     "devDependencies": {
         "@types/classnames": "^2.2.11",
@@ -62,7 +62,7 @@
         "@typescript-eslint/eslint-plugin": "^4.22.0",
         "@typescript-eslint/parser": "^4.22.0",
         "clean-webpack-plugin": "^3.0.0",
-        "css-loader": "^5.2.1",
+        "css-loader": "^5.2.2",
         "eslint": "^7.24.0",
         "eslint-config-prettier": "^8.2.0",
         "eslint-plugin-jasmine": "^4.1.2",
