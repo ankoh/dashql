@@ -22,6 +22,15 @@ namespace duckdb {
 namespace web {
 namespace io {
 
+/// We use a dedicated lightweight BufferManager for paged I/O in and out of WebAssembly.
+/// The buffer manager is tailored towards WASM in the following points:
+///
+/// - The only goal is to buffer the interop with js.
+/// - The buffer manager does not need to be thread-safe since DuckDB.wasm is single-threaded at the moment.
+///   (Cross-Origin Isolation of SharedArrayBuffers holds us back)
+/// - We're complementing the actual buffer management of DuckDB and therefore allocate only few I/O buffers.
+/// - We maintain the few I/O buffers with the 2 Queue buffer replacement strategy to talk to js as rarely as possible.
+
 class BufferManager;
 
 class BufferFrame {
