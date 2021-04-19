@@ -10,6 +10,7 @@
 
 constexpr size_t SX_LOAD_METHOD = 0;
 constexpr size_t SX_LOAD_FROM_URI = 1;
+constexpr size_t SX_LOAD_URL_OPTION = 2;
 namespace fb = flatbuffers;
 namespace ana = dashql::proto::analyzer;
 
@@ -31,27 +32,45 @@ std::unique_ptr<LoadStatement> LoadStatement::ReadFrom(ProgramInstance& instance
                 .MatchEnum(sx::NodeType::ENUM_DASHQL_LOAD_METHOD_TYPE),
             sxm::Attribute(sx::AttributeKey::DASHQL_LOAD_FROM_URI, SX_LOAD_FROM_URI)
                 .MatchString(),
+            sxm::Attribute(sx::AttributeKey::DASHQL_OPTION_URL, SX_LOAD_URL_OPTION)
         });
     // clang-format on
 
     // Match root
-    auto ast = schema.Match(instance, stmt->root_node, 2);
+    auto ast = schema.Match(instance, stmt->root_node, 3);
     auto load = std::make_unique<LoadStatement>(instance, stmt_id, std::move(ast));
+
+    // Helper to report a redundant option
+    auto optionIsRedundant = [&](size_t match_id, std::string_view name) {
+        if (auto m = load->ast_[match_id]; m) {
+            instance.AddLinterMessage(LinterMessageCode::OPTION_REDUNDANT, m.node_id)
+                << "option '" << name << "' is redundant";
+        }
+    };
 
     // Get load method
     load->method_ = sx::LoadMethodType::NONE;
     if (auto m = load->ast_[SX_LOAD_METHOD]; m) {
         load->method_ = m.DataAsEnum<sx::LoadMethodType>();
+
+        if (auto url = load->ast_[SX_LOAD_URL_OPTION]; url) {
+            load->url_ = instance.TextAt(program.nodes[url.node_id].location());
+        } else {
+            instance.AddLinterMessage(LinterMessageCode::OPTION_MISSING, m.node_id) << "missing option 'url'";
+        }
     }
+
+    // Explicit URI?
     if (auto m = load->ast_[SX_LOAD_FROM_URI]; m) {
         auto node_id = load->ast_[SX_LOAD_FROM_URI].node_id;
         auto& node = program.nodes[node_id];
 
         // Match method prefixes
-        auto uri = std::string{trimview(instance.TextAt(node.location()), isNoQuote)};
-        if (std::regex_match(uri, LOAD_URI_HTTP)) {
+        load->url_ = std::string{trimview(instance.TextAt(node.location()), isNoQuote)};
+        if (std::regex_match(load->url_, LOAD_URI_HTTP)) {
             load->method_ = sx::LoadMethodType::HTTP;
         }
+        optionIsRedundant(SX_LOAD_URL_OPTION, "url");
     }
     return load;
 }
@@ -69,6 +88,8 @@ fb::Offset<ana::LoadStatement> LoadStatement::Pack(fb::FlatBufferBuilder& builde
     auto& program = instance_.program();
     auto& stmt = program.statements[statement_id_];
 
+    // Encode the url
+    auto url = builder.CreateString(url_);
     // Print the options
     flatbuffers::Offset<flatbuffers::String> options;
     {
@@ -80,6 +101,7 @@ fb::Offset<ana::LoadStatement> LoadStatement::Pack(fb::FlatBufferBuilder& builde
     proto::analyzer::LoadStatementBuilder eb{builder};
     eb.add_statement_id(statement_id_);
     eb.add_method(method_);
+    eb.add_url(url);
     eb.add_options(options);
     return eb.Finish();
 }

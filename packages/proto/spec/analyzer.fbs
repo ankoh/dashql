@@ -47,6 +47,7 @@ table InputStatement {
 table LoadStatement {
     statement_id: uint32;
     method: syntax.LoadMethodType;
+    url: string;
     options: string;
 }
 
