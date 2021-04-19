@@ -1,6 +1,6 @@
-#include <cstring>
-
 #include "duckdb/web/io/ifstreambuf.h"
+
+#include <cstring>
 
 namespace duckdb {
 namespace web {
