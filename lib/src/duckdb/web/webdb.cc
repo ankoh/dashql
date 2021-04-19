@@ -39,7 +39,7 @@ WebDB& WebDB::GetInstance() {
 }
 
 /// Constructor
-WebDB::Connection::Connection(WebDB& webdb) : webdb_(webdb), connection_(*webdb.database_), current_query_result_() {}
+WebDB::Connection::Connection(WebDB& webdb) : webdb_(webdb), connection_(*webdb.database_) {}
 
 arrow::Result<std::shared_ptr<arrow::Buffer>> WebDB::Connection::RunQuery(std::string_view text) {
     try {
