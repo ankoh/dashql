@@ -91,8 +91,8 @@ Signal ActionPlanner::TranslateStatements() {
         action->depends_on = {};
         action->required_for = {};
         action->object_id = action_graph_->next_object_id++;
-        action->target_name_qualified = stmt->name_qualified;
-        action->target_name_short = stmt->name_short;
+        action->name_qualified = stmt->name_qualified;
+        action->name_short = stmt->name_short;
         action->script = "";
 
         // Find action type
@@ -331,8 +331,8 @@ Signal ActionPlanner::MigrateActionGraph() {
                 auto& s = setup.back();
                 s->action_type = import_action;
                 s->object_id = prev_action->object_id;
-                s->target_name_qualified = prev_action->target_name_qualified;
-                s->target_name_short = prev_action->target_name_short;
+                s->name_qualified = prev_action->name_qualified;
+                s->name_short = prev_action->name_short;
             }
 
             // Map to new action.
@@ -345,8 +345,8 @@ Signal ActionPlanner::MigrateActionGraph() {
             auto& next_action = action_graph_->program_actions[*next_action_id];
             next_action->action_status_code = proto::action::ActionStatusCode::COMPLETED;
             next_action->object_id = prev_action->object_id;
-            assert(next_action->target_name_short == prev_action->target_name_short);
-            assert(next_action->target_name_qualified == prev_action->target_name_qualified);
+            assert(next_action->name_short == prev_action->name_short);
+            assert(next_action->name_qualified == prev_action->name_qualified);
             continue;
         }
 
@@ -370,8 +370,8 @@ Signal ActionPlanner::MigrateActionGraph() {
             setup.back() = std::make_unique<proto::action::SetupActionT>();
             auto& s = setup.back();
             s->action_type = drop_action;
-            s->target_name_qualified = prev_action->target_name_qualified;
-            s->target_name_short = prev_action->target_name_short;
+            s->name_qualified = prev_action->name_qualified;
+            s->name_short = prev_action->name_short;
             s->object_id = prev_action->object_id;
 
             // If statement B depends on A, the setup action of B must be executed before A.

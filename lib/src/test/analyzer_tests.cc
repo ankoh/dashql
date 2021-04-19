@@ -123,8 +123,8 @@ void AnalyzerTest::EncodePlan(pugi::xml_node root, const ProgramInstance& instan
         s.append_attribute("status") = action_status_tt->names[static_cast<uint16_t>(action->action_status_code)];
         s.append_attribute("object_id") = action->object_id;
         auto t = s.append_child("target");
-        t.append_attribute("name_qualified") = action->target_name_qualified.c_str();
-        t.append_attribute("name_short") = action->target_name_short.c_str();
+        t.append_attribute("name_qualified") = action->name_qualified.c_str();
+        t.append_attribute("name_short") = action->name_short.c_str();
     }
 
     auto program_actions = g.append_child("program");
@@ -135,8 +135,8 @@ void AnalyzerTest::EncodePlan(pugi::xml_node root, const ProgramInstance& instan
         p.append_attribute("status") = action_status_tt->names[static_cast<uint16_t>(action->action_status_code)];
         p.append_attribute("object_id") = action->object_id;
         auto t = p.append_child("target");
-        t.append_attribute("name_qualified") = action->target_name_qualified.c_str();
-        t.append_attribute("name_short") = action->target_name_short.c_str();
+        t.append_attribute("name_qualified") = action->name_qualified.c_str();
+        t.append_attribute("name_short") = action->name_short.c_str();
         if (!action->depends_on.empty()) {
             auto depends_on = p.append_child("depends_on");
             for (auto v : action->depends_on) {
