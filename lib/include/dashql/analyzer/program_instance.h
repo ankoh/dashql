@@ -22,6 +22,7 @@
 #include "dashql/common/enum.h"
 #include "dashql/common/expected.h"
 #include "dashql/common/union_find.h"
+#include "dashql/parser/parser_driver.h"
 #include "dashql/proto_generated.h"
 #include "nonstd/span.h"
 
@@ -63,11 +64,23 @@ class ProgramInstance {
         Error error;
     };
 
+    /// A qualified table name
+    struct QualifiedName {
+        /// The schema
+        std::string_view schema;
+        /// The name
+        std::string_view name;
+        /// The indirection
+        std::string_view indirection;
+    };
+
    protected:
     /// The program text
     std::shared_ptr<std::string> program_text_;
     /// The program
     std::shared_ptr<sx::ProgramT> program_;
+    /// The script options
+    parser::ScriptOptions script_options_ = {};
     /// The parameter values
     std::vector<InputValue> input_values_;
     /// The evaluated nodes (if any)
@@ -138,6 +151,8 @@ class ProgramInstance {
         if (node_id == INVALID_NODE_ID) return Value{};
         return ReadNodeValue(node_id);
     }
+    /// Read a qualified name
+    QualifiedName ReadQualifiedName(size_t node_id, bool lift_global = false);
 
     /// Render the statement text
     Expected<std::string> RenderStatementText(size_t stmt_id) const;
@@ -146,7 +161,7 @@ class ProgramInstance {
         flatbuffers::FlatBufferBuilder& builder) const;
 
     /// Find an attribute
-    const sx::Node* FindAttribute(const sx::Node& origin, sx::AttributeKey key) const;
+    std::optional<size_t> FindAttribute(const sx::Node& origin, sx::AttributeKey key) const;
     /// Iterate over children
     template <typename F> void IterateChildren(const sx::Node& origin, F fn) {
         auto children_begin = origin.children_begin_or_value();

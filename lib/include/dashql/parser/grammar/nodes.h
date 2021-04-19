@@ -35,19 +35,19 @@ inline sx::Node Const(ParserDriver& driver, sx::Location loc, sx::AConstType /*t
 }
 
 /// Create indirection
-inline sx::Node Indirection(ParserDriver& driver, sx::Location loc, sx::Node index) {
-    return driver.Add(loc, sx::NodeType::OBJECT_SQL_INDIRECTION,
+inline sx::Node IndirectionIndex(ParserDriver& driver, sx::Location loc, sx::Node index) {
+    return driver.Add(loc, sx::NodeType::OBJECT_SQL_INDIRECTION_INDEX,
                       {
-                          Key::SQL_INDIRECTION_INDEX << index,
+                          Key::SQL_INDIRECTION_INDEX_VALUE << index,
                       });
 }
 
 /// Create indirection
-inline sx::Node Indirection(ParserDriver& driver, sx::Location loc, sx::Node lower_bound, sx::Node upper_bound) {
-    return driver.Add(loc, sx::NodeType::OBJECT_SQL_INDIRECTION,
+inline sx::Node IndirectionIndex(ParserDriver& driver, sx::Location loc, sx::Node lower_bound, sx::Node upper_bound) {
+    return driver.Add(loc, sx::NodeType::OBJECT_SQL_INDIRECTION_INDEX,
                       {
-                          Key::SQL_INDIRECTION_LOWER_BOUND << lower_bound,
-                          Key::SQL_INDIRECTION_UPPER_BOUND << upper_bound,
+                          Key::SQL_INDIRECTION_INDEX_LOWER_BOUND << lower_bound,
+                          Key::SQL_INDIRECTION_INDEX_UPPER_BOUND << upper_bound,
                       });
 }
 
@@ -137,6 +137,8 @@ inline sx::NumericTypeTag ReadFloatType(ParserDriver& driver, sx::Location bitsL
     return sx::NumericTypeTag::FLOAT4;
 }
 
+/// Create a qualified name
+sx::Node QualifiedName(ParserDriver& driver, sx::Location loc, std::vector<sx::Node>&& nodes);
 /// Map an option.
 /// Add an error if the key or the (key, value) combination is invalid.
 sx::Node Option(ParserDriver& driver, sx::Location loc, std::vector<sx::Location>&& key_path, sx::Node value);

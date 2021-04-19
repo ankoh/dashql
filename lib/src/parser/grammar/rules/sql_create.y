@@ -14,7 +14,7 @@ sql_create_as_stmt:
 sql_create_as_target:
     sql_qualified_name sql_opt_column_list sql_opt_with sql_on_commit_option {
         $$ = {
-            Key::SQL_CREATE_AS_NAME << ctx.Add(@1, move($1)),
+            Key::SQL_CREATE_AS_NAME << std::move($1),
             Key::SQL_CREATE_AS_COLUMNS << ctx.Add(@2, move($2)),
             Key::SQL_CREATE_AS_ON_COMMIT << Enum(@4, $4)
         };

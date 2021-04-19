@@ -14,6 +14,7 @@
 #include "dashql/common/variant.h"
 #include "dashql/parser/grammar/nodes.h"
 #include "dashql/parser/parser.h"
+#include "dashql/parser/qualified_name.h"
 #include "dashql/parser/scanner.h"
 #include "dashql/proto_generated.h"
 
@@ -58,8 +59,6 @@ NodeVector concat(NodeVector&& v0, NodeVector&& v1, NodeVector&& v2) {
     return v0;
 }
 
-ScriptOptions::ScriptOptions() : global_namespace("global") {}
-
 /// Constructor
 Statement::Statement() : root(), name(), table_refs(), column_refs() {}
 
@@ -73,23 +72,11 @@ void Statement::reset() {
 
 /// Finish a statement
 std::unique_ptr<sx::StatementT> Statement::Finish() {
-    auto [table, schema] = name;
     auto stmt = std::make_unique<sx::StatementT>();
     stmt->statement_type = type;
     stmt->root_node = root;
-    stmt->name_short = table;
-
-    // Store qualified name
-    if (schema.empty()) {
-        stmt->name_qualified = move(table);
-    } else {
-        std::string buffer;
-        buffer.resize(schema.size() + 1 + table.size());
-        schema.copy(buffer.data(), schema.size());
-        buffer[schema.size()] = '.';
-        table.copy(buffer.data() + schema.size() + 1, table.size());
-        stmt->name_qualified = move(buffer);
-    }
+    stmt->name_short = name.relation;
+    stmt->name_qualified = name.ToString();
     return stmt;
 }
 
@@ -101,50 +88,16 @@ ParserDriver::ParserDriver(Scanner& scanner)
 ParserDriver::~ParserDriver() {}
 
 /// Find an attribute
-std::pair<const sx::Node*, size_t> ParserDriver::FindAttribute(const sx::Node& node, Key attribute) const {
+std::optional<size_t> ParserDriver::FindAttribute(const sx::Node& node, Key attribute) const {
     auto attr_begin = node.children_begin_or_value();
     auto attr_count = node.children_count();
     for (auto i = 0; i < attr_count; ++i) {
         auto& attr = nodes_[attr_begin + i];
         if (attr.attribute_key() == attribute) {
-            return {&attr, attr_begin + i};
+            return {attr_begin + i};
         }
     }
-    return {nullptr, 0};
-}
-
-/// Get as string array
-QualifiedName ParserDriver::AsQualifiedName(const sx::Node& node, bool lift_global) {
-    std::array<std::string_view, 2> rev;
-
-    // Is string?
-    if (node.node_type() == sx::NodeType::STRING_REF) {
-        rev[0] = scanner_.TextAt(node.location());
-    }
-
-    // Is array?
-    else if (node.node_type() == sx::NodeType::ARRAY) {
-        auto begin = node.children_begin_or_value();
-        auto count = node.children_count();
-        auto end = begin + count;
-        unsigned next = 0;
-        for (auto i = 0; i < count && next < rev.size(); ++i) {
-            auto& value = nodes_[end - i - 1];
-            if (value.node_type() == sx::NodeType::STRING_REF) {
-                rev[next++] = scanner_.TextAt(value.location());
-            }
-        }
-    }
-
-    // Is table ref?
-    else if (node.node_type() == sx::NodeType::OBJECT_SQL_TABLE_REF) {
-        if (auto [name, name_id] = FindAttribute(node, Key::SQL_TABLE_NAME); name) {
-            return AsQualifiedName(*name, true);
-        }
-    }
-
-    if (rev[1].empty() && lift_global) rev[1] = options_.global_namespace;
-    return rev;
+    return std::nullopt;
 }
 
 /// Process a new node
@@ -166,44 +119,48 @@ NodeID ParserDriver::AddNode(sx::Node node) {
     }
 
     // Track dependencies
+    auto text = scanner_.input_text();
     switch (node.node_type()) {
         case sx::NodeType::OBJECT_DASHQL_VIZ:
         case sx::NodeType::OBJECT_DASHQL_LOAD:
         case sx::NodeType::OBJECT_DASHQL_INPUT:
-            if (auto [name, name_id] = FindAttribute(node, Key::DASHQL_STATEMENT_NAME); name) {
-                current_statement_.name = AsQualifiedName(*name, true);
+            if (auto name_id = FindAttribute(node, Key::DASHQL_STATEMENT_NAME); name_id) {
+                current_statement_.name = QualifiedNameView::ReadFrom(nodes_, text, *name_id);
             }
             break;
 
         case sx::NodeType::OBJECT_DASHQL_EXTRACT:
-            if (auto [name, name_id] = FindAttribute(node, Key::DASHQL_STATEMENT_NAME); name) {
-                current_statement_.name = AsQualifiedName(*name, true);
+            if (auto name_id = FindAttribute(node, Key::DASHQL_STATEMENT_NAME); name_id) {
+                current_statement_.name = QualifiedNameView::ReadFrom(nodes_, text, *name_id);
             }
-            if (auto [name, name_id] = FindAttribute(node, Key::DASHQL_EXTRACT_DATA); name) {
-                current_statement_.table_refs.push_back({name_id, AsQualifiedName(*name, true)});
+            if (auto name_id = FindAttribute(node, Key::DASHQL_EXTRACT_DATA); name_id) {
+                current_statement_.table_refs.push_back(
+                    {*name_id, QualifiedNameView::ReadFrom(nodes_, text, *name_id)});
             }
             break;
 
         case sx::NodeType::OBJECT_SQL_INTO:
-            if (auto [name, name_id] = FindAttribute(node, Key::SQL_TEMP_NAME); name) {
-                current_statement_.name = AsQualifiedName(*name, true);
+            if (auto name_id = FindAttribute(node, Key::SQL_TEMP_NAME); name_id) {
+                current_statement_.name = QualifiedNameView::ReadFrom(nodes_, text, *name_id);
             }
             break;
 
         case sx::NodeType::OBJECT_SQL_CREATE_AS:
-            if (auto [name, name_id] = FindAttribute(node, Key::SQL_CREATE_AS_NAME); name) {
-                current_statement_.name = AsQualifiedName(*name, true);
+            if (auto name_id = FindAttribute(node, Key::SQL_CREATE_AS_NAME); name_id) {
+                current_statement_.name = QualifiedNameView::ReadFrom(nodes_, text, *name_id);
             }
             break;
 
         case sx::NodeType::OBJECT_SQL_VIEW:
-            if (auto [name, name_id] = FindAttribute(node, Key::SQL_VIEW_NAME); name) {
-                current_statement_.name = AsQualifiedName(*name, true);
+            if (auto name_id = FindAttribute(node, Key::SQL_VIEW_NAME); name_id) {
+                current_statement_.name = QualifiedNameView::ReadFrom(nodes_, text, *name_id);
             }
             break;
 
         case sx::NodeType::OBJECT_SQL_TABLE_REF:
-            current_statement_.table_refs.push_back({node_id, AsQualifiedName(node, true)});
+            if (auto name_id = FindAttribute(node, Key::SQL_TABLE_NAME); name_id) {
+                current_statement_.table_refs.push_back({node_id, QualifiedNameView::ReadFrom(nodes_, text, *name_id)});
+            }
             break;
 
         case sx::NodeType::OBJECT_SQL_COLUMN_REF:
@@ -217,11 +174,15 @@ NodeID ParserDriver::AddNode(sx::Node node) {
 
 /// Compute the dependencies
 void ParserDriver::ComputeDependencies() {
+    auto text = scanner_.input_text();
+
     // Collect names
-    std::unordered_map<QualifiedName, uint32_t, ArrayHasher<std::string_view, 2>> names;
+    std::unordered_map<QualifiedNameView, uint32_t, QualifiedNameView::Hasher> names;
     for (unsigned i = 0; i < statements_.size(); ++i) {
         auto& stmt = statements_[i];
-        names.insert({stmt.name, i});
+        auto name = stmt.name.WithoutIndex().WithDefaultSchema(options_.global_namespace);
+        std::cout << "STATEMENT " << name.ToString() << std::endl;
+        names.insert({name, i});
     }
 
     // Build dependencies
@@ -229,9 +190,10 @@ void ParserDriver::ComputeDependencies() {
         auto& stmt = statements_[i];
 
         // Resolve all table refs
-        for (auto& [node, name] : stmt.table_refs) {
-            auto [table, schema] = name;
-            if (auto iter = names.find({table, schema}); iter != names.end() && iter->second != i) {
+        for (auto& [node, ref] : stmt.table_refs) {
+            auto name = ref.WithoutIndex().WithDefaultSchema(options_.global_namespace);
+            std::cout << "TABLE REF " << name.ToString() << std::endl;
+            if (auto iter = names.find(name); iter != names.end() && iter->second != i) {
                 dependencies_.push_back(sx::Dependency(sx::DependencyType::TABLE_REF, iter->second, i, node));
             }
         }
@@ -239,9 +201,11 @@ void ParserDriver::ComputeDependencies() {
         // Resolve all column refs
         for (auto& ref_id : stmt.column_refs) {
             auto& ref = nodes_[ref_id];
-            if (auto [path, path_id] = FindAttribute(ref, Key::SQL_COLUMN_REF_PATH); path) {
-                auto [table, schema] = AsQualifiedName(*path, false);
-                if (auto iter = names.find({table, schema}); iter != names.end() && iter->second != i) {
+            if (auto path_id = FindAttribute(ref, Key::SQL_COLUMN_REF_PATH); path_id) {
+                auto path = QualifiedNameView::ReadFrom(nodes_, text, *path_id)
+                                .WithoutIndex()
+                                .WithDefaultSchema(options_.global_namespace);
+                if (auto iter = names.find(path); iter != names.end() && iter->second != i) {
                     dependencies_.push_back(sx::Dependency(sx::DependencyType::COLUMN_REF, iter->second, i, ref_id));
                 }
             }
@@ -378,7 +342,7 @@ void ParserDriver::AddStatement(sx::Node node) {
             break;
 
         case sx::NodeType::OBJECT_SQL_SELECT:
-            if (auto [into, _] = FindAttribute(node, Key::SQL_SELECT_INTO); into) {
+            if (auto into = FindAttribute(node, Key::SQL_SELECT_INTO); into) {
                 stmt_type = sx::StatementType::SELECT_INTO;
             } else {
                 stmt_type = sx::StatementType::SELECT;
