@@ -1,6 +1,6 @@
 // Copyright (c) 2020 The DashQL Authors
 
-#include "duckdb/web/io/streambuf.h"
+#include "duckdb/web/io/ifstreambuf.h"
 
 #include <fstream>
 
@@ -21,7 +21,7 @@ TEST(InputStreamBuffer, istreambuf_iterator) {
         std::ifstream ifs{path};
         expected = {std::istreambuf_iterator<char>{ifs}, std::istreambuf_iterator<char>{}};
     }
-    auto input = std::make_shared<io::InputStreamBuffer>(buffer_manager, path.c_str());
+    auto input = std::make_shared<io::InputFileStreamBuffer>(buffer_manager, path.c_str());
     {
         std::istream ifs{input.get()};
         have = {std::istreambuf_iterator<char>{ifs}, std::istreambuf_iterator<char>{}};

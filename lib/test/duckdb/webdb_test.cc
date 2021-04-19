@@ -9,7 +9,7 @@
 #include "duckdb/common/types/date.hpp"
 #include "duckdb/common/types/timestamp.hpp"
 #include "duckdb/execution/operator/persistent/buffered_csv_reader.hpp"
-#include "duckdb/web/io/streambuf.h"
+#include "duckdb/web/io/ifstreambuf.h"
 #include "gtest/gtest.h"
 #include "parquet-extension.hpp"
 
@@ -112,7 +112,7 @@ TEST(WebDB, LoadCSVIStream) {
     duckdb::DataChunk output_chunk;
     output_chunk.Initialize(column_types);
 
-    auto input = std::make_shared<io::InputStreamBuffer>(buffer_manager, data.c_str());
+    auto input = std::make_shared<io::InputFileStreamBuffer>(buffer_manager, data.c_str());
     try {
         duckdb::BufferedCSVReader reader(options, column_types, std::make_unique<std::istream>(input.get()));
         reader.ParseCSV(output_chunk);

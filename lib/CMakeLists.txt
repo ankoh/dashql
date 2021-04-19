@@ -276,7 +276,7 @@ add_library(duckdb_web
     ${CMAKE_SOURCE_DIR}/src/duckdb/web/io/buffer_manager.cc
     ${CMAKE_SOURCE_DIR}/src/duckdb/web/io/buffered_filesystem.cc
     ${CMAKE_SOURCE_DIR}/src/duckdb/web/io/default_filesystem.cc
-    ${CMAKE_SOURCE_DIR}/src/duckdb/web/io/streambuf.cc
+    ${CMAKE_SOURCE_DIR}/src/duckdb/web/io/ifstreambuf.cc
     ${CMAKE_SOURCE_DIR}/src/duckdb/web/io/web_filesystem.cc
     ${CMAKE_SOURCE_DIR}/src/duckdb/web/miniz_zipper.cc
     ${CMAKE_SOURCE_DIR}/src/duckdb/web/wasm_response.cc
@@ -400,7 +400,7 @@ if(NOT EMSCRIPTEN)
         ${CMAKE_SOURCE_DIR}/test/duckdb/arrow_ifstream_test.cc
         ${CMAKE_SOURCE_DIR}/test/duckdb/buffer_manager_test.cc
         ${CMAKE_SOURCE_DIR}/test/duckdb/duckdb_test.cc
-        ${CMAKE_SOURCE_DIR}/test/duckdb/streambuf_test.cc
+        ${CMAKE_SOURCE_DIR}/test/duckdb/ifstreambuf_test.cc
         ${CMAKE_SOURCE_DIR}/test/duckdb/webdb_test.cc
         ${CMAKE_SOURCE_DIR}/test/parser/grammar_spec_tests.cc
         ${CMAKE_SOURCE_DIR}/test/duckdb/miniz_zipper_test.cc
