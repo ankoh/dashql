@@ -147,8 +147,9 @@ void BufferManager::BufferRef::RequireSize(size_t n) {
 }
 
 /// Constructor
-BufferManager::BufferManager(std::unique_ptr<duckdb::FileSystem> filesystem, size_t page_size_bits)
-    : page_size_bits(page_size_bits), filesystem(std::move(filesystem)) {}
+BufferManager::BufferManager(std::unique_ptr<duckdb::FileSystem> filesystem, size_t page_capacity,
+                             size_t page_size_bits)
+    : page_size_bits(page_size_bits), page_capacity(page_capacity), filesystem(std::move(filesystem)) {}
 
 /// Destructor
 BufferManager::~BufferManager() {
@@ -278,10 +279,16 @@ BufferFrame* BufferManager::FindFrameToEvict() {
     return nullptr;
 }
 
-std::vector<char> BufferManager::AllocatePage() {
-    // Find a page to evict
-    auto* page_to_evict = FindFrameToEvict();
+std::vector<char> BufferManager::AllocateFrameBuffer() {
+    // Still capacity?
     auto page_size = GetPageSize();
+    if (frames.size() < page_capacity) {
+        std::vector<char> buffer;
+        buffer.resize(page_size);
+        return buffer;
+    }
+    // Otherwise find a page to evict
+    auto* page_to_evict = FindFrameToEvict();
     if (page_to_evict == nullptr) {
         std::vector<char> buffer;
         buffer.resize(page_size);
@@ -334,7 +341,7 @@ BufferManager::BufferRef BufferManager::FixPage(const FileRef& file_ref, uint64_
     // Create a new page and don't insert it in the queues, yet.
     assert(frames.find(frame_id) == frames.end());
     auto& frame = frames.insert({frame_id, BufferFrame{frame_id, GetPageSize(), fifo.end(), lru.end()}}).first->second;
-    frame.buffer = AllocatePage();
+    frame.buffer = AllocateFrameBuffer();
     frame.fifo_position = fifo.insert(fifo.end(), &frame);
     frame.Lock(exclusive);
 

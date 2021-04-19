@@ -154,6 +154,8 @@ class BufferManager : public std::enable_shared_from_this<BufferManager> {
    protected:
     /// The page size
     const size_t page_size_bits;
+    /// The page capacity
+    const size_t page_capacity;
 
     /// The actual filesystem
     std::unique_ptr<duckdb::FileSystem> filesystem;
@@ -188,9 +190,9 @@ class BufferManager : public std::enable_shared_from_this<BufferManager> {
     /// Returns the next page that can be evicted.
     /// Returns nullptr, when no page can be evicted.
     BufferFrame* FindFrameToEvict();
-    /// Evicts a page from the buffer manager.
-    /// Returns the data pointer of the evicted page or nullptr when no page can be evicted.
-    std::vector<char> AllocatePage();
+    /// Allocate a buffer for a frame.
+    /// Evicts a page if neccessary
+    std::vector<char> AllocateFrameBuffer();
 
     /// Takes a `BufferFrame` reference that was returned by an earlier call to
     /// `FixPage()` and unfixes it. When `is_dirty` is / true, the page is
@@ -199,9 +201,9 @@ class BufferManager : public std::enable_shared_from_this<BufferManager> {
 
    public:
     /// Constructor.
-    /// Use 8KiB pages by default (1 << 13)
+    /// Use 10 * 8KiB pages by default (1 << 13)
     BufferManager(std::unique_ptr<duckdb::FileSystem> filesystem = io::CreateDefaultFileSystem(),
-                  size_t page_size_bits = 13);
+                  size_t page_capacity = 10, size_t page_size_bits = 13);
     /// Destructor
     virtual ~BufferManager();
 
