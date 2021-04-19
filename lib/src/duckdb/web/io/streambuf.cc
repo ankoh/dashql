@@ -17,17 +17,16 @@ bool InputStreamBuffer::NextPage() {
     return true;
 }
 
-// std::streamsize InputStreamBuffer::xsgetn(char* out, std::streamsize n) {
-//    n = std::min<size_t>(n, file_.GetSize());
-//    auto prev = n;
-//    while (n > 0) {
-//        auto m = std::min(egptr() - gptr(), n);
+// std::streamsize InputStreamBuffer::xsgetn(char* out, std::streamsize want) {
+//    auto left = std::min<size_t>(want, file_.GetSize() - GetPosition());
+//    while (left > 0) {
+//        auto m = std::min<size_t>(egptr() - gptr(), left);
 //        std::memcpy(out, gptr(), m);
-//        n -= m;
-//        _M_in_cur += m;
-//        if (egptr() == gptr() && not NextPage()) return prev - n;
+//        gbump(m);
+//        left -= m;
+//        if (egptr() == gptr() && not NextPage()) return want - left;
 //    }
-//    return n;
+//    return want;
 //}
 
 InputStreamBuffer::pos_type InputStreamBuffer::seekoff(off_type n, std::ios_base::seekdir dir,
@@ -40,18 +39,21 @@ InputStreamBuffer::pos_type InputStreamBuffer::seekoff(off_type n, std::ios_base
     } else {
         pos = std::min<size_t>(file_.GetSize(), pos + n);
     }
-    next_page_id_ = pos >> buffer_manager_->GetPageSizeShift();
+    auto page_id = pos >> buffer_manager_->GetPageSizeShift();
+    auto page_ofs = pos - (page_id << buffer_manager_->GetPageSizeShift());
+    next_page_id_ = page_id;
     NextPage();
-    _M_in_cur += pos - (next_page_id_ << buffer_manager_->GetPageSizeShift());
+    gbump(page_ofs);
     return pos;
 }
 
 InputStreamBuffer::pos_type InputStreamBuffer::seekpos(pos_type p, std::ios_base::openmode) {
-    size_t pos = p;
-    next_page_id_ = pos >> buffer_manager_->GetPageSizeShift();
+    auto page_id = p >> buffer_manager_->GetPageSizeShift();
+    auto page_ofs = p - (page_id << buffer_manager_->GetPageSizeShift());
+    next_page_id_ = page_id;
     NextPage();
-    _M_in_cur += pos - (next_page_id_ << buffer_manager_->GetPageSizeShift());
-    return pos;
+    gbump(page_ofs);
+    return p;
 }
 
 }  // namespace io
