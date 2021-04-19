@@ -8,7 +8,7 @@ namespace io {
 
 bool InputFileStreamBuffer::NextPage() {
     auto page_id = next_page_id_++;
-    if ((page_id << buffer_manager_->GetPageSizeShift()) > file_.GetSize()) return false;
+    if ((page_id << buffer_manager_->GetPageSizeShift()) >= file_.GetSize()) return false;
     buffer_.Release();
     buffer_ = buffer_manager_->FixPage(file_, page_id, false);
     auto data = buffer_.GetData();
