@@ -1,7 +1,6 @@
 #include "duckdb/web/io/streambuf.h"
 
 #include <cstring>
-#include <iostream>
 
 namespace duckdb {
 namespace web {
@@ -17,17 +16,19 @@ bool InputStreamBuffer::NextPage() {
     return true;
 }
 
-// std::streamsize InputStreamBuffer::xsgetn(char* out, std::streamsize want) {
-//    auto left = std::min<size_t>(want, file_.GetSize() - GetPosition());
-//    while (left > 0) {
-//        auto m = std::min<size_t>(egptr() - gptr(), left);
-//        std::memcpy(out, gptr(), m);
-//        gbump(m);
-//        left -= m;
-//        if (egptr() == gptr() && not NextPage()) return want - left;
-//    }
-//    return want;
-//}
+std::streamsize InputStreamBuffer::xsgetn(char* out, std::streamsize want) {
+    auto base = out;
+    auto left = std::min<size_t>(want, file_.GetSize() - GetPosition());
+    assert((egptr() - gptr()) <= (file_.GetSize() - GetPosition()));
+    while (left > 0 && (gptr() < egptr() || NextPage())) {
+        auto m = std::min<size_t>(egptr() - gptr(), left);
+        std::memcpy(out, gptr(), m);
+        gbump(m);
+        out += m;
+        left -= m;
+    }
+    return out - base;
+}
 
 InputStreamBuffer::pos_type InputStreamBuffer::seekoff(off_type n, std::ios_base::seekdir dir,
                                                        std::ios_base::openmode) {
