@@ -14,6 +14,8 @@
 #include <variant>
 #include <vector>
 
+#include "dashql/parser/qualified_name.h"
+#include "dashql/parser/script_options.h"
 #include "dashql/proto_generated.h"
 #include "nonstd/span.h"
 
@@ -39,26 +41,17 @@ NodeVector concat(NodeVector&& l, NodeVector&& r);
 /// Helper to concatenate node vectors
 NodeVector concat(NodeVector&& v0, NodeVector&& v1, NodeVector&& v2);
 
-struct ScriptOptions {
-    /// The global namespace name
-    std::string_view global_namespace;
-
-    /// Constructor
-    ScriptOptions();
-};
-
 using NodeID = uint32_t;
-using QualifiedName = std::array<std::string_view, 2>;
 
 struct Statement {
     /// The statement type
     sx::StatementType type;
     /// The root node
     NodeID root;
-    /// The names
-    QualifiedName name;
+    /// The name
+    QualifiedNameView name;
     /// The table refs
-    std::vector<std::pair<NodeID, QualifiedName>> table_refs;
+    std::vector<std::pair<NodeID, QualifiedNameView>> table_refs;
     /// The global column refs
     std::vector<NodeID> column_refs;
 
@@ -89,9 +82,7 @@ class ParserDriver {
     std::vector<sx::Dependency> dependencies_;
 
     /// Find an attribute
-    std::pair<const sx::Node*, size_t> FindAttribute(const sx::Node& node, Key attribute) const;
-    /// Get a qualified name
-    QualifiedName AsQualifiedName(const sx::Node& node, bool lift_global = false);
+    std::optional<size_t> FindAttribute(const sx::Node& node, Key attribute) const;
 
     /// Add a node
     NodeID AddNode(sx::Node node);

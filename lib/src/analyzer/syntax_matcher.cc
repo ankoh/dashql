@@ -69,7 +69,13 @@ double NodeMatch::DataAsDouble() const {
 }
 
 /// Match a matcher
-ASTIndex ASTMatcher::Match(const ProgramInstance& program, size_t root_id, size_t match_size) const {
+ASTIndex ASTMatcher::Match(const ProgramInstance& instance, size_t root_id, size_t match_size) const {
+    return Match(instance.program().nodes, instance.program_text(), root_id, match_size);
+}
+
+/// Match a matcher
+ASTIndex ASTMatcher::Match(nonstd::span<sx::Node> nodes, std::string_view text, size_t root_id,
+                           size_t match_size) const {
     ASTIndex index{*this, match_size};
 
     // Helper to get matching output
@@ -91,7 +97,7 @@ ASTIndex ASTMatcher::Match(const ProgramInstance& program, size_t root_id, size_
 
     while (!pending.empty()) {
         auto top = pending.back();
-        auto& top_node = program.program().nodes[top.node_id];
+        auto& top_node = nodes[top.node_id];
         pending.pop_back();
         auto& matching = getOut(top.matcher);
         matching.node_id = top.node_id;
@@ -120,7 +126,8 @@ ASTIndex ASTMatcher::Match(const ProgramInstance& program, size_t root_id, size_
             case ASTMatcherType::STRING:
                 if (top_node.node_type() == sx::NodeType::STRING_REF) {
                     matching.status = NodeMatchStatus::MATCHED;
-                    matching.data = program.TextAt(top_node.location());
+                    auto loc = top_node.location();
+                    matching.data = std::string_view{text}.substr(loc.offset(), loc.length());
                 } else {
                     matching.status = NodeMatchStatus::MISSING;
                     index.full_match = false;
@@ -146,8 +153,8 @@ ASTIndex ASTMatcher::Match(const ProgramInstance& program, size_t root_id, size_
             }
             case ASTMatcherType::OBJECT: {
                 matching.status = NodeMatchStatus::MATCHED;
-                nonstd::span<const sx::Node> children{
-                    program.program().nodes.data() + top_node.children_begin_or_value(), top_node.children_count()};
+                nonstd::span<const sx::Node> children{nodes.data() + top_node.children_begin_or_value(),
+                                                      top_node.children_count()};
                 assert(std::is_sorted(children.begin(), children.end(),
                                       [](auto& l, auto& r) { return l.attribute_key() < r.attribute_key(); }));
 

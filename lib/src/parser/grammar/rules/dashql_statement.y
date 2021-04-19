@@ -23,9 +23,9 @@ dashql_statement:
     ;
 
 dashql_statement_name:
-    sql_qualified_name  { $$ = ctx.Add(@1, move($1)); }
+    sql_qualified_name  { $$ = std::move($1); }
     ;
 
 dashql_statement_ref:
-    sql_qualified_name  { $$ = ctx.Add(@1, move($1)); }
+    sql_qualified_name  { $$ = std::move($1); }
     ;

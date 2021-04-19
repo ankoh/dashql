@@ -203,7 +203,9 @@ struct ASTMatcher {
     }
 
     /// Match a schema
-    ASTIndex Match(const ProgramInstance& program, size_t node_id, size_t match_size) const;
+    ASTIndex Match(const ProgramInstance& instance, size_t root_id, size_t match_size) const;
+    /// Match a schema
+    ASTIndex Match(nonstd::span<sx::Node> nodes, std::string_view text, size_t root_id, size_t match_size) const;
 };
 using sxm = ASTMatcher;
 

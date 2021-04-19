@@ -220,15 +220,15 @@ sql_preparable_stmt:
 // Redundancy here is needed to avoid shift/reduce conflicts,
 // since TEMP is not a reserved word.  See also OptTemp.
 sql_opt_temp_table_name:
-    TEMPORARY sql_opt_table sql_qualified_name          { $$ = Into(ctx, @$, Enum(@1, sx::TempType::DEFAULT), ctx.Add(@3, move($3))); }
-  | TEMP sql_opt_table sql_qualified_name               { $$ = Into(ctx, @$, Enum(@1, sx::TempType::DEFAULT), ctx.Add(@3, move($3))); }
-  | LOCAL TEMPORARY sql_opt_table sql_qualified_name    { $$ = Into(ctx, @$, Enum(@1, sx::TempType::LOCAL), ctx.Add(@4, move($4))); }
-  | LOCAL TEMP sql_opt_table sql_qualified_name         { $$ = Into(ctx, @$, Enum(@1, sx::TempType::LOCAL), ctx.Add(@4, move($4))); }
-  | GLOBAL TEMPORARY sql_opt_table sql_qualified_name   { $$ = Into(ctx, @$, Enum(@1, sx::TempType::GLOBAL), ctx.Add(@4, move($4))); }
-  | GLOBAL TEMP sql_opt_table sql_qualified_name        { $$ = Into(ctx, @$, Enum(@1, sx::TempType::GLOBAL), ctx.Add(@4, move($4))); }
-  | UNLOGGED sql_opt_table sql_qualified_name           { $$ = Into(ctx, @$, Enum(@1, sx::TempType::UNLOGGED), ctx.Add(@3, move($3))); }
-  | TABLE sql_qualified_name                            { $$ = Into(ctx, @$, Enum(@1, sx::TempType::DEFAULT), ctx.Add(@2, move($2))); }
-  | sql_qualified_name                                  { $$ = Into(ctx, @$, Enum(@1, sx::TempType::DEFAULT), ctx.Add(@1, move($1))); }
+    TEMPORARY sql_opt_table sql_qualified_name          { $$ = Into(ctx, @$, Enum(@1, sx::TempType::DEFAULT), std::move($3)); }
+  | TEMP sql_opt_table sql_qualified_name               { $$ = Into(ctx, @$, Enum(@1, sx::TempType::DEFAULT), std::move($3)); }
+  | LOCAL TEMPORARY sql_opt_table sql_qualified_name    { $$ = Into(ctx, @$, Enum(@1, sx::TempType::LOCAL), std::move($4)); }
+  | LOCAL TEMP sql_opt_table sql_qualified_name         { $$ = Into(ctx, @$, Enum(@1, sx::TempType::LOCAL), std::move($4)); }
+  | GLOBAL TEMPORARY sql_opt_table sql_qualified_name   { $$ = Into(ctx, @$, Enum(@1, sx::TempType::GLOBAL), std::move($4)); }
+  | GLOBAL TEMP sql_opt_table sql_qualified_name        { $$ = Into(ctx, @$, Enum(@1, sx::TempType::GLOBAL), std::move($4)); }
+  | UNLOGGED sql_opt_table sql_qualified_name           { $$ = Into(ctx, @$, Enum(@1, sx::TempType::UNLOGGED), std::move($3)); }
+  | TABLE sql_qualified_name                            { $$ = Into(ctx, @$, Enum(@1, sx::TempType::DEFAULT), std::move($2)); }
+  | sql_qualified_name                                  { $$ = Into(ctx, @$, Enum(@1, sx::TempType::DEFAULT), std::move($1)); }
     ;
 
 sql_opt_table:
@@ -587,10 +587,10 @@ sql_join_qual:
     ;
 
 sql_relation_expr:
-    sql_qualified_name              { $$ = { Key::SQL_TABLE_NAME << ctx.Add(@1, move($1)), Key::SQL_TABLE_INHERIT << Bool(@$, true) }; }
-  | sql_qualified_name '*'          { $$ = { Key::SQL_TABLE_NAME << ctx.Add(@1, move($1)), Key::SQL_TABLE_INHERIT << Bool(@2, true) }; }
-  | ONLY sql_qualified_name         { $$ = { Key::SQL_TABLE_NAME << ctx.Add(@1, move($2)), Key::SQL_TABLE_INHERIT << Bool(@1, false) }; }
-  | ONLY '(' sql_qualified_name ')' { $$ = { Key::SQL_TABLE_NAME << ctx.Add(@1, move($3)), Key::SQL_TABLE_INHERIT << Bool(@1, false) }; }
+    sql_qualified_name              { $$ = { Key::SQL_TABLE_NAME << std::move($1), Key::SQL_TABLE_INHERIT << Bool(@$, true) }; }
+  | sql_qualified_name '*'          { $$ = { Key::SQL_TABLE_NAME << std::move($1), Key::SQL_TABLE_INHERIT << Bool(@2, true) }; }
+  | ONLY sql_qualified_name         { $$ = { Key::SQL_TABLE_NAME << std::move($2), Key::SQL_TABLE_INHERIT << Bool(@1, false) }; }
+  | ONLY '(' sql_qualified_name ')' { $$ = { Key::SQL_TABLE_NAME << std::move($3), Key::SQL_TABLE_INHERIT << Bool(@1, false) }; }
     ;
 
 // Given "UPDATE foo set set ...", we have to decide without looking any
@@ -1514,8 +1514,8 @@ sql_columnref:
 sql_indirection_el:
     '.' sql_attr_name       { $$ = String(@2); }
   | '.' '*'                 { $$ = String(@2); }
-  | '[' sql_a_expr ']'      { $$ = Indirection(ctx, @$, $2); }
-  | '[' sql_opt_slice_bound ':' sql_opt_slice_bound ']'     { $$ = Indirection(ctx, @$, $2, $4); }
+  | '[' sql_a_expr ']'      { $$ = IndirectionIndex(ctx, @$, $2); }
+  | '[' sql_opt_slice_bound ':' sql_opt_slice_bound ']'     { $$ = IndirectionIndex(ctx, @$, $2, $4); }
     ;
 
 sql_opt_slice_bound:
@@ -1582,8 +1582,8 @@ sql_target_el:
 // Names and constants
 
 sql_qualified_name_list:
-    sql_qualified_name                              { $$ = { ctx.Add(@1, move($1)) }; }
-  | sql_qualified_name_list ',' sql_qualified_name  { $1.push_back(ctx.Add(@1, move($1))); $$ = move($1); }
+    sql_qualified_name                              { $$ = { std::move($1) }; }
+  | sql_qualified_name_list ',' sql_qualified_name  { $1.push_back(std::move($3)); $$ = std::move($1); }
     ;
 
 // The production for a qualified relation name has to exactly match the
@@ -1593,8 +1593,8 @@ sql_qualified_name_list:
 // which may contain subscripts, and reject that case in the C code.
 
 sql_qualified_name:
-    sql_col_id                      { $$ = { String(@1) }; };
-  | sql_col_id sql_indirection      { $2.insert($2.begin(), String(@1)); $$ = move($2); };
+    sql_col_id                      { $$ = QualifiedName(ctx, @$, { String(@1) }); };
+  | sql_col_id sql_indirection      { $2.insert($2.begin(), String(@1)); $$ = QualifiedName(ctx, @$, move($2)); };
     ;
 
 sql_name_list:

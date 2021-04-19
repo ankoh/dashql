@@ -235,9 +235,12 @@ add_library(dashql_parser
     ${CMAKE_SOURCE_DIR}/src/parser/enums.cc
     ${CMAKE_SOURCE_DIR}/src/parser/highlighting.cc
     ${CMAKE_SOURCE_DIR}/src/parser/keywords.cc
+    ${CMAKE_SOURCE_DIR}/src/parser/nodes.cc
     ${CMAKE_SOURCE_DIR}/src/parser/options.cc
     ${CMAKE_SOURCE_DIR}/src/parser/parser_driver.cc
+    ${CMAKE_SOURCE_DIR}/src/parser/qualified_name.cc
     ${CMAKE_SOURCE_DIR}/src/parser/scanner.cc
+    ${CMAKE_SOURCE_DIR}/src/parser/script_options.cc
 )
 
 target_link_libraries(dashql_parser dashql_proto)
