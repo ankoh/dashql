@@ -16,6 +16,7 @@ enum class LinterMessageCode {
     OPTION_ALTERNATIVE_STYLE,
     OPTION_REDUNDANT,
     OPTION_NOT_UNIQUE,
+    OPTION_MISSING,
 };
 
 struct LinterMessage {

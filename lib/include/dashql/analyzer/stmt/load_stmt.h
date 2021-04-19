@@ -30,6 +30,8 @@ class LoadStatement {
 
     /// The method
     sx::LoadMethodType method_;
+    /// The url
+    std::string url_;
 
    public:
     /// Constructor
