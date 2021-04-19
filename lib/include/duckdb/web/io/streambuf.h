@@ -26,14 +26,16 @@ class InputStreamBuffer : public std::streambuf {
     /// Load next page
     bool NextPage();
     /// Get the position
-    size_t GetPosition() { return ((next_page_id_ - 1) << buffer_manager_->GetPageSizeShift()) + (egptr() - gptr()); }
+    size_t GetPosition() {
+        assert(next_page_id_ > 0);
+        return ((next_page_id_ - 1) << buffer_manager_->GetPageSizeShift()) + (gptr() - eback());
+    }
     /// Virtual function (to be read s-how-many-c) called by other member functions to get an estimate
     /// on the number of characters available in the associated input sequence.
     std::streamsize showmanyc() override { return file_.GetSize() - GetPosition(); }
     /// Retrieves characters from the controlled input sequence and stores them in the array pointed by s,
     /// until either n characters have been extracted or the end of the sequence is reached.
-    //    std::streamsize xsgetn(char* out, std::streamsize n) override;
-    // std::streamsize xsgetn(char* out, std::streamsize n) override;
+    std::streamsize xsgetn(char* out, std::streamsize n) override;
     /// Ensures that at least one character is available in the input area by updating the pointers to
     /// the input area (if needed) and reading more data in from the input sequence (if applicable).
     /// Returns the value of that character (converted to int_type with Traits::to_int_type(c)) on success or
