@@ -11,7 +11,6 @@ import styles from './navbar.module.css';
 import logo from '../../static/svg/logo/logo.svg';
 import icon_examples from '../../static/svg/icons/library_books.svg';
 import icon_studio from '../../static/svg/icons/dashboard.svg';
-import icon_console from '../../static/svg/icons/console.svg';
 
 function Tab(props: { route: string; location: string; icon: string }): React.ReactElement {
     return (
