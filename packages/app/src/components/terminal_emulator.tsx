@@ -232,7 +232,7 @@ export class TerminalEmulator {
     }
 
     // Print a line
-    public printLine(text: string): void {
+    public printLine(text = ''): void {
         this.print(text + '\n');
     }
 
