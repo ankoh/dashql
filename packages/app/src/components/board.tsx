@@ -14,7 +14,7 @@ type Props = {
     appContext: IAppContext;
     className?: string;
     width: number;
-    cards: Immutable.Map<string, core.model.Card>;
+    cards: Immutable.Map<number, core.model.Card>;
     rewriteProgram: (instance: core.model.ProgramInstance) => void;
     editable?: boolean;
     columnCount: number;
@@ -22,6 +22,15 @@ type Props = {
     containerPadding: [number, number];
     elementMargin: [number, number];
 };
+
+interface LayoutElement {
+    i: string;
+    oid: number;
+    x: number;
+    y: number;
+    w: number;
+    h: number;
+}
 
 class BoardLayout extends React.Component<Props> {
     _dirty: boolean;
@@ -39,7 +48,7 @@ class BoardLayout extends React.Component<Props> {
         if (!this._dirty) return;
         this._dirty = false;
         const updates: core.edit.EditOperationVariant[] = layout.map(l => ({
-            statementID: this.props.cards.get(l.i)!.statementID,
+            statementID: this.props.cards.get((l as LayoutElement).oid)!.statementID,
             type: core.edit.EditOperationType.UPDATE_CARD_POSITION,
             data: {
                 position: {
@@ -57,9 +66,10 @@ class BoardLayout extends React.Component<Props> {
         }
     }
 
-    getLayout(data: Immutable.Map<string, core.model.Card>) {
+    getLayout(data: Immutable.Map<number, core.model.Card>): LayoutElement[] {
         const l = data.toArray().map(([key, d]) => ({
-            i: key,
+            i: key.toString(),
+            oid: key,
             x: d.position.column,
             y: d.position.row,
             w: d.position.width || 8,
@@ -91,7 +101,7 @@ class BoardLayout extends React.Component<Props> {
                 margin={this.props.elementMargin}
             >
                 {Array.from(this.props.cards).map(([k, v]) => (
-                    <div key={k}>
+                    <div key={k.toString()}>
                         <CardRenderer card={v} editable={this.props.editable} />
                     </div>
                 ))}

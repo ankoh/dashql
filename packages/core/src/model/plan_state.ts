@@ -9,13 +9,16 @@ import { PlanObject, PlanObjectType, PlanObjectID } from './plan_object';
 import { ActionHandle, ActionUpdate, Action } from './action';
 import { deriveStatementStatusCode } from './program';
 
+type ObjectID = number;
+type TableName = string;
+
 export interface PlanState {
     /// The status
     readonly status: Immutable.List<StatementStatus>;
     /// The cards
-    readonly cards: Immutable.Map<string, Card>;
+    readonly cards: Immutable.Map<ObjectID, Card>;
     /// The database tables
-    readonly tables: Immutable.Map<string, Table>;
+    readonly tables: Immutable.Map<TableName, Table>;
     /// The plan actions
     readonly actions: Immutable.Map<ActionHandle, Action>;
 }
@@ -102,7 +105,7 @@ export const insertObjects = (state: PlanState, objects: PlanObject[]): PlanStat
         for (const o of objects) {
             if (o.objectType == PlanObjectType.CARD) {
                 const t = o as Card;
-                os.set(t.objectId.toString(), t);
+                os.set(t.objectId, t);
             }
         }
     }),
@@ -119,7 +122,7 @@ export const insertObjects = (state: PlanState, objects: PlanObject[]): PlanStat
 export const deleteObjects = (state: PlanState, objects: PlanObjectID[]): PlanState => ({
     ...state,
     tables: state.tables.deleteAll(objects.map(k => k.toString())),
-    cards: state.cards.deleteAll(objects.map(k => k.toString())),
+    cards: state.cards.deleteAll(objects),
 });
 
 export const deleteTable = (state: PlanState, key: string): PlanState => ({
