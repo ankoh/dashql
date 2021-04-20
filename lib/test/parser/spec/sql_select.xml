@@ -545,7 +545,7 @@
     </input>
     <expected>
         <statements>
-            <statement type="SELECT_INTO" name="b">
+            <statement type="SELECT_INTO" name="main.b">
                 <node type="OBJECT_SQL_SELECT" loc="9..34" text="select a i.. from c, d">
                     <node key="SQL_SELECT_FROM">
                         <node type="OBJECT_SQL_TABLE_REF" loc="30..31" text="c">
@@ -1557,7 +1557,7 @@
     </input>
     <expected>
         <statements>
-            <statement type="SELECT_INTO" name="b">
+            <statement type="SELECT_INTO" name="main.b">
                 <node type="OBJECT_SQL_SELECT" loc="9..24" text="select 1 into b">
                     <node key="SQL_SELECT_INTO" type="OBJECT_SQL_INTO" loc="23..24" text="b">
                         <node key="SQL_TEMP_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="23..24" text="b">
@@ -1570,7 +1570,7 @@
                     </node>
                 </node>
             </statement>
-            <statement type="SELECT" name="b">
+            <statement type="SELECT" name="main.b">
                 <node type="OBJECT_SQL_SELECT" loc="34..49" text="select 1 from b">
                     <node key="SQL_SELECT_FROM">
                         <node type="OBJECT_SQL_TABLE_REF" loc="48..49" text="b">
@@ -1606,7 +1606,7 @@
     </input>
     <expected>
         <statements>
-            <statement type="INPUT" name="a">
+            <statement type="INPUT" name="main.a">
                 <node type="OBJECT_DASHQL_INPUT" loc="9..40" text="input a ty..using text">
                     <node key="DASHQL_INPUT_COMPONENT_TYPE" value="TEXT" />
                     <node key="DASHQL_INPUT_VALUE_TYPE" type="OBJECT_SQL_TYPENAME" loc="22..29" text="integer">
@@ -1617,7 +1617,7 @@
                     </node>
                 </node>
             </statement>
-            <statement type="SELECT_INTO" name="b">
+            <statement type="SELECT_INTO" name="main.b">
                 <node type="OBJECT_SQL_SELECT" loc="50..65" text="select 1 into b">
                     <node key="SQL_SELECT_INTO" type="OBJECT_SQL_INTO" loc="64..65" text="b">
                         <node key="SQL_TEMP_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="64..65" text="b">
@@ -1630,7 +1630,7 @@
                     </node>
                 </node>
             </statement>
-            <statement type="SELECT" name="b">
+            <statement type="SELECT" name="main.b">
                 <node type="OBJECT_SQL_SELECT" loc="75..111" text="select c f..main.a + 1">
                     <node key="SQL_SELECT_FROM">
                         <node type="OBJECT_SQL_TABLE_REF" loc="89..90" text="b">
@@ -1689,7 +1689,7 @@
     </input>
     <expected>
         <statements>
-            <statement type="INPUT" name="month">
+            <statement type="INPUT" name="main.month">
                 <node type="OBJECT_DASHQL_INPUT" loc="9..44" text="input mont..using text">
                     <node key="DASHQL_INPUT_COMPONENT_TYPE" value="TEXT" />
                     <node key="DASHQL_INPUT_VALUE_TYPE" type="OBJECT_SQL_TYPENAME" loc="26..33" text="integer">
@@ -1700,7 +1700,7 @@
                     </node>
                 </node>
             </statement>
-            <statement type="SELECT_INTO" name="countries_joined">
+            <statement type="SELECT_INTO" name="main.countries_joined">
                 <node type="OBJECT_SQL_SELECT" loc="54..182" text="select * i..main.month">
                     <node key="SQL_SELECT_FROM">
                         <node type="OBJECT_SQL_TABLE_REF" loc="90..109" text="country1_weather c1">
@@ -1778,7 +1778,7 @@
     </input>
     <expected>
         <statements>
-            <statement type="SELECT_INTO" name="a">
+            <statement type="SELECT_INTO" name="main.a">
                 <node type="OBJECT_SQL_SELECT" loc="9..63" text="select v i..0) as t(v)">
                     <node key="SQL_SELECT_FROM">
                         <node type="OBJECT_SQL_FUNCTABLE" loc="30..63" text="generate_s..0) as t(v)">

@@ -14,7 +14,7 @@
             <setup />
             <program>
                 <action origin="0" type="INPUT" status="NONE" object_id="0">
-                    <target name="country" />
+                    <target name="main.country" />
                 </action>
             </program>
         </graph>
@@ -32,7 +32,7 @@
             <setup />
             <program>
                 <action origin="0" type="CREATE_TABLE" status="NONE" object_id="0">
-                    <target name="a" />
+                    <target name="main.a" />
                     <script>SELECT 1 INTO a</script>
                 </action>
             </program>
@@ -61,13 +61,13 @@
             <setup />
             <program>
                 <action origin="0" type="INPUT" status="NONE" object_id="0">
-                    <target name="country" />
+                    <target name="main.country" />
                     <required_for>
                         <ref action="1" />
                     </required_for>
                 </action>
                 <action origin="1" type="LOAD" status="NONE" object_id="1">
-                    <target name="weather_csv" />
+                    <target name="main.weather_csv" />
                     <depends_on>
                         <ref action="0" />
                     </depends_on>
@@ -76,7 +76,7 @@
                     </required_for>
                 </action>
                 <action origin="2" type="EXTRACT" status="NONE" object_id="2">
-                    <target name="weather" />
+                    <target name="main.weather" />
                     <depends_on>
                         <ref action="1" />
                     </depends_on>
@@ -107,13 +107,13 @@
             <setup />
             <program>
                 <action origin="0" type="INPUT" status="NONE" object_id="0">
-                    <target name="country" />
+                    <target name="main.country" />
                     <required_for>
                         <ref action="1" />
                     </required_for>
                 </action>
                 <action origin="1" type="LOAD" status="NONE" object_id="1">
-                    <target name="weather_csv" />
+                    <target name="main.weather_csv" />
                     <depends_on>
                         <ref action="0" />
                     </depends_on>
@@ -122,7 +122,7 @@
                     </required_for>
                 </action>
                 <action origin="2" type="EXTRACT" status="NONE" object_id="2">
-                    <target name="weather" />
+                    <target name="main.weather" />
                     <depends_on>
                         <ref action="1" />
                     </depends_on>
@@ -154,13 +154,13 @@
             <setup />
             <program>
                 <action origin="0" type="INPUT" status="NONE" object_id="0">
-                    <target name="country" />
+                    <target name="main.country" />
                     <required_for>
                         <ref action="1" />
                     </required_for>
                 </action>
                 <action origin="1" type="LOAD" status="NONE" object_id="1">
-                    <target name="weather_csv" />
+                    <target name="main.weather_csv" />
                     <depends_on>
                         <ref action="0" />
                     </depends_on>
@@ -169,7 +169,7 @@
                     </required_for>
                 </action>
                 <action origin="2" type="EXTRACT" status="NONE" object_id="2">
-                    <target name="weather" />
+                    <target name="main.weather" />
                     <depends_on>
                         <ref action="1" />
                     </depends_on>
@@ -178,7 +178,7 @@
                     </required_for>
                 </action>
                 <action origin="3" type="CREATE_TABLE" status="NONE" object_id="3">
-                    <target name="weather_avg" />
+                    <target name="main.weather_avg" />
                     <depends_on>
                         <ref action="2" />
                     </depends_on>
@@ -225,13 +225,13 @@
             <setup />
             <program>
                 <action origin="0" type="INPUT" status="NONE" object_id="0">
-                    <target name="country" />
+                    <target name="main.country" />
                     <required_for>
                         <ref action="1" />
                     </required_for>
                 </action>
                 <action origin="1" type="LOAD" status="NONE" object_id="1">
-                    <target name="weather_csv" />
+                    <target name="main.weather_csv" />
                     <depends_on>
                         <ref action="0" />
                     </depends_on>
@@ -240,7 +240,7 @@
                     </required_for>
                 </action>
                 <action origin="2" type="EXTRACT" status="NONE" object_id="2">
-                    <target name="weather" />
+                    <target name="main.weather" />
                     <depends_on>
                         <ref action="1" />
                     </depends_on>
@@ -249,7 +249,7 @@
                     </required_for>
                 </action>
                 <action origin="3" type="CREATE_TABLE" status="NONE" object_id="3">
-                    <target name="weather_avg" />
+                    <target name="main.weather_avg" />
                     <depends_on>
                         <ref action="2" />
                     </depends_on>
@@ -260,13 +260,13 @@
                     <script>SELECT * INTO weather_avg FROM weather</script>
                 </action>
                 <action origin="4" type="CREATE_VIZ" status="NONE" object_id="4">
-                    <target name="weather_avg" />
+                    <target name="main.weather_avg" />
                     <depends_on>
                         <ref action="3" />
                     </depends_on>
                 </action>
                 <action origin="5" type="CREATE_VIZ" status="NONE" object_id="5">
-                    <target name="weather_avg" />
+                    <target name="main.weather_avg" />
                     <depends_on>
                         <ref action="3" />
                     </depends_on>
@@ -313,13 +313,13 @@
             <setup />
             <program>
                 <action origin="0" type="INPUT" status="NONE" object_id="0">
-                    <target name="country" />
+                    <target name="main.country" />
                     <required_for>
                         <ref action="1" />
                     </required_for>
                 </action>
                 <action origin="1" type="LOAD" status="NONE" object_id="1">
-                    <target name="weather_csv" />
+                    <target name="main.weather_csv" />
                     <depends_on>
                         <ref action="0" />
                     </depends_on>
@@ -328,7 +328,7 @@
                     </required_for>
                 </action>
                 <action origin="2" type="EXTRACT" status="NONE" object_id="2">
-                    <target name="weather" />
+                    <target name="main.weather" />
                     <depends_on>
                         <ref action="1" />
                     </depends_on>
@@ -338,7 +338,7 @@
                     </required_for>
                 </action>
                 <action origin="3" type="CREATE_TABLE" status="NONE" object_id="3">
-                    <target name="weather_avg" />
+                    <target name="main.weather_avg" />
                     <depends_on>
                         <ref action="2" />
                     </depends_on>
@@ -348,7 +348,7 @@
                     <script>SELECT * INTO weather_avg FROM weather</script>
                 </action>
                 <action origin="4" type="CREATE_TABLE" status="NONE" object_id="4">
-                    <target name="weather_binned" />
+                    <target name="main.weather_binned" />
                     <depends_on>
                         <ref action="2" />
                     </depends_on>
@@ -358,13 +358,13 @@
                     <script>SELECT * INTO weather_binned FROM weather</script>
                 </action>
                 <action origin="5" type="CREATE_VIZ" status="NONE" object_id="5">
-                    <target name="weather_binned" />
+                    <target name="main.weather_binned" />
                     <depends_on>
                         <ref action="3" />
                     </depends_on>
                 </action>
                 <action origin="6" type="CREATE_VIZ" status="NONE" object_id="6">
-                    <target name="weather_binned" />
+                    <target name="main.weather_binned" />
                     <depends_on>
                         <ref action="4" />
                     </depends_on>
@@ -416,20 +416,20 @@
             <setup />
             <program>
                 <action origin="0" type="INPUT" status="NONE" object_id="0">
-                    <target name="country" />
+                    <target name="main.country" />
                     <required_for>
                         <ref action="2" />
                     </required_for>
                 </action>
                 <action origin="1" type="INPUT" status="NONE" object_id="1">
-                    <target name="month" />
+                    <target name="main.month" />
                     <required_for>
                         <ref action="4" />
                         <ref action="5" />
                     </required_for>
                 </action>
                 <action origin="2" type="LOAD" status="NONE" object_id="2">
-                    <target name="weather_csv" />
+                    <target name="main.weather_csv" />
                     <depends_on>
                         <ref action="0" />
                     </depends_on>
@@ -438,7 +438,7 @@
                     </required_for>
                 </action>
                 <action origin="3" type="EXTRACT" status="NONE" object_id="3">
-                    <target name="weather" />
+                    <target name="main.weather" />
                     <depends_on>
                         <ref action="2" />
                     </depends_on>
@@ -448,7 +448,7 @@
                     </required_for>
                 </action>
                 <action origin="4" type="CREATE_TABLE" status="NONE" object_id="4">
-                    <target name="weather_avg" />
+                    <target name="main.weather_avg" />
                     <depends_on>
                         <ref action="3" />
                         <ref action="1" />
@@ -459,7 +459,7 @@
                     <script>SELECT * INTO weather_avg FROM weather WHERE month = 5</script>
                 </action>
                 <action origin="5" type="CREATE_TABLE" status="NONE" object_id="5">
-                    <target name="weather_binned" />
+                    <target name="main.weather_binned" />
                     <depends_on>
                         <ref action="3" />
                         <ref action="1" />
@@ -470,13 +470,13 @@
                     <script>SELECT * INTO weather_binned FROM weather WHERE month = 5</script>
                 </action>
                 <action origin="6" type="CREATE_VIZ" status="NONE" object_id="6">
-                    <target name="weather_binned" />
+                    <target name="main.weather_binned" />
                     <depends_on>
                         <ref action="4" />
                     </depends_on>
                 </action>
                 <action origin="7" type="CREATE_VIZ" status="NONE" object_id="7">
-                    <target name="weather_binned" />
+                    <target name="main.weather_binned" />
                     <depends_on>
                         <ref action="5" />
                     </depends_on>
@@ -512,19 +512,19 @@
             <setup />
             <program>
                 <action origin="0" type="INPUT" status="NONE" object_id="0">
-                    <target name="country" />
+                    <target name="main.country" />
                     <required_for>
                         <ref action="2" />
                     </required_for>
                 </action>
                 <action origin="1" type="INPUT" status="NONE" object_id="1">
-                    <target name="city" />
+                    <target name="main.city" />
                     <required_for>
                         <ref action="4" />
                     </required_for>
                 </action>
                 <action origin="2" type="LOAD" status="NONE" object_id="2">
-                    <target name="weather_csv" />
+                    <target name="main.weather_csv" />
                     <depends_on>
                         <ref action="0" />
                     </depends_on>
@@ -533,7 +533,7 @@
                     </required_for>
                 </action>
                 <action origin="3" type="EXTRACT" status="NONE" object_id="3">
-                    <target name="weather" />
+                    <target name="main.weather" />
                     <depends_on>
                         <ref action="2" />
                     </depends_on>
@@ -542,7 +542,7 @@
                     </required_for>
                 </action>
                 <action origin="4" type="CREATE_TABLE" status="NONE" object_id="4">
-                    <target name="weather_avg" />
+                    <target name="main.weather_avg" />
                     <depends_on>
                         <ref action="3" />
                         <ref action="1" />
@@ -595,25 +595,25 @@
             <setup />
             <program>
                 <action origin="0" type="INPUT" status="NONE" object_id="0">
-                    <target name="country1" />
+                    <target name="main.country1" />
                     <required_for>
                         <ref action="3" />
                     </required_for>
                 </action>
                 <action origin="1" type="INPUT" status="NONE" object_id="1">
-                    <target name="country2" />
+                    <target name="main.country2" />
                     <required_for>
                         <ref action="4" />
                     </required_for>
                 </action>
                 <action origin="2" type="INPUT" status="NONE" object_id="2">
-                    <target name="month" />
+                    <target name="main.month" />
                     <required_for>
                         <ref action="7" />
                     </required_for>
                 </action>
                 <action origin="3" type="LOAD" status="NONE" object_id="3">
-                    <target name="country1_weather_csv" />
+                    <target name="main.country1_weather_csv" />
                     <depends_on>
                         <ref action="0" />
                     </depends_on>
@@ -622,7 +622,7 @@
                     </required_for>
                 </action>
                 <action origin="4" type="LOAD" status="NONE" object_id="4">
-                    <target name="country2_weather_csv" />
+                    <target name="main.country2_weather_csv" />
                     <depends_on>
                         <ref action="1" />
                     </depends_on>
@@ -631,7 +631,7 @@
                     </required_for>
                 </action>
                 <action origin="5" type="EXTRACT" status="NONE" object_id="5">
-                    <target name="country1_weather" />
+                    <target name="main.country1_weather" />
                     <depends_on>
                         <ref action="3" />
                     </depends_on>
@@ -640,7 +640,7 @@
                     </required_for>
                 </action>
                 <action origin="6" type="EXTRACT" status="NONE" object_id="6">
-                    <target name="country2_weather" />
+                    <target name="main.country2_weather" />
                     <depends_on>
                         <ref action="4" />
                     </depends_on>
@@ -649,7 +649,7 @@
                     </required_for>
                 </action>
                 <action origin="7" type="CREATE_TABLE" status="NONE" object_id="7">
-                    <target name="countries_joined" />
+                    <target name="main.countries_joined" />
                     <depends_on>
                         <ref action="5" />
                         <ref action="6" />
@@ -661,7 +661,7 @@
                     <script>SELECT * INTO countries_joined FROM country1_weather c1, country2_weather c2 WHERE c1.month = c2.month AND c2.month = 5</script>
                 </action>
                 <action origin="8" type="CREATE_VIZ" status="NONE" object_id="8">
-                    <target name="countries_joined" />
+                    <target name="main.countries_joined" />
                     <depends_on>
                         <ref action="7" />
                     </depends_on>
@@ -690,14 +690,14 @@
             <setup />
             <program>
                 <action origin="0" type="CREATE_TABLE" status="NONE" object_id="0">
-                    <target name="foo" />
+                    <target name="main.foo" />
                     <required_for>
                         <ref action="1" />
                     </required_for>
                     <script>CREATE TABLE foo AS SELECT v::INTEGER FROM generate_series(0, 100) AS t(v)</script>
                 </action>
                 <action origin="1" type="CREATE_VIZ" status="NONE" object_id="1">
-                    <target name="foo" />
+                    <target name="main.foo" />
                     <depends_on>
                         <ref action="0" />
                     </depends_on>
@@ -736,11 +736,11 @@
             <setup />
             <program>
                 <action origin="0" type="CREATE_TABLE" status="NONE" object_id="0">
-                    <target name="foo" />
+                    <target name="main.foo" />
                     <script>CREATE TABLE foo AS SELECT v::INTEGER FROM generate_series(0, 100) AS t(v)</script>
                 </action>
                 <action origin="1" type="CREATE_VIZ" status="NONE" object_id="1">
-                    <target name="foo" />
+                    <target name="main.foo" />
                 </action>
             </program>
         </graph>
@@ -795,7 +795,7 @@
             <setup />
             <program>
                 <action origin="0" type="LOAD" status="NONE" object_id="0">
-                    <target name="uni" />
+                    <target name="main.uni" />
                     <required_for>
                         <ref action="1" />
                         <ref action="2" />
@@ -803,19 +803,19 @@
                     </required_for>
                 </action>
                 <action origin="1" type="EXTRACT" status="NONE" object_id="1">
-                    <target name="vorlesungen" />
+                    <target name="main.vorlesungen" />
                     <depends_on>
                         <ref action="0" />
                     </depends_on>
                 </action>
                 <action origin="2" type="EXTRACT" status="NONE" object_id="2">
-                    <target name="hoeren" />
+                    <target name="main.hoeren" />
                     <depends_on>
                         <ref action="0" />
                     </depends_on>
                 </action>
                 <action origin="3" type="EXTRACT" status="NONE" object_id="3">
-                    <target name="studenten" />
+                    <target name="main.studenten" />
                     <depends_on>
                         <ref action="0" />
                     </depends_on>

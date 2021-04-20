@@ -46,7 +46,8 @@ std::unique_ptr<ExtractStatement> ExtractStatement::ReadFrom(ProgramInstance& in
     // Read data source
     std::optional<std::string_view> indirection;
     if (auto src = xtr->ast_[SX_DATA_SOURCE]; src) {
-        xtr->data_source_ = parser::QualifiedNameView::ReadFrom(program.nodes, instance.program_text(), src.node_id);
+        xtr->data_source_ = parser::QualifiedNameView::ReadFrom(program.nodes, instance.program_text(), src.node_id)
+                                .WithDefaultSchema(instance.script_options().global_namespace);
     }
     return xtr;
 }
