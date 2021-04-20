@@ -119,6 +119,8 @@ class ProgramInstance {
     auto& program() const { return *program_; }
     /// Get the program
     auto& program() { return *program_; }
+    /// Get the program
+    auto& script_options() const { return script_options_; }
     /// Get the parameter values
     auto& input_values() const { return input_values_; }
     /// Get the evaluate nodes

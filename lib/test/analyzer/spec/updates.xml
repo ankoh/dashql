@@ -21,13 +21,13 @@
             <setup />
             <program>
                 <action origin="0" type="INPUT" status="COMPLETED" object_id="0">
-                    <target name="country" />
+                    <target name="main.country" />
                     <required_for>
                         <ref action="1" />
                     </required_for>
                 </action>
                 <action origin="1" type="LOAD" status="NONE" object_id="1">
-                    <target name="weather_csv" />
+                    <target name="main.weather_csv" />
                     <depends_on>
                         <ref action="0" />
                     </depends_on>
@@ -56,21 +56,21 @@
         <graph next_object_id="4">
             <setup>
                 <action type="DROP_INPUT" status="NONE" object_id="0">
-                    <target name="country" />
+                    <target name="main.country" />
                 </action>
                 <action type="DROP_BLOB" status="NONE" object_id="1">
-                    <target name="weather_csv" />
+                    <target name="main.weather_csv" />
                 </action>
             </setup>
             <program>
                 <action origin="0" type="INPUT" status="NONE" object_id="2">
-                    <target name="country" />
+                    <target name="main.country" />
                     <required_for>
                         <ref action="1" />
                     </required_for>
                 </action>
                 <action origin="1" type="LOAD" status="NONE" object_id="3">
-                    <target name="weather_csv" />
+                    <target name="main.weather_csv" />
                     <depends_on>
                         <ref action="0" />
                     </depends_on>
@@ -102,7 +102,7 @@
             <setup />
             <program>
                 <action origin="0" type="CREATE_VIEW" status="COMPLETED" object_id="0">
-                    <target name="foo" />
+                    <target name="main.foo" />
                     <required_for>
                         <ref action="1" />
                     </required_for>
@@ -111,7 +111,7 @@
                 FROM generate_series(0, 1000000) AS a(a1)</script>
                 </action>
                 <action origin="1" type="CREATE_VIZ" status="NONE" object_id="1">
-                    <target name="foo" />
+                    <target name="main.foo" />
                     <depends_on>
                         <ref action="0" />
                     </depends_on>
@@ -142,12 +142,12 @@
         <graph next_object_id="4">
             <setup>
                 <action type="IMPORT_VIEW" status="NONE" object_id="0">
-                    <target name="foo" />
+                    <target name="main.foo" />
                 </action>
             </setup>
             <program>
                 <action origin="0" type="CREATE_VIEW" status="COMPLETED" object_id="0">
-                    <target name="foo" />
+                    <target name="main.foo" />
                     <required_for>
                         <ref action="1" />
                     </required_for>
@@ -156,7 +156,7 @@
                 FROM generate_series(0, 1000000) AS a(a1)</script>
                 </action>
                 <action origin="1" type="UPDATE_VIZ" status="NONE" object_id="1">
-                    <target name="foo" />
+                    <target name="main.foo" />
                     <depends_on>
                         <ref action="0" />
                     </depends_on>
@@ -188,7 +188,7 @@
             <setup />
             <program>
                 <action origin="0" type="CREATE_VIEW" status="COMPLETED" object_id="0">
-                    <target name="foo" />
+                    <target name="main.foo" />
                     <required_for>
                         <ref action="1" />
                     </required_for>
@@ -197,7 +197,7 @@
                 FROM generate_series(0, 1000000) AS a(a1)</script>
                 </action>
                 <action origin="1" type="CREATE_VIZ" status="COMPLETED" object_id="1">
-                    <target name="foo" />
+                    <target name="main.foo" />
                     <depends_on>
                         <ref action="0" />
                     </depends_on>
@@ -228,15 +228,15 @@
         <graph next_object_id="4">
             <setup>
                 <action type="IMPORT_VIEW" status="NONE" object_id="0">
-                    <target name="foo" />
+                    <target name="main.foo" />
                 </action>
                 <action type="IMPORT_VIZ" status="NONE" object_id="1">
-                    <target name="foo" />
+                    <target name="main.foo" />
                 </action>
             </setup>
             <program>
                 <action origin="0" type="CREATE_VIEW" status="COMPLETED" object_id="0">
-                    <target name="foo" />
+                    <target name="main.foo" />
                     <required_for>
                         <ref action="1" />
                     </required_for>
@@ -245,7 +245,7 @@
                 FROM generate_series(0, 1000000) AS a(a1)</script>
                 </action>
                 <action origin="1" type="CREATE_VIZ" status="NONE" object_id="1">
-                    <target name="foo" />
+                    <target name="main.foo" />
                     <depends_on>
                         <ref action="0" />
                     </depends_on>

@@ -4,7 +4,7 @@
     </input>
     <expected>
         <statements>
-            <statement type="CREATE_TABLE_AS" name="foo">
+            <statement type="CREATE_TABLE_AS" name="main.foo">
                 <node type="OBJECT_SQL_CREATE_AS" loc="9..37" text="create tab..s select 1">
                     <node key="SQL_CREATE_AS_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="22..25" text="foo">
                         <node key="SQL_QUALIFIED_NAME_RELATION" loc="22..25" text="foo" />

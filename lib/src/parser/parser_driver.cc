@@ -124,41 +124,49 @@ NodeID ParserDriver::AddNode(sx::Node node) {
         case sx::NodeType::OBJECT_DASHQL_LOAD:
         case sx::NodeType::OBJECT_DASHQL_INPUT:
             if (auto name_id = FindAttribute(node, Key::DASHQL_STATEMENT_NAME); name_id) {
-                current_statement_.name = QualifiedNameView::ReadFrom(nodes_, text, *name_id);
+                current_statement_.name =
+                    QualifiedNameView::ReadFrom(nodes_, text, *name_id).WithDefaultSchema(options_.global_namespace);
             }
             break;
 
         case sx::NodeType::OBJECT_DASHQL_EXTRACT:
             if (auto name_id = FindAttribute(node, Key::DASHQL_STATEMENT_NAME); name_id) {
-                current_statement_.name = QualifiedNameView::ReadFrom(nodes_, text, *name_id);
+                current_statement_.name =
+                    QualifiedNameView::ReadFrom(nodes_, text, *name_id).WithDefaultSchema(options_.global_namespace);
             }
             if (auto name_id = FindAttribute(node, Key::DASHQL_EXTRACT_DATA); name_id) {
                 current_statement_.table_refs.push_back(
-                    {*name_id, QualifiedNameView::ReadFrom(nodes_, text, *name_id)});
+                    {*name_id,
+                     QualifiedNameView::ReadFrom(nodes_, text, *name_id).WithDefaultSchema(options_.global_namespace)});
             }
             break;
 
         case sx::NodeType::OBJECT_SQL_INTO:
             if (auto name_id = FindAttribute(node, Key::SQL_TEMP_NAME); name_id) {
-                current_statement_.name = QualifiedNameView::ReadFrom(nodes_, text, *name_id);
+                current_statement_.name =
+                    QualifiedNameView::ReadFrom(nodes_, text, *name_id).WithDefaultSchema(options_.global_namespace);
             }
             break;
 
         case sx::NodeType::OBJECT_SQL_CREATE_AS:
             if (auto name_id = FindAttribute(node, Key::SQL_CREATE_AS_NAME); name_id) {
-                current_statement_.name = QualifiedNameView::ReadFrom(nodes_, text, *name_id);
+                current_statement_.name =
+                    QualifiedNameView::ReadFrom(nodes_, text, *name_id).WithDefaultSchema(options_.global_namespace);
             }
             break;
 
         case sx::NodeType::OBJECT_SQL_VIEW:
             if (auto name_id = FindAttribute(node, Key::SQL_VIEW_NAME); name_id) {
-                current_statement_.name = QualifiedNameView::ReadFrom(nodes_, text, *name_id);
+                current_statement_.name =
+                    QualifiedNameView::ReadFrom(nodes_, text, *name_id).WithDefaultSchema(options_.global_namespace);
             }
             break;
 
         case sx::NodeType::OBJECT_SQL_TABLE_REF:
             if (auto name_id = FindAttribute(node, Key::SQL_TABLE_NAME); name_id) {
-                current_statement_.table_refs.push_back({node_id, QualifiedNameView::ReadFrom(nodes_, text, *name_id)});
+                current_statement_.table_refs.push_back(
+                    {node_id,
+                     QualifiedNameView::ReadFrom(nodes_, text, *name_id).WithDefaultSchema(options_.global_namespace)});
             }
             break;
 
@@ -179,7 +187,7 @@ void ParserDriver::ComputeDependencies() {
     std::unordered_map<QualifiedNameView, uint32_t, QualifiedNameView::Hasher> names;
     for (unsigned i = 0; i < statements_.size(); ++i) {
         auto& stmt = statements_[i];
-        auto name = stmt.name.WithoutIndex().WithDefaultSchema(options_.global_namespace);
+        auto name = stmt.name.WithoutIndex();
         names.insert({name, i});
     }
 
@@ -189,7 +197,7 @@ void ParserDriver::ComputeDependencies() {
 
         // Resolve all table refs
         for (auto& [node, ref] : stmt.table_refs) {
-            auto name = ref.WithoutIndex().WithDefaultSchema(options_.global_namespace);
+            auto name = ref.WithoutIndex();
             if (auto iter = names.find(name); iter != names.end() && iter->second != i) {
                 dependencies_.push_back(sx::Dependency(sx::DependencyType::TABLE_REF, iter->second, i, node));
             }
