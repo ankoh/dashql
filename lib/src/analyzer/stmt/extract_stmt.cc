@@ -69,7 +69,7 @@ fb::Offset<ana::ExtractStatement> ExtractStatement::Pack(fb::FlatBufferBuilder& 
     auto data_qualified = builder.CreateString(data_source_.WithoutIndex().ToString());
     std::optional<fb::Offset<fb::String>> data_index;
     if (!data_source_.index_value.empty()) {
-        data_index = builder.CreateString(data_source_.index_value);
+        data_index = builder.CreateString(trimview(data_source_.index_value, isNoQuote));
     }
 
     // Print the options
@@ -84,7 +84,7 @@ fb::Offset<ana::ExtractStatement> ExtractStatement::Pack(fb::FlatBufferBuilder& 
     proto::analyzer::ExtractStatementBuilder eb{builder};
     eb.add_statement_id(statement_id_);
     eb.add_data_source(data_qualified);
-    if (data_index) eb.add_data_index(*data_index);
+    if (data_index) eb.add_data_source_index(*data_index);
     eb.add_method(extract_method_);
     eb.add_options(options);
     return eb.Finish();
