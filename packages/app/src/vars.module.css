@@ -29,14 +29,14 @@
     --nav_bar_button_margin: 4px 8px;
     --nav_bar_width: 64px;
     --nav_logo_height: 56px;
-    --system_bg: rgb(0, 0, 0);
+    --system_bg: rgb(10, 10, 10);
     --system_bg_active: rgb(30, 30, 30);
     --system_button_height: 40px;
     --system_button_margin: 6px;
     --system_fg_active: rgb(255, 255, 255);
     --system_minimal_bg: transparent;
     --nav_tab_bg: transparent;
-    --nav_tab_bg_active: rgb(0, 0, 0);
+    --nav_tab_bg_active: rgb(10, 10, 10);
     --nav_tab_fg: rgb(255, 255, 255);
     --nav_tab_fg_active: rgb(255, 255, 255);
     --pgraph_node_border_color: rgb(200, 200, 200);
