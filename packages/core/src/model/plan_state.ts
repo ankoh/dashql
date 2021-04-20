@@ -15,19 +15,22 @@ type TableName = string;
 export interface PlanState {
     /// The status
     readonly status: Immutable.List<StatementStatus>;
-    /// The cards
-    readonly cards: Immutable.Map<ObjectID, Card>;
-    /// The database tables
-    readonly tables: Immutable.Map<TableName, Table>;
+    /// The blobs
+    readonly objects: Immutable.Map<ObjectID, PlanObject>;
+    /// The blobs
+    readonly blobsByName: Immutable.Map<TableName, ObjectID>;
+    /// The tables
+    readonly tablesByName: Immutable.Map<TableName, ObjectID>;
     /// The plan actions
     readonly actions: Immutable.Map<ActionHandle, Action>;
 }
 
 export const createPlanState = (): PlanState => ({
-    actions: Immutable.Map(),
     status: Immutable.List(),
-    cards: Immutable.Map(),
-    tables: Immutable.Map(),
+    objects: Immutable.Map(),
+    blobsByName: Immutable.Map(),
+    tablesByName: Immutable.Map(),
+    actions: Immutable.Map(),
 });
 
 export const resetStatus = (state: PlanState, status: StatementStatus[] = [], actions: Action[] = []): PlanState => ({
@@ -99,46 +102,56 @@ export const updateStatus = (state: PlanState, updates: ActionUpdate[]): PlanSta
     }),
 });
 
-export const insertObjects = (state: PlanState, objects: PlanObject[]): PlanState => ({
-    ...state,
-    cards: state.cards.withMutations(os => {
-        for (const o of objects) {
-            if (o.objectType == PlanObjectType.CARD) {
-                const t = o as Card;
-                os.set(t.objectId, t);
-            }
-        }
-    }),
-    tables: state.tables.withMutations(os => {
-        for (const o of objects) {
-            if (o.objectType == PlanObjectType.DATABASE_TABLE) {
-                const t = o as Table;
-                os.set(t.tableNameQualified, t);
-            }
-        }
-    }),
-});
+export const insertObjects = (state: PlanState, objects: PlanObject[]): PlanState => {
+    const blobs = objects.filter(o => o.objectType == PlanObjectType.CARD) as Card[];
+    const tables = objects.filter(o => o.objectType == PlanObjectType.TABLE) as Table[];
+    return {
+        ...state,
+        objects: state.objects.withMutations(os => objects.forEach(o => os.set(o.objectId, o))),
+        blobsByName: state.blobsByName.withMutations(os => blobs.forEach(o => os.set(o.nameQualified, o.objectId))),
+        tablesByName: state.tablesByName.withMutations(os =>
+            tables.forEach(o => os.set(o.tableNameQualified, o.objectId)),
+        ),
+    };
+};
 
-export const deleteObjects = (state: PlanState, objects: PlanObjectID[]): PlanState => ({
-    ...state,
-    tables: state.tables.deleteAll(objects.map(k => k.toString())),
-    cards: state.cards.deleteAll(objects),
-});
+export const deleteObjects = (state: PlanState, objects: PlanObjectID[]): PlanState => {
+    const ids = [];
+    const names = [];
+    for (const oid of objects) {
+        const o = state.objects.get(oid);
+        ids.push(o.objectId);
+        names.push(o.nameQualified);
+    }
+    return {
+        ...state,
+        objects: state.objects.deleteAll(ids),
+        blobsByName: state.blobsByName.deleteAll(names),
+        tablesByName: state.tablesByName.deleteAll(names),
+    };
+};
 
-export const deleteTable = (state: PlanState, key: string): PlanState => ({
-    ...state,
-    tables: state.tables.delete(key),
-});
+export const deleteObject = (state: PlanState, oid: PlanObjectID): PlanState => {
+    const o = state.objects.get(oid);
+    if (!o) return state;
+    return {
+        ...state,
+        objects: state.objects.delete(oid),
+        blobsByName: state.blobsByName.delete(o.nameQualified),
+        tablesByName: state.tablesByName.delete(o.nameQualified),
+    };
+};
 
-export const updateTable = (state: PlanState, tableName: string, update: Partial<Table>): PlanState => {
-    const table = state.tables.get(tableName);
-    if (!table) return state;
+export const updateTable = (state: PlanState, oid: PlanObjectID, update: Partial<Table>): PlanState => {
+    const table = state.objects.get(oid);
+    if (!table || table.objectType != PlanObjectType.TABLE) return state;
     const next = {
-        ...table,
+        ...(table as Table),
         ...update,
     };
     return {
         ...state,
-        tables: state.tables.set(tableName, next),
+        objects: state.objects.set(next.objectId, next),
+        tablesByName: state.tablesByName.set(next.tableNameQualified, next.objectId),
     };
 };
