@@ -49,8 +49,8 @@
     <input>
         LOAD uni FROM 'https://static.dashql.com/data/uni/de/all.zip';
         EXTRACT vorlesungen FROM uni['vorlesungen.parquet'] USING PARQUET;
-        EXTRACT hoeren FROM uni['hoeren.parquet'] USING PARQUET;
-        EXTRACT studenten FROM uni['studenten.parquet'] USING PARQUET;
+        EXTRACT hoeren FROM uni['hoeren.parquet'];
+        EXTRACT studenten FROM uni['studenten.parquet'];
     </input>
     <expected>
         <statements>
@@ -77,30 +77,28 @@
                 </node>
             </statement>
             <statement type="EXTRACT" name="main.hoeren">
-                <node type="OBJECT_DASHQL_EXTRACT" loc="155..210" text="EXTRACT ho..NG PARQUET">
+                <node type="OBJECT_DASHQL_EXTRACT" loc="155..196" text="EXTRACT ho...parquet']">
                     <node key="DASHQL_EXTRACT_DATA" type="OBJECT_SQL_QUALIFIED_NAME" loc="175..196" text="uni['hoere...parquet']">
                         <node key="SQL_QUALIFIED_NAME_INDEX" type="OBJECT_SQL_INDIRECTION_INDEX" loc="178..196" text="['hoeren.parquet']">
                             <node key="SQL_INDIRECTION_INDEX_VALUE" loc="179..195" text="'hoeren.parquet'" />
                         </node>
                         <node key="SQL_QUALIFIED_NAME_RELATION" loc="175..178" text="uni" />
                     </node>
-                    <node key="DASHQL_EXTRACT_METHOD" value="PARQUET" />
                     <node key="DASHQL_STATEMENT_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="163..169" text="hoeren">
                         <node key="SQL_QUALIFIED_NAME_RELATION" loc="163..169" text="hoeren" />
                     </node>
                 </node>
             </statement>
             <statement type="EXTRACT" name="main.studenten">
-                <node type="OBJECT_DASHQL_EXTRACT" loc="220..281" text="EXTRACT st..NG PARQUET">
-                    <node key="DASHQL_EXTRACT_DATA" type="OBJECT_SQL_QUALIFIED_NAME" loc="243..267" text="uni['stude...parquet']">
-                        <node key="SQL_QUALIFIED_NAME_INDEX" type="OBJECT_SQL_INDIRECTION_INDEX" loc="246..267" text="['studente...parquet']">
-                            <node key="SQL_INDIRECTION_INDEX_VALUE" loc="247..266" text="'studenten.parquet'" />
+                <node type="OBJECT_DASHQL_EXTRACT" loc="206..253" text="EXTRACT st...parquet']">
+                    <node key="DASHQL_EXTRACT_DATA" type="OBJECT_SQL_QUALIFIED_NAME" loc="229..253" text="uni['stude...parquet']">
+                        <node key="SQL_QUALIFIED_NAME_INDEX" type="OBJECT_SQL_INDIRECTION_INDEX" loc="232..253" text="['studente...parquet']">
+                            <node key="SQL_INDIRECTION_INDEX_VALUE" loc="233..252" text="'studenten.parquet'" />
                         </node>
-                        <node key="SQL_QUALIFIED_NAME_RELATION" loc="243..246" text="uni" />
+                        <node key="SQL_QUALIFIED_NAME_RELATION" loc="229..232" text="uni" />
                     </node>
-                    <node key="DASHQL_EXTRACT_METHOD" value="PARQUET" />
-                    <node key="DASHQL_STATEMENT_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="228..237" text="studenten">
-                        <node key="SQL_QUALIFIED_NAME_RELATION" loc="228..237" text="studenten" />
+                    <node key="DASHQL_STATEMENT_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="214..223" text="studenten">
+                        <node key="SQL_QUALIFIED_NAME_RELATION" loc="214..223" text="studenten" />
                     </node>
                 </node>
             </statement>
@@ -110,14 +108,14 @@
             <line_break loc="0..1" text="&#10;" />
             <line_break loc="71..72" text="&#10;" />
             <line_break loc="146..147" text="&#10;" />
-            <line_break loc="211..212" text="&#10;" />
-            <line_break loc="282..283" text="&#10;" />
+            <line_break loc="197..198" text="&#10;" />
+            <line_break loc="254..255" text="&#10;" />
         </line_breaks>
         <comments />
         <dependencies>
             <dependency type="TABLE_REF" source="0" target="1" loc="105..131" text="uni['vorle...parquet']" />
             <dependency type="TABLE_REF" source="0" target="2" loc="175..196" text="uni['hoere...parquet']" />
-            <dependency type="TABLE_REF" source="0" target="3" loc="243..267" text="uni['stude...parquet']" />
+            <dependency type="TABLE_REF" source="0" target="3" loc="229..253" text="uni['stude...parquet']" />
         </dependencies>
     </expected>
 </test>

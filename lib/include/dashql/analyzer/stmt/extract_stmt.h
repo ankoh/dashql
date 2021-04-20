@@ -29,7 +29,7 @@ class ExtractStatement {
     /// The AST index
     const ASTIndex ast_;
     /// The extract method
-    proto::syntax::ExtractMethodType extract_method_;
+    sx::ExtractMethodType extract_method_ = sx::ExtractMethodType::NONE;
     /// The data source
     parser::QualifiedNameView data_source_ = {};
 
