@@ -38,7 +38,7 @@ struct QualifiedNameView {
             .catalog = catalog,
             .schema = schema.empty() ? global : schema,
             .relation = relation,
-            .index_value = {},
+            .index_value = index_value,
         };
     }
     /// Equality operator
