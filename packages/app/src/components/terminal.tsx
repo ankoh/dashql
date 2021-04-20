@@ -5,6 +5,7 @@ import { TerminalEmulator } from './terminal_emulator';
 import styles from './terminal.module.css';
 
 interface Props {
+    /// The app context
     appContext: IAppContext;
 }
 
@@ -24,6 +25,15 @@ class Terminal extends React.Component<Props> {
         this.termInput = '';
     }
 
+    /// Access the logger
+    protected get logger() {
+        return this.props.appContext.logger;
+    }
+    /// Access the database
+    protected get database() {
+        return this.props.appContext.platform!.database;
+    }
+
     /// Render the demo
     public render() {
         return (
@@ -35,8 +45,11 @@ class Terminal extends React.Component<Props> {
 
     /// Evaluate the terminal input
     protected async evalTermInput(text: string) {
-        /// XXX
-        console.log(text);
+        const result = await this.database.use(async conn => {
+            return await conn.runQuery(text);
+        });
+
+        this.term.printLine(result.toArray().toString());
     }
 
     /// Run the terminal eval loop
