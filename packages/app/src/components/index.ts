@@ -2,6 +2,7 @@ export { withNavBar as withNavBar } from './navbar';
 export { withNavBar as withMinimalNavBar } from './navbar_minimal';
 import BoardEditor from './board_editor';
 import Board from './board';
+import TerminalLoader from './terminal_loader';
 import EditorLoader from './editor_loader';
 import ProgramGraph from './program_graph';
 import ScriptLoader from './script_loader';
@@ -17,6 +18,7 @@ export {
     BoardCommandBar,
     BoardEditor,
     EditorLoader,
+    TerminalLoader,
     ProgramGraph,
     ScriptLoader,
     StatusIndicator,

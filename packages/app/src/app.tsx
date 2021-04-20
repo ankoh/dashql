@@ -5,7 +5,7 @@ import * as core from '@dashql/core';
 import { launchApp } from './app_launcher';
 import { Route, BrowserRouter, Switch, Redirect } from 'react-router-dom';
 import { Provider as ReduxProvider } from 'react-redux';
-import { Launcher, Studio, Examples, Viewer, NotFound } from './pages';
+import { Launcher, Studio, Examples, Viewer, Shell, NotFound } from './pages';
 import { withNavBar, withMinimalNavBar } from './components';
 import { AppContextProvider, IAppContext } from './app_context';
 
@@ -39,6 +39,7 @@ ReactDOM.render(
                         <Route exact path="/studio" component={withNavBar(Studio)} />
                         <Route exact path="/examples" component={withNavBar(Examples)} />
                         <Route exact path="/viewer" component={withMinimalNavBar(Viewer)} />
+                        <Route exact path="/shell" component={withNavBar(Shell)} />
                         <Route path="/404" component={NotFound} />
                         <Redirect path="/" to="/studio" />
                         <Redirect to="/404" />
