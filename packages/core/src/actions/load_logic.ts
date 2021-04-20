@@ -20,6 +20,9 @@ export class LoadActionLogic extends ProgramActionLogic {
             return;
         }
 
+        const stmt = instance.program.getStatement(this._origin.statementId);
+        console.log(`load objectID: ${this.buffer.objectId()}`);
+        console.log(`load name: ${stmt.nameQualified}`);
         console.log(`load method: ${proto.syntax.LoadMethodType[load.method()].toString()}`);
         console.log(`load url: ${load.url()}`);
     }

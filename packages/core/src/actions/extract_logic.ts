@@ -20,8 +20,11 @@ export class ExtractActionLogic extends ProgramActionLogic {
             return;
         }
 
+        const stmt = instance.program.getStatement(this._origin.statementId);
+        console.log(`extract objectID: ${this.buffer.objectId()}`);
+        console.log(`extract name: ${stmt.nameQualified}`);
         console.log(`extract method: ${proto.syntax.ExtractMethodType[xtr.method()].toString()}`);
-        console.log(`data source: ${xtr.dataSource()}`);
-        console.log(`data index: ${xtr.dataSourceIndex()}`);
+        console.log(`extract source: ${xtr.dataSource()}`);
+        console.log(`extract source index: ${xtr.dataSourceIndex()}`);
     }
 }

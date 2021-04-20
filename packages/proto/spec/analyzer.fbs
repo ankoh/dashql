@@ -43,11 +43,17 @@ table InputStatement {
     value: sql.SQLValue;
 }
 
+enum ArchiveMode: uint8 {
+    NONE,
+    ZIP
+}
+
 /// A load statement
 table LoadStatement {
     statement_id: uint32;
     method: syntax.LoadMethodType;
     url: string;
+    archive: ArchiveMode;
     options: string;
 }
 

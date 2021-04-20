@@ -1,5 +1,7 @@
 #include "dashql/analyzer/stmt/extract_stmt.h"
 
+#include <regex>
+
 #include "dashql/analyzer/json_patch.h"
 #include "dashql/analyzer/json_writer.h"
 #include "dashql/analyzer/program_instance.h"
@@ -20,6 +22,14 @@ namespace dashql {
 
 ExtractStatement::ExtractStatement(ProgramInstance& instance, size_t statement_id, ASTIndex ast)
     : instance_(instance), statement_id_(statement_id), ast_(ast) {}
+
+static std::regex PARQUET_EXT{".*\\.zip$"};
+
+static std::unordered_map<std::string_view, sx::ExtractMethodType> EXTRACT_METHODS{
+    {"csv", sx::ExtractMethodType::CSV},
+    {"parquet", sx::ExtractMethodType::PARQUET},
+    {"json", sx::ExtractMethodType::JSON},
+};
 
 std::unique_ptr<ExtractStatement> ExtractStatement::ReadFrom(ProgramInstance& instance, size_t stmt_id) {
     // clang-format off
@@ -48,6 +58,17 @@ std::unique_ptr<ExtractStatement> ExtractStatement::ReadFrom(ProgramInstance& in
     if (auto src = xtr->ast_[SX_DATA_SOURCE]; src) {
         xtr->data_source_ = parser::QualifiedNameView::ReadFrom(program.nodes, instance.program_text(), src.node_id)
                                 .WithDefaultSchema(instance.script_options().global_namespace);
+
+        // Try to infer extract method from index value if possible.
+        // E.g.: EXTRACT foo FROM somezip['archive.parquet'];
+        if (!xtr->ast_[SX_METHOD] && !xtr->data_source_.index_value.empty()) {
+            auto idx = trimview(xtr->data_source_.index_value, isNoQuote);
+            auto ext = idx.substr(idx.find_last_of(".") + 1);
+            auto iter = EXTRACT_METHODS.find(ext);
+            if (iter != EXTRACT_METHODS.end()) {
+                xtr->extract_method_ = iter->second;
+            }
+        }
     }
     return xtr;
 }
