@@ -13,13 +13,13 @@ namespace parser {
 
 struct QualifiedNameView {
     /// The catalog
-    std::string_view catalog;
+    std::string_view catalog = {};
     /// The schema
-    std::string_view schema;
+    std::string_view schema = {};
     /// The relation
-    std::string_view relation;
+    std::string_view relation = {};
     /// The index
-    std::string_view index_value;
+    std::string_view index_value = {};
 
     /// Create a string for a qualified name
     std::string ToString() const;
