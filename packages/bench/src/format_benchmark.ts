@@ -2,12 +2,13 @@ import * as benchmark from 'benchmark';
 import * as arrow from 'apache-arrow';
 import * as duckdb from '@dashql/duckdb/src/';
 import kleur from 'kleur';
-import { formatBytes } from './common';
+import * as format from '@dashql/core/src/utils/format';
 
 export function benchmarkFormat(db: () => duckdb.DuckDBBindings) {
     const tupleSize = 8;
     for (const tupleCount of [1000, 10000, 1000000, 10000000]) {
         let suite = new benchmark.Suite(`Single DOUBLE column | ${tupleCount} rows`);
+        console.log(kleur.blue(`Single DOUBLE column | ${tupleCount} rows`));
         suite
             .add('columns (iterator)', () => {
                 const conn = db().connect();
@@ -78,15 +79,15 @@ export function benchmarkFormat(db: () => duckdb.DuckDBBindings) {
                 };
             })
             .on('cycle', (e: any) => {
-                console.log(e);
+                console.log(e.target.stats.mean, e.target.times.period);
                 const bytes = tupleCount * tupleSize;
                 const duration = e.target.stats.mean;
                 const tupleThroughput = tupleCount / duration;
                 const dataThroughput = bytes / duration;
                 console.log(
-                    `${kleur.cyan(e.target.name)} t: ${duration.toFixed(3)} s ttp: ${Math.round(
+                    `${kleur.cyan(e.target.name)} t: ${duration.toFixed(3)} s ttp: ${format.formatThousands(
                         tupleThroughput,
-                    )}/s dtp: ${formatBytes(dataThroughput)}/s`,
+                    )}/s dtp: ${format.formatBytes(dataThroughput)}/s`,
                 );
             })
             .run();
