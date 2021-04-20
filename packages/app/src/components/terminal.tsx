@@ -3,7 +3,6 @@ import { IAppContext, withAppContext } from '../app_context';
 import { TerminalEmulator } from './terminal_emulator';
 
 import styles from './terminal.module.css';
-import * as arrow from 'apache-arrow';
 
 interface Props {
     /// The app context
