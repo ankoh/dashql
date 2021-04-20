@@ -14,6 +14,7 @@
 #include "dashql/analyzer/syntax_matcher.h"
 #include "dashql/common/enum.h"
 #include "dashql/parser/parser_driver.h"
+#include "dashql/parser/qualified_name.h"
 #include "dashql/proto_generated.h"
 #include "nonstd/span.h"
 
@@ -29,8 +30,8 @@ class ExtractStatement {
     const ASTIndex ast_;
     /// The extract method
     proto::syntax::ExtractMethodType extract_method_;
-    /// The indirection
-    std::optional<std::string> indirection_ = std::nullopt;
+    /// The data source
+    parser::QualifiedNameView data_source_ = {};
 
    public:
     /// Constructor

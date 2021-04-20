@@ -4,6 +4,7 @@
 #include "dashql/analyzer/json_writer.h"
 #include "dashql/analyzer/program_instance.h"
 #include "dashql/common/string.h"
+#include "dashql/parser/qualified_name.h"
 #include "dashql/proto_generated.h"
 #include "rapidjson/ostreamwrapper.h"
 #include "rapidjson/prettywriter.h"
@@ -11,7 +12,6 @@
 #include "rapidjson/writer.h"
 
 constexpr size_t SX_DATA_SOURCE = 0;
-constexpr size_t SX_DATA_INDIRECTION = 2;
 constexpr size_t SX_METHOD = 1;
 namespace fb = flatbuffers;
 namespace ana = dashql::proto::analyzer;
@@ -28,18 +28,7 @@ std::unique_ptr<ExtractStatement> ExtractStatement::ReadFrom(ProgramInstance& in
     static const auto schema = sxm::Element()
         .MatchObject(sx::NodeType::OBJECT_DASHQL_EXTRACT)
         .MatchChildren({
-            sxm::Attribute(sx::AttributeKey::DASHQL_EXTRACT_DATA)
-                .MatchArray()
-                .MatchChildren({
-                    sxm::Element(SX_DATA_SOURCE)
-                        .MatchString(),
-                    sxm::Element()
-                        .MatchObject(sx::NodeType::OBJECT_SQL_INDIRECTION_INDEX)
-                        .MatchChildren({
-                            sxm::Attribute(sx::AttributeKey::SQL_INDIRECTION_INDEX_VALUE, SX_DATA_INDIRECTION)
-                                .MatchString()
-                        }),
-                }),
+            sxm::Attribute(sx::AttributeKey::DASHQL_EXTRACT_DATA, SX_DATA_SOURCE),
             sxm::Attribute(sx::AttributeKey::DASHQL_EXTRACT_METHOD, SX_METHOD)
                 .MatchEnum(sx::NodeType::ENUM_DASHQL_EXTRACT_METHOD_TYPE),
         });
@@ -54,13 +43,11 @@ std::unique_ptr<ExtractStatement> ExtractStatement::ReadFrom(ProgramInstance& in
         xtr->extract_method_ = xtr->ast_[SX_METHOD].DataAsEnum<sx::ExtractMethodType>();
     }
 
-    // Get indirections
+    // Read data source
     std::optional<std::string_view> indirection;
-    if (xtr->ast_[SX_DATA_INDIRECTION]) {
-        auto& node = program.nodes[xtr->ast_[SX_DATA_INDIRECTION].node_id];
-        xtr->indirection_ = trimview(instance.TextAt(node.location()), isNoQuote);
+    if (auto src = xtr->ast_[SX_DATA_SOURCE]; src) {
+        xtr->data_source_ = parser::QualifiedNameView::ReadFrom(program.nodes, instance.program_text(), src.node_id);
     }
-
     return xtr;
 }
 
@@ -82,8 +69,12 @@ fb::Offset<ana::ExtractStatement> ExtractStatement::Pack(fb::FlatBufferBuilder& 
     // auto target_qualified = builder.CreateString(stmt->name_qualified);
 
     // Encode indirection
-    std::optional<fb::Offset<fb::String>> indirection;
-    if (indirection_) indirection = builder.CreateString(*indirection_);
+    auto data_short = builder.CreateString(data_source_.relation);
+    auto data_qualified = builder.CreateString(data_source_.WithoutIndex().ToString());
+    std::optional<fb::Offset<fb::String>> data_index;
+    if (!data_source_.index_value.empty()) {
+        data_index = builder.CreateString(data_source_.index_value);
+    }
 
     // Print the options
     flatbuffers::Offset<flatbuffers::String> options;
@@ -96,7 +87,9 @@ fb::Offset<ana::ExtractStatement> ExtractStatement::Pack(fb::FlatBufferBuilder& 
     // Build extract statement
     proto::analyzer::ExtractStatementBuilder eb{builder};
     eb.add_statement_id(statement_id_);
-    if (indirection) eb.add_target_indirection(*indirection);
+    eb.add_data_name_short(data_short);
+    eb.add_data_name_qualified(data_qualified);
+    if (data_index) eb.add_data_index(*data_index);
     eb.add_method(extract_method_);
     eb.add_options(options);
     return eb.Finish();
