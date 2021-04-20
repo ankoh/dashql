@@ -3,6 +3,7 @@ import { IAppContext, withAppContext } from '../app_context';
 import { TerminalEmulator } from './terminal_emulator';
 
 import styles from './terminal.module.css';
+import * as arrow from 'apache-arrow';
 
 interface Props {
     /// The app context
@@ -49,7 +50,9 @@ class Terminal extends React.Component<Props> {
             return await conn.runQuery(text);
         });
 
-        this.term.printLine(result.toArray().toString());
+        for (const row of result) {
+            this.term.printLine(row.toString());
+        }
     }
 
     /// Run the terminal eval loop
