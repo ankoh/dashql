@@ -76,11 +76,13 @@
     height: 100%;
     display: grid;
     text-decoration: none;
+    vertical-align: middle;
 }
 
-.tab > a > svg {
+.tab > a svg {
     justify-self: center;
     align-self: center;
+    margin-bottom: 3px;
 }
 
 .tab_icon {
