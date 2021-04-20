@@ -23,7 +23,7 @@ export class SystemCard extends React.Component<Props> {
                         </svg>
                     </div>
                 </div>
-                {this.props.children}
+                <div className={styles.content}>{this.props.children}</div>
             </div>
         );
     }

@@ -1,7 +1,7 @@
 import * as React from 'react';
 import ActionList from './action_list';
 import LogViewer from './log_viewer';
-import DatabaseStats from './database_stats';
+import DatabaseViewer from './database_viewer';
 import classNames from 'classnames';
 
 import styles from './system_indicators.module.css';
@@ -67,7 +67,7 @@ class SystemIndicators extends React.Component<Props, State> {
                     onClick={this.toggleTab.bind(this)}
                     icon={icon_database}
                 >
-                    <DatabaseStats onClose={() => this.toggleTab(0)} />
+                    <DatabaseViewer onClose={() => this.toggleTab(0)} />
                 </SystemPanel>
                 <SystemPanel
                     systemID={1}
