@@ -46,7 +46,6 @@ class NavBarImpl extends React.Component<Props> {
                 </div>
                 <div className={styles.tabs}>
                     <Tab route="/studio" location={this.props.location.pathname} icon={icon_studio} />
-                    <Tab route="/shell" location={this.props.location.pathname} icon={icon_console} />
                     <Tab route="/examples" location={this.props.location.pathname} icon={icon_examples} />
                 </div>
                 <div className={styles.account} onClick={async () => auth()}>
