@@ -30,7 +30,7 @@
     </input>
     <expected>
         <statements>
-            <statement type="INPUT" name="country">
+            <statement type="INPUT" name="main.country">
                 <node type="OBJECT_DASHQL_INPUT" loc="278..426" text="INPUT coun..&#10;        )">
                     <node key="DASHQL_INPUT_COMPONENT_TYPE" value="TEXT" />
                     <node key="DASHQL_INPUT_VALUE_TYPE" type="OBJECT_SQL_TYPENAME" loc="297..304" text="VARCHAR">
@@ -50,7 +50,7 @@
                     <node key="DASHQL_OPTION_TITLE" loc="338..347" text="'Country'" />
                 </node>
             </statement>
-            <statement type="LOAD" name="weather_csv">
+            <statement type="LOAD" name="main.weather_csv">
                 <node type="OBJECT_DASHQL_LOAD" loc="554..673" text="LOAD weath..&#10;        )">
                     <node key="DASHQL_LOAD_METHOD" value="HTTP" />
                     <node key="DASHQL_STATEMENT_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="559..570" text="weather_csv">
@@ -70,7 +70,7 @@
                     </node>
                 </node>
             </statement>
-            <statement type="EXTRACT" name="weather">
+            <statement type="EXTRACT" name="main.weather">
                 <node type="OBJECT_DASHQL_EXTRACT" loc="784..826" text="EXTRACT we.. USING CSV">
                     <node key="DASHQL_EXTRACT_DATA" type="OBJECT_SQL_QUALIFIED_NAME" loc="805..816" text="weather_csv">
                         <node key="SQL_QUALIFIED_NAME_RELATION" loc="805..816" text="weather_csv" />
@@ -81,7 +81,7 @@
                     </node>
                 </node>
             </statement>
-            <statement type="SELECT_INTO" name="weather_avg">
+            <statement type="SELECT_INTO" name="main.weather_avg">
                 <node type="OBJECT_SQL_SELECT" loc="941..979" text="SELECT 1 I..OM weather">
                     <node key="SQL_SELECT_FROM">
                         <node type="OBJECT_SQL_TABLE_REF" loc="972..979" text="weather">
@@ -102,7 +102,7 @@
                     </node>
                 </node>
             </statement>
-            <statement type="VIZUALIZE" name="weather_avg">
+            <statement type="VIZUALIZE" name="main.weather_avg">
                 <node type="OBJECT_DASHQL_VIZ" loc="1081..1107" text="VIZ weathe..USING LINE">
                     <node key="DASHQL_VIZ_COMPONENTS">
                         <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="1103..1107" text="LINE">

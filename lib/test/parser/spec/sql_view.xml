@@ -4,7 +4,7 @@
     </input>
     <expected>
         <statements>
-            <statement type="CREATE_VIEW" name="foo">
+            <statement type="CREATE_VIEW" name="main.foo">
                 <node type="OBJECT_SQL_VIEW" loc="9..36" text="create vie..s select 1">
                     <node key="SQL_VIEW_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="21..24" text="foo">
                         <node key="SQL_QUALIFIED_NAME_RELATION" loc="21..24" text="foo" />
