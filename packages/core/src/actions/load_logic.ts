@@ -25,5 +25,6 @@ export class LoadActionLogic extends ProgramActionLogic {
         console.log(`load name: ${stmt.nameQualified}`);
         console.log(`load method: ${proto.syntax.LoadMethodType[load.method()].toString()}`);
         console.log(`load url: ${load.url()}`);
+        console.log(`load archive: ${proto.analyzer.ArchiveMode[load.archive()].toString()}`);
     }
 }
