@@ -42,24 +42,24 @@
 <test name="load_url_parameter">
     <input>
         LOAD weather_csv FROM http (
-            url = format('https://cdn.dashql.com/demo/weather/%s', global.country)
+            url = format('https://cdn.dashql.com/demo/weather/%s', main.country)
         );
     </input>
     <expected>
         <statements>
             <statement type="LOAD" name="weather_csv">
-                <node type="OBJECT_DASHQL_LOAD" loc="9..130" text="LOAD weath..&#10;        )">
+                <node type="OBJECT_DASHQL_LOAD" loc="9..128" text="LOAD weath..&#10;        )">
                     <node key="DASHQL_LOAD_METHOD" value="HTTP" />
                     <node key="DASHQL_STATEMENT_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="14..25" text="weather_csv">
                         <node key="SQL_QUALIFIED_NAME_RELATION" loc="14..25" text="weather_csv" />
                     </node>
-                    <node key="DASHQL_OPTION_URL" type="OBJECT_DASHQL_FUNCTION_CALL" loc="56..120" text="format('ht..l.country)">
+                    <node key="DASHQL_OPTION_URL" type="OBJECT_DASHQL_FUNCTION_CALL" loc="56..118" text="format('ht..n.country)">
                         <node key="SQL_FUNCTION_ARGUMENTS">
                             <node loc="63..103" text="'https://c..eather/%s'" />
-                            <node type="OBJECT_SQL_COLUMN_REF" loc="105..119" text="global.country">
+                            <node type="OBJECT_SQL_COLUMN_REF" loc="105..117" text="main.country">
                                 <node key="SQL_COLUMN_REF_PATH">
-                                    <node loc="105..111" text="global" />
-                                    <node loc="112..119" text="country" />
+                                    <node loc="105..109" text="main" />
+                                    <node loc="110..117" text="country" />
                                 </node>
                             </node>
                         </node>
@@ -72,8 +72,8 @@
         <line_breaks>
             <line_break loc="0..1" text="&#10;" />
             <line_break loc="37..38" text="&#10;" />
-            <line_break loc="120..121" text="&#10;" />
-            <line_break loc="131..132" text="&#10;" />
+            <line_break loc="118..119" text="&#10;" />
+            <line_break loc="129..130" text="&#10;" />
         </line_breaks>
         <comments />
         <dependencies />

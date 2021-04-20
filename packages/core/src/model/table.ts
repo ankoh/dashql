@@ -8,8 +8,6 @@ import * as arrow from 'apache-arrow';
 export interface Table extends PlanObject {
     /// The qualified table name
     readonly tableNameQualified: string;
-    /// The short table name
-    readonly tableNameShort: string;
     /// The column names
     readonly columnNames: string[];
     /// The column name indices

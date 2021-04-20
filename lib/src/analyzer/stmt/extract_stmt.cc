@@ -64,12 +64,7 @@ fb::Offset<ana::ExtractStatement> ExtractStatement::Pack(fb::FlatBufferBuilder& 
     auto& program = instance_.program();
     auto& stmt = program.statements[statement_id_];
 
-    // Create target strings
-    // auto target_short = builder.CreateString(stmt->name_short);
-    // auto target_qualified = builder.CreateString(stmt->name_qualified);
-
-    // Encode indirection
-    auto data_short = builder.CreateString(data_source_.relation);
+    // Add data source
     auto data_qualified = builder.CreateString(data_source_.WithoutIndex().ToString());
     std::optional<fb::Offset<fb::String>> data_index;
     if (!data_source_.index_value.empty()) {
@@ -87,8 +82,7 @@ fb::Offset<ana::ExtractStatement> ExtractStatement::Pack(fb::FlatBufferBuilder& 
     // Build extract statement
     proto::analyzer::ExtractStatementBuilder eb{builder};
     eb.add_statement_id(statement_id_);
-    eb.add_data_name_short(data_short);
-    eb.add_data_name_qualified(data_qualified);
+    eb.add_data_source(data_qualified);
     if (data_index) eb.add_data_index(*data_index);
     eb.add_method(extract_method_);
     eb.add_options(options);

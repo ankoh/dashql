@@ -5,14 +5,14 @@
                 default_value = 'DE'
             );
             LOAD weather_csv FROM http (
-                url = format('https://cdn.dashql.com/demo/weather/{}', global.country)
+                url = format('https://cdn.dashql.com/demo/weather/{}', main.country)
             );
         </text>
         <inputs>
             <input statement="0" type="VARCHAR" value="DE" />
         </inputs>
         <evaluations>
-            <eval type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" loc="168..232" text="format('ht..l.country)" />
+            <eval type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" loc="168..230" text="format('ht..n.country)" />
         </evaluations>
         <cards>
             <input name="country" component="TEXT" />
@@ -21,13 +21,13 @@
             <setup />
             <program>
                 <action origin="0" type="INPUT" status="COMPLETED" object_id="0">
-                    <target name_qualified="country" name_short="country" />
+                    <target name="country" />
                     <required_for>
                         <ref action="1" />
                     </required_for>
                 </action>
                 <action origin="1" type="LOAD" status="NONE" object_id="1">
-                    <target name_qualified="weather_csv" name_short="weather_csv" />
+                    <target name="weather_csv" />
                     <depends_on>
                         <ref action="0" />
                     </depends_on>
@@ -41,14 +41,14 @@
                 default_value = 'DE'
             );
             LOAD weather_csv FROM http (
-                url = format('https://cdn.dashql.com/demo/weather/{}', global.country)
+                url = format('https://cdn.dashql.com/demo/weather/{}', main.country)
             );
         </text>
         <inputs>
             <input statement="0" type="VARCHAR" value="US" />
         </inputs>
         <evaluations>
-            <eval type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/US'" loc="168..232" text="format('ht..l.country)" />
+            <eval type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/US'" loc="168..230" text="format('ht..n.country)" />
         </evaluations>
         <cards>
             <input name="country" component="TEXT" />
@@ -56,21 +56,21 @@
         <graph next_object_id="4">
             <setup>
                 <action type="DROP_INPUT" status="NONE" object_id="0">
-                    <target name_qualified="country" name_short="country" />
+                    <target name="country" />
                 </action>
                 <action type="DROP_BLOB" status="NONE" object_id="1">
-                    <target name_qualified="weather_csv" name_short="weather_csv" />
+                    <target name="weather_csv" />
                 </action>
             </setup>
             <program>
                 <action origin="0" type="INPUT" status="NONE" object_id="2">
-                    <target name_qualified="country" name_short="country" />
+                    <target name="country" />
                     <required_for>
                         <ref action="1" />
                     </required_for>
                 </action>
                 <action origin="1" type="LOAD" status="NONE" object_id="3">
-                    <target name_qualified="weather_csv" name_short="weather_csv" />
+                    <target name="weather_csv" />
                     <depends_on>
                         <ref action="0" />
                     </depends_on>
@@ -102,7 +102,7 @@
             <setup />
             <program>
                 <action origin="0" type="CREATE_VIEW" status="COMPLETED" object_id="0">
-                    <target name_qualified="foo" name_short="foo" />
+                    <target name="foo" />
                     <required_for>
                         <ref action="1" />
                     </required_for>
@@ -111,7 +111,7 @@
                 FROM generate_series(0, 1000000) AS a(a1)</script>
                 </action>
                 <action origin="1" type="CREATE_VIZ" status="NONE" object_id="1">
-                    <target name_qualified="foo" name_short="foo" />
+                    <target name="foo" />
                     <depends_on>
                         <ref action="0" />
                     </depends_on>
@@ -142,12 +142,12 @@
         <graph next_object_id="4">
             <setup>
                 <action type="IMPORT_VIEW" status="NONE" object_id="0">
-                    <target name_qualified="foo" name_short="foo" />
+                    <target name="foo" />
                 </action>
             </setup>
             <program>
                 <action origin="0" type="CREATE_VIEW" status="COMPLETED" object_id="0">
-                    <target name_qualified="foo" name_short="foo" />
+                    <target name="foo" />
                     <required_for>
                         <ref action="1" />
                     </required_for>
@@ -156,7 +156,7 @@
                 FROM generate_series(0, 1000000) AS a(a1)</script>
                 </action>
                 <action origin="1" type="UPDATE_VIZ" status="NONE" object_id="1">
-                    <target name_qualified="foo" name_short="foo" />
+                    <target name="foo" />
                     <depends_on>
                         <ref action="0" />
                     </depends_on>
@@ -188,7 +188,7 @@
             <setup />
             <program>
                 <action origin="0" type="CREATE_VIEW" status="COMPLETED" object_id="0">
-                    <target name_qualified="foo" name_short="foo" />
+                    <target name="foo" />
                     <required_for>
                         <ref action="1" />
                     </required_for>
@@ -197,7 +197,7 @@
                 FROM generate_series(0, 1000000) AS a(a1)</script>
                 </action>
                 <action origin="1" type="CREATE_VIZ" status="COMPLETED" object_id="1">
-                    <target name_qualified="foo" name_short="foo" />
+                    <target name="foo" />
                     <depends_on>
                         <ref action="0" />
                     </depends_on>
@@ -228,15 +228,15 @@
         <graph next_object_id="4">
             <setup>
                 <action type="IMPORT_VIEW" status="NONE" object_id="0">
-                    <target name_qualified="foo" name_short="foo" />
+                    <target name="foo" />
                 </action>
                 <action type="IMPORT_VIZ" status="NONE" object_id="1">
-                    <target name_qualified="foo" name_short="foo" />
+                    <target name="foo" />
                 </action>
             </setup>
             <program>
                 <action origin="0" type="CREATE_VIEW" status="COMPLETED" object_id="0">
-                    <target name_qualified="foo" name_short="foo" />
+                    <target name="foo" />
                     <required_for>
                         <ref action="1" />
                     </required_for>
@@ -245,7 +245,7 @@
                 FROM generate_series(0, 1000000) AS a(a1)</script>
                 </action>
                 <action origin="1" type="CREATE_VIZ" status="NONE" object_id="1">
-                    <target name_qualified="foo" name_short="foo" />
+                    <target name="foo" />
                     <depends_on>
                         <ref action="0" />
                     </depends_on>

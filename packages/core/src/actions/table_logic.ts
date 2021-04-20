@@ -9,7 +9,7 @@ import { ActionContext } from './action_context';
 /// XXX Delete this eventually in favor of the async statistics requests
 export async function collectTableInfo(conn: duckdb.AsyncConnection, info: model.Table): Promise<model.Table> {
     // Get column names and types
-    const limit0 = await conn.runQuery(`SELECT * FROM ${info.tableNameShort} LIMIT 0`);
+    const limit0 = await conn.runQuery(`SELECT * FROM ${info.tableNameQualified} LIMIT 0`);
     const columnNames: string[] = [];
     const columnNameMapping: Map<string, number> = new Map();
     const columnTypes: arrow.DataType[] = [];
@@ -53,7 +53,6 @@ export class CreateTableActionLogic extends ProgramActionLogic {
                 timeCreated: now,
                 timeUpdated: now,
                 tableNameQualified: this.buffer.nameQualified() || '',
-                tableNameShort: this.buffer.nameShort() || '',
                 columnNames: [],
                 columnNameMapping: new Map(),
                 columnTypes: [],
@@ -101,7 +100,7 @@ export class DropTableActionLogic extends SetupActionLogic {
     public async execute(context: ActionContext): Promise<void> {
         const db = context.platform.database;
         await db.use(async (c: duckdb.AsyncConnection) => {
-            await c.runQuery(`DROP TABLE IF EXISTS ${this.buffer.nameShort()}`);
+            await c.runQuery(`DROP TABLE IF EXISTS ${this.buffer.nameQualified()}`);
         });
     }
 }

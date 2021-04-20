@@ -75,7 +75,6 @@ std::unique_ptr<sx::StatementT> Statement::Finish() {
     auto stmt = std::make_unique<sx::StatementT>();
     stmt->statement_type = type;
     stmt->root_node = root;
-    stmt->name_short = name.relation;
     stmt->name_qualified = name.ToString();
     return stmt;
 }
