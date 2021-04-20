@@ -3,6 +3,9 @@ import { AppState, Dispatch } from '../model';
 import { connect } from 'react-redux';
 import { SystemCard } from './system_card';
 import { withCurrentTime } from './current_time';
+import TerminalLoader from './terminal_loader';
+
+import styles from './database_viewer.module.css';
 
 interface Props {
     onClose: () => void;
@@ -10,9 +13,13 @@ interface Props {
     updateCurrentTime: () => void;
 }
 
-class DatabaseStats extends React.Component<Props> {
+class DatabaseViewer extends React.Component<Props> {
     public render(): React.ReactElement {
-        return <SystemCard title="Database" onClose={this.props.onClose} />;
+        return (
+            <SystemCard title="Database" onClose={this.props.onClose} className={styles.card}>
+                <TerminalLoader />
+            </SystemCard>
+        );
     }
 
     componentDidMount() {}
@@ -24,4 +31,4 @@ const mapStateToProps = (state: AppState) => ({});
 
 const mapDispatchToProps = (_dispatch: Dispatch) => ({});
 
-export default connect(mapStateToProps, mapDispatchToProps)(withCurrentTime(DatabaseStats, 5000));
+export default connect(mapStateToProps, mapDispatchToProps)(withCurrentTime(DatabaseViewer, 5000));
