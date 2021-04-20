@@ -30,7 +30,8 @@ esbuild.build({
     target: TARGET,
     bundle: true,
     minify: false,
-    sourcemap: 'both',
+    sourcemap: 'external',
+    inject: ['./injects.js'],
 });
 
 console.log('[ ESBUILD ] bench-node.js');
@@ -42,7 +43,7 @@ esbuild.build({
     target: TARGET,
     bundle: true,
     minify: false,
-    sourcemap: 'both',
+    sourcemap: 'external',
     // web-worker polyfill needs to be excluded from bundling due to their dynamic require messing with bundled modules
     external: ['web-worker'],
 });

@@ -6,20 +6,7 @@
         "moduleResolution": "node",
         "strict": true,
         "sourceMap": true,
-        "declaration": true,
-        "declarationMap": true,
-        "declarationDir": "./dist/types/",
-        "downlevelIteration": true,
         "esModuleInterop": true,
-        "allowSyntheticDefaultImports": true,
-        "noImplicitAny": true,
-        "noImplicitReturns": true,
-        "noImplicitThis": true,
-        "noUnusedLocals": true,
-        "strictNullChecks": false,
-        "preserveConstEnums": true,
-        "resolveJsonModule": true,
-        "suppressImplicitAnyIndexErrors": true,
 
         // Insanity mode due to:
         // https://issues.apache.org/jira/browse/ARROW-10794

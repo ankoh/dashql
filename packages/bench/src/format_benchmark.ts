@@ -1,16 +1,17 @@
-import * as benchmark from 'benchmark';
 import * as arrow from 'apache-arrow';
 import * as duckdb from '@dashql/duckdb/src/';
 import kleur from 'kleur';
+import add from 'benny/src/add';
+import suite from 'benny/src/suite';
+import cycle from 'benny/src/cycle';
 import * as format from '@dashql/core/src/utils/format';
 
 export function benchmarkFormat(db: () => duckdb.DuckDBBindings) {
     const tupleSize = 8;
     for (const tupleCount of [1000, 10000, 1000000, 10000000]) {
-        let suite = new benchmark.Suite(`Single DOUBLE column | ${tupleCount} rows`);
-        console.log(kleur.blue(`Single DOUBLE column | ${tupleCount} rows`));
-        suite
-            .add('columns (iterator)', () => {
+        suite(
+            `Single DOUBLE column | ${tupleCount} rows`,
+            add('columns (iterator)', () => {
                 const conn = db().connect();
                 const result = conn.runQuery<{ foo: arrow.Float64 }>(`
                     SELECT v::DOUBLE AS foo FROM generate_series(1, ${tupleCount}) as t(v);
@@ -29,8 +30,9 @@ export function benchmarkFormat(db: () => duckdb.DuckDBBindings) {
                         );
                     }
                 };
-            })
-            .add('rows (iterator)', () => {
+            }),
+
+            add('rows (iterator)', () => {
                 const conn = db().connect();
                 const result = conn.runQuery<{ foo: arrow.Float64 }>(`
                     SELECT v::DOUBLE AS foo FROM generate_series(1, ${tupleCount}) as t(v);
@@ -49,8 +51,9 @@ export function benchmarkFormat(db: () => duckdb.DuckDBBindings) {
                         );
                     }
                 };
-            })
-            .add('columns (scan + bind)', () => {
+            }),
+
+            add('columns (scan + bind)', () => {
                 const conn = db().connect();
                 const table = conn.runQuery<{ foo: arrow.Float64 }>(`
                     SELECT v::DOUBLE AS foo FROM generate_series(1, ${tupleCount}) as t(v);
@@ -77,30 +80,19 @@ export function benchmarkFormat(db: () => duckdb.DuckDBBindings) {
                         );
                     }
                 };
-            })
-            .on('cycle', (e: any) => {
-                console.log(e.target.stats.mean, e.target.times.period);
-                const bytes = tupleCount * tupleSize;
-                const duration = e.target.stats.mean;
-                const tupleThroughput = tupleCount / duration;
-                const dataThroughput = bytes / duration;
-                console.log(
-                    `${kleur.cyan(e.target.name)} t: ${duration.toFixed(3)} s ttp: ${format.formatThousands(
-                        tupleThroughput,
-                    )}/s dtp: ${format.formatBytes(dataThroughput)}/s`,
-                );
-            })
-            .run();
-        /*.on('cycle', (result: any, _summary: any) => {
+            }),
+
+            cycle((result: any, _summary: any) => {
                 const bytes = tupleCount * tupleSize;
                 const duration = result.details.median;
                 const tupleThroughput = tupleCount / duration;
                 const dataThroughput = bytes / duration;
                 console.log(
-                    `${kleur.cyan(result.name)} t: ${duration.toFixed(
-                        3,
-                    )} s ttp: ${tupleThroughput}/s dtp: ${dataThroughput}/s`,
+                    `${kleur.cyan(result.name)} t: ${duration.toFixed(3)} s ttp: ${format.formatThousands(
+                        tupleThroughput,
+                    )}/s dtp: ${format.formatBytes(dataThroughput)}/s`,
                 );
-            }),*/
+            }),
+        );
     }
 }

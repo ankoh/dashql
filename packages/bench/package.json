@@ -9,11 +9,12 @@
         "@dashql/duckdb": "^0.0.26",
         "@dashql/proto": "^0.0.5",
         "@nano-sql/core": "^2.3.7",
-        "@types/benchmark": "^2.1.0",
         "alasql": "^1.7.2",
         "arquero": "^4.1.4",
         "benchmark": "^2.1.4",
+        "benny": "dashql/benny#ee0febedaaad71ba92430ab42bb62525ab53ef04",
         "kleur": "^4.1.4",
+        "lodash": "^4.17.21",
         "lovefield": "^2.1.12",
         "prettier": "^2.2.1",
         "sql.js": "^1.5.0",
@@ -21,14 +22,19 @@
         "web-worker": "^1.0.0"
     },
     "devDependencies": {
+        "@types/benchmark": "^2.1.0",
+        "@types/lodash": "^4.14.168",
         "@types/lovefield": "^2.1.3",
         "@types/sql.js": "^1.4.2",
         "@typescript-eslint/eslint-plugin": "^4.22.0",
         "@typescript-eslint/parser": "^4.22.0",
+        "assert": "^2.0.0",
+        "benchmark": "^2.1.4",
         "eslint": "^7.24.0",
-        "eslint-plugin-jasmine": "^4.1.2",
         "eslint-plugin-prettier": "^3.3.1",
         "eslint-plugin-react": "^7.23.2",
+        "karma-custom": "^1.1.9",
+        "log-update": "^4.0.0",
         "prettier": "^2.2.1",
         "typescript": "^4.2.4"
     },
@@ -38,6 +44,7 @@
     "scripts": {
         "build": "node bundle.mjs && tsc",
         "lint": "yarn run eslint {src,test}/**/*.ts",
-        "run:node": "node ./dist/bench-node.js"
+        "run:node": "node ./dist/bench-node.js",
+        "run:browser": "karma start karma.conf.cjs"
     }
 }

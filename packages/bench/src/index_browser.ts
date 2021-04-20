@@ -3,6 +3,7 @@ import * as duckdb_parallel from '@dashql/duckdb/src/targets/duckdb-browser-para
 import Worker from 'web-worker';
 
 import { benchmarkFormat } from './format_benchmark';
+import { benchmarkIterator } from './iterator_benchmark';
 
 async function main() {
     let db: duckdb_serial.DuckDB | null = null;
@@ -18,6 +19,11 @@ async function main() {
     await adb.open('/static/duckdb.wasm');
 
     benchmarkFormat(() => db!);
+    benchmarkIterator(() => db!);
 }
 
-main();
+(window as any).karmaCustomEnv = {};
+(window as any).karmaCustomEnv.execute = async function (karma: any, window: any) {
+    await main();
+    karma.complete();
+};

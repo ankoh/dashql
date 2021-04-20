@@ -1,0 +1,50 @@
+const puppeteer = require('puppeteer');
+
+process.env.CHROME_BIN = puppeteer.executablePath();
+
+module.exports = function(config) {
+    config.set({
+        basePath: '../..',
+        plugins: [
+            'karma-chrome-launcher',
+            'karma-firefox-launcher',
+            'karma-sourcemap-loader',
+            'karma-spec-reporter',
+            'karma-custom',
+        ],
+        frameworks: ['custom'],
+        files: [
+            { pattern: 'packages/bench/dist/bench-browser.js' },
+            { pattern: 'packages/duckdb/dist/*.wasm', included: false, watched: false, served: true },
+            { pattern: 'packages/duckdb/dist/*.js', included: false, watched: false, served: true },
+            { pattern: 'data/**/*.parquet', included: false, watched: false, served: true },
+            { pattern: 'data/**/*.zip', included: false, watched: false, served: true },
+        ],
+        preprocessors: {
+            '**/*.js': ['sourcemap'],
+        },
+        proxies: {
+            '/static/': '/base/packages/duckdb/dist/',
+            '/data/': '/base/data/',
+        },
+        exclude: [],
+        reporters: ['dots'],
+        port: 9876,
+        colors: true,
+        logLevel: config.LOG_INFO,
+        autoWatch: true,
+        singleRun: true,
+        browsers: ['ChromeHeadlessNoSandbox'],
+        customLaunchers: {
+            ChromeHeadlessNoSandbox: {
+                base: 'ChromeHeadless',
+                flags: ['--no-sandbox'],
+            },
+        },
+        client: {
+            captureConsole: true,
+        },
+        browserNoActivityTimeout: 999999999,
+        pingTimeout: 999999999,
+    });
+};
