@@ -31,7 +31,6 @@ export class ViewCreateActionLogic extends ProgramActionLogic {
                 timeCreated: now,
                 timeUpdated: now,
                 tableNameQualified: this.buffer.nameQualified() || '',
-                tableNameShort: this.buffer.nameShort() || '',
                 columnNames: [],
                 columnNameMapping: new Map(),
                 columnTypes: [],
@@ -69,8 +68,8 @@ export class DropViewActionLogic extends SetupActionLogic {
     public async execute(context: ActionContext): Promise<void> {
         const db = context.platform.database;
         await db.use(async (c: duckdb.AsyncConnection) => {
-            console.log(`DROP VIEW IF EXISTS ${this.buffer.nameShort()}`);
-            await c.runQuery(`DROP VIEW IF EXISTS ${this.buffer.nameShort()}`);
+            console.log(`DROP VIEW IF EXISTS ${this.buffer.nameQualified()}`);
+            await c.runQuery(`DROP VIEW IF EXISTS ${this.buffer.nameQualified()}`);
         });
     }
 }

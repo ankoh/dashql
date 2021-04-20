@@ -17,7 +17,6 @@ export interface ProtoAction {
     mutate_object_id(value: number): boolean;
 
     nameQualified(): string | null;
-    nameShort(): string | null;
 }
 
 export type ActionError = any;

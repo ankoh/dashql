@@ -91,7 +91,7 @@ export class TableStatistics implements TableStatisticsResolver {
                     break;
             }
         }
-        out += ` FROM ${tableInfo.tableNameShort};`;
+        out += ` FROM ${tableInfo.tableNameQualified};`;
         return out;
     }
 

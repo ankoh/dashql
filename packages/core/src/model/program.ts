@@ -282,10 +282,6 @@ export class Statement {
     public get statement_type(): sx.StatementType {
         return this._statement.statementType();
     }
-    /// Get the short name
-    public get nameShort(): string {
-        return this._statement.nameShort();
-    }
     /// Get the qualified name
     public get nameQualified(): string {
         return this._statement.nameQualified();

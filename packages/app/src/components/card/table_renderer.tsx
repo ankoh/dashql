@@ -31,13 +31,12 @@ export class TableRenderer extends React.Component<Props> {
         if (!table) {
             return <div />;
         }
-        const targetShort = table.tableNameShort;
         return (
             <CardFrame title={this.props.card.title || 'Some Title'} controls={this.props.editable}>
                 <ScanProvider
                     logger={logger}
                     database={db}
-                    targetName={targetShort}
+                    targetName={table.tableNameQualified}
                     request={new core.access.ScanRequest().withRange(0, 1024)}
                 >
                     {(d, r) => <DataGrid table={table} data={d} requestData={r} />}

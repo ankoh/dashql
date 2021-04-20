@@ -3,7 +3,7 @@
 namespace dashql {
 namespace parser {
 
-ScriptOptions::ScriptOptions() : global_namespace("global") {}
+ScriptOptions::ScriptOptions() : global_namespace("main") {}
 
 }  // namespace parser
 }  // namespace dashql

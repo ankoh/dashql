@@ -488,7 +488,6 @@ table Statement {
     statement_type: StatementType;
     root_node: uint32;
     name_qualified: string;
-    name_short: string;
 }
 
 enum DependencyType: uint8 {

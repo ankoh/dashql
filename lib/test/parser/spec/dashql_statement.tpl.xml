@@ -11,7 +11,7 @@
 <test name="load_url_parameter">
     <input>
         LOAD weather_csv FROM http (
-            url = format('https://cdn.dashql.com/demo/weather/%s', global.country)
+            url = format('https://cdn.dashql.com/demo/weather/%s', main.country)
         );
     </input>
 </test>
