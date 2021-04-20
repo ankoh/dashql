@@ -43,8 +43,6 @@ export interface Action {
     objectId: number | null;
     /// The qualified name
     nameQualified: string;
-    /// The short name
-    nameShort: string;
     /// The script (if any)
     script: string | null;
 

@@ -20,7 +20,7 @@
         <text>
             INPUT country TYPE VARCHAR USING TEXT;
             LOAD weather_csv FROM http (
-                url = format('https://cdn.dashql.com/demo/weather/{}', global.country)
+                url = format('https://cdn.dashql.com/demo/weather/{}', main.country)
             );
             EXTRACT weather FROM weather_csv USING CSV;
         </text>
@@ -34,7 +34,7 @@
         <text>
             INPUT country TYPE VARCHAR USING TEXT;
             LOAD weather_csv FROM http (
-                url = format('https://cdn.dashql.com/demo/weather/{}', global.country)
+                url = format('https://cdn.dashql.com/demo/weather/{}', main.country)
             );
             EXTRACT weather FROM weather_csv USING CSV;
         </text>
@@ -48,7 +48,7 @@
         <text>
             INPUT country TYPE VARCHAR USING TEXT;
             LOAD weather_csv FROM http (
-                url = format('https://cdn.dashql.com/demo/weather/{}', global.country)
+                url = format('https://cdn.dashql.com/demo/weather/{}', main.country)
             );
             EXTRACT weather FROM weather_csv USING CSV;
             SELECT * INTO weather_avg FROM weather;
@@ -63,7 +63,7 @@
         <text>
             INPUT country TYPE VARCHAR USING TEXT;
             LOAD weather_csv FROM http (
-                url = format('https://cdn.dashql.com/demo/weather/{}', global.country)
+                url = format('https://cdn.dashql.com/demo/weather/{}', main.country)
             );
             EXTRACT weather FROM weather_csv USING CSV;
             SELECT * INTO weather_avg FROM weather;
@@ -80,7 +80,7 @@
         <text>
             INPUT country TYPE VARCHAR USING TEXT;
             LOAD weather_csv FROM http (
-                url = format('https://cdn.dashql.com/demo/weather/{}', global.country)
+                url = format('https://cdn.dashql.com/demo/weather/{}', main.country)
             );
             EXTRACT weather FROM weather_csv USING CSV;
             SELECT * INTO weather_avg FROM weather;
@@ -99,11 +99,11 @@
             INPUT country TYPE VARCHAR USING TEXT;
             INPUT month TYPE INTEGER USING TEXT;
             LOAD weather_csv FROM http (
-                url = format('https://cdn.dashql.com/demo/weather/{}', global.country)
+                url = format('https://cdn.dashql.com/demo/weather/{}', main.country)
             );
             EXTRACT weather FROM weather_csv USING CSV;
-            SELECT * INTO weather_avg FROM weather WHERE month = global.month;
-            SELECT * INTO weather_binned FROM weather WHERE month = global.month;
+            SELECT * INTO weather_avg FROM weather WHERE month = main.month;
+            SELECT * INTO weather_binned FROM weather WHERE month = main.month;
             VIZ weather_avg USING LINE;
             VIZ weather_binned USING BAR;
         </text>
@@ -119,10 +119,10 @@
             INPUT country TYPE VARCHAR USING TEXT;
             INPUT city TYPE VARCHAR USING TEXT;
             LOAD weather_csv FROM http (
-                url = format('https://cdn.dashql.com/demo/weather/{}', global.country)
+                url = format('https://cdn.dashql.com/demo/weather/{}', main.country)
             );
             EXTRACT weather FROM weather_csv USING CSV;
-            SELECT * INTO weather_avg FROM weather WHERE city = global.city;
+            SELECT * INTO weather_avg FROM weather WHERE city = main.city;
         </text>
         <parameters>
             <parameter type="VARCHAR" statement="0" value="DE" />
@@ -137,14 +137,14 @@
             INPUT country2 TYPE VARCHAR USING TEXT;
             INPUT month TYPE INTEGER USING TEXT;
             LOAD country1_weather_csv FROM http (
-                url = format('https://cdn.dashql.com/demo/weather/{}', global.country1)
+                url = format('https://cdn.dashql.com/demo/weather/{}', main.country1)
             );
             LOAD country2_weather_csv FROM http (
-                url = format('https://cdn.dashql.com/demo/weather/{}', global.country2)
+                url = format('https://cdn.dashql.com/demo/weather/{}', main.country2)
             );
             EXTRACT country1_weather FROM country1_weather_csv USING CSV;
             EXTRACT country2_weather FROM country2_weather_csv USING CSV;
-            SELECT * INTO countries_joined FROM country1_weather c1, country2_weather c2 WHERE c1.month = c2.month AND c2.month = global.month;
+            SELECT * INTO countries_joined FROM country1_weather c1, country2_weather c2 WHERE c1.month = c2.month AND c2.month = main.month;
             VIZ countries_joined USING LINE;
         </text>
         <parameters>
