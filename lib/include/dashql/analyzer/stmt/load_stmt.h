@@ -29,9 +29,11 @@ class LoadStatement {
     const ASTIndex ast_;
 
     /// The method
-    sx::LoadMethodType method_;
+    sx::LoadMethodType method_ = sx::LoadMethodType::NONE;
     /// The url
-    std::string url_;
+    std::string url_ = "";
+    /// Is an archive?
+    proto::analyzer::ArchiveMode archive_ = proto::analyzer::ArchiveMode::NONE;
 
    public:
     /// Constructor

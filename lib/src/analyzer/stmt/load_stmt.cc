@@ -19,7 +19,8 @@ namespace dashql {
 LoadStatement::LoadStatement(ProgramInstance& instance, size_t statement_id, ASTIndex ast)
     : instance_(instance), statement_id_(statement_id), ast_(ast) {}
 
-static std::regex LOAD_URI_HTTP{"^https?://.*"};
+static std::regex HTTP_PREFIX{"^https?://.*"};
+static std::regex ZIP_EXT{".*\\.zip$"};
 
 std::unique_ptr<LoadStatement> LoadStatement::ReadFrom(ProgramInstance& instance, size_t stmt_id) {
     // clang-format off
@@ -65,12 +66,17 @@ std::unique_ptr<LoadStatement> LoadStatement::ReadFrom(ProgramInstance& instance
         auto node_id = load->ast_[SX_LOAD_FROM_URI].node_id;
         auto& node = program.nodes[node_id];
 
-        // Match method prefixes
+        // Match method prefixe
         load->url_ = std::string{trimview(instance.TextAt(node.location()), isNoQuote)};
-        if (std::regex_match(load->url_, LOAD_URI_HTTP)) {
+        if (std::regex_match(load->url_, HTTP_PREFIX)) {
             load->method_ = sx::LoadMethodType::HTTP;
         }
         optionIsRedundant(SX_LOAD_URL_OPTION, "url");
+
+        // Is an archive?
+        if (std::regex_match(load->url_, ZIP_EXT)) {
+            load->archive_ = proto::analyzer::ArchiveMode::ZIP;
+        }
     }
     return load;
 }
@@ -102,6 +108,7 @@ fb::Offset<ana::LoadStatement> LoadStatement::Pack(fb::FlatBufferBuilder& builde
     eb.add_statement_id(statement_id_);
     eb.add_method(method_);
     eb.add_url(url);
+    eb.add_archive(archive_);
     eb.add_options(options);
     return eb.Finish();
 }

@@ -4,9 +4,9 @@ INPUT country TYPE VARCHAR USING TEXT (
 );
 
 LOAD uni FROM 'https://static.dashql.com/data/uni/de/all.zip';
-EXTRACT vorlesungen FROM uni['vorlesungen.parquet'] USING PARQUET;
-EXTRACT hoeren FROM uni['hoeren.parquet'] USING PARQUET;
-EXTRACT studenten FROM uni['studenten.parquet'] USING PARQUET;
+EXTRACT vorlesungen FROM uni['vorlesungen.parquet'];
+EXTRACT hoeren FROM uni['hoeren.parquet'];
+EXTRACT studenten FROM uni['studenten.parquet'];
 
 CREATE VIEW foo AS
     SELECT
