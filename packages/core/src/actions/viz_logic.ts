@@ -109,7 +109,7 @@ export class CreateVizActionLogic extends VizActionLogic {
         await this._rowCountPromise!;
 
         // Get viz info
-        const oid = this.buffer.objectId().toString();
+        const oid = this.buffer.objectId();
         const state = context.platform.store.getState();
         let card = state.core.planState.cards.get(oid) as model.Card;
         console.assert(card !== undefined, 'missing initial card object');
@@ -141,7 +141,7 @@ export class UpdateVizActionLogic extends VizActionLogic {
     public prepare(context: ActionContext, planObjects: model.PlanObject[]): void {
         const programInstance = context.plan.programInstance;
         const state = context.platform.store.getState();
-        const objectID = this.buffer.objectId().toString();
+        const objectID = this.buffer.objectId();
         const cardObject = state.core.planState.cards.get(objectID);
         if (!cardObject) {
             throw new error.ActionLogicError('card object does not exist', context.plan.programInstance);
@@ -188,7 +188,7 @@ export class UpdateVizActionLogic extends VizActionLogic {
         await this._rowCountPromise!;
 
         // Get viz info
-        const oid = this.buffer.objectId().toString();
+        const oid = this.buffer.objectId();
         const state = context.platform.store.getState();
         let card = state.core.planState.cards.get(oid) as model.Card;
         console.assert(card !== undefined, 'missing initial card object');
