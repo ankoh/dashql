@@ -2,8 +2,9 @@
 
 /// A plan object type
 export enum PlanObjectType {
-    DATABASE_TABLE,
+    TABLE,
     CARD,
+    BLOB,
 }
 /// A plan object id
 export type PlanObjectID = number;
@@ -18,4 +19,6 @@ export interface PlanObject {
     timeCreated: Date;
     /// The time when the object was updated
     timeUpdated: Date;
+    /// The qualified table name
+    nameQualified: string;
 }

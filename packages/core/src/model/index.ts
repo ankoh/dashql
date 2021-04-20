@@ -1,4 +1,5 @@
 export * from './action';
+export * from './blob';
 export * from './cache';
 export * from './card';
 export * from './table';
