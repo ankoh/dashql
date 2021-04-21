@@ -78,6 +78,9 @@
     background: rgb(50, 50, 50);
     border-bottom: 1px solid rgb(70, 70, 70);
     display: grid;
-    font-size: 80%;
+    font-size: 75%;
     text-align: left;
+    white-space: pre-line;
+    max-height: 120px;
+    overflow-y: auto;
 }
