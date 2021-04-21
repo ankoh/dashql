@@ -81,6 +81,5 @@
     font-size: 75%;
     text-align: left;
     white-space: pre-line;
-    max-height: 120px;
     overflow-y: auto;
 }
