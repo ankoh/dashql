@@ -23,7 +23,8 @@
     grid-template-columns: calc(100% - 40px) 40px;
     grid-template-rows: auto auto;
     padding: 8px 8px 8px 16px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    border-bottom: 1px solid rgb(70, 70, 70);
+    box-sizing: border-box;
 }
 
 .header_title {
