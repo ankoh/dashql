@@ -7,8 +7,6 @@ import { SystemCard } from './system_card';
 import { withCurrentTime } from './current_time';
 import { List, ListRowProps, AutoSizer } from 'react-virtualized';
 
-import icon_chevron_right from '../../static/svg/icons/chevron_right.svg';
-
 import styles from './log_viewer.module.css';
 
 const OVERSCAN_ROW_COUNT = 5;
@@ -24,13 +22,6 @@ function LogRow(props: LogRowProps) {
     const tsLog = props.entry.timestamp;
     return (
         <div className={styles.row} style={props.style}>
-            <div className={styles.expand}>
-                <div className={styles.expand_icon}>
-                    <svg width="18px" height="18px">
-                        <use xlinkHref={`${icon_chevron_right}#sym`} />
-                    </svg>
-                </div>
-            </div>
             <div className={styles.level}>{core.model.getLogLevelLabel(props.entry.level)}</div>
             <div className={styles.origin}>{core.model.getLogOriginLabel(props.entry.origin)}</div>
             <div className={styles.topic}>{core.model.getLogTopicLabel(props.entry.topic)}</div>
@@ -48,24 +39,15 @@ interface Props {
     onClose: () => void;
 }
 
-interface State {
-    scrollToIndex: number;
-}
-
-class LogViewer extends React.Component<Props, State> {
-    protected _getRowHeight = this.getRowHeight.bind(this);
+class LogViewer extends React.Component<Props> {
     protected _renderRow = this.renderRow.bind(this);
     protected _renderEmptyList = this.renderEmptyList.bind(this);
 
     constructor(props: Props) {
         super(props);
         this.state = {
-            scrollToIndex: 0,
+            expanded: new Map(),
         };
-    }
-
-    protected getRowHeight(args: { index: number }) {
-        return 32;
     }
 
     protected renderRow(props: ListRowProps) {
@@ -87,7 +69,7 @@ class LogViewer extends React.Component<Props, State> {
                 height={height}
                 overscanRowCount={OVERSCAN_ROW_COUNT}
                 rowCount={this.props.logs.size}
-                rowHeight={this._getRowHeight}
+                rowHeight={32}
                 rowRenderer={this._renderRow}
                 noRowsRenderer={this._renderEmptyList}
                 measureAllRows={true}
