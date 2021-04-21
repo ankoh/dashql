@@ -61,7 +61,7 @@ TEST(ZipperTest, LoadFile) {
     }
 }
 
-TEST(ZipperTest, ExtractToFile) {
+TEST(ZipperTest, ExtractEntryToFile) {
     auto buffer_manager = std::make_shared<io::BufferManager>();
     auto all_path = dashql::test::SOURCE_DIR / ".." / "data" / "uni" / "out" / "all.zip";
     auto expected_path = dashql::test::SOURCE_DIR / ".." / "data" / "uni" / "out" / "assistenten.parquet";
@@ -84,6 +84,27 @@ TEST(ZipperTest, ExtractToFile) {
     auto written = zipper.ExtractEntryToFile(0, out_path.c_str());
     ASSERT_EQ(entry["sizeUncompressed"].GetUint(), written.ValueUnsafe());
 
+    buffer_manager->Flush();
+
+    std::ifstream out_ifs{out_path};
+    std::ifstream expected_ifs{expected_path};
+    std::vector<char> out_buffer(std::istreambuf_iterator<char>{out_ifs}, {});
+    std::vector<char> expected_buffer(std::istreambuf_iterator<char>{expected_ifs}, {});
+    ASSERT_EQ(out_buffer, expected_buffer);
+}
+
+TEST(ZipperTest, ExtractFileToFile) {
+    auto buffer_manager = std::make_shared<io::BufferManager>();
+    auto all_path = dashql::test::SOURCE_DIR / ".." / "data" / "uni" / "out" / "all.zip";
+    auto expected_path = dashql::test::SOURCE_DIR / ".." / "data" / "uni" / "out" / "assistenten.parquet";
+    auto out_path = CreateTestFile();
+
+    Zipper zipper{buffer_manager};
+    auto load_status = zipper.LoadFromFile(all_path.c_str());
+    ASSERT_TRUE(load_status.ok()) << load_status.message();
+
+    std::string to_extract = "assistenten.parquet";
+    auto written = zipper.ExtractFileToFile(to_extract.c_str(), out_path.c_str());
     buffer_manager->Flush();
 
     std::ifstream out_ifs{out_path};
