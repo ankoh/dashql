@@ -28,7 +28,7 @@ export enum LogOrigin {
     WEB_WORKER = 1,
     NODE_WORKER = 2,
     BINDINGS = 3,
-    ASYNC_WEBDB = 4,
+    ASYNC_DUCKDB = 4,
     ASYNC_ROW_ITERATOR = 5,
 }
 
@@ -52,7 +52,7 @@ export type LogEntryVariant =
     | LogEntry<LogOrigin.BINDINGS, LogTopic.OPEN, LogEvent.START, void>
     | LogEntry<LogOrigin.BINDINGS, LogTopic.OPEN, LogEvent.OK, void>
     | LogEntry<LogOrigin.BINDINGS, LogTopic.OPEN, LogEvent.ERROR, void>
-    | LogEntry<LogOrigin.ASYNC_WEBDB, LogTopic.QUERY, LogEvent.RUN, string>;
+    | LogEntry<LogOrigin.ASYNC_DUCKDB, LogTopic.QUERY, LogEvent.RUN, string>;
 
 export interface Logger {
     log(entry: LogEntryVariant): void;
@@ -128,9 +128,9 @@ export function getLogOriginLabel(origin: LogOrigin): string {
         case LogOrigin.NODE_WORKER:
             return 'NODE WORKER';
         case LogOrigin.BINDINGS:
-            return 'WEBDB BINDINGS';
-        case LogOrigin.ASYNC_WEBDB:
-            return 'WEBDB';
+            return 'DUCKDB BINDINGS';
+        case LogOrigin.ASYNC_DUCKDB:
+            return 'DUCKDB';
         default:
             return '?';
     }
