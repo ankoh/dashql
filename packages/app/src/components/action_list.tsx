@@ -121,7 +121,7 @@ class ActionList extends React.Component<Props> {
 
     public render() {
         return (
-            <SystemCard title="Action" onClose={this.props.onClose}>
+            <SystemCard title="Action" onClose={this.props.onClose} className={this.props.className}>
                 {this.props.plan && this.renderActions(this.props.plan)}
             </SystemCard>
         );

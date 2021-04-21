@@ -4,6 +4,7 @@
     background: rgb(50, 50, 50);
     padding: 16px;
     border-radius: 0 0 var(--sys_panel_border_radius) var(--sys_panel_border_radius);
+    height: 100%;
 }
 
 .term_container {

@@ -27,6 +27,10 @@ class CurrentTime extends React.Component<Props, State> {
         });
     }
 
+    public shouldComponentUpdate(nextProps: Props) {
+        return nextProps.refreshRate != this.props.refreshRate || nextProps.children != this.props.children;
+    }
+
     public componentDidMount() {
         this._timer = setInterval(this.updateTime.bind(this), this.props.refreshRate);
     }
