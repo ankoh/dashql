@@ -61,11 +61,11 @@ class LogViewer extends React.Component<Props, State> {
                 <div
                     className={classNames(styles.row, { [styles.row_focused]: props.index == this.state.focusedEntry })}
                 >
-                    <div className={styles.level}>{core.model.getLogLevelLabel(log.level)}</div>
-                    <div className={styles.origin}>{core.model.getLogOriginLabel(log.origin)}</div>
-                    <div className={styles.topic}>{core.model.getLogTopicLabel(log.topic)}</div>
-                    <div className={styles.event}>{core.model.getLogEventLabel(log.event)}</div>
-                    <div className={styles.timestamp}>{core.utils.getRelativeTime(tsLog, tsNow)}</div>
+                    <div className={styles.row_level}>{core.model.getLogLevelLabel(log.level)}</div>
+                    <div className={styles.row_origin}>{core.model.getLogOriginLabel(log.origin)}</div>
+                    <div className={styles.row_topic}>{core.model.getLogTopicLabel(log.topic)}</div>
+                    <div className={styles.row_event}>{core.model.getLogEventLabel(log.event)}</div>
+                    <div className={styles.row_timestamp}>{core.utils.getRelativeTime(tsLog, tsNow)}</div>
                 </div>
             </div>
         );
@@ -87,7 +87,7 @@ class LogViewer extends React.Component<Props, State> {
                                 animate={{ height: 'auto' }}
                                 exit={{ height: 0 }}
                             >
-                                foo
+                                {this.props.logs.get(this.state.focusedEntry)?.value}
                             </motion.div>
                         </AnimatePresence>
                     )}

@@ -35,28 +35,28 @@
     border-radius: 8px;
 }
 
-.level {
+.row_level {
     display: grid;
     align-items: center;
     font-weight: 700;
 }
 
-.origin {
+.row_origin {
     display: grid;
     align-items: center;
 }
 
-.topic {
+.row_topic {
     display: grid;
     align-items: center;
 }
 
-.event {
+.row_event {
     display: grid;
     align-items: center;
 }
 
-.timestamp {
+.row_timestamp {
     display: grid;
     align-items: center;
     text-align: right;
@@ -78,4 +78,6 @@
     background: rgb(50, 50, 50);
     border-bottom: 1px solid rgb(70, 70, 70);
     display: grid;
+    font-size: 80%;
+    text-align: left;
 }
