@@ -25,13 +25,12 @@ export abstract class VizActionLogic extends ProgramActionLogic {
     public configureVizComposer(context: ActionContext): void {
         // Get the table info
         const programInstance = context.plan.programInstance;
-        const store = context.platform.store;
-        const tableInfo = store.getState().core.planState.tables.get(this.tableNameQualified) || null;
-        if (!tableInfo) {
+        const table = context.platform._databaseManager.resolveTableName(this.tableNameQualified);
+        if (!table) {
             throw new error.ActionLogicError(`target table ${this.tableNameQualified} does not exist`, programInstance);
         }
         // Build the composer
-        const stats = context.platform._databaseManager.resolveTableStatistics(tableInfo.tableNameQualified)!;
+        const stats = context.platform._databaseManager.resolveTableStatistics(table.nameQualified)!;
         this._vizComposer = new VizComposer(stats);
 
         // Read the component specs and add them to the compose
@@ -82,6 +81,7 @@ export class CreateVizActionLogic extends VizActionLogic {
             objectType: model.PlanObjectType.CARD,
             timeCreated: now,
             timeUpdated: now,
+            nameQualified: this.buffer.nameQualified() || '',
             cardType: proto.analyzer.CardType.BUILTIN_VIZ,
             cardRenderer: null,
             statementID: this.origin.statementId,
@@ -111,8 +111,8 @@ export class CreateVizActionLogic extends VizActionLogic {
         // Get viz info
         const oid = this.buffer.objectId();
         const state = context.platform.store.getState();
-        let card = state.core.planState.cards.get(oid) as model.Card;
-        console.assert(card !== undefined, 'missing initial card object');
+        let card = model.resolveCardById(state.core.planState, oid);
+        console.assert(card, 'missing initial card object');
 
         // Create new viz object
         const now = new Date();
@@ -142,7 +142,7 @@ export class UpdateVizActionLogic extends VizActionLogic {
         const programInstance = context.plan.programInstance;
         const state = context.platform.store.getState();
         const objectID = this.buffer.objectId();
-        const cardObject = state.core.planState.cards.get(objectID);
+        const cardObject = model.resolveCardById(state.core.planState, objectID);
         if (!cardObject) {
             throw new error.ActionLogicError('card object does not exist', context.plan.programInstance);
         }
@@ -190,8 +190,8 @@ export class UpdateVizActionLogic extends VizActionLogic {
         // Get viz info
         const oid = this.buffer.objectId();
         const state = context.platform.store.getState();
-        let card = state.core.planState.cards.get(oid) as model.Card;
-        console.assert(card !== undefined, 'missing initial card object');
+        let card = model.resolveCardById(state.core.planState, oid);
+        console.assert(!!card, 'missing initial card object');
 
         // Create new viz object
         const now = new Date();

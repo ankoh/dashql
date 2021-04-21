@@ -1,4 +1,3 @@
-import * as Immutable from 'immutable';
 import * as React from 'react';
 import * as arrow from 'apache-arrow';
 import * as core from '@dashql/core';
@@ -11,7 +10,7 @@ import { CardFrame } from './card_frame';
 
 interface Props {
     appContext: IAppContext;
-    tables: Immutable.Map<string, core.model.Table>;
+    planState: core.model.PlanState;
     card: core.model.Card;
     editable?: boolean;
 }
@@ -67,8 +66,8 @@ export class VegaRenderer extends React.Component<Props> {
     }
 
     public render(): React.ReactElement {
-        const targetQualified = this.props.card.dataSource!.targetQualified;
-        const table = this.props.tables.get(targetQualified);
+        const target = this.props.card.dataSource!.targetQualified;
+        const table = core.model.resolveTableByName(this.props.planState, target);
         if (!table) {
             return <div />;
         }
@@ -81,7 +80,7 @@ export class VegaRenderer extends React.Component<Props> {
 }
 
 const mapStateToProps = (state: model.AppState) => ({
-    tables: state.core.planState.tables,
+    planState: state.core.planState,
 });
 
 const mapDispatchToProps = (_dispatch: model.Dispatch) => ({});

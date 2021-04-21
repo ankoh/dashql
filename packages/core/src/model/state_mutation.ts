@@ -33,7 +33,6 @@ export enum StateMutationType {
     UPDATE_PLAN_ACTIONS = 'UPDATE_PLAN_ACTIONS',
     INSERT_PLAN_OBJECTS = 'INSERT_PLAN_OBJECTS',
     DELETE_PLAN_OBJECTS = 'DELETE_PLAN_OBJECTS',
-    DELETE_TABLE_INFO = 'DELETE_TABLE_INFO',
     UPDATE_TABLE_INFO = 'UPDATE_TABLE_INFO',
     CACHE_HTTP_DATA = 'CACHE_HTTP_DATA',
     CACHE_FILE_DATA = 'CACHE_FILE_DATA',
@@ -55,7 +54,6 @@ export type StateMutationVariant =
     | StateMutation<StateMutationType.UPDATE_PLAN_ACTIONS, ActionUpdate[]>
     | StateMutation<StateMutationType.INSERT_PLAN_OBJECTS, PlanObject[]>
     | StateMutation<StateMutationType.DELETE_PLAN_OBJECTS, PlanObjectID[]>
-    | StateMutation<StateMutationType.DELETE_TABLE_INFO, string>
     | StateMutation<StateMutationType.UPDATE_TABLE_INFO, [string, Partial<Table>]>
     | StateMutation<StateMutationType.CACHE_FILE_DATA, [CachedFileData, string | null]>
     | StateMutation<StateMutationType.CACHE_HTTP_DATA, [CachedHTTPData, string | null]>
@@ -186,13 +184,6 @@ function reduceImpl(state: CoreState, mutation: StateMutationVariant): CoreState
                 ...state,
                 planState: plan_state.deleteObjects(state.planState, mutation.data),
             };
-
-        case StateMutationType.DELETE_TABLE_INFO: {
-            return {
-                ...state,
-                planState: plan_state.deleteTable(state.planState, mutation.data),
-            };
-        }
 
         case StateMutationType.UPDATE_TABLE_INFO:
             return {

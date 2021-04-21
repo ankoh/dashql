@@ -10,7 +10,7 @@ import styles from './input_renderer.module.css';
 
 interface Props {
     appContext: IAppContext;
-    tables: Immutable.Map<string, core.model.Table>;
+    planState: core.model.PlanState;
     card: core.model.Card;
     editable?: boolean;
 }
@@ -31,7 +31,7 @@ export class InputRenderer extends React.Component<Props> {
 }
 
 const mapStateToProps = (state: model.AppState) => ({
-    tables: state.core.planState.tables,
+    planState: state.core.planState,
 });
 
 const mapDispatchToProps = (_dispatch: model.Dispatch) => ({});
