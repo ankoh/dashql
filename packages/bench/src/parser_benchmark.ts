@@ -1,12 +1,14 @@
 import * as core from '../../core/dist/dashql-core-node.js';
-import * as benny from 'benny';
+import add from 'benny/src/add';
+import suite from 'benny/src/suite';
+import cycle from 'benny/src/cycle';
 import kleur from 'kleur';
 
 function main(analyzer: core.analyzer.AnalyzerBindings) {
     let script = '';
-    benny.suite(
+    suite(
         `Scripts`,
-        benny.add('Demo script 1', () => {
+        add('Demo script 1', () => {
             script = `
 -- Test script for development.
 
@@ -33,7 +35,7 @@ VIZ foo USING TABLE;
             analyzer.parseProgram(script);
         }),
 
-        benny.cycle((result: any, _summary: any) => {
+        cycle((result: any, _summary: any) => {
             const duration = result.details.median;
             const throughput = 1 / duration;
             const bytes = Buffer.byteLength(script);

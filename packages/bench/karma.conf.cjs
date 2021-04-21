@@ -17,6 +17,7 @@ module.exports = function(config) {
             { pattern: 'packages/bench/dist/bench-browser.js' },
             { pattern: 'packages/duckdb/dist/*.wasm', included: false, watched: false, served: true },
             { pattern: 'packages/duckdb/dist/*.js', included: false, watched: false, served: true },
+            { pattern: 'node_modules/sql.js/dist/*.wasm', included: false, watched: false, served: true },
             { pattern: 'data/**/*.parquet', included: false, watched: false, served: true },
             { pattern: 'data/**/*.zip', included: false, watched: false, served: true },
         ],
@@ -25,6 +26,7 @@ module.exports = function(config) {
         },
         proxies: {
             '/static/': '/base/packages/duckdb/dist/',
+            '/sqljs/': '/base/node_modules/sql.js/dist/',
             '/data/': '/base/data/',
         },
         exclude: [],

@@ -3,6 +3,14 @@ import path from 'path';
 import rimraf from 'rimraf';
 import mkdir from 'make-dir';
 import { fileURLToPath } from 'url';
+import fs from 'fs';
+
+// Bundling node is a bit problematic right now.
+// The web worker ponyfill is commonjs (dynamic require) and prevents us from releasing an async node module.
+
+function printErr(err) {
+    if (err) return console.log(err);
+}
 
 // -------------------------------
 // Clear directory
@@ -14,6 +22,15 @@ mkdir.sync(dist);
 rimraf.sync(dist + '/*.wasm');
 rimraf.sync(dist + '/*.js');
 rimraf.sync(dist + '/*.js.map');
+
+// -------------------------------
+// Copy WASM files
+
+fs.copyFile(
+    path.resolve(__dirname, '../../node_modules/sql.js/dist/sql-wasm.wasm'),
+    path.resolve(dist, 'sql-wasm.wasm'),
+    printErr,
+);
 
 // -------------------------------
 // ESM
@@ -43,7 +60,7 @@ esbuild.build({
     target: TARGET,
     bundle: true,
     minify: false,
-    sourcemap: 'external',
+    sourcemap: 'both',
     // web-worker polyfill needs to be excluded from bundling due to their dynamic require messing with bundled modules
-    external: ['web-worker'],
+    external: ['web-worker', 'alasql'],
 });

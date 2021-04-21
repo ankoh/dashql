@@ -2,9 +2,12 @@ import * as duckdb_serial from '@dashql/duckdb/src/targets/duckdb-node-serial';
 import * as duckdb_parallel from '@dashql/duckdb/src/targets/duckdb-node-parallel';
 import path from 'path';
 import Worker from 'web-worker';
+import initSqlJs from 'sql.js';
 
 import { benchmarkFormat } from './format_benchmark';
 import { benchmarkIterator } from './iterator_benchmark';
+import { benchmarkIteratorAsync } from './iterator_benchmark_async';
+import { benchmarkCompetitions } from './competition_benchmark';
 
 async function main() {
     let db: duckdb_serial.DuckDB | null = null;
@@ -22,8 +25,16 @@ async function main() {
     adb = new duckdb_parallel.AsyncDuckDB(logger, worker);
     await adb.open(path.resolve(__dirname, '../../duckdb/dist/duckdb.wasm'));
 
-    benchmarkFormat(() => db!);
-    benchmarkIterator(() => db!);
+    const SQL = await initSqlJs();
+    let sqlDb = new SQL.Database();
+
+    await benchmarkCompetitions(
+        () => db!,
+        () => sqlDb!,
+    );
+    // benchmarkFormat(() => db!);
+    // benchmarkIterator(() => db!);
+    // benchmarkIteratorAsync(() => adb!);
 }
 
 main();
