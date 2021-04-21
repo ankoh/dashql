@@ -1,3 +1,4 @@
+import * as duckdb from '@dashql/duckdb/dist/duckdb.module.js';
 import { platform, model } from '../../src/index';
 import { mockHTTP, HTTPMock, encodeTextBody, decodeTextBody } from '../mocks/http_mock';
 
@@ -16,7 +17,8 @@ describe('HTTPManager', () => {
 
     it('fetch', async () => {
         const store = model.createStore();
-        const http = new platform.HTTPManager(store, 2);
+        const logger = new duckdb.VoidLogger();
+        const http = new platform.HTTPManager(store, logger);
         await http.init();
 
         httpMock
@@ -40,7 +42,7 @@ describe('HTTPManager', () => {
                 // check 404?
                 return;
             }
-            fail('Request failed with status code 404');
+            fail('Request should fail with status code 404');
         };
 
         await expectBody('http://localhost/file1', 'body1');
@@ -56,9 +58,9 @@ describe('HTTPManager', () => {
         httpMock.reset();
         httpMock.onAny().reply(404);
 
-        await expectBody('http://localhost/file3', 'body3');
-        await expectBody('http://localhost/file4', 'body4');
         await expect404('http://localhost/file1');
         await expect404('http://localhost/file2');
+        await expect404('http://localhost/file3');
+        await expect404('http://localhost/file4');
     });
 });

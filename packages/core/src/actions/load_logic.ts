@@ -19,12 +19,19 @@ export class LoadActionLogic extends ProgramActionLogic {
             console.log(`missing information for load statement ${stmtId}`);
             return;
         }
-
         const stmt = instance.program.getStatement(this._origin.statementId);
+
         console.log(`load objectID: ${this.buffer.objectId()}`);
         console.log(`load name: ${stmt.nameQualified}`);
         console.log(`load method: ${proto.syntax.LoadMethodType[load.method()].toString()}`);
         console.log(`load url: ${load.url()}`);
         console.log(`load archive: ${proto.analyzer.ArchiveMode[load.archive()].toString()}`);
+
+        const http = context.platform.http;
+        try {
+            await http.request({ url: load.url() });
+        } catch (e) {
+            this.status = proto.action.ActionStatusCode.FAILED;
+        }
     }
 }
