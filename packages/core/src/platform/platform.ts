@@ -29,7 +29,7 @@ export class Platform {
         this._analyzer = analyzer;
         this._databaseManager = new DatabaseManager(this._duckdb, this._store);
         this._fileManager = new FileManager(store);
-        this._httpManager = new HTTPManager(store);
+        this._httpManager = new HTTPManager(store, logger);
     }
 
     public get store(): DerivedReduxStore {
@@ -53,5 +53,6 @@ export class Platform {
 
     public async init(): Promise<void> {
         await this._databaseManager.init();
+        await this._httpManager.init();
     }
 }
