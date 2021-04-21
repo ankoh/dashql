@@ -50,6 +50,8 @@ class LogViewer extends React.Component<Props, State> {
                 nextEntry = Math.max(nextEntry, 1) - 1;
                 break;
         }
+        event.preventDefault();
+        event.stopPropagation();
         this.setState({
             ...this.state,
             focusedEntry: nextEntry,
@@ -103,7 +105,7 @@ class LogViewer extends React.Component<Props, State> {
                             <motion.div
                                 className={styles.detail_container}
                                 initial={{ height: 0 }}
-                                animate={{ height: 'auto' }}
+                                animate={{ height: 100 }}
                                 exit={{ height: 0 }}
                             >
                                 {this.props.logs.get(this.state.focusedEntry)?.value}
@@ -126,6 +128,7 @@ class LogViewer extends React.Component<Props, State> {
                                         rowRenderer={this._renderRow}
                                         noRowsRenderer={this._renderEmptyList}
                                         measureAllRows={true}
+                                        scrollToIndex={this.state.focusedEntry || 0}
                                     />
                                 </>
                             )}

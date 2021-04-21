@@ -95,7 +95,7 @@ export class AsyncDuckDBConnection implements AsyncConnection {
         this._instance.logger.log({
             timestamp: new Date(),
             level: LogLevel.INFO,
-            origin: LogOrigin.ASYNC_WEBDB,
+            origin: LogOrigin.ASYNC_DUCKDB,
             topic: LogTopic.QUERY,
             event: LogEvent.RUN,
             value: text,
@@ -114,7 +114,7 @@ export class AsyncDuckDBConnection implements AsyncConnection {
         this._instance.logger.log({
             timestamp: new Date(),
             level: LogLevel.INFO,
-            origin: LogOrigin.ASYNC_WEBDB,
+            origin: LogOrigin.ASYNC_DUCKDB,
             topic: LogTopic.QUERY,
             event: LogEvent.RUN,
             value: text,
