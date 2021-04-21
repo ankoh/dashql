@@ -51,6 +51,8 @@ class Zipper {
     arrow::Result<std::string> ReadEntryInfoAsJSON(size_t entryID);
     /// Extract an entry to a file
     arrow::Result<size_t> ExtractEntryToFile(size_t entryID, std::string_view path);
+    /// Extract a file to a file
+    arrow::Result<size_t> ExtractFileToFile(const char* in, std::string_view out);
 };
 
 }  // namespace web

@@ -167,16 +167,46 @@ size_t extractToBufferManager(void* p_opaque, duckdb_miniz::mz_uint64 file_ofs, 
 /// Extract an entry to a file
 arrow::Result<size_t> Zipper::ExtractEntryToFile(size_t entryID, std::string_view path) {
     if (!current_reader_) return 0;
+
+    // Read file stat
     duckdb_miniz::mz_zip_archive_file_stat stat;
     duckdb_miniz::mz_zip_reader_file_stat(&current_reader_->archive, entryID, &stat);
-
-    // Truncate the file
     auto out = buffer_manager_->OpenFile(path);
     buffer_manager_->Truncate(out, stat.m_uncomp_size);
 
     // Extract file
     ExtractToBufferManagerState extract_state{*buffer_manager_, out};
     auto ok = duckdb_miniz::mz_zip_reader_extract_to_callback(&current_reader_->archive, entryID,
+                                                              &extractToBufferManager, &extract_state, 0);
+    if (!ok) {
+        auto error = duckdb_miniz::mz_zip_get_last_error(&current_reader_->archive);
+        auto msg = duckdb_miniz::mz_zip_get_error_string(error);
+        return arrow::Status{arrow::StatusCode::ExecutionError, std::move(msg)};
+    }
+    return stat.m_uncomp_size;
+}
+
+/// Extract an entry to a file
+arrow::Result<size_t> Zipper::ExtractFileToFile(const char* in, std::string_view out) {
+    if (!current_reader_) return 0;
+
+    // Locate a file path
+    duckdb_miniz::mz_uint32 file_index;
+    bool file_exists = duckdb_miniz::mz_zip_reader_locate_file_v2(&current_reader_->archive, in, nullptr,
+                                                                  duckdb_miniz::MZ_ZIP_FLAG_IGNORE_PATH, &file_index);
+    if (!file_exists) {
+        return arrow::Status(arrow::StatusCode::ExecutionError, "File does not exist");
+    }
+
+    // Read file stat
+    duckdb_miniz::mz_zip_archive_file_stat stat;
+    duckdb_miniz::mz_zip_reader_file_stat(&current_reader_->archive, file_index, &stat);
+    auto out_file = buffer_manager_->OpenFile(out);
+    buffer_manager_->Truncate(out_file, stat.m_uncomp_size);
+
+    // Extract file
+    ExtractToBufferManagerState extract_state{*buffer_manager_, out_file};
+    auto ok = duckdb_miniz::mz_zip_reader_extract_to_callback(&current_reader_->archive, file_index,
                                                               &extractToBufferManager, &extract_state, 0);
     if (!ok) {
         auto error = duckdb_miniz::mz_zip_get_last_error(&current_reader_->archive);
