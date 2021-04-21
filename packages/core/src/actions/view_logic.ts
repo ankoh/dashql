@@ -27,10 +27,10 @@ export class ViewCreateActionLogic extends ProgramActionLogic {
             const now = new Date();
             return await collectTableInfo(c, {
                 objectId: this.buffer.objectId(),
-                objectType: model.PlanObjectType.DATABASE_TABLE,
+                objectType: model.PlanObjectType.TABLE,
                 timeCreated: now,
                 timeUpdated: now,
-                tableNameQualified: this.buffer.nameQualified() || '',
+                nameQualified: this.buffer.nameQualified() || '',
                 columnNames: [],
                 columnNameMapping: new Map(),
                 columnTypes: [],

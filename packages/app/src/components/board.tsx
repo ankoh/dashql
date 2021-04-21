@@ -1,4 +1,3 @@
-import * as Immutable from 'immutable';
 import * as core from '@dashql/core';
 import * as React from 'react';
 import * as model from '../model';
@@ -14,7 +13,7 @@ type Props = {
     appContext: IAppContext;
     className?: string;
     width: number;
-    cards: Immutable.Map<number, core.model.Card>;
+    cards: Map<number, core.model.Card>;
     rewriteProgram: (instance: core.model.ProgramInstance) => void;
     editable?: boolean;
     columnCount: number;
@@ -66,16 +65,19 @@ class BoardLayout extends React.Component<Props> {
         }
     }
 
-    getLayout(data: Immutable.Map<number, core.model.Card>): LayoutElement[] {
-        const l = data.toArray().map(([key, d]) => ({
-            i: key.toString(),
-            oid: key,
-            x: d.position.column,
-            y: d.position.row,
-            w: d.position.width || 8,
-            h: d.position.height || 4,
-        }));
-        return l;
+    getLayout(data: Map<number, core.model.Card>): LayoutElement[] {
+        const els: LayoutElement[] = [];
+        for (const d of data.values()) {
+            els.push({
+                i: d.objectId.toString(),
+                oid: d.objectId,
+                x: d.position.column,
+                y: d.position.row,
+                w: d.position.width || 8,
+                h: d.position.height || 4,
+            });
+        }
+        return els;
     }
 
     markDirty() {
@@ -83,6 +85,14 @@ class BoardLayout extends React.Component<Props> {
     }
 
     render() {
+        const els: React.ReactElement[] = [];
+        for (const v of this.props.cards.values()) {
+            els.push(
+                <div key={v.objectId.toString()}>
+                    <CardRenderer card={v} editable={this.props.editable} />
+                </div>,
+            );
+        }
         return (
             <ReactGrid
                 className={this.props.className}
@@ -100,18 +110,14 @@ class BoardLayout extends React.Component<Props> {
                 containerPadding={this.props.containerPadding}
                 margin={this.props.elementMargin}
             >
-                {Array.from(this.props.cards).map(([k, v]) => (
-                    <div key={k.toString()}>
-                        <CardRenderer card={v} editable={this.props.editable} />
-                    </div>
-                ))}
+                {els}
             </ReactGrid>
         );
     }
 }
 
 const mapStateToProps = (state: model.AppState) => ({
-    cards: state.core.planState.cards,
+    cards: core.model.collectCards(state.core.planState),
 });
 
 const mapDispatchToProps = (dispatch: model.Dispatch) => ({

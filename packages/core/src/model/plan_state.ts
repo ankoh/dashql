@@ -103,15 +103,13 @@ export const updateStatus = (state: PlanState, updates: ActionUpdate[]): PlanSta
 });
 
 export const insertObjects = (state: PlanState, objects: PlanObject[]): PlanState => {
-    const blobs = objects.filter(o => o.objectType == PlanObjectType.CARD) as Card[];
+    const blobs = objects.filter(o => o.objectType == PlanObjectType.BLOB) as Card[];
     const tables = objects.filter(o => o.objectType == PlanObjectType.TABLE) as Table[];
     return {
         ...state,
         objects: state.objects.withMutations(os => objects.forEach(o => os.set(o.objectId, o))),
         blobsByName: state.blobsByName.withMutations(os => blobs.forEach(o => os.set(o.nameQualified, o.objectId))),
-        tablesByName: state.tablesByName.withMutations(os =>
-            tables.forEach(o => os.set(o.tableNameQualified, o.objectId)),
-        ),
+        tablesByName: state.tablesByName.withMutations(os => tables.forEach(o => os.set(o.nameQualified, o.objectId))),
     };
 };
 
@@ -142,8 +140,10 @@ export const deleteObject = (state: PlanState, oid: PlanObjectID): PlanState => 
     };
 };
 
-export const updateTable = (state: PlanState, oid: PlanObjectID, update: Partial<Table>): PlanState => {
-    const table = state.objects.get(oid);
+export const updateTable = (state: PlanState, name: string, update: Partial<Table>): PlanState => {
+    const tableID = state.tablesByName.get(name);
+    if (!tableID) return state;
+    const table = state.objects.get(tableID);
     if (!table || table.objectType != PlanObjectType.TABLE) return state;
     const next = {
         ...(table as Table),
@@ -152,6 +152,33 @@ export const updateTable = (state: PlanState, oid: PlanObjectID, update: Partial
     return {
         ...state,
         objects: state.objects.set(next.objectId, next),
-        tablesByName: state.tablesByName.set(next.tableNameQualified, next.objectId),
+        tablesByName: state.tablesByName.set(next.nameQualified, next.objectId),
     };
+};
+
+export const resolveTableByName = (state: PlanState, name: string): Table | null => {
+    const tableID = state.tablesByName.get(name);
+    if (tableID === undefined) return null;
+    return (state.objects.get(tableID) as Table) || null;
+};
+
+export const resolveCardById = (state: PlanState, id: number): Card | null => {
+    const obj = state.objects.get(id);
+    if (!obj || obj.objectType != PlanObjectType.CARD) return null;
+    return obj as Card;
+};
+
+export const forEachCard = (state: PlanState, callback: (card: Card, i: number) => void): void => {
+    let i = 0;
+    for (const [, v] of state.objects.entries()) {
+        if (v.objectType == PlanObjectType.CARD) {
+            callback(v as Card, i++);
+        }
+    }
+};
+
+export const collectCards = (state: PlanState): Map<number, Card> => {
+    const cards: Map<number, Card> = new Map();
+    forEachCard(state, c => cards.set(c.objectId, c));
+    return cards;
 };

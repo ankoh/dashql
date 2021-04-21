@@ -46,6 +46,7 @@ export class InputActionLogic extends ProgramActionLogic {
             objectType: model.PlanObjectType.CARD,
             timeCreated: now,
             timeUpdated: now,
+            nameQualified: stmt.nameQualified,
             cardType: proto.analyzer.CardType.BUILTIN_INPUT,
             cardRenderer: renderer,
             statementID: this.origin.statementId,

@@ -48,7 +48,7 @@ export class TableStatistics implements TableStatisticsResolver {
     /// The database manager
     _databaseManager: platform.DatabaseManager;
     /// The table name
-    _qualifiedTableName: string;
+    _tableName: string;
     /// All statistic requests
     _requests: Map<model.TableStatisticsKey, TableStatisticsRequest>;
     /// The associative aggreagtes
@@ -56,9 +56,9 @@ export class TableStatistics implements TableStatisticsResolver {
     /// The standalone aggreagtes
     _standaloneRequests: TableStatisticsRequest[];
 
-    constructor(dbManager: platform.DatabaseManager, qualifiedTableName: string) {
+    constructor(dbManager: platform.DatabaseManager, tableName: string) {
         this._databaseManager = dbManager;
-        this._qualifiedTableName = qualifiedTableName;
+        this._tableName = tableName;
         this._requests = new Map();
         this._associativeAggregates = [];
         this._standaloneRequests = [];
@@ -66,7 +66,7 @@ export class TableStatistics implements TableStatisticsResolver {
 
     /// Resolve the table info
     public resolveTableInfo(): model.Table | null {
-        return this._databaseManager.resolveTableInfo(this._qualifiedTableName);
+        return this._databaseManager.resolveTableName(this._tableName);
     }
 
     /// Build the associative aggregate query
@@ -91,7 +91,7 @@ export class TableStatistics implements TableStatisticsResolver {
                     break;
             }
         }
-        out += ` FROM ${tableInfo.tableNameQualified};`;
+        out += ` FROM ${tableInfo.nameQualified};`;
         return out;
     }
 
@@ -105,7 +105,7 @@ export class TableStatistics implements TableStatisticsResolver {
     public async request(type: model.TableStatisticsType, columnId = 0): Promise<arrow.Column> {
         const key = model.buildTableStatisticsKey(type, columnId);
         const prev = this._requests.get(key);
-        const table = this._databaseManager.resolveTableInfo(this._qualifiedTableName);
+        const table = this._databaseManager.resolveTableName(this._tableName);
         if (prev) {
             return new Promise((resolve, reject) => {
                 prev._promiseResolvers.push(resolve);
@@ -133,7 +133,7 @@ export class TableStatistics implements TableStatisticsResolver {
     public async evaluate(): Promise<Map<model.TableStatisticsKey, arrow.Column>> {
         // Resolve the table info
         const stats: Map<model.TableStatisticsKey, arrow.Column> = new Map();
-        const tableInfo = this._databaseManager.resolveTableInfo(this._qualifiedTableName);
+        const tableInfo = this._databaseManager.resolveTableName(this._tableName);
         if (!tableInfo) return stats;
 
         // Process the associative aggregates first

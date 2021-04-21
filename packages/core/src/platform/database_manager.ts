@@ -72,9 +72,10 @@ export class DatabaseManager {
         return this._connection;
     }
 
-    /// Resolve table info
-    public resolveTableInfo(qualifiedTableName: string): model.Table | null {
-        return this._store.getState().core.planState.tables.get(qualifiedTableName) || null;
+    /// Resolve a table name
+    public resolveTableName(qualifiedName: string): model.Table | null {
+        const state = this._store.getState().core.planState;
+        return model.resolveTableByName(state, qualifiedName);
     }
 
     /// Request table statistics.
@@ -88,35 +89,36 @@ export class DatabaseManager {
     /// Every viz logic first requests table statistics in its prepare hook.
     /// The database manager then merges all requests and runs a single query that forwards statistics to all vizzes.
     public async requestTableStatistics(
-        qualifiedTableName: string,
+        qualifiedName: string,
         type: model.TableStatisticsType,
         columnId = 0,
     ): Promise<arrow.Column> {
-        let queue = this._tableStatistics.get(qualifiedTableName);
+        let queue = this._tableStatistics.get(qualifiedName);
         if (!queue) {
-            queue = new TableStatistics(this, qualifiedTableName);
-            this._tableStatistics.set(qualifiedTableName, queue);
+            queue = new TableStatistics(this, qualifiedName);
+            this._tableStatistics.set(qualifiedName, queue);
         }
         return queue.request(columnId, type);
     }
 
     /// Evaluate pending table statistics
-    public async evaluateTableStatistics(qualifiedTableName: string): Promise<void> {
+    public async evaluateTableStatistics(qualifiedName: string): Promise<void> {
         // Resolve the table info.
         // If it doesn't exit we have nothing to do.
-        const tableInfo = this.resolveTableInfo(qualifiedTableName);
-        if (!tableInfo) return;
+        const state = this._store.getState().core.planState;
+        const table = model.resolveTableByName(state, qualifiedName);
+        if (!table) return;
 
         // Get the queue.
         // Abort immediatedly if there's none.
         // This happens whenever two viz statements evaluate the same queue simultaneously.
-        const queue = this._tableStatistics.get(qualifiedTableName);
+        const queue = this._tableStatistics.get(qualifiedName);
         if (!queue) return;
-        this._tableStatistics.delete(qualifiedTableName);
+        this._tableStatistics.delete(qualifiedName);
 
         /// Build the query text
         const results = await queue.evaluate();
-        const stats = tableInfo.statistics.withMutations(s => {
+        const stats = table.statistics.withMutations(s => {
             for (const [k, vs] of results) {
                 s.set(k, vs);
             }
@@ -124,9 +126,9 @@ export class DatabaseManager {
         model.mutate(this._store.dispatch, {
             type: model.StateMutationType.UPDATE_TABLE_INFO,
             data: [
-                qualifiedTableName,
+                qualifiedName,
                 {
-                    ...tableInfo,
+                    ...table,
                     statistics: stats,
                 },
             ],

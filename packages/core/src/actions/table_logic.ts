@@ -9,7 +9,7 @@ import { ActionContext } from './action_context';
 /// XXX Delete this eventually in favor of the async statistics requests
 export async function collectTableInfo(conn: duckdb.AsyncConnection, info: model.Table): Promise<model.Table> {
     // Get column names and types
-    const limit0 = await conn.runQuery(`SELECT * FROM ${info.tableNameQualified} LIMIT 0`);
+    const limit0 = await conn.runQuery(`SELECT * FROM ${info.nameQualified} LIMIT 0`);
     const columnNames: string[] = [];
     const columnNameMapping: Map<string, number> = new Map();
     const columnTypes: arrow.DataType[] = [];
@@ -49,17 +49,16 @@ export class CreateTableActionLogic extends ProgramActionLogic {
             const now = new Date();
             return await collectTableInfo(c, {
                 objectId: this.buffer.objectId(),
-                objectType: model.PlanObjectType.DATABASE_TABLE,
+                objectType: model.PlanObjectType.TABLE,
                 timeCreated: now,
                 timeUpdated: now,
-                tableNameQualified: this.buffer.nameQualified() || '',
+                nameQualified: this.buffer.nameQualified() || '',
                 columnNames: [],
                 columnNameMapping: new Map(),
                 columnTypes: [],
                 statistics: Immutable.Map(),
             });
         });
-
         if (table) {
             const store = context.platform.store;
             model.mutate(store.dispatch, {

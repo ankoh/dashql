@@ -6,8 +6,6 @@ import * as arrow from 'apache-arrow';
 
 /// A database table
 export interface Table extends PlanObject {
-    /// The qualified table name
-    readonly tableNameQualified: string;
     /// The column names
     readonly columnNames: string[];
     /// The column name indices
