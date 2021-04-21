@@ -21,7 +21,7 @@ export enum LogTopic {
     REQUEST_SCAN = 1006,
     PREPARE_ACTION = 1007,
     EXECUTE_ACTION = 1008,
-    EXTRACT_EXECUTE = 1009,
+    EXECUTE = 1009,
     REQUEST = 1010,
 }
 
@@ -51,6 +51,8 @@ export type LogEntryVariant =
     | LogEntry<LogOrigin.ACTION_SCHEDULER, LogTopic.EXECUTE_ACTION, LogEvent.ERROR, any>
     | LogEntry<LogOrigin.HTTP_MANAGER, LogTopic.REQUEST, LogEvent.ERROR, any>
     | LogEntry<LogOrigin.HTTP_MANAGER, LogTopic.REQUEST, LogEvent.OK, any>
+    | LogEntry<LogOrigin.EXTRACT_LOGIC, LogTopic.EXECUTE, LogEvent.OK, any>
+    | LogEntry<LogOrigin.EXTRACT_LOGIC, LogTopic.EXECUTE, LogEvent.ERROR, any>
     | duckdb.LogEntryVariant;
 
 export function getLogLevelLabel(level: duckdb.LogLevel): string {
@@ -81,8 +83,8 @@ export function getLogTopicLabel(topic: LogTopic | duckdb.LogTopic): string {
             return 'PREPARE';
         case LogTopic.EXECUTE_ACTION:
             return 'EXECUTE';
-        case LogTopic.EXTRACT_EXECUTE:
-            return 'EXTRACT';
+        case LogTopic.EXECUTE:
+            return 'EXECUTE';
         case LogTopic.REQUEST:
             return 'REQUEST';
         default:
