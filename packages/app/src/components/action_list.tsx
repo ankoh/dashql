@@ -8,8 +8,6 @@ import { SystemCard } from './system_card';
 import { ActionStatusIndicator } from './status';
 import styles from './action_list.module.css';
 
-import icon_chevron_right from '../../static/svg/icons/chevron_right.svg';
-
 function getSetupActionTypeLabel(type: proto.action.SetupActionType) {
     switch (type) {
         case proto.action.SetupActionType.DROP_BLOB:
@@ -75,13 +73,6 @@ class ActionList extends React.Component<Props> {
             const status = actionInfo?.statusCode || proto.action.ActionStatusCode.NONE;
             setup_actions.push(
                 <div key={i} className={styles.action}>
-                    <div className={styles.action_expand}>
-                        <div className={styles.action_expand_icon}>
-                            <svg width="18px" height="18px">
-                                <use xlinkHref={`${icon_chevron_right}#sym`} />
-                            </svg>
-                        </div>
-                    </div>
                     <div className={styles.action_status}>
                         <ActionStatusIndicator width="12px" height="12px" status={status} />
                     </div>
@@ -96,13 +87,6 @@ class ActionList extends React.Component<Props> {
             const status = actionInfo?.statusCode || proto.action.ActionStatusCode.NONE;
             program_actions.push(
                 <div key={i} className={styles.action}>
-                    <div className={styles.action_expand}>
-                        <div className={styles.action_expand_icon}>
-                            <svg width="18px" height="18px">
-                                <use xlinkHref={`${icon_chevron_right}#sym`} />
-                            </svg>
-                        </div>
-                    </div>
                     <div className={styles.action_status}>
                         <ActionStatusIndicator width="12px" height="12px" status={status} />
                     </div>
