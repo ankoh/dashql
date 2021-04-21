@@ -12,7 +12,7 @@ interface VizComposerTestExpectation {
 interface VizComposerTest {
     name: string;
     query: string;
-    table: Omit<model.Table, keyof model.PlanObject>;
+    table: Omit<model.Table, keyof model.PlanObject> & { nameQualified: string };
     expected: VizComposerTestExpectation;
 }
 
@@ -36,7 +36,7 @@ VIZ foo USING VEGA (
     )
 );`,
         table: {
-            tableNameQualified: 'global.foo',
+            nameQualified: 'global.foo',
             columnNames: ['x', 'y'],
             columnNameMapping: new Map([
                 ['x', 0],
@@ -100,7 +100,7 @@ VIZ foo USING LINE (
     position = (row = 0, column = 6, width = 6, height = 4)
 );`,
         table: {
-            tableNameQualified: 'global.foo',
+            nameQualified: 'global.foo',
             columnNames: ['x', 'y'],
             columnNameMapping: new Map([
                 ['x', 0],
@@ -165,7 +165,7 @@ class FakeStatisticsResolver {
         const now = new Date();
         this._table = {
             objectId: 0,
-            objectType: model.PlanObjectType.DATABASE_TABLE,
+            objectType: model.PlanObjectType.TABLE,
             timeCreated: now,
             timeUpdated: now,
             ...test.table,

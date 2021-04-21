@@ -464,7 +464,7 @@ export class VizComposer {
             cardRenderer: this._renderer || model.CardRendererType.BUILTIN_TABLE,
             dataSource: {
                 dataResolver: this._dataResolver || model.CardDataResolver.RESERVOIR_SAMPLE,
-                targetQualified: table.tableNameQualified,
+                targetQualified: table.nameQualified,
                 filters: this._filters,
                 aggregates: this._aggregates,
                 orderBy: this._orderBy,

@@ -79,7 +79,7 @@ export const M5Provider: React.FunctionComponent<Props> = (props: Props) => {
 CREATE TEMPORARY TABLE ${TMP_NAME} AS (
     SELECT ${binExpr} as k,
 ${aggs}
-    FROM ${props.table.tableNameQualified} GROUP BY k
+    FROM ${props.table.nameQualified} GROUP BY k
 );  `;
 
     const data = `

@@ -1,4 +1,3 @@
-import * as Immutable from 'immutable';
 import * as React from 'react';
 import * as core from '@dashql/core';
 import * as model from '../../model';
@@ -12,7 +11,7 @@ import ScanProvider = core.access.ScanProvider;
 
 interface Props {
     appContext: IAppContext;
-    tables: Immutable.Map<string, core.model.Table>;
+    planState: core.model.PlanState;
     card: core.model.Card;
     editable?: boolean;
 }
@@ -27,7 +26,7 @@ export class TableRenderer extends React.Component<Props> {
         const logger = this.props.appContext.platform!.logger;
         const db = this.props.appContext.platform!.database;
         const data = this.props.card.dataSource!;
-        const table = this.props.tables.get(data.targetQualified);
+        const table = core.model.resolveTableByName(this.props.planState, data.targetQualified);
         if (!table) {
             return <div />;
         }
@@ -36,7 +35,7 @@ export class TableRenderer extends React.Component<Props> {
                 <ScanProvider
                     logger={logger}
                     database={db}
-                    targetName={table.tableNameQualified}
+                    targetName={table.nameQualified}
                     request={new core.access.ScanRequest().withRange(0, 1024)}
                 >
                     {(d, r) => <DataGrid table={table} data={d} requestData={r} />}
@@ -47,7 +46,7 @@ export class TableRenderer extends React.Component<Props> {
 }
 
 const mapStateToProps = (state: model.AppState) => ({
-    tables: state.core.planState.tables,
+    planState: state.core.planState,
 });
 
 const mapDispatchToProps = (_dispatch: model.Dispatch) => ({});
