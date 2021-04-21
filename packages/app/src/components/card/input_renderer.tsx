@@ -1,4 +1,3 @@
-import * as Immutable from 'immutable';
 import * as React from 'react';
 import * as core from '@dashql/core';
 import * as model from '../../model';
