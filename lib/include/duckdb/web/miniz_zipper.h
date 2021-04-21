@@ -15,6 +15,8 @@ namespace duckdb {
 namespace web {
 
 struct ZipReader {
+    /// The file path
+    std::string_view file_path = {};
     /// The file buffer
     std::unique_ptr<char[]> file_buffer = nullptr;
     /// The full file buffer
