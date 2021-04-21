@@ -6,31 +6,11 @@ import { connect } from 'react-redux';
 import { SystemCard } from './system_card';
 import { withCurrentTime } from './current_time';
 import { List, ListRowProps, AutoSizer } from 'react-virtualized';
-import { motion } from 'framer-motion';
+import { motion, AnimateSharedLayout, AnimatePresence } from 'framer-motion';
 
 import styles from './log_viewer.module.css';
 
 const OVERSCAN_ROW_COUNT = 5;
-
-interface LogRowProps {
-    style: React.CSSProperties;
-    entry: core.model.LogEntryVariant;
-    currentTime: Date;
-}
-
-function LogRow(props: LogRowProps) {
-    const tsNow = props.currentTime;
-    const tsLog = props.entry.timestamp;
-    return (
-        <motion.div className={styles.row} style={props.style}>
-            <motion.div className={styles.level}>{core.model.getLogLevelLabel(props.entry.level)}</motion.div>
-            <motion.div className={styles.origin}>{core.model.getLogOriginLabel(props.entry.origin)}</motion.div>
-            <motion.div className={styles.topic}>{core.model.getLogTopicLabel(props.entry.topic)}</motion.div>
-            <motion.div className={styles.event}>{core.model.getLogEventLabel(props.entry.event)}</motion.div>
-            <motion.div className={styles.timestamp}>{core.utils.getRelativeTime(tsLog, tsNow)}</motion.div>
-        </motion.div>
-    );
-}
 
 interface Props {
     className?: string;
@@ -40,21 +20,50 @@ interface Props {
     onClose: () => void;
 }
 
-class LogViewer extends React.Component<Props> {
+interface State {
+    focusedEntry: number | null;
+}
+
+class LogViewer extends React.Component<Props, State> {
     protected _renderRow = this.renderRow.bind(this);
     protected _renderEmptyList = this.renderEmptyList.bind(this);
+    protected _focusEntry = this.focusEntry.bind(this);
 
     constructor(props: Props) {
         super(props);
         this.state = {
-            expanded: new Map(),
+            focusedEntry: null,
         };
+    }
+
+    protected focusEntry(elem: React.MouseEvent<HTMLDivElement>) {
+        const entry = (elem.currentTarget as any).dataset.entry;
+        this.setState({
+            ...this.state,
+            focusedEntry: entry || null,
+        });
     }
 
     protected renderRow(props: ListRowProps) {
         const log = this.props.logs.get(props.index);
         if (!log) return <div style={props.style} />;
-        return <LogRow key={props.key} style={props.style} entry={log} currentTime={this.props.currentTime} />;
+        const tsNow = this.props.currentTime;
+        const tsLog = log.timestamp;
+        return (
+            <motion.div
+                key={props.key}
+                style={props.style}
+                className={styles.row}
+                data-entry={props.index}
+                onClick={this._focusEntry}
+            >
+                <motion.div className={styles.level}>{core.model.getLogLevelLabel(log.level)}</motion.div>
+                <motion.div className={styles.origin}>{core.model.getLogOriginLabel(log.origin)}</motion.div>
+                <motion.div className={styles.topic}>{core.model.getLogTopicLabel(log.topic)}</motion.div>
+                <motion.div className={styles.event}>{core.model.getLogEventLabel(log.event)}</motion.div>
+                <motion.div className={styles.timestamp}>{core.utils.getRelativeTime(tsLog, tsNow)}</motion.div>
+            </motion.div>
+        );
     }
 
     protected renderEmptyList() {
@@ -78,10 +87,17 @@ class LogViewer extends React.Component<Props> {
         );
     }
 
+    public renderFocusedEntry(): React.ReactElement {
+        return <div />;
+    }
+
     public render() {
         return (
             <SystemCard title="Log" onClose={this.props.onClose} className={this.props.className}>
-                <AutoSizer>{({ width, height }) => this.renderList(width, height)}</AutoSizer>
+                <AnimateSharedLayout type="crossfade">
+                    <AutoSizer>{({ width, height }) => this.renderList(width, height)}</AutoSizer>
+                    <AnimatePresence>{this.state.focusedEntry && this.renderFocusedEntry()}</AnimatePresence>
+                </AnimateSharedLayout>
             </SystemCard>
         );
     }
