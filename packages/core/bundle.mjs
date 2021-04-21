@@ -35,6 +35,7 @@ const EXTERNALS = [
     'apache-arrow',
     'flatbuffers',
     'axios',
+    'axios-mock-adapter',
     'immutable',
     'redux',
     'vega',

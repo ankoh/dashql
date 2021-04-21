@@ -30,6 +30,8 @@ export class ExtractActionLogic extends ProgramActionLogic {
         switch (xtr.method()) {
             case proto.syntax.ExtractMethodType.PARQUET:
                 break;
+            case proto.syntax.ExtractMethodType.CSV:
+                break;
             default:
                 console.error('not implemented');
                 break;
