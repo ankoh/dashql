@@ -2,6 +2,7 @@ import { analyzer, model, actions, platform, ActionScheduler, utils } from '../s
 import { Analyzer } from '../src/index_browser';
 import * as duckdb from '@dashql/duckdb/dist/duckdb.module.js';
 import * as proto from '@dashql/proto';
+import { mockHTTP, HTTPMock, encodeTextBody } from './mocks/http_mock';
 
 import ActionStatus = proto.action.ActionStatusCode;
 import ActionClass = proto.action.ActionClass;
@@ -13,6 +14,8 @@ let az: analyzer.AnalyzerBindings;
 let worker: Worker;
 let db: duckdb.AsyncDuckDB;
 let conn: duckdb.AsyncDuckDBConnection;
+
+let httpMock: HTTPMock;
 
 beforeAll(async () => {
     az = new Analyzer({}, '/static/analyzer_wasm.wasm');
@@ -34,6 +37,8 @@ beforeEach(async () => {
 afterEach(async () => {
     await conn.disconnect();
     await db.reset();
+
+    httpMock.reset();
 });
 
 afterAll(async () => {
@@ -98,6 +103,9 @@ describe('Action Scheduler', () => {
             const store = model.createStore();
             const plat = new platform.Platform(store, logger, db, az);
             await plat.init();
+
+            httpMock = mockHTTP();
+            httpMock.onGet('https://localhost/test').reply(200, encodeTextBody('body1'));
 
             const program = az.parseProgram(`
                 LOAD weather_csv FROM http (
