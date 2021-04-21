@@ -16,6 +16,7 @@
 .level {
     display: grid;
     align-items: center;
+    font-weight: 700;
 }
 
 .origin {
