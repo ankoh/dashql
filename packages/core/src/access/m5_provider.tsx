@@ -75,15 +75,13 @@ export const M5Provider: React.FunctionComponent<Props> = (props: Props) => {
     // E.g.: _p0_0 as x, _p0_1 as y, _p0_2 as z
     const unpack = (point: number) => props.table.columnNames.map(n => `_p${point}_${colID(n)} as ${n}`).join(', ');
 
-    const before = `
-CREATE TEMPORARY TABLE ${TMP_NAME} AS (
+    const before = `CREATE TEMPORARY TABLE ${TMP_NAME} AS (
     SELECT ${binExpr} as k,
 ${aggs}
     FROM ${props.table.nameQualified} GROUP BY k
 );  `;
 
-    const data = `
-SELECT * FROM (
+    const data = `SELECT * FROM (
     SELECT ${unpack(0)} FROM ${TMP_NAME}
     UNION ALL
     SELECT ${unpack(1)} FROM ${TMP_NAME}
