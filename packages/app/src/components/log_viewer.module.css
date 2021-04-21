@@ -2,14 +2,14 @@
 
 .list {
     outline: none;
-    padding: 4px 4px;
+    padding: 4px 0px;
 }
 
 .row {
     display: grid;
     grid-template-columns: 40px 1fr 1fr 40px 120px;
     grid-column-gap: 8px;
-    padding: 2px 16px 2px 8px;
+    padding: 2px 16px 2px 12px;
     font-size: 75%;
 }
 
