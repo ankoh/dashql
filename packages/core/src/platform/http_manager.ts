@@ -42,7 +42,7 @@ export class HTTPManager {
                 origin: model.LogOrigin.HTTP_MANAGER,
                 topic: model.LogTopic.REQUEST,
                 event: model.LogEvent.OK,
-                value: `Buffer of size: ${res.data.byteLength}`,
+                value: `${res.statusText}`,
             });
             return {
                 request: req,
