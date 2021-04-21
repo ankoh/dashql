@@ -35,7 +35,6 @@ const EXTERNALS = [
     'apache-arrow',
     'flatbuffers',
     'axios',
-    'hash-wasm',
     'immutable',
     'redux',
     'vega',
