@@ -6,6 +6,7 @@ import { connect } from 'react-redux';
 import { SystemCard } from './system_card';
 import { withCurrentTime } from './current_time';
 import { List, ListRowProps, AutoSizer } from 'react-virtualized';
+import { motion } from 'framer-motion';
 
 import styles from './log_viewer.module.css';
 
@@ -21,13 +22,13 @@ function LogRow(props: LogRowProps) {
     const tsNow = props.currentTime;
     const tsLog = props.entry.timestamp;
     return (
-        <div className={styles.row} style={props.style}>
-            <div className={styles.level}>{core.model.getLogLevelLabel(props.entry.level)}</div>
-            <div className={styles.origin}>{core.model.getLogOriginLabel(props.entry.origin)}</div>
-            <div className={styles.topic}>{core.model.getLogTopicLabel(props.entry.topic)}</div>
-            <div className={styles.event}>{core.model.getLogEventLabel(props.entry.event)}</div>
-            <div className={styles.timestamp}>{core.utils.getRelativeTime(tsLog, tsNow)}</div>
-        </div>
+        <motion.div className={styles.row} style={props.style}>
+            <motion.div className={styles.level}>{core.model.getLogLevelLabel(props.entry.level)}</motion.div>
+            <motion.div className={styles.origin}>{core.model.getLogOriginLabel(props.entry.origin)}</motion.div>
+            <motion.div className={styles.topic}>{core.model.getLogTopicLabel(props.entry.topic)}</motion.div>
+            <motion.div className={styles.event}>{core.model.getLogEventLabel(props.entry.event)}</motion.div>
+            <motion.div className={styles.timestamp}>{core.utils.getRelativeTime(tsLog, tsNow)}</motion.div>
+        </motion.div>
     );
 }
 
