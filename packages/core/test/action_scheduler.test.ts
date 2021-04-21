@@ -15,7 +15,7 @@ let worker: Worker;
 let db: duckdb.AsyncDuckDB;
 let conn: duckdb.AsyncDuckDBConnection;
 
-let httpMock: HTTPMock;
+let httpMock: HTTPMock | null = null;
 
 beforeAll(async () => {
     az = new Analyzer({}, '/static/analyzer_wasm.wasm');
@@ -38,7 +38,10 @@ afterEach(async () => {
     await conn.disconnect();
     await db.reset();
 
-    httpMock.reset();
+    if (httpMock != null) {
+        httpMock.reset();
+        httpMock = null;
+    }
 });
 
 afterAll(async () => {

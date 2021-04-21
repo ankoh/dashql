@@ -2,10 +2,13 @@ import * as duckdb from '@dashql/duckdb/dist/duckdb.module.js';
 import { platform, model } from '../../src/index';
 import { mockHTTP, HTTPMock, encodeTextBody, decodeTextBody } from '../mocks/http_mock';
 
-let httpMock: HTTPMock;
+let httpMock: HTTPMock = null;
 
 afterEach(() => {
-    httpMock.reset();
+    if (httpMock != null) {
+        httpMock.reset();
+        httpMock = null;
+    }
 });
 
 describe('HTTPManager', () => {
