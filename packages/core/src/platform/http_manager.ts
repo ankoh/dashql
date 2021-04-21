@@ -9,7 +9,7 @@ export interface HTTPData {
     /// The request
     request: AxiosRequestConfig;
     /// The response
-    response: AxiosResponse<ArrayBuffer> | null;
+    response: AxiosResponse<ArrayBuffer>;
 }
 
 export class HTTPManager {

@@ -26,5 +26,13 @@ export class ExtractActionLogic extends ProgramActionLogic {
         console.log(`extract method: ${proto.syntax.ExtractMethodType[xtr.method()].toString()}`);
         console.log(`extract source: ${xtr.dataSource()}`);
         console.log(`extract source index: ${xtr.dataSourceIndex()}`);
+
+        switch (xtr.method()) {
+            case proto.syntax.ExtractMethodType.PARQUET:
+                break;
+            default:
+                console.error('not implemented');
+                break;
+        }
     }
 }

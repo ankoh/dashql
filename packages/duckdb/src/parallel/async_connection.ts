@@ -6,6 +6,13 @@ import * as arrow from 'apache-arrow';
 interface IAsyncDuckDB {
     logger: Logger;
 
+    addFile(url: string): Promise<number>;
+    addFilePath(url: string, path: string): Promise<number>;
+    addFileBlob(url: string, blob: any): Promise<number>;
+    addFileBuffer(url: string, buffer: Uint8Array): Promise<number>;
+    getFileObjectURL(file_id: number): Promise<string | null>;
+    getFileBuffer(file_id: number): Promise<Uint8Array | null>;
+
     disconnect(conn: number): Promise<null>;
     runQuery(conn: number, text: string): Promise<Uint8Array>;
     sendQuery(conn: number, text: string): Promise<Uint8Array>;
@@ -48,6 +55,9 @@ class ResultStreamIterator implements AsyncIterable<Uint8Array> {
 /** An async connection. */
 /** This interface will enable us to swap duckdb with a native version. */
 export interface AsyncConnection {
+    /** The database instance */
+    readonly instance: IAsyncDuckDB;
+
     /** Disconnect from the database */
     disconnect(): Promise<null>;
     /** Run a query */
@@ -68,6 +78,11 @@ export class AsyncDuckDBConnection implements AsyncConnection {
     constructor(instance: IAsyncDuckDB, conn: number) {
         this._instance = instance;
         this._conn = conn;
+    }
+
+    /** Access the database instance */
+    public get instance(): IAsyncDuckDB {
+        return this._instance;
     }
 
     /** Disconnect from the database */

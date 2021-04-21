@@ -1,5 +1,6 @@
 import * as proto from '@dashql/proto';
-import { ActionHandle, Statement, PlanObject } from '../model';
+import * as model from '../model';
+import { ActionHandle, Statement, PlanObject, BlobRef } from '../model';
 import { ProgramActionLogic } from './action_logic';
 import { ActionContext } from './action_context';
 
@@ -10,6 +11,17 @@ export class LoadActionLogic extends ProgramActionLogic {
 
     public prepare(_context: ActionContext, _planObjects: PlanObject[]): void {}
     public willExecute(_context: ActionContext): void {}
+
+    /// Load via HTTP
+    protected async loadHTTP(context: ActionContext, url: string): Promise<Blob | null> {
+        const http = context.platform.http;
+        try {
+            const resp = await http.request({ url: url });
+            return new Blob([resp.response.data]);
+        } catch (e) {
+            return null;
+        }
+    }
 
     public async execute(context: ActionContext): Promise<void> {
         const instance = context.plan.programInstance;
@@ -27,11 +39,44 @@ export class LoadActionLogic extends ProgramActionLogic {
         console.log(`load url: ${load.url()}`);
         console.log(`load archive: ${proto.analyzer.ArchiveMode[load.archive()].toString()}`);
 
-        const http = context.platform.http;
-        try {
-            await http.request({ url: load.url() });
-        } catch (e) {
+        // Load the Blob
+        let blob: Blob | null;
+        switch (load.method()) {
+            case proto.syntax.LoadMethodType.HTTP:
+                blob = await this.loadHTTP(context, load.url());
+                break;
+            default:
+                console.error('not implemented');
+                // XXX
+                return;
+        }
+        if (!blob) {
             this.status = proto.action.ActionStatusCode.FAILED;
         }
+
+        // Register as blob in database
+        const db = context.platform.database;
+        const blobPath = `blob://${this.buffer.nameQualified()}`;
+        const fileId = await db.use(c => c.instance.addFileBlob(blobPath, blob));
+
+        // Create plan object
+        const now = new Date();
+        const blobRef: BlobRef = {
+            objectId: this.buffer.objectId(),
+            objectType: model.PlanObjectType.BLOB,
+            timeCreated: now,
+            timeUpdated: now,
+            nameQualified: this.buffer.nameQualified() || '',
+            filePath: blobPath,
+            fileId: fileId,
+            archiveMode: load.archive(),
+        };
+
+        // Store as plan object
+        const store = context.platform.store;
+        model.mutate(store.dispatch, {
+            type: model.StateMutationType.INSERT_PLAN_OBJECTS,
+            data: [blobRef],
+        });
     }
 }
