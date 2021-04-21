@@ -1,3 +1,5 @@
+// Copyright (c) 2020 The DashQL Authors
+
 import * as duckdb from '@dashql/duckdb/dist/duckdb.module.js';
 import * as model from '../model';
 import * as arrow from 'apache-arrow';
