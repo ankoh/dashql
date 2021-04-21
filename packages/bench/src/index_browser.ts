@@ -1,5 +1,5 @@
-import * as duckdb_serial from '@dashql/duckdb/src/targets/duckdb-browser-serial';
-import * as duckdb_parallel from '@dashql/duckdb/src/targets/duckdb-browser-parallel';
+import * as duckdb_serial from '@dashql/duckdb/dist/duckdb-browser';
+import * as duckdb_parallel from '@dashql/duckdb/dist/duckdb-browser-parallel';
 import Worker from 'web-worker';
 import sqljs from 'sql.js';
 

@@ -1,11 +1,12 @@
 {
     "compilerOptions": {
         "outDir": "./dist/build/",
-        "target": "es2020",
-        "module": "es2020",
+        "target": "ESNext",
+        "module": "ESNext",
         "moduleResolution": "node",
         "strict": true,
         "sourceMap": true,
+        "downlevelIteration": true,
         "esModuleInterop": true,
 
         // Insanity mode due to:
@@ -15,7 +16,7 @@
         "lib": ["ESNext.Array", "DOM", "DOM.Iterable", "es6", "webworker"],
         "types": ["emscripten", "node"],
         "baseUrl": "."
-    },
-    "include": ["./src/*.ts", "./types/*"],
-    "exclude": ["./node_modules/*", "../../node_modules/*"]
+    }
+    //"include": ["./src/*.ts", "./types/*"],
+    //"exclude": ["./node_modules/*", "../../node_modules/*"]
 }

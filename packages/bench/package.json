@@ -35,15 +35,15 @@
         "eslint-plugin-react": "^7.23.2",
         "karma-custom": "^1.1.9",
         "log-update": "^4.0.0",
-        "path-browserify": "^1.0.1",
         "prettier": "^2.2.1",
         "typescript": "^4.2.4"
     },
     "optionalDependencies": {
         "fsevents": "*"
     },
+    "type": "module",
     "scripts": {
-        "build": "node bundle.mjs && tsc",
+        "build": "tsc",
         "lint": "yarn run eslint {src,test}/**/*.ts",
         "run:node": "node ./dist/bench-node.js",
         "run:browser": "karma start karma.conf.cjs"

@@ -14,9 +14,8 @@ module.exports = function(config) {
         ],
         frameworks: ['custom'],
         files: [
-            { pattern: 'packages/bench/dist/bench-browser.js' },
+            { pattern: 'packages/bench/dist/build/index_browser.js' },
             { pattern: 'packages/duckdb/dist/*.wasm', included: false, watched: false, served: true },
-            { pattern: 'packages/duckdb/dist/*.js', included: false, watched: false, served: true },
             { pattern: 'node_modules/sql.js/dist/*.wasm', included: false, watched: false, served: true },
             { pattern: 'data/**/*.parquet', included: false, watched: false, served: true },
             { pattern: 'data/**/*.zip', included: false, watched: false, served: true },
@@ -35,7 +34,7 @@ module.exports = function(config) {
         colors: true,
         logLevel: config.LOG_INFO,
         autoWatch: true,
-        singleRun: true,
+        singleRun: false,
         browsers: ['ChromeHeadlessNoSandbox'],
         customLaunchers: {
             ChromeHeadlessNoSandbox: {
