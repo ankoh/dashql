@@ -13,22 +13,31 @@
     font-size: 75%;
 }
 
+.level {
+    display: grid;
+    align-items: center;
+}
+
 .origin {
-    text-align: left;
+    display: grid;
+    align-items: center;
 }
 
 .topic {
-    text-align: left;
+    display: grid;
+    align-items: center;
 }
 
 .event {
-    text-align: left;
+    display: grid;
+    align-items: center;
 }
 
 .timestamp {
     grid-row: 1;
     grid-column: 6;
     display: grid;
+    align-items: center;
     text-align: right;
     color: var(--log_timestamp_color);
 }

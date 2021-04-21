@@ -5,9 +5,8 @@ import { SystemCard } from './system_card';
 import { withCurrentTime } from './current_time';
 import TerminalLoader from './terminal_loader';
 
-import styles from './database_viewer.module.css';
-
 interface Props {
+    className?: string;
     onClose: () => void;
     currentTime: Date;
     updateCurrentTime: () => void;
@@ -16,7 +15,7 @@ interface Props {
 class DatabaseViewer extends React.Component<Props> {
     public render(): React.ReactElement {
         return (
-            <SystemCard title="Database" onClose={this.props.onClose} className={styles.card}>
+            <SystemCard title="Database" onClose={this.props.onClose} className={this.props.className}>
                 <TerminalLoader />
             </SystemCard>
         );

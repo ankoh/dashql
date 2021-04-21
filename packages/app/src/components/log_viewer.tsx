@@ -23,7 +23,7 @@ function LogRow(props: LogRowProps) {
     const tsNow = props.currentTime;
     const tsLog = props.entry.timestamp;
     return (
-        <div className={styles.row}>
+        <div className={styles.row} style={props.style}>
             <div className={styles.expand}>
                 <div className={styles.expand_icon}>
                     <svg width="18px" height="18px">
@@ -31,7 +31,7 @@ function LogRow(props: LogRowProps) {
                     </svg>
                 </div>
             </div>
-            <div className={styles.origin}>{core.model.getLogLevelLabel(props.entry.level)}</div>
+            <div className={styles.level}>{core.model.getLogLevelLabel(props.entry.level)}</div>
             <div className={styles.origin}>{core.model.getLogOriginLabel(props.entry.origin)}</div>
             <div className={styles.topic}>{core.model.getLogTopicLabel(props.entry.topic)}</div>
             <div className={styles.event}>{core.model.getLogEventLabel(props.entry.event)}</div>
@@ -48,18 +48,29 @@ interface Props {
     onClose: () => void;
 }
 
-class LogViewer extends React.Component<Props> {
+interface State {
+    scrollToIndex: number;
+}
+
+class LogViewer extends React.Component<Props, State> {
     protected _getRowHeight = this.getRowHeight.bind(this);
     protected _renderRow = this.renderRow.bind(this);
     protected _renderEmptyList = this.renderEmptyList.bind(this);
 
+    constructor(props: Props) {
+        super(props);
+        this.state = {
+            scrollToIndex: 0,
+        };
+    }
+
     protected getRowHeight(args: { index: number }) {
-        return 42;
+        return 32;
     }
 
     protected renderRow(props: ListRowProps) {
         const log = this.props.logs.get(props.index);
-        if (!log) return <div />;
+        if (!log) return <div style={props.style} />;
         return <LogRow key={props.key} style={props.style} entry={log} currentTime={this.props.currentTime} />;
     }
 
@@ -67,24 +78,27 @@ class LogViewer extends React.Component<Props> {
         return <div />;
     }
 
+    public renderList(width: number, height: number): React.ReactElement {
+        return (
+            <List
+                className={styles.list}
+                currentTimeRef={this.props.currentTime}
+                width={width}
+                height={height}
+                overscanRowCount={OVERSCAN_ROW_COUNT}
+                rowCount={this.props.logs.size}
+                rowHeight={this._getRowHeight}
+                rowRenderer={this._renderRow}
+                noRowsRenderer={this._renderEmptyList}
+                measureAllRows={true}
+            />
+        );
+    }
+
     public render() {
         return (
-            <SystemCard title="Log" onClose={this.props.onClose}>
-                <AutoSizer disableHeight>
-                    {({ width }) => (
-                        <List
-                            className={styles.list}
-                            currentTimeRef={this.props.currentTime}
-                            height={200}
-                            width={width}
-                            overscanRowCount={OVERSCAN_ROW_COUNT}
-                            rowCount={this.props.logs.size}
-                            rowHeight={this._getRowHeight}
-                            rowRenderer={this._renderRow}
-                            noRowsRenderer={this._renderEmptyList}
-                        />
-                    )}
-                </AutoSizer>
+            <SystemCard title="Log" onClose={this.props.onClose} className={this.props.className}>
+                <AutoSizer>{({ width, height }) => this.renderList(width, height)}</AutoSizer>
             </SystemCard>
         );
     }
