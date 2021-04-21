@@ -29,12 +29,31 @@ class LogViewer extends React.Component<Props, State> {
     protected _renderRow = this.renderRow.bind(this);
     protected _renderEmptyList = this.renderEmptyList.bind(this);
     protected _focusEntry = this.focusEntry.bind(this);
+    protected _onKeyDown = this.onKeyDown.bind(this);
 
     constructor(props: Props) {
         super(props);
         this.state = {
             focusedEntry: null,
         };
+    }
+
+    protected onKeyDown(event: React.KeyboardEvent<HTMLDivElement>) {
+        let nextEntry = this.state.focusedEntry || 0;
+        switch (event.key) {
+            case 'Down':
+            case 'ArrowDown':
+                nextEntry = Math.min(nextEntry + 1, Math.max(this.props.logs.size - 1, 0));
+                break;
+            case 'Up':
+            case 'ArrowUp':
+                nextEntry = Math.max(nextEntry, 1) - 1;
+                break;
+        }
+        this.setState({
+            ...this.state,
+            focusedEntry: nextEntry,
+        });
     }
 
     protected focusEntry(elem: React.MouseEvent<HTMLDivElement>) {
@@ -78,7 +97,7 @@ class LogViewer extends React.Component<Props, State> {
     public render() {
         return (
             <SystemCard title="Log" onClose={this.props.onClose} className={this.props.className}>
-                <div className={styles.content}>
+                <div className={styles.content} onKeyDown={this._onKeyDown}>
                     {this.state.focusedEntry != null && (
                         <AnimatePresence>
                             <motion.div
