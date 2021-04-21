@@ -4,10 +4,6 @@ import { mockHTTP, HTTPMock, encodeTextBody, decodeTextBody } from '../mocks/htt
 
 let httpMock: HTTPMock;
 
-beforeEach(() => {
-    httpMock = mockHTTP();
-});
-
 afterEach(() => {
     httpMock.reset();
 });
@@ -21,6 +17,7 @@ describe('HTTPManager', () => {
         const http = new platform.HTTPManager(store, logger);
         await http.init();
 
+        httpMock = mockHTTP();
         httpMock
             .onGet('http://localhost/file1')
             .reply(200, encodeTextBody('body1'))
