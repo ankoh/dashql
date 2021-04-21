@@ -1,4 +1,5 @@
 import * as proto from '@dashql/proto';
+import * as model from '../model';
 import { ActionHandle, PlanObject, Statement } from '../model';
 import { ProgramActionLogic } from './action_logic';
 import { ActionContext } from './action_context';
@@ -20,12 +21,30 @@ export class ExtractActionLogic extends ProgramActionLogic {
             return;
         }
 
+        const logger = context.platform.logger;
         const stmt = instance.program.getStatement(this._origin.statementId);
         console.log(`extract objectID: ${this.buffer.objectId()}`);
         console.log(`extract name: ${stmt.nameQualified}`);
         console.log(`extract method: ${proto.syntax.ExtractMethodType[xtr.method()].toString()}`);
         console.log(`extract source: ${xtr.dataSource()}`);
         console.log(`extract source index: ${xtr.dataSourceIndex()}`);
+
+        // Find the loaded blob
+        const state = context.platform.store.getState();
+        const planState = state.core.planState;
+        const blobID = planState.blobsByName.get(xtr.dataSource());
+        if (!blobID) {
+            logger.log({
+                timestamp: new Date(),
+                level: model.LogLevel.INFO,
+                origin: model.LogOrigin.EXTRACT_LOGIC,
+                topic: model.LogTopic.EXECUTE,
+                event: model.LogEvent.ERROR,
+                value: `missing blob ${blobID}`,
+            });
+        }
+        const blob = planState.objects.get(blobID) as model.BlobRef;
+        console.assert(blob !== undefined, 'blob id refers to unknown blob');
 
         switch (xtr.method()) {
             case proto.syntax.ExtractMethodType.PARQUET:
@@ -36,5 +55,14 @@ export class ExtractActionLogic extends ProgramActionLogic {
                 console.error('not implemented');
                 break;
         }
+
+        logger.log({
+            timestamp: new Date(),
+            level: model.LogLevel.INFO,
+            origin: model.LogOrigin.EXTRACT_LOGIC,
+            topic: model.LogTopic.EXECUTE,
+            event: model.LogEvent.OK,
+            value: `extracted ${stmt.nameQualified}`,
+        });
     }
 }
