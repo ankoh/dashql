@@ -31,7 +31,12 @@ Zipper::Zipper(std::shared_ptr<io::BufferManager> buffer_manager) : buffer_manag
 ///             +-------------------------------+
 ///
 arrow::Status Zipper::LoadFromFile(std::string_view path) {
-    // Read the full file into the buffer.
+    /// Already loaded?
+    if (current_reader_ && current_reader_->file_path == path) {
+        return arrow::Status::OK();
+    }
+
+    /// Read the full file into the buffer.
     /// XXX Miniz currently does not support streaming archive extraction.
     ///     We'd actually prefer reading the file incrementally.
     std::unique_ptr<char[]> buffer = nullptr;
@@ -42,7 +47,7 @@ arrow::Status Zipper::LoadFromFile(std::string_view path) {
         buffer = std::unique_ptr<char[]>(new char[buffer_size]());
         buffer_manager_->Read(file, buffer.get(), buffer_size, 0);
     }
-    if (buffer_size == 0) return arrow::Status::OK();
+    if (buffer_size == 0) return arrow::Status::ExecutionError("couldn't read file");
 
     // Cut trailing archive comment
     nonstd::span<char> archive_data;
@@ -74,6 +79,7 @@ arrow::Status Zipper::LoadFromFile(std::string_view path) {
 
     // Register as loaded archive
     auto& reader = current_reader_.emplace();
+    reader.file_path = path;
     reader.file_buffer = std::move(buffer);
     reader.archive_comment = std::move(archive_comment);
     reader.archive_data = std::move(archive_data);
@@ -83,6 +89,7 @@ arrow::Status Zipper::LoadFromFile(std::string_view path) {
     if (!ok) {
         auto error = duckdb_miniz::mz_zip_get_last_error(&reader.archive);
         auto msg = duckdb_miniz::mz_zip_get_error_string(error);
+        current_reader_.reset();
         return arrow::Status{arrow::StatusCode::ExecutionError, std::move(msg)};
     }
 
