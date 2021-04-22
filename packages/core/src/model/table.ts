@@ -14,6 +14,8 @@ export interface Table extends PlanObject {
     readonly columnTypes: arrow.DataType[];
     /// The statistics
     readonly statistics: Immutable.Map<TableStatisticsType, arrow.Column>;
+    /// The file path (if any)
+    readonly filePath?: string;
 }
 
 /// A column summary type
