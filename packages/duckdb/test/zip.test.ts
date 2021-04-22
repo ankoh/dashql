@@ -57,7 +57,7 @@ export function testZip(
             const entry = zip.readEntryInfo(0);
             expect(entry.fileName).toEqual('assistenten.parquet');
 
-            const written = zip.extractEntryToFile(0, '/out/assistenten.parquet');
+            const written = zip.extractEntryToPath(0, '/out/assistenten.parquet');
             expect(written).toEqual(assistenten!.length);
 
             const assistentenWritten = db().getFileBuffer(outID);
@@ -72,7 +72,7 @@ export function testZip(
 
             const zip = new duckdb.ZipBindings(db());
             zip.loadFile('/uni/all.zip');
-            zip.extractEntryToFile(0, '/out/assistenten.parquet');
+            zip.extractEntryToPath(0, '/out/assistenten.parquet');
 
             const table = await conn.runQuery<{
                 PersNr: arrow.Int;

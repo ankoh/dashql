@@ -1,12 +1,15 @@
 // Copyright (c) 2020 The DashQL Authors
 
 import { DuckDBBindings } from '../bindings';
+import { ZipBindings } from '../plugins/zip_bindings';
 import { WorkerResponseVariant, WorkerRequestVariant, WorkerRequestType, WorkerResponseType } from './worker_request';
 import { Logger, LogEntryVariant } from '../log';
 
 export abstract class AsyncDuckDBDispatcher implements Logger {
     /** The bindings */
     protected _bindings: DuckDBBindings | null = null;
+    /** The zip bindings */
+    protected _zip: ZipBindings | null = null;
     /** The next message id */
     protected _nextMessageId = 0;
 
@@ -42,13 +45,20 @@ export abstract class AsyncDuckDBDispatcher implements Logger {
     }
 
     /** Fail with an error */
-    protected failWith(request: WorkerRequestVariant, data: Error): void {
+    protected failWith(request: WorkerRequestVariant, e: Error): void {
+        // Workaround for Firefox not being able to perform structured-clone on Native Errors
+        // https://bugzilla.mozilla.org/show_bug.cgi?id=1556604
+        const obj: any = {
+            name: e.name,
+            message: e.message,
+            stack: e.stack || undefined,
+        };
         this.postMessage(
             {
                 messageId: this._nextMessageId++,
                 requestId: request.messageId,
                 type: WorkerResponseType.ERROR,
-                data: data,
+                data: obj,
             },
             [],
         );
@@ -68,6 +78,7 @@ export abstract class AsyncDuckDBDispatcher implements Logger {
                 }
                 try {
                     this._bindings = await this.open(request.data);
+                    this._zip = new ZipBindings(this._bindings); // TODO: make optional
                     this.sendOK(request);
                 } catch (e) {
                     this._bindings = null;
@@ -211,13 +222,29 @@ export abstract class AsyncDuckDBDispatcher implements Logger {
                         [],
                     );
                     break;
+                case WorkerRequestType.ZIP_EXTRACT_FILE: {
+                    if (!this._zip) {
+                        this.failWith(request, new Error('zip plugin not loaded'));
+                        return;
+                    }
+                    const archivePath = this._bindings.getFilePath(request.data.archiveFile);
+                    if (!archivePath) {
+                        this.failWith(request, new Error(`unknown file: ${archivePath}`));
+                        return;
+                    }
+                    const outPath = this._bindings.getFilePath(request.data.outFile);
+                    if (!outPath) {
+                        this.failWith(request, new Error(`unknown file: ${outPath}`));
+                        return;
+                    }
+                    this._zip!.loadFile(archivePath);
+                    this._zip!.extractPathToPath(request.data.entryPath, outPath);
+                    this.sendOK(request);
+                    break;
+                }
             }
         } catch (e) {
-            // Workaround for Firefox not being able to perform structured-clone on Native Errors
-            // https://bugzilla.mozilla.org/show_bug.cgi?id=1556604
-            const obj: any = {};
-            for (const m of ['name', 'message', 'stack']) if (e[m] !== undefined) obj[m] = e[m];
-            return this.failWith(request, obj);
+            return this.failWith(request, e);
         }
     }
 }
