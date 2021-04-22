@@ -31,7 +31,11 @@ function DEC(key: number, by = 1) {
 const tests: [string, [number, number][], TestOp[]][] = [
     ['simple_1', [PUSH(0, 0)], [POP(0)]],
     ['simple_2', [PUSH(0, 2), PUSH(1, 1)], [POP(1), POP(0)]],
-    ['simple_3', [PUSH(0, 0), PUSH(1, 2), PUSH(2, 1), PUSH(3, 1)], [POP(0), DEC(1), DEC(2), POP(2), POP(1), POP(3)]],
+    [
+        'simple_3',
+        [PUSH(0, 0), PUSH(1, 2), PUSH(2, 1), PUSH(3, 1)],
+        [POP(0), DEC(1), DEC(2), POP(2), DEC(1), POP(1), DEC(3), POP(3)],
+    ],
 ];
 
 describe('NativeMinHeap', () => {
