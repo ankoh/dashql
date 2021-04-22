@@ -15,6 +15,7 @@ export async function collectTableInfo(conn: duckdb.AsyncConnection, info: model
     const columnTypes: arrow.DataType[] = [];
     for (let ci = 0; ci < limit0.schema.fields.length; ++ci) {
         const field = limit0.schema.fields[ci];
+        console.log(`field: ${field.name} => ${ci}`);
         columnNames.push(field.name);
         columnNameMapping.set(field.name, ci);
         columnTypes.push(field.type);

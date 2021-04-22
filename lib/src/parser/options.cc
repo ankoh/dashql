@@ -100,7 +100,7 @@ sx::Node Option(ParserDriver& driver, sx::Location loc, std::vector<sx::Location
     auto iter = keys.rbegin() + (keys.size() - key_path.size());
     auto prev = *iter << value;
     for (++iter; iter != keys.rend(); ++iter) {
-        prev = driver.AddObject(loc, sx::NodeType::OBJECT_DASHQL_OPTION_LIST, {&prev, 1}, true, false);
+        prev = *iter << driver.AddObject(loc, sx::NodeType::OBJECT_DASHQL_OPTION_LIST, {&prev, 1}, true, false);
     }
     return prev;
 }
