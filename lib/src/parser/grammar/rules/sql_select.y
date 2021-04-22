@@ -1632,9 +1632,9 @@ sql_a_expr_const:
 
     // Version without () is handled in a_expr/b_expr logic due to ? mis-parsing as operator */
   | sql_const_interval '(' '?' ')' '?' sql_opt_interval                 { $$ = {}; }
-  | TRUE_P                  { $$ = {}; }
-  | FALSE_P                 { $$ = {}; }
-  | NULL_P                  { $$ = {}; }
+  | TRUE_P                  { $$ = Bool(@1, true); }
+  | FALSE_P                 { $$ = Bool(@1, false); }
+  | NULL_P                  { $$ = String(@1); }
     ;
 
 // Name classification hierarchy.

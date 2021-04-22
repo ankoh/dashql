@@ -32,6 +32,8 @@ export const DEFAULT_VEGA_LITE_MIXINS: VegaLiteTLLayerSpec = {
     title: undefined,
     background: 'transparent',
     padding: 8,
+    width: 'container',
+    height: 'container',
     layer: [],
 };
 
@@ -315,22 +317,10 @@ export class VizComposer {
     protected analyzeVegaEncodings(spec: TopLevel<NormalizedLayerSpec>): void {
         const table = this._tableStatistics.resolveTableInfo()!;
 
-        // Helper to analyze a scale definition
-        const analyzeScale = (enc: any, columnID: number) => {
-            // Does not define a scale?
-            if (!isScaleFieldDef(enc)) enc.scale = {};
-            const scale = enc.scale!;
-
-            // Resolve domain?
-            if (!scale.domain) {
-                scale.domain = [];
-                const resolver = new ResolveMinMaxDomain(this._tableStatistics, columnID, scale.domain);
-                this._vegaLiteEditOps.push(resolver);
-            }
-        };
-
         // Analyze the field type
         const analyzeFieldType = (enc: any, columnID: number) => {
+            console.log(enc);
+            console.log(`analyze field type ${columnID}`);
             if (!isTypedFieldDef(enc)) {
                 switch (table.columnTypes[columnID].typeId) {
                     case arrow.Type.Int:
@@ -357,6 +347,26 @@ export class VizComposer {
             }
         };
 
+        // Helper to analyze a scale definition
+        const analyzeScale = (enc: any, columnID: number) => {
+            // Does not define a scale?
+            if (!isScaleFieldDef(enc)) enc.scale = {};
+            const scale = enc.scale!;
+
+            // Resolve domain?
+            if (!scale.domain && (scale.zero === undefined || scale.zero === false)) {
+                switch (enc.type) {
+                    case 'quantitative':
+                    case 'temporal': {
+                        scale.domain = [];
+                        const resolver = new ResolveMinMaxDomain(this._tableStatistics, columnID, scale.domain);
+                        this._vegaLiteEditOps.push(resolver);
+                        break;
+                    }
+                }
+            }
+        };
+
         // Run general optimizations accross all layers
         for (const layer of spec.layer) {
             // Skip nested layers
@@ -368,6 +378,7 @@ export class VizComposer {
                 if (isFieldDef(enc) && enc.field) {
                     const fieldName = enc.field.toString();
                     const columnID = table.columnNameMapping.get(fieldName);
+                    console.log(`col mapping ${fieldName} -> ${columnID}`);
                     if (columnID != undefined && columnID != null) {
                         analyzeFieldType(enc, columnID);
                         analyzeScale(enc, columnID);
@@ -382,7 +393,7 @@ export class VizComposer {
         const table = this._tableStatistics.resolveTableInfo()!;
 
         // Use m5 data source?
-        let useM5 = true;
+        let useM5 = false; // XXX reenable at some point
         let m5Config: model.M5Config | null = null;
 
         // Iterate over all layer specs
@@ -397,14 +408,14 @@ export class VizComposer {
             const y = layer.encoding?.y;
             if (x && y && isFieldDef(x) && isFieldDef(y) && x.field && y.field) {
                 // Has exlicit X scale property?
-                if (isScaleFieldDef(x)) {
+                if (x.scale && x.scale.type) {
                     const scale = x.scale!;
                     const scaleType = scale.type;
                     useM5 &&= scaleType ? hasContinuousDomain(scaleType) : true;
                 }
 
                 // Has exlicit Y scale property?
-                if (isScaleFieldDef(y)) {
+                if (y.scale && y.scale.type) {
                     const scale = x.scale!;
                     const scaleType = scale.type;
                     useM5 &&= scaleType ? hasContinuousDomain(scaleType) : true;

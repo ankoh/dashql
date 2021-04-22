@@ -267,6 +267,28 @@
             title = 'Some Table',
             position = (row = 0, column = 0, width = 12, height = 4),
         );
+
+        -- ... Or a bar chart
+        VIZ foo2 USING VEGA (
+            title = 'Some bar',
+            position = (row = 0, column = 0, width = 12, height = 4),
+            mark = 'bar',
+            encoding = (
+                x = (
+                    field = 'SWS',
+                    type='ordinal',
+                    axis.label_angle=-45
+                ),
+                y = (
+                    field = 'cnt',
+                    type='quantitative',
+                    scale=(
+                        domain = [0, 4],
+                        zero = true
+                    )
+                ),
+            )
+        );
     </input>
     <expected>
         <statements>
@@ -451,6 +473,52 @@
                     </node>
                 </node>
             </statement>
+            <statement type="VIZUALIZE">
+                <node type="OBJECT_DASHQL_VIZ" loc="986..1581" text="VIZ foo2 U..&#10;        )">
+                    <node key="DASHQL_VIZ_COMPONENTS">
+                        <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="1001..1581" text="VEGA (&#10;   ..&#10;        )">
+                            <node key="DASHQL_VIZ_COMPONENT_TYPE" value="VEGA" />
+                            <node key="DASHQL_OPTION_POSITION" type="OBJECT_DASHQL_OPTION_LIST" loc="1063..1108" text="(row = 0, ..eight = 4)">
+                                <node key="DASHQL_OPTION_ROW" loc="1070..1071" text="0" />
+                                <node key="DASHQL_OPTION_COLUMN" loc="1082..1083" text="0" />
+                                <node key="DASHQL_OPTION_WIDTH" loc="1093..1095" text="12" />
+                                <node key="DASHQL_OPTION_HEIGHT" loc="1106..1107" text="4" />
+                            </node>
+                            <node key="DASHQL_OPTION_TITLE" loc="1028..1038" text="'Some bar'" />
+                            <node key="DASHQL_OPTION_ENCODING" type="OBJECT_DASHQL_OPTION_LIST" loc="1159..1571" text="(&#10;        ..         )">
+                                <node key="DASHQL_OPTION_X" type="OBJECT_DASHQL_OPTION_LIST" loc="1181..1312" text="(&#10;        ..         )">
+                                    <node key="DASHQL_OPTION_AXIS" type="OBJECT_DASHQL_OPTION_LIST" loc="1274..1294" text="axis.label.._angle=-45">
+                                        <node key="DASHQL_OPTION_LABEL_ANGLE" type="OBJECT_SQL_EXPRESSION" loc="1291..1294" text="-45">
+                                            <node key="SQL_EXPRESSION_ARG0" loc="1292..1294" text="45" />
+                                            <node key="SQL_EXPRESSION_FUNCTION" value="NEGATE" />
+                                        </node>
+                                    </node>
+                                    <node key="DASHQL_OPTION_FIELD" loc="1211..1216" text="'SWS'" />
+                                    <node key="DASHQL_OPTION_TYPE" loc="1243..1252" text="'ordinal'" />
+                                </node>
+                                <node key="DASHQL_OPTION_Y" type="OBJECT_DASHQL_OPTION_LIST" loc="1334..1556" text="(&#10;        ..         )">
+                                    <node key="DASHQL_OPTION_FIELD" loc="1364..1369" text="'cnt'" />
+                                    <node key="DASHQL_OPTION_SCALE" type="OBJECT_DASHQL_OPTION_LIST" loc="1438..1538" text="(&#10;        ..         )">
+                                        <node key="DASHQL_OPTION_DOMAIN">
+                                            <node loc="1474..1475" text="0" />
+                                            <node loc="1477..1478" text="4" />
+                                        </node>
+                                        <node key="DASHQL_OPTION_ZERO" value="true" />
+                                    </node>
+                                    <node key="DASHQL_OPTION_TYPE" loc="1396..1410" text="'quantitative'" />
+                                </node>
+                            </node>
+                            <node key="DASHQL_OPTION_MARK" loc="1129..1134" text="'bar'" />
+                        </node>
+                    </node>
+                    <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLE_REF" loc="990..994" text="foo2">
+                        <node key="SQL_TABLE_INHERIT" value="true" />
+                        <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="990..994" text="foo2">
+                            <node key="SQL_QUALIFIED_NAME_RELATION" loc="990..994" text="foo2" />
+                        </node>
+                    </node>
+                </node>
+            </statement>
         </statements>
         <errors />
         <line_breaks>
@@ -480,12 +548,35 @@
             <line_break loc="865..866" text="&#10;" />
             <line_break loc="935..936" text="&#10;" />
             <line_break loc="946..947" text="&#10;" />
+            <line_break loc="947..948" text="&#10;" />
+            <line_break loc="977..978" text="&#10;" />
+            <line_break loc="1007..1008" text="&#10;" />
+            <line_break loc="1039..1040" text="&#10;" />
+            <line_break loc="1109..1110" text="&#10;" />
+            <line_break loc="1135..1136" text="&#10;" />
+            <line_break loc="1160..1161" text="&#10;" />
+            <line_break loc="1182..1183" text="&#10;" />
+            <line_break loc="1217..1218" text="&#10;" />
+            <line_break loc="1253..1254" text="&#10;" />
+            <line_break loc="1294..1295" text="&#10;" />
+            <line_break loc="1313..1314" text="&#10;" />
+            <line_break loc="1335..1336" text="&#10;" />
+            <line_break loc="1370..1371" text="&#10;" />
+            <line_break loc="1411..1412" text="&#10;" />
+            <line_break loc="1439..1440" text="&#10;" />
+            <line_break loc="1480..1481" text="&#10;" />
+            <line_break loc="1516..1517" text="&#10;" />
+            <line_break loc="1538..1539" text="&#10;" />
+            <line_break loc="1557..1558" text="&#10;" />
+            <line_break loc="1571..1572" text="&#10;" />
+            <line_break loc="1582..1583" text="&#10;" />
         </line_breaks>
         <comments>
             <comment loc="9..46" text="-- Load th..ity schema" />
             <comment loc="145..192" text="-- Extract..ip archive" />
             <comment loc="371..391" text="-- Run arb..itrary SQL" />
             <comment loc="758..801" text="-- Visuali..mple table" />
+            <comment loc="956..977" text="-- ... Or .. bar chart" />
         </comments>
         <dependencies>
             <dependency type="TABLE_REF" source="0" target="1" loc="226..252" text="uni['vorle...parquet']" />
@@ -496,6 +587,7 @@
             <dependency type="TABLE_REF" source="1" target="4" loc="510..521" text="vorlesungen" />
             <dependency type="TABLE_REF" source="1" target="5" loc="711..722" text="vorlesungen" />
             <dependency type="TABLE_REF" source="4" target="6" loc="814..817" text="foo" />
+            <dependency type="TABLE_REF" source="5" target="7" loc="990..994" text="foo2" />
         </dependencies>
     </expected>
 </test>

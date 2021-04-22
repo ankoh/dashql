@@ -44,6 +44,8 @@ dashql_option_value:
   | dashql_function_call            { $$ = $1; }
   | sql_columnref                   { $$ = $1; }
   | sql_a_expr_const                { $$ = $1; }
+  | '+' sql_a_expr_const %prec UMINUS   { $$ = $2; }
+  | '-' sql_a_expr_const %prec UMINUS   { $$ = Negate(ctx, @$, @1, $2); }
     ;
 
 dashql_option_array:
