@@ -393,37 +393,44 @@ export class VizComposer {
         const table = this._tableStatistics.resolveTableInfo()!;
 
         // Use m5 data source?
-        let useM5 = false; // XXX reenable at some point
+        let preferM5 = false;
+        let canUseM5 = true;
         let m5Config: model.M5Config | null = null;
 
         // Iterate over all layer specs
         for (const layer of spec.layer) {
             // Skip nested layers
             if (!isUnitSpec(layer)) {
-                useM5 = false;
+                canUseM5 = false;
                 continue;
             }
 
             const x = layer.encoding?.x;
             const y = layer.encoding?.y;
             if (x && y && isFieldDef(x) && isFieldDef(y) && x.field && y.field) {
+                if (x.type === 'quantitative' && y.type === 'quantitative') {
+                    preferM5 = true;
+                }
+
                 // Has exlicit X scale property?
                 if (x.scale && x.scale.type) {
                     const scale = x.scale!;
                     const scaleType = scale.type;
-                    useM5 &&= scaleType ? hasContinuousDomain(scaleType) : true;
+                    canUseM5 &&= scaleType ? hasContinuousDomain(scaleType) : true;
+                    preferM5 ||= canUseM5;
                 }
 
                 // Has exlicit Y scale property?
                 if (y.scale && y.scale.type) {
                     const scale = x.scale!;
                     const scaleType = scale.type;
-                    useM5 &&= scaleType ? hasContinuousDomain(scaleType) : true;
+                    canUseM5 &&= scaleType ? hasContinuousDomain(scaleType) : true;
+                    preferM5 ||= canUseM5;
                 }
 
                 // Has field properties?
-                useM5 &&= table.columnNameMapping.has(x.field) || table!.columnNameMapping.has(y.field) || false;
-                if (useM5) {
+                canUseM5 &&= table.columnNameMapping.has(x.field) || table!.columnNameMapping.has(y.field) || false;
+                if (canUseM5) {
                     m5Config = {
                         attributeX: x.field!,
                         attributeY: y.field!,
@@ -437,7 +444,7 @@ export class VizComposer {
         }
 
         // Use m5 sampling?
-        if (useM5) {
+        if (preferM5 && canUseM5) {
             this._dataResolver = model.CardDataResolver.M5;
             this._m5Config = m5Config;
         }
