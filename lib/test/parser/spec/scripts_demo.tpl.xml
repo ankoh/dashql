@@ -69,5 +69,27 @@
             title = 'Some Table',
             position = (row = 0, column = 0, width = 12, height = 4),
         );
+
+        -- ... Or a bar chart
+        VIZ foo2 USING VEGA (
+            title = 'Some bar',
+            position = (row = 0, column = 0, width = 12, height = 4),
+            mark = 'bar',
+            encoding = (
+                x = (
+                    field = 'SWS',
+                    type='ordinal',
+                    axis.label_angle=-45
+                ),
+                y = (
+                    field = 'cnt',
+                    type='quantitative',
+                    scale=(
+                        domain = [0, 4],
+                        zero = true
+                    )
+                ),
+            )
+        );
     </input>
 </test>
