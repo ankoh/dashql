@@ -1,5 +1,5 @@
 import * as arrow from 'apache-arrow';
-import * as duckdb from '@dashql/duckdb';
+import * as duckdb from '@dashql/duckdb/src/';
 import add from 'benny/src/add';
 import suite from 'benny/src/suite';
 import cycle from 'benny/src/cycle';

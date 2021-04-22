@@ -15,8 +15,7 @@ function printErr(err) {
 // -------------------------------
 // Clear directory
 
-const __dirname = path.dirname(fileURLToPath(
-    import.meta.url));
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const dist = path.resolve(__dirname, 'dist');
 mkdir.sync(dist);
 rimraf.sync(dist + '/*.wasm');
@@ -36,20 +35,6 @@ fs.copyFile(
 // ESM
 
 const TARGET = 'es2020';
-
-console.log('[ ESBUILD ] bench-browser.js');
-esbuild.build({
-    entryPoints: ['./src/index_browser.ts'],
-    outfile: 'dist/bench-browser.js',
-    platform: 'browser',
-    format: 'iife',
-    globalName: 'duckdb',
-    target: TARGET,
-    bundle: true,
-    minify: false,
-    sourcemap: 'external',
-    inject: ['./injects.js'],
-});
 
 console.log('[ ESBUILD ] bench-node.js');
 esbuild.build({

@@ -2,7 +2,7 @@ const puppeteer = require('puppeteer');
 
 process.env.CHROME_BIN = puppeteer.executablePath();
 
-module.exports = function(config) {
+module.exports = function (config) {
     config.set({
         basePath: '../..',
         plugins: [
@@ -14,8 +14,9 @@ module.exports = function(config) {
         ],
         frameworks: ['custom'],
         files: [
-            { pattern: 'packages/bench/dist/build/index_browser.js' },
-            { pattern: 'packages/duckdb/dist/*.wasm', included: false, watched: false, served: true },
+            { pattern: 'packages/bench/dist/bench-browser.js' },
+            { pattern: 'packages/bench/dist/bench-browser.js.map', included: false, watched: false, served: true },
+            { pattern: 'packages/duckdb/dist/*', included: false, watched: false, served: true },
             { pattern: 'node_modules/sql.js/dist/*.wasm', included: false, watched: false, served: true },
             { pattern: 'data/**/*.parquet', included: false, watched: false, served: true },
             { pattern: 'data/**/*.zip', included: false, watched: false, served: true },
