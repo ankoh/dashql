@@ -12,10 +12,13 @@ export class ExtractActionLogic extends ProgramActionLogic {
         super(action_id, action, statement);
     }
 
-    public prepare(_context: ActionContext, _planObjects: PlanObject[]): void {}
+    public prepare(_context: ActionContext, _planObjects: PlanObject[]): void {
+        console.log(`EXTRACT PREPARE ${this.buffer.nameQualified()}`);
+    }
     public willExecute(_context: ActionContext): void {}
 
     public async execute(context: ActionContext): Promise<void> {
+        console.log(`EXTRACT EXECUTE ${this.buffer.nameQualified()}`);
         const instance = context.plan.programInstance;
         const stmtId = this._origin.statementId;
         const xtr = instance.extractStatements.get(stmtId);

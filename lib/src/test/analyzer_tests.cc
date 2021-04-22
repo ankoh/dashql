@@ -90,12 +90,12 @@ void AnalyzerTest::EncodePlan(pugi::xml_node root, const ProgramInstance& instan
     }
     for (auto& viz : instance.viz_statements()) {
         auto v = cards.append_child("visualization");
+        auto target = viz->target().ToString();
+        v.append_attribute("target").set_value(target.c_str());
         if (auto& title = viz->title(); title.has_value()) {
             std::string copy{*title};
             v.append_attribute("title").set_value(copy.c_str());
         }
-        auto target = v.append_child("target");
-        EncodeLocation(target, viz->GetTarget(), instance.program_text());
         if (auto pos = viz->specified_position()) {
             auto p = v.append_child("position");
             p.append_attribute("row") = pos->row();
