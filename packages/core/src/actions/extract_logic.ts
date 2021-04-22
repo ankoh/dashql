@@ -1,9 +1,11 @@
 import * as duckdb from '@dashql/duckdb/dist/duckdb.module.js';
 import * as proto from '@dashql/proto';
 import * as model from '../model';
+import * as Immutable from 'immutable';
 import { ActionHandle, PlanObject, Statement } from '../model';
 import { ProgramActionLogic } from './action_logic';
 import { ActionContext } from './action_context';
+import { collectTableInfo } from './table_logic';
 
 export class ExtractActionLogic extends ProgramActionLogic {
     constructor(action_id: ActionHandle, action: proto.action.ProgramAction, statement: Statement) {
@@ -75,19 +77,43 @@ export class ExtractActionLogic extends ProgramActionLogic {
         };
 
         // Handle the different extract method
-        switch (xtr.method()) {
-            case proto.syntax.ExtractMethodType.PARQUET:
-                await context.platform.database.use(async c => {
-                    const input = await getInput(c);
-                    const text = `CREATE VIEW ${name} AS (SELECT * FROM parquet_scan('${input}'));`;
+        const table = await context.platform.database.use(async c => {
+            let filePath: string | undefined = undefined;
+            switch (xtr.method()) {
+                case proto.syntax.ExtractMethodType.PARQUET: {
+                    filePath = await getInput(c);
+                    const text = `CREATE VIEW ${name} AS (SELECT * FROM parquet_scan('${filePath}'));`;
                     console.log(text);
                     await c.runQuery(text);
-                });
-                break;
-            case proto.syntax.ExtractMethodType.CSV:
-            default:
-                console.warn('not implemented');
-                break;
+                    break;
+                }
+                case proto.syntax.ExtractMethodType.CSV:
+                default:
+                    console.warn('not implemented');
+                    break;
+            }
+
+            // Return plan object
+            const now = new Date();
+            return await collectTableInfo(c, {
+                objectId: this.buffer.objectId(),
+                objectType: model.PlanObjectType.TABLE,
+                timeCreated: now,
+                timeUpdated: now,
+                nameQualified: this.buffer.nameQualified() || '',
+                columnNames: [],
+                columnNameMapping: new Map(),
+                columnTypes: [],
+                statistics: Immutable.Map(),
+                filePath: filePath,
+            });
+        });
+        if (table) {
+            const store = context.platform.store;
+            model.mutate(store.dispatch, {
+                type: model.StateMutationType.INSERT_PLAN_OBJECTS,
+                data: [table],
+            });
         }
 
         logger.log({
