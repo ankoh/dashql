@@ -348,7 +348,7 @@ export class AsyncDuckDB {
     }
 
     /** Extract a zip file */
-    public async extractZipPath(archiveFile: number, outFile: number, entryPath: string): Promise<Uint8Array | null> {
+    public async extractZipPath(archiveFile: number, outFile: number, entryPath: string): Promise<number> {
         const task = new WorkerTask<WorkerRequestType.ZIP_EXTRACT_FILE, ZipExtractToFileArgs, null>(
             WorkerRequestType.ZIP_EXTRACT_FILE,
             {

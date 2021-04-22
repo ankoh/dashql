@@ -1,3 +1,4 @@
+import * as duckdb from '@dashql/duckdb/dist/duckdb.module.js';
 import * as proto from '@dashql/proto';
 import * as model from '../model';
 import { ActionHandle, PlanObject, Statement } from '../model';
@@ -23,6 +24,7 @@ export class ExtractActionLogic extends ProgramActionLogic {
 
         const logger = context.platform.logger;
         const stmt = instance.program.getStatement(this._origin.statementId);
+        const name = this.buffer.nameQualified();
         console.log(`extract objectID: ${this.buffer.objectId()}`);
         console.log(`extract name: ${stmt.nameQualified}`);
         console.log(`extract method: ${proto.syntax.ExtractMethodType[xtr.method()].toString()}`);
@@ -32,7 +34,8 @@ export class ExtractActionLogic extends ProgramActionLogic {
         // Find the loaded blob
         const state = context.platform.store.getState();
         const planState = state.core.planState;
-        const blobID = planState.blobsByName.get(xtr.dataSource());
+        const blobName = xtr.dataSource();
+        const blobID = planState.blobsByName.get(blobName);
         if (!blobID) {
             logger.log({
                 timestamp: new Date(),
@@ -40,19 +43,50 @@ export class ExtractActionLogic extends ProgramActionLogic {
                 origin: model.LogOrigin.EXTRACT_LOGIC,
                 topic: model.LogTopic.EXECUTE,
                 event: model.LogEvent.ERROR,
-                value: `missing blob ${blobID}`,
+                value: `missing blob id for blob '${blobID}'`,
             });
         }
         const blob = planState.objects.get(blobID) as model.BlobRef;
-        console.assert(blob !== undefined, 'blob id refers to unknown blob');
+        if (!blob) {
+            logger.log({
+                timestamp: new Date(),
+                level: model.LogLevel.INFO,
+                origin: model.LogOrigin.EXTRACT_LOGIC,
+                topic: model.LogTopic.EXECUTE,
+                event: model.LogEvent.ERROR,
+                value: `blob '${blobName}' is not registered in duckdb`,
+            });
+        }
 
+        // Get the input file
+        const getInput = async (conn: duckdb.AsyncConnection) => {
+            const db = conn.instance;
+            switch (blob.archiveMode) {
+                case proto.analyzer.ArchiveMode.ZIP: {
+                    const outPath = `blob://${this.buffer.nameQualified()}`;
+                    const outId = await db.addFileBuffer(outPath, new Uint8Array());
+                    console.log(xtr.dataSourceIndex());
+                    await db.extractZipPath(blob.fileId, outId, xtr.dataSourceIndex());
+                    return outPath;
+                }
+                case proto.analyzer.ArchiveMode.NONE:
+                    return blob.filePath;
+            }
+        };
+
+        // Handle the different extract method
         switch (xtr.method()) {
             case proto.syntax.ExtractMethodType.PARQUET:
+                await context.platform.database.use(async c => {
+                    const input = await getInput(c);
+                    const text = `CREATE VIEW ${name} AS (SELECT * FROM parquet_scan('${input}'));`;
+                    console.log(text);
+                    await c.runQuery(text);
+                });
                 break;
             case proto.syntax.ExtractMethodType.CSV:
-                break;
             default:
-                console.error('not implemented');
+                console.warn('not implemented');
                 break;
         }
 
