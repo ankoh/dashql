@@ -19,6 +19,11 @@ CREATE VIEW foo2 AS
     where h.vorlnr = v.vorlnr
     GROUP BY v.titel;
 
+CREATE VIEW foo3 AS
+    SELECT v.sws, count(*)::INTEGER as cnt
+    FROM vorlesungen v
+    GROUP BY v.sws;
+
 -- Visualize the result with a simple table
 VIZ foo USING TABLE (
     title = 'Einschreibungen',
@@ -34,14 +39,32 @@ VIZ foo2 USING VEGA (
         y = (
             title = 'Vorlesungen',
             field = 'Titel',
-            type='nominal',
+            type = 'nominal',
         ),
         x = (
             title = 'Studenten',
             field = 'studenten',
-            type='quantitative',
+            type ='quantitative',
             scale.zero = true,
             axis.tick_min_step = 1,
+        ),
+    )
+);
+
+VIZ foo3 USING VEGA (
+    title = 'Wochenstunden',
+    position = (row = 0, column = 6, width = 6, height = 4),
+    mark = 'arc',
+    encoding = (
+        color = (
+            field = 'SWS',
+            type = 'ordinal',
+        ),
+        theta = (
+            title = 'Vorlesungen',
+            field = 'cnt',
+            type = 'quantitative',
+            scale.zero = true,
         ),
     )
 );
