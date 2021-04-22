@@ -2,7 +2,7 @@ import { analyzer, model, actions, platform, ActionScheduler, utils } from '../s
 import { Analyzer } from '../src/index_browser';
 import * as duckdb from '@dashql/duckdb/dist/duckdb.module.js';
 import * as proto from '@dashql/proto';
-import { mockHTTP, HTTPMock, encodeTextBody } from './mocks/http_mock';
+import { HTTPMock } from './mocks/http_mock';
 
 import ActionStatus = proto.action.ActionStatusCode;
 import ActionClass = proto.action.ActionClass;
@@ -100,53 +100,6 @@ describe('Action Scheduler', () => {
             const workLeft = await scheduler.executeFirst(ctx, diff);
             expect(workLeft).toBe(false);
             expect(scheduler.actions[0].status).toBe(ActionStatus.COMPLETED);
-        });
-
-        it('chain', async () => {
-            const store = model.createStore();
-            const plat = new platform.Platform(store, logger, db, az);
-            await plat.init();
-
-            httpMock = mockHTTP();
-            httpMock.onGet('https://localhost/test').reply(200, encodeTextBody('body1'));
-
-            const program = az.parseProgram(`
-                LOAD weather_csv FROM http (
-                    url = 'https://localhost/test'
-                );
-                EXTRACT weather FROM weather_csv USING CSV;
-            `);
-            az.instantiateProgram();
-            const plan = az.planProgram();
-            const graph = plan!.buffer.actionGraph()!;
-            const ctx = new actions.ActionContext(plat, plan!);
-            expect(program.buffer.statementsLength()).toBe(2);
-            expect(graph.setupActionsLength()).toBe(0);
-            expect(graph.programActionsLength()).toBe(2);
-
-            const logic = resolveProgramActionLogic(plan!);
-            const interrupt = new Promise((_resolve: (value: any) => void, _reject: (reason?: void) => void) => {});
-            const scheduler = new ActionScheduler<proto.action.ProgramAction>(interrupt, IGNORE_ACTION_UPDATES);
-            scheduler.prepare(ctx, logic, []);
-            scheduler.actions.forEach((a, i) => {
-                expect(a.actionClass).toBe(ActionClass.PROGRAM_ACTION);
-                expect(a.buffer.originStatement()).toBe(i);
-                expect(a.status).toBe(ActionStatus.NONE);
-            });
-            expect(scheduler.actions.map(a => a.buffer.actionType())).toEqual([
-                ProgramActionType.LOAD,
-                ProgramActionType.EXTRACT,
-            ]);
-            expect(scheduler.actions.map(a => a.buffer.dependsOnArray())).toEqual([null, new Uint32Array([0])]);
-            expect(scheduler.actions.map(a => a.buffer.requiredForArray())).toEqual([new Uint32Array([1]), null]);
-
-            const diff = new utils.NativeStack();
-            let workLeft = await scheduler.executeFirst(ctx, diff);
-            expect(scheduler.actions[0].status).toBe(ActionStatus.COMPLETED);
-            expect(workLeft).toBe(true);
-            workLeft = await scheduler.execute(ctx, diff);
-            expect(scheduler.actions[1].status).toBe(ActionStatus.COMPLETED);
-            expect(workLeft).toBe(false);
         });
 
         it('tree', async () => {
