@@ -57,6 +57,7 @@ export class LoadActionLogic extends ProgramActionLogic {
         }
         if (!blob) {
             this.status = proto.action.ActionStatusCode.FAILED;
+            return;
         }
 
         // Register as blob in database

@@ -101,6 +101,7 @@ table Card {
     input_component: syntax.InputComponentType;
     input_value_type: sql.SQLType;
     input_options: string;
+    viz_target: string;
     viz_components: [VizComponent];
 }
 

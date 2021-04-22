@@ -102,7 +102,7 @@
                     </node>
                 </node>
             </statement>
-            <statement type="VIZUALIZE" name="main.weather_avg">
+            <statement type="VIZUALIZE">
                 <node type="OBJECT_DASHQL_VIZ" loc="1081..1107" text="VIZ weathe..USING LINE">
                     <node key="DASHQL_VIZ_COMPONENTS">
                         <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="1103..1107" text="LINE">
@@ -238,5 +238,264 @@
         </line_breaks>
         <comments />
         <dependencies />
+    </expected>
+</test>
+<test name="demo_3">
+    <input>
+        -- Load the bundled university schema
+        LOAD uni FROM 'https://dashql.blob.core.windows.net/static/data/uni/de/all.zip';
+
+        -- Extract the parquet files in the zip archive
+        EXTRACT vorlesungen FROM uni['vorlesungen.parquet'];
+        EXTRACT hoeren FROM uni['hoeren.parquet'];
+        EXTRACT studenten FROM uni['studenten.parquet'];
+
+        -- Run arbitrary SQL
+        CREATE VIEW foo AS
+            SELECT studenten.MatrNr, vorlesungen.Titel
+            FROM studenten, hoeren, vorlesungen
+            WHERE studenten.MatrNr = hoeren.MatrNr
+            AND hoeren.VorlNr = vorlesungen.VorlNr;
+
+        CREATE VIEW foo2 AS
+            SELECT sws, count(*) as cnt
+            FROM vorlesungen
+            GROUP BY sws;
+
+        -- Visualize the result with a simple table
+        VIZ foo USING TABLE (
+            title = 'Some Table',
+            position = (row = 0, column = 0, width = 12, height = 4),
+        );
+    </input>
+    <expected>
+        <statements>
+            <statement type="LOAD" name="main.uni">
+                <node type="OBJECT_DASHQL_LOAD" loc="55..134" text="LOAD uni F..e/all.zip'">
+                    <node key="DASHQL_LOAD_FROM_URI" loc="69..134" text="'https://d..e/all.zip'" />
+                    <node key="DASHQL_STATEMENT_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="60..63" text="uni">
+                        <node key="SQL_QUALIFIED_NAME_RELATION" loc="60..63" text="uni" />
+                    </node>
+                </node>
+            </statement>
+            <statement type="EXTRACT" name="main.vorlesungen">
+                <node type="OBJECT_DASHQL_EXTRACT" loc="201..252" text="EXTRACT vo...parquet']">
+                    <node key="DASHQL_EXTRACT_DATA" type="OBJECT_SQL_QUALIFIED_NAME" loc="226..252" text="uni['vorle...parquet']">
+                        <node key="SQL_QUALIFIED_NAME_INDEX" type="OBJECT_SQL_INDIRECTION_INDEX" loc="229..252" text="['vorlesun...parquet']">
+                            <node key="SQL_INDIRECTION_INDEX_VALUE" loc="230..251" text="'vorlesung..n.parquet'" />
+                        </node>
+                        <node key="SQL_QUALIFIED_NAME_RELATION" loc="226..229" text="uni" />
+                    </node>
+                    <node key="DASHQL_STATEMENT_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="209..220" text="vorlesungen">
+                        <node key="SQL_QUALIFIED_NAME_RELATION" loc="209..220" text="vorlesungen" />
+                    </node>
+                </node>
+            </statement>
+            <statement type="EXTRACT" name="main.hoeren">
+                <node type="OBJECT_DASHQL_EXTRACT" loc="262..303" text="EXTRACT ho...parquet']">
+                    <node key="DASHQL_EXTRACT_DATA" type="OBJECT_SQL_QUALIFIED_NAME" loc="282..303" text="uni['hoere...parquet']">
+                        <node key="SQL_QUALIFIED_NAME_INDEX" type="OBJECT_SQL_INDIRECTION_INDEX" loc="285..303" text="['hoeren.parquet']">
+                            <node key="SQL_INDIRECTION_INDEX_VALUE" loc="286..302" text="'hoeren.parquet'" />
+                        </node>
+                        <node key="SQL_QUALIFIED_NAME_RELATION" loc="282..285" text="uni" />
+                    </node>
+                    <node key="DASHQL_STATEMENT_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="270..276" text="hoeren">
+                        <node key="SQL_QUALIFIED_NAME_RELATION" loc="270..276" text="hoeren" />
+                    </node>
+                </node>
+            </statement>
+            <statement type="EXTRACT" name="main.studenten">
+                <node type="OBJECT_DASHQL_EXTRACT" loc="313..360" text="EXTRACT st...parquet']">
+                    <node key="DASHQL_EXTRACT_DATA" type="OBJECT_SQL_QUALIFIED_NAME" loc="336..360" text="uni['stude...parquet']">
+                        <node key="SQL_QUALIFIED_NAME_INDEX" type="OBJECT_SQL_INDIRECTION_INDEX" loc="339..360" text="['studente...parquet']">
+                            <node key="SQL_INDIRECTION_INDEX_VALUE" loc="340..359" text="'studenten.parquet'" />
+                        </node>
+                        <node key="SQL_QUALIFIED_NAME_RELATION" loc="336..339" text="uni" />
+                    </node>
+                    <node key="DASHQL_STATEMENT_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="321..330" text="studenten">
+                        <node key="SQL_QUALIFIED_NAME_RELATION" loc="321..330" text="studenten" />
+                    </node>
+                </node>
+            </statement>
+            <statement type="CREATE_VIEW" name="main.foo">
+                <node type="OBJECT_SQL_VIEW" loc="400..623" text="CREATE VIE..gen.VorlNr">
+                    <node key="SQL_VIEW_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="412..415" text="foo">
+                        <node key="SQL_QUALIFIED_NAME_RELATION" loc="412..415" text="foo" />
+                    </node>
+                    <node key="SQL_VIEW_STATEMENT" type="OBJECT_SQL_VIEW" loc="431..623" text="SELECT stu..gen.VorlNr">
+                        <node key="SQL_SELECT_FROM">
+                            <node type="OBJECT_SQL_TABLE_REF" loc="491..500" text="studenten">
+                                <node key="SQL_TABLE_INHERIT" value="true" />
+                                <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="491..500" text="studenten">
+                                    <node key="SQL_QUALIFIED_NAME_RELATION" loc="491..500" text="studenten" />
+                                </node>
+                            </node>
+                            <node type="OBJECT_SQL_TABLE_REF" loc="502..508" text="hoeren">
+                                <node key="SQL_TABLE_INHERIT" value="true" />
+                                <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="502..508" text="hoeren">
+                                    <node key="SQL_QUALIFIED_NAME_RELATION" loc="502..508" text="hoeren" />
+                                </node>
+                            </node>
+                            <node type="OBJECT_SQL_TABLE_REF" loc="510..521" text="vorlesungen">
+                                <node key="SQL_TABLE_INHERIT" value="true" />
+                                <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="510..521" text="vorlesungen">
+                                    <node key="SQL_QUALIFIED_NAME_RELATION" loc="510..521" text="vorlesungen" />
+                                </node>
+                            </node>
+                        </node>
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_COLUMN_REF" loc="438..454" text="studenten.MatrNr">
+                                <node key="SQL_COLUMN_REF_PATH">
+                                    <node loc="438..447" text="studenten" />
+                                    <node loc="448..454" text="MatrNr" />
+                                </node>
+                            </node>
+                            <node type="OBJECT_SQL_COLUMN_REF" loc="456..473" text="vorlesungen.Titel">
+                                <node key="SQL_COLUMN_REF_PATH">
+                                    <node loc="456..467" text="vorlesungen" />
+                                    <node loc="468..473" text="Titel" />
+                                </node>
+                            </node>
+                        </node>
+                        <node key="SQL_SELECT_WHERE" type="OBJECT_SQL_EXPRESSION" loc="540..623" text="studenten...gen.VorlNr">
+                            <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_EXPRESSION" loc="540..572" text="studenten...ren.MatrNr">
+                                <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="540..556" text="studenten.MatrNr">
+                                    <node key="SQL_COLUMN_REF_PATH">
+                                        <node loc="540..549" text="studenten" />
+                                        <node loc="550..556" text="MatrNr" />
+                                    </node>
+                                </node>
+                                <node key="SQL_EXPRESSION_ARG1" type="OBJECT_SQL_COLUMN_REF" loc="559..572" text="hoeren.MatrNr">
+                                    <node key="SQL_COLUMN_REF_PATH">
+                                        <node loc="559..565" text="hoeren" />
+                                        <node loc="566..572" text="MatrNr" />
+                                    </node>
+                                </node>
+                                <node key="SQL_EXPRESSION_FUNCTION" value="EQUAL" />
+                            </node>
+                            <node key="SQL_EXPRESSION_ARG1" type="OBJECT_SQL_EXPRESSION" loc="589..623" text="hoeren.Vor..gen.VorlNr">
+                                <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="589..602" text="hoeren.VorlNr">
+                                    <node key="SQL_COLUMN_REF_PATH">
+                                        <node loc="589..595" text="hoeren" />
+                                        <node loc="596..602" text="VorlNr" />
+                                    </node>
+                                </node>
+                                <node key="SQL_EXPRESSION_ARG1" type="OBJECT_SQL_COLUMN_REF" loc="605..623" text="vorlesungen.VorlNr">
+                                    <node key="SQL_COLUMN_REF_PATH">
+                                        <node loc="605..616" text="vorlesungen" />
+                                        <node loc="617..623" text="VorlNr" />
+                                    </node>
+                                </node>
+                                <node key="SQL_EXPRESSION_FUNCTION" value="EQUAL" />
+                            </node>
+                            <node key="SQL_EXPRESSION_FUNCTION" value="AND" />
+                        </node>
+                    </node>
+                    <node key="SQL_VIEW_TEMP" value="DEFAULT" />
+                </node>
+            </statement>
+            <statement type="CREATE_VIEW" name="main.foo2">
+                <node type="OBJECT_SQL_VIEW" loc="634..747" text="CREATE VIE..OUP BY sws">
+                    <node key="SQL_VIEW_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="646..650" text="foo2">
+                        <node key="SQL_QUALIFIED_NAME_RELATION" loc="646..650" text="foo2" />
+                    </node>
+                    <node key="SQL_VIEW_STATEMENT" type="OBJECT_SQL_VIEW" loc="666..747" text="SELECT sws..OUP BY sws">
+                        <node key="SQL_SELECT_FROM">
+                            <node type="OBJECT_SQL_TABLE_REF" loc="711..722" text="vorlesungen">
+                                <node key="SQL_TABLE_INHERIT" value="true" />
+                                <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="711..722" text="vorlesungen">
+                                    <node key="SQL_QUALIFIED_NAME_RELATION" loc="711..722" text="vorlesungen" />
+                                </node>
+                            </node>
+                        </node>
+                        <node key="SQL_SELECT_GROUPS">
+                            <node type="OBJECT_SQL_COLUMN_REF" loc="744..747" text="sws">
+                                <node key="SQL_COLUMN_REF_PATH">
+                                    <node loc="744..747" text="sws" />
+                                </node>
+                            </node>
+                        </node>
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_COLUMN_REF" loc="673..676" text="sws">
+                                <node key="SQL_COLUMN_REF_PATH">
+                                    <node loc="673..676" text="sws" />
+                                </node>
+                            </node>
+                            <node type="OBJECT_SQL_RESULT_TARGET" loc="678..693" text="count(*) as cnt">
+                                <node key="SQL_RESULT_TARGET_NAME" loc="690..693" text="cnt" />
+                            </node>
+                        </node>
+                    </node>
+                    <node key="SQL_VIEW_TEMP" value="DEFAULT" />
+                </node>
+            </statement>
+            <statement type="VIZUALIZE">
+                <node type="OBJECT_DASHQL_VIZ" loc="810..945" text="VIZ foo US..&#10;        )">
+                    <node key="DASHQL_VIZ_COMPONENTS">
+                        <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="824..945" text="TABLE (&#10;  ..&#10;        )">
+                            <node key="DASHQL_VIZ_COMPONENT_TYPE" value="TABLE" />
+                            <node key="DASHQL_OPTION_POSITION" type="OBJECT_DASHQL_OPTION_LIST" loc="889..934" text="(row = 0, ..eight = 4)">
+                                <node key="DASHQL_OPTION_ROW" loc="896..897" text="0" />
+                                <node key="DASHQL_OPTION_COLUMN" loc="908..909" text="0" />
+                                <node key="DASHQL_OPTION_WIDTH" loc="919..921" text="12" />
+                                <node key="DASHQL_OPTION_HEIGHT" loc="932..933" text="4" />
+                            </node>
+                            <node key="DASHQL_OPTION_TITLE" loc="852..864" text="'Some Table'" />
+                        </node>
+                    </node>
+                    <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLE_REF" loc="814..817" text="foo">
+                        <node key="SQL_TABLE_INHERIT" value="true" />
+                        <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="814..817" text="foo">
+                            <node key="SQL_QUALIFIED_NAME_RELATION" loc="814..817" text="foo" />
+                        </node>
+                    </node>
+                </node>
+            </statement>
+        </statements>
+        <errors />
+        <line_breaks>
+            <line_break loc="0..1" text="&#10;" />
+            <line_break loc="46..47" text="&#10;" />
+            <line_break loc="135..136" text="&#10;" />
+            <line_break loc="136..137" text="&#10;" />
+            <line_break loc="192..193" text="&#10;" />
+            <line_break loc="253..254" text="&#10;" />
+            <line_break loc="304..305" text="&#10;" />
+            <line_break loc="361..362" text="&#10;" />
+            <line_break loc="362..363" text="&#10;" />
+            <line_break loc="391..392" text="&#10;" />
+            <line_break loc="418..419" text="&#10;" />
+            <line_break loc="473..474" text="&#10;" />
+            <line_break loc="521..522" text="&#10;" />
+            <line_break loc="572..573" text="&#10;" />
+            <line_break loc="624..625" text="&#10;" />
+            <line_break loc="625..626" text="&#10;" />
+            <line_break loc="653..654" text="&#10;" />
+            <line_break loc="693..694" text="&#10;" />
+            <line_break loc="722..723" text="&#10;" />
+            <line_break loc="748..749" text="&#10;" />
+            <line_break loc="749..750" text="&#10;" />
+            <line_break loc="801..802" text="&#10;" />
+            <line_break loc="831..832" text="&#10;" />
+            <line_break loc="865..866" text="&#10;" />
+            <line_break loc="935..936" text="&#10;" />
+            <line_break loc="946..947" text="&#10;" />
+        </line_breaks>
+        <comments>
+            <comment loc="9..46" text="-- Load th..ity schema" />
+            <comment loc="145..192" text="-- Extract..ip archive" />
+            <comment loc="371..391" text="-- Run arb..itrary SQL" />
+            <comment loc="758..801" text="-- Visuali..mple table" />
+        </comments>
+        <dependencies>
+            <dependency type="TABLE_REF" source="0" target="1" loc="226..252" text="uni['vorle...parquet']" />
+            <dependency type="TABLE_REF" source="0" target="2" loc="282..303" text="uni['hoere...parquet']" />
+            <dependency type="TABLE_REF" source="0" target="3" loc="336..360" text="uni['stude...parquet']" />
+            <dependency type="TABLE_REF" source="3" target="4" loc="491..500" text="studenten" />
+            <dependency type="TABLE_REF" source="2" target="4" loc="502..508" text="hoeren" />
+            <dependency type="TABLE_REF" source="1" target="4" loc="510..521" text="vorlesungen" />
+            <dependency type="TABLE_REF" source="1" target="5" loc="711..722" text="vorlesungen" />
+            <dependency type="TABLE_REF" source="4" target="6" loc="814..817" text="foo" />
+        </dependencies>
     </expected>
 </test>

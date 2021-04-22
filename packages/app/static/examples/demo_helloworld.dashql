@@ -13,6 +13,11 @@ CREATE VIEW foo AS
     WHERE studenten.MatrNr = hoeren.MatrNr
     AND hoeren.VorlNr = vorlesungen.VorlNr;
 
+CREATE VIEW foo2 AS
+    SELECT sws, count(*)::INTEGER as cnt
+    FROM vorlesungen
+    GROUP BY sws;
+
 -- Visualize the result with a simple table
 VIZ foo USING TABLE (
     title = 'Some Table',

@@ -14,6 +14,7 @@
 #include "dashql/analyzer/syntax_matcher.h"
 #include "dashql/common/enum.h"
 #include "dashql/parser/parser_driver.h"
+#include "dashql/parser/qualified_name.h"
 #include "dashql/proto_generated.h"
 #include "nonstd/span.h"
 #include "rapidjson/document.h"
@@ -35,6 +36,8 @@ class VizStatement {
     const size_t statement_id_;
     /// The AST index
     const ASTIndex ast_;
+    /// The target
+    parser::QualifiedNameView target_ = {};
     /// The components
     std::vector<std::unique_ptr<VizComponent>> components_;
     /// The provided position.
@@ -52,6 +55,8 @@ class VizStatement {
     VizStatement(ProgramInstance& instance, size_t statement_id, ASTIndex ast);
     /// Get the instance
     auto& instance() { return instance_; }
+    /// Get the target text
+    auto& target() const { return target_; };
     /// Get the ast
     auto& ast() { return ast_; }
     /// Get the component
@@ -62,8 +67,6 @@ class VizStatement {
     auto& computed_position() { return computed_position_; }
     /// Get the title
     auto& title() { return title_; }
-    /// Get the target text
-    sx::Location GetTarget() const;
     /// Print as script
     void PrintScript(std::ostream& out) const;
     /// Pack the viz specs

@@ -1570,7 +1570,7 @@
                     </node>
                 </node>
             </statement>
-            <statement type="SELECT" name="main.b">
+            <statement type="SELECT">
                 <node type="OBJECT_SQL_SELECT" loc="34..49" text="select 1 from b">
                     <node key="SQL_SELECT_FROM">
                         <node type="OBJECT_SQL_TABLE_REF" loc="48..49" text="b">
@@ -1630,7 +1630,7 @@
                     </node>
                 </node>
             </statement>
-            <statement type="SELECT" name="main.b">
+            <statement type="SELECT">
                 <node type="OBJECT_SQL_SELECT" loc="75..111" text="select c f..main.a + 1">
                     <node key="SQL_SELECT_FROM">
                         <node type="OBJECT_SQL_TABLE_REF" loc="89..90" text="b">

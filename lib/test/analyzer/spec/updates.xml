@@ -91,8 +91,7 @@
         <inputs />
         <evaluations />
         <cards>
-            <visualization>
-                <target loc="148..151" text="foo" />
+            <visualization target="main.foo">
                 <components>
                     <component type="TABLE">{}</component>
                 </components>
@@ -111,7 +110,7 @@
                 FROM generate_series(0, 1000000) AS a(a1)</script>
                 </action>
                 <action origin="1" type="CREATE_VIZ" status="NONE" object_id="1">
-                    <target name="main.foo" />
+                    <target name="" />
                     <depends_on>
                         <ref action="0" />
                     </depends_on>
@@ -132,8 +131,7 @@
         <inputs />
         <evaluations />
         <cards>
-            <visualization>
-                <target loc="148..151" text="foo" />
+            <visualization target="main.foo">
                 <components>
                     <component type="TABLE">{}</component>
                 </components>
@@ -156,7 +154,7 @@
                 FROM generate_series(0, 1000000) AS a(a1)</script>
                 </action>
                 <action origin="1" type="UPDATE_VIZ" status="NONE" object_id="1">
-                    <target name="main.foo" />
+                    <target name="" />
                     <depends_on>
                         <ref action="0" />
                     </depends_on>
@@ -177,8 +175,7 @@
         <inputs />
         <evaluations />
         <cards>
-            <visualization>
-                <target loc="148..151" text="foo" />
+            <visualization target="main.foo">
                 <components>
                     <component type="TABLE">{}</component>
                 </components>
@@ -197,7 +194,7 @@
                 FROM generate_series(0, 1000000) AS a(a1)</script>
                 </action>
                 <action origin="1" type="CREATE_VIZ" status="COMPLETED" object_id="1">
-                    <target name="main.foo" />
+                    <target name="" />
                     <depends_on>
                         <ref action="0" />
                     </depends_on>
@@ -218,8 +215,7 @@
         <inputs />
         <evaluations />
         <cards>
-            <visualization>
-                <target loc="148..151" text="foo" />
+            <visualization target="main.foo">
                 <components>
                     <component type="TABLE">{}</component>
                 </components>
@@ -231,7 +227,7 @@
                     <target name="main.foo" />
                 </action>
                 <action type="IMPORT_VIZ" status="NONE" object_id="1">
-                    <target name="main.foo" />
+                    <target name="" />
                 </action>
             </setup>
             <program>
@@ -245,7 +241,7 @@
                 FROM generate_series(0, 1000000) AS a(a1)</script>
                 </action>
                 <action origin="1" type="CREATE_VIZ" status="NONE" object_id="1">
-                    <target name="main.foo" />
+                    <target name="" />
                     <depends_on>
                         <ref action="0" />
                     </depends_on>

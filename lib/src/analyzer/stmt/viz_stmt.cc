@@ -19,6 +19,7 @@
 #include "dashql/common/string.h"
 #include "dashql/common/substring_buffer.h"
 #include "dashql/parser/grammar/enums.h"
+#include "dashql/parser/qualified_name.h"
 #include "dashql/proto_generated.h"
 #include "nonstd/span.h"
 #include "rapidjson/ostreamwrapper.h"
@@ -58,7 +59,12 @@ std::unique_ptr<VizStatement> VizStatement::ReadFrom(ProgramInstance& instance, 
         .MatchChildren({
             sxm::Attribute(sx::AttributeKey::DASHQL_VIZ_COMPONENTS, SX_COMPONENTS)
                 .MatchArray(),
-            sxm::Attribute(sx::AttributeKey::DASHQL_VIZ_TARGET, SX_TARGET),
+            sxm::Attribute(sx::AttributeKey::DASHQL_VIZ_TARGET)
+                .MatchObject(sx::NodeType::OBJECT_SQL_TABLE_REF)
+                .MatchChildren({
+                    sxm::Attribute(sx::AttributeKey::SQL_TABLE_NAME, SX_TARGET)
+                        .MatchObject(sx::NodeType::OBJECT_SQL_QUALIFIED_NAME)
+                }),
         });
     // clang-format on
 
@@ -73,6 +79,12 @@ std::unique_ptr<VizStatement> VizStatement::ReadFrom(ProgramInstance& instance, 
     // Create the viz statement
     auto viz = std::make_unique<VizStatement>(instance, stmt_id, std::move(ast));
 
+    // Read viz target
+    viz->target_ =
+        parser::QualifiedNameView::ReadFrom(program.nodes, instance.program_text(), viz->ast_[SX_TARGET].node_id)
+            .WithDefaultSchema(instance.script_options().global_namespace)
+            .WithoutIndex();
+
     // Read all components
     std::vector<std::unique_ptr<VizComponent>> components;
     components.reserve(comps_node.children_count());
@@ -83,12 +95,6 @@ std::unique_ptr<VizStatement> VizStatement::ReadFrom(ProgramInstance& instance, 
     }
     viz->components_ = std::move(components);
     return viz;
-}
-
-/// Get the target text
-sx::Location VizStatement::GetTarget() const {
-    auto& nodes = instance_.program().nodes;
-    return nodes[ast_[SX_TARGET].node_id].location();
 }
 
 /// Print statement as script
@@ -108,6 +114,9 @@ void VizStatement::PrintScript(std::ostream& out) const {
 
 /// Pack the viz specs
 flatbuffers::Offset<proto::analyzer::Card> VizStatement::PackCard(flatbuffers::FlatBufferBuilder& builder) const {
+    // Add the target
+    auto target = builder.CreateString(target_.ToString());
+
     // Pack components
     std::vector<fb::Offset<proto::analyzer::VizComponent>> component_offsets;
     for (auto& c : components_) {
@@ -129,6 +138,7 @@ flatbuffers::Offset<proto::analyzer::Card> VizStatement::PackCard(flatbuffers::F
     card_builder.add_card_position(&computed_position_.value());
     if (title_offset) card_builder.add_card_title(*title_offset);
     card_builder.add_statement_id(statement_id_);
+    card_builder.add_viz_target(target);
     card_builder.add_viz_components(component_ofs_vec);
     return card_builder.Finish();
 }
