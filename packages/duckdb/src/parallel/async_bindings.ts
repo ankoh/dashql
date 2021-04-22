@@ -7,6 +7,7 @@ import {
     WorkerTaskVariant,
     WorkerTask,
     ConnectionID,
+    ZipExtractToFileArgs,
 } from './worker_request';
 import { Logger } from '../log';
 import { AsyncDuckDBConnection } from './async_connection';
@@ -197,6 +198,12 @@ export class AsyncDuckDB {
                     return;
                 }
                 break;
+            case WorkerRequestType.ZIP_EXTRACT_FILE:
+                if (response.type == WorkerResponseType.OK) {
+                    task.promiseResolver(response.data);
+                    return;
+                }
+                break;
         }
         task.promiseRejecter(new Error(`unexpected response type: ${response.type.toString()}`));
     }
@@ -336,6 +343,19 @@ export class AsyncDuckDB {
         const task = new WorkerTask<WorkerRequestType.GET_FILE_BUFFER, number, Uint8Array | null>(
             WorkerRequestType.GET_FILE_BUFFER,
             file_id,
+        );
+        return await this.postTask(task);
+    }
+
+    /** Extract a zip file */
+    public async extractZipPath(archiveFile: number, outFile: number, entryPath: string): Promise<Uint8Array | null> {
+        const task = new WorkerTask<WorkerRequestType.ZIP_EXTRACT_FILE, ZipExtractToFileArgs, null>(
+            WorkerRequestType.ZIP_EXTRACT_FILE,
+            {
+                archiveFile: archiveFile,
+                outFile: outFile,
+                entryPath: entryPath,
+            },
         );
         return await this.postTask(task);
     }

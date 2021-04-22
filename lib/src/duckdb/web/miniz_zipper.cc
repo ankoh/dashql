@@ -88,9 +88,9 @@ arrow::Status Zipper::LoadFromFile(std::string_view path) {
     auto ok = duckdb_miniz::mz_zip_reader_init_mem(&reader.archive, archive_data.data(), archive_data.size(), 0);
     if (!ok) {
         auto error = duckdb_miniz::mz_zip_get_last_error(&reader.archive);
-        auto msg = duckdb_miniz::mz_zip_get_error_string(error);
+        auto msg = std::string{duckdb_miniz::mz_zip_get_error_string(error)};
         current_reader_.reset();
-        return arrow::Status{arrow::StatusCode::ExecutionError, std::move(msg)};
+        return arrow::Status{arrow::StatusCode::ExecutionError, msg};
     }
 
     return arrow::Status::OK();
@@ -165,7 +165,7 @@ size_t extractToBufferManager(void* p_opaque, duckdb_miniz::mz_uint64 file_ofs, 
 }
 
 /// Extract an entry to a file
-arrow::Result<size_t> Zipper::ExtractEntryToFile(size_t entryID, std::string_view path) {
+arrow::Result<size_t> Zipper::ExtractEntryToPath(size_t entryID, std::string_view path) {
     if (!current_reader_) return 0;
 
     // Read file stat
@@ -187,7 +187,7 @@ arrow::Result<size_t> Zipper::ExtractEntryToFile(size_t entryID, std::string_vie
 }
 
 /// Extract an entry to a file
-arrow::Result<size_t> Zipper::ExtractFileToFile(const char* in, std::string_view out) {
+arrow::Result<size_t> Zipper::ExtractPathToPath(const char* in, std::string_view out) {
     if (!current_reader_) return 0;
 
     // Locate a file path

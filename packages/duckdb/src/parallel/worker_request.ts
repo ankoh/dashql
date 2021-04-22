@@ -1,7 +1,6 @@
 // Copyright (c) 2020 The DashQL Authors
 
 import { LogEntryVariant } from '../log';
-import { ZipArchiveEntryInfo } from '../plugins/zip_bindings';
 
 export type ConnectionID = number;
 
@@ -20,9 +19,7 @@ export enum WorkerRequestType {
     RUN_QUERY = 'RUN_QUERY',
     SEND_QUERY = 'SEND_QUERY',
     FETCH_QUERY_RESULTS = 'FETCH_QUERY_RESULTS',
-    ZIP_LOAD_FILE = 'ZIP_LOAD_FILE',
-    ZIP_READ_ENTRY_INFO = 'ZIP_READ_ENTRY_INFO',
-    ZIP_EXTRACT_TO_FILE = 'ZIP_EXTRACT_TO_FILE',
+    ZIP_EXTRACT_FILE = 'ZIP_EXTRACT_FILE',
 }
 
 export enum WorkerResponseType {
@@ -38,9 +35,6 @@ export enum WorkerResponseType {
     QUERY_RESULT_CHUNK = 'QUERY_RESULT_CHUNK',
     QUERY_START = 'QUERY_START',
     REGISTERED_FILE = 'REGISTERED_FILE',
-    ZIP_ENTRY_COUNT = 'ZIP_ENTRY_COUNT',
-    ZIP_ENTRY_INFO = 'ZIP_ENTRY_INFO',
-    ZIP_ENTRY_PATH = 'ZIP_ENTRY_PATH',
 }
 
 export type WorkerRequest<T, P> = {
@@ -75,6 +69,12 @@ export class WorkerTask<T, D, P> {
     }
 }
 
+export interface ZipExtractToFileArgs {
+    archiveFile: number;
+    outFile: number;
+    entryPath: string;
+}
+
 export type WorkerRequestVariant =
     | WorkerRequest<WorkerRequestType.RESET, null>
     | WorkerRequest<WorkerRequestType.PING, null>
@@ -90,9 +90,7 @@ export type WorkerRequestVariant =
     | WorkerRequest<WorkerRequestType.RUN_QUERY, [number, string]>
     | WorkerRequest<WorkerRequestType.SEND_QUERY, [number, string]>
     | WorkerRequest<WorkerRequestType.FETCH_QUERY_RESULTS, number>
-    | WorkerRequest<WorkerRequestType.ZIP_LOAD_FILE, string>
-    | WorkerRequest<WorkerRequestType.ZIP_READ_ENTRY_INFO, number>
-    | WorkerRequest<WorkerRequestType.ZIP_EXTRACT_TO_FILE, string>;
+    | WorkerRequest<WorkerRequestType.ZIP_EXTRACT_FILE, ZipExtractToFileArgs>;
 
 export type WorkerResponseVariant =
     | WorkerResponse<WorkerResponseType.LOG, LogEntryVariant>
@@ -106,10 +104,7 @@ export type WorkerResponseVariant =
     | WorkerResponse<WorkerResponseType.QUERY_RESULT, Uint8Array>
     | WorkerResponse<WorkerResponseType.QUERY_RESULT_CHUNK, Uint8Array>
     | WorkerResponse<WorkerResponseType.QUERY_START, Uint8Array>
-    | WorkerResponse<WorkerResponseType.QUERY_PLAN, Uint8Array>
-    | WorkerResponse<WorkerResponseType.ZIP_ENTRY_PATH, string>
-    | WorkerResponse<WorkerResponseType.ZIP_ENTRY_INFO, ZipArchiveEntryInfo>
-    | WorkerResponse<WorkerResponseType.ZIP_ENTRY_COUNT, number>;
+    | WorkerResponse<WorkerResponseType.QUERY_PLAN, Uint8Array>;
 
 export type WorkerTaskVariant =
     | WorkerTask<WorkerRequestType.RESET, null, null>
@@ -126,6 +121,4 @@ export type WorkerTaskVariant =
     | WorkerTask<WorkerRequestType.SEND_QUERY, [ConnectionID, string], Uint8Array>
     | WorkerTask<WorkerRequestType.RUN_QUERY, [ConnectionID, string], Uint8Array>
     | WorkerTask<WorkerRequestType.FETCH_QUERY_RESULTS, ConnectionID, Uint8Array>
-    | WorkerTask<WorkerRequestType.ZIP_LOAD_FILE, string, number>
-    | WorkerTask<WorkerRequestType.ZIP_READ_ENTRY_INFO, number, ZipArchiveEntryInfo>
-    | WorkerTask<WorkerRequestType.ZIP_EXTRACT_TO_FILE, undefined, string>;
+    | WorkerTask<WorkerRequestType.ZIP_EXTRACT_FILE, ZipExtractToFileArgs, null>;
