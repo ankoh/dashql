@@ -1,6 +1,6 @@
 import * as React from 'react';
 import * as core from '@dashql/core';
-import { BoardEditor, EditorLoader, StudioCommandBar, StudioToolBar, BoardCommandBar } from '../components';
+import { BoardEditor, EditorLoader, StudioCommandBar, BoardCommandBar } from '../components';
 import { AppState, Dispatch } from '../model';
 import { connect } from 'react-redux';
 
