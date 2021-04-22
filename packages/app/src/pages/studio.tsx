@@ -35,7 +35,6 @@ class Studio extends React.Component<Props> {
                         </div>
                     </div>
                     <EditorLoader className={styles.program_editor} />
-                    <StudioToolBar />
                 </div>
                 <div className={styles.board}>
                     <BoardEditor immutable={false} scaleFactor={1.0} />
