@@ -102,7 +102,7 @@ export class DataGrid extends React.Component<Props, State> {
     protected renderColumnHeaderCell(props: GridCellProps): JSX.Element {
         return (
             <div key={props.key} className={styles.cell_header_col} style={{ ...props.style }}>
-                {'foo'}
+                {this.props.table.columnNames[props.columnIndex] || '?'}
             </div>
         );
     }
