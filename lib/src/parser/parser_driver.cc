@@ -121,6 +121,13 @@ NodeID ParserDriver::AddNode(sx::Node node) {
     auto text = scanner_.input_text();
     switch (node.node_type()) {
         case sx::NodeType::OBJECT_DASHQL_VIZ:
+            if (auto name_id = FindAttribute(node, Key::DASHQL_VIZ_TARGET); name_id) {
+                current_statement_.table_refs.push_back(
+                    {*name_id,
+                     QualifiedNameView::ReadFrom(nodes_, text, *name_id).WithDefaultSchema(options_.global_namespace)});
+            }
+            break;
+
         case sx::NodeType::OBJECT_DASHQL_LOAD:
         case sx::NodeType::OBJECT_DASHQL_INPUT:
             if (auto name_id = FindAttribute(node, Key::DASHQL_STATEMENT_NAME); name_id) {
@@ -381,6 +388,7 @@ void ParserDriver::AddStatement(sx::Node node) {
     }
     current_statement_.type = stmt_type;
     statements_.push_back(std::move(current_statement_));
+    current_statement_.reset();
 }
 
 /// Add an error

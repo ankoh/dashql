@@ -208,14 +208,12 @@
         </evaluations>
         <cards>
             <input name="country" component="TEXT" />
-            <visualization>
-                <target loc="317..328" text="weather_avg" />
+            <visualization target="main.weather_avg">
                 <components>
                     <component type="LINE">{}</component>
                 </components>
             </visualization>
-            <visualization>
-                <target loc="357..368" text="weather_avg" />
+            <visualization target="main.weather_avg">
                 <components>
                     <component type="TABLE">{}</component>
                 </components>
@@ -260,13 +258,13 @@
                     <script>SELECT * INTO weather_avg FROM weather</script>
                 </action>
                 <action origin="4" type="CREATE_VIZ" status="NONE" object_id="4">
-                    <target name="main.weather_avg" />
+                    <target name="" />
                     <depends_on>
                         <ref action="3" />
                     </depends_on>
                 </action>
                 <action origin="5" type="CREATE_VIZ" status="NONE" object_id="5">
-                    <target name="main.weather_avg" />
+                    <target name="" />
                     <depends_on>
                         <ref action="3" />
                     </depends_on>
@@ -296,14 +294,12 @@
         </evaluations>
         <cards>
             <input name="country" component="TEXT" />
-            <visualization>
-                <target loc="372..383" text="weather_avg" />
+            <visualization target="main.weather_avg">
                 <components>
                     <component type="LINE">{}</component>
                 </components>
             </visualization>
-            <visualization>
-                <target loc="412..426" text="weather_binned" />
+            <visualization target="main.weather_binned">
                 <components>
                     <component type="BAR">{}</component>
                 </components>
@@ -358,13 +354,13 @@
                     <script>SELECT * INTO weather_binned FROM weather</script>
                 </action>
                 <action origin="5" type="CREATE_VIZ" status="NONE" object_id="5">
-                    <target name="main.weather_binned" />
+                    <target name="" />
                     <depends_on>
                         <ref action="3" />
                     </depends_on>
                 </action>
                 <action origin="6" type="CREATE_VIZ" status="NONE" object_id="6">
-                    <target name="main.weather_binned" />
+                    <target name="" />
                     <depends_on>
                         <ref action="4" />
                     </depends_on>
@@ -399,14 +395,12 @@
         <cards>
             <input name="country" component="TEXT" />
             <input name="month" component="TEXT" />
-            <visualization>
-                <target loc="471..482" text="weather_avg" />
+            <visualization target="main.weather_avg">
                 <components>
                     <component type="LINE">{}</component>
                 </components>
             </visualization>
-            <visualization>
-                <target loc="511..525" text="weather_binned" />
+            <visualization target="main.weather_binned">
                 <components>
                     <component type="BAR">{}</component>
                 </components>
@@ -470,13 +464,13 @@
                     <script>SELECT * INTO weather_binned FROM weather WHERE month = 5</script>
                 </action>
                 <action origin="6" type="CREATE_VIZ" status="NONE" object_id="6">
-                    <target name="main.weather_binned" />
+                    <target name="" />
                     <depends_on>
                         <ref action="4" />
                     </depends_on>
                 </action>
                 <action origin="7" type="CREATE_VIZ" status="NONE" object_id="7">
-                    <target name="main.weather_binned" />
+                    <target name="" />
                     <depends_on>
                         <ref action="5" />
                     </depends_on>
@@ -584,8 +578,7 @@
             <input name="country1" component="TEXT" />
             <input name="country2" component="TEXT" />
             <input name="month" component="TEXT" />
-            <visualization>
-                <target loc="762..778" text="countries_joined" />
+            <visualization target="main.countries_joined">
                 <components>
                     <component type="LINE">{}</component>
                 </components>
@@ -661,7 +654,7 @@
                     <script>SELECT * INTO countries_joined FROM country1_weather c1, country2_weather c2 WHERE c1.month = c2.month AND c2.month = 5</script>
                 </action>
                 <action origin="8" type="CREATE_VIZ" status="NONE" object_id="8">
-                    <target name="main.countries_joined" />
+                    <target name="" />
                     <depends_on>
                         <ref action="7" />
                     </depends_on>
@@ -679,8 +672,7 @@
         <inputs />
         <evaluations />
         <cards>
-            <visualization>
-                <target loc="105..108" text="foo" />
+            <visualization target="main.foo">
                 <components>
                     <component type="TABLE">{}</component>
                 </components>
@@ -697,7 +689,7 @@
                     <script>CREATE TABLE foo AS SELECT v::INTEGER FROM generate_series(0, 100) AS t(v)</script>
                 </action>
                 <action origin="1" type="CREATE_VIZ" status="NONE" object_id="1">
-                    <target name="main.foo" />
+                    <target name="" />
                     <depends_on>
                         <ref action="0" />
                     </depends_on>
@@ -720,8 +712,7 @@
         <inputs />
         <evaluations />
         <cards>
-            <visualization title="sometitle">
-                <target loc="111..122" text="weather_avg" />
+            <visualization target="main.weather_avg" title="sometitle">
                 <position row="0" column="0" width="4" height="15" />
                 <components>
                     <component type="BAR">{"position":{"row":0.0,"column":0.0,"width":4.0,"height":15.0},"title":"sometitle","x":"a","y":"b"}</component>
@@ -740,7 +731,7 @@
                     <script>CREATE TABLE foo AS SELECT v::INTEGER FROM generate_series(0, 100) AS t(v)</script>
                 </action>
                 <action origin="1" type="CREATE_VIZ" status="NONE" object_id="1">
-                    <target name="main.foo" />
+                    <target name="" />
                 </action>
             </program>
         </graph>
@@ -762,8 +753,7 @@
         <inputs />
         <evaluations />
         <cards>
-            <visualization title="Line Chart">
-                <target loc="17..20" text="foo" />
+            <visualization target="main.foo" title="Line Chart">
                 <position row="0" column="6" width="6" height="4" />
                 <components>
                     <component type="VEGA">{"position":{"row":0.0,"column":6.0,"width":6.0,"height":4.0},"title":"Line Chart","encoding":{"x":{"field":"x","type":"quantitative"},"y":{"field":"y","type":"quantitative"}},"mark":"line"}</component>
@@ -818,6 +808,120 @@
                     <target name="main.studenten" />
                     <depends_on>
                         <ref action="0" />
+                    </depends_on>
+                </action>
+            </program>
+        </graph>
+    </step>
+</test>
+<test name="demo_2">
+    <step>
+        <text>
+            -- Load the bundled university schema
+            LOAD uni FROM 'https://dashql.blob.core.windows.net/static/data/uni/de/all.zip';
+
+            -- Extract the parquet files in the zip archive
+            EXTRACT vorlesungen FROM uni['vorlesungen.parquet'];
+            EXTRACT hoeren FROM uni['hoeren.parquet'];
+            EXTRACT studenten FROM uni['studenten.parquet'];
+
+            -- Run arbitrary SQL
+            CREATE VIEW foo AS
+                SELECT studenten.MatrNr, vorlesungen.Titel
+                FROM studenten, hoeren, vorlesungen
+                WHERE studenten.MatrNr = hoeren.MatrNr
+                AND hoeren.VorlNr = vorlesungen.VorlNr;
+
+            CREATE VIEW foo2 AS
+                SELECT sws, count(*) as cnt
+                FROM vorlesungen
+                GROUP BY sws;
+
+            -- Visualize the result with a simple table
+            VIZ foo USING TABLE (
+                title = 'Some Table',
+                position = (row = 0, column = 0, width = 12, height = 4),
+            );
+        </text>
+        <inputs />
+        <evaluations />
+        <cards>
+            <visualization target="main.foo" title="Some Table">
+                <position row="0" column="0" width="12" height="4" />
+                <components>
+                    <component type="TABLE">{"position":{"row":0.0,"column":0.0,"width":12.0,"height":4.0},"title":"Some Table"}</component>
+                </components>
+            </visualization>
+        </cards>
+        <graph next_object_id="7">
+            <setup />
+            <program>
+                <action origin="0" type="LOAD" status="NONE" object_id="0">
+                    <target name="main.uni" />
+                    <required_for>
+                        <ref action="1" />
+                        <ref action="2" />
+                        <ref action="3" />
+                    </required_for>
+                </action>
+                <action origin="1" type="EXTRACT" status="NONE" object_id="1">
+                    <target name="main.vorlesungen" />
+                    <depends_on>
+                        <ref action="0" />
+                    </depends_on>
+                    <required_for>
+                        <ref action="4" />
+                        <ref action="5" />
+                    </required_for>
+                </action>
+                <action origin="2" type="EXTRACT" status="NONE" object_id="2">
+                    <target name="main.hoeren" />
+                    <depends_on>
+                        <ref action="0" />
+                    </depends_on>
+                    <required_for>
+                        <ref action="4" />
+                    </required_for>
+                </action>
+                <action origin="3" type="EXTRACT" status="NONE" object_id="3">
+                    <target name="main.studenten" />
+                    <depends_on>
+                        <ref action="0" />
+                    </depends_on>
+                    <required_for>
+                        <ref action="4" />
+                    </required_for>
+                </action>
+                <action origin="4" type="CREATE_VIEW" status="NONE" object_id="4">
+                    <target name="main.foo" />
+                    <depends_on>
+                        <ref action="3" />
+                        <ref action="2" />
+                        <ref action="1" />
+                    </depends_on>
+                    <required_for>
+                        <ref action="6" />
+                    </required_for>
+                    <script>CREATE VIEW foo AS
+                SELECT studenten.MatrNr, vorlesungen.Titel
+                FROM studenten, hoeren, vorlesungen
+                WHERE studenten.MatrNr = hoeren.MatrNr
+                AND hoeren.VorlNr = vorlesungen.VorlNr</script>
+                </action>
+                <action origin="5" type="CREATE_VIEW" status="NONE" object_id="5">
+                    <target name="main.foo2" />
+                    <depends_on>
+                        <ref action="1" />
+                    </depends_on>
+                    <script>CREATE VIEW foo2 AS
+                SELECT sws, count(*) as cnt
+                FROM vorlesungen
+                GROUP BY sws</script>
+                </action>
+                <action origin="6" type="CREATE_VIZ" status="NONE" object_id="6">
+                    <target name="" />
+                    <depends_on>
+                        <ref action="4" />
                     </depends_on>
                 </action>
             </program>

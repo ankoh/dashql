@@ -16,18 +16,14 @@ export abstract class VizActionLogic extends ProgramActionLogic {
         super(action_id, action, statement);
     }
 
-    /// Get the qualified table name
-    protected get tableNameQualified(): string {
-        return this.buffer.nameQualified()!;
-    }
-
     /// Read context info
     public configureVizComposer(context: ActionContext): void {
         // Get the table info
         const programInstance = context.plan.programInstance;
-        const table = context.platform._databaseManager.resolveTableName(this.tableNameQualified);
+        const target = this._card.vizTarget();
+        const table = context.platform._databaseManager.resolveTableName(target);
         if (!table) {
-            throw new error.ActionLogicError(`target table ${this.tableNameQualified} does not exist`, programInstance);
+            throw new error.ActionLogicError(`target table ${target} does not exist`, programInstance);
         }
         // Build the composer
         const stats = context.platform._databaseManager.resolveTableStatistics(table.nameQualified)!;
@@ -98,14 +94,14 @@ export class CreateVizActionLogic extends VizActionLogic {
     public willExecute(context: ActionContext): void {
         this.configureVizComposer(context);
         this._rowCountPromise = context.platform.database.requestTableStatistics(
-            this.tableNameQualified,
+            this._card.vizTarget(),
             model.TableStatisticsType.COUNT_STAR,
         );
     }
 
     public async execute(context: ActionContext): Promise<void> {
         // Make sure the row count is available in the vizzes
-        await context.platform.database.evaluateTableStatistics(this.tableNameQualified);
+        await context.platform.database.evaluateTableStatistics(this._card.vizTarget());
         await this._rowCountPromise!;
 
         // Get viz info
@@ -177,14 +173,14 @@ export class UpdateVizActionLogic extends VizActionLogic {
     public willExecute(context: ActionContext): void {
         this.configureVizComposer(context);
         this._rowCountPromise = context.platform.database.requestTableStatistics(
-            this.tableNameQualified,
+            this._card.vizTarget(),
             model.TableStatisticsType.COUNT_STAR,
         );
     }
 
     public async execute(context: ActionContext): Promise<void> {
         // Make sure the row count is available in the vizzes
-        await context.platform.database.evaluateTableStatistics(this.tableNameQualified);
+        await context.platform.database.evaluateTableStatistics(this._card.vizTarget());
         await this._rowCountPromise!;
 
         // Get viz info
