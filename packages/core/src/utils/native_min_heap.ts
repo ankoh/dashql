@@ -80,12 +80,12 @@ export class NativeMinHeap {
             const l = 2 * i + 1;
             const r = 2 * i + 2;
             const prev = i;
-            if (l < this._size && this.rank(l) < this.rank(i)) {
-                this.swapAt(l, i);
+            if (l < this._size && this.rank(l) < this.rank(prev)) {
+                this.swapAt(l, prev);
                 i = l;
             }
-            if (r < this._size && this.rank(r) < this.rank(i)) {
-                this.swapAt(r, i);
+            if (r < this._size && this.rank(r) < this.rank(prev)) {
+                this.swapAt(r, prev);
                 i = r;
             }
             if (prev == i) {
@@ -141,5 +141,13 @@ export class NativeMinHeap {
     /// Get the current rank of a key
     public getRank(key: NativeMinHeapKey): number {
         return this.rank(this._index[key]);
+    }
+
+    public print(): string {
+        let buffer = '';
+        for (let i = 0; i < this._size; ++i) {
+            buffer += ` [${this.value(i)}]=${this.rank(i)}`;
+        }
+        return buffer;
     }
 }
