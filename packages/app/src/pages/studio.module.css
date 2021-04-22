@@ -13,7 +13,7 @@
     grid-column: 1;
     display: grid;
     grid-template-rows: calc(100% - var(--studio_program_info_height)) var(--studio_program_info_height);
-    grid-template-columns: 48px auto;
+    grid-template-columns: 100%;
 }
 
 .program_info {
@@ -50,14 +50,7 @@
     background-color: #ddd;
 }
 
-.program_graph {
-    grid-row: 1;
-    grid-column: 1 / 3;
-}
-
 .program_editor {
-    grid-row: 1;
-    grid-column: 2;
     position: relative;
     display: flex;
     flex-flow: column;
