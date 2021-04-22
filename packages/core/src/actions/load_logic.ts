@@ -13,11 +13,13 @@ export class LoadActionLogic extends ProgramActionLogic {
     public willExecute(_context: ActionContext): void {}
 
     /// Load via HTTP
-    protected async loadHTTP(context: ActionContext, url: string): Promise<Blob | null> {
+    protected async loadHTTP(context: ActionContext, url: string): Promise<ArrayBuffer | null> {
         const http = context.platform.http;
         try {
-            const resp = await http.request({ url: url });
-            return new Blob([resp.response.data]);
+            const resp = await http.request({
+                url: url,
+            });
+            return resp.response.data;
         } catch (e) {
             return null;
         }
@@ -42,9 +44,12 @@ export class LoadActionLogic extends ProgramActionLogic {
         // Load the Blob
         let blob: Blob | null;
         switch (load.method()) {
-            case proto.syntax.LoadMethodType.HTTP:
-                blob = await this.loadHTTP(context, load.url());
+            case proto.syntax.LoadMethodType.HTTP: {
+                const buffer = await this.loadHTTP(context, load.url());
+                blob = new Blob([buffer]);
+                console.log(blob);
                 break;
+            }
             default:
                 console.error('not implemented');
                 // XXX

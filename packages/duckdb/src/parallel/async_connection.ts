@@ -17,6 +17,8 @@ interface IAsyncDuckDB {
     runQuery(conn: number, text: string): Promise<Uint8Array>;
     sendQuery(conn: number, text: string): Promise<Uint8Array>;
     fetchQueryResults(conn: number): Promise<Uint8Array>;
+
+    extractZipPath(archiveFile: number, outFile: number, entryPath: string): Promise<number>;
 }
 
 /** An async result stream iterator */

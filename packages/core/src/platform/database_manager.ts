@@ -46,6 +46,11 @@ export class DatabaseManager {
         await this.connect();
     }
 
+    /// Use the duckdb directly
+    public useUnsafe(): duckdb.AsyncDuckDB {
+        return this._duckdb;
+    }
+
     /// Use the connection
     public async use<T>(f: (conn: duckdb.AsyncConnection) => Promise<T>): Promise<T> {
         return await this._connectionMutex.useAsync(async () => {

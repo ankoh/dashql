@@ -35,7 +35,10 @@ export class HTTPManager {
         // Send HTTP request
         req.onDownloadProgress = (event: ProgressEvent) => onProgress(event);
         try {
-            const res = await axios.request<ArrayBuffer>(req);
+            const res = await axios.request<ArrayBuffer>({
+                ...req,
+                responseType: 'arraybuffer',
+            });
             this._logger.log({
                 timestamp: new Date(),
                 level: model.LogLevel.INFO,
