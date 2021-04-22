@@ -7,7 +7,6 @@ interface IDuckDBBindings {
     runQuery(conn: number, text: string): Uint8Array;
     sendQuery(conn: number, text: string): Uint8Array;
     fetchQueryResults(conn: number): Uint8Array;
-    importCSV(conn: number, filePath: string, schemaName: string, tableName: string): void;
 }
 
 /** A result stream iterator */
@@ -81,9 +80,5 @@ export class DuckDBConnection {
         console.assert(reader.isSync());
         console.assert(reader.isStream());
         return reader as arrow.RecordBatchStreamReader;
-    }
-
-    public importCSV(filePath: string, schemaName: string, tableName: string): void {
-        this._bindings.importCSV(this._conn, filePath, schemaName, tableName);
     }
 }

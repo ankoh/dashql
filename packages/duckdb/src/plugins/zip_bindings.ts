@@ -68,11 +68,24 @@ export class ZipBindings {
         return JSON.parse(res) as ZipArchiveEntryInfo;
     }
 
-    public extractEntryToFile(entryID: number, file: string): number {
+    public extractEntryToPath(entryID: number, path: string): number {
         const [s, d, n] = this._duckdb.callSRet(
-            'duckdb_web_zip_extract_entry_to_file',
+            'duckdb_web_zip_extract_entry_to_path',
             ['number', 'string'],
-            [entryID, file],
+            [entryID, path],
+        );
+        if (s !== StatusCode.SUCCESS) {
+            throw new Error(this._duckdb.readString(d, n));
+        }
+        this._duckdb.dropResponseBuffers();
+        return d;
+    }
+
+    public extractPathToPath(inPath: string, outPath: string): number {
+        const [s, d, n] = this._duckdb.callSRet(
+            'duckdb_web_zip_extract_path_to_path',
+            ['string', 'string'],
+            [inPath, outPath],
         );
         if (s !== StatusCode.SUCCESS) {
             throw new Error(this._duckdb.readString(d, n));

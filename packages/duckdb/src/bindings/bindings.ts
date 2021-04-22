@@ -50,6 +50,10 @@ export abstract class DuckDBBindings {
     public addFileBuffer(url: string, buffer: Uint8Array): number {
         return this._runtime.duckdb_web_add_file_buffer(url, buffer);
     }
+    /// Get the file path
+    public getFilePath(fileId: number): string | null {
+        return this._runtime.duckdb_web_get_file_path(fileId);
+    }
     /// Get the file object URL
     public getFileObjectURL(fileId: number): string | null {
         const path = this._runtime.duckdb_web_get_file_path(fileId);
@@ -184,17 +188,5 @@ export abstract class DuckDBBindings {
         const res = this.copyBuffer(d, n);
         this.dropResponseBuffers();
         return res;
-    }
-
-    /// Import csv from a given URL
-    public importCSV(conn: number, filePath: string, schemaName: string, tableName: string): void {
-        const [s, d, n] = this.callSRet(
-            'duckdb_web_csv_import',
-            ['number', 'string', 'string', 'string'],
-            [conn, filePath, schemaName, tableName],
-        );
-        if (s !== StatusCode.SUCCESS) {
-            throw new Error(this.readString(d, n));
-        }
     }
 }

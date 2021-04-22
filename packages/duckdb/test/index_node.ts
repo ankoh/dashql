@@ -55,9 +55,11 @@ import { testBatchStream } from './batch_stream.test';
 import { testFilesystem } from './filesystem.test';
 import { testAsyncBatchStream } from './batch_stream_async.test';
 import { testZip } from './zip.test';
+import { testZipAsync } from './zip_async.test';
 
 testBindings(() => db!);
 testBatchStream(() => db!);
 testAsyncBatchStream(() => adb!);
 testFilesystem(() => adb!, resolveData);
 testZip(() => db!, resolveData);
+testZipAsync(() => adb!, resolveData);
