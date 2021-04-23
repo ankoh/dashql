@@ -145,6 +145,17 @@ export abstract class DuckDBBindings {
         this.instance!.ccall('duckdb_web_flush_files', null, [], []);
     }
 
+    /** Get the version */
+    public getVersion(): string {
+        const [s, d, n] = this.callSRet('duckdb_web_get_version', [], []);
+        if (s !== StatusCode.SUCCESS) {
+            throw new Error(this.readString(d, n));
+        }
+        const version = this.readString(d, n);
+        this.dropResponseBuffers();
+        return version;
+    }
+
     /** Connect to database */
     public connect(): DuckDBConnection {
         const instance = this._instance!;

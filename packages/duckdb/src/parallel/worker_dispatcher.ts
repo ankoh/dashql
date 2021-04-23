@@ -97,6 +97,17 @@ export abstract class AsyncDuckDBDispatcher implements Logger {
         // Catch every exception and forward it as error message to the main thread
         try {
             switch (request.type) {
+                case WorkerRequestType.GET_VERSION:
+                    this.postMessage(
+                        {
+                            messageId: this._nextMessageId++,
+                            requestId: request.messageId,
+                            type: WorkerResponseType.VERSION_STRING,
+                            data: this._bindings.getVersion(),
+                        },
+                        [],
+                    );
+                    break;
                 case WorkerRequestType.RESET:
                     this._bindings = null;
                     this.sendOK(request);

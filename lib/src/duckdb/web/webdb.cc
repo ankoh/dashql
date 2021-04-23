@@ -137,6 +137,9 @@ WebDB::WebDB()
     zip_ = std::make_unique<Zipper>(buffer_manager_);
 }
 
+/// Get the version
+std::string_view WebDB::GetVersion() { return database_->LibraryVersion(); }
+
 /// Create a session
 WebDB::Connection* WebDB::Connect() {
     auto conn = std::make_unique<WebDB::Connection>(*this);

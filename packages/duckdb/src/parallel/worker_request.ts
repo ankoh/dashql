@@ -5,6 +5,7 @@ import { LogEntryVariant } from '../log';
 export type ConnectionID = number;
 
 export enum WorkerRequestType {
+    GET_VERSION = 'GET_VERSION',
     RESET = 'RESET',
     PING = 'PING',
     FLUSH_FILES = 'FLUSH_FILES',
@@ -23,6 +24,7 @@ export enum WorkerRequestType {
 }
 
 export enum WorkerResponseType {
+    VERSION_STRING = 'VERSION_STRING',
     LOG = 'LOG',
     OK = 'OK',
     ERROR = 'ERROR',
@@ -76,6 +78,7 @@ export interface ZipExtractToFileArgs {
 }
 
 export type WorkerRequestVariant =
+    | WorkerRequest<WorkerRequestType.GET_VERSION, null>
     | WorkerRequest<WorkerRequestType.RESET, null>
     | WorkerRequest<WorkerRequestType.PING, null>
     | WorkerRequest<WorkerRequestType.FLUSH_FILES, null>
@@ -93,6 +96,7 @@ export type WorkerRequestVariant =
     | WorkerRequest<WorkerRequestType.ZIP_EXTRACT_FILE, ZipExtractToFileArgs>;
 
 export type WorkerResponseVariant =
+    | WorkerResponse<WorkerResponseType.VERSION_STRING, string>
     | WorkerResponse<WorkerResponseType.LOG, LogEntryVariant>
     | WorkerResponse<WorkerResponseType.OK, null>
     | WorkerResponse<WorkerResponseType.ERROR, any>
@@ -107,6 +111,7 @@ export type WorkerResponseVariant =
     | WorkerResponse<WorkerResponseType.QUERY_PLAN, Uint8Array>;
 
 export type WorkerTaskVariant =
+    | WorkerTask<WorkerRequestType.GET_VERSION, null, string>
     | WorkerTask<WorkerRequestType.RESET, null, null>
     | WorkerTask<WorkerRequestType.PING, null, null>
     | WorkerTask<WorkerRequestType.FLUSH_FILES, null, null>
