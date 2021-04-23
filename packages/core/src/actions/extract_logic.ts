@@ -22,10 +22,7 @@ export class ExtractActionLogic extends ProgramActionLogic {
         const instance = context.plan.programInstance;
         const stmtId = this._origin.statementId;
         const xtr = instance.extractStatements.get(stmtId);
-        if (!xtr) {
-            console.log(`missing information for extract statement ${stmtId}`);
-            return;
-        }
+        if (!xtr) throw new Error(`missing information for extract statement ${stmtId}`);
 
         const logger = context.platform.logger;
         const stmt = instance.program.getStatement(this._origin.statementId);
@@ -41,27 +38,9 @@ export class ExtractActionLogic extends ProgramActionLogic {
         const planState = state.core.planState;
         const blobName = xtr.dataSource();
         const blobID = planState.blobsByName.get(blobName);
-        if (!blobID) {
-            logger.log({
-                timestamp: new Date(),
-                level: model.LogLevel.INFO,
-                origin: model.LogOrigin.EXTRACT_LOGIC,
-                topic: model.LogTopic.EXECUTE,
-                event: model.LogEvent.ERROR,
-                value: `missing blob id for blob '${blobID}'`,
-            });
-        }
+        if (blobID === undefined) throw new Error(`missing blob id for blob '${blobID}'`);
         const blob = planState.objects.get(blobID) as model.BlobRef;
-        if (!blob) {
-            logger.log({
-                timestamp: new Date(),
-                level: model.LogLevel.INFO,
-                origin: model.LogOrigin.EXTRACT_LOGIC,
-                topic: model.LogTopic.EXECUTE,
-                event: model.LogEvent.ERROR,
-                value: `blob '${blobName}' is not registered in duckdb`,
-            });
-        }
+        if (!blob) throw new Error(`blob '${blobName}' is not registered in duckdb`);
 
         // Get the input file
         const getInput = async (conn: duckdb.AsyncConnection) => {
