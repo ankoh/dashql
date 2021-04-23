@@ -107,6 +107,8 @@ export class NativeMinHeap {
     }
     /// Pop the back of the vector
     protected popBack(): void {
+        console.assert(this._size > 0);
+        this._index[this.value(this._size - 1)] = -1;
         --this._size;
     }
     /// Pop the min element
@@ -117,18 +119,21 @@ export class NativeMinHeap {
     }
     /// Decrement a key
     public decrementRank(key: NativeMinHeapKey, by = 1): void {
+        console.assert(this._index[key] != -1);
         const i = this._index[key];
         this._entries[2 * i + 1] -= Math.min(this._entries[2 * i + 1], by);
         this.siftUp(i);
     }
     /// Increment a key
     public incrementRank(key: NativeMinHeapKey, by = 1): void {
+        console.assert(this._index[key] != -1);
         const i = this._index[key];
         this._entries[2 * i + 1] += Math.min(this._entries[2 * i + 1], by);
         this.siftDown(i);
     }
     /// Set a key
     public setRank(key: NativeMinHeapKey, rank: number): void {
+        console.assert(this._index[key] != -1);
         const i = this._index[key];
         const prev = this._entries[2 * i + 1];
         this._entries[2 * i + 1] = rank;

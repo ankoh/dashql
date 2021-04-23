@@ -37,6 +37,7 @@ VIZ foo USING VEGA (
 );`,
         table: {
             nameQualified: 'global.foo',
+            tableType: model.TableType.TABLE,
             columnNames: ['x', 'y'],
             columnNameMapping: new Map([
                 ['x', 0],
@@ -101,6 +102,7 @@ VIZ foo USING LINE (
 );`,
         table: {
             nameQualified: 'global.foo',
+            tableType: model.TableType.TABLE,
             columnNames: ['x', 'y'],
             columnNameMapping: new Map([
                 ['x', 0],

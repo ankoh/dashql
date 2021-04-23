@@ -30,16 +30,9 @@ export class LoadActionLogic extends ProgramActionLogic {
         const stmtId = this._origin.statementId;
         const load = instance.loadStatements.get(stmtId);
         if (!load) {
-            console.log(`missing information for load statement ${stmtId}`);
+            console.warn(`missing information for load statement ${stmtId}`);
             return;
         }
-        const stmt = instance.program.getStatement(this._origin.statementId);
-
-        console.log(`load objectID: ${this.buffer.objectId()}`);
-        console.log(`load name: ${stmt.nameQualified}`);
-        console.log(`load method: ${proto.syntax.LoadMethodType[load.method()].toString()}`);
-        console.log(`load url: ${load.url()}`);
-        console.log(`load archive: ${proto.analyzer.ArchiveMode[load.archive()].toString()}`);
 
         // Load the Blob
         let blob: Blob | null;
@@ -47,7 +40,6 @@ export class LoadActionLogic extends ProgramActionLogic {
             case proto.syntax.LoadMethodType.HTTP: {
                 const buffer = await this.loadHTTP(context, load.url());
                 blob = new Blob([buffer]);
-                console.log(blob);
                 break;
             }
             default:
