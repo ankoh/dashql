@@ -319,8 +319,6 @@ export class VizComposer {
 
         // Analyze the field type
         const analyzeFieldType = (enc: any, columnID: number) => {
-            console.log(enc);
-            console.log(`analyze field type ${columnID}`);
             if (!isTypedFieldDef(enc)) {
                 switch (table.columnTypes[columnID].typeId) {
                     case arrow.Type.Int:
@@ -378,7 +376,6 @@ export class VizComposer {
                 if (isFieldDef(enc) && enc.field) {
                     const fieldName = enc.field.toString();
                     const columnID = table.columnNameMapping.get(fieldName);
-                    console.log(`col mapping ${fieldName} -> ${columnID}`);
                     if (columnID != undefined && columnID != null) {
                         analyzeFieldType(enc, columnID);
                         analyzeScale(enc, columnID);
@@ -408,6 +405,7 @@ export class VizComposer {
             const x = layer.encoding?.x;
             const y = layer.encoding?.y;
             if (x && y && isFieldDef(x) && isFieldDef(y) && x.field && y.field) {
+                //
                 if (x.type === 'quantitative' && y.type === 'quantitative') {
                     preferM5 = true;
                 }

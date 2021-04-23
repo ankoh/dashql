@@ -12,13 +12,10 @@ export class ExtractActionLogic extends ProgramActionLogic {
         super(action_id, action, statement);
     }
 
-    public prepare(_context: ActionContext, _planObjects: PlanObject[]): void {
-        console.log(`EXTRACT PREPARE ${this.buffer.nameQualified()}`);
-    }
+    public prepare(_context: ActionContext, _planObjects: PlanObject[]): void {}
     public willExecute(_context: ActionContext): void {}
 
     public async execute(context: ActionContext): Promise<void> {
-        console.log(`EXTRACT EXECUTE ${this.buffer.nameQualified()}`);
         const instance = context.plan.programInstance;
         const stmtId = this._origin.statementId;
         const xtr = instance.extractStatements.get(stmtId);
@@ -27,11 +24,6 @@ export class ExtractActionLogic extends ProgramActionLogic {
         const logger = context.platform.logger;
         const stmt = instance.program.getStatement(this._origin.statementId);
         const name = this.buffer.nameQualified();
-        console.log(`extract objectID: ${this.buffer.objectId()}`);
-        console.log(`extract name: ${stmt.nameQualified}`);
-        console.log(`extract method: ${proto.syntax.ExtractMethodType[xtr.method()].toString()}`);
-        console.log(`extract source: ${xtr.dataSource()}`);
-        console.log(`extract source index: ${xtr.dataSourceIndex()}`);
 
         // Find the loaded blob
         const state = context.platform.store.getState();
@@ -49,7 +41,6 @@ export class ExtractActionLogic extends ProgramActionLogic {
                 case proto.analyzer.ArchiveMode.ZIP: {
                     const outPath = `blob://${this.buffer.nameQualified()}`;
                     const outId = await db.addFileBuffer(outPath, new Uint8Array());
-                    console.log(xtr.dataSourceIndex());
                     await db.extractZipPath(blob.fileId, outId, xtr.dataSourceIndex());
                     return outPath;
                 }
@@ -65,7 +56,6 @@ export class ExtractActionLogic extends ProgramActionLogic {
                 case proto.syntax.ExtractMethodType.PARQUET: {
                     filePath = await getInput(c);
                     const text = `CREATE VIEW ${name} AS (SELECT * FROM parquet_scan('${filePath}'));`;
-                    console.log(text);
                     await c.runQuery(text);
                     break;
                 }
@@ -83,6 +73,7 @@ export class ExtractActionLogic extends ProgramActionLogic {
                 timeCreated: now,
                 timeUpdated: now,
                 nameQualified: this.buffer.nameQualified() || '',
+                tableType: model.TableType.VIEW,
                 columnNames: [],
                 columnNameMapping: new Map(),
                 columnTypes: [],

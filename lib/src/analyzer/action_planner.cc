@@ -331,6 +331,12 @@ Signal ActionPlanner::MigrateActionGraph() {
                 s->action_type = import_action;
                 s->object_id = prev_action->object_id;
                 s->name_qualified = prev_action->name_qualified;
+
+                // If statement B depends on A, the setup action of B must be executed before A.
+                // This flips the original dependencies to ensure that, for example, derived views are dropped before
+                // tables.
+                s->depends_on = prev_action->required_for;
+                s->required_for = prev_action->depends_on;
             }
 
             // Map to new action.
@@ -370,9 +376,7 @@ Signal ActionPlanner::MigrateActionGraph() {
             s->name_qualified = prev_action->name_qualified;
             s->object_id = prev_action->object_id;
 
-            // If statement B depends on A, the setup action of B must be executed before A.
-            // This flips the original dependencies to ensure that, for example, derived views are dropped before
-            // tables.
+            // Store flipped dependencies (ref import).
             s->depends_on = prev_action->required_for;
             s->required_for = prev_action->depends_on;
         }
