@@ -5,29 +5,49 @@ include(ExternalProject)
 include(ProcessorCount)
 ProcessorCount(NCORES)
 
-set(PREFIX_CONF)
-set(PREFIX_MAKE CC="ccache ${CC}" CXX="ccache ${CXX}")
 if (EMSCRIPTEN)
-    set(PREFIX_CONF EMCC_CCACHE=1 emconfigure)
-    set(PREFIX_MAKE EMCC_CCACHE=1 emmake)
+    ExternalProject_Add(
+        jq_ep
+        PREFIX "third_party/jq"
+        SOURCE_DIR "${CMAKE_SOURCE_DIR}/../submodules/jq"
+        INSTALL_DIR "${CMAKE_BINARY_DIR}/third_party/jq/install"
+        CONFIGURE_COMMAND
+            COMMAND autoreconf -fi <SOURCE_DIR>
+            COMMAND EMCC_CCACHE=1 emconfigure <SOURCE_DIR>/configure
+                --disable-maintainer-mode
+                --with-oniguruma=builtin
+                --prefix=<INSTALL_DIR>
+        BUILD_COMMAND EMCC_CCACHE=1 emmake make -j${NCORES}
+        INSTALL_COMMAND emmake make install
+        DOWNLOAD_COMMAND ""
+        UPDATE_COMMAND ""
+        BUILD_BYPRODUCTS
+            <INSTALL_DIR>/lib/libjq.a
+            <INSTALL_DIR>/lib/libonig.a
+    )
+else ()
+    ExternalProject_Add(
+        jq_ep
+        PREFIX "third_party/jq"
+        SOURCE_DIR "${CMAKE_SOURCE_DIR}/../submodules/jq"
+        INSTALL_DIR "${CMAKE_BINARY_DIR}/third_party/jq/install"
+        CONFIGURE_COMMAND
+            COMMAND autoreconf -fi <SOURCE_DIR>
+            COMMAND <SOURCE_DIR>/configure
+                "CC=${CMAKE_C_COMPILER_LAUNCHER} ${CMAKE_C_COMPILER}"
+                "CXX=${CMAKE_CXX_COMPILER_LAUNCHER} ${CMAKE_CXX_COMPILER}"
+                --disable-maintainer-mode
+                --with-oniguruma=builtin
+                --prefix=<INSTALL_DIR>
+        BUILD_COMMAND make -j${NCORES}
+        INSTALL_COMMAND make install
+        DOWNLOAD_COMMAND ""
+        UPDATE_COMMAND ""
+        BUILD_BYPRODUCTS
+            <INSTALL_DIR>/lib/libjq.a
+            <INSTALL_DIR>/lib/libonig.a
+    )
 endif ()
-
-ExternalProject_Add(
-    jq_ep
-    PREFIX "third_party/jq"
-    SOURCE_DIR "${CMAKE_SOURCE_DIR}/../submodules/jq"
-    INSTALL_DIR "${CMAKE_BINARY_DIR}/third_party/jq/install"
-    CONFIGURE_COMMAND
-        COMMAND autoreconf -fi <SOURCE_DIR>
-        COMMAND ${PREFIX_CONF} <SOURCE_DIR>/configure --disable-maintainer-mode --with-oniguruma=builtin --prefix=<INSTALL_DIR>
-    BUILD_COMMAND ${PREFIX_MAKE} make -j${NCORES}
-    INSTALL_COMMAND ${PREFIX_MAKE} make install
-    DOWNLOAD_COMMAND ""
-    UPDATE_COMMAND ""
-    BUILD_BYPRODUCTS
-        <INSTALL_DIR>/lib/libjq.a
-        <INSTALL_DIR>/lib/libonig.a
-)
 
 ExternalProject_Get_Property(jq_ep install_dir)
 ExternalProject_Get_Property(jq_ep binary_dir)
