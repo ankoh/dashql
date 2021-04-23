@@ -2,7 +2,7 @@ const puppeteer = require('puppeteer');
 
 process.env.CHROME_BIN = puppeteer.executablePath();
 
-module.exports = function(config) {
+module.exports = function (config) {
     config.set({
         basePath: '../..',
         plugins: ['karma-jasmine', 'karma-chrome-launcher', 'karma-sourcemap-loader', 'karma-jasmine-html-reporter'],
@@ -34,5 +34,9 @@ module.exports = function(config) {
                 failFast: true,
             },
         },
+        captureTimeout: 60000,
+        browserDisconnectTimeout: 10000,
+        browserDisconnectTolerance: 1,
+        browserNoActivityTimeout: 60000,
     });
 };

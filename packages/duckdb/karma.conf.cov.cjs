@@ -2,7 +2,7 @@ const puppeteer = require('puppeteer');
 
 process.env.CHROME_BIN = puppeteer.executablePath();
 
-module.exports = function(config) {
+module.exports = function (config) {
     config.set({
         basePath: '../..',
         plugins: [
@@ -45,7 +45,7 @@ module.exports = function(config) {
         coverageReporter: {
             type: 'json',
             dir: './packages/duckdb/coverage/',
-            subdir: function(browser) {
+            subdir: function (browser) {
                 return browser.toLowerCase().split(/[ /-]/)[0];
             },
         },
@@ -54,5 +54,9 @@ module.exports = function(config) {
                 failFast: true,
             },
         },
+        captureTimeout: 60000,
+        browserDisconnectTimeout: 10000,
+        browserDisconnectTolerance: 1,
+        browserNoActivityTimeout: 60000,
     });
 };
