@@ -48,6 +48,7 @@ SET(CMAKE_MODULE_PATH
 )
 
 include("${CMAKE_SOURCE_DIR}/cmake/duckdb.cmake")
+include("${CMAKE_SOURCE_DIR}/cmake/jq.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/double-conversion.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/flatc.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/boost.cmake")
@@ -294,7 +295,7 @@ add_library(dashql_test
 )
 
 target_link_libraries(dashql_common dashql_proto flatbuffers spdlog rapidjson arrow duckdb)
-target_link_libraries(dashql_analyzer dashql_parser dashql_common dashql_proto spdlog duckdb rapidjson arrow)
+target_link_libraries(dashql_analyzer dashql_parser dashql_common dashql_proto spdlog duckdb rapidjson arrow jq)
 target_link_libraries(duckdb_web dashql_common dashql_proto duckdb spdlog arrow)
 target_link_libraries(dashql_test duckdb_web dashql_analyzer dashql_common dashql_proto pugixml gtest duckdb)
 
