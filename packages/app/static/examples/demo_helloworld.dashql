@@ -7,31 +7,33 @@ EXTRACT hoeren FROM uni['hoeren.parquet'];
 EXTRACT studenten FROM uni['studenten.parquet'];
 
 -- Run arbitrary SQL
-CREATE TABLE foo AS
+CREATE TABLE Enrolments AS
     SELECT studenten.MatrNr, vorlesungen.Titel
     FROM studenten, hoeren, vorlesungen
     WHERE studenten.MatrNr = hoeren.MatrNr
     AND hoeren.VorlNr = vorlesungen.VorlNr;
 
-CREATE TABLE foo2 AS
+-- ... with aggregates
+CREATE TABLE StudentCounts AS
     SELECT v.titel, count(*)::INTEGER as studenten
     FROM hoeren h, vorlesungen v
     where h.vorlnr = v.vorlnr
     GROUP BY v.titel;
 
-CREATE TABLE foo3 AS
+-- ... store as table or view
+CREATE VIEW SWSCounts AS
     SELECT v.sws, count(*)::INTEGER as cnt
     FROM vorlesungen v
     GROUP BY v.sws;
 
 -- Visualize the result with a simple table
-VIZ foo USING TABLE (
+VIZ Enrolments USING TABLE (
     title = 'Einschreibungen',
     position = (row = 3, column = 0, width = 12, height = 4),
 );
 
--- ... Or a bar chart
-VIZ foo2 USING VEGA (
+-- ... or a bar chart
+VIZ StudentCounts USING VEGA (
     title = 'Auslastung',
     position = (row = 0, column = 0, width = 6, height = 4),
     mark = 'bar',
@@ -51,7 +53,8 @@ VIZ foo2 USING VEGA (
     )
 );
 
-VIZ foo3 USING VEGA (
+-- ... or a pie chart
+VIZ SWSCounts USING VEGA (
     title = 'Wochenstunden',
     position = (row = 0, column = 6, width = 6, height = 4),
     mark = 'arc',
