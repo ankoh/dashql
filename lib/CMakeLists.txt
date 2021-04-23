@@ -356,6 +356,7 @@ if (EMSCRIPTEN)
             _main, \
             _malloc, \
             _free, \
+            _duckdb_web_get_version, \
             _duckdb_web_clear_response, \
             _duckdb_web_flush_files, \
             _duckdb_web_flush_file, \

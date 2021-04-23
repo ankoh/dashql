@@ -37,6 +37,8 @@ class WASMResponseBuffer {
     /// Store the arrow status.
     /// Returns wheather the result was OK
     bool Store(WASMResponse& response, arrow::Status status);
+    /// Store a string view
+    void Store(WASMResponse& response, std::string_view value);
     /// Store the result buffer
     void Store(WASMResponse& response, arrow::Result<std::shared_ptr<arrow::Buffer>> result);
     /// Store the result string

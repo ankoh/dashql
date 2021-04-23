@@ -129,6 +129,13 @@ export class AsyncDuckDB {
 
         // Otherwise differentiate between the tasks first
         switch (task.type) {
+            case WorkerRequestType.GET_VERSION:
+                if (response.type == WorkerResponseType.VERSION_STRING) {
+                    task.promiseResolver(response.data);
+                    return;
+                }
+                break;
+
             case WorkerRequestType.RESET:
             case WorkerRequestType.PING:
             case WorkerRequestType.OPEN:
@@ -247,6 +254,13 @@ export class AsyncDuckDB {
     public async open(wasm: string | null): Promise<null> {
         const task = new WorkerTask<WorkerRequestType.OPEN, string | null, null>(WorkerRequestType.OPEN, wasm);
         return await this.postTask(task);
+    }
+
+    /** Get the version */
+    public async getVersion(): Promise<string> {
+        const task = new WorkerTask<WorkerRequestType.GET_VERSION, null, string>(WorkerRequestType.GET_VERSION, null);
+        const version = await this.postTask(task);
+        return version;
     }
 
     /** Connect to the database */

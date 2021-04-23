@@ -43,6 +43,11 @@ void duckdb_web_flush_file(const char* path) {
     auto& webdb = WebDB::GetInstance();
     webdb.FlushFile(path);
 }
+/// Get the duckdb version
+void duckdb_web_get_version(WASMResponse* packed) {
+    auto& webdb = WebDB::GetInstance();
+    WASMResponseBuffer::GetInstance().Store(*packed, webdb.GetVersion());
+}
 /// Run a query
 void duckdb_web_query_run(WASMResponse* packed, ConnectionHdl connHdl, const char* script) {
     auto c = reinterpret_cast<WebDB::Connection*>(connHdl);

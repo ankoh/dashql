@@ -85,6 +85,8 @@ class WebDB {
     /// Get the zipper
     auto* zip() { return zip_.get(); }
 
+    /// Get the version
+    std::string_view GetVersion();
     /// Create a connection
     Connection* Connect();
     /// End a connection
