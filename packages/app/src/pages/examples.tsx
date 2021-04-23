@@ -15,8 +15,10 @@ import icon_close from '../../static/svg/icons/close.svg';
 
 function getFeatureTagLabel(tag: ScriptFeatureTag) {
     switch (tag) {
-        case ScriptFeatureTag.HTTP_SOURCE:
+        case ScriptFeatureTag.LOAD_HTTP:
             return 'HTTP';
+        case ScriptFeatureTag.LOAD_ARCHIVE_ZIP:
+            return 'ZIP ARCHIVE';
         case ScriptFeatureTag.DATA_CSV:
             return 'CSV';
         case ScriptFeatureTag.DATA_PARQUET:
