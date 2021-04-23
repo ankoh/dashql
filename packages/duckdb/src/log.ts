@@ -29,7 +29,6 @@ export enum LogOrigin {
     NODE_WORKER = 2,
     BINDINGS = 3,
     ASYNC_DUCKDB = 4,
-    ASYNC_ROW_ITERATOR = 5,
 }
 
 export type LogEntry<O, T, E, V> = {
