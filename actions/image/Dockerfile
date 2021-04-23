@@ -18,12 +18,12 @@ RUN apt-get update -qq \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /etc/apt/sources.list.d/google.list
 
-ARG EMSDK_VERSION="2.0.16"
+ARG EMSDK_VERSION="2.0.17"
 RUN mkdir -p /opt/emsdk \
     && cd /opt/emsdk \
     && curl -SL https://github.com/emscripten-core/emsdk/archive/${EMSDK_VERSION}.tar.gz | tar -xz --strip-components=1 \
-    && ./emsdk install ${EMSDK_VERSION} \
-    && ./emsdk activate ${EMSDK_VERSION} \
+    && ./emsdk install ${EMSDK_VERSION} ccache-git-emscripten-64bit \
+    && ./emsdk activate ${EMSDK_VERSION} ccache-git-emscripten-64bit \
     && /bin/bash ./emsdk_env.sh \
     && rm -rf ./emscripten/tag-*/tests \
     && rm -rf ./emscripten/tag-*/site \
