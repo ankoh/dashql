@@ -101,4 +101,6 @@ export async function launchApp(ctx: IAppContext): Promise<void> {
         type: model.StateMutationType.MARK_LAUNCH_COMPLETE,
         data: null,
     });
+
+    console.log(await db.getVersion());
 }

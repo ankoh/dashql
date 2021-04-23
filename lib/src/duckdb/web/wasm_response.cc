@@ -28,6 +28,12 @@ bool WASMResponseBuffer::Store(WASMResponse& response, arrow::Status status) {
     return true;
 }
 
+void WASMResponseBuffer::Store(WASMResponse& response, std::string_view value) {
+    response.statusCode = 0;
+    response.dataOrValue = reinterpret_cast<uintptr_t>(value.data());
+    response.dataSize = value.size();
+}
+
 void WASMResponseBuffer::Store(WASMResponse& response, arrow::Result<std::shared_ptr<arrow::Buffer>> result) {
     if (!Store(response, result.status())) return;
     result_arrow_ = std::move(result.ValueUnsafe());
