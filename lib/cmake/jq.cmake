@@ -18,8 +18,8 @@ ExternalProject_Add(
     PREFIX "third_party/jq"
     INSTALL_DIR "${CMAKE_BINARY_DIR}/third_party/jq/install"
     CONFIGURE_COMMAND
-        COMMAND cd <SOURCE_DIR> && autoreconf -fi
-        COMMAND cd <BINARY_DIR> && ${EMCONFIGURE} <SOURCE_DIR>/configure --disable-maintainer-mode --with-oniguruma=builtin --prefix=<INSTALL_DIR>
+        COMMAND autoreconf -fi <SOURCE_DIR>
+        COMMAND ${EMCONFIGURE} <SOURCE_DIR>/configure --disable-maintainer-mode --with-oniguruma=builtin --prefix=<INSTALL_DIR>
     BUILD_COMMAND ${EMMAKE} make -j${NCORES}
     INSTALL_COMMAND ${EMMAKE} make install
     DOWNLOAD_COMMAND ""
