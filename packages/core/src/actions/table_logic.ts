@@ -130,13 +130,9 @@ export class DropTableActionLogic extends SetupActionLogic {
         super(action_id, action);
     }
 
-    public prepare(_context: ActionContext): void {
-        console.log('PREPARE DROP ' + model.getActionIndex(this.actionId) + ' ' + this.buffer.nameQualified());
-        console.log(`DROP DEPENDS ON ${this.buffer.dependsOnArray()}`);
-    }
+    public prepare(_context: ActionContext): void {}
     public willExecute(_context: ActionContext): void {}
     public async execute(context: ActionContext): Promise<void> {
-        console.log('EXECUTE DROP ' + this.buffer.nameQualified());
         const db = context.platform.database;
         const store = context.platform.store;
         const state = store.getState();
@@ -144,7 +140,6 @@ export class DropTableActionLogic extends SetupActionLogic {
         if (table === undefined) return;
         const dropTarget = table.tableType == model.TableType.VIEW ? 'VIEW' : 'TABLE';
         await db.use(async (c: duckdb.AsyncConnection) => {
-            console.log(`DROP ${dropTarget} IF EXISTS ${this.buffer.nameQualified()}`);
             await c.runQuery(`DROP ${dropTarget} IF EXISTS ${this.buffer.nameQualified()}`);
         });
     }
