@@ -37,3 +37,6 @@
 [submodule "submodules/double-conversion"]
 	path = submodules/double-conversion
 	url = https://github.com/google/double-conversion
+[submodule "submodules/jq"]
+	path = submodules/jq
+	url = https://github.com/stedolan/jq
