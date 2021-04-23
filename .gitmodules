@@ -40,4 +40,4 @@
 [submodule "submodules/jq"]
 	path = submodules/jq
 	url = https://github.com/stedolan/jq
-	dirty = false
+	ignore = dirty
