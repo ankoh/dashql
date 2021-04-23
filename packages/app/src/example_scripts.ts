@@ -40,7 +40,8 @@ import icon_database_search from '../static/svg/icons/database_search.svg';
 import icon_package_down from '../static/svg/icons/package_down.svg';
 
 export enum ScriptFeatureTag {
-    HTTP_SOURCE,
+    LOAD_HTTP,
+    LOAD_ARCHIVE_ZIP,
     DATA_CSV,
     DATA_PARQUET,
     DYNAMIC_EXTRACT,
@@ -77,9 +78,12 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         title: 'University Schema',
         description: 'A third test hello world script',
         icon: icon_dashboard,
-        features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_),
+        features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_)
+            .set(ScriptFeatureTag.DATA_PARQUET)
+            .set(ScriptFeatureTag.LOAD_HTTP)
+            .set(ScriptFeatureTag.LOAD_ARCHIVE_ZIP),
         url: example_demo_unischema,
-        enabled: false,
+        enabled: true,
     },
     {
         key: 'viz_line',
