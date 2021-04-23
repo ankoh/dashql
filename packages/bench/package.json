@@ -6,7 +6,7 @@
     "license": "MPL-2.0",
     "dependencies": {
         "@dashql/core": "^0.0.2",
-        "@dashql/duckdb": "^0.0.25",
+        "@dashql/duckdb": "^0.0.26",
         "@dashql/proto": "^0.0.5",
         "@types/benchmark": "^2.1.0",
         "benny": "^3.6.15",
