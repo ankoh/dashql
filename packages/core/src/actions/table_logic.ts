@@ -6,26 +6,60 @@ import * as Immutable from 'immutable';
 import { ProgramActionLogic, SetupActionLogic } from './action_logic';
 import { ActionContext } from './action_context';
 
-/// XXX Delete this eventually in favor of the async statistics requests
 export async function collectTableInfo(conn: duckdb.AsyncConnection, info: model.Table): Promise<model.Table> {
-    // Get column names and types
-    const limit0 = await conn.runQuery(`SELECT * FROM ${info.nameQualified} LIMIT 0`);
     const columnNames: string[] = [];
     const columnNameMapping: Map<string, number> = new Map();
     const columnTypes: arrow.DataType[] = [];
-    for (let ci = 0; ci < limit0.schema.fields.length; ++ci) {
-        const field = limit0.schema.fields[ci];
-        console.log(`field: ${field.name} => ${ci}`);
-        columnNames.push(field.name);
-        columnNameMapping.set(field.name, ci);
-        columnTypes.push(field.type);
+    const describe = await conn.runQuery<{ Field: arrow.Utf8; Type: arrow.Utf8 }>(`DESCRIBE ${info.nameQualified}`);
+    let column = 0;
+    for (const row of describe) {
+        columnNames.push(row.Field);
+        columnNameMapping.set(row.Field, column++);
+        const mapType = (type: string): arrow.DataType => {
+            switch (type) {
+                case 'BOOLEAN':
+                    return new arrow.Bool();
+                case 'TINYINT':
+                    return new arrow.Int8();
+                case 'SMALLINT':
+                    return new arrow.Int16();
+                case 'INTEGER':
+                    return new arrow.Int32();
+                case 'BIGINT':
+                    return new arrow.Int64();
+                case 'UTINYINT':
+                    return new arrow.Uint8();
+                case 'USMALLINT':
+                    return new arrow.Uint16();
+                case 'UINTEGER':
+                    return new arrow.Uint32();
+                case 'UBIGINT':
+                    return new arrow.Uint64();
+                case 'FLOAT':
+                    return new arrow.Float32();
+                case 'HUGEINT':
+                    return new arrow.Decimal(32, 0);
+                case 'DOUBLE':
+                    return new arrow.Float64();
+                case 'VARCHAR':
+                    return new arrow.Utf8();
+                case 'DATE':
+                    return new arrow.DateDay();
+                case 'TIME':
+                    return new arrow.Time(arrow.TimeUnit.MILLISECOND, 32);
+                case 'TIMESTAMP':
+                    return new arrow.TimeNanosecond();
+                default:
+                    return new arrow.Null();
+            }
+        };
+        columnTypes.push(mapType(row.Type));
     }
     const timeUpdated = new Date();
     return {
         ...info,
         columnNames,
         columnNameMapping,
-        columnTypes,
         timeUpdated,
     };
 }

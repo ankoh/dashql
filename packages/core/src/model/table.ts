@@ -10,7 +10,7 @@ export interface Table extends PlanObject {
     readonly columnNames: string[];
     /// The column name indices
     readonly columnNameMapping: Map<string, number>;
-    /// The column type
+    /// The column types
     readonly columnTypes: arrow.DataType[];
     /// The statistics
     readonly statistics: Immutable.Map<TableStatisticsType, arrow.Column>;
