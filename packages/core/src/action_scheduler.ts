@@ -76,7 +76,7 @@ export class ActionScheduler<ActionBuffer extends ProtoAction> {
         for (let i = 0; i < actions.length; ++i) {
             switch (actions[i].status) {
                 case proto.action.ActionStatusCode.COMPLETED:
-                    this._completedActions.set(i);
+                    this.actionCompleted(i);
                     break;
                 case proto.action.ActionStatusCode.FAILED:
                     this._failedActions.set(i);
@@ -114,6 +114,15 @@ export class ActionScheduler<ActionBuffer extends ProtoAction> {
         return this._completedActions.allSet();
     }
 
+    /// An aciton completd
+    protected actionCompleted(actionIdx: number): void {
+        this._completedActions.set(actionIdx);
+        const requiredFor = this._actions[actionIdx].buffer.requiredForArray();
+        for (const req of requiredFor || []) {
+            this._actionQueue.decrementRank(req);
+        }
+    }
+
     /// Schedule all actions that can be scheduled.
     /// An action can be scheduled if its rank is zero in the dependency heap.
     protected scheduleNext(context: ActionContext, diff: NativeStack): void {
@@ -126,12 +135,7 @@ export class ActionScheduler<ActionBuffer extends ProtoAction> {
 
             // Action already done, register as completed?
             if (this._actions[action_idx].status == proto.action.ActionStatusCode.COMPLETED) {
-                const requiredFor = this._actions[action_idx].buffer.requiredForArray();
-                if (requiredFor) {
-                    for (const req of requiredFor) {
-                        this._actionQueue.decrementRank(req);
-                    }
-                }
+                this.actionCompleted(action_idx);
                 continue;
             }
             // Remember next action id
@@ -208,14 +212,8 @@ export class ActionScheduler<ActionBuffer extends ProtoAction> {
 
             case proto.action.ActionStatusCode.COMPLETED: {
                 this._scheduledActions.clear(action_idx);
-                this._completedActions.set(action_idx);
-                const requiredFor = this._actions[action_idx].buffer.requiredForArray();
-                if (requiredFor) {
-                    for (const req of requiredFor) {
-                        this._actionQueue.decrementRank(req);
-                    }
-                    this.scheduleNext(context, diff);
-                }
+                this.actionCompleted(action_idx);
+                this.scheduleNext(context, diff);
                 break;
             }
             case proto.action.ActionStatusCode.NONE:
@@ -336,7 +334,9 @@ export class ActionGraphScheduler {
         for (let i = 0; i < graph.setupActionsLength(); ++i) {
             const actionId = buildActionHandle(i, proto.action.ActionClass.SETUP_ACTION);
             const a = graph.setupActions(i)!;
-            setupLogic.push(resolveSetupActionLogic(actionId, a)!);
+            const logic = resolveSetupActionLogic(actionId, a)!;
+            logic.status = a.actionStatusCode();
+            setupLogic.push(logic);
             actionInfos.push({
                 actionId: actionId,
                 actionType: a.actionType(),
@@ -360,7 +360,9 @@ export class ActionGraphScheduler {
             const actionId = buildActionHandle(i, proto.action.ActionClass.PROGRAM_ACTION);
             const a = graph.programActions(i)!;
             const s = program.getStatement(a.originStatement());
-            programLogic.push(resolveProgramActionLogic(actionId, a, s)!);
+            const logic = resolveProgramActionLogic(actionId, a, s)!;
+            logic.status = a.actionStatusCode();
+            programLogic.push(logic);
             actionInfos.push({
                 actionId: actionId,
                 actionType: a.actionType(),

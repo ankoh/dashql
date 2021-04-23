@@ -31,6 +31,7 @@ export class ViewCreateActionLogic extends ProgramActionLogic {
                 timeCreated: now,
                 timeUpdated: now,
                 nameQualified: this.buffer.nameQualified() || '',
+                tableType: model.TableType.VIEW,
                 columnNames: [],
                 columnNameMapping: new Map(),
                 columnTypes: [],

@@ -4,8 +4,16 @@ import * as Immutable from 'immutable';
 import { PlanObject } from './plan_object';
 import * as arrow from 'apache-arrow';
 
+/// A table type
+export enum TableType {
+    TABLE = 0,
+    VIEW = 1,
+}
+
 /// A database table
 export interface Table extends PlanObject {
+    /// The table type
+    readonly tableType: TableType;
     /// The column names
     readonly columnNames: string[];
     /// The column name indices

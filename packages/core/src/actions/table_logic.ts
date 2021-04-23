@@ -88,6 +88,7 @@ export class CreateTableActionLogic extends ProgramActionLogic {
                 timeCreated: now,
                 timeUpdated: now,
                 nameQualified: this.buffer.nameQualified() || '',
+                tableType: model.TableType.TABLE,
                 columnNames: [],
                 columnNameMapping: new Map(),
                 columnTypes: [],
@@ -129,12 +130,22 @@ export class DropTableActionLogic extends SetupActionLogic {
         super(action_id, action);
     }
 
-    public prepare(_context: ActionContext): void {}
+    public prepare(_context: ActionContext): void {
+        console.log('PREPARE DROP ' + model.getActionIndex(this.actionId) + ' ' + this.buffer.nameQualified());
+        console.log(`DROP DEPENDS ON ${this.buffer.dependsOnArray()}`);
+    }
     public willExecute(_context: ActionContext): void {}
     public async execute(context: ActionContext): Promise<void> {
+        console.log('EXECUTE DROP ' + this.buffer.nameQualified());
         const db = context.platform.database;
+        const store = context.platform.store;
+        const state = store.getState();
+        const table = state.core.planState.objects.get(this.buffer.objectId()) as model.Table;
+        if (table === undefined) return;
+        const dropTarget = table.tableType == model.TableType.VIEW ? 'VIEW' : 'TABLE';
         await db.use(async (c: duckdb.AsyncConnection) => {
-            await c.runQuery(`DROP TABLE IF EXISTS ${this.buffer.nameQualified()}`);
+            console.log(`DROP ${dropTarget} IF EXISTS ${this.buffer.nameQualified()}`);
+            await c.runQuery(`DROP ${dropTarget} IF EXISTS ${this.buffer.nameQualified()}`);
         });
     }
 }
