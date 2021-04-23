@@ -14,11 +14,13 @@ endif ()
 
 ExternalProject_Add(
     jq_ep
-    SOURCE_DIR "${CMAKE_SOURCE_DIR}/../submodules/jq"
     PREFIX "third_party/jq"
+    SOURCE_DIR "${CMAKE_SOURCE_DIR}/../submodules/jq"
     INSTALL_DIR "${CMAKE_BINARY_DIR}/third_party/jq/install"
     CONFIGURE_COMMAND
-        COMMAND autoreconf -fi <SOURCE_DIR>
+        COMMAND pwd
+        COMMAND ls -lisah <SOURCE_DIR>
+        COMMAND cd <SOURCE_DIR> && autoreconf -fi
         COMMAND ${EMCONFIGURE} <SOURCE_DIR>/configure --disable-maintainer-mode --with-oniguruma=builtin --prefix=<INSTALL_DIR>
     BUILD_COMMAND ${EMMAKE} make -j${NCORES}
     INSTALL_COMMAND ${EMMAKE} make install
