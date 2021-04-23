@@ -8,8 +8,8 @@ ProcessorCount(NCORES)
 set(PREFIX_CONF)
 set(PREFIX_MAKE CC="ccache ${CC}" CXX="ccache ${CXX}")
 if (EMSCRIPTEN)
-    set(PREFIX_CONF emconfigure)
-    set(PREFIX_MAKE emmake)
+    set(PREFIX_CONF EMCC_CCACHE=1 emconfigure)
+    set(PREFIX_MAKE EMCC_CCACHE=1 emmake)
 endif ()
 
 ExternalProject_Add(
@@ -19,9 +19,9 @@ ExternalProject_Add(
     INSTALL_DIR "${CMAKE_BINARY_DIR}/third_party/jq/install"
     CONFIGURE_COMMAND
         COMMAND autoreconf -fi <SOURCE_DIR>
-        COMMAND ${EMCONFIGURE} <SOURCE_DIR>/configure --disable-maintainer-mode --with-oniguruma=builtin --prefix=<INSTALL_DIR>
-    BUILD_COMMAND ${EMMAKE} make -j${NCORES}
-    INSTALL_COMMAND ${EMMAKE} make install
+        COMMAND ${PREFIX_CONF} <SOURCE_DIR>/configure --disable-maintainer-mode --with-oniguruma=builtin --prefix=<INSTALL_DIR>
+    BUILD_COMMAND ${PREFIX_MAKE} make -j${NCORES}
+    INSTALL_COMMAND ${PREFIX_MAKE} make install
     DOWNLOAD_COMMAND ""
     UPDATE_COMMAND ""
     BUILD_BYPRODUCTS
