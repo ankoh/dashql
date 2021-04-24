@@ -17,7 +17,7 @@ namespace dashql {
 /// with other strings (e.g. substitute a variable with a constant literal).
 ///
 /// This buffer helps to do the following:
-///     A) Index the extracted substring buffer with the global locations.
+///     A) Index the loaded substring buffer with the global locations.
 ///     B) Maintain this index even when replacing a part of the substring with a string of different size.
 ///
 /// We assume that the number of edits is reasonably small.

@@ -7,7 +7,7 @@ export enum LogOrigin {
     SCRIPT_PIPELINE = 1002,
     SCAN_PROVIDER = 1003,
     ACTION_SCHEDULER = 1004,
-    EXTRACT_LOGIC = 1005,
+    LOAD_LOGIC = 1005,
     HTTP_MANAGER = 1006,
 }
 
@@ -51,8 +51,8 @@ export type LogEntryVariant =
     | LogEntry<LogOrigin.ACTION_SCHEDULER, LogTopic.EXECUTE_ACTION, LogEvent.ERROR, any>
     | LogEntry<LogOrigin.HTTP_MANAGER, LogTopic.REQUEST, LogEvent.ERROR, any>
     | LogEntry<LogOrigin.HTTP_MANAGER, LogTopic.REQUEST, LogEvent.OK, any>
-    | LogEntry<LogOrigin.EXTRACT_LOGIC, LogTopic.EXECUTE, LogEvent.OK, any>
-    | LogEntry<LogOrigin.EXTRACT_LOGIC, LogTopic.EXECUTE, LogEvent.ERROR, any>
+    | LogEntry<LogOrigin.LOAD_LOGIC, LogTopic.EXECUTE, LogEvent.OK, any>
+    | LogEntry<LogOrigin.LOAD_LOGIC, LogTopic.EXECUTE, LogEvent.ERROR, any>
     | duckdb.LogEntryVariant;
 
 export function getLogLevelLabel(level: duckdb.LogLevel): string {
@@ -104,8 +104,8 @@ export function getLogOriginLabel(origin: LogOrigin | duckdb.LogOrigin): string 
             return 'SCAN PROVIDER';
         case LogOrigin.ACTION_SCHEDULER:
             return 'ACTION SCHEDULER';
-        case LogOrigin.EXTRACT_LOGIC:
-            return 'EXTRACT LOGIC';
+        case LogOrigin.LOAD_LOGIC:
+            return 'LOAD LOGIC';
         case LogOrigin.HTTP_MANAGER:
             return 'HTTP';
         default:

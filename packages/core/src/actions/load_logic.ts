@@ -7,7 +7,7 @@ import { ProgramActionLogic } from './action_logic';
 import { ActionContext } from './action_context';
 import { collectTableInfo } from './table_logic';
 
-export class ExtractActionLogic extends ProgramActionLogic {
+export class LoadActionLogic extends ProgramActionLogic {
     constructor(action_id: ActionHandle, action: proto.action.ProgramAction, statement: Statement) {
         super(action_id, action, statement);
     }
@@ -18,8 +18,8 @@ export class ExtractActionLogic extends ProgramActionLogic {
     public async execute(context: ActionContext): Promise<void> {
         const instance = context.plan.programInstance;
         const stmtId = this._origin.statementId;
-        const xtr = instance.extractStatements.get(stmtId);
-        if (!xtr) throw new Error(`missing information for extract statement ${stmtId}`);
+        const xtr = instance.loadStatements.get(stmtId);
+        if (!xtr) throw new Error(`missing information for load statement ${stmtId}`);
 
         const logger = context.platform.logger;
         const stmt = instance.program.getStatement(this._origin.statementId);
@@ -49,17 +49,17 @@ export class ExtractActionLogic extends ProgramActionLogic {
             }
         };
 
-        // Handle the different extract method
+        // Handle the different load method
         const table = await context.platform.database.use(async c => {
             let filePath: string | undefined = undefined;
             switch (xtr.method()) {
-                case proto.syntax.ExtractMethodType.PARQUET: {
+                case proto.syntax.LoadMethodType.PARQUET: {
                     filePath = await getInput(c);
                     const text = `CREATE VIEW ${name} AS (SELECT * FROM parquet_scan('${filePath}'));`;
                     await c.runQuery(text);
                     break;
                 }
-                case proto.syntax.ExtractMethodType.CSV:
+                case proto.syntax.LoadMethodType.CSV:
                 default:
                     console.warn('not implemented');
                     break;
@@ -92,10 +92,10 @@ export class ExtractActionLogic extends ProgramActionLogic {
         logger.log({
             timestamp: new Date(),
             level: model.LogLevel.INFO,
-            origin: model.LogOrigin.EXTRACT_LOGIC,
+            origin: model.LogOrigin.LOAD_LOGIC,
             topic: model.LogTopic.EXECUTE,
             event: model.LogEvent.OK,
-            value: `extracted ${stmt.nameQualified}`,
+            value: `loaded ${stmt.nameQualified}`,
         });
     }
 }

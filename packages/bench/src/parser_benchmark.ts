@@ -18,7 +18,7 @@ FETCH weather_csv FROM http (
     url = format('https://cdn.dashql.com/demo/weather/{}', global.country)
 );
 
-EXTRACT weather FROM weather_csv USING CSV;
+LOAD weather FROM weather_csv USING CSV;
 
 CREATE VIEW foo AS
     SELECT a1::INTEGER AS a, (random() * 100)::INTEGER AS b, (random() * 100)::INTEGER as c, (random() * 100)::INTEGER as d, (random() * 100)::INTEGER as e, (random() * 100)::INTEGER as f, (random() * 100)::INTEGER as g, (random() * 100)::INTEGER as h

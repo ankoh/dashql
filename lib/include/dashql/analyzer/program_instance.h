@@ -14,7 +14,7 @@
 
 #include "dashql/analyzer/input_value.h"
 #include "dashql/analyzer/program_linter.h"
-#include "dashql/analyzer/stmt/extract_stmt.h"
+#include "dashql/analyzer/stmt/load_stmt.h"
 #include "dashql/analyzer/stmt/fetch_stmt.h"
 #include "dashql/analyzer/stmt/input_stmt.h"
 #include "dashql/analyzer/stmt/viz_stmt.h"
@@ -95,8 +95,8 @@ class ProgramInstance {
     std::vector<std::unique_ptr<InputStatement>> input_statements_ = {};
     /// The fetch statements
     std::vector<std::unique_ptr<FetchStatement>> fetch_statements_ = {};
-    /// The extract statements
-    std::vector<std::unique_ptr<ExtractStatement>> extract_statements_ = {};
+    /// The load statements
+    std::vector<std::unique_ptr<LoadStatement>> load_statements_ = {};
     /// The viz statements
     std::vector<std::unique_ptr<VizStatement>> viz_statements_ = {};
 

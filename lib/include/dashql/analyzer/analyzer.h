@@ -58,8 +58,8 @@ class Analyzer {
     void AnalyzeInputStatements(ProgramInstance& instance);
     /// Analyze fetch statements
     void AnalyzeFetchStatements(ProgramInstance& instance);
-    /// Analyze extract statements
-    void AnalyzeExtractStatements(ProgramInstance& instance);
+    /// Analyze load statements
+    void AnalyzeLoadStatements(ProgramInstance& instance);
     /// Analyze viz statements
     void AnalyzeVizStatements(ProgramInstance& instance);
     /// Compute the card positions

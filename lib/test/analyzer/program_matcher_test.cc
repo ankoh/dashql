@@ -155,23 +155,23 @@ INSTANTIATE_TEST_SUITE_P(
                                   {{0, 0}, {1, 2}, {2, 1}},
                                   {{0, 0}, {2, 1}}},
                       MappingTest{R"DQL(
-        EXTRACT weather FROM weather_csv USING CSV;
+        LOAD weather FROM weather_csv USING CSV;
         VIZ weather_avg USING LINE;
     )DQL",
                                   R"DQL(
-        EXTRACT weather FROM weather_csv USING CSV;
+        LOAD weather FROM weather_csv USING CSV;
         VIZ weather_avg USING LINE;
     )DQL",
                                   {{0, 0}, {1, 1}},
                                   {{0, 0}, {1, 1}},
                                   {{0, 0}, {1, 1}}},
                       MappingTest{R"DQL(
-        EXTRACT weather FROM weather_csv USING CSV;
+        LOAD weather FROM weather_csv USING CSV;
         SELECT 1 INTO weather_avg FROM weather;
         VIZ weather_avg USING LINE;
     )DQL",
                                   R"DQL(
-        EXTRACT weather FROM weather_csv USING CSV;
+        LOAD weather FROM weather_csv USING CSV;
         SELECT 2 INTO weather_avg FROM weather;
         VIZ weather_avg USING LINE;
     )DQL",
@@ -214,12 +214,12 @@ INSTANTIATE_TEST_SUITE_P(ProgramDiff, DiffTestSuite,
                                                     }},
 
                                            DiffTest{R"DQL(
-        EXTRACT weather FROM weather_csv USING CSV;
+        LOAD weather FROM weather_csv USING CSV;
         SELECT 1 INTO weather_avg FROM weather;
         VIZ weather_avg USING LINE;
     )DQL",
                                                     R"DQL(
-        EXTRACT weather FROM weather_csv USING CSV;
+        LOAD weather FROM weather_csv USING CSV;
         SELECT 2 INTO weather_avg FROM weather;
         VIZ weather_avg USING LINE;
     )DQL",
@@ -230,13 +230,13 @@ INSTANTIATE_TEST_SUITE_P(ProgramDiff, DiffTestSuite,
                                                     }},
 
                                            DiffTest{R"DQL(
-        EXTRACT weather FROM weather_csv USING CSV;
+        LOAD weather FROM weather_csv USING CSV;
         SELECT 2 INTO weather_avg FROM weather;
         SELECT 4;
         VIZ weather_avg USING LINE;
     )DQL",
                                                     R"DQL(
-        EXTRACT weather FROM weather_csv USING CSV;
+        LOAD weather FROM weather_csv USING CSV;
         VIZ weather_avg USING LINE;
     )DQL",
                                                     {
@@ -247,13 +247,13 @@ INSTANTIATE_TEST_SUITE_P(ProgramDiff, DiffTestSuite,
                                                     }},
 
                                            DiffTest{R"DQL(
-        EXTRACT weather FROM weather_csv USING CSV;
+        LOAD weather FROM weather_csv USING CSV;
         SELECT 4;
         SELECT 2 INTO weather_avg FROM weather;
         VIZ weather_avg USING LINE;
     )DQL",
                                                     R"DQL(
-        EXTRACT weather FROM weather_csv USING CSV;
+        LOAD weather FROM weather_csv USING CSV;
         SELECT 1 INTO weather_avg FROM weather;
         VIZ weather_avg USING LINE;
     )DQL",
@@ -265,13 +265,13 @@ INSTANTIATE_TEST_SUITE_P(ProgramDiff, DiffTestSuite,
                                                     }},
 
                                            DiffTest{R"DQL(
-        EXTRACT weather FROM weather_csv USING CSV;
+        LOAD weather FROM weather_csv USING CSV;
         SELECT 4;
         SELECT 2 INTO weather_avg FROM weather;
         VIZ weather_avg USING LINE;
     )DQL",
                                                     R"DQL(
-        EXTRACT weather FROM weather_csv USING CSV;
+        LOAD weather FROM weather_csv USING CSV;
         SELECT 1 INTO weather_avg FROM weather;
         VIZ weather_avg USING LINE;
         VIZ weather_avg_2 USING BAR;
