@@ -46,7 +46,7 @@
             FETCH weather_csv FROM http (
                 url = format('https://cdn.dashql.com/demo/weather/{}', main.country)
             );
-            EXTRACT weather FROM weather_csv USING CSV;
+            LOAD weather FROM weather_csv USING CSV;
         </text>
         <inputs>
             <input statement="0" type="VARCHAR" value="DE" />
@@ -75,7 +75,7 @@
                         <ref action="2" />
                     </required_for>
                 </action>
-                <action origin="2" type="EXTRACT" status="NONE" object_id="2">
+                <action origin="2" type="LOAD" status="NONE" object_id="2">
                     <target name="main.weather" />
                     <depends_on>
                         <ref action="1" />
@@ -85,14 +85,14 @@
         </graph>
     </step>
 </test>
-<test name="param_load_extract">
+<test name="param_load_load">
     <step>
         <text>
             INPUT country TYPE VARCHAR USING TEXT;
             FETCH weather_csv FROM http (
                 url = format('https://cdn.dashql.com/demo/weather/{}', main.country)
             );
-            EXTRACT weather FROM weather_csv USING CSV;
+            LOAD weather FROM weather_csv USING CSV;
         </text>
         <inputs>
             <input statement="0" type="VARCHAR" value="DE" />
@@ -121,7 +121,7 @@
                         <ref action="2" />
                     </required_for>
                 </action>
-                <action origin="2" type="EXTRACT" status="NONE" object_id="2">
+                <action origin="2" type="LOAD" status="NONE" object_id="2">
                     <target name="main.weather" />
                     <depends_on>
                         <ref action="1" />
@@ -131,14 +131,14 @@
         </graph>
     </step>
 </test>
-<test name="param_load_extract_select">
+<test name="param_load_load_select">
     <step>
         <text>
             INPUT country TYPE VARCHAR USING TEXT;
             FETCH weather_csv FROM http (
                 url = format('https://cdn.dashql.com/demo/weather/{}', main.country)
             );
-            EXTRACT weather FROM weather_csv USING CSV;
+            LOAD weather FROM weather_csv USING CSV;
             SELECT * INTO weather_avg FROM weather;
         </text>
         <inputs>
@@ -168,7 +168,7 @@
                         <ref action="2" />
                     </required_for>
                 </action>
-                <action origin="2" type="EXTRACT" status="NONE" object_id="2">
+                <action origin="2" type="LOAD" status="NONE" object_id="2">
                     <target name="main.weather" />
                     <depends_on>
                         <ref action="1" />
@@ -195,7 +195,7 @@
             FETCH weather_csv FROM http (
                 url = format('https://cdn.dashql.com/demo/weather/{}', main.country)
             );
-            EXTRACT weather FROM weather_csv USING CSV;
+            LOAD weather FROM weather_csv USING CSV;
             SELECT * INTO weather_avg FROM weather;
             VIZ weather_avg USING LINE;
             VIZ weather_avg USING TABLE;
@@ -237,7 +237,7 @@
                         <ref action="2" />
                     </required_for>
                 </action>
-                <action origin="2" type="EXTRACT" status="NONE" object_id="2">
+                <action origin="2" type="LOAD" status="NONE" object_id="2">
                     <target name="main.weather" />
                     <depends_on>
                         <ref action="1" />
@@ -280,7 +280,7 @@
             FETCH weather_csv FROM http (
                 url = format('https://cdn.dashql.com/demo/weather/{}', main.country)
             );
-            EXTRACT weather FROM weather_csv USING CSV;
+            LOAD weather FROM weather_csv USING CSV;
             SELECT * INTO weather_avg FROM weather;
             SELECT * INTO weather_binned FROM weather;
             VIZ weather_avg USING LINE;
@@ -323,7 +323,7 @@
                         <ref action="2" />
                     </required_for>
                 </action>
-                <action origin="2" type="EXTRACT" status="NONE" object_id="2">
+                <action origin="2" type="LOAD" status="NONE" object_id="2">
                     <target name="main.weather" />
                     <depends_on>
                         <ref action="1" />
@@ -377,7 +377,7 @@
             FETCH weather_csv FROM http (
                 url = format('https://cdn.dashql.com/demo/weather/{}', main.country)
             );
-            EXTRACT weather FROM weather_csv USING CSV;
+            LOAD weather FROM weather_csv USING CSV;
             SELECT * INTO weather_avg FROM weather WHERE month = main.month;
             SELECT * INTO weather_binned FROM weather WHERE month = main.month;
             VIZ weather_avg USING LINE;
@@ -389,8 +389,8 @@
         </inputs>
         <evaluations>
             <eval type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" loc="165..227" text="format('ht..n.country)" />
-            <eval type="BIGINT" value="5" loc="444..454" text="main.month" />
-            <eval type="BIGINT" value="5" loc="364..374" text="main.month" />
+            <eval type="BIGINT" value="5" loc="441..451" text="main.month" />
+            <eval type="BIGINT" value="5" loc="361..371" text="main.month" />
         </evaluations>
         <cards>
             <input name="country" component="TEXT" />
@@ -431,7 +431,7 @@
                         <ref action="3" />
                     </required_for>
                 </action>
-                <action origin="3" type="EXTRACT" status="NONE" object_id="3">
+                <action origin="3" type="LOAD" status="NONE" object_id="3">
                     <target name="main.weather" />
                     <depends_on>
                         <ref action="2" />
@@ -487,7 +487,7 @@
             FETCH weather_csv FROM http (
                 url = format('https://cdn.dashql.com/demo/weather/{}', main.country)
             );
-            EXTRACT weather FROM weather_csv USING CSV;
+            LOAD weather FROM weather_csv USING CSV;
             SELECT * INTO weather_avg FROM weather WHERE city = main.city;
         </text>
         <inputs>
@@ -496,7 +496,7 @@
         </inputs>
         <evaluations>
             <eval type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" loc="164..226" text="format('ht..n.country)" />
-            <eval type="VARCHAR" value="MUC" loc="362..371" text="main.city" />
+            <eval type="VARCHAR" value="MUC" loc="359..368" text="main.city" />
         </evaluations>
         <cards>
             <input name="country" component="TEXT" />
@@ -526,7 +526,7 @@
                         <ref action="3" />
                     </required_for>
                 </action>
-                <action origin="3" type="EXTRACT" status="NONE" object_id="3">
+                <action origin="3" type="LOAD" status="NONE" object_id="3">
                     <target name="main.weather" />
                     <depends_on>
                         <ref action="2" />
@@ -547,7 +547,7 @@
         </graph>
     </step>
 </test>
-<test name="extract_join">
+<test name="load_join">
     <step>
         <text>
             INPUT country1 TYPE VARCHAR USING TEXT;
@@ -559,8 +559,8 @@
             FETCH country2_weather_csv FROM http (
                 url = format('https://cdn.dashql.com/demo/weather/{}', main.country2)
             );
-            EXTRACT country1_weather FROM country1_weather_csv USING CSV;
-            EXTRACT country2_weather FROM country2_weather_csv USING CSV;
+            LOAD country1_weather FROM country1_weather_csv USING CSV;
+            LOAD country2_weather FROM country2_weather_csv USING CSV;
             SELECT * INTO countries_joined FROM country1_weather c1, country2_weather c2 WHERE c1.month = c2.month AND c2.month = main.month;
             VIZ countries_joined USING LINE;
         </text>
@@ -572,7 +572,7 @@
         <evaluations>
             <eval type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/US'" loc="379..442" text="format('ht...country2)" />
             <eval type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" loc="227..290" text="format('ht...country1)" />
-            <eval type="BIGINT" value="5" loc="736..746" text="main.month" />
+            <eval type="BIGINT" value="5" loc="730..740" text="main.month" />
         </evaluations>
         <cards>
             <input name="country1" component="TEXT" />
@@ -623,7 +623,7 @@
                         <ref action="6" />
                     </required_for>
                 </action>
-                <action origin="5" type="EXTRACT" status="NONE" object_id="5">
+                <action origin="5" type="LOAD" status="NONE" object_id="5">
                     <target name="main.country1_weather" />
                     <depends_on>
                         <ref action="3" />
@@ -632,7 +632,7 @@
                         <ref action="7" />
                     </required_for>
                 </action>
-                <action origin="6" type="EXTRACT" status="NONE" object_id="6">
+                <action origin="6" type="LOAD" status="NONE" object_id="6">
                     <target name="main.country2_weather" />
                     <depends_on>
                         <ref action="4" />
@@ -770,13 +770,13 @@
         </graph>
     </step>
 </test>
-<test name="extract_uni_zip_infer">
+<test name="load_uni_zip_infer">
     <step>
         <text>
             FETCH uni FROM 'https://static.dashql.com/data/uni/de/all.zip';
-            EXTRACT vorlesungen FROM uni['vorlesungen.parquet'] USING PARQUET;
-            EXTRACT hoeren FROM uni['hoeren.parquet'] USING PARQUET;
-            EXTRACT studenten FROM uni['studenten.parquet'] USING PARQUET;
+            LOAD vorlesungen FROM uni['vorlesungen.parquet'] USING PARQUET;
+            LOAD hoeren FROM uni['hoeren.parquet'] USING PARQUET;
+            LOAD studenten FROM uni['studenten.parquet'] USING PARQUET;
         </text>
         <inputs />
         <evaluations />
@@ -792,19 +792,19 @@
                         <ref action="3" />
                     </required_for>
                 </action>
-                <action origin="1" type="EXTRACT" status="NONE" object_id="1">
+                <action origin="1" type="LOAD" status="NONE" object_id="1">
                     <target name="main.vorlesungen" />
                     <depends_on>
                         <ref action="0" />
                     </depends_on>
                 </action>
-                <action origin="2" type="EXTRACT" status="NONE" object_id="2">
+                <action origin="2" type="LOAD" status="NONE" object_id="2">
                     <target name="main.hoeren" />
                     <depends_on>
                         <ref action="0" />
                     </depends_on>
                 </action>
-                <action origin="3" type="EXTRACT" status="NONE" object_id="3">
+                <action origin="3" type="LOAD" status="NONE" object_id="3">
                     <target name="main.studenten" />
                     <depends_on>
                         <ref action="0" />
@@ -821,9 +821,9 @@
             FETCH uni FROM 'https://dashql.blob.core.windows.net/static/data/uni/de/all.zip';
 
             -- Extract the parquet files in the zip archive
-            EXTRACT vorlesungen FROM uni['vorlesungen.parquet'];
-            EXTRACT hoeren FROM uni['hoeren.parquet'];
-            EXTRACT studenten FROM uni['studenten.parquet'];
+            LOAD vorlesungen FROM uni['vorlesungen.parquet'];
+            LOAD hoeren FROM uni['hoeren.parquet'];
+            LOAD studenten FROM uni['studenten.parquet'];
 
             -- Run arbitrary SQL
             CREATE VIEW foo AS
@@ -864,7 +864,7 @@
                         <ref action="3" />
                     </required_for>
                 </action>
-                <action origin="1" type="EXTRACT" status="NONE" object_id="1">
+                <action origin="1" type="LOAD" status="NONE" object_id="1">
                     <target name="main.vorlesungen" />
                     <depends_on>
                         <ref action="0" />
@@ -874,7 +874,7 @@
                         <ref action="5" />
                     </required_for>
                 </action>
-                <action origin="2" type="EXTRACT" status="NONE" object_id="2">
+                <action origin="2" type="LOAD" status="NONE" object_id="2">
                     <target name="main.hoeren" />
                     <depends_on>
                         <ref action="0" />
@@ -883,7 +883,7 @@
                         <ref action="4" />
                     </required_for>
                 </action>
-                <action origin="3" type="EXTRACT" status="NONE" object_id="3">
+                <action origin="3" type="LOAD" status="NONE" object_id="3">
                     <target name="main.studenten" />
                     <depends_on>
                         <ref action="0" />

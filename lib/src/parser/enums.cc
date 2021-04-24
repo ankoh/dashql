@@ -17,8 +17,8 @@ const char* getEnumText(const sx::Node& target) {
             return sx::InputComponentTypeTypeTable()->names[v];
         case sx::NodeType::ENUM_DASHQL_FETCH_METHOD_TYPE:
             return sx::FetchMethodTypeTypeTable()->names[v];
-        case sx::NodeType::ENUM_DASHQL_EXTRACT_METHOD_TYPE:
-            return sx::ExtractMethodTypeTypeTable()->names[v];
+        case sx::NodeType::ENUM_DASHQL_LOAD_METHOD_TYPE:
+            return sx::LoadMethodTypeTypeTable()->names[v];
 
         case sx::NodeType::ENUM_SQL_TEMP_TYPE:
             return sx::TempTypeTypeTable()->names[v];

@@ -1,7 +1,7 @@
 // Copyright (c) 2020 The DashQL Authors
 
-#ifndef INCLUDE_DASHQL_ANALYZER_STMT_EXTRACT_STMT_H_
-#define INCLUDE_DASHQL_ANALYZER_STMT_EXTRACT_STMT_H_
+#ifndef INCLUDE_DASHQL_ANALYZER_STMT_LOAD_STMT_H_
+#define INCLUDE_DASHQL_ANALYZER_STMT_LOAD_STMT_H_
 
 #include <iostream>
 #include <limits>
@@ -20,7 +20,7 @@
 
 namespace dashql {
 
-class ExtractStatement {
+class LoadStatement {
    protected:
     /// The program instance
     ProgramInstance& instance_;
@@ -28,14 +28,14 @@ class ExtractStatement {
     const size_t statement_id_;
     /// The AST index
     const ASTIndex ast_;
-    /// The extract method
-    sx::ExtractMethodType extract_method_ = sx::ExtractMethodType::NONE;
+    /// The load method
+    sx::LoadMethodType load_method_ = sx::LoadMethodType::NONE;
     /// The data source
     parser::QualifiedNameView data_source_ = {};
 
    public:
     /// Constructor
-    ExtractStatement(ProgramInstance& instance, size_t statement_id, ASTIndex ast);
+    LoadStatement(ProgramInstance& instance, size_t statement_id, ASTIndex ast);
     /// Get the instance
     auto& instance() { return instance_; }
     /// Get the ast
@@ -46,11 +46,11 @@ class ExtractStatement {
     void PrintOptionsAsJSON(std::ostream& out, bool pretty = false) const;
     /// Print as script
     void PrintScript(std::ostream& out) const;
-    /// Pack the extract statement
-    flatbuffers::Offset<proto::analyzer::ExtractStatement> Pack(flatbuffers::FlatBufferBuilder& builder) const;
+    /// Pack the load statement
+    flatbuffers::Offset<proto::analyzer::LoadStatement> Pack(flatbuffers::FlatBufferBuilder& builder) const;
 
     /// Read a viz statement
-    static std::unique_ptr<ExtractStatement> ReadFrom(ProgramInstance& instance, size_t statement_id);
+    static std::unique_ptr<LoadStatement> ReadFrom(ProgramInstance& instance, size_t statement_id);
 };
 
 }  // namespace dashql

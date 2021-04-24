@@ -13,7 +13,7 @@ enum FetchMethodType: uint8 {
     FILE = 2
 }
 
-enum ExtractMethodType: uint8 {
+enum LoadMethodType: uint8 {
     NONE = 0,
     CSV = 1,
     JSON = 2,

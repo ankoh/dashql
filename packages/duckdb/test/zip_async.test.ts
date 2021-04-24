@@ -16,7 +16,7 @@ export function testZipAsync(
     });
 
     describe('Async Zipper', () => {
-        it('Scan Extracted', async () => {
+        it('Scan Loaded', async () => {
             const all = await resolveData('/uni/all.zip')!;
             expect(all).not.toBeNull();
             const zip = await db().addFileBuffer('/uni/all.zip', all!);

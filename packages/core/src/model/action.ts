@@ -13,11 +13,11 @@ export enum ActionSchedulerStatus {
 export function buildActionHandle(action_idx: number, action_class: proto.action.ActionClass): ActionHandle {
     return (action_idx << 1) | (action_class as number);
 }
-/// Extract the action class from the id
+/// Load the action class from the id
 export function getActionClass(action_id: ActionHandle): proto.action.ActionClass {
     return (action_id & 1) as proto.action.ActionClass;
 }
-/// Extract the action index from the id
+/// Load the action index from the id
 export function getActionIndex(action_id: ActionHandle): number {
     return action_id >> 1;
 }

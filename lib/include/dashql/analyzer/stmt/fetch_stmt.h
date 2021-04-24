@@ -1,7 +1,7 @@
 // Copyright (c) 2020 The DashQL Authors
 
-#ifndef INCLUDE_DASHQL_ANALYZER_STMT_LOAD_STMT_H_
-#define INCLUDE_DASHQL_ANALYZER_STMT_LOAD_STMT_H_
+#ifndef INCLUDE_DASHQL_ANALYZER_STMT_FETCH_STMT_H_
+#define INCLUDE_DASHQL_ANALYZER_STMT_FETCH_STMT_H_
 
 #include <iostream>
 #include <limits>
@@ -48,7 +48,7 @@ class FetchStatement {
     void PrintScript(std::ostream& out) const;
     /// Print the options as json
     void PrintOptionsAsJSON(std::ostream& out, bool pretty = false) const;
-    /// Pack the extract statement
+    /// Pack the load statement
     flatbuffers::Offset<proto::analyzer::FetchStatement> Pack(flatbuffers::FlatBufferBuilder& builder) const;
 
     /// Read a viz statement

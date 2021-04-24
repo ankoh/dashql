@@ -136,12 +136,12 @@ NodeID ParserDriver::AddNode(sx::Node node) {
             }
             break;
 
-        case sx::NodeType::OBJECT_DASHQL_EXTRACT:
+        case sx::NodeType::OBJECT_DASHQL_LOAD:
             if (auto name_id = FindAttribute(node, Key::DASHQL_STATEMENT_NAME); name_id) {
                 current_statement_.name =
                     QualifiedNameView::ReadFrom(nodes_, text, *name_id).WithDefaultSchema(options_.global_namespace);
             }
-            if (auto name_id = FindAttribute(node, Key::DASHQL_EXTRACT_DATA); name_id) {
+            if (auto name_id = FindAttribute(node, Key::DASHQL_LOAD_DATA); name_id) {
                 current_statement_.table_refs.push_back(
                     {*name_id,
                      QualifiedNameView::ReadFrom(nodes_, text, *name_id).WithDefaultSchema(options_.global_namespace)});
@@ -359,8 +359,8 @@ void ParserDriver::AddStatement(sx::Node node) {
             stmt_type = sx::StatementType::FETCH;
             break;
 
-        case sx::NodeType::OBJECT_DASHQL_EXTRACT:
-            stmt_type = sx::StatementType::EXTRACT;
+        case sx::NodeType::OBJECT_DASHQL_LOAD:
+            stmt_type = sx::StatementType::LOAD;
             break;
 
         case sx::NodeType::OBJECT_DASHQL_INPUT:

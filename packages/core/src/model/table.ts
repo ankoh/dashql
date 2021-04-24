@@ -40,11 +40,11 @@ export type TableStatisticsKey = number;
 export function buildTableStatisticsKey(type: TableStatisticsType, column_id = 0): TableStatisticsKey {
     return (column_id << 3) | (type as number);
 }
-/// Extract the statistics type from a table statistics key
+/// Load the statistics type from a table statistics key
 export function getTableStatisticsType(key: TableStatisticsKey): TableStatisticsType {
     return (key & 0b111) as TableStatisticsType;
 }
-/// Extract the column id from a table statistics key
+/// Load the column id from a table statistics key
 export function getTableStatisticsColumn(key: TableStatisticsKey): TableStatisticsType {
     return key >> 3;
 }

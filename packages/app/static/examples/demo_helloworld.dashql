@@ -1,10 +1,10 @@
 -- Fetch the bundled university schema
 FETCH uni FROM 'https://dashql.blob.core.windows.net/static/data/uni/de/all.zip';
 
--- Extract the parquet files in the zip archive
-EXTRACT vorlesungen FROM uni['vorlesungen.parquet'];
-EXTRACT hoeren FROM uni['hoeren.parquet'];
-EXTRACT studenten FROM uni['studenten.parquet'];
+-- Load the parquet files in the zip archive
+LOAD vorlesungen FROM uni['vorlesungen.parquet'];
+LOAD hoeren FROM uni['hoeren.parquet'];
+LOAD studenten FROM uni['studenten.parquet'];
 
 -- Run arbitrary SQL
 CREATE TABLE Enrolments AS
