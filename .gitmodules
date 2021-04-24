@@ -37,3 +37,9 @@
 [submodule "submodules/double-conversion"]
 	path = submodules/double-conversion
 	url = https://github.com/google/double-conversion
+[submodule "submodules/jmespath"]
+	path = submodules/jmespath
+	url = https://github.com/robertmrk/jmespath.cpp
+[submodule "submodules/nljson"]
+	path = submodules/nljson
+	url = https://github.com/nlohmann/json

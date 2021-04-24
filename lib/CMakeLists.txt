@@ -25,6 +25,15 @@ if (EMSCRIPTEN)
 endif ()
 
 # ---------------------------------------------------------------------------
+# Ccache
+
+find_program(CCACHE_PROGRAM ccache)
+if(CCACHE_PROGRAM)
+    set(CMAKE_C_COMPILER_LAUNCHER "${CCACHE_PROGRAM}")
+    set(CMAKE_CXX_COMPILER_LAUNCHER "${CCACHE_PROGRAM}")
+endif()
+
+# ---------------------------------------------------------------------------
 # Threads
 
 set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
@@ -47,17 +56,23 @@ SET(CMAKE_MODULE_PATH
   ${CMAKE_MODULE_PATH}
 )
 
+# Currently not needed
+# include("${CMAKE_SOURCE_DIR}/cmake/binaryen.cmake")
+# include("${CMAKE_SOURCE_DIR}/cmake/wasm-c-api.cmake")
+# include("${CMAKE_SOURCE_DIR}/cmake/double-conversion.cmake")
+# include("${CMAKE_SOURCE_DIR}/cmake/flatc.cmake")
+# include("${CMAKE_SOURCE_DIR}/cmake/thrift.cmake")
+
 include("${CMAKE_SOURCE_DIR}/cmake/duckdb.cmake")
-include("${CMAKE_SOURCE_DIR}/cmake/double-conversion.cmake")
-include("${CMAKE_SOURCE_DIR}/cmake/flatc.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/boost.cmake")
-include("${CMAKE_SOURCE_DIR}/cmake/thrift.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/arrow.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/flatbuffers.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/benchmark.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/googletest.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/gflags.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/rapidjson.cmake")
+include("${CMAKE_SOURCE_DIR}/cmake/nlohmann_json.cmake")
+include("${CMAKE_SOURCE_DIR}/cmake/jmespath.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/pugixml.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/spdlog.cmake")
 
@@ -293,7 +308,7 @@ add_library(dashql_test
     ${CMAKE_SOURCE_DIR}/src/test/grammar_tests.cc
 )
 
-target_link_libraries(dashql_common dashql_proto flatbuffers spdlog rapidjson arrow duckdb)
+target_link_libraries(dashql_common dashql_proto flatbuffers spdlog rapidjson nlohmann_json jmespath arrow duckdb)
 target_link_libraries(dashql_analyzer dashql_parser dashql_common dashql_proto spdlog duckdb rapidjson arrow)
 target_link_libraries(duckdb_web dashql_common dashql_proto duckdb spdlog arrow)
 target_link_libraries(dashql_test duckdb_web dashql_analyzer dashql_common dashql_proto pugixml gtest duckdb)
@@ -403,7 +418,6 @@ if(NOT EMSCRIPTEN)
         ${CMAKE_SOURCE_DIR}/test/common/substring_buffer_test.cc
         ${CMAKE_SOURCE_DIR}/test/common/topological_sort_test.cc
         ${CMAKE_SOURCE_DIR}/test/common/union_find_test.cc
-        ${CMAKE_SOURCE_DIR}/test/duckdb/arrow_ifstream_test.cc
         ${CMAKE_SOURCE_DIR}/test/duckdb/buffer_manager_test.cc
         ${CMAKE_SOURCE_DIR}/test/duckdb/duckdb_test.cc
         ${CMAKE_SOURCE_DIR}/test/duckdb/ifstreambuf_test.cc
