@@ -1,6 +1,5 @@
 import esbuild from 'esbuild';
 import path from 'path';
-import rimraf from 'rimraf';
 import mkdir from 'make-dir';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
@@ -12,15 +11,9 @@ function printErr(err) {
     if (err) return console.log(err);
 }
 
-// -------------------------------
-// Clear directory
-
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const dist = path.resolve(__dirname, 'dist');
 mkdir.sync(dist);
-rimraf.sync(dist + '/*.wasm');
-rimraf.sync(dist + '/*.js');
-rimraf.sync(dist + '/*.js.map');
 
 // -------------------------------
 // Copy WASM files

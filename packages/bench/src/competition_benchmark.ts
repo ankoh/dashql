@@ -6,6 +6,7 @@ import cycle from 'benny/src/cycle';
 import kleur from 'kleur';
 import * as SQL from 'sql.js';
 import alasql from 'alasql';
+//import * as lf from 'lovefield';
 
 // lovefield, arquero, sql.js, alasql, TaffyDB, nano-sql
 
@@ -48,6 +49,26 @@ export async function benchmarkCompetitions(duckdb: () => duckdb.DuckDBBindings,
                 }
                 alasql(`DROP TABLE test_table`);
             }),
+            /*add('Lovefield', async () => {
+                var schemaBuilder = lf.schema.create('test_schema', 1);
+
+                schemaBuilder.createTable('test_table').addColumn('a_value', lf.Type.INTEGER);
+                let db = await schemaBuilder.connect();
+                let table = db.getSchema().table('test_table');
+
+                for (let i = 0; i < tupleCount; i++) {
+                    db.insert()
+                        .into(table)
+                        .values([table.createRow({ a_value: i })])
+                        .exec();
+                }
+
+                const rows = await db.select(lf.fn.count()).from(table).exec();
+                console.log(rows);
+                /*if ((<any>rows[0])['COUNT(*)'] != tupleCount) {
+                    console.error('Row mismatch');
+                }/
+            }),*/
             cycle((result: any, _summary: any) => {
                 const duration = result.details.median;
                 console.log(
@@ -55,7 +76,5 @@ export async function benchmarkCompetitions(duckdb: () => duckdb.DuckDBBindings,
                 );
             }),
         );
-
-        console.log(tupleCount);
     }
 }

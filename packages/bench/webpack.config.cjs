@@ -1,6 +1,5 @@
 const path = require('path');
 const InjectPlugin = require('webpack-inject-plugin').default;
-const fs = require('fs');
 
 module.exports = {
     entry: './src/index_browser.ts',
@@ -22,10 +21,13 @@ module.exports = {
     output: {
         path: path.resolve(__dirname, 'dist'),
         filename: 'bench-browser.js',
+        library: 'bench_browser',
+        libraryTarget: 'window',
+        libraryExport: 'default',
     },
     plugins: [
         new InjectPlugin(function () {
-            return fs.readFileSync('./injects.js');
+            return 'window._ = require("lodash");window.Benchmark = require("benchmark");';
         }),
     ],
 };

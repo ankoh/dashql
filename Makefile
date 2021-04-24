@@ -131,6 +131,14 @@ core_tests: core
 bench:
 	yarn workspace @dashql/bench build
 
+.PHONY: bench_browser
+bench_browser:
+	yarn workspace @dashql/bench run:browser
+
+.PHONY: bench_node
+bench_node:
+	yarn workspace @dashql/bench run:node
+
 # Compile the flatbuffer schema
 .PHONY: proto
 proto:
