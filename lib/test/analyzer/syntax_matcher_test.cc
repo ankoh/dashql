@@ -16,9 +16,9 @@ using namespace dashql;
 
 namespace {
 
-TEST(ASTMatcherTest, LoadStatement) {
+TEST(ASTMatcherTest, FetchStatement) {
     auto txt = R"CSV(
-        LOAD weather_csv FROM http (
+        FETCH weather_csv FROM http (
             url = 'https://localhost/test'
         );
     )CSV";
@@ -29,10 +29,10 @@ TEST(ASTMatcherTest, LoadStatement) {
 
     // clang-format off
     auto schema = sxm::Element(0)
-        .MatchObject(sx::NodeType::OBJECT_DASHQL_LOAD)
+        .MatchObject(sx::NodeType::OBJECT_DASHQL_FETCH)
         .MatchChildren({
-            sxm::Attribute(sx::AttributeKey::DASHQL_LOAD_METHOD, 1)
-                .MatchEnum(sx::NodeType::ENUM_DASHQL_LOAD_METHOD_TYPE),
+            sxm::Attribute(sx::AttributeKey::DASHQL_FETCH_METHOD, 1)
+                .MatchEnum(sx::NodeType::ENUM_DASHQL_FETCH_METHOD_TYPE),
             sxm::Attribute(sx::AttributeKey::DASHQL_STATEMENT_NAME, 2)
                 .MatchObject(sx::NodeType::OBJECT_SQL_QUALIFIED_NAME)
                 .MatchChildren({
@@ -139,9 +139,9 @@ TEST(ASTMatcherTest, VizStatementPositionShort) {
     EXPECT_EQ(matches[5].status, NodeMatchStatus::MISSING);
 }
 
-TEST(ASTMatcherTest, LoadStatementFormat) {
+TEST(ASTMatcherTest, FetchStatementFormat) {
     auto txt = R"CSV(
-        LOAD weather_csv FROM http (
+        FETCH weather_csv FROM http (
             url = format('https://cdn.dashql.com/demo/weather/%s', global.country)
         );
     )CSV";
@@ -152,10 +152,10 @@ TEST(ASTMatcherTest, LoadStatementFormat) {
 
     // clang-format off
     auto schema = sxm::Element(0)
-        .MatchObject(sx::NodeType::OBJECT_DASHQL_LOAD)
+        .MatchObject(sx::NodeType::OBJECT_DASHQL_FETCH)
         .MatchChildren({
-            sxm::Attribute(sx::AttributeKey::DASHQL_LOAD_METHOD, 1)
-                .MatchEnum(sx::NodeType::ENUM_DASHQL_LOAD_METHOD_TYPE),
+            sxm::Attribute(sx::AttributeKey::DASHQL_FETCH_METHOD, 1)
+                .MatchEnum(sx::NodeType::ENUM_DASHQL_FETCH_METHOD_TYPE),
             sxm::Attribute(sx::AttributeKey::DASHQL_STATEMENT_NAME, 2)
                 .MatchObject(sx::NodeType::OBJECT_SQL_QUALIFIED_NAME)
                 .MatchChildren({

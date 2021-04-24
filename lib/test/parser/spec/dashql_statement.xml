@@ -12,28 +12,28 @@
 </test>
 <test name="load_url_plain">
     <input>
-        LOAD weather_csv FROM http (
+        FETCH weather_csv FROM http (
             url = 'https://localhost/test'
         );
     </input>
     <expected>
         <statements>
-            <statement type="LOAD" name="main.weather_csv">
-                <node type="OBJECT_DASHQL_LOAD" loc="9..90" text="LOAD weath..&#10;        )">
-                    <node key="DASHQL_LOAD_METHOD" value="HTTP" />
-                    <node key="DASHQL_STATEMENT_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="14..25" text="weather_csv">
-                        <node key="SQL_QUALIFIED_NAME_RELATION" loc="14..25" text="weather_csv" />
+            <statement type="FETCH" name="main.weather_csv">
+                <node type="OBJECT_DASHQL_FETCH" loc="9..91" text="FETCH weat..&#10;        )">
+                    <node key="DASHQL_FETCH_METHOD" value="HTTP" />
+                    <node key="DASHQL_STATEMENT_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="15..26" text="weather_csv">
+                        <node key="SQL_QUALIFIED_NAME_RELATION" loc="15..26" text="weather_csv" />
                     </node>
-                    <node key="DASHQL_OPTION_URL" loc="56..80" text="'https://l..host/test'" />
+                    <node key="DASHQL_OPTION_URL" loc="57..81" text="'https://l..host/test'" />
                 </node>
             </statement>
         </statements>
         <errors />
         <line_breaks>
             <line_break loc="0..1" text="&#10;" />
-            <line_break loc="37..38" text="&#10;" />
-            <line_break loc="80..81" text="&#10;" />
-            <line_break loc="91..92" text="&#10;" />
+            <line_break loc="38..39" text="&#10;" />
+            <line_break loc="81..82" text="&#10;" />
+            <line_break loc="92..93" text="&#10;" />
         </line_breaks>
         <comments />
         <dependencies />
@@ -41,29 +41,29 @@
 </test>
 <test name="load_url_parameter">
     <input>
-        LOAD weather_csv FROM http (
+        FETCH weather_csv FROM http (
             url = format('https://cdn.dashql.com/demo/weather/%s', main.country)
         );
     </input>
     <expected>
         <statements>
-            <statement type="LOAD" name="main.weather_csv">
-                <node type="OBJECT_DASHQL_LOAD" loc="9..128" text="LOAD weath..&#10;        )">
-                    <node key="DASHQL_LOAD_METHOD" value="HTTP" />
-                    <node key="DASHQL_STATEMENT_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="14..25" text="weather_csv">
-                        <node key="SQL_QUALIFIED_NAME_RELATION" loc="14..25" text="weather_csv" />
+            <statement type="FETCH" name="main.weather_csv">
+                <node type="OBJECT_DASHQL_FETCH" loc="9..129" text="FETCH weat..&#10;        )">
+                    <node key="DASHQL_FETCH_METHOD" value="HTTP" />
+                    <node key="DASHQL_STATEMENT_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="15..26" text="weather_csv">
+                        <node key="SQL_QUALIFIED_NAME_RELATION" loc="15..26" text="weather_csv" />
                     </node>
-                    <node key="DASHQL_OPTION_URL" type="OBJECT_DASHQL_FUNCTION_CALL" loc="56..118" text="format('ht..n.country)">
+                    <node key="DASHQL_OPTION_URL" type="OBJECT_DASHQL_FUNCTION_CALL" loc="57..119" text="format('ht..n.country)">
                         <node key="SQL_FUNCTION_ARGUMENTS">
-                            <node loc="63..103" text="'https://c..eather/%s'" />
-                            <node type="OBJECT_SQL_COLUMN_REF" loc="105..117" text="main.country">
+                            <node loc="64..104" text="'https://c..eather/%s'" />
+                            <node type="OBJECT_SQL_COLUMN_REF" loc="106..118" text="main.country">
                                 <node key="SQL_COLUMN_REF_PATH">
-                                    <node loc="105..109" text="main" />
-                                    <node loc="110..117" text="country" />
+                                    <node loc="106..110" text="main" />
+                                    <node loc="111..118" text="country" />
                                 </node>
                             </node>
                         </node>
-                        <node key="SQL_FUNCTION_NAME" loc="56..62" text="format" />
+                        <node key="SQL_FUNCTION_NAME" loc="57..63" text="format" />
                     </node>
                 </node>
             </statement>
@@ -71,9 +71,9 @@
         <errors />
         <line_breaks>
             <line_break loc="0..1" text="&#10;" />
-            <line_break loc="37..38" text="&#10;" />
-            <line_break loc="118..119" text="&#10;" />
-            <line_break loc="129..130" text="&#10;" />
+            <line_break loc="38..39" text="&#10;" />
+            <line_break loc="119..120" text="&#10;" />
+            <line_break loc="130..131" text="&#10;" />
         </line_breaks>
         <comments />
         <dependencies />

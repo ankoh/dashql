@@ -4,7 +4,7 @@
             INPUT country TYPE VARCHAR USING TEXT (
                 default_value = 'DE'
             );
-            LOAD weather_csv FROM http (
+            FETCH weather_csv FROM http (
                 url = format('https://cdn.dashql.com/demo/weather/{}', main.country)
             );
         </text>
@@ -23,7 +23,7 @@
             INPUT country TYPE VARCHAR USING TEXT (
                 default_value = 'DE'
             );
-            LOAD weather_csv FROM http (
+            FETCH weather_csv FROM http (
                 url = format('https://cdn.dashql.com/demo/weather/{}', main.country)
             );
         </text>

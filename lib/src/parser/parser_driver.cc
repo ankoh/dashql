@@ -128,7 +128,7 @@ NodeID ParserDriver::AddNode(sx::Node node) {
             }
             break;
 
-        case sx::NodeType::OBJECT_DASHQL_LOAD:
+        case sx::NodeType::OBJECT_DASHQL_FETCH:
         case sx::NodeType::OBJECT_DASHQL_INPUT:
             if (auto name_id = FindAttribute(node, Key::DASHQL_STATEMENT_NAME); name_id) {
                 current_statement_.name =
@@ -341,7 +341,7 @@ sx::Node ParserDriver::AddObject(sx::Location loc, sx::NodeType type, nonstd::sp
     return sx::Node(loc, type, sx::AttributeKey::NONE, NO_PARENT, begin, n);
 }
 
-static std::regex LOAD_URI_HTTP{"^https?://.*"};
+static std::regex FETCH_URI_HTTP{"^https?://.*"};
 
 /// Add a statement
 void ParserDriver::AddStatement(sx::Node node) {
@@ -355,8 +355,8 @@ void ParserDriver::AddStatement(sx::Node node) {
             stmt_type = sx::StatementType::VIZUALIZE;
             break;
 
-        case sx::NodeType::OBJECT_DASHQL_LOAD:
-            stmt_type = sx::StatementType::LOAD;
+        case sx::NodeType::OBJECT_DASHQL_FETCH:
+            stmt_type = sx::StatementType::FETCH;
             break;
 
         case sx::NodeType::OBJECT_DASHQL_EXTRACT:

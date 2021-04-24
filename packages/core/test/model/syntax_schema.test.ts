@@ -18,9 +18,9 @@ beforeEach(async () => {
 });
 
 describe('Statement schema', () => {
-    it('simple load statement', () => {
+    it('simple fetch statement', () => {
         const program = analyzerBindings.parseProgram(`
-            LOAD weather_csv FROM http (
+            FETCH weather_csv FROM http (
                 url = 'https://localhost/test'
             );
         `);
@@ -30,47 +30,47 @@ describe('Statement schema', () => {
 
         // Fully matching
         {
-            const method = schema.enumNode(sx.NodeType.ENUM_DASHQL_LOAD_METHOD_TYPE, 0);
+            const method = schema.enumNode(sx.NodeType.ENUM_DASHQL_FETCH_METHOD_TYPE, 0);
             const url = schema.stringNode();
             stmt.matchSchema(
-                schema.objectNode(sx.NodeType.OBJECT_DASHQL_LOAD, {
-                    [Key.DASHQL_LOAD_METHOD]: method,
+                schema.objectNode(sx.NodeType.OBJECT_DASHQL_FETCH, {
+                    [Key.DASHQL_FETCH_METHOD]: method,
                     [Key.DASHQL_OPTION_URL]: url,
                 }),
             );
             expect(method.matching).toEqual(schema.Matching.MATCHED);
-            expect(method.value).toEqual(sx.LoadMethodType.HTTP);
+            expect(method.value).toEqual(sx.FetchMethodType.HTTP);
             expect(url.matching).toEqual(schema.Matching.MATCHED);
             expect(url.value).toEqual("'https://localhost/test'");
         }
 
         // Type mismatch
         {
-            const method = schema.enumNode(sx.NodeType.ENUM_DASHQL_LOAD_METHOD_TYPE, 0);
+            const method = schema.enumNode(sx.NodeType.ENUM_DASHQL_FETCH_METHOD_TYPE, 0);
             const url = schema.numberNode();
             stmt.matchSchema(
-                schema.objectNode(sx.NodeType.OBJECT_DASHQL_LOAD, {
-                    [Key.DASHQL_LOAD_METHOD]: method,
+                schema.objectNode(sx.NodeType.OBJECT_DASHQL_FETCH, {
+                    [Key.DASHQL_FETCH_METHOD]: method,
                     [Key.DASHQL_OPTION_URL]: url,
                 }),
             );
             expect(method.matching).toEqual(schema.Matching.MATCHED);
-            expect(method.value).toEqual(sx.LoadMethodType.HTTP);
+            expect(method.value).toEqual(sx.FetchMethodType.HTTP);
             expect(url.matching).toEqual(schema.Matching.TYPE_MISMATCH);
         }
 
         // Missing
         {
-            const method = schema.enumNode(sx.NodeType.ENUM_DASHQL_LOAD_METHOD_TYPE, 0);
+            const method = schema.enumNode(sx.NodeType.ENUM_DASHQL_FETCH_METHOD_TYPE, 0);
             const url = schema.numberNode();
             stmt.matchSchema(
-                schema.objectNode(sx.NodeType.OBJECT_DASHQL_LOAD, {
-                    [Key.DASHQL_LOAD_METHOD]: method,
+                schema.objectNode(sx.NodeType.OBJECT_DASHQL_FETCH, {
+                    [Key.DASHQL_FETCH_METHOD]: method,
                     [Key.DASHQL_OPTION_X]: url,
                 }),
             );
             expect(method.matching).toEqual(schema.Matching.MATCHED);
-            expect(method.value).toEqual(sx.LoadMethodType.HTTP);
+            expect(method.value).toEqual(sx.FetchMethodType.HTTP);
             expect(url.matching).toEqual(schema.Matching.MISSING);
         }
     });

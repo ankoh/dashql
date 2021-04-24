@@ -56,8 +56,8 @@ class Analyzer {
     void PropagateConstants(ProgramInstance& instance);
     /// Analyze input statements
     void AnalyzeInputStatements(ProgramInstance& instance);
-    /// Analyze load statements
-    void AnalyzeLoadStatements(ProgramInstance& instance);
+    /// Analyze fetch statements
+    void AnalyzeFetchStatements(ProgramInstance& instance);
     /// Analyze extract statements
     void AnalyzeExtractStatements(ProgramInstance& instance);
     /// Analyze viz statements

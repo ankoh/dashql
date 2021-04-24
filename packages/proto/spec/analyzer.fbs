@@ -48,10 +48,10 @@ enum ArchiveMode: uint8 {
     ZIP
 }
 
-/// A load statement
-table LoadStatement {
+/// A fetch statement
+table FetchStatement {
     statement_id: uint32;
-    method: syntax.LoadMethodType;
+    method: syntax.FetchMethodType;
     url: string;
     archive: ArchiveMode;
     options: string;
@@ -112,7 +112,7 @@ table ProgramAnnotations {
     node_error_messages: [NodeError];
     node_linter_messages: [LinterMessage];
     evaluated_nodes: [NodeValue];
-    statements_load: [LoadStatement];
+    statements_fetch: [FetchStatement];
     statements_extract: [ExtractStatement];
     cards: [Card];
 }

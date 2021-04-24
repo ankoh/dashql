@@ -4,7 +4,7 @@ import { ActionHandle, Statement } from '../model';
 
 import { ImportBlobActionLogic, DropBlobActionLogic } from './blob_logic';
 import { ExtractActionLogic } from './extract_logic';
-import { LoadActionLogic } from './load_logic';
+import { FetchActionLogic } from './fetch_logic';
 import { InputActionLogic, DropInputActionLogic, ImportInputActionLogic } from './input_logic';
 import {
     CreateTableActionLogic,
@@ -56,8 +56,8 @@ export function resolveProgramActionLogic(
     switch (a.actionType()) {
         case ProgramActionType.EXTRACT:
             return new ExtractActionLogic(id, a, s);
-        case ProgramActionType.LOAD:
-            return new LoadActionLogic(id, a, s);
+        case ProgramActionType.FETCH:
+            return new FetchActionLogic(id, a, s);
         case ProgramActionType.INPUT:
             return new InputActionLogic(id, a, s);
         case ProgramActionType.CREATE_TABLE:

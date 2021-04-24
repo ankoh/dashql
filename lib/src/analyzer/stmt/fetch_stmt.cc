@@ -1,4 +1,4 @@
-#include "dashql/analyzer/stmt/load_stmt.h"
+#include "dashql/analyzer/stmt/fetch_stmt.h"
 
 #include <regex>
 
@@ -8,81 +8,81 @@
 #include "dashql/common/string.h"
 #include "dashql/proto_generated.h"
 
-constexpr size_t SX_LOAD_METHOD = 0;
-constexpr size_t SX_LOAD_FROM_URI = 1;
-constexpr size_t SX_LOAD_URL_OPTION = 2;
+constexpr size_t SX_FETCH_METHOD = 0;
+constexpr size_t SX_FETCH_FROM_URI = 1;
+constexpr size_t SX_FETCH_URL_OPTION = 2;
 namespace fb = flatbuffers;
 namespace ana = dashql::proto::analyzer;
 
 namespace dashql {
 
-LoadStatement::LoadStatement(ProgramInstance& instance, size_t statement_id, ASTIndex ast)
+FetchStatement::FetchStatement(ProgramInstance& instance, size_t statement_id, ASTIndex ast)
     : instance_(instance), statement_id_(statement_id), ast_(ast) {}
 
 static std::regex HTTP_PREFIX{"^https?://.*"};
 static std::regex ZIP_EXT{".*\\.zip$"};
 
-std::unique_ptr<LoadStatement> LoadStatement::ReadFrom(ProgramInstance& instance, size_t stmt_id) {
+std::unique_ptr<FetchStatement> FetchStatement::ReadFrom(ProgramInstance& instance, size_t stmt_id) {
     // clang-format off
     auto& program = instance.program();
     auto& stmt = program.statements[stmt_id];
     static const auto schema = sxm::Element()
-        .MatchObject(sx::NodeType::OBJECT_DASHQL_LOAD)
+        .MatchObject(sx::NodeType::OBJECT_DASHQL_FETCH)
         .MatchChildren({
-            sxm::Attribute(sx::AttributeKey::DASHQL_LOAD_METHOD, SX_LOAD_METHOD)
-                .MatchEnum(sx::NodeType::ENUM_DASHQL_LOAD_METHOD_TYPE),
-            sxm::Attribute(sx::AttributeKey::DASHQL_LOAD_FROM_URI, SX_LOAD_FROM_URI)
+            sxm::Attribute(sx::AttributeKey::DASHQL_FETCH_METHOD, SX_FETCH_METHOD)
+                .MatchEnum(sx::NodeType::ENUM_DASHQL_FETCH_METHOD_TYPE),
+            sxm::Attribute(sx::AttributeKey::DASHQL_FETCH_FROM_URI, SX_FETCH_FROM_URI)
                 .MatchString(),
-            sxm::Attribute(sx::AttributeKey::DASHQL_OPTION_URL, SX_LOAD_URL_OPTION)
+            sxm::Attribute(sx::AttributeKey::DASHQL_OPTION_URL, SX_FETCH_URL_OPTION)
         });
     // clang-format on
 
     // Match root
     auto ast = schema.Match(instance, stmt->root_node, 3);
-    auto load = std::make_unique<LoadStatement>(instance, stmt_id, std::move(ast));
+    auto fetch = std::make_unique<FetchStatement>(instance, stmt_id, std::move(ast));
 
     // Helper to report a redundant option
     auto optionIsRedundant = [&](size_t match_id, std::string_view name) {
-        if (auto m = load->ast_[match_id]; m) {
+        if (auto m = fetch->ast_[match_id]; m) {
             instance.AddLinterMessage(LinterMessageCode::OPTION_REDUNDANT, m.node_id)
                 << "option '" << name << "' is redundant";
         }
     };
 
-    // Get load method
-    load->method_ = sx::LoadMethodType::NONE;
-    if (auto m = load->ast_[SX_LOAD_METHOD]; m) {
-        load->method_ = m.DataAsEnum<sx::LoadMethodType>();
+    // Get fetch method
+    fetch->method_ = sx::FetchMethodType::NONE;
+    if (auto m = fetch->ast_[SX_FETCH_METHOD]; m) {
+        fetch->method_ = m.DataAsEnum<sx::FetchMethodType>();
 
-        if (auto url = load->ast_[SX_LOAD_URL_OPTION]; url) {
-            load->url_ = instance.TextAt(program.nodes[url.node_id].location());
+        if (auto url = fetch->ast_[SX_FETCH_URL_OPTION]; url) {
+            fetch->url_ = instance.TextAt(program.nodes[url.node_id].location());
         } else {
             instance.AddLinterMessage(LinterMessageCode::OPTION_MISSING, m.node_id) << "missing option 'url'";
         }
     }
 
     // Explicit URI?
-    if (auto m = load->ast_[SX_LOAD_FROM_URI]; m) {
-        auto node_id = load->ast_[SX_LOAD_FROM_URI].node_id;
+    if (auto m = fetch->ast_[SX_FETCH_FROM_URI]; m) {
+        auto node_id = fetch->ast_[SX_FETCH_FROM_URI].node_id;
         auto& node = program.nodes[node_id];
 
         // Match method prefixe
-        load->url_ = std::string{trimview(instance.TextAt(node.location()), isNoQuote)};
-        if (std::regex_match(load->url_, HTTP_PREFIX)) {
-            load->method_ = sx::LoadMethodType::HTTP;
+        fetch->url_ = std::string{trimview(instance.TextAt(node.location()), isNoQuote)};
+        if (std::regex_match(fetch->url_, HTTP_PREFIX)) {
+            fetch->method_ = sx::FetchMethodType::HTTP;
         }
-        optionIsRedundant(SX_LOAD_URL_OPTION, "url");
+        optionIsRedundant(SX_FETCH_URL_OPTION, "url");
 
         // Is an archive?
-        if (std::regex_match(load->url_, ZIP_EXT)) {
-            load->archive_ = proto::analyzer::ArchiveMode::ZIP;
+        if (std::regex_match(fetch->url_, ZIP_EXT)) {
+            fetch->archive_ = proto::analyzer::ArchiveMode::ZIP;
         }
     }
-    return load;
+    return fetch;
 }
 
 /// Print the options as json
-void LoadStatement::PrintOptionsAsJSON(std::ostream& out, bool pretty) const {
+void FetchStatement::PrintOptionsAsJSON(std::ostream& out, bool pretty) const {
     auto& program = instance_.program();
     auto& stmt = program.statements[statement_id_];
     json::DocumentWriter writer{instance_, stmt->root_node, ast_};
@@ -90,7 +90,7 @@ void LoadStatement::PrintOptionsAsJSON(std::ostream& out, bool pretty) const {
 }
 
 /// Pack the extract statement
-fb::Offset<ana::LoadStatement> LoadStatement::Pack(fb::FlatBufferBuilder& builder) const {
+fb::Offset<ana::FetchStatement> FetchStatement::Pack(fb::FlatBufferBuilder& builder) const {
     auto& program = instance_.program();
     auto& stmt = program.statements[statement_id_];
 
@@ -104,7 +104,7 @@ fb::Offset<ana::LoadStatement> LoadStatement::Pack(fb::FlatBufferBuilder& builde
         options = builder.CreateString(out.str());
     }
 
-    proto::analyzer::LoadStatementBuilder eb{builder};
+    proto::analyzer::FetchStatementBuilder eb{builder};
     eb.add_statement_id(statement_id_);
     eb.add_method(method_);
     eb.add_url(url);

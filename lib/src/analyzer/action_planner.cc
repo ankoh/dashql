@@ -57,7 +57,7 @@ static const std::unordered_map<sx::StatementType, StatementTranslation>& Statem
     {sx::StatementType::STMT_TYPE, {proto::action::ProgramActionType::PROGRAM_ACTION, RENDER_SCRIPT}},
     X(NONE, NONE, false)
     X(INPUT, INPUT, false)
-    X(LOAD, LOAD, false)
+    X(FETCH, FETCH, false)
     X(EXTRACT, EXTRACT, false)
     X(SELECT, UNNAMED_SELECT, true)
     X(SELECT_INTO, CREATE_TABLE, true)
@@ -145,7 +145,7 @@ static std::unordered_map<ProgramActionType, ProgramActionInvalidation> ACTION_T
      {SetupActionType::IMPORT_ACTION, SetupActionType::DROP_ACTION, ProgramActionType::UPDATE_ACTION, PROPAGATE}},
     X(NONE, NONE, NONE, NONE, false)
     X(INPUT, IMPORT_INPUT, DROP_INPUT, NONE, false)
-    X(LOAD, IMPORT_BLOB, DROP_BLOB, NONE, false)
+    X(FETCH, IMPORT_BLOB, DROP_BLOB, NONE, false)
     X(EXTRACT, IMPORT_TABLE, DROP_TABLE, NONE, false)
     X(CREATE_VIEW, IMPORT_VIEW, DROP_VIEW, NONE, true)
     X(CREATE_TABLE, IMPORT_TABLE, DROP_TABLE, NONE, true)

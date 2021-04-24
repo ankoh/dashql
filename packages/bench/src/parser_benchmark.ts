@@ -14,7 +14,7 @@ INPUT country TYPE TEXT (
     default_value = 'DE'
 );
 
-LOAD weather_csv FROM http (
+FETCH weather_csv FROM http (
     url = format('https://cdn.dashql.com/demo/weather/{}', global.country)
 );
 

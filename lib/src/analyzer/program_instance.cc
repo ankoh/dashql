@@ -160,12 +160,12 @@ flatbuffers::Offset<proto::analyzer::ProgramAnnotations> ProgramInstance::PackAn
     });
     auto eval_node_vec = builder.CreateVector(eval_nodes);
 
-    // Pack the loads
-    std::vector<flatbuffers::Offset<proto::analyzer::LoadStatement>> loads;
-    for (auto& load : load_statements_) {
-        loads.push_back(load->Pack(builder));
+    // Pack the fetchs
+    std::vector<flatbuffers::Offset<proto::analyzer::FetchStatement>> fetchs;
+    for (auto& fetch : fetch_statements_) {
+        fetchs.push_back(fetch->Pack(builder));
     }
-    auto loads_vec = builder.CreateVector(loads);
+    auto fetchs_vec = builder.CreateVector(fetchs);
 
     // Pack the extracts
     std::vector<flatbuffers::Offset<proto::analyzer::ExtractStatement>> extracts;
@@ -188,7 +188,7 @@ flatbuffers::Offset<proto::analyzer::ProgramAnnotations> ProgramInstance::PackAn
     proto::analyzer::ProgramAnnotationsBuilder annotations{builder};
     annotations.add_evaluated_nodes(eval_node_vec);
     annotations.add_input_values(input_vec);
-    annotations.add_statements_load(loads_vec);
+    annotations.add_statements_fetch(fetchs_vec);
     annotations.add_statements_extract(extracts_vec);
     annotations.add_cards(cards_vec);
     // XXX node errors
