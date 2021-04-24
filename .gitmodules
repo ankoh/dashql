@@ -57,3 +57,7 @@
 	path = submodules/nlohmann_json
 	url = https://github.com/nlohmann/json
 	shallow = true
+[submodule "submodules/xlnt"]
+	path = submodules/xlnt
+	url = https://github.com/tfussell/xlnt
+	shallow = true

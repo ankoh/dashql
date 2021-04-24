@@ -74,6 +74,7 @@ include("${CMAKE_SOURCE_DIR}/cmake/rapidjson.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/nlohmann_json.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/jmespath.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/pugixml.cmake")
+include("${CMAKE_SOURCE_DIR}/cmake/xlnt.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/spdlog.cmake")
 
 # ---------------------------------------------------------------------------
@@ -308,7 +309,7 @@ add_library(dashql_test
     ${CMAKE_SOURCE_DIR}/src/test/grammar_tests.cc
 )
 
-target_link_libraries(dashql_common dashql_proto flatbuffers spdlog rapidjson nlohmann_json jmespath arrow duckdb)
+target_link_libraries(dashql_common dashql_proto flatbuffers spdlog rapidjson nlohmann_json jmespath xlnt arrow duckdb)
 target_link_libraries(dashql_analyzer dashql_parser dashql_common dashql_proto spdlog duckdb rapidjson arrow)
 target_link_libraries(duckdb_web dashql_common dashql_proto duckdb spdlog arrow)
 target_link_libraries(dashql_test duckdb_web dashql_analyzer dashql_common dashql_proto pugixml gtest duckdb)
