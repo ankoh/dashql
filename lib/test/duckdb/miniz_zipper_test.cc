@@ -7,7 +7,6 @@
 #include <iostream>
 #include <sstream>
 
-#include "arrow/csv/api.h"
 #include "arrow/json/api.h"
 #include "arrow/table.h"
 #include "dashql/test/config.h"
