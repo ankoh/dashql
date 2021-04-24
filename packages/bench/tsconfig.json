@@ -9,6 +9,7 @@
         "noImplicitAny": true,
         "esModuleInterop": true,
         "downlevelIteration": true,
+        "allowJs": true,
         "allowSyntheticDefaultImports": true,
         // Insanity mode due to:
         // https://issues.apache.org/jira/browse/ARROW-10794

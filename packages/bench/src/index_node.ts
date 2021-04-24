@@ -35,6 +35,9 @@ async function main() {
     // benchmarkFormat(() => db!);
     // benchmarkIterator(() => db!);
     // benchmarkIteratorAsync(() => adb!);
+
+    // lovefield leaves an open handle or something.
+    process.exit(0);
 }
 
 main();
