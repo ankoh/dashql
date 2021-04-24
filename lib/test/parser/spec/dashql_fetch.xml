@@ -1,0 +1,121 @@
+<test name="extract_uni_zip_http">
+    <input>
+        FETCH uni FROM http (
+            url = 'https://static.dashql.com/data/uni/de/all.zip'
+        );
+        EXTRACT assistenten FROM uni['assistenten.parquet'] USING PARQUET;
+    </input>
+    <expected>
+        <statements>
+            <statement type="FETCH" name="main.uni">
+                <node type="OBJECT_DASHQL_FETCH" loc="9..106" text="FETCH uni ..&#10;        )">
+                    <node key="DASHQL_FETCH_METHOD" value="HTTP" />
+                    <node key="DASHQL_STATEMENT_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="15..18" text="uni">
+                        <node key="SQL_QUALIFIED_NAME_RELATION" loc="15..18" text="uni" />
+                    </node>
+                    <node key="DASHQL_OPTION_URL" loc="49..96" text="'https://s..e/all.zip'" />
+                </node>
+            </statement>
+            <statement type="EXTRACT" name="main.assistenten">
+                <node type="OBJECT_DASHQL_EXTRACT" loc="116..181" text="EXTRACT as..NG PARQUET">
+                    <node key="DASHQL_EXTRACT_DATA" type="OBJECT_SQL_QUALIFIED_NAME" loc="141..167" text="uni['assis...parquet']">
+                        <node key="SQL_QUALIFIED_NAME_INDEX" type="OBJECT_SQL_INDIRECTION_INDEX" loc="144..167" text="['assisten...parquet']">
+                            <node key="SQL_INDIRECTION_INDEX_VALUE" loc="145..166" text="'assistent..n.parquet'" />
+                        </node>
+                        <node key="SQL_QUALIFIED_NAME_RELATION" loc="141..144" text="uni" />
+                    </node>
+                    <node key="DASHQL_EXTRACT_METHOD" value="PARQUET" />
+                    <node key="DASHQL_STATEMENT_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="124..135" text="assistenten">
+                        <node key="SQL_QUALIFIED_NAME_RELATION" loc="124..135" text="assistenten" />
+                    </node>
+                </node>
+            </statement>
+        </statements>
+        <errors />
+        <line_breaks>
+            <line_break loc="0..1" text="&#10;" />
+            <line_break loc="30..31" text="&#10;" />
+            <line_break loc="96..97" text="&#10;" />
+            <line_break loc="107..108" text="&#10;" />
+            <line_break loc="182..183" text="&#10;" />
+        </line_breaks>
+        <comments />
+        <dependencies>
+            <dependency type="TABLE_REF" source="0" target="1" loc="141..167" text="uni['assis...parquet']" />
+        </dependencies>
+    </expected>
+</test>
+<test name="extract_uni_zip_infer">
+    <input>
+        FETCH uni FROM 'https://static.dashql.com/data/uni/de/all.zip';
+        EXTRACT vorlesungen FROM uni['vorlesungen.parquet'] USING PARQUET;
+        EXTRACT hoeren FROM uni['hoeren.parquet'];
+        EXTRACT studenten FROM uni['studenten.parquet'];
+    </input>
+    <expected>
+        <statements>
+            <statement type="FETCH" name="main.uni">
+                <node type="OBJECT_DASHQL_FETCH" loc="9..71" text="FETCH uni ..e/all.zip'">
+                    <node key="DASHQL_FETCH_FROM_URI" loc="24..71" text="'https://s..e/all.zip'" />
+                    <node key="DASHQL_STATEMENT_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="15..18" text="uni">
+                        <node key="SQL_QUALIFIED_NAME_RELATION" loc="15..18" text="uni" />
+                    </node>
+                </node>
+            </statement>
+            <statement type="EXTRACT" name="main.vorlesungen">
+                <node type="OBJECT_DASHQL_EXTRACT" loc="81..146" text="EXTRACT vo..NG PARQUET">
+                    <node key="DASHQL_EXTRACT_DATA" type="OBJECT_SQL_QUALIFIED_NAME" loc="106..132" text="uni['vorle...parquet']">
+                        <node key="SQL_QUALIFIED_NAME_INDEX" type="OBJECT_SQL_INDIRECTION_INDEX" loc="109..132" text="['vorlesun...parquet']">
+                            <node key="SQL_INDIRECTION_INDEX_VALUE" loc="110..131" text="'vorlesung..n.parquet'" />
+                        </node>
+                        <node key="SQL_QUALIFIED_NAME_RELATION" loc="106..109" text="uni" />
+                    </node>
+                    <node key="DASHQL_EXTRACT_METHOD" value="PARQUET" />
+                    <node key="DASHQL_STATEMENT_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="89..100" text="vorlesungen">
+                        <node key="SQL_QUALIFIED_NAME_RELATION" loc="89..100" text="vorlesungen" />
+                    </node>
+                </node>
+            </statement>
+            <statement type="EXTRACT" name="main.hoeren">
+                <node type="OBJECT_DASHQL_EXTRACT" loc="156..197" text="EXTRACT ho...parquet']">
+                    <node key="DASHQL_EXTRACT_DATA" type="OBJECT_SQL_QUALIFIED_NAME" loc="176..197" text="uni['hoere...parquet']">
+                        <node key="SQL_QUALIFIED_NAME_INDEX" type="OBJECT_SQL_INDIRECTION_INDEX" loc="179..197" text="['hoeren.parquet']">
+                            <node key="SQL_INDIRECTION_INDEX_VALUE" loc="180..196" text="'hoeren.parquet'" />
+                        </node>
+                        <node key="SQL_QUALIFIED_NAME_RELATION" loc="176..179" text="uni" />
+                    </node>
+                    <node key="DASHQL_STATEMENT_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="164..170" text="hoeren">
+                        <node key="SQL_QUALIFIED_NAME_RELATION" loc="164..170" text="hoeren" />
+                    </node>
+                </node>
+            </statement>
+            <statement type="EXTRACT" name="main.studenten">
+                <node type="OBJECT_DASHQL_EXTRACT" loc="207..254" text="EXTRACT st...parquet']">
+                    <node key="DASHQL_EXTRACT_DATA" type="OBJECT_SQL_QUALIFIED_NAME" loc="230..254" text="uni['stude...parquet']">
+                        <node key="SQL_QUALIFIED_NAME_INDEX" type="OBJECT_SQL_INDIRECTION_INDEX" loc="233..254" text="['studente...parquet']">
+                            <node key="SQL_INDIRECTION_INDEX_VALUE" loc="234..253" text="'studenten.parquet'" />
+                        </node>
+                        <node key="SQL_QUALIFIED_NAME_RELATION" loc="230..233" text="uni" />
+                    </node>
+                    <node key="DASHQL_STATEMENT_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="215..224" text="studenten">
+                        <node key="SQL_QUALIFIED_NAME_RELATION" loc="215..224" text="studenten" />
+                    </node>
+                </node>
+            </statement>
+        </statements>
+        <errors />
+        <line_breaks>
+            <line_break loc="0..1" text="&#10;" />
+            <line_break loc="72..73" text="&#10;" />
+            <line_break loc="147..148" text="&#10;" />
+            <line_break loc="198..199" text="&#10;" />
+            <line_break loc="255..256" text="&#10;" />
+        </line_breaks>
+        <comments />
+        <dependencies>
+            <dependency type="TABLE_REF" source="0" target="1" loc="106..132" text="uni['vorle...parquet']" />
+            <dependency type="TABLE_REF" source="0" target="2" loc="176..197" text="uni['hoere...parquet']" />
+            <dependency type="TABLE_REF" source="0" target="3" loc="230..254" text="uni['stude...parquet']" />
+        </dependencies>
+    </expected>
+</test>

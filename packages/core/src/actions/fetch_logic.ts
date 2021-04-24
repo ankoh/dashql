@@ -4,7 +4,7 @@ import { ActionHandle, Statement, PlanObject, BlobRef } from '../model';
 import { ProgramActionLogic } from './action_logic';
 import { ActionContext } from './action_context';
 
-export class LoadActionLogic extends ProgramActionLogic {
+export class FetchActionLogic extends ProgramActionLogic {
     constructor(action_id: ActionHandle, action: proto.action.ProgramAction, statement: Statement) {
         super(action_id, action, statement);
     }
@@ -12,8 +12,8 @@ export class LoadActionLogic extends ProgramActionLogic {
     public prepare(_context: ActionContext, _planObjects: PlanObject[]): void {}
     public willExecute(_context: ActionContext): void {}
 
-    /// Load via HTTP
-    protected async loadHTTP(context: ActionContext, url: string): Promise<ArrayBuffer | null> {
+    /// Fetch via HTTP
+    protected async fetchHTTP(context: ActionContext, url: string): Promise<ArrayBuffer | null> {
         const http = context.platform.http;
         try {
             const resp = await http.request({
@@ -28,17 +28,17 @@ export class LoadActionLogic extends ProgramActionLogic {
     public async execute(context: ActionContext): Promise<void> {
         const instance = context.plan.programInstance;
         const stmtId = this._origin.statementId;
-        const load = instance.loadStatements.get(stmtId);
-        if (!load) {
-            console.warn(`missing information for load statement ${stmtId}`);
+        const fetch = instance.fetchStatements.get(stmtId);
+        if (!fetch) {
+            console.warn(`missing information for fetch statement ${stmtId}`);
             return;
         }
 
-        // Load the Blob
+        // Fetch the Blob
         let blob: Blob | null;
-        switch (load.method()) {
-            case proto.syntax.LoadMethodType.HTTP: {
-                const buffer = await this.loadHTTP(context, load.url());
+        switch (fetch.method()) {
+            case proto.syntax.FetchMethodType.HTTP: {
+                const buffer = await this.fetchHTTP(context, fetch.url());
                 blob = new Blob([buffer]);
                 break;
             }
@@ -67,7 +67,7 @@ export class LoadActionLogic extends ProgramActionLogic {
             nameQualified: this.buffer.nameQualified() || '',
             filePath: blobPath,
             fileId: fileId,
-            archiveMode: load.archive(),
+            archiveMode: fetch.archive(),
         };
 
         // Store as plan object

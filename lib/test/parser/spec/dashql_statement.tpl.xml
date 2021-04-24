@@ -3,14 +3,14 @@
 </test>
 <test name="load_url_plain">
     <input>
-        LOAD weather_csv FROM http (
+        FETCH weather_csv FROM http (
             url = 'https://localhost/test'
         );
     </input>
 </test>
 <test name="load_url_parameter">
     <input>
-        LOAD weather_csv FROM http (
+        FETCH weather_csv FROM http (
             url = format('https://cdn.dashql.com/demo/weather/%s', main.country)
         );
     </input>

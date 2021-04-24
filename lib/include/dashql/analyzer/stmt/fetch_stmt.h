@@ -19,7 +19,7 @@
 
 namespace dashql {
 
-class LoadStatement {
+class FetchStatement {
    protected:
     /// The program instance
     ProgramInstance& instance_;
@@ -29,7 +29,7 @@ class LoadStatement {
     const ASTIndex ast_;
 
     /// The method
-    sx::LoadMethodType method_ = sx::LoadMethodType::NONE;
+    sx::FetchMethodType method_ = sx::FetchMethodType::NONE;
     /// The url
     std::string url_ = "";
     /// Is an archive?
@@ -37,7 +37,7 @@ class LoadStatement {
 
    public:
     /// Constructor
-    LoadStatement(ProgramInstance& instance, size_t statement_id, ASTIndex ast);
+    FetchStatement(ProgramInstance& instance, size_t statement_id, ASTIndex ast);
     /// Get the instance
     auto& instance() { return instance_; }
     /// Get the ast
@@ -49,10 +49,10 @@ class LoadStatement {
     /// Print the options as json
     void PrintOptionsAsJSON(std::ostream& out, bool pretty = false) const;
     /// Pack the extract statement
-    flatbuffers::Offset<proto::analyzer::LoadStatement> Pack(flatbuffers::FlatBufferBuilder& builder) const;
+    flatbuffers::Offset<proto::analyzer::FetchStatement> Pack(flatbuffers::FlatBufferBuilder& builder) const;
 
     /// Read a viz statement
-    static std::unique_ptr<LoadStatement> ReadFrom(ProgramInstance& instance, size_t statement_id);
+    static std::unique_ptr<FetchStatement> ReadFrom(ProgramInstance& instance, size_t statement_id);
 };
 
 }  // namespace dashql

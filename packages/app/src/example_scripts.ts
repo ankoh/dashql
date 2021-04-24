@@ -40,8 +40,8 @@ import icon_database_search from '../static/svg/icons/database_search.svg';
 import icon_package_down from '../static/svg/icons/package_down.svg';
 
 export enum ScriptFeatureTag {
-    LOAD_HTTP,
-    LOAD_ARCHIVE_ZIP,
+    FETCH_HTTP,
+    FETCH_ARCHIVE_ZIP,
     DATA_CSV,
     DATA_PARQUET,
     DYNAMIC_EXTRACT,
@@ -80,8 +80,8 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         icon: icon_dashboard,
         features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_)
             .set(ScriptFeatureTag.DATA_PARQUET)
-            .set(ScriptFeatureTag.LOAD_HTTP)
-            .set(ScriptFeatureTag.LOAD_ARCHIVE_ZIP),
+            .set(ScriptFeatureTag.FETCH_HTTP)
+            .set(ScriptFeatureTag.FETCH_ARCHIVE_ZIP),
         url: example_demo_unischema,
         enabled: true,
     },

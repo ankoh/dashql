@@ -12,7 +12,7 @@
 
         -- Load data from external sources like HTTP REST APIs.
         -- Ref: https://docs.dashql.com/grammar/load
-        LOAD weather_csv FROM http (
+        FETCH weather_csv FROM http (
             url = format('https://cdn.dashql.com/demo/weather/%s', main.country)
         );
 
@@ -45,7 +45,7 @@
 <test name="demo_3">
     <input>
         -- Load the bundled university schema
-        LOAD uni FROM 'https://dashql.blob.core.windows.net/static/data/uni/de/all.zip';
+        FETCH uni FROM 'https://dashql.blob.core.windows.net/static/data/uni/de/all.zip';
 
         -- Extract the parquet files in the zip archive
         EXTRACT vorlesungen FROM uni['vorlesungen.parquet'];
