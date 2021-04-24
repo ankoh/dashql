@@ -67,7 +67,7 @@ enum ProgramActionType: uint8 {
     NONE = 0,
     INPUT,
     FETCH,
-    EXTRACT,
+    LOAD,
     CREATE_VIEW,
     CREATE_TABLE,
     MODIFY_TABLE,

@@ -34,7 +34,7 @@ class InputFileStreamBuffer : public std::streambuf {
     /// on the number of characters available in the associated input sequence.
     std::streamsize showmanyc() override { return file_.GetSize() - GetPosition(); }
     /// Retrieves characters from the controlled input sequence and stores them in the array pointed by s,
-    /// until either n characters have been extracted or the end of the sequence is reached.
+    /// until either n characters have been loaded or the end of the sequence is reached.
     std::streamsize xsgetn(char* out, std::streamsize n) override;
     /// Ensures that at least one character is available in the input area by updating the pointers to
     /// the input area (if needed) and reading more data in from the input sequence (if applicable).

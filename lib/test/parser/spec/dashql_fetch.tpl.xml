@@ -1,16 +1,16 @@
-<test name="extract_uni_zip_http">
+<test name="load_uni_zip_http">
     <input>
         FETCH uni FROM http (
             url = 'https://static.dashql.com/data/uni/de/all.zip'
         );
-        EXTRACT assistenten FROM uni['assistenten.parquet'] USING PARQUET;
+        LOAD assistenten FROM uni['assistenten.parquet'] USING PARQUET;
     </input>
 </test>
-<test name="extract_uni_zip_infer">
+<test name="load_uni_zip_infer">
     <input>
         FETCH uni FROM 'https://static.dashql.com/data/uni/de/all.zip';
-        EXTRACT vorlesungen FROM uni['vorlesungen.parquet'] USING PARQUET;
-        EXTRACT hoeren FROM uni['hoeren.parquet'];
-        EXTRACT studenten FROM uni['studenten.parquet'];
+        LOAD vorlesungen FROM uni['vorlesungen.parquet'] USING PARQUET;
+        LOAD hoeren FROM uni['hoeren.parquet'];
+        LOAD studenten FROM uni['studenten.parquet'];
     </input>
 </test>

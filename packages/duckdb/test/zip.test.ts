@@ -42,7 +42,7 @@ export function testZip(
             }
         });
 
-        it('Extraction', async () => {
+        it('Loadion', async () => {
             const all = await resolveData('/uni/all.zip')!;
             const assistenten = await resolveData('/uni/assistenten.parquet')!;
             expect(all).not.toBeNull();
@@ -64,7 +64,7 @@ export function testZip(
             expect(assistenten).toEqual(assistentenWritten);
         });
 
-        it('Scan Extracted', async () => {
+        it('Scan Loaded', async () => {
             const all = await resolveData('/uni/all.zip')!;
             expect(all).not.toBeNull();
             await db().addFileBuffer('/uni/all.zip', all!);

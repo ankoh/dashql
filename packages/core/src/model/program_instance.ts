@@ -16,7 +16,7 @@ export class ProgramInstance {
     /// The fetch statements
     public readonly fetchStatements: Map<number, proto.analyzer.FetchStatement>;
     /// The fetch statements
-    public readonly extractStatements: Map<number, proto.analyzer.ExtractStatement>;
+    public readonly loadStatements: Map<number, proto.analyzer.LoadStatement>;
     /// The cards
     public readonly cards: Map<number, proto.analyzer.Card>;
 
@@ -31,15 +31,15 @@ export class ProgramInstance {
         this.annotations = annotations;
         this.createdAt = new Date();
         this.fetchStatements = new Map();
-        this.extractStatements = new Map();
+        this.loadStatements = new Map();
         this.cards = new Map();
         for (let i = 0; i < annotations.statementsFetchLength(); ++i) {
             const s = annotations.statementsFetch(i)!;
             this.fetchStatements.set(s.statementId(), s);
         }
-        for (let i = 0; i < annotations.statementsExtractLength(); ++i) {
-            const s = annotations.statementsExtract(i)!;
-            this.extractStatements.set(s.statementId(), s);
+        for (let i = 0; i < annotations.statementsLoadLength(); ++i) {
+            const s = annotations.statementsLoad(i)!;
+            this.loadStatements.set(s.statementId(), s);
         }
         for (let i = 0; i < annotations.cardsLength(); ++i) {
             const spec = annotations.cards(i)!;

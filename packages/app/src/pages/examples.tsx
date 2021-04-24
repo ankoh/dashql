@@ -23,8 +23,8 @@ function getFeatureTagLabel(tag: ScriptFeatureTag) {
             return 'CSV';
         case ScriptFeatureTag.DATA_PARQUET:
             return 'PARQUET';
-        case ScriptFeatureTag.DYNAMIC_EXTRACT:
-            return 'DYNAMIC EXTRACT';
+        case ScriptFeatureTag.DYNAMIC_LOAD:
+            return 'DYNAMIC LOAD';
         case ScriptFeatureTag.DYNAMIC_SQL:
             return 'DYNAMIC SQL';
         case ScriptFeatureTag.DYNAMIC_VIZ:
@@ -194,8 +194,8 @@ class Examples extends React.Component<Props, State> {
                 <div className={styles.gallery_body}>
                     <AnimateSharedLayout type="crossfade">
                         {this.renderCollection(collections, 'Demos')}
+                        {this.renderCollection(collections, 'Fetch')}
                         {this.renderCollection(collections, 'Load')}
-                        {this.renderCollection(collections, 'Extract')}
                         {this.renderCollection(collections, 'SQL')}
                         {this.renderCollection(collections, 'Visualize')}
                         <AnimatePresence>

@@ -10,15 +10,15 @@
             position = (row = 0, column = 0, width = 3, height = 1)
         );
 
-        -- Load data from external sources like HTTP REST APIs.
-        -- Ref: https://docs.dashql.com/grammar/load
+        -- Fetch data from external sources like HTTP REST APIs.
+        -- Ref: https://docs.dashql.com/grammar/fetch
         FETCH weather_csv FROM http (
             url = format('https://cdn.dashql.com/demo/weather/%s', main.country)
         );
 
         -- Interpret the data as SQL table.
-        -- Ref: https://docs.dashql.com/grammar/extract
-        EXTRACT weather FROM weather_csv USING CSV;
+        -- Ref: https://docs.dashql.com/grammar/load
+        LOAD weather FROM weather_csv USING CSV;
 
         -- Run arbitrary SQL within your browser.
         -- Ref: https://docs.dashql.com/grammar/query
@@ -44,13 +44,13 @@
 </test>
 <test name="demo_3">
     <input>
-        -- Load the bundled university schema
+        -- Fetch the bundled university schema
         FETCH uni FROM 'https://dashql.blob.core.windows.net/static/data/uni/de/all.zip';
 
-        -- Extract the parquet files in the zip archive
-        EXTRACT vorlesungen FROM uni['vorlesungen.parquet'];
-        EXTRACT hoeren FROM uni['hoeren.parquet'];
-        EXTRACT studenten FROM uni['studenten.parquet'];
+        -- Load the parquet files in the zip archive
+        LOAD vorlesungen FROM uni['vorlesungen.parquet'];
+        LOAD hoeren FROM uni['hoeren.parquet'];
+        LOAD studenten FROM uni['studenten.parquet'];
 
         -- Run arbitrary SQL
         CREATE TABLE Enrolments AS

@@ -1,3 +1,0 @@
-%type <sx::Node> dashql_extract_method_type;
-%type <sx::Node> dashql_extract_statement;
-%type <sx::Node> opt_dashql_extract_method;

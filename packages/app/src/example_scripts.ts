@@ -4,10 +4,10 @@ import axios from 'axios';
 
 import example_demo_helloworld from '../static/examples/demo_helloworld.dashql';
 import example_demo_unischema from '../static/examples/demo_unischema.dashql';
-import example_extract_csv from '../static/examples/extract_csv.dashql';
-import example_extract_parquet from '../static/examples/extract_parquet.dashql';
-import example_load_http_dynamic from '../static/examples/load_http_dynamic.dashql';
-import example_load_http_static from '../static/examples/load_http_static.dashql';
+import example_load_csv from '../static/examples/load_csv.dashql';
+import example_load_parquet from '../static/examples/load_parquet.dashql';
+import example_fetch_http_dynamic from '../static/examples/fetch_http_dynamic.dashql';
+import example_fetch_http_static from '../static/examples/fetch_http_static.dashql';
 import example_sql_approxmedian from '../static/examples/sql_approxmedian.dashql';
 import example_sql_complexjoins from '../static/examples/sql_complexjoins.dashql';
 import example_sql_explicitgrouping from '../static/examples/sql_explicitgrouping.dashql';
@@ -44,7 +44,7 @@ export enum ScriptFeatureTag {
     FETCH_ARCHIVE_ZIP,
     DATA_CSV,
     DATA_PARQUET,
-    DYNAMIC_EXTRACT,
+    DYNAMIC_LOAD,
     DYNAMIC_SQL,
     DYNAMIC_VIZ,
     _COUNT_,
@@ -176,43 +176,43 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         enabled: false,
     },
     {
-        key: 'load_http_static',
-        collection: 'Load',
+        key: 'fetch_http_static',
+        collection: 'Fetch',
         title: 'Static HTTP',
         description: 'FOOOOO',
         icon: icon_package_down,
         features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_),
-        url: example_load_http_static,
+        url: example_fetch_http_static,
         enabled: false,
     },
     {
-        key: 'load_http_dynamic',
-        collection: 'Load',
+        key: 'fetch_http_dynamic',
+        collection: 'Fetch',
         title: 'Dynamic HTTP',
         description: 'FOOOOO',
         icon: icon_package_down,
         features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_),
-        url: example_load_http_dynamic,
+        url: example_fetch_http_dynamic,
         enabled: false,
     },
     {
-        key: 'extract_csv',
-        collection: 'Extract',
+        key: 'load_csv',
+        collection: 'Load',
         title: 'CSV Parsing',
         description: 'FOOOOO',
         icon: icon_database_import,
         features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_),
-        url: example_extract_csv,
+        url: example_load_csv,
         enabled: false,
     },
     {
-        key: 'extract_parquet',
-        collection: 'Extract',
+        key: 'load_parquet',
+        collection: 'Load',
         title: 'Parquet Import',
         description: 'FOOOOO',
         icon: icon_database_import,
         features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_),
-        url: example_extract_parquet,
+        url: example_load_parquet,
         enabled: false,
     },
     {

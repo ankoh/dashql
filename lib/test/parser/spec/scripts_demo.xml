@@ -10,15 +10,15 @@
             position = (row = 0, column = 0, width = 3, height = 1)
         );
 
-        -- Load data from external sources like HTTP REST APIs.
-        -- Ref: https://docs.dashql.com/grammar/load
+        -- Fetch data from external sources like HTTP REST APIs.
+        -- Ref: https://docs.dashql.com/grammar/fetch
         FETCH weather_csv FROM http (
             url = format('https://cdn.dashql.com/demo/weather/%s', main.country)
         );
 
         -- Interpret the data as SQL table.
-        -- Ref: https://docs.dashql.com/grammar/extract
-        EXTRACT weather FROM weather_csv USING CSV;
+        -- Ref: https://docs.dashql.com/grammar/load
+        LOAD weather FROM weather_csv USING CSV;
 
         -- Run arbitrary SQL within your browser.
         -- Ref: https://docs.dashql.com/grammar/query
@@ -51,68 +51,68 @@
                 </node>
             </statement>
             <statement type="FETCH" name="main.weather_csv">
-                <node type="OBJECT_DASHQL_FETCH" loc="554..674" text="FETCH weat..&#10;        )">
+                <node type="OBJECT_DASHQL_FETCH" loc="556..676" text="FETCH weat..&#10;        )">
                     <node key="DASHQL_FETCH_METHOD" value="HTTP" />
-                    <node key="DASHQL_STATEMENT_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="560..571" text="weather_csv">
-                        <node key="SQL_QUALIFIED_NAME_RELATION" loc="560..571" text="weather_csv" />
+                    <node key="DASHQL_STATEMENT_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="562..573" text="weather_csv">
+                        <node key="SQL_QUALIFIED_NAME_RELATION" loc="562..573" text="weather_csv" />
                     </node>
-                    <node key="DASHQL_OPTION_URL" type="OBJECT_DASHQL_FUNCTION_CALL" loc="602..664" text="format('ht..n.country)">
+                    <node key="DASHQL_OPTION_URL" type="OBJECT_DASHQL_FUNCTION_CALL" loc="604..666" text="format('ht..n.country)">
                         <node key="SQL_FUNCTION_ARGUMENTS">
-                            <node loc="609..649" text="'https://c..eather/%s'" />
-                            <node type="OBJECT_SQL_COLUMN_REF" loc="651..663" text="main.country">
+                            <node loc="611..651" text="'https://c..eather/%s'" />
+                            <node type="OBJECT_SQL_COLUMN_REF" loc="653..665" text="main.country">
                                 <node key="SQL_COLUMN_REF_PATH">
-                                    <node loc="651..655" text="main" />
-                                    <node loc="656..663" text="country" />
+                                    <node loc="653..657" text="main" />
+                                    <node loc="658..665" text="country" />
                                 </node>
                             </node>
                         </node>
-                        <node key="SQL_FUNCTION_NAME" loc="602..608" text="format" />
+                        <node key="SQL_FUNCTION_NAME" loc="604..610" text="format" />
                     </node>
                 </node>
             </statement>
-            <statement type="EXTRACT" name="main.weather">
-                <node type="OBJECT_DASHQL_EXTRACT" loc="785..827" text="EXTRACT we.. USING CSV">
-                    <node key="DASHQL_EXTRACT_DATA" type="OBJECT_SQL_QUALIFIED_NAME" loc="806..817" text="weather_csv">
-                        <node key="SQL_QUALIFIED_NAME_RELATION" loc="806..817" text="weather_csv" />
+            <statement type="LOAD" name="main.weather">
+                <node type="OBJECT_DASHQL_LOAD" loc="784..823" text="LOAD weath.. USING CSV">
+                    <node key="DASHQL_LOAD_DATA" type="OBJECT_SQL_QUALIFIED_NAME" loc="802..813" text="weather_csv">
+                        <node key="SQL_QUALIFIED_NAME_RELATION" loc="802..813" text="weather_csv" />
                     </node>
-                    <node key="DASHQL_EXTRACT_METHOD" value="CSV" />
-                    <node key="DASHQL_STATEMENT_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="793..800" text="weather">
-                        <node key="SQL_QUALIFIED_NAME_RELATION" loc="793..800" text="weather" />
+                    <node key="DASHQL_LOAD_METHOD" value="CSV" />
+                    <node key="DASHQL_STATEMENT_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="789..796" text="weather">
+                        <node key="SQL_QUALIFIED_NAME_RELATION" loc="789..796" text="weather" />
                     </node>
                 </node>
             </statement>
             <statement type="SELECT_INTO" name="main.weather_avg">
-                <node type="OBJECT_SQL_SELECT" loc="942..980" text="SELECT 1 I..OM weather">
+                <node type="OBJECT_SQL_SELECT" loc="938..976" text="SELECT 1 I..OM weather">
                     <node key="SQL_SELECT_FROM">
-                        <node type="OBJECT_SQL_TABLE_REF" loc="973..980" text="weather">
+                        <node type="OBJECT_SQL_TABLE_REF" loc="969..976" text="weather">
                             <node key="SQL_TABLE_INHERIT" value="true" />
-                            <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="973..980" text="weather">
-                                <node key="SQL_QUALIFIED_NAME_RELATION" loc="973..980" text="weather" />
+                            <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="969..976" text="weather">
+                                <node key="SQL_QUALIFIED_NAME_RELATION" loc="969..976" text="weather" />
                             </node>
                         </node>
                     </node>
-                    <node key="SQL_SELECT_INTO" type="OBJECT_SQL_INTO" loc="956..967" text="weather_avg">
-                        <node key="SQL_TEMP_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="956..967" text="weather_avg">
-                            <node key="SQL_QUALIFIED_NAME_RELATION" loc="956..967" text="weather_avg" />
+                    <node key="SQL_SELECT_INTO" type="OBJECT_SQL_INTO" loc="952..963" text="weather_avg">
+                        <node key="SQL_TEMP_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="952..963" text="weather_avg">
+                            <node key="SQL_QUALIFIED_NAME_RELATION" loc="952..963" text="weather_avg" />
                         </node>
                         <node key="SQL_TEMP_TYPE" value="DEFAULT" />
                     </node>
                     <node key="SQL_SELECT_TARGETS">
-                        <node loc="949..950" text="1" />
+                        <node loc="945..946" text="1" />
                     </node>
                 </node>
             </statement>
             <statement type="VIZUALIZE">
-                <node type="OBJECT_DASHQL_VIZ" loc="1082..1108" text="VIZ weathe..USING LINE">
+                <node type="OBJECT_DASHQL_VIZ" loc="1078..1104" text="VIZ weathe..USING LINE">
                     <node key="DASHQL_VIZ_COMPONENTS">
-                        <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="1104..1108" text="LINE">
+                        <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="1100..1104" text="LINE">
                             <node key="DASHQL_VIZ_COMPONENT_TYPE" value="LINE" />
                         </node>
                     </node>
-                    <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLE_REF" loc="1086..1097" text="weather_avg">
+                    <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLE_REF" loc="1082..1093" text="weather_avg">
                         <node key="SQL_TABLE_INHERIT" value="true" />
-                        <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="1086..1097" text="weather_avg">
-                            <node key="SQL_QUALIFIED_NAME_RELATION" loc="1086..1097" text="weather_avg" />
+                        <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="1082..1093" text="weather_avg">
+                            <node key="SQL_QUALIFIED_NAME_RELATION" loc="1082..1093" text="weather_avg" />
                         </node>
                     </node>
                 </node>
@@ -131,43 +131,43 @@
             <line_break loc="416..417" text="&#10;" />
             <line_break loc="427..428" text="&#10;" />
             <line_break loc="428..429" text="&#10;" />
-            <line_break loc="492..493" text="&#10;" />
-            <line_break loc="545..546" text="&#10;" />
-            <line_break loc="583..584" text="&#10;" />
-            <line_break loc="664..665" text="&#10;" />
-            <line_break loc="675..676" text="&#10;" />
-            <line_break loc="676..677" text="&#10;" />
-            <line_break loc="720..721" text="&#10;" />
-            <line_break loc="776..777" text="&#10;" />
-            <line_break loc="828..829" text="&#10;" />
-            <line_break loc="829..830" text="&#10;" />
-            <line_break loc="879..880" text="&#10;" />
-            <line_break loc="933..934" text="&#10;" />
-            <line_break loc="981..982" text="&#10;" />
-            <line_break loc="982..983" text="&#10;" />
-            <line_break loc="1021..1022" text="&#10;" />
-            <line_break loc="1073..1074" text="&#10;" />
-            <line_break loc="1109..1110" text="&#10;" />
+            <line_break loc="493..494" text="&#10;" />
+            <line_break loc="547..548" text="&#10;" />
+            <line_break loc="585..586" text="&#10;" />
+            <line_break loc="666..667" text="&#10;" />
+            <line_break loc="677..678" text="&#10;" />
+            <line_break loc="678..679" text="&#10;" />
+            <line_break loc="722..723" text="&#10;" />
+            <line_break loc="775..776" text="&#10;" />
+            <line_break loc="824..825" text="&#10;" />
+            <line_break loc="825..826" text="&#10;" />
+            <line_break loc="875..876" text="&#10;" />
+            <line_break loc="929..930" text="&#10;" />
+            <line_break loc="977..978" text="&#10;" />
+            <line_break loc="978..979" text="&#10;" />
+            <line_break loc="1017..1018" text="&#10;" />
+            <line_break loc="1069..1070" text="&#10;" />
+            <line_break loc="1105..1106" text="&#10;" />
         </line_breaks>
         <comments>
             <comment loc="9..76" text="-- This sc..on DashQL." />
             <comment loc="85..147" text="-- Delete ..m scratch." />
             <comment loc="157..215" text="-- Declare..dashboard." />
             <comment loc="224..269" text="-- Ref: ht..mmar/param" />
-            <comment loc="437..492" text="-- Load da..REST APIs." />
-            <comment loc="501..545" text="-- Ref: ht..ammar/load" />
-            <comment loc="685..720" text="-- Interpr..SQL table." />
-            <comment loc="729..776" text="-- Ref: ht..ar/extract" />
-            <comment loc="838..879" text="-- Run arb..r browser." />
-            <comment loc="888..933" text="-- Ref: ht..mmar/query" />
-            <comment loc="991..1021" text="-- Visuali..and views." />
-            <comment loc="1030..1073" text="-- Ref: ht..rammar/viz" />
+            <comment loc="437..493" text="-- Fetch d..REST APIs." />
+            <comment loc="502..547" text="-- Ref: ht..mmar/fetch" />
+            <comment loc="687..722" text="-- Interpr..SQL table." />
+            <comment loc="731..775" text="-- Ref: ht..ammar/load" />
+            <comment loc="834..875" text="-- Run arb..r browser." />
+            <comment loc="884..929" text="-- Ref: ht..mmar/query" />
+            <comment loc="987..1017" text="-- Visuali..and views." />
+            <comment loc="1026..1069" text="-- Ref: ht..rammar/viz" />
         </comments>
         <dependencies>
-            <dependency type="COLUMN_REF" source="0" target="1" loc="651..663" text="main.country" />
-            <dependency type="TABLE_REF" source="1" target="2" loc="806..817" text="weather_csv" />
-            <dependency type="TABLE_REF" source="2" target="3" loc="973..980" text="weather" />
-            <dependency type="TABLE_REF" source="3" target="4" loc="1086..1097" text="weather_avg" />
+            <dependency type="COLUMN_REF" source="0" target="1" loc="653..665" text="main.country" />
+            <dependency type="TABLE_REF" source="1" target="2" loc="802..813" text="weather_csv" />
+            <dependency type="TABLE_REF" source="2" target="3" loc="969..976" text="weather" />
+            <dependency type="TABLE_REF" source="3" target="4" loc="1082..1093" text="weather_avg" />
         </dependencies>
     </expected>
 </test>
@@ -242,13 +242,13 @@
 </test>
 <test name="demo_3">
     <input>
-        -- Load the bundled university schema
+        -- Fetch the bundled university schema
         FETCH uni FROM 'https://dashql.blob.core.windows.net/static/data/uni/de/all.zip';
 
-        -- Extract the parquet files in the zip archive
-        EXTRACT vorlesungen FROM uni['vorlesungen.parquet'];
-        EXTRACT hoeren FROM uni['hoeren.parquet'];
-        EXTRACT studenten FROM uni['studenten.parquet'];
+        -- Load the parquet files in the zip archive
+        LOAD vorlesungen FROM uni['vorlesungen.parquet'];
+        LOAD hoeren FROM uni['hoeren.parquet'];
+        LOAD studenten FROM uni['studenten.parquet'];
 
         -- Run arbitrary SQL
         CREATE TABLE Enrolments AS
@@ -319,120 +319,120 @@
     <expected>
         <statements>
             <statement type="FETCH" name="main.uni">
-                <node type="OBJECT_DASHQL_FETCH" loc="55..135" text="FETCH uni ..e/all.zip'">
-                    <node key="DASHQL_FETCH_FROM_URI" loc="70..135" text="'https://d..e/all.zip'" />
-                    <node key="DASHQL_STATEMENT_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="61..64" text="uni">
-                        <node key="SQL_QUALIFIED_NAME_RELATION" loc="61..64" text="uni" />
+                <node type="OBJECT_DASHQL_FETCH" loc="56..136" text="FETCH uni ..e/all.zip'">
+                    <node key="DASHQL_FETCH_FROM_URI" loc="71..136" text="'https://d..e/all.zip'" />
+                    <node key="DASHQL_STATEMENT_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="62..65" text="uni">
+                        <node key="SQL_QUALIFIED_NAME_RELATION" loc="62..65" text="uni" />
                     </node>
                 </node>
             </statement>
-            <statement type="EXTRACT" name="main.vorlesungen">
-                <node type="OBJECT_DASHQL_EXTRACT" loc="202..253" text="EXTRACT vo...parquet']">
-                    <node key="DASHQL_EXTRACT_DATA" type="OBJECT_SQL_QUALIFIED_NAME" loc="227..253" text="uni['vorle...parquet']">
-                        <node key="SQL_QUALIFIED_NAME_INDEX" type="OBJECT_SQL_INDIRECTION_INDEX" loc="230..253" text="['vorlesun...parquet']">
-                            <node key="SQL_INDIRECTION_INDEX_VALUE" loc="231..252" text="'vorlesung..n.parquet'" />
+            <statement type="LOAD" name="main.vorlesungen">
+                <node type="OBJECT_DASHQL_LOAD" loc="200..248" text="LOAD vorle...parquet']">
+                    <node key="DASHQL_LOAD_DATA" type="OBJECT_SQL_QUALIFIED_NAME" loc="222..248" text="uni['vorle...parquet']">
+                        <node key="SQL_QUALIFIED_NAME_INDEX" type="OBJECT_SQL_INDIRECTION_INDEX" loc="225..248" text="['vorlesun...parquet']">
+                            <node key="SQL_INDIRECTION_INDEX_VALUE" loc="226..247" text="'vorlesung..n.parquet'" />
                         </node>
-                        <node key="SQL_QUALIFIED_NAME_RELATION" loc="227..230" text="uni" />
+                        <node key="SQL_QUALIFIED_NAME_RELATION" loc="222..225" text="uni" />
                     </node>
-                    <node key="DASHQL_STATEMENT_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="210..221" text="vorlesungen">
-                        <node key="SQL_QUALIFIED_NAME_RELATION" loc="210..221" text="vorlesungen" />
+                    <node key="DASHQL_STATEMENT_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="205..216" text="vorlesungen">
+                        <node key="SQL_QUALIFIED_NAME_RELATION" loc="205..216" text="vorlesungen" />
                     </node>
                 </node>
             </statement>
-            <statement type="EXTRACT" name="main.hoeren">
-                <node type="OBJECT_DASHQL_EXTRACT" loc="263..304" text="EXTRACT ho...parquet']">
-                    <node key="DASHQL_EXTRACT_DATA" type="OBJECT_SQL_QUALIFIED_NAME" loc="283..304" text="uni['hoere...parquet']">
-                        <node key="SQL_QUALIFIED_NAME_INDEX" type="OBJECT_SQL_INDIRECTION_INDEX" loc="286..304" text="['hoeren.parquet']">
-                            <node key="SQL_INDIRECTION_INDEX_VALUE" loc="287..303" text="'hoeren.parquet'" />
+            <statement type="LOAD" name="main.hoeren">
+                <node type="OBJECT_DASHQL_LOAD" loc="258..296" text="LOAD hoere...parquet']">
+                    <node key="DASHQL_LOAD_DATA" type="OBJECT_SQL_QUALIFIED_NAME" loc="275..296" text="uni['hoere...parquet']">
+                        <node key="SQL_QUALIFIED_NAME_INDEX" type="OBJECT_SQL_INDIRECTION_INDEX" loc="278..296" text="['hoeren.parquet']">
+                            <node key="SQL_INDIRECTION_INDEX_VALUE" loc="279..295" text="'hoeren.parquet'" />
                         </node>
-                        <node key="SQL_QUALIFIED_NAME_RELATION" loc="283..286" text="uni" />
+                        <node key="SQL_QUALIFIED_NAME_RELATION" loc="275..278" text="uni" />
                     </node>
-                    <node key="DASHQL_STATEMENT_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="271..277" text="hoeren">
-                        <node key="SQL_QUALIFIED_NAME_RELATION" loc="271..277" text="hoeren" />
+                    <node key="DASHQL_STATEMENT_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="263..269" text="hoeren">
+                        <node key="SQL_QUALIFIED_NAME_RELATION" loc="263..269" text="hoeren" />
                     </node>
                 </node>
             </statement>
-            <statement type="EXTRACT" name="main.studenten">
-                <node type="OBJECT_DASHQL_EXTRACT" loc="314..361" text="EXTRACT st...parquet']">
-                    <node key="DASHQL_EXTRACT_DATA" type="OBJECT_SQL_QUALIFIED_NAME" loc="337..361" text="uni['stude...parquet']">
-                        <node key="SQL_QUALIFIED_NAME_INDEX" type="OBJECT_SQL_INDIRECTION_INDEX" loc="340..361" text="['studente...parquet']">
-                            <node key="SQL_INDIRECTION_INDEX_VALUE" loc="341..360" text="'studenten.parquet'" />
+            <statement type="LOAD" name="main.studenten">
+                <node type="OBJECT_DASHQL_LOAD" loc="306..350" text="LOAD stude...parquet']">
+                    <node key="DASHQL_LOAD_DATA" type="OBJECT_SQL_QUALIFIED_NAME" loc="326..350" text="uni['stude...parquet']">
+                        <node key="SQL_QUALIFIED_NAME_INDEX" type="OBJECT_SQL_INDIRECTION_INDEX" loc="329..350" text="['studente...parquet']">
+                            <node key="SQL_INDIRECTION_INDEX_VALUE" loc="330..349" text="'studenten.parquet'" />
                         </node>
-                        <node key="SQL_QUALIFIED_NAME_RELATION" loc="337..340" text="uni" />
+                        <node key="SQL_QUALIFIED_NAME_RELATION" loc="326..329" text="uni" />
                     </node>
-                    <node key="DASHQL_STATEMENT_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="322..331" text="studenten">
-                        <node key="SQL_QUALIFIED_NAME_RELATION" loc="322..331" text="studenten" />
+                    <node key="DASHQL_STATEMENT_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="311..320" text="studenten">
+                        <node key="SQL_QUALIFIED_NAME_RELATION" loc="311..320" text="studenten" />
                     </node>
                 </node>
             </statement>
             <statement type="CREATE_TABLE_AS" name="main.Enrolments">
-                <node type="OBJECT_SQL_CREATE_AS" loc="401..632" text="CREATE TAB..gen.VorlNr">
-                    <node key="SQL_CREATE_AS_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="414..424" text="Enrolments">
-                        <node key="SQL_QUALIFIED_NAME_RELATION" loc="414..424" text="Enrolments" />
+                <node type="OBJECT_SQL_CREATE_AS" loc="390..621" text="CREATE TAB..gen.VorlNr">
+                    <node key="SQL_CREATE_AS_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="403..413" text="Enrolments">
+                        <node key="SQL_QUALIFIED_NAME_RELATION" loc="403..413" text="Enrolments" />
                     </node>
                     <node key="SQL_CREATE_AS_ON_COMMIT" value="NOOP" />
-                    <node key="SQL_CREATE_AS_STATEMENT" type="OBJECT_SQL_SELECT" loc="440..632" text="SELECT stu..gen.VorlNr">
+                    <node key="SQL_CREATE_AS_STATEMENT" type="OBJECT_SQL_SELECT" loc="429..621" text="SELECT stu..gen.VorlNr">
                         <node key="SQL_SELECT_FROM">
-                            <node type="OBJECT_SQL_TABLE_REF" loc="500..509" text="studenten">
+                            <node type="OBJECT_SQL_TABLE_REF" loc="489..498" text="studenten">
                                 <node key="SQL_TABLE_INHERIT" value="true" />
-                                <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="500..509" text="studenten">
-                                    <node key="SQL_QUALIFIED_NAME_RELATION" loc="500..509" text="studenten" />
+                                <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="489..498" text="studenten">
+                                    <node key="SQL_QUALIFIED_NAME_RELATION" loc="489..498" text="studenten" />
                                 </node>
                             </node>
-                            <node type="OBJECT_SQL_TABLE_REF" loc="511..517" text="hoeren">
+                            <node type="OBJECT_SQL_TABLE_REF" loc="500..506" text="hoeren">
                                 <node key="SQL_TABLE_INHERIT" value="true" />
-                                <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="511..517" text="hoeren">
-                                    <node key="SQL_QUALIFIED_NAME_RELATION" loc="511..517" text="hoeren" />
+                                <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="500..506" text="hoeren">
+                                    <node key="SQL_QUALIFIED_NAME_RELATION" loc="500..506" text="hoeren" />
                                 </node>
                             </node>
-                            <node type="OBJECT_SQL_TABLE_REF" loc="519..530" text="vorlesungen">
+                            <node type="OBJECT_SQL_TABLE_REF" loc="508..519" text="vorlesungen">
                                 <node key="SQL_TABLE_INHERIT" value="true" />
-                                <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="519..530" text="vorlesungen">
-                                    <node key="SQL_QUALIFIED_NAME_RELATION" loc="519..530" text="vorlesungen" />
+                                <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="508..519" text="vorlesungen">
+                                    <node key="SQL_QUALIFIED_NAME_RELATION" loc="508..519" text="vorlesungen" />
                                 </node>
                             </node>
                         </node>
                         <node key="SQL_SELECT_TARGETS">
-                            <node type="OBJECT_SQL_COLUMN_REF" loc="447..463" text="studenten.MatrNr">
+                            <node type="OBJECT_SQL_COLUMN_REF" loc="436..452" text="studenten.MatrNr">
                                 <node key="SQL_COLUMN_REF_PATH">
-                                    <node loc="447..456" text="studenten" />
-                                    <node loc="457..463" text="MatrNr" />
+                                    <node loc="436..445" text="studenten" />
+                                    <node loc="446..452" text="MatrNr" />
                                 </node>
                             </node>
-                            <node type="OBJECT_SQL_COLUMN_REF" loc="465..482" text="vorlesungen.Titel">
+                            <node type="OBJECT_SQL_COLUMN_REF" loc="454..471" text="vorlesungen.Titel">
                                 <node key="SQL_COLUMN_REF_PATH">
-                                    <node loc="465..476" text="vorlesungen" />
-                                    <node loc="477..482" text="Titel" />
+                                    <node loc="454..465" text="vorlesungen" />
+                                    <node loc="466..471" text="Titel" />
                                 </node>
                             </node>
                         </node>
-                        <node key="SQL_SELECT_WHERE" type="OBJECT_SQL_EXPRESSION" loc="549..632" text="studenten...gen.VorlNr">
-                            <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_EXPRESSION" loc="549..581" text="studenten...ren.MatrNr">
-                                <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="549..565" text="studenten.MatrNr">
+                        <node key="SQL_SELECT_WHERE" type="OBJECT_SQL_EXPRESSION" loc="538..621" text="studenten...gen.VorlNr">
+                            <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_EXPRESSION" loc="538..570" text="studenten...ren.MatrNr">
+                                <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="538..554" text="studenten.MatrNr">
                                     <node key="SQL_COLUMN_REF_PATH">
-                                        <node loc="549..558" text="studenten" />
-                                        <node loc="559..565" text="MatrNr" />
+                                        <node loc="538..547" text="studenten" />
+                                        <node loc="548..554" text="MatrNr" />
                                     </node>
                                 </node>
-                                <node key="SQL_EXPRESSION_ARG1" type="OBJECT_SQL_COLUMN_REF" loc="568..581" text="hoeren.MatrNr">
+                                <node key="SQL_EXPRESSION_ARG1" type="OBJECT_SQL_COLUMN_REF" loc="557..570" text="hoeren.MatrNr">
                                     <node key="SQL_COLUMN_REF_PATH">
-                                        <node loc="568..574" text="hoeren" />
-                                        <node loc="575..581" text="MatrNr" />
+                                        <node loc="557..563" text="hoeren" />
+                                        <node loc="564..570" text="MatrNr" />
                                     </node>
                                 </node>
                                 <node key="SQL_EXPRESSION_FUNCTION" value="EQUAL" />
                             </node>
-                            <node key="SQL_EXPRESSION_ARG1" type="OBJECT_SQL_EXPRESSION" loc="598..632" text="hoeren.Vor..gen.VorlNr">
-                                <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="598..611" text="hoeren.VorlNr">
+                            <node key="SQL_EXPRESSION_ARG1" type="OBJECT_SQL_EXPRESSION" loc="587..621" text="hoeren.Vor..gen.VorlNr">
+                                <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="587..600" text="hoeren.VorlNr">
                                     <node key="SQL_COLUMN_REF_PATH">
-                                        <node loc="598..604" text="hoeren" />
-                                        <node loc="605..611" text="VorlNr" />
+                                        <node loc="587..593" text="hoeren" />
+                                        <node loc="594..600" text="VorlNr" />
                                     </node>
                                 </node>
-                                <node key="SQL_EXPRESSION_ARG1" type="OBJECT_SQL_COLUMN_REF" loc="614..632" text="vorlesungen.VorlNr">
+                                <node key="SQL_EXPRESSION_ARG1" type="OBJECT_SQL_COLUMN_REF" loc="603..621" text="vorlesungen.VorlNr">
                                     <node key="SQL_COLUMN_REF_PATH">
-                                        <node loc="614..625" text="vorlesungen" />
-                                        <node loc="626..632" text="VorlNr" />
+                                        <node loc="603..614" text="vorlesungen" />
+                                        <node loc="615..621" text="VorlNr" />
                                     </node>
                                 </node>
                                 <node key="SQL_EXPRESSION_FUNCTION" value="EQUAL" />
@@ -445,58 +445,58 @@
                 </node>
             </statement>
             <statement type="CREATE_TABLE_AS" name="main.StudentsCounts">
-                <node type="OBJECT_SQL_CREATE_AS" loc="674..871" text="CREATE TAB..BY v.titel">
-                    <node key="SQL_CREATE_AS_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="687..701" text="StudentsCounts">
-                        <node key="SQL_QUALIFIED_NAME_RELATION" loc="687..701" text="StudentsCounts" />
+                <node type="OBJECT_SQL_CREATE_AS" loc="663..860" text="CREATE TAB..BY v.titel">
+                    <node key="SQL_CREATE_AS_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="676..690" text="StudentsCounts">
+                        <node key="SQL_QUALIFIED_NAME_RELATION" loc="676..690" text="StudentsCounts" />
                     </node>
                     <node key="SQL_CREATE_AS_ON_COMMIT" value="NOOP" />
-                    <node key="SQL_CREATE_AS_STATEMENT" type="OBJECT_SQL_SELECT" loc="717..871" text="SELECT v.t..BY v.titel">
+                    <node key="SQL_CREATE_AS_STATEMENT" type="OBJECT_SQL_SELECT" loc="706..860" text="SELECT v.t..BY v.titel">
                         <node key="SQL_SELECT_FROM">
-                            <node type="OBJECT_SQL_TABLE_REF" loc="781..789" text="hoeren h">
-                                <node key="SQL_TABLE_ALIAS" loc="788..789" text="h" />
+                            <node type="OBJECT_SQL_TABLE_REF" loc="770..778" text="hoeren h">
+                                <node key="SQL_TABLE_ALIAS" loc="777..778" text="h" />
                                 <node key="SQL_TABLE_INHERIT" value="true" />
-                                <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="781..787" text="hoeren">
-                                    <node key="SQL_QUALIFIED_NAME_RELATION" loc="781..787" text="hoeren" />
+                                <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="770..776" text="hoeren">
+                                    <node key="SQL_QUALIFIED_NAME_RELATION" loc="770..776" text="hoeren" />
                                 </node>
                             </node>
-                            <node type="OBJECT_SQL_TABLE_REF" loc="791..804" text="vorlesungen v">
-                                <node key="SQL_TABLE_ALIAS" loc="803..804" text="v" />
+                            <node type="OBJECT_SQL_TABLE_REF" loc="780..793" text="vorlesungen v">
+                                <node key="SQL_TABLE_ALIAS" loc="792..793" text="v" />
                                 <node key="SQL_TABLE_INHERIT" value="true" />
-                                <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="791..802" text="vorlesungen">
-                                    <node key="SQL_QUALIFIED_NAME_RELATION" loc="791..802" text="vorlesungen" />
+                                <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="780..791" text="vorlesungen">
+                                    <node key="SQL_QUALIFIED_NAME_RELATION" loc="780..791" text="vorlesungen" />
                                 </node>
                             </node>
                         </node>
                         <node key="SQL_SELECT_GROUPS">
-                            <node type="OBJECT_SQL_COLUMN_REF" loc="864..871" text="v.titel">
+                            <node type="OBJECT_SQL_COLUMN_REF" loc="853..860" text="v.titel">
                                 <node key="SQL_COLUMN_REF_PATH">
-                                    <node loc="864..865" text="v" />
-                                    <node loc="866..871" text="titel" />
+                                    <node loc="853..854" text="v" />
+                                    <node loc="855..860" text="titel" />
                                 </node>
                             </node>
                         </node>
                         <node key="SQL_SELECT_TARGETS">
-                            <node type="OBJECT_SQL_COLUMN_REF" loc="724..731" text="v.titel">
+                            <node type="OBJECT_SQL_COLUMN_REF" loc="713..720" text="v.titel">
                                 <node key="SQL_COLUMN_REF_PATH">
-                                    <node loc="724..725" text="v" />
-                                    <node loc="726..731" text="titel" />
+                                    <node loc="713..714" text="v" />
+                                    <node loc="715..720" text="titel" />
                                 </node>
                             </node>
-                            <node type="OBJECT_SQL_RESULT_TARGET" loc="733..763" text="count(*)::.. studenten">
-                                <node key="SQL_RESULT_TARGET_NAME" loc="754..763" text="studenten" />
+                            <node type="OBJECT_SQL_RESULT_TARGET" loc="722..752" text="count(*)::.. studenten">
+                                <node key="SQL_RESULT_TARGET_NAME" loc="743..752" text="studenten" />
                             </node>
                         </node>
-                        <node key="SQL_SELECT_WHERE" type="OBJECT_SQL_EXPRESSION" loc="823..842" text="h.vorlnr = v.vorlnr">
-                            <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="823..831" text="h.vorlnr">
+                        <node key="SQL_SELECT_WHERE" type="OBJECT_SQL_EXPRESSION" loc="812..831" text="h.vorlnr = v.vorlnr">
+                            <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="812..820" text="h.vorlnr">
                                 <node key="SQL_COLUMN_REF_PATH">
-                                    <node loc="823..824" text="h" />
-                                    <node loc="825..831" text="vorlnr" />
+                                    <node loc="812..813" text="h" />
+                                    <node loc="814..820" text="vorlnr" />
                                 </node>
                             </node>
-                            <node key="SQL_EXPRESSION_ARG1" type="OBJECT_SQL_COLUMN_REF" loc="834..842" text="v.vorlnr">
+                            <node key="SQL_EXPRESSION_ARG1" type="OBJECT_SQL_COLUMN_REF" loc="823..831" text="v.vorlnr">
                                 <node key="SQL_COLUMN_REF_PATH">
-                                    <node loc="834..835" text="v" />
-                                    <node loc="836..842" text="vorlnr" />
+                                    <node loc="823..824" text="v" />
+                                    <node loc="825..831" text="vorlnr" />
                                 </node>
                             </node>
                             <node key="SQL_EXPRESSION_FUNCTION" value="EQUAL" />
@@ -507,37 +507,37 @@
                 </node>
             </statement>
             <statement type="CREATE_VIEW" name="main.SWSCounts">
-                <node type="OBJECT_SQL_VIEW" loc="920..1053" text="CREATE VIE..P BY v.sws">
-                    <node key="SQL_VIEW_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="932..941" text="SWSCounts">
-                        <node key="SQL_QUALIFIED_NAME_RELATION" loc="932..941" text="SWSCounts" />
+                <node type="OBJECT_SQL_VIEW" loc="909..1042" text="CREATE VIE..P BY v.sws">
+                    <node key="SQL_VIEW_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="921..930" text="SWSCounts">
+                        <node key="SQL_QUALIFIED_NAME_RELATION" loc="921..930" text="SWSCounts" />
                     </node>
-                    <node key="SQL_VIEW_STATEMENT" type="OBJECT_SQL_VIEW" loc="957..1053" text="SELECT v.s..P BY v.sws">
+                    <node key="SQL_VIEW_STATEMENT" type="OBJECT_SQL_VIEW" loc="946..1042" text="SELECT v.s..P BY v.sws">
                         <node key="SQL_SELECT_FROM">
-                            <node type="OBJECT_SQL_TABLE_REF" loc="1013..1026" text="vorlesungen v">
-                                <node key="SQL_TABLE_ALIAS" loc="1025..1026" text="v" />
+                            <node type="OBJECT_SQL_TABLE_REF" loc="1002..1015" text="vorlesungen v">
+                                <node key="SQL_TABLE_ALIAS" loc="1014..1015" text="v" />
                                 <node key="SQL_TABLE_INHERIT" value="true" />
-                                <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="1013..1024" text="vorlesungen">
-                                    <node key="SQL_QUALIFIED_NAME_RELATION" loc="1013..1024" text="vorlesungen" />
+                                <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="1002..1013" text="vorlesungen">
+                                    <node key="SQL_QUALIFIED_NAME_RELATION" loc="1002..1013" text="vorlesungen" />
                                 </node>
                             </node>
                         </node>
                         <node key="SQL_SELECT_GROUPS">
-                            <node type="OBJECT_SQL_COLUMN_REF" loc="1048..1053" text="v.sws">
+                            <node type="OBJECT_SQL_COLUMN_REF" loc="1037..1042" text="v.sws">
                                 <node key="SQL_COLUMN_REF_PATH">
-                                    <node loc="1048..1049" text="v" />
-                                    <node loc="1050..1053" text="sws" />
+                                    <node loc="1037..1038" text="v" />
+                                    <node loc="1039..1042" text="sws" />
                                 </node>
                             </node>
                         </node>
                         <node key="SQL_SELECT_TARGETS">
-                            <node type="OBJECT_SQL_COLUMN_REF" loc="964..969" text="v.sws">
+                            <node type="OBJECT_SQL_COLUMN_REF" loc="953..958" text="v.sws">
                                 <node key="SQL_COLUMN_REF_PATH">
-                                    <node loc="964..965" text="v" />
-                                    <node loc="966..969" text="sws" />
+                                    <node loc="953..954" text="v" />
+                                    <node loc="955..958" text="sws" />
                                 </node>
                             </node>
-                            <node type="OBJECT_SQL_RESULT_TARGET" loc="971..995" text="count(*)::..GER as cnt">
-                                <node key="SQL_RESULT_TARGET_NAME" loc="992..995" text="cnt" />
+                            <node type="OBJECT_SQL_RESULT_TARGET" loc="960..984" text="count(*)::..GER as cnt">
+                                <node key="SQL_RESULT_TARGET_NAME" loc="981..984" text="cnt" />
                             </node>
                         </node>
                     </node>
@@ -545,104 +545,104 @@
                 </node>
             </statement>
             <statement type="VIZUALIZE">
-                <node type="OBJECT_DASHQL_VIZ" loc="1116..1263" text="VIZ Enrolm..&#10;        )">
+                <node type="OBJECT_DASHQL_VIZ" loc="1105..1252" text="VIZ Enrolm..&#10;        )">
                     <node key="DASHQL_VIZ_COMPONENTS">
-                        <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="1137..1263" text="TABLE (&#10;  ..&#10;        )">
+                        <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="1126..1252" text="TABLE (&#10;  ..&#10;        )">
                             <node key="DASHQL_VIZ_COMPONENT_TYPE" value="TABLE" />
-                            <node key="DASHQL_OPTION_POSITION" type="OBJECT_DASHQL_OPTION_LIST" loc="1207..1252" text="(row = 3, ..eight = 4)">
-                                <node key="DASHQL_OPTION_ROW" loc="1214..1215" text="3" />
-                                <node key="DASHQL_OPTION_COLUMN" loc="1226..1227" text="0" />
-                                <node key="DASHQL_OPTION_WIDTH" loc="1237..1239" text="12" />
-                                <node key="DASHQL_OPTION_HEIGHT" loc="1250..1251" text="4" />
+                            <node key="DASHQL_OPTION_POSITION" type="OBJECT_DASHQL_OPTION_LIST" loc="1196..1241" text="(row = 3, ..eight = 4)">
+                                <node key="DASHQL_OPTION_ROW" loc="1203..1204" text="3" />
+                                <node key="DASHQL_OPTION_COLUMN" loc="1215..1216" text="0" />
+                                <node key="DASHQL_OPTION_WIDTH" loc="1226..1228" text="12" />
+                                <node key="DASHQL_OPTION_HEIGHT" loc="1239..1240" text="4" />
                             </node>
-                            <node key="DASHQL_OPTION_TITLE" loc="1165..1182" text="'Einschreibungen'" />
+                            <node key="DASHQL_OPTION_TITLE" loc="1154..1171" text="'Einschreibungen'" />
                         </node>
                     </node>
-                    <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLE_REF" loc="1120..1130" text="Enrolments">
+                    <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLE_REF" loc="1109..1119" text="Enrolments">
                         <node key="SQL_TABLE_INHERIT" value="true" />
-                        <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="1120..1130" text="Enrolments">
-                            <node key="SQL_QUALIFIED_NAME_RELATION" loc="1120..1130" text="Enrolments" />
+                        <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="1109..1119" text="Enrolments">
+                            <node key="SQL_QUALIFIED_NAME_RELATION" loc="1109..1119" text="Enrolments" />
                         </node>
                     </node>
                 </node>
             </statement>
             <statement type="VIZUALIZE">
-                <node type="OBJECT_DASHQL_VIZ" loc="1304..1919" text="VIZ Studen..&#10;        )">
+                <node type="OBJECT_DASHQL_VIZ" loc="1293..1908" text="VIZ Studen..&#10;        )">
                     <node key="DASHQL_VIZ_COMPONENTS">
-                        <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="1328..1919" text="VEGA (&#10;   ..&#10;        )">
+                        <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="1317..1908" text="VEGA (&#10;   ..&#10;        )">
                             <node key="DASHQL_VIZ_COMPONENT_TYPE" value="VEGA" />
-                            <node key="DASHQL_OPTION_POSITION" type="OBJECT_DASHQL_OPTION_LIST" loc="1392..1436" text="(row = 0, ..eight = 4)">
-                                <node key="DASHQL_OPTION_ROW" loc="1399..1400" text="0" />
-                                <node key="DASHQL_OPTION_COLUMN" loc="1411..1412" text="0" />
-                                <node key="DASHQL_OPTION_WIDTH" loc="1422..1423" text="6" />
-                                <node key="DASHQL_OPTION_HEIGHT" loc="1434..1435" text="4" />
+                            <node key="DASHQL_OPTION_POSITION" type="OBJECT_DASHQL_OPTION_LIST" loc="1381..1425" text="(row = 0, ..eight = 4)">
+                                <node key="DASHQL_OPTION_ROW" loc="1388..1389" text="0" />
+                                <node key="DASHQL_OPTION_COLUMN" loc="1400..1401" text="0" />
+                                <node key="DASHQL_OPTION_WIDTH" loc="1411..1412" text="6" />
+                                <node key="DASHQL_OPTION_HEIGHT" loc="1423..1424" text="4" />
                             </node>
-                            <node key="DASHQL_OPTION_TITLE" loc="1355..1367" text="'Auslastung'" />
-                            <node key="DASHQL_OPTION_ENCODING" type="OBJECT_DASHQL_OPTION_LIST" loc="1487..1909" text="(&#10;        ..         )">
-                                <node key="DASHQL_OPTION_X" type="OBJECT_DASHQL_OPTION_LIST" loc="1668..1894" text="(&#10;        ..         )">
-                                    <node key="DASHQL_OPTION_TITLE" loc="1698..1709" text="'Studenten'" />
-                                    <node key="DASHQL_OPTION_AXIS" type="OBJECT_DASHQL_OPTION_LIST" loc="1853..1875" text="axis.tick_..n_step = 1">
-                                        <node key="DASHQL_OPTION_TICK_MIN_STEP" loc="1874..1875" text="1" />
+                            <node key="DASHQL_OPTION_TITLE" loc="1344..1356" text="'Auslastung'" />
+                            <node key="DASHQL_OPTION_ENCODING" type="OBJECT_DASHQL_OPTION_LIST" loc="1476..1898" text="(&#10;        ..         )">
+                                <node key="DASHQL_OPTION_X" type="OBJECT_DASHQL_OPTION_LIST" loc="1657..1883" text="(&#10;        ..         )">
+                                    <node key="DASHQL_OPTION_TITLE" loc="1687..1698" text="'Studenten'" />
+                                    <node key="DASHQL_OPTION_AXIS" type="OBJECT_DASHQL_OPTION_LIST" loc="1842..1864" text="axis.tick_..n_step = 1">
+                                        <node key="DASHQL_OPTION_TICK_MIN_STEP" loc="1863..1864" text="1" />
                                     </node>
-                                    <node key="DASHQL_OPTION_FIELD" loc="1739..1750" text="'studenten'" />
-                                    <node key="DASHQL_OPTION_SCALE" type="OBJECT_DASHQL_OPTION_LIST" loc="1814..1831" text="scale.zero = true">
+                                    <node key="DASHQL_OPTION_FIELD" loc="1728..1739" text="'studenten'" />
+                                    <node key="DASHQL_OPTION_SCALE" type="OBJECT_DASHQL_OPTION_LIST" loc="1803..1820" text="scale.zero = true">
                                         <node key="DASHQL_OPTION_ZERO" value="true" />
                                     </node>
-                                    <node key="DASHQL_OPTION_TYPE" loc="1778..1792" text="'quantitative'" />
+                                    <node key="DASHQL_OPTION_TYPE" loc="1767..1781" text="'quantitative'" />
                                 </node>
-                                <node key="DASHQL_OPTION_Y" type="OBJECT_DASHQL_OPTION_LIST" loc="1509..1646" text="(&#10;        ..         )">
-                                    <node key="DASHQL_OPTION_TITLE" loc="1539..1552" text="'Vorlesungen'" />
-                                    <node key="DASHQL_OPTION_FIELD" loc="1582..1589" text="'Titel'" />
-                                    <node key="DASHQL_OPTION_TYPE" loc="1618..1627" text="'nominal'" />
+                                <node key="DASHQL_OPTION_Y" type="OBJECT_DASHQL_OPTION_LIST" loc="1498..1635" text="(&#10;        ..         )">
+                                    <node key="DASHQL_OPTION_TITLE" loc="1528..1541" text="'Vorlesungen'" />
+                                    <node key="DASHQL_OPTION_FIELD" loc="1571..1578" text="'Titel'" />
+                                    <node key="DASHQL_OPTION_TYPE" loc="1607..1616" text="'nominal'" />
                                 </node>
                             </node>
-                            <node key="DASHQL_OPTION_MARK" loc="1457..1462" text="'bar'" />
+                            <node key="DASHQL_OPTION_MARK" loc="1446..1451" text="'bar'" />
                         </node>
                     </node>
-                    <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLE_REF" loc="1308..1321" text="StudentCounts">
+                    <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLE_REF" loc="1297..1310" text="StudentCounts">
                         <node key="SQL_TABLE_INHERIT" value="true" />
-                        <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="1308..1321" text="StudentCounts">
-                            <node key="SQL_QUALIFIED_NAME_RELATION" loc="1308..1321" text="StudentCounts" />
+                        <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="1297..1310" text="StudentCounts">
+                            <node key="SQL_QUALIFIED_NAME_RELATION" loc="1297..1310" text="StudentCounts" />
                         </node>
                     </node>
                 </node>
             </statement>
             <statement type="VIZUALIZE">
-                <node type="OBJECT_DASHQL_VIZ" loc="1962..2517" text="VIZ SWSCou..&#10;        )">
+                <node type="OBJECT_DASHQL_VIZ" loc="1951..2506" text="VIZ SWSCou..&#10;        )">
                     <node key="DASHQL_VIZ_COMPONENTS">
-                        <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="1982..2517" text="VEGA (&#10;   ..&#10;        )">
+                        <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="1971..2506" text="VEGA (&#10;   ..&#10;        )">
                             <node key="DASHQL_VIZ_COMPONENT_TYPE" value="VEGA" />
-                            <node key="DASHQL_OPTION_POSITION" type="OBJECT_DASHQL_OPTION_LIST" loc="2049..2093" text="(row = 0, ..eight = 4)">
-                                <node key="DASHQL_OPTION_ROW" loc="2056..2057" text="0" />
-                                <node key="DASHQL_OPTION_COLUMN" loc="2068..2069" text="6" />
-                                <node key="DASHQL_OPTION_WIDTH" loc="2079..2080" text="6" />
-                                <node key="DASHQL_OPTION_HEIGHT" loc="2091..2092" text="4" />
+                            <node key="DASHQL_OPTION_POSITION" type="OBJECT_DASHQL_OPTION_LIST" loc="2038..2082" text="(row = 0, ..eight = 4)">
+                                <node key="DASHQL_OPTION_ROW" loc="2045..2046" text="0" />
+                                <node key="DASHQL_OPTION_COLUMN" loc="2057..2058" text="6" />
+                                <node key="DASHQL_OPTION_WIDTH" loc="2068..2069" text="6" />
+                                <node key="DASHQL_OPTION_HEIGHT" loc="2080..2081" text="4" />
                             </node>
-                            <node key="DASHQL_OPTION_TITLE" loc="2009..2024" text="'Wochenstunden'" />
-                            <node key="DASHQL_OPTION_ENCODING" type="OBJECT_DASHQL_OPTION_LIST" loc="2169..2507" text="(&#10;        ..         )">
-                                <node key="DASHQL_OPTION_COLOR" type="OBJECT_DASHQL_OPTION_LIST" loc="2195..2287" text="(&#10;        ..         )">
-                                    <node key="DASHQL_OPTION_FIELD" loc="2225..2230" text="'SWS'" />
-                                    <node key="DASHQL_OPTION_TYPE" loc="2259..2268" text="'ordinal'" />
+                            <node key="DASHQL_OPTION_TITLE" loc="1998..2013" text="'Wochenstunden'" />
+                            <node key="DASHQL_OPTION_ENCODING" type="OBJECT_DASHQL_OPTION_LIST" loc="2158..2496" text="(&#10;        ..         )">
+                                <node key="DASHQL_OPTION_COLOR" type="OBJECT_DASHQL_OPTION_LIST" loc="2184..2276" text="(&#10;        ..         )">
+                                    <node key="DASHQL_OPTION_FIELD" loc="2214..2219" text="'SWS'" />
+                                    <node key="DASHQL_OPTION_TYPE" loc="2248..2257" text="'ordinal'" />
                                 </node>
-                                <node key="DASHQL_OPTION_THETA" type="OBJECT_DASHQL_OPTION_LIST" loc="2313..2492" text="(&#10;        ..         )">
-                                    <node key="DASHQL_OPTION_TITLE" loc="2343..2356" text="'Vorlesungen'" />
-                                    <node key="DASHQL_OPTION_FIELD" loc="2386..2391" text="'cnt'" />
-                                    <node key="DASHQL_OPTION_SCALE" type="OBJECT_DASHQL_OPTION_LIST" loc="2456..2473" text="scale.zero = true">
+                                <node key="DASHQL_OPTION_THETA" type="OBJECT_DASHQL_OPTION_LIST" loc="2302..2481" text="(&#10;        ..         )">
+                                    <node key="DASHQL_OPTION_TITLE" loc="2332..2345" text="'Vorlesungen'" />
+                                    <node key="DASHQL_OPTION_FIELD" loc="2375..2380" text="'cnt'" />
+                                    <node key="DASHQL_OPTION_SCALE" type="OBJECT_DASHQL_OPTION_LIST" loc="2445..2462" text="scale.zero = true">
                                         <node key="DASHQL_OPTION_ZERO" value="true" />
                                     </node>
-                                    <node key="DASHQL_OPTION_TYPE" loc="2420..2434" text="'quantitative'" />
+                                    <node key="DASHQL_OPTION_TYPE" loc="2409..2423" text="'quantitative'" />
                                 </node>
                             </node>
-                            <node key="DASHQL_OPTION_MARK" type="OBJECT_DASHQL_OPTION_LIST" loc="2114..2144" text="(type= 'ar..radius=50)">
-                                <node key="DASHQL_OPTION_INNER_RADIUS" loc="2141..2143" text="50" />
-                                <node key="DASHQL_OPTION_TYPE" loc="2121..2126" text="'arc'" />
+                            <node key="DASHQL_OPTION_MARK" type="OBJECT_DASHQL_OPTION_LIST" loc="2103..2133" text="(type= 'ar..radius=50)">
+                                <node key="DASHQL_OPTION_INNER_RADIUS" loc="2130..2132" text="50" />
+                                <node key="DASHQL_OPTION_TYPE" loc="2110..2115" text="'arc'" />
                             </node>
                         </node>
                     </node>
-                    <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLE_REF" loc="1966..1975" text="SWSCounts">
+                    <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLE_REF" loc="1955..1964" text="SWSCounts">
                         <node key="SQL_TABLE_INHERIT" value="true" />
-                        <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="1966..1975" text="SWSCounts">
-                            <node key="SQL_QUALIFIED_NAME_RELATION" loc="1966..1975" text="SWSCounts" />
+                        <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="1955..1964" text="SWSCounts">
+                            <node key="SQL_QUALIFIED_NAME_RELATION" loc="1955..1964" text="SWSCounts" />
                         </node>
                     </node>
                 </node>
@@ -651,102 +651,102 @@
         <errors />
         <line_breaks>
             <line_break loc="0..1" text="&#10;" />
-            <line_break loc="46..47" text="&#10;" />
-            <line_break loc="136..137" text="&#10;" />
+            <line_break loc="47..48" text="&#10;" />
             <line_break loc="137..138" text="&#10;" />
-            <line_break loc="193..194" text="&#10;" />
-            <line_break loc="254..255" text="&#10;" />
-            <line_break loc="305..306" text="&#10;" />
-            <line_break loc="362..363" text="&#10;" />
-            <line_break loc="363..364" text="&#10;" />
-            <line_break loc="392..393" text="&#10;" />
-            <line_break loc="427..428" text="&#10;" />
-            <line_break loc="482..483" text="&#10;" />
-            <line_break loc="530..531" text="&#10;" />
-            <line_break loc="581..582" text="&#10;" />
-            <line_break loc="633..634" text="&#10;" />
-            <line_break loc="634..635" text="&#10;" />
-            <line_break loc="665..666" text="&#10;" />
-            <line_break loc="704..705" text="&#10;" />
-            <line_break loc="763..764" text="&#10;" />
-            <line_break loc="804..805" text="&#10;" />
-            <line_break loc="842..843" text="&#10;" />
-            <line_break loc="872..873" text="&#10;" />
-            <line_break loc="873..874" text="&#10;" />
-            <line_break loc="911..912" text="&#10;" />
-            <line_break loc="944..945" text="&#10;" />
-            <line_break loc="995..996" text="&#10;" />
-            <line_break loc="1026..1027" text="&#10;" />
-            <line_break loc="1054..1055" text="&#10;" />
-            <line_break loc="1055..1056" text="&#10;" />
-            <line_break loc="1107..1108" text="&#10;" />
-            <line_break loc="1144..1145" text="&#10;" />
-            <line_break loc="1183..1184" text="&#10;" />
+            <line_break loc="138..139" text="&#10;" />
+            <line_break loc="191..192" text="&#10;" />
+            <line_break loc="249..250" text="&#10;" />
+            <line_break loc="297..298" text="&#10;" />
+            <line_break loc="351..352" text="&#10;" />
+            <line_break loc="352..353" text="&#10;" />
+            <line_break loc="381..382" text="&#10;" />
+            <line_break loc="416..417" text="&#10;" />
+            <line_break loc="471..472" text="&#10;" />
+            <line_break loc="519..520" text="&#10;" />
+            <line_break loc="570..571" text="&#10;" />
+            <line_break loc="622..623" text="&#10;" />
+            <line_break loc="623..624" text="&#10;" />
+            <line_break loc="654..655" text="&#10;" />
+            <line_break loc="693..694" text="&#10;" />
+            <line_break loc="752..753" text="&#10;" />
+            <line_break loc="793..794" text="&#10;" />
+            <line_break loc="831..832" text="&#10;" />
+            <line_break loc="861..862" text="&#10;" />
+            <line_break loc="862..863" text="&#10;" />
+            <line_break loc="900..901" text="&#10;" />
+            <line_break loc="933..934" text="&#10;" />
+            <line_break loc="984..985" text="&#10;" />
+            <line_break loc="1015..1016" text="&#10;" />
+            <line_break loc="1043..1044" text="&#10;" />
+            <line_break loc="1044..1045" text="&#10;" />
+            <line_break loc="1096..1097" text="&#10;" />
+            <line_break loc="1133..1134" text="&#10;" />
+            <line_break loc="1172..1173" text="&#10;" />
+            <line_break loc="1242..1243" text="&#10;" />
             <line_break loc="1253..1254" text="&#10;" />
-            <line_break loc="1264..1265" text="&#10;" />
-            <line_break loc="1265..1266" text="&#10;" />
-            <line_break loc="1295..1296" text="&#10;" />
-            <line_break loc="1334..1335" text="&#10;" />
-            <line_break loc="1368..1369" text="&#10;" />
-            <line_break loc="1437..1438" text="&#10;" />
-            <line_break loc="1463..1464" text="&#10;" />
-            <line_break loc="1488..1489" text="&#10;" />
-            <line_break loc="1510..1511" text="&#10;" />
-            <line_break loc="1553..1554" text="&#10;" />
-            <line_break loc="1590..1591" text="&#10;" />
-            <line_break loc="1628..1629" text="&#10;" />
-            <line_break loc="1647..1648" text="&#10;" />
-            <line_break loc="1669..1670" text="&#10;" />
-            <line_break loc="1710..1711" text="&#10;" />
-            <line_break loc="1751..1752" text="&#10;" />
-            <line_break loc="1793..1794" text="&#10;" />
-            <line_break loc="1832..1833" text="&#10;" />
-            <line_break loc="1876..1877" text="&#10;" />
-            <line_break loc="1895..1896" text="&#10;" />
+            <line_break loc="1254..1255" text="&#10;" />
+            <line_break loc="1284..1285" text="&#10;" />
+            <line_break loc="1323..1324" text="&#10;" />
+            <line_break loc="1357..1358" text="&#10;" />
+            <line_break loc="1426..1427" text="&#10;" />
+            <line_break loc="1452..1453" text="&#10;" />
+            <line_break loc="1477..1478" text="&#10;" />
+            <line_break loc="1499..1500" text="&#10;" />
+            <line_break loc="1542..1543" text="&#10;" />
+            <line_break loc="1579..1580" text="&#10;" />
+            <line_break loc="1617..1618" text="&#10;" />
+            <line_break loc="1636..1637" text="&#10;" />
+            <line_break loc="1658..1659" text="&#10;" />
+            <line_break loc="1699..1700" text="&#10;" />
+            <line_break loc="1740..1741" text="&#10;" />
+            <line_break loc="1782..1783" text="&#10;" />
+            <line_break loc="1821..1822" text="&#10;" />
+            <line_break loc="1865..1866" text="&#10;" />
+            <line_break loc="1884..1885" text="&#10;" />
+            <line_break loc="1898..1899" text="&#10;" />
             <line_break loc="1909..1910" text="&#10;" />
-            <line_break loc="1920..1921" text="&#10;" />
-            <line_break loc="1921..1922" text="&#10;" />
-            <line_break loc="1953..1954" text="&#10;" />
-            <line_break loc="1988..1989" text="&#10;" />
-            <line_break loc="2025..2026" text="&#10;" />
-            <line_break loc="2094..2095" text="&#10;" />
-            <line_break loc="2145..2146" text="&#10;" />
-            <line_break loc="2170..2171" text="&#10;" />
-            <line_break loc="2196..2197" text="&#10;" />
-            <line_break loc="2231..2232" text="&#10;" />
-            <line_break loc="2269..2270" text="&#10;" />
-            <line_break loc="2288..2289" text="&#10;" />
-            <line_break loc="2314..2315" text="&#10;" />
-            <line_break loc="2357..2358" text="&#10;" />
-            <line_break loc="2392..2393" text="&#10;" />
-            <line_break loc="2435..2436" text="&#10;" />
-            <line_break loc="2474..2475" text="&#10;" />
-            <line_break loc="2493..2494" text="&#10;" />
+            <line_break loc="1910..1911" text="&#10;" />
+            <line_break loc="1942..1943" text="&#10;" />
+            <line_break loc="1977..1978" text="&#10;" />
+            <line_break loc="2014..2015" text="&#10;" />
+            <line_break loc="2083..2084" text="&#10;" />
+            <line_break loc="2134..2135" text="&#10;" />
+            <line_break loc="2159..2160" text="&#10;" />
+            <line_break loc="2185..2186" text="&#10;" />
+            <line_break loc="2220..2221" text="&#10;" />
+            <line_break loc="2258..2259" text="&#10;" />
+            <line_break loc="2277..2278" text="&#10;" />
+            <line_break loc="2303..2304" text="&#10;" />
+            <line_break loc="2346..2347" text="&#10;" />
+            <line_break loc="2381..2382" text="&#10;" />
+            <line_break loc="2424..2425" text="&#10;" />
+            <line_break loc="2463..2464" text="&#10;" />
+            <line_break loc="2482..2483" text="&#10;" />
+            <line_break loc="2496..2497" text="&#10;" />
             <line_break loc="2507..2508" text="&#10;" />
-            <line_break loc="2518..2519" text="&#10;" />
         </line_breaks>
         <comments>
-            <comment loc="9..46" text="-- Load th..ity schema" />
-            <comment loc="146..193" text="-- Extract..ip archive" />
-            <comment loc="372..392" text="-- Run arb..itrary SQL" />
-            <comment loc="643..665" text="-- ... wit..aggregates" />
-            <comment loc="882..911" text="-- ... sto..le or view" />
-            <comment loc="1064..1107" text="-- Visuali..mple table" />
-            <comment loc="1274..1295" text="-- ... or .. bar chart" />
-            <comment loc="1930..1953" text="-- ... or ..onut chart" />
+            <comment loc="9..47" text="-- Fetch t..ity schema" />
+            <comment loc="147..191" text="-- Load th..ip archive" />
+            <comment loc="361..381" text="-- Run arb..itrary SQL" />
+            <comment loc="632..654" text="-- ... wit..aggregates" />
+            <comment loc="871..900" text="-- ... sto..le or view" />
+            <comment loc="1053..1096" text="-- Visuali..mple table" />
+            <comment loc="1263..1284" text="-- ... or .. bar chart" />
+            <comment loc="1919..1942" text="-- ... or ..onut chart" />
         </comments>
         <dependencies>
-            <dependency type="TABLE_REF" source="0" target="1" loc="227..253" text="uni['vorle...parquet']" />
-            <dependency type="TABLE_REF" source="0" target="2" loc="283..304" text="uni['hoere...parquet']" />
-            <dependency type="TABLE_REF" source="0" target="3" loc="337..361" text="uni['stude...parquet']" />
-            <dependency type="TABLE_REF" source="3" target="4" loc="500..509" text="studenten" />
-            <dependency type="TABLE_REF" source="2" target="4" loc="511..517" text="hoeren" />
-            <dependency type="TABLE_REF" source="1" target="4" loc="519..530" text="vorlesungen" />
-            <dependency type="TABLE_REF" source="2" target="5" loc="781..789" text="hoeren h" />
-            <dependency type="TABLE_REF" source="1" target="5" loc="791..804" text="vorlesungen v" />
-            <dependency type="TABLE_REF" source="1" target="6" loc="1013..1026" text="vorlesungen v" />
-            <dependency type="TABLE_REF" source="4" target="7" loc="1120..1130" text="Enrolments" />
-            <dependency type="TABLE_REF" source="6" target="9" loc="1966..1975" text="SWSCounts" />
+            <dependency type="TABLE_REF" source="0" target="1" loc="222..248" text="uni['vorle...parquet']" />
+            <dependency type="TABLE_REF" source="0" target="2" loc="275..296" text="uni['hoere...parquet']" />
+            <dependency type="TABLE_REF" source="0" target="3" loc="326..350" text="uni['stude...parquet']" />
+            <dependency type="TABLE_REF" source="3" target="4" loc="489..498" text="studenten" />
+            <dependency type="TABLE_REF" source="2" target="4" loc="500..506" text="hoeren" />
+            <dependency type="TABLE_REF" source="1" target="4" loc="508..519" text="vorlesungen" />
+            <dependency type="TABLE_REF" source="2" target="5" loc="770..778" text="hoeren h" />
+            <dependency type="TABLE_REF" source="1" target="5" loc="780..793" text="vorlesungen v" />
+            <dependency type="TABLE_REF" source="1" target="6" loc="1002..1015" text="vorlesungen v" />
+            <dependency type="TABLE_REF" source="4" target="7" loc="1109..1119" text="Enrolments" />
+            <dependency type="TABLE_REF" source="6" target="9" loc="1955..1964" text="SWSCounts" />
         </dependencies>
     </expected>
 </test>

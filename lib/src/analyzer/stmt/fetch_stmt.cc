@@ -89,7 +89,7 @@ void FetchStatement::PrintOptionsAsJSON(std::ostream& out, bool pretty) const {
     writer.writeOptionsAsJSON(out, pretty);
 }
 
-/// Pack the extract statement
+/// Pack the load statement
 fb::Offset<ana::FetchStatement> FetchStatement::Pack(fb::FlatBufferBuilder& builder) const {
     auto& program = instance_.program();
     auto& stmt = program.statements[statement_id_];

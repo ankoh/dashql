@@ -22,35 +22,35 @@
             FETCH weather_csv FROM http (
                 url = format('https://cdn.dashql.com/demo/weather/{}', main.country)
             );
-            EXTRACT weather FROM weather_csv USING CSV;
+            LOAD weather FROM weather_csv USING CSV;
         </text>
         <parameters>
             <parameter type="VARCHAR" statement="0" value="DE" />
         </parameters>
     </step>
 </test>
-<test name="param_load_extract">
+<test name="param_load_load">
     <step>
         <text>
             INPUT country TYPE VARCHAR USING TEXT;
             FETCH weather_csv FROM http (
                 url = format('https://cdn.dashql.com/demo/weather/{}', main.country)
             );
-            EXTRACT weather FROM weather_csv USING CSV;
+            LOAD weather FROM weather_csv USING CSV;
         </text>
         <parameters>
             <parameter type="VARCHAR" statement="0" value="DE" />
         </parameters>
     </step>
 </test>
-<test name="param_load_extract_select">
+<test name="param_load_load_select">
     <step>
         <text>
             INPUT country TYPE VARCHAR USING TEXT;
             FETCH weather_csv FROM http (
                 url = format('https://cdn.dashql.com/demo/weather/{}', main.country)
             );
-            EXTRACT weather FROM weather_csv USING CSV;
+            LOAD weather FROM weather_csv USING CSV;
             SELECT * INTO weather_avg FROM weather;
         </text>
         <parameters>
@@ -65,7 +65,7 @@
             FETCH weather_csv FROM http (
                 url = format('https://cdn.dashql.com/demo/weather/{}', main.country)
             );
-            EXTRACT weather FROM weather_csv USING CSV;
+            LOAD weather FROM weather_csv USING CSV;
             SELECT * INTO weather_avg FROM weather;
             VIZ weather_avg USING LINE;
             VIZ weather_avg USING TABLE;
@@ -82,7 +82,7 @@
             FETCH weather_csv FROM http (
                 url = format('https://cdn.dashql.com/demo/weather/{}', main.country)
             );
-            EXTRACT weather FROM weather_csv USING CSV;
+            LOAD weather FROM weather_csv USING CSV;
             SELECT * INTO weather_avg FROM weather;
             SELECT * INTO weather_binned FROM weather;
             VIZ weather_avg USING LINE;
@@ -101,7 +101,7 @@
             FETCH weather_csv FROM http (
                 url = format('https://cdn.dashql.com/demo/weather/{}', main.country)
             );
-            EXTRACT weather FROM weather_csv USING CSV;
+            LOAD weather FROM weather_csv USING CSV;
             SELECT * INTO weather_avg FROM weather WHERE month = main.month;
             SELECT * INTO weather_binned FROM weather WHERE month = main.month;
             VIZ weather_avg USING LINE;
@@ -121,7 +121,7 @@
             FETCH weather_csv FROM http (
                 url = format('https://cdn.dashql.com/demo/weather/{}', main.country)
             );
-            EXTRACT weather FROM weather_csv USING CSV;
+            LOAD weather FROM weather_csv USING CSV;
             SELECT * INTO weather_avg FROM weather WHERE city = main.city;
         </text>
         <parameters>
@@ -130,7 +130,7 @@
         </parameters>
     </step>
 </test>
-<test name="extract_join">
+<test name="load_join">
     <step>
         <text>
             INPUT country1 TYPE VARCHAR USING TEXT;
@@ -142,8 +142,8 @@
             FETCH country2_weather_csv FROM http (
                 url = format('https://cdn.dashql.com/demo/weather/{}', main.country2)
             );
-            EXTRACT country1_weather FROM country1_weather_csv USING CSV;
-            EXTRACT country2_weather FROM country2_weather_csv USING CSV;
+            LOAD country1_weather FROM country1_weather_csv USING CSV;
+            LOAD country2_weather FROM country2_weather_csv USING CSV;
             SELECT * INTO countries_joined FROM country1_weather c1, country2_weather c2 WHERE c1.month = c2.month AND c2.month = main.month;
             VIZ countries_joined USING LINE;
         </text>
@@ -193,13 +193,13 @@
         <parameters />
     </step>
 </test>
-<test name="extract_uni_zip_infer">
+<test name="load_uni_zip_infer">
     <step>
         <text>
             FETCH uni FROM 'https://static.dashql.com/data/uni/de/all.zip';
-            EXTRACT vorlesungen FROM uni['vorlesungen.parquet'] USING PARQUET;
-            EXTRACT hoeren FROM uni['hoeren.parquet'] USING PARQUET;
-            EXTRACT studenten FROM uni['studenten.parquet'] USING PARQUET;
+            LOAD vorlesungen FROM uni['vorlesungen.parquet'] USING PARQUET;
+            LOAD hoeren FROM uni['hoeren.parquet'] USING PARQUET;
+            LOAD studenten FROM uni['studenten.parquet'] USING PARQUET;
         </text>
         <parameters />
     </step>
@@ -211,9 +211,9 @@
             FETCH uni FROM 'https://dashql.blob.core.windows.net/static/data/uni/de/all.zip';
 
             -- Extract the parquet files in the zip archive
-            EXTRACT vorlesungen FROM uni['vorlesungen.parquet'];
-            EXTRACT hoeren FROM uni['hoeren.parquet'];
-            EXTRACT studenten FROM uni['studenten.parquet'];
+            LOAD vorlesungen FROM uni['vorlesungen.parquet'];
+            LOAD hoeren FROM uni['hoeren.parquet'];
+            LOAD studenten FROM uni['studenten.parquet'];
 
             -- Run arbitrary SQL
             CREATE VIEW foo AS

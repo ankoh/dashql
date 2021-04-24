@@ -33,8 +33,8 @@ function getSetupActionTypeLabel(type: proto.action.SetupActionType) {
 
 function getProgramActionTypeLabel(type: proto.action.ProgramActionType) {
     switch (type) {
-        case proto.action.ProgramActionType.EXTRACT:
-            return 'EXTRACT';
+        case proto.action.ProgramActionType.LOAD:
+            return 'LOAD';
         case proto.action.ProgramActionType.FETCH:
             return 'FETCH';
         case proto.action.ProgramActionType.INPUT:
