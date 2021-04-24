@@ -43,7 +43,7 @@
     <step>
         <text>
             INPUT country TYPE VARCHAR USING TEXT;
-            LOAD weather_csv FROM http (
+            FETCH weather_csv FROM http (
                 url = format('https://cdn.dashql.com/demo/weather/{}', main.country)
             );
             EXTRACT weather FROM weather_csv USING CSV;
@@ -52,7 +52,7 @@
             <input statement="0" type="VARCHAR" value="DE" />
         </inputs>
         <evaluations>
-            <eval type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" loc="115..177" text="format('ht..n.country)" />
+            <eval type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" loc="116..178" text="format('ht..n.country)" />
         </evaluations>
         <cards>
             <input name="country" component="TEXT" />
@@ -66,7 +66,7 @@
                         <ref action="1" />
                     </required_for>
                 </action>
-                <action origin="1" type="LOAD" status="NONE" object_id="1">
+                <action origin="1" type="FETCH" status="NONE" object_id="1">
                     <target name="main.weather_csv" />
                     <depends_on>
                         <ref action="0" />
@@ -89,7 +89,7 @@
     <step>
         <text>
             INPUT country TYPE VARCHAR USING TEXT;
-            LOAD weather_csv FROM http (
+            FETCH weather_csv FROM http (
                 url = format('https://cdn.dashql.com/demo/weather/{}', main.country)
             );
             EXTRACT weather FROM weather_csv USING CSV;
@@ -98,7 +98,7 @@
             <input statement="0" type="VARCHAR" value="DE" />
         </inputs>
         <evaluations>
-            <eval type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" loc="115..177" text="format('ht..n.country)" />
+            <eval type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" loc="116..178" text="format('ht..n.country)" />
         </evaluations>
         <cards>
             <input name="country" component="TEXT" />
@@ -112,7 +112,7 @@
                         <ref action="1" />
                     </required_for>
                 </action>
-                <action origin="1" type="LOAD" status="NONE" object_id="1">
+                <action origin="1" type="FETCH" status="NONE" object_id="1">
                     <target name="main.weather_csv" />
                     <depends_on>
                         <ref action="0" />
@@ -135,7 +135,7 @@
     <step>
         <text>
             INPUT country TYPE VARCHAR USING TEXT;
-            LOAD weather_csv FROM http (
+            FETCH weather_csv FROM http (
                 url = format('https://cdn.dashql.com/demo/weather/{}', main.country)
             );
             EXTRACT weather FROM weather_csv USING CSV;
@@ -145,7 +145,7 @@
             <input statement="0" type="VARCHAR" value="DE" />
         </inputs>
         <evaluations>
-            <eval type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" loc="115..177" text="format('ht..n.country)" />
+            <eval type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" loc="116..178" text="format('ht..n.country)" />
         </evaluations>
         <cards>
             <input name="country" component="TEXT" />
@@ -159,7 +159,7 @@
                         <ref action="1" />
                     </required_for>
                 </action>
-                <action origin="1" type="LOAD" status="NONE" object_id="1">
+                <action origin="1" type="FETCH" status="NONE" object_id="1">
                     <target name="main.weather_csv" />
                     <depends_on>
                         <ref action="0" />
@@ -192,7 +192,7 @@
     <step>
         <text>
             INPUT country TYPE VARCHAR USING TEXT;
-            LOAD weather_csv FROM http (
+            FETCH weather_csv FROM http (
                 url = format('https://cdn.dashql.com/demo/weather/{}', main.country)
             );
             EXTRACT weather FROM weather_csv USING CSV;
@@ -204,7 +204,7 @@
             <input statement="0" type="VARCHAR" value="DE" />
         </inputs>
         <evaluations>
-            <eval type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" loc="115..177" text="format('ht..n.country)" />
+            <eval type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" loc="116..178" text="format('ht..n.country)" />
         </evaluations>
         <cards>
             <input name="country" component="TEXT" />
@@ -228,7 +228,7 @@
                         <ref action="1" />
                     </required_for>
                 </action>
-                <action origin="1" type="LOAD" status="NONE" object_id="1">
+                <action origin="1" type="FETCH" status="NONE" object_id="1">
                     <target name="main.weather_csv" />
                     <depends_on>
                         <ref action="0" />
@@ -277,7 +277,7 @@
     <step>
         <text>
             INPUT country TYPE VARCHAR USING TEXT;
-            LOAD weather_csv FROM http (
+            FETCH weather_csv FROM http (
                 url = format('https://cdn.dashql.com/demo/weather/{}', main.country)
             );
             EXTRACT weather FROM weather_csv USING CSV;
@@ -290,7 +290,7 @@
             <input statement="0" type="VARCHAR" value="DE" />
         </inputs>
         <evaluations>
-            <eval type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" loc="115..177" text="format('ht..n.country)" />
+            <eval type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" loc="116..178" text="format('ht..n.country)" />
         </evaluations>
         <cards>
             <input name="country" component="TEXT" />
@@ -314,7 +314,7 @@
                         <ref action="1" />
                     </required_for>
                 </action>
-                <action origin="1" type="LOAD" status="NONE" object_id="1">
+                <action origin="1" type="FETCH" status="NONE" object_id="1">
                     <target name="main.weather_csv" />
                     <depends_on>
                         <ref action="0" />
@@ -374,7 +374,7 @@
         <text>
             INPUT country TYPE VARCHAR USING TEXT;
             INPUT month TYPE INTEGER USING TEXT;
-            LOAD weather_csv FROM http (
+            FETCH weather_csv FROM http (
                 url = format('https://cdn.dashql.com/demo/weather/{}', main.country)
             );
             EXTRACT weather FROM weather_csv USING CSV;
@@ -388,9 +388,9 @@
             <input statement="1" type="BIGINT" value="5" />
         </inputs>
         <evaluations>
-            <eval type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" loc="164..226" text="format('ht..n.country)" />
-            <eval type="BIGINT" value="5" loc="443..453" text="main.month" />
-            <eval type="BIGINT" value="5" loc="363..373" text="main.month" />
+            <eval type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" loc="165..227" text="format('ht..n.country)" />
+            <eval type="BIGINT" value="5" loc="444..454" text="main.month" />
+            <eval type="BIGINT" value="5" loc="364..374" text="main.month" />
         </evaluations>
         <cards>
             <input name="country" component="TEXT" />
@@ -422,7 +422,7 @@
                         <ref action="5" />
                     </required_for>
                 </action>
-                <action origin="2" type="LOAD" status="NONE" object_id="2">
+                <action origin="2" type="FETCH" status="NONE" object_id="2">
                     <target name="main.weather_csv" />
                     <depends_on>
                         <ref action="0" />
@@ -484,7 +484,7 @@
         <text>
             INPUT country TYPE VARCHAR USING TEXT;
             INPUT city TYPE VARCHAR USING TEXT;
-            LOAD weather_csv FROM http (
+            FETCH weather_csv FROM http (
                 url = format('https://cdn.dashql.com/demo/weather/{}', main.country)
             );
             EXTRACT weather FROM weather_csv USING CSV;
@@ -495,8 +495,8 @@
             <input statement="1" type="VARCHAR" value="MUC" />
         </inputs>
         <evaluations>
-            <eval type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" loc="163..225" text="format('ht..n.country)" />
-            <eval type="VARCHAR" value="MUC" loc="361..370" text="main.city" />
+            <eval type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" loc="164..226" text="format('ht..n.country)" />
+            <eval type="VARCHAR" value="MUC" loc="362..371" text="main.city" />
         </evaluations>
         <cards>
             <input name="country" component="TEXT" />
@@ -517,7 +517,7 @@
                         <ref action="4" />
                     </required_for>
                 </action>
-                <action origin="2" type="LOAD" status="NONE" object_id="2">
+                <action origin="2" type="FETCH" status="NONE" object_id="2">
                     <target name="main.weather_csv" />
                     <depends_on>
                         <ref action="0" />
@@ -553,10 +553,10 @@
             INPUT country1 TYPE VARCHAR USING TEXT;
             INPUT country2 TYPE VARCHAR USING TEXT;
             INPUT month TYPE INTEGER USING TEXT;
-            LOAD country1_weather_csv FROM http (
+            FETCH country1_weather_csv FROM http (
                 url = format('https://cdn.dashql.com/demo/weather/{}', main.country1)
             );
-            LOAD country2_weather_csv FROM http (
+            FETCH country2_weather_csv FROM http (
                 url = format('https://cdn.dashql.com/demo/weather/{}', main.country2)
             );
             EXTRACT country1_weather FROM country1_weather_csv USING CSV;
@@ -570,9 +570,9 @@
             <input statement="2" type="BIGINT" value="5" />
         </inputs>
         <evaluations>
-            <eval type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/US'" loc="377..440" text="format('ht...country2)" />
-            <eval type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" loc="226..289" text="format('ht...country1)" />
-            <eval type="BIGINT" value="5" loc="734..744" text="main.month" />
+            <eval type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/US'" loc="379..442" text="format('ht...country2)" />
+            <eval type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" loc="227..290" text="format('ht...country1)" />
+            <eval type="BIGINT" value="5" loc="736..746" text="main.month" />
         </evaluations>
         <cards>
             <input name="country1" component="TEXT" />
@@ -605,7 +605,7 @@
                         <ref action="7" />
                     </required_for>
                 </action>
-                <action origin="3" type="LOAD" status="NONE" object_id="3">
+                <action origin="3" type="FETCH" status="NONE" object_id="3">
                     <target name="main.country1_weather_csv" />
                     <depends_on>
                         <ref action="0" />
@@ -614,7 +614,7 @@
                         <ref action="5" />
                     </required_for>
                 </action>
-                <action origin="4" type="LOAD" status="NONE" object_id="4">
+                <action origin="4" type="FETCH" status="NONE" object_id="4">
                     <target name="main.country2_weather_csv" />
                     <depends_on>
                         <ref action="1" />
@@ -773,7 +773,7 @@
 <test name="extract_uni_zip_infer">
     <step>
         <text>
-            LOAD uni FROM 'https://static.dashql.com/data/uni/de/all.zip';
+            FETCH uni FROM 'https://static.dashql.com/data/uni/de/all.zip';
             EXTRACT vorlesungen FROM uni['vorlesungen.parquet'] USING PARQUET;
             EXTRACT hoeren FROM uni['hoeren.parquet'] USING PARQUET;
             EXTRACT studenten FROM uni['studenten.parquet'] USING PARQUET;
@@ -784,7 +784,7 @@
         <graph next_object_id="4">
             <setup />
             <program>
-                <action origin="0" type="LOAD" status="NONE" object_id="0">
+                <action origin="0" type="FETCH" status="NONE" object_id="0">
                     <target name="main.uni" />
                     <required_for>
                         <ref action="1" />
@@ -818,7 +818,7 @@
     <step>
         <text>
             -- Load the bundled university schema
-            LOAD uni FROM 'https://dashql.blob.core.windows.net/static/data/uni/de/all.zip';
+            FETCH uni FROM 'https://dashql.blob.core.windows.net/static/data/uni/de/all.zip';
 
             -- Extract the parquet files in the zip archive
             EXTRACT vorlesungen FROM uni['vorlesungen.parquet'];
@@ -856,7 +856,7 @@
         <graph next_object_id="7">
             <setup />
             <program>
-                <action origin="0" type="LOAD" status="NONE" object_id="0">
+                <action origin="0" type="FETCH" status="NONE" object_id="0">
                     <target name="main.uni" />
                     <required_for>
                         <ref action="1" />

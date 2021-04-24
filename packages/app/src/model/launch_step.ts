@@ -14,7 +14,7 @@ export enum LaunchStep {
     CONFIGURE_APP = 0,
     INIT_ANALYZER = 1,
     INIT_WEBDB = 2,
-    LOAD_DEMO = 3,
+    FETCH_DEMO = 3,
 }
 
 /// A launch step info

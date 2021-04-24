@@ -195,13 +195,13 @@ void Analyzer::AnalyzeInputStatements(ProgramInstance& instance) {
     }
 }
 
-/// Analyze the load statements
-void Analyzer::AnalyzeLoadStatements(ProgramInstance& instance) {
+/// Analyze the fetch statements
+void Analyzer::AnalyzeFetchStatements(ProgramInstance& instance) {
     auto& program = instance.program();
     for (size_t stmt_id = 0; stmt_id < program.statements.size(); ++stmt_id) {
-        auto input = LoadStatement::ReadFrom(instance, stmt_id);
+        auto input = FetchStatement::ReadFrom(instance, stmt_id);
         if (!input) continue;
-        instance.load_statements_.push_back(std::move(input));
+        instance.fetch_statements_.push_back(std::move(input));
     }
 }
 
@@ -255,7 +255,7 @@ Signal Analyzer::InstantiateProgram(std::vector<InputValue> inputs) {
     PropagateConstants(*next_instance);
     // Analyze the statements
     AnalyzeInputStatements(*next_instance);
-    AnalyzeLoadStatements(*next_instance);
+    AnalyzeFetchStatements(*next_instance);
     AnalyzeExtractStatements(*next_instance);
     AnalyzeVizStatements(*next_instance);
     // Compute the card positions

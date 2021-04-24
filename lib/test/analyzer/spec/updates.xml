@@ -4,7 +4,7 @@
             INPUT country TYPE VARCHAR USING TEXT (
                 default_value = 'DE'
             );
-            LOAD weather_csv FROM http (
+            FETCH weather_csv FROM http (
                 url = format('https://cdn.dashql.com/demo/weather/{}', main.country)
             );
         </text>
@@ -12,7 +12,7 @@
             <input statement="0" type="VARCHAR" value="DE" />
         </inputs>
         <evaluations>
-            <eval type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" loc="168..230" text="format('ht..n.country)" />
+            <eval type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" loc="169..231" text="format('ht..n.country)" />
         </evaluations>
         <cards>
             <input name="country" component="TEXT" />
@@ -26,7 +26,7 @@
                         <ref action="1" />
                     </required_for>
                 </action>
-                <action origin="1" type="LOAD" status="NONE" object_id="1">
+                <action origin="1" type="FETCH" status="NONE" object_id="1">
                     <target name="main.weather_csv" />
                     <depends_on>
                         <ref action="0" />
@@ -40,7 +40,7 @@
             INPUT country TYPE VARCHAR USING TEXT (
                 default_value = 'DE'
             );
-            LOAD weather_csv FROM http (
+            FETCH weather_csv FROM http (
                 url = format('https://cdn.dashql.com/demo/weather/{}', main.country)
             );
         </text>
@@ -48,7 +48,7 @@
             <input statement="0" type="VARCHAR" value="US" />
         </inputs>
         <evaluations>
-            <eval type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/US'" loc="168..230" text="format('ht..n.country)" />
+            <eval type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/US'" loc="169..231" text="format('ht..n.country)" />
         </evaluations>
         <cards>
             <input name="country" component="TEXT" />
@@ -69,7 +69,7 @@
                         <ref action="1" />
                     </required_for>
                 </action>
-                <action origin="1" type="LOAD" status="NONE" object_id="3">
+                <action origin="1" type="FETCH" status="NONE" object_id="3">
                     <target name="main.weather_csv" />
                     <depends_on>
                         <ref action="0" />

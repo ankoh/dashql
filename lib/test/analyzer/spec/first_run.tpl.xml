@@ -19,7 +19,7 @@
     <step>
         <text>
             INPUT country TYPE VARCHAR USING TEXT;
-            LOAD weather_csv FROM http (
+            FETCH weather_csv FROM http (
                 url = format('https://cdn.dashql.com/demo/weather/{}', main.country)
             );
             EXTRACT weather FROM weather_csv USING CSV;
@@ -33,7 +33,7 @@
     <step>
         <text>
             INPUT country TYPE VARCHAR USING TEXT;
-            LOAD weather_csv FROM http (
+            FETCH weather_csv FROM http (
                 url = format('https://cdn.dashql.com/demo/weather/{}', main.country)
             );
             EXTRACT weather FROM weather_csv USING CSV;
@@ -47,7 +47,7 @@
     <step>
         <text>
             INPUT country TYPE VARCHAR USING TEXT;
-            LOAD weather_csv FROM http (
+            FETCH weather_csv FROM http (
                 url = format('https://cdn.dashql.com/demo/weather/{}', main.country)
             );
             EXTRACT weather FROM weather_csv USING CSV;
@@ -62,7 +62,7 @@
     <step>
         <text>
             INPUT country TYPE VARCHAR USING TEXT;
-            LOAD weather_csv FROM http (
+            FETCH weather_csv FROM http (
                 url = format('https://cdn.dashql.com/demo/weather/{}', main.country)
             );
             EXTRACT weather FROM weather_csv USING CSV;
@@ -79,7 +79,7 @@
     <step>
         <text>
             INPUT country TYPE VARCHAR USING TEXT;
-            LOAD weather_csv FROM http (
+            FETCH weather_csv FROM http (
                 url = format('https://cdn.dashql.com/demo/weather/{}', main.country)
             );
             EXTRACT weather FROM weather_csv USING CSV;
@@ -98,7 +98,7 @@
         <text>
             INPUT country TYPE VARCHAR USING TEXT;
             INPUT month TYPE INTEGER USING TEXT;
-            LOAD weather_csv FROM http (
+            FETCH weather_csv FROM http (
                 url = format('https://cdn.dashql.com/demo/weather/{}', main.country)
             );
             EXTRACT weather FROM weather_csv USING CSV;
@@ -118,7 +118,7 @@
         <text>
             INPUT country TYPE VARCHAR USING TEXT;
             INPUT city TYPE VARCHAR USING TEXT;
-            LOAD weather_csv FROM http (
+            FETCH weather_csv FROM http (
                 url = format('https://cdn.dashql.com/demo/weather/{}', main.country)
             );
             EXTRACT weather FROM weather_csv USING CSV;
@@ -136,10 +136,10 @@
             INPUT country1 TYPE VARCHAR USING TEXT;
             INPUT country2 TYPE VARCHAR USING TEXT;
             INPUT month TYPE INTEGER USING TEXT;
-            LOAD country1_weather_csv FROM http (
+            FETCH country1_weather_csv FROM http (
                 url = format('https://cdn.dashql.com/demo/weather/{}', main.country1)
             );
-            LOAD country2_weather_csv FROM http (
+            FETCH country2_weather_csv FROM http (
                 url = format('https://cdn.dashql.com/demo/weather/{}', main.country2)
             );
             EXTRACT country1_weather FROM country1_weather_csv USING CSV;
@@ -196,7 +196,7 @@
 <test name="extract_uni_zip_infer">
     <step>
         <text>
-            LOAD uni FROM 'https://static.dashql.com/data/uni/de/all.zip';
+            FETCH uni FROM 'https://static.dashql.com/data/uni/de/all.zip';
             EXTRACT vorlesungen FROM uni['vorlesungen.parquet'] USING PARQUET;
             EXTRACT hoeren FROM uni['hoeren.parquet'] USING PARQUET;
             EXTRACT studenten FROM uni['studenten.parquet'] USING PARQUET;
@@ -208,7 +208,7 @@
     <step>
         <text>
             -- Load the bundled university schema
-            LOAD uni FROM 'https://dashql.blob.core.windows.net/static/data/uni/de/all.zip';
+            FETCH uni FROM 'https://dashql.blob.core.windows.net/static/data/uni/de/all.zip';
 
             -- Extract the parquet files in the zip archive
             EXTRACT vorlesungen FROM uni['vorlesungen.parquet'];

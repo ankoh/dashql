@@ -32,9 +32,9 @@ describe('Parser', () => {
             expect(p.statementsLength()).toEqual(1);
         });
 
-        it('load http from url', async () => {
+        it('fetch http from url', async () => {
             const r = az.parseProgram(`
-                LOAD weather_csv FROM http (
+                FETCH weather_csv FROM http (
                     url = 'https://localhost/test'
                 );
            `);

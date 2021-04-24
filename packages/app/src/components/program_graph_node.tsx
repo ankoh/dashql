@@ -21,7 +21,7 @@ function StatementTypeIcon(type: proto.syntax.StatementType): string {
             return icon_database_search;
         case proto.syntax.StatementType.EXTRACT:
             return icon_database_import;
-        case proto.syntax.StatementType.LOAD:
+        case proto.syntax.StatementType.FETCH:
             return icon_file_document_plus;
         case proto.syntax.StatementType.INPUT:
             return icon_variable_box;

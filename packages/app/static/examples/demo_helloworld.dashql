@@ -1,5 +1,5 @@
--- Load the bundled university schema
-LOAD uni FROM 'https://dashql.blob.core.windows.net/static/data/uni/de/all.zip';
+-- Fetch the bundled university schema
+FETCH uni FROM 'https://dashql.blob.core.windows.net/static/data/uni/de/all.zip';
 
 -- Extract the parquet files in the zip archive
 EXTRACT vorlesungen FROM uni['vorlesungen.parquet'];
