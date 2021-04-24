@@ -5,7 +5,7 @@ include(ExternalProject)
 # Get nlohmann_json
 ExternalProject_Add(
     nlohmann_json_ep
-    SOURCE_DIR "${CMAKE_SOURCE_DIR}/../submodules/nljson"
+    SOURCE_DIR "${CMAKE_SOURCE_DIR}/../submodules/nlohmann_json"
     PREFIX "third_party/nlohmann_json"
     INSTALL_DIR "${CMAKE_BINARY_DIR}/third_party/nlohmann_json/install"
     CMAKE_ARGS

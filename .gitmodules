@@ -41,5 +41,5 @@
 	path = submodules/jmespath
 	url = https://github.com/robertmrk/jmespath.cpp
 [submodule "submodules/nljson"]
-	path = submodules/nljson
+	path = submodules/nlohmann_json
 	url = https://github.com/nlohmann/json
