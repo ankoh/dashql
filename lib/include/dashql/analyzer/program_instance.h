@@ -14,9 +14,9 @@
 
 #include "dashql/analyzer/input_value.h"
 #include "dashql/analyzer/program_linter.h"
-#include "dashql/analyzer/stmt/load_stmt.h"
 #include "dashql/analyzer/stmt/fetch_stmt.h"
 #include "dashql/analyzer/stmt/input_stmt.h"
+#include "dashql/analyzer/stmt/load_stmt.h"
 #include "dashql/analyzer/stmt/viz_stmt.h"
 #include "dashql/analyzer/value.h"
 #include "dashql/common/enum.h"
