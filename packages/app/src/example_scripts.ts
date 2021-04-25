@@ -289,24 +289,28 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
 
 export const EXAMPLE_SCRIPT_MAP: Map<string, ExampleScriptMetadata> = new Map(EXAMPLE_SCRIPTS.map(e => [e.key, e]));
 
+export async function getScript(example: ExampleScriptMetadata): Promise<core.model.Script> {
+    const resp = await axios.get(example.url);
+    if (resp.status != 200) {
+        throw new Error(`Loading example ${example.key.toString()} failed with error: ${resp.statusText}`);
+    }
+    const text = resp.data as string;
+    return {
+        text,
+        uriPrefix: core.model.ScriptURIPrefix.EXAMPLES,
+        uriName: example.key,
+        modified: false,
+        lineCount: core.utils.countLines(text),
+        bytes: core.utils.estimateUTF16Length(text),
+    };
+}
+
 export async function loadScript(example: ExampleScriptMetadata, store: model.AppReduxStore): Promise<void> {
     try {
-        const resp = await axios.get(example.url);
-        if (resp.status != 200) {
-            console.error(`Loading example ${example.key.toString()} failed with error: ${resp.statusText}`);
-            return;
-        }
-        const text = resp.data as string;
+        const script = await getScript(example);
         model.mutate(store.dispatch, {
             type: core.model.StateMutationType.SET_SCRIPT,
-            data: {
-                text,
-                uriPrefix: core.model.ScriptURIPrefix.EXAMPLES,
-                uriName: example.key,
-                modified: false,
-                lineCount: core.utils.countLines(text),
-                bytes: core.utils.estimateUTF16Length(text),
-            },
+            data: script,
         });
     } catch (e) {
         // XXX log to platform
