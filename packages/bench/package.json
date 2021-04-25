@@ -18,7 +18,6 @@
         "lovefield-ts": "^0.7.0",
         "prettier": "^2.2.1",
         "sql.js": "^1.5.0",
-        "taffydb": "^2.7.3",
         "web-worker": "^1.0.0"
     },
     "devDependencies": {

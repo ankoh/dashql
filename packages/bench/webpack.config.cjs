@@ -3,8 +3,8 @@ const InjectPlugin = require('webpack-inject-plugin').default;
 
 module.exports = {
     entry: './src/index_browser.ts',
-    mode: 'development',
-    devtool: false,
+    mode: 'production',
+    devtool: 'source-map',
     module: {
         rules: [
             {

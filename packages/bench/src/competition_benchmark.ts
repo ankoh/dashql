@@ -7,7 +7,6 @@ import kleur from 'kleur';
 import * as SQL from 'sql.js';
 import alasql from 'alasql';
 import * as aq from 'arquero';
-import { taffy } from 'taffydb';
 import { nSQL } from '@nano-sql/core';
 import * as lf from 'lovefield-ts/dist/es6/lf.js';
 import * as format from '@dashql/core/src/utils/format';
@@ -62,13 +61,6 @@ export async function benchmarkCompetitions(duckdb: () => duckdb.DuckDBBindings,
             a_value: new Int32Array(aq_vals),
         });
 
-        // TaffyDB
-        let taffy_rows = [];
-        for (let i = 0; i <= tupleCount; i++) {
-            taffy_rows.push({ a_value: i });
-        }
-        let taffy_table = taffy(taffy_rows);
-
         // nanoSQL
         await nSQL().createDatabase({
             id: 'test_schema',
@@ -83,7 +75,12 @@ export async function benchmarkCompetitions(duckdb: () => duckdb.DuckDBBindings,
             ],
         });
         nSQL().useDatabase('test_schema');
-        await nSQL('test_table').loadJS(taffy_rows);
+
+        let nsql_rows = [];
+        for (let i = 0; i <= tupleCount; i++) {
+            nsql_rows.push({ a_value: i });
+        }
+        await nSQL('test_table').loadJS(nsql_rows);
 
         /////////////////////////////////////////////
 
@@ -154,16 +151,6 @@ export async function benchmarkCompetitions(duckdb: () => duckdb.DuckDBBindings,
 
                 if (sum != gaussSum(tupleCount)) {
                     throw 'Lovefield Row mismatch';
-                }
-            }),
-            add('TaffyDB', () => {
-                let sum = 0;
-                for (const row of taffy_table().select('a_value')) {
-                    sum += <number>row;
-                }
-
-                if (sum != gaussSum(tupleCount)) {
-                    throw 'TaffyDB Row mismatch';
                 }
             }),
             add('nanoSQL', async () => {

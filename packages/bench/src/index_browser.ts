@@ -38,6 +38,5 @@ async function main() {
 (window as any).karmaCustomEnv = {};
 (window as any).karmaCustomEnv.execute = async function (karma: any, window: any) {
     await main();
-    karma.result({ success: true });
     karma.complete({});
 };
