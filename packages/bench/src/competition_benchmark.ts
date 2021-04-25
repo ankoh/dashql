@@ -7,7 +7,7 @@ import kleur from 'kleur';
 import * as SQL from 'sql.js';
 import alasql from 'alasql';
 import * as aq from 'arquero';
-import Taffy from 'taffydb';
+import { taffy } from 'taffydb';
 import { nSQL } from '@nano-sql/core';
 import * as lf from 'lovefield-ts/dist/es6/lf.js';
 import * as format from '@dashql/core/src/utils/format';
@@ -67,7 +67,7 @@ export async function benchmarkCompetitions(duckdb: () => duckdb.DuckDBBindings,
         for (let i = 0; i <= tupleCount; i++) {
             taffy_rows.push({ a_value: i });
         }
-        let taffy_table = Taffy.taffy(taffy_rows);
+        let taffy_table = taffy(taffy_rows);
 
         // nanoSQL
         await nSQL().createDatabase({

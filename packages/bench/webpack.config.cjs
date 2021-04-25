@@ -3,8 +3,8 @@ const InjectPlugin = require('webpack-inject-plugin').default;
 
 module.exports = {
     entry: './src/index_browser.ts',
-    mode: 'production',
-    devtool: 'source-map',
+    mode: 'development',
+    devtool: false,
     module: {
         rules: [
             {
@@ -27,7 +27,7 @@ module.exports = {
     },
     plugins: [
         new InjectPlugin(function () {
-            return 'window._ = require("lodash");window.Benchmark = require("benchmark");';
+            return 'window._ = require("lodash");window.Benchmark = require("benchmark");var exports = {};';
         }),
     ],
 };

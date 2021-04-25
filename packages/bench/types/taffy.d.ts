@@ -1,4 +1,4 @@
 declare module 'taffydb' {
-    var b: any;
-    export = b;
+    export { TAFFY as taffy };
+    declare var TAFFY: any;
 }
