@@ -37,12 +37,13 @@ function getFeatureTagLabel(tag: ScriptFeatureTag) {
 interface Props extends RouteComponentProps {
     appContext: IAppContext;
     className?: string;
-    loadedScript: core.model.Script;
+    setProgram: (program: core.model.Program) => void;
 }
 
 interface State {
     filteredFeatures: core.utils.NativeBitmap;
     focusedExample: string | null;
+    focusedProgram: core.model.Program | null;
 }
 
 class Examples extends React.Component<Props, State> {
@@ -57,23 +58,29 @@ class Examples extends React.Component<Props, State> {
         this.state = {
             filteredFeatures: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_),
             focusedExample: null,
+            focusedProgram: null,
         };
     }
 
-    focusExample(elem: React.MouseEvent<HTMLDivElement>) {
+    async focusExample(elem: React.MouseEvent<HTMLDivElement>) {
         const key = (elem.currentTarget as any).dataset.key;
-        examples.loadScript(EXAMPLE_SCRIPT_MAP.get(key)!, this.props.appContext.store);
+        const analyzer = this.props.appContext.platform!.analyzer;
+        const script = await examples.getScript(EXAMPLE_SCRIPT_MAP.get(key)!);
+        const program = analyzer.parseProgram(script.text);
         this.setState({
             ...this.state,
-            focusedExample: key || null,
+            focusedExample: key,
+            focusedProgram: program,
         });
     }
 
     viewExample() {
+        this.props.setProgram(this.state.focusedProgram!);
         this.props.history.push('/viewer');
     }
 
     editExample() {
+        this.props.setProgram(this.state.focusedProgram!);
         this.props.history.push('/studio');
     }
 
@@ -81,6 +88,7 @@ class Examples extends React.Component<Props, State> {
         this.setState({
             ...this.state,
             focusedExample: null,
+            focusedProgram: null,
         });
     }
 
@@ -110,12 +118,9 @@ class Examples extends React.Component<Props, State> {
         return <div className={styles.filter_grid}>{features}</div>;
     }
 
-    renderScriptDetail(name: string) {
-        const script = EXAMPLE_SCRIPT_MAP.get(name)!;
-        const scriptLoaded: boolean =
-            (this.props.loadedScript.uriPrefix == core.model.ScriptURIPrefix.EXAMPLES &&
-                this.props.loadedScript.uriName == name) ||
-            false;
+    renderScriptDetail() {
+        if (!this.state.focusedExample) return <div />;
+        const script = EXAMPLE_SCRIPT_MAP.get(this.state.focusedExample!)!;
         return (
             <motion.div className={styles.script_detail} layoutId={script.key}>
                 <motion.div className={styles.script_detail_header}>
@@ -133,10 +138,10 @@ class Examples extends React.Component<Props, State> {
                 </motion.div>
                 <motion.span className={styles.example_description}>{script.description}</motion.span>
                 <motion.div className={styles.script_detail_actions}>
-                    <Button size="sm" onClick={this._viewExample} disabled={!scriptLoaded}>
+                    <Button size="sm" onClick={this._viewExample}>
                         View
                     </Button>
-                    <Button size="sm" onClick={this._editExample} disabled={!scriptLoaded}>
+                    <Button size="sm" onClick={this._editExample}>
                         Edit
                     </Button>
                 </motion.div>
@@ -151,24 +156,27 @@ class Examples extends React.Component<Props, State> {
             <div className={styles.collection}>
                 <div className={styles.collection_name}>{name}</div>
                 <div className={styles.collection_grid}>
-                    {scripts.map(script => (
-                        <motion.div
-                            className={classNames(styles.script_card, {
-                                [styles.script_card_disabled]: !script.enabled,
-                            })}
-                            key={script.key}
-                            layoutId={script.key}
-                            data-key={script.key}
-                            onClick={script.enabled ? this._focusExample : () => {}}
-                        >
-                            <motion.div className={styles.example_icon}>
-                                <svg width="20" height="20">
-                                    <use xlinkHref={`${script.icon}#sym`} />
-                                </svg>
-                            </motion.div>
-                            <motion.span className={styles.example_title}>{script.title}</motion.span>
-                        </motion.div>
-                    ))}
+                    {scripts.map(
+                        script =>
+                            script.key != this.state.focusedExample && (
+                                <motion.div
+                                    className={classNames(styles.script_card, {
+                                        [styles.script_card_disabled]: !script.enabled,
+                                    })}
+                                    key={script.key}
+                                    layoutId={script.key}
+                                    data-key={script.key}
+                                    onClick={script.enabled ? this._focusExample : () => {}}
+                                >
+                                    <motion.div className={styles.example_icon}>
+                                        <svg width="20" height="20">
+                                            <use xlinkHref={`${script.icon}#sym`} />
+                                        </svg>
+                                    </motion.div>
+                                    <motion.span className={styles.example_title}>{script.title}</motion.span>
+                                </motion.div>
+                            ),
+                    )}
                 </div>
             </div>
         );
@@ -198,9 +206,7 @@ class Examples extends React.Component<Props, State> {
                         {this.renderCollection(collections, 'Load')}
                         {this.renderCollection(collections, 'SQL')}
                         {this.renderCollection(collections, 'Visualize')}
-                        <AnimatePresence>
-                            {this.state.focusedExample && this.renderScriptDetail(this.state.focusedExample)}
-                        </AnimatePresence>
+                        <AnimatePresence>{this.renderScriptDetail()}</AnimatePresence>
                     </AnimateSharedLayout>
                 </div>
             </div>
@@ -208,10 +214,15 @@ class Examples extends React.Component<Props, State> {
     }
 }
 
-const mapStateToProps = (state: AppState) => ({
-    loadedScript: state.core.script,
-});
+const mapStateToProps = (state: AppState) => ({});
 
-const mapDispatchToProps = (_dispatch: Dispatch) => ({});
+const mapDispatchToProps = (dispatch: Dispatch) => ({
+    setProgram: (program: core.model.Program) => {
+        dispatch({
+            type: core.model.StateMutationType.SET_PROGRAM,
+            data: program,
+        });
+    },
+});
 
 export default connect(mapStateToProps, mapDispatchToProps)(withRouter(withAppContext(Examples)));

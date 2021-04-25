@@ -72,6 +72,10 @@
     background: rgb(220, 220, 220);
 }
 
+.script_card_hidden {
+    visibility: hidden;
+}
+
 .example_icon {
     grid-row: 1;
     grid-column: 1;
@@ -89,9 +93,6 @@
     display: grid;
     align-items: center;
     vertical-align: middle;
-}
-
-.example_description {
 }
 
 .example_unfocus {
