@@ -9,12 +9,12 @@ import * as lf from 'lovefield-ts/dist/es6/lf.js';
 export interface DBWrapper {
     name: string;
 
-    init(): void;
-    close(): void;
-    create(table: string, columns: { [key: string]: string }): void;
-    load(table: string, data: { [key: string]: any }[]): void;
-    scan_int(table: string): void;
-    sum(table: string, column: string): number;
+    init(): Promise<void>;
+    close(): Promise<void>;
+    create(table: string, columns: { [key: string]: string }): Promise<void>;
+    load(table: string, data: { [key: string]: any }[]): Promise<void>;
+    scan_int(table: string): Promise<void>;
+    sum(table: string, column: string): Promise<number>;
 }
 
 function noop() {}
@@ -51,69 +51,60 @@ function sqlInsert(table: string, data: { [key: string]: any }[]): string {
 
 export class DuckDBMatWrapper implements DBWrapper {
     public name: string;
-    private conn?: duckdb.DuckDBConnection;
-    private db: duckdb.DuckDBBindings;
+    protected conn?: duckdb.DuckDBConnection;
+    protected db: duckdb.DuckDBBindings;
 
     constructor(db: duckdb.DuckDBBindings) {
         this.name = 'DuckDB-mat';
         this.db = db;
     }
 
-    init(): void {
+    init(): Promise<void> {
         this.conn = this.db.connect();
+        return Promise.resolve();
     }
-    close(): void {
+    close(): Promise<void> {
         this.conn!.disconnect();
+        return Promise.resolve();
     }
-    create(table: string, columns: { [key: string]: string }): void {
+    create(table: string, columns: { [key: string]: string }): Promise<void> {
+        this.conn!.runQuery(`DROP TABLE IF EXISTS ${table}`);
         this.conn!.runQuery(sqlCreate(table, columns));
+        return Promise.resolve();
     }
-    load(table: string, data: { [key: string]: any }[]): void {
+    load(table: string, data: { [key: string]: any }[]): Promise<void> {
         this.conn!.runQuery(sqlInsert(table, data));
+        return Promise.resolve();
     }
-    scan_int(table: string): void {
+    scan_int(table: string): Promise<void> {
         const results = this.conn!.runQuery<{ a_value: arrow.Int32 }>(`SELECT a_value FROM ${table}`);
         for (const v of results.getColumnAt(0)!) {
             noop();
         }
+        return Promise.resolve();
     }
-    sum(table: string, column: string): number {
-        throw new Error('Method not implemented.');
+    sum(table: string, column: string): Promise<number> {
+        const result = this.conn!.runQuery<{ sum_v: arrow.Int32 }>(
+            `SELECT sum(${column})::INTEGER as sum_v FROM ${table}`,
+        );
+        return Promise.resolve(result.getColumnAt(0)!.get(0));
     }
 }
 
-export class DuckDBStreamWrapper implements DBWrapper {
-    public name: string;
-    private conn?: duckdb.DuckDBConnection;
-    private db: duckdb.DuckDBBindings;
-
+export class DuckDBStreamWrapper extends DuckDBMatWrapper {
     constructor(db: duckdb.DuckDBBindings) {
+        super(db);
         this.name = 'DuckDB-str';
-        this.db = db;
     }
-
-    init(): void {
-        this.conn = this.db.connect();
-    }
-    close(): void {
-        this.conn!.disconnect();
-    }
-    create(table: string, columns: { [key: string]: string }): void {
-        this.conn!.runQuery(sqlCreate(table, columns));
-    }
-    load(table: string, data: { [key: string]: any }[]): void {
-        this.conn!.runQuery(sqlInsert(table, data));
-    }
-    scan_int(table: string): void {
+    scan_int(table: string): Promise<void> {
         const results = this.conn!.sendQuery<{ a_value: arrow.Int32 }>(`SELECT a_value FROM ${table}`);
         for (const batch of results) {
             for (const v of batch.getChildAt(0)!) {
                 noop();
             }
         }
-    }
-    sum(table: string, column: string): number {
-        throw new Error('Method not implemented.');
+
+        return Promise.resolve();
     }
 }
 
@@ -126,22 +117,31 @@ export class SQLjsWrapper implements DBWrapper {
         this.db = db;
     }
 
-    init(): void {}
-    close(): void {}
-    create(table: string, columns: { [key: string]: string }): void {
+    init(): Promise<void> {
+        return Promise.resolve();
+    }
+    close(): Promise<void> {
+        return Promise.resolve();
+    }
+    create(table: string, columns: { [key: string]: string }): Promise<void> {
+        this.db.run(`DROP TABLE IF EXISTS ${table}`);
         this.db.run(sqlCreate(table, columns));
+        return Promise.resolve();
     }
-    load(table: string, data: { [key: string]: any }[]): void {
+    load(table: string, data: { [key: string]: any }[]): Promise<void> {
         this.db.run(sqlInsert(table, data));
+        return Promise.resolve();
     }
-    scan_int(table: string): void {
+    scan_int(table: string): Promise<void> {
         const results = this.db.exec(`SELECT a_value FROM ${table}`);
         for (const row of results[0].values) {
             noop();
         }
+        return Promise.resolve();
     }
-    sum(table: string, column: string): number {
-        throw new Error('Method not implemented.');
+    sum(table: string, column: string): Promise<number> {
+        const results = this.db.exec(`SELECT sum(${column}) as a_value FROM ${table}`);
+        return Promise.resolve(<number>results[0].values[0][0]);
     }
 }
 
@@ -152,22 +152,31 @@ export class AlaSQLWrapper implements DBWrapper {
         this.name = 'AlaSQL';
     }
 
-    init(): void {}
-    close(): void {}
-    create(table: string, columns: { [key: string]: string }): void {
+    init(): Promise<void> {
+        return Promise.resolve();
+    }
+    close(): Promise<void> {
+        return Promise.resolve();
+    }
+    create(table: string, columns: { [key: string]: string }): Promise<void> {
+        alasql(`DROP TABLE IF EXISTS ${table}`);
         alasql(sqlCreate(table, columns));
+        return Promise.resolve();
     }
-    load(table: string, data: { [key: string]: any }[]): void {
+    load(table: string, data: { [key: string]: any }[]): Promise<void> {
         alasql(sqlInsert(table, data));
+        return Promise.resolve();
     }
-    scan_int(table: string): void {
+    scan_int(table: string): Promise<void> {
         const rows = alasql(`SELECT a_value FROM ${table}`);
         for (const row of rows) {
             noop();
         }
+        return Promise.resolve();
     }
-    sum(table: string, column: string): number {
-        throw new Error('Method not implemented.');
+    sum(table: string, column: string): Promise<number> {
+        const rows = alasql(`SELECT sum(${column}) as a_value FROM ${table}`);
+        return rows[0][column];
     }
 }
 
@@ -179,14 +188,16 @@ export class LovefieldWrapper implements DBWrapper {
     constructor() {
         this.name = 'Lovefield';
     }
-    init(): void {
+    init(): Promise<void> {
         this.builder = lf.schema.create('test_schema', 1);
+        return Promise.resolve();
     }
-    close(): void {
+    close(): Promise<void> {
         this.db!.close();
         this.db = undefined;
+        return Promise.resolve();
     }
-    create(table: string, columns: { [key: string]: string }): void {
+    create(table: string, columns: { [key: string]: string }): Promise<void> {
         if (this.db) {
             throw 'Schema is fixed after first insert.';
         }
@@ -205,6 +216,7 @@ export class LovefieldWrapper implements DBWrapper {
 
             tableBuilder = tableBuilder.addColumn(col, type);
         }
+        return Promise.resolve();
     }
     async load(table: string, data: { [key: string]: any }[]): Promise<void> {
         if (!this.db) {
@@ -219,13 +231,19 @@ export class LovefieldWrapper implements DBWrapper {
         await this.db!.insert().into(t).values(rows).exec();
     }
     async scan_int(table: string): Promise<void> {
-        const rows = <{ a_value: number }[]>await this.db!.select().from(this.db!.getSchema().table(table)).exec();
+        const rows = <{ a_value: Promise<number> }[]>(
+            await this.db!.select().from(this.db!.getSchema().table(table)).exec()
+        );
         for (const row of rows) {
             noop();
         }
     }
-    sum(table: string, column: string): number {
-        throw new Error('Method not implemented.');
+    async sum(table: string, column: string): Promise<number> {
+        const tbl = this.db!.getSchema().table(table);
+        const rows = <{ a_value: number }[]>await this.db!.select(lf.fn.sum(tbl.col(column)).as(column))
+            .from(tbl)
+            .exec();
+        return rows[0].a_value;
     }
 }
 
@@ -237,15 +255,19 @@ export class ArqueroWrapper implements DBWrapper {
     constructor() {
         this.name = 'Arquero';
     }
-    init(): void {}
-    close(): void {
+    init(): Promise<void> {
+        return Promise.resolve();
+    }
+    close(): Promise<void> {
         this.tables = {};
         this.schemas = {};
+        return Promise.resolve();
     }
-    create(table: string, columns: { [key: string]: string }): void {
+    create(table: string, columns: { [key: string]: string }): Promise<void> {
         this.schemas[table] = columns;
+        return Promise.resolve();
     }
-    load(table: string, data: { [key: string]: any }[]): void {
+    load(table: string, data: { [key: string]: any }[]): Promise<void> {
         let cols: { [key: string]: any } = {};
         const keys = Object.getOwnPropertyNames(data[0]);
         for (const k of keys) {
@@ -267,14 +289,17 @@ export class ArqueroWrapper implements DBWrapper {
             }
         }
         this.tables[table] = aq.table(cols);
+        return Promise.resolve();
     }
-    scan_int(table: string): void {
+    scan_int(table: string): Promise<void> {
         for (const row of this.tables[table].objects()) {
             noop();
         }
+        return Promise.resolve();
     }
-    sum(table: string, column: string): number {
-        throw new Error('Method not implemented.');
+    sum(table: string, column: string): Promise<number> {
+        const rows = this.tables[table].rollup({ sum_v: `aq.op.sum(d['${column}'])` }).objects();
+        return Promise.resolve(rows[0].sum_v);
     }
 }
 
@@ -316,8 +341,11 @@ export class NanoSQLWrapper implements DBWrapper {
             noop();
         }
     }
-    sum(table: string, column: string): number {
-        throw new Error('Method not implemented.');
+    async sum(table: string, column: string): Promise<number> {
+        const rows = await nSQL(table)
+            .query('select', [`SUM(${column}) as sum_v`])
+            .exec();
+        return rows[0].sum_v;
     }
 }
 
@@ -328,20 +356,31 @@ export class PlainJSWrapper implements DBWrapper {
     constructor() {
         this.name = 'Plain JS';
     }
-    init(): void {}
-    close(): void {
+    init(): Promise<void> {
+        return Promise.resolve();
+    }
+    close(): Promise<void> {
         this.tables = {};
+        return Promise.resolve();
     }
-    create(table: string, columns: { [key: string]: string }): void {}
-    load(table: string, data: { [key: string]: any }[]): void {
+    create(table: string, columns: { [key: string]: string }): Promise<void> {
+        return Promise.resolve();
+    }
+    load(table: string, data: { [key: string]: any }[]): Promise<void> {
         this.tables[table] = data;
+        return Promise.resolve();
     }
-    scan_int(table: string): void {
+    scan_int(table: string): Promise<void> {
         for (const row of this.tables[table]) {
             noop();
         }
+        return Promise.resolve();
     }
-    sum(table: string, column: string): number {
-        throw new Error('Method not implemented.');
+    sum(table: string, column: string): Promise<number> {
+        let sum = 0;
+        for (const row of this.tables[table]) {
+            sum += <number>row[column];
+        }
+        return Promise.resolve(sum);
     }
 }

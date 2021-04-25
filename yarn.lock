@@ -1306,7 +1306,7 @@ argv-tools@^0.1.1:
     array-back "^2.0.0"
     find-replace "^2.0.1"
 
-arquero@^4.1.4:
+arquero@^4.3.0:
   version "4.3.0"
   resolved "https://registry.yarnpkg.com/arquero/-/arquero-4.3.0.tgz#60a9b51fd57df14a47ef2b9e5621641801b76d78"
   integrity sha512-6VQctObxCuId+h3HMEQHIuBBiVKo1NfbwYlYbbfLdeiKtCr8Rx0LVq0GYe/4V7eLePdSTQna7cU0/3MAmMzdyA==
