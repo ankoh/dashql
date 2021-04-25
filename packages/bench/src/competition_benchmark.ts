@@ -15,10 +15,17 @@ function gaussSum(n: number): number {
     return Math.trunc(0.5 * n * (n + 1));
 }
 
+function noop() {}
+
 export async function benchmarkCompetitions(duckdb: () => duckdb.DuckDBBindings, sqljs: () => SQL.Database) {
     for (const tupleCount of [100, 1000, 10000]) {
         console.log('Setting up tables');
         /////////////////////////////////////////////
+
+        let plain_rows: { a_value: number }[] = [];
+        for (let i = 0; i <= tupleCount; i++) {
+            plain_rows.push({ a_value: i });
+        }
 
         // not inside the benny setup because apparently that gets
         // executed multiple times and doesnt really mesh with async
@@ -76,11 +83,7 @@ export async function benchmarkCompetitions(duckdb: () => duckdb.DuckDBBindings,
         });
         nSQL().useDatabase('test_schema');
 
-        let nsql_rows = [];
-        for (let i = 0; i <= tupleCount; i++) {
-            nsql_rows.push({ a_value: i });
-        }
-        await nSQL('test_table').loadJS(nsql_rows);
+        await nSQL('test_table').loadJS(plain_rows);
 
         /////////////////////////////////////////////
 
@@ -88,88 +91,119 @@ export async function benchmarkCompetitions(duckdb: () => duckdb.DuckDBBindings,
             `Table Scan ${tupleCount} simple rows`,
             add('DuckDB-m', () => {
                 const table = conn.runQuery<{ v: arrow.Int32 }>(`SELECT v FROM test_table${tupleCount}`);
-                let sum = 0;
                 for (const v of table.getColumnAt(0)!) {
-                    sum += v[0];
-                }
-
-                if (sum != gaussSum(tupleCount)) {
-                    throw 'DuckDB Row mismatch';
+                    noop();
                 }
             }),
             add('DuckDB-s', () => {
                 const table = conn.sendQuery<{ v: arrow.Int32 }>(`SELECT v FROM test_table${tupleCount}`);
-                let sum = 0;
                 for (const batch of table) {
                     for (const v of batch.getChildAt(0)!) {
-                        sum += v[0];
+                        noop();
                     }
-                }
-
-                if (sum != gaussSum(tupleCount)) {
-                    throw 'DuckDB Row mismatch';
                 }
             }),
             add('sql.js', () => {
                 const results = sqljs().exec(`SELECT a_value FROM test_table${tupleCount}`);
-                let sum = 0;
                 for (const row of results[0].values) {
-                    sum += <number>row[0];
-                }
-
-                if (sum != gaussSum(tupleCount)) {
-                    throw 'sql.js Row mismatch';
+                    noop();
                 }
             }),
             add('AlaSQL', () => {
                 const rows = alasql(`SELECT a_value FROM test_table${tupleCount}`);
-                let sum = 0;
                 for (const row of rows) {
-                    sum += row['a_value'];
-                }
-
-                if (sum != gaussSum(tupleCount)) {
-                    throw 'AlaSQL Row mismatch';
+                    noop();
                 }
             }),
             add('Lovefield', async () => {
                 const rows = <{ a_value: number }[]>await lf_db.select().from(lf_table).exec();
-                let sum = 0;
                 for (const row of rows) {
-                    sum += row.a_value;
-                }
-
-                if (sum != gaussSum(tupleCount)) {
-                    throw 'Lovefield Row mismatch';
+                    noop();
                 }
             }),
             add('arquero', () => {
-                let sum = 0;
-                for (const row of aq_table) {
-                    sum += (row as any)['a_value'];
-                }
-
-                if (sum != gaussSum(tupleCount)) {
-                    throw 'Lovefield Row mismatch';
+                for (const row of aq_table.objects()) {
+                    noop();
                 }
             }),
             add('nanoSQL', async () => {
-                let sum = 0;
                 for (const row of await nSQL('test_table').query('select').exec()) {
-                    sum += <number>row.a_value;
+                    noop();
                 }
-
-                if (sum != gaussSum(tupleCount)) {
-                    throw 'nanoSQL Row mismatch';
+            }),
+            add('plain JS', async () => {
+                for (const row of plain_rows) {
+                    noop();
                 }
             }),
             cycle((result: any, _summary: any) => {
                 const duration = result.details.median;
                 console.log(
-                    `${kleur.cyan(result.name)} t: ${duration.toFixed(3)}s ${format.formatThousands(
+                    `${kleur.cyan(result.name)} t: ${duration.toFixed(5)}s ${format.formatThousands(
                         tupleCount / duration,
                     )} rows/s`,
                 );
+            }),
+        );
+
+        /////////////////////////////////////////////
+
+        await suite(
+            `Sum of ${tupleCount} int rows`,
+            add('DuckDB', () => {
+                const table = conn.runQuery<{ sum_v: arrow.Int32 }>(
+                    `SELECT sum(v)::INTEGER as sum_v FROM test_table${tupleCount}`,
+                );
+                if (table.getColumnAt(0)!.get(0) != gaussSum(tupleCount)) {
+                    throw 'DuckDB mismatch';
+                }
+            }),
+            add('sql.js', () => {
+                const results = sqljs().exec(`SELECT sum(a_value) as a_value FROM test_table${tupleCount}`);
+                if (results[0].values[0][0] != gaussSum(tupleCount)) {
+                    throw 'sql.js mismatch';
+                }
+            }),
+            add('AlaSQL', () => {
+                const rows = alasql(`SELECT sum(a_value) as a_value FROM test_table${tupleCount}`);
+                if (rows[0]['a_value'] != gaussSum(tupleCount)) {
+                    throw 'AlaSQL mismatch';
+                }
+            }),
+            add('Lovefield', async () => {
+                const rows = <{ a_value: number }[]>await lf_db
+                    .select(lf.fn.sum(lf_table.col('a_value')).as('a_value'))
+                    .from(lf_table)
+                    .exec();
+                if (rows[0].a_value != gaussSum(tupleCount)) {
+                    throw 'Lovefield mismatch';
+                }
+            }),
+            add('arquero', () => {
+                const rows = aq_table.rollup({ a_value: (d: any) => aq.op.sum(d.a_value) }).objects();
+                if (rows[0].a_value != gaussSum(tupleCount)) {
+                    throw 'arquero mismatch';
+                }
+            }),
+            add('nanoSQL', async () => {
+                const rows = await nSQL('test_table').query('select', ['SUM(a_value) as a_value']).exec();
+                if (rows[0].a_value != gaussSum(tupleCount)) {
+                    throw 'nanoSQL mismatch';
+                }
+            }),
+            add('plain JS', async () => {
+                let sum = 0;
+                for (const row of plain_rows) {
+                    sum += <number>row.a_value;
+                }
+
+                if (sum != gaussSum(tupleCount)) {
+                    throw 'plain JS mismatch';
+                }
+            }),
+            cycle((result: any, _summary: any) => {
+                const duration = result.details.median;
+                console.log(`${kleur.cyan(result.name)} t: ${duration.toFixed(5)}s`);
             }),
         );
 

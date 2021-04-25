@@ -46,6 +46,7 @@ module.exports = function (config) {
         client: {
             captureConsole: true,
         },
+        concurrency: 1, // only one browser at a time
         browserNoActivityTimeout: 999999999,
         pingTimeout: 999999999,
     });
