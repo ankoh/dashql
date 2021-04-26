@@ -40,7 +40,7 @@
         "react-simple-maps": "^2.3.0",
         "react-vega": "^7.4.2",
         "react-virtualized": "^9.22.3",
-        "redux": "^4.0.5",
+        "redux": "^4.1.0",
         "redux-persist": "^6.0.0",
         "vega": "^5.20.2",
         "vega-lite": "^5.1.0",
