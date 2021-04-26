@@ -20,6 +20,7 @@ module.exports = function (config) {
             { pattern: 'node_modules/sql.js/dist/*.wasm', included: false, watched: false, served: true },
             { pattern: 'data/**/*.parquet', included: false, watched: false, served: true },
             { pattern: 'data/**/*.zip', included: false, watched: false, served: true },
+            { pattern: 'packages/bench/data/**/*', included: false, watched: false, served: true },
         ],
         preprocessors: {
             '**/*.js': ['sourcemap'],
@@ -28,6 +29,7 @@ module.exports = function (config) {
             '/static/': '/base/packages/duckdb/dist/',
             '/sqljs/': '/base/node_modules/sql.js/dist/',
             '/data/': '/base/data/',
+            '/bench_data/': '/base/packages/bench/data/',
         },
         exclude: [],
         reporters: ['dots'],

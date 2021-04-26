@@ -11,8 +11,8 @@ import { benchmarkCompetitions } from './competition_benchmark';
 import {
     AlaSQLWrapper,
     ArqueroWrapper,
-    DuckDBMatWrapper,
-    DuckDBStreamWrapper,
+    DuckDBSyncMatWrapper,
+    DuckDBSyncStreamWrapper,
     LovefieldWrapper,
     NanoSQLWrapper,
     PlainJSWrapper,
@@ -39,16 +39,19 @@ async function main() {
     const SQL = await initSqlJs();
     let sqlDb = new SQL.Database();
 
-    await benchmarkCompetitions([
-        new DuckDBMatWrapper(db),
-        new DuckDBStreamWrapper(db),
-        new ArqueroWrapper(),
-        new LovefieldWrapper(),
-        new NanoSQLWrapper(),
-        new AlaSQLWrapper(),
-        new SQLjsWrapper(sqlDb),
-        new PlainJSWrapper(),
-    ]);
+    await benchmarkCompetitions(
+        [
+            new DuckDBSyncMatWrapper(db),
+            new DuckDBSyncStreamWrapper(db),
+            new ArqueroWrapper(),
+            new LovefieldWrapper(),
+            new NanoSQLWrapper(),
+            new AlaSQLWrapper(),
+            new SQLjsWrapper(sqlDb),
+            new PlainJSWrapper(),
+        ],
+        path.resolve(__dirname, '../data'),
+    );
     // benchmarkFormat(() => db!);
     // benchmarkIterator(() => db!);
     // benchmarkIteratorAsync(() => adb!);

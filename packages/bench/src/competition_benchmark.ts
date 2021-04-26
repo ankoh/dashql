@@ -10,8 +10,8 @@ function gaussSum(n: number): number {
     return Math.trunc(0.5 * n * (n + 1));
 }
 
-export async function benchmarkCompetitions(dbs: DBWrapper[]) {
-    for (const tupleCount of [100, 1000, 10000]) {
+export async function benchmarkCompetitions(dbs: DBWrapper[], basedir: string) {
+    /*for (const tupleCount of [100, 1000, 10000]) {
         console.log('Setting up tables');
         /////////////////////////////////////////////
 
@@ -75,5 +75,13 @@ export async function benchmarkCompetitions(dbs: DBWrapper[]) {
         }
 
         /////////////////////////////////////////////
+    }*/
+
+    for (let db of dbs) {
+        await db.init();
+
+        await db.importCSV('csv_table', `${basedir}/nation.tbl`, '|');
+
+        await db.close();
     }
 }

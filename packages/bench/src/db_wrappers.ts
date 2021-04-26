@@ -15,6 +15,7 @@ export interface DBWrapper {
     load(table: string, data: { [key: string]: any }[]): Promise<void>;
     scan_int(table: string): Promise<void>;
     sum(table: string, column: string): Promise<number>;
+    importCSV(table: string, csv_path: string, delimiter: string): Promise<void>;
 }
 
 function noop() {}
@@ -49,7 +50,7 @@ function sqlInsert(table: string, data: { [key: string]: any }[]): string {
     return query;
 }
 
-export class DuckDBMatWrapper implements DBWrapper {
+export class DuckDBSyncMatWrapper implements DBWrapper {
     public name: string;
     protected conn?: duckdb.DuckDBConnection;
     protected db: duckdb.DuckDBBindings;
@@ -57,6 +58,11 @@ export class DuckDBMatWrapper implements DBWrapper {
     constructor(db: duckdb.DuckDBBindings) {
         this.name = 'DuckDB-mat';
         this.db = db;
+    }
+
+    importCSV(table: string, csv_path: string, delimiter: string): Promise<void> {
+        this.conn!.importCSV(csv_path, 'main', table);
+        return Promise.resolve();
     }
 
     init(): Promise<void> {
@@ -91,7 +97,7 @@ export class DuckDBMatWrapper implements DBWrapper {
     }
 }
 
-export class DuckDBStreamWrapper extends DuckDBMatWrapper {
+export class DuckDBSyncStreamWrapper extends DuckDBSyncMatWrapper {
     constructor(db: duckdb.DuckDBBindings) {
         super(db);
         this.name = 'DuckDB-str';
@@ -115,6 +121,9 @@ export class SQLjsWrapper implements DBWrapper {
     constructor(db: SQL.Database) {
         this.name = 'sql.js';
         this.db = db;
+    }
+    importCSV(table: string, csv_path: string, delimiter: string): Promise<void> {
+        throw new Error('Method not implemented.');
     }
 
     init(): Promise<void> {
@@ -151,13 +160,16 @@ export class AlaSQLWrapper implements DBWrapper {
     constructor() {
         this.name = 'AlaSQL';
     }
-
     init(): Promise<void> {
         return Promise.resolve();
     }
     close(): Promise<void> {
         return Promise.resolve();
     }
+    async importCSV(table: string, csv_path: string, delimiter: string): Promise<void> {
+        await alasql.promise(`INSERT INTO ${table} FROM SELECT * FROM CSV("${csv_path}", {separator:""})`);
+    }
+
     create(table: string, columns: { [key: string]: string }): Promise<void> {
         alasql(`DROP TABLE IF EXISTS ${table}`);
         alasql(sqlCreate(table, columns));
@@ -187,6 +199,9 @@ export class LovefieldWrapper implements DBWrapper {
 
     constructor() {
         this.name = 'Lovefield';
+    }
+    importCSV(table: string, csv_path: string, delimiter: string): Promise<void> {
+        throw new Error('Method not implemented.');
     }
     init(): Promise<void> {
         this.builder = lf.schema.create('test_schema', 1);
@@ -255,6 +270,9 @@ export class ArqueroWrapper implements DBWrapper {
     constructor() {
         this.name = 'Arquero';
     }
+    importCSV(table: string, csv_path: string, delimiter: string): Promise<void> {
+        throw new Error('Method not implemented.');
+    }
     init(): Promise<void> {
         return Promise.resolve();
     }
@@ -309,6 +327,9 @@ export class NanoSQLWrapper implements DBWrapper {
     constructor() {
         this.name = 'nanoSQL';
     }
+    importCSV(table: string, csv_path: string, delimiter: string): Promise<void> {
+        throw new Error('Method not implemented.');
+    }
     async init(): Promise<void> {
         await nSQL().createDatabase({
             id: 'test_schema',
@@ -355,6 +376,9 @@ export class PlainJSWrapper implements DBWrapper {
 
     constructor() {
         this.name = 'Plain JS';
+    }
+    importCSV(table: string, csv_path: string, delimiter: string): Promise<void> {
+        throw new Error('Method not implemented.');
     }
     init(): Promise<void> {
         return Promise.resolve();
