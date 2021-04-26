@@ -113,7 +113,7 @@ class ProgressGraph extends React.Component<ProgressGraphProps, ProgressGraphSta
                 target: dep.targetStatement().toString(),
                 type: 'step',
                 data: {
-                    focused: focus.isSet(dep.targetStatement()),
+                    focused: focus.isSet(dep.targetStatement()) && focus.isSet(dep.sourceStatement()),
                 },
             });
         });
