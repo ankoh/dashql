@@ -53,7 +53,7 @@
         "@types/dagre": "^0.7.44",
         "@types/emscripten": "^1.39.4",
         "@types/flatbuffers": "^1.10.0",
-        "@types/node": "^14.14.41",
+        "@types/node": "^15.0.0",
         "@types/react-custom-scrollbars": "^4.0.7",
         "@types/react-dom": "^17.0.3",
         "@types/react-grid-layout": "^1.1.1",
