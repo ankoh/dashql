@@ -9,6 +9,7 @@ PROJECT_ROOT="$(cd $(dirname "$BASH_SOURCE[0]") && cd .. && pwd)" &> /dev/null
 
 MODE=${1:-Fast}
 echo "MODE=${MODE}"
+echo "BOOST_ARCHIVE=${BOOST_ARCHIVE}"
 
 CPP_BUILD_DIR="${PROJECT_ROOT}/lib/build/wasm/${MODE}"
 CPP_SOURCE_DIR="${PROJECT_ROOT}/lib"
@@ -37,6 +38,7 @@ emcmake cmake \
     -B"${CPP_SOURCE_DIR}/build/wasm/${MODE}" \
     -DCMAKE_C_COMPILER_LAUNCHER=ccache \
     -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+    -DBOOST_ARCHIVE=${BOOST_ARCHIVE} \
     ${ADDITIONAL_FLAGS}
 
 emmake make \
