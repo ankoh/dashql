@@ -90,6 +90,11 @@ RUN curl -sL https://aka.ms/InstallAzureCLIDeb | bash \
     && mkdir -p /opt/azure \
     && chown -R ${UID}:${GID} /opt/azure
 
+ARG BOOST_VERSION="1.68.0"
+ARG BOOST_TARBALL="boost_1_68_0.tar.gz"
+RUN curl -Lo /opt/boost.tar.gz "http://dl.bintray.com/boostorg/release/${BOOST_VERSION}/source/${BOOST_TARBALL}" \
+    && chown -R ${UID}:${GID} /opt/azure
+
 RUN source /opt/emsdk/emsdk_env.sh \
     && echo "export PATH=$PATH:/opt/rust/bin" >> /opt/env.sh \
     && echo "export EMSDK=$EMSDK" >> /opt/env.sh \
@@ -98,8 +103,9 @@ RUN source /opt/emsdk/emsdk_env.sh \
     && echo "export CARGO_HOME=/opt/rust" >> /opt/env.sh \
     && echo "export RUSTUP_HOME=/opt/rust" >> /opt/env.sh \
     && echo "export AZURE_CONFIG_DIR=/opt/azure" >> /opt/env.sh \
+    && echo "export BOOST_ARCHIVE=/opt/boost.tar.gz" >> /opt/env.sh \
     && echo "source /opt/nvm/nvm.sh" >> /opt/env.sh \
-    && printf '#!/bin/bash\n. /opt/env.sh\nexec "$@"\n' > /opt/entrypoint.sh \
+    && printf '#!/bin/bash\nsource /opt/env.sh\nexec env "$@"\n' > /opt/entrypoint.sh \
     && chmod +x /opt/entrypoint.sh \
     && chown -R ${UID}:${GID} /opt/entrypoint.sh
 

@@ -25,7 +25,6 @@ jobs:
               uses: ./actions/image
               with:
                   script: |-
-                      source /opt/env.sh
                       python3 ./scripts/run_clang_format.py \
                         --exclude ./lib/build \
                         --exclude ./lib/third_party \
@@ -49,28 +48,24 @@ jobs:
               uses: ./actions/image
               with:
                   script: |-
-                      source /opt/env.sh
                       yarn workspace @dashql/duckdb run lint
 
             - name: Lint @dashql/core
               uses: ./actions/image
               with:
                   script: |-
-                      source /opt/env.sh
                       yarn workspace @dashql/core run lint
 
             - name: Lint @dashql/bench
               uses: ./actions/image
               with:
                   script: |-
-                      source /opt/env.sh
                       yarn workspace @dashql/bench run lint
 
             - name: Lint @dashql/app
               uses: ./actions/image
               with:
                   script: |-
-                      source /opt/env.sh
                       yarn workspace @dashql/app run lint
 
     linux_x86_debug:
@@ -220,7 +215,8 @@ jobs:
                           -B./lib/build/wasm/release \
                           -DCMAKE_BUILD_TYPE=Release \
                           -DCMAKE_C_COMPILER_LAUNCHER=ccache \
-                          -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+                          -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+                          -DBOOST_ARCHIVE=/opt/boost.tar.gz
 
                       emmake make \
                           -C./lib/build/wasm/release \
@@ -234,49 +230,42 @@ jobs:
               uses: ./actions/image
               with:
                   script: |-
-                      source /opt/env.sh
                       yarn workspace @dashql/proto build
 
             - name: Build @dashql/duckdb
               uses: ./actions/image
               with:
                   script: |-
-                      source /opt/env.sh
                       yarn workspace @dashql/duckdb build
 
             - name: Build @dashql/core
               uses: ./actions/image
               with:
                   script: |-
-                      source /opt/env.sh
                       yarn workspace @dashql/core build
 
             - name: Build benchmarks
               uses: ./actions/image
               with:
                   script: |-
-                      source /opt/env.sh
                       yarn workspace @dashql/bench build
 
             - name: Test @dashql/duckdb
               uses: ./actions/image
               with:
                   script: |-
-                      source /opt/env.sh
                       yarn workspace @dashql/duckdb test:ci
 
             - name: Test @dashql/core
               uses: ./actions/image
               with:
                   script: |-
-                      source /opt/env.sh
                       yarn workspace @dashql/core test:ci
 
             - name: Build App
               uses: ./actions/image
               with:
                   script: |-
-                      source /opt/env.sh
                       yarn workspace @dashql/app build:release
 
             - uses: codecov/codecov-action@v1
@@ -290,7 +279,6 @@ jobs:
               uses: ./actions/image
               with:
                   script: |-
-                      source /opt/env.sh
                       export AZ_PASS="${{ secrets.AZ_APP_PASS }}"
                       ./scripts/az_app_upload.sh app-staging ./packages/app/build/release
                       ./scripts/az_app_old_rm.sh app-staging '1 week'
@@ -300,7 +288,6 @@ jobs:
               uses: ./actions/image
               with:
                   script: |-
-                      source /opt/env.sh
                       export AZ_PASS="${{ secrets.AZ_APP_PASS }}"
                       ./scripts/az_app_upload.sh app ./packages/app/build/release
                       ./scripts/az_app_old_rm.sh app '1 week'
