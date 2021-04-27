@@ -1,26 +1,43 @@
 # Copyright (c) 2020 The DashQL Authors
 
-set (BOOST_VERSION 1.68.0)
-set (BOOST_TARBALL boost_1_68_0.tar.gz)
-set (BOOST_URL "http://dl.bintray.com/boostorg/release/${BOOST_VERSION}/source/${BOOST_TARBALL}")
+set (BOOST_VERSION_REQUIRED 1.68.0)
+set (BOOST_VERSION_FOLDER boost_1_68_0)
+message(STATUS "BOOST_VERSION_REQUIRED=${BOOST_VERSION_REQUIRED}")
 
-set(BOOST_INSTALL_DIR "${CMAKE_BINARY_DIR}/third_party/boost/install")
-set(BOOST_INCLUDE_DIR "${BOOST_INSTALL_DIR}/include")
-set(BOOST_LIBRARY_DIR "${BOOST_INSTALL_DIR}/lib")
+if (DEFINED BOOST_ARCHIVE)
+    set(BOOST_INSTALL_DIR "${CMAKE_BINARY_DIR}/third_party/boost/install")
+    set(BOOST_INCLUDE_DIR "${BOOST_INSTALL_DIR}/include")
+    set(BOOST_LIBRARY_DIR "${BOOST_INSTALL_DIR}/lib")
+    set(BOOST_ARCHIVE_DIR "${CMAKE_BINARY_DIR}/third_party/boost/archive")
 
-file(MAKE_DIRECTORY ${BOOST_INCLUDE_DIR})
-file(MAKE_DIRECTORY ${BOOST_LIBRARY_DIR})
+    if (EXISTS ${BOOST_INCLUDE_DIR}/boost/version.hpp)
+        file(STRINGS ${BOOST_INCLUDE_DIR}/boost/version.hpp BOOST_VERSIONSTR REGEX "#define[ ]+BOOST_VERSION[ ]+[0-9]+")
+        string(REGEX MATCH "[0-9]+" BOOST_VERSIONSTR ${BOOST_VERSIONSTR})
+        if (BOOST_VERSIONSTR)
+            math(EXPR BOOST_VERSION_MAJOR "${BOOST_VERSIONSTR} / 100000")
+            math(EXPR BOOST_VERSION_MINOR "${BOOST_VERSIONSTR} / 100 % 1000")
+            math(EXPR BOOST_VERSION_SUBMINOR "${BOOST_VERSIONSTR} % 100")
+            set(BOOST_VERSION "${BOOST_VERSION_MAJOR}.${BOOST_VERSION_MINOR}.${BOOST_VERSION_SUBMINOR}")
+        endif()
+        message(STATUS "BOOST_VERSION=${BOOST_VERSION}")
+    endif ()
 
-include(FetchContent)
-FetchContent_Declare(
-    boost
-    URL ${BOOST_URL}
-)
+    if (BOOST_VERSION STREQUAL BOOST_VERSION_REQUIRED)
+        message(STATUS "Boost version OK!")
+    else ()
+        message(STATUS "Extracting Boost archive: ${BOOST_ARCHIVE}")
+        file(REMOVE ${BOOST_ARCHIVE_DIR})
+        file(REMOVE ${BOOST_INCLUDE_DIR})
+        file(MAKE_DIRECTORY ${BOOST_ARCHIVE_DIR})
+        file(MAKE_DIRECTORY ${BOOST_INCLUDE_DIR})
 
-FetchContent_GetProperties(boost)
-if(NOT boost_POPULATED)
-    FetchContent_Populate(boost)
-    file(COPY ${boost_SOURCE_DIR}/boost DESTINATION ${BOOST_INCLUDE_DIR})
-endif()
-
-set(BOOST_ROOT ${boost_SOURCE_DIR})
+        execute_process(
+            COMMAND ${CMAKE_COMMAND} -E tar xzf ${BOOST_ARCHIVE}
+            WORKING_DIRECTORY ${BOOST_ARCHIVE_DIR}
+        )
+        file(COPY ${BOOST_ARCHIVE_DIR}/${BOOST_VERSION_FOLDER}/boost DESTINATION ${BOOST_INCLUDE_DIR})
+    endif ()
+else ()
+    find_package(Boost ${BOOST_VERSION_REQUIRED} REQUIRED)
+    set (BOOST_INCLUDE_DIR ${Boost_INCLUDE_DIR})
+endif ()
