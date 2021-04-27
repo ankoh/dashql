@@ -93,7 +93,7 @@ RUN curl -sL https://aka.ms/InstallAzureCLIDeb | bash \
 ARG BOOST_VERSION="1.68.0"
 ARG BOOST_TARBALL="boost_1_68_0.tar.gz"
 RUN curl -Lo /opt/boost.tar.gz "http://dl.bintray.com/boostorg/release/${BOOST_VERSION}/source/${BOOST_TARBALL}" \
-    && chown -R ${UID}:${GID} /opt/azure
+    && chown -R ${UID}:${GID} /opt/boost.tar.gz
 
 RUN source /opt/emsdk/emsdk_env.sh \
     && echo "export PATH=$PATH:/opt/rust/bin" >> /opt/env.sh \
