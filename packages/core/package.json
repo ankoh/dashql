@@ -6,7 +6,7 @@
     "dependencies": {
         "@dashql/duckdb": "^0.0.26",
         "@dashql/proto": "^0.0.5",
-        "apache-arrow": "^3.0.0",
+        "apache-arrow": "^4.0.0",
         "axios": "^0.21.1",
         "immutable": "^4.0.0-rc.12",
         "redux": "^4.1.0",
