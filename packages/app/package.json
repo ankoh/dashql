@@ -79,7 +79,7 @@
         "karma-spec-reporter": "^0.0.32",
         "karma-webpack": "^5.0.0",
         "kleur": "^4.1.4",
-        "mini-css-extract-plugin": "^1.5.0",
+        "mini-css-extract-plugin": "^1.5.1",
         "prettier": "^2.2.1",
         "source-map-loader": "^2.0.1",
         "style-loader": "^2.0.0",
