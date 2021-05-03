@@ -1,19 +1,23 @@
 #ifndef INCLUDE_DASHQL_ANALYZER_JSON_SAX_H_
 #define INCLUDE_DASHQL_ANALYZER_JSON_SAX_H_
 
+#include <optional>
 #include <unordered_map>
+#include <variant>
 #include <vector>
 
-#include "dashql/analyzer/program_instance.h"
 #include "dashql/common/variant.h"
 #include "dashql/proto_generated.h"
 #include "rapidjson/document.h"
 #include "rapidjson/writer.h"
 
+namespace sx = dashql::proto::syntax;
+
 namespace dashql {
 namespace json {
 
 enum class SAXOpTag {
+    NULL_,
     ARRAY_END,
     ARRAY_START,
     BOOL,
@@ -39,15 +43,26 @@ struct SAXOp {
     SAXOpArg argument;
 };
 
-struct SAXNode {
+struct SAXDocument {
     /// The attribute key
     sx::AttributeKey key;
     /// The sax ops
     std::vector<SAXOp> ops;
 
+    /// Is document empty?
+    bool empty() const { return ops.size() == 0; }
+    /// Get the size of the document
+    size_t size() const { return ops.size(); }
+    /// Subscript operator
+    const SAXOp& operator[](size_t idx) const { return ops[idx]; }
+
+    /// Write entire document to writer
     template <typename Writer> void Write(Writer& out) const {
         for (auto& op : ops) {
             switch (op.tag) {
+                case json::SAXOpTag::NULL_:
+                    out.Null();
+                    break;
                 case json::SAXOpTag::ARRAY_END:
                     out.EndArray(std::get<int64_t>(op.argument));
                     break;
@@ -106,70 +121,75 @@ struct SAXNode {
     }
 };
 
-struct SAXNodeBuilder : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, SAXNodeBuilder> {
-    /// The current patch
-    SAXNode patch;
+struct SAXDocumentBuilder : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, SAXDocumentBuilder> {
+    /// The current doc
+    SAXDocument doc;
 
     /// Constructor
-    SAXNodeBuilder(sx::AttributeKey key) {
-        patch = {
+    SAXDocumentBuilder(sx::AttributeKey key) {
+        doc = {
             .key = key,
             .ops = {},
         };
     }
 
+    bool Null() {
+        doc.ops.push_back({.tag = SAXOpTag::NULL_, .argument = std::nullopt});
+        return true;
+    }
+
     bool Key(std::string_view name, bool copy = false) {
-        patch.ops.push_back({.tag = SAXOpTag::KEY, .argument = copy ? SAXOpArg{std::string{name}} : SAXOpArg{name}});
+        doc.ops.push_back({.tag = SAXOpTag::KEY, .argument = copy ? SAXOpArg{std::string{name}} : SAXOpArg{name}});
         return true;
     }
 
     bool Key(const char* txt, size_t length, bool copy) { return Key(std::string_view{txt, length}, copy); }
     bool String(std::string_view name, bool copy = false) {
-        patch.ops.push_back({.tag = SAXOpTag::STRING, .argument = copy ? SAXOpArg{std::string{name}} : SAXOpArg{name}});
+        doc.ops.push_back({.tag = SAXOpTag::STRING, .argument = copy ? SAXOpArg{std::string{name}} : SAXOpArg{name}});
         return true;
     }
     bool String(const char* txt, size_t length, bool copy) { return String(std::string_view{txt, length}, copy); }
     bool Bool(bool v) {
-        patch.ops.push_back({.tag = SAXOpTag::BOOL, .argument = v});
+        doc.ops.push_back({.tag = SAXOpTag::BOOL, .argument = v});
         return true;
     }
     bool Int(int32_t v) {
-        patch.ops.push_back({.tag = SAXOpTag::INT32, .argument = v});
+        doc.ops.push_back({.tag = SAXOpTag::INT32, .argument = v});
         return true;
     }
     bool Int64(int64_t v) {
-        patch.ops.push_back({.tag = SAXOpTag::INT64, .argument = v});
+        doc.ops.push_back({.tag = SAXOpTag::INT64, .argument = v});
         return true;
     }
     bool Uint(uint32_t v) {
-        patch.ops.push_back({.tag = SAXOpTag::UINT32, .argument = v});
+        doc.ops.push_back({.tag = SAXOpTag::UINT32, .argument = v});
         return true;
     }
     bool Uint64(uint64_t v) {
-        patch.ops.push_back({.tag = SAXOpTag::UINT64, .argument = v});
+        doc.ops.push_back({.tag = SAXOpTag::UINT64, .argument = v});
         return true;
     }
     bool Double(double v) {
-        patch.ops.push_back({.tag = SAXOpTag::DOUBLE, .argument = v});
+        doc.ops.push_back({.tag = SAXOpTag::DOUBLE, .argument = v});
         return true;
     }
     bool StartObject() {
-        patch.ops.push_back({.tag = SAXOpTag::OBJECT_START, .argument = std::nullopt});
+        doc.ops.push_back({.tag = SAXOpTag::OBJECT_START, .argument = std::nullopt});
         return true;
     }
     bool StartArray() {
-        patch.ops.push_back({.tag = SAXOpTag::ARRAY_START, .argument = std::nullopt});
+        doc.ops.push_back({.tag = SAXOpTag::ARRAY_START, .argument = std::nullopt});
         return true;
     }
     bool EndObject(size_t count) {
-        patch.ops.push_back({.tag = SAXOpTag::OBJECT_END, .argument = static_cast<int64_t>(count)});
+        doc.ops.push_back({.tag = SAXOpTag::OBJECT_END, .argument = static_cast<int64_t>(count)});
         return true;
     }
     bool EndArray(size_t count) {
-        patch.ops.push_back({.tag = SAXOpTag::ARRAY_END, .argument = static_cast<int64_t>(count)});
+        doc.ops.push_back({.tag = SAXOpTag::ARRAY_END, .argument = static_cast<int64_t>(count)});
         return true;
     }
-    SAXNode Finish() { return std::move(patch); }
+    SAXDocument Finish() { return std::move(doc); }
 };
 
 }  // namespace json

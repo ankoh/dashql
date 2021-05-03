@@ -290,6 +290,11 @@ add_library(dashql_analyzer
     ${CMAKE_SOURCE_DIR}/src/analyzer/stmt/viz_stmt.cc
 )
 
+add_library(dashql_reader_json
+    ${CMAKE_SOURCE_DIR}/src/reader/json/json_reader.cc
+    ${CMAKE_SOURCE_DIR}/src/reader/json/json_reader_api.cc
+)
+
 add_library(duckdb_web
     ${CMAKE_SOURCE_DIR}/src/duckdb/web/arrow_inserter.cc
     ${CMAKE_SOURCE_DIR}/src/duckdb/web/csv_reader.cc
@@ -310,7 +315,8 @@ add_library(dashql_test
     ${CMAKE_SOURCE_DIR}/src/test/grammar_tests.cc
 )
 
-target_link_libraries(dashql_common dashql_proto flatbuffers spdlog rapidjson nlohmann_json jmespath xlnt arrow duckdb)
+target_link_libraries(dashql_reader_json rapidjson jmespath nlohmann_json arrow flatbuffers dashql_proto)
+target_link_libraries(dashql_common dashql_reader_json dashql_proto flatbuffers spdlog rapidjson nlohmann_json jmespath xlnt arrow duckdb)
 target_link_libraries(dashql_analyzer dashql_parser dashql_common dashql_proto spdlog duckdb rapidjson arrow)
 target_link_libraries(duckdb_web dashql_common dashql_proto duckdb spdlog arrow)
 target_link_libraries(dashql_test duckdb_web dashql_analyzer dashql_common dashql_proto pugixml gtest duckdb)
@@ -422,6 +428,7 @@ if(NOT EMSCRIPTEN)
         ${CMAKE_SOURCE_DIR}/test/common/union_find_test.cc
         ${CMAKE_SOURCE_DIR}/test/duckdb/buffer_manager_test.cc
         ${CMAKE_SOURCE_DIR}/test/duckdb/csv_test.cc
+        ${CMAKE_SOURCE_DIR}/test/reader/json/json_test.cc
         ${CMAKE_SOURCE_DIR}/test/duckdb/duckdb_test.cc
         ${CMAKE_SOURCE_DIR}/test/duckdb/ifstreambuf_test.cc
         ${CMAKE_SOURCE_DIR}/test/duckdb/webdb_test.cc
