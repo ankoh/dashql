@@ -53,6 +53,8 @@ struct SAXDocument {
     bool empty() const { return ops.size() == 0; }
     /// Get the size of the document
     size_t size() const { return ops.size(); }
+    /// Clear the document
+    void clear() { return ops.clear(); }
     /// Subscript operator
     const SAXOp& operator[](size_t idx) const { return ops[idx]; }
 

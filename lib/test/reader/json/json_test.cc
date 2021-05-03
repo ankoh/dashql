@@ -4,7 +4,7 @@
 #include <rapidjson/reader.h>
 
 #include "dashql/common/json_sax.h"
-#include "dashql/common/json_sax_stats.h"
+#include "dashql/common/json_sax_sniffer.h"
 #include "dashql/reader/json/json_reader.h"
 #include "gtest/gtest.h"
 #include "rapidjson/memorystream.h"
@@ -20,7 +20,7 @@ TEST(JSONTest, ColumnMajorDetection) {
     reader.IterativeParseInit();
 
     // Empty document?
-    json::SAXStatsWriter stats_writer;
+    json::JSONSniffer stats_writer;
     auto& stats = stats_writer.stats;
     ASSERT_TRUE(reader.IterativeParseNext<rapidjson::kParseDefaultFlags>(input_stream, stats_writer));
     ASSERT_EQ(input_stream.Tell(), 1);
@@ -28,7 +28,7 @@ TEST(JSONTest, ColumnMajorDetection) {
 
     // Column major mode
     std::vector<std::string> column_names;
-    std::vector<std::pair<json::SAXValueType, json::SAXNumberType>> column_types;
+    std::vector<std::pair<json::JSONSummary::ValueType, json::JSONSummary::NumberType>> column_types;
     while (!reader.IterativeParseComplete()) {
         ASSERT_TRUE(reader.IterativeParseNext<rapidjson::kParseDefaultFlags>(input_stream, stats_writer));
         if (stats.depth == 1) {
@@ -50,10 +50,10 @@ TEST(JSONTest, ColumnMajorDetection) {
         }
     }
     std::vector<std::string> expected_column_names{"a", "b", "f"};
-    std::vector<std::pair<json::SAXValueType, json::SAXNumberType>> expected_column_types{
-        {json::SAXValueType::NUMBER, json::SAXNumberType::INT32},
-        {json::SAXValueType::STRING, json::SAXNumberType::UINT32},
-        {json::SAXValueType::BOOLEAN, json::SAXNumberType::UINT32},
+    std::vector<std::pair<json::JSONSummary::ValueType, json::JSONSummary::NumberType>> expected_column_types{
+        {json::JSONSummary::ValueType::NUMBER, json::JSONSummary::NumberType::INT32},
+        {json::JSONSummary::ValueType::STRING, json::JSONSummary::NumberType::UINT32},
+        {json::JSONSummary::ValueType::BOOLEAN, json::JSONSummary::NumberType::UINT32},
     };
     ASSERT_EQ(column_names, expected_column_names);
     ASSERT_EQ(column_types, expected_column_types);
