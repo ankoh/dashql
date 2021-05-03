@@ -5985,10 +5985,10 @@ react-transition-group@^4.4.1:
     loose-envify "^1.4.0"
     prop-types "^15.6.2"
 
-react-vega@^7.4.2:
-  version "7.4.2"
-  resolved "https://registry.yarnpkg.com/react-vega/-/react-vega-7.4.2.tgz#790e6f4fe9a26c36f3e8db5ceff9a70ee242fd68"
-  integrity sha512-/us6fDtXiIFKA5aZEXa/sjwFgKEQR/DFNgVwPZ5rQ3c/r9zzkTIXXZMV/NZAi7AWwhRlAvqCL1j0W+L90CxpRg==
+react-vega@^7.4.3:
+  version "7.4.3"
+  resolved "https://registry.yarnpkg.com/react-vega/-/react-vega-7.4.3.tgz#06b6acbc05eb97e628830f37c57b3a42c0cfb881"
+  integrity sha512-SjsXUh4xEzix0gaZ8/b+axF9Tvb6l2pG5DN3Ym7NlNGzqj1erga+GvSm0EwzxVygvzoIfhKI+3MszZ2Rdc0xaA==
   dependencies:
     "@types/react" "^16.9.19"
     fast-deep-equal "^3.1.1"
