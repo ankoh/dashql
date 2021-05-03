@@ -138,7 +138,7 @@ void InputStatement::PrintScript(std::ostream& out) const {
             SX_POS_COLUMN,
             SX_POS_HEIGHT,
         });
-        json::SAXNodeBuilder node{sx::AttributeKey::DASHQL_OPTION_POSITION};
+        json::SAXDocumentBuilder node{sx::AttributeKey::DASHQL_OPTION_POSITION};
         node.StartObject();
         node.Key("row");
         node.Uint(position_->row());

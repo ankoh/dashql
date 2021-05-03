@@ -18,7 +18,7 @@ DocumentPatch& DocumentPatch::Ignore(std::initializer_list<size_t> ast_ids) {
 }
 
 /// Append a node id
-DocumentPatch& DocumentPatch::Append(size_t node_id, json::SAXNode node) {
+DocumentPatch& DocumentPatch::Append(size_t node_id, json::SAXDocument node) {
     if (auto iter = append.find(node_id); iter != append.end()) {
         iter->second.push_back(std::move(node));
     } else {
