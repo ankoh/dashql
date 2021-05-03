@@ -1,3 +1,4 @@
+/perf.data*
 /.cache
 /.ccache
 .tmp

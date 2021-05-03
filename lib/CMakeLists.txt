@@ -291,13 +291,14 @@ add_library(dashql_analyzer
 )
 
 add_library(duckdb_web
+    ${CMAKE_SOURCE_DIR}/src/duckdb/web/arrow_inserter.cc
+    ${CMAKE_SOURCE_DIR}/src/duckdb/web/csv_reader.cc
     ${CMAKE_SOURCE_DIR}/src/duckdb/web/io/arrow_ifstream.cc
     ${CMAKE_SOURCE_DIR}/src/duckdb/web/io/buffer_manager.cc
     ${CMAKE_SOURCE_DIR}/src/duckdb/web/io/buffered_filesystem.cc
     ${CMAKE_SOURCE_DIR}/src/duckdb/web/io/default_filesystem.cc
     ${CMAKE_SOURCE_DIR}/src/duckdb/web/io/ifstreambuf.cc
     ${CMAKE_SOURCE_DIR}/src/duckdb/web/io/web_filesystem.cc
-    ${CMAKE_SOURCE_DIR}/src/duckdb/web/arrow_inserter.cc
     ${CMAKE_SOURCE_DIR}/src/duckdb/web/miniz_zipper.cc
     ${CMAKE_SOURCE_DIR}/src/duckdb/web/wasm_response.cc
     ${CMAKE_SOURCE_DIR}/src/duckdb/web/webdb.cc
@@ -420,6 +421,7 @@ if(NOT EMSCRIPTEN)
         ${CMAKE_SOURCE_DIR}/test/common/topological_sort_test.cc
         ${CMAKE_SOURCE_DIR}/test/common/union_find_test.cc
         ${CMAKE_SOURCE_DIR}/test/duckdb/buffer_manager_test.cc
+        ${CMAKE_SOURCE_DIR}/test/duckdb/csv_test.cc
         ${CMAKE_SOURCE_DIR}/test/duckdb/duckdb_test.cc
         ${CMAKE_SOURCE_DIR}/test/duckdb/ifstreambuf_test.cc
         ${CMAKE_SOURCE_DIR}/test/duckdb/webdb_test.cc

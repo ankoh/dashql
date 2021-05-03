@@ -96,6 +96,9 @@ class WebDB {
     /// Flush file by path
     void FlushFile(std::string_view path);
 
+    /// Import a csv file
+    arrow::Status ReadCSV(const char* path);
+
     /// Get the static webdb instance
     static WebDB& GetInstance();
 };
