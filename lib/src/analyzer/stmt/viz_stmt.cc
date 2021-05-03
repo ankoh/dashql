@@ -264,7 +264,7 @@ void VizComponent::PrintScript(std::ostream& out) const {
             SX_POS_HEIGHT,
         });
         if (&position_.value() == viz_stmt_.specified_position_) {
-            json::SAXNodeBuilder node{sx::AttributeKey::DASHQL_OPTION_POSITION};
+            json::SAXDocumentBuilder node{sx::AttributeKey::DASHQL_OPTION_POSITION};
             node.StartObject();
             node.Key("row");
             node.Uint(position_->row());

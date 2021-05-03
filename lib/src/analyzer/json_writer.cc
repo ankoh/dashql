@@ -8,8 +8,8 @@
 #include <variant>
 
 #include "dashql/analyzer/analyzer.h"
-#include "dashql/analyzer/json_sax.h"
 #include "dashql/analyzer/syntax_matcher.h"
+#include "dashql/common/json_sax.h"
 #include "dashql/common/memstream.h"
 #include "dashql/common/string.h"
 #include "dashql/parser/grammar/enums.h"
@@ -123,7 +123,7 @@ struct ExistingNode {
     std::optional<rapidjson::Type> type;
     size_t children;
 };
-using DFSStep = std::variant<ExistingNode, const json::SAXNode*>;
+using DFSStep = std::variant<ExistingNode, const json::SAXDocument*>;
 
 template <typename Writer>
 static void writeOptions(ProgramInstance& instance, size_t root_node_id, json::DocumentPatch& patch, Writer& out) {
@@ -139,7 +139,7 @@ static void writeOptions(ProgramInstance& instance, size_t root_node_id, json::D
 
         // Is SAX node on DFS stack? - emit directly.
         // Could either be an attribute value or an array element.
-        if (auto sax = std::get_if<const json::SAXNode*>(&top); sax) {
+        if (auto sax = std::get_if<const json::SAXDocument*>(&top); sax) {
             auto text = parser::optionToString((*sax)->key);
             if (!text.empty()) {
                 auto key = parser::optionToCamelCase(text, tmp);
