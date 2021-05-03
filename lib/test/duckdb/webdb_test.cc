@@ -94,30 +94,4 @@ TEST(WebDB, LoadParquetTwice) {
                  "29555\tFeuerbach\t2\t\n\n");
 }
 
-TEST(WebDB, LoadCSVIStream) {
-    using LT = duckdb::LogicalType;
-
-    auto data = dashql::test::SOURCE_DIR / ".." / "data" / "test.csv";
-
-    duckdb::BufferedCSVReaderOptions options;
-    options.auto_detect = true;
-    std::vector<duckdb::LogicalType> column_types{LT::INTEGER, LT::INTEGER, LT::INTEGER};
-    duckdb::DataChunk output_chunk;
-    output_chunk.Initialize(column_types);
-
-    auto buffer_manager = std::make_shared<io::BufferManager>(io::CreateDefaultFileSystem());
-    auto input = std::make_shared<io::InputFileStreamBuffer>(buffer_manager, data.c_str());
-    try {
-        duckdb::BufferedCSVReader reader(options, column_types, std::make_unique<std::istream>(input.get()));
-        reader.ParseCSV(output_chunk);
-        ASSERT_STREQ(output_chunk.ToString().c_str(),
-                     "Chunk - [3 Columns]\n"
-                     "- FLAT INTEGER: 3 = [ 1, 4, 7]\n"
-                     "- FLAT INTEGER: 3 = [ 2, 5, 8]\n"
-                     "- FLAT INTEGER: 3 = [ 3, 6, 9]\n");
-    } catch (std::exception const& e) {
-        FAIL() << e.what();
-    }
-}
-
 }  // namespace

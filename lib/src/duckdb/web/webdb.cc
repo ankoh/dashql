@@ -26,6 +26,7 @@
 #include "duckdb/web/io/arrow_ifstream.h"
 #include "duckdb/web/io/buffered_filesystem.h"
 #include "duckdb/web/io/default_filesystem.h"
+#include "duckdb/web/io/ifstreambuf.h"
 #include "duckdb/web/io/web_filesystem.h"
 #include "parquet-extension.hpp"
 

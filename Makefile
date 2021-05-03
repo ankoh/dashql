@@ -76,15 +76,21 @@ lib_release:
 		-DCMAKE_BUILD_TYPE=Release
 	ninja -C ${LIB_RELEASE_DIR}
 
+# Perf the library
+.PHONY: lib_perf
+lib_perf: lib_relwithdebinfo
+	perf record --call-graph dwarf ${LIB_RELWITHDEBINFO_DIR}/tester --source_dir ${LIB_SOURCE_DIR} --gtest_filter=*CSV*ParseTest
+	hotspot ./perf.data
+
 # Test the core library
 .PHONY: lib_tests
 lib_tests: lib
-	${LIB_DEBUG_DIR}/tester --source_dir ${LIB_SOURCE_DIR}
+	${LIB_DEBUG_DIR}/tester --source_dir ${LIB_SOURCE_DIR} --gtest_filter=*CSV*
 
 # Debug the core library
 .PHONY: lib_tests
 lib_tests_lldb: lib
-	lldb ${LIB_DEBUG_DIR}/tester -- --source_dir ${LIB_SOURCE_DIR}
+	lldb ${LIB_DEBUG_DIR}/tester -- --source_dir ${LIB_SOURCE_DIR} --gtest_filter=*CSV*
 
 # Test the core library
 .PHONY: lib_tests_relwithdebinfo
