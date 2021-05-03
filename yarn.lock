@@ -3486,7 +3486,7 @@ globby@^6.1.0:
     pify "^2.0.0"
     pinkie-promise "^2.0.0"
 
-graceful-fs@^4.1.11, graceful-fs@^4.1.15, graceful-fs@^4.1.2, graceful-fs@^4.1.6, graceful-fs@^4.2.0, graceful-fs@^4.2.4:
+graceful-fs@^4.1.11, graceful-fs@^4.1.15, graceful-fs@^4.1.2, graceful-fs@^4.1.6, graceful-fs@^4.2.0, graceful-fs@^4.2.4, graceful-fs@^4.2.6:
   version "4.2.6"
   resolved "https://registry.yarnpkg.com/graceful-fs/-/graceful-fs-4.2.6.tgz#ff040b2b0853b23c3d31027523706f1885d76bee"
   integrity sha512-nTnJ528pbqxYanhpDYsi4Rd8MAeaBA67+RZ10CM1m3bTAVFEDcd5AuA4a6W5YkGZ1iNXHzZz8T6TBKLeBuNriQ==
@@ -5985,10 +5985,10 @@ react-transition-group@^4.4.1:
     loose-envify "^1.4.0"
     prop-types "^15.6.2"
 
-react-vega@^7.4.2:
-  version "7.4.2"
-  resolved "https://registry.yarnpkg.com/react-vega/-/react-vega-7.4.2.tgz#790e6f4fe9a26c36f3e8db5ceff9a70ee242fd68"
-  integrity sha512-/us6fDtXiIFKA5aZEXa/sjwFgKEQR/DFNgVwPZ5rQ3c/r9zzkTIXXZMV/NZAi7AWwhRlAvqCL1j0W+L90CxpRg==
+react-vega@^7.4.3:
+  version "7.4.3"
+  resolved "https://registry.yarnpkg.com/react-vega/-/react-vega-7.4.3.tgz#06b6acbc05eb97e628830f37c57b3a42c0cfb881"
+  integrity sha512-SjsXUh4xEzix0gaZ8/b+axF9Tvb6l2pG5DN3Ym7NlNGzqj1erga+GvSm0EwzxVygvzoIfhKI+3MszZ2Rdc0xaA==
   dependencies:
     "@types/react" "^16.9.19"
     fast-deep-equal "^3.1.1"
@@ -6957,21 +6957,20 @@ tar-stream@^2.1.4:
     inherits "^2.0.3"
     readable-stream "^3.1.1"
 
-temp-dir@^1.0.0:
-  version "1.0.0"
-  resolved "https://registry.yarnpkg.com/temp-dir/-/temp-dir-1.0.0.tgz#0a7c0ea26d3a39afa7e0ebea9c1fc0bc4daa011d"
-  integrity sha1-CnwOom06Oa+n4OvqnB/AvE2qAR0=
+temp-dir@^2.0.0:
+  version "2.0.0"
+  resolved "https://registry.yarnpkg.com/temp-dir/-/temp-dir-2.0.0.tgz#bde92b05bdfeb1516e804c9c00ad45177f31321e"
+  integrity sha512-aoBAniQmmwtcKp/7BzsH8Cxzv8OL736p7v1ihGb5e9DJ9kTwGWHrQrVB5+lfVDzfGrdRzXch+ig7LHaY1JTOrg==
 
-temp-write@^4.0.0:
-  version "4.0.0"
-  resolved "https://registry.yarnpkg.com/temp-write/-/temp-write-4.0.0.tgz#cd2e0825fc826ae72d201dc26eef3bf7e6fc9320"
-  integrity sha512-HIeWmj77uOOHb0QX7siN3OtwV3CTntquin6TNVg6SHOqCP3hYKmox90eeFOGaY1MqJ9WYDDjkyZrW6qS5AWpbw==
+temp-write@^5.0.0:
+  version "5.0.0"
+  resolved "https://registry.yarnpkg.com/temp-write/-/temp-write-5.0.0.tgz#dd9aafebc93ce2067e962a1665f3873e20efb498"
+  integrity sha512-cJhnzBW7DjNox7VcZDXeNlQSkIh3mX/h+M0n0Fh+zgT7YAHwI9c+OngKx4MCiQCVx9iXxV104xYlJgDBCCtawA==
   dependencies:
-    graceful-fs "^4.1.15"
+    graceful-fs "^4.2.6"
     is-stream "^2.0.0"
-    make-dir "^3.0.0"
-    temp-dir "^1.0.0"
-    uuid "^3.3.2"
+    temp-dir "^2.0.0"
+    uuid "^8.3.2"
 
 terser-webpack-plugin@^5.1.1:
   version "5.1.1"
@@ -7385,6 +7384,11 @@ uuid@^3.3.2, uuid@^3.3.3, uuid@^3.4.0:
   version "3.4.0"
   resolved "https://registry.yarnpkg.com/uuid/-/uuid-3.4.0.tgz#b23e4358afa8a202fe7a100af1f5f883f02007ee"
   integrity sha512-HjSDRw6gZE5JMggctHBcjVak08+KEVhSIiDzFnT9S9aegmp85S/bReBVTb4QTFaRNptJ9kuYaNhnbNEOkbKb/A==
+
+uuid@^8.3.2:
+  version "8.3.2"
+  resolved "https://registry.yarnpkg.com/uuid/-/uuid-8.3.2.tgz#80d5b5ced271bb9af6c445f21a1a04c606cefbe2"
+  integrity sha512-+NYs2QeMWy+GWFOEm9xnn6HCDp0l7QBD7ml8zLUmJ+93Q5NF0NocErnwkTkXVFNiX3/fpC6afS8Dhb/gz7R7eg==
 
 v8-compile-cache@^2.0.3, v8-compile-cache@^2.2.0:
   version "2.3.0"
