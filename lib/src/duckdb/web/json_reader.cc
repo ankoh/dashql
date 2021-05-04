@@ -1,23 +1,19 @@
 // Copyright (c) 2020 The DashQL Authors
 
-#include <arrow/type_fwd.h>
-
 #include <algorithm>
 #include <iostream>
+#include <memory>
 #include <optional>
 #include <unordered_map>
 #include <variant>
 #include <vector>
 
-#include "arrow/type.h"
-#include "arrow/type_traits.h"
 #include "rapidjson/document.h"
 #include "rapidjson/writer.h"
 
 namespace duckdb {
 namespace web {
-
-namespace {
+namespace json {
 
 /// The JSON sniffer tries to detect the arrow schema in-flight while parsing the JSON document
 struct JSONSniffer : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, JSONSniffer> {
@@ -331,7 +327,7 @@ struct JSONSniffer : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, JSON
 //     bool EndArray(rapidjson::SizeType elementCount) { return true; }
 // };
 
-}  // namespace
+}  // namespace json
 
 }  // namespace web
 }  // namespace duckdb
