@@ -8,8 +8,8 @@
 #include <variant>
 
 #include "dashql/analyzer/analyzer.h"
+#include "dashql/analyzer/json_sax.h"
 #include "dashql/analyzer/syntax_matcher.h"
-#include "dashql/common/json_sax.h"
 #include "dashql/common/memstream.h"
 #include "dashql/common/string.h"
 #include "dashql/parser/grammar/enums.h"

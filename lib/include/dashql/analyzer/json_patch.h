@@ -5,8 +5,8 @@
 #include <unordered_set>
 #include <vector>
 
+#include "dashql/analyzer/json_sax.h"
 #include "dashql/analyzer/syntax_matcher.h"
-#include "dashql/common/json_sax.h"
 #include "dashql/proto_generated.h"
 #include "rapidjson/document.h"
 
