@@ -1,7 +1,7 @@
 // Copyright (c) 2020 The DashQL Authors
 
-#ifndef INCLUDE_DUCKDB_WEB_JSON_CONVERTER_H_
-#define INCLUDE_DUCKDB_WEB_JSON_CONVERTER_H_
+#ifndef INCLUDE_DUCKDB_WEB_JSON_PARSER_H_
+#define INCLUDE_DUCKDB_WEB_JSON_PARSER_H_
 
 #include <memory>
 
