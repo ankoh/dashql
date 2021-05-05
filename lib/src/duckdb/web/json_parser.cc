@@ -20,6 +20,7 @@
 
 #include "duckdb/web/json_parser.h"
 
+#include <arrow/result.h>
 #include <arrow/type_fwd.h>
 
 #include <algorithm>
@@ -49,7 +50,7 @@ namespace web {
 namespace json {
 
 /// Get an array parser
-arrow::Status ResolveArrayParser(const std::shared_ptr<arrow::DataType>&, std::shared_ptr<ArrayParser>* out);
+arrow::Result<std::shared_ptr<ArrayParser>> ResolveArrayParser(const std::shared_ptr<arrow::DataType>&);
 
 namespace {
 
@@ -414,7 +415,7 @@ class ListArrayParser final
     /// Initialize the array builder
     arrow::Status Init() override {
         const auto& list_type = static_cast<const TYPE&>(*this->type_);
-        RETURN_NOT_OK(ResolveArrayParser(list_type.value_type(), &child_converter_));
+        ARROW_ASSIGN_OR_RAISE(child_converter_, ResolveArrayParser(list_type.value_type()));
         auto child_builder = child_converter_->builder();
         this->builder_ = std::make_shared<BuilderType>(arrow::default_memory_pool(), child_builder, this->type_);
         return arrow::Status::OK();
@@ -439,8 +440,8 @@ class MapArrayParser final : public BaseArrayParser<MapArrayParser, arrow::MapBu
     /// Initialize the parser
     arrow::Status Init() override {
         const auto& map_type = static_cast<const arrow::MapType&>(*type_);
-        RETURN_NOT_OK(ResolveArrayParser(map_type.key_type(), &key_parser_));
-        RETURN_NOT_OK(ResolveArrayParser(map_type.item_type(), &item_parser_));
+        ARROW_ASSIGN_OR_RAISE(key_parser_, ResolveArrayParser(map_type.key_type()));
+        ARROW_ASSIGN_OR_RAISE(item_parser_, ResolveArrayParser(map_type.item_type()));
         auto key_builder = key_parser_->builder();
         auto item_builder = item_parser_->builder();
         builder_ = std::make_shared<arrow::MapBuilder>(arrow::default_memory_pool(), key_builder, item_builder, type_);
@@ -480,7 +481,7 @@ class FixedSizeListArrayParser final : public BaseArrayParser<FixedSizeListArray
     arrow::Status Init() override {
         const auto& list_type = static_cast<const arrow::FixedSizeListType&>(*type_);
         list_size_ = list_type.list_size();
-        RETURN_NOT_OK(ResolveArrayParser(list_type.value_type(), &child_converter_));
+        ARROW_ASSIGN_OR_RAISE(child_converter_, ResolveArrayParser(list_type.value_type()));
         auto child_builder = child_converter_->builder();
         builder_ = std::make_shared<arrow::FixedSizeListBuilder>(arrow::default_memory_pool(), child_builder, type_);
         return arrow::Status::OK();
@@ -511,7 +512,7 @@ class StructArrayParser final : public BaseArrayParser<StructArrayParser, arrow:
         std::vector<std::shared_ptr<arrow::ArrayBuilder>> child_builders;
         for (const auto& field : type_->fields()) {
             std::shared_ptr<ArrayParser> child_converter;
-            RETURN_NOT_OK(ResolveArrayParser(field->type(), &child_converter));
+            ARROW_ASSIGN_OR_RAISE(child_converter, ResolveArrayParser(field->type()));
             child_parsers_.push_back(child_converter);
             child_builders.push_back(child_converter->builder());
         }
@@ -587,7 +588,7 @@ class UnionArrayParser final : public BaseArrayParser<UnionArrayParser, arrow::A
         std::vector<std::shared_ptr<arrow::ArrayBuilder>> child_builders;
         for (const auto& field : type_->fields()) {
             std::shared_ptr<ArrayParser> child_converter;
-            RETURN_NOT_OK(ResolveArrayParser(field->type(), &child_converter));
+            ARROW_ASSIGN_OR_RAISE(child_converter, ResolveArrayParser(field->type()));
             child_parsers_.push_back(child_converter);
             child_builders.push_back(child_converter->builder());
         }
@@ -639,7 +640,7 @@ arrow::Status JSONParsingNotImplemented(const std::shared_ptr<arrow::DataType>& 
     return arrow::Status::NotImplemented("JSON conversion to ", type->ToString(), " not implemented");
 }
 
-arrow::Status GetDictArrayParser(const std::shared_ptr<arrow::DataType>& type, std::shared_ptr<ArrayParser>* out) {
+arrow::Result<std::shared_ptr<ArrayParser>> GetDictArrayParser(const std::shared_ptr<arrow::DataType>& type) {
     std::shared_ptr<ArrayParser> res;
     const auto value_type = static_cast<const arrow::DictionaryType&>(*type).value_type();
 
@@ -677,14 +678,13 @@ arrow::Status GetDictArrayParser(const std::shared_ptr<arrow::DataType>& type, s
 #undef PARAM_PARSER_CASE
 
     RETURN_NOT_OK(res->Init());
-    *out = res;
-    return arrow::Status::OK();
+    return res;
 }
 
 }  // namespace
 
-arrow::Status ResolveArrayParser(const std::shared_ptr<arrow::DataType>& type, std::shared_ptr<ArrayParser>* out) {
-    if (type->id() == arrow::Type::DICTIONARY) return GetDictArrayParser(type, out);
+arrow::Result<std::shared_ptr<ArrayParser>> ResolveArrayParser(const std::shared_ptr<arrow::DataType>& type) {
+    if (type->id() == arrow::Type::DICTIONARY) return GetDictArrayParser(type);
     std::shared_ptr<ArrayParser> res;
 
 #define SIMPLE_PARSER_CASE(ID, CLASS)        \
@@ -734,8 +734,7 @@ arrow::Status ResolveArrayParser(const std::shared_ptr<arrow::DataType>& type, s
 #undef SIMPLE_PARSER_CASE
 
     RETURN_NOT_OK(res->Init());
-    *out = res;
-    return arrow::Status::OK();
+    return res;
 }
 
 }  // namespace json
