@@ -69,15 +69,18 @@ std::shared_ptr<arrow::DataType> InferDataType(const rapidjson::Value& value) {
             }
             return arrow::utf8();
         }
+        case rapidjson::Type::kObjectType: {
+            std::vector<std::shared_ptr<arrow::Field>> fields;
+            for (auto iter = value.MemberBegin(); iter != value.MemberEnd(); ++iter) {
+                auto type = InferDataType(iter->value);
+                fields.push_back(arrow::field(iter->name.GetString(), std::move(type)));
+            }
+            return arrow::struct_(std::move(fields));
+        }
         case rapidjson::Type::kNumberType:
             return arrow::float64();
-
-        case rapidjson::Type::kObjectType:
-            break;
-
         case rapidjson::Type::kStringType:
             return arrow::utf8();
-
         case rapidjson::Type::kNullType:
             return arrow::null();
         case rapidjson::Type::kFalseType:
@@ -129,7 +132,12 @@ struct ScalarTypeAnalyzer {
     }
 
     /// Build the array parser
-    arrow::Result<std::shared_ptr<ArrayParser>> Finish() { return nullptr; }
+    arrow::Result<std::shared_ptr<ArrayParser>> Finish() {
+        std::sort(scalar_candidates.begin(), scalar_candidates.end(),
+                  [&](auto& l, auto& r) { return l.hits < r.hits; });
+        auto type = scalar_candidates.back().type;
+        return ResolveArrayParser(std::move(type));
+    }
 };
 
 }  // namespace
