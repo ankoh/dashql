@@ -43,10 +43,10 @@ class ArrayParser {
     }
 };
 
-/// Resolve a value parser
-arrow::Status ResolveValueParser(const std::shared_ptr<arrow::DataType>& type);
 /// Resolve an array parser
 arrow::Result<std::shared_ptr<ArrayParser>> ResolveArrayParser(const std::shared_ptr<arrow::DataType>& type);
+/// Test a type
+bool TestScalarType(const arrow::DataType& type, const rapidjson::Value& json_value);
 
 // using ParseValue = ()
 

@@ -59,7 +59,7 @@ arrow::Status JSONTypeError(const char* expected_type, rapidjson::Type json_type
 }
 
 /// Parse a boolean
-arrow::Result<bool> ParseBoolean(const rapidjson::Value& json_obj) {
+arrow::Result<bool> ParseBoolean(const rapidjson::Value& json_obj, const arrow::DataType& /*type*/) {
     assert(!json_obj.IsNull());
     if (json_obj.IsBool()) return json_obj.GetBool();
     if (json_obj.IsInt()) return json_obj.GetInt() != 0;
@@ -68,7 +68,8 @@ arrow::Result<bool> ParseBoolean(const rapidjson::Value& json_obj) {
 
 /// Parse a decimal
 template <typename DecimalSubtype, typename DecimalValue, typename BuilderType>
-arrow::Result<DecimalValue> ParseDecimal(const rapidjson::Value& json_obj, const DecimalSubtype& subtype) {
+arrow::Result<DecimalValue> ParseDecimal(const rapidjson::Value& json_obj, const arrow::DataType& type) {
+    auto& subtype = reinterpret_cast<const DecimalSubtype&>(type);
     assert(!json_obj.IsNull());
     if (json_obj.IsString()) {
         int32_t precision, scale;
@@ -81,6 +82,14 @@ arrow::Result<DecimalValue> ParseDecimal(const rapidjson::Value& json_obj, const
         return d;
     }
     return JSONTypeError("decimal string", json_obj.GetType());
+}
+template <typename BuilderType = typename arrow::TypeTraits<arrow::Decimal128Type>::BuilderType>
+auto ParseDecimal128(const rapidjson::Value& json_obj, const arrow::DataType& type) {
+    return ParseDecimal<arrow::Decimal128Type, arrow::Decimal128, BuilderType>(json_obj, type);
+}
+template <typename BuilderType = typename arrow::TypeTraits<arrow::Decimal256Type>::BuilderType>
+auto ParseDecimal256(const rapidjson::Value& json_obj, const arrow::DataType& type) {
+    return ParseDecimal<arrow::Decimal256Type, arrow::Decimal256, BuilderType>(json_obj, type);
 }
 
 // Parse single signed integer value (also {Date,Time}{32,64} and Timestamp)
@@ -139,7 +148,8 @@ arrow::enable_if_physical_signed_integer<T, arrow::Result<typename T::c_type>> P
 }
 
 /// Parse a timestamp
-arrow::Result<int64_t> ParseTimestamp(const rapidjson::Value& json_obj, const arrow::TimestampType& type) {
+arrow::Result<int64_t> ParseTimestamp(const rapidjson::Value& json_obj, const arrow::DataType& t) {
+    auto& type = reinterpret_cast<const arrow::TimestampType&>(t);
     assert(!json_obj.IsNull());
     int64_t value;
     if (json_obj.IsNumber()) {
@@ -157,19 +167,19 @@ arrow::Result<int64_t> ParseTimestamp(const rapidjson::Value& json_obj, const ar
 
 /// Parse a daytime
 arrow::Result<arrow::DayTimeIntervalType::DayMilliseconds> ParseDayTime(const rapidjson::Value& json_obj,
-                                                                        const std::shared_ptr<arrow::DataType>& type) {
+                                                                        const arrow::DataType& type) {
     arrow::DayTimeIntervalType::DayMilliseconds value;
     if (!json_obj.IsArray()) return JSONTypeError("array", json_obj.GetType());
     if (json_obj.Size() != 2) {
         return arrow::Status::Invalid("day time interval pair must have exactly two elements, had ", json_obj.Size());
     }
-    ARROW_ASSIGN_OR_RAISE(value.days, ParseNumber<arrow::Int32Type>(json_obj[0], *type));
-    ARROW_ASSIGN_OR_RAISE(value.milliseconds, ParseNumber<arrow::Int32Type>(json_obj[1], *type));
+    ARROW_ASSIGN_OR_RAISE(value.days, ParseNumber<arrow::Int32Type>(json_obj[0], type));
+    ARROW_ASSIGN_OR_RAISE(value.milliseconds, ParseNumber<arrow::Int32Type>(json_obj[1], type));
     return value;
 }
 
 /// Parse a string
-arrow::Result<arrow::util::string_view> ParseString(const rapidjson::Value& json_obj) {
+arrow::Result<arrow::util::string_view> ParseString(const rapidjson::Value& json_obj, const arrow::DataType& /*type*/) {
     if (json_obj.IsString()) {
         auto view = arrow::util::string_view(json_obj.GetString(), json_obj.GetStringLength());
         return view;
@@ -180,7 +190,8 @@ arrow::Result<arrow::util::string_view> ParseString(const rapidjson::Value& json
 
 /// Parse a string
 arrow::Result<arrow::util::string_view> ParseFixedSizeBinary(const rapidjson::Value& json_obj,
-                                                             const arrow::FixedSizeBinaryType& type) {
+                                                             const arrow::DataType& t) {
+    auto& type = reinterpret_cast<const arrow::FixedSizeBinaryType&>(t);
     if (json_obj.IsString()) {
         auto view = arrow::util::string_view(json_obj.GetString(), json_obj.GetStringLength());
         if (view.length() != static_cast<size_t>(type.byte_width())) {
@@ -255,7 +266,7 @@ class BooleanArrayParser final : public BaseArrayParser<BooleanArrayParser, arro
     /// Append a value
     arrow::Status AppendValue(const rapidjson::Value& json_obj) override {
         if (json_obj.IsNull()) return AppendNull();
-        ARROW_ASSIGN_OR_RAISE(auto value, ParseBoolean(json_obj));
+        ARROW_ASSIGN_OR_RAISE(auto value, ParseBoolean(json_obj, *type_));
         return builder_->Append(value);
     }
 };
@@ -358,7 +369,7 @@ class DayTimeIntervalArrayParser final
     /// Append a value
     arrow::Status AppendValue(const rapidjson::Value& json_obj) override {
         if (json_obj.IsNull()) return this->AppendNull();
-        ARROW_ASSIGN_OR_RAISE(auto value, ParseDayTime(json_obj, type_));
+        ARROW_ASSIGN_OR_RAISE(auto value, ParseDayTime(json_obj, *type_));
         return builder_->Append(value);
     }
 };
@@ -373,7 +384,7 @@ class StringArrayParser final : public BaseArrayParser<StringArrayParser<Type, B
     /// Append a value
     arrow::Status AppendValue(const rapidjson::Value& json_obj) override {
         if (json_obj.IsNull()) return this->AppendNull();
-        ARROW_ASSIGN_OR_RAISE(auto value, ParseString(json_obj));
+        ARROW_ASSIGN_OR_RAISE(auto value, ParseString(json_obj, *this->type_));
         return this->builder_->Append(value);
     }
 };
@@ -735,6 +746,47 @@ arrow::Result<std::shared_ptr<ArrayParser>> ResolveArrayParser(const std::shared
 
     RETURN_NOT_OK(res->Init());
     return res;
+}
+
+/// Test a type
+bool TestScalarType(const arrow::DataType& type, const rapidjson::Value& json_value) {
+#define TEST_TYPE(TYPE, FUNC) \
+    case TYPE:                \
+        return FUNC(json_value, type).ok();
+
+    switch (type.id()) {
+        TEST_TYPE(arrow::Type::BOOL, ParseBoolean);
+        TEST_TYPE(arrow::Type::INT8, ParseNumber<arrow::Int8Type>);
+        TEST_TYPE(arrow::Type::INT16, ParseNumber<arrow::Int16Type>);
+        TEST_TYPE(arrow::Type::INT32, ParseNumber<arrow::Int32Type>);
+        TEST_TYPE(arrow::Type::INT64, ParseNumber<arrow::Int64Type>);
+        TEST_TYPE(arrow::Type::UINT8, ParseNumber<arrow::UInt8Type>);
+        TEST_TYPE(arrow::Type::UINT16, ParseNumber<arrow::UInt16Type>);
+        TEST_TYPE(arrow::Type::UINT32, ParseNumber<arrow::UInt32Type>);
+        TEST_TYPE(arrow::Type::UINT64, ParseNumber<arrow::UInt64Type>);
+        TEST_TYPE(arrow::Type::TIMESTAMP, ParseTimestamp);
+        TEST_TYPE(arrow::Type::DATE32, ParseNumber<arrow::Date32Type>)
+        TEST_TYPE(arrow::Type::DATE64, ParseNumber<arrow::Date64Type>)
+        TEST_TYPE(arrow::Type::TIME32, ParseNumber<arrow::Time32Type>)
+        TEST_TYPE(arrow::Type::TIME64, ParseNumber<arrow::Time64Type>)
+        TEST_TYPE(arrow::Type::DURATION, ParseNumber<arrow::DurationType>)
+        TEST_TYPE(arrow::Type::HALF_FLOAT, ParseNumber<arrow::HalfFloatType>)
+        TEST_TYPE(arrow::Type::FLOAT, ParseNumber<arrow::FloatType>)
+        TEST_TYPE(arrow::Type::DOUBLE, ParseNumber<arrow::DoubleType>)
+        TEST_TYPE(arrow::Type::DECIMAL128, ParseDecimal128)
+        TEST_TYPE(arrow::Type::DECIMAL256, ParseDecimal256)
+        TEST_TYPE(arrow::Type::STRING, ParseString)
+        TEST_TYPE(arrow::Type::BINARY, ParseString)
+        TEST_TYPE(arrow::Type::LARGE_STRING, ParseString)
+        TEST_TYPE(arrow::Type::LARGE_BINARY, ParseString)
+        TEST_TYPE(arrow::Type::INTERVAL_MONTHS, ParseNumber<arrow::MonthIntervalType>)
+        TEST_TYPE(arrow::Type::INTERVAL_DAY_TIME, ParseDayTime)
+        TEST_TYPE(arrow::Type::FIXED_SIZE_BINARY, ParseFixedSizeBinary)
+        default:
+            return false;
+    }
+
+#undef TEST_TYPE
 }
 
 }  // namespace json
