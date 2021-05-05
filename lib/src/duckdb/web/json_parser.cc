@@ -48,23 +48,167 @@ namespace duckdb {
 namespace web {
 namespace json {
 
+/// Get an array parser
+arrow::Status ResolveArrayParser(const std::shared_ptr<arrow::DataType>&, std::shared_ptr<ArrayParser>* out);
+
+namespace {
+
 arrow::Status JSONTypeError(const char* expected_type, rapidjson::Type json_type) {
     return arrow::Status::Invalid("Expected ", expected_type, " or null, got JSON type ", json_type);
 }
 
-/// Get an array parser
-arrow::Status ResolveArrayParser(const std::shared_ptr<arrow::DataType>&, std::shared_ptr<ArrayParser>* out);
+/// Parse a boolean
+arrow::Result<bool> ParseBoolean(const rapidjson::Value& json_obj) {
+    assert(!json_obj.IsNull());
+    if (json_obj.IsBool()) return json_obj.GetBool();
+    if (json_obj.IsInt()) return json_obj.GetInt() != 0;
+    return JSONTypeError("boolean", json_obj.GetType());
+}
+
+/// Parse a decimal
+template <typename DecimalSubtype, typename DecimalValue, typename BuilderType>
+arrow::Result<DecimalValue> ParseDecimal(const rapidjson::Value& json_obj, const DecimalSubtype& subtype) {
+    assert(!json_obj.IsNull());
+    if (json_obj.IsString()) {
+        int32_t precision, scale;
+        DecimalValue d;
+        auto view = arrow::util::string_view(json_obj.GetString(), json_obj.GetStringLength());
+        RETURN_NOT_OK(DecimalValue::FromString(view, &d, &precision, &scale));
+        if (scale != subtype.scale()) {
+            return arrow::Status::Invalid("Invalid scale for decimal: expected ", subtype.scale(), ", got ", scale);
+        }
+        return d;
+    }
+    return JSONTypeError("decimal string", json_obj.GetType());
+}
+
+// Parse single signed integer value (also {Date,Time}{32,64} and Timestamp)
+template <typename T>
+arrow::enable_if_physical_unsigned_integer<T, arrow::Result<typename T::c_type>> ParseNumber(
+    const rapidjson::Value& json_obj, const arrow::DataType& type) {
+    assert(!json_obj.IsNull());
+    typename T::c_type out;
+    if (json_obj.IsUint64()) {
+        uint64_t v64 = json_obj.GetUint64();
+        out = static_cast<typename T::c_type>(v64);
+        if (out == v64) {
+            return out;
+        } else {
+            return arrow::Status::Invalid("Value ", v64, " out of bounds for ", type);
+        }
+    } else {
+        out = static_cast<typename T::c_type>(0);
+        return JSONTypeError("unsigned int", json_obj.GetType());
+    }
+}
+
+// Parse single signed integer value (also {Date,Time}{32,64} and Timestamp)
+template <typename T>
+arrow::enable_if_physical_floating_point<T, arrow::Result<typename T::c_type>> ParseNumber(
+    const rapidjson::Value& json_obj, const arrow::DataType& type) {
+    assert(!json_obj.IsNull());
+    typename T::c_type out;
+    if (json_obj.IsNumber()) {
+        out = static_cast<typename T::c_type>(json_obj.GetDouble());
+        return out;
+    } else {
+        out = static_cast<typename T::c_type>(0);
+        return JSONTypeError("number", json_obj.GetType());
+    }
+}
+
+// Parse single signed integer value (also {Date,Time}{32,64} and Timestamp)
+template <typename T>
+arrow::enable_if_physical_signed_integer<T, arrow::Result<typename T::c_type>> ParseNumber(
+    const rapidjson::Value& json_obj, const arrow::DataType& type) {
+    assert(!json_obj.IsNull());
+    typename T::c_type out;
+    if (json_obj.IsInt64()) {
+        int64_t v64 = json_obj.GetInt64();
+        out = static_cast<typename T::c_type>(v64);
+        if (out == v64) {
+            return out;
+        } else {
+            return arrow::Status::Invalid("Value ", v64, " out of bounds for ", type);
+        }
+    } else {
+        out = static_cast<typename T::c_type>(0);
+        return JSONTypeError("signed int", json_obj.GetType());
+    }
+}
+
+/// Parse a timestamp
+arrow::Result<int64_t> ParseTimestamp(const rapidjson::Value& json_obj, const arrow::TimestampType& type) {
+    assert(!json_obj.IsNull());
+    int64_t value;
+    if (json_obj.IsNumber()) {
+        ARROW_ASSIGN_OR_RAISE(value, ParseNumber<arrow::Int64Type>(json_obj, type));
+    } else if (json_obj.IsString()) {
+        arrow::util::string_view view(json_obj.GetString(), json_obj.GetStringLength());
+        if (!arrow::internal::ParseValue(type, view.data(), view.size(), &value)) {
+            return arrow::Status::Invalid("couldn't parse timestamp from ", view);
+        }
+    } else {
+        return JSONTypeError("timestamp", json_obj.GetType());
+    }
+    return value;
+}
+
+/// Parse a daytime
+arrow::Result<arrow::DayTimeIntervalType::DayMilliseconds> ParseDayTime(const rapidjson::Value& json_obj,
+                                                                        const std::shared_ptr<arrow::DataType>& type) {
+    arrow::DayTimeIntervalType::DayMilliseconds value;
+    if (!json_obj.IsArray()) return JSONTypeError("array", json_obj.GetType());
+    if (json_obj.Size() != 2) {
+        return arrow::Status::Invalid("day time interval pair must have exactly two elements, had ", json_obj.Size());
+    }
+    ARROW_ASSIGN_OR_RAISE(value.days, ParseNumber<arrow::Int32Type>(json_obj[0], *type));
+    ARROW_ASSIGN_OR_RAISE(value.milliseconds, ParseNumber<arrow::Int32Type>(json_obj[1], *type));
+    return value;
+}
+
+/// Parse a string
+arrow::Result<arrow::util::string_view> ParseString(const rapidjson::Value& json_obj) {
+    if (json_obj.IsString()) {
+        auto view = arrow::util::string_view(json_obj.GetString(), json_obj.GetStringLength());
+        return view;
+    } else {
+        return JSONTypeError("string", json_obj.GetType());
+    }
+}
+
+/// Parse a string
+arrow::Result<arrow::util::string_view> ParseFixedSizeBinary(const rapidjson::Value& json_obj,
+                                                             const arrow::FixedSizeBinaryType& type) {
+    if (json_obj.IsString()) {
+        auto view = arrow::util::string_view(json_obj.GetString(), json_obj.GetStringLength());
+        if (view.length() != static_cast<size_t>(type.byte_width())) {
+            std::stringstream ss;
+            ss << "Invalid string length " << view.length() << " in JSON input for " << type.ToString();
+            return arrow::Status::Invalid(ss.str());
+        }
+        return view;
+    } else {
+        return JSONTypeError("string", json_obj.GetType());
+    }
+}
 
 /// CRTP base class
-template <class Derived> class BaseArrayParser : public ArrayParser {
+template <typename Derived, typename BuilderType> class BaseArrayParser : public ArrayParser {
+   protected:
+    /// The builder
+    std::shared_ptr<BuilderType> builder_;
+
    public:
+    /// Access the builder
+    std::shared_ptr<arrow::ArrayBuilder> builder() override { return builder_; }
     /// Get the value type
     const std::shared_ptr<arrow::DataType>& value_type() {
         if (type_->id() != arrow::Type::DICTIONARY) return type_;
         return arrow::internal::checked_cast<const arrow::DictionaryType&>(*type_).value_type();
     }
     /// Builder factory
-    template <typename BuilderType> arrow::Status MakeConcreteBuilder(std::shared_ptr<BuilderType>* out) {
+    arrow::Status MakeConcreteBuilder(std::shared_ptr<BuilderType>* out) {
         std::unique_ptr<arrow::ArrayBuilder> builder;
         RETURN_NOT_OK(MakeBuilder(arrow::default_memory_pool(), this->type_, &builder));
         *out = arrow::internal::checked_pointer_cast<BuilderType>(std::move(builder));
@@ -85,19 +229,13 @@ template <class Derived> class BaseArrayParser : public ArrayParser {
 };
 
 /// Reader for null arrays
-class NullArrayParser final : public BaseArrayParser<NullArrayParser> {
-   protected:
-    /// The builder
-    std::shared_ptr<arrow::NullBuilder> builder_;
-
+class NullArrayParser final : public BaseArrayParser<NullArrayParser, arrow::NullBuilder> {
    public:
     /// Constructor
     explicit NullArrayParser(const std::shared_ptr<arrow::DataType>& type) {
         type_ = type;
         builder_ = std::make_shared<arrow::NullBuilder>();
     }
-    /// Access the builder
-    std::shared_ptr<arrow::ArrayBuilder> builder() override { return builder_; }
     /// Append a value
     arrow::Status AppendValue(const rapidjson::Value& json_obj) override {
         if (json_obj.IsNull()) return AppendNull();
@@ -106,137 +244,63 @@ class NullArrayParser final : public BaseArrayParser<NullArrayParser> {
 };
 
 /// Reader for boolean arrays
-class BooleanArrayParser final : public BaseArrayParser<BooleanArrayParser> {
-   protected:
-    /// The builder
-    std::shared_ptr<arrow::BooleanBuilder> builder_;
-
+class BooleanArrayParser final : public BaseArrayParser<BooleanArrayParser, arrow::BooleanBuilder> {
    public:
     /// Constructor
     explicit BooleanArrayParser(const std::shared_ptr<arrow::DataType>& type) {
         type_ = type;
         builder_ = std::make_shared<arrow::BooleanBuilder>();
     }
-    /// Get the builder
-    std::shared_ptr<arrow::ArrayBuilder> builder() override { return builder_; }
     /// Append a value
     arrow::Status AppendValue(const rapidjson::Value& json_obj) override {
         if (json_obj.IsNull()) return AppendNull();
-        if (json_obj.IsBool()) return builder_->Append(json_obj.GetBool());
-        if (json_obj.IsInt()) return builder_->Append(json_obj.GetInt() != 0);
-        return JSONTypeError("boolean", json_obj.GetType());
+        ARROW_ASSIGN_OR_RAISE(auto value, ParseBoolean(json_obj));
+        return builder_->Append(value);
     }
 };
 
-// Cast single signed integer value (also {Date,Time}{32,64} and Timestamp)
-template <typename T>
-arrow::enable_if_physical_signed_integer<T, arrow::Status> CastNumber(const rapidjson::Value& json_obj,
-                                                                      const arrow::DataType& type,
-                                                                      typename T::c_type* out) {
-    if (json_obj.IsInt64()) {
-        int64_t v64 = json_obj.GetInt64();
-        *out = static_cast<typename T::c_type>(v64);
-        if (*out == v64) {
-            return arrow::Status::OK();
-        } else {
-            return arrow::Status::Invalid("Value ", v64, " out of bounds for ", type);
-        }
-    } else {
-        *out = static_cast<typename T::c_type>(0);
-        return JSONTypeError("signed int", json_obj.GetType());
-    }
-}
-
-// Cast single unsigned integer value
-template <typename T>
-arrow::enable_if_physical_unsigned_integer<T, arrow::Status> CastNumber(const rapidjson::Value& json_obj,
-                                                                        const arrow::DataType& type,
-                                                                        typename T::c_type* out) {
-    if (json_obj.IsUint64()) {
-        uint64_t v64 = json_obj.GetUint64();
-        *out = static_cast<typename T::c_type>(v64);
-        if (*out == v64) {
-            return arrow::Status::OK();
-        } else {
-            return arrow::Status::Invalid("Value ", v64, " out of bounds for ", type);
-        }
-    } else {
-        *out = static_cast<typename T::c_type>(0);
-        return JSONTypeError("unsigned int", json_obj.GetType());
-    }
-}
-
-// Cast a single single floating point value
-template <typename T>
-arrow::enable_if_physical_floating_point<T, arrow::Status> CastNumber(const rapidjson::Value& json_obj,
-                                                                      const arrow::DataType& type,
-                                                                      typename T::c_type* out) {
-    if (json_obj.IsNumber()) {
-        *out = static_cast<typename T::c_type>(json_obj.GetDouble());
-        return arrow::Status::OK();
-    } else {
-        *out = static_cast<typename T::c_type>(0);
-        return JSONTypeError("number", json_obj.GetType());
-    }
-}
-
 /// Reader for integer array
 template <typename Type, typename BuilderType = typename arrow::TypeTraits<Type>::BuilderType>
-class IntegerArrayParser final : public BaseArrayParser<IntegerArrayParser<Type, BuilderType>> {
+class IntegerArrayParser final : public BaseArrayParser<IntegerArrayParser<Type, BuilderType>, BuilderType> {
     using c_type = typename Type::c_type;
     static constexpr auto is_signed = std::is_signed<c_type>::value;
-
-   protected:
-    /// The builder
-    std::shared_ptr<BuilderType> builder_;
 
    public:
     /// Constructor
     explicit IntegerArrayParser(const std::shared_ptr<arrow::DataType>& type) { this->type_ = type; }
     /// Initialize the builder
-    arrow::Status Init() override { return this->MakeConcreteBuilder(&builder_); }
+    arrow::Status Init() override { return this->MakeConcreteBuilder(&this->builder_); }
     /// Apppend a value
     arrow::Status AppendValue(const rapidjson::Value& json_obj) override {
         if (json_obj.IsNull()) return this->AppendNull();
-        c_type value;
-        RETURN_NOT_OK(CastNumber<Type>(json_obj, *this->type_, &value));
-        return builder_->Append(value);
+        ARROW_ASSIGN_OR_RAISE(auto value, ParseNumber<Type>(json_obj, *this->type_));
+        return this->builder_->Append(value);
     }
-    /// Get the array builder
-    std::shared_ptr<arrow::ArrayBuilder> builder() override { return builder_; }
 };
 
 /// Reader for float array
 template <typename Type, typename BuilderType = typename arrow::TypeTraits<Type>::BuilderType>
-class FloatArrayParser final : public BaseArrayParser<FloatArrayParser<Type, BuilderType>> {
+class FloatArrayParser final : public BaseArrayParser<FloatArrayParser<Type, BuilderType>, BuilderType> {
     using c_type = typename Type::c_type;
-
-   protected:
-    /// The builder
-    std::shared_ptr<BuilderType> builder_;
 
    public:
     /// Constructor
     explicit FloatArrayParser(const std::shared_ptr<arrow::DataType>& type) { this->type_ = type; }
     /// Initialize the builder
-    arrow::Status Init() override { return this->MakeConcreteBuilder(&builder_); }
+    arrow::Status Init() override { return this->MakeConcreteBuilder(&this->builder_); }
     /// Append a value
     arrow::Status AppendValue(const rapidjson::Value& json_obj) override {
         if (json_obj.IsNull()) return this->AppendNull();
-        c_type value;
-        RETURN_NOT_OK(CastNumber<Type>(json_obj, *this->type_, &value));
-        return builder_->Append(value);
+        ARROW_ASSIGN_OR_RAISE(auto value, ParseNumber<Type>(json_obj, *this->type_));
+        return this->builder_->Append(value);
     }
-    /// Get the array builder
-    std::shared_ptr<arrow::ArrayBuilder> builder() override { return builder_; }
 };
 
 /// Reader for decimal arrays
 template <typename DecimalSubtype, typename DecimalValue, typename BuilderType>
-class DecimalArrayParser final : public BaseArrayParser<DecimalArrayParser<DecimalSubtype, DecimalValue, BuilderType>> {
+class DecimalArrayParser final
+    : public BaseArrayParser<DecimalArrayParser<DecimalSubtype, DecimalValue, BuilderType>, BuilderType> {
    protected:
-    /// The builder
-    std::shared_ptr<BuilderType> builder_;
     /// The decimal subtype
     const DecimalSubtype* decimal_type_;
 
@@ -246,25 +310,14 @@ class DecimalArrayParser final : public BaseArrayParser<DecimalArrayParser<Decim
         this->type_ = type;
         decimal_type_ = &static_cast<const DecimalSubtype&>(*this->value_type());
     }
-    /// Get the array builder
-    std::shared_ptr<arrow::ArrayBuilder> builder() override { return builder_; }
     /// Initialize the array reader
-    arrow::Status Init() override { return this->MakeConcreteBuilder(&builder_); }
+    arrow::Status Init() override { return this->MakeConcreteBuilder(&this->builder_); }
     /// Append a value
     arrow::Status AppendValue(const rapidjson::Value& json_obj) override {
         if (json_obj.IsNull()) return this->AppendNull();
-        if (json_obj.IsString()) {
-            int32_t precision, scale;
-            DecimalValue d;
-            auto view = arrow::util::string_view(json_obj.GetString(), json_obj.GetStringLength());
-            RETURN_NOT_OK(DecimalValue::FromString(view, &d, &precision, &scale));
-            if (scale != decimal_type_->scale()) {
-                return arrow::Status::Invalid("Invalid scale for decimal: expected ", decimal_type_->scale(), ", got ",
-                                              scale);
-            }
-            return builder_->Append(d);
-        }
-        return JSONTypeError("decimal string", json_obj.GetType());
+        auto func = &ParseDecimal<DecimalSubtype, DecimalValue, BuilderType>;
+        ARROW_ASSIGN_OR_RAISE(auto value, func(json_obj, *decimal_type_));
+        return this->builder_->Append(value);
     }
 };
 
@@ -273,166 +326,116 @@ using Decimal128ArrayParser = DecimalArrayParser<arrow::Decimal128Type, arrow::D
 template <typename BuilderType = typename arrow::TypeTraits<arrow::Decimal256Type>::BuilderType>
 using Decimal256ArrayParser = DecimalArrayParser<arrow::Decimal256Type, arrow::Decimal256, BuilderType>;
 
-class TimestampArrayParser final : public BaseArrayParser<TimestampArrayParser> {
+class TimestampArrayParser final : public BaseArrayParser<TimestampArrayParser, arrow::TimestampBuilder> {
    protected:
     /// The timestamp type
     const arrow::TimestampType* timestamp_type_;
-    /// The timestamp builder
-    std::shared_ptr<arrow::TimestampBuilder> builder_;
 
    public:
     /// Constructor
     explicit TimestampArrayParser(const std::shared_ptr<arrow::DataType>& type)
-        : timestamp_type_{static_cast<const arrow::TimestampType*>(type.get())} {
+        : timestamp_type_{&static_cast<const arrow::TimestampType&>(*type.get())} {
         this->type_ = type;
         builder_ = std::make_shared<arrow::TimestampBuilder>(type, arrow::default_memory_pool());
     }
-    /// Get the array builder
-    std::shared_ptr<arrow::ArrayBuilder> builder() override { return builder_; }
     /// Append a value
     arrow::Status AppendValue(const rapidjson::Value& json_obj) override {
         if (json_obj.IsNull()) return this->AppendNull();
-        int64_t value;
-        if (json_obj.IsNumber()) {
-            RETURN_NOT_OK(CastNumber<arrow::Int64Type>(json_obj, *this->type_, &value));
-        } else if (json_obj.IsString()) {
-            arrow::util::string_view view(json_obj.GetString(), json_obj.GetStringLength());
-            if (!arrow::internal::ParseValue(*timestamp_type_, view.data(), view.size(), &value)) {
-                return arrow::Status::Invalid("couldn't parse timestamp from ", view);
-            }
-        } else {
-            return JSONTypeError("timestamp", json_obj.GetType());
-        }
+        ARROW_ASSIGN_OR_RAISE(auto value, ParseTimestamp(json_obj, *timestamp_type_));
         return builder_->Append(value);
     }
 };
 
-class DayTimeIntervalArrayParser final : public BaseArrayParser<DayTimeIntervalArrayParser> {
-   protected:
-    /// The builder
-    std::shared_ptr<arrow::DayTimeIntervalBuilder> builder_;
-
+class DayTimeIntervalArrayParser final
+    : public BaseArrayParser<DayTimeIntervalArrayParser, arrow::DayTimeIntervalBuilder> {
    public:
     /// Constructor
     explicit DayTimeIntervalArrayParser(const std::shared_ptr<arrow::DataType>& type) {
-        this->type_ = type;
+        type_ = type;
         builder_ = std::make_shared<arrow::DayTimeIntervalBuilder>(arrow::default_memory_pool());
     }
     /// Append a value
     arrow::Status AppendValue(const rapidjson::Value& json_obj) override {
         if (json_obj.IsNull()) return this->AppendNull();
-        arrow::DayTimeIntervalType::DayMilliseconds value;
-        if (!json_obj.IsArray()) return JSONTypeError("array", json_obj.GetType());
-        if (json_obj.Size() != 2) {
-            return arrow::Status::Invalid("day time interval pair must have exactly two elements, had ",
-                                          json_obj.Size());
-        }
-        RETURN_NOT_OK(CastNumber<arrow::Int32Type>(json_obj[0], *this->type_, &value.days));
-        RETURN_NOT_OK(CastNumber<arrow::Int32Type>(json_obj[1], *this->type_, &value.milliseconds));
+        ARROW_ASSIGN_OR_RAISE(auto value, ParseDayTime(json_obj, type_));
         return builder_->Append(value);
     }
-
-    std::shared_ptr<arrow::ArrayBuilder> builder() override { return builder_; }
 };
 
 template <typename Type, typename BuilderType = typename arrow::TypeTraits<Type>::BuilderType>
-class StringArrayParser final : public BaseArrayParser<StringArrayParser<Type, BuilderType>> {
-   protected:
-    /// The builder
-    std::shared_ptr<BuilderType> builder_;
-
+class StringArrayParser final : public BaseArrayParser<StringArrayParser<Type, BuilderType>, BuilderType> {
    public:
     /// Constructor
     explicit StringArrayParser(const std::shared_ptr<arrow::DataType>& type) { this->type_ = type; }
-    /// Get the builder
-    std::shared_ptr<arrow::ArrayBuilder> builder() override { return builder_; }
     /// Initialize the reader
-    arrow::Status Init() override { return this->MakeConcreteBuilder(&builder_); }
+    arrow::Status Init() override { return this->MakeConcreteBuilder(&this->builder_); }
     /// Append a value
     arrow::Status AppendValue(const rapidjson::Value& json_obj) override {
         if (json_obj.IsNull()) return this->AppendNull();
-        if (json_obj.IsString()) {
-            auto view = arrow::util::string_view(json_obj.GetString(), json_obj.GetStringLength());
-            return builder_->Append(view);
-        } else {
-            return JSONTypeError("string", json_obj.GetType());
-        }
+        ARROW_ASSIGN_OR_RAISE(auto value, ParseString(json_obj));
+        return this->builder_->Append(value);
     }
 };
 
 template <typename BuilderType = typename arrow::TypeTraits<arrow::FixedSizeBinaryType>::BuilderType>
-class FixedSizeBinaryArrayParser final : public BaseArrayParser<FixedSizeBinaryArrayParser<BuilderType>> {
+class FixedSizeBinaryArrayParser final : public BaseArrayParser<FixedSizeBinaryArrayParser<BuilderType>, BuilderType> {
    protected:
-    /// Get the builder
-    std::shared_ptr<BuilderType> builder_;
+    /// The timestamp type
+    const arrow::FixedSizeBinaryType* fixedsizebinary_type_;
 
    public:
     /// Constructor
-    explicit FixedSizeBinaryArrayParser(const std::shared_ptr<arrow::DataType>& type) { this->type_ = type; }
-    /// Get a builder
-    std::shared_ptr<arrow::ArrayBuilder> builder() override { return builder_; }
+    explicit FixedSizeBinaryArrayParser(const std::shared_ptr<arrow::DataType>& type)
+        : fixedsizebinary_type_{&static_cast<const arrow::FixedSizeBinaryType&>(*type.get())} {
+        this->type_ = type;
+    }
     /// Initialize the builder
-    arrow::Status Init() override { return this->MakeConcreteBuilder(&builder_); }
+    arrow::Status Init() override { return this->MakeConcreteBuilder(&this->builder_); }
     /// Append a value
     arrow::Status AppendValue(const rapidjson::Value& json_obj) override {
         if (json_obj.IsNull()) return this->AppendNull();
-        if (json_obj.IsString()) {
-            auto view = arrow::util::string_view(json_obj.GetString(), json_obj.GetStringLength());
-            if (view.length() != static_cast<size_t>(builder_->byte_width())) {
-                std::stringstream ss;
-                ss << "Invalid string length " << view.length() << " in JSON input for " << this->type_->ToString();
-                return arrow::Status::Invalid(ss.str());
-            }
-            return builder_->Append(view);
-        } else {
-            return JSONTypeError("string", json_obj.GetType());
-        }
+        ARROW_ASSIGN_OR_RAISE(auto value, ParseFixedSizeBinary(json_obj, *fixedsizebinary_type_));
+        return this->builder_->Append(value);
     }
 };
 
-template <typename TYPE> class ListArrayParser final : public BaseArrayParser<ListArrayParser<TYPE>> {
+template <typename TYPE>
+class ListArrayParser final
+    : public BaseArrayParser<ListArrayParser<TYPE>, typename arrow::TypeTraits<TYPE>::BuilderType> {
     using BuilderType = typename arrow::TypeTraits<TYPE>::BuilderType;
 
    protected:
-    /// The builder type
-    std::shared_ptr<BuilderType> builder_;
     /// The child converter
     std::shared_ptr<ArrayParser> child_converter_;
 
    public:
     /// Constructor
     explicit ListArrayParser(const std::shared_ptr<arrow::DataType>& type) { this->type_ = type; }
-    /// Get the internal buidler
-    std::shared_ptr<arrow::ArrayBuilder> builder() override { return builder_; }
     /// Initialize the array builder
     arrow::Status Init() override {
         const auto& list_type = static_cast<const TYPE&>(*this->type_);
         RETURN_NOT_OK(ResolveArrayParser(list_type.value_type(), &child_converter_));
         auto child_builder = child_converter_->builder();
-        builder_ = std::make_shared<BuilderType>(arrow::default_memory_pool(), child_builder, this->type_);
+        this->builder_ = std::make_shared<BuilderType>(arrow::default_memory_pool(), child_builder, this->type_);
         return arrow::Status::OK();
     }
     /// Append a value
     arrow::Status AppendValue(const rapidjson::Value& json_obj) override {
         if (json_obj.IsNull()) return this->AppendNull();
-        RETURN_NOT_OK(builder_->Append());
+        RETURN_NOT_OK(this->builder_->Append());
         // Extend the child converter with this JSON array
         return child_converter_->AppendValues(json_obj);
     }
 };
 
-class MapArrayParser final : public BaseArrayParser<MapArrayParser> {
+class MapArrayParser final : public BaseArrayParser<MapArrayParser, arrow::MapBuilder> {
    protected:
-    /// The builder
-    std::shared_ptr<arrow::MapBuilder> builder_;
     /// The builder
     std::shared_ptr<ArrayParser> key_parser_, item_parser_;
 
    public:
     /// Constructor
     explicit MapArrayParser(const std::shared_ptr<arrow::DataType>& type) { type_ = type; }
-    /// Get the builder
-    std::shared_ptr<arrow::ArrayBuilder> builder() override { return builder_; }
     /// Initialize the parser
     arrow::Status Init() override {
         const auto& map_type = static_cast<const arrow::MapType&>(*type_);
@@ -463,20 +466,16 @@ class MapArrayParser final : public BaseArrayParser<MapArrayParser> {
     }
 };
 
-class FixedSizeListArrayParser final : public BaseArrayParser<FixedSizeListArrayParser> {
+class FixedSizeListArrayParser final : public BaseArrayParser<FixedSizeListArrayParser, arrow::FixedSizeListBuilder> {
    protected:
     /// The list size
     int32_t list_size_;
-    /// The builder
-    std::shared_ptr<arrow::FixedSizeListBuilder> builder_;
     /// The child converter
     std::shared_ptr<ArrayParser> child_converter_;
 
    public:
     /// Constructor
     explicit FixedSizeListArrayParser(const std::shared_ptr<arrow::DataType>& type) { type_ = type; }
-    /// Get the builder
-    std::shared_ptr<arrow::ArrayBuilder> builder() override { return builder_; }
     /// Initialize the parser
     arrow::Status Init() override {
         const auto& list_type = static_cast<const arrow::FixedSizeListType&>(*type_);
@@ -488,9 +487,7 @@ class FixedSizeListArrayParser final : public BaseArrayParser<FixedSizeListArray
     }
     /// Append a JSON value
     arrow::Status AppendValue(const rapidjson::Value& json_obj) override {
-        if (json_obj.IsNull()) {
-            return this->AppendNull();
-        }
+        if (json_obj.IsNull()) return this->AppendNull();
         RETURN_NOT_OK(builder_->Append());
         // Extend the child converter with this JSON array
         RETURN_NOT_OK(child_converter_->AppendValues(json_obj));
@@ -501,18 +498,14 @@ class FixedSizeListArrayParser final : public BaseArrayParser<FixedSizeListArray
     }
 };
 
-class StructArrayParser final : public BaseArrayParser<StructArrayParser> {
+class StructArrayParser final : public BaseArrayParser<StructArrayParser, arrow::StructBuilder> {
    protected:
-    /// The builder
-    std::shared_ptr<arrow::StructBuilder> builder_;
     /// The child converted
     std::vector<std::shared_ptr<ArrayParser>> child_parsers_;
 
    public:
     /// Constructor
     explicit StructArrayParser(const std::shared_ptr<arrow::DataType>& type) { type_ = type; }
-    /// Get the builder
-    std::shared_ptr<arrow::ArrayBuilder> builder() override { return builder_; }
     /// Initialize the parser
     arrow::Status Init() override {
         std::vector<std::shared_ptr<arrow::ArrayBuilder>> child_builders;
@@ -569,12 +562,10 @@ class StructArrayParser final : public BaseArrayParser<StructArrayParser> {
     }
 };
 
-class UnionArrayParser final : public BaseArrayParser<UnionArrayParser> {
+class UnionArrayParser final : public BaseArrayParser<UnionArrayParser, arrow::ArrayBuilder> {
    protected:
     /// The union mode
     arrow::UnionMode::type mode_;
-    /// The builder
-    std::shared_ptr<arrow::ArrayBuilder> builder_;
     /// The child parsers
     std::vector<std::shared_ptr<ArrayParser>> child_parsers_;
     /// The type identifier
@@ -583,8 +574,6 @@ class UnionArrayParser final : public BaseArrayParser<UnionArrayParser> {
    public:
     /// Constructor
     explicit UnionArrayParser(const std::shared_ptr<arrow::DataType>& type) { type_ = type; }
-    /// Get the builder
-    std::shared_ptr<arrow::ArrayBuilder> builder() override { return builder_; }
     /// Initialize the array parser
     arrow::Status Init() override {
         auto union_type = static_cast<const arrow::UnionType*>(type_.get());
@@ -691,6 +680,8 @@ arrow::Status GetDictArrayParser(const std::shared_ptr<arrow::DataType>& type, s
     *out = res;
     return arrow::Status::OK();
 }
+
+}  // namespace
 
 arrow::Status ResolveArrayParser(const std::shared_ptr<arrow::DataType>& type, std::shared_ptr<ArrayParser>* out) {
     if (type->id() == arrow::Type::DICTIONARY) return GetDictArrayParser(type, out);

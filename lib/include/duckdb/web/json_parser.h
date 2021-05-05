@@ -31,7 +31,7 @@ class ArrayParser {
     /// Append multiple values
     virtual arrow::Status AppendValues(const rapidjson::Value& json_array) = 0;
     /// Append a null value
-    arrow::Status AppendNull() { return this->builder()->AppendNull(); }
+    arrow::Status AppendNull() { return builder()->AppendNull(); }
     /// Finish the conversion
     virtual arrow::Status Finish(std::shared_ptr<arrow::Array>* out) {
         auto builder = this->builder();
@@ -45,6 +45,8 @@ class ArrayParser {
 
 /// Get an array parser
 arrow::Status ResolveArrayParser(const std::shared_ptr<arrow::DataType>& type, std::shared_ptr<ArrayParser>* out);
+
+// using ParseValue = ()
 
 }  // namespace json
 }  // namespace web
