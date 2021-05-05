@@ -749,7 +749,8 @@ arrow::Result<std::shared_ptr<ArrayParser>> ResolveArrayParser(const std::shared
 }
 
 /// Test a type
-bool TestScalarType(const arrow::DataType& type, const rapidjson::Value& json_value) {
+bool TestScalarType(const rapidjson::Value& json_value, const arrow::DataType& type) {
+    if (json_value.IsNull()) return true;
 #define TEST_TYPE(TYPE, FUNC) \
     case TYPE:                \
         return FUNC(json_value, type).ok();
@@ -785,8 +786,8 @@ bool TestScalarType(const arrow::DataType& type, const rapidjson::Value& json_va
         default:
             return false;
     }
-
 #undef TEST_TYPE
+    return false;
 }
 
 }  // namespace json
