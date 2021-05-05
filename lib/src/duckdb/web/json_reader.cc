@@ -1,5 +1,8 @@
 // Copyright (c) 2020 The DashQL Authors
 
+#include <arrow/status.h>
+#include <arrow/util/value_parsing.h>
+
 #include <algorithm>
 #include <iostream>
 #include <memory>
@@ -8,6 +11,8 @@
 #include <variant>
 #include <vector>
 
+#include "arrow/type.h"
+#include "arrow/type_traits.h"
 #include "rapidjson/document.h"
 #include "rapidjson/writer.h"
 
@@ -17,6 +22,8 @@ namespace json {
 
 /// The JSON sniffer tries to detect the arrow schema in-flight while parsing the JSON document
 struct JSONSniffer : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, JSONSniffer> {
+    static constexpr size_t SAMPLE_SIZE = 1024;
+
    public:
     enum class TableFormat : uint8_t {
         UNKNOWN = 0,
@@ -106,226 +113,170 @@ struct JSONSniffer : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, JSON
     Stats stats_ = {};
     /// The table format
     TableFormat format_ = TableFormat::UNKNOWN;
-    /// The current array
-    rapidjson::Document buffer_ = {};
-    /// The current column name
-    std::string column_name_ = {};
+    /// The depth of rows.
+    /// We only track statistics at that depth.
+    /// In row-major format, the depth of rows is 1.
+    /// E.g. [ {"a": 2} ]
+    /// In column-major format, the depth of rows is 2.
+    /// E.g. { "foo": [{"a": 2}] }
+    size_t row_depth_ = -1;
+    /// The current json buffer
+    rapidjson::Document json_buffer_ = {};
+    /// The current column name (if column major)
+    std::vector<std::string> column_names_ = {};
+    /// The arrays
+    std::vector<std::shared_ptr<arrow::Array>> arrays = {};
+
+    /// Update counters
+    inline void Bump(size_t& counter) { counter += stats_.depth == row_depth_; }
 
    protected:
     bool Key(const char* txt, size_t length, bool copy) {
         // Start of a new column?
         if (format_ == TableFormat::COLUMN_MAJOR && stats_.depth == 1) {
-            column_name_ = std::string{txt, length};
+            column_names_.push_back(std::string{txt, length});
         }
-        return buffer_.Key(txt, length, copy);
+        return json_buffer_.Key(txt, length, copy);
     }
     bool Null() {
-        ++stats_.counter_null;
-        return buffer_.Null();
+        Bump(stats_.counter_null);
+        return json_buffer_.Null();
     }
     bool RawNumber(const Ch* str, size_t len, bool copy) {
-        ++stats_.counter_string;
-        return buffer_.RawNumber(str, len, copy);
+        Bump(stats_.counter_string);
+        return json_buffer_.RawNumber(str, len, copy);
     }
     bool String(const char* txt, size_t length, bool copy) {
-        ++stats_.counter_string;
-        return buffer_.String(txt, length, copy);
+        Bump(stats_.counter_string);
+        return json_buffer_.String(txt, length, copy);
     }
     bool Bool(bool v) {
-        ++stats_.counter_bool;
-        return buffer_.Bool(v);
+        Bump(stats_.counter_bool);
+        return json_buffer_.Bool(v);
     }
     bool Int(int32_t v) {
-        ++stats_.counter_int32;
-        return buffer_.Int(v);
+        Bump(stats_.counter_int32);
+        return json_buffer_.Int(v);
     }
     bool Int64(int64_t v) {
-        ++stats_.counter_int64;
-        return buffer_.Int64(v);
+        Bump(stats_.counter_int64);
+        return json_buffer_.Int64(v);
     }
     bool Uint(uint32_t v) {
-        ++stats_.counter_uint32;
+        Bump(stats_.counter_uint32);
         stats_.counter_uint32_max += (v > std::numeric_limits<int32_t>::max());
-        return buffer_.Uint(v);
+        return json_buffer_.Uint(v);
     }
     bool Uint64(uint64_t v) {
-        ++stats_.counter_uint64;
+        Bump(stats_.counter_uint64);
         stats_.counter_uint64_max += (v > std::numeric_limits<int64_t>::max());
-        return buffer_.Uint64(v);
+        return json_buffer_.Uint64(v);
     }
     bool Double(double v) {
-        ++stats_.counter_double;
-        return buffer_.Double(v);
+        Bump(stats_.counter_double);
+        return json_buffer_.Double(v);
     }
     bool StartObject() {
+        Bump(stats_.counter_object);
+
         // Root is object? Assume column-major format.
         // E.g. { "a": [...], "b": [...] }
         auto depth = stats_.depth++;
         if (depth == 0) {
             format_ = TableFormat::COLUMN_MAJOR;
+            row_depth_ = 2;
             stats_.ResetCounters();
-        } else {
-            ++stats_.counter_object;
         }
-        return buffer_.StartObject();
-    }
-    bool EndObject(size_t count) {
-        auto depth = --stats_.depth;
-        if (format_ == TableFormat::ROW_MAJOR && depth == 1) {
-            // Can emit object?
-        }
-        return buffer_.EndObject(count);
+        return json_buffer_.StartObject();
     }
     bool StartArray() {
+        Bump(stats_.counter_array);
+
         // Root is array? Assume row-major format.
         // E.g. [ {"a": 1, "b": 2}, {"a": 4, "b": 3} ]
         auto depth = stats_.depth++;
         if (depth == 0) {
             format_ = TableFormat::ROW_MAJOR;
+            row_depth_ = 1;
             stats_.ResetCounters();
             return true;
         }
 
         // Start of a new column?
         if (format_ == TableFormat::COLUMN_MAJOR && depth == 1) {
-            buffer_ = {};
+            json_buffer_ = {};
             stats_.ResetCounters();
-            return buffer_.StartArray();
+            return json_buffer_.StartArray();
         }
-
-        ++stats_.counter_array;
-        return buffer_.StartArray();
+        return json_buffer_.StartArray();
+    }
+    bool EndObject(size_t count) {
+        auto depth = --stats_.depth;
+        if (format_ == TableFormat::ROW_MAJOR && depth == 1) {
+            // Can emit object?
+        }
+        return json_buffer_.EndObject(count);
     }
     bool EndArray(size_t count) {
+        auto parse_array = [&]() {
+            json_buffer_.EndArray(count);
+            auto maybe_array = ParseArray(json_buffer_, stats_);
+            if (!maybe_array.ok()) {
+                // XXX
+            }
+            arrays.push_back(maybe_array.ValueUnsafe());
+            json_buffer_.Clear();
+            return true;
+        };
         auto depth = --stats_.depth;
         if (format_ == TableFormat::ROW_MAJOR) {
             // Saw entire relation?
-            if (depth == 0) {
-                // XXX parse rows as arrow struct
-
-                buffer_.EndArray(count);
-                return true;
-            }
+            if (depth == 0) return parse_array();
         } else if (format_ == TableFormat::COLUMN_MAJOR) {
             // Saw entire column?
-            if (depth == 1) {
-                buffer_.EndArray(count);
-                auto value_type = stats_.GetMostFrequentValueType();
-                auto number_type = stats_.GetMostFrequentNumberType();
+            if (depth == 1) return parse_array();
+        }
+        return json_buffer_.EndArray(count);
+    }
 
-                // XXX parse buffer as arrow array
+   protected:
+    /// Parse an array
+    arrow::Result<std::shared_ptr<arrow::Array>> ParseArray(const rapidjson::Document& doc, const Stats& stats) {
+        if (!doc.IsArray()) return arrow::Status{arrow::StatusCode::Invalid, "Expected array"};
 
-                return true;
+        // Collect type candidates
+        std::vector<std::pair<std::shared_ptr<arrow::DataType>, size_t>> type_candidates;
+
+        // Sample array
+        auto json_array = doc.GetArray();
+        auto step = std::max<size_t>(json_array.Size() / 1024, 1);
+        for (auto i = 0; i < json_array.Size(); i += step) {
+            auto& value = json_array[i];
+            switch (value.GetType()) {
+                case rapidjson::Type::kFalseType:
+                    break;
+                case rapidjson::Type::kTrueType:
+                    break;
+                case rapidjson::Type::kNullType:
+                    break;
+                case rapidjson::Type::kNumberType:
+                    for (auto& [candidate, counters] : type_candidates) {
+                    }
+                    break;
+                case rapidjson::Type::kStringType:
+                    for (auto& [candidate, counters] : type_candidates) {
+                    }
+                    break;
+                case rapidjson::Type::kArrayType:
+                    // Determine array type
+                    break;
+                case rapidjson::Type::kObjectType:
+                    // Determine object type
+                    break;
             }
         }
-        return buffer_.EndArray(count);
     }
 };
-
-// template <typename Encoding, typename Allocator> class JSONStructSchemaBuilder {
-//     typedef typename Encoding::Ch Ch;
-//
-//    protected:
-//     /// The enum
-//     enum class NodeType { STRUCT, ARRAY };
-//     /// The node
-//     struct Node {
-//         /// The node type
-//         NodeType node_type = NodeType::STRUCT;
-//         /// The parent
-//         size_t parent = std::numeric_limits<size_t>::max();
-//         /// The name
-//         std::string name = "";
-//         /// The fields
-//         arrow::FieldVector children = {};
-//     };
-//     /// The build stack
-//     std::vector<Node> stack_ = {};
-//     /// The last key
-//     std::string key_ = "";
-//     /// The null count
-//     size_t null_count_ = 0;
-//
-//     /// The last node
-//     auto& last() { return stack_.back(); }
-//
-//    public:
-//     /// Constructor
-//     JSONStructSchemaBuilder() : stack_() {
-//         stack_.push_back({
-//             .parent = -1,
-//             .name = "",
-//             .children = {},
-//         });
-//     }
-//
-//     bool Key(const Ch* str, rapidjson::SizeType len, bool copy) {
-//         key_ = {str, len};
-//         return true;
-//     }
-//     bool Null() {
-//         last().fields.push_back(arrow::field(std::move(key_), arrow::null()));
-//         return true;
-//     }
-//     bool Bool(bool b) {
-//         last().fields.push_back(arrow::field(std::move(key_), arrow::boolean()));
-//         return true;
-//     }
-//     bool Int(int i) {
-//         last().fields.push_back(arrow::field(std::move(key_), arrow::int32()));
-//         return true;
-//     }
-//     bool Uint(unsigned u) {
-//         last().fields.push_back(arrow::field(std::move(key_), arrow::uint32()));
-//         return true;
-//     }
-//     bool Int64(int64_t i) {
-//         last().fields.push_back(arrow::field(std::move(key_), arrow::int64()));
-//         return true;
-//     }
-//     bool Uint64(uint64_t u) {
-//         last().fields.push_back(arrow::field(std::move(key_), arrow::uint64()));
-//         return true;
-//     }
-//     bool Double(double d) {
-//         last().fields.push_back(arrow::field(std::move(key_), arrow::float64()));
-//         return true;
-//     }
-//     bool RawNumber(const Ch* str, rapidjson::SizeType len, bool) {
-//         last().fields.push_back(arrow::field(std::move(key_), arrow::utf8()));
-//         return true;
-//     }
-//     bool String(const Ch* str, rapidjson::SizeType len, bool) {
-//         last().fields.push_back(arrow::field(std::move(key_), arrow::utf8()));
-//         return true;
-//     }
-//     bool StartObject() {
-//         stack_.push_back({
-//             .node_type = NodeType::OBJECT,
-//             .parent = stack_.size(),
-//             .name = std::move(key_),
-//             .children = {},
-//         });
-//         return true;
-//     }
-//     bool EndObject(rapidjson::SizeType memberCount) {
-//         if (last().parent != std::numeric_limits<size_t>::max()) {
-//             auto& parent = stack_[last().parent];
-//             parent.fields.push_back(arrow::field(last().name, arrow::struct_(last().fields)));
-//         }
-//         return true;
-//     }
-//     bool StartArray() {
-//         stack_.push_back({
-//             .node_type = NodeType::ARRAY,
-//             .parent = stack_.size(),
-//             .name = std::move(key_),
-//             .children = {},
-//         });
-//         return true;
-//     }
-//     bool EndArray(rapidjson::SizeType elementCount) { return true; }
-// };
 
 }  // namespace json
 
