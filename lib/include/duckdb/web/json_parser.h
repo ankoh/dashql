@@ -43,8 +43,10 @@ class ArrayParser {
     }
 };
 
-/// Get an array parser
-arrow::Status ResolveArrayParser(const std::shared_ptr<arrow::DataType>& type, std::shared_ptr<ArrayParser>* out);
+/// Resolve a value parser
+arrow::Status ResolveValueParser(const std::shared_ptr<arrow::DataType>& type);
+/// Resolve an array parser
+arrow::Result<std::shared_ptr<ArrayParser>> ResolveArrayParser(const std::shared_ptr<arrow::DataType>& type);
 
 // using ParseValue = ()
 
