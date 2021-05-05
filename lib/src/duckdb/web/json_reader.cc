@@ -266,9 +266,11 @@ struct JSONSniffer : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, JSON
     if (CONDITION) {                                     \
         candidates.push_back({.type = TYPE, .hits = 0}); \
     }
-        auto test_i32 = stats_.counter_int32 > 0 || stats_.counter_uint32 > 0;
-        auto test_u32 = stats_.counter_uint32_max > 0;
-        auto test_i64 = stats_.counter_int64 > 0 || stats_.counter_uint64 > 0 || stats_.counter_uint32_max > 0;
+        auto no_i64 = stats_.counter_int64 == 0 && stats.counter_uint64 == 0;
+        auto any_i64 = stats_.counter_int64 > 0 || stats.counter_uint64 > 0;
+        auto test_i32 = no_i64 && (stats_.counter_int32 > 0 || stats_.counter_uint32 > 0);
+        auto test_u32 = no_i64 && stats_.counter_uint32_max > 0;
+        auto test_i64 = any_i64 || stats_.counter_uint32_max > 0;
         auto test_u64 = stats_.counter_uint64_max > 0;
 
         CANDIDATE(arrow::boolean(), stats_.counter_bool > 0);
