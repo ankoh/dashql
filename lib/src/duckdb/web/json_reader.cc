@@ -1,8 +1,5 @@
 // Copyright (c) 2020 The DashQL Authors
 
-#include <arrow/status.h>
-#include <arrow/util/value_parsing.h>
-
 #include <algorithm>
 #include <iostream>
 #include <memory>
@@ -11,8 +8,12 @@
 #include <variant>
 #include <vector>
 
+#include "arrow/status.h"
 #include "arrow/type.h"
+#include "arrow/type_fwd.h"
 #include "arrow/type_traits.h"
+#include "arrow/util/value_parsing.h"
+#include "duckdb/web/json_parser.h"
 #include "rapidjson/document.h"
 #include "rapidjson/writer.h"
 
@@ -212,19 +213,25 @@ struct JSONSniffer : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, JSON
     }
     bool EndObject(size_t count) {
         auto depth = --stats_.depth;
-        if (format_ == TableFormat::ROW_MAJOR && depth == 1) {
-            // Can emit object?
-        }
         return json_buffer_.EndObject(count);
     }
     bool EndArray(size_t count) {
         auto parse_array = [&]() {
             json_buffer_.EndArray(count);
-            auto maybe_array = ParseArray(json_buffer_, stats_);
+
+            // Resolve array parser
+            auto maybe_parser = ResolveArrayParser(json_buffer_, stats_);
+            if (!maybe_parser.ok()) {
+                // XXX
+            }
+
+            // Append value
+            auto maybe_array = maybe_parser.ValueUnsafe()->AppendValues(json_buffer_);
             if (!maybe_array.ok()) {
                 // XXX
             }
-            arrays.push_back(maybe_array.ValueUnsafe());
+
+            // Clear the json buffer
             json_buffer_.Clear();
             return true;
         };
@@ -241,40 +248,50 @@ struct JSONSniffer : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, JSON
 
    protected:
     /// Parse an array
-    arrow::Result<std::shared_ptr<arrow::Array>> ParseArray(const rapidjson::Document& doc, const Stats& stats) {
+    arrow::Result<std::shared_ptr<ArrayParser>> ResolveArrayParser(const rapidjson::Document& doc, const Stats& stats) {
         if (!doc.IsArray()) return arrow::Status{arrow::StatusCode::Invalid, "Expected array"};
 
-        // Collect type candidates
-        std::vector<std::pair<std::shared_ptr<arrow::DataType>, size_t>> type_candidates;
+        // Saw non-scalar values?
+        if (stats.counter_object > 0 || stats.counter_array > 0) {
+            // XXX
+        }
+
+        // Collect scalar type candidates
+        struct Candidate {
+            std::shared_ptr<arrow::DataType> type;
+            size_t hits;
+        };
+        std::vector<Candidate> candidates;
+#define CANDIDATE(TYPE, CONDITION)                       \
+    if (CONDITION) {                                     \
+        candidates.push_back({.type = TYPE, .hits = 0}); \
+    }
+        auto test_i32 = stats_.counter_int32 > 0 || stats_.counter_uint32 > 0;
+        auto test_u32 = stats_.counter_uint32_max > 0;
+        auto test_i64 = stats_.counter_int64 > 0 || stats_.counter_uint64 > 0 || stats_.counter_uint32_max > 0;
+        auto test_u64 = stats_.counter_uint64_max > 0;
+
+        CANDIDATE(arrow::boolean(), stats_.counter_bool > 0);
+        CANDIDATE(arrow::float64(), stats_.counter_double > 0);
+        CANDIDATE(arrow::utf8(), stats_.counter_string > 0);
+        CANDIDATE(arrow::int32(), test_i32);
+        CANDIDATE(arrow::int64(), test_i64);
+        CANDIDATE(arrow::uint32(), test_u32);
+        CANDIDATE(arrow::uint64(), test_u64);
+#undef CANDIDATE
 
         // Sample array
         auto json_array = doc.GetArray();
-        auto step = std::max<size_t>(json_array.Size() / 1024, 1);
-        for (auto i = 0; i < json_array.Size(); i += step) {
-            auto& value = json_array[i];
-            switch (value.GetType()) {
-                case rapidjson::Type::kFalseType:
-                    break;
-                case rapidjson::Type::kTrueType:
-                    break;
-                case rapidjson::Type::kNullType:
-                    break;
-                case rapidjson::Type::kNumberType:
-                    for (auto& [candidate, counters] : type_candidates) {
-                    }
-                    break;
-                case rapidjson::Type::kStringType:
-                    for (auto& [candidate, counters] : type_candidates) {
-                    }
-                    break;
-                case rapidjson::Type::kArrayType:
-                    // Determine array type
-                    break;
-                case rapidjson::Type::kObjectType:
-                    // Determine object type
-                    break;
+        auto step_size = std::max<size_t>(json_array.Size() / 1024, 1);
+        auto step_count = json_array.Size() / step_size;
+        for (auto i = 0; i < step_count; ++i) {
+            for (auto j = 0; j < candidates.size(); ++j) {
+                candidates[j].hits += TestScalarType(json_array[i * step_size], *candidates[j].type);
             }
         }
+
+        /// xxx
+        return nullptr;
     }
 };
 
