@@ -23,66 +23,16 @@ enum class JSONTableFormat : uint8_t {
     COLUMN_MAJOR = 2,
 };
 
-/// A JSON value type
-enum class JSONValueType : uint8_t {
-    BOOLEAN = 0,
-    NUMBER = 1,
-    OBJECT = 2,
-    ARRAY = 3,
-    STRING = 4,
-};
-
-/// A JSON number type
-enum class JSONNumberType : uint8_t {
-    INT32 = 0,
-    INT64 = 1,
-    UINT32 = 2,
-    UINT64 = 3,
-    DOUBLE = 4,
-};
-
-/// JSON document statistics
-struct JSONDocumentStats {
-    size_t counter_bool = 0;
-    size_t counter_string = 0;
-    size_t counter_int32 = 0;
-    size_t counter_int64 = 0;
-    size_t counter_uint32 = 0;
-    size_t counter_uint32_max = 0;
-    size_t counter_uint64 = 0;
-    size_t counter_uint64_max = 0;
-    size_t counter_double = 0;
-    size_t counter_object = 0;
-    size_t counter_array = 0;
-
-    void ResetCounters() {
-        counter_bool = 0;
-        counter_string = 0;
-        counter_int32 = 0;
-        counter_int64 = 0;
-        counter_uint32 = 0;
-        counter_uint32_max = 0;
-        counter_uint64 = 0;
-        counter_uint64_max = 0;
-        counter_double = 0;
-        counter_object = 0;
-        counter_array = 0;
-    }
-};
-
-/// Infer an arrow schema for a json object
-std::shared_ptr<arrow::Schema> InferArrowSchema(rapidjson::Value& value);
-/// Infer an array parser for json document
-arrow::Result<std::shared_ptr<ArrayParser>> InferArrayParser(const rapidjson::Document::Array& array,
-                                                             const JSONDocumentStats& stats);
+/// Infer a struct array parser for a json array
+arrow::Result<std::shared_ptr<ArrayParser>> InferStructArrayParser(const std::vector<const rapidjson::Value*>& sample);
+/// Infer an array parser for json array
+arrow::Result<std::shared_ptr<ArrayParser>> InferArrayParser(const std::vector<const rapidjson::Value*>& sample);
 
 /// The JSON sniffer tries to detect the arrow schema in-flight while parsing the JSON document
 struct InferringJSONReader : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, InferringJSONReader> {
     static constexpr size_t SAMPLE_SIZE = 1024;
 
    protected:
-    /// The json statistics
-    JSONDocumentStats stats_ = {};
     /// The table format
     JSONTableFormat format_ = JSONTableFormat::UNKNOWN;
     /// The current depth
@@ -102,12 +52,6 @@ struct InferringJSONReader : public rapidjson::BaseReaderHandler<rapidjson::UTF8
     std::vector<std::shared_ptr<arrow::Array>> arrays = {};
 
    protected:
-    /// Update counters
-    inline void Bump(size_t& counter) { counter += depth_ == row_depth_; }
-
-    /// ---------------------------------
-    /// Rapidjson callbacks
-
     bool Key(const char* txt, size_t length, bool copy) {
         // Start of a new column?
         if (format_ == JSONTableFormat::COLUMN_MAJOR && depth_ == 1) {
@@ -120,66 +64,36 @@ struct InferringJSONReader : public rapidjson::BaseReaderHandler<rapidjson::UTF8
         assert(false && "invalid parser flag");
         return false;
     }
-    bool String(const char* txt, size_t length, bool copy) {
-        Bump(stats_.counter_string);
-        return json_buffer_.String(txt, length, copy);
-    }
-    bool Bool(bool v) {
-        Bump(stats_.counter_bool);
-        return json_buffer_.Bool(v);
-    }
-    bool Int(int32_t v) {
-        Bump(stats_.counter_int32);
-        return json_buffer_.Int(v);
-    }
-    bool Int64(int64_t v) {
-        Bump(stats_.counter_int64);
-        return json_buffer_.Int64(v);
-    }
-    bool Uint(uint32_t v) {
-        Bump(stats_.counter_uint32);
-        stats_.counter_uint32_max += (v > std::numeric_limits<int32_t>::max());
-        return json_buffer_.Uint(v);
-    }
-    bool Uint64(uint64_t v) {
-        Bump(stats_.counter_uint64);
-        stats_.counter_uint64_max += (v > std::numeric_limits<int64_t>::max());
-        return json_buffer_.Uint64(v);
-    }
-    bool Double(double v) {
-        Bump(stats_.counter_double);
-        return json_buffer_.Double(v);
-    }
+    bool String(const char* txt, size_t length, bool copy) { return json_buffer_.String(txt, length, copy); }
+    bool Bool(bool v) { return json_buffer_.Bool(v); }
+    bool Int(int32_t v) { return json_buffer_.Int(v); }
+    bool Int64(int64_t v) { return json_buffer_.Int64(v); }
+    bool Uint(uint32_t v) { return json_buffer_.Uint(v); }
+    bool Uint64(uint64_t v) { return json_buffer_.Uint64(v); }
+    bool Double(double v) { return json_buffer_.Double(v); }
     bool StartObject() {
-        Bump(stats_.counter_object);
-
         // Root is object? Assume column-major format.
         // E.g. { "a": [...], "b": [...] }
         auto depth = depth_++;
         if (depth == 0) {
             format_ = JSONTableFormat::COLUMN_MAJOR;
             row_depth_ = 2;
-            stats_.ResetCounters();
         }
         return json_buffer_.StartObject();
     }
     bool StartArray() {
-        Bump(stats_.counter_array);
-
         // Root is array? Assume row-major format.
         // E.g. [ {"a": 1, "b": 2}, {"a": 4, "b": 3} ]
         auto depth = depth_++;
         if (depth == 0) {
             format_ = JSONTableFormat::ROW_MAJOR;
             row_depth_ = 1;
-            stats_.ResetCounters();
             return true;
         }
 
         // Start of a new column?
         if (format_ == JSONTableFormat::COLUMN_MAJOR && depth == 1) {
             json_buffer_ = {};
-            stats_.ResetCounters();
             return json_buffer_.StartArray();
         }
         return json_buffer_.StartArray();
@@ -190,11 +104,19 @@ struct InferringJSONReader : public rapidjson::BaseReaderHandler<rapidjson::UTF8
     }
     bool EndArray(size_t count) {
         auto parse_array = [&]() {
-            json_buffer_.EndArray(count);
-
-            // Resolve array parser
+            // Collect a sample of the array
+            static constexpr size_t SAMPLE_SIZE = 1024;
             assert(json_buffer_.IsArray());
-            auto maybe_parser = InferArrayParser(json_buffer_.GetArray(), stats_);
+            auto json_array = json_buffer_.GetArray();
+            auto step_size = std::max<size_t>(json_array.Size() / SAMPLE_SIZE, 1);
+            std::vector<const rapidjson::Value*> sample;
+            sample.reserve(std::min<size_t>(SAMPLE_SIZE, json_array.Size()));
+            for (auto i = 0; i < sample.size(); i += step_size) {
+                sample.push_back(&json_array[i]);
+            }
+
+            // Infer the array parser
+            auto maybe_parser = InferArrayParser(sample);
             if (!maybe_parser.ok()) {
                 // XXX
             }
@@ -207,17 +129,18 @@ struct InferringJSONReader : public rapidjson::BaseReaderHandler<rapidjson::UTF8
 
             // Clear the json buffer
             json_buffer_.Clear();
-            return true;
         };
         auto depth = --depth_;
+        if (!json_buffer_.EndArray(count)) return false;
+
         if (format_ == JSONTableFormat::ROW_MAJOR) {
             // Saw entire relation?
-            if (depth == 0) return parse_array();
+            if (depth == 0) parse_array();
         } else if (format_ == JSONTableFormat::COLUMN_MAJOR) {
             // Saw entire column?
-            if (depth == 1) return parse_array();
+            if (depth == 1) parse_array();
         }
-        return json_buffer_.EndArray(count);
+        return true;
     }
 };
 
