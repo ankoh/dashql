@@ -125,11 +125,7 @@ struct ScalarTypeAnalyzer {
     }
 
     /// Analyze a value
-    inline void Analyze(const rapidjson::Value& value) {
-        for (auto& candidate : scalar_candidates) {
-            candidate.hits += TestScalarType(value, *candidate.type);
-        }
-    }
+    inline void Analyze(const rapidjson::Value& value) {}
 
     /// Build the array parser
     arrow::Result<std::shared_ptr<ArrayParser>> Finish() {
