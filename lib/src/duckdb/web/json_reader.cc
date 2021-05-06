@@ -28,8 +28,8 @@ namespace json {
 
 namespace {
 
-/// JSON document statistics
-struct JSONDocumentStats {
+/// JSON array statistics
+struct JSONArrayStats {
     size_t counter_bool = 0;
     size_t counter_string = 0;
     size_t counter_int32 = 0;
@@ -101,7 +101,7 @@ struct ScalarTypeAnalyzer {
     std::vector<ScalarCandidate> scalar_candidates = {};
 
     /// Constructor
-    ScalarTypeAnalyzer(const JSONDocumentStats& stats) {
+    ScalarTypeAnalyzer(const JSONArrayStats& stats) {
 #define CANDIDATE(TYPE, CONDITION)                              \
     if (CONDITION) {                                            \
         scalar_candidates.push_back({.type = TYPE, .hits = 0}); \
@@ -147,7 +147,7 @@ arrow::Result<std::shared_ptr<ArrayParser>> InferStructArrayParser(const std::ve
     std::vector<std::pair<std::string_view, std::shared_ptr<ArrayParser>>> fields;
 
     // Collect statistics on the sample
-    std::unordered_map<std::string_view, JSONDocumentStats> stats_map;
+    std::unordered_map<std::string_view, JSONArrayStats> stats_map;
     for (auto& row : sample) {
         if (row->IsNull() || !row->IsObject()) continue;
         for (auto iter = row->MemberBegin(); iter != row->MemberEnd(); ++iter) {
@@ -249,7 +249,7 @@ arrow::Result<std::shared_ptr<ArrayParser>> InferStructArrayParser(const std::ve
 /// Infer a column parser
 arrow::Result<std::shared_ptr<ArrayParser>> InferArrayParser(const std::vector<const rapidjson::Value*>& sample) {
     // Collect stats
-    JSONDocumentStats stats;
+    JSONArrayStats stats;
     for (auto& row : sample) {
         switch (row->GetType()) {
             case rapidjson::Type::kNumberType: {
