@@ -63,7 +63,6 @@ struct JSONArrayStats {
     size_t counter_uint64 = 0;
     size_t counter_uint64_max = 0;
     size_t counter_double = 0;
-    size_t counter_raw_number = 0;
     size_t counter_object = 0;
     size_t counter_array = 0;
 };
@@ -126,11 +125,7 @@ class JSONArrayAnalyzer : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
         return sample_idx_ ? sample_buffer_.Key(txt, length, copy) : true;
     }
     bool Null() { return sample_idx_ ? Emit(sample_buffer_.Null()) : true; }
-    bool RawNumber(const char* str, size_t len, bool copy) {
-        BUMP(counter_raw_number);
-        if (current_depth_ == sample_depth_) sample_idx_ = sample_counter_.Insert();
-        return sample_idx_ ? Emit(sample_buffer_.RawNumber(str, len, copy)) : true;
-    }
+    bool RawNumber(const char* str, size_t len, bool copy) { assert(false); }
     bool String(const char* txt, size_t length, bool copy) {
         BUMP(counter_string);
         if (current_depth_ == sample_depth_) sample_idx_ = sample_counter_.Insert();
@@ -200,16 +195,62 @@ class JSONArrayAnalyzer : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
 /// Assumes to see 1 additional unmatched array event after which Done() will return true.
 struct JSONFlatArrayAnalyzer : public JSONArrayAnalyzer<TableShape::COLUMN_ARRAYS, JSONFlatArrayAnalyzer> {
     /// The top level stats
-    JSONArrayStats top_level_stats_ = {};
+    JSONArrayStats root_stats_ = {};
 
     /// Constructor
     JSONFlatArrayAnalyzer(size_t capacity = 1024) {
-        stats_ = &top_level_stats_;
+        stats_ = &root_stats_;
         sample_.reserve(capacity);
     }
 
     /// Infer the array type
-    arrow::Result<std::shared_ptr<arrow::DataType>> InferDataType() { return nullptr; }
+    arrow::Result<std::shared_ptr<arrow::DataType>> InferDataType() {
+        // Check what we're up to
+        auto any_i32 = root_stats_.counter_int32 > 0 || root_stats_.counter_uint32 > 0;
+        auto any_i64 = root_stats_.counter_int64 > 0 || root_stats_.counter_uint64 > 0;
+
+        // Objects win over everything
+        if (root_stats_.counter_object > 0) {
+            // TODO: check sample for fields
+        }
+
+        // Arrays win over strings
+        if (root_stats_.counter_array > 0) {
+            // TODO: check sample nested data type
+        }
+
+        // Strings win over numbers
+        if (root_stats_.counter_string > 0) {
+            // TODO: check sample for timestamps
+        }
+
+        // Doubles win over integers
+        if (root_stats_.counter_double > 0) {
+        }
+
+        // Forced into 64 bit unsigned?
+        if (root_stats_.counter_uint64_max > 0) {
+        }
+
+        // Forced into 64 bit?
+        if (any_i64 || (root_stats_.counter_int32 > 0 && root_stats_.counter_uint32_max > 0)) {
+        }
+
+        // Forced into 32 bit unsigned?
+        if (root_stats_.counter_uint32_max > 0) {
+        }
+
+        // Just 32 bit signed?
+        if (any_i32) {
+        }
+
+        // Boolean?
+        if (root_stats_.counter_bool > 0) {
+        }
+
+        // Everything must be null then?
+        return arrow::null();
+    }
 };
 
 /// Type detection helper for json struct arrays.
@@ -264,7 +305,6 @@ enum SAXEvent {
     NONE,
     KEY,
     NULL_,
-    RAW_NUMBER,
     STRING,
     BOOL,
     INT32,
@@ -293,7 +333,7 @@ struct SingleEventCache : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
         return true;
     }
     bool Null() { return SetEvent(SAXEvent::NULL_); }
-    bool RawNumber(const Ch* str, size_t len, bool copy) { return SetEvent(SAXEvent::RAW_NUMBER); }
+    bool RawNumber(const Ch* str, size_t len, bool copy) { assert(false); }
     bool String(const char* txt, size_t length, bool copy) { return SetEvent(SAXEvent::STRING); }
     bool Bool(bool v) { return SetEvent(SAXEvent::BOOL); }
     bool Int(int32_t v) { return SetEvent(SAXEvent::INT32); }
