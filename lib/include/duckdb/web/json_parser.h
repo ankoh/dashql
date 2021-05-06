@@ -46,7 +46,7 @@ class ArrayParser {
 /// Resolve an array parser
 arrow::Result<std::shared_ptr<ArrayParser>> ResolveArrayParser(const std::shared_ptr<arrow::DataType>& type);
 /// Test a scalar type
-bool TestScalarType(const rapidjson::Value& json_value, const arrow::DataType& type);
+size_t TestScalarType(const std::vector<rapidjson::Value>& json_values, const arrow::DataType& type);
 
 // using ParseValue = ()
 

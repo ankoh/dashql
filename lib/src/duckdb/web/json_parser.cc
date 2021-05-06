@@ -67,7 +67,7 @@ arrow::Result<bool> ParseBoolean(const rapidjson::Value& json_obj, const arrow::
 }
 
 /// Parse a decimal
-template <typename DecimalSubtype, typename DecimalValue, typename BuilderType>
+template <typename DecimalSubtype, typename DecimalValue>
 arrow::Result<DecimalValue> ParseDecimal(const rapidjson::Value& json_obj, const arrow::DataType& type) {
     auto& subtype = reinterpret_cast<const DecimalSubtype&>(type);
     assert(!json_obj.IsNull());
@@ -83,13 +83,11 @@ arrow::Result<DecimalValue> ParseDecimal(const rapidjson::Value& json_obj, const
     }
     return JSONTypeError("decimal string", json_obj.GetType());
 }
-template <typename BuilderType = typename arrow::TypeTraits<arrow::Decimal128Type>::BuilderType>
 auto ParseDecimal128(const rapidjson::Value& json_obj, const arrow::DataType& type) {
-    return ParseDecimal<arrow::Decimal128Type, arrow::Decimal128, BuilderType>(json_obj, type);
+    return ParseDecimal<arrow::Decimal128Type, arrow::Decimal128>(json_obj, type);
 }
-template <typename BuilderType = typename arrow::TypeTraits<arrow::Decimal256Type>::BuilderType>
 auto ParseDecimal256(const rapidjson::Value& json_obj, const arrow::DataType& type) {
-    return ParseDecimal<arrow::Decimal256Type, arrow::Decimal256, BuilderType>(json_obj, type);
+    return ParseDecimal<arrow::Decimal256Type, arrow::Decimal256>(json_obj, type);
 }
 
 // Parse single signed integer value (also {Date,Time}{32,64} and Timestamp)
@@ -327,7 +325,7 @@ class DecimalArrayParser final
     /// Append a value
     arrow::Status AppendValue(const rapidjson::Value& json_obj) override {
         if (json_obj.IsNull()) return this->AppendNull();
-        auto func = &ParseDecimal<DecimalSubtype, DecimalValue, BuilderType>;
+        auto func = &ParseDecimal<DecimalSubtype, DecimalValue>;
         ARROW_ASSIGN_OR_RAISE(auto value, func(json_obj, *decimal_type_));
         return this->builder_->Append(value);
     }
@@ -749,11 +747,18 @@ arrow::Result<std::shared_ptr<ArrayParser>> ResolveArrayParser(const std::shared
 }
 
 /// Test a type
-bool TestScalarType(const rapidjson::Value& json_value, const arrow::DataType& type) {
-    if (json_value.IsNull()) return true;
+size_t TestScalarType(const std::vector<rapidjson::Value>& json_values, const arrow::DataType& type) {
+    auto run = [&](auto fn) {
+        size_t hits = 0;
+        for (unsigned i = 0; i < json_values.size(); ++i) {
+            auto& value = json_values[i];
+            hits += value.IsNull() || fn(json_values[i], type).ok();
+        }
+        return hits;
+    };
 #define TEST_TYPE(TYPE, FUNC) \
     case TYPE:                \
-        return FUNC(json_value, type).ok();
+        return run(FUNC);
 
     switch (type.id()) {
         TEST_TYPE(arrow::Type::BOOL, ParseBoolean);
@@ -783,11 +788,11 @@ bool TestScalarType(const rapidjson::Value& json_value, const arrow::DataType& t
         TEST_TYPE(arrow::Type::INTERVAL_MONTHS, ParseNumber<arrow::MonthIntervalType>)
         TEST_TYPE(arrow::Type::INTERVAL_DAY_TIME, ParseDayTime)
         TEST_TYPE(arrow::Type::FIXED_SIZE_BINARY, ParseFixedSizeBinary)
-        default:
-            return false;
+        default: {
+            return 0;
+        }
     }
 #undef TEST_TYPE
-    return false;
 }
 
 }  // namespace json
