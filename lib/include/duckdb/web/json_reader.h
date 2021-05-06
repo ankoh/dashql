@@ -99,7 +99,7 @@ struct InferringJSONReader : public rapidjson::BaseReaderHandler<rapidjson::UTF8
         return json_buffer_.StartArray();
     }
     bool EndObject(size_t count) {
-        auto depth = --depth_;
+        --depth_;
         return json_buffer_.EndObject(count);
     }
     bool EndArray(size_t count) {
