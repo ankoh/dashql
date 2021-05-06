@@ -4,9 +4,11 @@
 
 #include <arrow/result.h>
 #include <arrow/status.h>
+#include <arrow/type_fwd.h>
 
 #include <iostream>
 
+#include "duckdb/web/json_parser.h"
 #include "rapidjson/error/en.h"
 #include "rapidjson/istreamwrapper.h"
 
@@ -15,41 +17,6 @@ namespace web {
 namespace json {
 
 namespace {
-
-/// Infer a data type from a json value
-std::shared_ptr<arrow::DataType> InferDataType(const rapidjson::Value& value) {
-    switch (value.GetType()) {
-        case rapidjson::Type::kArrayType: {
-            auto array = value.GetArray();
-            auto step = array.Size() / 20;
-            std::shared_ptr<arrow::DataType> type = nullptr;
-            for (int i = 0; i < array.Size(); ++i) {
-                if (array[i].IsNull()) continue;
-                return arrow::list(InferDataType(array[i]));
-            }
-            return arrow::utf8();
-        }
-        case rapidjson::Type::kObjectType: {
-            std::vector<std::shared_ptr<arrow::Field>> fields;
-            for (auto iter = value.MemberBegin(); iter != value.MemberEnd(); ++iter) {
-                auto type = InferDataType(iter->value);
-                fields.push_back(arrow::field(iter->name.GetString(), std::move(type)));
-            }
-            return arrow::struct_(std::move(fields));
-        }
-        case rapidjson::Type::kNumberType:
-            /// Note that this is the reason why we cast nested integers as doubles without further narrowing.
-            return arrow::float64();
-        case rapidjson::Type::kStringType:
-            return arrow::utf8();
-        case rapidjson::Type::kNullType:
-            return arrow::null();
-        case rapidjson::Type::kFalseType:
-        case rapidjson::Type::kTrueType:
-            return arrow::boolean();
-    }
-    return nullptr;
-}
 
 /// Statistics about a JSON array.
 /// We use this to detect number and boolean types without a sample.
@@ -67,6 +34,112 @@ struct JSONArrayStats {
     size_t counter_array = 0;
 };
 
+/// Infer a data type from a json value
+std::shared_ptr<arrow::DataType> InferDataTypeImpl(const rapidjson::Value& value) {
+    switch (value.GetType()) {
+        case rapidjson::Type::kArrayType: {
+            auto array = value.GetArray();
+            auto step = array.Size() / 20;
+            std::shared_ptr<arrow::DataType> type = nullptr;
+            for (int i = 0; i < array.Size(); ++i) {
+                if (array[i].IsNull()) continue;
+                return arrow::list(InferDataTypeImpl(array[i]));
+            }
+            return arrow::utf8();
+        }
+        case rapidjson::Type::kObjectType: {
+            std::vector<std::shared_ptr<arrow::Field>> fields;
+            for (auto iter = value.MemberBegin(); iter != value.MemberEnd(); ++iter) {
+                auto type = InferDataTypeImpl(iter->value);
+                fields.push_back(arrow::field(iter->name.GetString(), std::move(type)));
+                std::sort(fields.begin(), fields.end(), [&](auto& l, auto& r) { return l->name() < r->name(); });
+            }
+            return arrow::struct_(std::move(fields));
+        }
+        case rapidjson::Type::kNumberType:
+            return arrow::float64();
+        case rapidjson::Type::kStringType:
+            return arrow::utf8();
+        case rapidjson::Type::kNullType:
+            return arrow::null();
+        case rapidjson::Type::kFalseType:
+        case rapidjson::Type::kTrueType:
+            return arrow::boolean();
+    }
+    return nullptr;
+}
+
+/// Infer a data type from statistics and a sample
+arrow::Result<std::shared_ptr<arrow::DataType>> InferDataTypeImpl(const JSONArrayStats& stats,
+                                                                  const std::vector<rapidjson::Value>& samples) {
+    // Check what we're up to
+    auto any_i32 = stats.counter_int32 > 0 || stats.counter_uint32 > 0;
+    auto any_i64 = stats.counter_int64 > 0 || stats.counter_uint64 > 0;
+
+    // Objects and arrays win over everything
+    if (stats.counter_object > 0 || stats.counter_array > 0) {
+        std::vector<std::shared_ptr<arrow::DataType>> sample_types;
+        std::vector<std::string_view> sample_fingerprints;
+        sample_types.reserve(samples.size());
+        for (auto& sample : samples) {
+            auto type = InferDataTypeImpl(sample);
+            if (!type) continue;
+            sample_types.push_back(std::move(type));
+        }
+        std::sort(sample_types.begin(), sample_types.end(),
+                  [&](auto& l, auto& r) { return l->fingerprint() < r->fingerprint(); });
+        return !sample_types.empty() ? sample_types[sample_types.size() >> 1] : nullptr;
+    }
+    // Strings win over numbers
+    if (stats.counter_string > 0) {
+        // TODO: what about decimals? we could try a few scales
+        std::vector<std::pair<std::shared_ptr<arrow::DataType>, size_t>> candidates{
+            {arrow::timestamp(arrow::TimeUnit::SECOND), 0},
+            {arrow::month_interval(), 0},
+            {arrow::day_time_interval(), 0},
+            {arrow::int32(), 0},
+            {arrow::uint32(), 0},
+            {arrow::int64(), 0},
+            {arrow::uint64(), 0},
+            {arrow::float64(), 0},
+            {arrow::boolean(), 0}};
+        for (auto& [type, hits] : candidates) {
+            hits += TestScalarType(samples, *type);
+        }
+    }
+    // Doubles win over integers
+    if (stats.counter_double > 0) {
+        return arrow::float64();
+    }
+    // Forced into 64 bit unsigned?
+    if (stats.counter_uint64_max > 0) {
+        if (stats.counter_int64 > 0) {
+            // Conflict, we'll just silently fall back to doubles.
+            // We could tell the user.
+            return arrow::float64();
+        }
+        return arrow::uint64();
+    }
+    // Forced into 64 bit?
+    if (any_i64 || (stats.counter_int32 > 0 && stats.counter_uint32_max > 0)) {
+        return arrow::int64();
+    }
+    // Forced into 32 bit unsigned?
+    if (stats.counter_uint32_max > 0) {
+        return arrow::uint32();
+    }
+    // Just 32 bit signed?
+    if (any_i32) {
+        return arrow::int32();
+    }
+    // Boolean?
+    if (stats.counter_bool > 0) {
+        return arrow::boolean();
+    }
+    // Everything must be null then?
+    return arrow::null();
+}
+
 /// Type detection base class
 template <TableShape SHAPE, typename DERIVED>
 class JSONArrayAnalyzer : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, DERIVED> {
@@ -77,7 +150,8 @@ class JSONArrayAnalyzer : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
     /// The nesting depth at which we sample for objects for type inference.
     /// Both, rows and columns sample the children of the given top-level array.
     static constexpr size_t sample_depth_ = 1;
-    /// The current depth
+    /// The current depth.
+    /// We already consume the start of the array and let the analyzer do the rest.
     size_t current_depth_ = 1;
 
     /// The current stats
@@ -202,55 +276,8 @@ struct JSONFlatArrayAnalyzer : public JSONArrayAnalyzer<TableShape::COLUMN_ARRAY
         stats_ = &root_stats_;
         sample_.reserve(capacity);
     }
-
     /// Infer the array type
-    arrow::Result<std::shared_ptr<arrow::DataType>> InferDataType() {
-        // Check what we're up to
-        auto any_i32 = root_stats_.counter_int32 > 0 || root_stats_.counter_uint32 > 0;
-        auto any_i64 = root_stats_.counter_int64 > 0 || root_stats_.counter_uint64 > 0;
-
-        // Objects win over everything
-        if (root_stats_.counter_object > 0) {
-            // TODO: check sample for fields
-        }
-
-        // Arrays win over strings
-        if (root_stats_.counter_array > 0) {
-            // TODO: check sample nested data type
-        }
-
-        // Strings win over numbers
-        if (root_stats_.counter_string > 0) {
-            // TODO: check sample for timestamps
-        }
-
-        // Doubles win over integers
-        if (root_stats_.counter_double > 0) {
-        }
-
-        // Forced into 64 bit unsigned?
-        if (root_stats_.counter_uint64_max > 0) {
-        }
-
-        // Forced into 64 bit?
-        if (any_i64 || (root_stats_.counter_int32 > 0 && root_stats_.counter_uint32_max > 0)) {
-        }
-
-        // Forced into 32 bit unsigned?
-        if (root_stats_.counter_uint32_max > 0) {
-        }
-
-        // Just 32 bit signed?
-        if (any_i32) {
-        }
-
-        // Boolean?
-        if (root_stats_.counter_bool > 0) {
-        }
-
-        // Everything must be null then?
-        return arrow::null();
-    }
+    arrow::Result<std::shared_ptr<arrow::DataType>> InferDataType() { return InferDataTypeImpl(root_stats_, sample_); }
 };
 
 /// Type detection helper for json struct arrays.
