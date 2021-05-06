@@ -68,21 +68,21 @@ struct JSONArrayStats {
     size_t counter_array = 0;
 };
 
-/// Type detection helper for flat json arrays.
-/// E.g. [1,2,3] => list(int32())
-/// Nested types are only inferred based on a reservoir sample.
-///
-/// Assumes to see 1 additional unmatched array event after which Done() will return true.
-class JSONFlatArrayAnalyzer : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, JSONFlatArrayAnalyzer> {
+template <TableShape SHAPE, typename DERIVED>
+class JSONArrayAnalyzer : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, DERIVED> {
    protected:
-    /// The data depth
-    static constexpr size_t data_depth_ = 1;
-    /// The sample depth
+    /// The nesting depth at which the actual data can be found.
+    /// E.g. In row arrays, attributes are nested in objects that are nested in the top level array.
+    static constexpr size_t data_depth_ = SHAPE == ROW_ARRAY ? 2 : 1;
+    /// The nesting depth at which we sample for objects for type inference.
+    /// Both, rows and columns sample the children of the given top-level array.
     static constexpr size_t sample_depth_ = 1;
     /// The current depth
     size_t current_depth_ = 1;
-    /// The top-level stats
-    JSONArrayStats stats_ = {};
+
+    /// The current stats
+    JSONArrayStats* stats_ = nullptr;
+
     /// The sample buffer
     rapidjson::Document sample_buffer_ = {};
     /// The rapidjson array
@@ -92,11 +92,14 @@ class JSONFlatArrayAnalyzer : public rapidjson::BaseReaderHandler<rapidjson::UTF
     /// The reservoir counter
     ReservoirSampleCounter sample_counter_ = {};
 
+    /// CRTP Impl
+    auto& Impl() { return reinterpret_cast<DERIVED&>(*this); }
+
     // Bump a counter
 #define BUMP(COUNTER) \
-    if (current_depth_ == data_depth_) ++stats_.COUNTER;
+    if (current_depth_ == data_depth_) ++stats_->COUNTER;
 #define BUMP_IF(COUNTER, COND) \
-    if (current_depth_ == data_depth_ && COND) ++stats_.COUNTER;
+    if (current_depth_ == data_depth_ && COND) ++stats_->COUNTER;
 
     /// Add an element to the sample
     inline bool Emit(bool ok) {
@@ -114,17 +117,15 @@ class JSONFlatArrayAnalyzer : public rapidjson::BaseReaderHandler<rapidjson::UTF
     }
 
    public:
-    /// Constructor
-    JSONFlatArrayAnalyzer(size_t capacity = 1024) { sample_.reserve(capacity); }
-
     /// Saw the closing array event?
     bool Done() { return current_depth_ == 0; }
 
+    /// Add a key
     bool Key(const char* txt, size_t length, bool copy) {
         return sample_idx_ ? sample_buffer_.Key(txt, length, copy) : true;
     }
     bool Null() { return sample_idx_ ? Emit(sample_buffer_.Null()) : true; }
-    bool RawNumber(const Ch* str, size_t len, bool copy) {
+    bool RawNumber(const char* str, size_t len, bool copy) {
         BUMP(counter_raw_number);
         if (current_depth_ == sample_depth_) sample_idx_ = sample_counter_.Insert();
         return sample_idx_ ? Emit(sample_buffer_.RawNumber(str, len, copy)) : true;
@@ -176,20 +177,38 @@ class JSONFlatArrayAnalyzer : public rapidjson::BaseReaderHandler<rapidjson::UTF
         assert(current_depth_ > 0);
         assert(!sample_idx_.has_value() || current_depth_ > sample_depth_);
         --current_depth_;
+        if constexpr (SHAPE == ROW_ARRAY) stats_ = nullptr;
         return sample_idx_ ? Emit(sample_buffer_.EndObject(count)) : true;
     }
     bool EndArray(size_t count) {
         assert(current_depth_ > 0);
         assert(!sample_idx_.has_value() || current_depth_ > sample_depth_);
         --current_depth_;
+        if constexpr (SHAPE == ROW_ARRAY) stats_ = nullptr;
         return sample_idx_ ? Emit(sample_buffer_.EndArray(count)) : true;
+    }
+
+#undef BUMP
+#undef BUMP_IF
+};
+
+/// Type detection helper for flat json arrays.
+/// E.g. [1,2,3] => list(int32())
+/// Nested types are only inferred based on a reservoir sample.
+///
+/// Assumes to see 1 additional unmatched array event after which Done() will return true.
+struct JSONFlatArrayAnalyzer : public JSONArrayAnalyzer<TableShape::COLUMN_ARRAYS, JSONFlatArrayAnalyzer> {
+    /// The top level stats
+    JSONArrayStats top_level_stats_ = {};
+
+    /// Constructor
+    JSONFlatArrayAnalyzer(size_t capacity = 1024) {
+        stats_ = &top_level_stats_;
+        sample_.reserve(capacity);
     }
 
     /// Infer the array type
     arrow::Result<std::shared_ptr<arrow::DataType>> InferDataType() { return nullptr; }
-
-#undef BUMP
-#undef BUMP_IF
 };
 
 /// Type detection helper for json struct arrays.
@@ -198,66 +217,27 @@ class JSONFlatArrayAnalyzer : public rapidjson::BaseReaderHandler<rapidjson::UTF
 /// Deeper nesting levels are again inferred from a sample.
 ///
 /// Assumes to see 1 additional unmatched array event after which Done() will return true.
-class JSONStructArrayAnalyzer : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, JSONStructArrayAnalyzer> {
+class JSONStructArrayAnalyzer : public JSONArrayAnalyzer<TableShape::ROW_ARRAY, JSONStructArrayAnalyzer> {
    protected:
-    /// The data depth
-    static constexpr size_t sample_depth_ = 1;
-    /// The data depth
-    static constexpr size_t data_depth_ = 2;
-    /// The current depth
-    size_t current_depth_ = 1;
-    /// The current field statistics
-    JSONArrayStats* field_stats_ = nullptr;
     /// The first-level field limit
     size_t field_limit = 100;
     /// The first-level fields
     std::vector<std::unique_ptr<char[]>> field_names_ = {};
     /// The first-level stats
     std::unordered_map<std::string_view, JSONArrayStats> field_stats_map_ = {};
-    /// The sample buffer
-    rapidjson::Document sample_buffer_ = {};
-    /// The rapidjson array
-    std::vector<rapidjson::Value> sample_ = {};
-    /// Skip the current array entry?
-    std::optional<size_t> sample_idx_ = false;
-    /// The reservoir counter
-    ReservoirSampleCounter sample_counter_ = {};
-
-    // Bump a counter
-#define BUMP(COUNTER) \
-    if (current_depth_ == data_depth_) ++field_stats_->COUNTER;
-#define BUMP_IF(COUNTER, COND) \
-    if (current_depth_ == data_depth_ && COND) ++field_stats_->COUNTER;
-
-    /// Add an element to the sample
-    inline bool Emit(bool ok) {
-        if (current_depth_ > sample_depth_ || !ok) return ok;
-        auto gen = [](auto&) { return true; };
-        if (*sample_idx_ == sample_.size()) {
-            sample_.push_back(std::move(sample_buffer_.Populate(gen).Move()));
-        } else {
-            assert(*sample_idx_ < sample_.size());
-            sample_[*sample_idx_] = std::move(sample_buffer_.Populate(gen).Move());
-        }
-        sample_buffer_.SetNull();
-        sample_idx_.reset();
-        return ok;
-    }
 
    public:
     /// Constructor
     JSONStructArrayAnalyzer(size_t capacity = 1024) { sample_.reserve(capacity); }
 
-    /// Saw the closing array event?
-    bool Done() { return current_depth_ == 0; }
-
+    /// Add a key
     bool Key(const char* txt, size_t length, bool copy) {
         // When encountering a key at level 1, we resolve the corresponding array statistics.
         // E.g. [{"a": 1, "b": 2}, {"a": 3, "b": 4}]
         //      => tracks array statistics for [], "a" and "b"
         if (current_depth_ == data_depth_) {
             if (auto iter = field_stats_map_.find(std::string_view{txt, length}); iter != field_stats_map_.end()) {
-                field_stats_ = &iter->second;
+                stats_ = &iter->second;
             } else if (field_names_.size() < field_limit) {
                 // Allocate name buffer
                 std::unique_ptr<char[]> buffer(new char[length + 1]);
@@ -268,83 +248,15 @@ class JSONStructArrayAnalyzer : public rapidjson::BaseReaderHandler<rapidjson::U
                 // Create array stats
                 auto [iter, ok] = field_stats_map_.insert({name, JSONArrayStats{}});
                 assert(ok);
-                field_stats_ = &iter->second;
+                stats_ = &iter->second;
                 field_names_.push_back(std::move(buffer));
             }
         }
         return sample_idx_ ? sample_buffer_.Key(txt, length, copy) : true;
     }
-    bool Null() { return sample_idx_ ? Emit(sample_buffer_.Null()) : true; }
-    bool RawNumber(const Ch* str, size_t len, bool copy) {
-        BUMP(counter_raw_number);
-        if (current_depth_ == sample_depth_) sample_idx_ = sample_counter_.Insert();
-        return sample_idx_ ? Emit(sample_buffer_.RawNumber(str, len, copy)) : true;
-    }
-    bool String(const char* txt, size_t length, bool copy) {
-        BUMP(counter_string);
-        if (current_depth_ == sample_depth_) sample_idx_ = sample_counter_.Insert();
-        return sample_idx_ ? Emit(sample_buffer_.String(txt, length, copy)) : true;
-    }
-    bool Bool(bool v) {
-        BUMP(counter_bool);
-        return sample_idx_ ? Emit(sample_buffer_.Bool(v)) : true;
-    }
-    bool Int(int32_t v) {
-        BUMP(counter_int32);
-        return sample_idx_ ? Emit(sample_buffer_.Int(v)) : true;
-    }
-    bool Int64(int64_t v) {
-        BUMP(counter_int64);
-        return sample_idx_ ? Emit(sample_buffer_.Int64(v)) : true;
-    }
-    bool Uint(uint32_t v) {
-        BUMP(counter_uint32);
-        BUMP_IF(counter_uint32_max, v >= std::numeric_limits<int32_t>::max());
-        return sample_idx_ ? Emit(sample_buffer_.Uint(v)) : true;
-    }
-    bool Uint64(uint64_t v) {
-        BUMP(counter_uint64);
-        BUMP_IF(counter_uint64_max, v >= std::numeric_limits<int64_t>::max());
-        return sample_idx_ ? Emit(sample_buffer_.Uint64(v)) : true;
-    }
-    bool Double(double v) {
-        BUMP(counter_double);
-        return sample_idx_ ? Emit(sample_buffer_.Double(v)) : true;
-    }
-    bool StartObject() {
-        BUMP(counter_object);
-        field_stats_ = nullptr;
-        if (current_depth_++ == sample_depth_) sample_idx_ = sample_counter_.Insert();
-        if (sample_idx_) return sample_buffer_.StartObject();
-        return true;
-    }
-    bool StartArray() {
-        BUMP(counter_array);
-        field_stats_ = nullptr;
-        if (current_depth_++ == sample_depth_) sample_idx_ = sample_counter_.Insert();
-        if (sample_idx_) return sample_buffer_.StartObject();
-        return true;
-    }
-    bool EndObject(size_t count) {
-        assert(current_depth_ > 0);
-        assert(!sample_idx_.has_value() || current_depth_ > sample_depth_);
-        --current_depth_;
-        field_stats_ = nullptr;
-        return sample_idx_ ? Emit(sample_buffer_.EndObject(count)) : true;
-    }
-    bool EndArray(size_t count) {
-        assert(current_depth_ > 0);
-        assert(!sample_idx_.has_value() || current_depth_ > sample_depth_);
-        --current_depth_;
-        field_stats_ = nullptr;
-        return sample_idx_ ? Emit(sample_buffer_.EndArray(count)) : true;
-    }
 
     /// Infer the array type
     arrow::Result<std::shared_ptr<arrow::DataType>> InferDataType() { return nullptr; }
-
-#undef BUMP
-#undef BUMP_IF
 };
 
 enum SAXEvent {
