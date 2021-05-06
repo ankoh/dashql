@@ -68,6 +68,7 @@ struct JSONArrayStats {
     size_t counter_array = 0;
 };
 
+/// Type detection base class
 template <TableShape SHAPE, typename DERIVED>
 class JSONArrayAnalyzer : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, DERIVED> {
    protected:
@@ -325,6 +326,7 @@ arrow::Result<std::pair<TableShape, std::shared_ptr<arrow::DataType>>> InferTabl
     // Assume row-major layout.
     // E.g. [{"a":1,"b":2}, {"a":3,"b":4}]
     if (cache.event == START_ARRAY) {
+        // Parse all rows
         JSONStructArrayAnalyzer analyzer;
         while (!reader.IterativeParseComplete()) {
             if (!reader.IterativeParseNext<rapidjson::kParseDefaultFlags>(in, analyzer)) {
@@ -333,6 +335,8 @@ arrow::Result<std::pair<TableShape, std::shared_ptr<arrow::DataType>>> InferTabl
             }
         }
         assert(analyzer.Done());
+
+        // Infer the struct type
         ARROW_ASSIGN_OR_RAISE(auto type, analyzer.InferDataType());
         return std::make_pair(TableShape::ROW_ARRAY, std::move(type));
     }
@@ -347,9 +351,15 @@ arrow::Result<std::pair<TableShape, std::shared_ptr<arrow::DataType>>> InferTabl
         for (auto ok = next(); ok && cache.event == KEY; ok = next()) {
             auto column_name = cache.key;
             ok = next();
+
+            // Key followed by someting other than an array?
+            // That violates the assumption that we have a column-major layout.
+            // We failed and give up.
             if (!ok || cache.event != START_ARRAY) {
-                // couldn't get array
+                return std::make_pair(TableShape::UNRECOGNIZED, nullptr);
             }
+
+            // Parse entire column array.
             JSONFlatArrayAnalyzer analyzer;
             while (!reader.IterativeParseComplete() && !analyzer.Done()) {
                 if (!reader.IterativeParseNext<rapidjson::kParseDefaultFlags>(in, analyzer)) {
@@ -358,6 +368,8 @@ arrow::Result<std::pair<TableShape, std::shared_ptr<arrow::DataType>>> InferTabl
                 }
             }
             assert(analyzer.Done());
+
+            // Detect column type
             ARROW_ASSIGN_OR_RAISE(auto column_type, analyzer.InferDataType());
             fields.push_back(arrow::field(std::move(cache.txt_buffer), column_type));
         }
