@@ -370,63 +370,28 @@ struct SingleEventCache : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
     std::string txt_buffer = "";
     std::string_view key = "";
 
+    bool SetEvent(SAXEvent e) {
+        event = e;
+        return true;
+    }
     bool Key(const char* txt, size_t length, bool copy) {
         txt_buffer = std::string{txt, length};
         key = txt_buffer;
         return true;
     }
-    bool Null() {
-        event = SAXEvent::NULL_;
-        return true;
-    }
-    bool RawNumber(const Ch* str, size_t len, bool copy) {
-        event = SAXEvent::RAW_NUMBER;
-        return true;
-    }
-    bool String(const char* txt, size_t length, bool copy) {
-        event = SAXEvent::STRING;
-        return true;
-    }
-    bool Bool(bool v) {
-        event = SAXEvent::BOOL;
-        return true;
-    }
-    bool Int(int32_t v) {
-        event = SAXEvent::INT32;
-        return true;
-    }
-    bool Int64(int64_t v) {
-        event = SAXEvent::INT64;
-        return true;
-    }
-    bool Uint(uint32_t v) {
-        event = SAXEvent::UINT32;
-        return true;
-    }
-    bool Uint64(uint64_t v) {
-        event = SAXEvent::UINT64;
-        return true;
-    }
-    bool Double(double v) {
-        event = SAXEvent::DOUBLE;
-        return true;
-    }
-    bool StartObject() {
-        event = SAXEvent::START_OBJECT;
-        return true;
-    }
-    bool StartArray() {
-        event = SAXEvent::START_ARRAY;
-        return true;
-    }
-    bool EndObject(size_t count) {
-        event = SAXEvent::END_OBJECT;
-        return true;
-    }
-    bool EndArray(size_t count) {
-        event = SAXEvent::END_ARRAY;
-        return true;
-    }
+    bool Null() { return SetEvent(SAXEvent::NULL_); }
+    bool RawNumber(const Ch* str, size_t len, bool copy) { return SetEvent(SAXEvent::RAW_NUMBER); }
+    bool String(const char* txt, size_t length, bool copy) { return SetEvent(SAXEvent::STRING); }
+    bool Bool(bool v) { return SetEvent(SAXEvent::BOOL); }
+    bool Int(int32_t v) { return SetEvent(SAXEvent::INT32); }
+    bool Int64(int64_t v) { return SetEvent(SAXEvent::INT64); }
+    bool Uint(uint32_t v) { return SetEvent(SAXEvent::UINT32); }
+    bool Uint64(uint64_t v) { return SetEvent(SAXEvent::UINT64); }
+    bool Double(double v) { return SetEvent(SAXEvent::DOUBLE); }
+    bool StartObject() { return SetEvent(SAXEvent::START_OBJECT); }
+    bool StartArray() { return SetEvent(SAXEvent::START_ARRAY); }
+    bool EndObject(size_t count) { return SetEvent(SAXEvent::END_OBJECT); }
+    bool EndArray(size_t count) { return SetEvent(SAXEvent::END_ARRAY); }
 };
 
 }  // namespace
