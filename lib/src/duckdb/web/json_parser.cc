@@ -174,7 +174,6 @@ arrow::Result<arrow::DayTimeIntervalType::DayMilliseconds> ParseDayTime(const ra
     ARROW_ASSIGN_OR_RAISE(value.milliseconds, ParseNumber<arrow::Int32Type>(json_obj[1], type));
     return value;
 }
-/// Test a daytime
 
 /// Parse a string
 arrow::Result<arrow::util::string_view> ParseString(const rapidjson::Value& json_obj, const arrow::DataType& /*type*/) {
