@@ -85,7 +85,7 @@ lib_perf: lib_relwithdebinfo
 # Test the core library
 .PHONY: lib_tests
 lib_tests: lib
-	${LIB_DEBUG_DIR}/tester --source_dir ${LIB_SOURCE_DIR} --gtest_filter=*JSON*
+	${LIB_DEBUG_DIR}/tester --source_dir ${LIB_SOURCE_DIR} --gtest_filter=*
 
 # Debug the core library
 .PHONY: lib_tests
