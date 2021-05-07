@@ -85,6 +85,20 @@ static std::vector<JSONAnalyzerTest> JSON_ANALYZER_TESTS = {
         .type = "struct<a: int64>"
     },
     {
+        .name = "cols_timestamp_iso8601_1",
+        .input = R"JSON({
+            "a": [
+                "2007-08-31 16:47",
+                "2007-12-24 18:21",
+                "2008-02-01 09:00:22",
+                "2009-01-01 12:00:00",
+                "2009-06-30 18:30:00"
+            ]
+        })JSON",
+        .shape = TableShape::COLUMN_ARRAYS,
+        .type = "struct<a: timestamp[s]>"
+    },
+    {
         .name = "cols_2",
         .input = R"JSON({
             "a": [1, -2, 3],
