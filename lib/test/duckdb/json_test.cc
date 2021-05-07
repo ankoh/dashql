@@ -34,6 +34,8 @@ TEST(JSONTest, ColumnArrays1) {
     auto& [shape, type] = result.ValueUnsafe();
 
     ASSERT_EQ(shape, duckdb::web::json::TableShape::COLUMN_ARRAYS);
+    ASSERT_NE(type, nullptr);
+    ASSERT_EQ(type->ToString(), "struct<a: int32, b: string, f: bool>");
 }
 
 TEST(JSONTest, RowArray1) {
@@ -49,4 +51,6 @@ TEST(JSONTest, RowArray1) {
     auto& [shape, type] = result.ValueUnsafe();
 
     ASSERT_EQ(shape, duckdb::web::json::TableShape::ROW_ARRAY);
+    ASSERT_NE(type, nullptr);
+    ASSERT_EQ(type->ToString(), "struct<a: int32, b: string, f: bool>");
 }
