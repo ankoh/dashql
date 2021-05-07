@@ -183,15 +183,130 @@ static std::vector<JSONAnalyzerTest> JSON_ANALYZER_TESTS = {
         .type = "struct<>"
     },
     {
-        .name = "rows_1",
+        .name = "rows_single_bool",
         .input = R"JSON([
-            {"a": 1, "b": "c", "f": true},
-            {"a": -2, "b": "d", "f": true},
-            {"a": 3, "b": "e", "f": false}
+            { "a": true },
+            { "a": true },
+            { "a": false }
+        ])JSON",
+        .shape = TableShape::ROW_ARRAY,
+        .type = "struct<a: bool>"
+    },
+    {
+        .name = "rows_single_i32",
+        .input = R"JSON([
+            { "a": 1 },
+            { "a": 2 },
+            { "a": 3 }
+        ])JSON",
+        .shape = TableShape::ROW_ARRAY,
+        .type = "struct<a: int32>"
+    },
+    {
+        .name = "rows_single_u32",
+        .input = R"JSON([
+            { "a": 1 },
+            { "a": 2 },
+            { "a": 2147483648 }
+        ])JSON",
+        .shape = TableShape::ROW_ARRAY,
+        .type = "struct<a: uint32>"
+    },
+    {
+        .name = "rows_i32_sign_conflict",
+        .input = R"JSON([
+            { "a": 1 },
+            { "a": -2 },
+            { "a": 2147483648 }
+        ])JSON",
+        .shape = TableShape::ROW_ARRAY,
+        .type = "struct<a: uint64>"
+    },
+    {
+        .name = "rows_u64",
+        .input = R"JSON([
+            { "a": 1 },
+            { "a": 2 },
+            { "a": 9223372036854775808 }
+        ])JSON",
+        .shape = TableShape::ROW_ARRAY,
+        .type = "struct<a: uint64>"
+    },
+    {
+        .name = "rows_u64_sign_conflict",
+        .input = R"JSON([
+            { "a": 1 },
+            { "a": -2 },
+            { "a": 9223372036854775808 }
+        ])JSON",
+        .shape = TableShape::ROW_ARRAY,
+        .type = "struct<a: double>"
+    },
+    {
+        .name = "rows_f64",
+        .input = R"JSON([
+            { "a": 1.0 },
+            { "a": 2.0 },
+            { "a": 3.0 }
+        ])JSON",
+        .shape = TableShape::ROW_ARRAY,
+        .type = "struct<a: double>"
+    },
+    {
+        .name = "rows_f64_mixed_1",
+        .input = R"JSON([
+            { "a": 1 },
+            { "a": -2 },
+            { "a": 3.0 },
+            { "a": true }
+        ])JSON",
+        .shape = TableShape::ROW_ARRAY,
+        .type = "struct<a: double>"
+    },
+    {
+        .name = "rows_timestamp_1",
+        .input = R"JSON([
+            { "a": "2007-08-31 16:47" },
+            { "a": "2007-12-24 18:21" },
+            { "a": "2008-02-01 09:00:22" },
+            { "a": "2009-01-01 12:00:00" },
+            { "a": "2009-06-30 18:30:00" }
+        ])JSON",
+        .shape = TableShape::ROW_ARRAY,
+        .type = "struct<a: timestamp[s]>"
+    },
+    {
+        .name = "rows_timestamp_mixed_1",
+        .input = R"JSON([
+            { "a": 1 },
+            { "a": 2 },
+            { "a": "2008-02-01 09:00:22" },
+            { "a": "2009-01-01 12:00:00" },
+            { "a": "2009-06-30 18:30:00" }
+        ])JSON",
+        .shape = TableShape::ROW_ARRAY,
+        .type = "struct<a: timestamp[s]>"
+    },
+    {
+        .name = "rows_2",
+        .input = R"JSON([
+            { "a": 1, "b": "c" },
+            { "a": -2, "b": "d" },
+            { "a": 3, "b": "e" }
+        ])JSON",
+        .shape = TableShape::ROW_ARRAY,
+        .type = "struct<a: int32, b: string>"
+    },
+    {
+        .name = "rows_3",
+        .input = R"JSON([
+            { "a": 1, "b": "c", "f": true },
+            { "a": -2, "b": "d", "f": true },
+            { "a": 3, "b": "e", "f": false }
         ])JSON",
         .shape = TableShape::ROW_ARRAY,
         .type = "struct<a: int32, b: string, f: bool>"
-    }
+    },
 };
 // clang-format on
 
