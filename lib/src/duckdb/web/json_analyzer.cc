@@ -321,7 +321,7 @@ class JSONArrayAnalyzer : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
     /// The rapidjson array
     std::vector<rapidjson::Value> sample_ = {};
     /// Skip the current array entry?
-    std::optional<size_t> sample_idx_ = false;
+    std::optional<size_t> sample_idx_ = std::nullopt;
     /// The reservoir counter
     ReservoirSampleCounter sample_counter_ = {};
 
