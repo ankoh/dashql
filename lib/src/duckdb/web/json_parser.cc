@@ -54,9 +54,16 @@ arrow::Result<std::shared_ptr<ArrayParser>> ResolveArrayParser(const std::shared
 
 namespace {
 
+/// A type error
 arrow::Status JSONTypeError(const char* expected_type, rapidjson::Type json_type) {
     return arrow::Status::Invalid("Expected ", expected_type, " or null, got JSON type ", json_type);
 }
+
+// -------------------------------------------
+// Value parsers & Type tests
+
+/// Try to parse a type
+template <arrow::Type::type TYPE> bool TestType(const rapidjson::Value& value, const arrow::DataType& type);
 
 /// Parse a boolean
 arrow::Result<bool> ParseBoolean(const rapidjson::Value& json_obj, const arrow::DataType& /*type*/) {
@@ -64,6 +71,10 @@ arrow::Result<bool> ParseBoolean(const rapidjson::Value& json_obj, const arrow::
     if (json_obj.IsBool()) return json_obj.GetBool();
     if (json_obj.IsInt()) return json_obj.GetInt() != 0;
     return JSONTypeError("boolean", json_obj.GetType());
+}
+/// Test a boolean
+template <> bool TestType<arrow::Type::BOOL>(const rapidjson::Value& json_obj, const arrow::DataType& type) {
+    return ParseBoolean(json_obj, type).ok();
 }
 
 /// Parse a decimal
@@ -89,6 +100,12 @@ auto ParseDecimal128(const rapidjson::Value& json_obj, const arrow::DataType& ty
 auto ParseDecimal256(const rapidjson::Value& json_obj, const arrow::DataType& type) {
     return ParseDecimal<arrow::Decimal256Type, arrow::Decimal256>(json_obj, type);
 }
+template <> bool TestType<arrow::Type::DECIMAL128>(const rapidjson::Value& json_obj, const arrow::DataType& type) {
+    return ParseDecimal128(json_obj, type).ok();
+}
+template <> bool TestType<arrow::Type::DECIMAL256>(const rapidjson::Value& json_obj, const arrow::DataType& type) {
+    return ParseDecimal256(json_obj, type).ok();
+}
 
 // Parse single signed integer value (also {Date,Time}{32,64} and Timestamp)
 template <typename T>
@@ -105,7 +122,6 @@ arrow::enable_if_physical_unsigned_integer<T, arrow::Result<typename T::c_type>>
             return arrow::Status::Invalid("Value ", v64, " out of bounds for ", type);
         }
     } else {
-        out = static_cast<typename T::c_type>(0);
         return JSONTypeError("unsigned int", json_obj.GetType());
     }
 }
@@ -120,7 +136,6 @@ arrow::enable_if_physical_floating_point<T, arrow::Result<typename T::c_type>> P
         out = static_cast<typename T::c_type>(json_obj.GetDouble());
         return out;
     } else {
-        out = static_cast<typename T::c_type>(0);
         return JSONTypeError("number", json_obj.GetType());
     }
 }
@@ -140,10 +155,32 @@ arrow::enable_if_physical_signed_integer<T, arrow::Result<typename T::c_type>> P
             return arrow::Status::Invalid("Value ", v64, " out of bounds for ", type);
         }
     } else {
-        out = static_cast<typename T::c_type>(0);
         return JSONTypeError("signed int", json_obj.GetType());
     }
 }
+
+#define PARSE_NUMBER(TYPE, TYPE_OBJ)                                                                 \
+    template <> bool TestType<TYPE>(const rapidjson::Value& json_obj, const arrow::DataType& type) { \
+        return ParseNumber<TYPE_OBJ>(json_obj, type).ok();                                           \
+    }
+PARSE_NUMBER(arrow::Type::UINT8, arrow::UInt8Type);
+PARSE_NUMBER(arrow::Type::UINT16, arrow::UInt16Type);
+PARSE_NUMBER(arrow::Type::UINT32, arrow::UInt32Type);
+PARSE_NUMBER(arrow::Type::UINT64, arrow::UInt64Type);
+PARSE_NUMBER(arrow::Type::INT8, arrow::Int8Type);
+PARSE_NUMBER(arrow::Type::INT16, arrow::Int16Type);
+PARSE_NUMBER(arrow::Type::INT32, arrow::Int32Type);
+PARSE_NUMBER(arrow::Type::INT64, arrow::Int64Type);
+PARSE_NUMBER(arrow::Type::FLOAT, arrow::FloatType);
+PARSE_NUMBER(arrow::Type::HALF_FLOAT, arrow::HalfFloatType);
+PARSE_NUMBER(arrow::Type::DOUBLE, arrow::DoubleType);
+PARSE_NUMBER(arrow::Type::DATE32, arrow::Date32Type);
+PARSE_NUMBER(arrow::Type::DATE64, arrow::Date64Type);
+PARSE_NUMBER(arrow::Type::TIME32, arrow::Time32Type);
+PARSE_NUMBER(arrow::Type::TIME64, arrow::Time64Type);
+PARSE_NUMBER(arrow::Type::DURATION, arrow::DurationType);
+PARSE_NUMBER(arrow::Type::INTERVAL_MONTHS, arrow::MonthIntervalType);
+#undef PARSE_NUMBER
 
 /// Parse a timestamp
 arrow::Result<int64_t> ParseTimestamp(const rapidjson::Value& json_obj, const arrow::DataType& t) {
@@ -162,6 +199,10 @@ arrow::Result<int64_t> ParseTimestamp(const rapidjson::Value& json_obj, const ar
     }
     return value;
 }
+/// Test a timestamp
+template <> bool TestType<arrow::Type::TIMESTAMP>(const rapidjson::Value& json_obj, const arrow::DataType& type) {
+    return ParseTimestamp(json_obj, type).ok();
+}
 
 /// Parse a daytime
 arrow::Result<arrow::DayTimeIntervalType::DayMilliseconds> ParseDayTime(const rapidjson::Value& json_obj,
@@ -175,6 +216,11 @@ arrow::Result<arrow::DayTimeIntervalType::DayMilliseconds> ParseDayTime(const ra
     ARROW_ASSIGN_OR_RAISE(value.milliseconds, ParseNumber<arrow::Int32Type>(json_obj[1], type));
     return value;
 }
+/// Test a daytime
+template <>
+bool TestType<arrow::Type::INTERVAL_DAY_TIME>(const rapidjson::Value& json_obj, const arrow::DataType& type) {
+    return ParseDayTime(json_obj, type).ok();
+}
 
 /// Parse a string
 arrow::Result<arrow::util::string_view> ParseString(const rapidjson::Value& json_obj, const arrow::DataType& /*type*/) {
@@ -184,6 +230,10 @@ arrow::Result<arrow::util::string_view> ParseString(const rapidjson::Value& json
     } else {
         return JSONTypeError("string", json_obj.GetType());
     }
+}
+/// Test a string
+template <> bool TestType<arrow::Type::STRING>(const rapidjson::Value& json_obj, const arrow::DataType& type) {
+    return ParseString(json_obj, type).ok();
 }
 
 /// Parse a string
@@ -202,6 +252,14 @@ arrow::Result<arrow::util::string_view> ParseFixedSizeBinary(const rapidjson::Va
         return JSONTypeError("string", json_obj.GetType());
     }
 }
+/// Test a string
+template <>
+bool TestType<arrow::Type::FIXED_SIZE_BINARY>(const rapidjson::Value& json_obj, const arrow::DataType& type) {
+    return ParseFixedSizeBinary(json_obj, type).ok();
+}
+
+// -------------------------------------------
+// Array parsers
 
 /// CRTP base class
 template <typename Derived, typename BuilderType> class BaseArrayParser : public ArrayParser {
