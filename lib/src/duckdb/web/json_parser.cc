@@ -49,9 +49,6 @@ namespace duckdb {
 namespace web {
 namespace json {
 
-/// Get an array parser
-arrow::Result<std::shared_ptr<ArrayParser>> ResolveArrayParser(const std::shared_ptr<arrow::DataType>&);
-
 namespace {
 
 /// A type error
@@ -60,10 +57,7 @@ arrow::Status JSONTypeError(const char* expected_type, rapidjson::Type json_type
 }
 
 // -------------------------------------------
-// Value parsers & Type tests
-
-/// Try to parse a type
-template <arrow::Type::type TYPE> bool TestType(const rapidjson::Value& value, const arrow::DataType& type);
+// Value parsers
 
 /// Parse a boolean
 arrow::Result<bool> ParseBoolean(const rapidjson::Value& json_obj, const arrow::DataType& /*type*/) {
@@ -71,10 +65,6 @@ arrow::Result<bool> ParseBoolean(const rapidjson::Value& json_obj, const arrow::
     if (json_obj.IsBool()) return json_obj.GetBool();
     if (json_obj.IsInt()) return json_obj.GetInt() != 0;
     return JSONTypeError("boolean", json_obj.GetType());
-}
-/// Test a boolean
-template <> bool TestType<arrow::Type::BOOL>(const rapidjson::Value& json_obj, const arrow::DataType& type) {
-    return ParseBoolean(json_obj, type).ok();
 }
 
 /// Parse a decimal
@@ -99,12 +89,6 @@ auto ParseDecimal128(const rapidjson::Value& json_obj, const arrow::DataType& ty
 }
 auto ParseDecimal256(const rapidjson::Value& json_obj, const arrow::DataType& type) {
     return ParseDecimal<arrow::Decimal256Type, arrow::Decimal256>(json_obj, type);
-}
-template <> bool TestType<arrow::Type::DECIMAL128>(const rapidjson::Value& json_obj, const arrow::DataType& type) {
-    return ParseDecimal128(json_obj, type).ok();
-}
-template <> bool TestType<arrow::Type::DECIMAL256>(const rapidjson::Value& json_obj, const arrow::DataType& type) {
-    return ParseDecimal256(json_obj, type).ok();
 }
 
 // Parse single signed integer value (also {Date,Time}{32,64} and Timestamp)
@@ -159,29 +143,6 @@ arrow::enable_if_physical_signed_integer<T, arrow::Result<typename T::c_type>> P
     }
 }
 
-#define PARSE_NUMBER(TYPE, TYPE_OBJ)                                                                 \
-    template <> bool TestType<TYPE>(const rapidjson::Value& json_obj, const arrow::DataType& type) { \
-        return ParseNumber<TYPE_OBJ>(json_obj, type).ok();                                           \
-    }
-PARSE_NUMBER(arrow::Type::UINT8, arrow::UInt8Type);
-PARSE_NUMBER(arrow::Type::UINT16, arrow::UInt16Type);
-PARSE_NUMBER(arrow::Type::UINT32, arrow::UInt32Type);
-PARSE_NUMBER(arrow::Type::UINT64, arrow::UInt64Type);
-PARSE_NUMBER(arrow::Type::INT8, arrow::Int8Type);
-PARSE_NUMBER(arrow::Type::INT16, arrow::Int16Type);
-PARSE_NUMBER(arrow::Type::INT32, arrow::Int32Type);
-PARSE_NUMBER(arrow::Type::INT64, arrow::Int64Type);
-PARSE_NUMBER(arrow::Type::FLOAT, arrow::FloatType);
-PARSE_NUMBER(arrow::Type::HALF_FLOAT, arrow::HalfFloatType);
-PARSE_NUMBER(arrow::Type::DOUBLE, arrow::DoubleType);
-PARSE_NUMBER(arrow::Type::DATE32, arrow::Date32Type);
-PARSE_NUMBER(arrow::Type::DATE64, arrow::Date64Type);
-PARSE_NUMBER(arrow::Type::TIME32, arrow::Time32Type);
-PARSE_NUMBER(arrow::Type::TIME64, arrow::Time64Type);
-PARSE_NUMBER(arrow::Type::DURATION, arrow::DurationType);
-PARSE_NUMBER(arrow::Type::INTERVAL_MONTHS, arrow::MonthIntervalType);
-#undef PARSE_NUMBER
-
 /// Parse a timestamp
 arrow::Result<int64_t> ParseTimestamp(const rapidjson::Value& json_obj, const arrow::DataType& t) {
     auto& type = reinterpret_cast<const arrow::TimestampType&>(t);
@@ -199,10 +160,6 @@ arrow::Result<int64_t> ParseTimestamp(const rapidjson::Value& json_obj, const ar
     }
     return value;
 }
-/// Test a timestamp
-template <> bool TestType<arrow::Type::TIMESTAMP>(const rapidjson::Value& json_obj, const arrow::DataType& type) {
-    return ParseTimestamp(json_obj, type).ok();
-}
 
 /// Parse a daytime
 arrow::Result<arrow::DayTimeIntervalType::DayMilliseconds> ParseDayTime(const rapidjson::Value& json_obj,
@@ -217,10 +174,6 @@ arrow::Result<arrow::DayTimeIntervalType::DayMilliseconds> ParseDayTime(const ra
     return value;
 }
 /// Test a daytime
-template <>
-bool TestType<arrow::Type::INTERVAL_DAY_TIME>(const rapidjson::Value& json_obj, const arrow::DataType& type) {
-    return ParseDayTime(json_obj, type).ok();
-}
 
 /// Parse a string
 arrow::Result<arrow::util::string_view> ParseString(const rapidjson::Value& json_obj, const arrow::DataType& /*type*/) {
@@ -230,10 +183,6 @@ arrow::Result<arrow::util::string_view> ParseString(const rapidjson::Value& json
     } else {
         return JSONTypeError("string", json_obj.GetType());
     }
-}
-/// Test a string
-template <> bool TestType<arrow::Type::STRING>(const rapidjson::Value& json_obj, const arrow::DataType& type) {
-    return ParseString(json_obj, type).ok();
 }
 
 /// Parse a string
@@ -251,11 +200,6 @@ arrow::Result<arrow::util::string_view> ParseFixedSizeBinary(const rapidjson::Va
     } else {
         return JSONTypeError("string", json_obj.GetType());
     }
-}
-/// Test a string
-template <>
-bool TestType<arrow::Type::FIXED_SIZE_BINARY>(const rapidjson::Value& json_obj, const arrow::DataType& type) {
-    return ParseFixedSizeBinary(json_obj, type).ok();
 }
 
 // -------------------------------------------
@@ -482,7 +426,7 @@ class ListArrayParser final
     /// Initialize the array builder
     arrow::Status Init() override {
         const auto& list_type = static_cast<const TYPE&>(*this->type_);
-        ARROW_ASSIGN_OR_RAISE(child_converter_, ResolveArrayParser(list_type.value_type()));
+        ARROW_ASSIGN_OR_RAISE(child_converter_, ArrayParser::Resolve(list_type.value_type()));
         auto child_builder = child_converter_->builder();
         this->builder_ = std::make_shared<BuilderType>(arrow::default_memory_pool(), child_builder, this->type_);
         return arrow::Status::OK();
@@ -507,8 +451,8 @@ class MapArrayParser final : public BaseArrayParser<MapArrayParser, arrow::MapBu
     /// Initialize the parser
     arrow::Status Init() override {
         const auto& map_type = static_cast<const arrow::MapType&>(*type_);
-        ARROW_ASSIGN_OR_RAISE(key_parser_, ResolveArrayParser(map_type.key_type()));
-        ARROW_ASSIGN_OR_RAISE(item_parser_, ResolveArrayParser(map_type.item_type()));
+        ARROW_ASSIGN_OR_RAISE(key_parser_, ArrayParser::Resolve(map_type.key_type()));
+        ARROW_ASSIGN_OR_RAISE(item_parser_, ArrayParser::Resolve(map_type.item_type()));
         auto key_builder = key_parser_->builder();
         auto item_builder = item_parser_->builder();
         builder_ = std::make_shared<arrow::MapBuilder>(arrow::default_memory_pool(), key_builder, item_builder, type_);
@@ -548,7 +492,7 @@ class FixedSizeListArrayParser final : public BaseArrayParser<FixedSizeListArray
     arrow::Status Init() override {
         const auto& list_type = static_cast<const arrow::FixedSizeListType&>(*type_);
         list_size_ = list_type.list_size();
-        ARROW_ASSIGN_OR_RAISE(child_converter_, ResolveArrayParser(list_type.value_type()));
+        ARROW_ASSIGN_OR_RAISE(child_converter_, ArrayParser::Resolve(list_type.value_type()));
         auto child_builder = child_converter_->builder();
         builder_ = std::make_shared<arrow::FixedSizeListBuilder>(arrow::default_memory_pool(), child_builder, type_);
         return arrow::Status::OK();
@@ -579,7 +523,7 @@ class StructArrayParser final : public BaseArrayParser<StructArrayParser, arrow:
         std::vector<std::shared_ptr<arrow::ArrayBuilder>> child_builders;
         for (const auto& field : type_->fields()) {
             std::shared_ptr<ArrayParser> child_converter;
-            ARROW_ASSIGN_OR_RAISE(child_converter, ResolveArrayParser(field->type()));
+            ARROW_ASSIGN_OR_RAISE(child_converter, ArrayParser::Resolve(field->type()));
             child_parsers_.push_back(child_converter);
             child_builders.push_back(child_converter->builder());
         }
@@ -655,7 +599,7 @@ class UnionArrayParser final : public BaseArrayParser<UnionArrayParser, arrow::A
         std::vector<std::shared_ptr<arrow::ArrayBuilder>> child_builders;
         for (const auto& field : type_->fields()) {
             std::shared_ptr<ArrayParser> child_converter;
-            ARROW_ASSIGN_OR_RAISE(child_converter, ResolveArrayParser(field->type()));
+            ARROW_ASSIGN_OR_RAISE(child_converter, ArrayParser::Resolve(field->type()));
             child_parsers_.push_back(child_converter);
             child_builders.push_back(child_converter->builder());
         }
@@ -748,109 +692,179 @@ arrow::Result<std::shared_ptr<ArrayParser>> GetDictArrayParser(const std::shared
     return res;
 }
 
+// -------------------------------------------
+// Type tests
+
+template <arrow::Type::type TYPE> bool TestType(const rapidjson::Value& value, const arrow::DataType& type);
+
+template <> bool TestType<arrow::Type::NA>(const rapidjson::Value& json_obj, const arrow::DataType& type) {
+    return json_obj.IsNull();
+}
+template <> bool TestType<arrow::Type::BOOL>(const rapidjson::Value& json_obj, const arrow::DataType& type) {
+    return ParseBoolean(json_obj, type).ok();
+}
+template <> bool TestType<arrow::Type::DECIMAL128>(const rapidjson::Value& json_obj, const arrow::DataType& type) {
+    return ParseDecimal128(json_obj, type).ok();
+}
+template <> bool TestType<arrow::Type::DECIMAL256>(const rapidjson::Value& json_obj, const arrow::DataType& type) {
+    return ParseDecimal256(json_obj, type).ok();
+}
+#define PARSE_NUMBER(TYPE, TYPE_OBJ)                                                                 \
+    template <> bool TestType<TYPE>(const rapidjson::Value& json_obj, const arrow::DataType& type) { \
+        return ParseNumber<TYPE_OBJ>(json_obj, type).ok();                                           \
+    }
+PARSE_NUMBER(arrow::Type::UINT8, arrow::UInt8Type);
+PARSE_NUMBER(arrow::Type::UINT16, arrow::UInt16Type);
+PARSE_NUMBER(arrow::Type::UINT32, arrow::UInt32Type);
+PARSE_NUMBER(arrow::Type::UINT64, arrow::UInt64Type);
+PARSE_NUMBER(arrow::Type::INT8, arrow::Int8Type);
+PARSE_NUMBER(arrow::Type::INT16, arrow::Int16Type);
+PARSE_NUMBER(arrow::Type::INT32, arrow::Int32Type);
+PARSE_NUMBER(arrow::Type::INT64, arrow::Int64Type);
+PARSE_NUMBER(arrow::Type::FLOAT, arrow::FloatType);
+PARSE_NUMBER(arrow::Type::HALF_FLOAT, arrow::HalfFloatType);
+PARSE_NUMBER(arrow::Type::DOUBLE, arrow::DoubleType);
+PARSE_NUMBER(arrow::Type::DATE32, arrow::Date32Type);
+PARSE_NUMBER(arrow::Type::DATE64, arrow::Date64Type);
+PARSE_NUMBER(arrow::Type::TIME32, arrow::Time32Type);
+PARSE_NUMBER(arrow::Type::TIME64, arrow::Time64Type);
+PARSE_NUMBER(arrow::Type::DURATION, arrow::DurationType);
+PARSE_NUMBER(arrow::Type::INTERVAL_MONTHS, arrow::MonthIntervalType);
+#undef PARSE_NUMBER
+template <> bool TestType<arrow::Type::TIMESTAMP>(const rapidjson::Value& json_obj, const arrow::DataType& type) {
+    return ParseTimestamp(json_obj, type).ok();
+}
+template <>
+bool TestType<arrow::Type::INTERVAL_DAY_TIME>(const rapidjson::Value& json_obj, const arrow::DataType& type) {
+    return ParseDayTime(json_obj, type).ok();
+}
+template <> bool TestType<arrow::Type::STRING>(const rapidjson::Value& json_obj, const arrow::DataType& type) {
+    return ParseString(json_obj, type).ok();
+}
+template <>
+bool TestType<arrow::Type::FIXED_SIZE_BINARY>(const rapidjson::Value& json_obj, const arrow::DataType& type) {
+    return ParseFixedSizeBinary(json_obj, type).ok();
+}
+
+// -------------------------------------------
+// Type analyzer
+
+template <arrow::Type::type TYPE> struct GenericTypeAnalyzer : public TypeAnalyzer {
+    /// Constructor
+    GenericTypeAnalyzer(std::shared_ptr<arrow::DataType> type) : TypeAnalyzer(std::move(type)) {}
+
+    /// Check if a value is of the type
+    bool TestValue(const rapidjson::Value& value) override { return value.IsNull() || TestType<TYPE>(value, *type_); }
+    /// Check if multiple values are of the type
+    size_t TestValues(const std::vector<rapidjson::Value>& json_values) override {
+        size_t hits = 0;
+        for (unsigned i = 0; i < json_values.size(); ++i) {
+            auto& value = json_values[i];
+            hits += value.IsNull() || TestType<TYPE>(json_values[i], *type_);
+        }
+        return hits;
+    }
+};
+
 }  // namespace
 
-arrow::Result<std::shared_ptr<ArrayParser>> ResolveArrayParser(const std::shared_ptr<arrow::DataType>& type) {
+/// Constructor
+TypeAnalyzer::TypeAnalyzer(std::shared_ptr<arrow::DataType> type) : type_(std::move(type)){};
+
+/// Resolve a type analyzer
+std::unique_ptr<TypeAnalyzer> TypeAnalyzer::ResolveScalar(std::shared_ptr<arrow::DataType> type) {
+#define ANALYZER_CASE(ID) \
+    case ID:              \
+        return std::make_unique<GenericTypeAnalyzer<ID>>(type);
+
+    switch (type->id()) {
+        ANALYZER_CASE(arrow::Type::INT8)
+        ANALYZER_CASE(arrow::Type::INT16)
+        ANALYZER_CASE(arrow::Type::INT32)
+        ANALYZER_CASE(arrow::Type::INT64)
+        ANALYZER_CASE(arrow::Type::UINT8)
+        ANALYZER_CASE(arrow::Type::UINT16)
+        ANALYZER_CASE(arrow::Type::UINT32)
+        ANALYZER_CASE(arrow::Type::UINT64)
+        ANALYZER_CASE(arrow::Type::TIMESTAMP)
+        ANALYZER_CASE(arrow::Type::DATE32)
+        ANALYZER_CASE(arrow::Type::DATE64)
+        ANALYZER_CASE(arrow::Type::TIME32)
+        ANALYZER_CASE(arrow::Type::TIME64)
+        ANALYZER_CASE(arrow::Type::DURATION)
+        ANALYZER_CASE(arrow::Type::NA)
+        ANALYZER_CASE(arrow::Type::BOOL)
+        ANALYZER_CASE(arrow::Type::HALF_FLOAT)
+        ANALYZER_CASE(arrow::Type::FLOAT)
+        ANALYZER_CASE(arrow::Type::DOUBLE)
+        ANALYZER_CASE(arrow::Type::STRING)
+        ANALYZER_CASE(arrow::Type::FIXED_SIZE_BINARY)
+        ANALYZER_CASE(arrow::Type::DECIMAL128)
+        ANALYZER_CASE(arrow::Type::DECIMAL256)
+        ANALYZER_CASE(arrow::Type::INTERVAL_MONTHS)
+        ANALYZER_CASE(arrow::Type::INTERVAL_DAY_TIME)
+        default:
+            return nullptr;
+    }
+#undef ANALYZER_CASE
+}
+
+// -------------------------------------------
+// Resolvers
+
+arrow::Result<std::shared_ptr<ArrayParser>> ArrayParser::ArrayParser::Resolve(
+    const std::shared_ptr<arrow::DataType>& type) {
     if (type->id() == arrow::Type::DICTIONARY) return GetDictArrayParser(type);
     std::shared_ptr<ArrayParser> res;
 
-#define SIMPLE_PARSER_CASE(ID, CLASS)        \
+#define PARSER_CASE(ID, CLASS)               \
     case ID:                                 \
         res = std::make_shared<CLASS>(type); \
         break;
 
     switch (type->id()) {
-        SIMPLE_PARSER_CASE(arrow::Type::INT8, IntegerArrayParser<arrow::Int8Type>)
-        SIMPLE_PARSER_CASE(arrow::Type::INT16, IntegerArrayParser<arrow::Int16Type>)
-        SIMPLE_PARSER_CASE(arrow::Type::INT32, IntegerArrayParser<arrow::Int32Type>)
-        SIMPLE_PARSER_CASE(arrow::Type::INT64, IntegerArrayParser<arrow::Int64Type>)
-        SIMPLE_PARSER_CASE(arrow::Type::UINT8, IntegerArrayParser<arrow::UInt8Type>)
-        SIMPLE_PARSER_CASE(arrow::Type::UINT16, IntegerArrayParser<arrow::UInt16Type>)
-        SIMPLE_PARSER_CASE(arrow::Type::UINT32, IntegerArrayParser<arrow::UInt32Type>)
-        SIMPLE_PARSER_CASE(arrow::Type::UINT64, IntegerArrayParser<arrow::UInt64Type>)
-        SIMPLE_PARSER_CASE(arrow::Type::TIMESTAMP, TimestampArrayParser)
-        SIMPLE_PARSER_CASE(arrow::Type::DATE32, IntegerArrayParser<arrow::Date32Type>)
-        SIMPLE_PARSER_CASE(arrow::Type::DATE64, IntegerArrayParser<arrow::Date64Type>)
-        SIMPLE_PARSER_CASE(arrow::Type::TIME32, IntegerArrayParser<arrow::Time32Type>)
-        SIMPLE_PARSER_CASE(arrow::Type::TIME64, IntegerArrayParser<arrow::Time64Type>)
-        SIMPLE_PARSER_CASE(arrow::Type::DURATION, IntegerArrayParser<arrow::DurationType>)
-        SIMPLE_PARSER_CASE(arrow::Type::NA, NullArrayParser)
-        SIMPLE_PARSER_CASE(arrow::Type::BOOL, BooleanArrayParser)
-        SIMPLE_PARSER_CASE(arrow::Type::HALF_FLOAT, IntegerArrayParser<arrow::HalfFloatType>)
-        SIMPLE_PARSER_CASE(arrow::Type::FLOAT, FloatArrayParser<arrow::FloatType>)
-        SIMPLE_PARSER_CASE(arrow::Type::DOUBLE, FloatArrayParser<arrow::DoubleType>)
-        SIMPLE_PARSER_CASE(arrow::Type::LIST, ListArrayParser<arrow::ListType>)
-        SIMPLE_PARSER_CASE(arrow::Type::LARGE_LIST, ListArrayParser<arrow::LargeListType>)
-        SIMPLE_PARSER_CASE(arrow::Type::MAP, MapArrayParser)
-        SIMPLE_PARSER_CASE(arrow::Type::FIXED_SIZE_LIST, FixedSizeListArrayParser)
-        SIMPLE_PARSER_CASE(arrow::Type::STRUCT, StructArrayParser)
-        SIMPLE_PARSER_CASE(arrow::Type::STRING, StringArrayParser<arrow::StringType>)
-        SIMPLE_PARSER_CASE(arrow::Type::BINARY, StringArrayParser<arrow::BinaryType>)
-        SIMPLE_PARSER_CASE(arrow::Type::LARGE_STRING, StringArrayParser<arrow::LargeStringType>)
-        SIMPLE_PARSER_CASE(arrow::Type::LARGE_BINARY, StringArrayParser<arrow::LargeBinaryType>)
-        SIMPLE_PARSER_CASE(arrow::Type::FIXED_SIZE_BINARY, FixedSizeBinaryArrayParser<>)
-        SIMPLE_PARSER_CASE(arrow::Type::DECIMAL128, Decimal128ArrayParser<>)
-        SIMPLE_PARSER_CASE(arrow::Type::DECIMAL256, Decimal256ArrayParser<>)
-        SIMPLE_PARSER_CASE(arrow::Type::SPARSE_UNION, UnionArrayParser)
-        SIMPLE_PARSER_CASE(arrow::Type::DENSE_UNION, UnionArrayParser)
-        SIMPLE_PARSER_CASE(arrow::Type::INTERVAL_MONTHS, IntegerArrayParser<arrow::MonthIntervalType>)
-        SIMPLE_PARSER_CASE(arrow::Type::INTERVAL_DAY_TIME, DayTimeIntervalArrayParser)
+        PARSER_CASE(arrow::Type::INT8, IntegerArrayParser<arrow::Int8Type>)
+        PARSER_CASE(arrow::Type::INT16, IntegerArrayParser<arrow::Int16Type>)
+        PARSER_CASE(arrow::Type::INT32, IntegerArrayParser<arrow::Int32Type>)
+        PARSER_CASE(arrow::Type::INT64, IntegerArrayParser<arrow::Int64Type>)
+        PARSER_CASE(arrow::Type::UINT8, IntegerArrayParser<arrow::UInt8Type>)
+        PARSER_CASE(arrow::Type::UINT16, IntegerArrayParser<arrow::UInt16Type>)
+        PARSER_CASE(arrow::Type::UINT32, IntegerArrayParser<arrow::UInt32Type>)
+        PARSER_CASE(arrow::Type::UINT64, IntegerArrayParser<arrow::UInt64Type>)
+        PARSER_CASE(arrow::Type::TIMESTAMP, TimestampArrayParser)
+        PARSER_CASE(arrow::Type::DATE32, IntegerArrayParser<arrow::Date32Type>)
+        PARSER_CASE(arrow::Type::DATE64, IntegerArrayParser<arrow::Date64Type>)
+        PARSER_CASE(arrow::Type::TIME32, IntegerArrayParser<arrow::Time32Type>)
+        PARSER_CASE(arrow::Type::TIME64, IntegerArrayParser<arrow::Time64Type>)
+        PARSER_CASE(arrow::Type::DURATION, IntegerArrayParser<arrow::DurationType>)
+        PARSER_CASE(arrow::Type::NA, NullArrayParser)
+        PARSER_CASE(arrow::Type::BOOL, BooleanArrayParser)
+        PARSER_CASE(arrow::Type::HALF_FLOAT, IntegerArrayParser<arrow::HalfFloatType>)
+        PARSER_CASE(arrow::Type::FLOAT, FloatArrayParser<arrow::FloatType>)
+        PARSER_CASE(arrow::Type::DOUBLE, FloatArrayParser<arrow::DoubleType>)
+        PARSER_CASE(arrow::Type::LIST, ListArrayParser<arrow::ListType>)
+        PARSER_CASE(arrow::Type::LARGE_LIST, ListArrayParser<arrow::LargeListType>)
+        PARSER_CASE(arrow::Type::MAP, MapArrayParser)
+        PARSER_CASE(arrow::Type::FIXED_SIZE_LIST, FixedSizeListArrayParser)
+        PARSER_CASE(arrow::Type::STRUCT, StructArrayParser)
+        PARSER_CASE(arrow::Type::STRING, StringArrayParser<arrow::StringType>)
+        PARSER_CASE(arrow::Type::BINARY, StringArrayParser<arrow::BinaryType>)
+        PARSER_CASE(arrow::Type::LARGE_STRING, StringArrayParser<arrow::LargeStringType>)
+        PARSER_CASE(arrow::Type::LARGE_BINARY, StringArrayParser<arrow::LargeBinaryType>)
+        PARSER_CASE(arrow::Type::FIXED_SIZE_BINARY, FixedSizeBinaryArrayParser<>)
+        PARSER_CASE(arrow::Type::DECIMAL128, Decimal128ArrayParser<>)
+        PARSER_CASE(arrow::Type::DECIMAL256, Decimal256ArrayParser<>)
+        PARSER_CASE(arrow::Type::SPARSE_UNION, UnionArrayParser)
+        PARSER_CASE(arrow::Type::DENSE_UNION, UnionArrayParser)
+        PARSER_CASE(arrow::Type::INTERVAL_MONTHS, IntegerArrayParser<arrow::MonthIntervalType>)
+        PARSER_CASE(arrow::Type::INTERVAL_DAY_TIME, DayTimeIntervalArrayParser)
         default:
             return JSONParsingNotImplemented(type);
     }
-#undef SIMPLE_PARSER_CASE
+#undef PARSER_CASE
 
     RETURN_NOT_OK(res->Init());
     return res;
-}
-
-/// Test a type
-size_t TestScalarType(const std::vector<rapidjson::Value>& json_values, const arrow::DataType& type) {
-    auto run = [&](auto fn) {
-        size_t hits = 0;
-        for (unsigned i = 0; i < json_values.size(); ++i) {
-            auto& value = json_values[i];
-            hits += value.IsNull() || fn(json_values[i], type).ok();
-        }
-        return hits;
-    };
-#define TEST_TYPE(TYPE, FUNC) \
-    case TYPE:                \
-        return run(FUNC);
-
-    switch (type.id()) {
-        TEST_TYPE(arrow::Type::BOOL, ParseBoolean);
-        TEST_TYPE(arrow::Type::INT8, ParseNumber<arrow::Int8Type>);
-        TEST_TYPE(arrow::Type::INT16, ParseNumber<arrow::Int16Type>);
-        TEST_TYPE(arrow::Type::INT32, ParseNumber<arrow::Int32Type>);
-        TEST_TYPE(arrow::Type::INT64, ParseNumber<arrow::Int64Type>);
-        TEST_TYPE(arrow::Type::UINT8, ParseNumber<arrow::UInt8Type>);
-        TEST_TYPE(arrow::Type::UINT16, ParseNumber<arrow::UInt16Type>);
-        TEST_TYPE(arrow::Type::UINT32, ParseNumber<arrow::UInt32Type>);
-        TEST_TYPE(arrow::Type::UINT64, ParseNumber<arrow::UInt64Type>);
-        TEST_TYPE(arrow::Type::TIMESTAMP, ParseTimestamp);
-        TEST_TYPE(arrow::Type::DATE32, ParseNumber<arrow::Date32Type>)
-        TEST_TYPE(arrow::Type::DATE64, ParseNumber<arrow::Date64Type>)
-        TEST_TYPE(arrow::Type::TIME32, ParseNumber<arrow::Time32Type>)
-        TEST_TYPE(arrow::Type::TIME64, ParseNumber<arrow::Time64Type>)
-        TEST_TYPE(arrow::Type::DURATION, ParseNumber<arrow::DurationType>)
-        TEST_TYPE(arrow::Type::HALF_FLOAT, ParseNumber<arrow::HalfFloatType>)
-        TEST_TYPE(arrow::Type::FLOAT, ParseNumber<arrow::FloatType>)
-        TEST_TYPE(arrow::Type::DOUBLE, ParseNumber<arrow::DoubleType>)
-        TEST_TYPE(arrow::Type::DECIMAL128, ParseDecimal128)
-        TEST_TYPE(arrow::Type::DECIMAL256, ParseDecimal256)
-        TEST_TYPE(arrow::Type::STRING, ParseString)
-        TEST_TYPE(arrow::Type::BINARY, ParseString)
-        TEST_TYPE(arrow::Type::LARGE_STRING, ParseString)
-        TEST_TYPE(arrow::Type::LARGE_BINARY, ParseString)
-        TEST_TYPE(arrow::Type::INTERVAL_MONTHS, ParseNumber<arrow::MonthIntervalType>)
-        TEST_TYPE(arrow::Type::INTERVAL_DAY_TIME, ParseDayTime)
-        TEST_TYPE(arrow::Type::FIXED_SIZE_BINARY, ParseFixedSizeBinary)
-        default: {
-            return 0;
-        }
-    }
-#undef TEST_TYPE
 }
 
 }  // namespace json

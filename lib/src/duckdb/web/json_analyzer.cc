@@ -104,7 +104,7 @@ arrow::Result<std::shared_ptr<arrow::DataType>> InferDataTypeImpl(const JSONArra
             {arrow::float64(), 0},
             {arrow::boolean(), 0}};
         for (auto& [type, hits] : candidates) {
-            hits += TestScalarType(samples, *type);
+            hits = TypeAnalyzer::ResolveScalar(type)->TestValues(samples);
         }
     }
     // Doubles win over integers
