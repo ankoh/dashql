@@ -49,19 +49,52 @@ TEST_P(JSONAnalyzerTestSuite, InferTableType) {
         return;
     }
     ASSERT_NE(type, nullptr);
-    ASSERT_EQ(type->ToString(), test.type);
+    ASSERT_EQ(std::string{type->ToString()}, std::string{test.type});
 }
 
 // clang-format off
 static std::vector<JSONAnalyzerTest> JSON_ANALYZER_TESTS = {
     {
-        .name = "column_arrays_empty",
+        .name = "cols_empty",
         .input = R"JSON({})JSON",
         .shape = TableShape::COLUMN_ARRAYS,
         .type = "struct<>"
     },
     {
-        .name = "column_arrays_1",
+        .name = "cols_single_i32",
+        .input = R"JSON({
+            "a": [1, 2, 3]
+        })JSON",
+        .shape = TableShape::COLUMN_ARRAYS,
+        .type = "struct<a: int32>"
+    },
+    {
+        .name = "cols_single_u32",
+        .input = R"JSON({
+            "a": [1, 2, 2147483648]
+        })JSON",
+        .shape = TableShape::COLUMN_ARRAYS,
+        .type = "struct<a: uint32>"
+    },
+    {
+        .name = "cols_i32_sign_conflict",
+        .input = R"JSON({
+            "a": [1, -2, 2147483648]
+        })JSON",
+        .shape = TableShape::COLUMN_ARRAYS,
+        .type = "struct<a: int64>"
+    },
+    {
+        .name = "cols_2",
+        .input = R"JSON({
+            "a": [1, -2, 3],
+            "b": ["c", "d", "e"]
+        })JSON",
+        .shape = TableShape::COLUMN_ARRAYS,
+        .type = "struct<a: int32, b: string>"
+    },
+    {
+        .name = "cols_3",
         .input = R"JSON({
             "a": [1, -2, 3],
             "b": ["c", "d", "e"],
@@ -71,13 +104,13 @@ static std::vector<JSONAnalyzerTest> JSON_ANALYZER_TESTS = {
         .type = "struct<a: int32, b: string, f: bool>"
     },
     {
-        .name = "row_array_empty",
+        .name = "rows_empty",
         .input = R"JSON([])JSON",
         .shape = TableShape::ROW_ARRAY,
         .type = "struct<>"
     },
     {
-        .name = "row_array_1",
+        .name = "rows_1",
         .input = R"JSON([
             {"a": 1, "b": "c", "f": true},
             {"a": -2, "b": "d", "f": true},
