@@ -79,7 +79,6 @@ arrow::Result<std::shared_ptr<arrow::DataType>> InferDataTypeImpl(const JSONArra
     // Objects and arrays win over everything
     if (stats.counter_object > 0 || stats.counter_array > 0) {
         std::vector<std::shared_ptr<arrow::DataType>> sample_types;
-        std::vector<std::string_view> sample_fingerprints;
         sample_types.reserve(samples.size());
         for (auto& sample : samples) {
             auto type = InferDataTypeImpl(sample);
@@ -88,14 +87,13 @@ arrow::Result<std::shared_ptr<arrow::DataType>> InferDataTypeImpl(const JSONArra
         }
         std::sort(sample_types.begin(), sample_types.end(),
                   [&](auto& l, auto& r) { return l->fingerprint() < r->fingerprint(); });
-        return !sample_types.empty() ? sample_types[sample_types.size() >> 1] : nullptr;
+        return !sample_types.empty() ? sample_types[sample_types.size() >> 1] : arrow::null();
     }
     // Strings win over numbers
     if (stats.counter_string > 0) {
         // TODO: what about decimals? we could try a few scales
         std::vector<std::pair<std::shared_ptr<arrow::DataType>, size_t>> candidates{
             {arrow::timestamp(arrow::TimeUnit::SECOND), 0},
-            {arrow::month_interval(), 0},
             {arrow::day_time_interval(), 0},
             {arrow::int32(), 0},
             {arrow::uint32(), 0},
@@ -106,6 +104,7 @@ arrow::Result<std::shared_ptr<arrow::DataType>> InferDataTypeImpl(const JSONArra
         for (auto& [type, hits] : candidates) {
             hits = TypeAnalyzer::ResolveScalar(type)->TestValues(samples);
         }
+        // XXX
     }
     // Doubles win over integers
     if (stats.counter_double > 0) {
@@ -121,23 +120,129 @@ arrow::Result<std::shared_ptr<arrow::DataType>> InferDataTypeImpl(const JSONArra
         return arrow::uint64();
     }
     // Forced into 64 bit?
-    if (any_i64 || (stats.counter_int32 > 0 && stats.counter_uint32_max > 0)) {
-        return arrow::int64();
-    }
+    if (any_i64 || (stats.counter_int32 > 0 && stats.counter_uint32_max > 0)) return arrow::int64();
     // Forced into 32 bit unsigned?
-    if (stats.counter_uint32_max > 0) {
-        return arrow::uint32();
-    }
+    if (stats.counter_uint32_max > 0) return arrow::uint32();
     // Just 32 bit signed?
-    if (any_i32) {
-        return arrow::int32();
-    }
+    if (any_i32) return arrow::int32();
     // Boolean?
-    if (stats.counter_bool > 0) {
-        return arrow::boolean();
-    }
+    if (stats.counter_bool > 0) return arrow::boolean();
     // Everything must be null then?
     return arrow::null();
+}
+
+/// Infer a data type from statistics and a sample
+arrow::Result<std::shared_ptr<arrow::DataType>> InferDataTypeImpl(
+    std::unordered_map<std::string_view, JSONArrayStats>& field_stats, const std::vector<rapidjson::Value>& samples) {
+    std::vector<std::shared_ptr<arrow::Field>> fields;
+
+    // The pending object fields
+    std::unordered_map<std::string_view, std::vector<std::shared_ptr<arrow::DataType>>> infer_directly;
+    // The string field options
+    std::vector<std::unique_ptr<TypeAnalyzer>> analyzers;
+    analyzers.push_back(TypeAnalyzer::ResolveScalar(arrow::timestamp(arrow::TimeUnit::SECOND)));
+    analyzers.push_back(TypeAnalyzer::ResolveScalar(arrow::day_time_interval()));
+    analyzers.push_back(TypeAnalyzer::ResolveScalar(arrow::int32()));
+    analyzers.push_back(TypeAnalyzer::ResolveScalar(arrow::uint32()));
+    analyzers.push_back(TypeAnalyzer::ResolveScalar(arrow::int64()));
+    analyzers.push_back(TypeAnalyzer::ResolveScalar(arrow::uint64()));
+    analyzers.push_back(TypeAnalyzer::ResolveScalar(arrow::float64()));
+    analyzers.push_back(TypeAnalyzer::ResolveScalar(arrow::boolean()));
+    // The pending string fields
+    std::unordered_map<std::string_view, std::vector<size_t>> infer_from_analyzers;
+
+    for (auto& [name, stats] : field_stats) {
+        // Check what we're up to
+        auto any_i32 = stats.counter_int32 > 0 || stats.counter_uint32 > 0;
+        auto any_i64 = stats.counter_int64 > 0 || stats.counter_uint64 > 0;
+
+        // Objects and arrays win over everything
+        if (stats.counter_object > 0 || stats.counter_array > 0) {
+            std::vector<std::shared_ptr<arrow::DataType>> types;
+            types.reserve(samples.size());
+            infer_directly.insert({name, std::move(types)});
+            continue;
+        }
+        // Strings win over numbers
+        if (stats.counter_string > 0) {
+            std::vector<size_t> hits;
+            hits.resize(analyzers.size());
+            infer_from_analyzers.insert({name, std::move(hits)});
+            continue;
+        }
+        // Doubles win over integers
+        if (stats.counter_double > 0) {
+            fields.push_back(arrow::field(std::string{name}, arrow::float64()));
+            continue;
+        }
+        // Forced into 64 bit unsigned?
+        if (stats.counter_uint64_max > 0) {
+            if (stats.counter_int64 > 0) {
+                // Conflict, we'll just silently fall back to doubles.
+                // We could tell the user.
+                fields.push_back(arrow::field(std::string{name}, arrow::float64()));
+                continue;
+            }
+            fields.push_back(arrow::field(std::string{name}, arrow::uint64()));
+            continue;
+        }
+        // Forced into 64 bit?
+        if (any_i64 || (stats.counter_int32 > 0 && stats.counter_uint32_max > 0)) {
+            fields.push_back(arrow::field(std::string{name}, arrow::uint64()));
+            continue;
+        }
+        // Forced into 32 bit unsigned?
+        if (stats.counter_uint32_max > 0) {
+            fields.push_back(arrow::field(std::string{name}, arrow::uint32()));
+            continue;
+        }
+        // Just 32 bit signed?
+        if (any_i32) {
+            fields.push_back(arrow::field(std::string{name}, arrow::int32()));
+            continue;
+        }
+        // Boolean?
+        if (stats.counter_bool > 0) {
+            fields.push_back(arrow::field(std::string{name}, arrow::boolean()));
+            continue;
+        }
+        // Everything must be null then?
+        fields.push_back(arrow::field(std::string{name}, arrow::null()));
+    }
+
+    // Need to check the sample?
+    if (!infer_directly.empty() || !infer_from_analyzers.empty()) {
+        // Analyze the sample first
+        for (auto& sample : samples) {
+            for (auto iter = sample.MemberBegin(); iter != sample.MemberEnd(); ++iter) {
+                auto name_str = iter->name.GetString();
+                // Directly?
+                if (auto o = infer_directly.find(name_str); o != infer_directly.end()) {
+                    o->second.push_back(InferDataTypeImpl(iter->value));
+                    continue;
+                }
+                // From analyzers?
+                if (auto s = infer_from_analyzers.find(name_str); s != infer_from_analyzers.end()) {
+                    for (unsigned i = 0; i < infer_from_analyzers.size(); ++i) {
+                        s->second[i] += analyzers[i]->TestValue(iter->value);
+                    }
+                    continue;
+                }
+            }
+        }
+
+        // Infer directly
+        for (auto& [name, types] : infer_directly) {
+            std::sort(types.begin(), types.end(),
+                      [&](auto& l, auto& r) { return l->fingerprint() < r->fingerprint(); });
+            auto type = !types.empty() ? types[types.size() >> 1] : arrow::null();
+            fields.push_back(arrow::field(std::string(name), type));
+        }
+
+        // Run analyzers
+        // XXX
+    }
+    return arrow::struct_(std::move(fields));
 }
 
 /// Type detection base class
@@ -293,7 +398,7 @@ class JSONStructArrayAnalyzer : public JSONArrayAnalyzer<TableShape::ROW_ARRAY, 
     /// The first-level fields
     std::vector<std::unique_ptr<char[]>> field_names_ = {};
     /// The first-level stats
-    std::unordered_map<std::string_view, JSONArrayStats> field_stats_map_ = {};
+    std::unordered_map<std::string_view, JSONArrayStats> field_stats_ = {};
 
    public:
     /// Constructor
@@ -305,7 +410,7 @@ class JSONStructArrayAnalyzer : public JSONArrayAnalyzer<TableShape::ROW_ARRAY, 
         // E.g. [{"a": 1, "b": 2}, {"a": 3, "b": 4}]
         //      => tracks array statistics for [], "a" and "b"
         if (current_depth_ == data_depth_) {
-            if (auto iter = field_stats_map_.find(std::string_view{txt, length}); iter != field_stats_map_.end()) {
+            if (auto iter = field_stats_.find(std::string_view{txt, length}); iter != field_stats_.end()) {
                 stats_ = &iter->second;
             } else if (field_names_.size() < field_limit) {
                 // Allocate name buffer
@@ -315,7 +420,7 @@ class JSONStructArrayAnalyzer : public JSONArrayAnalyzer<TableShape::ROW_ARRAY, 
                 auto name = std::string_view{buffer.get(), length};
 
                 // Create array stats
-                auto [iter, ok] = field_stats_map_.insert({name, JSONArrayStats{}});
+                auto [iter, ok] = field_stats_.insert({name, JSONArrayStats{}});
                 assert(ok);
                 stats_ = &iter->second;
                 field_names_.push_back(std::move(buffer));
@@ -325,7 +430,7 @@ class JSONStructArrayAnalyzer : public JSONArrayAnalyzer<TableShape::ROW_ARRAY, 
     }
 
     /// Infer the array type
-    arrow::Result<std::shared_ptr<arrow::DataType>> InferDataType() { return nullptr; }
+    arrow::Result<std::shared_ptr<arrow::DataType>> InferDataType() { return InferDataTypeImpl(field_stats_, sample_); }
 };
 
 enum SAXEvent {
