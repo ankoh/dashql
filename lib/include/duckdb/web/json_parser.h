@@ -24,6 +24,8 @@ class TypeAnalyzer {
     TypeAnalyzer(std::shared_ptr<arrow::DataType> type);
 
    public:
+    /// Get the type
+    auto& type() { return type_; }
     /// Check if a value is of the type
     virtual bool TestValue(const rapidjson::Value& json_value) = 0;
     /// Check if multiple values are of the type
