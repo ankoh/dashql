@@ -61,6 +61,14 @@ static std::vector<JSONAnalyzerTest> JSON_ANALYZER_TESTS = {
         .type = "struct<>"
     },
     {
+        .name = "cols_single_bool",
+        .input = R"JSON({
+            "a": [true, true, false]
+        })JSON",
+        .shape = TableShape::COLUMN_ARRAYS,
+        .type = "struct<a: bool>"
+    },
+    {
         .name = "cols_single_i32",
         .input = R"JSON({
             "a": [1, 2, 3]
@@ -85,11 +93,48 @@ static std::vector<JSONAnalyzerTest> JSON_ANALYZER_TESTS = {
         .type = "struct<a: int64>"
     },
     {
-        .name = "cols_timestamp_iso8601_1",
+        .name = "cols_u64",
+        .input = R"JSON({
+            "a": [1, 2, 9223372036854775808]
+        })JSON",
+        .shape = TableShape::COLUMN_ARRAYS,
+        .type = "struct<a: uint64>"
+    },
+    {
+        .name = "cols_f64",
+        .input = R"JSON({
+            "a": [1.0, 2.0, 3.0]
+        })JSON",
+        .shape = TableShape::COLUMN_ARRAYS,
+        .type = "struct<a: double>"
+    },
+    {
+        .name = "cols_f64_mixed_1",
+        .input = R"JSON({
+            "a": [1, -2, 3.0, true]
+        })JSON",
+        .shape = TableShape::COLUMN_ARRAYS,
+        .type = "struct<a: double>"
+    },
+    {
+        .name = "cols_timestamp_1",
         .input = R"JSON({
             "a": [
                 "2007-08-31 16:47",
                 "2007-12-24 18:21",
+                "2008-02-01 09:00:22",
+                "2009-01-01 12:00:00",
+                "2009-06-30 18:30:00"
+            ]
+        })JSON",
+        .shape = TableShape::COLUMN_ARRAYS,
+        .type = "struct<a: timestamp[s]>"
+    },
+    {
+        .name = "cols_timestamp_mixed_1",
+        .input = R"JSON({
+            "a": [
+                1, 2,
                 "2008-02-01 09:00:22",
                 "2009-01-01 12:00:00",
                 "2009-06-30 18:30:00"
