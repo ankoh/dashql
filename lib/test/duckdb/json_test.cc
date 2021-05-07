@@ -55,6 +55,12 @@ TEST_P(JSONAnalyzerTestSuite, InferTableType) {
 // clang-format off
 static std::vector<JSONAnalyzerTest> JSON_ANALYZER_TESTS = {
     {
+        .name = "column_arrays_empty",
+        .input = R"JSON({})JSON",
+        .shape = TableShape::COLUMN_ARRAYS,
+        .type = "struct<>"
+    },
+    {
         .name = "column_arrays_1",
         .input = R"JSON({
             "a": [1, -2, 3],
@@ -63,6 +69,12 @@ static std::vector<JSONAnalyzerTest> JSON_ANALYZER_TESTS = {
         })JSON",
         .shape = TableShape::COLUMN_ARRAYS,
         .type = "struct<a: int32, b: string, f: bool>"
+    },
+    {
+        .name = "row_array_empty",
+        .input = R"JSON([])JSON",
+        .shape = TableShape::ROW_ARRAY,
+        .type = "struct<>"
     },
     {
         .name = "row_array_1",
