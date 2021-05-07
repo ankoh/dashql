@@ -4,7 +4,6 @@
 <p align="center">
   <a href="https://github.com/dashql/dashql/actions"><img src="https://github.com/dashql/dashql/workflows/main/badge.svg" /></a>
   <a href="https://codecov.io/gh/dashql/dashql"><img src="https://codecov.io/gh/dashql/dashql/branch/master/graph/badge.svg?token=JJHUWIHK6M" /></a>
-  <a href="https://www.jsdelivr.com/package/npm/@dashql/duckdb"><img src="https://data.jsdelivr.com/v1/package/npm/@dashql/duckdb/badge" /></a>
 </p>
 <p align="center">
 <i>This repository is not yet ready for prime time. We are actively working towards a first release.</i>
