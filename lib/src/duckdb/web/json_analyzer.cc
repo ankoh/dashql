@@ -66,7 +66,53 @@ std::shared_ptr<arrow::DataType> InferDataTypeImpl(const rapidjson::Value& value
         case rapidjson::Type::kTrueType:
             return arrow::boolean();
     }
-    return nullptr;
+    return arrow::null();
+}
+
+/// Get the preference for a certain string type.
+static size_t getTypePreference(arrow::Type::type id) {
+    switch (id) {
+#define PREFER_CASE(TYPE, SCORE) \
+    case TYPE:                   \
+        return SCORE;
+        PREFER_CASE(arrow::Type::TIMESTAMP, 100)
+        PREFER_CASE(arrow::Type::INT32, 40)
+        PREFER_CASE(arrow::Type::UINT32, 39)
+        PREFER_CASE(arrow::Type::INT64, 38)
+        PREFER_CASE(arrow::Type::UINT64, 37)
+        PREFER_CASE(arrow::Type::DOUBLE, 20)
+        PREFER_CASE(arrow::Type::BOOL, 10)
+        PREFER_CASE(arrow::Type::STRING, 1)
+#undef PREFER
+        default:
+            assert(false && "unexpected type");
+            return 0;
+    };
+}
+
+/// Infer data type from hit counts
+static std::shared_ptr<arrow::DataType> InferDataTypeImpl(
+    std::vector<std::pair<std::shared_ptr<arrow::DataType>, size_t>>& hits) {
+    if (hits.empty()) return arrow::null();
+
+    // for (auto& [type, hits] : hits) {
+    //     std::cout << type->ToString() << ": " << hits << std::endl;
+    // }
+
+    // Determine hit rate of best match
+    std::sort(hits.begin(), hits.end(), [&](auto& l, auto& r) { return l.second < r.second; });
+    auto best = hits.back().second;
+
+    // Filter everything that scores at least 80% of the best match
+    auto threshold = best * 80 / 100;
+    auto lb = std::lower_bound(hits.begin(), hits.end(), threshold,
+                               [&](auto& e, auto threshold) { return e.second < threshold; });
+    assert(lb < hits.end());  // At least the best match
+
+    // Sort those by type preference
+    std::sort(lb, hits.end(),
+              [&](auto& l, auto& r) { return getTypePreference(l.first->id()) < getTypePreference(r.first->id()); });
+    return hits.back().first;
 }
 
 /// Infer a data type from statistics and a sample
@@ -94,17 +140,17 @@ arrow::Result<std::shared_ptr<arrow::DataType>> InferDataTypeImpl(const JSONArra
         // TODO: what about decimals? we could try a few scales
         std::vector<std::pair<std::shared_ptr<arrow::DataType>, size_t>> candidates{
             {arrow::timestamp(arrow::TimeUnit::SECOND), 0},
-            {arrow::day_time_interval(), 0},
             {arrow::int32(), 0},
             {arrow::uint32(), 0},
             {arrow::int64(), 0},
             {arrow::uint64(), 0},
             {arrow::float64(), 0},
-            {arrow::boolean(), 0}};
+            {arrow::boolean(), 0},
+            {arrow::utf8(), 0}};
         for (auto& [type, hits] : candidates) {
             hits = TypeAnalyzer::ResolveScalar(type)->TestValues(samples);
         }
-        // XXX
+        return InferDataTypeImpl(candidates);
     }
     // Doubles win over integers
     if (stats.counter_double > 0) {
@@ -141,13 +187,13 @@ arrow::Result<std::shared_ptr<arrow::DataType>> InferDataTypeImpl(
     // The string field options
     std::vector<std::unique_ptr<TypeAnalyzer>> analyzers;
     analyzers.push_back(TypeAnalyzer::ResolveScalar(arrow::timestamp(arrow::TimeUnit::SECOND)));
-    analyzers.push_back(TypeAnalyzer::ResolveScalar(arrow::day_time_interval()));
     analyzers.push_back(TypeAnalyzer::ResolveScalar(arrow::int32()));
     analyzers.push_back(TypeAnalyzer::ResolveScalar(arrow::uint32()));
     analyzers.push_back(TypeAnalyzer::ResolveScalar(arrow::int64()));
     analyzers.push_back(TypeAnalyzer::ResolveScalar(arrow::uint64()));
     analyzers.push_back(TypeAnalyzer::ResolveScalar(arrow::float64()));
     analyzers.push_back(TypeAnalyzer::ResolveScalar(arrow::boolean()));
+    analyzers.push_back(TypeAnalyzer::ResolveScalar(arrow::utf8()));
     // The pending string fields
     std::unordered_map<std::string_view, std::vector<size_t>> infer_from_analyzers;
 
@@ -223,7 +269,7 @@ arrow::Result<std::shared_ptr<arrow::DataType>> InferDataTypeImpl(
                 }
                 // From analyzers?
                 if (auto s = infer_from_analyzers.find(name_str); s != infer_from_analyzers.end()) {
-                    for (unsigned i = 0; i < infer_from_analyzers.size(); ++i) {
+                    for (unsigned i = 0; i < s->second.size(); ++i) {
                         s->second[i] += analyzers[i]->TestValue(iter->value);
                     }
                     continue;
@@ -239,9 +285,17 @@ arrow::Result<std::shared_ptr<arrow::DataType>> InferDataTypeImpl(
             fields.push_back(arrow::field(std::string(name), type));
         }
 
-        // Run analyzers
-        // XXX
+        // Infer from analyzer hits
+        for (auto& [name, hits] : infer_from_analyzers) {
+            std::vector<std::pair<std::shared_ptr<arrow::DataType>, size_t>> candidates;
+            candidates.reserve(hits.size());
+            for (unsigned i = 0; i < hits.size(); ++i) {
+                candidates.push_back({analyzers[i]->type(), hits[i]});
+            }
+            fields.push_back(arrow::field(std::string(name), InferDataTypeImpl(candidates)));
+        }
     }
+    std::sort(fields.begin(), fields.end(), [&](auto& l, auto& r) { return l->name() < r->name(); });
     return arrow::struct_(std::move(fields));
 }
 
@@ -462,7 +516,7 @@ struct SingleEventCache : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
     bool Key(const char* txt, size_t length, bool copy) {
         txt_buffer = std::string{txt, length};
         key = txt_buffer;
-        return true;
+        return SetEvent(SAXEvent::KEY);
     }
     bool Null() { return SetEvent(SAXEvent::NULL_); }
     bool RawNumber(const Ch* str, size_t len, bool copy) { assert(false); }
