@@ -14,6 +14,25 @@ namespace duckdb {
 namespace web {
 namespace json {
 
+/// A type analyzer
+class TypeAnalyzer {
+   protected:
+    /// The exact data type
+    std::shared_ptr<arrow::DataType> type_;
+
+    /// Constructor
+    TypeAnalyzer(std::shared_ptr<arrow::DataType> type);
+
+   public:
+    /// Check if a value is of the type
+    virtual bool TestValue(const rapidjson::Value& json_value) = 0;
+    /// Check if multiple values are of the type
+    virtual size_t TestValues(const std::vector<rapidjson::Value>& json_values) = 0;
+
+    /// Resolve a type analyzer
+    static std::unique_ptr<TypeAnalyzer> ResolveScalar(std::shared_ptr<arrow::DataType> type);
+};
+
 /// An array reader
 class ArrayParser {
    protected:
@@ -41,12 +60,10 @@ class ArrayParser {
         }
         return builder->Finish(out);
     }
-};
 
-/// Resolve an array parser
-arrow::Result<std::shared_ptr<ArrayParser>> ResolveArrayParser(const std::shared_ptr<arrow::DataType>& type);
-/// Test a scalar type
-size_t TestScalarType(const std::vector<rapidjson::Value>& json_values, const arrow::DataType& type);
+    /// Resolve an array parser
+    static arrow::Result<std::shared_ptr<ArrayParser>> Resolve(const std::shared_ptr<arrow::DataType>& type);
+};
 
 // using ParseValue = ()
 
