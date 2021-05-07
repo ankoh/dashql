@@ -101,6 +101,14 @@ static std::vector<JSONAnalyzerTest> JSON_ANALYZER_TESTS = {
         .type = "struct<a: uint64>"
     },
     {
+        .name = "cols_u64_sign_conflict",
+        .input = R"JSON({
+            "a": [-1, 2, 9223372036854775808]
+        })JSON",
+        .shape = TableShape::COLUMN_ARRAYS,
+        .type = "struct<a: double>"
+    },
+    {
         .name = "cols_f64",
         .input = R"JSON({
             "a": [1.0, 2.0, 3.0]

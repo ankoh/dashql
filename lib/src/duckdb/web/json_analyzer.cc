@@ -158,7 +158,7 @@ arrow::Result<std::shared_ptr<arrow::DataType>> InferDataTypeImpl(const JSONArra
     }
     // Forced into 64 bit unsigned?
     if (stats.counter_uint64_max > 0) {
-        if (stats.counter_int64 > 0) {
+        if (stats.counter_int64 > 0 || stats.counter_int32 > 0) {
             // Conflict, we'll just silently fall back to doubles.
             // We could tell the user.
             return arrow::float64();
@@ -223,7 +223,7 @@ arrow::Result<std::shared_ptr<arrow::DataType>> InferDataTypeImpl(
         }
         // Forced into 64 bit unsigned?
         if (stats.counter_uint64_max > 0) {
-            if (stats.counter_int64 > 0) {
+            if (stats.counter_int64 > 0 || stats.counter_int32 > 0) {
                 // Conflict, we'll just silently fall back to doubles.
                 // We could tell the user.
                 fields.push_back(arrow::field(std::string{name}, arrow::float64()));
