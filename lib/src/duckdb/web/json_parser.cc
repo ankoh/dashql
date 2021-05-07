@@ -164,6 +164,7 @@ arrow::Result<int64_t> ParseTimestamp(const rapidjson::Value& json_obj, const ar
 /// Parse a daytime
 arrow::Result<arrow::DayTimeIntervalType::DayMilliseconds> ParseDayTime(const rapidjson::Value& json_obj,
                                                                         const arrow::DataType& type) {
+    assert(!json_obj.IsNull());
     arrow::DayTimeIntervalType::DayMilliseconds value;
     if (!json_obj.IsArray()) return JSONTypeError("array", json_obj.GetType());
     if (json_obj.Size() != 2) {
@@ -177,6 +178,7 @@ arrow::Result<arrow::DayTimeIntervalType::DayMilliseconds> ParseDayTime(const ra
 
 /// Parse a string
 arrow::Result<arrow::util::string_view> ParseString(const rapidjson::Value& json_obj, const arrow::DataType& /*type*/) {
+    assert(!json_obj.IsNull());
     if (json_obj.IsString()) {
         auto view = arrow::util::string_view(json_obj.GetString(), json_obj.GetStringLength());
         return view;
@@ -188,6 +190,7 @@ arrow::Result<arrow::util::string_view> ParseString(const rapidjson::Value& json
 /// Parse a string
 arrow::Result<arrow::util::string_view> ParseFixedSizeBinary(const rapidjson::Value& json_obj,
                                                              const arrow::DataType& t) {
+    assert(!json_obj.IsNull());
     auto& type = reinterpret_cast<const arrow::FixedSizeBinaryType&>(t);
     if (json_obj.IsString()) {
         auto view = arrow::util::string_view(json_obj.GetString(), json_obj.GetStringLength());
