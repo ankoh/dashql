@@ -1,6 +1,7 @@
 // Copyright (c) 2020 The DashQL Authors
 
 #include "duckdb/web/json_analyzer.h"
+
 #include "gtest/gtest.h"
 #include "rapidjson/document.h"
 #include "rapidjson/memorystream.h"
@@ -310,7 +311,7 @@ static std::vector<JSONAnalyzerTest> JSON_ANALYZER_TESTS = {
 };
 // clang-format on
 
-INSTANTIATE_TEST_SUITE_P(JSONTest, JSONAnalyzerTestSuite, testing::ValuesIn(JSON_ANALYZER_TESTS),
+INSTANTIATE_TEST_SUITE_P(JSONAnalyzerTest, JSONAnalyzerTestSuite, testing::ValuesIn(JSON_ANALYZER_TESTS),
                          JSONAnalyzerTest::TestPrinter());
 
 }  // namespace

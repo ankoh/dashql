@@ -20,8 +20,10 @@ namespace duckdb {
 namespace web {
 namespace json {
 
+/// Read field from a json object
+arrow::Result<std::shared_ptr<arrow::Field>> ReadField(const rapidjson::Value& obj);
 /// Read fields from a json array
-arrow::Result<std::vector<std::shared_ptr<arrow::Field>>> ReadFields(const rapidjson::Value::ConstArray& json_fields);
+arrow::Result<std::vector<std::shared_ptr<arrow::Field>>> ReadFields(const rapidjson::Value::ConstArray& fields);
 
 }  // namespace json
 }  // namespace web
