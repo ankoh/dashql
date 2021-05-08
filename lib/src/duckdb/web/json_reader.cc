@@ -2,26 +2,14 @@
 
 #include "duckdb/web/json_reader.h"
 
-#include <rapidjson/istreamwrapper.h>
-#include <rapidjson/rapidjson.h>
-
-#include <algorithm>
-#include <iostream>
 #include <memory>
-#include <optional>
-#include <unordered_map>
-#include <unordered_set>
-#include <variant>
-#include <vector>
+#include <sstream>
+#include <string>
 
-#include "arrow/status.h"
 #include "arrow/type.h"
 #include "arrow/type_fwd.h"
-#include "arrow/type_traits.h"
-#include "arrow/util/value_parsing.h"
-#include "duckdb/web/json_parser.h"
+#include "duckdb/web/json_typedef.h"
 #include "rapidjson/document.h"
-#include "rapidjson/writer.h"
 
 namespace duckdb {
 namespace web {
@@ -29,7 +17,7 @@ namespace json {
 
 namespace {
 
-static std::string_view GetTypeName(rapidjson::Type type) {
+std::string_view GetTypeName(rapidjson::Type type) {
     switch (type) {
         case rapidjson::Type::kArrayType:
             return "array";
@@ -48,7 +36,7 @@ static std::string_view GetTypeName(rapidjson::Type type) {
     return "?";
 }
 
-static arrow::Status RequireType(const rapidjson::Value& value, rapidjson::Type type, std::string_view field) {
+arrow::Status RequireType(const rapidjson::Value& value, rapidjson::Type type, std::string_view field) {
     if (value.GetType() != type) {
         std::stringstream msg;
         msg << "type mismatch for field '" << field << "': expected " << GetTypeName(type) << ", received "
@@ -71,7 +59,7 @@ static std::unordered_map<std::string_view, TableShape> FORMATS{
 
 }  // namespace
 
-/// Read from input stream
+/// Read from document
 arrow::Status JSONReaderOptions::ReadFrom(const rapidjson::Document& doc) {
     if (!doc.IsObject()) return arrow::Status::OK();
     for (auto iter = doc.MemberBegin(); iter != doc.MemberEnd(); ++iter) {

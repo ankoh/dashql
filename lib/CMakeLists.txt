@@ -294,8 +294,9 @@ add_library(duckdb_web
     ${CMAKE_SOURCE_DIR}/src/duckdb/web/arrow_inserter.cc
     ${CMAKE_SOURCE_DIR}/src/duckdb/web/csv_reader.cc
     ${CMAKE_SOURCE_DIR}/src/duckdb/web/json_parser.cc
-    ${CMAKE_SOURCE_DIR}/src/duckdb/web/json_reader.cc
     ${CMAKE_SOURCE_DIR}/src/duckdb/web/json_analyzer.cc
+    ${CMAKE_SOURCE_DIR}/src/duckdb/web/json_reader.cc
+    ${CMAKE_SOURCE_DIR}/src/duckdb/web/json_typedef.cc
     ${CMAKE_SOURCE_DIR}/src/duckdb/web/io/arrow_ifstream.cc
     ${CMAKE_SOURCE_DIR}/src/duckdb/web/io/buffer_manager.cc
     ${CMAKE_SOURCE_DIR}/src/duckdb/web/io/buffered_filesystem.cc

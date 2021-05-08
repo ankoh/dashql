@@ -20,15 +20,8 @@ namespace duckdb {
 namespace web {
 namespace json {
 
-struct JSONReaderOptions {
-    /// The table shape
-    std::optional<TableShape> table_shape = std::nullopt;
-    /// The table type
-    std::shared_ptr<arrow::DataType> table_type = nullptr;
-
-    /// Read from input stream
-    arrow::Status ReadFrom(const rapidjson::Document& doc);
-};
+/// Read fields from a json array
+arrow::Result<std::vector<std::shared_ptr<arrow::Field>>> ReadFields(const rapidjson::Value::ConstArray& json_fields);
 
 }  // namespace json
 }  // namespace web
