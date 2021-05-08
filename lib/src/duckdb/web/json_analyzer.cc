@@ -426,7 +426,7 @@ class JSONArrayAnalyzer : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
 /// Nested types are only inferred based on a reservoir sample.
 ///
 /// Assumes to see 1 additional unmatched array event after which Done() will return true.
-struct JSONFlatArrayAnalyzer : public JSONArrayAnalyzer<TableShape::COLUMN_ARRAYS, JSONFlatArrayAnalyzer> {
+struct JSONFlatArrayAnalyzer : public JSONArrayAnalyzer<TableShape::COLUMN_OBJECT, JSONFlatArrayAnalyzer> {
     /// The top level stats
     JSONArrayStats root_stats_ = {};
 
@@ -599,7 +599,7 @@ arrow::Result<std::pair<TableShape, std::shared_ptr<arrow::DataType>>> InferTabl
             ARROW_ASSIGN_OR_RAISE(auto column_type, analyzer.InferDataType());
             fields.push_back(arrow::field(std::move(cache.txt_buffer), column_type));
         }
-        return std::make_pair(TableShape::COLUMN_ARRAYS, arrow::struct_(std::move(fields)));
+        return std::make_pair(TableShape::COLUMN_OBJECT, arrow::struct_(std::move(fields)));
     }
 
     // Unknown structure
