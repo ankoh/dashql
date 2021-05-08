@@ -27,7 +27,7 @@ enum TableShape {
     ROW_ARRAY,
     // Document is an object with column array fields.
     // E.g. {"a":[1,3],"b":[2,4]}
-    COLUMN_ARRAYS,
+    COLUMN_OBJECT,
 };
 
 /// Infer the type of a JSON table

@@ -7,11 +7,25 @@
 
 #include "arrow/type.h"
 #include "arrow/type_fwd.h"
+#include "duckdb/web/json_analyzer.h"
 #include "duckdb/web/json_parser.h"
+#include "rapidjson/document.h"
 
 namespace duckdb {
 namespace web {
-namespace json {}  // namespace json
+namespace json {
+
+struct JSONReaderOptions {
+    /// The table shape
+    std::optional<TableShape> table_shape = std::nullopt;
+    /// The table type
+    std::shared_ptr<arrow::DataType> table_type = nullptr;
+
+    /// Read from input stream
+    arrow::Status ReadFrom(const rapidjson::Document& doc);
+};
+
+}  // namespace json
 }  // namespace web
 }  // namespace duckdb
 
