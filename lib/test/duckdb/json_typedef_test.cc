@@ -46,13 +46,23 @@ TEST_P(JSONTypedefTestSuite, ReadFields) {
 // clang-format off
 static std::vector<JSONTypedefTest> JSON_TYPEDEF_TESTS = {
     {
-        .name = "integer",
-        .input = R"JSON([
-            {
-                "name": "foo",
-                "type": "int64"
-            }
-        ])JSON",
+        .name = "binary",
+        .input = R"JSON([{ "name": "foo", "type": "binary" }])JSON",
+        .expected = "struct<foo: binary>",
+    },
+    {
+        .name = "bool",
+        .input = R"JSON([{ "name": "foo", "type": "bool" }])JSON",
+        .expected = "struct<foo: bool>",
+    },
+    {
+        .name = "boolean",
+        .input = R"JSON([{ "name": "foo", "type": "boolean" }])JSON",
+        .expected = "struct<foo: bool>",
+    },
+    {
+        .name = "int64",
+        .input = R"JSON([{ "name": "foo", "type": "int64" }])JSON",
         .expected = "struct<foo: int64>",
     }
 };
