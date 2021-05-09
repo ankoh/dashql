@@ -23,8 +23,8 @@ namespace json {
 struct JSONReaderOptions {
     /// The table shape
     std::optional<TableShape> table_shape = std::nullopt;
-    /// The table type
-    std::shared_ptr<arrow::DataType> table_type = nullptr;
+    /// The fields (if any)
+    std::vector<std::shared_ptr<arrow::Field>> fields = {};
 
     /// Read from input stream
     arrow::Status ReadFrom(const rapidjson::Document& doc);
