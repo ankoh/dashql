@@ -86,32 +86,32 @@ Result<std::shared_ptr<DataType>> ReadMapType(const rapidjson::Value::ConstObjec
 }
 
 Result<std::shared_ptr<DataType>> ReadFixedSizeBinaryType(const rapidjson::Value::ConstObject& obj) {
-    ARROW_ASSIGN_OR_RAISE(const int32_t byte_width, GetIntField<int32_t>(obj, "byteWidth", 100));
+    ARROW_ASSIGN_OR_RAISE(const int32_t byte_width, GetIntField<int32_t>(obj, "byteWidth", 0));
+    if (byte_width == 0) return Status::Invalid("FixedSizeBinary byteLength must be > 0");
     return fixed_size_binary(byte_width);
 }
 
 Result<std::shared_ptr<DataType>> ReadFixedSizeListType(const rapidjson::Value::ConstObject& obj) {
     ARROW_ASSIGN_OR_RAISE(const auto children, GetArrayField(obj, "children"));
     ARROW_ASSIGN_OR_RAISE(const auto children_fields, ReadFields(children));
-    if (children_fields.size() != 1) {
-        return Status::Invalid("FixedSizeList must have exactly one child");
-    }
     ARROW_ASSIGN_OR_RAISE(const int32_t list_size, GetIntField<int32_t>(obj, "listSize"));
+    if (children_fields.size() != 1) return Status::Invalid("FixedSizeList must have exactly one child");
+    if (list_size == 0) return Status::Invalid("FixedSizeList listSize must be > 0");
     return fixed_size_list(children_fields[0], list_size);
 }
 
 Result<std::shared_ptr<DataType>> ReadListType(const rapidjson::Value::ConstObject& obj) {
     ARROW_ASSIGN_OR_RAISE(const auto children, GetArrayField(obj, "children"));
     ARROW_ASSIGN_OR_RAISE(const auto children_fields, ReadFields(children));
-    if (children_fields.size() != 1) {
-        return Status::Invalid("FixedSizeList must have exactly one child");
-    }
+    if (children_fields.size() != 1) return Status::Invalid("FixedSizeList must have exactly one child");
     return list(children_fields[0]);
 }
 
 Result<std::shared_ptr<DataType>> ReadDecimal128Type(const rapidjson::Value::ConstObject& obj) {
-    ARROW_ASSIGN_OR_RAISE(const int32_t precision, GetIntField<int32_t>(obj, "precision", 12));
-    ARROW_ASSIGN_OR_RAISE(const int32_t scale, GetIntField<int32_t>(obj, "scale", 2));
+    ARROW_ASSIGN_OR_RAISE(const int32_t precision, GetIntField<int32_t>(obj, "precision"));
+    ARROW_ASSIGN_OR_RAISE(const int32_t scale, GetIntField<int32_t>(obj, "scale"));
+    if (precision <= 0) return Status::Invalid("FixedSizeBinary byteLength must be > 0");
+    if (scale <= 0) return Status::Invalid("FixedSizeBinary byteLength must be > 0");
     return decimal128(precision, scale);
 }
 
@@ -121,24 +121,7 @@ Result<std::shared_ptr<DataType>> ReadDecimal256Type(const rapidjson::Value::Con
     return decimal256(precision, scale);
 }
 
-/// Parse a time unit
-Result<TimeUnit::type> GetUnitFromString(std::string_view unit_str) {
-    if (unit_str == "SECOND") {
-        return TimeUnit::SECOND;
-    } else if (unit_str == "MILLISECOND") {
-        return TimeUnit::MILLI;
-    } else if (unit_str == "MICROSECOND") {
-        return TimeUnit::MICRO;
-    } else if (unit_str == "NANOSECOND") {
-        return TimeUnit::NANO;
-    } else {
-        return Status::Invalid("Invalid time unit: ", unit_str);
-    }
-}
-
-Result<std::shared_ptr<DataType>> ReadTimestampType(const rapidjson::Value::ConstObject& obj) {
-    ARROW_ASSIGN_OR_RAISE(const auto unit_str, GetStringField(obj, "unit"));
-    ARROW_ASSIGN_OR_RAISE(const auto unit, GetUnitFromString(unit_str));
+Result<std::shared_ptr<DataType>> ReadTimestampType(const rapidjson::Value::ConstObject& obj, TimeUnit::type unit) {
     const auto& it_tz = obj.FindMember("timezone");
     if (it_tz == obj.MemberEnd()) {
         return timestamp(unit);
@@ -212,9 +195,10 @@ arrow::Result<std::shared_ptr<Field>> ReadField(const rapidjson::Value& field) {
         {"boolean", [](auto&) { return arrow::boolean(); }},
         {"date", [](auto&) { return arrow::date64(); }},
         {"date32", [](auto&) { return arrow::date32(); }},
+        {"date32[d]", [](auto&) { return arrow::date32(); }},
         {"date64", [](auto&) { return arrow::date64(); }},
-        {"date[d]", [](auto&) { return arrow::date32(); }},
-        {"date[ms]", [](auto&) { return arrow::date64(); }},
+        {"date64[ms]", [](auto&) { return arrow::date64(); }},
+        {"daytimeinterval", [](auto&) { return arrow::day_time_interval(); }},
         {"decimal128", &ReadDecimal128Type},
         {"decimal256", &ReadDecimal256Type},
         {"double", [](auto&) { return arrow::float64(); }},
@@ -229,6 +213,7 @@ arrow::Result<std::shared_ptr<Field>> ReadField(const rapidjson::Value& field) {
         {"float16", [](auto&) { return arrow::float16(); }},
         {"float32", [](auto&) { return arrow::float32(); }},
         {"float64", [](auto&) { return arrow::float64(); }},
+        {"halffloat", [](auto&) { return arrow::float16(); }},
         {"int16", [](auto&) { return arrow::int16(); }},
         {"int32", [](auto&) { return arrow::int32(); }},
         {"int64", [](auto&) { return arrow::int64(); }},
@@ -239,14 +224,23 @@ arrow::Result<std::shared_ptr<Field>> ReadField(const rapidjson::Value& field) {
         {"largeutf8", [](auto&) { return arrow::large_utf8(); }},
         {"list", &ReadListType},
         {"map", &ReadMapType},
+        {"monthinterval", [](auto&) { return arrow::month_interval(); }},
         {"null", [](auto&) { return arrow::null(); }},
         {"string", [](auto&) { return arrow::utf8(); }},
         {"struct", &ReadStructType},
+        {"time32[ms]", [](auto&) { return arrow::time32(TimeUnit::MILLI); }},
+        {"time32[s]", [](auto&) { return arrow::time32(TimeUnit::SECOND); }},
+        {"time64[ns]", [](auto&) { return arrow::time64(TimeUnit::NANO); }},
+        {"time64[us]", [](auto&) { return arrow::time64(TimeUnit::MICRO); }},
         {"time[ms]", [](auto&) { return arrow::time32(TimeUnit::MILLI); }},
-        {"time[ns]", [](auto&) { return arrow::time32(TimeUnit::NANO); }},
+        {"time[ns]", [](auto&) { return arrow::time64(TimeUnit::NANO); }},
         {"time[s]", [](auto&) { return arrow::time32(TimeUnit::SECOND); }},
-        {"time[us]", [](auto&) { return arrow::time32(TimeUnit::MICRO); }},
-        {"timestamp", &ReadTimestampType},
+        {"time[us]", [](auto&) { return arrow::time64(TimeUnit::MICRO); }},
+        {"timestamp", [](auto& o) { return ReadTimestampType(o, TimeUnit::SECOND); }},
+        {"timestamp[s]", [](auto& o) { return ReadTimestampType(o, TimeUnit::SECOND); }},
+        {"timestamp[ms]", [](auto& o) { return ReadTimestampType(o, TimeUnit::MILLI); }},
+        {"timestamp[us]", [](auto& o) { return ReadTimestampType(o, TimeUnit::MICRO); }},
+        {"timestamp[ns]", [](auto& o) { return ReadTimestampType(o, TimeUnit::NANO); }},
         {"uint16", [](auto&) { return arrow::uint16(); }},
         {"uint32", [](auto&) { return arrow::uint32(); }},
         {"uint64", [](auto&) { return arrow::uint64(); }},
