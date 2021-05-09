@@ -14,7 +14,7 @@ using namespace duckdb::web::json;
 
 namespace {
 
-TEST(JSONReaderTest, NoFormat1) {
+TEST(JSONReaderOptionsTest, NoFormat1) {
     rapidjson::Document doc;
     doc.Parse(R"JSON({})JSON");
     JSONReaderOptions options;
@@ -23,7 +23,7 @@ TEST(JSONReaderTest, NoFormat1) {
     ASSERT_EQ(options.table_shape, std::nullopt);
 }
 
-TEST(JSONReaderTest, NoFormat2) {
+TEST(JSONReaderOptionsTest, NoFormat2) {
     rapidjson::Document doc;
     doc.Parse(R"JSON({
         "foo": "bar"
@@ -34,7 +34,7 @@ TEST(JSONReaderTest, NoFormat2) {
     ASSERT_EQ(options.table_shape, std::nullopt);
 }
 
-TEST(JSONReaderTest, FormatRowArray) {
+TEST(JSONReaderOptionsTest, FormatRowArray) {
     rapidjson::Document doc;
     doc.Parse(R"JSON({
         "format": "row-array"
@@ -46,7 +46,7 @@ TEST(JSONReaderTest, FormatRowArray) {
     ASSERT_EQ(*options.table_shape, TableShape::ROW_ARRAY);
 }
 
-TEST(JSONReaderTest, FormatColumnObject) {
+TEST(JSONReaderOptionsTest, FormatColumnObject) {
     rapidjson::Document doc;
     doc.Parse(R"JSON({
         "format": "column-object"
@@ -58,7 +58,7 @@ TEST(JSONReaderTest, FormatColumnObject) {
     ASSERT_EQ(*options.table_shape, TableShape::COLUMN_OBJECT);
 }
 
-TEST(JSONReaderTest, FormatInvalidString) {
+TEST(JSONReaderOptionsTest, FormatInvalidString) {
     rapidjson::Document doc;
     doc.Parse(R"JSON({
         "format": "invalid"
@@ -69,7 +69,7 @@ TEST(JSONReaderTest, FormatInvalidString) {
     ASSERT_FALSE(status.ok());
 }
 
-TEST(JSONReaderTest, FormatInvalidInt) {
+TEST(JSONReaderOptionsTest, FormatInvalidInt) {
     rapidjson::Document doc;
     doc.Parse(R"JSON({
         "format": 42 
@@ -78,6 +78,27 @@ TEST(JSONReaderTest, FormatInvalidInt) {
     ASSERT_EQ(options.table_shape, std::nullopt);
     auto status = options.ReadFrom(doc);
     ASSERT_FALSE(status.ok());
+}
+
+TEST(JSONReaderOptionsTest, Fields) {
+    rapidjson::Document doc;
+    doc.Parse(R"JSON({
+        "format": "row-array",
+        "fields": [
+            {"name": "foo", "type": "int32"},
+            {"name": "bar", "type": "utf8"}
+        ]
+    })JSON");
+    JSONReaderOptions options;
+    ASSERT_EQ(options.table_shape, std::nullopt);
+    auto status = options.ReadFrom(doc);
+    ASSERT_TRUE(status.ok());
+    ASSERT_EQ(options.table_shape, TableShape::ROW_ARRAY);
+    ASSERT_EQ(options.fields.size(), 2);
+    ASSERT_EQ(options.fields[0]->name(), "foo");
+    ASSERT_EQ(options.fields[1]->name(), "bar");
+    ASSERT_EQ(options.fields[0]->type()->id(), arrow::Type::INT32);
+    ASSERT_EQ(options.fields[1]->type()->id(), arrow::Type::STRING);
 }
 
 }  // namespace

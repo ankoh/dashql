@@ -2,6 +2,8 @@
 
 #include "duckdb/web/json_reader.h"
 
+#include <arrow/result.h>
+
 #include <memory>
 #include <sstream>
 #include <string>
@@ -48,9 +50,13 @@ arrow::Status RequireType(const rapidjson::Value& value, rapidjson::Type type, s
 
 enum FieldTag {
     FORMAT,
+    FIELDS,
 };
 
-static std::unordered_map<std::string_view, FieldTag> FIELD_TAGS{{"format", FieldTag::FORMAT}};
+static std::unordered_map<std::string_view, FieldTag> FIELD_TAGS{
+    {"format", FieldTag::FORMAT},
+    {"fields", FieldTag::FIELDS},
+};
 
 static std::unordered_map<std::string_view, TableShape> FORMATS{
     {"row-array", TableShape::ROW_ARRAY},
@@ -74,9 +80,16 @@ arrow::Status JSONReaderOptions::ReadFrom(const rapidjson::Document& doc) {
                 auto format_iter =
                     FORMATS.find(std::string_view{iter->value.GetString(), iter->value.GetStringLength()});
                 if (format_iter == FORMATS.end()) {
-                    return arrow::Status(arrow::StatusCode::Invalid, "unknown table format");
+                    return arrow::Status::Invalid("unknown table format: ", iter->value.GetString());
                 }
                 table_shape = format_iter->second;
+                continue;
+            }
+
+            case FieldTag::FIELDS: {
+                ARROW_RETURN_NOT_OK(RequireType(iter->value, rapidjson::Type::kArrayType, "fields"));
+                const auto fields_array = iter->value.GetArray();
+                ARROW_ASSIGN_OR_RAISE(fields, ReadFields(fields_array));
                 continue;
             }
         }
