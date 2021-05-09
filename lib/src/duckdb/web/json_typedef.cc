@@ -85,8 +85,8 @@ Result<std::shared_ptr<DataType>> ReadMapType(const rapidjson::Value::ConstObjec
     return MapType::Make(children_fields[0], keys_sorted);
 }
 
-Result<std::shared_ptr<DataType>> ReadFixedSizeBinaryType(const rapidjson::Value::ConstObject& json_type) {
-    ARROW_ASSIGN_OR_RAISE(const int32_t byte_width, GetIntField<int32_t>(json_type, "byteWidth", 100));
+Result<std::shared_ptr<DataType>> ReadFixedSizeBinaryType(const rapidjson::Value::ConstObject& obj) {
+    ARROW_ASSIGN_OR_RAISE(const int32_t byte_width, GetIntField<int32_t>(obj, "byteWidth", 100));
     return fixed_size_binary(byte_width);
 }
 
@@ -109,15 +109,15 @@ Result<std::shared_ptr<DataType>> ReadListType(const rapidjson::Value::ConstObje
     return list(children_fields[0]);
 }
 
-Result<std::shared_ptr<DataType>> ReadDecimal128Type(const rapidjson::Value::ConstObject& json_type) {
-    ARROW_ASSIGN_OR_RAISE(const int32_t precision, GetIntField<int32_t>(json_type, "precision", 12));
-    ARROW_ASSIGN_OR_RAISE(const int32_t scale, GetIntField<int32_t>(json_type, "scale", 2));
+Result<std::shared_ptr<DataType>> ReadDecimal128Type(const rapidjson::Value::ConstObject& obj) {
+    ARROW_ASSIGN_OR_RAISE(const int32_t precision, GetIntField<int32_t>(obj, "precision", 12));
+    ARROW_ASSIGN_OR_RAISE(const int32_t scale, GetIntField<int32_t>(obj, "scale", 2));
     return decimal128(precision, scale);
 }
 
-Result<std::shared_ptr<DataType>> ReadDecimal256Type(const rapidjson::Value::ConstObject& json_type) {
-    ARROW_ASSIGN_OR_RAISE(const int32_t precision, GetIntField<int32_t>(json_type, "precision", 12));
-    ARROW_ASSIGN_OR_RAISE(const int32_t scale, GetIntField<int32_t>(json_type, "scale", 2));
+Result<std::shared_ptr<DataType>> ReadDecimal256Type(const rapidjson::Value::ConstObject& obj) {
+    ARROW_ASSIGN_OR_RAISE(const int32_t precision, GetIntField<int32_t>(obj, "precision", 12));
+    ARROW_ASSIGN_OR_RAISE(const int32_t scale, GetIntField<int32_t>(obj, "scale", 2));
     return decimal256(precision, scale);
 }
 
@@ -170,10 +170,10 @@ Result<std::shared_ptr<DataType>> ReadUnionType(const rapidjson::Value::ConstObj
     }
 
     // Read the type ids
-    ARROW_ASSIGN_OR_RAISE(const auto json_type_codes, GetArrayField(obj, "typeIds"));
+    ARROW_ASSIGN_OR_RAISE(const auto obj_codes, GetArrayField(obj, "typeIds"));
     std::vector<int8_t> type_codes;
-    type_codes.reserve(json_type_codes.Size());
-    for (const rapidjson::Value& val : json_type_codes) {
+    type_codes.reserve(obj_codes.Size());
+    for (const rapidjson::Value& val : obj_codes) {
         if (!val.IsInt()) {
             return Status::Invalid("Union type codes must be integers");
         }
@@ -188,67 +188,6 @@ Result<std::shared_ptr<DataType>> ReadUnionType(const rapidjson::Value::ConstObj
     }
 }
 
-using TypeResolver =
-    std::function<arrow::Result<std::shared_ptr<arrow::DataType>>(const rapidjson::Value::ConstObject&)>;
-static std::unordered_map<std::string_view, TypeResolver> ARROW_TYPE_MAPPING{
-    {"binary", [](auto&) { return arrow::binary(); }},
-    {"bool", [](auto&) { return arrow::boolean(); }},
-    {"boolean", [](auto&) { return arrow::boolean(); }},
-    {"date", [](auto&) { return arrow::date64(); }},
-    {"date32", [](auto&) { return arrow::date32(); }},
-    {"date64", [](auto&) { return arrow::date64(); }},
-    {"date[d]", [](auto&) { return arrow::date32(); }},
-    {"date[ms]", [](auto&) { return arrow::date64(); }},
-    {"decimal128", &ReadDecimal128Type},
-    {"decimal256", &ReadDecimal256Type},
-    {"double", [](auto&) { return arrow::float64(); }},
-    {"duration", [](auto&) { return arrow::duration(TimeUnit::MILLI); }},
-    {"duration[ms]", [](auto&) { return arrow::duration(TimeUnit::MILLI); }},
-    {"duration[ns]", [](auto&) { return arrow::duration(TimeUnit::NANO); }},
-    {"duration[s]", [](auto&) { return arrow::duration(TimeUnit::SECOND); }},
-    {"duration[us]", [](auto&) { return arrow::duration(TimeUnit::MICRO); }},
-    {"fixedsizebinary", &ReadFixedSizeBinaryType},
-    {"float", [](auto&) { return arrow::float32(); }},
-    {"float16", [](auto&) { return arrow::float16(); }},
-    {"float32", [](auto&) { return arrow::float32(); }},
-    {"float64", [](auto&) { return arrow::float64(); }},
-    {"int16", [](auto&) { return arrow::int16(); }},
-    {"int32", [](auto&) { return arrow::int32(); }},
-    {"int64", [](auto&) { return arrow::int64(); }},
-    {"int8", [](auto&) { return arrow::int8(); }},
-    {"fixedsizelist", &ReadFixedSizeListType},
-    {"interval[dt]", [](auto&) { return arrow::day_time_interval(); }},
-    {"interval[m]", [](auto&) { return arrow::month_interval(); }},
-    {"largebinary", [](auto&) { return arrow::large_binary(); }},
-    {"largeutf8", [](auto&) { return arrow::large_utf8(); }},
-    {"list", &ReadListType},
-    {"map", &ReadMapType},
-    {"null", [](auto&) { return arrow::null(); }},
-    {"string", [](auto&) { return arrow::utf8(); }},
-    {"struct", &ReadStructType},
-    {"time[s]", [](auto&) { return arrow::time32(TimeUnit::SECOND); }},
-    {"time[ms]", [](auto&) { return arrow::time32(TimeUnit::MILLI); }},
-    {"time[us]", [](auto&) { return arrow::time32(TimeUnit::MICRO); }},
-    {"time[ns]", [](auto&) { return arrow::time32(TimeUnit::NANO); }},
-    {"timestamp", &ReadTimestampType},
-    {"uint16", [](auto&) { return arrow::uint16(); }},
-    {"uint32", [](auto&) { return arrow::uint32(); }},
-    {"uint64", [](auto&) { return arrow::uint64(); }},
-    {"uint8", [](auto&) { return arrow::uint8(); }},
-    {"union", &ReadUnionType},
-    {"utf8", [](auto&) { return arrow::utf8(); }},
-};
-
-/// Read a type
-Result<std::shared_ptr<arrow::DataType>> ReadType(const rapidjson::Value& value,
-                                                  const std::vector<std::shared_ptr<Field>>& children) {
-    if (value.IsString()) {
-        auto iter = ARROW_TYPE_MAPPING.find(value.GetString());
-        if (iter == ARROW_TYPE_MAPPING.end()) return Status::Invalid("Unrecognized type name: ", value.GetString());
-    }
-    return arrow::null();
-}
-
 }  // namespace
 
 /// Read a field
@@ -260,13 +199,65 @@ arrow::Result<std::shared_ptr<Field>> ReadField(const rapidjson::Value& field) {
 
     ARROW_ASSIGN_OR_RAISE(const auto name, GetStringField(json_field, "name", ""));
     ARROW_ASSIGN_OR_RAISE(const bool nullable, GetBoolField(json_field, "nullable", true));
-    ARROW_ASSIGN_OR_RAISE(const auto json_type, GetStringField(json_field, "type", ""));
+    ARROW_ASSIGN_OR_RAISE(const auto obj, GetStringField(json_field, "type", ""));
 
     // Name invalid?
     if (name == "") return Status::Invalid("invalid field name");
+
+    using TypeResolver =
+        std::function<arrow::Result<std::shared_ptr<arrow::DataType>>(const rapidjson::Value::ConstObject&)>;
+    static std::unordered_map<std::string_view, TypeResolver> ARROW_TYPE_MAPPING{
+        {"binary", [](auto&) { return arrow::binary(); }},
+        {"bool", [](auto&) { return arrow::boolean(); }},
+        {"boolean", [](auto&) { return arrow::boolean(); }},
+        {"date", [](auto&) { return arrow::date64(); }},
+        {"date32", [](auto&) { return arrow::date32(); }},
+        {"date64", [](auto&) { return arrow::date64(); }},
+        {"date[d]", [](auto&) { return arrow::date32(); }},
+        {"date[ms]", [](auto&) { return arrow::date64(); }},
+        {"decimal128", &ReadDecimal128Type},
+        {"decimal256", &ReadDecimal256Type},
+        {"double", [](auto&) { return arrow::float64(); }},
+        {"duration", [](auto&) { return arrow::duration(TimeUnit::MILLI); }},
+        {"duration[ms]", [](auto&) { return arrow::duration(TimeUnit::MILLI); }},
+        {"duration[ns]", [](auto&) { return arrow::duration(TimeUnit::NANO); }},
+        {"duration[s]", [](auto&) { return arrow::duration(TimeUnit::SECOND); }},
+        {"duration[us]", [](auto&) { return arrow::duration(TimeUnit::MICRO); }},
+        {"fixedsizebinary", &ReadFixedSizeBinaryType},
+        {"float", [](auto&) { return arrow::float32(); }},
+        {"float16", [](auto&) { return arrow::float16(); }},
+        {"float32", [](auto&) { return arrow::float32(); }},
+        {"float64", [](auto&) { return arrow::float64(); }},
+        {"int16", [](auto&) { return arrow::int16(); }},
+        {"int32", [](auto&) { return arrow::int32(); }},
+        {"int64", [](auto&) { return arrow::int64(); }},
+        {"int8", [](auto&) { return arrow::int8(); }},
+        {"fixedsizelist", &ReadFixedSizeListType},
+        {"interval[dt]", [](auto&) { return arrow::day_time_interval(); }},
+        {"interval[m]", [](auto&) { return arrow::month_interval(); }},
+        {"largebinary", [](auto&) { return arrow::large_binary(); }},
+        {"largeutf8", [](auto&) { return arrow::large_utf8(); }},
+        {"list", &ReadListType},
+        {"map", &ReadMapType},
+        {"null", [](auto&) { return arrow::null(); }},
+        {"string", [](auto&) { return arrow::utf8(); }},
+        {"struct", &ReadStructType},
+        {"time[s]", [](auto&) { return arrow::time32(TimeUnit::SECOND); }},
+        {"time[ms]", [](auto&) { return arrow::time32(TimeUnit::MILLI); }},
+        {"time[us]", [](auto&) { return arrow::time32(TimeUnit::MICRO); }},
+        {"time[ns]", [](auto&) { return arrow::time32(TimeUnit::NANO); }},
+        {"timestamp", &ReadTimestampType},
+        {"uint16", [](auto&) { return arrow::uint16(); }},
+        {"uint32", [](auto&) { return arrow::uint32(); }},
+        {"uint64", [](auto&) { return arrow::uint64(); }},
+        {"uint8", [](auto&) { return arrow::uint8(); }},
+        {"union", &ReadUnionType},
+        {"utf8", [](auto&) { return arrow::utf8(); }},
+    };
+
     // Get type resolver
-    auto iter = ARROW_TYPE_MAPPING.find(json_type);
-    if (iter == ARROW_TYPE_MAPPING.end()) return Status::Invalid("Unrecognized type name: ", json_type);
+    auto iter = ARROW_TYPE_MAPPING.find(obj);
+    if (iter == ARROW_TYPE_MAPPING.end()) return Status::Invalid("Unrecognized type name: ", obj);
     ARROW_ASSIGN_OR_RAISE(const auto type, iter->second(json_field));
     // Build field
     return arrow::field(std::string{name}, type, nullable);
