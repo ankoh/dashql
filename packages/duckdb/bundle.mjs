@@ -32,7 +32,7 @@ fs.copyFile(path.resolve(src, 'bindings', 'duckdb_wasm.wasm'), path.resolve(dist
 // ESM
 
 const TARGET = 'es2020';
-const EXTERNALS = ['apache-arrow'];
+const EXTERNALS = ['apache-arrow', 'crypto', 'os', 'fs', 'path', 'fast-glob'];
 
 console.log('[ ESBUILD ] duckdb.module.js');
 esbuild.build({
@@ -50,7 +50,7 @@ esbuild.build({
     bundle: true,
     minify: true,
     sourcemap: 'external',
-    external: [...EXTERNALS, 'fs', 'path', 'fast-glob', 'temp-write'],
+    external: EXTERNALS,
 });
 
 // -------------------------------
@@ -109,7 +109,7 @@ esbuild.build({
     bundle: true,
     minify: true,
     sourcemap: 'external',
-    external: [...EXTERNALS],
+    external: EXTERNALS,
 });
 
 console.log('[ ESBUILD ] duckdb-node-parallel.js');
@@ -122,7 +122,7 @@ esbuild.build({
     bundle: true,
     minify: true,
     sourcemap: 'external',
-    external: [...EXTERNALS],
+    external: EXTERNALS,
 });
 
 console.log('[ ESBUILD ] duckdb-node-parallel.worker.js');
@@ -135,7 +135,7 @@ esbuild.build({
     bundle: true,
     minify: true,
     sourcemap: 'external',
-    external: [...EXTERNALS],
+    external: EXTERNALS,
 });
 
 // -------------------------------
@@ -165,7 +165,7 @@ esbuild.build({
     minify: true,
     sourcemap: 'both',
     // web-worker polyfill needs to be excluded from bundling due to their dynamic require messing with bundled modules
-    external: ['web-worker'],
+    external: ['web-worker', 'crypto', 'os'],
 });
 
 // -------------------------------
