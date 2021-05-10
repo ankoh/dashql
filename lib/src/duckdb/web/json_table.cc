@@ -155,7 +155,7 @@ struct ArrayReader {
 /// Read entire object
 arrow::Result<std::shared_ptr<arrow::Array>> ArrayReader::ReadNextBatch() {
     while (!reader_.IterativeParseComplete()) {
-        if (!reader_.IterativeParseNext<rapidjson::kParseDefaultFlags>(in_wrapper_, array_buffer_)) {
+        if (!reader_.IterativeParseNext<DEFAULT_PARSER_FLAGS>(in_wrapper_, array_buffer_)) {
             auto error = rapidjson::GetParseError_En(reader_.GetParseErrorCode());
             return arrow::Status(arrow::StatusCode::ExecutionError, error);
         }
@@ -176,39 +176,39 @@ arrow::Result<std::shared_ptr<arrow::Array>> ArrayReader::ReadNextBatch() {
 /// Find column boundaries
 arrow::Status TableReader::FindColumnBoundaries(std::istream& in, TableType& type) {
     // Dont spend time on parsing numbers
-    constexpr auto PARSE_FLAGS = rapidjson::kParseDefaultFlags | rapidjson::kParseNumbersAsStringsFlag;
+    constexpr auto SCAN_FLAGS = DEFAULT_PARSER_FLAGS | rapidjson::kParseNumbersAsStringsFlag;
 
-    // Parse the SAX document
+    // Setup parser
     rapidjson::IStreamWrapper in_wrapper{in};
     rapidjson::Reader reader;
     reader.IterativeParseInit();
 
-    // Peek into the document
+    // Consume top-level object
     EventReader event_reader;
-    if (!reader.IterativeParseNext<PARSE_FLAGS>(in_wrapper, event_reader)) {
+    if (!reader.IterativeParseNext<SCAN_FLAGS>(in_wrapper, event_reader)) {
         auto error = rapidjson::GetParseError_En(reader.GetParseErrorCode());
         return arrow::Status::Invalid(error);
     }
-
-    // Top level not an object?
     if (event_reader.event != ReaderEvent::START_OBJECT) {
         return arrow::Status::Invalid("Unexpected top-level JSON type");
     }
 
     // Scan all column arrays
     KeyReader key_reader;
-    auto next_event = [&]() { return reader.IterativeParseNext<PARSE_FLAGS>(in_wrapper, event_reader); };
-    auto next_key = [&]() { return reader.IterativeParseNext<PARSE_FLAGS>(in_wrapper, key_reader); };
+    auto next_event = [&]() { return reader.IterativeParseNext<SCAN_FLAGS>(in_wrapper, event_reader); };
+    auto next_key = [&]() { return reader.IterativeParseNext<SCAN_FLAGS>(in_wrapper, key_reader); };
     while (next_key() && key_reader.event == ReaderEvent::KEY) {
         auto column_name = key_reader.ReleaseKey();
-        auto column_begin = in_wrapper.Tell();
-        auto column_end = column_begin;
 
         // Get the column
         if (!next_event() || event_reader.event != ReaderEvent::START_ARRAY) {
             return arrow::Status::Invalid("Invalid type. Expected start of column array, received: ",
                                           GetReaderEventName(event_reader.event));
         }
+
+        // Get the begin of the column
+        auto column_begin = in_wrapper.Tell() - 1;
+        auto column_end = column_begin;
 
         // Consume the entire column array.
         // XXX this is the hot loop since we're scanning the entire document for the column boundaries.
