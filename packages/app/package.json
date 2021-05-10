@@ -80,7 +80,7 @@
         "karma-webpack": "^5.0.0",
         "kleur": "^4.1.4",
         "mini-css-extract-plugin": "^1.6.0",
-        "prettier": "^2.2.1",
+        "prettier": "^2.3.0",
         "source-map-loader": "^2.0.1",
         "style-loader": "^2.0.0",
         "ts-loader": "^9.1.2",
