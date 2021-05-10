@@ -489,8 +489,9 @@ class JSONStructArrayAnalyzer : public JSONArrayAnalyzer<TableShape::ROW_ARRAY, 
 
 }  // namespace
 
-arrow::Result<std::pair<TableShape, std::shared_ptr<arrow::DataType>>> InferTableType(std::istream& raw_in) {
+arrow::Result<TableType> InferTableType(std::istream& raw_in) {
     rapidjson::IStreamWrapper in{raw_in};
+    TableType table;
 
     // Parse the SAX document
     rapidjson::Reader reader;
@@ -517,8 +518,9 @@ arrow::Result<std::pair<TableShape, std::shared_ptr<arrow::DataType>>> InferTabl
         assert(analyzer.Done());
 
         // Infer the struct type
-        ARROW_ASSIGN_OR_RAISE(auto type, analyzer.InferDataType());
-        return std::make_pair(TableShape::ROW_ARRAY, std::move(type));
+        ARROW_ASSIGN_OR_RAISE(table.type, analyzer.InferDataType());
+        table.shape = TableShape::ROW_ARRAY;
+        return table;
     }
 
     // Assume column-major layout.
@@ -535,7 +537,8 @@ arrow::Result<std::pair<TableShape, std::shared_ptr<arrow::DataType>>> InferTabl
             // That violates the assumption that we have a column-major layout.
             // We failed and give up.
             if (!next() || cache.event != JSONReaderEvent::START_ARRAY) {
-                return std::make_pair(TableShape::UNRECOGNIZED, nullptr);
+                table.shape = TableShape::UNRECOGNIZED;
+                return table;
             }
 
             // Parse entire column array.
@@ -552,11 +555,14 @@ arrow::Result<std::pair<TableShape, std::shared_ptr<arrow::DataType>>> InferTabl
             ARROW_ASSIGN_OR_RAISE(auto column_type, analyzer.InferDataType());
             fields.push_back(arrow::field(column_name, column_type));
         }
-        return std::make_pair(TableShape::COLUMN_OBJECT, arrow::struct_(std::move(fields)));
+        table.shape = TableShape::COLUMN_OBJECT;
+        table.type = arrow::struct_(std::move(fields));
+        return table;
     }
 
     // Unknown structure
-    return std::make_pair(TableShape::UNRECOGNIZED, nullptr);
+    table.shape = TableShape::UNRECOGNIZED;
+    return table;
 }
 
 }  // namespace json
