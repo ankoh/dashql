@@ -19,6 +19,8 @@ class InputFileStreamBuffer : public std::streambuf {
     BufferManager::FileRef file_;
     /// The buffer
     BufferManager::BufferRef buffer_;
+    /// The end of the readable data (might be smaller than the actual file size if the stream is sliced)
+    size_t data_end_;
     /// The next page id
     size_t next_page_id_;
 
@@ -62,10 +64,13 @@ class InputFileStreamBuffer : public std::streambuf {
         : buffer_manager_(std::move(buffer_manager)),
           file_(buffer_manager_->OpenFile(path)),
           buffer_(buffer_manager_->FixPage(file_, 0, false)),
+          data_end_(file_.GetSize()),
           next_page_id_(1) {
         auto data = buffer_.GetData();
         setg(data.data(), data.data(), data.data() + data.size());
     }
+    /// Scan a slice of the file
+    void Slice(size_t offset, size_t size);
 };
 
 class InputFileStream : public std::istream {
@@ -79,6 +84,8 @@ class InputFileStream : public std::istream {
         : buffer_(std::move(buffer_manager), path), std::istream(&buffer_) {}
     /// Copy constructor
     InputFileStream(const InputFileStream& other) : buffer_(other.buffer_), std::istream(&buffer_){};
+    /// Scan a slice of the file
+    void Slice(size_t offset, size_t size) { buffer_.Slice(offset, size); }
 };
 
 }  // namespace io
