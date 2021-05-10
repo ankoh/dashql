@@ -109,10 +109,14 @@ class BufferManager : public std::enable_shared_from_this<BufferManager> {
         explicit FileRef(std::shared_ptr<BufferManager> buffer_manager, RegisteredFile& file);
 
        public:
+        /// Copy constructor
+        FileRef(const FileRef& other);
         /// Move constructor
         FileRef(FileRef&& other);
         /// Destructor
         ~FileRef();
+        /// Copy assignment
+        FileRef& operator=(const FileRef& other);
         /// Move assignment
         FileRef& operator=(FileRef&& other);
         /// Is set?
@@ -142,14 +146,20 @@ class BufferManager : public std::enable_shared_from_this<BufferManager> {
         explicit BufferRef(std::shared_ptr<BufferManager> buffer_manager, BufferFrame& frame);
 
        public:
+        /// Copy constructor
+        BufferRef(const BufferRef& other);
         /// Move constructor
         BufferRef(BufferRef&& other);
         /// Destructor
         ~BufferRef();
+        /// Copy assignment
+        BufferRef& operator=(const BufferRef& other);
         /// Move assignment
         BufferRef& operator=(BufferRef&& other);
         /// Is set?
         operator bool() const { return !!frame_; }
+        /// Clone the buffer ref
+        auto Clone();
         /// Access the data
         auto GetData() { return frame_->GetData(); }
         /// Release the file ref

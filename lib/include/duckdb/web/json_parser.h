@@ -54,13 +54,13 @@ class ArrayParser {
     /// Append a null value
     arrow::Status AppendNull() { return builder()->AppendNull(); }
     /// Finish the conversion
-    virtual arrow::Status Finish(std::shared_ptr<arrow::Array>* out) {
+    virtual arrow::Result<std::shared_ptr<arrow::Array>> Finish() {
         auto builder = this->builder();
         if (builder->length() == 0) {
             // Make sure the builder was initialized
             RETURN_NOT_OK(builder->Resize(1));
         }
-        return builder->Finish(out);
+        return builder->Finish();
     }
 
     /// Resolve an array parser

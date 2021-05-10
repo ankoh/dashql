@@ -13,7 +13,7 @@ namespace duckdb {
 namespace web {
 namespace io {
 
-class InputFileStream : virtual public arrow::io::InputStream {
+class ArrowInputFileStream : virtual public arrow::io::InputStream {
    protected:
     /// An arrow buffer for a view into a fixed page
     struct PageView : public arrow::Buffer {
@@ -49,9 +49,9 @@ class InputFileStream : virtual public arrow::io::InputStream {
 
    public:
     /// Constructor
-    InputFileStream(std::shared_ptr<io::BufferManager> buffer_manager, std::string_view path);
+    ArrowInputFileStream(std::shared_ptr<io::BufferManager> buffer_manager, std::string_view path);
     /// Destructor
-    ~InputFileStream() override;
+    ~ArrowInputFileStream() override;
 
     /// File interface
 

@@ -11,24 +11,13 @@
 #include "arrow/array/builder_nested.h"
 #include "arrow/type.h"
 #include "arrow/type_traits.h"
+#include "duckdb/web/json_reader.h"
 #include "duckdb/web/reservoir_sample.h"
 #include "rapidjson/document.h"
 
 namespace duckdb {
 namespace web {
 namespace json {
-
-/// Get the table shape
-enum TableShape {
-    // Unknown table shape
-    UNRECOGNIZED,
-    // Document is an array of rows.
-    // E.g. [{"a":1,"b":2}, {"a":3,"b":4}]
-    ROW_ARRAY,
-    // Document is an object with column array fields.
-    // E.g. {"a":[1,3],"b":[2,4]}
-    COLUMN_OBJECT,
-};
 
 /// Infer the type of a JSON table
 arrow::Result<std::pair<TableShape, std::shared_ptr<arrow::DataType>>> InferTableType(std::istream& in);
