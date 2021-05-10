@@ -11,7 +11,7 @@
 #include "arrow/array/builder_nested.h"
 #include "arrow/type.h"
 #include "arrow/type_traits.h"
-#include "duckdb/web/json_reader.h"
+#include "duckdb/web/json_parser.h"
 #include "duckdb/web/json_table.h"
 #include "duckdb/web/reservoir_sample.h"
 #include "rapidjson/document.h"

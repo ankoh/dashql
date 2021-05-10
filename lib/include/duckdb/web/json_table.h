@@ -11,7 +11,6 @@
 #include "arrow/type_fwd.h"
 #include "duckdb/web/io/ifstream.h"
 #include "duckdb/web/json_parser.h"
-#include "duckdb/web/json_reader.h"
 #include "duckdb/web/json_table_options.h"
 #include "rapidjson/document.h"
 #include "rapidjson/istreamwrapper.h"
