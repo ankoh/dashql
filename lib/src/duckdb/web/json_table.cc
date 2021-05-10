@@ -170,7 +170,8 @@ struct ColumnObjectTableReader : public TableReader {
         ArrayReader array_reader_;
 
         // Constructor
-        ColumnReader(const io::InputFileStream& stream, std::shared_ptr<ArrayParser> parser);
+        ColumnReader(const io::InputFileStream& stream, std::shared_ptr<ArrayParser> parser)
+            : stream_(stream), array_reader_(stream_, std::move(parser)) {}
     };
 
     /// The column readers
@@ -195,9 +196,20 @@ arrow::Status ColumnObjectTableReader::Prepare() {
         ARROW_RETURN_NOT_OK(FindColumnBoundaries(stream, table_type_));
     }
 
+    // Create all column readers
     for (unsigned i = 0; i < table_type_.type->num_fields(); ++i) {
         auto& field = table_type_.type->field(i);
         auto& name = field->name();
+        auto& type = field->type();
+        auto bound_iter = table_type_.column_boundaries.find(name);
+        if (bound_iter == table_type_.column_boundaries.end()) {
+            // XXX warning
+            continue;
+        }
+        table_file_->Slice(bound_iter->second.offset, bound_iter->second.size);
+        ARROW_ASSIGN_OR_RAISE(auto parser, ArrayParser::Resolve(type));
+        auto reader = std::make_unique<ColumnReader>(*table_file_, std::move(parser));
+        column_readers_.insert({name, std::move(reader)});
     }
 
     return arrow::Status::OK();
