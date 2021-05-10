@@ -3,7 +3,7 @@
 #include <optional>
 
 #include "duckdb/web/json_analyzer.h"
-#include "duckdb/web/json_reader.h"
+#include "duckdb/web/json_parser.h"
 #include "duckdb/web/json_table_options.h"
 #include "gtest/gtest.h"
 #include "rapidjson/document.h"
