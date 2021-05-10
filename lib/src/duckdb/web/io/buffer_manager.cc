@@ -72,6 +72,11 @@ BufferManager::FileRef::FileRef(std::shared_ptr<BufferManager> buffer_manager, R
 }
 
 /// Constructor
+BufferManager::FileRef::FileRef(const FileRef& other) : buffer_manager_(other.buffer_manager_), file_(other.file_) {
+    ++file_->references;
+}
+
+/// Constructor
 BufferManager::FileRef::FileRef(FileRef&& other)
     : buffer_manager_(std::move(other.buffer_manager_)), file_(other.file_) {
     other.buffer_manager_ = nullptr;
@@ -90,7 +95,16 @@ void BufferManager::FileRef::Release() {
     }
 }
 
-/// Destructor
+/// Copy assignment
+BufferManager::FileRef& BufferManager::FileRef::operator=(const FileRef& other) {
+    Release();
+    buffer_manager_ = other.buffer_manager_;
+    file_ = other.file_;
+    ++file_->references;
+    return *this;
+}
+
+/// Move assignment
 BufferManager::FileRef& BufferManager::FileRef::operator=(FileRef&& other) {
     Release();
     buffer_manager_ = std::move(other.buffer_manager_);
@@ -103,11 +117,27 @@ BufferManager::FileRef& BufferManager::FileRef::operator=(FileRef&& other) {
 BufferManager::BufferRef::BufferRef(std::shared_ptr<BufferManager> buffer_manager, BufferFrame& frame)
     : buffer_manager_(std::move(buffer_manager)), frame_(&frame) {}
 
+/// Copy Constructor
+BufferManager::BufferRef::BufferRef(const BufferRef& other)
+    : buffer_manager_(other.buffer_manager_), frame_(other.frame_) {
+    assert(!frame_->locked_exclusively);
+    frame_->Lock(false);
+}
+
 /// Move Constructor
 BufferManager::BufferRef::BufferRef(BufferRef&& other)
     : buffer_manager_(std::move(other.buffer_manager_)), frame_(std::move(other.frame_)) {
     other.buffer_manager_ = nullptr;
     other.frame_ = nullptr;
+}
+
+/// Copy Constructor
+BufferManager::BufferRef& BufferManager::BufferRef::operator=(const BufferRef& other) {
+    Release();
+    buffer_manager_ = other.buffer_manager_;
+    frame_ = other.frame_;
+    frame_->Lock(false);
+    return *this;
 }
 
 /// Move Constructor
@@ -122,7 +152,6 @@ BufferManager::BufferRef& BufferManager::BufferRef::operator=(BufferRef&& other)
 
 /// Destructor
 BufferManager::BufferRef::~BufferRef() { Release(); }
-
 /// Constructor
 void BufferManager::BufferRef::Release() {
     if (!!frame_) {
