@@ -22,42 +22,6 @@ namespace json {
 
 namespace {
 
-struct EventReader : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, EventReader> {
-    ReaderEvent event = ReaderEvent::NONE;
-    size_t depth = 0;
-
-    bool SetEvent(ReaderEvent e) {
-        event = e;
-        return true;
-    }
-    bool Key(const char* txt, size_t length, bool copy) { return SetEvent(ReaderEvent::KEY); }
-    bool Null() { return SetEvent(ReaderEvent::NULL_); }
-    bool RawNumber(const Ch* str, size_t len, bool copy) { assert(false); }
-    bool String(const char* txt, size_t length, bool copy) { return SetEvent(ReaderEvent::STRING); }
-    bool Bool(bool v) { return SetEvent(ReaderEvent::BOOL); }
-    bool Int(int32_t v) { return SetEvent(ReaderEvent::INT32); }
-    bool Int64(int64_t v) { return SetEvent(ReaderEvent::INT64); }
-    bool Uint(uint32_t v) { return SetEvent(ReaderEvent::UINT32); }
-    bool Uint64(uint64_t v) { return SetEvent(ReaderEvent::UINT64); }
-    bool Double(double v) { return SetEvent(ReaderEvent::DOUBLE); }
-    bool StartObject() {
-        ++depth;
-        return SetEvent(ReaderEvent::START_OBJECT);
-    }
-    bool StartArray() {
-        ++depth;
-        return SetEvent(ReaderEvent::START_ARRAY);
-    }
-    bool EndObject(size_t count) {
-        --depth;
-        return SetEvent(ReaderEvent::END_OBJECT);
-    }
-    bool EndArray(size_t count) {
-        --depth;
-        return SetEvent(ReaderEvent::END_ARRAY);
-    }
-};
-
 struct ArrayBuffer : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, ArrayBuffer> {
     rapidjson::Document doc = {};
     size_t depth = 1;
@@ -172,95 +136,6 @@ arrow::Result<std::shared_ptr<arrow::Array>> ArrayReader::ReadNextBatch() {
 };
 
 }  // namespace
-
-/// Find column boundaries
-arrow::Status TableReader::FindColumnBoundaries(std::istream& in, TableType& type) {
-    // Dont spend time on parsing numbers
-    constexpr auto SCAN_FLAGS = DEFAULT_PARSER_FLAGS | rapidjson::kParseNumbersAsStringsFlag;
-
-    // Setup parser
-    rapidjson::IStreamWrapper in_wrapper{in};
-    rapidjson::Reader reader;
-    reader.IterativeParseInit();
-
-    // Consume top-level object
-    EventReader event_reader;
-    if (!reader.IterativeParseNext<SCAN_FLAGS>(in_wrapper, event_reader)) {
-        auto error = rapidjson::GetParseError_En(reader.GetParseErrorCode());
-        return arrow::Status::Invalid(error);
-    }
-    if (event_reader.event != ReaderEvent::START_OBJECT) {
-        return arrow::Status::Invalid("Unexpected top-level JSON type");
-    }
-
-    // Scan all column arrays
-    KeyReader key_reader;
-    auto next_event = [&]() { return reader.IterativeParseNext<SCAN_FLAGS>(in_wrapper, event_reader); };
-    auto next_key = [&]() { return reader.IterativeParseNext<SCAN_FLAGS>(in_wrapper, key_reader); };
-    while (next_key() && key_reader.event == ReaderEvent::KEY) {
-        auto column_name = key_reader.ReleaseKey();
-
-        // Get the column
-        if (!next_event() || event_reader.event != ReaderEvent::START_ARRAY) {
-            return arrow::Status::Invalid("Invalid type. Expected start of column array, received: ",
-                                          GetReaderEventName(event_reader.event));
-        }
-
-        // Get the begin of the column
-        auto column_begin = in_wrapper.Tell() - 1;
-        auto column_end = column_begin;
-
-        // Consume the entire column array.
-        // XXX this is the hot loop since we're scanning the entire document for the column boundaries.
-        // XXX parser errors.
-        assert(event_reader.depth == 2);
-        while (next_event() && event_reader.depth != 1)
-            ;
-
-        // The the position of the first token that is different
-        column_end = in_wrapper.Tell();
-
-        // Insert column boundaries
-        type.column_boundaries.insert(
-            {column_name, FileRange{.offset = column_begin, .size = column_end - column_begin}});
-    }
-    return arrow::Status::OK();
-}
-
-std::string_view GetReaderEventName(ReaderEvent event) {
-    switch (event) {
-        case ReaderEvent::NONE:
-            return "NONE";
-        case ReaderEvent::KEY:
-            return "KEY";
-        case ReaderEvent::NULL_:
-            return "NULL_";
-        case ReaderEvent::STRING:
-            return "STRING";
-        case ReaderEvent::BOOL:
-            return "BOOL";
-        case ReaderEvent::INT32:
-            return "INT32";
-        case ReaderEvent::INT64:
-            return "INT64";
-        case ReaderEvent::UINT32:
-            return "UINT32";
-        case ReaderEvent::UINT64:
-            return "UINT64";
-        case ReaderEvent::DOUBLE:
-            return "DOUBLE";
-        case ReaderEvent::START_OBJECT:
-            return "START_OBJECT";
-        case ReaderEvent::START_ARRAY:
-            return "START_ARRAY";
-        case ReaderEvent::END_OBJECT:
-            return "END_OBJECT";
-        case ReaderEvent::END_ARRAY:
-            return "END_ARRAY";
-        default:
-            return "?";
-    }
-}
 
 }  // namespace json
 }  // namespace web

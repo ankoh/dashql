@@ -22,6 +22,8 @@ namespace json {
 
 /// Infer the type of a JSON table
 arrow::Status InferTableType(std::istream& in, TableType& type);
+/// Find the column boundaries of a column-major JSON table
+arrow::Status FindColumnBoundaries(std::istream& in, TableType& type);
 
 }  // namespace json
 }  // namespace web
