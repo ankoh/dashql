@@ -31,7 +31,7 @@ TEST_P(JSONTypedefTestSuite, ReadFields) {
     auto& test = GetParam();
 
     rapidjson::Document doc;
-    doc.Parse(std::string{test.input.data()});
+    doc.Parse(test.input.data(), test.input.size());
     ASSERT_FALSE(doc.HasParseError()) << doc.GetParseError() << std::endl;
     ASSERT_TRUE(doc.IsArray());
 
