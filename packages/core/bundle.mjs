@@ -66,7 +66,7 @@ esbuild.build({
     format: 'cjs',
     target: TARGET,
     bundle: true,
-    minify: false,
+    minify: true,
     sourcemap: 'external',
 });
 
@@ -78,7 +78,7 @@ esbuild.build({
     format: 'iife',
     target: TARGET,
     bundle: true,
-    minify: false,
+    minify: true,
     sourcemap: 'both',
     define: { 'process.env.NODE_ENV': '"production"' },
 });

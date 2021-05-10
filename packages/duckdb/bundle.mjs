@@ -150,7 +150,7 @@ esbuild.build({
     globalName: 'duckdb',
     target: TARGET,
     bundle: true,
-    minify: false,
+    minify: true,
     sourcemap: 'both',
 });
 
@@ -162,7 +162,7 @@ esbuild.build({
     format: 'cjs',
     target: TARGET,
     bundle: true,
-    minify: false,
+    minify: true,
     sourcemap: 'both',
     // web-worker polyfill needs to be excluded from bundling due to their dynamic require messing with bundled modules
     external: ['web-worker'],
