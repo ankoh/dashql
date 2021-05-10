@@ -1,6 +1,6 @@
 // Copyright (c) 2020 The DashQL Authors
 
-#include "duckdb/web/io/ifstreambuf.h"
+#include "duckdb/web/io/ifstream.h"
 
 #include <fstream>
 

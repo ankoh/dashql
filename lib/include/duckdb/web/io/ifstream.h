@@ -12,7 +12,7 @@ namespace web {
 namespace io {
 
 class InputFileStreamBuffer : public std::streambuf {
-   private:
+   protected:
     /// The buffer manager
     std::shared_ptr<BufferManager> buffer_manager_;
     /// The file
@@ -66,6 +66,19 @@ class InputFileStreamBuffer : public std::streambuf {
         auto data = buffer_.GetData();
         setg(data.data(), data.data(), data.data() + data.size());
     }
+};
+
+class InputFileStream : public std::istream {
+   protected:
+    /// The buffer
+    InputFileStreamBuffer buffer_;
+
+   public:
+    /// Constructor
+    InputFileStream(std::shared_ptr<BufferManager> buffer_manager, std::string_view path)
+        : buffer_(std::move(buffer_manager), path), std::istream(&buffer_) {}
+    /// Copy constructor
+    InputFileStream(const InputFileStream& other) : buffer_(other.buffer_), std::istream(&buffer_){};
 };
 
 }  // namespace io

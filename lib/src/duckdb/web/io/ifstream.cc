@@ -1,4 +1,4 @@
-#include "duckdb/web/io/ifstreambuf.h"
+#include "duckdb/web/io/ifstream.h"
 
 #include <cstring>
 

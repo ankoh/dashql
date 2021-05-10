@@ -7,18 +7,96 @@
 #define RAPIDJSON_HAS_CXX11_RVALUE_REFS 1
 #define RAPIDJSON_HAS_CXX11_RANGE_FOR 1
 
+#include <iostream>
 #include <memory>
 #include <string>
 
 #include "arrow/type.h"
 #include "arrow/type_fwd.h"
-#include "duckdb/web/json_analyzer.h"
+#include "duckdb/web/io/ifstream.h"
 #include "duckdb/web/json_parser.h"
 #include "rapidjson/document.h"
+#include "rapidjson/istreamwrapper.h"
 
 namespace duckdb {
 namespace web {
 namespace json {
+
+/// Get the table shape
+enum TableShape {
+    // Unknown table shape
+    UNRECOGNIZED,
+    // Document is an array of rows.
+    // E.g. [{"a":1,"b":2}, {"a":3,"b":4}]
+    ROW_ARRAY,
+    // Document is an object with column array fields.
+    // E.g. {"a":[1,3],"b":[2,4]}
+    COLUMN_OBJECT,
+};
+
+/// A JSON reader event
+enum class JSONReaderEvent {
+    NONE,
+    KEY,
+    NULL_,
+    STRING,
+    BOOL,
+    INT32,
+    INT64,
+    UINT32,
+    UINT64,
+    DOUBLE,
+    START_OBJECT,
+    START_ARRAY,
+    END_OBJECT,
+    END_ARRAY,
+};
+
+std::string_view GetJSONReaderEventName(JSONReaderEvent event);
+
+/// A tiny helper to remember the last JSON reader event for iterative parsing
+struct JSONReaderEventCache : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, JSONReaderEventCache> {
+    JSONReaderEvent event = JSONReaderEvent::NONE;
+    std::string key_buffer = "";
+    std::string_view key = "";
+
+    std::string ReleaseKey() {
+        if (!key_buffer.empty()) {
+            key = {};
+            return std::move(key_buffer);
+        } else {
+            return std::string{std::move(key)};
+        }
+    }
+
+    bool SetEvent(JSONReaderEvent e) {
+        event = e;
+        return true;
+    }
+    bool Key(const char* txt, size_t length, bool copy) {
+        if (copy) {
+            key_buffer = std::string{txt, length};
+            key = key_buffer;
+        } else {
+            key_buffer.clear();
+            key = std::string_view{txt, length};
+        }
+        return SetEvent(JSONReaderEvent::KEY);
+    }
+    bool Null() { return SetEvent(JSONReaderEvent::NULL_); }
+    bool RawNumber(const Ch* str, size_t len, bool copy) { assert(false); }
+    bool String(const char* txt, size_t length, bool copy) { return SetEvent(JSONReaderEvent::STRING); }
+    bool Bool(bool v) { return SetEvent(JSONReaderEvent::BOOL); }
+    bool Int(int32_t v) { return SetEvent(JSONReaderEvent::INT32); }
+    bool Int64(int64_t v) { return SetEvent(JSONReaderEvent::INT64); }
+    bool Uint(uint32_t v) { return SetEvent(JSONReaderEvent::UINT32); }
+    bool Uint64(uint64_t v) { return SetEvent(JSONReaderEvent::UINT64); }
+    bool Double(double v) { return SetEvent(JSONReaderEvent::DOUBLE); }
+    bool StartObject() { return SetEvent(JSONReaderEvent::START_OBJECT); }
+    bool StartArray() { return SetEvent(JSONReaderEvent::START_ARRAY); }
+    bool EndObject(size_t count) { return SetEvent(JSONReaderEvent::END_OBJECT); }
+    bool EndArray(size_t count) { return SetEvent(JSONReaderEvent::END_ARRAY); }
+};
 
 struct JSONReaderOptions {
     /// The table shape
@@ -28,6 +106,24 @@ struct JSONReaderOptions {
 
     /// Read from input stream
     arrow::Status ReadFrom(const rapidjson::Document& doc);
+};
+
+class JSONReader {
+   protected:
+    /// The options
+    const JSONReaderOptions& options_;
+    /// The input file stream
+    io::InputFileStream in_file_;
+    /// The istream
+    rapidjson::IStreamWrapper in_wrapper_;
+    /// The array parsers
+    std::unordered_map<std::string_view, std::shared_ptr<ArrayParser>> parsers_;
+
+   public:
+    /// Constructor
+    JSONReader(const JSONReaderOptions& options, std::istream& in);
+    /// Read next chunk
+    virtual arrow::Status ReadNextBatch() = 0;
 };
 
 }  // namespace json

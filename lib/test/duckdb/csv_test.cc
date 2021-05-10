@@ -7,7 +7,7 @@
 #include "dashql/test/config.h"
 #include "duckdb.hpp"
 #include "duckdb/web/csv_reader.h"
-#include "duckdb/web/io/ifstreambuf.h"
+#include "duckdb/web/io/ifstream.h"
 #include "gtest/gtest.h"
 
 using namespace duckdb::web;

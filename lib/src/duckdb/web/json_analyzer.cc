@@ -487,52 +487,6 @@ class JSONStructArrayAnalyzer : public JSONArrayAnalyzer<TableShape::ROW_ARRAY, 
     arrow::Result<std::shared_ptr<arrow::DataType>> InferDataType() { return InferDataTypeImpl(field_stats_, sample_); }
 };
 
-enum SAXEvent {
-    NONE,
-    KEY,
-    NULL_,
-    STRING,
-    BOOL,
-    INT32,
-    INT64,
-    UINT32,
-    UINT64,
-    DOUBLE,
-    START_OBJECT,
-    START_ARRAY,
-    END_OBJECT,
-    END_ARRAY,
-};
-
-struct SingleEventCache : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, JSONStructArrayAnalyzer> {
-    SAXEvent event = SAXEvent::NONE;
-    std::string txt_buffer = "";
-    std::string_view key = "";
-
-    bool SetEvent(SAXEvent e) {
-        event = e;
-        return true;
-    }
-    bool Key(const char* txt, size_t length, bool copy) {
-        txt_buffer = std::string{txt, length};
-        key = txt_buffer;
-        return SetEvent(SAXEvent::KEY);
-    }
-    bool Null() { return SetEvent(SAXEvent::NULL_); }
-    bool RawNumber(const Ch* str, size_t len, bool copy) { assert(false); }
-    bool String(const char* txt, size_t length, bool copy) { return SetEvent(SAXEvent::STRING); }
-    bool Bool(bool v) { return SetEvent(SAXEvent::BOOL); }
-    bool Int(int32_t v) { return SetEvent(SAXEvent::INT32); }
-    bool Int64(int64_t v) { return SetEvent(SAXEvent::INT64); }
-    bool Uint(uint32_t v) { return SetEvent(SAXEvent::UINT32); }
-    bool Uint64(uint64_t v) { return SetEvent(SAXEvent::UINT64); }
-    bool Double(double v) { return SetEvent(SAXEvent::DOUBLE); }
-    bool StartObject() { return SetEvent(SAXEvent::START_OBJECT); }
-    bool StartArray() { return SetEvent(SAXEvent::START_ARRAY); }
-    bool EndObject(size_t count) { return SetEvent(SAXEvent::END_OBJECT); }
-    bool EndArray(size_t count) { return SetEvent(SAXEvent::END_ARRAY); }
-};
-
 }  // namespace
 
 arrow::Result<std::pair<TableShape, std::shared_ptr<arrow::DataType>>> InferTableType(std::istream& raw_in) {
@@ -543,7 +497,7 @@ arrow::Result<std::pair<TableShape, std::shared_ptr<arrow::DataType>>> InferTabl
     reader.IterativeParseInit();
 
     // Peek into the document
-    SingleEventCache cache;
+    JSONReaderEventCache cache;
     if (!reader.IterativeParseNext<rapidjson::kParseDefaultFlags>(in, cache)) {
         auto error = rapidjson::GetParseError_En(reader.GetParseErrorCode());
         return arrow::Status(arrow::StatusCode::ExecutionError, error);
@@ -551,7 +505,7 @@ arrow::Result<std::pair<TableShape, std::shared_ptr<arrow::DataType>>> InferTabl
 
     // Assume row-major layout.
     // E.g. [{"a":1,"b":2}, {"a":3,"b":4}]
-    if (cache.event == START_ARRAY) {
+    if (cache.event == JSONReaderEvent::START_ARRAY) {
         // Parse all rows
         JSONStructArrayAnalyzer analyzer;
         while (!reader.IterativeParseComplete()) {
@@ -569,19 +523,18 @@ arrow::Result<std::pair<TableShape, std::shared_ptr<arrow::DataType>>> InferTabl
 
     // Assume column-major layout.
     // E.g. {"a":[1,3],"b":[2,4]}
-    if (cache.event == START_OBJECT) {
+    if (cache.event == JSONReaderEvent::START_OBJECT) {
         auto next = [&]() { return reader.IterativeParseNext<rapidjson::kParseDefaultFlags>(in, cache); };
         std::vector<std::shared_ptr<arrow::Field>> fields;
 
         // Parse columns individually
-        for (auto ok = next(); ok && cache.event == KEY; ok = next()) {
-            auto column_name = cache.key;
-            ok = next();
+        while (next() && cache.event == JSONReaderEvent::KEY) {
+            auto column_name = cache.ReleaseKey();
 
             // Key followed by someting other than an array?
             // That violates the assumption that we have a column-major layout.
             // We failed and give up.
-            if (!ok || cache.event != START_ARRAY) {
+            if (!next() || cache.event != JSONReaderEvent::START_ARRAY) {
                 return std::make_pair(TableShape::UNRECOGNIZED, nullptr);
             }
 
@@ -597,7 +550,7 @@ arrow::Result<std::pair<TableShape, std::shared_ptr<arrow::DataType>>> InferTabl
 
             // Detect column type
             ARROW_ASSIGN_OR_RAISE(auto column_type, analyzer.InferDataType());
-            fields.push_back(arrow::field(std::move(cache.txt_buffer), column_type));
+            fields.push_back(arrow::field(column_name, column_type));
         }
         return std::make_pair(TableShape::COLUMN_OBJECT, arrow::struct_(std::move(fields)));
     }

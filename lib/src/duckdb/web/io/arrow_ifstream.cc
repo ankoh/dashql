@@ -14,35 +14,35 @@ namespace web {
 namespace io {
 
 /// Constructor
-InputFileStream::InputFileStream(std::shared_ptr<BufferManager> buffer_manager, std::string_view path)
+ArrowInputFileStream::ArrowInputFileStream(std::shared_ptr<BufferManager> buffer_manager, std::string_view path)
     : buffer_manager_(std::move(buffer_manager)), file_(buffer_manager_->OpenFile(path)) {}
 
 /// Destructor
-InputFileStream::~InputFileStream() {
+ArrowInputFileStream::~ArrowInputFileStream() {
     tmp_page_.reset();
     file_.Release();
 };
 
 /// Close the input file stream
-arrow::Status InputFileStream::Close() {
+arrow::Status ArrowInputFileStream::Close() {
     tmp_page_.reset();
     file_.Release();
     return arrow::Status::OK();
 }
 
 /// Abort any operations on the input stream
-arrow::Status InputFileStream::Abort() {
+arrow::Status ArrowInputFileStream::Abort() {
     file_.Release();
     return arrow::Status::OK();
 }
 
 /// Return the position in the file
-arrow::Result<int64_t> InputFileStream::Tell() const { return file_position_; }
+arrow::Result<int64_t> ArrowInputFileStream::Tell() const { return file_position_; }
 /// Is the stream closed?
-bool InputFileStream::closed() const { return !static_cast<bool>(file_); }
+bool ArrowInputFileStream::closed() const { return !static_cast<bool>(file_); }
 
 /// Read at most nbytes bytes from the file
-arrow::Result<int64_t> InputFileStream::Read(int64_t nbytes, void* out) {
+arrow::Result<int64_t> ArrowInputFileStream::Read(int64_t nbytes, void* out) {
     tmp_page_.reset();
     auto n = buffer_manager_->Read(file_, out, nbytes, file_position_);
     file_position_ += n;
@@ -50,7 +50,7 @@ arrow::Result<int64_t> InputFileStream::Read(int64_t nbytes, void* out) {
 }
 
 /// Peek at most nbytes bytes from the file
-arrow::Result<InputFileStream::PageView> InputFileStream::PeekView(int64_t nbytes) {
+arrow::Result<ArrowInputFileStream::PageView> ArrowInputFileStream::PeekView(int64_t nbytes) {
     // Determine page & offset
     auto page_id = file_position_ >> buffer_manager_->GetPageSizeShift();
     auto skip_here = file_position_ - page_id * buffer_manager_->GetPageSize();
@@ -64,21 +64,21 @@ arrow::Result<InputFileStream::PageView> InputFileStream::PeekView(int64_t nbyte
 }
 
 /// Read at most nbytes bytes from the file
-arrow::Result<std::shared_ptr<arrow::Buffer>> InputFileStream::Read(int64_t nbytes) {
+arrow::Result<std::shared_ptr<arrow::Buffer>> ArrowInputFileStream::Read(int64_t nbytes) {
     ARROW_ASSIGN_OR_RAISE(auto view, PeekView(nbytes));
     file_position_ += view.size();
-    return std::make_shared<InputFileStream::PageView>(std::move(view));
+    return std::make_shared<ArrowInputFileStream::PageView>(std::move(view));
 }
 
 /// Advance the file position by nbytes bytes
-arrow::Status InputFileStream::Advance(int64_t nbytes) {
+arrow::Status ArrowInputFileStream::Advance(int64_t nbytes) {
     tmp_page_.reset();
     file_position_ += nbytes;
     return arrow::Status::OK();
 }
 
 /// Read at most nbytes bytes from the file without advancing the file position
-arrow::Result<arrow::util::string_view> InputFileStream::Peek(int64_t nbytes) {
+arrow::Result<arrow::util::string_view> ArrowInputFileStream::Peek(int64_t nbytes) {
     ARROW_ASSIGN_OR_RAISE(auto view, PeekView(nbytes));
     tmp_page_ = std::move(view);
     return arrow::util::string_view{*tmp_page_};
