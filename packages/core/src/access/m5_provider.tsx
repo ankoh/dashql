@@ -95,7 +95,7 @@ ${aggs}
 
     return (
         <QueryProvider logger={props.logger} database={props.database} query={{ before, data, after }}>
-            {result => props.children.bind(this)(result)}
+            {result => props.children(result)}
         </QueryProvider>
     );
 };
