@@ -8,6 +8,7 @@
 #include <sstream>
 #include <string>
 
+#include "arrow/record_batch.h"
 #include "arrow/type.h"
 #include "arrow/type_fwd.h"
 #include "duckdb/web/json_analyzer.h"
@@ -24,11 +25,11 @@ namespace {
 
 struct ArrayBuffer : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, ArrayBuffer> {
     rapidjson::Document doc = {};
-    size_t depth = 1;
+    size_t depth = 0;
     size_t size = 0;
     bool done = false;
 
-    ArrayBuffer() { doc.StartArray(); }
+    ArrayBuffer() {}
 
     auto& Emit() {
         // Not done yet?
@@ -81,12 +82,12 @@ struct ArrayBuffer : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, Arra
     }
     bool StartObject() {
         size += depth == 1;
-        ++depth;
+        if (depth++ == 0) return true;
         return doc.StartObject();
     }
     bool StartArray() {
         size += depth == 1;
-        ++depth;
+        if (depth++ == 0) return true;
         return doc.StartArray();
     }
     bool EndObject(size_t count) {
@@ -147,7 +148,7 @@ struct RowArrayTableReader : public TableReader {
     /// Prepare the table reader
     arrow::Status Prepare() override;
     /// Read the next batch
-    arrow::Status ReadNextBatch() override;
+    arrow::Result<std::shared_ptr<arrow::RecordBatch>> ReadNextBatch() override;
 };
 
 arrow::Status RowArrayTableReader::Prepare() {
@@ -159,6 +160,11 @@ arrow::Status RowArrayTableReader::Prepare() {
     struct_reader_.emplace(*table_file_, std::move(struct_parser));
 
     return arrow::Status::OK();
+}
+
+arrow::Result<std::shared_ptr<arrow::RecordBatch>> RowArrayTableReader::ReadNextBatch() {
+    ARROW_ASSIGN_OR_RAISE(auto struct_array, struct_reader_->ReadNextBatch());
+    return arrow::RecordBatch::FromStructArray(std::move(struct_array));
 }
 
 struct ColumnObjectTableReader : public TableReader {
@@ -182,7 +188,7 @@ struct ColumnObjectTableReader : public TableReader {
     /// Prepare the table reader
     arrow::Status Prepare() override;
     /// Read next chunk
-    arrow::Status ReadNextBatch() override;
+    arrow::Result<std::shared_ptr<arrow::RecordBatch>> ReadNextBatch() override;
 };
 
 arrow::Status ColumnObjectTableReader::Prepare() {
@@ -213,6 +219,13 @@ arrow::Status ColumnObjectTableReader::Prepare() {
     }
 
     return arrow::Status::OK();
+}
+
+arrow::Result<std::shared_ptr<arrow::RecordBatch>> ColumnObjectTableReader::ReadNextBatch() {
+    for (auto& [name, reader] : column_readers_) {
+        ARROW_ASSIGN_OR_RAISE(auto array, reader->array_reader_.ReadNextBatch());
+    }
+    return arrow::Status::NotImplemented("ColumnObjectTableReader::ReadNextBatch");
 }
 
 }  // namespace
