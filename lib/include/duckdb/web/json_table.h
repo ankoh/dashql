@@ -36,8 +36,13 @@ struct TableType {
 /// An table reader
 class TableReader {
    protected:
-    /// Find the column boundaries
-    static arrow::Status FindColumnBoundaries(std::istream& in, TableType& type);
+    /// The input file stream
+    std::unique_ptr<io::InputFileStream> table_file_;
+    /// The table type
+    TableType table_type_;
+
+    /// Table reader
+    TableReader(std::unique_ptr<io::InputFileStream> table, TableType type = {});
 
    public:
     /// Prepare the table reader
