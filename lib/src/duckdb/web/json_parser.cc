@@ -869,6 +869,41 @@ arrow::Result<std::shared_ptr<ArrayParser>> ArrayParser::ArrayParser::Resolve(
     return res;
 }
 
+std::string_view GetReaderEventName(ReaderEvent event) {
+    switch (event) {
+        case ReaderEvent::NONE:
+            return "NONE";
+        case ReaderEvent::KEY:
+            return "KEY";
+        case ReaderEvent::NULL_:
+            return "NULL_";
+        case ReaderEvent::STRING:
+            return "STRING";
+        case ReaderEvent::BOOL:
+            return "BOOL";
+        case ReaderEvent::INT32:
+            return "INT32";
+        case ReaderEvent::INT64:
+            return "INT64";
+        case ReaderEvent::UINT32:
+            return "UINT32";
+        case ReaderEvent::UINT64:
+            return "UINT64";
+        case ReaderEvent::DOUBLE:
+            return "DOUBLE";
+        case ReaderEvent::START_OBJECT:
+            return "START_OBJECT";
+        case ReaderEvent::START_ARRAY:
+            return "START_ARRAY";
+        case ReaderEvent::END_OBJECT:
+            return "END_OBJECT";
+        case ReaderEvent::END_ARRAY:
+            return "END_ARRAY";
+        default:
+            return "?";
+    }
+}
+
 }  // namespace json
 }  // namespace web
 }  // namespace duckdb

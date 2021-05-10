@@ -573,6 +573,60 @@ arrow::Status InferTableType(std::istream& raw_in, TableType& table) {
     return arrow::Status::OK();
 }
 
+/// Find column boundaries
+arrow::Status FindColumnBoundaries(std::istream& in, TableType& type) {
+    // Dont spend time on parsing numbers
+    constexpr auto SCAN_FLAGS = DEFAULT_PARSER_FLAGS | rapidjson::kParseNumbersAsStringsFlag;
+
+    // Setup parser
+    rapidjson::IStreamWrapper in_wrapper{in};
+    rapidjson::Reader reader;
+    reader.IterativeParseInit();
+
+    // Consume top-level object
+    EventReader event_reader;
+    if (!reader.IterativeParseNext<SCAN_FLAGS>(in_wrapper, event_reader)) {
+        auto error = rapidjson::GetParseError_En(reader.GetParseErrorCode());
+        return arrow::Status::Invalid(error);
+    }
+    if (event_reader.event != ReaderEvent::START_OBJECT) {
+        return arrow::Status::Invalid("Unexpected top-level JSON type");
+    }
+
+    // Scan all column arrays
+    KeyReader key_reader;
+    auto next_event = [&]() { return reader.IterativeParseNext<SCAN_FLAGS>(in_wrapper, event_reader); };
+    auto next_key = [&]() { return reader.IterativeParseNext<SCAN_FLAGS>(in_wrapper, key_reader); };
+    while (next_key() && key_reader.event == ReaderEvent::KEY) {
+        auto column_name = key_reader.ReleaseKey();
+
+        // Get the column
+        if (!next_event() || event_reader.event != ReaderEvent::START_ARRAY) {
+            return arrow::Status::Invalid("Invalid type. Expected start of column array, received: ",
+                                          GetReaderEventName(event_reader.event));
+        }
+
+        // Get the begin of the column
+        auto column_begin = in_wrapper.Tell() - 1;
+        auto column_end = column_begin;
+
+        // Consume the entire column array.
+        // XXX this is the hot loop since we're scanning the entire document for the column boundaries.
+        // XXX parser errors.
+        assert(event_reader.depth == 2);
+        while (next_event() && event_reader.depth != 1)
+            ;
+
+        // The the position of the first token that is different
+        column_end = in_wrapper.Tell();
+
+        // Insert column boundaries
+        type.column_boundaries.insert(
+            {column_name, FileRange{.offset = column_begin, .size = column_end - column_begin}});
+    }
+    return arrow::Status::OK();
+}
+
 }  // namespace json
 }  // namespace web
 }  // namespace duckdb
