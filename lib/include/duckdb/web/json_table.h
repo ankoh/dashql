@@ -48,7 +48,7 @@ class TableReader {
     /// Prepare the table reader
     virtual arrow::Status Prepare() = 0;
     /// Read next chunk
-    virtual arrow::Status ReadNextBatch() = 0;
+    virtual arrow::Result<std::shared_ptr<arrow::RecordBatch>> ReadNextBatch() = 0;
 };
 
 }  // namespace json
