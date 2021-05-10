@@ -1,6 +1,6 @@
 // Copyright (c) 2020 The DashQL Authors
 
-#include "duckdb/web/json_reader_options.h"
+#include "duckdb/web/json_table_options.h"
 
 #include <iostream>
 #include <memory>
@@ -73,7 +73,7 @@ static std::unordered_map<std::string_view, TableShape> FORMATS{
 }  // namespace
 
 /// Read from document
-arrow::Status JSONReaderOptions::ReadFrom(const rapidjson::Document& doc) {
+arrow::Status TableReaderOptions::ReadFrom(const rapidjson::Document& doc) {
     if (!doc.IsObject()) return arrow::Status::OK();
     for (auto iter = doc.MemberBegin(); iter != doc.MemberEnd(); ++iter) {
         std::string_view name{iter->name.GetString(), iter->name.GetStringLength()};

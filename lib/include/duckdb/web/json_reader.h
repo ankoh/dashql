@@ -3,10 +3,6 @@
 #ifndef INCLUDE_DUCKDB_WEB_JSON_READER_H_
 #define INCLUDE_DUCKDB_WEB_JSON_READER_H_
 
-#define RAPIDJSON_HAS_STDSTRING 1
-#define RAPIDJSON_HAS_CXX11_RVALUE_REFS 1
-#define RAPIDJSON_HAS_CXX11_RANGE_FOR 1
-
 #include <iostream>
 #include <memory>
 #include <string>
@@ -22,20 +18,8 @@ namespace duckdb {
 namespace web {
 namespace json {
 
-/// Get the table shape
-enum TableShape {
-    // Unknown table shape
-    UNRECOGNIZED,
-    // Document is an array of rows.
-    // E.g. [{"a":1,"b":2}, {"a":3,"b":4}]
-    ROW_ARRAY,
-    // Document is an object with column array fields.
-    // E.g. {"a":[1,3],"b":[2,4]}
-    COLUMN_OBJECT,
-};
-
-/// A JSON reader event
-enum class JSONReaderEvent {
+/// A reader event
+enum class ReaderEvent {
     NONE,
     KEY,
     NULL_,
@@ -53,11 +37,11 @@ enum class JSONReaderEvent {
 };
 
 /// Get the json reader event name
-std::string_view GetJSONReaderEventName(JSONReaderEvent event);
+std::string_view GetReaderEventName(ReaderEvent event);
 
-/// A tiny helper to remember the last JSON reader event for iterative parsing
-struct JSONReaderEventCache : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, JSONReaderEventCache> {
-    JSONReaderEvent event = JSONReaderEvent::NONE;
+/// A helper to remember the last JSON key for iterative parsing
+struct KeyReader : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, KeyReader> {
+    ReaderEvent event = ReaderEvent::NONE;
     std::string key_buffer = "";
     std::string_view key = "";
 
@@ -69,8 +53,7 @@ struct JSONReaderEventCache : public rapidjson::BaseReaderHandler<rapidjson::UTF
             return std::string{std::move(key)};
         }
     }
-
-    bool SetEvent(JSONReaderEvent e) {
+    bool SetEvent(ReaderEvent e) {
         event = e;
         return true;
     }
@@ -82,39 +65,21 @@ struct JSONReaderEventCache : public rapidjson::BaseReaderHandler<rapidjson::UTF
             key_buffer.clear();
             key = std::string_view{txt, length};
         }
-        return SetEvent(JSONReaderEvent::KEY);
+        return SetEvent(ReaderEvent::KEY);
     }
-    bool Null() { return SetEvent(JSONReaderEvent::NULL_); }
+    bool Null() { return SetEvent(ReaderEvent::NULL_); }
     bool RawNumber(const Ch* str, size_t len, bool copy) { assert(false); }
-    bool String(const char* txt, size_t length, bool copy) { return SetEvent(JSONReaderEvent::STRING); }
-    bool Bool(bool v) { return SetEvent(JSONReaderEvent::BOOL); }
-    bool Int(int32_t v) { return SetEvent(JSONReaderEvent::INT32); }
-    bool Int64(int64_t v) { return SetEvent(JSONReaderEvent::INT64); }
-    bool Uint(uint32_t v) { return SetEvent(JSONReaderEvent::UINT32); }
-    bool Uint64(uint64_t v) { return SetEvent(JSONReaderEvent::UINT64); }
-    bool Double(double v) { return SetEvent(JSONReaderEvent::DOUBLE); }
-    bool StartObject() { return SetEvent(JSONReaderEvent::START_OBJECT); }
-    bool StartArray() { return SetEvent(JSONReaderEvent::START_ARRAY); }
-    bool EndObject(size_t count) { return SetEvent(JSONReaderEvent::END_OBJECT); }
-    bool EndArray(size_t count) { return SetEvent(JSONReaderEvent::END_ARRAY); }
-};
-
-/// Get the JSON reader options
-struct JSONReaderOptions {
-    /// The table shape
-    std::optional<TableShape> table_shape = std::nullopt;
-    /// The fields (if any)
-    std::vector<std::shared_ptr<arrow::Field>> fields = {};
-
-    /// Read from input stream
-    arrow::Status ReadFrom(const rapidjson::Document& doc);
-};
-
-/// An abstract JSON reader
-class JSONReader {
-   public:
-    /// Read next chunk
-    virtual arrow::Result<std::shared_ptr<arrow::Array>> ReadNextBatch() = 0;
+    bool String(const char* txt, size_t length, bool copy) { return SetEvent(ReaderEvent::STRING); }
+    bool Bool(bool v) { return SetEvent(ReaderEvent::BOOL); }
+    bool Int(int32_t v) { return SetEvent(ReaderEvent::INT32); }
+    bool Int64(int64_t v) { return SetEvent(ReaderEvent::INT64); }
+    bool Uint(uint32_t v) { return SetEvent(ReaderEvent::UINT32); }
+    bool Uint64(uint64_t v) { return SetEvent(ReaderEvent::UINT64); }
+    bool Double(double v) { return SetEvent(ReaderEvent::DOUBLE); }
+    bool StartObject() { return SetEvent(ReaderEvent::START_OBJECT); }
+    bool StartArray() { return SetEvent(ReaderEvent::START_ARRAY); }
+    bool EndObject(size_t count) { return SetEvent(ReaderEvent::END_OBJECT); }
+    bool EndArray(size_t count) { return SetEvent(ReaderEvent::END_ARRAY); }
 };
 
 }  // namespace json

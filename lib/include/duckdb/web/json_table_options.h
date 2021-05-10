@@ -1,7 +1,7 @@
 // Copyright (c) 2020 The DashQL Authors
 
-#ifndef INCLUDE_DUCKDB_WEB_JSON_READER_H_
-#define INCLUDE_DUCKDB_WEB_JSON_READER_H_
+#ifndef INCLUDE_DUCKDB_WEB_JSON_TABLE_OPTIONS_H_
+#define INCLUDE_DUCKDB_WEB_JSON_TABLE_OPTIONS_H_
 
 #include <iostream>
 #include <memory>
@@ -28,7 +28,7 @@ enum TableShape {
 };
 
 /// Get the JSON reader options
-struct JSONReaderOptions {
+struct TableReaderOptions {
     /// The table shape
     std::optional<TableShape> table_shape = std::nullopt;
     /// The fields (if any)

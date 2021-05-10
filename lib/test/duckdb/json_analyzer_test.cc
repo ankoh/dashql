@@ -32,6 +32,7 @@ struct JSONAnalyzerTest {
     std::string_view input;
     TableShape shape;
     std::string_view type;
+    std::vector<std::pair<std::string_view, std::string_view>> columns = {};
 };
 
 struct JSONAnalyzerTestSuite : public testing::TestWithParam<JSONAnalyzerTest> {};
@@ -40,9 +41,9 @@ TEST_P(JSONAnalyzerTestSuite, InferTableType) {
     auto& test = GetParam();
 
     imemstream in{test.input};
-    auto result = InferTableType(in);
-    ASSERT_TRUE(result.ok()) << result.status().message();
-    auto& table = result.ValueUnsafe();
+    TableType table;
+    auto status = InferTableType(in, table);
+    ASSERT_TRUE(status.ok()) << status.message();
 
     ASSERT_EQ(table.shape, test.shape);
     if (table.shape == TableShape::UNRECOGNIZED) {
@@ -51,6 +52,16 @@ TEST_P(JSONAnalyzerTestSuite, InferTableType) {
     }
     ASSERT_NE(table.type, nullptr);
     ASSERT_EQ(std::string{table.type->ToString()}, std::string{test.type});
+
+    if (!test.columns.empty()) {
+        for (auto& [name, column] : test.columns) {
+            std::string name_buffer{name};
+            ASSERT_TRUE(table.column_boundaries.count(name_buffer)) << name;
+            auto range = table.column_boundaries.at(name_buffer);
+            auto range_str = test.input.substr(range.offset, range.size);
+            ASSERT_EQ(std::string{column}, std::string{range_str});
+        }
+    }
 }
 
 // clang-format off
@@ -62,7 +73,7 @@ static std::vector<JSONAnalyzerTest> JSON_ANALYZER_TESTS = {
         .name = "cols_empty",
         .input = R"JSON({})JSON",
         .shape = TableShape::COLUMN_OBJECT,
-        .type = "struct<>"
+        .type = "struct<>",
     },
     {
         .name = "cols_single_bool",
@@ -70,7 +81,10 @@ static std::vector<JSONAnalyzerTest> JSON_ANALYZER_TESTS = {
             "a": [true, true, false]
         })JSON",
         .shape = TableShape::COLUMN_OBJECT,
-        .type = "struct<a: bool>"
+        .type = "struct<a: bool>",
+        .columns = {
+            {"a", "[true, true, false]"}
+        }
     },
     {
         .name = "cols_single_i32",
