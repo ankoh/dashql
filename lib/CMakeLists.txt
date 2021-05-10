@@ -293,10 +293,10 @@ add_library(dashql_analyzer
 add_library(duckdb_web
     ${CMAKE_SOURCE_DIR}/src/duckdb/web/arrow_inserter.cc
     ${CMAKE_SOURCE_DIR}/src/duckdb/web/csv_reader.cc
-    ${CMAKE_SOURCE_DIR}/src/duckdb/web/json_parser.cc
     ${CMAKE_SOURCE_DIR}/src/duckdb/web/json_analyzer.cc
-    ${CMAKE_SOURCE_DIR}/src/duckdb/web/json_reader_options.cc
-    ${CMAKE_SOURCE_DIR}/src/duckdb/web/json_reader.cc
+    ${CMAKE_SOURCE_DIR}/src/duckdb/web/json_parser.cc
+    ${CMAKE_SOURCE_DIR}/src/duckdb/web/json_table.cc
+    ${CMAKE_SOURCE_DIR}/src/duckdb/web/json_table_options.cc
     ${CMAKE_SOURCE_DIR}/src/duckdb/web/json_typedef.cc
     ${CMAKE_SOURCE_DIR}/src/duckdb/web/io/arrow_ifstream.cc
     ${CMAKE_SOURCE_DIR}/src/duckdb/web/io/buffer_manager.cc
@@ -428,8 +428,8 @@ if(NOT EMSCRIPTEN)
         ${CMAKE_SOURCE_DIR}/test/duckdb/buffer_manager_test.cc
         ${CMAKE_SOURCE_DIR}/test/duckdb/csv_test.cc
         ${CMAKE_SOURCE_DIR}/test/duckdb/json_analyzer_test.cc
+        ${CMAKE_SOURCE_DIR}/test/duckdb/json_table_test.cc
         ${CMAKE_SOURCE_DIR}/test/duckdb/json_typedef_test.cc
-        ${CMAKE_SOURCE_DIR}/test/duckdb/json_reader_test.cc
         ${CMAKE_SOURCE_DIR}/test/duckdb/duckdb_test.cc
         ${CMAKE_SOURCE_DIR}/test/duckdb/ifstream_test.cc
         ${CMAKE_SOURCE_DIR}/test/duckdb/webdb_test.cc

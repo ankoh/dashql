@@ -489,16 +489,15 @@ class JSONStructArrayAnalyzer : public JSONArrayAnalyzer<TableShape::ROW_ARRAY, 
 
 }  // namespace
 
-arrow::Result<TableType> InferTableType(std::istream& raw_in) {
+arrow::Status InferTableType(std::istream& raw_in, TableType& table) {
     rapidjson::IStreamWrapper in{raw_in};
-    TableType table;
 
     // Parse the SAX document
     rapidjson::Reader reader;
     reader.IterativeParseInit();
 
     // Peek into the document
-    JSONReaderEventCache cache;
+    KeyReader cache;
     if (!reader.IterativeParseNext<rapidjson::kParseDefaultFlags>(in, cache)) {
         auto error = rapidjson::GetParseError_En(reader.GetParseErrorCode());
         return arrow::Status(arrow::StatusCode::ExecutionError, error);
@@ -506,7 +505,7 @@ arrow::Result<TableType> InferTableType(std::istream& raw_in) {
 
     // Assume row-major layout.
     // E.g. [{"a":1,"b":2}, {"a":3,"b":4}]
-    if (cache.event == JSONReaderEvent::START_ARRAY) {
+    if (cache.event == ReaderEvent::START_ARRAY) {
         // Parse all rows
         JSONStructArrayAnalyzer analyzer;
         while (!reader.IterativeParseComplete()) {
@@ -520,26 +519,30 @@ arrow::Result<TableType> InferTableType(std::istream& raw_in) {
         // Infer the struct type
         ARROW_ASSIGN_OR_RAISE(table.type, analyzer.InferDataType());
         table.shape = TableShape::ROW_ARRAY;
-        return table;
+        return arrow::Status::OK();
     }
 
     // Assume column-major layout.
     // E.g. {"a":[1,3],"b":[2,4]}
-    if (cache.event == JSONReaderEvent::START_OBJECT) {
+    if (cache.event == ReaderEvent::START_OBJECT) {
         auto next = [&]() { return reader.IterativeParseNext<rapidjson::kParseDefaultFlags>(in, cache); };
         std::vector<std::shared_ptr<arrow::Field>> fields;
 
         // Parse columns individually
-        while (next() && cache.event == JSONReaderEvent::KEY) {
+        while (next() && cache.event == ReaderEvent::KEY) {
             auto column_name = cache.ReleaseKey();
 
-            // Key followed by someting other than an array?
+            // Key followed by something other than an array?
             // That violates the assumption that we have a column-major layout.
             // We failed and give up.
-            if (!next() || cache.event != JSONReaderEvent::START_ARRAY) {
+            if (!next() || cache.event != ReaderEvent::START_ARRAY) {
                 table.shape = TableShape::UNRECOGNIZED;
-                return table;
+                return arrow::Status::OK();
             }
+
+            // Get the begin of the column
+            auto column_begin = in.Tell() - 1;
+            auto column_end = column_begin;
 
             // Parse entire column array.
             JSONFlatArrayAnalyzer analyzer;
@@ -554,15 +557,20 @@ arrow::Result<TableType> InferTableType(std::istream& raw_in) {
             // Detect column type
             ARROW_ASSIGN_OR_RAISE(auto column_type, analyzer.InferDataType());
             fields.push_back(arrow::field(column_name, column_type));
+
+            // Store column range
+            column_end = in.Tell();
+            table.column_boundaries.insert(
+                {column_name, FileRange{.offset = column_begin, .size = column_end - column_begin}});
         }
         table.shape = TableShape::COLUMN_OBJECT;
         table.type = arrow::struct_(std::move(fields));
-        return table;
+        return arrow::Status::OK();
     }
 
     // Unknown structure
     table.shape = TableShape::UNRECOGNIZED;
-    return table;
+    return arrow::Status::OK();
 }
 
 }  // namespace json

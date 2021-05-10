@@ -1,10 +1,10 @@
 // Copyright (c) 2020 The DashQL Authors
 
-#include "duckdb/web/json_reader.h"
-
 #include <optional>
 
 #include "duckdb/web/json_analyzer.h"
+#include "duckdb/web/json_reader.h"
+#include "duckdb/web/json_table_options.h"
 #include "gtest/gtest.h"
 #include "rapidjson/document.h"
 #include "rapidjson/memorystream.h"
@@ -14,73 +14,73 @@ using namespace duckdb::web::json;
 
 namespace {
 
-TEST(JSONReaderOptionsTest, NoFormat1) {
+TEST(TableReaderOptionsTest, NoFormat1) {
     rapidjson::Document doc;
     doc.Parse(R"JSON({})JSON");
-    JSONReaderOptions options;
+    TableReaderOptions options;
     ASSERT_EQ(options.table_shape, std::nullopt);
     ASSERT_TRUE(options.ReadFrom(doc).ok());
     ASSERT_EQ(options.table_shape, std::nullopt);
 }
 
-TEST(JSONReaderOptionsTest, NoFormat2) {
+TEST(TableReaderOptionsTest, NoFormat2) {
     rapidjson::Document doc;
     doc.Parse(R"JSON({
         "foo": "bar"
     })JSON");
-    JSONReaderOptions options;
+    TableReaderOptions options;
     ASSERT_EQ(options.table_shape, std::nullopt);
     ASSERT_TRUE(options.ReadFrom(doc).ok());
     ASSERT_EQ(options.table_shape, std::nullopt);
 }
 
-TEST(JSONReaderOptionsTest, FormatRowArray) {
+TEST(TableReaderOptionsTest, FormatRowArray) {
     rapidjson::Document doc;
     doc.Parse(R"JSON({
         "format": "row-array"
     })JSON");
-    JSONReaderOptions options;
+    TableReaderOptions options;
     ASSERT_EQ(options.table_shape, std::nullopt);
     ASSERT_TRUE(options.ReadFrom(doc).ok());
     ASSERT_TRUE(options.table_shape.has_value());
     ASSERT_EQ(*options.table_shape, TableShape::ROW_ARRAY);
 }
 
-TEST(JSONReaderOptionsTest, FormatColumnObject) {
+TEST(TableReaderOptionsTest, FormatColumnObject) {
     rapidjson::Document doc;
     doc.Parse(R"JSON({
         "format": "column-object"
     })JSON");
-    JSONReaderOptions options;
+    TableReaderOptions options;
     ASSERT_EQ(options.table_shape, std::nullopt);
     ASSERT_TRUE(options.ReadFrom(doc).ok());
     ASSERT_TRUE(options.table_shape.has_value());
     ASSERT_EQ(*options.table_shape, TableShape::COLUMN_OBJECT);
 }
 
-TEST(JSONReaderOptionsTest, FormatInvalidString) {
+TEST(TableReaderOptionsTest, FormatInvalidString) {
     rapidjson::Document doc;
     doc.Parse(R"JSON({
         "format": "invalid"
     })JSON");
-    JSONReaderOptions options;
+    TableReaderOptions options;
     ASSERT_EQ(options.table_shape, std::nullopt);
     auto status = options.ReadFrom(doc);
     ASSERT_FALSE(status.ok());
 }
 
-TEST(JSONReaderOptionsTest, FormatInvalidInt) {
+TEST(TableReaderOptionsTest, FormatInvalidInt) {
     rapidjson::Document doc;
     doc.Parse(R"JSON({
         "format": 42 
     })JSON");
-    JSONReaderOptions options;
+    TableReaderOptions options;
     ASSERT_EQ(options.table_shape, std::nullopt);
     auto status = options.ReadFrom(doc);
     ASSERT_FALSE(status.ok());
 }
 
-TEST(JSONReaderOptionsTest, Fields) {
+TEST(TableReaderOptionsTest, Fields) {
     rapidjson::Document doc;
     doc.Parse(R"JSON({
         "format": "row-array",
@@ -89,7 +89,7 @@ TEST(JSONReaderOptionsTest, Fields) {
             {"name": "bar", "type": "utf8"}
         ]
     })JSON");
-    JSONReaderOptions options;
+    TableReaderOptions options;
     ASSERT_EQ(options.table_shape, std::nullopt);
     auto status = options.ReadFrom(doc);
     ASSERT_TRUE(status.ok());
