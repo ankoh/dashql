@@ -42,15 +42,15 @@ TEST_P(JSONAnalyzerTestSuite, InferTableType) {
     imemstream in{test.input};
     auto result = InferTableType(in);
     ASSERT_TRUE(result.ok()) << result.status().message();
-    auto& [shape, type] = result.ValueUnsafe();
+    auto& table = result.ValueUnsafe();
 
-    ASSERT_EQ(shape, test.shape);
-    if (shape == TableShape::UNRECOGNIZED) {
+    ASSERT_EQ(table.shape, test.shape);
+    if (table.shape == TableShape::UNRECOGNIZED) {
         ASSERT_EQ(test.type, nullptr);
         return;
     }
-    ASSERT_NE(type, nullptr);
-    ASSERT_EQ(std::string{type->ToString()}, std::string{test.type});
+    ASSERT_NE(table.type, nullptr);
+    ASSERT_EQ(std::string{table.type->ToString()}, std::string{test.type});
 }
 
 // clang-format off
