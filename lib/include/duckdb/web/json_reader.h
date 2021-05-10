@@ -52,6 +52,7 @@ enum class JSONReaderEvent {
     END_ARRAY,
 };
 
+/// Get the json reader event name
 std::string_view GetJSONReaderEventName(JSONReaderEvent event);
 
 /// A tiny helper to remember the last JSON reader event for iterative parsing
@@ -98,6 +99,7 @@ struct JSONReaderEventCache : public rapidjson::BaseReaderHandler<rapidjson::UTF
     bool EndArray(size_t count) { return SetEvent(JSONReaderEvent::END_ARRAY); }
 };
 
+/// Get the JSON reader options
 struct JSONReaderOptions {
     /// The table shape
     std::optional<TableShape> table_shape = std::nullopt;
@@ -108,22 +110,11 @@ struct JSONReaderOptions {
     arrow::Status ReadFrom(const rapidjson::Document& doc);
 };
 
+/// An abstract JSON reader
 class JSONReader {
-   protected:
-    /// The options
-    const JSONReaderOptions& options_;
-    /// The input file stream
-    io::InputFileStream in_file_;
-    /// The istream
-    rapidjson::IStreamWrapper in_wrapper_;
-    /// The array parsers
-    std::unordered_map<std::string_view, std::shared_ptr<ArrayParser>> parsers_;
-
    public:
-    /// Constructor
-    JSONReader(const JSONReaderOptions& options, std::istream& in);
     /// Read next chunk
-    virtual arrow::Status ReadNextBatch() = 0;
+    virtual arrow::Result<std::shared_ptr<arrow::Array>> ReadNextBatch() = 0;
 };
 
 }  // namespace json
