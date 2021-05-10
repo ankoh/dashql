@@ -101,8 +101,6 @@ struct ArrayBuffer : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, Arra
 
 /// Streaming json parser for an array
 struct ArrayReader {
-    /// The input stream
-    std::unique_ptr<std::istream> in_;
     /// The istream
     rapidjson::IStreamWrapper in_wrapper_;
     /// The reader
@@ -112,6 +110,11 @@ struct ArrayReader {
     /// The array parser
     std::shared_ptr<ArrayParser> parser_;
 
+    /// Constructor
+    ArrayReader(std::istream& in, std::shared_ptr<ArrayParser> parser)
+        : in_wrapper_(in), reader_(), array_buffer_(), parser_(std::move(parser)) {
+        reader_.IterativeParseInit();
+    }
     /// Read the next batch
     arrow::Result<std::shared_ptr<arrow::Array>> ReadNextBatch();
 };
@@ -134,6 +137,71 @@ arrow::Result<std::shared_ptr<arrow::Array>> ArrayReader::ReadNextBatch() {
     }
     return nullptr;
 };
+
+struct RowArrayTableReader : public TableReader {
+    /// The struct reader
+    std::optional<ArrayReader> struct_reader_ = std::nullopt;
+
+    /// Constructor
+    RowArrayTableReader(std::unique_ptr<io::InputFileStream> table, TableType type = {});
+    /// Prepare the table reader
+    arrow::Status Prepare() override;
+    /// Read the next batch
+    arrow::Status ReadNextBatch() override;
+};
+
+arrow::Status RowArrayTableReader::Prepare() {
+    /// Shape must be a row array
+    assert(table_type_.shape == TableShape::ROW_ARRAY);
+    /// Resolve the struct parser
+    ARROW_ASSIGN_OR_RAISE(auto struct_parser, ArrayParser::Resolve(table_type_.type));
+    /// Create the struct reader
+    struct_reader_.emplace(*table_file_, std::move(struct_parser));
+
+    return arrow::Status::OK();
+}
+
+struct ColumnObjectTableReader : public TableReader {
+    /// A column parser
+    struct ColumnReader {
+        /// The column stream
+        io::InputFileStream stream_;
+        /// The column parser
+        ArrayReader array_reader_;
+
+        // Constructor
+        ColumnReader(const io::InputFileStream& stream, std::shared_ptr<ArrayParser> parser);
+    };
+
+    /// The column readers
+    std::unordered_map<std::string, std::unique_ptr<ColumnReader>> column_readers_ = {};
+
+    /// Constructor
+    ColumnObjectTableReader(std::unique_ptr<io::InputFileStream> table, TableType type = {});
+    /// Prepare the table reader
+    arrow::Status Prepare() override;
+    /// Read next chunk
+    arrow::Status ReadNextBatch() override;
+};
+
+arrow::Status ColumnObjectTableReader::Prepare() {
+    /// Shape must be a column object
+    assert(table_type_.shape == TableShape::COLUMN_OBJECT);
+
+    // Need to find the column boundaries?
+    // User might have provided the types explicitly which forces us to find the column boundaries.
+    if (table_type_.type->num_fields() > 0 && table_type_.column_boundaries.size() == 0) {
+        io::InputFileStream stream{*table_file_};
+        ARROW_RETURN_NOT_OK(FindColumnBoundaries(stream, table_type_));
+    }
+
+    for (unsigned i = 0; i < table_type_.type->num_fields(); ++i) {
+        auto& field = table_type_.type->field(i);
+        auto& name = field->name();
+    }
+
+    return arrow::Status::OK();
+}
 
 }  // namespace
 
