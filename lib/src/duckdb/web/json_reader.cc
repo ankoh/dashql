@@ -21,71 +21,15 @@ namespace duckdb {
 namespace web {
 namespace json {
 
-/// Get name of json reader event
-std::string_view GetJSONReaderEventName(JSONReaderEvent event) {
-    switch (event) {
-        case JSONReaderEvent::NONE:
-            return "NONE";
-        case JSONReaderEvent::KEY:
-            return "KEY";
-        case JSONReaderEvent::NULL_:
-            return "NULL_";
-        case JSONReaderEvent::STRING:
-            return "STRING";
-        case JSONReaderEvent::BOOL:
-            return "BOOL";
-        case JSONReaderEvent::INT32:
-            return "INT32";
-        case JSONReaderEvent::INT64:
-            return "INT64";
-        case JSONReaderEvent::UINT32:
-            return "UINT32";
-        case JSONReaderEvent::UINT64:
-            return "UINT64";
-        case JSONReaderEvent::DOUBLE:
-            return "DOUBLE";
-        case JSONReaderEvent::START_OBJECT:
-            return "START_OBJECT";
-        case JSONReaderEvent::START_ARRAY:
-            return "START_ARRAY";
-        case JSONReaderEvent::END_OBJECT:
-            return "END_OBJECT";
-        case JSONReaderEvent::END_ARRAY:
-            return "END_ARRAY";
-        default:
-            return "?";
-    }
-}
-
 namespace {
 
-std::string_view GetTypeName(rapidjson::Type type) {
-    switch (type) {
-        case rapidjson::Type::kArrayType:
-            return "array";
-        case rapidjson::Type::kTrueType:;
-        case rapidjson::Type::kFalseType:
-            return "boolean";
-        case rapidjson::Type::kNumberType:
-            return "number";
-        case rapidjson::Type::kObjectType:
-            return "object";
-        case rapidjson::Type::kNullType:
-            return "null";
-        case rapidjson::Type::kStringType:
-            return "string";
-    }
-    return "?";
-}
-
-/// A json array sink
-struct JSONArraySink : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, JSONReaderEventCache> {
+struct JSONArrayBuffer : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, JSONReaderEventCache> {
     rapidjson::Document doc = {};
     size_t depth = 1;
     size_t size = 0;
     bool done = false;
 
-    JSONArraySink() { doc.StartArray(); }
+    JSONArrayBuffer() { doc.StartArray(); }
 
     auto& Emit() {
         // Not done yet?
@@ -156,78 +100,18 @@ struct JSONArraySink : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, JS
     }
 };
 
-arrow::Status RequireType(const rapidjson::Value& value, rapidjson::Type type, std::string_view field) {
-    if (value.GetType() != type) {
-        std::stringstream msg;
-        msg << "type mismatch for field '" << field << "': expected " << GetTypeName(type) << ", received "
-            << GetTypeName(value.GetType());
-        return arrow::Status(arrow::StatusCode::Invalid, msg.str());
-    }
-    return arrow::Status::OK();
-};
-
-enum FieldTag {
-    FORMAT,
-    FIELDS,
-};
-
-static std::unordered_map<std::string_view, FieldTag> FIELD_TAGS{
-    {"format", FieldTag::FORMAT},
-    {"fields", FieldTag::FIELDS},
-};
-
-static std::unordered_map<std::string_view, TableShape> FORMATS{
-    {"row-array", TableShape::ROW_ARRAY},
-    {"column-object", TableShape::COLUMN_OBJECT},
-};
-
-}  // namespace
-
-/// Read from document
-arrow::Status JSONReaderOptions::ReadFrom(const rapidjson::Document& doc) {
-    if (!doc.IsObject()) return arrow::Status::OK();
-    for (auto iter = doc.MemberBegin(); iter != doc.MemberEnd(); ++iter) {
-        std::string_view name{iter->name.GetString(), iter->name.GetStringLength()};
-
-        auto tag_iter = FIELD_TAGS.find(name);
-        if (tag_iter == FIELD_TAGS.end()) continue;
-
-        switch (tag_iter->second) {
-            case FieldTag::FORMAT: {
-                ARROW_RETURN_NOT_OK(RequireType(iter->value, rapidjson::Type::kStringType, "format"));
-                auto format_iter =
-                    FORMATS.find(std::string_view{iter->value.GetString(), iter->value.GetStringLength()});
-                if (format_iter == FORMATS.end()) {
-                    return arrow::Status::Invalid("unknown table format: ", iter->value.GetString());
-                }
-                table_shape = format_iter->second;
-                continue;
-            }
-
-            case FieldTag::FIELDS: {
-                ARROW_RETURN_NOT_OK(RequireType(iter->value, rapidjson::Type::kArrayType, "fields"));
-                const auto fields_array = iter->value.GetArray();
-                ARROW_ASSIGN_OR_RAISE(fields, ReadFields(fields_array));
-                continue;
-            }
-        }
-    }
-    return arrow::Status::OK();
-}
-
-namespace {
-
+/// Streaming json parser for an array
 struct ArrayReader {
     /// The input stream
-    rapidjson::IStreamWrapper in;
+    std::unique_ptr<std::istream> in_;
+    /// The istream
+    rapidjson::IStreamWrapper in_wrapper_;
     /// The reader
-    rapidjson::Reader reader;
-    /// The array sink
-    JSONArraySink array_sink;
+    rapidjson::Reader reader_;
+    /// The array buffer
+    JSONArrayBuffer array_buffer_;
     /// The array parser
-    std::shared_ptr<ArrayParser> parser;
-    /// The column arrays
-    std::vector<std::pair<std::string, std::vector<std::shared_ptr<arrow::Array>>>> column_arrays_ = {};
+    std::shared_ptr<ArrayParser> parser_;
 
     /// Read the next batch
     arrow::Result<std::shared_ptr<arrow::Array>> ReadNextBatch();
@@ -235,17 +119,17 @@ struct ArrayReader {
 
 /// Read entire object
 arrow::Result<std::shared_ptr<arrow::Array>> ArrayReader::ReadNextBatch() {
-    while (!reader.IterativeParseComplete()) {
-        if (!reader.IterativeParseNext<rapidjson::kParseDefaultFlags>(in, array_sink)) {
-            auto error = rapidjson::GetParseError_En(reader.GetParseErrorCode());
+    while (!reader_.IterativeParseComplete()) {
+        if (!reader_.IterativeParseNext<rapidjson::kParseDefaultFlags>(in_wrapper_, array_buffer_)) {
+            auto error = rapidjson::GetParseError_En(reader_.GetParseErrorCode());
             return arrow::Status(arrow::StatusCode::ExecutionError, error);
         }
-        if (array_sink.size >= 1024 || array_sink.done) {
-            auto& buffer = array_sink.Emit();
-            auto status = parser->AppendValues(buffer);
+        if (array_buffer_.size >= 1024 || array_buffer_.done) {
+            auto& buffer = array_buffer_.Emit();
+            auto status = parser_->AppendValues(buffer);
             buffer.Clear();
             ARROW_RETURN_NOT_OK(status);
-            ARROW_ASSIGN_OR_RAISE(auto array, parser->Finish());
+            ARROW_ASSIGN_OR_RAISE(auto array, parser_->Finish());
             return array;
         }
     }
@@ -285,6 +169,41 @@ arrow::Result<std::shared_ptr<arrow::Array>> ArrayReader::ReadNextBatch() {
 //        }
 
 }  // namespace
+
+std::string_view GetJSONReaderEventName(JSONReaderEvent event) {
+    switch (event) {
+        case JSONReaderEvent::NONE:
+            return "NONE";
+        case JSONReaderEvent::KEY:
+            return "KEY";
+        case JSONReaderEvent::NULL_:
+            return "NULL_";
+        case JSONReaderEvent::STRING:
+            return "STRING";
+        case JSONReaderEvent::BOOL:
+            return "BOOL";
+        case JSONReaderEvent::INT32:
+            return "INT32";
+        case JSONReaderEvent::INT64:
+            return "INT64";
+        case JSONReaderEvent::UINT32:
+            return "UINT32";
+        case JSONReaderEvent::UINT64:
+            return "UINT64";
+        case JSONReaderEvent::DOUBLE:
+            return "DOUBLE";
+        case JSONReaderEvent::START_OBJECT:
+            return "START_OBJECT";
+        case JSONReaderEvent::START_ARRAY:
+            return "START_ARRAY";
+        case JSONReaderEvent::END_OBJECT:
+            return "END_OBJECT";
+        case JSONReaderEvent::END_ARRAY:
+            return "END_ARRAY";
+        default:
+            return "?";
+    }
+}
 
 }  // namespace json
 }  // namespace web
