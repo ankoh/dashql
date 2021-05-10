@@ -462,7 +462,7 @@ class JSONStructArrayAnalyzer : public JSONArrayAnalyzer<TableShape::ROW_ARRAY, 
     bool Key(const char* txt, size_t length, bool copy) {
         // When encountering a key at level 1, we resolve the corresponding array statistics.
         // E.g. [{"a": 1, "b": 2}, {"a": 3, "b": 4}]
-        //      => tracks array statistics for [], "a" and "b"
+        //      => tracks array statistics for "a" and "b" as opposed to []
         if (current_depth_ == data_depth_) {
             if (auto iter = field_stats_.find(std::string_view{txt, length}); iter != field_stats_.end()) {
                 stats_ = &iter->second;
