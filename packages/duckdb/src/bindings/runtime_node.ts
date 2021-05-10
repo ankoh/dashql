@@ -4,7 +4,8 @@ import fs from 'fs';
 import { DuckDBRuntime } from './runtime_base';
 import globToRegexp from 'glob-to-regexp';
 import p from 'path';
-import tmp from 'temp-write';
+import crypto from 'crypto';
+import { tmpdir } from 'os';
 
 const decoder = new TextDecoder();
 const encoder = new TextEncoder();
@@ -16,6 +17,10 @@ interface NodeRuntimeFile {
     fd: number | null;
     size: number;
     lastModified: number;
+}
+
+function tmpFile() {
+    return p.join(tmpdir(), `duckdb.tmp.${crypto.randomBytes(6).readUIntLE(0, 6).toString(36)}`);
 }
 
 // Always open with WRITE for now.
@@ -78,7 +83,11 @@ export const NodeRuntime: DuckDBRuntime & {
     duckdb_web_get_file_object_url: (fileId: number): string | null => {
         const file = NodeRuntime.filesByID.get(fileId);
         if (!file) return null;
-        if (file.buffer) return tmp.sync(Buffer.from(file.buffer));
+        if (file.buffer) {
+            const tmp = tmpFile();
+            fs.writeFileSync(tmp, Buffer.from(file.buffer));
+            return tmp;
+        }
         return p.resolve(file.path);
     },
     duckdb_web_get_file_buffer: (fileId: number): Uint8Array | null => {
