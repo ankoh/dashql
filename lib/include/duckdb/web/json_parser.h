@@ -14,6 +14,11 @@ namespace duckdb {
 namespace web {
 namespace json {
 
+// Default json parser flags
+constexpr auto DEFAULT_PARSER_FLAGS = rapidjson::kParseDefaultFlags | rapidjson::kParseIterativeFlag |
+                                      rapidjson::kParseCommentsFlag | rapidjson::kParseTrailingCommasFlag |
+                                      rapidjson::kParseNanAndInfFlag | rapidjson::kParseEscapedApostropheFlag;
+
 /// A type analyzer
 class TypeAnalyzer {
    protected:
