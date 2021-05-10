@@ -498,7 +498,7 @@ arrow::Status InferTableType(std::istream& raw_in, TableType& table) {
 
     // Peek into the document
     KeyReader cache;
-    if (!reader.IterativeParseNext<rapidjson::kParseDefaultFlags>(in, cache)) {
+    if (!reader.IterativeParseNext<DEFAULT_PARSER_FLAGS>(in, cache)) {
         auto error = rapidjson::GetParseError_En(reader.GetParseErrorCode());
         return arrow::Status(arrow::StatusCode::ExecutionError, error);
     }
@@ -509,7 +509,7 @@ arrow::Status InferTableType(std::istream& raw_in, TableType& table) {
         // Parse all rows
         JSONStructArrayAnalyzer analyzer;
         while (!reader.IterativeParseComplete()) {
-            if (!reader.IterativeParseNext<rapidjson::kParseDefaultFlags>(in, analyzer)) {
+            if (!reader.IterativeParseNext<DEFAULT_PARSER_FLAGS>(in, analyzer)) {
                 auto error = rapidjson::GetParseError_En(reader.GetParseErrorCode());
                 return arrow::Status(arrow::StatusCode::ExecutionError, error);
             }
@@ -525,7 +525,7 @@ arrow::Status InferTableType(std::istream& raw_in, TableType& table) {
     // Assume column-major layout.
     // E.g. {"a":[1,3],"b":[2,4]}
     if (cache.event == ReaderEvent::START_OBJECT) {
-        auto next = [&]() { return reader.IterativeParseNext<rapidjson::kParseDefaultFlags>(in, cache); };
+        auto next = [&]() { return reader.IterativeParseNext<DEFAULT_PARSER_FLAGS>(in, cache); };
         std::vector<std::shared_ptr<arrow::Field>> fields;
 
         // Parse columns individually
@@ -547,7 +547,7 @@ arrow::Status InferTableType(std::istream& raw_in, TableType& table) {
             // Parse entire column array.
             JSONFlatArrayAnalyzer analyzer;
             while (!reader.IterativeParseComplete() && !analyzer.Done()) {
-                if (!reader.IterativeParseNext<rapidjson::kParseDefaultFlags>(in, analyzer)) {
+                if (!reader.IterativeParseNext<DEFAULT_PARSER_FLAGS>(in, analyzer)) {
                     auto error = rapidjson::GetParseError_En(reader.GetParseErrorCode());
                     return arrow::Status(arrow::StatusCode::ExecutionError, error);
                 }
