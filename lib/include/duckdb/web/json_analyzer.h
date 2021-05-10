@@ -19,8 +19,22 @@ namespace duckdb {
 namespace web {
 namespace json {
 
+struct FileRange {
+    size_t offset;
+    size_t size;
+};
+
+struct TableType {
+    /// The shape
+    TableShape shape = TableShape::UNRECOGNIZED;
+    /// The type
+    std::shared_ptr<arrow::DataType> type = nullptr;
+    /// The array ranges
+    std::unordered_map<std::string, FileRange> ranges = {};
+};
+
 /// Infer the type of a JSON table
-arrow::Result<std::pair<TableShape, std::shared_ptr<arrow::DataType>>> InferTableType(std::istream& in);
+arrow::Result<TableType> InferTableType(std::istream& in);
 
 }  // namespace json
 }  // namespace web
