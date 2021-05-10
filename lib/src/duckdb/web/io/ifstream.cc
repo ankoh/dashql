@@ -8,11 +8,14 @@ namespace io {
 
 bool InputFileStreamBuffer::NextPage() {
     auto page_id = next_page_id_++;
-    if ((page_id << buffer_manager_->GetPageSizeShift()) >= file_.GetSize()) return false;
+    if ((page_id << buffer_manager_->GetPageSizeShift()) >= data_end_) return false;
     buffer_.Release();
     buffer_ = buffer_manager_->FixPage(file_, page_id, false);
     auto data = buffer_.GetData();
-    setg(data.data(), data.data(), data.data() + data.size());
+    auto data_offset = page_id << buffer_manager_->GetPageSizeShift();
+    assert(data_offset < data_end_);
+    auto data_size = std::min<size_t>(data.size(), data_end_ - data_offset);
+    setg(data.data(), data.data(), data.data() + data_size);
     return true;
 }
 
@@ -55,6 +58,22 @@ InputFileStreamBuffer::pos_type InputFileStreamBuffer::seekpos(pos_type p, std::
     NextPage();
     gbump(page_ofs);
     return p;
+}
+
+void InputFileStreamBuffer::Slice(size_t offset, size_t size) {
+    // Determine range
+    auto file_size = file_.GetSize();
+    auto begin = std::min(file_size, offset);
+    auto max_size = file_size - begin;
+    auto end = (size == 0) ? max_size : std::min(max_size, size);
+
+    // Load next page
+    auto page_id = begin >> buffer_manager_->GetPageSizeShift();
+    auto page_ofs = begin - (page_id << buffer_manager_->GetPageSizeShift());
+    next_page_id_ = page_id;
+    data_end_ = end;
+    NextPage();
+    gbump(page_ofs);
 }
 
 }  // namespace io
