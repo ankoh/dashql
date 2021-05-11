@@ -53,7 +53,7 @@ class MemoryFileSystem : public duckdb::FileSystem {
         /// Delete copy constructor
         FileHandle(const FileHandle &) = delete;
         /// Destructor
-        virtual ~FileHandle() { Close(); }
+        virtual ~FileHandle() {}
     };
 
    public:

@@ -26,7 +26,13 @@ MemoryFileSystem::FileHandle::FileHandle(MemoryFileSystem &file_system, FileBuff
 
 /// Constructor
 void MemoryFileSystem::FileHandle::Close() {
-    // XXX todo
+    if (buffer_.handles.erase(this) == 0) return;
+    if (buffer_.handles.empty()) {
+        auto file_id = buffer_.file_id;
+        auto file_path = std::move(buffer_.file_path);
+        file_system_.file_paths.erase(file_path);
+        file_system_.files.erase(file_id);
+    }
 }
 
 /// Register a file buffer
