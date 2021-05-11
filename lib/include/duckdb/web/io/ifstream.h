@@ -5,7 +5,7 @@
 
 #include <streambuf>
 
-#include "duckdb/web/io/buffer_manager.h"
+#include "duckdb/web/io/filesystem_buffer.h"
 
 namespace duckdb {
 namespace web {
@@ -14,11 +14,11 @@ namespace io {
 class InputFileStreamBuffer : public std::streambuf {
    protected:
     /// The buffer manager
-    std::shared_ptr<BufferManager> buffer_manager_;
+    std::shared_ptr<FileSystemBuffer> filesystem_buffer_;
     /// The file
-    BufferManager::FileRef file_;
+    FileSystemBuffer::FileRef file_;
     /// The buffer
-    BufferManager::BufferRef buffer_;
+    FileSystemBuffer::BufferRef buffer_;
     /// The end of the readable data (might be smaller than the actual file size if the stream is sliced)
     size_t data_end_;
     /// The next page id
@@ -30,7 +30,7 @@ class InputFileStreamBuffer : public std::streambuf {
     /// Get the position
     size_t GetPosition() {
         assert(next_page_id_ > 0);
-        return ((next_page_id_ - 1) << buffer_manager_->GetPageSizeShift()) + (gptr() - eback());
+        return ((next_page_id_ - 1) << filesystem_buffer_->GetPageSizeShift()) + (gptr() - eback());
     }
     /// Virtual function (to be read s-how-many-c) called by other member functions to get an estimate
     /// on the number of characters available in the associated input sequence.
@@ -60,10 +60,10 @@ class InputFileStreamBuffer : public std::streambuf {
 
    public:
     /// Constructor
-    InputFileStreamBuffer(std::shared_ptr<BufferManager> buffer_manager, std::string_view path)
-        : buffer_manager_(std::move(buffer_manager)),
-          file_(buffer_manager_->OpenFile(path)),
-          buffer_(buffer_manager_->FixPage(file_, 0, false)),
+    InputFileStreamBuffer(std::shared_ptr<FileSystemBuffer> filesystem_buffer, std::string_view path)
+        : filesystem_buffer_(std::move(filesystem_buffer)),
+          file_(filesystem_buffer_->OpenFile(path)),
+          buffer_(filesystem_buffer_->FixPage(file_, 0, false)),
           data_end_(file_.GetSize()),
           next_page_id_(1) {
         auto data = buffer_.GetData();
@@ -80,8 +80,8 @@ class InputFileStream : public std::istream {
 
    public:
     /// Constructor
-    InputFileStream(std::shared_ptr<BufferManager> buffer_manager, std::string_view path)
-        : buffer_(std::move(buffer_manager), path), std::istream(&buffer_) {}
+    InputFileStream(std::shared_ptr<FileSystemBuffer> filesystem_buffer, std::string_view path)
+        : buffer_(std::move(filesystem_buffer), path), std::istream(&buffer_) {}
     /// Copy constructor
     InputFileStream(const InputFileStream& other) : buffer_(other.buffer_), std::istream(&buffer_){};
     /// Scan a slice of the file

@@ -1,5 +1,5 @@
-#ifndef INCLUDE_DUCKDB_WEB_BUFFER_BUFFER_MANAGER_H
-#define INCLUDE_DUCKDB_WEB_BUFFER_BUFFER_MANAGER_H
+#ifndef INCLUDE_DUCKDB_WEB_IO_FILESYSTEM_BUFFER_H
+#define INCLUDE_DUCKDB_WEB_IO_FILESYSTEM_BUFFER_H
 
 #include <cstddef>
 #include <cstdint>
@@ -22,7 +22,7 @@ namespace duckdb {
 namespace web {
 namespace io {
 
-/// We use a dedicated lightweight BufferManager for paged I/O in and out of WebAssembly.
+/// We use a dedicated lightweight FileSystemBuffer for paged I/O in and out of WebAssembly.
 /// The buffer manager is tailored towards WASM in the following points:
 ///
 /// - The only goal is to buffer the interop with js.
@@ -31,13 +31,13 @@ namespace io {
 /// - We're complementing the actual buffer management of DuckDB and therefore allocate only few I/O buffers.
 /// - We maintain the few I/O buffers with the 2 Queue buffer replacement strategy to talk to js as rarely as possible.
 
-class BufferManager;
+class FileSystemBuffer;
 
-class BufferFrame {
+class FileSystemBufferFrame {
    protected:
-    friend class BufferManager;
+    friend class FileSystemBuffer;
     /// A position in the LRU queue
-    using list_position = std::list<BufferFrame*>::iterator;
+    using list_position = std::list<FileSystemBufferFrame*>::iterator;
 
     /// The frame id
     uint64_t frame_id;
@@ -65,14 +65,14 @@ class BufferFrame {
 
    public:
     /// Constructor
-    BufferFrame(uint64_t frame_id, size_t size, list_position fifo_position, list_position lru_position);
+    FileSystemBufferFrame(uint64_t frame_id, size_t size, list_position fifo_position, list_position lru_position);
     /// Get number of users
     auto GetUserCount() const { return num_users; }
     /// Returns a pointer to this page data
     nonstd::span<char> GetData() { return {buffer.data(), data_size}; }
 };
 
-class BufferManager : public std::enable_shared_from_this<BufferManager> {
+class FileSystemBuffer : public std::enable_shared_from_this<FileSystemBuffer> {
    protected:
     /// A registered file
     struct RegisteredFile {
@@ -98,15 +98,15 @@ class BufferManager : public std::enable_shared_from_this<BufferManager> {
    public:
     /// A file reference
     class FileRef {
-        friend class BufferManager;
+        friend class FileSystemBuffer;
 
        protected:
         /// The buffer manager
-        std::shared_ptr<BufferManager> buffer_manager_;
+        std::shared_ptr<FileSystemBuffer> buffer_manager_;
         /// The file
         RegisteredFile* file_;
         /// The constructor
-        explicit FileRef(std::shared_ptr<BufferManager> buffer_manager, RegisteredFile& file);
+        explicit FileRef(std::shared_ptr<FileSystemBuffer> buffer_manager, RegisteredFile& file);
 
        public:
         /// Copy constructor
@@ -135,15 +135,15 @@ class BufferManager : public std::enable_shared_from_this<BufferManager> {
 
     /// A buffer reference
     class BufferRef {
-        friend class BufferManager;
+        friend class FileSystemBuffer;
 
        protected:
         /// The buffer manager
-        std::shared_ptr<BufferManager> buffer_manager_;
+        std::shared_ptr<FileSystemBuffer> buffer_manager_;
         /// The file
-        BufferFrame* frame_;
+        FileSystemBufferFrame* frame_;
         /// The constructor
-        explicit BufferRef(std::shared_ptr<BufferManager> buffer_manager, BufferFrame& frame);
+        explicit BufferRef(std::shared_ptr<FileSystemBuffer> buffer_manager, FileSystemBufferFrame& frame);
 
        public:
         /// Copy constructor
@@ -187,12 +187,12 @@ class BufferManager : public std::enable_shared_from_this<BufferManager> {
     /// The next allocated file ids
     uint16_t allocated_file_ids = 0;
 
-    /// Maps page_ids to BufferFrame objects of all pages that are currently in memory
-    std::map<uint64_t, BufferFrame> frames = {};
+    /// Maps page_ids to FileSystemBufferFrame objects of all pages that are currently in memory
+    std::map<uint64_t, FileSystemBufferFrame> frames = {};
     /// FIFO list of pages
-    std::list<BufferFrame*> fifo = {};
+    std::list<FileSystemBufferFrame*> fifo = {};
     /// LRU list of pages
-    std::list<BufferFrame*> lru = {};
+    std::list<FileSystemBufferFrame*> lru = {};
 
     /// Evict all file frames
     void EvictFileFrames(RegisteredFile& file);
@@ -203,17 +203,17 @@ class BufferManager : public std::enable_shared_from_this<BufferManager> {
     /// Release a file ref
     void ReleaseFile(RegisteredFile& file);
     /// Loads the page from disk
-    void LoadFrame(BufferFrame& frame);
+    void LoadFrame(FileSystemBufferFrame& frame);
     /// Writes the page to disk if it is dirty
-    void FlushFrame(BufferFrame& frame);
+    void FlushFrame(FileSystemBufferFrame& frame);
     /// Returns the next page that can be evicted.
     /// Returns nullptr, when no page can be evicted.
-    BufferFrame* FindFrameToEvict();
+    FileSystemBufferFrame* FindFrameToEvict();
     /// Allocate a buffer for a frame.
     /// Evicts a page if neccessary
     std::vector<char> AllocateFrameBuffer();
 
-    /// Takes a `BufferFrame` reference that was returned by an earlier call to
+    /// Takes a `FileSystemBufferFrame` reference that was returned by an earlier call to
     /// `FixPage()` and unfixes it. When `is_dirty` is / true, the page is
     /// written back to disk eventually.
     void UnfixPage(size_t frame_id, bool is_dirty);
@@ -221,10 +221,10 @@ class BufferManager : public std::enable_shared_from_this<BufferManager> {
    public:
     /// Constructor.
     /// Use 10 * 8KiB pages by default (1 << 13)
-    BufferManager(std::unique_ptr<duckdb::FileSystem> filesystem = io::CreateDefaultFileSystem(),
-                  size_t page_capacity = 10, size_t page_size_bits = 13);
+    FileSystemBuffer(std::unique_ptr<duckdb::FileSystem> filesystem = io::CreateDefaultFileSystem(),
+                     size_t page_capacity = 10, size_t page_size_bits = 13);
     /// Destructor
-    virtual ~BufferManager();
+    virtual ~FileSystemBuffer();
 
     /// Get the filesystem
     auto& GetFileSystem() { return filesystem; }
@@ -240,7 +240,7 @@ class BufferManager : public std::enable_shared_from_this<BufferManager> {
     /// Get The file size
     size_t GetFileSize(const FileRef& file);
 
-    /// Returns a reference to a `BufferFrame` object for a given page id. When
+    /// Returns a reference to a `FileSystemBufferFrame` object for a given page id. When
     /// the page is not loaded into memory, it is read from disk. Otherwise the
     /// loaded page is used.
     BufferRef FixPage(const FileRef& file, uint64_t page_id, bool exclusive);

@@ -8,11 +8,11 @@ namespace io {
 
 bool InputFileStreamBuffer::NextPage() {
     auto page_id = next_page_id_++;
-    if ((page_id << buffer_manager_->GetPageSizeShift()) >= data_end_) return false;
+    if ((page_id << filesystem_buffer_->GetPageSizeShift()) >= data_end_) return false;
     buffer_.Release();
-    buffer_ = buffer_manager_->FixPage(file_, page_id, false);
+    buffer_ = filesystem_buffer_->FixPage(file_, page_id, false);
     auto data = buffer_.GetData();
-    auto data_offset = page_id << buffer_manager_->GetPageSizeShift();
+    auto data_offset = page_id << filesystem_buffer_->GetPageSizeShift();
     assert(data_offset < data_end_);
     auto data_size = std::min<size_t>(data.size(), data_end_ - data_offset);
     setg(data.data(), data.data(), data.data() + data_size);
@@ -43,8 +43,8 @@ InputFileStreamBuffer::pos_type InputFileStreamBuffer::seekoff(off_type n, std::
     } else {
         pos = std::min<size_t>(file_.GetSize(), pos + n);
     }
-    auto page_id = pos >> buffer_manager_->GetPageSizeShift();
-    auto page_ofs = pos - (page_id << buffer_manager_->GetPageSizeShift());
+    auto page_id = pos >> filesystem_buffer_->GetPageSizeShift();
+    auto page_ofs = pos - (page_id << filesystem_buffer_->GetPageSizeShift());
     next_page_id_ = page_id;
     NextPage();
     gbump(page_ofs);
@@ -52,8 +52,8 @@ InputFileStreamBuffer::pos_type InputFileStreamBuffer::seekoff(off_type n, std::
 }
 
 InputFileStreamBuffer::pos_type InputFileStreamBuffer::seekpos(pos_type p, std::ios_base::openmode) {
-    auto page_id = p >> buffer_manager_->GetPageSizeShift();
-    auto page_ofs = p - (page_id << buffer_manager_->GetPageSizeShift());
+    auto page_id = p >> filesystem_buffer_->GetPageSizeShift();
+    auto page_ofs = p - (page_id << filesystem_buffer_->GetPageSizeShift());
     next_page_id_ = page_id;
     NextPage();
     gbump(page_ofs);
@@ -68,8 +68,8 @@ void InputFileStreamBuffer::Slice(size_t offset, size_t size) {
     auto end = (size == 0) ? max_size : std::min(max_size, size);
 
     // Load next page
-    auto page_id = begin >> buffer_manager_->GetPageSizeShift();
-    auto page_ofs = begin - (page_id << buffer_manager_->GetPageSizeShift());
+    auto page_id = begin >> filesystem_buffer_->GetPageSizeShift();
+    auto page_ofs = begin - (page_id << filesystem_buffer_->GetPageSizeShift());
     next_page_id_ = page_id;
     data_end_ = end;
     NextPage();

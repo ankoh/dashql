@@ -4,7 +4,7 @@
 #define INCLUDE_DUCKDB_WEB_ARROW_INSERTER_H_
 
 #include "duckdb.hpp"
-#include "duckdb/web/io/buffer_manager.h"
+#include "nonstd/span.h"
 
 namespace duckdb {
 namespace web {
