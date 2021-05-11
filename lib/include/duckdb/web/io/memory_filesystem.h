@@ -1,8 +1,11 @@
 // Copyright (c) 2020 The DashQL Authors
 
-#ifndef INCLUDE_DUCKDB_WEB_IO_WEB_FILESYSTEM_H_
-#define INCLUDE_DUCKDB_WEB_IO_WEB_FILESYSTEM_H_
+#ifndef INCLUDE_DUCKDB_WEB_IO_MEMORY_FILESYSTEM_H_
+#define INCLUDE_DUCKDB_WEB_IO_MEMORY_FILESYSTEM_H_
 
+#include <unordered_set>
+
+#include "arrow/status.h"
 #include "duckdb/common/constants.hpp"
 #include "duckdb/common/file_system.hpp"
 
@@ -10,32 +13,64 @@ namespace duckdb {
 namespace web {
 namespace io {
 
-class WebFileHandle : public duckdb::FileHandle {
-    friend class WebFileSystem;
-
+class MemoryFileSystem : public duckdb::FileSystem {
    protected:
-    /// The file id
-    size_t file_id;
+    class FileHandle;
 
-    /// Close the file
-    void Close() override;
+    /// A file buffer
+    struct FileBuffer {
+        /// The file name
+        size_t file_id;
+        /// The file path
+        std::string file_path;
+        /// The buffer
+        std::vector<char> buffer;
+        /// The file handles
+        std::unordered_set<FileHandle *> handles;
+
+        /// Constructor
+        FileBuffer(size_t id, std::string path, std::vector<char> buffer);
+    };
+
+    /// A file handle
+    class FileHandle : public duckdb::FileHandle {
+        friend class MemoryFileSystem;
+
+       protected:
+        /// The filesystem
+        MemoryFileSystem &file_system_;
+        /// The file buffer
+        FileBuffer &buffer_;
+        /// The position
+        size_t position_;
+
+        /// Close the file
+        void Close() override;
+
+       public:
+        /// Constructor
+        FileHandle(MemoryFileSystem &file_system, FileBuffer &buffer, size_t position);
+        /// Delete copy constructor
+        FileHandle(const FileHandle &) = delete;
+        /// Destructor
+        virtual ~FileHandle() { Close(); }
+    };
 
    public:
-    /// Constructor
-    WebFileHandle(duckdb::FileSystem &file_system, std::string path, size_t file_id)
-        : duckdb::FileHandle(file_system, path), file_id(file_id) {}
-    /// Delete copy constructor
-    WebFileHandle(const WebFileHandle &) = delete;
-    /// Destructor
-    virtual ~WebFileHandle() {}
-};
+    /// The files
+    std::unordered_map<size_t, std::unique_ptr<FileBuffer>> files = {};
+    /// The file paths
+    std::unordered_map<std::string_view, FileBuffer *> file_paths = {};
+    /// The next file id
+    size_t next_file_id = 0;
 
-class WebFileSystem : public duckdb::FileSystem {
-   public:
     /// Constructor
-    WebFileSystem() {}
+    MemoryFileSystem() {}
     /// Destructor
-    virtual ~WebFileSystem() {}
+    virtual ~MemoryFileSystem() {}
+
+    /// Register a file buffer
+    arrow::Status RegisterFileBuffer(std::string file_name, std::vector<char> file_buffer);
 
     /// Open a file
     std::unique_ptr<duckdb::FileHandle> OpenFile(const char *path, uint8_t flags,
@@ -76,9 +111,9 @@ class WebFileSystem : public duckdb::FileSystem {
     /// Remove a file from disk
     void RemoveFile(const std::string &filename) override;
     // /// Path separator for the current file system
-    // std::string PathSeparator() override;
+    std::string PathSeparator() override;
     // /// Join two paths together
-    // std::string JoinPath(const std::string &a, const std::string &path) override;
+    std::string JoinPath(const std::string &a, const std::string &path) override;
     /// Sync a file handle to disk
     void FileSync(duckdb::FileHandle &handle) override;
 
@@ -91,9 +126,6 @@ class WebFileSystem : public duckdb::FileSystem {
 
     /// Runs a glob on the file system, returning a list of matching files
     std::vector<std::string> Glob(const std::string &path) override;
-
-    // /// Returns the system-available memory in bytes
-    // duckdb::idx_t GetAvailableMemory() override;
 };
 
 }  // namespace io
