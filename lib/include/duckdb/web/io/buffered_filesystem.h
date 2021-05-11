@@ -1,7 +1,7 @@
 // Copyright (c) 2020 The DashQL Authors
 
-#ifndef INCLUDE_DUCKDB_WEB_FILESYSTEM_H_
-#define INCLUDE_DUCKDB_WEB_FILESYSTEM_H_
+#ifndef INCLUDE_DUCKDB_WEB_BUFFERED_FILESYSTEM_H_
+#define INCLUDE_DUCKDB_WEB_BUFFERED_FILESYSTEM_H_
 
 #include <arrow/util/string_view.h>
 
@@ -9,7 +9,7 @@
 
 #include "duckdb/common/constants.hpp"
 #include "duckdb/common/file_system.hpp"
-#include "duckdb/web/io/buffer_manager.h"
+#include "duckdb/web/io/filesystem_buffer.h"
 
 namespace duckdb {
 namespace web {
@@ -20,7 +20,7 @@ class BufferedFileHandle : public duckdb::FileHandle {
 
    protected:
     /// The file buffers
-    BufferManager::FileRef file_buffers_;
+    FileSystemBuffer::FileRef file_buffers_;
     /// The file position
     size_t file_position_;
 
@@ -29,7 +29,7 @@ class BufferedFileHandle : public duckdb::FileHandle {
 
    public:
     /// Constructor
-    BufferedFileHandle(duckdb::FileSystem &file_system, BufferManager::FileRef file_buffers);
+    BufferedFileHandle(duckdb::FileSystem &file_system, FileSystemBuffer::FileRef file_buffers);
     /// Move Constructor
     explicit BufferedFileHandle(BufferedFileHandle &&) = delete;
     /// Destructor
@@ -44,13 +44,13 @@ class BufferedFileHandle : public duckdb::FileHandle {
 class BufferedFileSystem : public duckdb::FileSystem {
    protected:
     /// The buffer manager
-    std::shared_ptr<BufferManager> buffer_manager_;
+    std::shared_ptr<FileSystemBuffer> filesystem_buffer_;
     /// The inner file system
     duckdb::FileSystem &filesystem_;
 
    public:
     /// Constructor
-    BufferedFileSystem(std::shared_ptr<BufferManager> buffer_manager);
+    BufferedFileSystem(std::shared_ptr<FileSystemBuffer> buffer_manager);
     /// Destructor
     virtual ~BufferedFileSystem() {}
 

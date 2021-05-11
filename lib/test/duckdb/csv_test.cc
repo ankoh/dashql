@@ -17,7 +17,7 @@ namespace {
 
 TEST(CSVTest, BufferedCSVReader) {
     using LT = duckdb::LogicalType;
-    auto buffer_manager = std::make_shared<io::BufferManager>();
+    auto buffer_manager = std::make_shared<io::FileSystemBuffer>();
     auto path = dashql::test::SOURCE_DIR / ".." / "data" / "test.csv";
     auto input = std::make_shared<io::InputFileStreamBuffer>(buffer_manager, path.c_str());
     auto inputStream = std::make_unique<std::istream>(input.get());
@@ -41,7 +41,7 @@ TEST(CSVTest, BufferedCSVReader) {
 }
 
 TEST(CSVTest, ParseTest) {
-    auto buffer_manager = std::make_shared<io::BufferManager>();
+    auto buffer_manager = std::make_shared<io::FileSystemBuffer>();
     auto path = dashql::test::SOURCE_DIR / ".." / "data" / "test.csv";
     auto input = std::make_shared<io::InputFileStreamBuffer>(buffer_manager, path.c_str());
     auto inputStream = std::make_unique<std::istream>(input.get());

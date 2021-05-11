@@ -7,7 +7,7 @@
 #include "arrow/io/interfaces.h"
 #include "duckdb/common/constants.hpp"
 #include "duckdb/common/file_system.hpp"
-#include "duckdb/web/io/buffer_manager.h"
+#include "duckdb/web/io/filesystem_buffer.h"
 
 namespace duckdb {
 namespace web {
@@ -18,9 +18,9 @@ class ArrowInputFileStream : virtual public arrow::io::InputStream {
     /// An arrow buffer for a view into a fixed page
     struct PageView : public arrow::Buffer {
         /// The buffer ref which will unfix the page on destruction
-        BufferManager::BufferRef buffer;
+        FileSystemBuffer::BufferRef buffer;
         /// Constructor
-        PageView(BufferManager::BufferRef buffer, nonstd::span<char> view)
+        PageView(FileSystemBuffer::BufferRef buffer, nonstd::span<char> view)
             : arrow::Buffer(reinterpret_cast<uint8_t*>(view.data()), view.size()), buffer(std::move(buffer)) {}
         /// Constructor
         PageView(PageView&& other) : arrow::Buffer(other.data(), other.size()), buffer(std::move(other.buffer)) {}
@@ -36,9 +36,9 @@ class ArrowInputFileStream : virtual public arrow::io::InputStream {
     };
 
     /// The file system
-    std::shared_ptr<BufferManager> buffer_manager_;
+    std::shared_ptr<FileSystemBuffer> filesystem_buffer_;
     /// The file id
-    BufferManager::FileRef file_;
+    FileSystemBuffer::FileRef file_;
     /// The file position
     size_t file_position_ = 0;
     /// The temporarily fixed page
@@ -49,7 +49,7 @@ class ArrowInputFileStream : virtual public arrow::io::InputStream {
 
    public:
     /// Constructor
-    ArrowInputFileStream(std::shared_ptr<io::BufferManager> buffer_manager, std::string_view path);
+    ArrowInputFileStream(std::shared_ptr<io::FileSystemBuffer> filesystem_buffer, std::string_view path);
     /// Destructor
     ~ArrowInputFileStream() override;
 

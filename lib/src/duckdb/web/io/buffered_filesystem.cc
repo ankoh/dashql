@@ -8,8 +8,8 @@
 #include <vector>
 
 #include "duckdb/common/file_system.hpp"
-#include "duckdb/web/io/buffer_manager.h"
 #include "duckdb/web/io/buffered_filesystem.h"
+#include "duckdb/web/io/filesystem_buffer.h"
 #include "duckdb/web/io/web_filesystem.h"
 
 static const std::function<void(std::string, bool)> *list_files_callback = {};
@@ -23,7 +23,7 @@ namespace io {
 void BufferedFileHandle::Close() { file_buffers_.Release(); }
 
 /// Constructor
-BufferedFileHandle::BufferedFileHandle(duckdb::FileSystem &file_system, BufferManager::FileRef file_buffers)
+BufferedFileHandle::BufferedFileHandle(duckdb::FileSystem &file_system, FileSystemBuffer::FileRef file_buffers)
     : duckdb::FileHandle(file_system, std::string{file_buffers.GetPath()}),
       file_buffers_(std::move(file_buffers)),
       file_position_(0) {}
@@ -31,12 +31,12 @@ BufferedFileHandle::BufferedFileHandle(duckdb::FileSystem &file_system, BufferMa
 /// Constructor
 BufferedFileHandle::~BufferedFileHandle() { file_buffers_.Release(); }
 
-BufferedFileSystem::BufferedFileSystem(std::shared_ptr<BufferManager> buffer_manager)
-    : buffer_manager_(std::move(buffer_manager)), filesystem_(*buffer_manager_->GetFileSystem()) {}
+BufferedFileSystem::BufferedFileSystem(std::shared_ptr<FileSystemBuffer> buffer_manager)
+    : filesystem_buffer_(std::move(buffer_manager)), filesystem_(*filesystem_buffer_->GetFileSystem()) {}
 
 std::unique_ptr<duckdb::FileHandle> BufferedFileSystem::OpenFile(const char *path, uint8_t flags,
                                                                  duckdb::FileLockType lock) {
-    auto file = buffer_manager_->OpenFile(std::string_view{path});
+    auto file = filesystem_buffer_->OpenFile(std::string_view{path});
     return std::make_unique<BufferedFileHandle>(*this, std::move(file));
 }
 
@@ -46,9 +46,9 @@ void BufferedFileSystem::Read(duckdb::FileHandle &handle, void *buffer, int64_t 
     auto reader = static_cast<char *>(buffer);
 
     // Read page-wise
-    auto file_size = buffer_manager_->GetFileSize(file);
+    auto file_size = filesystem_buffer_->GetFileSize(file);
     while (nr_bytes > 0 && location < file_size) {
-        auto n = buffer_manager_->Read(file, reader, nr_bytes, location);
+        auto n = filesystem_buffer_->Read(file, reader, nr_bytes, location);
         reader += n;
         location += n;
         nr_bytes -= n;
@@ -67,9 +67,9 @@ void BufferedFileSystem::Write(duckdb::FileHandle &handle, void *buffer, int64_t
     auto writer = static_cast<char *>(buffer);
 
     // Write page-wise
-    auto file_size = buffer_manager_->GetFileSize(file);
+    auto file_size = filesystem_buffer_->GetFileSize(file);
     while (nr_bytes > 0 && location < file_size) {
-        auto n = buffer_manager_->Write(file, writer, nr_bytes, location);
+        auto n = filesystem_buffer_->Write(file, writer, nr_bytes, location);
         writer += n;
         location += n;
         nr_bytes -= n;
@@ -85,7 +85,7 @@ void BufferedFileSystem::Write(duckdb::FileHandle &handle, void *buffer, int64_t
 int64_t BufferedFileSystem::Read(duckdb::FileHandle &handle, void *buffer, int64_t nr_bytes) {
     auto &file_hdl = static_cast<BufferedFileHandle &>(handle);
     auto &file = file_hdl.GetBuffers();
-    auto n = buffer_manager_->Read(file, buffer, nr_bytes, file_hdl.file_position_);
+    auto n = filesystem_buffer_->Read(file, buffer, nr_bytes, file_hdl.file_position_);
     file_hdl.file_position_ += n;
     return n;
 }
@@ -93,7 +93,7 @@ int64_t BufferedFileSystem::Read(duckdb::FileHandle &handle, void *buffer, int64
 int64_t BufferedFileSystem::Write(duckdb::FileHandle &handle, void *buffer, int64_t nr_bytes) {
     auto &file_hdl = static_cast<BufferedFileHandle &>(handle);
     auto &file = file_hdl.GetBuffers();
-    auto n = buffer_manager_->Write(file, buffer, nr_bytes, file_hdl.file_position_);
+    auto n = filesystem_buffer_->Write(file, buffer, nr_bytes, file_hdl.file_position_);
     file_hdl.file_position_ += n;
     return n;
 }
@@ -102,12 +102,12 @@ int64_t BufferedFileSystem::Write(duckdb::FileHandle &handle, void *buffer, int6
 void BufferedFileSystem::FileSync(duckdb::FileHandle &handle) {
     auto &file_hdl = static_cast<BufferedFileHandle &>(handle);
     auto &file = file_hdl.GetBuffers();
-    buffer_manager_->FlushFile(file);
+    filesystem_buffer_->FlushFile(file);
 }
 
 int64_t BufferedFileSystem::GetFileSize(duckdb::FileHandle &handle) {
     auto &buffered_hdl = static_cast<BufferedFileHandle &>(handle);
-    return buffer_manager_->GetFileSize(buffered_hdl.GetBuffers());
+    return filesystem_buffer_->GetFileSize(buffered_hdl.GetBuffers());
 }
 
 time_t BufferedFileSystem::GetLastModifiedTime(duckdb::FileHandle &handle) {
@@ -117,7 +117,7 @@ time_t BufferedFileSystem::GetLastModifiedTime(duckdb::FileHandle &handle) {
 
 void BufferedFileSystem::Truncate(duckdb::FileHandle &handle, int64_t new_size) {
     auto &buffered_hdl = static_cast<BufferedFileHandle &>(handle);
-    return buffer_manager_->Truncate(buffered_hdl.GetBuffers(), new_size);
+    return filesystem_buffer_->Truncate(buffered_hdl.GetBuffers(), new_size);
 }
 
 void BufferedFileSystem::RemoveDirectory(const std::string &directory) {

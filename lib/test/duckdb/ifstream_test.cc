@@ -13,7 +13,7 @@ using namespace std;
 namespace {
 
 TEST(InputStreamBuffer, istreambuf_iterator) {
-    auto buffer_manager = std::make_shared<io::BufferManager>();
+    auto filesystem_buffer = std::make_shared<io::FileSystemBuffer>();
     auto path = dashql::test::SOURCE_DIR / ".." / "data" / "test.json";
     std::string expected;
     std::string have;
@@ -21,7 +21,7 @@ TEST(InputStreamBuffer, istreambuf_iterator) {
         std::ifstream ifs{path};
         expected = {std::istreambuf_iterator<char>{ifs}, std::istreambuf_iterator<char>{}};
     }
-    auto input = std::make_shared<io::InputFileStreamBuffer>(buffer_manager, path.c_str());
+    auto input = std::make_shared<io::InputFileStreamBuffer>(filesystem_buffer, path.c_str());
     {
         std::istream ifs{input.get()};
         have = {std::istreambuf_iterator<char>{ifs}, std::istreambuf_iterator<char>{}};
