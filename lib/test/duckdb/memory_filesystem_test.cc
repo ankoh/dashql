@@ -1,0 +1,38 @@
+// Copyright (c) 2020 The DashQL Authors
+
+#include "duckdb/web/io/memory_filesystem.h"
+
+#include <fstream>
+#include <string>
+#include <string_view>
+#include <vector>
+
+#include "dashql/test/config.h"
+#include "duckdb/web/io/ifstream.h"
+#include "gtest/gtest.h"
+
+using namespace duckdb::web;
+using namespace std;
+
+namespace {
+
+TEST(MemoryFilesystem, istreambuf_iterator) {
+    constexpr std::string_view raw_input = R"([
+        {"a": 1, "b": 2.0, "c": "foo", "d": false}
+        {"a": 4, "b": -5.5, "c": null, "d": true}
+    ])";
+
+    std::vector<char> input_buffer{raw_input.data(), raw_input.data() + raw_input.size()};
+    auto memory_filesystem = std::make_unique<io::MemoryFileSystem>();
+    const char* path = "foo";
+    ASSERT_TRUE(memory_filesystem->RegisterFileBuffer(path, std::move(input_buffer)).ok());
+
+    auto filesystem_buffer = std::make_shared<io::FileSystemBuffer>(std::move(memory_filesystem));
+    auto input = std::make_shared<io::InputFileStreamBuffer>(filesystem_buffer, path);
+
+    std::istream ifs{input.get()};
+    std::string have{std::istreambuf_iterator<char>{ifs}, std::istreambuf_iterator<char>{}};
+    ASSERT_EQ(have, std::string{raw_input});
+}
+
+}  // namespace

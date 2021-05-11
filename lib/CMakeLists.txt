@@ -302,6 +302,7 @@ add_library(duckdb_web
     ${CMAKE_SOURCE_DIR}/src/duckdb/web/io/buffered_filesystem.cc
     ${CMAKE_SOURCE_DIR}/src/duckdb/web/io/default_filesystem.cc
     ${CMAKE_SOURCE_DIR}/src/duckdb/web/io/filesystem_buffer.cc
+    ${CMAKE_SOURCE_DIR}/src/duckdb/web/io/memory_filesystem.cc
     ${CMAKE_SOURCE_DIR}/src/duckdb/web/io/ifstream.cc
     ${CMAKE_SOURCE_DIR}/src/duckdb/web/io/web_filesystem.cc
     ${CMAKE_SOURCE_DIR}/src/duckdb/web/miniz_zipper.cc
@@ -432,6 +433,7 @@ if(NOT EMSCRIPTEN)
         ${CMAKE_SOURCE_DIR}/test/duckdb/json_analyzer_test.cc
         ${CMAKE_SOURCE_DIR}/test/duckdb/json_table_test.cc
         ${CMAKE_SOURCE_DIR}/test/duckdb/json_typedef_test.cc
+        ${CMAKE_SOURCE_DIR}/test/duckdb/memory_filesystem_test.cc
         ${CMAKE_SOURCE_DIR}/test/duckdb/webdb_test.cc
         ${CMAKE_SOURCE_DIR}/test/parser/grammar_spec_tests.cc
         ${CMAKE_SOURCE_DIR}/test/duckdb/miniz_zipper_test.cc

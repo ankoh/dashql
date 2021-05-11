@@ -118,16 +118,6 @@ void WebFileSystem::RemoveFile(const std::string &filename) {
     std::cout << "WebFileSystem not implemented" << std::endl;
 }
 
-// std::string WebFileSystem::PathSeparator() {
-//     std::cout << "PathSeparator not implemented" << std::endl;
-//     return {};
-// }
-//
-// std::string WebFileSystem::JoinPath(const std::string &a, const std::string &path) {
-//     std::cout << "JoinPath not implemented" << std::endl;
-//     return {};
-// }
-
 void WebFileSystem::FileSync(duckdb::FileHandle &handle) {
     // Noop, runtime writes directly
 }
