@@ -63,7 +63,7 @@ std::unique_ptr<duckdb::FileHandle> MemoryFileSystem::OpenFile(const char *path,
 /// Read exactly nr_bytes from the specified location in the file. Fails if nr_bytes could not be read.
 void MemoryFileSystem::Read(duckdb::FileHandle &raw_handle, void *buffer, int64_t nr_bytes, duckdb::idx_t location) {
     auto &handle = reinterpret_cast<FileHandle &>(raw_handle);
-    auto safe_loc = std::min(handle.buffer_.buffer.size(), location);
+    auto safe_loc = std::min<size_t>(handle.buffer_.buffer.size(), location);
     auto available = handle.buffer_.buffer.size() - safe_loc;
     if (available < nr_bytes) throw std::invalid_argument("insufficient bytes available");
     std::memcpy(buffer, handle.buffer_.buffer.data() + safe_loc, nr_bytes);
@@ -72,7 +72,7 @@ void MemoryFileSystem::Read(duckdb::FileHandle &raw_handle, void *buffer, int64_
 /// Write exactly nr_bytes to the specified location in the file. Fails if nr_bytes could not be read.
 void MemoryFileSystem::Write(duckdb::FileHandle &raw_handle, void *buffer, int64_t nr_bytes, duckdb::idx_t location) {
     auto &handle = reinterpret_cast<FileHandle &>(raw_handle);
-    auto safe_loc = std::min(handle.buffer_.buffer.size(), location);
+    auto safe_loc = std::min<size_t>(handle.buffer_.buffer.size(), location);
     auto available = handle.buffer_.buffer.size() - safe_loc;
     if (available < nr_bytes) throw std::invalid_argument("insufficient bytes available");
     std::memcpy(handle.buffer_.buffer.data() + safe_loc, buffer, nr_bytes);
