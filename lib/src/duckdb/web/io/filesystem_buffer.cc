@@ -1,4 +1,4 @@
-#include "duckdb/web/io/buffer_manager.h"
+#include "duckdb/web/io/filesystem_buffer.h"
 
 #include <cassert>
 #include <cstring>
@@ -42,11 +42,12 @@ namespace web {
 namespace io {
 
 /// Constructor
-BufferFrame::BufferFrame(uint64_t frame_id, size_t size, list_position fifo_position, list_position lru_position)
+FileSystemBufferFrame::FileSystemBufferFrame(uint64_t frame_id, size_t size, list_position fifo_position,
+                                             list_position lru_position)
     : frame_id(frame_id), fifo_position(fifo_position), lru_position(lru_position) {}
 
 /// Lock the frame
-void BufferFrame::Lock(bool exclusive) {
+void FileSystemBufferFrame::Lock(bool exclusive) {
     if (exclusive && num_users > 0 && locked_exclusively) {
         // XXX throw, would have been a deadlock
     }
@@ -55,39 +56,39 @@ void BufferFrame::Lock(bool exclusive) {
 }
 
 /// Unlock the frame
-void BufferFrame::Unlock() {
+void FileSystemBufferFrame::Unlock() {
     locked_exclusively = false;
     --num_users;
 }
 
 /// Constructor
-BufferManager::RegisteredFile::RegisteredFile(uint16_t file_id, std::string_view path,
-                                              std::unique_ptr<duckdb::FileHandle> handle)
+FileSystemBuffer::RegisteredFile::RegisteredFile(uint16_t file_id, std::string_view path,
+                                                 std::unique_ptr<duckdb::FileHandle> handle)
     : file_id(file_id), path(path), handle(std::move(handle)), references(0) {}
 
 /// Constructor
-BufferManager::FileRef::FileRef(std::shared_ptr<BufferManager> buffer_manager, RegisteredFile& file)
+FileSystemBuffer::FileRef::FileRef(std::shared_ptr<FileSystemBuffer> buffer_manager, RegisteredFile& file)
     : buffer_manager_(std::move(buffer_manager)), file_(&file) {
     ++file.references;
 }
 
 /// Constructor
-BufferManager::FileRef::FileRef(const FileRef& other) : buffer_manager_(other.buffer_manager_), file_(other.file_) {
+FileSystemBuffer::FileRef::FileRef(const FileRef& other) : buffer_manager_(other.buffer_manager_), file_(other.file_) {
     ++file_->references;
 }
 
 /// Constructor
-BufferManager::FileRef::FileRef(FileRef&& other)
+FileSystemBuffer::FileRef::FileRef(FileRef&& other)
     : buffer_manager_(std::move(other.buffer_manager_)), file_(other.file_) {
     other.buffer_manager_ = nullptr;
     other.file_ = nullptr;
 }
 
 /// Destructor
-BufferManager::FileRef::~FileRef() { Release(); }
+FileSystemBuffer::FileRef::~FileRef() { Release(); }
 
 /// Release the file ref
-void BufferManager::FileRef::Release() {
+void FileSystemBuffer::FileRef::Release() {
     if (!!file_) {
         buffer_manager_->ReleaseFile(*file_);
         buffer_manager_ = nullptr;
@@ -96,7 +97,7 @@ void BufferManager::FileRef::Release() {
 }
 
 /// Copy assignment
-BufferManager::FileRef& BufferManager::FileRef::operator=(const FileRef& other) {
+FileSystemBuffer::FileRef& FileSystemBuffer::FileRef::operator=(const FileRef& other) {
     Release();
     buffer_manager_ = other.buffer_manager_;
     file_ = other.file_;
@@ -105,7 +106,7 @@ BufferManager::FileRef& BufferManager::FileRef::operator=(const FileRef& other) 
 }
 
 /// Move assignment
-BufferManager::FileRef& BufferManager::FileRef::operator=(FileRef&& other) {
+FileSystemBuffer::FileRef& FileSystemBuffer::FileRef::operator=(FileRef&& other) {
     Release();
     buffer_manager_ = std::move(other.buffer_manager_);
     file_ = other.file_;
@@ -114,25 +115,25 @@ BufferManager::FileRef& BufferManager::FileRef::operator=(FileRef&& other) {
 }
 
 /// Constructor
-BufferManager::BufferRef::BufferRef(std::shared_ptr<BufferManager> buffer_manager, BufferFrame& frame)
+FileSystemBuffer::BufferRef::BufferRef(std::shared_ptr<FileSystemBuffer> buffer_manager, FileSystemBufferFrame& frame)
     : buffer_manager_(std::move(buffer_manager)), frame_(&frame) {}
 
 /// Copy Constructor
-BufferManager::BufferRef::BufferRef(const BufferRef& other)
+FileSystemBuffer::BufferRef::BufferRef(const BufferRef& other)
     : buffer_manager_(other.buffer_manager_), frame_(other.frame_) {
     assert(!frame_->locked_exclusively);
     frame_->Lock(false);
 }
 
 /// Move Constructor
-BufferManager::BufferRef::BufferRef(BufferRef&& other)
+FileSystemBuffer::BufferRef::BufferRef(BufferRef&& other)
     : buffer_manager_(std::move(other.buffer_manager_)), frame_(std::move(other.frame_)) {
     other.buffer_manager_ = nullptr;
     other.frame_ = nullptr;
 }
 
 /// Copy Constructor
-BufferManager::BufferRef& BufferManager::BufferRef::operator=(const BufferRef& other) {
+FileSystemBuffer::BufferRef& FileSystemBuffer::BufferRef::operator=(const BufferRef& other) {
     Release();
     buffer_manager_ = other.buffer_manager_;
     frame_ = other.frame_;
@@ -141,7 +142,7 @@ BufferManager::BufferRef& BufferManager::BufferRef::operator=(const BufferRef& o
 }
 
 /// Move Constructor
-BufferManager::BufferRef& BufferManager::BufferRef::operator=(BufferRef&& other) {
+FileSystemBuffer::BufferRef& FileSystemBuffer::BufferRef::operator=(BufferRef&& other) {
     Release();
     buffer_manager_ = std::move(other.buffer_manager_);
     frame_ = other.frame_;
@@ -151,9 +152,9 @@ BufferManager::BufferRef& BufferManager::BufferRef::operator=(BufferRef&& other)
 }
 
 /// Destructor
-BufferManager::BufferRef::~BufferRef() { Release(); }
+FileSystemBuffer::BufferRef::~BufferRef() { Release(); }
 /// Constructor
-void BufferManager::BufferRef::Release() {
+void FileSystemBuffer::BufferRef::Release() {
     if (!!frame_) {
         buffer_manager_->UnfixPage(frame_->frame_id, frame_->is_dirty);
         buffer_manager_ = nullptr;
@@ -162,7 +163,7 @@ void BufferManager::BufferRef::Release() {
 }
 
 /// Require a buffer frame to be of a certain size
-void BufferManager::BufferRef::RequireSize(size_t n) {
+void FileSystemBuffer::BufferRef::RequireSize(size_t n) {
     if (!frame_ || n < frame_->data_size) return;
     n = std::min<size_t>(n, buffer_manager_->GetPageSize());
     auto frame_id = frame_->frame_id;
@@ -176,19 +177,20 @@ void BufferManager::BufferRef::RequireSize(size_t n) {
 }
 
 /// Constructor
-BufferManager::BufferManager(std::unique_ptr<duckdb::FileSystem> filesystem, size_t page_capacity,
-                             size_t page_size_bits)
+FileSystemBuffer::FileSystemBuffer(std::unique_ptr<duckdb::FileSystem> filesystem, size_t page_capacity,
+                                   size_t page_size_bits)
     : page_size_bits(page_size_bits), page_capacity(page_capacity), filesystem(std::move(filesystem)) {}
 
 /// Destructor
-BufferManager::~BufferManager() {
+FileSystemBuffer::~FileSystemBuffer() {
     for (auto& entry : frames) {
         assert(entry.second.num_users == 0);
         FlushFrame(entry.second);
     }
 }
 
-BufferManager::FileRef BufferManager::OpenFile(std::string_view path, std::unique_ptr<duckdb::FileHandle> handle) {
+FileSystemBuffer::FileRef FileSystemBuffer::OpenFile(std::string_view path,
+                                                     std::unique_ptr<duckdb::FileHandle> handle) {
     // Already added?
     if (auto iter = files_by_path.find(path); iter != files_by_path.end()) {
         return FileRef{shared_from_this(), *files.at(iter->second)};
@@ -220,7 +222,7 @@ BufferManager::FileRef BufferManager::OpenFile(std::string_view path, std::uniqu
     return FileRef{shared_from_this(), file};
 }
 
-void BufferManager::EvictFileFrames(RegisteredFile& file) {
+void FileSystemBuffer::EvictFileFrames(RegisteredFile& file) {
     auto file_id = file.file_id;
     auto lb = frames.lower_bound(BuildFrameID(file_id));
     auto ub = frames.lower_bound(BuildFrameID(file_id + 1));
@@ -236,17 +238,17 @@ void BufferManager::EvictFileFrames(RegisteredFile& file) {
     frames.erase(lb, ub);
 }
 
-void BufferManager::RequireFileSize(RegisteredFile& file, size_t bytes) {
+void FileSystemBuffer::RequireFileSize(RegisteredFile& file, size_t bytes) {
     file.file_size_required = std::max(file.file_size_required, bytes);
 }
 
-void BufferManager::GrowFileIfRequired(RegisteredFile& file) {
+void FileSystemBuffer::GrowFileIfRequired(RegisteredFile& file) {
     if (file.file_size_required <= file.file_size) return;
     filesystem->Truncate(*file.handle, file.file_size_required);
     file.file_size = file.file_size_required;
 }
 
-void BufferManager::ReleaseFile(RegisteredFile& file) {
+void FileSystemBuffer::ReleaseFile(RegisteredFile& file) {
     // Any open file references?
     assert(file.references > 0);
     --file.references;
@@ -262,7 +264,7 @@ void BufferManager::ReleaseFile(RegisteredFile& file) {
     free_file_ids.push(file_id);
 }
 
-void BufferManager::LoadFrame(BufferFrame& frame) {
+void FileSystemBuffer::LoadFrame(FileSystemBufferFrame& frame) {
     auto file_id = GetFileID(frame.frame_id);
     auto page_id = GetPageID(frame.frame_id);
     auto page_size = GetPageSize();
@@ -278,7 +280,7 @@ void BufferManager::LoadFrame(BufferFrame& frame) {
     filesystem->Read(*file.handle, frame.buffer.data(), frame.data_size, page_id * page_size);
 }
 
-void BufferManager::FlushFrame(BufferFrame& frame) {
+void FileSystemBuffer::FlushFrame(FileSystemBufferFrame& frame) {
     auto file_id = GetFileID(frame.frame_id);
     auto page_id = GetPageID(frame.frame_id);
     auto page_size = GetPageSize();
@@ -296,7 +298,7 @@ void BufferManager::FlushFrame(BufferFrame& frame) {
     frame.is_dirty = false;
 }
 
-BufferFrame* BufferManager::FindFrameToEvict() {
+FileSystemBufferFrame* FileSystemBuffer::FindFrameToEvict() {
     // Try FIFO list first
     for (auto* page : fifo) {
         if (page->num_users == 0) return page;
@@ -308,7 +310,7 @@ BufferFrame* BufferManager::FindFrameToEvict() {
     return nullptr;
 }
 
-std::vector<char> BufferManager::AllocateFrameBuffer() {
+std::vector<char> FileSystemBuffer::AllocateFrameBuffer() {
     // Still capacity?
     auto page_size = GetPageSize();
     if (frames.size() < page_capacity) {
@@ -342,10 +344,10 @@ std::vector<char> BufferManager::AllocateFrameBuffer() {
 }
 
 /// Get the file size
-size_t BufferManager::GetFileSize(const FileRef& file) { return file.file_->file_size; }
+size_t FileSystemBuffer::GetFileSize(const FileRef& file) { return file.file_->file_size; }
 
 /// Fix a page
-BufferManager::BufferRef BufferManager::FixPage(const FileRef& file_ref, uint64_t page_id, bool exclusive) {
+FileSystemBuffer::BufferRef FileSystemBuffer::FixPage(const FileRef& file_ref, uint64_t page_id, bool exclusive) {
     // Does the page exist?
     assert(file_ref.file_ != nullptr);
     auto file_id = file_ref.file_->file_id;
@@ -370,7 +372,8 @@ BufferManager::BufferRef BufferManager::FixPage(const FileRef& file_ref, uint64_
     // Create a new page and don't insert it in the queues, yet.
     assert(frames.find(frame_id) == frames.end());
     auto buffer = AllocateFrameBuffer();
-    auto& frame = frames.insert({frame_id, BufferFrame{frame_id, GetPageSize(), fifo.end(), lru.end()}}).first->second;
+    auto& frame =
+        frames.insert({frame_id, FileSystemBufferFrame{frame_id, GetPageSize(), fifo.end(), lru.end()}}).first->second;
     frame.buffer = std::move(buffer);
     frame.fifo_position = fifo.insert(fifo.end(), &frame);
     frame.Lock(exclusive);
@@ -380,7 +383,7 @@ BufferManager::BufferRef BufferManager::FixPage(const FileRef& file_ref, uint64_
     return BufferRef{shared_from_this(), frame};
 }
 
-void BufferManager::UnfixPage(size_t frame_id, bool is_dirty) {
+void FileSystemBuffer::UnfixPage(size_t frame_id, bool is_dirty) {
     auto iter = frames.find(frame_id);
     if (iter == frames.end()) return;
     auto& frame = iter->second;
@@ -388,7 +391,7 @@ void BufferManager::UnfixPage(size_t frame_id, bool is_dirty) {
     frame.Unlock();
 }
 
-void BufferManager::FlushFile(const FileRef& file_ref) {
+void FileSystemBuffer::FlushFile(const FileRef& file_ref) {
     auto file_id = file_ref.file_->file_id;
     auto lb = frames.lower_bound(BuildFrameID(file_id));
     auto ub = frames.lower_bound(BuildFrameID(file_id + 1));
@@ -397,7 +400,7 @@ void BufferManager::FlushFile(const FileRef& file_ref) {
     }
 }
 
-void BufferManager::FlushFile(std::string_view path) {
+void FileSystemBuffer::FlushFile(std::string_view path) {
     if (auto file = files_by_path.find(path); file != files_by_path.end()) {
         auto lb = frames.lower_bound(BuildFrameID(file->second));
         auto ub = frames.lower_bound(BuildFrameID(file->second + 1));
@@ -407,13 +410,13 @@ void BufferManager::FlushFile(std::string_view path) {
     }
 }
 
-void BufferManager::Flush() {
+void FileSystemBuffer::Flush() {
     for (auto& frame : frames) {
         FlushFrame(frame.second);
     }
 }
 
-size_t BufferManager::Read(const FileRef& file, void* out, size_t n, size_t offset) {
+size_t FileSystemBuffer::Read(const FileRef& file, void* out, size_t n, size_t offset) {
     // Determine page & offset
     auto page_id = offset >> GetPageSizeShift();
     auto skip_here = offset - page_id * GetPageSize();
@@ -427,7 +430,7 @@ size_t BufferManager::Read(const FileRef& file, void* out, size_t n, size_t offs
     return read_here;
 }
 
-size_t BufferManager::Write(const FileRef& file, const void* in, size_t bytes, size_t offset) {
+size_t FileSystemBuffer::Write(const FileRef& file, const void* in, size_t bytes, size_t offset) {
     // Determine page & offset
     auto page_id = offset >> GetPageSizeShift();
     auto skip_here = offset - page_id * GetPageSize();
@@ -443,7 +446,7 @@ size_t BufferManager::Write(const FileRef& file, const void* in, size_t bytes, s
     return write_here;
 }
 
-void BufferManager::Truncate(const FileRef& file_ref, size_t new_size) {
+void FileSystemBuffer::Truncate(const FileRef& file_ref, size_t new_size) {
     auto* file = file_ref.file_;
     EvictFileFrames(*file);
     filesystem->Truncate(*file->handle, new_size);
@@ -451,7 +454,7 @@ void BufferManager::Truncate(const FileRef& file_ref, size_t new_size) {
     file->file_size_required = file->file_size;
 }
 
-std::vector<uint64_t> BufferManager::GetFIFOList() const {
+std::vector<uint64_t> FileSystemBuffer::GetFIFOList() const {
     std::vector<uint64_t> fifo_list;
     fifo_list.reserve(fifo.size());
     for (auto* page : fifo) {
@@ -460,7 +463,7 @@ std::vector<uint64_t> BufferManager::GetFIFOList() const {
     return fifo_list;
 }
 
-std::vector<uint64_t> BufferManager::GetLRUList() const {
+std::vector<uint64_t> FileSystemBuffer::GetLRUList() const {
     std::vector<uint64_t> lru_list;
     lru_list.reserve(lru.size());
     for (auto* page : lru) {

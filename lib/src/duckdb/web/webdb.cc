@@ -127,15 +127,15 @@ arrow::Result<std::shared_ptr<arrow::Buffer>> WebDB::Connection::FetchQueryResul
 
 /// Constructor
 WebDB::WebDB()
-    : buffer_manager_(std::make_shared<io::BufferManager>(io::CreateDefaultFileSystem())),
+    : filesystem_buffer_(std::make_shared<io::FileSystemBuffer>(io::CreateDefaultFileSystem())),
       database_(),
       connections_(),
       db_config_() {
-    auto buffered_filesystem = std::make_unique<io::BufferedFileSystem>(buffer_manager_);
+    auto buffered_filesystem = std::make_unique<io::BufferedFileSystem>(filesystem_buffer_);
     db_config_.file_system = std::move(std::move(buffered_filesystem));
     database_ = std::make_shared<duckdb::DuckDB>(nullptr, &db_config_);
     database_->LoadExtension<duckdb::ParquetExtension>();
-    zip_ = std::make_unique<Zipper>(buffer_manager_);
+    zip_ = std::make_unique<Zipper>(filesystem_buffer_);
 }
 
 /// Get the version
@@ -152,9 +152,9 @@ WebDB::Connection* WebDB::Connect() {
 /// End a session
 void WebDB::Disconnect(Connection* session) { connections_.erase(session); }
 /// Flush all file buffers
-void WebDB::FlushFiles() { buffer_manager_->Flush(); }
+void WebDB::FlushFiles() { filesystem_buffer_->Flush(); }
 /// Flush file by path
-void WebDB::FlushFile(std::string_view path) { buffer_manager_->FlushFile(path); }
+void WebDB::FlushFile(std::string_view path) { filesystem_buffer_->FlushFile(path); }
 
 }  // namespace web
 }  // namespace duckdb

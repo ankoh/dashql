@@ -12,7 +12,7 @@
 #include "dashql/test/config.h"
 #include "duckdb/common/file_system.hpp"
 #include "duckdb/web/io/arrow_ifstream.h"
-#include "duckdb/web/io/buffer_manager.h"
+#include "duckdb/web/io/filesystem_buffer.h"
 #include "duckdb/web/io/web_filesystem.h"
 #include "gtest/gtest.h"
 #include "rapidjson/document.h"
@@ -34,10 +34,10 @@ std::filesystem::path CreateTestFile() {
 }
 
 TEST(ZipperTest, LoadFile) {
-    auto buffer_manager = std::make_shared<io::BufferManager>();
+    auto filesystem_buffer = std::make_shared<io::FileSystemBuffer>();
     auto path = dashql::test::SOURCE_DIR / ".." / "data" / "uni" / "out" / "all.zip";
 
-    Zipper zipper{buffer_manager};
+    Zipper zipper{filesystem_buffer};
     auto load_status = zipper.LoadFromFile(path.c_str());
     ASSERT_TRUE(load_status.ok()) << load_status.message();
 
@@ -61,12 +61,12 @@ TEST(ZipperTest, LoadFile) {
 }
 
 TEST(ZipperTest, ExtractEntryToPath) {
-    auto buffer_manager = std::make_shared<io::BufferManager>();
+    auto filesystem_buffer = std::make_shared<io::FileSystemBuffer>();
     auto all_path = dashql::test::SOURCE_DIR / ".." / "data" / "uni" / "out" / "all.zip";
     auto expected_path = dashql::test::SOURCE_DIR / ".." / "data" / "uni" / "out" / "assistenten.parquet";
     auto out_path = CreateTestFile();
 
-    Zipper zipper{buffer_manager};
+    Zipper zipper{filesystem_buffer};
     auto load_status = zipper.LoadFromFile(all_path.c_str());
     ASSERT_TRUE(load_status.ok()) << load_status.message();
 
@@ -83,7 +83,7 @@ TEST(ZipperTest, ExtractEntryToPath) {
     auto written = zipper.ExtractEntryToPath(0, out_path.c_str());
     ASSERT_EQ(entry["sizeUncompressed"].GetUint(), written.ValueUnsafe());
 
-    buffer_manager->Flush();
+    filesystem_buffer->Flush();
 
     std::ifstream out_ifs{out_path};
     std::ifstream expected_ifs{expected_path};
@@ -93,18 +93,18 @@ TEST(ZipperTest, ExtractEntryToPath) {
 }
 
 TEST(ZipperTest, ExtractPathToPath) {
-    auto buffer_manager = std::make_shared<io::BufferManager>();
+    auto filesystem_buffer = std::make_shared<io::FileSystemBuffer>();
     auto all_path = dashql::test::SOURCE_DIR / ".." / "data" / "uni" / "out" / "all.zip";
     auto expected_path = dashql::test::SOURCE_DIR / ".." / "data" / "uni" / "out" / "assistenten.parquet";
     auto out_path = CreateTestFile();
 
-    Zipper zipper{buffer_manager};
+    Zipper zipper{filesystem_buffer};
     auto load_status = zipper.LoadFromFile(all_path.c_str());
     ASSERT_TRUE(load_status.ok()) << load_status.message();
 
     std::string to_extract = "assistenten.parquet";
     auto written = zipper.ExtractPathToPath(to_extract.c_str(), out_path.c_str());
-    buffer_manager->Flush();
+    filesystem_buffer->Flush();
 
     std::ifstream out_ifs{out_path};
     std::ifstream expected_ifs{expected_path};

@@ -299,9 +299,9 @@ add_library(duckdb_web
     ${CMAKE_SOURCE_DIR}/src/duckdb/web/json_table_options.cc
     ${CMAKE_SOURCE_DIR}/src/duckdb/web/json_typedef.cc
     ${CMAKE_SOURCE_DIR}/src/duckdb/web/io/arrow_ifstream.cc
-    ${CMAKE_SOURCE_DIR}/src/duckdb/web/io/buffer_manager.cc
     ${CMAKE_SOURCE_DIR}/src/duckdb/web/io/buffered_filesystem.cc
     ${CMAKE_SOURCE_DIR}/src/duckdb/web/io/default_filesystem.cc
+    ${CMAKE_SOURCE_DIR}/src/duckdb/web/io/filesystem_buffer.cc
     ${CMAKE_SOURCE_DIR}/src/duckdb/web/io/ifstream.cc
     ${CMAKE_SOURCE_DIR}/src/duckdb/web/io/web_filesystem.cc
     ${CMAKE_SOURCE_DIR}/src/duckdb/web/miniz_zipper.cc
@@ -425,13 +425,13 @@ if(NOT EMSCRIPTEN)
         ${CMAKE_SOURCE_DIR}/test/common/substring_buffer_test.cc
         ${CMAKE_SOURCE_DIR}/test/common/topological_sort_test.cc
         ${CMAKE_SOURCE_DIR}/test/common/union_find_test.cc
-        ${CMAKE_SOURCE_DIR}/test/duckdb/buffer_manager_test.cc
         ${CMAKE_SOURCE_DIR}/test/duckdb/csv_test.cc
+        ${CMAKE_SOURCE_DIR}/test/duckdb/duckdb_test.cc
+        ${CMAKE_SOURCE_DIR}/test/duckdb/filesystem_buffer_test.cc
+        ${CMAKE_SOURCE_DIR}/test/duckdb/ifstream_test.cc
         ${CMAKE_SOURCE_DIR}/test/duckdb/json_analyzer_test.cc
         ${CMAKE_SOURCE_DIR}/test/duckdb/json_table_test.cc
         ${CMAKE_SOURCE_DIR}/test/duckdb/json_typedef_test.cc
-        ${CMAKE_SOURCE_DIR}/test/duckdb/duckdb_test.cc
-        ${CMAKE_SOURCE_DIR}/test/duckdb/ifstream_test.cc
         ${CMAKE_SOURCE_DIR}/test/duckdb/webdb_test.cc
         ${CMAKE_SOURCE_DIR}/test/parser/grammar_spec_tests.cc
         ${CMAKE_SOURCE_DIR}/test/duckdb/miniz_zipper_test.cc

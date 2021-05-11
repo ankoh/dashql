@@ -6,7 +6,7 @@
 #include "duckdb.hpp"
 #include "duckdb/execution/operator/persistent/buffered_csv_reader.hpp"
 #include "duckdb/parser/column_definition.hpp"
-#include "duckdb/web/io/buffer_manager.h"
+#include "duckdb/web/io/filesystem_buffer.h"
 #include "duckdb/web/webdb.h"
 
 namespace duckdb {
