@@ -234,6 +234,33 @@ static std::vector<TableReaderTest> TABLE_READER_TEST = {
             "bar:   [\n    3,\n    2\n  ]\nfoo:   [\n    1,\n    null\n  ]\n"
         }
     },
+    {
+        .name = "cols_int32_split_1",
+        .input = R"JSON({
+            "foo": [1, 2, 3, 4, 5, 6, 7, 8]
+        })JSON",
+        .batch_size = 4,
+        .expected_shape = json::TableShape::COLUMN_OBJECT,
+        .expected_type = "struct<foo: int32>",
+        .expected_batches = {
+            "foo:   [\n    1,\n    2,\n    3,\n    4\n  ]\n",
+            "foo:   [\n    5,\n    6,\n    7,\n    8\n  ]\n",
+        }
+    },
+    {
+        .name = "cols_int32_split_2",
+        .input = R"JSON({
+            "foo": [1, 2, 3, 4, 5, 6, 7, 8, 9]
+        })JSON",
+        .batch_size = 4,
+        .expected_shape = json::TableShape::COLUMN_OBJECT,
+        .expected_type = "struct<foo: int32>",
+        .expected_batches = {
+            "foo:   [\n    1,\n    2,\n    3,\n    4\n  ]\n",
+            "foo:   [\n    5,\n    6,\n    7,\n    8\n  ]\n",
+            "foo:   [\n    9\n  ]\n",
+        }
+    },
 
     // ---------------------------------------
     // Row-major table layout
@@ -290,7 +317,7 @@ static std::vector<TableReaderTest> TABLE_READER_TEST = {
         }
     },
     {
-        .name = "rows_int32_split",
+        .name = "rows_int32_split_1",
         .input = R"JSON([
             {"foo": 1},
             {"foo": 2},
@@ -307,6 +334,28 @@ static std::vector<TableReaderTest> TABLE_READER_TEST = {
         .expected_batches = {
             "foo:   [\n    1,\n    2,\n    3,\n    4\n  ]\n",
             "foo:   [\n    5,\n    6,\n    7,\n    8\n  ]\n",
+        }
+    },
+    {
+        .name = "rows_int32_split_2",
+        .input = R"JSON([
+            {"foo": 1},
+            {"foo": 2},
+            {"foo": 3},
+            {"foo": 4},
+            {"foo": 5},
+            {"foo": 6},
+            {"foo": 7},
+            {"foo": 8},
+            {"foo": 9},
+        ])JSON",
+        .batch_size = 4,
+        .expected_shape = json::TableShape::ROW_ARRAY,
+        .expected_type = "struct<foo: int32>",
+        .expected_batches = {
+            "foo:   [\n    1,\n    2,\n    3,\n    4\n  ]\n",
+            "foo:   [\n    5,\n    6,\n    7,\n    8\n  ]\n",
+            "foo:   [\n    9\n  ]\n",
         }
     },
 };
