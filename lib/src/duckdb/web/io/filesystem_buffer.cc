@@ -177,7 +177,7 @@ void FileSystemBuffer::BufferRef::RequireSize(size_t n) {
 }
 
 /// Constructor
-FileSystemBuffer::FileSystemBuffer(std::unique_ptr<duckdb::FileSystem> filesystem, size_t page_capacity,
+FileSystemBuffer::FileSystemBuffer(std::shared_ptr<duckdb::FileSystem> filesystem, size_t page_capacity,
                                    size_t page_size_bits)
     : page_size_bits(page_size_bits), page_capacity(page_capacity), filesystem(std::move(filesystem)) {}
 

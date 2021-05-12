@@ -177,7 +177,7 @@ class FileSystemBuffer : public std::enable_shared_from_this<FileSystemBuffer> {
     const size_t page_capacity;
 
     /// The actual filesystem
-    std::unique_ptr<duckdb::FileSystem> filesystem;
+    std::shared_ptr<duckdb::FileSystem> filesystem;
     /// Maps frame ids to their files
     std::unordered_map<uint16_t, std::unique_ptr<RegisteredFile>> files = {};
     /// The file ids
@@ -221,7 +221,7 @@ class FileSystemBuffer : public std::enable_shared_from_this<FileSystemBuffer> {
    public:
     /// Constructor.
     /// Use 10 * 8KiB pages by default (1 << 13)
-    FileSystemBuffer(std::unique_ptr<duckdb::FileSystem> filesystem = io::CreateDefaultFileSystem(),
+    FileSystemBuffer(std::shared_ptr<duckdb::FileSystem> filesystem = io::CreateDefaultFileSystem(),
                      size_t page_capacity = 10, size_t page_size_bits = 13);
     /// Destructor
     virtual ~FileSystemBuffer();
