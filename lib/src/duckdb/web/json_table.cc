@@ -120,17 +120,17 @@ struct ArrayReader {
         reader_.IterativeParseInit();
     }
     /// Read the next batch
-    arrow::Result<ArrayParser*> ReadNextBatch();
+    arrow::Result<ArrayParser*> ReadNextN(size_t n);
 };
 
 /// Read entire object
-arrow::Result<ArrayParser*> ArrayReader::ReadNextBatch() {
+arrow::Result<ArrayParser*> ArrayReader::ReadNextN(size_t n) {
     while (!reader_.IterativeParseComplete()) {
         if (!reader_.IterativeParseNext<DEFAULT_PARSER_FLAGS>(in_wrapper_, array_buffer_)) {
             auto error = rapidjson::GetParseError_En(reader_.GetParseErrorCode());
             return arrow::Status(arrow::StatusCode::ExecutionError, error);
         }
-        if (array_buffer_.size >= 1024 || array_buffer_.done) {
+        if (array_buffer_.size >= n || array_buffer_.done) {
             auto status =
                 array_buffer_.Flush<arrow::Status>([&](auto& buffer) { return parser_->AppendValues(buffer); });
             ARROW_RETURN_NOT_OK(status);
@@ -150,7 +150,7 @@ struct RowArrayTableReader : public TableReader {
     /// Prepare the table reader
     arrow::Status Prepare() override;
     /// Read the next batch
-    arrow::Result<std::shared_ptr<arrow::RecordBatch>> ReadNextBatch() override;
+    arrow::Result<std::shared_ptr<arrow::RecordBatch>> ReadNextN(size_t n) override;
 };
 
 arrow::Status RowArrayTableReader::Prepare() {
@@ -164,8 +164,8 @@ arrow::Status RowArrayTableReader::Prepare() {
     return arrow::Status::OK();
 }
 
-arrow::Result<std::shared_ptr<arrow::RecordBatch>> RowArrayTableReader::ReadNextBatch() {
-    ARROW_ASSIGN_OR_RAISE(auto parser, struct_reader_->ReadNextBatch());
+arrow::Result<std::shared_ptr<arrow::RecordBatch>> RowArrayTableReader::ReadNextN(size_t n) {
+    ARROW_ASSIGN_OR_RAISE(auto parser, struct_reader_->ReadNextN(n));
     ARROW_ASSIGN_OR_RAISE(auto array, parser->Finish());
     return arrow::RecordBatch::FromStructArray(std::move(array));
 }
@@ -194,7 +194,7 @@ struct ColumnObjectTableReader : public TableReader {
     /// Prepare the table reader
     arrow::Status Prepare() override;
     /// Read next chunk
-    arrow::Result<std::shared_ptr<arrow::RecordBatch>> ReadNextBatch() override;
+    arrow::Result<std::shared_ptr<arrow::RecordBatch>> ReadNextN(size_t n) override;
 };
 
 arrow::Status ColumnObjectTableReader::Prepare() {
@@ -233,7 +233,7 @@ arrow::Status ColumnObjectTableReader::Prepare() {
     return arrow::Status::OK();
 }
 
-arrow::Result<std::shared_ptr<arrow::RecordBatch>> ColumnObjectTableReader::ReadNextBatch() {
+arrow::Result<std::shared_ptr<arrow::RecordBatch>> ColumnObjectTableReader::ReadNextN(size_t n) {
     // Collect the next batch
     std::vector<ArrayParser*> column_parsers;
     size_t num_rows = 0;
@@ -243,7 +243,7 @@ arrow::Result<std::shared_ptr<arrow::RecordBatch>> ColumnObjectTableReader::Read
         auto& type = field->type();
         assert(column_readers_.count(name));
         auto& reader = column_readers_.at(name);
-        ARROW_ASSIGN_OR_RAISE(auto parser, reader->array_reader_.ReadNextBatch());
+        ARROW_ASSIGN_OR_RAISE(auto parser, reader->array_reader_.ReadNextN(n));
         num_rows = std::max<size_t>(num_rows, parser->GetLength());
         column_parsers.push_back(parser);
     }
