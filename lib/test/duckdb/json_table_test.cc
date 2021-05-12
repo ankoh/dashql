@@ -191,7 +191,37 @@ static std::vector<TableReaderTest> TABLE_READER_TEST = {
         })JSON",
         .expected_shape = json::TableShape::COLUMN_OBJECT,
         .expected_type = "struct<bar: int32, foo: int32>",
-        .expected_batch = "bar:   [\n    1,\n    4\n  ]\nfoo:   [\n    3,\n    2\n  ]\n"
+        .expected_batch = "bar:   [\n    3,\n    2\n  ]\nfoo:   [\n    1,\n    4\n  ]\n"
+    },
+    {
+        .name = "cols_int32_int32_nulls_1",
+        .input = R"JSON({
+            "foo": [1, 4],
+            "bar": [3]
+        })JSON",
+        .expected_shape = json::TableShape::COLUMN_OBJECT,
+        .expected_type = "struct<bar: int32, foo: int32>",
+        .expected_batch = "bar:   [\n    3,\n    null\n  ]\nfoo:   [\n    1,\n    4\n  ]\n"
+    },
+    {
+        .name = "cols_int32_int32_nulls_2",
+        .input = R"JSON({
+            "foo": [1, 4],
+            "bar": []
+        })JSON",
+        .expected_shape = json::TableShape::COLUMN_OBJECT,
+        .expected_type = "struct<bar: null, foo: int32>",
+        .expected_batch = "bar: 2 nulls\nfoo:   [\n    1,\n    4\n  ]\n"
+    },
+    {
+        .name = "cols_int32_int32_nulls_3",
+        .input = R"JSON({
+            "foo": [1],
+            "bar": [3, 2]
+        })JSON",
+        .expected_shape = json::TableShape::COLUMN_OBJECT,
+        .expected_type = "struct<bar: int32, foo: int32>",
+        .expected_batch = "bar:   [\n    3,\n    2\n  ]\nfoo:   [\n    1,\n    null\n  ]\n"
     },
 };
 // clang-format on

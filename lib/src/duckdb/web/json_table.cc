@@ -237,7 +237,12 @@ arrow::Result<std::shared_ptr<arrow::RecordBatch>> ColumnObjectTableReader::Read
     // Collect the next batch
     std::vector<ArrayParser*> column_parsers;
     size_t num_rows = 0;
-    for (auto& [name, reader] : column_readers_) {
+    for (unsigned i = 0; i < table_type_.type->num_fields(); ++i) {
+        auto& field = table_type_.type->field(i);
+        auto& name = field->name();
+        auto& type = field->type();
+        assert(column_readers_.count(name));
+        auto& reader = column_readers_.at(name);
         ARROW_ASSIGN_OR_RAISE(auto parser, reader->array_reader_.ReadNextBatch());
         num_rows = std::max<size_t>(num_rows, parser->GetLength());
         column_parsers.push_back(parser);
