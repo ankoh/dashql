@@ -45,10 +45,16 @@ class TableReader {
     TableReader(std::unique_ptr<io::InputFileStream> table, TableType type = {});
 
    public:
+    /// Virtual destructor
+    virtual ~TableReader() = default;
     /// Prepare the table reader
     virtual arrow::Status Prepare() = 0;
     /// Read next chunk
     virtual arrow::Result<std::shared_ptr<arrow::RecordBatch>> ReadNextBatch() = 0;
+
+    /// Create a table reader
+    static arrow::Result<std::unique_ptr<TableReader>> Resolve(std::unique_ptr<io::InputFileStream> table,
+                                                               TableType type);
 };
 
 }  // namespace json
