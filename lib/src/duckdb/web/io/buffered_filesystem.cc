@@ -34,8 +34,8 @@ BufferedFileHandle::~BufferedFileHandle() { file_buffers_.Release(); }
 BufferedFileSystem::BufferedFileSystem(std::shared_ptr<FileSystemBuffer> buffer_manager)
     : filesystem_buffer_(std::move(buffer_manager)), filesystem_(*filesystem_buffer_->GetFileSystem()) {}
 
-std::unique_ptr<duckdb::FileHandle> BufferedFileSystem::OpenFile(const char *path, uint8_t flags,
-                                                                 duckdb::FileLockType lock) {
+std::unique_ptr<duckdb::FileHandle> BufferedFileSystem::OpenFile(const string &path, uint8_t flags, FileLockType lock,
+                                                                 FileCompressionType compression) {
     auto file = filesystem_buffer_->OpenFile(std::string_view{path});
     return std::make_unique<BufferedFileHandle>(*this, std::move(file));
 }

@@ -292,7 +292,6 @@ add_library(dashql_analyzer
 
 add_library(duckdb_web
     ${CMAKE_SOURCE_DIR}/src/duckdb/web/arrow_inserter.cc
-    ${CMAKE_SOURCE_DIR}/src/duckdb/web/csv_reader.cc
     ${CMAKE_SOURCE_DIR}/src/duckdb/web/json_analyzer.cc
     ${CMAKE_SOURCE_DIR}/src/duckdb/web/json_parser.cc
     ${CMAKE_SOURCE_DIR}/src/duckdb/web/json_table.cc
@@ -426,7 +425,6 @@ if(NOT EMSCRIPTEN)
         ${CMAKE_SOURCE_DIR}/test/common/substring_buffer_test.cc
         ${CMAKE_SOURCE_DIR}/test/common/topological_sort_test.cc
         ${CMAKE_SOURCE_DIR}/test/common/union_find_test.cc
-        ${CMAKE_SOURCE_DIR}/test/duckdb/csv_test.cc
         ${CMAKE_SOURCE_DIR}/test/duckdb/duckdb_test.cc
         ${CMAKE_SOURCE_DIR}/test/duckdb/filesystem_buffer_test.cc
         ${CMAKE_SOURCE_DIR}/test/duckdb/ifstream_test.cc

@@ -44,10 +44,10 @@ namespace io {
 
 void WebFileHandle::Close() { duckdb_web_fs_file_close(file_id); }
 
-std::unique_ptr<duckdb::FileHandle> WebFileSystem::OpenFile(const char *path, uint8_t flags,
-                                                            duckdb::FileLockType lock) {
+std::unique_ptr<duckdb::FileHandle> WebFileSystem::OpenFile(const string &path, uint8_t flags, FileLockType lock,
+                                                            FileCompressionType compression) {
     return std::make_unique<WebFileHandle>(*this, std::string(path),
-                                           duckdb_web_fs_file_open(path, strlen(path), flags));
+                                           duckdb_web_fs_file_open(path.data(), path.length(), flags));
 }
 
 void WebFileSystem::Read(duckdb::FileHandle &handle, void *buffer, int64_t nr_bytes, duckdb::idx_t location) {

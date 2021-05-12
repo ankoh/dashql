@@ -165,13 +165,13 @@ void Value::PrintValue(std::ostream& out) const {
             out << data_.f64;
             break;
         case T::DATE:
-            out << duckdb::Date::ToString(data_.i64);
+            out << duckdb::Date::ToString(date_t(data_.i64));
             break;
         case T::TIME:
-            out << duckdb::Time::ToString(data_.i64);
+            out << duckdb::Time::ToString(dtime_t(data_.i64));
             break;
         case T::TIMESTAMP:
-            out << duckdb::Timestamp::ToString(data_.i64);
+            out << duckdb::Timestamp::ToString(timestamp_t(data_.i64));
             break;
         case T::DECIMAL:
             out << duckdb::Decimal::ToString(data_.i64, logical_type_.scale());
@@ -198,13 +198,13 @@ void Value::PrintValueAsScript(std::ostream& out) const {
             out << data_.f64;
             break;
         case T::DATE:
-            out << duckdb::Date::ToString(data_.i64);
+            out << duckdb::Date::ToString(date_t(data_.i64));
             break;
         case T::TIME:
-            out << duckdb::Time::ToString(data_.i64);
+            out << duckdb::Time::ToString(dtime_t(data_.i64));
             break;
         case T::TIMESTAMP:
-            out << duckdb::Timestamp::ToString(data_.i64);
+            out << duckdb::Timestamp::ToString(timestamp_t(data_.i64));
             break;
         case T::DECIMAL:
             out << duckdb::Decimal::ToString(data_.i64, logical_type_.scale());
@@ -452,7 +452,7 @@ Value Value::BIGINT(int64_t value) {
 // Create a date value from a specified date
 Value Value::DATE(date_t date) {
     Value result{proto::sql::SQLTypeID::DATE};
-    result.SetData(static_cast<int64_t>(date));
+    result.SetData(static_cast<int64_t>(date.days));
     return result;
 }
 
