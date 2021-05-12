@@ -140,7 +140,7 @@ TEST_P(TableReaderTestSuite, ReadSingleBatch) {
     auto reader = std::move(maybe_reader.ValueUnsafe());
     ASSERT_TRUE(reader->Prepare().ok());
     auto maybe_batch = reader->ReadNextBatch();
-    ASSERT_TRUE(maybe_batch.ok());
+    ASSERT_TRUE(maybe_batch.ok()) << maybe_batch.status().message();
     auto& batch = maybe_batch.ValueUnsafe();
     ASSERT_EQ(batch->ToString(), std::string(test.expected));
 }
@@ -160,6 +160,36 @@ static std::vector<TableReaderTest> TABLE_READER_TEST = {
             })
         },
         .expected = "foo:   [\n    1,\n    4\n  ]\n"
+    },
+    {
+        .name = "rows_int32_int32",
+        .input = R"JSON([
+            {"foo": 1, "bar": 2},
+            {"foo": 4, "bar": 3}
+        ])JSON",
+        .type = {
+            .shape = json::TableShape::ROW_ARRAY,
+            .type = arrow::struct_({
+                arrow::field("foo", arrow::int32()),
+                arrow::field("bar", arrow::int32()),
+            })
+        },
+        .expected = "foo:   [\n    1,\n    4\n  ]\nbar:   [\n    2,\n    3\n  ]\n"
+    },
+    {
+        .name = "rows_int32_int32_additional",
+        .input = R"JSON([
+            {"foo": 1, "bar": 2, "some": 3},
+            {"foo": 4, "bar": 3}
+        ])JSON",
+        .type = {
+            .shape = json::TableShape::ROW_ARRAY,
+            .type = arrow::struct_({
+                arrow::field("foo", arrow::int32()),
+                arrow::field("bar", arrow::int32()),
+            })
+        },
+        .expected = "foo:   [\n    1,\n    4\n  ]\nbar:   [\n    2,\n    3\n  ]\n"
     }
 };
 // clang-format on
