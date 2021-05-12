@@ -563,13 +563,6 @@ class StructArrayParser final : public BaseArrayParser<StructArrayParser, arrow:
                     RETURN_NOT_OK(child_parsers_[i]->AppendNull());
                 }
             }
-            if (remaining > 0) {
-                rapidjson::StringBuffer sb;
-                rapidjson::Writer<rapidjson::StringBuffer> writer(sb);
-                json_obj.Accept(writer);
-                return arrow::Status::Invalid("Unexpected members in JSON object for type ", type_->ToString(),
-                                              " Object: ", sb.GetString());
-            }
             return builder_->Append();
         }
         return JSONTypeError("array or object", json_obj.GetType());
