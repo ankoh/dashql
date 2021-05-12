@@ -134,6 +134,9 @@ TEST(TableReader, RowObjectDetect1) {
 
     auto reader = std::move(maybe_reader.ValueUnsafe());
     ASSERT_TRUE(reader->Prepare().ok());
+
+    //    auto maybe_batch = reader->ReadNextBatch();
+    //    ASSERT_TRUE(maybe_batch.ok());
 }
 
 }  // namespace
