@@ -31,7 +31,7 @@ struct ArrayBuffer : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, Arra
 
     ArrayBuffer() {}
 
-    auto& Emit() {
+    template <typename RET, typename FN> RET Flush(FN&& f) {
         // Not done yet?
         if (!done) {
             assert(depth == 1);
@@ -40,7 +40,10 @@ struct ArrayBuffer : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, Arra
         }
         auto gen = [](auto&) { return true; };
         doc.Populate(gen);
-        return doc;
+        auto result = f(doc);
+        doc.Clear();
+        doc.StartArray();
+        return result;
     }
 
     bool Key(const char* txt, size_t length, bool copy) { return doc.Key(txt, length, copy); }
@@ -128,9 +131,8 @@ arrow::Result<std::shared_ptr<arrow::Array>> ArrayReader::ReadNextBatch() {
             return arrow::Status(arrow::StatusCode::ExecutionError, error);
         }
         if (array_buffer_.size >= 1024 || array_buffer_.done) {
-            auto& buffer = array_buffer_.Emit();
-            auto status = parser_->AppendValues(buffer);
-            buffer.Clear();
+            auto status =
+                array_buffer_.Flush<arrow::Status>([&](auto& buffer) { return parser_->AppendValues(buffer); });
             ARROW_RETURN_NOT_OK(status);
             ARROW_ASSIGN_OR_RAISE(auto array, parser_->Finish());
             return array;
