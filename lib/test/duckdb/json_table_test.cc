@@ -154,26 +154,9 @@ TEST_P(TableReaderTestSuite, DetectAndReadSingleBatch) {
 
 // clang-format off
 static std::vector<TableReaderTest> TABLE_READER_TEST = {
-    {
-        .name = "rows_int32",
-        .input = R"JSON([
-            {"foo": 1},
-            {"foo": 4}
-        ])JSON",
-        .expected_shape = json::TableShape::ROW_ARRAY,
-        .expected_type = "struct<foo: int32>",
-        .expected_batch = "foo:   [\n    1,\n    4\n  ]\n"
-    },
-    {
-        .name = "rows_int32_int32",
-        .input = R"JSON([
-            {"foo": 1, "bar": 2},
-            {"foo": 4, "bar": 3}
-        ])JSON",
-        .expected_shape = json::TableShape::ROW_ARRAY,
-        .expected_type = "struct<bar: int32, foo: int32>",
-        .expected_batch = "bar:   [\n    2,\n    3\n  ]\nfoo:   [\n    1,\n    4\n  ]\n"
-    },
+
+    // ---------------------------------------
+    // Column-major table layout
     {
         .name = "cols_int32",
         .input = R"JSON({
@@ -222,6 +205,49 @@ static std::vector<TableReaderTest> TABLE_READER_TEST = {
         .expected_shape = json::TableShape::COLUMN_OBJECT,
         .expected_type = "struct<bar: int32, foo: int32>",
         .expected_batch = "bar:   [\n    3,\n    2\n  ]\nfoo:   [\n    1,\n    null\n  ]\n"
+    },
+
+    // ---------------------------------------
+    // Row-major table layout
+    {
+        .name = "rows_int32",
+        .input = R"JSON([
+            {"foo": 1},
+            {"foo": 4}
+        ])JSON",
+        .expected_shape = json::TableShape::ROW_ARRAY,
+        .expected_type = "struct<foo: int32>",
+        .expected_batch = "foo:   [\n    1,\n    4\n  ]\n"
+    },
+    {
+        .name = "rows_int32_int32",
+        .input = R"JSON([
+            {"foo": 1, "bar": 2},
+            {"foo": 4, "bar": 3}
+        ])JSON",
+        .expected_shape = json::TableShape::ROW_ARRAY,
+        .expected_type = "struct<bar: int32, foo: int32>",
+        .expected_batch = "bar:   [\n    2,\n    3\n  ]\nfoo:   [\n    1,\n    4\n  ]\n"
+    },
+    {
+        .name = "rows_int32_int32_nulls_1",
+        .input = R"JSON([
+            {"foo": 1, "bar": 2},
+            {"foo": 4}
+        ])JSON",
+        .expected_shape = json::TableShape::ROW_ARRAY,
+        .expected_type = "struct<bar: int32, foo: int32>",
+        .expected_batch = "bar:   [\n    2,\n    null\n  ]\nfoo:   [\n    1,\n    4\n  ]\n"
+    },
+    {
+        .name = "rows_int32_int32_nulls_2",
+        .input = R"JSON([
+            {"foo": 1, "bar": 2},
+            {}
+        ])JSON",
+        .expected_shape = json::TableShape::ROW_ARRAY,
+        .expected_type = "struct<bar: int32, foo: int32>",
+        .expected_batch = "bar:   [\n    2,\n    null\n  ]\nfoo:   [\n    1,\n    null\n  ]\n"
     },
 };
 // clang-format on
