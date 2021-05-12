@@ -50,7 +50,7 @@ class TableReader {
     /// Prepare the table reader
     virtual arrow::Status Prepare() = 0;
     /// Read next chunk
-    virtual arrow::Result<std::shared_ptr<arrow::RecordBatch>> ReadNextBatch() = 0;
+    virtual arrow::Result<std::shared_ptr<arrow::RecordBatch>> ReadNextN(size_t n = 1024) = 0;
 
     /// Create a table reader
     static arrow::Result<std::unique_ptr<TableReader>> Resolve(std::unique_ptr<io::InputFileStream> table,
