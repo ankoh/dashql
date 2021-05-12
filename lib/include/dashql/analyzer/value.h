@@ -10,11 +10,11 @@
 namespace dashql {
 
 /// Type used to represent dates (days since 1970-01-01)
-using date_t = int32_t;
+using date_t = duckdb::date_t;
 /// Type used to represent time (microseconds)
-using dtime_t = int64_t;
+using dtime_t = duckdb::dtime_t;
 /// Type used to represent timestamps (microseconds since 1970-01-01)
-using timestamp_t = int64_t;
+using timestamp_t = duckdb::timestamp_t;
 /// A ref tag
 enum RefTag { Ref };
 
