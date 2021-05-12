@@ -120,11 +120,11 @@ struct ArrayReader {
         reader_.IterativeParseInit();
     }
     /// Read the next batch
-    arrow::Result<std::shared_ptr<arrow::Array>> ReadNextBatch();
+    arrow::Result<ArrayParser*> ReadNextBatch();
 };
 
 /// Read entire object
-arrow::Result<std::shared_ptr<arrow::Array>> ArrayReader::ReadNextBatch() {
+arrow::Result<ArrayParser*> ArrayReader::ReadNextBatch() {
     while (!reader_.IterativeParseComplete()) {
         if (!reader_.IterativeParseNext<DEFAULT_PARSER_FLAGS>(in_wrapper_, array_buffer_)) {
             auto error = rapidjson::GetParseError_En(reader_.GetParseErrorCode());
@@ -134,8 +134,7 @@ arrow::Result<std::shared_ptr<arrow::Array>> ArrayReader::ReadNextBatch() {
             auto status =
                 array_buffer_.Flush<arrow::Status>([&](auto& buffer) { return parser_->AppendValues(buffer); });
             ARROW_RETURN_NOT_OK(status);
-            ARROW_ASSIGN_OR_RAISE(auto array, parser_->Finish());
-            return array;
+            return parser_.get();
         }
     }
     return nullptr;
@@ -166,8 +165,9 @@ arrow::Status RowArrayTableReader::Prepare() {
 }
 
 arrow::Result<std::shared_ptr<arrow::RecordBatch>> RowArrayTableReader::ReadNextBatch() {
-    ARROW_ASSIGN_OR_RAISE(auto struct_array, struct_reader_->ReadNextBatch());
-    return arrow::RecordBatch::FromStructArray(std::move(struct_array));
+    ARROW_ASSIGN_OR_RAISE(auto parser, struct_reader_->ReadNextBatch());
+    ARROW_ASSIGN_OR_RAISE(auto array, parser->Finish());
+    return arrow::RecordBatch::FromStructArray(std::move(array));
 }
 
 struct ColumnObjectTableReader : public TableReader {
@@ -185,6 +185,8 @@ struct ColumnObjectTableReader : public TableReader {
 
     /// The column readers
     std::unordered_map<std::string, std::unique_ptr<ColumnReader>> column_readers_ = {};
+    /// The schema
+    std::shared_ptr<arrow::Schema> schema_ = {};
 
     /// Constructor
     ColumnObjectTableReader(std::unique_ptr<io::InputFileStream> table, TableType type = {})
@@ -206,6 +208,14 @@ arrow::Status ColumnObjectTableReader::Prepare() {
         ARROW_RETURN_NOT_OK(FindColumnBoundaries(stream, table_type_));
     }
 
+    // Create the schema
+    arrow::FieldVector schema_fields;
+    for (unsigned i = 0; i < table_type_.type->num_fields(); ++i) {
+        auto& field = table_type_.type->field(i);
+        schema_fields.push_back(field);
+    }
+    schema_ = std::make_shared<arrow::Schema>(std::move(schema_fields), arrow::Endianness::Native);
+
     // Create all column readers
     for (unsigned i = 0; i < table_type_.type->num_fields(); ++i) {
         auto& field = table_type_.type->field(i);
@@ -218,18 +228,30 @@ arrow::Status ColumnObjectTableReader::Prepare() {
         }
         table_file_->Slice(bound_iter->second.offset, bound_iter->second.size);
         ARROW_ASSIGN_OR_RAISE(auto parser, ArrayParser::Resolve(type));
-        auto reader = std::make_unique<ColumnReader>(*table_file_, std::move(parser));
-        column_readers_.insert({name, std::move(reader)});
+        column_readers_.insert({name, std::make_unique<ColumnReader>(*table_file_, std::move(parser))});
     }
-
     return arrow::Status::OK();
 }
 
 arrow::Result<std::shared_ptr<arrow::RecordBatch>> ColumnObjectTableReader::ReadNextBatch() {
+    // Collect the next batch
+    std::vector<ArrayParser*> column_parsers;
+    size_t num_rows = 0;
     for (auto& [name, reader] : column_readers_) {
-        ARROW_ASSIGN_OR_RAISE(auto array, reader->array_reader_.ReadNextBatch());
+        ARROW_ASSIGN_OR_RAISE(auto parser, reader->array_reader_.ReadNextBatch());
+        num_rows = std::max<size_t>(num_rows, parser->GetLength());
+        column_parsers.push_back(parser);
     }
-    return arrow::Status::NotImplemented("ColumnObjectTableReader::ReadNextBatch");
+    // Pad columns with nulls (if necessary)
+    std::vector<std::shared_ptr<arrow::Array>> column_arrays;
+    for (auto& col : column_parsers) {
+        for (unsigned i = col->GetLength(); i < num_rows; ++i) {
+            ARROW_RETURN_NOT_OK(col->AppendNull());
+        }
+        ARROW_ASSIGN_OR_RAISE(auto array, col->Finish());
+        column_arrays.push_back(std::move(array));
+    }
+    return arrow::RecordBatch::Make(schema_, num_rows, std::move(column_arrays));
 }
 
 }  // namespace

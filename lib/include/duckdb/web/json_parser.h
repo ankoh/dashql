@@ -48,6 +48,8 @@ class ArrayParser {
 
    public:
     virtual ~ArrayParser() = default;
+    /// Get the current length
+    size_t GetLength() { return this->builder()->length(); }
     /// Get the array builder
     virtual std::shared_ptr<arrow::ArrayBuilder> builder() = 0;
     /// Initialize the converter
