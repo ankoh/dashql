@@ -85,12 +85,12 @@ struct ArrayBuffer : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, Arra
     }
     bool StartObject() {
         size += depth == 1;
-        if (depth++ == 0) return true;
+        ++depth;
         return doc.StartObject();
     }
     bool StartArray() {
         size += depth == 1;
-        if (depth++ == 0) return true;
+        ++depth;
         return doc.StartArray();
     }
     bool EndObject(size_t count) {
