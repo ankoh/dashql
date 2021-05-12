@@ -144,7 +144,8 @@ struct RowArrayTableReader : public TableReader {
     std::optional<ArrayReader> struct_reader_ = std::nullopt;
 
     /// Constructor
-    RowArrayTableReader(std::unique_ptr<io::InputFileStream> table, TableType type = {});
+    RowArrayTableReader(std::unique_ptr<io::InputFileStream> table, TableType type = {})
+        : TableReader(std::move(table), std::move(type)) {}
     /// Prepare the table reader
     arrow::Status Prepare() override;
     /// Read the next batch
@@ -184,7 +185,8 @@ struct ColumnObjectTableReader : public TableReader {
     std::unordered_map<std::string, std::unique_ptr<ColumnReader>> column_readers_ = {};
 
     /// Constructor
-    ColumnObjectTableReader(std::unique_ptr<io::InputFileStream> table, TableType type = {});
+    ColumnObjectTableReader(std::unique_ptr<io::InputFileStream> table, TableType type = {})
+        : TableReader(std::move(table), std::move(type)) {}
     /// Prepare the table reader
     arrow::Status Prepare() override;
     /// Read next chunk
@@ -229,6 +231,23 @@ arrow::Result<std::shared_ptr<arrow::RecordBatch>> ColumnObjectTableReader::Read
 }
 
 }  // namespace
+
+/// Constructor
+TableReader::TableReader(std::unique_ptr<io::InputFileStream> table, TableType type)
+    : table_file_(std::move(table)), table_type_(std::move(type)) {}
+
+/// Resolve a table reader
+arrow::Result<std::unique_ptr<TableReader>> TableReader::Resolve(std::unique_ptr<io::InputFileStream> table,
+                                                                 TableType type) {
+    switch (type.shape) {
+        case TableShape::COLUMN_OBJECT:
+            return std::make_unique<ColumnObjectTableReader>(std::move(table), std::move(type));
+        case TableShape::ROW_ARRAY:
+            return std::make_unique<RowArrayTableReader>(std::move(table), std::move(type));
+        default:
+            return arrow::Status::Invalid("Table type not specified");
+    }
+}
 
 }  // namespace json
 }  // namespace web
