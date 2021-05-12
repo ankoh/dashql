@@ -31,7 +31,10 @@ TEST(DuckDBTests, SQLTypeIDs) {
     ASSERT_EQ(static_cast<uint8_t>(dt::BIGINT), static_cast<uint8_t>(pt::BIGINT));
     ASSERT_EQ(static_cast<uint8_t>(dt::DATE), static_cast<uint8_t>(pt::DATE));
     ASSERT_EQ(static_cast<uint8_t>(dt::TIME), static_cast<uint8_t>(pt::TIME));
+    ASSERT_EQ(static_cast<uint8_t>(dt::TIMESTAMP_SEC), static_cast<uint8_t>(pt::TIMESTAMP_SEC));
+    ASSERT_EQ(static_cast<uint8_t>(dt::TIMESTAMP_MS), static_cast<uint8_t>(pt::TIMESTAMP_MS));
     ASSERT_EQ(static_cast<uint8_t>(dt::TIMESTAMP), static_cast<uint8_t>(pt::TIMESTAMP));
+    ASSERT_EQ(static_cast<uint8_t>(dt::TIMESTAMP_NS), static_cast<uint8_t>(pt::TIMESTAMP_NS));
     ASSERT_EQ(static_cast<uint8_t>(dt::DECIMAL), static_cast<uint8_t>(pt::DECIMAL));
     ASSERT_EQ(static_cast<uint8_t>(dt::FLOAT), static_cast<uint8_t>(pt::FLOAT));
     ASSERT_EQ(static_cast<uint8_t>(dt::DOUBLE), static_cast<uint8_t>(pt::DOUBLE));
@@ -39,6 +42,10 @@ TEST(DuckDBTests, SQLTypeIDs) {
     ASSERT_EQ(static_cast<uint8_t>(dt::VARCHAR), static_cast<uint8_t>(pt::VARCHAR));
     ASSERT_EQ(static_cast<uint8_t>(dt::BLOB), static_cast<uint8_t>(pt::BLOB));
     ASSERT_EQ(static_cast<uint8_t>(dt::INTERVAL), static_cast<uint8_t>(pt::INTERVAL));
+    ASSERT_EQ(static_cast<uint8_t>(dt::UTINYINT), static_cast<uint8_t>(pt::UTINYINT));
+    ASSERT_EQ(static_cast<uint8_t>(dt::USMALLINT), static_cast<uint8_t>(pt::USMALLINT));
+    ASSERT_EQ(static_cast<uint8_t>(dt::UINTEGER), static_cast<uint8_t>(pt::UINTEGER));
+    ASSERT_EQ(static_cast<uint8_t>(dt::UBIGINT), static_cast<uint8_t>(pt::UBIGINT));
     ASSERT_EQ(static_cast<uint8_t>(dt::HUGEINT), static_cast<uint8_t>(pt::HUGEINT));
     ASSERT_EQ(static_cast<uint8_t>(dt::POINTER), static_cast<uint8_t>(pt::POINTER));
     ASSERT_EQ(static_cast<uint8_t>(dt::HASH), static_cast<uint8_t>(pt::HASH));
