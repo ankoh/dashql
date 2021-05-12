@@ -65,11 +65,12 @@ void InputFileStreamBuffer::Slice(size_t offset, size_t size) {
     auto file_size = file_.GetSize();
     auto begin = std::min(file_size, offset);
     auto max_size = file_size - begin;
-    auto end = (size == 0) ? max_size : std::min(max_size, size);
+    auto end = begin + ((size == 0) ? max_size : std::min(max_size, size));
 
     // Load next page
     auto page_id = begin >> filesystem_buffer_->GetPageSizeShift();
     auto page_ofs = begin - (page_id << filesystem_buffer_->GetPageSizeShift());
+    assert(page_ofs < filesystem_buffer_->GetPageSize());
     next_page_id_ = page_id;
     data_end_ = end;
     NextPage();

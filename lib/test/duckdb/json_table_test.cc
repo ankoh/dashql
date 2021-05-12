@@ -118,13 +118,14 @@ struct TableReaderTest {
     };
     std::string_view name;
     std::string_view input;
-    json::TableType type;
-    std::string_view expected;
+    json::TableShape expected_shape;
+    std::string_view expected_type;
+    std::string_view expected_batch;
 };
 
 struct TableReaderTestSuite : public testing::TestWithParam<TableReaderTest> {};
 
-TEST_P(TableReaderTestSuite, ReadSingleBatch) {
+TEST_P(TableReaderTestSuite, DetectAndReadSingleBatch) {
     constexpr const char* path = "TEST";
 
     auto& test = GetParam();
@@ -134,15 +135,21 @@ TEST_P(TableReaderTestSuite, ReadSingleBatch) {
     auto fs_buffer = std::make_shared<io::FileSystemBuffer>(fs);
     ASSERT_TRUE(fs->RegisterFileBuffer(path, std::move(input_buffer)).ok());
 
-    auto in = std::make_unique<io::InputFileStream>(fs_buffer, path);
-    auto maybe_reader = json::TableReader::Resolve(std::move(in), test.type);
+    auto in1 = std::make_unique<io::InputFileStream>(fs_buffer, path);
+    json::TableType type;
+    ASSERT_TRUE(json::InferTableType(*in1, type).ok());
+    ASSERT_EQ(type.shape, test.expected_shape);
+    ASSERT_EQ(type.type->ToString(), std::string(test.expected_type));
+
+    auto in2 = std::make_unique<io::InputFileStream>(fs_buffer, path);
+    auto maybe_reader = json::TableReader::Resolve(std::move(in2), std::move(type));
     ASSERT_TRUE(maybe_reader.ok());
     auto reader = std::move(maybe_reader.ValueUnsafe());
     ASSERT_TRUE(reader->Prepare().ok());
     auto maybe_batch = reader->ReadNextBatch();
     ASSERT_TRUE(maybe_batch.ok()) << maybe_batch.status().message();
     auto& batch = maybe_batch.ValueUnsafe();
-    ASSERT_EQ(batch->ToString(), std::string(test.expected));
+    ASSERT_EQ(batch->ToString(), std::string(test.expected_batch));
 }
 
 // clang-format off
@@ -153,13 +160,9 @@ static std::vector<TableReaderTest> TABLE_READER_TEST = {
             {"foo": 1},
             {"foo": 4}
         ])JSON",
-        .type = {
-            .shape = json::TableShape::ROW_ARRAY,
-            .type = arrow::struct_({
-                arrow::field("foo", arrow::int32()),
-            })
-        },
-        .expected = "foo:   [\n    1,\n    4\n  ]\n"
+        .expected_shape = json::TableShape::ROW_ARRAY,
+        .expected_type = "struct<foo: int32>",
+        .expected_batch = "foo:   [\n    1,\n    4\n  ]\n"
     },
     {
         .name = "rows_int32_int32",
@@ -167,30 +170,29 @@ static std::vector<TableReaderTest> TABLE_READER_TEST = {
             {"foo": 1, "bar": 2},
             {"foo": 4, "bar": 3}
         ])JSON",
-        .type = {
-            .shape = json::TableShape::ROW_ARRAY,
-            .type = arrow::struct_({
-                arrow::field("foo", arrow::int32()),
-                arrow::field("bar", arrow::int32()),
-            })
-        },
-        .expected = "foo:   [\n    1,\n    4\n  ]\nbar:   [\n    2,\n    3\n  ]\n"
+        .expected_shape = json::TableShape::ROW_ARRAY,
+        .expected_type = "struct<bar: int32, foo: int32>",
+        .expected_batch = "bar:   [\n    2,\n    3\n  ]\nfoo:   [\n    1,\n    4\n  ]\n"
     },
     {
-        .name = "rows_int32_int32_additional",
-        .input = R"JSON([
-            {"foo": 1, "bar": 2, "some": 3},
-            {"foo": 4, "bar": 3}
-        ])JSON",
-        .type = {
-            .shape = json::TableShape::ROW_ARRAY,
-            .type = arrow::struct_({
-                arrow::field("foo", arrow::int32()),
-                arrow::field("bar", arrow::int32()),
-            })
-        },
-        .expected = "foo:   [\n    1,\n    4\n  ]\nbar:   [\n    2,\n    3\n  ]\n"
-    }
+        .name = "cols_int32",
+        .input = R"JSON({
+            "foo": [1, 4]
+        })JSON",
+        .expected_shape = json::TableShape::COLUMN_OBJECT,
+        .expected_type = "struct<foo: int32>",
+        .expected_batch = "foo:   [\n    1,\n    4\n  ]\n"
+    },
+    {
+        .name = "cols_int32_int32",
+        .input = R"JSON({
+            "foo": [1, 4],
+            "bar": [3, 2]
+        })JSON",
+        .expected_shape = json::TableShape::COLUMN_OBJECT,
+        .expected_type = "struct<bar: int32, foo: int32>",
+        .expected_batch = "bar:   [\n    1,\n    4\n  ]\nfoo:   [\n    3,\n    2\n  ]\n"
+    },
 };
 // clang-format on
 
