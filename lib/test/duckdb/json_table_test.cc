@@ -1,5 +1,6 @@
 // Copyright (c) 2020 The DashQL Authors
 
+#include <initializer_list>
 #include <optional>
 
 #include "arrow/record_batch.h"
@@ -118,9 +119,10 @@ struct TableReaderTest {
     };
     std::string_view name;
     std::string_view input;
+    size_t batch_size;
     json::TableShape expected_shape;
     std::string_view expected_type;
-    std::string_view expected_batch;
+    std::vector<std::string_view> expected_batches;
 };
 
 struct TableReaderTestSuite : public testing::TestWithParam<TableReaderTest> {};
@@ -144,12 +146,23 @@ TEST_P(TableReaderTestSuite, DetectAndReadSingleBatch) {
     auto in2 = std::make_unique<io::InputFileStream>(fs_buffer, path);
     auto maybe_reader = json::TableReader::Resolve(std::move(in2), std::move(type));
     ASSERT_TRUE(maybe_reader.ok());
+
     auto reader = std::move(maybe_reader.ValueUnsafe());
     ASSERT_TRUE(reader->Prepare().ok());
-    auto maybe_batch = reader->ReadNextN(100);
-    ASSERT_TRUE(maybe_batch.ok()) << maybe_batch.status().message();
-    auto& batch = maybe_batch.ValueUnsafe();
-    ASSERT_EQ(batch->ToString(), std::string(test.expected_batch));
+
+    unsigned i = 0;
+    for (;; ++i) {
+        auto maybe_batch = reader->ReadNextN(test.batch_size);
+        ASSERT_TRUE(maybe_batch.ok()) << maybe_batch.status().message();
+
+        auto& batch = maybe_batch.ValueUnsafe();
+        if (batch->num_rows() == 0) break;
+
+        ASSERT_TRUE(test.expected_batches.size() > i) << "unexpected non-empty batch, expected " << i;
+        ASSERT_EQ(batch->ToString(), std::string(test.expected_batches[i]));
+    }
+    ASSERT_EQ(test.expected_batches.size(), i)
+        << "missing record batch(es), expected " << test.expected_batches.size() << " got " << i;
 }
 
 // clang-format off
@@ -162,9 +175,12 @@ static std::vector<TableReaderTest> TABLE_READER_TEST = {
         .input = R"JSON({
             "foo": [1, 4]
         })JSON",
+        .batch_size = 10,
         .expected_shape = json::TableShape::COLUMN_OBJECT,
         .expected_type = "struct<foo: int32>",
-        .expected_batch = "foo:   [\n    1,\n    4\n  ]\n"
+        .expected_batches = {
+            "foo:   [\n    1,\n    4\n  ]\n"
+        }
     },
     {
         .name = "cols_int32_int32",
@@ -172,9 +188,12 @@ static std::vector<TableReaderTest> TABLE_READER_TEST = {
             "foo": [1, 4],
             "bar": [3, 2]
         })JSON",
+        .batch_size = 10,
         .expected_shape = json::TableShape::COLUMN_OBJECT,
         .expected_type = "struct<bar: int32, foo: int32>",
-        .expected_batch = "bar:   [\n    3,\n    2\n  ]\nfoo:   [\n    1,\n    4\n  ]\n"
+        .expected_batches = {
+            "bar:   [\n    3,\n    2\n  ]\nfoo:   [\n    1,\n    4\n  ]\n"
+        }
     },
     {
         .name = "cols_int32_int32_nulls_1",
@@ -182,9 +201,12 @@ static std::vector<TableReaderTest> TABLE_READER_TEST = {
             "foo": [1, 4],
             "bar": [3]
         })JSON",
+        .batch_size = 10,
         .expected_shape = json::TableShape::COLUMN_OBJECT,
         .expected_type = "struct<bar: int32, foo: int32>",
-        .expected_batch = "bar:   [\n    3,\n    null\n  ]\nfoo:   [\n    1,\n    4\n  ]\n"
+        .expected_batches = {
+            "bar:   [\n    3,\n    null\n  ]\nfoo:   [\n    1,\n    4\n  ]\n"
+        }
     },
     {
         .name = "cols_int32_int32_nulls_2",
@@ -192,9 +214,12 @@ static std::vector<TableReaderTest> TABLE_READER_TEST = {
             "foo": [1, 4],
             "bar": []
         })JSON",
+        .batch_size = 10,
         .expected_shape = json::TableShape::COLUMN_OBJECT,
         .expected_type = "struct<bar: null, foo: int32>",
-        .expected_batch = "bar: 2 nulls\nfoo:   [\n    1,\n    4\n  ]\n"
+        .expected_batches = {
+            "bar: 2 nulls\nfoo:   [\n    1,\n    4\n  ]\n"
+        }
     },
     {
         .name = "cols_int32_int32_nulls_3",
@@ -202,9 +227,12 @@ static std::vector<TableReaderTest> TABLE_READER_TEST = {
             "foo": [1],
             "bar": [3, 2]
         })JSON",
+        .batch_size = 10,
         .expected_shape = json::TableShape::COLUMN_OBJECT,
         .expected_type = "struct<bar: int32, foo: int32>",
-        .expected_batch = "bar:   [\n    3,\n    2\n  ]\nfoo:   [\n    1,\n    null\n  ]\n"
+        .expected_batches = {
+            "bar:   [\n    3,\n    2\n  ]\nfoo:   [\n    1,\n    null\n  ]\n"
+        }
     },
 
     // ---------------------------------------
@@ -215,9 +243,12 @@ static std::vector<TableReaderTest> TABLE_READER_TEST = {
             {"foo": 1},
             {"foo": 4}
         ])JSON",
+        .batch_size = 10,
         .expected_shape = json::TableShape::ROW_ARRAY,
         .expected_type = "struct<foo: int32>",
-        .expected_batch = "foo:   [\n    1,\n    4\n  ]\n"
+        .expected_batches = {
+            "foo:   [\n    1,\n    4\n  ]\n"
+        }
     },
     {
         .name = "rows_int32_int32",
@@ -225,9 +256,12 @@ static std::vector<TableReaderTest> TABLE_READER_TEST = {
             {"foo": 1, "bar": 2},
             {"foo": 4, "bar": 3}
         ])JSON",
+        .batch_size = 10,
         .expected_shape = json::TableShape::ROW_ARRAY,
         .expected_type = "struct<bar: int32, foo: int32>",
-        .expected_batch = "bar:   [\n    2,\n    3\n  ]\nfoo:   [\n    1,\n    4\n  ]\n"
+        .expected_batches = {
+            "bar:   [\n    2,\n    3\n  ]\nfoo:   [\n    1,\n    4\n  ]\n"
+        }
     },
     {
         .name = "rows_int32_int32_nulls_1",
@@ -235,9 +269,12 @@ static std::vector<TableReaderTest> TABLE_READER_TEST = {
             {"foo": 1, "bar": 2},
             {"foo": 4}
         ])JSON",
+        .batch_size = 10,
         .expected_shape = json::TableShape::ROW_ARRAY,
         .expected_type = "struct<bar: int32, foo: int32>",
-        .expected_batch = "bar:   [\n    2,\n    null\n  ]\nfoo:   [\n    1,\n    4\n  ]\n"
+        .expected_batches = {
+            "bar:   [\n    2,\n    null\n  ]\nfoo:   [\n    1,\n    4\n  ]\n"
+        }
     },
     {
         .name = "rows_int32_int32_nulls_2",
@@ -245,9 +282,32 @@ static std::vector<TableReaderTest> TABLE_READER_TEST = {
             {"foo": 1, "bar": 2},
             {}
         ])JSON",
+        .batch_size = 10,
         .expected_shape = json::TableShape::ROW_ARRAY,
         .expected_type = "struct<bar: int32, foo: int32>",
-        .expected_batch = "bar:   [\n    2,\n    null\n  ]\nfoo:   [\n    1,\n    null\n  ]\n"
+        .expected_batches = {
+            "bar:   [\n    2,\n    null\n  ]\nfoo:   [\n    1,\n    null\n  ]\n"
+        }
+    },
+    {
+        .name = "rows_int32_split",
+        .input = R"JSON([
+            {"foo": 1},
+            {"foo": 2},
+            {"foo": 3},
+            {"foo": 4},
+            {"foo": 5},
+            {"foo": 6},
+            {"foo": 7},
+            {"foo": 8}
+        ])JSON",
+        .batch_size = 4,
+        .expected_shape = json::TableShape::ROW_ARRAY,
+        .expected_type = "struct<foo: int32>",
+        .expected_batches = {
+            "foo:   [\n    1,\n    2,\n    3,\n    4\n  ]\n",
+            "foo:   [\n    5,\n    6,\n    7,\n    8\n  ]\n",
+        }
     },
 };
 // clang-format on

@@ -32,7 +32,6 @@ struct ArrayBuffer : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, Arra
     ArrayBuffer() {}
 
     template <typename RET, typename FN> RET Flush(FN&& f) {
-        // Not done yet?
         if (!done) {
             assert(depth == 1);
             doc.EndArray(size);
@@ -43,6 +42,7 @@ struct ArrayBuffer : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, Arra
         auto result = f(doc);
         doc.Clear();
         doc.StartArray();
+        size = 0;
         return result;
     }
 
@@ -98,7 +98,10 @@ struct ArrayBuffer : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, Arra
         return doc.EndObject(count);
     }
     bool EndArray(size_t count) {
-        done = (--depth == 0);
+        if (--depth == 0) {
+            done = true;
+            return doc.EndArray(size);
+        }
         return doc.EndArray(count);
     }
 };
@@ -130,14 +133,14 @@ arrow::Result<ArrayParser*> ArrayReader::ReadNextN(size_t n) {
             auto error = rapidjson::GetParseError_En(reader_.GetParseErrorCode());
             return arrow::Status(arrow::StatusCode::ExecutionError, error);
         }
-        if (array_buffer_.size >= n || array_buffer_.done) {
+        if (array_buffer_.done || (array_buffer_.size >= n && array_buffer_.depth == 1)) {
             auto status =
                 array_buffer_.Flush<arrow::Status>([&](auto& buffer) { return parser_->AppendValues(buffer); });
             ARROW_RETURN_NOT_OK(status);
             return parser_.get();
         }
     }
-    return nullptr;
+    return parser_.get();
 };
 
 struct RowArrayTableReader : public TableReader {
