@@ -563,6 +563,7 @@ arrow::Status InferTableType(std::istream& raw_in, TableType& table) {
             table.column_boundaries.insert(
                 {column_name, FileRange{.offset = column_begin, .size = column_end - column_begin}});
         }
+        std::sort(fields.begin(), fields.end(), [&](auto& l, auto& r) { return l->name() < r->name(); });
         table.shape = TableShape::COLUMN_OBJECT;
         table.type = arrow::struct_(std::move(fields));
         return arrow::Status::OK();
