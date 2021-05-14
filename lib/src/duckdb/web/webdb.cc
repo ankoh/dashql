@@ -144,7 +144,7 @@ arrow::Status WebDB::Connection::ImportCSVTable(std::string_view path, std::stri
 
         // TODO explicitly provided arrow types
 
-        /// Execute the table  function
+        /// Execute the csv scan
         std::vector<Value> params;
         params.emplace_back(std::string{path});
         connection_.TableFunction("read_csv_auto", params)->Create(schema_name, options.table_name);
@@ -178,6 +178,13 @@ arrow::Status WebDB::Connection::ImportJSONTable(std::string_view path, std::str
         }
         // Resolve the table reader
         ARROW_ASSIGN_OR_RAISE(auto table_reader, json::TableReader::Resolve(std::move(ifs), table_type));
+
+        // Export an array stream for duckdb
+        ArrowArrayStream stream;
+        ARROW_RETURN_NOT_OK(arrow::ExportRecordBatchReader(table_reader, &stream));
+        /// Execute the arrow scan
+        connection_.TableFunction("arrow_scan", {duckdb::Value::POINTER((uintptr_t)&stream)})
+            ->Create(schema_name, options.table_name);
 
     } catch (const std::exception& e) {
         return arrow::Status::UnknownError(e.what());
