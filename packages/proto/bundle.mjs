@@ -18,6 +18,7 @@ esbuild.build({
     target: 'es2020',
     bundle: true,
     minify: false,
+    external: ['flatbuffers'],
 });
 
 fs.writeFile(path.join(dist, 'dashql-proto.module.d.ts'), "export * from './index';", printErr);
