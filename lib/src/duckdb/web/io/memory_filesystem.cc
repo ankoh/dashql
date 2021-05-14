@@ -71,7 +71,12 @@ void MemoryFileSystem::Read(duckdb::FileHandle &raw_handle, void *buffer, int64_
     auto &handle = reinterpret_cast<FileHandle &>(raw_handle);
     auto safe_loc = std::min<size_t>(handle.buffer_.buffer.size(), location);
     auto available = handle.buffer_.buffer.size() - safe_loc;
-    if (available < nr_bytes) throw std::invalid_argument("insufficient bytes available");
+    if (available < nr_bytes) {
+        std::stringstream ss;
+        ss << "insufficient bytes available: loc=" << location << " size=" << handle.buffer_.buffer.size()
+           << " avail=" << available << " req=" << nr_bytes;
+        throw std::invalid_argument(ss.str());
+    }
     std::memcpy(buffer, handle.buffer_.buffer.data() + safe_loc, nr_bytes);
     handle.position_ = safe_loc + nr_bytes;
 }
@@ -173,9 +178,9 @@ void MemoryFileSystem::RemoveFile(const std::string &filename) {
     files.erase(file_id);
 }
 
-// /// Path separator for the current file system
+/// Path separator for the current file system
 std::string MemoryFileSystem::PathSeparator() { return "/"; }
-// /// Join two paths together
+/// Join two paths together
 std::string MemoryFileSystem::JoinPath(const std::string &a, const std::string &path) { return path + "/" + a; }
 
 /// Sync a file handle to disk
@@ -190,8 +195,25 @@ std::string MemoryFileSystem::GetHomeDirectory() { return "/"; }
 
 /// Runs a glob on the file system, returning a list of matching files
 std::vector<std::string> MemoryFileSystem::Glob(const std::string &path) {
-    throw std::logic_error("Globbing not implemented");
+    // For now, just do exact matches
+    auto file_paths_iter = file_paths.find(path);
+    if (file_paths_iter == file_paths.end()) return {};
+    return {path};
 }
+
+/// Set the file pointer of a file handle to a specified location. Reads and writes will happen from this location
+void MemoryFileSystem::Seek(duckdb::FileHandle &handle, idx_t location) {
+    static_cast<FileHandle &>(handle).position_ = location;
+}
+/// Reset a file to the beginning (equivalent to Seek(handle, 0) for simple files)
+void MemoryFileSystem::Reset(duckdb::FileHandle &handle) { static_cast<FileHandle &>(handle).position_ = 0; }
+/// Get the current position in the file
+idx_t MemoryFileSystem::SeekPosition(duckdb::FileHandle &handle) { return static_cast<FileHandle &>(handle).position_; }
+/// Whether or not we can seek into the file
+bool MemoryFileSystem::CanSeek() { return true; }
+// Whether or not the FS handles plain files on disk. This is relevant for certain optimizations, as random reads
+// in a file on-disk are much cheaper than e.g. random reads in a file over the network
+bool MemoryFileSystem::OnDiskFile(duckdb::FileHandle &handle) { return true; }
 
 }  // namespace io
 }  // namespace web
