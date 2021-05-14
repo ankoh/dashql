@@ -54,7 +54,7 @@ RUN mkdir -p /opt/nvm \
     && npm install --global yarn \
     && chown -R ${UID}:${GID} /opt/nvm
 
-ARG FLATBUFFER_COMMIT="338393f854eb5ba24761a22cd9316ff5cee4eab0"
+ARG FLATBUFFER_COMMIT="04b10f5a3a78aed27030a4e26dcf36921979114f"
 RUN mkdir -p /tmp/flatbuffers/build /tmp/flatbuffers/install \
     && git clone https://github.com/google/flatbuffers /tmp/flatbuffers/repo \
     && cd /tmp/flatbuffers/repo \
