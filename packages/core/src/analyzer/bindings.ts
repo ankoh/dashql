@@ -5,6 +5,7 @@ import { EditOperationVariant, packProgramEdit } from '../edit';
 import { Plan, Program, ProgramInstance, InputValue } from '../model';
 import * as Immutable from 'immutable';
 import * as proto from '@dashql/proto';
+import * as flatbuffers from 'flatbuffers';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface AnalyzerRuntime {}
@@ -89,10 +90,10 @@ export abstract class AnalyzerBindings {
     }
 
     /// Copy a flatbuffer
-    protected copyFlatbuffer(buffer: Uint8Array): proto.fb.ByteBuffer {
+    protected copyFlatbuffer(buffer: Uint8Array): flatbuffers.ByteBuffer {
         const copy = new Uint8Array(new ArrayBuffer(buffer.byteLength));
         copy.set(buffer);
-        return new proto.fb.ByteBuffer(copy);
+        return new flatbuffers.ByteBuffer(copy);
     }
 
     /// Parse a string and return a flatbuffer
@@ -111,7 +112,7 @@ export abstract class AnalyzerBindings {
         /// Call the parse function
         const [ptr, ofs, size] = this.callSRet('dashql_analyzer_parse_program', ['number'], [textMem]);
         const mem = this.copyFlatbuffer(instance.HEAPU8.subarray(ptr + ofs, ptr + ofs + size));
-        const program = proto.syntax.Program.getRoot(mem);
+        const program = proto.syntax.Program.getRootAsProgram(mem);
         instance.ccall('dashql_clear_response', null, [], []);
 
         /// Clear the utf8 string buffer
@@ -126,17 +127,17 @@ export abstract class AnalyzerBindings {
     public instantiateProgram(params: Immutable.List<InputValue> = Immutable.List()): ProgramInstance | null {
         if (!this._instance || !this._program) return null;
 
-        const builder = new proto.fb.Builder();
-        const inputOfs: proto.fb.Offset[] = params
+        const builder = new flatbuffers.Builder();
+        const inputOfs: flatbuffers.Offset[] = params
             .map(param => {
-                proto.analyzer.InputValue.start(builder);
+                proto.analyzer.InputValue.startInputValue(builder);
                 proto.analyzer.InputValue.addStatementId(builder, param.statement);
                 // XXX add value
-                return proto.analyzer.InputValue.end(builder);
+                return proto.analyzer.InputValue.endInputValue(builder);
             })
             .toArray();
         const inputVectorOfs = proto.analyzer.ProgramInstantiation.createInputValuesVector(builder, inputOfs);
-        const args = proto.analyzer.ProgramInstantiation.create(builder, inputVectorOfs);
+        const args = proto.analyzer.ProgramInstantiation.createProgramInstantiation(builder, inputVectorOfs);
         builder.finish(args);
 
         // Copy the arguments into the wasm module
@@ -148,7 +149,7 @@ export abstract class AnalyzerBindings {
         // Call the analyzer function
         const [ptr, ofs, size] = this.callSRet('dashql_analyzer_instantiate_program', ['number'], [argsPtr]);
         const mem = this.copyFlatbuffer(this._instance.HEAPU8.subarray(ptr + ofs, ptr + ofs + size));
-        const annotations = proto.analyzer.ProgramAnnotations.getRoot(mem);
+        const annotations = proto.analyzer.ProgramAnnotations.getRootAsProgramAnnotations(mem);
         this._instance.ccall('dashql_clear_response', null, [], []);
 
         // Wrap the program instance
@@ -163,7 +164,7 @@ export abstract class AnalyzerBindings {
         // Call the analyzer function
         const [ptr, ofs, size] = this.callSRet('dashql_analyzer_plan_program', [], []);
         const mem = this.copyFlatbuffer(this._instance.HEAPU8.subarray(ptr + ofs, ptr + ofs + size));
-        const plan = proto.analyzer.Plan.getRoot(mem);
+        const plan = proto.analyzer.Plan.getRootAsPlan(mem);
         this._instance.ccall('dashql_clear_response', null, [], []);
 
         // Wrap the plan
@@ -176,7 +177,7 @@ export abstract class AnalyzerBindings {
         const input = this._programInstance.inputValues;
 
         // Pack the edits
-        const builder = new proto.fb.Builder();
+        const builder = new flatbuffers.Builder();
         const editOfs = packProgramEdit(builder, edits);
         builder.finish(editOfs);
         const editBuffer = builder.dataBuffer();
@@ -187,12 +188,12 @@ export abstract class AnalyzerBindings {
         // Call the analyzer function
         const [ptr, ofs, size] = this.callSRet('dashql_analyzer_edit_program', ['number'], [editPtr]);
         const mem = this.copyFlatbuffer(this._instance.HEAPU8.subarray(ptr + ofs, ptr + ofs + size));
-        const replacement = proto.analyzer.ProgramReplacement.getRoot(mem);
+        const replacement = proto.analyzer.ProgramReplacement.getRootAsProgramReplacement(mem);
         this._instance.ccall('dashql_clear_response', null, [], []);
 
         // Replace the program instance
         const text = replacement.programText();
-        const textUTF8 = replacement.programText(proto.fb.Encoding.UTF8_BYTES);
+        const textUTF8 = replacement.programText(flatbuffers.Encoding.UTF8_BYTES);
         this._program = new Program(text!, textUTF8 as Uint8Array, replacement.program()!);
         this._programInstance = new ProgramInstance(this._program, input, replacement.annotations()!);
 
