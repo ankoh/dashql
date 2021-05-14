@@ -29,6 +29,8 @@
 #include "duckdb/web/io/default_filesystem.h"
 #include "duckdb/web/io/ifstream.h"
 #include "duckdb/web/io/web_filesystem.h"
+#include "duckdb/web/json_analyzer.h"
+#include "duckdb/web/json_table.h"
 #include "duckdb/web/json_table_options.h"
 #include "parquet-extension.hpp"
 
@@ -136,7 +138,7 @@ arrow::Status WebDB::Connection::ImportCSVTable(std::string_view path, std::stri
         json::TableReaderOptions options;
         ARROW_RETURN_NOT_OK(options.ReadFrom(options_doc));
 
-        /// Read relevant table options
+        /// Get table name and schema
         auto schema_name = options.schema_name.empty() ? "main" : options.schema_name;
         if (options.table_name.empty()) return arrow::Status::Invalid("missing 'name' option");
 
@@ -154,8 +156,33 @@ arrow::Status WebDB::Connection::ImportCSVTable(std::string_view path, std::stri
 }
 
 /// Import a json file
-arrow::Status WebDB::Connection::ImportJSONTable(std::string_view path, std::string_view options) {
-    return arrow::Status::NotImplemented("JSON import");
+arrow::Status WebDB::Connection::ImportJSONTable(std::string_view path, std::string_view options_json) {
+    try {
+        /// Read table options
+        rapidjson::Document options_doc;
+        options_doc.Parse(options_json.begin(), options_json.size());
+        json::TableReaderOptions options;
+        ARROW_RETURN_NOT_OK(options.ReadFrom(options_doc));
+
+        /// Get table name and schema
+        auto schema_name = options.schema_name.empty() ? "main" : options.schema_name;
+        if (options.table_name.empty()) return arrow::Status::Invalid("missing 'name' option");
+
+        // Create the input file stream
+        auto ifs = std::make_unique<io::InputFileStream>(webdb_.filesystem_buffer_, path);
+        // Do we need to run the analyzer?
+        json::TableType table_type;
+        if (options.table_shape == json::TableShape::UNRECOGNIZED) {
+            io::InputFileStream ifs_copy{*ifs};
+            ARROW_RETURN_NOT_OK(json::InferTableType(ifs_copy, table_type));
+        }
+        // Resolve the table reader
+        ARROW_ASSIGN_OR_RAISE(auto table_reader, json::TableReader::Resolve(std::move(ifs), table_type));
+
+    } catch (const std::exception& e) {
+        return arrow::Status::UnknownError(e.what());
+    }
+    return arrow::Status::OK();
 }
 
 /// Constructor
