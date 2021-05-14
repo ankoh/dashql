@@ -144,7 +144,7 @@ TEST_P(TableReaderTestSuite, DetectAndReadSingleBatch) {
     ASSERT_EQ(type.type->ToString(), std::string(test.expected_type));
 
     auto in2 = std::make_unique<io::InputFileStream>(fs_buffer, path);
-    auto maybe_reader = json::TableReader::Resolve(std::move(in2), std::move(type));
+    auto maybe_reader = json::TableReader::Resolve(std::move(in2), std::move(type), test.batch_size);
     ASSERT_TRUE(maybe_reader.ok());
 
     auto reader = std::move(maybe_reader.ValueUnsafe());
@@ -152,11 +152,11 @@ TEST_P(TableReaderTestSuite, DetectAndReadSingleBatch) {
 
     unsigned i = 0;
     for (;; ++i) {
-        auto maybe_batch = reader->ReadNextN(test.batch_size);
+        auto maybe_batch = reader->Next();
         ASSERT_TRUE(maybe_batch.ok()) << maybe_batch.status().message();
 
         auto& batch = maybe_batch.ValueUnsafe();
-        if (batch->num_rows() == 0) break;
+        if (batch == nullptr) break;
 
         ASSERT_TRUE(test.expected_batches.size() > i) << "unexpected non-empty batch, expected " << i;
         ASSERT_EQ(batch->ToString(), std::string(test.expected_batches[i]));
