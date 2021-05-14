@@ -126,6 +126,18 @@ class MemoryFileSystem : public duckdb::FileSystem {
 
     /// Runs a glob on the file system, returning a list of matching files
     std::vector<std::string> Glob(const std::string &path) override;
+
+    /// Set the file pointer of a file handle to a specified location. Reads and writes will happen from this location
+    void Seek(duckdb::FileHandle &handle, idx_t location) override;
+    /// Reset a file to the beginning (equivalent to Seek(handle, 0) for simple files)
+    void Reset(duckdb::FileHandle &handle) override;
+    /// Get the current position within the file
+    idx_t SeekPosition(duckdb::FileHandle &handle) override;
+    /// Whether or not we can seek into the file
+    bool CanSeek() override;
+    /// Whether or not the FS handles plain files on disk. This is relevant for certain optimizations, as random reads
+    /// in a file on-disk are much cheaper than e.g. random reads in a file over the network
+    bool OnDiskFile(duckdb::FileHandle &handle) override;
 };
 
 }  // namespace io

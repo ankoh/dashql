@@ -16,6 +16,8 @@ class WebFileHandle : public duckdb::FileHandle {
    protected:
     /// The file id
     size_t file_id;
+    /// The position
+    size_t position_;
 
     /// Close the file
     void Close() override;
@@ -23,7 +25,7 @@ class WebFileHandle : public duckdb::FileHandle {
    public:
     /// Constructor
     WebFileHandle(duckdb::FileSystem &file_system, std::string path, size_t file_id)
-        : duckdb::FileHandle(file_system, path), file_id(file_id) {}
+        : duckdb::FileHandle(file_system, path), file_id(file_id), position_(0) {}
     /// Delete copy constructor
     WebFileHandle(const WebFileHandle &) = delete;
     /// Destructor
@@ -92,8 +94,17 @@ class WebFileSystem : public duckdb::FileSystem {
     /// Runs a glob on the file system, returning a list of matching files
     std::vector<std::string> Glob(const std::string &path) override;
 
-    // /// Returns the system-available memory in bytes
-    // duckdb::idx_t GetAvailableMemory() override;
+    /// Set the file pointer of a file handle to a specified location. Reads and writes will happen from this location
+    void Seek(FileHandle &handle, idx_t location) override;
+    /// Reset a file to the beginning (equivalent to Seek(handle, 0) for simple files)
+    void Reset(FileHandle &handle) override;
+    /// Get the current position within the file
+    idx_t SeekPosition(FileHandle &handle) override;
+    /// Whether or not we can seek into the file
+    bool CanSeek() override;
+    /// Whether or not the FS handles plain files on disk. This is relevant for certain optimizations, as random reads
+    /// in a file on-disk are much cheaper than e.g. random reads in a file over the network
+    bool OnDiskFile(FileHandle &handle) override;
 };
 
 }  // namespace io

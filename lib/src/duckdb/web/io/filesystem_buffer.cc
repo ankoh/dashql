@@ -417,10 +417,15 @@ void FileSystemBuffer::Flush() {
 }
 
 size_t FileSystemBuffer::Read(const FileRef& file, void* out, size_t n, size_t offset) {
+    // Check upper file boundary first
+    auto read_end = std::min<size_t>(file.file_->file_size_required, offset + n);
+    auto read_max = std::min<size_t>(n, std::max<size_t>(read_end, offset) - offset);
+    if (read_max == 0) return 0;
+
     // Determine page & offset
     auto page_id = offset >> GetPageSizeShift();
     auto skip_here = offset - page_id * GetPageSize();
-    auto read_here = std::min<size_t>(n, GetPageSize() - skip_here);
+    auto read_here = std::min<size_t>(read_max, GetPageSize() - skip_here);
 
     // Read page
     auto page = FixPage(file, page_id, false);

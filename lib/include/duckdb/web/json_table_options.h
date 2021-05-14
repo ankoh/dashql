@@ -29,6 +29,10 @@ enum TableShape {
 
 /// Get the JSON reader options
 struct TableReaderOptions {
+    /// The schema name
+    std::string schema_name = "";
+    /// The table name
+    std::string table_name = "";
     /// The table shape
     std::optional<TableShape> table_shape = std::nullopt;
     /// The fields (if any)

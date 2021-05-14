@@ -10,6 +10,7 @@
 #include "duckdb/common/types/timestamp.hpp"
 #include "duckdb/execution/operator/persistent/buffered_csv_reader.hpp"
 #include "duckdb/web/io/ifstream.h"
+#include "duckdb/web/io/memory_filesystem.h"
 #include "gtest/gtest.h"
 #include "parquet-extension.hpp"
 
@@ -91,7 +92,35 @@ TEST(WebDB, LoadParquetTwice) {
                  "27550\tSchopenhauer\t6\t\n"
                  "28106\tCarnap\t3\t\n"
                  "29120\tTheophrastos\t2\t\n"
-                 "29555\tFeuerbach\t2\t\n\n");
+                 "29555\tFeuerbach\t2\t\n"
+                 "\n");
+}
+
+TEST(WebDB, LoadCSV) {
+    const char* path = "foo";
+    constexpr std::string_view raw_input = R"("a","b","c"
+1,2,3
+4,5,6
+7,8,9)";
+    std::vector<char> input_buffer{raw_input.data(), raw_input.data() + raw_input.size()};
+    auto memory_filesystem = std::make_unique<io::MemoryFileSystem>();
+    ASSERT_TRUE(memory_filesystem->RegisterFileBuffer(path, std::move(input_buffer)).ok());
+
+    auto db = make_shared<WebDB>(std::move(memory_filesystem));
+    WebDB::Connection conn{*db};
+    auto maybe_ok = conn.ImportCSVTable(path, R"JSON({
+        "schema": "main",
+        "name": "foo"
+    })JSON");
+    ASSERT_TRUE(maybe_ok.ok()) << maybe_ok.message();
+    auto result = conn.connection().Query("SELECT * FROM main.foo");
+    ASSERT_STREQ(result->ToString().c_str(),
+                 "a\tb\tc\t\nINTEGER\tINTEGER\tINTEGER\t\n"
+                 "[ Rows: 3]\n"
+                 "1\t2\t3\t\n"
+                 "4\t5\t6\t\n"
+                 "7\t8\t9\t\n"
+                 "\n");
 }
 
 }  // namespace
