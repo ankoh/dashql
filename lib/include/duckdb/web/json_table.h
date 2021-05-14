@@ -58,7 +58,7 @@ class TableReader : public arrow::RecordBatchReader {
     virtual arrow::Status Prepare() = 0;
 
     /// Create a table reader
-    static arrow::Result<std::unique_ptr<TableReader>> Resolve(std::unique_ptr<io::InputFileStream> table,
+    static arrow::Result<std::shared_ptr<TableReader>> Resolve(std::unique_ptr<io::InputFileStream> table,
                                                                TableType type, size_t batch_size = 1024);
 };
 
