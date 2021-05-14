@@ -148,29 +148,40 @@ struct RowArrayTableReader : public TableReader {
     std::optional<ArrayReader> struct_reader_ = std::nullopt;
 
     /// Constructor
-    RowArrayTableReader(std::unique_ptr<io::InputFileStream> table, TableType type = {})
-        : TableReader(std::move(table), std::move(type)) {}
+    RowArrayTableReader(std::unique_ptr<io::InputFileStream> table, TableType type, size_t batch_size)
+        : TableReader(std::move(table), std::move(type), batch_size) {}
     /// Prepare the table reader
     arrow::Status Prepare() override;
-    /// Read the next batch
-    arrow::Result<std::shared_ptr<arrow::RecordBatch>> ReadNextN(size_t n) override;
+    /// Read the the next arrow batch
+    arrow::Status ReadNext(std::shared_ptr<arrow::RecordBatch>* batch) override;
 };
 
 arrow::Status RowArrayTableReader::Prepare() {
     /// Shape must be a row array
     assert(table_type_.shape == TableShape::ROW_ARRAY);
+    // Create the schema
+    arrow::FieldVector schema_fields;
+    for (unsigned i = 0; i < table_type_.type->num_fields(); ++i) {
+        auto& field = table_type_.type->field(i);
+        schema_fields.push_back(field);
+    }
+    this->schema_ = std::make_shared<arrow::Schema>(std::move(schema_fields), arrow::Endianness::Native);
     /// Resolve the struct parser
     ARROW_ASSIGN_OR_RAISE(auto struct_parser, ArrayParser::Resolve(table_type_.type));
     /// Create the struct reader
     struct_reader_.emplace(*table_file_, std::move(struct_parser));
-
     return arrow::Status::OK();
 }
 
-arrow::Result<std::shared_ptr<arrow::RecordBatch>> RowArrayTableReader::ReadNextN(size_t n) {
-    ARROW_ASSIGN_OR_RAISE(auto parser, struct_reader_->ReadNextN(n));
+arrow::Status RowArrayTableReader::ReadNext(std::shared_ptr<arrow::RecordBatch>* batch) {
+    ARROW_ASSIGN_OR_RAISE(auto parser, struct_reader_->ReadNextN(batch_size_));
     ARROW_ASSIGN_OR_RAISE(auto array, parser->Finish());
-    return arrow::RecordBatch::FromStructArray(std::move(array));
+    if (array->length() == 0) {
+        *batch = nullptr;
+        return arrow::Status::OK();
+    }
+    ARROW_ASSIGN_OR_RAISE(*batch, arrow::RecordBatch::FromStructArray(std::move(array)));
+    return arrow::Status::OK();
 }
 
 struct ColumnObjectTableReader : public TableReader {
@@ -188,16 +199,14 @@ struct ColumnObjectTableReader : public TableReader {
 
     /// The column readers
     std::unordered_map<std::string, std::unique_ptr<ColumnReader>> column_readers_ = {};
-    /// The schema
-    std::shared_ptr<arrow::Schema> schema_ = {};
 
     /// Constructor
-    ColumnObjectTableReader(std::unique_ptr<io::InputFileStream> table, TableType type = {})
-        : TableReader(std::move(table), std::move(type)) {}
+    ColumnObjectTableReader(std::unique_ptr<io::InputFileStream> table, TableType type, size_t batch_size)
+        : TableReader(std::move(table), std::move(type), batch_size) {}
     /// Prepare the table reader
     arrow::Status Prepare() override;
-    /// Read next chunk
-    arrow::Result<std::shared_ptr<arrow::RecordBatch>> ReadNextN(size_t n) override;
+    /// Read the the next arrow batch
+    arrow::Status ReadNext(std::shared_ptr<arrow::RecordBatch>* batch) override;
 };
 
 arrow::Status ColumnObjectTableReader::Prepare() {
@@ -217,7 +226,7 @@ arrow::Status ColumnObjectTableReader::Prepare() {
         auto& field = table_type_.type->field(i);
         schema_fields.push_back(field);
     }
-    schema_ = std::make_shared<arrow::Schema>(std::move(schema_fields), arrow::Endianness::Native);
+    this->schema_ = std::make_shared<arrow::Schema>(std::move(schema_fields), arrow::Endianness::Native);
 
     // Create all column readers
     for (unsigned i = 0; i < table_type_.type->num_fields(); ++i) {
@@ -236,7 +245,9 @@ arrow::Status ColumnObjectTableReader::Prepare() {
     return arrow::Status::OK();
 }
 
-arrow::Result<std::shared_ptr<arrow::RecordBatch>> ColumnObjectTableReader::ReadNextN(size_t n) {
+arrow::Status ColumnObjectTableReader::ReadNext(std::shared_ptr<arrow::RecordBatch>* batch) {
+    assert(!!batch);
+
     // Collect the next batch
     std::vector<ArrayParser*> column_parsers;
     size_t num_rows = 0;
@@ -246,10 +257,17 @@ arrow::Result<std::shared_ptr<arrow::RecordBatch>> ColumnObjectTableReader::Read
         auto& type = field->type();
         assert(column_readers_.count(name));
         auto& reader = column_readers_.at(name);
-        ARROW_ASSIGN_OR_RAISE(auto parser, reader->array_reader_.ReadNextN(n));
+        ARROW_ASSIGN_OR_RAISE(auto parser, reader->array_reader_.ReadNextN(batch_size_));
         num_rows = std::max<size_t>(num_rows, parser->GetLength());
         column_parsers.push_back(parser);
     }
+
+    // No output rows?
+    if (num_rows == 0) {
+        *batch = nullptr;
+        return arrow::Status::OK();
+    }
+
     // Pad columns with nulls (if necessary)
     std::vector<std::shared_ptr<arrow::Array>> column_arrays;
     for (auto& col : column_parsers) {
@@ -259,23 +277,28 @@ arrow::Result<std::shared_ptr<arrow::RecordBatch>> ColumnObjectTableReader::Read
         ARROW_ASSIGN_OR_RAISE(auto array, col->Finish());
         column_arrays.push_back(std::move(array));
     }
-    return arrow::RecordBatch::Make(schema_, num_rows, std::move(column_arrays));
+
+    // Store the record batch
+    *batch = arrow::RecordBatch::Make(schema_, num_rows, std::move(column_arrays));
+    return arrow::Status::OK();
 }
 
 }  // namespace
 
 /// Constructor
-TableReader::TableReader(std::unique_ptr<io::InputFileStream> table, TableType type)
-    : table_file_(std::move(table)), table_type_(std::move(type)) {}
+TableReader::TableReader(std::unique_ptr<io::InputFileStream> table, TableType type, size_t batch_size)
+    : table_file_(std::move(table)), table_type_(std::move(type)), batch_size_(batch_size) {}
 
+/// Access the schema
+std::shared_ptr<arrow::Schema> TableReader::schema() const { return schema_; }
 /// Resolve a table reader
 arrow::Result<std::unique_ptr<TableReader>> TableReader::Resolve(std::unique_ptr<io::InputFileStream> table,
-                                                                 TableType type) {
+                                                                 TableType type, size_t batch_size) {
     switch (type.shape) {
         case TableShape::COLUMN_OBJECT:
-            return std::make_unique<ColumnObjectTableReader>(std::move(table), std::move(type));
+            return std::make_unique<ColumnObjectTableReader>(std::move(table), std::move(type), batch_size);
         case TableShape::ROW_ARRAY:
-            return std::make_unique<RowArrayTableReader>(std::move(table), std::move(type));
+            return std::make_unique<RowArrayTableReader>(std::move(table), std::move(type), batch_size);
         default:
             return arrow::Status::Invalid("Table type not specified");
     }

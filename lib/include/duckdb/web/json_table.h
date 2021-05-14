@@ -7,6 +7,7 @@
 #include <memory>
 #include <string>
 
+#include "arrow/record_batch.h"
 #include "arrow/type.h"
 #include "arrow/type_fwd.h"
 #include "duckdb/web/io/ifstream.h"
@@ -34,27 +35,31 @@ struct TableType {
 };
 
 /// An table reader
-class TableReader {
+class TableReader : public arrow::RecordBatchReader {
    protected:
+    /// The batch size
+    const size_t batch_size_;
     /// The input file stream
     std::unique_ptr<io::InputFileStream> table_file_;
     /// The table type
     TableType table_type_;
+    /// The schema
+    std::shared_ptr<arrow::Schema> schema_;
 
     /// Table reader
-    TableReader(std::unique_ptr<io::InputFileStream> table, TableType type = {});
+    TableReader(std::unique_ptr<io::InputFileStream> table, TableType type, size_t batch_size);
 
    public:
     /// Virtual destructor
     virtual ~TableReader() = default;
-    /// Prepare the table reader
+    /// Access the schema
+    virtual std::shared_ptr<arrow::Schema> schema() const override;
+    /// Prepare the table reader for parsing
     virtual arrow::Status Prepare() = 0;
-    /// Read next chunk
-    virtual arrow::Result<std::shared_ptr<arrow::RecordBatch>> ReadNextN(size_t n = 1024) = 0;
 
     /// Create a table reader
     static arrow::Result<std::unique_ptr<TableReader>> Resolve(std::unique_ptr<io::InputFileStream> table,
-                                                               TableType type);
+                                                               TableType type, size_t batch_size = 1024);
 };
 
 }  // namespace json
