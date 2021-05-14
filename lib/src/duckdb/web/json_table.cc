@@ -292,13 +292,13 @@ TableReader::TableReader(std::unique_ptr<io::InputFileStream> table, TableType t
 /// Access the schema
 std::shared_ptr<arrow::Schema> TableReader::schema() const { return schema_; }
 /// Resolve a table reader
-arrow::Result<std::unique_ptr<TableReader>> TableReader::Resolve(std::unique_ptr<io::InputFileStream> table,
+arrow::Result<std::shared_ptr<TableReader>> TableReader::Resolve(std::unique_ptr<io::InputFileStream> table,
                                                                  TableType type, size_t batch_size) {
     switch (type.shape) {
         case TableShape::COLUMN_OBJECT:
-            return std::make_unique<ColumnObjectTableReader>(std::move(table), std::move(type), batch_size);
+            return std::make_shared<ColumnObjectTableReader>(std::move(table), std::move(type), batch_size);
         case TableShape::ROW_ARRAY:
-            return std::make_unique<RowArrayTableReader>(std::move(table), std::move(type), batch_size);
+            return std::make_shared<RowArrayTableReader>(std::move(table), std::move(type), batch_size);
         default:
             return arrow::Status::Invalid("Table type not specified");
     }
