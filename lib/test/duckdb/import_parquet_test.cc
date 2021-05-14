@@ -26,16 +26,19 @@ TEST(ParquetImportTest, LoadParquet) {
     ss << "SELECT * FROM parquet_scan('" << data.string() << "');";
     auto result = conn.connection().Query(ss.str());
     ASSERT_STREQ(result->ToString().c_str(),
-                 "MatrNr\tName\tSemester\t\nINTEGER\tVARCHAR\tINTEGER\t\n"
-                 "[ Rows: 8]\n"
-                 "24002\tXenokrates\t18\t\n"
-                 "25403\tJonas\t12\t\n"
-                 "26120\tFichte\t10\t\n"
-                 "26830\tAristoxenos\t8\t\n"
-                 "27550\tSchopenhauer\t6\t\n"
-                 "28106\tCarnap\t3\t\n"
-                 "29120\tTheophrastos\t2\t\n"
-                 "29555\tFeuerbach\t2\t\n\n");
+                 R"TXT(MatrNr	Name	Semester	
+INTEGER	VARCHAR	INTEGER	
+[ Rows: 8]
+24002	Xenokrates	18	
+25403	Jonas	12	
+26120	Fichte	10	
+26830	Aristoxenos	8	
+27550	Schopenhauer	6	
+28106	Carnap	3	
+29120	Theophrastos	2	
+29555	Feuerbach	2	
+
+)TXT");
 }
 
 TEST(ParquetImportTest, LoadParquetTwice) {
@@ -47,29 +50,34 @@ TEST(ParquetImportTest, LoadParquetTwice) {
     auto query = ss.str();
     auto result = conn.connection().Query(query);
     ASSERT_STREQ(result->ToString().c_str(),
-                 "MatrNr\tName\tSemester\t\nINTEGER\tVARCHAR\tINTEGER\t\n"
-                 "[ Rows: 8]\n"
-                 "24002\tXenokrates\t18\t\n"
-                 "25403\tJonas\t12\t\n"
-                 "26120\tFichte\t10\t\n"
-                 "26830\tAristoxenos\t8\t\n"
-                 "27550\tSchopenhauer\t6\t\n"
-                 "28106\tCarnap\t3\t\n"
-                 "29120\tTheophrastos\t2\t\n"
-                 "29555\tFeuerbach\t2\t\n\n");
+                 R"TXT(MatrNr	Name	Semester	
+INTEGER	VARCHAR	INTEGER	
+[ Rows: 8]
+24002	Xenokrates	18	
+25403	Jonas	12	
+26120	Fichte	10	
+26830	Aristoxenos	8	
+27550	Schopenhauer	6	
+28106	Carnap	3	
+29120	Theophrastos	2	
+29555	Feuerbach	2	
+
+)TXT");
     result = conn.connection().Query(query);
     ASSERT_STREQ(result->ToString().c_str(),
-                 "MatrNr\tName\tSemester\t\nINTEGER\tVARCHAR\tINTEGER\t\n"
-                 "[ Rows: 8]\n"
-                 "24002\tXenokrates\t18\t\n"
-                 "25403\tJonas\t12\t\n"
-                 "26120\tFichte\t10\t\n"
-                 "26830\tAristoxenos\t8\t\n"
-                 "27550\tSchopenhauer\t6\t\n"
-                 "28106\tCarnap\t3\t\n"
-                 "29120\tTheophrastos\t2\t\n"
-                 "29555\tFeuerbach\t2\t\n"
-                 "\n");
+                 R"TXT(MatrNr	Name	Semester	
+INTEGER	VARCHAR	INTEGER	
+[ Rows: 8]
+24002	Xenokrates	18	
+25403	Jonas	12	
+26120	Fichte	10	
+26830	Aristoxenos	8	
+27550	Schopenhauer	6	
+28106	Carnap	3	
+29120	Theophrastos	2	
+29555	Feuerbach	2	
+
+)TXT");
 }
 
 }  // namespace
