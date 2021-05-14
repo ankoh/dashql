@@ -429,6 +429,7 @@ if(NOT EMSCRIPTEN)
         ${CMAKE_SOURCE_DIR}/test/duckdb/filesystem_buffer_test.cc
         ${CMAKE_SOURCE_DIR}/test/duckdb/ifstream_test.cc
         ${CMAKE_SOURCE_DIR}/test/duckdb/import_csv_test.cc
+        ${CMAKE_SOURCE_DIR}/test/duckdb/import_parquet_test.cc
         ${CMAKE_SOURCE_DIR}/test/duckdb/json_analyzer_test.cc
         ${CMAKE_SOURCE_DIR}/test/duckdb/json_table_test.cc
         ${CMAKE_SOURCE_DIR}/test/duckdb/json_typedef_test.cc
