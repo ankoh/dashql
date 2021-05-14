@@ -154,7 +154,9 @@ arrow::Status WebDB::Connection::ImportCSVTable(std::string_view path, std::stri
 }
 
 /// Import a json file
-arrow::Status WebDB::Connection::ImportJSONTable(std::string_view path, std::string_view options) {}
+arrow::Status WebDB::Connection::ImportJSONTable(std::string_view path, std::string_view options) {
+    return arrow::Status::NotImplemented("JSON import");
+}
 
 /// Constructor
 WebDB::WebDB(std::unique_ptr<duckdb::FileSystem> fs)
