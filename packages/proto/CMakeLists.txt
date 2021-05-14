@@ -1,6 +1,6 @@
 # Copyright (c) 2020 The DashQL Authors
 
-set(PROTO_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/gen/include")
+set(PROTO_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/gen/cc/include")
 set(PROTO_FILE "${PROTO_INCLUDE_DIR}/dashql/proto_generated.h")
 
 if (NOT EXISTS "${PROTO_FILE}")

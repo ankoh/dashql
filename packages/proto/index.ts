@@ -1,10 +1,5 @@
-import * as proto from './gen/proto_generated';
-
-export import analyzer = proto.dashql.proto.analyzer;
-export import action = proto.dashql.proto.action;
-export import syntax = proto.dashql.proto.syntax;
-
-export import edit = proto.dashql.proto.edit;
-export import sql = proto.dashql.proto.sql;
-
-export { flatbuffers as fb } from 'flatbuffers';
+export * as analyzer from './gen/ts/dashql/proto/analyzer';
+export * as action from './gen/ts/dashql/proto/action';
+export * as syntax from './gen/ts/dashql/proto/syntax';
+export * as edit from './gen/ts/dashql/proto/edit';
+export * as sql from './gen/ts/dashql/proto/sql';
