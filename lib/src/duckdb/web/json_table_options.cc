@@ -56,11 +56,15 @@ arrow::Status RequireFieldType(const rapidjson::Value& value, rapidjson::Type ty
 };
 
 enum FieldTag {
+    SCHEMA,
+    NAME,
     FORMAT,
     FIELDS,
 };
 
 static std::unordered_map<std::string_view, FieldTag> FIELD_TAGS{
+    {"schema", FieldTag::SCHEMA},
+    {"name", FieldTag::NAME},
     {"format", FieldTag::FORMAT},
     {"fields", FieldTag::FIELDS},
 };
@@ -82,6 +86,16 @@ arrow::Status TableReaderOptions::ReadFrom(const rapidjson::Document& doc) {
         if (tag_iter == FIELD_TAGS.end()) continue;
 
         switch (tag_iter->second) {
+            case FieldTag::SCHEMA:
+                ARROW_RETURN_NOT_OK(RequireFieldType(iter->value, rapidjson::Type::kStringType, "schema"));
+                schema_name = {iter->value.GetString(), iter->value.GetStringLength()};
+                break;
+
+            case FieldTag::NAME:
+                ARROW_RETURN_NOT_OK(RequireFieldType(iter->value, rapidjson::Type::kStringType, "name"));
+                table_name = {iter->value.GetString(), iter->value.GetStringLength()};
+                break;
+
             case FieldTag::FORMAT: {
                 ARROW_RETURN_NOT_OK(RequireFieldType(iter->value, rapidjson::Type::kStringType, "format"));
                 auto format_iter =

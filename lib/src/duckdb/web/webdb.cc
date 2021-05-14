@@ -3,6 +3,7 @@
 #include "duckdb/web/webdb.h"
 
 #include <arrow/ipc/options.h>
+#include <rapidjson/document.h>
 
 #include <cstdio>
 #include <duckdb/common/file_system.hpp>
@@ -28,6 +29,7 @@
 #include "duckdb/web/io/default_filesystem.h"
 #include "duckdb/web/io/ifstream.h"
 #include "duckdb/web/io/web_filesystem.h"
+#include "duckdb/web/json_table_options.h"
 #include "parquet-extension.hpp"
 
 namespace duckdb {
@@ -125,9 +127,38 @@ arrow::Result<std::shared_ptr<arrow::Buffer>> WebDB::Connection::FetchQueryResul
     }
 }
 
+/// Import a csv file
+arrow::Status WebDB::Connection::ImportCSVTable(std::string_view path, std::string_view options_json) {
+    try {
+        /// Read table options
+        rapidjson::Document options_doc;
+        options_doc.Parse(options_json.begin(), options_json.size());
+        json::TableReaderOptions options;
+        ARROW_RETURN_NOT_OK(options.ReadFrom(options_doc));
+
+        /// Read relevant table options
+        auto schema_name = options.schema_name.empty() ? "main" : options.schema_name;
+        if (options.table_name.empty()) return arrow::Status::Invalid("missing 'name' option");
+
+        // TODO explicitly provided arrow types
+
+        /// Execute the table  function
+        std::vector<Value> params;
+        params.emplace_back(std::string{path});
+        connection_.TableFunction("read_csv_auto", params)->Create(schema_name, options.table_name);
+
+    } catch (const std::exception& e) {
+        return arrow::Status::UnknownError(e.what());
+    }
+    return arrow::Status::OK();
+}
+
+/// Import a json file
+arrow::Status WebDB::Connection::ImportJSONTable(std::string_view path, std::string_view options) {}
+
 /// Constructor
-WebDB::WebDB()
-    : filesystem_buffer_(std::make_shared<io::FileSystemBuffer>(io::CreateDefaultFileSystem())),
+WebDB::WebDB(std::unique_ptr<duckdb::FileSystem> fs)
+    : filesystem_buffer_(std::make_shared<io::FileSystemBuffer>(std::move(fs))),
       database_(),
       connections_(),
       db_config_() {
