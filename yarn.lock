@@ -3230,10 +3230,15 @@ flat-cache@^3.0.4:
     flatted "^3.1.0"
     rimraf "^3.0.2"
 
-flatbuffers@1.12.0, flatbuffers@^1.12.0:
+flatbuffers@1.12.0:
   version "1.12.0"
   resolved "https://registry.yarnpkg.com/flatbuffers/-/flatbuffers-1.12.0.tgz#72e87d1726cb1b216e839ef02658aa87dcef68aa"
   integrity sha512-c7CZADjRcl6j0PlvFy0ZqXQ67qSEZfrVPynmnL+2zPc+NtMvrF8Y0QceMo7QqnSPc7+uWjUIAbvCQ5WIKlMVdQ==
+
+flatbuffers@^2.0.1:
+  version "2.0.1"
+  resolved "https://registry.yarnpkg.com/flatbuffers/-/flatbuffers-2.0.1.tgz#c10f422ebd93f949de166a3a452c5767c2fcdd50"
+  integrity sha512-uRz4gA6oF6jxhOFD5FHo4crmj90U35zYR2JxTF6bJyNkpkZSe9vsVCZLNCSVVgLHVCieZdMYmaAdWdSCy8YNRQ==
 
 flatted@^2.0.1:
   version "2.0.2"
