@@ -22,8 +22,7 @@ module.exports = function (config) {
             { pattern: 'data/**/*.zip', included: false, watched: false, served: true },
         ],
         preprocessors: {
-            'src/**/*.js': ['sourcemap'],
-            'test/**/*.js': ['sourcemap'],
+            '**/tests-*.js': ['sourcemap', 'coverage'],
         },
         proxies: {
             '/static/': '/base/packages/duckdb/dist/',

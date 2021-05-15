@@ -163,9 +163,9 @@ esbuild.build({
     target: TARGET,
     bundle: true,
     minify: true,
-    sourcemap: 'both',
+    sourcemap: 'external',
     // web-worker polyfill needs to be excluded from bundling due to their dynamic require messing with bundled modules
-    external: ['web-worker', 'crypto', 'os'],
+    external: [...EXTERNALS, 'web-worker'],
 });
 
 // -------------------------------
