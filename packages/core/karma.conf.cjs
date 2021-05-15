@@ -58,12 +58,14 @@ module.exports = function (config) {
         client: {
             jasmine: {
                 failFast: true,
+                timeoutInterval: 90000,
             },
         },
         captureTimeout: 900000,
         browserDisconnectTimeout: 900000,
         browserDisconnectTolerance: 1,
         browserNoActivityTimeout: 900000,
+        processKillTimeout: 100000,
         concurrency: 1,
     });
 };
