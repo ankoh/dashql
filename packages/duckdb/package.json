@@ -47,7 +47,7 @@
         "report": "node ./coverage.mjs",
         "test:node": "jasmine ./dist/tests-node.js",
         "test:node:1": "jasmine ./dist/tests-node.js --filter=\"File buffer registration File buffer used twice\"",
-        "test:node:cov": "nyc -r json --report-dir ./coverage/node jasmine ./dist/tests-node.js",
+        "test:node:cov": "NODE_OPTIONS=\"--max-old-space-size=4096\" nyc -r json --report-dir ./coverage/node jasmine ./dist/tests-node.js",
         "test:browser": "karma start karma.conf.cjs",
         "test:browser:cov": "karma start karma.conf.cov.cjs",
         "test:browser:dbg": "karma start karma.conf.dbg.cjs",
