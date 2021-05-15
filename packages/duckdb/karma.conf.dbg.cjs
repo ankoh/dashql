@@ -39,5 +39,6 @@ module.exports = function (config) {
         browserDisconnectTimeout: 300000,
         browserDisconnectTolerance: 1,
         browserNoActivityTimeout: 300000,
+        concurrency: 1,
     });
 };
