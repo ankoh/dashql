@@ -45,10 +45,10 @@ module.exports = function (config) {
                 failFast: true,
             },
         },
-        captureTimeout: 300000,
-        browserDisconnectTimeout: 300000,
+        captureTimeout: 900000,
+        browserDisconnectTimeout: 900000,
         browserDisconnectTolerance: 1,
-        browserNoActivityTimeout: 300000,
+        browserNoActivityTimeout: 900000,
         concurrency: 1,
     });
 };
