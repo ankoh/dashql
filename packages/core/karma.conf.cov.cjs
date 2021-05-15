@@ -26,8 +26,7 @@ module.exports = function (config) {
             },
         ],
         preprocessors: {
-            'src/**/*.js': ['sourcemap'],
-            'test/**/*.js': ['sourcemap'],
+            '**/tests-*.js': ['sourcemap', 'coverage'],
         },
         proxies: {
             '/static/analyzer_wasm.wasm': '/base/src/analyzer/analyzer_wasm.wasm',
