@@ -85,6 +85,8 @@ class InputFileStream : public std::istream {
     /// Copy constructor
     InputFileStream(const InputFileStream& other) : buffer_(other.buffer_), std::istream(&buffer_){};
     /// Scan a slice of the file
+    void Rewind() { buffer_.Slice(0, 0); }
+    /// Scan a slice of the file
     void Slice(size_t offset, size_t size = 0) { buffer_.Slice(offset, size); }
 };
 
