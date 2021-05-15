@@ -1,4 +1,4 @@
-FROM ubuntu:20.10
+FROM ubuntu:21.04
 
 RUN apt-get update -qq \
     && DEBIAN_FRONTEND=noninteractive apt-get install -y \
@@ -6,7 +6,6 @@ RUN apt-get update -qq \
         ccache cmake ninja-build llvm clang clang-format clang-tidy curl python python3 \
         bison flex \
         brotli rsync \
-        openjdk-14-jdk \
         libpthread-stubs0-dev \
         libboost-all-dev \
         firefox \
