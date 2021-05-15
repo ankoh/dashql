@@ -351,7 +351,7 @@ if (EMSCRIPTEN)
             _dashql_analyzer_edit_program, \
             _dashql_analyzer_update_action_status \
         ]' \
-        -s EXTRA_EXPORTED_RUNTIME_METHODS='[\"ccall\"]' \
+        -s EXPORTED_RUNTIME_METHODS='[\"ccall\"]' \
         ${ADDITIONAL_LINKER_FLAGS} \
         "
     )
@@ -394,7 +394,7 @@ if (EMSCRIPTEN)
             _duckdb_web_zip_extract_entry_to_path, \
             _duckdb_web_zip_extract_path_to_path \
         ]' \
-        -s EXTRA_EXPORTED_RUNTIME_METHODS='[\"ccall\"]' \
+        -s EXPORTED_RUNTIME_METHODS='[\"ccall\"]' \
         --js-library=${CMAKE_SOURCE_DIR}/js-stubs.js \
         ${ADDITIONAL_LINKER_FLAGS} \
         "
