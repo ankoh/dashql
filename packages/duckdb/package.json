@@ -52,7 +52,7 @@
         "test:browser:cov": "karma start karma.conf.cov.cjs",
         "test:browser:dbg": "karma start karma.conf.dbg.cjs",
         "test": "npm run test:browser && npm run test:node",
-        "test:cov": "npm run test:browser:cov && npm run test:node && npm run report",
+        "test:cov": "npm run test:browser:cov && npm run report",
         "test:ci": "npm run test:cov",
         "lint": "yarn run eslint {src,test}/**/*.ts"
     },
