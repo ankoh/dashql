@@ -88,7 +88,6 @@ arrow::Result<std::shared_ptr<arrow::Buffer>> WebDB::Connection::SendQuery(std::
         // Import the schema
         ArrowSchema raw_schema;
         current_query_result_->ToArrowSchema(&raw_schema);
-
         ARROW_ASSIGN_OR_RAISE(current_schema_, arrow::ImportSchema(&raw_schema));
 
         // Serialize the schema
@@ -172,19 +171,21 @@ arrow::Status WebDB::Connection::ImportJSONTable(std::string_view path, std::str
         auto ifs = std::make_unique<io::InputFileStream>(webdb_.filesystem_buffer_, path);
         // Do we need to run the analyzer?
         json::TableType table_type;
-        if (options.table_shape == json::TableShape::UNRECOGNIZED) {
+        if (!options.table_shape || options.table_shape == json::TableShape::UNRECOGNIZED) {
             io::InputFileStream ifs_copy{*ifs};
             ARROW_RETURN_NOT_OK(json::InferTableType(ifs_copy, table_type));
+
+        } else {
+            table_type.shape = *options.table_shape;
+            // XXX type
         }
         // Resolve the table reader
         ARROW_ASSIGN_OR_RAISE(auto table_reader, json::TableReader::Resolve(std::move(ifs), table_type));
-
-        // Export an array stream for duckdb
-        ArrowArrayStream stream;
-        ARROW_RETURN_NOT_OK(arrow::ExportRecordBatchReader(table_reader, &stream));
         /// Execute the arrow scan
-        connection_.TableFunction("arrow_scan", {duckdb::Value::POINTER((uintptr_t)&stream)})
-            ->Create(schema_name, options.table_name);
+        vector<Value> params;
+        params.push_back(duckdb::Value::POINTER((uintptr_t)&table_reader));
+        params.push_back(duckdb::Value::POINTER((uintptr_t)json::TableReader::CreateArrayStreamFromSharedPtrPtr));
+        connection_.TableFunction("arrow_scan", params)->Create(schema_name, options.table_name);
 
     } catch (const std::exception& e) {
         return arrow::Status::UnknownError(e.what());
@@ -200,6 +201,7 @@ WebDB::WebDB(std::unique_ptr<duckdb::FileSystem> fs)
       db_config_() {
     auto buffered_filesystem = std::make_unique<io::BufferedFileSystem>(filesystem_buffer_);
     db_config_.file_system = std::move(std::move(buffered_filesystem));
+    db_config_.maximum_threads = 1;
     database_ = std::make_shared<duckdb::DuckDB>(nullptr, &db_config_);
     database_->LoadExtension<duckdb::ParquetExtension>();
     zip_ = std::make_unique<Zipper>(filesystem_buffer_);

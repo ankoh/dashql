@@ -1,21 +1,22 @@
 // Copyright (c) 2020 The DashQL Authors
 
-#include <arrow/result.h>
-#include <arrow/status.h>
-#include <rapidjson/istreamwrapper.h>
-
 #include <memory>
 #include <sstream>
 #include <string>
 
+#include "arrow/c/bridge.h"
 #include "arrow/record_batch.h"
+#include "arrow/result.h"
+#include "arrow/status.h"
 #include "arrow/type.h"
 #include "arrow/type_fwd.h"
+#include "duckdb/common/arrow.hpp"
 #include "duckdb/web/json_analyzer.h"
 #include "duckdb/web/json_parser.h"
 #include "duckdb/web/json_typedef.h"
 #include "rapidjson/document.h"
 #include "rapidjson/error/en.h"
+#include "rapidjson/istreamwrapper.h"
 
 namespace duckdb {
 namespace web {
@@ -152,6 +153,8 @@ struct RowArrayTableReader : public TableReader {
         : TableReader(std::move(table), std::move(type), batch_size) {}
     /// Prepare the table reader
     arrow::Status Prepare() override;
+    /// Rewind the table reader
+    arrow::Status Rewind() override;
     /// Read the the next arrow batch
     arrow::Status ReadNext(std::shared_ptr<arrow::RecordBatch>* batch) override;
 };
@@ -160,16 +163,25 @@ arrow::Status RowArrayTableReader::Prepare() {
     /// Shape must be a row array
     assert(table_type_.shape == TableShape::ROW_ARRAY);
     // Create the schema
-    arrow::FieldVector schema_fields;
-    for (unsigned i = 0; i < table_type_.type->num_fields(); ++i) {
-        auto& field = table_type_.type->field(i);
-        schema_fields.push_back(field);
+    if (!this->schema_) {
+        arrow::FieldVector schema_fields;
+        for (unsigned i = 0; i < table_type_.type->num_fields(); ++i) {
+            auto& field = table_type_.type->field(i);
+            schema_fields.push_back(field);
+        }
+        this->schema_ = std::make_shared<arrow::Schema>(std::move(schema_fields), arrow::Endianness::Native);
     }
-    this->schema_ = std::make_shared<arrow::Schema>(std::move(schema_fields), arrow::Endianness::Native);
     /// Resolve the struct parser
     ARROW_ASSIGN_OR_RAISE(auto struct_parser, ArrayParser::Resolve(table_type_.type));
     /// Create the struct reader
     struct_reader_.emplace(*table_file_, std::move(struct_parser));
+    return arrow::Status::OK();
+}
+
+arrow::Status RowArrayTableReader::Rewind() {
+    table_file_->Rewind();
+    struct_reader_.reset();
+    ARROW_RETURN_NOT_OK(Prepare());
     return arrow::Status::OK();
 }
 
@@ -180,7 +192,10 @@ arrow::Status RowArrayTableReader::ReadNext(std::shared_ptr<arrow::RecordBatch>*
         *batch = nullptr;
         return arrow::Status::OK();
     }
-    ARROW_ASSIGN_OR_RAISE(*batch, arrow::RecordBatch::FromStructArray(std::move(array)));
+    if (array->null_count() != 0) {
+        return arrow::Status::Invalid("Unable to construct record batch from a StructArray with non-zero nulls.");
+    }
+    *batch = arrow::RecordBatch::Make(schema_, array->length(), array->data()->child_data);
     return arrow::Status::OK();
 }
 
@@ -205,9 +220,18 @@ struct ColumnObjectTableReader : public TableReader {
         : TableReader(std::move(table), std::move(type), batch_size) {}
     /// Prepare the table reader
     arrow::Status Prepare() override;
+    /// Rewind the table reader
+    arrow::Status Rewind() override;
     /// Read the the next arrow batch
     arrow::Status ReadNext(std::shared_ptr<arrow::RecordBatch>* batch) override;
 };
+
+arrow::Status ColumnObjectTableReader::Rewind() {
+    table_file_->Rewind();
+    column_readers_.clear();
+    ARROW_RETURN_NOT_OK(Prepare());
+    return arrow::Status::OK();
+}
 
 arrow::Status ColumnObjectTableReader::Prepare() {
     /// Shape must be a column object
@@ -221,12 +245,14 @@ arrow::Status ColumnObjectTableReader::Prepare() {
     }
 
     // Create the schema
-    arrow::FieldVector schema_fields;
-    for (unsigned i = 0; i < table_type_.type->num_fields(); ++i) {
-        auto& field = table_type_.type->field(i);
-        schema_fields.push_back(field);
+    if (!schema_) {
+        arrow::FieldVector schema_fields;
+        for (unsigned i = 0; i < table_type_.type->num_fields(); ++i) {
+            auto& field = table_type_.type->field(i);
+            schema_fields.push_back(field);
+        }
+        this->schema_ = std::make_shared<arrow::Schema>(std::move(schema_fields), arrow::Endianness::Native);
     }
-    this->schema_ = std::make_shared<arrow::Schema>(std::move(schema_fields), arrow::Endianness::Native);
 
     // Create all column readers
     for (unsigned i = 0; i < table_type_.type->num_fields(); ++i) {
@@ -302,6 +328,32 @@ arrow::Result<std::shared_ptr<TableReader>> TableReader::Resolve(std::unique_ptr
         default:
             return arrow::Status::Invalid("Table type not specified");
     }
+}
+
+/// Arrow array stream factory function
+ArrowArrayStream* TableReader::CreateArrayStreamFromSharedPtrPtr(uintptr_t this_ptr) {
+    assert(this_ptr != 0);
+
+    // Rewind the reader
+    auto reader = reinterpret_cast<std::shared_ptr<TableReader>*>(this_ptr);
+    auto maybe_ok = (*reader)->Rewind();
+    if (!maybe_ok.ok()) return nullptr;
+
+    // Create arrow stream
+    auto stream = std::make_unique<ArrowArrayStream>();
+    stream->release = nullptr;
+    maybe_ok = arrow::ExportRecordBatchReader(*reader, stream.get());
+    if (!maybe_ok.ok()) {
+        if (stream->release) stream->release(stream.get());
+        return nullptr;
+    }
+
+    // XXX
+    // ArrowSchema schema;
+    // stream->get_schema(stream.get(), &schema);
+
+    // Release the stream
+    return stream.release();
 }
 
 }  // namespace json
