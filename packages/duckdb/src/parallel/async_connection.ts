@@ -2,6 +2,7 @@
 
 import { Logger, LogLevel, LogTopic, LogOrigin, LogEvent } from '../log';
 import * as arrow from 'apache-arrow';
+import { CSVTableOptions } from 'src/bindings/table_options';
 
 interface IAsyncDuckDB {
     logger: Logger;
@@ -17,6 +18,8 @@ interface IAsyncDuckDB {
     runQuery(conn: number, text: string): Promise<Uint8Array>;
     sendQuery(conn: number, text: string): Promise<Uint8Array>;
     fetchQueryResults(conn: number): Promise<Uint8Array>;
+
+    importCSVFromPath(conn: number, path: string, options: CSVTableOptions): Promise<null>;
 
     extractZipPath(archiveFile: number, outFile: number, entryPath: string): Promise<number>;
 }
@@ -68,6 +71,8 @@ export interface AsyncConnection {
     sendQuery<T extends { [key: string]: arrow.DataType } = any>(
         text: string,
     ): Promise<arrow.AsyncRecordBatchStreamReader<T>>;
+    /** Import csv file from path */
+    importCSVFromPath(text: string, options: CSVTableOptions): Promise<null>;
 }
 
 /** A thin helper to memoize the connection id */
@@ -126,6 +131,11 @@ export class AsyncDuckDBConnection implements AsyncConnection {
         const reader = await arrow.RecordBatchReader.from<T>(iter);
         console.assert(reader.isAsync());
         console.assert(reader.isStream());
-        return (reader as unknown) as arrow.AsyncRecordBatchStreamReader<T>; // XXX
+        return reader as unknown as arrow.AsyncRecordBatchStreamReader<T>; // XXX
+    }
+
+    /** Import csv file from path */
+    public async importCSVFromPath(text: string, options: CSVTableOptions): Promise<null> {
+        return await this._instance.importCSVFromPath(this._conn, text, options);
     }
 }

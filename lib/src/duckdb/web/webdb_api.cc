@@ -66,6 +66,12 @@ void duckdb_web_query_fetch_results(WASMResponse* packed, ConnectionHdl connHdl)
     auto r = c->FetchQueryResults();
     WASMResponseBuffer::GetInstance().Store(*packed, std::move(r));
 }
+/// Import csv table from file
+void duckdb_web_import_csv_table(WASMResponse* packed, ConnectionHdl connHdl, const char* path, const char* options) {
+    auto c = reinterpret_cast<WebDB::Connection*>(connHdl);
+    auto r = c->ImportCSVTable(std::string_view{path}, std::string_view{options});
+    WASMResponseBuffer::GetInstance().Store(*packed, std::move(r));
+}
 
 static void RaiseExtensionNotLoaded(WASMResponse* packed, std::string_view ext) {
     WASMResponseBuffer::GetInstance().Store(
