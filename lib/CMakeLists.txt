@@ -292,6 +292,7 @@ add_library(dashql_analyzer
 
 add_library(duckdb_web
     ${CMAKE_SOURCE_DIR}/src/duckdb/web/arrow_inserter.cc
+    ${CMAKE_SOURCE_DIR}/src/duckdb/web/csv_table_options.cc
     ${CMAKE_SOURCE_DIR}/src/duckdb/web/json_analyzer.cc
     ${CMAKE_SOURCE_DIR}/src/duckdb/web/json_parser.cc
     ${CMAKE_SOURCE_DIR}/src/duckdb/web/json_table.cc
