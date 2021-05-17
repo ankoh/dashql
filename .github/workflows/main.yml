@@ -210,6 +210,10 @@ jobs:
               uses: ./actions/image
               with:
                   script: |-
+                      echo "$CCACHE_DIR"
+                      echo "$CCACHE_BASEDIR"
+                      echo "$EM_CACHE"
+
                       emcmake cmake \
                           -S./lib/ \
                           -B./lib/build/wasm/release \
@@ -218,10 +222,14 @@ jobs:
                           -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
                           -DBOOST_ARCHIVE=/opt/boost.tar.gz
 
+                      ccache -s
+
                       emmake make \
                           -C./lib/build/wasm/release \
                           -j`nproc` \
                           duckdb_wasm duckdb_wasm_node analyzer_wasm analyzer_wasm_node
+
+                      ccache -s
 
                       cp ./lib/build/wasm/release/duckdb_*.{wasm,js} ./packages/duckdb/src/bindings/
                       cp ./lib/build/wasm/release/analyzer_*.{wasm,js} ./packages/core/src/analyzer/
