@@ -210,10 +210,6 @@ jobs:
               uses: ./actions/image
               with:
                   script: |-
-                      echo "$CCACHE_DIR"
-                      echo "$CCACHE_BASEDIR"
-                      echo "$EM_CACHE"
-
                       emcmake cmake \
                           -S./lib/ \
                           -B./lib/build/wasm/release \
