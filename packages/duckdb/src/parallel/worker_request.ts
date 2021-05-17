@@ -1,5 +1,6 @@
 // Copyright (c) 2020 The DashQL Authors
 
+import { CSVTableOptions } from 'src/bindings/table_options';
 import { LogEntryVariant } from '../log';
 
 export type ConnectionID = number;
@@ -21,6 +22,7 @@ export enum WorkerRequestType {
     SEND_QUERY = 'SEND_QUERY',
     FETCH_QUERY_RESULTS = 'FETCH_QUERY_RESULTS',
     ZIP_EXTRACT_FILE = 'ZIP_EXTRACT_FILE',
+    IMPORT_CSV_FROM_PATH = 'IMPORT_CSV_FROM_PATH',
 }
 
 export enum WorkerResponseType {
@@ -93,7 +95,8 @@ export type WorkerRequestVariant =
     | WorkerRequest<WorkerRequestType.RUN_QUERY, [number, string]>
     | WorkerRequest<WorkerRequestType.SEND_QUERY, [number, string]>
     | WorkerRequest<WorkerRequestType.FETCH_QUERY_RESULTS, number>
-    | WorkerRequest<WorkerRequestType.ZIP_EXTRACT_FILE, ZipExtractToFileArgs>;
+    | WorkerRequest<WorkerRequestType.ZIP_EXTRACT_FILE, ZipExtractToFileArgs>
+    | WorkerRequest<WorkerRequestType.IMPORT_CSV_FROM_PATH, [number, string, CSVTableOptions]>;
 
 export type WorkerResponseVariant =
     | WorkerResponse<WorkerResponseType.VERSION_STRING, string>
@@ -126,4 +129,5 @@ export type WorkerTaskVariant =
     | WorkerTask<WorkerRequestType.SEND_QUERY, [ConnectionID, string], Uint8Array>
     | WorkerTask<WorkerRequestType.RUN_QUERY, [ConnectionID, string], Uint8Array>
     | WorkerTask<WorkerRequestType.FETCH_QUERY_RESULTS, ConnectionID, Uint8Array>
-    | WorkerTask<WorkerRequestType.ZIP_EXTRACT_FILE, ZipExtractToFileArgs, null>;
+    | WorkerTask<WorkerRequestType.ZIP_EXTRACT_FILE, ZipExtractToFileArgs, null>
+    | WorkerTask<WorkerRequestType.IMPORT_CSV_FROM_PATH, [number, string, CSVTableOptions], null>;

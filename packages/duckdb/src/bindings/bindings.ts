@@ -5,6 +5,7 @@ import { Logger } from '../log';
 import { DuckDBConnection } from './connection';
 import { StatusCode } from '../status';
 import { DuckDBRuntime } from './runtime_base';
+import { CSVTableOptions } from './table_options';
 
 /// The proxy for either the browser- order node-based DuckDB API
 export abstract class DuckDBBindings {
@@ -199,5 +200,18 @@ export abstract class DuckDBBindings {
         const res = this.copyBuffer(d, n);
         this.dropResponseBuffers();
         return res;
+    }
+
+    /** Import csv from path */
+    public importCSVFromPath(conn: number, path: string, options: CSVTableOptions): void {
+        const optionsJSON = JSON.stringify(options);
+        const [s, d, n] = this.callSRet(
+            'duckdb_web_import_csv_table',
+            ['number', 'string', 'string'],
+            [conn, path, optionsJSON],
+        );
+        if (s !== StatusCode.SUCCESS) {
+            throw new Error(this.readString(d, n));
+        }
     }
 }

@@ -11,6 +11,7 @@ import {
 } from './worker_request';
 import { Logger } from '../log';
 import { AsyncDuckDBConnection } from './async_connection';
+import { CSVTableOptions } from 'src/bindings/table_options';
 
 export class AsyncDuckDB {
     /** The message handler */
@@ -205,6 +206,12 @@ export class AsyncDuckDB {
                     return;
                 }
                 break;
+            case WorkerRequestType.IMPORT_CSV_FROM_PATH:
+                if (response.type == WorkerResponseType.OK) {
+                    task.promiseResolver(response.data);
+                    return;
+                }
+                break;
             case WorkerRequestType.ZIP_EXTRACT_FILE:
                 if (response.type == WorkerResponseType.OK) {
                     task.promiseResolver(response.data);
@@ -357,6 +364,15 @@ export class AsyncDuckDB {
         const task = new WorkerTask<WorkerRequestType.GET_FILE_BUFFER, number, Uint8Array | null>(
             WorkerRequestType.GET_FILE_BUFFER,
             file_id,
+        );
+        return await this.postTask(task);
+    }
+
+    /** Import a csv file */
+    public async importCSVFromPath(conn: ConnectionID, path: string, options: CSVTableOptions): Promise<null> {
+        const task = new WorkerTask<WorkerRequestType.IMPORT_CSV_FROM_PATH, [number, string, CSVTableOptions], null>(
+            WorkerRequestType.IMPORT_CSV_FROM_PATH,
+            [conn, path, options],
         );
         return await this.postTask(task);
     }
