@@ -53,6 +53,7 @@
         "test": "karma start karma.conf.cjs",
         "test:cov": "karma start karma.conf.cov.cjs && npm run report",
         "test:dbg": "karma start karma.conf.dbg.cjs",
+        "test:report": "karma start karma.conf.html.cjs --reporters html",
         "test:ci": "npm run test:cov",
         "lint": "yarn run eslint {src,test}/**/*.t{s,sx}"
     },
