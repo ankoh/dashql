@@ -2,6 +2,8 @@ const path = require('path');
 
 process.env.CHROME_BIN = require('puppeteer').executablePath();
 
+const JS_TIMEOUT = 900000;
+
 module.exports = function (config) {
     config.set({
         basePath: './',
@@ -58,14 +60,14 @@ module.exports = function (config) {
         client: {
             jasmine: {
                 failFast: true,
-                timeoutInterval: 90000,
+                timeoutInterval: JS_TIMEOUT,
             },
         },
-        captureTimeout: 900000,
-        browserDisconnectTimeout: 900000,
+        captureTimeout: JS_TIMEOUT,
+        browserDisconnectTimeout: JS_TIMEOUT,
         browserDisconnectTolerance: 1,
-        browserNoActivityTimeout: 900000,
-        processKillTimeout: 100000,
+        browserNoActivityTimeout: JS_TIMEOUT,
+        processKillTimeout: JS_TIMEOUT,
         concurrency: 1,
     });
 };
