@@ -24,6 +24,7 @@
 #include "duckdb.hpp"
 #include "duckdb/common/arrow.hpp"
 #include "duckdb/main/query_result.hpp"
+#include "duckdb/web/csv_table_options.h"
 #include "duckdb/web/io/arrow_ifstream.h"
 #include "duckdb/web/io/buffered_filesystem.h"
 #include "duckdb/web/io/default_filesystem.h"
@@ -134,7 +135,7 @@ arrow::Status WebDB::Connection::ImportCSVTable(std::string_view path, std::stri
         /// Read table options
         rapidjson::Document options_doc;
         options_doc.Parse(options_json.begin(), options_json.size());
-        json::TableReaderOptions options;
+        csv::TableReaderOptions options;
         ARROW_RETURN_NOT_OK(options.ReadFrom(options_doc));
 
         /// Get table name and schema
