@@ -17,7 +17,7 @@ CREATE TABLE Enrolments AS
 CREATE TABLE StudentCounts AS
     SELECT v.titel, count(*)::INTEGER as studenten
     FROM hoeren h, vorlesungen v
-    where h.vorlnr = v.vorlnr
+    WHERE h.vorlnr = v.vorlnr
     GROUP BY v.titel;
 
 -- ... store as table or view
