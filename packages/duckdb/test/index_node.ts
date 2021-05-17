@@ -50,6 +50,10 @@ beforeAll(async () => {
     await adb.open(path.resolve(__dirname, './duckdb.wasm'));
 });
 
+afterAll(async () => {
+    if (worker) worker.terminate();
+});
+
 import { testBindings } from './bindings.test';
 import { testBatchStream } from './batch_stream.test';
 import { testFilesystem } from './filesystem.test';

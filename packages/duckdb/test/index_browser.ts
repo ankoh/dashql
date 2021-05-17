@@ -46,6 +46,10 @@ beforeAll(async () => {
     await adb.open('/static/duckdb.wasm');
 });
 
+afterAll(async () => {
+    if (worker) worker.terminate();
+});
+
 import { testBindings } from './bindings.test';
 import { testBatchStream } from './batch_stream.test';
 import { testAsyncBatchStream } from './batch_stream_async.test';
