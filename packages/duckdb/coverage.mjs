@@ -1,3 +1,4 @@
+import fs from 'fs';
 import path from 'path';
 import mkdir from 'make-dir';
 import rimraf from 'rimraf';
