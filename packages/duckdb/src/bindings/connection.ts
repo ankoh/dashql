@@ -1,12 +1,14 @@
 // Copyright (c) 2020 The DashQL Authors
 
 import * as arrow from 'apache-arrow';
+import { CSVTableOptions } from './table_options';
 
 interface IDuckDBBindings {
     disconnect(conn: number): void;
     runQuery(conn: number, text: string): Uint8Array;
     sendQuery(conn: number, text: string): Uint8Array;
     fetchQueryResults(conn: number): Uint8Array;
+    importCSVFromPath(conn: number, path: string, options: CSVTableOptions): void;
 }
 
 /** A result stream iterator */
@@ -80,5 +82,9 @@ export class DuckDBConnection {
         console.assert(reader.isSync());
         console.assert(reader.isStream());
         return reader as arrow.RecordBatchStreamReader;
+    }
+
+    public importCSVFromPath(path: string, options: CSVTableOptions): void {
+        this._bindings.importCSVFromPath(this._conn, path, options);
     }
 }

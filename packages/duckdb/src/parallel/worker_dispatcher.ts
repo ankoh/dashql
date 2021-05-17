@@ -253,6 +253,11 @@ export abstract class AsyncDuckDBDispatcher implements Logger {
                     this.sendOK(request);
                     break;
                 }
+                case WorkerRequestType.IMPORT_CSV_FROM_PATH: {
+                    this._bindings.importCSVFromPath(request.data[0], request.data[1], request.data[2]);
+                    this.sendOK(request);
+                    break;
+                }
             }
         } catch (e) {
             return this.failWith(request, e);
