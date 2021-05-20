@@ -5,7 +5,7 @@
 
 #include "dashql/common/expected.h"
 #include "dashql/proto_generated.h"
-#include "duckdb/web/webdb.h"
+#include "duckdb/common/types.hpp"
 
 namespace dashql {
 

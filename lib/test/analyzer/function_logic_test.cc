@@ -9,7 +9,6 @@
 
 using namespace std;
 using namespace dashql;
-using namespace duckdb::web;
 
 namespace {
 

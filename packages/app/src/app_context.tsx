@@ -1,4 +1,4 @@
-import * as duckdb from '@dashql/duckdb/dist/duckdb.module.js';
+import * as duckdb from '@duckdb/duckdb-wasm/dist/duckdb.module.js';
 import * as React from 'react';
 import * as model from './model';
 import * as platform from './platform';
@@ -15,7 +15,7 @@ export const AppContextConsumer = ctx.Consumer;
 
 export function withAppContext<
     ALL_PROPS extends { appContext?: IAppContext },
-    RAW_PROPS = Pick<ALL_PROPS, Exclude<keyof ALL_PROPS, 'appContext'>>
+    RAW_PROPS = Pick<ALL_PROPS, Exclude<keyof ALL_PROPS, 'appContext'>>,
 >(Component: React.ComponentClass<ALL_PROPS> | React.FunctionComponent<ALL_PROPS>): React.FunctionComponent<RAW_PROPS> {
     // eslint-disable-next-line react/display-name
     return (props: RAW_PROPS) => {

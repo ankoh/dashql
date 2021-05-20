@@ -17,11 +17,12 @@
     },
     "dependencies": {
         "@dashql/core": "^0.0.2",
-        "@dashql/duckdb": "^0.0.26",
+        "@dashql/duckdb": "^0.0.28",
         "@dashql/proto": "^0.0.5",
         "apache-arrow": "^4.0.0",
         "axios": "^0.21.1",
         "bootstrap": "^5.0.1",
+        "flatbuffers": "^2.0.1",
         "classnames": "^2.3.1",
         "dagre": "^0.8.5",
         "framer-motion": "^4.1.17",

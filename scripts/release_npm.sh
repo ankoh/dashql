@@ -30,6 +30,5 @@ function release() {
     fi
 }
 
-release "${PROJECT_ROOT}/webdb" "@dashql/webdb@${WEBDB_VERSION}"
 release "${PROJECT_ROOT}/core" "@dashql/core@${CORE_VERSION}"
 
