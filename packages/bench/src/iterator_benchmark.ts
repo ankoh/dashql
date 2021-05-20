@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import * as duckdb from '../../duckdb/dist/duckdb-node.js';
+import * as duckdb from '@dashql/duckdb/dist/duckdb-node.js';
 import * as core from '../../core/dist/dashql-core-node.js';
 import * as benny from 'benny';
 import kleur from 'kleur';
@@ -388,7 +388,7 @@ function main(db: duckdb.DuckDB) {
 }
 
 const logger = new duckdb.VoidLogger();
-const db = new duckdb.DuckDB(logger, duckdb.NodeRuntime, '../duckdb/dist/duckdb.wasm');
+const db = new duckdb.DuckDB(logger, duckdb.NodeRuntime, '../../node_modules/@dashql/duckdb/dist/duckdb.wasm');
 db.open()
     .then(() => main(db))
     .catch(e => console.error(e));
