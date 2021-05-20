@@ -19,7 +19,6 @@ LIB_DEBUG_DIR="${ROOT_DIR}/lib/build/Debug"
 LIB_RELEASE_DIR="${ROOT_DIR}/lib/build/Release"
 LIB_RELWITHDEBINFO_DIR="${ROOT_DIR}/lib/build/RelWithDebInfo"
 CORE_WASM_DIR="${ROOT_DIR}/packages/core/src/wasm"
-DUCKDB_WASM_DIR="${ROOT_DIR}/packages/duckdb/src/wasm"
 DATAFRAME_WASM_DIR="${ROOT_DIR}/packages/dataframe/src/wasm"
 
 CI_IMAGE_NAMESPACE="dashql"
@@ -191,36 +190,6 @@ app_release_server:
 app_start:
 	yarn workspace @dashql/app start
 
-# Build the duckdb library
-.PHONY: duckdb
-duckdb:
-	yarn workspace @dashql/duckdb build
-
-# Build the duckdb docs
-.PHONY: duckdb_docs
-duckdb_docs:
-	yarn workspace @dashql/duckdb docs
-
-# Run the duckdb javascript tests
-.PHONY: duckdb_tests
-duckdb_tests: duckdb
-	yarn workspace @dashql/duckdb test
-
-# Run the duckdb javascript tests in browser
-.PHONY: duckdb_tests_browser
-duckdb_tests_browser: duckdb
-	yarn workspace @dashql/duckdb test:browser
-
-# Run the duckdb javascript tests in browser
-.PHONY: duckdb_tests_browser
-duckdb_tests_debug: duckdb
-	yarn workspace @dashql/duckdb test:browser:dbg
-
-# Run the duckdb javascript tests on nodejs
-.PHONY: duckdb_tests_node
-duckdb_tests_node: duckdb
-	yarn workspace @dashql/duckdb test:node
-
 # C++ formatting
 .PHONY: clang_format
 clang_format:
@@ -232,7 +201,6 @@ clang_format:
 # JS formatting
 .PHONY: eslint
 eslint:
-	yarn workspace @dashql/duckdb run lint
 	yarn workspace @dashql/core run lint
 	yarn workspace @dashql/bench run lint
 	yarn workspace @dashql/app run lint
@@ -254,12 +222,6 @@ compile_commands:
 		-DCMAKE_BUILD_TYPE=Debug \
 		-DCMAKE_EXPORT_COMPILE_COMMANDS=1
 	ln -sf ${LIB_DEBUG_DIR}/compile_commands.json ${LIB_SOURCE_DIR}/compile_commands.json
-
-# Reset the duckdb repo
-.PHONY: reset_duckdb
-reset_duckdb:
-	rm -rf ${ROOT_DIR}/submodules/duckdb/src/amalgamation/*
-	rm -rf ${ROOT_DIR}/submodules/duckdb/build/*
 
 # Clean the repository
 .PHONY: clean
@@ -286,14 +248,12 @@ bootstrap:
 	make docker_ci_image yarn_install
 	make proto
 	make wasm
-	make duckdb
 	make core
 
 # Run all js tests
 .PHONY: jstests
 jstests:
 	make proto
-	make duckdb_tests
 	make core_tests
 
 # ---------------------------------------------------------------------------

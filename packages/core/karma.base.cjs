@@ -4,6 +4,9 @@ process.env.CHROME_BIN = require('puppeteer').executablePath();
 
 const JS_TIMEOUT = 900000;
 
+const DUCKDB_WASM = '../../node_modules/@dashql/duckdb/dist/duckdb.wasm';
+const DUCKDB_WORKER = '../../node_modules/@dashql/duckdb/dist/duckdb-browser-parallel.worker.js';
+
 module.exports = function (config) {
     return {
         basePath: './',
@@ -20,9 +23,14 @@ module.exports = function (config) {
         files: [
             { pattern: 'dist/tests-browser.js' },
             { pattern: 'src/analyzer/analyzer_wasm.wasm', included: false, watched: false, served: true },
-            { pattern: '../duckdb/dist/duckdb.wasm', included: false, watched: false, served: true },
             {
-                pattern: '../duckdb/dist/duckdb-browser-parallel.worker.js',
+                pattern: DUCKDB_WASM,
+                included: false,
+                watched: false,
+                served: true,
+            },
+            {
+                pattern: DUCKDB_WORKER,
                 included: false,
                 watched: false,
                 served: true,
@@ -34,9 +42,8 @@ module.exports = function (config) {
         },
         proxies: {
             '/static/analyzer_wasm.wasm': '/base/src/analyzer/analyzer_wasm.wasm',
-            '/static/duckdb.wasm': '/absolute' + path.resolve('../duckdb/dist/duckdb.wasm'),
-            '/static/duckdb-browser-parallel.worker.js':
-                '/absolute' + path.resolve('../duckdb/dist/duckdb-browser-parallel.worker.js'),
+            '/static/duckdb.wasm': '/absolute' + path.resolve(DUCKDB_WASM),
+            '/static/duckdb-browser-parallel.worker.js': '/absolute' + path.resolve(DUCKDB_WORKER),
         },
         exclude: [],
         port: 9876,

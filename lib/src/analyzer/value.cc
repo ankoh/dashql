@@ -5,6 +5,7 @@
 #include <iomanip>
 #include <regex>
 #include <sstream>
+#include <unordered_map>
 
 #include "dashql/common/memstream.h"
 #include "dashql/common/variant.h"

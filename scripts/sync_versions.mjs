@@ -3,7 +3,7 @@
 import path from 'path';
 import fs from 'fs';
 
-const pkgNames = ['core', 'duckdb', 'app', 'proto', 'bench'];
+const pkgNames = ['core', 'app', 'proto', 'bench'];
 const pkgs = new Map();
 
 // Read all packages
