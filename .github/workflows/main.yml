@@ -44,12 +44,6 @@ jobs:
                       yarn install --frozen-lockfile
                       ./scripts/generate_proto.sh
 
-            - name: Lint @dashql/duckdb
-              uses: ./actions/image
-              with:
-                  script: |-
-                      yarn workspace @dashql/duckdb run lint
-
             - name: Lint @dashql/core
               uses: ./actions/image
               with:
@@ -223,11 +217,10 @@ jobs:
                       emmake make \
                           -C./lib/build/wasm/release \
                           -j`nproc` \
-                          duckdb_wasm duckdb_wasm_node analyzer_wasm analyzer_wasm_node
+                          analyzer_wasm analyzer_wasm_node
 
                       ccache -s
 
-                      cp ./lib/build/wasm/release/duckdb_*.{wasm,js} ./packages/duckdb/src/bindings/
                       cp ./lib/build/wasm/release/analyzer_*.{wasm,js} ./packages/core/src/analyzer/
 
             - name: Build @dashql/proto
@@ -235,12 +228,6 @@ jobs:
               with:
                   script: |-
                       yarn workspace @dashql/proto build
-
-            - name: Build @dashql/duckdb
-              uses: ./actions/image
-              with:
-                  script: |-
-                      yarn workspace @dashql/duckdb build
 
             - name: Build @dashql/core
               uses: ./actions/image
@@ -253,12 +240,6 @@ jobs:
               with:
                   script: |-
                       yarn workspace @dashql/bench build
-
-            - name: Test @dashql/duckdb
-              uses: ./actions/image
-              with:
-                  script: |-
-                      yarn workspace @dashql/duckdb test:ci
 
             - name: Test @dashql/core
               uses: ./actions/image
@@ -275,7 +256,7 @@ jobs:
             - uses: codecov/codecov-action@v1
               with:
                   token: ${{ secrets.CODECOV_TOKEN }}
-                  files: ./packages/core/coverage/coverage.json,./packages/duckdb/coverage/coverage.json
+                  files: ./packages/core/coverage/coverage.json
                   flags: unittests
 
             - name: Deploy to staging.app.dashql.com

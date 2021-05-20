@@ -290,27 +290,6 @@ add_library(dashql_analyzer
     ${CMAKE_SOURCE_DIR}/src/analyzer/stmt/viz_stmt.cc
 )
 
-add_library(duckdb_web
-    ${CMAKE_SOURCE_DIR}/src/duckdb/web/arrow_inserter.cc
-    ${CMAKE_SOURCE_DIR}/src/duckdb/web/csv_table_options.cc
-    ${CMAKE_SOURCE_DIR}/src/duckdb/web/json_analyzer.cc
-    ${CMAKE_SOURCE_DIR}/src/duckdb/web/json_parser.cc
-    ${CMAKE_SOURCE_DIR}/src/duckdb/web/json_table.cc
-    ${CMAKE_SOURCE_DIR}/src/duckdb/web/json_table_options.cc
-    ${CMAKE_SOURCE_DIR}/src/duckdb/web/json_typedef.cc
-    ${CMAKE_SOURCE_DIR}/src/duckdb/web/io/arrow_ifstream.cc
-    ${CMAKE_SOURCE_DIR}/src/duckdb/web/io/buffered_filesystem.cc
-    ${CMAKE_SOURCE_DIR}/src/duckdb/web/io/default_filesystem.cc
-    ${CMAKE_SOURCE_DIR}/src/duckdb/web/io/filesystem_buffer.cc
-    ${CMAKE_SOURCE_DIR}/src/duckdb/web/io/memory_filesystem.cc
-    ${CMAKE_SOURCE_DIR}/src/duckdb/web/io/ifstream.cc
-    ${CMAKE_SOURCE_DIR}/src/duckdb/web/io/web_filesystem.cc
-    ${CMAKE_SOURCE_DIR}/src/duckdb/web/miniz_zipper.cc
-    ${CMAKE_SOURCE_DIR}/src/duckdb/web/wasm_response.cc
-    ${CMAKE_SOURCE_DIR}/src/duckdb/web/webdb.cc
-    ${CMAKE_SOURCE_DIR}/src/duckdb/web/webdb_api.cc
-)
-
 add_library(dashql_test
     ${CMAKE_SOURCE_DIR}/src/test/analyzer_tests.cc
     ${CMAKE_SOURCE_DIR}/src/test/grammar_tests.cc
@@ -318,8 +297,7 @@ add_library(dashql_test
 
 target_link_libraries(dashql_common dashql_proto flatbuffers spdlog rapidjson nlohmann_json jmespath xlnt arrow duckdb)
 target_link_libraries(dashql_analyzer dashql_parser dashql_common dashql_proto spdlog duckdb rapidjson arrow)
-target_link_libraries(duckdb_web dashql_common dashql_proto duckdb spdlog arrow)
-target_link_libraries(dashql_test duckdb_web dashql_analyzer dashql_common dashql_proto pugixml gtest duckdb)
+target_link_libraries(dashql_test dashql_analyzer dashql_common dashql_proto pugixml gtest duckdb)
 
 # ---------------------------------------------------------------------------
 # Emscripten
@@ -364,50 +342,6 @@ if (EMSCRIPTEN)
     add_executable(analyzer_wasm_node ${CMAKE_SOURCE_DIR}/src/wasm_main.cc)
     target_link_libraries(analyzer_wasm_node dashql_analyzer)
     set_target_properties(analyzer_wasm_node PROPERTIES LINK_FLAGS "${ANALYZER_WASM_LINKER_FLAGS} -s ENVIRONMENT='node'")
-
-    set(DUCKDB_WASM_LINKER_FLAGS " \
-        -s WARN_ON_UNDEFINED_SYMBOLS=0 \
-        -s ALLOW_MEMORY_GROWTH=1 \
-        -s USE_PTHREADS=0 \
-        -s DISABLE_EXCEPTION_CATCHING=0 \
-        -s MODULARIZE=1 \
-        -s FILESYSTEM=0 \
-        -s EXPORT_ES6=1 \
-        -s EXPORT_NAME='DuckDB' \
-        -s EXPORTED_FUNCTIONS='[ \
-            _main, \
-            _malloc, \
-            _free, \
-            _duckdb_web_get_version, \
-            _duckdb_web_clear_response, \
-            _duckdb_web_flush_files, \
-            _duckdb_web_flush_file, \
-            _duckdb_web_connect, \
-            _duckdb_web_disconnect, \
-            _duckdb_web_fs_directory_list_files_callback, \
-            _duckdb_web_fs_glob_callback, \
-            _duckdb_web_query_fetch_results, \
-            _duckdb_web_query_run, \
-            _duckdb_web_query_send, \
-            _duckdb_web_zip_load_file, \
-            _duckdb_web_zip_read_entry_count, \
-            _duckdb_web_zip_read_entry_info, \
-            _duckdb_web_zip_extract_entry_to_path, \
-            _duckdb_web_zip_extract_path_to_path \
-        ]' \
-        -s EXPORTED_RUNTIME_METHODS='[\"ccall\"]' \
-        --js-library=${CMAKE_SOURCE_DIR}/js-stubs.js \
-        ${ADDITIONAL_LINKER_FLAGS} \
-        "
-        )
-
-    add_executable(duckdb_wasm ${CMAKE_SOURCE_DIR}/src/wasm_main.cc)
-    target_link_libraries(duckdb_wasm duckdb_web flatbuffers spdlog)
-    set_target_properties(duckdb_wasm PROPERTIES LINK_FLAGS "${DUCKDB_WASM_LINKER_FLAGS} -s ENVIRONMENT='web'")
-
-    add_executable(duckdb_wasm_node ${CMAKE_SOURCE_DIR}/src/wasm_main.cc)
-    target_link_libraries(duckdb_wasm_node duckdb_web flatbuffers spdlog)
-    set_target_properties(duckdb_wasm_node PROPERTIES LINK_FLAGS "${DUCKDB_WASM_LINKER_FLAGS} -s ENVIRONMENT='node'")
 else()
 
 
@@ -426,24 +360,12 @@ if(NOT EMSCRIPTEN)
         ${CMAKE_SOURCE_DIR}/test/common/substring_buffer_test.cc
         ${CMAKE_SOURCE_DIR}/test/common/topological_sort_test.cc
         ${CMAKE_SOURCE_DIR}/test/common/union_find_test.cc
-        ${CMAKE_SOURCE_DIR}/test/duckdb/duckdb_test.cc
-        ${CMAKE_SOURCE_DIR}/test/duckdb/filesystem_buffer_test.cc
-        ${CMAKE_SOURCE_DIR}/test/duckdb/ifstream_test.cc
-        ${CMAKE_SOURCE_DIR}/test/duckdb/import_csv_test.cc
-        ${CMAKE_SOURCE_DIR}/test/duckdb/import_json_test.cc
-        ${CMAKE_SOURCE_DIR}/test/duckdb/import_parquet_test.cc
-        ${CMAKE_SOURCE_DIR}/test/duckdb/json_analyzer_test.cc
-        ${CMAKE_SOURCE_DIR}/test/duckdb/json_table_test.cc
-        ${CMAKE_SOURCE_DIR}/test/duckdb/json_typedef_test.cc
-        ${CMAKE_SOURCE_DIR}/test/duckdb/memory_filesystem_test.cc
-        ${CMAKE_SOURCE_DIR}/test/duckdb/webdb_test.cc
         ${CMAKE_SOURCE_DIR}/test/parser/grammar_spec_tests.cc
-        ${CMAKE_SOURCE_DIR}/test/duckdb/miniz_zipper_test.cc
         ${CMAKE_SOURCE_DIR}/test/tester.cc
     )
     set (TEST_LIBS
         dashql_test
-        dashql_analyzer duckdb_web dashql_common
+        dashql_analyzer dashql_common
         dashql_proto
         flatbuffers gtest gmock gflags
         ${THREAD_LIBS}
