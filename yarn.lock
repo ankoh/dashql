@@ -242,10 +242,10 @@
     lodash "^4.17.19"
     to-fast-properties "^2.0.0"
 
-"@dashql/duckdb@^0.0.28":
-  version "0.0.28"
-  resolved "https://registry.yarnpkg.com/@dashql/duckdb/-/duckdb-0.0.28.tgz#7b133f0bbaccbe8451b679d498c3e0ea2ed14b75"
-  integrity sha512-Q0s8HEdjL0ugjPzDZUKaSEWoRPIlyi7ea6Zsgn8Q9Eey4UkUID+6AG6bRp4+AeQwlbrsgjnk93WNFZ9a+tKMmQ==
+"@dashql/duckdb@^0.0.29":
+  version "0.0.29"
+  resolved "https://registry.yarnpkg.com/@dashql/duckdb/-/duckdb-0.0.29.tgz#ce0d8bca0cb70a17182f2f15973f44297b73f7ae"
+  integrity sha512-n9gjO5qHn+f0alFhlWij0x2UY18pappMJc6oWcTFP7/i7IdLmPKF7c/mtepMIAvYRd6eGGSzY4/p5M2wWXslRA==
   dependencies:
     apache-arrow "^4.0.0"
     glob-to-regexp "^0.4.1"
