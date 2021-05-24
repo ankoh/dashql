@@ -6,7 +6,7 @@
     "license": "MPL-2.0",
     "dependencies": {
         "@dashql/core": "^0.0.2",
-        "@dashql/duckdb": "^0.0.28",
+        "@dashql/duckdb": "^0.0.29",
         "@dashql/proto": "^0.0.5",
         "@types/benchmark": "^2.1.0",
         "benny": "^3.6.15",
@@ -17,7 +17,7 @@
     "devDependencies": {
         "@typescript-eslint/eslint-plugin": "^4.24.0",
         "@typescript-eslint/parser": "^4.24.0",
-        "eslint": "^7.26.0",
+        "eslint": "^7.27.0",
         "eslint-plugin-jasmine": "^4.1.2",
         "eslint-plugin-prettier": "^3.3.1",
         "eslint-plugin-react": "^7.23.2",
