@@ -50,11 +50,11 @@ jobs:
                   script: |-
                       yarn workspace @dashql/core run lint
 
-            - name: Lint @dashql/bench
+            - name: Lint @dashql/benchmarks
               uses: ./actions/image
               with:
                   script: |-
-                      yarn workspace @dashql/bench run lint
+                      yarn workspace @dashql/benchmarks run lint
 
             - name: Lint @dashql/app
               uses: ./actions/image
@@ -239,7 +239,7 @@ jobs:
               uses: ./actions/image
               with:
                   script: |-
-                      yarn workspace @dashql/bench build
+                      yarn workspace @dashql/benchmarks build
 
             - name: Test @dashql/core
               uses: ./actions/image
