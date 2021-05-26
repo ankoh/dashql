@@ -137,9 +137,9 @@ core_tests: core
 	yarn workspace @dashql/core test
 
 # Build the benchmarks
-.PHONY: bench
-bench:
-	yarn workspace @dashql/bench build
+.PHONY: benchmarks
+benchmarks:
+	yarn workspace @dashql/benchmarks build
 
 # Compile the flatbuffer schema
 .PHONY: proto
@@ -202,7 +202,7 @@ clang_format:
 .PHONY: eslint
 eslint:
 	yarn workspace @dashql/core run lint
-	yarn workspace @dashql/bench run lint
+	yarn workspace @dashql/benchmarks run lint
 	yarn workspace @dashql/app run lint
 
 # Install all yarn packages
