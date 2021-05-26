@@ -2,7 +2,7 @@
     "editor.formatOnSave": true,
     "editor.trimAutoWhitespace": true,
     "files.insertFinalNewline": true,
-    "eslint.workingDirectories": ["./packages/app", "./packages/core", "./packages/bench", "./packages/duckdb"],
+    "eslint.workingDirectories": ["./packages/app", "./packages/core", "./packages/benchmarks", "./packages/jmespath"],
     "[javascript]": {
         "editor.defaultFormatter": "esbenp.prettier-vscode"
     },
