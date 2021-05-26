@@ -15,17 +15,18 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_FLAGS -std=c++17)
 
 if(NOT EMSCRIPTEN)
-  if(CMAKE_BUILD_TYPE MATCHES Release)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Os")
-  endif()
   set(CMAKE_CXX_FLAGS_DEBUG
       "${CMAKE_CXX_FLAGS_DEBUG} -fsanitize=address -fsanitize=undefined")
 endif()
 
 # DuckDB makes heavy use of exceptions so there's no way around that
 if(EMSCRIPTEN)
-  add_compile_options(-s DISABLE_EXCEPTION_CATCHING=0 -fexceptions
-                      -sUSE_PTHREADS=0)
+  if(CMAKE_BUILD_TYPE MATCHES Release)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Os")
+  endif()
+  set(CMAKE_CXX_FLAGS
+      "${CMAKE_CXX_FLAGS} -sDISABLE_EXCEPTION_CATCHING=0 -fexceptions -sUSE_PTHREADS=0"
+  )
 endif()
 
 # ---------------------------------------------------------------------------
