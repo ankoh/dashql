@@ -375,6 +375,7 @@ if(NOT EMSCRIPTEN)
       ${CMAKE_SOURCE_DIR}/test/common/substring_buffer_test.cc
       ${CMAKE_SOURCE_DIR}/test/common/topological_sort_test.cc
       ${CMAKE_SOURCE_DIR}/test/common/union_find_test.cc
+      ${CMAKE_SOURCE_DIR}/test/jmespath/jmespath_test.cc
       ${CMAKE_SOURCE_DIR}/test/parser/grammar_spec_tests.cc
       ${CMAKE_SOURCE_DIR}/test/tester.cc)
   set(TEST_LIBS
@@ -382,6 +383,7 @@ if(NOT EMSCRIPTEN)
       dashql_analyzer
       dashql_common
       dashql_proto
+      jmespath
       flatbuffers
       gtest
       gmock
