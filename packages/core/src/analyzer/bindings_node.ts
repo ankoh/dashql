@@ -1,6 +1,6 @@
 // Copyright (c) 2020 The DashQL Authors
 
-import dashql_core_init from './analyzer_wasm_node';
+import dashql_core_init from './analyzer_wasm';
 import { DashQLAnalyzerModule } from './analyzer_wasm_module';
 import { AnalyzerBindings, AnalyzerRuntime } from './bindings';
 import fs from 'fs';

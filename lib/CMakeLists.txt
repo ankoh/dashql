@@ -321,8 +321,13 @@ if(EMSCRIPTEN)
     set(ADDITIONAL_LINKER_FLAGS -Os)
   endif()
 
-  set(ANALYZER_WASM_LINKER_FLAGS
-      " \
+  add_executable(analyzer_wasm ${CMAKE_SOURCE_DIR}/src/wasm_main.cc)
+  target_link_libraries(analyzer_wasm dashql_analyzer)
+  set_target_properties(
+    analyzer_wasm
+    PROPERTIES
+      LINK_FLAGS
+      " -s ENVIRONMENT='web,node' \
         -s WARN_ON_UNDEFINED_SYMBOLS=1 \
         -s ALLOW_MEMORY_GROWTH=1 \
         -s USE_PTHREADS=0 \
@@ -346,18 +351,6 @@ if(EMSCRIPTEN)
         -s EXPORTED_RUNTIME_METHODS='[\"ccall\"]' \
         ${ADDITIONAL_LINKER_FLAGS} \
         ")
-
-  add_executable(analyzer_wasm ${CMAKE_SOURCE_DIR}/src/wasm_main.cc)
-  target_link_libraries(analyzer_wasm dashql_analyzer)
-  set_target_properties(
-    analyzer_wasm
-    PROPERTIES LINK_FLAGS "${ANALYZER_WASM_LINKER_FLAGS} -s ENVIRONMENT='web'")
-
-  add_executable(analyzer_wasm_node ${CMAKE_SOURCE_DIR}/src/wasm_main.cc)
-  target_link_libraries(analyzer_wasm_node dashql_analyzer)
-  set_target_properties(
-    analyzer_wasm_node
-    PROPERTIES LINK_FLAGS "${ANALYZER_WASM_LINKER_FLAGS} -s ENVIRONMENT='node'")
 else()
 
 endif()
