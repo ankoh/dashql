@@ -217,7 +217,7 @@ jobs:
                       emmake make \
                           -C./lib/build/wasm/release \
                           -j`nproc` \
-                          analyzer_wasm analyzer_wasm_node
+                          analyzer_wasm
 
                       ccache -s
 

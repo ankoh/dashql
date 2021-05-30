@@ -42,6 +42,6 @@ emcmake cmake \
 emmake make \
     -C"${CPP_SOURCE_DIR}/build/wasm/${MODE}" \
     -j${CORES} \
-    analyzer_wasm analyzer_wasm_node
+    analyzer_wasm
 
 cp ${CPP_SOURCE_DIR}/build/wasm/${MODE}/analyzer_*.{wasm,js} "${ANALYZER_LIB_DIR}"
