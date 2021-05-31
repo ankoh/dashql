@@ -23,5 +23,28 @@
     },
     "[xml]": {
         "editor.formatOnSave": false
+    },
+    "files.watcherExclude": {
+        "**/.cache": true,
+        "**/.git": true,
+        "**/.nyc_output": true,
+        "**/dist": true,
+        "**/node_modules": true,
+        "**/target*": true,
+        "**/.ccache": true,
+        "**/.emscripten_cache": true,
+        "**/lib/build": true,
+        "**/submodules": true
+    },
+    "search.exclude": {
+        "**/.cache": true,
+        "**/.git": true,
+        "**/.nyc_output": true,
+        "**/dist": true,
+        "**/node_modules": true,
+        "**/target*": true,
+        "**/.ccache": true,
+        "**/.emscripten_cache": true,
+        "**/lib/build": true
     }
 }
