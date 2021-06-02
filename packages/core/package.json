@@ -17,7 +17,7 @@
     "devDependencies": {
         "@types/react": ">=17.0.9",
         "@typescript-eslint/eslint-plugin": "^4.26.0",
-        "@typescript-eslint/parser": "^4.25.0",
+        "@typescript-eslint/parser": "^4.26.0",
         "@types/jasmine": "^3.7.6",
         "axios-mock-adapter": "^1.19.0",
         "esbuild": "^0.12.5",
