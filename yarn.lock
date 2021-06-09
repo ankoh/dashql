@@ -5881,10 +5881,10 @@ react-redux@^7.2.4:
     prop-types "^15.7.2"
     react-is "^16.13.1"
 
-react-resizable@^3.0.1:
-  version "3.0.1"
-  resolved "https://registry.yarnpkg.com/react-resizable/-/react-resizable-3.0.1.tgz#9709831809d87d3abe861df7fe691e6103f27dc1"
-  integrity sha512-wban8GguvXrmeObSVTmhxs99G9eUgYSGugf0i32qHXyqKDTzQsCKLhm3VJW24TpTBKJvM+cybNExskOCYkYF5Q==
+react-resizable@^3.0.1, react-resizable@^3.0.2:
+  version "3.0.2"
+  resolved "https://registry.yarnpkg.com/react-resizable/-/react-resizable-3.0.2.tgz#791f41bee500e4cdbf90a5a273a07ff7dea08262"
+  integrity sha512-IhVDLh9kDr1zzdWrygNM6or8LwWy1OSyg4sGG3P8+JYBQ4vnOjAs7l2kmHkT8cR2FyLjrlHXZkjz84cjUfFBMg==
   dependencies:
     prop-types "15.x"
     react-draggable "^4.0.3"
