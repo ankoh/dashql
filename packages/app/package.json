@@ -27,7 +27,7 @@
         "dagre": "^0.8.5",
         "framer-motion": "^4.1.17",
         "immutable": "^4.0.0-rc.12",
-        "monaco-editor": "^0.25.0",
+        "monaco-editor": "^0.25.1",
         "react": "^17.0.2",
         "react-avatar": "^3.10.0",
         "react-bootstrap": "^1.6.1",
