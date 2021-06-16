@@ -36,7 +36,7 @@
         "react-flow-renderer": "^9.6.0",
         "react-grid-layout": "^1.2.5",
         "react-redux": "^7.2.4",
-        "react-resizable": "^3.0.3",
+        "react-resizable": "^3.0.4",
         "react-router-dom": "^5.2.0",
         "react-simple-maps": "^2.3.0",
         "react-vega": "^7.4.3",
