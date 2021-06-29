@@ -19,7 +19,7 @@
         "@dashql/core": "^0.0.2",
         "@dashql/duckdb": "^0.0.29",
         "@dashql/proto": "^0.0.5",
-        "apache-arrow": "^4.0.0",
+        "apache-arrow": "^4.0.1",
         "axios": "^0.21.1",
         "bootstrap": "^5.0.2",
         "flatbuffers": "^2.0.3",
