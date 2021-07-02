@@ -118,7 +118,7 @@ export function configure(params) {
                     },
                 },
                 {
-                    test: /\.js$/,
+                    test: /.*core.*\.js$/,
                     enforce: 'pre',
                     use: ['source-map-loader'],
                 },
