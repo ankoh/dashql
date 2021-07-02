@@ -17,7 +17,7 @@
     },
     "dependencies": {
         "@dashql/core": "^0.0.2",
-        "@dashql/duckdb": "^0.0.29",
+        "@dashql/duckdb": "^0.0.32",
         "@dashql/proto": "^0.0.5",
         "apache-arrow": "^4.0.1",
         "axios": "^0.21.1",
@@ -87,7 +87,7 @@
         "ts-loader": "^9.2.2",
         "typescript": "^4.3.4",
         "typescript-plugin-css-modules": "^3.3.0",
-        "webpack": "^5.41.0",
+        "webpack": "^5.42.0",
         "webpack-bundle-analyzer": "^4.4.2",
         "webpack-cli": "^4.7.0",
         "webpack-dev-server": "^3.11.2",

@@ -249,13 +249,13 @@
     "@babel/helper-validator-identifier" "^7.14.5"
     to-fast-properties "^2.0.0"
 
-"@dashql/duckdb@^0.0.29":
-  version "0.0.29"
-  resolved "https://registry.yarnpkg.com/@dashql/duckdb/-/duckdb-0.0.29.tgz#ce0d8bca0cb70a17182f2f15973f44297b73f7ae"
-  integrity sha512-n9gjO5qHn+f0alFhlWij0x2UY18pappMJc6oWcTFP7/i7IdLmPKF7c/mtepMIAvYRd6eGGSzY4/p5M2wWXslRA==
+"@dashql/duckdb@^0.0.32":
+  version "0.0.32"
+  resolved "https://registry.yarnpkg.com/@dashql/duckdb/-/duckdb-0.0.32.tgz#454c819ad6f9deac126d13abe73c41d1c44670f6"
+  integrity sha512-gdKaxoINYZxLfzZe+ZaQZq7KsNrg7BW1GpyvKSXiS68db1TQJOxjKPQ9D3fc5J8VL5LrWRfmbIDb4G6p3Z77gQ==
   dependencies:
     apache-arrow "^4.0.0"
-    glob-to-regexp "^0.4.1"
+    wasm-feature-detect "^1.2.11"
   optionalDependencies:
     fsevents "*"
 
@@ -1227,10 +1227,10 @@ acorn@^7.4.0:
   resolved "https://registry.yarnpkg.com/acorn/-/acorn-7.4.1.tgz#feaed255973d2e77555b83dbc08851a6c63520fa"
   integrity sha512-nQyp0o1/mNdbTO1PO6kHkwSrmgZ0MT/jCCpNiwbUjGoRN4dlBhqJtoQuCnEOKzgTVwg0ZWiCoQy6SxMebQVh8A==
 
-acorn@^8.0.4, acorn@^8.2.1:
-  version "8.3.0"
-  resolved "https://registry.yarnpkg.com/acorn/-/acorn-8.3.0.tgz#1193f9b96c4e8232f00b11a9edff81b2c8b98b88"
-  integrity sha512-tqPKHZ5CaBJw0Xmy0ZZvLs1qTV+BNFSyvn77ASXkpBNfIRk8ev26fKrD9iLGwGA9zedPao52GSHzq8lyZG0NUw==
+acorn@^8.0.4, acorn@^8.4.1:
+  version "8.4.1"
+  resolved "https://registry.yarnpkg.com/acorn/-/acorn-8.4.1.tgz#56c36251fc7cabc7096adc18f05afe814321a28c"
+  integrity sha512-asabaBSkEKosYKMITunzX177CXxQ4Q8BSSzMTKD+FefUhipQC70gfW5SiUDhYQ3vk8G+81HqQk7Fv9OXwwn9KA==
 
 add-px-to-style@1.0.0:
   version "1.0.0"
@@ -7816,6 +7816,11 @@ warning@^4.0.0, warning@^4.0.3:
   dependencies:
     loose-envify "^1.0.0"
 
+wasm-feature-detect@^1.2.11:
+  version "1.2.11"
+  resolved "https://registry.yarnpkg.com/wasm-feature-detect/-/wasm-feature-detect-1.2.11.tgz#e21992fd1f1d41a47490e392a5893cb39d81e29e"
+  integrity sha512-HUqwaodrQGaZgz1lZaNioIkog9tkeEJjrM3eq4aUL04whXOVDRc/o2EGb/8kV0QX411iAYWEqq7fMBmJ6dKS6w==
+
 watchpack@^2.2.0:
   version "2.2.0"
   resolved "https://registry.yarnpkg.com/watchpack/-/watchpack-2.2.0.tgz#47d78f5415fe550ecd740f99fe2882323a58b1ce"
@@ -7959,17 +7964,17 @@ webpack-sources@^2.3.0:
     source-list-map "^2.0.1"
     source-map "^0.6.1"
 
-webpack@^5.41.0:
-  version "5.41.0"
-  resolved "https://registry.yarnpkg.com/webpack/-/webpack-5.41.0.tgz#217daa27bdd30287c1d7f9d9e0a2304fe33c5a51"
-  integrity sha512-pCVO7hVm8XiL6DpPtXrFLS8ktmH/tpvtbEex6hn4RweTFe6z6Cugh5FlQoEPZotb15HiirjM2Kv7THTA7sKLzQ==
+webpack@^5.42.0:
+  version "5.42.0"
+  resolved "https://registry.yarnpkg.com/webpack/-/webpack-5.42.0.tgz#39aadbce84ad2cebf86cc5f88a2c53db65cbddfb"
+  integrity sha512-Ln8HL0F831t1x/yPB/qZEUVmZM4w9BnHZ1EQD/sAUHv8m22hthoPniWTXEzFMh/Sf84mhrahut22TX5KxWGuyQ==
   dependencies:
     "@types/eslint-scope" "^3.7.0"
     "@types/estree" "^0.0.48"
     "@webassemblyjs/ast" "1.11.0"
     "@webassemblyjs/wasm-edit" "1.11.0"
     "@webassemblyjs/wasm-parser" "1.11.0"
-    acorn "^8.2.1"
+    acorn "^8.4.1"
     browserslist "^4.14.5"
     chrome-trace-event "^1.0.2"
     enhanced-resolve "^5.8.0"
