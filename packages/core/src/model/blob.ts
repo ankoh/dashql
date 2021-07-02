@@ -7,8 +7,6 @@ import { PlanObject } from './plan_object';
 export interface BlobRef extends PlanObject {
     /// The file path
     readonly filePath: string;
-    /// The file id
-    readonly fileId: number;
     /// The archive mode (if any)
     readonly archiveMode: proto.analyzer.ArchiveMode;
 }

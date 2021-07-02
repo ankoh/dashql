@@ -249,13 +249,13 @@
     "@babel/helper-validator-identifier" "^7.14.5"
     to-fast-properties "^2.0.0"
 
-"@dashql/duckdb@^0.0.29":
-  version "0.0.29"
-  resolved "https://registry.yarnpkg.com/@dashql/duckdb/-/duckdb-0.0.29.tgz#ce0d8bca0cb70a17182f2f15973f44297b73f7ae"
-  integrity sha512-n9gjO5qHn+f0alFhlWij0x2UY18pappMJc6oWcTFP7/i7IdLmPKF7c/mtepMIAvYRd6eGGSzY4/p5M2wWXslRA==
+"@dashql/duckdb@^0.0.30":
+  version "0.0.30"
+  resolved "https://registry.yarnpkg.com/@dashql/duckdb/-/duckdb-0.0.30.tgz#42fe33f834834a6b928c32e703900e1080ef2a74"
+  integrity sha512-YaeC6uPks9xiYnBSh2+l1wrIagISCaF02LzMhjb+VSx9Jkh+HFbGunF+vw5levZkZcl7LQZG7/BMP/wC7o+Uhw==
   dependencies:
     apache-arrow "^4.0.0"
-    glob-to-regexp "^0.4.1"
+    wasm-feature-detect "^1.2.11"
   optionalDependencies:
     fsevents "*"
 
@@ -7815,6 +7815,11 @@ warning@^4.0.0, warning@^4.0.3:
   integrity sha512-rpJyN222KWIvHJ/F53XSZv0Zl/accqHR8et1kpaMTD/fLCRxtV8iX8czMzY7sVZupTI3zcUTg8eycS2kNF9l6w==
   dependencies:
     loose-envify "^1.0.0"
+
+wasm-feature-detect@^1.2.11:
+  version "1.2.11"
+  resolved "https://registry.yarnpkg.com/wasm-feature-detect/-/wasm-feature-detect-1.2.11.tgz#e21992fd1f1d41a47490e392a5893cb39d81e29e"
+  integrity sha512-HUqwaodrQGaZgz1lZaNioIkog9tkeEJjrM3eq4aUL04whXOVDRc/o2EGb/8kV0QX411iAYWEqq7fMBmJ6dKS6w==
 
 watchpack@^2.2.0:
   version "2.2.0"
