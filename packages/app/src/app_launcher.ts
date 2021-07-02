@@ -1,12 +1,36 @@
 import * as duckdb from '@dashql/duckdb/dist/duckdb.module.js';
-import { Analyzer } from '@dashql/core/dist/dashql-core-browser.module.js';
 import * as model from './model';
 import * as examples from './example_scripts';
 import * as platform from './platform';
+import { Analyzer } from '@dashql/core/dist/dashql-core-browser.module.js';
 import { IAppContext } from './app_context';
 
 import analyzer_wasm from '@dashql/core/dist/dashql-analyzer.wasm';
 import duckdb_wasm from '@dashql/duckdb/dist/duckdb.wasm';
+import duckdb_wasm_next from '@dashql/duckdb/dist/duckdb-next.wasm';
+import duckdb_wasm_next_coi from '@dashql/duckdb/dist/duckdb-next-coi.wasm';
+
+const DUCKDB_BUNDLES: duckdb.DuckDBBundles = {
+    asyncDefault: {
+        mainModule: duckdb_wasm,
+        mainWorker: new URL('@dashql/duckdb/dist/duckdb-browser-async.worker.js', import.meta.url).toString(),
+    },
+    asyncNext: {
+        mainModule: duckdb_wasm_next,
+        mainWorker: new URL('@dashql/duckdb/dist/duckdb-browser-async-next.worker.js', import.meta.url).toString(),
+    },
+    asyncNextCOI: {
+        mainModule: duckdb_wasm_next_coi,
+        mainWorker: new URL(
+            '@dashql/duckdb/dist/duckdb-browser-async-next-coi.worker.js',
+            import.meta.url,
+        ).toString(),
+        pthreadWorker: new URL(
+            '@dashql/duckdb/dist/duckdb-browser-async-next-coi.pthread.worker.js',
+            import.meta.url,
+        ).toString(),
+    },
+};
 
 import axios from 'axios';
 import config_url from '../static/config.json';
@@ -56,9 +80,10 @@ async function configureApp(store: model.AppReduxStore): Promise<model.AppConfig
 async function initDuckDB(store: model.AppReduxStore, logger: duckdb.Logger): Promise<duckdb.AsyncDuckDB | null> {
     startStep(store, model.LaunchStep.INIT_WEBDB);
     try {
-        const dbWorker = new Worker(new URL('@dashql/duckdb/dist/duckdb-browser-parallel.worker.js', import.meta.url));
+        const config = await duckdb.configure(DUCKDB_BUNDLES);
+        const dbWorker = new Worker(config.mainWorker!);
         const db = new duckdb.AsyncDuckDB(logger, dbWorker);
-        await db.open(duckdb_wasm);
+        await db.open(config.mainModule, config.pthreadWorker);
         stepSucceeded(store, model.LaunchStep.INIT_WEBDB);
         return db;
     } catch (e) {

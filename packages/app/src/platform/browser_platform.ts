@@ -1,4 +1,4 @@
-import * as duckdb from '@dashql/duckdb/dist/duckdb-browser-parallel.js';
+import * as duckdb from '@dashql/duckdb/dist/duckdb.module.js';
 import * as core from '@dashql/core';
 import * as model from '../model';
 
