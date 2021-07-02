@@ -39,9 +39,9 @@ export class LoadActionLogic extends ProgramActionLogic {
             const db = conn.instance;
             switch (blob.archiveMode) {
                 case proto.analyzer.ArchiveMode.ZIP: {
-                    const outPath = `blob://${this.buffer.nameQualified()}`;
-                    const outId = await db.addFileBuffer(outPath, new Uint8Array());
-                    await db.extractZipPath(blob.fileId, outId, xtr.dataSourceIndex());
+                    const outPath = this.buffer.nameQualified() || '';
+                    await db.registerFileBuffer(outPath, new Uint8Array());
+                    await db.extractZipPath(blob.filePath, outPath, xtr.dataSourceIndex());
                     return outPath;
                 }
                 case proto.analyzer.ArchiveMode.NONE:
