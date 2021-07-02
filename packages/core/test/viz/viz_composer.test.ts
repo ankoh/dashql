@@ -194,7 +194,7 @@ class FakeStatisticsResolver {
 
 let ana: analyzer.AnalyzerBindings;
 beforeAll(async () => {
-    ana = new Analyzer({}, '/base/src/analyzer/analyzer_wasm.wasm');
+    ana = new Analyzer({}, '/static/analyzer_wasm.wasm');
     await ana.init();
 });
 beforeEach(async () => {

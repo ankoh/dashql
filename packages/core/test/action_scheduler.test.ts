@@ -1,8 +1,9 @@
 import { analyzer, model, actions, platform, ActionScheduler, utils } from '../src';
 import { Analyzer } from '../src/index_browser';
-import * as duckdb from '@dashql/duckdb/dist/duckdb.module.js';
-import * as proto from '@dashql/proto';
 import { HTTPMock } from './mocks/http_mock';
+
+import * as proto from '@dashql/proto';
+import * as duckdb from '@dashql/duckdb/dist/duckdb.module.js';
 
 import ActionStatus = proto.action.ActionStatusCode;
 import ActionClass = proto.action.ActionClass;
@@ -12,22 +13,45 @@ const logger = new duckdb.VoidLogger();
 
 let az: analyzer.AnalyzerBindings;
 let worker: Worker;
+let dbConfig: duckdb.DuckDBConfig;
 let db: duckdb.AsyncDuckDB;
 let conn: duckdb.AsyncDuckDBConnection;
 
 let httpMock: HTTPMock | null = null;
 
+const ANALYZER_WASM = '/static/analyzer_wasm.wasm';
+const DUCKDB_BUNDLES: duckdb.DuckDBBundles = {
+    asyncDefault: {
+        mainModule: '/static/duckdb/duckdb.wasm',
+        mainWorker: '/static/duckdb/duckdb-browser-async.worker.js',
+    },
+    asyncNext: {
+        mainModule: '/static/duckdb/duckdb-next.wasm',
+        mainWorker: '/static/duckdb/duckdb-browser-async-next.worker.js',
+    },
+    asyncNextCOI: {
+        mainModule: '/static/duckdb/duckdb-next-coi.wasm',
+        mainWorker: '/static/duckdb/duckdb-browser-async-next-coi.worker.js',
+        pthreadWorker: '/static/duckdb/duckdb-browser-async-next-coi.pthread.worker.js',
+    },
+};
+
 beforeAll(async () => {
-    az = new Analyzer({}, '/static/analyzer_wasm.wasm');
+    // Setup the analyzer
+    az = new Analyzer({}, ANALYZER_WASM);
     await az.init();
-    worker = new Worker('/static/duckdb-browser-parallel.worker.js');
+    // Setup the database
+    dbConfig = await duckdb.configure(DUCKDB_BUNDLES);
+    worker = new Worker(dbConfig.mainWorker!);
     db = new duckdb.AsyncDuckDB(logger, worker);
 });
 
 beforeEach(async () => {
     try {
+        // Reset the analyzer
         await az.reset();
-        await db.open('/static/duckdb.wasm');
+        // Re-open the database
+        await db.open(dbConfig.mainModule, dbConfig.pthreadWorker);
         conn = await db.connect();
     } catch (e) {
         console.error(e);
@@ -35,6 +59,7 @@ beforeEach(async () => {
 });
 
 afterEach(async () => {
+    // Disconnect and restart
     await conn.disconnect();
     await db.reset();
 

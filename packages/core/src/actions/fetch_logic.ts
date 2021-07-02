@@ -54,8 +54,9 @@ export class FetchActionLogic extends ProgramActionLogic {
 
         // Register as blob in database
         const db = context.platform.database;
-        const blobPath = `blob://${this.buffer.nameQualified()}`;
-        const fileId = await db.use(c => c.instance.addFileBlob(blobPath, blob));
+        const name = this.buffer.nameQualified() || '';
+        const blobBuffer = await blob.arrayBuffer();
+        await db.use(async c => await c.instance.registerFileBuffer(name, new Uint8Array(blobBuffer)));
 
         // Create plan object
         const now = new Date();
@@ -65,8 +66,7 @@ export class FetchActionLogic extends ProgramActionLogic {
             timeCreated: now,
             timeUpdated: now,
             nameQualified: this.buffer.nameQualified() || '',
-            filePath: blobPath,
-            fileId: fileId,
+            filePath: name,
             archiveMode: fetch.archive(),
         };
 

@@ -4,7 +4,7 @@ import { Analyzer } from '../src/index_browser';
 let az: analyzer.AnalyzerBindings;
 
 beforeAll(async () => {
-    az = new Analyzer({}, '/base/src/analyzer/analyzer_wasm.wasm');
+    az = new Analyzer({}, '/static/analyzer_wasm.wasm');
     await az.init();
 });
 

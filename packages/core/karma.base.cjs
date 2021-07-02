@@ -4,12 +4,9 @@ process.env.CHROME_BIN = require('puppeteer').executablePath();
 
 const JS_TIMEOUT = 900000;
 
-const DUCKDB_WASM = '../../node_modules/@dashql/duckdb/dist/duckdb.wasm';
-const DUCKDB_WORKER = '../../node_modules/@dashql/duckdb/dist/duckdb-browser-parallel.worker.js';
-
 module.exports = function (config) {
     return {
-        basePath: './',
+        basePath: '../..',
         plugins: [
             'karma-jasmine',
             'karma-chrome-launcher',
@@ -21,29 +18,18 @@ module.exports = function (config) {
         ],
         frameworks: ['jasmine'],
         files: [
-            { pattern: 'dist/tests-browser.js' },
-            { pattern: 'src/analyzer/analyzer_wasm.wasm', included: false, watched: false, served: true },
-            {
-                pattern: DUCKDB_WASM,
-                included: false,
-                watched: false,
-                served: true,
-            },
-            {
-                pattern: DUCKDB_WORKER,
-                included: false,
-                watched: false,
-                served: true,
-            },
+            { pattern: 'packages/core/dist/tests-browser.js' },
+            { pattern: 'packages/core/src/analyzer/analyzer_wasm.wasm', included: false, watched: false, served: true },
+            { pattern: 'node_modules/@dashql/duckdb/dist/*.js', included: false, watched: false, served: true },
+            { pattern: 'node_modules/@dashql/duckdb/dist/*.wasm', included: false, watched: false, served: true },
         ],
         preprocessors: {
-            'src/**/*.js': ['sourcemap'],
-            'test/**/*.js': ['sourcemap'],
+            '**/*.js': ['sourcemap', 'coverage'],
         },
         proxies: {
-            '/static/analyzer_wasm.wasm': '/base/src/analyzer/analyzer_wasm.wasm',
-            '/static/duckdb.wasm': '/absolute' + path.resolve(DUCKDB_WASM),
-            '/static/duckdb-browser-parallel.worker.js': '/absolute' + path.resolve(DUCKDB_WORKER),
+            '/static/analyzer_wasm.wasm': '/base/packages/core/src/analyzer/analyzer_wasm.wasm',
+            '/static/duckdb/': '/base/node_modules/@dashql/duckdb/dist/',
+            '/data/': '/base/data/',
         },
         exclude: [],
         port: 9876,
