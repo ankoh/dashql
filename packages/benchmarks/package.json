@@ -17,12 +17,12 @@
     "devDependencies": {
         "@typescript-eslint/eslint-plugin": "^4.28.0",
         "@typescript-eslint/parser": "^4.28.1",
-        "eslint": "^7.29.0",
+        "eslint": "^7.30.0",
         "eslint-plugin-jasmine": "^4.1.2",
         "eslint-plugin-prettier": "^3.3.1",
         "eslint-plugin-react": "^7.24.0",
         "prettier": "^2.3.2",
-        "typescript": "^4.3.4"
+        "typescript": "^4.3.5"
     },
     "optionalDependencies": {
         "fsevents": "*"
