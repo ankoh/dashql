@@ -6,20 +6,20 @@ import sx = proto.syntax;
 
 import Key = proto.syntax.AttributeKey;
 
-let analyzerBindings: analyzer.AnalyzerBindings;
+let az: analyzer.AnalyzerBindings;
 
 beforeAll(async () => {
-    analyzerBindings = new Analyzer({}, '/static/analyzer_wasm.wasm');
-    await analyzerBindings.init();
+    az = new Analyzer({}, '/static/analyzer_wasm.wasm');
+    await az.init();
 });
 
 beforeEach(async () => {
-    analyzerBindings.reset();
+    az.reset();
 });
 
 describe('Statement schema', () => {
     it('simple fetch statement', () => {
-        const program = analyzerBindings.parseProgram(`
+        const program = az.parseProgram(`
             FETCH weather_csv FROM http (
                 url = 'https://localhost/test'
             );
