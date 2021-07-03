@@ -402,22 +402,10 @@
   resolved "https://registry.yarnpkg.com/@types/d3-array/-/d3-array-3.0.1.tgz#0ff28ee7052a2e504cb951d17df7437c33d442d6"
   integrity sha512-D/G7oG0czeszALrkdUiV68CDiHDxXf+M2mLVqAyKktGd12VKQQljj1sHJGBKjcK4jRH1biBd6ZPQPHpJ0mNa0w==
 
-"@types/d3-array@^2":
-  version "2.12.2"
-  resolved "https://registry.yarnpkg.com/@types/d3-array/-/d3-array-2.12.2.tgz#e381839b7cbfdb247ec1e608a8ffc73b5eb4d1f3"
-  integrity sha512-lAm2UUZaAUDnaRYwsS1z9LjDNSvDlgoNBatFGmc2Gn46dWkDkaH4G8Dx9gaB4ISVv8HKv2OZ6RhyvGoW7viZJg==
-
 "@types/d3-axis@*":
   version "3.0.1"
   resolved "https://registry.yarnpkg.com/@types/d3-axis/-/d3-axis-3.0.1.tgz#6afc20744fa5cc0cbc3e2bd367b140a79ed3e7a8"
   integrity sha512-zji/iIbdd49g9WN0aIsGcwcTBUkgLsCSwB+uH+LPVDAiKWENMtI3cJEWt+7/YYwelMoZmbBfzA3qCdrZ2XFNnw==
-  dependencies:
-    "@types/d3-selection" "*"
-
-"@types/d3-axis@^2":
-  version "2.1.1"
-  resolved "https://registry.yarnpkg.com/@types/d3-axis/-/d3-axis-2.1.1.tgz#34bdf0091e80f86b8b234e29c106356737a53226"
-  integrity sha512-pYXPgwWwhl3yEIkeozh6NTJ0cd3tUPNUHhMEeCnCpdeSIQmCf2EKiRwntipnhHeZ8dU3K8P4MomxcK4Hrzit4g==
   dependencies:
     "@types/d3-selection" "*"
 
@@ -428,24 +416,12 @@
   dependencies:
     "@types/d3-selection" "*"
 
-"@types/d3-brush@^2":
-  version "2.1.1"
-  resolved "https://registry.yarnpkg.com/@types/d3-brush/-/d3-brush-2.1.1.tgz#a5cffe00955cdb400e0f34230b3c78dcfe6e8f0e"
-  integrity sha512-Q2Ou628q5VLSLWXH/JxHtXI2jen/NiOB1KrRC6QR/hT8NrjzU604FDdJ8P1rt/xW+WED5mImfip09hVz0Fuylg==
-  dependencies:
-    "@types/d3-selection" "*"
-
 "@types/d3-chord@*":
   version "3.0.1"
   resolved "https://registry.yarnpkg.com/@types/d3-chord/-/d3-chord-3.0.1.tgz#54c8856c19c8e4ab36a53f73ba737de4768ad248"
   integrity sha512-eQfcxIHrg7V++W8Qxn6QkqBNBokyhdWSAS73AbkbMzvLQmVVBviknoz2SRS/ZJdIOmhcmmdCRE/NFOm28Z1AMw==
 
-"@types/d3-chord@^2":
-  version "2.0.2"
-  resolved "https://registry.yarnpkg.com/@types/d3-chord/-/d3-chord-2.0.2.tgz#a9ceb21ce540321bf7eb309484bec6af7fcb0ab2"
-  integrity sha512-TPI2Z9W88S5hCbEPO/y9rDrTWpi3FI0DEW5eD+qH37GAT9ExzhB6j1fj+BXk6cN07oFMKkVzAuWpo6RY/qlXYA==
-
-"@types/d3-color@*", "@types/d3-color@^2":
+"@types/d3-color@*":
   version "2.0.2"
   resolved "https://registry.yarnpkg.com/@types/d3-color/-/d3-color-2.0.2.tgz#4d77dc4304966b23e42878e2978fcdf50c969eb5"
   integrity sha512-5zl/UNuZTK/7nGWjK2xDifBJ4CE2amKqS6Qnea+IwGNKAQ8Csh1ppakVHSO+uAdwLOmVHUjdoinmNG5OUUOfsw==
@@ -458,33 +434,15 @@
     "@types/d3-array" "*"
     "@types/geojson" "*"
 
-"@types/d3-contour@^2":
-  version "2.0.2"
-  resolved "https://registry.yarnpkg.com/@types/d3-contour/-/d3-contour-2.0.2.tgz#fe4cfce87a80859b15bbaa0546358dac3b2cee6a"
-  integrity sha512-+OUXgpCjdG/ez7iGoAqPRaa/mNqDZ6xdx4mCnH9Wwf4RF1YBBfapT13k4dQ2u7rxQZgLXKeMES98cBwMvXN1XA==
-  dependencies:
-    "@types/d3-array" "^2"
-    "@types/geojson" "*"
-
 "@types/d3-delaunay@*":
   version "6.0.0"
   resolved "https://registry.yarnpkg.com/@types/d3-delaunay/-/d3-delaunay-6.0.0.tgz#c09953ac7e5460997f693d2d7bf3522e0d4a88e6"
   integrity sha512-iGm7ZaGLq11RK3e69VeMM6Oqj2SjKUB9Qhcyd1zIcqn2uE8w9GFB445yCY46NOQO3ByaNyktX1DK+Etz7ZaX+w==
 
-"@types/d3-delaunay@^5":
-  version "5.3.1"
-  resolved "https://registry.yarnpkg.com/@types/d3-delaunay/-/d3-delaunay-5.3.1.tgz#47ae03af6b78cb3aa39d3d3c42ca71daca488aef"
-  integrity sha512-F6itHi2DxdatHil1rJ2yEFUNhejj8+0Acd55LZ6Ggwbdoks0+DxVY2cawNj16sjCBiWvubVlh6eBMVsYRNGLew==
-
 "@types/d3-dispatch@*":
   version "3.0.0"
   resolved "https://registry.yarnpkg.com/@types/d3-dispatch/-/d3-dispatch-3.0.0.tgz#31bb81a5e2b9569852ac93edb9fe0a34c4f9dbc6"
   integrity sha512-pUuUWqWux9nAxGT7VDo/4LbHSgaKbMTuQw8eSVuVX3q/XsKWxq4o/6pNTqb1TTg4EBRSVgWDvmIoWErN0VIIOw==
-
-"@types/d3-dispatch@^2":
-  version "2.0.1"
-  resolved "https://registry.yarnpkg.com/@types/d3-dispatch/-/d3-dispatch-2.0.1.tgz#d7dc50f9b679996ccf70f3c79dbbf99505a93107"
-  integrity sha512-eT2K8uG3rXkmRiCpPn0rNrekuSLdBfV83vbTvfZliA5K7dbeaqWS/CBHtJ9SQoF8aDTsWSY4A0RU67U/HcKdJQ==
 
 "@types/d3-drag@*":
   version "3.0.0"
@@ -493,14 +451,7 @@
   dependencies:
     "@types/d3-selection" "*"
 
-"@types/d3-drag@^2":
-  version "2.0.1"
-  resolved "https://registry.yarnpkg.com/@types/d3-drag/-/d3-drag-2.0.1.tgz#fdee55f871a5a56292f5d46198caf5e89c971de5"
-  integrity sha512-0e/Wu9Tb4rxEz7afba3OhCOXUnj8WcjZccE7TRZGuS6QB+BK80i4PgMIUWQgkg2RSGnjwBGuzV+N1slOoinrlA==
-  dependencies:
-    "@types/d3-selection" "*"
-
-"@types/d3-dsv@*", "@types/d3-dsv@^2":
+"@types/d3-dsv@*":
   version "2.0.2"
   resolved "https://registry.yarnpkg.com/@types/d3-dsv/-/d3-dsv-2.0.2.tgz#e10fa57576b50ded27e261db9984b9a92efec2f3"
   integrity sha512-T4aL2ZzaILkLGKbxssipYVRs8334PSR9FQzTGftZbc3jIPGkiXXS7qUCh8/q8UWFzxBZQ92dvR0v7+AM9wL2PA==
@@ -624,42 +575,6 @@
   dependencies:
     "@types/d3-interpolate" "*"
     "@types/d3-selection" "*"
-
-"@types/d3@^6.7.1":
-  version "6.7.3"
-  resolved "https://registry.yarnpkg.com/@types/d3/-/d3-6.7.3.tgz#2651785fcc6d2e939cb27285d4f68e9f925296d4"
-  integrity sha512-1PvtX7MXEN0wFtras9wsurq8AjkcrZ9f0d8s+/OP0W8xymKs4DqtpBx/GEYjjif1rPlozVJZmY2SgyeunkSBSA==
-  dependencies:
-    "@types/d3-array" "^2"
-    "@types/d3-axis" "^2"
-    "@types/d3-brush" "^2"
-    "@types/d3-chord" "^2"
-    "@types/d3-color" "^2"
-    "@types/d3-contour" "^2"
-    "@types/d3-delaunay" "^5"
-    "@types/d3-dispatch" "^2"
-    "@types/d3-drag" "^2"
-    "@types/d3-dsv" "^2"
-    "@types/d3-ease" "*"
-    "@types/d3-fetch" "*"
-    "@types/d3-force" "*"
-    "@types/d3-format" "*"
-    "@types/d3-geo" "*"
-    "@types/d3-hierarchy" "*"
-    "@types/d3-interpolate" "*"
-    "@types/d3-path" "*"
-    "@types/d3-polygon" "*"
-    "@types/d3-quadtree" "*"
-    "@types/d3-random" "*"
-    "@types/d3-scale" "*"
-    "@types/d3-scale-chromatic" "*"
-    "@types/d3-selection" "*"
-    "@types/d3-shape" "*"
-    "@types/d3-time" "*"
-    "@types/d3-time-format" "*"
-    "@types/d3-timer" "*"
-    "@types/d3-transition" "*"
-    "@types/d3-zoom" "*"
 
 "@types/d3@^7.0.0":
   version "7.0.0"
@@ -5959,13 +5874,13 @@ react-draggable@^4.0.0, react-draggable@^4.0.3, react-draggable@^4.4.3:
     classnames "^2.2.5"
     prop-types "^15.6.0"
 
-react-flow-renderer@^9.6.2:
-  version "9.6.2"
-  resolved "https://registry.yarnpkg.com/react-flow-renderer/-/react-flow-renderer-9.6.2.tgz#141ee06332ceba8a89847cae952d15036bffa552"
-  integrity sha512-zf8YBdw0IpM/3mLrpAMrSlIy8T3m+4ZQJqwND03Sy7kBF8gbLUADX/HqBB4Ulfj4/WAiQDvoXawKRIUFRHc+RA==
+react-flow-renderer@^9.6.3:
+  version "9.6.3"
+  resolved "https://registry.yarnpkg.com/react-flow-renderer/-/react-flow-renderer-9.6.3.tgz#3dc4bf941a5fa5691057248aec838746238a3f9c"
+  integrity sha512-/2J1Lil8eOq3G0spVJPTIyhVUfnzDyV/JGRQC7DEFzwqzjL+qTj+ssyCblSxCSidxx1Q7zaza+ghnuMTr4E8QA==
   dependencies:
     "@babel/runtime" "^7.14.6"
-    "@types/d3" "^6.7.1"
+    "@types/d3" "^7.0.0"
     "@types/react-redux" "^7.1.16"
     classcat "^5.0.3"
     d3-selection "^3.0.0"
