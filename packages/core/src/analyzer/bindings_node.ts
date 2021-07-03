@@ -15,6 +15,14 @@ export class Analyzer extends AnalyzerBindings {
         this.path = path;
     }
 
+    /** Locate a file */
+    protected locateFile(path: string, prefix: string): string {
+        if (path.endsWith('.wasm')) {
+            return this.path;
+        }
+        throw new Error(`WASM instantiation requested unexpected file: prefix=${prefix} path=${path}`);
+    }
+
     protected instantiateWasm(
         // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
         imports: any,
@@ -38,6 +46,7 @@ export class Analyzer extends AnalyzerBindings {
         return dashql_core_init({
             ...moduleOverrides,
             instantiateWasm: this.instantiateWasm.bind(this),
+            locateFile: this.locateFile.bind(this),
         });
     }
 }
