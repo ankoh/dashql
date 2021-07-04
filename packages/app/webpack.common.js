@@ -3,8 +3,9 @@ import { fileURLToPath } from 'url';
 import path from 'path';
 import webpack from 'webpack';
 import HtmlWebpackPlugin from 'html-webpack-plugin';
-import { CleanWebpackPlugin } from 'clean-webpack-plugin';
+import CopyWebpackPlugin from 'copy-webpack-plugin';
 import MiniCssExtractPlugin from 'mini-css-extract-plugin';
+import { CleanWebpackPlugin } from 'clean-webpack-plugin';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -155,6 +156,14 @@ export function configure(params) {
             new MiniCssExtractPlugin({
                 filename: './static/css/[id].[contenthash].css',
                 chunkFilename: './static/css/[id].[contenthash].css',
+            }),
+            new CopyWebpackPlugin({
+                patterns: [
+                    {
+                        from: './static/favicons',
+                        to: './static/favicons',
+                    },
+                ],
             }),
             new webpack.DefinePlugin({
                 // Referenced by react-flow...
