@@ -21,10 +21,7 @@ const DUCKDB_BUNDLES: duckdb.DuckDBBundles = {
     },
     asyncNextCOI: {
         mainModule: duckdb_wasm_next_coi,
-        mainWorker: new URL(
-            '@dashql/duckdb/dist/duckdb-browser-async-next-coi.worker.js',
-            import.meta.url,
-        ).toString(),
+        mainWorker: new URL('@dashql/duckdb/dist/duckdb-browser-async-next-coi.worker.js', import.meta.url).toString(),
         pthreadWorker: new URL(
             '@dashql/duckdb/dist/duckdb-browser-async-next-coi.pthread.worker.js',
             import.meta.url,
