@@ -5,7 +5,7 @@ import { AppState, Dispatch } from '../model';
 import { AutoSizer } from '../util/autosizer';
 import { Board, ScriptLoader } from '../components';
 import { Link } from 'react-router-dom';
-import { Scrollbars } from 'react-custom-scrollbars';
+import { Scrollbars } from 'rc-scrollbars';
 import { connect } from 'react-redux';
 
 import icon_code from '../../static/svg/icons/code.svg';
@@ -27,7 +27,7 @@ class Viewer extends React.Component<Props> {
                         <AutoSizer>
                             {({ width, height }) => (
                                 <div style={{ width, height }}>
-                                    <Scrollbars height={height} width={width}>
+                                    <Scrollbars style={{ height, width }}>
                                         <Board
                                             className={styles.board_layout}
                                             width={width}
