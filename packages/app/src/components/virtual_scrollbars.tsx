@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Scrollbars, positionValues } from 'react-custom-scrollbars';
+import { Scrollbars, ScrollValues } from 'rc-scrollbars';
 import { getMaxElementSize } from '../util/max_element_size';
 
 export interface PositionValues {
@@ -70,7 +70,7 @@ export class VirtualScrollbars extends React.Component<Props, State> {
         };
     }
 
-    protected onScrollFrame(pos: positionValues): void {
+    protected onScrollFrame(pos: ScrollValues): void {
         const p: PositionValues = {
             clientWidth: pos.clientWidth,
             clientHeight: pos.clientHeight,
