@@ -4,7 +4,7 @@
     "description": "DashQL Core Library",
     "license": "MPL-2.0",
     "dependencies": {
-        "@dashql/duckdb": "^0.0.32",
+        "@dashql/duckdb": "^0.0.33",
         "@dashql/proto": "^0.0.5",
         "apache-arrow": "^4.0.1",
         "axios": "^0.21.1",
