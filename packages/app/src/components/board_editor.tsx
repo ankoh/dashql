@@ -2,7 +2,7 @@ import * as React from 'react';
 import { AppReduxStore } from '../model';
 import { connect } from 'react-redux';
 import { AutoSizer } from '../util/autosizer';
-import { Scrollbars } from 'react-custom-scrollbars';
+import { Scrollbars } from 'rc-scrollbars';
 import Board from './board';
 import { Ruler, RulerOrientation } from './board_ruler';
 
@@ -41,9 +41,8 @@ export class BoardEditor extends React.Component<IBoardEditorProps> {
                                 tickMargin={elementMargin[0]}
                             />
                             <Scrollbars
+                                style={{ height: height - rulerThickness, width }}
                                 className={styles.content_scroller}
-                                width={width}
-                                height={height - rulerThickness}
                                 renderTrackHorizontal={props => (
                                     <div {...props} style={{ display: 'none' }} className="track-horizontal" />
                                 )}
