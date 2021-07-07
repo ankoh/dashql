@@ -8,7 +8,7 @@
         "@dashql/core": "^0.0.2",
         "@dashql/duckdb": "^0.0.33",
         "@dashql/proto": "^0.0.5",
-        "@types/benchmark": "^2.1.0",
+        "@types/benchmark": "^2.1.1",
         "benny": "^3.6.15",
         "kleur": "^4.1.4",
         "prettier": "^2.3.2",
