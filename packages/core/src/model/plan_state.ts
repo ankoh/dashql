@@ -26,11 +26,11 @@ export interface PlanState {
 }
 
 export const createPlanState = (): PlanState => ({
-    status: Immutable.List(),
-    objects: Immutable.Map(),
-    blobsByName: Immutable.Map(),
-    tablesByName: Immutable.Map(),
-    actions: Immutable.Map(),
+    status: Immutable.List<StatementStatus>(),
+    objects: Immutable.Map<number, PlanObject>(),
+    blobsByName: Immutable.Map<string, number>(),
+    tablesByName: Immutable.Map<string, number>(),
+    actions: Immutable.Map<number, Action>(),
 });
 
 export const resetStatus = (state: PlanState, status: StatementStatus[] = [], actions: Action[] = []): PlanState => ({
