@@ -5,6 +5,8 @@ import * as arrow from 'apache-arrow';
 import * as Immutable from 'immutable';
 import { ProgramActionLogic, SetupActionLogic } from './action_logic';
 import { ActionContext } from './action_context';
+import { TableStatisticsType } from '../model';
+import { Column } from 'apache-arrow';
 
 export async function collectTableInfo(conn: duckdb.AsyncConnection, info: model.Table): Promise<model.Table> {
     const columnNames: string[] = [];
@@ -92,7 +94,7 @@ export class CreateTableActionLogic extends ProgramActionLogic {
                 columnNames: [],
                 columnNameMapping: new Map(),
                 columnTypes: [],
-                statistics: Immutable.Map(),
+                statistics: Immutable.Map<TableStatisticsType, Column<any>>(),
             });
         });
         if (table) {
