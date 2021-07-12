@@ -27,7 +27,7 @@
         "dagre": "^0.8.5",
         "flatbuffers": "^2.0.3",
         "framer-motion": "^4.1.17",
-        "immutable": "^4.0.0-rc.12",
+        "immutable": "^4.0.0-rc.14",
         "monaco-editor": "^0.25.2",
         "react": "^17.0.2",
         "react-avatar": "^3.10.0",

@@ -9,7 +9,7 @@
         "apache-arrow": "^4.0.1",
         "axios": "^0.21.1",
         "flatbuffers": "^2.0.3",
-        "immutable": "^4.0.0-rc.12",
+        "immutable": "^4.0.0-rc.14",
         "redux": "^4.1.0",
         "vega": "^5.20.2",
         "vega-lite": "^5.1.0"
