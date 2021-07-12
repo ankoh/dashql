@@ -617,10 +617,10 @@
   resolved "https://registry.yarnpkg.com/@types/dagre/-/dagre-0.7.45.tgz#e53593e3223b3fc154e0b57a39586ce6f8ea5522"
   integrity sha512-hyVsm212IGTE2nYE1coMzGBSbes9neRSJDWn2UfyVZ4l0x5nIF/oWVY7RbKDhfNCdfZn4k0gdxvYWDWiSif+RA==
 
-"@types/emscripten@^1.39.4":
-  version "1.39.4"
-  resolved "https://registry.yarnpkg.com/@types/emscripten/-/emscripten-1.39.4.tgz#d61990c0cee72c4e475de737a140b51fe925a2c8"
-  integrity sha512-k3LLVMFrdNA9UCvMDPWMbFrGPNb+GcPyw29ktJTo1RCN7RmxFG5XzPZcPKRlnLuLT/FRm8wp4ohvDwNY7GlROQ==
+"@types/emscripten@^1.39.5":
+  version "1.39.5"
+  resolved "https://registry.yarnpkg.com/@types/emscripten/-/emscripten-1.39.5.tgz#eb0fb1048301df980b6f8a5ec3d63f7d1572bb73"
+  integrity sha512-DIOOg+POSrYl+OlNRHQuIEqCd8DCtynG57H862UCce16nXJX7J8eWxNGgOcf8Eyge8zXeSs27mz1UcFu8L/L7g==
 
 "@types/eslint-scope@^3.7.0":
   version "3.7.0"
@@ -691,10 +691,10 @@
   resolved "https://registry.yarnpkg.com/@types/invariant/-/invariant-2.2.34.tgz#05e4f79f465c2007884374d4795452f995720bbe"
   integrity sha512-lYUtmJ9BqUN688fGY1U1HZoWT1/Jrmgigx2loq4ZcJpICECm/Om3V314BxdzypO0u5PORKGMM6x0OXaljV1YFg==
 
-"@types/jasmine@^3.7.8":
-  version "3.7.8"
-  resolved "https://registry.yarnpkg.com/@types/jasmine/-/jasmine-3.7.8.tgz#e558b31bf2418fd63de2329bcfb29f5a42413d4b"
-  integrity sha512-4YTb9L+tFCGJ/dyG8LOz1cYIaq0xF0sELMkTs78/KCMTIpYa0591VQpS5G1iEx6Ejl+GevdRKsR8U/ozwBsxHQ==
+"@types/jasmine@^3.8.1":
+  version "3.8.1"
+  resolved "https://registry.yarnpkg.com/@types/jasmine/-/jasmine-3.8.1.tgz#8feebf4035d1e4c6a6ed4d27f3bbd285d8d0da91"
+  integrity sha512-ioRNoJvv0eXL1c9BZKpnywZWb5YflhaSiF3IOp9deyoh30MOwkB3bNuzi4UW76EFEhcmqpoEpdWhcUAAilomTw==
 
 "@types/json-schema@*", "@types/json-schema@^7.0.6", "@types/json-schema@^7.0.7":
   version "7.0.7"
@@ -752,10 +752,10 @@
   dependencies:
     "@types/react" "*"
 
-"@types/react-redux@^7.1.16":
-  version "7.1.16"
-  resolved "https://registry.yarnpkg.com/@types/react-redux/-/react-redux-7.1.16.tgz#0fbd04c2500c12105494c83d4a3e45c084e3cb21"
-  integrity sha512-f/FKzIrZwZk7YEO9E1yoxIuDNRiDducxkFlkw/GNMGEnK9n4K8wJzlJBghpSuOVDgEUHoDkDF7Gi9lHNQR4siw==
+"@types/react-redux@^7.1.16", "@types/react-redux@^7.1.18":
+  version "7.1.18"
+  resolved "https://registry.yarnpkg.com/@types/react-redux/-/react-redux-7.1.18.tgz#2bf8fd56ebaae679a90ebffe48ff73717c438e04"
+  integrity sha512-9iwAsPyJ9DLTRH+OFeIrm9cAbIj1i2ANL3sKQFATqnPWRbg+jEFXyZOKHiQK/N86pNRXbb4HRxAxo0SIX1XwzQ==
   dependencies:
     "@types/hoist-non-react-statics" "^3.3.0"
     "@types/react" "*"
@@ -812,10 +812,10 @@
     "@types/scheduler" "*"
     csstype "^3.0.2"
 
-"@types/resize-observer-browser@^0.1.5":
-  version "0.1.5"
-  resolved "https://registry.yarnpkg.com/@types/resize-observer-browser/-/resize-observer-browser-0.1.5.tgz#36d897708172ac2380cd486da7a3daf1161c1e23"
-  integrity sha512-8k/67Z95Goa6Lznuykxkfhq9YU3l1Qe6LNZmwde1u7802a3x8v44oq0j91DICclxatTr0rNnhXx7+VTIetSrSQ==
+"@types/resize-observer-browser@^0.1.6":
+  version "0.1.6"
+  resolved "https://registry.yarnpkg.com/@types/resize-observer-browser/-/resize-observer-browser-0.1.6.tgz#d8e6c2f830e2650dc06fe74464472ff64b54a302"
+  integrity sha512-61IfTac0s9jvNtBCpyo86QeaN8qqpMGHdK0uGKCCIy2dt5/Yk84VduHIdWAcmkC5QvdkPL0p5eWYgUZtHKKUVg==
 
 "@types/scheduler@*":
   version "0.16.1"
