@@ -30,6 +30,8 @@ class WASMResponseBuffer {
    protected:
     /// The response flatbuffer (if any)
     flatbuffers::DetachedBuffer proto_buffer_;
+    /// The string buffer (if any)
+    std::string string_buffer_;
     /// The response error (if any)
     std::optional<Error> error_;
 
@@ -40,7 +42,27 @@ class WASMResponseBuffer {
     /// Clear the response buffer
     void Clear() {
         error_.reset();
+        string_buffer_ = {};
         proto_buffer_ = {};
+    }
+
+    /// Store the detached flatbuffer
+    void Store(WASMResponse& response, std::string&& result) {
+        Clear();
+        string_buffer_ = std::move(result);
+        response.statusCode = SUCCESS;
+        response.dataOrValue = reinterpret_cast<uintptr_t>(string_buffer_.data());
+        response.dataSize = string_buffer_.size();
+    }
+
+    /// Store the detached flatbuffer
+    void Store(WASMResponse& response, Expected<std::string>&& result) {
+        Clear();
+        if (result) {
+            Store(response, result.ReleaseValue());
+        } else {
+            Store(response, result.ReleaseError());
+        }
     }
 
     /// Store the detached flatbuffer
