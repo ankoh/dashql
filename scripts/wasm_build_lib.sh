@@ -28,6 +28,7 @@ echo "Build Type: ${MODE}"
 
 mkdir -p ${CPP_SOURCE_DIR}/build/wasm/${MODE}
 rm -f ${CPP_SOURCE_DIR}/build/wasm/${MODE}/analyzer_*.{wasm,js}
+rm -f ${CPP_SOURCE_DIR}/build/wasm/${MODE}/jmespath_*.{wasm,js}
 
 set -x
 
@@ -42,6 +43,6 @@ emcmake cmake \
 emmake make \
     -C"${CPP_SOURCE_DIR}/build/wasm/${MODE}" \
     -j${CORES} \
-    analyzer_wasm
+    analyzer_wasm jmespath_wasm
 
 cp ${CPP_SOURCE_DIR}/build/wasm/${MODE}/analyzer_*.{wasm,js} "${ANALYZER_LIB_DIR}"

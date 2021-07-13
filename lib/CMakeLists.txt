@@ -75,7 +75,7 @@ include("${CMAKE_SOURCE_DIR}/cmake/rapidjson.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/nlohmann_json.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/jmespath.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/pugixml.cmake")
-include("${CMAKE_SOURCE_DIR}/cmake/xlnt.cmake")
+# include("${CMAKE_SOURCE_DIR}/cmake/xlnt.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/spdlog.cmake")
 
 # ---------------------------------------------------------------------------
@@ -276,8 +276,13 @@ add_library(
   ${CMAKE_SOURCE_DIR}/src/analyzer/stmt/fetch_stmt.cc
   ${CMAKE_SOURCE_DIR}/src/analyzer/stmt/viz_stmt.cc)
 
-add_library(dashql_test ${CMAKE_SOURCE_DIR}/src/test/analyzer_tests.cc
-                        ${CMAKE_SOURCE_DIR}/src/test/grammar_tests.cc)
+add_library(dashql_jmespath
+  ${CMAKE_SOURCE_DIR}/src/jmespath/jmespath.cc
+  ${CMAKE_SOURCE_DIR}/src/jmespath/jmespath_api.cc)
+
+add_library(dashql_test
+  ${CMAKE_SOURCE_DIR}/src/test/analyzer_tests.cc
+  ${CMAKE_SOURCE_DIR}/src/test/grammar_tests.cc)
 
 target_link_libraries(
   dashql_common
@@ -287,7 +292,6 @@ target_link_libraries(
   rapidjson
   nlohmann_json
   jmespath
-  xlnt
   arrow
   duckdb)
 target_link_libraries(
@@ -299,9 +303,11 @@ target_link_libraries(
   duckdb
   rapidjson
   arrow)
+target_link_libraries(dashql_jmespath dashql_common)
 target_link_libraries(
   dashql_test
   dashql_analyzer
+  dashql_jmespath
   dashql_common
   dashql_proto
   pugixml
@@ -347,6 +353,32 @@ if(EMSCRIPTEN)
             _dashql_analyzer_plan_program, \
             _dashql_analyzer_edit_program, \
             _dashql_analyzer_update_action_status \
+        ]' \
+        -s EXPORTED_RUNTIME_METHODS='[\"ccall\"]' \
+        ${ADDITIONAL_LINKER_FLAGS} \
+        ")
+
+  add_executable(jmespath_wasm ${CMAKE_SOURCE_DIR}/src/wasm_main.cc)
+  target_link_libraries(jmespath_wasm dashql_jmespath)
+  set_target_properties(
+    jmespath_wasm
+    PROPERTIES
+      LINK_FLAGS
+      " -s ENVIRONMENT='web,node' \
+        -s WARN_ON_UNDEFINED_SYMBOLS=1 \
+        -s ALLOW_MEMORY_GROWTH=1 \
+        -s USE_PTHREADS=0 \
+        -s DISABLE_EXCEPTION_CATCHING=0 \
+        -s MODULARIZE=1 \
+        -s FILESYSTEM=0 \
+        -s EXPORT_ES6=1 \
+        -s EXPORT_NAME='JMESPath' \
+        -s EXPORTED_FUNCTIONS='[ \
+            _main, \
+            _malloc, \
+            _free, \
+            _jmespath_clear_response, \
+            _jmespath_evaluate \
         ]' \
         -s EXPORTED_RUNTIME_METHODS='[\"ccall\"]' \
         ${ADDITIONAL_LINKER_FLAGS} \
