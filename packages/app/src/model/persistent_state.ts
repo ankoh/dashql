@@ -3,6 +3,7 @@ import * as core from '@dashql/core';
 import { AppConfig } from './app_config';
 import { AppState } from './state';
 import { createTransform, Transform } from 'redux-persist';
+import { LaunchStep, LaunchStepInfo } from './launch_step';
 
 export interface PersistentAppState {
     core: core.model.PersistentCoreState;
@@ -15,7 +16,7 @@ function createPersistentStateTransform(platform: core.platform.Platform): Trans
             return {
                 ...inbound,
                 launchComplete: false,
-                launchSteps: Immutable.Map(),
+                launchSteps: Immutable.Map<LaunchStep, LaunchStepInfo>(),
                 core: core.model.rehydrateState(inbound.core, platform),
             };
         },
