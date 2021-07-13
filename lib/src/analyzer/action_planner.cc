@@ -407,11 +407,12 @@ arrow::Status ActionPlanner::MigrateActionGraph() {
 }
 
 // Plan the new action graph
-void ActionPlanner::PlanActionGraph() {
-    DiffPrograms();
-    TranslateStatements();
-    IdentifyApplicableActions();
-    MigrateActionGraph();
+arrow::Status ActionPlanner::PlanActionGraph() {
+    ARROW_RETURN_NOT_OK(DiffPrograms());
+    ARROW_RETURN_NOT_OK(TranslateStatements());
+    ARROW_RETURN_NOT_OK(IdentifyApplicableActions());
+    ARROW_RETURN_NOT_OK(MigrateActionGraph());
+    return arrow::Status::OK();
 }
 
 // Encode action graph
