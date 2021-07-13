@@ -7,7 +7,6 @@
 
 #include "dashql/analyzer/program_instance.h"
 #include "dashql/analyzer/program_matcher.h"
-#include "dashql/common/expected.h"
 #include "dashql/proto_generated.h"
 
 namespace dashql {

@@ -8,12 +8,9 @@
 
 namespace dashql {
 
-WASMResponseBuffer::WASMResponseBuffer() : proto_buffer_(), string_buffer_(), error_() {}
+WASMResponseBuffer::WASMResponseBuffer() : proto_buffer_(), string_buffer_() {}
 
-void WASMResponseBuffer::Clear() {
-    string_buffer_ = "";
-    error_.reset();
-}
+void WASMResponseBuffer::Clear() { string_buffer_ = ""; }
 
 bool WASMResponseBuffer::Store(WASMResponse& response, arrow::Status status) {
     Clear();

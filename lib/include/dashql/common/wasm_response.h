@@ -8,7 +8,6 @@
 
 #include "arrow/result.h"
 #include "dashql/common/error.h"
-#include "dashql/common/expected.h"
 #include "dashql/proto_generated.h"
 #include "flatbuffers/flatbuffers.h"
 
@@ -33,8 +32,6 @@ class WASMResponseBuffer {
     flatbuffers::DetachedBuffer proto_buffer_;
     /// The string buffer (if any)
     std::string string_buffer_;
-    /// The response error (if any)
-    std::optional<Error> error_;
 
    public:
     /// Constructor

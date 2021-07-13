@@ -21,7 +21,6 @@
 #include "dashql/analyzer/stmt/load_stmt.h"
 #include "dashql/analyzer/stmt/viz_stmt.h"
 #include "dashql/common/enum.h"
-#include "dashql/common/expected.h"
 #include "dashql/common/union_find.h"
 #include "dashql/parser/parser_driver.h"
 #include "dashql/proto_generated.h"

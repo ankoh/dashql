@@ -6,7 +6,6 @@
 #include <string>
 
 #include "arrow/result.h"
-#include "dashql/common/expected.h"
 #include "dashql/proto_generated.h"
 
 namespace dashql {
