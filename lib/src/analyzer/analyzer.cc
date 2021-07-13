@@ -5,6 +5,7 @@
 #include <iomanip>
 #include <optional>
 
+#include "arrow/scalar.h"
 #include "arrow/type_fwd.h"
 #include "arrow/visitor_inline.h"
 #include "dashql/analyzer/action_planner.h"
@@ -55,8 +56,7 @@ arrow::Result<std::shared_ptr<arrow::Scalar>> Analyzer::TryEvaluateConstant(Prog
         case sx::NodeType::UI32:
         case sx::NodeType::UI32_BITMAP:
         case sx::NodeType::STRING_REF: {
-            auto value = arrow::MakeScalar(arrow::utf8(), instance.TextAt(node.location()))
-                             .ValueOr(arrow::MakeNullScalar(arrow::null()));
+            auto value = std::make_shared<arrow::StringScalar>(std::string{instance.TextAt(node.location())});
             return instance.evaluated_nodes_.Insert(node_id, {node_id, std::move(value)})->value;
         }
         default:
