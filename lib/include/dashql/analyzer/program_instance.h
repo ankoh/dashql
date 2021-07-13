@@ -12,13 +12,14 @@
 #include <unordered_map>
 #include <vector>
 
+#include "arrow/scalar.h"
+#include "arrow/type_fwd.h"
 #include "dashql/analyzer/input_value.h"
 #include "dashql/analyzer/program_linter.h"
 #include "dashql/analyzer/stmt/fetch_stmt.h"
 #include "dashql/analyzer/stmt/input_stmt.h"
 #include "dashql/analyzer/stmt/load_stmt.h"
 #include "dashql/analyzer/stmt/viz_stmt.h"
-#include "dashql/analyzer/value.h"
 #include "dashql/common/enum.h"
 #include "dashql/common/expected.h"
 #include "dashql/common/union_find.h"
@@ -48,7 +49,7 @@ class ProgramInstance {
         /// The root node id
         size_t root_node_id;
         /// The value
-        Value value;
+        std::shared_ptr<arrow::Scalar> value;
 
         /// Move constructor
         NodeValue(NodeValue&& other) = default;
@@ -60,8 +61,8 @@ class ProgramInstance {
     struct NodeError {
         /// The node id
         size_t node_id;
-        /// The error
-        Error error;
+        /// The status
+        arrow::Status status;
     };
 
     /// A qualified table name
@@ -147,10 +148,10 @@ class ProgramInstance {
     }
     /// Read a node value.
     /// Note: This is deliberately NOT const since we do lazy path compression the union-find of evaluated nodes.
-    Value ReadNodeValue(size_t node_id);
+    std::shared_ptr<arrow::Scalar> ReadNodeValue(size_t node_id);
     /// Read a node value if it is valid
-    inline Value ReadNodeValueOrNull(size_t node_id) {
-        if (node_id == INVALID_NODE_ID) return Value{};
+    inline std::shared_ptr<arrow::Scalar> ReadNodeValueOrNull(size_t node_id) {
+        if (node_id == INVALID_NODE_ID) return arrow::MakeNullScalar(arrow::null());
         return ReadNodeValue(node_id);
     }
     /// Read a qualified name

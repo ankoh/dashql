@@ -1,13 +1,7 @@
 #include "dashql/analyzer/stmt/viz_stmt.h"
 
-#include <flatbuffers/flatbuffers.h>
-#include <rapidjson/rapidjson.h>
-
-#include <iostream>
-#include <limits>
-#include <stack>
-#include <unordered_map>
-
+#include "arrow/type_fwd.h"
+#include "arrow/visitor_inline.h"
 #include "dashql/analyzer/json_patch.h"
 #include "dashql/analyzer/json_writer.h"
 #include "dashql/analyzer/program_editor.h"
@@ -21,9 +15,11 @@
 #include "dashql/parser/grammar/enums.h"
 #include "dashql/parser/qualified_name.h"
 #include "dashql/proto_generated.h"
+#include "flatbuffers/flatbuffers.h"
 #include "nonstd/span.h"
 #include "rapidjson/ostreamwrapper.h"
 #include "rapidjson/prettywriter.h"
+#include "rapidjson/rapidjson.h"
 #include "rapidjson/stringbuffer.h"
 #include "rapidjson/writer.h"
 
@@ -209,11 +205,13 @@ std::unique_ptr<VizComponent> VizComponent::ReadFrom(VizStatement& stmt, size_t 
             report_not_unique(pos_width->node_id, "position.width");
             report_not_unique(pos_height->node_id, "position.height");
         } else {
-            auto r = stmt.instance_.ReadNodeValueOrNull(pos_row->node_id).CastAsUI64().value_or(0);
-            auto c = stmt.instance_.ReadNodeValueOrNull(pos_column->node_id).CastAsUI64().value_or(0);
-            auto w = stmt.instance_.ReadNodeValueOrNull(pos_width->node_id).CastAsUI64().value_or(0);
-            auto h = stmt.instance_.ReadNodeValueOrNull(pos_height->node_id).CastAsUI64().value_or(0);
-            comp->position_ = proto::analyzer::CardPosition(r, c, w, h);
+            auto zero = arrow::MakeScalar(arrow::uint64(), 0).ValueUnsafe();
+            auto r = stmt.instance_.ReadNodeValueOrNull(pos_row->node_id)->CastTo(arrow::uint64()).ValueOr(zero);
+            auto c = stmt.instance_.ReadNodeValueOrNull(pos_column->node_id)->CastTo(arrow::uint64()).ValueOr(zero);
+            auto w = stmt.instance_.ReadNodeValueOrNull(pos_width->node_id)->CastTo(arrow::uint64()).ValueOr(zero);
+            auto h = stmt.instance_.ReadNodeValueOrNull(pos_height->node_id)->CastTo(arrow::uint64()).ValueOr(zero);
+            auto getu64 = [](auto& ptr) { return reinterpret_cast<arrow::UInt64Scalar&>(*ptr).value; };
+            comp->position_ = proto::analyzer::CardPosition(getu64(r), getu64(c), getu64(w), getu64(h));
             stmt.specified_position() = &comp->position_.value();
         }
     }
@@ -223,7 +221,7 @@ std::unique_ptr<VizComponent> VizComponent::ReadFrom(VizStatement& stmt, size_t 
         if (stmt.title()) {
             report_not_unique(match.node_id, "title");
         } else {
-            auto title = stmt.instance_.ReadNodeValueOrNull(match.node_id).PrintValue();
+            auto title = stmt.instance_.ReadNodeValueOrNull(match.node_id)->ToString();
             trim(title, isNoQuote);
             comp->title_ = std::move(title);
             stmt.title() = comp->title_;

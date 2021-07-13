@@ -6,6 +6,6 @@
 
 namespace dashql {
 
-Expected<std::string> JMESPath::Evaluate(std::string_view input, std::string_view expression) { return {""}; }
+arrow::Result<std::string> JMESPath::Evaluate(std::string_view input, std::string_view expression) { return ""; }
 
 }  // namespace dashql

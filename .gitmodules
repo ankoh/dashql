@@ -61,3 +61,6 @@
 	path = submodules/xlnt
 	url = https://github.com/tfussell/xlnt
 	shallow = true
+[submodule "submodules/fmt"]
+	path = submodules/fmt
+	url = https://github.com/fmtlib/fmt

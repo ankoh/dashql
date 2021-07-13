@@ -45,18 +45,19 @@ TEST_P(AnalyzerSpecTests, Test) {
     for (auto& step : test->steps) {
         // Parse, instantiate and plan the program
         auto rc = analyzer.ParseProgram(step.program_text);
-        ASSERT_TRUE(rc.IsOk());
+        ASSERT_TRUE(rc.ok());
         rc = analyzer.InstantiateProgram(step.input_values);
-        ASSERT_TRUE(rc.IsOk());
+        ASSERT_TRUE(rc.ok());
         rc = analyzer.PlanProgram();
-        ASSERT_TRUE(rc.IsOk());
+        ASSERT_TRUE(rc.ok());
 
         // Update the action status for the next step
         for (unsigned i = 0; i < step.setupActionStatusCodes.size(); ++i)
-            analyzer.UpdateActionStatus(proto::action::ActionClass::SETUP_ACTION, i, step.setupActionStatusCodes[i]);
+            analyzer.UpdateActionStatus(proto::action::ActionClass::SETUP_ACTION, i, step.setupActionStatusCodes[i])
+                .ok();
         for (unsigned i = 0; i < step.programActionStatusCodes.size(); ++i)
-            analyzer.UpdateActionStatus(proto::action::ActionClass::PROGRAM_ACTION, i,
-                                        step.programActionStatusCodes[i]);
+            analyzer.UpdateActionStatus(proto::action::ActionClass::PROGRAM_ACTION, i, step.programActionStatusCodes[i])
+                .ok();
 
         // Encode the test output
         pugi::xml_document out;

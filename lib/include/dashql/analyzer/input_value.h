@@ -10,7 +10,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include "dashql/analyzer/value.h"
+#include "arrow/scalar.h"
 #include "dashql/common/enum.h"
 #include "dashql/common/expected.h"
 #include "dashql/proto_generated.h"
@@ -23,10 +23,10 @@ struct InputValue {
     /// The statement id
     size_t statement_id;
     /// The value
-    Value value;
+    std::shared_ptr<arrow::Scalar> value;
 
     /// Constructor
-    InputValue(size_t statement_id = 0, Value value = {});
+    InputValue(size_t statement_id = 0, std::shared_ptr<arrow::Scalar> value = {});
     /// Copy constructor
     InputValue(const InputValue& other);
     /// Move constructor

@@ -74,7 +74,7 @@ void generate_grammar_tests(const std::filesystem::path& source_dir) {
     }
 }
 
-void generate_analyzer_tests(const std::filesystem::path& source_dir) {
+arrow::Status generate_analyzer_tests(const std::filesystem::path& source_dir) {
     auto action_dir = source_dir / "test" / "analyzer" / "spec";
     for (auto& p : std::filesystem::directory_iterator(action_dir)) {
         auto filename = p.path().filename().filename().string();
@@ -105,9 +105,9 @@ void generate_analyzer_tests(const std::filesystem::path& source_dir) {
         auto program_action_type_tt = proto::action::ProgramActionTypeTypeTable();
         auto action_status_code_tt = proto::action::ActionStatusCodeTypeTable();
 
-        auto assert_ok = [](Signal s, std::string_view what) {
-            if (!s) {
-                std::cout << "ERROR '" << what << "' failed with error: " << s.err().message() << std::endl;
+        auto assert_ok = [](arrow::Status s, std::string_view what) {
+            if (!s.ok()) {
+                std::cout << "ERROR '" << what << "' failed with error: " << s.message() << std::endl;
                 std::exit(1);
             }
         };
@@ -124,7 +124,8 @@ void generate_analyzer_tests(const std::filesystem::path& source_dir) {
                 auto inst_params = inst.child("parameters");
                 std::vector<InputValue> inst_params_vec;
                 for (auto& param : inst_params.children()) {
-                    inst_params_vec.push_back(AnalyzerTest::GetInputValue(param));
+                    ARROW_ASSIGN_OR_RAISE(auto v, AnalyzerTest::GetInputValue(param));
+                    inst_params_vec.push_back(v);
                 }
 
                 // Parse, instantiate and plan the previous program
@@ -138,7 +139,8 @@ void generate_analyzer_tests(const std::filesystem::path& source_dir) {
                     for (auto p : inst.child("graph").child("program").children()) {
                         auto status_str = p.attribute("status").as_string();
                         auto status = AnalyzerTest::GetActionStatus(status_str);
-                        analyzer.UpdateActionStatus(proto::action::ActionClass::PROGRAM_ACTION, i++, status);
+                        ARROW_RETURN_NOT_OK(
+                            analyzer.UpdateActionStatus(proto::action::ActionClass::PROGRAM_ACTION, i++, status));
                     }
                 }
                 inst.remove_children();
@@ -149,6 +151,7 @@ void generate_analyzer_tests(const std::filesystem::path& source_dir) {
         // Write xml document
         doc.save(outs, "    ", pugi::format_default | pugi::format_no_declaration);
     }
+    return arrow::Status::OK();
 }
 
 }  // namespace
@@ -164,6 +167,8 @@ int main(int argc, char* argv[]) {
     }
     std::filesystem::path source_dir{argv[1]};
     generate_grammar_tests(source_dir);
-    generate_analyzer_tests(source_dir);
+    if (auto status = generate_analyzer_tests(source_dir); !status.ok()) {
+        std::cout << "Error while generating analyzer tests: " << status.message() << std::endl;
+    }
     return 0;
 }

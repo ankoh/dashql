@@ -12,7 +12,6 @@
 
 #include "dashql/analyzer/analyzer.h"
 #include "dashql/analyzer/input_value.h"
-#include "dashql/analyzer/value.h"
 #include "dashql/common/enum.h"
 #include "dashql/common/expected.h"
 #include "dashql/common/union_find.h"
