@@ -17,7 +17,6 @@
 #include "dashql/common/substring_buffer.h"
 #include "dashql/parser/parser_driver.h"
 #include "dashql/proto_generated.h"
-#include "duckdb/main/client_context.hpp"
 
 using namespace dashql;
 

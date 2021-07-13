@@ -9,6 +9,8 @@ extern "C" {
 
 void dashql_analyzer_reset() { Analyzer::ResetInstance(); }
 
+void dashql_clear_response() { WASMResponseBuffer::Get().Clear(); }
+
 void dashql_analyzer_parse_program(WASMResponse* response, const char* text) {
     if (auto status = Analyzer::GetInstance().ParseProgram(text); !status.ok()) {
         WASMResponseBuffer::Get().Store(*response, status);
