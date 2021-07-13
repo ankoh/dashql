@@ -7,7 +7,6 @@
 #include <string_view>
 
 #include "dashql/analyzer/program_instance.h"
-#include "dashql/common/expected.h"
 #include "dashql/proto_generated.h"
 #include "nonstd/span.h"
 

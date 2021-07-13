@@ -12,7 +12,6 @@
 
 #include "arrow/scalar.h"
 #include "dashql/common/enum.h"
-#include "dashql/common/expected.h"
 #include "dashql/proto_generated.h"
 #include "nonstd/span.h"
 

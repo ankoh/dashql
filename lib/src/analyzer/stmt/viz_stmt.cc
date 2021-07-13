@@ -8,7 +8,6 @@
 #include "dashql/analyzer/program_instance.h"
 #include "dashql/analyzer/program_linter.h"
 #include "dashql/analyzer/syntax_matcher.h"
-#include "dashql/common/expected.h"
 #include "dashql/common/memstream.h"
 #include "dashql/common/string.h"
 #include "dashql/common/substring_buffer.h"

@@ -13,7 +13,6 @@
 #include "dashql/analyzer/analyzer.h"
 #include "dashql/analyzer/input_value.h"
 #include "dashql/common/enum.h"
-#include "dashql/common/expected.h"
 #include "dashql/common/union_find.h"
 #include "dashql/proto_generated.h"
 #include "nonstd/span.h"
