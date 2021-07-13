@@ -1,18 +1,21 @@
 #include "dashql/analyzer/input_value.h"
 
+#include "dashql/analyzer/value_packing.h"
+
 namespace dashql {
 
 /// Default constructor
-InputValue::InputValue(size_t statement_id, Value value) : statement_id(statement_id), value(std::move(value)) {}
+InputValue::InputValue(size_t statement_id, std::shared_ptr<arrow::Scalar> value)
+    : statement_id(statement_id), value(std::move(value)) {}
 /// Copy constructor
-InputValue::InputValue(const InputValue& other) : statement_id(other.statement_id), value(other.value.CopyDeep()) {}
+InputValue::InputValue(const InputValue& other) : statement_id(other.statement_id), value(other.value) {}
 /// Move constructor
 InputValue::InputValue(InputValue&& other) : statement_id(other.statement_id), value(std::move(other.value)) {}
 
 /// Copy assignment
 InputValue& InputValue::operator=(const InputValue& other) {
     statement_id = other.statement_id;
-    value = other.value.CopyDeep();
+    value = other.value;
     return *this;
 }
 /// Move assignment
@@ -33,7 +36,7 @@ bool InputValue::operator!=(const InputValue& other) const {
 
 /// Pack the parameter value
 flatbuffers::Offset<proto::analyzer::InputValue> InputValue::Pack(flatbuffers::FlatBufferBuilder& builder) const {
-    auto v = value.Pack(builder);
+    auto v = PackValue(builder, *value);
     proto::analyzer::InputValueBuilder p{builder};
     p.add_statement_id(statement_id);
     p.add_value(v);
@@ -44,7 +47,7 @@ flatbuffers::Offset<proto::analyzer::InputValue> InputValue::Pack(flatbuffers::F
 InputValue InputValue::UnPack(const proto::analyzer::InputValue& b) {
     InputValue p;
     p.statement_id = b.statement_id();
-    if (auto v = b.value(); !!v) p.value = Value::UnPack(*v);
+    if (auto v = b.value(); !!v) p.value = UnPackValue(*v);
     return p;
 }
 

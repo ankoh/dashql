@@ -18,10 +18,12 @@ class FunctionLogic {
     /// Destructor
     virtual ~FunctionLogic() = default;
     /// Evaluate the function
-    virtual Expected<Value> Evaluate(nonstd::span<const Value*> args = {}) = 0;
+    virtual arrow::Result<std::shared_ptr<arrow::Scalar>> Evaluate(
+        nonstd::span<std::shared_ptr<arrow::Scalar>> args = {}) = 0;
 
     /// Resolve function logic
-    static std::unique_ptr<FunctionLogic> Resolve(std::string_view name, nonstd::span<const Value*> args);
+    static std::unique_ptr<FunctionLogic> Resolve(std::string_view name,
+                                                  nonstd::span<std::shared_ptr<arrow::Scalar>> args);
 };
 
 }  // namespace dashql

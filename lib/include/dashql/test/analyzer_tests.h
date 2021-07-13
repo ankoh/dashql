@@ -46,13 +46,13 @@ struct AnalyzerTest {
     /// Read a parameter type
     static proto::syntax::InputComponentType GetInputType(std::string_view type);
     /// Get a parameter
-    static InputValue GetInputValue(const pugi::xml_node& node);
+    static arrow::Result<InputValue> GetInputValue(const pugi::xml_node& node);
 
     /// Encode the action graph
     static void EncodePlan(pugi::xml_node root, const ProgramInstance& program,
                            const proto::action::ActionGraphT& graph);
     /// Get the grammar tests
-    static void LoadTests(std::filesystem::path& project_root);
+    static arrow::Status LoadTests(std::filesystem::path& project_root);
     /// Get the grammar tests
     static std::vector<const AnalyzerTest*> GetTests(std::string_view filename);
 };

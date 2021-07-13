@@ -1,5 +1,6 @@
 #include "dashql/analyzer/stmt/input_stmt.h"
 
+#include "arrow/visitor_inline.h"
 #include "dashql/analyzer/json_writer.h"
 #include "dashql/analyzer/syntax_matcher.h"
 #include "dashql/common/string.h"
@@ -83,16 +84,18 @@ std::unique_ptr<InputStatement> InputStatement::ReadFrom(ProgramInstance& instan
     auto pos_width = matches.SelectAlt(SX_POS_WIDTH, SX_WIDTH);
     auto pos_height = matches.SelectAlt(SX_POS_HEIGHT, SX_HEIGHT);
     if (matches.HasAny({pos_row, pos_column, pos_width, pos_height})) {
-        auto r = instance.ReadNodeValueOrNull(pos_row->node_id).CastAsUI64().value_or(0);
-        auto c = instance.ReadNodeValueOrNull(pos_column->node_id).CastAsUI64().value_or(0);
-        auto w = instance.ReadNodeValueOrNull(pos_width->node_id).CastAsUI64().value_or(0);
-        auto h = instance.ReadNodeValueOrNull(pos_height->node_id).CastAsUI64().value_or(0);
-        input->position_ = proto::analyzer::CardPosition(r, c, w, h);
+        auto zero = arrow::MakeScalar(arrow::uint64(), 0).ValueUnsafe();
+        auto r = instance.ReadNodeValueOrNull(pos_row->node_id)->CastTo(arrow::uint64()).ValueOr(zero);
+        auto c = instance.ReadNodeValueOrNull(pos_column->node_id)->CastTo(arrow::uint64()).ValueOr(zero);
+        auto w = instance.ReadNodeValueOrNull(pos_width->node_id)->CastTo(arrow::uint64()).ValueOr(zero);
+        auto h = instance.ReadNodeValueOrNull(pos_height->node_id)->CastTo(arrow::uint64()).ValueOr(zero);
+        auto getu64 = [](auto& ptr) { return reinterpret_cast<arrow::UInt64Scalar&>(*ptr).value; };
+        input->position_ = proto::analyzer::CardPosition(getu64(r), getu64(c), getu64(w), getu64(h));
     }
 
     /// Get the title attribute
     if (matches[SX_TITLE]) {
-        auto title = instance.ReadNodeValueOrNull(matches[SX_TITLE].node_id).PrintValue();
+        auto title = instance.ReadNodeValueOrNull(matches[SX_TITLE].node_id)->ToString();
         trim(title, isNoQuote);
         input->title_ = std::move(title);
     }

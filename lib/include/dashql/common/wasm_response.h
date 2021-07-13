@@ -1,11 +1,12 @@
 // Copyright (c) 2020 The DashQL Authors
 
-#ifndef INCLUDE_DASHQL_COMMON_FFI_RESPONSE_H_
-#define INCLUDE_DASHQL_COMMON_FFI_RESPONSE_H_
+#ifndef INCLUDE_DASHQL_COMMON_WASM_RESPONSE_H_
+#define INCLUDE_DASHQL_COMMON_WASM_RESPONSE_H_
 
 #include <iostream>
 #include <variant>
 
+#include "arrow/result.h"
 #include "dashql/common/error.h"
 #include "dashql/common/expected.h"
 #include "dashql/proto_generated.h"
@@ -37,92 +38,27 @@ class WASMResponseBuffer {
 
    public:
     /// Constructor
-    WASMResponseBuffer() { Clear(); }
-
+    WASMResponseBuffer();
     /// Clear the response buffer
-    void Clear() {
-        error_.reset();
-        string_buffer_ = {};
-        proto_buffer_ = {};
-    }
-
+    void Clear();
     /// Store the detached flatbuffer
-    void Store(WASMResponse& response, std::string&& result) {
-        Clear();
-        string_buffer_ = std::move(result);
-        response.statusCode = SUCCESS;
-        response.dataOrValue = reinterpret_cast<uintptr_t>(string_buffer_.data());
-        response.dataSize = string_buffer_.size();
-    }
+    void Store(WASMResponse& response, flatbuffers::DetachedBuffer&& buffer);
+    /// Store the arrow status.
+    /// Returns wheather the result was OK
+    bool Store(WASMResponse& response, arrow::Status status);
+    /// Store a string
+    void Store(WASMResponse& response, std::string value);
+    /// Store a string view
+    void Store(WASMResponse& response, std::string_view value);
+    /// Store the result string
+    void Store(WASMResponse& response, arrow::Result<std::string> result);
+    /// Store the result double
+    void Store(WASMResponse& response, arrow::Result<double> result);
+    /// Store the result size_t
+    void Store(WASMResponse& response, arrow::Result<size_t> result);
 
-    /// Store the detached flatbuffer
-    void Store(WASMResponse& response, Expected<std::string>&& result) {
-        Clear();
-        if (result) {
-            Store(response, result.ReleaseValue());
-        } else {
-            Store(response, result.ReleaseError());
-        }
-    }
-
-    /// Store the detached flatbuffer
-    void Store(WASMResponse& response, flatbuffers::DetachedBuffer&& buffer) {
-        Clear();
-        proto_buffer_ = std::move(buffer);
-        response.statusCode = SUCCESS;
-        response.dataOrValue = reinterpret_cast<uintptr_t>(proto_buffer_.data());
-        response.dataSize = proto_buffer_.size();
-    }
-
-    /// Store the error
-    void Store(WASMResponse& response, Error&& err) {
-        Clear();
-        error_ = std::move(err);
-        auto m = error_->message();
-        m = m == nullptr ? "" : m;
-        proto_buffer_ = {};
-        response.statusCode = static_cast<size_t>(error_->code());
-        response.dataOrValue = reinterpret_cast<uintptr_t>(m);
-        response.dataSize = strlen(m);
-    }
-
-    /// Store the signal
-    void Store(WASMResponse& response, Signal&& result) {
-        if (result) {
-            Clear();
-            proto_buffer_ = {};
-            response.statusCode = SUCCESS;
-            response.dataOrValue = 0;
-            response.dataSize = proto_buffer_.size();
-        } else {
-            Store(response, result.ReleaseError());
-        }
-    }
-
-    /// Store the packed response
-    template <typename T> void Store(WASMResponse& response, ExpectedBuffer<T>&& result) {
-        if (result) {
-            Store(response, result.ReleaseBuffer());
-        } else {
-            Store(response, result.ReleaseError());
-        }
-    }
-
-    /// Store the packed response
-    template <typename T> void Store(WASMResponse& response, ExpectedBufferRef<T>&& result) {
-        if (result) {
-            Clear();
-            auto buffer = result.GetBuffer();
-            response.statusCode = SUCCESS;
-            response.dataOrValue = reinterpret_cast<uintptr_t>(buffer.data());
-            response.dataSize = buffer.size();
-        } else {
-            Store(response, result.ReleaseError());
-        }
-    }
-
-    /// Get the static response
-    static WASMResponseBuffer& GetInstance();
+    /// Get the instance
+    static WASMResponseBuffer& Get();
 };
 
 }  // namespace dashql

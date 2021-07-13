@@ -47,23 +47,24 @@ class Analyzer {
     std::unique_ptr<proto::action::ActionGraphT> planned_graph_;
 
     /// Evaluate the constant
-    const Value* TryEvaluateConstant(ProgramInstance& instance, size_t node_id) const;
+    arrow::Result<std::shared_ptr<arrow::Scalar>> TryEvaluateConstant(ProgramInstance& instance, size_t node_id) const;
     /// Evaluate constants
-    const Value* TryEvaluateFunctionCall(ProgramInstance& instance, size_t node_id) const;
+    arrow::Result<std::shared_ptr<arrow::Scalar>> TryEvaluateFunctionCall(ProgramInstance& instance,
+                                                                          size_t node_id) const;
     /// Evaluate the given parameter values
-    void EvaluateInputValues(ProgramInstance& instance);
+    arrow::Status EvaluateInputValues(ProgramInstance& instance);
     /// Evaluate constants
-    void PropagateConstants(ProgramInstance& instance);
+    arrow::Status PropagateConstants(ProgramInstance& instance);
     /// Analyze input statements
-    void AnalyzeInputStatements(ProgramInstance& instance);
+    arrow::Status AnalyzeInputStatements(ProgramInstance& instance);
     /// Analyze fetch statements
-    void AnalyzeFetchStatements(ProgramInstance& instance);
+    arrow::Status AnalyzeFetchStatements(ProgramInstance& instance);
     /// Analyze load statements
-    void AnalyzeLoadStatements(ProgramInstance& instance);
+    arrow::Status AnalyzeLoadStatements(ProgramInstance& instance);
     /// Analyze viz statements
-    void AnalyzeVizStatements(ProgramInstance& instance);
+    arrow::Status AnalyzeVizStatements(ProgramInstance& instance);
     /// Compute the card positions
-    void ComputeCardPositions(ProgramInstance& instance);
+    arrow::Status ComputeCardPositions(ProgramInstance& instance);
 
    public:
     /// Constructor
@@ -79,17 +80,17 @@ class Analyzer {
     auto planned_graph() const { return planned_graph_.get(); }
 
     /// Update the action status
-    void UpdateActionStatus(proto::action::ActionClass action_class, size_t action_id,
-                            proto::action::ActionStatusCode status);
+    arrow::Status UpdateActionStatus(proto::action::ActionClass action_class, size_t action_id,
+                                     proto::action::ActionStatusCode status);
 
     /// Parse a program
-    Signal ParseProgram(std::string_view text);
+    arrow::Status ParseProgram(std::string_view text);
     /// Instantiate the last program
-    Signal InstantiateProgram(std::vector<InputValue> params);
+    arrow::Status InstantiateProgram(std::vector<InputValue> params);
     /// Edit the last program
-    Signal EditProgram(const proto::edit::ProgramEdit& edit);
+    arrow::Status EditProgram(const proto::edit::ProgramEdit& edit);
     /// Plan the last program
-    Signal PlanProgram();
+    arrow::Status PlanProgram();
 
     /// Pack the program
     flatbuffers::Offset<proto::syntax::Program> PackProgram(flatbuffers::FlatBufferBuilder& builder);
