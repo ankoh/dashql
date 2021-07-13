@@ -53,7 +53,7 @@ class ActionPlanner {
                   const proto::action::ActionGraphT* prev_action_graph = nullptr);
 
     /// Plan the new action graph
-    void PlanActionGraph();
+    arrow::Status PlanActionGraph();
     /// Get the action graph
     std::unique_ptr<proto::action::ActionGraphT> Finish();
 };

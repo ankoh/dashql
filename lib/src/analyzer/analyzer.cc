@@ -315,7 +315,7 @@ arrow::Status Analyzer::PlanProgram() {
 
     // Plan the action graph
     ActionPlanner action_planner{*next_program, prev_program, prev_graph};
-    action_planner.PlanActionGraph();
+    ARROW_RETURN_NOT_OK(action_planner.PlanActionGraph());
     planned_graph_ = action_planner.Finish();
     planned_program_ = next_program;
 
