@@ -7,6 +7,7 @@
 #include "dashql/analyzer/stmt/input_stmt.h"
 #include "dashql/analyzer/stmt/viz_stmt.h"
 #include "dashql/analyzer/value_packing.h"
+#include "dashql/analyzer/value_printing.h"
 #include "dashql/common/memstream.h"
 #include "dashql/common/string.h"
 #include "dashql/common/substring_buffer.h"
@@ -132,7 +133,7 @@ arrow::Result<std::string> ProgramInstance::RenderStatementText(size_t stmt_id) 
         if (!buffer.Intersects(node_loc)) return;
 
         // Replace in buffer
-        auto vstr = node_value.value->ToString();  // XXX quotes for string? - was PrintValueAsScript
+        auto vstr = PrintScript(*node_value.value);
         buffer.Replace(node_loc, vstr);
     });
 

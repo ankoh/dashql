@@ -274,7 +274,8 @@ add_library(
   ${CMAKE_SOURCE_DIR}/src/analyzer/stmt/input_stmt.cc
   ${CMAKE_SOURCE_DIR}/src/analyzer/stmt/load_stmt.cc
   ${CMAKE_SOURCE_DIR}/src/analyzer/stmt/viz_stmt.cc
-  ${CMAKE_SOURCE_DIR}/src/analyzer/value_packing.cc)
+  ${CMAKE_SOURCE_DIR}/src/analyzer/value_packing.cc
+  ${CMAKE_SOURCE_DIR}/src/analyzer/value_printing.cc)
 
 add_library(dashql_jmespath ${CMAKE_SOURCE_DIR}/src/jmespath/jmespath.cc
                             ${CMAKE_SOURCE_DIR}/src/jmespath/jmespath_api.cc)
