@@ -49,8 +49,7 @@ arrow::Result<std::shared_ptr<arrow::Scalar>> FormatFunctionLogic::Evaluate(
             case arrow::Type::STRING:
             default: {
                 strings.push_back(arg_values[i]->ToString());
-                auto& str_view = strings.back();
-                auto fmt_view = fmt::basic_string_view<char>(str_view.data(), str_view.size());
+                auto fmt_view = fmt::basic_string_view<char>(strings.back().data(), strings.back().size());
                 args.emplace_back(fmt::detail::make_arg<ctx_t>(fmt_view));
                 break;
             }
@@ -64,6 +63,7 @@ arrow::Result<std::shared_ptr<arrow::Scalar>> FormatFunctionLogic::Evaluate(
     } catch (...) {
         return arrow::Status::Invalid("format failed");
     }
+
     return std::make_shared<arrow::StringScalar>(move(str));
 }
 

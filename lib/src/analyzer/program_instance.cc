@@ -53,7 +53,7 @@ std::shared_ptr<arrow::Scalar> ProgramInstance::ReadNodeValue(size_t node_id) {
             v = arrow::MakeScalar(arrow::int64(), n.children_begin_or_value()).ValueOr(v);
             break;
         case proto::syntax::NodeType::STRING_REF:
-            v = arrow::MakeScalar(arrow::utf8(), TextAt(n.location())).ValueOr(v);
+            v = std::make_shared<arrow::StringScalar>(std::string{TextAt(n.location())});
             break;
         default:
             break;
