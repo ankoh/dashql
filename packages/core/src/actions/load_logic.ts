@@ -2,10 +2,11 @@ import * as duckdb from '@dashql/duckdb/dist/duckdb.module.js';
 import * as proto from '@dashql/proto';
 import * as model from '../model';
 import * as Immutable from 'immutable';
-import { ActionHandle, PlanObject, Statement } from '../model';
+import { ActionHandle, PlanObject, Statement, TableStatisticsType } from '../model';
 import { ProgramActionLogic } from './action_logic';
 import { ActionContext } from './action_context';
 import { collectTableInfo } from './table_logic';
+import { Column } from 'apache-arrow';
 
 export class LoadActionLogic extends ProgramActionLogic {
     constructor(action_id: ActionHandle, action: proto.action.ProgramAction, statement: Statement) {
@@ -77,7 +78,7 @@ export class LoadActionLogic extends ProgramActionLogic {
                 columnNames: [],
                 columnNameMapping: new Map(),
                 columnTypes: [],
-                statistics: Immutable.Map(),
+                statistics: Immutable.Map<TableStatisticsType, Column<any>>(),
                 filePath: filePath,
             });
         });
