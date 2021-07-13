@@ -120,7 +120,7 @@ ProgramInstance::QualifiedName ProgramInstance::ReadQualifiedName(size_t node_id
 }
 
 // Collect the statement options
-Expected<std::string> ProgramInstance::RenderStatementText(size_t stmt_id) const {
+arrow::Result<std::string> ProgramInstance::RenderStatementText(size_t stmt_id) const {
     auto& target_root = program_->nodes[program_->statements[stmt_id]->root_node];
     SubstringBuffer buffer{*program_text_, target_root.location()};
 
@@ -141,20 +141,21 @@ Expected<std::string> ProgramInstance::RenderStatementText(size_t stmt_id) const
 }
 
 /// Pack the evaluated nodes
-flatbuffers::Offset<proto::analyzer::ProgramAnnotations> ProgramInstance::PackAnnotations(
+arrow::Result<flatbuffers::Offset<proto::analyzer::ProgramAnnotations>> ProgramInstance::PackAnnotations(
     flatbuffers::FlatBufferBuilder& builder) const {
     // Pack input values
     std::vector<flatbuffers::Offset<proto::analyzer::InputValue>> input_offsets;
     input_offsets.reserve(input_values_.size());
     for (auto& param : input_values_) {
-        input_offsets.push_back(param.Pack(builder));
+        ARROW_ASSIGN_OR_RAISE(auto v, param.Pack(builder));
+        input_offsets.push_back(v);
     }
     auto input_vec = builder.CreateVector(input_offsets);
 
     // Pack the evaluated nodes
     std::vector<flatbuffers::Offset<proto::analyzer::NodeValue>> eval_nodes;
     evaluated_nodes_.IterateValues([&](size_t /*node_id*/, const NodeValue& node_value) {
-        auto vb = PackValue(builder, *node_value.value);
+        auto vb = PackValue(builder, *node_value.value).ValueUnsafe();
         proto::analyzer::NodeValueBuilder nv{builder};
         nv.add_node_id(node_value.root_node_id);
         nv.add_value(vb);
