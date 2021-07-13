@@ -7,6 +7,7 @@
 #include <string>
 #include <unordered_map>
 
+#include "arrow/result.h"
 #include "dashql/proto_generated.h"
 #include "gtest/gtest.h"
 #include "pugixml.hpp"
@@ -40,7 +41,7 @@ struct GrammarTest {
     /// Encode a program
     static void EncodeProgram(pugi::xml_node root, const proto::syntax::ProgramT& program, std::string_view text);
     /// Get the grammar tests
-    static void LoadTests(std::filesystem::path& project_root);
+    static arrow::Status LoadTests(std::filesystem::path& project_root);
     /// Get the grammar tests
     static std::vector<const GrammarTest*> GetTests(std::string_view filename);
 };

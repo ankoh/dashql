@@ -63,6 +63,8 @@ set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/modules ${CMAKE_MODULE_PATH})
 # include("${CMAKE_SOURCE_DIR}/cmake/double-conversion.cmake")
 # include("${CMAKE_SOURCE_DIR}/cmake/flatc.cmake")
 # include("${CMAKE_SOURCE_DIR}/cmake/thrift.cmake")
+# include("${CMAKE_SOURCE_DIR}/cmake/xlnt.cmake")
+# include("${CMAKE_SOURCE_DIR}/cmake/spdlog.cmake")
 
 include("${CMAKE_SOURCE_DIR}/cmake/duckdb.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/boost.cmake")
@@ -75,8 +77,7 @@ include("${CMAKE_SOURCE_DIR}/cmake/rapidjson.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/nlohmann_json.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/jmespath.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/pugixml.cmake")
-# include("${CMAKE_SOURCE_DIR}/cmake/xlnt.cmake")
-include("${CMAKE_SOURCE_DIR}/cmake/spdlog.cmake")
+include("${CMAKE_SOURCE_DIR}/cmake/fmt.cmake")
 
 # ---------------------------------------------------------------------------
 # Code coverage
@@ -253,7 +254,6 @@ target_link_libraries(dashql_parser dashql_proto)
 add_library(
   dashql_common
   ${CMAKE_SOURCE_DIR}/src/common/wasm_response.cc
-  ${CMAKE_SOURCE_DIR}/src/common/pattern_search.cc
   ${CMAKE_SOURCE_DIR}/src/common/substring_buffer.cc
   ${CMAKE_SOURCE_DIR}/src/common/union_find.cc)
 
@@ -270,38 +270,32 @@ add_library(
   ${CMAKE_SOURCE_DIR}/src/analyzer/program_instance.cc
   ${CMAKE_SOURCE_DIR}/src/analyzer/program_matcher.cc
   ${CMAKE_SOURCE_DIR}/src/analyzer/syntax_matcher.cc
-  ${CMAKE_SOURCE_DIR}/src/analyzer/value.cc
   ${CMAKE_SOURCE_DIR}/src/analyzer/stmt/load_stmt.cc
   ${CMAKE_SOURCE_DIR}/src/analyzer/stmt/input_stmt.cc
   ${CMAKE_SOURCE_DIR}/src/analyzer/stmt/fetch_stmt.cc
   ${CMAKE_SOURCE_DIR}/src/analyzer/stmt/viz_stmt.cc)
 
-add_library(dashql_jmespath
-  ${CMAKE_SOURCE_DIR}/src/jmespath/jmespath.cc
-  ${CMAKE_SOURCE_DIR}/src/jmespath/jmespath_api.cc)
+add_library(dashql_jmespath ${CMAKE_SOURCE_DIR}/src/jmespath/jmespath.cc
+                            ${CMAKE_SOURCE_DIR}/src/jmespath/jmespath_api.cc)
 
-add_library(dashql_test
-  ${CMAKE_SOURCE_DIR}/src/test/analyzer_tests.cc
-  ${CMAKE_SOURCE_DIR}/src/test/grammar_tests.cc)
+add_library(dashql_test ${CMAKE_SOURCE_DIR}/src/test/analyzer_tests.cc
+                        ${CMAKE_SOURCE_DIR}/src/test/grammar_tests.cc)
 
 target_link_libraries(
   dashql_common
   dashql_proto
   flatbuffers
-  spdlog
   rapidjson
   nlohmann_json
   jmespath
-  arrow
-  duckdb)
+  arrow)
 target_link_libraries(
   dashql_analyzer
   dashql_parser
   dashql_common
   dashql_proto
-  spdlog
-  duckdb
   rapidjson
+  fmt
   arrow)
 target_link_libraries(dashql_jmespath dashql_common)
 target_link_libraries(
@@ -311,8 +305,8 @@ target_link_libraries(
   dashql_common
   dashql_proto
   pugixml
-  gtest
-  duckdb)
+  fmt
+  gtest)
 
 # ---------------------------------------------------------------------------
 # Emscripten

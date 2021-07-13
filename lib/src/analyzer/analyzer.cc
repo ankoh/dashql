@@ -5,6 +5,8 @@
 #include <iomanip>
 #include <optional>
 
+#include "arrow/type_fwd.h"
+#include "arrow/visitor_inline.h"
 #include "dashql/analyzer/action_planner.h"
 #include "dashql/analyzer/function_logic.h"
 #include "dashql/analyzer/input_value.h"
@@ -39,10 +41,11 @@ Analyzer& Analyzer::GetInstance() {
 void Analyzer::ResetInstance() { analyzer_instance.reset(); }
 
 /// Evaluate a constant node value
-const Value* Analyzer::TryEvaluateConstant(ProgramInstance& instance, size_t node_id) const {
+arrow::Result<std::shared_ptr<arrow::Scalar>> Analyzer::TryEvaluateConstant(ProgramInstance& instance,
+                                                                            size_t node_id) const {
     // Already evaluated?
     if (auto* eval = instance.evaluated_nodes_.Find(node_id); !!eval) {
-        return &eval->value;
+        return eval->value;
     }
     auto& node = instance.program().nodes[node_id];
 
@@ -52,17 +55,19 @@ const Value* Analyzer::TryEvaluateConstant(ProgramInstance& instance, size_t nod
         case sx::NodeType::BOOL:
         case sx::NodeType::UI32:
         case sx::NodeType::UI32_BITMAP:
-        case sx::NodeType::STRING_REF:
-            return &instance.evaluated_nodes_
-                        .Insert(node_id, {node_id, Value::VARCHAR(Ref, instance.TextAt(node.location()))})
-                        ->value;
+        case sx::NodeType::STRING_REF: {
+            auto value = arrow::MakeScalar(arrow::utf8(), instance.TextAt(node.location()))
+                             .ValueOr(arrow::MakeNullScalar(arrow::null()));
+            return instance.evaluated_nodes_.Insert(node_id, {node_id, std::move(value)})->value;
+        }
         default:
             return nullptr;
     }
 }
 
 /// Evaluate a function call
-const Value* Analyzer::TryEvaluateFunctionCall(ProgramInstance& instance, size_t node_id) const {
+arrow::Result<std::shared_ptr<arrow::Scalar>> Analyzer::TryEvaluateFunctionCall(ProgramInstance& instance,
+                                                                                size_t node_id) const {
     // clang-format off
     static const auto schema = sxm::Element()
         .MatchObject(sx::NodeType::OBJECT_DASHQL_FUNCTION_CALL)
@@ -86,14 +91,11 @@ const Value* Analyzer::TryEvaluateFunctionCall(ProgramInstance& instance, size_t
     // Abort if they are not const.
     auto func_args_node_id = matches[0].node_id;
     auto func_args_node = program.nodes[func_args_node_id];
-    std::vector<const Value*> func_args;
+    std::vector<std::shared_ptr<arrow::Scalar>> func_args;
     std::vector<size_t> func_arg_node_ids;
     for (unsigned i = 0; i < func_args_node.children_count(); ++i) {
         auto arg_node_id = func_args_node.children_begin_or_value() + i;
-        auto arg_value = TryEvaluateConstant(instance, arg_node_id);
-        if (!arg_value) {
-            break;
-        }
+        ARROW_ASSIGN_OR_RAISE(auto arg_value, TryEvaluateConstant(instance, arg_node_id));
         func_args.push_back(arg_value);
         func_arg_node_ids.push_back(arg_node_id);
     }
@@ -108,14 +110,14 @@ const Value* Analyzer::TryEvaluateFunctionCall(ProgramInstance& instance, size_t
 
     // Evaluate the function
     auto value = logic->Evaluate(func_args);
-    if (!value) {
-        instance.AddNodeError({node_id, value.ReleaseError()});
-        return nullptr;
+    if (!value.ok()) {
+        instance.AddNodeError({node_id, value.status()});
+        return value.status();
     }
 
     // Merge the evaluated nodes
     eval.Insert(node_id, {});
-    return &eval.Merge(node_id, func_arg_node_ids, {node_id, value.ReleaseValue()})->value;
+    return eval.Merge(node_id, func_arg_node_ids, {node_id, value.ValueUnsafe()})->value;
 }
 
 /// Constructor
@@ -131,27 +133,28 @@ Analyzer::Analyzer()
     for (unsigned i = 0; i < PLANNER_LOG_SIZE; ++i) program_log_.push_back(nullptr);
 }
 
-void Analyzer::UpdateActionStatus(proto::action::ActionClass action_class, size_t action_id,
-                                  proto::action::ActionStatusCode status) {
+arrow::Status Analyzer::UpdateActionStatus(proto::action::ActionClass action_class, size_t action_id,
+                                           proto::action::ActionStatusCode status) {
     if (action_class == proto::action::ActionClass::SETUP_ACTION) {
-        if (!planned_graph_ || action_id >= planned_graph_->setup_actions.size()) return;
+        if (!planned_graph_ || action_id >= planned_graph_->setup_actions.size()) return arrow::Status::OK();
         planned_graph_->setup_actions[action_id]->action_status_code = status;
     } else {
-        if (!planned_graph_ || action_id >= planned_graph_->program_actions.size()) return;
+        if (!planned_graph_ || action_id >= planned_graph_->program_actions.size()) return arrow::Status::OK();
         planned_graph_->program_actions[action_id]->action_status_code = status;
     }
+    return arrow::Status::OK();
 }
 
 /// Parse a program
-Signal Analyzer::ParseProgram(std::string_view text) {
+arrow::Status Analyzer::ParseProgram(std::string_view text) {
     // Parse the program
     volatile_program_text_ = std::make_shared<std::string>(text);
     volatile_program_ = parser::ParserDriver::Parse(text);
-    return Signal::OK();
+    return arrow::Status::OK();
 }
 
 // Evaluate the input values
-void Analyzer::EvaluateInputValues(ProgramInstance& instance) {
+arrow::Status Analyzer::EvaluateInputValues(ProgramInstance& instance) {
     auto& program = instance.program();
     auto& input_values = instance.input_values();
 
@@ -165,68 +168,74 @@ void Analyzer::EvaluateInputValues(ProgramInstance& instance) {
     for (auto& dep : program.dependencies) {
         if (auto iter = source_values.find(dep.source_statement()); iter != source_values.end()) {
             auto& input_value = iter->second;
-            instance.evaluated_nodes_.Insert(dep.target_node(), {dep.target_node(), input_value->value.CopyDeep()});
+            instance.evaluated_nodes_.Insert(dep.target_node(), {dep.target_node(), input_value->value});
         }
     }
+    return arrow::Status::OK();
 }
 
-void Analyzer::PropagateConstants(ProgramInstance& instance) {
+arrow::Status Analyzer::PropagateConstants(ProgramInstance& instance) {
     // We iterate through all nodes from the front to the back.
     // This already ensures that we see all children of a node before we see the parent.
     auto& nodes = instance.program_->nodes;
     for (unsigned n = 0; n < nodes.size(); ++n) {
         switch (nodes[n].node_type()) {
             case sx::NodeType::OBJECT_DASHQL_FUNCTION_CALL:
-                TryEvaluateFunctionCall(instance, n);
+                ARROW_RETURN_NOT_OK(TryEvaluateFunctionCall(instance, n));
                 break;
             default:
                 break;
         }
     }
+    return arrow::Status::OK();
 }
 
 /// Analyze the input statements
-void Analyzer::AnalyzeInputStatements(ProgramInstance& instance) {
+arrow::Status Analyzer::AnalyzeInputStatements(ProgramInstance& instance) {
     auto& program = instance.program();
     for (size_t stmt_id = 0; stmt_id < program.statements.size(); ++stmt_id) {
         auto input = InputStatement::ReadFrom(instance, stmt_id);
         if (!input) continue;
         instance.input_statements_.push_back(std::move(input));
     }
+    return arrow::Status::OK();
 }
 
 /// Analyze the fetch statements
-void Analyzer::AnalyzeFetchStatements(ProgramInstance& instance) {
+arrow::Status Analyzer::AnalyzeFetchStatements(ProgramInstance& instance) {
     auto& program = instance.program();
     for (size_t stmt_id = 0; stmt_id < program.statements.size(); ++stmt_id) {
         auto input = FetchStatement::ReadFrom(instance, stmt_id);
         if (!input) continue;
         instance.fetch_statements_.push_back(std::move(input));
     }
+    return arrow::Status::OK();
 }
 
 /// Analyze the load statements
-void Analyzer::AnalyzeLoadStatements(ProgramInstance& instance) {
+arrow::Status Analyzer::AnalyzeLoadStatements(ProgramInstance& instance) {
     auto& program = instance.program();
     for (size_t stmt_id = 0; stmt_id < program.statements.size(); ++stmt_id) {
         auto load = LoadStatement::ReadFrom(instance, stmt_id);
         if (!load) continue;
         instance.load_statements_.push_back(std::move(load));
     }
+    return arrow::Status::OK();
 }
 
 /// Analyze the viz statements
-void Analyzer::AnalyzeVizStatements(ProgramInstance& instance) {
+arrow::Status Analyzer::AnalyzeVizStatements(ProgramInstance& instance) {
     auto& program = instance.program();
     for (size_t stmt_id = 0; stmt_id < program.statements.size(); ++stmt_id) {
         auto viz = VizStatement::ReadFrom(instance, stmt_id);
         if (!viz) continue;
         instance.viz_statements_.push_back(std::move(viz));
     }
+    return arrow::Status::OK();
 }
 
 /// Compute the viz positions
-void Analyzer::ComputeCardPositions(ProgramInstance& instance) {
+arrow::Status Analyzer::ComputeCardPositions(ProgramInstance& instance) {
     std::vector<proto::analyzer::CardPosition*> positions;
     positions.reserve(instance.viz_statements().size());
     for (auto& stmt : instance.viz_statements()) {
@@ -240,26 +249,27 @@ void Analyzer::ComputeCardPositions(ProgramInstance& instance) {
             *pos = proto::analyzer::CardPosition(0, 0, 0, 0);
         }
     }
+    return arrow::Status::OK();
 }
 
 /// Instantiate a program with inputs
-Signal Analyzer::InstantiateProgram(std::vector<InputValue> inputs) {
+arrow::Status Analyzer::InstantiateProgram(std::vector<InputValue> inputs) {
     // Create program instance.
     // Note that we copy the shared pointer here and leave the parser output intact.
     // That allows us to re-instantiate the program with new input values without parsing it again.
     auto next_instance = std::make_unique<ProgramInstance>(volatile_program_text_, volatile_program_, move(inputs));
 
     // Evaluate the given input values.
-    EvaluateInputValues(*next_instance);
+    ARROW_RETURN_NOT_OK(EvaluateInputValues(*next_instance));
     // Evaluate and propagate constant values.
-    PropagateConstants(*next_instance);
+    ARROW_RETURN_NOT_OK(PropagateConstants(*next_instance));
     // Analyze the statements
-    AnalyzeInputStatements(*next_instance);
-    AnalyzeFetchStatements(*next_instance);
-    AnalyzeLoadStatements(*next_instance);
-    AnalyzeVizStatements(*next_instance);
+    ARROW_RETURN_NOT_OK(AnalyzeInputStatements(*next_instance));
+    ARROW_RETURN_NOT_OK(AnalyzeFetchStatements(*next_instance));
+    ARROW_RETURN_NOT_OK(AnalyzeLoadStatements(*next_instance));
+    ARROW_RETURN_NOT_OK(AnalyzeVizStatements(*next_instance));
     // Compute the card positions
-    ComputeCardPositions(*next_instance);
+    ARROW_RETURN_NOT_OK(ComputeCardPositions(*next_instance));
 
     // XXX Best-effort semantics check.
     //     Everything that we miss here will crash later in DuckDB.
@@ -267,19 +277,19 @@ Signal Analyzer::InstantiateProgram(std::vector<InputValue> inputs) {
     // If semantics are ok, replace current program instance
     program_log_[(program_log_writer_++) & PLANNER_LOG_MASK] = std::move(program_instance_);
     program_instance_ = move(next_instance);
-    return Signal::OK();
+    return arrow::Status::OK();
 }
 
 /// Edit the last program
-Signal Analyzer::EditProgram(const proto::edit::ProgramEdit& edit) {
-    if (!program_instance_) return Signal::OK();
+arrow::Status Analyzer::EditProgram(const proto::edit::ProgramEdit& edit) {
+    if (!program_instance_) return arrow::Status::OK();
 
     // Apply the edits
     ProgramEditor editor{*program_instance_};
     auto updated_text = editor.Apply(edit);
 
     // Parse the new program
-    ParseProgram(updated_text);
+    ARROW_RETURN_NOT_OK(ParseProgram(updated_text));
 
     // Instantiate the new program
     std::vector<InputValue> inputs;
@@ -287,18 +297,18 @@ Signal Analyzer::EditProgram(const proto::edit::ProgramEdit& edit) {
     for (auto& p : program_instance_->input_values()) {
         inputs.push_back({
             p.statement_id,
-            p.value.CopyDeep(),
+            p.value,
         });
     }
-    InstantiateProgram(std::move(inputs));
+    ARROW_RETURN_NOT_OK(InstantiateProgram(std::move(inputs)));
 
     // XXX Error handling.
     //     Rewriting a syntactically incorrect program?
-    return Signal::OK();
+    return arrow::Status::OK();
 }
 
 /// Evaluate a program
-Signal Analyzer::PlanProgram() {
+arrow::Status Analyzer::PlanProgram() {
     // Get previous and next program
     auto prev_program = program_log_[(program_log_writer_ + program_log_.size() - 1) & PLANNER_LOG_MASK].get();
     auto prev_graph = planned_graph_.get();
@@ -310,7 +320,7 @@ Signal Analyzer::PlanProgram() {
     planned_graph_ = action_planner.Finish();
     planned_program_ = next_program;
 
-    return Signal::OK();
+    return arrow::Status::OK();
 }
 
 /// Pack the program

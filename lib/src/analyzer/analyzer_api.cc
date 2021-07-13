@@ -10,14 +10,14 @@ extern "C" {
 void dashql_analyzer_reset() { Analyzer::ResetInstance(); }
 
 void dashql_analyzer_parse_program(WASMResponse* response, const char* text) {
-    if (auto rc = Analyzer::GetInstance().ParseProgram(text); !rc) {
-        WASMResponseBuffer::GetInstance().Store(*response, std::move(rc.ReleaseError()));
+    if (auto status = Analyzer::GetInstance().ParseProgram(text); !status.ok()) {
+        WASMResponseBuffer::Get().Store(*response, status);
         return;
     }
     flatbuffers::FlatBufferBuilder builder;
     auto program = Analyzer::GetInstance().PackProgram(builder);
     builder.Finish(program);
-    WASMResponseBuffer::GetInstance().Store(*response, builder.Release());
+    WASMResponseBuffer::Get().Store(*response, builder.Release());
 }
 
 void dashql_analyzer_instantiate_program(WASMResponse* response, const void* args_buffer) {
@@ -28,42 +28,42 @@ void dashql_analyzer_instantiate_program(WASMResponse* response, const void* arg
             inputs.push_back(InputValue::UnPack(*values->Get(i)));
         }
     }
-    if (auto rc = Analyzer::GetInstance().InstantiateProgram(move(inputs)); !rc) {
-        WASMResponseBuffer::GetInstance().Store(*response, std::move(rc.ReleaseError()));
+    if (auto status = Analyzer::GetInstance().InstantiateProgram(move(inputs)); !status.ok()) {
+        WASMResponseBuffer::Get().Store(*response, status);
         return;
     }
     flatbuffers::FlatBufferBuilder builder;
     auto program = Analyzer::GetInstance().PackProgramAnnotations(builder);
     builder.Finish(program);
-    WASMResponseBuffer::GetInstance().Store(*response, builder.Release());
+    WASMResponseBuffer::Get().Store(*response, builder.Release());
 }
 
 void dashql_analyzer_plan_program(WASMResponse* response) {
-    if (auto rc = Analyzer::GetInstance().PlanProgram(); !rc) {
-        WASMResponseBuffer::GetInstance().Store(*response, std::move(rc.ReleaseError()));
+    if (auto status = Analyzer::GetInstance().PlanProgram(); !status.ok()) {
+        WASMResponseBuffer::Get().Store(*response, std::move(status));
         return;
     }
     flatbuffers::FlatBufferBuilder builder;
     auto program = Analyzer::GetInstance().PackPlan(builder);
     builder.Finish(program);
-    WASMResponseBuffer::GetInstance().Store(*response, builder.Release());
+    WASMResponseBuffer::Get().Store(*response, builder.Release());
 }
 
 void dashql_analyzer_edit_program(WASMResponse* response, const void* args_buffer) {
     auto* edit = flatbuffers::GetRoot<proto::edit::ProgramEdit>(args_buffer);
-    if (auto rc = Analyzer::GetInstance().EditProgram(*edit); !rc) {
-        WASMResponseBuffer::GetInstance().Store(*response, std::move(rc.ReleaseError()));
+    if (auto status = Analyzer::GetInstance().EditProgram(*edit); !status.ok()) {
+        WASMResponseBuffer::Get().Store(*response, std::move(status));
         return;
     }
     flatbuffers::FlatBufferBuilder builder;
     auto replacement = Analyzer::GetInstance().PackReplacement(builder);
     builder.Finish(replacement);
-    WASMResponseBuffer::GetInstance().Store(*response, builder.Release());
+    WASMResponseBuffer::Get().Store(*response, builder.Release());
 }
 
 void dashql_analyzer_update_action_status(uint8_t action_class, size_t action_id, uint8_t status_code) {
     auto ac = static_cast<proto::action::ActionClass>(action_class);
     auto s = static_cast<proto::action::ActionStatusCode>(status_code);
-    Analyzer::GetInstance().UpdateActionStatus(ac, action_id, s);
+    Analyzer::GetInstance().UpdateActionStatus(ac, action_id, s).ok();
 }
 }

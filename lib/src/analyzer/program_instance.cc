@@ -1,12 +1,12 @@
 #include "dashql/analyzer/program_instance.h"
 
-#include <iomanip>
-#include <sstream>
-#include <stack>
-
+#include "arrow/scalar.h"
+#include "arrow/type_fwd.h"
+#include "arrow/visitor_inline.h"
 #include "dashql/analyzer/program_linter.h"
 #include "dashql/analyzer/stmt/input_stmt.h"
 #include "dashql/analyzer/stmt/viz_stmt.h"
+#include "dashql/analyzer/value_packing.h"
 #include "dashql/common/memstream.h"
 #include "dashql/common/string.h"
 #include "dashql/common/substring_buffer.h"
@@ -38,20 +38,22 @@ const InputValue* ProgramInstance::FindInputValue(size_t stmt_id) const {
 }
 
 /// Read a node value
-Value ProgramInstance::ReadNodeValue(size_t node_id) {
+std::shared_ptr<arrow::Scalar> ProgramInstance::ReadNodeValue(size_t node_id) {
     if (auto* node = evaluated_nodes_.Find(node_id); !!node) {
-        return node->value.CopyShallow();
+        return node->value;
     }
-    Value v;
+    auto v = arrow::MakeNullScalar(arrow::null());
     auto& n = program_->nodes[node_id];
     switch (n.node_type()) {
         case proto::syntax::NodeType::BOOL:
+            v = arrow::MakeScalar(arrow::boolean(), n.children_begin_or_value() != 0).ValueOr(v);
+            break;
         case proto::syntax::NodeType::UI32:
         case proto::syntax::NodeType::UI32_BITMAP:
-            v = Value::BIGINT(n.children_begin_or_value());
+            v = arrow::MakeScalar(arrow::int64(), n.children_begin_or_value()).ValueOr(v);
             break;
         case proto::syntax::NodeType::STRING_REF:
-            v = Value::VARCHAR(Ref, TextAt(n.location()));
+            v = arrow::MakeScalar(arrow::utf8(), TextAt(n.location())).ValueOr(v);
             break;
         default:
             break;
@@ -130,7 +132,7 @@ Expected<std::string> ProgramInstance::RenderStatementText(size_t stmt_id) const
         if (!buffer.Intersects(node_loc)) return;
 
         // Replace in buffer
-        auto vstr = node_value.value.PrintValueAsScript();
+        auto vstr = node_value.value->ToString();  // XXX quotes for string? - was PrintValueAsScript
         buffer.Replace(node_loc, vstr);
     });
 
@@ -152,7 +154,7 @@ flatbuffers::Offset<proto::analyzer::ProgramAnnotations> ProgramInstance::PackAn
     // Pack the evaluated nodes
     std::vector<flatbuffers::Offset<proto::analyzer::NodeValue>> eval_nodes;
     evaluated_nodes_.IterateValues([&](size_t /*node_id*/, const NodeValue& node_value) {
-        auto vb = node_value.value.Pack(builder);
+        auto vb = PackValue(builder, *node_value.value);
         proto::analyzer::NodeValueBuilder nv{builder};
         nv.add_node_id(node_value.root_node_id);
         nv.add_value(vb);

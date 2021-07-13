@@ -187,7 +187,7 @@ void GrammarTest::EncodeProgram(pugi::xml_node root, const proto::syntax::Progra
 static std::unordered_map<std::string, std::vector<GrammarTest>> TEST_FILES;
 
 // Load the tests
-void GrammarTest::LoadTests(std::filesystem::path& source_dir) {
+arrow::Status GrammarTest::LoadTests(std::filesystem::path& source_dir) {
     auto grammar_dir = source_dir / "test" / "parser" / "spec";
 
     std::cout << "Loading grammar tests at: " << grammar_dir << std::endl;
@@ -233,6 +233,7 @@ void GrammarTest::LoadTests(std::filesystem::path& source_dir) {
         // Register test
         TEST_FILES.insert({filename, move(tests)});
     }
+    return arrow::Status::OK();
 }
 
 // Get the tests

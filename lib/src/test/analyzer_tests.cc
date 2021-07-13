@@ -8,6 +8,9 @@
 #include <stack>
 #include <unordered_set>
 
+#include "arrow/result.h"
+#include "arrow/type.h"
+#include "arrow/type_fwd.h"
 #include "dashql/analyzer/stmt/viz_stmt.h"
 #include "dashql/proto_generated.h"
 #include "dashql/test/grammar_tests.h"
@@ -49,8 +52,8 @@ void AnalyzerTest::EncodePlan(pugi::xml_node root, const ProgramInstance& instan
 
     auto params = root.append_child("inputs");
     for (auto& param : instance.input_values()) {
-        auto type_str = param.value.PrintType();
-        auto value_str = param.value.PrintValue();
+        auto type_str = param.value->type->ToString();
+        auto value_str = param.value->ToString();
         auto p = params.append_child("input");
         p.append_attribute("statement").set_value(param.statement_id);
         p.append_attribute("type").set_value(type_str.c_str());
@@ -60,8 +63,8 @@ void AnalyzerTest::EncodePlan(pugi::xml_node root, const ProgramInstance& instan
     auto patch = root.append_child("evaluations");
     instance.evaluated_nodes().IterateValues([&](size_t /*node_id*/, const ProgramInstance::NodeValue& node_value) {
         auto e = patch.append_child("eval");
-        auto t = node_value.value.PrintType();
-        auto v = node_value.value.PrintValue();
+        auto t = node_value.value->type->ToString();
+        auto v = node_value.value->ToString();
         e.append_attribute("type").set_value(t.c_str());
         e.append_attribute("value").set_value(v.c_str());
         EncodeLocation(e, instance.program().nodes[node_value.root_node_id].location(), instance.program_text());
@@ -176,19 +179,27 @@ proto::syntax::InputComponentType AnalyzerTest::GetInputType(std::string_view ty
 }
 
 // Read a input
-InputValue AnalyzerTest::GetInputValue(const pugi::xml_node& node) {
+arrow::Result<InputValue> AnalyzerTest::GetInputValue(const pugi::xml_node& node) {
     auto stmt = node.attribute("statement").as_int();
     auto value = node.attribute("value").as_string();
     auto type = node.attribute("type").as_string();
-    auto v = Value::Parse(type, value);
-    return {static_cast<size_t>(stmt), std::move(v)};
+    static std::unordered_map<std::string_view, std::shared_ptr<arrow::DataType>> TYPE_NAMES = {
+        {"NOTYPE", arrow::null()},    {"BOOLEAN", arrow::boolean()},
+        {"BIGINT", arrow::int64()},   {"TIMESTAMP", arrow::timestamp(arrow::TimeUnit::NANO)},
+        {"DATE", arrow::date32()},    {"TIME", arrow::time64(arrow::TimeUnit::MILLI)},
+        {"DOUBLE", arrow::float64()}, {"VARCHAR", arrow::utf8()},
+    };
+    auto iter = TYPE_NAMES.find(type);
+    if (iter == TYPE_NAMES.end()) return arrow::Status::Invalid("unknown type: ", type);
+    ARROW_ASSIGN_OR_RAISE(auto v, arrow::Scalar::Parse(iter->second, value));
+    return InputValue{static_cast<size_t>(stmt), v};
 }
 
 // The files
 static std::unordered_map<std::string, std::vector<AnalyzerTest>> TEST_FILES;
 
 /// Get the grammar tests
-void AnalyzerTest::LoadTests(std::filesystem::path& source_dir) {
+arrow::Status AnalyzerTest::LoadTests(std::filesystem::path& source_dir) {
     auto spec_dir = source_dir / "test" / "analyzer" / "spec";
 
     std::cout << "Loading analyzer tests at: " << spec_dir << std::endl;
@@ -230,7 +241,8 @@ void AnalyzerTest::LoadTests(std::filesystem::path& source_dir) {
                 // Read input
                 auto inputs = step.child("inputs");
                 for (auto& input : inputs.children()) {
-                    s.input_values.push_back(AnalyzerTest::GetInputValue(input));
+                    ARROW_ASSIGN_OR_RAISE(auto v, AnalyzerTest::GetInputValue(input));
+                    s.input_values.push_back(v);
                 }
                 // Read full expected analyzer output
                 pugi::xml_document expected;
@@ -258,6 +270,7 @@ void AnalyzerTest::LoadTests(std::filesystem::path& source_dir) {
         // Register test
         TEST_FILES.insert({filename, move(tests)});
     }
+    return arrow::Status::OK();
 }
 
 /// Get the grammar tests

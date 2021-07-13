@@ -29,8 +29,12 @@ int main(int argc, char* argv[]) {
 
     if (std::filesystem::exists(FLAGS_source_dir)) {
         SOURCE_DIR = std::filesystem::path{FLAGS_source_dir};
-        GrammarTest::LoadTests(SOURCE_DIR);
-        AnalyzerTest::LoadTests(SOURCE_DIR);
+        if (auto status = GrammarTest::LoadTests(SOURCE_DIR); !status.ok()) {
+            std::cout << "Error while loading grammar tests: " << status.message() << std::endl;
+        }
+        if (auto status = AnalyzerTest::LoadTests(SOURCE_DIR); !status.ok()) {
+            std::cout << "Error while loading analyzer tests: " << status.message() << std::endl;
+        }
     }
 
     testing::InitGoogleTest(&argc, argv);
