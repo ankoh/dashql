@@ -158,9 +158,9 @@ class ProgramInstance {
     QualifiedName ReadQualifiedName(size_t node_id, bool lift_global = false);
 
     /// Render the statement text
-    Expected<std::string> RenderStatementText(size_t stmt_id) const;
+    arrow::Result<std::string> RenderStatementText(size_t stmt_id) const;
     /// Pack the program annotations
-    flatbuffers::Offset<proto::analyzer::ProgramAnnotations> PackAnnotations(
+    arrow::Result<flatbuffers::Offset<proto::analyzer::ProgramAnnotations>> PackAnnotations(
         flatbuffers::FlatBufferBuilder& builder) const;
 
     /// Find an attribute

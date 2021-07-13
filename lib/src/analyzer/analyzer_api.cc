@@ -15,7 +15,7 @@ void dashql_analyzer_parse_program(WASMResponse* response, const char* text) {
         return;
     }
     flatbuffers::FlatBufferBuilder builder;
-    auto program = Analyzer::GetInstance().PackProgram(builder);
+    ASSIGN_OR_RETURN(response, auto program, Analyzer::GetInstance().PackProgram(builder));
     builder.Finish(program);
     WASMResponseBuffer::Get().Store(*response, builder.Release());
 }
@@ -25,7 +25,13 @@ void dashql_analyzer_instantiate_program(WASMResponse* response, const void* arg
     std::vector<InputValue> inputs;
     if (auto values = args->input_values(); values && values->size() > 0) {
         for (unsigned i = 0; i < args->input_values()->size(); ++i) {
-            inputs.push_back(InputValue::UnPack(*values->Get(i)));
+            // Unpack the input value
+            auto maybe_ofs = InputValue::UnPack(*values->Get(i));
+            if (!maybe_ofs.ok()) {
+                WASMResponseBuffer::Get().Store(*response, std::move(maybe_ofs.status()));
+                return;
+            }
+            inputs.push_back(maybe_ofs.ValueUnsafe());
         }
     }
     if (auto status = Analyzer::GetInstance().InstantiateProgram(move(inputs)); !status.ok()) {
@@ -33,7 +39,7 @@ void dashql_analyzer_instantiate_program(WASMResponse* response, const void* arg
         return;
     }
     flatbuffers::FlatBufferBuilder builder;
-    auto program = Analyzer::GetInstance().PackProgramAnnotations(builder);
+    ASSIGN_OR_RETURN(response, auto program, Analyzer::GetInstance().PackProgramAnnotations(builder));
     builder.Finish(program);
     WASMResponseBuffer::Get().Store(*response, builder.Release());
 }
@@ -44,7 +50,7 @@ void dashql_analyzer_plan_program(WASMResponse* response) {
         return;
     }
     flatbuffers::FlatBufferBuilder builder;
-    auto program = Analyzer::GetInstance().PackPlan(builder);
+    ASSIGN_OR_RETURN(response, auto program, Analyzer::GetInstance().PackPlan(builder));
     builder.Finish(program);
     WASMResponseBuffer::Get().Store(*response, builder.Release());
 }
@@ -56,7 +62,7 @@ void dashql_analyzer_edit_program(WASMResponse* response, const void* args_buffe
         return;
     }
     flatbuffers::FlatBufferBuilder builder;
-    auto replacement = Analyzer::GetInstance().PackReplacement(builder);
+    ASSIGN_OR_RETURN(response, auto replacement, Analyzer::GetInstance().PackReplacement(builder));
     builder.Finish(replacement);
     WASMResponseBuffer::Get().Store(*response, builder.Release());
 }

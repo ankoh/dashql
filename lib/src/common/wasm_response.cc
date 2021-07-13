@@ -1,5 +1,7 @@
 #include "dashql/common/wasm_response.h"
 
+#include <flatbuffers/flatbuffers.h>
+
 #include <cstdint>
 
 #include "arrow/buffer.h"
@@ -26,6 +28,7 @@ bool WASMResponseBuffer::Store(WASMResponse& response, arrow::Status status) {
 }
 
 void WASMResponseBuffer::Store(WASMResponse& response, std::string value) {
+    Clear();
     string_buffer_ = std::move(value);
     response.statusCode = 0;
     response.dataOrValue = reinterpret_cast<uintptr_t>(string_buffer_.data());
@@ -33,9 +36,25 @@ void WASMResponseBuffer::Store(WASMResponse& response, std::string value) {
 }
 
 void WASMResponseBuffer::Store(WASMResponse& response, std::string_view value) {
+    Clear();
     response.statusCode = 0;
     response.dataOrValue = reinterpret_cast<uintptr_t>(value.data());
     response.dataSize = value.size();
+}
+
+void WASMResponseBuffer::Store(WASMResponse& response, flatbuffers::DetachedBuffer&& result) {
+    Clear();
+    proto_buffer_ = std::move(result);
+    response.statusCode = 0;
+    response.dataOrValue = reinterpret_cast<uintptr_t>(proto_buffer_.data());
+    response.dataSize = reinterpret_cast<uintptr_t>(proto_buffer_.size());
+}
+
+void WASMResponseBuffer::Store(WASMResponse& response, arrow::Result<flatbuffers::DetachedBuffer> result) {
+    if (!Store(response, result.status())) return;
+    proto_buffer_ = std::move(result.ValueUnsafe());
+    response.dataOrValue = reinterpret_cast<uintptr_t>(proto_buffer_.data());
+    response.dataSize = reinterpret_cast<uintptr_t>(proto_buffer_.size());
 }
 
 void WASMResponseBuffer::Store(WASMResponse& response, arrow::Result<std::string> result) {

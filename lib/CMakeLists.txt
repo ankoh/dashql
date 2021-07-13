@@ -263,17 +263,18 @@ add_library(
   ${CMAKE_SOURCE_DIR}/src/analyzer/analyzer.cc
   ${CMAKE_SOURCE_DIR}/src/analyzer/analyzer_api.cc
   ${CMAKE_SOURCE_DIR}/src/analyzer/function_logic.cc
+  ${CMAKE_SOURCE_DIR}/src/analyzer/input_value.cc
   ${CMAKE_SOURCE_DIR}/src/analyzer/json_patch.cc
   ${CMAKE_SOURCE_DIR}/src/analyzer/json_writer.cc
-  ${CMAKE_SOURCE_DIR}/src/analyzer/input_value.cc
   ${CMAKE_SOURCE_DIR}/src/analyzer/program_editor.cc
   ${CMAKE_SOURCE_DIR}/src/analyzer/program_instance.cc
   ${CMAKE_SOURCE_DIR}/src/analyzer/program_matcher.cc
   ${CMAKE_SOURCE_DIR}/src/analyzer/syntax_matcher.cc
-  ${CMAKE_SOURCE_DIR}/src/analyzer/stmt/load_stmt.cc
-  ${CMAKE_SOURCE_DIR}/src/analyzer/stmt/input_stmt.cc
   ${CMAKE_SOURCE_DIR}/src/analyzer/stmt/fetch_stmt.cc
-  ${CMAKE_SOURCE_DIR}/src/analyzer/stmt/viz_stmt.cc)
+  ${CMAKE_SOURCE_DIR}/src/analyzer/stmt/input_stmt.cc
+  ${CMAKE_SOURCE_DIR}/src/analyzer/stmt/load_stmt.cc
+  ${CMAKE_SOURCE_DIR}/src/analyzer/stmt/viz_stmt.cc
+  ${CMAKE_SOURCE_DIR}/src/analyzer/value_packing.cc)
 
 add_library(dashql_jmespath ${CMAKE_SOURCE_DIR}/src/jmespath/jmespath.cc
                             ${CMAKE_SOURCE_DIR}/src/jmespath/jmespath_api.cc)

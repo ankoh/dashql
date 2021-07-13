@@ -186,7 +186,7 @@ arrow::Result<InputValue> AnalyzerTest::GetInputValue(const pugi::xml_node& node
     static std::unordered_map<std::string_view, std::shared_ptr<arrow::DataType>> TYPE_NAMES = {
         {"NOTYPE", arrow::null()},    {"BOOLEAN", arrow::boolean()},
         {"BIGINT", arrow::int64()},   {"TIMESTAMP", arrow::timestamp(arrow::TimeUnit::NANO)},
-        {"DATE", arrow::date32()},    {"TIME", arrow::time64(arrow::TimeUnit::MILLI)},
+        {"DATE", arrow::date32()},    {"TIME", arrow::time64(arrow::TimeUnit::NANO)},
         {"DOUBLE", arrow::float64()}, {"VARCHAR", arrow::utf8()},
     };
     auto iter = TYPE_NAMES.find(type);

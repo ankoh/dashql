@@ -29,20 +29,20 @@ ActionPlanner::ActionPlanner(const ProgramInstance& next_program, const ProgramI
 }
 
 // Diff programs
-Signal ActionPlanner::DiffPrograms() {
+arrow::Status ActionPlanner::DiffPrograms() {
     // No previous plan?
     // Then we emit all new statements as INSERT
     if (!prev_program_) {
         for (unsigned i = 0; i < next_program_.program().statements.size(); ++i) {
             diff_.emplace_back(DiffOpCode::INSERT, std::nullopt, i);
         }
-        return Signal::OK();
+        return arrow::Status::OK();
     }
 
     // Compute the patience diff
     ProgramMatcher matcher{*prev_program_, next_program_};
     diff_ = matcher.ComputeDiff();
-    return Signal::OK();
+    return arrow::Status::OK();
 }
 
 // Canonical translation of statements into actions
@@ -72,7 +72,7 @@ static const std::unordered_map<sx::StatementType, StatementTranslation>& Statem
 };
 
 // Translate statements
-Signal ActionPlanner::TranslateStatements() {
+arrow::Status ActionPlanner::TranslateStatements() {
     auto& next = next_program_.program();
     auto& stmts = next.statements;
     auto& program_actions = action_graph_->program_actions;
@@ -99,11 +99,7 @@ Signal ActionPlanner::TranslateStatements() {
             auto [action_type, requires_script] = iter->second;
             action->action_type = action_type;
             if (requires_script) {
-                auto script = next_program_.RenderStatementText(stmt_id);
-                if (!script.IsOk()) {
-                    return script.err();
-                }
-                action->script = script.ReleaseValue();
+                ARROW_ASSIGN_OR_RAISE(action->script, next_program_.RenderStatementText(stmt_id));
             }
         }
         program_actions[stmt_id] = move(action);
@@ -128,7 +124,7 @@ Signal ActionPlanner::TranslateStatements() {
         reverse_action_mapping_[*diff_op.target()] = *diff_op.source();
     }
 
-    return Signal::OK();
+    return arrow::Status::OK();
 }
 
 /// A program action invalidation
@@ -157,8 +153,8 @@ static std::unordered_map<ProgramActionType, ProgramActionInvalidation> ACTION_T
     // clang-format on
 };
 
-Signal ActionPlanner::IdentifyApplicableActions() {
-    if (!prev_action_graph_) return Signal::OK();
+arrow::Status ActionPlanner::IdentifyApplicableActions() {
+    if (!prev_action_graph_) return arrow::Status::OK();
 
     using ActionID = size_t;
     auto& prev_program_actions = prev_action_graph_->program_actions;
@@ -293,11 +289,11 @@ Signal ActionPlanner::IdentifyApplicableActions() {
                 break;
         }
     }
-    return Signal::OK();
+    return arrow::Status::OK();
 }
 
-Signal ActionPlanner::MigrateActionGraph() {
-    if (!prev_action_graph_) return Signal::OK();
+arrow::Status ActionPlanner::MigrateActionGraph() {
+    if (!prev_action_graph_) return arrow::Status::OK();
 
     auto& prev_program_actions = prev_action_graph_->program_actions;
     using ActionID = size_t;
@@ -407,7 +403,7 @@ Signal ActionPlanner::MigrateActionGraph() {
         patch_setup_ids(s->required_for);
         patch_setup_ids(s->depends_on);
     }
-    return Signal::OK();
+    return arrow::Status::OK();
 }
 
 // Plan the new action graph

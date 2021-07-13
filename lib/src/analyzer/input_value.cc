@@ -35,8 +35,9 @@ bool InputValue::operator!=(const InputValue& other) const {
 }
 
 /// Pack the parameter value
-flatbuffers::Offset<proto::analyzer::InputValue> InputValue::Pack(flatbuffers::FlatBufferBuilder& builder) const {
-    auto v = PackValue(builder, *value);
+arrow::Result<flatbuffers::Offset<proto::analyzer::InputValue>> InputValue::Pack(
+    flatbuffers::FlatBufferBuilder& builder) const {
+    ARROW_ASSIGN_OR_RAISE(auto v, PackValue(builder, *value));
     proto::analyzer::InputValueBuilder p{builder};
     p.add_statement_id(statement_id);
     p.add_value(v);
@@ -44,10 +45,12 @@ flatbuffers::Offset<proto::analyzer::InputValue> InputValue::Pack(flatbuffers::F
 }
 
 /// Read from a parameter value
-InputValue InputValue::UnPack(const proto::analyzer::InputValue& b) {
+arrow::Result<InputValue> InputValue::UnPack(const proto::analyzer::InputValue& b) {
     InputValue p;
     p.statement_id = b.statement_id();
-    if (auto v = b.value(); !!v) p.value = UnPackValue(*v);
+    if (auto v = b.value(); !!v) {
+        ARROW_ASSIGN_OR_RAISE(p.value, UnPackValue(*v));
+    }
     return p;
 }
 
