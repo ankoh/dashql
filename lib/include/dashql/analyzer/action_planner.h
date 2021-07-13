@@ -39,13 +39,13 @@ class ActionPlanner {
     std::unique_ptr<proto::action::ActionGraphT> action_graph_;
 
     /// Diff the two programs
-    Signal DiffPrograms();
+    arrow::Status DiffPrograms();
     /// Translate statements canonically
-    Signal TranslateStatements();
+    arrow::Status TranslateStatements();
     /// Identify applicable actions in the previous action graph
-    Signal IdentifyApplicableActions();
+    arrow::Status IdentifyApplicableActions();
     /// Migrate the previous action graph
-    Signal MigrateActionGraph();
+    arrow::Status MigrateActionGraph();
 
    public:
     /// Constructor

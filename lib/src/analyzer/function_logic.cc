@@ -34,6 +34,7 @@ arrow::Result<std::shared_ptr<arrow::Scalar>> FormatFunctionLogic::Evaluate(
     auto tmpl_view = fmt::basic_string_view<char>(tmpl.data(), tmpl.size());
 
     // Translate formatting arguments
+    std::vector<std::string> strings;
     std::vector<fmt::basic_format_arg<fmt::format_context>> args;
     for (unsigned i = 1; i < arg_values.size(); ++i) {
         switch (arg_values[i]->type->id()) {
@@ -47,8 +48,9 @@ arrow::Result<std::shared_ptr<arrow::Scalar>> FormatFunctionLogic::Evaluate(
                 break;
             case arrow::Type::STRING:
             default: {
-                auto view = arg_values[i]->ToString();
-                auto fmt_view = fmt::basic_string_view<char>(view.data(), view.size());
+                strings.push_back(arg_values[i]->ToString());
+                auto& str_view = strings.back();
+                auto fmt_view = fmt::basic_string_view<char>(str_view.data(), str_view.size());
                 args.emplace_back(fmt::detail::make_arg<ctx_t>(fmt_view));
                 break;
             }
@@ -62,7 +64,7 @@ arrow::Result<std::shared_ptr<arrow::Scalar>> FormatFunctionLogic::Evaluate(
     } catch (...) {
         return arrow::Status::Invalid("format failed");
     }
-    return arrow::MakeScalar(arrow::utf8(), move(str));
+    return std::make_shared<arrow::StringScalar>(move(str));
 }
 
 // Resolve a function logic

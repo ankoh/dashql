@@ -324,20 +324,21 @@ arrow::Status Analyzer::PlanProgram() {
 }
 
 /// Pack the program
-flatbuffers::Offset<proto::syntax::Program> Analyzer::PackProgram(flatbuffers::FlatBufferBuilder& builder) {
+arrow::Result<flatbuffers::Offset<proto::syntax::Program>> Analyzer::PackProgram(
+    flatbuffers::FlatBufferBuilder& builder) {
     assert(!!volatile_program_.get());
     return sx::Program::Pack(builder, volatile_program_.get());
 }
 
 /// Pack the program annotations
-flatbuffers::Offset<proto::analyzer::ProgramAnnotations> Analyzer::PackProgramAnnotations(
+arrow::Result<flatbuffers::Offset<proto::analyzer::ProgramAnnotations>> Analyzer::PackProgramAnnotations(
     flatbuffers::FlatBufferBuilder& builder) {
     assert(!!program_instance_.get());
     return program_instance_->PackAnnotations(builder);
 }
 
 /// Pack the plan
-flatbuffers::Offset<proto::analyzer::Plan> Analyzer::PackPlan(flatbuffers::FlatBufferBuilder& builder) {
+arrow::Result<flatbuffers::Offset<proto::analyzer::Plan>> Analyzer::PackPlan(flatbuffers::FlatBufferBuilder& builder) {
     assert(!!planned_graph_.get());
     auto graph = proto::action::ActionGraph::Pack(builder, planned_graph_.get());
     proto::analyzer::PlanBuilder plan{builder};
@@ -346,13 +347,13 @@ flatbuffers::Offset<proto::analyzer::Plan> Analyzer::PackPlan(flatbuffers::FlatB
 }
 
 /// Pack a program replacement
-flatbuffers::Offset<proto::analyzer::ProgramReplacement> Analyzer::PackReplacement(
+arrow::Result<flatbuffers::Offset<proto::analyzer::ProgramReplacement>> Analyzer::PackReplacement(
     flatbuffers::FlatBufferBuilder& builder) {
     assert(!!program_instance_.get());
 
     auto program_txt = builder.CreateString(program_instance_->program_text());
     auto program = sx::Program::Pack(builder, &program_instance_->program());
-    auto annotations = program_instance_->PackAnnotations(builder);
+    ARROW_ASSIGN_OR_RAISE(auto annotations, program_instance_->PackAnnotations(builder));
 
     proto::analyzer::ProgramReplacementBuilder replacement{builder};
     replacement.add_program_text(program_txt);

@@ -10,10 +10,10 @@
 namespace dashql {
 
 /// Pack a value
-flatbuffers::Offset<proto::sql::SQLValue> PackValue(flatbuffers::FlatBufferBuilder& builder,
-                                                    const arrow::Scalar& scalar);
+arrow::Result<flatbuffers::Offset<proto::sql::SQLValue>> PackValue(flatbuffers::FlatBufferBuilder& builder,
+                                                                   const arrow::Scalar& scalar);
 /// Unpack a value
-std::shared_ptr<arrow::Scalar> UnPackValue(const proto::sql::SQLValue& value);
+arrow::Result<std::shared_ptr<arrow::Scalar>> UnPackValue(const proto::sql::SQLValue& value);
 
 }  // namespace dashql
 

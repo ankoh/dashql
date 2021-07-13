@@ -93,14 +93,15 @@ class Analyzer {
     arrow::Status PlanProgram();
 
     /// Pack the program
-    flatbuffers::Offset<proto::syntax::Program> PackProgram(flatbuffers::FlatBufferBuilder& builder);
+    arrow::Result<flatbuffers::Offset<proto::syntax::Program>> PackProgram(flatbuffers::FlatBufferBuilder& builder);
     /// Pack the program annotations
-    flatbuffers::Offset<proto::analyzer::ProgramAnnotations> PackProgramAnnotations(
+    arrow::Result<flatbuffers::Offset<proto::analyzer::ProgramAnnotations>> PackProgramAnnotations(
         flatbuffers::FlatBufferBuilder& builder);
     /// Pack the plan
-    flatbuffers::Offset<proto::analyzer::Plan> PackPlan(flatbuffers::FlatBufferBuilder& builder);
+    arrow::Result<flatbuffers::Offset<proto::analyzer::Plan>> PackPlan(flatbuffers::FlatBufferBuilder& builder);
     /// Pack a program replacement
-    flatbuffers::Offset<proto::analyzer::ProgramReplacement> PackReplacement(flatbuffers::FlatBufferBuilder& builder);
+    arrow::Result<flatbuffers::Offset<proto::analyzer::ProgramReplacement>> PackReplacement(
+        flatbuffers::FlatBufferBuilder& builder);
 
     /// Get the global analyzer instance
     static Analyzer& GetInstance();

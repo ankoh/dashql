@@ -43,9 +43,9 @@ struct InputValue {
     bool operator!=(const InputValue& other) const;
 
     /// Pack the parameter value
-    flatbuffers::Offset<proto::analyzer::InputValue> Pack(flatbuffers::FlatBufferBuilder& builder) const;
+    arrow::Result<flatbuffers::Offset<proto::analyzer::InputValue>> Pack(flatbuffers::FlatBufferBuilder& builder) const;
     /// Read from a parameter value
-    static InputValue UnPack(const proto::analyzer::InputValue&);
+    static arrow::Result<InputValue> UnPack(const proto::analyzer::InputValue&);
 };
 
 }  // namespace dashql
