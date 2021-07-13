@@ -4,7 +4,7 @@
             INPUT country TYPE VARCHAR USING TEXT;
         </text>
         <inputs>
-            <input statement="0" type="VARCHAR" value="DE" />
+            <input statement="0" type="string" value="DE" />
         </inputs>
         <evaluations />
         <cards>
@@ -49,10 +49,10 @@
             LOAD weather FROM weather_csv USING CSV;
         </text>
         <inputs>
-            <input statement="0" type="VARCHAR" value="DE" />
+            <input statement="0" type="string" value="DE" />
         </inputs>
         <evaluations>
-            <eval type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" loc="116..178" text="format('ht..n.country)" />
+            <eval type="string" value="'https://cdn.dashql.com/demo/weather/DE'" loc="116..178" text="format('ht..n.country)" />
         </evaluations>
         <cards>
             <input name="country" component="TEXT" />
@@ -95,10 +95,10 @@
             LOAD weather FROM weather_csv USING CSV;
         </text>
         <inputs>
-            <input statement="0" type="VARCHAR" value="DE" />
+            <input statement="0" type="string" value="DE" />
         </inputs>
         <evaluations>
-            <eval type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" loc="116..178" text="format('ht..n.country)" />
+            <eval type="string" value="'https://cdn.dashql.com/demo/weather/DE'" loc="116..178" text="format('ht..n.country)" />
         </evaluations>
         <cards>
             <input name="country" component="TEXT" />
@@ -142,10 +142,10 @@
             SELECT * INTO weather_avg FROM weather;
         </text>
         <inputs>
-            <input statement="0" type="VARCHAR" value="DE" />
+            <input statement="0" type="string" value="DE" />
         </inputs>
         <evaluations>
-            <eval type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" loc="116..178" text="format('ht..n.country)" />
+            <eval type="string" value="'https://cdn.dashql.com/demo/weather/DE'" loc="116..178" text="format('ht..n.country)" />
         </evaluations>
         <cards>
             <input name="country" component="TEXT" />
@@ -201,10 +201,10 @@
             VIZ weather_avg USING TABLE;
         </text>
         <inputs>
-            <input statement="0" type="VARCHAR" value="DE" />
+            <input statement="0" type="string" value="DE" />
         </inputs>
         <evaluations>
-            <eval type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" loc="116..178" text="format('ht..n.country)" />
+            <eval type="string" value="'https://cdn.dashql.com/demo/weather/DE'" loc="116..178" text="format('ht..n.country)" />
         </evaluations>
         <cards>
             <input name="country" component="TEXT" />
@@ -287,10 +287,10 @@
             VIZ weather_binned USING BAR;
         </text>
         <inputs>
-            <input statement="0" type="VARCHAR" value="DE" />
+            <input statement="0" type="string" value="DE" />
         </inputs>
         <evaluations>
-            <eval type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" loc="116..178" text="format('ht..n.country)" />
+            <eval type="string" value="'https://cdn.dashql.com/demo/weather/DE'" loc="116..178" text="format('ht..n.country)" />
         </evaluations>
         <cards>
             <input name="country" component="TEXT" />
@@ -384,13 +384,13 @@
             VIZ weather_binned USING BAR;
         </text>
         <inputs>
-            <input statement="0" type="VARCHAR" value="DE" />
-            <input statement="1" type="BIGINT" value="5" />
+            <input statement="0" type="string" value="DE" />
+            <input statement="1" type="int64" value="5" />
         </inputs>
         <evaluations>
-            <eval type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" loc="165..227" text="format('ht..n.country)" />
-            <eval type="BIGINT" value="5" loc="441..451" text="main.month" />
-            <eval type="BIGINT" value="5" loc="361..371" text="main.month" />
+            <eval type="string" value="'https://cdn.dashql.com/demo/weather/DE'" loc="165..227" text="format('ht..n.country)" />
+            <eval type="int64" value="5" loc="441..451" text="main.month" />
+            <eval type="int64" value="5" loc="361..371" text="main.month" />
         </evaluations>
         <cards>
             <input name="country" component="TEXT" />
@@ -491,12 +491,12 @@
             SELECT * INTO weather_avg FROM weather WHERE city = main.city;
         </text>
         <inputs>
-            <input statement="0" type="VARCHAR" value="DE" />
-            <input statement="1" type="VARCHAR" value="MUC" />
+            <input statement="0" type="string" value="DE" />
+            <input statement="1" type="string" value="MUC" />
         </inputs>
         <evaluations>
-            <eval type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" loc="164..226" text="format('ht..n.country)" />
-            <eval type="VARCHAR" value="MUC" loc="359..368" text="main.city" />
+            <eval type="string" value="'https://cdn.dashql.com/demo/weather/DE'" loc="164..226" text="format('ht..n.country)" />
+            <eval type="string" value="MUC" loc="359..368" text="main.city" />
         </evaluations>
         <cards>
             <input name="country" component="TEXT" />
@@ -565,14 +565,14 @@
             VIZ countries_joined USING LINE;
         </text>
         <inputs>
-            <input statement="0" type="VARCHAR" value="DE" />
-            <input statement="1" type="VARCHAR" value="US" />
-            <input statement="2" type="BIGINT" value="5" />
+            <input statement="0" type="string" value="DE" />
+            <input statement="1" type="string" value="US" />
+            <input statement="2" type="int64" value="5" />
         </inputs>
         <evaluations>
-            <eval type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/US'" loc="379..442" text="format('ht...country2)" />
-            <eval type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" loc="227..290" text="format('ht...country1)" />
-            <eval type="BIGINT" value="5" loc="730..740" text="main.month" />
+            <eval type="string" value="'https://cdn.dashql.com/demo/weather/US'" loc="379..442" text="format('ht...country2)" />
+            <eval type="string" value="'https://cdn.dashql.com/demo/weather/DE'" loc="227..290" text="format('ht...country1)" />
+            <eval type="int64" value="5" loc="730..740" text="main.month" />
         </evaluations>
         <cards>
             <input name="country1" component="TEXT" />

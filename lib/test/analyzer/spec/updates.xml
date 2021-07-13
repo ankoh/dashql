@@ -9,10 +9,10 @@
             );
         </text>
         <inputs>
-            <input statement="0" type="VARCHAR" value="DE" />
+            <input statement="0" type="string" value="DE" />
         </inputs>
         <evaluations>
-            <eval type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/DE'" loc="169..231" text="format('ht..n.country)" />
+            <eval type="string" value="'https://cdn.dashql.com/demo/weather/DE'" loc="169..231" text="format('ht..n.country)" />
         </evaluations>
         <cards>
             <input name="country" component="TEXT" />
@@ -45,10 +45,10 @@
             );
         </text>
         <inputs>
-            <input statement="0" type="VARCHAR" value="US" />
+            <input statement="0" type="string" value="US" />
         </inputs>
         <evaluations>
-            <eval type="VARCHAR" value="'https://cdn.dashql.com/demo/weather/US'" loc="169..231" text="format('ht..n.country)" />
+            <eval type="string" value="'https://cdn.dashql.com/demo/weather/US'" loc="169..231" text="format('ht..n.country)" />
         </evaluations>
         <cards>
             <input name="country" component="TEXT" />
