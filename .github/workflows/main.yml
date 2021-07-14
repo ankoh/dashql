@@ -217,11 +217,12 @@ jobs:
                       emmake make \
                           -C./lib/build/wasm/release \
                           -j`nproc` \
-                          analyzer_wasm
+                          analyzer_wasm jmespath_wasm
 
                       ccache -s
 
                       cp ./lib/build/wasm/release/analyzer_*.{wasm,js} ./packages/core/src/analyzer/
+                      cp ./lib/build/wasm/release/jmespath_*.{wasm,js} ./packages/core/src/jmespath/
 
             - name: Build @dashql/proto
               uses: ./actions/image
