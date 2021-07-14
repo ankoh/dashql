@@ -1,21 +1,17 @@
 import * as duckdb from '@dashql/duckdb/dist/duckdb.module.js';
-import { Analyzer, JMESPath } from '../src/index_browser';
+import { Analyzer, JMESPath } from '../src/index_node';
+import Worker from 'web-worker';
+import path from 'path';
 
-const JMESPATH_WASM = '/static/jmespath_wasm.wasm';
-const ANALYZER_WASM = '/static/analyzer_wasm.wasm';
+// Loading debug symbols, especially for WASM take insanely long so we just disable the test timeout
+jasmine.DEFAULT_TIMEOUT_INTERVAL = 60000;
+
+const ANALYZER_WASM = path.resolve(__dirname, '../src/analyzer/analyzer_wasm.wasm');
+const JMESPATH_WASM = path.resolve(__dirname, '../src/jmespath/jmespath_wasm.wasm');
 const DUCKDB_BUNDLES: duckdb.DuckDBBundles = {
     asyncDefault: {
-        mainModule: '/static/duckdb/duckdb.wasm',
-        mainWorker: '/static/duckdb/duckdb-browser-async.worker.js',
-    },
-    asyncNext: {
-        mainModule: '/static/duckdb/duckdb-next.wasm',
-        mainWorker: '/static/duckdb/duckdb-browser-async-next.worker.js',
-    },
-    asyncNextCOI: {
-        mainModule: '/static/duckdb/duckdb-next-coi.wasm',
-        mainWorker: '/static/duckdb/duckdb-browser-async-next-coi.worker.js',
-        pthreadWorker: '/static/duckdb/duckdb-browser-async-next-coi.pthread.worker.js',
+        mainModule: path.resolve(__dirname, '../../../node_modules/@dashql/duckdb/dist/duckdb.wasm'),
+        mainWorker: path.resolve(__dirname, '../../../node_modules/@dashql/duckdb/dist/duckdb-node-async.worker.js'),
     },
 };
 let DUCKDB_CONFIG: duckdb.DuckDBConfig | null = null;
@@ -56,12 +52,3 @@ testActionScheduler(
     () => az!,
     () => jp!,
 );
-
-export * from './http_manager.test';
-export * from './http_mock';
-export * from './native_min_heap.test';
-export * from './viz_composer.test';
-export * from './action_graph.test';
-export * from './jmespath.test';
-export * from './parser.test';
-export * from './program_editor.test';
