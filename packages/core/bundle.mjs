@@ -85,7 +85,7 @@ esbuild.build({
 
 console.log('[ ESBUILD ] tests-browser.js');
 esbuild.build({
-    entryPoints: ['./test/index.ts'],
+    entryPoints: ['./test/index_browser.ts'],
     outfile: 'dist/tests-browser.js',
     platform: 'browser',
     format: 'iife',

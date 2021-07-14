@@ -1,5 +1,4 @@
-import { analyzer, model, actions, platform, ActionScheduler, utils } from '../src';
-import { Analyzer } from '../src/index_browser';
+import { model, actions, platform, ActionScheduler, utils, analyzer, jmespath } from '../src';
 import { HTTPMock } from './http_mock';
 
 import * as proto from '@dashql/proto';
@@ -9,224 +8,180 @@ import ActionStatus = proto.action.ActionStatusCode;
 import ActionClass = proto.action.ActionClass;
 import ProgramActionType = proto.action.ProgramActionType;
 
-const logger = new duckdb.VoidLogger();
+export function testActionScheduler(
+    db: () => duckdb.AsyncDuckDB,
+    az: () => analyzer.AnalyzerBindings,
+    _jp: () => jmespath.JMESPathBindings,
+): void {
+    let httpMock: HTTPMock | null = null;
 
-let az: analyzer.AnalyzerBindings;
-let worker: Worker;
-let dbConfig: duckdb.DuckDBConfig;
-let db: duckdb.AsyncDuckDB;
-let conn: duckdb.AsyncDuckDBConnection;
+    beforeEach(async () => {});
 
-let httpMock: HTTPMock | null = null;
+    afterEach(async () => {
+        await db().reset();
+        await az().reset();
 
-const ANALYZER_WASM = '/static/analyzer_wasm.wasm';
-const DUCKDB_BUNDLES: duckdb.DuckDBBundles = {
-    asyncDefault: {
-        mainModule: '/static/duckdb/duckdb.wasm',
-        mainWorker: '/static/duckdb/duckdb-browser-async.worker.js',
-    },
-    asyncNext: {
-        mainModule: '/static/duckdb/duckdb-next.wasm',
-        mainWorker: '/static/duckdb/duckdb-browser-async-next.worker.js',
-    },
-    asyncNextCOI: {
-        mainModule: '/static/duckdb/duckdb-next-coi.wasm',
-        mainWorker: '/static/duckdb/duckdb-browser-async-next-coi.worker.js',
-        pthreadWorker: '/static/duckdb/duckdb-browser-async-next-coi.pthread.worker.js',
-    },
-};
+        if (httpMock != null) {
+            httpMock.reset();
+            httpMock = null;
+        }
+    });
 
-beforeAll(async () => {
-    // Setup the analyzer
-    az = new Analyzer({}, ANALYZER_WASM);
-    await az.init();
-    // Setup the database
-    dbConfig = await duckdb.configure(DUCKDB_BUNDLES);
-    worker = new Worker(dbConfig.mainWorker!);
-    db = new duckdb.AsyncDuckDB(logger, worker);
-});
-
-beforeEach(async () => {
-    try {
-        // Reset the analyzer
-        await az.reset();
-        // Re-open the database
-        await db.open(dbConfig.mainModule, dbConfig.pthreadWorker);
-        conn = await db.connect();
-    } catch (e) {
-        console.error(e);
+    function resolveProgramActionLogic(plan: model.Plan) {
+        const r: actions.ActionLogic<proto.action.ProgramAction>[] = [];
+        const graph = plan.action_graph;
+        expect(graph).toBeDefined();
+        expect(graph).not.toBeNull();
+        const count = graph!.programActionsLength();
+        r.length = count;
+        for (let i = 0; i < count; ++i) {
+            const action = graph!.programActions(i)!;
+            expect(action).toBeDefined();
+            expect(action).not.toBeNull();
+            expect(action.originStatement()).toEqual(i);
+            expect(action.actionType()).not.toEqual(ProgramActionType.NONE);
+            const stmt = plan.program.getStatement(i);
+            const aid = model.buildActionHandle(i, ActionClass.PROGRAM_ACTION);
+            r[i] = actions.resolveProgramActionLogic(aid, action, stmt)!;
+            expect(r[i]).not.toBeNull();
+        }
+        return r;
     }
-});
 
-afterEach(async () => {
-    // Disconnect and restart
-    await conn.disconnect();
-    await db.reset();
+    const IGNORE_ACTION_UPDATES = (logic: model.ActionUpdate[]) => {};
 
-    if (httpMock != null) {
-        httpMock.reset();
-        httpMock = null;
-    }
-});
+    describe('Action Scheduler', () => {
+        describe('program actions', () => {
+            it('single table', async () => {
+                const store = model.createStore();
+                const plat = new platform.Platform(store, db().logger, db(), az());
+                await plat.init();
 
-afterAll(async () => {
-    worker.terminate();
-});
+                const program = az().parseProgram('CREATE TABLE a AS SELECT 1');
+                az().instantiateProgram();
+                const plan = az().planProgram();
+                const graph = plan!.buffer.actionGraph()!;
+                const ctx = new actions.ActionContext(plat, plan!);
+                expect(program.buffer.statementsLength()).toBe(1);
+                expect(graph.setupActionsLength()).toBe(0);
+                expect(graph.programActionsLength()).toBe(1);
 
-function resolveProgramActionLogic(plan: model.Plan) {
-    const r: actions.ActionLogic<proto.action.ProgramAction>[] = [];
-    const graph = plan.action_graph;
-    expect(graph).toBeDefined();
-    expect(graph).not.toBeNull();
-    const count = graph!.programActionsLength();
-    r.length = count;
-    for (let i = 0; i < count; ++i) {
-        const action = graph!.programActions(i)!;
-        expect(action).toBeDefined();
-        expect(action).not.toBeNull();
-        expect(action.originStatement()).toEqual(i);
-        expect(action.actionType()).not.toEqual(ProgramActionType.NONE);
-        const stmt = plan.program.getStatement(i);
-        const aid = model.buildActionHandle(i, ActionClass.PROGRAM_ACTION);
-        r[i] = actions.resolveProgramActionLogic(aid, action, stmt)!;
-        expect(r[i]).not.toBeNull();
-    }
-    return r;
-}
+                const logic = resolveProgramActionLogic(plan!);
+                const interrupt = new Promise((_resolve: (value: any) => void, _reject: (reason?: void) => void) => {});
+                const scheduler = new ActionScheduler<proto.action.ProgramAction>(interrupt, IGNORE_ACTION_UPDATES);
+                scheduler.prepare(ctx, logic, []);
+                expect(scheduler.actions.length).toBe(1);
+                expect(scheduler.actions[0].actionClass).toBe(ActionClass.PROGRAM_ACTION);
+                expect(scheduler.actions[0].buffer.actionType()).toBe(ProgramActionType.CREATE_TABLE);
+                expect(scheduler.actions[0].status).toBe(ActionStatus.NONE);
 
-const IGNORE_ACTION_UPDATES = (logic: model.ActionUpdate[]) => {};
-
-describe('Action Scheduler', () => {
-    describe('program actions', () => {
-        it('single table', async () => {
-            const store = model.createStore();
-            const plat = new platform.Platform(store, logger, db, az);
-            await plat.init();
-
-            const program = az.parseProgram('CREATE TABLE a AS SELECT 1');
-            az.instantiateProgram();
-            const plan = az.planProgram();
-            const graph = plan!.buffer.actionGraph()!;
-            const ctx = new actions.ActionContext(plat, plan!);
-            expect(program.buffer.statementsLength()).toBe(1);
-            expect(graph.setupActionsLength()).toBe(0);
-            expect(graph.programActionsLength()).toBe(1);
-
-            const logic = resolveProgramActionLogic(plan!);
-            const interrupt = new Promise((_resolve: (value: any) => void, _reject: (reason?: void) => void) => {});
-            const scheduler = new ActionScheduler<proto.action.ProgramAction>(interrupt, IGNORE_ACTION_UPDATES);
-            scheduler.prepare(ctx, logic, []);
-            expect(scheduler.actions.length).toBe(1);
-            expect(scheduler.actions[0].actionClass).toBe(ActionClass.PROGRAM_ACTION);
-            expect(scheduler.actions[0].buffer.actionType()).toBe(ProgramActionType.CREATE_TABLE);
-            expect(scheduler.actions[0].status).toBe(ActionStatus.NONE);
-
-            const diff = new utils.NativeStack();
-            const workLeft = await scheduler.executeFirst(ctx, diff);
-            expect(workLeft).toBe(false);
-            expect(scheduler.actions[0].status).toBe(ActionStatus.COMPLETED);
-        });
-
-        it('tree', async () => {
-            const store = model.createStore();
-            const plat = new platform.Platform(store, logger, db, az);
-            await plat.init();
-
-            const program = az.parseProgram(`
-                CREATE TABLE weather AS SELECT 1;
-                VIZ weather USING TABLE;
-                VIZ weather USING TABLE;
-            `);
-            az.instantiateProgram();
-            const plan = az.planProgram();
-            const graph = plan!.buffer.actionGraph()!;
-            const ctx = new actions.ActionContext(plat, plan!);
-            expect(program.buffer.statementsLength()).toBe(3);
-            expect(graph.setupActionsLength()).toBe(0);
-            expect(graph.programActionsLength()).toBe(3);
-
-            const logic = resolveProgramActionLogic(plan!);
-            const interrupt = new Promise((_resolve: (value: any) => void, _reject: (reason?: void) => void) => {});
-            const scheduler = new ActionScheduler<proto.action.ProgramAction>(interrupt, IGNORE_ACTION_UPDATES);
-            scheduler.prepare(ctx, logic, []);
-            scheduler.actions.forEach((a, i) => {
-                expect(a.actionClass).toBe(ActionClass.PROGRAM_ACTION);
-                expect(a.buffer.originStatement()).toBe(i);
-                expect(a.status).toBe(ActionStatus.NONE);
+                const diff = new utils.NativeStack();
+                const workLeft = await scheduler.executeFirst(ctx, diff);
+                expect(workLeft).toBe(false);
+                expect(scheduler.actions[0].status).toBe(ActionStatus.COMPLETED);
             });
-            expect(scheduler.actions.map(a => a.buffer.actionType())).toEqual([
-                ProgramActionType.CREATE_TABLE,
-                ProgramActionType.CREATE_VIZ,
-                ProgramActionType.CREATE_VIZ,
-            ]);
-            expect(scheduler.actions.map(a => a.buffer.dependsOnArray())).toEqual([
-                null,
-                new Uint32Array([0]),
-                new Uint32Array([0]),
-            ]);
-            expect(scheduler.actions.map(a => a.buffer.requiredForArray())).toEqual([
-                new Uint32Array([1, 2]),
-                null,
-                null,
-            ]);
 
-            const diff = new utils.NativeStack();
-            let workLeft = await scheduler.executeFirst(ctx, diff);
-            expect(scheduler.actions[0].status).toBe(ActionStatus.COMPLETED);
-            expect(workLeft).toBe(true);
-            workLeft = await scheduler.execute(ctx, diff);
-            expect(workLeft).toBe(true);
-            workLeft = await scheduler.execute(ctx, diff);
-            expect(scheduler.actions[1].status).toBe(ActionStatus.COMPLETED);
-            expect(scheduler.actions[2].status).toBe(ActionStatus.COMPLETED);
-            expect(workLeft).toBe(false);
-        });
+            it('tree', async () => {
+                const store = model.createStore();
+                const plat = new platform.Platform(store, db().logger, db(), az());
+                await plat.init();
 
-        it('independent', async () => {
-            const store = model.createStore();
-            const plat = new platform.Platform(store, logger, db, az);
-            await plat.init();
+                const program = az().parseProgram(`
+                    CREATE TABLE weather AS SELECT 1;
+                    VIZ weather USING TABLE;
+                    VIZ weather USING TABLE;
+                `);
+                az().instantiateProgram();
+                const plan = az().planProgram();
+                const graph = plan!.buffer.actionGraph()!;
+                const ctx = new actions.ActionContext(plat, plan!);
+                expect(program.buffer.statementsLength()).toBe(3);
+                expect(graph.setupActionsLength()).toBe(0);
+                expect(graph.programActionsLength()).toBe(3);
 
-            const program = az.parseProgram(`
-                CREATE TABLE A AS SELECT 1;
-                CREATE TABLE B AS SELECT 1;
-                CREATE TABLE C AS SELECT 1;
-            `);
-            az.instantiateProgram();
-            const plan = az.planProgram();
-            const graph = plan!.buffer.actionGraph()!;
-            const ctx = new actions.ActionContext(plat, plan!);
-            expect(program.buffer.statementsLength()).toBe(3);
-            expect(graph.setupActionsLength()).toBe(0);
-            expect(graph.programActionsLength()).toBe(3);
+                const logic = resolveProgramActionLogic(plan!);
+                const interrupt = new Promise((_resolve: (value: any) => void, _reject: (reason?: void) => void) => {});
+                const scheduler = new ActionScheduler<proto.action.ProgramAction>(interrupt, IGNORE_ACTION_UPDATES);
+                scheduler.prepare(ctx, logic, []);
+                scheduler.actions.forEach((a, i) => {
+                    expect(a.actionClass).toBe(ActionClass.PROGRAM_ACTION);
+                    expect(a.buffer.originStatement()).toBe(i);
+                    expect(a.status).toBe(ActionStatus.NONE);
+                });
+                expect(scheduler.actions.map(a => a.buffer.actionType())).toEqual([
+                    ProgramActionType.CREATE_TABLE,
+                    ProgramActionType.CREATE_VIZ,
+                    ProgramActionType.CREATE_VIZ,
+                ]);
+                expect(scheduler.actions.map(a => a.buffer.dependsOnArray())).toEqual([
+                    null,
+                    new Uint32Array([0]),
+                    new Uint32Array([0]),
+                ]);
+                expect(scheduler.actions.map(a => a.buffer.requiredForArray())).toEqual([
+                    new Uint32Array([1, 2]),
+                    null,
+                    null,
+                ]);
 
-            const logic = resolveProgramActionLogic(plan!);
-            const interrupt = new Promise((_resolve: (value: any) => void, _reject: (reason?: void) => void) => {});
-            const scheduler = new ActionScheduler<proto.action.ProgramAction>(interrupt, IGNORE_ACTION_UPDATES);
-            scheduler.prepare(ctx, logic, []);
-            scheduler.actions.forEach((a, i) => {
-                expect(a.actionClass).toBe(ActionClass.PROGRAM_ACTION);
-                expect(a.buffer.originStatement()).toBe(i);
-                expect(a.status).toBe(ActionStatus.NONE);
+                const diff = new utils.NativeStack();
+                let workLeft = await scheduler.executeFirst(ctx, diff);
+                expect(scheduler.actions[0].status).toBe(ActionStatus.COMPLETED);
+                expect(workLeft).toBe(true);
+                workLeft = await scheduler.execute(ctx, diff);
+                expect(workLeft).toBe(true);
+                workLeft = await scheduler.execute(ctx, diff);
+                expect(scheduler.actions[1].status).toBe(ActionStatus.COMPLETED);
+                expect(scheduler.actions[2].status).toBe(ActionStatus.COMPLETED);
+                expect(workLeft).toBe(false);
             });
-            expect(scheduler.actions.map(a => a.buffer.actionType())).toEqual([
-                ProgramActionType.CREATE_TABLE,
-                ProgramActionType.CREATE_TABLE,
-                ProgramActionType.CREATE_TABLE,
-            ]);
-            expect(scheduler.actions.map(a => a.buffer.dependsOnArray())).toEqual([null, null, null]);
-            expect(scheduler.actions.map(a => a.buffer.requiredForArray())).toEqual([null, null, null]);
 
-            const diff = new utils.NativeStack();
-            let workLeft = await scheduler.executeFirst(ctx, diff);
-            expect(workLeft).toBe(true);
-            workLeft = await scheduler.execute(ctx, diff);
-            expect(workLeft).toBe(true);
-            workLeft = await scheduler.execute(ctx, diff);
-            expect(workLeft).toBe(false);
-            expect(scheduler.actions[0].status).toBe(ActionStatus.COMPLETED);
-            expect(scheduler.actions[1].status).toBe(ActionStatus.COMPLETED);
-            expect(scheduler.actions[2].status).toBe(ActionStatus.COMPLETED);
+            it('independent', async () => {
+                const store = model.createStore();
+                const plat = new platform.Platform(store, db().logger, db(), az());
+                await plat.init();
+
+                const program = az().parseProgram(`
+                    CREATE TABLE A AS SELECT 1;
+                    CREATE TABLE B AS SELECT 1;
+                    CREATE TABLE C AS SELECT 1;
+                `);
+                az().instantiateProgram();
+                const plan = az().planProgram();
+                const graph = plan!.buffer.actionGraph()!;
+                const ctx = new actions.ActionContext(plat, plan!);
+                expect(program.buffer.statementsLength()).toBe(3);
+                expect(graph.setupActionsLength()).toBe(0);
+                expect(graph.programActionsLength()).toBe(3);
+
+                const logic = resolveProgramActionLogic(plan!);
+                const interrupt = new Promise((_resolve: (value: any) => void, _reject: (reason?: void) => void) => {});
+                const scheduler = new ActionScheduler<proto.action.ProgramAction>(interrupt, IGNORE_ACTION_UPDATES);
+                scheduler.prepare(ctx, logic, []);
+                scheduler.actions.forEach((a, i) => {
+                    expect(a.actionClass).toBe(ActionClass.PROGRAM_ACTION);
+                    expect(a.buffer.originStatement()).toBe(i);
+                    expect(a.status).toBe(ActionStatus.NONE);
+                });
+                expect(scheduler.actions.map(a => a.buffer.actionType())).toEqual([
+                    ProgramActionType.CREATE_TABLE,
+                    ProgramActionType.CREATE_TABLE,
+                    ProgramActionType.CREATE_TABLE,
+                ]);
+                expect(scheduler.actions.map(a => a.buffer.dependsOnArray())).toEqual([null, null, null]);
+                expect(scheduler.actions.map(a => a.buffer.requiredForArray())).toEqual([null, null, null]);
+
+                const diff = new utils.NativeStack();
+                let workLeft = await scheduler.executeFirst(ctx, diff);
+                expect(workLeft).toBe(true);
+                workLeft = await scheduler.execute(ctx, diff);
+                expect(workLeft).toBe(true);
+                workLeft = await scheduler.execute(ctx, diff);
+                expect(workLeft).toBe(false);
+                expect(scheduler.actions[0].status).toBe(ActionStatus.COMPLETED);
+                expect(scheduler.actions[1].status).toBe(ActionStatus.COMPLETED);
+                expect(scheduler.actions[2].status).toBe(ActionStatus.COMPLETED);
+            });
         });
     });
-});
+}

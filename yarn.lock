@@ -249,10 +249,10 @@
     "@babel/helper-validator-identifier" "^7.14.5"
     to-fast-properties "^2.0.0"
 
-"@dashql/duckdb@^0.0.33":
-  version "0.0.33"
-  resolved "https://registry.yarnpkg.com/@dashql/duckdb/-/duckdb-0.0.33.tgz#c19294bd1c6490f79b6d8eb9f8b8f9ae835a1b42"
-  integrity sha512-ieUtAMy07oSr1ASsTZPpDANjSh2GNknupdUaJ4ZO3BSFmpyborHKfYGhN6oVTCTNuaA5pUZHZFRww/EjiU/0Lg==
+"@dashql/duckdb@^0.0.35":
+  version "0.0.35"
+  resolved "https://registry.yarnpkg.com/@dashql/duckdb/-/duckdb-0.0.35.tgz#46b726ad3018c28bb17ed0eb938737ab3261a09b"
+  integrity sha512-Il0NXMYhMOzHwO85pRxKyO2egQo3PI7BenX33xHsuYJS0JaupkgIFsbkKJ7G8INA8fCLCTsbyvYLrbHBYQHuOA==
   dependencies:
     apache-arrow "^4.0.0"
     wasm-feature-detect "^1.2.11"
