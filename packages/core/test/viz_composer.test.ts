@@ -1,7 +1,6 @@
 import * as Immutable from 'immutable';
 import * as arrow from 'apache-arrow';
 import { analyzer, model, proto, viz } from '../src';
-import { Analyzer } from '../src/index_browser';
 
 interface VizComposerTestExpectation {
     cardRenderer: model.CardRendererType;
@@ -192,53 +191,48 @@ class FakeStatisticsResolver {
     }
 }
 
-let ana: analyzer.AnalyzerBindings;
-beforeAll(async () => {
-    ana = new Analyzer({}, '/static/analyzer_wasm.wasm');
-    await ana.init();
-});
-beforeEach(async () => {
-    ana.reset();
-});
+export function testVizComposer(az: () => analyzer.AnalyzerBindings): void {
+    beforeEach(async () => {
+        az().reset();
+    });
 
-describe('VizComposer', () => {
-    tests.forEach(test => {
-        it(test.name, async () => {
-            // Parse the query
-            const program = ana.parseProgram(test.query);
-            expect(program.buffer.errorsLength()).toBe(0);
-            expect(program.buffer.statementsLength()).toBe(1);
+    describe('VizComposer', () => {
+        tests.forEach(test => {
+            it(test.name, async () => {
+                // Parse the query
+                const program = az().parseProgram(test.query);
+                expect(program.buffer.errorsLength()).toBe(0);
+                expect(program.buffer.statementsLength()).toBe(1);
 
-            // Instantiate the query for the viz specs
-            const instance = ana.instantiateProgram();
-            expect(instance).not.toBe(null);
-            expect(instance!.cards.size).toBe(1);
-            expect(instance!.cards.has(0)).toBe(true);
+                // Instantiate the query for the viz specs
+                const instance = az().instantiateProgram();
+                expect(instance).not.toBe(null);
+                expect(instance!.cards.size).toBe(1);
+                expect(instance!.cards.has(0)).toBe(true);
 
-            // Prepare the composer
-            const stats = new FakeStatisticsResolver(test);
-            const composer = new viz.VizComposer(stats);
+                // Prepare the composer
+                const stats = new FakeStatisticsResolver(test);
+                const composer = new viz.VizComposer(stats);
 
-            // Read the parsed viz spec and pass all components to the composer
-            const spec = instance!.cards.get(0)!;
-            for (let i = 0; i < spec.vizComponentsLength(); ++i) {
-                const c = spec.vizComponents(i)!;
-                const type = c.type()!;
-                const mods: Map<proto.syntax.VizComponentTypeModifier, boolean> = new Map();
-                for (let j = 0; j < c.typeModifiersLength(); ++j) {
-                    mods.set(c.typeModifiers(j)!, true);
+                // Read the parsed viz spec and pass all components to the composer
+                const spec = instance!.cards.get(0)!;
+                for (let i = 0; i < spec.vizComponentsLength(); ++i) {
+                    const c = spec.vizComponents(i)!;
+                    const type = c.type()!;
+                    const mods: Map<proto.syntax.VizComponentTypeModifier, boolean> = new Map();
+                    for (let j = 0; j < c.typeModifiersLength(); ++j) {
+                        mods.set(c.typeModifiers(j)!, true);
+                    }
+                    const optionsJSON = c.options() || '';
+                    const options = JSON.parse(optionsJSON);
+                    composer.addComponent(type, mods, options)!;
                 }
-                const optionsJSON = c.options() || '';
-                const options = JSON.parse(optionsJSON);
-                composer.addComponent(type, mods, options)!;
-            }
-            composer.combineComponents();
-            const out = await composer.compile()!;
-            expect(out.cardRenderer).toBe(test.expected.cardRenderer);
-            expect(out.dataSource).toEqual(test.expected.dataSource);
-            expect(out.vegaLiteSpec).toEqual(test.expected.vegaLite);
+                composer.combineComponents();
+                const out = await composer.compile()!;
+                expect(out.cardRenderer).toBe(test.expected.cardRenderer);
+                expect(out.dataSource).toEqual(test.expected.dataSource);
+                expect(out.vegaLiteSpec).toEqual(test.expected.vegaLite);
+            });
         });
     });
-});
-
-export {};
+}

@@ -49,6 +49,14 @@ afterAll(async () => {
 
 import { testDuckDB } from './duckdb.test';
 import { testActionScheduler } from './action_scheduler.test';
+import { testActionGraph } from './action_graph.test';
+import { testHTTPManager } from './http_manager.test';
+import { testNativeMinHeap } from './native_min_heap.test';
+import { testVizComposer } from './viz_composer.test';
+import { testJMESPath } from './jmespath.test';
+import { testProgramEditor } from './program_editor.test';
+import { testSyntaxSchema } from './syntax_schema.test';
+import { testSemaphore } from './semaphore.test';
 
 testDuckDB(() => db!);
 testActionScheduler(
@@ -56,12 +64,11 @@ testActionScheduler(
     () => az!,
     () => jp!,
 );
-
-export * from './http_manager.test';
-export * from './http_mock';
-export * from './native_min_heap.test';
-export * from './viz_composer.test';
-export * from './action_graph.test';
-export * from './jmespath.test';
-export * from './parser.test';
-export * from './program_editor.test';
+testActionGraph(() => az!);
+testHTTPManager();
+testNativeMinHeap();
+testVizComposer(() => az!);
+testJMESPath(() => jp!);
+testProgramEditor(() => az!);
+testSyntaxSchema(() => az!);
+testSemaphore();

@@ -38,32 +38,34 @@ const tests: [string, [number, number][], TestOp[]][] = [
     ],
 ];
 
-describe('NativeMinHeap', () => {
-    tests.forEach(element => {
-        const name = element[0];
-        const input = element[1];
-        const ops = element[2];
-        it(name, () => {
-            input.sort((l: [number, number], r: [number, number]) => l[1] - r[1]);
-            const heap = new core.utils.NativeMinHeap(input);
-            for (const op of ops) {
-                switch (op.type) {
-                    case TestOpType.DEC_OP:
-                        heap.decrementRank(op.key, op.value);
-                        break;
-                    case TestOpType.INC_OP:
-                        heap.incrementRank(op.key, op.value);
-                        break;
-                    case TestOpType.SET_OP:
-                        heap.setRank(op.key, op.value);
-                        break;
-                    default:
-                        expect(heap.empty()).toBe(false);
-                        expect(heap.top()).toBe(op.key);
-                        heap.pop();
-                        break;
+export function testNativeMinHeap(): void {
+    describe('NativeMinHeap', () => {
+        tests.forEach(element => {
+            const name = element[0];
+            const input = element[1];
+            const ops = element[2];
+            it(name, () => {
+                input.sort((l: [number, number], r: [number, number]) => l[1] - r[1]);
+                const heap = new core.utils.NativeMinHeap(input);
+                for (const op of ops) {
+                    switch (op.type) {
+                        case TestOpType.DEC_OP:
+                            heap.decrementRank(op.key, op.value);
+                            break;
+                        case TestOpType.INC_OP:
+                            heap.incrementRank(op.key, op.value);
+                            break;
+                        case TestOpType.SET_OP:
+                            heap.setRank(op.key, op.value);
+                            break;
+                        default:
+                            expect(heap.empty()).toBe(false);
+                            expect(heap.top()).toBe(op.key);
+                            heap.pop();
+                            break;
+                    }
                 }
-            }
+            });
         });
     });
-});
+}
