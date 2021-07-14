@@ -7,6 +7,7 @@ export * as proto from '@dashql/proto';
 export * as access from './access';
 export * as actions from './actions';
 export * as analyzer from './analyzer';
+export * as jmespath from './jmespath';
 export * as edit from './edit';
 export * as error from './error';
 export * as model from './model';
