@@ -1,7 +1,7 @@
 import * as Immutable from 'immutable';
 import * as arrow from 'apache-arrow';
-import { analyzer, model, proto, viz } from '../../src';
-import { Analyzer } from '../../src/index_browser';
+import { analyzer, model, proto, viz } from '../src';
+import { Analyzer } from '../src/index_browser';
 
 interface VizComposerTestExpectation {
     cardRenderer: model.CardRendererType;
