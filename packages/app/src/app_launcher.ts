@@ -80,7 +80,7 @@ async function initDuckDB(store: model.AppReduxStore, logger: duckdb.Logger): Pr
         const config = await duckdb.configure(DUCKDB_BUNDLES);
         const dbWorker = new Worker(config.mainWorker!);
         const db = new duckdb.AsyncDuckDB(logger, dbWorker);
-        await db.open(config.mainModule, config.pthreadWorker);
+        await db.instantiate(config.mainModule, config.pthreadWorker);
         stepSucceeded(store, model.LaunchStep.INIT_WEBDB);
         return db;
     } catch (e) {
