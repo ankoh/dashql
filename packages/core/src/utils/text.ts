@@ -35,3 +35,16 @@ export function estimateUTF16Length(s: string): number {
 export function countLines(s: string): number {
     return (s.match(/\n/g) || '').length + 1;
 }
+
+/** Wrapper for TextDecoder to support shared array buffers */
+function TextDecoderWrapper(): (input?: BufferSource) => string {
+    const decoder = new TextDecoder();
+    return (data: any) => {
+        if (typeof SharedArrayBuffer !== 'undefined' && data.buffer instanceof SharedArrayBuffer) {
+            data = new Uint8Array(data);
+        }
+        return decoder.decode(data);
+    };
+}
+
+export const decodeText = TextDecoderWrapper();

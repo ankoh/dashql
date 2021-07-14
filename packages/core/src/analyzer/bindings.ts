@@ -4,6 +4,7 @@ import { DashQLAnalyzerModule } from './analyzer_wasm_module';
 import { EditOperationVariant, packProgramEdit } from '../edit';
 import { Plan, Program, ProgramInstance, InputValue } from '../model';
 import * as Immutable from 'immutable';
+import * as utils from '../utils';
 import * as proto from '@dashql/proto';
 import * as flatbuffers from 'flatbuffers';
 
@@ -26,6 +27,11 @@ export abstract class AnalyzerBindings {
 
     /// Instantiate the module
     protected abstract instantiate(moduleOverrides: Partial<DashQLAnalyzerModule>): Promise<DashQLAnalyzerModule>;
+
+    /** Decode a string */
+    public readString(begin: number, length: number): string {
+        return utils.decodeText(this._instance.HEAPU8.subarray(begin, begin + length));
+    }
 
     /// Init the module
     public async init(): Promise<void> {
@@ -147,8 +153,11 @@ export abstract class AnalyzerBindings {
         this._instance.HEAPU8.set(argsMem, argsPtr);
 
         // Call the analyzer function
-        const [ptr, ofs, size] = this.callSRet('dashql_analyzer_instantiate_program', ['number'], [argsPtr]);
-        const mem = this.copyFlatbuffer(this._instance.HEAPU8.subarray(ptr + ofs, ptr + ofs + size));
+        const [status, ofs, size] = this.callSRet('dashql_analyzer_instantiate_program', ['number'], [argsPtr]);
+        if (status !== utils.StatusCode.SUCCESS) {
+            throw new Error(this.readString(ofs, size));
+        }
+        const mem = this.copyFlatbuffer(this._instance.HEAPU8.subarray(ofs, ofs + size));
         const annotations = proto.analyzer.ProgramAnnotations.getRootAsProgramAnnotations(mem);
         this._instance.ccall('dashql_clear_response', null, [], []);
 
@@ -162,8 +171,11 @@ export abstract class AnalyzerBindings {
         if (!this._instance || !this._programInstance) return null;
 
         // Call the analyzer function
-        const [ptr, ofs, size] = this.callSRet('dashql_analyzer_plan_program', [], []);
-        const mem = this.copyFlatbuffer(this._instance.HEAPU8.subarray(ptr + ofs, ptr + ofs + size));
+        const [status, ofs, size] = this.callSRet('dashql_analyzer_plan_program', [], []);
+        if (status !== utils.StatusCode.SUCCESS) {
+            throw new Error(this.readString(ofs, size));
+        }
+        const mem = this.copyFlatbuffer(this._instance.HEAPU8.subarray(ofs, ofs + size));
         const plan = proto.analyzer.Plan.getRootAsPlan(mem);
         this._instance.ccall('dashql_clear_response', null, [], []);
 
@@ -186,8 +198,11 @@ export abstract class AnalyzerBindings {
         this._instance.HEAPU8.set(editMem, editPtr);
 
         // Call the analyzer function
-        const [ptr, ofs, size] = this.callSRet('dashql_analyzer_edit_program', ['number'], [editPtr]);
-        const mem = this.copyFlatbuffer(this._instance.HEAPU8.subarray(ptr + ofs, ptr + ofs + size));
+        const [status, ofs, size] = this.callSRet('dashql_analyzer_edit_program', ['number'], [editPtr]);
+        if (status !== utils.StatusCode.SUCCESS) {
+            throw new Error(this.readString(ofs, size));
+        }
+        const mem = this.copyFlatbuffer(this._instance.HEAPU8.subarray(ofs, ofs + size));
         const replacement = proto.analyzer.ProgramReplacement.getRootAsProgramReplacement(mem);
         this._instance.ccall('dashql_clear_response', null, [], []);
 
