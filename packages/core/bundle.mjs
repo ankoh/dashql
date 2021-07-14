@@ -24,6 +24,7 @@ rimraf.sync(dist + '/*.js.map');
 
 const src = path.resolve(__dirname, 'src');
 fs.copyFile(path.resolve(src, 'analyzer', 'analyzer_wasm.wasm'), path.resolve(dist, 'dashql-analyzer.wasm'), printErr);
+fs.copyFile(path.resolve(src, 'jmespath', 'jmespath_wasm.wasm'), path.resolve(dist, 'dashql-jmespath.wasm'), printErr);
 
 // -------------------------------
 // BROWSER
@@ -44,17 +45,29 @@ const EXTERNALS = [
 
 console.log('[ ESBUILD ] dashql-core.module.js');
 esbuild.build({
-    entryPoints: ['./src/targets/dashql-core.module.ts', './src/targets/dashql-core-browser.module.ts'],
-    entryNames: '[name]',
-    outdir: './dist',
+    entryPoints: ['./src/targets/dashql-core.module.ts'],
+    outfile: 'dist/dashql-core.module.js',
     platform: 'neutral',
     format: 'esm',
     target: TARGET,
-    splitting: true,
     bundle: true,
     minify: false,
     sourcemap: 'external',
-    external: [...EXTERNALS, 'fs', 'path', 'fast-glob'],
+    external: [...EXTERNALS, 'fs', 'path'],
+    define: { 'process.env.NODE_ENV': '"production"' },
+});
+
+console.log('[ ESBUILD ] dashql-core-browser.module.js');
+esbuild.build({
+    entryPoints: ['./src/targets/dashql-core-browser.module.ts'],
+    outfile: 'dist/dashql-core-browser.module.js',
+    platform: 'neutral',
+    format: 'esm',
+    target: TARGET,
+    bundle: true,
+    minify: false,
+    sourcemap: 'external',
+    external: [...EXTERNALS, 'fs', 'path'],
     define: { 'process.env.NODE_ENV': '"production"' },
 });
 
