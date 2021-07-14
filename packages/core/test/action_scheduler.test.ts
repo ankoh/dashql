@@ -1,6 +1,6 @@
 import { analyzer, model, actions, platform, ActionScheduler, utils } from '../src';
 import { Analyzer } from '../src/index_browser';
-import { HTTPMock } from './mocks/http_mock';
+import { HTTPMock } from './http_mock';
 
 import * as proto from '@dashql/proto';
 import * as duckdb from '@dashql/duckdb/dist/duckdb.module.js';

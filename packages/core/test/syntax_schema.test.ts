@@ -1,5 +1,5 @@
-import { analyzer, model } from '../../src/';
-import { Analyzer } from '../../src/index_browser';
+import { analyzer, model } from '../src/';
+import { Analyzer } from '../src/index_browser';
 import * as proto from '@dashql/proto';
 import schema = model.schema;
 import sx = proto.syntax;
