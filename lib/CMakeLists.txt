@@ -283,14 +283,7 @@ add_library(dashql_jmespath ${CMAKE_SOURCE_DIR}/src/jmespath/jmespath.cc
 add_library(dashql_test ${CMAKE_SOURCE_DIR}/src/test/analyzer_tests.cc
                         ${CMAKE_SOURCE_DIR}/src/test/grammar_tests.cc)
 
-target_link_libraries(
-  dashql_common
-  dashql_proto
-  flatbuffers
-  rapidjson
-  nlohmann_json
-  jmespath
-  arrow)
+target_link_libraries(dashql_common dashql_proto flatbuffers rapidjson arrow)
 target_link_libraries(
   dashql_analyzer
   dashql_parser
@@ -299,7 +292,7 @@ target_link_libraries(
   rapidjson
   fmt
   arrow)
-target_link_libraries(dashql_jmespath dashql_common)
+target_link_libraries(dashql_jmespath dashql_common nlohmann_json jmespath)
 target_link_libraries(
   dashql_test
   dashql_analyzer

@@ -12,7 +12,7 @@ namespace dashql {
 
 struct JMESPath {
     /// Evaluate a single expression on a given input
-    static arrow::Result<std::string> Evaluate(std::string_view input, std::string_view expression);
+    static arrow::Result<std::string> Evaluate(const char* input, const char* expression);
 };
 
 }  // namespace dashql
