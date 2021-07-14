@@ -43,10 +43,9 @@ file(MAKE_DIRECTORY ${JMESPATH_INCLUDE_DIR})
 add_library(jmespath STATIC IMPORTED)
 set_property(TARGET jmespath PROPERTY IMPORTED_LOCATION
                                       ${JMESPATH_LIBRARY_PATH})
-set_property(
-  TARGET jmespath
-  APPEND
-  PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${JMESPATH_INCLUDE_DIR})
+
+target_include_directories(jmespath INTERFACE ${JMESPATH_INCLUDE_DIR})
+target_include_directories(jmespath INTERFACE ${BOOST_INCLUDE_DIR})
 
 # Dependencies
 add_dependencies(jmespath_ep nlohmann_json_ep)
