@@ -54,7 +54,6 @@ module.exports = function (config) {
             suppressPassed: false,
             suppressSkipped: true,
             showSpecTiming: true,
-            failFast: true,
             prefixes: {
                 success: '    OK: ',
                 failure: 'FAILED: ',
@@ -70,7 +69,6 @@ module.exports = function (config) {
         },
         client: {
             jasmine: {
-                failFast: true,
                 timeoutInterval: JS_TIMEOUT,
             },
         },
