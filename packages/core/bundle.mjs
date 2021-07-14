@@ -29,7 +29,7 @@ fs.copyFile(path.resolve(src, 'jmespath', 'jmespath_wasm.wasm'), path.resolve(di
 // -------------------------------
 // BROWSER
 
-const TARGET = 'es2020';
+const TARGET = ['esnext'];
 const EXTERNALS = [
     '@dashql/duckdb',
     '@dashql/proto',
@@ -94,6 +94,20 @@ esbuild.build({
     minify: true,
     sourcemap: 'both',
     define: { 'process.env.NODE_ENV': '"production"' },
+});
+
+console.log('[ ESBUILD ] tests-node.js');
+esbuild.build({
+    entryPoints: ['./test/index_node.ts'],
+    outfile: 'dist/tests-node.js',
+    platform: 'node',
+    format: 'cjs',
+    target: TARGET,
+    bundle: true,
+    minify: true,
+    sourcemap: 'both',
+    define: { 'process.env.NODE_ENV': '"production"' },
+    external: ['apache-arrow', 'axios', 'axios-mock-adapter', 'immutable', 'redux', 'web-worker', 'vega'],
 });
 
 // -------------------------------

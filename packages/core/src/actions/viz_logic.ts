@@ -108,7 +108,6 @@ export class CreateVizActionLogic extends VizActionLogic {
         const oid = this.buffer.objectId();
         const state = context.platform.store.getState();
         let card = model.resolveCardById(state.core.planState, oid);
-        console.assert(card, 'missing initial card object');
 
         // Create new viz object
         const now = new Date();
@@ -187,7 +186,9 @@ export class UpdateVizActionLogic extends VizActionLogic {
         const oid = this.buffer.objectId();
         const state = context.platform.store.getState();
         let card = model.resolveCardById(state.core.planState, oid);
-        console.assert(!!card, 'missing initial card object');
+        if (!card) {
+            throw new Error('missing initial card object');
+        }
 
         // Create new viz object
         const now = new Date();
