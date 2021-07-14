@@ -3,16 +3,16 @@
 import { JMESPathModule } from './jmespath_wasm_module';
 import * as utils from '../utils';
 
-/// The proxy for either the browser- order node-based DashQLJMESPath API
+/** The proxy for either the browser- order node-based DashQLJMESPath API */
 export abstract class JMESPathBindings {
-    /// The instance
+    /** The instance */
     private _instance: JMESPathModule | null = null;
-    /// The loading promise
+    /** The loading promise */
     private _open_promise: Promise<void> | null = null;
-    /// The resolver for the open promise (called by onRuntimeInitialized)
+    /** The resolver for the open promise (called by onRuntimeInitialized) */
     private _open_promise_resolver: () => void = () => {};
 
-    /// Instantiate the module
+    /** Instantiate the module */
     protected abstract instantiate(moduleOverrides: Partial<JMESPathModule>): Promise<JMESPathModule>;
 
     /** Decode a string */
@@ -20,7 +20,7 @@ export abstract class JMESPathBindings {
         return utils.decodeText(this._instance.HEAPU8.subarray(begin, begin + length));
     }
 
-    /// Init the module
+    /** Init the module */
     public async init(): Promise<void> {
         // Already opened?
         if (this._instance != null) {
@@ -76,12 +76,12 @@ export abstract class JMESPathBindings {
         return [status, data, dataSize];
     }
 
-    /// Parse a string and return a flatbuffer
+    /** Parse a string and return a flatbuffer */
     public evaluate(expression: string, input: string): string {
         const instance = this._instance!;
         const stackPointer = instance.stackSave();
 
-        /// Call the parse function
+        // Call the parse function
         const [s, ofs, size] = this.callSRet('jmespath_evaluate', ['string', 'string'], [expression, input]);
         if (s !== utils.StatusCode.SUCCESS) {
             throw new Error(this.readString(ofs, size));
@@ -89,7 +89,7 @@ export abstract class JMESPathBindings {
         const result = this.readString(ofs, size);
         instance.ccall('jmespath_clear_response', null, [], []);
 
-        /// Clear the utf8 string buffer
+        // Clear the utf8 string buffer
         instance.stackRestore(stackPointer);
 
         // Wrap the program
