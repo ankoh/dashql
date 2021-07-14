@@ -1,6 +1,6 @@
 // Copyright (c) 2020 The DashQL Authors
 
-import dashql_core_init from './jmespath_wasm';
+import jmespath_init from './jmespath_wasm';
 import { JMESPathModule } from './jmespath_wasm_module';
 import { JMESPathBindings } from './bindings';
 
@@ -52,7 +52,7 @@ export class JMESPath extends JMESPathBindings {
     }
 
     protected instantiate(moduleOverrides: Partial<JMESPathModule>): Promise<JMESPathModule> {
-        return dashql_core_init({
+        return jmespath_init({
             ...moduleOverrides,
             instantiateWasm: this.instantiateWasm.bind(this),
             locateFile: this.locateFile.bind(this),
