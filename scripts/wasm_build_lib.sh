@@ -14,6 +14,7 @@ echo "BOOST_ARCHIVE=${BOOST_ARCHIVE}"
 CPP_BUILD_DIR="${PROJECT_ROOT}/lib/build/wasm/${MODE}"
 CPP_SOURCE_DIR="${PROJECT_ROOT}/lib"
 ANALYZER_LIB_DIR="${PROJECT_ROOT}/packages/core/src/analyzer"
+JMESPATH_LIB_DIR="${PROJECT_ROOT}/packages/core/src/jmespath"
 
 CORES=$(grep -c ^processor /proc/cpuinfo 2>/dev/null || sysctl -n hw.ncpu)
 
@@ -46,3 +47,4 @@ emmake make \
     analyzer_wasm jmespath_wasm
 
 cp ${CPP_SOURCE_DIR}/build/wasm/${MODE}/analyzer_*.{wasm,js} "${ANALYZER_LIB_DIR}"
+cp ${CPP_SOURCE_DIR}/build/wasm/${MODE}/jmespath_*.{wasm,js} "${JMESPATH_LIB_DIR}"
