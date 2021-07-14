@@ -11,21 +11,21 @@ import * as flatbuffers from 'flatbuffers';
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface AnalyzerRuntime {}
 
-/// The proxy for either the browser- order node-based DashQLAnalyzer API
+/** The proxy for either the browser- order node-based DashQLAnalyzer API */
 export abstract class AnalyzerBindings {
-    /// The instance
+    /** The instance */
     private _instance: DashQLAnalyzerModule | null = null;
-    /// The loading promise
+    /** The loading promise */
     private _open_promise: Promise<void> | null = null;
-    /// The resolver for the open promise (called by onRuntimeInitialized)
+    /** The resolver for the open promise (called by onRuntimeInitialized) */
     private _open_promise_resolver: () => void = () => {};
 
-    /// The program
+    /** The program */
     protected _program: Program | null = null;
-    /// The program instance
+    /** The program instance */
     protected _programInstance: ProgramInstance | null = null;
 
-    /// Instantiate the module
+    /** Instantiate the module */
     protected abstract instantiate(moduleOverrides: Partial<DashQLAnalyzerModule>): Promise<DashQLAnalyzerModule>;
 
     /** Decode a string */
@@ -33,7 +33,7 @@ export abstract class AnalyzerBindings {
         return utils.decodeText(this._instance.HEAPU8.subarray(begin, begin + length));
     }
 
-    /// Init the module
+    /** Init the module */
     public async init(): Promise<void> {
         // Already opened?
         if (this._instance != null) {
@@ -89,25 +89,25 @@ export abstract class AnalyzerBindings {
         return [status, data, dataSize];
     }
 
-    /// Reset the analyzer
+    /** Reset the analyzer */
     public reset(): void {
         const instance = this._instance!;
         return instance.ccall('dashql_analyzer_reset', null, [], []);
     }
 
-    /// Copy a flatbuffer
+    /** Copy a flatbuffer */
     protected copyFlatbuffer(buffer: Uint8Array): flatbuffers.ByteBuffer {
         const copy = new Uint8Array(new ArrayBuffer(buffer.byteLength));
         copy.set(buffer);
         return new flatbuffers.ByteBuffer(copy);
     }
 
-    /// Parse a string and return a flatbuffer
+    /** Parse a string and return a flatbuffer */
     public parseProgram(text: string): Program {
         const instance = this._instance!;
         const stackPointer = instance.stackSave();
 
-        /// Encode the utf8 string and append 2 zero bytes for flex
+        // Encode the utf8 string and append 2 zero bytes for flex
         const encoder = new TextEncoder();
         const textUTF8 = encoder.encode(text);
         const textMem = instance.stackAlloc(textUTF8.length + 2);
@@ -115,13 +115,13 @@ export abstract class AnalyzerBindings {
         instance.HEAPU8[textMem + textUTF8.length] = 0;
         instance.HEAPU8[textMem + textUTF8.length + 1] = 0;
 
-        /// Call the parse function
+        // Call the parse function
         const [ptr, ofs, size] = this.callSRet('dashql_analyzer_parse_program', ['number'], [textMem]);
         const mem = this.copyFlatbuffer(instance.HEAPU8.subarray(ptr + ofs, ptr + ofs + size));
         const program = proto.syntax.Program.getRootAsProgram(mem);
         instance.ccall('dashql_clear_response', null, [], []);
 
-        /// Clear the utf8 string buffer
+        // Clear the utf8 string buffer
         instance.stackRestore(stackPointer);
 
         // Wrap the program
@@ -129,7 +129,7 @@ export abstract class AnalyzerBindings {
         return this._program;
     }
 
-    /// Instantiate program
+    /** Instantiate program */
     public instantiateProgram(params: Immutable.List<InputValue> = Immutable.List()): ProgramInstance | null {
         if (!this._instance || !this._program) return null;
 
@@ -166,7 +166,7 @@ export abstract class AnalyzerBindings {
         return this._programInstance;
     }
 
-    /// Plan a program
+    /** Plan a program */
     public planProgram(): Plan | null {
         if (!this._instance || !this._programInstance) return null;
 
@@ -183,7 +183,7 @@ export abstract class AnalyzerBindings {
         return new Plan(this._programInstance, plan);
     }
 
-    /// Edit a program
+    /** Edit a program */
     public editProgram(edits: EditOperationVariant[]): ProgramInstance | null {
         if (!this._instance || !this._programInstance) return null;
         const input = this._programInstance.inputValues;
@@ -215,7 +215,7 @@ export abstract class AnalyzerBindings {
         return this._programInstance;
     }
 
-    /// Update an action status
+    /** Update an action status */
     public updateActionStatus(
         action_class: proto.action.ActionClass,
         action_id: number,
@@ -230,7 +230,7 @@ export abstract class AnalyzerBindings {
         );
     }
 
-    /// Free memory
+    /** Free memory */
     public free(ptr: number, _size: number): void {
         if (!this._instance) return;
         this._instance._free(ptr);
