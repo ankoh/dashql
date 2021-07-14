@@ -1,4 +1,4 @@
-import * as core from '../../src/';
+import * as core from '../src/';
 
 enum TestOpType {
     POP_OP,
