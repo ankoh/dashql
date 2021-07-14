@@ -300,7 +300,6 @@ target_link_libraries(
   dashql_common
   dashql_proto
   pugixml
-  fmt
   gtest)
 
 # ---------------------------------------------------------------------------
