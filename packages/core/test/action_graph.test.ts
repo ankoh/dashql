@@ -1,27 +1,22 @@
 import { analyzer } from '../src/';
-import { Analyzer } from '../src/index_browser';
 
-let analyzerBindings: analyzer.AnalyzerBindings;
+export function testActionGraph(az: () => analyzer.AnalyzerBindings): void {
+    beforeAll(async () => {});
+    beforeEach(async () => {
+        az().reset();
+    });
 
-beforeAll(async () => {
-    analyzerBindings = new Analyzer({}, '/static/analyzer_wasm.wasm');
-    await analyzerBindings.init();
-});
-
-beforeEach(async () => {
-    analyzerBindings.reset();
-});
-
-describe('Action Scheduler', () => {
-    describe('program actions', () => {
-        it('select 1', async () => {
-            const program = analyzerBindings.parseProgram('select 1');
-            analyzerBindings.instantiateProgram();
-            expect(program.buffer.statementsLength()).toBe(1);
-            const plan = analyzerBindings.planProgram();
-            const graph = plan!.buffer.actionGraph()!;
-            expect(graph.setupActionsLength()).toBe(0);
-            expect(graph.programActionsLength()).toBe(1);
+    describe('Action Scheduler', () => {
+        describe('program actions', () => {
+            it('select 1', async () => {
+                const program = az().parseProgram('select 1');
+                az().instantiateProgram();
+                expect(program.buffer.statementsLength()).toBe(1);
+                const plan = az().planProgram();
+                const graph = plan!.buffer.actionGraph()!;
+                expect(graph.setupActionsLength()).toBe(0);
+                expect(graph.programActionsLength()).toBe(1);
+            });
         });
     });
-});
+}
