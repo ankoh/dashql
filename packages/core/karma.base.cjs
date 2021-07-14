@@ -20,13 +20,15 @@ module.exports = function (config) {
         files: [
             { pattern: 'packages/core/dist/tests-browser.js' },
             { pattern: 'packages/core/src/analyzer/analyzer_wasm.wasm', included: false, watched: false, served: true },
+            { pattern: 'packages/core/src/jmespath/jmespath_wasm.wasm', included: false, watched: false, served: true },
             { pattern: 'node_modules/@dashql/duckdb/dist/*.js', included: false, watched: false, served: true },
             { pattern: 'node_modules/@dashql/duckdb/dist/*.wasm', included: false, watched: false, served: true },
         ],
         preprocessors: {
-            '**/*.js': ['sourcemap', 'coverage'],
+            'tests-**/*.js': ['sourcemap', 'coverage'],
         },
         proxies: {
+            '/static/jmespath_wasm.wasm': '/base/packages/core/src/jmespath/jmespath_wasm.wasm',
             '/static/analyzer_wasm.wasm': '/base/packages/core/src/analyzer/analyzer_wasm.wasm',
             '/static/duckdb/': '/base/node_modules/@dashql/duckdb/dist/',
             '/data/': '/base/data/',
@@ -37,7 +39,8 @@ module.exports = function (config) {
         logLevel: config.LOG_INFO,
         autoWatch: true,
         singleRun: true,
-        browsers: ['ChromeHeadlessNoSandbox', 'FirefoxHeadless'],
+        //browsers: ['ChromeHeadlessNoSandbox', 'FirefoxHeadless'],
+        browsers: ['ChromeHeadlessNoSandbox'],
         customLaunchers: {
             ChromeHeadlessNoSandbox: {
                 base: 'ChromeHeadless',
