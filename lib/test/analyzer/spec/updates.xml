@@ -1,305 +1,307 @@
-<test name="parameter_update_load">
-    <step>
-        <text>
-            INPUT country TYPE VARCHAR USING TEXT (
-                default_value = 'DE'
-            );
-            FETCH weather_csv FROM http (
-                url = format('https://cdn.dashql.com/demo/weather/{}', main.country)
-            );
-        </text>
-        <inputs>
-            <input statement="0" type="string" value="DE" />
-        </inputs>
-        <evaluations>
-            <eval type="string" value="'https://cdn.dashql.com/demo/weather/DE'" loc="169..231" text="format('ht..n.country)" />
-        </evaluations>
-        <cards>
-            <input name="country" component="TEXT" />
-        </cards>
-        <graph next_object_id="2">
-            <setup />
-            <program>
-                <action origin="0" type="INPUT" status="COMPLETED" object_id="0">
-                    <target name="main.country" />
-                    <required_for>
-                        <ref action="1" />
-                    </required_for>
-                </action>
-                <action origin="1" type="FETCH" status="NONE" object_id="1">
-                    <target name="main.weather_csv" />
-                    <depends_on>
-                        <ref action="0" />
-                    </depends_on>
-                </action>
-            </program>
-        </graph>
-    </step>
-    <step>
-        <text>
-            INPUT country TYPE VARCHAR USING TEXT (
-                default_value = 'DE'
-            );
-            FETCH weather_csv FROM http (
-                url = format('https://cdn.dashql.com/demo/weather/{}', main.country)
-            );
-        </text>
-        <inputs>
-            <input statement="0" type="string" value="US" />
-        </inputs>
-        <evaluations>
-            <eval type="string" value="'https://cdn.dashql.com/demo/weather/US'" loc="169..231" text="format('ht..n.country)" />
-        </evaluations>
-        <cards>
-            <input name="country" component="TEXT" />
-        </cards>
-        <graph next_object_id="4">
-            <setup>
-                <action type="DROP_INPUT" status="NONE" object_id="0">
-                    <target name="main.country" />
-                </action>
-                <action type="DROP_BLOB" status="NONE" object_id="1">
-                    <target name="main.weather_csv" />
-                </action>
-            </setup>
-            <program>
-                <action origin="0" type="INPUT" status="NONE" object_id="2">
-                    <target name="main.country" />
-                    <required_for>
-                        <ref action="1" />
-                    </required_for>
-                </action>
-                <action origin="1" type="FETCH" status="NONE" object_id="3">
-                    <target name="main.weather_csv" />
-                    <depends_on>
-                        <ref action="0" />
-                    </depends_on>
-                </action>
-            </program>
-        </graph>
-    </step>
-</test>
-<test name="position_update_view_changed">
-    <step>
-        <text>
-            CREATE VIEW foo AS
-                SELECT a1::INTEGER AS a
-                FROM generate_series(0, 1000000) AS a(a1);
+<tests>
+    <test name="parameter_update_load">
+        <step>
+            <text>
+                INPUT country TYPE VARCHAR USING TEXT (
+                    default_value = 'DE'
+                );
+                FETCH weather_csv FROM http (
+                    url = format('https://cdn.dashql.com/demo/weather/{}', main.country)
+                );
+            </text>
+            <inputs>
+                <input statement="0" type="string" value="DE" />
+            </inputs>
+            <evaluations>
+                <eval type="string" value="'https://cdn.dashql.com/demo/weather/DE'" loc="189..251" text="format('ht..n.country)" />
+            </evaluations>
+            <cards>
+                <input name="country" component="TEXT" />
+            </cards>
+            <graph next_object_id="2">
+                <setup />
+                <program>
+                    <action origin="0" type="INPUT" status="COMPLETED" object_id="0">
+                        <target name="main.country" />
+                        <required_for>
+                            <ref action="1" />
+                        </required_for>
+                    </action>
+                    <action origin="1" type="FETCH" status="NONE" object_id="1">
+                        <target name="main.weather_csv" />
+                        <depends_on>
+                            <ref action="0" />
+                        </depends_on>
+                    </action>
+                </program>
+            </graph>
+        </step>
+        <step>
+            <text>
+                INPUT country TYPE VARCHAR USING TEXT (
+                    default_value = 'DE'
+                );
+                FETCH weather_csv FROM http (
+                    url = format('https://cdn.dashql.com/demo/weather/{}', main.country)
+                );
+            </text>
+            <inputs>
+                <input statement="0" type="string" value="US" />
+            </inputs>
+            <evaluations>
+                <eval type="string" value="'https://cdn.dashql.com/demo/weather/US'" loc="189..251" text="format('ht..n.country)" />
+            </evaluations>
+            <cards>
+                <input name="country" component="TEXT" />
+            </cards>
+            <graph next_object_id="4">
+                <setup>
+                    <action type="DROP_INPUT" status="NONE" object_id="0">
+                        <target name="main.country" />
+                    </action>
+                    <action type="DROP_BLOB" status="NONE" object_id="1">
+                        <target name="main.weather_csv" />
+                    </action>
+                </setup>
+                <program>
+                    <action origin="0" type="INPUT" status="NONE" object_id="2">
+                        <target name="main.country" />
+                        <required_for>
+                            <ref action="1" />
+                        </required_for>
+                    </action>
+                    <action origin="1" type="FETCH" status="NONE" object_id="3">
+                        <target name="main.weather_csv" />
+                        <depends_on>
+                            <ref action="0" />
+                        </depends_on>
+                    </action>
+                </program>
+            </graph>
+        </step>
+    </test>
+    <test name="position_update_view_changed">
+        <step>
+            <text>
+                CREATE VIEW foo AS
+                    SELECT a1::INTEGER AS a
+                    FROM generate_series(0, 1000000) AS a(a1);
 
-            VIZ foo USING TABLE;
-        </text>
-        <inputs />
-        <evaluations />
-        <cards>
-            <visualization target="main.foo">
-                <components>
-                    <component type="TABLE">{}</component>
-                </components>
-            </visualization>
-        </cards>
-        <graph next_object_id="2">
-            <setup />
-            <program>
-                <action origin="0" type="CREATE_VIEW" status="COMPLETED" object_id="0">
-                    <target name="main.foo" />
-                    <required_for>
-                        <ref action="1" />
-                    </required_for>
-                    <script>CREATE VIEW foo AS
-                SELECT a1::INTEGER AS a
-                FROM generate_series(0, 1000000) AS a(a1)</script>
-                </action>
-                <action origin="1" type="CREATE_VIZ" status="NONE" object_id="1">
-                    <target name="" />
-                    <depends_on>
-                        <ref action="0" />
-                    </depends_on>
-                </action>
-            </program>
-        </graph>
-    </step>
-    <step>
-        <text>
-            CREATE VIEW foo AS
-                SELECT a1::INTEGER AS a
-                FROM generate_series(0, 1000000) AS a(a1);
+                VIZ foo USING TABLE;
+            </text>
+            <inputs />
+            <evaluations />
+            <cards>
+                <visualization target="main.foo">
+                    <components>
+                        <component type="TABLE">{}</component>
+                    </components>
+                </visualization>
+            </cards>
+            <graph next_object_id="2">
+                <setup />
+                <program>
+                    <action origin="0" type="CREATE_VIEW" status="COMPLETED" object_id="0">
+                        <target name="main.foo" />
+                        <required_for>
+                            <ref action="1" />
+                        </required_for>
+                        <script>CREATE VIEW foo AS
+                    SELECT a1::INTEGER AS a
+                    FROM generate_series(0, 1000000) AS a(a1)</script>
+                    </action>
+                    <action origin="1" type="CREATE_VIZ" status="NONE" object_id="1">
+                        <target name="" />
+                        <depends_on>
+                            <ref action="0" />
+                        </depends_on>
+                    </action>
+                </program>
+            </graph>
+        </step>
+        <step>
+            <text>
+                CREATE VIEW foo AS
+                    SELECT a1::INTEGER AS a
+                    FROM generate_series(0, 1000000) AS a(a1);
 
-            VIZ foo USING TABLE (
-                pos = (r = 5, c = 1, w = 8, h = 4)
-            );
-        </text>
-        <inputs />
-        <evaluations />
-        <cards>
-            <visualization target="main.foo">
-                <components>
-                    <component type="TABLE">{}</component>
-                </components>
-            </visualization>
-        </cards>
-        <graph next_object_id="4">
-            <setup>
-                <action type="IMPORT_VIEW" status="NONE" object_id="0">
-                    <target name="main.foo" />
-                </action>
-            </setup>
-            <program>
-                <action origin="0" type="CREATE_VIEW" status="COMPLETED" object_id="0">
-                    <target name="main.foo" />
-                    <required_for>
-                        <ref action="1" />
-                    </required_for>
-                    <script>CREATE VIEW foo AS
-                SELECT a1::INTEGER AS a
-                FROM generate_series(0, 1000000) AS a(a1)</script>
-                </action>
-                <action origin="1" type="UPDATE_VIZ" status="NONE" object_id="1">
-                    <target name="" />
-                    <depends_on>
-                        <ref action="0" />
-                    </depends_on>
-                </action>
-            </program>
-        </graph>
-    </step>
-</test>
-<test name="position_update_view_changed_2">
-    <step>
-        <text>
-            CREATE VIEW foo AS
-                SELECT a1::INTEGER AS a
-                FROM generate_series(0, 1000000) AS a(a1);
+                VIZ foo USING TABLE (
+                    pos = (r = 5, c = 1, w = 8, h = 4)
+                );
+            </text>
+            <inputs />
+            <evaluations />
+            <cards>
+                <visualization target="main.foo">
+                    <components>
+                        <component type="TABLE">{}</component>
+                    </components>
+                </visualization>
+            </cards>
+            <graph next_object_id="4">
+                <setup>
+                    <action type="IMPORT_VIEW" status="NONE" object_id="0">
+                        <target name="main.foo" />
+                    </action>
+                </setup>
+                <program>
+                    <action origin="0" type="CREATE_VIEW" status="COMPLETED" object_id="0">
+                        <target name="main.foo" />
+                        <required_for>
+                            <ref action="1" />
+                        </required_for>
+                        <script>CREATE VIEW foo AS
+                    SELECT a1::INTEGER AS a
+                    FROM generate_series(0, 1000000) AS a(a1)</script>
+                    </action>
+                    <action origin="1" type="UPDATE_VIZ" status="NONE" object_id="1">
+                        <target name="" />
+                        <depends_on>
+                            <ref action="0" />
+                        </depends_on>
+                    </action>
+                </program>
+            </graph>
+        </step>
+    </test>
+    <test name="position_update_view_changed_2">
+        <step>
+            <text>
+                CREATE VIEW foo AS
+                    SELECT a1::INTEGER AS a
+                    FROM generate_series(0, 1000000) AS a(a1);
 
-            VIZ foo USING TABLE;
-        </text>
-        <inputs />
-        <evaluations />
-        <cards>
-            <visualization target="main.foo">
-                <components>
-                    <component type="TABLE">{}</component>
-                </components>
-            </visualization>
-        </cards>
-        <graph next_object_id="2">
-            <setup />
-            <program>
-                <action origin="0" type="CREATE_VIEW" status="COMPLETED" object_id="0">
-                    <target name="main.foo" />
-                    <required_for>
-                        <ref action="1" />
-                    </required_for>
-                    <script>CREATE VIEW foo AS
-                SELECT a1::INTEGER AS a
-                FROM generate_series(0, 1000000) AS a(a1)</script>
-                </action>
-                <action origin="1" type="CREATE_VIZ" status="COMPLETED" object_id="1">
-                    <target name="" />
-                    <depends_on>
-                        <ref action="0" />
-                    </depends_on>
-                </action>
-            </program>
-        </graph>
-    </step>
-    <step>
-        <text>
-            CREATE VIEW foo AS
-                SELECT a1::INTEGER AS a
-                FROM generate_series(0, 1000000) AS a(a1);
+                VIZ foo USING TABLE;
+            </text>
+            <inputs />
+            <evaluations />
+            <cards>
+                <visualization target="main.foo">
+                    <components>
+                        <component type="TABLE">{}</component>
+                    </components>
+                </visualization>
+            </cards>
+            <graph next_object_id="2">
+                <setup />
+                <program>
+                    <action origin="0" type="CREATE_VIEW" status="COMPLETED" object_id="0">
+                        <target name="main.foo" />
+                        <required_for>
+                            <ref action="1" />
+                        </required_for>
+                        <script>CREATE VIEW foo AS
+                    SELECT a1::INTEGER AS a
+                    FROM generate_series(0, 1000000) AS a(a1)</script>
+                    </action>
+                    <action origin="1" type="CREATE_VIZ" status="COMPLETED" object_id="1">
+                        <target name="" />
+                        <depends_on>
+                            <ref action="0" />
+                        </depends_on>
+                    </action>
+                </program>
+            </graph>
+        </step>
+        <step>
+            <text>
+                CREATE VIEW foo AS
+                    SELECT a1::INTEGER AS a
+                    FROM generate_series(0, 1000000) AS a(a1);
 
-            VIZ foo USING TABLE (
-                pos = (r = 5, c = 1, w = 8, h = 4)
-            );
-        </text>
-        <inputs />
-        <evaluations />
-        <cards>
-            <visualization target="main.foo">
-                <components>
-                    <component type="TABLE">{}</component>
-                </components>
-            </visualization>
-        </cards>
-        <graph next_object_id="4">
-            <setup>
-                <action type="IMPORT_VIEW" status="NONE" object_id="0">
-                    <target name="main.foo" />
-                </action>
-                <action type="IMPORT_VIZ" status="NONE" object_id="1">
-                    <target name="" />
-                </action>
-            </setup>
-            <program>
-                <action origin="0" type="CREATE_VIEW" status="COMPLETED" object_id="0">
-                    <target name="main.foo" />
-                    <required_for>
-                        <ref action="1" />
-                    </required_for>
-                    <script>CREATE VIEW foo AS
-                SELECT a1::INTEGER AS a
-                FROM generate_series(0, 1000000) AS a(a1)</script>
-                </action>
-                <action origin="1" type="CREATE_VIZ" status="NONE" object_id="1">
-                    <target name="" />
-                    <depends_on>
-                        <ref action="0" />
-                    </depends_on>
-                </action>
-            </program>
-        </graph>
-    </step>
-</test>
-<test name="sql_table_drops">
-    <step>
-        <text>
-            CREATE TABLE table1(a INTEGER);
-            CREATE TABLE table2(a INTEGER);
-        </text>
-        <inputs />
-        <evaluations />
-        <cards />
-        <graph next_object_id="2">
-            <setup />
-            <program>
-                <action origin="0" type="CREATE_TABLE" status="COMPLETED" object_id="0">
-                    <target name="" />
-                    <script>CREATE TABLE table1(a INTEGER)</script>
-                </action>
-                <action origin="1" type="CREATE_TABLE" status="COMPLETED" object_id="1">
-                    <target name="" />
-                    <script>CREATE TABLE table2(a INTEGER)</script>
-                </action>
-            </program>
-        </graph>
-    </step>
-    <step>
-        <text>
-            CREATE TABLE table1(a DOUBLE);
-            CREATE TABLE table3(a INTEGER);
-        </text>
-        <inputs />
-        <evaluations />
-        <cards />
-        <graph next_object_id="4">
-            <setup>
-                <action type="DROP_TABLE" status="NONE" object_id="0">
-                    <target name="" />
-                </action>
-                <action type="DROP_TABLE" status="NONE" object_id="1">
-                    <target name="" />
-                </action>
-            </setup>
-            <program>
-                <action origin="0" type="CREATE_TABLE" status="NONE" object_id="2">
-                    <target name="" />
-                    <script>CREATE TABLE table1(a DOUBLE)</script>
-                </action>
-                <action origin="1" type="CREATE_TABLE" status="NONE" object_id="3">
-                    <target name="" />
-                    <script>CREATE TABLE table3(a INTEGER)</script>
-                </action>
-            </program>
-        </graph>
-    </step>
-</test>
+                VIZ foo USING TABLE (
+                    pos = (r = 5, c = 1, w = 8, h = 4)
+                );
+            </text>
+            <inputs />
+            <evaluations />
+            <cards>
+                <visualization target="main.foo">
+                    <components>
+                        <component type="TABLE">{}</component>
+                    </components>
+                </visualization>
+            </cards>
+            <graph next_object_id="4">
+                <setup>
+                    <action type="IMPORT_VIEW" status="NONE" object_id="0">
+                        <target name="main.foo" />
+                    </action>
+                    <action type="IMPORT_VIZ" status="NONE" object_id="1">
+                        <target name="" />
+                    </action>
+                </setup>
+                <program>
+                    <action origin="0" type="CREATE_VIEW" status="COMPLETED" object_id="0">
+                        <target name="main.foo" />
+                        <required_for>
+                            <ref action="1" />
+                        </required_for>
+                        <script>CREATE VIEW foo AS
+                    SELECT a1::INTEGER AS a
+                    FROM generate_series(0, 1000000) AS a(a1)</script>
+                    </action>
+                    <action origin="1" type="CREATE_VIZ" status="NONE" object_id="1">
+                        <target name="" />
+                        <depends_on>
+                            <ref action="0" />
+                        </depends_on>
+                    </action>
+                </program>
+            </graph>
+        </step>
+    </test>
+    <test name="sql_table_drops">
+        <step>
+            <text>
+                CREATE TABLE table1(a INTEGER);
+                CREATE TABLE table2(a INTEGER);
+            </text>
+            <inputs />
+            <evaluations />
+            <cards />
+            <graph next_object_id="2">
+                <setup />
+                <program>
+                    <action origin="0" type="CREATE_TABLE" status="COMPLETED" object_id="0">
+                        <target name="" />
+                        <script>CREATE TABLE table1(a INTEGER)</script>
+                    </action>
+                    <action origin="1" type="CREATE_TABLE" status="COMPLETED" object_id="1">
+                        <target name="" />
+                        <script>CREATE TABLE table2(a INTEGER)</script>
+                    </action>
+                </program>
+            </graph>
+        </step>
+        <step>
+            <text>
+                CREATE TABLE table1(a DOUBLE);
+                CREATE TABLE table3(a INTEGER);
+            </text>
+            <inputs />
+            <evaluations />
+            <cards />
+            <graph next_object_id="4">
+                <setup>
+                    <action type="DROP_TABLE" status="NONE" object_id="0">
+                        <target name="" />
+                    </action>
+                    <action type="DROP_TABLE" status="NONE" object_id="1">
+                        <target name="" />
+                    </action>
+                </setup>
+                <program>
+                    <action origin="0" type="CREATE_TABLE" status="NONE" object_id="2">
+                        <target name="" />
+                        <script>CREATE TABLE table1(a DOUBLE)</script>
+                    </action>
+                    <action origin="1" type="CREATE_TABLE" status="NONE" object_id="3">
+                        <target name="" />
+                        <script>CREATE TABLE table3(a INTEGER)</script>
+                    </action>
+                </program>
+            </graph>
+        </step>
+    </test>
+</tests>

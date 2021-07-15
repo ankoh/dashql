@@ -211,10 +211,11 @@ arrow::Status GrammarTest::LoadTests(std::filesystem::path& source_dir) {
         // Parse xml document
         pugi::xml_document doc;
         doc.load(in);
+        auto root = doc.child("tests");
 
         // Read tests
         std::vector<GrammarTest> tests;
-        for (auto test : doc.children()) {
+        for (auto test : root.children()) {
             // Create test
             tests.emplace_back();
             auto& t = tests.back();
