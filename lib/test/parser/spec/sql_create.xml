@@ -34,10 +34,26 @@
         create table foo (a integer)
     </input>
     <expected>
-        <statements />
-        <errors>
-            <error message="syntax error, unexpected INTEGER, expecting ')' or ','" loc="29..36" text="integer" />
-        </errors>
+        <statements>
+            <statement type="CREATE_TABLE">
+                <node type="OBJECT_SQL_CREATE" loc="9..37" text="create tab..a integer)">
+                    <node key="SQL_CREATE_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="22..25" text="foo">
+                        <node key="SQL_QUALIFIED_NAME_RELATION" loc="22..25" text="foo" />
+                    </node>
+                    <node key="SQL_CREATE_TABLE_TEMP" value="DEFAULT" />
+                    <node key="SQL_CREATE_TABLE_ON_COMMIT" value="NOOP" />
+                    <node key="SQL_CREATE_TABLE_ELEMENTS">
+                        <node type="OBJECT_SQL_COLUMN_DEF" loc="27..36" text="a integer">
+                            <node key="SQL_COLUMN_DEF_NAME" loc="27..28" text="a" />
+                            <node key="SQL_COLUMN_DEF_TYPE" type="OBJECT_SQL_TYPENAME" loc="29..36" text="integer">
+                                <node key="SQL_TYPENAME_TYPE" value="INT4" />
+                            </node>
+                        </node>
+                    </node>
+                </node>
+            </statement>
+        </statements>
+        <errors />
         <line_breaks>
             <line_break loc="0..1" text="&#10;" />
             <line_break loc="37..38" text="&#10;" />
