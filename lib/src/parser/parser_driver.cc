@@ -371,6 +371,10 @@ void ParserDriver::AddStatement(sx::Node node) {
             stmt_type = sx::StatementType::CREATE_TABLE_AS;
             break;
 
+        case sx::NodeType::OBJECT_SQL_CREATE:
+            stmt_type = sx::StatementType::CREATE_TABLE;
+            break;
+
         case sx::NodeType::OBJECT_SQL_VIEW:
             stmt_type = sx::StatementType::CREATE_VIEW;
             break;

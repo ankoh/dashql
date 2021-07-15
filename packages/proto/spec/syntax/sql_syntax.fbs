@@ -131,3 +131,20 @@ enum CharacterTypeTag: uint8 {
     VARCHAR,
     BLANK_PADDED_CHAR
 }
+
+enum ConstraintAttribute: uint8 {
+    DEFERRABLE,
+    NOT_DEFERRABLE,
+    INITIALLY_DEFERRED,
+    INITIALLY_IMMEDIATE,
+}
+
+enum ColumnConstraint: uint8 {
+    NOT_NULL,
+    NULL_,
+    UNIQUE,
+    PRIMARY_KEY,
+    CHECK,
+    DEFAULT,
+    COLLATE,
+}

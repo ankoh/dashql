@@ -1023,29 +1023,29 @@ sql_a_expr:
 // just eliminate all the boolean-keyword-operator productions from b_expr.
 
 sql_b_expr:
-    sql_c_expr
-  | sql_b_expr TYPECAST sql_typename
-  | '+' sql_b_expr                      %prec UMINUS
-  | '-' sql_b_expr                      %prec UMINUS
-  | sql_b_expr '+' sql_b_expr
-  | sql_b_expr '-' sql_b_expr
-  | sql_b_expr '*' sql_b_expr
-  | sql_b_expr '/' sql_b_expr
-  | sql_b_expr '%' sql_b_expr
-  | sql_b_expr '^' sql_b_expr
-  | sql_b_expr '<' sql_b_expr
-  | sql_b_expr '>' sql_b_expr
-  | sql_b_expr '=' sql_b_expr
-  | sql_b_expr LESS_EQUALS sql_b_expr
-  | sql_b_expr GREATER_EQUALS sql_b_expr
-  | sql_b_expr NOT_EQUALS sql_b_expr
-  | sql_b_expr sql_qual_op sql_b_expr               %prec Op
-  | sql_qual_op sql_b_expr                          %prec Op
-  | sql_b_expr sql_qual_op                          %prec POSTFIXOP
-  | sql_b_expr IS DISTINCT FROM sql_b_expr          %prec IS
-  | sql_b_expr IS NOT DISTINCT FROM sql_b_expr      %prec IS
-  | sql_b_expr IS OF '(' sql_type_list ')'          %prec IS
-  | sql_b_expr IS NOT OF '(' sql_type_list ')'      %prec IS
+    sql_c_expr                                        { $$ = {}; }
+  | sql_b_expr TYPECAST sql_typename                  { $$ = {}; }
+  | '+' sql_b_expr                      %prec UMINUS  { $$ = {}; }
+  | '-' sql_b_expr                      %prec UMINUS  { $$ = {}; }
+  | sql_b_expr '+' sql_b_expr   { $$ = {}; }
+  | sql_b_expr '-' sql_b_expr   { $$ = {}; }
+  | sql_b_expr '*' sql_b_expr   { $$ = {}; }
+  | sql_b_expr '/' sql_b_expr   { $$ = {}; }
+  | sql_b_expr '%' sql_b_expr   { $$ = {}; }
+  | sql_b_expr '^' sql_b_expr   { $$ = {}; }
+  | sql_b_expr '<' sql_b_expr   { $$ = {}; }
+  | sql_b_expr '>' sql_b_expr   { $$ = {}; }
+  | sql_b_expr '=' sql_b_expr   { $$ = {}; }
+  | sql_b_expr LESS_EQUALS sql_b_expr      { $$ = {}; }
+  | sql_b_expr GREATER_EQUALS sql_b_expr   { $$ = {}; }
+  | sql_b_expr NOT_EQUALS sql_b_expr       { $$ = {}; }
+  | sql_b_expr sql_qual_op sql_b_expr               %prec Op           { $$ = {}; }
+  | sql_qual_op sql_b_expr                          %prec Op           { $$ = {}; }
+  | sql_b_expr sql_qual_op                          %prec POSTFIXOP    { $$ = {}; }
+  | sql_b_expr IS DISTINCT FROM sql_b_expr          %prec IS           { $$ = {}; }
+  | sql_b_expr IS NOT DISTINCT FROM sql_b_expr      %prec IS           { $$ = {}; }
+  | sql_b_expr IS OF '(' sql_type_list ')'          %prec IS           { $$ = {}; }
+  | sql_b_expr IS NOT OF '(' sql_type_list ')'      %prec IS           { $$ = {}; }
     ;
 
 // Productions that can be used in both a_expr and b_expr.
@@ -1337,8 +1337,8 @@ sql_qual_op:
     ;
 
 sql_qual_all_op:
-    sql_all_op
-  | OPERATOR '(' sql_any_operator ')'
+    sql_all_op                          { $$ = std::move($1); }
+  | OPERATOR '(' sql_any_operator ')'   { $$ = {}; }
     ;
 
 // cannot put SIMILAR TO into sql_subquery_op, because SIMILAR TO is a hack.
@@ -1668,13 +1668,13 @@ sql_type_function_name:
     ;
 
 sql_any_name:
-    sql_col_id
-  | sql_col_id sql_attrs
+    sql_col_id            { $$ = { String(@1) }; }
+  | sql_col_id sql_attrs  { $2.insert($2.begin(), String(@1)); $$ = std::move($2); }
     ;
 
 sql_attrs:
-    '.' sql_attr_name
-  | sql_attrs '.' sql_attr_name
+    '.' sql_attr_name             { $$ = { String(@2) }; }
+  | sql_attrs '.' sql_attr_name   { $1.push_back(String(@3)); $$ = std::move($1); }
     ;
 
 sql_opt_name_list:
