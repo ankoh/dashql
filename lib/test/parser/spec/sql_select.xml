@@ -1,1822 +1,1824 @@
-<test name="select_iconst_1">
-    <input>
-        select 1
-    </input>
-    <expected>
-        <statements>
-            <statement type="SELECT">
-                <node type="OBJECT_SQL_SELECT" loc="9..17" text="select 1">
-                    <node key="SQL_SELECT_TARGETS">
-                        <node loc="16..17" text="1" />
-                    </node>
-                </node>
-            </statement>
-        </statements>
-        <errors />
-        <line_breaks>
-            <line_break loc="0..1" text="&#10;" />
-            <line_break loc="17..18" text="&#10;" />
-        </line_breaks>
-        <comments />
-        <dependencies />
-    </expected>
-</test>
-<test name="select_fconst_1e04">
-    <input>
-        select 1e-04
-    </input>
-    <expected>
-        <statements>
-            <statement type="SELECT">
-                <node type="OBJECT_SQL_SELECT" loc="9..21" text="select 1e-04">
-                    <node key="SQL_SELECT_TARGETS">
-                        <node loc="16..21" text="1e-04" />
-                    </node>
-                </node>
-            </statement>
-        </statements>
-        <errors />
-        <line_breaks>
-            <line_break loc="0..1" text="&#10;" />
-            <line_break loc="21..22" text="&#10;" />
-        </line_breaks>
-        <comments />
-        <dependencies />
-    </expected>
-</test>
-<test name="select_fconst_realfail1">
-    <input>
-        select 1e
-    </input>
-    <expected>
-        <statements>
-            <statement type="SELECT">
-                <node type="OBJECT_SQL_SELECT" loc="9..18" text="select 1e">
-                    <node key="SQL_SELECT_TARGETS">
-                        <node type="OBJECT_SQL_RESULT_TARGET" loc="16..18" text="1e">
-                            <node key="SQL_RESULT_TARGET_NAME" loc="17..18" text="e" />
-                            <node key="SQL_RESULT_TARGET_VALUE" loc="16..17" text="1" />
+<tests>
+    <test name="select_iconst_1">
+        <input>
+            select 1
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..21" text="select 1">
+                        <node key="SQL_SELECT_TARGETS">
+                            <node loc="20..21" text="1" />
                         </node>
                     </node>
-                </node>
-            </statement>
-        </statements>
-        <errors />
-        <line_breaks>
-            <line_break loc="0..1" text="&#10;" />
-            <line_break loc="18..19" text="&#10;" />
-        </line_breaks>
-        <comments />
-        <dependencies />
-    </expected>
-</test>
-<test name="select_bconst_b1010">
-    <input>
-        select b'1010'
-    </input>
-    <expected>
-        <statements>
-            <statement type="SELECT">
-                <node type="OBJECT_SQL_SELECT" loc="9..23" text="select b'1010'">
-                    <node key="SQL_SELECT_TARGETS">
-                        <node loc="16..23" text="b'1010'" />
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="21..22" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="select_fconst_1e04">
+        <input>
+            select 1e-04
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..25" text="select 1e-04">
+                        <node key="SQL_SELECT_TARGETS">
+                            <node loc="20..25" text="1e-04" />
+                        </node>
                     </node>
-                </node>
-            </statement>
-        </statements>
-        <errors />
-        <line_breaks>
-            <line_break loc="0..1" text="&#10;" />
-            <line_break loc="23..24" text="&#10;" />
-        </line_breaks>
-        <comments />
-        <dependencies />
-    </expected>
-</test>
-<test name="select_sconst_string">
-    <input>
-        select string
-    </input>
-    <expected>
-        <statements>
-            <statement type="SELECT">
-                <node type="OBJECT_SQL_SELECT" loc="9..22" text="select string">
-                    <node key="SQL_SELECT_TARGETS">
-                        <node type="OBJECT_SQL_COLUMN_REF" loc="16..22" text="string">
-                            <node key="SQL_COLUMN_REF_PATH">
-                                <node loc="16..22" text="string" />
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="25..26" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="select_fconst_realfail1">
+        <input>
+            select 1e
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..22" text="select 1e">
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_RESULT_TARGET" loc="20..22" text="1e">
+                                <node key="SQL_RESULT_TARGET_NAME" loc="21..22" text="e" />
+                                <node key="SQL_RESULT_TARGET_VALUE" loc="20..21" text="1" />
                             </node>
                         </node>
                     </node>
-                </node>
-            </statement>
-        </statements>
-        <errors />
-        <line_breaks>
-            <line_break loc="0..1" text="&#10;" />
-            <line_break loc="22..23" text="&#10;" />
-        </line_breaks>
-        <comments />
-        <dependencies />
-    </expected>
-</test>
-<test name="select_sconst_string_latin1">
-    <input>
-        select äöü
-    </input>
-    <expected>
-        <statements>
-            <statement type="SELECT">
-                <node type="OBJECT_SQL_SELECT" loc="9..22" text="select äöü">
-                    <node key="SQL_SELECT_TARGETS">
-                        <node type="OBJECT_SQL_COLUMN_REF" loc="16..22" text="äöü">
-                            <node key="SQL_COLUMN_REF_PATH">
-                                <node loc="16..22" text="äöü" />
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="22..23" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="select_bconst_b1010">
+        <input>
+            select b'1010'
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..27" text="select b'1010'">
+                        <node key="SQL_SELECT_TARGETS">
+                            <node loc="20..27" text="b'1010'" />
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="27..28" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="select_sconst_string">
+        <input>
+            select string
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..26" text="select string">
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_COLUMN_REF" loc="20..26" text="string">
+                                <node key="SQL_COLUMN_REF_PATH">
+                                    <node loc="20..26" text="string" />
+                                </node>
                             </node>
                         </node>
                     </node>
-                </node>
-            </statement>
-        </statements>
-        <errors />
-        <line_breaks>
-            <line_break loc="0..1" text="&#10;" />
-            <line_break loc="22..23" text="&#10;" />
-        </line_breaks>
-        <comments />
-        <dependencies />
-    </expected>
-</test>
-<test name="select_sconst_string_unicode_plane1">
-    <input>
-        select 📈
-    </input>
-    <expected>
-        <statements>
-            <statement type="SELECT">
-                <node type="OBJECT_SQL_SELECT" loc="9..20" text="select 📈">
-                    <node key="SQL_SELECT_TARGETS">
-                        <node type="OBJECT_SQL_COLUMN_REF" loc="16..20" text="📈">
-                            <node key="SQL_COLUMN_REF_PATH">
-                                <node loc="16..20" text="📈" />
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="26..27" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="select_sconst_string_latin1">
+        <input>
+            select äöü
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..26" text="select äöü">
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_COLUMN_REF" loc="20..26" text="äöü">
+                                <node key="SQL_COLUMN_REF_PATH">
+                                    <node loc="20..26" text="äöü" />
+                                </node>
                             </node>
                         </node>
                     </node>
-                </node>
-            </statement>
-        </statements>
-        <errors />
-        <line_breaks>
-            <line_break loc="0..1" text="&#10;" />
-            <line_break loc="20..21" text="&#10;" />
-        </line_breaks>
-        <comments />
-        <dependencies />
-    </expected>
-</test>
-<test name="select_1_gt_2">
-    <input>
-        select 1 &gt; 2
-    </input>
-    <expected>
-        <statements>
-            <statement type="SELECT">
-                <node type="OBJECT_SQL_SELECT" loc="9..21" text="select 1 > 2">
-                    <node key="SQL_SELECT_TARGETS">
-                        <node type="OBJECT_SQL_EXPRESSION" loc="16..21" text="1 > 2">
-                            <node key="SQL_EXPRESSION_ARG0" loc="16..17" text="1" />
-                            <node key="SQL_EXPRESSION_ARG1" loc="20..21" text="2" />
-                            <node key="SQL_EXPRESSION_FUNCTION" value="GREATER_THAN" />
-                        </node>
-                    </node>
-                </node>
-            </statement>
-        </statements>
-        <errors />
-        <line_breaks>
-            <line_break loc="0..1" text="&#10;" />
-            <line_break loc="21..22" text="&#10;" />
-        </line_breaks>
-        <comments />
-        <dependencies />
-    </expected>
-</test>
-<test name="select_sconst_quotes">
-    <input>
-        select 'foo'
-    </input>
-    <expected>
-        <statements>
-            <statement type="SELECT">
-                <node type="OBJECT_SQL_SELECT" loc="9..21" text="select 'foo'">
-                    <node key="SQL_SELECT_TARGETS">
-                        <node loc="16..21" text="'foo'" />
-                    </node>
-                </node>
-            </statement>
-        </statements>
-        <errors />
-        <line_breaks>
-            <line_break loc="0..1" text="&#10;" />
-            <line_break loc="21..22" text="&#10;" />
-        </line_breaks>
-        <comments />
-        <dependencies />
-    </expected>
-</test>
-<test name="select_sconst_quotes_nested_quote">
-    <input>
-        select '''foo'''
-    </input>
-    <expected>
-        <statements>
-            <statement type="SELECT">
-                <node type="OBJECT_SQL_SELECT" loc="9..25" text="select '''foo'''">
-                    <node key="SQL_SELECT_TARGETS">
-                        <node loc="16..25" text="'''foo'''" />
-                    </node>
-                </node>
-            </statement>
-        </statements>
-        <errors />
-        <line_breaks>
-            <line_break loc="0..1" text="&#10;" />
-            <line_break loc="25..26" text="&#10;" />
-        </line_breaks>
-        <comments />
-        <dependencies />
-    </expected>
-</test>
-<test name="select_sconst_quotes_nested_dquote">
-    <input>
-        select '"foo"'
-    </input>
-    <expected>
-        <statements>
-            <statement type="SELECT">
-                <node type="OBJECT_SQL_SELECT" loc="9..23" text="select '&quot;foo&quot;'">
-                    <node key="SQL_SELECT_TARGETS">
-                        <node loc="16..23" text="'&quot;foo&quot;'" />
-                    </node>
-                </node>
-            </statement>
-        </statements>
-        <errors />
-        <line_breaks>
-            <line_break loc="0..1" text="&#10;" />
-            <line_break loc="23..24" text="&#10;" />
-        </line_breaks>
-        <comments />
-        <dependencies />
-    </expected>
-</test>
-<test name="select_iconst_1_ident">
-    <input>
-        select 1 "foo"
-    </input>
-    <expected>
-        <statements>
-            <statement type="SELECT">
-                <node type="OBJECT_SQL_SELECT" loc="9..23" text="select 1 &quot;foo&quot;">
-                    <node key="SQL_SELECT_TARGETS">
-                        <node type="OBJECT_SQL_RESULT_TARGET" loc="16..23" text="1 &quot;foo&quot;">
-                            <node key="SQL_RESULT_TARGET_NAME" loc="18..23" text="&quot;foo&quot;" />
-                            <node key="SQL_RESULT_TARGET_VALUE" loc="16..17" text="1" />
-                        </node>
-                    </node>
-                </node>
-            </statement>
-        </statements>
-        <errors />
-        <line_breaks>
-            <line_break loc="0..1" text="&#10;" />
-            <line_break loc="23..24" text="&#10;" />
-        </line_breaks>
-        <comments />
-        <dependencies />
-    </expected>
-</test>
-<test name="comments_cstyle">
-    <input>
-        /* foo */
-    </input>
-    <expected>
-        <statements />
-        <errors />
-        <line_breaks>
-            <line_break loc="0..1" text="&#10;" />
-            <line_break loc="18..19" text="&#10;" />
-        </line_breaks>
-        <comments>
-            <comment loc="0..18" text="&#10;        /* foo */" />
-        </comments>
-        <dependencies />
-    </expected>
-</test>
-<test name="comments_cstyle_nested">
-    <input>
-        /* foo /* bar */ */
-    </input>
-    <expected>
-        <statements />
-        <errors />
-        <line_breaks>
-            <line_break loc="0..1" text="&#10;" />
-            <line_break loc="28..29" text="&#10;" />
-        </line_breaks>
-        <comments>
-            <comment loc="0..28" text="&#10;        /.. bar */ */" />
-        </comments>
-        <dependencies />
-    </expected>
-</test>
-<test name="select_iconst_list">
-    <input>
-        select 1, 2
-    </input>
-    <expected>
-        <statements>
-            <statement type="SELECT">
-                <node type="OBJECT_SQL_SELECT" loc="9..20" text="select 1, 2">
-                    <node key="SQL_SELECT_TARGETS">
-                        <node loc="16..17" text="1" />
-                        <node loc="19..20" text="2" />
-                    </node>
-                </node>
-            </statement>
-        </statements>
-        <errors />
-        <line_breaks>
-            <line_break loc="0..1" text="&#10;" />
-            <line_break loc="20..21" text="&#10;" />
-        </line_breaks>
-        <comments />
-        <dependencies />
-    </expected>
-</test>
-<test name="select_from_1rel">
-    <input>
-        select a from b
-    </input>
-    <expected>
-        <statements>
-            <statement type="SELECT">
-                <node type="OBJECT_SQL_SELECT" loc="9..24" text="select a from b">
-                    <node key="SQL_SELECT_FROM">
-                        <node type="OBJECT_SQL_TABLE_REF" loc="23..24" text="b">
-                            <node key="SQL_TABLE_INHERIT" value="true" />
-                            <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="23..24" text="b">
-                                <node key="SQL_QUALIFIED_NAME_RELATION" loc="23..24" text="b" />
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="26..27" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="select_sconst_string_unicode_plane1">
+        <input>
+            select 📈
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..24" text="select 📈">
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_COLUMN_REF" loc="20..24" text="📈">
+                                <node key="SQL_COLUMN_REF_PATH">
+                                    <node loc="20..24" text="📈" />
+                                </node>
                             </node>
                         </node>
                     </node>
-                    <node key="SQL_SELECT_TARGETS">
-                        <node type="OBJECT_SQL_COLUMN_REF" loc="16..17" text="a">
-                            <node key="SQL_COLUMN_REF_PATH">
-                                <node loc="16..17" text="a" />
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="24..25" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="select_1_gt_2">
+        <input>
+            select 1 &gt; 2
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..25" text="select 1 > 2">
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_EXPRESSION" loc="20..25" text="1 > 2">
+                                <node key="SQL_EXPRESSION_ARG0" loc="20..21" text="1" />
+                                <node key="SQL_EXPRESSION_ARG1" loc="24..25" text="2" />
+                                <node key="SQL_EXPRESSION_FUNCTION" value="GREATER_THAN" />
                             </node>
                         </node>
                     </node>
-                </node>
-            </statement>
-        </statements>
-        <errors />
-        <line_breaks>
-            <line_break loc="0..1" text="&#10;" />
-            <line_break loc="24..25" text="&#10;" />
-        </line_breaks>
-        <comments />
-        <dependencies />
-    </expected>
-</test>
-<test name="select_from_1rel_indirect1">
-    <input>
-        select a from b.c
-    </input>
-    <expected>
-        <statements>
-            <statement type="SELECT">
-                <node type="OBJECT_SQL_SELECT" loc="9..26" text="select a from b.c">
-                    <node key="SQL_SELECT_FROM">
-                        <node type="OBJECT_SQL_TABLE_REF" loc="23..26" text="b.c">
-                            <node key="SQL_TABLE_INHERIT" value="true" />
-                            <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="23..26" text="b.c">
-                                <node key="SQL_QUALIFIED_NAME_RELATION" loc="25..26" text="c" />
-                                <node key="SQL_QUALIFIED_NAME_SCHEMA" loc="23..24" text="b" />
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="25..26" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="select_sconst_quotes">
+        <input>
+            select 'foo'
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..25" text="select 'foo'">
+                        <node key="SQL_SELECT_TARGETS">
+                            <node loc="20..25" text="'foo'" />
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="25..26" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="select_sconst_quotes_nested_quote">
+        <input>
+            select '''foo'''
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..29" text="select '''foo'''">
+                        <node key="SQL_SELECT_TARGETS">
+                            <node loc="20..29" text="'''foo'''" />
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="29..30" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="select_sconst_quotes_nested_dquote">
+        <input>
+            select '"foo"'
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..27" text="select '&quot;foo&quot;'">
+                        <node key="SQL_SELECT_TARGETS">
+                            <node loc="20..27" text="'&quot;foo&quot;'" />
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="27..28" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="select_iconst_1_ident">
+        <input>
+            select 1 "foo"
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..27" text="select 1 &quot;foo&quot;">
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_RESULT_TARGET" loc="20..27" text="1 &quot;foo&quot;">
+                                <node key="SQL_RESULT_TARGET_NAME" loc="22..27" text="&quot;foo&quot;" />
+                                <node key="SQL_RESULT_TARGET_VALUE" loc="20..21" text="1" />
                             </node>
                         </node>
                     </node>
-                    <node key="SQL_SELECT_TARGETS">
-                        <node type="OBJECT_SQL_COLUMN_REF" loc="16..17" text="a">
-                            <node key="SQL_COLUMN_REF_PATH">
-                                <node loc="16..17" text="a" />
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="27..28" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="comments_cstyle">
+        <input>
+            /* foo */
+        </input>
+        <expected>
+            <statements />
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="22..23" text="&#10;" />
+            </line_breaks>
+            <comments>
+                <comment loc="0..22" text="&#10;         .. /* foo */" />
+            </comments>
+            <dependencies />
+        </expected>
+    </test>
+    <test name="comments_cstyle_nested">
+        <input>
+            /* foo /* bar */ */
+        </input>
+        <expected>
+            <statements />
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="32..33" text="&#10;" />
+            </line_breaks>
+            <comments>
+                <comment loc="0..32" text="&#10;         .. bar */ */" />
+            </comments>
+            <dependencies />
+        </expected>
+    </test>
+    <test name="select_iconst_list">
+        <input>
+            select 1, 2
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..24" text="select 1, 2">
+                        <node key="SQL_SELECT_TARGETS">
+                            <node loc="20..21" text="1" />
+                            <node loc="23..24" text="2" />
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="24..25" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="select_from_1rel">
+        <input>
+            select a from b
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..28" text="select a from b">
+                        <node key="SQL_SELECT_FROM">
+                            <node type="OBJECT_SQL_TABLE_REF" loc="27..28" text="b">
+                                <node key="SQL_TABLE_INHERIT" value="true" />
+                                <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="27..28" text="b">
+                                    <node key="SQL_QUALIFIED_NAME_RELATION" loc="27..28" text="b" />
+                                </node>
+                            </node>
+                        </node>
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_COLUMN_REF" loc="20..21" text="a">
+                                <node key="SQL_COLUMN_REF_PATH">
+                                    <node loc="20..21" text="a" />
+                                </node>
                             </node>
                         </node>
                     </node>
-                </node>
-            </statement>
-        </statements>
-        <errors />
-        <line_breaks>
-            <line_break loc="0..1" text="&#10;" />
-            <line_break loc="26..27" text="&#10;" />
-        </line_breaks>
-        <comments />
-        <dependencies />
-    </expected>
-</test>
-<test name="select_from_1rel_indirect1_noinherit">
-    <input>
-        select a from only b.c
-    </input>
-    <expected>
-        <statements>
-            <statement type="SELECT">
-                <node type="OBJECT_SQL_SELECT" loc="9..31" text="select a f..m only b.c">
-                    <node key="SQL_SELECT_FROM">
-                        <node type="OBJECT_SQL_TABLE_REF" loc="23..31" text="only b.c">
-                            <node key="SQL_TABLE_INHERIT" value="false" />
-                            <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="28..31" text="b.c">
-                                <node key="SQL_QUALIFIED_NAME_RELATION" loc="30..31" text="c" />
-                                <node key="SQL_QUALIFIED_NAME_SCHEMA" loc="28..29" text="b" />
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="28..29" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="select_from_1rel_indirect1">
+        <input>
+            select a from b.c
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..30" text="select a from b.c">
+                        <node key="SQL_SELECT_FROM">
+                            <node type="OBJECT_SQL_TABLE_REF" loc="27..30" text="b.c">
+                                <node key="SQL_TABLE_INHERIT" value="true" />
+                                <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="27..30" text="b.c">
+                                    <node key="SQL_QUALIFIED_NAME_RELATION" loc="29..30" text="c" />
+                                    <node key="SQL_QUALIFIED_NAME_SCHEMA" loc="27..28" text="b" />
+                                </node>
+                            </node>
+                        </node>
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_COLUMN_REF" loc="20..21" text="a">
+                                <node key="SQL_COLUMN_REF_PATH">
+                                    <node loc="20..21" text="a" />
+                                </node>
                             </node>
                         </node>
                     </node>
-                    <node key="SQL_SELECT_TARGETS">
-                        <node type="OBJECT_SQL_COLUMN_REF" loc="16..17" text="a">
-                            <node key="SQL_COLUMN_REF_PATH">
-                                <node loc="16..17" text="a" />
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="30..31" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="select_from_1rel_indirect1_noinherit">
+        <input>
+            select a from only b.c
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..35" text="select a f..m only b.c">
+                        <node key="SQL_SELECT_FROM">
+                            <node type="OBJECT_SQL_TABLE_REF" loc="27..35" text="only b.c">
+                                <node key="SQL_TABLE_INHERIT" value="false" />
+                                <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="32..35" text="b.c">
+                                    <node key="SQL_QUALIFIED_NAME_RELATION" loc="34..35" text="c" />
+                                    <node key="SQL_QUALIFIED_NAME_SCHEMA" loc="32..33" text="b" />
+                                </node>
+                            </node>
+                        </node>
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_COLUMN_REF" loc="20..21" text="a">
+                                <node key="SQL_COLUMN_REF_PATH">
+                                    <node loc="20..21" text="a" />
+                                </node>
                             </node>
                         </node>
                     </node>
-                </node>
-            </statement>
-        </statements>
-        <errors />
-        <line_breaks>
-            <line_break loc="0..1" text="&#10;" />
-            <line_break loc="31..32" text="&#10;" />
-        </line_breaks>
-        <comments />
-        <dependencies />
-    </expected>
-</test>
-<test name="select_from_1rel_indirect1_alias">
-    <input>
-        select a from b.c as d
-    </input>
-    <expected>
-        <statements>
-            <statement type="SELECT">
-                <node type="OBJECT_SQL_SELECT" loc="9..31" text="select a f..m b.c as d">
-                    <node key="SQL_SELECT_FROM">
-                        <node type="OBJECT_SQL_TABLE_REF" loc="23..31" text="b.c as d">
-                            <node key="SQL_TABLE_ALIAS" loc="30..31" text="d" />
-                            <node key="SQL_TABLE_INHERIT" value="true" />
-                            <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="23..26" text="b.c">
-                                <node key="SQL_QUALIFIED_NAME_RELATION" loc="25..26" text="c" />
-                                <node key="SQL_QUALIFIED_NAME_SCHEMA" loc="23..24" text="b" />
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="35..36" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="select_from_1rel_indirect1_alias">
+        <input>
+            select a from b.c as d
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..35" text="select a f..m b.c as d">
+                        <node key="SQL_SELECT_FROM">
+                            <node type="OBJECT_SQL_TABLE_REF" loc="27..35" text="b.c as d">
+                                <node key="SQL_TABLE_ALIAS" loc="34..35" text="d" />
+                                <node key="SQL_TABLE_INHERIT" value="true" />
+                                <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="27..30" text="b.c">
+                                    <node key="SQL_QUALIFIED_NAME_RELATION" loc="29..30" text="c" />
+                                    <node key="SQL_QUALIFIED_NAME_SCHEMA" loc="27..28" text="b" />
+                                </node>
+                            </node>
+                        </node>
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_COLUMN_REF" loc="20..21" text="a">
+                                <node key="SQL_COLUMN_REF_PATH">
+                                    <node loc="20..21" text="a" />
+                                </node>
                             </node>
                         </node>
                     </node>
-                    <node key="SQL_SELECT_TARGETS">
-                        <node type="OBJECT_SQL_COLUMN_REF" loc="16..17" text="a">
-                            <node key="SQL_COLUMN_REF_PATH">
-                                <node loc="16..17" text="a" />
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="35..36" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="select_from_2rel">
+        <input>
+            select a from b, c
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..31" text="select a from b, c">
+                        <node key="SQL_SELECT_FROM">
+                            <node type="OBJECT_SQL_TABLE_REF" loc="27..28" text="b">
+                                <node key="SQL_TABLE_INHERIT" value="true" />
+                                <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="27..28" text="b">
+                                    <node key="SQL_QUALIFIED_NAME_RELATION" loc="27..28" text="b" />
+                                </node>
+                            </node>
+                            <node type="OBJECT_SQL_TABLE_REF" loc="30..31" text="c">
+                                <node key="SQL_TABLE_INHERIT" value="true" />
+                                <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="30..31" text="c">
+                                    <node key="SQL_QUALIFIED_NAME_RELATION" loc="30..31" text="c" />
+                                </node>
+                            </node>
+                        </node>
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_COLUMN_REF" loc="20..21" text="a">
+                                <node key="SQL_COLUMN_REF_PATH">
+                                    <node loc="20..21" text="a" />
+                                </node>
                             </node>
                         </node>
                     </node>
-                </node>
-            </statement>
-        </statements>
-        <errors />
-        <line_breaks>
-            <line_break loc="0..1" text="&#10;" />
-            <line_break loc="31..32" text="&#10;" />
-        </line_breaks>
-        <comments />
-        <dependencies />
-    </expected>
-</test>
-<test name="select_from_2rel">
-    <input>
-        select a from b, c
-    </input>
-    <expected>
-        <statements>
-            <statement type="SELECT">
-                <node type="OBJECT_SQL_SELECT" loc="9..27" text="select a from b, c">
-                    <node key="SQL_SELECT_FROM">
-                        <node type="OBJECT_SQL_TABLE_REF" loc="23..24" text="b">
-                            <node key="SQL_TABLE_INHERIT" value="true" />
-                            <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="23..24" text="b">
-                                <node key="SQL_QUALIFIED_NAME_RELATION" loc="23..24" text="b" />
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="31..32" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="select_from_into_2rel">
+        <input>
+            select a into b from c, d
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT_INTO" name="main.b">
+                    <node type="OBJECT_SQL_SELECT" loc="13..38" text="select a i.. from c, d">
+                        <node key="SQL_SELECT_FROM">
+                            <node type="OBJECT_SQL_TABLE_REF" loc="34..35" text="c">
+                                <node key="SQL_TABLE_INHERIT" value="true" />
+                                <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="34..35" text="c">
+                                    <node key="SQL_QUALIFIED_NAME_RELATION" loc="34..35" text="c" />
+                                </node>
+                            </node>
+                            <node type="OBJECT_SQL_TABLE_REF" loc="37..38" text="d">
+                                <node key="SQL_TABLE_INHERIT" value="true" />
+                                <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="37..38" text="d">
+                                    <node key="SQL_QUALIFIED_NAME_RELATION" loc="37..38" text="d" />
+                                </node>
                             </node>
                         </node>
-                        <node type="OBJECT_SQL_TABLE_REF" loc="26..27" text="c">
-                            <node key="SQL_TABLE_INHERIT" value="true" />
-                            <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="26..27" text="c">
-                                <node key="SQL_QUALIFIED_NAME_RELATION" loc="26..27" text="c" />
+                        <node key="SQL_SELECT_INTO" type="OBJECT_SQL_INTO" loc="27..28" text="b">
+                            <node key="SQL_TEMP_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="27..28" text="b">
+                                <node key="SQL_QUALIFIED_NAME_RELATION" loc="27..28" text="b" />
                             </node>
+                            <node key="SQL_TEMP_TYPE" value="DEFAULT" />
                         </node>
-                    </node>
-                    <node key="SQL_SELECT_TARGETS">
-                        <node type="OBJECT_SQL_COLUMN_REF" loc="16..17" text="a">
-                            <node key="SQL_COLUMN_REF_PATH">
-                                <node loc="16..17" text="a" />
-                            </node>
-                        </node>
-                    </node>
-                </node>
-            </statement>
-        </statements>
-        <errors />
-        <line_breaks>
-            <line_break loc="0..1" text="&#10;" />
-            <line_break loc="27..28" text="&#10;" />
-        </line_breaks>
-        <comments />
-        <dependencies />
-    </expected>
-</test>
-<test name="select_from_into_2rel">
-    <input>
-        select a into b from c, d
-    </input>
-    <expected>
-        <statements>
-            <statement type="SELECT_INTO" name="main.b">
-                <node type="OBJECT_SQL_SELECT" loc="9..34" text="select a i.. from c, d">
-                    <node key="SQL_SELECT_FROM">
-                        <node type="OBJECT_SQL_TABLE_REF" loc="30..31" text="c">
-                            <node key="SQL_TABLE_INHERIT" value="true" />
-                            <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="30..31" text="c">
-                                <node key="SQL_QUALIFIED_NAME_RELATION" loc="30..31" text="c" />
-                            </node>
-                        </node>
-                        <node type="OBJECT_SQL_TABLE_REF" loc="33..34" text="d">
-                            <node key="SQL_TABLE_INHERIT" value="true" />
-                            <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="33..34" text="d">
-                                <node key="SQL_QUALIFIED_NAME_RELATION" loc="33..34" text="d" />
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_COLUMN_REF" loc="20..21" text="a">
+                                <node key="SQL_COLUMN_REF_PATH">
+                                    <node loc="20..21" text="a" />
+                                </node>
                             </node>
                         </node>
                     </node>
-                    <node key="SQL_SELECT_INTO" type="OBJECT_SQL_INTO" loc="23..24" text="b">
-                        <node key="SQL_TEMP_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="23..24" text="b">
-                            <node key="SQL_QUALIFIED_NAME_RELATION" loc="23..24" text="b" />
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="38..39" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="select_from_1rel_group1">
+        <input>
+            select a from b group by 1
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..39" text="select a f..group by 1">
+                        <node key="SQL_SELECT_FROM">
+                            <node type="OBJECT_SQL_TABLE_REF" loc="27..28" text="b">
+                                <node key="SQL_TABLE_INHERIT" value="true" />
+                                <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="27..28" text="b">
+                                    <node key="SQL_QUALIFIED_NAME_RELATION" loc="27..28" text="b" />
+                                </node>
+                            </node>
                         </node>
-                        <node key="SQL_TEMP_TYPE" value="DEFAULT" />
-                    </node>
-                    <node key="SQL_SELECT_TARGETS">
-                        <node type="OBJECT_SQL_COLUMN_REF" loc="16..17" text="a">
-                            <node key="SQL_COLUMN_REF_PATH">
-                                <node loc="16..17" text="a" />
+                        <node key="SQL_SELECT_GROUPS">
+                            <node loc="38..39" text="1" />
+                        </node>
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_COLUMN_REF" loc="20..21" text="a">
+                                <node key="SQL_COLUMN_REF_PATH">
+                                    <node loc="20..21" text="a" />
+                                </node>
                             </node>
                         </node>
                     </node>
-                </node>
-            </statement>
-        </statements>
-        <errors />
-        <line_breaks>
-            <line_break loc="0..1" text="&#10;" />
-            <line_break loc="34..35" text="&#10;" />
-        </line_breaks>
-        <comments />
-        <dependencies />
-    </expected>
-</test>
-<test name="select_from_1rel_group1">
-    <input>
-        select a from b group by 1
-    </input>
-    <expected>
-        <statements>
-            <statement type="SELECT">
-                <node type="OBJECT_SQL_SELECT" loc="9..35" text="select a f..group by 1">
-                    <node key="SQL_SELECT_FROM">
-                        <node type="OBJECT_SQL_TABLE_REF" loc="23..24" text="b">
-                            <node key="SQL_TABLE_INHERIT" value="true" />
-                            <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="23..24" text="b">
-                                <node key="SQL_QUALIFIED_NAME_RELATION" loc="23..24" text="b" />
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="39..40" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="select_from_1rel_window_empty">
+        <input>
+            select a from b window c as ()
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..43" text="select a f..ow c as ()">
+                        <node key="SQL_SELECT_FROM">
+                            <node type="OBJECT_SQL_TABLE_REF" loc="27..28" text="b">
+                                <node key="SQL_TABLE_INHERIT" value="true" />
+                                <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="27..28" text="b">
+                                    <node key="SQL_QUALIFIED_NAME_RELATION" loc="27..28" text="b" />
+                                </node>
+                            </node>
+                        </node>
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_COLUMN_REF" loc="20..21" text="a">
+                                <node key="SQL_COLUMN_REF_PATH">
+                                    <node loc="20..21" text="a" />
+                                </node>
+                            </node>
+                        </node>
+                        <node key="SQL_SELECT_WINDOWS">
+                            <node type="OBJECT_SQL_WINDOW_DEF" loc="36..43" text="c as ()">
+                                <node key="SQL_WINDOW_DEF_NAME" loc="36..37" text="c" />
                             </node>
                         </node>
                     </node>
-                    <node key="SQL_SELECT_GROUPS">
-                        <node loc="34..35" text="1" />
-                    </node>
-                    <node key="SQL_SELECT_TARGETS">
-                        <node type="OBJECT_SQL_COLUMN_REF" loc="16..17" text="a">
-                            <node key="SQL_COLUMN_REF_PATH">
-                                <node loc="16..17" text="a" />
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="43..44" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="select_from_1rel_window_partition1">
+        <input>
+            select a from b window c as (partition by d)
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..57" text="select a f..tion by d)">
+                        <node key="SQL_SELECT_FROM">
+                            <node type="OBJECT_SQL_TABLE_REF" loc="27..28" text="b">
+                                <node key="SQL_TABLE_INHERIT" value="true" />
+                                <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="27..28" text="b">
+                                    <node key="SQL_QUALIFIED_NAME_RELATION" loc="27..28" text="b" />
+                                </node>
                             </node>
                         </node>
-                    </node>
-                </node>
-            </statement>
-        </statements>
-        <errors />
-        <line_breaks>
-            <line_break loc="0..1" text="&#10;" />
-            <line_break loc="35..36" text="&#10;" />
-        </line_breaks>
-        <comments />
-        <dependencies />
-    </expected>
-</test>
-<test name="select_from_1rel_window_empty">
-    <input>
-        select a from b window c as ()
-    </input>
-    <expected>
-        <statements>
-            <statement type="SELECT">
-                <node type="OBJECT_SQL_SELECT" loc="9..39" text="select a f..ow c as ()">
-                    <node key="SQL_SELECT_FROM">
-                        <node type="OBJECT_SQL_TABLE_REF" loc="23..24" text="b">
-                            <node key="SQL_TABLE_INHERIT" value="true" />
-                            <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="23..24" text="b">
-                                <node key="SQL_QUALIFIED_NAME_RELATION" loc="23..24" text="b" />
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_COLUMN_REF" loc="20..21" text="a">
+                                <node key="SQL_COLUMN_REF_PATH">
+                                    <node loc="20..21" text="a" />
+                                </node>
                             </node>
                         </node>
-                    </node>
-                    <node key="SQL_SELECT_TARGETS">
-                        <node type="OBJECT_SQL_COLUMN_REF" loc="16..17" text="a">
-                            <node key="SQL_COLUMN_REF_PATH">
-                                <node loc="16..17" text="a" />
-                            </node>
-                        </node>
-                    </node>
-                    <node key="SQL_SELECT_WINDOWS">
-                        <node type="OBJECT_SQL_WINDOW_DEF" loc="32..39" text="c as ()">
-                            <node key="SQL_WINDOW_DEF_NAME" loc="32..33" text="c" />
-                        </node>
-                    </node>
-                </node>
-            </statement>
-        </statements>
-        <errors />
-        <line_breaks>
-            <line_break loc="0..1" text="&#10;" />
-            <line_break loc="39..40" text="&#10;" />
-        </line_breaks>
-        <comments />
-        <dependencies />
-    </expected>
-</test>
-<test name="select_from_1rel_window_partition1">
-    <input>
-        select a from b window c as (partition by d)
-    </input>
-    <expected>
-        <statements>
-            <statement type="SELECT">
-                <node type="OBJECT_SQL_SELECT" loc="9..53" text="select a f..tion by d)">
-                    <node key="SQL_SELECT_FROM">
-                        <node type="OBJECT_SQL_TABLE_REF" loc="23..24" text="b">
-                            <node key="SQL_TABLE_INHERIT" value="true" />
-                            <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="23..24" text="b">
-                                <node key="SQL_QUALIFIED_NAME_RELATION" loc="23..24" text="b" />
-                            </node>
-                        </node>
-                    </node>
-                    <node key="SQL_SELECT_TARGETS">
-                        <node type="OBJECT_SQL_COLUMN_REF" loc="16..17" text="a">
-                            <node key="SQL_COLUMN_REF_PATH">
-                                <node loc="16..17" text="a" />
-                            </node>
-                        </node>
-                    </node>
-                    <node key="SQL_SELECT_WINDOWS">
-                        <node type="OBJECT_SQL_WINDOW_DEF" loc="32..53" text="c as (part..tion by d)">
-                            <node key="SQL_WINDOW_DEF_FRAME" type="OBJECT_SQL_WINDOW_FRAME" loc="37..53" text="(partition by d)">
-                                <node key="SQL_WINDOW_FRAME_PARTITION">
-                                    <node type="OBJECT_SQL_COLUMN_REF" loc="51..52" text="d">
-                                        <node key="SQL_COLUMN_REF_PATH">
-                                            <node loc="51..52" text="d" />
+                        <node key="SQL_SELECT_WINDOWS">
+                            <node type="OBJECT_SQL_WINDOW_DEF" loc="36..57" text="c as (part..tion by d)">
+                                <node key="SQL_WINDOW_DEF_FRAME" type="OBJECT_SQL_WINDOW_FRAME" loc="41..57" text="(partition by d)">
+                                    <node key="SQL_WINDOW_FRAME_PARTITION">
+                                        <node type="OBJECT_SQL_COLUMN_REF" loc="55..56" text="d">
+                                            <node key="SQL_COLUMN_REF_PATH">
+                                                <node loc="55..56" text="d" />
+                                            </node>
                                         </node>
                                     </node>
                                 </node>
-                            </node>
-                            <node key="SQL_WINDOW_DEF_NAME" loc="32..33" text="c" />
-                        </node>
-                    </node>
-                </node>
-            </statement>
-        </statements>
-        <errors />
-        <line_breaks>
-            <line_break loc="0..1" text="&#10;" />
-            <line_break loc="53..54" text="&#10;" />
-        </line_breaks>
-        <comments />
-        <dependencies />
-    </expected>
-</test>
-<test name="select_from_1rel_window_partition1_rows_unbounded">
-    <input>
-        select a from b
-        window c as (partition by d rows between unbounded preceding and unbounded following)
-    </input>
-    <expected>
-        <statements>
-            <statement type="SELECT">
-                <node type="OBJECT_SQL_SELECT" loc="9..118" text="select a f..following)">
-                    <node key="SQL_SELECT_FROM">
-                        <node type="OBJECT_SQL_TABLE_REF" loc="23..24" text="b">
-                            <node key="SQL_TABLE_INHERIT" value="true" />
-                            <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="23..24" text="b">
-                                <node key="SQL_QUALIFIED_NAME_RELATION" loc="23..24" text="b" />
+                                <node key="SQL_WINDOW_DEF_NAME" loc="36..37" text="c" />
                             </node>
                         </node>
                     </node>
-                    <node key="SQL_SELECT_TARGETS">
-                        <node type="OBJECT_SQL_COLUMN_REF" loc="16..17" text="a">
-                            <node key="SQL_COLUMN_REF_PATH">
-                                <node loc="16..17" text="a" />
-                            </node>
-                        </node>
-                    </node>
-                    <node key="SQL_SELECT_WINDOWS">
-                        <node type="OBJECT_SQL_WINDOW_DEF" loc="40..118" text="c as (part..following)">
-                            <node key="SQL_WINDOW_DEF_FRAME" type="OBJECT_SQL_WINDOW_FRAME" loc="45..118" text="(partition..following)">
-                                <node key="SQL_WINDOW_FRAME_BOUNDS">
-                                    <node type="OBJECT_SQL_WINDOW_BOUND" loc="74..93" text="unbounded preceding">
-                                        <node key="SQL_WINDOW_BOUND_DIRECTION" value="PRECEDING" />
-                                        <node key="SQL_WINDOW_BOUND_MODE" value="UNBOUNDED" />
-                                    </node>
-                                    <node type="OBJECT_SQL_WINDOW_BOUND" loc="98..117" text="unbounded following">
-                                        <node key="SQL_WINDOW_BOUND_DIRECTION" value="FOLLOWING" />
-                                        <node key="SQL_WINDOW_BOUND_MODE" value="UNBOUNDED" />
-                                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="57..58" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="select_from_1rel_window_partition1_rows_unbounded">
+        <input>
+            select a from b
+            window c as (partition by d rows between unbounded preceding and unbounded following)
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..126" text="select a f..following)">
+                        <node key="SQL_SELECT_FROM">
+                            <node type="OBJECT_SQL_TABLE_REF" loc="27..28" text="b">
+                                <node key="SQL_TABLE_INHERIT" value="true" />
+                                <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="27..28" text="b">
+                                    <node key="SQL_QUALIFIED_NAME_RELATION" loc="27..28" text="b" />
                                 </node>
-                                <node key="SQL_WINDOW_FRAME_MODE" value="ROWS" />
-                                <node key="SQL_WINDOW_FRAME_PARTITION">
-                                    <node type="OBJECT_SQL_COLUMN_REF" loc="59..60" text="d">
-                                        <node key="SQL_COLUMN_REF_PATH">
-                                            <node loc="59..60" text="d" />
+                            </node>
+                        </node>
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_COLUMN_REF" loc="20..21" text="a">
+                                <node key="SQL_COLUMN_REF_PATH">
+                                    <node loc="20..21" text="a" />
+                                </node>
+                            </node>
+                        </node>
+                        <node key="SQL_SELECT_WINDOWS">
+                            <node type="OBJECT_SQL_WINDOW_DEF" loc="48..126" text="c as (part..following)">
+                                <node key="SQL_WINDOW_DEF_FRAME" type="OBJECT_SQL_WINDOW_FRAME" loc="53..126" text="(partition..following)">
+                                    <node key="SQL_WINDOW_FRAME_BOUNDS">
+                                        <node type="OBJECT_SQL_WINDOW_BOUND" loc="82..101" text="unbounded preceding">
+                                            <node key="SQL_WINDOW_BOUND_DIRECTION" value="PRECEDING" />
+                                            <node key="SQL_WINDOW_BOUND_MODE" value="UNBOUNDED" />
+                                        </node>
+                                        <node type="OBJECT_SQL_WINDOW_BOUND" loc="106..125" text="unbounded following">
+                                            <node key="SQL_WINDOW_BOUND_DIRECTION" value="FOLLOWING" />
+                                            <node key="SQL_WINDOW_BOUND_MODE" value="UNBOUNDED" />
+                                        </node>
+                                    </node>
+                                    <node key="SQL_WINDOW_FRAME_MODE" value="ROWS" />
+                                    <node key="SQL_WINDOW_FRAME_PARTITION">
+                                        <node type="OBJECT_SQL_COLUMN_REF" loc="67..68" text="d">
+                                            <node key="SQL_COLUMN_REF_PATH">
+                                                <node loc="67..68" text="d" />
+                                            </node>
                                         </node>
                                     </node>
                                 </node>
-                            </node>
-                            <node key="SQL_WINDOW_DEF_NAME" loc="40..41" text="c" />
-                        </node>
-                    </node>
-                </node>
-            </statement>
-        </statements>
-        <errors />
-        <line_breaks>
-            <line_break loc="0..1" text="&#10;" />
-            <line_break loc="24..25" text="&#10;" />
-            <line_break loc="118..119" text="&#10;" />
-        </line_breaks>
-        <comments />
-        <dependencies />
-    </expected>
-</test>
-<test name="select_from_1rel_window_partition1_rows_1preceding_current">
-    <input>
-        select a from b
-        window c as (partition by d rows between 1 preceding and current row)
-    </input>
-    <expected>
-        <statements>
-            <statement type="SELECT">
-                <node type="OBJECT_SQL_SELECT" loc="9..102" text="select a f..rrent row)">
-                    <node key="SQL_SELECT_FROM">
-                        <node type="OBJECT_SQL_TABLE_REF" loc="23..24" text="b">
-                            <node key="SQL_TABLE_INHERIT" value="true" />
-                            <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="23..24" text="b">
-                                <node key="SQL_QUALIFIED_NAME_RELATION" loc="23..24" text="b" />
+                                <node key="SQL_WINDOW_DEF_NAME" loc="48..49" text="c" />
                             </node>
                         </node>
                     </node>
-                    <node key="SQL_SELECT_TARGETS">
-                        <node type="OBJECT_SQL_COLUMN_REF" loc="16..17" text="a">
-                            <node key="SQL_COLUMN_REF_PATH">
-                                <node loc="16..17" text="a" />
-                            </node>
-                        </node>
-                    </node>
-                    <node key="SQL_SELECT_WINDOWS">
-                        <node type="OBJECT_SQL_WINDOW_DEF" loc="40..102" text="c as (part..rrent row)">
-                            <node key="SQL_WINDOW_DEF_FRAME" type="OBJECT_SQL_WINDOW_FRAME" loc="45..102" text="(partition..rrent row)">
-                                <node key="SQL_WINDOW_FRAME_BOUNDS">
-                                    <node type="OBJECT_SQL_WINDOW_BOUND" loc="74..85" text="1 preceding">
-                                        <node key="SQL_WINDOW_BOUND_DIRECTION" value="PRECEDING" />
-                                        <node key="SQL_WINDOW_BOUND_MODE" value="VALUE" />
-                                        <node key="SQL_WINDOW_BOUND_VALUE" loc="74..75" text="1" />
-                                    </node>
-                                    <node type="OBJECT_SQL_WINDOW_BOUND" loc="90..101" text="current row">
-                                        <node key="SQL_WINDOW_BOUND_MODE" value="CURRENT_ROW" />
-                                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="28..29" text="&#10;" />
+                <line_break loc="126..127" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="select_from_1rel_window_partition1_rows_1preceding_current">
+        <input>
+            select a from b
+            window c as (partition by d rows between 1 preceding and current row)
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..110" text="select a f..rrent row)">
+                        <node key="SQL_SELECT_FROM">
+                            <node type="OBJECT_SQL_TABLE_REF" loc="27..28" text="b">
+                                <node key="SQL_TABLE_INHERIT" value="true" />
+                                <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="27..28" text="b">
+                                    <node key="SQL_QUALIFIED_NAME_RELATION" loc="27..28" text="b" />
                                 </node>
-                                <node key="SQL_WINDOW_FRAME_MODE" value="ROWS" />
-                                <node key="SQL_WINDOW_FRAME_PARTITION">
-                                    <node type="OBJECT_SQL_COLUMN_REF" loc="59..60" text="d">
-                                        <node key="SQL_COLUMN_REF_PATH">
-                                            <node loc="59..60" text="d" />
+                            </node>
+                        </node>
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_COLUMN_REF" loc="20..21" text="a">
+                                <node key="SQL_COLUMN_REF_PATH">
+                                    <node loc="20..21" text="a" />
+                                </node>
+                            </node>
+                        </node>
+                        <node key="SQL_SELECT_WINDOWS">
+                            <node type="OBJECT_SQL_WINDOW_DEF" loc="48..110" text="c as (part..rrent row)">
+                                <node key="SQL_WINDOW_DEF_FRAME" type="OBJECT_SQL_WINDOW_FRAME" loc="53..110" text="(partition..rrent row)">
+                                    <node key="SQL_WINDOW_FRAME_BOUNDS">
+                                        <node type="OBJECT_SQL_WINDOW_BOUND" loc="82..93" text="1 preceding">
+                                            <node key="SQL_WINDOW_BOUND_DIRECTION" value="PRECEDING" />
+                                            <node key="SQL_WINDOW_BOUND_MODE" value="VALUE" />
+                                            <node key="SQL_WINDOW_BOUND_VALUE" loc="82..83" text="1" />
+                                        </node>
+                                        <node type="OBJECT_SQL_WINDOW_BOUND" loc="98..109" text="current row">
+                                            <node key="SQL_WINDOW_BOUND_MODE" value="CURRENT_ROW" />
+                                        </node>
+                                    </node>
+                                    <node key="SQL_WINDOW_FRAME_MODE" value="ROWS" />
+                                    <node key="SQL_WINDOW_FRAME_PARTITION">
+                                        <node type="OBJECT_SQL_COLUMN_REF" loc="67..68" text="d">
+                                            <node key="SQL_COLUMN_REF_PATH">
+                                                <node loc="67..68" text="d" />
+                                            </node>
                                         </node>
                                     </node>
                                 </node>
-                            </node>
-                            <node key="SQL_WINDOW_DEF_NAME" loc="40..41" text="c" />
-                        </node>
-                    </node>
-                </node>
-            </statement>
-        </statements>
-        <errors />
-        <line_breaks>
-            <line_break loc="0..1" text="&#10;" />
-            <line_break loc="24..25" text="&#10;" />
-            <line_break loc="102..103" text="&#10;" />
-        </line_breaks>
-        <comments />
-        <dependencies />
-    </expected>
-</test>
-<test name="select_from_1rel_2windows">
-    <input>
-        select a from b
-        window c as (partition by d range between current row and 1 following),
-                e as (partition by f)
-    </input>
-    <expected>
-        <statements>
-            <statement type="SELECT">
-                <node type="OBJECT_SQL_SELECT" loc="9..142" text="select a f..tion by f)">
-                    <node key="SQL_SELECT_FROM">
-                        <node type="OBJECT_SQL_TABLE_REF" loc="23..24" text="b">
-                            <node key="SQL_TABLE_INHERIT" value="true" />
-                            <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="23..24" text="b">
-                                <node key="SQL_QUALIFIED_NAME_RELATION" loc="23..24" text="b" />
+                                <node key="SQL_WINDOW_DEF_NAME" loc="48..49" text="c" />
                             </node>
                         </node>
                     </node>
-                    <node key="SQL_SELECT_TARGETS">
-                        <node type="OBJECT_SQL_COLUMN_REF" loc="16..17" text="a">
-                            <node key="SQL_COLUMN_REF_PATH">
-                                <node loc="16..17" text="a" />
-                            </node>
-                        </node>
-                    </node>
-                    <node key="SQL_SELECT_WINDOWS">
-                        <node type="OBJECT_SQL_WINDOW_DEF" loc="40..103" text="c as (part..following)">
-                            <node key="SQL_WINDOW_DEF_FRAME" type="OBJECT_SQL_WINDOW_FRAME" loc="45..103" text="(partition..following)">
-                                <node key="SQL_WINDOW_FRAME_BOUNDS">
-                                    <node type="OBJECT_SQL_WINDOW_BOUND" loc="75..86" text="current row">
-                                        <node key="SQL_WINDOW_BOUND_MODE" value="CURRENT_ROW" />
-                                    </node>
-                                    <node type="OBJECT_SQL_WINDOW_BOUND" loc="91..102" text="1 following">
-                                        <node key="SQL_WINDOW_BOUND_DIRECTION" value="FOLLOWING" />
-                                        <node key="SQL_WINDOW_BOUND_MODE" value="VALUE" />
-                                        <node key="SQL_WINDOW_BOUND_VALUE" loc="91..92" text="1" />
-                                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="28..29" text="&#10;" />
+                <line_break loc="110..111" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="select_from_1rel_2windows">
+        <input>
+            select a from b
+            window c as (partition by d range between current row and 1 following),
+                    e as (partition by f)
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..154" text="select a f..tion by f)">
+                        <node key="SQL_SELECT_FROM">
+                            <node type="OBJECT_SQL_TABLE_REF" loc="27..28" text="b">
+                                <node key="SQL_TABLE_INHERIT" value="true" />
+                                <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="27..28" text="b">
+                                    <node key="SQL_QUALIFIED_NAME_RELATION" loc="27..28" text="b" />
                                 </node>
-                                <node key="SQL_WINDOW_FRAME_MODE" value="RANGE" />
-                                <node key="SQL_WINDOW_FRAME_PARTITION">
-                                    <node type="OBJECT_SQL_COLUMN_REF" loc="59..60" text="d">
-                                        <node key="SQL_COLUMN_REF_PATH">
-                                            <node loc="59..60" text="d" />
+                            </node>
+                        </node>
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_COLUMN_REF" loc="20..21" text="a">
+                                <node key="SQL_COLUMN_REF_PATH">
+                                    <node loc="20..21" text="a" />
+                                </node>
+                            </node>
+                        </node>
+                        <node key="SQL_SELECT_WINDOWS">
+                            <node type="OBJECT_SQL_WINDOW_DEF" loc="48..111" text="c as (part..following)">
+                                <node key="SQL_WINDOW_DEF_FRAME" type="OBJECT_SQL_WINDOW_FRAME" loc="53..111" text="(partition..following)">
+                                    <node key="SQL_WINDOW_FRAME_BOUNDS">
+                                        <node type="OBJECT_SQL_WINDOW_BOUND" loc="83..94" text="current row">
+                                            <node key="SQL_WINDOW_BOUND_MODE" value="CURRENT_ROW" />
+                                        </node>
+                                        <node type="OBJECT_SQL_WINDOW_BOUND" loc="99..110" text="1 following">
+                                            <node key="SQL_WINDOW_BOUND_DIRECTION" value="FOLLOWING" />
+                                            <node key="SQL_WINDOW_BOUND_MODE" value="VALUE" />
+                                            <node key="SQL_WINDOW_BOUND_VALUE" loc="99..100" text="1" />
+                                        </node>
+                                    </node>
+                                    <node key="SQL_WINDOW_FRAME_MODE" value="RANGE" />
+                                    <node key="SQL_WINDOW_FRAME_PARTITION">
+                                        <node type="OBJECT_SQL_COLUMN_REF" loc="67..68" text="d">
+                                            <node key="SQL_COLUMN_REF_PATH">
+                                                <node loc="67..68" text="d" />
+                                            </node>
                                         </node>
                                     </node>
                                 </node>
+                                <node key="SQL_WINDOW_DEF_NAME" loc="48..49" text="c" />
                             </node>
-                            <node key="SQL_WINDOW_DEF_NAME" loc="40..41" text="c" />
-                        </node>
-                        <node type="OBJECT_SQL_WINDOW_DEF" loc="121..142" text="e as (part..tion by f)">
-                            <node key="SQL_WINDOW_DEF_FRAME" type="OBJECT_SQL_WINDOW_FRAME" loc="126..142" text="(partition by f)">
-                                <node key="SQL_WINDOW_FRAME_PARTITION">
-                                    <node type="OBJECT_SQL_COLUMN_REF" loc="140..141" text="f">
-                                        <node key="SQL_COLUMN_REF_PATH">
-                                            <node loc="140..141" text="f" />
+                            <node type="OBJECT_SQL_WINDOW_DEF" loc="133..154" text="e as (part..tion by f)">
+                                <node key="SQL_WINDOW_DEF_FRAME" type="OBJECT_SQL_WINDOW_FRAME" loc="138..154" text="(partition by f)">
+                                    <node key="SQL_WINDOW_FRAME_PARTITION">
+                                        <node type="OBJECT_SQL_COLUMN_REF" loc="152..153" text="f">
+                                            <node key="SQL_COLUMN_REF_PATH">
+                                                <node loc="152..153" text="f" />
+                                            </node>
                                         </node>
                                     </node>
                                 </node>
+                                <node key="SQL_WINDOW_DEF_NAME" loc="133..134" text="e" />
                             </node>
-                            <node key="SQL_WINDOW_DEF_NAME" loc="121..122" text="e" />
                         </node>
                     </node>
-                </node>
-            </statement>
-        </statements>
-        <errors />
-        <line_breaks>
-            <line_break loc="0..1" text="&#10;" />
-            <line_break loc="24..25" text="&#10;" />
-            <line_break loc="104..105" text="&#10;" />
-            <line_break loc="142..143" text="&#10;" />
-        </line_breaks>
-        <comments />
-        <dependencies />
-    </expected>
-</test>
-<test name="select_distinct_from_1rel">
-    <input>
-        select distinct a from b
-    </input>
-    <expected>
-        <statements>
-            <statement type="SELECT">
-                <node type="OBJECT_SQL_SELECT" loc="9..33" text="select dis..t a from b">
-                    <node key="SQL_SELECT_DISTINCT" value="true" />
-                    <node key="SQL_SELECT_FROM">
-                        <node type="OBJECT_SQL_TABLE_REF" loc="32..33" text="b">
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="28..29" text="&#10;" />
+                <line_break loc="112..113" text="&#10;" />
+                <line_break loc="154..155" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="select_distinct_from_1rel">
+        <input>
+            select distinct a from b
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..37" text="select dis..t a from b">
+                        <node key="SQL_SELECT_DISTINCT" value="true" />
+                        <node key="SQL_SELECT_FROM">
+                            <node type="OBJECT_SQL_TABLE_REF" loc="36..37" text="b">
+                                <node key="SQL_TABLE_INHERIT" value="true" />
+                                <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="36..37" text="b">
+                                    <node key="SQL_QUALIFIED_NAME_RELATION" loc="36..37" text="b" />
+                                </node>
+                            </node>
+                        </node>
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_COLUMN_REF" loc="29..30" text="a">
+                                <node key="SQL_COLUMN_REF_PATH">
+                                    <node loc="29..30" text="a" />
+                                </node>
+                            </node>
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="37..38" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="select_distinct_on_from_1rel">
+        <input>
+            select distinct on (a) a from b
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..44" text="select dis..) a from b">
+                        <node key="SQL_SELECT_DISTINCT">
+                            <node type="OBJECT_SQL_COLUMN_REF" loc="33..34" text="a">
+                                <node key="SQL_COLUMN_REF_PATH">
+                                    <node loc="33..34" text="a" />
+                                </node>
+                            </node>
+                        </node>
+                        <node key="SQL_SELECT_FROM">
+                            <node type="OBJECT_SQL_TABLE_REF" loc="43..44" text="b">
+                                <node key="SQL_TABLE_INHERIT" value="true" />
+                                <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="43..44" text="b">
+                                    <node key="SQL_QUALIFIED_NAME_RELATION" loc="43..44" text="b" />
+                                </node>
+                            </node>
+                        </node>
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_COLUMN_REF" loc="36..37" text="a">
+                                <node key="SQL_COLUMN_REF_PATH">
+                                    <node loc="36..37" text="a" />
+                                </node>
+                            </node>
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="44..45" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="select_all_from_1rel">
+        <input>
+            select all from b
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..30" text="select all from b">
+                        <node key="SQL_SELECT_ALL" value="true" />
+                        <node key="SQL_SELECT_FROM">
+                            <node type="OBJECT_SQL_TABLE_REF" loc="29..30" text="b">
+                                <node key="SQL_TABLE_INHERIT" value="true" />
+                                <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="29..30" text="b">
+                                    <node key="SQL_QUALIFIED_NAME_RELATION" loc="29..30" text="b" />
+                                </node>
+                            </node>
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="30..31" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="values_1">
+        <input>
+            values (1)
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..23" text="values (1)">
+                        <node key="SQL_SELECT_VALUES">
+                            <node>
+                                <node loc="21..22" text="1" />
+                            </node>
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="23..24" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="values_1_2">
+        <input>
+            values (1), (2);
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..28" text="values (1), (2)">
+                        <node key="SQL_SELECT_VALUES">
+                            <node>
+                                <node loc="21..22" text="1" />
+                            </node>
+                            <node>
+                                <node loc="26..27" text="2" />
+                            </node>
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="29..30" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="values_12_34">
+        <input>
+            values (1, 2), (3, 4)
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..34" text="values (1,..2), (3, 4)">
+                        <node key="SQL_SELECT_VALUES">
+                            <node>
+                                <node loc="21..22" text="1" />
+                                <node loc="24..25" text="2" />
+                            </node>
+                            <node>
+                                <node loc="29..30" text="3" />
+                                <node loc="32..33" text="4" />
+                            </node>
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="34..35" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="table_a">
+        <input>
+            TABLE a
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..20" text="TABLE a">
+                        <node key="SQL_SELECT_TABLE" type="OBJECT_SQL_TABLE_REF" loc="13..20" text="TABLE a">
                             <node key="SQL_TABLE_INHERIT" value="true" />
-                            <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="32..33" text="b">
-                                <node key="SQL_QUALIFIED_NAME_RELATION" loc="32..33" text="b" />
+                            <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="19..20" text="a">
+                                <node key="SQL_QUALIFIED_NAME_RELATION" loc="19..20" text="a" />
                             </node>
                         </node>
                     </node>
-                    <node key="SQL_SELECT_TARGETS">
-                        <node type="OBJECT_SQL_COLUMN_REF" loc="25..26" text="a">
-                            <node key="SQL_COLUMN_REF_PATH">
-                                <node loc="25..26" text="a" />
-                            </node>
-                        </node>
-                    </node>
-                </node>
-            </statement>
-        </statements>
-        <errors />
-        <line_breaks>
-            <line_break loc="0..1" text="&#10;" />
-            <line_break loc="33..34" text="&#10;" />
-        </line_breaks>
-        <comments />
-        <dependencies />
-    </expected>
-</test>
-<test name="select_distinct_on_from_1rel">
-    <input>
-        select distinct on (a) a from b
-    </input>
-    <expected>
-        <statements>
-            <statement type="SELECT">
-                <node type="OBJECT_SQL_SELECT" loc="9..40" text="select dis..) a from b">
-                    <node key="SQL_SELECT_DISTINCT">
-                        <node type="OBJECT_SQL_COLUMN_REF" loc="29..30" text="a">
-                            <node key="SQL_COLUMN_REF_PATH">
-                                <node loc="29..30" text="a" />
-                            </node>
-                        </node>
-                    </node>
-                    <node key="SQL_SELECT_FROM">
-                        <node type="OBJECT_SQL_TABLE_REF" loc="39..40" text="b">
-                            <node key="SQL_TABLE_INHERIT" value="true" />
-                            <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="39..40" text="b">
-                                <node key="SQL_QUALIFIED_NAME_RELATION" loc="39..40" text="b" />
-                            </node>
-                        </node>
-                    </node>
-                    <node key="SQL_SELECT_TARGETS">
-                        <node type="OBJECT_SQL_COLUMN_REF" loc="32..33" text="a">
-                            <node key="SQL_COLUMN_REF_PATH">
-                                <node loc="32..33" text="a" />
-                            </node>
-                        </node>
-                    </node>
-                </node>
-            </statement>
-        </statements>
-        <errors />
-        <line_breaks>
-            <line_break loc="0..1" text="&#10;" />
-            <line_break loc="40..41" text="&#10;" />
-        </line_breaks>
-        <comments />
-        <dependencies />
-    </expected>
-</test>
-<test name="select_all_from_1rel">
-    <input>
-        select all from b
-    </input>
-    <expected>
-        <statements>
-            <statement type="SELECT">
-                <node type="OBJECT_SQL_SELECT" loc="9..26" text="select all from b">
-                    <node key="SQL_SELECT_ALL" value="true" />
-                    <node key="SQL_SELECT_FROM">
-                        <node type="OBJECT_SQL_TABLE_REF" loc="25..26" text="b">
-                            <node key="SQL_TABLE_INHERIT" value="true" />
-                            <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="25..26" text="b">
-                                <node key="SQL_QUALIFIED_NAME_RELATION" loc="25..26" text="b" />
-                            </node>
-                        </node>
-                    </node>
-                </node>
-            </statement>
-        </statements>
-        <errors />
-        <line_breaks>
-            <line_break loc="0..1" text="&#10;" />
-            <line_break loc="26..27" text="&#10;" />
-        </line_breaks>
-        <comments />
-        <dependencies />
-    </expected>
-</test>
-<test name="values_1">
-    <input>
-        values (1)
-    </input>
-    <expected>
-        <statements>
-            <statement type="SELECT">
-                <node type="OBJECT_SQL_SELECT" loc="9..19" text="values (1)">
-                    <node key="SQL_SELECT_VALUES">
-                        <node>
-                            <node loc="17..18" text="1" />
-                        </node>
-                    </node>
-                </node>
-            </statement>
-        </statements>
-        <errors />
-        <line_breaks>
-            <line_break loc="0..1" text="&#10;" />
-            <line_break loc="19..20" text="&#10;" />
-        </line_breaks>
-        <comments />
-        <dependencies />
-    </expected>
-</test>
-<test name="values_1_2">
-    <input>
-        values (1), (2);
-    </input>
-    <expected>
-        <statements>
-            <statement type="SELECT">
-                <node type="OBJECT_SQL_SELECT" loc="9..24" text="values (1), (2)">
-                    <node key="SQL_SELECT_VALUES">
-                        <node>
-                            <node loc="17..18" text="1" />
-                        </node>
-                        <node>
-                            <node loc="22..23" text="2" />
-                        </node>
-                    </node>
-                </node>
-            </statement>
-        </statements>
-        <errors />
-        <line_breaks>
-            <line_break loc="0..1" text="&#10;" />
-            <line_break loc="25..26" text="&#10;" />
-        </line_breaks>
-        <comments />
-        <dependencies />
-    </expected>
-</test>
-<test name="values_12_34">
-    <input>
-        values (1, 2), (3, 4)
-    </input>
-    <expected>
-        <statements>
-            <statement type="SELECT">
-                <node type="OBJECT_SQL_SELECT" loc="9..30" text="values (1,..2), (3, 4)">
-                    <node key="SQL_SELECT_VALUES">
-                        <node>
-                            <node loc="17..18" text="1" />
-                            <node loc="20..21" text="2" />
-                        </node>
-                        <node>
-                            <node loc="25..26" text="3" />
-                            <node loc="28..29" text="4" />
-                        </node>
-                    </node>
-                </node>
-            </statement>
-        </statements>
-        <errors />
-        <line_breaks>
-            <line_break loc="0..1" text="&#10;" />
-            <line_break loc="30..31" text="&#10;" />
-        </line_breaks>
-        <comments />
-        <dependencies />
-    </expected>
-</test>
-<test name="table_a">
-    <input>
-        TABLE a
-    </input>
-    <expected>
-        <statements>
-            <statement type="SELECT">
-                <node type="OBJECT_SQL_SELECT" loc="9..16" text="TABLE a">
-                    <node key="SQL_SELECT_TABLE" type="OBJECT_SQL_TABLE_REF" loc="9..16" text="TABLE a">
-                        <node key="SQL_TABLE_INHERIT" value="true" />
-                        <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="15..16" text="a">
-                            <node key="SQL_QUALIFIED_NAME_RELATION" loc="15..16" text="a" />
-                        </node>
-                    </node>
-                </node>
-            </statement>
-        </statements>
-        <errors />
-        <line_breaks>
-            <line_break loc="0..1" text="&#10;" />
-            <line_break loc="16..17" text="&#10;" />
-        </line_breaks>
-        <comments />
-        <dependencies />
-    </expected>
-</test>
-<test name="union_select1_select2">
-    <input>
-        SELECT 1 UNION SELECT 2
-    </input>
-    <expected>
-        <statements>
-            <statement type="SELECT">
-                <node type="OBJECT_SQL_SELECT" loc="9..32" text="SELECT 1 U..N SELECT 2">
-                    <node key="SQL_COMBINE_INPUT">
-                        <node type="OBJECT_SQL_SELECT" loc="9..17" text="SELECT 1">
-                            <node key="SQL_SELECT_TARGETS">
-                                <node loc="16..17" text="1" />
-                            </node>
-                        </node>
-                        <node type="OBJECT_SQL_SELECT" loc="24..32" text="SELECT 2">
-                            <node key="SQL_SELECT_TARGETS">
-                                <node loc="31..32" text="2" />
-                            </node>
-                        </node>
-                    </node>
-                    <node key="SQL_COMBINE_OPERATION" value="UNION" />
-                </node>
-            </statement>
-        </statements>
-        <errors />
-        <line_breaks>
-            <line_break loc="0..1" text="&#10;" />
-            <line_break loc="32..33" text="&#10;" />
-        </line_breaks>
-        <comments />
-        <dependencies />
-    </expected>
-</test>
-<test name="union_all_select1_select2">
-    <input>
-        SELECT 1 UNION ALL SELECT 2
-    </input>
-    <expected>
-        <statements>
-            <statement type="SELECT">
-                <node type="OBJECT_SQL_SELECT" loc="9..36" text="SELECT 1 U..L SELECT 2">
-                    <node key="SQL_COMBINE_INPUT">
-                        <node type="OBJECT_SQL_SELECT" loc="9..17" text="SELECT 1">
-                            <node key="SQL_SELECT_TARGETS">
-                                <node loc="16..17" text="1" />
-                            </node>
-                        </node>
-                        <node type="OBJECT_SQL_SELECT" loc="28..36" text="SELECT 2">
-                            <node key="SQL_SELECT_TARGETS">
-                                <node loc="35..36" text="2" />
-                            </node>
-                        </node>
-                    </node>
-                    <node key="SQL_COMBINE_MODIFIER" value="ALL" />
-                    <node key="SQL_COMBINE_OPERATION" value="UNION" />
-                </node>
-            </statement>
-        </statements>
-        <errors />
-        <line_breaks>
-            <line_break loc="0..1" text="&#10;" />
-            <line_break loc="36..37" text="&#10;" />
-        </line_breaks>
-        <comments />
-        <dependencies />
-    </expected>
-</test>
-<test name="union_distinct_select1_select2">
-    <input>
-        SELECT 1 UNION DISTINCT SELECT 2
-    </input>
-    <expected>
-        <statements>
-            <statement type="SELECT">
-                <node type="OBJECT_SQL_SELECT" loc="9..41" text="SELECT 1 U..T SELECT 2">
-                    <node key="SQL_COMBINE_INPUT">
-                        <node type="OBJECT_SQL_SELECT" loc="9..17" text="SELECT 1">
-                            <node key="SQL_SELECT_TARGETS">
-                                <node loc="16..17" text="1" />
-                            </node>
-                        </node>
-                        <node type="OBJECT_SQL_SELECT" loc="33..41" text="SELECT 2">
-                            <node key="SQL_SELECT_TARGETS">
-                                <node loc="40..41" text="2" />
-                            </node>
-                        </node>
-                    </node>
-                    <node key="SQL_COMBINE_MODIFIER" value="DISTINCT" />
-                    <node key="SQL_COMBINE_OPERATION" value="UNION" />
-                </node>
-            </statement>
-        </statements>
-        <errors />
-        <line_breaks>
-            <line_break loc="0..1" text="&#10;" />
-            <line_break loc="41..42" text="&#10;" />
-        </line_breaks>
-        <comments />
-        <dependencies />
-    </expected>
-</test>
-<test name="intersect_select1_select2">
-    <input>
-        SELECT 1 INTERSECT SELECT 2
-    </input>
-    <expected>
-        <statements>
-            <statement type="SELECT">
-                <node type="OBJECT_SQL_SELECT" loc="9..36" text="SELECT 1 I..T SELECT 2">
-                    <node key="SQL_COMBINE_INPUT">
-                        <node type="OBJECT_SQL_SELECT" loc="9..17" text="SELECT 1">
-                            <node key="SQL_SELECT_TARGETS">
-                                <node loc="16..17" text="1" />
-                            </node>
-                        </node>
-                        <node type="OBJECT_SQL_SELECT" loc="28..36" text="SELECT 2">
-                            <node key="SQL_SELECT_TARGETS">
-                                <node loc="35..36" text="2" />
-                            </node>
-                        </node>
-                    </node>
-                    <node key="SQL_COMBINE_OPERATION" value="INTERSECT" />
-                </node>
-            </statement>
-        </statements>
-        <errors />
-        <line_breaks>
-            <line_break loc="0..1" text="&#10;" />
-            <line_break loc="36..37" text="&#10;" />
-        </line_breaks>
-        <comments />
-        <dependencies />
-    </expected>
-</test>
-<test name="with_1cte_select2">
-    <input>
-        WITH a AS (SELECT 1) SELECT 2
-    </input>
-    <expected>
-        <statements>
-            <statement type="SELECT">
-                <node type="OBJECT_SQL_SELECT" loc="9..38" text="WITH a AS ..) SELECT 2">
-                    <node key="SQL_SELECT_TARGETS">
-                        <node loc="37..38" text="2" />
-                    </node>
-                    <node key="SQL_SELECT_WITH_CTES">
-                        <node type="OBJECT_SQL_CTE" loc="14..29" text="a AS (SELECT 1)">
-                            <node key="SQL_CTE_NAME" loc="14..15" text="a" />
-                            <node key="SQL_CTE_STATEMENT" type="OBJECT_SQL_SELECT" loc="20..28" text="SELECT 1">
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="20..21" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="union_select1_select2">
+        <input>
+            SELECT 1 UNION SELECT 2
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..36" text="SELECT 1 U..N SELECT 2">
+                        <node key="SQL_COMBINE_INPUT">
+                            <node type="OBJECT_SQL_SELECT" loc="13..21" text="SELECT 1">
                                 <node key="SQL_SELECT_TARGETS">
-                                    <node loc="27..28" text="1" />
+                                    <node loc="20..21" text="1" />
                                 </node>
                             </node>
-                        </node>
-                    </node>
-                </node>
-            </statement>
-        </statements>
-        <errors />
-        <line_breaks>
-            <line_break loc="0..1" text="&#10;" />
-            <line_break loc="38..39" text="&#10;" />
-        </line_breaks>
-        <comments />
-        <dependencies />
-    </expected>
-</test>
-<test name="with_2ctes_select3">
-    <input>
-        WITH a AS (SELECT 1), b AS (SELECT 2) SELECT 3
-    </input>
-    <expected>
-        <statements>
-            <statement type="SELECT">
-                <node type="OBJECT_SQL_SELECT" loc="9..55" text="WITH a AS ..) SELECT 3">
-                    <node key="SQL_SELECT_TARGETS">
-                        <node loc="54..55" text="3" />
-                    </node>
-                    <node key="SQL_SELECT_WITH_CTES">
-                        <node type="OBJECT_SQL_CTE" loc="14..29" text="a AS (SELECT 1)">
-                            <node key="SQL_CTE_NAME" loc="14..15" text="a" />
-                            <node key="SQL_CTE_STATEMENT" type="OBJECT_SQL_SELECT" loc="20..28" text="SELECT 1">
+                            <node type="OBJECT_SQL_SELECT" loc="28..36" text="SELECT 2">
                                 <node key="SQL_SELECT_TARGETS">
-                                    <node loc="27..28" text="1" />
+                                    <node loc="35..36" text="2" />
                                 </node>
                             </node>
                         </node>
-                        <node type="OBJECT_SQL_CTE" loc="31..46" text="b AS (SELECT 2)">
-                            <node key="SQL_CTE_NAME" loc="31..32" text="b" />
-                            <node key="SQL_CTE_STATEMENT" type="OBJECT_SQL_SELECT" loc="37..45" text="SELECT 2">
+                        <node key="SQL_COMBINE_OPERATION" value="UNION" />
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="36..37" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="union_all_select1_select2">
+        <input>
+            SELECT 1 UNION ALL SELECT 2
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..40" text="SELECT 1 U..L SELECT 2">
+                        <node key="SQL_COMBINE_INPUT">
+                            <node type="OBJECT_SQL_SELECT" loc="13..21" text="SELECT 1">
+                                <node key="SQL_SELECT_TARGETS">
+                                    <node loc="20..21" text="1" />
+                                </node>
+                            </node>
+                            <node type="OBJECT_SQL_SELECT" loc="32..40" text="SELECT 2">
+                                <node key="SQL_SELECT_TARGETS">
+                                    <node loc="39..40" text="2" />
+                                </node>
+                            </node>
+                        </node>
+                        <node key="SQL_COMBINE_MODIFIER" value="ALL" />
+                        <node key="SQL_COMBINE_OPERATION" value="UNION" />
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="40..41" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="union_distinct_select1_select2">
+        <input>
+            SELECT 1 UNION DISTINCT SELECT 2
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..45" text="SELECT 1 U..T SELECT 2">
+                        <node key="SQL_COMBINE_INPUT">
+                            <node type="OBJECT_SQL_SELECT" loc="13..21" text="SELECT 1">
+                                <node key="SQL_SELECT_TARGETS">
+                                    <node loc="20..21" text="1" />
+                                </node>
+                            </node>
+                            <node type="OBJECT_SQL_SELECT" loc="37..45" text="SELECT 2">
                                 <node key="SQL_SELECT_TARGETS">
                                     <node loc="44..45" text="2" />
                                 </node>
                             </node>
                         </node>
+                        <node key="SQL_COMBINE_MODIFIER" value="DISTINCT" />
+                        <node key="SQL_COMBINE_OPERATION" value="UNION" />
                     </node>
-                </node>
-            </statement>
-        </statements>
-        <errors />
-        <line_breaks>
-            <line_break loc="0..1" text="&#10;" />
-            <line_break loc="55..56" text="&#10;" />
-        </line_breaks>
-        <comments />
-        <dependencies />
-    </expected>
-</test>
-<test name="with_recursive_2ctes_select3">
-    <input>
-        WITH RECURSIVE a AS (SELECT 1), b AS (SELECT 2) SELECT 3
-    </input>
-    <expected>
-        <statements>
-            <statement type="SELECT">
-                <node type="OBJECT_SQL_SELECT" loc="9..65" text="WITH RECUR..) SELECT 3">
-                    <node key="SQL_SELECT_TARGETS">
-                        <node loc="64..65" text="3" />
-                    </node>
-                    <node key="SQL_SELECT_WITH_CTES">
-                        <node type="OBJECT_SQL_CTE" loc="24..39" text="a AS (SELECT 1)">
-                            <node key="SQL_CTE_NAME" loc="24..25" text="a" />
-                            <node key="SQL_CTE_STATEMENT" type="OBJECT_SQL_SELECT" loc="30..38" text="SELECT 1">
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="45..46" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="intersect_select1_select2">
+        <input>
+            SELECT 1 INTERSECT SELECT 2
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..40" text="SELECT 1 I..T SELECT 2">
+                        <node key="SQL_COMBINE_INPUT">
+                            <node type="OBJECT_SQL_SELECT" loc="13..21" text="SELECT 1">
                                 <node key="SQL_SELECT_TARGETS">
-                                    <node loc="37..38" text="1" />
+                                    <node loc="20..21" text="1" />
                                 </node>
                             </node>
-                        </node>
-                        <node type="OBJECT_SQL_CTE" loc="41..56" text="b AS (SELECT 2)">
-                            <node key="SQL_CTE_NAME" loc="41..42" text="b" />
-                            <node key="SQL_CTE_STATEMENT" type="OBJECT_SQL_SELECT" loc="47..55" text="SELECT 2">
+                            <node type="OBJECT_SQL_SELECT" loc="32..40" text="SELECT 2">
                                 <node key="SQL_SELECT_TARGETS">
-                                    <node loc="54..55" text="2" />
+                                    <node loc="39..40" text="2" />
+                                </node>
+                            </node>
+                        </node>
+                        <node key="SQL_COMBINE_OPERATION" value="INTERSECT" />
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="40..41" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="with_1cte_select2">
+        <input>
+            WITH a AS (SELECT 1) SELECT 2
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..42" text="WITH a AS ..) SELECT 2">
+                        <node key="SQL_SELECT_TARGETS">
+                            <node loc="41..42" text="2" />
+                        </node>
+                        <node key="SQL_SELECT_WITH_CTES">
+                            <node type="OBJECT_SQL_CTE" loc="18..33" text="a AS (SELECT 1)">
+                                <node key="SQL_CTE_NAME" loc="18..19" text="a" />
+                                <node key="SQL_CTE_STATEMENT" type="OBJECT_SQL_SELECT" loc="24..32" text="SELECT 1">
+                                    <node key="SQL_SELECT_TARGETS">
+                                        <node loc="31..32" text="1" />
+                                    </node>
                                 </node>
                             </node>
                         </node>
                     </node>
-                    <node key="SQL_SELECT_WITH_RECURSIVE" value="true" />
-                </node>
-            </statement>
-        </statements>
-        <errors />
-        <line_breaks>
-            <line_break loc="0..1" text="&#10;" />
-            <line_break loc="65..66" text="&#10;" />
-        </line_breaks>
-        <comments />
-        <dependencies />
-    </expected>
-</test>
-<test name="select_a_orderby_b">
-    <input>
-        select a order by b
-    </input>
-    <expected>
-        <statements>
-            <statement type="SELECT">
-                <node type="OBJECT_SQL_SELECT" loc="9..28" text="select a order by b">
-                    <node key="SQL_SELECT_ORDER">
-                        <node type="OBJECT_SQL_ORDER" loc="27..28" text="b">
-                            <node key="SQL_ORDER_VALUE" type="OBJECT_SQL_COLUMN_REF" loc="27..28" text="b">
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="42..43" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="with_2ctes_select3">
+        <input>
+            WITH a AS (SELECT 1), b AS (SELECT 2) SELECT 3
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..59" text="WITH a AS ..) SELECT 3">
+                        <node key="SQL_SELECT_TARGETS">
+                            <node loc="58..59" text="3" />
+                        </node>
+                        <node key="SQL_SELECT_WITH_CTES">
+                            <node type="OBJECT_SQL_CTE" loc="18..33" text="a AS (SELECT 1)">
+                                <node key="SQL_CTE_NAME" loc="18..19" text="a" />
+                                <node key="SQL_CTE_STATEMENT" type="OBJECT_SQL_SELECT" loc="24..32" text="SELECT 1">
+                                    <node key="SQL_SELECT_TARGETS">
+                                        <node loc="31..32" text="1" />
+                                    </node>
+                                </node>
+                            </node>
+                            <node type="OBJECT_SQL_CTE" loc="35..50" text="b AS (SELECT 2)">
+                                <node key="SQL_CTE_NAME" loc="35..36" text="b" />
+                                <node key="SQL_CTE_STATEMENT" type="OBJECT_SQL_SELECT" loc="41..49" text="SELECT 2">
+                                    <node key="SQL_SELECT_TARGETS">
+                                        <node loc="48..49" text="2" />
+                                    </node>
+                                </node>
+                            </node>
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="59..60" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="with_recursive_2ctes_select3">
+        <input>
+            WITH RECURSIVE a AS (SELECT 1), b AS (SELECT 2) SELECT 3
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..69" text="WITH RECUR..) SELECT 3">
+                        <node key="SQL_SELECT_TARGETS">
+                            <node loc="68..69" text="3" />
+                        </node>
+                        <node key="SQL_SELECT_WITH_CTES">
+                            <node type="OBJECT_SQL_CTE" loc="28..43" text="a AS (SELECT 1)">
+                                <node key="SQL_CTE_NAME" loc="28..29" text="a" />
+                                <node key="SQL_CTE_STATEMENT" type="OBJECT_SQL_SELECT" loc="34..42" text="SELECT 1">
+                                    <node key="SQL_SELECT_TARGETS">
+                                        <node loc="41..42" text="1" />
+                                    </node>
+                                </node>
+                            </node>
+                            <node type="OBJECT_SQL_CTE" loc="45..60" text="b AS (SELECT 2)">
+                                <node key="SQL_CTE_NAME" loc="45..46" text="b" />
+                                <node key="SQL_CTE_STATEMENT" type="OBJECT_SQL_SELECT" loc="51..59" text="SELECT 2">
+                                    <node key="SQL_SELECT_TARGETS">
+                                        <node loc="58..59" text="2" />
+                                    </node>
+                                </node>
+                            </node>
+                        </node>
+                        <node key="SQL_SELECT_WITH_RECURSIVE" value="true" />
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="69..70" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="select_a_orderby_b">
+        <input>
+            select a order by b
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..32" text="select a order by b">
+                        <node key="SQL_SELECT_ORDER">
+                            <node type="OBJECT_SQL_ORDER" loc="31..32" text="b">
+                                <node key="SQL_ORDER_VALUE" type="OBJECT_SQL_COLUMN_REF" loc="31..32" text="b">
+                                    <node key="SQL_COLUMN_REF_PATH">
+                                        <node loc="31..32" text="b" />
+                                    </node>
+                                </node>
+                            </node>
+                        </node>
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_COLUMN_REF" loc="20..21" text="a">
                                 <node key="SQL_COLUMN_REF_PATH">
-                                    <node loc="27..28" text="b" />
+                                    <node loc="20..21" text="a" />
                                 </node>
                             </node>
                         </node>
                     </node>
-                    <node key="SQL_SELECT_TARGETS">
-                        <node type="OBJECT_SQL_COLUMN_REF" loc="16..17" text="a">
-                            <node key="SQL_COLUMN_REF_PATH">
-                                <node loc="16..17" text="a" />
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="32..33" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="select_a_orderby_b_c">
+        <input>
+            select a order by b, c
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..35" text="select a o..er by b, c">
+                        <node key="SQL_SELECT_ORDER">
+                            <node type="OBJECT_SQL_ORDER" loc="31..32" text="b">
+                                <node key="SQL_ORDER_VALUE" type="OBJECT_SQL_COLUMN_REF" loc="31..32" text="b">
+                                    <node key="SQL_COLUMN_REF_PATH">
+                                        <node loc="31..32" text="b" />
+                                    </node>
+                                </node>
+                            </node>
+                            <node type="OBJECT_SQL_ORDER" loc="34..35" text="c">
+                                <node key="SQL_ORDER_VALUE" type="OBJECT_SQL_COLUMN_REF" loc="34..35" text="c">
+                                    <node key="SQL_COLUMN_REF_PATH">
+                                        <node loc="34..35" text="c" />
+                                    </node>
+                                </node>
                             </node>
                         </node>
-                    </node>
-                </node>
-            </statement>
-        </statements>
-        <errors />
-        <line_breaks>
-            <line_break loc="0..1" text="&#10;" />
-            <line_break loc="28..29" text="&#10;" />
-        </line_breaks>
-        <comments />
-        <dependencies />
-    </expected>
-</test>
-<test name="select_a_orderby_b_c">
-    <input>
-        select a order by b, c
-    </input>
-    <expected>
-        <statements>
-            <statement type="SELECT">
-                <node type="OBJECT_SQL_SELECT" loc="9..31" text="select a o..er by b, c">
-                    <node key="SQL_SELECT_ORDER">
-                        <node type="OBJECT_SQL_ORDER" loc="27..28" text="b">
-                            <node key="SQL_ORDER_VALUE" type="OBJECT_SQL_COLUMN_REF" loc="27..28" text="b">
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_COLUMN_REF" loc="20..21" text="a">
                                 <node key="SQL_COLUMN_REF_PATH">
-                                    <node loc="27..28" text="b" />
+                                    <node loc="20..21" text="a" />
                                 </node>
                             </node>
                         </node>
-                        <node type="OBJECT_SQL_ORDER" loc="30..31" text="c">
-                            <node key="SQL_ORDER_VALUE" type="OBJECT_SQL_COLUMN_REF" loc="30..31" text="c">
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="35..36" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="select_a_orderby_b_c_directions">
+        <input>
+            select a order by b asc, c desc
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..44" text="select a o..sc, c desc">
+                        <node key="SQL_SELECT_ORDER">
+                            <node type="OBJECT_SQL_ORDER" loc="31..36" text="b asc">
+                                <node key="SQL_ORDER_DIRECTION" value="ASCENDING" />
+                                <node key="SQL_ORDER_VALUE" type="OBJECT_SQL_COLUMN_REF" loc="31..32" text="b">
+                                    <node key="SQL_COLUMN_REF_PATH">
+                                        <node loc="31..32" text="b" />
+                                    </node>
+                                </node>
+                            </node>
+                            <node type="OBJECT_SQL_ORDER" loc="38..44" text="c desc">
+                                <node key="SQL_ORDER_DIRECTION" value="DESCENDING" />
+                                <node key="SQL_ORDER_VALUE" type="OBJECT_SQL_COLUMN_REF" loc="38..39" text="c">
+                                    <node key="SQL_COLUMN_REF_PATH">
+                                        <node loc="38..39" text="c" />
+                                    </node>
+                                </node>
+                            </node>
+                        </node>
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_COLUMN_REF" loc="20..21" text="a">
                                 <node key="SQL_COLUMN_REF_PATH">
-                                    <node loc="30..31" text="c" />
+                                    <node loc="20..21" text="a" />
                                 </node>
                             </node>
                         </node>
                     </node>
-                    <node key="SQL_SELECT_TARGETS">
-                        <node type="OBJECT_SQL_COLUMN_REF" loc="16..17" text="a">
-                            <node key="SQL_COLUMN_REF_PATH">
-                                <node loc="16..17" text="a" />
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="44..45" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="select_a_orderby_b_c_directions_nulls">
+        <input>
+            select a order by b asc nulls first, c desc nulls last
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..67" text="select a o..nulls last">
+                        <node key="SQL_SELECT_ORDER">
+                            <node type="OBJECT_SQL_ORDER" loc="31..48" text="b asc nulls first">
+                                <node key="SQL_ORDER_DIRECTION" value="ASCENDING" />
+                                <node key="SQL_ORDER_NULLRULE" value="NULLS_FIRST" />
+                                <node key="SQL_ORDER_VALUE" type="OBJECT_SQL_COLUMN_REF" loc="31..32" text="b">
+                                    <node key="SQL_COLUMN_REF_PATH">
+                                        <node loc="31..32" text="b" />
+                                    </node>
+                                </node>
+                            </node>
+                            <node type="OBJECT_SQL_ORDER" loc="50..67" text="c desc nulls last">
+                                <node key="SQL_ORDER_DIRECTION" value="DESCENDING" />
+                                <node key="SQL_ORDER_NULLRULE" value="NULLS_LAST" />
+                                <node key="SQL_ORDER_VALUE" type="OBJECT_SQL_COLUMN_REF" loc="50..51" text="c">
+                                    <node key="SQL_COLUMN_REF_PATH">
+                                        <node loc="50..51" text="c" />
+                                    </node>
+                                </node>
                             </node>
                         </node>
-                    </node>
-                </node>
-            </statement>
-        </statements>
-        <errors />
-        <line_breaks>
-            <line_break loc="0..1" text="&#10;" />
-            <line_break loc="31..32" text="&#10;" />
-        </line_breaks>
-        <comments />
-        <dependencies />
-    </expected>
-</test>
-<test name="select_a_orderby_b_c_directions">
-    <input>
-        select a order by b asc, c desc
-    </input>
-    <expected>
-        <statements>
-            <statement type="SELECT">
-                <node type="OBJECT_SQL_SELECT" loc="9..40" text="select a o..sc, c desc">
-                    <node key="SQL_SELECT_ORDER">
-                        <node type="OBJECT_SQL_ORDER" loc="27..32" text="b asc">
-                            <node key="SQL_ORDER_DIRECTION" value="ASCENDING" />
-                            <node key="SQL_ORDER_VALUE" type="OBJECT_SQL_COLUMN_REF" loc="27..28" text="b">
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_COLUMN_REF" loc="20..21" text="a">
                                 <node key="SQL_COLUMN_REF_PATH">
-                                    <node loc="27..28" text="b" />
+                                    <node loc="20..21" text="a" />
                                 </node>
                             </node>
                         </node>
-                        <node type="OBJECT_SQL_ORDER" loc="34..40" text="c desc">
-                            <node key="SQL_ORDER_DIRECTION" value="DESCENDING" />
-                            <node key="SQL_ORDER_VALUE" type="OBJECT_SQL_COLUMN_REF" loc="34..35" text="c">
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="67..68" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="select_table_ref">
+        <input>
+            select 1 into b;
+            select 1 from b;
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT_INTO" name="main.b">
+                    <node type="OBJECT_SQL_SELECT" loc="13..28" text="select 1 into b">
+                        <node key="SQL_SELECT_INTO" type="OBJECT_SQL_INTO" loc="27..28" text="b">
+                            <node key="SQL_TEMP_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="27..28" text="b">
+                                <node key="SQL_QUALIFIED_NAME_RELATION" loc="27..28" text="b" />
+                            </node>
+                            <node key="SQL_TEMP_TYPE" value="DEFAULT" />
+                        </node>
+                        <node key="SQL_SELECT_TARGETS">
+                            <node loc="20..21" text="1" />
+                        </node>
+                    </node>
+                </statement>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="42..57" text="select 1 from b">
+                        <node key="SQL_SELECT_FROM">
+                            <node type="OBJECT_SQL_TABLE_REF" loc="56..57" text="b">
+                                <node key="SQL_TABLE_INHERIT" value="true" />
+                                <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="56..57" text="b">
+                                    <node key="SQL_QUALIFIED_NAME_RELATION" loc="56..57" text="b" />
+                                </node>
+                            </node>
+                        </node>
+                        <node key="SQL_SELECT_TARGETS">
+                            <node loc="49..50" text="1" />
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="29..30" text="&#10;" />
+                <line_break loc="58..59" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies>
+                <dependency type="TABLE_REF" source="0" target="1" loc="56..57" text="b" />
+            </dependencies>
+        </expected>
+    </test>
+    <test name="select_column_ref_expr_1">
+        <input>
+            input a type integer using text;
+            select 1 into b;
+            select c from b where c = main.a + 1
+        </input>
+        <expected>
+            <statements>
+                <statement type="INPUT" name="main.a">
+                    <node type="OBJECT_DASHQL_INPUT" loc="13..44" text="input a ty..using text">
+                        <node key="DASHQL_INPUT_COMPONENT_TYPE" value="TEXT" />
+                        <node key="DASHQL_INPUT_VALUE_TYPE" type="OBJECT_SQL_TYPENAME" loc="26..33" text="integer">
+                            <node key="SQL_TYPENAME_TYPE" value="INT4" />
+                        </node>
+                        <node key="DASHQL_STATEMENT_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="19..20" text="a">
+                            <node key="SQL_QUALIFIED_NAME_RELATION" loc="19..20" text="a" />
+                        </node>
+                    </node>
+                </statement>
+                <statement type="SELECT_INTO" name="main.b">
+                    <node type="OBJECT_SQL_SELECT" loc="58..73" text="select 1 into b">
+                        <node key="SQL_SELECT_INTO" type="OBJECT_SQL_INTO" loc="72..73" text="b">
+                            <node key="SQL_TEMP_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="72..73" text="b">
+                                <node key="SQL_QUALIFIED_NAME_RELATION" loc="72..73" text="b" />
+                            </node>
+                            <node key="SQL_TEMP_TYPE" value="DEFAULT" />
+                        </node>
+                        <node key="SQL_SELECT_TARGETS">
+                            <node loc="65..66" text="1" />
+                        </node>
+                    </node>
+                </statement>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="87..123" text="select c f..main.a + 1">
+                        <node key="SQL_SELECT_FROM">
+                            <node type="OBJECT_SQL_TABLE_REF" loc="101..102" text="b">
+                                <node key="SQL_TABLE_INHERIT" value="true" />
+                                <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="101..102" text="b">
+                                    <node key="SQL_QUALIFIED_NAME_RELATION" loc="101..102" text="b" />
+                                </node>
+                            </node>
+                        </node>
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_COLUMN_REF" loc="94..95" text="c">
                                 <node key="SQL_COLUMN_REF_PATH">
-                                    <node loc="34..35" text="c" />
+                                    <node loc="94..95" text="c" />
                                 </node>
                             </node>
                         </node>
-                    </node>
-                    <node key="SQL_SELECT_TARGETS">
-                        <node type="OBJECT_SQL_COLUMN_REF" loc="16..17" text="a">
-                            <node key="SQL_COLUMN_REF_PATH">
-                                <node loc="16..17" text="a" />
-                            </node>
-                        </node>
-                    </node>
-                </node>
-            </statement>
-        </statements>
-        <errors />
-        <line_breaks>
-            <line_break loc="0..1" text="&#10;" />
-            <line_break loc="40..41" text="&#10;" />
-        </line_breaks>
-        <comments />
-        <dependencies />
-    </expected>
-</test>
-<test name="select_a_orderby_b_c_directions_nulls">
-    <input>
-        select a order by b asc nulls first, c desc nulls last
-    </input>
-    <expected>
-        <statements>
-            <statement type="SELECT">
-                <node type="OBJECT_SQL_SELECT" loc="9..63" text="select a o..nulls last">
-                    <node key="SQL_SELECT_ORDER">
-                        <node type="OBJECT_SQL_ORDER" loc="27..44" text="b asc nulls first">
-                            <node key="SQL_ORDER_DIRECTION" value="ASCENDING" />
-                            <node key="SQL_ORDER_NULLRULE" value="NULLS_FIRST" />
-                            <node key="SQL_ORDER_VALUE" type="OBJECT_SQL_COLUMN_REF" loc="27..28" text="b">
+                        <node key="SQL_SELECT_WHERE" type="OBJECT_SQL_EXPRESSION" loc="109..123" text="c = main.a + 1">
+                            <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="109..110" text="c">
                                 <node key="SQL_COLUMN_REF_PATH">
-                                    <node loc="27..28" text="b" />
+                                    <node loc="109..110" text="c" />
                                 </node>
                             </node>
-                        </node>
-                        <node type="OBJECT_SQL_ORDER" loc="46..63" text="c desc nulls last">
-                            <node key="SQL_ORDER_DIRECTION" value="DESCENDING" />
-                            <node key="SQL_ORDER_NULLRULE" value="NULLS_LAST" />
-                            <node key="SQL_ORDER_VALUE" type="OBJECT_SQL_COLUMN_REF" loc="46..47" text="c">
-                                <node key="SQL_COLUMN_REF_PATH">
-                                    <node loc="46..47" text="c" />
+                            <node key="SQL_EXPRESSION_ARG1" type="OBJECT_SQL_EXPRESSION" loc="113..123" text="main.a + 1">
+                                <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="113..119" text="main.a">
+                                    <node key="SQL_COLUMN_REF_PATH">
+                                        <node loc="113..117" text="main" />
+                                        <node loc="118..119" text="a" />
+                                    </node>
                                 </node>
-                            </node>
-                        </node>
-                    </node>
-                    <node key="SQL_SELECT_TARGETS">
-                        <node type="OBJECT_SQL_COLUMN_REF" loc="16..17" text="a">
-                            <node key="SQL_COLUMN_REF_PATH">
-                                <node loc="16..17" text="a" />
-                            </node>
-                        </node>
-                    </node>
-                </node>
-            </statement>
-        </statements>
-        <errors />
-        <line_breaks>
-            <line_break loc="0..1" text="&#10;" />
-            <line_break loc="63..64" text="&#10;" />
-        </line_breaks>
-        <comments />
-        <dependencies />
-    </expected>
-</test>
-<test name="select_table_ref">
-    <input>
-        select 1 into b;
-        select 1 from b;
-    </input>
-    <expected>
-        <statements>
-            <statement type="SELECT_INTO" name="main.b">
-                <node type="OBJECT_SQL_SELECT" loc="9..24" text="select 1 into b">
-                    <node key="SQL_SELECT_INTO" type="OBJECT_SQL_INTO" loc="23..24" text="b">
-                        <node key="SQL_TEMP_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="23..24" text="b">
-                            <node key="SQL_QUALIFIED_NAME_RELATION" loc="23..24" text="b" />
-                        </node>
-                        <node key="SQL_TEMP_TYPE" value="DEFAULT" />
-                    </node>
-                    <node key="SQL_SELECT_TARGETS">
-                        <node loc="16..17" text="1" />
-                    </node>
-                </node>
-            </statement>
-            <statement type="SELECT">
-                <node type="OBJECT_SQL_SELECT" loc="34..49" text="select 1 from b">
-                    <node key="SQL_SELECT_FROM">
-                        <node type="OBJECT_SQL_TABLE_REF" loc="48..49" text="b">
-                            <node key="SQL_TABLE_INHERIT" value="true" />
-                            <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="48..49" text="b">
-                                <node key="SQL_QUALIFIED_NAME_RELATION" loc="48..49" text="b" />
-                            </node>
-                        </node>
-                    </node>
-                    <node key="SQL_SELECT_TARGETS">
-                        <node loc="41..42" text="1" />
-                    </node>
-                </node>
-            </statement>
-        </statements>
-        <errors />
-        <line_breaks>
-            <line_break loc="0..1" text="&#10;" />
-            <line_break loc="25..26" text="&#10;" />
-            <line_break loc="50..51" text="&#10;" />
-        </line_breaks>
-        <comments />
-        <dependencies>
-            <dependency type="TABLE_REF" source="0" target="1" loc="48..49" text="b" />
-        </dependencies>
-    </expected>
-</test>
-<test name="select_column_ref_expr_1">
-    <input>
-        input a type integer using text;
-        select 1 into b;
-        select c from b where c = main.a + 1
-    </input>
-    <expected>
-        <statements>
-            <statement type="INPUT" name="main.a">
-                <node type="OBJECT_DASHQL_INPUT" loc="9..40" text="input a ty..using text">
-                    <node key="DASHQL_INPUT_COMPONENT_TYPE" value="TEXT" />
-                    <node key="DASHQL_INPUT_VALUE_TYPE" type="OBJECT_SQL_TYPENAME" loc="22..29" text="integer">
-                        <node key="SQL_TYPENAME_TYPE" value="INT4" />
-                    </node>
-                    <node key="DASHQL_STATEMENT_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="15..16" text="a">
-                        <node key="SQL_QUALIFIED_NAME_RELATION" loc="15..16" text="a" />
-                    </node>
-                </node>
-            </statement>
-            <statement type="SELECT_INTO" name="main.b">
-                <node type="OBJECT_SQL_SELECT" loc="50..65" text="select 1 into b">
-                    <node key="SQL_SELECT_INTO" type="OBJECT_SQL_INTO" loc="64..65" text="b">
-                        <node key="SQL_TEMP_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="64..65" text="b">
-                            <node key="SQL_QUALIFIED_NAME_RELATION" loc="64..65" text="b" />
-                        </node>
-                        <node key="SQL_TEMP_TYPE" value="DEFAULT" />
-                    </node>
-                    <node key="SQL_SELECT_TARGETS">
-                        <node loc="57..58" text="1" />
-                    </node>
-                </node>
-            </statement>
-            <statement type="SELECT">
-                <node type="OBJECT_SQL_SELECT" loc="75..111" text="select c f..main.a + 1">
-                    <node key="SQL_SELECT_FROM">
-                        <node type="OBJECT_SQL_TABLE_REF" loc="89..90" text="b">
-                            <node key="SQL_TABLE_INHERIT" value="true" />
-                            <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="89..90" text="b">
-                                <node key="SQL_QUALIFIED_NAME_RELATION" loc="89..90" text="b" />
-                            </node>
-                        </node>
-                    </node>
-                    <node key="SQL_SELECT_TARGETS">
-                        <node type="OBJECT_SQL_COLUMN_REF" loc="82..83" text="c">
-                            <node key="SQL_COLUMN_REF_PATH">
-                                <node loc="82..83" text="c" />
-                            </node>
-                        </node>
-                    </node>
-                    <node key="SQL_SELECT_WHERE" type="OBJECT_SQL_EXPRESSION" loc="97..111" text="c = main.a + 1">
-                        <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="97..98" text="c">
-                            <node key="SQL_COLUMN_REF_PATH">
-                                <node loc="97..98" text="c" />
-                            </node>
-                        </node>
-                        <node key="SQL_EXPRESSION_ARG1" type="OBJECT_SQL_EXPRESSION" loc="101..111" text="main.a + 1">
-                            <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="101..107" text="main.a">
-                                <node key="SQL_COLUMN_REF_PATH">
-                                    <node loc="101..105" text="main" />
-                                    <node loc="106..107" text="a" />
-                                </node>
-                            </node>
-                            <node key="SQL_EXPRESSION_ARG1" loc="110..111" text="1" />
-                            <node key="SQL_EXPRESSION_FUNCTION" value="PLUS" />
-                        </node>
-                        <node key="SQL_EXPRESSION_FUNCTION" value="EQUAL" />
-                    </node>
-                </node>
-            </statement>
-        </statements>
-        <errors />
-        <line_breaks>
-            <line_break loc="0..1" text="&#10;" />
-            <line_break loc="41..42" text="&#10;" />
-            <line_break loc="66..67" text="&#10;" />
-            <line_break loc="111..112" text="&#10;" />
-        </line_breaks>
-        <comments />
-        <dependencies>
-            <dependency type="TABLE_REF" source="1" target="2" loc="89..90" text="b" />
-            <dependency type="COLUMN_REF" source="0" target="2" loc="101..107" text="main.a" />
-        </dependencies>
-    </expected>
-</test>
-<test name="select_column_ref_expr_2">
-    <input>
-        input month type integer using text;
-        select * into countries_joined from country1_weather c1, country2_weather c2 where c1.month = c2.month and c2.month = main.month
-    </input>
-    <expected>
-        <statements>
-            <statement type="INPUT" name="main.month">
-                <node type="OBJECT_DASHQL_INPUT" loc="9..44" text="input mont..using text">
-                    <node key="DASHQL_INPUT_COMPONENT_TYPE" value="TEXT" />
-                    <node key="DASHQL_INPUT_VALUE_TYPE" type="OBJECT_SQL_TYPENAME" loc="26..33" text="integer">
-                        <node key="SQL_TYPENAME_TYPE" value="INT4" />
-                    </node>
-                    <node key="DASHQL_STATEMENT_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="15..20" text="month">
-                        <node key="SQL_QUALIFIED_NAME_RELATION" loc="15..20" text="month" />
-                    </node>
-                </node>
-            </statement>
-            <statement type="SELECT_INTO" name="main.countries_joined">
-                <node type="OBJECT_SQL_SELECT" loc="54..182" text="select * i..main.month">
-                    <node key="SQL_SELECT_FROM">
-                        <node type="OBJECT_SQL_TABLE_REF" loc="90..109" text="country1_weather c1">
-                            <node key="SQL_TABLE_ALIAS" loc="107..109" text="c1" />
-                            <node key="SQL_TABLE_INHERIT" value="true" />
-                            <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="90..106" text="country1_weather">
-                                <node key="SQL_QUALIFIED_NAME_RELATION" loc="90..106" text="country1_weather" />
-                            </node>
-                        </node>
-                        <node type="OBJECT_SQL_TABLE_REF" loc="111..130" text="country2_weather c2">
-                            <node key="SQL_TABLE_ALIAS" loc="128..130" text="c2" />
-                            <node key="SQL_TABLE_INHERIT" value="true" />
-                            <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="111..127" text="country2_weather">
-                                <node key="SQL_QUALIFIED_NAME_RELATION" loc="111..127" text="country2_weather" />
-                            </node>
-                        </node>
-                    </node>
-                    <node key="SQL_SELECT_INTO" type="OBJECT_SQL_INTO" loc="68..84" text="countries_joined">
-                        <node key="SQL_TEMP_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="68..84" text="countries_joined">
-                            <node key="SQL_QUALIFIED_NAME_RELATION" loc="68..84" text="countries_joined" />
-                        </node>
-                        <node key="SQL_TEMP_TYPE" value="DEFAULT" />
-                    </node>
-                    <node key="SQL_SELECT_WHERE" type="OBJECT_SQL_EXPRESSION" loc="137..182" text="c1.month =..main.month">
-                        <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_EXPRESSION" loc="137..156" text="c1.month = c2.month">
-                            <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="137..145" text="c1.month">
-                                <node key="SQL_COLUMN_REF_PATH">
-                                    <node loc="137..139" text="c1" />
-                                    <node loc="140..145" text="month" />
-                                </node>
-                            </node>
-                            <node key="SQL_EXPRESSION_ARG1" type="OBJECT_SQL_COLUMN_REF" loc="148..156" text="c2.month">
-                                <node key="SQL_COLUMN_REF_PATH">
-                                    <node loc="148..150" text="c2" />
-                                    <node loc="151..156" text="month" />
-                                </node>
+                                <node key="SQL_EXPRESSION_ARG1" loc="122..123" text="1" />
+                                <node key="SQL_EXPRESSION_FUNCTION" value="PLUS" />
                             </node>
                             <node key="SQL_EXPRESSION_FUNCTION" value="EQUAL" />
                         </node>
-                        <node key="SQL_EXPRESSION_ARG1" type="OBJECT_SQL_EXPRESSION" loc="161..182" text="c2.month =..main.month">
-                            <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="161..169" text="c2.month">
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="45..46" text="&#10;" />
+                <line_break loc="74..75" text="&#10;" />
+                <line_break loc="123..124" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies>
+                <dependency type="TABLE_REF" source="1" target="2" loc="101..102" text="b" />
+                <dependency type="COLUMN_REF" source="0" target="2" loc="113..119" text="main.a" />
+            </dependencies>
+        </expected>
+    </test>
+    <test name="select_column_ref_expr_2">
+        <input>
+            input month type integer using text;
+            select * into countries_joined from country1_weather c1, country2_weather c2 where c1.month = c2.month and c2.month = main.month
+        </input>
+        <expected>
+            <statements>
+                <statement type="INPUT" name="main.month">
+                    <node type="OBJECT_DASHQL_INPUT" loc="13..48" text="input mont..using text">
+                        <node key="DASHQL_INPUT_COMPONENT_TYPE" value="TEXT" />
+                        <node key="DASHQL_INPUT_VALUE_TYPE" type="OBJECT_SQL_TYPENAME" loc="30..37" text="integer">
+                            <node key="SQL_TYPENAME_TYPE" value="INT4" />
+                        </node>
+                        <node key="DASHQL_STATEMENT_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="19..24" text="month">
+                            <node key="SQL_QUALIFIED_NAME_RELATION" loc="19..24" text="month" />
+                        </node>
+                    </node>
+                </statement>
+                <statement type="SELECT_INTO" name="main.countries_joined">
+                    <node type="OBJECT_SQL_SELECT" loc="62..190" text="select * i..main.month">
+                        <node key="SQL_SELECT_FROM">
+                            <node type="OBJECT_SQL_TABLE_REF" loc="98..117" text="country1_weather c1">
+                                <node key="SQL_TABLE_ALIAS" loc="115..117" text="c1" />
+                                <node key="SQL_TABLE_INHERIT" value="true" />
+                                <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="98..114" text="country1_weather">
+                                    <node key="SQL_QUALIFIED_NAME_RELATION" loc="98..114" text="country1_weather" />
+                                </node>
+                            </node>
+                            <node type="OBJECT_SQL_TABLE_REF" loc="119..138" text="country2_weather c2">
+                                <node key="SQL_TABLE_ALIAS" loc="136..138" text="c2" />
+                                <node key="SQL_TABLE_INHERIT" value="true" />
+                                <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="119..135" text="country2_weather">
+                                    <node key="SQL_QUALIFIED_NAME_RELATION" loc="119..135" text="country2_weather" />
+                                </node>
+                            </node>
+                        </node>
+                        <node key="SQL_SELECT_INTO" type="OBJECT_SQL_INTO" loc="76..92" text="countries_joined">
+                            <node key="SQL_TEMP_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="76..92" text="countries_joined">
+                                <node key="SQL_QUALIFIED_NAME_RELATION" loc="76..92" text="countries_joined" />
+                            </node>
+                            <node key="SQL_TEMP_TYPE" value="DEFAULT" />
+                        </node>
+                        <node key="SQL_SELECT_WHERE" type="OBJECT_SQL_EXPRESSION" loc="145..190" text="c1.month =..main.month">
+                            <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_EXPRESSION" loc="145..164" text="c1.month = c2.month">
+                                <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="145..153" text="c1.month">
+                                    <node key="SQL_COLUMN_REF_PATH">
+                                        <node loc="145..147" text="c1" />
+                                        <node loc="148..153" text="month" />
+                                    </node>
+                                </node>
+                                <node key="SQL_EXPRESSION_ARG1" type="OBJECT_SQL_COLUMN_REF" loc="156..164" text="c2.month">
+                                    <node key="SQL_COLUMN_REF_PATH">
+                                        <node loc="156..158" text="c2" />
+                                        <node loc="159..164" text="month" />
+                                    </node>
+                                </node>
+                                <node key="SQL_EXPRESSION_FUNCTION" value="EQUAL" />
+                            </node>
+                            <node key="SQL_EXPRESSION_ARG1" type="OBJECT_SQL_EXPRESSION" loc="169..190" text="c2.month =..main.month">
+                                <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="169..177" text="c2.month">
+                                    <node key="SQL_COLUMN_REF_PATH">
+                                        <node loc="169..171" text="c2" />
+                                        <node loc="172..177" text="month" />
+                                    </node>
+                                </node>
+                                <node key="SQL_EXPRESSION_ARG1" type="OBJECT_SQL_COLUMN_REF" loc="180..190" text="main.month">
+                                    <node key="SQL_COLUMN_REF_PATH">
+                                        <node loc="180..184" text="main" />
+                                        <node loc="185..190" text="month" />
+                                    </node>
+                                </node>
+                                <node key="SQL_EXPRESSION_FUNCTION" value="EQUAL" />
+                            </node>
+                            <node key="SQL_EXPRESSION_FUNCTION" value="AND" />
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="49..50" text="&#10;" />
+                <line_break loc="190..191" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies>
+                <dependency type="COLUMN_REF" source="0" target="1" loc="180..190" text="main.month" />
+            </dependencies>
+        </expected>
+    </test>
+    <test name="select_generate_series">
+        <input>
+            select v into a FROM generate_series(0, 10000) as t(v);
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT_INTO" name="main.a">
+                    <node type="OBJECT_SQL_SELECT" loc="13..67" text="select v i..0) as t(v)">
+                        <node key="SQL_SELECT_FROM">
+                            <node type="OBJECT_SQL_FUNCTABLE" loc="34..67" text="generate_s..0) as t(v)">
+                                <node key="SQL_FUNCTION_ARGUMENTS">
+                                    <node loc="50..51" text="0" />
+                                    <node loc="53..58" text="10000" />
+                                </node>
+                                <node key="SQL_FUNCTION_NAME" loc="34..49" text="generate_series" />
+                                <node key="SQL_TABLE_ALIAS" type="OBJECT_SQL_ALIAS" loc="60..67" text="as t(v)">
+                                    <node key="SQL_ALIAS_COLUMNS">
+                                        <node loc="65..66" text="v" />
+                                    </node>
+                                    <node key="SQL_ALIAS_NAME" loc="63..64" text="t" />
+                                </node>
+                            </node>
+                        </node>
+                        <node key="SQL_SELECT_INTO" type="OBJECT_SQL_INTO" loc="27..28" text="a">
+                            <node key="SQL_TEMP_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="27..28" text="a">
+                                <node key="SQL_QUALIFIED_NAME_RELATION" loc="27..28" text="a" />
+                            </node>
+                            <node key="SQL_TEMP_TYPE" value="DEFAULT" />
+                        </node>
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_COLUMN_REF" loc="20..21" text="v">
                                 <node key="SQL_COLUMN_REF_PATH">
-                                    <node loc="161..163" text="c2" />
-                                    <node loc="164..169" text="month" />
+                                    <node loc="20..21" text="v" />
                                 </node>
                             </node>
-                            <node key="SQL_EXPRESSION_ARG1" type="OBJECT_SQL_COLUMN_REF" loc="172..182" text="main.month">
-                                <node key="SQL_COLUMN_REF_PATH">
-                                    <node loc="172..176" text="main" />
-                                    <node loc="177..182" text="month" />
-                                </node>
-                            </node>
-                            <node key="SQL_EXPRESSION_FUNCTION" value="EQUAL" />
-                        </node>
-                        <node key="SQL_EXPRESSION_FUNCTION" value="AND" />
-                    </node>
-                </node>
-            </statement>
-        </statements>
-        <errors />
-        <line_breaks>
-            <line_break loc="0..1" text="&#10;" />
-            <line_break loc="45..46" text="&#10;" />
-            <line_break loc="182..183" text="&#10;" />
-        </line_breaks>
-        <comments />
-        <dependencies>
-            <dependency type="COLUMN_REF" source="0" target="1" loc="172..182" text="main.month" />
-        </dependencies>
-    </expected>
-</test>
-<test name="select_generate_series">
-    <input>
-        select v into a FROM generate_series(0, 10000) as t(v);
-    </input>
-    <expected>
-        <statements>
-            <statement type="SELECT_INTO" name="main.a">
-                <node type="OBJECT_SQL_SELECT" loc="9..63" text="select v i..0) as t(v)">
-                    <node key="SQL_SELECT_FROM">
-                        <node type="OBJECT_SQL_FUNCTABLE" loc="30..63" text="generate_s..0) as t(v)">
-                            <node key="SQL_FUNCTION_ARGUMENTS">
-                                <node loc="46..47" text="0" />
-                                <node loc="49..54" text="10000" />
-                            </node>
-                            <node key="SQL_FUNCTION_NAME" loc="30..45" text="generate_series" />
-                            <node key="SQL_TABLE_ALIAS" type="OBJECT_SQL_ALIAS" loc="56..63" text="as t(v)">
-                                <node key="SQL_ALIAS_COLUMNS">
-                                    <node loc="61..62" text="v" />
-                                </node>
-                                <node key="SQL_ALIAS_NAME" loc="59..60" text="t" />
-                            </node>
                         </node>
                     </node>
-                    <node key="SQL_SELECT_INTO" type="OBJECT_SQL_INTO" loc="23..24" text="a">
-                        <node key="SQL_TEMP_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="23..24" text="a">
-                            <node key="SQL_QUALIFIED_NAME_RELATION" loc="23..24" text="a" />
-                        </node>
-                        <node key="SQL_TEMP_TYPE" value="DEFAULT" />
-                    </node>
-                    <node key="SQL_SELECT_TARGETS">
-                        <node type="OBJECT_SQL_COLUMN_REF" loc="16..17" text="v">
-                            <node key="SQL_COLUMN_REF_PATH">
-                                <node loc="16..17" text="v" />
-                            </node>
-                        </node>
-                    </node>
-                </node>
-            </statement>
-        </statements>
-        <errors />
-        <line_breaks>
-            <line_break loc="0..1" text="&#10;" />
-            <line_break loc="64..65" text="&#10;" />
-        </line_breaks>
-        <comments />
-        <dependencies />
-    </expected>
-</test>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="68..69" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+</tests>

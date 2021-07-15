@@ -223,10 +223,11 @@ arrow::Status AnalyzerTest::LoadTests(std::filesystem::path& source_dir) {
         // Parse xml document
         pugi::xml_document doc;
         doc.load(in);
+        auto root = doc.child("tests");
 
         // Read tests
         std::vector<AnalyzerTest> tests;
-        for (auto test : doc.children("test")) {
+        for (auto test : root.children("test")) {
             // Create test
             tests.emplace_back();
             auto& t = tests.back();

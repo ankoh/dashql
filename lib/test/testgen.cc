@@ -53,8 +53,9 @@ void generate_grammar_tests(const std::filesystem::path& source_dir) {
         // Parse xml document
         pugi::xml_document doc;
         doc.load(in);
+        auto root = doc.child("tests");
 
-        for (auto test : doc.children()) {
+        for (auto test : root.children()) {
             // Copy expected
             auto name = test.attribute("name").as_string();
             std::cout << "  TEST " << name << std::endl;
@@ -101,6 +102,7 @@ arrow::Status generate_analyzer_tests(const std::filesystem::path& source_dir) {
         // Parse xml document
         pugi::xml_document doc;
         doc.load(in);
+        auto root = doc.child("tests");
 
         auto program_action_type_tt = proto::action::ProgramActionTypeTypeTable();
         auto action_status_code_tt = proto::action::ActionStatusCodeTypeTable();
@@ -112,7 +114,7 @@ arrow::Status generate_analyzer_tests(const std::filesystem::path& source_dir) {
             }
         };
 
-        for (auto test : doc.children()) {
+        for (auto test : root.children()) {
             auto name = test.attribute("name").value();
             std::cout << "  TEST " << name << std::endl;
 

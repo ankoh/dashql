@@ -1,173 +1,175 @@
-<test name="dashql_syntax_error">
-    <input>?</input>
-    <expected>
-        <statements />
-        <errors>
-            <error message="syntax error, unexpected '?', expecting EOF" loc="0..1" text="?" />
-        </errors>
-        <line_breaks />
-        <comments />
-        <dependencies />
-    </expected>
-</test>
-<test name="load_url_plain">
-    <input>
-        FETCH weather_csv FROM http (
-            url = 'https://localhost/test'
-        );
-    </input>
-    <expected>
-        <statements>
-            <statement type="FETCH" name="main.weather_csv">
-                <node type="OBJECT_DASHQL_FETCH" loc="9..91" text="FETCH weat..&#10;        )">
-                    <node key="DASHQL_FETCH_METHOD" value="HTTP" />
-                    <node key="DASHQL_STATEMENT_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="15..26" text="weather_csv">
-                        <node key="SQL_QUALIFIED_NAME_RELATION" loc="15..26" text="weather_csv" />
+<tests>
+    <test name="dashql_syntax_error">
+        <input>?</input>
+        <expected>
+            <statements />
+            <errors>
+                <error message="syntax error, unexpected '?', expecting EOF" loc="0..1" text="?" />
+            </errors>
+            <line_breaks />
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="load_url_plain">
+        <input>
+            FETCH weather_csv FROM http (
+                url = 'https://localhost/test'
+            );
+        </input>
+        <expected>
+            <statements>
+                <statement type="FETCH" name="main.weather_csv">
+                    <node type="OBJECT_DASHQL_FETCH" loc="13..103" text="FETCH weat..         )">
+                        <node key="DASHQL_FETCH_METHOD" value="HTTP" />
+                        <node key="DASHQL_STATEMENT_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="19..30" text="weather_csv">
+                            <node key="SQL_QUALIFIED_NAME_RELATION" loc="19..30" text="weather_csv" />
+                        </node>
+                        <node key="DASHQL_OPTION_URL" loc="65..89" text="'https://l..host/test'" />
                     </node>
-                    <node key="DASHQL_OPTION_URL" loc="57..81" text="'https://l..host/test'" />
-                </node>
-            </statement>
-        </statements>
-        <errors />
-        <line_breaks>
-            <line_break loc="0..1" text="&#10;" />
-            <line_break loc="38..39" text="&#10;" />
-            <line_break loc="81..82" text="&#10;" />
-            <line_break loc="92..93" text="&#10;" />
-        </line_breaks>
-        <comments />
-        <dependencies />
-    </expected>
-</test>
-<test name="load_url_parameter">
-    <input>
-        FETCH weather_csv FROM http (
-            url = format('https://cdn.dashql.com/demo/weather/%s', main.country)
-        );
-    </input>
-    <expected>
-        <statements>
-            <statement type="FETCH" name="main.weather_csv">
-                <node type="OBJECT_DASHQL_FETCH" loc="9..129" text="FETCH weat..&#10;        )">
-                    <node key="DASHQL_FETCH_METHOD" value="HTTP" />
-                    <node key="DASHQL_STATEMENT_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="15..26" text="weather_csv">
-                        <node key="SQL_QUALIFIED_NAME_RELATION" loc="15..26" text="weather_csv" />
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="42..43" text="&#10;" />
+                <line_break loc="89..90" text="&#10;" />
+                <line_break loc="104..105" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="load_url_parameter">
+        <input>
+            FETCH weather_csv FROM http (
+                url = format('https://cdn.dashql.com/demo/weather/%s', main.country)
+            );
+        </input>
+        <expected>
+            <statements>
+                <statement type="FETCH" name="main.weather_csv">
+                    <node type="OBJECT_DASHQL_FETCH" loc="13..141" text="FETCH weat..         )">
+                        <node key="DASHQL_FETCH_METHOD" value="HTTP" />
+                        <node key="DASHQL_STATEMENT_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="19..30" text="weather_csv">
+                            <node key="SQL_QUALIFIED_NAME_RELATION" loc="19..30" text="weather_csv" />
+                        </node>
+                        <node key="DASHQL_OPTION_URL" type="OBJECT_DASHQL_FUNCTION_CALL" loc="65..127" text="format('ht..n.country)">
+                            <node key="SQL_FUNCTION_ARGUMENTS">
+                                <node loc="72..112" text="'https://c..eather/%s'" />
+                                <node type="OBJECT_SQL_COLUMN_REF" loc="114..126" text="main.country">
+                                    <node key="SQL_COLUMN_REF_PATH">
+                                        <node loc="114..118" text="main" />
+                                        <node loc="119..126" text="country" />
+                                    </node>
+                                </node>
+                            </node>
+                            <node key="SQL_FUNCTION_NAME" loc="65..71" text="format" />
+                        </node>
                     </node>
-                    <node key="DASHQL_OPTION_URL" type="OBJECT_DASHQL_FUNCTION_CALL" loc="57..119" text="format('ht..n.country)">
-                        <node key="SQL_FUNCTION_ARGUMENTS">
-                            <node loc="64..104" text="'https://c..eather/%s'" />
-                            <node type="OBJECT_SQL_COLUMN_REF" loc="106..118" text="main.country">
-                                <node key="SQL_COLUMN_REF_PATH">
-                                    <node loc="106..110" text="main" />
-                                    <node loc="111..118" text="country" />
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="42..43" text="&#10;" />
+                <line_break loc="127..128" text="&#10;" />
+                <line_break loc="142..143" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="dashql_viz_position">
+        <input>
+            VIZ weather_avg USING LINE (
+                position = (
+                    row = 0,
+                    column = 0,
+                    width = 4,
+                    height = 15
+                )
+            )
+        </input>
+        <expected>
+            <statements>
+                <statement type="VIZUALIZE">
+                    <node type="OBJECT_DASHQL_VIZ" loc="13..226" text="VIZ weathe..         )">
+                        <node key="DASHQL_VIZ_COMPONENTS">
+                            <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="35..226" text="LINE (&#10;   ..         )">
+                                <node key="DASHQL_VIZ_COMPONENT_TYPE" value="LINE" />
+                                <node key="DASHQL_OPTION_POSITION" type="OBJECT_DASHQL_OPTION_LIST" loc="69..212" text="(&#10;        ..         )">
+                                    <node key="DASHQL_OPTION_ROW" loc="97..98" text="0" />
+                                    <node key="DASHQL_OPTION_COLUMN" loc="129..130" text="0" />
+                                    <node key="DASHQL_OPTION_WIDTH" loc="160..161" text="4" />
+                                    <node key="DASHQL_OPTION_HEIGHT" loc="192..194" text="15" />
                                 </node>
                             </node>
                         </node>
-                        <node key="SQL_FUNCTION_NAME" loc="57..63" text="format" />
-                    </node>
-                </node>
-            </statement>
-        </statements>
-        <errors />
-        <line_breaks>
-            <line_break loc="0..1" text="&#10;" />
-            <line_break loc="38..39" text="&#10;" />
-            <line_break loc="119..120" text="&#10;" />
-            <line_break loc="130..131" text="&#10;" />
-        </line_breaks>
-        <comments />
-        <dependencies />
-    </expected>
-</test>
-<test name="dashql_viz_position">
-    <input>
-        VIZ weather_avg USING LINE (
-            position = (
-                row = 0,
-                column = 0,
-                width = 4,
-                height = 15
-            )
-        )
-    </input>
-    <expected>
-        <statements>
-            <statement type="VIZUALIZE">
-                <node type="OBJECT_DASHQL_VIZ" loc="9..194" text="VIZ weathe..&#10;        )">
-                    <node key="DASHQL_VIZ_COMPONENTS">
-                        <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="31..194" text="LINE (&#10;   ..&#10;        )">
-                            <node key="DASHQL_VIZ_COMPONENT_TYPE" value="LINE" />
-                            <node key="DASHQL_OPTION_POSITION" type="OBJECT_DASHQL_OPTION_LIST" loc="61..184" text="(&#10;        ..         )">
-                                <node key="DASHQL_OPTION_ROW" loc="85..86" text="0" />
-                                <node key="DASHQL_OPTION_COLUMN" loc="113..114" text="0" />
-                                <node key="DASHQL_OPTION_WIDTH" loc="140..141" text="4" />
-                                <node key="DASHQL_OPTION_HEIGHT" loc="168..170" text="15" />
+                        <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLE_REF" loc="17..28" text="weather_avg">
+                            <node key="SQL_TABLE_INHERIT" value="true" />
+                            <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="17..28" text="weather_avg">
+                                <node key="SQL_QUALIFIED_NAME_RELATION" loc="17..28" text="weather_avg" />
                             </node>
                         </node>
                     </node>
-                    <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLE_REF" loc="13..24" text="weather_avg">
-                        <node key="SQL_TABLE_INHERIT" value="true" />
-                        <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="13..24" text="weather_avg">
-                            <node key="SQL_QUALIFIED_NAME_RELATION" loc="13..24" text="weather_avg" />
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="41..42" text="&#10;" />
+                <line_break loc="70..71" text="&#10;" />
+                <line_break loc="99..100" text="&#10;" />
+                <line_break loc="131..132" text="&#10;" />
+                <line_break loc="162..163" text="&#10;" />
+                <line_break loc="194..195" text="&#10;" />
+                <line_break loc="212..213" text="&#10;" />
+                <line_break loc="226..227" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="dashql_viz_position_short">
+        <input>
+            VIZ weather_avg USING LINE (
+                pos = (r = 0, c = 0, w = 4, h = 15)
+            )
+        </input>
+        <expected>
+            <statements>
+                <statement type="VIZUALIZE">
+                    <node type="OBJECT_DASHQL_VIZ" loc="13..107" text="VIZ weathe..         )">
+                        <node key="DASHQL_VIZ_COMPONENTS">
+                            <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="35..107" text="LINE (&#10;   ..         )">
+                                <node key="DASHQL_VIZ_COMPONENT_TYPE" value="LINE" />
+                            </node>
+                        </node>
+                        <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLE_REF" loc="17..28" text="weather_avg">
+                            <node key="SQL_TABLE_INHERIT" value="true" />
+                            <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="17..28" text="weather_avg">
+                                <node key="SQL_QUALIFIED_NAME_RELATION" loc="17..28" text="weather_avg" />
+                            </node>
                         </node>
                     </node>
-                </node>
-            </statement>
-        </statements>
-        <errors />
-        <line_breaks>
-            <line_break loc="0..1" text="&#10;" />
-            <line_break loc="37..38" text="&#10;" />
-            <line_break loc="62..63" text="&#10;" />
-            <line_break loc="87..88" text="&#10;" />
-            <line_break loc="115..116" text="&#10;" />
-            <line_break loc="142..143" text="&#10;" />
-            <line_break loc="170..171" text="&#10;" />
-            <line_break loc="184..185" text="&#10;" />
-            <line_break loc="194..195" text="&#10;" />
-        </line_breaks>
-        <comments />
-        <dependencies />
-    </expected>
-</test>
-<test name="dashql_viz_position_short">
-    <input>
-        VIZ weather_avg USING LINE (
-            pos = (r = 0, c = 0, w = 4, h = 15)
-        )
-    </input>
-    <expected>
-        <statements>
-            <statement type="VIZUALIZE">
-                <node type="OBJECT_DASHQL_VIZ" loc="9..95" text="VIZ weathe..&#10;        )">
-                    <node key="DASHQL_VIZ_COMPONENTS">
-                        <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="31..95" text="LINE (&#10;   ..&#10;        )">
-                            <node key="DASHQL_VIZ_COMPONENT_TYPE" value="LINE" />
-                        </node>
-                    </node>
-                    <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLE_REF" loc="13..24" text="weather_avg">
-                        <node key="SQL_TABLE_INHERIT" value="true" />
-                        <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="13..24" text="weather_avg">
-                            <node key="SQL_QUALIFIED_NAME_RELATION" loc="13..24" text="weather_avg" />
-                        </node>
-                    </node>
-                </node>
-            </statement>
-        </statements>
-        <errors>
-            <error message="unknown option key: r" loc="57..62" text="r = 0" />
-            <error message="unknown option key: c" loc="64..69" text="c = 0" />
-            <error message="unknown option key: w" loc="71..76" text="w = 4" />
-            <error message="unknown option key: h" loc="78..84" text="h = 15" />
-            <error message="unknown option key: pos" loc="50..85" text="pos = (r =..4, h = 15)" />
-        </errors>
-        <line_breaks>
-            <line_break loc="0..1" text="&#10;" />
-            <line_break loc="37..38" text="&#10;" />
-            <line_break loc="85..86" text="&#10;" />
-            <line_break loc="95..96" text="&#10;" />
-        </line_breaks>
-        <comments />
-        <dependencies />
-    </expected>
-</test>
+                </statement>
+            </statements>
+            <errors>
+                <error message="unknown option key: r" loc="65..70" text="r = 0" />
+                <error message="unknown option key: c" loc="72..77" text="c = 0" />
+                <error message="unknown option key: w" loc="79..84" text="w = 4" />
+                <error message="unknown option key: h" loc="86..92" text="h = 15" />
+                <error message="unknown option key: pos" loc="58..93" text="pos = (r =..4, h = 15)" />
+            </errors>
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="41..42" text="&#10;" />
+                <line_break loc="93..94" text="&#10;" />
+                <line_break loc="107..108" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+</tests>
