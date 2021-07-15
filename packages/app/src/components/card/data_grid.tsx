@@ -1,5 +1,7 @@
 import * as React from 'react';
 import * as core from '@dashql/core';
+import * as arrow from 'apache-arrow';
+import classNames from 'classnames';
 import {
     Grid,
     GridCellProps,
@@ -239,13 +241,62 @@ export class DataGrid extends React.Component<Props, State> {
         // We render the cells column-wise to iterate over the query results more efficiently.
         // react-virtualized does this row-wise in their default render which kills our chunk iterator.
         for (let columnIndex = props.columnStartIndex; columnIndex <= props.columnStopIndex; columnIndex++) {
+            const column = data.getColumnAt(columnIndex);
+            const columnType: arrow.DataType = column?.type || arrow.Null;
             const columnDatum = props.columnSizeAndPositionManager.getSizeAndPositionOfCell(columnIndex);
 
+            // Pick cell renderer
+            let renderCell: (key: string, style: React.CSSProperties, v: any) => React.ReactNode;
+            switch (columnType.typeId) {
+                case arrow.Type.Int:
+                case arrow.Type.Int16:
+                case arrow.Type.Int32:
+                case arrow.Type.Int64:
+                case arrow.Type.Float:
+                case arrow.Type.Float16:
+                case arrow.Type.Float32:
+                case arrow.Type.Float64:
+                    renderCell = (key: string, style: React.CSSProperties, v: any) => {
+                        return (
+                            <div
+                                key={key}
+                                className={classNames(styles.cell_data, styles.cell_data_number)}
+                                style={{ ...style }}
+                            >
+                                {v}
+                            </div>
+                        );
+                    };
+                    break;
+                case arrow.Type.Utf8:
+                    renderCell = (key: string, style: React.CSSProperties, v: any) => {
+                        return (
+                            <div
+                                key={key}
+                                className={classNames(styles.cell_data, styles.cell_data_text)}
+                                style={{ ...style }}
+                            >
+                                {v}
+                            </div>
+                        );
+                    };
+                    break;
+                default:
+                    renderCell = (key: string, style: React.CSSProperties, v: any) => {
+                        return (
+                            <div key={key} className={styles.cell_data} style={{ ...style }}>
+                                {v}
+                            </div>
+                        );
+                    };
+                    break;
+            }
+
+            // Render all rows
             const offset = props.rowStartIndex - this.props.data!.request.begin;
             const limit = props.rowStopIndex - props.rowStartIndex + 1;
             let rowIndex = props.rowStartIndex;
-
-            for (const value of data.getColumnAt(columnIndex)!.slice(offset, offset + limit)) {
+            for (const value of column!.slice(offset, offset + limit)) {
                 const rowDatum = props.rowSizeAndPositionManager.getSizeAndPositionOfCell(rowIndex);
                 const cell = this.renderAvailableDataCell(
                     props,
@@ -255,11 +306,7 @@ export class DataGrid extends React.Component<Props, State> {
                     columnDatum,
                     canCacheStyle,
                     value,
-                    (key, style, v) => (
-                        <div key={key} className={styles.cell_data} style={{ ...style }}>
-                            {v}
-                        </div>
-                    ),
+                    renderCell,
                 );
                 if (cell) {
                     cells.push(cell);
