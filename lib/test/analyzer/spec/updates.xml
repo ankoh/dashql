@@ -250,3 +250,31 @@
         </graph>
     </step>
 </test>
+<test name="sql_table_drops">
+    <step>
+        <text>
+            CREATE TABLE table1(a INTEGER);
+            CREATE TABLE table2(a INTEGER);
+        </text>
+        <inputs />
+        <evaluations />
+        <cards />
+        <graph next_object_id="0">
+            <setup />
+            <program />
+        </graph>
+    </step>
+    <step>
+        <text>
+            CREATE TABLE table1(a DOUBLE);
+            CREATE TABLE table3(a INTEGER);
+        </text>
+        <inputs />
+        <evaluations />
+        <cards />
+        <graph next_object_id="0">
+            <setup />
+            <program />
+        </graph>
+    </step>
+</test>

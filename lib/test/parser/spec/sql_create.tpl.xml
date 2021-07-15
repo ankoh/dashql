@@ -3,3 +3,8 @@
         create table foo as select 1
     </input>
 </test>
+<test name="create_table_1col_integer">
+    <input>
+        create table foo (a integer)
+    </input>
+</test>
