@@ -66,6 +66,14 @@
     text-overflow: ellipsis;
 }
 
+.cell_data_number {
+    justify-content: end !important;
+}
+
+.cell_data_text {
+    justify-content: start !important;
+}
+
 .cell_nodata {
     box-sizing: border-box;
     border-bottom: var(--datagrid_cell_border);
