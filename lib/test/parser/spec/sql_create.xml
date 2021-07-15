@@ -29,7 +29,7 @@
         <dependencies />
     </expected>
 </test>
-<test name="create_table_1col_integer">
+<test name="create_table_1">
     <input>
         create table foo (a integer)
     </input>
@@ -57,6 +57,386 @@
         <line_breaks>
             <line_break loc="0..1" text="&#10;" />
             <line_break loc="37..38" text="&#10;" />
+        </line_breaks>
+        <comments />
+        <dependencies />
+    </expected>
+</test>
+<test name="create_table_2">
+    <input>
+        create table foo (a integer, b tinyint)
+    </input>
+    <expected>
+        <statements>
+            <statement type="CREATE_TABLE">
+                <node type="OBJECT_SQL_CREATE" loc="9..48" text="create tab..b tinyint)">
+                    <node key="SQL_CREATE_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="22..25" text="foo">
+                        <node key="SQL_QUALIFIED_NAME_RELATION" loc="22..25" text="foo" />
+                    </node>
+                    <node key="SQL_CREATE_TABLE_TEMP" value="DEFAULT" />
+                    <node key="SQL_CREATE_TABLE_ON_COMMIT" value="NOOP" />
+                    <node key="SQL_CREATE_TABLE_ELEMENTS">
+                        <node type="OBJECT_SQL_COLUMN_DEF" loc="27..36" text="a integer">
+                            <node key="SQL_COLUMN_DEF_NAME" loc="27..28" text="a" />
+                            <node key="SQL_COLUMN_DEF_TYPE" type="OBJECT_SQL_TYPENAME" loc="29..36" text="integer">
+                                <node key="SQL_TYPENAME_TYPE" value="INT4" />
+                            </node>
+                        </node>
+                        <node type="OBJECT_SQL_COLUMN_DEF" loc="38..47" text="b tinyint">
+                            <node key="SQL_COLUMN_DEF_NAME" loc="38..39" text="b" />
+                        </node>
+                    </node>
+                </node>
+            </statement>
+        </statements>
+        <errors />
+        <line_breaks>
+            <line_break loc="0..1" text="&#10;" />
+            <line_break loc="48..49" text="&#10;" />
+        </line_breaks>
+        <comments />
+        <dependencies />
+    </expected>
+</test>
+<test name="create_table_3">
+    <input>
+        create table foo (a integer, b varchar)
+    </input>
+    <expected>
+        <statements>
+            <statement type="CREATE_TABLE">
+                <node type="OBJECT_SQL_CREATE" loc="9..48" text="create tab..b varchar)">
+                    <node key="SQL_CREATE_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="22..25" text="foo">
+                        <node key="SQL_QUALIFIED_NAME_RELATION" loc="22..25" text="foo" />
+                    </node>
+                    <node key="SQL_CREATE_TABLE_TEMP" value="DEFAULT" />
+                    <node key="SQL_CREATE_TABLE_ON_COMMIT" value="NOOP" />
+                    <node key="SQL_CREATE_TABLE_ELEMENTS">
+                        <node type="OBJECT_SQL_COLUMN_DEF" loc="27..36" text="a integer">
+                            <node key="SQL_COLUMN_DEF_NAME" loc="27..28" text="a" />
+                            <node key="SQL_COLUMN_DEF_TYPE" type="OBJECT_SQL_TYPENAME" loc="29..36" text="integer">
+                                <node key="SQL_TYPENAME_TYPE" value="INT4" />
+                            </node>
+                        </node>
+                        <node type="OBJECT_SQL_COLUMN_DEF" loc="38..47" text="b varchar">
+                            <node key="SQL_COLUMN_DEF_NAME" loc="38..39" text="b" />
+                            <node key="SQL_COLUMN_DEF_TYPE" type="OBJECT_SQL_TYPENAME" loc="40..47" text="varchar">
+                                <node key="SQL_TYPENAME_TYPE" type="OBJECT_SQL_CHARACTER_TYPE" loc="40..47" text="varchar">
+                                    <node key="SQL_CHARACTER_TYPE_TAG" value="VARCHAR" />
+                                </node>
+                            </node>
+                        </node>
+                    </node>
+                </node>
+            </statement>
+        </statements>
+        <errors />
+        <line_breaks>
+            <line_break loc="0..1" text="&#10;" />
+            <line_break loc="48..49" text="&#10;" />
+        </line_breaks>
+        <comments />
+        <dependencies />
+    </expected>
+</test>
+<test name="create_table_4">
+    <input>
+        create table if not exists foo (a integer, b varchar)
+    </input>
+    <expected>
+        <statements />
+        <errors>
+            <error message="syntax error, unexpected INTEGER, expecting ')' or ','" loc="43..50" text="integer" />
+        </errors>
+        <line_breaks>
+            <line_break loc="0..1" text="&#10;" />
+            <line_break loc="62..63" text="&#10;" />
+        </line_breaks>
+        <comments />
+        <dependencies />
+    </expected>
+</test>
+<test name="create_table_5">
+    <input>
+        create table foo (a integer, b varchar)
+    </input>
+    <expected>
+        <statements>
+            <statement type="CREATE_TABLE">
+                <node type="OBJECT_SQL_CREATE" loc="9..48" text="create tab..b varchar)">
+                    <node key="SQL_CREATE_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="22..25" text="foo">
+                        <node key="SQL_QUALIFIED_NAME_RELATION" loc="22..25" text="foo" />
+                    </node>
+                    <node key="SQL_CREATE_TABLE_TEMP" value="DEFAULT" />
+                    <node key="SQL_CREATE_TABLE_ON_COMMIT" value="NOOP" />
+                    <node key="SQL_CREATE_TABLE_ELEMENTS">
+                        <node type="OBJECT_SQL_COLUMN_DEF" loc="27..36" text="a integer">
+                            <node key="SQL_COLUMN_DEF_NAME" loc="27..28" text="a" />
+                            <node key="SQL_COLUMN_DEF_TYPE" type="OBJECT_SQL_TYPENAME" loc="29..36" text="integer">
+                                <node key="SQL_TYPENAME_TYPE" value="INT4" />
+                            </node>
+                        </node>
+                        <node type="OBJECT_SQL_COLUMN_DEF" loc="38..47" text="b varchar">
+                            <node key="SQL_COLUMN_DEF_NAME" loc="38..39" text="b" />
+                            <node key="SQL_COLUMN_DEF_TYPE" type="OBJECT_SQL_TYPENAME" loc="40..47" text="varchar">
+                                <node key="SQL_TYPENAME_TYPE" type="OBJECT_SQL_CHARACTER_TYPE" loc="40..47" text="varchar">
+                                    <node key="SQL_CHARACTER_TYPE_TAG" value="VARCHAR" />
+                                </node>
+                            </node>
+                        </node>
+                    </node>
+                </node>
+            </statement>
+        </statements>
+        <errors />
+        <line_breaks>
+            <line_break loc="0..1" text="&#10;" />
+            <line_break loc="48..49" text="&#10;" />
+        </line_breaks>
+        <comments />
+        <dependencies />
+    </expected>
+</test>
+<test name="create_table_6">
+    <input>
+        create table foo (a integer deferrable)
+    </input>
+    <expected>
+        <statements>
+            <statement type="CREATE_TABLE">
+                <node type="OBJECT_SQL_CREATE" loc="9..48" text="create tab..eferrable)">
+                    <node key="SQL_CREATE_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="22..25" text="foo">
+                        <node key="SQL_QUALIFIED_NAME_RELATION" loc="22..25" text="foo" />
+                    </node>
+                    <node key="SQL_CREATE_TABLE_TEMP" value="DEFAULT" />
+                    <node key="SQL_CREATE_TABLE_ON_COMMIT" value="NOOP" />
+                    <node key="SQL_CREATE_TABLE_ELEMENTS">
+                        <node type="OBJECT_SQL_COLUMN_DEF" loc="27..47" text="a integer ..deferrable">
+                            <node key="SQL_COLUMN_DEF_CONSTRAINTS">
+                                <node type="OBJECT_SQL_COLUMN_CONSTRAINT" loc="37..47" text="deferrable">
+                                    <node value="DEFERRABLE" />
+                                </node>
+                            </node>
+                            <node key="SQL_COLUMN_DEF_NAME" loc="27..28" text="a" />
+                            <node key="SQL_COLUMN_DEF_TYPE" type="OBJECT_SQL_TYPENAME" loc="29..36" text="integer">
+                                <node key="SQL_TYPENAME_TYPE" value="INT4" />
+                            </node>
+                        </node>
+                    </node>
+                </node>
+            </statement>
+        </statements>
+        <errors />
+        <line_breaks>
+            <line_break loc="0..1" text="&#10;" />
+            <line_break loc="48..49" text="&#10;" />
+        </line_breaks>
+        <comments />
+        <dependencies />
+    </expected>
+</test>
+<test name="create_table_7">
+    <input>
+        create table foo (a integer collate "de_DE")
+    </input>
+    <expected>
+        <statements>
+            <statement type="CREATE_TABLE">
+                <node type="OBJECT_SQL_CREATE" loc="9..53" text="create tab..e &quot;de_DE&quot;)">
+                    <node key="SQL_CREATE_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="22..25" text="foo">
+                        <node key="SQL_QUALIFIED_NAME_RELATION" loc="22..25" text="foo" />
+                    </node>
+                    <node key="SQL_CREATE_TABLE_TEMP" value="DEFAULT" />
+                    <node key="SQL_CREATE_TABLE_ON_COMMIT" value="NOOP" />
+                    <node key="SQL_CREATE_TABLE_ELEMENTS">
+                        <node type="OBJECT_SQL_COLUMN_DEF" loc="27..52" text="a integer ..te &quot;de_DE&quot;">
+                            <node key="SQL_COLUMN_DEF_CONSTRAINTS">
+                                <node type="OBJECT_SQL_COLUMN_CONSTRAINT" loc="37..52" text="collate &quot;de_DE&quot;">
+                                    <node key="SQL_COLUMN_CONSTRAINT_TYPE" value="COLLATE" />
+                                    <node key="SQL_COLUMN_CONSTRAINT_VALUE" loc="45..52" text="&quot;de_DE&quot;" />
+                                </node>
+                            </node>
+                            <node key="SQL_COLUMN_DEF_NAME" loc="27..28" text="a" />
+                            <node key="SQL_COLUMN_DEF_TYPE" type="OBJECT_SQL_TYPENAME" loc="29..36" text="integer">
+                                <node key="SQL_TYPENAME_TYPE" value="INT4" />
+                            </node>
+                        </node>
+                    </node>
+                </node>
+            </statement>
+        </statements>
+        <errors />
+        <line_breaks>
+            <line_break loc="0..1" text="&#10;" />
+            <line_break loc="53..54" text="&#10;" />
+        </line_breaks>
+        <comments />
+        <dependencies />
+    </expected>
+</test>
+<test name="create_table_8">
+    <input>
+        create temporary table foo (a integer)
+    </input>
+    <expected>
+        <statements>
+            <statement type="CREATE_TABLE">
+                <node type="OBJECT_SQL_CREATE" loc="9..47" text="create tem..a integer)">
+                    <node key="SQL_CREATE_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="32..35" text="foo">
+                        <node key="SQL_QUALIFIED_NAME_RELATION" loc="32..35" text="foo" />
+                    </node>
+                    <node key="SQL_CREATE_TABLE_TEMP" value="LOCAL" />
+                    <node key="SQL_CREATE_TABLE_ON_COMMIT" value="NOOP" />
+                    <node key="SQL_CREATE_TABLE_ELEMENTS">
+                        <node type="OBJECT_SQL_COLUMN_DEF" loc="37..46" text="a integer">
+                            <node key="SQL_COLUMN_DEF_NAME" loc="37..38" text="a" />
+                            <node key="SQL_COLUMN_DEF_TYPE" type="OBJECT_SQL_TYPENAME" loc="39..46" text="integer">
+                                <node key="SQL_TYPENAME_TYPE" value="INT4" />
+                            </node>
+                        </node>
+                    </node>
+                </node>
+            </statement>
+        </statements>
+        <errors />
+        <line_breaks>
+            <line_break loc="0..1" text="&#10;" />
+            <line_break loc="47..48" text="&#10;" />
+        </line_breaks>
+        <comments />
+        <dependencies />
+    </expected>
+</test>
+<test name="create_table_9">
+    <input>
+        create table foo (a integer options (ident 'thing2')
+    </input>
+    <expected>
+        <statements />
+        <errors>
+            <error message="syntax error, unexpected EOF, expecting ')'" loc="66..67" text="" />
+        </errors>
+        <line_breaks>
+            <line_break loc="0..1" text="&#10;" />
+            <line_break loc="61..62" text="&#10;" />
+        </line_breaks>
+        <comments />
+        <dependencies />
+    </expected>
+</test>
+<test name="create_table_9">
+    <input>
+        create table foo (a integer constraint a not null)
+    </input>
+    <expected>
+        <statements>
+            <statement type="CREATE_TABLE">
+                <node type="OBJECT_SQL_CREATE" loc="9..59" text="create tab.. not null)">
+                    <node key="SQL_CREATE_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="22..25" text="foo">
+                        <node key="SQL_QUALIFIED_NAME_RELATION" loc="22..25" text="foo" />
+                    </node>
+                    <node key="SQL_CREATE_TABLE_TEMP" value="DEFAULT" />
+                    <node key="SQL_CREATE_TABLE_ON_COMMIT" value="NOOP" />
+                    <node key="SQL_CREATE_TABLE_ELEMENTS">
+                        <node type="OBJECT_SQL_COLUMN_DEF" loc="27..58" text="a integer ..a not null">
+                            <node key="SQL_COLUMN_DEF_CONSTRAINTS">
+                                <node type="OBJECT_SQL_COLUMN_CONSTRAINT" loc="37..58" text="constraint..a not null">
+                                    <node key="SQL_COLUMN_CONSTRAINT_NAME" loc="48..49" text="a" />
+                                    <node key="SQL_COLUMN_CONSTRAINT_TYPE" value="NOT_NULL" />
+                                </node>
+                            </node>
+                            <node key="SQL_COLUMN_DEF_NAME" loc="27..28" text="a" />
+                            <node key="SQL_COLUMN_DEF_TYPE" type="OBJECT_SQL_TYPENAME" loc="29..36" text="integer">
+                                <node key="SQL_TYPENAME_TYPE" value="INT4" />
+                            </node>
+                        </node>
+                    </node>
+                </node>
+            </statement>
+        </statements>
+        <errors />
+        <line_breaks>
+            <line_break loc="0..1" text="&#10;" />
+            <line_break loc="59..60" text="&#10;" />
+        </line_breaks>
+        <comments />
+        <dependencies />
+    </expected>
+</test>
+<test name="create_table_10">
+    <input>
+        create table foo (a integer primary key)
+    </input>
+    <expected>
+        <statements>
+            <statement type="CREATE_TABLE">
+                <node type="OBJECT_SQL_CREATE" loc="9..49" text="create tab..imary key)">
+                    <node key="SQL_CREATE_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="22..25" text="foo">
+                        <node key="SQL_QUALIFIED_NAME_RELATION" loc="22..25" text="foo" />
+                    </node>
+                    <node key="SQL_CREATE_TABLE_TEMP" value="DEFAULT" />
+                    <node key="SQL_CREATE_TABLE_ON_COMMIT" value="NOOP" />
+                    <node key="SQL_CREATE_TABLE_ELEMENTS">
+                        <node type="OBJECT_SQL_COLUMN_DEF" loc="27..48" text="a integer ..rimary key">
+                            <node key="SQL_COLUMN_DEF_CONSTRAINTS">
+                                <node type="OBJECT_SQL_COLUMN_CONSTRAINT" loc="37..48" text="primary key">
+                                    <node key="SQL_COLUMN_CONSTRAINT_TYPE" value="PRIMARY_KEY" />
+                                </node>
+                            </node>
+                            <node key="SQL_COLUMN_DEF_NAME" loc="27..28" text="a" />
+                            <node key="SQL_COLUMN_DEF_TYPE" type="OBJECT_SQL_TYPENAME" loc="29..36" text="integer">
+                                <node key="SQL_TYPENAME_TYPE" value="INT4" />
+                            </node>
+                        </node>
+                    </node>
+                </node>
+            </statement>
+        </statements>
+        <errors />
+        <line_breaks>
+            <line_break loc="0..1" text="&#10;" />
+            <line_break loc="49..50" text="&#10;" />
+        </line_breaks>
+        <comments />
+        <dependencies />
+    </expected>
+</test>
+<test name="create_table_11">
+    <input>
+        create table foo (a integer not null default 42)
+    </input>
+    <expected>
+        <statements>
+            <statement type="CREATE_TABLE">
+                <node type="OBJECT_SQL_CREATE" loc="9..57" text="create tab..efault 42)">
+                    <node key="SQL_CREATE_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="22..25" text="foo">
+                        <node key="SQL_QUALIFIED_NAME_RELATION" loc="22..25" text="foo" />
+                    </node>
+                    <node key="SQL_CREATE_TABLE_TEMP" value="DEFAULT" />
+                    <node key="SQL_CREATE_TABLE_ON_COMMIT" value="NOOP" />
+                    <node key="SQL_CREATE_TABLE_ELEMENTS">
+                        <node type="OBJECT_SQL_COLUMN_DEF" loc="27..56" text="a integer ..default 42">
+                            <node key="SQL_COLUMN_DEF_CONSTRAINTS">
+                                <node type="OBJECT_SQL_COLUMN_CONSTRAINT" loc="37..45" text="not null">
+                                    <node key="SQL_COLUMN_CONSTRAINT_TYPE" value="NOT_NULL" />
+                                </node>
+                                <node type="OBJECT_SQL_COLUMN_CONSTRAINT" loc="46..56" text="default 42">
+                                    <node key="SQL_COLUMN_CONSTRAINT_TYPE" value="DEFAULT" />
+                                </node>
+                            </node>
+                            <node key="SQL_COLUMN_DEF_NAME" loc="27..28" text="a" />
+                            <node key="SQL_COLUMN_DEF_TYPE" type="OBJECT_SQL_TYPENAME" loc="29..36" text="integer">
+                                <node key="SQL_TYPENAME_TYPE" value="INT4" />
+                            </node>
+                        </node>
+                    </node>
+                </node>
+            </statement>
+        </statements>
+        <errors />
+        <line_breaks>
+            <line_break loc="0..1" text="&#10;" />
+            <line_break loc="57..58" text="&#10;" />
         </line_breaks>
         <comments />
         <dependencies />

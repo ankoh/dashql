@@ -49,6 +49,11 @@ const char* getEnumText(const sx::Node& target) {
         case sx::NodeType::ENUM_SQL_ON_COMMIT_OPTION:
             return sx::OnCommitOptionTypeTable()->names[v];
 
+        case sx::NodeType::ENUM_SQL_CONSTRAINT_ATTRIBUTE:
+            return sx::ConstraintAttributeTypeTable()->names[v];
+        case sx::NodeType::ENUM_SQL_COLUMN_CONSTRAINT:
+            return sx::ColumnConstraintTypeTable()->names[v];
+
         default:
             return "?";
     }
