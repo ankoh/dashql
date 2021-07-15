@@ -1,5 +1,6 @@
 export { withNavBar as withNavBar } from './navbar';
 export { withNavBar as withMinimalNavBar } from './navbar_minimal';
+export { withBanner } from './banner';
 import BoardEditor from './board_editor';
 import Board from './board';
 import TerminalLoader from './terminal_loader';
