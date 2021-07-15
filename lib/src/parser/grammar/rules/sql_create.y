@@ -20,6 +20,31 @@ sql_create_as_target:
         };
     }
     ;
+    
+sql_create_stmt:
+    CREATE_P sql_opt_temp TABLE sql_qualified_name '(' sql_opt_table_element_list ')' sql_on_commit_option {
+        $$ = {
+            Key::SQL_CREATE_TABLE_TEMP << Enum(@2, $2),
+            Key::SQL_CREATE_TABLE_NAME << std::move($4),
+            Key::SQL_CREATE_TABLE_ELEMENTS << std::move($6),
+            Key::SQL_CREATE_TABLE_ON_COMMIT << Enum(@8, $8),
+        };
+    }
+    ;
+
+sql_opt_table_element_list:
+    sql_table_element_list  { $$ = move($1); }
+  | %empty                  { $$ = {}; }
+    ;
+
+sql_table_element_list:
+    sql_table_element                             { $$ = { $1 }; }
+    sql_table_element_list ',' sql_table_element  { $1.push_back(std::move($3)); $$ = std::move($1); }
+    ;
+
+sql_table_element:
+    
+    ;
 
 sql_opt_column_list:
     '(' sql_column_list ')' { $$ = move($2); }

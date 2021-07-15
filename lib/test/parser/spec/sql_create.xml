@@ -29,3 +29,20 @@
         <dependencies />
     </expected>
 </test>
+<test name="create_table_1col_integer">
+    <input>
+        create table foo (a integer)
+    </input>
+    <expected>
+        <statements />
+        <errors>
+            <error message="syntax error, unexpected INTEGER, expecting ')' or ','" loc="29..36" text="integer" />
+        </errors>
+        <line_breaks>
+            <line_break loc="0..1" text="&#10;" />
+            <line_break loc="37..38" text="&#10;" />
+        </line_breaks>
+        <comments />
+        <dependencies />
+    </expected>
+</test>

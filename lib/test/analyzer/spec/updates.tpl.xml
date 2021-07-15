@@ -104,3 +104,31 @@
         </graph>
     </step>
 </test>
+<test name="sql_table_drops">
+    <step>
+        <text>
+            CREATE TABLE table1(a INTEGER);
+            CREATE TABLE table2(a INTEGER);
+        </text>
+        <parameters />
+        <graph>
+            <program>
+                <action status="COMPLETED" />
+                <action status="COMPLETED" />
+            </program>
+        </graph>
+    </step>
+    <step>
+        <text>
+            CREATE TABLE table1(a DOUBLE);
+            CREATE TABLE table3(a INTEGER);
+        </text>
+        <parameters />
+        <graph>
+            <program>
+                <action status="NONE" />
+                <action status="NONE" />
+            </program>
+        </graph>
+    </step>
+</test>
