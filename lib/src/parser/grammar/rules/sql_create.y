@@ -68,16 +68,15 @@ sql_col_qual_list:
     ;
 
 sql_col_constraint:
-    CONSTRAINT sql_name sql_col_constraint_elem { $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_COLUMN_CONSTRAINT, {
-        Key::SQL_COLUMN_CONSTRAINT_NAME << String(@2),
-        Key::SQL_COLUMN_CONSTRAINT_VALUE << String(@1),
-    });
-  }
+    CONSTRAINT sql_name sql_col_constraint_elem {
+        $3.push_back(Key::SQL_COLUMN_CONSTRAINT_NAME << String(@2));
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_COLUMN_CONSTRAINT, std::move($3));
+    }
   | sql_col_constraint_elem { $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_COLUMN_CONSTRAINT, std::move($1)); }
   | sql_constraint_attr     { $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_COLUMN_CONSTRAINT, { std::move($1) }); }
   | COLLATE sql_any_name    { $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_COLUMN_CONSTRAINT, {
         Key::SQL_COLUMN_CONSTRAINT_TYPE << Enum(@$, sx::ColumnConstraint::COLLATE),
-        Key::SQL_COLUMN_CONSTRAINT_VALUE << String(@1),
+        Key::SQL_COLUMN_CONSTRAINT_VALUE << String(@2),
     });
   }
     ;
