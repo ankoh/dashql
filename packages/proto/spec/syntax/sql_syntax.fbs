@@ -67,7 +67,9 @@ enum AConstType: uint8 {
     FLOAT = 2,
     STRING = 3,
     BITSTRING = 4,
-    NULL_ = 5,
+    INTERVAL = 5,
+    FUNCTION = 6,
+    NULL_ = 7,
 }
 
 enum TempType: uint8 {
@@ -147,4 +149,21 @@ enum ColumnConstraint: uint8 {
     CHECK,
     DEFAULT,
     COLLATE,
+}
+
+enum IntervalType: uint8 {
+    YEAR,
+    MONTH,
+    DAY,
+    HOUR,
+    MINUTE,
+    SECOND,
+    INTERVAL_SECOND,
+    YEAR_TO_MONTH,
+    DAY_TO_HOUR,
+    DAY_TO_MINUTE,
+    DAY_TO_SECOND,
+    HOUR_TO_MINUTE,
+    HOUR_TO_SECOND,
+    MINUTE_TO_SECOND,
 }

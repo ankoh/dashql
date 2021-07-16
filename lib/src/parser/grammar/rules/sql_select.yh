@@ -62,12 +62,14 @@
 %type <sx::Node> sql_group_by_item;
 %type <sx::Node> sql_having_clause;
 %type <sx::Node> sql_indirection_el;
+%type <sx::Node> sql_interval_second;
 %type <sx::Node> sql_into_clause;
 %type <sx::Node> sql_math_op;
 %type <sx::Node> sql_numeric;
 %type <sx::Node> sql_opt_alias_clause;
 %type <sx::Node> sql_opt_all_clause;
 %type <sx::Node> sql_opt_asc_desc;
+%type <sx::Node> sql_opt_interval;
 %type <sx::Node> sql_opt_nulls_order;
 %type <sx::Node> sql_opt_slice_bound;
 %type <sx::Node> sql_opt_sort_clause;
