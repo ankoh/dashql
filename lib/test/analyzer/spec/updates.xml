@@ -264,11 +264,11 @@
                 <setup />
                 <program>
                     <action origin="0" type="CREATE_TABLE" status="COMPLETED" object_id="0">
-                        <target name="" />
+                        <target name="main.table1" />
                         <script>CREATE TABLE table1(a INTEGER)</script>
                     </action>
                     <action origin="1" type="CREATE_TABLE" status="COMPLETED" object_id="1">
-                        <target name="" />
+                        <target name="main.table2" />
                         <script>CREATE TABLE table2(a INTEGER)</script>
                     </action>
                 </program>
@@ -285,19 +285,19 @@
             <graph next_object_id="4">
                 <setup>
                     <action type="DROP_TABLE" status="NONE" object_id="0">
-                        <target name="" />
+                        <target name="main.table1" />
                     </action>
                     <action type="DROP_TABLE" status="NONE" object_id="1">
-                        <target name="" />
+                        <target name="main.table2" />
                     </action>
                 </setup>
                 <program>
                     <action origin="0" type="CREATE_TABLE" status="NONE" object_id="2">
-                        <target name="" />
+                        <target name="main.table1" />
                         <script>CREATE TABLE table1(a DOUBLE)</script>
                     </action>
                     <action origin="1" type="CREATE_TABLE" status="NONE" object_id="3">
-                        <target name="" />
+                        <target name="main.table3" />
                         <script>CREATE TABLE table3(a INTEGER)</script>
                     </action>
                 </program>
