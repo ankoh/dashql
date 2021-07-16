@@ -272,4 +272,19 @@
             select integer '1';
         </input>
     </test>
+    <test name="select_const_interval_1">
+        <input>
+            select interval '90' minute to second;
+        </input>
+    </test>
+    <test name="select_const_interval_2">
+        <input>
+            select interval '90' hour;
+        </input>
+    </test>
+    <test name="select_const_interval_3">
+        <input>
+            select interval 1 hour;
+        </input>
+    </test>
 </tests>

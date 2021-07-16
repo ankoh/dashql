@@ -881,25 +881,45 @@ sql_opt_timezone:
     ;
 
 sql_opt_interval:
-    YEAR_P
-  | MONTH_P
-  | DAY_P
-  | HOUR_P
-  | MINUTE_P
-  | sql_interval_second
-  | YEAR_P TO MONTH_P
-  | DAY_P TO HOUR_P
-  | DAY_P TO MINUTE_P
-  | DAY_P TO sql_interval_second
-  | HOUR_P TO MINUTE_P
-  | HOUR_P TO sql_interval_second
-  | MINUTE_P TO sql_interval_second
-  | %empty
+    YEAR_P    { $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_INTERVAL, { Key::SQL_INTERVAL_TYPE << Enum(@$, sx::IntervalType::YEAR) }); }
+  | MONTH_P   { $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_INTERVAL, { Key::SQL_INTERVAL_TYPE << Enum(@$, sx::IntervalType::MONTH) }); }
+  | DAY_P     { $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_INTERVAL, { Key::SQL_INTERVAL_TYPE << Enum(@$, sx::IntervalType::DAY) }); }
+  | HOUR_P    { $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_INTERVAL, { Key::SQL_INTERVAL_TYPE << Enum(@$, sx::IntervalType::HOUR) }); }
+  | MINUTE_P  { $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_INTERVAL, { Key::SQL_INTERVAL_TYPE << Enum(@$, sx::IntervalType::MINUTE) }); }
+  | sql_interval_second {
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_INTERVAL, {
+            Key::SQL_INTERVAL_TYPE << Enum(@$, sx::IntervalType::SECOND),
+            Key::SQL_INTERVAL_VALUE << std::move($1)
+        });
+  }
+  | YEAR_P TO MONTH_P     { $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_INTERVAL, { Key::SQL_INTERVAL_TYPE << Enum(@$, sx::IntervalType::YEAR_TO_MONTH) }); }
+  | DAY_P TO HOUR_P       { $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_INTERVAL, { Key::SQL_INTERVAL_TYPE << Enum(@$, sx::IntervalType::DAY_TO_HOUR) }); }
+  | DAY_P TO MINUTE_P     { $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_INTERVAL, { Key::SQL_INTERVAL_TYPE << Enum(@$, sx::IntervalType::DAY_TO_MINUTE) }); }
+  | DAY_P TO sql_interval_second {
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_INTERVAL, {
+            Key::SQL_INTERVAL_TYPE << Enum(@$, sx::IntervalType::DAY_TO_SECOND),
+            Key::SQL_INTERVAL_VALUE << std::move($3)
+        });
+  }
+  | HOUR_P TO MINUTE_P    { $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_INTERVAL, { Key::SQL_INTERVAL_TYPE << Enum(@$, sx::IntervalType::HOUR_TO_MINUTE) }); }
+  | HOUR_P TO sql_interval_second {
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_INTERVAL, {
+            Key::SQL_INTERVAL_TYPE << Enum(@$, sx::IntervalType::HOUR_TO_SECOND),
+            Key::SQL_INTERVAL_VALUE << std::move($3)
+        });
+  }
+  | MINUTE_P TO sql_interval_second {
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_INTERVAL, {
+            Key::SQL_INTERVAL_TYPE << Enum(@$, sx::IntervalType::MINUTE_TO_SECOND),
+            Key::SQL_INTERVAL_VALUE << std::move($3)
+        });
+  }
+  | %empty  { $$ = Null(); }
     ;
 
 sql_interval_second:
-    SECOND_P
-  | SECOND_P '(' ICONST ')'
+    SECOND_P                { $$ = Null(); }
+  | SECOND_P '(' ICONST ')' { $$ = String(@3); }
     ;
 
 
@@ -1624,31 +1644,49 @@ sql_a_expr_const:
   | SCONST  { $$ = Const(ctx, @1, sx::AConstType::STRING); }
   | BCONST  { $$ = Const(ctx, @1, sx::AConstType::BITSTRING); }
   | XCONST  { $$ = Const(ctx, @1, sx::AConstType::BITSTRING); }
-  | sql_func_name SCONST {
-      $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_CONST_CAST, {
-        Key::SQL_CONST_CAST_FUNC_NAME << ctx.Add(@1, std::move($1)),
-        Key::SQL_CONST_CAST_VALUE << String(@2),
-      });
-  }
-  | sql_func_name '(' sql_func_arg_list sql_opt_sort_clause ')' SCONST {
-      $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_CONST_CAST, {
-        Key::SQL_CONST_CAST_FUNC_NAME << ctx.Add(@1, std::move($1)),
-        Key::SQL_CONST_CAST_FUNC_ARGS_LIST << ctx.Add(@3, std::move($3)),
-        Key::SQL_CONST_CAST_FUNC_ARGS_ORDER << std::move($4),
-        Key::SQL_CONST_CAST_VALUE << String(@6),
-      });
-  }
   | sql_const_typename SCONST {
       $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_CONST_CAST, {
         Key::SQL_CONST_CAST_TYPE << std::move($1),
         Key::SQL_CONST_CAST_VALUE << String(@2),
       });
     }
-  | sql_const_interval SCONST sql_opt_interval                          { $$ = {}; }
-  | sql_const_interval '(' ICONST ')' SCONST                            { $$ = {}; }
-
-    // Version without () is handled in a_expr/b_expr logic due to ? mis-parsing as operator */
-  | sql_const_interval '(' '?' ')' '?' sql_opt_interval                 { $$ = {}; }
+  | sql_func_name SCONST {
+      $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_CONST_CAST, {
+        Key::SQL_CONST_CAST_TYPE << Const(ctx, @1, sx::AConstType::FUNCTION),
+        Key::SQL_CONST_CAST_FUNC_NAME << ctx.Add(@1, std::move($1)),
+        Key::SQL_CONST_CAST_VALUE << String(@2),
+      });
+  }
+  | sql_func_name '(' sql_func_arg_list sql_opt_sort_clause ')' SCONST {
+      $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_CONST_CAST, {
+        Key::SQL_CONST_CAST_TYPE << Const(ctx, @1, sx::AConstType::FUNCTION),
+        Key::SQL_CONST_CAST_FUNC_NAME << ctx.Add(@1, std::move($1)),
+        Key::SQL_CONST_CAST_FUNC_ARGS_LIST << ctx.Add(@3, std::move($3)),
+        Key::SQL_CONST_CAST_FUNC_ARGS_ORDER << std::move($4),
+        Key::SQL_CONST_CAST_VALUE << String(@6),
+      });
+  }
+  | sql_const_interval '(' sql_a_expr ')' SCONST {
+      $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_CONST_CAST, {
+        Key::SQL_CONST_CAST_TYPE << Const(ctx, @1, sx::AConstType::INTERVAL),
+        Key::SQL_CONST_CAST_VALUE << String(@5),
+        Key::SQL_CONST_CAST_INTERVAL << std::move($3),
+      });
+    }
+  | sql_const_interval SCONST sql_opt_interval {
+      $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_CONST_CAST, {
+        Key::SQL_CONST_CAST_TYPE << Const(ctx, @1, sx::AConstType::INTERVAL),
+        Key::SQL_CONST_CAST_VALUE << String(@2),
+        Key::SQL_CONST_CAST_INTERVAL << std::move($3),
+      });
+    }
+  | sql_const_interval ICONST sql_opt_interval {
+      $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_CONST_CAST, {
+        Key::SQL_CONST_CAST_TYPE << Const(ctx, @1, sx::AConstType::INTERVAL),
+        Key::SQL_CONST_CAST_VALUE << String(@2),
+        Key::SQL_CONST_CAST_INTERVAL << std::move($3),
+      });
+    }
   | TRUE_P                  { $$ = Bool(@1, true); }
   | FALSE_P                 { $$ = Bool(@1, false); }
   | NULL_P                  { $$ = String(@1); }

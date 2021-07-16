@@ -20,6 +20,7 @@ using ExprFunc = sx::ExpressionFunction;
         return sx::Node(loc, NODE_TYPE, Key::NONE, NO_PARENT, static_cast<uint32_t>(e), 0); \
     }
 X(sx::AConstType, sx::NodeType::ENUM_SQL_CONST_TYPE)
+X(sx::IntervalType, sx::NodeType::ENUM_SQL_INTERVAL_TYPE)
 X(sx::CombineModifier, sx::NodeType::ENUM_SQL_COMBINE_MODIFIER)
 X(sx::CombineOperation, sx::NodeType::ENUM_SQL_COMBINE_OPERATION)
 X(sx::CharacterTypeTag, sx::NodeType::ENUM_SQL_CHARACTER_TYPE_TAG)

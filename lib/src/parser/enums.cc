@@ -53,6 +53,8 @@ const char* getEnumText(const sx::Node& target) {
             return sx::ConstraintAttributeTypeTable()->names[v];
         case sx::NodeType::ENUM_SQL_COLUMN_CONSTRAINT:
             return sx::ColumnConstraintTypeTable()->names[v];
+        case sx::NodeType::ENUM_SQL_INTERVAL_TYPE:
+            return sx::IntervalTypeTypeTable()->names[v];
 
         default:
             return "?";
