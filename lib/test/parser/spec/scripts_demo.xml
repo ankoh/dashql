@@ -486,6 +486,12 @@
                                 <node type="OBJECT_SQL_RESULT_TARGET" loc="782..812" text="count(*)::.. studenten">
                                     <node key="SQL_RESULT_TARGET_NAME" loc="803..812" text="studenten" />
                                     <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_EXPRESSION" loc="782..799" text="count(*)::INTEGER">
+                                        <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="782..790" text="count(*)">
+                                            <node key="SQL_FUNCTION_ARGUMENTS">
+                                                <node loc="788..789" text="*" />
+                                            </node>
+                                            <node key="SQL_FUNCTION_NAME" loc="782..787" text="count" />
+                                        </node>
                                         <node key="SQL_EXPRESSION_ARG1" type="OBJECT_SQL_TYPENAME" loc="792..799" text="INTEGER">
                                             <node key="SQL_TYPENAME_TYPE" value="INT4" />
                                         </node>
@@ -546,6 +552,12 @@
                                 <node type="OBJECT_SQL_RESULT_TARGET" loc="1044..1068" text="count(*)::..GER as cnt">
                                     <node key="SQL_RESULT_TARGET_NAME" loc="1065..1068" text="cnt" />
                                     <node key="SQL_RESULT_TARGET_VALUE" type="OBJECT_SQL_EXPRESSION" loc="1044..1061" text="count(*)::INTEGER">
+                                        <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="1044..1052" text="count(*)">
+                                            <node key="SQL_FUNCTION_ARGUMENTS">
+                                                <node loc="1050..1051" text="*" />
+                                            </node>
+                                            <node key="SQL_FUNCTION_NAME" loc="1044..1049" text="count" />
+                                        </node>
                                         <node key="SQL_EXPRESSION_ARG1" type="OBJECT_SQL_TYPENAME" loc="1054..1061" text="INTEGER">
                                             <node key="SQL_TYPENAME_TYPE" value="INT4" />
                                         </node>
