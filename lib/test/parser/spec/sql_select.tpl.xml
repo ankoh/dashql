@@ -352,4 +352,20 @@
             select a is not of (integer);
         </input>
     </test>
+    <test name="select_case_1">
+        <input>
+            select case a
+                when 1 then 2
+                when 2 then 3
+            end;
+        </input>
+    </test>
+    <test name="select_case_2">
+        <input>
+            select case a
+                when 1 then 2
+                else  3
+            end;
+        </input>
+    </test>
 </tests>

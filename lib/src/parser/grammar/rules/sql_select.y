@@ -1081,7 +1081,7 @@ sql_c_expr:
   | '?' sql_opt_indirection                         { $$ = {}; }
   | PARAM sql_opt_indirection                       { $$ = {}; }
   | '(' sql_a_expr ')' sql_opt_indirection          { $$ = {}; }
-  | sql_case_expr                                   { $$ = {}; }
+  | sql_case_expr                                   { $$ = $1; }
   | sql_func_expr                                   { $$ = {}; }
   | sql_select_with_parens      %prec UMINUS        { $$ = {}; }
   | sql_select_with_parens sql_indirection          { $$ = {}; }
@@ -1507,27 +1507,38 @@ sql_in_expr:
 //    CASE a WHEN b THEN c ... ELSE d END
 
 sql_case_expr:
-    CASE sql_case_arg sql_when_clause_list sql_case_default END_P
+    CASE sql_case_arg sql_when_clause_list sql_case_default END_P {
+      $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_CASE, {
+        Key::SQL_CASE_ARGUMENT << std::move($2),
+        Key::SQL_CASE_CLAUSES << ctx.Add(@3, std::move($3)),
+        Key::SQL_CASE_DEFAULT << std::move($4)
+      });
+    }
     ;
 
 sql_when_clause_list:
     // There must be at least one
-    sql_when_clause
-  | sql_when_clause_list sql_when_clause
+    sql_when_clause                       { $$ = { std::move($1) }; }
+  | sql_when_clause_list sql_when_clause  { $1.push_back(std::move($2)); $$ = std::move($1); }
     ;
 
 sql_when_clause:
-    WHEN sql_a_expr THEN sql_a_expr
+    WHEN sql_a_expr THEN sql_a_expr {
+      $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_CASE_CLAUSE, {
+        Key::SQL_CASE_CLAUSE_WHEN << std::move($2),
+        Key::SQL_CASE_CLAUSE_THEN << std::move($4)
+      });
+    }
     ;
 
 sql_case_default:
-    ELSE sql_a_expr
-  | %empty
+    ELSE sql_a_expr   { $$ = std::move($2); }
+  | %empty            { $$ = Null(); }
     ;
 
 sql_case_arg:
-    sql_a_expr
-  | %empty
+    sql_a_expr  { $$ = std::move($1); }
+  | %empty      { $$ = Null(); }
     ;
 
 sql_columnref:
