@@ -81,7 +81,19 @@ inline sx::Node ColumnRef(ParserDriver& driver, sx::Location loc, NodeVector&& p
 inline sx::Node Expr(ParserDriver& driver, sx::Location loc, sx::Node func, sx::Node arg) {
     return driver.Add(loc, sx::NodeType::OBJECT_SQL_EXPRESSION,
                       {
-                          Key::SQL_EXPRESSION_FUNCTION << func,
+                          Key::SQL_EXPRESSION_OPERATOR << func,
+                          Key::SQL_EXPRESSION_ARG0 << arg,
+                      });
+}
+
+enum PostFixTag { PostFix };
+
+/// Add an unary expression
+inline sx::Node Expr(ParserDriver& driver, sx::Location loc, sx::Node func, sx::Node arg, PostFixTag) {
+    return driver.Add(loc, sx::NodeType::OBJECT_SQL_EXPRESSION,
+                      {
+                          Key::SQL_EXPRESSION_OPERATOR << func,
+                          Key::SQL_EXPRESSION_POSTFIX << Bool(loc, true),
                           Key::SQL_EXPRESSION_ARG0 << arg,
                       });
 }
@@ -90,7 +102,7 @@ inline sx::Node Expr(ParserDriver& driver, sx::Location loc, sx::Node func, sx::
 inline sx::Node Expr(ParserDriver& driver, sx::Location loc, sx::Node func, sx::Node left, sx::Node right) {
     return driver.Add(loc, sx::NodeType::OBJECT_SQL_EXPRESSION,
                       {
-                          Key::SQL_EXPRESSION_FUNCTION << func,
+                          Key::SQL_EXPRESSION_OPERATOR << func,
                           Key::SQL_EXPRESSION_ARG0 << left,
                           Key::SQL_EXPRESSION_ARG1 << right,
                       });
@@ -101,7 +113,7 @@ inline sx::Node Expr(ParserDriver& driver, sx::Location loc, sx::Node func, sx::
                      sx::Node arg2) {
     return driver.Add(loc, sx::NodeType::OBJECT_SQL_EXPRESSION,
                       {
-                          Key::SQL_EXPRESSION_FUNCTION << func,
+                          Key::SQL_EXPRESSION_OPERATOR << func,
                           Key::SQL_EXPRESSION_ARG0 << arg0,
                           Key::SQL_EXPRESSION_ARG1 << arg1,
                           Key::SQL_EXPRESSION_ARG2 << arg2,
@@ -115,7 +127,7 @@ inline sx::Node Negate(ParserDriver& driver, sx::Location loc, sx::Location loc_
     // Otherwise fall back to an unary negation
     return driver.Add(loc, sx::NodeType::OBJECT_SQL_EXPRESSION,
                       {
-                          Key::SQL_EXPRESSION_FUNCTION << Enum(loc_minus, sx::ExpressionFunction::NEGATE),
+                          Key::SQL_EXPRESSION_OPERATOR << Enum(loc_minus, sx::ExpressionOperator::NEGATE),
                           Key::SQL_EXPRESSION_ARG0 << value,
                       });
 }

@@ -959,7 +959,7 @@ sql_a_expr:
   // below; and all those operators will have the same precedence.
   // 
   // If you add more explicitly-known operators, be sure to add them
-  // also to b_expr and to the ExpressionFunction list below.
+  // also to b_expr and to the ExpressionOperator list below.
 
   | '+' sql_a_expr %prec UMINUS { $$ = $2; }
   | '-' sql_a_expr %prec UMINUS { $$ = Negate(ctx, @$, @1, $2); }
@@ -975,9 +975,9 @@ sql_a_expr:
   | sql_a_expr LESS_EQUALS sql_a_expr       { $$ = Expr(ctx, @$, Enum(@2, ExprFunc::LESS_EQUAL), $1, $3); }
   | sql_a_expr GREATER_EQUALS sql_a_expr    { $$ = Expr(ctx, @$, Enum(@2, ExprFunc::GREATER_EQUAL), $1, $3); }
   | sql_a_expr NOT_EQUALS sql_a_expr        { $$ = Expr(ctx, @$, Enum(@2, ExprFunc::NOT_EQUAL), $1, $3); }
-  | sql_a_expr sql_qual_op sql_a_expr   %prec Op          { $$ = {}; }
-  | sql_qual_op sql_a_expr              %prec Op          { $$ = {}; }
-  | sql_a_expr sql_qual_op              %prec POSTFIXOP   { $$ = {}; }
+  | sql_a_expr sql_qual_op sql_a_expr   %prec Op          { $$ = Expr(ctx, @$, $2, $1, $3); }
+  | sql_qual_op sql_a_expr              %prec Op          { $$ = Expr(ctx, @$, $1, $2); }
+  | sql_a_expr sql_qual_op              %prec POSTFIXOP   { $$ = Expr(ctx, @$, $2, $1, PostFix); }
   | sql_a_expr AND sql_a_expr               { $$ = Expr(ctx, @$, Enum(@2, ExprFunc::AND), $1, $3); }
   | sql_a_expr OR sql_a_expr                { $$ = Expr(ctx, @$, Enum(@2, ExprFunc::OR), $1, $3); }
   | NOT sql_a_expr                          { $$ = Expr(ctx, @$, Enum(@1, ExprFunc::NOT), $2); }
@@ -1338,27 +1338,28 @@ sql_all_op:
     ;
 
 sql_math_op:
-    '+'             { $$ = Enum(@1, sx::ExpressionFunction::PLUS); }
-  | '-'             { $$ = Enum(@1, sx::ExpressionFunction::MINUS); }
-  | '*'             { $$ = Enum(@1, sx::ExpressionFunction::MULTIPLY); }
-  | '/'             { $$ = Enum(@1, sx::ExpressionFunction::DIVIDE); }
-  | '%'             { $$ = Enum(@1, sx::ExpressionFunction::MODULUS); }
-  | '^'             { $$ = Enum(@1, sx::ExpressionFunction::XOR); }
-  | '<'             { $$ = Enum(@1, sx::ExpressionFunction::LESS_THAN); }
-  | '>'             { $$ = Enum(@1, sx::ExpressionFunction::GREATER_THAN); }
-  | '='             { $$ = Enum(@1, sx::ExpressionFunction::EQUAL); }
-  | LESS_EQUALS     { $$ = Enum(@1, sx::ExpressionFunction::LESS_EQUAL); }
-  | GREATER_EQUALS  { $$ = Enum(@1, sx::ExpressionFunction::GREATER_EQUAL); }
-  | NOT_EQUALS      { $$ = Enum(@1, sx::ExpressionFunction::NOT_EQUAL); }
+    '+'             { $$ = Enum(@1, sx::ExpressionOperator::PLUS); }
+  | '-'             { $$ = Enum(@1, sx::ExpressionOperator::MINUS); }
+  | '*'             { $$ = Enum(@1, sx::ExpressionOperator::MULTIPLY); }
+  | '/'             { $$ = Enum(@1, sx::ExpressionOperator::DIVIDE); }
+  | '%'             { $$ = Enum(@1, sx::ExpressionOperator::MODULUS); }
+  | '^'             { $$ = Enum(@1, sx::ExpressionOperator::XOR); }
+  | '<'             { $$ = Enum(@1, sx::ExpressionOperator::LESS_THAN); }
+  | '>'             { $$ = Enum(@1, sx::ExpressionOperator::GREATER_THAN); }
+  | '='             { $$ = Enum(@1, sx::ExpressionOperator::EQUAL); }
+  | LESS_EQUALS     { $$ = Enum(@1, sx::ExpressionOperator::LESS_EQUAL); }
+  | GREATER_EQUALS  { $$ = Enum(@1, sx::ExpressionOperator::GREATER_EQUAL); }
+  | NOT_EQUALS      { $$ = Enum(@1, sx::ExpressionOperator::NOT_EQUAL); }
     ; 
+
 sql_qual_op:
-    Op
-  | OPERATOR '(' sql_any_operator ')'
+    Op                                  { $$ = String(@1); }
+  | OPERATOR '(' sql_any_operator ')'   { $$ = ctx.Add(@$, std::move($3)); }
     ;
 
 sql_qual_all_op:
     sql_all_op                          { $$ = std::move($1); }
-  | OPERATOR '(' sql_any_operator ')'   { $$ = {}; }
+  | OPERATOR '(' sql_any_operator ')'   { $$ = ctx.Add(@$, std::move($3)); }
     ;
 
 // cannot put SIMILAR TO into sql_subquery_op, because SIMILAR TO is a hack.
@@ -1381,8 +1382,11 @@ sql_subquery_op:
     ;
 
 sql_any_operator:
-    sql_all_op
-  | sql_col_id '.' sql_any_operator
+    sql_all_op                        { $$ = { std::move($1) }; }
+  | sql_col_id '.' sql_any_operator   {
+      $3.insert($3.begin(), String(@1));
+      $$ = std::move($3);
+    }
     ;
 
 sql_expr_list:

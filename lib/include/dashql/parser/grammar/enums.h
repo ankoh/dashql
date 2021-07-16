@@ -13,7 +13,7 @@ namespace parser {
 
 constexpr uint32_t NO_PARENT = std::numeric_limits<uint32_t>::max();
 
-using ExprFunc = sx::ExpressionFunction;
+using ExprFunc = sx::ExpressionOperator;
 
 #define X(ENUM_TYPE, NODE_TYPE)                                                             \
     inline sx::Node Enum(sx::Location loc, ENUM_TYPE e) {                                   \
@@ -24,7 +24,7 @@ X(sx::IntervalType, sx::NodeType::ENUM_SQL_INTERVAL_TYPE)
 X(sx::CombineModifier, sx::NodeType::ENUM_SQL_COMBINE_MODIFIER)
 X(sx::CombineOperation, sx::NodeType::ENUM_SQL_COMBINE_OPERATION)
 X(sx::CharacterTypeTag, sx::NodeType::ENUM_SQL_CHARACTER_TYPE_TAG)
-X(sx::ExpressionFunction, sx::NodeType::ENUM_SQL_EXPRESSION_FUNCTION)
+X(sx::ExpressionOperator, sx::NodeType::ENUM_SQL_EXPRESSION_OPERATOR)
 X(sx::LoadMethodType, sx::NodeType::ENUM_DASHQL_LOAD_METHOD_TYPE)
 X(sx::InputComponentType, sx::NodeType::ENUM_DASHQL_INPUT_COMPONENT_TYPE)
 X(sx::FetchMethodType, sx::NodeType::ENUM_DASHQL_FETCH_METHOD_TYPE)
