@@ -1,4 +1,6 @@
-
+%type <NodeVector> sql_any_name;
+%type <NodeVector> sql_any_operator;
+%type <NodeVector> sql_attrs;
 %type <NodeVector> sql_character_with_length;
 %type <NodeVector> sql_character_without_length;
 %type <NodeVector> sql_cte_list;
@@ -40,8 +42,6 @@
 %type <NodeVector> sql_window_clause;
 %type <NodeVector> sql_window_definition_list;
 %type <NodeVector> sql_with_clause;
-%type <NodeVector> sql_any_name;
-%type <NodeVector> sql_attrs;
 %type <bool> sql_opt_varying;
 %type <sx::Node> sql_a_expr;
 %type <sx::Node> sql_a_expr_const;
@@ -77,6 +77,7 @@
 %type <sx::Node> sql_over_clause;
 %type <sx::Node> sql_preparable_stmt;
 %type <sx::Node> sql_qual_all_op;
+%type <sx::Node> sql_qual_op;
 %type <sx::Node> sql_qualified_name;
 %type <sx::Node> sql_select_limit_value;
 %type <sx::Node> sql_select_offset_value;

@@ -2,7 +2,7 @@
 
 namespace dashql.proto.syntax;
 
-enum ExpressionFunction: uint8 {
+enum ExpressionOperator: uint8 {
     NEGATE,
     NOT,
     TYPECAST,

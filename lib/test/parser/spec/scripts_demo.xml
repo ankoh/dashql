@@ -421,7 +421,7 @@
                                             <node loc="608..614" text="MatrNr" />
                                         </node>
                                     </node>
-                                    <node key="SQL_EXPRESSION_FUNCTION" value="EQUAL" />
+                                    <node key="SQL_EXPRESSION_OPERATOR" value="EQUAL" />
                                 </node>
                                 <node key="SQL_EXPRESSION_ARG1" type="OBJECT_SQL_EXPRESSION" loc="635..669" text="hoeren.Vor..gen.VorlNr">
                                     <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="635..648" text="hoeren.VorlNr">
@@ -436,9 +436,9 @@
                                             <node loc="663..669" text="VorlNr" />
                                         </node>
                                     </node>
-                                    <node key="SQL_EXPRESSION_FUNCTION" value="EQUAL" />
+                                    <node key="SQL_EXPRESSION_OPERATOR" value="EQUAL" />
                                 </node>
-                                <node key="SQL_EXPRESSION_FUNCTION" value="AND" />
+                                <node key="SQL_EXPRESSION_OPERATOR" value="AND" />
                             </node>
                         </node>
                         <node key="SQL_CREATE_AS_TEMP" value="DEFAULT" />
@@ -500,7 +500,7 @@
                                         <node loc="893..899" text="vorlnr" />
                                     </node>
                                 </node>
-                                <node key="SQL_EXPRESSION_FUNCTION" value="EQUAL" />
+                                <node key="SQL_EXPRESSION_OPERATOR" value="EQUAL" />
                             </node>
                         </node>
                         <node key="SQL_CREATE_AS_TEMP" value="DEFAULT" />
