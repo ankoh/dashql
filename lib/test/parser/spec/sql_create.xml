@@ -423,6 +423,7 @@
                                     </node>
                                     <node type="OBJECT_SQL_COLUMN_CONSTRAINT" loc="50..60" text="default 42">
                                         <node key="SQL_COLUMN_CONSTRAINT_TYPE" value="DEFAULT" />
+                                        <node key="SQL_COLUMN_CONSTRAINT_VALUE" loc="58..60" text="42" />
                                     </node>
                                 </node>
                                 <node key="SQL_COLUMN_DEF_NAME" loc="31..32" text="a" />

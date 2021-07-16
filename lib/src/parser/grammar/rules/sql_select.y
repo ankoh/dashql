@@ -1043,25 +1043,25 @@ sql_a_expr:
 // just eliminate all the boolean-keyword-operator productions from b_expr.
 
 sql_b_expr:
-    sql_c_expr                                        { $$ = {}; }
+    sql_c_expr                                        { $$ = std::move($1); }
   | sql_b_expr TYPECAST sql_typename                  { $$ = {}; }
-  | '+' sql_b_expr                      %prec UMINUS  { $$ = {}; }
-  | '-' sql_b_expr                      %prec UMINUS  { $$ = {}; }
-  | sql_b_expr '+' sql_b_expr   { $$ = {}; }
-  | sql_b_expr '-' sql_b_expr   { $$ = {}; }
-  | sql_b_expr '*' sql_b_expr   { $$ = {}; }
-  | sql_b_expr '/' sql_b_expr   { $$ = {}; }
-  | sql_b_expr '%' sql_b_expr   { $$ = {}; }
-  | sql_b_expr '^' sql_b_expr   { $$ = {}; }
-  | sql_b_expr '<' sql_b_expr   { $$ = {}; }
-  | sql_b_expr '>' sql_b_expr   { $$ = {}; }
-  | sql_b_expr '=' sql_b_expr   { $$ = {}; }
-  | sql_b_expr LESS_EQUALS sql_b_expr      { $$ = {}; }
-  | sql_b_expr GREATER_EQUALS sql_b_expr   { $$ = {}; }
-  | sql_b_expr NOT_EQUALS sql_b_expr       { $$ = {}; }
-  | sql_b_expr sql_qual_op sql_b_expr               %prec Op           { $$ = {}; }
-  | sql_qual_op sql_b_expr                          %prec Op           { $$ = {}; }
-  | sql_b_expr sql_qual_op                          %prec POSTFIXOP    { $$ = {}; }
+  | '+' sql_b_expr                      %prec UMINUS  { $$ = $2; }
+  | '-' sql_b_expr                      %prec UMINUS  { $$ = Negate(ctx, @$, @1, $2); }
+  | sql_b_expr '+' sql_b_expr   { $$ = Expr(ctx, @$, Enum(@2, ExprFunc::PLUS), $1, $3); }
+  | sql_b_expr '-' sql_b_expr   { $$ = Expr(ctx, @$, Enum(@2, ExprFunc::MINUS), $1, $3); }
+  | sql_b_expr '*' sql_b_expr   { $$ = Expr(ctx, @$, Enum(@2, ExprFunc::MULTIPLY), $1, $3); }
+  | sql_b_expr '/' sql_b_expr   { $$ = Expr(ctx, @$, Enum(@2, ExprFunc::DIVIDE), $1, $3); }
+  | sql_b_expr '%' sql_b_expr   { $$ = Expr(ctx, @$, Enum(@2, ExprFunc::MODULUS), $1, $3); }
+  | sql_b_expr '^' sql_b_expr   { $$ = Expr(ctx, @$, Enum(@2, ExprFunc::XOR), $1, $3); }
+  | sql_b_expr '<' sql_b_expr   { $$ = Expr(ctx, @$, Enum(@2, ExprFunc::LESS_THAN), $1, $3); }
+  | sql_b_expr '>' sql_b_expr   { $$ = Expr(ctx, @$, Enum(@2, ExprFunc::GREATER_THAN), $1, $3); }
+  | sql_b_expr '=' sql_b_expr   { $$ = Expr(ctx, @$, Enum(@2, ExprFunc::EQUAL), $1, $3); }
+  | sql_b_expr LESS_EQUALS sql_b_expr      { $$ = Expr(ctx, @$, Enum(@2, ExprFunc::LESS_EQUAL), $1, $3); }
+  | sql_b_expr GREATER_EQUALS sql_b_expr   { $$ = Expr(ctx, @$, Enum(@2, ExprFunc::GREATER_EQUAL), $1, $3); }
+  | sql_b_expr NOT_EQUALS sql_b_expr       { $$ = Expr(ctx, @$, Enum(@2, ExprFunc::NOT_EQUAL), $1, $3); }
+  | sql_b_expr sql_qual_op sql_b_expr   %prec Op          { $$ = Expr(ctx, @$, $2, $1, $3); }
+  | sql_qual_op sql_b_expr              %prec Op          { $$ = Expr(ctx, @$, $1, $2); }
+  | sql_b_expr sql_qual_op              %prec POSTFIXOP   { $$ = Expr(ctx, @$, $2, $1, PostFix); }
   | sql_b_expr IS DISTINCT FROM sql_b_expr          %prec IS           { $$ = {}; }
   | sql_b_expr IS NOT DISTINCT FROM sql_b_expr      %prec IS           { $$ = {}; }
   | sql_b_expr IS OF '(' sql_type_list ')'          %prec IS           { $$ = {}; }
