@@ -1782,7 +1782,7 @@
                 <statement type="SELECT_INTO" name="main.a">
                     <node type="OBJECT_SQL_SELECT" loc="13..67" text="select v i..0) as t(v)">
                         <node key="SQL_SELECT_FROM">
-                            <node type="OBJECT_SQL_FUNCTABLE" loc="34..67" text="generate_s..0) as t(v)">
+                            <node type="OBJECT_SQL_FUNCTION_TABLE" loc="34..67" text="generate_s..0) as t(v)">
                                 <node key="SQL_FUNCTION_ARGUMENTS">
                                     <node loc="50..51" text="0" />
                                     <node loc="53..58" text="10000" />
@@ -1830,7 +1830,7 @@
                 <statement type="SELECT">
                     <node type="OBJECT_SQL_SELECT" loc="13..50" text="select * f..earg') foo">
                         <node key="SQL_SELECT_FROM">
-                            <node type="OBJECT_SQL_FUNCTABLE" loc="27..50" text="somefunc('..earg') foo">
+                            <node type="OBJECT_SQL_FUNCTION_TABLE" loc="27..50" text="somefunc('..earg') foo">
                                 <node key="SQL_FUNCTION_ARGUMENTS">
                                     <node loc="36..45" text="'somearg'" />
                                 </node>
@@ -2604,6 +2604,149 @@
             <line_breaks>
                 <line_break loc="0..1" text="&#10;" />
                 <line_break loc="31..32" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="select_func_1">
+        <input>
+            select somefunc(1)
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..31" text="select somefunc(1)">
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="20..31" text="somefunc(1)">
+                                <node key="SQL_FUNCTION_ARGUMENTS">
+                                    <node loc="29..30" text="1" />
+                                </node>
+                                <node key="SQL_FUNCTION_NAME" loc="20..28" text="somefunc" />
+                            </node>
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="31..32" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="select_func_2">
+        <input>
+            select somefunc(1) over (partition by c)
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..53" text="select som..tion by c)">
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="20..53" text="somefunc(1..tion by c)">
+                                <node key="SQL_FUNCTION_ARGUMENTS">
+                                    <node loc="29..30" text="1" />
+                                </node>
+                                <node key="SQL_FUNCTION_NAME" loc="20..28" text="somefunc" />
+                                <node key="SQL_FUNCTION_OVER" type="OBJECT_SQL_WINDOW_FRAME" loc="37..53" text="(partition by c)">
+                                    <node key="SQL_WINDOW_FRAME_PARTITION">
+                                        <node type="OBJECT_SQL_COLUMN_REF" loc="51..52" text="c">
+                                            <node key="SQL_COLUMN_REF_PATH">
+                                                <node loc="51..52" text="c" />
+                                            </node>
+                                        </node>
+                                    </node>
+                                </node>
+                            </node>
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="53..54" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="select_func_3">
+        <input>
+            select somefunc(1) within group (order by c)
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..57" text="select som..rder by c)">
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="20..57" text="somefunc(1..rder by c)">
+                                <node key="SQL_FUNCTION_ARGUMENTS">
+                                    <node loc="29..30" text="1" />
+                                </node>
+                                <node key="SQL_FUNCTION_NAME" loc="20..28" text="somefunc" />
+                                <node key="SQL_FUNCTION_WITHIN_GROUP">
+                                    <node type="OBJECT_SQL_ORDER" loc="55..56" text="c">
+                                        <node key="SQL_ORDER_VALUE" type="OBJECT_SQL_COLUMN_REF" loc="55..56" text="c">
+                                            <node key="SQL_COLUMN_REF_PATH">
+                                                <node loc="55..56" text="c" />
+                                            </node>
+                                        </node>
+                                    </node>
+                                </node>
+                            </node>
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="57..58" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="select_func_4">
+        <input>
+            select somefunc(1) filter (where a = b)
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..52" text="select som..ere a = b)">
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="20..52" text="somefunc(1..ere a = b)">
+                                <node key="SQL_FUNCTION_ARGUMENTS">
+                                    <node loc="29..30" text="1" />
+                                </node>
+                                <node key="SQL_FUNCTION_FILTER" type="OBJECT_SQL_EXPRESSION" loc="46..51" text="a = b">
+                                    <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="46..47" text="a">
+                                        <node key="SQL_COLUMN_REF_PATH">
+                                            <node loc="46..47" text="a" />
+                                        </node>
+                                    </node>
+                                    <node key="SQL_EXPRESSION_ARG1" type="OBJECT_SQL_COLUMN_REF" loc="50..51" text="b">
+                                        <node key="SQL_COLUMN_REF_PATH">
+                                            <node loc="50..51" text="b" />
+                                        </node>
+                                    </node>
+                                    <node key="SQL_EXPRESSION_OPERATOR" value="EQUAL" />
+                                </node>
+                                <node key="SQL_FUNCTION_NAME" loc="20..28" text="somefunc" />
+                            </node>
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="52..53" text="&#10;" />
             </line_breaks>
             <comments />
             <dependencies />
