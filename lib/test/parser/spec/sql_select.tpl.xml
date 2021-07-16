@@ -252,4 +252,24 @@
             select v into a FROM generate_series(0, 10000) as t(v);
         </input>
     </test>
+    <test name="select_functable">
+        <input>
+            select * from somefunc('somearg') foo;
+        </input>
+    </test>
+    <test name="select_funcconst_1">
+        <input>
+            select somefunc 'foo';
+        </input>
+    </test>
+    <test name="select_funcconst_2">
+        <input>
+            select somefunc(1) 'foo';
+        </input>
+    </test>
+    <test name="select_const_typename_cast">
+        <input>
+            select integer '1';
+        </input>
+    </test>
 </tests>
