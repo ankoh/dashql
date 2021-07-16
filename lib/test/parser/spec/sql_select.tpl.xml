@@ -368,4 +368,19 @@
             end;
         </input>
     </test>
+    <test name="select_param_1">
+        <input>
+            select ? from c
+        </input>
+    </test>
+    <test name="select_param_2">
+        <input>
+            select $1 from c
+        </input>
+    </test>
+    <test name="select_param_3">
+        <input>
+            select $1.a from c
+        </input>
+    </test>
 </tests>
