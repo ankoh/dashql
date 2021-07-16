@@ -2065,6 +2065,7 @@
                         <node key="SQL_SELECT_TARGETS">
                             <node type="OBJECT_SQL_EXPRESSION" loc="20..37" text="1 between 0 and 3">
                                 <node key="SQL_EXPRESSION_ARG0" loc="20..21" text="1" />
+                                <node key="SQL_EXPRESSION_ARG1" loc="30..31" text="0" />
                                 <node key="SQL_EXPRESSION_ARG2" loc="36..37" text="3" />
                                 <node key="SQL_EXPRESSION_OPERATOR" value="BETWEEN_SYMMETRIC" />
                             </node>
@@ -2092,6 +2093,7 @@
                         <node key="SQL_SELECT_TARGETS">
                             <node type="OBJECT_SQL_EXPRESSION" loc="20..48" text="1 between ..ic 0 and 3">
                                 <node key="SQL_EXPRESSION_ARG0" loc="20..21" text="1" />
+                                <node key="SQL_EXPRESSION_ARG1" loc="41..42" text="0" />
                                 <node key="SQL_EXPRESSION_ARG2" loc="47..48" text="3" />
                                 <node key="SQL_EXPRESSION_OPERATOR" value="BETWEEN_ASYMMETRIC" />
                             </node>
@@ -2119,6 +2121,7 @@
                         <node key="SQL_SELECT_TARGETS">
                             <node type="OBJECT_SQL_EXPRESSION" loc="20..41" text="1 not betw..en 0 and 3">
                                 <node key="SQL_EXPRESSION_ARG0" loc="20..21" text="1" />
+                                <node key="SQL_EXPRESSION_ARG1" loc="34..35" text="0" />
                                 <node key="SQL_EXPRESSION_ARG2" loc="40..41" text="3" />
                                 <node key="SQL_EXPRESSION_OPERATOR" value="NOT_BETWEEN_SYMMETRIC" />
                             </node>
@@ -2146,6 +2149,7 @@
                         <node key="SQL_SELECT_TARGETS">
                             <node type="OBJECT_SQL_EXPRESSION" loc="20..52" text="1 not betw..ic 0 and 3">
                                 <node key="SQL_EXPRESSION_ARG0" loc="20..21" text="1" />
+                                <node key="SQL_EXPRESSION_ARG1" loc="45..46" text="0" />
                                 <node key="SQL_EXPRESSION_ARG2" loc="51..52" text="3" />
                                 <node key="SQL_EXPRESSION_OPERATOR" value="NOT_BETWEEN_ASYMMETRIC" />
                             </node>
@@ -2173,6 +2177,7 @@
                         <node key="SQL_SELECT_TARGETS">
                             <node type="OBJECT_SQL_EXPRESSION" loc="20..47" text="1 between ..ic 0 and 3">
                                 <node key="SQL_EXPRESSION_ARG0" loc="20..21" text="1" />
+                                <node key="SQL_EXPRESSION_ARG1" loc="40..41" text="0" />
                                 <node key="SQL_EXPRESSION_ARG2" loc="46..47" text="3" />
                                 <node key="SQL_EXPRESSION_OPERATOR" value="BETWEEN_SYMMETRIC" />
                             </node>
@@ -2200,6 +2205,7 @@
                         <node key="SQL_SELECT_TARGETS">
                             <node type="OBJECT_SQL_EXPRESSION" loc="20..51" text="1 not betw..ic 0 and 3">
                                 <node key="SQL_EXPRESSION_ARG0" loc="20..21" text="1" />
+                                <node key="SQL_EXPRESSION_ARG1" loc="44..45" text="0" />
                                 <node key="SQL_EXPRESSION_ARG2" loc="50..51" text="3" />
                                 <node key="SQL_EXPRESSION_OPERATOR" value="NOT_BETWEEN_SYMMETRIC" />
                             </node>
