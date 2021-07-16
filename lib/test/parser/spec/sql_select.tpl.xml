@@ -287,4 +287,9 @@
             select interval 1 hour;
         </input>
     </test>
+    <test name="select_operators_1">
+        <input>
+            select 1 operator(someschema.+) 2;
+        </input>
+    </test>
 </tests>
