@@ -1076,10 +1076,20 @@ sql_b_expr:
 // ambiguity to the b_expr syntax.
 
 sql_c_expr:
-    sql_columnref                                   { $$ = $1; }
-  | sql_a_expr_const                                { $$ = $1; }
-  | '?' sql_opt_indirection                         { $$ = {}; }
-  | PARAM sql_opt_indirection                       { $$ = {}; }
+    sql_columnref     { $$ = $1; }
+  | sql_a_expr_const  { $$ = $1; }
+  | '?' sql_opt_indirection {
+      $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_PARAMETER_REF, {
+          Key::SQL_PARAMETER_NAME << String(@1),
+          Key::SQL_PARAMETER_INDIRECTION << ctx.Add(@2, std::move($2))
+      });
+  }
+  | PARAM sql_opt_indirection {
+      $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_PARAMETER_REF, {
+          Key::SQL_PARAMETER_NAME << String(@1),
+          Key::SQL_PARAMETER_INDIRECTION << ctx.Add(@2, std::move($2)),
+      });
+  }
   | '(' sql_a_expr ')' sql_opt_indirection          { $$ = {}; }
   | sql_case_expr                                   { $$ = $1; }
   | sql_func_expr                                   { $$ = {}; }
