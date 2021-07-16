@@ -418,4 +418,9 @@
             select exists (select a)
         </input>
     </test>
+    <test name="select_indirection_1">
+        <input>
+            select (a).foo
+        </input>
+    </test>
 </tests>
