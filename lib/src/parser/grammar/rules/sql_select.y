@@ -1093,9 +1093,15 @@ sql_c_expr:
   | '(' sql_a_expr ')' sql_opt_indirection          { $$ = {}; }
   | sql_case_expr                                   { $$ = $1; }
   | sql_func_expr                                   { $$ = $1; }
-  | sql_select_with_parens      %prec UMINUS        { $$ = {}; }
-  | sql_select_with_parens sql_indirection          { $$ = {}; }
-  | EXISTS sql_select_with_parens                   { $$ = {}; }
+  | sql_select_with_parens      %prec UMINUS {
+      $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_SELECT_EXPRESSION, std::move($1));
+    }
+  | sql_select_with_parens sql_indirection {
+      $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_SELECT_EXPRESSION, concat(std::move($1), {
+          Key::SQL_RESULT_INDIRECTION << ctx.Add(@2, std::move($2))
+      }));
+    }
+  | EXISTS sql_select_with_parens { $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_EXISTS_EXPRESSION, std::move($2)); }
     ;
 
 sql_func_application:

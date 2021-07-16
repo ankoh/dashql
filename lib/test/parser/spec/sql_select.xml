@@ -2752,4 +2752,104 @@
             <dependencies />
         </expected>
     </test>
+    <test name="select_select_1">
+        <input>
+            select (select 1)
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..30" text="select (select 1)">
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_SELECT_EXPRESSION" loc="20..30" text="(select 1)">
+                                <node key="SQL_SELECT_TARGETS">
+                                    <node loc="28..29" text="1" />
+                                </node>
+                            </node>
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="30..31" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="select_select_2">
+        <input>
+            select (select a from b).foo
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..41" text="select (se..rom b).foo">
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_SELECT_EXPRESSION" loc="20..41" text="(select a ..rom b).foo">
+                                <node key="SQL_RESULT_INDIRECTION">
+                                    <node loc="38..41" text="foo" />
+                                </node>
+                                <node key="SQL_SELECT_FROM">
+                                    <node type="OBJECT_SQL_TABLE_REF" loc="35..36" text="b">
+                                        <node key="SQL_TABLE_INHERIT" value="true" />
+                                        <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="35..36" text="b">
+                                            <node key="SQL_QUALIFIED_NAME_RELATION" loc="35..36" text="b" />
+                                        </node>
+                                    </node>
+                                </node>
+                                <node key="SQL_SELECT_TARGETS">
+                                    <node type="OBJECT_SQL_COLUMN_REF" loc="28..29" text="a">
+                                        <node key="SQL_COLUMN_REF_PATH">
+                                            <node loc="28..29" text="a" />
+                                        </node>
+                                    </node>
+                                </node>
+                            </node>
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="41..42" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="select_select_3">
+        <input>
+            select exists (select a)
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..37" text="select exi..(select a)">
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_EXISTS_EXPRESSION" loc="20..37" text="exists (select a)">
+                                <node key="SQL_SELECT_TARGETS">
+                                    <node type="OBJECT_SQL_COLUMN_REF" loc="35..36" text="a">
+                                        <node key="SQL_COLUMN_REF_PATH">
+                                            <node loc="35..36" text="a" />
+                                        </node>
+                                    </node>
+                                </node>
+                            </node>
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="37..38" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
 </tests>
