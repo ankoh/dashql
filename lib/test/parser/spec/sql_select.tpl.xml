@@ -322,4 +322,34 @@
             select 1 not between symmetric 0 and 3;
         </input>
     </test>
+    <test name="select_typecast_1">
+        <input>
+            select 1::integer;
+        </input>
+    </test>
+    <test name="select_collate_1">
+        <input>
+            select 1 collate foo;
+        </input>
+    </test>
+    <test name="select_distinct_1">
+        <input>
+            select a is distinct from b;
+        </input>
+    </test>
+    <test name="select_distinct_2">
+        <input>
+            select a is not distinct from b;
+        </input>
+    </test>
+    <test name="select_isof_1">
+        <input>
+            select a is of (integer);
+        </input>
+    </test>
+    <test name="select_isof_2">
+        <input>
+            select a is not of (integer);
+        </input>
+    </test>
 </tests>
