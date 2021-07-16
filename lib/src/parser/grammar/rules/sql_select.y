@@ -949,8 +949,8 @@ sql_interval_second:
 
 sql_a_expr:
     sql_c_expr                                                  { $$ = $1; }
-  | sql_a_expr TYPECAST sql_typename                            { $$ = {}; }
-  | sql_a_expr COLLATE sql_any_name                             { $$ = {}; }
+  | sql_a_expr TYPECAST sql_typename                            { $$ = Expr(ctx, @$, Enum(@2, ExprFunc::TYPECAST), $1, $3); }
+  | sql_a_expr COLLATE sql_any_name                             { $$ = Expr(ctx, @$, Enum(@2, ExprFunc::COLLATE), $1, ctx.Add(@3, std::move($3))); }
   | sql_a_expr AT TIME ZONE sql_a_expr      %prec AT            { $$ = {}; }
 
   // These operators must be called out explicitly in order to make use
@@ -1044,7 +1044,7 @@ sql_a_expr:
 
 sql_b_expr:
     sql_c_expr                                        { $$ = std::move($1); }
-  | sql_b_expr TYPECAST sql_typename                  { $$ = {}; }
+  | sql_b_expr TYPECAST sql_typename                  { $$ = Expr(ctx, @$, Enum(@2, ExprFunc::TYPECAST), $1, $3); }
   | '+' sql_b_expr                      %prec UMINUS  { $$ = $2; }
   | '-' sql_b_expr                      %prec UMINUS  { $$ = Negate(ctx, @$, @1, $2); }
   | sql_b_expr '+' sql_b_expr   { $$ = Expr(ctx, @$, Enum(@2, ExprFunc::PLUS), $1, $3); }
@@ -1062,10 +1062,10 @@ sql_b_expr:
   | sql_b_expr sql_qual_op sql_b_expr   %prec Op          { $$ = Expr(ctx, @$, $2, $1, $3); }
   | sql_qual_op sql_b_expr              %prec Op          { $$ = Expr(ctx, @$, $1, $2); }
   | sql_b_expr sql_qual_op              %prec POSTFIXOP   { $$ = Expr(ctx, @$, $2, $1, PostFix); }
-  | sql_b_expr IS DISTINCT FROM sql_b_expr          %prec IS           { $$ = {}; }
-  | sql_b_expr IS NOT DISTINCT FROM sql_b_expr      %prec IS           { $$ = {}; }
-  | sql_b_expr IS OF '(' sql_type_list ')'          %prec IS           { $$ = {}; }
-  | sql_b_expr IS NOT OF '(' sql_type_list ')'      %prec IS           { $$ = {}; }
+  | sql_b_expr IS DISTINCT FROM sql_b_expr          %prec IS    { $$ = Expr(ctx, @$, Enum(Loc({@2, @3, @4}), ExprFunc::IS_DISTINCT_FROM), $1, $5); }
+  | sql_b_expr IS NOT DISTINCT FROM sql_b_expr      %prec IS    { $$ = Expr(ctx, @$, Enum(Loc({@2, @3, @4, @5}), ExprFunc::IS_NOT_DISTINCT_FROM), $1, $6); }
+  | sql_b_expr IS OF '(' sql_type_list ')'          %prec IS    { $$ = Expr(ctx, @$, Enum(Loc({@2, @3}), ExprFunc::IS_OF), $1, ctx.Add(@5, move($5))); }
+  | sql_b_expr IS NOT OF '(' sql_type_list ')'      %prec IS    { $$ = Expr(ctx, @$, Enum(Loc({@2, @3, @4}), ExprFunc::IS_NOT_OF), $1, ctx.Add(@6, move($6))); }
     ;
 
 // Productions that can be used in both a_expr and b_expr.
