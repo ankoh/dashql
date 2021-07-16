@@ -18,6 +18,7 @@ enum ExpressionOperator: uint8 {
     OR,
     XOR,
     GLOB,
+    NOT_GLOB,
 
     IS_NULL,
     LIKE,
@@ -27,7 +28,6 @@ enum ExpressionOperator: uint8 {
     NOT_LIKE,
     NOT_ILIKE,
     NOT_SIMILAR_TO,
-
 
     IS_TRUE,
     IS_FALSE,
@@ -46,6 +46,13 @@ enum ExpressionOperator: uint8 {
     GREATER_THAN,
     LESS_EQUAL,
     LESS_THAN,
+
+    BETWEEN_SYMMETRIC,
+    BETWEEN_ASYMMETRIC,
+    NOT_BETWEEN_SYMMETRIC,
+    NOT_BETWEEN_ASYMMETRIC,
+    IN,
+    NOT_IN,
 }
 
 enum CombineModifier: uint8 {

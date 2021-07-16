@@ -292,4 +292,34 @@
             select 1 operator(someschema.+) 2;
         </input>
     </test>
+    <test name="select_between_1">
+        <input>
+            select 1 between 0 and 3;
+        </input>
+    </test>
+    <test name="select_between_2">
+        <input>
+            select 1 between asymmetric 0 and 3;
+        </input>
+    </test>
+    <test name="select_between_3">
+        <input>
+            select 1 not between 0 and 3;
+        </input>
+    </test>
+    <test name="select_between_4">
+        <input>
+            select 1 not between asymmetric 0 and 3;
+        </input>
+    </test>
+    <test name="select_between_5">
+        <input>
+            select 1 between symmetric 0 and 3;
+        </input>
+    </test>
+    <test name="select_between_6">
+        <input>
+            select 1 not between symmetric 0 and 3;
+        </input>
+    </test>
 </tests>

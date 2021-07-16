@@ -2054,4 +2054,166 @@
             <dependencies />
         </expected>
     </test>
+    <test name="select_between_1">
+        <input>
+            select 1 between 0 and 3;
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..37" text="select 1 b..en 0 and 3">
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_EXPRESSION" loc="20..37" text="1 between 0 and 3">
+                                <node key="SQL_EXPRESSION_ARG0" loc="20..21" text="1" />
+                                <node key="SQL_EXPRESSION_ARG2" loc="36..37" text="3" />
+                                <node key="SQL_EXPRESSION_OPERATOR" value="BETWEEN_SYMMETRIC" />
+                            </node>
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="38..39" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="select_between_2">
+        <input>
+            select 1 between asymmetric 0 and 3;
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..48" text="select 1 b..ic 0 and 3">
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_EXPRESSION" loc="20..48" text="1 between ..ic 0 and 3">
+                                <node key="SQL_EXPRESSION_ARG0" loc="20..21" text="1" />
+                                <node key="SQL_EXPRESSION_ARG2" loc="47..48" text="3" />
+                                <node key="SQL_EXPRESSION_OPERATOR" value="BETWEEN_ASYMMETRIC" />
+                            </node>
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="49..50" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="select_between_3">
+        <input>
+            select 1 not between 0 and 3;
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..41" text="select 1 n..en 0 and 3">
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_EXPRESSION" loc="20..41" text="1 not betw..en 0 and 3">
+                                <node key="SQL_EXPRESSION_ARG0" loc="20..21" text="1" />
+                                <node key="SQL_EXPRESSION_ARG2" loc="40..41" text="3" />
+                                <node key="SQL_EXPRESSION_OPERATOR" value="NOT_BETWEEN_SYMMETRIC" />
+                            </node>
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="42..43" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="select_between_4">
+        <input>
+            select 1 not between asymmetric 0 and 3;
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..52" text="select 1 n..ic 0 and 3">
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_EXPRESSION" loc="20..52" text="1 not betw..ic 0 and 3">
+                                <node key="SQL_EXPRESSION_ARG0" loc="20..21" text="1" />
+                                <node key="SQL_EXPRESSION_ARG2" loc="51..52" text="3" />
+                                <node key="SQL_EXPRESSION_OPERATOR" value="NOT_BETWEEN_ASYMMETRIC" />
+                            </node>
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="53..54" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="select_between_5">
+        <input>
+            select 1 between symmetric 0 and 3;
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..47" text="select 1 b..ic 0 and 3">
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_EXPRESSION" loc="20..47" text="1 between ..ic 0 and 3">
+                                <node key="SQL_EXPRESSION_ARG0" loc="20..21" text="1" />
+                                <node key="SQL_EXPRESSION_ARG2" loc="46..47" text="3" />
+                                <node key="SQL_EXPRESSION_OPERATOR" value="BETWEEN_SYMMETRIC" />
+                            </node>
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="48..49" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="select_between_6">
+        <input>
+            select 1 not between symmetric 0 and 3;
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..51" text="select 1 n..ic 0 and 3">
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_EXPRESSION" loc="20..51" text="1 not betw..ic 0 and 3">
+                                <node key="SQL_EXPRESSION_ARG0" loc="20..21" text="1" />
+                                <node key="SQL_EXPRESSION_ARG2" loc="50..51" text="3" />
+                                <node key="SQL_EXPRESSION_OPERATOR" value="NOT_BETWEEN_SYMMETRIC" />
+                            </node>
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="52..53" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
 </tests>
