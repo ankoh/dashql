@@ -1860,10 +1860,11 @@
                     <node type="OBJECT_SQL_SELECT" loc="13..34" text="select som..func 'foo'">
                         <node key="SQL_SELECT_TARGETS">
                             <node type="OBJECT_SQL_CONST_CAST" loc="20..34" text="somefunc 'foo'">
-                                <node key="SQL_CONST_CAST_VALUE" loc="29..34" text="'foo'" />
                                 <node key="SQL_CONST_CAST_FUNC_NAME">
                                     <node loc="20..28" text="somefunc" />
                                 </node>
+                                <node key="SQL_CONST_CAST_TYPE" loc="20..28" text="somefunc" />
+                                <node key="SQL_CONST_CAST_VALUE" loc="29..34" text="'foo'" />
                             </node>
                         </node>
                     </node>
@@ -1888,13 +1889,14 @@
                     <node type="OBJECT_SQL_SELECT" loc="13..37" text="select som..c(1) 'foo'">
                         <node key="SQL_SELECT_TARGETS">
                             <node type="OBJECT_SQL_CONST_CAST" loc="20..37" text="somefunc(1) 'foo'">
-                                <node key="SQL_CONST_CAST_VALUE" loc="32..37" text="'foo'" />
-                                <node key="SQL_CONST_CAST_FUNC_NAME">
-                                    <node loc="20..28" text="somefunc" />
-                                </node>
                                 <node key="SQL_CONST_CAST_FUNC_ARGS_LIST">
                                     <node loc="29..30" text="1" />
                                 </node>
+                                <node key="SQL_CONST_CAST_FUNC_NAME">
+                                    <node loc="20..28" text="somefunc" />
+                                </node>
+                                <node key="SQL_CONST_CAST_TYPE" loc="20..28" text="somefunc" />
+                                <node key="SQL_CONST_CAST_VALUE" loc="32..37" text="'foo'" />
                             </node>
                         </node>
                     </node>
@@ -1930,6 +1932,93 @@
             <line_breaks>
                 <line_break loc="0..1" text="&#10;" />
                 <line_break loc="32..33" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="select_const_interval_1">
+        <input>
+            select interval '90' minute to second;
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..50" text="select int.. to second">
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_CONST_CAST" loc="20..50" text="interval '.. to second">
+                                <node key="SQL_CONST_CAST_TYPE" loc="20..28" text="interval" />
+                                <node key="SQL_CONST_CAST_VALUE" loc="29..33" text="'90'" />
+                                <node key="SQL_CONST_CAST_INTERVAL" type="OBJECT_SQL_INTERVAL" loc="34..50" text="minute to second">
+                                    <node key="SQL_INTERVAL_TYPE" value="MINUTE_TO_SECOND" />
+                                </node>
+                            </node>
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="51..52" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="select_const_interval_2">
+        <input>
+            select interval '90' hour;
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..38" text="select int.. '90' hour">
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_CONST_CAST" loc="20..38" text="interval '90' hour">
+                                <node key="SQL_CONST_CAST_TYPE" loc="20..28" text="interval" />
+                                <node key="SQL_CONST_CAST_VALUE" loc="29..33" text="'90'" />
+                                <node key="SQL_CONST_CAST_INTERVAL" type="OBJECT_SQL_INTERVAL" loc="34..38" text="hour">
+                                    <node key="SQL_INTERVAL_TYPE" value="HOUR" />
+                                </node>
+                            </node>
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="39..40" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="select_const_interval_3">
+        <input>
+            select interval 1 hour;
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..35" text="select int..val 1 hour">
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_CONST_CAST" loc="20..35" text="interval 1 hour">
+                                <node key="SQL_CONST_CAST_TYPE" loc="20..28" text="interval" />
+                                <node key="SQL_CONST_CAST_VALUE" loc="29..30" text="1" />
+                                <node key="SQL_CONST_CAST_INTERVAL" type="OBJECT_SQL_INTERVAL" loc="31..35" text="hour">
+                                    <node key="SQL_INTERVAL_TYPE" value="HOUR" />
+                                </node>
+                            </node>
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="36..37" text="&#10;" />
             </line_breaks>
             <comments />
             <dependencies />
