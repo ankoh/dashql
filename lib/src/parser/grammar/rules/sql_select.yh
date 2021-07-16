@@ -35,6 +35,7 @@
 %type <NodeVector> sql_select_stmt;
 %type <NodeVector> sql_select_with_parens;
 %type <NodeVector> sql_simple_select;
+%type <NodeVector> sql_when_clause_list;
 %type <NodeVector> sql_sortby_list;
 %type <NodeVector> sql_target_list;
 %type <NodeVector> sql_type_list;
@@ -82,6 +83,10 @@
 %type <sx::Node> sql_qualified_name;
 %type <sx::Node> sql_select_limit_value;
 %type <sx::Node> sql_select_offset_value;
+%type <sx::Node> sql_when_clause;
+%type <sx::Node> sql_case_default;
+%type <sx::Node> sql_case_expr;
+%type <sx::Node> sql_case_arg;
 %type <sx::Node> sql_simple_typename;
 %type <sx::Node> sql_sort_clause;
 %type <sx::Node> sql_sortby;
