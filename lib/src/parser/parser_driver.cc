@@ -162,6 +162,13 @@ NodeID ParserDriver::AddNode(sx::Node node) {
             }
             break;
 
+        case sx::NodeType::OBJECT_SQL_CREATE:
+            if (auto name_id = FindAttribute(node, Key::SQL_CREATE_TABLE_NAME); name_id) {
+                current_statement_.name =
+                    QualifiedNameView::ReadFrom(nodes_, text, *name_id).WithDefaultSchema(options_.global_namespace);
+            }
+            break;
+
         case sx::NodeType::OBJECT_SQL_VIEW:
             if (auto name_id = FindAttribute(node, Key::SQL_VIEW_NAME); name_id) {
                 current_statement_.name =

@@ -36,7 +36,7 @@
         </input>
         <expected>
             <statements>
-                <statement type="CREATE_TABLE">
+                <statement type="CREATE_TABLE" name="main.foo">
                     <node type="OBJECT_SQL_CREATE" loc="13..41" text="create tab..a integer)">
                         <node key="SQL_CREATE_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="26..29" text="foo">
                             <node key="SQL_QUALIFIED_NAME_RELATION" loc="26..29" text="foo" />
@@ -69,7 +69,7 @@
         </input>
         <expected>
             <statements>
-                <statement type="CREATE_TABLE">
+                <statement type="CREATE_TABLE" name="main.foo">
                     <node type="OBJECT_SQL_CREATE" loc="13..52" text="create tab..b tinyint)">
                         <node key="SQL_CREATE_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="26..29" text="foo">
                             <node key="SQL_QUALIFIED_NAME_RELATION" loc="26..29" text="foo" />
@@ -105,7 +105,7 @@
         </input>
         <expected>
             <statements>
-                <statement type="CREATE_TABLE">
+                <statement type="CREATE_TABLE" name="main.foo">
                     <node type="OBJECT_SQL_CREATE" loc="13..52" text="create tab..b varchar)">
                         <node key="SQL_CREATE_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="26..29" text="foo">
                             <node key="SQL_QUALIFIED_NAME_RELATION" loc="26..29" text="foo" />
@@ -163,7 +163,7 @@
         </input>
         <expected>
             <statements>
-                <statement type="CREATE_TABLE">
+                <statement type="CREATE_TABLE" name="main.foo">
                     <node type="OBJECT_SQL_CREATE" loc="13..52" text="create tab..b varchar)">
                         <node key="SQL_CREATE_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="26..29" text="foo">
                             <node key="SQL_QUALIFIED_NAME_RELATION" loc="26..29" text="foo" />
@@ -204,7 +204,7 @@
         </input>
         <expected>
             <statements>
-                <statement type="CREATE_TABLE">
+                <statement type="CREATE_TABLE" name="main.foo">
                     <node type="OBJECT_SQL_CREATE" loc="13..52" text="create tab..eferrable)">
                         <node key="SQL_CREATE_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="26..29" text="foo">
                             <node key="SQL_QUALIFIED_NAME_RELATION" loc="26..29" text="foo" />
@@ -242,7 +242,7 @@
         </input>
         <expected>
             <statements>
-                <statement type="CREATE_TABLE">
+                <statement type="CREATE_TABLE" name="main.foo">
                     <node type="OBJECT_SQL_CREATE" loc="13..57" text="create tab..e &quot;de_DE&quot;)">
                         <node key="SQL_CREATE_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="26..29" text="foo">
                             <node key="SQL_QUALIFIED_NAME_RELATION" loc="26..29" text="foo" />
@@ -281,7 +281,7 @@
         </input>
         <expected>
             <statements>
-                <statement type="CREATE_TABLE">
+                <statement type="CREATE_TABLE" name="main.foo">
                     <node type="OBJECT_SQL_CREATE" loc="13..51" text="create tem..a integer)">
                         <node key="SQL_CREATE_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="36..39" text="foo">
                             <node key="SQL_QUALIFIED_NAME_RELATION" loc="36..39" text="foo" />
@@ -331,7 +331,7 @@
         </input>
         <expected>
             <statements>
-                <statement type="CREATE_TABLE">
+                <statement type="CREATE_TABLE" name="main.foo">
                     <node type="OBJECT_SQL_CREATE" loc="13..63" text="create tab.. not null)">
                         <node key="SQL_CREATE_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="26..29" text="foo">
                             <node key="SQL_QUALIFIED_NAME_RELATION" loc="26..29" text="foo" />
@@ -370,7 +370,7 @@
         </input>
         <expected>
             <statements>
-                <statement type="CREATE_TABLE">
+                <statement type="CREATE_TABLE" name="main.foo">
                     <node type="OBJECT_SQL_CREATE" loc="13..53" text="create tab..imary key)">
                         <node key="SQL_CREATE_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="26..29" text="foo">
                             <node key="SQL_QUALIFIED_NAME_RELATION" loc="26..29" text="foo" />
@@ -408,7 +408,7 @@
         </input>
         <expected>
             <statements>
-                <statement type="CREATE_TABLE">
+                <statement type="CREATE_TABLE" name="main.foo">
                     <node type="OBJECT_SQL_CREATE" loc="13..61" text="create tab..efault 42)">
                         <node key="SQL_CREATE_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="26..29" text="foo">
                             <node key="SQL_QUALIFIED_NAME_RELATION" loc="26..29" text="foo" />
