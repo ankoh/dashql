@@ -1624,9 +1624,26 @@ sql_a_expr_const:
   | SCONST  { $$ = Const(ctx, @1, sx::AConstType::STRING); }
   | BCONST  { $$ = Const(ctx, @1, sx::AConstType::BITSTRING); }
   | XCONST  { $$ = Const(ctx, @1, sx::AConstType::BITSTRING); }
-  | sql_func_name SCONST                                                { $$ = {}; }
-  | sql_func_name '(' sql_func_arg_list sql_opt_sort_clause ')' SCONST  { $$ = {}; }
-  | sql_const_typename SCONST                                           { $$ = {}; }
+  | sql_func_name SCONST {
+      $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_CONST_CAST, {
+        Key::SQL_CONST_CAST_FUNC_NAME << ctx.Add(@1, std::move($1)),
+        Key::SQL_CONST_CAST_VALUE << String(@2),
+      });
+  }
+  | sql_func_name '(' sql_func_arg_list sql_opt_sort_clause ')' SCONST {
+      $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_CONST_CAST, {
+        Key::SQL_CONST_CAST_FUNC_NAME << ctx.Add(@1, std::move($1)),
+        Key::SQL_CONST_CAST_FUNC_ARGS_LIST << ctx.Add(@3, std::move($3)),
+        Key::SQL_CONST_CAST_FUNC_ARGS_ORDER << std::move($4),
+        Key::SQL_CONST_CAST_VALUE << String(@6),
+      });
+  }
+  | sql_const_typename SCONST {
+      $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_CONST_CAST, {
+        Key::SQL_CONST_CAST_TYPE << std::move($1),
+        Key::SQL_CONST_CAST_VALUE << String(@2),
+      });
+    }
   | sql_const_interval SCONST sql_opt_interval                          { $$ = {}; }
   | sql_const_interval '(' ICONST ')' SCONST                            { $$ = {}; }
 
