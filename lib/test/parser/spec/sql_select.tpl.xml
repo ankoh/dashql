@@ -403,4 +403,19 @@
             select somefunc(1) filter (where a = b)
         </input>
     </test>
+    <test name="select_select_1">
+        <input>
+            select (select 1)
+        </input>
+    </test>
+    <test name="select_select_2">
+        <input>
+            select (select a from b).foo
+        </input>
+    </test>
+    <test name="select_select_3">
+        <input>
+            select exists (select a)
+        </input>
+    </test>
 </tests>
