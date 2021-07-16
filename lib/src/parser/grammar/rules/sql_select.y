@@ -1563,8 +1563,8 @@ sql_opt_asymmetric:
 // Target list for SELECT
 
 sql_opt_target_list:
-    sql_target_list     { $$ = $1; }
-  | %empty              { $$ = {}; }
+    sql_target_list   { $$ = $1; }
+  | %empty            { $$ = {}; }
     ;
 
 sql_target_list:
@@ -1687,9 +1687,9 @@ sql_a_expr_const:
         Key::SQL_CONST_CAST_INTERVAL << std::move($3),
       });
     }
-  | TRUE_P                  { $$ = Bool(@1, true); }
-  | FALSE_P                 { $$ = Bool(@1, false); }
-  | NULL_P                  { $$ = String(@1); }
+  | TRUE_P    { $$ = Bool(@1, true); }
+  | FALSE_P   { $$ = Bool(@1, false); }
+  | NULL_P    { $$ = String(@1); }
     ;
 
 // Name classification hierarchy.
