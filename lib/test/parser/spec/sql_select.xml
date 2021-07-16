@@ -2420,4 +2420,91 @@
             <dependencies />
         </expected>
     </test>
+    <test name="select_case_1">
+        <input>
+            select case a
+                when 1 then 2
+                when 2 then 3
+            end;
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..102" text="select cas..       end">
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_CASE" loc="20..102" text="case a&#10;   ..       end">
+                                <node key="SQL_CASE_ARGUMENT" type="OBJECT_SQL_COLUMN_REF" loc="25..26" text="a">
+                                    <node key="SQL_COLUMN_REF_PATH">
+                                        <node loc="25..26" text="a" />
+                                    </node>
+                                </node>
+                                <node key="SQL_CASE_CLAUSES">
+                                    <node type="OBJECT_SQL_CASE_CLAUSE" loc="43..56" text="when 1 then 2">
+                                        <node key="SQL_CASE_CLAUSE_WHEN" loc="48..49" text="1" />
+                                        <node key="SQL_CASE_CLAUSE_THEN" loc="55..56" text="2" />
+                                    </node>
+                                    <node type="OBJECT_SQL_CASE_CLAUSE" loc="73..86" text="when 2 then 3">
+                                        <node key="SQL_CASE_CLAUSE_WHEN" loc="78..79" text="2" />
+                                        <node key="SQL_CASE_CLAUSE_THEN" loc="85..86" text="3" />
+                                    </node>
+                                </node>
+                            </node>
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="26..27" text="&#10;" />
+                <line_break loc="56..57" text="&#10;" />
+                <line_break loc="86..87" text="&#10;" />
+                <line_break loc="103..104" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="select_case_2">
+        <input>
+            select case a
+                when 1 then 2
+                else  3
+            end;
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..96" text="select cas..       end">
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_CASE" loc="20..96" text="case a&#10;   ..       end">
+                                <node key="SQL_CASE_ARGUMENT" type="OBJECT_SQL_COLUMN_REF" loc="25..26" text="a">
+                                    <node key="SQL_COLUMN_REF_PATH">
+                                        <node loc="25..26" text="a" />
+                                    </node>
+                                </node>
+                                <node key="SQL_CASE_CLAUSES">
+                                    <node type="OBJECT_SQL_CASE_CLAUSE" loc="43..56" text="when 1 then 2">
+                                        <node key="SQL_CASE_CLAUSE_WHEN" loc="48..49" text="1" />
+                                        <node key="SQL_CASE_CLAUSE_THEN" loc="55..56" text="2" />
+                                    </node>
+                                </node>
+                                <node key="SQL_CASE_DEFAULT" loc="79..80" text="3" />
+                            </node>
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="26..27" text="&#10;" />
+                <line_break loc="56..57" text="&#10;" />
+                <line_break loc="80..81" text="&#10;" />
+                <line_break loc="97..98" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
 </tests>
