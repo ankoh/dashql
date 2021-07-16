@@ -505,7 +505,7 @@ sql_from_list:
 sql_table_ref:
     sql_relation_expr sql_opt_alias_clause                          { $1.push_back(Key::SQL_TABLE_ALIAS << $2); $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_TABLE_REF, move($1)); }
   | sql_relation_expr sql_opt_alias_clause sql_tablesample_clause   { $$ = {}; }
-  | sql_func_table sql_func_alias_clause                            { $1.push_back(Key::SQL_TABLE_ALIAS << $2); $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_FUNCTABLE, move($1)); }
+  | sql_func_table sql_func_alias_clause                            { $1.push_back(Key::SQL_TABLE_ALIAS << $2); $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_FUNCTION_TABLE, move($1)); }
   | LATERAL_P sql_func_table sql_func_alias_clause                  { $$ = {}; }
   | sql_select_with_parens sql_opt_alias_clause                     { $$ = {}; }
   | LATERAL_P sql_select_with_parens sql_opt_alias_clause           { $$ = {}; }
@@ -1092,7 +1092,7 @@ sql_c_expr:
   }
   | '(' sql_a_expr ')' sql_opt_indirection          { $$ = {}; }
   | sql_case_expr                                   { $$ = $1; }
-  | sql_func_expr                                   { $$ = {}; }
+  | sql_func_expr                                   { $$ = $1; }
   | sql_select_with_parens      %prec UMINUS        { $$ = {}; }
   | sql_select_with_parens sql_indirection          { $$ = {}; }
   | EXISTS sql_select_with_parens                   { $$ = {}; }
@@ -1156,8 +1156,14 @@ sql_func_application:
 // sense as functional index entries, but we ignore that consideration here.)
 
 sql_func_expr:
-    sql_func_application sql_within_group_clause sql_filter_clause sql_over_clause
-  | sql_func_expr_common_subexpr
+    sql_func_application sql_within_group_clause sql_filter_clause sql_over_clause {
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_FUNCTION_EXPRESSION, concat(std::move($1), {
+              Key::SQL_FUNCTION_WITHIN_GROUP << std::move($2),
+              Key::SQL_FUNCTION_FILTER << std::move($3),
+              Key::SQL_FUNCTION_OVER << std::move($4),
+        }));
+    }
+  | sql_func_expr_common_subexpr { $$ = {}; }
 
         ;
 
@@ -1209,13 +1215,13 @@ sql_func_expr_common_subexpr:
 // Aggregate decoration clauses
 
 sql_within_group_clause:
-    WITHIN GROUP_P '(' sql_sort_clause ')'
-  | %empty
+    WITHIN GROUP_P '(' sql_sort_clause ')'  { $$ = std::move($4); }
+  | %empty                                  { $$ = Null(); }
     ;
 
 sql_filter_clause:
-    FILTER '(' WHERE sql_a_expr ')'
-  | %empty
+    FILTER '(' WHERE sql_a_expr ')'   { $$ = std::move($4); }
+  | %empty                            { $$ = Null(); }
     ;
 
 
@@ -1412,15 +1418,15 @@ sql_func_arg_list:
 sql_func_arg_expr:
     sql_a_expr { $$ = $1; }
   | sql_param_name COLON_EQUALS sql_a_expr {
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_FUNCARG, {
-            Key::SQL_FUNCARG_NAME << String(@1),
-            Key::SQL_FUNCARG_VALUE << $3,
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_FUNCTION_ARG, {
+            Key::SQL_FUNCTION_ARG_NAME << String(@1),
+            Key::SQL_FUNCTION_ARG_VALUE << $3,
         });
     }
   | sql_param_name EQUALS_GREATER sql_a_expr {
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_FUNCARG, {
-            Key::SQL_FUNCARG_NAME << String(@1),
-            Key::SQL_FUNCARG_VALUE << $3,
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_FUNCTION_ARG, {
+            Key::SQL_FUNCTION_ARG_NAME << String(@1),
+            Key::SQL_FUNCTION_ARG_VALUE << $3,
         });
     }
     ;

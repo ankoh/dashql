@@ -383,4 +383,24 @@
             select $1.a from c
         </input>
     </test>
+    <test name="select_func_1">
+        <input>
+            select somefunc(1)
+        </input>
+    </test>
+    <test name="select_func_2">
+        <input>
+            select somefunc(1) over (partition by c)
+        </input>
+    </test>
+    <test name="select_func_3">
+        <input>
+            select somefunc(1) within group (order by c)
+        </input>
+    </test>
+    <test name="select_func_4">
+        <input>
+            select somefunc(1) filter (where a = b)
+        </input>
+    </test>
 </tests>
