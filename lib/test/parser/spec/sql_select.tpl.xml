@@ -423,4 +423,14 @@
             select (a).foo
         </input>
     </test>
+    <test name="select_in_1">
+        <input>
+            select a in (select 1)
+        </input>
+    </test>
+    <test name="select_in_2">
+        <input>
+            select a in (2, 3)
+        </input>
+    </test>
 </tests>

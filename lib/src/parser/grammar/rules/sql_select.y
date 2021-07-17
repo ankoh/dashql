@@ -1027,8 +1027,8 @@ sql_a_expr:
   | sql_a_expr NOT_LA BETWEEN sql_opt_asymmetric sql_b_expr AND sql_a_expr  %prec NOT_LA    { $$ = Expr(ctx, @$, Enum(Loc({@2, @3, @4}), $4 ? ExprFunc::NOT_BETWEEN_ASYMMETRIC : ExprFunc::NOT_BETWEEN_SYMMETRIC), $1, $5, $7); }
   | sql_a_expr BETWEEN SYMMETRIC sql_b_expr AND sql_a_expr                  %prec BETWEEN   { $$ = Expr(ctx, @$, Enum(Loc({@2, @3}), ExprFunc::BETWEEN_SYMMETRIC), $1, $4, $6); }
   | sql_a_expr NOT_LA BETWEEN SYMMETRIC sql_b_expr AND sql_a_expr           %prec NOT_LA    { $$ = Expr(ctx, @$, Enum(Loc({@2, @3, @4}), ExprFunc::NOT_BETWEEN_SYMMETRIC), $1, $5, $7); }
-  | sql_a_expr IN_P sql_in_expr                                                             { $$ = {}; }
-  | sql_a_expr NOT_LA IN_P sql_in_expr                                %prec NOT_LA          { $$ = {}; }
+  | sql_a_expr IN_P sql_in_expr                                                             { $$ = Expr(ctx, @$, Enum(@2, ExprFunc::IN), $1, $3); }
+  | sql_a_expr NOT_LA IN_P sql_in_expr                                %prec NOT_LA          { $$ = Expr(ctx, @$, Enum(Loc({@2, @3}), ExprFunc::NOT_IN), $1, $4); }
   | sql_a_expr sql_subquery_op sql_sub_type sql_select_with_parens    %prec Op              { $$ = {}; }
   | sql_a_expr sql_subquery_op sql_sub_type '(' sql_a_expr ')'        %prec Op              { $$ = {}; }
   | DEFAULT                                                                                 { $$ = {}; }
@@ -1521,8 +1521,8 @@ sql_trim_list:
     ;
 
 sql_in_expr:
-    sql_select_with_parens
-  | '(' sql_expr_list ')'
+    sql_select_with_parens  { $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_SELECT_EXPRESSION, std::move($1)); }
+  | '(' sql_expr_list ')'   { $$ = ctx.Add(@$, std::move($2)); }
     ;
 
 // Define SQL-style CASE clause.

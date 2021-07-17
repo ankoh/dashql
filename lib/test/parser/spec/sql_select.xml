@@ -2884,4 +2884,73 @@
             <dependencies />
         </expected>
     </test>
+    <test name="select_in_1">
+        <input>
+            select a in (select 1)
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..35" text="select a i..(select 1)">
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_EXPRESSION" loc="20..35" text="a in (select 1)">
+                                <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="20..21" text="a">
+                                    <node key="SQL_COLUMN_REF_PATH">
+                                        <node loc="20..21" text="a" />
+                                    </node>
+                                </node>
+                                <node key="SQL_EXPRESSION_ARG1" type="OBJECT_SQL_SELECT_EXPRESSION" loc="25..35" text="(select 1)">
+                                    <node key="SQL_SELECT_TARGETS">
+                                        <node loc="33..34" text="1" />
+                                    </node>
+                                </node>
+                                <node key="SQL_EXPRESSION_OPERATOR" value="IN" />
+                            </node>
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="35..36" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="select_in_2">
+        <input>
+            select a in (2, 3)
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..31" text="select a in (2, 3)">
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_EXPRESSION" loc="20..31" text="a in (2, 3)">
+                                <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="20..21" text="a">
+                                    <node key="SQL_COLUMN_REF_PATH">
+                                        <node loc="20..21" text="a" />
+                                    </node>
+                                </node>
+                                <node key="SQL_EXPRESSION_ARG1">
+                                    <node loc="26..27" text="2" />
+                                    <node loc="29..30" text="3" />
+                                </node>
+                                <node key="SQL_EXPRESSION_OPERATOR" value="IN" />
+                            </node>
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="31..32" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
 </tests>
