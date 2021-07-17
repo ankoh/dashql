@@ -1,0 +1,9 @@
+.*
+build
+compile_commands.json
+dist
+install
+package-lock.json
+package.json
+public
+submodules

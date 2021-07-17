@@ -1,0 +1,20 @@
+{
+    "compilerOptions": {
+        "outDir": "./dist/",
+        "target": "es6",
+        "module": "es6",
+        "moduleResolution": "node",
+        "strict": true,
+        "sourceMap": true,
+        "declaration": true,
+        "declarationMap": true,
+        "declarationDir": "./dist",
+        "noImplicitAny": true,
+        "esModuleInterop": true,
+        "types": ["emscripten", "jest"]
+    },
+    "exclude": [
+        "./test/**/*.ts",
+        "./node_modules"
+    ]
+}

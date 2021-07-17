@@ -1,0 +1,94 @@
+@value v_tab_bg: transparent;
+@value v_tab_bg_active: hsl(260, 15%, 10%);
+@value v_tab_fg: rgb(255, 255, 255);
+@value v_tab_fg_active: rgb(255, 255, 255);
+@value v_status_bg: hsl(260, 15%, 20%);
+@value v_status_bg_active: hsl(260, 15%, 10%);
+
+.navbar {
+    display: flex;
+    flex-direction: column;
+    background-color: v_nav_bg;
+    color: rgb(255, 255, 255);
+    line-height: 24px;
+    text-align: center;
+
+    background-color: hsl(260, 15%, 15%);
+
+    grid-template-rows: 48px auto 48px;
+}
+
+.banner {
+    height: 48px;
+    display: grid;
+    align-items: center;
+    justify-content: center;
+    background-color: hsl(260, 15%, 20%);
+}
+
+.tabs {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+}
+
+.tab_navbar {
+    display: block;
+}
+
+.tab {
+    position: relative;
+    font-weight: 400;
+    font-size: 0.75em;
+    background-color: v_tab_bg;
+    color: v_tab_fg;
+    text-decoration: none;
+    height: 48px;
+}
+
+.tab_icon {
+}
+
+.tab > a {
+    width: 100%;
+    height: 100%;
+    display: grid;
+    text-decoration: none;
+}
+
+.tab > a > svg {
+    justify-self: center;
+    align-self: center;
+}
+
+.tab:hover, .tab.active {
+    background-color: v_tab_bg_active;
+    color: v_tab_fg_active;
+}
+
+.statuslist {
+    background-color: hsl(260, 15%, 20%);
+}
+
+.status {
+    display: grid;
+    height: 48px;
+    width: 100%;
+}
+
+.status:hover, .status.active {
+    background-color: v_status_bg_active;
+    color: v_status_fg_active;
+}
+
+.status > svg {
+    justify-self: center;
+    align-self: center;
+}
+
+.wrapper {
+    display: grid;
+    grid-template-rows: auto;
+    grid-template-columns: 64px auto;
+    height: 100%;
+}

@@ -1,0 +1,12 @@
+/reports
+/build
+/.ccls-cache
+/.emscripten_cache
+
+compile_commands.json
+
+/target
+
+# Miscellaneous
+.DS_Store
+.vscode
