@@ -5839,14 +5839,14 @@ react-draggable@^4.0.0, react-draggable@^4.0.3, react-draggable@^4.4.3:
     classnames "^2.2.5"
     prop-types "^15.6.0"
 
-react-flow-renderer@^9.6.3:
-  version "9.6.3"
-  resolved "https://registry.yarnpkg.com/react-flow-renderer/-/react-flow-renderer-9.6.3.tgz#3dc4bf941a5fa5691057248aec838746238a3f9c"
-  integrity sha512-/2J1Lil8eOq3G0spVJPTIyhVUfnzDyV/JGRQC7DEFzwqzjL+qTj+ssyCblSxCSidxx1Q7zaza+ghnuMTr4E8QA==
+react-flow-renderer@^9.6.4:
+  version "9.6.4"
+  resolved "https://registry.yarnpkg.com/react-flow-renderer/-/react-flow-renderer-9.6.4.tgz#021b9558187314ca6fc53b1a3f382730e0965a40"
+  integrity sha512-G+H9A1DZSKoGHe3rzX4RyU+9X5OYG16m3rh7tv56d7uS/kA7RY0gc08w8mCPUY4t8VqHdFu/+1cEaGN6wGjLew==
   dependencies:
     "@babel/runtime" "^7.14.6"
     "@types/d3" "^7.0.0"
-    "@types/react-redux" "^7.1.16"
+    "@types/react-redux" "^7.1.18"
     classcat "^5.0.3"
     d3-selection "^3.0.0"
     d3-zoom "^3.0.0"
