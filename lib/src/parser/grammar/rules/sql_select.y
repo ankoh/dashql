@@ -996,15 +996,6 @@ sql_a_expr:
   | sql_a_expr NOT_LA SIMILAR TO sql_a_expr                 %prec NOT_LA    { $$ = Expr(ctx, @$, Enum(Loc({@3, @4}), ExprFunc::NOT_SIMILAR_TO), $1, $5); }
   | sql_a_expr NOT_LA SIMILAR TO sql_a_expr ESCAPE sql_a_expr     %prec NOT_LA  { $$ = Expr(ctx, @$, Enum(Loc({@3, @4}), ExprFunc::NOT_SIMILAR_TO), $1, $5, $7); }
 
-  // PGNullTest clause
-  //  Define SQL-style Null test clause.
-  //  Allow two forms described in the standard:
-  //     a IS NULL
-  //     a IS NOT NULL
-  //  Allow two SQL extensions
-  //     a ISNULL
-  //     a NOTNULL
-  //  
   | sql_a_expr IS NULL_P        %prec IS    { $$ = Expr(ctx, @$, Enum(Loc({@2, @3}), ExprFunc::IS_NULL), $1); }
   | sql_a_expr ISNULL                       { $$ = Expr(ctx, @$, Enum(@2, ExprFunc::IS_NULL), $1); }
   | sql_a_expr IS NOT NULL_P    %prec IS    { $$ = Expr(ctx, @$, Enum(Loc({@2, @3, @4}), ExprFunc::NOT_NULL), $1); }
