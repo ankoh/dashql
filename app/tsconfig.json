@@ -1,0 +1,20 @@
+{
+    "compilerOptions": {
+        "outDir": "./build/ts/",
+        "target": "es6",
+        "module": "es2020",
+        "moduleResolution": "node",
+        "noImplicitAny": true,
+        "strict": true,
+        "types": ["node"],
+        "jsx": "react",
+        "plugins": [{ "name": "typescript-plugin-css-modules" }]
+    },
+    "exclude": [
+        "./test/**/*.ts",
+        "./node_modules"
+    ],
+    "include": [
+        "./src/**/*"
+    ]
+}

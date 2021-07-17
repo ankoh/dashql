@@ -1,0 +1,23 @@
+// Copyright (c) 2020 The DashQL Authors
+
+include "duckdb_webapi/query_plan.fbs";
+include "duckdb_webapi/sql_type.fbs";
+include "duckdb_webapi/vector.fbs";
+
+namespace duckdb_webapi.proto;
+
+// A query result chunk
+table QueryResultChunk {
+    query_id: uint64;
+    row_count: uint64;
+    columns: [Vector];
+}
+
+// A query result
+table QueryResult {
+    query_id: uint64;
+    query_plan: QueryPlan;
+    column_types: [SQLType];
+    column_names: [string];
+    data_chunks: [QueryResultChunk];
+}
