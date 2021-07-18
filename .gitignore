@@ -10,6 +10,7 @@
 /build
 /.ccls-cache
 /.emscripten_cache
+/.pages
 .DS_Store
 compile_commands.json
 
