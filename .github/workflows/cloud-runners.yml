@@ -1,0 +1,31 @@
+name: 'Cloud Runners'
+on:
+    push:
+        branches:
+            - master
+    pull_request:
+        branches:
+            - master
+
+jobs:
+    clang_format:
+        name: Clang-Format
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v2
+
+            - name: Prepare repository
+              uses: ankoh/dashql-ci-env@v0.1
+              with:
+                  script: |-
+                      git submodule update --init --recursive
+                      ./scripts/generate_proto.sh
+
+            - name: Lint ./lib
+              uses: ankoh/dashql-ci-env@v0.1
+              with:
+                  script: |-
+                      python3 ./scripts/run_clang_format.py \
+                        --exclude ./lib/build \
+                        --exclude ./lib/third_party \
+                        -r ./lib/

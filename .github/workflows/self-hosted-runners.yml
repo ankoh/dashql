@@ -1,4 +1,4 @@
-name: 'main'
+name: 'Self-Hosted'
 on:
     push:
         branches:
