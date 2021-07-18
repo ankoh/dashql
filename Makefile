@@ -12,7 +12,6 @@ GID=${shell id -g}
 
 APP_RELEASE_DIR="${ROOT_DIR}/packages/app/build/release"
 APP_RELEASE_TAG="$(shell git rev-parse --short HEAD)"
-APP_DEPLOY_TMP="${ROOT_DIR}/artifacts/tmp"
 
 LIB_SOURCE_DIR="${ROOT_DIR}/lib"
 LIB_DEBUG_DIR="${ROOT_DIR}/lib/build/Debug"
