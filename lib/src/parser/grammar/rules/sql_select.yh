@@ -59,6 +59,9 @@
 %type <sx::Node> sql_all_op;
 %type <sx::Node> sql_all_or_distinct;
 %type <sx::Node> sql_b_expr;
+%type <sx::Node> sql_bit;
+%type <sx::Node> sql_bit_with_length;
+%type <sx::Node> sql_bit_without_length;
 %type <sx::Node> sql_c_expr;
 %type <sx::Node> sql_case_arg;
 %type <sx::Node> sql_case_default;
@@ -66,6 +69,7 @@
 %type <sx::Node> sql_character;
 %type <sx::Node> sql_columnref;
 %type <sx::Node> sql_common_table_expr;
+%type <sx::Node> sql_const_bit;
 %type <sx::Node> sql_const_character;
 %type <sx::Node> sql_const_datetime;
 %type <sx::Node> sql_const_typename;

@@ -728,7 +728,7 @@ sql_opt_array_bounds:
 sql_simple_typename:
     sql_generic_type                    { $$ = {}; }
   | sql_numeric                         { $$ = $1; }
-  | sql_bit                             { $$ = {}; }
+  | sql_bit                             { $$ = $1; }
   | sql_const_character                 { $$ = $1; }
   | sql_const_datetime                  { $$ = $1; }
   | sql_const_interval sql_opt_interval { $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_INTERVAL_TYPE, std::move($2), false); }
@@ -750,7 +750,7 @@ sql_simple_typename:
 
 sql_const_typename:
     sql_numeric         { $$ = $1; }
-  | sql_const_bit       { $$ = {}; }
+  | sql_const_bit       { $$ = $1; }
   | sql_character       { $$ = $1; }
   | sql_const_datetime  { $$ = $1; }
     ;
@@ -811,24 +811,34 @@ sql_opt_float:
 // The following implements BIT() and BIT VARYING().
 
 sql_bit:
-    sql_bit_with_length
-  | sql_bit_without_length
+    sql_bit_with_length     { $$ = std::move($1); }
+  | sql_bit_without_length  { $$ = std::move($1); }
     ;
 
 // ConstBit is like Bit except "BIT" defaults to unspecified length
 // See notes for ConstCharacter, which addresses same issue for "CHAR"
+// Andre: XXX Relevant for DashQL?
 
 sql_const_bit:
-    sql_bit_with_length
-  | sql_bit_without_length
+    sql_bit_with_length     { $$ = std::move($1); }
+  | sql_bit_without_length  { $$ = std::move($1); }
     ;
 
 sql_bit_with_length:
-    BIT sql_opt_varying '(' sql_expr_list ')'
+    BIT sql_opt_varying '(' sql_a_expr ')' {
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_BIT_TYPE, {
+            Key::SQL_BIT_TYPE_VARYING << Bool(@2, $2),
+            Key::SQL_BIT_TYPE_LENGTH << std::move($4),
+        });
+    }
     ;
 
 sql_bit_without_length:
-    BIT sql_opt_varying
+    BIT sql_opt_varying {
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_BIT_TYPE, {
+            Key::SQL_BIT_TYPE_VARYING << Bool(@2, $2)
+        });
+    }
     ;
 
 
@@ -859,8 +869,8 @@ sql_character_without_length:
     ;
 
 sql_opt_varying:
-    VARYING       { $$ = false; }
-  | %empty        { $$ = true; }
+    VARYING       { $$ = true; }
+  | %empty        { $$ = false; }
     ;
 
 // SQL date/time types
