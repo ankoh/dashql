@@ -543,14 +543,49 @@
             select treat(1 as integer);
         </input>
     </test>
-    <test name="select_knownfunc_18">
+    <test name="select_knownfunc_19">
         <input>
             select nullif(a, 1);
         </input>
     </test>
-    <test name="select_knownfunc_19">
+    <test name="select_knownfunc_20">
         <input>
             select coalesce(a, b);
+        </input>
+    </test>
+    <test name="select_knownfunc_21">
+        <input>
+            select trim(both 'foo');
+        </input>
+    </test>
+    <test name="select_knownfunc_22">
+        <input>
+            select trim(both from 'foo');
+        </input>
+    </test>
+    <test name="select_knownfunc_23">
+        <input>
+            select trim(both ' \n' from 'foo');
+        </input>
+    </test>
+    <test name="select_knownfunc_24">
+        <input>
+            select trim(both ' \n' from 'foo', 'bar');
+        </input>
+    </test>
+    <test name="select_knownfunc_25">
+        <input>
+            select trim(leading from 'foo');
+        </input>
+    </test>
+    <test name="select_knownfunc_26">
+        <input>
+            select trim(trailing from 'foo');
+        </input>
+    </test>
+    <test name="select_knownfunc_27">
+        <input>
+            select trim('foo');
         </input>
     </test>
 </tests>

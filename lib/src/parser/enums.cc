@@ -60,7 +60,7 @@ const char* getEnumText(const sx::Node& target) {
         case sx::NodeType::ENUM_SQL_KNOWN_FUNCTION:
             return sx::KnownFunctionTypeTable()->names[v];
         case sx::NodeType::ENUM_SQL_TRIM_TARGET:
-            return sx::TrimTargetTypeTable()->names[v];
+            return sx::TrimDirectionTypeTable()->names[v];
 
         default:
             return "?";

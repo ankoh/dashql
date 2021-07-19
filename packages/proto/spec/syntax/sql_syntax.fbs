@@ -183,10 +183,10 @@ enum IntervalType: uint8 {
     MINUTE_TO_SECOND,
 }
 
-enum TrimTarget: uint8 {
+enum TrimDirection: uint8 {
     BOTH,
     LEADING,
-    TRAINLING
+    TRAILING
 }
 
 enum KnownFunction : uint8 {
