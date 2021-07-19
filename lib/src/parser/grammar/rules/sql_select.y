@@ -1236,10 +1236,7 @@ sql_func_expr_common_subexpr:
   | CAST '(' sql_a_expr AS sql_typename ')' {
         $$ = {
             Key::SQL_FUNCTION_NAME << Enum(@1, sx::KnownFunction::CAST),
-            Key::SQL_FUNCTION_ARGUMENTS << ctx.Add(Loc({@2, @3, @4, @5, @6}), {
-                std::move($3),
-                std::move($5),
-            })
+            Key::SQL_FUNCTION_ARGUMENTS << ctx.Add(Loc({@2, @3, @4, @5, @6}), { std::move($3), std::move($5) })
         };
     }
   | EXTRACT '(' sql_extract_list ')'                { $$ = {}; }
@@ -1253,19 +1250,13 @@ sql_func_expr_common_subexpr:
   | TREAT '(' sql_a_expr AS sql_typename ')' {
         $$ = {
             Key::SQL_FUNCTION_NAME << Enum(@1, sx::KnownFunction::TREAT),
-            Key::SQL_FUNCTION_ARGUMENTS << ctx.Add(Loc({@2, @3, @4, @5, @6}), {
-                std::move($3),
-                std::move($5),
-            })
+            Key::SQL_FUNCTION_ARGUMENTS << ctx.Add(Loc({@2, @3, @4, @5, @6}), { std::move($3), std::move($5) })
         };
     }
   | NULLIF '(' sql_a_expr ',' sql_a_expr ')' {
         $$ = {
             Key::SQL_FUNCTION_NAME << Enum(@1, sx::KnownFunction::NULLIF),
-            Key::SQL_FUNCTION_ARGUMENTS << ctx.Add(Loc({@2, @3, @4, @5, @6}), {
-                std::move($3),
-                std::move($5),
-            })
+            Key::SQL_FUNCTION_ARGUMENTS << ctx.Add(Loc({@2, @3, @4, @5, @6}), { std::move($3), std::move($5) })
         };
     }
   | COALESCE '(' sql_expr_list ')' {
