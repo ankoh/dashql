@@ -3860,4 +3860,43 @@
             <dependencies />
         </expected>
     </test>
+    <test name="select_knownfunc_28">
+        <input>
+            select extract(day from a) from foo;
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..48" text="select ext..) from foo">
+                        <node key="SQL_SELECT_FROM">
+                            <node type="OBJECT_SQL_TABLE_REF" loc="45..48" text="foo">
+                                <node key="SQL_TABLE_INHERIT" value="true" />
+                                <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="45..48" text="foo">
+                                    <node key="SQL_QUALIFIED_NAME_RELATION" loc="45..48" text="foo" />
+                                </node>
+                            </node>
+                        </node>
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="20..39" text="extract(day from a)">
+                                <node key="SQL_FUNCTION_EXTRACT_INPUT" type="OBJECT_SQL_COLUMN_REF" loc="37..38" text="a">
+                                    <node key="SQL_COLUMN_REF_PATH">
+                                        <node loc="37..38" text="a" />
+                                    </node>
+                                </node>
+                                <node key="SQL_FUNCTION_EXTRACT_TARGET" value="DAY" />
+                                <node key="SQL_FUNCTION_NAME" value="EXTRACT" />
+                            </node>
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="49..50" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
 </tests>

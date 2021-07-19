@@ -1239,7 +1239,11 @@ sql_func_expr_common_subexpr:
             Key::SQL_FUNCTION_ARGUMENTS << ctx.Add(Loc({@2, @3, @4, @5, @6}), { std::move($3), std::move($5) })
         };
     }
-  | EXTRACT '(' sql_extract_list ')'                { $$ = {}; }
+  | EXTRACT '(' sql_extract_list ')' {
+        $$ = concat(std::move($3), {
+            Key::SQL_FUNCTION_NAME << Enum(@1, sx::KnownFunction::EXTRACT),
+        });
+    }
   | OVERLAY '(' sql_overlay_list ')'                { $$ = {}; }
   | POSITION '(' sql_position_list ')'              { $$ = {}; }
   | SUBSTRING '(' sql_substr_list ')'               { $$ = {}; }
@@ -1511,21 +1515,26 @@ sql_type_list:
     ;
 
 sql_extract_list:
-    sql_extract_arg FROM sql_a_expr
-  | %empty
+    sql_extract_arg FROM sql_a_expr {
+        $$ = {
+            Key::SQL_FUNCTION_EXTRACT_TARGET << std::move($1),
+            Key::SQL_FUNCTION_EXTRACT_INPUT << std::move($3),
+        };
+    }
+  | %empty  { $$ = {}; }
     ;
 
 // Allow delimited string Sconst in extract_arg as an SQL extension.
 // - thomas 2001-04-12
 sql_extract_arg:
-    IDENT
-  | YEAR_P
-  | MONTH_P
-  | DAY_P
-  | HOUR_P
-  | MINUTE_P
-  | SECOND_P
-  | SCONST
+    IDENT       { $$ = String(@1); }
+  | YEAR_P      { $$ = Enum(@1, sx::ExtractTarget::YEAR); }
+  | MONTH_P     { $$ = Enum(@1, sx::ExtractTarget::MONTH); }
+  | DAY_P       { $$ = Enum(@1, sx::ExtractTarget::DAY); }
+  | HOUR_P      { $$ = Enum(@1, sx::ExtractTarget::HOUR); }
+  | MINUTE_P    { $$ = Enum(@1, sx::ExtractTarget::MINUTE); }
+  | SECOND_P    { $$ = Enum(@1, sx::ExtractTarget::SECOND); }
+  | SCONST      { $$ = String(@1); }
     ;
 
 // OVERLAY() arguments

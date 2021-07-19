@@ -588,4 +588,9 @@
             select trim('foo');
         </input>
     </test>
+    <test name="select_knownfunc_28">
+        <input>
+            select extract(day from a) from foo;
+        </input>
+    </test>
 </tests>
