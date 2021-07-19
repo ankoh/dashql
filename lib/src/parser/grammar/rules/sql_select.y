@@ -1002,7 +1002,7 @@ sql_a_expr:
   | sql_a_expr NOT NULL_P                   { $$ = Expr(ctx, @$, Enum(Loc({@2, @3}), ExprFunc::NOT_NULL), $1); }
   | sql_a_expr NOTNULL                      { $$ = Expr(ctx, @$, Enum(@2, ExprFunc::NOT_NULL), $1); }
 
-  | sql_row OVERLAPS sql_row  { $$ = {}; }
+  | sql_row OVERLAPS sql_row { $$ = Expr(ctx, @$, Enum(@2, ExprFunc::OVERLAPS), ctx.Add(@1, std::move($1), false), ctx.Add(@3, std::move($3), false)); }
   | sql_a_expr IS TRUE_P                            %prec IS    { $$ = Expr(ctx, @$, Enum(Loc({@2, @3}), ExprFunc::IS_TRUE), $1); }
   | sql_a_expr IS NOT TRUE_P                        %prec IS    { $$ = Expr(ctx, @$, Enum(Loc({@2, @3, @4}), ExprFunc::IS_NOT_TRUE), $1); }
   | sql_a_expr IS FALSE_P                           %prec IS    { $$ = Expr(ctx, @$, Enum(Loc({@2, @3}), ExprFunc::IS_FALSE), $1); }
@@ -1427,9 +1427,9 @@ sql_frame_bound:
 // ROW keyword, there must be more than one a_expr inside the parens.
 
 sql_row:
-    ROW '(' sql_expr_list ')'
-  | ROW '(' ')'
-  | '(' sql_expr_list ',' sql_a_expr ')'
+    ROW '(' sql_expr_list ')'             { $$ = std::move($3); }
+  | ROW '(' ')'                           { $$ = {}; }
+  | '(' sql_expr_list ',' sql_a_expr ')'  { $2.push_back(std::move($4)); $$ = std::move($2); }
     ;
 
 sql_subquery_quantifier:
@@ -1891,6 +1891,7 @@ sql_type_function_name:
     IDENT                     { /* @$ */ }
   | sql_unreserved_keywords   { /* @$ */ }
   | sql_type_func_keywords    { /* @$ */ }
+  | dashql_keywords           { /* @$ */ }
     ;
 
 sql_any_name:

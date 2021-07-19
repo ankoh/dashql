@@ -55,6 +55,8 @@ enum ExpressionOperator: uint8 {
     NOT_BETWEEN_ASYMMETRIC,
     IN,
     NOT_IN,
+
+    OVERLAPS
 }
 
 enum SubqueryQuantifier: uint8 {
