@@ -109,6 +109,7 @@
 %type <sx::Node> sql_qual_op;
 %type <sx::Node> sql_qualified_name;
 %type <sx::Node> sql_rowsfrom_item;
+%type <sx::Node> sql_sample_clause;
 %type <sx::Node> sql_select_limit_value;
 %type <sx::Node> sql_select_offset_value;
 %type <sx::Node> sql_simple_typename;

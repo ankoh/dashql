@@ -111,7 +111,7 @@ sql_select_clause:
 sql_simple_select:
     SELECT sql_opt_all_clause sql_opt_target_list
         sql_into_clause sql_from_clause sql_where_clause
-        sql_group_clause sql_having_clause sql_window_clause {
+        sql_group_clause sql_having_clause sql_window_clause sql_sample_clause {
             $$ = {
                 Key::SQL_SELECT_ALL << $2,
                 Key::SQL_SELECT_TARGETS << ctx.Add(@3, move($3)),
@@ -121,11 +121,12 @@ sql_simple_select:
                 Key::SQL_SELECT_GROUPS << ctx.Add(@7, move($7)),
                 Key::SQL_SELECT_HAVING << $8,
                 Key::SQL_SELECT_WINDOWS << ctx.Add(@9, move($9)),
+                Key::SQL_SELECT_SAMPLE << $10,
             };
         }
   | SELECT sql_distinct_clause sql_target_list
         sql_into_clause sql_from_clause sql_where_clause
-        sql_group_clause sql_having_clause sql_window_clause {
+        sql_group_clause sql_having_clause sql_window_clause sql_sample_clause {
             $$ = {
                 Key::SQL_SELECT_DISTINCT << $2,
                 Key::SQL_SELECT_TARGETS << ctx.Add(@3, move($3)),
@@ -135,6 +136,7 @@ sql_simple_select:
                 Key::SQL_SELECT_GROUPS << ctx.Add(@7, move($7)),
                 Key::SQL_SELECT_HAVING << $8,
                 Key::SQL_SELECT_WINDOWS << ctx.Add(@9, move($9)),
+                Key::SQL_SELECT_SAMPLE << $10,
             };
         }
   | sql_values_clause {
@@ -501,16 +503,15 @@ sql_from_list:
     ;
 
 // table_ref is where an alias clause can be attached.
-
+// XXX Andre
 sql_table_ref:
-    sql_relation_expr sql_opt_alias_clause                          { $1.push_back(Key::SQL_TABLE_ALIAS << $2); $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_TABLE_REF, move($1)); }
-  | sql_relation_expr sql_opt_alias_clause sql_tablesample_clause   { $$ = {}; }
-  | sql_func_table sql_func_alias_clause                            { $1.push_back(Key::SQL_TABLE_ALIAS << $2); $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_FUNCTION_TABLE, move($1)); }
-  | LATERAL_P sql_func_table sql_func_alias_clause                  { $$ = {}; }
-  | sql_select_with_parens sql_opt_alias_clause                     { $$ = {}; }
-  | LATERAL_P sql_select_with_parens sql_opt_alias_clause           { $$ = {}; }
-  | sql_joined_table                                                { $$ = {}; }
-  | '(' sql_joined_table ')' sql_alias_clause                       { $$ = {}; }
+    sql_relation_expr sql_opt_alias_clause sql_opt_tablesample_clause   { $1.push_back(Key::SQL_TABLE_ALIAS << $2); $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_TABLE_REF, move($1)); }
+  | sql_func_table sql_func_alias_clause sql_opt_tablesample_clause     { $1.push_back(Key::SQL_TABLE_ALIAS << $2); $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_FUNCTION_TABLE, move($1)); }
+  | LATERAL_P sql_func_table sql_func_alias_clause                      { $$ = {}; }
+  | sql_select_with_parens sql_opt_alias_clause sql_opt_tablesample_clause { $$ = {}; }
+  | LATERAL_P sql_select_with_parens sql_opt_alias_clause               { $$ = {}; }
+  | sql_joined_table                                                    { $$ = {}; }
+  | '(' sql_joined_table ')' sql_alias_clause                           { $$ = {}; }
     ;
 
 
@@ -602,16 +603,44 @@ sql_relation_expr:
 // SET is not an alias.
 
 
-// TABLESAMPLE decoration in a FROM item
+sql_sample_count:
+	  FCONST '%'
+	| ICONST '%'
+	| FCONST PERCENT
+	| ICONST PERCENT
+	| ICONST
+	| ICONST ROWS
+	  ;
+
+sql_sample_clause:
+    USING SAMPLE sql_tablesample_entry  { $$ = Null(); }
+  | %empty                              { $$ = Null(); }
+
+sql_opt_sample_func:
+    sql_col_id
+  | %empty
+		;
+
+sql_tablesample_entry:
+	  sql_opt_sample_func '(' sql_sample_count ')' sql_opt_repeatable_clause {}
+	| sql_sample_count                      {}
+	| sql_sample_count '(' sql_col_id ')'   {}
+	| sql_sample_count '(' sql_col_id ',' ICONST ')' {}
+	  ;
 
 sql_tablesample_clause:
-    TABLESAMPLE sql_func_name '(' sql_expr_list ')' sql_opt_repeatable_clause
-    ;
+    TABLESAMPLE sql_tablesample_entry
+		;
+
+sql_opt_tablesample_clause:
+		sql_tablesample_clause
+  | %empty
+		;
 
 sql_opt_repeatable_clause:
-    REPEATABLE '(' sql_a_expr ')'
+    REPEATABLE '(' ICONST ')'
   | %empty
-    ;
+		;
 
 // func_table represents a function invocation in a FROM list. It can be
 // a plain function call, like "foo(...)", or a ROWS FROM expression with
