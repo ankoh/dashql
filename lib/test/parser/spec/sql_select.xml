@@ -3261,20 +3261,48 @@
             <dependencies />
         </expected>
     </test>
-    <test name="select_knownfunc_6">
+    <test name="select_knownfunc_7">
         <input>
-            select collation for ('foo');
+            select current_time(42);
         </input>
         <expected>
             <statements>
                 <statement type="SELECT">
-                    <node type="OBJECT_SQL_SELECT" loc="13..41" text="select col..or ('foo')">
+                    <node type="OBJECT_SQL_SELECT" loc="13..36" text="select cur..t_time(42)">
                         <node key="SQL_SELECT_TARGETS">
-                            <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="20..41" text="collation ..or ('foo')">
+                            <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="20..36" text="current_time(42)">
                                 <node key="SQL_FUNCTION_ARGUMENTS">
-                                    <node loc="35..40" text="'foo'" />
+                                    <node loc="33..35" text="42" />
                                 </node>
-                                <node key="SQL_FUNCTION_NAME" value="COLLATION_FOR" />
+                                <node key="SQL_FUNCTION_NAME" value="CURRENT_DATE" />
+                            </node>
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="37..38" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="select_knownfunc_8">
+        <input>
+            select current_timestamp(42);
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..41" text="select cur..estamp(42)">
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="20..41" text="current_ti..estamp(42)">
+                                <node key="SQL_FUNCTION_ARGUMENTS">
+                                    <node loc="38..40" text="42" />
+                                </node>
+                                <node key="SQL_FUNCTION_NAME" value="CURRENT_TIMESTAMP" />
                             </node>
                         </node>
                     </node>
@@ -3284,6 +3312,344 @@
             <line_breaks>
                 <line_break loc="0..1" text="&#10;" />
                 <line_break loc="42..43" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="select_knownfunc_9">
+        <input>
+            select localtime(42);
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..33" text="select loc..altime(42)">
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="20..33" text="localtime(42)">
+                                <node key="SQL_FUNCTION_ARGUMENTS">
+                                    <node loc="30..32" text="42" />
+                                </node>
+                                <node key="SQL_FUNCTION_NAME" value="LOCALTIME" />
+                            </node>
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="34..35" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="select_knownfunc_10">
+        <input>
+            select localtimestamp(42);
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..38" text="select loc..estamp(42)">
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="20..38" text="localtimestamp(42)">
+                                <node key="SQL_FUNCTION_ARGUMENTS">
+                                    <node loc="35..37" text="42" />
+                                </node>
+                                <node key="SQL_FUNCTION_NAME" value="LOCALTIMESTAMP" />
+                            </node>
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="39..40" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="select_knownfunc_11">
+        <input>
+            select current_role;
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..32" text="select current_role">
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="20..32" text="current_role">
+                                <node key="SQL_FUNCTION_NAME" value="CURRENT_ROLE" />
+                            </node>
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="33..34" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="select_knownfunc_12">
+        <input>
+            select current_user;
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..32" text="select current_user">
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="20..32" text="current_user">
+                                <node key="SQL_FUNCTION_NAME" value="CURRENT_USER" />
+                            </node>
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="33..34" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="select_knownfunc_13">
+        <input>
+            select session_user;
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..32" text="select session_user">
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="20..32" text="session_user">
+                                <node key="SQL_FUNCTION_NAME" value="SESSION_USER" />
+                            </node>
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="33..34" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="select_knownfunc_14">
+        <input>
+            select user;
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..24" text="select user">
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="20..24" text="user">
+                                <node key="SQL_FUNCTION_NAME" value="USER" />
+                            </node>
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="25..26" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="select_knownfunc_15">
+        <input>
+            select current_catalog;
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..35" text="select cur..nt_catalog">
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="20..35" text="current_catalog">
+                                <node key="SQL_FUNCTION_NAME" value="CURRENT_CATALOG" />
+                            </node>
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="36..37" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="select_knownfunc_16">
+        <input>
+            select current_schema;
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..34" text="select cur..ent_schema">
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="20..34" text="current_schema">
+                                <node key="SQL_FUNCTION_NAME" value="CURRENT_SCHEMA" />
+                            </node>
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="35..36" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="select_knownfunc_17">
+        <input>
+            select cast(1 as integer);
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..38" text="select cas..s integer)">
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="20..38" text="cast(1 as integer)">
+                                <node key="SQL_FUNCTION_ARGUMENTS">
+                                    <node loc="25..26" text="1" />
+                                    <node type="OBJECT_SQL_TYPENAME" loc="30..37" text="integer">
+                                        <node key="SQL_TYPENAME_TYPE" value="INT4" />
+                                    </node>
+                                </node>
+                                <node key="SQL_FUNCTION_NAME" value="CAST" />
+                            </node>
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="39..40" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="select_knownfunc_18">
+        <input>
+            select treat(1 as integer);
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..39" text="select tre..s integer)">
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="20..39" text="treat(1 as integer)">
+                                <node key="SQL_FUNCTION_ARGUMENTS">
+                                    <node loc="26..27" text="1" />
+                                    <node type="OBJECT_SQL_TYPENAME" loc="31..38" text="integer">
+                                        <node key="SQL_TYPENAME_TYPE" value="INT4" />
+                                    </node>
+                                </node>
+                                <node key="SQL_FUNCTION_NAME" value="TREAT" />
+                            </node>
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="40..41" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="select_knownfunc_18">
+        <input>
+            select nullif(a, 1);
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..32" text="select nullif(a, 1)">
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="20..32" text="nullif(a, 1)">
+                                <node key="SQL_FUNCTION_ARGUMENTS">
+                                    <node type="OBJECT_SQL_COLUMN_REF" loc="27..28" text="a">
+                                        <node key="SQL_COLUMN_REF_PATH">
+                                            <node loc="27..28" text="a" />
+                                        </node>
+                                    </node>
+                                    <node loc="30..31" text="1" />
+                                </node>
+                                <node key="SQL_FUNCTION_NAME" value="NULLIF" />
+                            </node>
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="33..34" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="select_knownfunc_19">
+        <input>
+            select coalesce(a, b);
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..34" text="select coa..esce(a, b)">
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="20..34" text="coalesce(a, b)">
+                                <node key="SQL_FUNCTION_ARGUMENTS">
+                                    <node type="OBJECT_SQL_COLUMN_REF" loc="29..30" text="a">
+                                        <node key="SQL_COLUMN_REF_PATH">
+                                            <node loc="29..30" text="a" />
+                                        </node>
+                                    </node>
+                                    <node type="OBJECT_SQL_COLUMN_REF" loc="32..33" text="b">
+                                        <node key="SQL_COLUMN_REF_PATH">
+                                            <node loc="32..33" text="b" />
+                                        </node>
+                                    </node>
+                                </node>
+                                <node key="SQL_FUNCTION_NAME" value="NULLIF" />
+                            </node>
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="35..36" text="&#10;" />
             </line_breaks>
             <comments />
             <dependencies />

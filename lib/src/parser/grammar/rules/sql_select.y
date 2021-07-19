@@ -1209,27 +1209,71 @@ sql_func_expr_common_subexpr:
             Key::SQL_FUNCTION_ARGUMENTS << ctx.Add(Loc({@2, @3, @4}), { String(@3) })
         };
     }
-  | CURRENT_TIMESTAMP '(' ICONST ')'      { $$ = {}; }
-  | LOCALTIME '(' ICONST ')'              { $$ = {}; }
-  | LOCALTIMESTAMP '(' ICONST ')'         { $$ = {}; }
-  | CURRENT_ROLE                          { $$ = {}; }
-  | CURRENT_USER                          { $$ = {}; }
-  | SESSION_USER                          { $$ = {}; }
-  | USER                                  { $$ = {}; }
-  | CURRENT_CATALOG                       { $$ = {}; }
-  | CURRENT_SCHEMA                        { $$ = {}; }
-  | CAST '(' sql_a_expr AS sql_typename ')'         { $$ = {}; }
+  | CURRENT_TIMESTAMP '(' ICONST ')' {
+        $$ = {
+            Key::SQL_FUNCTION_NAME << Enum(Loc({@1, @2}), sx::KnownFunction::CURRENT_TIMESTAMP),
+            Key::SQL_FUNCTION_ARGUMENTS << ctx.Add(Loc({@2, @3, @4}), { String(@3) })
+        };
+    }
+  | LOCALTIME '(' ICONST ')' {
+        $$ = {
+            Key::SQL_FUNCTION_NAME << Enum(Loc({@1, @2}), sx::KnownFunction::LOCALTIME),
+            Key::SQL_FUNCTION_ARGUMENTS << ctx.Add(Loc({@2, @3, @4}), { String(@3) })
+        };
+    }
+  | LOCALTIMESTAMP '(' ICONST ')' {
+        $$ = {
+            Key::SQL_FUNCTION_NAME << Enum(Loc({@1, @2}), sx::KnownFunction::LOCALTIMESTAMP),
+            Key::SQL_FUNCTION_ARGUMENTS << ctx.Add(Loc({@2, @3, @4}), { String(@3) })
+        };
+    }
+  | CURRENT_ROLE    { $$ = { Key::SQL_FUNCTION_NAME << Enum(@1, sx::KnownFunction::CURRENT_ROLE) }; }
+  | CURRENT_USER    { $$ = { Key::SQL_FUNCTION_NAME << Enum(@1, sx::KnownFunction::CURRENT_USER) }; }
+  | SESSION_USER    { $$ = { Key::SQL_FUNCTION_NAME << Enum(@1, sx::KnownFunction::SESSION_USER) }; }
+  | USER            { $$ = { Key::SQL_FUNCTION_NAME << Enum(@1, sx::KnownFunction::USER) }; }
+  | CURRENT_CATALOG { $$ = { Key::SQL_FUNCTION_NAME << Enum(@1, sx::KnownFunction::CURRENT_CATALOG) }; }
+  | CURRENT_SCHEMA  { $$ = { Key::SQL_FUNCTION_NAME << Enum(@1, sx::KnownFunction::CURRENT_SCHEMA) }; }
+  | CAST '(' sql_a_expr AS sql_typename ')' {
+        $$ = {
+            Key::SQL_FUNCTION_NAME << Enum(@1, sx::KnownFunction::CAST),
+            Key::SQL_FUNCTION_ARGUMENTS << ctx.Add(Loc({@2, @3, @4, @5, @6}), {
+                std::move($3),
+                std::move($5),
+            })
+        };
+    }
   | EXTRACT '(' sql_extract_list ')'                { $$ = {}; }
   | OVERLAY '(' sql_overlay_list ')'                { $$ = {}; }
   | POSITION '(' sql_position_list ')'              { $$ = {}; }
   | SUBSTRING '(' sql_substr_list ')'               { $$ = {}; }
-  | TREAT '(' sql_a_expr AS sql_typename ')'        { $$ = {}; }
   | TRIM '(' BOTH sql_trim_list ')'                 { $$ = {}; }
   | TRIM '(' LEADING sql_trim_list ')'              { $$ = {}; }
   | TRIM '(' TRAILING sql_trim_list ')'             { $$ = {}; }
   | TRIM '(' sql_trim_list ')'                      { $$ = {}; }
-  | NULLIF '(' sql_a_expr ',' sql_a_expr ')'        { $$ = {}; }
-  | COALESCE '(' sql_expr_list ')'                  { $$ = {}; }
+  | TREAT '(' sql_a_expr AS sql_typename ')' {
+        $$ = {
+            Key::SQL_FUNCTION_NAME << Enum(@1, sx::KnownFunction::TREAT),
+            Key::SQL_FUNCTION_ARGUMENTS << ctx.Add(Loc({@2, @3, @4, @5, @6}), {
+                std::move($3),
+                std::move($5),
+            })
+        };
+    }
+  | NULLIF '(' sql_a_expr ',' sql_a_expr ')' {
+        $$ = {
+            Key::SQL_FUNCTION_NAME << Enum(@1, sx::KnownFunction::NULLIF),
+            Key::SQL_FUNCTION_ARGUMENTS << ctx.Add(Loc({@2, @3, @4, @5, @6}), {
+                std::move($3),
+                std::move($5),
+            })
+        };
+    }
+  | COALESCE '(' sql_expr_list ')' {
+        $$ = {
+            Key::SQL_FUNCTION_NAME << Enum(@1, sx::KnownFunction::NULLIF),
+            Key::SQL_FUNCTION_ARGUMENTS << ctx.Add(Loc({@2, @3, @4}), std::move($3)),
+        };
+    }
     ;
 
 // We allow several variants for SQL and other compatibility. */

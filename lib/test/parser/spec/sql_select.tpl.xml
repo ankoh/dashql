@@ -483,9 +483,74 @@
             select localtimestamp;
         </input>
     </test>
-    <test name="select_knownfunc_6">
+    <test name="select_knownfunc_7">
         <input>
-            select collation for ('foo');
+            select current_time(42);
+        </input>
+    </test>
+    <test name="select_knownfunc_8">
+        <input>
+            select current_timestamp(42);
+        </input>
+    </test>
+    <test name="select_knownfunc_9">
+        <input>
+            select localtime(42);
+        </input>
+    </test>
+    <test name="select_knownfunc_10">
+        <input>
+            select localtimestamp(42);
+        </input>
+    </test>
+    <test name="select_knownfunc_11">
+        <input>
+            select current_role;
+        </input>
+    </test>
+    <test name="select_knownfunc_12">
+        <input>
+            select current_user;
+        </input>
+    </test>
+    <test name="select_knownfunc_13">
+        <input>
+            select session_user;
+        </input>
+    </test>
+    <test name="select_knownfunc_14">
+        <input>
+            select user;
+        </input>
+    </test>
+    <test name="select_knownfunc_15">
+        <input>
+            select current_catalog;
+        </input>
+    </test>
+    <test name="select_knownfunc_16">
+        <input>
+            select current_schema;
+        </input>
+    </test>
+    <test name="select_knownfunc_17">
+        <input>
+            select cast(1 as integer);
+        </input>
+    </test>
+    <test name="select_knownfunc_18">
+        <input>
+            select treat(1 as integer);
+        </input>
+    </test>
+    <test name="select_knownfunc_18">
+        <input>
+            select nullif(a, 1);
+        </input>
+    </test>
+    <test name="select_knownfunc_19">
+        <input>
+            select coalesce(a, b);
         </input>
     </test>
 </tests>
