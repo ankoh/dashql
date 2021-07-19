@@ -3,6 +3,8 @@
 namespace dashql.proto.syntax;
 
 enum ExpressionOperator: uint8 {
+    DEFAULT,
+
     NEGATE,
     NOT,
     TYPECAST,
