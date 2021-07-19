@@ -29,6 +29,7 @@
 %type <NodeVector> sql_opt_partition_clause;
 %type <NodeVector> sql_opt_target_list;
 %type <NodeVector> sql_opt_type_modifiers;
+%type <NodeVector> sql_overlay_list;
 %type <NodeVector> sql_position_list;
 %type <NodeVector> sql_qualified_name_list;
 %type <NodeVector> sql_relation_expr;
@@ -89,6 +90,7 @@
 %type <sx::Node> sql_opt_sort_clause;
 %type <sx::Node> sql_opt_temp_table_name;
 %type <sx::Node> sql_over_clause;
+%type <sx::Node> sql_overlay_placing;
 %type <sx::Node> sql_preparable_stmt;
 %type <sx::Node> sql_qual_all_op;
 %type <sx::Node> sql_qual_op;

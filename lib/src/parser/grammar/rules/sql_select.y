@@ -1244,7 +1244,11 @@ sql_func_expr_common_subexpr:
             Key::SQL_FUNCTION_NAME << Enum(@1, sx::KnownFunction::EXTRACT),
         });
     }
-  | OVERLAY '(' sql_overlay_list ')'                { $$ = {}; }
+  | OVERLAY '(' sql_overlay_list ')' {
+        $$ = concat(std::move($3), {
+            Key::SQL_FUNCTION_NAME << Enum(@1, sx::KnownFunction::OVERLAY),
+        });
+    }
   | POSITION '(' sql_position_list ')' {
         $$ = concat(std::move($3), {
             Key::SQL_FUNCTION_NAME << Enum(@1, sx::KnownFunction::POSITION),
@@ -1552,12 +1556,25 @@ sql_extract_arg:
 // and similarly for binary strings
 
 sql_overlay_list:
-    sql_a_expr sql_overlay_placing sql_substr_from sql_substr_for
-  | sql_a_expr sql_overlay_placing sql_substr_from
+    sql_a_expr sql_overlay_placing sql_substr_from sql_substr_for {
+        $$ = {
+            Key::SQL_FUNCTION_OVERLAY_INPUT << std::move($1),
+            Key::SQL_FUNCTION_OVERLAY_PLACING << std::move($2),
+            Key::SQL_FUNCTION_OVERLAY_FROM << std::move($3),
+            Key::SQL_FUNCTION_OVERLAY_FOR << std::move($4),
+        };
+    }
+  | sql_a_expr sql_overlay_placing sql_substr_from {
+        $$ = {
+            Key::SQL_FUNCTION_OVERLAY_INPUT << std::move($1),
+            Key::SQL_FUNCTION_OVERLAY_PLACING << std::move($2),
+            Key::SQL_FUNCTION_OVERLAY_FROM << std::move($3),
+        };
+    }
     ;
 
 sql_overlay_placing:
-    PLACING sql_a_expr
+    PLACING sql_a_expr { $$ = std::move($2); }
     ;
 
 // position_list uses b_expr not a_expr to avoid conflict with general IN

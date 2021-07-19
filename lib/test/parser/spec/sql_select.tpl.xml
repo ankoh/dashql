@@ -623,4 +623,9 @@
             select position('bar' in 'foobar');
         </input>
     </test>
+    <test name="select_knownfunc_35">
+        <input>
+            SELECT overlay('foooooooooooooooooo' placing 'bar' from 3);
+        </input>
+    </test>
 </tests>
