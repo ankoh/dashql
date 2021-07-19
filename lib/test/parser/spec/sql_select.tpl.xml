@@ -448,7 +448,7 @@
             select a like some (select 1);
         </input>
     </test>
-    <test name="select_subquery_3">
+    <test name="select_subquery_4">
         <input>
             select a like some (foo('bar'));
         </input>
