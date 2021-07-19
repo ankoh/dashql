@@ -593,4 +593,29 @@
             select extract(day from a) from foo;
         </input>
     </test>
+    <test name="select_knownfunc_29">
+        <input>
+            select substring('foobar' from 1 for 2);
+        </input>
+    </test>
+    <test name="select_knownfunc_30">
+        <input>
+            select substring('foobar' from 1);
+        </input>
+    </test>
+    <test name="select_knownfunc_31">
+        <input>
+            select substring('foobar' for 1);
+        </input>
+    </test>
+    <test name="select_knownfunc_32">
+        <input>
+            select substring('foobar', 1, 4);
+        </input>
+    </test>
+    <test name="select_knownfunc_33">
+        <input>
+            select substring('foobar', 1);
+        </input>
+    </test>
 </tests>
