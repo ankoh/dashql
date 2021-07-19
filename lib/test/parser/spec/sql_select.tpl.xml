@@ -618,4 +618,9 @@
             select substring('foobar', 1);
         </input>
     </test>
+    <test name="select_knownfunc_34">
+        <input>
+            select position('bar' in 'foobar');
+        </input>
+    </test>
 </tests>

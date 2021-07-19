@@ -1245,7 +1245,11 @@ sql_func_expr_common_subexpr:
         });
     }
   | OVERLAY '(' sql_overlay_list ')'                { $$ = {}; }
-  | POSITION '(' sql_position_list ')'              { $$ = {}; }
+  | POSITION '(' sql_position_list ')' {
+        $$ = concat(std::move($3), {
+            Key::SQL_FUNCTION_NAME << Enum(@1, sx::KnownFunction::POSITION),
+        });
+    }
   | SUBSTRING '(' sql_substr_list ')' {
         $$ = concat(std::move($3), {
             Key::SQL_FUNCTION_NAME << Enum(@1, sx::KnownFunction::SUBSTRING),
@@ -1559,8 +1563,13 @@ sql_overlay_placing:
 // position_list uses b_expr not a_expr to avoid conflict with general IN
 
 sql_position_list:
-    sql_b_expr IN_P sql_b_expr
-  | %empty
+    sql_b_expr IN_P sql_b_expr {
+        $$ = {
+            Key::SQL_FUNCTION_POSITION_SEARCH << std::move($1),
+            Key::SQL_FUNCTION_POSITION_INPUT << std::move($3),
+        };
+    }
+  | %empty { $$ = {}; }
     ;
 
 // SUBSTRING() arguments
