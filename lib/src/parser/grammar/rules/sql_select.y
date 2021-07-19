@@ -625,27 +625,41 @@ sql_opt_repeatable_clause:
 // as a whole, but that's handled by the table_ref production.
 
 sql_func_table:
-    sql_func_expr_windowless sql_opt_ordinality             { $$ = move($1); /* XXX */ }
-  | ROWS FROM '(' sql_rowsfrom_list ')' sql_opt_ordinality  { $$ = {}; }
+    sql_func_expr_windowless sql_opt_ordinality {
+        $$ = concat(move($1), {
+            Key::SQL_FUNCTION_TABLE_WITH_ORDINALITY << std::move($2),
+        });
+    }
+  | ROWS FROM '(' sql_rowsfrom_list ')' sql_opt_ordinality  {
+        $$ = {
+            Key::SQL_FUNCTION_TABLE_WITH_ORDINALITY << std::move($6),
+            Key::SQL_FUNCTION_TABLE_ROWS_FROM << ctx.Add(@4, std::move($4)),
+        };
+    }
     ;
 
 sql_rowsfrom_item:
-    sql_func_expr_windowless sql_opt_col_def_list
+    sql_func_expr_windowless sql_opt_col_def_list {
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_ROWSFROM_ITEM, {
+            Key::SQL_ROWSFROM_ITEM_FUNCTION << ctx.Add(@1, sx::NodeType::OBJECT_SQL_FUNCTION_EXPRESSION, std::move($1)),
+            Key::SQL_ROWSFROM_ITEM_COLUMNS << std::move($2),
+        });
+    }
     ;
 
 sql_rowsfrom_list:
-    sql_rowsfrom_item
-  | sql_rowsfrom_list ',' sql_rowsfrom_item
+    sql_rowsfrom_item                         { $$ = { std::move($1) }; }
+  | sql_rowsfrom_list ',' sql_rowsfrom_item   { $1.push_back(std::move($3)); $$ = std::move($1); }
     ;
 
 sql_opt_col_def_list:
-    AS '(' sql_table_func_element_list ')'
-  | %empty
+    AS '(' sql_table_func_element_list ')'    { $$ = ctx.Add(@$, std::move($3)); }
+  | %empty                                    { $$ = Null(); }
     ;
 
 sql_opt_ordinality:
-    WITH_LA ORDINALITY
-  | %empty
+    WITH_LA ORDINALITY  { $$ = Bool(@$, true);  }
+  | %empty              { $$ = Bool(@$, false); }
     ;
 
 
@@ -656,17 +670,23 @@ sql_where_clause:
 
 /* variant for UPDATE and DELETE */
 sql_table_func_element_list:
-    sql_table_func_element
-  | sql_table_func_element_list ',' sql_table_func_element
+    sql_table_func_element                                  { $$ = { std::move($1) }; }
+  | sql_table_func_element_list ',' sql_table_func_element  { $1.push_back(std::move($3)); $$ = std::move($1); }
     ;
 
 sql_table_func_element:
-    sql_col_id sql_typename sql_opt_collate_clause
+    sql_col_id sql_typename sql_opt_collate_clause {
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_FUNCTION_TABLE_ELEMENT, {
+            Key::SQL_FUNCTION_TABLE_ELEMENT_NAME << String(@1),
+            Key::SQL_FUNCTION_TABLE_ELEMENT_TYPE << std::move($2),
+            Key::SQL_FUNCTION_TABLE_ELEMENT_COLLATE << std::move($3),
+        });
+    }
     ;
 
 sql_opt_collate_clause:
-    COLLATE sql_any_name
-  | %empty
+    COLLATE sql_any_name  { $$ = ctx.Add(@$, std::move($2)); }
+  | %empty                { $$ = Null(); }
     ;
 
 

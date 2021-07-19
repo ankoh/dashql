@@ -688,4 +688,33 @@
             SELECT overlay('foooooooooooooooooo' placing 'bar' from 3);
         </input>
     </test>
+    <test name="select_table_func_1">
+        <input>
+            SELECT * FROM generate_series(1);
+        </input>
+    </test>
+    <test name="select_table_func_2">
+        <input>
+            SELECT * FROM generate_series(1) WITH ORDINALITY;
+        </input>
+    </test>
+    <test name="select_table_func_3">
+        <input>
+            SELECT * FROM ROWS FROM (generate_series(1), generate_series(2));
+        </input>
+    </test>
+    <test name="select_table_func_4">
+        <input>
+            SELECT * FROM ROWS FROM (generate_series(1) as (a integer), generate_series(2) as (a integer));
+        </input>
+    </test>
+    <test name="select_table_func_5">
+        <input>
+            SELECT * FROM
+                ROWS FROM (
+                    generate_series(1) as (a varchar collate "de_DE"),
+                    generate_series(2) as (a varchar collate "de_DE")
+                );
+        </input>
+    </test>
 </tests>
