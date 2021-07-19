@@ -66,6 +66,7 @@
 %type <sx::Node> sql_columnref;
 %type <sx::Node> sql_common_table_expr;
 %type <sx::Node> sql_const_character;
+%type <sx::Node> sql_const_datetime;
 %type <sx::Node> sql_const_typename;
 %type <sx::Node> sql_distinct_clause;
 %type <sx::Node> sql_extract_arg;
@@ -90,6 +91,7 @@
 %type <sx::Node> sql_opt_slice_bound;
 %type <sx::Node> sql_opt_sort_clause;
 %type <sx::Node> sql_opt_temp_table_name;
+%type <sx::Node> sql_opt_timezone;
 %type <sx::Node> sql_over_clause;
 %type <sx::Node> sql_overlay_placing;
 %type <sx::Node> sql_preparable_stmt;

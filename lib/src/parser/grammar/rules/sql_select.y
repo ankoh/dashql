@@ -730,7 +730,7 @@ sql_simple_typename:
   | sql_numeric                         { $$ = $1; }
   | sql_bit                             { $$ = {}; }
   | sql_const_character                 { $$ = $1; }
-  | sql_const_datetime                  { $$ = {}; }
+  | sql_const_datetime                  { $$ = $1; }
   | sql_const_interval sql_opt_interval { $$ = {}; }
   | sql_const_interval '(' ICONST ')'   { $$ = {}; }
     ;
@@ -864,10 +864,28 @@ sql_opt_varying:
 // SQL date/time types
 
 sql_const_datetime:
-    TIMESTAMP '(' ICONST ')' sql_opt_timezone
-  | TIMESTAMP sql_opt_timezone
-  | TIME '(' ICONST ')' sql_opt_timezone
-  | TIME sql_opt_timezone
+    TIMESTAMP '(' ICONST ')' sql_opt_timezone {
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_TIMESTAMP_TYPE, {
+            Key::SQL_TIME_TYPE_PRECISION << String(@3),
+            Key::SQL_TIME_TYPE_WITH_TIMEZONE << std::move($5),
+        });
+    }
+  | TIMESTAMP sql_opt_timezone {
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_TIMESTAMP_TYPE, {
+            Key::SQL_TIME_TYPE_WITH_TIMEZONE << std::move($2),
+        });
+    }
+  | TIME '(' ICONST ')' sql_opt_timezone {
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_TIME_TYPE, {
+            Key::SQL_TIME_TYPE_PRECISION << String(@3),
+            Key::SQL_TIME_TYPE_WITH_TIMEZONE << std::move($5),
+        });
+   }
+  | TIME sql_opt_timezone {
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_TIME_TYPE, {
+            Key::SQL_TIME_TYPE_WITH_TIMEZONE << std::move($2),
+        });
+   }
     ;
 
 sql_const_interval:
@@ -875,9 +893,9 @@ sql_const_interval:
     ;
 
 sql_opt_timezone:
-    WITH_LA TIME ZONE
-  | WITHOUT TIME ZONE
-  | %empty
+    WITH_LA TIME ZONE { $$ = Bool(@$, true); }
+  | WITHOUT TIME ZONE { $$ = Bool(@$, false); }
+  | %empty            { $$ = Null(); }
     ;
 
 sql_opt_interval:

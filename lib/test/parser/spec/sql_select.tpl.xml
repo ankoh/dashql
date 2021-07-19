@@ -287,6 +287,26 @@
             select interval 1 hour;
         </input>
     </test>
+    <test name="sql_datetime_type_1">
+        <input>
+            select cast('1' as timestamp with time zone);
+        </input>
+    </test>
+    <test name="sql_datetime_type_2">
+        <input>
+            select cast('1' as timestamp (2) with time zone);
+        </input>
+    </test>
+    <test name="sql_datetime_type_3">
+        <input>
+            select cast('1' as time with time zone);
+        </input>
+    </test>
+    <test name="sql_datetime_type_4">
+        <input>
+            select cast('1' as time (2) with time zone);
+        </input>
+    </test>
     <test name="select_operators_1">
         <input>
             select 1 operator(someschema.+) 2;
