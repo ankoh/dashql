@@ -717,4 +717,39 @@
                 );
         </input>
     </test>
+    <test name="select_sample_1">
+        <input>
+            SELECT * FROM tbl USING SAMPLE 5;
+        </input>
+    </test>
+    <test name="select_sample_2">
+        <input>
+            SELECT * FROM tbl USING SAMPLE 10%;
+        </input>
+    </test>
+    <test name="select_sample_3">
+        <input>
+            SELECT * FROM tbl USING SAMPLE 10 PERCENT (bernoulli);
+        </input>
+    </test>
+    <test name="select_sample_4">
+        <input>
+            SELECT * FROM tbl USING SAMPLE reservoir(50 ROWS) REPEATABLE (100);
+        </input>
+    </test>
+    <test name="select_sample_5">
+        <input>
+            SELECT * FROM tbl USING SAMPLE 10% (system, 377);
+        </input>
+    </test>
+    <test name="select_sample_6">
+        <input>
+            SELECT * FROM tbl TABLESAMPLE RESERVOIR(20%), tbl2 WHERE tbl.i=tbl2.i;
+        </input>
+    </test>
+    <test name="select_sample_7">
+        <input>
+            SELECT * FROM tbl, tbl2 WHERE tbl.i=tbl2.i USING SAMPLE RESERVOIR(20%);
+        </input>
+    </test>
 </tests>

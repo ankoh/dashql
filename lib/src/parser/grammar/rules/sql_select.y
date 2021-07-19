@@ -505,10 +505,25 @@ sql_from_list:
 // table_ref is where an alias clause can be attached.
 // XXX Andre
 sql_table_ref:
-    sql_relation_expr sql_opt_alias_clause sql_opt_tablesample_clause   { $1.push_back(Key::SQL_TABLE_ALIAS << $2); $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_TABLE_REF, move($1)); }
-  | sql_func_table sql_func_alias_clause sql_opt_tablesample_clause     { $1.push_back(Key::SQL_TABLE_ALIAS << $2); $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_FUNCTION_TABLE, move($1)); }
+    sql_relation_expr sql_opt_alias_clause sql_opt_tablesample_clause {
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_TABLE_REF, concat(move($1), {
+            Key::SQL_TABLE_ALIAS << $2,
+            Key::SQL_TABLE_SAMPLE << $3,
+        }));
+    }
+  | sql_func_table sql_func_alias_clause sql_opt_tablesample_clause {
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_FUNCTION_TABLE, concat(move($1), {
+            Key::SQL_TABLE_ALIAS << $2,
+            Key::SQL_TABLE_SAMPLE << $3,
+        }));
+    }
+  | sql_select_with_parens sql_opt_alias_clause sql_opt_tablesample_clause {
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_FUNCTION_TABLE, concat(move($1), {
+            Key::SQL_TABLE_ALIAS << $2,
+            Key::SQL_TABLE_SAMPLE << $3,
+        }));
+    }
   | LATERAL_P sql_func_table sql_func_alias_clause                      { $$ = {}; }
-  | sql_select_with_parens sql_opt_alias_clause sql_opt_tablesample_clause { $$ = {}; }
   | LATERAL_P sql_select_with_parens sql_opt_alias_clause               { $$ = {}; }
   | sql_joined_table                                                    { $$ = {}; }
   | '(' sql_joined_table ')' sql_alias_clause                           { $$ = {}; }
@@ -604,42 +619,65 @@ sql_relation_expr:
 
 
 sql_sample_count:
-	  FCONST '%'
-	| ICONST '%'
-	| FCONST PERCENT
-	| ICONST PERCENT
-	| ICONST
-	| ICONST ROWS
+	  FCONST '%'        { $$ = String(@1); }
+	| ICONST '%'        { $$ = String(@1); }
+	| FCONST PERCENT    { $$ = String(@1); }
+	| ICONST PERCENT    { $$ = String(@1); }
+	| ICONST            { $$ = String(@1); }
+	| ICONST ROWS       { $$ = String(@1); }
 	  ;
 
 sql_sample_clause:
-    USING SAMPLE sql_tablesample_entry  { $$ = Null(); }
+    USING SAMPLE sql_tablesample_entry  { $$ = ctx.Add(@$, std::move($3)); }
   | %empty                              { $$ = Null(); }
 
 sql_opt_sample_func:
-    sql_col_id
-  | %empty
+    sql_col_id  { /* @$ */ }
+  | %empty      { /* @$ */ }
 		;
 
 sql_tablesample_entry:
-	  sql_opt_sample_func '(' sql_sample_count ')' sql_opt_repeatable_clause {}
-	| sql_sample_count                      {}
-	| sql_sample_count '(' sql_col_id ')'   {}
-	| sql_sample_count '(' sql_col_id ',' ICONST ')' {}
+	  sql_opt_sample_func '(' sql_sample_count ')' sql_opt_repeatable_clause {
+        $$ = {
+            Key::SQL_SAMPLE_FUNCTION << String(@1),
+            Key::SQL_SAMPLE_COUNT << std::move($3),
+            Key::SQL_SAMPLE_REPEAT << std::move($5),
+        };
+    }
+	| sql_sample_count {
+        $$ = {
+            Key::SQL_SAMPLE_COUNT << std::move($1),
+        };
+    }
+	| sql_sample_count '(' sql_col_id ')' {
+        $$ = {
+            Key::SQL_SAMPLE_COUNT << std::move($1),
+            Key::SQL_SAMPLE_FUNCTION << String(@3),
+        };
+    }
+	| sql_sample_count '(' sql_col_id ',' ICONST ')' {
+        $$ = {
+            Key::SQL_SAMPLE_COUNT << std::move($1),
+            Key::SQL_SAMPLE_FUNCTION << String(@3),
+            Key::SQL_SAMPLE_SEED << String(@5),
+        };
+    }
 	  ;
 
 sql_tablesample_clause:
-    TABLESAMPLE sql_tablesample_entry
+    TABLESAMPLE sql_tablesample_entry {
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_TABLE_SAMPLE, std::move($2));
+    }
 		;
 
 sql_opt_tablesample_clause:
-		sql_tablesample_clause
-  | %empty
+		sql_tablesample_clause  { $$ = std::move($1); }
+  | %empty                  { $$ = Null(); }
 		;
 
 sql_opt_repeatable_clause:
-    REPEATABLE '(' ICONST ')'
-  | %empty
+    REPEATABLE '(' ICONST ')'   { $$ = String(@3); }
+  | %empty                      { $$ = Null(); }
 		;
 
 // func_table represents a function invocation in a FROM list. It can be
