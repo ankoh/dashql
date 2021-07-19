@@ -45,6 +45,7 @@
 %type <NodeVector> sql_sortby_list;
 %type <NodeVector> sql_substr_list;
 %type <NodeVector> sql_table_func_element_list;
+%type <NodeVector> sql_tablesample_entry;
 %type <NodeVector> sql_target_list;
 %type <NodeVector> sql_trim_list;
 %type <NodeVector> sql_type_list;
@@ -98,8 +99,11 @@
 %type <sx::Node> sql_opt_collate_clause;
 %type <sx::Node> sql_opt_nulls_order;
 %type <sx::Node> sql_opt_ordinality;
+%type <sx::Node> sql_opt_repeatable_clause;
+%type <sx::Node> sql_opt_sample_func;
 %type <sx::Node> sql_opt_slice_bound;
 %type <sx::Node> sql_opt_sort_clause;
+%type <sx::Node> sql_opt_tablesample_clause;
 %type <sx::Node> sql_opt_temp_table_name;
 %type <sx::Node> sql_opt_timezone;
 %type <sx::Node> sql_over_clause;
@@ -110,6 +114,7 @@
 %type <sx::Node> sql_qualified_name;
 %type <sx::Node> sql_rowsfrom_item;
 %type <sx::Node> sql_sample_clause;
+%type <sx::Node> sql_sample_count;
 %type <sx::Node> sql_select_limit_value;
 %type <sx::Node> sql_select_offset_value;
 %type <sx::Node> sql_simple_typename;
@@ -121,6 +126,7 @@
 %type <sx::Node> sql_substr_from;
 %type <sx::Node> sql_table_func_element;
 %type <sx::Node> sql_table_ref;
+%type <sx::Node> sql_tablesample_clause;
 %type <sx::Node> sql_target_el;
 %type <sx::Node> sql_typename;
 %type <sx::Node> sql_when_clause;
