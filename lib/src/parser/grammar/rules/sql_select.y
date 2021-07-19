@@ -1176,8 +1176,7 @@ sql_func_expr:
               Key::SQL_FUNCTION_OVER << std::move($4),
         }));
     }
-  | sql_func_expr_common_subexpr { $$ = {}; }
-
+  | sql_func_expr_common_subexpr { $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_FUNCTION_EXPRESSION, std::move($1)); }
         ;
 
 // As func_expr but does not accept WINDOW functions directly
@@ -1186,41 +1185,51 @@ sql_func_expr:
 // disambiguate the grammar (e.g. in CREATE INDEX).
 
 sql_func_expr_windowless:
-    sql_func_application            { $$ = move($1); }
-  | sql_func_expr_common_subexpr    { $$ = {}; }
+    sql_func_application            { $$ = std::move($1); }
+  | sql_func_expr_common_subexpr    { $$ = std::move($1); }
     ;
 
 // Special expressions that are considered to be functions.
 
 sql_func_expr_common_subexpr:
-    COLLATION FOR '(' sql_a_expr ')'
-  | CURRENT_DATE
-  | CURRENT_TIME
-  | CURRENT_TIME '(' ICONST ')'
-  | CURRENT_TIMESTAMP
-  | CURRENT_TIMESTAMP '(' ICONST ')'
-  | LOCALTIME
-  | LOCALTIME '(' ICONST ')'
-  | LOCALTIMESTAMP
-  | LOCALTIMESTAMP '(' ICONST ')'
-  | CURRENT_ROLE
-  | CURRENT_USER
-  | SESSION_USER
-  | USER
-  | CURRENT_CATALOG
-  | CURRENT_SCHEMA
-  | CAST '(' sql_a_expr AS sql_typename ')'
-  | EXTRACT '(' sql_extract_list ')'
-  | OVERLAY '(' sql_overlay_list ')'
-  | POSITION '(' sql_position_list ')'
-  | SUBSTRING '(' sql_substr_list ')'
-  | TREAT '(' sql_a_expr AS sql_typename ')'
-  | TRIM '(' BOTH sql_trim_list ')'
-  | TRIM '(' LEADING sql_trim_list ')'
-  | TRIM '(' TRAILING sql_trim_list ')'
-  | TRIM '(' sql_trim_list ')'
-  | NULLIF '(' sql_a_expr ',' sql_a_expr ')'
-  | COALESCE '(' sql_expr_list ')'
+    COLLATION FOR '(' sql_a_expr ')' {
+        $$ = {
+            Key::SQL_FUNCTION_NAME << Enum(Loc({@1, @2}), sx::KnownFunction::COLLATION_FOR),
+            Key::SQL_FUNCTION_ARGUMENTS << ctx.Add(Loc({@1, @2, @3}), { std::move(std::move($4)) })
+        };
+    }
+  | CURRENT_DATE        { $$ = { Key::SQL_FUNCTION_NAME << Enum(@1, sx::KnownFunction::CURRENT_DATE) }; }
+  | CURRENT_TIME        { $$ = { Key::SQL_FUNCTION_NAME << Enum(@1, sx::KnownFunction::CURRENT_TIME) }; }
+  | CURRENT_TIMESTAMP   { $$ = { Key::SQL_FUNCTION_NAME << Enum(@1, sx::KnownFunction::CURRENT_TIMESTAMP) }; }
+  | LOCALTIME           { $$ = { Key::SQL_FUNCTION_NAME << Enum(@1, sx::KnownFunction::LOCALTIME) }; }
+  | LOCALTIMESTAMP      { $$ = { Key::SQL_FUNCTION_NAME << Enum(@1, sx::KnownFunction::LOCALTIMESTAMP) }; }
+  | CURRENT_TIME '(' ICONST ')' {
+        $$ = {
+            Key::SQL_FUNCTION_NAME << Enum(Loc({@1, @2}), sx::KnownFunction::CURRENT_DATE),
+            Key::SQL_FUNCTION_ARGUMENTS << ctx.Add(Loc({@2, @3, @4}), { String(@3) })
+        };
+    }
+  | CURRENT_TIMESTAMP '(' ICONST ')'      { $$ = {}; }
+  | LOCALTIME '(' ICONST ')'              { $$ = {}; }
+  | LOCALTIMESTAMP '(' ICONST ')'         { $$ = {}; }
+  | CURRENT_ROLE                          { $$ = {}; }
+  | CURRENT_USER                          { $$ = {}; }
+  | SESSION_USER                          { $$ = {}; }
+  | USER                                  { $$ = {}; }
+  | CURRENT_CATALOG                       { $$ = {}; }
+  | CURRENT_SCHEMA                        { $$ = {}; }
+  | CAST '(' sql_a_expr AS sql_typename ')'         { $$ = {}; }
+  | EXTRACT '(' sql_extract_list ')'                { $$ = {}; }
+  | OVERLAY '(' sql_overlay_list ')'                { $$ = {}; }
+  | POSITION '(' sql_position_list ')'              { $$ = {}; }
+  | SUBSTRING '(' sql_substr_list ')'               { $$ = {}; }
+  | TREAT '(' sql_a_expr AS sql_typename ')'        { $$ = {}; }
+  | TRIM '(' BOTH sql_trim_list ')'                 { $$ = {}; }
+  | TRIM '(' LEADING sql_trim_list ')'              { $$ = {}; }
+  | TRIM '(' TRAILING sql_trim_list ')'             { $$ = {}; }
+  | TRIM '(' sql_trim_list ')'                      { $$ = {}; }
+  | NULLIF '(' sql_a_expr ',' sql_a_expr ')'        { $$ = {}; }
+  | COALESCE '(' sql_expr_list ')'                  { $$ = {}; }
     ;
 
 // We allow several variants for SQL and other compatibility. */

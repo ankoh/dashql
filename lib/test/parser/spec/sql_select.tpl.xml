@@ -458,4 +458,34 @@
             select somefunc(default);
         </input>
     </test>
+    <test name="select_knownfunc_1">
+        <input>
+            select current_date;
+        </input>
+    </test>
+    <test name="select_knownfunc_2">
+        <input>
+            select current_time;
+        </input>
+    </test>
+    <test name="select_knownfunc_3">
+        <input>
+            select current_timestamp;
+        </input>
+    </test>
+    <test name="select_knownfunc_4">
+        <input>
+            select localtime;
+        </input>
+    </test>
+    <test name="select_knownfunc_5">
+        <input>
+            select localtimestamp;
+        </input>
+    </test>
+    <test name="select_knownfunc_6">
+        <input>
+            select collation for ('foo');
+        </input>
+    </test>
 </tests>

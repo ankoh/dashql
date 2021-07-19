@@ -10,6 +10,7 @@
 %type <NodeVector> sql_from_clause;
 %type <NodeVector> sql_from_list;
 %type <NodeVector> sql_func_application;
+%type <NodeVector> sql_func_expr_common_subexpr;
 %type <NodeVector> sql_func_arg_list;
 %type <NodeVector> sql_func_expr_windowless;
 %type <NodeVector> sql_func_name;

@@ -182,3 +182,33 @@ enum IntervalType: uint8 {
     HOUR_TO_SECOND,
     MINUTE_TO_SECOND,
 }
+
+enum TrimTarget: uint8 {
+    BOTH,
+    LEADING,
+    TRAINLING
+}
+
+enum KnownFunction : uint8 {
+    COLLATION_FOR,
+    CURRENT_DATE,
+    CURRENT_TIME,
+    CURRENT_TIMESTAMP,
+    LOCALTIME,
+    LOCALTIMESTAMP,
+    CURRENT_ROLE,
+    CURRENT_USER,
+    SESSION_USER,
+    USER,
+    CURRENT_CATALOG,
+    CURRENT_SCHEMA,
+    CAST,
+    EXTRACT,
+    OVERLAY,
+    POSITION,
+    SUBSTRING,
+    TREAT,
+    TRIM,
+    NULLIF,
+    COALESCE,
+}
