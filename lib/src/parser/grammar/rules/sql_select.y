@@ -577,16 +577,16 @@ sql_func_alias_clause:
     ;
 
 sql_join_type:
-    FULL sql_join_outer
-  | LEFT sql_join_outer
-  | RIGHT sql_join_outer
-  | INNER_P
+    FULL sql_join_outer     { $$ = Merge(sx::JoinType::FULL, $2); }
+  | LEFT sql_join_outer     { $$ = Merge(sx::JoinType::LEFT, $2); }
+  | RIGHT sql_join_outer    { $$ = Merge(sx::JoinType::RIGHT, $2); }
+  | INNER_P                 { $$ = sx::JoinType::INNER; }
     ;
 
 /* OUTER is just noise... */
 sql_join_outer:
-    OUTER_P
-  | %empty
+    OUTER_P   { $$ = sx::JoinType::OUTER_; }
+  | %empty    { $$ = sx::JoinType::NONE; }
     ;
 
 // JOIN qualification clauses

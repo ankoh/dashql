@@ -200,6 +200,35 @@ enum ExtractTarget: uint8 {
     SECOND
 }
 
+enum JoinType: uint8 {
+    NONE = 0,
+
+    INNER = 1,
+    FULL = 2,
+    LEFT = 3,
+    RIGHT = 4,
+
+    // v | 64
+    OUTER_ = 64,
+    OUTER_INNER_INVALID = 65,
+    OUTER_FULL = 66,
+    OUTER_LEFT = 67,
+    OUTER_RIGHT = 68,
+
+    // v | 128
+    NATURAL_ = 128,
+    NATURAL_INNER = 129,
+    NATURAL_FULL = 130,
+    NATURAL_LEFT = 131,
+    NATURAL_RIGHT = 132,
+
+    // v | 128 | 64
+    NATURAL_OUTER_INNER_INVALID = 193,
+    NATURAL_OUTER_FULL = 194,
+    NATURAL_OUTER_LEFT = 195,
+    NATURAL_OUTER_RIGHT = 196,
+}
+
 enum KnownFunction : uint8 {
     COLLATION_FOR,
     CURRENT_DATE,

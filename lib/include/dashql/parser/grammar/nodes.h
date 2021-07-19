@@ -4,6 +4,7 @@
 #define INCLUDE_DASHQL_PARSER_GRAMMAR_NODES_H_
 
 #include <charconv>
+#include <initializer_list>
 
 #include "dashql/parser/grammar/enums.h"
 #include "dashql/parser/parser_driver.h"
@@ -135,6 +136,14 @@ inline sx::Node Negate(ParserDriver& driver, sx::Location loc, sx::Location loc_
                           Key::SQL_EXPRESSION_OPERATOR << Enum(loc_minus, sx::ExpressionOperator::NEGATE),
                           Key::SQL_EXPRESSION_ARG0 << value,
                       });
+}
+
+/// Merge join types
+inline sx::JoinType Merge(sx::JoinType left, sx::JoinType right) {
+    uint8_t result = 0;
+    result |= static_cast<uint8_t>(left);
+    result |= static_cast<uint8_t>(right);
+    return static_cast<sx::JoinType>(result);
 }
 
 /// Read a float type

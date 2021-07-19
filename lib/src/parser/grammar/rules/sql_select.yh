@@ -56,6 +56,8 @@
 %type <NodeVector> sql_with_clause;
 %type <bool> sql_opt_asymmetric;
 %type <bool> sql_opt_varying;
+%type <sx::JoinType> sql_join_outer;
+%type <sx::JoinType> sql_join_type;
 %type <sx::Node> sql_a_expr;
 %type <sx::Node> sql_a_expr_const;
 %type <sx::Node> sql_alias_clause;
