@@ -1638,28 +1638,28 @@ sql_position_list:
 sql_substr_list:
     sql_a_expr sql_substr_from sql_substr_for {
         $$ = {
-            Key::SQL_FUNCTION_SUBSTR_INPUT << std::move($1),
-            Key::SQL_FUNCTION_SUBSTR_FROM << std::move($2),
-            Key::SQL_FUNCTION_SUBSTR_FOR << std::move($3),
+            Key::SQL_FUNCTION_SUBSTRING_INPUT << std::move($1),
+            Key::SQL_FUNCTION_SUBSTRING_FROM << std::move($2),
+            Key::SQL_FUNCTION_SUBSTRING_FOR << std::move($3),
         };
     }
   | sql_a_expr sql_substr_for sql_substr_from {
         $$ = {
-            Key::SQL_FUNCTION_SUBSTR_INPUT << std::move($1),
-            Key::SQL_FUNCTION_SUBSTR_FOR << std::move($2),
-            Key::SQL_FUNCTION_SUBSTR_FROM << std::move($3),
+            Key::SQL_FUNCTION_SUBSTRING_INPUT << std::move($1),
+            Key::SQL_FUNCTION_SUBSTRING_FOR << std::move($2),
+            Key::SQL_FUNCTION_SUBSTRING_FROM << std::move($3),
         };
     }
   | sql_a_expr sql_substr_from {
         $$ = {
-            Key::SQL_FUNCTION_SUBSTR_INPUT << std::move($1),
-            Key::SQL_FUNCTION_SUBSTR_FROM << std::move($2),
+            Key::SQL_FUNCTION_SUBSTRING_INPUT << std::move($1),
+            Key::SQL_FUNCTION_SUBSTRING_FROM << std::move($2),
         };
    }
   | sql_a_expr sql_substr_for {
         $$ = {
-            Key::SQL_FUNCTION_SUBSTR_INPUT << std::move($1),
-            Key::SQL_FUNCTION_SUBSTR_FOR << std::move($2),
+            Key::SQL_FUNCTION_SUBSTRING_INPUT << std::move($1),
+            Key::SQL_FUNCTION_SUBSTRING_FOR << std::move($2),
         };
    }
   | sql_expr_list   { $$ = { Key::SQL_FUNCTION_ARGUMENTS << ctx.Add(@1, std::move($1)) }; }

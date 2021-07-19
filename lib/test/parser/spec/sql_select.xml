@@ -4328,9 +4328,9 @@
                         <node key="SQL_SELECT_TARGETS">
                             <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="20..52" text="substring(..m 1 for 2)">
                                 <node key="SQL_FUNCTION_NAME" value="SUBSTRING" />
-                                <node key="SQL_FUNCTION_SUBSTR_FOR" loc="50..51" text="2" />
-                                <node key="SQL_FUNCTION_SUBSTR_FROM" loc="44..45" text="1" />
-                                <node key="SQL_FUNCTION_SUBSTR_INPUT" loc="30..38" text="'foobar'" />
+                                <node key="SQL_FUNCTION_SUBSTRING_FOR" loc="50..51" text="2" />
+                                <node key="SQL_FUNCTION_SUBSTRING_FROM" loc="44..45" text="1" />
+                                <node key="SQL_FUNCTION_SUBSTRING_INPUT" loc="30..38" text="'foobar'" />
                             </node>
                         </node>
                     </node>
@@ -4356,8 +4356,8 @@
                         <node key="SQL_SELECT_TARGETS">
                             <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="20..46" text="substring(..r' from 1)">
                                 <node key="SQL_FUNCTION_NAME" value="SUBSTRING" />
-                                <node key="SQL_FUNCTION_SUBSTR_FROM" loc="44..45" text="1" />
-                                <node key="SQL_FUNCTION_SUBSTR_INPUT" loc="30..38" text="'foobar'" />
+                                <node key="SQL_FUNCTION_SUBSTRING_FROM" loc="44..45" text="1" />
+                                <node key="SQL_FUNCTION_SUBSTRING_INPUT" loc="30..38" text="'foobar'" />
                             </node>
                         </node>
                     </node>
@@ -4383,8 +4383,8 @@
                         <node key="SQL_SELECT_TARGETS">
                             <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="20..45" text="substring(..ar' for 1)">
                                 <node key="SQL_FUNCTION_NAME" value="SUBSTRING" />
-                                <node key="SQL_FUNCTION_SUBSTR_FOR" loc="43..44" text="1" />
-                                <node key="SQL_FUNCTION_SUBSTR_INPUT" loc="30..38" text="'foobar'" />
+                                <node key="SQL_FUNCTION_SUBSTRING_FOR" loc="43..44" text="1" />
+                                <node key="SQL_FUNCTION_SUBSTRING_INPUT" loc="30..38" text="'foobar'" />
                             </node>
                         </node>
                     </node>
