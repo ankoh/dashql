@@ -103,8 +103,8 @@ sql_def_list:
 sql_def_elem:
     sql_col_label '=' sql_def_arg {
         $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_DEF_ARG, {
-            Key::SQL_DEF_ARG_LABEL << std::move(String(@1)),
-            Key::SQL_DEF_ARG_VALUE << std::move(std::move($3)),
+            Key::SQL_DEFINITION_ARG_KEY << std::move(String(@1)),
+            Key::SQL_DEFINITION_ARG_VALUE << std::move(std::move($3)),
         });
     }
     ;
