@@ -752,7 +752,7 @@ sql_const_typename:
     sql_numeric         { $$ = $1; }
   | sql_const_bit       { $$ = {}; }
   | sql_character       { $$ = $1; }
-  | sql_const_datetime  { $$ = {}; }
+  | sql_const_datetime  { $$ = $1; }
     ;
 
 // GenericType covers all type names that don't have special syntax mandated
