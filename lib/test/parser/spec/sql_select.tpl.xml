@@ -337,6 +337,11 @@
             select 1 collate foo;
         </input>
     </test>
+    <test name="select_overlaps_1">
+        <input>
+            select (date '2021-01-10', date '2021-02-01') overlaps (date '2021-01-20', date '2021-02-10');
+        </input>
+    </test>
     <test name="select_distinct_1">
         <input>
             select a is distinct from b;

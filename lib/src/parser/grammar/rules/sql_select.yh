@@ -33,6 +33,7 @@
 %type <NodeVector> sql_position_list;
 %type <NodeVector> sql_qualified_name_list;
 %type <NodeVector> sql_relation_expr;
+%type <NodeVector> sql_row;
 %type <NodeVector> sql_select_clause;
 %type <NodeVector> sql_select_limit;
 %type <NodeVector> sql_select_no_parens;
