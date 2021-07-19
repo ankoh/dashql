@@ -951,7 +951,7 @@ sql_a_expr:
     sql_c_expr                                                  { $$ = $1; }
   | sql_a_expr TYPECAST sql_typename                            { $$ = Expr(ctx, @$, Enum(@2, ExprFunc::TYPECAST), $1, $3); }
   | sql_a_expr COLLATE sql_any_name                             { $$ = Expr(ctx, @$, Enum(@2, ExprFunc::COLLATE), $1, ctx.Add(@3, std::move($3))); }
-  | sql_a_expr AT TIME ZONE sql_a_expr      %prec AT            { $$ = {}; }
+  | sql_a_expr AT TIME ZONE sql_a_expr      %prec AT            { $$ = Expr(ctx, @$, Enum(Loc({@2, @3, @4}), ExprFunc::AT_TIMEZONE), $1, $5); }
 
   // These operators must be called out explicitly in order to make use
   // of bison's automatic operator-precedence handling.  All other

@@ -322,6 +322,11 @@
             select 1 not between symmetric 0 and 3;
         </input>
     </test>
+    <test name="select_attimezone_1">
+        <input>
+            select '2001-02-16 20:38:40' at time zone 'mst';
+        </input>
+    </test>
     <test name="select_typecast_1">
         <input>
             select 1::integer;
