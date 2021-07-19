@@ -2224,6 +2224,107 @@
             <dependencies />
         </expected>
     </test>
+    <test name="sql_bit_type_1">
+        <input>
+            select cast('1' as bit);
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..36" text="select cas..1' as bit)">
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="20..36" text="cast('1' as bit)">
+                                <node key="SQL_FUNCTION_ARGUMENTS">
+                                    <node loc="25..28" text="'1'" />
+                                    <node type="OBJECT_SQL_TYPENAME" loc="32..35" text="bit">
+                                        <node key="SQL_TYPENAME_TYPE" type="OBJECT_SQL_BIT_TYPE" loc="32..35" text="bit">
+                                            <node key="SQL_BIT_TYPE_VARYING" value="false" />
+                                        </node>
+                                    </node>
+                                </node>
+                                <node key="SQL_FUNCTION_NAME" value="CAST" />
+                            </node>
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="37..38" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="sql_bit_type_2">
+        <input>
+            select cast('1' as bit(2));
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..39" text="select cas..as bit(2))">
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="20..39" text="cast('1' as bit(2))">
+                                <node key="SQL_FUNCTION_ARGUMENTS">
+                                    <node loc="25..28" text="'1'" />
+                                    <node type="OBJECT_SQL_TYPENAME" loc="32..38" text="bit(2)">
+                                        <node key="SQL_TYPENAME_TYPE" type="OBJECT_SQL_BIT_TYPE" loc="32..38" text="bit(2)">
+                                            <node key="SQL_BIT_TYPE_LENGTH" loc="36..37" text="2" />
+                                            <node key="SQL_BIT_TYPE_VARYING" value="false" />
+                                        </node>
+                                    </node>
+                                </node>
+                                <node key="SQL_FUNCTION_NAME" value="CAST" />
+                            </node>
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="40..41" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="sql_bit_type_3">
+        <input>
+            select cast('1' as bit varying(2));
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..47" text="select cas..arying(2))">
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="20..47" text="cast('1' a..arying(2))">
+                                <node key="SQL_FUNCTION_ARGUMENTS">
+                                    <node loc="25..28" text="'1'" />
+                                    <node type="OBJECT_SQL_TYPENAME" loc="32..46" text="bit varying(2)">
+                                        <node key="SQL_TYPENAME_TYPE" type="OBJECT_SQL_BIT_TYPE" loc="32..46" text="bit varying(2)">
+                                            <node key="SQL_BIT_TYPE_LENGTH" loc="44..45" text="2" />
+                                            <node key="SQL_BIT_TYPE_VARYING" value="true" />
+                                        </node>
+                                    </node>
+                                </node>
+                                <node key="SQL_FUNCTION_NAME" value="CAST" />
+                            </node>
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="48..49" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
     <test name="select_operators_1">
         <input>
             select 1 operator(someschema.+) 2;

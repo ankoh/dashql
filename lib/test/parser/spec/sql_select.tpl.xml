@@ -317,6 +317,21 @@
             select cast('1' as interval(2));
         </input>
     </test>
+    <test name="sql_bit_type_1">
+        <input>
+            select cast('1' as bit);
+        </input>
+    </test>
+    <test name="sql_bit_type_2">
+        <input>
+            select cast('1' as bit(2));
+        </input>
+    </test>
+    <test name="sql_bit_type_3">
+        <input>
+            select cast('1' as bit varying(2));
+        </input>
+    </test>
     <test name="select_operators_1">
         <input>
             select 1 operator(someschema.+) 2;
