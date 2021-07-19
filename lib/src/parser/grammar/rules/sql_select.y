@@ -1020,9 +1020,22 @@ sql_a_expr:
   | sql_a_expr NOT_LA BETWEEN SYMMETRIC sql_b_expr AND sql_a_expr           %prec NOT_LA    { $$ = Expr(ctx, @$, Enum(Loc({@2, @3, @4}), ExprFunc::NOT_BETWEEN_SYMMETRIC), $1, $5, $7); }
   | sql_a_expr IN_P sql_in_expr                                                             { $$ = Expr(ctx, @$, Enum(@2, ExprFunc::IN), $1, $3); }
   | sql_a_expr NOT_LA IN_P sql_in_expr                                %prec NOT_LA          { $$ = Expr(ctx, @$, Enum(Loc({@2, @3}), ExprFunc::NOT_IN), $1, $4); }
-  | sql_a_expr sql_subquery_op sql_sub_type sql_select_with_parens    %prec Op              { $$ = {}; }
-  | sql_a_expr sql_subquery_op sql_sub_type '(' sql_a_expr ')'        %prec Op              { $$ = {}; }
-  | DEFAULT                                                                                 { $$ = {}; }
+  | sql_a_expr sql_subquery_op sql_subquery_quantifier sql_select_with_parens    %prec Op {
+        auto op = ctx.Add(Loc({@2, @3}), sx::NodeType::OBJECT_SQL_SUBQUERY_OPERATOR, {
+            Key::SQL_SUBQUERY_OPERATOR << std::move($2),
+            Key::SQL_SUBQUERY_QUANTIFIER << std::move($3),
+        });
+        auto a2 = ctx.Add(@4, sx::NodeType::OBJECT_SQL_SELECT_EXPRESSION, std::move($4));
+        $$ = Expr(ctx, @$, std::move(op), std::move($1), std::move(a2));
+    }
+  | sql_a_expr sql_subquery_op sql_subquery_quantifier '(' sql_a_expr ')'        %prec Op {
+        auto op = ctx.Add(Loc({@2, @3}), sx::NodeType::OBJECT_SQL_SUBQUERY_OPERATOR, {
+            Key::SQL_SUBQUERY_OPERATOR << std::move($2),
+            Key::SQL_SUBQUERY_QUANTIFIER << std::move($3),
+        });
+        $$ = Expr(ctx, @$, std::move(op), std::move($1), std::move($5));
+    }
+  | DEFAULT { $$ = {}; }
     ;
 
 // Restricted expressions
@@ -1342,10 +1355,10 @@ sql_row:
   | '(' sql_expr_list ',' sql_a_expr ')'
     ;
 
-sql_sub_type:
-    ANY
-  | SOME
-  | ALL
+sql_subquery_quantifier:
+    ANY             { $$ = Enum(@1, sx::SubqueryQuantifier::ANY); }
+  | SOME            { $$ = Enum(@1, sx::SubqueryQuantifier::SOME); }
+  | ALL             { $$ = Enum(@1, sx::SubqueryQuantifier::ALL); }
     ;
 
 sql_all_op:
@@ -1387,14 +1400,14 @@ sql_qual_all_op:
 // is not ready for such a thing.
 
 sql_subquery_op:
-    sql_all_op
-  | OPERATOR '(' sql_any_operator ')'
-  | LIKE
-  | NOT_LA LIKE
-  | GLOB
-  | NOT_LA GLOB
-  | ILIKE
-  | NOT_LA ILIKE
+    sql_all_op      { $$ = std::move($1); }
+  | LIKE            { $$ = Enum(@1, sx::ExpressionOperator::LIKE); }
+  | NOT_LA LIKE     { $$ = Enum(@1, sx::ExpressionOperator::NOT_LIKE); }
+  | GLOB            { $$ = Enum(@1, sx::ExpressionOperator::GLOB); }
+  | NOT_LA GLOB     { $$ = Enum(@1, sx::ExpressionOperator::NOT_GLOB); }
+  | ILIKE           { $$ = Enum(@1, sx::ExpressionOperator::ILIKE); }
+  | NOT_LA ILIKE    { $$ = Enum(@1, sx::ExpressionOperator::NOT_ILIKE); }
+  | OPERATOR '(' sql_any_operator ')'   { $$ = ctx.Add(@$, std::move($3)); }
     ;
 
 sql_any_operator:

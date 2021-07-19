@@ -20,26 +20,27 @@ using ExprFunc = sx::ExpressionOperator;
         return sx::Node(loc, NODE_TYPE, Key::NONE, NO_PARENT, static_cast<uint32_t>(e), 0); \
     }
 X(sx::AConstType, sx::NodeType::ENUM_SQL_CONST_TYPE)
-X(sx::IntervalType, sx::NodeType::ENUM_SQL_INTERVAL_TYPE)
+X(sx::CharacterTypeTag, sx::NodeType::ENUM_SQL_CHARACTER_TYPE_TAG)
+X(sx::ColumnConstraint, sx::NodeType::ENUM_SQL_COLUMN_CONSTRAINT)
 X(sx::CombineModifier, sx::NodeType::ENUM_SQL_COMBINE_MODIFIER)
 X(sx::CombineOperation, sx::NodeType::ENUM_SQL_COMBINE_OPERATION)
-X(sx::CharacterTypeTag, sx::NodeType::ENUM_SQL_CHARACTER_TYPE_TAG)
+X(sx::ConstraintAttribute, sx::NodeType::ENUM_SQL_CONSTRAINT_ATTRIBUTE)
 X(sx::ExpressionOperator, sx::NodeType::ENUM_SQL_EXPRESSION_OPERATOR)
-X(sx::LoadMethodType, sx::NodeType::ENUM_DASHQL_LOAD_METHOD_TYPE)
-X(sx::InputComponentType, sx::NodeType::ENUM_DASHQL_INPUT_COMPONENT_TYPE)
 X(sx::FetchMethodType, sx::NodeType::ENUM_DASHQL_FETCH_METHOD_TYPE)
+X(sx::InputComponentType, sx::NodeType::ENUM_DASHQL_INPUT_COMPONENT_TYPE)
+X(sx::IntervalType, sx::NodeType::ENUM_SQL_INTERVAL_TYPE)
+X(sx::LoadMethodType, sx::NodeType::ENUM_DASHQL_LOAD_METHOD_TYPE)
 X(sx::NumericTypeTag, sx::NodeType::ENUM_SQL_NUMERIC_TYPE_TAG)
 X(sx::OnCommitOption, sx::NodeType::ENUM_SQL_ON_COMMIT_OPTION)
 X(sx::OrderDirection, sx::NodeType::ENUM_SQL_ORDER_DIRECTION)
 X(sx::OrderNullRule, sx::NodeType::ENUM_SQL_ORDER_NULL_RULE)
+X(sx::SubqueryQuantifier, sx::NodeType::ENUM_SQL_SUBQUERY_QUANTIFIER)
 X(sx::TempType, sx::NodeType::ENUM_SQL_TEMP_TYPE)
 X(sx::VizComponentType, sx::NodeType::ENUM_DASHQL_VIZ_COMPONENT_TYPE)
 X(sx::WindowBoundDirection, sx::NodeType::ENUM_SQL_WINDOW_BOUND_DIRECTION)
 X(sx::WindowBoundMode, sx::NodeType::ENUM_SQL_WINDOW_BOUND_MODE)
 X(sx::WindowExclusionMode, sx::NodeType::ENUM_SQL_WINDOW_EXCLUSION_MODE)
 X(sx::WindowRangeMode, sx::NodeType::ENUM_SQL_WINDOW_RANGE_MODE)
-X(sx::ColumnConstraint, sx::NodeType::ENUM_SQL_COLUMN_CONSTRAINT)
-X(sx::ConstraintAttribute, sx::NodeType::ENUM_SQL_CONSTRAINT_ATTRIBUTE)
 #undef X
 
 const char* getEnumText(const sx::Node& target);

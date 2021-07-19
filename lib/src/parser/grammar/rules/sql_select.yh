@@ -1,3 +1,4 @@
+
 %type <NodeVector> sql_any_name;
 %type <NodeVector> sql_any_operator;
 %type <NodeVector> sql_attrs;
@@ -92,6 +93,8 @@
 %type <sx::Node> sql_simple_typename;
 %type <sx::Node> sql_sort_clause;
 %type <sx::Node> sql_sortby;
+%type <sx::Node> sql_subquery_quantifier;
+%type <sx::Node> sql_subquery_op;
 %type <sx::Node> sql_table_ref;
 %type <sx::Node> sql_target_el;
 %type <sx::Node> sql_typename;

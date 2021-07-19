@@ -55,6 +55,12 @@ enum ExpressionOperator: uint8 {
     NOT_IN,
 }
 
+enum SubqueryQuantifier: uint8 {
+    ANY,
+    SOME,
+    ALL,
+}
+
 enum CombineModifier: uint8 {
     NONE,
     ALL,

@@ -2953,4 +2953,157 @@
             <dependencies />
         </expected>
     </test>
+    <test name="select_subquery_1">
+        <input>
+            select a like all (select 1);
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..41" text="select a l..(select 1)">
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_EXPRESSION" loc="20..41" text="a like all..(select 1)">
+                                <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="20..21" text="a">
+                                    <node key="SQL_COLUMN_REF_PATH">
+                                        <node loc="20..21" text="a" />
+                                    </node>
+                                </node>
+                                <node key="SQL_EXPRESSION_ARG1" type="OBJECT_SQL_SELECT_EXPRESSION" loc="31..41" text="(select 1)">
+                                    <node key="SQL_SELECT_TARGETS">
+                                        <node loc="39..40" text="1" />
+                                    </node>
+                                </node>
+                                <node key="SQL_EXPRESSION_OPERATOR" type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="22..30" text="like all">
+                                    <node key="SQL_SUBQUERY_OPERATOR" value="LIKE" />
+                                    <node key="SQL_SUBQUERY_QUANTIFIER" value="ALL" />
+                                </node>
+                            </node>
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="42..43" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="select_subquery_2">
+        <input>
+            select a like any (select 1);
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..41" text="select a l..(select 1)">
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_EXPRESSION" loc="20..41" text="a like any..(select 1)">
+                                <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="20..21" text="a">
+                                    <node key="SQL_COLUMN_REF_PATH">
+                                        <node loc="20..21" text="a" />
+                                    </node>
+                                </node>
+                                <node key="SQL_EXPRESSION_ARG1" type="OBJECT_SQL_SELECT_EXPRESSION" loc="31..41" text="(select 1)">
+                                    <node key="SQL_SELECT_TARGETS">
+                                        <node loc="39..40" text="1" />
+                                    </node>
+                                </node>
+                                <node key="SQL_EXPRESSION_OPERATOR" type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="22..30" text="like any">
+                                    <node key="SQL_SUBQUERY_OPERATOR" value="LIKE" />
+                                    <node key="SQL_SUBQUERY_QUANTIFIER" value="ANY" />
+                                </node>
+                            </node>
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="42..43" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="select_subquery_3">
+        <input>
+            select a like some (select 1);
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..42" text="select a l..(select 1)">
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_EXPRESSION" loc="20..42" text="a like som..(select 1)">
+                                <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="20..21" text="a">
+                                    <node key="SQL_COLUMN_REF_PATH">
+                                        <node loc="20..21" text="a" />
+                                    </node>
+                                </node>
+                                <node key="SQL_EXPRESSION_ARG1" type="OBJECT_SQL_SELECT_EXPRESSION" loc="32..42" text="(select 1)">
+                                    <node key="SQL_SELECT_TARGETS">
+                                        <node loc="40..41" text="1" />
+                                    </node>
+                                </node>
+                                <node key="SQL_EXPRESSION_OPERATOR" type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="22..31" text="like some">
+                                    <node key="SQL_SUBQUERY_OPERATOR" value="LIKE" />
+                                    <node key="SQL_SUBQUERY_QUANTIFIER" value="SOME" />
+                                </node>
+                            </node>
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="43..44" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="select_subquery_3">
+        <input>
+            select a like some (foo('bar'));
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..44" text="select a l..oo('bar'))">
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_EXPRESSION" loc="20..44" text="a like som..oo('bar'))">
+                                <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="20..21" text="a">
+                                    <node key="SQL_COLUMN_REF_PATH">
+                                        <node loc="20..21" text="a" />
+                                    </node>
+                                </node>
+                                <node key="SQL_EXPRESSION_ARG1" type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="33..43" text="foo('bar')">
+                                    <node key="SQL_FUNCTION_ARGUMENTS">
+                                        <node loc="37..42" text="'bar'" />
+                                    </node>
+                                    <node key="SQL_FUNCTION_NAME" loc="33..36" text="foo" />
+                                </node>
+                                <node key="SQL_EXPRESSION_OPERATOR" type="OBJECT_SQL_SUBQUERY_OPERATOR" loc="22..31" text="like some">
+                                    <node key="SQL_SUBQUERY_OPERATOR" value="LIKE" />
+                                    <node key="SQL_SUBQUERY_QUANTIFIER" value="SOME" />
+                                </node>
+                            </node>
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="45..46" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
 </tests>
