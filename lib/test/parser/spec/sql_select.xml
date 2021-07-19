@@ -3067,7 +3067,7 @@
             <dependencies />
         </expected>
     </test>
-    <test name="select_subquery_3">
+    <test name="select_subquery_4">
         <input>
             select a like some (foo('bar'));
         </input>
