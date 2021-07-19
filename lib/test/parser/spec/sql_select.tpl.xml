@@ -317,6 +317,11 @@
             select cast('1' as interval(2));
         </input>
     </test>
+    <test name="sql_generic_type_1">
+        <input>
+            select cast('1' as sometype);
+        </input>
+    </test>
     <test name="sql_bit_type_1">
         <input>
             select cast('1' as bit);

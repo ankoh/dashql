@@ -80,6 +80,11 @@
                             </node>
                             <node type="OBJECT_SQL_COLUMN_DEF" loc="42..51" text="b tinyint">
                                 <node key="SQL_COLUMN_DEF_NAME" loc="42..43" text="b" />
+                                <node key="SQL_COLUMN_DEF_TYPE" type="OBJECT_SQL_TYPENAME" loc="44..51" text="tinyint">
+                                    <node key="SQL_TYPENAME_TYPE" type="OBJECT_SQL_GENERIC_TYPE" loc="44..51" text="tinyint">
+                                        <node key="SQL_GENERIC_TYPE_NAME" loc="44..51" text="tinyint" />
+                                    </node>
+                                </node>
                             </node>
                         </node>
                         <node key="SQL_CREATE_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="26..29" text="foo">
