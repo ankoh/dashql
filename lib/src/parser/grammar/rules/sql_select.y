@@ -1875,22 +1875,22 @@ sql_a_expr_const:
 // Column identifier --- names that can be column, table, etc names.
 
 sql_col_id:
-    IDENT
-  | sql_unreserved_keywords
-  | sql_column_name_keywords
+    IDENT                       { /* @$ */ }
+  | sql_unreserved_keywords     { /* @$ */ }
+  | sql_column_name_keywords    { /* @$ */ }
     ;
 
 sql_col_id_or_string:
-    sql_col_id
-  | SCONST
+    sql_col_id                  { /* @$ */ }
+  | SCONST                      { /* @$ */ }
     ;
 
 // Type/function identifier --- names that can be type or function names.
 
 sql_type_function_name:
-    IDENT
-  | sql_unreserved_keywords
-  | sql_type_func_keywords
+    IDENT                     { /* @$ */ }
+  | sql_unreserved_keywords   { /* @$ */ }
+  | sql_type_func_keywords    { /* @$ */ }
     ;
 
 sql_any_name:
@@ -1909,7 +1909,7 @@ sql_opt_name_list:
     ;
 
 sql_param_name:
-    sql_type_function_name
+    sql_type_function_name  { /* @$ */ }
     ;
 
 // Any not-fully-reserved word --- these names can be, eg, role names.
@@ -1918,15 +1918,15 @@ sql_param_name:
 // This presently includes *all* Postgres keywords.
 
 sql_col_label:
-    IDENT
-  | sql_unreserved_keywords
-  | sql_column_name_keywords
-  | sql_type_func_keywords
-  | sql_reserved_keywords
-  | dashql_keywords
+    IDENT                       { /* @$ */ }
+  | sql_unreserved_keywords     { /* @$ */ }
+  | sql_column_name_keywords    { /* @$ */ }
+  | sql_type_func_keywords      { /* @$ */ }
+  | sql_reserved_keywords       { /* @$ */ }
+  | dashql_keywords             { /* @$ */ }
     ;
 
 sql_col_label_or_string:
-    sql_col_label
-  | SCONST
+    sql_col_label               { /* @$ */ }
+  | SCONST                      { /* @$ */ }
     ;
