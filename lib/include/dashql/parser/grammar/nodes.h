@@ -77,6 +77,11 @@ inline sx::Node ColumnRef(ParserDriver& driver, sx::Location loc, NodeVector&& p
                       });
 }
 
+/// Add an expression without arguments
+inline sx::Node Expr(ParserDriver& driver, sx::Location loc, sx::Node func) {
+    return driver.Add(loc, sx::NodeType::OBJECT_SQL_EXPRESSION, {Key::SQL_EXPRESSION_OPERATOR << func});
+}
+
 /// Add an unary expression
 inline sx::Node Expr(ParserDriver& driver, sx::Location loc, sx::Node func, sx::Node arg) {
     return driver.Add(loc, sx::NodeType::OBJECT_SQL_EXPRESSION,

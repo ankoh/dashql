@@ -453,4 +453,9 @@
             select a like some (foo('bar'));
         </input>
     </test>
+    <test name="select_default">
+        <input>
+            select somefunc(default);
+        </input>
+    </test>
 </tests>

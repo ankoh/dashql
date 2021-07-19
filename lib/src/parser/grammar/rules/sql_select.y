@@ -1035,7 +1035,7 @@ sql_a_expr:
         });
         $$ = Expr(ctx, @$, std::move(op), std::move($1), std::move($5));
     }
-  | DEFAULT { $$ = {}; }
+  | DEFAULT { $$ = Expr(ctx, @$, Enum(@1, ExprFunc::DEFAULT)); }
     ;
 
 // Restricted expressions
