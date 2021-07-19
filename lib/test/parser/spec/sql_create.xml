@@ -118,7 +118,7 @@
                                 <node key="SQL_COLUMN_DEF_NAME" loc="42..43" text="b" />
                                 <node key="SQL_COLUMN_DEF_TYPE" type="OBJECT_SQL_TYPENAME" loc="44..51" text="varchar">
                                     <node key="SQL_TYPENAME_TYPE" type="OBJECT_SQL_CHARACTER_TYPE" loc="44..51" text="varchar">
-                                        <node key="SQL_CHARACTER_TYPE_TAG" value="VARCHAR" />
+                                        <node key="SQL_CHARACTER_TYPE" value="VARCHAR" />
                                     </node>
                                 </node>
                             </node>
@@ -176,7 +176,7 @@
                                 <node key="SQL_COLUMN_DEF_NAME" loc="42..43" text="b" />
                                 <node key="SQL_COLUMN_DEF_TYPE" type="OBJECT_SQL_TYPENAME" loc="44..51" text="varchar">
                                     <node key="SQL_TYPENAME_TYPE" type="OBJECT_SQL_CHARACTER_TYPE" loc="44..51" text="varchar">
-                                        <node key="SQL_CHARACTER_TYPE_TAG" value="VARCHAR" />
+                                        <node key="SQL_CHARACTER_TYPE" value="VARCHAR" />
                                     </node>
                                 </node>
                             </node>

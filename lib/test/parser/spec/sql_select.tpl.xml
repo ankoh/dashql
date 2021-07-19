@@ -307,6 +307,16 @@
             select cast('1' as time (2) with time zone);
         </input>
     </test>
+    <test name="sql_interval_type_1">
+        <input>
+            select cast('1' as interval year);
+        </input>
+    </test>
+    <test name="sql_interval_type_2">
+        <input>
+            select cast('1' as interval(2));
+        </input>
+    </test>
     <test name="select_operators_1">
         <input>
             select 1 operator(someschema.+) 2;

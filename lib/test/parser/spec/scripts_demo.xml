@@ -36,7 +36,7 @@
                         <node key="DASHQL_INPUT_COMPONENT_TYPE" value="TEXT" />
                         <node key="DASHQL_INPUT_VALUE_TYPE" type="OBJECT_SQL_TYPENAME" loc="317..324" text="VARCHAR">
                             <node key="SQL_TYPENAME_TYPE" type="OBJECT_SQL_CHARACTER_TYPE" loc="317..324" text="VARCHAR">
-                                <node key="SQL_CHARACTER_TYPE_TAG" value="VARCHAR" />
+                                <node key="SQL_CHARACTER_TYPE" value="VARCHAR" />
                             </node>
                         </node>
                         <node key="DASHQL_STATEMENT_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="304..311" text="country">

@@ -138,20 +138,20 @@ inline sx::Node Negate(ParserDriver& driver, sx::Location loc, sx::Location loc_
 }
 
 /// Read a float type
-inline sx::NumericTypeTag ReadFloatType(ParserDriver& driver, sx::Location bitsLoc) {
+inline sx::NumericType ReadFloatType(ParserDriver& driver, sx::Location bitsLoc) {
     auto text = driver.scanner().TextAt(bitsLoc);
     int64_t bits;
     std::from_chars(text.data(), text.data() + text.size(), bits);
     if (bits < 1) {
         driver.AddError(bitsLoc, "precision for float type must be least 1 bit");
     } else if (bits < 24) {
-        return sx::NumericTypeTag::FLOAT4;
+        return sx::NumericType::FLOAT4;
     } else if (bits < 53) {
-        return sx::NumericTypeTag::FLOAT8;
+        return sx::NumericType::FLOAT8;
     } else {
         driver.AddError(bitsLoc, "precision for float type must be less than 54 bits");
     }
-    return sx::NumericTypeTag::FLOAT4;
+    return sx::NumericType::FLOAT4;
 }
 
 /// Create a qualified name

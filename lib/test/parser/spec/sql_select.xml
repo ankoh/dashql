@@ -1947,7 +1947,7 @@
                     <node type="OBJECT_SQL_SELECT" loc="13..50" text="select int.. to second">
                         <node key="SQL_SELECT_TARGETS">
                             <node type="OBJECT_SQL_CONST_CAST" loc="20..50" text="interval '.. to second">
-                                <node key="SQL_CONST_CAST_INTERVAL" type="OBJECT_SQL_INTERVAL" loc="34..50" text="minute to second">
+                                <node key="SQL_CONST_CAST_INTERVAL" type="OBJECT_SQL_INTERVAL_TYPE" loc="34..50" text="minute to second">
                                     <node key="SQL_INTERVAL_TYPE" value="MINUTE_TO_SECOND" />
                                 </node>
                                 <node key="SQL_CONST_CAST_TYPE" loc="20..28" text="interval" />
@@ -1976,7 +1976,7 @@
                     <node type="OBJECT_SQL_SELECT" loc="13..38" text="select int.. '90' hour">
                         <node key="SQL_SELECT_TARGETS">
                             <node type="OBJECT_SQL_CONST_CAST" loc="20..38" text="interval '90' hour">
-                                <node key="SQL_CONST_CAST_INTERVAL" type="OBJECT_SQL_INTERVAL" loc="34..38" text="hour">
+                                <node key="SQL_CONST_CAST_INTERVAL" type="OBJECT_SQL_INTERVAL_TYPE" loc="34..38" text="hour">
                                     <node key="SQL_INTERVAL_TYPE" value="HOUR" />
                                 </node>
                                 <node key="SQL_CONST_CAST_TYPE" loc="20..28" text="interval" />
@@ -2005,7 +2005,7 @@
                     <node type="OBJECT_SQL_SELECT" loc="13..35" text="select int..val 1 hour">
                         <node key="SQL_SELECT_TARGETS">
                             <node type="OBJECT_SQL_CONST_CAST" loc="20..35" text="interval 1 hour">
-                                <node key="SQL_CONST_CAST_INTERVAL" type="OBJECT_SQL_INTERVAL" loc="31..35" text="hour">
+                                <node key="SQL_CONST_CAST_INTERVAL" type="OBJECT_SQL_INTERVAL_TYPE" loc="31..35" text="hour">
                                     <node key="SQL_INTERVAL_TYPE" value="HOUR" />
                                 </node>
                                 <node key="SQL_CONST_CAST_TYPE" loc="20..28" text="interval" />
@@ -2153,6 +2153,72 @@
             <line_breaks>
                 <line_break loc="0..1" text="&#10;" />
                 <line_break loc="57..58" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="sql_interval_type_1">
+        <input>
+            select cast('1' as interval year);
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..46" text="select cas..rval year)">
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="20..46" text="cast('1' a..rval year)">
+                                <node key="SQL_FUNCTION_ARGUMENTS">
+                                    <node loc="25..28" text="'1'" />
+                                    <node type="OBJECT_SQL_TYPENAME" loc="32..45" text="interval year">
+                                        <node key="SQL_TYPENAME_TYPE" type="OBJECT_SQL_INTERVAL_TYPE" loc="32..45" text="interval year">
+                                            <node key="SQL_INTERVAL_TYPE" value="YEAR" />
+                                        </node>
+                                    </node>
+                                </node>
+                                <node key="SQL_FUNCTION_NAME" value="CAST" />
+                            </node>
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="47..48" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="sql_interval_type_2">
+        <input>
+            select cast('1' as interval(2));
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..44" text="select cas..terval(2))">
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="20..44" text="cast('1' a..terval(2))">
+                                <node key="SQL_FUNCTION_ARGUMENTS">
+                                    <node loc="25..28" text="'1'" />
+                                    <node type="OBJECT_SQL_TYPENAME" loc="32..43" text="interval(2)">
+                                        <node key="SQL_TYPENAME_TYPE" type="OBJECT_SQL_INTERVAL_TYPE" loc="32..43" text="interval(2)">
+                                            <node key="SQL_INTERVAL_PRECISION" loc="41..42" text="2" />
+                                        </node>
+                                    </node>
+                                </node>
+                                <node key="SQL_FUNCTION_NAME" value="CAST" />
+                            </node>
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="45..46" text="&#10;" />
             </line_breaks>
             <comments />
             <dependencies />
