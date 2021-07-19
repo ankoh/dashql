@@ -726,7 +726,7 @@ sql_opt_array_bounds:
     ;
 
 sql_simple_typename:
-    sql_generic_type                    { $$ = {}; }
+    sql_generic_type                    { $$ = $1; }
   | sql_numeric                         { $$ = $1; }
   | sql_bit                             { $$ = $1; }
   | sql_const_character                 { $$ = $1; }
@@ -762,8 +762,12 @@ sql_const_typename:
 // constants for them.
 
 sql_generic_type:
-    sql_type_function_name sql_opt_type_modifiers
-  | sql_type_function_name sql_attrs sql_opt_type_modifiers
+    sql_type_function_name sql_opt_type_modifiers {
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_GENERIC_TYPE, {
+            Key::SQL_GENERIC_TYPE_NAME << String(@1),
+            Key::SQL_GENERIC_TYPE_MODIFIERS << ctx.Add(@2, std::move($2))
+        });
+    }
     ;
 
 sql_opt_type_modifiers:
