@@ -189,6 +189,15 @@ enum TrimDirection: uint8 {
     TRAILING
 }
 
+enum ExtractTarget: uint8 {
+    YEAR,
+    MONTH,
+    DAY,
+    HOUR,
+    MINUTE,
+    SECOND
+}
+
 enum KnownFunction : uint8 {
     COLLATION_FOR,
     CURRENT_DATE,
