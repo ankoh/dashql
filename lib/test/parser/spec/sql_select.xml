@@ -3899,4 +3899,145 @@
             <dependencies />
         </expected>
     </test>
+    <test name="select_knownfunc_29">
+        <input>
+            select substring('foobar' from 1 for 2);
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..52" text="select sub..m 1 for 2)">
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="20..52" text="substring(..m 1 for 2)">
+                                <node key="SQL_FUNCTION_NAME" value="SUBSTRING" />
+                                <node key="SQL_FUNCTION_SUBSTR_FOR" loc="50..51" text="2" />
+                                <node key="SQL_FUNCTION_SUBSTR_FROM" loc="44..45" text="1" />
+                                <node key="SQL_FUNCTION_SUBSTR_INPUT" loc="30..38" text="'foobar'" />
+                            </node>
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="53..54" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="select_knownfunc_30">
+        <input>
+            select substring('foobar' from 1);
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..46" text="select sub..r' from 1)">
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="20..46" text="substring(..r' from 1)">
+                                <node key="SQL_FUNCTION_NAME" value="SUBSTRING" />
+                                <node key="SQL_FUNCTION_SUBSTR_FROM" loc="44..45" text="1" />
+                                <node key="SQL_FUNCTION_SUBSTR_INPUT" loc="30..38" text="'foobar'" />
+                            </node>
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="47..48" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="select_knownfunc_31">
+        <input>
+            select substring('foobar' for 1);
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..45" text="select sub..ar' for 1)">
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="20..45" text="substring(..ar' for 1)">
+                                <node key="SQL_FUNCTION_NAME" value="SUBSTRING" />
+                                <node key="SQL_FUNCTION_SUBSTR_FOR" loc="43..44" text="1" />
+                                <node key="SQL_FUNCTION_SUBSTR_INPUT" loc="30..38" text="'foobar'" />
+                            </node>
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="46..47" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="select_knownfunc_32">
+        <input>
+            select substring('foobar', 1, 4);
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..45" text="select sub..ar', 1, 4)">
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="20..45" text="substring(..ar', 1, 4)">
+                                <node key="SQL_FUNCTION_ARGUMENTS">
+                                    <node loc="30..38" text="'foobar'" />
+                                    <node loc="40..41" text="1" />
+                                    <node loc="43..44" text="4" />
+                                </node>
+                                <node key="SQL_FUNCTION_NAME" value="SUBSTRING" />
+                            </node>
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="46..47" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="select_knownfunc_33">
+        <input>
+            select substring('foobar', 1);
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..42" text="select sub..oobar', 1)">
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="20..42" text="substring(..oobar', 1)">
+                                <node key="SQL_FUNCTION_ARGUMENTS">
+                                    <node loc="30..38" text="'foobar'" />
+                                    <node loc="40..41" text="1" />
+                                </node>
+                                <node key="SQL_FUNCTION_NAME" value="SUBSTRING" />
+                            </node>
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="43..44" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
 </tests>

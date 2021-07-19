@@ -1246,7 +1246,11 @@ sql_func_expr_common_subexpr:
     }
   | OVERLAY '(' sql_overlay_list ')'                { $$ = {}; }
   | POSITION '(' sql_position_list ')'              { $$ = {}; }
-  | SUBSTRING '(' sql_substr_list ')'               { $$ = {}; }
+  | SUBSTRING '(' sql_substr_list ')' {
+        $$ = concat(std::move($3), {
+            Key::SQL_FUNCTION_NAME << Enum(@1, sx::KnownFunction::SUBSTRING),
+        });
+    }
   | TRIM '(' BOTH sql_trim_list ')' {
         $$ = concat(std::move($4), {
             Key::SQL_FUNCTION_NAME << Enum(@1, sx::KnownFunction::TRIM),
@@ -1572,20 +1576,42 @@ sql_position_list:
 // processing. - thomas 2000-11-28
 
 sql_substr_list:
-    sql_a_expr sql_substr_from sql_substr_for
-  | sql_a_expr sql_substr_for sql_substr_from
-  | sql_a_expr sql_substr_from
-  | sql_a_expr sql_substr_for
-  | sql_expr_list
-  | %empty
+    sql_a_expr sql_substr_from sql_substr_for {
+        $$ = {
+            Key::SQL_FUNCTION_SUBSTR_INPUT << std::move($1),
+            Key::SQL_FUNCTION_SUBSTR_FROM << std::move($2),
+            Key::SQL_FUNCTION_SUBSTR_FOR << std::move($3),
+        };
+    }
+  | sql_a_expr sql_substr_for sql_substr_from {
+        $$ = {
+            Key::SQL_FUNCTION_SUBSTR_INPUT << std::move($1),
+            Key::SQL_FUNCTION_SUBSTR_FOR << std::move($2),
+            Key::SQL_FUNCTION_SUBSTR_FROM << std::move($3),
+        };
+    }
+  | sql_a_expr sql_substr_from {
+        $$ = {
+            Key::SQL_FUNCTION_SUBSTR_INPUT << std::move($1),
+            Key::SQL_FUNCTION_SUBSTR_FROM << std::move($2),
+        };
+   }
+  | sql_a_expr sql_substr_for {
+        $$ = {
+            Key::SQL_FUNCTION_SUBSTR_INPUT << std::move($1),
+            Key::SQL_FUNCTION_SUBSTR_FOR << std::move($2),
+        };
+   }
+  | sql_expr_list   { $$ = { Key::SQL_FUNCTION_ARGUMENTS << ctx.Add(@1, std::move($1)) }; }
+  | %empty          { $$ = {}; }
     ;
 
 sql_substr_from:
-    FROM sql_a_expr
+    FROM sql_a_expr   { $$ = std::move($2); }
     ;
 
 sql_substr_for:
-    FOR sql_a_expr
+    FOR sql_a_expr    { $$ = std::move($2); }
     ;
 
 sql_trim_list:

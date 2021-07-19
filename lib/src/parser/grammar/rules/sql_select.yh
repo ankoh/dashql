@@ -1,4 +1,3 @@
-
 %type <NodeVector> sql_any_name;
 %type <NodeVector> sql_any_operator;
 %type <NodeVector> sql_attrs;
@@ -39,6 +38,7 @@
 %type <NodeVector> sql_select_with_parens;
 %type <NodeVector> sql_simple_select;
 %type <NodeVector> sql_sortby_list;
+%type <NodeVector> sql_substr_list;
 %type <NodeVector> sql_target_list;
 %type <NodeVector> sql_trim_list;
 %type <NodeVector> sql_type_list;
@@ -99,6 +99,8 @@
 %type <sx::Node> sql_sortby;
 %type <sx::Node> sql_subquery_op;
 %type <sx::Node> sql_subquery_quantifier;
+%type <sx::Node> sql_substr_for;
+%type <sx::Node> sql_substr_from;
 %type <sx::Node> sql_table_ref;
 %type <sx::Node> sql_target_el;
 %type <sx::Node> sql_typename;
