@@ -24,8 +24,8 @@ const char* getEnumText(const sx::Node& target) {
             return sx::TempTypeTypeTable()->names[v];
         case sx::NodeType::ENUM_SQL_CONST_TYPE:
             return sx::AConstTypeTypeTable()->names[v];
-        case sx::NodeType::ENUM_SQL_CHARACTER_TYPE_TAG:
-            return sx::CharacterTypeTagTypeTable()->names[v];
+        case sx::NodeType::ENUM_SQL_CHARACTER_TYPE:
+            return sx::CharacterTypeTypeTable()->names[v];
         case sx::NodeType::ENUM_SQL_EXPRESSION_OPERATOR:
             return sx::ExpressionOperatorTypeTable()->names[v];
         case sx::NodeType::ENUM_SQL_ORDER_DIRECTION:
@@ -36,8 +36,8 @@ const char* getEnumText(const sx::Node& target) {
             return sx::CombineModifierTypeTable()->names[v];
         case sx::NodeType::ENUM_SQL_COMBINE_OPERATION:
             return sx::CombineOperationTypeTable()->names[v];
-        case sx::NodeType::ENUM_SQL_NUMERIC_TYPE_TAG:
-            return sx::NumericTypeTagTypeTable()->names[v];
+        case sx::NodeType::ENUM_SQL_NUMERIC_TYPE:
+            return sx::NumericTypeTypeTable()->names[v];
         case sx::NodeType::ENUM_SQL_WINDOW_BOUND_MODE:
             return sx::WindowBoundModeTypeTable()->names[v];
         case sx::NodeType::ENUM_SQL_WINDOW_RANGE_MODE:

@@ -20,7 +20,7 @@ using ExprFunc = sx::ExpressionOperator;
         return sx::Node(loc, NODE_TYPE, Key::NONE, NO_PARENT, static_cast<uint32_t>(e), 0); \
     }
 X(sx::AConstType, sx::NodeType::ENUM_SQL_CONST_TYPE)
-X(sx::CharacterTypeTag, sx::NodeType::ENUM_SQL_CHARACTER_TYPE_TAG)
+X(sx::CharacterType, sx::NodeType::ENUM_SQL_CHARACTER_TYPE)
 X(sx::ColumnConstraint, sx::NodeType::ENUM_SQL_COLUMN_CONSTRAINT)
 X(sx::CombineModifier, sx::NodeType::ENUM_SQL_COMBINE_MODIFIER)
 X(sx::CombineOperation, sx::NodeType::ENUM_SQL_COMBINE_OPERATION)
@@ -32,7 +32,7 @@ X(sx::InputComponentType, sx::NodeType::ENUM_DASHQL_INPUT_COMPONENT_TYPE)
 X(sx::IntervalType, sx::NodeType::ENUM_SQL_INTERVAL_TYPE)
 X(sx::KnownFunction, sx::NodeType::ENUM_SQL_KNOWN_FUNCTION)
 X(sx::LoadMethodType, sx::NodeType::ENUM_DASHQL_LOAD_METHOD_TYPE)
-X(sx::NumericTypeTag, sx::NodeType::ENUM_SQL_NUMERIC_TYPE_TAG)
+X(sx::NumericType, sx::NodeType::ENUM_SQL_NUMERIC_TYPE)
 X(sx::OnCommitOption, sx::NodeType::ENUM_SQL_ON_COMMIT_OPTION)
 X(sx::OrderDirection, sx::NodeType::ENUM_SQL_ORDER_DIRECTION)
 X(sx::OrderNullRule, sx::NodeType::ENUM_SQL_ORDER_NULL_RULE)

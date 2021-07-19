@@ -25,6 +25,7 @@
 %type <NodeVector> sql_opt_existing_window_name;
 %type <NodeVector> sql_opt_frame_clause;
 %type <NodeVector> sql_opt_indirection;
+%type <NodeVector> sql_opt_interval;
 %type <NodeVector> sql_opt_name_list;
 %type <NodeVector> sql_opt_partition_clause;
 %type <NodeVector> sql_opt_target_list;
@@ -86,7 +87,6 @@
 %type <sx::Node> sql_opt_alias_clause;
 %type <sx::Node> sql_opt_all_clause;
 %type <sx::Node> sql_opt_asc_desc;
-%type <sx::Node> sql_opt_interval;
 %type <sx::Node> sql_opt_nulls_order;
 %type <sx::Node> sql_opt_slice_bound;
 %type <sx::Node> sql_opt_sort_clause;
@@ -115,4 +115,4 @@
 %type <sx::Node> sql_window_definition;
 %type <sx::Node> sql_window_specification;
 %type <sx::Node> sql_within_group_clause;
-%type <sx::NumericTypeTag> sql_opt_float;
+%type <sx::NumericType> sql_opt_float;

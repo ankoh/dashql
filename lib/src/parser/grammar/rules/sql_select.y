@@ -731,8 +731,10 @@ sql_simple_typename:
   | sql_bit                             { $$ = {}; }
   | sql_const_character                 { $$ = $1; }
   | sql_const_datetime                  { $$ = $1; }
-  | sql_const_interval sql_opt_interval { $$ = {}; }
-  | sql_const_interval '(' ICONST ')'   { $$ = {}; }
+  | sql_const_interval sql_opt_interval { $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_INTERVAL_TYPE, std::move($2), false); }
+  | sql_const_interval '(' ICONST ')'   { $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_INTERVAL_TYPE, {
+        Key::SQL_INTERVAL_PRECISION << String(@3),
+    }); }
     ;
 
 // We have a separate ConstTypename to allow defaulting fixed-length
@@ -772,37 +774,37 @@ sql_opt_type_modifiers:
 // SQL numeric data types
 
 sql_numeric:
-    INT_P       { $$ = Enum(@1, sx::NumericTypeTag::INT4); }
-  | INTEGER     { $$ = Enum(@1, sx::NumericTypeTag::INT4); }
-  | SMALLINT    { $$ = Enum(@1, sx::NumericTypeTag::INT2); }
-  | BIGINT      { $$ = Enum(@1, sx::NumericTypeTag::INT8); }
-  | REAL        { $$ = Enum(@1, sx::NumericTypeTag::FLOAT4); }
+    INT_P       { $$ = Enum(@1, sx::NumericType::INT4); }
+  | INTEGER     { $$ = Enum(@1, sx::NumericType::INT4); }
+  | SMALLINT    { $$ = Enum(@1, sx::NumericType::INT2); }
+  | BIGINT      { $$ = Enum(@1, sx::NumericType::INT8); }
+  | REAL        { $$ = Enum(@1, sx::NumericType::FLOAT4); }
   | FLOAT_P sql_opt_float   { $$ = Enum(@$, $2); }
-  | DOUBLE_P PRECISION      { $$ = Enum(@$, sx::NumericTypeTag::FLOAT4); }
+  | DOUBLE_P PRECISION      { $$ = Enum(@$, sx::NumericType::FLOAT4); }
   | DECIMAL_P sql_opt_type_modifiers {
         $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_NUMERIC_TYPE, {
-            Key::SQL_NUMERIC_TYPE_TAG << Enum(@1, sx::NumericTypeTag::NUMERIC),
+            Key::SQL_NUMERIC_TYPE << Enum(@1, sx::NumericType::NUMERIC),
             Key::SQL_NUMERIC_TYPE_MODIFIERS << ctx.Add(@2, move($2))
         });
     }
   | DEC sql_opt_type_modifiers {
         $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_NUMERIC_TYPE, {
-            Key::SQL_NUMERIC_TYPE_TAG << Enum(@1, sx::NumericTypeTag::NUMERIC),
+            Key::SQL_NUMERIC_TYPE << Enum(@1, sx::NumericType::NUMERIC),
             Key::SQL_NUMERIC_TYPE_MODIFIERS << ctx.Add(@2, move($2))
         });
     }
   | NUMERIC sql_opt_type_modifiers {
         $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_NUMERIC_TYPE, {
-            Key::SQL_NUMERIC_TYPE_TAG << Enum(@1, sx::NumericTypeTag::NUMERIC),
+            Key::SQL_NUMERIC_TYPE << Enum(@1, sx::NumericType::NUMERIC),
             Key::SQL_NUMERIC_TYPE_MODIFIERS << ctx.Add(@2, move($2))
         });
     }
-  | BOOLEAN_P   { $$ = Enum(@1, sx::NumericTypeTag::BOOL); }
+  | BOOLEAN_P   { $$ = Enum(@1, sx::NumericType::BOOL); }
     ;
 
 sql_opt_float:
     '(' ICONST ')'  { $$ = ReadFloatType(ctx, @2); }
-  | %empty          { $$ = sx::NumericTypeTag::FLOAT4; }
+  | %empty          { $$ = sx::NumericType::FLOAT4; }
     ;
 
 // SQL bit-field data types
@@ -848,12 +850,12 @@ sql_character_with_length:
     ;
 
 sql_character_without_length:
-    CHARACTER sql_opt_varying           { $$ = NodeVector{ Key::SQL_CHARACTER_TYPE_TAG << Enum(@$, $2 ? sx::CharacterTypeTag::VARCHAR : sx::CharacterTypeTag::BLANK_PADDED_CHAR) }; }
-  | CHAR_P sql_opt_varying              { $$ = NodeVector{ Key::SQL_CHARACTER_TYPE_TAG << Enum(@$, $2 ? sx::CharacterTypeTag::VARCHAR : sx::CharacterTypeTag::BLANK_PADDED_CHAR) }; }
-  | VARCHAR                             { $$ = NodeVector{ Key::SQL_CHARACTER_TYPE_TAG << Enum(@$, sx::CharacterTypeTag::VARCHAR) }; }
-  | NATIONAL CHARACTER sql_opt_varying  { $$ = NodeVector{ Key::SQL_CHARACTER_TYPE_TAG << Enum(@$, $3 ? sx::CharacterTypeTag::VARCHAR : sx::CharacterTypeTag::BLANK_PADDED_CHAR) }; }
-  | NATIONAL CHAR_P sql_opt_varying     { $$ = NodeVector{ Key::SQL_CHARACTER_TYPE_TAG << Enum(@$, $3 ? sx::CharacterTypeTag::VARCHAR : sx::CharacterTypeTag::BLANK_PADDED_CHAR) }; }
-  | NCHAR sql_opt_varying               { $$ = NodeVector{ Key::SQL_CHARACTER_TYPE_TAG << Enum(@$, $2 ? sx::CharacterTypeTag::VARCHAR : sx::CharacterTypeTag::BLANK_PADDED_CHAR) }; }
+    CHARACTER sql_opt_varying           { $$ = NodeVector{ Key::SQL_CHARACTER_TYPE << Enum(@$, $2 ? sx::CharacterType::VARCHAR : sx::CharacterType::BLANK_PADDED_CHAR) }; }
+  | CHAR_P sql_opt_varying              { $$ = NodeVector{ Key::SQL_CHARACTER_TYPE << Enum(@$, $2 ? sx::CharacterType::VARCHAR : sx::CharacterType::BLANK_PADDED_CHAR) }; }
+  | VARCHAR                             { $$ = NodeVector{ Key::SQL_CHARACTER_TYPE << Enum(@$, sx::CharacterType::VARCHAR) }; }
+  | NATIONAL CHARACTER sql_opt_varying  { $$ = NodeVector{ Key::SQL_CHARACTER_TYPE << Enum(@$, $3 ? sx::CharacterType::VARCHAR : sx::CharacterType::BLANK_PADDED_CHAR) }; }
+  | NATIONAL CHAR_P sql_opt_varying     { $$ = NodeVector{ Key::SQL_CHARACTER_TYPE << Enum(@$, $3 ? sx::CharacterType::VARCHAR : sx::CharacterType::BLANK_PADDED_CHAR) }; }
+  | NCHAR sql_opt_varying               { $$ = NodeVector{ Key::SQL_CHARACTER_TYPE << Enum(@$, $2 ? sx::CharacterType::VARCHAR : sx::CharacterType::BLANK_PADDED_CHAR) }; }
     ;
 
 sql_opt_varying:
@@ -889,7 +891,7 @@ sql_const_datetime:
     ;
 
 sql_const_interval:
-    INTERVAL
+    INTERVAL          { /* @$ */ }
     ;
 
 sql_opt_timezone:
@@ -899,40 +901,40 @@ sql_opt_timezone:
     ;
 
 sql_opt_interval:
-    YEAR_P    { $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_INTERVAL, { Key::SQL_INTERVAL_TYPE << Enum(@$, sx::IntervalType::YEAR) }); }
-  | MONTH_P   { $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_INTERVAL, { Key::SQL_INTERVAL_TYPE << Enum(@$, sx::IntervalType::MONTH) }); }
-  | DAY_P     { $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_INTERVAL, { Key::SQL_INTERVAL_TYPE << Enum(@$, sx::IntervalType::DAY) }); }
-  | HOUR_P    { $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_INTERVAL, { Key::SQL_INTERVAL_TYPE << Enum(@$, sx::IntervalType::HOUR) }); }
-  | MINUTE_P  { $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_INTERVAL, { Key::SQL_INTERVAL_TYPE << Enum(@$, sx::IntervalType::MINUTE) }); }
+    YEAR_P    { $$ = { Key::SQL_INTERVAL_TYPE << Enum(@$, sx::IntervalType::YEAR) }; }
+  | MONTH_P   { $$ = { Key::SQL_INTERVAL_TYPE << Enum(@$, sx::IntervalType::MONTH) }; }
+  | DAY_P     { $$ = { Key::SQL_INTERVAL_TYPE << Enum(@$, sx::IntervalType::DAY) }; }
+  | HOUR_P    { $$ = { Key::SQL_INTERVAL_TYPE << Enum(@$, sx::IntervalType::HOUR) }; }
+  | MINUTE_P  { $$ = { Key::SQL_INTERVAL_TYPE << Enum(@$, sx::IntervalType::MINUTE) }; }
   | sql_interval_second {
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_INTERVAL, {
+        $$ = {
             Key::SQL_INTERVAL_TYPE << Enum(@$, sx::IntervalType::SECOND),
-            Key::SQL_INTERVAL_VALUE << std::move($1)
-        });
+            Key::SQL_INTERVAL_PRECISION << std::move($1)
+        };
   }
-  | YEAR_P TO MONTH_P     { $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_INTERVAL, { Key::SQL_INTERVAL_TYPE << Enum(@$, sx::IntervalType::YEAR_TO_MONTH) }); }
-  | DAY_P TO HOUR_P       { $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_INTERVAL, { Key::SQL_INTERVAL_TYPE << Enum(@$, sx::IntervalType::DAY_TO_HOUR) }); }
-  | DAY_P TO MINUTE_P     { $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_INTERVAL, { Key::SQL_INTERVAL_TYPE << Enum(@$, sx::IntervalType::DAY_TO_MINUTE) }); }
+  | YEAR_P TO MONTH_P     { $$ = { Key::SQL_INTERVAL_TYPE << Enum(@$, sx::IntervalType::YEAR_TO_MONTH) }; }
+  | DAY_P TO HOUR_P       { $$ = { Key::SQL_INTERVAL_TYPE << Enum(@$, sx::IntervalType::DAY_TO_HOUR) }; }
+  | DAY_P TO MINUTE_P     { $$ = { Key::SQL_INTERVAL_TYPE << Enum(@$, sx::IntervalType::DAY_TO_MINUTE) }; }
   | DAY_P TO sql_interval_second {
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_INTERVAL, {
+        $$ = {
             Key::SQL_INTERVAL_TYPE << Enum(@$, sx::IntervalType::DAY_TO_SECOND),
-            Key::SQL_INTERVAL_VALUE << std::move($3)
-        });
+            Key::SQL_INTERVAL_PRECISION << std::move($3)
+        };
   }
-  | HOUR_P TO MINUTE_P    { $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_INTERVAL, { Key::SQL_INTERVAL_TYPE << Enum(@$, sx::IntervalType::HOUR_TO_MINUTE) }); }
+  | HOUR_P TO MINUTE_P    { $$ = { Key::SQL_INTERVAL_TYPE << Enum(@$, sx::IntervalType::HOUR_TO_MINUTE) }; }
   | HOUR_P TO sql_interval_second {
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_INTERVAL, {
+        $$ = {
             Key::SQL_INTERVAL_TYPE << Enum(@$, sx::IntervalType::HOUR_TO_SECOND),
-            Key::SQL_INTERVAL_VALUE << std::move($3)
-        });
+            Key::SQL_INTERVAL_PRECISION << std::move($3)
+        };
   }
   | MINUTE_P TO sql_interval_second {
-        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_INTERVAL, {
+        $$ = {
             Key::SQL_INTERVAL_TYPE << Enum(@$, sx::IntervalType::MINUTE_TO_SECOND),
-            Key::SQL_INTERVAL_VALUE << std::move($3)
-        });
+            Key::SQL_INTERVAL_PRECISION << std::move($3)
+        };
   }
-  | %empty  { $$ = Null(); }
+  | %empty  { $$ = { }; }
     ;
 
 sql_interval_second:
@@ -1866,14 +1868,14 @@ sql_a_expr_const:
       $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_CONST_CAST, {
         Key::SQL_CONST_CAST_TYPE << Const(ctx, @1, sx::AConstType::INTERVAL),
         Key::SQL_CONST_CAST_VALUE << String(@2),
-        Key::SQL_CONST_CAST_INTERVAL << std::move($3),
+        Key::SQL_CONST_CAST_INTERVAL << ctx.Add(@3, sx::NodeType::OBJECT_SQL_INTERVAL_TYPE, std::move($3)),
       });
     }
   | sql_const_interval ICONST sql_opt_interval {
       $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_CONST_CAST, {
         Key::SQL_CONST_CAST_TYPE << Const(ctx, @1, sx::AConstType::INTERVAL),
         Key::SQL_CONST_CAST_VALUE << String(@2),
-        Key::SQL_CONST_CAST_INTERVAL << std::move($3),
+        Key::SQL_CONST_CAST_INTERVAL << ctx.Add(@3, sx::NodeType::OBJECT_SQL_INTERVAL_TYPE, std::move($3)),
       });
     }
   | TRUE_P    { $$ = Bool(@1, true); }
