@@ -1243,10 +1243,27 @@ sql_func_expr_common_subexpr:
   | OVERLAY '(' sql_overlay_list ')'                { $$ = {}; }
   | POSITION '(' sql_position_list ')'              { $$ = {}; }
   | SUBSTRING '(' sql_substr_list ')'               { $$ = {}; }
-  | TRIM '(' BOTH sql_trim_list ')'                 { $$ = {}; }
-  | TRIM '(' LEADING sql_trim_list ')'              { $$ = {}; }
-  | TRIM '(' TRAILING sql_trim_list ')'             { $$ = {}; }
-  | TRIM '(' sql_trim_list ')'                      { $$ = {}; }
+  | TRIM '(' BOTH sql_trim_list ')' {
+        $$ = concat(std::move($4), {
+            Key::SQL_FUNCTION_NAME << Enum(@1, sx::KnownFunction::TRIM),
+            Key::SQL_FUNCTION_TRIM_DIRECTION << Enum(@3, sx::TrimDirection::BOTH)
+        });
+    }
+  | TRIM '(' LEADING sql_trim_list ')' {
+        $$ = concat(std::move($4), {
+            Key::SQL_FUNCTION_NAME << Enum(@1, sx::KnownFunction::TRIM),
+            Key::SQL_FUNCTION_TRIM_DIRECTION << Enum(@3, sx::TrimDirection::LEADING)
+        });
+    }
+  | TRIM '(' TRAILING sql_trim_list ')' {
+        $$ = concat(std::move($4), {
+            Key::SQL_FUNCTION_NAME << Enum(@1, sx::KnownFunction::TRIM),
+            Key::SQL_FUNCTION_TRIM_DIRECTION << Enum(@3, sx::TrimDirection::TRAILING)
+        });
+    }
+  | TRIM '(' sql_trim_list ')' {
+        $$ = concat(std::move($3), { Key::SQL_FUNCTION_NAME << Enum(@1, sx::KnownFunction::TRIM) });
+    }
   | TREAT '(' sql_a_expr AS sql_typename ')' {
         $$ = {
             Key::SQL_FUNCTION_NAME << Enum(@1, sx::KnownFunction::TREAT),
@@ -1563,9 +1580,14 @@ sql_substr_for:
     ;
 
 sql_trim_list:
-    sql_a_expr FROM sql_expr_list
-  | FROM sql_expr_list
-  | sql_expr_list
+    sql_a_expr FROM sql_expr_list {
+        $$ = {
+            Key::SQL_FUNCTION_TRIM_CHARACTERS << std::move($1),
+            Key::SQL_FUNCTION_TRIM_INPUT << ctx.Add(Loc({@2, @3}), std::move($3))
+        };
+    }
+  | FROM sql_expr_list  { $$ = { Key::SQL_FUNCTION_TRIM_INPUT << ctx.Add(Loc({@1, @2}), std::move($2)) }; }
+  | sql_expr_list       { $$ = { Key::SQL_FUNCTION_TRIM_INPUT << ctx.Add(@$, std::move($1)) }; }
     ;
 
 sql_in_expr:

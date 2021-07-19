@@ -3585,7 +3585,7 @@
             <dependencies />
         </expected>
     </test>
-    <test name="select_knownfunc_18">
+    <test name="select_knownfunc_19">
         <input>
             select nullif(a, 1);
         </input>
@@ -3618,7 +3618,7 @@
             <dependencies />
         </expected>
     </test>
-    <test name="select_knownfunc_19">
+    <test name="select_knownfunc_20">
         <input>
             select coalesce(a, b);
         </input>
@@ -3650,6 +3650,211 @@
             <line_breaks>
                 <line_break loc="0..1" text="&#10;" />
                 <line_break loc="35..36" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="select_knownfunc_21">
+        <input>
+            select trim(both 'foo');
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..36" text="select tri..oth 'foo')">
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="20..36" text="trim(both 'foo')">
+                                <node key="SQL_FUNCTION_NAME" value="TRIM" />
+                                <node key="SQL_FUNCTION_TRIM_DIRECTION" value="BOTH" />
+                                <node key="SQL_FUNCTION_TRIM_INPUT">
+                                    <node loc="30..35" text="'foo'" />
+                                </node>
+                            </node>
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="37..38" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="select_knownfunc_22">
+        <input>
+            select trim(both from 'foo');
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..41" text="select tri..rom 'foo')">
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="20..41" text="trim(both ..rom 'foo')">
+                                <node key="SQL_FUNCTION_NAME" value="TRIM" />
+                                <node key="SQL_FUNCTION_TRIM_DIRECTION" value="BOTH" />
+                                <node key="SQL_FUNCTION_TRIM_INPUT">
+                                    <node loc="35..40" text="'foo'" />
+                                </node>
+                            </node>
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="42..43" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="select_knownfunc_23">
+        <input>
+            select trim(both ' \n' from 'foo');
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..47" text="select tri..rom 'foo')">
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="20..47" text="trim(both ..rom 'foo')">
+                                <node key="SQL_FUNCTION_NAME" value="TRIM" />
+                                <node key="SQL_FUNCTION_TRIM_CHARACTERS" loc="30..35" text="' \n'" />
+                                <node key="SQL_FUNCTION_TRIM_DIRECTION" value="BOTH" />
+                                <node key="SQL_FUNCTION_TRIM_INPUT">
+                                    <node loc="41..46" text="'foo'" />
+                                </node>
+                            </node>
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="48..49" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="select_knownfunc_24">
+        <input>
+            select trim(both ' \n' from 'foo', 'bar');
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..54" text="select tri..o', 'bar')">
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="20..54" text="trim(both ..o', 'bar')">
+                                <node key="SQL_FUNCTION_NAME" value="TRIM" />
+                                <node key="SQL_FUNCTION_TRIM_CHARACTERS" loc="30..35" text="' \n'" />
+                                <node key="SQL_FUNCTION_TRIM_DIRECTION" value="BOTH" />
+                                <node key="SQL_FUNCTION_TRIM_INPUT">
+                                    <node loc="41..46" text="'foo'" />
+                                    <node loc="48..53" text="'bar'" />
+                                </node>
+                            </node>
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="55..56" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="select_knownfunc_25">
+        <input>
+            select trim(leading from 'foo');
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..44" text="select tri..rom 'foo')">
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="20..44" text="trim(leadi..rom 'foo')">
+                                <node key="SQL_FUNCTION_NAME" value="TRIM" />
+                                <node key="SQL_FUNCTION_TRIM_DIRECTION" value="LEADING" />
+                                <node key="SQL_FUNCTION_TRIM_INPUT">
+                                    <node loc="38..43" text="'foo'" />
+                                </node>
+                            </node>
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="45..46" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="select_knownfunc_26">
+        <input>
+            select trim(trailing from 'foo');
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..45" text="select tri..rom 'foo')">
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="20..45" text="trim(trail..rom 'foo')">
+                                <node key="SQL_FUNCTION_NAME" value="TRIM" />
+                                <node key="SQL_FUNCTION_TRIM_DIRECTION" value="TRAILING" />
+                                <node key="SQL_FUNCTION_TRIM_INPUT">
+                                    <node loc="39..44" text="'foo'" />
+                                </node>
+                            </node>
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="46..47" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="select_knownfunc_27">
+        <input>
+            select trim('foo');
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..31" text="select trim('foo')">
+                        <node key="SQL_SELECT_TARGETS">
+                            <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="20..31" text="trim('foo')">
+                                <node key="SQL_FUNCTION_NAME" value="TRIM" />
+                                <node key="SQL_FUNCTION_TRIM_INPUT">
+                                    <node loc="25..30" text="'foo'" />
+                                </node>
+                            </node>
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="32..33" text="&#10;" />
             </line_breaks>
             <comments />
             <dependencies />
