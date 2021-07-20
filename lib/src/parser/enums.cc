@@ -1,5 +1,7 @@
 #include "dashql/parser/grammar/enums.h"
 
+#include <algorithm>
+
 #include "dashql/proto_generated.h"
 
 namespace dashql {
@@ -55,8 +57,6 @@ const char* getEnumText(const sx::Node& target) {
             return sx::ColumnConstraintTypeTable()->names[v];
         case sx::NodeType::ENUM_SQL_INTERVAL_TYPE:
             return sx::IntervalTypeTypeTable()->names[v];
-        case sx::NodeType::ENUM_SQL_JOIN_TYPE:
-            return sx::JoinTypeTypeTable()->names[v];
         case sx::NodeType::ENUM_SQL_SUBQUERY_QUANTIFIER:
             return sx::SubqueryQuantifierTypeTable()->names[v];
         case sx::NodeType::ENUM_SQL_KNOWN_FUNCTION:
@@ -65,6 +65,17 @@ const char* getEnumText(const sx::Node& target) {
             return sx::TrimDirectionTypeTable()->names[v];
         case sx::NodeType::ENUM_SQL_EXTRACT_TARGET:
             return sx::ExtractTargetTypeTable()->names[v];
+
+        case sx::NodeType::ENUM_SQL_JOIN_TYPE: {
+            auto tt = sx::JoinTypeTypeTable();
+            auto iter =
+                std::lower_bound(tt->values, tt->values + tt->num_elems, v, [](auto l, auto r) { return l < r; });
+            if (iter >= (tt->values + tt->num_elems) || *iter != v) {
+                return "?";
+            }
+            auto idx = iter - tt->values;
+            return sx::JoinTypeTypeTable()->names[idx];
+        }
 
         default:
             return "?";

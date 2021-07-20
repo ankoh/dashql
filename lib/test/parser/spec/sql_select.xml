@@ -5171,7 +5171,7 @@
                     <node type="OBJECT_SQL_SELECT" loc="13..43" text="SELECT * F..RAL JOIN b">
                         <node key="SQL_SELECT_FROM">
                             <node type="OBJECT_SQL_JOINED_TABLE" loc="27..43" text="a NATURAL JOIN b">
-                                <node key="SQL_JOIN_TYPE" value="third_party/flatbuffers/install/include/flatbuffers/flatbuffers.h" />
+                                <node key="SQL_JOIN_TYPE" value="NATURAL_INNER" />
                                 <node key="SQL_JOIN_INPUT">
                                     <node type="OBJECT_SQL_TABLE_REF" loc="27..28" text="a">
                                         <node key="SQL_TABLE_INHERIT" value="true" />
@@ -5296,7 +5296,7 @@
                     <node type="OBJECT_SQL_SELECT" loc="13..55" text="SELECT * F..b ON c = d">
                         <node key="SQL_SELECT_FROM">
                             <node type="OBJECT_SQL_JOINED_TABLE" loc="27..55" text="a FULL OUT..b ON c = d">
-                                <node key="SQL_JOIN_TYPE" value="CURRENT_CATALOG" />
+                                <node key="SQL_JOIN_TYPE" value="OUTER_FULL" />
                                 <node key="SQL_JOIN_ON" type="OBJECT_SQL_EXPRESSION" loc="50..55" text="c = d">
                                     <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="50..51" text="c">
                                         <node key="SQL_COLUMN_REF_PATH">
