@@ -525,8 +525,12 @@ sql_table_ref:
     }
   | LATERAL_P sql_func_table sql_func_alias_clause                      { $$ = {}; }
   | LATERAL_P sql_select_with_parens sql_opt_alias_clause               { $$ = {}; }
-  | sql_joined_table                                                    { $$ = {}; }
-  | '(' sql_joined_table ')' sql_alias_clause                           { $$ = {}; }
+  | sql_joined_table { $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_JOINED_TABLE, std::move($1)); }
+  | '(' sql_joined_table ')' sql_alias_clause {
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_JOINED_TABLE, concat(std::move($2), {
+            Key::SQL_TABLE_ALIAS << $4,
+        }));
+    }
     ;
 
 
