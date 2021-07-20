@@ -546,12 +546,37 @@ sql_table_ref:
 // in common. We'll collect columns during the later transformations.
 
 sql_joined_table:
-    '(' sql_joined_table ')'
-  | sql_table_ref CROSS JOIN sql_table_ref
-  | sql_table_ref sql_join_type JOIN sql_table_ref sql_join_qual
-  | sql_table_ref JOIN sql_table_ref sql_join_qual
-  | sql_table_ref NATURAL sql_join_type JOIN sql_table_ref
-  | sql_table_ref NATURAL JOIN sql_table_ref
+    '(' sql_joined_table ')' { $$ = std::move($2); }
+  | sql_table_ref CROSS JOIN sql_table_ref {
+        $$ = {
+            Key::SQL_JOIN_TYPE << Enum(Loc({@2, @3}), sx::JoinType::NONE),
+            Key::SQL_JOIN_INPUT << ctx.Add(@$, { std::move($1), std::move($4) }),
+        };
+    }
+  | sql_table_ref sql_join_type JOIN sql_table_ref sql_join_qual {
+        $$ = concat(std::move($5), {
+            Key::SQL_JOIN_TYPE << Enum(Loc({@2, @3}), $2),
+            Key::SQL_JOIN_INPUT << ctx.Add(@$, { std::move($1), std::move($4) }),
+        });
+    }
+  | sql_table_ref JOIN sql_table_ref sql_join_qual {
+        $$ = concat(std::move($4), {
+            Key::SQL_JOIN_TYPE << Enum(@2, sx::JoinType::INNER),
+            Key::SQL_JOIN_INPUT << ctx.Add(@$, { std::move($1), std::move($3) }),
+        });
+   }
+  | sql_table_ref NATURAL sql_join_type JOIN sql_table_ref {
+        $$ = {
+            Key::SQL_JOIN_TYPE << Enum(Loc({@2, @3}), Merge(sx::JoinType::NATURAL_, $3)),
+            Key::SQL_JOIN_INPUT << ctx.Add(@$, { std::move($1), std::move($5) }),
+        };
+    }
+  | sql_table_ref NATURAL JOIN sql_table_ref {
+        $$ = {
+            Key::SQL_JOIN_TYPE << Enum(Loc({@2, @3}), sx::JoinType::NATURAL_INNER),
+            Key::SQL_JOIN_INPUT << ctx.Add(@$, { std::move($1), std::move($4) }),
+        };
+    }
     ;
 
 sql_alias_clause:

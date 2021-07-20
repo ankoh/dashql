@@ -55,6 +55,8 @@ const char* getEnumText(const sx::Node& target) {
             return sx::ColumnConstraintTypeTable()->names[v];
         case sx::NodeType::ENUM_SQL_INTERVAL_TYPE:
             return sx::IntervalTypeTypeTable()->names[v];
+        case sx::NodeType::ENUM_SQL_JOIN_TYPE:
+            return sx::JoinTypeTypeTable()->names[v];
         case sx::NodeType::ENUM_SQL_SUBQUERY_QUANTIFIER:
             return sx::SubqueryQuantifierTypeTable()->names[v];
         case sx::NodeType::ENUM_SQL_KNOWN_FUNCTION:

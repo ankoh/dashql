@@ -18,6 +18,8 @@
 %type <NodeVector> sql_group_by_list;
 %type <NodeVector> sql_group_clause;
 %type <NodeVector> sql_indirection;
+%type <NodeVector> sql_join_qual;
+%type <NodeVector> sql_joined_table;
 %type <NodeVector> sql_limit_clause;
 %type <NodeVector> sql_name_list;
 %type <NodeVector> sql_offset_clause;
@@ -92,7 +94,6 @@
 %type <sx::Node> sql_indirection_el;
 %type <sx::Node> sql_interval_second;
 %type <sx::Node> sql_into_clause;
-%type <sx::Node> sql_join_qual;
 %type <sx::Node> sql_math_op;
 %type <sx::Node> sql_numeric;
 %type <sx::Node> sql_opt_alias_clause;
