@@ -5018,4 +5018,367 @@
             <dependencies />
         </expected>
     </test>
+    <test name="select_join_1">
+        <input>
+            SELECT * FROM a INNER JOIN b ON c = d
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..50" text="SELECT * F..b ON c = d">
+                        <node key="SQL_SELECT_FROM">
+                            <node type="OBJECT_SQL_JOINED_TABLE" loc="27..50" text="a INNER JO..b ON c = d">
+                                <node key="SQL_JOIN_TYPE" value="INNER" />
+                                <node key="SQL_JOIN_ON" type="OBJECT_SQL_EXPRESSION" loc="45..50" text="c = d">
+                                    <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="45..46" text="c">
+                                        <node key="SQL_COLUMN_REF_PATH">
+                                            <node loc="45..46" text="c" />
+                                        </node>
+                                    </node>
+                                    <node key="SQL_EXPRESSION_ARG1" type="OBJECT_SQL_COLUMN_REF" loc="49..50" text="d">
+                                        <node key="SQL_COLUMN_REF_PATH">
+                                            <node loc="49..50" text="d" />
+                                        </node>
+                                    </node>
+                                    <node key="SQL_EXPRESSION_OPERATOR" value="EQUAL" />
+                                </node>
+                                <node key="SQL_JOIN_INPUT">
+                                    <node type="OBJECT_SQL_TABLE_REF" loc="27..28" text="a">
+                                        <node key="SQL_TABLE_INHERIT" value="true" />
+                                        <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="27..28" text="a">
+                                            <node key="SQL_QUALIFIED_NAME_RELATION" loc="27..28" text="a" />
+                                        </node>
+                                    </node>
+                                    <node type="OBJECT_SQL_TABLE_REF" loc="40..41" text="b">
+                                        <node key="SQL_TABLE_INHERIT" value="true" />
+                                        <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="40..41" text="b">
+                                            <node key="SQL_QUALIFIED_NAME_RELATION" loc="40..41" text="b" />
+                                        </node>
+                                    </node>
+                                </node>
+                            </node>
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="50..51" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="select_join_2">
+        <input>
+            SELECT * FROM a JOIN b ON c = d
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..44" text="SELECT * F..b ON c = d">
+                        <node key="SQL_SELECT_FROM">
+                            <node type="OBJECT_SQL_JOINED_TABLE" loc="27..44" text="a JOIN b ON c = d">
+                                <node key="SQL_JOIN_TYPE" value="INNER" />
+                                <node key="SQL_JOIN_ON" type="OBJECT_SQL_EXPRESSION" loc="39..44" text="c = d">
+                                    <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="39..40" text="c">
+                                        <node key="SQL_COLUMN_REF_PATH">
+                                            <node loc="39..40" text="c" />
+                                        </node>
+                                    </node>
+                                    <node key="SQL_EXPRESSION_ARG1" type="OBJECT_SQL_COLUMN_REF" loc="43..44" text="d">
+                                        <node key="SQL_COLUMN_REF_PATH">
+                                            <node loc="43..44" text="d" />
+                                        </node>
+                                    </node>
+                                    <node key="SQL_EXPRESSION_OPERATOR" value="EQUAL" />
+                                </node>
+                                <node key="SQL_JOIN_INPUT">
+                                    <node type="OBJECT_SQL_TABLE_REF" loc="27..28" text="a">
+                                        <node key="SQL_TABLE_INHERIT" value="true" />
+                                        <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="27..28" text="a">
+                                            <node key="SQL_QUALIFIED_NAME_RELATION" loc="27..28" text="a" />
+                                        </node>
+                                    </node>
+                                    <node type="OBJECT_SQL_TABLE_REF" loc="34..35" text="b">
+                                        <node key="SQL_TABLE_INHERIT" value="true" />
+                                        <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="34..35" text="b">
+                                            <node key="SQL_QUALIFIED_NAME_RELATION" loc="34..35" text="b" />
+                                        </node>
+                                    </node>
+                                </node>
+                            </node>
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="44..45" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="select_join_3">
+        <input>
+            SELECT * FROM a CROSS JOIN b
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..41" text="SELECT * F..OSS JOIN b">
+                        <node key="SQL_SELECT_FROM">
+                            <node type="OBJECT_SQL_JOINED_TABLE" loc="27..41" text="a CROSS JOIN b">
+                                <node key="SQL_JOIN_TYPE" value="NONE" />
+                                <node key="SQL_JOIN_INPUT">
+                                    <node type="OBJECT_SQL_TABLE_REF" loc="27..28" text="a">
+                                        <node key="SQL_TABLE_INHERIT" value="true" />
+                                        <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="27..28" text="a">
+                                            <node key="SQL_QUALIFIED_NAME_RELATION" loc="27..28" text="a" />
+                                        </node>
+                                    </node>
+                                    <node type="OBJECT_SQL_TABLE_REF" loc="40..41" text="b">
+                                        <node key="SQL_TABLE_INHERIT" value="true" />
+                                        <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="40..41" text="b">
+                                            <node key="SQL_QUALIFIED_NAME_RELATION" loc="40..41" text="b" />
+                                        </node>
+                                    </node>
+                                </node>
+                            </node>
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="41..42" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="select_join_4">
+        <input>
+            SELECT * FROM a NATURAL JOIN b
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..43" text="SELECT * F..RAL JOIN b">
+                        <node key="SQL_SELECT_FROM">
+                            <node type="OBJECT_SQL_JOINED_TABLE" loc="27..43" text="a NATURAL JOIN b">
+                                <node key="SQL_JOIN_TYPE" value="third_party/flatbuffers/install/include/flatbuffers/flatbuffers.h" />
+                                <node key="SQL_JOIN_INPUT">
+                                    <node type="OBJECT_SQL_TABLE_REF" loc="27..28" text="a">
+                                        <node key="SQL_TABLE_INHERIT" value="true" />
+                                        <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="27..28" text="a">
+                                            <node key="SQL_QUALIFIED_NAME_RELATION" loc="27..28" text="a" />
+                                        </node>
+                                    </node>
+                                    <node type="OBJECT_SQL_TABLE_REF" loc="42..43" text="b">
+                                        <node key="SQL_TABLE_INHERIT" value="true" />
+                                        <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="42..43" text="b">
+                                            <node key="SQL_QUALIFIED_NAME_RELATION" loc="42..43" text="b" />
+                                        </node>
+                                    </node>
+                                </node>
+                            </node>
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="43..44" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="select_join_5">
+        <input>
+            SELECT * FROM a NATURAL OUTER JOIN b
+        </input>
+        <expected>
+            <statements />
+            <errors>
+                <error message="syntax error, unexpected OUTER_P" loc="37..42" text="OUTER" />
+            </errors>
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="49..50" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="select_join_6">
+        <input>
+            SELECT * FROM a LEFT JOIN b ON foo = bar
+        </input>
+        <expected>
+            <statements />
+            <errors>
+                <error message="syntax error, unexpected EOF, expecting SCONST or '('" loc="62..63" text="" />
+            </errors>
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="53..54" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="select_join_6">
+        <input>
+            SELECT * FROM a RIGHT JOIN b ON c = d
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..50" text="SELECT * F..b ON c = d">
+                        <node key="SQL_SELECT_FROM">
+                            <node type="OBJECT_SQL_JOINED_TABLE" loc="27..50" text="a RIGHT JO..b ON c = d">
+                                <node key="SQL_JOIN_TYPE" value="RIGHT" />
+                                <node key="SQL_JOIN_ON" type="OBJECT_SQL_EXPRESSION" loc="45..50" text="c = d">
+                                    <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="45..46" text="c">
+                                        <node key="SQL_COLUMN_REF_PATH">
+                                            <node loc="45..46" text="c" />
+                                        </node>
+                                    </node>
+                                    <node key="SQL_EXPRESSION_ARG1" type="OBJECT_SQL_COLUMN_REF" loc="49..50" text="d">
+                                        <node key="SQL_COLUMN_REF_PATH">
+                                            <node loc="49..50" text="d" />
+                                        </node>
+                                    </node>
+                                    <node key="SQL_EXPRESSION_OPERATOR" value="EQUAL" />
+                                </node>
+                                <node key="SQL_JOIN_INPUT">
+                                    <node type="OBJECT_SQL_TABLE_REF" loc="27..28" text="a">
+                                        <node key="SQL_TABLE_INHERIT" value="true" />
+                                        <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="27..28" text="a">
+                                            <node key="SQL_QUALIFIED_NAME_RELATION" loc="27..28" text="a" />
+                                        </node>
+                                    </node>
+                                    <node type="OBJECT_SQL_TABLE_REF" loc="40..41" text="b">
+                                        <node key="SQL_TABLE_INHERIT" value="true" />
+                                        <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="40..41" text="b">
+                                            <node key="SQL_QUALIFIED_NAME_RELATION" loc="40..41" text="b" />
+                                        </node>
+                                    </node>
+                                </node>
+                            </node>
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="50..51" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="select_join_7">
+        <input>
+            SELECT * FROM a FULL OUTER JOIN b ON c = d
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..55" text="SELECT * F..b ON c = d">
+                        <node key="SQL_SELECT_FROM">
+                            <node type="OBJECT_SQL_JOINED_TABLE" loc="27..55" text="a FULL OUT..b ON c = d">
+                                <node key="SQL_JOIN_TYPE" value="CURRENT_CATALOG" />
+                                <node key="SQL_JOIN_ON" type="OBJECT_SQL_EXPRESSION" loc="50..55" text="c = d">
+                                    <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="50..51" text="c">
+                                        <node key="SQL_COLUMN_REF_PATH">
+                                            <node loc="50..51" text="c" />
+                                        </node>
+                                    </node>
+                                    <node key="SQL_EXPRESSION_ARG1" type="OBJECT_SQL_COLUMN_REF" loc="54..55" text="d">
+                                        <node key="SQL_COLUMN_REF_PATH">
+                                            <node loc="54..55" text="d" />
+                                        </node>
+                                    </node>
+                                    <node key="SQL_EXPRESSION_OPERATOR" value="EQUAL" />
+                                </node>
+                                <node key="SQL_JOIN_INPUT">
+                                    <node type="OBJECT_SQL_TABLE_REF" loc="27..28" text="a">
+                                        <node key="SQL_TABLE_INHERIT" value="true" />
+                                        <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="27..28" text="a">
+                                            <node key="SQL_QUALIFIED_NAME_RELATION" loc="27..28" text="a" />
+                                        </node>
+                                    </node>
+                                    <node type="OBJECT_SQL_TABLE_REF" loc="45..46" text="b">
+                                        <node key="SQL_TABLE_INHERIT" value="true" />
+                                        <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="45..46" text="b">
+                                            <node key="SQL_QUALIFIED_NAME_RELATION" loc="45..46" text="b" />
+                                        </node>
+                                    </node>
+                                </node>
+                            </node>
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="55..56" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="select_join_8">
+        <input>
+            SELECT * FROM a INNER JOIN b USING (c, d)
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..54" text="SELECT * F..ING (c, d)">
+                        <node key="SQL_SELECT_FROM">
+                            <node type="OBJECT_SQL_JOINED_TABLE" loc="27..54" text="a INNER JO..ING (c, d)">
+                                <node key="SQL_JOIN_TYPE" value="INNER" />
+                                <node key="SQL_JOIN_USING">
+                                    <node loc="49..50" text="c" />
+                                    <node loc="52..53" text="d" />
+                                </node>
+                                <node key="SQL_JOIN_INPUT">
+                                    <node type="OBJECT_SQL_TABLE_REF" loc="27..28" text="a">
+                                        <node key="SQL_TABLE_INHERIT" value="true" />
+                                        <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="27..28" text="a">
+                                            <node key="SQL_QUALIFIED_NAME_RELATION" loc="27..28" text="a" />
+                                        </node>
+                                    </node>
+                                    <node type="OBJECT_SQL_TABLE_REF" loc="40..41" text="b">
+                                        <node key="SQL_TABLE_INHERIT" value="true" />
+                                        <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="40..41" text="b">
+                                            <node key="SQL_QUALIFIED_NAME_RELATION" loc="40..41" text="b" />
+                                        </node>
+                                    </node>
+                                </node>
+                            </node>
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="54..55" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
 </tests>
