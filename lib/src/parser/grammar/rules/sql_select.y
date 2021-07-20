@@ -523,8 +523,16 @@ sql_table_ref:
             Key::SQL_TABLE_SAMPLE << $3,
         }));
     }
-  | LATERAL_P sql_func_table sql_func_alias_clause                      { $$ = {}; }
-  | LATERAL_P sql_select_with_parens sql_opt_alias_clause               { $$ = {}; }
+  | LATERAL_P sql_func_table sql_func_alias_clause {
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_LATERAL_FUNCTION_TABLE, concat(std::move($2), {
+            Key::SQL_TABLE_ALIAS << $3,
+        }));
+    }
+  | LATERAL_P sql_select_with_parens sql_opt_alias_clause {
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_LATERAL_JOIN, concat(std::move($2), {
+            Key::SQL_TABLE_ALIAS << $3,
+        }));
+    }
   | sql_joined_table { $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_JOINED_TABLE, std::move($1)); }
   | '(' sql_joined_table ')' sql_alias_clause {
         $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_JOINED_TABLE, concat(std::move($2), {
