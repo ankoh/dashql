@@ -752,4 +752,49 @@
             SELECT * FROM tbl, tbl2 WHERE tbl.i=tbl2.i USING SAMPLE RESERVOIR(20%);
         </input>
     </test>
+    <test name="select_join_1">
+        <input>
+            SELECT * FROM a INNER JOIN b ON c = d
+        </input>
+    </test>
+    <test name="select_join_2">
+        <input>
+            SELECT * FROM a JOIN b ON c = d
+        </input>
+    </test>
+    <test name="select_join_3">
+        <input>
+            SELECT * FROM a CROSS JOIN b
+        </input>
+    </test>
+    <test name="select_join_4">
+        <input>
+            SELECT * FROM a NATURAL JOIN b
+        </input>
+    </test>
+    <test name="select_join_5">
+        <input>
+            SELECT * FROM a NATURAL OUTER JOIN b
+        </input>
+    </test>
+    <test name="select_join_6">
+        <input>
+            SELECT * FROM a LEFT JOIN b ON foo = bar
+        </input>
+    </test>
+    <test name="select_join_6">
+        <input>
+            SELECT * FROM a RIGHT JOIN b ON c = d
+        </input>
+    </test>
+    <test name="select_join_7">
+        <input>
+            SELECT * FROM a FULL OUTER JOIN b ON c = d
+        </input>
+    </test>
+    <test name="select_join_8">
+        <input>
+            SELECT * FROM a INNER JOIN b USING (c, d)
+        </input>
+    </test>
 </tests>
