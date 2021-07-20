@@ -418,8 +418,8 @@ sql_group_clause:
     ;
 
 sql_group_by_list:
-    sql_group_by_item                           { $$ = { $1 }; }
-  | sql_group_by_list ',' sql_group_by_item     { $1.push_back($3); $$ = move($1); }
+    sql_group_by_item                         { $$ = { $1 }; }
+  | sql_group_by_list ',' sql_group_by_item   { $1.push_back($3); $$ = move($1); }
     ;
 
 sql_group_by_item:
@@ -483,8 +483,8 @@ sql_opt_nowait_or_skip:
 // than allowing the noise-word is worth.
 
 sql_values_clause:
-    VALUES '(' sql_expr_list ')'                    { $$ = { ctx.Add(@3, move($3)) }; }
-  | sql_values_clause ',' '(' sql_expr_list ')'     { $1.push_back(ctx.Add(@4, move($4))); $$ = move($1); }
+    VALUES '(' sql_expr_list ')'                  { $$ = { ctx.Add(@3, move($3)) }; }
+  | sql_values_clause ',' '(' sql_expr_list ')'   { $1.push_back(ctx.Add(@4, move($4))); $$ = move($1); }
     ;
 
 
