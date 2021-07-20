@@ -92,6 +92,7 @@
 %type <sx::Node> sql_indirection_el;
 %type <sx::Node> sql_interval_second;
 %type <sx::Node> sql_into_clause;
+%type <sx::Node> sql_join_qual;
 %type <sx::Node> sql_math_op;
 %type <sx::Node> sql_numeric;
 %type <sx::Node> sql_opt_alias_clause;

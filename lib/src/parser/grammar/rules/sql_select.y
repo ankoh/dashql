@@ -598,8 +598,8 @@ sql_join_outer:
 // We return USING as a PGList node, while an ON-expr will not be a List.
 
 sql_join_qual:
-    USING '(' sql_name_list ')'
-  | ON sql_a_expr
+    USING '(' sql_name_list ')'   { $$ = { Key::SQL_JOIN_USING << ctx.Add(Loc({@2, @3, @4}), std::move($3)) }; }
+  | ON sql_a_expr                 { $$ = { Key::SQL_JOIN_ON << std::move($2) }; }
     ;
 
 sql_relation_expr:
