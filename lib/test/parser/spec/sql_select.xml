@@ -5234,7 +5234,7 @@
             <dependencies />
         </expected>
     </test>
-    <test name="select_join_6">
+    <test name="select_join_7">
         <input>
             SELECT * FROM a RIGHT JOIN b ON c = d
         </input>
@@ -5286,7 +5286,7 @@
             <dependencies />
         </expected>
     </test>
-    <test name="select_join_7">
+    <test name="select_join_8">
         <input>
             SELECT * FROM a FULL OUTER JOIN b ON c = d
         </input>
@@ -5338,7 +5338,7 @@
             <dependencies />
         </expected>
     </test>
-    <test name="select_join_8">
+    <test name="select_join_9">
         <input>
             SELECT * FROM a INNER JOIN b USING (c, d)
         </input>
