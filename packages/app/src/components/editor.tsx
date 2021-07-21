@@ -1,3 +1,4 @@
+import Immutable from 'immutable';
 import * as React from 'react';
 import * as monaco from 'monaco-editor/esm/vs/editor/editor.api';
 import * as core from '@dashql/core';
@@ -11,11 +12,14 @@ import classNames from 'classnames';
 import { theme as monaco_theme } from './editor_theme_light';
 import styles from './editor.module.css';
 
+import sx = proto.syntax;
+
 type Props = {
     appContext: IAppContext;
     className?: string;
     script: core.model.Script;
     program: core.model.Program;
+    programStatus: Immutable.List<core.model.StatementStatus>;
 
     updateScript: (script: core.model.Script) => void;
 };
@@ -136,6 +140,8 @@ class Editor extends React.Component<Props> {
     protected editor: monaco.editor.IStandaloneCodeEditor | null;
     // Pending editor resize
     protected pendingEditorResize: number | null;
+    // The old decorations
+    protected currentDecorationIDs: string[];
 
     /// Constructor
     constructor(props: Props) {
@@ -143,69 +149,34 @@ class Editor extends React.Component<Props> {
         this.monacoContainer = null;
         this.editor = null;
         this.pendingEditorResize = null;
+        this.currentDecorationIDs = [];
     }
 
     /// The component did mount, init monaco
     public componentDidMount() {
-        this.initMonaco();
-    }
+        if (!this.monacoContainer) return;
 
-    /// The component did update, sync monaco
-    public componentDidUpdate(_prevProps: Props) {
-        // Editor not set?
-        if (!this.editor) {
-            return;
-        }
-        // Value changed?
-        if (this.editor && this.editor.getValue() !== this.props.script.text) {
-            this.editor.setValue(this.props.script.text);
-        }
-        // Layout editor
-        if (this.monacoContainer) {
-            this.resizeEditorDelayed(this.monacoContainer.offsetHeight, this.monacoContainer.offsetWidth);
-        }
-    }
+        monaco.languages.register({ id: 'dashql' });
+        monaco.languages.setTokensProvider('dashql', new TokensProvider(this.props.appContext.store));
+        monaco.editor.defineTheme('dashql', monaco_theme);
+        monaco.editor.setTheme('dashql');
 
-    public componentWillUnmount() {
-        this.destroyMonaco();
-    }
+        this.editor = monaco.editor.create(this.monacoContainer, {
+            fontSize: 13,
+            language: 'dashql',
+            value: this.props.script.text,
+            links: false,
+            wordWrap: 'on',
+            glyphMargin: true,
+            minimap: {
+                enabled: false,
+            },
+            scrollBeyondLastLine: false,
+        });
+        this.editor.setPosition({ column: 0, lineNumber: 0 });
+        this.editor.focus();
 
-    /// Init the monaco editor
-    protected initMonaco() {
-        if (this.monacoContainer) {
-            monaco.languages.register({ id: 'dashql' });
-            monaco.languages.setTokensProvider('dashql', new TokensProvider(this.props.appContext.store));
-            monaco.editor.defineTheme('dashql', monaco_theme);
-            monaco.editor.setTheme('dashql');
-
-            this.editor = monaco.editor.create(this.monacoContainer, {
-                fontSize: 13,
-                language: 'dashql',
-                value: this.props.script.text,
-                links: false,
-                wordWrap: 'on',
-                minimap: {
-                    enabled: false,
-                },
-                scrollBeyondLastLine: false,
-            });
-            this.editor.setPosition({ column: 0, lineNumber: 0 });
-            this.editor.focus();
-
-            // Finalize the editor
-            this.editorDidMount();
-        }
-    }
-
-    /// Destroy the monaco editor
-    protected destroyMonaco() {
-        if (this.editor !== null) {
-            this.editor.dispose();
-        }
-    }
-
-    /// The editor did mount, register the event handler
-    public editorDidMount() {
+        // Finalize the editor
         const editor = this.editor!;
         editor.onDidChangeModelContent(_event => {
             if (editor.getValue() != this.props.script.text) {
@@ -220,6 +191,35 @@ class Editor extends React.Component<Props> {
         });
         if (this.monacoContainer) {
             this.resizeEditorDelayed(this.monacoContainer.offsetHeight, this.monacoContainer.offsetWidth);
+        }
+
+        this.updateMarkers();
+        this.updateDecorations();
+    }
+
+    /// The component did update, sync monaco
+    public componentDidUpdate(_prevProps: Props) {
+        // Editor not set?
+        if (!this.editor) {
+            return;
+        }
+        // Value changed?
+        if (this.editor && this.editor.getValue() !== this.props.script.text) {
+            this.editor.setValue(this.props.script.text);
+            this.updateMarkers();
+        }
+        // Layout editor
+        if (this.monacoContainer) {
+            this.resizeEditorDelayed(this.monacoContainer.offsetHeight, this.monacoContainer.offsetWidth);
+        }
+
+        // Always update decorations
+        this.updateDecorations();
+    }
+
+    public componentWillUnmount() {
+        if (this.editor !== null) {
+            this.editor.dispose();
         }
     }
 
@@ -257,6 +257,77 @@ class Editor extends React.Component<Props> {
                 </AutoSizer>
             </div>
         );
+    }
+
+    public updateDecorations() {
+        // Get model
+        const data = this.editor?.getModel();
+        if (!data) return;
+
+        // Get the state
+        const program = this.props.program;
+        const programStatus = this.props.programStatus;
+        const breaks = program.getLineBreaks();
+
+        // Collect the status statement decorations
+        const decorations: monaco.editor.IModelDeltaDecoration[] = [];
+        const tmpNode = new core.model.Node(program);
+        const tmpLoc = new sx.Location();
+        program.iterateStatements((idx: number, stmt: core.model.Statement) => {
+            const root = stmt.root_node(tmpNode);
+            const loc = root.buffer.location(tmpLoc)!;
+
+            const ofsBegin = loc!.offset();
+            const ofsEnd = loc!.offset() + loc!.length();
+            const firstLine = core.utils.lowerBound(breaks, ofsBegin, (l, r) => l < r, 0, breaks.length) + 1;
+            const lastLine = core.utils.lowerBound(breaks, ofsEnd, (l, r) => l < r, 0, breaks.length) + 1;
+            console.log(`${ofsBegin} ${firstLine}`);
+
+            // Add statement decoration
+            decorations.push({
+                range: new monaco.Range(firstLine, 1, lastLine, 1),
+                options: {
+                    isWholeLine: true,
+                    className: styles.deco_statement,
+                },
+            });
+
+            // Add status decoration
+            const stmtStatus = programStatus.get(stmt.statementId);
+            if (stmtStatus) {
+                console.log(stmtStatus.status);
+                let glyphClass = styles.deco_glyph_status_none;
+                switch (stmtStatus.status) {
+                    case proto.action.ActionStatusCode.BLOCKED:
+                        glyphClass = styles.deco_glyph_status_blocked;
+                        break;
+                    case proto.action.ActionStatusCode.COMPLETED:
+                        glyphClass = styles.deco_glyph_status_completed;
+                        break;
+                    case proto.action.ActionStatusCode.FAILED:
+                        glyphClass = styles.deco_glyph_status_failed;
+                        break;
+                    case proto.action.ActionStatusCode.NONE:
+                        glyphClass = styles.deco_glyph_status_none;
+                        break;
+                    case proto.action.ActionStatusCode.RUNNING:
+                        glyphClass = styles.deco_glyph_status_running;
+                        break;
+                }
+                decorations.push({
+                    range: new monaco.Range(firstLine, 1, firstLine, 1),
+                    options: {
+                        isWholeLine: true,
+                        glyphMarginClassName: classNames(styles.deco_glyph_status, glyphClass),
+                    },
+                });
+            }
+        });
+
+        console.log(decorations);
+
+        // Update decorations
+        this.currentDecorationIDs = data.deltaDecorations(this.currentDecorationIDs, decorations);
     }
 
     public updateMarkers() {
@@ -298,6 +369,7 @@ class Editor extends React.Component<Props> {
 const mapStateToProps = (state: model.AppState) => ({
     script: state.core.script,
     program: state.core.program || new core.model.Program(),
+    programStatus: state.core.planState.status,
 });
 
 const mapDispatchToProps = (dispatch: model.Dispatch) => ({

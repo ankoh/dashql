@@ -32,6 +32,17 @@ export class Program {
         });
     }
 
+    /// The line break offsets
+    public getLineBreaks(): Float64Array {
+        const n = this.buffer.lineBreaksLength();
+        const breaks = new Float64Array(n);
+        const tmpLoc = new sx.Location();
+        for (let i = 0; i < n; ++i) {
+            breaks[i] = this.buffer.lineBreaks(i, tmpLoc).offset();
+        }
+        return breaks;
+    }
+
     /// Access the text
     public textAt(_loc: sx.Location): string {
         const view = new Uint8Array(this.textBuffer.buffer, _loc.offset(), _loc.length());
