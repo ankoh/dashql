@@ -1,7 +1,6 @@
 import CopyWebpackPlugin from 'copy-webpack-plugin';
 import HtmlWebpackPlugin from 'html-webpack-plugin';
 import MiniCssExtractPlugin from 'mini-css-extract-plugin';
-import MonacoEditorWebpackPlugin from 'monaco-editor-webpack-plugin';
 import childProcess from 'child_process';
 import path from 'path';
 import webpack from 'webpack';
@@ -170,10 +169,6 @@ export function configure(params) {
             new webpack.DefinePlugin({
                 // Referenced by react-flow...
                 'process.env.FORCE_SIMILAR_INSTEAD_OF_MAP': JSON.stringify(process.env.FORCE_SIMILAR_INSTEAD_OF_MAP),
-            }),
-            new MonacoEditorWebpackPlugin({
-                languages: [],
-                features: [],
             }),
         ],
     };
