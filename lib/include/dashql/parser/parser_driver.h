@@ -40,6 +40,8 @@ NodeVector& operator<<(NodeVector& attrs, const sx::Node& node);
 NodeVector concat(NodeVector&& l, NodeVector&& r);
 /// Helper to concatenate node vectors
 NodeVector concat(NodeVector&& v0, NodeVector&& v1, NodeVector&& v2);
+/// Helper to concatenate node vectors
+NodeVector concat(NodeVector&& v0, NodeVector&& v1, NodeVector&& v2, NodeVector&& v3);
 
 using NodeID = uint32_t;
 

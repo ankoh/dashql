@@ -59,6 +59,21 @@ NodeVector concat(NodeVector&& v0, NodeVector&& v1, NodeVector&& v2) {
     return v0;
 }
 
+/// Concatenate 4 vectors
+NodeVector concat(NodeVector&& v0, NodeVector&& v1, NodeVector&& v2, NodeVector&& v3) {
+    v0.reserve(v0.size() + v1.size() + v2.size() + v3.size());
+    for (auto& n : v1) {
+        v0.push_back(n);
+    }
+    for (auto& n : v2) {
+        v0.push_back(n);
+    }
+    for (auto& n : v3) {
+        v0.push_back(n);
+    }
+    return v0;
+}
+
 /// Constructor
 Statement::Statement() : root(), name(), table_refs(), column_refs() {}
 
