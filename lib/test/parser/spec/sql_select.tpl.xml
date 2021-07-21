@@ -872,4 +872,9 @@
             SELECT * FROM foo LIMIT ALL, 21
         </input>
     </test>
+    <test name="select_alias_1">
+        <input>
+            select v into a FROM somefunc() as t(a integer);
+        </input>
+    </test>
 </tests>

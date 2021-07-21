@@ -52,15 +52,6 @@ inline sx::Node IndirectionIndex(ParserDriver& driver, sx::Location loc, sx::Nod
                       });
 }
 
-/// Create relation expression
-inline sx::Node Alias(ParserDriver& driver, sx::Location loc, sx::Node name, sx::Node columns) {
-    return driver.Add(loc, sx::NodeType::OBJECT_SQL_ALIAS,
-                      {
-                          Key::SQL_ALIAS_NAME << name,
-                          Key::SQL_ALIAS_COLUMNS << columns,
-                      });
-}
-
 /// Create a temp table name
 inline sx::Node Into(ParserDriver& driver, sx::Location loc, sx::Node type, sx::Node name) {
     return driver.Add(loc, sx::NodeType::OBJECT_SQL_INTO,
