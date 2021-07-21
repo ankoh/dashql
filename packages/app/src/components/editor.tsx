@@ -14,16 +14,6 @@ import styles from './editor.module.css';
 
 import sx = proto.syntax;
 
-type Props = {
-    appContext: IAppContext;
-    className?: string;
-    script: core.model.Script;
-    program: core.model.Program;
-    programStatus: Immutable.List<core.model.StatementStatus>;
-
-    updateScript: (script: core.model.Script) => void;
-};
-
 /** Dummy state to propagate the line number through the TokensProvider API.
  *  We rely on the fact here that the model passes this state from line to line sequentially.
  *  Ref: https://microsoft.github.io/monaco-editor/api/interfaces/monaco.languages.istate.html
@@ -133,55 +123,82 @@ class TokensProvider implements monaco.languages.TokensProvider {
     }
 }
 
-class Editor extends React.Component<Props> {
+interface DebouncedResize {
+    timer: number;
+    width: number;
+    height: number;
+}
+
+type Props = {
+    /// The app context
+    appContext: IAppContext;
+    /// The requested css class name
+    className?: string;
+    /// The current script
+    script: core.model.Script;
+    /// The program
+    program: core.model.Program;
+    /// The program status
+    programStatus: Immutable.List<core.model.StatementStatus>;
+
+    /// Update handler for editor input
+    updateScript: (script: core.model.Script) => void;
+};
+
+type State = {
+    // The mouse position
+    mousePosition: monaco.Position | null;
+    // The mouse offset
+    mouseOffset: number | null;
+    // The last event
+    lineBreaks: Float64Array;
+    // The current decoration ids
+    decorationIDs: string[];
+    // Pending editor resize
+    pendingResize: DebouncedResize | null;
+};
+
+class Editor extends React.Component<Props, State> {
     // The monaco container
     protected monacoContainer: HTMLDivElement | null;
     // The monaco editor
     protected editor: monaco.editor.IStandaloneCodeEditor | null;
-    // The hover handler
-    protected _onMouseMove = this.onMouseMove.bind(this);
-
-    // Pending editor resize
-    protected pendingEditorResize: number | null;
-    // The current decoration ids
-    protected currentDecorationIDs: string[];
-    // The current mouse position
-    protected currentMousePosition: monaco.Position | null;
-    // The last event
-    protected lineBreaks: Float64Array;
-
-    /// The current mouse offset
-    protected get currentMouseOffset(): number | null {
-        if (this.currentMousePosition == null) return null;
-        const zeroIndexed = this.currentMousePosition.lineNumber - 1;
-        const lineOffset = zeroIndexed == 0 ? 0 : this.lineBreaks[zeroIndexed - 1];
-        return lineOffset + (this.currentMousePosition.column - 1);
-    }
 
     /// Constructor
     constructor(props: Props) {
         super(props);
         this.monacoContainer = null;
         this.editor = null;
-        this.pendingEditorResize = null;
-        this.currentDecorationIDs = [];
-        this.currentMousePosition = null;
-        this.lineBreaks = new Float64Array();
+        this.state = {
+            mousePosition: null,
+            mouseOffset: null,
+            decorationIDs: [],
+            lineBreaks: props.program.getLineBreaks(),
+            pendingResize: null,
+        };
     }
 
+    /// The bound hover handler
+    protected _onMouseMove = this.onMouseMove.bind(this);
     /// Hover handler
     public onMouseMove(e: monaco.editor.IEditorMouseEvent) {
         const pos = e.target.position;
         if (!pos) return;
         if (
-            this.currentMousePosition != null &&
-            this.currentMousePosition.lineNumber == pos.lineNumber &&
-            this.currentMousePosition.column == pos.column
+            this.state.mousePosition != null &&
+            this.state.mousePosition.lineNumber == pos.lineNumber &&
+            this.state.mousePosition.column == pos.column
         ) {
             return;
         }
-        this.currentMousePosition = pos;
-        this.updateDecorations();
+        const zeroIndexed = pos.lineNumber - 1;
+        const lineOffset = zeroIndexed == 0 ? 0 : this.state.lineBreaks[zeroIndexed - 1];
+        const mouseOffset = lineOffset + pos.column - 1;
+        this.setState({
+            ...this.state,
+            mousePosition: pos,
+            mouseOffset,
+        });
         return null;
     }
 
@@ -212,9 +229,6 @@ class Editor extends React.Component<Props> {
         this.editor.focus();
         this.editor.onMouseMove(this._onMouseMove);
 
-        // Collect line breaks
-        this.lineBreaks = this.props.program.getLineBreaks();
-
         // Finalize the editor
         const editor = this.editor!;
         editor.onDidChangeModelContent(_event => {
@@ -237,30 +251,39 @@ class Editor extends React.Component<Props> {
     }
 
     /// The component did update, sync monaco
-    public componentDidUpdate(prevProps: Props) {
+    public componentDidUpdate(prevProps: Props, prevState: State) {
         // Editor not set?
         if (!this.editor) {
             return;
         }
-        // Update line breaks
-        if (prevProps.program !== this.props.program) {
-            this.lineBreaks = this.props.program.getLineBreaks();
+        // Prop update?
+        if (prevProps != this.props) {
+            // Value changed?
+            if (this.editor.getValue() !== this.props.script.text) {
+                this.editor.setValue(this.props.script.text);
+            }
+            // Program changed?
+            if (prevProps.program !== this.props.program) {
+                this.setState({
+                    lineBreaks: this.props.program.getLineBreaks(),
+                });
+                this.updateMarkers();
+                this.updateDecorations();
+                return;
+            }
+        } else {
+            // Do we have to update the decorations?
+            if (prevState.mousePosition !== this.state.mousePosition) {
+                this.updateDecorations();
+            }
         }
-        // Value changed?
-        if (this.editor && this.editor.getValue() !== this.props.script.text) {
-            this.editor.setValue(this.props.script.text);
-            this.updateMarkers();
-        }
-        // Layout editor
-        if (this.monacoContainer) {
-            this.resizeEditorDelayed(this.monacoContainer.offsetHeight, this.monacoContainer.offsetWidth);
-        }
-
-        // Always update decorations
-        this.updateDecorations();
     }
 
+    /// Unmount the component
     public componentWillUnmount() {
+        if (this.state.pendingResize) {
+            clearTimeout(this.state.pendingResize.timer);
+        }
         if (this.editor !== null) {
             this.editor.dispose();
         }
@@ -269,22 +292,32 @@ class Editor extends React.Component<Props> {
     /// Resize the editor with a delay since this is expensive
     protected resizeEditorDelayed(height: number, width: number) {
         const delayMs = 100;
-        if (this.pendingEditorResize != null) {
-            clearTimeout(this.pendingEditorResize);
+        if (this.state.pendingResize != null) {
+            clearTimeout(this.state.pendingResize.timer);
         }
-        this.pendingEditorResize = window.setTimeout(() => {
-            this.resizeEditor(height, width);
-        }, delayMs);
+        this.setState({
+            ...this.state,
+            pendingResize: {
+                height,
+                width,
+                timer: window.setTimeout(this._resizeEditor, delayMs),
+            },
+        });
     }
 
+    /// Bound resize handler
+    protected _resizeEditor = this.resizeEditor.bind(this);
     /// Resize the editor
-    protected resizeEditor(height: number, width: number) {
-        if (this.editor) {
-            this.editor.layout({
-                height: height,
-                width: width,
-            });
-        }
+    protected resizeEditor() {
+        if (this.editor == null || this.state.pendingResize == null) return;
+        this.editor.layout({
+            height: this.state.pendingResize.height,
+            width: this.state.pendingResize.width,
+        });
+        this.setState({
+            ...this.state,
+            pendingResize: null,
+        });
     }
 
     /// Render the monaco editor
@@ -323,7 +356,7 @@ class Editor extends React.Component<Props> {
 
         // Get line from offset
         const getLine = (ofs: number) => {
-            const breaks = this.lineBreaks;
+            const breaks = this.state.lineBreaks;
             const nextBreak = core.utils.lowerBound(breaks, ofs, (l, r) => l < r, 0, breaks.length);
             const prevOffset = nextBreak == 0 || breaks.length == 0 ? 0 : breaks[nextBreak - 1] + 1; // + \n
             const column = ofs - prevOffset + 1; // Columns are 1 indexed
@@ -379,8 +412,6 @@ class Editor extends React.Component<Props> {
             }
         });
 
-        const mouseOffset = this.currentMouseOffset;
-
         program.iterateDependencies((idx: number, dep: sx.Dependency) => {
             const targetLoc = getLoc(program.getNode(dep.targetNode(), tmpNode));
             const targetBegin = getLine(targetLoc[0]);
@@ -392,7 +423,11 @@ class Editor extends React.Component<Props> {
                     inlineClassName: styles.dep_target_inline,
                 },
             });
-            if (mouseOffset && targetLoc[0] <= mouseOffset && mouseOffset <= targetLoc[0] + targetLoc[1]) {
+            if (
+                this.state.mouseOffset &&
+                targetLoc[0] <= this.state.mouseOffset &&
+                this.state.mouseOffset <= targetLoc[0] + targetLoc[1]
+            ) {
                 console.log(`HIGHLIGHT STATEMENT ${dep.sourceStatement()}`);
             }
 
@@ -402,7 +437,10 @@ class Editor extends React.Component<Props> {
         });
 
         // Update decorations
-        this.currentDecorationIDs = data.deltaDecorations(this.currentDecorationIDs, decorations);
+        this.setState({
+            ...this.state,
+            decorationIDs: data.deltaDecorations(this.state.decorationIDs, decorations),
+        });
     }
 
     public updateMarkers() {
