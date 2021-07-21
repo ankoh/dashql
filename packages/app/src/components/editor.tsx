@@ -142,6 +142,8 @@ class Editor extends React.Component<Props> {
     protected pendingEditorResize: number | null;
     // The old decorations
     protected currentDecorationIDs: string[];
+    // The hover handler
+    protected _onHover = this.onHover.bind(this);
 
     /// Constructor
     constructor(props: Props) {
@@ -152,14 +154,29 @@ class Editor extends React.Component<Props> {
         this.currentDecorationIDs = [];
     }
 
+    /// Hover handler
+    public onHover(
+        m: monaco.editor.ITextModel,
+        position: monaco.Position,
+        token: monaco.CancellationToken,
+    ): monaco.languages.ProviderResult<monaco.languages.Hover> {
+        return null;
+    }
+
     /// The component did mount, init monaco
     public componentDidMount() {
         if (!this.monacoContainer) return;
 
+        // Prepare language
         monaco.languages.register({ id: 'dashql' });
         monaco.languages.setTokensProvider('dashql', new TokensProvider(this.props.appContext.store));
-        monaco.editor.defineTheme('dashql', monaco_theme);
-        monaco.editor.setTheme('dashql');
+        monaco.languages.registerHoverProvider('dashql', {
+            provideHover: this._onHover,
+        });
+
+        // Prepare theme
+        monaco.editor.defineTheme('dashql-theme', monaco_theme);
+        monaco.editor.setTheme('dashql-theme');
 
         this.editor = monaco.editor.create(this.monacoContainer, {
             fontSize: 13,
@@ -278,12 +295,12 @@ class Editor extends React.Component<Props> {
             return [l.offset(), l.length()];
         };
 
-        /// Get line from offset
+        // Get line from offset
         const getLine = (ofs: number) => {
             const nextBreak = core.utils.lowerBound(breaks, ofs, (l, r) => l < r, 0, breaks.length);
-            const prevOffset = nextBreak == 0 || breaks.length == 0 ? 0 : breaks[nextBreak - 1];
-            const column = ofs - prevOffset;
-            return [nextBreak + 1, column];
+            const prevOffset = nextBreak == 0 || breaks.length == 0 ? 0 : breaks[nextBreak - 1] + 1; // + \n
+            const column = ofs - prevOffset + 1; // Columns are 1 indexed
+            return [nextBreak + 1, column]; // Lines are 1 indexed
         };
 
         // Collect the status statement decorations
