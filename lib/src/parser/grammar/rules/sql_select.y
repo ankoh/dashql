@@ -335,10 +335,11 @@ sql_limit_clause:
     ;
 
 sql_offset_clause:
-    OFFSET sql_select_offset_value  { $$ = { Key::SQL_SELECT_OFFSET << $2 }; }
-    // SQL:2008 syntax
+    OFFSET sql_select_offset_value {
+        $$ = { Key::SQL_SELECT_OFFSET << $2 };
+    }
   | OFFSET sql_select_fetch_first_value sql_row_or_rows {
-        
+        $$ = { Key::SQL_SELECT_OFFSET << $2 };
     }
     ;
 
@@ -367,26 +368,26 @@ sql_select_offset_value:
 // builds.)
 
 sql_select_fetch_first_value:
-    sql_c_expr
-  | '+' sql_i_or_f_const
-  | '-' sql_i_or_f_const
+    sql_c_expr            { $$ = std::move($1); }
+  | '+' sql_i_or_f_const  { $$ = String(@2); }
+  | '-' sql_i_or_f_const  { $$ = Negate(ctx, @$, @1, String(@2)); }
 
         ;
 
 sql_i_or_f_const:
-    ICONST
-  | FCONST
+    ICONST  { /* @$ */ }
+  | FCONST  { /* @$ */ }
     ;
 
 // noise words
 sql_row_or_rows:
-    ROW
-  | ROWS
+    ROW     { /* @$ */ }
+  | ROWS    { /* @$ */ }
     ;
 
 sql_first_or_next:
-    FIRST_P
-  | NEXT
+    FIRST_P { $$ = Enum(@1, sx::FetchTarget::FIRST); }
+  | NEXT    { $$ = Enum(@1, sx::FetchTarget::NEXT); }
     ;
 
 

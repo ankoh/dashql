@@ -65,6 +65,8 @@ const char* getEnumText(const sx::Node& target) {
             return sx::TrimDirectionTypeTable()->names[v];
         case sx::NodeType::ENUM_SQL_EXTRACT_TARGET:
             return sx::ExtractTargetTypeTable()->names[v];
+        case sx::NodeType::ENUM_SQL_FETCH_TARGET:
+            return sx::FetchTargetTypeTable()->names[v];
 
         case sx::NodeType::ENUM_SQL_JOIN_TYPE: {
             auto tt = sx::JoinTypeTypeTable();
