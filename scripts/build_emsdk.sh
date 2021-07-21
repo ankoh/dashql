@@ -20,3 +20,5 @@ curl -L -o ${EMSDK_DIR}/emsdk.tar.gz "${EMSDK_RELEASE}"
 
 cd ${EMSDK_DIR}
 tar -xvzf ${EMSDK_DIR}/emsdk.tar.gz --strip-components=1
+
+./emsdk install ${EMSDK_VERSION}
