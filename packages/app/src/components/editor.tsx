@@ -271,6 +271,11 @@ class Editor extends React.Component<Props, State> {
                 this.updateDecorations();
                 return;
             }
+            // Program status changed?
+            if (prevProps.programStatus !== this.props.programStatus) {
+                this.updateDecorations();
+                return;
+            }
         } else {
             // Do we have to update the decorations?
             if (prevState.mousePosition !== this.state.mousePosition) {
