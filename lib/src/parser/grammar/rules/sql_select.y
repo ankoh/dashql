@@ -276,7 +276,7 @@ sql_opt_sort_clause:
     ;
 
 sql_sort_clause:
-    ORDER BY sql_sortby_list    { $$ = ctx.Add(@$, move($3)); }
+    ORDER BY sql_sortby_list        { $$ = ctx.Add(@$, move($3)); }
     ;
 
 sql_sortby_list:
@@ -622,10 +622,20 @@ sql_joined_table:
     ;
 
 sql_alias_clause:
-    AS sql_col_id '(' sql_name_list ')'     { $$ = Alias(ctx, @$, String(@2), ctx.Add(@4, move($4))); }
-  | AS sql_col_id_or_string                 { $$ = String(@2); }
-  | sql_col_id '(' sql_name_list ')'        { $$ = Alias(ctx, @$, String(@1), ctx.Add(@3, move($3))); }
-  | sql_col_id                              { $$ = String(@1); }
+    AS sql_col_id '(' sql_name_list ')' {
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_ALIAS, {
+            Key::SQL_ALIAS_NAME << String(@2),
+            Key::SQL_ALIAS_COLUMN_NAMES << ctx.Add(@4, move($4)),
+        });
+    }
+  | AS sql_col_id_or_string { $$ = String(@2); }
+  | sql_col_id '(' sql_name_list ')' {
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_ALIAS, {
+            Key::SQL_ALIAS_NAME << String(@1),
+            Key::SQL_ALIAS_COLUMN_NAMES << ctx.Add(@3, move($3)),
+        });
+    }
+  | sql_col_id { $$ = String(@1); }
     ;
 
 sql_opt_alias_clause:
@@ -636,11 +646,25 @@ sql_opt_alias_clause:
 // func_alias_clause can include both an PGAlias and a coldeflist, so we make it
 // return a 2-element list that gets disassembled by calling production.
 sql_func_alias_clause:
-    sql_alias_clause                                    { $$ = $1; }
-  | AS '(' sql_table_func_element_list ')'              { $$ = {}; }
-  | AS sql_col_id '(' sql_table_func_element_list ')'   { $$ = {}; }
-  | sql_col_id '(' sql_table_func_element_list ')' ')'  { $$ = {}; }
-  | %empty                                              { $$ = Null(); }
+    sql_alias_clause { $$ = $1; }
+  | AS '(' sql_table_func_element_list ')' {
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_ALIAS, {
+            Key::SQL_ALIAS_COLUMN_DEFINITIONS << ctx.Add(@3, move($3)),
+        });
+    }
+  | AS sql_col_id '(' sql_table_func_element_list ')' {
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_ALIAS, {
+            Key::SQL_ALIAS_NAME << String(@2),
+            Key::SQL_ALIAS_COLUMN_DEFINITIONS << ctx.Add(@4, move($4)),
+        });
+    }
+  | sql_col_id '(' sql_table_func_element_list ')' ')' {
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_ALIAS, {
+            Key::SQL_ALIAS_NAME << String(@1),
+            Key::SQL_ALIAS_COLUMN_DEFINITIONS << ctx.Add(@3, move($3)),
+        });
+    }
+  | %empty { $$ = Null(); }
     ;
 
 sql_join_type:
