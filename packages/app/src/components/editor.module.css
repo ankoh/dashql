@@ -54,8 +54,15 @@
 
 .dep_target {
     border-radius: 2px;
-    background-color: rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(0, 0, 0, 0.2);
 }
 
-.dep_target_inline {
+.dep_target_focused {
+    background-color: rgba(70, 130, 180, 0.25);
+    border-radius: 2px;
+    border: 1px solid rgba(0, 0, 0, 0.2);
+}
+
+.dep_source_focused {
+    background-color: rgba(70, 130, 180, 0.25);
 }

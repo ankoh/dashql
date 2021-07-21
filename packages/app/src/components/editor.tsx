@@ -280,6 +280,7 @@ class Editor extends React.Component<Props, State> {
             // Do we have to update the decorations?
             if (prevState.mousePosition !== this.state.mousePosition) {
                 this.updateDecorations();
+                return;
             }
         }
     }
@@ -421,24 +422,37 @@ class Editor extends React.Component<Props, State> {
             const targetLoc = getLoc(program.getNode(dep.targetNode(), tmpNode));
             const targetBegin = getLine(targetLoc[0]);
             const targetEnd = getLine(targetLoc[0] + targetLoc[1]);
-            decorations.push({
-                range: new monaco.Range(targetBegin[0], targetBegin[1], targetEnd[0], targetEnd[1]),
-                options: {
-                    className: styles.dep_target,
-                    inlineClassName: styles.dep_target_inline,
-                },
-            });
             if (
                 this.state.mouseOffset &&
                 targetLoc[0] <= this.state.mouseOffset &&
                 this.state.mouseOffset <= targetLoc[0] + targetLoc[1]
             ) {
-                console.log(`HIGHLIGHT STATEMENT ${dep.sourceStatement()}`);
+                const sourceStmtId = dep.sourceStatement();
+                const sourceStmt = program.getStatement(sourceStmtId);
+                const sourceLoc = getLoc(sourceStmt.root_node(tmpNode));
+                const sourceBegin = getLine(sourceLoc[0]);
+                const sourceEnd = getLine(sourceLoc[0] + sourceLoc[1]);
+                decorations.push({
+                    range: new monaco.Range(targetBegin[0], targetBegin[1], targetEnd[0], targetEnd[1]),
+                    options: {
+                        className: styles.dep_target_focused,
+                    },
+                });
+                decorations.push({
+                    range: new monaco.Range(sourceBegin[0], sourceBegin[1], sourceEnd[0], sourceEnd[1]),
+                    options: {
+                        isWholeLine: true,
+                        className: styles.dep_source_focused,
+                    },
+                });
+            } else {
+                decorations.push({
+                    range: new monaco.Range(targetBegin[0], targetBegin[1], targetEnd[0], targetEnd[1]),
+                    options: {
+                        className: styles.dep_target,
+                    },
+                });
             }
-
-            //const sourceStmtId = dep.sourceStatement();
-            //const sourceStmt = program.getStatement(sourceStmtId);
-            //const sourceLoc = loc(sourceStmt.root_node(tmpNode));
         });
 
         // Update decorations
@@ -455,7 +469,7 @@ class Editor extends React.Component<Props, State> {
         if (!data) return;
 
         if (!program) {
-            monaco.editor.setModelMarkers(data, 'DashQL', []);
+            monaco.editor.setModelMarkers(data, 'dashql-model', []);
         } else {
             const markers: monaco.editor.IMarkerData[] = [];
             for (let i = 0; i < program.buffer.errorsLength(); ++i) {
@@ -479,7 +493,7 @@ class Editor extends React.Component<Props, State> {
                     severity: monaco.MarkerSeverity.Error,
                 });
             }
-            monaco.editor.setModelMarkers(data, 'DashQL', markers);
+            monaco.editor.setModelMarkers(data, 'dashql-model', markers);
         }
     }
 }

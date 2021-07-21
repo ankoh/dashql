@@ -1,5 +1,5 @@
 :root {
-    --editor_glyph_status_size: 75%;
+    --editor_glyph_status_size: 70%;
     --action_duration_color: rgba(255, 255, 255, 0.6);
     --action_panel_bg: rgb(30, 30, 30);
     --action_panel_border_radius: 8px;

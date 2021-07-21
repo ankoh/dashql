@@ -1,6 +1,6 @@
 // Copyright (c) 2020 The DashQL Authors
 
-import { NativeStack, NativeBitmap, lowerBound } from '../utils';
+import { NativeStack, NativeBitmap } from '../utils';
 import { syntax as sx } from '@dashql/proto';
 import * as proto from '@dashql/proto';
 import * as schema from './syntax_schema';
