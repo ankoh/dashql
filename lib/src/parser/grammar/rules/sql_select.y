@@ -56,8 +56,12 @@ sql_select_with_parens:
 //    2002-08-28 bjm
 
 sql_select_no_parens:
-    sql_simple_select                   { $$ = move($1); }
-  | sql_select_clause sql_sort_clause   { $1.push_back(Key::SQL_SELECT_ORDER << $2); $$ = move($1); }
+    sql_simple_select { $$ = move($1); }
+  | sql_select_clause sql_sort_clause {
+        $$ = concat(move($1), {
+            Key::SQL_SELECT_ORDER << $2
+        });
+    }
   | sql_select_clause sql_opt_sort_clause sql_for_locking_clause sql_opt_select_limit {
         $$ = concat(move($1), move($4), {
             Key::SQL_SELECT_ORDER << $2,
@@ -243,8 +247,8 @@ sql_opt_temp_table_name:
     ;
 
 sql_opt_table:
-    TABLE
-  | %empty
+    TABLE       { /* $@ */ }
+  | %empty      { /* $@ */ }
     ;
 
 sql_all_or_distinct:
@@ -262,8 +266,8 @@ sql_distinct_clause:
     ;
 
 sql_opt_all_clause:
-    ALL     { $$ = Bool(@1, true); }
-  | %empty  { $$ = Null(); }
+    ALL                 { $$ = Bool(@1, true); }
+  | %empty              { $$ = Null(); }
     ;
 
 sql_opt_sort_clause:
@@ -442,7 +446,7 @@ sql_group_by_item:
     ;
 
 sql_empty_grouping_set:
-    '(' ')'
+    '(' ')'                 { /* @$ */ }
     ;
 
 // These hacks rely on setting precedence of CUBE and ROLLUP below that of '(',
@@ -648,8 +652,8 @@ sql_join_type:
 
 /* OUTER is just noise... */
 sql_join_outer:
-    OUTER_P   { $$ = sx::JoinType::OUTER_; }
-  | %empty    { $$ = sx::JoinType::NONE; }
+    OUTER_P                 { $$ = sx::JoinType::OUTER_; }
+  | %empty                  { $$ = sx::JoinType::NONE; }
     ;
 
 // JOIN qualification clauses
@@ -695,8 +699,8 @@ sql_sample_clause:
   | %empty                              { $$ = Null(); }
 
 sql_opt_sample_func:
-    sql_col_id  { /* @$ */ }
-  | %empty      { /* @$ */ }
+    sql_col_id                          { /* @$ */ }
+  | %empty                              { /* @$ */ }
 		;
 
 sql_tablesample_entry:
@@ -734,8 +738,8 @@ sql_tablesample_clause:
 		;
 
 sql_opt_tablesample_clause:
-		sql_tablesample_clause  { $$ = std::move($1); }
-  | %empty                  { $$ = Null(); }
+		sql_tablesample_clause      { $$ = std::move($1); }
+  | %empty                      { $$ = Null(); }
 		;
 
 sql_opt_repeatable_clause:
@@ -788,14 +792,14 @@ sql_opt_col_def_list:
     ;
 
 sql_opt_ordinality:
-    WITH_LA ORDINALITY  { $$ = Bool(@$, true);  }
-  | %empty              { $$ = Bool(@$, false); }
+    WITH_LA ORDINALITY    { $$ = Bool(@$, true);  }
+  | %empty                { $$ = Bool(@$, false); }
     ;
 
 
 sql_where_clause:
-    WHERE sql_a_expr    { $$ = $2; }
-  | %empty              { $$ = Null(); }
+    WHERE sql_a_expr      { $$ = $2; }
+  | %empty                { $$ = Null(); }
     ;
 
 /* variant for UPDATE and DELETE */
@@ -1877,8 +1881,8 @@ sql_case_default:
     ;
 
 sql_case_arg:
-    sql_a_expr  { $$ = std::move($1); }
-  | %empty      { $$ = Null(); }
+    sql_a_expr        { $$ = std::move($1); }
+  | %empty            { $$ = Null(); }
     ;
 
 sql_columnref:
@@ -1894,8 +1898,8 @@ sql_indirection_el:
     ;
 
 sql_opt_slice_bound:
-    sql_a_expr          { $$ = $1; }
-  | %empty              { $$ = Null(); }
+    sql_a_expr              { $$ = $1; }
+  | %empty                  { $$ = Null(); }
     ;
 
 sql_indirection:
@@ -2072,29 +2076,29 @@ sql_col_id_or_string:
 // Type/function identifier --- names that can be type or function names.
 
 sql_type_function_name:
-    IDENT                     { /* @$ */ }
-  | sql_unreserved_keywords   { /* @$ */ }
-  | sql_type_func_keywords    { /* @$ */ }
-  | dashql_keywords           { /* @$ */ }
+    IDENT                       { /* @$ */ }
+  | sql_unreserved_keywords     { /* @$ */ }
+  | sql_type_func_keywords      { /* @$ */ }
+  | dashql_keywords             { /* @$ */ }
     ;
 
 sql_any_name:
-    sql_col_id            { $$ = { String(@1) }; }
-  | sql_col_id sql_attrs  { $2.insert($2.begin(), String(@1)); $$ = std::move($2); }
+    sql_col_id                  { $$ = { String(@1) }; }
+  | sql_col_id sql_attrs        { $2.insert($2.begin(), String(@1)); $$ = std::move($2); }
     ;
 
 sql_attrs:
-    '.' sql_attr_name             { $$ = { String(@2) }; }
-  | sql_attrs '.' sql_attr_name   { $1.push_back(String(@3)); $$ = std::move($1); }
+    '.' sql_attr_name           { $$ = { String(@2) }; }
+  | sql_attrs '.' sql_attr_name { $1.push_back(String(@3)); $$ = std::move($1); }
     ;
 
 sql_opt_name_list:
-    '(' sql_name_list ')'   { $$ = move($2); }
-  | %empty                  { $$ = {}; }
+    '(' sql_name_list ')'       { $$ = move($2); }
+  | %empty                      { $$ = {}; }
     ;
 
 sql_param_name:
-    sql_type_function_name  { /* @$ */ }
+    sql_type_function_name      { /* @$ */ }
     ;
 
 // Any not-fully-reserved word --- these names can be, eg, role names.
