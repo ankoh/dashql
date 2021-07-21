@@ -34,6 +34,7 @@
 %type <NodeVector> sql_opt_interval;
 %type <NodeVector> sql_opt_name_list;
 %type <NodeVector> sql_opt_partition_clause;
+%type <NodeVector> sql_opt_select_limit;
 %type <NodeVector> sql_opt_target_list;
 %type <NodeVector> sql_opt_type_modifiers;
 %type <NodeVector> sql_overlay_list;
@@ -87,7 +88,6 @@
 %type <sx::Node> sql_distinct_clause;
 %type <sx::Node> sql_extract_arg;
 %type <sx::Node> sql_filter_clause;
-%type <sx::Node> sql_first_or_next;
 %type <sx::Node> sql_for_locking_item;
 %type <sx::Node> sql_for_locking_strength;
 %type <sx::Node> sql_frame_bound;

@@ -59,29 +59,34 @@ sql_select_no_parens:
     sql_simple_select                   { $$ = move($1); }
   | sql_select_clause sql_sort_clause   { $1.push_back(Key::SQL_SELECT_ORDER << $2); $$ = move($1); }
   | sql_select_clause sql_opt_sort_clause sql_for_locking_clause sql_opt_select_limit {
-        $1.push_back(Key::SQL_SELECT_ORDER << $2);
-        $1.push_back(Key::SQL_SELECT_ROW_LOCKING << ctx.Add(@3, std::move($3)));
-        $$ = move($1);
+        $$ = concat(move($1), move($4), {
+            Key::SQL_SELECT_ORDER << $2,
+            Key::SQL_SELECT_ROW_LOCKING << ctx.Add(@3, move($3)),
+        });
     }
   | sql_select_clause sql_opt_sort_clause sql_select_limit sql_opt_for_locking_clause {
-        $1.push_back(Key::SQL_SELECT_ORDER << $2);
-        $1.push_back(Key::SQL_SELECT_ROW_LOCKING << ctx.Add(@4, std::move($4)));
-        $$ = move($1);
+        $$ = concat(move($1), move($3), {
+            Key::SQL_SELECT_ORDER << $2,
+            Key::SQL_SELECT_ROW_LOCKING << ctx.Add(@4, move($4)),
+        });
     }
   | sql_with_clause sql_select_clause { $$ = concat(move($1), move($2)); }
   | sql_with_clause sql_select_clause sql_sort_clause {
-        $$ = concat(move($1), move($2));
-        $$.push_back(Key::SQL_SELECT_ORDER << $3);
+        $$ = concat(move($1), move($2), {
+            Key::SQL_SELECT_ORDER << $3,
+        });
     }
   | sql_with_clause sql_select_clause sql_opt_sort_clause sql_for_locking_clause sql_opt_select_limit {
-        $$ = concat(move($1), move($2));
-        $$.push_back(Key::SQL_SELECT_ORDER << $3);
-        $$.push_back(Key::SQL_SELECT_ROW_LOCKING << ctx.Add(@4, std::move($4)));
+        $$ = concat(move($1), move($2), move($5), {
+            Key::SQL_SELECT_ORDER << $3,
+            Key::SQL_SELECT_ROW_LOCKING << ctx.Add(@4, move($4)),
+        });
     }
   | sql_with_clause sql_select_clause sql_opt_sort_clause sql_select_limit sql_opt_for_locking_clause {
-        $$ = concat(move($1), move($2));
-        $$.push_back(Key::SQL_SELECT_ORDER << $3);
-        $$.push_back(Key::SQL_SELECT_ROW_LOCKING << ctx.Add(@5, std::move($5)));
+        $$ = concat(move($1), move($2), move($4), {
+            Key::SQL_SELECT_ORDER << $3,
+            Key::SQL_SELECT_ROW_LOCKING << ctx.Add(@5, std::move($5)),
+        });
     }
     ;
 
@@ -311,9 +316,9 @@ sql_select_limit:
     ;
 
 sql_opt_select_limit:
-    sql_select_limit
-  | %empty
-        ;
+    sql_select_limit  { $$ = std::move($1); }
+  | %empty            { $$ = {}; }
+    ;
 
 sql_limit_clause:
     LIMIT sql_select_limit_value { $$ = { Key::SQL_SELECT_LIMIT << $2 }; }
@@ -331,10 +336,14 @@ sql_limit_clause:
     //   we can see the ONLY token in the lookahead slot.
     //  
   | FETCH sql_first_or_next sql_select_fetch_first_value sql_row_or_rows ONLY {
-        $$ = {};
+        $$ = {
+            Key::SQL_SELECT_LIMIT << $3,
+        };
     }
   | FETCH sql_first_or_next sql_row_or_rows ONLY {
-        $$ = {};
+        $$ = {
+            Key::SQL_SELECT_LIMIT << UI32(@3, 1),
+        };
     }
     ;
 
@@ -390,8 +399,8 @@ sql_row_or_rows:
     ;
 
 sql_first_or_next:
-    FIRST_P { $$ = Enum(@1, sx::FetchTarget::FIRST); }
-  | NEXT    { $$ = Enum(@1, sx::FetchTarget::NEXT); }
+    FIRST_P { /* @$ */ }
+  | NEXT    { /* @$ */ }
     ;
 
 

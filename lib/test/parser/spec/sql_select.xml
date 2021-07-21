@@ -5721,4 +5721,223 @@
             <dependencies />
         </expected>
     </test>
+    <test name="select_limit_1">
+        <input>
+            SELECT * FROM foo LIMIT 42
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..39" text="SELECT * F..o LIMIT 42">
+                        <node key="SQL_SELECT_FROM">
+                            <node type="OBJECT_SQL_TABLE_REF" loc="27..30" text="foo">
+                                <node key="SQL_TABLE_INHERIT" value="true" />
+                                <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="27..30" text="foo">
+                                    <node key="SQL_QUALIFIED_NAME_RELATION" loc="27..30" text="foo" />
+                                </node>
+                            </node>
+                        </node>
+                        <node key="SQL_SELECT_LIMIT" loc="37..39" text="42" />
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="39..40" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="select_limit_2">
+        <input>
+            SELECT * FROM foo LIMIT 42, OFFSET 21
+        </input>
+        <expected>
+            <statements />
+            <errors>
+                <error message="syntax error, unexpected OFFSET" loc="41..47" text="OFFSET" />
+            </errors>
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="50..51" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="select_limit_3">
+        <input>
+            SELECT * FROM foo LIMIT ALL
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..40" text="SELECT * F.. LIMIT ALL">
+                        <node key="SQL_SELECT_FROM">
+                            <node type="OBJECT_SQL_TABLE_REF" loc="27..30" text="foo">
+                                <node key="SQL_TABLE_INHERIT" value="true" />
+                                <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="27..30" text="foo">
+                                    <node key="SQL_QUALIFIED_NAME_RELATION" loc="27..30" text="foo" />
+                                </node>
+                            </node>
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="40..41" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="select_limit_4">
+        <input>
+            SELECT * FROM foo LIMIT ALL OFFSET 21
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..50" text="SELECT * F.. OFFSET 21">
+                        <node key="SQL_SELECT_FROM">
+                            <node type="OBJECT_SQL_TABLE_REF" loc="27..30" text="foo">
+                                <node key="SQL_TABLE_INHERIT" value="true" />
+                                <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="27..30" text="foo">
+                                    <node key="SQL_QUALIFIED_NAME_RELATION" loc="27..30" text="foo" />
+                                </node>
+                            </node>
+                        </node>
+                        <node key="SQL_SELECT_OFFSET" loc="48..50" text="21" />
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="50..51" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="select_limit_5">
+        <input>
+            SELECT * FROM foo FETCH FIRST 42 ROWS ONLY
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..55" text="SELECT * F.. ROWS ONLY">
+                        <node key="SQL_SELECT_FROM">
+                            <node type="OBJECT_SQL_TABLE_REF" loc="27..30" text="foo">
+                                <node key="SQL_TABLE_INHERIT" value="true" />
+                                <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="27..30" text="foo">
+                                    <node key="SQL_QUALIFIED_NAME_RELATION" loc="27..30" text="foo" />
+                                </node>
+                            </node>
+                        </node>
+                        <node key="SQL_SELECT_LIMIT" loc="43..45" text="42" />
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="55..56" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="select_limit_6">
+        <input>
+            SELECT * FROM foo FETCH FIRST 1 ROW ONLY
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..53" text="SELECT * F..1 ROW ONLY">
+                        <node key="SQL_SELECT_FROM">
+                            <node type="OBJECT_SQL_TABLE_REF" loc="27..30" text="foo">
+                                <node key="SQL_TABLE_INHERIT" value="true" />
+                                <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="27..30" text="foo">
+                                    <node key="SQL_QUALIFIED_NAME_RELATION" loc="27..30" text="foo" />
+                                </node>
+                            </node>
+                        </node>
+                        <node key="SQL_SELECT_LIMIT" loc="43..44" text="1" />
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="53..54" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="select_limit_7">
+        <input>
+            SELECT * FROM foo FETCH NEXT 1 ROW ONLY
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..52" text="SELECT * F..1 ROW ONLY">
+                        <node key="SQL_SELECT_FROM">
+                            <node type="OBJECT_SQL_TABLE_REF" loc="27..30" text="foo">
+                                <node key="SQL_TABLE_INHERIT" value="true" />
+                                <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="27..30" text="foo">
+                                    <node key="SQL_QUALIFIED_NAME_RELATION" loc="27..30" text="foo" />
+                                </node>
+                            </node>
+                        </node>
+                        <node key="SQL_SELECT_LIMIT" loc="42..43" text="1" />
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="52..53" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="select_limit_8">
+        <input>
+            SELECT * FROM foo LIMIT ALL, 21
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..44" text="SELECT * F..IT ALL, 21">
+                        <node key="SQL_SELECT_FROM">
+                            <node type="OBJECT_SQL_TABLE_REF" loc="27..30" text="foo">
+                                <node key="SQL_TABLE_INHERIT" value="true" />
+                                <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="27..30" text="foo">
+                                    <node key="SQL_QUALIFIED_NAME_RELATION" loc="27..30" text="foo" />
+                                </node>
+                            </node>
+                        </node>
+                        <node key="SQL_SELECT_OFFSET" loc="42..44" text="21" />
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="44..45" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
 </tests>

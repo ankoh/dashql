@@ -832,4 +832,44 @@
             SELECT * FROM (SELECT * FROM mytable FOR UPDATE OF foo NOWAIT) ss WHERE col1 = 5;
         </input>
     </test>
+    <test name="select_limit_1">
+        <input>
+            SELECT * FROM foo LIMIT 42
+        </input>
+    </test>
+    <test name="select_limit_2">
+        <input>
+            SELECT * FROM foo LIMIT 42, OFFSET 21
+        </input>
+    </test>
+    <test name="select_limit_3">
+        <input>
+            SELECT * FROM foo LIMIT ALL
+        </input>
+    </test>
+    <test name="select_limit_4">
+        <input>
+            SELECT * FROM foo LIMIT ALL OFFSET 21
+        </input>
+    </test>
+    <test name="select_limit_5">
+        <input>
+            SELECT * FROM foo FETCH FIRST 42 ROWS ONLY
+        </input>
+    </test>
+    <test name="select_limit_6">
+        <input>
+            SELECT * FROM foo FETCH FIRST 1 ROW ONLY
+        </input>
+    </test>
+    <test name="select_limit_7">
+        <input>
+            SELECT * FROM foo FETCH NEXT 1 ROW ONLY
+        </input>
+    </test>
+    <test name="select_limit_8">
+        <input>
+            SELECT * FROM foo LIMIT ALL, 21
+        </input>
+    </test>
 </tests>
