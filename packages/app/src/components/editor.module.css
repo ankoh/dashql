@@ -54,5 +54,8 @@
 
 .dep_target {
     border-radius: 2px;
-    background: rgba(0, 0, 0, 0.1);
+    background-color: rgba(0, 0, 0, 0.1);
+}
+
+.dep_target_inline {
 }
