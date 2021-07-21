@@ -155,19 +155,19 @@ wasm_caches:
 .PHONY: wasm
 wasm: wasm_caches
 	mkdir -p ${CACHE_DIRS}
-	${EXEC_ENVIRONMENT} ${ROOT_DIR}/scripts/wasm_build_lib.sh Fast
+	${EXEC_ENVIRONMENT} ${ROOT_DIR}/scripts/wasm_build.sh Fast
 
 # Build the wasm modules with all debug info
 .PHONY: wasm_debug
 wasm_debug: wasm_caches
 	mkdir -p ${CACHE_DIRS}
-	${EXEC_ENVIRONMENT} ${ROOT_DIR}/scripts/wasm_build_lib.sh Debug
+	${EXEC_ENVIRONMENT} ${ROOT_DIR}/scripts/wasm_build.sh Debug
 
 # Build the wasm modules
 .PHONY: wasm_release
 wasm_release: wasm_caches
 	mkdir -p ${CACHE_DIRS}
-	${EXEC_ENVIRONMENT} ${ROOT_DIR}/scripts/wasm_build_lib.sh Release
+	${EXEC_ENVIRONMENT} ${ROOT_DIR}/scripts/wasm_build.sh Release
 
 # Builds the app
 .PHONY: app
