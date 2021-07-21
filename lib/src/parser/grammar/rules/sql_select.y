@@ -60,10 +60,12 @@ sql_select_no_parens:
   | sql_select_clause sql_sort_clause   { $1.push_back(Key::SQL_SELECT_ORDER << $2); $$ = move($1); }
   | sql_select_clause sql_opt_sort_clause sql_for_locking_clause sql_opt_select_limit {
         $1.push_back(Key::SQL_SELECT_ORDER << $2);
+        $1.push_back(Key::SQL_SELECT_ROW_LOCKING << ctx.Add(@3, std::move($3)));
         $$ = move($1);
     }
   | sql_select_clause sql_opt_sort_clause sql_select_limit sql_opt_for_locking_clause {
         $1.push_back(Key::SQL_SELECT_ORDER << $2);
+        $1.push_back(Key::SQL_SELECT_ROW_LOCKING << ctx.Add(@4, std::move($4)));
         $$ = move($1);
     }
   | sql_with_clause sql_select_clause { $$ = concat(move($1), move($2)); }
@@ -74,10 +76,12 @@ sql_select_no_parens:
   | sql_with_clause sql_select_clause sql_opt_sort_clause sql_for_locking_clause sql_opt_select_limit {
         $$ = concat(move($1), move($2));
         $$.push_back(Key::SQL_SELECT_ORDER << $3);
+        $$.push_back(Key::SQL_SELECT_ROW_LOCKING << ctx.Add(@4, std::move($4)));
     }
   | sql_with_clause sql_select_clause sql_opt_sort_clause sql_select_limit sql_opt_for_locking_clause {
         $$ = concat(move($1), move($2));
         $$.push_back(Key::SQL_SELECT_ORDER << $3);
+        $$.push_back(Key::SQL_SELECT_ROW_LOCKING << ctx.Add(@5, std::move($5)));
     }
     ;
 
@@ -442,41 +446,53 @@ sql_having_clause:
     ;
 
 sql_for_locking_clause:
-    sql_for_locking_items
-  | FOR READ_P ONLY
+    sql_for_locking_items   { $$ = std::move($1); }
+  | FOR READ_P ONLY         {
+        $$ = {
+            ctx.Add(@$, sx::NodeType::OBJECT_SQL_ROW_LOCKING, {
+                Key::SQL_ROW_LOCKING_STRENGTH << Enum(@1, sx::RowLockingStrength::READ_ONLY),
+            })
+        };
+    }
     ;
 
 sql_opt_for_locking_clause:
-    sql_for_locking_clause
-  | %empty
+    sql_for_locking_clause  { $$ = { ctx.Add(@1, std::move($1)) }; }
+  | %empty                  { $$ = {}; }
     ;
 
 sql_for_locking_items:
-    sql_for_locking_item
-  | sql_for_locking_items sql_for_locking_item
+    sql_for_locking_item                          { $$ = { std::move($1) }; }
+  | sql_for_locking_items sql_for_locking_item    { $1.push_back(std::move($2)); $$ = std::move($1); }
     ;
 
 sql_for_locking_item:
-    sql_for_locking_strength sql_locked_rels_list sql_opt_nowait_or_skip
+    sql_for_locking_strength sql_locked_rels_list sql_opt_nowait_or_skip {
+        $$ = ctx.Add(@$, sx::NodeType::OBJECT_SQL_ROW_LOCKING, {
+            Key::SQL_ROW_LOCKING_BLOCK_BEHAVIOR << $3,
+            Key::SQL_ROW_LOCKING_OF << ctx.Add(@2, std::move($2)),
+            Key::SQL_ROW_LOCKING_STRENGTH << $1,
+        });
+    }
     ;
 
 sql_for_locking_strength:
-    FOR UPDATE
-  | FOR NO KEY UPDATE
-  | FOR SHARE
-  | FOR KEY SHARE
+    FOR UPDATE          { $$ = Enum(@$, sx::RowLockingStrength::UPDATE); }
+  | FOR NO KEY UPDATE   { $$ = Enum(@$, sx::RowLockingStrength::NO_KEY_UPDATE); }
+  | FOR SHARE           { $$ = Enum(@$, sx::RowLockingStrength::SHARE); }
+  | FOR KEY SHARE       { $$ = Enum(@$, sx::RowLockingStrength::KEY_SHARE); }
     ;
 
 sql_locked_rels_list:
-    OF sql_qualified_name_list
-  | %empty
+    OF sql_qualified_name_list  { $$ = std::move($2); }
+  | %empty                      { $$ = {}; }
     ;
 
 
 sql_opt_nowait_or_skip:
-    NOWAIT
-  | SKIP LOCKED
-  | %empty
+    NOWAIT        { $$ = Enum(@$, sx::RowLockingBlockBehavior::NOWAIT); }
+  | SKIP LOCKED   { $$ = Enum(@$, sx::RowLockingBlockBehavior::SKIP_LOCKED); }
+  | %empty        { $$ = Null(); }
     ;
 
 // We should allow ROW '(' expr_list ')' too, but that seems to require

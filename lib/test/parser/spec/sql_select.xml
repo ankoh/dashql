@@ -5381,4 +5381,344 @@
             <dependencies />
         </expected>
     </test>
+    <test name="select_row_locking_1">
+        <input>
+            SELECT * FROM (SELECT * FROM mytable FOR UPDATE) ss WHERE col1 = 5;
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..79" text="SELECT * F..E col1 = 5">
+                        <node key="SQL_SELECT_FROM">
+                            <node type="OBJECT_SQL_FUNCTION_TABLE" loc="27..64" text="(SELECT * ..UPDATE) ss">
+                                <node key="SQL_SELECT_FROM">
+                                    <node type="OBJECT_SQL_TABLE_REF" loc="42..49" text="mytable">
+                                        <node key="SQL_TABLE_INHERIT" value="true" />
+                                        <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="42..49" text="mytable">
+                                            <node key="SQL_QUALIFIED_NAME_RELATION" loc="42..49" text="mytable" />
+                                        </node>
+                                    </node>
+                                </node>
+                                <node key="SQL_SELECT_ROW_LOCKING">
+                                    <node type="OBJECT_SQL_ROW_LOCKING" loc="50..60" text="FOR UPDATE">
+                                        <node key="SQL_ROW_LOCKING_STRENGTH" value="UPDATE" />
+                                    </node>
+                                </node>
+                                <node key="SQL_TABLE_ALIAS" loc="62..64" text="ss" />
+                            </node>
+                        </node>
+                        <node key="SQL_SELECT_WHERE" type="OBJECT_SQL_EXPRESSION" loc="71..79" text="col1 = 5">
+                            <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="71..75" text="col1">
+                                <node key="SQL_COLUMN_REF_PATH">
+                                    <node loc="71..75" text="col1" />
+                                </node>
+                            </node>
+                            <node key="SQL_EXPRESSION_ARG1" loc="78..79" text="5" />
+                            <node key="SQL_EXPRESSION_OPERATOR" value="EQUAL" />
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="80..81" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="select_row_locking_2">
+        <input>
+            SELECT * FROM (SELECT * FROM mytable FOR NO KEY UPDATE) ss WHERE col1 = 5;
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..86" text="SELECT * F..E col1 = 5">
+                        <node key="SQL_SELECT_FROM">
+                            <node type="OBJECT_SQL_FUNCTION_TABLE" loc="27..71" text="(SELECT * ..UPDATE) ss">
+                                <node key="SQL_SELECT_FROM">
+                                    <node type="OBJECT_SQL_TABLE_REF" loc="42..49" text="mytable">
+                                        <node key="SQL_TABLE_INHERIT" value="true" />
+                                        <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="42..49" text="mytable">
+                                            <node key="SQL_QUALIFIED_NAME_RELATION" loc="42..49" text="mytable" />
+                                        </node>
+                                    </node>
+                                </node>
+                                <node key="SQL_SELECT_ROW_LOCKING">
+                                    <node type="OBJECT_SQL_ROW_LOCKING" loc="50..67" text="FOR NO KEY UPDATE">
+                                        <node key="SQL_ROW_LOCKING_STRENGTH" value="NO_KEY_UPDATE" />
+                                    </node>
+                                </node>
+                                <node key="SQL_TABLE_ALIAS" loc="69..71" text="ss" />
+                            </node>
+                        </node>
+                        <node key="SQL_SELECT_WHERE" type="OBJECT_SQL_EXPRESSION" loc="78..86" text="col1 = 5">
+                            <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="78..82" text="col1">
+                                <node key="SQL_COLUMN_REF_PATH">
+                                    <node loc="78..82" text="col1" />
+                                </node>
+                            </node>
+                            <node key="SQL_EXPRESSION_ARG1" loc="85..86" text="5" />
+                            <node key="SQL_EXPRESSION_OPERATOR" value="EQUAL" />
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="87..88" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="select_row_locking_3">
+        <input>
+            SELECT * FROM (SELECT * FROM mytable FOR SHARE) ss WHERE col1 = 5;
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..78" text="SELECT * F..E col1 = 5">
+                        <node key="SQL_SELECT_FROM">
+                            <node type="OBJECT_SQL_FUNCTION_TABLE" loc="27..63" text="(SELECT * .. SHARE) ss">
+                                <node key="SQL_SELECT_FROM">
+                                    <node type="OBJECT_SQL_TABLE_REF" loc="42..49" text="mytable">
+                                        <node key="SQL_TABLE_INHERIT" value="true" />
+                                        <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="42..49" text="mytable">
+                                            <node key="SQL_QUALIFIED_NAME_RELATION" loc="42..49" text="mytable" />
+                                        </node>
+                                    </node>
+                                </node>
+                                <node key="SQL_SELECT_ROW_LOCKING">
+                                    <node type="OBJECT_SQL_ROW_LOCKING" loc="50..59" text="FOR SHARE">
+                                        <node key="SQL_ROW_LOCKING_STRENGTH" value="SHARE" />
+                                    </node>
+                                </node>
+                                <node key="SQL_TABLE_ALIAS" loc="61..63" text="ss" />
+                            </node>
+                        </node>
+                        <node key="SQL_SELECT_WHERE" type="OBJECT_SQL_EXPRESSION" loc="70..78" text="col1 = 5">
+                            <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="70..74" text="col1">
+                                <node key="SQL_COLUMN_REF_PATH">
+                                    <node loc="70..74" text="col1" />
+                                </node>
+                            </node>
+                            <node key="SQL_EXPRESSION_ARG1" loc="77..78" text="5" />
+                            <node key="SQL_EXPRESSION_OPERATOR" value="EQUAL" />
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="79..80" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="select_row_locking_4">
+        <input>
+            SELECT * FROM (SELECT * FROM mytable FOR KEY SHARE) ss WHERE col1 = 5;
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..82" text="SELECT * F..E col1 = 5">
+                        <node key="SQL_SELECT_FROM">
+                            <node type="OBJECT_SQL_FUNCTION_TABLE" loc="27..67" text="(SELECT * .. SHARE) ss">
+                                <node key="SQL_SELECT_FROM">
+                                    <node type="OBJECT_SQL_TABLE_REF" loc="42..49" text="mytable">
+                                        <node key="SQL_TABLE_INHERIT" value="true" />
+                                        <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="42..49" text="mytable">
+                                            <node key="SQL_QUALIFIED_NAME_RELATION" loc="42..49" text="mytable" />
+                                        </node>
+                                    </node>
+                                </node>
+                                <node key="SQL_SELECT_ROW_LOCKING">
+                                    <node type="OBJECT_SQL_ROW_LOCKING" loc="50..63" text="FOR KEY SHARE">
+                                        <node key="SQL_ROW_LOCKING_STRENGTH" value="KEY_SHARE" />
+                                    </node>
+                                </node>
+                                <node key="SQL_TABLE_ALIAS" loc="65..67" text="ss" />
+                            </node>
+                        </node>
+                        <node key="SQL_SELECT_WHERE" type="OBJECT_SQL_EXPRESSION" loc="74..82" text="col1 = 5">
+                            <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="74..78" text="col1">
+                                <node key="SQL_COLUMN_REF_PATH">
+                                    <node loc="74..78" text="col1" />
+                                </node>
+                            </node>
+                            <node key="SQL_EXPRESSION_ARG1" loc="81..82" text="5" />
+                            <node key="SQL_EXPRESSION_OPERATOR" value="EQUAL" />
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="83..84" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="select_row_locking_5">
+        <input>
+            SELECT * FROM (SELECT * FROM mytable FOR READ ONLY) ss WHERE col1 = 5;
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..82" text="SELECT * F..E col1 = 5">
+                        <node key="SQL_SELECT_FROM">
+                            <node type="OBJECT_SQL_FUNCTION_TABLE" loc="27..67" text="(SELECT * ..D ONLY) ss">
+                                <node key="SQL_SELECT_FROM">
+                                    <node type="OBJECT_SQL_TABLE_REF" loc="42..49" text="mytable">
+                                        <node key="SQL_TABLE_INHERIT" value="true" />
+                                        <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="42..49" text="mytable">
+                                            <node key="SQL_QUALIFIED_NAME_RELATION" loc="42..49" text="mytable" />
+                                        </node>
+                                    </node>
+                                </node>
+                                <node key="SQL_SELECT_ROW_LOCKING">
+                                    <node type="OBJECT_SQL_ROW_LOCKING" loc="50..63" text="FOR READ ONLY">
+                                        <node key="SQL_ROW_LOCKING_STRENGTH" value="READ_ONLY" />
+                                    </node>
+                                </node>
+                                <node key="SQL_TABLE_ALIAS" loc="65..67" text="ss" />
+                            </node>
+                        </node>
+                        <node key="SQL_SELECT_WHERE" type="OBJECT_SQL_EXPRESSION" loc="74..82" text="col1 = 5">
+                            <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="74..78" text="col1">
+                                <node key="SQL_COLUMN_REF_PATH">
+                                    <node loc="74..78" text="col1" />
+                                </node>
+                            </node>
+                            <node key="SQL_EXPRESSION_ARG1" loc="81..82" text="5" />
+                            <node key="SQL_EXPRESSION_OPERATOR" value="EQUAL" />
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="83..84" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="select_row_locking_6">
+        <input>
+            SELECT * FROM (SELECT * FROM mytable FOR UPDATE OF foo) ss WHERE col1 = 5;
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..86" text="SELECT * F..E col1 = 5">
+                        <node key="SQL_SELECT_FROM">
+                            <node type="OBJECT_SQL_FUNCTION_TABLE" loc="27..71" text="(SELECT * ..OF foo) ss">
+                                <node key="SQL_SELECT_FROM">
+                                    <node type="OBJECT_SQL_TABLE_REF" loc="42..49" text="mytable">
+                                        <node key="SQL_TABLE_INHERIT" value="true" />
+                                        <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="42..49" text="mytable">
+                                            <node key="SQL_QUALIFIED_NAME_RELATION" loc="42..49" text="mytable" />
+                                        </node>
+                                    </node>
+                                </node>
+                                <node key="SQL_SELECT_ROW_LOCKING">
+                                    <node type="OBJECT_SQL_ROW_LOCKING" loc="50..67" text="FOR UPDATE OF foo">
+                                        <node key="SQL_ROW_LOCKING_OF">
+                                            <node type="OBJECT_SQL_QUALIFIED_NAME" loc="64..67" text="foo">
+                                                <node key="SQL_QUALIFIED_NAME_RELATION" loc="64..67" text="foo" />
+                                            </node>
+                                        </node>
+                                        <node key="SQL_ROW_LOCKING_STRENGTH" value="UPDATE" />
+                                    </node>
+                                </node>
+                                <node key="SQL_TABLE_ALIAS" loc="69..71" text="ss" />
+                            </node>
+                        </node>
+                        <node key="SQL_SELECT_WHERE" type="OBJECT_SQL_EXPRESSION" loc="78..86" text="col1 = 5">
+                            <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="78..82" text="col1">
+                                <node key="SQL_COLUMN_REF_PATH">
+                                    <node loc="78..82" text="col1" />
+                                </node>
+                            </node>
+                            <node key="SQL_EXPRESSION_ARG1" loc="85..86" text="5" />
+                            <node key="SQL_EXPRESSION_OPERATOR" value="EQUAL" />
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="87..88" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="select_row_locking_7">
+        <input>
+            SELECT * FROM (SELECT * FROM mytable FOR UPDATE OF foo NOWAIT) ss WHERE col1 = 5;
+        </input>
+        <expected>
+            <statements>
+                <statement type="SELECT">
+                    <node type="OBJECT_SQL_SELECT" loc="13..93" text="SELECT * F..E col1 = 5">
+                        <node key="SQL_SELECT_FROM">
+                            <node type="OBJECT_SQL_FUNCTION_TABLE" loc="27..78" text="(SELECT * ..NOWAIT) ss">
+                                <node key="SQL_SELECT_FROM">
+                                    <node type="OBJECT_SQL_TABLE_REF" loc="42..49" text="mytable">
+                                        <node key="SQL_TABLE_INHERIT" value="true" />
+                                        <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="42..49" text="mytable">
+                                            <node key="SQL_QUALIFIED_NAME_RELATION" loc="42..49" text="mytable" />
+                                        </node>
+                                    </node>
+                                </node>
+                                <node key="SQL_SELECT_ROW_LOCKING">
+                                    <node type="OBJECT_SQL_ROW_LOCKING" loc="50..74" text="FOR UPDATE..foo NOWAIT">
+                                        <node key="SQL_ROW_LOCKING_BLOCK_BEHAVIOR" value="NOWAIT" />
+                                        <node key="SQL_ROW_LOCKING_OF">
+                                            <node type="OBJECT_SQL_QUALIFIED_NAME" loc="64..67" text="foo">
+                                                <node key="SQL_QUALIFIED_NAME_RELATION" loc="64..67" text="foo" />
+                                            </node>
+                                        </node>
+                                        <node key="SQL_ROW_LOCKING_STRENGTH" value="UPDATE" />
+                                    </node>
+                                </node>
+                                <node key="SQL_TABLE_ALIAS" loc="76..78" text="ss" />
+                            </node>
+                        </node>
+                        <node key="SQL_SELECT_WHERE" type="OBJECT_SQL_EXPRESSION" loc="85..93" text="col1 = 5">
+                            <node key="SQL_EXPRESSION_ARG0" type="OBJECT_SQL_COLUMN_REF" loc="85..89" text="col1">
+                                <node key="SQL_COLUMN_REF_PATH">
+                                    <node loc="85..89" text="col1" />
+                                </node>
+                            </node>
+                            <node key="SQL_EXPRESSION_ARG1" loc="92..93" text="5" />
+                            <node key="SQL_EXPRESSION_OPERATOR" value="EQUAL" />
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="94..95" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
 </tests>

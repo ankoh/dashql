@@ -797,4 +797,39 @@
             SELECT * FROM a INNER JOIN b USING (c, d)
         </input>
     </test>
+    <test name="select_row_locking_1">
+        <input>
+            SELECT * FROM (SELECT * FROM mytable FOR UPDATE) ss WHERE col1 = 5;
+        </input>
+    </test>
+    <test name="select_row_locking_2">
+        <input>
+            SELECT * FROM (SELECT * FROM mytable FOR NO KEY UPDATE) ss WHERE col1 = 5;
+        </input>
+    </test>
+    <test name="select_row_locking_3">
+        <input>
+            SELECT * FROM (SELECT * FROM mytable FOR SHARE) ss WHERE col1 = 5;
+        </input>
+    </test>
+    <test name="select_row_locking_4">
+        <input>
+            SELECT * FROM (SELECT * FROM mytable FOR KEY SHARE) ss WHERE col1 = 5;
+        </input>
+    </test>
+    <test name="select_row_locking_5">
+        <input>
+            SELECT * FROM (SELECT * FROM mytable FOR READ ONLY) ss WHERE col1 = 5;
+        </input>
+    </test>
+    <test name="select_row_locking_6">
+        <input>
+            SELECT * FROM (SELECT * FROM mytable FOR UPDATE OF foo) ss WHERE col1 = 5;
+        </input>
+    </test>
+    <test name="select_row_locking_7">
+        <input>
+            SELECT * FROM (SELECT * FROM mytable FOR UPDATE OF foo NOWAIT) ss WHERE col1 = 5;
+        </input>
+    </test>
 </tests>
