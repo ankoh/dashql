@@ -6,6 +6,8 @@
 %type <NodeVector> sql_cte_list;
 %type <NodeVector> sql_expr_list;
 %type <NodeVector> sql_extract_list;
+%type <NodeVector> sql_for_locking_clause;
+%type <NodeVector> sql_for_locking_items;
 %type <NodeVector> sql_frame_extent;
 %type <NodeVector> sql_from_clause;
 %type <NodeVector> sql_from_list;
@@ -21,10 +23,12 @@
 %type <NodeVector> sql_join_qual;
 %type <NodeVector> sql_joined_table;
 %type <NodeVector> sql_limit_clause;
+%type <NodeVector> sql_locked_rels_list;
 %type <NodeVector> sql_name_list;
 %type <NodeVector> sql_offset_clause;
 %type <NodeVector> sql_opt_array_bounds;
 %type <NodeVector> sql_opt_existing_window_name;
+%type <NodeVector> sql_opt_for_locking_clause;
 %type <NodeVector> sql_opt_frame_clause;
 %type <NodeVector> sql_opt_indirection;
 %type <NodeVector> sql_opt_interval;
@@ -84,6 +88,8 @@
 %type <sx::Node> sql_extract_arg;
 %type <sx::Node> sql_filter_clause;
 %type <sx::Node> sql_first_or_next;
+%type <sx::Node> sql_for_locking_item;
+%type <sx::Node> sql_for_locking_strength;
 %type <sx::Node> sql_frame_bound;
 %type <sx::Node> sql_func_alias_clause;
 %type <sx::Node> sql_func_arg_expr;
@@ -102,6 +108,7 @@
 %type <sx::Node> sql_opt_asc_desc;
 %type <sx::Node> sql_opt_col_def_list;
 %type <sx::Node> sql_opt_collate_clause;
+%type <sx::Node> sql_opt_nowait_or_skip;
 %type <sx::Node> sql_opt_nulls_order;
 %type <sx::Node> sql_opt_ordinality;
 %type <sx::Node> sql_opt_repeatable_clause;

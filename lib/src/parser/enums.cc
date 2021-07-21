@@ -65,8 +65,10 @@ const char* getEnumText(const sx::Node& target) {
             return sx::TrimDirectionTypeTable()->names[v];
         case sx::NodeType::ENUM_SQL_EXTRACT_TARGET:
             return sx::ExtractTargetTypeTable()->names[v];
-        case sx::NodeType::ENUM_SQL_FETCH_TARGET:
-            return sx::FetchTargetTypeTable()->names[v];
+        case sx::NodeType::ENUM_SQL_ROW_LOCKING_BLOCK_BEHAVIOR:
+            return sx::RowLockingBlockBehaviorTypeTable()->names[v];
+        case sx::NodeType::ENUM_SQL_ROW_LOCKING_STRENGTH:
+            return sx::RowLockingStrengthTypeTable()->names[v];
 
         case sx::NodeType::ENUM_SQL_JOIN_TYPE: {
             auto tt = sx::JoinTypeTypeTable();

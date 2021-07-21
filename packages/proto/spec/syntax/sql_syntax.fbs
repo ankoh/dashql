@@ -253,7 +253,21 @@ enum KnownFunction : uint8 {
     NULLIF,
     COALESCE,
 }
+
 enum FetchTarget: uint8 {
     FIRST,
     NEXT
+}
+
+enum RowLockingStrength: uint8 {
+    UPDATE,
+    NO_KEY_UPDATE,
+    SHARE,
+    KEY_SHARE,
+    READ_ONLY,
+}
+
+enum RowLockingBlockBehavior: uint8 {
+    NOWAIT,
+    SKIP_LOCKED
 }
