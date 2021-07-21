@@ -1,3 +1,4 @@
+/.emsdk
 /perf.data*
 /.cache
 /.ccache
