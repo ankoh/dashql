@@ -45,6 +45,7 @@ X(sx::WindowBoundDirection, sx::NodeType::ENUM_SQL_WINDOW_BOUND_DIRECTION)
 X(sx::WindowBoundMode, sx::NodeType::ENUM_SQL_WINDOW_BOUND_MODE)
 X(sx::WindowExclusionMode, sx::NodeType::ENUM_SQL_WINDOW_EXCLUSION_MODE)
 X(sx::WindowRangeMode, sx::NodeType::ENUM_SQL_WINDOW_RANGE_MODE)
+X(sx::FetchTarget, sx::NodeType::ENUM_SQL_FETCH_TARGET)
 #undef X
 
 const char* getEnumText(const sx::Node& target);

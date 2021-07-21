@@ -223,6 +223,7 @@ enum JoinType: uint8 {
     NATURAL_RIGHT = 132,
 
     // v | 128 | 64
+    NATURAL_OUTER_ = 192,
     NATURAL_OUTER_INNER_INVALID = 193,
     NATURAL_OUTER_FULL = 194,
     NATURAL_OUTER_LEFT = 195,
@@ -251,4 +252,8 @@ enum KnownFunction : uint8 {
     TRIM,
     NULLIF,
     COALESCE,
+}
+enum FetchTarget: uint8 {
+    FIRST,
+    NEXT
 }
