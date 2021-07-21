@@ -1,12 +1,12 @@
 import Immutable from 'immutable';
 import * as React from 'react';
-import * as monaco from 'monaco-editor/esm/vs/editor/editor.api';
 import * as core from '@dashql/core';
+import * as model from '../model';
+import * as monaco from 'monaco-editor/esm/vs/editor/editor.api';
 import * as proto from '@dashql/proto';
 import { AutoSizer } from '../util/autosizer';
 import { connect } from 'react-redux';
 import { IAppContext, withAppContext } from '../app_context';
-import * as model from '../model';
 import classNames from 'classnames';
 
 import { theme as monaco_theme } from './editor_theme_light';
@@ -138,12 +138,25 @@ class Editor extends React.Component<Props> {
     protected monacoContainer: HTMLDivElement | null;
     // The monaco editor
     protected editor: monaco.editor.IStandaloneCodeEditor | null;
+    // The hover handler
+    protected _onMouseMove = this.onMouseMove.bind(this);
+
     // Pending editor resize
     protected pendingEditorResize: number | null;
-    // The old decorations
+    // The current decoration ids
     protected currentDecorationIDs: string[];
-    // The hover handler
-    protected _onHover = this.onHover.bind(this);
+    // The current mouse position
+    protected currentMousePosition: monaco.Position | null;
+    // The last event
+    protected lineBreaks: Float64Array;
+
+    /// The current mouse offset
+    protected get currentMouseOffset(): number | null {
+        if (this.currentMousePosition == null) return null;
+        const zeroIndexed = this.currentMousePosition.lineNumber - 1;
+        const lineOffset = zeroIndexed == 0 ? 0 : this.lineBreaks[zeroIndexed - 1];
+        return lineOffset + (this.currentMousePosition.column - 1);
+    }
 
     /// Constructor
     constructor(props: Props) {
@@ -152,15 +165,23 @@ class Editor extends React.Component<Props> {
         this.editor = null;
         this.pendingEditorResize = null;
         this.currentDecorationIDs = [];
+        this.currentMousePosition = null;
+        this.lineBreaks = new Float64Array();
     }
 
     /// Hover handler
-    public onHover(
-        m: monaco.editor.ITextModel,
-        position: monaco.Position,
-        token: monaco.CancellationToken,
-    ): monaco.languages.ProviderResult<monaco.languages.Hover> {
-        console.log(position);
+    public onMouseMove(e: monaco.editor.IEditorMouseEvent) {
+        const pos = e.target.position;
+        if (!pos) return;
+        if (
+            this.currentMousePosition != null &&
+            this.currentMousePosition.lineNumber == pos.lineNumber &&
+            this.currentMousePosition.column == pos.column
+        ) {
+            return;
+        }
+        this.currentMousePosition = pos;
+        this.updateDecorations();
         return null;
     }
 
@@ -168,17 +189,13 @@ class Editor extends React.Component<Props> {
     public componentDidMount() {
         if (!this.monacoContainer) return;
 
-        // Prepare language
+        // Setup tokens & theme
         monaco.languages.register({ id: 'dashql' });
         monaco.languages.setTokensProvider('dashql', new TokensProvider(this.props.appContext.store));
-        monaco.languages.registerHoverProvider('dashql', {
-            provideHover: (m, p, t) => this.onHover(m, p, t),
-        });
-
-        // Prepare theme
         monaco.editor.defineTheme('dashql-theme', monaco_theme);
         monaco.editor.setTheme('dashql-theme');
 
+        // Create editor
         this.editor = monaco.editor.create(this.monacoContainer, {
             fontSize: 13,
             language: 'dashql',
@@ -193,6 +210,10 @@ class Editor extends React.Component<Props> {
         });
         this.editor.setPosition({ column: 0, lineNumber: 0 });
         this.editor.focus();
+        this.editor.onMouseMove(this._onMouseMove);
+
+        // Collect line breaks
+        this.lineBreaks = this.props.program.getLineBreaks();
 
         // Finalize the editor
         const editor = this.editor!;
@@ -216,10 +237,14 @@ class Editor extends React.Component<Props> {
     }
 
     /// The component did update, sync monaco
-    public componentDidUpdate(_prevProps: Props) {
+    public componentDidUpdate(prevProps: Props) {
         // Editor not set?
         if (!this.editor) {
             return;
+        }
+        // Update line breaks
+        if (prevProps.program !== this.props.program) {
+            this.lineBreaks = this.props.program.getLineBreaks();
         }
         // Value changed?
         if (this.editor && this.editor.getValue() !== this.props.script.text) {
@@ -277,6 +302,7 @@ class Editor extends React.Component<Props> {
         );
     }
 
+    /// Update all decorations
     public updateDecorations() {
         // Get model
         const data = this.editor?.getModel();
@@ -285,7 +311,6 @@ class Editor extends React.Component<Props> {
         // Get the state
         const program = this.props.program;
         const programStatus = this.props.programStatus;
-        const breaks = program.getLineBreaks();
         const tmpNode = new core.model.Node(program);
         const tmpLoc = new sx.Location();
         const decorations: monaco.editor.IModelDeltaDecoration[] = [];
@@ -298,6 +323,7 @@ class Editor extends React.Component<Props> {
 
         // Get line from offset
         const getLine = (ofs: number) => {
+            const breaks = this.lineBreaks;
             const nextBreak = core.utils.lowerBound(breaks, ofs, (l, r) => l < r, 0, breaks.length);
             const prevOffset = nextBreak == 0 || breaks.length == 0 ? 0 : breaks[nextBreak - 1] + 1; // + \n
             const column = ofs - prevOffset + 1; // Columns are 1 indexed
@@ -308,7 +334,6 @@ class Editor extends React.Component<Props> {
         program.iterateStatements((idx: number, stmt: core.model.Statement) => {
             const root = stmt.root_node(tmpNode);
             const loc = root.buffer.location(tmpLoc)!;
-
             const ofsBegin = loc!.offset();
             const ofsEnd = loc!.offset() + loc!.length();
             const firstPos = getLine(ofsBegin);
@@ -354,10 +379,9 @@ class Editor extends React.Component<Props> {
             }
         });
 
+        const mouseOffset = this.currentMouseOffset;
+
         program.iterateDependencies((idx: number, dep: sx.Dependency) => {
-            //const sourceStmtId = dep.sourceStatement();
-            //const sourceStmt = program.getStatement(sourceStmtId);
-            //const sourceLoc = loc(sourceStmt.root_node(tmpNode));
             const targetLoc = getLoc(program.getNode(dep.targetNode(), tmpNode));
             const targetBegin = getLine(targetLoc[0]);
             const targetEnd = getLine(targetLoc[0] + targetLoc[1]);
@@ -368,6 +392,13 @@ class Editor extends React.Component<Props> {
                     inlineClassName: styles.dep_target_inline,
                 },
             });
+            if (mouseOffset && targetLoc[0] <= mouseOffset && mouseOffset <= targetLoc[0] + targetLoc[1]) {
+                console.log(`HIGHLIGHT STATEMENT ${dep.sourceStatement()}`);
+            }
+
+            //const sourceStmtId = dep.sourceStatement();
+            //const sourceStmt = program.getStatement(sourceStmtId);
+            //const sourceLoc = loc(sourceStmt.root_node(tmpNode));
         });
 
         // Update decorations

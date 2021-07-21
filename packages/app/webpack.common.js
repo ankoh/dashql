@@ -173,7 +173,7 @@ export function configure(params) {
             }),
             new MonacoEditorWebpackPlugin({
                 languages: [],
-                features: ['hover'],
+                features: [],
             }),
         ],
     };
