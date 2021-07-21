@@ -268,24 +268,37 @@ class Editor extends React.Component<Props> {
         const program = this.props.program;
         const programStatus = this.props.programStatus;
         const breaks = program.getLineBreaks();
-
-        // Collect the status statement decorations
-        const decorations: monaco.editor.IModelDeltaDecoration[] = [];
         const tmpNode = new core.model.Node(program);
         const tmpLoc = new sx.Location();
+        const decorations: monaco.editor.IModelDeltaDecoration[] = [];
+
+        // Get location
+        const getLoc = (node: core.model.Node) => {
+            const l = node.buffer.location(tmpLoc)!;
+            return [l.offset(), l.length()];
+        };
+
+        /// Get line from offset
+        const getLine = (ofs: number) => {
+            const nextBreak = core.utils.lowerBound(breaks, ofs, (l, r) => l < r, 0, breaks.length);
+            const prevOffset = nextBreak == 0 || breaks.length == 0 ? 0 : breaks[nextBreak - 1];
+            const column = ofs - prevOffset;
+            return [nextBreak + 1, column];
+        };
+
+        // Collect the status statement decorations
         program.iterateStatements((idx: number, stmt: core.model.Statement) => {
             const root = stmt.root_node(tmpNode);
             const loc = root.buffer.location(tmpLoc)!;
 
             const ofsBegin = loc!.offset();
             const ofsEnd = loc!.offset() + loc!.length();
-            const firstLine = core.utils.lowerBound(breaks, ofsBegin, (l, r) => l < r, 0, breaks.length) + 1;
-            const lastLine = core.utils.lowerBound(breaks, ofsEnd, (l, r) => l < r, 0, breaks.length) + 1;
-            console.log(`${ofsBegin} ${firstLine}`);
+            const firstPos = getLine(ofsBegin);
+            const lastPos = getLine(ofsEnd);
 
             // Add statement decoration
             decorations.push({
-                range: new monaco.Range(firstLine, 1, lastLine, 1),
+                range: new monaco.Range(firstPos[0], 1, lastPos[0], 1),
                 options: {
                     isWholeLine: true,
                     className: styles.deco_statement,
@@ -295,7 +308,6 @@ class Editor extends React.Component<Props> {
             // Add status decoration
             const stmtStatus = programStatus.get(stmt.statementId);
             if (stmtStatus) {
-                console.log(stmtStatus.status);
                 let glyphClass = styles.deco_glyph_status_none;
                 switch (stmtStatus.status) {
                     case proto.action.ActionStatusCode.BLOCKED:
@@ -315,7 +327,7 @@ class Editor extends React.Component<Props> {
                         break;
                 }
                 decorations.push({
-                    range: new monaco.Range(firstLine, 1, firstLine, 1),
+                    range: new monaco.Range(firstPos[0], 1, firstPos[0], 1),
                     options: {
                         isWholeLine: true,
                         glyphMarginClassName: classNames(styles.deco_glyph_status, glyphClass),
@@ -324,7 +336,20 @@ class Editor extends React.Component<Props> {
             }
         });
 
-        console.log(decorations);
+        program.iterateDependencies((idx: number, dep: sx.Dependency) => {
+            //const sourceStmtId = dep.sourceStatement();
+            //const sourceStmt = program.getStatement(sourceStmtId);
+            //const sourceLoc = loc(sourceStmt.root_node(tmpNode));
+            const targetLoc = getLoc(program.getNode(dep.targetNode(), tmpNode));
+            const targetBegin = getLine(targetLoc[0]);
+            const targetEnd = getLine(targetLoc[0] + targetLoc[1]);
+            decorations.push({
+                range: new monaco.Range(targetBegin[0], targetBegin[1], targetEnd[0], targetEnd[1]),
+                options: {
+                    className: styles.dep_target,
+                },
+            });
+        });
 
         // Update decorations
         this.currentDecorationIDs = data.deltaDecorations(this.currentDecorationIDs, decorations);

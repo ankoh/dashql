@@ -51,3 +51,8 @@
         transform: rotate(1turn);
     }
 }
+
+.dep_target {
+    border-radius: 2px;
+    background: rgba(0, 0, 0, 0.1);
+}
