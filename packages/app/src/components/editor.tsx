@@ -160,6 +160,7 @@ class Editor extends React.Component<Props> {
         position: monaco.Position,
         token: monaco.CancellationToken,
     ): monaco.languages.ProviderResult<monaco.languages.Hover> {
+        console.log(position);
         return null;
     }
 
@@ -171,7 +172,7 @@ class Editor extends React.Component<Props> {
         monaco.languages.register({ id: 'dashql' });
         monaco.languages.setTokensProvider('dashql', new TokensProvider(this.props.appContext.store));
         monaco.languages.registerHoverProvider('dashql', {
-            provideHover: this._onHover,
+            provideHover: (m, p, t) => this.onHover(m, p, t),
         });
 
         // Prepare theme
@@ -364,6 +365,7 @@ class Editor extends React.Component<Props> {
                 range: new monaco.Range(targetBegin[0], targetBegin[1], targetEnd[0], targetEnd[1]),
                 options: {
                     className: styles.dep_target,
+                    inlineClassName: styles.dep_target_inline,
                 },
             });
         });
