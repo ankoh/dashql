@@ -24,6 +24,11 @@
 .deco_statement {
 }
 
+.deco_glyph_status {
+    height: 100%;
+    line-height: 100%;
+}
+
 .deco_glyph_status::before {
     width: var(--editor_glyph_status_size);
     height: var(--editor_glyph_status_size);
