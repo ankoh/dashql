@@ -501,25 +501,25 @@ class Editor extends React.Component<Props, State> {
             let line = focus[0];
             decorations.push({
                 range: new monaco.Range(line, 1, line, 1),
-                options: { linesDecorationsClassName: styles.dep_edge_top },
+                options: { linesDecorationsClassName: classNames(styles.dep_edge, styles.dep_edge_top) },
             });
             line += 1;
             for (let next = 1; next < focus.length; ++next, ++line) {
                 for (; line < focus[next]; ++line) {
                     decorations.push({
                         range: new monaco.Range(line, 1, line, 1),
-                        options: { linesDecorationsClassName: styles.dep_edge },
+                        options: { linesDecorationsClassName: classNames(styles.dep_edge, styles.dep_edge_flat) },
                     });
                 }
                 if (next + 1 < focus.length) {
                     decorations.push({
                         range: new monaco.Range(line, 1, line, 1),
-                        options: { linesDecorationsClassName: styles.dep_edge_cross },
+                        options: { linesDecorationsClassName: classNames(styles.dep_edge, styles.dep_edge_cross) },
                     });
                 } else {
                     decorations.push({
                         range: new monaco.Range(line, 1, line, 1),
-                        options: { linesDecorationsClassName: styles.dep_edge_bottom },
+                        options: { linesDecorationsClassName: classNames(styles.dep_edge, styles.dep_edge_bottom) },
                     });
                 }
             }
