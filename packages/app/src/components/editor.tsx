@@ -278,7 +278,7 @@ class Editor extends React.Component<Props, State> {
             }
         } else {
             // Do we have to update the decorations?
-            if (prevState.mousePosition !== this.state.mousePosition) {
+            if (this.mouseMoveAffectsDecorations(prevState.mouseOffset || 0, this.state.mouseOffset || 0)) {
                 this.updateDecorations();
                 return;
             }
@@ -341,6 +341,42 @@ class Editor extends React.Component<Props, State> {
         );
     }
 
+    /// Get line and column from text offset
+    protected getLineFromOffset(ofs: number) {
+        const breaks = this.state.lineBreaks;
+        const nextBreak = core.utils.lowerBound(breaks, ofs, (l, r) => l < r, 0, breaks.length);
+        const prevOffset = nextBreak == 0 || breaks.length == 0 ? 0 : breaks[nextBreak - 1] + 1; // + \n
+        const column = ofs - prevOffset + 1; // Columns are 1 indexed
+        return [nextBreak + 1, column]; // Lines are 1 indexed
+    }
+
+    /// Does the mouse movement affect the decorations?
+    /// Right now, the only mouse effect is focus on dependency target nodes.
+    protected mouseMoveAffectsDecorations(prevOffset: number, newOffset: number) {
+        const tmpNode = new core.model.Node(this.props.program);
+        const tmpLoc = new sx.Location();
+        const getLoc = (node: core.model.Node) => {
+            const l = node.buffer.location(tmpLoc)!;
+            return [l.offset(), l.length()];
+        };
+
+        let prevMouseTarget = null;
+        let newMouseTarget = null;
+
+        this.props.program.iterateDependencies((idx: number, dep: sx.Dependency) => {
+            const targetId = dep.targetNode();
+            const targetLoc = getLoc(this.props.program.getNode(targetId, tmpNode));
+            if (prevOffset && targetLoc[0] <= prevOffset && prevOffset <= targetLoc[0] + targetLoc[1]) {
+                prevMouseTarget = dep.targetNode();
+            }
+            if (newOffset && targetLoc[0] <= newOffset && newOffset <= targetLoc[0] + targetLoc[1]) {
+                newMouseTarget = dep.targetNode();
+            }
+        });
+
+        return prevMouseTarget != newMouseTarget;
+    }
+
     /// Update all decorations
     public updateDecorations() {
         // Get model
@@ -360,23 +396,14 @@ class Editor extends React.Component<Props, State> {
             return [l.offset(), l.length()];
         };
 
-        // Get line from offset
-        const getLine = (ofs: number) => {
-            const breaks = this.state.lineBreaks;
-            const nextBreak = core.utils.lowerBound(breaks, ofs, (l, r) => l < r, 0, breaks.length);
-            const prevOffset = nextBreak == 0 || breaks.length == 0 ? 0 : breaks[nextBreak - 1] + 1; // + \n
-            const column = ofs - prevOffset + 1; // Columns are 1 indexed
-            return [nextBreak + 1, column]; // Lines are 1 indexed
-        };
-
         // Collect the status statement decorations
         program.iterateStatements((idx: number, stmt: core.model.Statement) => {
             const root = stmt.root_node(tmpNode);
             const loc = root.buffer.location(tmpLoc)!;
             const ofsBegin = loc!.offset();
             const ofsEnd = loc!.offset() + loc!.length();
-            const firstPos = getLine(ofsBegin);
-            const lastPos = getLine(ofsEnd);
+            const firstPos = this.getLineFromOffset(ofsBegin);
+            const lastPos = this.getLineFromOffset(ofsEnd);
 
             // Add statement decoration
             decorations.push({
@@ -420,8 +447,8 @@ class Editor extends React.Component<Props, State> {
 
         program.iterateDependencies((idx: number, dep: sx.Dependency) => {
             const targetLoc = getLoc(program.getNode(dep.targetNode(), tmpNode));
-            const targetBegin = getLine(targetLoc[0]);
-            const targetEnd = getLine(targetLoc[0] + targetLoc[1]);
+            const targetBegin = this.getLineFromOffset(targetLoc[0]);
+            const targetEnd = this.getLineFromOffset(targetLoc[0] + targetLoc[1]);
             if (
                 this.state.mouseOffset &&
                 targetLoc[0] <= this.state.mouseOffset &&
@@ -430,8 +457,8 @@ class Editor extends React.Component<Props, State> {
                 const sourceStmtId = dep.sourceStatement();
                 const sourceStmt = program.getStatement(sourceStmtId);
                 const sourceLoc = getLoc(sourceStmt.root_node(tmpNode));
-                const sourceBegin = getLine(sourceLoc[0]);
-                const sourceEnd = getLine(sourceLoc[0] + sourceLoc[1]);
+                const sourceBegin = this.getLineFromOffset(sourceLoc[0]);
+                const sourceEnd = this.getLineFromOffset(sourceLoc[0] + sourceLoc[1]);
                 decorations.push({
                     range: new monaco.Range(targetBegin[0], targetBegin[1], targetEnd[0], targetEnd[1]),
                     options: {
