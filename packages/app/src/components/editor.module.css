@@ -61,24 +61,22 @@
     }
 }
 
+.dep_edge:before {
+    margin-left: 8px;
+    color: rgb(80, 80, 80);
+}
+
 .dep_edge_top::before {
     content: '┌';
-    margin-left: 8px;
 }
-
-.dep_edge::before {
+.dep_edge_flat::before {
     content: '│';
-    margin-left: 8px;
 }
-
 .dep_edge_cross::before {
     content: '├';
-    margin-left: 8px;
 }
-
 .dep_edge_bottom::before {
     content: '└';
-    margin-left: 8px;
 }
 
 .dep_target {
