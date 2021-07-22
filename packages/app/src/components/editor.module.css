@@ -61,24 +61,6 @@
     }
 }
 
-.dep_edge:before {
-    margin-left: 8px;
-    color: rgb(80, 80, 80);
-}
-
-.dep_edge_top::before {
-    content: '┌';
-}
-.dep_edge_flat::before {
-    content: '│';
-}
-.dep_edge_cross::before {
-    content: '├';
-}
-.dep_edge_bottom::before {
-    content: '└';
-}
-
 .dep_target {
     border-radius: 2px;
     border: 1px solid rgba(0, 0, 0, 0.2);
