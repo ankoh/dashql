@@ -396,7 +396,7 @@ class Editor extends React.Component<Props, State> {
             return [l.offset(), l.length()];
         };
 
-        // Collect the status statement decorations
+        // Draw glyphs
         program.iterateStatements((idx: number, stmt: core.model.Statement) => {
             const root = stmt.root_node(tmpNode);
             const loc = root.buffer.location(tmpLoc)!;
@@ -445,10 +445,16 @@ class Editor extends React.Component<Props, State> {
             }
         });
 
+        // Collect target and source lines
+        let focusedTargetRange: monaco.Range | null = null;
+        const focusedSourceRanges: monaco.Range[] = [];
+
+        // Highlight ranges
         program.iterateDependencies((idx: number, dep: sx.Dependency) => {
             const targetLoc = getLoc(program.getNode(dep.targetNode(), tmpNode));
             const targetBegin = this.getLineFromOffset(targetLoc[0]);
             const targetEnd = this.getLineFromOffset(targetLoc[0] + targetLoc[1]);
+            const targetRange = new monaco.Range(targetBegin[0], targetBegin[1], targetEnd[0], targetEnd[1]);
             if (
                 this.state.mouseOffset &&
                 targetLoc[0] <= this.state.mouseOffset &&
@@ -459,14 +465,19 @@ class Editor extends React.Component<Props, State> {
                 const sourceLoc = getLoc(sourceStmt.root_node(tmpNode));
                 const sourceBegin = this.getLineFromOffset(sourceLoc[0]);
                 const sourceEnd = this.getLineFromOffset(sourceLoc[0] + sourceLoc[1]);
+                const sourceRange = new monaco.Range(sourceBegin[0], sourceBegin[1], sourceEnd[0], sourceEnd[1]);
+
+                focusedTargetRange = targetRange;
+                focusedSourceRanges.push(sourceRange);
+
                 decorations.push({
-                    range: new monaco.Range(targetBegin[0], targetBegin[1], targetEnd[0], targetEnd[1]),
+                    range: targetRange,
                     options: {
                         className: styles.dep_target_focused,
                     },
                 });
                 decorations.push({
-                    range: new monaco.Range(sourceBegin[0], sourceBegin[1], sourceEnd[0], sourceEnd[1]),
+                    range: sourceRange,
                     options: {
                         isWholeLine: true,
                         className: styles.dep_source_focused,
@@ -474,13 +485,45 @@ class Editor extends React.Component<Props, State> {
                 });
             } else {
                 decorations.push({
-                    range: new monaco.Range(targetBegin[0], targetBegin[1], targetEnd[0], targetEnd[1]),
+                    range: targetRange,
                     options: {
                         className: styles.dep_target,
                     },
                 });
             }
         });
+
+        // Draw dependency edges
+        if (focusedTargetRange) {
+            const focus: number[] = focusedSourceRanges.map(r => r.startLineNumber);
+            focus.push((focusedTargetRange as monaco.Range).startLineNumber);
+            focus.sort((l, r) => l - r);
+            let line = focus[0];
+            decorations.push({
+                range: new monaco.Range(line, 1, line, 1),
+                options: { linesDecorationsClassName: styles.dep_edge_top },
+            });
+            line += 1;
+            for (let next = 1; next < focus.length; ++next, ++line) {
+                for (; line < focus[next]; ++line) {
+                    decorations.push({
+                        range: new monaco.Range(line, 1, line, 1),
+                        options: { linesDecorationsClassName: styles.dep_edge },
+                    });
+                }
+                if (next + 1 < focus.length) {
+                    decorations.push({
+                        range: new monaco.Range(line, 1, line, 1),
+                        options: { linesDecorationsClassName: styles.dep_edge_cross },
+                    });
+                } else {
+                    decorations.push({
+                        range: new monaco.Range(line, 1, line, 1),
+                        options: { linesDecorationsClassName: styles.dep_edge_bottom },
+                    });
+                }
+            }
+        }
 
         // Update decorations
         this.setState({
