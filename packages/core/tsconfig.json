@@ -4,7 +4,7 @@
         "target": "es2020",
         "module": "es2020",
         "moduleResolution": "node",
-        "sourceMap": true,
+        "sourceMap": false,
         "declaration": true,
         "declarationMap": true,
         "declarationDir": "./dist/types/",

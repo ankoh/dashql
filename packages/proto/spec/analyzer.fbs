@@ -112,6 +112,7 @@ table ProgramAnnotations {
     node_error_messages: [NodeError];
     node_linter_messages: [LinterMessage];
     evaluated_nodes: [NodeValue];
+    statements_liveness: [bool];
     statements_fetch: [FetchStatement];
     statements_load: [LoadStatement];
     cards: [Card];

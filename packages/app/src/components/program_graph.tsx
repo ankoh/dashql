@@ -73,7 +73,7 @@ class ProgramGraph extends React.Component<ProgramGraphProps, ProgramGraphState>
                 position: { x: 0, y: 0 },
                 data: {
                     statementType: stmt.statement_type,
-                    actionStatus: proto.action.ActionStatusCode.NONE,
+                    actionStatus: proto.action.ActionStatusCode.PENDING,
                 },
             });
         });
@@ -140,7 +140,7 @@ class ProgramGraph extends React.Component<ProgramGraphProps, ProgramGraphState>
                     case proto.action.ActionStatusCode.BLOCKED:
                         animated = true;
                         break;
-                    case proto.action.ActionStatusCode.NONE:
+                    case proto.action.ActionStatusCode.PENDING:
                         opacity = 0.5;
                         break;
                     case proto.action.ActionStatusCode.COMPLETED:

@@ -12,7 +12,6 @@ import {
     ModifyTableActionLogic,
     ImportTableActionLogic,
 } from './table_logic';
-import { UnnamedSelectLogic } from './unnamed_select_logic';
 import { ViewCreateActionLogic, ImportViewActionLogic, DropViewActionLogic } from './view_logic';
 import { CreateVizActionLogic, UpdateVizActionLogic, DropVizActionLogic, ImportVizActionLogic } from './viz_logic';
 
@@ -64,8 +63,6 @@ export function resolveProgramActionLogic(
             return new CreateTableActionLogic(id, a, s);
         case ProgramActionType.MODIFY_TABLE:
             return new ModifyTableActionLogic(id, a, s);
-        case ProgramActionType.UNNAMED_SELECT:
-            return new UnnamedSelectLogic(id, a, s);
         case ProgramActionType.CREATE_VIEW:
             return new ViewCreateActionLogic(id, a, s);
         case ProgramActionType.CREATE_VIZ:
@@ -73,6 +70,7 @@ export function resolveProgramActionLogic(
         case ProgramActionType.UPDATE_VIZ:
             return new UpdateVizActionLogic(id, a, s);
     }
+    console.error(a.actionType());
     console.error('unknown program action type');
     return null;
 }

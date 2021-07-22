@@ -24,7 +24,7 @@ export function StatementNode(props: StatementNodeData): React.ReactElement {
                     fill={fill}
                     width="14px"
                     height="14px"
-                    status={props.data.focused ? props.data.actionStatus : proto.action.ActionStatusCode.NONE}
+                    status={props.data.focused ? props.data.actionStatus : proto.action.ActionStatusCode.PENDING}
                 />
             </div>
             <ReactFlowHandle type="target" position={Position.Top} className={styles.node_handle_top} />

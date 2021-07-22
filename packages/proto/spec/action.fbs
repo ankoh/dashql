@@ -11,7 +11,8 @@ enum ActionClass: uint8 {
 }
 
 enum ActionStatusCode: uint8 {
-    NONE = 0,
+    PENDING = 0,
+    SKIPPED,
     RUNNING,
     BLOCKED,
     FAILED,
@@ -71,7 +72,6 @@ enum ProgramActionType: uint8 {
     CREATE_VIEW,
     CREATE_TABLE,
     MODIFY_TABLE,
-    UNNAMED_SELECT,
     CREATE_VIZ,
     UPDATE_VIZ,
 }

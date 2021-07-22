@@ -73,12 +73,12 @@ export function testActionScheduler(
                 expect(scheduler.actions.length).toBe(1);
                 expect(scheduler.actions[0].actionClass).toBe(ActionClass.PROGRAM_ACTION);
                 expect(scheduler.actions[0].buffer.actionType()).toBe(ProgramActionType.CREATE_TABLE);
-                expect(scheduler.actions[0].status).toBe(ActionStatus.NONE);
+                expect(scheduler.actions[0].status).toBe(ActionStatus.SKIPPED);
 
                 const diff = new utils.NativeStack();
                 const workLeft = await scheduler.executeFirst(ctx, diff);
                 expect(workLeft).toBe(false);
-                expect(scheduler.actions[0].status).toBe(ActionStatus.COMPLETED);
+                expect(scheduler.actions[0].status).toBe(ActionStatus.SKIPPED);
             });
 
             it('tree', async () => {
@@ -106,7 +106,7 @@ export function testActionScheduler(
                 scheduler.actions.forEach((a, i) => {
                     expect(a.actionClass).toBe(ActionClass.PROGRAM_ACTION);
                     expect(a.buffer.originStatement()).toBe(i);
-                    expect(a.status).toBe(ActionStatus.NONE);
+                    expect(a.status).toBe(ActionStatus.PENDING);
                 });
                 expect(scheduler.actions.map(a => a.buffer.actionType())).toEqual([
                     ProgramActionType.CREATE_TABLE,
@@ -161,7 +161,7 @@ export function testActionScheduler(
                 scheduler.actions.forEach((a, i) => {
                     expect(a.actionClass).toBe(ActionClass.PROGRAM_ACTION);
                     expect(a.buffer.originStatement()).toBe(i);
-                    expect(a.status).toBe(ActionStatus.NONE);
+                    expect(a.status).toBe(ActionStatus.SKIPPED);
                 });
                 expect(scheduler.actions.map(a => a.buffer.actionType())).toEqual([
                     ProgramActionType.CREATE_TABLE,
@@ -172,15 +172,11 @@ export function testActionScheduler(
                 expect(scheduler.actions.map(a => a.buffer.requiredForArray())).toEqual([null, null, null]);
 
                 const diff = new utils.NativeStack();
-                let workLeft = await scheduler.executeFirst(ctx, diff);
-                expect(workLeft).toBe(true);
-                workLeft = await scheduler.execute(ctx, diff);
-                expect(workLeft).toBe(true);
-                workLeft = await scheduler.execute(ctx, diff);
+                const workLeft = await scheduler.executeFirst(ctx, diff);
                 expect(workLeft).toBe(false);
-                expect(scheduler.actions[0].status).toBe(ActionStatus.COMPLETED);
-                expect(scheduler.actions[1].status).toBe(ActionStatus.COMPLETED);
-                expect(scheduler.actions[2].status).toBe(ActionStatus.COMPLETED);
+                expect(scheduler.actions[0].status).toBe(ActionStatus.SKIPPED);
+                expect(scheduler.actions[1].status).toBe(ActionStatus.SKIPPED);
+                expect(scheduler.actions[2].status).toBe(ActionStatus.SKIPPED);
             });
         });
     });

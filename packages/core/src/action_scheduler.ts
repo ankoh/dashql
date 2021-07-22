@@ -75,6 +75,7 @@ export class ActionScheduler<ActionBuffer extends ProtoAction> {
 
         for (let i = 0; i < actions.length; ++i) {
             switch (actions[i].status) {
+                case proto.action.ActionStatusCode.SKIPPED:
                 case proto.action.ActionStatusCode.COMPLETED:
                     this.actionCompleted(i);
                     break;
@@ -134,7 +135,10 @@ export class ActionScheduler<ActionBuffer extends ProtoAction> {
             diff.push(action_idx);
 
             // Action already done, register as completed?
-            if (this._actions[action_idx].status == proto.action.ActionStatusCode.COMPLETED) {
+            if (
+                this._actions[action_idx].status == proto.action.ActionStatusCode.COMPLETED ||
+                this._actions[action_idx].status == proto.action.ActionStatusCode.SKIPPED
+            ) {
                 this.actionCompleted(action_idx);
                 continue;
             }
@@ -210,13 +214,14 @@ export class ActionScheduler<ActionBuffer extends ProtoAction> {
             case proto.action.ActionStatusCode.RUNNING:
                 break;
 
+            case proto.action.ActionStatusCode.SKIPPED:
             case proto.action.ActionStatusCode.COMPLETED: {
                 this._scheduledActions.clear(action_idx);
                 this.actionCompleted(action_idx);
                 this.scheduleNext(context, diff);
                 break;
             }
-            case proto.action.ActionStatusCode.NONE:
+            case proto.action.ActionStatusCode.PENDING:
             case proto.action.ActionStatusCode.FAILED:
                 this._scheduledActions.clear(action_idx);
                 this._failedActions.set(action_idx);

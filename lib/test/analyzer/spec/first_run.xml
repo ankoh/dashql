@@ -14,8 +14,8 @@
             <graph next_object_id="1">
                 <setup />
                 <program>
-                    <action origin="0" type="INPUT" status="NONE" object_id="0">
-                        <target name="main.country" />
+                    <action type="INPUT" status="SKIPPED" object_id="0" statement="0">
+                        <output name="main.country" />
                     </action>
                 </program>
             </graph>
@@ -32,8 +32,8 @@
             <graph next_object_id="1">
                 <setup />
                 <program>
-                    <action origin="0" type="CREATE_TABLE" status="NONE" object_id="0">
-                        <target name="main.a" />
+                    <action type="CREATE_TABLE" status="SKIPPED" object_id="0" statement="0">
+                        <output name="main.a" />
                         <script>SELECT 1 INTO a</script>
                     </action>
                 </program>
@@ -61,14 +61,14 @@
             <graph next_object_id="3">
                 <setup />
                 <program>
-                    <action origin="0" type="INPUT" status="NONE" object_id="0">
-                        <target name="main.country" />
+                    <action type="INPUT" status="SKIPPED" object_id="0" statement="0">
+                        <output name="main.country" />
                         <required_for>
                             <ref action="1" />
                         </required_for>
                     </action>
-                    <action origin="1" type="FETCH" status="NONE" object_id="1">
-                        <target name="main.weather_csv" />
+                    <action type="FETCH" status="SKIPPED" object_id="1" statement="1">
+                        <output name="main.weather_csv" />
                         <depends_on>
                             <ref action="0" />
                         </depends_on>
@@ -76,8 +76,8 @@
                             <ref action="2" />
                         </required_for>
                     </action>
-                    <action origin="2" type="LOAD" status="NONE" object_id="2">
-                        <target name="main.weather" />
+                    <action type="LOAD" status="SKIPPED" object_id="2" statement="2">
+                        <output name="main.weather" />
                         <depends_on>
                             <ref action="1" />
                         </depends_on>
@@ -107,14 +107,14 @@
             <graph next_object_id="3">
                 <setup />
                 <program>
-                    <action origin="0" type="INPUT" status="NONE" object_id="0">
-                        <target name="main.country" />
+                    <action type="INPUT" status="SKIPPED" object_id="0" statement="0">
+                        <output name="main.country" />
                         <required_for>
                             <ref action="1" />
                         </required_for>
                     </action>
-                    <action origin="1" type="FETCH" status="NONE" object_id="1">
-                        <target name="main.weather_csv" />
+                    <action type="FETCH" status="SKIPPED" object_id="1" statement="1">
+                        <output name="main.weather_csv" />
                         <depends_on>
                             <ref action="0" />
                         </depends_on>
@@ -122,8 +122,8 @@
                             <ref action="2" />
                         </required_for>
                     </action>
-                    <action origin="2" type="LOAD" status="NONE" object_id="2">
-                        <target name="main.weather" />
+                    <action type="LOAD" status="SKIPPED" object_id="2" statement="2">
+                        <output name="main.weather" />
                         <depends_on>
                             <ref action="1" />
                         </depends_on>
@@ -154,14 +154,14 @@
             <graph next_object_id="4">
                 <setup />
                 <program>
-                    <action origin="0" type="INPUT" status="NONE" object_id="0">
-                        <target name="main.country" />
+                    <action type="INPUT" status="SKIPPED" object_id="0" statement="0">
+                        <output name="main.country" />
                         <required_for>
                             <ref action="1" />
                         </required_for>
                     </action>
-                    <action origin="1" type="FETCH" status="NONE" object_id="1">
-                        <target name="main.weather_csv" />
+                    <action type="FETCH" status="SKIPPED" object_id="1" statement="1">
+                        <output name="main.weather_csv" />
                         <depends_on>
                             <ref action="0" />
                         </depends_on>
@@ -169,8 +169,8 @@
                             <ref action="2" />
                         </required_for>
                     </action>
-                    <action origin="2" type="LOAD" status="NONE" object_id="2">
-                        <target name="main.weather" />
+                    <action type="LOAD" status="SKIPPED" object_id="2" statement="2">
+                        <output name="main.weather" />
                         <depends_on>
                             <ref action="1" />
                         </depends_on>
@@ -178,8 +178,8 @@
                             <ref action="3" />
                         </required_for>
                     </action>
-                    <action origin="3" type="CREATE_TABLE" status="NONE" object_id="3">
-                        <target name="main.weather_avg" />
+                    <action type="CREATE_TABLE" status="SKIPPED" object_id="3" statement="3">
+                        <output name="main.weather_avg" />
                         <depends_on>
                             <ref action="2" />
                         </depends_on>
@@ -223,14 +223,14 @@
             <graph next_object_id="6">
                 <setup />
                 <program>
-                    <action origin="0" type="INPUT" status="NONE" object_id="0">
-                        <target name="main.country" />
+                    <action type="INPUT" status="PENDING" object_id="0" statement="0">
+                        <output name="main.country" />
                         <required_for>
                             <ref action="1" />
                         </required_for>
                     </action>
-                    <action origin="1" type="FETCH" status="NONE" object_id="1">
-                        <target name="main.weather_csv" />
+                    <action type="FETCH" status="PENDING" object_id="1" statement="1">
+                        <output name="main.weather_csv" />
                         <depends_on>
                             <ref action="0" />
                         </depends_on>
@@ -238,8 +238,8 @@
                             <ref action="2" />
                         </required_for>
                     </action>
-                    <action origin="2" type="LOAD" status="NONE" object_id="2">
-                        <target name="main.weather" />
+                    <action type="LOAD" status="PENDING" object_id="2" statement="2">
+                        <output name="main.weather" />
                         <depends_on>
                             <ref action="1" />
                         </depends_on>
@@ -247,8 +247,8 @@
                             <ref action="3" />
                         </required_for>
                     </action>
-                    <action origin="3" type="CREATE_TABLE" status="NONE" object_id="3">
-                        <target name="main.weather_avg" />
+                    <action type="CREATE_TABLE" status="PENDING" object_id="3" statement="3">
+                        <output name="main.weather_avg" />
                         <depends_on>
                             <ref action="2" />
                         </depends_on>
@@ -258,14 +258,12 @@
                         </required_for>
                         <script>SELECT * INTO weather_avg FROM weather</script>
                     </action>
-                    <action origin="4" type="CREATE_VIZ" status="NONE" object_id="4">
-                        <target name="" />
+                    <action type="CREATE_VIZ" status="PENDING" object_id="4" statement="4">
                         <depends_on>
                             <ref action="3" />
                         </depends_on>
                     </action>
-                    <action origin="5" type="CREATE_VIZ" status="NONE" object_id="5">
-                        <target name="" />
+                    <action type="CREATE_VIZ" status="PENDING" object_id="5" statement="5">
                         <depends_on>
                             <ref action="3" />
                         </depends_on>
@@ -309,14 +307,14 @@
             <graph next_object_id="7">
                 <setup />
                 <program>
-                    <action origin="0" type="INPUT" status="NONE" object_id="0">
-                        <target name="main.country" />
+                    <action type="INPUT" status="PENDING" object_id="0" statement="0">
+                        <output name="main.country" />
                         <required_for>
                             <ref action="1" />
                         </required_for>
                     </action>
-                    <action origin="1" type="FETCH" status="NONE" object_id="1">
-                        <target name="main.weather_csv" />
+                    <action type="FETCH" status="PENDING" object_id="1" statement="1">
+                        <output name="main.weather_csv" />
                         <depends_on>
                             <ref action="0" />
                         </depends_on>
@@ -324,8 +322,8 @@
                             <ref action="2" />
                         </required_for>
                     </action>
-                    <action origin="2" type="LOAD" status="NONE" object_id="2">
-                        <target name="main.weather" />
+                    <action type="LOAD" status="PENDING" object_id="2" statement="2">
+                        <output name="main.weather" />
                         <depends_on>
                             <ref action="1" />
                         </depends_on>
@@ -334,8 +332,8 @@
                             <ref action="4" />
                         </required_for>
                     </action>
-                    <action origin="3" type="CREATE_TABLE" status="NONE" object_id="3">
-                        <target name="main.weather_avg" />
+                    <action type="CREATE_TABLE" status="PENDING" object_id="3" statement="3">
+                        <output name="main.weather_avg" />
                         <depends_on>
                             <ref action="2" />
                         </depends_on>
@@ -344,8 +342,8 @@
                         </required_for>
                         <script>SELECT * INTO weather_avg FROM weather</script>
                     </action>
-                    <action origin="4" type="CREATE_TABLE" status="NONE" object_id="4">
-                        <target name="main.weather_binned" />
+                    <action type="CREATE_TABLE" status="PENDING" object_id="4" statement="4">
+                        <output name="main.weather_binned" />
                         <depends_on>
                             <ref action="2" />
                         </depends_on>
@@ -354,14 +352,12 @@
                         </required_for>
                         <script>SELECT * INTO weather_binned FROM weather</script>
                     </action>
-                    <action origin="5" type="CREATE_VIZ" status="NONE" object_id="5">
-                        <target name="" />
+                    <action type="CREATE_VIZ" status="PENDING" object_id="5" statement="5">
                         <depends_on>
                             <ref action="3" />
                         </depends_on>
                     </action>
-                    <action origin="6" type="CREATE_VIZ" status="NONE" object_id="6">
-                        <target name="" />
+                    <action type="CREATE_VIZ" status="PENDING" object_id="6" statement="6">
                         <depends_on>
                             <ref action="4" />
                         </depends_on>
@@ -410,21 +406,21 @@
             <graph next_object_id="8">
                 <setup />
                 <program>
-                    <action origin="0" type="INPUT" status="NONE" object_id="0">
-                        <target name="main.country" />
+                    <action type="INPUT" status="PENDING" object_id="0" statement="0">
+                        <output name="main.country" />
                         <required_for>
                             <ref action="2" />
                         </required_for>
                     </action>
-                    <action origin="1" type="INPUT" status="NONE" object_id="1">
-                        <target name="main.month" />
+                    <action type="INPUT" status="PENDING" object_id="1" statement="1">
+                        <output name="main.month" />
                         <required_for>
                             <ref action="4" />
                             <ref action="5" />
                         </required_for>
                     </action>
-                    <action origin="2" type="FETCH" status="NONE" object_id="2">
-                        <target name="main.weather_csv" />
+                    <action type="FETCH" status="PENDING" object_id="2" statement="2">
+                        <output name="main.weather_csv" />
                         <depends_on>
                             <ref action="0" />
                         </depends_on>
@@ -432,8 +428,8 @@
                             <ref action="3" />
                         </required_for>
                     </action>
-                    <action origin="3" type="LOAD" status="NONE" object_id="3">
-                        <target name="main.weather" />
+                    <action type="LOAD" status="PENDING" object_id="3" statement="3">
+                        <output name="main.weather" />
                         <depends_on>
                             <ref action="2" />
                         </depends_on>
@@ -442,8 +438,8 @@
                             <ref action="5" />
                         </required_for>
                     </action>
-                    <action origin="4" type="CREATE_TABLE" status="NONE" object_id="4">
-                        <target name="main.weather_avg" />
+                    <action type="CREATE_TABLE" status="PENDING" object_id="4" statement="4">
+                        <output name="main.weather_avg" />
                         <depends_on>
                             <ref action="3" />
                             <ref action="1" />
@@ -453,8 +449,8 @@
                         </required_for>
                         <script>SELECT * INTO weather_avg FROM weather WHERE month = 5</script>
                     </action>
-                    <action origin="5" type="CREATE_TABLE" status="NONE" object_id="5">
-                        <target name="main.weather_binned" />
+                    <action type="CREATE_TABLE" status="PENDING" object_id="5" statement="5">
+                        <output name="main.weather_binned" />
                         <depends_on>
                             <ref action="3" />
                             <ref action="1" />
@@ -464,14 +460,12 @@
                         </required_for>
                         <script>SELECT * INTO weather_binned FROM weather WHERE month = 5</script>
                     </action>
-                    <action origin="6" type="CREATE_VIZ" status="NONE" object_id="6">
-                        <target name="" />
+                    <action type="CREATE_VIZ" status="PENDING" object_id="6" statement="6">
                         <depends_on>
                             <ref action="4" />
                         </depends_on>
                     </action>
-                    <action origin="7" type="CREATE_VIZ" status="NONE" object_id="7">
-                        <target name="" />
+                    <action type="CREATE_VIZ" status="PENDING" object_id="7" statement="7">
                         <depends_on>
                             <ref action="5" />
                         </depends_on>
@@ -506,20 +500,20 @@
             <graph next_object_id="5">
                 <setup />
                 <program>
-                    <action origin="0" type="INPUT" status="NONE" object_id="0">
-                        <target name="main.country" />
+                    <action type="INPUT" status="SKIPPED" object_id="0" statement="0">
+                        <output name="main.country" />
                         <required_for>
                             <ref action="2" />
                         </required_for>
                     </action>
-                    <action origin="1" type="INPUT" status="NONE" object_id="1">
-                        <target name="main.city" />
+                    <action type="INPUT" status="SKIPPED" object_id="1" statement="1">
+                        <output name="main.city" />
                         <required_for>
                             <ref action="4" />
                         </required_for>
                     </action>
-                    <action origin="2" type="FETCH" status="NONE" object_id="2">
-                        <target name="main.weather_csv" />
+                    <action type="FETCH" status="SKIPPED" object_id="2" statement="2">
+                        <output name="main.weather_csv" />
                         <depends_on>
                             <ref action="0" />
                         </depends_on>
@@ -527,8 +521,8 @@
                             <ref action="3" />
                         </required_for>
                     </action>
-                    <action origin="3" type="LOAD" status="NONE" object_id="3">
-                        <target name="main.weather" />
+                    <action type="LOAD" status="SKIPPED" object_id="3" statement="3">
+                        <output name="main.weather" />
                         <depends_on>
                             <ref action="2" />
                         </depends_on>
@@ -536,8 +530,8 @@
                             <ref action="4" />
                         </required_for>
                     </action>
-                    <action origin="4" type="CREATE_TABLE" status="NONE" object_id="4">
-                        <target name="main.weather_avg" />
+                    <action type="CREATE_TABLE" status="SKIPPED" object_id="4" statement="4">
+                        <output name="main.weather_avg" />
                         <depends_on>
                             <ref action="3" />
                             <ref action="1" />
@@ -588,26 +582,26 @@
             <graph next_object_id="9">
                 <setup />
                 <program>
-                    <action origin="0" type="INPUT" status="NONE" object_id="0">
-                        <target name="main.country1" />
+                    <action type="INPUT" status="PENDING" object_id="0" statement="0">
+                        <output name="main.country1" />
                         <required_for>
                             <ref action="3" />
                         </required_for>
                     </action>
-                    <action origin="1" type="INPUT" status="NONE" object_id="1">
-                        <target name="main.country2" />
+                    <action type="INPUT" status="PENDING" object_id="1" statement="1">
+                        <output name="main.country2" />
                         <required_for>
                             <ref action="4" />
                         </required_for>
                     </action>
-                    <action origin="2" type="INPUT" status="NONE" object_id="2">
-                        <target name="main.month" />
+                    <action type="INPUT" status="PENDING" object_id="2" statement="2">
+                        <output name="main.month" />
                         <required_for>
                             <ref action="7" />
                         </required_for>
                     </action>
-                    <action origin="3" type="FETCH" status="NONE" object_id="3">
-                        <target name="main.country1_weather_csv" />
+                    <action type="FETCH" status="PENDING" object_id="3" statement="3">
+                        <output name="main.country1_weather_csv" />
                         <depends_on>
                             <ref action="0" />
                         </depends_on>
@@ -615,8 +609,8 @@
                             <ref action="5" />
                         </required_for>
                     </action>
-                    <action origin="4" type="FETCH" status="NONE" object_id="4">
-                        <target name="main.country2_weather_csv" />
+                    <action type="FETCH" status="PENDING" object_id="4" statement="4">
+                        <output name="main.country2_weather_csv" />
                         <depends_on>
                             <ref action="1" />
                         </depends_on>
@@ -624,8 +618,8 @@
                             <ref action="6" />
                         </required_for>
                     </action>
-                    <action origin="5" type="LOAD" status="NONE" object_id="5">
-                        <target name="main.country1_weather" />
+                    <action type="LOAD" status="PENDING" object_id="5" statement="5">
+                        <output name="main.country1_weather" />
                         <depends_on>
                             <ref action="3" />
                         </depends_on>
@@ -633,8 +627,8 @@
                             <ref action="7" />
                         </required_for>
                     </action>
-                    <action origin="6" type="LOAD" status="NONE" object_id="6">
-                        <target name="main.country2_weather" />
+                    <action type="LOAD" status="PENDING" object_id="6" statement="6">
+                        <output name="main.country2_weather" />
                         <depends_on>
                             <ref action="4" />
                         </depends_on>
@@ -642,8 +636,8 @@
                             <ref action="7" />
                         </required_for>
                     </action>
-                    <action origin="7" type="CREATE_TABLE" status="NONE" object_id="7">
-                        <target name="main.countries_joined" />
+                    <action type="CREATE_TABLE" status="PENDING" object_id="7" statement="7">
+                        <output name="main.countries_joined" />
                         <depends_on>
                             <ref action="5" />
                             <ref action="6" />
@@ -654,8 +648,7 @@
                         </required_for>
                         <script>SELECT * INTO countries_joined FROM country1_weather c1, country2_weather c2 WHERE c1.month = c2.month AND c2.month = 5</script>
                     </action>
-                    <action origin="8" type="CREATE_VIZ" status="NONE" object_id="8">
-                        <target name="" />
+                    <action type="CREATE_VIZ" status="PENDING" object_id="8" statement="8">
                         <depends_on>
                             <ref action="7" />
                         </depends_on>
@@ -682,15 +675,14 @@
             <graph next_object_id="2">
                 <setup />
                 <program>
-                    <action origin="0" type="CREATE_TABLE" status="NONE" object_id="0">
-                        <target name="main.foo" />
+                    <action type="CREATE_TABLE" status="PENDING" object_id="0" statement="0">
+                        <output name="main.foo" />
                         <required_for>
                             <ref action="1" />
                         </required_for>
                         <script>CREATE TABLE foo AS SELECT v::INTEGER FROM generate_series(0, 100) AS t(v)</script>
                     </action>
-                    <action origin="1" type="CREATE_VIZ" status="NONE" object_id="1">
-                        <target name="" />
+                    <action type="CREATE_VIZ" status="PENDING" object_id="1" statement="1">
                         <depends_on>
                             <ref action="0" />
                         </depends_on>
@@ -703,7 +695,7 @@
         <step>
             <text>
                 CREATE TABLE foo AS SELECT v::INTEGER FROM generate_series(0, 100) AS t(v);
-                VISUALIZE weather_avg USING STACKED BAR (
+                VISUALIZE foo USING STACKED BAR (
                     position = (row = 0, column = 0, width = 4, height = 15),
                     x = a,
                     y = b,
@@ -713,7 +705,7 @@
             <inputs />
             <evaluations />
             <cards>
-                <visualization target="main.weather_avg" title="sometitle">
+                <visualization target="main.foo" title="sometitle">
                     <position row="0" column="0" width="4" height="15" />
                     <components>
                         <component type="BAR">{"position":{"row":0.0,"column":0.0,"width":4.0,"height":15.0},"title":"sometitle","x":"a","y":"b"}</component>
@@ -727,12 +719,17 @@
             <graph next_object_id="2">
                 <setup />
                 <program>
-                    <action origin="0" type="CREATE_TABLE" status="NONE" object_id="0">
-                        <target name="main.foo" />
+                    <action type="CREATE_TABLE" status="PENDING" object_id="0" statement="0">
+                        <output name="main.foo" />
+                        <required_for>
+                            <ref action="1" />
+                        </required_for>
                         <script>CREATE TABLE foo AS SELECT v::INTEGER FROM generate_series(0, 100) AS t(v)</script>
                     </action>
-                    <action origin="1" type="CREATE_VIZ" status="NONE" object_id="1">
-                        <target name="" />
+                    <action type="CREATE_VIZ" status="PENDING" object_id="1" statement="1">
+                        <depends_on>
+                            <ref action="0" />
+                        </depends_on>
                     </action>
                 </program>
             </graph>
@@ -764,9 +761,7 @@
             <graph next_object_id="1">
                 <setup />
                 <program>
-                    <action origin="0" type="CREATE_VIZ" status="NONE" object_id="0">
-                        <target name="" />
-                    </action>
+                    <action type="CREATE_VIZ" status="PENDING" object_id="0" statement="0" />
                 </program>
             </graph>
         </step>
@@ -785,28 +780,28 @@
             <graph next_object_id="4">
                 <setup />
                 <program>
-                    <action origin="0" type="FETCH" status="NONE" object_id="0">
-                        <target name="main.uni" />
+                    <action type="FETCH" status="SKIPPED" object_id="0" statement="0">
+                        <output name="main.uni" />
                         <required_for>
                             <ref action="1" />
                             <ref action="2" />
                             <ref action="3" />
                         </required_for>
                     </action>
-                    <action origin="1" type="LOAD" status="NONE" object_id="1">
-                        <target name="main.vorlesungen" />
+                    <action type="LOAD" status="SKIPPED" object_id="1" statement="1">
+                        <output name="main.vorlesungen" />
                         <depends_on>
                             <ref action="0" />
                         </depends_on>
                     </action>
-                    <action origin="2" type="LOAD" status="NONE" object_id="2">
-                        <target name="main.hoeren" />
+                    <action type="LOAD" status="SKIPPED" object_id="2" statement="2">
+                        <output name="main.hoeren" />
                         <depends_on>
                             <ref action="0" />
                         </depends_on>
                     </action>
-                    <action origin="3" type="LOAD" status="NONE" object_id="3">
-                        <target name="main.studenten" />
+                    <action type="LOAD" status="SKIPPED" object_id="3" statement="3">
+                        <output name="main.studenten" />
                         <depends_on>
                             <ref action="0" />
                         </depends_on>
@@ -857,16 +852,16 @@
             <graph next_object_id="7">
                 <setup />
                 <program>
-                    <action origin="0" type="FETCH" status="NONE" object_id="0">
-                        <target name="main.uni" />
+                    <action type="FETCH" status="PENDING" object_id="0" statement="0">
+                        <output name="main.uni" />
                         <required_for>
                             <ref action="1" />
                             <ref action="2" />
                             <ref action="3" />
                         </required_for>
                     </action>
-                    <action origin="1" type="LOAD" status="NONE" object_id="1">
-                        <target name="main.vorlesungen" />
+                    <action type="LOAD" status="PENDING" object_id="1" statement="1">
+                        <output name="main.vorlesungen" />
                         <depends_on>
                             <ref action="0" />
                         </depends_on>
@@ -875,8 +870,8 @@
                             <ref action="5" />
                         </required_for>
                     </action>
-                    <action origin="2" type="LOAD" status="NONE" object_id="2">
-                        <target name="main.hoeren" />
+                    <action type="LOAD" status="PENDING" object_id="2" statement="2">
+                        <output name="main.hoeren" />
                         <depends_on>
                             <ref action="0" />
                         </depends_on>
@@ -884,8 +879,8 @@
                             <ref action="4" />
                         </required_for>
                     </action>
-                    <action origin="3" type="LOAD" status="NONE" object_id="3">
-                        <target name="main.studenten" />
+                    <action type="LOAD" status="PENDING" object_id="3" statement="3">
+                        <output name="main.studenten" />
                         <depends_on>
                             <ref action="0" />
                         </depends_on>
@@ -893,8 +888,8 @@
                             <ref action="4" />
                         </required_for>
                     </action>
-                    <action origin="4" type="CREATE_VIEW" status="NONE" object_id="4">
-                        <target name="main.foo" />
+                    <action type="CREATE_VIEW" status="PENDING" object_id="4" statement="4">
+                        <output name="main.foo" />
                         <depends_on>
                             <ref action="3" />
                             <ref action="2" />
@@ -909,8 +904,8 @@
                     WHERE studenten.MatrNr = hoeren.MatrNr
                     AND hoeren.VorlNr = vorlesungen.VorlNr</script>
                     </action>
-                    <action origin="5" type="CREATE_VIEW" status="NONE" object_id="5">
-                        <target name="main.foo2" />
+                    <action type="CREATE_VIEW" status="SKIPPED" object_id="5" statement="5">
+                        <output name="main.foo2" />
                         <depends_on>
                             <ref action="1" />
                         </depends_on>
@@ -919,10 +914,44 @@
                     FROM vorlesungen
                     GROUP BY sws</script>
                     </action>
-                    <action origin="6" type="CREATE_VIZ" status="NONE" object_id="6">
-                        <target name="" />
+                    <action type="CREATE_VIZ" status="PENDING" object_id="6" statement="6">
                         <depends_on>
                             <ref action="4" />
+                        </depends_on>
+                    </action>
+                </program>
+            </graph>
+        </step>
+    </test>
+    <test name="skipped_1">
+        <step>
+            <text>
+                CREATE TABLE foo AS SELECT v::INTEGER FROM generate_series(0, 100) AS t(v);
+                SELECT 1;
+                VIZ foo USING TABLE;
+            </text>
+            <inputs />
+            <evaluations />
+            <cards>
+                <visualization target="main.foo">
+                    <components>
+                        <component type="TABLE">{}</component>
+                    </components>
+                </visualization>
+            </cards>
+            <graph next_object_id="3">
+                <setup />
+                <program>
+                    <action type="CREATE_TABLE" status="PENDING" object_id="0" statement="0">
+                        <output name="main.foo" />
+                        <required_for>
+                            <ref action="1" />
+                        </required_for>
+                        <script>CREATE TABLE foo AS SELECT v::INTEGER FROM generate_series(0, 100) AS t(v)</script>
+                    </action>
+                    <action type="CREATE_VIZ" status="PENDING" object_id="2" statement="2">
+                        <depends_on>
+                            <ref action="0" />
                         </depends_on>
                     </action>
                 </program>

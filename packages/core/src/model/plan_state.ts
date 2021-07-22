@@ -49,7 +49,7 @@ export const updateStatus = (state: PlanState, updates: ActionUpdate[]): PlanSta
             }
             const origin = { ...status.get(action.originStatement)! };
             switch (action.statusCode) {
-                case proto.action.ActionStatusCode.NONE:
+                case proto.action.ActionStatusCode.PENDING:
                     break;
                 case proto.action.ActionStatusCode.BLOCKED:
                     --origin.blockedActions;
@@ -64,7 +64,7 @@ export const updateStatus = (state: PlanState, updates: ActionUpdate[]): PlanSta
                     --origin.failedActions;
             }
             switch (update.statusCode) {
-                case proto.action.ActionStatusCode.NONE:
+                case proto.action.ActionStatusCode.PENDING:
                     break;
                 case proto.action.ActionStatusCode.BLOCKED:
                     ++origin.blockedActions;

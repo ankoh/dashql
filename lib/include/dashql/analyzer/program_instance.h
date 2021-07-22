@@ -91,6 +91,8 @@ class ProgramInstance {
     std::vector<NodeError> node_errors_ = {};
     /// The linter messages
     std::vector<LinterMessage> linter_messages_ = {};
+    /// The dead statements
+    std::vector<bool> statements_liveness_ = {};
     /// The input statements
     std::vector<std::unique_ptr<InputStatement>> input_statements_ = {};
     /// The fetch statements
@@ -125,6 +127,8 @@ class ProgramInstance {
     auto& input_values() const { return input_values_; }
     /// Get the evaluate nodes
     auto& evaluated_nodes() const { return evaluated_nodes_; }
+    /// Get the statements liveness
+    auto& statements_liveness() const { return statements_liveness_; }
     /// Get the input statements
     auto& input_statements() const { return input_statements_; }
     /// Get the viz statements

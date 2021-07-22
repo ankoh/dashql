@@ -43,8 +43,6 @@ function getProgramActionTypeLabel(type: proto.action.ProgramActionType) {
             return 'CREATE TABLE';
         case proto.action.ProgramActionType.MODIFY_TABLE:
             return 'MODIFY TABLE';
-        case proto.action.ProgramActionType.UNNAMED_SELECT:
-            return 'SELECT';
         case proto.action.ProgramActionType.CREATE_VIEW:
             return 'CREATE VIEW';
         case proto.action.ProgramActionType.CREATE_VIZ:
@@ -70,7 +68,7 @@ class ActionList extends React.Component<Props> {
         plan.iterateSetupActionsReverse((i: number, o: proto.action.SetupAction) => {
             const actionId = core.model.buildActionHandle(i, proto.action.ActionClass.SETUP_ACTION);
             const actionInfo = this.props.planActions.get(actionId);
-            const status = actionInfo?.statusCode || proto.action.ActionStatusCode.NONE;
+            const status = actionInfo?.statusCode || proto.action.ActionStatusCode.PENDING;
             setup_actions.push(
                 <div key={i} className={styles.action}>
                     <div className={styles.action_status}>
@@ -84,7 +82,7 @@ class ActionList extends React.Component<Props> {
         plan.iterateProgramActions((i: number, o: proto.action.ProgramAction) => {
             const actionId = core.model.buildActionHandle(i, proto.action.ActionClass.PROGRAM_ACTION);
             const actionInfo = this.props.planActions.get(actionId);
-            const status = actionInfo?.statusCode || proto.action.ActionStatusCode.NONE;
+            const status = actionInfo?.statusCode || proto.action.ActionStatusCode.PENDING;
             program_actions.push(
                 <div key={i} className={styles.action}>
                     <div className={styles.action_status}>

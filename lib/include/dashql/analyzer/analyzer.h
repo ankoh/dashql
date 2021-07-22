@@ -54,6 +54,8 @@ class Analyzer {
     arrow::Status EvaluateInputValues(ProgramInstance& instance);
     /// Evaluate constants
     arrow::Status PropagateConstants(ProgramInstance& instance);
+    /// Identify all statements that do not contribute to a viz
+    arrow::Status IdentifyDeadStatements(ProgramInstance& instance);
     /// Analyze input statements
     arrow::Status AnalyzeInputStatements(ProgramInstance& instance);
     /// Analyze fetch statements

@@ -168,7 +168,7 @@
         <step>
             <text>
                 CREATE TABLE foo AS SELECT v::INTEGER FROM generate_series(0, 100) AS t(v);
-                VISUALIZE weather_avg USING STACKED BAR (
+                VISUALIZE foo USING STACKED BAR (
                     position = (row = 0, column = 0, width = 4, height = 15),
                     x = a,
                     y = b,
@@ -233,6 +233,16 @@
                     title = 'Some Table',
                     position = (row = 0, column = 0, width = 12, height = 4),
                 );
+            </text>
+            <parameters />
+        </step>
+    </test>
+    <test name="skipped_1">
+        <step>
+            <text>
+                CREATE TABLE foo AS SELECT v::INTEGER FROM generate_series(0, 100) AS t(v);
+                SELECT 1;
+                VIZ foo USING TABLE;
             </text>
             <parameters />
         </step>
