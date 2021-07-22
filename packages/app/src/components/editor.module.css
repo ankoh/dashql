@@ -61,6 +61,26 @@
     }
 }
 
+.dep_edge_top::before {
+    content: '┌';
+    margin-left: 8px;
+}
+
+.dep_edge::before {
+    content: '│';
+    margin-left: 8px;
+}
+
+.dep_edge_cross::before {
+    content: '├';
+    margin-left: 8px;
+}
+
+.dep_edge_bottom::before {
+    content: '└';
+    margin-left: 8px;
+}
+
 .dep_target {
     border-radius: 2px;
     border: 1px solid rgba(0, 0, 0, 0.2);
