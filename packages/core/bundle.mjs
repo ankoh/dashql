@@ -66,7 +66,7 @@ esbuild.build({
     target: TARGET,
     bundle: true,
     minify: false,
-    sourcemap: 'external',
+    sourcemap: true,
     external: [...EXTERNALS, 'fs', 'path'],
     define: { 'process.env.NODE_ENV': '"production"' },
 });
@@ -80,7 +80,7 @@ esbuild.build({
     target: TARGET,
     bundle: true,
     minify: true,
-    sourcemap: 'external',
+    sourcemap: true,
 });
 
 console.log('[ ESBUILD ] tests-browser.js');
@@ -92,7 +92,7 @@ esbuild.build({
     target: TARGET,
     bundle: true,
     minify: true,
-    sourcemap: 'both',
+    sourcemap: true,
     define: { 'process.env.NODE_ENV': '"production"' },
 });
 
@@ -105,7 +105,7 @@ esbuild.build({
     target: TARGET,
     bundle: true,
     minify: true,
-    sourcemap: 'both',
+    sourcemap: true,
     define: { 'process.env.NODE_ENV': '"production"' },
     external: ['apache-arrow', 'axios', 'axios-mock-adapter', 'immutable', 'redux', 'web-worker', 'vega'],
 });

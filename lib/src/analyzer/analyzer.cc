@@ -189,6 +189,50 @@ arrow::Status Analyzer::PropagateConstants(ProgramInstance& instance) {
     return arrow::Status::OK();
 }
 
+/// Identify all statements that do not contribute to a viz and mark them as dead
+arrow::Status Analyzer::IdentifyDeadStatements(ProgramInstance& instance) {
+    std::vector<bool> liveness;
+    liveness.resize(instance.program_->statements.size(), false);
+
+    // Collect dependencies
+    std::unordered_multimap<size_t, size_t> depends_on;
+    depends_on.reserve(instance.program_->dependencies.size());
+    for (auto& dep : instance.program_->dependencies) {
+        depends_on.insert({dep.target_statement(), dep.source_statement()});
+    }
+
+    // Prepare DFS
+    std::vector<size_t> pending;
+    std::unordered_set<size_t> visited;
+    pending.reserve(liveness.size());
+    visited.reserve(liveness.size());
+    for (auto& viz : instance.viz_statements()) {
+        pending.push_back(viz->statement_id());
+    }
+
+    // Traverse all dependencies
+    while (!pending.empty()) {
+        // Pop from stack and mark as visited
+        auto next = pending.back();
+        pending.pop_back();
+        liveness[next] = true;
+
+        // Mark as visisted
+        if (visited.count(next)) continue;
+        visited.insert(next);
+
+        // Push pending statement
+        auto deps = depends_on.equal_range(next);
+        for (auto iter = deps.first; iter != deps.second; ++iter) {
+            pending.push_back(iter->second);
+        }
+    }
+
+    // Store liveness
+    instance.statements_liveness_ = std::move(liveness);
+    return arrow::Status::OK();
+}
+
 /// Analyze the input statements
 arrow::Status Analyzer::AnalyzeInputStatements(ProgramInstance& instance) {
     auto& program = instance.program();
@@ -267,6 +311,8 @@ arrow::Status Analyzer::InstantiateProgram(std::vector<InputValue> inputs) {
     ARROW_RETURN_NOT_OK(AnalyzeFetchStatements(*next_instance));
     ARROW_RETURN_NOT_OK(AnalyzeLoadStatements(*next_instance));
     ARROW_RETURN_NOT_OK(AnalyzeVizStatements(*next_instance));
+    // Analyze liveness
+    ARROW_RETURN_NOT_OK(IdentifyDeadStatements(*next_instance));
     // Compute the card positions
     ARROW_RETURN_NOT_OK(ComputeCardPositions(*next_instance));
 

@@ -71,3 +71,6 @@ VIZ SWSCounts USING VEGA (
         ),
     )
 );
+
+-- Dead statement, no viz
+SELECT * FROM SWSCounts;

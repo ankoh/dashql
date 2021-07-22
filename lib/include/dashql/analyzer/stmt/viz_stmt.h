@@ -53,6 +53,8 @@ class VizStatement {
    public:
     /// Constructor
     VizStatement(ProgramInstance& instance, size_t statement_id, ASTIndex ast);
+    /// Get the statement id
+    auto& statement_id() { return statement_id_; }
     /// Get the instance
     auto& instance() { return instance_; }
     /// Get the target text

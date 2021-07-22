@@ -9,7 +9,7 @@ export function testActionGraph(az: () => analyzer.AnalyzerBindings): void {
     describe('Action Scheduler', () => {
         describe('program actions', () => {
             it('select 1', async () => {
-                const program = az().parseProgram('select 1');
+                const program = az().parseProgram('create table foo as select 1');
                 az().instantiateProgram();
                 expect(program.buffer.statementsLength()).toBe(1);
                 const plan = az().planProgram();

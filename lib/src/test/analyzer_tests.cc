@@ -125,19 +125,23 @@ void AnalyzerTest::EncodePlan(pugi::xml_node root, const ProgramInstance& instan
         s.append_attribute("type") = setup_action_type_tt->names[static_cast<uint16_t>(action->action_type)];
         s.append_attribute("status") = action_status_tt->names[static_cast<uint16_t>(action->action_status_code)];
         s.append_attribute("object_id") = action->object_id;
-        auto t = s.append_child("target");
-        t.append_attribute("name") = action->name_qualified.c_str();
+        if (action->name_qualified != "") {
+            auto t = s.append_child("output");
+            t.append_attribute("name") = action->name_qualified.c_str();
+        }
     }
 
     auto program_actions = g.append_child("program");
     for (auto& action : graph.program_actions) {
         auto p = program_actions.append_child("action");
-        p.append_attribute("origin") = action->origin_statement;
         p.append_attribute("type") = program_action_type_tt->names[static_cast<uint16_t>(action->action_type)];
         p.append_attribute("status") = action_status_tt->names[static_cast<uint16_t>(action->action_status_code)];
         p.append_attribute("object_id") = action->object_id;
-        auto t = p.append_child("target");
-        t.append_attribute("name") = action->name_qualified.c_str();
+        p.append_attribute("statement") = action->origin_statement;
+        if (action->name_qualified != "") {
+            auto t = p.append_child("output");
+            t.append_attribute("name") = action->name_qualified.c_str();
+        }
         if (!action->depends_on.empty()) {
             auto depends_on = p.append_child("depends_on");
             for (auto v : action->depends_on) {
@@ -164,7 +168,7 @@ proto::action::ActionStatusCode AnalyzerTest::GetActionStatus(std::string_view t
     for (unsigned i = 0; i < num_elems; ++i) {
         if (type == std::string_view{names[i]}) return static_cast<proto::action::ActionStatusCode>(i);
     }
-    return proto::action::ActionStatusCode::NONE;
+    return proto::action::ActionStatusCode::PENDING;
 }
 
 // Read a input type

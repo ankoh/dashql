@@ -164,6 +164,9 @@ arrow::Result<flatbuffers::Offset<proto::analyzer::ProgramAnnotations>> ProgramI
     });
     auto eval_node_vec = builder.CreateVector(eval_nodes);
 
+    // Pack the liveness map
+    auto liveness_vec = builder.CreateVector(statements_liveness_);
+
     // Pack the fetchs
     std::vector<flatbuffers::Offset<proto::analyzer::FetchStatement>> fetchs;
     for (auto& fetch : fetch_statements_) {
@@ -192,6 +195,7 @@ arrow::Result<flatbuffers::Offset<proto::analyzer::ProgramAnnotations>> ProgramI
     proto::analyzer::ProgramAnnotationsBuilder annotations{builder};
     annotations.add_evaluated_nodes(eval_node_vec);
     annotations.add_input_values(input_vec);
+    annotations.add_statements_liveness(liveness_vec);
     annotations.add_statements_fetch(fetchs_vec);
     annotations.add_statements_load(loads_vec);
     annotations.add_cards(cards_vec);

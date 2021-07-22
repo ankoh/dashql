@@ -480,5 +480,5 @@ export function deriveStatementStatusCode(status: StatementStatus): proto.action
     else if (status.blockedActions > 0) return proto.action.ActionStatusCode.BLOCKED;
     else if (status.completedActions == status.totalActions) return proto.action.ActionStatusCode.COMPLETED;
     else if (status.runningActions > 0) return proto.action.ActionStatusCode.RUNNING;
-    else return proto.action.ActionStatusCode.NONE;
+    else return proto.action.ActionStatusCode.PENDING;
 }

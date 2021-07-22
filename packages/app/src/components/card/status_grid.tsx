@@ -69,7 +69,7 @@ class StatusGrid extends React.Component<StatusGridProps, StatusGridState> {
                 nodeId: idx,
                 statementId: idx,
                 statementType: stmt.statement_type,
-                actionStatus: proto.action.ActionStatusCode.NONE,
+                actionStatus: proto.action.ActionStatusCode.PENDING,
                 focused: focus.isSet(idx),
             });
         });
@@ -121,7 +121,7 @@ class StatusGrid extends React.Component<StatusGridProps, StatusGridState> {
                 case proto.action.ActionStatusCode.RUNNING:
                     color = 'rgb(83, 164, 81)';
                     break;
-                case proto.action.ActionStatusCode.NONE:
+                case proto.action.ActionStatusCode.PENDING:
                     color = 'rgb(160, 160, 160)';
                     break;
             }

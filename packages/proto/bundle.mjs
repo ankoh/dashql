@@ -18,6 +18,7 @@ esbuild.build({
     target: 'es2020',
     bundle: true,
     minify: false,
+    sourcemap: true,
     external: ['flatbuffers'],
 });
 

@@ -23,6 +23,8 @@ class ActionPlanner {
 
     /// The diff between the programs
     std::vector<ProgramMatcher::DiffOp> diff_;
+    /// The statement action mapping
+    std::vector<std::optional<size_t>> action_mapping_;
     /// The reverse action mapping.
     /// Maps an action to the corresponding previous action if the diff was either KEEP, MOVE or UPDATE.
     /// We use this to figure out, whether the set of dependencies changed.
@@ -36,6 +38,17 @@ class ActionPlanner {
     std::vector<bool> action_applicability_;
     /// The new action graph
     std::unique_ptr<proto::action::ActionGraphT> action_graph_;
+
+    /// Get the statement action id
+    inline std::optional<size_t> getStatementActionId(size_t stmt_id) {
+        assert(stmt_id < action_mapping_.size());
+        return action_mapping_[stmt_id];
+    }
+    /// Get the statement action
+    inline proto::action::ProgramActionT* getStatementAction(size_t stmt_id) {
+        auto id = getStatementActionId(stmt_id);
+        return !id.has_value() ? nullptr : action_graph_->program_actions[*id].get();
+    }
 
     /// Diff the two programs
     arrow::Status DiffPrograms();

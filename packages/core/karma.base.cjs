@@ -19,6 +19,7 @@ module.exports = function (config) {
         frameworks: ['jasmine'],
         files: [
             { pattern: 'packages/core/dist/tests-browser.js' },
+            { pattern: 'packages/core/dist/tests-browser.js.map', included: false },
             { pattern: 'packages/core/src/analyzer/analyzer_wasm.wasm', included: false, watched: false, served: true },
             { pattern: 'packages/core/src/jmespath/jmespath_wasm.wasm', included: false, watched: false, served: true },
             { pattern: 'node_modules/@dashql/duckdb/dist/*.js', included: false, watched: false, served: true },

@@ -98,7 +98,7 @@ class ProgressGraph extends React.Component<ProgressGraphProps, ProgressGraphSta
                 position: { x: 0, y: 0 },
                 data: {
                     statementType: stmt.statement_type,
-                    actionStatus: proto.action.ActionStatusCode.NONE,
+                    actionStatus: proto.action.ActionStatusCode.PENDING,
                     focused: focus.isSet(idx),
                 },
             });
@@ -169,7 +169,7 @@ class ProgressGraph extends React.Component<ProgressGraphProps, ProgressGraphSta
                     case proto.action.ActionStatusCode.RUNNING:
                     case proto.action.ActionStatusCode.BLOCKED:
                         break;
-                    case proto.action.ActionStatusCode.NONE:
+                    case proto.action.ActionStatusCode.PENDING:
                         opacity = NODE_OPACITY;
                         break;
                     case proto.action.ActionStatusCode.COMPLETED:

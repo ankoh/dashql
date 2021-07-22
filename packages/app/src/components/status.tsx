@@ -134,7 +134,7 @@ interface IActionStatusIndicatorProps {
 export function ActionStatusIndicator(props: IActionStatusIndicatorProps): React.ReactElement {
     let mappedStatus = Status.NONE;
     switch (props.status) {
-        case proto.action.ActionStatusCode.NONE:
+        case proto.action.ActionStatusCode.PENDING:
             mappedStatus = Status.NONE;
             break;
         case proto.action.ActionStatusCode.COMPLETED:

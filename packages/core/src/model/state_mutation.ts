@@ -98,7 +98,7 @@ function reduceImpl(state: CoreState, mutation: StateMutationVariant): CoreState
             const status: StatementStatus[] = [];
             for (let i = 0; i < state.program!.buffer.statementsLength(); ++i) {
                 status.push({
-                    status: proto.action.ActionStatusCode.NONE,
+                    status: proto.action.ActionStatusCode.PENDING,
                     totalActions: 0,
                     runningActions: 0,
                     blockedActions: 0,

@@ -428,7 +428,7 @@ class Editor extends React.Component<Props, State> {
                     case proto.action.ActionStatusCode.FAILED:
                         glyphClass = styles.deco_glyph_status_failed;
                         break;
-                    case proto.action.ActionStatusCode.NONE:
+                    case proto.action.ActionStatusCode.PENDING:
                         glyphClass = styles.deco_glyph_status_none;
                         break;
                     case proto.action.ActionStatusCode.RUNNING:
