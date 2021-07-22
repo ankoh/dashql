@@ -1,5 +1,4 @@
 :global(.monaco-editor .glyph-margin) {
-    background-color: rgb(240, 240, 240);
     border-right: 1px solid var(--border_color);
 }
 
