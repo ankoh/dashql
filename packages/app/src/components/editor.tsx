@@ -227,7 +227,6 @@ class Editor extends React.Component<Props, State> {
         });
         this.editor.setPosition({ column: 0, lineNumber: 0 });
         this.editor.focus();
-        this.editor.onMouseMove(this._onMouseEvent);
         this.editor.onMouseDown(this._onMouseEvent);
 
         // Finalize the editor
