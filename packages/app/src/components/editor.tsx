@@ -179,9 +179,9 @@ class Editor extends React.Component<Props, State> {
     }
 
     /// The bound hover handler
-    protected _onMouseMove = this.onMouseMove.bind(this);
+    protected _onMouseEvent = this.onMouseEvent.bind(this);
     /// Hover handler
-    public onMouseMove(e: monaco.editor.IEditorMouseEvent) {
+    public onMouseEvent(e: monaco.editor.IEditorMouseEvent) {
         const pos = e.target.position;
         if (!pos) return;
         if (
@@ -227,7 +227,8 @@ class Editor extends React.Component<Props, State> {
         });
         this.editor.setPosition({ column: 0, lineNumber: 0 });
         this.editor.focus();
-        this.editor.onMouseMove(this._onMouseMove);
+        this.editor.onMouseMove(this._onMouseEvent);
+        this.editor.onMouseDown(this._onMouseEvent);
 
         // Finalize the editor
         const editor = this.editor!;
