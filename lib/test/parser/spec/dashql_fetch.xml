@@ -19,7 +19,7 @@
                 </statement>
                 <statement type="LOAD" name="main.assistenten">
                     <node type="OBJECT_DASHQL_LOAD" loc="132..194" text="LOAD assis..NG PARQUET">
-                        <node key="DASHQL_LOAD_DATA" type="OBJECT_SQL_QUALIFIED_NAME" loc="154..180" text="uni['assis...parquet']">
+                        <node key="DASHQL_DATA_SOURCE" type="OBJECT_SQL_QUALIFIED_NAME" loc="154..180" text="uni['assis...parquet']">
                             <node key="SQL_QUALIFIED_NAME_INDEX" type="OBJECT_SQL_INDIRECTION_INDEX" loc="157..180" text="['assisten...parquet']">
                                 <node key="SQL_INDIRECTION_INDEX_VALUE" loc="158..179" text="'assistent..n.parquet'" />
                             </node>
@@ -65,7 +65,7 @@
                 </statement>
                 <statement type="LOAD" name="main.vorlesungen">
                     <node type="OBJECT_DASHQL_LOAD" loc="89..151" text="LOAD vorle..NG PARQUET">
-                        <node key="DASHQL_LOAD_DATA" type="OBJECT_SQL_QUALIFIED_NAME" loc="111..137" text="uni['vorle...parquet']">
+                        <node key="DASHQL_DATA_SOURCE" type="OBJECT_SQL_QUALIFIED_NAME" loc="111..137" text="uni['vorle...parquet']">
                             <node key="SQL_QUALIFIED_NAME_INDEX" type="OBJECT_SQL_INDIRECTION_INDEX" loc="114..137" text="['vorlesun...parquet']">
                                 <node key="SQL_INDIRECTION_INDEX_VALUE" loc="115..136" text="'vorlesung..n.parquet'" />
                             </node>
@@ -79,7 +79,7 @@
                 </statement>
                 <statement type="LOAD" name="main.hoeren">
                     <node type="OBJECT_DASHQL_LOAD" loc="165..203" text="LOAD hoere...parquet']">
-                        <node key="DASHQL_LOAD_DATA" type="OBJECT_SQL_QUALIFIED_NAME" loc="182..203" text="uni['hoere...parquet']">
+                        <node key="DASHQL_DATA_SOURCE" type="OBJECT_SQL_QUALIFIED_NAME" loc="182..203" text="uni['hoere...parquet']">
                             <node key="SQL_QUALIFIED_NAME_INDEX" type="OBJECT_SQL_INDIRECTION_INDEX" loc="185..203" text="['hoeren.parquet']">
                                 <node key="SQL_INDIRECTION_INDEX_VALUE" loc="186..202" text="'hoeren.parquet'" />
                             </node>
@@ -92,7 +92,7 @@
                 </statement>
                 <statement type="LOAD" name="main.studenten">
                     <node type="OBJECT_DASHQL_LOAD" loc="217..261" text="LOAD stude...parquet']">
-                        <node key="DASHQL_LOAD_DATA" type="OBJECT_SQL_QUALIFIED_NAME" loc="237..261" text="uni['stude...parquet']">
+                        <node key="DASHQL_DATA_SOURCE" type="OBJECT_SQL_QUALIFIED_NAME" loc="237..261" text="uni['stude...parquet']">
                             <node key="SQL_QUALIFIED_NAME_INDEX" type="OBJECT_SQL_INDIRECTION_INDEX" loc="240..261" text="['studente...parquet']">
                                 <node key="SQL_INDIRECTION_INDEX_VALUE" loc="241..260" text="'studenten.parquet'" />
                             </node>

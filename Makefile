@@ -112,8 +112,8 @@ lib_testgen: lib
 
 # Generate declarative tests
 .PHONY: lib_testgen_gdb
-lib_testgen_gdb: lib
-	gdb --args ${LIB_DEBUG_DIR}/testgen ${LIB_SOURCE_DIR}
+lib_testgen_lldb: lib
+	lldb ${LIB_DEBUG_DIR}/testgen -- ${LIB_SOURCE_DIR}
 
 # Debug the library
 .PHONY: lib_debug

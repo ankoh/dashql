@@ -1,0 +1,12 @@
+<tests>
+    <test name="dashql_transform_1">
+        <input>TRANSFORM table2 FROM table1 USING JMESPATH</input>
+    </test>
+    <test name="dashql_transform_2">
+        <input>
+            TRANSFORM table2 FROM table1 USING JMESPATH (
+                expression = 'blabla'
+            );
+        </input>
+    </test>
+</tests>

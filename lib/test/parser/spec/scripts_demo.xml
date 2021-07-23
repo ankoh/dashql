@@ -73,7 +73,7 @@
                 </statement>
                 <statement type="LOAD" name="main.weather">
                     <node type="OBJECT_DASHQL_LOAD" loc="848..887" text="LOAD weath.. USING CSV">
-                        <node key="DASHQL_LOAD_DATA" type="OBJECT_SQL_QUALIFIED_NAME" loc="866..877" text="weather_csv">
+                        <node key="DASHQL_DATA_SOURCE" type="OBJECT_SQL_QUALIFIED_NAME" loc="866..877" text="weather_csv">
                             <node key="SQL_QUALIFIED_NAME_RELATION" loc="866..877" text="weather_csv" />
                         </node>
                         <node key="DASHQL_LOAD_METHOD" value="CSV" />
@@ -329,7 +329,7 @@
                 </statement>
                 <statement type="LOAD" name="main.vorlesungen">
                     <node type="OBJECT_DASHQL_LOAD" loc="216..264" text="LOAD vorle...parquet']">
-                        <node key="DASHQL_LOAD_DATA" type="OBJECT_SQL_QUALIFIED_NAME" loc="238..264" text="uni['vorle...parquet']">
+                        <node key="DASHQL_DATA_SOURCE" type="OBJECT_SQL_QUALIFIED_NAME" loc="238..264" text="uni['vorle...parquet']">
                             <node key="SQL_QUALIFIED_NAME_INDEX" type="OBJECT_SQL_INDIRECTION_INDEX" loc="241..264" text="['vorlesun...parquet']">
                                 <node key="SQL_INDIRECTION_INDEX_VALUE" loc="242..263" text="'vorlesung..n.parquet'" />
                             </node>
@@ -342,7 +342,7 @@
                 </statement>
                 <statement type="LOAD" name="main.hoeren">
                     <node type="OBJECT_DASHQL_LOAD" loc="278..316" text="LOAD hoere...parquet']">
-                        <node key="DASHQL_LOAD_DATA" type="OBJECT_SQL_QUALIFIED_NAME" loc="295..316" text="uni['hoere...parquet']">
+                        <node key="DASHQL_DATA_SOURCE" type="OBJECT_SQL_QUALIFIED_NAME" loc="295..316" text="uni['hoere...parquet']">
                             <node key="SQL_QUALIFIED_NAME_INDEX" type="OBJECT_SQL_INDIRECTION_INDEX" loc="298..316" text="['hoeren.parquet']">
                                 <node key="SQL_INDIRECTION_INDEX_VALUE" loc="299..315" text="'hoeren.parquet'" />
                             </node>
@@ -355,7 +355,7 @@
                 </statement>
                 <statement type="LOAD" name="main.studenten">
                     <node type="OBJECT_DASHQL_LOAD" loc="330..374" text="LOAD stude...parquet']">
-                        <node key="DASHQL_LOAD_DATA" type="OBJECT_SQL_QUALIFIED_NAME" loc="350..374" text="uni['stude...parquet']">
+                        <node key="DASHQL_DATA_SOURCE" type="OBJECT_SQL_QUALIFIED_NAME" loc="350..374" text="uni['stude...parquet']">
                             <node key="SQL_QUALIFIED_NAME_INDEX" type="OBJECT_SQL_INDIRECTION_INDEX" loc="353..374" text="['studente...parquet']">
                                 <node key="SQL_INDIRECTION_INDEX_VALUE" loc="354..373" text="'studenten.parquet'" />
                             </node>
