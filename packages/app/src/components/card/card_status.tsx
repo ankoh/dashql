@@ -6,9 +6,9 @@ import { AppState, Dispatch } from '../../model';
 import { connect } from 'react-redux';
 import { proto } from '@dashql/core';
 
-import styles from './status_grid.module.css';
+import styles from './card_status.module.css';
 
-interface StatusGridProps {
+interface CardStatusProps {
     program: core.model.Program | null;
     programStatus: Immutable.List<core.model.StatementStatus>;
     className?: string;
@@ -20,22 +20,21 @@ interface NodeData {
     statementId: number;
     statementType: proto.syntax.StatementType;
     actionStatus: proto.action.ActionStatusCode | null;
-    focused: boolean;
 }
 
-interface StatusGridState {
+interface CardStatusState {
     program: core.model.Program | null;
     programStatus: Immutable.List<core.model.StatementStatus>;
     nodes: NodeData[];
 }
 
-class StatusGrid extends React.Component<StatusGridProps, StatusGridState> {
-    constructor(props: StatusGridProps) {
+class CardStatus extends React.Component<CardStatusProps, CardStatusState> {
+    constructor(props: CardStatusProps) {
         super(props);
-        this.state = StatusGrid.rebuild(props);
+        this.state = CardStatus.rebuild(props);
     }
 
-    protected static rebuild(props: StatusGridProps): StatusGridState {
+    protected static rebuild(props: CardStatusProps): CardStatusState {
         if (!props.program) {
             return {
                 program: null,
@@ -65,22 +64,22 @@ class StatusGrid extends React.Component<StatusGridProps, StatusGridState> {
         // We use dagre to do the layouting and render the graph with react-flow afterwards
         const nodes: NodeData[] = [];
         props.program.iterateStatements((idx: number, stmt: core.model.Statement) => {
+            if (!focus.isSet(idx)) return;
             nodes.push({
                 nodeId: idx,
                 statementId: idx,
                 statementType: stmt.statement_type,
                 actionStatus: proto.action.ActionStatusCode.PENDING,
-                focused: focus.isSet(idx),
             });
         });
-        return StatusGrid.updateState(props, {
+        return CardStatus.updateState(props, {
             program: props.program,
             programStatus: props.programStatus,
             nodes: nodes,
         });
     }
 
-    protected static updateState(props: StatusGridProps, state: StatusGridState): StatusGridState {
+    protected static updateState(props: CardStatusProps, state: CardStatusState): CardStatusState {
         return {
             ...state,
             nodes: state.nodes.map(n => {
@@ -92,39 +91,36 @@ class StatusGrid extends React.Component<StatusGridProps, StatusGridState> {
                         ...n,
                         statementType: n.statementType,
                         actionStatus: s,
-                        focused: n.focused,
                     };
             }),
         };
     }
 
-    public static getDerivedStateFromProps(props: StatusGridProps, state: StatusGridState) {
+    public static getDerivedStateFromProps(props: CardStatusProps, state: CardStatusState) {
         if (props.program !== state.program) {
-            return StatusGrid.rebuild(props);
+            return CardStatus.rebuild(props);
         }
-        return StatusGrid.updateState(props, state);
+        return CardStatus.updateState(props, state);
     }
 
     public renderNode(n: NodeData) {
         let color = 'transparent';
-        if (n.focused) {
-            switch (n.actionStatus!) {
-                case proto.action.ActionStatusCode.BLOCKED:
-                    color = 'rgb(213, 172, 59)';
-                    break;
-                case proto.action.ActionStatusCode.COMPLETED:
-                    color = 'rgb(30, 30, 30)';
-                    break;
-                case proto.action.ActionStatusCode.FAILED:
-                    color = 'rgb(187, 54, 56)';
-                    break;
-                case proto.action.ActionStatusCode.RUNNING:
-                    color = 'rgb(83, 164, 81)';
-                    break;
-                case proto.action.ActionStatusCode.PENDING:
-                    color = 'rgb(160, 160, 160)';
-                    break;
-            }
+        switch (n.actionStatus!) {
+            case proto.action.ActionStatusCode.BLOCKED:
+                color = 'rgb(213, 172, 59)';
+                break;
+            case proto.action.ActionStatusCode.COMPLETED:
+                color = 'rgb(30, 30, 30)';
+                break;
+            case proto.action.ActionStatusCode.FAILED:
+                color = 'rgb(187, 54, 56)';
+                break;
+            case proto.action.ActionStatusCode.RUNNING:
+                color = 'rgb(83, 164, 81)';
+                break;
+            case proto.action.ActionStatusCode.PENDING:
+                color = 'rgb(160, 160, 160)';
+                break;
         }
         return <div key={n.nodeId} className={styles.node} style={{ backgroundColor: color }} />;
     }
@@ -148,4 +144,4 @@ const mapStateToProps = (state: AppState) => ({
 
 const mapDispatchToProps = (_dispatch: Dispatch) => ({});
 
-export default connect(mapStateToProps, mapDispatchToProps)(StatusGrid);
+export default connect(mapStateToProps, mapDispatchToProps)(CardStatus);
