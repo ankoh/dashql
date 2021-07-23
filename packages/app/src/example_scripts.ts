@@ -39,6 +39,7 @@ import icon_gesture_tap_hold from '../static/svg/icons/gesture_tap_hold.svg';
 import icon_database_import from '../static/svg/icons/database_import.svg';
 import icon_database_search from '../static/svg/icons/database_search.svg';
 import icon_package_down from '../static/svg/icons/package_down.svg';
+import icon_shape from '../static/svg/icons/shape.svg';
 
 export enum ScriptFeatureTag {
     FETCH_HTTP,
@@ -92,7 +93,7 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         collection: 'Transform',
         title: 'JMESPath',
         description: 'JMESPath Expressions',
-        icon: icon_database_import,
+        icon: icon_shape,
         features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_).set(ScriptFeatureTag.TRANSFORM_JMESPATH),
         url: example_transform_jmespath,
         enabled: true,
