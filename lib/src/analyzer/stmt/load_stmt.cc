@@ -38,7 +38,7 @@ std::unique_ptr<LoadStatement> LoadStatement::ReadFrom(ProgramInstance& instance
     static const auto schema = sxm::Element()
         .MatchObject(sx::NodeType::OBJECT_DASHQL_LOAD)
         .MatchChildren({
-            sxm::Attribute(sx::AttributeKey::DASHQL_LOAD_DATA, SX_DATA_SOURCE),
+            sxm::Attribute(sx::AttributeKey::DASHQL_DATA_SOURCE, SX_DATA_SOURCE),
             sxm::Attribute(sx::AttributeKey::DASHQL_LOAD_METHOD, SX_METHOD)
                 .MatchEnum(sx::NodeType::ENUM_DASHQL_LOAD_METHOD_TYPE),
         });

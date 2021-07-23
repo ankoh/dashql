@@ -2,7 +2,7 @@ dashql_load_statement:
     LOAD dashql_statement_name FROM dashql_statement_ref opt_dashql_load_method opt_dashql_options {
         $$ = ctx.Add(@$, sx::NodeType::OBJECT_DASHQL_LOAD, concat(NodeVector{
             Key::DASHQL_STATEMENT_NAME << $2,
-            Key::DASHQL_LOAD_DATA << $4,
+            Key::DASHQL_DATA_SOURCE << $4,
             Key::DASHQL_LOAD_METHOD << $5
         }, move($6)));
     }

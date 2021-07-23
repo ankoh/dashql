@@ -1,0 +1,56 @@
+<tests>
+    <test name="dashql_transform_1">
+        <input>TRANSFORM table2 FROM table1 USING JMESPATH</input>
+        <expected>
+            <statements>
+                <statement type="TRANSFORM" name="main.table2">
+                    <node type="OBJECT_DASHQL_TRANSFORM" loc="0..43" text="TRANSFORM ..G JMESPATH">
+                        <node key="DASHQL_DATA_SOURCE" type="OBJECT_SQL_QUALIFIED_NAME" loc="22..28" text="table1">
+                            <node key="SQL_QUALIFIED_NAME_RELATION" loc="22..28" text="table1" />
+                        </node>
+                        <node key="DASHQL_STATEMENT_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="10..16" text="table2">
+                            <node key="SQL_QUALIFIED_NAME_RELATION" loc="10..16" text="table2" />
+                        </node>
+                        <node key="DASHQL_TRANSFORM_METHOD" value="JMESPATH" />
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks />
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="dashql_transform_2">
+        <input>
+            TRANSFORM table2 FROM table1 USING JMESPATH (
+                expression = 'blabla'
+            );
+        </input>
+        <expected>
+            <statements>
+                <statement type="TRANSFORM" name="main.table2">
+                    <node type="OBJECT_DASHQL_TRANSFORM" loc="13..110" text="TRANSFORM ..         )">
+                        <node key="DASHQL_DATA_SOURCE" type="OBJECT_SQL_QUALIFIED_NAME" loc="35..41" text="table1">
+                            <node key="SQL_QUALIFIED_NAME_RELATION" loc="35..41" text="table1" />
+                        </node>
+                        <node key="DASHQL_STATEMENT_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="23..29" text="table2">
+                            <node key="SQL_QUALIFIED_NAME_RELATION" loc="23..29" text="table2" />
+                        </node>
+                        <node key="DASHQL_TRANSFORM_METHOD" value="JMESPATH" />
+                        <node key="DASHQL_OPTION_EXPRESSION" loc="88..96" text="'blabla'" />
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="58..59" text="&#10;" />
+                <line_break loc="96..97" text="&#10;" />
+                <line_break loc="111..112" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+</tests>

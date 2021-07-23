@@ -29,10 +29,10 @@ std::unique_ptr<FetchStatement> FetchStatement::ReadFrom(ProgramInstance& instan
     static const auto schema = sxm::Element()
         .MatchObject(sx::NodeType::OBJECT_DASHQL_FETCH)
         .MatchChildren({
-            sxm::Attribute(sx::AttributeKey::DASHQL_FETCH_METHOD, SX_FETCH_METHOD)
-                .MatchEnum(sx::NodeType::ENUM_DASHQL_FETCH_METHOD_TYPE),
             sxm::Attribute(sx::AttributeKey::DASHQL_FETCH_FROM_URI, SX_FETCH_FROM_URI)
                 .MatchString(),
+            sxm::Attribute(sx::AttributeKey::DASHQL_FETCH_METHOD, SX_FETCH_METHOD)
+                .MatchEnum(sx::NodeType::ENUM_DASHQL_FETCH_METHOD_TYPE),
             sxm::Attribute(sx::AttributeKey::DASHQL_OPTION_URL, SX_FETCH_URL_OPTION)
         });
     // clang-format on
