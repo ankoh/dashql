@@ -52,6 +52,7 @@ dashql_viz_type:
   | BAR         { $$ = Enum(@$, sx::VizComponentType::BAR); }
   | BOX         { $$ = Enum(@$, sx::VizComponentType::BOX); }
   | CANDLESTICK { $$ = Enum(@$, sx::VizComponentType::CANDLESTICK); }
+  | DUMP        { $$ = Enum(@$, sx::VizComponentType::DUMP); }
   | ERROR       { $$ = Enum(@$, sx::VizComponentType::ERROR_BAR); }
   | LINE        { $$ = Enum(@$, sx::VizComponentType::LINE); }
   | PIE         { $$ = Enum(@$, sx::VizComponentType::PIE); }

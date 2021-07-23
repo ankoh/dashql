@@ -29,7 +29,7 @@ export abstract class VizActionLogic extends ProgramActionLogic {
         const stats = context.platform._databaseManager.resolveTableStatistics(table.nameQualified)!;
         this._vizComposer = new VizComposer(stats);
 
-        // Read the component specs and add them to the compose
+        // Read the component specs and add them to the composer
         for (let i = 0; i < this._card.vizComponentsLength(); ++i) {
             const c = this._card.vizComponents(i)!;
             const type = c.type()!;
