@@ -41,9 +41,6 @@ export class VegaComposer {
     /// The platform
     _tableStatistics: platform.TableStatisticsResolver;
 
-    /// The renderer type
-    _renderer: model.CardRendererType | null = null;
-
     /// The query type
     _dataResolver: model.CardDataResolver | null = null;
     /// The filters (if any)
@@ -54,8 +51,6 @@ export class VegaComposer {
     _orderBy: SortField[] | null = null;
     /// The M5 X-attributes (if any)
     _m5Config: model.M5Config | null = null;
-    /// The row count (if known)
-    _rowCount: number | null = null;
     /// The max sample size (if any)
     _sampleSize: number | null = null;
 
@@ -191,15 +186,8 @@ export class VegaComposer {
         modifiers: Map<proto.syntax.VizComponentTypeModifier, boolean>,
         options: any = null,
     ): void {
-        const useRenderer = (renderer: model.CardRendererType) => {
-            if (this._renderer != null && this._renderer != model.CardRendererType.BUILTIN_VEGA) {
-                // XXX log warning
-            }
-            this._renderer = renderer;
-        };
         switch (type) {
             case proto.syntax.VizComponentType.VEGA: {
-                useRenderer(model.CardRendererType.BUILTIN_VEGA);
                 this._inputVegaLiteSpec.transform = options.transform;
                 const layer = { ...options };
                 delete layer.transform;
@@ -217,20 +205,12 @@ export class VegaComposer {
             case proto.syntax.VizComponentType.LINE:
             case proto.syntax.VizComponentType.PIE:
             case proto.syntax.VizComponentType.SCATTER: {
-                useRenderer(model.CardRendererType.BUILTIN_VEGA);
                 this.generateVegaLayer(type, modifiers, options);
                 break;
             }
+            case proto.syntax.VizComponentType.TABLE:
             case proto.syntax.VizComponentType.DUMP: {
-                useRenderer(model.CardRendererType.BUILTIN_DUMP);
-                // XXX conflicts
-                this._renderer = model.CardRendererType.BUILTIN_TABLE;
-                break;
-            }
-            case proto.syntax.VizComponentType.TABLE: {
-                useRenderer(model.CardRendererType.BUILTIN_TABLE);
-                // XXX conflicts
-                this._renderer = model.CardRendererType.BUILTIN_TABLE;
+                // XXX Should not happen, throw an error
                 break;
             }
         }
@@ -478,12 +458,9 @@ export class VegaComposer {
     /// The function is async since we may have to wait for database requests.
     public async compile(): Promise<Pick<model.Card, 'cardRenderer' | 'dataSource' | 'vegaLiteSpec' | 'vegaSpec'>> {
         const table = this.table;
-        let vegaSpec = null;
-        if (this._renderer == model.CardRendererType.BUILTIN_VEGA) {
-            vegaSpec = await this.compileVegaSpec(this._normalizedVegaLiteSpec!);
-        }
+        const vegaSpec = await this.compileVegaSpec(this._normalizedVegaLiteSpec!);
         return {
-            cardRenderer: this._renderer || model.CardRendererType.BUILTIN_TABLE,
+            cardRenderer: model.CardRendererType.BUILTIN_VEGA,
             dataSource: {
                 dataResolver: this._dataResolver || model.CardDataResolver.RESERVOIR_SAMPLE,
                 targetQualified: table.nameQualified,
@@ -491,7 +468,6 @@ export class VegaComposer {
                 aggregates: this._aggregates,
                 orderBy: this._orderBy,
                 m5Config: this._m5Config,
-                rowCount: null,
                 sampleSize: 10000,
             },
             vegaLiteSpec: this._normalizedVegaLiteSpec,

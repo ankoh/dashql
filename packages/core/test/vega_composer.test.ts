@@ -63,7 +63,6 @@ VIZ foo USING VEGA (
                 filters: null,
                 aggregates: null,
                 orderBy: null,
-                rowCount: null,
                 sampleSize: 10000,
             },
             vegaLite: {
@@ -128,7 +127,6 @@ VIZ foo USING LINE (
                 filters: null,
                 aggregates: null,
                 orderBy: null,
-                rowCount: null,
                 sampleSize: 10000,
             },
             vegaLite: {
