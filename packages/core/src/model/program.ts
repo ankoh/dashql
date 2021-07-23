@@ -468,17 +468,26 @@ export class Statement {
 export interface StatementStatus {
     status: proto.action.ActionStatusCode;
     totalActions: number;
-    runningActions: number;
-    blockedActions: number;
-    failedActions: number;
-    completedActions: number;
+    totalPerStatus: number[];
 }
 
 /// Derive a statement status
 export function deriveStatementStatusCode(status: StatementStatus): proto.action.ActionStatusCode {
-    if (status.failedActions > 0) return proto.action.ActionStatusCode.FAILED;
-    else if (status.blockedActions > 0) return proto.action.ActionStatusCode.BLOCKED;
-    else if (status.completedActions == status.totalActions) return proto.action.ActionStatusCode.COMPLETED;
-    else if (status.runningActions > 0) return proto.action.ActionStatusCode.RUNNING;
-    else return proto.action.ActionStatusCode.PENDING;
+    if (status.totalActions == 0) {
+        return proto.action.ActionStatusCode.SKIPPED;
+    }
+    if (status.totalPerStatus[proto.action.ActionStatusCode.COMPLETED as number] == status.totalActions) {
+        return proto.action.ActionStatusCode.COMPLETED;
+    }
+    for (const s of [
+        proto.action.ActionStatusCode.FAILED,
+        proto.action.ActionStatusCode.BLOCKED,
+        proto.action.ActionStatusCode.SKIPPED,
+        proto.action.ActionStatusCode.RUNNING,
+    ]) {
+        if (status.totalPerStatus[s as number] > 0) {
+            return s;
+        }
+    }
+    return proto.action.ActionStatusCode.PENDING;
 }

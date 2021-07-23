@@ -100,21 +100,13 @@ function reduceImpl(state: CoreState, mutation: StateMutationVariant): CoreState
                 status.push({
                     status: proto.action.ActionStatusCode.PENDING,
                     totalActions: 0,
-                    runningActions: 0,
-                    blockedActions: 0,
-                    failedActions: 0,
-                    completedActions: 0,
+                    totalPerStatus: [0, 0, 0, 0, 0, 0],
                 });
             }
             mutation.data[1].forEach(a => {
                 if (a.originStatement != null) {
                     ++status[a.originStatement].totalActions;
-
-                    // Already done?
-                    // This may happen on import.
-                    if (a.statusCode == proto.action.ActionStatusCode.COMPLETED) {
-                        ++status[a.originStatement].completedActions;
-                    }
+                    ++status[a.originStatement].totalPerStatus[a.statusCode as number];
                 }
             });
             for (const s of status) {
