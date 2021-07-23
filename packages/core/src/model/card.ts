@@ -54,7 +54,6 @@ export interface CardDataSource {
     readonly aggregates: AggregatedFieldDef[] | null;
     readonly orderBy: SortField[] | null;
     readonly m5Config: M5Config | null;
-    readonly rowCount: number | null;
     readonly sampleSize: number;
 }
 

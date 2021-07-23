@@ -9,25 +9,100 @@ import { ActionContext } from './action_context';
 export abstract class VizActionLogic extends ProgramActionLogic {
     /// The viz spec
     _card: proto.analyzer.Card | null = null;
+    /// The renderer
+    _renderer: model.CardRendererType = model.CardRendererType.BUILTIN_DUMP;
     /// The viz composer
-    _vegaComposer: VegaComposer | null = null;
+    _vega: VegaComposer | null = null;
+    /// The table (if needed)
+    _table: model.Table | null = null;
+    /// The promise to get the row count (if needed)
+    _rowCount: Promise<arrow.Column> | null = null;
 
     constructor(action_id: model.ActionHandle, action: proto.action.ProgramAction, statement: model.Statement) {
         super(action_id, action, statement);
     }
 
-    /// Read context info
-    public configureVizComposer(context: ActionContext): void {
-        // Get the table info
-        const programInstance = context.plan.programInstance;
+    public configure(context: ActionContext): void {
+        // Select the renderer
+        const instance = context.plan.programInstance;
         const target = this._card.vizTarget();
-        const table = context.platform._databaseManager.resolveTableName(target);
-        if (!table) {
-            throw new error.ActionLogicError(`target table ${target} does not exist`, programInstance);
+        this.selectRenderer(context, instance);
+
+        const requireTable = (table: model.Table | null) => {
+            if (table) return table;
+            throw new error.ActionLogicError(
+                `VEGA renderer requires ${target} to be a SQL Table or SQL View`,
+                instance,
+            );
+        };
+
+        // Prepare the renderers
+        switch (this._renderer) {
+            case model.CardRendererType.BUILTIN_VEGA: {
+                // Make sure a table with that name exists
+                this._table = requireTable(context.platform._databaseManager.resolveTableName(target));
+                // Configure the vega composer
+                this.configureVegaComposer(context, this._table);
+                break;
+            }
+            case model.CardRendererType.BUILTIN_TABLE: {
+                // Make sure a table with that name exists
+                this._table = requireTable(context.platform._databaseManager.resolveTableName(target));
+                // Request the row count
+                this._rowCount = context.platform.database.requestTableStatistics(
+                    target,
+                    model.TableStatisticsType.COUNT_STAR,
+                );
+                break;
+            }
+            case model.CardRendererType.BUILTIN_DUMP:
+                // XXX Make sure a blob with that name exists
+                break;
         }
+    }
+
+    public selectRenderer(context: ActionContext, programInstance: model.ProgramInstance): void {
+        let renderer: model.CardRendererType | null = null;
+        const tmp = new proto.analyzer.VizComponent();
+        for (let i = 0; i < this._card.vizComponentsLength(); ++i) {
+            const c = this._card.vizComponents(i, tmp)!;
+            let require: model.CardRendererType;
+            switch (c.type()) {
+                case proto.syntax.VizComponentType.AREA:
+                case proto.syntax.VizComponentType.AXIS:
+                case proto.syntax.VizComponentType.BAR:
+                case proto.syntax.VizComponentType.BOX:
+                case proto.syntax.VizComponentType.CANDLESTICK:
+                case proto.syntax.VizComponentType.ERROR_BAR:
+                case proto.syntax.VizComponentType.LINE:
+                case proto.syntax.VizComponentType.PIE:
+                case proto.syntax.VizComponentType.SCATTER:
+                case proto.syntax.VizComponentType.VEGA:
+                    require = model.CardRendererType.BUILTIN_VEGA;
+                    break;
+                case proto.syntax.VizComponentType.DUMP:
+                    require = model.CardRendererType.BUILTIN_DUMP;
+                    break;
+                case proto.syntax.VizComponentType.TABLE:
+                    require = model.CardRendererType.BUILTIN_TABLE;
+                    break;
+            }
+            if (renderer != null && renderer != require) {
+                throw new error.ActionLogicError(
+                    `incompatible viz renderers: assumed ${require}, no require ${require}`,
+                    programInstance,
+                );
+            }
+            renderer = require;
+        }
+        this._renderer = renderer;
+    }
+
+    /// Read context info
+    public configureVegaComposer(context: ActionContext, table: model.Table): void {
         // Build the composer
         const stats = context.platform._databaseManager.resolveTableStatistics(table.nameQualified)!;
-        this._vegaComposer = new VegaComposer(stats);
+        this._vega = new VegaComposer(stats);
 
         // Read the component specs and add them to the composer
         for (let i = 0; i < this._card.vizComponentsLength(); ++i) {
@@ -39,18 +114,15 @@ export abstract class VizActionLogic extends ProgramActionLogic {
             }
             const optionsJSON = c.options() || '';
             const options = JSON.parse(optionsJSON);
-            this._vegaComposer.addComponent(type, mods, options)!;
+            this._vega.addComponent(type, mods, options)!;
         }
 
         // Combine all the components
-        this._vegaComposer.combineComponents();
+        this._vega.combineComponents();
     }
 }
 
 export class CreateVizActionLogic extends VizActionLogic {
-    /// The promise to get the row count
-    _rowCountPromise: Promise<arrow.Column> | null = null;
-
     constructor(action_id: model.ActionHandle, action: proto.action.ProgramAction, statement: model.Statement) {
         super(action_id, action, statement);
     }
@@ -61,7 +133,7 @@ export class CreateVizActionLogic extends VizActionLogic {
         // Get viz spec
         this._card = programInstance.cards.get(this.origin.statementId) || null;
         if (!this._card) {
-            throw new error.ActionLogicError('card spec does not exist', programInstance);
+            throw new error.ActionLogicError('card proto does not exist', programInstance);
         }
         // Get position
         const posReader = this._card!.cardPosition()!;
@@ -92,31 +164,46 @@ export class CreateVizActionLogic extends VizActionLogic {
     }
 
     public willExecute(context: ActionContext): void {
-        this.configureVizComposer(context);
-        this._rowCountPromise = context.platform.database.requestTableStatistics(
-            this._card.vizTarget(),
-            model.TableStatisticsType.COUNT_STAR,
-        );
+        this.configure(context);
     }
 
     public async execute(context: ActionContext): Promise<void> {
-        // Make sure the row count is available in the vizzes
-        await context.platform.database.evaluateTableStatistics(this._card.vizTarget());
-        await this._rowCountPromise!;
-
         // Get viz info
         const oid = this.buffer.objectId();
         const state = context.platform.store.getState();
+        const target = this._card.vizTarget();
         let card = model.resolveCardById(state.core.planState, oid);
 
-        // Create new viz object
-        const now = new Date();
-        const spec = await this._vegaComposer!.compile();
-        card = {
-            ...card,
-            ...spec,
-            timeUpdated: now,
-        };
+        // Create
+        switch (this._renderer) {
+            case model.CardRendererType.BUILTIN_TABLE: {
+                await context.platform.database.evaluateTableStatistics(target);
+                await this._rowCount!;
+                card = {
+                    ...card,
+                    cardRenderer: model.CardRendererType.BUILTIN_TABLE,
+                    dataSource: {
+                        dataResolver: null,
+                        targetQualified: this._table.nameQualified,
+                        filters: null,
+                        aggregates: null,
+                        orderBy: null,
+                        m5Config: null,
+                        sampleSize: null,
+                    },
+                    timeUpdated: new Date(),
+                };
+                break;
+            }
+            case model.CardRendererType.BUILTIN_VEGA:
+                await context.platform.database.evaluateTableStatistics(target);
+                card = {
+                    ...card,
+                    ...(await this._vega!.compile()),
+                    timeUpdated: new Date(),
+                };
+                break;
+        }
 
         model.mutate(context.platform.store.dispatch, {
             type: model.StateMutationType.INSERT_PLAN_OBJECTS,
@@ -125,83 +212,9 @@ export class CreateVizActionLogic extends VizActionLogic {
     }
 }
 
-export class UpdateVizActionLogic extends VizActionLogic {
-    /// The promise to get the row count
-    _rowCountPromise: Promise<arrow.Column> | null = null;
-
+export class UpdateVizActionLogic extends CreateVizActionLogic {
     constructor(action_id: model.ActionHandle, action: proto.action.ProgramAction, statement: model.Statement) {
         super(action_id, action, statement);
-    }
-
-    public prepare(context: ActionContext, planObjects: model.PlanObject[]): void {
-        const programInstance = context.plan.programInstance;
-        const state = context.platform.store.getState();
-        const objectID = this.buffer.objectId();
-        const cardObject = model.resolveCardById(state.core.planState, objectID);
-        if (!cardObject) {
-            throw new error.ActionLogicError('card object does not exist', context.plan.programInstance);
-        }
-
-        this._card = programInstance.cards.get(this.origin.statementId) || null;
-        if (!this._card) {
-            throw new error.ActionLogicError('card spec does not exist', context.plan.programInstance);
-        }
-
-        const posReader = this._card!.cardPosition()!;
-        const pos: model.CardPosition = {
-            row: posReader.row(),
-            column: posReader.column(),
-            width: posReader.width(),
-            height: posReader.height(),
-        };
-        const now = new Date();
-        const next: model.Card = {
-            ...cardObject,
-            timeUpdated: now,
-            cardRenderer: null,
-            statementID: this.origin.statementId,
-            position: pos,
-            title: this._card!.cardTitle() || null,
-            vegaLiteSpec: null,
-            vegaSpec: null,
-            dataSource: null,
-        };
-        planObjects.push(next);
-    }
-
-    public willExecute(context: ActionContext): void {
-        this.configureVizComposer(context);
-        this._rowCountPromise = context.platform.database.requestTableStatistics(
-            this._card.vizTarget(),
-            model.TableStatisticsType.COUNT_STAR,
-        );
-    }
-
-    public async execute(context: ActionContext): Promise<void> {
-        // Make sure the row count is available in the vizzes
-        await context.platform.database.evaluateTableStatistics(this._card.vizTarget());
-        await this._rowCountPromise!;
-
-        // Get viz info
-        const oid = this.buffer.objectId();
-        const state = context.platform.store.getState();
-        let card = model.resolveCardById(state.core.planState, oid);
-        if (!card) {
-            throw new Error('missing initial card object');
-        }
-
-        // Create new viz object
-        const now = new Date();
-        const spec = await this._vegaComposer!.compile();
-        card = {
-            ...card,
-            ...spec,
-            timeUpdated: now,
-        };
-        model.mutate(context.platform.store.dispatch, {
-            type: model.StateMutationType.INSERT_PLAN_OBJECTS,
-            data: [card],
-        });
     }
 }
 
