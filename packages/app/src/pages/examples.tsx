@@ -136,6 +136,7 @@ class Examples extends React.Component<Props, State> {
                     <AnimateSharedLayout type="crossfade">
                         {this.renderCollection(collections, 'Demos')}
                         {this.renderCollection(collections, 'Fetch')}
+                        {this.renderCollection(collections, 'Transform')}
                         {this.renderCollection(collections, 'Load')}
                         {this.renderCollection(collections, 'SQL')}
                         {this.renderCollection(collections, 'Visualize')}
