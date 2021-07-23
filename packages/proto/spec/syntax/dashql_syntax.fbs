@@ -36,6 +36,7 @@ enum VizComponentType: uint8 {
     BAR,
     BOX,
     CANDLESTICK,
+    DUMP,
     ERROR_BAR,
     LINE,
     PIE,

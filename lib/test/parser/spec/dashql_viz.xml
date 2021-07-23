@@ -116,6 +116,78 @@
             <dependencies />
         </expected>
     </test>
+    <test name="dashql_viz_dump_1">
+        <input>
+            VIZ foo USING DUMP;
+        </input>
+        <expected>
+            <statements>
+                <statement type="VIZUALIZE">
+                    <node type="OBJECT_DASHQL_VIZ" loc="13..31" text="VIZ foo USING DUMP">
+                        <node key="DASHQL_VIZ_COMPONENTS">
+                            <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="27..31" text="DUMP">
+                                <node key="DASHQL_VIZ_COMPONENT_TYPE" value="DUMP" />
+                            </node>
+                        </node>
+                        <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLE_REF" loc="17..20" text="foo">
+                            <node key="SQL_TABLE_INHERIT" value="true" />
+                            <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="17..20" text="foo">
+                                <node key="SQL_QUALIFIED_NAME_RELATION" loc="17..20" text="foo" />
+                            </node>
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="32..33" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="dashql_viz_dump_2">
+        <input>
+            VIZ foo USING DUMP (
+                position = (row = 8, column = 0, width = 6, height = 5)
+            );
+        </input>
+        <expected>
+            <statements>
+                <statement type="VIZUALIZE">
+                    <node type="OBJECT_DASHQL_VIZ" loc="13..119" text="VIZ foo US..         )">
+                        <node key="DASHQL_VIZ_COMPONENTS">
+                            <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="27..119" text="DUMP (&#10;   ..         )">
+                                <node key="DASHQL_VIZ_COMPONENT_TYPE" value="DUMP" />
+                                <node key="DASHQL_OPTION_POSITION" type="OBJECT_DASHQL_OPTION_LIST" loc="61..105" text="(row = 8, ..eight = 5)">
+                                    <node key="DASHQL_OPTION_ROW" loc="68..69" text="8" />
+                                    <node key="DASHQL_OPTION_COLUMN" loc="80..81" text="0" />
+                                    <node key="DASHQL_OPTION_WIDTH" loc="91..92" text="6" />
+                                    <node key="DASHQL_OPTION_HEIGHT" loc="103..104" text="5" />
+                                </node>
+                            </node>
+                        </node>
+                        <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLE_REF" loc="17..20" text="foo">
+                            <node key="SQL_TABLE_INHERIT" value="true" />
+                            <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="17..20" text="foo">
+                                <node key="SQL_QUALIFIED_NAME_RELATION" loc="17..20" text="foo" />
+                            </node>
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="33..34" text="&#10;" />
+                <line_break loc="105..106" text="&#10;" />
+                <line_break loc="120..121" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dependencies />
+        </expected>
+    </test>
     <test name="dashql_viz_vegalite_examples_bar">
         <input>
             VIZ foo USING VEGA (

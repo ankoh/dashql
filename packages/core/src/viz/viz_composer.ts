@@ -221,6 +221,12 @@ export class VizComposer {
                 this.generateVegaLayer(type, modifiers, options);
                 break;
             }
+            case proto.syntax.VizComponentType.DUMP: {
+                useRenderer(model.CardRendererType.BUILTIN_DUMP);
+                // XXX conflicts
+                this._renderer = model.CardRendererType.BUILTIN_TABLE;
+                break;
+            }
             case proto.syntax.VizComponentType.TABLE: {
                 useRenderer(model.CardRendererType.BUILTIN_TABLE);
                 // XXX conflicts

@@ -16,6 +16,18 @@
             );
         </input>
     </test>
+    <test name="dashql_viz_dump_1">
+        <input>
+            VIZ foo USING DUMP;
+        </input>
+    </test>
+    <test name="dashql_viz_dump_2">
+        <input>
+            VIZ foo USING DUMP (
+                position = (row = 8, column = 0, width = 6, height = 5)
+            );
+        </input>
+    </test>
     <test name="dashql_viz_vegalite_examples_bar">
         <input>
             VIZ foo USING VEGA (
