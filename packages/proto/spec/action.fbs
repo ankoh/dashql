@@ -68,6 +68,7 @@ enum ProgramActionType: uint8 {
     NONE = 0,
     INPUT,
     FETCH,
+    TRANSFORM,
     LOAD,
     CREATE_VIEW,
     CREATE_TABLE,

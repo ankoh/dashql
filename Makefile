@@ -135,6 +135,11 @@ core_watch:
 core_tests: core
 	yarn workspace @dashql/core test
 
+# Test the dashql_core javascript library
+.PHONY: core_tests_node
+core_tests_node: core
+	yarn workspace @dashql/core test:node
+
 # Build the benchmarks
 .PHONY: benchmarks
 benchmarks:
