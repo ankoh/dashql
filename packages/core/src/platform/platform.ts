@@ -5,6 +5,7 @@ import { DerivedReduxStore } from '../model';
 import { FileManager } from './file_manager';
 import { HTTPManager } from './http_manager';
 import { Logger } from './log_manager';
+import { JMESPathBindings } from '../jmespath';
 
 export class Platform {
     /// The global application state
@@ -21,8 +22,18 @@ export class Platform {
     _fileManager: FileManager;
     /// The HTTP manager
     _httpManager: HTTPManager;
+    /// The jmespath resolver
+    _jmespathResolver: () => Promise<JMESPathBindings>;
+    /// The jmespath bindings (if loaded)
+    _jmespath: JMESPathBindings | null;
 
-    constructor(store: DerivedReduxStore, logger: duckdb.Logger, db: duckdb.AsyncDuckDB, analyzer: AnalyzerBindings) {
+    constructor(
+        store: DerivedReduxStore,
+        logger: duckdb.Logger,
+        db: duckdb.AsyncDuckDB,
+        analyzer: AnalyzerBindings,
+        jmespath: () => Promise<JMESPathBindings>,
+    ) {
         this._store = store;
         this._logger = logger;
         this._duckdb = db;
@@ -30,6 +41,8 @@ export class Platform {
         this._databaseManager = new DatabaseManager(this._duckdb, this._store);
         this._fileManager = new FileManager(store);
         this._httpManager = new HTTPManager(store, logger);
+        this._jmespathResolver = jmespath;
+        this._jmespath = null;
     }
 
     public get store(): DerivedReduxStore {
@@ -47,6 +60,9 @@ export class Platform {
     public get http(): HTTPManager {
         return this._httpManager;
     }
+    public get jmespath(): JMESPathBindings | null {
+        return this._jmespath;
+    }
     public get logger(): Logger {
         return this._logger;
     }
@@ -54,5 +70,9 @@ export class Platform {
     public async init(): Promise<void> {
         await this._databaseManager.init();
         await this._httpManager.init();
+    }
+
+    public async initJMESPath(): Promise<void> {
+        this._jmespath = await this._jmespathResolver();
     }
 }

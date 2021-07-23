@@ -218,7 +218,7 @@ class Editor extends React.Component<Props, State> {
             language: 'dashql',
             value: this.props.script.text,
             links: false,
-            wordWrap: 'on',
+            wordWrap: 'off',
             glyphMargin: true,
             minimap: {
                 enabled: false,
