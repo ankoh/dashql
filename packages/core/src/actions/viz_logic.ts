@@ -28,26 +28,25 @@ export abstract class VizActionLogic extends ProgramActionLogic {
         const target = this._card.vizTarget();
         this.selectRenderer(context, instance);
 
-        const requireTable = (table: model.Table | null) => {
+        // Helper to check if a name refers to a table
+        const requireTable = (name: string) => {
+            const table = context.platform._databaseManager.resolveTableName(name);
             if (table) return table;
-            throw new error.ActionLogicError(
-                `VEGA renderer requires ${target} to be a SQL Table or SQL View`,
-                instance,
-            );
+            throw new error.ActionLogicError(`renderer requires ${name} to be a SQL Table or SQL View`, instance);
         };
 
         // Prepare the renderers
         switch (this._renderer) {
             case model.CardRendererType.BUILTIN_VEGA: {
                 // Make sure a table with that name exists
-                this._table = requireTable(context.platform._databaseManager.resolveTableName(target));
+                this._table = requireTable(target);
                 // Configure the vega composer
                 this.configureVegaComposer(context, this._table);
                 break;
             }
             case model.CardRendererType.BUILTIN_TABLE: {
                 // Make sure a table with that name exists
-                this._table = requireTable(context.platform._databaseManager.resolveTableName(target));
+                this._table = requireTable(target);
                 // Request the row count
                 this._rowCount = context.platform.database.requestTableStatistics(
                     target,
@@ -216,6 +215,8 @@ export class UpdateVizActionLogic extends CreateVizActionLogic {
     constructor(action_id: model.ActionHandle, action: proto.action.ProgramAction, statement: model.Statement) {
         super(action_id, action, statement);
     }
+
+    // XXX do not recompile vega spec every time
 }
 
 export class DropVizActionLogic extends SetupActionLogic {
