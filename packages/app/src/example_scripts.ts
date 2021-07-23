@@ -8,6 +8,7 @@ import example_load_csv from '../static/examples/load_csv.dashql';
 import example_load_parquet from '../static/examples/load_parquet.dashql';
 import example_fetch_http_dynamic from '../static/examples/fetch_http_dynamic.dashql';
 import example_fetch_http_static from '../static/examples/fetch_http_static.dashql';
+import example_transform_jmespath from '../static/examples/transform_jmespath.dashql';
 import example_sql_approxmedian from '../static/examples/sql_approxmedian.dashql';
 import example_sql_complexjoins from '../static/examples/sql_complexjoins.dashql';
 import example_sql_explicitgrouping from '../static/examples/sql_explicitgrouping.dashql';
@@ -42,6 +43,7 @@ import icon_package_down from '../static/svg/icons/package_down.svg';
 export enum ScriptFeatureTag {
     FETCH_HTTP,
     FETCH_ARCHIVE_ZIP,
+    TRANSFORM_JMESPATH,
     DATA_CSV,
     DATA_PARQUET,
     DYNAMIC_LOAD,
@@ -83,6 +85,16 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
             .set(ScriptFeatureTag.FETCH_HTTP)
             .set(ScriptFeatureTag.FETCH_ARCHIVE_ZIP),
         url: example_demo_unischema,
+        enabled: true,
+    },
+    {
+        key: 'transform_jmespath',
+        collection: 'Transform',
+        title: 'JMESPath',
+        description: 'JMESPath Expressions',
+        icon: icon_database_import,
+        features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_).set(ScriptFeatureTag.TRANSFORM_JMESPATH),
+        url: example_transform_jmespath,
         enabled: true,
     },
     {
