@@ -3,7 +3,7 @@ import * as core from '@dashql/core';
 import InputRenderer from './input_renderer';
 import TableRenderer from './table_renderer';
 import VegaRenderer from './vega_renderer';
-import StatusGrid from './status_grid';
+import CardStatus from './card_status';
 
 interface Props {
     card: core.model.Card;
@@ -13,7 +13,7 @@ interface Props {
 export class CardRenderer extends React.Component<Props> {
     public render(): React.ReactElement {
         if (this.props.card.cardRenderer == null) {
-            return <StatusGrid card={this.props.card} />;
+            return <CardStatus card={this.props.card} />;
         }
         switch (this.props.card.cardRenderer) {
             case core.model.CardRendererType.BUILTIN_INPUT_TEXT:
