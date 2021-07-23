@@ -2,16 +2,14 @@ import * as React from 'react';
 import * as core from '@dashql/core';
 import * as examples from '../example_scripts';
 import classNames from 'classnames';
-import Button from 'react-bootstrap/Button';
 import { withAppContext, IAppContext } from '../app_context';
 import { withRouter, RouteComponentProps } from 'react-router-dom';
 import { AppState, Dispatch } from '../model';
 import { connect } from 'react-redux';
-import { motion, AnimateSharedLayout, AnimatePresence } from 'framer-motion';
+import { motion, AnimateSharedLayout } from 'framer-motion';
 import { EXAMPLE_SCRIPTS, EXAMPLE_SCRIPT_MAP, ScriptFeatureTag, ExampleScriptMetadata } from '../example_scripts';
 
 import styles from './examples.module.css';
-import icon_close from '../../static/svg/icons/close.svg';
 
 function getFeatureTagLabel(tag: ScriptFeatureTag) {
     switch (tag) {
@@ -42,54 +40,26 @@ interface Props extends RouteComponentProps {
 
 interface State {
     filteredFeatures: core.utils.NativeBitmap;
-    focusedExample: string | null;
-    focusedProgram: core.model.Program | null;
 }
 
 class Examples extends React.Component<Props, State> {
-    _focusExample = this.focusExample.bind(this);
-    _viewExample = this.viewExample.bind(this);
-    _editExample = this.editExample.bind(this);
-    _clearFocus = this.clearFocus.bind(this);
+    _selectExample = this.selectExample.bind(this);
     _toggleFeature = this.toggleFeature.bind(this);
 
     constructor(props: Props) {
         super(props);
         this.state = {
             filteredFeatures: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_),
-            focusedExample: null,
-            focusedProgram: null,
         };
     }
 
-    async focusExample(elem: React.MouseEvent<HTMLDivElement>) {
+    async selectExample(elem: React.MouseEvent<HTMLDivElement>) {
         const key = (elem.currentTarget as any).dataset.key;
         const analyzer = this.props.appContext.platform!.analyzer;
         const script = await examples.getScript(EXAMPLE_SCRIPT_MAP.get(key)!);
         const program = analyzer.parseProgram(script.text);
-        this.setState({
-            ...this.state,
-            focusedExample: key,
-            focusedProgram: program,
-        });
-    }
-
-    viewExample() {
-        this.props.setProgram(this.state.focusedProgram!);
-        this.props.history.push('/viewer');
-    }
-
-    editExample() {
-        this.props.setProgram(this.state.focusedProgram!);
+        this.props.setProgram(program);
         this.props.history.push('/studio');
-    }
-
-    clearFocus() {
-        this.setState({
-            ...this.state,
-            focusedExample: null,
-            focusedProgram: null,
-        });
     }
 
     toggleFeature(elem: React.MouseEvent<HTMLDivElement>) {
@@ -118,37 +88,6 @@ class Examples extends React.Component<Props, State> {
         return <div className={styles.filter_grid}>{features}</div>;
     }
 
-    renderScriptDetail() {
-        if (!this.state.focusedExample) return <div />;
-        const script = EXAMPLE_SCRIPT_MAP.get(this.state.focusedExample!)!;
-        return (
-            <motion.div className={styles.script_detail} layoutId={script.key}>
-                <motion.div className={styles.script_detail_header}>
-                    <motion.div className={styles.example_icon}>
-                        <svg width="20" height="20">
-                            <use xlinkHref={`${script.icon}#sym`} />
-                        </svg>
-                    </motion.div>
-                    <motion.span className={styles.example_title}>{script.title}</motion.span>
-                    <Button size="sm" variant="light" className={styles.example_unfocus} onClick={this._clearFocus}>
-                        <svg width="20" height="20">
-                            <use xlinkHref={`${icon_close}#sym`} />
-                        </svg>
-                    </Button>
-                </motion.div>
-                <motion.span className={styles.example_description}>{script.description}</motion.span>
-                <motion.div className={styles.script_detail_actions}>
-                    <Button size="sm" onClick={this._viewExample}>
-                        View
-                    </Button>
-                    <Button size="sm" onClick={this._editExample}>
-                        Edit
-                    </Button>
-                </motion.div>
-            </motion.div>
-        );
-    }
-
     renderCollection(collections: Map<string, ExampleScriptMetadata[]>, name: string) {
         const scripts = collections.get(name);
         if (!scripts) return undefined;
@@ -156,27 +95,24 @@ class Examples extends React.Component<Props, State> {
             <div className={styles.collection}>
                 <div className={styles.collection_name}>{name}</div>
                 <div className={styles.collection_grid}>
-                    {scripts.map(
-                        script =>
-                            script.key != this.state.focusedExample && (
-                                <motion.div
-                                    className={classNames(styles.script_card, {
-                                        [styles.script_card_disabled]: !script.enabled,
-                                    })}
-                                    key={script.key}
-                                    layoutId={script.key}
-                                    data-key={script.key}
-                                    onClick={script.enabled ? this._focusExample : () => {}}
-                                >
-                                    <motion.div className={styles.example_icon}>
-                                        <svg width="20" height="20">
-                                            <use xlinkHref={`${script.icon}#sym`} />
-                                        </svg>
-                                    </motion.div>
-                                    <motion.span className={styles.example_title}>{script.title}</motion.span>
-                                </motion.div>
-                            ),
-                    )}
+                    {scripts.map(script => (
+                        <motion.div
+                            className={classNames(styles.script_card, {
+                                [styles.script_card_disabled]: !script.enabled,
+                            })}
+                            key={script.key}
+                            layoutId={script.key}
+                            data-key={script.key}
+                            onClick={script.enabled ? this._selectExample : () => {}}
+                        >
+                            <motion.div className={styles.example_icon}>
+                                <svg width="20" height="20">
+                                    <use xlinkHref={`${script.icon}#sym`} />
+                                </svg>
+                            </motion.div>
+                            <motion.span className={styles.example_title}>{script.title}</motion.span>
+                        </motion.div>
+                    ))}
                 </div>
             </div>
         );
@@ -206,7 +142,6 @@ class Examples extends React.Component<Props, State> {
                         {this.renderCollection(collections, 'Load')}
                         {this.renderCollection(collections, 'SQL')}
                         {this.renderCollection(collections, 'Visualize')}
-                        <AnimatePresence>{this.renderScriptDetail()}</AnimatePresence>
                     </AnimateSharedLayout>
                 </div>
             </div>
