@@ -37,7 +37,7 @@ export const DEFAULT_VEGA_LITE_MIXINS: VegaLiteTLLayerSpec = {
     layer: [],
 };
 
-export class VizComposer {
+export class VegaComposer {
     /// The platform
     _tableStatistics: platform.TableStatisticsResolver;
 
