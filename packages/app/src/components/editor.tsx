@@ -419,6 +419,7 @@ class Editor extends React.Component<Props, State> {
             if (stmtStatus) {
                 let glyphClass = styles.deco_glyph_status_none;
                 switch (stmtStatus.status) {
+                    case proto.action.ActionStatusCode.SKIPPED:
                     case proto.action.ActionStatusCode.BLOCKED:
                         glyphClass = styles.deco_glyph_status_blocked;
                         break;

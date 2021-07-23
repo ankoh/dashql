@@ -1,6 +1,5 @@
 // Copyright (c) 2020 The DashQL Authors
 
-import * as proto from '@dashql/proto';
 import Immutable from 'immutable';
 import { StatementStatus } from './program';
 import { Card } from './card';
@@ -48,37 +47,8 @@ export const updateStatus = (state: PlanState, updates: ActionUpdate[]): PlanSta
                 continue;
             }
             const origin = { ...status.get(action.originStatement)! };
-            switch (action.statusCode) {
-                case proto.action.ActionStatusCode.PENDING:
-                    break;
-                case proto.action.ActionStatusCode.BLOCKED:
-                    --origin.blockedActions;
-                    break;
-                case proto.action.ActionStatusCode.RUNNING:
-                    --origin.runningActions;
-                    break;
-                case proto.action.ActionStatusCode.COMPLETED:
-                    --origin.completedActions;
-                    break;
-                case proto.action.ActionStatusCode.FAILED:
-                    --origin.failedActions;
-            }
-            switch (update.statusCode) {
-                case proto.action.ActionStatusCode.PENDING:
-                    break;
-                case proto.action.ActionStatusCode.BLOCKED:
-                    ++origin.blockedActions;
-                    break;
-                case proto.action.ActionStatusCode.RUNNING:
-                    ++origin.runningActions;
-                    break;
-                case proto.action.ActionStatusCode.COMPLETED:
-                    ++origin.completedActions;
-                    break;
-                case proto.action.ActionStatusCode.FAILED:
-                    ++origin.failedActions;
-                    break;
-            }
+            --origin.totalPerStatus[action.statusCode as number];
+            ++origin.totalPerStatus[update.statusCode as number];
             origin.status = deriveStatementStatusCode(origin);
             status.set(action.originStatement, origin);
         }

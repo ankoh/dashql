@@ -8,13 +8,6 @@
     <g fill="none" fill-rule="evenodd">
         <rect x="-3.5" y="-3" width="3" height="6" fill="#505050"></rect>
         <rect x="0.5" y="-3" width="3" height="6" fill="#505050"></rect>
-        <circle cx="0" cy="0" r="7" opacity=".5" stroke="#505050"></circle>
-        <circle
-            cx="0"
-            cy="0"
-            r="7"
-            stroke="#505050"
-            stroke-dasharray="12, 88"
-        />
+        <circle cx="0" cy="0" r="7" stroke="#505050"></circle>
     </g>
 </svg>
