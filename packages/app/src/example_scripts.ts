@@ -305,10 +305,10 @@ export async function getScript(example: ExampleScriptMetadata): Promise<core.mo
     };
 }
 
-export async function loadScript(example: ExampleScriptMetadata, store: model.AppReduxStore): Promise<void> {
+export async function loadScript(example: ExampleScriptMetadata, dispatch: model.Dispatch): Promise<void> {
     try {
         const script = await getScript(example);
-        model.mutate(store.dispatch, {
+        model.mutate(dispatch, {
             type: core.model.StateMutationType.SET_SCRIPT,
             data: script,
         });

@@ -35,7 +35,7 @@ function getFeatureTagLabel(tag: ScriptFeatureTag) {
 interface Props extends RouteComponentProps {
     appContext: IAppContext;
     className?: string;
-    setProgram: (program: core.model.Program) => void;
+    loadScript: (example: ExampleScriptMetadata) => Promise<void>;
 }
 
 interface State {
@@ -55,10 +55,7 @@ class Examples extends React.Component<Props, State> {
 
     async selectExample(elem: React.MouseEvent<HTMLDivElement>) {
         const key = (elem.currentTarget as any).dataset.key;
-        const analyzer = this.props.appContext.platform!.analyzer;
-        const script = await examples.getScript(EXAMPLE_SCRIPT_MAP.get(key)!);
-        const program = analyzer.parseProgram(script.text);
-        this.props.setProgram(program);
+        await this.props.loadScript(EXAMPLE_SCRIPT_MAP.get(key)!);
         this.props.history.push('/studio');
     }
 
@@ -152,11 +149,8 @@ class Examples extends React.Component<Props, State> {
 const mapStateToProps = (state: AppState) => ({});
 
 const mapDispatchToProps = (dispatch: Dispatch) => ({
-    setProgram: (program: core.model.Program) => {
-        dispatch({
-            type: core.model.StateMutationType.SET_PROGRAM,
-            data: program,
-        });
+    loadScript: async (example: ExampleScriptMetadata): Promise<void> => {
+        await examples.loadScript(example, dispatch);
     },
 });
 
