@@ -11,7 +11,7 @@ import ProgramActionType = proto.action.ProgramActionType;
 export function testActionScheduler(
     db: () => duckdb.AsyncDuckDB,
     az: () => analyzer.AnalyzerBindings,
-    _jp: () => jmespath.JMESPathBindings,
+    jp: () => jmespath.JMESPathBindings,
 ): void {
     let httpMock: HTTPMock | null = null;
 
@@ -54,7 +54,7 @@ export function testActionScheduler(
         describe('program actions', () => {
             it('single table', async () => {
                 const store = model.createStore();
-                const plat = new platform.Platform(store, db().logger, db(), az());
+                const plat = new platform.Platform(store, db().logger, db(), az(), async () => jp());
                 await plat.init();
 
                 const program = az().parseProgram('CREATE TABLE a AS SELECT 1');
@@ -83,7 +83,7 @@ export function testActionScheduler(
 
             it('tree', async () => {
                 const store = model.createStore();
-                const plat = new platform.Platform(store, db().logger, db(), az());
+                const plat = new platform.Platform(store, db().logger, db(), az(), async () => jp());
                 await plat.init();
 
                 const program = az().parseProgram(`
@@ -138,7 +138,7 @@ export function testActionScheduler(
 
             it('independent', async () => {
                 const store = model.createStore();
-                const plat = new platform.Platform(store, db().logger, db(), az());
+                const plat = new platform.Platform(store, db().logger, db(), az(), async () => jp());
                 await plat.init();
 
                 const program = az().parseProgram(`

@@ -1,0 +1,2 @@
+-- Fetch Covid data as JSON
+FETCH covid_json FROM 'https://static.dashql.com/data/test/covid_i3_overview_2021_07_23.json';

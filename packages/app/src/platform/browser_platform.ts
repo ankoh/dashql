@@ -13,8 +13,9 @@ export class BrowserPlatform extends core.platform.Platform {
         logger: duckdb.Logger,
         db: duckdb.AsyncDuckDB,
         analyzer: core.analyzer.AnalyzerBindings,
+        jmespath: () => Promise<core.jmespath.JMESPathBindings>,
     ) {
-        super(store, logger, db, analyzer);
+        super(store, logger, db, analyzer, jmespath);
         this._store = store;
         this._scheduler = new core.ActionGraphScheduler(this);
         this._scriptPipeline = new core.ScriptPipeline(this, this._scheduler);

@@ -2,9 +2,10 @@ import * as duckdb from '@dashql/duckdb/dist/duckdb.module.js';
 import * as model from './model';
 import * as examples from './example_scripts';
 import * as platform from './platform';
-import { Analyzer } from '@dashql/core/dist/dashql-core-browser.module.js';
+import { Analyzer, JMESPath } from '@dashql/core/dist/dashql-core-browser.module.js';
 import { IAppContext } from './app_context';
 
+import jmespath_wasm from '@dashql/core/dist/dashql-jmespath.wasm';
 import analyzer_wasm from '@dashql/core/dist/dashql-analyzer.wasm';
 import duckdb_wasm from '@dashql/duckdb/dist/duckdb.wasm';
 import duckdb_wasm_next from '@dashql/duckdb/dist/duckdb-next.wasm';
@@ -114,7 +115,13 @@ export async function launchApp(ctx: IAppContext): Promise<void> {
     const db = init[0];
     const analyzer = init[1];
 
-    ctx.platform = new platform.BrowserPlatform(ctx.store, ctx.logger, db, analyzer);
+    const jmespathBuilder = async () => {
+        const jp = new JMESPath(jmespath_wasm);
+        await jp.init();
+        return jp;
+    };
+
+    ctx.platform = new platform.BrowserPlatform(ctx.store, ctx.logger, db, analyzer, jmespathBuilder);
     await ctx.platform.init();
 
     const example = examples.EXAMPLE_SCRIPT_MAP.get('demo_helloworld')!;
