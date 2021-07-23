@@ -48,7 +48,7 @@ import { testActionScheduler } from './action_scheduler.test';
 import { testActionGraph } from './action_graph.test';
 import { testHTTPManager } from './http_manager.test';
 import { testNativeMinHeap } from './native_min_heap.test';
-import { testVizComposer } from './viz_composer.test';
+import { testVegaComposer } from './vega_composer.test';
 import { testJMESPath } from './jmespath.test';
 import { testProgramEditor } from './program_editor.test';
 import { testSyntaxSchema } from './syntax_schema.test';
@@ -63,7 +63,7 @@ testActionScheduler(
 testActionGraph(() => az!);
 testHTTPManager();
 testNativeMinHeap();
-testVizComposer(() => az!);
+testVegaComposer(() => az!);
 testJMESPath(() => jp!);
 testProgramEditor(() => az!);
 testSyntaxSchema(() => az!);

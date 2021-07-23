@@ -191,7 +191,7 @@ class FakeStatisticsResolver {
     }
 }
 
-export function testVizComposer(az: () => analyzer.AnalyzerBindings): void {
+export function testVegaComposer(az: () => analyzer.AnalyzerBindings): void {
     beforeEach(async () => {
         az().reset();
     });
@@ -212,7 +212,7 @@ export function testVizComposer(az: () => analyzer.AnalyzerBindings): void {
 
                 // Prepare the composer
                 const stats = new FakeStatisticsResolver(test);
-                const composer = new viz.VizComposer(stats);
+                const composer = new viz.VegaComposer(stats);
 
                 // Read the parsed viz spec and pass all components to the composer
                 const spec = instance!.cards.get(0)!;

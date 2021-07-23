@@ -2,7 +2,7 @@ import * as proto from '@dashql/proto';
 import * as model from '../model';
 import * as error from '../error';
 import * as arrow from 'apache-arrow';
-import { VizComposer } from '../viz/viz_composer';
+import { VegaComposer } from '../viz/vega_composer';
 import { ProgramActionLogic, SetupActionLogic } from './action_logic';
 import { ActionContext } from './action_context';
 
@@ -10,7 +10,7 @@ export abstract class VizActionLogic extends ProgramActionLogic {
     /// The viz spec
     _card: proto.analyzer.Card | null = null;
     /// The viz composer
-    _vizComposer: VizComposer | null = null;
+    _vegaComposer: VegaComposer | null = null;
 
     constructor(action_id: model.ActionHandle, action: proto.action.ProgramAction, statement: model.Statement) {
         super(action_id, action, statement);
@@ -27,7 +27,7 @@ export abstract class VizActionLogic extends ProgramActionLogic {
         }
         // Build the composer
         const stats = context.platform._databaseManager.resolveTableStatistics(table.nameQualified)!;
-        this._vizComposer = new VizComposer(stats);
+        this._vegaComposer = new VegaComposer(stats);
 
         // Read the component specs and add them to the composer
         for (let i = 0; i < this._card.vizComponentsLength(); ++i) {
@@ -39,11 +39,11 @@ export abstract class VizActionLogic extends ProgramActionLogic {
             }
             const optionsJSON = c.options() || '';
             const options = JSON.parse(optionsJSON);
-            this._vizComposer.addComponent(type, mods, options)!;
+            this._vegaComposer.addComponent(type, mods, options)!;
         }
 
         // Combine all the components
-        this._vizComposer.combineComponents();
+        this._vegaComposer.combineComponents();
     }
 }
 
@@ -111,7 +111,7 @@ export class CreateVizActionLogic extends VizActionLogic {
 
         // Create new viz object
         const now = new Date();
-        const spec = await this._vizComposer!.compile();
+        const spec = await this._vegaComposer!.compile();
         card = {
             ...card,
             ...spec,
@@ -192,7 +192,7 @@ export class UpdateVizActionLogic extends VizActionLogic {
 
         // Create new viz object
         const now = new Date();
-        const spec = await this._vizComposer!.compile();
+        const spec = await this._vegaComposer!.compile();
         card = {
             ...card,
             ...spec,
