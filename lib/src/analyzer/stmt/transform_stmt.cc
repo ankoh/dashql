@@ -34,7 +34,7 @@ std::unique_ptr<TransformStatement> TransformStatement::ReadFrom(ProgramInstance
     auto& program = instance.program();
     auto& stmt = program.statements[stmt_id];
     static const auto schema = sxm::Element()
-        .MatchObject(sx::NodeType::OBJECT_DASHQL_LOAD)
+        .MatchObject(sx::NodeType::OBJECT_DASHQL_TRANSFORM)
         .MatchChildren({
             sxm::Attribute(sx::AttributeKey::DASHQL_DATA_SOURCE, SX_DATA_SOURCE),
             sxm::Attribute(sx::AttributeKey::DASHQL_TRANSFORM_METHOD, SX_METHOD)
