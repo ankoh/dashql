@@ -13,6 +13,7 @@
 #include "dashql/analyzer/input_value.h"
 #include "dashql/analyzer/program_editor.h"
 #include "dashql/analyzer/stmt/input_stmt.h"
+#include "dashql/analyzer/stmt/transform_stmt.h"
 #include "dashql/analyzer/stmt/viz_stmt.h"
 #include "dashql/analyzer/syntax_matcher.h"
 #include "dashql/common/substring_buffer.h"
@@ -251,6 +252,17 @@ arrow::Status Analyzer::AnalyzeFetchStatements(ProgramInstance& instance) {
         auto input = FetchStatement::ReadFrom(instance, stmt_id);
         if (!input) continue;
         instance.fetch_statements_.push_back(std::move(input));
+    }
+    return arrow::Status::OK();
+}
+
+/// Analyze the transform statements
+arrow::Status Analyzer::AnalyzeTransformStatements(ProgramInstance& instance) {
+    auto& program = instance.program();
+    for (size_t stmt_id = 0; stmt_id < program.statements.size(); ++stmt_id) {
+        auto input = TransformStatement::ReadFrom(instance, stmt_id);
+        if (!input) continue;
+        instance.transform_statements_.push_back(std::move(input));
     }
     return arrow::Status::OK();
 }

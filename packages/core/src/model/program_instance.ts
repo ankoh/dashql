@@ -16,6 +16,8 @@ export class ProgramInstance {
     /// The fetch statements
     public readonly fetchStatements: Map<number, proto.analyzer.FetchStatement>;
     /// The fetch statements
+    public readonly transformStatements: Map<number, proto.analyzer.TransformStatement>;
+    /// The fetch statements
     public readonly loadStatements: Map<number, proto.analyzer.LoadStatement>;
     /// The cards
     public readonly cards: Map<number, proto.analyzer.Card>;

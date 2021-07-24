@@ -57,6 +57,15 @@ table FetchStatement {
     options: string;
 }
 
+/// A transform statement
+table TransformStatement {
+    statement_id: uint32;
+    data_source: string;
+    data_source_index: string;
+    method: syntax.TransformMethodType;
+    options: string;
+}
+
 /// An load statement
 table LoadStatement {
     statement_id: uint32;
@@ -114,6 +123,7 @@ table ProgramAnnotations {
     evaluated_nodes: [NodeValue];
     statements_liveness: [bool];
     statements_fetch: [FetchStatement];
+    statements_transform: [TransformStatement];
     statements_load: [LoadStatement];
     cards: [Card];
 }
