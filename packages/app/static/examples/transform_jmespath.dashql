@@ -1,6 +1,6 @@
 FETCH covid_raw FROM 'https://static.dashql.com/data/test/covid_i3_overview_2021_07_23.json';
 
-TRANSFORM covid_history FROM covid_raw USING JMESPATH (
+TRANSFORM covid_raw INTO covid_history USING JMESPATH (
     expression = '.history'
 );
 
