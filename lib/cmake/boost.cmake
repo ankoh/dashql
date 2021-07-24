@@ -46,7 +46,11 @@ else()
     file(REMOVE ${BOOST_INCLUDE_DIR})
     file(MAKE_DIRECTORY ${BOOST_INCLUDE_DIR})
     find_package(Boost ${BOOST_VERSION_REQUIRED} REQUIRED)
-    file(COPY ${Boost_INCLUDE_DIR}/boost DESTINATION ${BOOST_INCLUDE_DIR}/boost)
-    message(STATUS "BOOST_INCLUDE_DIR=${BOOST_INCLUDE_DIR}")
+    message(STATUS "System Boost  INCLUDE_DIR=${Boost_INCLUDE_DIR}")
+    message(STATUS "Install Boost INCLUDE_DIR=${BOOST_INCLUDE_DIR}")
+    execute_process(COMMAND cmake -E create_symlink
+        "${Boost_INCLUDE_DIR}/boost"
+        "${BOOST_INCLUDE_DIR}/boost"
+    )
   endif ()
 endif()
