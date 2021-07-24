@@ -33,11 +33,16 @@ export class ProgramInstance {
         this.annotations = annotations;
         this.createdAt = new Date();
         this.fetchStatements = new Map();
+        this.transformStatements = new Map();
         this.loadStatements = new Map();
         this.cards = new Map();
         for (let i = 0; i < annotations.statementsFetchLength(); ++i) {
             const s = annotations.statementsFetch(i)!;
             this.fetchStatements.set(s.statementId(), s);
+        }
+        for (let i = 0; i < annotations.statementsTransformLength(); ++i) {
+            const s = annotations.statementsTransform(i)!;
+            this.transformStatements.set(s.statementId(), s);
         }
         for (let i = 0; i < annotations.statementsLoadLength(); ++i) {
             const s = annotations.statementsLoad(i)!;

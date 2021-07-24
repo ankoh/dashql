@@ -321,6 +321,7 @@ arrow::Status Analyzer::InstantiateProgram(std::vector<InputValue> inputs) {
     // Analyze the statements
     ARROW_RETURN_NOT_OK(AnalyzeInputStatements(*next_instance));
     ARROW_RETURN_NOT_OK(AnalyzeFetchStatements(*next_instance));
+    ARROW_RETURN_NOT_OK(AnalyzeTransformStatements(*next_instance));
     ARROW_RETURN_NOT_OK(AnalyzeLoadStatements(*next_instance));
     ARROW_RETURN_NOT_OK(AnalyzeVizStatements(*next_instance));
     // Analyze liveness
