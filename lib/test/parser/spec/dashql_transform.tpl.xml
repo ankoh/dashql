@@ -1,10 +1,10 @@
 <tests>
     <test name="dashql_transform_1">
-        <input>TRANSFORM table2 FROM table1 USING JMESPATH</input>
+        <input>TRANSFORM table1 INTO table2 USING JMESPATH</input>
     </test>
     <test name="dashql_transform_2">
         <input>
-            TRANSFORM table2 FROM table1 USING JMESPATH (
+            TRANSFORM table1 INTO table2 USING JMESPATH (
                 expression = 'blabla'
             );
         </input>
@@ -13,7 +13,7 @@
         <input>
             FETCH covid_raw FROM 'https://static.dashql.com/data/test/covid_i3_overview_2021_07_23.json';
 
-            TRANSFORM covid_history FROM covid_raw USING JMESPATH (
+            TRANSFORM covid_raw INTO covid_history USING JMESPATH (
                 expression = '.history'
             );
 

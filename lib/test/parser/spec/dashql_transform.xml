@@ -1,15 +1,15 @@
 <tests>
     <test name="dashql_transform_1">
-        <input>TRANSFORM table2 FROM table1 USING JMESPATH</input>
+        <input>TRANSFORM table1 INTO table2 USING JMESPATH</input>
         <expected>
             <statements>
                 <statement type="TRANSFORM" name="main.table2">
                     <node type="OBJECT_DASHQL_TRANSFORM" loc="0..43" text="TRANSFORM ..G JMESPATH">
-                        <node key="DASHQL_DATA_SOURCE" type="OBJECT_SQL_QUALIFIED_NAME" loc="22..28" text="table1">
-                            <node key="SQL_QUALIFIED_NAME_RELATION" loc="22..28" text="table1" />
+                        <node key="DASHQL_DATA_SOURCE" type="OBJECT_SQL_QUALIFIED_NAME" loc="10..16" text="table1">
+                            <node key="SQL_QUALIFIED_NAME_RELATION" loc="10..16" text="table1" />
                         </node>
-                        <node key="DASHQL_STATEMENT_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="10..16" text="table2">
-                            <node key="SQL_QUALIFIED_NAME_RELATION" loc="10..16" text="table2" />
+                        <node key="DASHQL_STATEMENT_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="22..28" text="table2">
+                            <node key="SQL_QUALIFIED_NAME_RELATION" loc="22..28" text="table2" />
                         </node>
                         <node key="DASHQL_TRANSFORM_METHOD" value="JMESPATH" />
                     </node>
@@ -23,7 +23,7 @@
     </test>
     <test name="dashql_transform_2">
         <input>
-            TRANSFORM table2 FROM table1 USING JMESPATH (
+            TRANSFORM table1 INTO table2 USING JMESPATH (
                 expression = 'blabla'
             );
         </input>
@@ -31,11 +31,11 @@
             <statements>
                 <statement type="TRANSFORM" name="main.table2">
                     <node type="OBJECT_DASHQL_TRANSFORM" loc="13..110" text="TRANSFORM ..         )">
-                        <node key="DASHQL_DATA_SOURCE" type="OBJECT_SQL_QUALIFIED_NAME" loc="35..41" text="table1">
-                            <node key="SQL_QUALIFIED_NAME_RELATION" loc="35..41" text="table1" />
+                        <node key="DASHQL_DATA_SOURCE" type="OBJECT_SQL_QUALIFIED_NAME" loc="23..29" text="table1">
+                            <node key="SQL_QUALIFIED_NAME_RELATION" loc="23..29" text="table1" />
                         </node>
-                        <node key="DASHQL_STATEMENT_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="23..29" text="table2">
-                            <node key="SQL_QUALIFIED_NAME_RELATION" loc="23..29" text="table2" />
+                        <node key="DASHQL_STATEMENT_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="35..41" text="table2">
+                            <node key="SQL_QUALIFIED_NAME_RELATION" loc="35..41" text="table2" />
                         </node>
                         <node key="DASHQL_TRANSFORM_METHOD" value="JMESPATH" />
                         <node key="DASHQL_OPTION_EXPRESSION" loc="88..96" text="'blabla'" />
@@ -57,7 +57,7 @@
         <input>
             FETCH covid_raw FROM 'https://static.dashql.com/data/test/covid_i3_overview_2021_07_23.json';
 
-            TRANSFORM covid_history FROM covid_raw USING JMESPATH (
+            TRANSFORM covid_raw INTO covid_history USING JMESPATH (
                 expression = '.history'
             );
 
@@ -75,11 +75,11 @@
                 </statement>
                 <statement type="TRANSFORM" name="main.covid_history">
                     <node type="OBJECT_DASHQL_TRANSFORM" loc="120..229" text="TRANSFORM ..         )">
-                        <node key="DASHQL_DATA_SOURCE" type="OBJECT_SQL_QUALIFIED_NAME" loc="149..158" text="covid_raw">
-                            <node key="SQL_QUALIFIED_NAME_RELATION" loc="149..158" text="covid_raw" />
+                        <node key="DASHQL_DATA_SOURCE" type="OBJECT_SQL_QUALIFIED_NAME" loc="130..139" text="covid_raw">
+                            <node key="SQL_QUALIFIED_NAME_RELATION" loc="130..139" text="covid_raw" />
                         </node>
-                        <node key="DASHQL_STATEMENT_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="130..143" text="covid_history">
-                            <node key="SQL_QUALIFIED_NAME_RELATION" loc="130..143" text="covid_history" />
+                        <node key="DASHQL_STATEMENT_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="145..158" text="covid_history">
+                            <node key="SQL_QUALIFIED_NAME_RELATION" loc="145..158" text="covid_history" />
                         </node>
                         <node key="DASHQL_TRANSFORM_METHOD" value="JMESPATH" />
                         <node key="DASHQL_OPTION_EXPRESSION" loc="205..215" text="'.history'" />
@@ -114,7 +114,7 @@
             </line_breaks>
             <comments />
             <dependencies>
-                <dependency type="TABLE_REF" source="0" target="1" loc="149..158" text="covid_raw" />
+                <dependency type="TABLE_REF" source="0" target="1" loc="130..139" text="covid_raw" />
                 <dependency type="TABLE_REF" source="1" target="2" loc="248..261" text="covid_history" />
             </dependencies>
         </expected>

@@ -56,6 +56,8 @@ export class FetchActionLogic extends ProgramActionLogic {
         const db = context.platform.database;
         const name = this.buffer.nameQualified() || '';
         const blobBuffer = await blob.arrayBuffer();
+
+        // XXX Do not register the data as file as buffer
         await db.use(async c => await c.instance.registerFileBuffer(name, new Uint8Array(blobBuffer)));
 
         // Create plan object
