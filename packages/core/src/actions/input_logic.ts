@@ -56,6 +56,7 @@ export class InputActionLogic extends ProgramActionLogic {
             vegaLiteSpec: null,
             vegaSpec: null,
             dataSource: null,
+            visible: true,
         };
         planObjects.push(info);
     }

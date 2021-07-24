@@ -22,6 +22,7 @@ export abstract class VizActionLogic extends ProgramActionLogic {
         super(action_id, action, statement);
     }
 
+    /// Configure the visualization
     public configure(context: ActionContext): void {
         // Select the renderer
         const instance = context.plan.programInstance;
@@ -60,6 +61,7 @@ export abstract class VizActionLogic extends ProgramActionLogic {
         }
     }
 
+    /// Select the renderer
     public selectRenderer(context: ActionContext, programInstance: model.ProgramInstance): void {
         let renderer: model.CardRendererType | null = null;
         const tmp = new proto.analyzer.VizComponent();
@@ -126,6 +128,7 @@ export class CreateVizActionLogic extends VizActionLogic {
         super(action_id, action, statement);
     }
 
+    /// Prepare the viz creation
     public prepare(context: ActionContext, planObjects: model.PlanObject[]): void {
         // Get the program instance
         const programInstance = context.plan.programInstance;
@@ -158,6 +161,7 @@ export class CreateVizActionLogic extends VizActionLogic {
             vegaLiteSpec: null,
             vegaSpec: null,
             dataSource: null,
+            visible: true,
         };
         planObjects.push(info);
     }

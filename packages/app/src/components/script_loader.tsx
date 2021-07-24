@@ -135,7 +135,7 @@ const mapStateToProps = (state: model.AppState) => ({
 const mapDispatchToProps = (dispatch: model.Dispatch) => ({
     updateScript: (script: core.model.Script) =>
         model.mutate(dispatch, {
-            type: core.model.StateMutationType.SET_SCRIPT,
+            type: core.model.StateMutationType.UPDATE_SCRIPT,
             data: script,
         }),
 });

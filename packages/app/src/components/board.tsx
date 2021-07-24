@@ -87,6 +87,7 @@ class BoardLayout extends React.Component<Props> {
     render() {
         const els: React.ReactElement[] = [];
         for (const v of this.props.cards.values()) {
+            if (!v.visible) continue;
             els.push(
                 <div key={v.objectId.toString()}>
                     <CardRenderer card={v} editable={this.props.editable} />

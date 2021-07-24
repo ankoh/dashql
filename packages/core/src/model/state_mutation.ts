@@ -4,7 +4,7 @@ import * as plan_state from './plan_state';
 import { LogEntryVariant } from './log';
 import { Plan } from './plan';
 import { Action, ActionUpdate, ActionSchedulerStatus } from './action';
-import { PlanObjectID, PlanObject } from './plan_object';
+import { PlanObjectID, PlanObject, PlanObjectType } from './plan_object';
 import { Script } from './script';
 import { Table } from './table';
 import { Program, StatementStatus, deriveStatementStatusCode } from './program';
@@ -26,7 +26,8 @@ export enum StateMutationType {
     SCHEDULER_READY = 'SCHEDULER_READY',
     SCHEDULE_PLAN = 'SCHEDULE_PLAN',
     RESET_PLAN = 'RESET_PLAN',
-    SET_SCRIPT = 'SET_SCRIPT',
+    REPLACE_SCRIPT = 'REPLACE_SCRIPT',
+    UPDATE_SCRIPT = 'UPDATE_SCRIPT',
     SET_PROGRAM = 'SET_PROGRAM',
     SET_PROGRAM_INSTANCE = 'SET_PROGRAM_INSTANCE',
     REWRITE_PROGRAM = 'REWRITE_PROGRAM',
@@ -47,7 +48,8 @@ export type StateMutationVariant =
     | StateMutation<StateMutationType.SCHEDULER_READY, null>
     | StateMutation<StateMutationType.SCHEDULE_PLAN, [Plan, Action[]]>
     | StateMutation<StateMutationType.RESET_PLAN, null>
-    | StateMutation<StateMutationType.SET_SCRIPT, Script>
+    | StateMutation<StateMutationType.UPDATE_SCRIPT, Script>
+    | StateMutation<StateMutationType.REPLACE_SCRIPT, Script>
     | StateMutation<StateMutationType.SET_PROGRAM, Program>
     | StateMutation<StateMutationType.SET_PROGRAM_INSTANCE, ProgramInstance>
     | StateMutation<StateMutationType.REWRITE_PROGRAM, ProgramInstance>
@@ -126,10 +128,27 @@ function reduceImpl(state: CoreState, mutation: StateMutationVariant): CoreState
                 schedulerStatus: ActionSchedulerStatus.Idle,
             };
 
-        case StateMutationType.SET_SCRIPT:
+        case StateMutationType.UPDATE_SCRIPT:
             return {
                 ...state,
                 script: mutation.data,
+            };
+
+        case StateMutationType.REPLACE_SCRIPT:
+            return {
+                ...state,
+                script: mutation.data,
+                planState: {
+                    ...state.planState,
+                    objects: state.planState.objects.map((o, k) =>
+                        o.objectType == PlanObjectType.CARD
+                            ? {
+                                  ...o,
+                                  visible: false,
+                              }
+                            : o,
+                    ),
+                },
             };
 
         case StateMutationType.SET_PROGRAM:
