@@ -107,16 +107,16 @@ class CardStatus extends React.Component<CardStatusProps, CardStatusState> {
         let color = 'transparent';
         switch (n.actionStatus!) {
             case proto.action.ActionStatusCode.BLOCKED:
-                color = 'rgb(213, 172, 59)';
+                color = 'rgb(219, 171, 10)';
                 break;
             case proto.action.ActionStatusCode.COMPLETED:
-                color = 'rgb(30, 30, 30)';
+                color = 'rgb(83, 164, 81)';
                 break;
             case proto.action.ActionStatusCode.FAILED:
                 color = 'rgb(187, 54, 56)';
                 break;
             case proto.action.ActionStatusCode.RUNNING:
-                color = 'rgb(83, 164, 81)';
+                color = 'rgb(219, 171, 10)';
                 break;
             case proto.action.ActionStatusCode.PENDING:
                 color = 'rgb(160, 160, 160)';
