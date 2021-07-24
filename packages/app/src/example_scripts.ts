@@ -322,7 +322,7 @@ export async function loadScript(example: ExampleScriptMetadata, dispatch: model
     try {
         const script = await getScript(example);
         model.mutate(dispatch, {
-            type: core.model.StateMutationType.SET_SCRIPT,
+            type: core.model.StateMutationType.REPLACE_SCRIPT,
             data: script,
         });
     } catch (e) {
