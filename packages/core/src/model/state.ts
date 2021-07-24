@@ -1,7 +1,6 @@
 import * as Immutable from 'immutable';
 import { LogEntryVariant } from './log';
 import { Plan } from './plan';
-import { CachedFileData, CachedHTTPData } from './cache';
 import { ActionSchedulerStatus } from './action';
 import { PlanState, createPlanState } from './plan_state';
 import { Program, InputValue } from './program';
@@ -31,11 +30,6 @@ export class CoreState {
     /// The database tables
     public planState: PlanState;
 
-    /// The cached files
-    public cachedFileData: Immutable.Map<string, CachedFileData>;
-    /// The cached http data
-    public cachedHTTPData: Immutable.Map<string, CachedHTTPData>;
-
     /// Constructor
     constructor() {
         this.logEntries = Immutable.List<LogEntryVariant>();
@@ -53,8 +47,6 @@ export class CoreState {
         this.schedulerStatus = ActionSchedulerStatus.Idle;
         this.plan = null;
         this.planState = createPlanState();
-        this.cachedFileData = Immutable.Map<string, CachedFileData>();
-        this.cachedHTTPData = Immutable.Map<string, CachedHTTPData>();
     }
 }
 

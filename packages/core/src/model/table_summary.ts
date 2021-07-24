@@ -11,7 +11,7 @@ export enum TableType {
 }
 
 /// A database table
-export interface Table extends PlanObject {
+export interface TableSummary extends PlanObject {
     /// The table type
     readonly tableType: TableType;
     /// The column names

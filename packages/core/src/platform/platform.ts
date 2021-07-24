@@ -2,7 +2,6 @@ import * as duckdb from '@dashql/duckdb/dist/duckdb.module.js';
 import { AnalyzerBindings } from '../analyzer';
 import { DatabaseManager } from './database_manager';
 import { DerivedReduxStore } from '../model';
-import { FileManager } from './file_manager';
 import { HTTPManager } from './http_manager';
 import { Logger } from './log_manager';
 import { JMESPathBindings } from '../jmespath';
@@ -18,8 +17,6 @@ export class Platform {
     _analyzer: AnalyzerBindings;
     /// The database manager
     _databaseManager: DatabaseManager;
-    /// The file manager
-    _fileManager: FileManager;
     /// The HTTP manager
     _httpManager: HTTPManager;
     /// The jmespath resolver
@@ -39,7 +36,6 @@ export class Platform {
         this._duckdb = db;
         this._analyzer = analyzer;
         this._databaseManager = new DatabaseManager(this._duckdb, this._store);
-        this._fileManager = new FileManager(store);
         this._httpManager = new HTTPManager(store, logger);
         this._jmespathResolver = jmespath;
         this._jmespath = null;
@@ -53,9 +49,6 @@ export class Platform {
     }
     public get database(): DatabaseManager {
         return this._databaseManager;
-    }
-    public get file(): FileManager {
-        return this._fileManager;
     }
     public get http(): HTTPManager {
         return this._httpManager;

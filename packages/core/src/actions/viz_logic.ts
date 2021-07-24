@@ -14,7 +14,7 @@ export abstract class VizActionLogic extends ProgramActionLogic {
     /// The viz composer
     _vega: VegaComposer | null = null;
     /// The table (if needed)
-    _table: model.Table | null = null;
+    _table: model.TableSummary | null = null;
     /// The promise to get the row count (if needed)
     _rowCount: Promise<arrow.Column> | null = null;
 
@@ -100,7 +100,7 @@ export abstract class VizActionLogic extends ProgramActionLogic {
     }
 
     /// Read context info
-    public configureVegaComposer(context: ActionContext, table: model.Table): void {
+    public configureVegaComposer(context: ActionContext, table: model.TableSummary): void {
         // Build the composer
         const stats = context.platform._databaseManager.resolveTableStatistics(table.nameQualified)!;
         this._vega = new VegaComposer(stats);
@@ -146,9 +146,9 @@ export class CreateVizActionLogic extends VizActionLogic {
             height: posReader.height(),
         };
         const now = new Date();
-        const info: model.Card = {
+        const info: model.CardSpecification = {
             objectId: this.buffer.objectId(),
-            objectType: model.PlanObjectType.CARD,
+            objectType: model.PlanObjectType.CARD_SPECIFICATION,
             timeCreated: now,
             timeUpdated: now,
             nameQualified: this.buffer.nameQualified() || '',

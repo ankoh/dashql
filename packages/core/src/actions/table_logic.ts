@@ -8,7 +8,10 @@ import { ActionContext } from './action_context';
 import { TableStatisticsType } from '../model';
 import { Column } from 'apache-arrow';
 
-export async function collectTableInfo(conn: duckdb.AsyncConnection, info: model.Table): Promise<model.Table> {
+export async function collectTableInfo(
+    conn: duckdb.AsyncConnection,
+    info: model.TableSummary,
+): Promise<model.TableSummary> {
     const columnNames: string[] = [];
     const columnNameMapping: Map<string, number> = new Map();
     const columnTypes: arrow.DataType[] = [];
@@ -86,7 +89,7 @@ export class CreateTableActionLogic extends ProgramActionLogic {
             const now = new Date();
             return await collectTableInfo(c, {
                 objectId: this.buffer.objectId(),
-                objectType: model.PlanObjectType.TABLE,
+                objectType: model.PlanObjectType.TABLE_SUMMARY,
                 timeCreated: now,
                 timeUpdated: now,
                 nameQualified: this.buffer.nameQualified() || '',
@@ -138,7 +141,7 @@ export class DropTableActionLogic extends SetupActionLogic {
         const db = context.platform.database;
         const store = context.platform.store;
         const state = store.getState();
-        const table = state.core.planState.objects.get(this.buffer.objectId()) as model.Table;
+        const table = state.core.planState.objects.get(this.buffer.objectId()) as model.TableSummary;
         if (table === undefined) return;
         const dropTarget = table.tableType == model.TableType.VIEW ? 'VIEW' : 'TABLE';
         await db.use(async (c: duckdb.AsyncConnection) => {

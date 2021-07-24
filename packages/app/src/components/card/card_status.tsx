@@ -12,7 +12,7 @@ interface CardStatusProps {
     program: core.model.Program | null;
     programStatus: Immutable.List<core.model.StatementStatus>;
     className?: string;
-    card: core.model.Card;
+    card: core.model.CardSpecification;
 }
 
 interface NodeData {

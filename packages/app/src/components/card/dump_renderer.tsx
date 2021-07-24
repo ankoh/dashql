@@ -8,7 +8,7 @@ import { CardFrame } from './card_frame';
 interface Props {
     appContext: IAppContext;
     planState: core.model.PlanState;
-    card: core.model.Card;
+    card: core.model.CardSpecification;
     editable?: boolean;
 }
 

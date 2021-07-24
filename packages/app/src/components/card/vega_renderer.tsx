@@ -11,12 +11,12 @@ import { CardFrame } from './card_frame';
 interface Props {
     appContext: IAppContext;
     planState: core.model.PlanState;
-    card: core.model.Card;
+    card: core.model.CardSpecification;
     editable?: boolean;
 }
 
 export class VegaRenderer extends React.Component<Props> {
-    protected renderContent(table: core.model.Table, width: number, height: number): React.ReactElement {
+    protected renderContent(table: core.model.TableSummary, width: number, height: number): React.ReactElement {
         const vega = (result: arrow.Table, w: number, h: number) => (
             <Vega
                 style={{

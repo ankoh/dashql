@@ -2,9 +2,10 @@
 
 /// A plan object type
 export enum PlanObjectType {
-    TABLE,
-    CARD,
-    BLOB,
+    TABLE_SUMMARY,
+    CARD_SPECIFICATION,
+    UNIQUE_BLOB,
+    DUCKDB_BUFFER,
 }
 /// A plan object id
 export type PlanObjectID = number;

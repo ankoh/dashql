@@ -41,9 +41,9 @@ export class InputActionLogic extends ProgramActionLogic {
             height: posReader.height(),
         };
         const now = new Date();
-        const info: model.Card = {
+        const info: model.CardSpecification = {
             objectId: this.buffer.objectId(),
-            objectType: model.PlanObjectType.CARD,
+            objectType: model.PlanObjectType.CARD_SPECIFICATION,
             timeCreated: now,
             timeUpdated: now,
             nameQualified: stmt.nameQualified,

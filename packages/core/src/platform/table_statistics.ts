@@ -36,7 +36,7 @@ export class TableStatisticsRequest {
 /// A resolver for table statistics
 export interface TableStatisticsResolver {
     /// Resolve the table info
-    resolveTableInfo(): model.Table | null;
+    resolveTableInfo(): model.TableSummary | null;
     /// Request table statistics
     request(type: model.TableStatisticsType, columnId: number): Promise<arrow.Column>;
     /// Evaluate table statistics
@@ -65,12 +65,12 @@ export class TableStatistics implements TableStatisticsResolver {
     }
 
     /// Resolve the table info
-    public resolveTableInfo(): model.Table | null {
+    public resolveTableInfo(): model.TableSummary | null {
         return this._databaseManager.resolveTableName(this._tableName);
     }
 
     /// Build the associative aggregate query
-    protected buildAssociativeAggregateQuery(tableInfo: model.Table): string {
+    protected buildAssociativeAggregateQuery(tableInfo: model.TableSummary): string {
         let out = 'SELECT ';
         let value_id = 0;
         for (const req of this._associativeAggregates) {
@@ -96,7 +96,7 @@ export class TableStatistics implements TableStatisticsResolver {
     }
 
     /// Build a standalone query
-    protected buildStandaloneQuery(_tableInfo: model.Table, _req: TableStatisticsRequest): string {
+    protected buildStandaloneQuery(_tableInfo: model.TableSummary, _req: TableStatisticsRequest): string {
         console.assert('There are no standalone table statistics at the moment');
         return '';
     }

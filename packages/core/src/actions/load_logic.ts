@@ -32,7 +32,7 @@ export class LoadActionLogic extends ProgramActionLogic {
         const blobName = xtr.dataSource();
         const blobID = planState.blobsByName.get(blobName);
         if (blobID === undefined) throw new Error(`missing blob id for blob '${blobID}'`);
-        const blob = planState.objects.get(blobID) as model.BlobRef;
+        const blob = planState.objects.get(blobID) as model.UniqueBlob;
         if (!blob) throw new Error(`blob '${blobName}' is not registered in duckdb`);
 
         // Get the input file
@@ -42,11 +42,11 @@ export class LoadActionLogic extends ProgramActionLogic {
                 case proto.analyzer.ArchiveMode.ZIP: {
                     const outPath = this.buffer.nameQualified() || '';
                     await db.registerFileBuffer(outPath, new Uint8Array());
-                    await db.extractZipPath(blob.filePath, outPath, xtr.dataSourceIndex());
+                    await db.extractZipPath(blob.nameQualified, outPath, xtr.dataSourceIndex());
                     return outPath;
                 }
                 case proto.analyzer.ArchiveMode.NONE:
-                    return blob.filePath;
+                    return blob.nameQualified;
             }
         };
 
@@ -70,7 +70,7 @@ export class LoadActionLogic extends ProgramActionLogic {
             const now = new Date();
             return await collectTableInfo(c, {
                 objectId: this.buffer.objectId(),
-                objectType: model.PlanObjectType.TABLE,
+                objectType: model.PlanObjectType.TABLE_SUMMARY,
                 timeCreated: now,
                 timeUpdated: now,
                 nameQualified: this.buffer.nameQualified() || '',

@@ -7,7 +7,7 @@ import TableRenderer from './table_renderer';
 import VegaRenderer from './vega_renderer';
 
 interface Props {
-    card: core.model.Card;
+    card: core.model.CardSpecification;
     editable?: boolean;
 }
 

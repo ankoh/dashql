@@ -80,7 +80,7 @@ export class DatabaseManager {
     }
 
     /// Resolve a table name
-    public resolveTableName(qualifiedName: string): model.Table | null {
+    public resolveTableName(qualifiedName: string): model.TableSummary | null {
         const state = this._store.getState().core.planState;
         return model.resolveTableByName(state, qualifiedName);
     }

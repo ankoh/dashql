@@ -10,7 +10,7 @@ import styles from './input_renderer.module.css';
 interface Props {
     appContext: IAppContext;
     planState: core.model.PlanState;
-    card: core.model.Card;
+    card: core.model.CardSpecification;
     editable?: boolean;
 }
 

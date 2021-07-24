@@ -73,7 +73,7 @@ export class VegaComposer {
     }
 
     /// Get the table
-    protected get table(): model.Table {
+    protected get table(): model.TableSummary {
         return this._tableStatistics.resolveTableInfo()!;
     }
 
@@ -456,7 +456,9 @@ export class VegaComposer {
 
     /// Build the actual viz object that is passed to the renderer.
     /// The function is async since we may have to wait for database requests.
-    public async compile(): Promise<Pick<model.Card, 'cardRenderer' | 'dataSource' | 'vegaLiteSpec' | 'vegaSpec'>> {
+    public async compile(): Promise<
+        Pick<model.CardSpecification, 'cardRenderer' | 'dataSource' | 'vegaLiteSpec' | 'vegaSpec'>
+    > {
         const table = this.table;
         const vegaSpec = await this.compileVegaSpec(this._normalizedVegaLiteSpec!);
         return {
