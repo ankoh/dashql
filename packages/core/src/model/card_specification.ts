@@ -20,7 +20,7 @@ export enum CardRendererType {
     BUILTIN_VEGA,
 }
 
-export interface Card extends PlanObject {
+export interface CardSpecification extends PlanObject {
     readonly cardType: proto.analyzer.CardType | null;
     readonly cardRenderer: CardRendererType;
     readonly statementID: number;

@@ -6,11 +6,10 @@ import { Plan } from './plan';
 import { Action, ActionUpdate, ActionSchedulerStatus } from './action';
 import { PlanObjectID, PlanObject, PlanObjectType } from './plan_object';
 import { Script } from './script';
-import { Table } from './table';
+import { TableSummary } from './table_summary';
 import { Program, StatementStatus, deriveStatementStatusCode } from './program';
 import { ProgramInstance } from './program_instance';
 import { CoreState } from './state';
-import { CachedFileData, CachedHTTPData } from './cache';
 
 const MAX_LOG_SIZE = 100;
 
@@ -56,9 +55,7 @@ export type StateMutationVariant =
     | StateMutation<StateMutationType.UPDATE_PLAN_ACTIONS, ActionUpdate[]>
     | StateMutation<StateMutationType.INSERT_PLAN_OBJECTS, PlanObject[]>
     | StateMutation<StateMutationType.DELETE_PLAN_OBJECTS, PlanObjectID[]>
-    | StateMutation<StateMutationType.UPDATE_TABLE_INFO, [string, Partial<Table>]>
-    | StateMutation<StateMutationType.CACHE_FILE_DATA, [CachedFileData, string | null]>
-    | StateMutation<StateMutationType.CACHE_HTTP_DATA, [CachedHTTPData, string | null]>
+    | StateMutation<StateMutationType.UPDATE_TABLE_INFO, [string, Partial<TableSummary>]>
     | StateMutation<StateMutationType.HIT_CACHED_FILE_DATA, string>
     | StateMutation<StateMutationType.HIT_CACHED_HTTP_DATA, string>;
 
@@ -141,7 +138,7 @@ function reduceImpl(state: CoreState, mutation: StateMutationVariant): CoreState
                 planState: {
                     ...state.planState,
                     objects: state.planState.objects.map((o, k) =>
-                        o.objectType == PlanObjectType.CARD
+                        o.objectType == PlanObjectType.CARD_SPECIFICATION
                             ? {
                                   ...o,
                                   visible: false,
@@ -200,62 +197,6 @@ function reduceImpl(state: CoreState, mutation: StateMutationVariant): CoreState
             return {
                 ...state,
                 planState: plan_state.updateTable(state.planState, mutation.data[0], mutation.data[1]),
-            };
-
-        case StateMutationType.CACHE_FILE_DATA:
-            return {
-                ...state,
-                cachedFileData: state.cachedFileData.withMutations(c => {
-                    const [next, evict] = mutation.data;
-                    if (evict != null) {
-                        const v = c.get(evict);
-                        c.delete(evict);
-                        if (v !== undefined) {
-                            URL.revokeObjectURL(v.objectURL);
-                        }
-                    }
-                    c.set(next.key, next);
-                }),
-            };
-
-        case StateMutationType.CACHE_HTTP_DATA:
-            return {
-                ...state,
-                cachedHTTPData: state.cachedHTTPData.withMutations(c => {
-                    const [next, evict] = mutation.data;
-                    if (evict != null) {
-                        c.delete(evict);
-                    }
-                    c.set(next.key, next);
-                }),
-            };
-
-        case StateMutationType.HIT_CACHED_FILE_DATA:
-            return {
-                ...state,
-                cachedFileData: state.cachedFileData.withMutations(c => {
-                    const e = c.get(mutation.data);
-                    if (!e) return;
-                    c.set(e.key, {
-                        ...e,
-                        timeLastAccess: new Date(),
-                        accessCount: ++e.accessCount,
-                    });
-                }),
-            };
-
-        case StateMutationType.HIT_CACHED_HTTP_DATA:
-            return {
-                ...state,
-                cachedHTTPData: state.cachedHTTPData.withMutations(c => {
-                    const e = c.get(mutation.data);
-                    if (!e) return;
-                    c.set(e.key, {
-                        ...e,
-                        timeLastAccess: new Date(),
-                        accessCount: ++e.accessCount,
-                    });
-                }),
             };
 
         default:

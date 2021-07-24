@@ -1,6 +1,6 @@
 import * as proto from '@dashql/proto';
 import * as model from '../model';
-import { ActionHandle, Statement, PlanObject, BlobRef } from '../model';
+import { ActionHandle, Statement, PlanObject, UniqueBlob } from '../model';
 import { ProgramActionLogic } from './action_logic';
 import { ActionContext } from './action_context';
 
@@ -54,21 +54,20 @@ export class FetchActionLogic extends ProgramActionLogic {
 
         // Register as blob in database
         const db = context.platform.database;
-        const name = this.buffer.nameQualified() || '';
-        const blobBuffer = await blob.arrayBuffer();
+        const name = this.buffer.nameQualified();
 
-        // XXX Do not register the data as file as buffer
-        await db.use(async c => await c.instance.registerFileBuffer(name, new Uint8Array(blobBuffer)));
+        // Register the file handle
+        await db.use(async c => await c.instance.registerFileHandle(name, blob));
 
         // Create plan object
         const now = new Date();
-        const blobRef: BlobRef = {
+        const blobRef: UniqueBlob = {
             objectId: this.buffer.objectId(),
-            objectType: model.PlanObjectType.BLOB,
+            objectType: model.PlanObjectType.UNIQUE_BLOB,
             timeCreated: now,
             timeUpdated: now,
-            nameQualified: this.buffer.nameQualified() || '',
-            filePath: name,
+            nameQualified: name || '',
+            blob,
             archiveMode: fetch.archive(),
         };
 

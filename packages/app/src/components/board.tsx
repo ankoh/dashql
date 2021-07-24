@@ -13,7 +13,7 @@ type Props = {
     appContext: IAppContext;
     className?: string;
     width: number;
-    cards: Map<number, core.model.Card>;
+    cards: Map<number, core.model.CardSpecification>;
     rewriteProgram: (instance: core.model.ProgramInstance) => void;
     editable?: boolean;
     columnCount: number;
@@ -65,7 +65,7 @@ class BoardLayout extends React.Component<Props> {
         }
     }
 
-    getLayout(data: Map<number, core.model.Card>): LayoutElement[] {
+    getLayout(data: Map<number, core.model.CardSpecification>): LayoutElement[] {
         const els: LayoutElement[] = [];
         for (const d of data.values()) {
             els.push({

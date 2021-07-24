@@ -4,9 +4,9 @@ import * as proto from '@dashql/proto';
 import { PlanObject } from './plan_object';
 
 /// A blob path
-export interface BlobRef extends PlanObject {
-    /// The file path
-    readonly filePath: string;
+export interface UniqueBlob extends PlanObject {
+    /// The blob
+    readonly blob: Blob;
     /// The archive mode (if any)
     readonly archiveMode: proto.analyzer.ArchiveMode;
 }
