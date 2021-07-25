@@ -13,20 +13,30 @@ namespace nl = nlohmann;
 
 namespace dashql {
 
-arrow::Result<std::string> JMESPath::Evaluate(const char* expression, const char* input) {
+arrow::Result<std::string> JMESPath::Evaluate(const char* expression, std::string_view input) {
     try {
         jp::Expression jpe{expression};
         auto doc = nl::json::parse(input);
         auto result = jp::search(jpe, doc);
         return result.dump();
-    } catch (nl::json::type_error& e) {
+    } catch (const nl::json::type_error& e) {
         return arrow::Status::Invalid(e.what());
-    } catch (nl::json::parse_error& e) {
+    } catch (const nl::json::parse_error& e) {
         return arrow::Status::Invalid(e.what());
-    } catch (jp::Exception& e) {
+    } catch (const jp::SyntaxError& e) {
+        auto loc = boost::get_error_info<jp::InfoSyntaxErrorLocation>(e);
+        std::stringstream out;
+        if (const auto* expr = boost::get_error_info<jmespath::InfoSearchExpression>(e)) {
+            out << "Failed parsing expression: " << *expr << std::endl;
+        }
+        if (const long* location = boost::get_error_info<jmespath::InfoSyntaxErrorLocation>(e)) {
+            out << "Syntax error at position: " << *location << std::endl;
+        }
+        return arrow::Status::Invalid(out.str());
+    } catch (const jp::Exception& e) {
         return arrow::Status::Invalid(e.what());
-    } catch (std::exception& e) {
-        return arrow::Status::Invalid(e.what());
+    } catch (...) {
+        return arrow::Status::Invalid("unknown exception");
     }
 }
 

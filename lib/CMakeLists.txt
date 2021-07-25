@@ -369,7 +369,8 @@ if(EMSCRIPTEN)
             _malloc, \
             _free, \
             _jmespath_clear_response, \
-            _jmespath_evaluate \
+            _jmespath_evaluate, \
+            _jmespath_evaluate_utf8 \
         ]' \
         -s EXPORTED_RUNTIME_METHODS='[\"ccall\"]' \
         ${ADDITIONAL_LINKER_FLAGS} \
