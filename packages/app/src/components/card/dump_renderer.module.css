@@ -5,16 +5,21 @@
 }
 
 .hex_rows {
+    font-family: 'RobotoMono';
 }
 
 .hex_row {
     display: grid;
-    grid-template-columns: 60px auto 40px;
+    grid-template-columns: 64px auto 40px;
 }
 .hex_row_linenum {
     grid-column: 1;
+    border-right: 1px solid var(--border_color);
+    text-align: right;
+    padding-right: 8px;
 }
 .hex_row_bytes {
+    padding-left: 4px;
 }
 
 .hex_row_byte_block {

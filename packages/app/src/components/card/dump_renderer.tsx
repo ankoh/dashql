@@ -114,7 +114,7 @@ export class DumpRenderer extends React.Component<Props, State> {
                                     height={height}
                                     overscanRowCount={OVERSCAN_ROW_COUNT}
                                     rowCount={this.state.rowCount}
-                                    rowHeight={32}
+                                    rowHeight={24}
                                     rowRenderer={this._renderRow}
                                     noRowsRenderer={this._renderEmptyBuffer}
                                     measureAllRows={true}
