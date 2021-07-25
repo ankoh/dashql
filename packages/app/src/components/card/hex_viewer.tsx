@@ -1,11 +1,12 @@
 import * as React from 'react';
 import * as core from '@dashql/core';
+import className from 'classnames';
 import { List, ListRowProps } from 'react-virtualized';
 
 import styles from './hex_viewer.module.css';
 
 const OVERSCAN_ROW_COUNT = 5;
-const PIXEL_PER_CHAR = 8;
+const PIXEL_PER_CHAR = 7.7;
 
 interface Props {
     planState: core.model.PlanState;
@@ -23,7 +24,6 @@ interface State {
     rowOffsetZeroPadding: string;
     rowColumnTemplate: string;
     rowBytes: number;
-    rowBytesPerBlock: number;
     rowCount: number;
 }
 
@@ -41,7 +41,6 @@ export class HexViewer extends React.Component<Props, State> {
             rowOffsetZeroPadding: '',
             rowColumnTemplate: '',
             rowBytes: 0,
-            rowBytesPerBlock: 0,
             rowCount: 0,
         };
     }
@@ -55,46 +54,32 @@ export class HexViewer extends React.Component<Props, State> {
         const rowOffsetZeroPadding = '0'.repeat(rowOffsetChars);
 
         // Compute number of hex blocks
-        const computeHexWidth = (blocks: number, bytes_per_block: number) => {
-            const padding = 8 + (blocks - 1) * PIXEL_PER_CHAR * 0.5;
-            return padding + blocks * bytes_per_block * 3 * PIXEL_PER_CHAR;
-        };
-        const computeAsciiWidth = (blocks: number, bytes_per_block: number) =>
-            16 + blocks * bytes_per_block * PIXEL_PER_CHAR;
-        const computeTotalWidth = (blocks: number, bytes_per_block: number) => {
-            const h = computeHexWidth(blocks, bytes_per_block);
-            const a = computeAsciiWidth(blocks, bytes_per_block);
-            return [h, a];
-        };
+        const computeHexWidth = (bytes: number) =>
+            (Math.max(bytes / 4, 1) - 1) * PIXEL_PER_CHAR + 8 + bytes * 3 * PIXEL_PER_CHAR;
+        const computeAsciiWidth = (bytes: number) => 16 + bytes * PIXEL_PER_CHAR;
+        const computeTotalWidth = (blocks: number) => [computeHexWidth(blocks), computeAsciiWidth(blocks)];
 
         // Compute the total widths
-        let selectedBytesPerBlock = 4;
-        let [selectedBlocks, selectedHexWidth, selectedAsciiWidth] = computeTotalWidth(1, 4);
-        let totalWidth = rowOffsetWidth + selectedHexWidth + selectedAsciiWidth;
-        for (const perBlock of [4, 8]) {
-            for (let i = 1; ; ++i) {
-                const [h, a] = computeTotalWidth(i, perBlock);
-                const w = rowOffsetWidth + h + a;
-                if (w < totalWidth || w > this.props.width) break;
-                selectedBytesPerBlock = perBlock;
-                selectedBlocks = i;
-                selectedHexWidth = h;
-                selectedAsciiWidth = a;
-                totalWidth = w;
-            }
+        let bytes = 1;
+        let hexWidth = computeHexWidth(1);
+        let asciiWidth = computeAsciiWidth(1);
+        for (;;) {
+            const [h, a] = computeTotalWidth(bytes + 1);
+            if (rowOffsetWidth + h + a > this.props.width - 8) break;
+            bytes = bytes + 1;
+            hexWidth = h;
+            asciiWidth = a;
         }
 
         // Set state
-        const rowBytes = selectedBlocks * selectedBytesPerBlock;
-        const rowCount = Math.ceil(u8Buffer.byteLength / rowBytes);
-        const rowColumnTemplate = `${rowOffsetWidth}px ${selectedHexWidth}px ${selectedAsciiWidth}px`;
+        const rowCount = Math.ceil(u8Buffer.byteLength / bytes);
+        const rowColumnTemplate = `${rowOffsetWidth}px ${hexWidth}px ${asciiWidth}px`;
         this.setState({
             buffer: u8Buffer,
             rowOffsetChars,
             rowOffsetZeroPadding,
             rowColumnTemplate,
-            rowBytes,
-            rowBytesPerBlock: selectedBytesPerBlock,
+            rowBytes: bytes,
             rowCount,
         });
     }
@@ -122,26 +107,23 @@ export class HexViewer extends React.Component<Props, State> {
         );
         const end = begin + Math.min(this.state.rowBytes, this.state.buffer!.byteLength - begin);
 
-        const blocks = [];
+        const chars = [];
         let ascii = '';
-        for (let byte = begin, row = 0; byte < end; ++row) {
-            const block = [];
-            const blockBegin = byte;
-            for (let j = 0; j < Math.min(end - blockBegin, this.state.rowBytesPerBlock); ++j, ++byte) {
-                const rawU8 = this.state.buffer![byte];
-                const text = ('0' + rawU8.toString(16)).slice(-2);
-                block.push(
-                    <div key={j} className={styles.hex_row_byte}>
-                        {text}
-                    </div>,
-                );
-                ascii += rawU8 > 31 && rawU8 < 127 ? String.fromCharCode(rawU8) : '.';
-            }
-            blocks.push(
-                <div key={row} className={styles.hex_row_byte_block}>
-                    {block}
+        let byte = begin;
+        for (let i = 0; i < Math.min(end - begin, this.state.rowBytes); ++i, ++byte) {
+            const rawU8 = this.state.buffer![byte];
+            const text = ('0' + rawU8.toString(16)).slice(-2);
+            chars.push(
+                <div
+                    key={i}
+                    className={className(styles.hex_row_byte, {
+                        [styles.hex_row_byte_block]: i > 0 && i % 4 == 0,
+                    })}
+                >
+                    {text}
                 </div>,
             );
+            ascii += rawU8 > 31 && rawU8 < 127 ? String.fromCharCode(rawU8) : '.';
         }
         return (
             <div
@@ -153,7 +135,7 @@ export class HexViewer extends React.Component<Props, State> {
                 }}
             >
                 <div className={styles.hex_row_offset}>{beginBase16Padded}</div>
-                <div className={styles.hex_row_bytes}>{blocks}</div>
+                <div className={styles.hex_row_bytes}>{chars}</div>
                 <div className={styles.hex_row_ascii}>{ascii}</div>
             </div>
         );
