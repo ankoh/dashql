@@ -1,4 +1,7 @@
 .list {
+    background-color: rgb(240, 240, 240);
+    border-bottom-left-radius: var(--border_radius);
+    border-bottom-right-radius: var(--border_radius);
 }
 
 .hex_row {
@@ -10,7 +13,6 @@
     grid-column: 1;
     border-right: 1px solid var(--border_color);
     text-align: center;
-    background-color: rgb(240, 240, 240);
 }
 .hex_row_bytes {
     grid-row: 1;
@@ -18,6 +20,7 @@
     padding-left: 6px;
     padding-right: 6px;
     border-right: 1px solid var(--border_color);
+    background-color: rgb(255, 255, 255);
 }
 
 .hex_row_byte {
@@ -34,4 +37,5 @@
     padding-right: 6px;
     border-right: 1px solid var(--border_color);
     text-align: center;
+    background-color: rgb(255, 255, 255);
 }
