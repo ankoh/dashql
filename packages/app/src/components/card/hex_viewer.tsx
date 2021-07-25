@@ -56,7 +56,7 @@ export class HexViewer extends React.Component<Props, State> {
         // Compute number of hex blocks
         const computeHexWidth = (bytes: number) =>
             (Math.max(bytes / 4, 1) - 1) * PIXEL_PER_CHAR + 8 + bytes * 3 * PIXEL_PER_CHAR;
-        const computeAsciiWidth = (bytes: number) => 16 + bytes * PIXEL_PER_CHAR;
+        const computeAsciiWidth = (bytes: number) => 16 + bytes * 2 * PIXEL_PER_CHAR;
         const computeTotalWidth = (blocks: number) => [computeHexWidth(blocks), computeAsciiWidth(blocks)];
 
         // Compute the total widths
@@ -123,7 +123,7 @@ export class HexViewer extends React.Component<Props, State> {
                     {text}
                 </div>,
             );
-            ascii += rawU8 > 31 && rawU8 < 127 ? String.fromCharCode(rawU8) : '.';
+            ascii += ' ' + (rawU8 > 31 && rawU8 < 127 ? String.fromCharCode(rawU8) : '.');
         }
         return (
             <div
