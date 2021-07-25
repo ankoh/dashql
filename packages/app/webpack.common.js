@@ -77,38 +77,44 @@ export function configure(params) {
                 },
                 {
                     test: /static\/config\.json$/i,
-                    type: 'javascript/auto',
-                    loader: 'file-loader',
-                    options: {
-                        name: CONFIG_PATH,
+                    type: 'asset/resource',
+                    generator: {
+                        filename: CONFIG_PATH,
                     },
                 },
                 {
                     test: /examples\/.*\.dashql$/i,
-                    type: 'javascript/auto',
-                    loader: 'file-loader',
-                    options: {
-                        name: 'static/examples/[contenthash].[ext]',
+                    type: 'asset/resource',
+                    generator: {
+                        filename: 'static/examples/[contenthash].[ext]',
                     },
                 },
                 {
                     test: /\.(png|jpe?g|gif|svg)$/i,
                     type: 'asset/resource',
+                    generator: {
+                        filename: 'static/img/[name].[contenthash].[ext]',
+                    },
+                },
+                {
+                    test: /\.(ttf|eot|woff|woff2)$/,
+                    type: 'asset/resource',
+                    generator: {
+                        filename: 'static/fonts/[name].[contenthash].[ext]',
+                    },
                 },
                 {
                     test: /.*\.wasm$/,
-                    type: 'javascript/auto',
-                    loader: 'file-loader',
-                    options: {
-                        name: 'static/wasm/[contenthash].[ext]',
+                    type: 'asset/resource',
+                    generator: {
+                        filename: 'static/wasm/[contenthash].[ext]',
                     },
                 },
                 {
                     test: /.*github_oauth\.html$/,
-                    type: 'javascript/auto',
-                    loader: 'file-loader',
-                    options: {
-                        name: `static/html/[name].${GITHUB_OAUTH_VERSION}.[ext]`,
+                    type: 'asset/resource',
+                    generator: {
+                        filename: `static/html/[name].${GITHUB_OAUTH_VERSION}.[ext]`,
                     },
                 },
                 {
