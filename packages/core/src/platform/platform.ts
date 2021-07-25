@@ -19,8 +19,11 @@ export class Platform {
     _databaseManager: DatabaseManager;
     /// The HTTP manager
     _httpManager: HTTPManager;
+
     /// The jmespath resolver
     _jmespathResolver: () => Promise<JMESPathBindings>;
+    /// Is initializing?
+    _jmespathInit: Promise<JMESPathBindings> | null;
     /// The jmespath bindings (if loaded)
     _jmespath: JMESPathBindings | null;
 
@@ -38,6 +41,7 @@ export class Platform {
         this._databaseManager = new DatabaseManager(this._duckdb, this._store);
         this._httpManager = new HTTPManager(store, logger);
         this._jmespathResolver = jmespath;
+        this._jmespathInit = null;
         this._jmespath = null;
     }
 
@@ -53,9 +57,6 @@ export class Platform {
     public get http(): HTTPManager {
         return this._httpManager;
     }
-    public get jmespath(): JMESPathBindings | null {
-        return this._jmespath;
-    }
     public get logger(): Logger {
         return this._logger;
     }
@@ -65,7 +66,13 @@ export class Platform {
         await this._httpManager.init();
     }
 
-    public async initJMESPath(): Promise<void> {
-        this._jmespath = await this._jmespathResolver();
+    public async resolveJMESPath(): Promise<JMESPathBindings> {
+        if (this._jmespath) return this._jmespath;
+        if (this._jmespathInit) return this._jmespathInit;
+        const init = async () => {
+            this._jmespath = await this._jmespathResolver();
+            return this._jmespath;
+        };
+        return await init();
     }
 }
