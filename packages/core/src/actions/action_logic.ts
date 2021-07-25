@@ -1,5 +1,4 @@
 import * as proto from '@dashql/proto';
-import * as model from '../model';
 import { ActionHandle, Statement, getActionClass, getActionIndex } from '../model';
 import { ActionContext } from './action_context';
 
@@ -68,7 +67,7 @@ export abstract class ActionLogic<ActionBuffer extends ProtoAction> {
     }
 
     /// Prepare an action
-    public abstract prepare(context: ActionContext, planObjects: model.PlanObject[]): void;
+    public abstract prepare(context: ActionContext): void;
     /// Will execute an action
     public abstract willExecute(context: ActionContext): void;
     /// Execute an action

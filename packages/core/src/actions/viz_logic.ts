@@ -129,7 +129,7 @@ export class CreateVizActionLogic extends VizActionLogic {
     }
 
     /// Prepare the viz creation
-    public prepare(context: ActionContext, planObjects: model.PlanObject[]): void {
+    public prepare(context: ActionContext): void {
         // Get the program instance
         const programInstance = context.plan.programInstance;
         // Get viz spec
@@ -163,7 +163,7 @@ export class CreateVizActionLogic extends VizActionLogic {
             dataSource: null,
             visible: true,
         };
-        planObjects.push(info);
+        context.stagedObjects.push(info);
     }
 
     public willExecute(context: ActionContext): void {

@@ -10,17 +10,16 @@ import { deriveStatementStatusCode } from './program';
 import { UniqueBlob } from './unique_blob';
 
 type ObjectID = number;
-type TableName = string;
 
 export interface PlanState {
     /// The status
     readonly status: Immutable.List<StatementStatus>;
-    /// The blobs
+    /// The objects
     readonly objects: Immutable.Map<ObjectID, PlanObject>;
-    /// The blobs
-    readonly blobsByName: Immutable.Map<TableName, ObjectID>;
-    /// The tables
-    readonly tablesByName: Immutable.Map<TableName, ObjectID>;
+    /// The blobs by name
+    readonly blobsByName: Immutable.Map<string, ObjectID>;
+    /// The tables by name
+    readonly tablesByName: Immutable.Map<string, ObjectID>;
     /// The plan actions
     readonly actions: Immutable.Map<ActionHandle, Action>;
 }

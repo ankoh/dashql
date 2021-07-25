@@ -1,6 +1,6 @@
 import * as proto from '@dashql/proto';
 import * as model from '../model';
-import { ActionHandle, Statement, PlanObject, UniqueBlob } from '../model';
+import { ActionHandle, Statement, UniqueBlob } from '../model';
 import { ProgramActionLogic } from './action_logic';
 import { ActionContext } from './action_context';
 
@@ -9,7 +9,7 @@ export class FetchActionLogic extends ProgramActionLogic {
         super(action_id, action, statement);
     }
 
-    public prepare(_context: ActionContext, _planObjects: PlanObject[]): void {}
+    public prepare(_context: ActionContext): void {}
     public willExecute(_context: ActionContext): void {}
 
     /// Fetch via HTTP

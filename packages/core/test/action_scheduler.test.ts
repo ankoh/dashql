@@ -69,7 +69,7 @@ export function testActionScheduler(
                 const logic = resolveProgramActionLogic(plan!);
                 const interrupt = new Promise((_resolve: (value: any) => void, _reject: (reason?: void) => void) => {});
                 const scheduler = new ActionScheduler<proto.action.ProgramAction>(interrupt, IGNORE_ACTION_UPDATES);
-                scheduler.prepare(ctx, logic, []);
+                scheduler.prepare(ctx, logic);
                 expect(scheduler.actions.length).toBe(1);
                 expect(scheduler.actions[0].actionClass).toBe(ActionClass.PROGRAM_ACTION);
                 expect(scheduler.actions[0].buffer.actionType()).toBe(ProgramActionType.CREATE_TABLE);
@@ -102,7 +102,7 @@ export function testActionScheduler(
                 const logic = resolveProgramActionLogic(plan!);
                 const interrupt = new Promise((_resolve: (value: any) => void, _reject: (reason?: void) => void) => {});
                 const scheduler = new ActionScheduler<proto.action.ProgramAction>(interrupt, IGNORE_ACTION_UPDATES);
-                scheduler.prepare(ctx, logic, []);
+                scheduler.prepare(ctx, logic);
                 scheduler.actions.forEach((a, i) => {
                     expect(a.actionClass).toBe(ActionClass.PROGRAM_ACTION);
                     expect(a.buffer.originStatement()).toBe(i);
@@ -157,7 +157,7 @@ export function testActionScheduler(
                 const logic = resolveProgramActionLogic(plan!);
                 const interrupt = new Promise((_resolve: (value: any) => void, _reject: (reason?: void) => void) => {});
                 const scheduler = new ActionScheduler<proto.action.ProgramAction>(interrupt, IGNORE_ACTION_UPDATES);
-                scheduler.prepare(ctx, logic, []);
+                scheduler.prepare(ctx, logic);
                 scheduler.actions.forEach((a, i) => {
                     expect(a.actionClass).toBe(ActionClass.PROGRAM_ACTION);
                     expect(a.buffer.originStatement()).toBe(i);

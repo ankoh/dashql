@@ -1,5 +1,5 @@
 import * as proto from '@dashql/proto';
-import { ActionHandle, Statement, PlanObject } from '../model';
+import { ActionHandle, Statement } from '../model';
 import { ProgramActionLogic } from './action_logic';
 import { ActionContext } from './action_context';
 
@@ -8,7 +8,7 @@ export class TransformActionLogic extends ProgramActionLogic {
         super(action_id, action, statement);
     }
 
-    public prepare(_context: ActionContext, _planObjects: PlanObject[]): void {}
+    public prepare(_context: ActionContext): void {}
     public willExecute(_context: ActionContext): void {}
 
     public async execute(context: ActionContext): Promise<void> {

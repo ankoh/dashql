@@ -1,23 +1,17 @@
-import { Plan } from '../model';
+import { Plan, PlanObject } from '../model';
 import { Platform } from '../platform';
 
 export class ActionContext {
     /// The platform
-    _platform: Platform;
+    public readonly platform: Platform;
     /// The program
-    _plan: Plan;
+    public readonly plan: Plan;
+    /// The staged objects
+    public stagedObjects: PlanObject[];
 
     constructor(platform: Platform, plan: Plan) {
-        this._platform = platform;
-        this._plan = plan;
-    }
-
-    /// Get the platform
-    public get platform(): Platform {
-        return this._platform;
-    }
-    /// Get the plan
-    public get plan(): Plan {
-        return this._plan;
+        this.platform = platform;
+        this.plan = plan;
+        this.stagedObjects = [];
     }
 }
