@@ -93,17 +93,7 @@ export function configure(params) {
                 },
                 {
                     test: /\.(png|jpe?g|gif|svg)$/i,
-                    loader: 'file-loader',
-                    options: {
-                        name: 'static/img/[name].[contenthash].[ext]',
-                    },
-                },
-                {
-                    test: /\.(ttf|eot|woff|woff2)$/,
-                    loader: 'file-loader',
-                    options: {
-                        name: 'static/fonts/[name].[contenthash].[ext]',
-                    },
+                    type: 'asset/resource',
                 },
                 {
                     test: /.*\.wasm$/,
