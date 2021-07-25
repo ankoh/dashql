@@ -9,6 +9,8 @@ import { CardFrame } from './card_frame';
 import styles from './dump_renderer.module.css';
 
 const OVERSCAN_ROW_COUNT = 5;
+const PIXEL_PER_CHAR = 8;
+const BYTES_PER_BLOCK = 4;
 
 interface Props {
     appContext: IAppContext;
@@ -23,6 +25,7 @@ interface State {
     error: string | null;
     rowOffsetChars: number;
     rowOffsetZeroPadding: string;
+    rowColumnTemplate: string;
     rowBytes: number;
     rowCount: number;
 }
@@ -39,6 +42,7 @@ export class DumpRenderer extends React.Component<Props, State> {
             error: null,
             rowOffsetChars: 0,
             rowOffsetZeroPadding: '',
+            rowColumnTemplate: '',
             rowBytes: 0,
             rowCount: 0,
         };
@@ -51,16 +55,19 @@ export class DumpRenderer extends React.Component<Props, State> {
         const obj = core.model.resolveBlobByName(this.props.planState, target)!;
         obj.blob.arrayBuffer().then(b => {
             const rowBytes = 12;
-            const rowCount = (b.byteLength + rowBytes - 1) / rowBytes;
-            if (rowCount > 4294967295) {
-                throw new Error('blob size exceeds u32');
-            }
-            const rowOffsetChars = 2 * Math.ceil(b.byteLength.toString(16).length / 2);
+            const rowCount = Math.ceil(b.byteLength / rowBytes);
+            const rowOffsetChars = Math.max(2 * Math.ceil(b.byteLength.toString(16).length / 2), 4);
             const rowOffsetZeroPadding = '0'.repeat(rowOffsetChars);
+            const blockCount = Math.ceil(rowBytes / BYTES_PER_BLOCK);
+            const totalBlockPadding = 8 + (blockCount - 1) * PIXEL_PER_CHAR * 0.5;
+            const rowColumnTemplate = `${16 + rowOffsetChars * PIXEL_PER_CHAR}px ${
+                totalBlockPadding + rowBytes * 3 * PIXEL_PER_CHAR
+            }px`;
             this.setState({
                 buffer: new Uint8Array(b),
                 rowOffsetChars,
                 rowOffsetZeroPadding,
+                rowColumnTemplate,
                 rowBytes,
                 rowCount,
             });
@@ -86,7 +93,7 @@ export class DumpRenderer extends React.Component<Props, State> {
         for (let byte = begin, row = 0; byte < end; ++row) {
             const block = [];
             const blockBegin = byte;
-            for (let j = 0; j < Math.min(end - blockBegin, 4); ++j, ++byte) {
+            for (let j = 0; j < Math.min(end - blockBegin, BYTES_PER_BLOCK); ++j, ++byte) {
                 const text = ('0' + this.state.buffer![byte].toString(16)).slice(-2);
                 block.push(
                     <div key={j} className={styles.hex_row_byte}>
@@ -106,7 +113,7 @@ export class DumpRenderer extends React.Component<Props, State> {
                 className={styles.hex_row}
                 style={{
                     ...props.style,
-                    gridTemplateColumns: `${16 + 8 * this.state.rowOffsetChars}px auto 48px`,
+                    gridTemplateColumns: this.state.rowColumnTemplate,
                 }}
             >
                 <div className={styles.hex_row_offset}>{beginBase16Padded}</div>
