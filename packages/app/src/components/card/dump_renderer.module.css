@@ -10,13 +10,12 @@
 
 .hex_row {
     display: grid;
-    grid-template-columns: 64px auto 40px;
 }
-.hex_row_linenum {
+.hex_row_offset {
     grid-column: 1;
     border-right: 1px solid var(--border_color);
-    text-align: right;
-    padding-right: 8px;
+    background-color: rgb(235, 235, 235);
+    text-align: center;
 }
 .hex_row_bytes {
     padding-left: 4px;
