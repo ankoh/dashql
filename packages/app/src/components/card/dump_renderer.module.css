@@ -1,0 +1,31 @@
+.list_container {
+    width: 100%;
+    height: 100%;
+    flex: 1 0 auto;
+}
+
+.hex_rows {
+}
+
+.hex_row {
+    display: grid;
+    grid-template-columns: 60px auto 40px;
+}
+.hex_row_linenum {
+    grid-column: 1;
+}
+.hex_row_bytes {
+}
+
+.hex_row_byte_block {
+    display: inline-block;
+    margin-left: 1em;
+}
+.hex_row_byte_block:first-child {
+    display: inline-block;
+    margin-left: 0em;
+}
+.hex_row_byte {
+    display: inline-block;
+    margin-left: 0.5em;
+}

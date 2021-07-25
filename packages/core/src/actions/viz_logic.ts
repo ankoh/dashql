@@ -210,6 +210,15 @@ export class CreateVizActionLogic extends VizActionLogic {
                 card = {
                     ...card,
                     cardRenderer: model.CardRendererType.BUILTIN_DUMP,
+                    dataSource: {
+                        dataResolver: null,
+                        targetQualified: this._card.vizTarget(),
+                        filters: null,
+                        aggregates: null,
+                        orderBy: null,
+                        m5Config: null,
+                        sampleSize: null,
+                    },
                     timeUpdated: new Date(),
                 };
                 break;
