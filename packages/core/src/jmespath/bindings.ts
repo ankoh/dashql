@@ -97,7 +97,7 @@ export abstract class JMESPathBindings {
     }
 
     /** Parse a string and return a flatbuffer */
-    public evaluateUTF8(expression: string, utf8: Uint8Array): string {
+    public evaluateUTF8(expression: string, utf8: Uint8Array): Uint8Array {
         const instance = this._instance!;
         const stackPointer = instance.stackSave();
 
@@ -114,13 +114,17 @@ export abstract class JMESPathBindings {
         if (s !== utils.StatusCode.SUCCESS) {
             throw new Error(this.readString(ofs, size));
         }
-        const result = this.readString(ofs, size);
+
+        // Copy the utf8 buffer
+        const result = this._instance.HEAPU8.subarray(ofs, ofs + size);
+        const copy = new Uint8Array(new ArrayBuffer(result.byteLength));
+        copy.set(result);
+
+        // Clear the response
         instance.ccall('jmespath_clear_response', null, [], []);
-
-        // Clear the utf8 string buffer
+        // Clear everything that we put on the stack
         instance.stackRestore(stackPointer);
-
-        // Wrap the program
-        return result;
+        // Return the result
+        return copy;
     }
 }
