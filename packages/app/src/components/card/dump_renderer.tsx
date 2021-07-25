@@ -20,6 +20,9 @@ interface Props {
 interface State {
     bufferLoading: boolean;
     buffer: Uint8Array | null;
+    error: string | null;
+    rowOffsetChars: number;
+    rowOffsetZeroPadding: string;
     rowBytes: number;
     rowCount: number;
 }
@@ -33,6 +36,9 @@ export class DumpRenderer extends React.Component<Props, State> {
         this.state = {
             bufferLoading: false,
             buffer: null,
+            error: null,
+            rowOffsetChars: 0,
+            rowOffsetZeroPadding: '',
             rowBytes: 0,
             rowCount: 0,
         };
@@ -46,8 +52,15 @@ export class DumpRenderer extends React.Component<Props, State> {
         obj.blob.arrayBuffer().then(b => {
             const rowBytes = 12;
             const rowCount = (b.byteLength + rowBytes - 1) / rowBytes;
+            if (rowCount > 4294967295) {
+                throw new Error('blob size exceeds u32');
+            }
+            const rowOffsetChars = 2 * Math.ceil(b.byteLength.toString(16).length / 2);
+            const rowOffsetZeroPadding = '0'.repeat(rowOffsetChars);
             this.setState({
                 buffer: new Uint8Array(b),
+                rowOffsetChars,
+                rowOffsetZeroPadding,
                 rowBytes,
                 rowCount,
             });
@@ -56,14 +69,17 @@ export class DumpRenderer extends React.Component<Props, State> {
             ...this.state,
             bufferLoading: true,
             buffer: null,
+            rowOffsetChars: 0,
             rowBytes: 0,
             rowCount: 0,
         });
     }
 
     protected renderRow(props: ListRowProps): React.ReactElement {
-        const padded = ('000000' + props.index).slice(-6);
         const begin = props.index * this.state.rowBytes;
+        const beginBase16Padded = (this.state.rowOffsetZeroPadding + begin.toString(16)).slice(
+            -this.state.rowOffsetChars,
+        );
         const end = begin + Math.min(this.state.rowBytes, this.state.buffer!.byteLength - begin);
 
         const blocks = [];
@@ -85,8 +101,15 @@ export class DumpRenderer extends React.Component<Props, State> {
             );
         }
         return (
-            <div key={props.key} className={styles.hex_row} style={props.style}>
-                <div className={styles.hex_row_linenum}>{padded}</div>
+            <div
+                key={props.key}
+                className={styles.hex_row}
+                style={{
+                    ...props.style,
+                    gridTemplateColumns: `${16 + 8 * this.state.rowOffsetChars}px auto 48px`,
+                }}
+            >
+                <div className={styles.hex_row_offset}>{beginBase16Padded}</div>
                 <div className={styles.hex_row_bytes}>{blocks}</div>
             </div>
         );
