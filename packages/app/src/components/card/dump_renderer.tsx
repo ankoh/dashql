@@ -12,19 +12,18 @@ interface Props {
     editable?: boolean;
 }
 
-export class TableRenderer extends React.Component<Props> {
+export class DumpRenderer extends React.Component<Props> {
     constructor(props: Props) {
         super(props);
     }
 
     /// Render the table
     public render(): React.ReactElement {
-        const data = this.props.card.dataSource!;
-        const table = core.model.resolveTableByName(this.props.planState, data.targetQualified);
-        if (!table) {
-            return <div />;
-        }
-        return <CardFrame title={this.props.card.title || 'Some Title'} controls={this.props.editable}></CardFrame>;
+        return (
+            <CardFrame title={this.props.card.title || 'Some Title'} controls={this.props.editable}>
+                <div>foo</div>
+            </CardFrame>
+        );
     }
 }
 
@@ -34,4 +33,4 @@ const mapStateToProps = (state: model.AppState) => ({
 
 const mapDispatchToProps = (_dispatch: model.Dispatch) => ({});
 
-export default connect(mapStateToProps, mapDispatchToProps)(withAppContext(TableRenderer));
+export default connect(mapStateToProps, mapDispatchToProps)(withAppContext(DumpRenderer));

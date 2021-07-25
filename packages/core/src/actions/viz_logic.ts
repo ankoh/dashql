@@ -206,6 +206,13 @@ export class CreateVizActionLogic extends VizActionLogic {
                     timeUpdated: new Date(),
                 };
                 break;
+            case model.CardRendererType.BUILTIN_DUMP:
+                card = {
+                    ...card,
+                    cardRenderer: model.CardRendererType.BUILTIN_DUMP,
+                    timeUpdated: new Date(),
+                };
+                break;
         }
 
         model.mutate(context.platform.store.dispatch, {
