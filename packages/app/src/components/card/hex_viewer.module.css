@@ -1,0 +1,44 @@
+.list {
+    background-color: rgb(235, 235, 235);
+}
+
+.hex_row {
+    display: grid;
+    font-family: 'RobotoMono';
+}
+.hex_row_offset {
+    grid-row: 1;
+    grid-column: 1;
+    border-right: 1px solid var(--border_color);
+    text-align: center;
+    background-color: rgb(255, 255, 255);
+}
+.hex_row_bytes {
+    grid-row: 1;
+    grid-column: 2;
+    padding-left: 4px;
+    padding-right: 4px;
+    border-right: 1px solid var(--border_color);
+    background-color: rgb(255, 255, 255);
+}
+
+.hex_row_byte_block {
+    display: inline-block;
+    margin-left: 1em;
+}
+.hex_row_byte_block:first-child {
+    display: inline-block;
+    margin-left: 0em;
+}
+.hex_row_byte {
+    display: inline-block;
+    margin-left: 0.5em;
+}
+.hex_row_ascii {
+    display: inline-block;
+    padding-left: 4px;
+    padding-right: 4px;
+    border-right: 1px solid var(--border_color);
+    text-align: center;
+    background-color: rgb(255, 255, 255);
+}
