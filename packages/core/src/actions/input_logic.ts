@@ -1,7 +1,7 @@
 import * as proto from '@dashql/proto';
 import * as model from '../model';
 import * as error from '../error';
-import { ActionHandle, Statement, PlanObject, CardRendererType } from '../model';
+import { ActionHandle, Statement, CardRendererType } from '../model';
 import { ProgramActionLogic, SetupActionLogic } from './action_logic';
 import { ActionContext } from './action_context';
 
@@ -13,7 +13,7 @@ export class InputActionLogic extends ProgramActionLogic {
         super(action_id, action, statement);
     }
 
-    public prepare(context: ActionContext, planObjects: PlanObject[]): void {
+    public prepare(context: ActionContext): void {
         // Get the program instance
         const instance = context.plan.programInstance;
         const stmt = instance.program.getStatement(this.origin.statementId);
@@ -58,7 +58,7 @@ export class InputActionLogic extends ProgramActionLogic {
             dataSource: null,
             visible: true,
         };
-        planObjects.push(info);
+        context.stagedObjects.push(info);
     }
 
     public willExecute(_context: ActionContext): void {}

@@ -2,7 +2,7 @@ import * as duckdb from '@dashql/duckdb/dist/duckdb.module.js';
 import * as proto from '@dashql/proto';
 import * as model from '../model';
 import * as Immutable from 'immutable';
-import { ActionHandle, PlanObject, Statement, TableStatisticsType } from '../model';
+import { ActionHandle, Statement, TableStatisticsType } from '../model';
 import { ProgramActionLogic } from './action_logic';
 import { ActionContext } from './action_context';
 import { collectTableInfo } from './table_logic';
@@ -13,7 +13,7 @@ export class LoadActionLogic extends ProgramActionLogic {
         super(action_id, action, statement);
     }
 
-    public prepare(_context: ActionContext, _planObjects: PlanObject[]): void {}
+    public prepare(_context: ActionContext): void {}
     public willExecute(_context: ActionContext): void {}
 
     public async execute(context: ActionContext): Promise<void> {

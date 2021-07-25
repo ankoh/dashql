@@ -30,7 +30,7 @@ export interface CardSpecification extends PlanObject {
     readonly vegaLiteSpec: TopLevelSpec | null;
     readonly vegaSpec: v.Spec | null;
     readonly dataSource: CardDataSource | null;
-    visible: boolean;
+    readonly visible: boolean;
 }
 
 export type DomainValue = null | string | number | boolean | ExprRef | v.SignalRef | DateTime;

@@ -7,7 +7,6 @@ import {
     ActionHandle,
     Action,
     ActionUpdate,
-    PlanObject,
     buildActionHandle,
     getActionIndex,
     StateMutationType,
@@ -54,7 +53,7 @@ export class ActionScheduler<ActionBuffer extends ProtoAction> {
     }
 
     /// Prepare the scheduler
-    public prepare(ctx: ActionContext, actions: ActionLogic<ActionBuffer>[], planObjects: model.PlanObject[]): void {
+    public prepare(ctx: ActionContext, actions: ActionLogic<ActionBuffer>[]): void {
         this._actions = actions;
         this._actionPromises = [];
 
@@ -83,7 +82,7 @@ export class ActionScheduler<ActionBuffer extends ProtoAction> {
                     this._failedActions.set(i);
                     break;
                 default:
-                    actions[i].prepare(ctx, planObjects);
+                    actions[i].prepare(ctx);
                     break;
             }
         }
@@ -333,7 +332,6 @@ export class ActionGraphScheduler {
         const now = new Date();
 
         // Translate the setup actions
-        const planObjects: PlanObject[] = [];
         const actionInfos: Action[] = [];
         const setupLogic = [];
         for (let i = 0; i < graph.setupActionsLength(); ++i) {
@@ -385,18 +383,24 @@ export class ActionGraphScheduler {
             });
         }
 
+        // Schedule the plan.
+        // We need to set the plan in redux BEFORE we run the setup actions since they rely on the state.
         mutate(ctx.platform.store.dispatch, {
             type: model.StateMutationType.SCHEDULE_PLAN,
             data: [ctx.plan, actionInfos],
         });
-        this._setupActions.prepare(ctx, setupLogic, planObjects);
-        this._programActions.prepare(ctx, programLogic, planObjects);
 
-        // Insert all plan objects
+        // Prepare all actions
+        this._setupActions.prepare(ctx, setupLogic);
+        this._programActions.prepare(ctx, programLogic);
+
+        // Insert all plan objects required by the actions.
+        // Note that we deliberately batch the updates here to have only one state transition.
         mutate(ctx.platform.store.dispatch, {
             type: model.StateMutationType.INSERT_PLAN_OBJECTS,
-            data: planObjects,
+            data: ctx.stagedObjects,
         });
+        ctx.stagedObjects = [];
     }
 
     /// Interrupt the scheduler
