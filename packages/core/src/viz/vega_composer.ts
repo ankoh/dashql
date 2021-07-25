@@ -338,7 +338,7 @@ export class VegaComposer {
             const scale = enc.scale!;
 
             // Resolve domain?
-            if (!scale.domain && (scale.zero === undefined || scale.zero === false)) {
+            if (!scale.domain) {
                 switch (enc.type) {
                     case 'quantitative':
                     case 'temporal': {
