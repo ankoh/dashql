@@ -132,6 +132,12 @@ export const resolveTableByName = (state: PlanState, name: string): TableSummary
     return (state.objects.get(tableID) as TableSummary) || null;
 };
 
+export const resolveBlobByName = (state: PlanState, name: string): UniqueBlob | null => {
+    const blobID = state.blobsByName.get(name);
+    if (blobID === undefined) return null;
+    return (state.objects.get(blobID) as UniqueBlob) || null;
+};
+
 export const resolveCardById = (state: PlanState, id: number): CardSpecification | null => {
     const obj = state.objects.get(id);
     if (!obj || obj.objectType != PlanObjectType.CARD_SPECIFICATION) return null;
