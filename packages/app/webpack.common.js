@@ -65,7 +65,6 @@ export function configure(params) {
                             loader: 'css-loader',
                             options: {
                                 modules: {
-                                    compileType: 'module',
                                     mode: 'local',
                                     auto: true,
                                     exportGlobals: true,
