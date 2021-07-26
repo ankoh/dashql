@@ -2,7 +2,6 @@ import * as React from 'react';
 import { AppReduxStore } from '../model';
 import { connect } from 'react-redux';
 import { AutoSizer } from '../util/autosizer';
-import { Scrollbars } from 'rc-scrollbars';
 import Board from './board';
 import { Ruler, RulerOrientation } from './board_ruler';
 
