@@ -1,10 +1,24 @@
-FETCH covid_raw FROM 'https://static.dashql.com/data/test/covid_i3_overview_2021_07_23.json';
+-- Fetch the raw covid data
+FETCH covid_raw
+FROM 'https://static.dashql.com/data/test/covid_i3_overview_2021_07_23.json';
 
-VIZ covid_raw USING HEX;
-VIZ covid_raw USING JSON;
+-- Quickly verify that the data is JSON using a hex dump
+VIZ covid_raw USING HEX (
+    position = (row = 0, column = 0, width = 12, height = 3),
+);
 
+-- Display the JSON document.
+-- The document cannot be loaded into the database yet.
+VIZ covid_raw USING JSON (
+    position = (row = 3, column = 0, width = 6, height = 4),
+);
+
+-- Extract the history data using JMESPath.
 TRANSFORM covid_raw INTO covid_history USING JMESPATH (
     expression = 'history'
 );
 
-VIZ covid_history USING JSON;
+-- Display the transformed JSON document.
+VIZ covid_history USING JSON (
+    position = (row = 3, column = 6, width = 6, height = 4),
+);
