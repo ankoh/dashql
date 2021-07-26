@@ -42,6 +42,15 @@ arrow::Status ActionPlanner::DiffPrograms() {
     // Compute the patience diff
     ProgramMatcher matcher{*prev_program_, next_program_};
     diff_ = matcher.ComputeDiff();
+
+    // Sort the diff by the previous statement ids.
+    // Our code is MIGRATING the previous action graph to the new statements.
+    // We therefore want to INDEX the diff with the PREVIOUS actions.
+    std::sort(diff_.begin(), diff_.end(), [&](auto& l, auto& r) {
+        if (!l.source().has_value()) return false;
+        if (!r.source().has_value()) return true;
+        return *l.source() < *r.source();
+    });
     return arrow::Status::OK();
 }
 
