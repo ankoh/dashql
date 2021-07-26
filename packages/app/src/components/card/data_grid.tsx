@@ -250,7 +250,13 @@ export class DataGrid extends React.Component<Props, State> {
             const columnDatum = props.columnSizeAndPositionManager.getSizeAndPositionOfCell(columnIndex);
 
             // Pick cell renderer
-            let renderCell: (key: string, style: React.CSSProperties, v: any) => React.ReactNode;
+            let renderCell = (key: string, style: React.CSSProperties, v: any) => {
+                return (
+                    <div key={key} className={styles.cell_data} style={{ ...style }}>
+                        {v}
+                    </div>
+                );
+            };
             switch (columnType.typeId) {
                 case arrow.Type.Int:
                 case arrow.Type.Int16:
@@ -285,14 +291,59 @@ export class DataGrid extends React.Component<Props, State> {
                         );
                     };
                     break;
+                case arrow.Type.TimeMicrosecond:
+                    console.warn('not implemented: arrow formatting TimeMicrosecond');
+                    break;
+                case arrow.Type.TimeMillisecond:
+                    console.warn('not implemented: arrow formatting TimeMillisecond');
+                    break;
+                case arrow.Type.Timestamp: {
+                    const type = columnType as arrow.Timestamp;
+                    switch (type.unit) {
+                        case arrow.TimeUnit.SECOND:
+                            renderCell = (key: string, style: React.CSSProperties, v: any) => {
+                                return (
+                                    <div
+                                        key={key}
+                                        className={classNames(styles.cell_data, styles.cell_data_text)}
+                                        style={{ ...style }}
+                                    >
+                                        {new Date(v).toString() /* XXX * 1000? */}
+                                    </div>
+                                );
+                            };
+                            break;
+                        case arrow.TimeUnit.MICROSECOND:
+                        case arrow.TimeUnit.MILLISECOND:
+                        case arrow.TimeUnit.NANOSECOND:
+                            console.warn('not implemented: arrow formatting Timestamp');
+                            break;
+                    }
+                    break;
+                }
+                case arrow.Type.TimestampMicrosecond:
+                    console.warn('not implemented: arrow formatting TimestampMicrosecond');
+                    break;
+                case arrow.Type.TimestampMillisecond:
+                    console.warn('not implemented: arrow formatting TimestampMillisecond');
+                    break;
+                case arrow.Type.TimestampNanosecond:
+                    console.warn('not implemented: arrow formatting TimestampNanosecond');
+                    break;
+                case arrow.Type.TimeSecond:
+                    console.warn('not implemented: arrow formatting TimeSecond');
+                    break;
+                case arrow.Type.Date:
+                    console.warn('not implemented: arrow formatting Date');
+                    break;
+                case arrow.Type.DateDay:
+                    console.warn('not implemented: arrow formatting DateDay');
+                    break;
+                case arrow.Type.DateMillisecond:
+                    console.warn('not implemented: arrow formatting DateMillisecond');
+                    break;
+
                 default:
-                    renderCell = (key: string, style: React.CSSProperties, v: any) => {
-                        return (
-                            <div key={key} className={styles.cell_data} style={{ ...style }}>
-                                {v}
-                            </div>
-                        );
-                    };
                     break;
             }
 

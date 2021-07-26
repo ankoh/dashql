@@ -38,8 +38,12 @@ export class TransformActionLogic extends ProgramActionLogic {
         const result = await jp.evaluateUTF8(options.expression || '.', buffer);
         const resultBlob = new Blob([result]);
 
-        // Build the plan object
+        // Register the file handle in DuckDB
         const name = this.buffer.nameQualified();
+        const db = context.platform.database;
+        await db.use(async c => await c.instance.registerFileHandle(name, resultBlob));
+
+        // Build the plan object
         const now = new Date();
         const obj: UniqueBlob = {
             objectId: this.buffer.objectId(),
