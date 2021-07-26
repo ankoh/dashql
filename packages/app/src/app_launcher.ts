@@ -124,7 +124,7 @@ export async function launchApp(ctx: IAppContext): Promise<void> {
     ctx.platform = new platform.BrowserPlatform(ctx.store, ctx.logger, db, analyzer, jmespathBuilder);
     await ctx.platform.init();
 
-    const example = examples.EXAMPLE_SCRIPT_MAP.get('transform_jmespath')!;
+    const example = examples.EXAMPLE_SCRIPT_MAP.get('demo_helloworld')!;
     await examples.loadScript(example, ctx.store.dispatch);
     model.mutate(ctx.store.dispatch, {
         type: model.StateMutationType.MARK_LAUNCH_COMPLETE,

@@ -152,7 +152,11 @@ export class HexViewer extends React.Component<Props, State> {
                     onMouseEnter={this._onMouseEnter}
                     onMouseLeave={this._onMouseLeave}
                 >
-                    {rawU8 > 31 && rawU8 < 127 ? String.fromCharCode(rawU8) : '.'}
+                    {rawU8 == 10 || rawU8 == 13 || rawU8 == 32
+                        ? '•'
+                        : rawU8 > 31 && rawU8 < 127
+                        ? String.fromCharCode(rawU8)
+                        : '░'}
                 </span>,
             );
         }
