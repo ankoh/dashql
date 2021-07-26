@@ -36,6 +36,6 @@
     padding-left: 6px;
     padding-right: 6px;
     border-right: 1px solid var(--border_color);
-    text-align: center;
+    text-align: left;
     background-color: rgb(255, 255, 255);
 }
