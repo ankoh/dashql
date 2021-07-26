@@ -43,6 +43,7 @@ enum VizComponentType: uint8 {
     CANDLESTICK,
     ERROR_BAR,
     HEX,
+    JSON,
     LINE,
     PIE,
     SCATTER,

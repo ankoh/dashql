@@ -5,7 +5,7 @@ import { List, ListRowProps } from 'react-virtualized';
 import styles from './hex_viewer.module.css';
 
 const OVERSCAN_ROW_COUNT = 5;
-const PIXEL_PER_CHAR = 7.6;
+const PIXEL_PER_CHAR = 8;
 
 interface Props {
     width: number;

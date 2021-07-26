@@ -2,6 +2,7 @@ import * as React from 'react';
 import * as core from '@dashql/core';
 import CardStatus from './card_status';
 import HexRenderer from './hex_renderer';
+import JsonRenderer from './json_renderer';
 import InputRenderer from './input_renderer';
 import TableRenderer from './table_renderer';
 import VegaRenderer from './vega_renderer';
@@ -22,6 +23,8 @@ export class CardRenderer extends React.Component<Props> {
                 return <InputRenderer card={this.props.card} editable={this.props.editable} />;
             case core.model.CardRendererType.BUILTIN_TABLE:
                 return <TableRenderer card={this.props.card} editable={this.props.editable} />;
+            case core.model.CardRendererType.BUILTIN_JSON:
+                return <JsonRenderer card={this.props.card} editable={this.props.editable} />;
             case core.model.CardRendererType.BUILTIN_HEX:
                 return <HexRenderer card={this.props.card} editable={this.props.editable} />;
             case core.model.CardRendererType.BUILTIN_VEGA:

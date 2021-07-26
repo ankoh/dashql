@@ -1,0 +1,43 @@
+.root {
+    position: relative;
+    width: 100%;
+    height: 100%;
+}
+
+.tree_container {
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    padding: 0px 16px 0px 16px;
+}
+
+.meta_table {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    display: grid;
+    grid-template-columns: max-content max-content;
+    grid-column-gap: 4px;
+    align-items: center;
+}
+
+.meta_entry_label {
+    grid-column: 1;
+}
+
+.meta_entry_value {
+    grid-column: 2;
+    padding: 0px 6px;
+    font-size: 90%;
+    border-radius: var(--border_radius);
+}
+
+.meta_entry_value_shape_recognized {
+    background-color: rgb(70, 130, 180);
+    color: white;
+}
+
+.meta_entry_value_shape_unrecognized {
+    background-color: rgb(70, 130, 180);
+    color: white;
+}
