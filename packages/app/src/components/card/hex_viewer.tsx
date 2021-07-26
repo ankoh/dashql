@@ -15,59 +15,104 @@ interface Props {
 
 interface State {
     u8Buffer: Uint8Array;
+    width: number;
+    height: number;
     rowOffsetChars: number;
     rowOffsetZeroPadding: string;
     rowColumnTemplate: string;
     rowBytes: number;
     rowCount: number;
+    focusedByte: number | null;
 }
 
 export class HexViewer extends React.Component<Props, State> {
     protected _renderRow = this.renderRow.bind(this);
     protected _renderEmptyBuffer = this.renderEmptyBuffer.bind(this);
+    protected _onMouseEnter = this.onMouseEnter.bind(this);
+    protected _onMouseLeave = this.onMouseLeave.bind(this);
 
     constructor(props: Props) {
         super(props);
-        this.state = HexViewer.getDerivedStateFromProps(props);
+        this.state = HexViewer.getDerivedStateFromProps(props, {
+            u8Buffer: new Uint8Array(),
+            width: 0,
+            height: 0,
+            rowOffsetChars: 0,
+            rowOffsetZeroPadding: '',
+            rowColumnTemplate: '',
+            rowBytes: 0,
+            rowCount: 0,
+            focusedByte: null,
+        });
     }
 
-    static getDerivedStateFromProps(props: Props, _prevState?: State): State {
-        const u8Buffer = new Uint8Array(props.buffer);
+    static getDerivedStateFromProps(props: Props, prevState: State): State {
+        let state: State = prevState;
+        if (
+            props.buffer != prevState?.u8Buffer.buffer ||
+            props.width != prevState.width ||
+            props.height != prevState.height
+        ) {
+            const u8Buffer = new Uint8Array(props.buffer);
 
-        // Compute width of offset column
-        const rowOffsetChars = Math.max(2 * Math.ceil(u8Buffer.byteLength.toString(16).length / 2), 4);
-        const rowOffsetWidth = 16 + rowOffsetChars * PIXEL_PER_CHAR;
-        const rowOffsetZeroPadding = '0'.repeat(rowOffsetChars);
+            // Compute width of offset column
+            const rowOffsetChars = Math.max(2 * Math.ceil(u8Buffer.byteLength.toString(16).length / 2), 4);
+            const rowOffsetWidth = 16 + rowOffsetChars * PIXEL_PER_CHAR;
+            const rowOffsetZeroPadding = '0'.repeat(rowOffsetChars);
 
-        // Compute number of hex blocks
-        const computeHexWidth = (bytes: number) =>
-            (Math.max(bytes / 4, 1) - 1) * PIXEL_PER_CHAR + 8 + bytes * 3 * PIXEL_PER_CHAR;
-        const computeAsciiWidth = (bytes: number) => 16 + bytes * PIXEL_PER_CHAR;
-        const computeTotalWidth = (blocks: number) => [computeHexWidth(blocks), computeAsciiWidth(blocks)];
+            // Compute number of hex blocks
+            const computeHexWidth = (bytes: number) =>
+                (Math.max(bytes / 4, 1) - 1) * PIXEL_PER_CHAR + 8 + bytes * 3 * PIXEL_PER_CHAR;
+            const computeAsciiWidth = (bytes: number) => 16 + bytes * PIXEL_PER_CHAR;
+            const computeTotalWidth = (blocks: number) => [computeHexWidth(blocks), computeAsciiWidth(blocks)];
 
-        // Compute the total widths
-        let bytes = 1;
-        let hexWidth = computeHexWidth(1);
-        let asciiWidth = computeAsciiWidth(1);
-        for (;;) {
-            const [h, a] = computeTotalWidth(bytes + 1);
-            if (rowOffsetWidth + h + a > props.width - 8) break;
-            bytes = bytes + 1;
-            hexWidth = h;
-            asciiWidth = a;
+            // Compute the total widths
+            let bytes = 1;
+            let hexWidth = computeHexWidth(1);
+            let asciiWidth = computeAsciiWidth(1);
+            for (;;) {
+                const [h, a] = computeTotalWidth(bytes + 1);
+                if (rowOffsetWidth + h + a > props.width - 8) break;
+                bytes = bytes + 1;
+                hexWidth = h;
+                asciiWidth = a;
+            }
+
+            // Set state
+            const rowCount = Math.ceil(u8Buffer.byteLength / bytes);
+            const rowColumnTemplate = `${rowOffsetWidth}px ${hexWidth}px ${asciiWidth}px`;
+
+            state = {
+                width: props.width,
+                height: props.height,
+                u8Buffer,
+                rowOffsetChars,
+                rowOffsetZeroPadding,
+                rowColumnTemplate,
+                rowBytes: bytes,
+                rowCount,
+                focusedByte: null,
+            };
         }
+        return state;
+    }
 
-        // Set state
-        const rowCount = Math.ceil(u8Buffer.byteLength / bytes);
-        const rowColumnTemplate = `${rowOffsetWidth}px ${hexWidth}px ${asciiWidth}px`;
-        return {
-            u8Buffer,
-            rowOffsetChars,
-            rowOffsetZeroPadding,
-            rowColumnTemplate,
-            rowBytes: bytes,
-            rowCount,
-        };
+    protected onMouseEnter(elem: React.MouseEvent<HTMLSpanElement>): void {
+        const byteindex = (elem.currentTarget as any).dataset.byteindex;
+        if (this.state.focusedByte != byteindex) {
+            this.setState({
+                focusedByte: byteindex || null,
+            });
+        }
+    }
+
+    protected onMouseLeave(elem: React.MouseEvent<HTMLSpanElement>): void {
+        const byteindex = (elem.currentTarget as any).dataset.byteindex;
+        if (this.state.focusedByte == byteindex) {
+            this.setState({
+                focusedByte: null,
+            });
+        }
     }
 
     protected renderRow(props: ListRowProps): React.ReactElement {
@@ -86,15 +131,27 @@ export class HexViewer extends React.Component<Props, State> {
             hex.push(
                 <span
                     key={i}
+                    data-byteindex={byte}
                     className={className(styles.hex_row_byte, {
                         [styles.hex_row_byte_block]: i > 0 && i % 4 == 0,
+                        [styles.hex_row_byte_focused]: byte == this.state.focusedByte,
                     })}
+                    onMouseEnter={this._onMouseEnter}
+                    onMouseLeave={this._onMouseLeave}
                 >
                     {text}
                 </span>,
             );
             ascii.push(
-                <span key={i} className={styles.hex_row_ascii_char}>
+                <span
+                    key={i}
+                    className={className(styles.hex_row_ascii_char, {
+                        [styles.hex_row_ascii_char_focused]: byte == this.state.focusedByte,
+                    })}
+                    data-byteindex={byte}
+                    onMouseEnter={this._onMouseEnter}
+                    onMouseLeave={this._onMouseLeave}
+                >
                     {rawU8 > 31 && rawU8 < 127 ? String.fromCharCode(rawU8) : '.'}
                 </span>,
             );
@@ -124,6 +181,8 @@ export class HexViewer extends React.Component<Props, State> {
         return (
             <div style={{ width: this.props.width, height: this.props.height }}>
                 <List
+                    buffer={this.state.u8Buffer}
+                    focusedByte={this.state.focusedByte}
                     className={styles.list}
                     width={this.props.width}
                     height={this.props.height}
@@ -132,7 +191,6 @@ export class HexViewer extends React.Component<Props, State> {
                     rowHeight={24}
                     rowRenderer={this._renderRow}
                     noRowsRenderer={this._renderEmptyBuffer}
-                    measureAllRows={true}
                 />
             </div>
         );

@@ -29,8 +29,13 @@
 }
 
 .hex_row_byte_block {
-    margin-left: 0.5em;
+    padding-left: 0.75em;
 }
+.hex_row_byte_focused {
+    background: black;
+    color: white;
+}
+
 .hex_row_ascii {
     display: inline-block;
     padding-left: 8px;
@@ -41,4 +46,9 @@
 }
 
 .hex_row_ascii_char {
+}
+
+.hex_row_ascii_char_focused {
+    background: black;
+    color: white;
 }
