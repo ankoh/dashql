@@ -13,7 +13,7 @@ import { DateTime } from 'vega-lite/build/src/datetime.js';
 import { ExprRef } from 'vega-lite/build/src/expr.js';
 
 export enum CardRendererType {
-    BUILTIN_DUMP,
+    BUILTIN_HEX,
     BUILTIN_INPUT_FILE,
     BUILTIN_INPUT_TEXT,
     BUILTIN_TABLE,

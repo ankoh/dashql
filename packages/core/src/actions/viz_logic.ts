@@ -10,7 +10,7 @@ export abstract class VizActionLogic extends ProgramActionLogic {
     /// The viz spec
     _card: proto.analyzer.Card | null = null;
     /// The renderer
-    _renderer: model.CardRendererType = model.CardRendererType.BUILTIN_DUMP;
+    _renderer: model.CardRendererType = model.CardRendererType.BUILTIN_HEX;
     /// The viz composer
     _vega: VegaComposer | null = null;
     /// The table (if needed)
@@ -55,7 +55,7 @@ export abstract class VizActionLogic extends ProgramActionLogic {
                 );
                 break;
             }
-            case model.CardRendererType.BUILTIN_DUMP:
+            case model.CardRendererType.BUILTIN_HEX:
                 // XXX Make sure a blob with that name exists
                 break;
         }
@@ -81,8 +81,8 @@ export abstract class VizActionLogic extends ProgramActionLogic {
                 case proto.syntax.VizComponentType.VEGA:
                     require = model.CardRendererType.BUILTIN_VEGA;
                     break;
-                case proto.syntax.VizComponentType.DUMP:
-                    require = model.CardRendererType.BUILTIN_DUMP;
+                case proto.syntax.VizComponentType.HEX:
+                    require = model.CardRendererType.BUILTIN_HEX;
                     break;
                 case proto.syntax.VizComponentType.TABLE:
                     require = model.CardRendererType.BUILTIN_TABLE;
@@ -206,10 +206,10 @@ export class CreateVizActionLogic extends VizActionLogic {
                     timeUpdated: new Date(),
                 };
                 break;
-            case model.CardRendererType.BUILTIN_DUMP:
+            case model.CardRendererType.BUILTIN_HEX:
                 card = {
                     ...card,
-                    cardRenderer: model.CardRendererType.BUILTIN_DUMP,
+                    cardRenderer: model.CardRendererType.BUILTIN_HEX,
                     dataSource: {
                         dataResolver: null,
                         targetQualified: this._card.vizTarget(),

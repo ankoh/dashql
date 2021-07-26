@@ -209,7 +209,8 @@ export class VegaComposer {
                 break;
             }
             case proto.syntax.VizComponentType.TABLE:
-            case proto.syntax.VizComponentType.DUMP: {
+            case proto.syntax.VizComponentType.HEX: {
+                console.error('unexpected component type in vega composer');
                 // XXX Should not happen, throw an error
                 break;
             }
