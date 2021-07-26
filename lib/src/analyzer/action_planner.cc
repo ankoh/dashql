@@ -402,7 +402,8 @@ arrow::Status ActionPlanner::MigrateActionGraph() {
         // A viz statement that was slightly adjusted will be diffed as UPDATE.
         // We don't want to drop and recreate the viz state in order to reuse the existing react component.
         if ((update_action != ProgramActionType::NONE) &&
-            (diff_op.code() == +DiffOpCode::UPDATE || diff_op.code() == +DiffOpCode::KEEP)) {
+            (diff_op.code() == +DiffOpCode::UPDATE || diff_op.code() == +DiffOpCode::MOVE ||
+             diff_op.code() == +DiffOpCode::KEEP)) {
             assert(diff_op.target());
             auto next_stmt_id = diff_op.target();
             auto next_action_id = getStatementActionId(*next_stmt_id);

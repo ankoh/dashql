@@ -474,9 +474,6 @@ std::vector<ProgramMatcher::DiffOp> ProgramMatcher::ComputeDiff() {
             for (auto equal_iter = equal_begin; equal_iter != equal_end; ++equal_iter) {
                 auto target_id = equal_iter->second;
                 if (target_emitted[target_id]) continue;
-
-                // The equal pair must cross section boundaries, otherwise it would be part of the LCS
-                assert(target_id < prev_target_id || target_id > next_target_id);
                 emit(DiffOpCode::MOVE, source_id, target_id);
                 break;
             }

@@ -80,7 +80,7 @@
             </graph>
         </step>
     </test>
-    <test name="position_update_view_changed">
+    <test name="position_update_view_changed_1">
         <step>
             <text>
                 CREATE VIEW foo AS
