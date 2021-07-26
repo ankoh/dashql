@@ -2,6 +2,7 @@ import * as core from '@dashql/core';
 import * as model from './model';
 import axios from 'axios';
 
+import example_demo_explore_json from '../static/examples/demo_explore_json.dashql';
 import example_demo_helloworld from '../static/examples/demo_helloworld.dashql';
 import example_demo_unischema from '../static/examples/demo_unischema.dashql';
 import example_load_csv from '../static/examples/load_csv.dashql';
@@ -46,6 +47,7 @@ export enum ScriptFeatureTag {
     FETCH_ARCHIVE_ZIP,
     TRANSFORM_JMESPATH,
     DATA_CSV,
+    DATA_JSON,
     DATA_PARQUET,
     DYNAMIC_LOAD,
     DYNAMIC_SQL,
@@ -86,6 +88,18 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
             .set(ScriptFeatureTag.FETCH_HTTP)
             .set(ScriptFeatureTag.FETCH_ARCHIVE_ZIP),
         url: example_demo_unischema,
+        enabled: false,
+    },
+    {
+        key: 'demo_explore_json',
+        collection: 'Demos',
+        title: 'Explore JSON',
+        description: 'A script that explores a JSON document',
+        icon: icon_dashboard,
+        features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_)
+            .set(ScriptFeatureTag.DATA_JSON)
+            .set(ScriptFeatureTag.TRANSFORM_JMESPATH),
+        url: example_demo_explore_json,
         enabled: true,
     },
     {
@@ -106,7 +120,7 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         icon: icon_linechart,
         features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_),
         url: example_viz_line_charts,
-        enabled: true,
+        enabled: false,
     },
     {
         key: 'viz_area',

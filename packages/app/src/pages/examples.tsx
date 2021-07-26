@@ -21,6 +21,8 @@ function getFeatureTagLabel(tag: ScriptFeatureTag) {
             return 'JMESPATH';
         case ScriptFeatureTag.DATA_CSV:
             return 'CSV';
+        case ScriptFeatureTag.DATA_JSON:
+            return 'JSON';
         case ScriptFeatureTag.DATA_PARQUET:
             return 'PARQUET';
         case ScriptFeatureTag.DYNAMIC_LOAD:
