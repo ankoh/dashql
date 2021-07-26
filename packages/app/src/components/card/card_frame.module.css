@@ -10,7 +10,7 @@
     font-size: 0.8rem;
     background-color: rgb(255, 255, 255);
     display: grid;
-    grid-template-rows: 32px auto;
+    grid-template-rows: 32px calc(100% - 32px);
 }
 
 .header {
@@ -50,4 +50,5 @@
 .body {
     grid-column: 1;
     grid-row: 2;
+    position: relative;
 }

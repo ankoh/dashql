@@ -57,9 +57,10 @@ dashql_viz_type:
   | BAR                   { $$ = Enum(@$, sx::VizComponentType::BAR); }
   | BOX                   { $$ = Enum(@$, sx::VizComponentType::BOX); }
   | CANDLESTICK           { $$ = Enum(@$, sx::VizComponentType::CANDLESTICK); }
-  | ERROR                 { $$ = Enum(@$, sx::VizComponentType::ERROR_BAR); }
   | DUMP                  { $$ = Enum(@$, sx::VizComponentType::HEX); }
+  | ERROR                 { $$ = Enum(@$, sx::VizComponentType::ERROR_BAR); }
   | HEX dashql_opt_dump   { $$ = Enum(@$, sx::VizComponentType::HEX); }
+  | JSON                  { $$ = Enum(@$, sx::VizComponentType::JSON); }
   | LINE                  { $$ = Enum(@$, sx::VizComponentType::LINE); }
   | PIE                   { $$ = Enum(@$, sx::VizComponentType::PIE); }
   | POINT                 { $$ = Enum(@$, sx::VizComponentType::SCATTER); }

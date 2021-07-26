@@ -5,3 +5,5 @@ TRANSFORM covid_raw INTO covid_history USING JMESPATH (
 );
 
 VIZ covid_history USING HEX;
+
+VIZ covid_history USING JSON;

@@ -16,6 +16,7 @@ export enum CardRendererType {
     BUILTIN_HEX,
     BUILTIN_INPUT_FILE,
     BUILTIN_INPUT_TEXT,
+    BUILTIN_JSON,
     BUILTIN_TABLE,
     BUILTIN_VEGA,
 }
