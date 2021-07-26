@@ -8,11 +8,11 @@ import styles from './json_viewer.module.css';
 const theme: any = {
     scheme: 'rjv-default',
     author: 'mac gainor',
-    base00: 'rgba(0, 0, 0, 0)',
+    base00: 'rgb(0, 0, 0)',
     base01: 'rgb(245, 245, 245)',
     base02: 'rgb(235, 235, 235)',
     base03: '#93a1a1',
-    base04: 'rgba(0, 0, 0, 0.3)',
+    base04: 'rgb(0, 0, 0)',
     base05: '#586e75',
     base06: '#073642',
     base07: '#002b36',
