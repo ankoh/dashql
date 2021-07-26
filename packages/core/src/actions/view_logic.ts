@@ -70,7 +70,6 @@ export class DropViewActionLogic extends SetupActionLogic {
     public async execute(context: ActionContext): Promise<void> {
         const db = context.platform.database;
         await db.use(async (c: duckdb.AsyncConnection) => {
-            console.log(`DROP VIEW IF EXISTS ${this.buffer.nameQualified()}`);
             await c.runQuery(`DROP VIEW IF EXISTS ${this.buffer.nameQualified()}`);
         });
     }
