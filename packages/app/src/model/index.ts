@@ -10,13 +10,17 @@ export * from './app_config';
 export * from './state';
 export * from './state_mutation';
 
+import createDevStore from './store_dev';
+import createProdStore from './store_prod';
+
 // The store type
 export type AppReduxStore = Store<AppState>;
 
 /// Create the store with respect to the environment
-export let createStore: () => AppReduxStore;
-if (process.env.NODE_ENV === 'production') {
-    createStore = require('./store_prod').default;
-} else {
-    createStore = require('./store_dev').default;
+export function createStore(): AppReduxStore {
+    if (process.env.NODE_ENV === 'production') {
+        return createProdStore();
+    } else {
+        return createDevStore();
+    }
 }
