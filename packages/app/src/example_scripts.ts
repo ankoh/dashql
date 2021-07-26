@@ -5,6 +5,7 @@ import axios from 'axios';
 import example_demo_explore_json from '../static/examples/demo_explore_json.dashql';
 import example_demo_helloworld from '../static/examples/demo_helloworld.dashql';
 import example_demo_unischema from '../static/examples/demo_unischema.dashql';
+import example_demo_impfdashboard from '../static/examples/demo_impfdashboard.dashql';
 import example_load_csv from '../static/examples/load_csv.dashql';
 import example_load_parquet from '../static/examples/load_parquet.dashql';
 import example_fetch_http_dynamic from '../static/examples/fetch_http_dynamic.dashql';
@@ -101,6 +102,18 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
             .set(ScriptFeatureTag.TRANSFORM_JMESPATH),
         url: example_demo_explore_json,
         enabled: true,
+    },
+    {
+        key: 'demo_impfdashboard',
+        collection: 'Demos',
+        title: 'Impfdashboard',
+        description: 'A script that retrieved official data',
+        icon: icon_dashboard,
+        features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_)
+            .set(ScriptFeatureTag.DATA_JSON)
+            .set(ScriptFeatureTag.TRANSFORM_JMESPATH),
+        url: example_demo_impfdashboard,
+        enabled: false,
     },
     {
         key: 'transform_jmespath',
