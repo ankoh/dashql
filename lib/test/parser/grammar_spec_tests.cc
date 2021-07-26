@@ -24,6 +24,8 @@ INSTANTIATE_TEST_SUITE_P(Statement, GrammarSpecTests, testing::ValuesIn(GrammarT
                          GrammarTest::TestPrinter());
 INSTANTIATE_TEST_SUITE_P(Fetch, GrammarSpecTests, testing::ValuesIn(GrammarTest::GetTests("dashql_fetch.xml")),
                          GrammarTest::TestPrinter());
+INSTANTIATE_TEST_SUITE_P(Transform, GrammarSpecTests, testing::ValuesIn(GrammarTest::GetTests("dashql_transform.xml")),
+                         GrammarTest::TestPrinter());
 INSTANTIATE_TEST_SUITE_P(Viz, GrammarSpecTests, testing::ValuesIn(GrammarTest::GetTests("dashql_viz.xml")),
                          GrammarTest::TestPrinter());
 INSTANTIATE_TEST_SUITE_P(Demo, GrammarSpecTests, testing::ValuesIn(GrammarTest::GetTests("scripts_demo.xml")),

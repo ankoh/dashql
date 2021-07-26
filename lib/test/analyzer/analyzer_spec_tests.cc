@@ -76,3 +76,5 @@ INSTANTIATE_TEST_SUITE_P(FirstRun, AnalyzerSpecTests, testing::ValuesIn(Analyzer
                          AnalyzerTest::TestPrinter());
 INSTANTIATE_TEST_SUITE_P(Updates, AnalyzerSpecTests, testing::ValuesIn(AnalyzerTest::GetTests("updates.xml")),
                          AnalyzerTest::TestPrinter());
+INSTANTIATE_TEST_SUITE_P(Bugs, AnalyzerSpecTests, testing::ValuesIn(AnalyzerTest::GetTests("bugs.xml")),
+                         AnalyzerTest::TestPrinter());
