@@ -1,5 +1,5 @@
 <tests>
-    <test name="sql_copy_line">
+    <test name="sql_bug_1">
         <step>
             <text>
                 FETCH covid_raw FROM 'https://static.dashql.com/data/test/covid_i3_overview_2021_07_23.json';

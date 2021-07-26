@@ -2,7 +2,7 @@
     <test name="parameter_update_load">
         <step>
             <text>
-                INPUT country TYPE VARCHAR USING TEXT (
+                INPUT country TYPE string USING TEXT (
                     default_value = 'DE'
                 );
                 FETCH weather_csv FROM http (
@@ -13,7 +13,7 @@
                 <input statement="0" type="string" value="DE" />
             </inputs>
             <evaluations>
-                <eval type="string" value="'https://cdn.dashql.com/demo/weather/DE'" loc="189..251" text="format('ht..n.country)" />
+                <eval type="string" value="'https://cdn.dashql.com/demo/weather/DE'" loc="188..250" text="format('ht..n.country)" />
             </evaluations>
             <cards>
                 <input name="country" component="TEXT" />
@@ -38,7 +38,7 @@
         </step>
         <step>
             <text>
-                INPUT country TYPE VARCHAR USING TEXT (
+                INPUT country TYPE string USING TEXT (
                     default_value = 'DE'
                 );
                 FETCH weather_csv FROM http (
@@ -49,7 +49,7 @@
                 <input statement="0" type="string" value="US" />
             </inputs>
             <evaluations>
-                <eval type="string" value="'https://cdn.dashql.com/demo/weather/US'" loc="189..251" text="format('ht..n.country)" />
+                <eval type="string" value="'https://cdn.dashql.com/demo/weather/US'" loc="188..250" text="format('ht..n.country)" />
             </evaluations>
             <cards>
                 <input name="country" component="TEXT" />

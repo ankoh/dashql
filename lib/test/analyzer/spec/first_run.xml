@@ -2,7 +2,7 @@
     <test name="param">
         <step>
             <text>
-                INPUT country TYPE VARCHAR USING TEXT;
+                INPUT country TYPE string USING TEXT;
             </text>
             <inputs>
                 <input statement="0" type="string" value="DE" />
@@ -43,7 +43,7 @@
     <test name="param_load">
         <step>
             <text>
-                INPUT country TYPE VARCHAR USING TEXT;
+                INPUT country TYPE string USING TEXT;
                 FETCH weather_csv FROM http (
                     url = format('https://cdn.dashql.com/demo/weather/{}', main.country)
                 );
@@ -53,7 +53,7 @@
                 <input statement="0" type="string" value="DE" />
             </inputs>
             <evaluations>
-                <eval type="string" value="'https://cdn.dashql.com/demo/weather/DE'" loc="128..190" text="format('ht..n.country)" />
+                <eval type="string" value="'https://cdn.dashql.com/demo/weather/DE'" loc="127..189" text="format('ht..n.country)" />
             </evaluations>
             <cards>
                 <input name="country" component="TEXT" />
@@ -89,7 +89,7 @@
     <test name="param_load_load">
         <step>
             <text>
-                INPUT country TYPE VARCHAR USING TEXT;
+                INPUT country TYPE string USING TEXT;
                 FETCH weather_csv FROM http (
                     url = format('https://cdn.dashql.com/demo/weather/{}', main.country)
                 );
@@ -99,7 +99,7 @@
                 <input statement="0" type="string" value="DE" />
             </inputs>
             <evaluations>
-                <eval type="string" value="'https://cdn.dashql.com/demo/weather/DE'" loc="128..190" text="format('ht..n.country)" />
+                <eval type="string" value="'https://cdn.dashql.com/demo/weather/DE'" loc="127..189" text="format('ht..n.country)" />
             </evaluations>
             <cards>
                 <input name="country" component="TEXT" />
@@ -135,7 +135,7 @@
     <test name="param_load_load_select">
         <step>
             <text>
-                INPUT country TYPE VARCHAR USING TEXT;
+                INPUT country TYPE string USING TEXT;
                 FETCH weather_csv FROM http (
                     url = format('https://cdn.dashql.com/demo/weather/{}', main.country)
                 );
@@ -146,7 +146,7 @@
                 <input statement="0" type="string" value="DE" />
             </inputs>
             <evaluations>
-                <eval type="string" value="'https://cdn.dashql.com/demo/weather/DE'" loc="128..190" text="format('ht..n.country)" />
+                <eval type="string" value="'https://cdn.dashql.com/demo/weather/DE'" loc="127..189" text="format('ht..n.country)" />
             </evaluations>
             <cards>
                 <input name="country" component="TEXT" />
@@ -192,7 +192,7 @@
     <test name="two_vizzes">
         <step>
             <text>
-                INPUT country TYPE VARCHAR USING TEXT;
+                INPUT country TYPE string USING TEXT;
                 FETCH weather_csv FROM http (
                     url = format('https://cdn.dashql.com/demo/weather/{}', main.country)
                 );
@@ -205,7 +205,7 @@
                 <input statement="0" type="string" value="DE" />
             </inputs>
             <evaluations>
-                <eval type="string" value="'https://cdn.dashql.com/demo/weather/DE'" loc="128..190" text="format('ht..n.country)" />
+                <eval type="string" value="'https://cdn.dashql.com/demo/weather/DE'" loc="127..189" text="format('ht..n.country)" />
             </evaluations>
             <cards>
                 <input name="country" component="TEXT" />
@@ -275,7 +275,7 @@
     <test name="two_tables_two_vizzes">
         <step>
             <text>
-                INPUT country TYPE VARCHAR USING TEXT;
+                INPUT country TYPE string USING TEXT;
                 FETCH weather_csv FROM http (
                     url = format('https://cdn.dashql.com/demo/weather/{}', main.country)
                 );
@@ -289,7 +289,7 @@
                 <input statement="0" type="string" value="DE" />
             </inputs>
             <evaluations>
-                <eval type="string" value="'https://cdn.dashql.com/demo/weather/DE'" loc="128..190" text="format('ht..n.country)" />
+                <eval type="string" value="'https://cdn.dashql.com/demo/weather/DE'" loc="127..189" text="format('ht..n.country)" />
             </evaluations>
             <cards>
                 <input name="country" component="TEXT" />
@@ -369,7 +369,7 @@
     <test name="integer_interpolation">
         <step>
             <text>
-                INPUT country TYPE VARCHAR USING TEXT;
+                INPUT country TYPE string USING TEXT;
                 INPUT month TYPE INTEGER USING TEXT;
                 FETCH weather_csv FROM http (
                     url = format('https://cdn.dashql.com/demo/weather/{}', main.country)
@@ -385,9 +385,9 @@
                 <input statement="1" type="int64" value="5" />
             </inputs>
             <evaluations>
-                <eval type="string" value="'https://cdn.dashql.com/demo/weather/DE'" loc="181..243" text="format('ht..n.country)" />
-                <eval type="int64" value="5" loc="473..483" text="main.month" />
-                <eval type="int64" value="5" loc="389..399" text="main.month" />
+                <eval type="string" value="'https://cdn.dashql.com/demo/weather/DE'" loc="180..242" text="format('ht..n.country)" />
+                <eval type="int64" value="5" loc="472..482" text="main.month" />
+                <eval type="int64" value="5" loc="388..398" text="main.month" />
             </evaluations>
             <cards>
                 <input name="country" component="TEXT" />
@@ -477,8 +477,8 @@
     <test name="text_interpolation">
         <step>
             <text>
-                INPUT country TYPE VARCHAR USING TEXT;
-                INPUT city TYPE VARCHAR USING TEXT;
+                INPUT country TYPE string USING TEXT;
+                INPUT city TYPE string USING TEXT;
                 FETCH weather_csv FROM http (
                     url = format('https://cdn.dashql.com/demo/weather/{}', main.country)
                 );
@@ -490,8 +490,8 @@
                 <input statement="1" type="string" value="MUC" />
             </inputs>
             <evaluations>
-                <eval type="string" value="'https://cdn.dashql.com/demo/weather/DE'" loc="180..242" text="format('ht..n.country)" />
-                <eval type="string" value="MUC" loc="387..396" text="main.city" />
+                <eval type="string" value="'https://cdn.dashql.com/demo/weather/DE'" loc="178..240" text="format('ht..n.country)" />
+                <eval type="string" value="MUC" loc="385..394" text="main.city" />
             </evaluations>
             <cards>
                 <input name="country" component="TEXT" />
@@ -545,8 +545,8 @@
     <test name="load_join">
         <step>
             <text>
-                INPUT country1 TYPE VARCHAR USING TEXT;
-                INPUT country2 TYPE VARCHAR USING TEXT;
+                INPUT country1 TYPE string USING TEXT;
+                INPUT country2 TYPE string USING TEXT;
                 INPUT month TYPE INTEGER USING TEXT;
                 FETCH country1_weather_csv FROM http (
                     url = format('https://cdn.dashql.com/demo/weather/{}', main.country1)
@@ -565,9 +565,9 @@
                 <input statement="2" type="int64" value="5" />
             </inputs>
             <evaluations>
-                <eval type="string" value="'https://cdn.dashql.com/demo/weather/US'" loc="411..474" text="format('ht...country2)" />
-                <eval type="string" value="'https://cdn.dashql.com/demo/weather/DE'" loc="247..310" text="format('ht...country1)" />
-                <eval type="int64" value="5" loc="778..788" text="main.month" />
+                <eval type="string" value="'https://cdn.dashql.com/demo/weather/US'" loc="409..472" text="format('ht...country2)" />
+                <eval type="string" value="'https://cdn.dashql.com/demo/weather/DE'" loc="245..308" text="format('ht...country1)" />
+                <eval type="int64" value="5" loc="776..786" text="main.month" />
             </evaluations>
             <cards>
                 <input name="country1" component="TEXT" />
