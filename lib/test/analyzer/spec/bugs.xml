@@ -142,7 +142,7 @@
                             <ref action="0" />
                         </depends_on>
                     </action>
-                    <action type="UPDATE_VIZ" status="PENDING" object_id="4" statement="4">
+                    <action type="TRANSFORM" status="PENDING" object_id="9" statement="4">
                         <output name="main.covid_history" />
                         <depends_on>
                             <ref action="0" />
@@ -151,7 +151,7 @@
                             <ref action="5" />
                         </required_for>
                     </action>
-                    <action type="CREATE_VIZ" status="PENDING" object_id="10" statement="5">
+                    <action type="UPDATE_VIZ" status="PENDING" object_id="4" statement="5">
                         <depends_on>
                             <ref action="4" />
                         </depends_on>
