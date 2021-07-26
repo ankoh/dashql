@@ -89,7 +89,7 @@
                     <node type="OBJECT_DASHQL_VIZ" loc="244..272" text="VIZ covid_..USING DUMP">
                         <node key="DASHQL_VIZ_COMPONENTS">
                             <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="268..272" text="DUMP">
-                                <node key="DASHQL_VIZ_COMPONENT_TYPE" value="DUMP" />
+                                <node key="DASHQL_VIZ_COMPONENT_TYPE" value="HEX" />
                             </node>
                         </node>
                         <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLE_REF" loc="248..261" text="covid_history">
