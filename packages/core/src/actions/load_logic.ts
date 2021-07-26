@@ -63,21 +63,25 @@ export class LoadActionLogic extends ProgramActionLogic {
         // Handle the different load method
         const table = await context.platform.database.use(async c => {
             const filePath = await extractIfNeeded(c);
+            let tableType: model.TableType;
             switch (xtr.method()) {
                 case proto.syntax.LoadMethodType.PARQUET:
                     await c.runQuery(`CREATE VIEW ${name} AS (SELECT * FROM parquet_scan('${filePath}'));`);
+                    tableType = model.TableType.VIEW;
                     break;
                 case proto.syntax.LoadMethodType.JSON:
                     await c.importJSONFromPath(filePath, {
                         schema: qSchema,
                         name: qName,
                     });
+                    tableType = model.TableType.TABLE;
                     break;
                 case proto.syntax.LoadMethodType.CSV:
                     await c.importCSVFromPath(filePath, {
                         schema: qSchema,
                         name: qName,
                     });
+                    tableType = model.TableType.TABLE;
                     break;
                 default:
                     console.warn('not implemented');
@@ -92,7 +96,7 @@ export class LoadActionLogic extends ProgramActionLogic {
                 timeCreated: now,
                 timeUpdated: now,
                 nameQualified: this.buffer.nameQualified() || '',
-                tableType: model.TableType.VIEW,
+                tableType,
                 columnNames: [],
                 columnNameMapping: new Map(),
                 columnTypes: [],

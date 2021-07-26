@@ -108,7 +108,7 @@ class LogViewer extends React.Component<Props, State> {
                                 animate={{ height: 100 }}
                                 exit={{ height: 0 }}
                             >
-                                {this.props.logs.get(this.state.focusedEntry)?.value}
+                                {this.props.logs.get(this.state.focusedEntry)?.value.toString()}
                             </motion.div>
                         </AnimatePresence>
                     )}
