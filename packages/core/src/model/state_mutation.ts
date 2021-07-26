@@ -132,6 +132,7 @@ function reduceImpl(state: CoreState, mutation: StateMutationVariant): CoreState
             };
 
         case StateMutationType.REPLACE_SCRIPT:
+            if (mutation.data.text == state.script.text) return state;
             return {
                 ...state,
                 script: mutation.data,
@@ -149,12 +150,14 @@ function reduceImpl(state: CoreState, mutation: StateMutationVariant): CoreState
             };
 
         case StateMutationType.SET_PROGRAM:
+            if (mutation.data == state.program) return state;
             return {
                 ...state,
                 program: mutation.data,
             };
 
         case StateMutationType.SET_PROGRAM_INSTANCE:
+            if (mutation.data == state.programInstance) return state;
             return {
                 ...state,
                 programInstance: mutation.data,
