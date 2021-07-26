@@ -15,7 +15,7 @@
             <graph>
                 <program>
                     <action status="COMPLETED" />
-                    <action status="NONE" />
+                    <action status="PENDING" />
                 </program>
             </graph>
         </step>
@@ -33,7 +33,7 @@
             </parameters>
         </step>
     </test>
-    <test name="position_update_view_changed">
+    <test name="position_update_view_changed_1">
         <step>
             <text>
                 CREATE VIEW foo AS
@@ -46,7 +46,7 @@
             <graph>
                 <program>
                     <action status="COMPLETED" />
-                    <action status="NONE" />
+                    <action status="PENDING" />
                 </program>
             </graph>
         </step>
@@ -64,7 +64,7 @@
             <graph>
                 <program>
                     <action status="COMPLETED" />
-                    <action status="NONE" />
+                    <action status="PENDING" />
                 </program>
             </graph>
         </step>
@@ -100,7 +100,7 @@
             <graph>
                 <program>
                     <action status="COMPLETED" />
-                    <action status="NONE" />
+                    <action status="PENDING" />
                 </program>
             </graph>
         </step>
@@ -127,8 +127,8 @@
             <parameters />
             <graph>
                 <program>
-                    <action status="NONE" />
-                    <action status="NONE" />
+                    <action status="PENDING" />
+                    <action status="PENDING" />
                 </program>
             </graph>
         </step>
