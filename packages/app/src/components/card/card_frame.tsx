@@ -24,7 +24,15 @@ export const CardFrame: React.FC<Props> = (props: Props) => {
                     </Button>
                 )}
             </div>
-            <div className={styles.body}>{props.children}</div>
+            <div
+                className={styles.body}
+                onMouseDown={e => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }}
+            >
+                {props.children}
+            </div>
         </div>
     );
 };
