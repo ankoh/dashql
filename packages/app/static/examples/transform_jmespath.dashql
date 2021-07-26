@@ -4,4 +4,4 @@ TRANSFORM covid_raw INTO covid_history USING JMESPATH (
     expression = 'history'
 );
 
-VIZ covid_history USING DUMP;
+VIZ covid_history USING HEX;
