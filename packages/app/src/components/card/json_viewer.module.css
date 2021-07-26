@@ -13,8 +13,8 @@
 
 .meta_table {
     position: absolute;
-    top: 8px;
-    right: 8px;
+    top: 12px;
+    right: 12px;
     display: grid;
     grid-template-columns: max-content max-content;
     grid-column-gap: 4px;
@@ -33,11 +33,11 @@
 }
 
 .meta_entry_value_shape_recognized {
-    background-color: rgb(70, 130, 180);
+    background-color: rgb(83, 164, 81);
     color: white;
 }
 
 .meta_entry_value_shape_unrecognized {
-    background-color: rgb(70, 130, 180);
+    background-color: rgb(187, 54, 56);
     color: white;
 }
