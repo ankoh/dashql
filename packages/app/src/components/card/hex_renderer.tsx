@@ -6,6 +6,7 @@ import { connect } from 'react-redux';
 import { IAppContext, withAppContext } from '../../app_context';
 import { CardFrame } from './card_frame';
 import { HexViewer } from './hex_viewer';
+import BlobLoader from '../blob_loader';
 
 interface Props {
     appContext: IAppContext;
@@ -21,17 +22,19 @@ export class DumpRenderer extends React.Component<Props> {
 
     /// Render the table
     public render(): React.ReactElement {
+        const target = this.props.card.dataSource!.targetQualified;
+        const obj = core.model.resolveBlobByName(this.props.planState, target)!;
         return (
             <CardFrame title={this.props.card.title || 'Some Title'} controls={this.props.editable}>
                 <AutoSizer>
                     {({ width, height }) => (
-                        <HexViewer
-                            planState={this.props.planState}
-                            card={this.props.card}
-                            editable={this.props.editable}
-                            width={width}
-                            height={height}
-                        />
+                        <BlobLoader
+                            blob={obj.blob}
+                            loadingComponent={() => <div>loading...</div>}
+                            errorComponent={e => <div>Error: {e}</div>}
+                        >
+                            {buffer => <HexViewer buffer={buffer} width={width} height={height} />}
+                        </BlobLoader>
                     )}
                 </AutoSizer>
             </CardFrame>

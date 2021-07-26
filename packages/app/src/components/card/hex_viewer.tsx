@@ -1,5 +1,4 @@
 import * as React from 'react';
-import * as core from '@dashql/core';
 import className from 'classnames';
 import { List, ListRowProps } from 'react-virtualized';
 
@@ -9,17 +8,13 @@ const OVERSCAN_ROW_COUNT = 5;
 const PIXEL_PER_CHAR = 7.7;
 
 interface Props {
-    planState: core.model.PlanState;
-    card: core.model.CardSpecification;
-    editable?: boolean;
     width: number;
     height: number;
+    buffer: ArrayBuffer;
 }
 
 interface State {
-    bufferLoading: boolean;
-    buffer: Uint8Array | null;
-    error: string | null;
+    u8Buffer: Uint8Array;
     rowOffsetChars: number;
     rowOffsetZeroPadding: string;
     rowColumnTemplate: string;
@@ -33,20 +28,11 @@ export class HexViewer extends React.Component<Props, State> {
 
     constructor(props: Props) {
         super(props);
-        this.state = {
-            bufferLoading: false,
-            buffer: null,
-            error: null,
-            rowOffsetChars: 0,
-            rowOffsetZeroPadding: '',
-            rowColumnTemplate: '',
-            rowBytes: 0,
-            rowCount: 0,
-        };
+        this.state = HexViewer.getDerivedStateFromProps(props);
     }
 
-    public displayBuffer(buffer: ArrayBuffer): void {
-        const u8Buffer = new Uint8Array(buffer);
+    static getDerivedStateFromProps(props: Props, _prevState?: State): State {
+        const u8Buffer = new Uint8Array(props.buffer);
 
         // Compute width of offset column
         const rowOffsetChars = Math.max(2 * Math.ceil(u8Buffer.byteLength.toString(16).length / 2), 4);
@@ -65,7 +51,7 @@ export class HexViewer extends React.Component<Props, State> {
         let asciiWidth = computeAsciiWidth(1);
         for (;;) {
             const [h, a] = computeTotalWidth(bytes + 1);
-            if (rowOffsetWidth + h + a > this.props.width - 8) break;
+            if (rowOffsetWidth + h + a > props.width - 8) break;
             bytes = bytes + 1;
             hexWidth = h;
             asciiWidth = a;
@@ -74,30 +60,14 @@ export class HexViewer extends React.Component<Props, State> {
         // Set state
         const rowCount = Math.ceil(u8Buffer.byteLength / bytes);
         const rowColumnTemplate = `${rowOffsetWidth}px ${hexWidth}px ${asciiWidth}px`;
-        this.setState({
-            buffer: u8Buffer,
+        return {
+            u8Buffer,
             rowOffsetChars,
             rowOffsetZeroPadding,
             rowColumnTemplate,
             rowBytes: bytes,
             rowCount,
-        });
-    }
-
-    public componentDidUpdate(): void {
-        const target = this.props.card.dataSource!.targetQualified;
-        if (this.state.buffer || this.state.bufferLoading) return;
-
-        const obj = core.model.resolveBlobByName(this.props.planState, target)!;
-        obj.blob.arrayBuffer().then(b => this.displayBuffer(b));
-        this.setState({
-            ...this.state,
-            bufferLoading: true,
-            buffer: null,
-            rowOffsetChars: 0,
-            rowBytes: 0,
-            rowCount: 0,
-        });
+        };
     }
 
     protected renderRow(props: ListRowProps): React.ReactElement {
@@ -105,13 +75,13 @@ export class HexViewer extends React.Component<Props, State> {
         const beginBase16Padded = (this.state.rowOffsetZeroPadding + begin.toString(16)).slice(
             -this.state.rowOffsetChars,
         );
-        const end = begin + Math.min(this.state.rowBytes, this.state.buffer!.byteLength - begin);
+        const end = begin + Math.min(this.state.rowBytes, this.state.u8Buffer.byteLength - begin);
 
         const chars = [];
         let ascii = '';
         let byte = begin;
         for (let i = 0; i < Math.min(end - begin, this.state.rowBytes); ++i, ++byte) {
-            const rawU8 = this.state.buffer![byte];
+            const rawU8 = this.state.u8Buffer[byte];
             const text = ('0' + rawU8.toString(16)).slice(-2);
             chars.push(
                 <div
@@ -147,10 +117,6 @@ export class HexViewer extends React.Component<Props, State> {
 
     /// Render the table
     public render(): React.ReactElement {
-        if (!this.state.buffer) {
-            return <div>Loading...</div>;
-        }
-
         return (
             <div style={{ width: this.props.width, height: this.props.height }}>
                 <List
