@@ -5,7 +5,7 @@ import { List, ListRowProps } from 'react-virtualized';
 import styles from './hex_viewer.module.css';
 
 const OVERSCAN_ROW_COUNT = 5;
-const PIXEL_PER_CHAR = 7.7;
+const PIXEL_PER_CHAR = 7.6;
 
 interface Props {
     width: number;
@@ -77,23 +77,27 @@ export class HexViewer extends React.Component<Props, State> {
         );
         const end = begin + Math.min(this.state.rowBytes, this.state.u8Buffer.byteLength - begin);
 
-        const chars = [];
-        let ascii = '';
+        const hex = [];
+        const ascii = [];
         let byte = begin;
         for (let i = 0; i < Math.min(end - begin, this.state.rowBytes); ++i, ++byte) {
             const rawU8 = this.state.u8Buffer[byte];
             const text = ('0' + rawU8.toString(16)).slice(-2);
-            chars.push(
-                <div
+            hex.push(
+                <span
                     key={i}
                     className={className(styles.hex_row_byte, {
                         [styles.hex_row_byte_block]: i > 0 && i % 4 == 0,
                     })}
                 >
                     {text}
-                </div>,
+                </span>,
             );
-            ascii += rawU8 > 31 && rawU8 < 127 ? String.fromCharCode(rawU8) : '.';
+            ascii.push(
+                <span key={i} className={styles.hex_row_ascii_char}>
+                    {rawU8 > 31 && rawU8 < 127 ? String.fromCharCode(rawU8) : '.'}
+                </span>,
+            );
         }
         return (
             <div
@@ -105,7 +109,7 @@ export class HexViewer extends React.Component<Props, State> {
                 }}
             >
                 <div className={styles.hex_row_offset}>{beginBase16Padded}</div>
-                <div className={styles.hex_row_bytes}>{chars}</div>
+                <div className={styles.hex_row_bytes}>{hex}</div>
                 <div className={styles.hex_row_ascii}>{ascii}</div>
             </div>
         );

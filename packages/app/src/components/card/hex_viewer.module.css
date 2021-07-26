@@ -17,25 +17,28 @@
 .hex_row_bytes {
     grid-row: 1;
     grid-column: 2;
-    padding-left: 6px;
-    padding-right: 6px;
+    padding-left: 8px;
+    padding-right: 8px;
     border-right: 1px solid var(--border_color);
     background-color: rgb(255, 255, 255);
 }
 
 .hex_row_byte {
-    display: inline-block;
-    padding-left: 0.5em;
+    padding-left: 0.25em;
+    padding-right: 0.25em;
 }
 
 .hex_row_byte_block {
-    padding-left: 1em;
+    margin-left: 0.5em;
 }
 .hex_row_ascii {
     display: inline-block;
-    padding-left: 6px;
-    padding-right: 6px;
+    padding-left: 8px;
+    padding-right: 8px;
     border-right: 1px solid var(--border_color);
     text-align: left;
     background-color: rgb(255, 255, 255);
+}
+
+.hex_row_ascii_char {
 }

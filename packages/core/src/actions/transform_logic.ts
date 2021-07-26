@@ -3,7 +3,6 @@ import * as model from '../model';
 import { ActionHandle, Statement, UniqueBlob } from '../model';
 import { ProgramActionLogic } from './action_logic';
 import { ActionContext } from './action_context';
-import { decodeText } from '../utils';
 
 interface TransformOptions {
     expression?: string;
@@ -38,8 +37,6 @@ export class TransformActionLogic extends ProgramActionLogic {
         const jp = await context.platform.resolveJMESPath();
         const result = await jp.evaluateUTF8(options.expression || '.', buffer);
         const resultBlob = new Blob([result]);
-
-        console.debug(decodeText(result));
 
         // Build the plan object
         const name = this.buffer.nameQualified();
