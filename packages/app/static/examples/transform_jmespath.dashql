@@ -38,7 +38,7 @@ VIZ covid_history USING VEGA (
             type = 'temporal',
         ),
         y = (
-            title = 'Invections',
+            title = 'Infections',
             field = 'positive',
             type = 'quantitative',
         ),
