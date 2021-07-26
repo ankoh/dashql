@@ -2,7 +2,7 @@
     <test name="parameter_update_load">
         <step>
             <text>
-                INPUT country TYPE VARCHAR USING TEXT (
+                INPUT country TYPE string USING TEXT (
                     default_value = 'DE'
                 );
                 FETCH weather_csv FROM http (
@@ -10,7 +10,7 @@
                 );
             </text>
             <parameters>
-                <parameter type="VARCHAR" statement="0" value="DE" />
+                <parameter type="string" statement="0" value="DE" />
             </parameters>
             <graph>
                 <program>
@@ -21,7 +21,7 @@
         </step>
         <step>
             <text>
-                INPUT country TYPE VARCHAR USING TEXT (
+                INPUT country TYPE string USING TEXT (
                     default_value = 'DE'
                 );
                 FETCH weather_csv FROM http (
@@ -29,7 +29,7 @@
                 );
             </text>
             <parameters>
-                <parameter type="VARCHAR" statement="0" value="US" />
+                <parameter type="string" statement="0" value="US" />
             </parameters>
         </step>
     </test>

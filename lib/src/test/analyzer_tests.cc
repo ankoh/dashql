@@ -188,10 +188,15 @@ arrow::Result<InputValue> AnalyzerTest::GetInputValue(const pugi::xml_node& node
     auto value = node.attribute("value").as_string();
     auto type = node.attribute("type").as_string();
     static std::unordered_map<std::string_view, std::shared_ptr<arrow::DataType>> TYPE_NAMES = {
-        {"NOTYPE", arrow::null()},    {"BOOLEAN", arrow::boolean()},
-        {"BIGINT", arrow::int64()},   {"TIMESTAMP", arrow::timestamp(arrow::TimeUnit::NANO)},
-        {"DATE", arrow::date32()},    {"TIME", arrow::time64(arrow::TimeUnit::NANO)},
-        {"DOUBLE", arrow::float64()}, {"VARCHAR", arrow::utf8()},
+        {"na", arrow::null()},
+        {"null", arrow::null()},
+        {"boolean", arrow::boolean()},
+        {"int64", arrow::int64()},
+        {"timestamp", arrow::timestamp(arrow::TimeUnit::NANO)},
+        {"date32", arrow::date32()},
+        {"time", arrow::time64(arrow::TimeUnit::NANO)},
+        {"float64", arrow::float64()},
+        {"string", arrow::utf8()},
     };
     auto iter = TYPE_NAMES.find(type);
     if (iter == TYPE_NAMES.end()) return arrow::Status::Invalid("unknown type: ", type);

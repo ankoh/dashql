@@ -61,12 +61,11 @@ TEST_P(AnalyzerSpecTests, Test) {
 
         // Encode the test output
         pugi::xml_document out;
-        auto root = out.append_child("tests");
         auto* instance = analyzer.program_instance();
         auto* graph = analyzer.planned_graph();
         ASSERT_NE(instance, nullptr);
         ASSERT_NE(graph, nullptr);
-        AnalyzerTest::EncodePlan(root, *instance, *graph);
+        AnalyzerTest::EncodePlan(out, *instance, *graph);
 
         // Try to match the test output with the expected output
         ASSERT_TRUE(Matches(out, step.expected_output));
