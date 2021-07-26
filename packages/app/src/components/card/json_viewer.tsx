@@ -114,7 +114,7 @@ export class JSONViewer extends React.Component<Props, State> {
                 shapeClass = styles.meta_entry_value_shape_recognized;
                 break;
             case JSONShape.UNRECOGNIZED:
-                shapeName = 'unrecognized';
+                shapeName = 'unknown shape';
                 shapeClass = styles.meta_entry_value_shape_unrecognized;
                 break;
         }
@@ -125,7 +125,7 @@ export class JSONViewer extends React.Component<Props, State> {
                     <JSONTree data={this.state.json} theme={theme} invertTheme={true} />
                 </div>
                 <div className={styles.meta_table}>
-                    <div className={styles.meta_entry_label}>shape</div>
+                    <div className={styles.meta_entry_label}></div>
                     <div className={classNames(styles.meta_entry_value, shapeClass)}>{shapeName}</div>
                 </div>
             </div>
