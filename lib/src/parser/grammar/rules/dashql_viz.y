@@ -46,19 +46,25 @@ dashql_viz_type_modifier:
   | Y               { $$ = 1 << static_cast<uint32_t>(sx::VizComponentTypeModifier::Y); }
     ;
 
+dashql_opt_dump:
+    DUMP
+  | %empty
+    ;
+
 dashql_viz_type:
-    AREA        { $$ = Enum(@$, sx::VizComponentType::AREA); }
-  | AXIS        { $$ = Enum(@$, sx::VizComponentType::AXIS); }
-  | BAR         { $$ = Enum(@$, sx::VizComponentType::BAR); }
-  | BOX         { $$ = Enum(@$, sx::VizComponentType::BOX); }
-  | CANDLESTICK { $$ = Enum(@$, sx::VizComponentType::CANDLESTICK); }
-  | DUMP        { $$ = Enum(@$, sx::VizComponentType::DUMP); }
-  | ERROR       { $$ = Enum(@$, sx::VizComponentType::ERROR_BAR); }
-  | LINE        { $$ = Enum(@$, sx::VizComponentType::LINE); }
-  | PIE         { $$ = Enum(@$, sx::VizComponentType::PIE); }
-  | POINT       { $$ = Enum(@$, sx::VizComponentType::SCATTER); }
-  | SCATTER     { $$ = Enum(@$, sx::VizComponentType::SCATTER); }
-  | TABLE       { $$ = Enum(@$, sx::VizComponentType::TABLE); }
-  | VEGA        { $$ = Enum(@$, sx::VizComponentType::VEGA); }
-  | %empty      { $$ = Enum(@$, sx::VizComponentType::VEGA); }
+    AREA                  { $$ = Enum(@$, sx::VizComponentType::AREA); }
+  | AXIS                  { $$ = Enum(@$, sx::VizComponentType::AXIS); }
+  | BAR                   { $$ = Enum(@$, sx::VizComponentType::BAR); }
+  | BOX                   { $$ = Enum(@$, sx::VizComponentType::BOX); }
+  | CANDLESTICK           { $$ = Enum(@$, sx::VizComponentType::CANDLESTICK); }
+  | ERROR                 { $$ = Enum(@$, sx::VizComponentType::ERROR_BAR); }
+  | DUMP                  { $$ = Enum(@$, sx::VizComponentType::HEX); }
+  | HEX dashql_opt_dump   { $$ = Enum(@$, sx::VizComponentType::HEX); }
+  | LINE                  { $$ = Enum(@$, sx::VizComponentType::LINE); }
+  | PIE                   { $$ = Enum(@$, sx::VizComponentType::PIE); }
+  | POINT                 { $$ = Enum(@$, sx::VizComponentType::SCATTER); }
+  | SCATTER               { $$ = Enum(@$, sx::VizComponentType::SCATTER); }
+  | TABLE                 { $$ = Enum(@$, sx::VizComponentType::TABLE); }
+  | VEGA                  { $$ = Enum(@$, sx::VizComponentType::VEGA); }
+  | %empty                { $$ = Enum(@$, sx::VizComponentType::VEGA); }
     ;

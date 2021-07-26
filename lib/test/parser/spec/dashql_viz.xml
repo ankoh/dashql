@@ -126,7 +126,7 @@
                     <node type="OBJECT_DASHQL_VIZ" loc="13..31" text="VIZ foo USING DUMP">
                         <node key="DASHQL_VIZ_COMPONENTS">
                             <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="27..31" text="DUMP">
-                                <node key="DASHQL_VIZ_COMPONENT_TYPE" value="DUMP" />
+                                <node key="DASHQL_VIZ_COMPONENT_TYPE" value="HEX" />
                             </node>
                         </node>
                         <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLE_REF" loc="17..20" text="foo">
@@ -159,7 +159,7 @@
                     <node type="OBJECT_DASHQL_VIZ" loc="13..119" text="VIZ foo US..         )">
                         <node key="DASHQL_VIZ_COMPONENTS">
                             <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="27..119" text="DUMP (&#10;   ..         )">
-                                <node key="DASHQL_VIZ_COMPONENT_TYPE" value="DUMP" />
+                                <node key="DASHQL_VIZ_COMPONENT_TYPE" value="HEX" />
                                 <node key="DASHQL_OPTION_POSITION" type="OBJECT_DASHQL_OPTION_LIST" loc="61..105" text="(row = 8, ..eight = 5)">
                                     <node key="DASHQL_OPTION_ROW" loc="68..69" text="8" />
                                     <node key="DASHQL_OPTION_COLUMN" loc="80..81" text="0" />
