@@ -24,7 +24,7 @@ export class DumpRenderer extends React.Component<Props> {
         const target = this.props.card.dataSource!.targetQualified;
         const obj = core.model.resolveBlobByName(this.props.planState, target)!;
         return (
-            <CardFrame title={this.props.card.title || 'Some Title'} controls={this.props.editable}>
+            <CardFrame title={this.props.card.title || target} controls={this.props.editable}>
                 <BlobLoader
                     blob={obj.blob}
                     loadingComponent={() => <div>loading...</div>}

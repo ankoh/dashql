@@ -72,7 +72,7 @@ export class VegaRenderer extends React.Component<Props> {
             return <div />;
         }
         return (
-            <CardFrame title={this.props.card.title || 'Some Title'} controls={this.props.editable}>
+            <CardFrame title={this.props.card.title || target} controls={this.props.editable}>
                 <AutoSizer>{({ width, height }) => this.renderContent(table, width, height)}</AutoSizer>
             </CardFrame>
         );
