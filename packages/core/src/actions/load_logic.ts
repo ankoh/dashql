@@ -36,7 +36,7 @@ export class LoadActionLogic extends ProgramActionLogic {
         if (!blob) throw new Error(`blob '${blobName}' is not registered in duckdb`);
 
         // Get the input file
-        const getInput = async (conn: duckdb.AsyncConnection) => {
+        const extractIfNeeded = async (conn: duckdb.AsyncConnection) => {
             const db = conn.instance;
             switch (blob.archiveMode) {
                 case proto.analyzer.ArchiveMode.ZIP: {
@@ -50,17 +50,35 @@ export class LoadActionLogic extends ProgramActionLogic {
             }
         };
 
+        // XXX store this either in the flatbuffer or do via wasm.
+        //     This is currently just a hack and not correct (indirections, multiple dots)
+        let qSchema = 'main';
+        let qName = name;
+        if (name.includes('.')) {
+            const split = name.split('.');
+            qSchema = split[0];
+            qName = split[1];
+        }
+
         // Handle the different load method
         const table = await context.platform.database.use(async c => {
-            let filePath: string | undefined = undefined;
+            const filePath = await extractIfNeeded(c);
             switch (xtr.method()) {
-                case proto.syntax.LoadMethodType.PARQUET: {
-                    filePath = await getInput(c);
-                    const text = `CREATE VIEW ${name} AS (SELECT * FROM parquet_scan('${filePath}'));`;
-                    await c.runQuery(text);
+                case proto.syntax.LoadMethodType.PARQUET:
+                    await c.runQuery(`CREATE VIEW ${name} AS (SELECT * FROM parquet_scan('${filePath}'));`);
                     break;
-                }
+                case proto.syntax.LoadMethodType.JSON:
+                    await c.importJSONFromPath(filePath, {
+                        schema: qSchema,
+                        name: qName,
+                    });
+                    break;
                 case proto.syntax.LoadMethodType.CSV:
+                    await c.importCSVFromPath(filePath, {
+                        schema: qSchema,
+                        name: qName,
+                    });
+                    break;
                 default:
                     console.warn('not implemented');
                     break;
