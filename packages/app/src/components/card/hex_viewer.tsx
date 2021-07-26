@@ -22,7 +22,8 @@ interface State {
     rowColumnTemplate: string;
     rowBytes: number;
     rowCount: number;
-    focusedByte: number | null;
+    mouseDown: boolean;
+    focusedByteRange: [number, number] | null;
 }
 
 export class HexViewer extends React.Component<Props, State> {
@@ -30,6 +31,8 @@ export class HexViewer extends React.Component<Props, State> {
     protected _renderEmptyBuffer = this.renderEmptyBuffer.bind(this);
     protected _onMouseEnter = this.onMouseEnter.bind(this);
     protected _onMouseLeave = this.onMouseLeave.bind(this);
+    protected _onMouseUp = this.onMouseUp.bind(this);
+    protected _onMouseDown = this.onMouseDown.bind(this);
 
     constructor(props: Props) {
         super(props);
@@ -42,8 +45,16 @@ export class HexViewer extends React.Component<Props, State> {
             rowColumnTemplate: '',
             rowBytes: 0,
             rowCount: 0,
-            focusedByte: null,
+            mouseDown: false,
+            focusedByteRange: null,
         });
+    }
+
+    isFocused(byteIndex: number): boolean {
+        if (this.state.focusedByteRange == null) return false;
+        const lb = Math.min(this.state.focusedByteRange[0], this.state.focusedByteRange[1]);
+        const ub = Math.max(this.state.focusedByteRange[0], this.state.focusedByteRange[1]);
+        return byteIndex >= lb && byteIndex <= ub;
     }
 
     static getDerivedStateFromProps(props: Props, prevState: State): State {
@@ -91,26 +102,48 @@ export class HexViewer extends React.Component<Props, State> {
                 rowColumnTemplate,
                 rowBytes: bytes,
                 rowCount,
-                focusedByte: null,
+                mouseDown: false,
+                focusedByteRange: null,
             };
         }
         return state;
     }
 
+    protected onMouseDown(elem: React.MouseEvent<HTMLSpanElement>): void {
+        const index = (elem.currentTarget as any).dataset.byteindex;
+        this.setState({
+            focusedByteRange: [index, index],
+            mouseDown: true,
+        });
+    }
+
+    protected onMouseUp(elem: React.MouseEvent<HTMLSpanElement>): void {
+        const index = (elem.currentTarget as any).dataset.byteindex;
+        this.setState({
+            focusedByteRange: [index, index],
+            mouseDown: false,
+        });
+    }
+
     protected onMouseEnter(elem: React.MouseEvent<HTMLSpanElement>): void {
-        const byteindex = (elem.currentTarget as any).dataset.byteindex;
-        if (this.state.focusedByte != byteindex) {
+        const index = (elem.currentTarget as any).dataset.byteindex;
+        if (!this.state.mouseDown || this.state.focusedByteRange == null) {
             this.setState({
-                focusedByte: byteindex || null,
+                focusedByteRange: [index, index],
             });
+            return;
         }
+        this.setState({
+            focusedByteRange: [this.state.focusedByteRange[0], index],
+        });
     }
 
     protected onMouseLeave(elem: React.MouseEvent<HTMLSpanElement>): void {
-        const byteindex = (elem.currentTarget as any).dataset.byteindex;
-        if (this.state.focusedByte == byteindex) {
+        const index = (elem.currentTarget as any).dataset.byteindex;
+        if (this.state.mouseDown) return;
+        if (this.isFocused(index)) {
             this.setState({
-                focusedByte: null,
+                focusedByteRange: null,
             });
         }
     }
@@ -134,10 +167,12 @@ export class HexViewer extends React.Component<Props, State> {
                     data-byteindex={byte}
                     className={className(styles.hex_row_byte, {
                         [styles.hex_row_byte_block]: i > 0 && i % 4 == 0,
-                        [styles.hex_row_byte_focused]: byte == this.state.focusedByte,
+                        [styles.hex_row_byte_focused]: this.isFocused(byte),
                     })}
                     onMouseEnter={this._onMouseEnter}
                     onMouseLeave={this._onMouseLeave}
+                    onMouseDown={this._onMouseDown}
+                    onMouseUp={this._onMouseUp}
                 >
                     {text}
                 </span>,
@@ -146,11 +181,13 @@ export class HexViewer extends React.Component<Props, State> {
                 <span
                     key={i}
                     className={className(styles.hex_row_ascii_char, {
-                        [styles.hex_row_ascii_char_focused]: byte == this.state.focusedByte,
+                        [styles.hex_row_ascii_char_focused]: this.isFocused(byte),
                     })}
                     data-byteindex={byte}
                     onMouseEnter={this._onMouseEnter}
                     onMouseLeave={this._onMouseLeave}
+                    onMouseDown={this._onMouseDown}
+                    onMouseUp={this._onMouseUp}
                 >
                     {rawU8 == 10 || rawU8 == 13 || rawU8 == 32
                         ? '•'
@@ -186,7 +223,7 @@ export class HexViewer extends React.Component<Props, State> {
             <div style={{ width: this.props.width, height: this.props.height }}>
                 <List
                     buffer={this.state.u8Buffer}
-                    focusedByte={this.state.focusedByte}
+                    focusedByteRange={this.state.focusedByteRange}
                     className={styles.list}
                     width={this.props.width}
                     height={this.props.height}
