@@ -110,10 +110,10 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         description: 'A script that retrieved official data',
         icon: icon_dashboard,
         features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_)
-            .set(ScriptFeatureTag.DATA_JSON)
+            .set(ScriptFeatureTag.DATA_CSV)
             .set(ScriptFeatureTag.TRANSFORM_JMESPATH),
         url: example_demo_impfdashboard,
-        enabled: false,
+        enabled: true,
     },
     {
         key: 'transform_jmespath',

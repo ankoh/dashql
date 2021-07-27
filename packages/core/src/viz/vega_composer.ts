@@ -342,8 +342,18 @@ export class VegaComposer {
             // Resolve domain?
             if (!scale.domain) {
                 switch (enc.type) {
-                    case 'quantitative':
                     case 'temporal': {
+                        scale.domain = [];
+                        const resolver = new ResolveMinMaxDomain(
+                            this._tableStatistics,
+                            columnID,
+                            scale.domain,
+                            values => [values[0].getTime(), values[1].getTime()],
+                        );
+                        this._vegaLiteEditOps.push(resolver);
+                        break;
+                    }
+                    case 'quantitative': {
                         scale.domain = [];
                         const resolver = new ResolveMinMaxDomain(this._tableStatistics, columnID, scale.domain);
                         this._vegaLiteEditOps.push(resolver);

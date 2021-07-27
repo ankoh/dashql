@@ -53,6 +53,7 @@ import { testJMESPath } from './jmespath.test';
 import { testProgramEditor } from './program_editor.test';
 import { testSyntaxSchema } from './syntax_schema.test';
 import { testSemaphore } from './semaphore.test';
+import { testRowProxies } from './row_proxies.test';
 
 testDuckDB(() => db!);
 testActionScheduler(
@@ -68,3 +69,4 @@ testJMESPath(() => jp!);
 testProgramEditor(() => az!);
 testSyntaxSchema(() => az!);
 testSemaphore();
+testRowProxies(() => db!);

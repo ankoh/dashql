@@ -17,19 +17,21 @@ interface Props {
 
 export class VegaRenderer extends React.Component<Props> {
     protected renderContent(table: core.model.TableSummary, width: number, height: number): React.ReactElement {
-        const vega = (result: arrow.Table, w: number, h: number) => (
-            <Vega
-                style={{
-                    width: w,
-                    height: h,
-                }}
-                spec={this.props.card.vegaSpec as any}
-                data={{ source: result.toArray() }}
-                width={w}
-                height={h}
-                actions={false}
-            />
-        );
+        const vega = (result: arrow.Table, w: number, h: number) => {
+            return (
+                <Vega
+                    style={{
+                        width: w,
+                        height: h,
+                    }}
+                    spec={this.props.card.vegaSpec as any}
+                    data={{ source: result.toArray() }}
+                    width={w}
+                    height={h}
+                    actions={false}
+                />
+            );
+        };
         console.assert(!!this.props.card.dataSource);
 
         switch (this.props.card.dataSource!.dataResolver) {
