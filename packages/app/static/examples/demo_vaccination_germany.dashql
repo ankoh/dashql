@@ -9,7 +9,7 @@ LOAD vaccinations FROM csv_vaccinations USING CSV;
 VIZ vaccinations USING VEGA (
     title = 'Covid Total Doses',
     position = (row = 0, column = 0, width = 12, height = 4),
-    mark = 'bar',
+    mark = 'area',
     encoding = (
         x = (
             title = 'Time',
