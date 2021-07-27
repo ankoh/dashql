@@ -344,12 +344,7 @@ export class VegaComposer {
                 switch (enc.type) {
                     case 'temporal': {
                         scale.domain = [];
-                        const resolver = new ResolveMinMaxDomain(
-                            this._tableStatistics,
-                            columnID,
-                            scale.domain,
-                            values => [values[0].getTime(), values[1].getTime()],
-                        );
+                        const resolver = new ResolveMinMaxDomain(this._tableStatistics, columnID, scale.domain);
                         this._vegaLiteEditOps.push(resolver);
                         break;
                     }
