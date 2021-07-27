@@ -18,13 +18,21 @@ export class ResolveMinMaxDomain extends VegaLiteEditOperation {
     _out: model.DomainValues;
     /// The promises
     _promises: Promise<arrow.Column>[];
+    /// The transform
+    _transform: (values: [any, any]) => [any, any];
 
-    constructor(stats: platform.TableStatisticsResolver, attribute: number, out: model.DomainValues) {
+    constructor(
+        stats: platform.TableStatisticsResolver,
+        attribute: number,
+        out: model.DomainValues,
+        transform: (values: [any, any]) => [any, any] = values => values,
+    ) {
         super();
         this._statistics = stats;
         this._out = out;
         this._attribute = attribute;
         this._promises = [];
+        this._transform = transform;
     }
 
     /// Prepare the table statitistics
@@ -40,8 +48,11 @@ export class ResolveMinMaxDomain extends VegaLiteEditOperation {
     /// Evaluate table statistics and update the domain spec
     async apply(): Promise<void> {
         const results = await Promise.all(this._promises!);
-        this._out[0] = results[0].get(0);
-        this._out[1] = results[1].get(0);
+        const transformed = this._transform([results[0].get(0), results[1].get(0)]);
+        console.log(results[0]);
+        console.log(transformed);
+        this._out[0] = transformed[0];
+        this._out[1] = transformed[1];
     }
 }
 

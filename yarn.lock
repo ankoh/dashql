@@ -7537,6 +7537,13 @@ vega-lite@^5.1.0:
     vega-util "~1.16.1"
     yargs "~16.2.0"
 
+vega-loader-arrow@^0.0.10:
+  version "0.0.10"
+  resolved "https://registry.yarnpkg.com/vega-loader-arrow/-/vega-loader-arrow-0.0.10.tgz#747bd2770bbdf33ebe84d9ca26fadbbc3ddd19fe"
+  integrity sha512-cYzmA6oREjpJOgqTEVfd6rx7WMojnhz+9uHaYShCYxDavCwlWSjmGpqi9LvbJQ0isbjSOaHySXcBu7w8ZOFdBg==
+  dependencies:
+    apache-arrow "^4.0.0"
+
 vega-loader@^4.3.2, vega-loader@^4.3.3, vega-loader@~4.4.0:
   version "4.4.0"
   resolved "https://registry.yarnpkg.com/vega-loader/-/vega-loader-4.4.0.tgz#fc515b7368c46b2be8df1fcf3c35c696c13c453d"

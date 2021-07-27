@@ -250,13 +250,8 @@ export class DataGrid extends React.Component<Props, State> {
             const columnDatum = props.columnSizeAndPositionManager.getSizeAndPositionOfCell(columnIndex);
 
             // Pick cell renderer
-            let renderCell = (key: string, style: React.CSSProperties, v: any) => {
-                return (
-                    <div key={key} className={styles.cell_data} style={{ ...style }}>
-                        {v}
-                    </div>
-                );
-            };
+            let cellClass = styles.cell_data;
+            let cellFormatter = (v: any) => v.toString();
             switch (columnType.typeId) {
                 case arrow.Type.Int:
                 case arrow.Type.Int16:
@@ -266,30 +261,12 @@ export class DataGrid extends React.Component<Props, State> {
                 case arrow.Type.Float16:
                 case arrow.Type.Float32:
                 case arrow.Type.Float64:
-                    renderCell = (key: string, style: React.CSSProperties, v: any) => {
-                        return (
-                            <div
-                                key={key}
-                                className={classNames(styles.cell_data, styles.cell_data_number)}
-                                style={{ ...style }}
-                            >
-                                {v}
-                            </div>
-                        );
-                    };
+                    cellClass = classNames(styles.cell_data, styles.cell_data_number);
+                    cellFormatter = (v: any) => v.toString();
                     break;
                 case arrow.Type.Utf8:
-                    renderCell = (key: string, style: React.CSSProperties, v: any) => {
-                        return (
-                            <div
-                                key={key}
-                                className={classNames(styles.cell_data, styles.cell_data_text)}
-                                style={{ ...style }}
-                            >
-                                {v}
-                            </div>
-                        );
-                    };
+                    cellClass = classNames(styles.cell_data, styles.cell_data_text);
+                    cellFormatter = (v: any) => v;
                     break;
                 case arrow.Type.TimeMicrosecond:
                     console.warn('not implemented: arrow formatting TimeMicrosecond');
@@ -298,20 +275,11 @@ export class DataGrid extends React.Component<Props, State> {
                     console.warn('not implemented: arrow formatting TimeMillisecond');
                     break;
                 case arrow.Type.Timestamp: {
+                    cellClass = classNames(styles.cell_data, styles.cell_data_text);
                     const type = columnType as arrow.Timestamp;
                     switch (type.unit) {
                         case arrow.TimeUnit.SECOND:
-                            renderCell = (key: string, style: React.CSSProperties, v: any) => {
-                                return (
-                                    <div
-                                        key={key}
-                                        className={classNames(styles.cell_data, styles.cell_data_text)}
-                                        style={{ ...style }}
-                                    >
-                                        {new Date(v).toString() /* XXX * 1000? */}
-                                    </div>
-                                );
-                            };
+                            cellFormatter = (v: any) => new Date(v).toString();
                             break;
                         case arrow.TimeUnit.MICROSECOND:
                         case arrow.TimeUnit.MILLISECOND:
@@ -334,7 +302,8 @@ export class DataGrid extends React.Component<Props, State> {
                     console.warn('not implemented: arrow formatting TimeSecond');
                     break;
                 case arrow.Type.Date:
-                    console.warn('not implemented: arrow formatting Date');
+                    cellClass = classNames(styles.cell_data, styles.cell_data_text);
+                    cellFormatter = (v: any) => v.toString();
                     break;
                 case arrow.Type.DateDay:
                     console.warn('not implemented: arrow formatting DateDay');
@@ -346,6 +315,13 @@ export class DataGrid extends React.Component<Props, State> {
                 default:
                     break;
             }
+            const renderCell = (key: string, style: React.CSSProperties, v: any) => {
+                return (
+                    <div key={key} className={cellClass} style={{ ...style }}>
+                        {cellFormatter(v)}
+                    </div>
+                );
+            };
 
             // Render all rows
             const offset = props.rowStartIndex - this.props.data!.request.begin;
