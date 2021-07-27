@@ -49,8 +49,6 @@ export class ResolveMinMaxDomain extends VegaLiteEditOperation {
     async apply(): Promise<void> {
         const results = await Promise.all(this._promises!);
         const transformed = this._transform([results[0].get(0), results[1].get(0)]);
-        console.log(results[0]);
-        console.log(transformed);
         this._out[0] = transformed[0];
         this._out[1] = transformed[1];
     }
