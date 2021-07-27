@@ -86,7 +86,7 @@ export function configure(params) {
                     test: /examples\/.*\.dashql$/i,
                     type: 'asset/resource',
                     generator: {
-                        filename: 'static/examples/[contenthash].[ext]',
+                        filename: 'static/examples/[name].[contenthash].[ext]',
                     },
                 },
                 {
