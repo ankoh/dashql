@@ -5,7 +5,7 @@ import axios from 'axios';
 import example_demo_explore_json from '../static/examples/demo_explore_json.dashql';
 import example_demo_helloworld from '../static/examples/demo_helloworld.dashql';
 import example_demo_unischema from '../static/examples/demo_unischema.dashql';
-import example_demo_impfdashboard from '../static/examples/demo_impfdashboard.dashql';
+import example_demo_vaccination_germany from '../static/examples/demo_vaccination_germany.dashql';
 import example_load_csv from '../static/examples/load_csv.dashql';
 import example_load_parquet from '../static/examples/load_parquet.dashql';
 import example_fetch_http_dynamic from '../static/examples/fetch_http_dynamic.dashql';
@@ -104,15 +104,15 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         enabled: true,
     },
     {
-        key: 'demo_impfdashboard',
+        key: 'demo_vaccination_germany',
         collection: 'Demos',
-        title: 'Impfdashboard',
-        description: 'A script that retrieved official data',
+        title: 'Vaccination Germany',
+        description: 'A script that displays official vaccination data',
         icon: icon_dashboard,
         features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_)
             .set(ScriptFeatureTag.DATA_CSV)
             .set(ScriptFeatureTag.TRANSFORM_JMESPATH),
-        url: example_demo_impfdashboard,
+        url: example_demo_vaccination_germany,
         enabled: true,
     },
     {
