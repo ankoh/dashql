@@ -14,9 +14,11 @@ import { ColumnRenderer, deriveColumnRenderers } from './data_grid_column';
 import styles from './data_grid.module.css';
 import { withAutoSizer } from '../../util/autosizer';
 
-const PIXEL_PER_CHAR = 6.5;
-const ROW_HEADER_PADDING = 32;
-const DATA_CELL_PADDING = 32;
+const PIXEL_PER_CHAR = 8;
+const ROW_HEADER_PADDING = 20;
+const DATA_CELL_PADDING = 20;
+const MAX_COLUMN_HEADER_OVERSIZE = 1.5;
+const MAX_DATA_CELL_OVERSIZE = 1.5;
 
 type Props = {
     width: number;
@@ -29,9 +31,16 @@ type Props = {
 
 type State = {
     data: core.access.ScanResult | null;
+    totalRowCount: number;
     columnRenderers: ColumnRenderer[];
+
+    width: number;
+    height: number;
+    columnHeaderHeight: number;
     columnWidths: number[];
     columnWidthSum: number;
+    rowHeaderWidth: number;
+    rowHeight: number;
 
     scrollTop: number;
     scrollLeft: number;
@@ -39,7 +48,6 @@ type State = {
     visibleRows: number;
     overscanColumnCount: number;
     overscanRowCount: number;
-    rowHeight: number;
 };
 
 /// Render a data cell nodata for data that is not yet avaialable
@@ -59,9 +67,16 @@ export class DataGrid extends React.Component<Props, State> {
         super(props);
         this.state = DataGrid.getDerivedStateFromProps(props, {
             data: null,
+            totalRowCount: 0,
             columnRenderers: [],
+
+            width: 0,
+            height: 0,
+            columnHeaderHeight: 24,
             columnWidths: [],
             columnWidthSum: 0,
+            rowHeight: 24,
+            rowHeaderWidth: 0,
 
             scrollTop: 0,
             scrollLeft: 0,
@@ -69,40 +84,89 @@ export class DataGrid extends React.Component<Props, State> {
             visibleRows: 100,
             overscanColumnCount: 0,
             overscanRowCount: 10,
-            rowHeight: 24,
         });
     }
 
     // Derive the grid state
     static getDerivedStateFromProps(props: Props, prevState: State): State {
-        if (props.data === prevState.data) {
+        // Data and dimensions are the same?
+        if (props.data === prevState.data && props.width == prevState.width && props.height == prevState.height) {
             return prevState;
         }
+
+        // Not data available?
         if (!props.data) {
             return {
                 ...prevState,
+
                 data: null,
+                totalRowCount: 0,
                 columnRenderers: [],
+
+                width: props.width,
+                height: props.height,
                 columnWidths: [],
                 columnWidthSum: 0,
+                rowHeaderWidth: 0,
             };
         }
-        const columnRenderers = deriveColumnRenderers(props.data!);
+
+        // Derive the column renderers if the data changed
+        let columnRenderers = prevState.columnRenderers;
+        let totalRowCount = prevState.totalRowCount;
+        if (props.data !== prevState.data) {
+            columnRenderers = deriveColumnRenderers(props.data!);
+
+            // Get the row count
+            const key = core.model.buildTableStatisticsKey(core.model.TableStatisticsType.COUNT_STAR);
+            const entry = props.table.statistics.get(key);
+            totalRowCount = entry?.get(0) || 0;
+        }
+
+        // Get the row header width
+        const rowHeaderWidth =
+            totalRowCount == 0
+                ? 0
+                : Math.ceil(Math.log(totalRowCount) / Math.log(10)) * PIXEL_PER_CHAR + ROW_HEADER_PADDING;
+
+        // Compute the column widths
         const columnWidths = [];
         let columnWidthSum = 0;
         for (const renderer of columnRenderers) {
-            const w = renderer.getLayoutInfo().valueMaxWidth * PIXEL_PER_CHAR + DATA_CELL_PADDING;
-            columnWidths.push(w);
-            columnWidthSum += w;
+            const info = renderer.getLayoutInfo();
+            let required = Math.min(info.valueMaxWidth, info.valueAvgWidth * MAX_DATA_CELL_OVERSIZE);
+            if (info.headerWidth > required) {
+                required = Math.min(info.headerWidth, required * MAX_COLUMN_HEADER_OVERSIZE);
+            }
+            required = Math.ceil(required);
+            const requiredPX = required * PIXEL_PER_CHAR + DATA_CELL_PADDING;
+            columnWidths.push(requiredPX);
+            columnWidthSum += requiredPX;
         }
-        console.log(columnWidths);
-        return {
+
+        // If we the table does not fill the entire space, we resize every cell by a single growth factor
+        if (rowHeaderWidth + columnWidthSum < props.width) {
+            const enlarge = (props.width - rowHeaderWidth) / columnWidthSum;
+            columnWidthSum = 0;
+            for (let i = 0; i < columnWidths.length; ++i) {
+                columnWidths[i] = Math.ceil(columnWidths[i] * enlarge);
+                columnWidthSum += columnWidths[i];
+            }
+        }
+        const state = {
             ...prevState,
+
             data: props.data,
+            totalRowCount,
             columnRenderers,
+
+            width: props.width,
+            height: props.width,
             columnWidths,
             columnWidthSum,
+            rowHeaderWidth,
         };
+        return state;
     }
 
     /// Get the width of a column
@@ -334,17 +398,15 @@ export class DataGrid extends React.Component<Props, State> {
 
     /// Render the table
     public render(): React.ReactElement {
-        const columnHeaderHeight = 24;
-        const rowHeaderWidth = ROW_HEADER_PADDING + Math.ceil(Math.log(this.rowCount) / Math.log(10)) * PIXEL_PER_CHAR;
-        const bodyHeight = this.props.height - columnHeaderHeight;
-        const bodyWidth = this.props.width - rowHeaderWidth;
+        const bodyHeight = this.props.height - this.state.columnHeaderHeight;
+        const bodyWidth = this.props.width - this.state.rowHeaderWidth;
         return (
             <div
                 className={styles.grid_container}
                 style={{
                     display: 'grid',
-                    gridTemplateRows: `${columnHeaderHeight}px ${bodyHeight}px`,
-                    gridTemplateColumns: `${rowHeaderWidth}px ${bodyWidth}px`,
+                    gridTemplateRows: `${this.state.columnHeaderHeight}px ${bodyHeight}px`,
+                    gridTemplateColumns: `${this.state.rowHeaderWidth}px ${bodyWidth}px`,
                 }}
             >
                 <Grid
@@ -377,9 +439,9 @@ export class DataGrid extends React.Component<Props, State> {
                 <div className={styles.cell_anchor} />
                 <Grid
                     className={styles.grid_left}
-                    width={rowHeaderWidth}
+                    width={this.state.rowHeaderWidth}
                     height={bodyHeight}
-                    columnWidth={rowHeaderWidth}
+                    columnWidth={this.state.rowHeaderWidth}
                     columnCount={1}
                     rowHeight={this.state.rowHeight}
                     rowCount={this.rowCount}
@@ -391,10 +453,10 @@ export class DataGrid extends React.Component<Props, State> {
                 <Grid
                     className={styles.grid_header}
                     width={bodyWidth}
-                    height={columnHeaderHeight}
+                    height={this.state.columnHeaderHeight}
                     columnWidth={this._getColumnWidth}
                     columnCount={this.columnCount}
-                    rowHeight={columnHeaderHeight}
+                    rowHeight={this.state.columnHeaderHeight}
                     rowCount={1}
                     scrollLeft={this.state.scrollLeft}
                     cellRenderer={this._renderColumnHeaderCell}
