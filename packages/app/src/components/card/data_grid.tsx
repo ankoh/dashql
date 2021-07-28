@@ -17,8 +17,8 @@ import { withAutoSizer } from '../../util/autosizer';
 const PIXEL_PER_CHAR = 8;
 const ROW_HEADER_PADDING = 20;
 const DATA_CELL_PADDING = 20;
-const MAX_COLUMN_HEADER_OVERSIZE = 1.5;
-const MAX_DATA_CELL_OVERSIZE = 1.5;
+const MAX_COLUMN_HEADER_OVERSIZE = 2;
+const MAX_DATA_CELL_OVERSIZE = 2;
 
 type Props = {
     width: number;
