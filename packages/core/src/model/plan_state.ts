@@ -152,9 +152,3 @@ export const forEachCard = (state: PlanState, callback: (card: CardSpecification
         }
     }
 };
-
-export const collectCards = (state: PlanState): Map<number, CardSpecification> => {
-    const cards: Map<number, CardSpecification> = new Map();
-    forEachCard(state, c => cards.set(c.objectId, c));
-    return cards;
-};
