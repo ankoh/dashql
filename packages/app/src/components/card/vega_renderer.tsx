@@ -1,5 +1,6 @@
 import * as React from 'react';
 import * as arrow from 'apache-arrow';
+import { IterableArrayLike, RowLike } from 'apache-arrow/type';
 import * as core from '@dashql/core';
 import * as model from '../../model';
 import { connect } from 'react-redux';
@@ -7,6 +8,61 @@ import { AutoSizer } from '../../util/autosizer';
 import { IAppContext, withAppContext } from '../../app_context';
 import { Vega } from 'react-vega';
 import { CardFrame } from './card_frame';
+
+interface VegaWithRowsProps {
+    data: arrow.Table;
+    width: number;
+    height: number;
+    vegaSpec: any;
+}
+
+interface VegaWithRowsState {
+    data: arrow.Table;
+    rows: IterableArrayLike<RowLike<any>>;
+}
+
+class VegaWithRows extends React.Component<VegaWithRowsProps, VegaWithRowsState> {
+    constructor(props: VegaWithRowsProps) {
+        super(props);
+        this.state = VegaWithRows.getDerivedStateFromProps(props);
+    }
+
+    shouldComponentUpdate(nextProps: VegaWithRowsProps) {
+        return (
+            nextProps.data != this.props.data ||
+            nextProps.width !== this.props.width ||
+            nextProps.height !== this.props.height ||
+            nextProps.vegaSpec !== this.props.vegaSpec
+        );
+    }
+
+    static getDerivedStateFromProps(props: VegaWithRowsProps, prevState?: VegaWithRowsState): VegaWithRowsState {
+        if (!prevState || props.data !== prevState?.data) {
+            return {
+                data: props.data,
+                rows: props.data.toArray(),
+            };
+        } else {
+            return prevState;
+        }
+    }
+
+    public render() {
+        return (
+            <Vega
+                style={{
+                    width: this.props.width,
+                    height: this.props.height,
+                }}
+                spec={this.props.vegaSpec as any}
+                data={{ source: this.state.rows }}
+                width={this.props.width}
+                height={this.props.height}
+                actions={false}
+            />
+        );
+    }
+}
 
 interface Props {
     appContext: IAppContext;
@@ -18,21 +74,6 @@ interface Props {
 export class VegaRenderer extends React.Component<Props> {
     protected renderContent(table: core.model.TableSummary, width: number, height: number): React.ReactElement {
         if (width == 0 && height == 0) return <div />;
-        const vega = (result: arrow.Table, w: number, h: number) => {
-            return (
-                <Vega
-                    style={{
-                        width: w,
-                        height: h,
-                    }}
-                    spec={this.props.card.vegaSpec as any}
-                    data={{ source: result.toArray() }}
-                    width={w}
-                    height={h}
-                    actions={false}
-                />
-            );
-        };
         console.assert(!!this.props.card.dataSource);
 
         switch (this.props.card.dataSource!.dataResolver) {
@@ -45,7 +86,14 @@ export class VegaRenderer extends React.Component<Props> {
                         data={this.props.card.dataSource!}
                         width={width}
                     >
-                        {result => vega(result, width, height)}
+                        {result => (
+                            <VegaWithRows
+                                data={result}
+                                width={width}
+                                height={height}
+                                vegaSpec={this.props.card.vegaSpec}
+                            />
+                        )}
                     </core.access.M5Provider>
                 );
             }
@@ -58,7 +106,14 @@ export class VegaRenderer extends React.Component<Props> {
                         table={table}
                         data={this.props.card.dataSource!}
                     >
-                        {result => vega(result, width, height)}
+                        {result => (
+                            <VegaWithRows
+                                data={result}
+                                width={width}
+                                height={height}
+                                vegaSpec={this.props.card.vegaSpec}
+                            />
+                        )}
                     </core.access.SampleProvider>
                 );
             }
