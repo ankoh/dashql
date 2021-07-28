@@ -91,15 +91,16 @@ export class TextColumnRenderer implements ColumnRenderer {
             case arrow.Type.TimeSecond:
                 console.warn('not implemented: arrow formatting TimeSecond');
                 break;
+            case arrow.Type.DateMillisecond:
+            case arrow.Type.DateDay:
             case arrow.Type.Date:
                 className = classNames(styles.cell_data, styles.cell_data_text);
-                formatter = (v: any) => v.toString();
-                break;
-            case arrow.Type.DateDay:
-                console.warn('not implemented: arrow formatting DateDay');
-                break;
-            case arrow.Type.DateMillisecond:
-                console.warn('not implemented: arrow formatting DateMillisecond');
+                formatter = (v: any) =>
+                    v.toLocaleDateString('en-US', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                    });
                 break;
 
             default:
