@@ -1,5 +1,9 @@
 @import '../../vars.module.css';
 
+:global(.react-grid-item) {
+    transition: none !important;
+}
+
 .table {
     background-color: white;
     width: 100%;
