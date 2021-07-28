@@ -109,9 +109,7 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         title: 'Vaccination Germany',
         description: 'A script that displays official vaccination data',
         icon: icon_dashboard,
-        features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_)
-            .set(ScriptFeatureTag.DATA_CSV)
-            .set(ScriptFeatureTag.TRANSFORM_JMESPATH),
+        features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_).set(ScriptFeatureTag.DATA_CSV),
         url: example_demo_vaccination_germany,
         enabled: true,
     },
