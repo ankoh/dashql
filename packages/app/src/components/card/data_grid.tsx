@@ -14,6 +14,9 @@ import { VirtualScrollbars, PositionValues } from '../virtual_scrollbars';
 
 import styles from './data_grid.module.css';
 
+const PIXEL_PER_CHAR = 8;
+const ROW_HEADER_PADDING = 16;
+
 type Props = {
     table: core.model.TableSummary;
     data: core.access.ScanResult | null;
@@ -363,7 +366,8 @@ export class DataGrid extends React.Component<Props, State> {
             <AutoSizer>
                 {({ width, height }) => {
                     const columnHeaderHeight = 24;
-                    const rowHeaderWidth = 28;
+                    const rowHeaderWidth =
+                        ROW_HEADER_PADDING + Math.ceil(Math.log(this.rowCount) / Math.log(10)) * PIXEL_PER_CHAR;
                     const columnWidth = this.computeColumnWidth(width, rowHeaderWidth);
                     const bodyHeight = height - columnHeaderHeight;
                     const bodyWidth = width - rowHeaderWidth;
