@@ -4,6 +4,15 @@
     box-sizing: border-box;
     border-bottom: var(--datagrid_cell_border);
     border-right: var(--datagrid_cell_border);
+    position: relative;
+}
+
+.data_value {
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
 
     display: grid;
     align-items: center;
@@ -15,10 +24,18 @@
     text-overflow: ellipsis;
 }
 
-.cell_data_number {
+.data_value_number {
     justify-content: end !important;
 }
 
-.cell_data_text {
+.data_value_text {
     justify-content: start !important;
+}
+
+.data_quotient {
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    background: rgb(245, 245, 245);
 }

@@ -19,28 +19,33 @@ export interface ColumnRenderer {
 
 export class TextColumnRenderer implements ColumnRenderer {
     readonly columnName: string;
-    readonly className: string;
+    readonly valueClassName: string;
     readonly values: string[];
     readonly valueMaxLength: number;
     readonly valueAvgLength: number;
+    readonly valueDomainQuotient: number[];
 
     protected constructor(
         columnName: string,
-        className: string,
+        valueClassName: string,
         values: string[],
         valueMaxLength: number,
         valueAvgLength: number,
+        valueDomainQuotient: number[],
     ) {
         this.columnName = columnName;
-        this.className = className;
+        this.valueClassName = valueClassName;
         this.values = values;
         this.valueMaxLength = valueMaxLength;
         this.valueAvgLength = valueAvgLength;
+        this.valueDomainQuotient = valueDomainQuotient;
     }
 
-    public static ReadFrom(column: arrow.Column): TextColumnRenderer {
-        let className = styles.cell_data;
+    public static ReadFrom(table: core.model.TableSummary, data: arrow.Table, index: number): TextColumnRenderer {
+        const column = data.getColumnAt(index)!;
+        let valueClassName = styles.data_value_text;
         let formatter = (v: any): string => v.toString();
+        let quotient = null;
 
         // Find formatter and classname
         switch (column.type.typeId) {
@@ -51,12 +56,23 @@ export class TextColumnRenderer implements ColumnRenderer {
             case arrow.Type.Float:
             case arrow.Type.Float16:
             case arrow.Type.Float32:
-            case arrow.Type.Float64:
-                className = classNames(styles.cell_data, styles.cell_data_number);
+            case arrow.Type.Float64: {
+                valueClassName = styles.data_value_number;
                 formatter = (v: any) => v.toString();
+
+                const minKey = core.model.buildTableStatisticsKey(core.model.TableStatisticsType.MINIMUM_VALUE, index);
+                const maxKey = core.model.buildTableStatisticsKey(core.model.TableStatisticsType.MAXIMUM_VALUE, index);
+                if (table.statistics.has(minKey) && table.statistics.has(maxKey)) {
+                    const min = (table.statistics.get(minKey)!.get(0) || 0) * 0.75;
+                    const max = table.statistics.get(maxKey)!.get(0) || 1;
+                    quotient = (v: any) => {
+                        return (v - min) / (max - min);
+                    };
+                }
                 break;
+            }
             case arrow.Type.Utf8:
-                className = classNames(styles.cell_data, styles.cell_data_text);
+                valueClassName = styles.data_value_text;
                 formatter = (v: any) => v;
                 break;
             case arrow.Type.TimeMicrosecond:
@@ -66,7 +82,7 @@ export class TextColumnRenderer implements ColumnRenderer {
                 console.warn('not implemented: arrow formatting TimeMillisecond');
                 break;
             case arrow.Type.Timestamp: {
-                className = classNames(styles.cell_data, styles.cell_data_text);
+                valueClassName = styles.data_value_text;
                 const type = column.type as arrow.Timestamp;
                 switch (type.unit) {
                     case arrow.TimeUnit.SECOND:
@@ -95,7 +111,7 @@ export class TextColumnRenderer implements ColumnRenderer {
             case arrow.Type.DateMillisecond:
             case arrow.Type.DateDay:
             case arrow.Type.Date:
-                className = classNames(styles.cell_data, styles.cell_data_text);
+                valueClassName = styles.data_value_text;
                 formatter = (v: any) =>
                     v.toLocaleDateString('en-US', {
                         day: '2-digit',
@@ -109,6 +125,7 @@ export class TextColumnRenderer implements ColumnRenderer {
         }
 
         const values = [];
+        const valueDomainQuotient = [];
         let valueLengthSum = 0;
         let valueLengthMax = 0;
         for (const chunk of column.chunks) {
@@ -117,9 +134,20 @@ export class TextColumnRenderer implements ColumnRenderer {
                 values.push(text);
                 valueLengthSum += text.length;
                 valueLengthMax = Math.max(valueLengthMax, text.length);
+                if (quotient) {
+                    valueDomainQuotient.push(quotient(value));
+                }
             }
         }
-        return new TextColumnRenderer(column.name, className, values, valueLengthMax, valueLengthSum / values.length);
+        console.log(valueDomainQuotient);
+        return new TextColumnRenderer(
+            column.name,
+            valueClassName,
+            values,
+            valueLengthMax,
+            valueLengthSum / values.length,
+            valueDomainQuotient,
+        );
     }
 
     public getColumnName(): string {
@@ -136,18 +164,26 @@ export class TextColumnRenderer implements ColumnRenderer {
 
     public renderCell(row: number, key: string, style: React.CSSProperties): React.ReactElement {
         return (
-            <div key={key} className={this.className} style={style}>
-                {this.values[row]}
+            <div key={key} className={styles.cell_data} style={style}>
+                {row < this.valueDomainQuotient.length && (
+                    <div
+                        className={styles.data_quotient}
+                        style={{
+                            width: this.valueDomainQuotient[row] * 100 + '%',
+                        }}
+                    />
+                )}
+                <div className={classNames(styles.data_value, this.valueClassName)}>{this.values[row]}</div>
             </div>
         );
     }
 }
 
-export function deriveColumnRenderers(data: core.access.ScanResult): ColumnRenderer[] {
+export function deriveColumnRenderers(table: core.model.TableSummary, data: core.access.ScanResult): ColumnRenderer[] {
     const columns = [];
     const fields = data.result.schema.fields;
     for (let i = 0; i < fields.length; ++i) {
-        const renderer = TextColumnRenderer.ReadFrom(data.result.getColumnAt(i)!);
+        const renderer = TextColumnRenderer.ReadFrom(table, data.result, i);
         columns.push(renderer);
     }
     return columns;

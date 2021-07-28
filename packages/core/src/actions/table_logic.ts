@@ -64,6 +64,7 @@ export async function collectTableInfo(
     return {
         ...info,
         columnNames,
+        columnTypes,
         columnNameMapping,
         timeUpdated,
     };
