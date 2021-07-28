@@ -1,7 +1,5 @@
 import * as React from 'react';
 import * as core from '@dashql/core';
-import * as arrow from 'apache-arrow';
-import classNames from 'classnames';
 import {
     Grid,
     GridCellProps,
@@ -25,6 +23,9 @@ type Props = {
 };
 
 type State = {
+    data: core.access.ScanResult | null;
+    columnRenderers: ColumnRenderer[];
+
     scrollTop: number;
     scrollLeft: number;
     firstVisibleRow: number;
@@ -32,8 +33,6 @@ type State = {
     overscanColumnCount: number;
     overscanRowCount: number;
     rowHeight: number;
-    data: core.access.ScanResult | null;
-    columnRenderers: ColumnRenderer[];
 };
 
 /// Render a data cell nodata for data that is not yet avaialable
@@ -51,6 +50,9 @@ export class DataGrid extends React.Component<Props, State> {
     constructor(props: Props) {
         super(props);
         this.state = DataGrid.getDerivedStateFromProps(props, {
+            data: null,
+            columnRenderers: [],
+
             scrollTop: 0,
             scrollLeft: 0,
             firstVisibleRow: 0,
@@ -58,8 +60,6 @@ export class DataGrid extends React.Component<Props, State> {
             overscanColumnCount: 0,
             overscanRowCount: 10,
             rowHeight: 24,
-            data: null,
-            columnRenderers: [],
         });
     }
 
@@ -197,17 +197,16 @@ export class DataGrid extends React.Component<Props, State> {
 
     /// Render an available data cell.
     /// Adopted from the defaultCellRangeRenderer of react-virtualized.
-    public renderAvailableDataCell<T>(
+    public renderAvailableDataCell(
         props: GridCellRangeProps,
-        rowIndex: number,
-        rowDatum: SizeAndPositionData,
+        globalRowIndex: number,
+        globalRowDatum: SizeAndPositionData,
+        localRowIndex: number,
         columnIndex: number,
         columnDatum: SizeAndPositionData,
         canCacheStyle: boolean,
-        value: T,
-        renderCell: (key: string, style: React.CSSProperties, v: T) => React.ReactNode,
     ): React.ReactNode {
-        const key = `${rowIndex}-${columnIndex}`;
+        const key = `${globalRowIndex}-${columnIndex}`;
         let style: React.CSSProperties;
 
         // Cache style objects so shallow-compare doesn't re-render unnecessarily.
@@ -216,7 +215,7 @@ export class DataGrid extends React.Component<Props, State> {
         } else {
             // In deferred mode, cells will be initially rendered before we know their size.
             // Don't interfere with CellMeasurer's measurements by setting an invalid size.
-            if (props.deferredMeasurementCache && !props.deferredMeasurementCache.has(rowIndex, columnIndex)) {
+            if (props.deferredMeasurementCache && !props.deferredMeasurementCache.has(globalRowIndex, columnIndex)) {
                 // Position not-yet-measured cells at top/left 0,0,
                 // And give them width/height of 'auto' so they can grow larger than the parent Grid if necessary.
                 // Positioning them further to the right/bottom influences their measured size.
@@ -229,10 +228,10 @@ export class DataGrid extends React.Component<Props, State> {
                 };
             } else {
                 style = {
-                    height: rowDatum.size,
+                    height: globalRowDatum.size,
                     left: columnDatum.offset + props.horizontalOffsetAdjustment,
                     position: 'absolute',
-                    top: rowDatum.offset + props.verticalOffsetAdjustment,
+                    top: globalRowDatum.offset + props.verticalOffsetAdjustment,
                     width: columnDatum.size,
                 };
 
@@ -248,18 +247,17 @@ export class DataGrid extends React.Component<Props, State> {
             !props.verticalOffsetAdjustment
         ) {
             if (!props.cellCache[key]) {
-                props.cellCache[key] = renderCell(key, style, value);
+                props.cellCache[key] = this.state.columnRenderers[columnIndex].renderCell(localRowIndex, key, style);
             }
             cell = props.cellCache[key];
         } else {
-            cell = renderCell(key, style, value);
+            cell = this.state.columnRenderers[columnIndex].renderCell(localRowIndex, key, style);
         }
         return cell;
     }
 
     /// Render a data cell range that is backed by query results
     public renderAvailableDataCellRange(props: GridCellRangeProps): React.ReactNode[] {
-        const data = this.props.data!.result;
         const cells: React.ReactNode[] = [];
 
         // Can use style cache?
@@ -271,104 +269,27 @@ export class DataGrid extends React.Component<Props, State> {
         // We render the cells column-wise to iterate over the query results more efficiently.
         // react-virtualized does this row-wise in their default render which kills our chunk iterator.
         for (let columnIndex = props.columnStartIndex; columnIndex <= props.columnStopIndex; columnIndex++) {
-            const column = data.getColumnAt(columnIndex);
-            const columnType: arrow.DataType = column?.type || arrow.Null;
             const columnDatum = props.columnSizeAndPositionManager.getSizeAndPositionOfCell(columnIndex);
-
-            // Pick cell renderer
-            let cellClass = styles.cell_data;
-            let cellFormatter = (v: any) => v.toString();
-            switch (columnType.typeId) {
-                case arrow.Type.Int:
-                case arrow.Type.Int16:
-                case arrow.Type.Int32:
-                case arrow.Type.Int64:
-                case arrow.Type.Float:
-                case arrow.Type.Float16:
-                case arrow.Type.Float32:
-                case arrow.Type.Float64:
-                    cellClass = classNames(styles.cell_data, styles.cell_data_number);
-                    cellFormatter = (v: any) => v.toString();
-                    break;
-                case arrow.Type.Utf8:
-                    cellClass = classNames(styles.cell_data, styles.cell_data_text);
-                    cellFormatter = (v: any) => v;
-                    break;
-                case arrow.Type.TimeMicrosecond:
-                    console.warn('not implemented: arrow formatting TimeMicrosecond');
-                    break;
-                case arrow.Type.TimeMillisecond:
-                    console.warn('not implemented: arrow formatting TimeMillisecond');
-                    break;
-                case arrow.Type.Timestamp: {
-                    cellClass = classNames(styles.cell_data, styles.cell_data_text);
-                    const type = columnType as arrow.Timestamp;
-                    switch (type.unit) {
-                        case arrow.TimeUnit.SECOND:
-                            cellFormatter = (v: any) => new Date(v).toString();
-                            break;
-                        case arrow.TimeUnit.MICROSECOND:
-                        case arrow.TimeUnit.MILLISECOND:
-                        case arrow.TimeUnit.NANOSECOND:
-                            console.warn('not implemented: arrow formatting Timestamp');
-                            break;
-                    }
-                    break;
-                }
-                case arrow.Type.TimestampMicrosecond:
-                    console.warn('not implemented: arrow formatting TimestampMicrosecond');
-                    break;
-                case arrow.Type.TimestampMillisecond:
-                    console.warn('not implemented: arrow formatting TimestampMillisecond');
-                    break;
-                case arrow.Type.TimestampNanosecond:
-                    console.warn('not implemented: arrow formatting TimestampNanosecond');
-                    break;
-                case arrow.Type.TimeSecond:
-                    console.warn('not implemented: arrow formatting TimeSecond');
-                    break;
-                case arrow.Type.Date:
-                    cellClass = classNames(styles.cell_data, styles.cell_data_text);
-                    cellFormatter = (v: any) => v.toString();
-                    break;
-                case arrow.Type.DateDay:
-                    console.warn('not implemented: arrow formatting DateDay');
-                    break;
-                case arrow.Type.DateMillisecond:
-                    console.warn('not implemented: arrow formatting DateMillisecond');
-                    break;
-
-                default:
-                    break;
-            }
-            const renderCell = (key: string, style: React.CSSProperties, v: any) => {
-                return (
-                    <div key={key} className={cellClass} style={{ ...style }}>
-                        {cellFormatter(v)}
-                    </div>
-                );
-            };
 
             // Render all rows
             const offset = props.rowStartIndex - this.props.data!.request.begin;
             const limit = props.rowStopIndex - props.rowStartIndex + 1;
-            let rowIndex = props.rowStartIndex;
-            for (const value of column!.slice(offset, offset + limit)) {
-                const rowDatum = props.rowSizeAndPositionManager.getSizeAndPositionOfCell(rowIndex);
+            let globalRowIndex = props.rowStartIndex;
+            for (let localRowIndex = offset; localRowIndex < offset + limit; ++localRowIndex) {
+                const globalRowDatum = props.rowSizeAndPositionManager.getSizeAndPositionOfCell(globalRowIndex);
                 const cell = this.renderAvailableDataCell(
                     props,
-                    rowIndex,
-                    rowDatum,
+                    globalRowIndex,
+                    globalRowDatum,
+                    localRowIndex,
                     columnIndex,
                     columnDatum,
                     canCacheStyle,
-                    value,
-                    renderCell,
                 );
                 if (cell) {
                     cells.push(cell);
                 }
-                ++rowIndex;
+                ++globalRowIndex;
             }
         }
         return cells;
