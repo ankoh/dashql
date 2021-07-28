@@ -63,8 +63,9 @@ export class TextColumnRenderer implements ColumnRenderer {
                 const minKey = core.model.buildTableStatisticsKey(core.model.TableStatisticsType.MINIMUM_VALUE, index);
                 const maxKey = core.model.buildTableStatisticsKey(core.model.TableStatisticsType.MAXIMUM_VALUE, index);
                 if (table.statistics.has(minKey) && table.statistics.has(maxKey)) {
-                    const min = (table.statistics.get(minKey)!.get(0) || 0) * 0.75;
+                    let min = table.statistics.get(minKey)!.get(0) || 0;
                     const max = table.statistics.get(maxKey)!.get(0) || 1;
+                    min = Math.max(min - (max - min), 0);
                     quotient = (v: any) => {
                         return (v - min) / (max - min);
                     };
