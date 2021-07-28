@@ -39,6 +39,12 @@
     justify-content: center;
 }
 
+.header_col_label {
+    padding: 0px 8px;
+    background: rgb(210, 210, 210);
+    border-radius: 4px;
+}
+
 .cell_header_row {
     box-sizing: border-box;
     border-bottom: var(--datagrid_cell_headers_border);
