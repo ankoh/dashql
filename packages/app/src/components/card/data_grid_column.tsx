@@ -110,8 +110,8 @@ export class TextColumnRenderer implements ColumnRenderer {
         let valueLengthSum = 0;
         let valueLengthMax = 0;
         for (const chunk of column.chunks) {
-            for (let i = 0; i < chunk.numChildren; ++i) {
-                const text = formatter(chunk.get(i));
+            for (const value of chunk) {
+                const text = formatter(value);
                 values.push(text);
                 valueLengthSum += text.length;
                 valueLengthMax = Math.max(valueLengthMax, text.length);
@@ -138,5 +138,11 @@ export class TextColumnRenderer implements ColumnRenderer {
 }
 
 export function deriveColumnRenderers(data: core.access.ScanResult): ColumnRenderer[] {
-    return [];
+    const columns = [];
+    const fields = data.result.schema.fields;
+    for (let i = 0; i < fields.length; ++i) {
+        const renderer = TextColumnRenderer.ReadFrom(data.result.getColumnAt(i)!);
+        columns.push(renderer);
+    }
+    return columns;
 }
