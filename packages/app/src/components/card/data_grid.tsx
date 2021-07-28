@@ -118,7 +118,7 @@ export class DataGrid extends React.Component<Props, State> {
         let columnRenderers = prevState.columnRenderers;
         let totalRowCount = prevState.totalRowCount;
         if (props.data !== prevState.data) {
-            columnRenderers = deriveColumnRenderers(props.data!);
+            columnRenderers = deriveColumnRenderers(props.table, props.data!);
 
             // Get the row count
             const key = core.model.buildTableStatisticsKey(core.model.TableStatisticsType.COUNT_STAR);

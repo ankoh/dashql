@@ -105,7 +105,7 @@ export class DatabaseManager {
             queue = new TableStatistics(this, qualifiedName);
             this._tableStatistics.set(qualifiedName, queue);
         }
-        return queue.request(columnId, type);
+        return queue.request(type, columnId);
     }
 
     /// Evaluate pending table statistics
