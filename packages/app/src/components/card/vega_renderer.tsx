@@ -17,6 +17,7 @@ interface Props {
 
 export class VegaRenderer extends React.Component<Props> {
     protected renderContent(table: core.model.TableSummary, width: number, height: number): React.ReactElement {
+        if (width == 0 && height == 0) return <div />;
         const vega = (result: arrow.Table, w: number, h: number) => {
             return (
                 <Vega

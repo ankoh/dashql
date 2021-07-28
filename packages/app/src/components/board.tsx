@@ -1,3 +1,4 @@
+import Immutable from 'immutable';
 import * as core from '@dashql/core';
 import * as React from 'react';
 import * as model from '../model';
@@ -13,41 +14,72 @@ type Props = {
     appContext: IAppContext;
     className?: string;
     width: number;
-    cards: Map<number, core.model.CardSpecification>;
-    rewriteProgram: (instance: core.model.ProgramInstance) => void;
+    planState: core.model.PlanState;
     editable?: boolean;
     columnCount: number;
     rowHeight: number;
     containerPadding: [number, number];
     elementMargin: [number, number];
+
+    rewriteProgram: (instance: core.model.ProgramInstance) => void;
+};
+
+type State = {
+    planObjects: Immutable.Map<core.model.PlanObjectID, core.model.PlanObject>;
+    layout: LayoutElement[];
 };
 
 interface LayoutElement {
+    card: core.model.CardSpecification;
     i: string;
-    oid: number;
     x: number;
     y: number;
     w: number;
     h: number;
 }
 
-class BoardLayout extends React.Component<Props> {
+class BoardLayout extends React.Component<Props, State> {
     _dirty: boolean;
+
+    _markDirty = this.markDirty.bind(this);
+    _onLayoutChanged = this.onLayoutChanged.bind(this);
 
     constructor(props: Props) {
         super(props);
         this._dirty = false;
+        this.state = BoardLayout.getDerivedStateFromProps(props);
     }
 
     shouldComponentUpdate(nextProps: Props) {
-        return nextProps.width != this.props.width || nextProps.cards !== this.props.cards;
+        return nextProps.width != this.props.width || nextProps.planState !== this.props.planState;
+    }
+
+    static getDerivedStateFromProps(props: Props, prevState?: State): State {
+        if (props.planState.objects == prevState?.planObjects) {
+            return prevState;
+        }
+        const els: LayoutElement[] = [];
+        core.model.forEachCard(props.planState, (card, i) => {
+            els.push({
+                card: card,
+                i: card.objectId.toString(),
+                x: card.position.column,
+                y: card.position.row,
+                w: card.position.width || 12,
+                h: card.position.height || 4,
+            });
+        });
+        return {
+            planObjects: props.planState.objects,
+            layout: els,
+        };
     }
 
     onLayoutChanged(layout: Layout[]) {
         if (!this._dirty) return;
         this._dirty = false;
         const updates: core.edit.EditOperationVariant[] = layout.map(l => ({
-            statementID: this.props.cards.get((l as LayoutElement).oid)!.statementID,
+            statementID: (l as LayoutElement).card.statementID,
             type: core.edit.EditOperationType.UPDATE_CARD_POSITION,
             data: {
                 position: {
@@ -65,32 +97,17 @@ class BoardLayout extends React.Component<Props> {
         }
     }
 
-    getLayout(data: Map<number, core.model.CardSpecification>): LayoutElement[] {
-        const els: LayoutElement[] = [];
-        for (const d of data.values()) {
-            els.push({
-                i: d.objectId.toString(),
-                oid: d.objectId,
-                x: d.position.column,
-                y: d.position.row,
-                w: d.position.width || 8,
-                h: d.position.height || 4,
-            });
-        }
-        return els;
-    }
-
     markDirty() {
         this._dirty = true;
     }
 
     render() {
         const els: React.ReactElement[] = [];
-        for (const v of this.props.cards.values()) {
-            if (!v.visible) continue;
+        for (const l of this.state.layout) {
+            if (!l.card.visible) continue;
             els.push(
-                <div key={v.objectId.toString()}>
-                    <CardRenderer card={v} editable={this.props.editable} />
+                <div key={l.card.objectId}>
+                    <CardRenderer card={l.card} editable={this.props.editable} />
                 </div>,
             );
         }
@@ -104,10 +121,10 @@ class BoardLayout extends React.Component<Props> {
                 compactType={null}
                 isDraggable={!!this.props.editable}
                 isResizable={!!this.props.editable}
-                onDragStart={this.markDirty.bind(this)}
-                onResizeStart={this.markDirty.bind(this)}
-                onLayoutChange={this.onLayoutChanged.bind(this)}
-                layout={this.getLayout(this.props.cards)}
+                onDragStart={this._markDirty}
+                onResizeStart={this._markDirty}
+                onLayoutChange={this._onLayoutChanged}
+                layout={this.state.layout}
                 containerPadding={this.props.containerPadding}
                 margin={this.props.elementMargin}
             >
@@ -118,7 +135,7 @@ class BoardLayout extends React.Component<Props> {
 }
 
 const mapStateToProps = (state: model.AppState) => ({
-    cards: core.model.collectCards(state.core.planState),
+    planState: state.core.planState,
 });
 
 const mapDispatchToProps = (dispatch: model.Dispatch) => ({
