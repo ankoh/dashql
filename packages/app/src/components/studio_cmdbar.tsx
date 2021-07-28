@@ -5,7 +5,6 @@ import { connect } from 'react-redux';
 
 import icon_autorun from '../../static/svg/icons/autorun.svg';
 import icon_file_download from '../../static/svg/icons/file_download.svg';
-import icon_undo from '../../static/svg/icons/undo.svg';
 
 import styles from './cmdbars.module.css';
 
@@ -46,7 +45,6 @@ export class StudioCommandBar extends React.Component<StudioCommandBarProps> {
             <div className={styles.cmdbar_studio}>
                 <div className={styles.cmdbar_cmdset}>
                     <Action icon={icon_autorun} onClick={this.props.resetPlan} />
-                    <Action icon={icon_undo} onClick={() => {}} />
                 </div>
                 <div className={styles.cmdbar_cmdset} />
                 <div className={styles.cmdbar_cmdset}>
