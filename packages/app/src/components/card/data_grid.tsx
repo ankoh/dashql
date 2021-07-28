@@ -159,16 +159,6 @@ export class DataGrid extends React.Component<Props, State> {
             }
         }
 
-        // Trim all column labels
-        for (let i = 0; i < columnWidths.length; ++i) {
-            const name: string = columnNames[i];
-            if (columnWidths[i] < name.length * PIXEL_PER_CHAR) {
-                const chars = Math.max(Math.floor(columnWidths[i] / PIXEL_PER_CHAR), 2) - 2;
-                const side = chars / 2;
-                columnNames[i] = name.substr(0, side) + '..' + name.substr(name.length - side, side);
-            }
-        }
-
         const state = {
             ...prevState,
 
