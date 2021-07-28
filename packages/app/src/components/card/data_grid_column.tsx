@@ -12,6 +12,7 @@ export interface ColumnLayoutInfo {
 }
 
 export interface ColumnRenderer {
+    getColumnName(): string;
     getLayoutInfo(): ColumnLayoutInfo;
     renderCell(row: number, key: string, style: React.CSSProperties): React.ReactElement;
 }
@@ -119,6 +120,10 @@ export class TextColumnRenderer implements ColumnRenderer {
             }
         }
         return new TextColumnRenderer(column.name, className, values, valueLengthMax, valueLengthSum / values.length);
+    }
+
+    public getColumnName(): string {
+        return this.columnName;
     }
 
     public getLayoutInfo(): ColumnLayoutInfo {

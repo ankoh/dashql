@@ -39,6 +39,7 @@ type State = {
     columnHeaderHeight: number;
     columnWidths: number[];
     columnWidthSum: number;
+    columnNames: string[];
     rowHeaderWidth: number;
     rowHeight: number;
 
@@ -72,10 +73,11 @@ export class DataGrid extends React.Component<Props, State> {
 
             width: 0,
             height: 0,
-            columnHeaderHeight: 24,
+            columnHeaderHeight: 28,
             columnWidths: [],
             columnWidthSum: 0,
-            rowHeight: 24,
+            columnNames: [],
+            rowHeight: 28,
             rowHeaderWidth: 0,
 
             scrollTop: 0,
@@ -107,6 +109,7 @@ export class DataGrid extends React.Component<Props, State> {
                 height: props.height,
                 columnWidths: [],
                 columnWidthSum: 0,
+                columnNames: [],
                 rowHeaderWidth: 0,
             };
         }
@@ -131,6 +134,7 @@ export class DataGrid extends React.Component<Props, State> {
 
         // Compute the column widths
         const columnWidths = [];
+        const columnNames = [];
         let columnWidthSum = 0;
         for (const renderer of columnRenderers) {
             const info = renderer.getLayoutInfo();
@@ -142,6 +146,7 @@ export class DataGrid extends React.Component<Props, State> {
             const requiredPX = required * PIXEL_PER_CHAR + DATA_CELL_PADDING;
             columnWidths.push(requiredPX);
             columnWidthSum += requiredPX;
+            columnNames.push(renderer.getColumnName());
         }
 
         // If we the table does not fill the entire space, we resize every cell by a single growth factor
@@ -153,6 +158,17 @@ export class DataGrid extends React.Component<Props, State> {
                 columnWidthSum += columnWidths[i];
             }
         }
+
+        // Trim all column labels
+        for (let i = 0; i < columnWidths.length; ++i) {
+            const name: string = columnNames[i];
+            if (columnWidths[i] < name.length * PIXEL_PER_CHAR) {
+                const chars = Math.max(Math.floor(columnWidths[i] / PIXEL_PER_CHAR), 2) - 2;
+                const side = chars / 2;
+                columnNames[i] = name.substr(0, side) + '..' + name.substr(name.length - side, side);
+            }
+        }
+
         const state = {
             ...prevState,
 
@@ -164,6 +180,7 @@ export class DataGrid extends React.Component<Props, State> {
             height: props.width,
             columnWidths,
             columnWidthSum,
+            columnNames,
             rowHeaderWidth,
         };
         return state;
@@ -216,7 +233,7 @@ export class DataGrid extends React.Component<Props, State> {
     protected renderColumnHeaderCell(props: GridCellProps): JSX.Element {
         return (
             <div key={props.key} className={styles.cell_header_col} style={{ ...props.style }}>
-                {this.props.table.columnNames[props.columnIndex] || '?'}
+                <span className={styles.header_col_label}>{this.state.columnNames[props.columnIndex]}</span>
             </div>
         );
     }
