@@ -11,6 +11,7 @@ import {
     SizeAndPositionData,
 } from 'react-virtualized';
 import { VirtualScrollbars, PositionValues } from '../virtual_scrollbars';
+import { ColumnRenderer, deriveColumnRenderers } from './data_grid_column';
 
 import styles from './data_grid.module.css';
 
@@ -31,6 +32,8 @@ type State = {
     overscanColumnCount: number;
     overscanRowCount: number;
     rowHeight: number;
+    data: core.access.ScanResult | null;
+    columnRenderers: ColumnRenderer[];
 };
 
 /// Render a data cell nodata for data that is not yet avaialable
@@ -47,7 +50,7 @@ export class DataGrid extends React.Component<Props, State> {
 
     constructor(props: Props) {
         super(props);
-        this.state = {
+        this.state = DataGrid.getDerivedStateFromProps(props, {
             scrollTop: 0,
             scrollLeft: 0,
             firstVisibleRow: 0,
@@ -55,6 +58,27 @@ export class DataGrid extends React.Component<Props, State> {
             overscanColumnCount: 0,
             overscanRowCount: 10,
             rowHeight: 24,
+            data: null,
+            columnRenderers: [],
+        });
+    }
+
+    // Derive the grid state
+    static getDerivedStateFromProps(props: Props, prevState: State): State {
+        if (props.data === prevState.data) {
+            return prevState;
+        }
+        if (!props.data) {
+            return {
+                ...prevState,
+                data: null,
+                columnRenderers: [],
+            };
+        }
+        return {
+            ...prevState,
+            data: props.data,
+            columnRenderers: deriveColumnRenderers(props.data!),
         };
     }
 
@@ -82,7 +106,6 @@ export class DataGrid extends React.Component<Props, State> {
         const maxVisibleRows = this.rowCount! - firstVisibleRow;
         const visibleRows = Math.min(Math.trunc(pos.clientHeight / this.state.rowHeight), maxVisibleRows);
         this.setState({
-            ...this.state,
             scrollTop: pos.scrollTop,
             scrollLeft: pos.scrollLeft,
             firstVisibleRow: firstVisibleRow,
