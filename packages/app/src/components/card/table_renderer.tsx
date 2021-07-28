@@ -23,6 +23,7 @@ export class TableRenderer extends React.Component<Props> {
 
     /// Render the table
     public render(): React.ReactElement {
+        const target = this.props.card.dataSource!.targetQualified;
         const logger = this.props.appContext.platform!.logger;
         const db = this.props.appContext.platform!.database;
         const data = this.props.card.dataSource!;
@@ -31,7 +32,7 @@ export class TableRenderer extends React.Component<Props> {
             return <div />;
         }
         return (
-            <CardFrame title={this.props.card.title || 'Some Title'} controls={this.props.editable}>
+            <CardFrame title={this.props.card.title || target} controls={this.props.editable}>
                 <ScanProvider
                     logger={logger}
                     database={db}
