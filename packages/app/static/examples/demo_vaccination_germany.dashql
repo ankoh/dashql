@@ -1,9 +1,10 @@
 -- Fetch covid data
-FETCH csv_vaccinations
-FROM 'https://impfdashboard.de/static/data/germany_vaccinations_timeseries_v2.tsv';
+FETCH csv_vacc       FROM 'https://impfdashboard.de/static/data/germany_vaccinations_timeseries_v2.tsv';
+FETCH csv_vacc_state FROM 'https://impfdashboard.de/static/data/germany_vaccinations_by_state.tsv';
+FETCH csv_deliveries FROM 'https://impfdashboard.de/static/data/germany_deliveries_timeseries_v2.tsv';
 
 -- Load data into DuckDB
-LOAD vaccinations FROM csv_vaccinations USING CSV;
+LOAD vaccinations FROM csv_vacc USING CSV;
 
 -- Visualize vaccination data
 VIZ vaccinations USING VEGA (
