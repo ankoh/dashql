@@ -5,6 +5,7 @@ import * as arrow from 'apache-arrow';
 import { VegaComposer } from '../viz/vega_composer';
 import { ProgramActionLogic, SetupActionLogic } from './action_logic';
 import { ActionContext } from './action_context';
+import { TableStatisticsType } from '../model';
 
 export abstract class VizActionLogic extends ProgramActionLogic {
     /// The viz spec
@@ -53,6 +54,35 @@ export abstract class VizActionLogic extends ProgramActionLogic {
                     target,
                     model.TableStatisticsType.COUNT_STAR,
                 );
+                // Request table statistics
+                for (let i = 0; i < this._table.columnTypes.length; ++i) {
+                    const type = this._table.columnTypes[i];
+                    switch (type.typeId) {
+                        case arrow.Type.Int:
+                        case arrow.Type.Int16:
+                        case arrow.Type.Int32:
+                        case arrow.Type.Int64:
+                        case arrow.Type.Float:
+                        case arrow.Type.Float16:
+                        case arrow.Type.Float32:
+                        case arrow.Type.Float64:
+                        case arrow.Type.Uint8:
+                        case arrow.Type.Uint16:
+                        case arrow.Type.Uint32:
+                        case arrow.Type.Uint64:
+                            context.platform.database.requestTableStatistics(
+                                target,
+                                TableStatisticsType.MAXIMUM_VALUE,
+                                i,
+                            );
+                            context.platform.database.requestTableStatistics(
+                                target,
+                                TableStatisticsType.MINIMUM_VALUE,
+                                i,
+                            );
+                            break;
+                    }
+                }
                 break;
             }
             case model.CardRendererType.BUILTIN_JSON:
