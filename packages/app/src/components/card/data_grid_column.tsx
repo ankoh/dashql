@@ -58,7 +58,7 @@ export class TextColumnRenderer implements ColumnRenderer {
             case arrow.Type.Float32:
             case arrow.Type.Float64: {
                 valueClassName = styles.data_value_number;
-                formatter = (v: any) => v.toString();
+                formatter = (v: any) => v.toLocaleString('en-US');
 
                 const minKey = core.model.buildTableStatisticsKey(core.model.TableStatisticsType.MINIMUM_VALUE, index);
                 const maxKey = core.model.buildTableStatisticsKey(core.model.TableStatisticsType.MAXIMUM_VALUE, index);
