@@ -41,6 +41,8 @@
     align-items: center;
     justify-content: center;
     grid-template-columns: fit-content(80%);
+
+    font-size: var(--datagrid_font_size);
 }
 
 .header_col_label {
@@ -61,6 +63,8 @@
     display: grid;
     align-items: center;
     justify-content: center;
+
+    font-size: var(--datagrid_font_size);
 }
 
 .cell_nodata {

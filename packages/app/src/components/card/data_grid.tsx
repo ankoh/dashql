@@ -16,9 +16,9 @@ import { withAutoSizer } from '../../util/autosizer';
 
 const PIXEL_PER_CHAR = 8;
 const ROW_HEADER_PADDING = 20;
-const DATA_CELL_PADDING = 20;
-const MAX_COLUMN_HEADER_OVERSIZE = 2;
-const MAX_DATA_CELL_OVERSIZE = 2;
+const VALUE_PADDING = 20;
+const MAX_COLUMN_HEADER_STRETCH = 1.25;
+const MAX_VALUE_STRETCH = 2;
 
 type Props = {
     width: number;
@@ -138,14 +138,16 @@ export class DataGrid extends React.Component<Props, State> {
         let columnWidthSum = 0;
         for (const renderer of columnRenderers) {
             const info = renderer.getLayoutInfo();
-            let required = Math.min(info.valueMaxWidth, info.valueAvgWidth * MAX_DATA_CELL_OVERSIZE);
-            if (info.headerWidth > required) {
-                required = Math.min(info.headerWidth, required * MAX_COLUMN_HEADER_OVERSIZE);
+            let required =
+                Math.min(info.valueMaxWidth, info.valueAvgWidth * MAX_VALUE_STRETCH) * PIXEL_PER_CHAR + VALUE_PADDING;
+            required += info.withDomainBar ? 56 : 0;
+            const header = info.headerWidth * PIXEL_PER_CHAR + VALUE_PADDING;
+            if (header > required) {
+                required = Math.min(header, required * MAX_COLUMN_HEADER_STRETCH);
             }
             required = Math.ceil(required);
-            const requiredPX = required * PIXEL_PER_CHAR + DATA_CELL_PADDING;
-            columnWidths.push(requiredPX);
-            columnWidthSum += requiredPX;
+            columnWidths.push(required);
+            columnWidthSum += required;
             columnNames.push(renderer.getColumnName());
         }
 

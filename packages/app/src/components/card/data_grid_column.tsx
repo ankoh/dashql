@@ -5,10 +5,15 @@ import React from 'react';
 
 import styles from './data_grid_column.module.css';
 
+// Automatically enable domain ratios for numerical data if
+// (min(x) / max(x)) <= NUMERIC_DOMAIN_RATIO_THRESHOLD
+const NUMERIC_DOMAIN_RATIO_THRESHOLD = 0.6;
+
 export interface ColumnLayoutInfo {
     headerWidth: number;
     valueAvgWidth: number;
     valueMaxWidth: number;
+    withDomainBar: boolean;
 }
 
 export interface ColumnRenderer {
@@ -23,7 +28,7 @@ export class TextColumnRenderer implements ColumnRenderer {
     readonly values: string[];
     readonly valueMaxLength: number;
     readonly valueAvgLength: number;
-    readonly valueDomainQuotient: number[];
+    readonly valueDomainRatios: number[];
 
     protected constructor(
         columnName: string,
@@ -31,21 +36,21 @@ export class TextColumnRenderer implements ColumnRenderer {
         values: string[],
         valueMaxLength: number,
         valueAvgLength: number,
-        valueDomainQuotient: number[],
+        valueDomainRatios: number[],
     ) {
         this.columnName = columnName;
         this.valueClassName = valueClassName;
         this.values = values;
         this.valueMaxLength = valueMaxLength;
         this.valueAvgLength = valueAvgLength;
-        this.valueDomainQuotient = valueDomainQuotient;
+        this.valueDomainRatios = valueDomainRatios;
     }
 
     public static ReadFrom(table: core.model.TableSummary, data: arrow.Table, index: number): TextColumnRenderer {
         const column = data.getColumnAt(index)!;
         let valueClassName = styles.data_value_text;
         let formatter = (v: any): string => v.toString();
-        let quotient = null;
+        let valueDomainRatio = null;
 
         // Find formatter and classname
         switch (column.type.typeId) {
@@ -63,12 +68,13 @@ export class TextColumnRenderer implements ColumnRenderer {
                 const minKey = core.model.buildTableStatisticsKey(core.model.TableStatisticsType.MINIMUM_VALUE, index);
                 const maxKey = core.model.buildTableStatisticsKey(core.model.TableStatisticsType.MAXIMUM_VALUE, index);
                 if (table.statistics.has(minKey) && table.statistics.has(maxKey)) {
-                    let min = table.statistics.get(minKey)!.get(0) || 0;
+                    const min = table.statistics.get(minKey)!.get(0) || 0;
                     const max = table.statistics.get(maxKey)!.get(0) || 1;
-                    min = Math.max(min - (max - min), 0);
-                    quotient = (v: any) => {
-                        return (v - min) / (max - min);
-                    };
+                    if (min / max < NUMERIC_DOMAIN_RATIO_THRESHOLD) {
+                        valueDomainRatio = (v: any) => {
+                            return v / max;
+                        };
+                    }
                 }
                 break;
             }
@@ -126,7 +132,7 @@ export class TextColumnRenderer implements ColumnRenderer {
         }
 
         const values = [];
-        const valueDomainQuotient = [];
+        const valueDomainRatios = [];
         let valueLengthSum = 0;
         let valueLengthMax = 0;
         for (const chunk of column.chunks) {
@@ -135,19 +141,19 @@ export class TextColumnRenderer implements ColumnRenderer {
                 values.push(text);
                 valueLengthSum += text.length;
                 valueLengthMax = Math.max(valueLengthMax, text.length);
-                if (quotient) {
-                    valueDomainQuotient.push(quotient(value));
+                if (valueDomainRatio) {
+                    valueDomainRatios.push(valueDomainRatio(value));
                 }
             }
         }
-        console.log(valueDomainQuotient);
+        console.log(valueDomainRatio);
         return new TextColumnRenderer(
             column.name,
             valueClassName,
             values,
             valueLengthMax,
             valueLengthSum / values.length,
-            valueDomainQuotient,
+            valueDomainRatios,
         );
     }
 
@@ -160,23 +166,34 @@ export class TextColumnRenderer implements ColumnRenderer {
             headerWidth: this.columnName.length,
             valueMaxWidth: this.valueMaxLength,
             valueAvgWidth: this.valueAvgLength,
+            withDomainBar: this.valueDomainRatios.length > 0,
         };
     }
 
     public renderCell(row: number, key: string, style: React.CSSProperties): React.ReactElement {
-        return (
-            <div key={key} className={styles.cell_data} style={style}>
-                {row < this.valueDomainQuotient.length && (
-                    <div
-                        className={styles.data_quotient}
-                        style={{
-                            width: this.valueDomainQuotient[row] * 100 + '%',
-                        }}
-                    />
-                )}
-                <div className={classNames(styles.data_value, this.valueClassName)}>{this.values[row]}</div>
-            </div>
-        );
+        if (row < this.valueDomainRatios.length) {
+            return (
+                <div key={key} className={styles.cell_with_domain} style={style}>
+                    <div className={classNames(styles.data_value, this.valueClassName)}>{this.values[row]}</div>
+                    <div className={styles.data_domain}>
+                        <div className={styles.data_domain_bar}>
+                            <div
+                                className={styles.data_domain_bar_fill}
+                                style={{
+                                    width: this.valueDomainRatios[row] * 100 + '%',
+                                }}
+                            />
+                        </div>
+                    </div>
+                </div>
+            );
+        } else {
+            return (
+                <div key={key} className={styles.cell} style={style}>
+                    <div className={classNames(styles.data_value, this.valueClassName)}>{this.values[row]}</div>
+                </div>
+            );
+        }
     }
 }
 
