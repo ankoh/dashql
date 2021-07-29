@@ -17,7 +17,7 @@ import { withAutoSizer } from '../../util/autosizer';
 const PIXEL_PER_CHAR = 8;
 const ROW_HEADER_PADDING = 20;
 const VALUE_PADDING = 20;
-const MAX_COLUMN_HEADER_STRETCH = 1.25;
+const MAX_COLUMN_HEADER_STRETCH = 1;
 const MAX_VALUE_STRETCH = 2;
 
 type Props = {
