@@ -7,7 +7,7 @@ import styles from './data_grid_column.module.css';
 
 // Automatically enable domain ratios for numerical data if
 // (min(x) / max(x)) <= NUMERIC_DOMAIN_RATIO_THRESHOLD
-const NUMERIC_DOMAIN_RATIO_THRESHOLD = 0.6;
+const NUMERIC_DOMAIN_RATIO_THRESHOLD = 0.75;
 
 export interface ColumnLayoutInfo {
     headerWidth: number;
