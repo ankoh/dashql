@@ -107,10 +107,10 @@ constexpr size_t DISCARD_SYNTAX_MATCH = std::numeric_limits<uint32_t>::max();
 struct ASTMatcher {
     /// The matcher type
     ASTMatcherType node_spec = ASTMatcherType::OBJECT;
-    /// The attribute key (if any)
-    sx::AttributeKey attribute_key = sx::AttributeKey::NONE;
     /// The node type
     sx::NodeType node_type = sx::NodeType::NONE;
+    /// The attribute key (if any)
+    uint16_t attribute_key;
     /// The matching identifier (if any)
     size_t matching_id = DISCARD_SYNTAX_MATCH;
     /// The children (if any)
@@ -119,83 +119,74 @@ struct ASTMatcher {
     static inline ASTMatcher Element(size_t matching = DISCARD_SYNTAX_MATCH) {
         return {
             .node_spec = ASTMatcherType::OBJECT,
-            .attribute_key = sx::AttributeKey::NONE,
             .node_type = sx::NodeType::NONE,
+            .attribute_key = 0,
             .matching_id = matching,
             .children = {},
         };
     }
 
+    /// Match an attribute
     static inline ASTMatcher Attribute(sx::AttributeKey key, size_t matching = DISCARD_SYNTAX_MATCH) {
         return {
             .node_spec = ASTMatcherType::OBJECT,
-            .attribute_key = key,
             .node_type = sx::NodeType::NONE,
+            .attribute_key = static_cast<uint16_t>(key),
             .matching_id = matching,
             .children = {},
         };
     }
 
-    static inline ASTMatcher Option(sx::AttributeKey key, size_t matching = DISCARD_SYNTAX_MATCH) {
-        return {
-            .node_spec = ASTMatcherType::OBJECT,
-            .attribute_key = key,
-            .node_type = sx::NodeType::NONE,
-            .matching_id = matching,
-            .children = {},
-        };
-    }
-
-    /// Add children
+    /// Match children
     inline ASTMatcher& MatchChildren(std::initializer_list<ASTMatcher> c) {
         assert(std::is_sorted(c.begin(), c.end(), [&](auto& l, auto& r) { return l.attribute_key < r.attribute_key; }));
         children = std::move(c);
         return *this;
     }
 
-    /// Create an object
+    /// Match an object
     constexpr inline ASTMatcher& MatchObject(sx::NodeType type) {
         node_spec = ASTMatcherType::OBJECT;
         node_type = type;
         return *this;
     }
-    /// Create options
-    constexpr inline ASTMatcher& MatchOptions() {
+    /// Match dson object
+    constexpr inline ASTMatcher& MatchDSON() {
         node_spec = ASTMatcherType::OBJECT;
-        node_type = sx::NodeType::OBJECT_DASHQL_OPTION_LIST;
+        node_type = sx::NodeType::OBJECT_DSON;
         return *this;
     }
-    /// Create an array
+    /// Match an array
     constexpr inline ASTMatcher& MatchArray() {
         node_spec = ASTMatcherType::ARRAY;
         node_type = sx::NodeType::ARRAY;
         return *this;
     }
-    /// Create a string
+    /// Match a string
     constexpr inline ASTMatcher& MatchString() {
         node_spec = ASTMatcherType::STRING;
         node_type = sx::NodeType::NONE;
         return *this;
     }
-    /// Create a boolean
+    /// Match a boolean
     constexpr inline ASTMatcher& MatchBool() {
         node_spec = ASTMatcherType::BOOL;
         node_type = sx::NodeType::BOOL;
         return *this;
     }
-    /// Create an enum
+    /// Match an enum
     constexpr inline ASTMatcher& MatchEnum(sx::NodeType type) {
         node_spec = ASTMatcherType::ENUM;
         node_type = type;
         return *this;
     }
-    /// Create an integer
+    /// Match an integer
     constexpr inline ASTMatcher& MatchUI32() {
         node_spec = ASTMatcherType::UI32;
         node_type = sx::NodeType::UI32;
         return *this;
     }
-    /// Create an integer bitmap
+    /// Match an integer bitmap
     constexpr inline ASTMatcher& MatchUI32Bitmap() {
         node_spec = ASTMatcherType::UI32_BITMAP;
         node_type = sx::NodeType::UI32_BITMAP;

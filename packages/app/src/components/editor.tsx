@@ -109,8 +109,8 @@ class TokensProvider implements monaco.languages.TokensProvider {
                 case proto.syntax.HighlightingTokenType.OPERATOR:
                     token.scopes = 'keyword.operator';
                     break;
-                case proto.syntax.HighlightingTokenType.OPTION_KEY:
-                    token.scopes = 'option.key';
+                case proto.syntax.HighlightingTokenType.DSON_KEY:
+                    token.scopes = 'dson.key';
                     break;
                 case proto.syntax.HighlightingTokenType.IDENTIFIER:
                     token.scopes = '';

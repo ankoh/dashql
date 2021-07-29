@@ -8,6 +8,7 @@
 #include <stack>
 #include <unordered_set>
 
+#include "dashql/parser/grammar/dson.h"
 #include "dashql/parser/grammar/enums.h"
 #include "dashql/proto_generated.h"
 #include "pugixml.hpp"
@@ -48,12 +49,14 @@ void EncodeError(pugi::xml_node n, const proto::syntax::ErrorT& err, std::string
 
 /// Encode yaml
 void GrammarTest::EncodeProgram(pugi::xml_node root, const proto::syntax::ProgramT& program, std::string_view text) {
+    // The dson dictionary
+    parser::DSONDictionary dson{text, program};
+
     // Unpack modules
     auto& nodes = program.nodes;
     auto& statements = program.statements;
     auto* stmt_type_tt = proto::syntax::StatementTypeTypeTable();
     auto* node_type_tt = proto::syntax::NodeTypeTypeTable();
-    auto* attr_key_tt = proto::syntax::AttributeKeyTypeTable();
 
     // Add the statements list
     auto stmts = root.append_child("statements");
@@ -74,8 +77,9 @@ void GrammarTest::EncodeProgram(pugi::xml_node root, const proto::syntax::Progra
             pending.pop_back();
 
             // Add or append to parent
-            if (target->attribute_key() != sx::AttributeKey::NONE) {
-                n.append_attribute("key") = attr_key_tt->names[static_cast<size_t>(target->attribute_key())];
+            if (target->attribute_key() != 0) {
+                std::string key{dson.keyToString(target->attribute_key())};
+                n.append_attribute("key").set_value(key.c_str());
             }
 
             // Check node type
@@ -141,6 +145,13 @@ void GrammarTest::EncodeProgram(pugi::xml_node root, const proto::syntax::Progra
     for (auto& comment : program.comments) {
         auto comment_node = comments.append_child("comment");
         EncodeLocation(comment_node, comment, text);
+    }
+
+    // Add comments
+    auto dson_keys = root.append_child("dson_keys");
+    for (auto& key : program.dson_keys) {
+        auto key_node = dson_keys.append_child("key");
+        EncodeLocation(key_node, key, text);
     }
 
     // Add comments

@@ -12,11 +12,11 @@
 namespace dashql {
 
 enum class LinterMessageCode {
-    OPTION_ALTERNATIVE,
-    OPTION_ALTERNATIVE_STYLE,
-    OPTION_REDUNDANT,
-    OPTION_NOT_UNIQUE,
-    OPTION_MISSING,
+    KEY_ALTERNATIVE,
+    KEY_ALTERNATIVE_STYLE,
+    KEY_REDUNDANT,
+    KEY_NOT_UNIQUE,
+    KEY_MISSING,
 };
 
 struct LinterMessage {

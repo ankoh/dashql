@@ -30,10 +30,10 @@ class DocumentWriter {
     /// Get the patch
     auto& patch() { return patch_; }
 
-    /// Write all options directly as JSON.
-    void writeOptionsAsJSON(std::ostream& out, bool pretty = false);
-    /// Write all options directly as SQLJSON.
-    void writeOptionsAsSQLJSON(std::ostream& out, bool pretty = false);
+    /// Write as JSON.
+    void writeAsJSON(std::ostream& out, bool pretty = false, bool only_dson = false);
+    /// Write as script.
+    void writeAsScript(std::ostream& out, bool pretty = false, bool only_dson = false);
 };
 
 }  // namespace json

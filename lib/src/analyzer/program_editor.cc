@@ -29,7 +29,7 @@ struct VizChangePositionOp : public VizEditOp {
     const proto::edit::CardPositionUpdate& edit;
     /// Constructor
     VizChangePositionOp(const proto::edit::CardPositionUpdate& edit) : edit(edit) {
-        key = sx::AttributeKey::DASHQL_OPTION_POSITION;
+        key = sx::AttributeKey::DSON_POSITION;
     }
     /// Edit a component
     void EditComponent(size_t idx, VizComponent& component) {

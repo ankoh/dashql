@@ -71,8 +71,8 @@ std::unique_ptr<sx::HighlightingT> Scanner::BuildHighlighting() {
             emit(comments_[ci++], sx::HighlightingTokenType::COMMENT);
         }
         // Is option key?
-        if (option_key_offsets_.count(symbol.location.offset())) {
-            emit(symbol.location, sx::HighlightingTokenType::OPTION_KEY);
+        if (dson_key_offsets_.count(symbol.location.offset())) {
+            emit(symbol.location, sx::HighlightingTokenType::DSON_KEY);
             continue;
         }
         // Map as standard token.

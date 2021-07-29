@@ -155,19 +155,19 @@ std::unique_ptr<VizComponent> VizComponent::ReadFrom(VizStatement& stmt, size_t 
                 .MatchEnum(sx::NodeType::ENUM_DASHQL_VIZ_COMPONENT_TYPE),
             sxm::Attribute(sx::AttributeKey::DASHQL_VIZ_COMPONENT_TYPE_MODIFIERS, SX_TYPE_MODIFIERS)
                 .MatchUI32Bitmap(),
-            sxm::Option(sx::AttributeKey::DASHQL_OPTION_POSITION, SX_POS)
-                .MatchOptions()
+            sxm::Attribute(sx::AttributeKey::DSON_POSITION, SX_POS)
+                .MatchDSON()
                 .MatchChildren({
-                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_ROW, SX_POS_ROW),
-                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_COLUMN, SX_POS_COLUMN),
-                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_WIDTH, SX_POS_WIDTH),
-                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_HEIGHT, SX_POS_HEIGHT),
+                    sxm::Attribute(sx::AttributeKey::DSON_ROW, SX_POS_ROW),
+                    sxm::Attribute(sx::AttributeKey::DSON_COLUMN, SX_POS_COLUMN),
+                    sxm::Attribute(sx::AttributeKey::DSON_WIDTH, SX_POS_WIDTH),
+                    sxm::Attribute(sx::AttributeKey::DSON_HEIGHT, SX_POS_HEIGHT),
                 }),
-            sxm::Option(sx::AttributeKey::DASHQL_OPTION_ROW, SX_ROW),
-            sxm::Option(sx::AttributeKey::DASHQL_OPTION_COLUMN, SX_COLUMN),
-            sxm::Option(sx::AttributeKey::DASHQL_OPTION_WIDTH, SX_WIDTH),
-            sxm::Option(sx::AttributeKey::DASHQL_OPTION_HEIGHT, SX_HEIGHT),
-            sxm::Option(sx::AttributeKey::DASHQL_OPTION_TITLE, SX_TITLE),
+            sxm::Attribute(sx::AttributeKey::DSON_ROW, SX_ROW),
+            sxm::Attribute(sx::AttributeKey::DSON_COLUMN, SX_COLUMN),
+            sxm::Attribute(sx::AttributeKey::DSON_WIDTH, SX_WIDTH),
+            sxm::Attribute(sx::AttributeKey::DSON_HEIGHT, SX_HEIGHT),
+            sxm::Attribute(sx::AttributeKey::DSON_TITLE, SX_TITLE),
         });
     // clang-format on
 
@@ -186,8 +186,8 @@ std::unique_ptr<VizComponent> VizComponent::ReadFrom(VizStatement& stmt, size_t 
     // Report that option is not unique
     auto report_not_unique = [&](size_t node_id, std::string_view key) {
         if (node_id == INVALID_NODE_ID) return;
-        instance.AddLinterMessage(LinterMessageCode::OPTION_NOT_UNIQUE, node_id)
-            << "option '" << key << "' must be unique across components";
+        instance.AddLinterMessage(LinterMessageCode::KEY_NOT_UNIQUE, node_id)
+            << "key '" << key << "' must be unique across components";
     };
 
     /// Get position attributes
@@ -232,7 +232,7 @@ std::unique_ptr<VizComponent> VizComponent::ReadFrom(VizStatement& stmt, size_t 
 /// Print the options as json
 void VizComponent::PrintOptionsAsJSON(std::ostream& out, bool pretty) const {
     json::DocumentWriter writer{viz_stmt_.instance_, node_id_, ast_};
-    writer.writeOptionsAsJSON(out, pretty);
+    writer.writeAsJSON(out, pretty, true);
 }
 
 /// Print common viz attributes
@@ -261,7 +261,7 @@ void VizComponent::PrintScript(std::ostream& out) const {
             SX_POS_HEIGHT,
         });
         if (&position_.value() == viz_stmt_.specified_position_) {
-            json::SAXDocumentBuilder node{sx::AttributeKey::DASHQL_OPTION_POSITION};
+            json::SAXDocumentBuilder node{sx::AttributeKey::DSON_POSITION};
             node.StartObject();
             node.Key("row");
             node.Uint(position_->row());
@@ -275,7 +275,7 @@ void VizComponent::PrintScript(std::ostream& out) const {
             writer.patch().Append(node_id_, node.Finish());
         }
     }
-    writer.writeOptionsAsSQLJSON(out);
+    writer.writeAsScript(out, true, true);
 }
 
 /// Pack as buffer

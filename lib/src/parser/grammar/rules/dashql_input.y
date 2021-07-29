@@ -1,10 +1,10 @@
 dashql_input:
-    INPUT dashql_statement_name TYPE_P sql_typename USING dashql_input_component_type opt_dashql_options { 
+    INPUT dashql_statement_name TYPE_P sql_typename USING dashql_input_component_type opt_dson { 
         $$ = ctx.Add(@$, sx::NodeType::OBJECT_DASHQL_INPUT, concat(NodeVector{
             Key::DASHQL_STATEMENT_NAME << $2,
             Key::DASHQL_INPUT_VALUE_TYPE << $4,
             Key::DASHQL_INPUT_COMPONENT_TYPE << $6,
-        }, move($7)));
+        }, std::move($7)));
     }
     ;
 

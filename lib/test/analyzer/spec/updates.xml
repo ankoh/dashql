@@ -133,7 +133,7 @@
             <cards>
                 <visualization target="main.foo">
                     <components>
-                        <component type="TABLE">{}</component>
+                        <component type="TABLE">{"pos":{"":5.0,"c":1.0,"w":8.0,"h":4.0}}</component>
                     </components>
                 </visualization>
             </cards>
@@ -142,6 +142,7 @@
                     <action type="IMPORT_VIEW" status="PENDING" object_id="0">
                         <output name="main.foo" />
                     </action>
+                    <action type="DROP_VIZ" status="PENDING" object_id="1" />
                 </setup>
                 <program>
                     <action type="CREATE_VIEW" status="COMPLETED" object_id="0" statement="0">
@@ -153,7 +154,7 @@
                     SELECT a1::INTEGER AS a
                     FROM generate_series(0, 1000000) AS a(a1)</script>
                     </action>
-                    <action type="UPDATE_VIZ" status="PENDING" object_id="1" statement="1">
+                    <action type="CREATE_VIZ" status="PENDING" object_id="3" statement="1">
                         <depends_on>
                             <ref action="0" />
                         </depends_on>
@@ -215,7 +216,7 @@
             <cards>
                 <visualization target="main.foo">
                     <components>
-                        <component type="TABLE">{}</component>
+                        <component type="TABLE">{"pos":{"":5.0,"c":1.0,"w":8.0,"h":4.0}}</component>
                     </components>
                 </visualization>
             </cards>
@@ -224,7 +225,7 @@
                     <action type="IMPORT_VIEW" status="PENDING" object_id="0">
                         <output name="main.foo" />
                     </action>
-                    <action type="IMPORT_VIZ" status="PENDING" object_id="1" />
+                    <action type="DROP_VIZ" status="PENDING" object_id="1" />
                 </setup>
                 <program>
                     <action type="CREATE_VIEW" status="COMPLETED" object_id="0" statement="0">
@@ -236,7 +237,7 @@
                     SELECT a1::INTEGER AS a
                     FROM generate_series(0, 1000000) AS a(a1)</script>
                     </action>
-                    <action type="CREATE_VIZ" status="PENDING" object_id="1" statement="1">
+                    <action type="CREATE_VIZ" status="PENDING" object_id="3" statement="1">
                         <depends_on>
                             <ref action="0" />
                         </depends_on>

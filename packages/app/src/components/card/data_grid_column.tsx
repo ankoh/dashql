@@ -147,7 +147,6 @@ export class TextColumnRenderer implements ColumnRenderer {
                 }
             }
         }
-        console.log(valueDomainRatio);
         return new TextColumnRenderer(
             column.name,
             valueClassName,

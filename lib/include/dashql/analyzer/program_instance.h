@@ -23,6 +23,7 @@
 #include "dashql/analyzer/stmt/viz_stmt.h"
 #include "dashql/common/enum.h"
 #include "dashql/common/union_find.h"
+#include "dashql/parser/grammar/dson.h"
 #include "dashql/parser/parser_driver.h"
 #include "dashql/proto_generated.h"
 #include "nonstd/span.h"
@@ -77,13 +78,15 @@ class ProgramInstance {
 
    protected:
     /// The program text
-    std::shared_ptr<std::string> program_text_;
+    const std::shared_ptr<std::string> program_text_;
     /// The program
-    std::shared_ptr<sx::ProgramT> program_;
+    const std::shared_ptr<sx::ProgramT> program_;
+    /// The dson dictionary
+    const parser::DSONDictionary dson_dictionary_;
     /// The script options
-    parser::ScriptOptions script_options_ = {};
+    const parser::ScriptOptions script_options_ = {};
     /// The parameter values
-    std::vector<InputValue> input_values_;
+    const std::vector<InputValue> input_values_;
     /// The evaluated nodes (if any)
     /// Note that we deliberately store the root node id within the value as well since
     /// UNION FIND might just pick a different representative.
@@ -115,8 +118,6 @@ class ProgramInstance {
 
     /// Move constructor
     ProgramInstance(ProgramInstance&& other) = default;
-    /// Move assignment
-    ProgramInstance& operator=(ProgramInstance&& other) = default;
 
     /// Get the program text
     auto& program_text() const { return *program_text_; }
@@ -124,6 +125,8 @@ class ProgramInstance {
     auto& program() const { return *program_; }
     /// Get the program
     auto& program() { return *program_; }
+    /// Get the dson dictionary
+    auto& dson_dictionary() const { return dson_dictionary_; }
     /// Get the program
     auto& script_options() const { return script_options_; }
     /// Get the parameter values

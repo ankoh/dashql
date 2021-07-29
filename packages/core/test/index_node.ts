@@ -51,7 +51,6 @@ import { testNativeMinHeap } from './native_min_heap.test';
 import { testVegaComposer } from './vega_composer.test';
 import { testJMESPath } from './jmespath.test';
 import { testProgramEditor } from './program_editor.test';
-import { testSyntaxSchema } from './syntax_schema.test';
 import { testSemaphore } from './semaphore.test';
 import { testRowProxies } from './row_proxies.test';
 
@@ -67,6 +66,5 @@ testNativeMinHeap();
 testVegaComposer(() => az!);
 testJMESPath(() => jp!);
 testProgramEditor(() => az!);
-testSyntaxSchema(() => az!);
 testSemaphore();
 testRowProxies(() => db!);

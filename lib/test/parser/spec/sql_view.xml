@@ -25,6 +25,7 @@
                 <line_break loc="40..41" text="&#10;" />
             </line_breaks>
             <comments />
+            <dson_keys />
             <dependencies />
         </expected>
     </test>

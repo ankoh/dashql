@@ -8,6 +8,7 @@
             </errors>
             <line_breaks />
             <comments />
+            <dson_keys />
             <dependencies />
         </expected>
     </test>
@@ -25,7 +26,7 @@
                         <node key="DASHQL_STATEMENT_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="19..30" text="weather_csv">
                             <node key="SQL_QUALIFIED_NAME_RELATION" loc="19..30" text="weather_csv" />
                         </node>
-                        <node key="DASHQL_OPTION_URL" loc="65..89" text="'https://l..host/test'" />
+                        <node key="DSON_URL" loc="65..89" text="'https://l..host/test'" />
                     </node>
                 </statement>
             </statements>
@@ -37,6 +38,7 @@
                 <line_break loc="104..105" text="&#10;" />
             </line_breaks>
             <comments />
+            <dson_keys />
             <dependencies />
         </expected>
     </test>
@@ -54,7 +56,7 @@
                         <node key="DASHQL_STATEMENT_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="19..30" text="weather_csv">
                             <node key="SQL_QUALIFIED_NAME_RELATION" loc="19..30" text="weather_csv" />
                         </node>
-                        <node key="DASHQL_OPTION_URL" type="OBJECT_DASHQL_FUNCTION_CALL" loc="65..127" text="format('ht..n.country)">
+                        <node key="DSON_URL" type="OBJECT_DASHQL_FUNCTION_CALL" loc="65..127" text="format('ht..n.country)">
                             <node key="SQL_FUNCTION_ARGUMENTS">
                                 <node loc="72..112" text="'https://c..eather/%s'" />
                                 <node type="OBJECT_SQL_COLUMN_REF" loc="114..126" text="main.country">
@@ -77,6 +79,7 @@
                 <line_break loc="142..143" text="&#10;" />
             </line_breaks>
             <comments />
+            <dson_keys />
             <dependencies />
         </expected>
     </test>
@@ -98,11 +101,11 @@
                         <node key="DASHQL_VIZ_COMPONENTS">
                             <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="35..226" text="LINE (&#10;   ..         )">
                                 <node key="DASHQL_VIZ_COMPONENT_TYPE" value="LINE" />
-                                <node key="DASHQL_OPTION_POSITION" type="OBJECT_DASHQL_OPTION_LIST" loc="69..212" text="(&#10;        ..         )">
-                                    <node key="DASHQL_OPTION_ROW" loc="97..98" text="0" />
-                                    <node key="DASHQL_OPTION_COLUMN" loc="129..130" text="0" />
-                                    <node key="DASHQL_OPTION_WIDTH" loc="160..161" text="4" />
-                                    <node key="DASHQL_OPTION_HEIGHT" loc="192..194" text="15" />
+                                <node key="DSON_POSITION" type="OBJECT_DSON" loc="69..212" text="(&#10;        ..         )">
+                                    <node key="DSON_ROW" loc="97..98" text="0" />
+                                    <node key="DSON_COLUMN" loc="129..130" text="0" />
+                                    <node key="DSON_WIDTH" loc="160..161" text="4" />
+                                    <node key="DSON_HEIGHT" loc="192..194" text="15" />
                                 </node>
                             </node>
                         </node>
@@ -128,6 +131,7 @@
                 <line_break loc="226..227" text="&#10;" />
             </line_breaks>
             <comments />
+            <dson_keys />
             <dependencies />
         </expected>
     </test>
@@ -144,6 +148,12 @@
                         <node key="DASHQL_VIZ_COMPONENTS">
                             <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="35..107" text="LINE (&#10;   ..         )">
                                 <node key="DASHQL_VIZ_COMPONENT_TYPE" value="LINE" />
+                                <node key="pos" type="OBJECT_DSON" loc="64..93" text="(r = 0, c ..4, h = 15)">
+                                    <node key="r" loc="69..70" text="0" />
+                                    <node key="c" loc="76..77" text="0" />
+                                    <node key="w" loc="83..84" text="4" />
+                                    <node key="h" loc="90..92" text="15" />
+                                </node>
                             </node>
                         </node>
                         <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLE_REF" loc="17..28" text="weather_avg">
@@ -155,13 +165,7 @@
                     </node>
                 </statement>
             </statements>
-            <errors>
-                <error message="unknown option key: r" loc="65..70" text="r = 0" />
-                <error message="unknown option key: c" loc="72..77" text="c = 0" />
-                <error message="unknown option key: w" loc="79..84" text="w = 4" />
-                <error message="unknown option key: h" loc="86..92" text="h = 15" />
-                <error message="unknown option key: pos" loc="58..93" text="pos = (r =..4, h = 15)" />
-            </errors>
+            <errors />
             <line_breaks>
                 <line_break loc="0..1" text="&#10;" />
                 <line_break loc="41..42" text="&#10;" />
@@ -169,6 +173,13 @@
                 <line_break loc="107..108" text="&#10;" />
             </line_breaks>
             <comments />
+            <dson_keys>
+                <key loc="65..66" text="r" />
+                <key loc="72..73" text="c" />
+                <key loc="79..80" text="w" />
+                <key loc="86..87" text="h" />
+                <key loc="58..61" text="pos" />
+            </dson_keys>
             <dependencies />
         </expected>
     </test>
