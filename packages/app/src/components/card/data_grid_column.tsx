@@ -13,7 +13,7 @@ export interface ColumnLayoutInfo {
     headerWidth: number;
     valueAvgWidth: number;
     valueMaxWidth: number;
-    withDomainBar: boolean;
+    auxiliaries: number;
 }
 
 export interface ColumnRenderer {
@@ -166,7 +166,7 @@ export class TextColumnRenderer implements ColumnRenderer {
             headerWidth: this.columnName.length,
             valueMaxWidth: this.valueMaxLength,
             valueAvgWidth: this.valueAvgLength,
-            withDomainBar: this.valueDomainRatios.length > 0,
+            auxiliaries: this.valueDomainRatios.length > 0 ? 56 : 0,
         };
     }
 

@@ -140,7 +140,7 @@ export class DataGrid extends React.Component<Props, State> {
             const info = renderer.getLayoutInfo();
             let required =
                 Math.min(info.valueMaxWidth, info.valueAvgWidth * MAX_VALUE_STRETCH) * PIXEL_PER_CHAR + VALUE_PADDING;
-            required += info.withDomainBar ? 56 : 0;
+            required += info.auxiliaries;
             const header = info.headerWidth * PIXEL_PER_CHAR + VALUE_PADDING;
             if (header > required) {
                 required = Math.min(header, required * MAX_COLUMN_HEADER_STRETCH);
