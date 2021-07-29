@@ -121,8 +121,9 @@ export class TextColumnRenderer implements ColumnRenderer {
                 valueClassName = styles.data_value_text;
                 formatter = (v: any) =>
                     v.toLocaleDateString('en-US', {
-                        day: '2-digit',
-                        month: '2-digit',
+                        weekday: 'short',
+                        day: 'numeric',
+                        month: 'short',
                         year: 'numeric',
                     });
                 break;
