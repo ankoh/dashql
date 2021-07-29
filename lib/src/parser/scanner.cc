@@ -15,6 +15,10 @@ namespace parser {
 
 /// Get the text at location
 std::string_view Scanner::TextAt(sx::Location loc) { return input_text().substr(loc.offset(), loc.length()); }
+/// Get the text at location
+sx::Location Scanner::LocationOf(std::string_view text) {
+    return sx::Location(text.begin() - input_text().begin(), text.length());
+}
 /// Begin a literal
 void Scanner::BeginLiteral(sx::Location loc) { literal_begin_ = loc; }
 
@@ -64,7 +68,7 @@ void Scanner::AddLineBreak(sx::Location location) {
 /// Add a comment
 void Scanner::AddComment(sx::Location location) { comments_.push_back(location); }
 /// Mark a location as start of an option key
-void Scanner::MarkAsOptionKey(sx::Location location) { option_key_offsets_.insert(location.offset()); }
+void Scanner::MarkAsDSONKey(sx::Location location) { dson_key_offsets_.insert(location.offset()); }
 
 /// Read a parameter
 Parser::symbol_type Scanner::ReadParameter(sx::Location loc) {

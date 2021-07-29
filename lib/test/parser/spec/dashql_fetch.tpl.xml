@@ -15,4 +15,14 @@
             LOAD studenten FROM uni['studenten.parquet'];
         </input>
     </test>
+    <test name="load_rest_header">
+        <input>
+            FETCH json_stats FROM HTTP (
+                url = 'https://www.haloapi.com/stats/hw2/players/somegamertag/stats',
+                headers = (
+                    'Ocp-Apim-Subscription-Key' = 'somekey'
+                )
+            );
+        </input>
+    </test>
 </tests>

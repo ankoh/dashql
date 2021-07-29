@@ -76,7 +76,7 @@ void TransformStatement::PrintOptionsAsJSON(std::ostream& out, bool pretty) cons
     auto& program = instance_.program();
     auto& stmt = program.statements[statement_id_];
     json::DocumentWriter writer{instance_, stmt->root_node, ast_};
-    writer.writeOptionsAsJSON(out, pretty);
+    writer.writeAsJSON(out, pretty, true);
 }
 
 /// Pack the load statement

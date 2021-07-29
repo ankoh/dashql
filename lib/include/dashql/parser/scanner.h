@@ -52,8 +52,8 @@ class Scanner {
     std::vector<sx::Location> line_breaks_ = {};
     /// The comments
     std::vector<sx::Location> comments_ = {};
-    /// The option keys
-    std::unordered_set<size_t> option_key_offsets_ = {};
+    /// The dson keys
+    std::unordered_set<size_t> dson_key_offsets_ = {};
 
     /// All symbols
     std::vector<Parser::symbol_type> symbols_ = {};
@@ -81,8 +81,8 @@ class Scanner {
     auto& line_breaks() { return line_breaks_; }
     /// Get the comments
     auto& comments() { return comments_; }
-    /// Get the option key offsets
-    auto& option_key_offsets() { return option_key_offsets_; }
+    /// Get the dson key offsets
+    auto& dson_key_offsets() { return dson_key_offsets_; }
     /// Access the input
     std::string_view input_text() {
         assert(input_buffer_.size() >= 2);
@@ -98,6 +98,8 @@ class Scanner {
 
     /// Get the text at location
     std::string_view TextAt(sx::Location loc);
+    /// The the location of a text
+    sx::Location LocationOf(std::string_view text);
 
     /// Begin a literal
     void BeginLiteral(sx::Location loc);
@@ -118,7 +120,7 @@ class Scanner {
     /// Add a comment
     void AddComment(sx::Location location);
     /// Mark as option key
-    void MarkAsOptionKey(sx::Location location);
+    void MarkAsDSONKey(sx::Location location);
 
     /// Read a parameter
     Parser::symbol_type ReadParameter(sx::Location loc);

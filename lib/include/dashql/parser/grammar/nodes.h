@@ -14,25 +14,25 @@ namespace dashql {
 namespace parser {
 
 /// Create a null node
-inline sx::Node Null() { return sx::Node(sx::Location(), sx::NodeType::NONE, Key::NONE, NO_PARENT, 0, 0); }
+inline sx::Node Null() { return sx::Node(sx::Location(), sx::NodeType::NONE, 0, NO_PARENT, 0, 0); }
 /// Create a string node
-inline sx::Node String(sx::Location loc) { return sx::Node(loc, sx::NodeType::STRING_REF, Key::NONE, NO_PARENT, 0, 0); }
+inline sx::Node String(sx::Location loc) { return sx::Node(loc, sx::NodeType::STRING_REF, 0, NO_PARENT, 0, 0); }
 /// Create a ui32 node
 inline sx::Node UI32(sx::Location loc, uint32_t value) {
-    return sx::Node(loc, sx::NodeType::UI32, Key::NONE, NO_PARENT, value, 0);
+    return sx::Node(loc, sx::NodeType::UI32, 0, NO_PARENT, value, 0);
 }
 /// Create a ui32 bitmap node
 inline sx::Node UI32Bitmap(sx::Location loc, uint32_t value) {
-    return sx::Node(loc, sx::NodeType::UI32_BITMAP, Key::NONE, NO_PARENT, value, 0);
+    return sx::Node(loc, sx::NodeType::UI32_BITMAP, 0, NO_PARENT, value, 0);
 }
 /// Create a bool node
 inline sx::Node Bool(sx::Location loc, bool v) {
-    return sx::Node(loc, sx::NodeType::BOOL, Key::NONE, NO_PARENT, static_cast<uint32_t>(v), 0);
+    return sx::Node(loc, sx::NodeType::BOOL, 0, NO_PARENT, static_cast<uint32_t>(v), 0);
 }
 
 /// Create a constant inline
 inline sx::Node Const(ParserDriver& driver, sx::Location loc, sx::AConstType /*type*/) {
-    return sx::Node(loc, sx::NodeType::STRING_REF, Key::NONE, NO_PARENT, 0, 0);
+    return sx::Node(loc, sx::NodeType::STRING_REF, 0, NO_PARENT, 0, 0);
 }
 
 /// Create indirection
@@ -156,9 +156,6 @@ inline sx::NumericType ReadFloatType(ParserDriver& driver, sx::Location bitsLoc)
 
 /// Create a qualified name
 sx::Node QualifiedName(ParserDriver& driver, sx::Location loc, std::vector<sx::Node>&& nodes);
-/// Map an option.
-/// Add an error if the key or the (key, value) combination is invalid.
-sx::Node Option(ParserDriver& driver, sx::Location loc, std::vector<sx::Location>&& key_path, sx::Node value);
 
 }  // namespace parser
 }  // namespace dashql

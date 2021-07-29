@@ -162,7 +162,8 @@ ASTIndex ASTMatcher::Match(nonstd::span<sx::Node> nodes, std::string_view text, 
                 while (h < children.size() && e < top.matcher.children.size()) {
                     auto& have = children[h];
                     auto& expected = top.matcher.children[e];
-                    if (have.attribute_key() < expected.attribute_key) {
+                    if (have.attribute_key() < expected.attribute_key ||
+                        have.attribute_key() > static_cast<uint16_t>(sx::AttributeKey::DSON_DYNAMIC_KEYS_)) {
                         ++h;
                     } else if (have.attribute_key() > expected.attribute_key) {
                         getOut(expected).status = NodeMatchStatus::MISSING;

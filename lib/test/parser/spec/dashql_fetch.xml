@@ -14,7 +14,7 @@
                         <node key="DASHQL_STATEMENT_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="19..22" text="uni">
                             <node key="SQL_QUALIFIED_NAME_RELATION" loc="19..22" text="uni" />
                         </node>
-                        <node key="DASHQL_OPTION_URL" loc="57..104" text="'https://s..e/all.zip'" />
+                        <node key="DSON_URL" loc="57..104" text="'https://s..e/all.zip'" />
                     </node>
                 </statement>
                 <statement type="LOAD" name="main.assistenten">
@@ -41,6 +41,7 @@
                 <line_break loc="195..196" text="&#10;" />
             </line_breaks>
             <comments />
+            <dson_keys />
             <dependencies>
                 <dependency type="TABLE_REF" source="0" target="1" loc="154..180" text="uni['assis...parquet']" />
             </dependencies>
@@ -113,11 +114,54 @@
                 <line_break loc="262..263" text="&#10;" />
             </line_breaks>
             <comments />
+            <dson_keys />
             <dependencies>
                 <dependency type="TABLE_REF" source="0" target="1" loc="111..137" text="uni['vorle...parquet']" />
                 <dependency type="TABLE_REF" source="0" target="2" loc="182..203" text="uni['hoere...parquet']" />
                 <dependency type="TABLE_REF" source="0" target="3" loc="237..261" text="uni['stude...parquet']" />
             </dependencies>
+        </expected>
+    </test>
+    <test name="load_rest_header">
+        <input>
+            FETCH json_stats FROM HTTP (
+                url = 'https://www.haloapi.com/stats/hw2/players/somegamertag/stats',
+                headers = (
+                    'Ocp-Apim-Subscription-Key' = 'somekey'
+                )
+            );
+        </input>
+        <expected>
+            <statements>
+                <statement type="FETCH" name="main.json_stats">
+                    <node type="OBJECT_DASHQL_FETCH" loc="13..247" text="FETCH json..         )">
+                        <node key="DASHQL_FETCH_METHOD" value="HTTP" />
+                        <node key="DASHQL_STATEMENT_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="19..29" text="json_stats">
+                            <node key="SQL_QUALIFIED_NAME_RELATION" loc="19..29" text="json_stats" />
+                        </node>
+                        <node key="DSON_URL" loc="64..126" text="'https://w..tag/stats'" />
+                        <node key="headers" type="OBJECT_DSON" loc="154..233" text="(&#10;        ..         )">
+                            <node key="Ocp-Apim-Subscription-Key" loc="206..215" text="'somekey'" />
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="41..42" text="&#10;" />
+                <line_break loc="127..128" text="&#10;" />
+                <line_break loc="155..156" text="&#10;" />
+                <line_break loc="215..216" text="&#10;" />
+                <line_break loc="233..234" text="&#10;" />
+                <line_break loc="248..249" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dson_keys>
+                <key loc="177..202" text="Ocp-Apim-S..iption-Key" />
+                <key loc="144..151" text="headers" />
+            </dson_keys>
+            <dependencies />
         </expected>
     </test>
 </tests>

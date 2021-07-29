@@ -34,6 +34,8 @@ using NodeVector = std::vector<sx::Node>;
 std::ostream& operator<<(std::ostream& out, const sx::Location& loc);
 /// Helper to configure an attribute node
 sx::Node operator<<(sx::AttributeKey key, const sx::Node& node);
+/// Helper to configure an attribute node
+sx::Node operator<<(uint16_t key, const sx::Node& node);
 /// Helper to append a node to a node vector
 NodeVector& operator<<(NodeVector& attrs, const sx::Node& node);
 /// Helper to concatenate node vectors
@@ -82,6 +84,10 @@ class ParserDriver {
     std::vector<std::pair<sx::Location, std::string>> errors_;
     /// The dependencies
     std::vector<sx::Dependency> dependencies_;
+    /// The dson keys
+    std::vector<sx::Location> dson_keys_;
+    /// The dson key mapping
+    std::unordered_map<std::string_view, uint16_t> dson_key_map_;
 
     /// Find an attribute
     std::optional<size_t> FindAttribute(const sx::Node& node, Key attribute) const;
@@ -108,6 +114,12 @@ class ParserDriver {
     /// Add an object
     sx::Node AddObject(sx::Location loc, sx::NodeType type, nonstd::span<sx::Node> attrs, bool null_if_empty = true,
                        bool shrink_location = false);
+    /// Add a dson field
+    sx::Node AddDSONField(sx::Location loc, std::vector<sx::Location>&& key_path, sx::Node value);
+    /// Add a statement
+    void AddStatement(sx::Node node);
+    /// Add an error
+    void AddError(sx::Location loc, const std::string& message);
 
     /// Add a an array
     inline sx::Node Add(sx::Location loc, NodeVector&& values, bool null_if_empty = true,
@@ -119,14 +131,6 @@ class ParserDriver {
                         bool shrink_location = false) {
         return AddObject(loc, type, nonstd::span<sx::Node>{values}, null_if_empty, shrink_location);
     }
-    /// Add options
-    inline sx::Node AddOptions(sx::Location loc, NodeVector&& attrs, bool null_if_empty = true) {
-        return AddObject(loc, sx::NodeType::OBJECT_DASHQL_OPTION_LIST, nonstd::span<sx::Node>{attrs}, null_if_empty);
-    }
-    /// Add a statement
-    void AddStatement(sx::Node node);
-    /// Add an error
-    void AddError(sx::Location loc, const std::string& message);
 
     /// Parse a module
     static std::shared_ptr<sx::ProgramT> Parse(std::string_view in, bool trace_scanning = false,

@@ -30,3 +30,7 @@ dashql_statement_name:
 dashql_statement_ref:
     sql_qualified_name  { $$ = std::move($1); }
     ;
+
+dashql_function_call:
+    sql_func_application { $$ = ctx.Add(@$, sx::NodeType::OBJECT_DASHQL_FUNCTION_CALL, move($1)); }
+    ;

@@ -14,7 +14,6 @@ export * from './script';
 export * from './state';
 export * from './state_mutation';
 export * from './store';
-export * as schema from './syntax_schema';
 
 import { StateMutationVariant } from './state_mutation';
 

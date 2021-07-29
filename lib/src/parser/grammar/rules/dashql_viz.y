@@ -4,11 +4,11 @@ dashql_viz_component_list:
     ;
 
 dashql_viz_component:
-    dashql_viz_type opt_dashql_options {
+    dashql_viz_type opt_dson {
         $2.push_back(Key::DASHQL_VIZ_COMPONENT_TYPE << std::move($1));
         $$ = ctx.Add(@$, sx::NodeType::OBJECT_DASHQL_VIZ_COMPONENT, std::move($2));
     }
- |  dashql_viz_type_modifiers dashql_viz_type opt_dashql_options {
+ |  dashql_viz_type_modifiers dashql_viz_type opt_dson {
         $3.push_back(Key::DASHQL_VIZ_COMPONENT_TYPE_MODIFIERS << UI32Bitmap(@1, $1));
         $3.push_back(Key::DASHQL_VIZ_COMPONENT_TYPE << $2);
         $$ = ctx.Add(@$, sx::NodeType::OBJECT_DASHQL_VIZ_COMPONENT, std::move($3));

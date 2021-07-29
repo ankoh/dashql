@@ -28,9 +28,15 @@ std::ostream& operator<<(std::ostream& out, const Location& loc) {
 }
 
 /// Syntactic sugar to set the key of a node
-sx::Node operator<<(sx::AttributeKey key, const sx::Node& node) {
+sx::Node operator<<(uint16_t key, const sx::Node& node) {
     return sx::Node(node.location(), node.node_type(), key, node.parent(), node.children_begin_or_value(),
                     node.children_count());
+}
+
+/// Syntactic sugar to set the key of a node
+sx::Node operator<<(sx::AttributeKey key, const sx::Node& node) {
+    return sx::Node(node.location(), node.node_type(), static_cast<uint16_t>(key), node.parent(),
+                    node.children_begin_or_value(), node.children_count());
 }
 
 /// Syntactic sugar concatenate vectors
@@ -96,7 +102,15 @@ std::unique_ptr<sx::StatementT> Statement::Finish() {
 
 /// Constructor
 ParserDriver::ParserDriver(Scanner& scanner)
-    : scanner_(scanner), options_(), nodes_(), current_statement_(), statements_(), dependencies_(), errors_() {}
+    : scanner_(scanner),
+      options_(),
+      nodes_(),
+      current_statement_(),
+      statements_(),
+      dependencies_(),
+      errors_(),
+      dson_keys_(),
+      dson_key_map_() {}
 
 /// Destructor
 ParserDriver::~ParserDriver() {}
@@ -107,7 +121,7 @@ std::optional<size_t> ParserDriver::FindAttribute(const sx::Node& node, Key attr
     auto attr_count = node.children_count();
     for (auto i = 0; i < attr_count; ++i) {
         auto& attr = nodes_[attr_begin + i];
-        if (attr.attribute_key() == attribute) {
+        if (attr.attribute_key() == static_cast<uint16_t>(attribute)) {
             return {attr_begin + i};
         }
     }
@@ -288,7 +302,7 @@ sx::Node ParserDriver::AddArray(sx::Location loc, nonstd::span<sx::Node> values,
         auto lstEnd = nodes_.back().location().offset() + nodes_.back().location().length();
         loc = sx::Location(fstBegin, lstEnd - fstBegin);
     }
-    return sx::Node(loc, sx::NodeType::ARRAY, sx::AttributeKey::NONE, NO_PARENT, begin, n);
+    return sx::Node(loc, sx::NodeType::ARRAY, 0, NO_PARENT, begin, n);
 }
 
 /// Add an object
@@ -361,7 +375,7 @@ sx::Node ParserDriver::AddObject(sx::Location loc, sx::NodeType type, nonstd::sp
         auto lstEnd = nodes_.back().location().offset() + nodes_.back().location().length();
         loc = sx::Location(fstBegin, lstEnd - fstBegin);
     }
-    return sx::Node(loc, type, sx::AttributeKey::NONE, NO_PARENT, begin, n);
+    return sx::Node(loc, type, 0, NO_PARENT, begin, n);
 }
 
 static std::regex FETCH_URI_HTTP{"^https?://.*"};
@@ -440,6 +454,7 @@ std::shared_ptr<sx::ProgramT> ParserDriver::Finish() {
         err->message = move(msg);
         program->errors.push_back(move(err));
     }
+    program->dson_keys = std::move(dson_keys_);
     program->highlighting = scanner_.BuildHighlighting();
     program->line_breaks = scanner_.ReleaseLineBreaks();
     program->comments = scanner_.ReleaseComments();

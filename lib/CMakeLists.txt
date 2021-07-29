@@ -153,27 +153,27 @@ set(GRAMMAR_KEYWORDS
     ${CMAKE_SOURCE_DIR}/src/parser/grammar/lists/sql_unreserved_keywords.list)
 
 set(GRAMMAR_RULES
-    ${CMAKE_SOURCE_DIR}/src/parser/grammar/rules/dashql_common.y
-    ${CMAKE_SOURCE_DIR}/src/parser/grammar/rules/dashql_load.y
-    ${CMAKE_SOURCE_DIR}/src/parser/grammar/rules/dashql_transform.y
-    ${CMAKE_SOURCE_DIR}/src/parser/grammar/rules/dashql_input.y
     ${CMAKE_SOURCE_DIR}/src/parser/grammar/rules/dashql_fetch.y
+    ${CMAKE_SOURCE_DIR}/src/parser/grammar/rules/dashql_input.y
+    ${CMAKE_SOURCE_DIR}/src/parser/grammar/rules/dashql_load.y
     ${CMAKE_SOURCE_DIR}/src/parser/grammar/rules/dashql_query.y
     ${CMAKE_SOURCE_DIR}/src/parser/grammar/rules/dashql_statement.y
+    ${CMAKE_SOURCE_DIR}/src/parser/grammar/rules/dashql_transform.y
     ${CMAKE_SOURCE_DIR}/src/parser/grammar/rules/dashql_viz.y
+    ${CMAKE_SOURCE_DIR}/src/parser/grammar/rules/dson.y
     ${CMAKE_SOURCE_DIR}/src/parser/grammar/rules/sql_create.y
     ${CMAKE_SOURCE_DIR}/src/parser/grammar/rules/sql_select.y
     ${CMAKE_SOURCE_DIR}/src/parser/grammar/rules/sql_view.y)
 
 set(GRAMMAR_TYPES
-    ${CMAKE_SOURCE_DIR}/src/parser/grammar/rules/dashql_common.yh
-    ${CMAKE_SOURCE_DIR}/src/parser/grammar/rules/dashql_load.yh
-    ${CMAKE_SOURCE_DIR}/src/parser/grammar/rules/dashql_transform.yh
-    ${CMAKE_SOURCE_DIR}/src/parser/grammar/rules/dashql_input.yh
     ${CMAKE_SOURCE_DIR}/src/parser/grammar/rules/dashql_fetch.yh
+    ${CMAKE_SOURCE_DIR}/src/parser/grammar/rules/dashql_input.yh
+    ${CMAKE_SOURCE_DIR}/src/parser/grammar/rules/dashql_load.yh
     ${CMAKE_SOURCE_DIR}/src/parser/grammar/rules/dashql_query.yh
     ${CMAKE_SOURCE_DIR}/src/parser/grammar/rules/dashql_statement.yh
+    ${CMAKE_SOURCE_DIR}/src/parser/grammar/rules/dashql_transform.yh
     ${CMAKE_SOURCE_DIR}/src/parser/grammar/rules/dashql_viz.yh
+    ${CMAKE_SOURCE_DIR}/src/parser/grammar/rules/dson.yh
     ${CMAKE_SOURCE_DIR}/src/parser/grammar/rules/sql_create.yh
     ${CMAKE_SOURCE_DIR}/src/parser/grammar/rules/sql_select.yh
     ${CMAKE_SOURCE_DIR}/src/parser/grammar/rules/sql_view.yh)
@@ -238,11 +238,11 @@ add_library(
   dashql_parser
   ${SCANNER_OUT}
   ${PARSER_OUT}
+  ${CMAKE_SOURCE_DIR}/src/parser/dson.cc
   ${CMAKE_SOURCE_DIR}/src/parser/enums.cc
   ${CMAKE_SOURCE_DIR}/src/parser/highlighting.cc
   ${CMAKE_SOURCE_DIR}/src/parser/keywords.cc
   ${CMAKE_SOURCE_DIR}/src/parser/nodes.cc
-  ${CMAKE_SOURCE_DIR}/src/parser/options.cc
   ${CMAKE_SOURCE_DIR}/src/parser/parser_driver.cc
   ${CMAKE_SOURCE_DIR}/src/parser/qualified_name.cc
   ${CMAKE_SOURCE_DIR}/src/parser/scanner.cc

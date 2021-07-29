@@ -15,9 +15,9 @@ constexpr uint32_t NO_PARENT = std::numeric_limits<uint32_t>::max();
 
 using ExprFunc = sx::ExpressionOperator;
 
-#define X(ENUM_TYPE, NODE_TYPE)                                                             \
-    inline sx::Node Enum(sx::Location loc, ENUM_TYPE e) {                                   \
-        return sx::Node(loc, NODE_TYPE, Key::NONE, NO_PARENT, static_cast<uint32_t>(e), 0); \
+#define X(ENUM_TYPE, NODE_TYPE)                                                     \
+    inline sx::Node Enum(sx::Location loc, ENUM_TYPE e) {                           \
+        return sx::Node(loc, NODE_TYPE, 0, NO_PARENT, static_cast<uint32_t>(e), 0); \
     }
 X(sx::AConstType, sx::NodeType::ENUM_SQL_CONST_TYPE)
 X(sx::CharacterType, sx::NodeType::ENUM_SQL_CHARACTER_TYPE)

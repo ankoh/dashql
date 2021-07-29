@@ -16,11 +16,23 @@
 
 namespace dashql {
 
+static std::unordered_map<std::string_view, uint16_t> BuildDSONDictionary(std::string_view text,
+                                                                          std::vector<sx::Location> keys) {
+    std::unordered_map<std::string_view, uint16_t> dict;
+    dict.reserve(keys.size());
+    for (auto i = 0; i < keys.size(); ++i) {
+        auto& key = keys[i];
+        dict.insert({text.substr(key.offset(), key.length()), i});
+    }
+    return dict;
+}
+
 // Constructor
 ProgramInstance::ProgramInstance(std::shared_ptr<std::string> text, std::shared_ptr<sx::ProgramT> program,
                                  std::vector<InputValue> params)
     : program_text_(move(text)),
       program_(move(program)),
+      dson_dictionary_(*program_text_, *program_),
       input_values_(move(params)),
       evaluated_nodes_(program_->nodes.size()) {}
 
@@ -222,7 +234,7 @@ std::optional<size_t> ProgramInstance::FindAttribute(const sx::Node& origin, sx:
         auto step = c / 2;
         auto iter = lb + step;
         auto& n = program_->nodes[iter];
-        if (n.attribute_key() < key) {
+        if (n.attribute_key() < static_cast<uint16_t>(key)) {
             lb = iter + 1;
             c -= step + 1;
         } else {
@@ -233,7 +245,7 @@ std::optional<size_t> ProgramInstance::FindAttribute(const sx::Node& origin, sx:
         return std::nullopt;
     }
     auto& n = program_->nodes[lb];
-    return (n.attribute_key() == key) ? std::optional<size_t>{lb} : std::nullopt;
+    return (n.attribute_key() == static_cast<uint16_t>(key)) ? std::optional<size_t>{lb} : std::nullopt;
 }
 
 }  // namespace dashql

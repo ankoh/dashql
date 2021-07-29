@@ -3,9 +3,9 @@ import * as model from './model';
 import axios from 'axios';
 
 import example_demo_explore_json from '../static/examples/demo_explore_json.dashql';
-import example_demo_helloworld from '../static/examples/demo_helloworld.dashql';
 import example_demo_unischema from '../static/examples/demo_unischema.dashql';
 import example_demo_vaccination_germany from '../static/examples/demo_vaccination_germany.dashql';
+import example_demo_halowars from '../static/examples/demo_halowars.dashql';
 import example_load_csv from '../static/examples/load_csv.dashql';
 import example_load_parquet from '../static/examples/load_parquet.dashql';
 import example_fetch_http_dynamic from '../static/examples/fetch_http_dynamic.dashql';
@@ -69,27 +69,17 @@ export interface ExampleScriptMetadata {
 
 export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
     {
-        key: 'demo_helloworld',
-        collection: 'Demos',
-        title: 'Hello World',
-        description: 'A third test hello world script',
-        icon: icon_dashboard,
-        features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_).set(ScriptFeatureTag.DATA_CSV),
-        url: example_demo_helloworld,
-        enabled: true,
-    },
-    {
         key: 'demo_unischema',
         collection: 'Demos',
         title: 'University Schema',
-        description: 'A third test hello world script',
+        description: 'A script with the university schema',
         icon: icon_dashboard,
         features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_)
             .set(ScriptFeatureTag.DATA_PARQUET)
             .set(ScriptFeatureTag.FETCH_HTTP)
             .set(ScriptFeatureTag.FETCH_ARCHIVE_ZIP),
         url: example_demo_unischema,
-        enabled: false,
+        enabled: true,
     },
     {
         key: 'demo_explore_json',
@@ -111,6 +101,16 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         icon: icon_dashboard,
         features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_).set(ScriptFeatureTag.DATA_CSV),
         url: example_demo_vaccination_germany,
+        enabled: true,
+    },
+    {
+        key: 'demo_halowards',
+        collection: 'Demos',
+        title: 'HaloWars Player',
+        description: 'A script that shows how to query REST APIs',
+        icon: icon_dashboard,
+        features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_).set(ScriptFeatureTag.DATA_CSV),
+        url: example_demo_halowars,
         enabled: true,
     },
     {

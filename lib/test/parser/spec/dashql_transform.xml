@@ -18,6 +18,7 @@
             <errors />
             <line_breaks />
             <comments />
+            <dson_keys />
             <dependencies />
         </expected>
     </test>
@@ -38,7 +39,7 @@
                             <node key="SQL_QUALIFIED_NAME_RELATION" loc="35..41" text="table2" />
                         </node>
                         <node key="DASHQL_TRANSFORM_METHOD" value="JMESPATH" />
-                        <node key="DASHQL_OPTION_EXPRESSION" loc="88..96" text="'blabla'" />
+                        <node key="DSON_EXPRESSION" loc="88..96" text="'blabla'" />
                     </node>
                 </statement>
             </statements>
@@ -50,6 +51,7 @@
                 <line_break loc="111..112" text="&#10;" />
             </line_breaks>
             <comments />
+            <dson_keys />
             <dependencies />
         </expected>
     </test>
@@ -82,7 +84,7 @@
                             <node key="SQL_QUALIFIED_NAME_RELATION" loc="145..158" text="covid_history" />
                         </node>
                         <node key="DASHQL_TRANSFORM_METHOD" value="JMESPATH" />
-                        <node key="DASHQL_OPTION_EXPRESSION" loc="205..215" text="'.history'" />
+                        <node key="DSON_EXPRESSION" loc="205..215" text="'.history'" />
                     </node>
                 </statement>
                 <statement type="VIZUALIZE">
@@ -113,6 +115,7 @@
                 <line_break loc="273..274" text="&#10;" />
             </line_breaks>
             <comments />
+            <dson_keys />
             <dependencies>
                 <dependency type="TABLE_REF" source="0" target="1" loc="130..139" text="covid_raw" />
                 <dependency type="TABLE_REF" source="1" target="2" loc="248..261" text="covid_history" />

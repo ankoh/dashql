@@ -42,13 +42,13 @@
                         <node key="DASHQL_STATEMENT_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="304..311" text="country">
                             <node key="SQL_QUALIFIED_NAME_RELATION" loc="304..311" text="country" />
                         </node>
-                        <node key="DASHQL_OPTION_POSITION" type="OBJECT_DASHQL_OPTION_LIST" loc="400..444" text="(row = 0, ..eight = 1)">
-                            <node key="DASHQL_OPTION_ROW" loc="407..408" text="0" />
-                            <node key="DASHQL_OPTION_COLUMN" loc="419..420" text="0" />
-                            <node key="DASHQL_OPTION_WIDTH" loc="430..431" text="3" />
-                            <node key="DASHQL_OPTION_HEIGHT" loc="442..443" text="1" />
+                        <node key="DSON_POSITION" type="OBJECT_DSON" loc="400..444" text="(row = 0, ..eight = 1)">
+                            <node key="DSON_ROW" loc="407..408" text="0" />
+                            <node key="DSON_COLUMN" loc="419..420" text="0" />
+                            <node key="DSON_WIDTH" loc="430..431" text="3" />
+                            <node key="DSON_HEIGHT" loc="442..443" text="1" />
                         </node>
-                        <node key="DASHQL_OPTION_TITLE" loc="362..371" text="'Country'" />
+                        <node key="DSON_TITLE" loc="362..371" text="'Country'" />
                     </node>
                 </statement>
                 <statement type="FETCH" name="main.weather_csv">
@@ -57,7 +57,7 @@
                         <node key="DASHQL_STATEMENT_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="606..617" text="weather_csv">
                             <node key="SQL_QUALIFIED_NAME_RELATION" loc="606..617" text="weather_csv" />
                         </node>
-                        <node key="DASHQL_OPTION_URL" type="OBJECT_DASHQL_FUNCTION_CALL" loc="652..714" text="format('ht..n.country)">
+                        <node key="DSON_URL" type="OBJECT_DASHQL_FUNCTION_CALL" loc="652..714" text="format('ht..n.country)">
                             <node key="SQL_FUNCTION_ARGUMENTS">
                                 <node loc="659..699" text="'https://c..eather/%s'" />
                                 <node type="OBJECT_SQL_COLUMN_REF" loc="701..713" text="main.country">
@@ -164,6 +164,7 @@
                 <comment loc="1067..1097" text="-- Visuali..and views." />
                 <comment loc="1110..1153" text="-- Ref: ht..rammar/viz" />
             </comments>
+            <dson_keys />
             <dependencies>
                 <dependency type="COLUMN_REF" source="0" target="1" loc="701..713" text="main.country" />
                 <dependency type="TABLE_REF" source="1" target="2" loc="866..877" text="weather_csv" />
@@ -191,28 +192,28 @@
                         <node key="DASHQL_VIZ_COMPONENTS">
                             <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="27..365" text="VEGA (&#10;   ..         )">
                                 <node key="DASHQL_VIZ_COMPONENT_TYPE" value="VEGA" />
-                                <node key="DASHQL_OPTION_POSITION" type="OBJECT_DASHQL_OPTION_LIST" loc="99..143" text="(row = 0, ..eight = 4)">
-                                    <node key="DASHQL_OPTION_ROW" loc="106..107" text="0" />
-                                    <node key="DASHQL_OPTION_COLUMN" loc="118..119" text="0" />
-                                    <node key="DASHQL_OPTION_WIDTH" loc="129..130" text="6" />
-                                    <node key="DASHQL_OPTION_HEIGHT" loc="141..142" text="4" />
+                                <node key="DSON_POSITION" type="OBJECT_DSON" loc="99..143" text="(row = 0, ..eight = 4)">
+                                    <node key="DSON_ROW" loc="106..107" text="0" />
+                                    <node key="DSON_COLUMN" loc="118..119" text="0" />
+                                    <node key="DSON_WIDTH" loc="129..130" text="6" />
+                                    <node key="DSON_HEIGHT" loc="141..142" text="4" />
                                 </node>
-                                <node key="DASHQL_OPTION_TITLE" loc="58..70" text="'Line Chart'" />
-                                <node key="DASHQL_OPTION_ENCODING" type="OBJECT_DASHQL_OPTION_LIST" loc="203..351" text="(&#10;        ..         )">
-                                    <node key="DASHQL_OPTION_X" type="OBJECT_DASHQL_OPTION_LIST" loc="229..268" text="(field = '..unt = 10))">
-                                        <node key="DASHQL_OPTION_AXIS" type="OBJECT_DASHQL_OPTION_LIST" loc="250..267" text="(tick_count = 10)">
-                                            <node key="DASHQL_OPTION_TICK_COUNT" loc="264..266" text="10" />
+                                <node key="DSON_TITLE" loc="58..70" text="'Line Chart'" />
+                                <node key="DSON_ENCODING" type="OBJECT_DSON" loc="203..351" text="(&#10;        ..         )">
+                                    <node key="DSON_X" type="OBJECT_DSON" loc="229..268" text="(field = '..unt = 10))">
+                                        <node key="DSON_AXIS" type="OBJECT_DSON" loc="250..267" text="(tick_count = 10)">
+                                            <node key="DSON_TICK_COUNT" loc="264..266" text="10" />
                                         </node>
-                                        <node key="DASHQL_OPTION_FIELD" loc="238..241" text="'x'" />
+                                        <node key="DSON_FIELD" loc="238..241" text="'x'" />
                                     </node>
-                                    <node key="DASHQL_OPTION_Y" type="OBJECT_DASHQL_OPTION_LIST" loc="294..333" text="(field = '..unt = 10))">
-                                        <node key="DASHQL_OPTION_AXIS" type="OBJECT_DASHQL_OPTION_LIST" loc="315..332" text="(tick_count = 10)">
-                                            <node key="DASHQL_OPTION_TICK_COUNT" loc="329..331" text="10" />
+                                    <node key="DSON_Y" type="OBJECT_DSON" loc="294..333" text="(field = '..unt = 10))">
+                                        <node key="DSON_AXIS" type="OBJECT_DSON" loc="315..332" text="(tick_count = 10)">
+                                            <node key="DSON_TICK_COUNT" loc="329..331" text="10" />
                                         </node>
-                                        <node key="DASHQL_OPTION_FIELD" loc="303..306" text="'y'" />
+                                        <node key="DSON_FIELD" loc="303..306" text="'y'" />
                                     </node>
                                 </node>
-                                <node key="DASHQL_OPTION_MARK" loc="168..174" text="'line'" />
+                                <node key="DSON_MARK" loc="168..174" text="'line'" />
                             </node>
                         </node>
                         <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLE_REF" loc="17..20" text="foo">
@@ -238,6 +239,7 @@
                 <line_break loc="366..367" text="&#10;" />
             </line_breaks>
             <comments />
+            <dson_keys />
             <dependencies />
         </expected>
     </test>
@@ -574,13 +576,13 @@
                         <node key="DASHQL_VIZ_COMPONENTS">
                             <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="1226..1364" text="TABLE (&#10;  ..         )">
                                 <node key="DASHQL_VIZ_COMPONENT_TYPE" value="TABLE" />
-                                <node key="DASHQL_OPTION_POSITION" type="OBJECT_DASHQL_OPTION_LIST" loc="1304..1349" text="(row = 3, ..eight = 4)">
-                                    <node key="DASHQL_OPTION_ROW" loc="1311..1312" text="3" />
-                                    <node key="DASHQL_OPTION_COLUMN" loc="1323..1324" text="0" />
-                                    <node key="DASHQL_OPTION_WIDTH" loc="1334..1336" text="12" />
-                                    <node key="DASHQL_OPTION_HEIGHT" loc="1347..1348" text="4" />
+                                <node key="DSON_POSITION" type="OBJECT_DSON" loc="1304..1349" text="(row = 3, ..eight = 4)">
+                                    <node key="DSON_ROW" loc="1311..1312" text="3" />
+                                    <node key="DSON_COLUMN" loc="1323..1324" text="0" />
+                                    <node key="DSON_WIDTH" loc="1334..1336" text="12" />
+                                    <node key="DSON_HEIGHT" loc="1347..1348" text="4" />
                                 </node>
-                                <node key="DASHQL_OPTION_TITLE" loc="1258..1275" text="'Einschreibungen'" />
+                                <node key="DSON_TITLE" loc="1258..1275" text="'Einschreibungen'" />
                             </node>
                         </node>
                         <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLE_REF" loc="1209..1219" text="Enrolments">
@@ -596,32 +598,32 @@
                         <node key="DASHQL_VIZ_COMPONENTS">
                             <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="1437..2100" text="VEGA (&#10;   ..         )">
                                 <node key="DASHQL_VIZ_COMPONENT_TYPE" value="VEGA" />
-                                <node key="DASHQL_OPTION_POSITION" type="OBJECT_DASHQL_OPTION_LIST" loc="1509..1553" text="(row = 0, ..eight = 4)">
-                                    <node key="DASHQL_OPTION_ROW" loc="1516..1517" text="0" />
-                                    <node key="DASHQL_OPTION_COLUMN" loc="1528..1529" text="0" />
-                                    <node key="DASHQL_OPTION_WIDTH" loc="1539..1540" text="6" />
-                                    <node key="DASHQL_OPTION_HEIGHT" loc="1551..1552" text="4" />
+                                <node key="DSON_POSITION" type="OBJECT_DSON" loc="1509..1553" text="(row = 0, ..eight = 4)">
+                                    <node key="DSON_ROW" loc="1516..1517" text="0" />
+                                    <node key="DSON_COLUMN" loc="1528..1529" text="0" />
+                                    <node key="DSON_WIDTH" loc="1539..1540" text="6" />
+                                    <node key="DSON_HEIGHT" loc="1551..1552" text="4" />
                                 </node>
-                                <node key="DASHQL_OPTION_TITLE" loc="1468..1480" text="'Auslastung'" />
-                                <node key="DASHQL_OPTION_ENCODING" type="OBJECT_DASHQL_OPTION_LIST" loc="1612..2086" text="(&#10;        ..         )">
-                                    <node key="DASHQL_OPTION_X" type="OBJECT_DASHQL_OPTION_LIST" loc="1817..2067" text="(&#10;        ..         )">
-                                        <node key="DASHQL_OPTION_TITLE" loc="1851..1862" text="'Studenten'" />
-                                        <node key="DASHQL_OPTION_AXIS" type="OBJECT_DASHQL_OPTION_LIST" loc="2022..2044" text="axis.tick_..n_step = 1">
-                                            <node key="DASHQL_OPTION_TICK_MIN_STEP" loc="2043..2044" text="1" />
+                                <node key="DSON_TITLE" loc="1468..1480" text="'Auslastung'" />
+                                <node key="DSON_ENCODING" type="OBJECT_DSON" loc="1612..2086" text="(&#10;        ..         )">
+                                    <node key="DSON_X" type="OBJECT_DSON" loc="1817..2067" text="(&#10;        ..         )">
+                                        <node key="DSON_TITLE" loc="1851..1862" text="'Studenten'" />
+                                        <node key="DSON_AXIS" type="OBJECT_DSON" loc="2022..2044" text="axis.tick_..n_step = 1">
+                                            <node key="DSON_TICK_MIN_STEP" loc="2043..2044" text="1" />
                                         </node>
-                                        <node key="DASHQL_OPTION_FIELD" loc="1896..1907" text="'studenten'" />
-                                        <node key="DASHQL_OPTION_SCALE" type="OBJECT_DASHQL_OPTION_LIST" loc="1979..1996" text="scale.zero = true">
-                                            <node key="DASHQL_OPTION_ZERO" value="true" />
+                                        <node key="DSON_FIELD" loc="1896..1907" text="'studenten'" />
+                                        <node key="DSON_SCALE" type="OBJECT_DSON" loc="1979..1996" text="scale.zero = true">
+                                            <node key="DSON_ZERO" value="true" />
                                         </node>
-                                        <node key="DASHQL_OPTION_TYPE" loc="1939..1953" text="'quantitative'" />
+                                        <node key="DSON_TYPE" loc="1939..1953" text="'quantitative'" />
                                     </node>
-                                    <node key="DASHQL_OPTION_Y" type="OBJECT_DASHQL_OPTION_LIST" loc="1638..1791" text="(&#10;        ..         )">
-                                        <node key="DASHQL_OPTION_TITLE" loc="1672..1685" text="'Vorlesungen'" />
-                                        <node key="DASHQL_OPTION_FIELD" loc="1719..1726" text="'Titel'" />
-                                        <node key="DASHQL_OPTION_TYPE" loc="1759..1768" text="'nominal'" />
+                                    <node key="DSON_Y" type="OBJECT_DSON" loc="1638..1791" text="(&#10;        ..         )">
+                                        <node key="DSON_TITLE" loc="1672..1685" text="'Vorlesungen'" />
+                                        <node key="DSON_FIELD" loc="1719..1726" text="'Titel'" />
+                                        <node key="DSON_TYPE" loc="1759..1768" text="'nominal'" />
                                     </node>
                                 </node>
-                                <node key="DASHQL_OPTION_MARK" loc="1578..1583" text="'bar'" />
+                                <node key="DSON_MARK" loc="1578..1583" text="'bar'" />
                             </node>
                         </node>
                         <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLE_REF" loc="1417..1430" text="StudentCounts">
@@ -637,30 +639,30 @@
                         <node key="DASHQL_VIZ_COMPONENTS">
                             <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="2171..2770" text="VEGA (&#10;   ..         )">
                                 <node key="DASHQL_VIZ_COMPONENT_TYPE" value="VEGA" />
-                                <node key="DASHQL_OPTION_POSITION" type="OBJECT_DASHQL_OPTION_LIST" loc="2246..2290" text="(row = 0, ..eight = 4)">
-                                    <node key="DASHQL_OPTION_ROW" loc="2253..2254" text="0" />
-                                    <node key="DASHQL_OPTION_COLUMN" loc="2265..2266" text="6" />
-                                    <node key="DASHQL_OPTION_WIDTH" loc="2276..2277" text="6" />
-                                    <node key="DASHQL_OPTION_HEIGHT" loc="2288..2289" text="4" />
+                                <node key="DSON_POSITION" type="OBJECT_DSON" loc="2246..2290" text="(row = 0, ..eight = 4)">
+                                    <node key="DSON_ROW" loc="2253..2254" text="0" />
+                                    <node key="DSON_COLUMN" loc="2265..2266" text="6" />
+                                    <node key="DSON_WIDTH" loc="2276..2277" text="6" />
+                                    <node key="DSON_HEIGHT" loc="2288..2289" text="4" />
                                 </node>
-                                <node key="DASHQL_OPTION_TITLE" loc="2202..2217" text="'Wochenstunden'" />
-                                <node key="DASHQL_OPTION_ENCODING" type="OBJECT_DASHQL_OPTION_LIST" loc="2374..2756" text="(&#10;        ..         )">
-                                    <node key="DASHQL_OPTION_COLOR" type="OBJECT_DASHQL_OPTION_LIST" loc="2404..2508" text="(&#10;        ..         )">
-                                        <node key="DASHQL_OPTION_FIELD" loc="2438..2443" text="'SWS'" />
-                                        <node key="DASHQL_OPTION_TYPE" loc="2476..2485" text="'ordinal'" />
+                                <node key="DSON_TITLE" loc="2202..2217" text="'Wochenstunden'" />
+                                <node key="DSON_ENCODING" type="OBJECT_DSON" loc="2374..2756" text="(&#10;        ..         )">
+                                    <node key="DSON_COLOR" type="OBJECT_DSON" loc="2404..2508" text="(&#10;        ..         )">
+                                        <node key="DSON_FIELD" loc="2438..2443" text="'SWS'" />
+                                        <node key="DSON_TYPE" loc="2476..2485" text="'ordinal'" />
                                     </node>
-                                    <node key="DASHQL_OPTION_THETA" type="OBJECT_DASHQL_OPTION_LIST" loc="2538..2737" text="(&#10;        ..         )">
-                                        <node key="DASHQL_OPTION_TITLE" loc="2572..2585" text="'Vorlesungen'" />
-                                        <node key="DASHQL_OPTION_FIELD" loc="2619..2624" text="'cnt'" />
-                                        <node key="DASHQL_OPTION_SCALE" type="OBJECT_DASHQL_OPTION_LIST" loc="2697..2714" text="scale.zero = true">
-                                            <node key="DASHQL_OPTION_ZERO" value="true" />
+                                    <node key="DSON_THETA" type="OBJECT_DSON" loc="2538..2737" text="(&#10;        ..         )">
+                                        <node key="DSON_TITLE" loc="2572..2585" text="'Vorlesungen'" />
+                                        <node key="DSON_FIELD" loc="2619..2624" text="'cnt'" />
+                                        <node key="DSON_SCALE" type="OBJECT_DSON" loc="2697..2714" text="scale.zero = true">
+                                            <node key="DSON_ZERO" value="true" />
                                         </node>
-                                        <node key="DASHQL_OPTION_TYPE" loc="2657..2671" text="'quantitative'" />
+                                        <node key="DSON_TYPE" loc="2657..2671" text="'quantitative'" />
                                     </node>
                                 </node>
-                                <node key="DASHQL_OPTION_MARK" type="OBJECT_DASHQL_OPTION_LIST" loc="2315..2345" text="(type= 'ar..radius=50)">
-                                    <node key="DASHQL_OPTION_INNER_RADIUS" loc="2342..2344" text="50" />
-                                    <node key="DASHQL_OPTION_TYPE" loc="2322..2327" text="'arc'" />
+                                <node key="DSON_MARK" type="OBJECT_DSON" loc="2315..2345" text="(type= 'ar..radius=50)">
+                                    <node key="DSON_INNER_RADIUS" loc="2342..2344" text="50" />
+                                    <node key="DSON_TYPE" loc="2322..2327" text="'arc'" />
                                 </node>
                             </node>
                         </node>
@@ -760,6 +762,7 @@
                 <comment loc="1379..1400" text="-- ... or .. bar chart" />
                 <comment loc="2115..2138" text="-- ... or ..onut chart" />
             </comments>
+            <dson_keys />
             <dependencies>
                 <dependency type="TABLE_REF" source="0" target="1" loc="238..264" text="uni['vorle...parquet']" />
                 <dependency type="TABLE_REF" source="0" target="2" loc="295..316" text="uni['hoere...parquet']" />

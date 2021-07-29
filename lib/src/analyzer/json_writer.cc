@@ -12,8 +12,8 @@
 #include "dashql/analyzer/syntax_matcher.h"
 #include "dashql/common/memstream.h"
 #include "dashql/common/string.h"
+#include "dashql/parser/grammar/dson.h"
 #include "dashql/parser/grammar/enums.h"
-#include "dashql/parser/grammar/options.h"
 #include "dashql/proto_generated.h"
 #include "rapidjson/ostreamwrapper.h"
 #include "rapidjson/prettywriter.h"
@@ -24,9 +24,9 @@ namespace json {
 
 namespace {
 
-constexpr size_t SQLJSON_INDENTATION_CHARS = 4;
+constexpr size_t Script_INDENTATION_CHARS = 4;
 
-struct SQLJSONWriter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, SQLJSONWriter> {
+struct ScriptWriter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, ScriptWriter> {
     enum NodeType {
         OBJECT,
         ARRAY,
@@ -35,7 +35,7 @@ struct SQLJSONWriter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, SQ
     std::ostream& out;
     std::vector<std::pair<NodeType, size_t>> node_stack;
 
-    SQLJSONWriter(std::ostream& out) : out(out), node_stack() {}
+    ScriptWriter(std::ostream& out) : out(out), node_stack() {}
 
     bool Key(const char* txt, size_t length, bool copy) {
         auto& [node_type, children] = node_stack.back();
@@ -45,7 +45,7 @@ struct SQLJSONWriter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, SQ
         } else {
             out << ",\n";
         }
-        std::fill_n(std::ostream_iterator<char>{out}, node_stack.size() * SQLJSON_INDENTATION_CHARS, ' ');
+        std::fill_n(std::ostream_iterator<char>{out}, node_stack.size() * Script_INDENTATION_CHARS, ' ');
         out << std::string_view{txt, length};
         out << " = ";
         return true;
@@ -104,7 +104,7 @@ struct SQLJSONWriter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, SQ
         if (node_stack.back().second > 0) {
             out << "\n";
             node_stack.pop_back();
-            std::fill_n(std::ostream_iterator<char>{out}, node_stack.size() * SQLJSON_INDENTATION_CHARS, ' ');
+            std::fill_n(std::ostream_iterator<char>{out}, node_stack.size() * Script_INDENTATION_CHARS, ' ');
             out << ")";
         } else {
             node_stack.pop_back();
@@ -126,8 +126,12 @@ struct ExistingNode {
 using DFSStep = std::variant<ExistingNode, const json::SAXDocument*>;
 
 template <typename Writer>
-static void writeOptions(ProgramInstance& instance, size_t root_node_id, json::DocumentPatch& patch, Writer& out) {
+static void write(ProgramInstance& instance, size_t root_node_id, json::DocumentPatch& patch, Writer& out,
+                  bool only_dson) {
     std::string tmp;
+    auto printNode = [only_dson](sx::Node& node) {
+        return !only_dson || node.attribute_key() >= static_cast<size_t>(sx::AttributeKey::DSON_KEYS_);
+    };
 
     /// Use a single post-order DFS to build the json output.
     auto& nodes = instance.program().nodes;
@@ -140,9 +144,8 @@ static void writeOptions(ProgramInstance& instance, size_t root_node_id, json::D
         // Is SAX node on DFS stack? - emit directly.
         // Could either be an attribute value or an array element.
         if (auto sax = std::get_if<const json::SAXDocument*>(&top); sax) {
-            auto text = parser::optionToString((*sax)->key);
-            if (!text.empty()) {
-                auto key = parser::optionToCamelCase(text, tmp);
+            if ((*sax)->key != sx::AttributeKey::NONE) {
+                auto key = instance.dson_dictionary().keyToStringForJSON(static_cast<uint16_t>((*sax)->key), tmp);
                 out.Key(key.data(), key.length(), true);
             };
             (*sax)->Write(out);
@@ -180,15 +183,11 @@ static void writeOptions(ProgramInstance& instance, size_t root_node_id, json::D
             continue;
         }
 
-        // Not visited yet, is option?
-        // If yes, emit the key.
-        // We don't emit other attribute keys!
-        if (node.attribute_key() != sx::AttributeKey::NONE) {
-            auto text = parser::optionToString(node.attribute_key());
-            if (!text.empty()) {
-                auto key = parser::optionToCamelCase(text, tmp);
-                out.Key(key.data(), key.length(), true);
-            };
+        // Not visited yet?
+        // Emit the key.
+        if (node.attribute_key() != 0) {
+            auto key = instance.dson_dictionary().keyToStringForJSON(static_cast<uint16_t>(node.attribute_key()), tmp);
+            out.Key(key.data(), key.length(), true);
         }
 
         // Not visited yet, check node type
@@ -232,8 +231,7 @@ static void writeOptions(ProgramInstance& instance, size_t root_node_id, json::D
                 // Push remaining elements
                 for (auto i = 0; i < count; ++i) {
                     auto& child = nodes[end - i - 1];
-                    if (child.node_type() == sx::NodeType::NONE || child.attribute_key() != sx::AttributeKey::NONE)
-                        continue;
+                    if (child.node_type() == sx::NodeType::NONE) continue;
                     pending.push_back(ExistingNode{end - i - 1, std::nullopt, 0});
                 }
                 std::get<ExistingNode>(pending[node_stack_id]).children = pending.size() - node_stack_id - 1;
@@ -272,8 +270,7 @@ static void writeOptions(ProgramInstance& instance, size_t root_node_id, json::D
                         // Collect all children
                         for (auto i = 0; i < count; ++i) {
                             auto& child = nodes[end - i - 1];
-                            if (child.attribute_key() > sx::AttributeKey::DASHQL_OPTION_KEYS_ &&
-                                child.attribute_key() < sx::AttributeKey::SQL_KEYS_) {
+                            if (printNode(child)) {
                                 pending.push_back(ExistingNode{end - i - 1, std::nullopt, 0});
                             }
                         }
@@ -285,9 +282,10 @@ static void writeOptions(ProgramInstance& instance, size_t root_node_id, json::D
                         auto r = 0;
                         while (l < count && r < to_append->size()) {
                             auto lk = nodes[begin + l].attribute_key();
-                            auto rk = to_append->at(r).key;
+                            auto rk = static_cast<uint16_t>(to_append->at(r).key);
                             if (lk < rk) {
-                                if (lk > sx::AttributeKey::DASHQL_OPTION_KEYS_ && lk < sx::AttributeKey::SQL_KEYS_) {
+                                auto& child = nodes[begin + l];
+                                if (printNode(child)) {
                                     pending.push_back(ExistingNode{begin + l, std::nullopt, 0});
                                 }
                                 ++l;
@@ -302,8 +300,7 @@ static void writeOptions(ProgramInstance& instance, size_t root_node_id, json::D
                         }
                         for (; l < count; ++l) {
                             auto& child = nodes[begin + l];
-                            if (child.attribute_key() > sx::AttributeKey::DASHQL_OPTION_KEYS_ &&
-                                child.attribute_key() < sx::AttributeKey::SQL_KEYS_) {
+                            if (printNode(child)) {
                                 pending.push_back(ExistingNode{begin + l, std::nullopt, 0});
                             }
                         }
@@ -334,22 +331,22 @@ DocumentWriter::DocumentWriter(ProgramInstance& instance, size_t node_id, const 
     : instance_(instance), node_id_(node_id), patch_(ast) {}
 
 // Read all options as DOM
-// Write document as SQLJSON
-void DocumentWriter::writeOptionsAsSQLJSON(std::ostream& out, bool pretty) {
-    SQLJSONWriter writer{out};
-    writeOptions(instance_, node_id_, patch_, writer);
+// Write document as Script
+void DocumentWriter::writeAsScript(std::ostream& out, bool pretty, bool only_dson) {
+    ScriptWriter writer{out};
+    write(instance_, node_id_, patch_, writer, only_dson);
 }
 
 // Write all options directly as JSON.
-// This is more efficient than SQLJSON since we don't materialize an intermediate DOM.
-void DocumentWriter::writeOptionsAsJSON(std::ostream& raw_out, bool pretty) {
+// This is more efficient than Script since we don't materialize an intermediate DOM.
+void DocumentWriter::writeAsJSON(std::ostream& raw_out, bool pretty, bool only_dson) {
     rapidjson::OStreamWrapper out{raw_out};
     if (pretty) {
         rapidjson::PrettyWriter writer{out};
-        writeOptions(instance_, node_id_, patch_, writer);
+        write(instance_, node_id_, patch_, writer, only_dson);
     } else {
         rapidjson::Writer writer{out};
-        writeOptions(instance_, node_id_, patch_, writer);
+        write(instance_, node_id_, patch_, writer, only_dson);
     }
 }
 

@@ -39,7 +39,7 @@ TEST(ASTMatcherTest, FetchStatement) {
                     sxm::Attribute(sx::AttributeKey::SQL_QUALIFIED_NAME_RELATION, 3)
                         .MatchString()
                 }),
-            sxm::Attribute(sx::AttributeKey::DASHQL_OPTION_URL, 4)
+            sxm::Attribute(sx::AttributeKey::DSON_URL, 4)
                 .MatchString()
         });
     // clang-format on
@@ -107,20 +107,20 @@ TEST(ASTMatcherTest, VizStatementPositionShort) {
                         .MatchChildren({
                             sxm::Attribute(sx::AttributeKey::DASHQL_VIZ_COMPONENT_TYPE)
                                 .MatchEnum(sx::NodeType::ENUM_DASHQL_VIZ_COMPONENT_TYPE),
-                            sxm::Attribute(sx::AttributeKey::DASHQL_OPTION_POSITION, 9)
-                                .MatchOptions()
+                            sxm::Attribute(sx::AttributeKey::DSON_POSITION, 9)
+                                .MatchDSON()
                                 .MatchChildren({
-                                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_ROW, 2)
+                                    sxm::Attribute(sx::AttributeKey::DSON_ROW, 2)
                                         .MatchString(),
-                                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_COLUMN, 0)
+                                    sxm::Attribute(sx::AttributeKey::DSON_COLUMN, 0)
                                         .MatchString(),
-                                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_WIDTH, 3)
+                                    sxm::Attribute(sx::AttributeKey::DSON_WIDTH, 3)
                                         .MatchString(),
-                                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_HEIGHT, 1)
+                                    sxm::Attribute(sx::AttributeKey::DSON_HEIGHT, 1)
                                         .MatchString(),
-                                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_X, 4)
+                                    sxm::Attribute(sx::AttributeKey::DSON_X, 4)
                                         .MatchString(),
-                                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_Y, 5)
+                                    sxm::Attribute(sx::AttributeKey::DSON_Y, 5)
                                         .MatchString(),
                                 }),
                         })
@@ -162,7 +162,7 @@ TEST(ASTMatcherTest, FetchStatementFormat) {
                     sxm::Attribute(sx::AttributeKey::SQL_QUALIFIED_NAME_RELATION, 3)
                         .MatchString()
                 }),
-            sxm::Attribute(sx::AttributeKey::DASHQL_OPTION_URL, 4)
+            sxm::Attribute(sx::AttributeKey::DSON_URL, 4)
                 .MatchObject(sx::NodeType::OBJECT_DASHQL_FUNCTION_CALL)
                 .MatchChildren({
                     sxm::Attribute(sx::AttributeKey::SQL_FUNCTION_ARGUMENTS, 5)

@@ -33,7 +33,7 @@ std::unique_ptr<FetchStatement> FetchStatement::ReadFrom(ProgramInstance& instan
                 .MatchString(),
             sxm::Attribute(sx::AttributeKey::DASHQL_FETCH_METHOD, SX_FETCH_METHOD)
                 .MatchEnum(sx::NodeType::ENUM_DASHQL_FETCH_METHOD_TYPE),
-            sxm::Attribute(sx::AttributeKey::DASHQL_OPTION_URL, SX_FETCH_URL_OPTION)
+            sxm::Attribute(sx::AttributeKey::DSON_URL, SX_FETCH_URL_OPTION)
         });
     // clang-format on
 
@@ -44,7 +44,7 @@ std::unique_ptr<FetchStatement> FetchStatement::ReadFrom(ProgramInstance& instan
     // Helper to report a redundant option
     auto optionIsRedundant = [&](size_t match_id, std::string_view name) {
         if (auto m = fetch->ast_[match_id]; m) {
-            instance.AddLinterMessage(LinterMessageCode::OPTION_REDUNDANT, m.node_id)
+            instance.AddLinterMessage(LinterMessageCode::KEY_REDUNDANT, m.node_id)
                 << "option '" << name << "' is redundant";
         }
     };
@@ -57,7 +57,7 @@ std::unique_ptr<FetchStatement> FetchStatement::ReadFrom(ProgramInstance& instan
         if (auto url = fetch->ast_[SX_FETCH_URL_OPTION]; url) {
             fetch->url_ = instance.TextAt(program.nodes[url.node_id].location());
         } else {
-            instance.AddLinterMessage(LinterMessageCode::OPTION_MISSING, m.node_id) << "missing option 'url'";
+            instance.AddLinterMessage(LinterMessageCode::KEY_MISSING, m.node_id) << "missing option 'url'";
         }
     }
 
@@ -86,7 +86,7 @@ void FetchStatement::PrintOptionsAsJSON(std::ostream& out, bool pretty) const {
     auto& program = instance_.program();
     auto& stmt = program.statements[statement_id_];
     json::DocumentWriter writer{instance_, stmt->root_node, ast_};
-    writer.writeOptionsAsJSON(out, pretty);
+    writer.writeAsJSON(out, pretty, true);
 }
 
 /// Pack the load statement

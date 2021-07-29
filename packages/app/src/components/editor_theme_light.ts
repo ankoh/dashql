@@ -26,7 +26,7 @@ export const theme: editor.IStandaloneThemeData = {
             foreground: '000000',
         },
         {
-            token: 'option.key',
+            token: 'dson.key',
             fontStyle: 'italic',
         },
         {

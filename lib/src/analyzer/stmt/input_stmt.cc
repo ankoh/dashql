@@ -41,23 +41,23 @@ std::unique_ptr<InputStatement> InputStatement::ReadFrom(ProgramInstance& instan
     static const auto schema = sxm::Element()
         .MatchObject(sx::NodeType::OBJECT_DASHQL_INPUT)
         .MatchChildren({
-            sxm::Option(sx::AttributeKey::DASHQL_INPUT_COMPONENT_TYPE, SX_INPUT_COMPONENT_TYPE)
+            sxm::Attribute(sx::AttributeKey::DASHQL_INPUT_COMPONENT_TYPE, SX_INPUT_COMPONENT_TYPE)
                 .MatchEnum(sx::NodeType::ENUM_DASHQL_INPUT_COMPONENT_TYPE),
-            sxm::Option(sx::AttributeKey::DASHQL_INPUT_VALUE_TYPE, SX_INPUT_VALUE_TYPE),
-            sxm::Option(sx::AttributeKey::DASHQL_STATEMENT_NAME, SX_STATEMENT_NAME),
-            sxm::Option(sx::AttributeKey::DASHQL_OPTION_POSITION, SX_POS)
-                .MatchOptions()
+            sxm::Attribute(sx::AttributeKey::DASHQL_INPUT_VALUE_TYPE, SX_INPUT_VALUE_TYPE),
+            sxm::Attribute(sx::AttributeKey::DASHQL_STATEMENT_NAME, SX_STATEMENT_NAME),
+            sxm::Attribute(sx::AttributeKey::DSON_POSITION, SX_POS)
+                .MatchDSON()
                 .MatchChildren({
-                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_ROW, SX_POS_ROW),
-                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_COLUMN, SX_POS_COLUMN),
-                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_WIDTH, SX_POS_WIDTH),
-                    sxm::Option(sx::AttributeKey::DASHQL_OPTION_HEIGHT, SX_POS_HEIGHT),
+                    sxm::Attribute(sx::AttributeKey::DSON_ROW, SX_POS_ROW),
+                    sxm::Attribute(sx::AttributeKey::DSON_COLUMN, SX_POS_COLUMN),
+                    sxm::Attribute(sx::AttributeKey::DSON_WIDTH, SX_POS_WIDTH),
+                    sxm::Attribute(sx::AttributeKey::DSON_HEIGHT, SX_POS_HEIGHT),
                 }),
-            sxm::Option(sx::AttributeKey::DASHQL_OPTION_ROW, SX_ROW),
-            sxm::Option(sx::AttributeKey::DASHQL_OPTION_COLUMN, SX_COLUMN),
-            sxm::Option(sx::AttributeKey::DASHQL_OPTION_WIDTH, SX_WIDTH),
-            sxm::Option(sx::AttributeKey::DASHQL_OPTION_HEIGHT, SX_HEIGHT),
-            sxm::Option(sx::AttributeKey::DASHQL_OPTION_TITLE, SX_TITLE),
+            sxm::Attribute(sx::AttributeKey::DSON_ROW, SX_ROW),
+            sxm::Attribute(sx::AttributeKey::DSON_COLUMN, SX_COLUMN),
+            sxm::Attribute(sx::AttributeKey::DSON_WIDTH, SX_WIDTH),
+            sxm::Attribute(sx::AttributeKey::DSON_HEIGHT, SX_HEIGHT),
+            sxm::Attribute(sx::AttributeKey::DSON_TITLE, SX_TITLE),
         });
     // clang-format on
 
@@ -141,7 +141,7 @@ void InputStatement::PrintScript(std::ostream& out) const {
             SX_POS_COLUMN,
             SX_POS_HEIGHT,
         });
-        json::SAXDocumentBuilder node{sx::AttributeKey::DASHQL_OPTION_POSITION};
+        json::SAXDocumentBuilder node{sx::AttributeKey::DSON_POSITION};
         node.StartObject();
         node.Key("row");
         node.Uint(position_->row());
@@ -154,7 +154,7 @@ void InputStatement::PrintScript(std::ostream& out) const {
         node.EndObject(4);
         writer.patch().Append(stmt->root_node, node.Finish());
     }
-    writer.writeOptionsAsSQLJSON(out);
+    writer.writeAsScript(out, true, true);
 }
 
 /// Pack the viz specs
@@ -173,7 +173,7 @@ flatbuffers::Offset<proto::analyzer::Card> InputStatement::PackCard(flatbuffers:
     {
         std::stringstream out;
         json::DocumentWriter writer{instance_, stmt->root_node, ast_};
-        writer.writeOptionsAsJSON(out);
+        writer.writeAsJSON(out, false, true);
         options = builder.CreateString(out.str());
     }
 
