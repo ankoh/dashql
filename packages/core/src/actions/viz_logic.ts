@@ -147,7 +147,7 @@ export abstract class VizActionLogic extends ProgramActionLogic {
             for (let j = 0; j < c.typeModifiersLength(); ++i) {
                 mods.set(c.typeModifiers(j)!, true);
             }
-            const optionsJSON = c.options() || '';
+            const optionsJSON = c.extra() || '';
             const options = JSON.parse(optionsJSON);
             this._vega.addComponent(type, mods, options)!;
         }
@@ -191,7 +191,7 @@ export class CreateVizActionLogic extends VizActionLogic {
             statementID: this.origin.statementId,
             position: pos,
             title: this._card!.cardTitle() || null,
-            inputOptions: null,
+            inputExtra: null,
             vegaLiteSpec: null,
             vegaSpec: null,
             dataSource: null,

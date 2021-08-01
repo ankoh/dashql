@@ -82,7 +82,7 @@ std::unique_ptr<FetchStatement> FetchStatement::ReadFrom(ProgramInstance& instan
 }
 
 /// Print the options as json
-void FetchStatement::PrintOptionsAsJSON(std::ostream& out, bool pretty) const {
+void FetchStatement::PrintExtraAsJSON(std::ostream& out, bool pretty) const {
     auto& program = instance_.program();
     auto& stmt = program.statements[statement_id_];
     json::DocumentWriter writer{instance_, stmt->root_node, ast_};
@@ -97,11 +97,11 @@ fb::Offset<ana::FetchStatement> FetchStatement::Pack(fb::FlatBufferBuilder& buil
     // Encode the url
     auto url = builder.CreateString(url_);
     // Print the options
-    flatbuffers::Offset<flatbuffers::String> options;
+    flatbuffers::Offset<flatbuffers::String> extra;
     {
         std::stringstream out;
-        PrintOptionsAsJSON(out, false);
-        options = builder.CreateString(out.str());
+        PrintExtraAsJSON(out, false);
+        extra = builder.CreateString(out.str());
     }
 
     proto::analyzer::FetchStatementBuilder eb{builder};
@@ -109,7 +109,7 @@ fb::Offset<ana::FetchStatement> FetchStatement::Pack(fb::FlatBufferBuilder& buil
     eb.add_method(method_);
     eb.add_url(url);
     eb.add_archive(archive_);
-    eb.add_options(options);
+    eb.add_extra(extra);
     return eb.Finish();
 }
 

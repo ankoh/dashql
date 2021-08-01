@@ -54,7 +54,7 @@ table FetchStatement {
     method: syntax.FetchMethodType;
     url: string;
     archive: ArchiveMode;
-    options: string;
+    extra: string;
 }
 
 /// A transform statement
@@ -63,7 +63,7 @@ table TransformStatement {
     data_source: string;
     data_source_index: string;
     method: syntax.TransformMethodType;
-    options: string;
+    extra: string;
 }
 
 /// An load statement
@@ -72,7 +72,7 @@ table LoadStatement {
     data_source: string;
     data_source_index: string;
     method: syntax.LoadMethodType;
-    options: string;
+    extra: string;
 }
 
 /// Parameters for the program instantiation
@@ -84,7 +84,7 @@ table ProgramInstantiation {
 table VizComponent {
     type: syntax.VizComponentType;
     type_modifiers: [syntax.VizComponentTypeModifier];
-    options: string;
+    extra: string;
 }
 
 /// A card position
@@ -108,8 +108,8 @@ table Card {
     card_position: CardPosition;
     statement_id: uint32;
     input_component: syntax.InputComponentType;
+    input_extra: string;
     input_value_type: sql.SQLType;
-    input_options: string;
     viz_target: string;
     viz_components: [VizComponent];
 }

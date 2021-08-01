@@ -169,12 +169,12 @@ flatbuffers::Offset<proto::analyzer::Card> InputStatement::PackCard(flatbuffers:
     }
 
     // Print the options
-    flatbuffers::Offset<flatbuffers::String> options;
+    flatbuffers::Offset<flatbuffers::String> extra;
     {
         std::stringstream out;
         json::DocumentWriter writer{instance_, stmt->root_node, ast_};
         writer.writeAsJSON(out, false, true);
-        options = builder.CreateString(out.str());
+        extra = builder.CreateString(out.str());
     }
 
     // Build viz spec
@@ -183,7 +183,7 @@ flatbuffers::Offset<proto::analyzer::Card> InputStatement::PackCard(flatbuffers:
     if (position_) cb.add_card_position(&position_.value());
     if (title_offset) cb.add_card_title(*title_offset);
     cb.add_statement_id(statement_id_);
-    cb.add_input_options(options);
+    cb.add_input_extra(extra);
     return cb.Finish();
 }
 

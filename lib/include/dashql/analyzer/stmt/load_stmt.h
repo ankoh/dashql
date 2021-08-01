@@ -42,8 +42,8 @@ class LoadStatement {
     auto& ast() { return ast_; }
     /// Get the target text
     sx::Location GetTarget() const;
-    /// Print the options as json
-    void PrintOptionsAsJSON(std::ostream& out, bool pretty = false) const;
+    /// Print the extra config as json
+    void PrintExtraAsJSON(std::ostream& out, bool pretty = false) const;
     /// Print as script
     void PrintScript(std::ostream& out) const;
     /// Pack the load statement

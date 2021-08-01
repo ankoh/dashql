@@ -247,4 +247,17 @@
             <parameters />
         </step>
     </test>
+    <test name="demo_3">
+        <step>
+            <text>
+                FETCH json_stats FROM HTTP (
+                    url = 'https://www.haloapi.com/stats/hw2/players/Scootman2/stats',
+                    headers = (
+                        'Ocp-Apim-Subscription-Key' = 'cf4bf3e7f37f41e3a8bdf7349c29b0c7'
+                    )
+                );
+            </text>
+            <parameters />
+        </step>
+    </test>
 </tests>
