@@ -55,7 +55,7 @@ std::unique_ptr<FetchStatement> FetchStatement::ReadFrom(ProgramInstance& instan
         fetch->method_ = m.DataAsEnum<sx::FetchMethodType>();
 
         if (auto url = fetch->ast_[SX_FETCH_URL_OPTION]; url) {
-            fetch->url_ = instance.TextAt(program.nodes[url.node_id].location());
+            fetch->url_ = trimview(instance.TextAt(program.nodes[url.node_id].location()), isNoQuote);
         } else {
             instance.AddLinterMessage(LinterMessageCode::KEY_MISSING, m.node_id) << "missing option 'url'";
         }

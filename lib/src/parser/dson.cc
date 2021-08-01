@@ -78,7 +78,7 @@ std::string_view DSONDictionary::keyToStringForJSON(uint16_t key, std::string& t
     if (key < static_cast<uint16_t>(sx::AttributeKey::DSON_KEYS_)) {
         return sx::AttributeKeyTypeTable()->names[key];
     }
-    if (key > static_cast<uint16_t>(sx::AttributeKey::DSON_DYNAMIC_KEYS_)) {
+    if (key >= static_cast<uint16_t>(sx::AttributeKey::DSON_DYNAMIC_KEYS_)) {
         key -= static_cast<uint16_t>(sx::AttributeKey::DSON_DYNAMIC_KEYS_);
         assert(key < program_.dson_keys.size());
         return textAt(program_text_, program_.dson_keys[key]);
