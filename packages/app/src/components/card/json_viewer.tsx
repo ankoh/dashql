@@ -37,7 +37,7 @@ function identifyJSONShape(obj: any): JSONShape {
     if (Array.isArray(obj)) {
         let ok = true;
         for (let i = 0; i < Math.min(obj.length, 10); ++i) {
-            ok &&= typeof obj[i] != 'object';
+            ok &&= typeof obj[i] == 'object';
         }
         return ok ? JSONShape.ROW_ARRAY : JSONShape.UNRECOGNIZED;
     }

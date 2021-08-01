@@ -5,6 +5,22 @@ FETCH json_stats FROM HTTP (
     )
 );
 
-VIZ json_stats USING JSON (
-    position = (row = 0, column = 0, width = 8, height = 4),
+VIZ json_stats USING JSON;
+
+TRANSFORM json_stats INTO json_stats_mm USING JMESPATH (
+    expression = 'MatchmakingSummary.RankedPlaylistStats[*].{
+        playlist_id: @.PlaylistId,
+        units_built: @.TotalUnitsBuilt,
+        time_played: @.TotalTimePlayed,
+        matches_started: @.TotalMatchesStarted,
+        matches_completed: @.TotalMatchesCompleted,
+        matches_won: @.TotalMatchesWon,
+        matches_lost: @.TotalMatchesLost,
+        units_built: @.TotalUnitsBuilt,
+        units_destroyed: @.TotalUnitsDestroyed
+    }'
 );
+
+LOAD stats_mm FROM json_stats_mm USING JSON;
+
+VIZ stats_mm USING TABLE;
