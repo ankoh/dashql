@@ -55,7 +55,7 @@
     "devDependencies": {
         "@types/classnames": "^2.3.1",
         "@types/d3": "^7.0.0",
-        "@types/dagre": "^0.7.45",
+        "@types/dagre": "^0.7.46",
         "@types/emscripten": "^1.39.5",
         "@types/flatbuffers": "^1.10.0",
         "@types/node": "^16.3.3",
