@@ -133,7 +133,7 @@
             <cards>
                 <visualization target="main.foo">
                     <components>
-                        <component type="TABLE">{"pos":{"":5.0,"c":1.0,"w":8.0,"h":4.0}}</component>
+                        <component type="TABLE">{"pos":{"r":5.0,"c":1.0,"w":8.0,"h":4.0}}</component>
                     </components>
                 </visualization>
             </cards>
@@ -216,7 +216,7 @@
             <cards>
                 <visualization target="main.foo">
                     <components>
-                        <component type="TABLE">{"pos":{"":5.0,"c":1.0,"w":8.0,"h":4.0}}</component>
+                        <component type="TABLE">{"pos":{"r":5.0,"c":1.0,"w":8.0,"h":4.0}}</component>
                     </components>
                 </visualization>
             </cards>

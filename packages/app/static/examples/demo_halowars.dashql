@@ -4,3 +4,7 @@ FETCH json_stats FROM HTTP (
         'Ocp-Apim-Subscription-Key' = 'cf4bf3e7f37f41e3a8bdf7349c29b0c7'
     )
 );
+
+VIZ json_stats USING JSON (
+    position = (row = 0, column = 0, width = 8, height = 4),
+);

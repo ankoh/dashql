@@ -13,11 +13,17 @@ export class FetchActionLogic extends ProgramActionLogic {
     public willExecute(_context: ActionContext): void {}
 
     /// Fetch via HTTP
-    protected async fetchHTTP(context: ActionContext, url: string): Promise<ArrayBuffer | null> {
+    protected async fetchHTTP(
+        context: ActionContext,
+        url: string,
+        headers?: Record<string, string>,
+    ): Promise<ArrayBuffer | null> {
         const http = context.platform.http;
         try {
+            console.log(headers);
             const resp = await http.request({
-                url: url,
+                url,
+                headers,
             });
             return resp.response.data;
         } catch (e) {
@@ -38,7 +44,9 @@ export class FetchActionLogic extends ProgramActionLogic {
         let blob: Blob | null;
         switch (fetch.method()) {
             case proto.syntax.FetchMethodType.HTTP: {
-                const buffer = await this.fetchHTTP(context, fetch.url());
+                const extra = JSON.parse(fetch.extra()) as any;
+                console.log(extra);
+                const buffer = await this.fetchHTTP(context, fetch.url(), extra.headers);
                 blob = new Blob([buffer]);
                 break;
             }
