@@ -1,18 +1,17 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
 <svg width="100%" height="100%" viewBox="0 0 100 100" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
-    <g transform="matrix(1,0,0,1,-266,-630)">
-        <g id="safari-pinned-tab" transform="matrix(0.568182,0,0,0.480769,429.636,433.365)">
+    <g transform="matrix(1,0,0,1,-266,0)">
+        <g id="safari-pinned-tab" transform="matrix(0.568182,0,0,0.480769,429.636,-196.635)">
             <rect x="-288" y="409" width="176" height="208" style="fill:none;"/>
             <clipPath id="_clip1">
                 <rect x="-288" y="409" width="176" height="208"/>
             </clipPath>
             <g clip-path="url(#_clip1)">
                 <g id="robot" transform="matrix(0.619561,0,0,0.732208,-320.195,374.703)">
-                    <g transform="matrix(1,0,0,1,44,44)">
-                        <rect x="0" y="0" width="300" height="309" style="fill:none;"/>
+                    <g transform="matrix(0.603516,0,0,0.603516,-941.213,-336.818)">
+                        <rect x="1625" y="631" width="512" height="512" style="fill:rgb(108,108,108);"/>
                     </g>
-                    <path d="M194.003,53.55L193.997,53.55C116.943,53.55 53.537,116.956 53.537,194.01C53.537,249.706 86.665,300.363 137.69,322.69C173.579,307.03 214.421,307.03 250.31,322.69C301.335,300.363 334.463,249.706 334.463,194.01C334.463,116.956 271.057,53.55 194.003,53.55Z" style="fill:rgb(108,108,108);fill-rule:nonzero;"/>
                     <g transform="matrix(1,0,0,1,44,44)">
                         <path d="M230.41,153.7C225.12,162.132 217.928,169.209 209.41,174.36C223.71,189.6 239.63,213.23 234.13,227.99C223.75,241.7 207.63,224.7 199.32,213.99C174.37,263.91 125.64,263.89 100.7,213.99C92.38,224.69 76.28,241.68 65.89,227.99C60.39,213.22 76.3,189.61 90.61,174.36C82.092,169.209 74.9,162.132 69.61,153.7C46.95,149.84 41.74,117.33 61.96,106.55C63.02,98.55 65.09,91.99 68.09,87.55C74.52,73.05 134.9,66 147,67C147.05,66.49 146.9,42.41 147.05,41.94C137.94,39.06 140.27,24.5 150,24.79C159.73,24.5 162.06,39.06 152.95,41.94C153.1,42.41 152.95,66.49 153,67C165.12,66 225.46,73 231.94,87.59C234.94,91.98 237,98.59 238.06,106.59C258.27,117.32 253.08,149.84 230.41,153.7Z" style="fill:rgb(30,30,30);"/>
                     </g>
