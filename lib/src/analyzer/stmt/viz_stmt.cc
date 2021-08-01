@@ -289,18 +289,18 @@ flatbuffers::Offset<proto::analyzer::VizComponent> VizComponent::Pack(flatbuffer
     auto modifiers_vec = builder.CreateVector(modifiers);
 
     // Print the spec
-    flatbuffers::Offset<flatbuffers::String> spec;
+    flatbuffers::Offset<flatbuffers::String> extra;
     {
         std::stringstream out;
         PrintOptionsAsJSON(out, false);
-        spec = builder.CreateString(out.str());
+        extra = builder.CreateString(out.str());
     }
 
     // Pack component
     proto::analyzer::VizComponentBuilder cb{builder};
     cb.add_type(type_);
     cb.add_type_modifiers(modifiers_vec);
-    cb.add_options(spec);
+    cb.add_extra(extra);
     return cb.Finish();
 }
 

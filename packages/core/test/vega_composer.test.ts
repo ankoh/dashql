@@ -221,9 +221,9 @@ export function testVegaComposer(az: () => analyzer.AnalyzerBindings): void {
                     for (let j = 0; j < c.typeModifiersLength(); ++j) {
                         mods.set(c.typeModifiers(j)!, true);
                     }
-                    const optionsJSON = c.options() || '';
-                    const options = JSON.parse(optionsJSON);
-                    composer.addComponent(type, mods, options)!;
+                    const extraJSON = c.extra() || '';
+                    const extra = JSON.parse(extraJSON);
+                    composer.addComponent(type, mods, extra)!;
                 }
                 composer.combineComponents();
                 const out = await composer.compile()!;

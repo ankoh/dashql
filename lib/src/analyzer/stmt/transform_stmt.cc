@@ -72,7 +72,7 @@ std::unique_ptr<TransformStatement> TransformStatement::ReadFrom(ProgramInstance
 }
 
 /// Print the options as json
-void TransformStatement::PrintOptionsAsJSON(std::ostream& out, bool pretty) const {
+void TransformStatement::PrintExtraAsJSON(std::ostream& out, bool pretty) const {
     auto& program = instance_.program();
     auto& stmt = program.statements[statement_id_];
     json::DocumentWriter writer{instance_, stmt->root_node, ast_};
@@ -92,11 +92,11 @@ fb::Offset<ana::TransformStatement> TransformStatement::Pack(fb::FlatBufferBuild
     }
 
     // Print the options
-    flatbuffers::Offset<flatbuffers::String> options;
+    flatbuffers::Offset<flatbuffers::String> extra;
     {
         std::stringstream out;
-        PrintOptionsAsJSON(out, false);
-        options = builder.CreateString(out.str());
+        PrintExtraAsJSON(out, false);
+        extra = builder.CreateString(out.str());
     }
 
     // Build load statement
@@ -105,7 +105,7 @@ fb::Offset<ana::TransformStatement> TransformStatement::Pack(fb::FlatBufferBuild
     eb.add_data_source(data_qualified);
     if (data_index) eb.add_data_source_index(*data_index);
     eb.add_method(method_);
-    eb.add_options(options);
+    eb.add_extra(extra);
     return eb.Finish();
 }
 

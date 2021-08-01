@@ -958,4 +958,27 @@
             </graph>
         </step>
     </test>
+    <test name="demo_3">
+        <step>
+            <text>
+                FETCH json_stats FROM HTTP (
+                    url = 'https://www.haloapi.com/stats/hw2/players/Scootman2/stats',
+                    headers = (
+                        'Ocp-Apim-Subscription-Key' = 'cf4bf3e7f37f41e3a8bdf7349c29b0c7'
+                    )
+                );
+            </text>
+            <inputs />
+            <evaluations />
+            <cards />
+            <graph next_object_id="1">
+                <setup />
+                <program>
+                    <action type="FETCH" status="SKIPPED" object_id="0" statement="0">
+                        <output name="main.json_stats" />
+                    </action>
+                </program>
+            </graph>
+        </step>
+    </test>
 </tests>

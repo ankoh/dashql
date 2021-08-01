@@ -43,8 +43,8 @@ class TransformStatement {
     sx::Location GetTarget() const;
     /// Print as script
     void PrintScript(std::ostream& out) const;
-    /// Print the options as json
-    void PrintOptionsAsJSON(std::ostream& out, bool pretty = false) const;
+    /// Print the extra config as json
+    void PrintExtraAsJSON(std::ostream& out, bool pretty = false) const;
     /// Pack the load statement
     flatbuffers::Offset<proto::analyzer::TransformStatement> Pack(flatbuffers::FlatBufferBuilder& builder) const;
 

@@ -52,7 +52,7 @@ export class InputActionLogic extends ProgramActionLogic {
             statementID: this.origin.statementId,
             position: pos,
             title: this._card!.cardTitle() || stmt.nameQualified || null,
-            inputOptions: JSON.parse(this._card.inputOptions()) as model.InputOptions,
+            inputExtra: JSON.parse(this._card.inputExtra()) as model.InputExtra,
             vegaLiteSpec: null,
             vegaSpec: null,
             dataSource: null,

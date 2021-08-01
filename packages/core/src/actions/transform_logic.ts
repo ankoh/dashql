@@ -29,13 +29,13 @@ export class TransformActionLogic extends ProgramActionLogic {
         const blobID = planState.blobsByName.get(blobName);
 
         // Parse transform options
-        const options = JSON.parse(transform.options()) as TransformOptions;
+        const extra = JSON.parse(transform.extra()) as TransformOptions;
 
         // Evaluate a jmespath
         const blob = planState.objects.get(blobID) as UniqueBlob;
         const buffer = new Uint8Array(await blob.blob.arrayBuffer());
         const jp = await context.platform.resolveJMESPath();
-        const result = await jp.evaluateUTF8(options.expression || '.', buffer);
+        const result = await jp.evaluateUTF8(extra.expression || '.', buffer);
         const resultBlob = new Blob([result]);
 
         // Register the file handle in DuckDB
