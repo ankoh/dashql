@@ -71,24 +71,35 @@ class Studio extends React.Component<Props> {
                             <div className={styles.program_info_visibility}>Secret</div>
                         </div>
                         <div className={styles.program_stats}>
-                            <ProgramStatsTeaser
-                                width={200}
-                                height={48}
-                                data={arrow.Table.new(
-                                    [
-                                        DateVector.from([
-                                            new Date(2021, 1),
-                                            new Date(2021, 2),
-                                            new Date(2021, 3),
-                                            new Date(2021, 4),
-                                            new Date(2021, 5),
-                                            new Date(2021, 6),
-                                        ]),
-                                        Float64Vector.from([1, 5, 3, 8, 5, 6]),
-                                    ],
-                                    ['date', 'views'],
-                                )}
-                            />
+                            <div className={styles.program_stats_chart}>
+                                <ProgramStatsTeaser
+                                    width={84}
+                                    height={20}
+                                    data={arrow.Table.new(
+                                        [
+                                            DateVector.from([
+                                                new Date(2021, 1, 16),
+                                                new Date(2021, 1, 17),
+                                                new Date(2021, 1, 18),
+                                                new Date(2021, 1, 19),
+                                                new Date(2021, 1, 20),
+                                                new Date(2021, 1, 21),
+                                                new Date(2021, 1, 22),
+
+                                                new Date(2021, 1, 23),
+                                                new Date(2021, 1, 24),
+                                                new Date(2021, 1, 25),
+                                                new Date(2021, 1, 26),
+                                                new Date(2021, 1, 27),
+                                                new Date(2021, 1, 28),
+                                                new Date(2021, 1, 29),
+                                            ]),
+                                            Float64Vector.from([5, 3, 8, 5, 1, 5, 3, 8, 5, 1, 5, 3, 8, 5]),
+                                        ],
+                                        ['date', 'views'],
+                                    )}
+                                />
+                            </div>
                         </div>
                     </div>
                 </div>

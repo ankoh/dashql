@@ -20,15 +20,16 @@ const VEGA_LITE_SPEC: VLLayerSpec = {
     },
     title: undefined,
     background: 'transparent',
-    padding: 8,
+    padding: 0,
     width: 'container',
     height: 'container',
     layer: [
         {
             mark: {
-                type: 'area',
-                line: true,
+                type: 'bar',
                 point: true,
+                line: true,
+                cornerRadiusEnd: 1,
             },
         },
     ],
@@ -36,16 +37,17 @@ const VEGA_LITE_SPEC: VLLayerSpec = {
         x: {
             field: 'date',
             type: 'temporal',
-            axis: {
-                grid: true,
-                title: null,
-                labels: false,
-            },
+            axis: null,
         },
         y: {
             field: 'views',
             type: 'quantitative',
             axis: null,
+        },
+    },
+    config: {
+        view: {
+            stroke: 'transparent',
         },
     },
 };
@@ -108,15 +110,13 @@ class ProgramStatsTeaser extends React.Component<Props, State> {
         if (this.state.spec == null) return <div />;
         if (this.state.rows == null) return <div />;
         return (
-            <div>
-                <Vega
-                    spec={this.state.spec as any}
-                    data={{ source: this.state.rows }}
-                    width={this.props.width}
-                    height={this.props.height}
-                    actions={false}
-                />
-            </div>
+            <Vega
+                spec={this.state.spec as any}
+                data={{ source: this.state.rows }}
+                width={this.props.width}
+                height={this.props.height}
+                actions={false}
+            />
         );
     }
 }

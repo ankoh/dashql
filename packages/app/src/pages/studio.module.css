@@ -39,13 +39,15 @@
 
     display: grid;
     grid-template-rows: max-content calc(100% - 56px);
+    background-color: white;
+    border-bottom: 1px solid var(--border_color);
 }
 
 .program_info {
     grid-row: 1;
 
     display: grid;
-    grid-template-rows: 48px auto;
+    grid-template-rows: 32px auto;
     grid-template-columns: 48px fit-content(calc(100% - 80px)) 48px;
 }
 
@@ -70,6 +72,16 @@
 }
 
 .program_stats {
+    display: grid;
+    justify-content: center;
+    align-items: center;
+}
+.program_stats_chart {
+    border-radius: 8px;
+    padding: 8px 8px 0px 8px;
+    width: auto;
+    border: 1px solid var(--border_color);
+    background-color: var(--vizcard_header_bg);
 }
 
 .program_footer {
