@@ -1,10 +1,39 @@
 import * as React from 'react';
 import * as core from '@dashql/core';
-import { BoardEditor, EditorLoader, StudioCommandBar, BoardCommandBar } from '../components';
 import { AppState, Dispatch } from '../model';
+import { Link } from 'react-router-dom';
+import { BoardEditor, EditorLoader } from '../components';
 import { connect } from 'react-redux';
 
 import styles from './studio.module.css';
+import styles_cmd from '../components/cmdbar.module.css';
+
+import icon_eye from '../../static/svg/icons/eye.svg';
+
+function BoardAction(props: { icon: string }): React.ReactElement {
+    return (
+        <div className={styles.cmdbar_cmd}>
+            <svg width="20px" height="20px">
+                <use xlinkHref={`${props.icon}#sym`} />
+            </svg>
+        </div>
+    );
+}
+
+class BoardCommandBar extends React.Component {
+    public render(): React.ReactElement {
+        return (
+            <div className={styles_cmd.cmdbar_board}>
+                <div className={styles_cmd.cmdbar_cmdset} />
+                <div className={styles_cmd.cmdbar_cmdset}>
+                    <Link to="/viewer" className={styles_cmd.cmdbar_cmd}>
+                        <BoardAction icon={icon_eye} />
+                    </Link>
+                </div>
+            </div>
+        );
+    }
+}
 
 interface Props {
     script: core.model.Script;
@@ -16,31 +45,37 @@ class Studio extends React.Component<Props> {
     public render() {
         return (
             <div className={styles.studio}>
-                <div className={styles.program}>
-                    <div className={styles.program_info}>
-                        <div className={styles.program_info_entry}>
-                            {core.model.getScriptURIPrefixName(this.props.script.uriPrefix)}://
-                            {this.props.script.uriName}
-                            {this.props.script.modified ? '*' : ''}
+                <div className={styles.page_program}>
+                    <div className={styles.program}>
+                        <div className={styles.program_footer}>
+                            <div className={styles.program_footer_flex} />
+                            <div className={styles.program_footer_entry}>
+                                {this.props.program?.buffer.statementsLength() || 0} statements
+                            </div>
+                            <div className={styles.program_footer_divider} />
+                            <div className={styles.program_footer_entry}>{this.props.script.lineCount} lines</div>
+                            <div className={styles.program_footer_divider} />
+                            <div className={styles.program_footer_entry}>
+                                {core.utils.formatBytes(this.props.script.bytes || 0)}
+                            </div>
                         </div>
-                        <div className={styles.program_info_flex} />
-                        <div className={styles.program_info_entry}>
-                            {this.props.program?.buffer.statementsLength() || 0} statements
-                        </div>
-                        <div className={styles.program_info_divider} />
-                        <div className={styles.program_info_entry}>{this.props.script.lineCount} lines</div>
-                        <div className={styles.program_info_divider} />
-                        <div className={styles.program_info_entry}>
-                            {core.utils.formatBytes(this.props.script.bytes || 0)}
+                        <EditorLoader className={styles.program_editor} />
+                    </div>
+                    <div className={styles.program_header}>
+                        <div className={styles.program_info}>
+                            <div className={styles.program_info_avatar}></div>
+                            <div className={styles.program_info_name}>{this.props.script.uriName}</div>
+                            <div className={styles.program_info_last_change}>Last updated 5 month ago</div>
+                            <div className={styles.program_info_visibility}>Secret</div>
                         </div>
                     </div>
-                    <EditorLoader className={styles.program_editor} />
                 </div>
-                <div className={styles.board}>
-                    <BoardEditor immutable={false} scaleFactor={1.0} />
+                <div className={styles.page_board}>
+                    <div className={styles.board}>
+                        <BoardEditor immutable={false} scaleFactor={1.0} />
+                    </div>
+                    <BoardCommandBar />
                 </div>
-                <StudioCommandBar />
-                <BoardCommandBar />
             </div>
         );
     }
