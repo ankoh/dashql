@@ -20,7 +20,6 @@ export class FetchActionLogic extends ProgramActionLogic {
     ): Promise<ArrayBuffer | null> {
         const http = context.platform.http;
         try {
-            console.log(headers);
             const resp = await http.request({
                 url,
                 headers,
@@ -45,7 +44,6 @@ export class FetchActionLogic extends ProgramActionLogic {
         switch (fetch.method()) {
             case proto.syntax.FetchMethodType.HTTP: {
                 const extra = JSON.parse(fetch.extra()) as any;
-                console.log(extra);
                 const buffer = await this.fetchHTTP(context, fetch.url(), extra.headers);
                 blob = new Blob([buffer]);
                 break;

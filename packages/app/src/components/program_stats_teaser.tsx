@@ -1,6 +1,5 @@
 import * as React from 'react';
 import * as arrow from 'apache-arrow';
-import * as core from '@dashql/core';
 import { AppState, Dispatch } from '../model';
 import { IterableArrayLike, RowLike } from 'apache-arrow/type';
 import { Vega } from 'react-vega';
@@ -12,8 +11,8 @@ import { Field } from 'vega-lite/build/src/channeldef.js';
 import { LayerSpec } from 'vega-lite/build/src/spec/layer.js';
 import { TopLevel } from 'vega-lite/build/src/spec/toplevel.js';
 
-type VegaLiteTLLayerSpec = TopLevel<LayerSpec<Field>>;
-const VEGA_LITE_SPEC: VegaLiteTLLayerSpec = {
+type VLLayerSpec = TopLevel<LayerSpec<Field>>;
+const VEGA_LITE_SPEC: VLLayerSpec = {
     autosize: {
         type: 'fit',
         contains: 'padding',
@@ -24,15 +23,29 @@ const VEGA_LITE_SPEC: VegaLiteTLLayerSpec = {
     padding: 8,
     width: 'container',
     height: 'container',
-    layer: [],
+    layer: [
+        {
+            mark: 'line',
+        },
+    ],
     encoding: {
         x: {
             field: 'date',
             type: 'temporal',
+            axis: {
+                labels: false,
+                title: null,
+                ticks: false,
+            },
         },
         y: {
             field: 'views',
             type: 'nominal',
+            axis: {
+                labels: false,
+                title: null,
+                ticks: false,
+            },
         },
     },
 };
@@ -46,7 +59,6 @@ async function compileVega(): Promise<v.Spec> {
 }
 
 interface Props {
-    script: core.model.Script;
     data: arrow.Table;
     width: number;
     height: number;
@@ -62,6 +74,13 @@ class ProgramStatsTeaser extends React.Component<Props, State> {
     constructor(props: Props) {
         super(props);
         this.state = ProgramStatsTeaser.getDerivedStateFromProps(props);
+        if (this.state.spec == null) {
+            VEGA_SPEC_PROMISE!.then(spec => {
+                this.setState({
+                    spec: spec,
+                });
+            });
+        }
     }
 
     static getDerivedStateFromProps(props: Props, prevState?: State): State {
@@ -79,7 +98,7 @@ class ProgramStatsTeaser extends React.Component<Props, State> {
             };
         }
         return {
-            data: props.data,
+            data: prevState.data,
             rows: prevState.rows,
             spec: VEGA_SPEC,
         };
