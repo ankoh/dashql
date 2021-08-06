@@ -34,6 +34,8 @@
 
 .program_header {
     grid-row: 1;
+    border-top: 1px solid var(--border_color);
+    box-sizing: border-box;
 
     display: grid;
     grid-template-rows: max-content calc(100% - 56px);
@@ -65,6 +67,9 @@
 .program_info_visibility {
     grid-row: 1;
     grid-column: 3;
+}
+
+.program_stats {
 }
 
 .program_footer {

@@ -68,6 +68,7 @@ class Studio extends React.Component<Props> {
                             <div className={styles.program_info_last_change}>Last updated 5 month ago</div>
                             <div className={styles.program_info_visibility}>Secret</div>
                         </div>
+                        <div className={styles.program_stats}></div>
                     </div>
                 </div>
                 <div className={styles.page_board}>
