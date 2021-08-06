@@ -25,7 +25,11 @@ const VEGA_LITE_SPEC: VLLayerSpec = {
     height: 'container',
     layer: [
         {
-            mark: 'line',
+            mark: {
+                type: 'area',
+                line: true,
+                point: true,
+            },
         },
     ],
     encoding: {
@@ -33,19 +37,15 @@ const VEGA_LITE_SPEC: VLLayerSpec = {
             field: 'date',
             type: 'temporal',
             axis: {
-                labels: false,
+                grid: true,
                 title: null,
-                ticks: false,
+                labels: false,
             },
         },
         y: {
             field: 'views',
-            type: 'nominal',
-            axis: {
-                labels: false,
-                title: null,
-                ticks: false,
-            },
+            type: 'quantitative',
+            axis: null,
         },
     },
 };

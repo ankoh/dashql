@@ -10,7 +10,7 @@ import styles from './studio.module.css';
 import styles_cmd from '../components/cmdbar.module.css';
 
 import icon_eye from '../../static/svg/icons/eye.svg';
-import { DateVector, Uint64Vector } from 'apache-arrow';
+import { DateVector, Float64Vector } from 'apache-arrow';
 
 function BoardAction(props: { icon: string }): React.ReactElement {
     return (
@@ -77,14 +77,14 @@ class Studio extends React.Component<Props> {
                                 data={arrow.Table.new(
                                     [
                                         DateVector.from([
-                                            new Date(2021, 1, 1, 1),
-                                            new Date(2021, 1, 2, 1),
-                                            new Date(2021, 1, 3, 1),
-                                            new Date(2021, 1, 4, 1),
-                                            new Date(2021, 1, 5, 1),
-                                            new Date(2021, 1, 6, 1),
+                                            new Date(2021, 1),
+                                            new Date(2021, 2),
+                                            new Date(2021, 3),
+                                            new Date(2021, 4),
+                                            new Date(2021, 5),
+                                            new Date(2021, 6),
                                         ]),
-                                        Uint64Vector.from([1, 2, 3, 4, 5, 6]),
+                                        Float64Vector.from([1, 5, 3, 8, 5, 6]),
                                     ],
                                     ['date', 'views'],
                                 )}
