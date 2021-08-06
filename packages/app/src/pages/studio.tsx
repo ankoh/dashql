@@ -1,14 +1,16 @@
 import * as React from 'react';
 import * as core from '@dashql/core';
+import * as arrow from 'apache-arrow';
 import { AppState, Dispatch } from '../model';
 import { Link } from 'react-router-dom';
-import { BoardEditor, EditorLoader } from '../components';
+import { BoardEditor, EditorLoader, ProgramStatsTeaser } from '../components';
 import { connect } from 'react-redux';
 
 import styles from './studio.module.css';
 import styles_cmd from '../components/cmdbar.module.css';
 
 import icon_eye from '../../static/svg/icons/eye.svg';
+import { DateVector, Uint64Vector } from 'apache-arrow';
 
 function BoardAction(props: { icon: string }): React.ReactElement {
     return (
@@ -68,7 +70,26 @@ class Studio extends React.Component<Props> {
                             <div className={styles.program_info_last_change}>Last updated 5 month ago</div>
                             <div className={styles.program_info_visibility}>Secret</div>
                         </div>
-                        <div className={styles.program_stats}></div>
+                        <div className={styles.program_stats}>
+                            <ProgramStatsTeaser
+                                width={200}
+                                height={48}
+                                data={arrow.Table.new(
+                                    [
+                                        DateVector.from([
+                                            new Date(2021, 1, 1, 1),
+                                            new Date(2021, 1, 2, 1),
+                                            new Date(2021, 1, 3, 1),
+                                            new Date(2021, 1, 4, 1),
+                                            new Date(2021, 1, 5, 1),
+                                            new Date(2021, 1, 6, 1),
+                                        ]),
+                                        Uint64Vector.from([1, 2, 3, 4, 5, 6]),
+                                    ],
+                                    ['date', 'views'],
+                                )}
+                            />
+                        </div>
                     </div>
                 </div>
                 <div className={styles.page_board}>
