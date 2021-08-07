@@ -43,6 +43,8 @@ interface Props {
     className?: string;
 }
 
+// Stats Teaser should include a horizontal bar chart with avg download vs processing time!
+
 class Studio extends React.Component<Props> {
     public render() {
         return (
@@ -74,7 +76,7 @@ class Studio extends React.Component<Props> {
                             <div className={styles.program_stats_chart}>
                                 <ProgramStatsTeaser
                                     width={84}
-                                    height={20}
+                                    height={16}
                                     data={arrow.Table.new(
                                         [
                                             DateVector.from([
