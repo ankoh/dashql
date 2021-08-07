@@ -1,24 +1,14 @@
-export { withNavBar as withNavBar } from './navbar';
-export { withNavBar as withMinimalNavBar } from './navbar_minimal';
-export { withBanner } from './banner';
+export { BoardEditor } from './board_editor';
+export { ProgramStatsTeaser } from './program_stats_teaser';
+export { TerminalLoader } from './terminal_loader';
 export { VirtualScrollbars } from './virtual_scrollbars';
+export { withBanner } from './banner';
+export { withNavBar as withMinimalNavBar } from './navbar_minimal';
+export { withNavBar as withNavBar } from './navbar';
 import Board from './board';
-import BoardEditor from './board_editor';
 import EditorLoader from './editor_loader';
 import ProgramGraph from './program_graph';
-import ProgramStatsTeaser from './program_stats_teaser';
 import { ScriptLoader } from './script_loader';
-import TerminalLoader from './terminal_loader';
 import { StatusIndicator, ActionStatusIndicator } from './status';
 
-export {
-    ActionStatusIndicator,
-    Board,
-    BoardEditor,
-    EditorLoader,
-    ProgramGraph,
-    ProgramStatsTeaser,
-    ScriptLoader,
-    StatusIndicator,
-    TerminalLoader,
-};
+export { ActionStatusIndicator, Board, EditorLoader, ProgramGraph, ScriptLoader, StatusIndicator };
