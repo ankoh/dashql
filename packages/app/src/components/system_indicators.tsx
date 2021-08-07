@@ -18,7 +18,7 @@ interface SystemPanelProps {
     onClick: (tab: number) => void;
 }
 
-function SystemPanel(props: SystemPanelProps) {
+const SystemPanel: React.FC<SystemPanelProps> = (props: SystemPanelProps) => {
     const expanded = props.systemID == props.expandedPanel;
     return (
         <div
@@ -34,60 +34,29 @@ function SystemPanel(props: SystemPanelProps) {
             {expanded && <div className={styles.system_panel}>{props.children}</div>}
         </div>
     );
-}
+};
 
 interface Props {
     className: string;
 }
 
-interface State {
-    expandedPanel: number | null;
-}
+export const SystemIndicators: React.FC<Props> = (props: Props) => {
+    const [expanded, setExpanded] = React.useState<number | null>(null);
 
-class SystemIndicators extends React.Component<Props, State> {
-    constructor(props: Props) {
-        super(props);
-        this.state = {
-            expandedPanel: null,
-        };
-    }
-
-    protected toggleTab(tab: number): void {
-        this.setState({
-            ...this.state,
-            expandedPanel: this.state.expandedPanel == tab ? null : tab,
-        });
-    }
-    public render(): React.ReactElement {
-        return (
-            <div className={this.props.className}>
-                <SystemPanel
-                    systemID={0}
-                    expandedPanel={this.state.expandedPanel}
-                    onClick={this.toggleTab.bind(this)}
-                    icon={icon_database}
-                >
-                    <DatabaseViewer onClose={() => this.toggleTab(0)} />
-                </SystemPanel>
-                <SystemPanel
-                    systemID={1}
-                    expandedPanel={this.state.expandedPanel}
-                    onClick={this.toggleTab.bind(this)}
-                    icon={icon_tasks}
-                >
-                    <ActionList onClose={() => this.toggleTab(1)} />
-                </SystemPanel>
-                <SystemPanel
-                    systemID={2}
-                    expandedPanel={this.state.expandedPanel}
-                    onClick={this.toggleTab.bind(this)}
-                    icon={icon_log}
-                >
-                    <LogViewer onClose={() => this.toggleTab(2)} />
-                </SystemPanel>
-            </div>
-        );
-    }
-}
+    const toggleTab = (tab: number): void => setExpanded(expanded == tab ? null : tab);
+    return (
+        <div className={props.className}>
+            <SystemPanel systemID={0} expandedPanel={expanded} onClick={toggleTab.bind(this)} icon={icon_database}>
+                <DatabaseViewer onClose={() => toggleTab(0)} />
+            </SystemPanel>
+            <SystemPanel systemID={1} expandedPanel={expanded} onClick={toggleTab.bind(this)} icon={icon_tasks}>
+                <ActionList onClose={() => toggleTab(1)} />
+            </SystemPanel>
+            <SystemPanel systemID={2} expandedPanel={expanded} onClick={toggleTab.bind(this)} icon={icon_log}>
+                <LogViewer onClose={() => toggleTab(2)} />
+            </SystemPanel>
+        </div>
+    );
+};
 
 export default SystemIndicators;
