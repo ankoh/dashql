@@ -13,16 +13,9 @@ import { TopLevel } from 'vega-lite/build/src/spec/toplevel.js';
 
 type VLLayerSpec = TopLevel<LayerSpec<Field>>;
 const VEGA_LITE_SPEC: VLLayerSpec = {
-    autosize: {
-        type: 'fit',
-        contains: 'padding',
-        resize: true,
-    },
     title: undefined,
     background: 'transparent',
     padding: 0,
-    width: 'container',
-    height: 'container',
     layer: [
         {
             mark: {
@@ -113,8 +106,8 @@ class ProgramStatsTeaser extends React.Component<Props, State> {
             <Vega
                 spec={this.state.spec as any}
                 data={{ source: this.state.rows }}
-                width={this.props.width}
                 height={this.props.height}
+                width={this.props.width}
                 actions={false}
             />
         );
