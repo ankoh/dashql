@@ -1,5 +1,5 @@
 import * as React from 'react';
-import ActionList from './action_list';
+import { ActionList } from './action_list';
 import LogViewer from './log_viewer';
 import DatabaseViewer from './database_viewer';
 import classNames from 'classnames';
