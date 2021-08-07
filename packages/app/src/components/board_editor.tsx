@@ -2,12 +2,14 @@ import * as React from 'react';
 import { AppReduxStore } from '../model';
 import { connect } from 'react-redux';
 import { AutoSizer } from '../util/autosizer';
+import classNames from 'classnames';
 import Board from './board';
 import { Ruler, RulerOrientation } from './board_ruler';
 
 import styles from './board_editor.module.css';
 
 interface IBoardEditorProps {
+    className?: string;
     scaleFactor: number;
     immutable: boolean;
 }
@@ -24,7 +26,7 @@ export class BoardEditor extends React.Component<IBoardEditorProps> {
         const elementMargin: [number, number] = [10, 10];
         const rulerThickness = 20;
         return (
-            <div className={styles.container}>
+            <div className={classNames(styles.container, this.props.className)}>
                 <AutoSizer>
                     {({ height, width }) => (
                         <div style={{ width, height }}>
