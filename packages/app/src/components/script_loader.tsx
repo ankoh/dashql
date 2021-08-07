@@ -31,7 +31,7 @@ export const ScriptLoader: React.FunctionComponent<Props> = (props: Props) => {
     const [state, setState] = React.useState<State>({
         requestURL: null,
         requestURI: null,
-        status: ScriptLoaderStatus.PENDING,
+        status: ScriptLoaderStatus.SUCCEEDED,
         error: null,
     });
 
@@ -50,7 +50,6 @@ export const ScriptLoader: React.FunctionComponent<Props> = (props: Props) => {
             status: ScriptLoaderStatus.PENDING,
             error: null,
         });
-        return <div />;
     }
 
     const loadScriptFromURL = async (url: string, uri: [core.model.ScriptURIPrefix, string]) => {
@@ -60,7 +59,6 @@ export const ScriptLoader: React.FunctionComponent<Props> = (props: Props) => {
             error: null,
         });
         try {
-            console.log(url);
             const resp = await axios.get(url);
             if (resp.status != 200) {
                 console.error(`Loading from URL ${url} failed with error: ${resp.statusText}`);
