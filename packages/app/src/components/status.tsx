@@ -13,7 +13,7 @@ interface IStatusIndicatorProps {
     fill?: string;
 }
 
-export function StatusIndicator(props: IStatusIndicatorProps): JSX.Element {
+export const StatusIndicator: React.FC<IStatusIndicatorProps> = (props: IStatusIndicatorProps) => {
     const status_code = props.status ? props.status : Status.NONE;
     let element = <div />;
     switch (status_code) {
@@ -121,7 +121,7 @@ export function StatusIndicator(props: IStatusIndicatorProps): JSX.Element {
             break;
     }
     return element;
-}
+};
 
 interface IActionStatusIndicatorProps {
     status: proto.action.ActionStatusCode | null;
@@ -131,7 +131,7 @@ interface IActionStatusIndicatorProps {
     fill?: string;
 }
 
-export function ActionStatusIndicator(props: IActionStatusIndicatorProps): React.ReactElement {
+export const ActionStatusIndicator: React.FC<IActionStatusIndicatorProps> = (props: IActionStatusIndicatorProps) => {
     let mappedStatus = Status.NONE;
     switch (props.status) {
         case proto.action.ActionStatusCode.PENDING:
@@ -155,4 +155,4 @@ export function ActionStatusIndicator(props: IActionStatusIndicatorProps): React
         status: mappedStatus,
     };
     return <StatusIndicator {...mappedProps} />;
-}
+};
