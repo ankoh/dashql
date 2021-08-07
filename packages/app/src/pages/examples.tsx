@@ -2,10 +2,9 @@ import * as React from 'react';
 import * as core from '@dashql/core';
 import * as examples from '../example_scripts';
 import classNames from 'classnames';
-import { withAppContext, IAppContext } from '../app_context';
-import { withRouter, RouteComponentProps } from 'react-router-dom';
-import { AppState, Dispatch } from '../model';
-import { connect } from 'react-redux';
+import { IAppContext } from '../app_context';
+import { useNavigate } from 'react-router-dom';
+import { useDispatch } from 'react-redux';
 import { motion, AnimateSharedLayout } from 'framer-motion';
 import { EXAMPLE_SCRIPTS, EXAMPLE_SCRIPT_MAP, ScriptFeatureTag, ExampleScriptMetadata } from '../example_scripts';
 
@@ -36,60 +35,45 @@ function getFeatureTagLabel(tag: ScriptFeatureTag) {
     }
 }
 
-interface Props extends RouteComponentProps {
-    appContext: IAppContext;
+interface Props {
     className?: string;
-    loadScript: (example: ExampleScriptMetadata) => Promise<void>;
 }
 
-interface State {
-    filteredFeatures: core.utils.NativeBitmap;
-}
+export const Examples: React.FunctionComponent<Props> = (_props: Props) => {
+    const navigate = useNavigate();
+    const dispatch = useDispatch();
+    const [filteredFeatures, setFilteredFeatures] = React.useState(
+        new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_),
+    );
 
-class Examples extends React.Component<Props, State> {
-    _selectExample = this.selectExample.bind(this);
-    _toggleFeature = this.toggleFeature.bind(this);
-
-    constructor(props: Props) {
-        super(props);
-        this.state = {
-            filteredFeatures: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_),
-        };
+    const features = [];
+    for (let i = 0; i < ScriptFeatureTag._COUNT_; ++i) {
+        features.push(
+            <div
+                key={i}
+                className={classNames(styles.filter_tag, {
+                    [styles.filter_tag_active]: filteredFeatures.isSet(i),
+                })}
+                onClick={(elem: React.MouseEvent<HTMLDivElement>) =>
+                    setFilteredFeatures(filteredFeatures.flip((elem.currentTarget as any).dataset.feature!))
+                }
+                data-feature={i}
+            >
+                {getFeatureTagLabel(i as ScriptFeatureTag)}
+            </div>,
+        );
     }
 
-    async selectExample(elem: React.MouseEvent<HTMLDivElement>) {
+    const selectExample = async (elem: React.MouseEvent<HTMLDivElement>) => {
         const key = (elem.currentTarget as any).dataset.key;
-        await this.props.loadScript(EXAMPLE_SCRIPT_MAP.get(key)!);
-        this.props.history.push('/studio');
-    }
+        await examples.loadScript(EXAMPLE_SCRIPT_MAP.get(key)!, dispatch);
+        navigate('/studio');
+    };
 
-    toggleFeature(elem: React.MouseEvent<HTMLDivElement>) {
-        this.setState({
-            ...this.state,
-            filteredFeatures: this.state.filteredFeatures.flip((elem.currentTarget as any).dataset.feature!),
-        });
-    }
-
-    renderFeatureFilters() {
-        const features = [];
-        for (let i = 0; i < ScriptFeatureTag._COUNT_; ++i) {
-            features.push(
-                <div
-                    key={i}
-                    className={classNames(styles.filter_tag, {
-                        [styles.filter_tag_active]: this.state.filteredFeatures.isSet(i),
-                    })}
-                    onClick={this._toggleFeature}
-                    data-feature={i}
-                >
-                    {getFeatureTagLabel(i as ScriptFeatureTag)}
-                </div>,
-            );
-        }
-        return <div className={styles.filter_grid}>{features}</div>;
-    }
-
-    renderCollection(collections: Map<string, ExampleScriptMetadata[]>, name: string) {
+    const renderCollection = (
+        collections: Map<string, ExampleScriptMetadata[]>,
+        name: string,
+    ): React.ReactElement | undefined => {
         const scripts = collections.get(name);
         if (!scripts) return undefined;
         return (
@@ -104,7 +88,7 @@ class Examples extends React.Component<Props, State> {
                             key={script.key}
                             layoutId={script.key}
                             data-key={script.key}
-                            onClick={script.enabled ? this._selectExample : () => {}}
+                            onClick={script.enabled ? selectExample : () => {}}
                         >
                             <motion.div className={styles.example_icon}>
                                 <svg width="20" height="20">
@@ -117,46 +101,33 @@ class Examples extends React.Component<Props, State> {
                 </div>
             </div>
         );
-    }
+    };
 
-    public render() {
-        const collections = EXAMPLE_SCRIPTS.filter(s => s.features.containsUnsafe(this.state.filteredFeatures)).reduce(
-            (o, script) => {
-                const c = o.get(script.collection) || [];
-                c.push(script);
-                o.set(script.collection, c);
-                return o;
-            },
-            new Map<string, ExampleScriptMetadata[]>(),
-        );
+    const collections = EXAMPLE_SCRIPTS.filter(s => s.features.containsUnsafe(filteredFeatures)).reduce((o, script) => {
+        const c = o.get(script.collection) || [];
+        c.push(script);
+        o.set(script.collection, c);
+        return o;
+    }, new Map<string, ExampleScriptMetadata[]>());
 
-        return (
-            <div className={styles.root}>
-                <div className={styles.gallery_header}>
-                    <div className={styles.gallery_header_title}>Example Gallery</div>
-                    <div className={styles.gallery_filters}>{this.renderFeatureFilters()}</div>
-                </div>
-                <div className={styles.gallery_body}>
-                    <AnimateSharedLayout type="crossfade">
-                        {this.renderCollection(collections, 'Demos')}
-                        {this.renderCollection(collections, 'Fetch')}
-                        {this.renderCollection(collections, 'Transform')}
-                        {this.renderCollection(collections, 'Load')}
-                        {this.renderCollection(collections, 'SQL')}
-                        {this.renderCollection(collections, 'Visualize')}
-                    </AnimateSharedLayout>
+    return (
+        <div className={styles.root}>
+            <div className={styles.gallery_header}>
+                <div className={styles.gallery_header_title}>Example Gallery</div>
+                <div className={styles.gallery_filters}>
+                    <div className={styles.filter_grid}>{features}</div>
                 </div>
             </div>
-        );
-    }
-}
-
-const mapStateToProps = (state: AppState) => ({});
-
-const mapDispatchToProps = (dispatch: Dispatch) => ({
-    loadScript: async (example: ExampleScriptMetadata): Promise<void> => {
-        await examples.loadScript(example, dispatch);
-    },
-});
-
-export default connect(mapStateToProps, mapDispatchToProps)(withRouter(withAppContext(Examples)));
+            <div className={styles.gallery_body}>
+                <AnimateSharedLayout type="crossfade">
+                    {renderCollection(collections, 'Demos')}
+                    {renderCollection(collections, 'Fetch')}
+                    {renderCollection(collections, 'Transform')}
+                    {renderCollection(collections, 'Load')}
+                    {renderCollection(collections, 'SQL')}
+                    {renderCollection(collections, 'Visualize')}
+                </AnimateSharedLayout>
+            </div>
+        </div>
+    );
+};
