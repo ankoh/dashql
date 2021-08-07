@@ -5,7 +5,7 @@ import { connect } from 'react-redux';
 import { IAppContext, withAppContext } from '../../app_context';
 import { CardFrame } from './card_frame';
 import { JSONViewer } from './json_viewer';
-import BlobLoader from '../blob_loader';
+import { BlobLoader } from '../blob_loader';
 
 interface Props {
     appContext: IAppContext;
