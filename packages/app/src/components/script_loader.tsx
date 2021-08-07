@@ -25,7 +25,7 @@ interface State {
     error: any | null;
 }
 
-export const ScriptLoader: React.FunctionComponent<Props> = (props: Props) => {
+export const ScriptLoader: React.FC<Props> = (props: Props) => {
     const location = useLocation();
     const dispatch = useDispatch();
     const [state, setState] = React.useState<State>({
