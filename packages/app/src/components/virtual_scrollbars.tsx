@@ -31,6 +31,19 @@ interface State {
     position: PositionValues | null;
 }
 
+const deriveStateFromProps = (props: Props, state: State): State => {
+    const maxElementSize = getMaxElementSize();
+    const adjustedWidth = Math.min(props.innerWidth, maxElementSize);
+    const adjustedHeight = Math.min(props.innerHeight, maxElementSize);
+    return {
+        ...state,
+        adjustedInnerWidth: adjustedWidth,
+        adjustedInnerHeight: adjustedHeight,
+        horizontalScaling: adjustedWidth > 0 ? props.innerWidth / adjustedWidth : 1.0,
+        verticalScaling: adjustedHeight > 0 ? props.innerHeight / adjustedHeight : 1.0,
+    };
+};
+
 /// Virtual scrollbars for large lists.
 /// Implements the same position scaling as react-virtualized to bypass browser limitations.
 ///
@@ -41,77 +54,49 @@ interface State {
 /// The scroll event widths and heights must be multiplied by these scale factors to receive the real lengths.
 /// React-virtualized consumes the adjusted widths and heights without any scaling.
 ///
-export class VirtualScrollbars extends React.Component<Props, State> {
-    _onScrollFrame = this.onScrollFrame.bind(this);
-    _onScrollStop = this.onScrollStop.bind(this);
-    _maxElementSize = getMaxElementSize();
-
-    constructor(props: Props) {
-        super(props);
-        this.state = VirtualScrollbars.getDerivedStateFromProps(props, {
-            adjustedInnerWidth: this.props.innerWidth,
-            adjustedInnerHeight: this.props.innerHeight,
+export const VirtualScrollbars: React.FC<Props> = (props: Props) => {
+    const [state, setState] = React.useState<State>(
+        deriveStateFromProps(props, {
+            adjustedInnerWidth: props.innerWidth,
+            adjustedInnerHeight: props.innerHeight,
             horizontalScaling: 1.0,
             verticalScaling: 1.0,
             position: null,
-        });
-    }
+        }),
+    );
 
-    static getDerivedStateFromProps(props: Props, state: State): State {
-        const maxElementSize = getMaxElementSize();
-        const adjustedWidth = Math.min(props.innerWidth, maxElementSize);
-        const adjustedHeight = Math.min(props.innerHeight, maxElementSize);
-        return {
-            ...state,
-            adjustedInnerWidth: adjustedWidth,
-            adjustedInnerHeight: adjustedHeight,
-            horizontalScaling: adjustedWidth > 0 ? props.innerWidth / adjustedWidth : 1.0,
-            verticalScaling: adjustedHeight > 0 ? props.innerHeight / adjustedHeight : 1.0,
-        };
-    }
-
-    protected onScrollFrame(pos: ScrollValues): void {
+    const onScrollFrame = (pos: ScrollValues) => {
         const p: PositionValues = {
             clientWidth: pos.clientWidth,
             clientHeight: pos.clientHeight,
-            verticalScaling: this.state.verticalScaling,
-            horizontalScaling: this.state.horizontalScaling,
+            verticalScaling: state.verticalScaling,
+            horizontalScaling: state.horizontalScaling,
             scrollWidth: pos.scrollWidth,
             scrollHeight: pos.scrollHeight,
             scrollLeft: pos.scrollLeft,
             scrollTop: pos.scrollTop,
         };
-        this.setState({
-            ...this.state,
+        setState({
+            ...state,
             position: p,
         });
-        if (this.props.onScrollFrame) {
-            this.props.onScrollFrame(p);
-        }
-    }
+        props.onScrollFrame!(p);
+    };
 
-    protected onScrollStop(): void {
-        if (this.props.onScrollStop) {
-            this.props.onScrollStop();
-        }
-    }
-
-    public render(): React.ReactElement {
-        return (
-            <Scrollbars
-                className={this.props.className}
-                style={this.props.style}
-                onScrollFrame={this._onScrollFrame}
-                onScrollStop={this._onScrollStop}
-                autoHide
-            >
-                <div
-                    style={{
-                        width: this.state.adjustedInnerWidth,
-                        height: this.state.adjustedInnerHeight,
-                    }}
-                />
-            </Scrollbars>
-        );
-    }
-}
+    return (
+        <Scrollbars
+            className={props.className}
+            style={props.style}
+            onScrollFrame={props.onScrollFrame ? onScrollFrame : undefined}
+            onScrollStop={props.onScrollStop}
+            autoHide
+        >
+            <div
+                style={{
+                    width: state.adjustedInnerWidth,
+                    height: state.adjustedInnerHeight,
+                }}
+            />
+        </Scrollbars>
+    );
+};

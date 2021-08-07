@@ -40,7 +40,7 @@ ReactDOM.render(
             <Launcher>
                 <BrowserRouter>
                     <Routes>
-                        <Route path="/studio" element={<StudioPage />} />
+                        <Route path="/studio/*" element={<StudioPage />} />
                         <Route path="/examples" element={<ExamplesPage />} />
                         <Route path="/viewer" element={<ViewerPage />} />
                         <Route path="/404" element={<NotFound />} />
