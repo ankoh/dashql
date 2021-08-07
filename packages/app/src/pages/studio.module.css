@@ -26,10 +26,6 @@
 .program {
     grid-row: 2;
     grid-column: 1;
-
-    display: grid;
-    grid-template-rows: calc(100% - var(--studio_program_footer_height)) var(--studio_program_footer_height);
-    grid-template-columns: 100%;
 }
 
 .program_header {
@@ -38,7 +34,7 @@
     box-sizing: border-box;
 
     display: grid;
-    grid-template-rows: max-content calc(100% - 56px);
+    grid-template-rows: auto 40px;
     background-color: white;
     border-bottom: 1px solid var(--border_color);
 }
@@ -73,48 +69,26 @@
 
 .program_stats {
     display: grid;
-    justify-content: center;
     align-items: center;
-}
-.program_stats_chart {
-    border-radius: 8px;
-    padding: 8px 6px 0px 6px;
-    width: auto;
-    border: 1px solid var(--border_color);
-    background-color: var(--vizcard_header_bg);
-}
 
-.program_footer {
-    box-sizing: border-box;
-    grid-row: 2;
-
-    padding: 0px 4px;
-    display: flex;
-    flex-direction: row;
-    font-size: 90%;
-    line-height: var(--studio_program_footer_height);
+    grid-template-columns: auto max-content;
 
     border-top: 1px solid var(--border_color);
-
-    background: white;
+    background-color: var(--datagrid_cell_headers_bg);
 }
+.program_stats_chart {
+    grid-column: 2;
 
-.program_footer_entry {
-    padding: 0px 4px;
-}
+    border-radius: 8px;
+    padding: 4px 6px 2px 6px;
+    width: auto;
+    border: 1px solid var(--border_color);
+    background: rgb(230, 230, 230);
+    margin: 0px 4px;
 
-.program_footer_flex {
-    flex: 1;
-}
-
-.program_footer_divider {
-    display: inline-block;
-    width: 1px;
-    height: 18px;
-    margin-right: 4px;
-    margin-left: 4px;
-    align-self: center;
-    background-color: #ddd;
+    /* removes bottom padding of vega-embed */
+    line-height: 100%;
+    vertical-align: bottom;
 }
 
 .program_editor {

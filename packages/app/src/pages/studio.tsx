@@ -51,18 +51,6 @@ class Studio extends React.Component<Props> {
             <div className={styles.studio}>
                 <div className={styles.page_program}>
                     <div className={styles.program}>
-                        <div className={styles.program_footer}>
-                            <div className={styles.program_footer_flex} />
-                            <div className={styles.program_footer_entry}>
-                                {this.props.program?.buffer.statementsLength() || 0} statements
-                            </div>
-                            <div className={styles.program_footer_divider} />
-                            <div className={styles.program_footer_entry}>{this.props.script.lineCount} lines</div>
-                            <div className={styles.program_footer_divider} />
-                            <div className={styles.program_footer_entry}>
-                                {core.utils.formatBytes(this.props.script.bytes || 0)}
-                            </div>
-                        </div>
                         <EditorLoader className={styles.program_editor} />
                     </div>
                     <div className={styles.program_header}>
@@ -76,7 +64,7 @@ class Studio extends React.Component<Props> {
                             <div className={styles.program_stats_chart}>
                                 <ProgramStatsTeaser
                                     width={84}
-                                    height={16}
+                                    height={20}
                                     data={arrow.Table.new(
                                         [
                                             DateVector.from([
