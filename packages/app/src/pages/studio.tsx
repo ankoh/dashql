@@ -49,54 +49,48 @@ class Studio extends React.Component<Props> {
     public render() {
         return (
             <div className={styles.studio}>
-                <div className={styles.page_program}>
-                    <div className={styles.program}>
-                        <EditorLoader className={styles.program_editor} />
+                <div className={styles.program_header}>
+                    <div className={styles.program_info}>
+                        <div className={styles.program_info_avatar}></div>
+                        <div className={styles.program_info_name}>{this.props.script.uriName}</div>
+                        <div className={styles.program_info_last_change}>Last updated 5 month ago</div>
+                        <div className={styles.program_info_visibility}>Secret</div>
                     </div>
-                    <div className={styles.program_header}>
-                        <div className={styles.program_info}>
-                            <div className={styles.program_info_avatar}></div>
-                            <div className={styles.program_info_name}>{this.props.script.uriName}</div>
-                            <div className={styles.program_info_last_change}>Last updated 5 month ago</div>
-                            <div className={styles.program_info_visibility}>Secret</div>
-                        </div>
-                        <div className={styles.program_stats}>
-                            <div className={styles.program_stats_views_chart}>
-                                <ProgramStatsTeaser
-                                    width={84}
-                                    height={20}
-                                    data={arrow.Table.new(
-                                        [
-                                            DateVector.from([
-                                                new Date(2021, 1, 16),
-                                                new Date(2021, 1, 17),
-                                                new Date(2021, 1, 18),
-                                                new Date(2021, 1, 19),
-                                                new Date(2021, 1, 20),
-                                                new Date(2021, 1, 21),
-                                                new Date(2021, 1, 22),
+                    <div className={styles.program_stats}>
+                        <div className={styles.program_stats_views_chart}>
+                            <ProgramStatsTeaser
+                                width={84}
+                                height={20}
+                                data={arrow.Table.new(
+                                    [
+                                        DateVector.from([
+                                            new Date(2021, 1, 16),
+                                            new Date(2021, 1, 17),
+                                            new Date(2021, 1, 18),
+                                            new Date(2021, 1, 19),
+                                            new Date(2021, 1, 20),
+                                            new Date(2021, 1, 21),
+                                            new Date(2021, 1, 22),
 
-                                                new Date(2021, 1, 23),
-                                                new Date(2021, 1, 24),
-                                                new Date(2021, 1, 25),
-                                                new Date(2021, 1, 26),
-                                                new Date(2021, 1, 27),
-                                                new Date(2021, 1, 28),
-                                                new Date(2021, 1, 29),
-                                            ]),
-                                            Float64Vector.from([5, 3, 8, 9, 4, 2, 3, 8, 1, 1, 5, 3, 8, 5]),
-                                        ],
-                                        ['date', 'views'],
-                                    )}
-                                />
-                            </div>
+                                            new Date(2021, 1, 23),
+                                            new Date(2021, 1, 24),
+                                            new Date(2021, 1, 25),
+                                            new Date(2021, 1, 26),
+                                            new Date(2021, 1, 27),
+                                            new Date(2021, 1, 28),
+                                            new Date(2021, 1, 29),
+                                        ]),
+                                        Float64Vector.from([5, 3, 8, 9, 4, 2, 3, 8, 1, 1, 5, 3, 8, 5]),
+                                    ],
+                                    ['date', 'views'],
+                                )}
+                            />
                         </div>
                     </div>
                 </div>
-                <div className={styles.page_board}>
-                    <div className={styles.board}>
-                        <BoardEditor immutable={false} scaleFactor={1.0} />
-                    </div>
+                <EditorLoader className={styles.program_editor} />
+                <div className={styles.board}>
+                    <BoardEditor immutable={false} scaleFactor={1.0} className={styles.board_editor} />
                     <BoardCommandBar />
                 </div>
             </div>
