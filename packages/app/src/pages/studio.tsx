@@ -61,7 +61,7 @@ class Studio extends React.Component<Props> {
                             <div className={styles.program_info_visibility}>Secret</div>
                         </div>
                         <div className={styles.program_stats}>
-                            <div className={styles.program_stats_chart}>
+                            <div className={styles.program_stats_views_chart}>
                                 <ProgramStatsTeaser
                                     width={84}
                                     height={20}
