@@ -84,7 +84,7 @@ class Studio extends React.Component<Props> {
                                                 new Date(2021, 1, 28),
                                                 new Date(2021, 1, 29),
                                             ]),
-                                            Float64Vector.from([5, 3, 8, 5, 1, 5, 3, 8, 5, 1, 5, 3, 8, 5]),
+                                            Float64Vector.from([5, 3, 8, 9, 4, 2, 3, 8, 1, 1, 5, 3, 8, 5]),
                                         ],
                                         ['date', 'views'],
                                     )}
