@@ -74,16 +74,18 @@
     grid-template-columns: auto max-content;
 
     border-top: 1px solid var(--border_color);
-    background-color: var(--datagrid_cell_headers_bg);
+    background-color: var(--statsbar_bg);
+    padding-left: 12px;
+    padding-right: 12px;
 }
-.program_stats_chart {
+.program_stats_views_chart {
     grid-column: 2;
 
     border-radius: 8px;
     padding: 4px 6px 2px 6px;
     width: auto;
     border: 1px solid var(--border_color);
-    background: rgb(230, 230, 230);
+    background: var(--statsbar_views_teaser_bg);
     margin: 0px 4px;
 
     /* removes bottom padding of vega-embed */
