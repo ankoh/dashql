@@ -1,9 +1,9 @@
 import * as Immutable from 'immutable';
 import * as React from 'react';
 import * as core from '@dashql/core';
+import * as model from '../model';
 import { proto } from '@dashql/core';
-import { AppState, Dispatch } from '../model';
-import { connect } from 'react-redux';
+import { useSelector } from 'react-redux';
 import { SystemCard } from './system_card';
 import { ActionStatusIndicator } from './status';
 import styles from './action_list.module.css';
@@ -56,69 +56,59 @@ function getProgramActionTypeLabel(type: proto.action.ProgramActionType) {
 
 interface Props {
     className?: string;
-    plan: core.model.Plan | null;
-    planActions: Immutable.Map<core.model.ActionHandle, core.model.Action>;
     onClose: () => void;
 }
 
-class ActionList extends React.Component<Props> {
-    public renderActions(plan: core.model.Plan) {
-        const setup_actions: JSX.Element[] = [];
-        const program_actions: JSX.Element[] = [];
-        plan.iterateSetupActionsReverse((i: number, o: proto.action.SetupAction) => {
-            const actionId = core.model.buildActionHandle(i, proto.action.ActionClass.SETUP_ACTION);
-            const actionInfo = this.props.planActions.get(actionId);
-            const status = actionInfo?.statusCode || proto.action.ActionStatusCode.PENDING;
-            setup_actions.push(
-                <div key={i} className={styles.action}>
-                    <div className={styles.action_status}>
-                        <ActionStatusIndicator width="12px" height="12px" status={status} />
-                    </div>
-                    <div className={styles.action_type}>{getSetupActionTypeLabel(o.actionType())}</div>
-                    <div className={styles.action_duration}>0 ms</div>
-                </div>,
-            );
-        });
-        plan.iterateProgramActions((i: number, o: proto.action.ProgramAction) => {
-            const actionId = core.model.buildActionHandle(i, proto.action.ActionClass.PROGRAM_ACTION);
-            const actionInfo = this.props.planActions.get(actionId);
-            const status = actionInfo?.statusCode || proto.action.ActionStatusCode.PENDING;
-            program_actions.push(
-                <div key={i} className={styles.action}>
-                    <div className={styles.action_status}>
-                        <ActionStatusIndicator width="12px" height="12px" status={status} />
-                    </div>
-                    <div className={styles.action_type}>{getProgramActionTypeLabel(o.actionType())}</div>
-                    <div className={styles.action_duration}>0 ms</div>
-                </div>,
-            );
-        });
-        return (
-            <div className={styles.actions}>
-                {setup_actions.length > 0 && <div className={styles.setup_actions}>{setup_actions}</div>}
-                <div className={styles.program_actions}>{program_actions}</div>
-            </div>
+const renderActions = (
+    plan: core.model.Plan,
+    planActions: Immutable.Map<core.model.ActionHandle, core.model.Action>,
+) => {
+    const setup_actions: JSX.Element[] = [];
+    const program_actions: JSX.Element[] = [];
+    plan.iterateSetupActionsReverse((i: number, o: proto.action.SetupAction) => {
+        const actionId = core.model.buildActionHandle(i, proto.action.ActionClass.SETUP_ACTION);
+        const actionInfo = planActions.get(actionId);
+        const status = actionInfo?.statusCode || proto.action.ActionStatusCode.PENDING;
+        setup_actions.push(
+            <div key={i} className={styles.action}>
+                <div className={styles.action_status}>
+                    <ActionStatusIndicator width="12px" height="12px" status={status} />
+                </div>
+                <div className={styles.action_type}>{getSetupActionTypeLabel(o.actionType())}</div>
+                <div className={styles.action_duration}>0 ms</div>
+            </div>,
         );
-    }
-
-    public render() {
-        return (
-            <SystemCard title="Action" onClose={this.props.onClose} className={this.props.className}>
-                {this.props.plan && this.renderActions(this.props.plan)}
-            </SystemCard>
+    });
+    plan.iterateProgramActions((i: number, o: proto.action.ProgramAction) => {
+        const actionId = core.model.buildActionHandle(i, proto.action.ActionClass.PROGRAM_ACTION);
+        const actionInfo = planActions.get(actionId);
+        const status = actionInfo?.statusCode || proto.action.ActionStatusCode.PENDING;
+        program_actions.push(
+            <div key={i} className={styles.action}>
+                <div className={styles.action_status}>
+                    <ActionStatusIndicator width="12px" height="12px" status={status} />
+                </div>
+                <div className={styles.action_type}>{getProgramActionTypeLabel(o.actionType())}</div>
+                <div className={styles.action_duration}>0 ms</div>
+            </div>,
         );
-    }
+    });
+    return (
+        <div className={styles.actions}>
+            {setup_actions.length > 0 && <div className={styles.setup_actions}>{setup_actions}</div>}
+            <div className={styles.program_actions}>{program_actions}</div>
+        </div>
+    );
+};
 
-    componentDidMount() {}
-
-    componentDidUpdate(_prev: Readonly<Props>): void {}
-}
-
-const mapStateToProps = (state: AppState) => ({
-    plan: state.core.plan,
-    planActions: state.core.planState.actions,
-});
-
-const mapDispatchToProps = (_dispatch: Dispatch) => ({});
-
-export default connect(mapStateToProps, mapDispatchToProps)(ActionList);
+export const ActionList: React.FC<Props> = (props: Props) => {
+    const { plan, actions } = useSelector((state: model.AppState) => ({
+        plan: state.core.plan,
+        actions: state.core.planState.actions,
+    }));
+    return (
+        <SystemCard title="Action" onClose={props.onClose} className={props.className}>
+            {plan && renderActions(plan, actions)}
+        </SystemCard>
+    );
+};
