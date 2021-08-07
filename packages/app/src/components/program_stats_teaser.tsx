@@ -1,9 +1,7 @@
 import * as React from 'react';
 import * as arrow from 'apache-arrow';
-import { AppState, Dispatch } from '../model';
 import { IterableArrayLike, RowLike } from 'apache-arrow/type';
 import { Vega } from 'react-vega';
-import { connect } from 'react-redux';
 
 import * as v from 'vega';
 import { compile as compileVL } from 'vega-lite/build/src/compile/compile.js';
@@ -65,60 +63,46 @@ interface State {
     rows: IterableArrayLike<RowLike<any>>;
 }
 
-class ProgramStatsTeaser extends React.Component<Props, State> {
-    constructor(props: Props) {
-        super(props);
-        this.state = ProgramStatsTeaser.getDerivedStateFromProps(props);
-        if (this.state.spec == null) {
-            VEGA_SPEC_PROMISE!.then(spec => {
-                this.setState({
-                    spec: spec,
-                });
-            });
-        }
+const deriveStateFromProps = (props: Props, prevState?: State): State => {
+    if (!VEGA_SPEC && !VEGA_SPEC_PROMISE) {
+        VEGA_SPEC_PROMISE = compileVega();
     }
-
-    static getDerivedStateFromProps(props: Props, prevState?: State): State {
-        if (!VEGA_SPEC && !VEGA_SPEC_PROMISE) {
-            VEGA_SPEC_PROMISE = compileVega();
-        }
-        if (prevState && props.data == prevState?.data && VEGA_SPEC == prevState?.spec) {
-            return prevState;
-        }
-        if (!prevState || props.data !== prevState?.data) {
-            return {
-                data: props.data,
-                rows: props.data.toArray(),
-                spec: VEGA_SPEC,
-            };
-        }
+    if (prevState && props.data == prevState?.data && VEGA_SPEC == prevState?.spec) {
+        return prevState;
+    }
+    if (!prevState || props.data !== prevState?.data) {
         return {
-            data: prevState.data,
-            rows: prevState.rows,
+            data: props.data,
+            rows: props.data.toArray(),
             spec: VEGA_SPEC,
         };
     }
+    return {
+        data: prevState.data,
+        rows: prevState.rows,
+        spec: VEGA_SPEC,
+    };
+};
 
-    public render() {
-        if (this.state.spec == null) return <div />;
-        if (this.state.rows == null) return <div />;
-        return (
-            <Vega
-                spec={this.state.spec as any}
-                data={{ source: this.state.rows }}
-                height={this.props.height}
-                width={this.props.width}
-                actions={false}
-            />
-        );
+export const ProgramStatsTeaser: React.FC<Props> = (props: Props) => {
+    const [state, setState] = React.useState<State>(deriveStateFromProps(props));
+    if (state.spec == null) {
+        VEGA_SPEC_PROMISE!.then(spec => {
+            setState({
+                ...state,
+                spec: spec,
+            });
+        });
     }
-}
-
-const mapStateToProps = (state: AppState) => ({
-    plan: state.core.plan,
-    planActions: state.core.planState.actions,
-});
-
-const mapDispatchToProps = (_dispatch: Dispatch) => ({});
-
-export default connect(mapStateToProps, mapDispatchToProps)(ProgramStatsTeaser);
+    if (state.spec == null) return <div />;
+    if (state.rows == null) return <div />;
+    return (
+        <Vega
+            spec={state.spec as any}
+            data={{ source: state.rows }}
+            height={props.height}
+            width={props.width}
+            actions={false}
+        />
+    );
+};

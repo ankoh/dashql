@@ -18,12 +18,8 @@ function loadingSpinner(props: Props) {
 
 const Terminal = React.lazy(() => import('./terminal'));
 
-export default class TerminalLoader extends React.Component<Props> {
-    public render(): React.ReactElement {
-        return (
-            <React.Suspense fallback={loadingSpinner(this.props)}>
-                <Terminal {...this.props} />
-            </React.Suspense>
-        );
-    }
-}
+export const TerminalLoader: React.FC<Props> = (props: Props) => (
+    <React.Suspense fallback={loadingSpinner(props)}>
+        <Terminal {...props} />
+    </React.Suspense>
+);

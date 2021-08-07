@@ -3,7 +3,7 @@ import { AppState, Dispatch } from '../model';
 import { connect } from 'react-redux';
 import { SystemCard } from './system_card';
 import { withCurrentTime } from './current_time';
-import TerminalLoader from './terminal_loader';
+import { TerminalLoader } from './terminal_loader';
 
 interface Props {
     className?: string;
