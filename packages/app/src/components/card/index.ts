@@ -1,3 +1,1 @@
-import CardRenderer from './card_renderer';
-
-export { CardRenderer };
+export { CardRenderer } from './card_renderer';

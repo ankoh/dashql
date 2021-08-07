@@ -1,6 +1,6 @@
 import * as React from 'react';
 import * as core from '@dashql/core';
-import CardStatus from './card_status';
+import { CardStatus } from './card_status';
 import HexRenderer from './hex_renderer';
 import JsonRenderer from './json_renderer';
 import InputRenderer from './input_renderer';
@@ -12,25 +12,21 @@ interface Props {
     editable?: boolean;
 }
 
-export class CardRenderer extends React.Component<Props> {
-    public render(): React.ReactElement {
-        if (this.props.card.cardRenderer == null) {
-            return <CardStatus card={this.props.card} />;
-        }
-        switch (this.props.card.cardRenderer) {
-            case core.model.CardRendererType.BUILTIN_INPUT_TEXT:
-            case core.model.CardRendererType.BUILTIN_INPUT_FILE:
-                return <InputRenderer card={this.props.card} editable={this.props.editable} />;
-            case core.model.CardRendererType.BUILTIN_TABLE:
-                return <TableRenderer card={this.props.card} editable={this.props.editable} />;
-            case core.model.CardRendererType.BUILTIN_JSON:
-                return <JsonRenderer card={this.props.card} editable={this.props.editable} />;
-            case core.model.CardRendererType.BUILTIN_HEX:
-                return <HexRenderer card={this.props.card} editable={this.props.editable} />;
-            case core.model.CardRendererType.BUILTIN_VEGA:
-                return <VegaRenderer card={this.props.card} editable={this.props.editable} />;
-        }
+export const CardRenderer: React.FunctionComponent<Props> = (props: Props) => {
+    if (props.card.cardRenderer == null) {
+        return <CardStatus card={props.card} />;
     }
-}
-
-export default CardRenderer;
+    switch (props.card.cardRenderer) {
+        case core.model.CardRendererType.BUILTIN_INPUT_TEXT:
+        case core.model.CardRendererType.BUILTIN_INPUT_FILE:
+            return <InputRenderer card={props.card} editable={props.editable} />;
+        case core.model.CardRendererType.BUILTIN_TABLE:
+            return <TableRenderer card={props.card} editable={props.editable} />;
+        case core.model.CardRendererType.BUILTIN_JSON:
+            return <JsonRenderer card={props.card} editable={props.editable} />;
+        case core.model.CardRendererType.BUILTIN_HEX:
+            return <HexRenderer card={props.card} editable={props.editable} />;
+        case core.model.CardRendererType.BUILTIN_VEGA:
+            return <VegaRenderer card={props.card} editable={props.editable} />;
+    }
+};
