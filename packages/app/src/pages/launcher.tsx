@@ -1,7 +1,6 @@
 import * as React from 'react';
-import { AppState, Dispatch, LaunchStep, LaunchStepInfo, DEFAULT_LAUNCH_STEPS } from '../model';
+import { AppState, LaunchStep, LaunchStepInfo, DEFAULT_LAUNCH_STEPS } from '../model';
 import { StatusIndicator } from '../components';
-import { connect } from 'react-redux';
 import { useSelector } from 'react-redux';
 
 import logo from '../../static/svg/logo/logo.svg';
@@ -39,12 +38,3 @@ export const Launcher: React.FC<Props> = (props: Props) => {
         </div>
     );
 };
-
-const mapStateToProps = (state: AppState) => ({
-    launchComplete: state.launchComplete,
-    launchSteps: state.launchSteps,
-});
-
-const mapDispatchToProps = (_dispatch: Dispatch) => ({});
-
-export default connect(mapStateToProps, mapDispatchToProps)(Launcher);

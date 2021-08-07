@@ -1,7 +1,7 @@
-import Launcher from './launcher';
-import Studio from './studio';
-import Viewer from './viewer';
-import { Examples } from './examples';
+export { Examples } from './examples';
+export { Launcher } from './launcher';
 export { NotFound } from './not_found';
+export { Studio } from './studio';
+import Viewer from './viewer';
 
-export { Launcher, Studio, Examples, Viewer };
+export { Viewer };
