@@ -41,11 +41,11 @@ const updateState = (state: CardStatusState): CardStatusState => ({
     }),
 });
 
-function rebuild(
+const rebuild = (
     props: CardStatusProps,
     program: core.model.Program | null,
     status: Immutable.List<core.model.StatementStatus>,
-): CardStatusState {
+): CardStatusState => {
     if (!program) {
         return {
             program: null,
@@ -88,7 +88,7 @@ function rebuild(
         status: status,
         nodes: nodes,
     });
-}
+};
 
 export const CardStatus: React.FC<CardStatusProps> = (props: CardStatusProps) => {
     const [program, status]: [core.model.Program | null, Immutable.List<core.model.StatementStatus>] = useSelector(

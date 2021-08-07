@@ -1,52 +1,44 @@
-import * as Immutable from 'immutable';
 import * as React from 'react';
 import { AppState, Dispatch, LaunchStep, LaunchStepInfo, DEFAULT_LAUNCH_STEPS } from '../model';
 import { StatusIndicator } from '../components';
 import { connect } from 'react-redux';
+import { useSelector } from 'react-redux';
 
 import logo from '../../static/svg/logo/logo.svg';
 
 import styles from './launcher.module.css';
 
 interface Props {
-    launchComplete: boolean;
-    launchSteps: Immutable.Map<LaunchStep, LaunchStepInfo>;
     children: JSX.Element;
 }
 
-class Launcher extends React.Component<Props> {
-    public renderStep(s: LaunchStep) {
-        const info = this.props.launchSteps.get(s);
-        if (!info) {
-            return null;
-        }
-        return (
-            <div key={s as number} className={styles.step}>
-                <div className={styles.step_status}>
-                    <StatusIndicator width="14px" height="14px" status={info.status} />
-                </div>
-                <div className={styles.step_name}>{info.label}</div>
-            </div>
-        );
-    }
+const renderStep = (s: LaunchStep, i: LaunchStepInfo) => (
+    <div key={s as number} className={styles.step}>
+        <div className={styles.step_status}>
+            <StatusIndicator width="14px" height="14px" status={i.status} />
+        </div>
+        <div className={styles.step_name}>{i.label}</div>
+    </div>
+);
 
-    public render() {
-        if (this.props.launchComplete) {
-            return this.props.children;
-        }
-        return (
-            <div className={styles.launcher}>
-                <div className={styles.inner}>
-                    <div className={styles.logo}>
-                        <img src={logo} />
-                    </div>
-                    <div className={styles.title}>DashQL</div>
-                    <div className={styles.steps}>{DEFAULT_LAUNCH_STEPS.map(s => this.renderStep(s))}</div>
+export const Launcher: React.FC<Props> = (props: Props) => {
+    const { complete, steps } = useSelector((state: AppState) => ({
+        complete: state.launchComplete,
+        steps: state.launchSteps,
+    }));
+    if (complete) return props.children;
+    return (
+        <div className={styles.launcher}>
+            <div className={styles.inner}>
+                <div className={styles.logo}>
+                    <img src={logo} />
                 </div>
+                <div className={styles.title}>DashQL</div>
+                <div className={styles.steps}>{DEFAULT_LAUNCH_STEPS.map(s => renderStep(s, steps.get(s)!))}</div>
             </div>
-        );
-    }
-}
+        </div>
+    );
+};
 
 const mapStateToProps = (state: AppState) => ({
     launchComplete: state.launchComplete,

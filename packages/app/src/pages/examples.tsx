@@ -2,7 +2,6 @@ import * as React from 'react';
 import * as core from '@dashql/core';
 import * as examples from '../example_scripts';
 import classNames from 'classnames';
-import { IAppContext } from '../app_context';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { motion, AnimateSharedLayout } from 'framer-motion';
