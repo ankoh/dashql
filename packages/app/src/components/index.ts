@@ -7,7 +7,7 @@ import BoardEditor from './board_editor';
 import EditorLoader from './editor_loader';
 import ProgramGraph from './program_graph';
 import ProgramStatsTeaser from './program_stats_teaser';
-import ScriptLoader from './script_loader';
+import { ScriptLoader } from './script_loader';
 import TerminalLoader from './terminal_loader';
 import { StatusIndicator, ActionStatusIndicator } from './status';
 

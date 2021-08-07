@@ -1,20 +1,14 @@
 import * as React from 'react';
 import * as model from '../model';
 import * as core from '@dashql/core';
-import { connect } from 'react-redux';
 import axios from 'axios';
-import { RouteComponentProps, withRouter } from 'react-router';
+import { useDispatch } from 'react-redux';
+import { useLocation } from 'react-router-dom';
 
-interface MatchParams {
-    gist?: string;
-}
-
-interface Props extends RouteComponentProps<MatchParams> {
+interface Props {
     progressComponent?: (progress: number) => React.ReactElement;
     errorComponent?: (error: string) => React.ReactElement;
     children: React.ReactElement;
-
-    updateScript: (script: core.model.Script) => void;
 }
 
 enum ScriptLoaderStatus {
@@ -31,39 +25,37 @@ interface State {
     error: any | null;
 }
 
-class ScriptLoader extends React.Component<Props, State> {
-    constructor(props: Props) {
-        super(props);
-        this.state = ScriptLoader.getDerivedStateFromProps(props, {
-            requestURL: null,
-            requestURI: null,
-            status: ScriptLoaderStatus.SUCCEEDED,
-            error: false,
+export const ScriptLoader: React.FunctionComponent<Props> = (props: Props) => {
+    const location = useLocation();
+    const dispatch = useDispatch();
+    const [state, setState] = React.useState<State>({
+        requestURL: null,
+        requestURI: null,
+        status: ScriptLoaderStatus.PENDING,
+        error: null,
+    });
+
+    const gist = new URLSearchParams(location.search).get('gist') || undefined;
+    let requestURI: [core.model.ScriptURIPrefix, string] | null = null;
+    let requestURL: string | null = null;
+    if (gist) {
+        requestURI = [core.model.ScriptURIPrefix.GITHUB_GIST, gist];
+        requestURL = `https://gist.githubusercontent.com/ankoh/${gist}/raw`;
+    }
+    if (requestURI && (requestURI[0] != state.requestURI?.[0] || requestURI[1] != state.requestURI?.[1])) {
+        setState({
+            ...state,
+            requestURL: requestURL,
+            requestURI: requestURI,
+            status: ScriptLoaderStatus.PENDING,
+            error: null,
         });
+        return <div />;
     }
 
-    static getDerivedStateFromProps(nextProps: Props, prevState: State) {
-        const gist = new URLSearchParams(nextProps.location.search).get('gist') || undefined;
-        let url = null;
-        let uri: [core.model.ScriptURIPrefix, string] | null = null;
-        if (gist) {
-            uri = [core.model.ScriptURIPrefix.GITHUB_GIST, gist];
-            url = `https://gist.githubusercontent.com/ankoh/${gist}/raw`;
-        }
-        if (!uri || (uri[0] == prevState.requestURI?.[0] && uri[1] == prevState.requestURI?.[1])) {
-            return prevState;
-        } else {
-            return {
-                requestURL: url,
-                requestURI: uri,
-                status: ScriptLoaderStatus.PENDING,
-                error: null,
-            };
-        }
-    }
-
-    async loadScriptFromURL(url: string, uri: [core.model.ScriptURIPrefix, string]) {
-        this.setState({
+    const loadScriptFromURL = async (url: string, uri: [core.model.ScriptURIPrefix, string]) => {
+        setState({
+            ...state,
             status: ScriptLoaderStatus.IN_FLIGHT,
             error: null,
         });
@@ -72,72 +64,53 @@ class ScriptLoader extends React.Component<Props, State> {
             const resp = await axios.get(url);
             if (resp.status != 200) {
                 console.error(`Loading from URL ${url} failed with error: ${resp.statusText}`);
-                this.setState({
+                setState({
+                    ...state,
                     status: ScriptLoaderStatus.FAILED,
                     error: resp.statusText,
                 });
                 return;
             }
             const text = resp.data as string;
-            this.setState({
+            setState({
+                ...state,
                 status: ScriptLoaderStatus.SUCCEEDED,
                 error: null,
             });
-            this.props.updateScript({
-                text,
-                uriPrefix: uri[0],
-                uriName: uri[1],
-                modified: false,
-                lineCount: core.utils.countLines(text),
-                bytes: core.utils.estimateUTF16Length(text),
+            model.mutate(dispatch, {
+                type: core.model.StateMutationType.UPDATE_SCRIPT,
+                data: {
+                    text,
+                    uriPrefix: uri[0],
+                    uriName: uri[1],
+                    modified: false,
+                    lineCount: core.utils.countLines(text),
+                    bytes: core.utils.estimateUTF16Length(text),
+                },
             });
         } catch (e) {
-            this.setState({
+            setState({
+                ...state,
                 status: ScriptLoaderStatus.FAILED,
                 error: e,
             });
             return;
         }
+    };
+
+    React.useEffect(() => {
+        if (state.status != ScriptLoaderStatus.PENDING) return;
+        loadScriptFromURL(state.requestURL!, state.requestURI!);
+    }, [state.status]);
+
+    switch (state.status) {
+        case ScriptLoaderStatus.PENDING:
+            return <div />;
+        case ScriptLoaderStatus.FAILED:
+            return props.errorComponent?.(state.error) || <div />;
+        case ScriptLoaderStatus.IN_FLIGHT:
+            return props.progressComponent?.(0.0) || <div />;
+        case ScriptLoaderStatus.SUCCEEDED:
+            return props.children;
     }
-
-    loadScript() {
-        if (this.state.status != ScriptLoaderStatus.PENDING) return;
-        this.loadScriptFromURL(this.state.requestURL!, this.state.requestURI!);
-    }
-
-    componentDidMount() {
-        this.loadScript();
-    }
-
-    componentDidUpdate() {
-        this.loadScript();
-    }
-
-    public render() {
-        switch (this.state.status) {
-            case ScriptLoaderStatus.PENDING:
-                return <div />;
-            case ScriptLoaderStatus.FAILED:
-                return this.props.errorComponent?.(this.state.error) || <div />;
-            case ScriptLoaderStatus.IN_FLIGHT:
-                return this.props.progressComponent?.(0.0) || <div />;
-            case ScriptLoaderStatus.SUCCEEDED:
-                return this.props.children;
-        }
-    }
-}
-
-const mapStateToProps = (state: model.AppState) => ({
-    script: state.core.script,
-    program: state.core.program || new core.model.Program(),
-});
-
-const mapDispatchToProps = (dispatch: model.Dispatch) => ({
-    updateScript: (script: core.model.Script) =>
-        model.mutate(dispatch, {
-            type: core.model.StateMutationType.UPDATE_SCRIPT,
-            data: script,
-        }),
-});
-
-export default connect(mapStateToProps, mapDispatchToProps)(withRouter(ScriptLoader));
+};

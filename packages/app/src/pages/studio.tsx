@@ -3,8 +3,10 @@ import * as core from '@dashql/core';
 import * as arrow from 'apache-arrow';
 import { AppState, Dispatch } from '../model';
 import { Link } from 'react-router-dom';
+import { Route, Routes } from 'react-router-dom';
 import { BoardEditor, EditorLoader, ProgramStatsTeaser } from '../components';
 import { connect } from 'react-redux';
+import { motion, AnimatePresence } from 'framer-motion';
 
 import styles from './studio.module.css';
 import styles_cmd from '../components/cmdbar.module.css';
@@ -12,87 +14,96 @@ import styles_cmd from '../components/cmdbar.module.css';
 import icon_eye from '../../static/svg/icons/eye.svg';
 import { DateVector, Float64Vector } from 'apache-arrow';
 
-function BoardAction(props: { icon: string }): React.ReactElement {
-    return (
-        <div className={styles.cmdbar_cmd}>
-            <svg width="20px" height="20px">
-                <use xlinkHref={`${props.icon}#sym`} />
-            </svg>
-        </div>
-    );
-}
-
-class BoardCommandBar extends React.Component {
-    public render(): React.ReactElement {
-        return (
-            <div className={styles_cmd.cmdbar_board}>
-                <div className={styles_cmd.cmdbar_cmdset} />
-                <div className={styles_cmd.cmdbar_cmdset}>
-                    <Link to="/viewer" className={styles_cmd.cmdbar_cmd}>
-                        <BoardAction icon={icon_eye} />
-                    </Link>
-                </div>
-            </div>
-        );
-    }
-}
-
-interface Props {
+type Props = {
     script: core.model.Script;
     program: core.model.Program | null;
     className?: string;
-}
+};
 
-// Stats Teaser should include a horizontal bar chart with avg download vs processing time!
+const BoardAction = (props: { icon: string }) => (
+    <div className={styles.cmdbar_cmd}>
+        <svg width="20px" height="20px">
+            <use xlinkHref={`${props.icon}#sym`} />
+        </svg>
+    </div>
+);
+
+const BoardCommandBar = () => (
+    <div className={styles_cmd.cmdbar_board}>
+        <div className={styles_cmd.cmdbar_cmdset} />
+        <div className={styles_cmd.cmdbar_cmdset}>
+            <Link to="/viewer" className={styles_cmd.cmdbar_cmd}>
+                <BoardAction icon={icon_eye} />
+            </Link>
+        </div>
+    </div>
+);
 
 class Studio extends React.Component<Props> {
     public render() {
         return (
             <div className={styles.studio}>
-                <div className={styles.program_header}>
-                    <div className={styles.program_info}>
-                        <div className={styles.program_info_avatar}></div>
-                        <div className={styles.program_info_name}>{this.props.script.uriName}</div>
-                        <div className={styles.program_info_last_change}>Last updated 5 month ago</div>
-                        <div className={styles.program_info_visibility}>Secret</div>
-                    </div>
-                    <div className={styles.program_stats}>
-                        <div className={styles.program_stats_views_chart}>
-                            <ProgramStatsTeaser
-                                width={84}
-                                height={20}
-                                data={arrow.Table.new(
-                                    [
-                                        DateVector.from([
-                                            new Date(2021, 1, 16),
-                                            new Date(2021, 1, 17),
-                                            new Date(2021, 1, 18),
-                                            new Date(2021, 1, 19),
-                                            new Date(2021, 1, 20),
-                                            new Date(2021, 1, 21),
-                                            new Date(2021, 1, 22),
+                <AnimatePresence>
+                    <motion.div key="header" className={styles.program_header}>
+                        <motion.div key="info" className={styles.program_info}>
+                            <motion.div className={styles.program_info_avatar}></motion.div>
+                            <motion.div className={styles.program_info_name}>{this.props.script.uriName}</motion.div>
+                            <motion.div className={styles.program_info_last_change}>
+                                Last updated 5 month ago
+                            </motion.div>
+                            <motion.div className={styles.program_info_visibility}>Secret</motion.div>
+                        </motion.div>
+                        <motion.div key="stats" className={styles.program_stats}>
+                            <motion.div className={styles.program_stats_views_chart}>
+                                <ProgramStatsTeaser
+                                    width={84}
+                                    height={20}
+                                    data={arrow.Table.new(
+                                        [
+                                            DateVector.from([
+                                                new Date(2021, 1, 16),
+                                                new Date(2021, 1, 17),
+                                                new Date(2021, 1, 18),
+                                                new Date(2021, 1, 19),
+                                                new Date(2021, 1, 20),
+                                                new Date(2021, 1, 21),
+                                                new Date(2021, 1, 22),
 
-                                            new Date(2021, 1, 23),
-                                            new Date(2021, 1, 24),
-                                            new Date(2021, 1, 25),
-                                            new Date(2021, 1, 26),
-                                            new Date(2021, 1, 27),
-                                            new Date(2021, 1, 28),
-                                            new Date(2021, 1, 29),
-                                        ]),
-                                        Float64Vector.from([5, 3, 8, 9, 4, 2, 3, 8, 1, 1, 5, 3, 8, 5]),
-                                    ],
-                                    ['date', 'views'],
-                                )}
-                            />
-                        </div>
-                    </div>
-                </div>
-                <EditorLoader className={styles.program_editor} />
-                <div className={styles.board}>
-                    <BoardEditor immutable={false} scaleFactor={1.0} className={styles.board_editor} />
-                    <BoardCommandBar />
-                </div>
+                                                new Date(2021, 1, 23),
+                                                new Date(2021, 1, 24),
+                                                new Date(2021, 1, 25),
+                                                new Date(2021, 1, 26),
+                                                new Date(2021, 1, 27),
+                                                new Date(2021, 1, 28),
+                                                new Date(2021, 1, 29),
+                                            ]),
+                                            Float64Vector.from([5, 3, 8, 9, 4, 2, 3, 8, 1, 1, 5, 3, 8, 5]),
+                                        ],
+                                        ['date', 'views'],
+                                    )}
+                                />
+                            </motion.div>
+                        </motion.div>
+                    </motion.div>
+                    <Routes>
+                        <Route
+                            path="/"
+                            element={
+                                <>
+                                    <EditorLoader key="editor" className={styles.program_editor} />
+                                    <motion.div key="board" className={styles.board}>
+                                        <BoardEditor
+                                            immutable={false}
+                                            scaleFactor={1.0}
+                                            className={styles.board_editor}
+                                        />
+                                        <BoardCommandBar />
+                                    </motion.div>
+                                </>
+                            }
+                        />
+                    </Routes>
+                </AnimatePresence>
             </div>
         );
     }
