@@ -1,9 +1,9 @@
 import * as React from 'react';
 import * as core from '@dashql/core';
 import { CardStatus } from './card_status';
-import HexRenderer from './hex_renderer';
-import JsonRenderer from './json_renderer';
-import InputRenderer from './input_renderer';
+import { HexRenderer } from './hex_renderer';
+import { JsonRenderer } from './json_renderer';
+import { InputRenderer } from './input_renderer';
 import TableRenderer from './table_renderer';
 import { VegaRenderer } from './vega_renderer';
 
