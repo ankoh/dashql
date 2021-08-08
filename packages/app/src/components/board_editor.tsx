@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { AutoSizer } from '../util/autosizer';
 import classNames from 'classnames';
-import Board from './board';
+import { Board } from './board';
 import { Ruler, RulerOrientation } from './board_ruler';
 
 import styles from './board_editor.module.css';

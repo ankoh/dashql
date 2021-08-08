@@ -49,7 +49,6 @@ const mouseMoveAffectsDecorations = (
 type Props = {
     /// The requested css class name
     className?: string;
-
     /// The width
     width: number;
     /// The height
