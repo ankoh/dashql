@@ -74,6 +74,9 @@ const InnerEditor: React.FC<Props> = (props: Props) => {
     React.useEffect(() => {
         scriptRef.current = script;
         programRef.current = program;
+        if (editor) {
+            editor.setValue(script.text);
+        }
     }, [script, program]);
 
     // Stable line breaks
