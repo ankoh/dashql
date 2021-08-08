@@ -21,7 +21,7 @@
 
 namespace dashql {
 
-using ActionGraph = proto::action::ActionGraph;
+using TaskGraph = proto::task::TaskGraph;
 using Plan = proto::analyzer::Plan;
 using Program = proto::syntax::Program;
 using RawBuffer = dashql::RawBuffer;
@@ -43,7 +43,7 @@ class Analyzer {
     /// The planned program
     const ProgramInstance* planned_program_;
     /// The planned graph (if any)
-    std::unique_ptr<proto::action::ActionGraphT> planned_graph_;
+    std::unique_ptr<proto::task::TaskGraphT> planned_graph_;
 
     /// Evaluate the constant
     arrow::Result<std::shared_ptr<arrow::Scalar>> TryEvaluateConstant(ProgramInstance& instance, size_t node_id) const;
@@ -82,9 +82,9 @@ class Analyzer {
     /// Get the planned graph
     auto planned_graph() const { return planned_graph_.get(); }
 
-    /// Update the action status
-    arrow::Status UpdateActionStatus(proto::action::ActionClass action_class, size_t action_id,
-                                     proto::action::ActionStatusCode status);
+    /// Update the task status
+    arrow::Status UpdateTaskStatus(proto::task::TaskClass task_class, size_t task_id,
+                                   proto::task::TaskStatusCode status);
 
     /// Parse a program
     arrow::Status ParseProgram(std::string_view text);

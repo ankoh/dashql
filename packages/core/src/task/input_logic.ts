@@ -1,26 +1,26 @@
 import * as proto from '@dashql/proto';
 import * as model from '../model';
 import * as error from '../error';
-import { ActionHandle, Statement, CardRendererType } from '../model';
-import { ProgramActionLogic, SetupActionLogic } from './action_logic';
-import { ActionContext } from './action_context';
+import { TaskHandle, Statement, CardRendererType } from '../model';
+import { ProgramTaskLogic, SetupTaskLogic } from './task_logic';
+import { TaskContext } from './task_context';
 
-export class InputActionLogic extends ProgramActionLogic {
+export class InputTaskLogic extends ProgramTaskLogic {
     /// The viz spec
     _card: proto.analyzer.Card | null = null;
 
-    constructor(action_id: ActionHandle, action: proto.action.ProgramAction, statement: Statement) {
-        super(action_id, action, statement);
+    constructor(task_id: TaskHandle, task: proto.task.ProgramTask, statement: Statement) {
+        super(task_id, task, statement);
     }
 
-    public prepare(context: ActionContext): void {
+    public prepare(context: TaskContext): void {
         // Get the program instance
         const instance = context.plan.programInstance;
         const stmt = instance.program.getStatement(this.origin.statementId);
         // Get card
         this._card = instance.cards.get(this.origin.statementId) || null;
         if (!this._card) {
-            throw new error.ActionLogicError('card does not exist', instance);
+            throw new error.TaskLogicError('card does not exist', instance);
         }
         // Get the input component type
         let renderer = null;
@@ -61,18 +61,18 @@ export class InputActionLogic extends ProgramActionLogic {
         context.stagedObjects.push(info);
     }
 
-    public willExecute(_context: ActionContext): void {}
-    public async execute(_context: ActionContext): Promise<void> {}
+    public willExecute(_context: TaskContext): void {}
+    public async execute(_context: TaskContext): Promise<void> {}
 }
 
-export class DropInputActionLogic extends SetupActionLogic {
-    constructor(action_id: model.ActionHandle, action: proto.action.SetupAction) {
-        super(action_id, action);
+export class DropInputTaskLogic extends SetupTaskLogic {
+    constructor(task_id: model.TaskHandle, task: proto.task.SetupTask) {
+        super(task_id, task);
     }
 
-    public prepare(_context: ActionContext): void {}
-    public willExecute(_context: ActionContext): void {}
-    public async execute(context: ActionContext): Promise<void> {
+    public prepare(_context: TaskContext): void {}
+    public willExecute(_context: TaskContext): void {}
+    public async execute(context: TaskContext): Promise<void> {
         const store = context.platform.store!;
         const objectId = this.buffer.objectId();
         model.mutate(store.dispatch, {
@@ -82,12 +82,12 @@ export class DropInputActionLogic extends SetupActionLogic {
     }
 }
 
-export class ImportInputActionLogic extends SetupActionLogic {
-    constructor(action_id: model.ActionHandle, action: proto.action.SetupAction) {
-        super(action_id, action);
+export class ImportInputTaskLogic extends SetupTaskLogic {
+    constructor(task_id: model.TaskHandle, task: proto.task.SetupTask) {
+        super(task_id, task);
     }
 
-    public prepare(_context: ActionContext): void {}
-    public willExecute(_context: ActionContext): void {}
-    public async execute(_context: ActionContext): Promise<void> {}
+    public prepare(_context: TaskContext): void {}
+    public willExecute(_context: TaskContext): void {}
+    public async execute(_context: TaskContext): Promise<void> {}
 }

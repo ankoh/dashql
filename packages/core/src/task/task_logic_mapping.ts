@@ -1,0 +1,74 @@
+import * as proto from '@dashql/proto';
+import { SetupTaskLogic, ProgramTaskLogic } from './task_logic';
+import { TaskHandle, Statement } from '../model';
+
+import { ImportBlobTaskLogic, DropBlobTaskLogic } from './blob_logic';
+import { LoadTaskLogic } from './load_logic';
+import { FetchTaskLogic } from './fetch_logic';
+import { TransformTaskLogic } from './transform_logic';
+import { InputTaskLogic, DropInputTaskLogic, ImportInputTaskLogic } from './input_logic';
+import { CreateTableTaskLogic, DropTableTaskLogic, ModifyTableTaskLogic, ImportTableTaskLogic } from './table_logic';
+import { ViewCreateTaskLogic, ImportViewTaskLogic, DropViewTaskLogic } from './view_logic';
+import { CreateVizTaskLogic, UpdateVizTaskLogic, DropVizTaskLogic, ImportVizTaskLogic } from './viz_logic';
+
+import SetupTaskType = proto.task.SetupTaskType;
+import ProgramTaskType = proto.task.ProgramTaskType;
+
+/// Translate a setup task
+export function resolveSetupTaskLogic(id: TaskHandle, a: proto.task.SetupTask): SetupTaskLogic | null {
+    switch (a.taskType()) {
+        case SetupTaskType.DROP_INPUT:
+            return new DropInputTaskLogic(id, a);
+        case SetupTaskType.DROP_BLOB:
+            return new DropBlobTaskLogic(id, a);
+        case SetupTaskType.DROP_TABLE:
+            return new DropTableTaskLogic(id, a);
+        case SetupTaskType.DROP_VIEW:
+            return new DropViewTaskLogic(id, a);
+        case SetupTaskType.DROP_VIZ:
+            return new DropVizTaskLogic(id, a);
+        case SetupTaskType.IMPORT_INPUT:
+            return new ImportInputTaskLogic(id, a);
+        case SetupTaskType.IMPORT_BLOB:
+            return new ImportBlobTaskLogic(id, a);
+        case SetupTaskType.IMPORT_TABLE:
+            return new ImportTableTaskLogic(id, a);
+        case SetupTaskType.IMPORT_VIEW:
+            return new ImportViewTaskLogic(id, a);
+        case SetupTaskType.IMPORT_VIZ:
+            return new ImportVizTaskLogic(id, a);
+    }
+    console.error('unknown setup task type');
+    return null;
+}
+
+/// Translate a program task
+export function resolveProgramTaskLogic(
+    id: TaskHandle,
+    a: proto.task.ProgramTask,
+    s: Statement,
+): ProgramTaskLogic | null {
+    switch (a.taskType()) {
+        case ProgramTaskType.LOAD:
+            return new LoadTaskLogic(id, a, s);
+        case ProgramTaskType.FETCH:
+            return new FetchTaskLogic(id, a, s);
+        case ProgramTaskType.TRANSFORM:
+            return new TransformTaskLogic(id, a, s);
+        case ProgramTaskType.INPUT:
+            return new InputTaskLogic(id, a, s);
+        case ProgramTaskType.CREATE_TABLE:
+            return new CreateTableTaskLogic(id, a, s);
+        case ProgramTaskType.MODIFY_TABLE:
+            return new ModifyTableTaskLogic(id, a, s);
+        case ProgramTaskType.CREATE_VIEW:
+            return new ViewCreateTaskLogic(id, a, s);
+        case ProgramTaskType.CREATE_VIZ:
+            return new CreateVizTaskLogic(id, a, s);
+        case ProgramTaskType.UPDATE_VIZ:
+            return new UpdateVizTaskLogic(id, a, s);
+    }
+    console.error(a.taskType());
+    console.error('unknown program task type');
+    return null;
+}

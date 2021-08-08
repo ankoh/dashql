@@ -19,7 +19,7 @@ namespace dashql {
 namespace test {
 
 void AnalyzerTest::EncodePlan(pugi::xml_node root, const ProgramInstance& instance,
-                              const proto::action::ActionGraphT& graph) {
+                              const proto::task::TaskGraphT& graph) {
     auto& nodes = instance.program().nodes;
     auto& text = instance.program_text();
 
@@ -41,9 +41,9 @@ void AnalyzerTest::EncodePlan(pugi::xml_node root, const ProgramInstance& instan
         node.append_attribute(attr).set_value(str.c_str());
     };
 
-    auto setup_action_type_tt = proto::action::SetupActionTypeTypeTable();
-    auto program_action_type_tt = proto::action::ProgramActionTypeTypeTable();
-    auto action_status_tt = proto::action::ActionStatusCodeTypeTable();
+    auto setup_task_type_tt = proto::task::SetupTaskTypeTypeTable();
+    auto program_task_type_tt = proto::task::ProgramTaskTypeTypeTable();
+    auto task_status_tt = proto::task::TaskStatusCodeTypeTable();
     auto input_type_tt = proto::sql::SQLTypeIDTypeTable();
     auto viz_component_type_tt = proto::syntax::VizComponentTypeTypeTable();
 
@@ -119,56 +119,56 @@ void AnalyzerTest::EncodePlan(pugi::xml_node root, const ProgramInstance& instan
 
     auto g = root.append_child("graph");
     g.append_attribute("next_object_id").set_value(graph.next_object_id);
-    auto setup_actions = g.append_child("setup");
-    for (auto& action : graph.setup_actions) {
-        auto s = setup_actions.append_child("action");
-        s.append_attribute("type") = setup_action_type_tt->names[static_cast<uint16_t>(action->action_type)];
-        s.append_attribute("status") = action_status_tt->names[static_cast<uint16_t>(action->action_status_code)];
-        s.append_attribute("object_id") = action->object_id;
-        if (action->name_qualified != "") {
+    auto setup_tasks = g.append_child("setup");
+    for (auto& task : graph.setup_tasks) {
+        auto s = setup_tasks.append_child("task");
+        s.append_attribute("type") = setup_task_type_tt->names[static_cast<uint16_t>(task->task_type)];
+        s.append_attribute("status") = task_status_tt->names[static_cast<uint16_t>(task->task_status_code)];
+        s.append_attribute("object_id") = task->object_id;
+        if (task->name_qualified != "") {
             auto t = s.append_child("output");
-            t.append_attribute("name") = action->name_qualified.c_str();
+            t.append_attribute("name") = task->name_qualified.c_str();
         }
     }
 
-    auto program_actions = g.append_child("program");
-    for (auto& action : graph.program_actions) {
-        auto p = program_actions.append_child("action");
-        p.append_attribute("type") = program_action_type_tt->names[static_cast<uint16_t>(action->action_type)];
-        p.append_attribute("status") = action_status_tt->names[static_cast<uint16_t>(action->action_status_code)];
-        p.append_attribute("object_id") = action->object_id;
-        p.append_attribute("statement") = action->origin_statement;
-        if (action->name_qualified != "") {
+    auto program_tasks = g.append_child("program");
+    for (auto& task : graph.program_tasks) {
+        auto p = program_tasks.append_child("task");
+        p.append_attribute("type") = program_task_type_tt->names[static_cast<uint16_t>(task->task_type)];
+        p.append_attribute("status") = task_status_tt->names[static_cast<uint16_t>(task->task_status_code)];
+        p.append_attribute("object_id") = task->object_id;
+        p.append_attribute("statement") = task->origin_statement;
+        if (task->name_qualified != "") {
             auto t = p.append_child("output");
-            t.append_attribute("name") = action->name_qualified.c_str();
+            t.append_attribute("name") = task->name_qualified.c_str();
         }
-        if (!action->depends_on.empty()) {
+        if (!task->depends_on.empty()) {
             auto depends_on = p.append_child("depends_on");
-            for (auto v : action->depends_on) {
-                depends_on.append_child("ref").append_attribute("action").set_value(v);
+            for (auto v : task->depends_on) {
+                depends_on.append_child("ref").append_attribute("task").set_value(v);
             }
         }
-        if (!action->required_for.empty()) {
+        if (!task->required_for.empty()) {
             auto required_for = p.append_child("required_for");
-            for (auto v : action->required_for) {
-                required_for.append_child("ref").append_attribute("action").set_value(v);
+            for (auto v : task->required_for) {
+                required_for.append_child("ref").append_attribute("task").set_value(v);
             }
         }
-        if (!action->script.empty()) {
-            p.append_child("script").text().set(action->script.c_str());
+        if (!task->script.empty()) {
+            p.append_child("script").text().set(task->script.c_str());
         }
     }
 }
 
-// Read an action status
-proto::action::ActionStatusCode AnalyzerTest::GetActionStatus(std::string_view type) {
-    auto tt = proto::action::ActionStatusCodeTypeTable();
+// Read an task status
+proto::task::TaskStatusCode AnalyzerTest::GetTaskStatus(std::string_view type) {
+    auto tt = proto::task::TaskStatusCodeTypeTable();
     auto& names = tt->names;
     auto& num_elems = tt->num_elems;
     for (unsigned i = 0; i < num_elems; ++i) {
-        if (type == std::string_view{names[i]}) return static_cast<proto::action::ActionStatusCode>(i);
+        if (type == std::string_view{names[i]}) return static_cast<proto::task::TaskStatusCode>(i);
     }
-    return proto::action::ActionStatusCode::PENDING;
+    return proto::task::TaskStatusCode::PENDING;
 }
 
 // Read a input type
@@ -260,17 +260,17 @@ arrow::Status AnalyzerTest::LoadTests(std::filesystem::path& source_dir) {
                     expected.append_copy(c);
                 }
                 s.expected_output = std::move(expected);
-                // Read setup action status codes
+                // Read setup task status codes
                 for (auto p : step.child("graph").child("setup").children()) {
                     auto status_str = p.attribute("status").as_string();
-                    auto status = AnalyzerTest::GetActionStatus(status_str);
-                    s.setupActionStatusCodes.push_back(status);
+                    auto status = AnalyzerTest::GetTaskStatus(status_str);
+                    s.setupTaskStatusCodes.push_back(status);
                 }
-                // Read program action status codes
+                // Read program task status codes
                 for (auto p : step.child("graph").child("program").children()) {
                     auto status_str = p.attribute("status").as_string();
-                    auto status = AnalyzerTest::GetActionStatus(status_str);
-                    s.programActionStatusCodes.push_back(status);
+                    auto status = AnalyzerTest::GetTaskStatus(status_str);
+                    s.programTaskStatusCodes.push_back(status);
                 }
             }
         }

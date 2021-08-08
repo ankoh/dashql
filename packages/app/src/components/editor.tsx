@@ -253,20 +253,20 @@ const InnerEditor: React.FC<Props> = (props: Props) => {
             if (stmtStatus) {
                 let glyphClass = styles.deco_glyph_status_none;
                 switch (stmtStatus.status) {
-                    case proto.action.ActionStatusCode.SKIPPED:
-                    case proto.action.ActionStatusCode.BLOCKED:
+                    case proto.task.TaskStatusCode.SKIPPED:
+                    case proto.task.TaskStatusCode.BLOCKED:
                         glyphClass = styles.deco_glyph_status_blocked;
                         break;
-                    case proto.action.ActionStatusCode.COMPLETED:
+                    case proto.task.TaskStatusCode.COMPLETED:
                         glyphClass = styles.deco_glyph_status_completed;
                         break;
-                    case proto.action.ActionStatusCode.FAILED:
+                    case proto.task.TaskStatusCode.FAILED:
                         glyphClass = styles.deco_glyph_status_failed;
                         break;
-                    case proto.action.ActionStatusCode.PENDING:
+                    case proto.task.TaskStatusCode.PENDING:
                         glyphClass = styles.deco_glyph_status_none;
                         break;
-                    case proto.action.ActionStatusCode.RUNNING:
+                    case proto.task.TaskStatusCode.RUNNING:
                         glyphClass = styles.deco_glyph_status_running;
                         break;
                 }

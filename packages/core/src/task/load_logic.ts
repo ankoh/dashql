@@ -2,21 +2,21 @@ import * as duckdb from '@dashql/duckdb/dist/duckdb.module.js';
 import * as proto from '@dashql/proto';
 import * as model from '../model';
 import * as Immutable from 'immutable';
-import { ActionHandle, Statement, TableStatisticsType } from '../model';
-import { ProgramActionLogic } from './action_logic';
-import { ActionContext } from './action_context';
+import { TaskHandle, Statement, TableStatisticsType } from '../model';
+import { ProgramTaskLogic } from './task_logic';
+import { TaskContext } from './task_context';
 import { collectTableInfo } from './table_logic';
 import { Column } from 'apache-arrow';
 
-export class LoadActionLogic extends ProgramActionLogic {
-    constructor(action_id: ActionHandle, action: proto.action.ProgramAction, statement: Statement) {
-        super(action_id, action, statement);
+export class LoadTaskLogic extends ProgramTaskLogic {
+    constructor(task_id: TaskHandle, task: proto.task.ProgramTask, statement: Statement) {
+        super(task_id, task, statement);
     }
 
-    public prepare(_context: ActionContext): void {}
-    public willExecute(_context: ActionContext): void {}
+    public prepare(_context: TaskContext): void {}
+    public willExecute(_context: TaskContext): void {}
 
-    public async execute(context: ActionContext): Promise<void> {
+    public async execute(context: TaskContext): Promise<void> {
         const instance = context.plan.programInstance;
         const stmtId = this._origin.statementId;
         const xtr = instance.loadStatements.get(stmtId);

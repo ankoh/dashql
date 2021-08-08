@@ -21,18 +21,18 @@
             <graph next_object_id="2">
                 <setup />
                 <program>
-                    <action type="INPUT" status="COMPLETED" object_id="0" statement="0">
+                    <task type="INPUT" status="COMPLETED" object_id="0" statement="0">
                         <output name="main.country" />
                         <required_for>
-                            <ref action="1" />
+                            <ref task="1" />
                         </required_for>
-                    </action>
-                    <action type="FETCH" status="PENDING" object_id="1" statement="1">
+                    </task>
+                    <task type="FETCH" status="PENDING" object_id="1" statement="1">
                         <output name="main.weather_csv" />
                         <depends_on>
-                            <ref action="0" />
+                            <ref task="0" />
                         </depends_on>
-                    </action>
+                    </task>
                 </program>
             </graph>
         </step>
@@ -56,26 +56,26 @@
             </cards>
             <graph next_object_id="4">
                 <setup>
-                    <action type="DROP_INPUT" status="PENDING" object_id="0">
+                    <task type="DROP_INPUT" status="PENDING" object_id="0">
                         <output name="main.country" />
-                    </action>
-                    <action type="DROP_BLOB" status="PENDING" object_id="1">
+                    </task>
+                    <task type="DROP_BLOB" status="PENDING" object_id="1">
                         <output name="main.weather_csv" />
-                    </action>
+                    </task>
                 </setup>
                 <program>
-                    <action type="INPUT" status="SKIPPED" object_id="2" statement="0">
+                    <task type="INPUT" status="SKIPPED" object_id="2" statement="0">
                         <output name="main.country" />
                         <required_for>
-                            <ref action="1" />
+                            <ref task="1" />
                         </required_for>
-                    </action>
-                    <action type="FETCH" status="SKIPPED" object_id="3" statement="1">
+                    </task>
+                    <task type="FETCH" status="SKIPPED" object_id="3" statement="1">
                         <output name="main.weather_csv" />
                         <depends_on>
-                            <ref action="0" />
+                            <ref task="0" />
                         </depends_on>
-                    </action>
+                    </task>
                 </program>
             </graph>
         </step>
@@ -101,20 +101,20 @@
             <graph next_object_id="2">
                 <setup />
                 <program>
-                    <action type="CREATE_VIEW" status="COMPLETED" object_id="0" statement="0">
+                    <task type="CREATE_VIEW" status="COMPLETED" object_id="0" statement="0">
                         <output name="main.foo" />
                         <required_for>
-                            <ref action="1" />
+                            <ref task="1" />
                         </required_for>
                         <script>CREATE VIEW foo AS
                     SELECT a1::INTEGER AS a
                     FROM generate_series(0, 1000000) AS a(a1)</script>
-                    </action>
-                    <action type="CREATE_VIZ" status="PENDING" object_id="1" statement="1">
+                    </task>
+                    <task type="CREATE_VIZ" status="PENDING" object_id="1" statement="1">
                         <depends_on>
-                            <ref action="0" />
+                            <ref task="0" />
                         </depends_on>
-                    </action>
+                    </task>
                 </program>
             </graph>
         </step>
@@ -139,26 +139,26 @@
             </cards>
             <graph next_object_id="4">
                 <setup>
-                    <action type="IMPORT_VIEW" status="PENDING" object_id="0">
+                    <task type="IMPORT_VIEW" status="PENDING" object_id="0">
                         <output name="main.foo" />
-                    </action>
-                    <action type="DROP_VIZ" status="PENDING" object_id="1" />
+                    </task>
+                    <task type="DROP_VIZ" status="PENDING" object_id="1" />
                 </setup>
                 <program>
-                    <action type="CREATE_VIEW" status="COMPLETED" object_id="0" statement="0">
+                    <task type="CREATE_VIEW" status="COMPLETED" object_id="0" statement="0">
                         <output name="main.foo" />
                         <required_for>
-                            <ref action="1" />
+                            <ref task="1" />
                         </required_for>
                         <script>CREATE VIEW foo AS
                     SELECT a1::INTEGER AS a
                     FROM generate_series(0, 1000000) AS a(a1)</script>
-                    </action>
-                    <action type="CREATE_VIZ" status="PENDING" object_id="3" statement="1">
+                    </task>
+                    <task type="CREATE_VIZ" status="PENDING" object_id="3" statement="1">
                         <depends_on>
-                            <ref action="0" />
+                            <ref task="0" />
                         </depends_on>
-                    </action>
+                    </task>
                 </program>
             </graph>
         </step>
@@ -184,20 +184,20 @@
             <graph next_object_id="2">
                 <setup />
                 <program>
-                    <action type="CREATE_VIEW" status="COMPLETED" object_id="0" statement="0">
+                    <task type="CREATE_VIEW" status="COMPLETED" object_id="0" statement="0">
                         <output name="main.foo" />
                         <required_for>
-                            <ref action="1" />
+                            <ref task="1" />
                         </required_for>
                         <script>CREATE VIEW foo AS
                     SELECT a1::INTEGER AS a
                     FROM generate_series(0, 1000000) AS a(a1)</script>
-                    </action>
-                    <action type="CREATE_VIZ" status="COMPLETED" object_id="1" statement="1">
+                    </task>
+                    <task type="CREATE_VIZ" status="COMPLETED" object_id="1" statement="1">
                         <depends_on>
-                            <ref action="0" />
+                            <ref task="0" />
                         </depends_on>
-                    </action>
+                    </task>
                 </program>
             </graph>
         </step>
@@ -222,26 +222,26 @@
             </cards>
             <graph next_object_id="4">
                 <setup>
-                    <action type="IMPORT_VIEW" status="PENDING" object_id="0">
+                    <task type="IMPORT_VIEW" status="PENDING" object_id="0">
                         <output name="main.foo" />
-                    </action>
-                    <action type="DROP_VIZ" status="PENDING" object_id="1" />
+                    </task>
+                    <task type="DROP_VIZ" status="PENDING" object_id="1" />
                 </setup>
                 <program>
-                    <action type="CREATE_VIEW" status="COMPLETED" object_id="0" statement="0">
+                    <task type="CREATE_VIEW" status="COMPLETED" object_id="0" statement="0">
                         <output name="main.foo" />
                         <required_for>
-                            <ref action="1" />
+                            <ref task="1" />
                         </required_for>
                         <script>CREATE VIEW foo AS
                     SELECT a1::INTEGER AS a
                     FROM generate_series(0, 1000000) AS a(a1)</script>
-                    </action>
-                    <action type="CREATE_VIZ" status="PENDING" object_id="3" statement="1">
+                    </task>
+                    <task type="CREATE_VIZ" status="PENDING" object_id="3" statement="1">
                         <depends_on>
-                            <ref action="0" />
+                            <ref task="0" />
                         </depends_on>
-                    </action>
+                    </task>
                 </program>
             </graph>
         </step>
@@ -258,14 +258,14 @@
             <graph next_object_id="2">
                 <setup />
                 <program>
-                    <action type="CREATE_TABLE" status="COMPLETED" object_id="0" statement="0">
+                    <task type="CREATE_TABLE" status="COMPLETED" object_id="0" statement="0">
                         <output name="main.table1" />
                         <script>CREATE TABLE table1(a INTEGER)</script>
-                    </action>
-                    <action type="CREATE_TABLE" status="COMPLETED" object_id="1" statement="1">
+                    </task>
+                    <task type="CREATE_TABLE" status="COMPLETED" object_id="1" statement="1">
                         <output name="main.table2" />
                         <script>CREATE TABLE table2(a INTEGER)</script>
-                    </action>
+                    </task>
                 </program>
             </graph>
         </step>
@@ -279,22 +279,22 @@
             <cards />
             <graph next_object_id="4">
                 <setup>
-                    <action type="DROP_TABLE" status="PENDING" object_id="0">
+                    <task type="DROP_TABLE" status="PENDING" object_id="0">
                         <output name="main.table1" />
-                    </action>
-                    <action type="DROP_TABLE" status="PENDING" object_id="1">
+                    </task>
+                    <task type="DROP_TABLE" status="PENDING" object_id="1">
                         <output name="main.table2" />
-                    </action>
+                    </task>
                 </setup>
                 <program>
-                    <action type="CREATE_TABLE" status="PENDING" object_id="2" statement="0">
+                    <task type="CREATE_TABLE" status="PENDING" object_id="2" statement="0">
                         <output name="main.table1" />
                         <script>CREATE TABLE table1(a DOUBLE)</script>
-                    </action>
-                    <action type="CREATE_TABLE" status="PENDING" object_id="3" statement="1">
+                    </task>
+                    <task type="CREATE_TABLE" status="PENDING" object_id="3" statement="1">
                         <output name="main.table3" />
                         <script>CREATE TABLE table3(a INTEGER)</script>
-                    </action>
+                    </task>
                 </program>
             </graph>
         </step>

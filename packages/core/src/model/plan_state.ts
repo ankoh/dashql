@@ -5,7 +5,7 @@ import { StatementStatus } from './program';
 import { CardSpecification } from './card_specification';
 import { TableSummary } from './table_summary';
 import { PlanObject, PlanObjectType, PlanObjectID } from './plan_object';
-import { ActionHandle, ActionUpdate, Action } from './action';
+import { TaskHandle, TaskUpdate, Task } from './task';
 import { deriveStatementStatusCode } from './program';
 import { UniqueBlob } from './unique_blob';
 
@@ -20,8 +20,8 @@ export interface PlanState {
     readonly blobsByName: Immutable.Map<string, ObjectID>;
     /// The tables by name
     readonly tablesByName: Immutable.Map<string, ObjectID>;
-    /// The plan actions
-    readonly actions: Immutable.Map<ActionHandle, Action>;
+    /// The plan tasks
+    readonly tasks: Immutable.Map<TaskHandle, Task>;
 }
 
 export const createPlanState = (): PlanState => ({
@@ -29,39 +29,39 @@ export const createPlanState = (): PlanState => ({
     objects: Immutable.Map<number, PlanObject>(),
     blobsByName: Immutable.Map<string, number>(),
     tablesByName: Immutable.Map<string, number>(),
-    actions: Immutable.Map<number, Action>(),
+    tasks: Immutable.Map<number, Task>(),
 });
 
-export const resetStatus = (state: PlanState, status: StatementStatus[] = [], actions: Action[] = []): PlanState => ({
+export const resetStatus = (state: PlanState, status: StatementStatus[] = [], tasks: Task[] = []): PlanState => ({
     ...state,
     status: Immutable.List(status),
-    actions: Immutable.Map<ActionHandle, Action>(actions.map(a => [a.actionId, a])),
+    tasks: Immutable.Map<TaskHandle, Task>(tasks.map(a => [a.taskId, a])),
 });
 
-export const updateStatus = (state: PlanState, updates: ActionUpdate[]): PlanState => ({
+export const updateStatus = (state: PlanState, updates: TaskUpdate[]): PlanState => ({
     ...state,
     status: state.status.withMutations(status => {
         for (const update of updates) {
-            const action = state.actions.get(update.actionId);
-            if (!action || action.originStatement == null || action.statusCode == update.statusCode) {
+            const task = state.tasks.get(update.taskId);
+            if (!task || task.originStatement == null || task.statusCode == update.statusCode) {
                 continue;
             }
-            const origin = { ...status.get(action.originStatement)! };
-            --origin.totalPerStatus[action.statusCode as number];
+            const origin = { ...status.get(task.originStatement)! };
+            --origin.totalPerStatus[task.statusCode as number];
             ++origin.totalPerStatus[update.statusCode as number];
             origin.status = deriveStatementStatusCode(origin);
-            status.set(action.originStatement, origin);
+            status.set(task.originStatement, origin);
         }
     }),
-    actions: state.actions.withMutations(actions => {
+    tasks: state.tasks.withMutations(tasks => {
         const now = new Date();
         for (const update of updates) {
-            const a = actions.get(update.actionId);
+            const a = tasks.get(update.taskId);
             if (!a) {
-                console.warn(`UPDATE_PLAN_ACTIONS refers to unknown action id: ${update.actionId}`);
+                console.warn(`UPDATE_PLAN_ACTIONS refers to unknown task id: ${update.taskId}`);
                 continue;
             }
-            actions.set(update.actionId, {
+            tasks.set(update.taskId, {
                 ...a,
                 statusCode: update.statusCode,
                 blocker: update.blocker,

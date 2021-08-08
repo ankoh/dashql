@@ -5,7 +5,7 @@ import './utils/set_immediate';
 export * as proto from '@dashql/proto';
 
 export * as access from './access';
-export * as actions from './actions';
+export * as tasks from './task';
 export * as analyzer from './analyzer';
 export * as jmespath from './jmespath';
 export * as edit from './edit';
@@ -14,5 +14,5 @@ export * as model from './model';
 export * as platform from './platform';
 export * as utils from './utils';
 export * as viz from './viz';
-export * from './action_scheduler';
+export * from './task_scheduler';
 export * from './script_pipeline';

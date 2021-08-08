@@ -8,7 +8,6 @@
 #include "arrow/scalar.h"
 #include "arrow/type_fwd.h"
 #include "arrow/visitor_inline.h"
-#include "dashql/analyzer/action_planner.h"
 #include "dashql/analyzer/function_logic.h"
 #include "dashql/analyzer/input_value.h"
 #include "dashql/analyzer/program_editor.h"
@@ -16,6 +15,7 @@
 #include "dashql/analyzer/stmt/transform_stmt.h"
 #include "dashql/analyzer/stmt/viz_stmt.h"
 #include "dashql/analyzer/syntax_matcher.h"
+#include "dashql/analyzer/task_planner.h"
 #include "dashql/common/substring_buffer.h"
 #include "dashql/parser/parser_driver.h"
 #include "dashql/proto_generated.h"
@@ -133,14 +133,14 @@ Analyzer::Analyzer()
     for (unsigned i = 0; i < PLANNER_LOG_SIZE; ++i) program_log_.push_back(nullptr);
 }
 
-arrow::Status Analyzer::UpdateActionStatus(proto::action::ActionClass action_class, size_t action_id,
-                                           proto::action::ActionStatusCode status) {
-    if (action_class == proto::action::ActionClass::SETUP_ACTION) {
-        if (!planned_graph_ || action_id >= planned_graph_->setup_actions.size()) return arrow::Status::OK();
-        planned_graph_->setup_actions[action_id]->action_status_code = status;
+arrow::Status Analyzer::UpdateTaskStatus(proto::task::TaskClass task_class, size_t task_id,
+                                         proto::task::TaskStatusCode status) {
+    if (task_class == proto::task::TaskClass::SETUP_TASK) {
+        if (!planned_graph_ || task_id >= planned_graph_->setup_tasks.size()) return arrow::Status::OK();
+        planned_graph_->setup_tasks[task_id]->task_status_code = status;
     } else {
-        if (!planned_graph_ || action_id >= planned_graph_->program_actions.size()) return arrow::Status::OK();
-        planned_graph_->program_actions[action_id]->action_status_code = status;
+        if (!planned_graph_ || task_id >= planned_graph_->program_tasks.size()) return arrow::Status::OK();
+        planned_graph_->program_tasks[task_id]->task_status_code = status;
     }
     return arrow::Status::OK();
 }
@@ -372,10 +372,10 @@ arrow::Status Analyzer::PlanProgram() {
     auto prev_graph = planned_graph_.get();
     auto next_program = program_instance_.get();
 
-    // Plan the action graph
-    ActionPlanner action_planner{*next_program, prev_program, prev_graph};
-    ARROW_RETURN_NOT_OK(action_planner.PlanActionGraph());
-    planned_graph_ = action_planner.Finish();
+    // Plan the task graph
+    TaskPlanner task_planner{*next_program, prev_program, prev_graph};
+    ARROW_RETURN_NOT_OK(task_planner.PlanTaskGraph());
+    planned_graph_ = task_planner.Finish();
     planned_program_ = next_program;
 
     return arrow::Status::OK();
@@ -398,9 +398,9 @@ arrow::Result<flatbuffers::Offset<proto::analyzer::ProgramAnnotations>> Analyzer
 /// Pack the plan
 arrow::Result<flatbuffers::Offset<proto::analyzer::Plan>> Analyzer::PackPlan(flatbuffers::FlatBufferBuilder& builder) {
     assert(!!planned_graph_.get());
-    auto graph = proto::action::ActionGraph::Pack(builder, planned_graph_.get());
+    auto graph = proto::task::TaskGraph::Pack(builder, planned_graph_.get());
     proto::analyzer::PlanBuilder plan{builder};
-    plan.add_action_graph(graph);
+    plan.add_task_graph(graph);
     return plan.Finish();
 }
 

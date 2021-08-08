@@ -390,28 +390,28 @@ export class Statement {
 
 /// A statement status
 export interface StatementStatus {
-    status: proto.action.ActionStatusCode;
-    totalActions: number;
+    status: proto.task.TaskStatusCode;
+    totalTasks: number;
     totalPerStatus: number[];
 }
 
 /// Derive a statement status
-export function deriveStatementStatusCode(status: StatementStatus): proto.action.ActionStatusCode {
-    if (status.totalActions == 0) {
-        return proto.action.ActionStatusCode.SKIPPED;
+export function deriveStatementStatusCode(status: StatementStatus): proto.task.TaskStatusCode {
+    if (status.totalTasks == 0) {
+        return proto.task.TaskStatusCode.SKIPPED;
     }
-    if (status.totalPerStatus[proto.action.ActionStatusCode.COMPLETED as number] == status.totalActions) {
-        return proto.action.ActionStatusCode.COMPLETED;
+    if (status.totalPerStatus[proto.task.TaskStatusCode.COMPLETED as number] == status.totalTasks) {
+        return proto.task.TaskStatusCode.COMPLETED;
     }
     for (const s of [
-        proto.action.ActionStatusCode.FAILED,
-        proto.action.ActionStatusCode.BLOCKED,
-        proto.action.ActionStatusCode.SKIPPED,
-        proto.action.ActionStatusCode.RUNNING,
+        proto.task.TaskStatusCode.FAILED,
+        proto.task.TaskStatusCode.BLOCKED,
+        proto.task.TaskStatusCode.SKIPPED,
+        proto.task.TaskStatusCode.RUNNING,
     ]) {
         if (status.totalPerStatus[s as number] > 0) {
             return s;
         }
     }
-    return proto.action.ActionStatusCode.PENDING;
+    return proto.task.TaskStatusCode.PENDING;
 }

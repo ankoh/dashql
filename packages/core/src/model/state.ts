@@ -1,7 +1,7 @@
 import * as Immutable from 'immutable';
 import { LogEntryVariant } from './log';
 import { Plan } from './plan';
-import { ActionSchedulerStatus } from './action';
+import { TaskSchedulerStatus } from './task';
 import { PlanState, createPlanState } from './plan_state';
 import { Program, InputValue } from './program';
 import { ProgramInstance } from './program_instance';
@@ -24,7 +24,7 @@ export class CoreState {
     public programInstance: ProgramInstance | null;
 
     /// The action scheduler status
-    public schedulerStatus: ActionSchedulerStatus;
+    public schedulerStatus: TaskSchedulerStatus;
     /// The plan
     public plan: Plan | null;
     /// The database tables
@@ -44,7 +44,7 @@ export class CoreState {
         this.programInputValues = Immutable.List<InputValue>();
         this.programDependencies = new Map();
         this.programInstance = null;
-        this.schedulerStatus = ActionSchedulerStatus.Idle;
+        this.schedulerStatus = TaskSchedulerStatus.Idle;
         this.plan = null;
         this.planState = createPlanState();
     }

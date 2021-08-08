@@ -76,8 +76,8 @@ void generate_grammar_tests(const std::filesystem::path& source_dir) {
 }
 
 arrow::Status generate_analyzer_tests(const std::filesystem::path& source_dir) {
-    auto action_dir = source_dir / "test" / "analyzer" / "spec";
-    for (auto& p : std::filesystem::directory_iterator(action_dir)) {
+    auto task_dir = source_dir / "test" / "analyzer" / "spec";
+    for (auto& p : std::filesystem::directory_iterator(task_dir)) {
         auto filename = p.path().filename().filename().string();
 
         // Is template file file
@@ -104,8 +104,8 @@ arrow::Status generate_analyzer_tests(const std::filesystem::path& source_dir) {
         doc.load(in);
         auto root = doc.child("tests");
 
-        auto program_action_type_tt = proto::action::ProgramActionTypeTypeTable();
-        auto action_status_code_tt = proto::action::ActionStatusCodeTypeTable();
+        auto program_task_type_tt = proto::task::ProgramTaskTypeTypeTable();
+        auto task_status_code_tt = proto::task::TaskStatusCodeTypeTable();
 
         auto assert_ok = [](arrow::Status s, std::string_view what) {
             if (!s.ok()) {
@@ -135,14 +135,14 @@ arrow::Status generate_analyzer_tests(const std::filesystem::path& source_dir) {
                 assert_ok(analyzer.InstantiateProgram(move(inst_params_vec)), "instantiation of previous program");
                 assert_ok(analyzer.PlanProgram(), "planning of previous program");
 
-                // Update the action status
+                // Update the task status
                 {
                     unsigned i = 0;
                     for (auto p : inst.child("graph").child("program").children()) {
                         auto status_str = p.attribute("status").as_string();
-                        auto status = AnalyzerTest::GetActionStatus(status_str);
+                        auto status = AnalyzerTest::GetTaskStatus(status_str);
                         ARROW_RETURN_NOT_OK(
-                            analyzer.UpdateActionStatus(proto::action::ActionClass::PROGRAM_ACTION, i++, status));
+                            analyzer.UpdateTaskStatus(proto::task::TaskClass::PROGRAM_TASK, i++, status));
                     }
                 }
                 inst.remove_children();

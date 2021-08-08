@@ -215,18 +215,18 @@ export abstract class AnalyzerBindings {
         return this._programInstance;
     }
 
-    /** Update an action status */
-    public updateActionStatus(
-        action_class: proto.action.ActionClass,
-        action_id: number,
-        action_status: proto.action.ActionStatusCode,
+    /** Update an task status */
+    public updateTaskStatus(
+        task_class: proto.task.TaskClass,
+        task_id: number,
+        task_status: proto.task.TaskStatusCode,
     ): void {
         if (!this._instance || !this._programInstance) return;
         this._instance.ccall(
-            'dashql_analyzer_update_action_status',
+            'dashql_analyzer_update_task_status',
             null,
             ['number', 'number', 'number'],
-            [action_class as number, action_id, action_status as number],
+            [task_class as number, task_id, task_status as number],
         );
     }
 

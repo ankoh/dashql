@@ -2,20 +2,20 @@ import * as Immutable from 'immutable';
 import * as proto from '@dashql/proto';
 import * as duckdb from '@dashql/duckdb/dist/duckdb.module.js';
 import * as model from '../model';
-import { ActionHandle, TableStatisticsType } from '../model';
-import { ProgramActionLogic, SetupActionLogic } from './action_logic';
-import { ActionContext } from './action_context';
+import { TaskHandle, TableStatisticsType } from '../model';
+import { ProgramTaskLogic, SetupTaskLogic } from './task_logic';
+import { TaskContext } from './task_context';
 import { collectTableInfo } from './table_logic';
 import { Column } from 'apache-arrow';
 
-export class ViewCreateActionLogic extends ProgramActionLogic {
-    constructor(action_id: ActionHandle, action: proto.action.ProgramAction, statement: model.Statement) {
-        super(action_id, action, statement);
+export class ViewCreateTaskLogic extends ProgramTaskLogic {
+    constructor(task_id: TaskHandle, task: proto.task.ProgramTask, statement: model.Statement) {
+        super(task_id, task, statement);
     }
 
-    public prepare(_context: ActionContext): void {}
-    public willExecute(_context: ActionContext): void {}
-    public async execute(context: ActionContext): Promise<void> {
+    public prepare(_context: TaskContext): void {}
+    public willExecute(_context: TaskContext): void {}
+    public async execute(context: TaskContext): Promise<void> {
         const script = this.script;
         if (!script) return;
 
@@ -50,24 +50,24 @@ export class ViewCreateActionLogic extends ProgramActionLogic {
     }
 }
 
-export class ImportViewActionLogic extends SetupActionLogic {
-    constructor(action_id: ActionHandle, action: proto.action.SetupAction) {
-        super(action_id, action);
+export class ImportViewTaskLogic extends SetupTaskLogic {
+    constructor(task_id: TaskHandle, task: proto.task.SetupTask) {
+        super(task_id, task);
     }
 
-    public prepare(_context: ActionContext): void {}
-    public willExecute(_context: ActionContext): void {}
-    public async execute(_context: ActionContext): Promise<void> {}
+    public prepare(_context: TaskContext): void {}
+    public willExecute(_context: TaskContext): void {}
+    public async execute(_context: TaskContext): Promise<void> {}
 }
 
-export class DropViewActionLogic extends SetupActionLogic {
-    constructor(action_id: ActionHandle, action: proto.action.SetupAction) {
-        super(action_id, action);
+export class DropViewTaskLogic extends SetupTaskLogic {
+    constructor(task_id: TaskHandle, task: proto.task.SetupTask) {
+        super(task_id, task);
     }
 
-    public prepare(_context: ActionContext): void {}
-    public willExecute(_context: ActionContext): void {}
-    public async execute(context: ActionContext): Promise<void> {
+    public prepare(_context: TaskContext): void {}
+    public willExecute(_context: TaskContext): void {}
+    public async execute(context: TaskContext): Promise<void> {
         const db = context.platform.database;
         await db.use(async (c: duckdb.AsyncConnection) => {
             await c.runQuery(`DROP VIEW IF EXISTS ${this.buffer.nameQualified()}`);

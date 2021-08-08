@@ -1,4 +1,4 @@
-export * from './action';
+export * from './task';
 export * from './unique_blob';
 export * from './card_specification';
 export * from './table_summary';
@@ -17,5 +17,5 @@ export * from './store';
 
 import { StateMutationVariant } from './state_mutation';
 
-// The action dispatch
-export type Dispatch = (action: StateMutationVariant) => void;
+// The task dispatch
+export type Dispatch = (task: StateMutationVariant) => void;

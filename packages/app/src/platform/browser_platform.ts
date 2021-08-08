@@ -4,7 +4,7 @@ import * as model from '../model';
 
 export class BrowserPlatform extends core.platform.Platform {
     /// The interpreter controller
-    protected _scheduler: core.ActionGraphScheduler;
+    protected _scheduler: core.TaskGraphScheduler;
     /// The script pipeline
     protected _scriptPipeline: core.ScriptPipeline;
 
@@ -17,7 +17,7 @@ export class BrowserPlatform extends core.platform.Platform {
     ) {
         super(store, logger, db, analyzer, jmespath);
         this._store = store;
-        this._scheduler = new core.ActionGraphScheduler(this);
+        this._scheduler = new core.TaskGraphScheduler(this);
         this._scriptPipeline = new core.ScriptPipeline(this, this._scheduler);
     }
 }
