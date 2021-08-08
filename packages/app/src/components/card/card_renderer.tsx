@@ -5,7 +5,7 @@ import HexRenderer from './hex_renderer';
 import JsonRenderer from './json_renderer';
 import InputRenderer from './input_renderer';
 import TableRenderer from './table_renderer';
-import VegaRenderer from './vega_renderer';
+import { VegaRenderer } from './vega_renderer';
 
 interface Props {
     card: core.model.CardSpecification;

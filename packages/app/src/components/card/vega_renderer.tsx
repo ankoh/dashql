@@ -1,13 +1,18 @@
 import * as React from 'react';
 import * as arrow from 'apache-arrow';
-import { IterableArrayLike, RowLike } from 'apache-arrow/type';
 import * as core from '@dashql/core';
 import * as model from '../../model';
-import { connect } from 'react-redux';
-import { AutoSizer } from '../../util/autosizer';
+import { useSelector } from 'react-redux';
+import { withAutoSizer } from '../../util/autosizer';
 import { IAppContext, withAppContext } from '../../app_context';
 import { Vega } from 'react-vega';
 import { CardFrame } from './card_frame';
+
+interface VegaRendererProps {
+    appContext: IAppContext;
+    card: core.model.CardSpecification;
+    editable?: boolean;
+}
 
 interface VegaWithRowsProps {
     data: arrow.Table;
@@ -16,131 +21,89 @@ interface VegaWithRowsProps {
     vegaSpec: any;
 }
 
-interface VegaWithRowsState {
-    data: arrow.Table;
-    rows: IterableArrayLike<RowLike<any>>;
-}
+const VegaWithRows: React.FC<VegaWithRowsProps> = (props: VegaWithRowsProps) => {
+    const rows = React.useMemo(() => props.data.toArray(), [props.data]);
+    return (
+        <Vega
+            style={{
+                width: props.width,
+                height: props.height,
+            }}
+            spec={props.vegaSpec as any}
+            data={{ source: rows }}
+            width={props.width}
+            height={props.height}
+            actions={false}
+        />
+    );
+};
 
-class VegaWithRows extends React.Component<VegaWithRowsProps, VegaWithRowsState> {
-    constructor(props: VegaWithRowsProps) {
-        super(props);
-        this.state = VegaWithRows.getDerivedStateFromProps(props);
-    }
+type ContentProps = VegaRendererProps & { table: core.model.TableSummary; width: number; height: number };
 
-    shouldComponentUpdate(nextProps: VegaWithRowsProps) {
-        return (
-            nextProps.data != this.props.data ||
-            nextProps.width !== this.props.width ||
-            nextProps.height !== this.props.height ||
-            nextProps.vegaSpec !== this.props.vegaSpec
-        );
-    }
+const ContentRenderer: React.FC<ContentProps> = (props: ContentProps) => {
+    if (props.width == 0 && props.height == 0) return <div />;
+    console.assert(!!props.card.dataSource);
 
-    static getDerivedStateFromProps(props: VegaWithRowsProps, prevState?: VegaWithRowsState): VegaWithRowsState {
-        if (!prevState || props.data !== prevState?.data) {
-            return {
-                data: props.data,
-                rows: props.data.toArray(),
-            };
-        } else {
-            return prevState;
+    switch (props.card.dataSource!.dataResolver) {
+        case core.model.CardDataResolver.M5: {
+            return (
+                <core.access.M5Provider
+                    logger={props.appContext.platform!.logger}
+                    database={props.appContext.platform!.database}
+                    table={props.table}
+                    data={props.card.dataSource!}
+                    width={props.width}
+                >
+                    {result => (
+                        <VegaWithRows
+                            data={result}
+                            width={props.width}
+                            height={props.height}
+                            vegaSpec={props.card.vegaSpec}
+                        />
+                    )}
+                </core.access.M5Provider>
+            );
         }
-    }
 
-    public render() {
-        return (
-            <Vega
-                style={{
-                    width: this.props.width,
-                    height: this.props.height,
-                }}
-                spec={this.props.vegaSpec as any}
-                data={{ source: this.state.rows }}
-                width={this.props.width}
-                height={this.props.height}
-                actions={false}
-            />
-        );
-    }
-}
-
-interface Props {
-    appContext: IAppContext;
-    planState: core.model.PlanState;
-    card: core.model.CardSpecification;
-    editable?: boolean;
-}
-
-export class VegaRenderer extends React.Component<Props> {
-    protected renderContent(table: core.model.TableSummary, width: number, height: number): React.ReactElement {
-        if (width == 0 && height == 0) return <div />;
-        console.assert(!!this.props.card.dataSource);
-
-        switch (this.props.card.dataSource!.dataResolver) {
-            case core.model.CardDataResolver.M5: {
-                return (
-                    <core.access.M5Provider
-                        logger={this.props.appContext.platform!.logger}
-                        database={this.props.appContext.platform!.database}
-                        table={table}
-                        data={this.props.card.dataSource!}
-                        width={width}
-                    >
-                        {result => (
-                            <VegaWithRows
-                                data={result}
-                                width={width}
-                                height={height}
-                                vegaSpec={this.props.card.vegaSpec}
-                            />
-                        )}
-                    </core.access.M5Provider>
-                );
-            }
-
-            case core.model.CardDataResolver.RESERVOIR_SAMPLE: {
-                return (
-                    <core.access.SampleProvider
-                        logger={this.props.appContext.platform!.logger}
-                        database={this.props.appContext.platform!.database}
-                        table={table}
-                        data={this.props.card.dataSource!}
-                    >
-                        {result => (
-                            <VegaWithRows
-                                data={result}
-                                width={width}
-                                height={height}
-                                vegaSpec={this.props.card.vegaSpec}
-                            />
-                        )}
-                    </core.access.SampleProvider>
-                );
-            }
-
-            default:
-                return <div />;
+        case core.model.CardDataResolver.RESERVOIR_SAMPLE: {
+            return (
+                <core.access.SampleProvider
+                    logger={props.appContext.platform!.logger}
+                    database={props.appContext.platform!.database}
+                    table={props.table}
+                    data={props.card.dataSource!}
+                >
+                    {result => (
+                        <VegaWithRows
+                            data={result}
+                            width={props.width}
+                            height={props.height}
+                            vegaSpec={props.card.vegaSpec}
+                        />
+                    )}
+                </core.access.SampleProvider>
+            );
         }
-    }
 
-    public render(): React.ReactElement {
-        const target = this.props.card.dataSource!.targetQualified;
-        const table = core.model.resolveTableByName(this.props.planState, target);
-        if (!table) {
+        default:
             return <div />;
-        }
-        return (
-            <CardFrame title={this.props.card.title || target} controls={this.props.editable}>
-                <AutoSizer>{({ width, height }) => this.renderContent(table, width, height)}</AutoSizer>
-            </CardFrame>
-        );
     }
-}
+};
+const ContentRendererWithSize = withAutoSizer(ContentRenderer);
 
-const mapStateToProps = (state: model.AppState) => ({
-    planState: state.core.planState,
-});
+const InnerVegaRenderer: React.FC<VegaRendererProps> = (props: VegaRendererProps) => {
+    const planState = useSelector((state: model.AppState) => state.core.planState);
+    const target = props.card.dataSource!.targetQualified;
+    const table = core.model.resolveTableByName(planState, target);
+    if (!table) {
+        return <div />;
+    }
+    return (
+        <CardFrame title={props.card.title || target} controls={props.editable}>
+            <ContentRendererWithSize {...props} table={table} />
+        </CardFrame>
+    );
+};
 
-const mapDispatchToProps = (_dispatch: model.Dispatch) => ({});
-
-export default connect(mapStateToProps, mapDispatchToProps)(withAppContext(VegaRenderer));
+export const VegaRenderer = withAppContext(InnerVegaRenderer);

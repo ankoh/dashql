@@ -48,7 +48,7 @@ const InnerBoard: React.FC<Props> = (props: Props) => {
         return els;
     }, [planState.objects]);
 
-    const onLayoutChanged = React.useCallback(() => {
+    const onLayoutChanged = () => {
         const updates: core.edit.EditOperationVariant[] = layout.map(l => ({
             statementID: (l as LayoutElement).card.statementID,
             type: core.edit.EditOperationType.UPDATE_CARD_POSITION,
@@ -68,7 +68,7 @@ const InnerBoard: React.FC<Props> = (props: Props) => {
                 data: next,
             });
         }
-    }, []);
+    };
 
     const els: React.ReactElement[] = [];
     for (const l of layout) {
