@@ -6,7 +6,7 @@ export enum LogOrigin {
     DB_MANAGER = 1001,
     SCRIPT_PIPELINE = 1002,
     SCAN_PROVIDER = 1003,
-    ACTION_SCHEDULER = 1004,
+    TASK_SCHEDULER = 1004,
     LOAD_LOGIC = 1005,
     HTTP_MANAGER = 1006,
 }
@@ -19,8 +19,8 @@ export enum LogTopic {
     INSTANTIATE_PROGRAM = 1004,
     SCHEDULE_PROGRAM = 1005,
     REQUEST_SCAN = 1006,
-    PREPARE_ACTION = 1007,
-    EXECUTE_ACTION = 1008,
+    PREPARE_TASK = 1007,
+    EXECUTE_TASK = 1008,
     EXECUTE = 1009,
     REQUEST = 1010,
 }
@@ -47,8 +47,8 @@ export type LogEntryVariant =
     | LogEntry<LogOrigin.SCRIPT_PIPELINE, LogTopic.INSTANTIATE_PROGRAM, LogEvent.OK, undefined>
     | LogEntry<LogOrigin.SCRIPT_PIPELINE, LogTopic.INSTANTIATE_PROGRAM, LogEvent.ERROR, undefined>
     | LogEntry<LogOrigin.SCAN_PROVIDER, LogTopic.REQUEST_SCAN, LogEvent.OK, undefined>
-    | LogEntry<LogOrigin.ACTION_SCHEDULER, LogTopic.PREPARE_ACTION, LogEvent.ERROR, any>
-    | LogEntry<LogOrigin.ACTION_SCHEDULER, LogTopic.EXECUTE_ACTION, LogEvent.ERROR, any>
+    | LogEntry<LogOrigin.TASK_SCHEDULER, LogTopic.PREPARE_TASK, LogEvent.ERROR, any>
+    | LogEntry<LogOrigin.TASK_SCHEDULER, LogTopic.EXECUTE_TASK, LogEvent.ERROR, any>
     | LogEntry<LogOrigin.HTTP_MANAGER, LogTopic.REQUEST, LogEvent.ERROR, any>
     | LogEntry<LogOrigin.HTTP_MANAGER, LogTopic.REQUEST, LogEvent.OK, any>
     | LogEntry<LogOrigin.LOAD_LOGIC, LogTopic.EXECUTE, LogEvent.OK, any>
@@ -79,9 +79,9 @@ export function getLogTopicLabel(topic: LogTopic | duckdb.LogTopic): string {
             return 'SCHEDULE';
         case LogTopic.REQUEST_SCAN:
             return 'REQUEST';
-        case LogTopic.PREPARE_ACTION:
+        case LogTopic.PREPARE_TASK:
             return 'PREPARE';
-        case LogTopic.EXECUTE_ACTION:
+        case LogTopic.EXECUTE_TASK:
             return 'EXECUTE';
         case LogTopic.EXECUTE:
             return 'EXECUTE';
@@ -102,8 +102,8 @@ export function getLogOriginLabel(origin: LogOrigin | duckdb.LogOrigin): string 
             return 'SCRIPT PIPELINE';
         case LogOrigin.SCAN_PROVIDER:
             return 'SCAN PROVIDER';
-        case LogOrigin.ACTION_SCHEDULER:
-            return 'ACTION SCHEDULER';
+        case LogOrigin.TASK_SCHEDULER:
+            return 'TASK SCHEDULER';
         case LogOrigin.LOAD_LOGIC:
             return 'LOAD LOGIC';
         case LogOrigin.HTTP_MANAGER:

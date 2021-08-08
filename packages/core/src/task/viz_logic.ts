@@ -3,11 +3,11 @@ import * as model from '../model';
 import * as error from '../error';
 import * as arrow from 'apache-arrow';
 import { VegaComposer } from '../viz/vega_composer';
-import { ProgramActionLogic, SetupActionLogic } from './action_logic';
-import { ActionContext } from './action_context';
+import { ProgramTaskLogic, SetupTaskLogic } from './task_logic';
+import { TaskContext } from './task_context';
 import { TableStatisticsType } from '../model';
 
-export abstract class VizActionLogic extends ProgramActionLogic {
+export abstract class VizTaskLogic extends ProgramTaskLogic {
     /// The viz spec
     _card: proto.analyzer.Card | null = null;
     /// The renderer
@@ -19,12 +19,12 @@ export abstract class VizActionLogic extends ProgramActionLogic {
     /// The promise to get the row count (if needed)
     _rowCount: Promise<arrow.Column> | null = null;
 
-    constructor(action_id: model.ActionHandle, action: proto.action.ProgramAction, statement: model.Statement) {
-        super(action_id, action, statement);
+    constructor(task_id: model.TaskHandle, task: proto.task.ProgramTask, statement: model.Statement) {
+        super(task_id, task, statement);
     }
 
     /// Configure the visualization
-    public configure(context: ActionContext): void {
+    public configure(context: TaskContext): void {
         // Select the renderer
         const instance = context.plan.programInstance;
         const target = this._card.vizTarget();
@@ -34,7 +34,7 @@ export abstract class VizActionLogic extends ProgramActionLogic {
         const requireTable = (name: string) => {
             const table = context.platform._databaseManager.resolveTableName(name);
             if (table) return table;
-            throw new error.ActionLogicError(`renderer requires ${name} to be a SQL Table or SQL View`, instance);
+            throw new error.TaskLogicError(`renderer requires ${name} to be a SQL Table or SQL View`, instance);
         };
 
         // Prepare the renderers
@@ -93,7 +93,7 @@ export abstract class VizActionLogic extends ProgramActionLogic {
     }
 
     /// Select the renderer
-    public selectRenderer(context: ActionContext, programInstance: model.ProgramInstance): void {
+    public selectRenderer(context: TaskContext, programInstance: model.ProgramInstance): void {
         let renderer: model.CardRendererType | null = null;
         const tmp = new proto.analyzer.VizComponent();
         for (let i = 0; i < this._card.vizComponentsLength(); ++i) {
@@ -123,7 +123,7 @@ export abstract class VizActionLogic extends ProgramActionLogic {
                     break;
             }
             if (renderer != null && renderer != require) {
-                throw new error.ActionLogicError(
+                throw new error.TaskLogicError(
                     `incompatible viz renderers: assumed ${require}, no require ${require}`,
                     programInstance,
                 );
@@ -134,7 +134,7 @@ export abstract class VizActionLogic extends ProgramActionLogic {
     }
 
     /// Read context info
-    public configureVegaComposer(context: ActionContext, table: model.TableSummary): void {
+    public configureVegaComposer(context: TaskContext, table: model.TableSummary): void {
         // Build the composer
         const stats = context.platform._databaseManager.resolveTableStatistics(table.nameQualified)!;
         this._vega = new VegaComposer(stats);
@@ -157,19 +157,19 @@ export abstract class VizActionLogic extends ProgramActionLogic {
     }
 }
 
-export class CreateVizActionLogic extends VizActionLogic {
-    constructor(action_id: model.ActionHandle, action: proto.action.ProgramAction, statement: model.Statement) {
-        super(action_id, action, statement);
+export class CreateVizTaskLogic extends VizTaskLogic {
+    constructor(task_id: model.TaskHandle, task: proto.task.ProgramTask, statement: model.Statement) {
+        super(task_id, task, statement);
     }
 
     /// Prepare the viz creation
-    public prepare(context: ActionContext): void {
+    public prepare(context: TaskContext): void {
         // Get the program instance
         const programInstance = context.plan.programInstance;
         // Get viz spec
         this._card = programInstance.cards.get(this.origin.statementId) || null;
         if (!this._card) {
-            throw new error.ActionLogicError('card proto does not exist', programInstance);
+            throw new error.TaskLogicError('card proto does not exist', programInstance);
         }
         // Get position
         const posReader = this._card!.cardPosition()!;
@@ -200,11 +200,11 @@ export class CreateVizActionLogic extends VizActionLogic {
         context.stagedObjects.push(info);
     }
 
-    public willExecute(context: ActionContext): void {
+    public willExecute(context: TaskContext): void {
         this.configure(context);
     }
 
-    public async execute(context: ActionContext): Promise<void> {
+    public async execute(context: TaskContext): Promise<void> {
         // Get viz info
         const oid = this.buffer.objectId();
         const state = context.platform.store.getState();
@@ -266,22 +266,22 @@ export class CreateVizActionLogic extends VizActionLogic {
     }
 }
 
-export class UpdateVizActionLogic extends CreateVizActionLogic {
-    constructor(action_id: model.ActionHandle, action: proto.action.ProgramAction, statement: model.Statement) {
-        super(action_id, action, statement);
+export class UpdateVizTaskLogic extends CreateVizTaskLogic {
+    constructor(task_id: model.TaskHandle, task: proto.task.ProgramTask, statement: model.Statement) {
+        super(task_id, task, statement);
     }
 
     // XXX do not recompile vega spec every time
 }
 
-export class DropVizActionLogic extends SetupActionLogic {
-    constructor(action_id: model.ActionHandle, action: proto.action.SetupAction) {
-        super(action_id, action);
+export class DropVizTaskLogic extends SetupTaskLogic {
+    constructor(task_id: model.TaskHandle, task: proto.task.SetupTask) {
+        super(task_id, task);
     }
 
-    public prepare(_context: ActionContext): void {}
-    public willExecute(_context: ActionContext): void {}
-    public async execute(context: ActionContext): Promise<void> {
+    public prepare(_context: TaskContext): void {}
+    public willExecute(_context: TaskContext): void {}
+    public async execute(context: TaskContext): Promise<void> {
         const store = context.platform.store!;
         const objectId = this.buffer.objectId();
         model.mutate(store.dispatch, {
@@ -291,12 +291,12 @@ export class DropVizActionLogic extends SetupActionLogic {
     }
 }
 
-export class ImportVizActionLogic extends SetupActionLogic {
-    constructor(action_id: model.ActionHandle, action: proto.action.SetupAction) {
-        super(action_id, action);
+export class ImportVizTaskLogic extends SetupTaskLogic {
+    constructor(task_id: model.TaskHandle, task: proto.task.SetupTask) {
+        super(task_id, task);
     }
 
-    public prepare(_context: ActionContext): void {}
-    public willExecute(_context: ActionContext): void {}
-    public async execute(_context: ActionContext): Promise<void> {}
+    public prepare(_context: TaskContext): void {}
+    public willExecute(_context: TaskContext): void {}
+    public async execute(_context: TaskContext): Promise<void> {}
 }

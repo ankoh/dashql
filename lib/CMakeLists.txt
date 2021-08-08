@@ -261,7 +261,7 @@ add_library(
 
 add_library(
   dashql_analyzer
-  ${CMAKE_SOURCE_DIR}/src/analyzer/action_planner.cc
+  ${CMAKE_SOURCE_DIR}/src/analyzer/task_planner.cc
   ${CMAKE_SOURCE_DIR}/src/analyzer/analyzer.cc
   ${CMAKE_SOURCE_DIR}/src/analyzer/analyzer_api.cc
   ${CMAKE_SOURCE_DIR}/src/analyzer/function_logic.cc
@@ -343,7 +343,7 @@ if(EMSCRIPTEN)
             _dashql_analyzer_instantiate_program, \
             _dashql_analyzer_plan_program, \
             _dashql_analyzer_edit_program, \
-            _dashql_analyzer_update_action_status \
+            _dashql_analyzer_update_task_status \
         ]' \
         -s EXPORTED_RUNTIME_METHODS='[\"ccall\"]' \
         ${ADDITIONAL_LINKER_FLAGS} \

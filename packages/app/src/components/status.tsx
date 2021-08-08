@@ -123,30 +123,30 @@ export const StatusIndicator: React.FC<IStatusIndicatorProps> = (props: IStatusI
     return element;
 };
 
-interface IActionStatusIndicatorProps {
-    status: proto.action.ActionStatusCode | null;
+interface ITaskStatusIndicatorProps {
+    status: proto.task.TaskStatusCode | null;
     className?: string;
     width?: string;
     height?: string;
     fill?: string;
 }
 
-export const ActionStatusIndicator: React.FC<IActionStatusIndicatorProps> = (props: IActionStatusIndicatorProps) => {
+export const TaskStatusIndicator: React.FC<ITaskStatusIndicatorProps> = (props: ITaskStatusIndicatorProps) => {
     let mappedStatus = Status.NONE;
     switch (props.status) {
-        case proto.action.ActionStatusCode.PENDING:
+        case proto.task.TaskStatusCode.PENDING:
             mappedStatus = Status.NONE;
             break;
-        case proto.action.ActionStatusCode.COMPLETED:
+        case proto.task.TaskStatusCode.COMPLETED:
             mappedStatus = Status.COMPLETED;
             break;
-        case proto.action.ActionStatusCode.BLOCKED:
+        case proto.task.TaskStatusCode.BLOCKED:
             mappedStatus = Status.BLOCKED;
             break;
-        case proto.action.ActionStatusCode.FAILED:
+        case proto.task.TaskStatusCode.FAILED:
             mappedStatus = Status.FAILED;
             break;
-        case proto.action.ActionStatusCode.RUNNING:
+        case proto.task.TaskStatusCode.RUNNING:
             mappedStatus = Status.RUNNING;
             break;
     }

@@ -1,22 +1,22 @@
 import * as proto from '@dashql/proto';
 import * as model from '../model';
-import { ActionHandle, Statement, UniqueBlob } from '../model';
-import { ProgramActionLogic } from './action_logic';
-import { ActionContext } from './action_context';
+import { TaskHandle, Statement, UniqueBlob } from '../model';
+import { ProgramTaskLogic } from './task_logic';
+import { TaskContext } from './task_context';
 
 interface TransformOptions {
     expression?: string;
 }
 
-export class TransformActionLogic extends ProgramActionLogic {
-    constructor(action_id: ActionHandle, action: proto.action.ProgramAction, statement: Statement) {
-        super(action_id, action, statement);
+export class TransformTaskLogic extends ProgramTaskLogic {
+    constructor(task_id: TaskHandle, task: proto.task.ProgramTask, statement: Statement) {
+        super(task_id, task, statement);
     }
 
-    public prepare(context: ActionContext): void {}
-    public willExecute(_context: ActionContext): void {}
+    public prepare(context: TaskContext): void {}
+    public willExecute(_context: TaskContext): void {}
 
-    public async execute(context: ActionContext): Promise<void> {
+    public async execute(context: TaskContext): Promise<void> {
         const instance = context.plan.programInstance;
         const stmtId = this._origin.statementId;
         const transform = instance.transformStatements.get(stmtId);

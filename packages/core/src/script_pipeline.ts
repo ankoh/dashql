@@ -1,8 +1,8 @@
 import * as Immutable from 'immutable';
 import * as model from './model';
 import { Platform } from './platform';
-import { ActionContext } from './actions';
-import { ActionGraphScheduler } from './action_scheduler';
+import { TaskContext } from './task';
+import { TaskGraphScheduler } from './task_scheduler';
 
 const MIN_INPUT_DELAY = 300;
 const MAX_INPUT_DELAY = 1000;
@@ -12,7 +12,7 @@ export class ScriptPipeline {
     /// The store
     _platform: Platform;
     /// The scheduler
-    _scheduler: ActionGraphScheduler;
+    _scheduler: TaskGraphScheduler;
     /// The program text
     _programText: string;
     /// The previous program
@@ -30,7 +30,7 @@ export class ScriptPipeline {
     _programParsedAt: number;
 
     /// Constructor
-    constructor(platform: Platform, scheduler: ActionGraphScheduler) {
+    constructor(platform: Platform, scheduler: TaskGraphScheduler) {
         this._platform = platform;
         this._scheduler = scheduler;
         const store = platform.store;
@@ -149,7 +149,7 @@ export class ScriptPipeline {
         // Scheduler became idle and there is a program pending?
         // This is also checked if everything is changed at once.
         if (
-            next.schedulerStatus == model.ActionSchedulerStatus.Idle &&
+            next.schedulerStatus == model.TaskSchedulerStatus.Idle &&
             next.programInstance &&
             (!next.plan || next.plan.programInstance !== next.programInstance)
         ) {
@@ -165,7 +165,7 @@ export class ScriptPipeline {
         if (!plan) return;
 
         // Schedule the plan
-        const ctx = new ActionContext(this._platform, plan);
+        const ctx = new TaskContext(this._platform, plan);
         this._scheduler.prepare(ctx);
 
         // Execute the plan

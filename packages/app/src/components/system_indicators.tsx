@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { ActionList } from './action_list';
+import { TaskList } from './task_list';
 import { LogViewer } from './log_viewer';
 import { DatabaseViewer } from './database_viewer';
 import classNames from 'classnames';
@@ -50,7 +50,7 @@ export const SystemIndicators: React.FC<Props> = (props: Props) => {
                 <DatabaseViewer onClose={() => toggleTab(0)} />
             </SystemPanel>
             <SystemPanel systemID={1} expandedPanel={expanded} onClick={toggleTab.bind(this)} icon={icon_tasks}>
-                <ActionList onClose={() => toggleTab(1)} />
+                <TaskList onClose={() => toggleTab(1)} />
             </SystemPanel>
             <SystemPanel systemID={2} expandedPanel={expanded} onClick={toggleTab.bind(this)} icon={icon_log}>
                 <LogViewer onClose={() => toggleTab(2)} />

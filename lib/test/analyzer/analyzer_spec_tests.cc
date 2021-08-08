@@ -51,13 +51,11 @@ TEST_P(AnalyzerSpecTests, Test) {
         rc = analyzer.PlanProgram();
         ASSERT_TRUE(rc.ok());
 
-        // Update the action status for the next step
-        for (unsigned i = 0; i < step.setupActionStatusCodes.size(); ++i)
-            analyzer.UpdateActionStatus(proto::action::ActionClass::SETUP_ACTION, i, step.setupActionStatusCodes[i])
-                .ok();
-        for (unsigned i = 0; i < step.programActionStatusCodes.size(); ++i)
-            analyzer.UpdateActionStatus(proto::action::ActionClass::PROGRAM_ACTION, i, step.programActionStatusCodes[i])
-                .ok();
+        // Update the task status for the next step
+        for (unsigned i = 0; i < step.setupTaskStatusCodes.size(); ++i)
+            analyzer.UpdateTaskStatus(proto::task::TaskClass::SETUP_TASK, i, step.setupTaskStatusCodes[i]).ok();
+        for (unsigned i = 0; i < step.programTaskStatusCodes.size(); ++i)
+            analyzer.UpdateTaskStatus(proto::task::TaskClass::PROGRAM_TASK, i, step.programTaskStatusCodes[i]).ok();
 
         // Encode the test output
         pugi::xml_document out;

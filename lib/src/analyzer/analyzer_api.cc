@@ -69,9 +69,9 @@ void dashql_analyzer_edit_program(WASMResponse* response, const void* args_buffe
     WASMResponseBuffer::Get().Store(*response, builder.Release());
 }
 
-void dashql_analyzer_update_action_status(uint8_t action_class, size_t action_id, uint8_t status_code) {
-    auto ac = static_cast<proto::action::ActionClass>(action_class);
-    auto s = static_cast<proto::action::ActionStatusCode>(status_code);
-    Analyzer::GetInstance().UpdateActionStatus(ac, action_id, s).ok();
+void dashql_analyzer_update_task_status(uint8_t task_class, size_t task_id, uint8_t status_code) {
+    auto ac = static_cast<proto::task::TaskClass>(task_class);
+    auto s = static_cast<proto::task::TaskStatusCode>(status_code);
+    Analyzer::GetInstance().UpdateTaskStatus(ac, task_id, s).ok();
 }
 }

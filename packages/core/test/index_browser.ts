@@ -48,8 +48,8 @@ afterAll(async () => {
 });
 
 import { testDuckDB } from './duckdb.test';
-import { testActionScheduler } from './action_scheduler.test';
-import { testActionGraph } from './action_graph.test';
+import { testTaskScheduler } from './task_scheduler.test';
+import { testTaskGraph } from './task_graph.test';
 import { testHTTPManager } from './http_manager.test';
 import { testNativeMinHeap } from './native_min_heap.test';
 import { testVegaComposer } from './vega_composer.test';
@@ -59,12 +59,12 @@ import { testSemaphore } from './semaphore.test';
 import { testRowProxies } from './row_proxies.test';
 
 testDuckDB(() => db!);
-testActionScheduler(
+testTaskScheduler(
     () => db!,
     () => az!,
     () => jp!,
 );
-testActionGraph(() => az!);
+testTaskGraph(() => az!);
 testHTTPManager();
 testNativeMinHeap();
 testVegaComposer(() => az!);

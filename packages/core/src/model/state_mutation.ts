@@ -3,7 +3,7 @@ import * as utils from '../utils';
 import * as plan_state from './plan_state';
 import { LogEntryVariant } from './log';
 import { Plan } from './plan';
-import { Action, ActionUpdate, ActionSchedulerStatus } from './action';
+import { Task, TaskUpdate, TaskSchedulerStatus } from './task';
 import { PlanObjectID, PlanObject, PlanObjectType } from './plan_object';
 import { Script } from './script';
 import { TableSummary } from './table_summary';
@@ -30,7 +30,7 @@ export enum StateMutationType {
     SET_PROGRAM = 'SET_PROGRAM',
     SET_PROGRAM_INSTANCE = 'SET_PROGRAM_INSTANCE',
     REWRITE_PROGRAM = 'REWRITE_PROGRAM',
-    UPDATE_PLAN_ACTIONS = 'UPDATE_PLAN_ACTIONS',
+    UPDATE_PLAN_TASKS = 'UPDATE_PLAN_TASKS',
     INSERT_PLAN_OBJECTS = 'INSERT_PLAN_OBJECTS',
     DELETE_PLAN_OBJECTS = 'DELETE_PLAN_OBJECTS',
     UPDATE_TABLE_INFO = 'UPDATE_TABLE_INFO',
@@ -45,14 +45,14 @@ export enum StateMutationType {
 export type StateMutationVariant =
     | StateMutation<StateMutationType.LOG_PUSH_ENTRY, LogEntryVariant>
     | StateMutation<StateMutationType.SCHEDULER_READY, null>
-    | StateMutation<StateMutationType.SCHEDULE_PLAN, [Plan, Action[]]>
+    | StateMutation<StateMutationType.SCHEDULE_PLAN, [Plan, Task[]]>
     | StateMutation<StateMutationType.RESET_PLAN, null>
     | StateMutation<StateMutationType.UPDATE_SCRIPT, Script>
     | StateMutation<StateMutationType.REPLACE_SCRIPT, Script>
     | StateMutation<StateMutationType.SET_PROGRAM, Program>
     | StateMutation<StateMutationType.SET_PROGRAM_INSTANCE, ProgramInstance>
     | StateMutation<StateMutationType.REWRITE_PROGRAM, ProgramInstance>
-    | StateMutation<StateMutationType.UPDATE_PLAN_ACTIONS, ActionUpdate[]>
+    | StateMutation<StateMutationType.UPDATE_PLAN_TASKS, TaskUpdate[]>
     | StateMutation<StateMutationType.INSERT_PLAN_OBJECTS, PlanObject[]>
     | StateMutation<StateMutationType.DELETE_PLAN_OBJECTS, PlanObjectID[]>
     | StateMutation<StateMutationType.UPDATE_TABLE_INFO, [string, Partial<TableSummary>]>
@@ -61,7 +61,7 @@ export type StateMutationVariant =
 
 export type StateMutationDispatcher = (mutation: StateMutationVariant) => void;
 
-// The action dispatch
+// The task dispatch
 export type Dispatch = (mutation: StateMutationVariant) => void;
 // Mutate the store
 export function mutate(dispatch: Dispatch, m: StateMutationVariant): void {
@@ -82,12 +82,12 @@ function reduceImpl(state: CoreState, mutation: StateMutationVariant): CoreState
             };
 
         case StateMutationType.RESET_PLAN: {
-            if (state.schedulerStatus !== ActionSchedulerStatus.Idle) {
+            if (state.schedulerStatus !== TaskSchedulerStatus.Idle) {
                 return state;
             }
             return {
                 ...state,
-                schedulerStatus: ActionSchedulerStatus.Idle,
+                schedulerStatus: TaskSchedulerStatus.Idle,
                 plan: null,
                 planState: plan_state.resetStatus(state.planState),
             };
@@ -97,14 +97,14 @@ function reduceImpl(state: CoreState, mutation: StateMutationVariant): CoreState
             const status: StatementStatus[] = [];
             for (let i = 0; i < state.program!.buffer.statementsLength(); ++i) {
                 status.push({
-                    status: proto.action.ActionStatusCode.PENDING,
-                    totalActions: 0,
+                    status: proto.task.TaskStatusCode.PENDING,
+                    totalTasks: 0,
                     totalPerStatus: [0, 0, 0, 0, 0, 0],
                 });
             }
             mutation.data[1].forEach(a => {
                 if (a.originStatement != null) {
-                    ++status[a.originStatement].totalActions;
+                    ++status[a.originStatement].totalTasks;
                     ++status[a.originStatement].totalPerStatus[a.statusCode as number];
                 }
             });
@@ -113,7 +113,7 @@ function reduceImpl(state: CoreState, mutation: StateMutationVariant): CoreState
             }
             return {
                 ...state,
-                schedulerStatus: ActionSchedulerStatus.Working,
+                schedulerStatus: TaskSchedulerStatus.Working,
                 plan: mutation.data[0],
                 planState: plan_state.resetStatus(state.planState, status, mutation.data[1]),
             };
@@ -122,7 +122,7 @@ function reduceImpl(state: CoreState, mutation: StateMutationVariant): CoreState
         case StateMutationType.SCHEDULER_READY:
             return {
                 ...state,
-                schedulerStatus: ActionSchedulerStatus.Idle,
+                schedulerStatus: TaskSchedulerStatus.Idle,
             };
 
         case StateMutationType.UPDATE_SCRIPT:
@@ -177,7 +177,7 @@ function reduceImpl(state: CoreState, mutation: StateMutationVariant): CoreState
                 programInstance: mutation.data,
             };
 
-        case StateMutationType.UPDATE_PLAN_ACTIONS: {
+        case StateMutationType.UPDATE_PLAN_TASKS: {
             return {
                 ...state,
                 planState: plan_state.updateStatus(state.planState, mutation.data),

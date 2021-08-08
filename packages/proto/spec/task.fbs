@@ -1,16 +1,16 @@
 // Copyright (c) 2020 The DashQL Authors
 
-namespace dashql.proto.action;
+namespace dashql.proto.task;
 
 // ---------------------------------------------------------------------------
-// Action status
+// Task status
 
-enum ActionClass: uint8 {
-    SETUP_ACTION = 0,
-    PROGRAM_ACTION = 1,
+enum TaskClass: uint8 {
+    SETUP_TASK = 0,
+    PROGRAM_TASK = 1,
 }
 
-enum ActionStatusCode: uint8 {
+enum TaskStatusCode: uint8 {
     PENDING = 0,
     SKIPPED,
     RUNNING,
@@ -19,7 +19,7 @@ enum ActionStatusCode: uint8 {
     COMPLETED,
 }
 
-enum ActionBlocker: uint8 {
+enum TaskBlocker: uint8 {
     NONE = 0,
     DEPENDENCY,
     USER_INTERACTION,
@@ -27,15 +27,15 @@ enum ActionBlocker: uint8 {
 }
 
 // ---------------------------------------------------------------------------
-// Action graph
+// Task graph
 
-table ActionGraph {
+table TaskGraph {
     next_object_id: uint32;
-    setup_actions: [SetupAction];
-    program_actions: [ProgramAction];
+    setup_tasks: [SetupTask];
+    program_tasks: [ProgramTask];
 }
 
-enum SetupActionType: uint8 {
+enum SetupTaskType: uint8 {
     NONE = 0,
 
     IMPORT_MIN,
@@ -55,16 +55,16 @@ enum SetupActionType: uint8 {
     DROP_VIZ,
 }
 
-table SetupAction {
-    action_type: SetupActionType;
-    action_status_code: ActionStatusCode;
+table SetupTask {
+    task_type: SetupTaskType;
+    task_status_code: TaskStatusCode;
     depends_on: [uint32];
     required_for: [uint32];
     object_id: uint32;
     name_qualified: string;
 }
 
-enum ProgramActionType: uint8 {
+enum ProgramTaskType: uint8 {
     NONE = 0,
     INPUT,
     FETCH,
@@ -77,9 +77,9 @@ enum ProgramActionType: uint8 {
     UPDATE_VIZ,
 }
 
-table ProgramAction {
-    action_type: ProgramActionType;
-    action_status_code: ActionStatusCode;
+table ProgramTask {
+    task_type: ProgramTaskType;
+    task_status_code: TaskStatusCode;
     depends_on: [uint32];
     required_for: [uint32];
     origin_statement: uint32;

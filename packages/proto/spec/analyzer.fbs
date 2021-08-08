@@ -1,6 +1,6 @@
 // Copyright (c) 2020 The DashQL Authors
 
-include "action.fbs";
+include "task.fbs";
 include "syntax/program.fbs";
 include "syntax/dashql_syntax.fbs";
 include "sql_value.fbs";
@@ -137,5 +137,5 @@ table ProgramReplacement {
 
 /// A plan
 table Plan {
-    action_graph: action.ActionGraph;
+    task_graph: task.TaskGraph;
 }

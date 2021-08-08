@@ -30,10 +30,10 @@ struct AnalyzerTest {
         std::vector<InputValue> input_values = {};
         /// The expected plan
         pugi::xml_document expected_output = {};
-        /// The action status of setup actions
-        std::vector<proto::action::ActionStatusCode> setupActionStatusCodes = {};
-        /// The action status of program actions
-        std::vector<proto::action::ActionStatusCode> programActionStatusCodes = {};
+        /// The task status of setup tasks
+        std::vector<proto::task::TaskStatusCode> setupTaskStatusCodes = {};
+        /// The task status of program tasks
+        std::vector<proto::task::TaskStatusCode> programTaskStatusCodes = {};
     };
 
     /// The name
@@ -41,16 +41,15 @@ struct AnalyzerTest {
     /// The steps
     std::vector<TestStep> steps = {};
 
-    /// Get an action status code
-    static proto::action::ActionStatusCode GetActionStatus(std::string_view type);
+    /// Get an task status code
+    static proto::task::TaskStatusCode GetTaskStatus(std::string_view type);
     /// Read a parameter type
     static proto::syntax::InputComponentType GetInputType(std::string_view type);
     /// Get a parameter
     static arrow::Result<InputValue> GetInputValue(const pugi::xml_node& node);
 
-    /// Encode the action graph
-    static void EncodePlan(pugi::xml_node root, const ProgramInstance& program,
-                           const proto::action::ActionGraphT& graph);
+    /// Encode the task graph
+    static void EncodePlan(pugi::xml_node root, const ProgramInstance& program, const proto::task::TaskGraphT& graph);
     /// Get the grammar tests
     static arrow::Status LoadTests(std::filesystem::path& project_root);
     /// Get the grammar tests

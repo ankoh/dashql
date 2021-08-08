@@ -3,8 +3,8 @@ import * as duckdb from '@dashql/duckdb/dist/duckdb.module.js';
 import * as model from '../model';
 import * as arrow from 'apache-arrow';
 import * as Immutable from 'immutable';
-import { ProgramActionLogic, SetupActionLogic } from './action_logic';
-import { ActionContext } from './action_context';
+import { ProgramTaskLogic, SetupTaskLogic } from './task_logic';
+import { TaskContext } from './task_context';
 import { TableStatisticsType } from '../model';
 import { Column } from 'apache-arrow';
 
@@ -70,14 +70,14 @@ export async function collectTableInfo(
     };
 }
 
-export class CreateTableActionLogic extends ProgramActionLogic {
-    constructor(action_id: model.ActionHandle, action: proto.action.ProgramAction, statement: model.Statement) {
-        super(action_id, action, statement);
+export class CreateTableTaskLogic extends ProgramTaskLogic {
+    constructor(task_id: model.TaskHandle, task: proto.task.ProgramTask, statement: model.Statement) {
+        super(task_id, task, statement);
     }
 
-    public prepare(_context: ActionContext): void {}
-    public willExecute(_context: ActionContext): void {}
-    public async execute(context: ActionContext): Promise<void> {
+    public prepare(_context: TaskContext): void {}
+    public willExecute(_context: TaskContext): void {}
+    public async execute(context: TaskContext): Promise<void> {
         const script = this.script;
         if (!script) return;
 
@@ -111,34 +111,34 @@ export class CreateTableActionLogic extends ProgramActionLogic {
     }
 }
 
-export class ModifyTableActionLogic extends ProgramActionLogic {
-    constructor(action_id: model.ActionHandle, action: proto.action.ProgramAction, statement: model.Statement) {
-        super(action_id, action, statement);
+export class ModifyTableTaskLogic extends ProgramTaskLogic {
+    constructor(task_id: model.TaskHandle, task: proto.task.ProgramTask, statement: model.Statement) {
+        super(task_id, task, statement);
     }
 
-    public prepare(_context: ActionContext): void {}
-    public willExecute(_context: ActionContext): void {}
-    public async execute(_context: ActionContext): Promise<void> {}
+    public prepare(_context: TaskContext): void {}
+    public willExecute(_context: TaskContext): void {}
+    public async execute(_context: TaskContext): Promise<void> {}
 }
 
-export class ImportTableActionLogic extends SetupActionLogic {
-    constructor(action_id: model.ActionHandle, action: proto.action.SetupAction) {
-        super(action_id, action);
+export class ImportTableTaskLogic extends SetupTaskLogic {
+    constructor(task_id: model.TaskHandle, task: proto.task.SetupTask) {
+        super(task_id, task);
     }
 
-    public prepare(_context: ActionContext): void {}
-    public willExecute(_context: ActionContext): void {}
-    public async execute(_context: ActionContext): Promise<void> {}
+    public prepare(_context: TaskContext): void {}
+    public willExecute(_context: TaskContext): void {}
+    public async execute(_context: TaskContext): Promise<void> {}
 }
 
-export class DropTableActionLogic extends SetupActionLogic {
-    constructor(action_id: model.ActionHandle, action: proto.action.SetupAction) {
-        super(action_id, action);
+export class DropTableTaskLogic extends SetupTaskLogic {
+    constructor(task_id: model.TaskHandle, task: proto.task.SetupTask) {
+        super(task_id, task);
     }
 
-    public prepare(_context: ActionContext): void {}
-    public willExecute(_context: ActionContext): void {}
-    public async execute(context: ActionContext): Promise<void> {
+    public prepare(_context: TaskContext): void {}
+    public willExecute(_context: TaskContext): void {}
+    public async execute(context: TaskContext): Promise<void> {
         const db = context.platform.database;
         const store = context.platform.store;
         const state = store.getState();

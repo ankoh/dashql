@@ -1,26 +1,26 @@
 @import '../vars.module.css';
 
-.action_list_panel {
-    background: var(--action_panel_bg);
+.task_list_panel {
+    background: var(--task_panel_bg);
     box-sizing: border-box;
-    border-radius: var(--action_panel_border_radius);
+    border-radius: var(--task_panel_border_radius);
     color: white;
 }
 
-.actions {
+.tasks {
     padding: 4px 0px;
 }
 
-.setup_actions {
+.setup_tasks {
     padding: 4px 0px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.program_actions {
+.program_tasks {
     padding: 4px 0px;
 }
 
-.action {
+.task {
     display: grid;
     grid-template-columns: 20px auto 60px;
     grid-column-gap: 8px;
@@ -28,7 +28,7 @@
     font-size: 80%;
 }
 
-.action_status {
+.task_status {
     grid-row: 1;
     grid-column: 1;
     width: 100%;
@@ -39,18 +39,18 @@
     content: white;
 }
 
-.action_type {
+.task_type {
     grid-row: 1;
     grid-column: 2;
     text-align: left;
 }
 
-.action_duration {
+.task_duration {
     grid-row: 1;
     grid-column: 3;
     text-align: right;
-    color: var(--action_duration_color);
+    color: var(--task_duration_color);
 }
 
-.action_detail {
+.task_detail {
 }

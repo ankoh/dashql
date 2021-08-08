@@ -25,62 +25,62 @@ export class Plan {
     public get input_values(): Immutable.List<any> {
         return this.programInstance.inputValues;
     }
-    /// Access the action graph
-    public get action_graph(): proto.action.ActionGraph | null {
-        return this.buffer.actionGraph();
+    /// Access the task graph
+    public get task_graph(): proto.task.TaskGraph | null {
+        return this.buffer.taskGraph();
     }
 
-    /// Iterate setup actions
-    public iterateSetupActions(fn: (idx: number, node: proto.action.SetupAction) => void): void {
-        const graph = this.buffer.actionGraph();
+    /// Iterate setup tasks
+    public iterateSetupTasks(fn: (idx: number, node: proto.task.SetupTask) => void): void {
+        const graph = this.buffer.taskGraph();
         if (!graph) return;
-        const count = graph.setupActionsLength();
-        const tmp = new proto.action.SetupAction();
+        const count = graph.setupTasksLength();
+        const tmp = new proto.task.SetupTask();
         for (let i = 0; i < count; ++i) {
-            fn(i, graph.setupActions(i, tmp)!);
+            fn(i, graph.setupTasks(i, tmp)!);
         }
     }
-    /// Iterate setup actions in reverse order
-    public iterateSetupActionsReverse(fn: (idx: number, node: proto.action.SetupAction) => void): void {
-        const graph = this.buffer.actionGraph();
+    /// Iterate setup tasks in reverse order
+    public iterateSetupTasksReverse(fn: (idx: number, node: proto.task.SetupTask) => void): void {
+        const graph = this.buffer.taskGraph();
         if (!graph) return;
-        const count = graph.setupActionsLength();
-        const tmp = new proto.action.SetupAction();
+        const count = graph.setupTasksLength();
+        const tmp = new proto.task.SetupTask();
         for (let i = 0; i < count; ++i) {
             const ri = count - i - 1;
-            fn(ri, graph.setupActions(ri, tmp)!);
+            fn(ri, graph.setupTasks(ri, tmp)!);
         }
     }
-    /// Iterate program actions
-    public iterateProgramActions(fn: (idx: number, node: proto.action.ProgramAction) => void): void {
-        const graph = this.buffer.actionGraph();
+    /// Iterate program tasks
+    public iterateProgramTasks(fn: (idx: number, node: proto.task.ProgramTask) => void): void {
+        const graph = this.buffer.taskGraph();
         if (!graph) return;
-        const count = graph.programActionsLength();
-        const tmp = new proto.action.ProgramAction();
+        const count = graph.programTasksLength();
+        const tmp = new proto.task.ProgramTask();
         for (let i = 0; i < count; ++i) {
-            fn(i, graph.programActions(i, tmp)!);
+            fn(i, graph.programTasks(i, tmp)!);
         }
     }
 
-    /// Map program actions
-    public mapProgramActions<T>(fn: (idx: number, node: proto.action.ProgramAction) => T): T[] {
-        const graph = this.buffer.actionGraph();
+    /// Map program tasks
+    public mapProgramTasks<T>(fn: (idx: number, node: proto.task.ProgramTask) => T): T[] {
+        const graph = this.buffer.taskGraph();
         if (!graph) return [];
         const mapped: T[] = [];
-        mapped.length = graph.programActionsLength();
-        this.iterateProgramActions((i, n) => {
+        mapped.length = graph.programTasksLength();
+        this.iterateProgramTasks((i, n) => {
             mapped[i] = fn(i, n);
         });
         return mapped;
     }
 
-    /// Map setup actions
-    public mapSetupActions<T>(fn: (idx: number, node: proto.action.SetupAction) => T): T[] {
-        const graph = this.buffer.actionGraph();
+    /// Map setup tasks
+    public mapSetupTasks<T>(fn: (idx: number, node: proto.task.SetupTask) => T): T[] {
+        const graph = this.buffer.taskGraph();
         if (!graph) return [];
         const mapped: T[] = [];
-        mapped.length = graph.programActionsLength();
-        this.iterateSetupActions((i, n) => {
+        mapped.length = graph.programTasksLength();
+        this.iterateSetupTasks((i, n) => {
             mapped[i] = fn(i, n);
         });
         return mapped;

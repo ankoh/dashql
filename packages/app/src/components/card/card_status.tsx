@@ -17,7 +17,7 @@ interface NodeData {
     nodeId: number;
     statementId: number;
     statementType: proto.syntax.StatementType;
-    actionStatus: proto.action.ActionStatusCode | null;
+    taskStatus: proto.task.TaskStatusCode | null;
 }
 
 interface CardStatusState {
@@ -30,13 +30,13 @@ const updateState = (state: CardStatusState): CardStatusState => ({
     ...state,
     nodes: state.nodes.map(n => {
         const s = state.status.get(n.statementId)!.status;
-        if (n.actionStatus == s) {
+        if (n.taskStatus == s) {
             return n;
         } else
             return {
                 ...n,
                 statementType: n.statementType,
-                actionStatus: s,
+                taskStatus: s,
             };
     }),
 });
@@ -80,7 +80,7 @@ const rebuild = (
             nodeId: idx,
             statementId: idx,
             statementType: stmt.statement_type,
-            actionStatus: proto.action.ActionStatusCode.PENDING,
+            taskStatus: proto.task.TaskStatusCode.PENDING,
         });
     });
     return updateState({
@@ -100,20 +100,20 @@ export const CardStatus: React.FC<CardStatusProps> = (props: CardStatusProps) =>
     }
     const renderNode = (n: NodeData) => {
         let color = 'transparent';
-        switch (n.actionStatus!) {
-            case proto.action.ActionStatusCode.BLOCKED:
+        switch (n.taskStatus!) {
+            case proto.task.TaskStatusCode.BLOCKED:
                 color = 'rgb(219, 171, 10)';
                 break;
-            case proto.action.ActionStatusCode.COMPLETED:
+            case proto.task.TaskStatusCode.COMPLETED:
                 color = 'rgb(83, 164, 81)';
                 break;
-            case proto.action.ActionStatusCode.FAILED:
+            case proto.task.TaskStatusCode.FAILED:
                 color = 'rgb(187, 54, 56)';
                 break;
-            case proto.action.ActionStatusCode.RUNNING:
+            case proto.task.TaskStatusCode.RUNNING:
                 color = 'rgb(219, 171, 10)';
                 break;
-            case proto.action.ActionStatusCode.PENDING:
+            case proto.task.TaskStatusCode.PENDING:
                 color = 'rgb(160, 160, 160)';
                 break;
         }

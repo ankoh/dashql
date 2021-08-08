@@ -1,7 +1,7 @@
 import { Plan, PlanObject } from '../model';
 import { Platform } from '../platform';
 
-export class ActionContext {
+export class TaskContext {
     /// The platform
     public readonly platform: Platform;
     /// The program
