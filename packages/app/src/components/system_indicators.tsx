@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { ActionList } from './action_list';
 import { LogViewer } from './log_viewer';
-import DatabaseViewer from './database_viewer';
+import { DatabaseViewer } from './database_viewer';
 import classNames from 'classnames';
 
 import styles from './system_indicators.module.css';
