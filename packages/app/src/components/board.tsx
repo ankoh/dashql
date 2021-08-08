@@ -48,7 +48,10 @@ const InnerBoard: React.FC<Props> = (props: Props) => {
         return els;
     }, [planState.objects]);
 
+    const userExpectation = React.useRef<boolean>();
     const onLayoutChanged = () => {
+        if (!userExpectation.current) return;
+        userExpectation.current = false;
         const updates: core.edit.EditOperationVariant[] = layout.map(l => ({
             statementID: (l as LayoutElement).card.statementID,
             type: core.edit.EditOperationType.UPDATE_CARD_POSITION,
@@ -90,6 +93,8 @@ const InnerBoard: React.FC<Props> = (props: Props) => {
             isDraggable={!!props.editable}
             isResizable={!!props.editable}
             onLayoutChange={onLayoutChanged}
+            onDragStart={() => (userExpectation.current = true)}
+            onResizeStart={() => (userExpectation.current = true)}
             layout={layout}
             containerPadding={props.containerPadding}
             margin={props.elementMargin}
