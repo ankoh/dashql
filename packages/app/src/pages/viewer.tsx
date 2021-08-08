@@ -17,7 +17,6 @@ export const Viewer: React.FC<Props> = () => {
     const columnCount = 12;
     const padding: [number, number] = [40, 40];
     const margin: [number, number] = [10, 10];
-    console.log('foo');
     return (
         <ScriptLoader>
             <div className={styles.container}>
