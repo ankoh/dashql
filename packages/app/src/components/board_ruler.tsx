@@ -36,45 +36,20 @@ interface RulerProps {
     stepCount?: number;
 }
 
-interface RulerState {
-    ticks: Array<Tick>;
-    dpr: number;
-}
+export const Ruler: React.FC<RulerProps> = (props: RulerProps) => {
+    const canvasRef = React.useRef<HTMLCanvasElement>(null);
+    const dpr = React.useMemo(() => global.window?.devicePixelRatio ?? 2, []);
 
-export class Ruler extends React.Component<RulerProps, RulerState> {
-    canvas: React.RefObject<HTMLCanvasElement>;
-
-    constructor(props: RulerProps) {
-        super(props);
-        this.canvas = React.createRef();
-        const ticks = this.layout();
-        this.state = {
-            dpr: global.window?.devicePixelRatio ?? 2,
-            ticks: ticks,
-        };
-    }
-
-    // Layout the ruler
-    layout(): Array<Tick> {
-        if (this.props.orientation === RulerOrientation.Horizontal) {
-            return this.layoutImpl(this.props.width, this.props.height, this.props.scaleFactor);
-        } else {
-            const ticks = this.layoutImpl(this.props.height, this.props.width, this.props.scaleFactor);
-            ticks.forEach(t => t.transpose());
-            return ticks;
-        }
-    }
-
-    // Layout implementation for both, the horizontal and the vertical ruler
-    layoutImpl(length: number, thickness: number, _scaleFactor: number): Array<Tick> {
-        const lb = this.props.containerPadding;
-        const ub = length - this.props.containerPadding;
+    // Helper to compute the layout
+    const computeLayout = (length: number, thickness: number, _scaleFactor: number): Array<Tick> => {
+        const lb = props.containerPadding;
+        const ub = length - props.containerPadding;
         const ticks = new Array<Tick>();
         let stepLength = ub - lb;
-        if (this.props.stepCount !== undefined) {
-            stepLength = (ub - lb) / this.props.stepCount;
-        } else if (this.props.stepLength !== undefined) {
-            stepLength = this.props.stepLength + this.props.tickMargin;
+        if (props.stepCount !== undefined) {
+            stepLength = (ub - lb) / props.stepCount;
+        } else if (props.stepLength !== undefined) {
+            stepLength = props.stepLength + props.tickMargin;
         }
         const cnt = Math.ceil((ub - lb) / stepLength);
         let x = lb + stepLength;
@@ -82,109 +57,91 @@ export class Ruler extends React.Component<RulerProps, RulerState> {
             ticks.push(new Tick([x, thickness - 0.5], [x, thickness / 2 - 0.5]));
         }
         return ticks;
-    }
+    };
+
+    // Compute the ticks
+    const ticks = React.useMemo(() => {
+        if (props.orientation === RulerOrientation.Horizontal) {
+            return computeLayout(props.width, props.height, props.scaleFactor);
+        } else {
+            const newTicks = computeLayout(props.height, props.width, props.scaleFactor);
+            newTicks.forEach(t => t.transpose());
+            return newTicks;
+        }
+    }, [props.orientation, props.width, props.height, props.scaleFactor]);
 
     // Draw the ruler
-    draw(canvas: HTMLCanvasElement): void {
+    React.useEffect(() => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+
         // Scale the canvas dimensions
-        canvas.width = this.props.width * this.state.dpr;
-        canvas.height = this.props.height * this.state.dpr;
+        canvas.width = props.width * dpr;
+        canvas.height = props.height * dpr;
 
         // Prepare the 2D context
         const context = canvas.getContext('2d')!;
         context.strokeStyle = TICK_COLOR;
         context.lineWidth = TICK_WIDTH;
         context.fillStyle = CORNER_COLOR;
-        context.scale(this.state.dpr, this.state.dpr);
+        context.scale(dpr, dpr);
         context.textBaseline = 'top';
 
-        if (this.props.orientation === RulerOrientation.Horizontal) {
+        if (props.orientation === RulerOrientation.Horizontal) {
             context.beginPath();
-            this.state.ticks.forEach(t => {
+            ticks.forEach(t => {
                 context.moveTo(t.begin[0], t.begin[1]);
                 context.lineTo(t.end[0], t.end[1]);
             });
             context.stroke();
 
             context.beginPath();
-            context.rect(0, 0, this.props.containerPadding, this.props.height);
-            context.rect(
-                this.props.width - this.props.containerPadding,
-                0,
-                this.props.containerPadding,
-                this.props.height,
-            );
+            context.rect(0, 0, props.containerPadding, props.height);
+            context.rect(props.width - props.containerPadding, 0, props.containerPadding, props.height);
             context.fill();
 
             context.beginPath();
-            context.moveTo(this.props.containerPadding, 0);
-            context.lineTo(this.props.containerPadding, this.props.height - 1);
+            context.moveTo(props.containerPadding, 0);
+            context.lineTo(props.containerPadding, props.height - 1);
             context.stroke();
 
             context.beginPath();
-            context.moveTo(this.props.width - this.props.containerPadding, 0);
-            context.lineTo(this.props.width - this.props.containerPadding, this.props.height - 1);
+            context.moveTo(props.width - props.containerPadding, 0);
+            context.lineTo(props.width - props.containerPadding, props.height - 1);
             context.stroke();
         } else {
             context.beginPath();
-            this.state.ticks.forEach(t => {
+            ticks.forEach(t => {
                 context.moveTo(t.begin[0], t.begin[1]);
                 context.lineTo(t.end[0], t.end[1]);
             });
             context.stroke();
 
             context.beginPath();
-            context.rect(0, 0, this.props.width - 1, this.props.containerPadding);
-            context.rect(
-                0,
-                this.props.height - this.props.containerPadding,
-                this.props.width - 1,
-                this.props.containerPadding,
-            );
+            context.rect(0, 0, props.width - 1, props.containerPadding);
+            context.rect(0, props.height - props.containerPadding, props.width - 1, props.containerPadding);
             context.fill();
 
             context.beginPath();
-            context.moveTo(0, this.props.containerPadding);
-            context.lineTo(this.props.width, this.props.containerPadding);
+            context.moveTo(0, props.containerPadding);
+            context.lineTo(props.width, props.containerPadding);
             context.stroke();
 
             context.beginPath();
-            context.moveTo(0, this.props.height - this.props.containerPadding);
-            context.lineTo(this.props.width, this.props.height - this.props.containerPadding);
+            context.moveTo(0, props.height - props.containerPadding);
+            context.lineTo(props.width, props.height - props.containerPadding);
             context.stroke();
         }
-    }
+    }, [canvasRef, props.width, props.height, props.containerPadding, props.orientation]);
 
-    // Draw the ruler after mount
-    componentDidMount(): void {
-        if (this.canvas.current) {
-            this.draw(this.canvas.current);
-        }
-    }
-
-    // Draw the ruler after update
-    componentDidUpdate(prevProps: RulerProps): void {
-        if (this.props !== prevProps) {
-            const ticks = this.layout();
-            this.setState({
-                dpr: global.window?.devicePixelRatio ?? 2,
-                ticks: ticks,
-            });
-        } else if (this.canvas.current) {
-            this.draw(this.canvas.current);
-        }
-    }
-
-    render(): React.ReactElement {
-        return (
-            <canvas
-                className={this.props.className}
-                ref={this.canvas}
-                style={{
-                    width: this.props.width,
-                    height: this.props.height,
-                }}
-            />
-        );
-    }
-}
+    return (
+        <canvas
+            className={props.className}
+            ref={canvasRef}
+            style={{
+                width: props.width,
+                height: props.height,
+            }}
+        />
+    );
+};
