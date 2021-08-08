@@ -18,12 +18,8 @@ function loadingSpinner(props: Props) {
 
 const Editor = React.lazy(() => import('./editor'));
 
-export default class EditorLoader extends React.Component<Props> {
-    public render(): React.ReactElement {
-        return (
-            <React.Suspense fallback={loadingSpinner(this.props)}>
-                <Editor {...this.props} />
-            </React.Suspense>
-        );
-    }
-}
+export const EditorLoader: React.FC<Props> = (props: Props) => (
+    <React.Suspense fallback={loadingSpinner(props)}>
+        <Editor {...props} />
+    </React.Suspense>
+);
