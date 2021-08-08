@@ -33,6 +33,8 @@ const TARGET = ['esnext'];
 const EXTERNALS = [
     '@dashql/duckdb',
     '@dashql/proto',
+    'react',
+    'react-dom',
     'apache-arrow',
     'flatbuffers',
     'axios',

@@ -6,7 +6,7 @@ import * as arrow from 'apache-arrow';
 import { QueryProvider, Query } from './query_provider';
 
 // We run single-threaded at the moment, so deterministic output > true random temp names. (easy caching!)
-const TMP_NAME = '__TEMP__';
+const TMP_NAME = '__M5__';
 
 interface Props {
     /// The log manager
@@ -19,15 +19,16 @@ interface Props {
     data: model.CardDataSource;
     /// The width of the container
     width: number;
+
     /// The error component
-    errorComponent?: ((error: string) => React.ReactNode) | null;
+    errorComponent?: ((error: string) => React.ReactElement) | null;
     /// The in-flight component
-    inFlightComponent?: ((query: Query) => React.ReactNode) | null;
+    inFlightComponent?: ((query: Query) => React.ReactElement) | null;
     /// The children
-    children: (result: arrow.Table) => React.ReactNode;
+    children: (result: arrow.Table) => React.ReactElement;
 }
 
-export const M5Provider: React.FunctionComponent<Props> = (props: Props) => {
+export const M5Provider: React.FC<Props> = (props: Props) => {
     const canvasWidth = 500;
     const m5Config = props.data.m5Config;
     console.assert(!!m5Config, 'M5 not configured!');
