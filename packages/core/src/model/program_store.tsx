@@ -8,15 +8,13 @@ import { Script, ScriptURIPrefix } from './script';
 
 type State = {
     /// The file name
-    script: Script;
+    readonly script: Script;
     /// The program
-    program: Program | null;
+    readonly program: Program | null;
     /// The program input values
-    programInputValues: Immutable.List<InputValue>;
-    /// The program dependencies
-    programDependencies: Map<number, number[]>;
+    readonly programInputValues: Immutable.List<InputValue>;
     /// The program instance
-    programInstance: ProgramInstance | null;
+    readonly programInstance: ProgramInstance | null;
 };
 
 const initialState: State = {
@@ -29,7 +27,6 @@ const initialState: State = {
     },
     program: null,
     programInputValues: Immutable.List<InputValue>(),
-    programDependencies: new Map<number, number[]>(),
     programInstance: null,
 };
 
