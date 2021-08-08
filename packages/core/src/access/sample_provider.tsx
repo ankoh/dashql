@@ -14,15 +14,16 @@ interface Props {
     table: model.TableSummary;
     /// The viz data query
     data: model.CardDataSource;
+
     /// The error component
-    errorComponent?: ((error: string) => React.ReactNode) | null;
+    errorComponent?: ((error: string) => React.ReactElement) | null;
     /// The in-flight component
-    inFlightComponent?: ((query: string) => React.ReactNode) | null;
+    inFlightComponent?: ((query: string) => React.ReactElement) | null;
     /// The children
-    children: (result: arrow.Table) => React.ReactNode;
+    children: (result: arrow.Table) => React.ReactElement;
 }
 
-export const SampleProvider: React.FunctionComponent<Props> = (props: Props) => {
+export const SampleProvider: React.FC<Props> = (props: Props) => {
     // Build select
     let orderBy = '';
     if (props.data.orderBy && props.data.orderBy.length > 0) {

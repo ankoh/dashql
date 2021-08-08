@@ -9,6 +9,35 @@ export interface Query {
     after?: string;
 }
 
+interface Props {
+    /// The log manager
+    logger: duckdb.Logger;
+    /// The database manager
+    database: platform.DatabaseManager;
+    /// The query
+    query: Query;
+
+    /// The error component
+    errorComponent?: ((error: string) => React.ReactElement) | null;
+    /// The in-flight component
+    inFlightComponent?: ((query: Query) => React.ReactElement) | null;
+    /// The children
+    children: (result: arrow.Table) => React.ReactElement;
+}
+
+interface QueryState {
+    /// The query in flight
+    queryInFlight: Query | null;
+    /// The query promise
+    queryPromise: Promise<arrow.Table> | null;
+    /// The result query
+    resultQuery: Query | null;
+    /// The result data
+    resultData: arrow.Table | null;
+    /// The error
+    error: string | null;
+}
+
 function queryEquals(l: Query, r: Query) {
     return (
         l.data == r.data &&
@@ -17,83 +46,27 @@ function queryEquals(l: Query, r: Query) {
     );
 }
 
-interface Props {
-    /// The log manager
-    logger: duckdb.Logger;
-    /// The database manager
-    database: platform.DatabaseManager;
-    /// The query
-    query: Query;
-    /// The error component
-    errorComponent?: ((error: string) => React.ReactNode) | null;
-    /// The in-flight component
-    inFlightComponent?: ((query: Query) => React.ReactNode) | null;
-    /// The children
-    children: (result: arrow.Table) => React.ReactNode;
-}
-
-interface State {
-    /// The query
-    query: Query | null;
-    /// The query result
-    queryResult: arrow.Table | null;
-    /// The error
-    error: string | null;
-}
-
-export class QueryProvider extends React.Component<Props, State> {
-    /// The query succeeded
-    _querySucceeded = this.querySucceeded.bind(this);
-    /// The query failed
-    _queryFailed = this.queryFailed.bind(this);
-    /// The evaluation handler
-    _evaluate = this.evaluate.bind(this);
-    /// The scheduled query
-    _inFlightQuery: Query | null = null;
-    /// The query promise
-    _queryPromise: Promise<arrow.Table> | null = null;
-
-    constructor(props: Props) {
-        super(props);
-        this.state = {
-            query: null,
-            queryResult: null,
-            error: null,
-        };
-    }
-
-    protected querySucceeded(result: arrow.Table): void {
-        const query = this._inFlightQuery;
-        this._inFlightQuery = null;
-        this._queryPromise = null;
-        this.setState({
-            query: query,
-            queryResult: result,
-            error: null,
-        });
-    }
-
-    // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-    protected queryFailed(e: any): void {
-        console.error(e);
-        const query = this._inFlightQuery;
-        this._inFlightQuery = null;
-        this._queryPromise = null;
-        this.setState({
-            query: query,
-            queryResult: null,
-            error: e,
-        });
-    }
-
-    protected evaluate(): void {
-        if (this._inFlightQuery != null) return;
-        if (!!this.state.query && queryEquals(this.props.query, this.state.query)) {
+export const QueryProvider: React.FC<Props> = (props: Props) => {
+    const [queryState, setQueryState] = React.useState<QueryState | null>({
+        queryInFlight: null,
+        queryPromise: null,
+        resultQuery: null,
+        resultData: null,
+        error: null,
+    });
+    const isMountedRef = React.useRef(true);
+    React.useEffect(() => {
+        return () => void (isMountedRef.current = false);
+    }, []);
+    React.useEffect(() => {
+        if (
+            queryState.queryInFlight != null ||
+            (queryState.resultQuery && queryEquals(props.query, queryState.resultQuery))
+        ) {
             return;
         }
-        this._inFlightQuery = this.props.query;
-        const query = this.props.query;
-        this._queryPromise = this.props.database.use(async conn => {
+        const query = props.query;
+        const promise = props.database.use(async conn => {
             try {
                 if (query.before) {
                     await conn.runQuery(query.before);
@@ -112,37 +85,45 @@ export class QueryProvider extends React.Component<Props, State> {
                 }
             }
         });
-        this._queryPromise.then(this._querySucceeded).catch(this._queryFailed);
-    }
+        setQueryState({
+            ...queryState,
+            queryInFlight: query,
+            queryPromise: promise,
+        });
+        promise
+            .then((result: arrow.Table): void => {
+                if (!isMountedRef.current) return;
+                setQueryState({
+                    queryInFlight: null,
+                    queryPromise: null,
+                    resultQuery: query,
+                    resultData: result,
+                    error: null,
+                });
+            })
+            .catch(err => {
+                if (!isMountedRef.current) return;
+                setQueryState({
+                    queryInFlight: null,
+                    queryPromise: null,
+                    resultQuery: query,
+                    resultData: null,
+                    error: err,
+                });
+            });
+    }, [props.query, queryState.queryInFlight]);
 
-    componentDidMount(): void {
-        this.evaluate();
+    // Query in flight?
+    if (queryState.queryInFlight && props.inFlightComponent) {
+        return props.inFlightComponent(queryState.queryInFlight);
     }
-
-    componentDidUpdate(prevProps: Props, prevState: State): void {
-        this.evaluate();
+    // Query failed?
+    if (queryState.error && props.errorComponent) {
+        return props.errorComponent(queryState.error);
     }
-
-    componentWillUnmount(): void {
-        if (this._queryPromise) {
-            // XXX cancel the in-flight query
-        }
+    // Query OK?
+    if (queryState.resultData) {
+        return props.children(queryState.resultData);
     }
-
-    // Pass the scan function to the child
-    render(): React.ReactNode {
-        // Query in flight?
-        if (this._inFlightQuery && this.props.inFlightComponent) {
-            return this.props.inFlightComponent(this._inFlightQuery);
-        }
-        // Query failed?
-        if (this.state.error && this.props.errorComponent) {
-            return this.props.errorComponent(this.state.error);
-        }
-        // Query OK?
-        if (this.state.queryResult) {
-            return this.props.children(this.state.queryResult);
-        }
-        return <div />;
-    }
-}
+    return <div />;
+};
