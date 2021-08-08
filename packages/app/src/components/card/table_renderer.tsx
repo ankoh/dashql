@@ -1,7 +1,7 @@
 import * as React from 'react';
 import * as core from '@dashql/core';
 import * as model from '../../model';
-import { connect } from 'react-redux';
+import { useSelector } from 'react-redux';
 import { IAppContext, withAppContext } from '../../app_context';
 import { CardFrame } from './card_frame';
 
@@ -11,45 +11,32 @@ import ScanProvider = core.access.ScanProvider;
 
 interface Props {
     appContext: IAppContext;
-    planState: core.model.PlanState;
     card: core.model.CardSpecification;
     editable?: boolean;
 }
 
-export class TableRenderer extends React.Component<Props> {
-    constructor(props: Props) {
-        super(props);
+const InnerTableRenderer: React.FC<Props> = (props: Props) => {
+    const planState = useSelector((state: model.AppState) => state.core.planState);
+    const target = props.card.dataSource!.targetQualified;
+    const logger = props.appContext.platform!.logger;
+    const db = props.appContext.platform!.database;
+    const data = props.card.dataSource!;
+    const table = core.model.resolveTableByName(planState, data.targetQualified);
+    if (!table) {
+        return <div />;
     }
+    return (
+        <CardFrame title={props.card.title || target} controls={props.editable}>
+            <ScanProvider
+                logger={logger}
+                database={db}
+                targetName={table.nameQualified}
+                request={new core.access.ScanRequest().withRange(0, 1024)}
+            >
+                {(d, r) => <DataGrid table={table} data={d} requestData={r} />}
+            </ScanProvider>
+        </CardFrame>
+    );
+};
 
-    /// Render the table
-    public render(): React.ReactElement {
-        const target = this.props.card.dataSource!.targetQualified;
-        const logger = this.props.appContext.platform!.logger;
-        const db = this.props.appContext.platform!.database;
-        const data = this.props.card.dataSource!;
-        const table = core.model.resolveTableByName(this.props.planState, data.targetQualified);
-        if (!table) {
-            return <div />;
-        }
-        return (
-            <CardFrame title={this.props.card.title || target} controls={this.props.editable}>
-                <ScanProvider
-                    logger={logger}
-                    database={db}
-                    targetName={table.nameQualified}
-                    request={new core.access.ScanRequest().withRange(0, 1024)}
-                >
-                    {(d, r) => <DataGrid table={table} data={d} requestData={r} />}
-                </ScanProvider>
-            </CardFrame>
-        );
-    }
-}
-
-const mapStateToProps = (state: model.AppState) => ({
-    planState: state.core.planState,
-});
-
-const mapDispatchToProps = (_dispatch: model.Dispatch) => ({});
-
-export default connect(mapStateToProps, mapDispatchToProps)(withAppContext(TableRenderer));
+export const TableRenderer = withAppContext(InnerTableRenderer);
