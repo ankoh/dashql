@@ -2,7 +2,7 @@ import * as proto from '@dashql/proto';
 import { NativeBitmap, NativeStack, NativeMinHeap, NativeMinHeapKey, NativeMinHeapRank } from './utils';
 import { TaskLogic, ProtoTask, resolveSetupTaskLogic, resolveProgramTaskLogic } from './task';
 import { TaskContext, TaskError } from './task';
-import { Platform } from './platform';
+import { Analyzer } from './analyzer';
 import {
     TaskHandle,
     Task,
@@ -269,8 +269,8 @@ export class TaskScheduler<TaskBuffer extends ProtoTask> {
 }
 
 export class TaskGraphScheduler {
-    /// The platform
-    _platform: Platform;
+    /// The analyzer
+    _analyzer: Analyzer;
     /// The plan (if any)
     _plan: Plan | null;
 
@@ -287,8 +287,8 @@ export class TaskGraphScheduler {
     _programTasks: TaskScheduler<proto.task.ProgramTask>;
 
     /// Constructor
-    constructor(platform: Platform) {
-        this._platform = platform;
+    constructor(analyzer: Analyzer) {
+        this._analyzer = analyzer;
         this._plan = null;
         this._interruptFunction = () => {};
         this._interruptPromise = new Promise((resolve: () => void, _reject: (reason?: void) => void) => {
@@ -307,7 +307,7 @@ export class TaskGraphScheduler {
         // Update the task status in the analyzer
         for (const u of taskUpdates) {
             // Update the task status in the analyzer
-            this._platform.analyzer.updateTaskStatus(getTaskClass(u.taskId), getTaskIndex(u.taskId), u.statusCode);
+            this._analyzer.updateTaskStatus(getTaskClass(u.taskId), getTaskIndex(u.taskId), u.statusCode);
         }
         // Update all tasks in the store
         mutate(this._platform.store.dispatch, {
