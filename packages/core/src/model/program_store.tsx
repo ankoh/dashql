@@ -30,22 +30,20 @@ const initialState: State = {
     programInstance: null,
 };
 
-enum ActionType {
-    SET_SCRIPT = 'SET_SCRIPT',
-    SET_PROGRAM = 'SET_PROGRAM',
-    SET_PROGRAM_INSTANCE = 'SET_PROGRAM_INSTANCE',
-    REWRITE_PROGRAM = 'REWRITE_PROGRAM_INSTANCE',
-}
+export const SET_SCRIPT = Symbol('SET_SCRIPT');
+export const SET_PROGRAM = Symbol('SET_PROGRAM');
+export const SET_PROGRAM_INSTANCE = Symbol('SET_PROGRAM_INSTANCE');
+export const REWRITE_PROGRAM = Symbol('REWRITE_PROGRAM');
 
 type ActionVariant =
-    | Action<ActionType.SET_SCRIPT, Script>
-    | Action<ActionType.SET_PROGRAM, Program>
-    | Action<ActionType.SET_PROGRAM_INSTANCE, ProgramInstance>
-    | Action<ActionType.REWRITE_PROGRAM, ProgramInstance>;
+    | Action<typeof SET_SCRIPT, Script>
+    | Action<typeof SET_PROGRAM, Program>
+    | Action<typeof SET_PROGRAM_INSTANCE, ProgramInstance>
+    | Action<typeof REWRITE_PROGRAM, ProgramInstance>;
 
 const reducer = (state: State, action: ActionVariant) => {
     switch (action.type) {
-        case ActionType.SET_SCRIPT:
+        case SET_SCRIPT:
             if (action.data.text == state.script.text) return state;
             return {
                 ...state,
@@ -53,7 +51,7 @@ const reducer = (state: State, action: ActionVariant) => {
                 program: null,
                 programInstance: null,
             };
-        case ActionType.SET_PROGRAM:
+        case SET_PROGRAM:
             if (action.data == state.program) return state;
             return {
                 ...state,
@@ -61,14 +59,14 @@ const reducer = (state: State, action: ActionVariant) => {
                 programInstance: null,
             };
 
-        case ActionType.SET_PROGRAM_INSTANCE:
+        case SET_PROGRAM_INSTANCE:
             if (action.data == state.programInstance) return state;
             return {
                 ...state,
                 programInstance: action.data,
             };
 
-        case ActionType.REWRITE_PROGRAM:
+        case REWRITE_PROGRAM:
             return {
                 ...state,
                 script: {
@@ -96,5 +94,5 @@ export const ProgramStoreProvider: React.FC<StoreProviderProps> = (props: StoreP
     );
 };
 
-export const useProgram = (): State => React.useContext(stateCtx);
-export const useProgramDispatch = (): Dispatch<ActionVariant> => React.useContext(dispatchCtx);
+export const useProgramState = (): State => React.useContext(stateCtx);
+export const useProgramStateDispatch = (): Dispatch<ActionVariant> => React.useContext(dispatchCtx);
