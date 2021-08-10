@@ -1,7 +1,7 @@
 import * as duckdb from '@dashql/duckdb/dist/duckdb.module.js';
 import * as React from 'react';
-import * as platform from '../platform';
 import * as arrow from 'apache-arrow';
+import { DatabaseProxy } from '../database_proxy';
 
 export interface Query {
     before?: string;
@@ -13,7 +13,7 @@ interface Props {
     /// The log manager
     logger: duckdb.Logger;
     /// The database manager
-    database: platform.DatabaseManager;
+    database: DatabaseProxy;
     /// The query
     query: Query;
 

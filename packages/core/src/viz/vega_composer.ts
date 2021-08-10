@@ -1,9 +1,9 @@
 import * as proto from '@dashql/proto';
 import * as model from '../model';
-import * as platform from '../platform';
 import * as arrow from 'apache-arrow';
 import * as v from 'vega';
 
+import { TableStatisticsResolver } from '../table_statistics';
 import { VegaLiteEditOperation, ResolveMinMaxDomain } from './vega_editing';
 
 import * as vlt from 'vega-lite/build/src/transform.js';
@@ -39,7 +39,7 @@ export const DEFAULT_VEGA_LITE_MIXINS: VegaLiteTLLayerSpec = {
 
 export class VegaComposer {
     /// The platform
-    _tableStatistics: platform.TableStatisticsResolver;
+    _tableStatistics: TableStatisticsResolver;
 
     /// The query type
     _dataResolver: model.CardDataResolver | null = null;
@@ -64,7 +64,7 @@ export class VegaComposer {
     /// The vega spec
     _vegaSpec: v.Spec | null = null;
 
-    constructor(statistics: platform.TableStatisticsResolver) {
+    constructor(statistics: TableStatisticsResolver) {
         this._tableStatistics = statistics;
         this._inputVegaLiteSpec = {
             ...DEFAULT_VEGA_LITE_MIXINS,

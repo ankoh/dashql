@@ -11,7 +11,6 @@ export * as jmespath from './jmespath';
 export * as edit from './edit';
 export * as error from './error';
 export * as model from './model';
-export * as platform from './platform';
 export * as utils from './utils';
 export * as viz from './viz';
 export * from './task_scheduler';

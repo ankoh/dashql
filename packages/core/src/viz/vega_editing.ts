@@ -1,6 +1,6 @@
-import * as platform from '../platform';
 import * as model from '../model';
 import * as arrow from 'apache-arrow';
+import { TableStatisticsResolver } from '../table_statistics';
 
 export abstract class VegaLiteEditOperation {
     /// Prepare the completion
@@ -11,7 +11,7 @@ export abstract class VegaLiteEditOperation {
 
 export class ResolveMinMaxDomain extends VegaLiteEditOperation {
     /// The statistics queue
-    _statistics: platform.TableStatisticsResolver;
+    _statistics: TableStatisticsResolver;
     /// The attribute id
     _attribute: number;
     /// The domain object
@@ -19,7 +19,7 @@ export class ResolveMinMaxDomain extends VegaLiteEditOperation {
     /// The promises
     _promises: Promise<arrow.Column>[];
 
-    constructor(stats: platform.TableStatisticsResolver, attribute: number, out: model.DomainValues) {
+    constructor(stats: TableStatisticsResolver, attribute: number, out: model.DomainValues) {
         super();
         this._statistics = stats;
         this._out = out;
@@ -56,7 +56,7 @@ export class ResolveMinMaxDomain extends VegaLiteEditOperation {
 
 export class ResolveCategorialDomain extends VegaLiteEditOperation {
     /// The statistics queue
-    _statistics: platform.TableStatisticsResolver;
+    _statistics: TableStatisticsResolver;
     /// The attribute id
     _attribute: number;
     /// The domain object
@@ -64,7 +64,7 @@ export class ResolveCategorialDomain extends VegaLiteEditOperation {
     /// The promise
     _promise: Promise<arrow.Column> | null;
 
-    constructor(stats: platform.TableStatisticsResolver, attribute: number, out: model.DomainValues) {
+    constructor(stats: TableStatisticsResolver, attribute: number, out: model.DomainValues) {
         super();
         this._statistics = stats;
         this._attribute = attribute;
