@@ -1,6 +1,6 @@
 import * as proto from '@dashql/proto';
 import * as model from '../model';
-import { ADD_BLOB } from '../model/plan_store';
+import { ADD_BLOB } from '../model/plan_context';
 import { TaskHandle, Statement } from '../model';
 import { ProgramTaskLogic } from './task_logic';
 import { TaskExecutionContext } from './task_execution_context';
@@ -19,9 +19,8 @@ export class FetchTaskLogic extends ProgramTaskLogic {
         url: string,
         headers?: Record<string, string>,
     ): Promise<ArrayBuffer | null> {
-        const http = await ctx.http();
         try {
-            const resp = await http.request({
+            const resp = await ctx.http.request({
                 url,
                 headers,
             });
@@ -32,7 +31,7 @@ export class FetchTaskLogic extends ProgramTaskLogic {
     }
 
     public async execute(ctx: TaskExecutionContext): Promise<void> {
-        const instance = ctx.programState.programInstance;
+        const instance = ctx.planContext.plan.programInstance;
         const stmtId = this._origin.statementId;
         const fetch = instance.fetchStatements.get(stmtId);
         if (!fetch) {
@@ -66,7 +65,7 @@ export class FetchTaskLogic extends ProgramTaskLogic {
 
         // Store as plan object
         const now = new Date();
-        ctx.planStateActions.push({
+        ctx.planContextDiff.push({
             type: ADD_BLOB,
             data: {
                 objectId: this.buffer.objectId(),

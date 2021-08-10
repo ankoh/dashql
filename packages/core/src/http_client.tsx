@@ -12,7 +12,7 @@ export interface HTTPData {
     response: AxiosResponse<ArrayBuffer>;
 }
 
-export class HTTPProxy {
+export class HTTPClient {
     /// The logger
     _log: Log;
 
@@ -62,12 +62,12 @@ export class HTTPProxy {
     }
 }
 
-const ctx = React.createContext<HTTPProxy | null>(null);
+const ctx = React.createContext<HTTPClient | null>(null);
 
-export const HTTPProxyProvider: React.FC<ProviderProps> = (props: ProviderProps) => {
+export const HTTPClientProvider: React.FC<ProviderProps> = (props: ProviderProps) => {
     const log = useLog();
-    const proxy = React.useRef<HTTPProxy>(new HTTPProxy(log));
+    const proxy = React.useRef<HTTPClient>(new HTTPClient(log));
     return <ctx.Provider value={proxy.current}>{props.children}</ctx.Provider>;
 };
 
-export const useHTTPProxy = (): HTTPProxy => React.useContext(ctx);
+export const useHTTPClient = (): HTTPClient => React.useContext(ctx);

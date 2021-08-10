@@ -1,6 +1,6 @@
 import * as proto from '@dashql/proto';
 import { TaskHandle, Statement, getTaskClass, getTaskIndex } from '../model';
-import { TaskContext } from './task_context';
+import { TaskExecutionContext } from './task_execution_context';
 
 export interface ProtoTask {
     taskStatusCode(): proto.task.TaskStatusCode;
@@ -67,14 +67,14 @@ export abstract class TaskLogic<TaskBuffer extends ProtoTask> {
     }
 
     /// Prepare an task
-    public abstract prepare(context: TaskContext): void;
+    public abstract prepare(context: TaskExecutionContext): void;
     /// Will execute an task
-    public abstract willExecute(context: TaskContext): void;
+    public abstract willExecute(context: TaskExecutionContext): void;
     /// Execute an task
-    public abstract execute(context: TaskContext): Promise<void>;
+    public abstract execute(context: TaskExecutionContext): Promise<void>;
 
     /// Prepare the execution guarded
-    public willExecuteGuarded(context: TaskContext): TaskError | null {
+    public willExecuteGuarded(context: TaskExecutionContext): TaskError | null {
         try {
             this._status = proto.task.TaskStatusCode.RUNNING;
             this.willExecute(context);
@@ -86,7 +86,7 @@ export abstract class TaskLogic<TaskBuffer extends ProtoTask> {
         }
     }
     /// Execute the task guarded
-    public async executeGuarded(context: TaskContext): Promise<[TaskHandle, TaskError | null]> {
+    public async executeGuarded(context: TaskExecutionContext): Promise<[TaskHandle, TaskError | null]> {
         try {
             this._status = proto.task.TaskStatusCode.RUNNING;
             await this.execute(context);

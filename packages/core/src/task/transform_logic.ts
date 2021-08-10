@@ -1,6 +1,6 @@
 import * as proto from '@dashql/proto';
 import * as model from '../model';
-import { ADD_BLOB } from '../model/plan_store';
+import { ADD_BLOB } from '../model';
 import { TaskHandle, Statement } from '../model';
 import { ProgramTaskLogic } from './task_logic';
 import { TaskExecutionContext } from './task_execution_context';
@@ -18,20 +18,20 @@ export class TransformTaskLogic extends ProgramTaskLogic {
     public willExecute(_ctx: TaskExecutionContext): void {}
 
     public async execute(ctx: TaskExecutionContext): Promise<void> {
-        const instance = ctx.programState.programInstance;
+        const instance = ctx.planContext.plan.programInstance;
         const stmtId = this._origin.statementId;
         const transform = instance.transformStatements.get(stmtId);
         if (!transform) throw new Error(`missing information for transform statement ${stmtId}`);
 
         // Find the loaded blob
         const blobName = transform.dataSource();
-        const blobID = ctx.planState.blobsByName.get(blobName);
+        const blobID = ctx.planContext.blobsByName.get(blobName);
 
         // Parse transform options
         const extra = JSON.parse(transform.extra()) as TransformOptions;
 
         // Evaluate a jmespath
-        const blob = ctx.planState.blobs.get(blobID);
+        const blob = ctx.planContext.blobs.get(blobID);
         const buffer = new Uint8Array(await blob.blob.arrayBuffer());
         const jp = await ctx.jmespath();
         const result = await jp.evaluateUTF8(extra.expression || '.', buffer);
@@ -45,7 +45,7 @@ export class TransformTaskLogic extends ProgramTaskLogic {
         const now = new Date();
 
         // Store as plan object
-        ctx.planStateActions.push({
+        ctx.planContextDiff.push({
             type: ADD_BLOB,
             data: {
                 objectId: this.buffer.objectId(),

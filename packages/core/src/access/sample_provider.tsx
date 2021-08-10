@@ -3,13 +3,13 @@ import * as React from 'react';
 import * as model from '../model';
 import * as arrow from 'apache-arrow';
 import { QueryProvider } from './query_provider';
-import { DatabaseProxy } from '../database_proxy';
+import { DatabaseClient } from '../database_client';
 
 interface Props {
     /// The log manager
     logger: duckdb.Logger;
     /// The database manager
-    database: DatabaseProxy;
+    database: DatabaseClient;
     /// The table info
     table: model.TableSummary;
     /// The viz data query
