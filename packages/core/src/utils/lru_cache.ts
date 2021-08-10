@@ -1,3 +1,5 @@
+// Copyright (c) 2021 The DashQL Authors
+
 import { NativeMinHeap } from '../utils';
 
 /// A LRU cache entry

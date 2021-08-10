@@ -149,7 +149,7 @@ type Props = {
 
 const dbCtx = React.createContext<DatabaseClient | null>(null);
 
-export const DatabaseProvider: React.FC<Props> = (props: Props) => {
+export const DatabaseClientProvider: React.FC<Props> = (props: Props) => {
     const meta = useDatabaseMetadata();
     const metaDispatch = useDatabaseMetadataDispatch();
     const db = React.useRef<DatabaseClient>(new DatabaseClient(props.duckdb, meta, metaDispatch));
@@ -158,4 +158,4 @@ export const DatabaseProvider: React.FC<Props> = (props: Props) => {
     }, [meta]);
     return <dbCtx.Provider value={db.current}>{props.children}</dbCtx.Provider>;
 };
-export const useDatabase = (): DatabaseClient => React.useContext(dbCtx);
+export const useDatabaseClient = (): DatabaseClient => React.useContext(dbCtx);

@@ -1,4 +1,4 @@
-// Copyright (c) 2020 The DashQL Authors
+// Copyright (c) 2021 The DashQL Authors
 
 export type NativeMinHeapKey = number;
 export type NativeMinHeapRank = number;

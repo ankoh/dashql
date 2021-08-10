@@ -1,3 +1,5 @@
+// Copyright (c) 2021 The DashQL Authors
+
 export class Semaphore {
     private tasks: (() => Promise<void>)[] = [];
     count: number;

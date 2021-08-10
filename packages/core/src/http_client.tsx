@@ -1,3 +1,5 @@
+// Copyright (c) 2021 The DashQL Authors
+
 import React from 'react';
 import { AxiosRequestConfig, AxiosResponse } from 'axios';
 import { ProviderProps, Log, LogLevel, LogEvent, LogOrigin, LogTopic, useLog } from './model';

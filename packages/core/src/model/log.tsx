@@ -1,3 +1,5 @@
+// Copyright (c) 2021 The DashQL Authors
+
 import React from 'react';
 import * as duckdb from '@dashql/duckdb/dist/duckdb.module.js';
 import * as Immutable from 'immutable';

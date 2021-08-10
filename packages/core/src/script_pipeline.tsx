@@ -1,3 +1,5 @@
+// Copyright (c) 2021 The DashQL Authors
+
 import React from 'react';
 import { useAnalyzer } from './analyzer';
 import {
@@ -11,10 +13,10 @@ import {
     usePlanContextDispatch,
     TaskSchedulerStatus,
 } from './model';
-import { useDatabase } from './database_proxy';
+import { useDatabaseClient } from './database_client';
 import { TaskExecutionContext } from './task/task_execution_context';
 import { TaskGraphScheduler } from './task_scheduler';
-import { useHTTPProxy } from './http_proxy';
+import { useHTTPClient } from './http_client';
 import { useJMESPathResolver } from './jmespath';
 
 const MIN_INPUT_DELAY = 300;
@@ -28,9 +30,9 @@ type Props = {
 export const ScriptPipeline: React.FC<Props> = (props: Props) => {
     // Setup all hooks
     const log = useLog();
-    const http = useHTTPProxy();
+    const http = useHTTPClient();
     const jmespath = useJMESPathResolver();
-    const database = useDatabase();
+    const database = useDatabaseClient();
     const analyzer = useAnalyzer();
     const programContext = useProgramContext();
     const programContextDispatch = useProgramContextDispatch();
@@ -107,12 +109,12 @@ export const ScriptPipeline: React.FC<Props> = (props: Props) => {
     }, [programContext.program, programContext.programInputValues]);
 
     // Schedule program if scheduler is idle and instance differs
-    const taskScheduler = React.useRef<TaskGraphScheduler>(new TaskGraphScheduler(analyzer));
+    const taskScheduler = React.useRef<TaskGraphScheduler>(new TaskGraphScheduler());
     React.useEffect(() => {
         // Scheduler not idle?
         if (planContext.schedulerStatus != TaskSchedulerStatus.Idle) return;
         // Same instance?
-        if (planContext.programInstance == programContext.programInstance) return;
+        if (planContext.plan.programInstance == programContext.programInstance) return;
         // Plan the program
         const plan = analyzer.planProgram();
         if (!plan) return;
@@ -123,8 +125,8 @@ export const ScriptPipeline: React.FC<Props> = (props: Props) => {
             analyzer,
             http,
             jmespath,
-            programContext,
             planContext,
+            planContextDispatch,
             planContextDiff: [],
         };
         // Schedule the plan

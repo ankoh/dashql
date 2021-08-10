@@ -1,7 +1,9 @@
+// Copyright (c) 2021 The DashQL Authors
+
 import * as duckdb from '@dashql/duckdb/dist/duckdb.module.js';
-import * as model from '../model';
+import * as model from './model';
 import * as arrow from 'apache-arrow';
-import { DatabaseProxy } from '../platform/database_proxy';
+import { DatabaseClient } from './database_client';
 
 /// A column statistics request
 export class TableStatisticsRequest {
@@ -46,7 +48,7 @@ export interface TableStatisticsResolver {
 /// A queue for table statistics
 export class TableStatistics implements TableStatisticsResolver {
     /// The database manager
-    _database: DatabaseProxy;
+    _database: DatabaseClient;
     /// The table name
     _tableName: string;
     /// All statistic requests
@@ -56,7 +58,7 @@ export class TableStatistics implements TableStatisticsResolver {
     /// The standalone aggreagtes
     _standaloneRequests: TableStatisticsRequest[];
 
-    constructor(database: DatabaseProxy, tableName: string) {
+    constructor(database: DatabaseClient, tableName: string) {
         this._database = database;
         this._tableName = tableName;
         this._requests = new Map();

@@ -1,8 +1,10 @@
+// Copyright (c) 2021 The DashQL Authors
+
 import { HTTPClient } from '../http_client';
 import { DatabaseClient } from '../database_client';
 import { AnalyzerBindings } from '../analyzer';
 import { JMESPathBindings } from '../jmespath';
-import { TaskUpdate, Dispatch, PlanContext, PlanContextAction, Log } from '../model';
+import { Dispatch, PlanContext, PlanContextAction, Log } from '../model';
 
 export interface TaskExecutionContext {
     /// The log
@@ -22,6 +24,4 @@ export interface TaskExecutionContext {
     planContextDispatch: Dispatch<PlanContextAction>;
     /// The pending plan state actions
     planContextDiff: PlanContextAction[];
-    /// The pending task updates
-    taskUpdates: TaskUpdate[];
 }

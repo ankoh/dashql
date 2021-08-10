@@ -1,3 +1,5 @@
+// Copyright (c) 2021 The DashQL Authors
+
 import * as proto from '@dashql/proto';
 import { SetupTaskLogic, ProgramTaskLogic } from './task_logic';
 import { TaskHandle, Statement } from '../model';

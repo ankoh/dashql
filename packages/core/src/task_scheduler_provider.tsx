@@ -1,3 +1,5 @@
+// Copyright (c) 2021 The DashQL Authors
+
 import React from 'react';
 import { TaskGraphScheduler } from './task_scheduler';
 

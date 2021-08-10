@@ -1,3 +1,5 @@
+// Copyright (c) 2021 The DashQL Authors
+
 import Immutable from 'immutable';
 import React from 'react';
 import * as proto from '@dashql/proto';

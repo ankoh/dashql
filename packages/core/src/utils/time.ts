@@ -1,3 +1,5 @@
+// Copyright (c) 2021 The DashQL Authors
+
 const TIME_UNITS: [Intl.RelativeTimeFormatUnit, number][] = [
     ['year', 24 * 60 * 60 * 1000 * 365],
     ['month', (24 * 60 * 60 * 1000 * 365) / 12],
