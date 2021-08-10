@@ -1,7 +1,7 @@
 import * as duckdb from '@dashql/duckdb/dist/duckdb.module.js';
 import * as React from 'react';
 import * as arrow from 'apache-arrow';
-import { DatabaseProxy } from '../database_proxy';
+import { DatabaseClient } from '../database_client';
 
 type RequestScanFn = (request: ScanRequest) => void;
 
@@ -80,7 +80,7 @@ interface Props {
     /// The log manager
     logger: duckdb.Logger;
     /// The database manager
-    database: DatabaseProxy;
+    database: DatabaseClient;
     /// The table name
     targetName: string;
     /// The request

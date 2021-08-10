@@ -1,13 +1,11 @@
 import * as duckdb from '@dashql/duckdb/dist/duckdb.module.js';
 import * as proto from '@dashql/proto';
 import * as model from '../model';
-import * as Immutable from 'immutable';
-import { TaskHandle, Statement, TableStatisticsType } from '../model';
-import { ADD_TABLE } from '../model/plan_store';
+import { TaskHandle, Statement } from '../model';
+import { ADD_TABLE } from '../model/plan_context';
 import { ProgramTaskLogic } from './task_logic';
 import { TaskExecutionContext } from './task_execution_context';
 import { collectTableInfo } from './table_logic';
-import { Column } from 'apache-arrow';
 
 export class LoadTaskLogic extends ProgramTaskLogic {
     constructor(task_id: TaskHandle, task: proto.task.ProgramTask, statement: Statement) {
@@ -18,20 +16,19 @@ export class LoadTaskLogic extends ProgramTaskLogic {
     public willExecute(_ctx: TaskExecutionContext): void {}
 
     public async execute(ctx: TaskExecutionContext): Promise<void> {
-        const instance = ctx.programState.programInstance;
+        const instance = ctx.planContext.plan.programInstance;
         const stmtId = this._origin.statementId;
         const xtr = instance.loadStatements.get(stmtId);
         if (!xtr) throw new Error(`missing information for load statement ${stmtId}`);
 
-        const logger = ctx.logger;
         const stmt = instance.program.getStatement(this._origin.statementId);
         const name = this.buffer.nameQualified();
 
         // Find the loaded blob
         const blobName = xtr.dataSource();
-        const blobID = ctx.planState.blobsByName.get(blobName);
+        const blobID = ctx.planContext.blobsByName.get(blobName);
         if (blobID === undefined) throw new Error(`missing blob id for blob '${blobID}'`);
-        const blob = ctx.planState.blobs.get(blobID);
+        const blob = ctx.planContext.blobs.get(blobID);
         if (!blob) throw new Error(`blob '${blobName}' is not registered in duckdb`);
 
         // Get the input file
@@ -99,18 +96,17 @@ export class LoadTaskLogic extends ProgramTaskLogic {
                 columnNames: [],
                 columnNameMapping: new Map(),
                 columnTypes: [],
-                statistics: Immutable.Map<TableStatisticsType, Column<any>>(),
                 filePath: filePath,
             });
         });
         if (table) {
-            ctx.planStateActions.push({
+            ctx.planContextDiff.push({
                 type: ADD_TABLE,
                 data: table,
             });
         }
 
-        logger.log({
+        ctx.log.pushBack({
             timestamp: new Date(),
             level: model.LogLevel.INFO,
             origin: model.LogOrigin.LOAD_LOGIC,

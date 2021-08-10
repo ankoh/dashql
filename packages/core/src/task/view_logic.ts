@@ -1,13 +1,11 @@
-import * as Immutable from 'immutable';
 import * as proto from '@dashql/proto';
 import * as duckdb from '@dashql/duckdb/dist/duckdb.module.js';
 import * as model from '../model';
-import { ADD_TABLE } from '../model/plan_store';
-import { TaskHandle, TableStatisticsType } from '../model';
+import { ADD_TABLE } from '../model';
+import { TaskHandle } from '../model';
 import { ProgramTaskLogic, SetupTaskLogic } from './task_logic';
 import { TaskExecutionContext } from './task_execution_context';
 import { collectTableInfo } from './table_logic';
-import { Column } from 'apache-arrow';
 
 export class ViewCreateTaskLogic extends ProgramTaskLogic {
     constructor(task_id: TaskHandle, task: proto.task.ProgramTask, statement: model.Statement) {
@@ -37,12 +35,11 @@ export class ViewCreateTaskLogic extends ProgramTaskLogic {
                 columnNames: [],
                 columnNameMapping: new Map(),
                 columnTypes: [],
-                statistics: Immutable.Map<TableStatisticsType, Column<any>>(),
             });
         });
 
         if (table) {
-            ctx.planStateActions.push({
+            ctx.planContextDiff.push({
                 type: ADD_TABLE,
                 data: table,
             });

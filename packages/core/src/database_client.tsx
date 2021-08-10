@@ -21,7 +21,7 @@ import {
 /// This allows us to swap the in-browser wasm database with a native database when
 /// bundling as electron app or when connecting to a dedicated accelerator server.
 ///
-export class DatabaseProxy {
+export class DatabaseClient {
     /// The async duckdb
     _duckdb: duckdb.AsyncDuckDB;
     /// The connection
@@ -147,15 +147,15 @@ type Props = {
     duckdb: duckdb.AsyncDuckDB;
 };
 
-const dbCtx = React.createContext<DatabaseProxy | null>(null);
+const dbCtx = React.createContext<DatabaseClient | null>(null);
 
 export const DatabaseProvider: React.FC<Props> = (props: Props) => {
     const meta = useDatabaseMetadata();
     const metaDispatch = useDatabaseMetadataDispatch();
-    const db = React.useRef<DatabaseProxy>(new DatabaseProxy(props.duckdb, meta, metaDispatch));
+    const db = React.useRef<DatabaseClient>(new DatabaseClient(props.duckdb, meta, metaDispatch));
     React.useEffect(() => {
         db.current._metadata = meta;
     }, [meta]);
     return <dbCtx.Provider value={db.current}>{props.children}</dbCtx.Provider>;
 };
-export const useDatabase = (): DatabaseProxy => React.useContext(dbCtx);
+export const useDatabase = (): DatabaseClient => React.useContext(dbCtx);

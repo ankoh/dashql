@@ -2,7 +2,7 @@ import * as proto from '@dashql/proto';
 import * as model from '../model';
 import * as error from '../error';
 import * as arrow from 'apache-arrow';
-import { ADD_CARD, DELETE_CARD } from '../model/plan_store';
+import { ADD_CARD, DELETE_CARD } from '../model';
 import { VegaComposer } from '../viz/vega_composer';
 import { ProgramTaskLogic, SetupTaskLogic } from './task_logic';
 import { TaskExecutionContext } from './task_execution_context';
@@ -27,14 +27,14 @@ export abstract class VizTaskLogic extends ProgramTaskLogic {
     /// Configure the visualization
     public configure(ctx: TaskExecutionContext): void {
         // Select the renderer
-        const instance = ctx.programState.programInstance;
+        const instance = ctx.planContext.plan.programInstance;
         const target = this._card.vizTarget();
         this.selectRenderer(ctx, instance);
 
         // Helper to check if a name refers to a table
         const requireTable = (name: string) => {
-            const table = ctx.database.resolveTableName(name);
-            if (table) return table;
+            const tableId = ctx.planContext.tablesByName.get(name);
+            if (tableId) return ctx.planContext.tables.get(tableId);
             throw new error.TaskLogicError(`renderer requires ${name} to be a SQL Table or SQL View`, instance);
         };
 
@@ -155,11 +155,11 @@ export class CreateVizTaskLogic extends VizTaskLogic {
     /// Prepare the viz creation
     public prepare(ctx: TaskExecutionContext): void {
         // Get the program instance
-        const programInstance = ctx.programState.programInstance;
+        const instance = ctx.planContext.plan.programInstance;
         // Get viz spec
-        this._card = programInstance.cards.get(this.origin.statementId) || null;
+        this._card = instance.cards.get(this.origin.statementId) || null;
         if (!this._card) {
-            throw new error.TaskLogicError('card proto does not exist', programInstance);
+            throw new error.TaskLogicError('card proto does not exist', instance);
         }
         // Get position
         const posReader = this._card!.cardPosition()!;
@@ -170,7 +170,7 @@ export class CreateVizTaskLogic extends VizTaskLogic {
             height: posReader.height(),
         };
         const now = new Date();
-        ctx.planStateActions.push({
+        ctx.planContextDiff.push({
             type: ADD_CARD,
             data: {
                 objectId: this.buffer.objectId(),
@@ -199,14 +199,13 @@ export class CreateVizTaskLogic extends VizTaskLogic {
     public async execute(ctx: TaskExecutionContext): Promise<void> {
         // Get viz info
         const oid = this.buffer.objectId();
-        const state = ctx.platform.store.getState();
         const target = this._card.vizTarget();
-        let card = model.resolveCardById(state.core.planState, oid);
+        let card = ctx.planContext.cards.get(oid);
 
         // Create
         switch (this._renderer) {
             case model.CardRendererType.BUILTIN_TABLE: {
-                await context.platform.database.evaluateTableStatistics(target);
+                await ctx.database.evaluateTableStatistics(target);
                 await this._rowCount!;
                 card = {
                     ...card,
@@ -225,7 +224,7 @@ export class CreateVizTaskLogic extends VizTaskLogic {
                 break;
             }
             case model.CardRendererType.BUILTIN_VEGA:
-                await context.platform.database.evaluateTableStatistics(target);
+                await ctx.database.evaluateTableStatistics(target);
                 card = {
                     ...card,
                     ...(await this._vega!.compile()),
@@ -251,9 +250,9 @@ export class CreateVizTaskLogic extends VizTaskLogic {
                 break;
         }
 
-        model.mutate(context.platform.store.dispatch, {
-            type: model.StateMutationType.INSERT_PLAN_OBJECTS,
-            data: [card],
+        ctx.planContextDiff.push({
+            type: ADD_CARD,
+            data: card,
         });
     }
 }
@@ -273,12 +272,11 @@ export class DropVizTaskLogic extends SetupTaskLogic {
 
     public prepare(_ctx: TaskExecutionContext): void {}
     public willExecute(_ctx: TaskExecutionContext): void {}
-    public async execute(context: TaskExecutionContext): Promise<void> {
-        const store = context.platform.store!;
+    public async execute(ctx: TaskExecutionContext): Promise<void> {
         const objectId = this.buffer.objectId();
-        model.mutate(store.dispatch, {
-            type: model.StateMutationType.DELETE_PLAN_OBJECTS,
-            data: [objectId],
+        ctx.planContextDispatch({
+            type: DELETE_CARD,
+            data: objectId,
         });
     }
 }

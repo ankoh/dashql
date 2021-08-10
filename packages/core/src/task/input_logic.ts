@@ -1,7 +1,7 @@
 import * as proto from '@dashql/proto';
 import * as model from '../model';
 import * as error from '../error';
-import { ADD_CARD, DELETE_CARD } from '../model/plan_store';
+import { ADD_CARD, DELETE_CARD } from '../model/plan_context';
 import { TaskHandle, Statement, CardRendererType } from '../model';
 import { ProgramTaskLogic, SetupTaskLogic } from './task_logic';
 import { TaskExecutionContext } from './task_execution_context';
@@ -16,7 +16,7 @@ export class InputTaskLogic extends ProgramTaskLogic {
 
     public prepare(ctx: TaskExecutionContext): void {
         // Get the program instance
-        const instance = ctx.programState.programInstance;
+        const instance = ctx.planContext.plan.programInstance;
         const stmt = instance.program.getStatement(this.origin.statementId);
         // Get card
         this._card = instance.cards.get(this.origin.statementId) || null;
@@ -42,7 +42,7 @@ export class InputTaskLogic extends ProgramTaskLogic {
             height: posReader.height(),
         };
         const now = new Date();
-        ctx.planStateActions.push({
+        ctx.planContextDiff.push({
             type: ADD_CARD,
             data: {
                 objectId: this.buffer.objectId(),
@@ -77,7 +77,7 @@ export class DropInputTaskLogic extends SetupTaskLogic {
     public willExecute(_ctx: TaskExecutionContext): void {}
     public async execute(ctx: TaskExecutionContext): Promise<void> {
         const objectId = this.buffer.objectId();
-        ctx.planStateActions.push({
+        ctx.planContextDiff.push({
             type: DELETE_CARD,
             data: objectId,
         });

@@ -2,12 +2,9 @@ import * as proto from '@dashql/proto';
 import * as duckdb from '@dashql/duckdb/dist/duckdb.module.js';
 import * as model from '../model';
 import * as arrow from 'apache-arrow';
-import * as Immutable from 'immutable';
 import { ADD_TABLE } from '../model/plan_context';
 import { ProgramTaskLogic, SetupTaskLogic } from './task_logic';
 import { TaskExecutionContext } from './task_execution_context';
-import { TableStatisticsType } from '../model';
-import { Column } from 'apache-arrow';
 
 export async function collectTableInfo(
     conn: duckdb.AsyncConnection,
@@ -99,11 +96,10 @@ export class CreateTableTaskLogic extends ProgramTaskLogic {
                 columnNames: [],
                 columnNameMapping: new Map(),
                 columnTypes: [],
-                statistics: Immutable.Map<TableStatisticsType, Column<any>>(),
             });
         });
         if (table) {
-            ctx.planStateActions.push({
+            ctx.planContextDiff.push({
                 type: ADD_TABLE,
                 data: table,
             });
@@ -140,7 +136,7 @@ export class DropTableTaskLogic extends SetupTaskLogic {
     public willExecute(_ctx: TaskExecutionContext): void {}
     public async execute(ctx: TaskExecutionContext): Promise<void> {
         const db = ctx.database;
-        const table = ctx.planState.tables.get(this.buffer.objectId());
+        const table = ctx.planContext.tables.get(this.buffer.objectId());
         if (table === undefined) return;
         const dropTarget = table.tableType == model.TableType.VIEW ? 'VIEW' : 'TABLE';
         await db.use(async (c: duckdb.AsyncConnection) => {

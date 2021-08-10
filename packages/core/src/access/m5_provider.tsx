@@ -3,7 +3,7 @@ import * as React from 'react';
 import * as model from '../model';
 import * as arrow from 'apache-arrow';
 import { QueryProvider, Query } from './query_provider';
-import { DatabaseProxy } from '../database_proxy';
+import { DatabaseClient } from '../database_client';
 
 // We run single-threaded at the moment, so deterministic output > true random temp names. (easy caching!)
 const TMP_NAME = '__M5__';
@@ -12,7 +12,7 @@ interface Props {
     /// The log manager
     logger: duckdb.Logger;
     /// The database manager
-    database: DatabaseProxy;
+    database: DatabaseClient;
     /// The table info
     table: model.TableSummary;
     /// The viz data query
