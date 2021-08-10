@@ -1,3 +1,5 @@
+// Copyright (c) 2021 The DashQL Authors
+
 import * as proto from '@dashql/proto';
 import * as model from '../model';
 import * as error from '../error';

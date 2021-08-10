@@ -1,3 +1,5 @@
+// Copyright (c) 2021 The DashQL Authors
+
 import { LogLevel, ProgramInstance } from './model';
 
 // Inheriting from error requires a tiny hack as the Error class apparently messes up the prototype chain.

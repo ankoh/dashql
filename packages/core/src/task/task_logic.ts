@@ -1,3 +1,5 @@
+// Copyright (c) 2021 The DashQL Authors
+
 import * as proto from '@dashql/proto';
 import { TaskHandle, Statement, getTaskClass, getTaskIndex } from '../model';
 import { TaskExecutionContext } from './task_execution_context';

@@ -1,3 +1,5 @@
+// Copyright (c) 2021 The DashQL Authors
+
 export function estimateUTF16Length(s: string): number {
     // Assuming the String is UTF-16
     let n = 0;

@@ -1,3 +1,5 @@
+// Copyright (c) 2020 The DashQL Authors
+
 import React from 'react';
 import { AnalyzerBindings } from './bindings';
 

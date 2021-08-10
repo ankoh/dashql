@@ -1,3 +1,5 @@
+// Copyright (c) 2021 The DashQL Authors
+
 export enum ByteFormat {
     SI = 0,
     IEC = 1,

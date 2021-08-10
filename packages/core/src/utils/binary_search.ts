@@ -1,3 +1,5 @@
+// Copyright (c) 2021 The DashQL Authors
+
 interface Indexable<ValueType> {
     [index: number]: ValueType;
 }

@@ -1,4 +1,4 @@
-// Copyright (c) 2020 The DashQL Authors
+// Copyright (c) 2021 The DashQL Authors
 
 /// A compact bitmap for the post-order DFS
 export class NativeBitmap {
