@@ -1,9 +1,10 @@
 import * as proto from '@dashql/proto';
 import * as model from '../model';
 import * as error from '../error';
+import { ADD_CARD, DELETE_CARD } from '../model/plan_store';
 import { TaskHandle, Statement, CardRendererType } from '../model';
 import { ProgramTaskLogic, SetupTaskLogic } from './task_logic';
-import { TaskContext } from './task_context';
+import { TaskExecutionContext } from './task_execution_context';
 
 export class InputTaskLogic extends ProgramTaskLogic {
     /// The viz spec
@@ -13,9 +14,9 @@ export class InputTaskLogic extends ProgramTaskLogic {
         super(task_id, task, statement);
     }
 
-    public prepare(context: TaskContext): void {
+    public prepare(ctx: TaskExecutionContext): void {
         // Get the program instance
-        const instance = context.plan.programInstance;
+        const instance = ctx.programState.programInstance;
         const stmt = instance.program.getStatement(this.origin.statementId);
         // Get card
         this._card = instance.cards.get(this.origin.statementId) || null;
@@ -41,28 +42,30 @@ export class InputTaskLogic extends ProgramTaskLogic {
             height: posReader.height(),
         };
         const now = new Date();
-        const info: model.CardSpecification = {
-            objectId: this.buffer.objectId(),
-            objectType: model.PlanObjectType.CARD_SPECIFICATION,
-            timeCreated: now,
-            timeUpdated: now,
-            nameQualified: stmt.nameQualified,
-            cardType: proto.analyzer.CardType.BUILTIN_INPUT,
-            cardRenderer: renderer,
-            statementID: this.origin.statementId,
-            position: pos,
-            title: this._card!.cardTitle() || stmt.nameQualified || null,
-            inputExtra: JSON.parse(this._card.inputExtra()) as model.InputExtra,
-            vegaLiteSpec: null,
-            vegaSpec: null,
-            dataSource: null,
-            visible: true,
-        };
-        context.stagedObjects.push(info);
+        ctx.planStateActions.push({
+            type: ADD_CARD,
+            data: {
+                objectId: this.buffer.objectId(),
+                objectType: model.PlanObjectType.CARD_SPECIFICATION,
+                timeCreated: now,
+                timeUpdated: now,
+                nameQualified: stmt.nameQualified,
+                cardType: proto.analyzer.CardType.BUILTIN_INPUT,
+                cardRenderer: renderer,
+                statementID: this.origin.statementId,
+                position: pos,
+                title: this._card!.cardTitle() || stmt.nameQualified || null,
+                inputExtra: JSON.parse(this._card.inputExtra()) as model.InputExtra,
+                vegaLiteSpec: null,
+                vegaSpec: null,
+                dataSource: null,
+                visible: true,
+            },
+        });
     }
 
-    public willExecute(_context: TaskContext): void {}
-    public async execute(_context: TaskContext): Promise<void> {}
+    public willExecute(_ctx: TaskExecutionContext): void {}
+    public async execute(_ctx: TaskExecutionContext): Promise<void> {}
 }
 
 export class DropInputTaskLogic extends SetupTaskLogic {
@@ -70,14 +73,13 @@ export class DropInputTaskLogic extends SetupTaskLogic {
         super(task_id, task);
     }
 
-    public prepare(_context: TaskContext): void {}
-    public willExecute(_context: TaskContext): void {}
-    public async execute(context: TaskContext): Promise<void> {
-        const store = context.platform.store!;
+    public prepare(_ctx: TaskExecutionContext): void {}
+    public willExecute(_ctx: TaskExecutionContext): void {}
+    public async execute(ctx: TaskExecutionContext): Promise<void> {
         const objectId = this.buffer.objectId();
-        model.mutate(store.dispatch, {
-            type: model.StateMutationType.DELETE_PLAN_OBJECTS,
-            data: [objectId],
+        ctx.planStateActions.push({
+            type: DELETE_CARD,
+            data: objectId,
         });
     }
 }
@@ -87,7 +89,7 @@ export class ImportInputTaskLogic extends SetupTaskLogic {
         super(task_id, task);
     }
 
-    public prepare(_context: TaskContext): void {}
-    public willExecute(_context: TaskContext): void {}
-    public async execute(_context: TaskContext): Promise<void> {}
+    public prepare(_ctx: TaskExecutionContext): void {}
+    public willExecute(_ctx: TaskExecutionContext): void {}
+    public async execute(_ctx: TaskExecutionContext): Promise<void> {}
 }

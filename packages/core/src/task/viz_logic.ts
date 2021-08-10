@@ -2,9 +2,10 @@ import * as proto from '@dashql/proto';
 import * as model from '../model';
 import * as error from '../error';
 import * as arrow from 'apache-arrow';
+import { ADD_CARD, DELETE_CARD } from '../model/plan_store';
 import { VegaComposer } from '../viz/vega_composer';
 import { ProgramTaskLogic, SetupTaskLogic } from './task_logic';
-import { TaskContext } from './task_context';
+import { TaskExecutionContext } from './task_execution_context';
 import { TableStatisticsType } from '../model';
 
 export abstract class VizTaskLogic extends ProgramTaskLogic {
@@ -24,15 +25,15 @@ export abstract class VizTaskLogic extends ProgramTaskLogic {
     }
 
     /// Configure the visualization
-    public configure(context: TaskContext): void {
+    public configure(ctx: TaskExecutionContext): void {
         // Select the renderer
-        const instance = context.plan.programInstance;
+        const instance = ctx.programState.programInstance;
         const target = this._card.vizTarget();
-        this.selectRenderer(context, instance);
+        this.selectRenderer(ctx, instance);
 
         // Helper to check if a name refers to a table
         const requireTable = (name: string) => {
-            const table = context.platform._databaseManager.resolveTableName(name);
+            const table = ctx.database.resolveTableName(name);
             if (table) return table;
             throw new error.TaskLogicError(`renderer requires ${name} to be a SQL Table or SQL View`, instance);
         };
@@ -43,17 +44,14 @@ export abstract class VizTaskLogic extends ProgramTaskLogic {
                 // Make sure a table with that name exists
                 this._table = requireTable(target);
                 // Configure the vega composer
-                this.configureVegaComposer(context, this._table);
+                this.configureVegaComposer(ctx, this._table);
                 break;
             }
             case model.CardRendererType.BUILTIN_TABLE: {
                 // Make sure a table with that name exists
                 this._table = requireTable(target);
                 // Request the row count
-                this._rowCount = context.platform.database.requestTableStatistics(
-                    target,
-                    model.TableStatisticsType.COUNT_STAR,
-                );
+                this._rowCount = ctx.database.requestTableStatistics(target, model.TableStatisticsType.COUNT_STAR);
                 // Request table statistics
                 for (let i = 0; i < this._table.columnTypes.length; ++i) {
                     const type = this._table.columnTypes[i];
@@ -70,16 +68,8 @@ export abstract class VizTaskLogic extends ProgramTaskLogic {
                         case arrow.Type.Uint16:
                         case arrow.Type.Uint32:
                         case arrow.Type.Uint64:
-                            context.platform.database.requestTableStatistics(
-                                target,
-                                TableStatisticsType.MAXIMUM_VALUE,
-                                i,
-                            );
-                            context.platform.database.requestTableStatistics(
-                                target,
-                                TableStatisticsType.MINIMUM_VALUE,
-                                i,
-                            );
+                            ctx.database.requestTableStatistics(target, TableStatisticsType.MAXIMUM_VALUE, i);
+                            ctx.database.requestTableStatistics(target, TableStatisticsType.MINIMUM_VALUE, i);
                             break;
                     }
                 }
@@ -93,7 +83,7 @@ export abstract class VizTaskLogic extends ProgramTaskLogic {
     }
 
     /// Select the renderer
-    public selectRenderer(context: TaskContext, programInstance: model.ProgramInstance): void {
+    public selectRenderer(context: TaskExecutionContext, programInstance: model.ProgramInstance): void {
         let renderer: model.CardRendererType | null = null;
         const tmp = new proto.analyzer.VizComponent();
         for (let i = 0; i < this._card.vizComponentsLength(); ++i) {
@@ -134,9 +124,9 @@ export abstract class VizTaskLogic extends ProgramTaskLogic {
     }
 
     /// Read context info
-    public configureVegaComposer(context: TaskContext, table: model.TableSummary): void {
+    public configureVegaComposer(ctx: TaskExecutionContext, table: model.TableSummary): void {
         // Build the composer
-        const stats = context.platform._databaseManager.resolveTableStatistics(table.nameQualified)!;
+        const stats = ctx.database.resolveTableStatistics(table.nameQualified)!;
         this._vega = new VegaComposer(stats);
 
         // Read the component specs and add them to the composer
@@ -163,9 +153,9 @@ export class CreateVizTaskLogic extends VizTaskLogic {
     }
 
     /// Prepare the viz creation
-    public prepare(context: TaskContext): void {
+    public prepare(ctx: TaskExecutionContext): void {
         // Get the program instance
-        const programInstance = context.plan.programInstance;
+        const programInstance = ctx.programState.programInstance;
         // Get viz spec
         this._card = programInstance.cards.get(this.origin.statementId) || null;
         if (!this._card) {
@@ -180,34 +170,36 @@ export class CreateVizTaskLogic extends VizTaskLogic {
             height: posReader.height(),
         };
         const now = new Date();
-        const info: model.CardSpecification = {
-            objectId: this.buffer.objectId(),
-            objectType: model.PlanObjectType.CARD_SPECIFICATION,
-            timeCreated: now,
-            timeUpdated: now,
-            nameQualified: this.buffer.nameQualified() || '',
-            cardType: proto.analyzer.CardType.BUILTIN_VIZ,
-            cardRenderer: null,
-            statementID: this.origin.statementId,
-            position: pos,
-            title: this._card!.cardTitle() || null,
-            inputExtra: null,
-            vegaLiteSpec: null,
-            vegaSpec: null,
-            dataSource: null,
-            visible: true,
-        };
-        context.stagedObjects.push(info);
+        ctx.planStateActions.push({
+            type: ADD_CARD,
+            data: {
+                objectId: this.buffer.objectId(),
+                objectType: model.PlanObjectType.CARD_SPECIFICATION,
+                timeCreated: now,
+                timeUpdated: now,
+                nameQualified: this.buffer.nameQualified() || '',
+                cardType: proto.analyzer.CardType.BUILTIN_VIZ,
+                cardRenderer: null,
+                statementID: this.origin.statementId,
+                position: pos,
+                title: this._card!.cardTitle() || null,
+                inputExtra: null,
+                vegaLiteSpec: null,
+                vegaSpec: null,
+                dataSource: null,
+                visible: true,
+            },
+        });
     }
 
-    public willExecute(context: TaskContext): void {
+    public willExecute(context: TaskExecutionContext): void {
         this.configure(context);
     }
 
-    public async execute(context: TaskContext): Promise<void> {
+    public async execute(ctx: TaskExecutionContext): Promise<void> {
         // Get viz info
         const oid = this.buffer.objectId();
-        const state = context.platform.store.getState();
+        const state = ctx.platform.store.getState();
         const target = this._card.vizTarget();
         let card = model.resolveCardById(state.core.planState, oid);
 
@@ -279,9 +271,9 @@ export class DropVizTaskLogic extends SetupTaskLogic {
         super(task_id, task);
     }
 
-    public prepare(_context: TaskContext): void {}
-    public willExecute(_context: TaskContext): void {}
-    public async execute(context: TaskContext): Promise<void> {
+    public prepare(_ctx: TaskExecutionContext): void {}
+    public willExecute(_ctx: TaskExecutionContext): void {}
+    public async execute(context: TaskExecutionContext): Promise<void> {
         const store = context.platform.store!;
         const objectId = this.buffer.objectId();
         model.mutate(store.dispatch, {
@@ -296,7 +288,7 @@ export class ImportVizTaskLogic extends SetupTaskLogic {
         super(task_id, task);
     }
 
-    public prepare(_context: TaskContext): void {}
-    public willExecute(_context: TaskContext): void {}
-    public async execute(_context: TaskContext): Promise<void> {}
+    public prepare(_ctx: TaskExecutionContext): void {}
+    public willExecute(_ctx: TaskExecutionContext): void {}
+    public async execute(_ctx: TaskExecutionContext): Promise<void> {}
 }

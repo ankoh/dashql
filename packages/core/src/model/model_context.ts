@@ -5,4 +5,4 @@ export type Action<T, P> = {
 
 export type Dispatch<ActionVariant> = (action: ActionVariant) => void;
 
-export type StoreProviderProps = { children: React.ReactElement };
+export type ProviderProps = { children: React.ReactElement };

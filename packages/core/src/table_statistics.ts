@@ -1,7 +1,7 @@
 import * as duckdb from '@dashql/duckdb/dist/duckdb.module.js';
 import * as model from '../model';
-import * as platform from '../platform';
 import * as arrow from 'apache-arrow';
+import { DatabaseProxy } from '../platform/database_proxy';
 
 /// A column statistics request
 export class TableStatisticsRequest {
@@ -46,7 +46,7 @@ export interface TableStatisticsResolver {
 /// A queue for table statistics
 export class TableStatistics implements TableStatisticsResolver {
     /// The database manager
-    _databaseManager: platform.DatabaseManager;
+    _database: DatabaseProxy;
     /// The table name
     _tableName: string;
     /// All statistic requests
@@ -56,8 +56,8 @@ export class TableStatistics implements TableStatisticsResolver {
     /// The standalone aggreagtes
     _standaloneRequests: TableStatisticsRequest[];
 
-    constructor(dbManager: platform.DatabaseManager, tableName: string) {
-        this._databaseManager = dbManager;
+    constructor(database: DatabaseProxy, tableName: string) {
+        this._database = database;
         this._tableName = tableName;
         this._requests = new Map();
         this._associativeAggregates = [];
@@ -66,7 +66,7 @@ export class TableStatistics implements TableStatisticsResolver {
 
     /// Resolve the table info
     public resolveTableInfo(): model.TableSummary | null {
-        return this._databaseManager.resolveTableName(this._tableName);
+        return this._database.resolveTableName(this._tableName);
     }
 
     /// Build the associative aggregate query
@@ -105,7 +105,7 @@ export class TableStatistics implements TableStatisticsResolver {
     public async request(type: model.TableStatisticsType, columnId = 0): Promise<arrow.Column> {
         const key = model.buildTableStatisticsKey(type, columnId);
         const prev = this._requests.get(key);
-        const table = this._databaseManager.resolveTableName(this._tableName);
+        const table = this._database.resolveTableName(this._tableName);
         if (prev) {
             return new Promise((resolve, reject) => {
                 prev._promiseResolvers.push(resolve);
@@ -133,7 +133,7 @@ export class TableStatistics implements TableStatisticsResolver {
     public async evaluate(): Promise<Map<model.TableStatisticsKey, arrow.Column>> {
         // Resolve the table info
         const stats: Map<model.TableStatisticsKey, arrow.Column> = new Map();
-        const tableInfo = this._databaseManager.resolveTableName(this._tableName);
+        const tableInfo = this._database.resolveTableName(this._tableName);
         if (!tableInfo) return stats;
 
         // Process the associative aggregates first
@@ -141,7 +141,7 @@ export class TableStatistics implements TableStatisticsResolver {
             try {
                 // Query the associative aggregates
                 const query = this.buildAssociativeAggregateQuery(tableInfo);
-                const table = await this._databaseManager.use(async (conn: duckdb.AsyncConnection) => {
+                const table = await this._database.use(async (conn: duckdb.AsyncConnection) => {
                     return await conn.runQuery(query);
                 });
                 if (table.count() == 0) {
@@ -174,7 +174,7 @@ export class TableStatistics implements TableStatisticsResolver {
             try {
                 // Evaluate the query
                 const query = this.buildStandaloneQuery(tableInfo, req);
-                const result = await this._databaseManager.use(async (conn: duckdb.AsyncConnection) => {
+                const result = await this._database.use(async (conn: duckdb.AsyncConnection) => {
                     return await conn.runQuery(query);
                 });
                 stats.set(req.key, result.getColumnAt(0));

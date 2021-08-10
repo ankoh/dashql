@@ -1,24 +1,25 @@
 import * as proto from '@dashql/proto';
 import * as model from '../model';
-import { TaskHandle, Statement, UniqueBlob } from '../model';
+import { ADD_BLOB } from '../model/plan_store';
+import { TaskHandle, Statement } from '../model';
 import { ProgramTaskLogic } from './task_logic';
-import { TaskContext } from './task_context';
+import { TaskExecutionContext } from './task_execution_context';
 
 export class FetchTaskLogic extends ProgramTaskLogic {
     constructor(task_id: TaskHandle, task: proto.task.ProgramTask, statement: Statement) {
         super(task_id, task, statement);
     }
 
-    public prepare(_context: TaskContext): void {}
-    public willExecute(_context: TaskContext): void {}
+    public prepare(_ctx: TaskExecutionContext): void {}
+    public willExecute(_ctx: TaskExecutionContext): void {}
 
     /// Fetch via HTTP
     protected async fetchHTTP(
-        context: TaskContext,
+        ctx: TaskExecutionContext,
         url: string,
         headers?: Record<string, string>,
     ): Promise<ArrayBuffer | null> {
-        const http = context.platform.http;
+        const http = await ctx.http();
         try {
             const resp = await http.request({
                 url,
@@ -30,8 +31,8 @@ export class FetchTaskLogic extends ProgramTaskLogic {
         }
     }
 
-    public async execute(context: TaskContext): Promise<void> {
-        const instance = context.plan.programInstance;
+    public async execute(ctx: TaskExecutionContext): Promise<void> {
+        const instance = ctx.programState.programInstance;
         const stmtId = this._origin.statementId;
         const fetch = instance.fetchStatements.get(stmtId);
         if (!fetch) {
@@ -44,7 +45,7 @@ export class FetchTaskLogic extends ProgramTaskLogic {
         switch (fetch.method()) {
             case proto.syntax.FetchMethodType.HTTP: {
                 const extra = JSON.parse(fetch.extra()) as any;
-                const buffer = await this.fetchHTTP(context, fetch.url(), extra.headers);
+                const buffer = await this.fetchHTTP(ctx, fetch.url(), extra.headers);
                 blob = new Blob([buffer]);
                 break;
             }
@@ -59,29 +60,23 @@ export class FetchTaskLogic extends ProgramTaskLogic {
         }
 
         // Register as blob in database
-        const db = context.platform.database;
+        const db = ctx.database;
         const name = this.buffer.nameQualified();
-
-        // Register the file handle
         await db.use(async c => await c.instance.registerFileHandle(name, blob));
 
-        // Create plan object
-        const now = new Date();
-        const blobRef: UniqueBlob = {
-            objectId: this.buffer.objectId(),
-            objectType: model.PlanObjectType.UNIQUE_BLOB,
-            timeCreated: now,
-            timeUpdated: now,
-            nameQualified: name || '',
-            blob,
-            archiveMode: fetch.archive(),
-        };
-
         // Store as plan object
-        const store = context.platform.store;
-        model.mutate(store.dispatch, {
-            type: model.StateMutationType.INSERT_PLAN_OBJECTS,
-            data: [blobRef],
+        const now = new Date();
+        ctx.planStateActions.push({
+            type: ADD_BLOB,
+            data: {
+                objectId: this.buffer.objectId(),
+                objectType: model.PlanObjectType.UNIQUE_BLOB,
+                timeCreated: now,
+                timeUpdated: now,
+                nameQualified: name || '',
+                blob,
+                archiveMode: fetch.archive(),
+            },
         });
     }
 }

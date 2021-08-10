@@ -3,8 +3,9 @@ import * as duckdb from '@dashql/duckdb/dist/duckdb.module.js';
 import * as model from '../model';
 import * as arrow from 'apache-arrow';
 import * as Immutable from 'immutable';
+import { ADD_TABLE } from '../model/plan_context';
 import { ProgramTaskLogic, SetupTaskLogic } from './task_logic';
-import { TaskContext } from './task_context';
+import { TaskExecutionContext } from './task_execution_context';
 import { TableStatisticsType } from '../model';
 import { Column } from 'apache-arrow';
 
@@ -75,13 +76,13 @@ export class CreateTableTaskLogic extends ProgramTaskLogic {
         super(task_id, task, statement);
     }
 
-    public prepare(_context: TaskContext): void {}
-    public willExecute(_context: TaskContext): void {}
-    public async execute(context: TaskContext): Promise<void> {
+    public prepare(_ctx: TaskExecutionContext): void {}
+    public willExecute(_ctx: TaskExecutionContext): void {}
+    public async execute(ctx: TaskExecutionContext): Promise<void> {
         const script = this.script;
         if (!script) return;
 
-        const db = context.platform.database;
+        const db = ctx.database;
         const table = await db.use(async (c: duckdb.AsyncConnection) => {
             /// First run the query
             await c.runQuery(script);
@@ -102,10 +103,9 @@ export class CreateTableTaskLogic extends ProgramTaskLogic {
             });
         });
         if (table) {
-            const store = context.platform.store;
-            model.mutate(store.dispatch, {
-                type: model.StateMutationType.INSERT_PLAN_OBJECTS,
-                data: [table],
+            ctx.planStateActions.push({
+                type: ADD_TABLE,
+                data: table,
             });
         }
     }
@@ -116,9 +116,9 @@ export class ModifyTableTaskLogic extends ProgramTaskLogic {
         super(task_id, task, statement);
     }
 
-    public prepare(_context: TaskContext): void {}
-    public willExecute(_context: TaskContext): void {}
-    public async execute(_context: TaskContext): Promise<void> {}
+    public prepare(_ctx: TaskExecutionContext): void {}
+    public willExecute(_ctx: TaskExecutionContext): void {}
+    public async execute(_ctx: TaskExecutionContext): Promise<void> {}
 }
 
 export class ImportTableTaskLogic extends SetupTaskLogic {
@@ -126,9 +126,9 @@ export class ImportTableTaskLogic extends SetupTaskLogic {
         super(task_id, task);
     }
 
-    public prepare(_context: TaskContext): void {}
-    public willExecute(_context: TaskContext): void {}
-    public async execute(_context: TaskContext): Promise<void> {}
+    public prepare(_ctx: TaskExecutionContext): void {}
+    public willExecute(_ctx: TaskExecutionContext): void {}
+    public async execute(_ctx: TaskExecutionContext): Promise<void> {}
 }
 
 export class DropTableTaskLogic extends SetupTaskLogic {
@@ -136,13 +136,11 @@ export class DropTableTaskLogic extends SetupTaskLogic {
         super(task_id, task);
     }
 
-    public prepare(_context: TaskContext): void {}
-    public willExecute(_context: TaskContext): void {}
-    public async execute(context: TaskContext): Promise<void> {
-        const db = context.platform.database;
-        const store = context.platform.store;
-        const state = store.getState();
-        const table = state.core.planState.objects.get(this.buffer.objectId()) as model.TableSummary;
+    public prepare(_ctx: TaskExecutionContext): void {}
+    public willExecute(_ctx: TaskExecutionContext): void {}
+    public async execute(ctx: TaskExecutionContext): Promise<void> {
+        const db = ctx.database;
+        const table = ctx.planState.tables.get(this.buffer.objectId());
         if (table === undefined) return;
         const dropTarget = table.tableType == model.TableType.VIEW ? 'VIEW' : 'TABLE';
         await db.use(async (c: duckdb.AsyncConnection) => {

@@ -3,8 +3,9 @@ import * as proto from '@dashql/proto';
 import * as model from '../model';
 import * as Immutable from 'immutable';
 import { TaskHandle, Statement, TableStatisticsType } from '../model';
+import { ADD_TABLE } from '../model/plan_store';
 import { ProgramTaskLogic } from './task_logic';
-import { TaskContext } from './task_context';
+import { TaskExecutionContext } from './task_execution_context';
 import { collectTableInfo } from './table_logic';
 import { Column } from 'apache-arrow';
 
@@ -13,26 +14,24 @@ export class LoadTaskLogic extends ProgramTaskLogic {
         super(task_id, task, statement);
     }
 
-    public prepare(_context: TaskContext): void {}
-    public willExecute(_context: TaskContext): void {}
+    public prepare(_ctx: TaskExecutionContext): void {}
+    public willExecute(_ctx: TaskExecutionContext): void {}
 
-    public async execute(context: TaskContext): Promise<void> {
-        const instance = context.plan.programInstance;
+    public async execute(ctx: TaskExecutionContext): Promise<void> {
+        const instance = ctx.programState.programInstance;
         const stmtId = this._origin.statementId;
         const xtr = instance.loadStatements.get(stmtId);
         if (!xtr) throw new Error(`missing information for load statement ${stmtId}`);
 
-        const logger = context.platform.logger;
+        const logger = ctx.logger;
         const stmt = instance.program.getStatement(this._origin.statementId);
         const name = this.buffer.nameQualified();
 
         // Find the loaded blob
-        const state = context.platform.store.getState();
-        const planState = state.core.planState;
         const blobName = xtr.dataSource();
-        const blobID = planState.blobsByName.get(blobName);
+        const blobID = ctx.planState.blobsByName.get(blobName);
         if (blobID === undefined) throw new Error(`missing blob id for blob '${blobID}'`);
-        const blob = planState.objects.get(blobID) as model.UniqueBlob;
+        const blob = ctx.planState.blobs.get(blobID);
         if (!blob) throw new Error(`blob '${blobName}' is not registered in duckdb`);
 
         // Get the input file
@@ -61,7 +60,7 @@ export class LoadTaskLogic extends ProgramTaskLogic {
         }
 
         // Handle the different load method
-        const table = await context.platform.database.use(async c => {
+        const table = await ctx.database.use(async c => {
             const filePath = await extractIfNeeded(c);
             let tableType: model.TableType;
             switch (xtr.method()) {
@@ -105,10 +104,9 @@ export class LoadTaskLogic extends ProgramTaskLogic {
             });
         });
         if (table) {
-            const store = context.platform.store;
-            model.mutate(store.dispatch, {
-                type: model.StateMutationType.INSERT_PLAN_OBJECTS,
-                data: [table],
+            ctx.planStateActions.push({
+                type: ADD_TABLE,
+                data: table,
             });
         }
 

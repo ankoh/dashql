@@ -1,33 +1,7 @@
-// Copyright (c) 2020 The DashQL Authors
-
+import React from 'react';
 import * as Immutable from 'immutable';
 import * as arrow from 'apache-arrow';
-import React, { createContext, useReducer } from 'react';
-import { Action, Dispatch, StoreProviderProps } from './store_context';
-
-/// A table type
-export enum TableType {
-    TABLE = 0,
-    VIEW = 1,
-}
-
-/// A table info
-export interface TableInfo {
-    /// The table name
-    readonly tableName: string;
-    /// The table type
-    readonly tableType: TableType;
-    /// The column names
-    readonly columnNames: string[];
-    /// The column name indices
-    readonly columnNameMapping: Map<string, number>;
-    /// The column types
-    readonly columnTypes: arrow.DataType[];
-    /// The statistics
-    readonly statistics: Immutable.Map<TableStatisticsType, arrow.Column>;
-    /// The file path (if any)
-    readonly filePath?: string;
-}
+import { Action, Dispatch, ProviderProps } from './model_context';
 
 /// A column summary type
 export enum TableStatisticsType {
@@ -52,35 +26,62 @@ export function getTableStatisticsColumn(key: TableStatisticsKey): TableStatisti
     return key >> 3;
 }
 
-type State = {
-    tables: Immutable.Map<string, TableInfo>;
+/// A table metadatStorea
+export type TableMetadata = {
+    /// The statistics
+    readonly statistics: Immutable.Map<TableStatisticsType, arrow.Column>;
 };
 
-const initialState: State = {
-    tables: Immutable.Map<string, TableInfo>(),
+/// A database metadata
+export type DatabaseMetadata = {
+    /// The tables
+    readonly tables: Immutable.Map<string, TableMetadata>;
 };
 
-export const INSERT_TABLE_INFO = Symbol('INSERT_TABLE_INFO');
-export const UPDATE_TABLE_INFO = Symbol('UPDATE_TABLE_INFO');
+const initialState: DatabaseMetadata = {
+    tables: Immutable.Map<string, TableMetadata>(),
+};
 
-type ActionVariant =
-    | Action<typeof INSERT_TABLE_INFO, TableInfo>
-    | Action<typeof UPDATE_TABLE_INFO, [string, TableInfo]>;
+export const ADD_TABLE_STATS = Symbol('ADD_TABLE_STATS');
+export const DROP_TABLE_METADATA = Symbol('DROP_TABLE_METADATA');
 
-const reducer = (state: State, action: ActionVariant) => {
+export type DatabaseMetadataAction =
+    | Action<typeof ADD_TABLE_STATS, [string, IterableIterator<[TableStatisticsType, arrow.Column]>]>
+    | Action<typeof DROP_TABLE_METADATA, string>;
+
+const reducer = (state: DatabaseMetadata, action: DatabaseMetadataAction) => {
     switch (action.type) {
-        case INSERT_TABLE_INFO:
-        case UPDATE_TABLE_INFO:
-            break;
+        case ADD_TABLE_STATS: {
+            const [name, stats] = action.data;
+            const table = state.tables.get(name);
+            if (!table) return state;
+            const merged = table.statistics.withMutations(s => {
+                for (const [key, value] of stats) {
+                    s.set(key, value);
+                }
+            });
+            return {
+                ...state,
+                tables: state.tables.set(name, {
+                    ...table,
+                    statistics: merged,
+                }),
+            };
+        }
+        case DROP_TABLE_METADATA:
+            return {
+                ...state,
+                tables: state.tables.delete(action.data),
+            };
     }
     return state;
 };
 
-const stateCtx = createContext<State>(initialState);
-const dispatchCtx = createContext<Dispatch<ActionVariant>>(() => {});
+const stateCtx = React.createContext<DatabaseMetadata>(initialState);
+const dispatchCtx = React.createContext<Dispatch<DatabaseMetadataAction>>(() => {});
 
-export const DatabaseMetadataProvider: React.FC<StoreProviderProps> = (props: StoreProviderProps) => {
-    const [s, d] = useReducer(reducer, initialState);
+export const DatabaseMetadataProvider: React.FC<ProviderProps> = (props: ProviderProps) => {
+    const [s, d] = React.useReducer(reducer, initialState);
     return (
         <stateCtx.Provider value={s}>
             <dispatchCtx.Provider value={d}>{props.children}</dispatchCtx.Provider>
@@ -88,5 +89,5 @@ export const DatabaseMetadataProvider: React.FC<StoreProviderProps> = (props: St
     );
 };
 
-export const useDatabaseMetadata = (): State => React.useContext(stateCtx);
-export const useDatabaseMetadataDispatch = (): Dispatch<ActionVariant> => React.useContext(dispatchCtx);
+export const useDatabaseMetadata = (): DatabaseMetadata => React.useContext(stateCtx);
+export const useDatabaseMetadataDispatch = (): Dispatch<DatabaseMetadataAction> => React.useContext(dispatchCtx);

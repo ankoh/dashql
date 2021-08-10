@@ -1,6 +1,6 @@
-import * as model from '../model';
-import { Logger } from './log_manager';
+import React from 'react';
 import { AxiosRequestConfig, AxiosResponse } from 'axios';
+import { ProviderProps, Log, LogLevel, LogEvent, LogOrigin, LogTopic, useLog } from './model';
 import axios from 'axios';
 
 type HTTPProgressHandler = (progress: ProgressEvent) => void;
@@ -12,16 +12,13 @@ export interface HTTPData {
     response: AxiosResponse<ArrayBuffer>;
 }
 
-export class HTTPManager {
-    /// The redux store
-    _store: model.DerivedReduxStore;
+export class HTTPProxy {
     /// The logger
-    _logger: Logger;
+    _log: Log;
 
     /// Constructor
-    constructor(store: model.DerivedReduxStore, logger: Logger) {
-        this._store = store;
-        this._logger = logger;
+    constructor(log: Log) {
+        this._log = log;
     }
 
     /// Init the http manager
@@ -39,12 +36,12 @@ export class HTTPManager {
                 ...req,
                 responseType: 'arraybuffer',
             });
-            this._logger.log({
+            this._log.pushBack({
                 timestamp: new Date(),
-                level: model.LogLevel.INFO,
-                origin: model.LogOrigin.HTTP_MANAGER,
-                topic: model.LogTopic.REQUEST,
-                event: model.LogEvent.OK,
+                level: LogLevel.INFO,
+                origin: LogOrigin.HTTP_MANAGER,
+                topic: LogTopic.REQUEST,
+                event: LogEvent.OK,
                 value: `${res.statusText}`,
             });
             return {
@@ -52,15 +49,25 @@ export class HTTPManager {
                 response: res,
             };
         } catch (e) {
-            this._logger.log({
+            this._log.pushBack({
                 timestamp: new Date(),
-                level: model.LogLevel.ERROR,
-                origin: model.LogOrigin.HTTP_MANAGER,
-                topic: model.LogTopic.REQUEST,
-                event: model.LogEvent.ERROR,
+                level: LogLevel.ERROR,
+                origin: LogOrigin.HTTP_MANAGER,
+                topic: LogTopic.REQUEST,
+                event: LogEvent.ERROR,
                 value: e,
             });
             throw e;
         }
     }
 }
+
+const ctx = React.createContext<HTTPProxy | null>(null);
+
+export const HTTPProxyProvider: React.FC<ProviderProps> = (props: ProviderProps) => {
+    const log = useLog();
+    const proxy = React.useRef<HTTPProxy>(new HTTPProxy(log));
+    return <ctx.Provider value={proxy.current}>{props.children}</ctx.Provider>;
+};
+
+export const useHTTPProxy = (): HTTPProxy => React.useContext(ctx);

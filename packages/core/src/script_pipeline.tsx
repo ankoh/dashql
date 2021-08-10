@@ -1,48 +1,70 @@
 import React from 'react';
-import { useProgramState, useProgramStateDispatch, SET_PROGRAM, SET_PROGRAM_INSTANCE } from './model/program_store';
 import { useAnalyzer } from './analyzer';
-import { Platform } from './platform';
-import { TaskContext } from './task';
+import {
+    usePlanContext,
+    useLog,
+    useProgramContext,
+    SET_PROGRAM,
+    SET_PROGRAM_INSTANCE,
+    SCHEDULER_READY,
+    useProgramContextDispatch,
+    usePlanContextDispatch,
+    TaskSchedulerStatus,
+} from './model';
+import { useDatabase } from './database_proxy';
+import { TaskExecutionContext } from './task/task_execution_context';
+import { TaskGraphScheduler } from './task_scheduler';
+import { useHTTPProxy } from './http_proxy';
+import { useJMESPathResolver } from './jmespath';
 
 const MIN_INPUT_DELAY = 300;
 const MAX_INPUT_DELAY = 1000;
 const MIN_INSTANTIATION_DELAY = 100;
 
 type Props = {
-    platform: Platform;
     children: React.ReactElement;
 };
 
 export const ScriptPipeline: React.FC<Props> = (props: Props) => {
+    // Setup all hooks
+    const log = useLog();
+    const http = useHTTPProxy();
+    const jmespath = useJMESPathResolver();
+    const database = useDatabase();
     const analyzer = useAnalyzer();
-    const state = useProgramState();
-    const dispatch = useProgramStateDispatch();
+    const programContext = useProgramContext();
+    const programContextDispatch = useProgramContextDispatch();
+    const planContext = usePlanContext();
+    const planContextDispatch = usePlanContextDispatch();
 
+    // Detect unmount
     const isMountedRef = React.useRef(true);
     React.useEffect(() => {
         return () => void (isMountedRef.current = false);
     }, []);
 
+    // Parse program if script text changes
     const programParsedAt = React.useRef<Date | null>(null);
     React.useEffect(() => {
-        const program = analyzer.parseProgram(state.program.text);
+        const program = analyzer.parseProgram(programContext.program.text);
         programParsedAt.current = new Date();
-        dispatch({
+        programContextDispatch({
             type: SET_PROGRAM,
             data: program,
         });
-    }, [state.script.text]);
+    }, [programContext.script.text]);
 
+    // Instantiate program if program or input values change
     React.useEffect(() => {
         const instanceTimeout = React.useRef<ReturnType<typeof setTimeout> | null>();
         const instantiateProgram = () => {
-            if (!state.program || !isMountedRef.current) return;
+            if (!programContext.program || !isMountedRef.current) return;
             const nowMS = new Date().getTime();
 
             // Has a program been instantiated before?
-            if (state.programInstance) {
-                const lastInstantiation = state.programInstance.createdAt.getTime();
-                const lastErrorCount = state.programInstance.program.buffer.errorsLength();
+            if (programContext.programInstance) {
+                const lastInstantiation = programContext.programInstance.createdAt.getTime();
+                const lastErrorCount = programContext.programInstance.program.buffer.errorsLength();
 
                 // Wait at least MIN_INPUT_DELAY_MS after last input
                 let deltaMS = nowMS - (programParsedAt.current?.getTime() || 0);
@@ -57,20 +79,20 @@ export const ScriptPipeline: React.FC<Props> = (props: Props) => {
                     return;
                 }
                 // Are there more errors than before?
-                if (state.program.buffer.errorsLength() > lastErrorCount) {
+                if (programContext.program.buffer.errorsLength() > lastErrorCount) {
                     instanceTimeout.current = setTimeout(instantiateProgram, MAX_INPUT_DELAY - deltaMS);
                     return;
                 }
             }
             instanceTimeout.current = null;
             // Instantiate the new program
-            const instance = analyzer.instantiateProgram(state.programInputValues);
+            const instance = analyzer.instantiateProgram(programContext.programInputValues);
             // Instantiation failed?
             // XXX log error
             if (!instance) return;
 
             // Otherwise store the new instance in redux
-            dispatch({
+            programContextDispatch({
                 type: SET_PROGRAM_INSTANCE,
                 data: instance,
             });
@@ -82,25 +104,44 @@ export const ScriptPipeline: React.FC<Props> = (props: Props) => {
                 instanceTimeout.current = null;
             }
         };
-    }, [state.program, state.programInputValues]);
+    }, [programContext.program, programContext.programInputValues]);
 
+    // Schedule program if scheduler is idle and instance differs
+    const taskScheduler = React.useRef<TaskGraphScheduler>(new TaskGraphScheduler(analyzer));
     React.useEffect(() => {
+        // Scheduler not idle?
+        if (planContext.schedulerStatus != TaskSchedulerStatus.Idle) return;
+        // Same instance?
+        if (planContext.programInstance == programContext.programInstance) return;
+        // Plan the program
         const plan = analyzer.planProgram();
         if (!plan) return;
-
+        // Create the context
+        const ctx: TaskExecutionContext = {
+            log,
+            database,
+            analyzer,
+            http,
+            jmespath,
+            programContext,
+            planContext,
+            planContextDiff: [],
+        };
         // Schedule the plan
-        const ctx = new TaskContext(platform, plan);
-        scheduler.prepare(ctx);
-
-        // Execute the plan
-        await this._scheduler.execute(ctx);
-
-        // Scheduler is ready again
-        model.mutate(this._platform.store.dispatch, {
-            type: model.StateMutationType.SCHEDULER_READY,
-            data: null,
-        });
-    }, [state.programInstance]);
+        taskScheduler.current.prepare(ctx);
+        // Execute all tasks asynchronously
+        (async () => {
+            // Execute the plan
+            await taskScheduler.current.execute(ctx);
+            // No longer mounted?
+            if (!isMountedRef.current) return;
+            // Scheduler is ready again
+            planContextDispatch({
+                type: SCHEDULER_READY,
+                data: null,
+            });
+        })();
+    }, [planContext.schedulerStatus, programContext.programInstance]);
 
     return props.children;
 };

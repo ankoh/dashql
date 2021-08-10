@@ -1,12 +1,12 @@
-import React, { createContext, useReducer } from 'react';
+import React from 'react';
 import * as Immutable from 'immutable';
 import * as utils from '../utils';
-import { Action, Dispatch, StoreProviderProps } from './store_context';
+import { Action, Dispatch, ProviderProps } from './model_context';
 import { Program, InputValue } from './program';
 import { ProgramInstance } from './program_instance';
 import { Script, ScriptURIPrefix } from './script';
 
-type State = {
+export type ProgramContext = {
     /// The file name
     readonly script: Script;
     /// The program
@@ -17,7 +17,7 @@ type State = {
     readonly programInstance: ProgramInstance | null;
 };
 
-const initialState: State = {
+const initialState: ProgramContext = {
     script: {
         text: '',
         uriPrefix: ScriptURIPrefix.TMP,
@@ -35,42 +35,42 @@ export const SET_PROGRAM = Symbol('SET_PROGRAM');
 export const SET_PROGRAM_INSTANCE = Symbol('SET_PROGRAM_INSTANCE');
 export const REWRITE_PROGRAM = Symbol('REWRITE_PROGRAM');
 
-type ActionVariant =
+export type ProgramContextAction =
     | Action<typeof SET_SCRIPT, Script>
     | Action<typeof SET_PROGRAM, Program>
     | Action<typeof SET_PROGRAM_INSTANCE, ProgramInstance>
     | Action<typeof REWRITE_PROGRAM, ProgramInstance>;
 
-const reducer = (state: State, action: ActionVariant) => {
+const reducer = (ctx: ProgramContext, action: ProgramContextAction) => {
     switch (action.type) {
         case SET_SCRIPT:
-            if (action.data.text == state.script.text) return state;
+            if (action.data.text == ctx.script.text) return ctx;
             return {
-                ...state,
+                ...ctx,
                 script: action.data,
                 program: null,
                 programInstance: null,
             };
         case SET_PROGRAM:
-            if (action.data == state.program) return state;
+            if (action.data == ctx.program) return ctx;
             return {
-                ...state,
+                ...ctx,
                 program: action.data,
                 programInstance: null,
             };
 
         case SET_PROGRAM_INSTANCE:
-            if (action.data == state.programInstance) return state;
+            if (action.data == ctx.programInstance) return ctx;
             return {
-                ...state,
+                ...ctx,
                 programInstance: action.data,
             };
 
         case REWRITE_PROGRAM:
             return {
-                ...state,
+                ...ctx,
                 script: {
-                    ...state.script,
+                    ...ctx.script,
                     modified: true,
                     text: action.data.program.text,
                     lineCount: utils.countLines(action.data.program.text),
@@ -82,17 +82,17 @@ const reducer = (state: State, action: ActionVariant) => {
     }
 };
 
-const stateCtx = createContext<State>(initialState);
-const dispatchCtx = createContext<Dispatch<ActionVariant>>(() => {});
+const ctxCtx = React.createContext<ProgramContext>(initialState);
+const dispatchCtx = React.createContext<Dispatch<ProgramContextAction>>(() => {});
 
-export const ProgramStoreProvider: React.FC<StoreProviderProps> = (props: StoreProviderProps) => {
-    const [s, d] = useReducer(reducer, initialState);
+export const ProgramContextProvider: React.FC<ProviderProps> = (props: ProviderProps) => {
+    const [s, d] = React.useReducer(reducer, initialState);
     return (
-        <stateCtx.Provider value={s}>
+        <ctxCtx.Provider value={s}>
             <dispatchCtx.Provider value={d}>{props.children}</dispatchCtx.Provider>
-        </stateCtx.Provider>
+        </ctxCtx.Provider>
     );
 };
 
-export const useProgramState = (): State => React.useContext(stateCtx);
-export const useProgramStateDispatch = (): Dispatch<ActionVariant> => React.useContext(dispatchCtx);
+export const useProgramContext = (): ProgramContext => React.useContext(ctxCtx);
+export const useProgramContextDispatch = (): Dispatch<ProgramContextAction> => React.useContext(dispatchCtx);

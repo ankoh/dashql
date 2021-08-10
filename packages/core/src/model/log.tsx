@@ -1,4 +1,10 @@
+import React from 'react';
 import * as duckdb from '@dashql/duckdb/dist/duckdb.module.js';
+import * as Immutable from 'immutable';
+import { Action, Dispatch, ProviderProps } from './model_context';
+
+const MAX_LOG_SIZE = 100;
+
 export { LogLevel } from '@dashql/duckdb/dist/duckdb.module.js';
 
 export enum LogOrigin {
@@ -112,3 +118,59 @@ export function getLogOriginLabel(origin: LogOrigin | duckdb.LogOrigin): string 
             return duckdb.getLogOriginLabel(origin);
     }
 }
+
+type LogState = {
+    /// The entries
+    entries: Immutable.List<LogEntryVariant>;
+};
+
+const PUSH_LOG_ENTRY = Symbol('PUSH_LOG_ENTRY');
+type LogStateAction = Action<typeof PUSH_LOG_ENTRY, LogEntryVariant>;
+
+const initialState = {
+    entries: Immutable.List<LogEntryVariant>(),
+};
+
+const reducer = (state: LogState, action: LogStateAction): LogState => {
+    switch (action.type) {
+        case PUSH_LOG_ENTRY:
+            return {
+                entries: state.entries.withMutations(list => {
+                    list.unshift(action.data);
+                    if (list.size > MAX_LOG_SIZE) {
+                        list.pop();
+                    }
+                }),
+            };
+    }
+    return state;
+};
+
+export class Log {
+    _state: LogState;
+    _dispatch: Dispatch<LogStateAction>;
+
+    constructor(state: LogState, dispatch: Dispatch<LogStateAction>) {
+        this._state = state;
+        this._dispatch = dispatch;
+    }
+    public pushBack(entry: LogEntryVariant): void {
+        this._dispatch({
+            type: PUSH_LOG_ENTRY,
+            data: entry,
+        });
+    }
+}
+
+const logCtx = React.createContext<Log | null>(null);
+
+export const ProgramStateProvider: React.FC<ProviderProps> = (props: ProviderProps) => {
+    const [s, d] = React.useReducer(reducer, initialState);
+    const logger = React.useRef<Log>(new Log(s, d));
+    React.useEffect(() => {
+        logger.current._state = s;
+    }, [s]);
+    return <logCtx.Provider value={logger.current}>{props.children}</logCtx.Provider>;
+};
+
+export const useLog = (): Log => React.useContext(logCtx);
