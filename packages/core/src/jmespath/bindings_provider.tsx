@@ -3,11 +3,18 @@ import { JMESPathBindings } from './bindings';
 
 type Props = {
     children: React.ReactElement;
-    jmespath: JMESPathBindings;
+    resolver: () => Promise<JMESPathBindings>;
 };
 
-const ctx = React.createContext<JMESPathBindings | null>(null);
+const ctx = React.createContext<() => Promise<JMESPathBindings>>(null);
 export const JMESPathProvider: React.FC<Props> = (props: Props) => {
-    return <ctx.Provider value={props.jmespath}>{props.children}</ctx.Provider>;
+    const bindings = React.useRef<JMESPathBindings | null>(null);
+    const resolveAndCache = React.useCallback(async () => {
+        if (bindings.current == null) {
+            bindings.current = await props.resolver();
+        }
+        return bindings.current;
+    }, [props.resolver]);
+    return <ctx.Provider value={resolveAndCache}>{props.children}</ctx.Provider>;
 };
-export const useJMESPath = (): JMESPathBindings => React.useContext(ctx);
+export const useJMESPathResolver = (): (() => Promise<JMESPathBindings>) => React.useContext(ctx);

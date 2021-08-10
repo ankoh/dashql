@@ -2,9 +2,10 @@ import * as Immutable from 'immutable';
 import * as proto from '@dashql/proto';
 import * as duckdb from '@dashql/duckdb/dist/duckdb.module.js';
 import * as model from '../model';
+import { ADD_TABLE } from '../model/plan_store';
 import { TaskHandle, TableStatisticsType } from '../model';
 import { ProgramTaskLogic, SetupTaskLogic } from './task_logic';
-import { TaskContext } from './task_context';
+import { TaskExecutionContext } from './task_execution_context';
 import { collectTableInfo } from './table_logic';
 import { Column } from 'apache-arrow';
 
@@ -13,13 +14,13 @@ export class ViewCreateTaskLogic extends ProgramTaskLogic {
         super(task_id, task, statement);
     }
 
-    public prepare(_context: TaskContext): void {}
-    public willExecute(_context: TaskContext): void {}
-    public async execute(context: TaskContext): Promise<void> {
+    public prepare(_ctx: TaskExecutionContext): void {}
+    public willExecute(_ctx: TaskExecutionContext): void {}
+    public async execute(ctx: TaskExecutionContext): Promise<void> {
         const script = this.script;
         if (!script) return;
 
-        const db = context.platform.database;
+        const db = ctx.database;
         const table = await db.use(async (c: duckdb.AsyncConnection) => {
             /// First run the query
             await c.runQuery(script);
@@ -41,10 +42,9 @@ export class ViewCreateTaskLogic extends ProgramTaskLogic {
         });
 
         if (table) {
-            const store = context.platform.store;
-            model.mutate(store.dispatch, {
-                type: model.StateMutationType.INSERT_PLAN_OBJECTS,
-                data: [table],
+            ctx.planStateActions.push({
+                type: ADD_TABLE,
+                data: table,
             });
         }
     }
@@ -55,9 +55,9 @@ export class ImportViewTaskLogic extends SetupTaskLogic {
         super(task_id, task);
     }
 
-    public prepare(_context: TaskContext): void {}
-    public willExecute(_context: TaskContext): void {}
-    public async execute(_context: TaskContext): Promise<void> {}
+    public prepare(_ctx: TaskExecutionContext): void {}
+    public willExecute(_ctx: TaskExecutionContext): void {}
+    public async execute(_ctx: TaskExecutionContext): Promise<void> {}
 }
 
 export class DropViewTaskLogic extends SetupTaskLogic {
@@ -65,11 +65,10 @@ export class DropViewTaskLogic extends SetupTaskLogic {
         super(task_id, task);
     }
 
-    public prepare(_context: TaskContext): void {}
-    public willExecute(_context: TaskContext): void {}
-    public async execute(context: TaskContext): Promise<void> {
-        const db = context.platform.database;
-        await db.use(async (c: duckdb.AsyncConnection) => {
+    public prepare(_ctx: TaskExecutionContext): void {}
+    public willExecute(_ctx: TaskExecutionContext): void {}
+    public async execute(ctx: TaskExecutionContext): Promise<void> {
+        await ctx.database.use(async (c: duckdb.AsyncConnection) => {
             await c.runQuery(`DROP VIEW IF EXISTS ${this.buffer.nameQualified()}`);
         });
     }

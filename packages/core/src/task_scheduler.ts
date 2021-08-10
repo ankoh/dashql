@@ -1,24 +1,23 @@
 import * as proto from '@dashql/proto';
 import { NativeBitmap, NativeStack, NativeMinHeap, NativeMinHeapKey, NativeMinHeapRank } from './utils';
 import { TaskLogic, ProtoTask, resolveSetupTaskLogic, resolveProgramTaskLogic } from './task';
-import { TaskContext, TaskError } from './task';
-import { Analyzer } from './analyzer';
+import { TaskError } from './task';
+import { TaskExecutionContext } from './task/task_execution_context';
 import {
     TaskHandle,
     Task,
     TaskUpdate,
     buildTaskHandle,
     getTaskIndex,
-    StateMutationType,
-    mutate,
-    Plan,
     getTaskClass,
     LogLevel,
     LogOrigin,
     LogTopic,
     LogEvent,
+    SCHEDULE_PLAN,
+    BATCH_PLAN_ACTIONS,
+    UPDATE_PLAN_TASKS,
 } from './model';
-import * as model from './model';
 
 export class TaskScheduler<TaskBuffer extends ProtoTask> {
     /// The cancel promise.
@@ -39,12 +38,8 @@ export class TaskScheduler<TaskBuffer extends ProtoTask> {
     /// The failed tasks
     _failedTasks: NativeBitmap = new NativeBitmap();
 
-    /// Callback to store the task updates
-    _storeTaskUpdates: (logic: TaskUpdate[]) => void;
-
-    constructor(interrupt: Promise<void>, storeTaskUpdates: (logic: TaskUpdate[]) => void) {
+    constructor(interrupt: Promise<void>) {
         this._interrupt = interrupt.then(() => [null, null]);
-        this._storeTaskUpdates = storeTaskUpdates;
     }
 
     /// Get the scheduled tasks
@@ -53,7 +48,7 @@ export class TaskScheduler<TaskBuffer extends ProtoTask> {
     }
 
     /// Prepare the scheduler
-    public prepare(ctx: TaskContext, tasks: TaskLogic<TaskBuffer>[]): void {
+    public prepare(ctx: TaskExecutionContext, tasks: TaskLogic<TaskBuffer>[]): void {
         this._tasks = tasks;
         this._taskPromises = [];
 
@@ -125,13 +120,13 @@ export class TaskScheduler<TaskBuffer extends ProtoTask> {
 
     /// Schedule all tasks that can be scheduled.
     /// An task can be scheduled if its rank is zero in the dependency heap.
-    protected scheduleNext(context: TaskContext, diff: NativeStack): void {
+    protected scheduleNext(ctx: TaskExecutionContext, touchedTasks: NativeStack): void {
         // Collect next tasks
         const next_task_idcs: number[] = [];
         while (!this._taskQueue.empty() && this._taskQueue.topRank() == 0) {
             const task_idx = this._taskQueue.top();
             this._taskQueue.pop();
-            diff.push(task_idx);
+            touchedTasks.push(task_idx);
 
             // Task already done, register as completed?
             if (
@@ -146,14 +141,13 @@ export class TaskScheduler<TaskBuffer extends ProtoTask> {
         }
 
         // Prepare all tasks for execution
-        const logger = context.platform.logger;
         for (let i = 0; i < next_task_idcs.length; ++i) {
             const next_task_idx = next_task_idcs[i];
             const next_task = this._tasks[next_task_idx];
-            const err = next_task.willExecuteGuarded(context);
+            const err = next_task.willExecuteGuarded(ctx);
             if (err != null) {
                 next_task_idcs[i] = -1;
-                logger.log({
+                ctx.log.pushBack({
                     timestamp: new Date(),
                     level: LogLevel.WARNING,
                     origin: LogOrigin.TASK_SCHEDULER,
@@ -172,25 +166,25 @@ export class TaskScheduler<TaskBuffer extends ProtoTask> {
             next_task.status = proto.task.TaskStatusCode.RUNNING;
             this._scheduledTasks.set(next_task_idx);
             // Execute the task
-            this._taskPromises[next_task_idx] = next_task.executeGuarded(context);
+            this._taskPromises[next_task_idx] = next_task.executeGuarded(ctx);
         }
     }
 
     /// Execute the first time.
     /// Returns true if execute should be called again.
-    public async executeFirst(context: TaskContext, diff: NativeStack): Promise<boolean> {
-        this.scheduleNext(context, diff);
-        return this.execute(context, diff);
+    public async executeFirst(ctx: TaskExecutionContext, touchedTasks: NativeStack): Promise<boolean> {
+        this.scheduleNext(ctx, touchedTasks);
+        return this.execute(ctx, touchedTasks);
     }
 
     /// Waits until one of the currently running task promises resolves or rejects.
     /// Returns true if execute should be called again.
-    public async execute(context: TaskContext, diff: NativeStack): Promise<boolean> {
+    public async execute(ctx: TaskExecutionContext, touchedTasks: NativeStack): Promise<boolean> {
         // Nothing to do?
         if (!this.workLeft()) return false;
 
         // Flush any task updates
-        this.flushTaskUpdates(context, diff);
+        this.flushTaskUpdates(ctx, touchedTasks);
 
         // Wait for next task to complete
         const promises: Promise<[TaskHandle | null, TaskError | null]>[] = [this._interrupt];
@@ -203,7 +197,7 @@ export class TaskScheduler<TaskBuffer extends ProtoTask> {
             /// Return true to indicate that we're not yet done and let the graph scheduler figure out whats wrong.
             return true;
         }
-        diff.push(getTaskIndex(next));
+        touchedTasks.push(getTaskIndex(next));
 
         // Check the new status of the task
         const task_idx = getTaskIndex(next);
@@ -217,7 +211,7 @@ export class TaskScheduler<TaskBuffer extends ProtoTask> {
             case proto.task.TaskStatusCode.COMPLETED: {
                 this._scheduledTasks.clear(task_idx);
                 this.taskCompleted(task_idx);
-                this.scheduleNext(context, diff);
+                this.scheduleNext(ctx, touchedTasks);
                 break;
             }
             case proto.task.TaskStatusCode.PENDING:
@@ -230,7 +224,7 @@ export class TaskScheduler<TaskBuffer extends ProtoTask> {
         // Did the task fail?
         // Log the error
         if (err != null) {
-            context.platform.logger.log({
+            ctx.log.pushBack({
                 timestamp: new Date(),
                 level: LogLevel.WARNING,
                 origin: LogOrigin.TASK_SCHEDULER,
@@ -241,19 +235,19 @@ export class TaskScheduler<TaskBuffer extends ProtoTask> {
         }
 
         // Flush any task updates
-        this.flushTaskUpdates(context, diff);
+        this.flushTaskUpdates(ctx, touchedTasks);
         // No more scheduled tasks left?
         return this.workLeft();
     }
 
     /// Flush teh task updates
-    public flushTaskUpdates(_ctx: TaskContext, diff: NativeStack): void {
-        if (diff.empty()) return;
+    public flushTaskUpdates(ctx: TaskExecutionContext, touchedTasks: NativeStack): void {
+        if (touchedTasks.empty()) return;
 
         // Synchronize all tasks in the diff
         const taskUpdates: Map<number, TaskUpdate> = new Map();
-        for (; !diff.empty(); diff.pop()) {
-            const taskIdx = diff.top();
+        for (; !touchedTasks.empty(); touchedTasks.pop()) {
+            const taskIdx = touchedTasks.top();
             const task = this.tasks[taskIdx];
             // Only propagate the most recent one
             if (taskUpdates.get(task.taskId)) continue;
@@ -264,16 +258,26 @@ export class TaskScheduler<TaskBuffer extends ProtoTask> {
                 blocker: task.blocker,
             });
         }
-        this._storeTaskUpdates(Array.from(taskUpdates, ([_k, v]) => v));
+
+        // Update the task status in the analyzer
+        const flatUpdates = Array.from(taskUpdates, ([_k, v]) => v);
+        for (const u of flatUpdates) {
+            ctx.analyzer.updateTaskStatus(getTaskClass(u.taskId), getTaskIndex(u.taskId), u.statusCode);
+        }
+        // Update all tasks in the store
+        ctx.planContextDiff.push({
+            type: UPDATE_PLAN_TASKS,
+            data: flatUpdates,
+        });
+        ctx.planContextDispatch({
+            type: BATCH_PLAN_ACTIONS,
+            data: ctx.planContextDiff,
+        });
+        ctx.planContextDiff = [];
     }
 }
 
 export class TaskGraphScheduler {
-    /// The analyzer
-    _analyzer: Analyzer;
-    /// The plan (if any)
-    _plan: Plan | null;
-
     /// The cancel promise
     _interruptPromise: Promise<void>;
     /// The cancel promise
@@ -282,14 +286,12 @@ export class TaskGraphScheduler {
     _canceled: boolean;
 
     /// The setup tasks
-    _setupTasks: TaskScheduler<proto.task.SetupTask>;
+    _setupScheduler: TaskScheduler<proto.task.SetupTask>;
     /// The program tasks
-    _programTasks: TaskScheduler<proto.task.ProgramTask>;
+    _programScheduler: TaskScheduler<proto.task.ProgramTask>;
 
     /// Constructor
-    constructor(analyzer: Analyzer) {
-        this._analyzer = analyzer;
-        this._plan = null;
+    constructor() {
         this._interruptFunction = () => {};
         this._interruptPromise = new Promise((resolve: () => void, _reject: (reason?: void) => void) => {
             this._interruptFunction = () => resolve();
@@ -297,31 +299,16 @@ export class TaskGraphScheduler {
         this._canceled = false;
 
         // Setup the schedulers
-        const storeTaskUpdates = this.storeTaskUpdates.bind(this);
-        this._setupTasks = new TaskScheduler<proto.task.SetupTask>(this._interruptPromise, storeTaskUpdates);
-        this._programTasks = new TaskScheduler<proto.task.ProgramTask>(this._interruptPromise, storeTaskUpdates);
-    }
-
-    /// Update the task status in redux and wasm
-    protected storeTaskUpdates(taskUpdates: TaskUpdate[]): void {
-        // Update the task status in the analyzer
-        for (const u of taskUpdates) {
-            // Update the task status in the analyzer
-            this._analyzer.updateTaskStatus(getTaskClass(u.taskId), getTaskIndex(u.taskId), u.statusCode);
-        }
-        // Update all tasks in the store
-        mutate(this._platform.store.dispatch, {
-            type: StateMutationType.UPDATE_PLAN_TASKS,
-            data: taskUpdates,
-        });
+        this._setupScheduler = new TaskScheduler<proto.task.SetupTask>(this._interruptPromise);
+        this._programScheduler = new TaskScheduler<proto.task.ProgramTask>(this._interruptPromise);
     }
 
     /// Reset the scheduler
-    public prepare(ctx: TaskContext): void {
+    public prepare(ctx: TaskExecutionContext): void {
         this._canceled = false;
-        this._plan = ctx.plan;
-        const program = ctx.plan.program!;
-        const graph = ctx.plan.task_graph!;
+        const plan = ctx.planContext.plan!;
+        const program = plan.program;
+        const graph = plan.task_graph;
         const now = new Date();
 
         // Translate the setup tasks
@@ -378,22 +365,22 @@ export class TaskGraphScheduler {
 
         // Schedule the plan.
         // We need to set the plan in redux BEFORE we run the setup tasks since they rely on the state.
-        mutate(ctx.platform.store.dispatch, {
-            type: model.StateMutationType.SCHEDULE_PLAN,
-            data: [ctx.plan, taskInfos],
+        ctx.planContextDispatch({
+            type: SCHEDULE_PLAN,
+            data: [ctx.planContext.plan, taskInfos],
         });
 
         // Prepare all tasks
-        this._setupTasks.prepare(ctx, setupLogic);
-        this._programTasks.prepare(ctx, programLogic);
+        this._setupScheduler.prepare(ctx, setupLogic);
+        this._programScheduler.prepare(ctx, programLogic);
 
         // Insert all plan objects required by the tasks.
         // Note that we deliberately batch the updates here to have only one state transition.
-        mutate(ctx.platform.store.dispatch, {
-            type: model.StateMutationType.INSERT_PLAN_OBJECTS,
-            data: ctx.stagedObjects,
+        ctx.planContextDispatch({
+            type: BATCH_PLAN_ACTIONS,
+            data: ctx.planContextDiff,
         });
-        ctx.stagedObjects = [];
+        ctx.planContextDiff = [];
     }
 
     /// Interrupt the scheduler
@@ -404,8 +391,8 @@ export class TaskGraphScheduler {
         this._interruptPromise = new Promise((resolve: () => void, _reject: (reason?: void) => void) => {
             this._interruptFunction = () => resolve();
         });
-        this._setupTasks.interrupt = this._interruptPromise;
-        this._programTasks.interrupt = this._interruptPromise;
+        this._setupScheduler.interrupt = this._interruptPromise;
+        this._programScheduler.interrupt = this._interruptPromise;
 
         // Fire the interrupt
         prev_interrupt();
@@ -419,7 +406,7 @@ export class TaskGraphScheduler {
 
     /// Execute all exctions of a scheduler
     protected async executeTasks<TaskBuffer extends ProtoTask>(
-        ctx: TaskContext,
+        ctx: TaskExecutionContext,
         diff: NativeStack,
         scheduler: TaskScheduler<TaskBuffer>,
     ): Promise<void> {
@@ -431,11 +418,11 @@ export class TaskGraphScheduler {
     }
 
     /// Execute the entire task graph
-    public async execute(ctx: TaskContext): Promise<void> {
-        if (this._plan == null) return;
+    public async execute(ctx: TaskExecutionContext): Promise<void> {
+        if (ctx.planContext.plan == null) return;
         const diff = new NativeStack(64);
-        await this.executeTasks(ctx, diff, this._setupTasks);
+        await this.executeTasks(ctx, diff, this._setupScheduler);
         diff.clear();
-        await this.executeTasks(ctx, diff, this._programTasks);
+        await this.executeTasks(ctx, diff, this._programScheduler);
     }
 }

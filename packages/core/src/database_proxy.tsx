@@ -2,10 +2,18 @@
 
 import React from 'react';
 import * as duckdb from '@dashql/duckdb/dist/duckdb.module.js';
-import * as model from '../model';
 import * as arrow from 'apache-arrow';
 import { TableStatisticsResolver, TableStatistics } from './table_statistics';
-import { Mutex } from '../utils';
+import { Mutex } from './utils';
+import {
+    TableStatisticsType,
+    DatabaseMetadata,
+    DatabaseMetadataAction,
+    ADD_TABLE_STATS,
+    useDatabaseMetadata,
+    useDatabaseMetadataDispatch,
+    Dispatch,
+} from './model';
 
 /// An database manager.
 ///
@@ -13,7 +21,7 @@ import { Mutex } from '../utils';
 /// This allows us to swap the in-browser wasm database with a native database when
 /// bundling as electron app or when connecting to a dedicated accelerator server.
 ///
-export class DatabaseManager {
+export class DatabaseProxy {
     /// The async duckdb
     _duckdb: duckdb.AsyncDuckDB;
     /// The connection
@@ -21,21 +29,31 @@ export class DatabaseManager {
     /// The connection mutex
     _connectionMutex: Mutex;
     /// The table statistics requests
-    _tableStatistics: Map<string, TableStatisticsResolver>;
+    _statisticsQueues: Map<string, TableStatisticsResolver>;
+    /// The database metadata
+    _metadata: DatabaseMetadata;
+    /// The database metadata
+    _metadataDispatch: Dispatch<DatabaseMetadataAction>;
 
-    constructor(db: duckdb.AsyncDuckDB) {
+    constructor(
+        db: duckdb.AsyncDuckDB,
+        metadata: DatabaseMetadata,
+        metadataDispatch: Dispatch<DatabaseMetadataAction>,
+    ) {
         this._duckdb = db;
         this._connection = null;
         this._connectionMutex = new Mutex();
-        this._tableStatistics = new Map();
+        this._statisticsQueues = new Map();
+        this._metadata = metadata;
+        this._metadataDispatch = metadataDispatch;
     }
 
     /// Resolve table statistics
     public resolveTableStatistics(qualifiedTableName: string): TableStatisticsResolver | null {
-        const prev = this._tableStatistics.get(qualifiedTableName);
+        const prev = this._statisticsQueues.get(qualifiedTableName);
         if (prev) return prev;
         const stats = new TableStatistics(this, qualifiedTableName);
-        this._tableStatistics.set(qualifiedTableName, stats);
+        this._statisticsQueues.set(qualifiedTableName, stats);
         return stats;
     }
 
@@ -77,12 +95,6 @@ export class DatabaseManager {
         return this._connection;
     }
 
-    /// Resolve a table name
-    public resolveTableName(qualifiedName: string): model.TableSummary | null {
-        const state = this._store.getState().core.planState;
-        return model.resolveTableByName(state, qualifiedName);
-    }
-
     /// Request table statistics.
     ///
     /// We invest some effort to eliminate redundant statistics queries.
@@ -95,13 +107,13 @@ export class DatabaseManager {
     /// The database manager then merges all requests and runs a single query that forwards statistics to all vizzes.
     public async requestTableStatistics(
         qualifiedName: string,
-        type: model.TableStatisticsType,
+        type: TableStatisticsType,
         columnId = 0,
     ): Promise<arrow.Column> {
-        let queue = this._tableStatistics.get(qualifiedName);
+        let queue = this._statisticsQueues.get(qualifiedName);
         if (!queue) {
             queue = new TableStatistics(this, qualifiedName);
-            this._tableStatistics.set(qualifiedName, queue);
+            this._statisticsQueues.set(qualifiedName, queue);
         }
         return queue.request(type, columnId);
     }
@@ -110,33 +122,22 @@ export class DatabaseManager {
     public async evaluateTableStatistics(qualifiedName: string): Promise<void> {
         // Resolve the table info.
         // If it doesn't exit we have nothing to do.
-        const state = this._store.getState().core.planState;
-        const table = model.resolveTableByName(state, qualifiedName);
+        const table = this._metadata.tables.get(qualifiedName);
         if (!table) return;
 
         // Get the queue.
         // Abort immediatedly if there's none.
         // This happens whenever two viz statements evaluate the same queue simultaneously.
-        const queue = this._tableStatistics.get(qualifiedName);
+        const queue = this._statisticsQueues.get(qualifiedName);
         if (!queue) return;
-        this._tableStatistics.delete(qualifiedName);
+        this._statisticsQueues.delete(qualifiedName);
 
-        /// Build the query text
+        // Evaluate all statistics
         const results = await queue.evaluate();
-        const stats = table.statistics.withMutations(s => {
-            for (const [k, vs] of results) {
-                s.set(k, vs);
-            }
-        });
-        model.mutate(this._store.dispatch, {
-            type: model.StateMutationType.UPDATE_TABLE_INFO,
-            data: [
-                qualifiedName,
-                {
-                    ...table,
-                    statistics: stats,
-                },
-            ],
+        /// Build the query text
+        this._metadataDispatch({
+            type: ADD_TABLE_STATS,
+            data: [qualifiedName, results.entries()],
         });
     }
 }
@@ -146,8 +147,15 @@ type Props = {
     duckdb: duckdb.AsyncDuckDB;
 };
 
-const ctx = React.createContext<DatabaseManager | null>(null);
+const dbCtx = React.createContext<DatabaseProxy | null>(null);
+
 export const DatabaseProvider: React.FC<Props> = (props: Props) => {
-    return <ctx.Provider value={props.duckdb}>{props.children}</ctx.Provider>;
+    const meta = useDatabaseMetadata();
+    const metaDispatch = useDatabaseMetadataDispatch();
+    const db = React.useRef<DatabaseProxy>(new DatabaseProxy(props.duckdb, meta, metaDispatch));
+    React.useEffect(() => {
+        db.current._metadata = meta;
+    }, [meta]);
+    return <dbCtx.Provider value={db.current}>{props.children}</dbCtx.Provider>;
 };
-export const useDatabase = (): DatabaseManager => React.useContext(ctx);
+export const useDatabase = (): DatabaseProxy => React.useContext(dbCtx);

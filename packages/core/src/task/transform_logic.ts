@@ -1,8 +1,9 @@
 import * as proto from '@dashql/proto';
 import * as model from '../model';
-import { TaskHandle, Statement, UniqueBlob } from '../model';
+import { ADD_BLOB } from '../model/plan_store';
+import { TaskHandle, Statement } from '../model';
 import { ProgramTaskLogic } from './task_logic';
-import { TaskContext } from './task_context';
+import { TaskExecutionContext } from './task_execution_context';
 
 interface TransformOptions {
     expression?: string;
@@ -13,53 +14,48 @@ export class TransformTaskLogic extends ProgramTaskLogic {
         super(task_id, task, statement);
     }
 
-    public prepare(context: TaskContext): void {}
-    public willExecute(_context: TaskContext): void {}
+    public prepare(_ctx: TaskExecutionContext): void {}
+    public willExecute(_ctx: TaskExecutionContext): void {}
 
-    public async execute(context: TaskContext): Promise<void> {
-        const instance = context.plan.programInstance;
+    public async execute(ctx: TaskExecutionContext): Promise<void> {
+        const instance = ctx.programState.programInstance;
         const stmtId = this._origin.statementId;
         const transform = instance.transformStatements.get(stmtId);
         if (!transform) throw new Error(`missing information for transform statement ${stmtId}`);
 
         // Find the loaded blob
-        const state = context.platform.store.getState();
-        const planState = state.core.planState;
         const blobName = transform.dataSource();
-        const blobID = planState.blobsByName.get(blobName);
+        const blobID = ctx.planState.blobsByName.get(blobName);
 
         // Parse transform options
         const extra = JSON.parse(transform.extra()) as TransformOptions;
 
         // Evaluate a jmespath
-        const blob = planState.objects.get(blobID) as UniqueBlob;
+        const blob = ctx.planState.blobs.get(blobID);
         const buffer = new Uint8Array(await blob.blob.arrayBuffer());
-        const jp = await context.platform.resolveJMESPath();
+        const jp = await ctx.jmespath();
         const result = await jp.evaluateUTF8(extra.expression || '.', buffer);
         const resultBlob = new Blob([result]);
 
         // Register the file handle in DuckDB
         const name = this.buffer.nameQualified();
-        const db = context.platform.database;
-        await db.use(async c => await c.instance.registerFileHandle(name, resultBlob));
+        await ctx.database.use(async c => await c.instance.registerFileHandle(name, resultBlob));
 
         // Build the plan object
         const now = new Date();
-        const obj: UniqueBlob = {
-            objectId: this.buffer.objectId(),
-            objectType: model.PlanObjectType.UNIQUE_BLOB,
-            timeCreated: now,
-            timeUpdated: now,
-            nameQualified: name || '',
-            blob: resultBlob,
-            archiveMode: proto.analyzer.ArchiveMode.NONE,
-        };
 
         // Store as plan object
-        const store = context.platform.store;
-        model.mutate(store.dispatch, {
-            type: model.StateMutationType.INSERT_PLAN_OBJECTS,
-            data: [obj],
+        ctx.planStateActions.push({
+            type: ADD_BLOB,
+            data: {
+                objectId: this.buffer.objectId(),
+                objectType: model.PlanObjectType.UNIQUE_BLOB,
+                timeCreated: now,
+                timeUpdated: now,
+                nameQualified: name || '',
+                blob: resultBlob,
+                archiveMode: proto.analyzer.ArchiveMode.NONE,
+            },
         });
     }
 }
