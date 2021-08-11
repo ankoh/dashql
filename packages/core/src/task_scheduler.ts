@@ -150,7 +150,7 @@ export class TaskScheduler<TaskBuffer extends ProtoTask> {
             const err = next_task.willExecuteGuarded(ctx);
             if (err != null) {
                 next_task_idcs[i] = -1;
-                ctx.log.pushBack({
+                ctx.logger.pushBack({
                     timestamp: new Date(),
                     level: LogLevel.WARNING,
                     origin: LogOrigin.TASK_SCHEDULER,
@@ -227,7 +227,7 @@ export class TaskScheduler<TaskBuffer extends ProtoTask> {
         // Did the task fail?
         // Log the error
         if (err != null) {
-            ctx.log.pushBack({
+            ctx.logger.pushBack({
                 timestamp: new Date(),
                 level: LogLevel.WARNING,
                 origin: LogOrigin.TASK_SCHEDULER,

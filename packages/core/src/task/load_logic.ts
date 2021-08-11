@@ -95,7 +95,7 @@ export class LoadTaskLogic extends ProgramTaskLogic {
             });
         });
 
-        ctx.log.pushBack({
+        ctx.logger.pushBack({
             timestamp: new Date(),
             level: model.LogLevel.INFO,
             origin: model.LogOrigin.LOAD_LOGIC,

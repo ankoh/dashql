@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { AxiosRequestConfig, AxiosResponse } from 'axios';
-import { ProviderProps, Log, LogLevel, LogEvent, LogOrigin, LogTopic, useLog } from './model';
+import { ProviderProps, Logger, LogLevel, LogEvent, LogOrigin, LogTopic, useLogger } from './model';
 import axios from 'axios';
 
 type HTTPProgressHandler = (progress: ProgressEvent) => void;
@@ -16,11 +16,11 @@ export interface HTTPData {
 
 export class HTTPClient {
     /// The logger
-    _log: Log;
+    _logger: Logger;
 
     /// Constructor
-    constructor(log: Log) {
-        this._log = log;
+    constructor(log: Logger) {
+        this._logger = log;
     }
 
     /// Send a HTTP request
@@ -35,7 +35,7 @@ export class HTTPClient {
                 ...req,
                 responseType: 'arraybuffer',
             });
-            this._log.pushBack({
+            this._logger.pushBack({
                 timestamp: new Date(),
                 level: LogLevel.INFO,
                 origin: LogOrigin.HTTP_MANAGER,
@@ -48,7 +48,7 @@ export class HTTPClient {
                 response: res,
             };
         } catch (e) {
-            this._log.pushBack({
+            this._logger.pushBack({
                 timestamp: new Date(),
                 level: LogLevel.ERROR,
                 origin: LogOrigin.HTTP_MANAGER,
@@ -64,8 +64,8 @@ export class HTTPClient {
 const ctx = React.createContext<HTTPClient | null>(null);
 
 export const HTTPClientProvider: React.FC<ProviderProps> = (props: ProviderProps) => {
-    const log = useLog();
-    const proxy = React.useRef<HTTPClient>(new HTTPClient(log));
+    const logger = useLogger();
+    const proxy = React.useRef<HTTPClient>(new HTTPClient(logger));
     return <ctx.Provider value={proxy.current}>{props.children}</ctx.Provider>;
 };
 
