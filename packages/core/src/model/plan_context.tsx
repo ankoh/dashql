@@ -29,7 +29,7 @@ export interface PlanContext {
     readonly tasks: Immutable.Map<TaskHandle, Task>;
 }
 
-const initialState: PlanContext = {
+export const initialPlanContext: PlanContext = {
     plan: null,
     schedulerStatus: TaskSchedulerStatus.Idle,
     statementStatus: Immutable.List<StatementStatus>(),
@@ -60,11 +60,11 @@ export type PlanContextAction =
     | Action<typeof DELETE_CARD, ObjectID>
     | Action<typeof BATCH_PLAN_ACTIONS, PlanContextAction[]>;
 
-const reducer = (ctx: PlanContext, action: PlanContextAction): PlanContext => {
+export const reducePlanContext = (ctx: PlanContext, action: PlanContextAction): PlanContext => {
     switch (action.type) {
         case BATCH_PLAN_ACTIONS:
             for (const a of action.data) {
-                ctx = reducer(ctx, a);
+                ctx = reducePlanContext(ctx, a);
             }
             return ctx;
         case ADD_BLOB:
@@ -173,11 +173,11 @@ const reducer = (ctx: PlanContext, action: PlanContextAction): PlanContext => {
     }
 };
 
-const stateCtx = React.createContext<PlanContext>(initialState);
+const stateCtx = React.createContext<PlanContext>(initialPlanContext);
 const dispatchCtx = React.createContext<Dispatch<PlanContextAction>>(() => {});
 
 export const PlanContextProvider: React.FC<ProviderProps> = (props: ProviderProps) => {
-    const [s, d] = React.useReducer(reducer, initialState);
+    const [s, d] = React.useReducer(reducePlanContext, initialPlanContext);
     return (
         <stateCtx.Provider value={s}>
             <dispatchCtx.Provider value={d}>{props.children}</dispatchCtx.Provider>

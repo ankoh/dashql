@@ -2,7 +2,7 @@ import { HTTPClient } from '../src/http_client';
 import { model } from '../src/index';
 import { mockHTTP, HTTPMock, encodeTextBody, decodeTextBody } from './http_mock';
 
-export function testHTTPManager(): void {
+export function testHTTPClient(): void {
     let httpMock: HTTPMock = null;
 
     afterEach(() => {
@@ -12,11 +12,11 @@ export function testHTTPManager(): void {
         }
     });
 
-    describe('HTTPManager', () => {
+    describe('HTTPClient', () => {
         it('init', () => {});
 
         it('fetch', async () => {
-            const log = model.Log.createStandalone();
+            const log = model.Log.createWired();
             const http = new HTTPClient(log);
             await http.init();
 

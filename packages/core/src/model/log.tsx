@@ -155,6 +155,8 @@ export class Log {
         this._state = state;
         this._dispatch = dispatch;
     }
+
+    /// Push a new log entry
     public pushBack(entry: LogEntryVariant): void {
         this._dispatch({
             type: PUSH_LOG_ENTRY,
@@ -162,11 +164,10 @@ export class Log {
         });
     }
 
-    static createStandalone(): Log {
+    /// Create standalone log
+    static createWired(): Log {
         const self = new Log(initialState, (action: LogStateAction) => {
-            const next = reducer(self._state, action);
-            self._state = next;
-            return next;
+            self._state = reducer(self._state, action);
         });
         return self;
     }
