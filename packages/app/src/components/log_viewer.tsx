@@ -1,8 +1,6 @@
 import * as React from 'react';
 import * as core from '@dashql/core';
 import classNames from 'classnames';
-import { AppState } from '../model';
-import { useSelector } from 'react-redux';
 import { SystemCard } from './system_card';
 import { withCurrentTime } from './current_time';
 import { List, ListRowProps, AutoSizer } from 'react-virtualized';
@@ -21,16 +19,15 @@ interface Props {
 
 const InnerLogViewer: React.FC<Props> = (props: Props) => {
     const [focused, setFocused] = React.useState<number | null>(null);
-    const logs = useSelector((state: AppState) => state.core.logEntries);
-
-    React.useEffect(() => props.updateCurrentTime(), [logs]);
+    const logState = core.model.useLogState();
+    React.useEffect(() => props.updateCurrentTime(), [logState.entries]);
 
     const onKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
         let nextEntry = focused || 0;
         switch (event.key) {
             case 'Down':
             case 'ArrowDown':
-                nextEntry = Math.min(nextEntry + 1, Math.max(logs.size - 1, 0));
+                nextEntry = Math.min(nextEntry + 1, Math.max(logState.entries.size - 1, 0));
                 break;
             case 'Up':
             case 'ArrowUp':
@@ -48,7 +45,7 @@ const InnerLogViewer: React.FC<Props> = (props: Props) => {
     };
 
     const renderRow = (rowProps: ListRowProps) => {
-        const log = logs.get(rowProps.index);
+        const log = logState.entries.get(rowProps.index);
         if (!log) return <div style={rowProps.style} />;
         const tsNow = props.currentTime;
         const tsLog = log.timestamp;
@@ -86,7 +83,7 @@ const InnerLogViewer: React.FC<Props> = (props: Props) => {
                             animate={{ height: 100 }}
                             exit={{ height: 0 }}
                         >
-                            {logs.get(focused)?.value.toString()}
+                            {logState.entries.get(focused)?.value.toString()}
                         </motion.div>
                     </AnimatePresence>
                 )}
@@ -101,7 +98,7 @@ const InnerLogViewer: React.FC<Props> = (props: Props) => {
                                     width={width}
                                     height={height}
                                     overscanRowCount={OVERSCAN_ROW_COUNT}
-                                    rowCount={logs.size}
+                                    rowCount={logState.entries.size}
                                     rowHeight={32}
                                     rowRenderer={renderRow}
                                     noRowsRenderer={renderEmptyList}
