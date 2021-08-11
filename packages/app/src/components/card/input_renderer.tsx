@@ -1,11 +1,11 @@
 import * as React from 'react';
-import * as core from '@dashql/core';
+import * as model from '../../model';
 import { InputGroup, FormControl } from 'react-bootstrap';
 
 import styles from './input_renderer.module.css';
 
 interface Props {
-    card: core.model.CardSpecification;
+    card: model.CardSpecification;
     editable?: boolean;
 }
 

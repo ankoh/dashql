@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Scrollbars, ScrollValues } from 'rc-scrollbars';
-import { getMaxElementSize } from '../util/max_element_size';
+import { getMaxElementSize } from '../utils/max_element_size';
 
 export interface PositionValues {
     clientWidth: number;

@@ -1,5 +1,6 @@
-import * as core from '@dashql/core';
 import * as arrow from 'apache-arrow';
+import * as model from '../../model';
+import * as access from '../../access';
 import classNames from 'classnames';
 import React from 'react';
 
@@ -46,7 +47,7 @@ export class TextColumnRenderer implements ColumnRenderer {
         this.valueDomainRatios = valueDomainRatios;
     }
 
-    public static ReadFrom(table: core.model.TableMetadata, data: arrow.Table, index: number): TextColumnRenderer {
+    public static ReadFrom(table: model.TableMetadata, data: arrow.Table, index: number): TextColumnRenderer {
         const column = data.getColumnAt(index)!;
         let valueClassName = styles.data_value_text;
         let formatter = (v: any): string => v.toString();
@@ -65,8 +66,8 @@ export class TextColumnRenderer implements ColumnRenderer {
                 valueClassName = styles.data_value_number;
                 formatter = (v: any) => v.toLocaleString('en-US');
 
-                const minKey = core.model.buildTableStatisticsKey(core.model.TableStatisticsType.MINIMUM_VALUE, index);
-                const maxKey = core.model.buildTableStatisticsKey(core.model.TableStatisticsType.MAXIMUM_VALUE, index);
+                const minKey = model.buildTableStatisticsKey(model.TableStatisticsType.MINIMUM_VALUE, index);
+                const maxKey = model.buildTableStatisticsKey(model.TableStatisticsType.MAXIMUM_VALUE, index);
                 if (table.statistics.has(minKey) && table.statistics.has(maxKey)) {
                     const min = table.statistics.get(minKey)!.get(0) || 0;
                     const max = table.statistics.get(maxKey)!.get(0) || 1;
@@ -197,7 +198,7 @@ export class TextColumnRenderer implements ColumnRenderer {
     }
 }
 
-export function deriveColumnRenderers(table: core.model.TableMetadata, data: core.access.ScanResult): ColumnRenderer[] {
+export function deriveColumnRenderers(table: model.TableMetadata, data: access.ScanResult): ColumnRenderer[] {
     const columns = [];
     const fields = data.result.schema.fields;
     for (let i = 0; i < fields.length; ++i) {

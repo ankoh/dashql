@@ -1,14 +1,15 @@
 import * as Immutable from 'immutable';
 import * as React from 'react';
-import * as core from '@dashql/core';
+import * as model from '../../model';
+import * as utils from '../../utils';
+import * as proto from '@dashql/proto';
 import classNames from 'classnames';
-import { proto } from '@dashql/core';
 
 import styles from './card_status.module.css';
 
 interface CardStatusProps {
     className?: string;
-    card: core.model.CardSpecification;
+    card: model.CardSpecification;
 }
 
 interface NodeData {
@@ -19,8 +20,8 @@ interface NodeData {
 }
 
 interface CardStatusState {
-    program: core.model.Program | null;
-    status: Immutable.List<core.model.StatementStatus>;
+    program: model.Program | null;
+    status: Immutable.List<model.StatementStatus>;
     nodes: NodeData[];
 }
 
@@ -40,20 +41,20 @@ const updateState = (state: CardStatusState): CardStatusState => ({
 });
 
 const rebuild = (
-    card: core.model.CardSpecification,
-    program: core.model.Program | null,
-    status: Immutable.List<core.model.StatementStatus>,
+    card: model.CardSpecification,
+    program: model.Program | null,
+    status: Immutable.List<model.StatementStatus>,
 ): CardStatusState => {
     if (!program) {
         return {
             program: null,
-            status: Immutable.List<core.model.StatementStatus>(),
+            status: Immutable.List<model.StatementStatus>(),
             nodes: [],
         };
     }
 
     // Collect all transitive dependencies
-    const focus = new core.utils.NativeBitmap(program.buffer.statementsLength());
+    const focus = new utils.NativeBitmap(program.buffer.statementsLength());
     const depDFS: number[] = [];
     const depMapping = program.statementDependencies;
     focus.set(card.statementID);
@@ -72,7 +73,7 @@ const rebuild = (
 
     // We use dagre to do the layouting and render the graph with react-flow afterwards
     const nodes: NodeData[] = [];
-    program.iterateStatements((idx: number, stmt: core.model.Statement) => {
+    program.iterateStatements((idx: number, stmt: model.Statement) => {
         if (!focus.isSet(idx)) return;
         nodes.push({
             nodeId: idx,
@@ -89,8 +90,8 @@ const rebuild = (
 };
 
 export const CardStatus: React.FC<CardStatusProps> = (props: CardStatusProps) => {
-    const { program } = core.model.useProgramContext();
-    const { statementStatus } = core.model.usePlanContext();
+    const { program } = model.useProgramContext();
+    const { statementStatus } = model.usePlanContext();
 
     const state = React.useMemo<CardStatusState>(
         () => rebuild(props.card, program, statementStatus),
