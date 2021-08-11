@@ -1,91 +1,65 @@
 import React from 'react';
-import { IAppContext, withAppContext } from '../app_context';
 import { TerminalEmulator } from './terminal_emulator';
+import * as core from '@dashql/core';
 
 import styles from './terminal.module.css';
 
-interface Props {
-    /// The app context
-    appContext: IAppContext;
-}
+type Props = Record<string, string>;
 
-class Terminal extends React.Component<Props> {
-    /// The terminal emulator
-    protected term: TerminalEmulator;
-    /// The terminal container
-    protected termContainer: React.RefObject<HTMLDivElement>;
-    /// The terminal input
-    protected termInput: string;
+export const Terminal: React.FC<Props> = (props: Props) => {
+    const termRef = React.useRef<TerminalEmulator>(new TerminalEmulator());
+    const termContainer = React.createRef<HTMLDivElement>();
+    const database = core.useDatabaseClient();
 
-    /// Constructor
-    constructor(props: Props) {
-        super(props);
-        this.term = new TerminalEmulator();
-        this.termContainer = React.createRef();
-        this.termInput = '';
-    }
-
-    /// Access the logger
-    protected get logger() {
-        return this.props.appContext.logger;
-    }
-    /// Access the database
-    protected get database() {
-        return this.props.appContext.platform!.database;
-    }
-
-    /// Render the demo
-    public render() {
-        return (
-            <div className={styles.root}>
-                <div ref={this.termContainer} className={styles.term_container}></div>
-            </div>
-        );
-    }
-
-    /// Evaluate the terminal input
-    protected async evalTermInput(text: string) {
-        const result = await this.database.use(async conn => {
+    // Evaluate the terminal input
+    const evalTermInput = async (text: string) => {
+        const result = await database.use(async conn => {
             return await conn.runQuery(text);
         });
-
+        const term = termRef.current;
         for (const row of result) {
-            this.term.printLine(row.toString());
+            term.printLine(row.toString());
         }
-    }
+    };
 
-    /// Run the terminal eval loop
-    protected async runTermEvalLoop(text: string | null = null) {
-        // Handle terminal input
-        if (text != null) {
-            await this.evalTermInput(text);
-        }
+    // Run the terminal eval loop
+    const runTermEvalLoop = React.useCallback(
+        async (text: string | null = null) => {
+            if (text != null) {
+                await evalTermInput(text);
+            }
 
-        // Schedule next read
-        this.term
-            .read('> ', '   ')
-            .then(this.runTermEvalLoop.bind(this))
-            .catch((txt: string) => {
-                this.term.printLine('error: ' + txt);
-            });
-    }
+            // Schedule next read
+            termRef.current
+                .read('> ', '   ')
+                .then(runTermEvalLoop)
+                .catch((txt: string) => {
+                    termRef.current.printLine('error: ' + txt);
+                });
+        },
+        [termRef.current],
+    );
 
-    public componentDidMount() {
-        if (this.termContainer.current != null) {
-            // Prepare the terminal
-            this.term.open(this.termContainer.current);
-            this.term.fit();
-            this.term.attach();
-            this.term.focus();
+    React.useEffect(() => {
+        if (!termContainer.current) return;
+        // Prepare the terminal
+        const term = termRef.current;
+        term.open(termContainer.current);
+        term.fit();
+        term.attach();
+        term.focus();
 
-            // Start the eval loop
-            this.runTermEvalLoop();
-        }
-    }
+        // Start the eval loop
+        runTermEvalLoop();
 
-    public componentWillUnmount() {
-        this.term.detach();
-    }
-}
+        return () => termRef.current.detach();
+    }, [termContainer.current]);
 
-export default withAppContext(Terminal);
+    return (
+        <div className={styles.root}>
+            <div ref={termContainer} className={styles.term_container}></div>
+        </div>
+    );
+};
+
+export default Terminal;

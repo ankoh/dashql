@@ -1,17 +1,14 @@
 import Immutable from 'immutable';
 import * as React from 'react';
 import * as core from '@dashql/core';
-import * as model from '../model';
 import * as monaco from 'monaco-editor/esm/vs/editor/editor.api';
 import * as proto from '@dashql/proto';
-import { useDispatch } from 'react-redux';
 import classNames from 'classnames';
 
 import { theme as monaco_theme } from './editor_theme_light';
 import styles from './editor.module.css';
 
 import sx = proto.syntax;
-import { useSelector } from 'react-redux';
 import { withAutoSizer } from '../util/autosizer';
 import { TokensProvider } from './editor_tokens';
 
@@ -56,17 +53,14 @@ type Props = {
 };
 
 const InnerEditor: React.FC<Props> = (props: Props) => {
-    const dispatch = useDispatch();
     const [editor, setEditor] = React.useState<monaco.editor.IStandaloneCodeEditor | null>(null);
     const [mouseOffset, setMouseOffset] = React.useState<number | null>(null);
     const monacoRef = React.useRef(null);
     const monacoContainer = (monacoRef.current || null) as HTMLDivElement | null;
 
-    const { script, program, programStatus } = useSelector((s: model.AppState) => ({
-        script: s.core.script,
-        program: s.core.program,
-        programStatus: s.core.planState.status,
-    }));
+    const { script, program } = core.model.useProgramContext();
+    const { statementStatus } = core.model.usePlanContext();
+    const programContextDispatch = core.model.useProgramContextDispatch();
 
     // Expose program and script via ref for monaco
     const scriptRef = React.useRef<core.model.Script>(script);
@@ -132,8 +126,8 @@ const InnerEditor: React.FC<Props> = (props: Props) => {
         // Finalize the editor
         e.onDidChangeModelContent(_event => {
             if (e.getValue() != scriptRef.current?.text) {
-                model.mutate(dispatch, {
-                    type: core.model.StateMutationType.UPDATE_SCRIPT,
+                programContextDispatch({
+                    type: core.model.SET_SCRIPT,
                     data: {
                         ...scriptRef.current,
                         text: e.getValue(),
@@ -189,7 +183,7 @@ const InnerEditor: React.FC<Props> = (props: Props) => {
     // Update decorations
     const prevDecoration = React.useRef<{
         program: core.model.Program;
-        programStatus: Immutable.List<core.model.StatementStatus>;
+        statementStatus: Immutable.List<core.model.StatementStatus>;
         mouseOffset: number | null;
         decorationIDs: string[];
     } | null>(null);
@@ -204,7 +198,7 @@ const InnerEditor: React.FC<Props> = (props: Props) => {
         if (
             prevDecoration.current &&
             prevDecoration.current.program == program &&
-            prevDecoration.current.programStatus == programStatus &&
+            prevDecoration.current.statementStatus == statementStatus &&
             !mouseMoveAffectsDecorations(program, prevDecoration.current.mouseOffset, mouseOffset)
         ) {
             return;
@@ -249,7 +243,7 @@ const InnerEditor: React.FC<Props> = (props: Props) => {
             });
 
             // Add status decoration
-            const stmtStatus = programStatus.get(stmt.statementId);
+            const stmtStatus = statementStatus.get(stmt.statementId);
             if (stmtStatus) {
                 let glyphClass = styles.deco_glyph_status_none;
                 switch (stmtStatus.status) {
@@ -318,11 +312,11 @@ const InnerEditor: React.FC<Props> = (props: Props) => {
         });
         prevDecoration.current = {
             program: program,
-            programStatus: programStatus,
+            statementStatus: statementStatus,
             mouseOffset: mouseOffset,
             decorationIDs: data.deltaDecorations(prevDecoration.current?.decorationIDs || [], dec),
         };
-    }, [editor, program, programStatus, mouseOffset]);
+    }, [editor, program, statementStatus, mouseOffset]);
 
     /// Debounce editor layouting
     const delayedResize = React.useRef<number | null>();
