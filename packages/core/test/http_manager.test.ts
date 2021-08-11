@@ -1,5 +1,5 @@
-import * as duckdb from '@dashql/duckdb/dist/duckdb.module.js';
-import { platform, model } from '../src/index';
+import { HTTPClient } from '../src/http_client';
+import { model } from '../src/index';
 import { mockHTTP, HTTPMock, encodeTextBody, decodeTextBody } from './http_mock';
 
 export function testHTTPManager(): void {
@@ -16,9 +16,8 @@ export function testHTTPManager(): void {
         it('init', () => {});
 
         it('fetch', async () => {
-            const store = model.createStore();
-            const logger = new duckdb.VoidLogger();
-            const http = new platform.HTTPManager(store, logger);
+            const log = model.Log.createStandalone();
+            const http = new HTTPClient(log);
             await http.init();
 
             httpMock = mockHTTP();

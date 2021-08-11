@@ -44,7 +44,7 @@ afterAll(async () => {
 });
 
 import { testDuckDB } from './duckdb.test';
-import { testTaskScheduler } from './task_scheduler.test';
+//import { testTaskScheduler } from './task_scheduler.test';
 import { testTaskGraph } from './task_graph.test';
 import { testHTTPManager } from './http_manager.test';
 import { testNativeMinHeap } from './native_min_heap.test';
@@ -55,11 +55,11 @@ import { testSemaphore } from './semaphore.test';
 import { testRowProxies } from './row_proxies.test';
 
 testDuckDB(() => db!);
-testTaskScheduler(
-    () => db!,
-    () => az!,
-    () => jp!,
-);
+//testTaskScheduler(
+//    () => db!,
+//    () => az!,
+//    () => jp!,
+//);
 testTaskGraph(() => az!);
 testHTTPManager();
 testNativeMinHeap();

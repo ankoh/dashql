@@ -35,8 +35,8 @@ export abstract class VizTaskLogic extends ProgramTaskLogic {
 
         // Helper to check if a name refers to a table
         const requireTable = (name: string) => {
-            const tableId = ctx.planContext.tablesByName.get(name);
-            if (tableId) return ctx.planContext.tables.get(tableId);
+            const table = ctx.database.metadata.tables.get(name);
+            if (table) return table;
             throw new error.TaskLogicError(`renderer requires ${name} to be a SQL Table or SQL View`, instance);
         };
 
@@ -126,7 +126,7 @@ export abstract class VizTaskLogic extends ProgramTaskLogic {
     }
 
     /// Read context info
-    public configureVegaComposer(ctx: TaskExecutionContext, table: model.TableSummary): void {
+    public configureVegaComposer(ctx: TaskExecutionContext, table: model.TableMetadata): void {
         // Build the composer
         const stats = ctx.database.resolveTableStatistics(table.nameQualified)!;
         this._vega = new VegaComposer(stats);

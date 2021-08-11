@@ -14,7 +14,7 @@ interface Props {
     /// The database manager
     database: DatabaseClient;
     /// The table info
-    table: model.TableSummary;
+    table: model.TableMetadata;
     /// The viz data query
     data: model.CardDataSource;
     /// The width of the container

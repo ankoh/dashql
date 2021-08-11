@@ -73,8 +73,8 @@ export class VegaComposer {
     }
 
     /// Get the table
-    protected get table(): model.TableSummary {
-        return this._tableStatistics.resolveTableInfo()!;
+    protected get table(): model.TableMetadata {
+        return this._tableStatistics.resolveTableMetadata()!;
     }
 
     /// Has a column?
@@ -303,7 +303,7 @@ export class VegaComposer {
 
     /// Analyze the vega encodings
     protected analyzeVegaEncodings(spec: TopLevel<NormalizedLayerSpec>): void {
-        const table = this._tableStatistics.resolveTableInfo()!;
+        const table = this._tableStatistics.resolveTableMetadata()!;
 
         // Analyze the field type
         const analyzeFieldType = (enc: any, columnID: number) => {
@@ -380,7 +380,7 @@ export class VegaComposer {
 
     /// Switch query type to M5 if the spec allows it
     public useM5IfPossible(spec: TopLevel<NormalizedLayerSpec>): void {
-        const table = this._tableStatistics.resolveTableInfo()!;
+        const table = this._tableStatistics.resolveTableMetadata()!;
 
         // Use m5 data source?
         let preferM5 = false;
