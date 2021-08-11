@@ -29,11 +29,11 @@ export interface TaskExecutionContext {
 }
 
 /// Create a wired task execution context that does not depend on react
-export function wireTaskExecutionContext(
+export async function wireTaskExecutionContext(
     db: duckdb.AsyncDuckDB,
     analyzer: AnalyzerBindings,
     jmespath: () => Promise<JMESPathBindings>,
-): TaskExecutionContext {
+): Promise<TaskExecutionContext> {
     const log = Log.createWired();
     const database = DatabaseClient.createWired(db);
     const http = new HTTPClient(log);
@@ -49,5 +49,6 @@ export function wireTaskExecutionContext(
         },
         planContextDiff: [],
     };
+    await database.connect();
     return ctx;
 }

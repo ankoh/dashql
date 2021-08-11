@@ -130,7 +130,7 @@ export const ScriptPipeline: React.FC<Props> = (props: Props) => {
             planContextDiff: [],
         };
         // Schedule the plan
-        taskScheduler.current.prepare(ctx);
+        taskScheduler.current.prepare(ctx, plan);
         // Execute all tasks asynchronously
         (async () => {
             // Execute the plan

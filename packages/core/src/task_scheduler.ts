@@ -19,6 +19,7 @@ import {
     SCHEDULE_PLAN,
     BATCH_PLAN_ACTIONS,
     UPDATE_PLAN_TASKS,
+    Plan,
 } from './model';
 
 export class TaskScheduler<TaskBuffer extends ProtoTask> {
@@ -306,9 +307,8 @@ export class TaskGraphScheduler {
     }
 
     /// Reset the scheduler
-    public prepare(ctx: TaskExecutionContext): void {
+    public prepare(ctx: TaskExecutionContext, plan: Plan): void {
         this._canceled = false;
-        const plan = ctx.planContext.plan!;
         const program = plan.program;
         const graph = plan.task_graph;
         const now = new Date();

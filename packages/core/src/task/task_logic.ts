@@ -39,6 +39,10 @@ export abstract class TaskLogic<TaskBuffer extends ProtoTask> {
         this._status = task.taskStatusCode();
     }
 
+    /// Get the task
+    public get task(): TaskBuffer {
+        return this._task;
+    }
     /// Get the task id
     public get taskId(): number {
         return this._task_id;

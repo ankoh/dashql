@@ -23,9 +23,6 @@ export class HTTPClient {
         this._log = log;
     }
 
-    /// Init the http manager
-    public async init(): Promise<void> {}
-
     /// Send a HTTP request
     public async request(
         req: AxiosRequestConfig,
