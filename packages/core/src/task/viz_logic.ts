@@ -18,7 +18,7 @@ export abstract class VizTaskLogic extends ProgramTaskLogic {
     /// The viz composer
     _vega: VegaComposer | null = null;
     /// The table (if needed)
-    _table: model.TableSummary | null = null;
+    _table: model.TableMetadata | null = null;
     /// The promise to get the row count (if needed)
     _rowCount: Promise<arrow.Column> | null = null;
 
@@ -176,7 +176,6 @@ export class CreateVizTaskLogic extends VizTaskLogic {
             type: ADD_CARD,
             data: {
                 objectId: this.buffer.objectId(),
-                objectType: model.PlanObjectType.CARD_SPECIFICATION,
                 timeCreated: now,
                 timeUpdated: now,
                 nameQualified: this.buffer.nameQualified() || '',

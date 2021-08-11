@@ -1,18 +1,22 @@
 // Copyright (c) 2020 The DashQL Authors
 
+import Immutable from 'immutable';
 import React from 'react';
 import * as duckdb from '@dashql/duckdb/dist/duckdb.module.js';
 import * as arrow from 'apache-arrow';
 import { TableStatisticsResolver, TableStatistics } from './table_statistics';
 import { Mutex } from './utils';
 import {
-    TableStatisticsType,
+    ADD_TABLE_METADATA,
+    ADD_TABLE_STATS,
     DatabaseMetadata,
     DatabaseMetadataAction,
-    ADD_TABLE_STATS,
+    Dispatch,
+    TableMetadata,
+    TableStatisticsType,
+    TableType,
     useDatabaseMetadata,
     useDatabaseMetadataDispatch,
-    Dispatch,
 } from './model';
 
 /// An database manager.
@@ -46,6 +50,11 @@ export class DatabaseClient {
         this._statisticsQueues = new Map();
         this._metadata = metadata;
         this._metadataDispatch = metadataDispatch;
+    }
+
+    /// Get the metadata
+    public get metadata(): DatabaseMetadata {
+        return this._metadata;
     }
 
     /// Resolve table statistics
@@ -139,6 +148,77 @@ export class DatabaseClient {
             type: ADD_TABLE_STATS,
             data: [qualifiedName, results.entries()],
         });
+    }
+
+    /// Collect table info
+    async collectTableMetadata(
+        conn: duckdb.AsyncConnection,
+        info: Partial<TableMetadata> & { nameQualified: string },
+    ): Promise<TableMetadata> {
+        const columnNames: string[] = [];
+        const columnNameMapping: Map<string, number> = new Map();
+        const columnTypes: arrow.DataType[] = [];
+        const describe = await conn.runQuery<{ Field: arrow.Utf8; Type: arrow.Utf8 }>(`DESCRIBE ${info.nameQualified}`);
+        let column = 0;
+        for (const row of describe) {
+            columnNames.push(row.Field);
+            columnNameMapping.set(row.Field, column++);
+            const mapType = (type: string): arrow.DataType => {
+                switch (type) {
+                    case 'BOOLEAN':
+                        return new arrow.Bool();
+                    case 'TINYINT':
+                        return new arrow.Int8();
+                    case 'SMALLINT':
+                        return new arrow.Int16();
+                    case 'INTEGER':
+                        return new arrow.Int32();
+                    case 'BIGINT':
+                        return new arrow.Int64();
+                    case 'UTINYINT':
+                        return new arrow.Uint8();
+                    case 'USMALLINT':
+                        return new arrow.Uint16();
+                    case 'UINTEGER':
+                        return new arrow.Uint32();
+                    case 'UBIGINT':
+                        return new arrow.Uint64();
+                    case 'FLOAT':
+                        return new arrow.Float32();
+                    case 'HUGEINT':
+                        return new arrow.Decimal(32, 0);
+                    case 'DOUBLE':
+                        return new arrow.Float64();
+                    case 'VARCHAR':
+                        return new arrow.Utf8();
+                    case 'DATE':
+                        return new arrow.DateDay();
+                    case 'TIME':
+                        return new arrow.Time(arrow.TimeUnit.MILLISECOND, 32);
+                    case 'TIMESTAMP':
+                        return new arrow.TimeNanosecond();
+                    default:
+                        return new arrow.Null();
+                }
+            };
+            columnTypes.push(mapType(row.Type));
+        }
+        /// Build the query text
+        const metadata: TableMetadata = {
+            tableType: TableType.TABLE,
+            tableID: null,
+            script: undefined,
+            statistics: Immutable.Map<TableStatisticsType, arrow.Column>(),
+            ...info,
+            columnNames,
+            columnTypes,
+            columnNameMapping,
+        };
+        this._metadataDispatch({
+            type: ADD_TABLE_METADATA,
+            data: [info.nameQualified, metadata],
+        });
+        return this._metadata.tables.get(info.nameQualified);
     }
 }
 

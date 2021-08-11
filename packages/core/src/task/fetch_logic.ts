@@ -1,7 +1,6 @@
 // Copyright (c) 2021 The DashQL Authors
 
 import * as proto from '@dashql/proto';
-import * as model from '../model';
 import { ADD_BLOB } from '../model/plan_context';
 import { TaskHandle, Statement } from '../model';
 import { ProgramTaskLogic } from './task_logic';
@@ -71,7 +70,6 @@ export class FetchTaskLogic extends ProgramTaskLogic {
             type: ADD_BLOB,
             data: {
                 objectId: this.buffer.objectId(),
-                objectType: model.PlanObjectType.UNIQUE_BLOB,
                 timeCreated: now,
                 timeUpdated: now,
                 nameQualified: name || '',
