@@ -17,7 +17,7 @@ import {
     useLaunchProgressDispatch,
 } from './model/launch_progress';
 
-import logo from '../../static/svg/logo/logo.svg';
+import logo from '../static/svg/logo/logo.svg';
 
 import styles from './app_launcher.module.css';
 
@@ -74,7 +74,7 @@ export const AppLauncher: React.FC<Props> = (props: Props) => {
     const programContextDispatch = core.model.useProgramContextDispatch();
     const launchProgress = useLaunchProgress();
     const launchProgressDispatch = useLaunchProgressDispatch();
-    const log = core.model.useLog();
+    const logger = core.model.useLogger();
 
     // Helper to update a launch step
     const updateStep = (step: LaunchStepType, status: Status, error?: any) => {
@@ -114,7 +114,7 @@ export const AppLauncher: React.FC<Props> = (props: Props) => {
             try {
                 const config = await duckdb.configure(DUCKDB_BUNDLES);
                 const worker = new Worker(config.mainWorker!);
-                const db = new duckdb.AsyncDuckDB(log, worker);
+                const db = new duckdb.AsyncDuckDB(logger, worker);
                 await db.instantiate(config.mainModule, config.pthreadWorker);
                 const client = new core.DatabaseClient(db, dbMetadata, dbMetadataDispatch);
                 await client.connect();
