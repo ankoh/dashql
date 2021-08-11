@@ -5,12 +5,12 @@ import { HTTPClient } from '../http_client';
 import { DatabaseClient } from '../database_client';
 import { AnalyzerBindings } from '../analyzer';
 import { JMESPathBindings } from '../jmespath';
-import { Dispatch, PlanContext, PlanContextAction, Log, initialPlanContext, reducePlanContext } from '../model';
+import { Dispatch, PlanContext, PlanContextAction, Logger, initialPlanContext, reducePlanContext } from '../model';
 
 /// A container that is passed to the scheduler and defines the runtime environment
 export interface TaskExecutionContext {
-    /// The log
-    readonly log: Log;
+    /// The logger
+    readonly logger: Logger;
     /// The database
     readonly database: DatabaseClient;
     /// The analyzer
@@ -34,11 +34,11 @@ export async function wireTaskExecutionContext(
     analyzer: AnalyzerBindings,
     jmespath: () => Promise<JMESPathBindings>,
 ): Promise<TaskExecutionContext> {
-    const log = Log.createWired();
+    const logger = Logger.createWired();
     const database = DatabaseClient.createWired(db);
-    const http = new HTTPClient(log);
+    const http = new HTTPClient(logger);
     const ctx: TaskExecutionContext = {
-        log,
+        logger,
         database,
         analyzer,
         http,

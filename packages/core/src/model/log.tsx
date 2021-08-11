@@ -147,7 +147,7 @@ const reducer = (state: LogState, action: LogStateAction): LogState => {
     }
 };
 
-export class Log implements duckdb.Logger {
+export class Logger implements duckdb.Logger {
     _state: LogState;
     _dispatch: Dispatch<LogStateAction>;
 
@@ -173,23 +173,29 @@ export class Log implements duckdb.Logger {
     }
 
     /// Create standalone log
-    static createWired(): Log {
-        const self = new Log(initialState, (action: LogStateAction) => {
+    static createWired(): Logger {
+        const self = new Logger(initialState, (action: LogStateAction) => {
             self._state = reducer(self._state, action);
         });
         return self;
     }
 }
 
-const logCtx = React.createContext<Log | null>(null);
+const loggerCtx = React.createContext<Logger | null>(null);
+const logStateCtx = React.createContext<LogState | null>(null);
 
 export const LogProvider: React.FC<ProviderProps> = (props: ProviderProps) => {
-    const [s, d] = React.useReducer(reducer, initialState);
-    const logger = React.useRef<Log>(new Log(s, d));
+    const [state, dispatch] = React.useReducer(reducer, initialState);
+    const logger = React.useRef<Logger>(new Logger(state, dispatch));
     React.useEffect(() => {
-        logger.current._state = s;
-    }, [s]);
-    return <logCtx.Provider value={logger.current}>{props.children}</logCtx.Provider>;
+        logger.current._state = state;
+    }, [state]);
+    return (
+        <logStateCtx.Provider value={state}>
+            <loggerCtx.Provider value={logger.current}>{props.children}</loggerCtx.Provider>
+        </logStateCtx.Provider>
+    );
 };
 
-export const useLog = (): Log => React.useContext(logCtx);
+export const useLogger = (): Logger => React.useContext(loggerCtx);
+export const useLogState = (): LogState => React.useContext(logStateCtx);

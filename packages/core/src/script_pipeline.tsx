@@ -4,7 +4,7 @@ import React from 'react';
 import { useAnalyzer } from './analyzer';
 import {
     usePlanContext,
-    useLog,
+    useLogger,
     useProgramContext,
     SET_PROGRAM,
     SET_PROGRAM_INSTANCE,
@@ -29,7 +29,7 @@ type Props = {
 
 export const ScriptPipeline: React.FC<Props> = (props: Props) => {
     // Setup all hooks
-    const log = useLog();
+    const logger = useLogger();
     const http = useHTTPClient();
     const jmespath = useJMESPathResolver();
     const database = useDatabaseClient();
@@ -120,7 +120,7 @@ export const ScriptPipeline: React.FC<Props> = (props: Props) => {
         if (!plan) return;
         // Create the context
         const ctx: TaskExecutionContext = {
-            log,
+            logger,
             database,
             analyzer,
             http,
