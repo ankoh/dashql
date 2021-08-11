@@ -1,8 +1,5 @@
 import * as React from 'react';
 import * as core from '@dashql/core';
-import * as model from '../../model';
-import { useSelector } from 'react-redux';
-import { IAppContext, withAppContext } from '../../app_context';
 import { CardFrame } from './card_frame';
 
 import DataGrid from './data_grid';
@@ -10,18 +7,17 @@ import DataGrid from './data_grid';
 import ScanProvider = core.access.ScanProvider;
 
 interface Props {
-    appContext: IAppContext;
     card: core.model.CardSpecification;
     editable?: boolean;
 }
 
-const InnerTableRenderer: React.FC<Props> = (props: Props) => {
-    const planState = useSelector((state: model.AppState) => state.core.planState);
+export const TableRenderer: React.FC<Props> = (props: Props) => {
+    const logger = core.model.useLogger();
+    const dbMeta = core.model.useDatabaseMetadata();
+    const db = core.useDatabaseClient();
     const target = props.card.dataSource!.targetQualified;
-    const logger = props.appContext.platform!.logger;
-    const db = props.appContext.platform!.database;
     const data = props.card.dataSource!;
-    const table = core.model.resolveTableByName(planState, data.targetQualified);
+    const table = dbMeta.tables.get(data.targetQualified);
     if (!table) {
         return <div />;
     }
@@ -38,5 +34,3 @@ const InnerTableRenderer: React.FC<Props> = (props: Props) => {
         </CardFrame>
     );
 };
-
-export const TableRenderer = withAppContext(InnerTableRenderer);

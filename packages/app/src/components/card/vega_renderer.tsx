@@ -1,15 +1,11 @@
 import * as React from 'react';
 import * as arrow from 'apache-arrow';
 import * as core from '@dashql/core';
-import * as model from '../../model';
-import { useSelector } from 'react-redux';
 import { withAutoSizer } from '../../util/autosizer';
-import { IAppContext, withAppContext } from '../../app_context';
 import { Vega } from 'react-vega';
 import { CardFrame } from './card_frame';
 
 interface VegaRendererProps {
-    appContext: IAppContext;
     card: core.model.CardSpecification;
     editable?: boolean;
 }
@@ -38,7 +34,7 @@ const VegaWithRows: React.FC<VegaWithRowsProps> = (props: VegaWithRowsProps) => 
     );
 };
 
-type ContentProps = VegaRendererProps & { table: core.model.TableSummary; width: number; height: number };
+type ContentProps = VegaRendererProps & { table: core.model.TableMetadata; width: number; height: number };
 
 const ContentRenderer: React.FC<ContentProps> = (props: ContentProps) => {
     if (props.width == 0 && props.height == 0) return <div />;
@@ -47,13 +43,7 @@ const ContentRenderer: React.FC<ContentProps> = (props: ContentProps) => {
     switch (props.card.dataSource!.dataResolver) {
         case core.model.CardDataResolver.M5: {
             return (
-                <core.access.M5Provider
-                    logger={props.appContext.platform!.logger}
-                    database={props.appContext.platform!.database}
-                    table={props.table}
-                    data={props.card.dataSource!}
-                    width={props.width}
-                >
+                <core.access.M5Provider table={props.table} data={props.card.dataSource!} width={props.width}>
                     {result => (
                         <VegaWithRows
                             data={result}
@@ -68,12 +58,7 @@ const ContentRenderer: React.FC<ContentProps> = (props: ContentProps) => {
 
         case core.model.CardDataResolver.RESERVOIR_SAMPLE: {
             return (
-                <core.access.SampleProvider
-                    logger={props.appContext.platform!.logger}
-                    database={props.appContext.platform!.database}
-                    table={props.table}
-                    data={props.card.dataSource!}
-                >
+                <core.access.SampleProvider table={props.table} data={props.card.dataSource!}>
                     {result => (
                         <VegaWithRows
                             data={result}
@@ -92,10 +77,10 @@ const ContentRenderer: React.FC<ContentProps> = (props: ContentProps) => {
 };
 const ContentRendererWithSize = withAutoSizer(ContentRenderer);
 
-const InnerVegaRenderer: React.FC<VegaRendererProps> = (props: VegaRendererProps) => {
-    const planState = useSelector((state: model.AppState) => state.core.planState);
+export const VegaRenderer: React.FC<VegaRendererProps> = (props: VegaRendererProps) => {
+    const dbMeta = core.model.useDatabaseMetadata();
     const target = props.card.dataSource!.targetQualified;
-    const table = core.model.resolveTableByName(planState, target);
+    const table = dbMeta.tables.get(target);
     if (!table) {
         return <div />;
     }
@@ -105,5 +90,3 @@ const InnerVegaRenderer: React.FC<VegaRendererProps> = (props: VegaRendererProps
         </CardFrame>
     );
 };
-
-export const VegaRenderer = withAppContext(InnerVegaRenderer);

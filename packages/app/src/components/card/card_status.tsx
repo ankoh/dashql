@@ -1,10 +1,8 @@
 import * as Immutable from 'immutable';
 import * as React from 'react';
 import * as core from '@dashql/core';
-import * as model from '../../model';
 import classNames from 'classnames';
 import { proto } from '@dashql/core';
-import { useSelector } from 'react-redux';
 
 import styles from './card_status.module.css';
 
@@ -42,7 +40,7 @@ const updateState = (state: CardStatusState): CardStatusState => ({
 });
 
 const rebuild = (
-    props: CardStatusProps,
+    card: core.model.CardSpecification,
     program: core.model.Program | null,
     status: Immutable.List<core.model.StatementStatus>,
 ): CardStatusState => {
@@ -58,8 +56,8 @@ const rebuild = (
     const focus = new core.utils.NativeBitmap(program.buffer.statementsLength());
     const depDFS: number[] = [];
     const depMapping = program.statementDependencies;
-    focus.set(props.card.statementID);
-    depDFS.push(props.card.statementID);
+    focus.set(card.statementID);
+    depDFS.push(card.statementID);
     while (depDFS.length > 0) {
         const top = depDFS.pop()!;
         const deps = depMapping.get(top);
@@ -91,13 +89,13 @@ const rebuild = (
 };
 
 export const CardStatus: React.FC<CardStatusProps> = (props: CardStatusProps) => {
-    const [program, status]: [core.model.Program | null, Immutable.List<core.model.StatementStatus>] = useSelector(
-        (state: model.AppState) => [state.core.program, state.core.planState.status],
+    const { program } = core.model.useProgramContext();
+    const { statementStatus } = core.model.usePlanContext();
+
+    const state = React.useMemo<CardStatusState>(
+        () => rebuild(props.card, program, statementStatus),
+        [props.card, program, statementStatus],
     );
-    const [state, setState] = React.useState<CardStatusState>(() => rebuild(props, program, status));
-    if (program !== state.program) {
-        setState(rebuild(props, program, status));
-    }
     const renderNode = (n: NodeData) => {
         let color = 'transparent';
         switch (n.taskStatus!) {

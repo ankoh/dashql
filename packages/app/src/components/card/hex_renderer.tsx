@@ -1,8 +1,6 @@
 import * as React from 'react';
 import * as core from '@dashql/core';
-import * as model from '../../model';
 import { AutoSizer } from 'react-virtualized';
-import { useSelector } from 'react-redux';
 import { CardFrame } from './card_frame';
 import { HexViewer } from './hex_viewer';
 import { BlobLoader } from '../blob_loader';
@@ -13,15 +11,16 @@ interface Props {
 }
 
 export const HexRenderer: React.FC<Props> = (props: Props) => {
-    const planState = useSelector((state: model.AppState) => state.core.planState);
+    const planContext = core.model.usePlanContext();
     const target = props.card.dataSource!.targetQualified;
-    const obj = core.model.resolveBlobByName(planState, target)!;
+    const blobID = planContext.blobsByName.get(target)!;
+    const blob = planContext.blobs.get(blobID)!;
     return (
         <CardFrame title={props.card.title || target} controls={props.editable}>
             <AutoSizer>
                 {({ width, height }) => (
                     <BlobLoader
-                        blob={obj.blob}
+                        blob={blob.blob}
                         loadingComponent={() => <div>loading...</div>}
                         errorComponent={e => <div>Error: {e}</div>}
                     >

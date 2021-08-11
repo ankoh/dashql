@@ -46,7 +46,7 @@ export class TextColumnRenderer implements ColumnRenderer {
         this.valueDomainRatios = valueDomainRatios;
     }
 
-    public static ReadFrom(table: core.model.TableSummary, data: arrow.Table, index: number): TextColumnRenderer {
+    public static ReadFrom(table: core.model.TableMetadata, data: arrow.Table, index: number): TextColumnRenderer {
         const column = data.getColumnAt(index)!;
         let valueClassName = styles.data_value_text;
         let formatter = (v: any): string => v.toString();
@@ -197,7 +197,7 @@ export class TextColumnRenderer implements ColumnRenderer {
     }
 }
 
-export function deriveColumnRenderers(table: core.model.TableSummary, data: core.access.ScanResult): ColumnRenderer[] {
+export function deriveColumnRenderers(table: core.model.TableMetadata, data: core.access.ScanResult): ColumnRenderer[] {
     const columns = [];
     const fields = data.result.schema.fields;
     for (let i = 0; i < fields.length; ++i) {

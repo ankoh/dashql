@@ -1,7 +1,6 @@
-import * as duckdb from '@dashql/duckdb/dist/duckdb.module.js';
 import * as React from 'react';
 import * as arrow from 'apache-arrow';
-import { DatabaseClient } from '../database_client';
+import { useDatabaseClient } from '../database_client';
 
 export interface Query {
     before?: string;
@@ -10,10 +9,6 @@ export interface Query {
 }
 
 interface Props {
-    /// The log manager
-    logger: duckdb.Logger;
-    /// The database manager
-    database: DatabaseClient;
     /// The query
     query: Query;
 
@@ -47,6 +42,7 @@ function queryEquals(l: Query, r: Query) {
 }
 
 export const QueryProvider: React.FC<Props> = (props: Props) => {
+    const database = useDatabaseClient();
     const [queryState, setQueryState] = React.useState<QueryState | null>({
         queryInFlight: null,
         queryPromise: null,
@@ -66,7 +62,7 @@ export const QueryProvider: React.FC<Props> = (props: Props) => {
             return;
         }
         const query = props.query;
-        const promise = props.database.use(async conn => {
+        const promise = database.use(async conn => {
             try {
                 if (query.before) {
                     await conn.runQuery(query.before);
