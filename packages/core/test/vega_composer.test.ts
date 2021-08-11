@@ -1,6 +1,7 @@
 import * as Immutable from 'immutable';
 import * as arrow from 'apache-arrow';
 import { analyzer, model, proto, viz } from '../src';
+import { TableStatisticsResolver } from '../src/table_statistics';
 
 interface VizComposerTestExpectation {
     cardRenderer: model.CardRendererType;
@@ -11,7 +12,7 @@ interface VizComposerTestExpectation {
 interface VizComposerTest {
     name: string;
     query: string;
-    table: Omit<model.TableSummary, keyof model.PlanObject> & { nameQualified: string };
+    table: Partial<model.TableMetadata> & { nameQualified: string };
     expected: VizComposerTestExpectation;
 }
 
@@ -157,21 +158,23 @@ VIZ foo USING LINE (
     },
 ];
 
-class FakeStatisticsResolver {
-    _table: model.TableSummary;
+class FakeStatisticsResolver implements TableStatisticsResolver {
+    _table: model.TableMetadata;
 
     constructor(test: VizComposerTest) {
-        const now = new Date();
         this._table = {
-            objectId: 0,
-            objectType: model.PlanObjectType.TABLE_SUMMARY,
-            timeCreated: now,
-            timeUpdated: now,
+            tableType: model.TableType.TABLE,
+            tableID: null,
+            script: undefined,
+            columnNames: [],
+            columnNameMapping: new Map<string, number>(),
+            columnTypes: [],
+            statistics: Immutable.Map<model.TableStatisticsType, arrow.Column>(),
             ...test.table,
         };
     }
     /// Resolve the table info
-    public resolveTableInfo(): model.TableSummary | null {
+    public resolveTableMetadata(): model.TableMetadata | null {
         return this._table;
     }
     /// Request table statistics

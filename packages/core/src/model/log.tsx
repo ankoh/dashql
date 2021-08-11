@@ -145,7 +145,6 @@ const reducer = (state: LogState, action: LogStateAction): LogState => {
                 }),
             };
     }
-    return state;
 };
 
 export class Log {
@@ -161,6 +160,15 @@ export class Log {
             type: PUSH_LOG_ENTRY,
             data: entry,
         });
+    }
+
+    static createStandalone(): Log {
+        const self = new Log(initialState, (action: LogStateAction) => {
+            const next = reducer(self._state, action);
+            self._state = next;
+            return next;
+        });
+        return self;
     }
 }
 
