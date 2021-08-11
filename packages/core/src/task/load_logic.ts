@@ -4,10 +4,8 @@ import * as duckdb from '@dashql/duckdb/dist/duckdb.module.js';
 import * as proto from '@dashql/proto';
 import * as model from '../model';
 import { TaskHandle, Statement } from '../model';
-import { ADD_TABLE } from '../model/plan_context';
 import { ProgramTaskLogic } from './task_logic';
 import { TaskExecutionContext } from './task_execution_context';
-import { collectTableInfo } from './table_logic';
 
 export class LoadTaskLogic extends ProgramTaskLogic {
     constructor(task_id: TaskHandle, task: proto.task.ProgramTask, statement: Statement) {
@@ -59,12 +57,14 @@ export class LoadTaskLogic extends ProgramTaskLogic {
         }
 
         // Handle the different load method
-        const table = await ctx.database.use(async c => {
+        await ctx.database.use(async c => {
             const filePath = await extractIfNeeded(c);
             let tableType: model.TableType;
+            let tableScript: string | undefined = undefined;
             switch (xtr.method()) {
                 case proto.syntax.LoadMethodType.PARQUET:
-                    await c.runQuery(`CREATE VIEW ${name} AS (SELECT * FROM parquet_scan('${filePath}'));`);
+                    tableScript = `CREATE VIEW ${name} AS (SELECT * FROM parquet_scan('${filePath}'));`;
+                    await c.runQuery(tableScript);
                     tableType = model.TableType.VIEW;
                     break;
                 case proto.syntax.LoadMethodType.JSON:
@@ -87,26 +87,13 @@ export class LoadTaskLogic extends ProgramTaskLogic {
             }
 
             // Return plan object
-            const now = new Date();
-            return await collectTableInfo(c, {
-                objectId: this.buffer.objectId(),
-                objectType: model.PlanObjectType.TABLE_SUMMARY,
-                timeCreated: now,
-                timeUpdated: now,
+            return await ctx.database.collectTableMetadata(c, {
                 nameQualified: this.buffer.nameQualified() || '',
                 tableType,
-                columnNames: [],
-                columnNameMapping: new Map(),
-                columnTypes: [],
-                filePath: filePath,
+                tableID: this.buffer.objectId(),
+                script: tableScript,
             });
         });
-        if (table) {
-            ctx.planContextDiff.push({
-                type: ADD_TABLE,
-                data: table,
-            });
-        }
 
         ctx.log.pushBack({
             timestamp: new Date(),

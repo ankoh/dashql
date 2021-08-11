@@ -6,7 +6,6 @@ import * as proto from '@dashql/proto';
 import { StatementStatus, deriveStatementStatusCode } from './program';
 import { TaskHandle, Task, TaskUpdate, TaskSchedulerStatus } from './task';
 import { Action, Dispatch, ProviderProps } from './model_context';
-import { TableSummary } from './table_summary';
 import { Plan } from './plan';
 import { CardSpecification } from './card_specification';
 import { UniqueBlob } from './unique_blob';
@@ -24,10 +23,6 @@ export interface PlanContext {
     readonly blobs: Immutable.Map<ObjectID, UniqueBlob>;
     /// The blobs by name
     readonly blobsByName: Immutable.Map<string, ObjectID>;
-    /// The tables
-    readonly tables: Immutable.Map<ObjectID, TableSummary>;
-    /// The tables by name
-    readonly tablesByName: Immutable.Map<string, ObjectID>;
     /// The cards
     readonly cards: Immutable.Map<ObjectID, CardSpecification>;
     /// The plan tasks
@@ -40,36 +35,28 @@ const initialState: PlanContext = {
     statementStatus: Immutable.List<StatementStatus>(),
     blobs: Immutable.Map<ObjectID, UniqueBlob>(),
     blobsByName: Immutable.Map<string, ObjectID>(),
-    tables: Immutable.Map<ObjectID, TableSummary>(),
-    tablesByName: Immutable.Map<string, ObjectID>(),
     cards: Immutable.Map<ObjectID, CardSpecification>(),
     tasks: Immutable.Map<TaskHandle, Task>(),
 };
 
 export const ADD_BLOB = Symbol('ADD_BLOB');
 export const ADD_CARD = Symbol('ADD_CARD');
-export const ADD_TABLE = Symbol('ADD_TABLE');
 export const BATCH_PLAN_ACTIONS = Symbol('BATCH_PLAN_ACTIONS');
 export const DELETE_BLOB = Symbol('DELETE_BLOB');
 export const DELETE_CARD = Symbol('DELETE_CARD');
-export const DELETE_TABLE = Symbol('DELETE_TABLE');
 export const RESET_PLAN = Symbol('RESET_PLAN');
 export const SCHEDULER_READY = Symbol('SCHEDULER_READY');
 export const SCHEDULE_PLAN = Symbol('SCHEDULE_PLAN');
 export const UPDATE_PLAN_TASKS = Symbol('UPDATE_PLAN_TASKS');
-export const UPDATE_TABLE_INFO = Symbol('UPDATE_TABLE_INFO');
 
 export type PlanContextAction =
     | Action<typeof SCHEDULER_READY, null>
     | Action<typeof SCHEDULE_PLAN, [Plan, Task[]]>
     | Action<typeof RESET_PLAN, null>
     | Action<typeof UPDATE_PLAN_TASKS, TaskUpdate[]>
-    | Action<typeof UPDATE_TABLE_INFO, [string, Partial<TableSummary>]>
     | Action<typeof ADD_BLOB, UniqueBlob>
-    | Action<typeof ADD_TABLE, TableSummary>
     | Action<typeof ADD_CARD, CardSpecification>
     | Action<typeof DELETE_BLOB, ObjectID>
-    | Action<typeof DELETE_TABLE, ObjectID>
     | Action<typeof DELETE_CARD, ObjectID>
     | Action<typeof BATCH_PLAN_ACTIONS, PlanContextAction[]>;
 
@@ -80,26 +67,17 @@ const reducer = (ctx: PlanContext, action: PlanContextAction): PlanContext => {
                 ctx = reducer(ctx, a);
             }
             return ctx;
-        case ADD_BLOB: {
+        case ADD_BLOB:
             return {
                 ...ctx,
                 blobs: ctx.blobs.set(action.data.objectId, action.data),
                 blobsByName: ctx.blobsByName.set(action.data.nameQualified, action.data.objectId),
             };
-        }
-        case ADD_TABLE: {
-            return {
-                ...ctx,
-                tables: ctx.tables.set(action.data.objectId, action.data),
-                tablesByName: ctx.tablesByName.set(action.data.nameQualified, action.data.objectId),
-            };
-        }
-        case ADD_CARD: {
+        case ADD_CARD:
             return {
                 ...ctx,
                 cards: ctx.cards.set(action.data.objectId, action.data),
             };
-        }
         case DELETE_BLOB: {
             const blob = ctx.blobs.get(action.data);
             if (blob === undefined) return ctx;
@@ -109,21 +87,11 @@ const reducer = (ctx: PlanContext, action: PlanContextAction): PlanContext => {
                 blobsByName: ctx.blobsByName.delete(blob.nameQualified),
             };
         }
-        case DELETE_TABLE: {
-            const table = ctx.tables.get(action.data);
-            if (table === undefined) return ctx;
-            return {
-                ...ctx,
-                tables: ctx.tables.delete(table.objectId),
-                tablesByName: ctx.tablesByName.delete(table.nameQualified),
-            };
-        }
-        case DELETE_CARD: {
+        case DELETE_CARD:
             return {
                 ...ctx,
                 cards: ctx.cards.delete(action.data),
             };
-        }
         case SCHEDULER_READY:
             return {
                 ...ctx,
@@ -156,7 +124,7 @@ const reducer = (ctx: PlanContext, action: PlanContextAction): PlanContext => {
                 tasks: Immutable.Map<TaskHandle, Task>(tasks.map(t => [t.taskId, t])),
             };
         }
-        case RESET_PLAN: {
+        case RESET_PLAN:
             if (ctx.schedulerStatus !== TaskSchedulerStatus.Idle) {
                 return ctx;
             }
@@ -167,13 +135,11 @@ const reducer = (ctx: PlanContext, action: PlanContextAction): PlanContext => {
                 statementStatus: Immutable.List([]),
                 tasks: Immutable.Map<TaskHandle, Task>(),
             };
-        }
         case UPDATE_PLAN_TASKS: {
-            const updates = action.data;
             return {
                 ...ctx,
                 statementStatus: ctx.statementStatus.withMutations(status => {
-                    for (const update of updates) {
+                    for (const update of action.data) {
                         const task = ctx.tasks.get(update.taskId);
                         if (!task || task.originStatement == null || task.statusCode == update.statusCode) {
                             continue;
@@ -187,7 +153,7 @@ const reducer = (ctx: PlanContext, action: PlanContextAction): PlanContext => {
                 }),
                 tasks: ctx.tasks.withMutations(tasks => {
                     const now = new Date();
-                    for (const update of updates) {
+                    for (const update of action.data) {
                         const a = tasks.get(update.taskId);
                         if (!a) {
                             console.warn(`UPDATE_PLAN_ACTIONS refers to unknown task id: ${update.taskId}`);
@@ -204,22 +170,7 @@ const reducer = (ctx: PlanContext, action: PlanContextAction): PlanContext => {
                 }),
             };
         }
-        case UPDATE_TABLE_INFO: {
-            const [tableName, tableUpdate] = action.data;
-            const tableID = ctx.tablesByName.get(tableName);
-            if (!tableID) return ctx;
-            const table = ctx.tables.get(tableID);
-            if (!table) return ctx;
-            return {
-                ...ctx,
-                tables: ctx.tables.set(table.objectId, {
-                    ...table,
-                    ...tableUpdate,
-                }),
-            };
-        }
     }
-    return ctx;
 };
 
 const stateCtx = React.createContext<PlanContext>(initialState);

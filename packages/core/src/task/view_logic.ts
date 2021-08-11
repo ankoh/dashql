@@ -3,11 +3,9 @@
 import * as proto from '@dashql/proto';
 import * as duckdb from '@dashql/duckdb/dist/duckdb.module.js';
 import * as model from '../model';
-import { ADD_TABLE } from '../model';
 import { TaskHandle } from '../model';
 import { ProgramTaskLogic, SetupTaskLogic } from './task_logic';
 import { TaskExecutionContext } from './task_execution_context';
-import { collectTableInfo } from './table_logic';
 
 export class ViewCreateTaskLogic extends ProgramTaskLogic {
     constructor(task_id: TaskHandle, task: proto.task.ProgramTask, statement: model.Statement) {
@@ -20,32 +18,18 @@ export class ViewCreateTaskLogic extends ProgramTaskLogic {
         const script = this.script;
         if (!script) return;
 
-        const db = ctx.database;
-        const table = await db.use(async (c: duckdb.AsyncConnection) => {
+        await ctx.database.use(async (c: duckdb.AsyncConnection) => {
             /// First run the query
             await c.runQuery(script);
 
             // Return plan object
-            const now = new Date();
-            return await collectTableInfo(c, {
-                objectId: this.buffer.objectId(),
-                objectType: model.PlanObjectType.TABLE_SUMMARY,
-                timeCreated: now,
-                timeUpdated: now,
+            return await ctx.database.collectTableMetadata(c, {
                 nameQualified: this.buffer.nameQualified() || '',
                 tableType: model.TableType.VIEW,
-                columnNames: [],
-                columnNameMapping: new Map(),
-                columnTypes: [],
+                tableID: this.buffer.objectId(),
+                script,
             });
         });
-
-        if (table) {
-            ctx.planContextDiff.push({
-                type: ADD_TABLE,
-                data: table,
-            });
-        }
     }
 }
 
@@ -67,8 +51,12 @@ export class DropViewTaskLogic extends SetupTaskLogic {
     public prepare(_ctx: TaskExecutionContext): void {}
     public willExecute(_ctx: TaskExecutionContext): void {}
     public async execute(ctx: TaskExecutionContext): Promise<void> {
-        await ctx.database.use(async (c: duckdb.AsyncConnection) => {
-            await c.runQuery(`DROP VIEW IF EXISTS ${this.buffer.nameQualified()}`);
+        const db = ctx.database;
+        const table = ctx.database.metadata.tables.get(this.buffer.nameQualified());
+        if (table === undefined) return;
+        const dropTarget = table.tableType == model.TableType.VIEW ? 'VIEW' : 'TABLE';
+        await db.use(async (c: duckdb.AsyncConnection) => {
+            await c.runQuery(`DROP ${dropTarget} IF EXISTS ${this.buffer.nameQualified()}`);
         });
     }
 }

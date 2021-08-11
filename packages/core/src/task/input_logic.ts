@@ -48,7 +48,6 @@ export class InputTaskLogic extends ProgramTaskLogic {
             type: ADD_CARD,
             data: {
                 objectId: this.buffer.objectId(),
-                objectType: model.PlanObjectType.CARD_SPECIFICATION,
                 timeCreated: now,
                 timeUpdated: now,
                 nameQualified: stmt.nameQualified,

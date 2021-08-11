@@ -1,12 +1,5 @@
-// Copyright (c) 2020 The DashQL Authors
+// Copyright (c) 2021 The DashQL Authors
 
-/// A plan object type
-export enum PlanObjectType {
-    TABLE_SUMMARY,
-    CARD_SPECIFICATION,
-    UNIQUE_BLOB,
-    DUCKDB_BUFFER,
-}
 /// A plan object id
 export type PlanObjectID = number;
 
@@ -14,8 +7,6 @@ export type PlanObjectID = number;
 export interface PlanObject {
     /// The object id
     objectId: PlanObjectID;
-    /// The type
-    objectType: PlanObjectType;
     /// The time when the object was created
     timeCreated: Date;
     /// The time when the object was updated

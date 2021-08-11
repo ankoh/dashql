@@ -324,7 +324,7 @@ const InnerEditor: React.FC<Props> = (props: Props) => {
         };
     }, [editor, program, programStatus, mouseOffset]);
 
-    /// Pending resize
+    /// Debounce editor layouting
     const delayedResize = React.useRef<number | null>();
     React.useEffect(() => {
         const delayMs = 100;

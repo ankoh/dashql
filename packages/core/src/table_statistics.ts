@@ -38,7 +38,7 @@ export class TableStatisticsRequest {
 /// A resolver for table statistics
 export interface TableStatisticsResolver {
     /// Resolve the table info
-    resolveTableInfo(): model.TableSummary | null;
+    resolveTableMetadata(): model.TableMetadata | null;
     /// Request table statistics
     request(type: model.TableStatisticsType, columnId: number): Promise<arrow.Column>;
     /// Evaluate table statistics
@@ -67,16 +67,16 @@ export class TableStatistics implements TableStatisticsResolver {
     }
 
     /// Resolve the table info
-    public resolveTableInfo(): model.TableSummary | null {
-        return this._database.resolveTableName(this._tableName);
+    public resolveTableMetadata(): model.TableMetadata | null {
+        return this._database.metadata.tables.get(this._tableName) || null;
     }
 
     /// Build the associative aggregate query
-    protected buildAssociativeAggregateQuery(tableInfo: model.TableSummary): string {
+    protected buildAssociativeAggregateQuery(table: model.TableMetadata): string {
         let out = 'SELECT ';
         let value_id = 0;
         for (const req of this._associativeAggregates) {
-            const column_name = tableInfo.columnNames[req.columnId];
+            const column_name = table.columnNames[req.columnId];
             req._valueId = value_id++;
             if (req._valueId > 0) {
                 out += ', ';
@@ -93,12 +93,12 @@ export class TableStatistics implements TableStatisticsResolver {
                     break;
             }
         }
-        out += ` FROM ${tableInfo.nameQualified};`;
+        out += ` FROM ${table.nameQualified};`;
         return out;
     }
 
     /// Build a standalone query
-    protected buildStandaloneQuery(_tableInfo: model.TableSummary, _req: TableStatisticsRequest): string {
+    protected buildStandaloneQuery(_table: model.TableMetadata, _req: TableStatisticsRequest): string {
         console.assert('There are no standalone table statistics at the moment');
         return '';
     }
@@ -107,7 +107,7 @@ export class TableStatistics implements TableStatisticsResolver {
     public async request(type: model.TableStatisticsType, columnId = 0): Promise<arrow.Column> {
         const key = model.buildTableStatisticsKey(type, columnId);
         const prev = this._requests.get(key);
-        const table = this._database.resolveTableName(this._tableName);
+        const table = this._database.metadata.tables.get(this._tableName);
         if (prev) {
             return new Promise((resolve, reject) => {
                 prev._promiseResolvers.push(resolve);
@@ -135,18 +135,18 @@ export class TableStatistics implements TableStatisticsResolver {
     public async evaluate(): Promise<Map<model.TableStatisticsKey, arrow.Column>> {
         // Resolve the table info
         const stats: Map<model.TableStatisticsKey, arrow.Column> = new Map();
-        const tableInfo = this._database.resolveTableName(this._tableName);
-        if (!tableInfo) return stats;
+        const table = this._database.metadata.tables.get(this._tableName);
+        if (!table) return stats;
 
         // Process the associative aggregates first
         if (this._associativeAggregates.length > 0) {
             try {
                 // Query the associative aggregates
-                const query = this.buildAssociativeAggregateQuery(tableInfo);
-                const table = await this._database.use(async (conn: duckdb.AsyncConnection) => {
+                const query = this.buildAssociativeAggregateQuery(table);
+                const data = await this._database.use(async (conn: duckdb.AsyncConnection) => {
                     return await conn.runQuery(query);
                 });
-                if (table.count() == 0) {
+                if (data.count() == 0) {
                     // Received no values, reject all requests
                     for (const req of this._associativeAggregates) {
                         for (const reject of req._promiseRejecters) {
@@ -157,8 +157,8 @@ export class TableStatistics implements TableStatisticsResolver {
                 } else {
                     // Update the statistics
                     for (const req of this._associativeAggregates) {
-                        if (req._valueId >= table.numCols) continue;
-                        stats.set(req.key, table.getColumnAt(req._valueId));
+                        if (req._valueId >= data.numCols) continue;
+                        stats.set(req.key, data.getColumnAt(req._valueId));
                     }
                 }
             } catch (e) {
@@ -175,7 +175,7 @@ export class TableStatistics implements TableStatisticsResolver {
         for (const req of this._standaloneRequests) {
             try {
                 // Evaluate the query
-                const query = this.buildStandaloneQuery(tableInfo, req);
+                const query = this.buildStandaloneQuery(table, req);
                 const result = await this._database.use(async (conn: duckdb.AsyncConnection) => {
                     return await conn.runQuery(query);
                 });
