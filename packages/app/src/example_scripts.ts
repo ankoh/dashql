@@ -1,5 +1,4 @@
 import * as core from '@dashql/core';
-import * as model from './model';
 import axios from 'axios';
 
 import example_demo_explore_json from '../static/examples/demo_explore_json.dashql';
@@ -341,17 +340,4 @@ export async function getScript(example: ExampleScriptMetadata): Promise<core.mo
         lineCount: core.utils.countLines(text),
         bytes: core.utils.estimateUTF16Length(text),
     };
-}
-
-export async function loadScript(example: ExampleScriptMetadata, dispatch: model.Dispatch): Promise<void> {
-    try {
-        const script = await getScript(example);
-        model.mutate(dispatch, {
-            type: core.model.StateMutationType.REPLACE_SCRIPT,
-            data: script,
-        });
-    } catch (e) {
-        // XXX log to platform
-        console.error(`Loading example ${example.key.toString()} failed with error: ${e}`);
-    }
 }

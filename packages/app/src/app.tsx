@@ -19,7 +19,7 @@ const StudioPage = withNavBar(withBanner(Studio));
 const ExamplesPage = withNavBar(withBanner(Examples));
 const ViewerPage = withBanner(withMinimalNavBar(Viewer));
 
-const ContextProviders = (props: { children: React.ReactElement }) => (
+const DataProviders = (props: { children: React.ReactElement }) => (
     <core.model.LogProvider>
         <core.model.DatabaseMetadataProvider>
             <core.model.ProgramContextProvider>
@@ -32,7 +32,7 @@ const ContextProviders = (props: { children: React.ReactElement }) => (
 );
 
 ReactDOM.render(
-    <ContextProviders>
+    <DataProviders>
         <AppLauncher>
             <BrowserRouter>
                 <Routes>
@@ -45,6 +45,6 @@ ReactDOM.render(
                 </Routes>
             </BrowserRouter>
         </AppLauncher>
-    </ContextProviders>,
+    </DataProviders>,
     document.getElementById('root'),
 );

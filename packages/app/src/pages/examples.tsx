@@ -3,7 +3,6 @@ import * as core from '@dashql/core';
 import * as examples from '../example_scripts';
 import classNames from 'classnames';
 import { useNavigate } from 'react-router-dom';
-import { useDispatch } from 'react-redux';
 import { motion, AnimateSharedLayout } from 'framer-motion';
 import { EXAMPLE_SCRIPTS, EXAMPLE_SCRIPT_MAP, ScriptFeatureTag, ExampleScriptMetadata } from '../example_scripts';
 
@@ -38,9 +37,9 @@ interface Props {
     className?: string;
 }
 
-export const Examples: React.FunctionComponent<Props> = (_props: Props) => {
+export const Examples: React.FC<Props> = (_props: Props) => {
     const navigate = useNavigate();
-    const dispatch = useDispatch();
+    const programContextDispatch = core.model.useProgramContextDispatch();
     const [filteredFeatures, setFilteredFeatures] = React.useState(
         new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_),
     );
@@ -65,7 +64,11 @@ export const Examples: React.FunctionComponent<Props> = (_props: Props) => {
 
     const selectExample = async (elem: React.MouseEvent<HTMLDivElement>) => {
         const key = (elem.currentTarget as any).dataset.key;
-        await examples.loadScript(EXAMPLE_SCRIPT_MAP.get(key)!, dispatch);
+        const script = await examples.getScript(EXAMPLE_SCRIPT_MAP.get(key)!);
+        programContextDispatch({
+            type: core.model.SET_SCRIPT,
+            data: script,
+        });
         navigate('/studio');
     };
 
