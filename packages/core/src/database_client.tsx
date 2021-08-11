@@ -12,6 +12,8 @@ import {
     DatabaseMetadata,
     DatabaseMetadataAction,
     Dispatch,
+    initialDatabaseMetadata,
+    reduceDatabaseMetadata,
     TableMetadata,
     TableStatisticsType,
     TableType,
@@ -219,6 +221,17 @@ export class DatabaseClient {
             data: [info.nameQualified, metadata],
         });
         return this._metadata.tables.get(info.nameQualified);
+    }
+
+    /// Create standalone database client
+    static createWired(db: duckdb.AsyncDuckDB): DatabaseClient {
+        const state = initialDatabaseMetadata;
+        const client = new DatabaseClient(db, state, () => {});
+        const dispatch = (action: DatabaseMetadataAction) => {
+            client._metadata = reduceDatabaseMetadata(client._metadata, action);
+        };
+        client._metadataDispatch = dispatch;
+        return client;
     }
 }
 

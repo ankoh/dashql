@@ -59,7 +59,7 @@ export type DatabaseMetadata = {
     readonly tables: Immutable.Map<string, TableMetadata>;
 };
 
-const initialState: DatabaseMetadata = {
+export const initialDatabaseMetadata: DatabaseMetadata = {
     tables: Immutable.Map<string, TableMetadata>(),
 };
 
@@ -74,7 +74,7 @@ export type DatabaseMetadataAction =
     | Action<typeof UPDATE_TABLE_METADATA, [string, Partial<TableMetadata>]>
     | Action<typeof DROP_TABLE_METADATA, string>;
 
-const reducer = (ctx: DatabaseMetadata, action: DatabaseMetadataAction): DatabaseMetadata => {
+export const reduceDatabaseMetadata = (ctx: DatabaseMetadata, action: DatabaseMetadataAction): DatabaseMetadata => {
     switch (action.type) {
         case ADD_TABLE_METADATA: {
             const [name, data] = action.data;
@@ -135,11 +135,11 @@ const reducer = (ctx: DatabaseMetadata, action: DatabaseMetadataAction): Databas
     }
 };
 
-const stateCtx = React.createContext<DatabaseMetadata>(initialState);
+const stateCtx = React.createContext<DatabaseMetadata>(initialDatabaseMetadata);
 const dispatchCtx = React.createContext<Dispatch<DatabaseMetadataAction>>(() => {});
 
 export const DatabaseMetadataProvider: React.FC<ProviderProps> = (props: ProviderProps) => {
-    const [s, d] = React.useReducer(reducer, initialState);
+    const [s, d] = React.useReducer(reduceDatabaseMetadata, initialDatabaseMetadata);
     return (
         <stateCtx.Provider value={s}>
             <dispatchCtx.Provider value={d}>{props.children}</dispatchCtx.Provider>

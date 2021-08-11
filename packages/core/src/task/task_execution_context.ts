@@ -1,11 +1,13 @@
 // Copyright (c) 2021 The DashQL Authors
 
+import * as duckdb from '@dashql/duckdb/dist/duckdb.module.js';
 import { HTTPClient } from '../http_client';
 import { DatabaseClient } from '../database_client';
 import { AnalyzerBindings } from '../analyzer';
 import { JMESPathBindings } from '../jmespath';
-import { Dispatch, PlanContext, PlanContextAction, Log } from '../model';
+import { Dispatch, PlanContext, PlanContextAction, Log, initialPlanContext, reducePlanContext } from '../model';
 
+/// A container that is passed to the scheduler and defines the runtime environment
 export interface TaskExecutionContext {
     /// The log
     readonly log: Log;
@@ -24,4 +26,28 @@ export interface TaskExecutionContext {
     planContextDispatch: Dispatch<PlanContextAction>;
     /// The pending plan state actions
     planContextDiff: PlanContextAction[];
+}
+
+/// Create a wired task execution context that does not depend on react
+export function wireTaskExecutionContext(
+    db: duckdb.AsyncDuckDB,
+    analyzer: AnalyzerBindings,
+    jmespath: () => Promise<JMESPathBindings>,
+): TaskExecutionContext {
+    const log = Log.createWired();
+    const database = DatabaseClient.createWired(db);
+    const http = new HTTPClient(log);
+    const ctx: TaskExecutionContext = {
+        log,
+        database,
+        analyzer,
+        http,
+        jmespath,
+        planContext: initialPlanContext,
+        planContextDispatch: (action: PlanContextAction) => {
+            ctx.planContext = reducePlanContext(ctx.planContext, action);
+        },
+        planContextDiff: [],
+    };
+    return ctx;
 }
