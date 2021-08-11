@@ -1,8 +1,6 @@
 import * as React from 'react';
-import * as model from '../model';
 import * as core from '@dashql/core';
 import axios from 'axios';
-import { useDispatch } from 'react-redux';
 import { useLocation } from 'react-router-dom';
 
 interface Props {
@@ -27,7 +25,7 @@ interface State {
 
 export const ScriptLoader: React.FC<Props> = (props: Props) => {
     const location = useLocation();
-    const dispatch = useDispatch();
+    const programContextDispatch = core.model.useProgramContextDispatch();
     const [state, setState] = React.useState<State>({
         requestURL: null,
         requestURI: null,
@@ -75,8 +73,8 @@ export const ScriptLoader: React.FC<Props> = (props: Props) => {
                 status: ScriptLoaderStatus.SUCCEEDED,
                 error: null,
             });
-            model.mutate(dispatch, {
-                type: core.model.StateMutationType.UPDATE_SCRIPT,
+            programContextDispatch({
+                type: core.model.SET_SCRIPT,
                 data: {
                     text,
                     uriPrefix: uri[0],

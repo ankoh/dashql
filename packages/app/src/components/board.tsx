@@ -1,15 +1,11 @@
 import * as core from '@dashql/core';
 import * as React from 'react';
-import * as model from '../model';
 import ReactGrid from 'react-grid-layout';
-import { useSelector, useDispatch } from 'react-redux';
-import { IAppContext, withAppContext } from '../app_context';
 import { CardRenderer } from './card';
 
 import './board.module.css';
 
 type Props = {
-    appContext: IAppContext;
     className?: string;
     width: number;
     editable?: boolean;
@@ -28,14 +24,14 @@ interface LayoutElement {
     h: number;
 }
 
-const InnerBoard: React.FC<Props> = (props: Props) => {
-    const analyzer = props.appContext.platform!.analyzer;
-    const dispatch = useDispatch();
-    const planState = useSelector((state: model.AppState) => state.core.planState);
+export const Board: React.FC<Props> = (props: Props) => {
+    const analyzer = core.analyzer.useAnalyzer();
+    const programContextDispatch = core.model.useProgramContextDispatch();
+    const planContext = core.model.usePlanContext();
 
     const layout = React.useMemo(() => {
         const els: LayoutElement[] = [];
-        core.model.forEachCard(planState, (card, i) => {
+        planContext.cards.forEach(card => {
             els.push({
                 card: card,
                 i: card.objectId.toString(),
@@ -46,7 +42,7 @@ const InnerBoard: React.FC<Props> = (props: Props) => {
             });
         });
         return els;
-    }, [planState.objects]);
+    }, [planContext.cards]);
 
     const userExpectation = React.useRef<boolean>();
     const onLayoutChanged = () => {
@@ -66,8 +62,8 @@ const InnerBoard: React.FC<Props> = (props: Props) => {
         }));
         const next = analyzer.editProgram(updates);
         if (next) {
-            model.mutate(dispatch, {
-                type: core.model.StateMutationType.REWRITE_PROGRAM,
+            programContextDispatch({
+                type: core.model.REWRITE_PROGRAM,
                 data: next,
             });
         }
@@ -103,5 +99,3 @@ const InnerBoard: React.FC<Props> = (props: Props) => {
         </ReactGrid>
     );
 };
-
-export const Board = withAppContext(InnerBoard);
