@@ -1,9 +1,7 @@
 import * as Immutable from 'immutable';
 import * as React from 'react';
 import * as core from '@dashql/core';
-import * as model from '../model';
 import { proto } from '@dashql/core';
-import { useSelector } from 'react-redux';
 import { SystemCard } from './system_card';
 import { TaskStatusIndicator } from './status';
 import styles from './task_list.module.css';
@@ -99,10 +97,7 @@ const renderTasks = (plan: core.model.Plan, planTasks: Immutable.Map<core.model.
 };
 
 export const TaskList: React.FC<Props> = (props: Props) => {
-    const { plan, tasks } = useSelector((state: model.AppState) => ({
-        plan: state.core.plan,
-        tasks: state.core.planState.tasks,
-    }));
+    const { plan, tasks } = core.model.usePlanContext();
     return (
         <SystemCard title="Task" onClose={props.onClose} className={props.className}>
             {plan && renderTasks(plan, tasks)}
