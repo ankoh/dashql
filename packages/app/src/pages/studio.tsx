@@ -1,8 +1,7 @@
 import * as React from 'react';
 import * as arrow from 'apache-arrow';
-import { AppState } from '../model';
+import * as core from '@dashql/core';
 import { Link } from 'react-router-dom';
-import { useSelector } from 'react-redux';
 import { Route, Routes } from 'react-router-dom';
 import { BoardEditor, EditorLoader, ProgramStatsTeaser } from '../components';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -37,9 +36,7 @@ type Props = {
 };
 
 export const Studio: React.FC<Props> = (props: Props) => {
-    const { script } = useSelector((state: AppState) => ({
-        script: state.core.script,
-    }));
+    const { script } = core.model.useProgramContext();
     return (
         <div className={styles.studio}>
             <AnimatePresence>
