@@ -147,13 +147,21 @@ const reducer = (state: LogState, action: LogStateAction): LogState => {
     }
 };
 
-export class Log {
+export class Log implements duckdb.Logger {
     _state: LogState;
     _dispatch: Dispatch<LogStateAction>;
 
     constructor(state: LogState, dispatch: Dispatch<LogStateAction>) {
         this._state = state;
         this._dispatch = dispatch;
+    }
+
+    /// Log a duckdb log entry
+    public log(entry: duckdb.LogEntryVariant): void {
+        this._dispatch({
+            type: PUSH_LOG_ENTRY,
+            data: entry,
+        });
     }
 
     /// Push a new log entry
@@ -175,7 +183,7 @@ export class Log {
 
 const logCtx = React.createContext<Log | null>(null);
 
-export const ProgramStateProvider: React.FC<ProviderProps> = (props: ProviderProps) => {
+export const LogProvider: React.FC<ProviderProps> = (props: ProviderProps) => {
     const [s, d] = React.useReducer(reducer, initialState);
     const logger = React.useRef<Log>(new Log(s, d));
     React.useEffect(() => {
