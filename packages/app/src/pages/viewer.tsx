@@ -1,7 +1,7 @@
 import * as React from 'react';
 import styles from './viewer.module.css';
 import styles_cmd from '../components/cmdbar.module.css';
-import { AutoSizer } from '../util/autosizer';
+import { AutoSizer } from '../utils/autosizer';
 import { Board, ScriptLoader } from '../components';
 import { Link } from 'react-router-dom';
 import { Scrollbars } from 'rc-scrollbars';

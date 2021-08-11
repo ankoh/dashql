@@ -12,7 +12,7 @@ import { VirtualScrollbars, PositionValues } from '../virtual_scrollbars';
 import { ColumnRenderer, deriveColumnRenderers } from './data_grid_column';
 
 import styles from './data_grid.module.css';
-import { withAutoSizer } from '../../util/autosizer';
+import { withAutoSizer } from '../../utils/autosizer';
 
 const PIXEL_PER_CHAR = 8;
 const ROW_HEADER_PADDING = 20;

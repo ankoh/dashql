@@ -1,7 +1,7 @@
 import * as React from 'react';
 import * as arrow from 'apache-arrow';
 import * as core from '@dashql/core';
-import { withAutoSizer } from '../../util/autosizer';
+import { withAutoSizer } from '../../utils/autosizer';
 import { Vega } from 'react-vega';
 import { CardFrame } from './card_frame';
 

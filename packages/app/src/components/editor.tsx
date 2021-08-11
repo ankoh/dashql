@@ -9,7 +9,7 @@ import { theme as monaco_theme } from './editor_theme_light';
 import styles from './editor.module.css';
 
 import sx = proto.syntax;
-import { withAutoSizer } from '../util/autosizer';
+import { withAutoSizer } from '../utils/autosizer';
 import { TokensProvider } from './editor_tokens';
 
 /// Does the mouse movement affect the decorations?
@@ -68,6 +68,7 @@ const InnerEditor: React.FC<Props> = (props: Props) => {
     React.useEffect(() => {
         scriptRef.current = script;
         programRef.current = program;
+        console.log(script);
         if (editor) {
             editor.setValue(script.text);
         }

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import * as core from '@dashql/core';
+import * as model from '../../model';
 import { CardStatus } from './card_status';
 import { HexRenderer } from './hex_renderer';
 import { JsonRenderer } from './json_renderer';
@@ -8,7 +8,7 @@ import { TableRenderer } from './table_renderer';
 import { VegaRenderer } from './vega_renderer';
 
 interface Props {
-    card: core.model.CardSpecification;
+    card: model.CardSpecification;
     editable?: boolean;
 }
 
@@ -17,16 +17,16 @@ export const CardRenderer: React.FunctionComponent<Props> = (props: Props) => {
         return <CardStatus card={props.card} />;
     }
     switch (props.card.cardRenderer) {
-        case core.model.CardRendererType.BUILTIN_INPUT_TEXT:
-        case core.model.CardRendererType.BUILTIN_INPUT_FILE:
+        case model.CardRendererType.BUILTIN_INPUT_TEXT:
+        case model.CardRendererType.BUILTIN_INPUT_FILE:
             return <InputRenderer card={props.card} editable={props.editable} />;
-        case core.model.CardRendererType.BUILTIN_TABLE:
+        case model.CardRendererType.BUILTIN_TABLE:
             return <TableRenderer card={props.card} editable={props.editable} />;
-        case core.model.CardRendererType.BUILTIN_JSON:
+        case model.CardRendererType.BUILTIN_JSON:
             return <JsonRenderer card={props.card} editable={props.editable} />;
-        case core.model.CardRendererType.BUILTIN_HEX:
+        case model.CardRendererType.BUILTIN_HEX:
             return <HexRenderer card={props.card} editable={props.editable} />;
-        case core.model.CardRendererType.BUILTIN_VEGA:
+        case model.CardRendererType.BUILTIN_VEGA:
             return <VegaRenderer card={props.card} editable={props.editable} />;
     }
 };

@@ -2,8 +2,11 @@ import * as React from 'react';
 import * as duckdb from '@dashql/duckdb/dist/duckdb.module.js';
 import * as model from './model';
 import * as examples from './example_scripts';
-import * as core from '@dashql/core/dist/dashql-core-browser.module.js';
-import { Analyzer, JMESPath } from '@dashql/core/dist/dashql-core-browser.module.js';
+import * as analyzer from './analyzer';
+import * as jmespath from './jmespath';
+
+import { Analyzer } from './analyzer/bindings_browser';
+import { JMESPath } from './jmespath/bindings_browser';
 import { StatusIndicator } from './components';
 
 import axios from 'axios';
@@ -16,6 +19,8 @@ import {
     useLaunchProgress,
     useLaunchProgressDispatch,
 } from './model/launch_progress';
+import { AppConfig, AppConfigProvider } from './model';
+import { DatabaseClient, DatabaseClientProvider } from './database_client';
 
 import logo from '../static/svg/logo/logo.svg';
 
@@ -26,7 +31,6 @@ import analyzer_wasm from '@dashql/core/dist/dashql-analyzer.wasm';
 import duckdb_wasm from '@dashql/duckdb/dist/duckdb.wasm';
 import duckdb_wasm_next from '@dashql/duckdb/dist/duckdb-next.wasm';
 import duckdb_wasm_next_coi from '@dashql/duckdb/dist/duckdb-next-coi.wasm';
-import { AppConfig, AppConfigProvider } from './model';
 
 const DUCKDB_BUNDLES: duckdb.DuckDBBundles = {
     asyncDefault: {
@@ -53,7 +57,7 @@ interface Props {
 
 type State = {
     config: AppConfig | null;
-    database: core.DatabaseClient | null;
+    database: DatabaseClient | null;
     analyzer: Analyzer | null;
 };
 
@@ -69,12 +73,12 @@ export const AppLauncher: React.FC<Props> = (props: Props) => {
         database: null,
         analyzer: null,
     });
-    const dbMetadata = core.model.useDatabaseMetadata();
-    const dbMetadataDispatch = core.model.useDatabaseMetadataDispatch();
-    const programContextDispatch = core.model.useProgramContextDispatch();
+    const dbMetadata = model.useDatabaseMetadata();
+    const dbMetadataDispatch = model.useDatabaseMetadataDispatch();
+    const programContextDispatch = model.useProgramContextDispatch();
     const launchProgress = useLaunchProgress();
     const launchProgressDispatch = useLaunchProgressDispatch();
-    const logger = core.model.useLogger();
+    const logger = model.useLogger();
 
     // Helper to update a launch step
     const updateStep = (step: LaunchStepType, status: Status, error?: any) => {
@@ -104,7 +108,7 @@ export const AppLauncher: React.FC<Props> = (props: Props) => {
                 updateStep(LaunchStepType.CONFIGURE_APP, Status.FAILED, e);
             }
         })();
-    });
+    }, []);
 
     // Initialize DuckDB
     React.useEffect(() => {
@@ -116,7 +120,7 @@ export const AppLauncher: React.FC<Props> = (props: Props) => {
                 const worker = new Worker(config.mainWorker!);
                 const db = new duckdb.AsyncDuckDB(logger, worker);
                 await db.instantiate(config.mainModule, config.pthreadWorker);
-                const client = new core.DatabaseClient(db, dbMetadata, dbMetadataDispatch);
+                const client = new DatabaseClient(db, dbMetadata, dbMetadataDispatch);
                 await client.connect();
                 console.log(await db.getVersion());
                 stateDispatch(s => ({ ...s, database: client }));
@@ -133,9 +137,9 @@ export const AppLauncher: React.FC<Props> = (props: Props) => {
         (async () => {
             updateStep(LaunchStepType.INIT_ANALYZER, Status.RUNNING);
             try {
-                const analyzer = new Analyzer({}, analyzer_wasm);
-                await analyzer.init();
-                stateDispatch(s => ({ ...s, analyzer: analyzer }));
+                const ana = new Analyzer({}, analyzer_wasm);
+                await ana.init();
+                stateDispatch(s => ({ ...s, analyzer: ana }));
                 updateStep(LaunchStepType.INIT_ANALYZER, Status.COMPLETED);
             } catch (e) {
                 updateStep(LaunchStepType.INIT_ANALYZER, Status.FAILED, e);
@@ -149,8 +153,9 @@ export const AppLauncher: React.FC<Props> = (props: Props) => {
         (async () => {
             const example = examples.EXAMPLE_SCRIPT_MAP.get('demo_unischema')!;
             const script = await examples.getScript(example);
+            console.log('WILL CALL DISPATCH');
             programContextDispatch({
-                type: core.model.SET_SCRIPT,
+                type: model.SET_SCRIPT,
                 data: script,
             });
         })();
@@ -161,13 +166,13 @@ export const AppLauncher: React.FC<Props> = (props: Props) => {
     if (launchProgress.complete) {
         return (
             <AppConfigProvider config={state.config!}>
-                <core.DatabaseClientProvider database={state.database!}>
-                    <core.analyzer.AnalyzerProvider analyzer={state.analyzer!}>
-                        <core.jmespath.JMESPathProvider resolver={resolveJMESPath}>
+                <DatabaseClientProvider database={state.database!}>
+                    <analyzer.AnalyzerProvider analyzer={state.analyzer!}>
+                        <jmespath.JMESPathProvider resolver={resolveJMESPath}>
                             {props.children}
-                        </core.jmespath.JMESPathProvider>
-                    </core.analyzer.AnalyzerProvider>
-                </core.DatabaseClientProvider>
+                        </jmespath.JMESPathProvider>
+                    </analyzer.AnalyzerProvider>
+                </DatabaseClientProvider>
             </AppConfigProvider>
         );
     }
