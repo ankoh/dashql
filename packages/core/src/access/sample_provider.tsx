@@ -1,15 +1,9 @@
-import * as duckdb from '@dashql/duckdb/dist/duckdb.module.js';
 import * as React from 'react';
 import * as model from '../model';
 import * as arrow from 'apache-arrow';
 import { QueryProvider } from './query_provider';
-import { DatabaseClient } from '../database_client';
 
 interface Props {
-    /// The log manager
-    logger: duckdb.Logger;
-    /// The database manager
-    database: DatabaseClient;
     /// The table info
     table: model.TableMetadata;
     /// The viz data query
@@ -32,9 +26,5 @@ export const SampleProvider: React.FC<Props> = (props: Props) => {
     const sampling = ` TABLESAMPLE RESERVOIR(${props.data.sampleSize} ROWS)`;
 
     const script = `SELECT * FROM ${props.table.nameQualified}${sampling}${orderBy}`;
-    return (
-        <QueryProvider logger={props.logger} database={props.database} query={{ data: script }}>
-            {result => props.children(result)}
-        </QueryProvider>
-    );
+    return <QueryProvider query={{ data: script }}>{result => props.children(result)}</QueryProvider>;
 };

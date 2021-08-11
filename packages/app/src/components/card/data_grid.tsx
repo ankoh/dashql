@@ -24,7 +24,7 @@ type Props = {
     width: number;
     height: number;
 
-    table: core.model.TableSummary;
+    table: core.model.TableMetadata;
     data: core.access.ScanResult | null;
     requestData: (request: core.access.ScanRequest) => void;
 };
