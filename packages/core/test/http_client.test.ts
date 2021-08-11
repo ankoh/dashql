@@ -18,7 +18,6 @@ export function testHTTPClient(): void {
         it('fetch', async () => {
             const log = model.Log.createWired();
             const http = new HTTPClient(log);
-            await http.init();
 
             httpMock = mockHTTP();
             httpMock

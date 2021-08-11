@@ -68,11 +68,6 @@ export class DatabaseClient {
         return stats;
     }
 
-    /// Setup the database connection
-    public async init(): Promise<void> {
-        await this.connect();
-    }
-
     /// Use the duckdb directly
     public useUnsafe(): duckdb.AsyncDuckDB {
         return this._duckdb;
