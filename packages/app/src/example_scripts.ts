@@ -1,4 +1,5 @@
-import * as core from '@dashql/core';
+import * as utils from './utils';
+import * as model from './model';
 import axios from 'axios';
 
 import example_demo_explore_json from '../static/examples/demo_explore_json.dashql';
@@ -61,7 +62,7 @@ export interface ExampleScriptMetadata {
     title: string;
     icon: string;
     description: string;
-    features: core.utils.NativeBitmap;
+    features: utils.NativeBitmap;
     url: string;
     enabled: boolean;
 }
@@ -73,7 +74,7 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         title: 'University Schema',
         description: 'A script with the university schema',
         icon: icon_dashboard,
-        features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_)
+        features: new utils.NativeBitmap(ScriptFeatureTag._COUNT_)
             .set(ScriptFeatureTag.DATA_PARQUET)
             .set(ScriptFeatureTag.FETCH_HTTP)
             .set(ScriptFeatureTag.FETCH_ARCHIVE_ZIP),
@@ -86,7 +87,7 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         title: 'Explore JSON',
         description: 'A script that explores a JSON document',
         icon: icon_dashboard,
-        features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_)
+        features: new utils.NativeBitmap(ScriptFeatureTag._COUNT_)
             .set(ScriptFeatureTag.DATA_JSON)
             .set(ScriptFeatureTag.TRANSFORM_JMESPATH),
         url: example_demo_explore_json,
@@ -98,7 +99,7 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         title: 'Vaccination Germany',
         description: 'A script that displays official vaccination data',
         icon: icon_dashboard,
-        features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_).set(ScriptFeatureTag.DATA_CSV),
+        features: new utils.NativeBitmap(ScriptFeatureTag._COUNT_).set(ScriptFeatureTag.DATA_CSV),
         url: example_demo_vaccination_germany,
         enabled: true,
     },
@@ -108,7 +109,7 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         title: 'HaloWars Player',
         description: 'A script that shows how to query REST APIs',
         icon: icon_dashboard,
-        features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_).set(ScriptFeatureTag.DATA_CSV),
+        features: new utils.NativeBitmap(ScriptFeatureTag._COUNT_).set(ScriptFeatureTag.DATA_CSV),
         url: example_demo_halowars,
         enabled: true,
     },
@@ -118,7 +119,7 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         title: 'JMESPath',
         description: 'JMESPath Expressions',
         icon: icon_shape,
-        features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_).set(ScriptFeatureTag.TRANSFORM_JMESPATH),
+        features: new utils.NativeBitmap(ScriptFeatureTag._COUNT_).set(ScriptFeatureTag.TRANSFORM_JMESPATH),
         url: example_transform_jmespath,
         enabled: true,
     },
@@ -128,7 +129,7 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         title: 'Line Charts',
         description: 'A test hello world script',
         icon: icon_linechart,
-        features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_),
+        features: new utils.NativeBitmap(ScriptFeatureTag._COUNT_),
         url: example_viz_line_charts,
         enabled: false,
     },
@@ -138,7 +139,7 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         title: 'Area Charts',
         description: 'A second test hello world script',
         icon: icon_areachart,
-        features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_),
+        features: new utils.NativeBitmap(ScriptFeatureTag._COUNT_),
         url: example_viz_area_charts,
         enabled: false,
     },
@@ -148,7 +149,7 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         title: 'Bar Charts',
         description: 'Fooo',
         icon: icon_barchart,
-        features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_),
+        features: new utils.NativeBitmap(ScriptFeatureTag._COUNT_),
         url: example_viz_bar_charts,
         enabled: false,
     },
@@ -158,7 +159,7 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         title: 'Pie Charts',
         description: 'Fooo',
         icon: icon_arcchart,
-        features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_),
+        features: new utils.NativeBitmap(ScriptFeatureTag._COUNT_),
         url: example_viz_pie_charts,
         enabled: false,
     },
@@ -168,7 +169,7 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         title: 'Scatter Plots',
         description: 'Fooo',
         icon: icon_scatterchart,
-        features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_),
+        features: new utils.NativeBitmap(ScriptFeatureTag._COUNT_),
         url: example_viz_scatter_charts,
         enabled: false,
     },
@@ -178,7 +179,7 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         title: 'Histograms',
         description: 'Fooo',
         icon: icon_histogramchart,
-        features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_),
+        features: new utils.NativeBitmap(ScriptFeatureTag._COUNT_),
         url: example_viz_histograms,
         enabled: false,
     },
@@ -188,7 +189,7 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         title: 'Streamgraphs',
         description: 'Fooo',
         icon: icon_streamgraph,
-        features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_),
+        features: new utils.NativeBitmap(ScriptFeatureTag._COUNT_),
         url: example_viz_streamgraphs,
         enabled: false,
     },
@@ -198,7 +199,7 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         title: 'Heatmaps',
         description: 'Fooo',
         icon: icon_heatmapchart,
-        features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_),
+        features: new utils.NativeBitmap(ScriptFeatureTag._COUNT_),
         url: example_viz_heatmaps,
         enabled: false,
     },
@@ -208,7 +209,7 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         title: 'Interactivity',
         description: 'FOOOOO',
         icon: icon_gesture_tap_hold,
-        features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_),
+        features: new utils.NativeBitmap(ScriptFeatureTag._COUNT_),
         url: example_viz_interaction,
         enabled: false,
     },
@@ -218,7 +219,7 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         title: 'Static HTTP',
         description: 'FOOOOO',
         icon: icon_package_down,
-        features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_),
+        features: new utils.NativeBitmap(ScriptFeatureTag._COUNT_),
         url: example_fetch_http_static,
         enabled: false,
     },
@@ -228,7 +229,7 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         title: 'Dynamic HTTP',
         description: 'FOOOOO',
         icon: icon_package_down,
-        features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_),
+        features: new utils.NativeBitmap(ScriptFeatureTag._COUNT_),
         url: example_fetch_http_dynamic,
         enabled: false,
     },
@@ -238,7 +239,7 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         title: 'CSV Parsing',
         description: 'FOOOOO',
         icon: icon_database_import,
-        features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_),
+        features: new utils.NativeBitmap(ScriptFeatureTag._COUNT_),
         url: example_load_csv,
         enabled: false,
     },
@@ -248,7 +249,7 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         title: 'Parquet Import',
         description: 'FOOOOO',
         icon: icon_database_import,
-        features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_),
+        features: new utils.NativeBitmap(ScriptFeatureTag._COUNT_),
         url: example_load_parquet,
         enabled: false,
     },
@@ -258,7 +259,7 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         title: 'Complex Joins',
         description: 'FOOOOO',
         icon: icon_database_search,
-        features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_),
+        features: new utils.NativeBitmap(ScriptFeatureTag._COUNT_),
         url: example_sql_complexjoins,
         enabled: false,
     },
@@ -268,7 +269,7 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         title: 'Explicit Grouping',
         description: 'FOOOOO',
         icon: icon_database_search,
-        features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_),
+        features: new utils.NativeBitmap(ScriptFeatureTag._COUNT_),
         url: example_sql_explicitgrouping,
         enabled: false,
     },
@@ -278,7 +279,7 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         title: 'Moving Avergage',
         description: 'FOOOOO',
         icon: icon_database_search,
-        features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_),
+        features: new utils.NativeBitmap(ScriptFeatureTag._COUNT_),
         url: example_sql_movingavg,
         enabled: false,
     },
@@ -288,7 +289,7 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         title: 'Running Sum',
         description: 'FOOOOO',
         icon: icon_database_search,
-        features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_),
+        features: new utils.NativeBitmap(ScriptFeatureTag._COUNT_),
         url: example_sql_runningsum,
         enabled: false,
     },
@@ -298,7 +299,7 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         title: 'Approximative',
         description: 'FOOOOO',
         icon: icon_database_search,
-        features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_),
+        features: new utils.NativeBitmap(ScriptFeatureTag._COUNT_),
         url: example_sql_approxmedian,
         enabled: false,
     },
@@ -308,7 +309,7 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         title: 'Sampling',
         description: 'FOOOOO',
         icon: icon_database_search,
-        features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_),
+        features: new utils.NativeBitmap(ScriptFeatureTag._COUNT_),
         url: example_sql_sampling,
         enabled: false,
     },
@@ -318,7 +319,7 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         title: 'Pattern Matching',
         description: 'FOOOOO',
         icon: icon_database_search,
-        features: new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_),
+        features: new utils.NativeBitmap(ScriptFeatureTag._COUNT_),
         url: example_sql_patternmatching,
         enabled: false,
     },
@@ -326,7 +327,7 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
 
 export const EXAMPLE_SCRIPT_MAP: Map<string, ExampleScriptMetadata> = new Map(EXAMPLE_SCRIPTS.map(e => [e.key, e]));
 
-export async function getScript(example: ExampleScriptMetadata): Promise<core.model.Script> {
+export async function getScript(example: ExampleScriptMetadata): Promise<model.Script> {
     const resp = await axios.get(example.url);
     if (resp.status != 200) {
         throw new Error(`Loading example ${example.key.toString()} failed with error: ${resp.statusText}`);
@@ -334,10 +335,10 @@ export async function getScript(example: ExampleScriptMetadata): Promise<core.mo
     const text = resp.data as string;
     return {
         text,
-        uriPrefix: core.model.ScriptURIPrefix.EXAMPLES,
+        uriPrefix: model.ScriptURIPrefix.EXAMPLES,
         uriName: example.key,
         modified: false,
-        lineCount: core.utils.countLines(text),
-        bytes: core.utils.estimateUTF16Length(text),
+        lineCount: utils.countLines(text),
+        bytes: utils.estimateUTF16Length(text),
     };
 }

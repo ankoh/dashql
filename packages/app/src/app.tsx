@@ -15,10 +15,6 @@ import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
 import 'react-virtualized/styles.css';
 
-const StudioPage = withNavBar(withBanner(Studio));
-const ExamplesPage = withNavBar(withBanner(Examples));
-const ViewerPage = withBanner(withMinimalNavBar(Viewer));
-
 const DataProviders = (props: { children: React.ReactElement }) => (
     <model.LogProvider>
         <model.DatabaseMetadataProvider>
@@ -30,6 +26,10 @@ const DataProviders = (props: { children: React.ReactElement }) => (
         </model.DatabaseMetadataProvider>
     </model.LogProvider>
 );
+
+const StudioPage = withNavBar(withBanner(Studio));
+const ExamplesPage = withNavBar(withBanner(Examples));
+const ViewerPage = withBanner(withMinimalNavBar(Viewer));
 
 ReactDOM.render(
     <DataProviders>

@@ -50,6 +50,8 @@ const reducer = (ctx: ProgramContext, action: ProgramContextAction) => {
         case SET_SCRIPT:
             console.log('SET_SCRIPT');
             console.log(action.data);
+            console.log(ctx.script.text);
+            console.log(action.data.text);
             if (action.data.text == ctx.script.text) return ctx;
             return {
                 ...ctx,

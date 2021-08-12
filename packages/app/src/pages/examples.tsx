@@ -1,5 +1,6 @@
 import * as React from 'react';
-import * as core from '@dashql/core';
+import * as model from '../model';
+import * as utils from '../utils';
 import * as examples from '../example_scripts';
 import classNames from 'classnames';
 import { useNavigate } from 'react-router-dom';
@@ -39,10 +40,8 @@ interface Props {
 
 export const Examples: React.FC<Props> = (_props: Props) => {
     const navigate = useNavigate();
-    const programContextDispatch = core.model.useProgramContextDispatch();
-    const [filteredFeatures, setFilteredFeatures] = React.useState(
-        new core.utils.NativeBitmap(ScriptFeatureTag._COUNT_),
-    );
+    const programContextDispatch = model.useProgramContextDispatch();
+    const [filteredFeatures, setFilteredFeatures] = React.useState(new utils.NativeBitmap(ScriptFeatureTag._COUNT_));
 
     const features = [];
     for (let i = 0; i < ScriptFeatureTag._COUNT_; ++i) {
@@ -66,7 +65,7 @@ export const Examples: React.FC<Props> = (_props: Props) => {
         const key = (elem.currentTarget as any).dataset.key;
         const script = await examples.getScript(EXAMPLE_SCRIPT_MAP.get(key)!);
         programContextDispatch({
-            type: core.model.SET_SCRIPT,
+            type: model.SET_SCRIPT,
             data: script,
         });
         navigate('/studio');

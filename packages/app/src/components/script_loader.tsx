@@ -1,5 +1,6 @@
 import * as React from 'react';
-import * as core from '@dashql/core';
+import * as model from '../model';
+import * as utils from '../utils';
 import axios from 'axios';
 import { useLocation } from 'react-router-dom';
 
@@ -18,14 +19,14 @@ enum ScriptLoaderStatus {
 
 interface State {
     requestURL: string | null;
-    requestURI: [core.model.ScriptURIPrefix, string] | null;
+    requestURI: [model.ScriptURIPrefix, string] | null;
     status: ScriptLoaderStatus;
     error: any | null;
 }
 
 export const ScriptLoader: React.FC<Props> = (props: Props) => {
     const location = useLocation();
-    const programContextDispatch = core.model.useProgramContextDispatch();
+    const programContextDispatch = model.useProgramContextDispatch();
     const [state, setState] = React.useState<State>({
         requestURL: null,
         requestURI: null,
@@ -34,10 +35,10 @@ export const ScriptLoader: React.FC<Props> = (props: Props) => {
     });
 
     const gist = new URLSearchParams(location.search).get('gist') || undefined;
-    let requestURI: [core.model.ScriptURIPrefix, string] | null = null;
+    let requestURI: [model.ScriptURIPrefix, string] | null = null;
     let requestURL: string | null = null;
     if (gist) {
-        requestURI = [core.model.ScriptURIPrefix.GITHUB_GIST, gist];
+        requestURI = [model.ScriptURIPrefix.GITHUB_GIST, gist];
         requestURL = `https://gist.githubusercontent.com/ankoh/${gist}/raw`;
     }
     if (requestURI && (requestURI[0] != state.requestURI?.[0] || requestURI[1] != state.requestURI?.[1])) {
@@ -50,7 +51,7 @@ export const ScriptLoader: React.FC<Props> = (props: Props) => {
         });
     }
 
-    const loadScriptFromURL = async (url: string, uri: [core.model.ScriptURIPrefix, string]) => {
+    const loadScriptFromURL = async (url: string, uri: [model.ScriptURIPrefix, string]) => {
         setState({
             ...state,
             status: ScriptLoaderStatus.IN_FLIGHT,
@@ -74,14 +75,14 @@ export const ScriptLoader: React.FC<Props> = (props: Props) => {
                 error: null,
             });
             programContextDispatch({
-                type: core.model.SET_SCRIPT,
+                type: model.SET_SCRIPT,
                 data: {
                     text,
                     uriPrefix: uri[0],
                     uriName: uri[1],
                     modified: false,
-                    lineCount: core.utils.countLines(text),
-                    bytes: core.utils.estimateUTF16Length(text),
+                    lineCount: utils.countLines(text),
+                    bytes: utils.estimateUTF16Length(text),
                 },
             });
         } catch (e) {
