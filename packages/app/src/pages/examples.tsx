@@ -40,7 +40,7 @@ interface Props {
 
 export const Examples: React.FC<Props> = (_props: Props) => {
     const navigate = useNavigate();
-    const programContextDispatch = model.useProgramContextDispatch();
+    const programDispatch = model.useProgramContextDispatch();
     const [filteredFeatures, setFilteredFeatures] = React.useState(new utils.NativeBitmap(ScriptFeatureTag._COUNT_));
 
     const features = [];
@@ -63,10 +63,10 @@ export const Examples: React.FC<Props> = (_props: Props) => {
 
     const selectExample = async (elem: React.MouseEvent<HTMLDivElement>) => {
         const key = (elem.currentTarget as any).dataset.key;
-        const script = await examples.getScript(EXAMPLE_SCRIPT_MAP.get(key)!);
-        programContextDispatch({
+        const nextScript = await examples.getScript(EXAMPLE_SCRIPT_MAP.get(key)!);
+        programDispatch({
             type: model.SET_SCRIPT,
-            data: script,
+            data: nextScript,
         });
         navigate('/studio');
     };

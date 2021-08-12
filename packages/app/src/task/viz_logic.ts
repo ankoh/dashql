@@ -191,7 +191,6 @@ export class CreateVizTaskLogic extends VizTaskLogic {
                 vegaLiteSpec: null,
                 vegaSpec: null,
                 dataSource: null,
-                visible: true,
             },
         });
     }
