@@ -1,4 +1,4 @@
-import * as core from '../../core/dist/dashql-core-node.js';
+import * as core from '../../core/build/libs/dashql-core-node.js';
 import * as benny from 'benny';
 import kleur from 'kleur';
 

@@ -193,6 +193,12 @@ app_release_server:
 app_start:
 	yarn workspace @dashql/core start
 
+# Builds the core library
+.PHONY: core
+core:
+	yarn workspace @dashql/core build:libs
+
+
 # C++ formatting
 .PHONY: clang_format
 clang_format:
