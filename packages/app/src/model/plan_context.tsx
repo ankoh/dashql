@@ -65,7 +65,6 @@ export type PlanContextAction =
 export const reducePlanContext = (ctx: PlanContext, action: PlanContextAction): PlanContext => {
     switch (action.type) {
         case ADD_BLOB:
-            console.log('DISPATCH ADD BLOB');
             return {
                 ...ctx,
                 blobs: ctx.blobs.set(action.data.objectId, action.data),
@@ -81,11 +80,7 @@ export const reducePlanContext = (ctx: PlanContext, action: PlanContextAction): 
                 ...ctx,
                 cards: ctx.cards.withMutations(c => {
                     const prev = c.get(action.data.objectId);
-                    if (!prev) {
-                        console.log('UPDATE CARD NOT FOUND');
-                        return;
-                    }
-                    console.log('UPDATE CARD');
+                    if (!prev) return;
                     c.set(action.data.objectId, {
                         ...prev,
                         ...action.data,
@@ -115,7 +110,6 @@ export const reducePlanContext = (ctx: PlanContext, action: PlanContextAction): 
             const [nextStatus, actions] = action.data;
             return {
                 ...actions.reduce((c, a) => {
-                    console.log(a);
                     return reducePlanContext(c, a);
                 }, ctx),
                 schedulerStatus: nextStatus,

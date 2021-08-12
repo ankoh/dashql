@@ -41,10 +41,8 @@ export const ScriptPipeline: React.FC<Props> = (props: Props) => {
     React.useEffect(() => {
         const text = programContext.script?.text;
         if (!text) return;
-        console.log('PARSE PROGRAM');
         const program = analyzer.parseProgram(text);
         programParsedAt.current = new Date();
-        console.log(program);
         programContextDispatch({
             type: SET_PROGRAM,
             data: program,
@@ -57,7 +55,6 @@ export const ScriptPipeline: React.FC<Props> = (props: Props) => {
         const instantiateProgram = () => {
             if (!programContext.program || !isMountedRef.current) return;
             const nowMS = new Date().getTime();
-            console.log('INSTANTIATE PROGRAM');
 
             // Has a program been instantiated before?
             if (programContext.programInstance) {
@@ -113,7 +110,6 @@ export const ScriptPipeline: React.FC<Props> = (props: Props) => {
         // Plan the program
         const plan = analyzer.planProgram();
         if (!plan) return;
-        console.log('SCHEDULE PLAN');
         // Schedule the plan
         planContextDispatch({
             type: SCHEDULE_PLAN,

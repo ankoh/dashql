@@ -184,10 +184,10 @@ export class TaskScheduler<TaskBuffer extends ProtoTask> {
     /// Waits until one of the currently running task promises resolves or rejects.
     /// Returns true if execute should be called again.
     public async execute(ctx: TaskExecutionContext): Promise<boolean> {
-        this.scheduleNext(ctx);
-
         // Nothing to do?
         if (!this.workLeft()) return false;
+        // Schedule the next tasks
+        this.scheduleNext(ctx);
 
         // Wait for next task to complete
         const promises: Promise<[TaskHandle | null, TaskError | null]>[] = [this._interrupt];
@@ -409,17 +409,19 @@ export const TaskSchedulerDriver: React.FC<Props> = (props: Props) => {
     const stateMachine = React.useRef<TaskSchedulerStateMachine>(new TaskSchedulerStateMachine());
     const working = React.useRef<boolean>(false);
     React.useEffect(() => {
-        if (working.current || planContext.schedulerStatus == TaskSchedulerStatus.IDLE) return;
+        if (working.current || planContext.schedulerStatus == TaskSchedulerStatus.IDLE) {
+            return;
+        }
         working.current = true;
         (async () => {
             const status = await stateMachine.current.step(ctx.current);
             const diff = [...ctx.current.planContextDiff];
             ctx.current.planContextDiff.length = 0;
+            working.current = false;
             dispatch({
                 type: SCHEDULER_STEP_DONE,
                 data: [status, diff],
             });
-            working.current = false;
         })();
     }, [planContext]);
 
