@@ -1,5 +1,6 @@
 import * as React from 'react';
-import * as core from '@dashql/core';
+import * as model from '../model';
+import * as utils from '../utils';
 import classNames from 'classnames';
 import { SystemCard } from './system_card';
 import { withCurrentTime } from './current_time';
@@ -19,15 +20,16 @@ interface Props {
 
 const InnerLogViewer: React.FC<Props> = (props: Props) => {
     const [focused, setFocused] = React.useState<number | null>(null);
-    const logState = core.model.useLogState();
-    React.useEffect(() => props.updateCurrentTime(), [logState.entries]);
+    const log = model.useLogState();
+
+    React.useEffect(() => props.updateCurrentTime(), [log.entries]);
 
     const onKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
         let nextEntry = focused || 0;
         switch (event.key) {
             case 'Down':
             case 'ArrowDown':
-                nextEntry = Math.min(nextEntry + 1, Math.max(logState.entries.size - 1, 0));
+                nextEntry = Math.min(nextEntry + 1, Math.max(log.entries.size - 1, 0));
                 break;
             case 'Up':
             case 'ArrowUp':
@@ -45,10 +47,10 @@ const InnerLogViewer: React.FC<Props> = (props: Props) => {
     };
 
     const renderRow = (rowProps: ListRowProps) => {
-        const log = logState.entries.get(rowProps.index);
-        if (!log) return <div style={rowProps.style} />;
+        const logEntry = log.entries.get(rowProps.index);
+        if (!logEntry) return <div style={rowProps.style} />;
         const tsNow = props.currentTime;
-        const tsLog = log.timestamp;
+        const tsLog = logEntry.timestamp;
         return (
             <div
                 key={rowProps.key}
@@ -58,11 +60,11 @@ const InnerLogViewer: React.FC<Props> = (props: Props) => {
                 onClick={focusEntry}
             >
                 <div className={classNames(styles.row, { [styles.row_focused]: rowProps.index == focused })}>
-                    <div className={styles.row_level}>{core.model.getLogLevelLabel(log.level)}</div>
-                    <div className={styles.row_origin}>{core.model.getLogOriginLabel(log.origin)}</div>
-                    <div className={styles.row_topic}>{core.model.getLogTopicLabel(log.topic)}</div>
-                    <div className={styles.row_event}>{core.model.getLogEventLabel(log.event)}</div>
-                    <div className={styles.row_timestamp}>{core.utils.getRelativeTime(tsLog, tsNow)}</div>
+                    <div className={styles.row_level}>{model.getLogLevelLabel(logEntry.level)}</div>
+                    <div className={styles.row_origin}>{model.getLogOriginLabel(logEntry.origin)}</div>
+                    <div className={styles.row_topic}>{model.getLogTopicLabel(logEntry.topic)}</div>
+                    <div className={styles.row_event}>{model.getLogEventLabel(logEntry.event)}</div>
+                    <div className={styles.row_timestamp}>{utils.getRelativeTime(tsLog, tsNow)}</div>
                 </div>
             </div>
         );
@@ -83,7 +85,7 @@ const InnerLogViewer: React.FC<Props> = (props: Props) => {
                             animate={{ height: 100 }}
                             exit={{ height: 0 }}
                         >
-                            {logState.entries.get(focused)?.value.toString()}
+                            {log.entries.get(focused)?.value.toString()}
                         </motion.div>
                     </AnimatePresence>
                 )}
@@ -98,7 +100,7 @@ const InnerLogViewer: React.FC<Props> = (props: Props) => {
                                     width={width}
                                     height={height}
                                     overscanRowCount={OVERSCAN_ROW_COUNT}
-                                    rowCount={logState.entries.size}
+                                    rowCount={log.entries.size}
                                     rowHeight={32}
                                     rowRenderer={renderRow}
                                     noRowsRenderer={renderEmptyList}
