@@ -7,8 +7,12 @@ export type TaskHandle = number;
 
 /// The scheduler status
 export enum TaskSchedulerStatus {
-    Idle = 0,
-    Working = 1,
+    IDLE = 0,
+    PREPARE_SCHEDULER = 2,
+    EXECUTE_SETUP_FIRST = 3,
+    EXECUTE_SETUP_NEXT = 4,
+    EXECUTE_PROGRAM_FIRST = 5,
+    EXECUTE_PROGRAM_NEXT = 6,
 }
 
 /// Build an task id

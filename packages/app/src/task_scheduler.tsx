@@ -1,5 +1,6 @@
 // Copyright (c) 2021 The DashQL Authors
 
+import React from 'react';
 import * as proto from '@dashql/proto';
 import { NativeBitmap, NativeStack, NativeMinHeap, NativeMinHeapKey, NativeMinHeapRank } from './utils';
 import { TaskLogic, ProtoTask, resolveSetupTaskLogic, resolveProgramTaskLogic } from './task';
@@ -7,7 +8,6 @@ import { TaskError } from './task';
 import { TaskExecutionContext } from './task/task_execution_context';
 import {
     TaskHandle,
-    Task,
     TaskUpdate,
     buildTaskHandle,
     getTaskIndex,
@@ -16,11 +16,17 @@ import {
     LogOrigin,
     LogTopic,
     LogEvent,
-    SCHEDULE_PLAN,
-    BATCH_PLAN_ACTIONS,
     UPDATE_PLAN_TASKS,
-    Plan,
+    usePlanContext,
+    TaskSchedulerStatus,
+    useLogger,
+    usePlanContextDispatch,
+    SCHEDULER_STEP_DONE,
 } from './model';
+import { useDatabaseClient } from './database_client';
+import { useHTTPClient } from './http_client';
+import { useJMESPathResolver } from './jmespath';
+import { useAnalyzer } from './analyzer';
 
 export class TaskScheduler<TaskBuffer extends ProtoTask> {
     /// The cancel promise.
@@ -40,6 +46,8 @@ export class TaskScheduler<TaskBuffer extends ProtoTask> {
     _completedTasks: NativeBitmap = new NativeBitmap();
     /// The failed tasks
     _failedTasks: NativeBitmap = new NativeBitmap();
+    /// The dirty tasks
+    _dirtyTasks: NativeStack = new NativeStack(64);
 
     constructor(interrupt: Promise<void>) {
         this._interrupt = interrupt.then(() => [null, null]);
@@ -122,14 +130,14 @@ export class TaskScheduler<TaskBuffer extends ProtoTask> {
     }
 
     /// Schedule all tasks that can be scheduled.
-    /// An task can be scheduled if its rank is zero in the dependency heap.
-    protected scheduleNext(ctx: TaskExecutionContext, touchedTasks: NativeStack): void {
+    /// A task can be scheduled if its rank is zero in the dependency heap.
+    protected scheduleNext(ctx: TaskExecutionContext): void {
         // Collect next tasks
         const next_task_idcs: number[] = [];
         while (!this._taskQueue.empty() && this._taskQueue.topRank() == 0) {
             const task_idx = this._taskQueue.top();
             this._taskQueue.pop();
-            touchedTasks.push(task_idx);
+            this._dirtyTasks.push(task_idx);
 
             // Task already done, register as completed?
             if (
@@ -175,19 +183,16 @@ export class TaskScheduler<TaskBuffer extends ProtoTask> {
 
     /// Execute the first time.
     /// Returns true if execute should be called again.
-    public async executeFirst(ctx: TaskExecutionContext, touchedTasks: NativeStack): Promise<boolean> {
-        this.scheduleNext(ctx, touchedTasks);
-        return this.execute(ctx, touchedTasks);
+    public async executeFirst(ctx: TaskExecutionContext): Promise<boolean> {
+        this.scheduleNext(ctx);
+        return this.executeNext(ctx);
     }
 
     /// Waits until one of the currently running task promises resolves or rejects.
     /// Returns true if execute should be called again.
-    public async execute(ctx: TaskExecutionContext, touchedTasks: NativeStack): Promise<boolean> {
+    public async executeNext(ctx: TaskExecutionContext): Promise<boolean> {
         // Nothing to do?
         if (!this.workLeft()) return false;
-
-        // Flush any task updates
-        this.flushTaskUpdates(ctx, touchedTasks);
 
         // Wait for next task to complete
         const promises: Promise<[TaskHandle | null, TaskError | null]>[] = [this._interrupt];
@@ -200,7 +205,7 @@ export class TaskScheduler<TaskBuffer extends ProtoTask> {
             /// Return true to indicate that we're not yet done and let the graph scheduler figure out whats wrong.
             return true;
         }
-        touchedTasks.push(getTaskIndex(next));
+        this._dirtyTasks.push(getTaskIndex(next));
 
         // Check the new status of the task
         const task_idx = getTaskIndex(next);
@@ -214,7 +219,7 @@ export class TaskScheduler<TaskBuffer extends ProtoTask> {
             case proto.task.TaskStatusCode.COMPLETED: {
                 this._scheduledTasks.clear(task_idx);
                 this.taskCompleted(task_idx);
-                this.scheduleNext(ctx, touchedTasks);
+                this.scheduleNext(ctx);
                 break;
             }
             case proto.task.TaskStatusCode.PENDING:
@@ -238,19 +243,19 @@ export class TaskScheduler<TaskBuffer extends ProtoTask> {
         }
 
         // Flush any task updates
-        this.flushTaskUpdates(ctx, touchedTasks);
+        this.flushTaskUpdates(ctx);
         // No more scheduled tasks left?
         return this.workLeft();
     }
 
     /// Flush teh task updates
-    public flushTaskUpdates(ctx: TaskExecutionContext, touchedTasks: NativeStack): void {
-        if (touchedTasks.empty()) return;
+    public flushTaskUpdates(ctx: TaskExecutionContext): void {
+        if (this._dirtyTasks.empty()) return;
 
         // Synchronize all tasks in the diff
         const taskUpdates: Map<number, TaskUpdate> = new Map();
-        for (; !touchedTasks.empty(); touchedTasks.pop()) {
-            const taskIdx = touchedTasks.top();
+        for (; !this._dirtyTasks.empty(); this._dirtyTasks.pop()) {
+            const taskIdx = this._dirtyTasks.top();
             const task = this.tasks[taskIdx];
             // Only propagate the most recent one
             if (taskUpdates.get(task.taskId)) continue;
@@ -272,15 +277,11 @@ export class TaskScheduler<TaskBuffer extends ProtoTask> {
             type: UPDATE_PLAN_TASKS,
             data: flatUpdates,
         });
-        ctx.planContextDispatch({
-            type: BATCH_PLAN_ACTIONS,
-            data: ctx.planContextDiff,
-        });
-        ctx.planContextDiff = [];
+        this._dirtyTasks.clear();
     }
 }
 
-export class TaskGraphScheduler {
+export class TaskSchedulerStateMachine {
     /// The cancel promise
     _interruptPromise: Promise<void>;
     /// The cancel promise
@@ -306,86 +307,6 @@ export class TaskGraphScheduler {
         this._programScheduler = new TaskScheduler<proto.task.ProgramTask>(this._interruptPromise);
     }
 
-    /// Reset the scheduler
-    public prepare(ctx: TaskExecutionContext, plan: Plan): void {
-        this._canceled = false;
-        const program = plan.program;
-        const graph = plan.task_graph;
-        const now = new Date();
-        if (!graph) return;
-
-        // Translate the setup tasks
-        const taskInfos: Task[] = [];
-        const setupLogic = [];
-        for (let i = 0; i < graph.setupTasksLength(); ++i) {
-            const taskId = buildTaskHandle(i, proto.task.TaskClass.SETUP_TASK);
-            const a = graph.setupTasks(i)!;
-            const logic = resolveSetupTaskLogic(taskId, a)!;
-            logic.status = a.taskStatusCode();
-            setupLogic.push(logic);
-            taskInfos.push({
-                taskId: taskId,
-                taskType: a.taskType(),
-                statusCode: a.taskStatusCode(),
-                blocker: null,
-                dependsOn: a.dependsOnArray() || new Uint32Array(),
-                requiredFor: a.requiredForArray() || new Uint32Array(),
-                originStatement: null,
-                objectId: a.objectId(),
-                nameQualified: a.nameQualified() || '',
-                script: null,
-                timeCreated: now,
-                timeScheduled: null,
-                timeLastUpdate: now,
-            });
-        }
-
-        // Translate the program tasks
-        const programLogic = [];
-        for (let i = 0; i < graph.programTasksLength(); ++i) {
-            const taskId = buildTaskHandle(i, proto.task.TaskClass.PROGRAM_TASK);
-            const a = graph.programTasks(i)!;
-            const s = program.getStatement(a.originStatement());
-            const logic = resolveProgramTaskLogic(taskId, a, s)!;
-            logic.status = a.taskStatusCode();
-            programLogic.push(logic);
-            taskInfos.push({
-                taskId: taskId,
-                taskType: a.taskType(),
-                statusCode: a.taskStatusCode(),
-                blocker: null,
-                dependsOn: a.dependsOnArray() || new Uint32Array(),
-                requiredFor: a.requiredForArray() || new Uint32Array(),
-                originStatement: a.originStatement(),
-                objectId: a.objectId(),
-                nameQualified: a.nameQualified() || '',
-                script: a.script(),
-                timeCreated: now,
-                timeScheduled: null,
-                timeLastUpdate: now,
-            });
-        }
-
-        // Schedule the plan.
-        // We need to set the plan in redux BEFORE we run the setup tasks since they rely on the state.
-        ctx.planContextDispatch({
-            type: SCHEDULE_PLAN,
-            data: [plan, taskInfos],
-        });
-
-        // Prepare all tasks
-        this._setupScheduler.prepare(ctx, setupLogic);
-        this._programScheduler.prepare(ctx, programLogic);
-
-        // Insert all plan objects required by the tasks.
-        // Note that we deliberately batch the updates here to have only one state transition.
-        ctx.planContextDispatch({
-            type: BATCH_PLAN_ACTIONS,
-            data: ctx.planContextDiff,
-        });
-        ctx.planContextDiff = [];
-    }
-
     /// Interrupt the scheduler
     protected interrupt(): void {
         // Setup a new interrupt promise
@@ -407,25 +328,116 @@ export class TaskGraphScheduler {
         this.interrupt();
     }
 
-    /// Execute all exctions of a scheduler
-    protected async executeTasks<TaskBuffer extends ProtoTask>(
-        ctx: TaskExecutionContext,
-        diff: NativeStack,
-        scheduler: TaskScheduler<TaskBuffer>,
-    ): Promise<void> {
-        for (
-            let workLeft = await scheduler.executeFirst(ctx, diff);
-            workLeft;
-            workLeft = await scheduler.execute(ctx, diff)
-        );
-    }
+    /// Execute a new step
+    public async step(ctx: TaskExecutionContext): Promise<TaskSchedulerStatus> {
+        switch (ctx.planContext.schedulerStatus) {
+            case TaskSchedulerStatus.IDLE:
+                return TaskSchedulerStatus.IDLE;
 
-    /// Execute the entire task graph
-    public async execute(ctx: TaskExecutionContext): Promise<void> {
-        if (ctx.planContext.plan == null) return;
-        const diff = new NativeStack(64);
-        await this.executeTasks(ctx, diff, this._setupScheduler);
-        diff.clear();
-        await this.executeTasks(ctx, diff, this._programScheduler);
+            case TaskSchedulerStatus.PREPARE_SCHEDULER: {
+                const plan = ctx.planContext.plan!;
+                const program = plan!.program;
+                const graph = plan!.task_graph;
+                if (!graph) return TaskSchedulerStatus.IDLE;
+
+                // Translate the setup tasks
+                const setupLogic = [];
+                for (let i = 0; i < graph.setupTasksLength(); ++i) {
+                    const taskId = buildTaskHandle(i, proto.task.TaskClass.SETUP_TASK);
+                    const a = graph.setupTasks(i)!;
+                    const logic = resolveSetupTaskLogic(taskId, a)!;
+                    logic.status = a.taskStatusCode();
+                    setupLogic.push(logic);
+                }
+
+                // Translate the program tasks
+                const programLogic = [];
+                for (let i = 0; i < graph.programTasksLength(); ++i) {
+                    const taskId = buildTaskHandle(i, proto.task.TaskClass.PROGRAM_TASK);
+                    const a = graph.programTasks(i)!;
+                    const s = program.getStatement(a.originStatement());
+                    const logic = resolveProgramTaskLogic(taskId, a, s)!;
+                    logic.status = a.taskStatusCode();
+                    programLogic.push(logic);
+                }
+
+                // Prepare all tasks
+                this._setupScheduler.prepare(ctx, setupLogic);
+                this._programScheduler.prepare(ctx, programLogic);
+
+                return TaskSchedulerStatus.EXECUTE_SETUP_FIRST;
+            }
+
+            case TaskSchedulerStatus.EXECUTE_SETUP_FIRST: {
+                if (await this._setupScheduler.executeFirst(ctx)) {
+                    return TaskSchedulerStatus.EXECUTE_SETUP_NEXT;
+                } else {
+                    return TaskSchedulerStatus.EXECUTE_PROGRAM_FIRST;
+                }
+            }
+
+            case TaskSchedulerStatus.EXECUTE_SETUP_NEXT: {
+                if (await this._setupScheduler.executeNext(ctx)) {
+                    return TaskSchedulerStatus.EXECUTE_SETUP_NEXT;
+                } else {
+                    return TaskSchedulerStatus.EXECUTE_PROGRAM_FIRST;
+                }
+            }
+
+            case TaskSchedulerStatus.EXECUTE_PROGRAM_FIRST: {
+                if (await this._programScheduler.executeFirst(ctx)) {
+                    return TaskSchedulerStatus.EXECUTE_PROGRAM_NEXT;
+                } else {
+                    return TaskSchedulerStatus.IDLE;
+                }
+            }
+
+            case TaskSchedulerStatus.EXECUTE_PROGRAM_NEXT: {
+                if (await this._setupScheduler.executeNext(ctx)) {
+                    return TaskSchedulerStatus.EXECUTE_PROGRAM_NEXT;
+                } else {
+                    return TaskSchedulerStatus.IDLE;
+                }
+            }
+        }
     }
 }
+
+type Props = {
+    children: React.ReactElement;
+};
+
+export const TaskSchedulerDriver: React.FC<Props> = (props: Props) => {
+    // Resolve the runtime
+    const logger = useLogger();
+    const database = useDatabaseClient();
+    const http = useHTTPClient();
+    const jmespath = useJMESPathResolver();
+    const analyzer = useAnalyzer();
+    const planContext = usePlanContext();
+    const dispatch = usePlanContextDispatch();
+
+    // Advance the scheduler whenever there's work
+    const stateMachine = React.useRef<TaskSchedulerStateMachine>(new TaskSchedulerStateMachine());
+    React.useEffect(() => {
+        if (planContext.schedulerStatus == TaskSchedulerStatus.IDLE) return;
+        const ctx: TaskExecutionContext = {
+            logger,
+            database,
+            http,
+            jmespath,
+            analyzer,
+            planContext,
+            planContextDiff: [],
+        };
+        (async () => {
+            const status = await stateMachine.current.step(ctx);
+            dispatch({
+                type: SCHEDULER_STEP_DONE,
+                data: [status, ctx.planContextDiff],
+            });
+        })();
+    }, [planContext]);
+
+    return props.children;
+};

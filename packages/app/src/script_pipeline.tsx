@@ -4,20 +4,15 @@ import React from 'react';
 import { useAnalyzer } from './analyzer';
 import {
     usePlanContext,
-    useLogger,
     useProgramContext,
     SET_PROGRAM,
     SET_PROGRAM_INSTANCE,
-    SCHEDULER_READY,
     useProgramContextDispatch,
     usePlanContextDispatch,
     TaskSchedulerStatus,
+    SCHEDULE_PLAN,
 } from './model';
-import { useDatabaseClient } from './database_client';
-import { TaskExecutionContext } from './task/task_execution_context';
-import { TaskGraphScheduler } from './task_scheduler';
-import { useHTTPClient } from './http_client';
-import { useJMESPathResolver } from './jmespath';
+import { TaskSchedulerDriver } from './task_scheduler';
 
 const MIN_INPUT_DELAY = 300;
 const MAX_INPUT_DELAY = 1000;
@@ -29,10 +24,6 @@ type Props = {
 
 export const ScriptPipeline: React.FC<Props> = (props: Props) => {
     // Setup all hooks
-    const logger = useLogger();
-    const http = useHTTPClient();
-    const jmespath = useJMESPathResolver();
-    const database = useDatabaseClient();
     const analyzer = useAnalyzer();
     const programContext = useProgramContext();
     const programContextDispatch = useProgramContextDispatch();
@@ -114,44 +105,21 @@ export const ScriptPipeline: React.FC<Props> = (props: Props) => {
     }, [programContext.program, programContext.programInputValues]);
 
     // Schedule program if scheduler is idle and instance differs
-    const taskScheduler = React.useRef<TaskGraphScheduler>(new TaskGraphScheduler());
     React.useEffect(() => {
         // Scheduler not idle?
-        if (planContext.schedulerStatus != TaskSchedulerStatus.Idle) return;
-        // Same instance?
+        if (planContext.schedulerStatus != TaskSchedulerStatus.IDLE) return;
+        // Same plan?
         if (planContext.plan?.programInstance == programContext.programInstance) return;
         // Plan the program
         const plan = analyzer.planProgram();
         if (!plan) return;
-
-        console.log('PLAN PROGRAM');
-        console.log(plan);
-        // Create the context
-        const ctx: TaskExecutionContext = {
-            logger,
-            database,
-            analyzer,
-            http,
-            jmespath,
-            planContext,
-            planContextDispatch,
-            planContextDiff: [],
-        };
+        console.log('SCHEDULE PLAN');
         // Schedule the plan
-        taskScheduler.current.prepare(ctx, plan);
-        // Execute all tasks asynchronously
-        (async () => {
-            // Execute the plan
-            await taskScheduler.current.execute(ctx);
-            // No longer mounted?
-            if (!isMountedRef.current) return;
-            // Scheduler is ready again
-            planContextDispatch({
-                type: SCHEDULER_READY,
-                data: null,
-            });
-        })();
+        planContextDispatch({
+            type: SCHEDULE_PLAN,
+            data: plan,
+        });
     }, [planContext.schedulerStatus, programContext.programInstance]);
 
-    return props.children;
+    return <TaskSchedulerDriver>{props.children}</TaskSchedulerDriver>;
 };

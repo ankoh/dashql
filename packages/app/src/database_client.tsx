@@ -238,9 +238,7 @@ const dbCtx = React.createContext<DatabaseClient | null>(null);
 
 export const DatabaseClientProvider: React.FC<Props> = (props: Props) => {
     const meta = useDatabaseMetadata();
-    React.useEffect(() => {
-        props.database._metadata = meta;
-    }, [meta]);
+    props.database._metadata = meta;
     return <dbCtx.Provider value={props.database}>{props.children}</dbCtx.Provider>;
 };
 export const useDatabaseClient = (): DatabaseClient => React.useContext(dbCtx)!;

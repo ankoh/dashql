@@ -279,7 +279,7 @@ export class DropVizTaskLogic extends SetupTaskLogic {
     public willExecute(_ctx: TaskExecutionContext): void {}
     public async execute(ctx: TaskExecutionContext): Promise<void> {
         const objectId = this.buffer.objectId();
-        ctx.planContextDispatch({
+        ctx.planContextDiff.push({
             type: DELETE_CARD,
             data: objectId,
         });
