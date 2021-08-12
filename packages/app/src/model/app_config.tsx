@@ -1,5 +1,5 @@
 import React from 'react';
-import * as core from '@dashql/core';
+import * as model from '../model';
 
 export interface AppConfig {
     program?: string;
@@ -17,7 +17,7 @@ export const initialAppConfig: AppConfig = {
 
 export const UPDATE_CONFIG = Symbol('UPDATE_CONFIG');
 
-export type AppConfigAction = core.model.Action<typeof UPDATE_CONFIG, Partial<AppConfig>>;
+export type AppConfigAction = model.Action<typeof UPDATE_CONFIG, Partial<AppConfig>>;
 
 export const reduceAppConfig = (ctx: AppConfig, action: AppConfigAction): AppConfig => {
     switch (action.type) {
@@ -30,7 +30,7 @@ export const reduceAppConfig = (ctx: AppConfig, action: AppConfigAction): AppCon
 };
 
 const stateCtx = React.createContext<AppConfig>(initialAppConfig);
-const dispatchCtx = React.createContext<core.model.Dispatch<AppConfigAction>>(() => {});
+const dispatchCtx = React.createContext<model.Dispatch<AppConfigAction>>(() => {});
 
 type Props = {
     children: React.ReactElement;
@@ -47,4 +47,4 @@ export const AppConfigProvider: React.FC<Props> = (props: Props) => {
 };
 
 export const useAppConfig = (): AppConfig => React.useContext(stateCtx);
-export const useAppConfigDispatch = (): core.model.Dispatch<AppConfigAction> => React.useContext(dispatchCtx);
+export const useAppConfigDispatch = (): model.Dispatch<AppConfigAction> => React.useContext(dispatchCtx);

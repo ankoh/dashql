@@ -1,6 +1,6 @@
 import * as React from 'react';
 import * as arrow from 'apache-arrow';
-import * as core from '@dashql/core';
+import * as model from '../model';
 import { Link } from 'react-router-dom';
 import { Route, Routes } from 'react-router-dom';
 import { BoardEditor, EditorLoader, ProgramStatsTeaser } from '../components';
@@ -36,7 +36,7 @@ type Props = {
 };
 
 export const Studio: React.FC<Props> = (props: Props) => {
-    const { script } = core.model.useProgramContext();
+    const { script } = model.useProgramContext();
     return (
         <div className={styles.studio}>
             <AnimatePresence>

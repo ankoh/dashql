@@ -26,8 +26,8 @@ import logo from '../static/svg/logo/logo.svg';
 
 import styles from './app_launcher.module.css';
 
-import jmespath_wasm from '@dashql/core/dist/dashql-jmespath.wasm';
-import analyzer_wasm from '@dashql/core/dist/dashql-analyzer.wasm';
+import jmespath_wasm from './jmespath/jmespath_wasm.wasm';
+import analyzer_wasm from './analyzer/analyzer_wasm.wasm';
 import duckdb_wasm from '@dashql/duckdb/dist/duckdb.wasm';
 import duckdb_wasm_next from '@dashql/duckdb/dist/duckdb-next.wasm';
 import duckdb_wasm_next_coi from '@dashql/duckdb/dist/duckdb-next-coi.wasm';

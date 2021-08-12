@@ -1,7 +1,7 @@
 import * as Immutable from 'immutable';
 import * as React from 'react';
-import * as core from '@dashql/core';
-import { proto } from '@dashql/core';
+import * as model from '../model';
+import * as proto from '@dashql/proto';
 import { SystemCard } from './system_card';
 import { TaskStatusIndicator } from './status';
 import styles from './task_list.module.css';
@@ -57,11 +57,11 @@ interface Props {
     onClose: () => void;
 }
 
-const renderTasks = (plan: core.model.Plan, planTasks: Immutable.Map<core.model.TaskHandle, core.model.Task>) => {
+const renderTasks = (plan: model.Plan, planTasks: Immutable.Map<model.TaskHandle, model.Task>) => {
     const setup_tasks: JSX.Element[] = [];
     const program_tasks: JSX.Element[] = [];
     plan.iterateSetupTasksReverse((i: number, o: proto.task.SetupTask) => {
-        const taskId = core.model.buildTaskHandle(i, proto.task.TaskClass.SETUP_TASK);
+        const taskId = model.buildTaskHandle(i, proto.task.TaskClass.SETUP_TASK);
         const taskInfo = planTasks.get(taskId);
         const status = taskInfo?.statusCode || proto.task.TaskStatusCode.PENDING;
         setup_tasks.push(
@@ -75,7 +75,7 @@ const renderTasks = (plan: core.model.Plan, planTasks: Immutable.Map<core.model.
         );
     });
     plan.iterateProgramTasks((i: number, o: proto.task.ProgramTask) => {
-        const taskId = core.model.buildTaskHandle(i, proto.task.TaskClass.PROGRAM_TASK);
+        const taskId = model.buildTaskHandle(i, proto.task.TaskClass.PROGRAM_TASK);
         const taskInfo = planTasks.get(taskId);
         const status = taskInfo?.statusCode || proto.task.TaskStatusCode.PENDING;
         program_tasks.push(
@@ -97,7 +97,7 @@ const renderTasks = (plan: core.model.Plan, planTasks: Immutable.Map<core.model.
 };
 
 export const TaskList: React.FC<Props> = (props: Props) => {
-    const { plan, tasks } = core.model.usePlanContext();
+    const { plan, tasks } = model.usePlanContext();
     return (
         <SystemCard title="Task" onClose={props.onClose} className={props.className}>
             {plan && renderTasks(plan, tasks)}

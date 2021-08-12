@@ -45,10 +45,6 @@ export function configure(params) {
         },
         resolve: {
             extensions: ['.ts', '.tsx', '.js', '.jsx', '.css'],
-            alias: {
-                'analyzer_wasm.wasm': '@dashql/core/dist/dashql-analyzer.wasm',
-                'jmespath_wasm.wasm': '@dashql/core/dist/dashql-jmespath.wasm',
-            },
         },
         module: {
             rules: [

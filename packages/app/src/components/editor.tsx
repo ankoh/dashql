@@ -1,8 +1,9 @@
 import Immutable from 'immutable';
 import * as React from 'react';
-import * as core from '@dashql/core';
 import * as monaco from 'monaco-editor/esm/vs/editor/editor.api';
 import * as proto from '@dashql/proto';
+import * as model from '../model';
+import * as utils from '../utils';
 import classNames from 'classnames';
 
 import { theme as monaco_theme } from './editor_theme_light';
@@ -14,14 +15,10 @@ import { TokensProvider } from './editor_tokens';
 
 /// Does the mouse movement affect the decorations?
 /// Right now, the only mouse effect is focus on dependency target nodes.
-const mouseMoveAffectsDecorations = (
-    program: core.model.Program,
-    prevOffset: number | null,
-    newOffset: number | null,
-) => {
-    const tmpNode = new core.model.Node(program);
+const mouseMoveAffectsDecorations = (program: model.Program, prevOffset: number | null, newOffset: number | null) => {
+    const tmpNode = new model.Node(program);
     const tmpLoc = new sx.Location();
-    const getLoc = (node: core.model.Node) => {
+    const getLoc = (node: model.Node) => {
         const l = node.buffer.location(tmpLoc)!;
         return [l.offset(), l.length()];
     };
@@ -58,17 +55,19 @@ const InnerEditor: React.FC<Props> = (props: Props) => {
     const monacoRef = React.useRef(null);
     const monacoContainer = (monacoRef.current || null) as HTMLDivElement | null;
 
-    const { script, program } = core.model.useProgramContext();
-    const { statementStatus } = core.model.usePlanContext();
-    const programContextDispatch = core.model.useProgramContextDispatch();
+    const { script, program } = model.useProgramContext();
+    const { statementStatus } = model.usePlanContext();
+    const programContextDispatch = model.useProgramContextDispatch();
+
+    console.log('EDITOR RENDER');
+    console.log(script);
 
     // Expose program and script via ref for monaco
-    const scriptRef = React.useRef<core.model.Script>(script);
-    const programRef = React.useRef<core.model.Program | null>(program);
+    const scriptRef = React.useRef<model.Script>(script);
+    const programRef = React.useRef<model.Program | null>(program);
     React.useEffect(() => {
         scriptRef.current = script;
         programRef.current = program;
-        console.log(script);
         if (editor) {
             editor.setValue(script.text);
         }
@@ -128,12 +127,12 @@ const InnerEditor: React.FC<Props> = (props: Props) => {
         e.onDidChangeModelContent(_event => {
             if (e.getValue() != scriptRef.current?.text) {
                 programContextDispatch({
-                    type: core.model.SET_SCRIPT,
+                    type: model.SET_SCRIPT,
                     data: {
                         ...scriptRef.current,
                         text: e.getValue(),
                         lineCount: e.getModel()?.getLineCount() || 0,
-                        bytes: core.utils.estimateUTF16Length(e.getValue()),
+                        bytes: utils.estimateUTF16Length(e.getValue()),
                         modified: true,
                     },
                 });
@@ -183,8 +182,8 @@ const InnerEditor: React.FC<Props> = (props: Props) => {
 
     // Update decorations
     const prevDecoration = React.useRef<{
-        program: core.model.Program;
-        statementStatus: Immutable.List<core.model.StatementStatus>;
+        program: model.Program;
+        statementStatus: Immutable.List<model.StatementStatus>;
         mouseOffset: number | null;
         decorationIDs: string[];
     } | null>(null);
@@ -206,12 +205,12 @@ const InnerEditor: React.FC<Props> = (props: Props) => {
         }
 
         // Get the state
-        const tmpNode = new core.model.Node(program);
+        const tmpNode = new model.Node(program);
         const tmpLoc = new sx.Location();
         const dec: monaco.editor.IModelDeltaDecoration[] = [];
 
         // Get location
-        const getLoc = (node: core.model.Node) => {
+        const getLoc = (node: model.Node) => {
             const l = node.buffer.location(tmpLoc)!;
             return [l.offset(), l.length()];
         };
@@ -219,14 +218,14 @@ const InnerEditor: React.FC<Props> = (props: Props) => {
         // Get a line from an offset
         const getLineFromOffset = (ofs: number) => {
             const lineBreaks = lineBreaksRef.current;
-            const nextBreak = core.utils.lowerBound(lineBreaks, ofs, (l, r) => l < r, 0, lineBreaks.length);
+            const nextBreak = utils.lowerBound(lineBreaks, ofs, (l, r) => l < r, 0, lineBreaks.length);
             const prevOffset = nextBreak == 0 || lineBreaks.length == 0 ? 0 : lineBreaks[nextBreak - 1] + 1; // + \n
             const column = ofs - prevOffset + 1; // Columns are 1 indexed
             return [nextBreak + 1, column]; // Lines are 1 indexed
         };
 
         // Draw glyphs
-        program.iterateStatements((idx: number, stmt: core.model.Statement) => {
+        program.iterateStatements((idx: number, stmt: model.Statement) => {
             const root = stmt.root_node(tmpNode);
             const loc = root.buffer.location(tmpLoc)!;
             const ofsBegin = loc!.offset();

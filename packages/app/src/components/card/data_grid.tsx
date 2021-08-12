@@ -1,5 +1,6 @@
 import * as React from 'react';
-import * as core from '@dashql/core';
+import * as model from '../../model';
+import * as access from '../../access';
 import {
     Grid,
     GridCellProps,
@@ -24,13 +25,13 @@ type Props = {
     width: number;
     height: number;
 
-    table: core.model.TableMetadata;
-    data: core.access.ScanResult | null;
-    requestData: (request: core.access.ScanRequest) => void;
+    table: model.TableMetadata;
+    data: access.ScanResult | null;
+    requestData: (request: access.ScanRequest) => void;
 };
 
 type State = {
-    data: core.access.ScanResult | null;
+    data: access.ScanResult | null;
     totalRowCount: number;
     columnRenderers: ColumnRenderer[];
 
@@ -121,7 +122,7 @@ export class DataGrid extends React.Component<Props, State> {
             columnRenderers = deriveColumnRenderers(props.table, props.data!);
 
             // Get the row count
-            const key = core.model.buildTableStatisticsKey(core.model.TableStatisticsType.COUNT_STAR);
+            const key = model.buildTableStatisticsKey(model.TableStatisticsType.COUNT_STAR);
             const entry = props.table.statistics.get(key);
             totalRowCount = entry?.get(0) || 0;
         }
@@ -209,7 +210,7 @@ export class DataGrid extends React.Component<Props, State> {
         const ofs = this.state.firstVisibleRow;
         const count = this.state.visibleRows;
         const end = Math.min(ofs + count, this.state.totalRowCount);
-        this.props.requestData(new core.access.ScanRequest().withRange(ofs, end - ofs, 1024));
+        this.props.requestData(new access.ScanRequest().withRange(ofs, end - ofs, 1024));
     }
 
     /// Render a cell of the static left sidebar

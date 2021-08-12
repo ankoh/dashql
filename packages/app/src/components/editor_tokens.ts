@@ -1,6 +1,6 @@
-import * as core from '@dashql/core';
 import * as proto from '@dashql/proto';
 import * as monaco from 'monaco-editor/esm/vs/editor/editor.api';
+import * as model from '../model';
 
 /** Dummy state to propagate the line number through the TokensProvider API.
  *  We rely on the fact here that the model passes this state from line to line sequentially.
@@ -31,9 +31,9 @@ class TokensProviderState implements monaco.languages.IState {
 
 export class TokensProvider implements monaco.languages.TokensProvider {
     /// The redux store
-    _program: React.RefObject<core.model.Program>;
+    _program: React.RefObject<model.Program>;
 
-    constructor(program: React.RefObject<core.model.Program>) {
+    constructor(program: React.RefObject<model.Program>) {
         this._program = program;
     }
 

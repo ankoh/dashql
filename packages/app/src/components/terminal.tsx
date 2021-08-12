@@ -1,6 +1,6 @@
 import React from 'react';
 import { TerminalEmulator } from './terminal_emulator';
-import * as core from '@dashql/core';
+import { useDatabaseClient } from '../database_client';
 
 import styles from './terminal.module.css';
 
@@ -9,7 +9,7 @@ type Props = Record<string, string>;
 export const Terminal: React.FC<Props> = (props: Props) => {
     const termRef = React.useRef<TerminalEmulator>(new TerminalEmulator());
     const termContainer = React.createRef<HTMLDivElement>();
-    const database = core.useDatabaseClient();
+    const database = useDatabaseClient();
 
     // Evaluate the terminal input
     const evalTermInput = async (text: string) => {

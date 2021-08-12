@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { proto } from '@dashql/core';
+import * as proto from '@dashql/proto';
 import { Status } from '../model';
 import classNames from 'classnames';
 

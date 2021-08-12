@@ -1,6 +1,6 @@
 import React from 'react';
 import * as Immutable from 'immutable';
-import * as core from '@dashql/core';
+import * as model from '../model';
 
 /// Status code
 export enum Status {
@@ -84,7 +84,7 @@ export const initialLaunchProgress: LaunchProgress = {
 
 export const UPDATE_LAUNCH_STEP = Symbol('UPDATE_LAUNCH_STEP');
 
-export type LaunchProgressAction = core.model.Action<
+export type LaunchProgressAction = model.Action<
     typeof UPDATE_LAUNCH_STEP,
     Partial<LaunchStep> & { type: LaunchStepType }
 >;
@@ -116,9 +116,9 @@ export const reduceLaunchProgress = (ctx: LaunchProgress, action: LaunchProgress
 };
 
 const stateCtx = React.createContext<LaunchProgress>(initialLaunchProgress);
-const dispatchCtx = React.createContext<core.model.Dispatch<LaunchProgressAction>>(() => {});
+const dispatchCtx = React.createContext<model.Dispatch<LaunchProgressAction>>(() => {});
 
-export const LaunchProgressProvider: React.FC<core.model.ProviderProps> = (props: core.model.ProviderProps) => {
+export const LaunchProgressProvider: React.FC<model.ProviderProps> = (props: model.ProviderProps) => {
     const [s, d] = React.useReducer(reduceLaunchProgress, initialLaunchProgress);
     return (
         <stateCtx.Provider value={s}>
@@ -128,4 +128,4 @@ export const LaunchProgressProvider: React.FC<core.model.ProviderProps> = (props
 };
 
 export const useLaunchProgress = (): LaunchProgress => React.useContext(stateCtx);
-export const useLaunchProgressDispatch = (): core.model.Dispatch<LaunchProgressAction> => React.useContext(dispatchCtx);
+export const useLaunchProgressDispatch = (): model.Dispatch<LaunchProgressAction> => React.useContext(dispatchCtx);

@@ -1,6 +1,8 @@
-import * as core from '@dashql/core';
+import * as model from '../model';
+import * as edit from '../edit';
 import * as React from 'react';
 import ReactGrid from 'react-grid-layout';
+import { useAnalyzer } from '../analyzer';
 import { CardRenderer } from './card';
 
 import './board.module.css';
@@ -16,7 +18,7 @@ type Props = {
 };
 
 interface LayoutElement {
-    card: core.model.CardSpecification;
+    card: model.CardSpecification;
     i: string;
     x: number;
     y: number;
@@ -25,9 +27,9 @@ interface LayoutElement {
 }
 
 export const Board: React.FC<Props> = (props: Props) => {
-    const analyzer = core.analyzer.useAnalyzer();
-    const programContextDispatch = core.model.useProgramContextDispatch();
-    const planContext = core.model.usePlanContext();
+    const analyzer = useAnalyzer();
+    const programContextDispatch = model.useProgramContextDispatch();
+    const planContext = model.usePlanContext();
 
     const layout = React.useMemo(() => {
         const els: LayoutElement[] = [];
@@ -48,9 +50,9 @@ export const Board: React.FC<Props> = (props: Props) => {
     const onLayoutChanged = () => {
         if (!userExpectation.current) return;
         userExpectation.current = false;
-        const updates: core.edit.EditOperationVariant[] = layout.map(l => ({
+        const updates: edit.EditOperationVariant[] = layout.map(l => ({
             statementID: (l as LayoutElement).card.statementID,
-            type: core.edit.EditOperationType.UPDATE_CARD_POSITION,
+            type: edit.EditOperationType.UPDATE_CARD_POSITION,
             data: {
                 position: {
                     row: l.y,
@@ -63,7 +65,7 @@ export const Board: React.FC<Props> = (props: Props) => {
         const next = analyzer.editProgram(updates);
         if (next) {
             programContextDispatch({
-                type: core.model.REWRITE_PROGRAM,
+                type: model.REWRITE_PROGRAM,
                 data: next,
             });
         }
