@@ -12,8 +12,8 @@ echo "MODE=${MODE}"
 
 CPP_BUILD_DIR="${PROJECT_ROOT}/lib/build/wasm/${MODE}"
 CPP_SOURCE_DIR="${PROJECT_ROOT}/lib"
-ANALYZER_LIB_DIR="${PROJECT_ROOT}/packages/core/src/analyzer"
-JMESPATH_LIB_DIR="${PROJECT_ROOT}/packages/core/src/jmespath"
+ANALYZER_LIB_DIR="${PROJECT_ROOT}/packages/app/src/analyzer"
+JMESPATH_LIB_DIR="${PROJECT_ROOT}/packages/app/src/jmespath"
 
 CORES=$(grep -c ^processor /proc/cpuinfo 2>/dev/null || sysctl -n hw.ncpu)
 
