@@ -88,8 +88,8 @@ const reducer = (ctx: ProgramContext, action: ProgramContextAction) => {
     }
 };
 
-const programCtx = React.createContext<ProgramContext>(initialState);
-const dispatchCtx = React.createContext<Dispatch<ProgramContextAction>>(() => {});
+const programCtx = React.createContext<ProgramContext | null>(null);
+const dispatchCtx = React.createContext<Dispatch<ProgramContextAction> | null>(null);
 
 export const ProgramContextProvider: React.FC<ProviderProps> = (props: ProviderProps) => {
     const [s, d] = React.useReducer(reducer, initialState);
@@ -100,5 +100,5 @@ export const ProgramContextProvider: React.FC<ProviderProps> = (props: ProviderP
     );
 };
 
-export const useProgramContext = (): ProgramContext => React.useContext(programCtx);
-export const useProgramContextDispatch = (): Dispatch<ProgramContextAction> => React.useContext(dispatchCtx);
+export const useProgramContext = (): ProgramContext => React.useContext(programCtx)!;
+export const useProgramContextDispatch = (): Dispatch<ProgramContextAction> => React.useContext(dispatchCtx)!;
