@@ -27,6 +27,11 @@ export const BlobLoader: React.FC<Props> = (props: Props) => {
         buffer: null,
     });
 
+    const isMountedRef = React.useRef(true);
+    React.useEffect(() => {
+        return () => void (isMountedRef.current = false);
+    }, []);
+
     React.useEffect(() => {
         if (state.status != BlobLoaderStatus.PENDING) return;
         setState({
@@ -36,12 +41,15 @@ export const BlobLoader: React.FC<Props> = (props: Props) => {
         const loadBlob = async (): Promise<void> => {
             try {
                 const buffer = await props.blob.arrayBuffer();
+                if (!isMountedRef.current) return;
                 setState({
                     status: BlobLoaderStatus.SUCCEEDED,
                     buffer,
                     error: null,
                 });
             } catch (e) {
+                console.error(e);
+                if (!isMountedRef.current) return;
                 setState({
                     status: BlobLoaderStatus.FAILED,
                     buffer: null,
