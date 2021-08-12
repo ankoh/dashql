@@ -125,12 +125,19 @@ lib_debug: lib
 tests:
 	yarn workspace @dashql/app build:libs
 	yarn workspace @dashql/app test:browser
+	yarn workspace @dashql/app test:node
 
 # Test the dashql_core javascript library
 .PHONY: tests_node
 tests_node:
 	yarn workspace @dashql/app build:libs
 	yarn workspace @dashql/app test:node
+
+# Test the dashql_core javascript library
+.PHONY: tests_browser
+tests_debug:
+	yarn workspace @dashql/app build:libs
+	yarn workspace @dashql/app test:browser:debug
 
 # Build the benchmarks
 .PHONY: benchmarks
@@ -245,12 +252,6 @@ bootstrap:
 	make proto
 	make wasm
 	make core
-
-# Run all js tests
-.PHONY: jstests
-jstests:
-	make proto
-	make core_tests
 
 # ---------------------------------------------------------------------------
 # Data

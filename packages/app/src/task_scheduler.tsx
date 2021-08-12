@@ -184,10 +184,10 @@ export class TaskScheduler<TaskBuffer extends ProtoTask> {
     /// Waits until one of the currently running task promises resolves or rejects.
     /// Returns true if execute should be called again.
     public async execute(ctx: TaskExecutionContext): Promise<boolean> {
-        // Nothing to do?
-        if (!this.workLeft()) return false;
         // Schedule the next tasks
         this.scheduleNext(ctx);
+        // Nothing to do?
+        if (!this.workLeft()) return false;
 
         // Wait for next task to complete
         const promises: Promise<[TaskHandle | null, TaskError | null]>[] = [this._interrupt];
