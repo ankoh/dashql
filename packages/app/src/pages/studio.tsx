@@ -84,7 +84,9 @@ export const Studio: React.FC<Props> = (props: Props) => {
                         path="/"
                         element={
                             <>
-                                <EditorLoader key="editor" className={styles.program_editor} />
+                                <motion.div key="editor" className={styles.program_editor}>
+                                    <EditorLoader />
+                                </motion.div>
                                 <motion.div key="board" className={styles.board}>
                                     <BoardEditor immutable={false} scaleFactor={1.0} className={styles.board_editor} />
                                     <BoardCommandBar />
