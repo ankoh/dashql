@@ -123,7 +123,7 @@ export abstract class VizTaskLogic extends ProgramTaskLogic {
             }
             renderer = require;
         }
-        this._renderer = renderer || null;
+        this._renderer = renderer;
     }
 
     /// Read context info
