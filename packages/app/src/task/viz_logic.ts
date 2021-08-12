@@ -14,7 +14,7 @@ export abstract class VizTaskLogic extends ProgramTaskLogic {
     /// The viz spec
     _card: proto.analyzer.Card | null = null;
     /// The renderer
-    _renderer: model.CardRendererType = model.CardRendererType.BUILTIN_HEX;
+    _renderer: model.CardRendererType | null = null;
     /// The viz composer
     _vega: VegaComposer | null = null;
     /// The table (if needed)
@@ -123,7 +123,7 @@ export abstract class VizTaskLogic extends ProgramTaskLogic {
             }
             renderer = require;
         }
-        this._renderer = renderer || this._renderer;
+        this._renderer = renderer || null;
     }
 
     /// Read context info
@@ -183,7 +183,7 @@ export class CreateVizTaskLogic extends VizTaskLogic {
                 timeUpdated: now,
                 nameQualified: this.buffer.nameQualified() || '',
                 cardType: proto.analyzer.CardType.BUILTIN_VIZ,
-                cardRenderer: this._renderer || model.CardRendererType.BUILTIN_TABLE,
+                cardRenderer: this._renderer,
                 statementID: this.origin.statementId,
                 position: pos,
                 title: this._card!.cardTitle() || null,

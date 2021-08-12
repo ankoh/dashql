@@ -23,7 +23,7 @@ export enum CardRendererType {
 
 export interface CardSpecification extends PlanObject {
     readonly cardType: proto.analyzer.CardType | null;
-    readonly cardRenderer: CardRendererType;
+    readonly cardRenderer: CardRendererType | null;
     readonly statementID: number;
     readonly position: CardPosition;
     readonly title: string | null;
