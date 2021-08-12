@@ -123,21 +123,21 @@ lib_debug: lib
 # Test the dashql_core javascript library
 .PHONY: tests
 tests:
-	yarn workspace @dashql/app build:libs
-	yarn workspace @dashql/app test:browser
-	yarn workspace @dashql/app test:node
+	yarn workspace @dashql/core build:libs
+	yarn workspace @dashql/core test:browser
+	yarn workspace @dashql/core test:node
 
 # Test the dashql_core javascript library
 .PHONY: tests_node
 tests_node:
-	yarn workspace @dashql/app build:libs
-	yarn workspace @dashql/app test:node
+	yarn workspace @dashql/core build:libs
+	yarn workspace @dashql/core test:node
 
 # Test the dashql_core javascript library
 .PHONY: tests_browser
 tests_debug:
-	yarn workspace @dashql/app build:libs
-	yarn workspace @dashql/app test:browser:debug
+	yarn workspace @dashql/core build:libs
+	yarn workspace @dashql/core test:browser:debug
 
 # Build the benchmarks
 .PHONY: benchmarks
@@ -176,22 +176,22 @@ wasm_release: wasm_caches
 # Builds the app
 .PHONY: app
 app:
-	yarn workspace @dashql/app build:debug
+	yarn workspace @dashql/core build:app:debug
 
 # Creates a release archive
 .PHONY: app_release
 app_release:
-	yarn workspace @dashql/app build:release
+	yarn workspace @dashql/core build:app:release
 
 # Runs a node server with the release build
 .PHONY: app_release_server
 app_release_server:
-	yarn workspace @dashql/app serve:release
+	yarn workspace @dashql/core serve:release
 
 # Starts the dev server
 .PHONY: app_start
 app_start:
-	yarn workspace @dashql/app start
+	yarn workspace @dashql/core start
 
 # C++ formatting
 .PHONY: clang_format
@@ -206,7 +206,7 @@ clang_format:
 eslint:
 	yarn workspace @dashql/core run lint
 	yarn workspace @dashql/benchmarks run lint
-	yarn workspace @dashql/app run lint
+	yarn workspace @dashql/core run lint
 
 # Install all yarn packages
 .PHONY: yarn_install
