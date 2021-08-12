@@ -48,9 +48,9 @@ export const ScriptPipeline: React.FC<Props> = (props: Props) => {
     // Parse program if script text changes
     const programParsedAt = React.useRef<Date | null>(null);
     React.useEffect(() => {
-        console.log('PARSE PROGRAM');
-        const text = programContext.program?.text;
+        const text = programContext.script?.text;
         if (!text) return;
+        console.log('PARSE PROGRAM');
         const program = analyzer.parseProgram(text);
         programParsedAt.current = new Date();
         console.log(program);
@@ -61,11 +61,12 @@ export const ScriptPipeline: React.FC<Props> = (props: Props) => {
     }, [programContext.script.text]);
 
     // Instantiate program if program or input values change
+    const instanceTimeout = React.useRef<ReturnType<typeof setTimeout> | null>(null);
     React.useEffect(() => {
-        const instanceTimeout = React.useRef<ReturnType<typeof setTimeout> | null>();
         const instantiateProgram = () => {
             if (!programContext.program || !isMountedRef.current) return;
             const nowMS = new Date().getTime();
+            console.log('INSTANTIATE PROGRAM');
 
             // Has a program been instantiated before?
             if (programContext.programInstance) {
@@ -122,6 +123,9 @@ export const ScriptPipeline: React.FC<Props> = (props: Props) => {
         // Plan the program
         const plan = analyzer.planProgram();
         if (!plan) return;
+
+        console.log('PLAN PROGRAM');
+        console.log(plan);
         // Create the context
         const ctx: TaskExecutionContext = {
             logger,
