@@ -1,20 +1,22 @@
 import * as React from 'react';
-import * as core from '@dashql/core';
+import * as model from '../../model';
+import * as access from '../../access';
 import { CardFrame } from './card_frame';
+import { useDatabaseClient } from '../../database_client';
 
 import DataGrid from './data_grid';
 
-import ScanProvider = core.access.ScanProvider;
+import ScanProvider = access.ScanProvider;
 
 interface Props {
-    card: core.model.CardSpecification;
+    card: model.CardSpecification;
     editable?: boolean;
 }
 
 export const TableRenderer: React.FC<Props> = (props: Props) => {
-    const logger = core.model.useLogger();
-    const dbMeta = core.model.useDatabaseMetadata();
-    const db = core.useDatabaseClient();
+    const logger = model.useLogger();
+    const dbMeta = model.useDatabaseMetadata();
+    const db = useDatabaseClient();
     const target = props.card.dataSource!.targetQualified;
     const data = props.card.dataSource!;
     const table = dbMeta.tables.get(data.targetQualified);
@@ -27,7 +29,7 @@ export const TableRenderer: React.FC<Props> = (props: Props) => {
                 logger={logger}
                 database={db}
                 targetName={table.nameQualified}
-                request={new core.access.ScanRequest().withRange(0, 1024)}
+                request={new access.ScanRequest().withRange(0, 1024)}
             >
                 {(d, r) => <DataGrid table={table} data={d} requestData={r} />}
             </ScanProvider>
