@@ -7,7 +7,7 @@
         "sourceMap": false,
         "declaration": true,
         "declarationMap": true,
-        "declarationDir": "./dist/types/",
+        "declarationDir": "./build/types/",
 
         "esModuleInterop": true,
         "allowSyntheticDefaultImports": true,

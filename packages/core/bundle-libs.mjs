@@ -31,7 +31,19 @@ fs.copyFile(path.resolve(src, 'jmespath', 'jmespath_wasm.wasm'), path.resolve(ou
 
 const TARGET = ['esnext'];
 
-console.log('[ ESBUILD ] lib/tests-browser.js');
+console.log('[ ESBUILD ] libs/dashql-core-node.js');
+esbuild.build({
+    entryPoints: ['./src/index_node.ts'],
+    outfile: 'build/libs/dashql-core-node.js',
+    platform: 'node',
+    format: 'esm',
+    target: TARGET,
+    bundle: true,
+    minify: true,
+    sourcemap: true,
+});
+
+console.log('[ ESBUILD ] libs/tests-browser.js');
 esbuild.build({
     entryPoints: ['./test/index_browser.ts'],
     outfile: 'build/libs/tests-browser.js',
@@ -44,10 +56,10 @@ esbuild.build({
     define: { 'process.env.NODE_ENV': '"production"' },
 });
 
-console.log('[ ESBUILD ] lib/tests-node.cjs');
+console.log('[ ESBUILD ] libs/tests-node.js');
 esbuild.build({
     entryPoints: ['./test/index_node.ts'],
-    outfile: 'build/libs/tests-node.cjs',
+    outfile: 'build/libs/tests-node.js',
     platform: 'node',
     format: 'cjs',
     target: TARGET,
@@ -57,3 +69,8 @@ esbuild.build({
     define: { 'process.env.NODE_ENV': '"production"' },
     external: ['apache-arrow', 'axios', 'axios-mock-adapter', 'immutable', 'redux', 'web-worker', 'vega'],
 });
+
+// -------------------------------
+// Write delcaration files
+
+fs.writeFile(path.join(out, 'dashql-core-node.d.ts'), "export * from '../types/src/index_node';", printErr);
