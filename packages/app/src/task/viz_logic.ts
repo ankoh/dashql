@@ -4,7 +4,7 @@ import * as proto from '@dashql/proto';
 import * as model from '../model';
 import * as error from '../error';
 import * as arrow from 'apache-arrow';
-import { ADD_CARD, CardDataResolver, DELETE_CARD } from '../model';
+import { ADD_CARD, CardDataResolver, DELETE_CARD, UPDATE_CARD } from '../model';
 import { VegaComposer } from '../viz/vega_composer';
 import { ProgramTaskLogic, SetupTaskLogic } from './task_logic';
 import { TaskExecutionContext } from './task_execution_context';
@@ -205,17 +205,18 @@ export class CreateVizTaskLogic extends VizTaskLogic {
         if (!this._card) return;
         const oid = this.buffer.objectId();
         const target = this._card.vizTarget()!;
-        let card = ctx.planContext.cards.get(oid)!;
+        let cardUpdate: Partial<model.CardSpecification> & { objectId: number } = {
+            objectId: oid,
+            timeUpdated: new Date(),
+        };
 
         // Create
         switch (this._renderer) {
             case model.CardRendererType.BUILTIN_TABLE: {
                 await ctx.database.evaluateTableStatistics(target);
                 await this._rowCount!;
-                console.log(`TABLE VIZ WITH TARGET:`);
-                console.log(this._table!.nameQualified);
-                card = {
-                    ...card,
+                cardUpdate = {
+                    ...cardUpdate,
                     cardRenderer: model.CardRendererType.BUILTIN_TABLE,
                     dataSource: {
                         dataResolver: CardDataResolver.PIECEWISE_SCAN,
@@ -226,22 +227,20 @@ export class CreateVizTaskLogic extends VizTaskLogic {
                         m5Config: null,
                         sampleSize: 0,
                     },
-                    timeUpdated: new Date(),
                 };
                 break;
             }
             case model.CardRendererType.BUILTIN_VEGA:
                 await ctx.database.evaluateTableStatistics(target);
-                card = {
-                    ...card,
+                cardUpdate = {
+                    ...cardUpdate,
                     ...(await this._vega!.compile()),
-                    timeUpdated: new Date(),
                 };
                 break;
             case model.CardRendererType.BUILTIN_JSON:
             case model.CardRendererType.BUILTIN_HEX:
-                card = {
-                    ...card,
+                cardUpdate = {
+                    ...cardUpdate,
                     cardRenderer: this._renderer,
                     dataSource: {
                         dataResolver: CardDataResolver.PIECEWISE_SCAN,
@@ -252,14 +251,12 @@ export class CreateVizTaskLogic extends VizTaskLogic {
                         m5Config: null,
                         sampleSize: 0,
                     },
-                    timeUpdated: new Date(),
                 };
                 break;
         }
-
         ctx.planContextDiff.push({
-            type: ADD_CARD,
-            data: card,
+            type: UPDATE_CARD,
+            data: cardUpdate,
         });
     }
 }
