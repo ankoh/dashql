@@ -96,9 +96,9 @@ export const AppLauncher: React.FC<Props> = (props: Props) => {
 
     // Configure the application
     React.useEffect(() => {
-        (async () => {
+        (async (): Promise<void> => {
             try {
-                const resp = await axios.get(config_url);
+                const resp = await axios.get(config_url as string);
                 if (!model.isAppConfig(resp.data)) {
                     updateStep(LaunchStepType.CONFIGURE_APP, Status.FAILED, 'invalid app config');
                     return null;

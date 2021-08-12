@@ -30,11 +30,11 @@ export interface TaskExecutionContext {
 type WiredTaskExecutionContext = TaskExecutionContext & {
     planContextDispatch: model.Dispatch<model.PlanContextAction>;
 };
-export function wireTaskExecutionContext(
+export async function wireTaskExecutionContext(
     db: AsyncDuckDB,
     analyzer: AnalyzerBindings,
     jmespath: () => Promise<JMESPathBindings>,
-): WiredTaskExecutionContext {
+): Promise<WiredTaskExecutionContext> {
     const logger = Logger.createWired();
     const database = DatabaseClient.createWired(db);
     const http = new HTTPClient(logger);
@@ -49,5 +49,6 @@ export function wireTaskExecutionContext(
         planContextDispatch: (action: PlanContextAction) =>
             (wired.planContext = model.reducePlanContext(wired.planContext, action)),
     };
+    await database.connect();
     return wired;
 }

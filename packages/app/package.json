@@ -5,9 +5,9 @@
     "private": true,
     "scripts": {
         "start": "webpack serve --config webpack.app.debug.js",
+        "build:libs": "node bundle-libs.mjs",
         "build:app:debug": "webpack --config webpack.app.debug.js",
         "build:app:release": "webpack --config webpack.app.release.js",
-        "build:libs": "node bundle-libs.mjs",
         "report": "node ./coverage.mjs",
         "test:node": "node --enable-source-maps ../../node_modules/jasmine/bin/jasmine ./build/libs/tests-node.js",
         "test:node:cov": "nyc -r json --report-dir ./coverage/node node ../../node_modules/jasmine/bin/jasmine ./build/libs/tests-node.js",
@@ -106,7 +106,6 @@
     "optionalDependencies": {
         "fsevents": "*"
     },
-    "type": "module",
     "browser": {
         "worker_threads": false,
         "perf_hooks": false,

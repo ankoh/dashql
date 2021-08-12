@@ -80,7 +80,7 @@ const InnerEditor: React.FC<Props> = (props: Props) => {
     const prevMousePosition = React.useRef<monaco.Position | null>(null);
     React.useEffect(() => {
         // Abort if already set or no program available
-        if (editor || !monacoContainer) return;
+        if (editor || !monacoContainer) return () => {};
 
         // Setup tokens & theme
         monaco.languages.register({ id: 'dashql' });
