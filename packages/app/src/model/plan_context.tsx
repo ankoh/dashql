@@ -41,6 +41,7 @@ export const initialPlanContext: PlanContext = {
 
 export const ADD_BLOB = Symbol('ADD_BLOB');
 export const ADD_CARD = Symbol('ADD_CARD');
+export const UPDATE_CARD = Symbol('UPDATE_CARD');
 export const DELETE_BLOB = Symbol('DELETE_BLOB');
 export const DELETE_CARD = Symbol('DELETE_CARD');
 export const RESET_PLAN = Symbol('RESET_PLAN');
@@ -55,6 +56,7 @@ export type PlanContextAction =
     | Action<typeof UPDATE_PLAN_TASKS, TaskUpdate[]>
     | Action<typeof ADD_BLOB, UniqueBlob>
     | Action<typeof ADD_CARD, CardSpecification>
+    | Action<typeof UPDATE_CARD, Partial<CardSpecification> & { objectId: number }>
     | Action<typeof DELETE_BLOB, ObjectID>
     | Action<typeof DELETE_CARD, ObjectID>
     | Action<typeof SCHEDULER_READY, void>
@@ -73,6 +75,22 @@ export const reducePlanContext = (ctx: PlanContext, action: PlanContextAction): 
             return {
                 ...ctx,
                 cards: ctx.cards.set(action.data.objectId, action.data),
+            };
+        case UPDATE_CARD:
+            return {
+                ...ctx,
+                cards: ctx.cards.withMutations(c => {
+                    const prev = c.get(action.data.objectId);
+                    if (!prev) {
+                        console.log('UPDATE CARD NOT FOUND');
+                        return;
+                    }
+                    console.log('UPDATE CARD');
+                    c.set(action.data.objectId, {
+                        ...prev,
+                        ...action.data,
+                    });
+                }),
             };
         case DELETE_BLOB: {
             const blob = ctx.blobs.get(action.data);
@@ -95,11 +113,11 @@ export const reducePlanContext = (ctx: PlanContext, action: PlanContextAction): 
             };
         case SCHEDULER_STEP_DONE: {
             const [nextStatus, actions] = action.data;
-            for (const a of actions) {
-                ctx = reducePlanContext(ctx, a);
-            }
             return {
-                ...ctx,
+                ...actions.reduce((c, a) => {
+                    console.log(a);
+                    return reducePlanContext(c, a);
+                }, ctx),
                 schedulerStatus: nextStatus,
             };
         }

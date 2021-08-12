@@ -394,26 +394,30 @@ export const TaskSchedulerDriver: React.FC<Props> = (props: Props) => {
     const planContext = usePlanContext();
     const dispatch = usePlanContextDispatch();
 
+    const ctx = React.useRef<TaskExecutionContext>({
+        logger,
+        database,
+        http,
+        jmespath,
+        analyzer,
+        planContext,
+        planContextDiff: [],
+    });
+    ctx.current.planContext = planContext;
+
     // Advance the scheduler whenever there's work
     const stateMachine = React.useRef<TaskSchedulerStateMachine>(new TaskSchedulerStateMachine());
     const working = React.useRef<boolean>(false);
     React.useEffect(() => {
         if (working.current || planContext.schedulerStatus == TaskSchedulerStatus.IDLE) return;
-        const ctx: TaskExecutionContext = {
-            logger,
-            database,
-            http,
-            jmespath,
-            analyzer,
-            planContext,
-            planContextDiff: [],
-        };
         working.current = true;
         (async () => {
-            const status = await stateMachine.current.step(ctx);
+            const status = await stateMachine.current.step(ctx.current);
+            const diff = [...ctx.current.planContextDiff];
+            ctx.current.planContextDiff.length = 0;
             dispatch({
                 type: SCHEDULER_STEP_DONE,
-                data: [status, ctx.planContextDiff],
+                data: [status, diff],
             });
             working.current = false;
         })();
