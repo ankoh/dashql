@@ -1,4 +1,5 @@
-import { analyzer, edit } from '../src';
+import * as analyzer from '../src/analyzer';
+import * as edit from '../src/edit';
 
 export function testProgramEditor(az: () => analyzer.AnalyzerBindings): void {
     beforeEach(async () => {

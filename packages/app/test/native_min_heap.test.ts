@@ -1,4 +1,4 @@
-import * as core from '../src/';
+import * as utils from '../src/utils';
 
 enum TestOpType {
     POP_OP,
@@ -46,7 +46,7 @@ export function testNativeMinHeap(): void {
             const ops = element[2];
             it(name, () => {
                 input.sort((l: [number, number], r: [number, number]) => l[1] - r[1]);
-                const heap = new core.utils.NativeMinHeap(input);
+                const heap = new utils.NativeMinHeap(input);
                 for (const op of ops) {
                     switch (op.type) {
                         case TestOpType.DEC_OP:

@@ -1,4 +1,4 @@
-import { analyzer } from '../src';
+import * as analyzer from '../src/analyzer';
 
 export function testTaskGraph(az: () => analyzer.AnalyzerBindings): void {
     beforeAll(async () => {});

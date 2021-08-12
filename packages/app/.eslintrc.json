@@ -7,7 +7,7 @@
     },
     "overrides": [
         {
-            "files": ["src/**/*.ts", "test/**/*.ts"]
+            "files": ["src/**/*.ts", "test/**/*.ts", "/*.mjs"]
         }
     ]
 }

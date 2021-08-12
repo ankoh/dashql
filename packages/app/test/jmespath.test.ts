@@ -1,4 +1,4 @@
-import { jmespath } from '../src';
+import * as jmespath from '../src/jmespath';
 
 export function testJMESPath(jp: () => jmespath.JMESPathBindings): void {
     describe('JMESPath', () => {

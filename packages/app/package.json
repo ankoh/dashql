@@ -4,9 +4,19 @@
     "license": "MPL-2.0",
     "private": true,
     "scripts": {
-        "start": "webpack serve --config webpack.debug.js",
-        "build:debug": "NODE_OPTIONS='--max-old-space-size=4096' webpack --config webpack.debug.js",
-        "build:release": "NODE_OPTIONS='--max-old-space-size=4096' webpack --config webpack.release.js",
+        "start": "webpack serve --config webpack.app.debug.js",
+        "build:app:debug": "webpack --config webpack.app.debug.js",
+        "build:app:release": "webpack --config webpack.app.release.js",
+        "build:libs": "node bundle-libs.mjs",
+        "report": "node ./coverage.mjs",
+        "test:node": "node --enable-source-maps ../../node_modules/jasmine/bin/jasmine ./build/libs/tests-node.js",
+        "test:node:cov": "nyc -r json --report-dir ./coverage/node node ../../node_modules/jasmine/bin/jasmine ./build/libs/tests-node.js",
+        "test:browser": "karma start karma.conf.cjs",
+        "test:browser:cov": "karma start karma.conf.cov.cjs && npm run report",
+        "test:browser:dbg": "karma start karma.conf.dbg.cjs",
+        "test": "npm run test:browser && npm run test:node",
+        "test:cov": "npm run test:browser:cov && npm run test:node:cov",
+        "test:ci": "npm run test:cov",
         "analyze:debug": "webpack --config webpack.debug.js --analyze",
         "analyze:release": "webpack --config webpack.release.js --analyze",
         "serve:release": "node ./server.js",
@@ -59,9 +69,11 @@
         "@types/react-virtualized": "^9.21.11",
         "@typescript-eslint/eslint-plugin": "^4.28.2",
         "@typescript-eslint/parser": "^4.28.2",
+        "axios-mock-adapter": "^1.19.0",
         "clean-webpack-plugin": "^3.0.0",
         "copy-webpack-plugin": "^9.0.1",
         "css-loader": "^6.2.0",
+        "esbuild": "^0.12.15",
         "eslint": "^7.31.0",
         "eslint-config-prettier": "^8.3.0",
         "eslint-plugin-jasmine": "^4.1.2",
@@ -94,5 +106,12 @@
     "optionalDependencies": {
         "fsevents": "*"
     },
-    "type": "module"
+    "type": "module",
+    "browser": {
+        "worker_threads": false,
+        "perf_hooks": false,
+        "fs": false,
+        "path": false,
+        "buffer": false
+    }
 }
