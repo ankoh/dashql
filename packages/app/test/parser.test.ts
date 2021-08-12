@@ -1,4 +1,4 @@
-import { analyzer } from '../src';
+import * as analyzer from '../src/analyzer';
 
 export function testParser(az: () => analyzer.AnalyzerBindings): void {
     beforeEach(async () => {

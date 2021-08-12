@@ -5,7 +5,7 @@ import path from 'path';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const base = configure({
-    buildDir: path.resolve(__dirname, './build/debug'),
+    buildDir: path.resolve(__dirname, './build/app-debug'),
     tsLoaderOptions: {
         compilerOptions: {
             configFile: './tsconfig.json',
@@ -32,7 +32,7 @@ export default {
     devtool: 'source-map',
     devServer: {
         historyApiFallback: true,
-        contentBase: path.join(__dirname, './build/debug'),
+        contentBase: path.join(__dirname, './build/app-debug'),
         compress: true,
         port: 9001,
         mimeTypes: {

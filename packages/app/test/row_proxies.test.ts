@@ -1,6 +1,6 @@
 import * as duckdb from '@dashql/duckdb/dist/duckdb.module.js';
 import * as arrow from 'apache-arrow';
-import { access } from '../src';
+import * as access from '../src/access';
 
 export function testRowProxies(db: () => duckdb.AsyncDuckDB): void {
     let conn: duckdb.AsyncDuckDBConnection;

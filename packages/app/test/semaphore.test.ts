@@ -1,5 +1,5 @@
-import * as core from '../src/';
-import Mutex = core.utils.Mutex;
+import * as utils from '../src/utils';
+import Mutex = utils.Mutex;
 
 export function testSemaphore(): void {
     describe('Semaphore', () => {

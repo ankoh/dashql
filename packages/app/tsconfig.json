@@ -1,19 +1,35 @@
 {
     "compilerOptions": {
-        "outDir": "./build/ts/",
+        "outDir": "./build/ts",
         "target": "es2020",
         "module": "es2020",
         "moduleResolution": "node",
-        "sourceMap": true,
-        "noImplicitAny": true,
+        "sourceMap": false,
+        "declaration": true,
+        "declarationMap": true,
+        "declarationDir": "./dist/types/",
+
         "esModuleInterop": true,
-        "strict": true,
-        "types": [],
+        "allowSyntheticDefaultImports": true,
+        "noImplicitAny": true,
+        "noImplicitReturns": true,
+        "noImplicitThis": true,
+        "noUnusedLocals": true,
+        "strictNullChecks": false,
+        "preserveConstEnums": true,
+        "resolveJsonModule": true,
+        "suppressImplicitAnyIndexErrors": true,
+
+        // Insanity mode due to:
+        // https://issues.apache.org/jira/browse/ARROW-10794
+        "skipLibCheck": true,
+
         "jsx": "react",
-        "plugins": [{ "name": "typescript-plugin-css-modules" }],
+        "types": ["emscripten", "node", "jasmine"],
+        "lib": ["es6", "es2020", "dom"],
         "baseUrl": ".",
-        "lib": ["es6", "es2020", "dom"]
+        "plugins": [{ "name": "typescript-plugin-css-modules" }]
     },
-    "exclude": ["./test/**/*.ts", "./node_modules"],
-    "include": ["./src/**/*", "./types/*.d.ts"]
+    "exclude": ["./node_modules"],
+    "include": ["./src/**/*", "./types/*.d.ts", "./test/**/*"]
 }

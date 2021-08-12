@@ -1,6 +1,9 @@
 import * as Immutable from 'immutable';
 import * as arrow from 'apache-arrow';
-import { analyzer, model, proto, viz } from '../src';
+import * as analyzer from '../src/analyzer';
+import * as proto from '@dashql/proto';
+import * as viz from '../src/viz';
+import * as model from '../src/model';
 import { TableStatisticsResolver } from '../src/table_statistics';
 
 interface VizComposerTestExpectation {

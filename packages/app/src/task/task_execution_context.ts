@@ -4,7 +4,9 @@ import { HTTPClient } from '../http_client';
 import { DatabaseClient } from '../database_client';
 import { AnalyzerBindings } from '../analyzer';
 import { JMESPathBindings } from '../jmespath';
-import { PlanContext, PlanContextAction, Logger } from '../model';
+import { PlanContext, PlanContextAction, Logger, initialPlanContext } from '../model';
+import { AsyncDuckDB } from '@dashql/duckdb/dist/duckdb.module';
+import * as model from '../model';
 
 /// A container that is passed to the scheduler and defines the runtime environment
 export interface TaskExecutionContext {
@@ -16,11 +18,36 @@ export interface TaskExecutionContext {
     readonly analyzer: AnalyzerBindings;
     /// The database
     readonly http: HTTPClient;
-    /// The database
+    /// The jmespath resolver
     readonly jmespath: () => Promise<JMESPathBindings>;
 
     /// The plan state
     planContext: PlanContext;
     /// The pending plan state actions
     planContextDiff: PlanContextAction[];
+}
+
+type WiredTaskExecutionContext = TaskExecutionContext & {
+    planContextDispatch: model.Dispatch<model.PlanContextAction>;
+};
+export function wireTaskExecutionContext(
+    db: AsyncDuckDB,
+    analyzer: AnalyzerBindings,
+    jmespath: () => Promise<JMESPathBindings>,
+): WiredTaskExecutionContext {
+    const logger = Logger.createWired();
+    const database = DatabaseClient.createWired(db);
+    const http = new HTTPClient(logger);
+    const wired: WiredTaskExecutionContext = {
+        logger,
+        database,
+        analyzer,
+        http,
+        jmespath,
+        planContext: initialPlanContext,
+        planContextDiff: [],
+        planContextDispatch: (action: PlanContextAction) =>
+            (wired.planContext = model.reducePlanContext(wired.planContext, action)),
+    };
+    return wired;
 }

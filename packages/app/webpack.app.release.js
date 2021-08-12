@@ -6,7 +6,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default {
     ...configure({
-        buildDir: path.resolve(__dirname, './build/release'),
+        buildDir: path.resolve(__dirname, './build/app-release'),
         tsLoaderOptions: {
             compilerOptions: {
                 configFile: './tsconfig.json',

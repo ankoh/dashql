@@ -1,5 +1,5 @@
+import * as model from '../src/model';
 import { HTTPClient } from '../src/http_client';
-import { model } from '../src/index';
 import { mockHTTP, HTTPMock, encodeTextBody, decodeTextBody } from './http_mock';
 
 export function testHTTPClient(): void {

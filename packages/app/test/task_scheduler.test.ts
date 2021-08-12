@@ -1,4 +1,4 @@
-import { model, tasks, TaskScheduler, utils, analyzer, jmespath } from '../src';
+import { model, tasks, TaskScheduler, analyzer, jmespath } from '../src';
 import { HTTPMock } from './http_mock';
 
 import * as proto from '@dashql/proto';
@@ -7,7 +7,7 @@ import * as duckdb from '@dashql/duckdb/dist/duckdb.module.js';
 import TaskStatus = proto.task.TaskStatusCode;
 import TaskClass = proto.task.TaskClass;
 import ProgramTaskType = proto.task.ProgramTaskType;
-import { BATCH_PLAN_ACTIONS, SCHEDULE_PLAN } from 'src/model';
+import { SCHEDULER_STEP_DONE, SCHEDULE_PLAN, TaskSchedulerStatus } from '../src/model';
 
 export function testTaskScheduler(
     db: () => duckdb.AsyncDuckDB,
@@ -28,41 +28,25 @@ export function testTaskScheduler(
         }
     });
 
-    function resolveProgramTaskLogic(plan: model.Plan): [tasks.TaskLogic<proto.task.ProgramTask>[], model.Task[]] {
-        const logic: tasks.TaskLogic<proto.task.ProgramTask>[] = [];
+    function resolveProgramActionLogic(plan: model.Plan) {
+        const r: tasks.TaskLogic<proto.task.ProgramTask>[] = [];
         const graph = plan.task_graph;
         expect(graph).toBeDefined();
         expect(graph).not.toBeNull();
         const count = graph!.programTasksLength();
-        logic.length = count;
+        r.length = count;
         for (let i = 0; i < count; ++i) {
-            const task = graph!.programTasks(i)!;
-            expect(task).toBeDefined();
-            expect(task).not.toBeNull();
-            expect(task.originStatement()).toEqual(i);
-            expect(task.taskType()).not.toEqual(ProgramTaskType.NONE);
+            const action = graph!.programTasks(i)!;
+            expect(action).toBeDefined();
+            expect(action).not.toBeNull();
+            expect(action.originStatement()).toEqual(i);
+            expect(action.taskType()).not.toEqual(ProgramTaskType.NONE);
             const stmt = plan.program.getStatement(i);
             const aid = model.buildTaskHandle(i, TaskClass.PROGRAM_TASK);
-            logic[i] = tasks.resolveProgramTaskLogic(aid, task, stmt)!;
-            expect(logic[i]).not.toBeNull();
+            r[i] = tasks.resolveProgramTaskLogic(aid, action, stmt)!;
+            expect(r[i]).not.toBeNull();
         }
-        const now = new Date();
-        const infos = logic.map(l => ({
-            taskId: l.taskId,
-            taskType: l.task.taskType(),
-            statusCode: l.task.taskStatusCode(),
-            blocker: null,
-            dependsOn: l.task.dependsOnArray() || new Uint32Array(),
-            requiredFor: l.task.requiredForArray() || new Uint32Array(),
-            originStatement: l.task.originStatement(),
-            objectId: l.task.objectId(),
-            nameQualified: l.task.nameQualified() || '',
-            script: l.task.script(),
-            timeCreated: now,
-            timeScheduled: null,
-            timeLastUpdate: now,
-        }));
-        return [logic, infos];
+        return r;
     }
 
     describe('Task Scheduler', () => {
@@ -78,12 +62,12 @@ export function testTaskScheduler(
                 expect(graph.setupTasksLength()).toBe(0);
                 expect(graph.programTasksLength()).toBe(1);
 
-                const [logic, taskInfos] = resolveProgramTaskLogic(plan!);
                 ctx.planContextDispatch({
                     type: SCHEDULE_PLAN,
-                    data: [plan, taskInfos],
+                    data: plan,
                 });
 
+                const logic = resolveProgramActionLogic(plan!);
                 const interrupt = new Promise((_resolve: (value: any) => void, _reject: (reason?: void) => void) => {});
                 const scheduler = new TaskScheduler<proto.task.ProgramTask>(interrupt);
                 scheduler.prepare(ctx, logic);
@@ -93,13 +77,12 @@ export function testTaskScheduler(
                 expect(scheduler.tasks[0].status).toBe(TaskStatus.SKIPPED);
 
                 ctx.planContextDispatch({
-                    type: BATCH_PLAN_ACTIONS,
-                    data: ctx.planContextDiff,
+                    type: SCHEDULER_STEP_DONE,
+                    data: [TaskSchedulerStatus.EXECUTE_PROGRAM, ctx.planContextDiff],
                 });
                 ctx.planContextDiff = [];
 
-                const diff = new utils.NativeStack();
-                const workLeft = await scheduler.executeFirst(ctx, diff);
+                const workLeft = await scheduler.execute(ctx);
                 expect(workLeft).toBe(false);
                 expect(scheduler.tasks[0].status).toBe(TaskStatus.SKIPPED);
             });
@@ -119,12 +102,12 @@ export function testTaskScheduler(
                 expect(graph.setupTasksLength()).toBe(0);
                 expect(graph.programTasksLength()).toBe(3);
 
-                const [logic, taskInfos] = resolveProgramTaskLogic(plan!);
                 ctx.planContextDispatch({
                     type: SCHEDULE_PLAN,
-                    data: [plan, taskInfos],
+                    data: plan,
                 });
 
+                const logic = resolveProgramActionLogic(plan!);
                 const interrupt = new Promise((_resolve: (value: any) => void, _reject: (reason?: void) => void) => {});
                 const scheduler = new TaskScheduler<proto.task.ProgramTask>(interrupt);
                 scheduler.prepare(ctx, logic);
@@ -150,18 +133,17 @@ export function testTaskScheduler(
                 ]);
 
                 ctx.planContextDispatch({
-                    type: BATCH_PLAN_ACTIONS,
-                    data: ctx.planContextDiff,
+                    type: SCHEDULER_STEP_DONE,
+                    data: [TaskSchedulerStatus.EXECUTE_PROGRAM, ctx.planContextDiff],
                 });
                 ctx.planContextDiff = [];
 
-                const diff = new utils.NativeStack();
-                let workLeft = await scheduler.executeFirst(ctx, diff);
+                let workLeft = await scheduler.execute(ctx);
                 expect(scheduler.tasks[0].status).toBe(TaskStatus.COMPLETED);
                 expect(workLeft).toBe(true);
-                workLeft = await scheduler.execute(ctx, diff);
+                workLeft = await scheduler.execute(ctx);
                 expect(workLeft).toBe(true);
-                workLeft = await scheduler.execute(ctx, diff);
+                workLeft = await scheduler.execute(ctx);
                 expect(scheduler.tasks[1].status).toBe(TaskStatus.COMPLETED);
                 expect(scheduler.tasks[2].status).toBe(TaskStatus.COMPLETED);
                 expect(workLeft).toBe(false);
@@ -182,12 +164,12 @@ export function testTaskScheduler(
                 expect(graph.setupTasksLength()).toBe(0);
                 expect(graph.programTasksLength()).toBe(3);
 
-                const [logic, taskInfos] = resolveProgramTaskLogic(plan!);
                 ctx.planContextDispatch({
                     type: SCHEDULE_PLAN,
-                    data: [plan, taskInfos],
+                    data: plan,
                 });
 
+                const logic = resolveProgramActionLogic(plan!);
                 const interrupt = new Promise((_resolve: (value: any) => void, _reject: (reason?: void) => void) => {});
                 const scheduler = new TaskScheduler<proto.task.ProgramTask>(interrupt);
                 scheduler.prepare(ctx, logic);
@@ -205,13 +187,12 @@ export function testTaskScheduler(
                 expect(scheduler.tasks.map(a => a.buffer.requiredForArray())).toEqual([null, null, null]);
 
                 ctx.planContextDispatch({
-                    type: BATCH_PLAN_ACTIONS,
-                    data: ctx.planContextDiff,
+                    type: SCHEDULER_STEP_DONE,
+                    data: [TaskSchedulerStatus.EXECUTE_PROGRAM, ctx.planContextDiff],
                 });
                 ctx.planContextDiff = [];
 
-                const diff = new utils.NativeStack();
-                const workLeft = await scheduler.executeFirst(ctx, diff);
+                const workLeft = await scheduler.execute(ctx);
                 expect(workLeft).toBe(false);
                 expect(scheduler.tasks[0].status).toBe(TaskStatus.SKIPPED);
                 expect(scheduler.tasks[1].status).toBe(TaskStatus.SKIPPED);
