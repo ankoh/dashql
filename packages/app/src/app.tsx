@@ -1,6 +1,6 @@
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
-import * as core from '@dashql/core';
+import * as model from './model';
 import { Route, BrowserRouter, Routes, Navigate } from 'react-router-dom';
 import { Studio, Examples, Viewer, NotFound } from './pages';
 import { withNavBar, withMinimalNavBar, withBanner } from './components';
@@ -20,15 +20,15 @@ const ExamplesPage = withNavBar(withBanner(Examples));
 const ViewerPage = withBanner(withMinimalNavBar(Viewer));
 
 const DataProviders = (props: { children: React.ReactElement }) => (
-    <core.model.LogProvider>
-        <core.model.DatabaseMetadataProvider>
-            <core.model.ProgramContextProvider>
-                <core.model.PlanContextProvider>
+    <model.LogProvider>
+        <model.DatabaseMetadataProvider>
+            <model.ProgramContextProvider>
+                <model.PlanContextProvider>
                     <LaunchProgressProvider>{props.children}</LaunchProgressProvider>
-                </core.model.PlanContextProvider>
-            </core.model.ProgramContextProvider>
-        </core.model.DatabaseMetadataProvider>
-    </core.model.LogProvider>
+                </model.PlanContextProvider>
+            </model.ProgramContextProvider>
+        </model.DatabaseMetadataProvider>
+    </model.LogProvider>
 );
 
 ReactDOM.render(
