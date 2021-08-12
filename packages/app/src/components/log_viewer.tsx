@@ -43,7 +43,7 @@ const InnerLogViewer: React.FC<Props> = (props: Props) => {
 
     const focusEntry = (elem: React.MouseEvent<HTMLDivElement>) => {
         const entry = (elem.currentTarget as any).dataset.entry;
-        setFocused((focused != entry ? entry : null) || null);
+        setFocused((focused != entry ? parseInt(entry) : null) || null);
     };
 
     const renderRow = (rowProps: ListRowProps) => {
@@ -105,7 +105,7 @@ const InnerLogViewer: React.FC<Props> = (props: Props) => {
                                     rowRenderer={renderRow}
                                     noRowsRenderer={renderEmptyList}
                                     measureAllRows={true}
-                                    scrollToIndex={focused || 0}
+                                    scrollToIndex={focused || undefined}
                                 />
                             </>
                         )}
