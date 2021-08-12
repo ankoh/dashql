@@ -41,7 +41,7 @@ export const Terminal: React.FC<Props> = (props: Props) => {
     );
 
     React.useEffect(() => {
-        if (!termContainer.current) return;
+        if (!termContainer.current) return () => {};
         // Prepare the terminal
         const term = termRef.current;
         term.open(termContainer.current);

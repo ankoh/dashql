@@ -120,25 +120,17 @@ lib_testgen_lldb: lib
 lib_debug: lib
 	lldb --args ${LIB_DEBUG_DIR}/tester ${LIB_SOURCE_DIR}
 
-# Build the dashql_core javascript library
-.PHONY: core
-core:
-	yarn workspace @dashql/core build
-
-# Build the dashql_core javascript library
-.PHONY: core_watch
-core_watch:
-	yarn workspace @dashql/core build:watch
+# Test the dashql_core javascript library
+.PHONY: tests
+tests:
+	yarn workspace @dashql/app build:libs
+	yarn workspace @dashql/app test:browser
 
 # Test the dashql_core javascript library
-.PHONY: core_tests
-core_tests: core
-	yarn workspace @dashql/core test
-
-# Test the dashql_core javascript library
-.PHONY: core_tests_node
-core_tests_node: core
-	yarn workspace @dashql/core test:node
+.PHONY: tests_node
+tests_node:
+	yarn workspace @dashql/app build:libs
+	yarn workspace @dashql/app test:node
 
 # Build the benchmarks
 .PHONY: benchmarks
