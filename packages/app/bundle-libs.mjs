@@ -44,10 +44,10 @@ esbuild.build({
     define: { 'process.env.NODE_ENV': '"production"' },
 });
 
-console.log('[ ESBUILD ] lib/tests-node.js');
+console.log('[ ESBUILD ] lib/tests-node.cjs');
 esbuild.build({
     entryPoints: ['./test/index_node.ts'],
-    outfile: 'build/libs/tests-node.js',
+    outfile: 'build/libs/tests-node.cjs',
     platform: 'node',
     format: 'cjs',
     target: TARGET,
