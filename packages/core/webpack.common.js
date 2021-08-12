@@ -114,11 +114,6 @@ export function configure(params) {
                         filename: `static/html/[name].${GITHUB_OAUTH_VERSION}.[ext]`,
                     },
                 },
-                {
-                    test: /.*core.*\.js$/,
-                    enforce: 'pre',
-                    use: ['source-map-loader'],
-                },
             ],
         },
         optimization: {
