@@ -49,7 +49,6 @@ export const SCHEDULER_READY = Symbol('SCHEDULER_READY');
 export const SCHEDULE_PLAN = Symbol('SCHEDULE_PLAN');
 export const SCHEDULER_STEP_DONE = Symbol('SCHEDULER_STEP_DONE');
 export const UPDATE_PLAN_TASKS = Symbol('UPDATE_PLAN_TASKS');
-export const HIDE_CARDS = Symbol('HIDE_CARDS');
 
 export type PlanContextAction =
     | Action<typeof SCHEDULE_PLAN, Plan>
@@ -60,7 +59,6 @@ export type PlanContextAction =
     | Action<typeof UPDATE_CARD, Partial<CardSpecification> & { objectId: number }>
     | Action<typeof DELETE_BLOB, ObjectID>
     | Action<typeof DELETE_CARD, ObjectID>
-    | Action<typeof HIDE_CARDS, null>
     | Action<typeof SCHEDULER_STEP_DONE, [TaskSchedulerStatus, PlanContextAction[]]>;
 
 export const reducePlanContext = (ctx: PlanContext, action: PlanContextAction): PlanContext => {
@@ -87,14 +85,6 @@ export const reducePlanContext = (ctx: PlanContext, action: PlanContextAction): 
                         ...action.data,
                     });
                 }),
-            };
-        case HIDE_CARDS:
-            return {
-                ...ctx,
-                cards: ctx.cards.map(c => ({
-                    ...c,
-                    visible: false,
-                })),
             };
         case DELETE_BLOB: {
             const blob = ctx.blobs.get(action.data);
