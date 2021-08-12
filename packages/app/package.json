@@ -13,7 +13,7 @@
         "test:node:cov": "nyc -r json --report-dir ./coverage/node node ../../node_modules/jasmine/bin/jasmine ./build/libs/tests-node.cjs",
         "test:browser": "karma start karma.conf.cjs",
         "test:browser:cov": "karma start karma.conf.cov.cjs && npm run report",
-        "test:browser:dbg": "karma start karma.conf.dbg.cjs",
+        "test:browser:debug": "karma start karma.conf.dbg.cjs",
         "test": "npm run test:browser && npm run test:node",
         "test:cov": "npm run test:browser:cov && npm run test:node:cov",
         "test:ci": "npm run test:cov",

@@ -80,7 +80,7 @@ export function testTaskScheduler(
                     type: SCHEDULER_STEP_DONE,
                     data: [TaskSchedulerStatus.EXECUTE_PROGRAM, ctx.planContextDiff],
                 });
-                ctx.planContextDiff = [];
+                ctx.planContextDiff.length = 0;
 
                 const workLeft = await scheduler.execute(ctx);
                 expect(workLeft).toBe(false);
