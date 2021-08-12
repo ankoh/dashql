@@ -63,6 +63,7 @@ export type PlanContextAction =
 export const reducePlanContext = (ctx: PlanContext, action: PlanContextAction): PlanContext => {
     switch (action.type) {
         case ADD_BLOB:
+            console.log('DISPATCH ADD BLOB');
             return {
                 ...ctx,
                 blobs: ctx.blobs.set(action.data.objectId, action.data),

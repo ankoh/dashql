@@ -28,7 +28,7 @@ export class LoadTaskLogic extends ProgramTaskLogic {
         // Find the loaded blob
         const blobName = xtr.dataSource() || '';
         const blobID = ctx.planContext.blobsByName.get(blobName);
-        if (blobID === undefined) throw new Error(`missing blob id for blob '${blobID}'`);
+        if (blobID === undefined) throw new Error(`missing blob id for blob '${blobName}'`);
         const blob = ctx.planContext.blobs.get(blobID);
         if (!blob) throw new Error(`blob '${blobName}' is not registered in duckdb`);
 
@@ -37,9 +37,11 @@ export class LoadTaskLogic extends ProgramTaskLogic {
             const db = conn.instance;
             switch (blob.archiveMode) {
                 case proto.analyzer.ArchiveMode.ZIP: {
+                    console.log(`EXTRACT ZIP '${blob.nameQualified}'`);
                     const outPath = this.buffer.nameQualified() || '';
                     await db.registerFileBuffer(outPath, new Uint8Array());
                     await db.extractZipPath(blob.nameQualified, outPath, xtr.dataSourceIndex() || '');
+                    console.log(`EXTRACT OK`);
                     return outPath;
                 }
                 case proto.analyzer.ArchiveMode.NONE:

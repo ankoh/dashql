@@ -212,6 +212,8 @@ export class CreateVizTaskLogic extends VizTaskLogic {
             case model.CardRendererType.BUILTIN_TABLE: {
                 await ctx.database.evaluateTableStatistics(target);
                 await this._rowCount!;
+                console.log(`TABLE VIZ WITH TARGET:`);
+                console.log(this._table!.nameQualified);
                 card = {
                     ...card,
                     cardRenderer: model.CardRendererType.BUILTIN_TABLE,

@@ -17,8 +17,11 @@ export const TableRenderer: React.FC<Props> = (props: Props) => {
     const logger = model.useLogger();
     const dbMeta = model.useDatabaseMetadata();
     const db = useDatabaseClient();
-    const target = props.card.dataSource!.targetQualified;
-    const data = props.card.dataSource!;
+    const target = props.card.dataSource?.targetQualified;
+    const data = props.card.dataSource;
+    if (!data) {
+        return <div />;
+    }
     const table = dbMeta.tables.get(data.targetQualified);
     if (!table) {
         return <div />;
