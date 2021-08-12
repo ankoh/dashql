@@ -61,7 +61,6 @@ export class InputTaskLogic extends ProgramTaskLogic {
                 vegaLiteSpec: null,
                 vegaSpec: null,
                 dataSource: null,
-                visible: true,
             },
         });
     }
