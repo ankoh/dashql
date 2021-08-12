@@ -10,7 +10,7 @@ import { AppLauncher } from './app_launcher';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
 import './app.module.css';
-import './fonts/fonts.module.css';
+import '../static/fonts/fonts.module.css';
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
 import 'react-virtualized/styles.css';
