@@ -1,6 +1,6 @@
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
-import * as model from './model';
+import { LogProvider, DatabaseMetadataProvider, ProgramContextProvider, PlanContextProvider } from './model';
 import { Route, BrowserRouter, Routes, Navigate } from 'react-router-dom';
 import { Studio, Examples, Viewer, NotFound } from './pages';
 import { withNavBar, withMinimalNavBar, withBanner } from './components';
@@ -16,15 +16,15 @@ import 'react-resizable/css/styles.css';
 import 'react-virtualized/styles.css';
 
 const DataProviders = (props: { children: React.ReactElement }) => (
-    <model.LogProvider>
-        <model.DatabaseMetadataProvider>
-            <model.ProgramContextProvider>
-                <model.PlanContextProvider>
+    <LogProvider>
+        <DatabaseMetadataProvider>
+            <ProgramContextProvider>
+                <PlanContextProvider>
                     <LaunchProgressProvider>{props.children}</LaunchProgressProvider>
-                </model.PlanContextProvider>
-            </model.ProgramContextProvider>
-        </model.DatabaseMetadataProvider>
-    </model.LogProvider>
+                </PlanContextProvider>
+            </ProgramContextProvider>
+        </DatabaseMetadataProvider>
+    </LogProvider>
 );
 
 const StudioPage = withNavBar(withBanner(Studio));

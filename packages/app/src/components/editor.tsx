@@ -59,9 +59,6 @@ const InnerEditor: React.FC<Props> = (props: Props) => {
     const { statementStatus } = model.usePlanContext();
     const programContextDispatch = model.useProgramContextDispatch();
 
-    console.log('EDITOR RENDER');
-    console.log(script);
-
     // Expose program and script via ref for monaco
     const scriptRef = React.useRef<model.Script>(script);
     const programRef = React.useRef<model.Program | null>(program);
