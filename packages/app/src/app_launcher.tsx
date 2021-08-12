@@ -32,6 +32,7 @@ import analyzer_wasm from './analyzer/analyzer_wasm.wasm';
 import duckdb_wasm from '@dashql/duckdb/dist/duckdb.wasm';
 import duckdb_wasm_next from '@dashql/duckdb/dist/duckdb-next.wasm';
 import duckdb_wasm_next_coi from '@dashql/duckdb/dist/duckdb-next-coi.wasm';
+import { HTTPClientProvider } from './http_client';
 
 const DUCKDB_BUNDLES: duckdb.DuckDBBundles = {
     asyncDefault: {
@@ -170,7 +171,9 @@ export const AppLauncher: React.FC<Props> = (props: Props) => {
                 <DatabaseClientProvider database={state.database!}>
                     <AnalyzerProvider analyzer={state.analyzer!}>
                         <JMESPathProvider resolver={resolveJMESPath}>
-                            <ScriptPipeline>{props.children}</ScriptPipeline>
+                            <HTTPClientProvider>
+                                <ScriptPipeline>{props.children}</ScriptPipeline>
+                            </HTTPClientProvider>
                         </JMESPathProvider>
                     </AnalyzerProvider>
                 </DatabaseClientProvider>

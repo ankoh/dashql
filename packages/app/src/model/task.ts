@@ -9,10 +9,8 @@ export type TaskHandle = number;
 export enum TaskSchedulerStatus {
     IDLE = 0,
     PREPARE_SCHEDULER = 2,
-    EXECUTE_SETUP_FIRST = 3,
-    EXECUTE_SETUP_NEXT = 4,
-    EXECUTE_PROGRAM_FIRST = 5,
-    EXECUTE_PROGRAM_NEXT = 6,
+    EXECUTE_SETUP = 3,
+    EXECUTE_PROGRAM = 4,
 }
 
 /// Build an task id

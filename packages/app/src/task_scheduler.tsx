@@ -105,7 +105,7 @@ export class TaskScheduler<TaskBuffer extends ProtoTask> {
 
     /// Is there work left?
     public workLeft(): boolean {
-        return !this._scheduledTasks.empty();
+        return !this._taskQueue.empty() || !this._scheduledTasks.empty();
     }
     /// Are no more tasks scheduled?
     public noneScheduled(): boolean {
@@ -181,16 +181,11 @@ export class TaskScheduler<TaskBuffer extends ProtoTask> {
         }
     }
 
-    /// Execute the first time.
-    /// Returns true if execute should be called again.
-    public async executeFirst(ctx: TaskExecutionContext): Promise<boolean> {
-        this.scheduleNext(ctx);
-        return this.executeNext(ctx);
-    }
-
     /// Waits until one of the currently running task promises resolves or rejects.
     /// Returns true if execute should be called again.
-    public async executeNext(ctx: TaskExecutionContext): Promise<boolean> {
+    public async execute(ctx: TaskExecutionContext): Promise<boolean> {
+        this.scheduleNext(ctx);
+
         // Nothing to do?
         if (!this.workLeft()) return false;
 
@@ -219,7 +214,6 @@ export class TaskScheduler<TaskBuffer extends ProtoTask> {
             case proto.task.TaskStatusCode.COMPLETED: {
                 this._scheduledTasks.clear(task_idx);
                 this.taskCompleted(task_idx);
-                this.scheduleNext(ctx);
                 break;
             }
             case proto.task.TaskStatusCode.PENDING:
@@ -365,36 +359,19 @@ export class TaskSchedulerStateMachine {
                 this._setupScheduler.prepare(ctx, setupLogic);
                 this._programScheduler.prepare(ctx, programLogic);
 
-                return TaskSchedulerStatus.EXECUTE_SETUP_FIRST;
+                return TaskSchedulerStatus.EXECUTE_SETUP;
             }
 
-            case TaskSchedulerStatus.EXECUTE_SETUP_FIRST: {
-                if (await this._setupScheduler.executeFirst(ctx)) {
-                    return TaskSchedulerStatus.EXECUTE_SETUP_NEXT;
+            case TaskSchedulerStatus.EXECUTE_SETUP: {
+                if (await this._setupScheduler.execute(ctx)) {
+                    return TaskSchedulerStatus.EXECUTE_SETUP;
                 } else {
-                    return TaskSchedulerStatus.EXECUTE_PROGRAM_FIRST;
+                    return TaskSchedulerStatus.EXECUTE_PROGRAM;
                 }
             }
-
-            case TaskSchedulerStatus.EXECUTE_SETUP_NEXT: {
-                if (await this._setupScheduler.executeNext(ctx)) {
-                    return TaskSchedulerStatus.EXECUTE_SETUP_NEXT;
-                } else {
-                    return TaskSchedulerStatus.EXECUTE_PROGRAM_FIRST;
-                }
-            }
-
-            case TaskSchedulerStatus.EXECUTE_PROGRAM_FIRST: {
-                if (await this._programScheduler.executeFirst(ctx)) {
-                    return TaskSchedulerStatus.EXECUTE_PROGRAM_NEXT;
-                } else {
-                    return TaskSchedulerStatus.IDLE;
-                }
-            }
-
-            case TaskSchedulerStatus.EXECUTE_PROGRAM_NEXT: {
-                if (await this._setupScheduler.executeNext(ctx)) {
-                    return TaskSchedulerStatus.EXECUTE_PROGRAM_NEXT;
+            case TaskSchedulerStatus.EXECUTE_PROGRAM: {
+                if (await this._programScheduler.execute(ctx)) {
+                    return TaskSchedulerStatus.EXECUTE_PROGRAM;
                 } else {
                     return TaskSchedulerStatus.IDLE;
                 }
@@ -419,8 +396,9 @@ export const TaskSchedulerDriver: React.FC<Props> = (props: Props) => {
 
     // Advance the scheduler whenever there's work
     const stateMachine = React.useRef<TaskSchedulerStateMachine>(new TaskSchedulerStateMachine());
+    const working = React.useRef<boolean>(false);
     React.useEffect(() => {
-        if (planContext.schedulerStatus == TaskSchedulerStatus.IDLE) return;
+        if (working.current || planContext.schedulerStatus == TaskSchedulerStatus.IDLE) return;
         const ctx: TaskExecutionContext = {
             logger,
             database,
@@ -430,12 +408,14 @@ export const TaskSchedulerDriver: React.FC<Props> = (props: Props) => {
             planContext,
             planContextDiff: [],
         };
+        working.current = true;
         (async () => {
             const status = await stateMachine.current.step(ctx);
             dispatch({
                 type: SCHEDULER_STEP_DONE,
                 data: [status, ctx.planContextDiff],
             });
+            working.current = false;
         })();
     }, [planContext]);
 
