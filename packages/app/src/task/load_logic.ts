@@ -37,11 +37,9 @@ export class LoadTaskLogic extends ProgramTaskLogic {
             const db = conn.instance;
             switch (blob.archiveMode) {
                 case proto.analyzer.ArchiveMode.ZIP: {
-                    console.log(`EXTRACT ZIP '${blob.nameQualified}'`);
                     const outPath = this.buffer.nameQualified() || '';
                     await db.registerFileBuffer(outPath, new Uint8Array());
                     await db.extractZipPath(blob.nameQualified, outPath, xtr.dataSourceIndex() || '');
-                    console.log(`EXTRACT OK`);
                     return outPath;
                 }
                 case proto.analyzer.ArchiveMode.NONE:

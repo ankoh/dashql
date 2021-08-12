@@ -47,9 +47,6 @@ export class FetchTaskLogic extends ProgramTaskLogic {
             case proto.syntax.FetchMethodType.HTTP: {
                 const extra = fetch.extra() ? (JSON.parse(fetch.extra()!) as any) : undefined;
                 const buffer = await this.fetchHTTP(ctx, fetch.url()!, extra.headers);
-                console.log(fetch.url()!);
-                console.log(extra.headers);
-                console.log(buffer);
                 blob = new Blob(buffer ? [buffer] : []);
                 break;
             }
@@ -66,12 +63,10 @@ export class FetchTaskLogic extends ProgramTaskLogic {
         // Register as blob in database
         const db = ctx.database;
         const name = this.buffer.nameQualified()!;
-        console.log(blob);
         await db.use(async c => await c.instance.registerFileHandle(name, blob));
 
         // Store as plan object
         const now = new Date();
-        console.log(`ADD BLOB ${name}`);
         ctx.planContextDiff.push({
             type: ADD_BLOB,
             data: {
