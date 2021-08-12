@@ -2,12 +2,12 @@ import * as React from 'react';
 import * as duckdb from '@dashql/duckdb/dist/duckdb.module.js';
 import * as model from './model';
 import * as examples from './example_scripts';
-import * as analyzer from './analyzer';
-import * as jmespath from './jmespath';
 
 import { Analyzer } from './analyzer/bindings_browser';
 import { JMESPath } from './jmespath/bindings_browser';
 import { StatusIndicator } from './components';
+import { AnalyzerProvider } from './analyzer';
+import { JMESPathProvider } from './jmespath';
 
 import axios from 'axios';
 import config_url from '../static/config.json';
@@ -21,6 +21,7 @@ import {
 } from './model/launch_progress';
 import { AppConfig, AppConfigProvider } from './model';
 import { DatabaseClient, DatabaseClientProvider } from './database_client';
+import { ScriptPipeline } from './script_pipeline';
 
 import logo from '../static/svg/logo/logo.svg';
 
@@ -114,7 +115,7 @@ export const AppLauncher: React.FC<Props> = (props: Props) => {
     React.useEffect(() => {
         if (state.config == null || state.database != null) return;
         (async () => {
-            updateStep(LaunchStepType.INIT_WEBDB, Status.RUNNING);
+            updateStep(LaunchStepType.INIT_DATABASE, Status.RUNNING);
             try {
                 const config = await duckdb.configure(DUCKDB_BUNDLES);
                 const worker = new Worker(config.mainWorker!);
@@ -124,9 +125,10 @@ export const AppLauncher: React.FC<Props> = (props: Props) => {
                 await client.connect();
                 console.log(await db.getVersion());
                 stateDispatch(s => ({ ...s, database: client }));
-                updateStep(LaunchStepType.INIT_WEBDB, Status.COMPLETED);
+                updateStep(LaunchStepType.INIT_DATABASE, Status.COMPLETED);
             } catch (e) {
-                updateStep(LaunchStepType.INIT_WEBDB, Status.FAILED, e);
+                console.error(e);
+                updateStep(LaunchStepType.INIT_DATABASE, Status.FAILED, e);
             }
         })();
     }, [state.config, state.database]);
@@ -153,7 +155,6 @@ export const AppLauncher: React.FC<Props> = (props: Props) => {
         (async () => {
             const example = examples.EXAMPLE_SCRIPT_MAP.get('demo_unischema')!;
             const script = await examples.getScript(example);
-            console.log('WILL CALL DISPATCH');
             programContextDispatch({
                 type: model.SET_SCRIPT,
                 data: script,
@@ -167,11 +168,11 @@ export const AppLauncher: React.FC<Props> = (props: Props) => {
         return (
             <AppConfigProvider config={state.config!}>
                 <DatabaseClientProvider database={state.database!}>
-                    <analyzer.AnalyzerProvider analyzer={state.analyzer!}>
-                        <jmespath.JMESPathProvider resolver={resolveJMESPath}>
-                            {props.children}
-                        </jmespath.JMESPathProvider>
-                    </analyzer.AnalyzerProvider>
+                    <AnalyzerProvider analyzer={state.analyzer!}>
+                        <JMESPathProvider resolver={resolveJMESPath}>
+                            <ScriptPipeline>{props.children}</ScriptPipeline>
+                        </JMESPathProvider>
+                    </AnalyzerProvider>
                 </DatabaseClientProvider>
             </AppConfigProvider>
         );

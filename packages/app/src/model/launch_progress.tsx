@@ -15,7 +15,7 @@ export enum Status {
 export enum LaunchStepType {
     CONFIGURE_APP = 0,
     INIT_ANALYZER = 1,
-    INIT_WEBDB = 2,
+    INIT_DATABASE = 2,
 }
 
 /// A launch step info
@@ -41,7 +41,7 @@ export interface LaunchProgress {
     steps: Immutable.Map<LaunchStepType, LaunchStep>;
 }
 
-export const LAUNCH_STEPS = [LaunchStepType.CONFIGURE_APP, LaunchStepType.INIT_ANALYZER, LaunchStepType.INIT_WEBDB];
+export const LAUNCH_STEPS = [LaunchStepType.CONFIGURE_APP, LaunchStepType.INIT_ANALYZER, LaunchStepType.INIT_DATABASE];
 
 export const initialLaunchProgress: LaunchProgress = {
     complete: false,
@@ -69,9 +69,9 @@ export const initialLaunchProgress: LaunchProgress = {
             },
         ],
         [
-            LaunchStepType.INIT_WEBDB,
+            LaunchStepType.INIT_DATABASE,
             {
-                type: LaunchStepType.INIT_WEBDB,
+                type: LaunchStepType.INIT_DATABASE,
                 label: 'Initialize the database',
                 status: Status.NONE,
                 startedAt: null,

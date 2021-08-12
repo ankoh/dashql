@@ -44,14 +44,8 @@ export type ProgramContextAction =
     | Action<typeof REWRITE_PROGRAM, ProgramInstance>;
 
 const reducer = (ctx: ProgramContext, action: ProgramContextAction) => {
-    console.log('PROGRAM CONTEXT REDUCER');
-    console.log(action);
     switch (action.type) {
         case SET_SCRIPT:
-            console.log('SET_SCRIPT');
-            console.log(action.data);
-            console.log(ctx.script.text);
-            console.log(action.data.text);
             if (action.data.text == ctx.script.text) return ctx;
             return {
                 ...ctx,
