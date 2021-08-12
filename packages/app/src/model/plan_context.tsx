@@ -4,7 +4,7 @@ import Immutable from 'immutable';
 import React from 'react';
 import * as proto from '@dashql/proto';
 import { StatementStatus, deriveStatementStatusCode } from './program';
-import { TaskHandle, Task, TaskUpdate, TaskSchedulerStatus } from './task';
+import { TaskHandle, Task, TaskUpdate, TaskSchedulerStatus, buildTaskHandle } from './task';
 import { Action, Dispatch, ProviderProps } from './model_context';
 import { Plan } from './plan';
 import { CardSpecification } from './card_specification';
@@ -31,7 +31,7 @@ export interface PlanContext {
 
 export const initialPlanContext: PlanContext = {
     plan: null,
-    schedulerStatus: TaskSchedulerStatus.Idle,
+    schedulerStatus: TaskSchedulerStatus.IDLE,
     statementStatus: Immutable.List<StatementStatus>(),
     blobs: Immutable.Map<ObjectID, UniqueBlob>(),
     blobsByName: Immutable.Map<string, ObjectID>(),
@@ -41,32 +41,27 @@ export const initialPlanContext: PlanContext = {
 
 export const ADD_BLOB = Symbol('ADD_BLOB');
 export const ADD_CARD = Symbol('ADD_CARD');
-export const BATCH_PLAN_ACTIONS = Symbol('BATCH_PLAN_ACTIONS');
 export const DELETE_BLOB = Symbol('DELETE_BLOB');
 export const DELETE_CARD = Symbol('DELETE_CARD');
 export const RESET_PLAN = Symbol('RESET_PLAN');
 export const SCHEDULER_READY = Symbol('SCHEDULER_READY');
 export const SCHEDULE_PLAN = Symbol('SCHEDULE_PLAN');
+export const SCHEDULER_STEP_DONE = Symbol('SCHEDULER_STEP_DONE');
 export const UPDATE_PLAN_TASKS = Symbol('UPDATE_PLAN_TASKS');
 
 export type PlanContextAction =
-    | Action<typeof SCHEDULER_READY, null>
-    | Action<typeof SCHEDULE_PLAN, [Plan, Task[]]>
+    | Action<typeof SCHEDULE_PLAN, Plan>
     | Action<typeof RESET_PLAN, null>
     | Action<typeof UPDATE_PLAN_TASKS, TaskUpdate[]>
     | Action<typeof ADD_BLOB, UniqueBlob>
     | Action<typeof ADD_CARD, CardSpecification>
     | Action<typeof DELETE_BLOB, ObjectID>
     | Action<typeof DELETE_CARD, ObjectID>
-    | Action<typeof BATCH_PLAN_ACTIONS, PlanContextAction[]>;
+    | Action<typeof SCHEDULER_READY, void>
+    | Action<typeof SCHEDULER_STEP_DONE, [TaskSchedulerStatus, PlanContextAction[]]>;
 
 export const reducePlanContext = (ctx: PlanContext, action: PlanContextAction): PlanContext => {
     switch (action.type) {
-        case BATCH_PLAN_ACTIONS:
-            for (const a of action.data) {
-                ctx = reducePlanContext(ctx, a);
-            }
-            return ctx;
         case ADD_BLOB:
             return {
                 ...ctx,
@@ -95,10 +90,68 @@ export const reducePlanContext = (ctx: PlanContext, action: PlanContextAction): 
         case SCHEDULER_READY:
             return {
                 ...ctx,
-                schedulerStatus: TaskSchedulerStatus.Idle,
+                schedulerStatus: TaskSchedulerStatus.IDLE,
             };
+        case SCHEDULER_STEP_DONE: {
+            const [nextStatus, actions] = action.data;
+            for (const a of actions) {
+                ctx = reducePlanContext(ctx, a);
+            }
+            return {
+                ...ctx,
+                schedulerStatus: nextStatus,
+            };
+        }
         case SCHEDULE_PLAN: {
-            const [plan, tasks] = action.data;
+            const plan = action.data;
+            const graph = plan.task_graph;
+            if (!graph) return ctx;
+
+            // Translate the setup tasks
+            const now = new Date();
+            const tasks: Task[] = [];
+            for (let i = 0; i < graph.setupTasksLength(); ++i) {
+                const taskId = buildTaskHandle(i, proto.task.TaskClass.SETUP_TASK);
+                const a = graph.setupTasks(i)!;
+                tasks.push({
+                    taskId: taskId,
+                    taskType: a.taskType(),
+                    statusCode: a.taskStatusCode(),
+                    blocker: null,
+                    dependsOn: a.dependsOnArray() || new Uint32Array(),
+                    requiredFor: a.requiredForArray() || new Uint32Array(),
+                    originStatement: null,
+                    objectId: a.objectId(),
+                    nameQualified: a.nameQualified() || '',
+                    script: null,
+                    timeCreated: now,
+                    timeScheduled: null,
+                    timeLastUpdate: now,
+                });
+            }
+
+            // Translate the program tasks
+            for (let i = 0; i < graph.programTasksLength(); ++i) {
+                const taskId = buildTaskHandle(i, proto.task.TaskClass.PROGRAM_TASK);
+                const a = graph.programTasks(i)!;
+                tasks.push({
+                    taskId: taskId,
+                    taskType: a.taskType(),
+                    statusCode: a.taskStatusCode(),
+                    blocker: null,
+                    dependsOn: a.dependsOnArray() || new Uint32Array(),
+                    requiredFor: a.requiredForArray() || new Uint32Array(),
+                    originStatement: a.originStatement(),
+                    objectId: a.objectId(),
+                    nameQualified: a.nameQualified() || '',
+                    script: a.script(),
+                    timeCreated: now,
+                    timeScheduled: null,
+                    timeLastUpdate: now,
+                });
+            }
+
+            // Derive the statement status
             const status: StatementStatus[] = [];
             for (let i = 0; i < plan.program!.buffer.statementsLength(); ++i) {
                 status.push({
@@ -116,21 +169,23 @@ export const reducePlanContext = (ctx: PlanContext, action: PlanContextAction): 
             for (const s of status) {
                 s.status = deriveStatementStatusCode(s);
             }
+
+            // Build the new plan state
             return {
                 ...ctx,
                 plan,
-                schedulerStatus: TaskSchedulerStatus.Working,
+                schedulerStatus: TaskSchedulerStatus.PREPARE_SCHEDULER,
                 statementStatus: Immutable.List(status),
                 tasks: Immutable.Map<TaskHandle, Task>(tasks.map(t => [t.taskId, t])),
             };
         }
         case RESET_PLAN:
-            if (ctx.schedulerStatus !== TaskSchedulerStatus.Idle) {
+            if (ctx.schedulerStatus !== TaskSchedulerStatus.IDLE) {
                 return ctx;
             }
             return {
                 ...ctx,
-                schedulerStatus: TaskSchedulerStatus.Idle,
+                schedulerStatus: TaskSchedulerStatus.IDLE,
                 plan: null,
                 statementStatus: Immutable.List([]),
                 tasks: Immutable.Map<TaskHandle, Task>(),
