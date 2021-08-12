@@ -139,11 +139,6 @@ tests_debug:
 	yarn workspace @dashql/core build:libs
 	yarn workspace @dashql/core test:browser:debug
 
-# Build the benchmarks
-.PHONY: benchmarks
-benchmarks:
-	yarn workspace @dashql/benchmarks build
-
 # Compile the flatbuffer schema
 .PHONY: proto
 proto:
