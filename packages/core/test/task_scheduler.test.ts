@@ -82,7 +82,8 @@ export function testTaskScheduler(
                 });
                 ctx.planContextDiff.length = 0;
 
-                const workLeft = await scheduler.execute(ctx);
+                scheduler.scheduleNext(ctx);
+                const workLeft = await scheduler.awaitNext(ctx);
                 expect(workLeft).toBe(false);
                 expect(scheduler.tasks[0].status).toBe(TaskStatus.SKIPPED);
             });
@@ -138,12 +139,15 @@ export function testTaskScheduler(
                 });
                 ctx.planContextDiff = [];
 
-                let workLeft = await scheduler.execute(ctx);
+                scheduler.scheduleNext(ctx);
+                let workLeft = await scheduler.awaitNext(ctx);
                 expect(scheduler.tasks[0].status).toBe(TaskStatus.COMPLETED);
                 expect(workLeft).toBe(true);
-                workLeft = await scheduler.execute(ctx);
+                scheduler.scheduleNext(ctx);
+                workLeft = await scheduler.awaitNext(ctx);
                 expect(workLeft).toBe(true);
-                workLeft = await scheduler.execute(ctx);
+                scheduler.scheduleNext(ctx);
+                workLeft = await scheduler.awaitNext(ctx);
                 expect(scheduler.tasks[1].status).toBe(TaskStatus.COMPLETED);
                 expect(scheduler.tasks[2].status).toBe(TaskStatus.COMPLETED);
                 expect(workLeft).toBe(false);
@@ -192,7 +196,8 @@ export function testTaskScheduler(
                 });
                 ctx.planContextDiff = [];
 
-                const workLeft = await scheduler.execute(ctx);
+                scheduler.scheduleNext(ctx);
+                const workLeft = await scheduler.awaitNext(ctx);
                 expect(workLeft).toBe(false);
                 expect(scheduler.tasks[0].status).toBe(TaskStatus.SKIPPED);
                 expect(scheduler.tasks[1].status).toBe(TaskStatus.SKIPPED);

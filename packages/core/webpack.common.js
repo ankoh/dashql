@@ -5,7 +5,6 @@ import MonacoWebpackPlugin from 'monaco-editor-webpack-plugin';
 import childProcess from 'child_process';
 import path from 'path';
 import webpack from 'webpack';
-import { CleanWebpackPlugin } from 'clean-webpack-plugin';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -42,6 +41,7 @@ export function configure(params) {
             filename: 'static/js/[name].[contenthash].js',
             chunkFilename: 'static/js/[name].[contenthash].js',
             assetModuleFilename: 'static/assets/[name].[contenthash].[ext]',
+            clean: true,
         },
         resolve: {
             extensions: ['.ts', '.tsx', '.js', '.jsx', '.css'],
@@ -133,9 +133,7 @@ export function configure(params) {
             },
         },
         plugins: [
-            new CleanWebpackPlugin({
-                verbose: false,
-            }),
+            new webpack.ProgressPlugin(),
             new HtmlWebpackPlugin({
                 template: './static/index.html',
                 filename: './index.html',

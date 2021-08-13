@@ -22,6 +22,7 @@ import {
     useLogger,
     usePlanContextDispatch,
     SCHEDULER_STEP_DONE,
+    REDUCE_BATCH,
 } from './model';
 import { useDatabaseClient } from './database_client';
 import { useHTTPClient } from './http_client';
@@ -131,7 +132,7 @@ export class TaskScheduler<TaskBuffer extends ProtoTask> {
 
     /// Schedule all tasks that can be scheduled.
     /// A task can be scheduled if its rank is zero in the dependency heap.
-    protected scheduleNext(ctx: TaskExecutionContext): void {
+    public scheduleNext(ctx: TaskExecutionContext): void {
         // Collect next tasks
         const next_task_idcs: number[] = [];
         while (!this._taskQueue.empty() && this._taskQueue.topRank() == 0) {
@@ -179,13 +180,14 @@ export class TaskScheduler<TaskBuffer extends ProtoTask> {
             // Execute the task
             this._taskPromises[next_task_idx] = next_task.executeGuarded(ctx);
         }
+
+        // Flush any task updates
+        this.flushTaskUpdates(ctx);
     }
 
     /// Waits until one of the currently running task promises resolves or rejects.
     /// Returns true if execute should be called again.
-    public async execute(ctx: TaskExecutionContext): Promise<boolean> {
-        // Schedule the next tasks
-        this.scheduleNext(ctx);
+    public async awaitNext(ctx: TaskExecutionContext): Promise<boolean> {
         // Nothing to do?
         if (!this.workLeft()) return false;
 
@@ -323,16 +325,16 @@ export class TaskSchedulerStateMachine {
     }
 
     /// Execute a new step
-    public async step(ctx: TaskExecutionContext): Promise<TaskSchedulerStatus> {
+    public step(ctx: TaskExecutionContext): () => Promise<TaskSchedulerStatus> {
         switch (ctx.planContext.schedulerStatus) {
             case TaskSchedulerStatus.IDLE:
-                return TaskSchedulerStatus.IDLE;
+                return async () => TaskSchedulerStatus.IDLE;
 
             case TaskSchedulerStatus.PREPARE_SCHEDULER: {
                 const plan = ctx.planContext.plan!;
                 const program = plan!.program;
                 const graph = plan!.task_graph;
-                if (!graph) return TaskSchedulerStatus.IDLE;
+                if (!graph) return async () => TaskSchedulerStatus.IDLE;
 
                 // Translate the setup tasks
                 const setupLogic = [];
@@ -359,22 +361,28 @@ export class TaskSchedulerStateMachine {
                 this._setupScheduler.prepare(ctx, setupLogic);
                 this._programScheduler.prepare(ctx, programLogic);
 
-                return TaskSchedulerStatus.EXECUTE_SETUP;
+                return async () => TaskSchedulerStatus.EXECUTE_SETUP;
             }
 
             case TaskSchedulerStatus.EXECUTE_SETUP: {
-                if (await this._setupScheduler.execute(ctx)) {
-                    return TaskSchedulerStatus.EXECUTE_SETUP;
-                } else {
-                    return TaskSchedulerStatus.EXECUTE_PROGRAM;
-                }
+                this._setupScheduler.scheduleNext(ctx);
+                return async () => {
+                    if (await this._setupScheduler.awaitNext(ctx)) {
+                        return TaskSchedulerStatus.EXECUTE_SETUP;
+                    } else {
+                        return TaskSchedulerStatus.EXECUTE_PROGRAM;
+                    }
+                };
             }
             case TaskSchedulerStatus.EXECUTE_PROGRAM: {
-                if (await this._programScheduler.execute(ctx)) {
-                    return TaskSchedulerStatus.EXECUTE_PROGRAM;
-                } else {
-                    return TaskSchedulerStatus.IDLE;
-                }
+                this._programScheduler.scheduleNext(ctx);
+                return async () => {
+                    if (await this._programScheduler.awaitNext(ctx)) {
+                        return TaskSchedulerStatus.EXECUTE_PROGRAM;
+                    } else {
+                        return TaskSchedulerStatus.IDLE;
+                    }
+                };
             }
         }
     }
@@ -406,21 +414,38 @@ export const TaskSchedulerDriver: React.FC<Props> = (props: Props) => {
 
     // Advance the scheduler whenever there's work
     const stateMachine = React.useRef<TaskSchedulerStateMachine>(new TaskSchedulerStateMachine());
-    const working = React.useRef<boolean>(false);
+    const lock = React.useRef<boolean>(false);
     React.useEffect(() => {
-        if (working.current || planContext.schedulerStatus == TaskSchedulerStatus.IDLE) {
+        // Early abort if locked or currently idle.
+        // Plans are started with the SCHEDULE_PLAN action in the reducer.
+        if (lock.current || planContext.schedulerStatus == TaskSchedulerStatus.IDLE) {
             return;
         }
-        working.current = true;
+        lock.current = true;
         ctx.current.planContext = planContext;
+
+        // Schedule next tasks.
+        // The scheduler step function returns an async callback for eager progress reporting.
+        // E.g. All scheduled tasks are marked as running and may push arbitrary actions on the plan context
+        //      BEFORE we block on the promises.
+        const work = stateMachine.current.step(ctx.current);
+
+        // Important:
+        // The dispatch is not necessarily executed right away.
+        // Reusing the plan context has slightly asynchronous semantics.
+        // We clear the context diff within the plan context reducer!
+        dispatch({
+            type: REDUCE_BATCH,
+            data: ctx.current.planContextDiff,
+        });
+
+        // Block asynchronously on next task
         (async () => {
-            const status = await stateMachine.current.step(ctx.current);
-            const diff = [...ctx.current.planContextDiff];
-            ctx.current.planContextDiff.length = 0;
-            working.current = false;
+            const status = await work();
+            lock.current = false;
             dispatch({
                 type: SCHEDULER_STEP_DONE,
-                data: [status, diff],
+                data: [status, ctx.current.planContextDiff],
             });
         })();
     }, [planContext]);
