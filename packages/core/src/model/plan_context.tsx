@@ -48,6 +48,7 @@ export const RESET_PLAN = Symbol('RESET_PLAN');
 export const SCHEDULER_READY = Symbol('SCHEDULER_READY');
 export const SCHEDULE_PLAN = Symbol('SCHEDULE_PLAN');
 export const SCHEDULER_STEP_DONE = Symbol('SCHEDULER_STEP_DONE');
+export const REDUCE_BATCH = Symbol('REDUCE_BATCH');
 export const UPDATE_PLAN_TASKS = Symbol('UPDATE_PLAN_TASKS');
 
 export type PlanContextAction =
@@ -59,6 +60,7 @@ export type PlanContextAction =
     | Action<typeof UPDATE_CARD, Partial<CardSpecification> & { objectId: number }>
     | Action<typeof DELETE_BLOB, ObjectID>
     | Action<typeof DELETE_CARD, ObjectID>
+    | Action<typeof REDUCE_BATCH, PlanContextAction[]>
     | Action<typeof SCHEDULER_STEP_DONE, [TaskSchedulerStatus, PlanContextAction[]]>;
 
 export const reducePlanContext = (ctx: PlanContext, action: PlanContextAction): PlanContext => {
@@ -100,14 +102,23 @@ export const reducePlanContext = (ctx: PlanContext, action: PlanContextAction): 
                 ...ctx,
                 cards: ctx.cards.delete(action.data),
             };
+        case REDUCE_BATCH: {
+            const next = action.data.reduce((c, a) => {
+                return reducePlanContext(c, a);
+            }, ctx);
+            action.data.length = 0;
+            return next;
+        }
         case SCHEDULER_STEP_DONE: {
             const [nextStatus, actions] = action.data;
-            return {
+            const next = {
                 ...actions.reduce((c, a) => {
                     return reducePlanContext(c, a);
                 }, ctx),
                 schedulerStatus: nextStatus,
             };
+            actions.length = 0;
+            return next;
         }
         case SCHEDULE_PLAN: {
             const plan = action.data;
