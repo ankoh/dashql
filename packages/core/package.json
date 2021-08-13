@@ -5,10 +5,10 @@
     "private": true,
     "scripts": {
         "start": "webpack serve --config webpack.app.debug.js",
-        "build:libs": "node bundle-libs.mjs && tsc --emitDeclarationOnly",
+        "build:libs": "node bundle-libs.js && tsc --emitDeclarationOnly",
         "build:app:debug": "webpack --config webpack.app.debug.js",
         "build:app:release": "webpack --config webpack.app.release.js",
-        "report": "node ./coverage.mjs",
+        "report": "node ./coverage.js",
         "test:node": "node --enable-source-maps ../../node_modules/jasmine/bin/jasmine ./build/libs/tests-node.cjs",
         "test:node:cov": "nyc -r json --report-dir ./coverage/node node ../../node_modules/jasmine/bin/jasmine ./build/libs/tests-node.cjs",
         "test:browser": "karma start karma.conf.cjs",
@@ -17,8 +17,8 @@
         "test": "npm run test:browser && npm run test:node",
         "test:cov": "npm run test:browser:cov && npm run test:node:cov",
         "test:ci": "npm run test:cov",
-        "analyze:debug": "webpack --config webpack.debug.js --analyze",
-        "analyze:release": "webpack --config webpack.release.js --analyze",
+        "analyze:app:debug": "webpack --config webpack.app.debug.js --analyze",
+        "analyze:app:release": "webpack --config webpack.app.release.js --analyze",
         "serve:release": "node ./server.js",
         "lint": "yarn run eslint {src,test}/**/*.t{s,sx}"
     },
@@ -94,6 +94,7 @@
         "karma-webpack": "^5.0.0",
         "kleur": "^4.1.4",
         "mini-css-extract-plugin": "^2.1.0",
+        "nyc": "^15.1.0",
         "prettier": "^2.3.2",
         "prop-types": "^15.7.2",
         "puppeteer": "^10.1.0",
@@ -106,7 +107,8 @@
         "webpack-bundle-analyzer": "^4.4.2",
         "webpack-cli": "^4.7.0",
         "webpack-dev-server": "^3.11.2",
-        "webpackbar": "^5.0.0-3"
+        "webpackbar": "^5.0.0-3",
+        "web-worker": "^1.0.0"
     },
     "optionalDependencies": {
         "fsevents": "*"
