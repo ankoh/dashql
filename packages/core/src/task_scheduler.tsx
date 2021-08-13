@@ -403,7 +403,6 @@ export const TaskSchedulerDriver: React.FC<Props> = (props: Props) => {
         planContext,
         planContextDiff: [],
     });
-    ctx.current.planContext = planContext;
 
     // Advance the scheduler whenever there's work
     const stateMachine = React.useRef<TaskSchedulerStateMachine>(new TaskSchedulerStateMachine());
@@ -413,6 +412,7 @@ export const TaskSchedulerDriver: React.FC<Props> = (props: Props) => {
             return;
         }
         working.current = true;
+        ctx.current.planContext = planContext;
         (async () => {
             const status = await stateMachine.current.step(ctx.current);
             const diff = [...ctx.current.planContextDiff];
