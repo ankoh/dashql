@@ -8,7 +8,7 @@ interface AutoSizerProps {
 
 export function withAutoSizer<
     ALL_PROPS extends AutoSizerProps,
-    RAW_PROPS = Pick<ALL_PROPS, Exclude<keyof ALL_PROPS, keyof AutoSizerProps>>
+    RAW_PROPS = Pick<ALL_PROPS, Exclude<keyof ALL_PROPS, keyof AutoSizerProps>>,
 >(Component: React.ComponentClass<ALL_PROPS> | React.StatelessComponent<ALL_PROPS>): React.SFC<RAW_PROPS> {
     return function BoundComponent(props: RAW_PROPS) {
         return (
