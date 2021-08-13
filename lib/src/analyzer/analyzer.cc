@@ -368,7 +368,7 @@ arrow::Status Analyzer::EditProgram(const proto::edit::ProgramEdit& edit) {
 /// Evaluate a program
 arrow::Status Analyzer::PlanProgram() {
     // Get previous and next program
-    auto prev_program = program_log_[(program_log_writer_ + program_log_.size() - 1) & PLANNER_LOG_MASK].get();
+    auto prev_program = planned_program_;
     auto prev_graph = planned_graph_.get();
     auto next_program = program_instance_.get();
 

@@ -50,62 +50,79 @@ export const ScriptPipeline: React.FC<Props> = (props: Props) => {
     }, [programContext.script.text]);
 
     // Instantiate program if program or input values change
-    const instanceTimeout = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+    const [instanceTimeout, setInstanceTimeout] = React.useState<{
+        at: number;
+        timer: ReturnType<typeof setTimeout> | null;
+    }>({
+        at: 0,
+        timer: null,
+    });
     React.useEffect(() => {
-        const instantiateProgram = () => {
-            if (!programContext.program || !isMountedRef.current) return;
-            const nowMS = new Date().getTime();
+        // Not mounted or no program?
+        if (!programContext.program || !isMountedRef.current) return;
+        // Debounced?
+        const nowMS = new Date().getTime();
+        if (instanceTimeout.timer && nowMS < instanceTimeout.at) return;
 
-            // Has a program been instantiated before?
-            if (programContext.programInstance) {
-                const lastInstantiation = programContext.programInstance.createdAt.getTime();
-                const lastErrorCount = programContext.programInstance.program.buffer.errorsLength();
-
-                // Wait at least MIN_INPUT_DELAY_MS after last input
-                let deltaMS = nowMS - (programParsedAt.current?.getTime() || 0);
-                if (deltaMS < MIN_INPUT_DELAY) {
-                    instanceTimeout.current = setTimeout(instantiateProgram, MIN_INPUT_DELAY - deltaMS);
-                    return;
-                }
-                // Wait at least MIN_DEBOUNCE_TIME after last instantiation
-                deltaMS = nowMS - lastInstantiation;
-                if (deltaMS < MIN_INSTANTIATION_DELAY) {
-                    instanceTimeout.current = setTimeout(instantiateProgram, MIN_INSTANTIATION_DELAY - deltaMS);
-                    return;
-                }
-                // Are there more errors than before?
-                if (programContext.program.buffer.errorsLength() > lastErrorCount) {
-                    instanceTimeout.current = setTimeout(instantiateProgram, MAX_INPUT_DELAY - deltaMS);
-                    return;
-                }
+        // Helper to clear the timer.
+        // Clearing the timer will trigger a state transition and trigger the instantiation.
+        const clearTimer = () => {
+            if (!isMountedRef.current) return;
+            setInstanceTimeout(s => ({ ...s, timer: null }));
+        };
+        // Helper to debounce the instantiation
+        const debounce = (now: number, delta: number) => {
+            if (instanceTimeout.timer) {
+                clearTimeout(instanceTimeout.timer);
             }
-            instanceTimeout.current = null;
-            // Instantiate the new program
-            const instance = analyzer.instantiateProgram(programContext.programInputValues);
-            // Instantiation failed?
-            // XXX log error
-            if (!instance) return;
-
-            // Otherwise store the new instance in redux
-            programContextDispatch({
-                type: SET_PROGRAM_INSTANCE,
-                data: instance,
+            setInstanceTimeout({
+                at: now + delta,
+                timer: setTimeout(clearTimer, delta),
             });
         };
-        instantiateProgram();
-        return () => {
-            if (instanceTimeout.current) {
-                clearTimeout(instanceTimeout.current);
-                instanceTimeout.current = null;
+
+        // Has a program been instantiated before?
+        if (programContext.programInstance) {
+            const lastInstantiation = programContext.programInstance.createdAt.getTime();
+            const lastErrorCount = programContext.programInstance.program.buffer.errorsLength();
+
+            // Wait at least MIN_INPUT_DELAY_MS after last input
+            let deltaMS = nowMS - (programParsedAt.current?.getTime() || 0);
+            if (deltaMS < MIN_INPUT_DELAY) {
+                debounce(nowMS, MIN_INPUT_DELAY - deltaMS);
+                return;
             }
-        };
+            // Wait at least MIN_DEBOUNCE_TIME after last instantiation
+            deltaMS = nowMS - lastInstantiation;
+            if (deltaMS < MIN_INSTANTIATION_DELAY) {
+                debounce(nowMS, MIN_INSTANTIATION_DELAY - deltaMS);
+                return;
+            }
+            // Are there more errors than before?
+            if (programContext.program.buffer.errorsLength() > lastErrorCount) {
+                debounce(nowMS, MAX_INPUT_DELAY - deltaMS);
+                return;
+            }
+        }
+
+        // Instantiate the new program
+        const instance = analyzer.instantiateProgram(programContext.programInputValues);
+        // Instantiation failed?
+        // XXX log error
+        if (!instance) return;
+
+        // Otherwise store the new instance in redux
+        programContextDispatch({
+            type: SET_PROGRAM_INSTANCE,
+            data: instance,
+        });
     }, [programContext.program, programContext.programInputValues]);
 
     // Schedule program if scheduler is idle and instance differs
     React.useEffect(() => {
         // Scheduler not idle?
         if (planContext.schedulerStatus != TaskSchedulerStatus.IDLE) return;
-        // Same plan?
+        // Same instance?
         if (planContext.plan?.programInstance == programContext.programInstance) return;
         // Plan the program
         const plan = analyzer.planProgram();
