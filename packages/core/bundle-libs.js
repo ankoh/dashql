@@ -31,18 +31,6 @@ fs.copyFile(path.resolve(src, 'jmespath', 'jmespath_wasm.wasm'), path.resolve(ou
 
 const TARGET = ['esnext'];
 
-console.log('[ ESBUILD ] libs/dashql-core-node.js');
-esbuild.build({
-    entryPoints: ['./src/index_node.ts'],
-    outfile: 'build/libs/dashql-core-node.js',
-    platform: 'node',
-    format: 'esm',
-    target: TARGET,
-    bundle: true,
-    minify: true,
-    sourcemap: true,
-});
-
 console.log('[ ESBUILD ] libs/tests-browser.js');
 esbuild.build({
     entryPoints: ['./test/index_browser.ts'],
@@ -56,10 +44,10 @@ esbuild.build({
     define: { 'process.env.NODE_ENV': '"production"' },
 });
 
-console.log('[ ESBUILD ] libs/tests-node.js');
+console.log('[ ESBUILD ] libs/tests-node.cjs');
 esbuild.build({
     entryPoints: ['./test/index_node.ts'],
-    outfile: 'build/libs/tests-node.js',
+    outfile: 'build/libs/tests-node.cjs',
     platform: 'node',
     format: 'cjs',
     target: TARGET,

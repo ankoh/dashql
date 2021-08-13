@@ -1,6 +1,6 @@
 import React from 'react';
 import * as Immutable from 'immutable';
-import * as model from '../model';
+import * as model from '.';
 
 /// Status code
 export enum Status {

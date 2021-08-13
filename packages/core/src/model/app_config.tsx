@@ -1,5 +1,5 @@
 import React from 'react';
-import * as model from '../model';
+import * as model from '.';
 
 export interface AppConfig {
     program?: string;
