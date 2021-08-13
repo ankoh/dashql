@@ -1,6 +1,7 @@
+#include "dashql/analyzer/task_planner.h"
+
 #include <unordered_set>
 
-#include "dashql/analyzer/task_planner.h"
 #include "dashql/common/topological_sort.h"
 #include "dashql/proto_generated.h"
 
