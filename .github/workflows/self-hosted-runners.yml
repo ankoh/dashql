@@ -50,18 +50,6 @@ jobs:
                   script: |-
                       yarn workspace @dashql/core run lint
 
-            - name: Lint @dashql/benchmarks
-              uses: ./actions/image
-              with:
-                  script: |-
-                      yarn workspace @dashql/benchmarks run lint
-
-            - name: Lint @dashql/app
-              uses: ./actions/image
-              with:
-                  script: |-
-                      yarn workspace @dashql/app run lint
-
     linux_x86_debug:
         name: Linux / x86 / Debug
         runs-on: self-hosted
@@ -199,6 +187,7 @@ jobs:
               with:
                   script: |-
                       ./scripts/generate_proto.sh
+                      yarn workspace @dashql/proto build
 
             - name: Build WASM module
               uses: ./actions/image
@@ -224,35 +213,23 @@ jobs:
                       cp ./lib/build/wasm/release/analyzer_*.{wasm,js} ./packages/core/src/analyzer/
                       cp ./lib/build/wasm/release/jmespath_*.{wasm,js} ./packages/core/src/jmespath/
 
-            - name: Build @dashql/proto
+            - name: Build libraries
               uses: ./actions/image
               with:
                   script: |-
-                      yarn workspace @dashql/proto build
+                      yarn workspace @dashql/core build:libs
 
-            - name: Build @dashql/core
+            - name: Build app
               uses: ./actions/image
               with:
                   script: |-
-                      yarn workspace @dashql/core build
+                      yarn workspace @dashql/core build:app:release
 
-            - name: Build benchmarks
-              uses: ./actions/image
-              with:
-                  script: |-
-                      yarn workspace @dashql/benchmarks build
-
-            - name: Test @dashql/core
+            - name: Test app
               uses: ./actions/image
               with:
                   script: |-
                       yarn workspace @dashql/core test:ci
-
-            - name: Build App
-              uses: ./actions/image
-              with:
-                  script: |-
-                      yarn workspace @dashql/app build:release
 
             - uses: codecov/codecov-action@v2.0.2
               with:
