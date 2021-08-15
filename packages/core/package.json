@@ -47,7 +47,7 @@
         "react-grid-layout": "^1.2.5",
         "react-json-tree": "^0.15.0",
         "react-resizable": "^3.0.4",
-        "react-router-dom": "^6.0.0-beta.0",
+        "react-router-dom": "^6.0.0-beta.1",
         "react-vega": "^7.4.3",
         "react-virtualized": "^9.22.3",
         "vega": "^5.20.2",
