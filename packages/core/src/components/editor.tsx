@@ -65,7 +65,7 @@ const InnerEditor: React.FC<Props> = (props: Props) => {
     React.useEffect(() => {
         scriptRef.current = script;
         programRef.current = program;
-        if (editor) {
+        if (editor && editor.getModel().getValue() !== script.text) {
             editor.setValue(script.text);
         }
     }, [script, program]);
