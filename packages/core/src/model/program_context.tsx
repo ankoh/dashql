@@ -50,18 +50,18 @@ const reducer = (ctx: ProgramContext, action: ProgramContextAction) => {
             return {
                 ...ctx,
                 script: action.data,
-                program: null,
-                programInstance: null,
             };
         case SET_PROGRAM:
             if (action.data == ctx.program) return ctx;
             return {
                 ...ctx,
                 program: action.data,
-                programInstance: null,
             };
 
         case SET_PROGRAM_INSTANCE:
+            console.log('SET_PROGRAM_INSTANCE');
+            console.log(ctx.programInstance);
+            console.log(action.data);
             if (action.data == ctx.programInstance) return ctx;
             return {
                 ...ctx,

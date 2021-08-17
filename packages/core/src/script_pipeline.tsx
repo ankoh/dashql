@@ -109,14 +109,14 @@ export const ScriptPipeline: React.FC<Props> = (props: Props) => {
         const instance = analyzer.instantiateProgram(programContext.programInputValues);
         // Instantiation failed?
         // XXX log error
-        if (!instance) return;
+        if (instance == null) return;
 
         // Otherwise store the new instance in redux
         programContextDispatch({
             type: SET_PROGRAM_INSTANCE,
             data: instance,
         });
-    }, [programContext.program, programContext.programInputValues]);
+    }, [programContext.program, programContext.programInputValues, instanceTimeout.timer]);
 
     // Schedule program if scheduler is idle and instance differs
     React.useEffect(() => {
