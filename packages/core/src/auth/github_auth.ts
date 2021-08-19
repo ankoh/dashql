@@ -4,13 +4,12 @@ import github_oauth_script from './github_oauth.html';
 /// https://docs.github.com/en/free-pro-team@latest/developers/apps/authorizing-oauth-apps
 /// https://developer.github.com/apps/building-oauth-apps/understanding-scopes-for-oauth-apps/#available-scopes
 
-const OAUTH_CLIENT_ID = '907ea9e28eb25498492d';
-const OAUTH_REDIRECT_BASE_URI = `http://localhost:9001`;
+const OAUTH_CLIENT_ID = process.env.GITHUB_OAUTH_CLIENT_ID;
+const OAUTH_REDIRECT_BASE_URI = process.env.PUBLIC_URL || window.location.origin;
 const OAUTH_REDIRECT_URI = `${OAUTH_REDIRECT_BASE_URI}${github_oauth_script}`;
 const OAUTH_SCOPES = 'gist read:user read:email';
-const OAUTH_POPUP_NAME = 'DashQL OAuth';
+const OAUTH_POPUP_NAME = 'DashQL GitHub OAuth';
 const OAUTH_POPUP_SETTINGS = 'toolbar=no, menubar=no, width=600, height=700, top=100, left=100';
-//const OAUTH_PROXY="https://some-oauth-proxy.dashql.com";
 
 /// Generate oauth state
 let OAUTH_STATE: string | null = null;
@@ -29,7 +28,9 @@ function getOAuthState() {
 let popup: any | null = null;
 let popupURL: any | null = null;
 function receiveMessage(event: any) {
-    console.log(event);
+    const params = new URLSearchParams(event?.data);
+    if (!params.has('code')) return;
+    console.log(`code=${params.get('code')} state=${params.get('state')}`);
     popup = null;
     popupURL = null;
     window.removeEventListener('message', receiveMessage);

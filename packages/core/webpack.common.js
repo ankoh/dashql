@@ -111,7 +111,7 @@ export function configure(params) {
                     test: /.*github_oauth\.html$/,
                     type: 'asset/resource',
                     generator: {
-                        filename: `static/html/[name].${GITHUB_OAUTH_VERSION}.[ext]`,
+                        filename: `static/html/[name].${GITHUB_OAUTH_VERSION}[ext]`,
                     },
                 },
             ],
@@ -152,8 +152,10 @@ export function configure(params) {
                 ],
             }),
             new webpack.DefinePlugin({
-                // Referenced by react-flow...
-                'process.env.FORCE_SIMILAR_INSTEAD_OF_MAP': JSON.stringify(process.env.FORCE_SIMILAR_INSTEAD_OF_MAP),
+                'process.env': {
+                    PUBLIC_URL: JSON.stringify(process.env.PUBLIC_URL),
+                    GITHUB_OAUTH_CLIENT_ID: JSON.stringify('907ea9e28eb25498492d'),
+                },
             }),
             new MonacoWebpackPlugin({
                 features: ['clipboard', 'links'],
