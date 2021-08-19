@@ -410,17 +410,17 @@ arrow::Status TaskPlanner::MigrateTaskGraph() {
         // (In which case the diff is actually never KEEP or MOVE but that doesn't matter)
         // A viz statement that was slightly adjusted will be diffed as UPDATE.
         // We don't want to drop and recreate the viz state in order to reuse the existing react component.
-        if ((update_task != ProgramTaskType::NONE) &&
-            (diff_op.code() == +DiffOpCode::UPDATE || diff_op.code() == +DiffOpCode::MOVE ||
-             diff_op.code() == +DiffOpCode::KEEP)) {
-            assert(diff_op.target());
-            auto next_stmt_id = diff_op.target();
-            auto next_task_id = getStatementTaskId(*next_stmt_id);
-            assert(next_task_id);  // Applicability
-            auto& next_task = task_graph_->program_tasks[*next_task_id];
-            next_task->task_type = update_task;
-            next_task->object_id = prev_task->object_id;
-        }
+        // if ((update_task != ProgramTaskType::NONE) &&
+        //    (diff_op.code() == +DiffOpCode::UPDATE || diff_op.code() == +DiffOpCode::MOVE ||
+        //     diff_op.code() == +DiffOpCode::KEEP)) {
+        //    assert(diff_op.target());
+        //    auto next_stmt_id = diff_op.target();
+        //    auto next_task_id = getStatementTaskId(*next_stmt_id);
+        //    assert(next_task_id);  // Applicability
+        //    auto& next_task = task_graph_->program_tasks[*next_task_id];
+        //    next_task->task_type = update_task;
+        //    next_task->object_id = prev_task->object_id;
+        //}
 
         // Drop if there's a drop task defined
         else if (drop_task != SetupTaskType::NONE) {
