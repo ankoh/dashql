@@ -2,6 +2,7 @@
 
 import React from 'react';
 import github_oauth_script from './github_oauth.html';
+import { graphql } from '@octokit/graphql';
 
 /// Refs:
 /// https://docs.github.com/en/free-pro-team@latest/developers/apps/authorizing-oauth-apps
@@ -90,6 +91,59 @@ export const GitHubAccountProvider: React.FC<Props> = (props: Props) => {
                     authCode: code,
                 };
             });
+
+            const test = async () => {
+                /// Get the access token
+                const data = new FormData();
+                data.append('code', code);
+                const response = await fetch('https://api.dashql.com/github/login/oauth/access_token', {
+                    method: 'POST',
+                    body: data,
+                });
+                const responseBody = await response.text();
+                const responseData = new URLSearchParams(responseBody);
+                const token = responseData.get('access_token');
+                // const token_type = responseData.get('token_type');
+                // const scope = responseData.get('scope');
+
+                // Query gists
+                const graphqlWithAuth = graphql.defaults({
+                    headers: {
+                        authorization: `bearer ${token}`,
+                    },
+                });
+                const result = await graphqlWithAuth(`
+                query { 
+                    viewer { 
+                        gists (orderBy: {field: PUSHED_AT, direction: DESC}, first: 100) {
+                            totalCount
+                            edges {
+                                node {
+                                    resourcePath
+                                    name
+                                    description
+                                    pushedAt
+                                    stargazerCount
+                                    isFork
+                                    isPublic
+                                    files {
+                                        path: encodedName
+                                        name
+                                        size
+                                    }
+                                }
+                            }
+                            pageInfo {
+                                endCursor
+                                hasNextPage
+                            }
+                        }
+                    }
+                }
+                `);
+                console.log(result);
+            };
+            test().catch(e => console.error(e));
         };
         window.addEventListener('message', handler);
         return () => {
