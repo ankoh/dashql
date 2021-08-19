@@ -154,7 +154,7 @@ export function configure(params) {
             new webpack.DefinePlugin({
                 'process.env': {
                     PUBLIC_URL: JSON.stringify(process.env.PUBLIC_URL),
-                    GITHUB_OAUTH_CLIENT_ID: JSON.stringify('907ea9e28eb25498492d'),
+                    GITHUB_OAUTH_CLIENT_ID: JSON.stringify('286d19fc45d2e4e826d6'),
                 },
             }),
             new MonacoWebpackPlugin({
