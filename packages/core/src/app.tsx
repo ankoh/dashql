@@ -1,5 +1,6 @@
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
+import { GitHubAccountProvider } from './auth';
 import { LogProvider, DatabaseMetadataProvider, ProgramContextProvider, PlanContextProvider } from './model';
 import { Route, BrowserRouter, Routes, Navigate } from 'react-router-dom';
 import { Studio, Examples, Viewer, NotFound } from './pages';
@@ -17,13 +18,15 @@ import 'react-virtualized/styles.css';
 
 const DataProviders = (props: { children: React.ReactElement }) => (
     <LogProvider>
-        <DatabaseMetadataProvider>
-            <ProgramContextProvider>
-                <PlanContextProvider>
-                    <LaunchProgressProvider>{props.children}</LaunchProgressProvider>
-                </PlanContextProvider>
-            </ProgramContextProvider>
-        </DatabaseMetadataProvider>
+        <GitHubAccountProvider>
+            <DatabaseMetadataProvider>
+                <ProgramContextProvider>
+                    <PlanContextProvider>
+                        <LaunchProgressProvider>{props.children}</LaunchProgressProvider>
+                    </PlanContextProvider>
+                </ProgramContextProvider>
+            </DatabaseMetadataProvider>
+        </GitHubAccountProvider>
     </LogProvider>
 );
 
