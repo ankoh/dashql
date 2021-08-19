@@ -352,11 +352,6 @@ export class TaskSchedulerStateMachine {
                     const taskId = buildTaskHandle(i, proto.task.TaskClass.PROGRAM_TASK);
                     const a = graph.programTasks(i)!;
                     const s = program.getStatement(a.originStatement());
-                    console.log(
-                        `${a.nameQualified()} ${proto.task.ProgramTaskType[a.taskType()]} ${
-                            proto.syntax.StatementType[s.statement_type]
-                        }`,
-                    );
                     const logic = resolveProgramTaskLogic(taskId, a, s)!;
                     logic.status = a.taskStatusCode();
                     programLogic.push(logic);
