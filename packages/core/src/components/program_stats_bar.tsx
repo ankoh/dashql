@@ -5,6 +5,7 @@ import { ProgramStatsBarHitChart } from './program_stats_bar_hits';
 import styles from './program_stats_bar.module.css';
 
 import icon_arrow_right from '../../static/svg/icons/arrow_right.svg';
+import icon_open from '../../static/svg/icons/chevron_right_circle.svg';
 
 interface Props {
     scriptID: string;
@@ -98,9 +99,13 @@ export const ProgramStatsBar: React.FC<Props> = (props: Props) => {
                 <div className={styles.metric_value}>3.57k</div>
             </div>
             <div className={styles.details}>
-                <div className={styles.details_name}>Analytics</div>
                 <div className={styles.views_chart}>
                     <ProgramStatsBarHitChart width={80} height={14} data={state.table} />
+                    <div className={styles.open_analytics}>
+                        <svg width="16px" height="16px">
+                            <use xlinkHref={`${icon_open}#sym`} />
+                        </svg>
+                    </div>
                 </div>
             </div>
         </div>
