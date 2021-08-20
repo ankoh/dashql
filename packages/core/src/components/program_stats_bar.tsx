@@ -84,6 +84,7 @@ export const ProgramStatsBar: React.FC<Props> = (props: Props) => {
     }
     return (
         <div className={styles.container}>
+            <div className={styles.prefix}>{state.table.length}d</div>
             <div className={styles.trend}>
                 <div className={styles.trend_name}>Views</div>
                 <div className={styles.trend_value}>1.19k</div>
