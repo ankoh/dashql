@@ -4,7 +4,7 @@ import classNames from 'classnames';
 import { Link, useLocation } from 'react-router-dom';
 import Avatar from 'react-avatar';
 import Button from 'react-bootstrap/Button';
-import { useGitHubAuth } from '../github';
+import { useGitHubAuth, useActiveGitHubProfile } from '../github';
 
 import styles from './navbar.module.css';
 
@@ -31,7 +31,8 @@ const Tab = (props: { route: string; location: string; icon: string }) => (
 
 export const NavBar = (): React.ReactElement => {
     const location = useLocation();
-    const githubAuth = useGitHubAuth();
+    const ghAuth = useGitHubAuth();
+    const ghProfile = useActiveGitHubProfile();
     return (
         <div className={styles.navbar}>
             <div className={styles.logo}>
@@ -41,8 +42,8 @@ export const NavBar = (): React.ReactElement => {
                 <Tab route="/studio" location={location.pathname} icon={icon_studio} />
                 <Tab route="/examples" location={location.pathname} icon={icon_examples} />
             </div>
-            <div className={styles.account} onClick={() => githubAuth.login()}>
-                <Avatar githubHandle="ankoh" size="36" round={true} />
+            <div className={styles.account} onClick={() => ghAuth.login()}>
+                <Avatar githubHandle={ghProfile?.login} size="36" round={true} />
             </div>
             <SystemIndicators className={styles.systemlist} />
         </div>
