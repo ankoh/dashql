@@ -98,7 +98,7 @@ export const ProgramStatsBar: React.FC<Props> = (props: Props) => {
                 <div className={styles.metric_value}>3.57k</div>
             </div>
             <div className={styles.details}>
-                <div className={styles.details_name}>Details</div>
+                <div className={styles.details_name}>Analytics</div>
                 <div className={styles.views_chart}>
                     <ProgramStatsBarHitChart width={80} height={14} data={state.table} />
                 </div>
