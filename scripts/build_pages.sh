@@ -30,12 +30,12 @@ if [ "${CURRENT_BRANCH}" = "${DEFAULT_BRANCH}" ]; then
         -exec echo rm -rf '{}' \;
 
 
-    cp -r ${PROJECT_ROOT}/packages/core/build/app-release/* ${PAGES_DIR}
+    cp -r ${PROJECT_ROOT}/packages/core/build/app-prod/* ${PAGES_DIR}
 else
     TARGET_DIR="${PAGES_DIR}/branches/${CURRENT_BRANCH}"
     echo "[ RUN ] Install app to ${TARGET_DIR}/"
 
     rm -rf ${TARGET_DIR}
     mkdir -p ${PAGES_DIR}/branches
-    cp -r ${PROJECT_ROOT}/packages/core/build/app-release ${TARGET_DIR}
+    cp -r ${PROJECT_ROOT}/packages/core/build/app-prod ${TARGET_DIR}
 fi

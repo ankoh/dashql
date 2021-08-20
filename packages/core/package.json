@@ -4,10 +4,10 @@
     "license": "MPL-2.0",
     "private": true,
     "scripts": {
-        "start": "webpack serve --config webpack.app.debug.js",
+        "start": "webpack serve --config webpack.app.dev.js",
         "build:libs": "node bundle-libs.js && tsc --emitDeclarationOnly",
-        "build:app:debug": "webpack --config webpack.app.debug.js",
-        "build:app:release": "webpack --config webpack.app.release.js",
+        "build:app:dev": "webpack --config webpack.app.dev.js",
+        "build:app:prod": "webpack --config webpack.app.prod.js",
         "report": "node ./coverage.js",
         "test:node": "node --enable-source-maps ../../node_modules/jasmine/bin/jasmine ./build/libs/tests-node.cjs",
         "test:node:cov": "nyc -r json --report-dir ./coverage/node node ../../node_modules/jasmine/bin/jasmine ./build/libs/tests-node.cjs",
@@ -17,9 +17,8 @@
         "test": "npm run test:browser && npm run test:node",
         "test:cov": "npm run test:browser:cov && npm run test:node:cov",
         "test:ci": "npm run test:cov && npm run report",
-        "analyze:app:debug": "webpack --config webpack.app.debug.js --analyze",
-        "analyze:app:release": "webpack --config webpack.app.release.js --analyze",
-        "serve:release": "node ./server.js",
+        "analyze:app:dev": "webpack --config webpack.app.dev.js --analyze",
+        "analyze:app:prod": "webpack --config webpack.app.prod.js --analyze",
         "lint": "yarn run eslint {src,test}/**/*.t{s,sx}"
     },
     "engines": {

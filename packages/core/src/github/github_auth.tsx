@@ -1,7 +1,7 @@
 // Copyright (c) 2020 The DashQL Authors
 
 import React from 'react';
-import github_oauth_script from './github_oauth.html';
+import './github_oauth.html';
 import { graphql } from '@octokit/graphql';
 
 /// Refs:
@@ -9,8 +9,7 @@ import { graphql } from '@octokit/graphql';
 /// https://developer.github.com/apps/building-oauth-apps/understanding-scopes-for-oauth-apps/#available-scopes
 
 const OAUTH_CLIENT_ID = process.env.GITHUB_OAUTH_CLIENT_ID;
-const OAUTH_REDIRECT_BASE_URI = process.env.PUBLIC_URL || window.location.origin;
-const OAUTH_REDIRECT_URI = `${OAUTH_REDIRECT_BASE_URI}${github_oauth_script}`;
+const OAUTH_REDIRECT_URI = process.env.GITHUB_OAUTH_REDIRECT;
 const OAUTH_SCOPES = 'gist read:user read:email';
 const OAUTH_POPUP_NAME = 'DashQL GitHub OAuth';
 const OAUTH_POPUP_SETTINGS = 'toolbar=no, menubar=no, width=600, height=700, top=100, left=100';
@@ -212,7 +211,7 @@ export const GitHubAuthProvider: React.FC<Props> = (props: Props) => {
             // Get the access token
             const data = new FormData();
             data.append('code', state.authCode);
-            const response = await fetch('https://api.dashql.com/github/login/oauth/access_token', {
+            const response = await fetch(`${process.env.DASHQL_API_URL}/github/login/oauth/access_token`, {
                 method: 'POST',
                 body: data,
             });
