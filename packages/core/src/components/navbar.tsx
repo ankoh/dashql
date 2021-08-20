@@ -44,9 +44,9 @@ export const NavBar = (): React.ReactElement => {
             </div>
             <div className={styles.account} onClick={() => ghAuth.login()}>
                 {ghProfile?.avatarUrl ? (
-                    <img className={styles.avatar} width="36px" height="36px" src={ghProfile!.avatarUrl} />
+                    <img className={styles.avatar} width="32px" height="32px" src={ghProfile!.avatarUrl} />
                 ) : (
-                    <svg className={styles.avatar} width="36px" height="36px">
+                    <svg className={styles.avatar} width="32px" height="32px">
                         <use xlinkHref={`${icon_github}#sym`} />
                     </svg>
                 )}
