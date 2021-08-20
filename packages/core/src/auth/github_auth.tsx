@@ -40,6 +40,8 @@ type State = {
     authCode: string | null;
     /// The account
     account: GitHubAccount | null;
+    /// The error
+    error: string | null;
 };
 
 export interface GitHubAccount {
@@ -64,6 +66,7 @@ export const GitHubAccountProvider: React.FC<Props> = (props: Props) => {
         openAuthWindow: null,
         authCode: null,
         account: null,
+        error: null,
     });
 
     // Maintain mount flag
@@ -179,11 +182,23 @@ export const GitHubAccountProvider: React.FC<Props> = (props: Props) => {
         if (!state.pendingAuth || state.openAuthWindow) return;
         // Open popup window
         const popup = window.open(state.pendingAuth, OAUTH_POPUP_NAME, OAUTH_POPUP_SETTINGS);
+        if (!popup) {
+            // Something went wrong, Browser might prevent the popup.
+            // (E.g. FF blocks by default)
+            setState(s => ({
+                ...s,
+                pendingAuth: null,
+                expectedAuthSig: null,
+                openAuthWindow: null,
+                error: 'could not open OAuth window',
+            }));
+            return;
+        }
+        popup.focus();
         setState(s => ({
             ...s,
             openAuthWindow: popup,
         }));
-        popup.focus();
     }, [state.pendingAuth, state.openAuthWindow]);
 
     // Login function initiated the OAuth login
@@ -211,6 +226,7 @@ export const GitHubAccountProvider: React.FC<Props> = (props: Props) => {
                 openAuthWindow: null,
                 authCode: null,
                 account: null,
+                error: null,
             };
         });
     }, [setState]);
@@ -226,6 +242,7 @@ export const GitHubAccountProvider: React.FC<Props> = (props: Props) => {
                 openAuthWindow: null,
                 authCode: null,
                 account: null,
+                error: null,
             };
         });
     }, [setState]);
