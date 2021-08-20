@@ -2,7 +2,6 @@ import * as React from 'react';
 import SystemIndicators from './system_indicators';
 import classNames from 'classnames';
 import { Link, useLocation } from 'react-router-dom';
-import Avatar from 'react-avatar';
 import Button from 'react-bootstrap/Button';
 import { useGitHubAuth, useActiveGitHubProfile } from '../github';
 
@@ -11,6 +10,7 @@ import styles from './navbar.module.css';
 import logo from '../../static/svg/logo/logo.svg';
 import icon_examples from '../../static/svg/icons/library_books.svg';
 import icon_studio from '../../static/svg/icons/dashboard.svg';
+import icon_github from '../../static/svg/icons/github.svg';
 
 const Tab = (props: { route: string; location: string; icon: string }) => (
     <div
@@ -43,7 +43,13 @@ export const NavBar = (): React.ReactElement => {
                 <Tab route="/examples" location={location.pathname} icon={icon_examples} />
             </div>
             <div className={styles.account} onClick={() => ghAuth.login()}>
-                <Avatar githubHandle={ghProfile?.login} size="36" round={true} />
+                {ghProfile?.avatarUrl ? (
+                    <img className={styles.avatar} width="36px" height="36px" src={ghProfile!.avatarUrl} />
+                ) : (
+                    <svg className={styles.avatar} width="36px" height="36px">
+                        <use xlinkHref={`${icon_github}#sym`} />
+                    </svg>
+                )}
             </div>
             <SystemIndicators className={styles.systemlist} />
         </div>
