@@ -36,12 +36,12 @@ type State = {
     expectedAuthSig: string | null;
     /// The popup window
     openAuthWindow: Window | null;
+    /// The authentication error
+    authError: string | null;
     /// The code
     authCode: string | null;
     /// The account
     account: GitHubAccount | null;
-    /// The error
-    error: string | null;
 };
 
 export interface GitHubAccount {
@@ -65,8 +65,8 @@ export const GitHubAccountProvider: React.FC<Props> = (props: Props) => {
         expectedAuthSig: null,
         openAuthWindow: null,
         authCode: null,
+        authError: null,
         account: null,
-        error: null,
     });
 
     // Maintain mount flag
@@ -224,9 +224,9 @@ export const GitHubAccountProvider: React.FC<Props> = (props: Props) => {
                 pendingAuth: url,
                 expectedAuthSig: authSig,
                 openAuthWindow: null,
+                authError: null,
                 authCode: null,
                 account: null,
-                error: null,
             };
         });
     }, [setState]);
@@ -240,9 +240,9 @@ export const GitHubAccountProvider: React.FC<Props> = (props: Props) => {
                 pendingAuth: null,
                 expectedAuthSig: null,
                 openAuthWindow: null,
+                authError: null,
                 authCode: null,
                 account: null,
-                error: null,
             };
         });
     }, [setState]);
