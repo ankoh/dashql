@@ -23,7 +23,7 @@
     text-align: center;
 
     display: grid;
-    grid-template-rows: 56px auto 56px min-content;
+    grid-template-rows: 56px auto 64px min-content;
 }
 
 .navbar_minimal {
