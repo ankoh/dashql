@@ -18,7 +18,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 /// We therefore use an explicit version file.
 /// If you don't change the version file, you don't have to change the redirect URI but an updated file won't bust the CDN cache.
 /// If you change the version file, you have to change the redirect URI and get cache busting automatically.
-const GITHUB_OAUTH_VERSION_FILE = path.resolve(__dirname, './src/auth/github_oauth.html.version');
+const GITHUB_OAUTH_VERSION_FILE = path.resolve(__dirname, './src/github/github_oauth.html.version');
 const GITHUB_OAUTH_VERSION = childProcess.execSync(`cat ${GITHUB_OAUTH_VERSION_FILE}`).toString().trim();
 
 /// We support dynamic configurations of DashQL via a dedicated config file.
