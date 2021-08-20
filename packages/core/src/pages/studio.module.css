@@ -50,29 +50,10 @@
 }
 
 .program_stats {
-    display: grid;
-    align-items: center;
-
-    grid-template-columns: auto max-content;
-
+    width: 100%;
+    height: auto;
     border-top: 1px solid var(--border_color);
-    background-color: var(--statsbar_bg);
-    padding-left: 12px;
-    padding-right: 12px;
-}
-.program_stats_views_chart {
-    grid-column: 2;
-
-    border-radius: 8px;
-    padding: 4px 6px 2px 6px;
-    width: auto;
-    border: 1px solid var(--border_color);
-    background: var(--statsbar_views_teaser_bg);
-    margin: 0px 4px;
-
-    /* removes bottom padding of vega-embed */
-    line-height: 100%;
-    vertical-align: bottom;
+    display: grid;
 }
 
 .program_editor {

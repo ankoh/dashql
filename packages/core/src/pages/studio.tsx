@@ -1,16 +1,14 @@
 import * as React from 'react';
-import * as arrow from 'apache-arrow';
 import * as model from '../model';
 import { Link } from 'react-router-dom';
 import { Route, Routes } from 'react-router-dom';
-import { BoardEditor, EditorLoader, ProgramStatsTeaser } from '../components';
+import { BoardEditor, EditorLoader, ProgramStatsBar } from '../components';
 import { motion, AnimatePresence } from 'framer-motion';
 
 import styles from './studio.module.css';
 import styles_cmd from '../components/cmdbar.module.css';
 
 import icon_eye from '../../static/svg/icons/eye.svg';
-import { DateVector, Float64Vector } from 'apache-arrow';
 
 const BoardAction = (props: { icon: string }) => (
     <div className={styles.cmdbar_cmd}>
@@ -48,35 +46,7 @@ export const Studio: React.FC<Props> = (props: Props) => {
                         <motion.div className={styles.program_info_visibility}>Secret</motion.div>
                     </motion.div>
                     <motion.div key="stats" className={styles.program_stats}>
-                        <motion.div className={styles.program_stats_views_chart}>
-                            <ProgramStatsTeaser
-                                width={84}
-                                height={20}
-                                data={arrow.Table.new(
-                                    [
-                                        DateVector.from([
-                                            new Date(2021, 1, 16),
-                                            new Date(2021, 1, 17),
-                                            new Date(2021, 1, 18),
-                                            new Date(2021, 1, 19),
-                                            new Date(2021, 1, 20),
-                                            new Date(2021, 1, 21),
-                                            new Date(2021, 1, 22),
-
-                                            new Date(2021, 1, 23),
-                                            new Date(2021, 1, 24),
-                                            new Date(2021, 1, 25),
-                                            new Date(2021, 1, 26),
-                                            new Date(2021, 1, 27),
-                                            new Date(2021, 1, 28),
-                                            new Date(2021, 1, 29),
-                                        ]),
-                                        Float64Vector.from([5, 3, 8, 9, 4, 2, 3, 8, 1, 1, 5, 3, 8, 5]),
-                                    ],
-                                    ['date', 'views'],
-                                )}
-                            />
-                        </motion.div>
+                        <ProgramStatsBar scriptID="changeme" />
                     </motion.div>
                 </motion.div>
                 <Routes>
