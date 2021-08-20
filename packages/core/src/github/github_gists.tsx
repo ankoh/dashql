@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useGitHubAPIRequest } from './github_account';
+import { useGitHubAPIQuery } from './github_auth';
 
 interface Props {
     children: React.ReactElement;
@@ -20,7 +20,7 @@ export const GitHubGistsProvider: React.FC<Props> = (props: Props) => {
         return () => void (isMountedRef.current = false);
     }, []);
 
-    const githubAPIRequest = useGitHubAPIRequest();
+    const queryGitHubAPI = useGitHubAPIQuery();
     React.useEffect(() => {
         // Clear old results
         setState(s => ({
@@ -29,7 +29,7 @@ export const GitHubGistsProvider: React.FC<Props> = (props: Props) => {
         }));
         // Fetch new results
         (async () => {
-            const result = await githubAPIRequest(`
+            const result = await queryGitHubAPI(`
                 query { 
                     viewer { 
                         gists (orderBy: {field: PUSHED_AT, direction: DESC}, first: 100) {
@@ -65,7 +65,7 @@ export const GitHubGistsProvider: React.FC<Props> = (props: Props) => {
                 result,
             }));
         })();
-    }, [githubAPIRequest, state.next]);
+    }, [queryGitHubAPI, state.next]);
 
     return props.children;
 };
