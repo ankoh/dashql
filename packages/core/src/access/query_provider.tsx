@@ -23,8 +23,6 @@ interface Props {
 interface QueryState {
     /// The query in flight
     queryInFlight: Query | null;
-    /// The query promise
-    queryPromise: Promise<arrow.Table> | null;
     /// The result query
     resultQuery: Query | null;
     /// The result data
@@ -45,7 +43,6 @@ export const QueryProvider: React.FC<Props> = (props: Props) => {
     const database = useDatabaseClient();
     const [queryState, setQueryState] = React.useState<QueryState>({
         queryInFlight: null,
-        queryPromise: null,
         resultQuery: null,
         resultData: null,
         error: null,
@@ -84,14 +81,12 @@ export const QueryProvider: React.FC<Props> = (props: Props) => {
         setQueryState({
             ...queryState,
             queryInFlight: query,
-            queryPromise: promise,
         });
         promise
             .then((result: arrow.Table): void => {
                 if (!isMountedRef.current) return;
                 setQueryState({
                     queryInFlight: null,
-                    queryPromise: null,
                     resultQuery: query,
                     resultData: result,
                     error: null,
@@ -101,7 +96,6 @@ export const QueryProvider: React.FC<Props> = (props: Props) => {
                 if (!isMountedRef.current) return;
                 setQueryState({
                     queryInFlight: null,
-                    queryPromise: null,
                     resultQuery: query,
                     resultData: null,
                     error: err,
