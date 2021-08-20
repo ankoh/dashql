@@ -4,12 +4,21 @@ import { ProgramStatsBarHitChart } from './program_stats_bar_hits';
 
 import styles from './program_stats_bar.module.css';
 
+import icon_arrow_right from '../../static/svg/icons/arrow_right.svg';
+
 interface Props {
     scriptID: string;
 }
 
+interface State {
+    table: arrow.Table;
+    trendSessions: number;
+    trendFetched: number;
+    trendQueries: number;
+}
+
 export const ProgramStatsBar: React.FC<Props> = (props: Props) => {
-    const [table, setTable] = React.useState<arrow.Table | null>(null);
+    const [state, setState] = React.useState<State | null>(null);
 
     // Maintain mount flag
     const isMountedRef = React.useRef<boolean>(true);
@@ -32,13 +41,56 @@ export const ProgramStatsBar: React.FC<Props> = (props: Props) => {
             const dataBuffer = await response.arrayBuffer();
             const dataTable = arrow.Table.from(dataBuffer);
             if (!isMountedRef.current) return;
-            //const sessions = dataTable.getColumn('sessions');
 
-            setTable(dataTable);
+            const dataArray = dataTable.toArray();
+            if (dataArray.length == 0) return;
+
+            // Trend: Divide linear regression slope by max successive difference
+            const regrSlope = (col: arrow.Column) => {
+                const n = BigInt(col.length);
+                let sumXY = BigInt(0);
+                let sumX = BigInt(0);
+                let sumY = BigInt(0);
+                let sumX2 = BigInt(0);
+                let row = BigInt(0);
+                let prevY = BigInt(0);
+                let maxDiffY = BigInt(0);
+                for (const value of col) {
+                    const y = BigInt(value);
+                    sumXY += row * y;
+                    sumX += row;
+                    sumY += y;
+                    sumX2 += row * row;
+                    if (prevY != BigInt(0)) {
+                        const diff = y > prevY ? y - prevY : prevY - y;
+                        maxDiffY = diff > maxDiffY ? diff : maxDiffY;
+                    }
+                    prevY = y;
+                    row += BigInt(1);
+                }
+                const slope = Number(n * sumXY - sumX * sumY) / Number(n * sumX2 - sumX * sumX);
+                return slope / Number(maxDiffY);
+            };
+
+            setState({
+                table: dataTable,
+                trendSessions: regrSlope(dataTable.getColumn('sessions')),
+                trendFetched: regrSlope(dataTable.getColumn('fetched_bytes')),
+                trendQueries: regrSlope(dataTable.getColumn('queries')),
+            });
         })();
     }, [props.scriptID]);
 
-    if (!table) {
+    const renderArrow = (trend: number) => {
+        console.log(trend);
+        return (
+            <svg width="16px" height="16px">
+                <use xlinkHref={`${icon_arrow_right}#sym`} transform={`rotate(${trend > 0 ? -45 : 45},8,8)`} />
+            </svg>
+        );
+    };
+
+    if (!state) {
         return <div />;
     }
     return (
@@ -46,22 +98,22 @@ export const ProgramStatsBar: React.FC<Props> = (props: Props) => {
             <div className={styles.trend}>
                 <div className={styles.trend_name}>Views</div>
                 <div className={styles.trend_value}>1.19k</div>
-                <div className={styles.trend_arrow}></div>
+                <div className={styles.trend_regrslope}>{renderArrow(state.trendSessions)}</div>
             </div>
             <div className={styles.trend}>
                 <div className={styles.trend_name}>Fetched</div>
                 <div className={styles.trend_value}>102MB</div>
-                <div className={styles.trend_arrow}></div>
+                <div className={styles.trend_regrslope}>{renderArrow(state.trendFetched)}</div>
             </div>
             <div className={styles.trend}>
                 <div className={styles.trend_name}>Queries</div>
                 <div className={styles.trend_value}>3.57k</div>
-                <div className={styles.trend_arrow}></div>
+                <div className={styles.trend_regrslope}>{renderArrow(state.trendQueries)}</div>
             </div>
             <div className={styles.details}>
                 <div className={styles.details_name}>Details</div>
                 <div className={styles.views_chart}>
-                    <ProgramStatsBarHitChart width={80} height={14} data={table} />
+                    <ProgramStatsBarHitChart width={80} height={14} data={state.table} />
                 </div>
             </div>
         </div>
