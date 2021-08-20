@@ -29,6 +29,15 @@ type Props = {
     children: React.ReactElement;
 };
 
+type AccessToken = {
+    /// The token
+    token: string;
+    /// The token type
+    tokenType: string;
+    /// The scope
+    scope: string;
+};
+
 type State = {
     /// The popup window URL
     pendingAuth: string | null;
@@ -40,24 +49,19 @@ type State = {
     authError: string | null;
     /// The code
     authCode: string | null;
-    /// The account
-    account: GitHubAccount | null;
+    /// The github access token
+    accessToken: AccessToken | null;
 };
 
-export interface GitHubAccount {
-    /// The access token
-    accessToken: string;
-}
-
-export interface GitHubAccountAPI {
+export interface GitHubAccountAuth {
     /// Login into an account
     login: () => void;
     /// Logout of an account
     logout: () => void;
 }
 
-const accountCtx = React.createContext<GitHubAccount | null>(null);
-const accountAPICtx = React.createContext<GitHubAccountAPI>(null);
+const accountAuthCtx = React.createContext<GitHubAccountAuth>(null);
+const githubAPICtx = React.createContext<typeof graphql>(null);
 
 export const GitHubAccountProvider: React.FC<Props> = (props: Props) => {
     const [state, setState] = React.useState<State>({
@@ -66,7 +70,7 @@ export const GitHubAccountProvider: React.FC<Props> = (props: Props) => {
         openAuthWindow: null,
         authCode: null,
         authError: null,
-        account: null,
+        accessToken: null,
     });
 
     // Maintain mount flag
@@ -94,59 +98,6 @@ export const GitHubAccountProvider: React.FC<Props> = (props: Props) => {
                     authCode: code,
                 };
             });
-
-            const test = async () => {
-                /// Get the access token
-                const data = new FormData();
-                data.append('code', code);
-                const response = await fetch('https://api.dashql.com/github/login/oauth/access_token', {
-                    method: 'POST',
-                    body: data,
-                });
-                const responseBody = await response.text();
-                const responseData = new URLSearchParams(responseBody);
-                const token = responseData.get('access_token');
-                // const token_type = responseData.get('token_type');
-                // const scope = responseData.get('scope');
-
-                // Query gists
-                const graphqlWithAuth = graphql.defaults({
-                    headers: {
-                        authorization: `bearer ${token}`,
-                    },
-                });
-                const result = await graphqlWithAuth(`
-                query { 
-                    viewer { 
-                        gists (orderBy: {field: PUSHED_AT, direction: DESC}, first: 100) {
-                            totalCount
-                            edges {
-                                node {
-                                    resourcePath
-                                    name
-                                    description
-                                    pushedAt
-                                    stargazerCount
-                                    isFork
-                                    isPublic
-                                    files {
-                                        path: encodedName
-                                        name
-                                        size
-                                    }
-                                }
-                            }
-                            pageInfo {
-                                endCursor
-                                hasNextPage
-                            }
-                        }
-                    }
-                }
-                `);
-                console.log(result);
-            };
-            test().catch(e => console.error(e));
         };
         window.addEventListener('message', handler);
         return () => {
@@ -226,7 +177,7 @@ export const GitHubAccountProvider: React.FC<Props> = (props: Props) => {
                 openAuthWindow: null,
                 authError: null,
                 authCode: null,
-                account: null,
+                accessToken: null,
             };
         });
     }, [setState]);
@@ -242,25 +193,71 @@ export const GitHubAccountProvider: React.FC<Props> = (props: Props) => {
                 openAuthWindow: null,
                 authError: null,
                 authCode: null,
-                account: null,
+                accessToken: null,
             };
         });
     }, [setState]);
 
-    // Build the account API methods
-    const api = React.useMemo(
-        (): GitHubAccountAPI => ({
+    // Get the access token
+    React.useEffect(() => {
+        if (!state.authCode) return;
+        (async () => {
+            // Get the access token
+            const data = new FormData();
+            data.append('code', state.authCode);
+            const response = await fetch('https://api.dashql.com/github/login/oauth/access_token', {
+                method: 'POST',
+                body: data,
+            });
+            const responseBody = await response.text();
+            const responseData = new URLSearchParams(responseBody);
+            const token = responseData.get('access_token');
+            const tokenType = responseData.get('token_type');
+            const scope = responseData.get('scope');
+
+            console.log(`${token} ${tokenType} ${scope}`);
+
+            // No longer mounted?
+            if (!isMountedRef.current) return;
+            setState(s => ({
+                ...s,
+                accessToken: {
+                    token,
+                    tokenType,
+                    scope,
+                },
+            }));
+        })();
+    }, [state.authCode]);
+
+    // Build the account login methods
+    const auth = React.useMemo(
+        (): GitHubAccountAuth => ({
             login,
             logout,
         }),
         [login, logout],
     );
+
+    // Build the graphql client
+    const apiClient = React.useMemo(() => {
+        if (state.accessToken) {
+            return graphql.defaults({
+                headers: {
+                    authorization: `${state.accessToken.tokenType} ${state.accessToken.token}`,
+                },
+            });
+        } else {
+            return graphql.defaults({});
+        }
+    }, [state.accessToken]);
+
     return (
-        <accountCtx.Provider value={state.account}>
-            <accountAPICtx.Provider value={api}>{props.children}</accountAPICtx.Provider>
-        </accountCtx.Provider>
+        <accountAuthCtx.Provider value={auth}>
+            <githubAPICtx.Provider value={apiClient}>{props.children}</githubAPICtx.Provider>
+        </accountAuthCtx.Provider>
     );
 };
 
-export const useGitHubAccount = (): GitHubAccount | null => React.useContext(accountCtx);
-export const useGitHubAccountAPI = (): GitHubAccountAPI | null => React.useContext(accountAPICtx);
+export const useGitHubAuth = (): GitHubAccountAuth | null => React.useContext(accountAuthCtx);
+export const useGitHubAPI = (): typeof graphql | null => React.useContext(githubAPICtx);
