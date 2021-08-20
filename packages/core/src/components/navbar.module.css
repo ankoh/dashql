@@ -97,6 +97,14 @@
 
 .account {
     grid-row: 3;
+    display: grid;
+    justify-content: center;
+    align-items: center;
+}
+
+.avatar {
+    border-radius: 50%;
+    color: white;
 }
 
 .systemlist {
