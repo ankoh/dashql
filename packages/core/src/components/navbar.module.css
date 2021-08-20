@@ -52,7 +52,7 @@
 .tabs {
     grid-row: 2;
     display: grid;
-    grid-template-rows: repeat(3, 56px);
+    grid-template-rows: repeat(3, 48px);
 }
 
 .tab_navbar {
