@@ -60,10 +60,17 @@ export interface GitHubAccountAuth {
     logout: () => void;
 }
 
-const accountAuthCtx = React.createContext<GitHubAccountAuth>(null);
-const githubAPIQueryCtx = React.createContext<typeof graphql>(null);
+export interface GitHubAPIClient {
+    /// Is authenticated?
+    isAuthenticated: boolean;
+    /// The query function
+    query: typeof graphql;
+}
 
-export const GitHubAccountProvider: React.FC<Props> = (props: Props) => {
+const accountAuthCtx = React.createContext<GitHubAccountAuth>(null);
+const apiClientCtx = React.createContext<GitHubAPIClient>(null);
+
+export const GitHubAuthProvider: React.FC<Props> = (props: Props) => {
     const [state, setState] = React.useState<State>({
         pendingAuth: null,
         expectedAuthSig: null,
@@ -215,8 +222,6 @@ export const GitHubAccountProvider: React.FC<Props> = (props: Props) => {
             const tokenType = responseData.get('token_type');
             const scope = responseData.get('scope');
 
-            console.log(`${token} ${tokenType} ${scope}`);
-
             // No longer mounted?
             if (!isMountedRef.current) return;
             setState(s => ({
@@ -240,24 +245,30 @@ export const GitHubAccountProvider: React.FC<Props> = (props: Props) => {
     );
 
     // Build the graphql client
-    const apiClient = React.useMemo(() => {
+    const apiClient = React.useMemo<GitHubAPIClient>(() => {
         if (state.accessToken) {
-            return graphql.defaults({
-                headers: {
-                    authorization: `${state.accessToken.tokenType} ${state.accessToken.token}`,
-                },
-            });
+            return {
+                query: graphql.defaults({
+                    headers: {
+                        authorization: `${state.accessToken.tokenType} ${state.accessToken.token}`,
+                    },
+                }),
+                isAuthenticated: true,
+            };
         } else {
-            return graphql.defaults({});
+            return {
+                query: graphql.defaults({}),
+                isAuthenticated: false,
+            };
         }
     }, [state.accessToken]);
 
     return (
         <accountAuthCtx.Provider value={auth}>
-            <githubAPIQueryCtx.Provider value={apiClient}>{props.children}</githubAPIQueryCtx.Provider>
+            <apiClientCtx.Provider value={apiClient}>{props.children}</apiClientCtx.Provider>
         </accountAuthCtx.Provider>
     );
 };
 
 export const useGitHubAuth = (): GitHubAccountAuth | null => React.useContext(accountAuthCtx);
-export const useGitHubAPIQuery = (): typeof graphql | null => React.useContext(githubAPIQueryCtx);
+export const useGitHubAPI = (): GitHubAPIClient | null => React.useContext(apiClientCtx);
