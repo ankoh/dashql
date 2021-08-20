@@ -23,7 +23,7 @@
     text-align: center;
 
     display: grid;
-    grid-template-rows: 56px auto 64px min-content;
+    grid-template-rows: 64px auto 64px min-content;
 }
 
 .navbar_minimal {
@@ -36,7 +36,7 @@
     text-align: center;
 
     display: grid;
-    grid-template-rows: 56px auto min-content;
+    grid-template-rows: 64px auto min-content;
 }
 
 .logo {
