@@ -6,7 +6,7 @@
 
     background-color: var(--statsbar_bg);
     padding-left: 8px;
-    padding-right: 4px;
+    padding-right: 8px;
 
     font-size: 95%;
 }
@@ -25,9 +25,6 @@
     grid-template-columns: auto auto auto;
     grid-column-gap: 8px;
     margin-right: 20px;
-}
-
-.trend_name {
 }
 
 .trend_value {
@@ -64,7 +61,7 @@
     grid-column: 7;
     display: grid;
     grid-template-columns: auto auto;
-    grid-column-gap: 8px;
+    height: 100%;
     align-items: center;
 }
 
@@ -74,9 +71,20 @@
     width: auto;
     border: 1px solid var(--border_color);
     background: var(--statsbar_views_teaser_bg);
-    margin: 0px 4px;
 
     /* removes bottom padding of vega-embed */
     line-height: 100%;
     vertical-align: bottom;
+
+    display: grid;
+    grid-template-columns: auto auto;
+}
+
+.open_analytics {
+    display: grid;
+    align-items: center;
+    justify-content: center;
+    padding-left: 6px;
+    color: var(--cmd_fg);
+    height: 100%;
 }
