@@ -12,14 +12,6 @@
     font-size: 95%;
 }
 
-.trend:not(:first-child):before {
-    position: absolute;
-    left: -10px;
-    content: '';
-    height: 80%;
-    border-left: 1px solid var(--border_color);
-}
-
 .trend {
     position: relative;
     display: grid;
@@ -38,6 +30,25 @@
     display: grid;
     align-items: center;
     justify-content: center;
+}
+
+.metric {
+    position: relative;
+    display: grid;
+    grid-template-columns: auto auto;
+    grid-column-gap: 8px;
+}
+
+.metric:before {
+    position: absolute;
+    left: -10px;
+    content: '';
+    height: 80%;
+    border-left: 1px solid var(--border_color);
+}
+
+.metric_value {
+    font-weight: 700;
 }
 
 .details {

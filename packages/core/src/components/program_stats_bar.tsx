@@ -13,8 +13,6 @@ interface Props {
 interface State {
     table: arrow.Table;
     trendSessions: number;
-    trendFetched: number;
-    trendQueries: number;
 }
 
 export const ProgramStatsBar: React.FC<Props> = (props: Props) => {
@@ -75,8 +73,6 @@ export const ProgramStatsBar: React.FC<Props> = (props: Props) => {
             setState({
                 table: dataTable,
                 trendSessions: regrSlope(dataTable.getColumn('sessions')),
-                trendFetched: regrSlope(dataTable.getColumn('fetched_bytes')),
-                trendQueries: regrSlope(dataTable.getColumn('queries')),
             });
         })();
     }, [props.scriptID]);
@@ -100,15 +96,13 @@ export const ProgramStatsBar: React.FC<Props> = (props: Props) => {
                 <div className={styles.trend_value}>1.19k</div>
                 <div className={styles.trend_regrslope}>{renderArrow(state.trendSessions)}</div>
             </div>
-            <div className={styles.trend}>
-                <div className={styles.trend_name}>Fetched</div>
-                <div className={styles.trend_value}>102MB</div>
-                <div className={styles.trend_regrslope}>{renderArrow(state.trendFetched)}</div>
+            <div className={styles.metric}>
+                <div className={styles.metric_name}>Fetched</div>
+                <div className={styles.metric_value}>102MB</div>
             </div>
-            <div className={styles.trend}>
-                <div className={styles.trend_name}>Queries</div>
-                <div className={styles.trend_value}>3.57k</div>
-                <div className={styles.trend_regrslope}>{renderArrow(state.trendQueries)}</div>
+            <div className={styles.metric}>
+                <div className={styles.metric_name}>Queries</div>
+                <div className={styles.metric_value}>3.57k</div>
             </div>
             <div className={styles.details}>
                 <div className={styles.details_name}>Details</div>
