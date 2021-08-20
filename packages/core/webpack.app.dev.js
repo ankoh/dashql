@@ -1,11 +1,11 @@
-import { configure } from './webpack.common.js';
+import { configure, GITHUB_OAUTH_VERSION } from './webpack.common.js';
 import { fileURLToPath } from 'url';
 import path from 'path';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const base = configure({
-    buildDir: path.resolve(__dirname, './build/app-debug'),
+    buildDir: path.resolve(__dirname, './build/app-dev'),
     tsLoaderOptions: {
         compilerOptions: {
             configFile: './tsconfig.json',
@@ -14,6 +14,9 @@ const base = configure({
     },
     extractCss: false,
     cssIdentifier: '[local]_[hash:base64]',
+    dashqlAPI: 'https://api-worker-dev.dashql.workers.dev',
+    githubOAuthClientID: '877379132b93adf6f705',
+    githubOAuthRedirect: `http://localhost:9001/static/html/github_oauth.${GITHUB_OAUTH_VERSION}.html`,
 });
 
 export default {
@@ -32,7 +35,7 @@ export default {
     devtool: 'source-map',
     devServer: {
         historyApiFallback: true,
-        contentBase: path.join(__dirname, './build/app-debug'),
+        contentBase: path.join(__dirname, './build/app-dev'),
         compress: true,
         port: 9001,
         mimeTypes: {

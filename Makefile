@@ -171,17 +171,12 @@ wasm_release: wasm_caches
 # Builds the app
 .PHONY: app
 app:
-	yarn workspace @dashql/core build:app:debug
+	yarn workspace @dashql/core build:app:dev
 
 # Creates a release archive
 .PHONY: app_release
-app_release:
-	yarn workspace @dashql/core build:app:release
-
-# Runs a node server with the release build
-.PHONY: app_release_server
-app_release_server:
-	yarn workspace @dashql/core serve:release
+app_prod:
+	yarn workspace @dashql/core build:app:prod
 
 # Starts the dev server
 .PHONY: app_start

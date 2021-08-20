@@ -223,7 +223,7 @@ jobs:
               uses: ./actions/image
               with:
                   script: |-
-                      yarn workspace @dashql/core build:app:release
+                      yarn workspace @dashql/core build:app:prod
 
             - name: Test app
               uses: ./actions/image

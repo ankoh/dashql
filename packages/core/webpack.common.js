@@ -19,7 +19,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 /// If you don't change the version file, you don't have to change the redirect URI but an updated file won't bust the CDN cache.
 /// If you change the version file, you have to change the redirect URI and get cache busting automatically.
 const GITHUB_OAUTH_VERSION_FILE = path.resolve(__dirname, './src/github/github_oauth.html.version');
-const GITHUB_OAUTH_VERSION = childProcess.execSync(`cat ${GITHUB_OAUTH_VERSION_FILE}`).toString().trim();
+export const GITHUB_OAUTH_VERSION = childProcess.execSync(`cat ${GITHUB_OAUTH_VERSION_FILE}`).toString().trim();
 
 /// We support dynamic configurations of DashQL via a dedicated config file.
 /// The app loads this file at startup which allows us to adjust certain settings dynamically.
@@ -152,10 +152,9 @@ export function configure(params) {
                 ],
             }),
             new webpack.DefinePlugin({
-                'process.env': {
-                    PUBLIC_URL: JSON.stringify(process.env.PUBLIC_URL),
-                    GITHUB_OAUTH_CLIENT_ID: JSON.stringify('286d19fc45d2e4e826d6'),
-                },
+                'process.env.DASHQL_API_URL': JSON.stringify(params.dashqlAPI),
+                'process.env.GITHUB_OAUTH_CLIENT_ID': JSON.stringify(params.githubOAuthClientID),
+                'process.env.GITHUB_OAUTH_REDIRECT': JSON.stringify(params.githubOAuthRedirect),
             }),
             new MonacoWebpackPlugin({
                 features: ['clipboard', 'links'],
