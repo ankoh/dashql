@@ -6,7 +6,7 @@
 
     background-color: var(--statsbar_bg);
     padding-left: 8px;
-    padding-right: 8px;
+    padding-right: 4px;
 
     font-size: 95%;
 }
