@@ -61,7 +61,7 @@ export interface GitHubAccountAuth {
 }
 
 const accountAuthCtx = React.createContext<GitHubAccountAuth>(null);
-const githubAPICtx = React.createContext<typeof graphql>(null);
+const githubAPIRequestCtx = React.createContext<typeof graphql>(null);
 
 export const GitHubAccountProvider: React.FC<Props> = (props: Props) => {
     const [state, setState] = React.useState<State>({
@@ -254,10 +254,10 @@ export const GitHubAccountProvider: React.FC<Props> = (props: Props) => {
 
     return (
         <accountAuthCtx.Provider value={auth}>
-            <githubAPICtx.Provider value={apiClient}>{props.children}</githubAPICtx.Provider>
+            <githubAPIRequestCtx.Provider value={apiClient}>{props.children}</githubAPIRequestCtx.Provider>
         </accountAuthCtx.Provider>
     );
 };
 
 export const useGitHubAuth = (): GitHubAccountAuth | null => React.useContext(accountAuthCtx);
-export const useGitHubAPI = (): typeof graphql | null => React.useContext(githubAPICtx);
+export const useGitHubAPIRequest = (): typeof graphql | null => React.useContext(githubAPIRequestCtx);
