@@ -1,6 +1,6 @@
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
-import { GitHubAccountProvider } from './auth';
+import { GitHubAccountProvider } from './github';
 import { LogProvider, DatabaseMetadataProvider, ProgramContextProvider, PlanContextProvider } from './model';
 import { Route, BrowserRouter, Routes, Navigate } from 'react-router-dom';
 import { Studio, Examples, Viewer, NotFound } from './pages';
