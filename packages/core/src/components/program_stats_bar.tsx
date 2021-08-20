@@ -71,7 +71,6 @@ export const ProgramStatsBar: React.FC<Props> = (props: Props) => {
     }, [props.scriptID]);
 
     const renderArrow = (trend: number) => {
-        console.log(trend);
         return (
             <svg width="16px" height="16px">
                 <use xlinkHref={`${icon_arrow_right}#sym`} transform={`rotate(${trend > 0 ? -45 : 45},8,8)`} />
