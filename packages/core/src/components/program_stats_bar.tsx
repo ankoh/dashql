@@ -51,23 +51,16 @@ export const ProgramStatsBar: React.FC<Props> = (props: Props) => {
                 let sumY = BigInt(0);
                 let sumX2 = BigInt(0);
                 let row = BigInt(0);
-                let prevY = BigInt(0);
-                let maxDiffY = BigInt(0);
                 for (const value of col) {
                     const y = BigInt(value);
                     sumXY += row * y;
                     sumX += row;
                     sumY += y;
                     sumX2 += row * row;
-                    if (prevY != BigInt(0)) {
-                        const diff = y > prevY ? y - prevY : prevY - y;
-                        maxDiffY = diff > maxDiffY ? diff : maxDiffY;
-                    }
-                    prevY = y;
                     row += BigInt(1);
                 }
                 const slope = Number(n * sumXY - sumX * sumY) / Number(n * sumX2 - sumX * sumX);
-                return slope / Number(maxDiffY);
+                return slope;
             };
 
             setState({

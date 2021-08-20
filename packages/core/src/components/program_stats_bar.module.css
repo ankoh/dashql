@@ -17,6 +17,7 @@
     display: grid;
     grid-template-columns: auto auto auto;
     grid-column-gap: 8px;
+    margin-right: 2px;
 }
 
 .trend_name {
@@ -41,7 +42,7 @@
 
 .metric:before {
     position: absolute;
-    left: -10px;
+    left: -12px;
     content: '';
     height: 80%;
     border-left: 1px solid var(--border_color);
