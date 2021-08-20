@@ -4,7 +4,7 @@ import classNames from 'classnames';
 import { Link, useLocation } from 'react-router-dom';
 import Avatar from 'react-avatar';
 import Button from 'react-bootstrap/Button';
-import { useGitHubAccountAPI } from '../auth';
+import { useGitHubAccountAPI } from '../github';
 
 import styles from './navbar.module.css';
 
