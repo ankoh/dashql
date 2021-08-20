@@ -59,9 +59,6 @@ const reducer = (ctx: ProgramContext, action: ProgramContextAction) => {
             };
 
         case SET_PROGRAM_INSTANCE:
-            console.log('SET_PROGRAM_INSTANCE');
-            console.log(ctx.programInstance);
-            console.log(action.data);
             if (action.data == ctx.programInstance) return ctx;
             return {
                 ...ctx,

@@ -17,21 +17,19 @@ const VEGA_LITE_SPEC: VLLayerSpec = {
     layer: [
         {
             mark: {
-                type: 'bar',
-                point: true,
-                line: true,
-                cornerRadiusEnd: 1,
+                type: 'line',
+                point: false,
             },
         },
     ],
     encoding: {
         x: {
-            field: 'date',
+            field: 'timestamp',
             type: 'temporal',
             axis: null,
         },
         y: {
-            field: 'views',
+            field: 'sessions',
             type: 'quantitative',
             axis: null,
         },
@@ -84,7 +82,7 @@ const deriveStateFromProps = (props: Props, prevState?: State): State => {
     };
 };
 
-export const ProgramStatsTeaser: React.FC<Props> = (props: Props) => {
+export const ProgramStatsBarHitChart: React.FC<Props> = (props: Props) => {
     const [state, setState] = React.useState<State>(deriveStateFromProps(props));
     if (state.spec == null) {
         VEGA_SPEC_PROMISE!.then(spec => {

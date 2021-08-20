@@ -124,7 +124,6 @@ export const AppLauncher: React.FC<Props> = (props: Props) => {
                 await db.instantiate(config.mainModule, config.pthreadWorker);
                 const client = new DatabaseClient(db, dbMetadata, dbMetadataDispatch);
                 await client.connect();
-                console.log(await db.getVersion());
                 stateDispatch(s => ({ ...s, database: client }));
                 updateStep(LaunchStepType.INIT_DATABASE, Status.COMPLETED);
             } catch (e) {
