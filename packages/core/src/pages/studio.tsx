@@ -40,7 +40,9 @@ export const Studio: React.FC<Props> = (props: Props) => {
             <AnimatePresence>
                 <motion.div key="header" className={styles.program_header}>
                     <motion.div key="info" className={styles.program_info}>
-                        <motion.div className={styles.program_info_avatar}></motion.div>
+                        <motion.div className={styles.program_info_avatar}>
+                            <motion.div className={styles.program_info_avatar_icon} />
+                        </motion.div>
                         <motion.div className={styles.program_info_name}>{script.uriName}</motion.div>
                         <motion.div className={styles.program_info_last_change}>Last updated 5 month ago</motion.div>
                         <motion.div className={styles.program_info_visibility}>Secret</motion.div>
