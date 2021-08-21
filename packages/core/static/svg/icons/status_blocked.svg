@@ -6,8 +6,8 @@
     stroke-width="2"
 >
     <g fill="none" fill-rule="evenodd">
-        <rect x="-3.5" y="-3" width="3" height="6" fill="#505050"></rect>
-        <rect x="0.5" y="-3" width="3" height="6" fill="#505050"></rect>
-        <circle cx="0" cy="0" r="7" stroke="#505050"></circle>
+        <rect x="-3.5" y="-3" width="3" height="6" fill="#24292e"></rect>
+        <rect x="0.5" y="-3" width="3" height="6" fill="#24292e"></rect>
+        <circle cx="0" cy="0" r="7" stroke="#24292e"></circle>
     </g>
 </svg>

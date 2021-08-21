@@ -8,7 +8,7 @@
 >
     <g fill="none" fill-rule="evenodd">
         <circle cx="0" cy="0" r="7" opacity=".5"></circle>
-        <circle cx="0" cy="0" r="4" stroke-width="0" fill="#505050"></circle>
+        <circle cx="0" cy="0" r="4" stroke-width="0" fill="#24292e"></circle>
         <circle cx="0" cy="0" r="7" stroke-dasharray="12, 88" />
     </g>
 </svg>

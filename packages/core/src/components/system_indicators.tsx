@@ -27,7 +27,7 @@ const SystemPanel: React.FC<SystemPanelProps> = (props: SystemPanelProps) => {
             })}
         >
             <div className={styles.system_toggle} onClick={() => props.onClick(props.systemID)}>
-                <svg className={styles.system_icon} width="20px" height="20px">
+                <svg className={styles.system_icon} width="18px" height="18px">
                     <use xlinkHref={`${props.icon}#sym`} />
                 </svg>
             </div>

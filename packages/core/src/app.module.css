@@ -13,7 +13,7 @@ body {
 
     -webkit-app-region: drag;
 
-    font-family: 'Nunito';
+    font-family: 'Roboto';
     font-size: 100%;
 
     overflow-x: hidden;
@@ -30,4 +30,8 @@ body > div {
 ::-webkit-scrollbar {
     min-width: 1px;
     min-height: 1px;
+}
+
+:global(.btn) {
+    padding: 0 !important;
 }

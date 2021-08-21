@@ -23,7 +23,8 @@
     text-align: center;
 
     display: grid;
-    grid-template-rows: 64px auto 64px min-content;
+    grid-template-rows: 56px auto 64px min-content;
+    grid-template-columns: var(--nav_bar_width);
 }
 
 .navbar_minimal {
@@ -46,13 +47,14 @@
 }
 
 .logo > img {
-    width: 40px;
+    width: 32px;
 }
 
 .tabs {
     grid-row: 2;
     display: grid;
-    grid-template-rows: repeat(3, 52px);
+    grid-template-rows: repeat(3, 48px);
+    grid-template-columns: var(--nav_bar_width);
 }
 
 .tab_navbar {
