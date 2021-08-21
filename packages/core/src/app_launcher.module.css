@@ -30,9 +30,9 @@
 .title {
     text-align: center;
     margin-top: 20px;
-    font-weight: 500;
     font-size: 250%;
     letter-spacing: 2px;
+    font-weight: 400;
 }
 
 .steps {

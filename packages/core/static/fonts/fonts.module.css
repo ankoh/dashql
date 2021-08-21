@@ -1,31 +1,31 @@
 /* -------------------------------------------------------------------- */
 
 @font-face {
-    font-family: 'Nunito';
+    font-family: 'Roboto';
     font-style: normal;
     font-weight: 300;
-    src: url(./Nunito-Light.ttf) format('truetype');
+    src: url(./Roboto-Light.ttf) format('truetype');
 }
 
 @font-face {
-    font-family: 'Nunito';
+    font-family: 'Roboto';
     font-style: normal;
     font-weight: 400;
-    src: url(./Nunito-Regular.ttf) format('truetype');
+    src: url(./Roboto-Regular.ttf) format('truetype');
 }
 
 @font-face {
-    font-family: 'Nunito';
+    font-family: 'Roboto';
     font-style: normal;
     font-weight: 500;
-    src: url(./Nunito-SemiBold.ttf) format('truetype');
+    src: url(./Roboto-Medium.ttf) format('truetype');
 }
 
 @font-face {
-    font-family: 'Nunito';
+    font-family: 'Roboto';
     font-style: normal;
     font-weight: 700;
-    src: url(./Nunito-Bold.ttf) format('truetype');
+    src: url(./Roboto-Bold.ttf) format('truetype');
 }
 
 /* -------------------------------------------------------------------- */

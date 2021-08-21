@@ -29,6 +29,7 @@
 }
 
 .deco_glyph_status::before {
+    color: rgb(25, 28, 31);
     width: var(--editor_glyph_status_size);
     height: var(--editor_glyph_status_size);
 }

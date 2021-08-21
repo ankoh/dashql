@@ -164,7 +164,7 @@ export class TerminalEmulator {
 
         this.term = new XTerm({
             theme: {
-                background: 'rgb(50, 50, 50)',
+                background: 'rgb(25, 28, 31)',
             },
         });
         this.termFitAddon = new FitAddon();

@@ -1,7 +1,7 @@
 @import '../vars.module.css';
 
 .root {
-    background: rgb(50, 50, 50);
+    background: rgb(25, 28, 31);
     padding: 12px;
     border-radius: 0 0 var(--sys_panel_border_radius) var(--sys_panel_border_radius);
     height: 100%;
