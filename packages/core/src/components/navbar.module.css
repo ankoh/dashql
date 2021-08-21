@@ -55,6 +55,7 @@
     display: grid;
     grid-template-rows: repeat(3, 48px);
     grid-template-columns: var(--nav_bar_width);
+    margin-top: 16px;
 }
 
 .tab_navbar {
