@@ -7,8 +7,8 @@ import {
     BoardEditor,
     EditorLoader,
     ProgramStatsBar,
-    PageOverlayRenderer,
-    usePageOverlaySetter,
+    OverlayContainer,
+    useOverlaySetter,
     ForkDialog,
 } from '../components';
 import { AnimatePresence } from 'framer-motion';
@@ -56,12 +56,15 @@ type Props = {
     className?: string;
 };
 
+const forkOverlay = Symbol();
+
 export const Studio: React.FC<Props> = (props: Props) => {
     const { script } = model.useProgramContext();
-    const setOverlay = usePageOverlaySetter();
+    const setOverlay = useOverlaySetter();
     const showForkDialog = React.useCallback(() => {
         const fork: React.FC = () => <ForkDialog onClose={() => setOverlay(null)} />;
         setOverlay({
+            id: forkOverlay,
             renderer: fork,
         });
     }, [setOverlay]);
@@ -142,9 +145,9 @@ export const Studio: React.FC<Props> = (props: Props) => {
                         path="/"
                         element={
                             <>
-                                <PageOverlayRenderer className={styles.program_editor}>
+                                <OverlayContainer id={forkOverlay} className={styles.program_editor}>
                                     <EditorLoader readOnly={editorReadOnly} />
-                                </PageOverlayRenderer>
+                                </OverlayContainer>
                                 <div key="board" className={styles.board}>
                                     <BoardEditor immutable={false} scaleFactor={1.0} className={styles.board_editor} />
                                     <BoardCommandBar />
