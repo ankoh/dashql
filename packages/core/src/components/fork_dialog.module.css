@@ -1,0 +1,15 @@
+.overlay {
+    background-color: rgb(0, 0, 0, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+}
+
+.dialog {
+    min-width: 40%;
+    max-width: 80%;
+    max-height: 80%;
+    background-color: rgb(255, 255, 255);
+    border-radius: var(--border_radius);
+}
