@@ -8,7 +8,7 @@ export * from './status';
 export * from './terminal_loader';
 export * from './virtual_scrollbars';
 export * from './banner';
-export * from './page_overlay';
+export * from './overlay';
 export * from './fork_dialog';
 export { withNavBar as withMinimalNavBar } from './navbar_minimal';
 export { withNavBar as withNavBar } from './navbar';
