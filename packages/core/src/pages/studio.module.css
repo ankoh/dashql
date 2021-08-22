@@ -6,7 +6,7 @@
     display: grid;
     grid-template-columns: 50% auto;
 
-    grid-template-rows: 120px calc(100% - 120px);
+    grid-template-rows: 132px calc(100% - 132px);
 }
 
 .program_header {
@@ -34,7 +34,7 @@
     grid-row: 1;
     grid-column: 1;
 
-    margin-top: 4px;
+    margin-top: 8px;
 
     display: grid;
     align-items: center;
