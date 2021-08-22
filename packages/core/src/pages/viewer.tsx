@@ -7,6 +7,8 @@ import { Link } from 'react-router-dom';
 import { Scrollbars } from 'rc-scrollbars';
 
 import icon_code from '../../static/svg/icons/code.svg';
+import icon_star_outline from '../../static/svg/icons/star_outline.svg';
+import icon_share from '../../static/svg/icons/share.svg';
 
 interface Props {
     className?: string;
@@ -40,6 +42,16 @@ export const Viewer: React.FC<Props> = () => {
                 </div>
                 <div className={styles.cmdbar}>
                     <div className={styles_cmd.cmdbar_cmdset}>
+                        <div className={styles_cmd.cmdbar_cmd}>
+                            <svg width="20px" height="20px">
+                                <use xlinkHref={`${icon_star_outline}#sym`} />
+                            </svg>
+                        </div>
+                        <div className={styles_cmd.cmdbar_cmd}>
+                            <svg width="20px" height="20px">
+                                <use xlinkHref={`${icon_share}#sym`} />
+                            </svg>
+                        </div>
                         <Link to="/studio" className={styles_cmd.cmdbar_cmd}>
                             <svg width="20px" height="20px">
                                 <use xlinkHref={`${icon_code}#sym`} />

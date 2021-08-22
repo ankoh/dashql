@@ -10,10 +10,12 @@ import styles from './studio.module.css';
 import styles_cmd from '../components/cmdbar.module.css';
 
 import icon_eye from '../../static/svg/icons/eye.svg';
-//import icon_delete from '../../static/svg/icons/delete.svg';
+import icon_delete from '../../static/svg/icons/delete.svg';
+import icon_settings from '../../static/svg/icons/settings.svg';
 import icon_fork from '../../static/svg/icons/fork.svg';
 import icon_share from '../../static/svg/icons/share.svg';
-//import icon_edit from '../../static/svg/icons/edit.svg';
+import icon_star_outline from '../../static/svg/icons/star_outline.svg';
+import icon_edit from '../../static/svg/icons/edit.svg';
 import { getScriptName, getScriptNamespace, ScriptOriginType } from '../model';
 
 const BoardAction = (props: { icon: string }) => (
@@ -26,6 +28,16 @@ const BoardCommandBar = () => (
     <div className={styles.cmdbar_board}>
         <div className={styles_cmd.cmdbar_cmdset} />
         <div className={styles_cmd.cmdbar_cmdset}>
+            <div className={styles_cmd.cmdbar_cmd}>
+                <svg width="20px" height="20px">
+                    <use xlinkHref={`${icon_star_outline}#sym`} />
+                </svg>
+            </div>
+            <div className={styles_cmd.cmdbar_cmd}>
+                <svg width="20px" height="20px">
+                    <use xlinkHref={`${icon_share}#sym`} />
+                </svg>
+            </div>
             <Link to="/viewer" className={styles_cmd.cmdbar_cmd}>
                 <BoardAction icon={icon_eye} />
             </Link>
@@ -54,6 +66,8 @@ export const Studio: React.FC<Props> = (props: Props) => {
             break;
     }
 
+    const ownScript = false;
+
     return (
         <div className={styles.studio}>
             <AnimatePresence>
@@ -77,16 +91,31 @@ export const Studio: React.FC<Props> = (props: Props) => {
                     </div>
                     <div key="actions" className={styles.program_actions}>
                         <div className={classNames(styles_cmd.cmdbar_cmdset, styles.program_action)}>
-                            <div className={styles_cmd.cmdbar_cmd}>
-                                <svg width="20px" height="20px">
-                                    <use xlinkHref={`${icon_fork}#sym`} />
-                                </svg>
-                            </div>
-                            <div className={styles_cmd.cmdbar_cmd}>
-                                <svg width="20px" height="20px">
-                                    <use xlinkHref={`${icon_share}#sym`} />
-                                </svg>
-                            </div>
+                            {ownScript ? (
+                                <>
+                                    <div className={styles_cmd.cmdbar_cmd}>
+                                        <svg width="20px" height="20px">
+                                            <use xlinkHref={`${icon_edit}#sym`} />
+                                        </svg>
+                                    </div>
+                                    <div className={styles_cmd.cmdbar_cmd}>
+                                        <svg width="20px" height="20px">
+                                            <use xlinkHref={`${icon_delete}#sym`} />
+                                        </svg>
+                                    </div>
+                                    <div className={styles_cmd.cmdbar_cmd}>
+                                        <svg width="20px" height="20px">
+                                            <use xlinkHref={`${icon_settings}#sym`} />
+                                        </svg>
+                                    </div>
+                                </>
+                            ) : (
+                                <div className={styles_cmd.cmdbar_cmd}>
+                                    <svg width="20px" height="20px">
+                                        <use xlinkHref={`${icon_fork}#sym`} />
+                                    </svg>
+                                </div>
+                            )}
                         </div>
                     </div>
                     <div key="stats" className={styles.program_stats}>
@@ -98,7 +127,7 @@ export const Studio: React.FC<Props> = (props: Props) => {
                         path="/"
                         element={
                             <>
-                                <div key="editor" className={styles.program_editor}>
+                                <div className={styles.program_editor}>
                                     <EditorLoader />
                                 </div>
                                 <div key="board" className={styles.board}>
