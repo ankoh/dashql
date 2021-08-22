@@ -3,6 +3,7 @@ import * as model from '../model';
 import * as utils from '../utils';
 import axios from 'axios';
 import { useLocation } from 'react-router-dom';
+import { ScriptOriginType } from '../model';
 
 interface Props {
     progressComponent?: (progress: number) => React.ReactElement;
@@ -19,7 +20,7 @@ enum ScriptLoaderStatus {
 
 interface State {
     requestURL: string | null;
-    requestURI: [model.ScriptURIPrefix, string] | null;
+    requestURI: [model.ScriptOriginType, string] | null;
     status: ScriptLoaderStatus;
     error: any | null;
 }
@@ -35,10 +36,10 @@ export const ScriptLoader: React.FC<Props> = (props: Props) => {
     });
 
     const gist = new URLSearchParams(location.search).get('gist') || undefined;
-    let requestURI: [model.ScriptURIPrefix, string] | null = null;
+    let requestURI: [model.ScriptOriginType, string] | null = null;
     let requestURL: string | null = null;
     if (gist) {
-        requestURI = [model.ScriptURIPrefix.GITHUB_GIST, gist];
+        requestURI = [model.ScriptOriginType.GITHUB_GIST, gist];
         requestURL = `https://gist.githubusercontent.com/ankoh/${gist}/raw`;
     }
     if (requestURI && (requestURI[0] != state.requestURI?.[0] || requestURI[1] != state.requestURI?.[1])) {
@@ -51,7 +52,7 @@ export const ScriptLoader: React.FC<Props> = (props: Props) => {
         });
     }
 
-    const loadScriptFromURL = async (url: string, uri: [model.ScriptURIPrefix, string]) => {
+    const loadScriptFromURL = async (url: string, uri: [model.ScriptOriginType, string]) => {
         setState({
             ...state,
             status: ScriptLoaderStatus.IN_FLIGHT,
@@ -77,9 +78,16 @@ export const ScriptLoader: React.FC<Props> = (props: Props) => {
             programContextDispatch({
                 type: model.SET_SCRIPT,
                 data: {
+                    origin: {
+                        originType: ScriptOriginType.HTTPS,
+                        fileName: '',
+                        exampleName: null,
+                        httpURL: null,
+                        githubAccount: null,
+                        githubGistName: null,
+                    },
                     text,
-                    uriPrefix: uri[0],
-                    uriName: uri[1],
+                    description: '',
                     modified: false,
                     lineCount: utils.countLines(text),
                     bytes: utils.estimateUTF16Length(text),

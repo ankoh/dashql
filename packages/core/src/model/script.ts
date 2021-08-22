@@ -1,6 +1,6 @@
 // Copyright (c) 2021 The DashQL Authors
 
-export enum ScriptURIPrefix {
+export enum ScriptOriginType {
     TMP,
     EXAMPLES,
     GITHUB_GIST,
@@ -8,13 +8,28 @@ export enum ScriptURIPrefix {
     HTTPS,
 }
 
+export interface ScriptOrigin {
+    /// The origin type
+    originType: ScriptOriginType;
+    /// The filename
+    fileName: string;
+    /// The example name
+    exampleName: string | null;
+    /// The raw http url
+    httpURL: URL | null;
+    /// The github account
+    githubAccount: string | null;
+    /// The github gist name
+    githubGistName: string | null;
+}
+
 export interface Script {
+    /// The origin
+    origin: ScriptOrigin;
+    /// The description
+    description: string;
     /// The program text
     text: string;
-    /// The URI prefix
-    uriPrefix: ScriptURIPrefix;
-    /// The URI name
-    uriName: string;
     /// Has been modified?
     modified: boolean;
     /// The line count
@@ -23,17 +38,44 @@ export interface Script {
     bytes?: number;
 }
 
-export function getScriptURIPrefixName(prefix: ScriptURIPrefix): string {
+export function getScriptNamespace(script: Script): string | null {
+    switch (script.origin.originType) {
+        case ScriptOriginType.EXAMPLES:
+            return 'dashql';
+        case ScriptOriginType.GITHUB_GIST:
+            return script.origin.githubAccount;
+        default:
+            return null;
+    }
+}
+
+export function getScriptName(script: Script): string | null {
+    switch (script.origin.originType) {
+        case ScriptOriginType.HTTP:
+        case ScriptOriginType.HTTPS: {
+            const filename = script.origin.httpURL.pathname.split('/').pop();
+            return filename || null;
+        }
+        case ScriptOriginType.TMP:
+            return script.origin.fileName;
+        case ScriptOriginType.GITHUB_GIST:
+            return script.origin.githubGistName;
+        case ScriptOriginType.EXAMPLES:
+            return script.origin.exampleName;
+    }
+}
+
+export function getScriptOriginTypeName(prefix: ScriptOriginType): string {
     switch (prefix) {
-        case ScriptURIPrefix.TMP:
+        case ScriptOriginType.TMP:
             return 'tmp';
-        case ScriptURIPrefix.EXAMPLES:
+        case ScriptOriginType.EXAMPLES:
             return 'examples';
-        case ScriptURIPrefix.GITHUB_GIST:
+        case ScriptOriginType.GITHUB_GIST:
             return 'gist';
-        case ScriptURIPrefix.HTTP:
+        case ScriptOriginType.HTTP:
             return 'http';
-        case ScriptURIPrefix.HTTPS:
+        case ScriptOriginType.HTTPS:
             return 'https';
     }
 }
