@@ -4,7 +4,7 @@ import { GitHubAuthProvider, GitHubProfileProvider } from './github';
 import { LogProvider, DatabaseMetadataProvider, ProgramContextProvider, PlanContextProvider } from './model';
 import { Route, BrowserRouter, Routes, Navigate } from 'react-router-dom';
 import { Studio, Examples, Viewer, NotFound } from './pages';
-import { withNavBar, withBanner, OverlayProvider } from './components';
+import { withNavBar, OverlayProvider } from './components';
 import { LaunchProgressProvider } from './model/launch_progress';
 import { AppLauncher } from './app_launcher';
 
@@ -34,8 +34,10 @@ const DataProviders = (props: { children: React.ReactElement }) => (
     </LogProvider>
 );
 
-const StudioPage = withNavBar(withBanner(Studio));
-const ExamplesPage = withNavBar(withBanner(Examples));
+const StudioPage = withNavBar(Studio);
+const ExamplesPage = withNavBar(Examples);
+// const StudioPage = withNavBar(withBanner(Studio));
+// const ExamplesPage = withNavBar(withBanner(Examples));
 
 ReactDOM.render(
     <DataProviders>
