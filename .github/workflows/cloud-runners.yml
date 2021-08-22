@@ -15,14 +15,14 @@ jobs:
             - uses: actions/checkout@v2
 
             - name: Prepare repository
-              uses: ankoh/dashql-ci-env@v0.4
+              uses: ankoh/dashql-ci-env@v0.5
               with:
                   script: |-
                       git submodule update --init --recursive
                       ./scripts/generate_proto.sh
 
             - name: Lint ./lib
-              uses: ankoh/dashql-ci-env@v0.4
+              uses: ankoh/dashql-ci-env@v0.5
               with:
                   script: |-
                       python3 ./scripts/run_clang_format.py \
