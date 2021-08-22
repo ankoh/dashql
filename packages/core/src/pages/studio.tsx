@@ -3,12 +3,13 @@ import * as model from '../model';
 import { Link } from 'react-router-dom';
 import { Route, Routes } from 'react-router-dom';
 import { BoardEditor, EditorLoader, ProgramStatsBar } from '../components';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence } from 'framer-motion';
 
 import styles from './studio.module.css';
 import styles_cmd from '../components/cmdbar.module.css';
 
 import icon_eye from '../../static/svg/icons/eye.svg';
+import { getScriptName, getScriptNamespace } from '../model';
 
 const BoardAction = (props: { icon: string }) => (
     <div className={styles.cmdbar_cmd}>
@@ -35,34 +36,41 @@ type Props = {
 
 export const Studio: React.FC<Props> = (props: Props) => {
     const { script } = model.useProgramContext();
+    const scriptNamespace = getScriptNamespace(script);
+    const scriptName = getScriptName(script);
     return (
         <div className={styles.studio}>
             <AnimatePresence>
-                <motion.div key="header" className={styles.program_header}>
-                    <motion.div key="info" className={styles.program_info}>
-                        <motion.div className={styles.program_info_avatar}>
-                            <motion.div className={styles.program_info_avatar_icon} />
-                        </motion.div>
-                        <motion.div className={styles.program_info_name}>{script.uriName}</motion.div>
-                        <motion.div className={styles.program_info_last_change}>Last updated 5 month ago</motion.div>
-                        <motion.div className={styles.program_info_visibility}>Secret</motion.div>
-                    </motion.div>
-                    <motion.div key="stats" className={styles.program_stats}>
+                <div key="header" className={styles.program_header}>
+                    <div key="info" className={styles.program_info}>
+                        <div className={styles.program_info_avatar}>
+                            <div className={styles.program_info_avatar_icon} />
+                        </div>
+                        <div className={styles.program_info_name}>
+                            <span className={styles.program_info_name_namespace}>{scriptNamespace}</span>/
+                            <span className={styles.program_info_name_file}>{scriptName}</span>
+                        </div>
+                        <div className={styles.program_info_description}>{script.description}</div>
+                        <div className={styles.program_info_beans}>
+                            <div className={styles.program_info_bean}>Example</div>
+                        </div>
+                    </div>
+                    <div key="stats" className={styles.program_stats}>
                         <ProgramStatsBar scriptID="changeme" />
-                    </motion.div>
-                </motion.div>
+                    </div>
+                </div>
                 <Routes>
                     <Route
                         path="/"
                         element={
                             <>
-                                <motion.div key="editor" className={styles.program_editor}>
+                                <div key="editor" className={styles.program_editor}>
                                     <EditorLoader />
-                                </motion.div>
-                                <motion.div key="board" className={styles.board}>
+                                </div>
+                                <div key="board" className={styles.board}>
                                     <BoardEditor immutable={false} scaleFactor={1.0} className={styles.board_editor} />
                                     <BoardCommandBar />
-                                </motion.div>
+                                </div>
                             </>
                         }
                     />

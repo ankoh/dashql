@@ -86,9 +86,9 @@ export const Examples: React.FC<Props> = (_props: Props) => {
                             className={classNames(styles.script_card, {
                                 [styles.script_card_disabled]: !script.enabled,
                             })}
-                            key={script.key}
-                            layoutId={script.key}
-                            data-key={script.key}
+                            key={script.name}
+                            layoutId={script.name}
+                            data-key={script.name}
                             onClick={script.enabled ? selectExample : () => {}}
                         >
                             <motion.div className={styles.example_icon}>

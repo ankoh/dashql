@@ -6,7 +6,7 @@ import * as utils from '../utils';
 import { Action, Dispatch, ProviderProps } from './model_context';
 import { Program, InputValue } from './program';
 import { ProgramInstance } from './program_instance';
-import { Script, ScriptURIPrefix } from './script';
+import { Script, ScriptOriginType } from './script';
 
 export type ProgramContext = {
     /// The file name
@@ -22,8 +22,15 @@ export type ProgramContext = {
 const initialState: ProgramContext = {
     script: {
         text: '',
-        uriPrefix: ScriptURIPrefix.TMP,
-        uriName: 'unnamed.dashql',
+        origin: {
+            originType: ScriptOriginType.TMP,
+            fileName: 'unnamed.dashql',
+            exampleName: null,
+            httpURL: null,
+            githubAccount: null,
+            githubGistName: null,
+        },
+        description: '',
         modified: false,
         lineCount: 0,
     },

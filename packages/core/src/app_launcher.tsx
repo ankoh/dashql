@@ -153,7 +153,7 @@ export const AppLauncher: React.FC<Props> = (props: Props) => {
     React.useEffect(() => {
         if (state.database == null || state.analyzer == null) return;
         (async () => {
-            const example = examples.EXAMPLE_SCRIPT_MAP.get('demo_unischema')!;
+            const example = examples.EXAMPLE_SCRIPT_MAP.get('demo_unischema.dashql')!;
             const script = await examples.getScript(example);
             programContextDispatch({
                 type: model.SET_SCRIPT,
