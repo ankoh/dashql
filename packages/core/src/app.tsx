@@ -4,7 +4,7 @@ import { GitHubAuthProvider, GitHubProfileProvider } from './github';
 import { LogProvider, DatabaseMetadataProvider, ProgramContextProvider, PlanContextProvider } from './model';
 import { Route, BrowserRouter, Routes, Navigate } from 'react-router-dom';
 import { Studio, Examples, Viewer, NotFound } from './pages';
-import { withNavBar, withMinimalNavBar, withBanner, OverlayProvider } from './components';
+import { withNavBar, withBanner, OverlayProvider } from './components';
 import { LaunchProgressProvider } from './model/launch_progress';
 import { AppLauncher } from './app_launcher';
 
@@ -36,7 +36,6 @@ const DataProviders = (props: { children: React.ReactElement }) => (
 
 const StudioPage = withNavBar(withBanner(Studio));
 const ExamplesPage = withNavBar(withBanner(Examples));
-const ViewerPage = withBanner(withMinimalNavBar(Viewer));
 
 ReactDOM.render(
     <DataProviders>
@@ -45,7 +44,7 @@ ReactDOM.render(
                 <Routes>
                     <Route path="/studio/*" element={<StudioPage />} />
                     <Route path="/examples" element={<ExamplesPage />} />
-                    <Route path="/viewer" element={<ViewerPage />} />
+                    <Route path="/viewer" element={<Viewer />} />
                     <Route path="/404" element={<NotFound />} />
                     <Route path="/" element={<Navigate to="/studio" />} />
                     <Navigate to="/404" />

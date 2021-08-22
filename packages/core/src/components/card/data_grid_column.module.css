@@ -37,12 +37,12 @@
 
 .data_value_number {
     justify-content: end !important;
-    font-weight: 500;
+    font-weight: 400;
 }
 
 .data_value_text {
     justify-content: start !important;
-    font-weight: 500;
+    font-weight: 400;
 }
 
 .data_domain {

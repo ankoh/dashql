@@ -183,7 +183,9 @@ export const AppLauncher: React.FC<Props> = (props: Props) => {
         <div className={styles.launcher}>
             <div className={styles.inner}>
                 <div className={styles.logo}>
-                    <img src={logo} />
+                    <svg width="104px" height="104px">
+                        <use xlinkHref={`${logo}#sym`} />
+                    </svg>
                 </div>
                 <div className={styles.title}>DashQL</div>
                 <div className={styles.steps}>
