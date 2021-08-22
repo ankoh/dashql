@@ -2,7 +2,7 @@ import * as React from 'react';
 import styles from './viewer.module.css';
 import styles_cmd from '../components/cmdbar.module.css';
 import { AutoSizer } from '../utils/autosizer';
-import { Board, ScriptLoader } from '../components';
+import { Board, ScriptLoader, OverlayContainer, useOverlaySetter, ShareDialog } from '../components';
 import { Link } from 'react-router-dom';
 import { Scrollbars } from 'rc-scrollbars';
 
@@ -10,18 +10,28 @@ import icon_code from '../../static/svg/icons/code.svg';
 import icon_star_outline from '../../static/svg/icons/star_outline.svg';
 import icon_share from '../../static/svg/icons/share.svg';
 
+const shareOverlay = Symbol();
+
 interface Props {
     className?: string;
 }
 
 export const Viewer: React.FC<Props> = () => {
+    const setOverlay = useOverlaySetter();
+    const showShareDialog = React.useCallback(() => {
+        const fork: React.FC = () => <ShareDialog onClose={() => setOverlay(null)} />;
+        setOverlay({
+            id: shareOverlay,
+            renderer: fork,
+        });
+    }, [setOverlay]);
     const rowHeight = 48;
     const columnCount = 12;
     const padding: [number, number] = [40, 40];
     const margin: [number, number] = [10, 10];
     return (
         <ScriptLoader>
-            <div className={styles.container}>
+            <>
                 <div className={styles.board}>
                     <AutoSizer>
                         {({ width, height }) => (
@@ -47,7 +57,7 @@ export const Viewer: React.FC<Props> = () => {
                                 <use xlinkHref={`${icon_star_outline}#sym`} />
                             </svg>
                         </div>
-                        <div className={styles_cmd.cmdbar_cmd}>
+                        <div className={styles_cmd.cmdbar_cmd} onClick={showShareDialog}>
                             <svg width="20px" height="20px">
                                 <use xlinkHref={`${icon_share}#sym`} />
                             </svg>
@@ -59,7 +69,8 @@ export const Viewer: React.FC<Props> = () => {
                         </Link>
                     </div>
                 </div>
-            </div>
+                <OverlayContainer id={shareOverlay} className={styles.overlay} />
+            </>
         </ScriptLoader>
     );
 };

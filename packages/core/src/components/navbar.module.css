@@ -46,10 +46,6 @@
     justify-content: center;
 }
 
-.logo > img {
-    width: 32px;
-}
-
 .tabs {
     grid-row: 2;
     display: grid;

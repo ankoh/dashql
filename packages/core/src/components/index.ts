@@ -10,5 +10,6 @@ export * from './virtual_scrollbars';
 export * from './banner';
 export * from './overlay';
 export * from './fork_dialog';
+export * from './share_dialog';
 export { withNavBar as withMinimalNavBar } from './navbar_minimal';
 export { withNavBar as withNavBar } from './navbar';

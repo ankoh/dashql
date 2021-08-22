@@ -5,7 +5,7 @@ import styles from './overlay.module.css';
 
 type OverlayProviderProps = {
     className?: string;
-    children: React.ReactChild;
+    children?: React.ReactChild;
 };
 type OverlayState = {
     id: symbol;
@@ -14,7 +14,7 @@ type OverlayState = {
 type OverlayContainerProps = {
     id: symbol;
     className?: string;
-    children: React.ReactChild;
+    children?: React.ReactChild;
 };
 
 type OverlayContentProps = Record<string, string>;
@@ -46,6 +46,7 @@ export const OverlayContainer: React.FC<OverlayContainerProps> = (props: Overlay
             ),
         [overlay?.id],
     );
+    if (!renderedOverlay && !props.children) return <div />;
     return (
         <div className={classNames(styles.overlay_root, props.className)}>
             {props.children}

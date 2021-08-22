@@ -1,13 +1,13 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-import styles from './fork_dialog.module.css';
+import styles from './share_dialog.module.css';
 
 interface Props {
     onClose: () => void;
 }
 
-export const ForkDialog: React.FC<Props> = (_props: Props) => {
+export const ShareDialog: React.FC<Props> = (_props: Props) => {
     return (
         <AnimatePresence>
             <motion.div className={styles.container} initial={{ translateY: 30 }} animate={{ translateY: 0 }}>

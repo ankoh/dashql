@@ -10,6 +10,7 @@ import {
     OverlayContainer,
     useOverlaySetter,
     ForkDialog,
+    ShareDialog,
 } from '../components';
 import { AnimatePresence } from 'framer-motion';
 
@@ -25,38 +26,12 @@ import icon_star_outline from '../../static/svg/icons/star_outline.svg';
 import icon_edit from '../../static/svg/icons/edit.svg';
 import { getScriptName, getScriptNamespace, ScriptOriginType } from '../model';
 
-const BoardAction = (props: { icon: string }) => (
-    <svg width="20px" height="20px">
-        <use xlinkHref={`${props.icon}#sym`} />
-    </svg>
-);
-
-const BoardCommandBar = () => (
-    <div className={styles.cmdbar_board}>
-        <div className={styles_cmd.cmdbar_cmdset} />
-        <div className={styles_cmd.cmdbar_cmdset}>
-            <div className={styles_cmd.cmdbar_cmd}>
-                <svg width="20px" height="20px">
-                    <use xlinkHref={`${icon_star_outline}#sym`} />
-                </svg>
-            </div>
-            <div className={styles_cmd.cmdbar_cmd}>
-                <svg width="20px" height="20px">
-                    <use xlinkHref={`${icon_share}#sym`} />
-                </svg>
-            </div>
-            <Link to="/viewer" className={styles_cmd.cmdbar_cmd}>
-                <BoardAction icon={icon_eye} />
-            </Link>
-        </div>
-    </div>
-);
+const forkOverlay = Symbol();
+const shareOverlay = Symbol();
 
 type Props = {
     className?: string;
 };
-
-const forkOverlay = Symbol();
 
 export const Studio: React.FC<Props> = (props: Props) => {
     const { script } = model.useProgramContext();
@@ -66,6 +41,13 @@ export const Studio: React.FC<Props> = (props: Props) => {
         setOverlay({
             id: forkOverlay,
             renderer: fork,
+        });
+    }, [setOverlay]);
+    const showShareDialog = React.useCallback(() => {
+        const share: React.FC = () => <ShareDialog onClose={() => setOverlay(null)} />;
+        setOverlay({
+            id: shareOverlay,
+            renderer: share,
         });
     }, [setOverlay]);
 
@@ -85,6 +67,33 @@ export const Studio: React.FC<Props> = (props: Props) => {
     }
     const editorReadOnly = true;
     const ownScript = false;
+
+    const BoardAction = (p: { icon: string }) => (
+        <svg width="20px" height="20px">
+            <use xlinkHref={`${p.icon}#sym`} />
+        </svg>
+    );
+
+    const BoardCommandBar = () => (
+        <div className={styles.cmdbar_board}>
+            <div className={styles_cmd.cmdbar_cmdset} />
+            <div className={styles_cmd.cmdbar_cmdset}>
+                <div className={styles_cmd.cmdbar_cmd}>
+                    <svg width="20px" height="20px">
+                        <use xlinkHref={`${icon_star_outline}#sym`} />
+                    </svg>
+                </div>
+                <div className={styles_cmd.cmdbar_cmd} onClick={showShareDialog}>
+                    <svg width="20px" height="20px">
+                        <use xlinkHref={`${icon_share}#sym`} />
+                    </svg>
+                </div>
+                <Link to="/viewer" className={styles_cmd.cmdbar_cmd}>
+                    <BoardAction icon={icon_eye} />
+                </Link>
+            </div>
+        </div>
+    );
 
     return (
         <div className={styles.studio}>
@@ -149,7 +158,13 @@ export const Studio: React.FC<Props> = (props: Props) => {
                                     <EditorLoader readOnly={editorReadOnly} />
                                 </OverlayContainer>
                                 <div key="board" className={styles.board}>
-                                    <BoardEditor immutable={false} scaleFactor={1.0} className={styles.board_editor} />
+                                    <OverlayContainer id={shareOverlay}>
+                                        <BoardEditor
+                                            immutable={false}
+                                            scaleFactor={1.0}
+                                            className={styles.board_editor}
+                                        />
+                                    </OverlayContainer>
                                     <BoardCommandBar />
                                 </div>
                             </>
