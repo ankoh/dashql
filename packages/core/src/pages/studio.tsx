@@ -66,6 +66,7 @@ export const Studio: React.FC<Props> = (props: Props) => {
             break;
     }
 
+    const editorReadOnly = true;
     const ownScript = false;
 
     return (
@@ -128,7 +129,7 @@ export const Studio: React.FC<Props> = (props: Props) => {
                         element={
                             <>
                                 <div className={styles.program_editor}>
-                                    <EditorLoader />
+                                    <EditorLoader readOnly={editorReadOnly} />
                                 </div>
                                 <div key="board" className={styles.board}>
                                     <BoardEditor immutable={false} scaleFactor={1.0} className={styles.board_editor} />
