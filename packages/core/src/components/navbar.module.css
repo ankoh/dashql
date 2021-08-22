@@ -27,19 +27,6 @@
     grid-template-columns: var(--nav_bar_width);
 }
 
-.navbar_minimal {
-    grid-row: 1;
-    grid-column: 1;
-
-    background-color: var(--nav_bar_minimal_bg);
-    color: var(--nav_bar_minimal_fg);
-    line-height: 24px;
-    text-align: center;
-
-    display: grid;
-    grid-template-rows: 64px auto min-content;
-}
-
 .logo {
     display: grid;
     align-items: center;
@@ -112,10 +99,4 @@
     background: var(--system_bg);
     display: grid;
     padding: 4px 0px;
-}
-
-.systemlist_minimal {
-    grid-row: 3;
-    background: var(--system_minimal_bg);
-    display: grid;
 }
