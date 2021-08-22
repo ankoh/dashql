@@ -47,6 +47,8 @@ type Props = {
     width: number;
     /// The height
     height: number;
+    /// Is readonly?
+    readOnly: boolean;
 };
 
 const InnerEditor: React.FC<Props> = (props: Props) => {
@@ -68,7 +70,13 @@ const InnerEditor: React.FC<Props> = (props: Props) => {
         if (editor && editor.getModel().getValue() !== script.text) {
             editor.setValue(script.text);
         }
-    }, [script, program]);
+        if (editor && editor.getOption(monaco.editor.EditorOption.readOnly) != props.readOnly) {
+            editor.updateOptions({
+                readOnly: props.readOnly,
+                renderLineHighlight: props.readOnly ? 'none' : 'all',
+            });
+        }
+    }, [script, program, props.readOnly]);
 
     // Stable line breaks
     const lineBreaksRef = React.useRef<Float64Array>(new Float64Array());
@@ -100,6 +108,8 @@ const InnerEditor: React.FC<Props> = (props: Props) => {
                 enabled: false,
             },
             scrollBeyondLastLine: false,
+            readOnly: props.readOnly,
+            renderLineHighlight: props.readOnly ? 'none' : 'all',
         });
         e.setPosition({ column: 0, lineNumber: 0 });
         e.focus();
