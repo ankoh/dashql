@@ -23,7 +23,7 @@ const BoardAction = (props: { icon: string }) => (
 );
 
 const BoardCommandBar = () => (
-    <div className={styles_cmd.cmdbar_board}>
+    <div className={styles.cmdbar_board}>
         <div className={styles_cmd.cmdbar_cmdset} />
         <div className={styles_cmd.cmdbar_cmdset}>
             <Link to="/viewer" className={styles_cmd.cmdbar_cmd}>

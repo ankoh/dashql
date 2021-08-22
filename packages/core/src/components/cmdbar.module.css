@@ -1,11 +1,12 @@
 .cmdbar_cmdset {
     display: flex;
     flex-direction: row;
-    align-items: center;
+    align-items: top;
 }
 .cmdbar_cmd {
     width: 40px;
     height: 36px;
+    margin-top: calc((48px - 36px) / 2);
     display: grid;
     justify-content: center;
     align-items: center;
@@ -23,13 +24,4 @@
 .cmdbar_cmd.active {
     background-color: var(--cmd_hover_bg);
     color: rgb(255, 255, 255);
-}
-.cmdbar_board {
-    background-color: var(--cmd_bar_board_bg);
-    grid-row: 1;
-    display: grid;
-    grid-template-columns: auto min-content;
-    box-sizing: border-box;
-    border-left: 1px solid var(--border_color);
-    border-bottom: 1px solid var(--border_color);
 }
