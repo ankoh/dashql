@@ -3,7 +3,14 @@ import * as model from '../model';
 import classNames from 'classnames';
 import { Link } from 'react-router-dom';
 import { Route, Routes } from 'react-router-dom';
-import { BoardEditor, EditorLoader, ProgramStatsBar } from '../components';
+import {
+    BoardEditor,
+    EditorLoader,
+    ProgramStatsBar,
+    PageOverlayRenderer,
+    usePageOverlaySetter,
+    ForkDialog,
+} from '../components';
 import { AnimatePresence } from 'framer-motion';
 
 import styles from './studio.module.css';
@@ -51,6 +58,14 @@ type Props = {
 
 export const Studio: React.FC<Props> = (props: Props) => {
     const { script } = model.useProgramContext();
+    const setOverlay = usePageOverlaySetter();
+    const showForkDialog = React.useCallback(() => {
+        const fork: React.FC = () => <ForkDialog onClose={() => setOverlay(null)} />;
+        setOverlay({
+            renderer: fork,
+        });
+    }, [setOverlay]);
+
     const scriptNamespace = getScriptNamespace(script);
     const scriptName = getScriptName(script);
     const beans = [];
@@ -65,7 +80,6 @@ export const Studio: React.FC<Props> = (props: Props) => {
             beans.push('Gist');
             break;
     }
-
     const editorReadOnly = true;
     const ownScript = false;
 
@@ -111,7 +125,7 @@ export const Studio: React.FC<Props> = (props: Props) => {
                                     </div>
                                 </>
                             ) : (
-                                <div className={styles_cmd.cmdbar_cmd}>
+                                <div className={styles_cmd.cmdbar_cmd} onClick={showForkDialog}>
                                     <svg width="20px" height="20px">
                                         <use xlinkHref={`${icon_fork}#sym`} />
                                     </svg>
@@ -128,9 +142,9 @@ export const Studio: React.FC<Props> = (props: Props) => {
                         path="/"
                         element={
                             <>
-                                <div className={styles.program_editor}>
+                                <PageOverlayRenderer className={styles.program_editor}>
                                     <EditorLoader readOnly={editorReadOnly} />
-                                </div>
+                                </PageOverlayRenderer>
                                 <div key="board" className={styles.board}>
                                     <BoardEditor immutable={false} scaleFactor={1.0} className={styles.board_editor} />
                                     <BoardCommandBar />

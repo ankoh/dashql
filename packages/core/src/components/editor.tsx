@@ -112,7 +112,7 @@ const InnerEditor: React.FC<Props> = (props: Props) => {
             renderLineHighlight: props.readOnly ? 'none' : 'all',
         });
         e.setPosition({ column: 0, lineNumber: 0 });
-        e.focus();
+        if (!props.readOnly) e.focus();
         e.onMouseDown((ev: monaco.editor.IEditorMouseEvent) => {
             const pos = ev.target.position;
             if (!pos) return;
