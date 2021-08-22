@@ -9,7 +9,7 @@ import styles from './studio.module.css';
 import styles_cmd from '../components/cmdbar.module.css';
 
 import icon_eye from '../../static/svg/icons/eye.svg';
-import { getScriptName, getScriptNamespace } from '../model';
+import { getScriptName, getScriptNamespace, ScriptOriginType } from '../model';
 
 const BoardAction = (props: { icon: string }) => (
     <div className={styles.cmdbar_cmd}>
@@ -38,6 +38,16 @@ export const Studio: React.FC<Props> = (props: Props) => {
     const { script } = model.useProgramContext();
     const scriptNamespace = getScriptNamespace(script);
     const scriptName = getScriptName(script);
+    const beans = [];
+    switch (script.origin.originType) {
+        case ScriptOriginType.EXAMPLES:
+            beans.push('Example');
+            break;
+        case ScriptOriginType.GITHUB_GIST:
+            beans.push('Gist');
+            break;
+    }
+
     return (
         <div className={styles.studio}>
             <AnimatePresence>
@@ -52,7 +62,11 @@ export const Studio: React.FC<Props> = (props: Props) => {
                         </div>
                         <div className={styles.program_info_description}>{script.description}</div>
                         <div className={styles.program_info_beans}>
-                            <div className={styles.program_info_bean}>Example</div>
+                            {beans.map(b => (
+                                <div key={b} className={styles.program_info_bean}>
+                                    {b}
+                                </div>
+                            ))}
                         </div>
                     </div>
                     <div key="stats" className={styles.program_stats}>
