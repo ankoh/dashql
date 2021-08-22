@@ -36,7 +36,9 @@ export const NavBar = (): React.ReactElement => {
     return (
         <div className={styles.navbar}>
             <div className={styles.logo}>
-                <img src={logo} />
+                <svg width="32px" height="32px">
+                    <use xlinkHref={`${logo}#sym`} />
+                </svg>
             </div>
             <div className={styles.tabs}>
                 <Tab route="/studio" location={location.pathname} icon={icon_studio} />
