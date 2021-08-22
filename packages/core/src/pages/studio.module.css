@@ -17,12 +17,14 @@
 
     display: grid;
     grid-template-rows: auto 40px;
+    grid-template-columns: auto max-content;
     background-color: white;
     border-bottom: 1px solid var(--border_color);
 }
 
 .program_info {
     grid-row: 1;
+    grid-column: 1;
 
     margin-top: 8px;
     display: grid;
@@ -82,7 +84,7 @@
     flex-direction: row;
     align-items: center;
     justify-content: center;
-    margin-left: 8px;
+    margin-left: 4px;
 }
 
 .program_info_bean {
@@ -92,9 +94,19 @@
     border-radius: 8px;
     border: 1px solid rgb(200, 200, 200);
     padding: 0px 4px;
+    margin-left: 4px;
+}
+
+.program_actions {
+    grid-row: 1;
+    grid-column: 2;
+    margin-right: 4px;
 }
 
 .program_stats {
+    grid-row: 2;
+    grid-column: 1 / span 2;
+
     width: 100%;
     height: auto;
     border-top: 1px solid var(--border_color);

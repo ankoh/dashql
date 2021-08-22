@@ -39,11 +39,13 @@ export const Viewer: React.FC<Props> = () => {
                     </AutoSizer>
                 </div>
                 <div className={styles.cmdbar}>
-                    <Link to="/studio" className={styles_cmd.cmdbar_cmd}>
-                        <svg width="20px" height="20px">
-                            <use xlinkHref={`${icon_code}#sym`} />
-                        </svg>
-                    </Link>
+                    <div className={styles_cmd.cmdbar_cmdset}>
+                        <Link to="/studio" className={styles_cmd.cmdbar_cmd}>
+                            <svg width="20px" height="20px">
+                                <use xlinkHref={`${icon_code}#sym`} />
+                            </svg>
+                        </Link>
+                    </div>
                 </div>
             </div>
         </ScriptLoader>

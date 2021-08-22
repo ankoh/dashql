@@ -22,7 +22,7 @@ const SystemPanel: React.FC<SystemPanelProps> = (props: SystemPanelProps) => {
     const expanded = props.systemID == props.expandedPanel;
     return (
         <div
-            className={classNames(styles.system, {
+            className={classNames(styles.system_button, {
                 [styles.active]: expanded,
             })}
         >

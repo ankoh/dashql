@@ -1,5 +1,6 @@
 import * as React from 'react';
 import * as model from '../model';
+import classNames from 'classnames';
 import { Link } from 'react-router-dom';
 import { Route, Routes } from 'react-router-dom';
 import { BoardEditor, EditorLoader, ProgramStatsBar } from '../components';
@@ -9,14 +10,16 @@ import styles from './studio.module.css';
 import styles_cmd from '../components/cmdbar.module.css';
 
 import icon_eye from '../../static/svg/icons/eye.svg';
+//import icon_delete from '../../static/svg/icons/delete.svg';
+import icon_fork from '../../static/svg/icons/fork.svg';
+import icon_share from '../../static/svg/icons/share.svg';
+//import icon_edit from '../../static/svg/icons/edit.svg';
 import { getScriptName, getScriptNamespace, ScriptOriginType } from '../model';
 
 const BoardAction = (props: { icon: string }) => (
-    <div className={styles.cmdbar_cmd}>
-        <svg width="20px" height="20px">
-            <use xlinkHref={`${props.icon}#sym`} />
-        </svg>
-    </div>
+    <svg width="20px" height="20px">
+        <use xlinkHref={`${props.icon}#sym`} />
+    </svg>
 );
 
 const BoardCommandBar = () => (
@@ -40,6 +43,9 @@ export const Studio: React.FC<Props> = (props: Props) => {
     const scriptName = getScriptName(script);
     const beans = [];
     switch (script.origin.originType) {
+        case ScriptOriginType.TMP:
+            beans.push('Temporary');
+            break;
         case ScriptOriginType.EXAMPLES:
             beans.push('Example');
             break;
@@ -67,6 +73,20 @@ export const Studio: React.FC<Props> = (props: Props) => {
                                     {b}
                                 </div>
                             ))}
+                        </div>
+                    </div>
+                    <div key="actions" className={styles.program_actions}>
+                        <div className={classNames(styles_cmd.cmdbar_cmdset, styles.program_action)}>
+                            <div className={styles_cmd.cmdbar_cmd}>
+                                <svg width="20px" height="20px">
+                                    <use xlinkHref={`${icon_fork}#sym`} />
+                                </svg>
+                            </div>
+                            <div className={styles_cmd.cmdbar_cmd}>
+                                <svg width="20px" height="20px">
+                                    <use xlinkHref={`${icon_share}#sym`} />
+                                </svg>
+                            </div>
                         </div>
                     </div>
                     <div key="stats" className={styles.program_stats}>

@@ -72,6 +72,7 @@
     margin: var(--nav_bar_button_margin);
     box-sizing: border-box;
     border-radius: var(--border_radius);
+    border: 1px solid rgba(0, 0, 0, 0.3);
 }
 
 .tab > a {
@@ -114,6 +115,7 @@
     grid-row: 4;
     background: var(--system_bg);
     display: grid;
+    padding: 4px 0px;
 }
 
 .systemlist_minimal {
