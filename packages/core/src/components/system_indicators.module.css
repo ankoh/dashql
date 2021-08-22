@@ -1,12 +1,12 @@
-.system {
+.system_button {
     height: var(--system_button_height);
     margin: var(--system_button_margin);
     box-sizing: border-box;
     border-radius: var(--border_radius);
 }
 
-.system:hover,
-.system.active {
+.system_button:hover,
+.system_button.active {
     background-color: var(--system_bg_active);
     color: var(--system_fg_active);
 }

@@ -37,7 +37,7 @@
     --system_bg: rgb(25, 28, 31);
     --system_bg_active: rgb(36, 41, 46);
     --system_button_height: 40px;
-    --system_button_margin: 6px;
+    --system_button_margin: 4px 6px;
     --system_fg_active: rgb(255, 255, 255);
     --system_minimal_bg: transparent;
     --nav_tab_bg: transparent;
