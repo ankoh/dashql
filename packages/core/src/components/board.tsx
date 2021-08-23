@@ -30,7 +30,6 @@ export const Board: React.FC<Props> = (props: Props) => {
     const analyzer = useAnalyzer();
     const programContextDispatch = model.useProgramContextDispatch();
     const planContext = model.usePlanContext();
-    const programContext = model.useProgramContext();
 
     const layout = React.useMemo(() => {
         const els: LayoutElement[] = [];
@@ -71,12 +70,6 @@ export const Board: React.FC<Props> = (props: Props) => {
             });
         }
     };
-
-    // Detect program rewrites.
-    // != re-instantiation
-    if (planContext.plan?.programInstance.program != programContext.program) {
-        return <div />;
-    }
 
     const els: React.ReactElement[] = [];
     for (const l of layout) {

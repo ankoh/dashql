@@ -467,7 +467,12 @@ export class VegaComposer {
         Pick<model.CardSpecification, 'cardRenderer' | 'dataSource' | 'vegaLiteSpec' | 'vegaSpec'>
     > {
         const table = this.table;
-        const vegaSpec = await this.compileVegaSpec(this._normalizedVegaLiteSpec!);
+        let vegaSpec = null;
+        try {
+            vegaSpec = await this.compileVegaSpec(this._normalizedVegaLiteSpec!);
+        } catch (e) {
+            console.warn(e);
+        }
         return {
             cardRenderer: model.CardRendererType.BUILTIN_VEGA,
             dataSource: {
