@@ -39,11 +39,12 @@ export const useOverlay = (): OverlayState => React.useContext(overlayCtx);
 
 export const OverlayContainer: React.FC<OverlayContainerProps> = (props: OverlayContainerProps) => {
     const overlay = useOverlay();
+    const setOverlay = useOverlaySetter();
     const renderedOverlay = React.useMemo(
         () =>
             overlay &&
             overlay.id == props.id && (
-                <div className={styles.overlay_container}>
+                <div className={styles.overlay_container} onClick={() => setOverlay(null)}>
                     <overlay.renderer onClose={overlay.onClose} />
                 </div>
             ),

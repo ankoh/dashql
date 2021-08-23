@@ -1,5 +1,4 @@
 .container {
-    min-width: 50%;
     max-width: 80%;
     max-height: 80%;
     background-color: rgb(255, 255, 255);
@@ -16,7 +15,14 @@
 }
 
 .body {
-    display: grid;
+}
+
+.description {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    padding: 8px 32px 0 32px;
 }
 
 .fork_target_config {
