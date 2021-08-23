@@ -53,6 +53,9 @@ export const ShareDialog: React.FC<Props> = (_props: Props) => {
                                 </Button>
                             </InputGroup>
                         </div>
+                        <div className={styles.share_url_immutable}>
+                            <Form.Switch label="Immutable" defaultChecked={false} disabled />
+                        </div>
                     </div>
                 </div>
             </motion.div>
