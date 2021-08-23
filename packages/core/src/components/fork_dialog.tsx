@@ -35,13 +35,8 @@ const ForkDetailForm: React.FC<FormProps> = (props: FormProps) => {
                         <Form.Control type="text" placeholder="Enter file name" />
                     </Form.Group>
                     <Form.Group className="mb-3" controlId="formBasicCheckbox">
-                        <Form.Check type="checkbox" label="Enable DashQL Analytics" defaultChecked={true} disabled />
-                        <Form.Check
-                            type="checkbox"
-                            label="Public Dashboard Statistics"
-                            defaultChecked={true}
-                            disabled
-                        />
+                        <Form.Switch label="Enable DashQL Analytics" defaultChecked={true} disabled />
+                        <Form.Switch label="Public Dashboard Statistics" defaultChecked={true} disabled />
                     </Form.Group>
                     <ButtonGroup>
                         <Button>Create secret gist</Button>
