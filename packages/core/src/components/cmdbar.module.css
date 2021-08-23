@@ -14,7 +14,8 @@
     color: var(--cmd_fg);
     margin: var(--cmd_margin);
     border-radius: var(--border_radius);
-    border: 1px solid rgba(0, 0, 0, 0.1);
+    border: 1px solid var(--cmd_border_color);
+    background-color: var(--cmd_bg);
 }
 .cmdbar_cmd:hover {
     background-color: var(--cmd_hover_bg);

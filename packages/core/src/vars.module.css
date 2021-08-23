@@ -14,6 +14,8 @@
     --cmd_hover_bg: rgb(36, 41, 46);
     --cmd_margin: 4px;
     --cmd_sublist_bg: rgb(36, 41, 46);
+    --cmd_border_color: rgb(200, 200, 200);
+    --cmd_bg: rgb(245, 245, 245);
     --datagrid_cell_anchor_bg: rgb(240, 240, 240);
     --datagrid_cell_border: 1px solid rgb(225, 225, 225);
     --datagrid_cell_headers_bg: rgb(240, 240, 240);
@@ -24,6 +26,7 @@
     --datagrid_font_size: 95%;
     --statsbar_bg: rgb(255, 255, 255);
     --statsbar_views_teaser_bg: rgb(245, 245, 245);
+    --example_icon_color: rgb(36, 41, 46);
     --example_border_color: rgb(200, 200, 200);
     --launcher_bg: rgb(36, 41, 46);
     --log_timestamp_color: rgba(255, 255, 255, 0.6);

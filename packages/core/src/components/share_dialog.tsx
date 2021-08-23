@@ -10,8 +10,14 @@ interface Props {
 export const ShareDialog: React.FC<Props> = (_props: Props) => {
     return (
         <AnimatePresence>
-            <motion.div className={styles.container} initial={{ translateY: 30 }} animate={{ translateY: 0 }}>
-                SHARE
+            <motion.div className={styles.container} initial={{ translateY: 20 }} animate={{ translateY: 0 }}>
+                <div className={styles.header}>Fork Script</div>
+                <div className={styles.body}>
+                    <div className={styles.fork_target_list}>
+                        <div className={styles.fork_target}></div>
+                        <div className={styles.fork_target}></div>
+                    </div>
+                </div>
             </motion.div>
         </AnimatePresence>
     );
