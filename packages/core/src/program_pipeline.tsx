@@ -5,8 +5,7 @@ import { useAnalyzer } from './analyzer';
 import {
     usePlanContext,
     useProgramContext,
-    SET_PROGRAM,
-    SET_PROGRAM_INSTANCE,
+    INSTANTIATE_PROGRAM,
     useProgramContextDispatch,
     usePlanContextDispatch,
     TaskSchedulerStatus,
@@ -14,15 +13,14 @@ import {
 } from './model';
 import { TaskSchedulerDriver } from './task_scheduler';
 
-const MIN_INPUT_DELAY = 300;
-const MAX_INPUT_DELAY = 1000;
-const MIN_INSTANTIATION_DELAY = 100;
+const MAX_INSTANTIATION_DELAY = 10000;
+const MIN_INSTANTIATION_DELAY = 1000;
 
 type Props = {
     children: React.ReactElement;
 };
 
-export const ScriptPipeline: React.FC<Props> = (props: Props) => {
+export const ProgramPipeline: React.FC<Props> = (props: Props) => {
     // Setup all hooks
     const analyzer = useAnalyzer();
     const programContext = useProgramContext();
@@ -35,19 +33,6 @@ export const ScriptPipeline: React.FC<Props> = (props: Props) => {
     React.useEffect(() => {
         return () => void (isMountedRef.current = false);
     }, []);
-
-    // Parse program if script text changes
-    const programParsedAt = React.useRef<Date | null>(null);
-    React.useEffect(() => {
-        const text = programContext.script?.text;
-        if (!text) return;
-        const program = analyzer.parseProgram(text);
-        programParsedAt.current = new Date();
-        programContextDispatch({
-            type: SET_PROGRAM,
-            data: program,
-        });
-    }, [programContext.script.text]);
 
     // Instantiate program if program or input values change
     const [instanceTimeout, setInstanceTimeout] = React.useState<{
@@ -86,21 +71,15 @@ export const ScriptPipeline: React.FC<Props> = (props: Props) => {
             const lastInstantiation = programContext.programInstance.createdAt.getTime();
             const lastErrorCount = programContext.programInstance.program.buffer.errorsLength();
 
-            // Wait at least MIN_INPUT_DELAY_MS after last input
-            let deltaMS = nowMS - (programParsedAt.current?.getTime() || 0);
-            if (deltaMS < MIN_INPUT_DELAY) {
-                debounce(nowMS, MIN_INPUT_DELAY - deltaMS);
-                return;
-            }
             // Wait at least MIN_DEBOUNCE_TIME after last instantiation
-            deltaMS = nowMS - lastInstantiation;
+            const deltaMS = nowMS - lastInstantiation;
             if (deltaMS < MIN_INSTANTIATION_DELAY) {
                 debounce(nowMS, MIN_INSTANTIATION_DELAY - deltaMS);
                 return;
             }
             // Are there more errors than before?
             if (programContext.program.buffer.errorsLength() > lastErrorCount) {
-                debounce(nowMS, MAX_INPUT_DELAY - deltaMS);
+                debounce(nowMS, MAX_INSTANTIATION_DELAY - deltaMS);
                 return;
             }
         }
@@ -113,7 +92,7 @@ export const ScriptPipeline: React.FC<Props> = (props: Props) => {
 
         // Otherwise store the new instance in redux
         programContextDispatch({
-            type: SET_PROGRAM_INSTANCE,
+            type: INSTANTIATE_PROGRAM,
             data: instance,
         });
     }, [programContext.program, programContext.programInputValues, instanceTimeout.timer]);

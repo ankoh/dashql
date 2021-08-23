@@ -21,7 +21,7 @@ import {
 } from './model/launch_progress';
 import { AppConfig, AppConfigProvider } from './model';
 import { DatabaseClient, DatabaseClientProvider } from './database_client';
-import { ScriptPipeline } from './script_pipeline';
+import { ProgramPipeline } from './program_pipeline';
 
 import logo from '../static/svg/logo/logo.svg';
 
@@ -155,9 +155,10 @@ export const AppLauncher: React.FC<Props> = (props: Props) => {
         (async () => {
             const example = examples.EXAMPLE_SCRIPT_MAP.get('demo_unischema.dashql')!;
             const script = await examples.getScript(example);
+            const program = state.analyzer.parseProgram(script.text);
             programContextDispatch({
-                type: model.SET_SCRIPT,
-                data: script,
+                type: model.REPLACE_PROGRAM,
+                data: [program, script],
             });
         })();
     }, [state.database, state.analyzer]);
@@ -171,7 +172,7 @@ export const AppLauncher: React.FC<Props> = (props: Props) => {
                     <AnalyzerProvider analyzer={state.analyzer!}>
                         <JMESPathProvider resolver={resolveJMESPath}>
                             <HTTPClientProvider>
-                                <ScriptPipeline>{props.children}</ScriptPipeline>
+                                <ProgramPipeline>{props.children}</ProgramPipeline>
                             </HTTPClientProvider>
                         </JMESPathProvider>
                     </AnalyzerProvider>

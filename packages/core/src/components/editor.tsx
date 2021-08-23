@@ -12,6 +12,7 @@ import styles from './editor.module.css';
 import sx = proto.syntax;
 import { withAutoSizer } from '../utils/autosizer';
 import { TokensProvider } from './editor_tokens';
+import { useAnalyzer } from '../analyzer';
 
 /// Does the mouse movement affect the decorations?
 /// Right now, the only mouse effect is focus on dependency target nodes.
@@ -52,6 +53,7 @@ type Props = {
 };
 
 const InnerEditor: React.FC<Props> = (props: Props) => {
+    const analyzer = useAnalyzer();
     const [editor, setEditor] = React.useState<monaco.editor.IStandaloneCodeEditor | null>(null);
     const [mouseOffset, setMouseOffset] = React.useState<number | null>(null);
     const monacoRef = React.useRef(null);
@@ -133,15 +135,10 @@ const InnerEditor: React.FC<Props> = (props: Props) => {
         // Finalize the editor
         e.onDidChangeModelContent(_event => {
             if (e.getValue() != scriptRef.current?.text) {
+                programRef.current = analyzer.parseProgram(e.getValue());
                 programContextDispatch({
-                    type: model.SET_SCRIPT,
-                    data: {
-                        ...scriptRef.current,
-                        text: e.getValue(),
-                        lineCount: e.getModel()?.getLineCount() || 0,
-                        bytes: utils.estimateUTF16Length(e.getValue()),
-                        modified: true,
-                    },
+                    type: model.MODIFY_PROGRAM,
+                    data: programRef.current,
                 });
             }
         });

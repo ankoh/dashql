@@ -6,6 +6,7 @@ import classNames from 'classnames';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimateSharedLayout } from 'framer-motion';
 import { EXAMPLE_SCRIPTS, EXAMPLE_SCRIPT_MAP, ScriptFeatureTag, ExampleScriptMetadata } from '../example_scripts';
+import { useAnalyzer } from '../analyzer';
 
 import styles from './examples.module.css';
 
@@ -39,6 +40,7 @@ interface Props {
 }
 
 export const Examples: React.FC<Props> = (_props: Props) => {
+    const analyzer = useAnalyzer();
     const navigate = useNavigate();
     const programDispatch = model.useProgramContextDispatch();
     const [filteredFeatures, setFilteredFeatures] = React.useState(new utils.NativeBitmap(ScriptFeatureTag._COUNT_));
@@ -64,9 +66,10 @@ export const Examples: React.FC<Props> = (_props: Props) => {
     const selectExample = async (elem: React.MouseEvent<HTMLDivElement>) => {
         const key = (elem.currentTarget as any).dataset.key;
         const nextScript = await examples.getScript(EXAMPLE_SCRIPT_MAP.get(key)!);
+        const program = analyzer.parseProgram(nextScript.text);
         programDispatch({
-            type: model.SET_SCRIPT,
-            data: nextScript,
+            type: model.REPLACE_PROGRAM,
+            data: [program, nextScript],
         });
         navigate('/studio');
     };

@@ -39,33 +39,50 @@ const initialState: ProgramContext = {
     programInstance: null,
 };
 
-export const SET_SCRIPT = Symbol('SET_SCRIPT');
-export const SET_PROGRAM = Symbol('SET_PROGRAM');
-export const SET_PROGRAM_INSTANCE = Symbol('SET_PROGRAM_INSTANCE');
+export const REPLACE_PROGRAM = Symbol('REPLACE_SCRIPT');
+export const MODIFY_PROGRAM = Symbol('MODIFY_PROGRAM');
+export const INSTANTIATE_PROGRAM = Symbol('INSTANTIATE_PROGRAM');
 export const REWRITE_PROGRAM = Symbol('REWRITE_PROGRAM');
 
+export interface ProgramTextChange {
+    text: string;
+    program: Program;
+    lineCount: number;
+    bytes: number;
+}
+
 export type ProgramContextAction =
-    | Action<typeof SET_SCRIPT, Script>
-    | Action<typeof SET_PROGRAM, Program>
-    | Action<typeof SET_PROGRAM_INSTANCE, ProgramInstance>
+    | Action<typeof REPLACE_PROGRAM, [Program, Script]>
+    | Action<typeof MODIFY_PROGRAM, Program>
+    | Action<typeof INSTANTIATE_PROGRAM, ProgramInstance>
     | Action<typeof REWRITE_PROGRAM, ProgramInstance>;
 
 const reducer = (ctx: ProgramContext, action: ProgramContextAction) => {
     switch (action.type) {
-        case SET_SCRIPT:
-            if (action.data.text == ctx.script.text) return ctx;
+        case REPLACE_PROGRAM: {
+            const [program, script] = action.data;
             return {
                 ...ctx,
-                script: action.data,
+                program,
+                script,
             };
-        case SET_PROGRAM:
-            if (action.data == ctx.program) return ctx;
+        }
+        case MODIFY_PROGRAM: {
+            const program = action.data;
+            if (ctx.program == program) return ctx;
             return {
                 ...ctx,
-                program: action.data,
+                script: {
+                    ...ctx.script,
+                    text: program.text,
+                    lineCount: utils.countLines(program.text),
+                    bytes: utils.estimateUTF16Length(program.text),
+                    modified: true,
+                },
+                program,
             };
-
-        case SET_PROGRAM_INSTANCE:
+        }
+        case INSTANTIATE_PROGRAM:
             if (action.data == ctx.programInstance) return ctx;
             return {
                 ...ctx,
