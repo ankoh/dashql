@@ -1,7 +1,7 @@
 // Copyright (c) 2021 The DashQL Authors
 
 export enum ScriptOriginType {
-    TMP,
+    LOCAL,
     EXAMPLES,
     GITHUB_GIST,
     HTTP,
@@ -56,7 +56,7 @@ export function getScriptName(script: Script): string | null {
             const filename = script.origin.httpURL.pathname.split('/').pop();
             return filename || null;
         }
-        case ScriptOriginType.TMP:
+        case ScriptOriginType.LOCAL:
             return script.origin.fileName;
         case ScriptOriginType.GITHUB_GIST:
             return script.origin.githubGistName;
@@ -67,8 +67,8 @@ export function getScriptName(script: Script): string | null {
 
 export function getScriptOriginTypeName(prefix: ScriptOriginType): string {
     switch (prefix) {
-        case ScriptOriginType.TMP:
-            return 'tmp';
+        case ScriptOriginType.LOCAL:
+            return 'local';
         case ScriptOriginType.EXAMPLES:
             return 'examples';
         case ScriptOriginType.GITHUB_GIST:

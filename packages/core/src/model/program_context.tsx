@@ -23,7 +23,7 @@ const initialState: ProgramContext = {
     script: {
         text: '',
         origin: {
-            originType: ScriptOriginType.TMP,
+            originType: ScriptOriginType.LOCAL,
             fileName: 'unnamed.dashql',
             exampleName: null,
             httpURL: null,
