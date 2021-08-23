@@ -9,7 +9,7 @@ import styles from './navbar.module.css';
 
 import logo from '../../static/svg/logo/logo.svg';
 import icon_examples from '../../static/svg/icons/book_open_blank_variant.svg';
-import icon_studio from '../../static/svg/icons/compass.svg';
+import icon_explorer from '../../static/svg/icons/compass.svg';
 import icon_account from '../../static/svg/icons/account_circle.svg';
 
 const Tab = (props: { route: string; location: string; icon: string }) => (
@@ -41,7 +41,7 @@ export const NavBar = (): React.ReactElement => {
                 </svg>
             </div>
             <div className={styles.tabs}>
-                <Tab route="/studio" location={location.pathname} icon={icon_studio} />
+                <Tab route="/explorer" location={location.pathname} icon={icon_explorer} />
                 <Tab route="/examples" location={location.pathname} icon={icon_examples} />
             </div>
             <div className={styles.account} onClick={() => ghAuth.login()}>

@@ -14,7 +14,7 @@ import {
 } from '../components';
 import { AnimatePresence } from 'framer-motion';
 
-import styles from './studio.module.css';
+import styles from './explorer.module.css';
 import styles_cmd from '../components/cmdbar.module.css';
 
 import icon_eye from '../../static/svg/icons/eye.svg';
@@ -33,7 +33,7 @@ type Props = {
     className?: string;
 };
 
-export const Studio: React.FC<Props> = (props: Props) => {
+export const Explorer: React.FC<Props> = (props: Props) => {
     const { script } = model.useProgramContext();
     const setOverlay = useOverlaySetter();
     const showForkDialog = React.useCallback(() => {
@@ -99,7 +99,7 @@ export const Studio: React.FC<Props> = (props: Props) => {
     );
 
     return (
-        <div className={styles.studio}>
+        <div className={styles.explorer}>
             <AnimatePresence>
                 <div key="header" className={styles.program_header}>
                     <div key="info" className={styles.program_info_and_actions}>
