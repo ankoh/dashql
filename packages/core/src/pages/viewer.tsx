@@ -34,11 +34,11 @@ export const Viewer: React.FC<Props> = () => {
     const margin: [number, number] = [10, 10];
     return (
         <div className={styles.container}>
-            <div className={styles.logo}>
+            <Link className={styles.logo} to="/">
                 <svg width="32px" height="32px">
                     <use xlinkHref={`${logo}#sym`} />
                 </svg>
-            </div>
+            </Link>
             <ScriptLoader>
                 <>
                     <div className={styles.board}>
