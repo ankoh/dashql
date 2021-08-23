@@ -10,6 +10,7 @@ type OverlayProviderProps = {
 type OverlayState = {
     id: symbol;
     renderer: React.FC<OverlayContentProps>;
+    onClose?: () => void;
 };
 type OverlayContainerProps = {
     id: symbol;
@@ -17,7 +18,9 @@ type OverlayContainerProps = {
     children?: React.ReactChild;
 };
 
-type OverlayContentProps = Record<string, string>;
+type OverlayContentProps = {
+    onClose?: () => void;
+};
 type OverlayStateSetter = (o: OverlayState | null) => void;
 
 const overlaySetterCtx = React.createContext<OverlayStateSetter | null>(null);
@@ -41,7 +44,7 @@ export const OverlayContainer: React.FC<OverlayContainerProps> = (props: Overlay
             overlay &&
             overlay.id == props.id && (
                 <div className={styles.overlay_container}>
-                    <overlay.renderer />
+                    <overlay.renderer onClose={overlay.onClose} />
                 </div>
             ),
         [overlay?.id],
