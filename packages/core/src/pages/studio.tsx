@@ -24,7 +24,7 @@ import icon_fork from '../../static/svg/icons/fork.svg';
 import icon_share from '../../static/svg/icons/share.svg';
 import icon_star_outline from '../../static/svg/icons/star_outline.svg';
 import icon_edit from '../../static/svg/icons/edit.svg';
-import { getScriptName, getScriptNamespace, ScriptOriginType } from '../model';
+import { getScriptName, getScriptNamespace, ScriptOriginType, useProgramContext } from '../model';
 
 const forkOverlay = Symbol();
 const shareOverlay = Symbol();
@@ -51,6 +51,7 @@ export const Studio: React.FC<Props> = (props: Props) => {
         });
     }, [setOverlay]);
 
+    const programCtx = useProgramContext();
     const scriptNamespace = getScriptNamespace(script);
     const scriptName = getScriptName(script);
     const beans = [];
@@ -78,11 +79,13 @@ export const Studio: React.FC<Props> = (props: Props) => {
         <div className={styles.cmdbar_board}>
             <div className={styles_cmd.cmdbar_cmdset} />
             <div className={styles_cmd.cmdbar_cmdset}>
-                <div className={styles_cmd.cmdbar_cmd}>
-                    <svg width="20px" height="20px">
-                        <use xlinkHref={`${icon_star_outline}#sym`} />
-                    </svg>
-                </div>
+                {programCtx.script.origin.originType == ScriptOriginType.GITHUB_GIST && (
+                    <div className={styles_cmd.cmdbar_cmd}>
+                        <svg width="20px" height="20px">
+                            <use xlinkHref={`${icon_star_outline}#sym`} />
+                        </svg>
+                    </div>
+                )}
                 <div className={styles_cmd.cmdbar_cmd} onClick={showShareDialog}>
                     <svg width="20px" height="20px">
                         <use xlinkHref={`${icon_share}#sym`} />
