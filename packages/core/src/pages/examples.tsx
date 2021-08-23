@@ -39,11 +39,17 @@ interface Props {
     className?: string;
 }
 
+interface State {
+    features: utils.NativeBitmap;
+}
+
 export const Examples: React.FC<Props> = (_props: Props) => {
     const analyzer = useAnalyzer();
     const navigate = useNavigate();
     const programDispatch = model.useProgramContextDispatch();
-    const [filteredFeatures, setFilteredFeatures] = React.useState(new utils.NativeBitmap(ScriptFeatureTag._COUNT_));
+    const [state, setState] = React.useState<State>({
+        features: new utils.NativeBitmap(ScriptFeatureTag._COUNT_),
+    });
 
     const features = [];
     for (let i = 0; i < ScriptFeatureTag._COUNT_; ++i) {
@@ -51,11 +57,15 @@ export const Examples: React.FC<Props> = (_props: Props) => {
             <div
                 key={i}
                 className={classNames(styles.filter_tag, {
-                    [styles.filter_tag_active]: filteredFeatures.isSet(i),
+                    [styles.filter_tag_active]: state.features.isSet(i),
                 })}
-                onClick={(elem: React.MouseEvent<HTMLDivElement>) =>
-                    setFilteredFeatures(filteredFeatures.flip((elem.currentTarget as any).dataset.feature!))
-                }
+                onClick={(elem: React.MouseEvent<HTMLDivElement>) => {
+                    const feature = (elem.currentTarget as any)?.dataset.feature;
+                    if (!feature) return;
+                    setState(s => ({
+                        features: s.features.flip(feature),
+                    }));
+                }}
                 data-feature={i}
             >
                 {getFeatureTagLabel(i as ScriptFeatureTag)}
@@ -107,7 +117,7 @@ export const Examples: React.FC<Props> = (_props: Props) => {
         );
     };
 
-    const collections = EXAMPLE_SCRIPTS.filter(s => s.features.containsUnsafe(filteredFeatures)).reduce((o, script) => {
+    const collections = EXAMPLE_SCRIPTS.filter(s => s.features.containsUnsafe(state.features)).reduce((o, script) => {
         const c = o.get(script.collection) || [];
         c.push(script);
         o.set(script.collection, c);
