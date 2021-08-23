@@ -49,12 +49,12 @@
     --nav_tab_fg_active: rgb(255, 255, 255);
     --pgraph_node_border_color: rgb(200, 200, 200);
     --pgraph_node_border_radius: 8px;
-    --studio_board_bg: rgb(225, 225, 225);
-    --studio_tool_fg: rgb(80, 80, 80);
-    --studio_tool_hover_bg: rgb(80, 80, 80);
-    --studio_tool_sublist_bg: rgb(80, 80, 80);
-    --studio_viztype_fg: rgb(255, 255, 255);
-    --studio_viztype_hover_bg: rgb(40, 40, 40);
+    --explorer_board_bg: rgb(225, 225, 225);
+    --explorer_tool_fg: rgb(80, 80, 80);
+    --explorer_tool_hover_bg: rgb(80, 80, 80);
+    --explorer_tool_sublist_bg: rgb(80, 80, 80);
+    --explorer_viztype_fg: rgb(255, 255, 255);
+    --explorer_viztype_hover_bg: rgb(40, 40, 40);
     --sys_panel_bg: rgb(36, 41, 46);
     --sys_panel_border_radius: 8px;
     --sys_subtitle_color: rgba(255, 255, 255, 0.6);
