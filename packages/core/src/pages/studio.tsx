@@ -99,50 +99,52 @@ export const Studio: React.FC<Props> = (props: Props) => {
         <div className={styles.studio}>
             <AnimatePresence>
                 <div key="header" className={styles.program_header}>
-                    <div key="info" className={styles.program_info}>
-                        <div className={styles.program_info_avatar}>
-                            <div className={styles.program_info_avatar_icon} />
+                    <div key="info" className={styles.program_info_and_actions}>
+                        <div key="info" className={styles.program_info}>
+                            <div className={styles.program_info_avatar}>
+                                <div className={styles.program_info_avatar_icon} />
+                            </div>
+                            <div className={styles.program_info_name}>
+                                <span className={styles.program_info_name_namespace}>{scriptNamespace}</span>/
+                                <span className={styles.program_info_name_file}>{scriptName}</span>
+                            </div>
+                            <div className={styles.program_info_description}>{script.description}</div>
+                            <div className={styles.program_info_beans}>
+                                {beans.map(b => (
+                                    <div key={b} className={styles.program_info_bean}>
+                                        {b}
+                                    </div>
+                                ))}
+                            </div>
                         </div>
-                        <div className={styles.program_info_name}>
-                            <span className={styles.program_info_name_namespace}>{scriptNamespace}</span>/
-                            <span className={styles.program_info_name_file}>{scriptName}</span>
-                        </div>
-                        <div className={styles.program_info_description}>{script.description}</div>
-                        <div className={styles.program_info_beans}>
-                            {beans.map(b => (
-                                <div key={b} className={styles.program_info_bean}>
-                                    {b}
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                    <div key="actions" className={styles.program_actions}>
-                        <div className={classNames(styles_cmd.cmdbar_cmdset, styles.program_action)}>
-                            {ownScript ? (
-                                <>
-                                    <div className={styles_cmd.cmdbar_cmd}>
+                        <div key="actions" className={styles.program_actions}>
+                            <div className={classNames(styles_cmd.cmdbar_cmdset, styles.program_action)}>
+                                {ownScript ? (
+                                    <>
+                                        <div className={styles_cmd.cmdbar_cmd}>
+                                            <svg width="20px" height="20px">
+                                                <use xlinkHref={`${icon_edit}#sym`} />
+                                            </svg>
+                                        </div>
+                                        <div className={styles_cmd.cmdbar_cmd}>
+                                            <svg width="20px" height="20px">
+                                                <use xlinkHref={`${icon_delete}#sym`} />
+                                            </svg>
+                                        </div>
+                                        <div className={styles_cmd.cmdbar_cmd}>
+                                            <svg width="20px" height="20px">
+                                                <use xlinkHref={`${icon_settings}#sym`} />
+                                            </svg>
+                                        </div>
+                                    </>
+                                ) : (
+                                    <div className={styles_cmd.cmdbar_cmd} onClick={showForkDialog}>
                                         <svg width="20px" height="20px">
-                                            <use xlinkHref={`${icon_edit}#sym`} />
+                                            <use xlinkHref={`${icon_fork}#sym`} />
                                         </svg>
                                     </div>
-                                    <div className={styles_cmd.cmdbar_cmd}>
-                                        <svg width="20px" height="20px">
-                                            <use xlinkHref={`${icon_delete}#sym`} />
-                                        </svg>
-                                    </div>
-                                    <div className={styles_cmd.cmdbar_cmd}>
-                                        <svg width="20px" height="20px">
-                                            <use xlinkHref={`${icon_settings}#sym`} />
-                                        </svg>
-                                    </div>
-                                </>
-                            ) : (
-                                <div className={styles_cmd.cmdbar_cmd} onClick={showForkDialog}>
-                                    <svg width="20px" height="20px">
-                                        <use xlinkHref={`${icon_fork}#sym`} />
-                                    </svg>
-                                </div>
-                            )}
+                                )}
+                            </div>
                         </div>
                     </div>
                     <div key="stats" className={styles.program_stats}>

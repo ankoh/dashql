@@ -1,12 +1,11 @@
 .cmdbar_cmdset {
     display: flex;
     flex-direction: row;
-    align-items: top;
+    align-items: start;
 }
 .cmdbar_cmd {
     width: 40px;
     height: 36px;
-    margin-top: calc((48px - 36px) / 2);
     display: grid;
     justify-content: center;
     align-items: center;
