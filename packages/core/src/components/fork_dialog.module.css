@@ -38,22 +38,40 @@
     flex-direction: row;
     justify-content: center;
     padding: 4px;
+
+    display: grid;
+    grid-template-columns: max-content max-content;
+    grid-template-rows: max-content auto;
 }
 
 .fork_target_type {
-    width: 38px;
-    height: 38px;
     border-radius: var(--border_radius);
     border: 1px solid var(--vizcard_border_color);
     margin: 4px;
     color: rgb(36, 41, 46);
     background-color: var(--vizcard_header_bg);
+
     display: grid;
+    grid-template-columns: 38px auto;
+    grid-template-rows: 38px;
     align-items: center;
-    justify-content: center;
+    justify-items: center;
+}
+
+.fork_target_type_icon {
+    grid-column: 1;
+    grid-row: 1;
+}
+
+.fork_target_type_name {
+    grid-column: 2;
+    grid-row: 1;
+    margin-left: 4px;
+    margin-right: 12px;
 }
 
 .fork_target_detail {
-    flex: 1;
+    grid-column: 2;
+    grid-row: 1 / span 2;
     padding: 4px;
 }
