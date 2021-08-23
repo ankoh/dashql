@@ -55,8 +55,8 @@ export const Studio: React.FC<Props> = (props: Props) => {
     const scriptName = getScriptName(script);
     const beans = [];
     switch (script.origin.originType) {
-        case ScriptOriginType.TMP:
-            beans.push('Temporary');
+        case ScriptOriginType.LOCAL:
+            beans.push('Local');
             break;
         case ScriptOriginType.EXAMPLES:
             beans.push('Example');
