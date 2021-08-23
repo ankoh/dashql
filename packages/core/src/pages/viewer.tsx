@@ -73,7 +73,7 @@ export const Viewer: React.FC<Props> = () => {
                                     <use xlinkHref={`${icon_share}#sym`} />
                                 </svg>
                             </div>
-                            <Link to="/studio" className={styles_cmd.cmdbar_cmd}>
+                            <Link to="/explorer" className={styles_cmd.cmdbar_cmd}>
                                 <svg width="20px" height="20px">
                                     <use xlinkHref={`${icon_code}#sym`} />
                                 </svg>
