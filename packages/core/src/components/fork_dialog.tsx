@@ -52,15 +52,9 @@ const ForkDetailForm: React.FC<FormProps> = (props: FormProps) => {
                     </ButtonGroup>
                 </Form>
             );
-        case ForkTargetType.LOCAL_FILE:
-            return (
-                <Form className={props.className}>
-                    <Form.Group className="mb-2" controlId="formFileName">
-                        <Form.Control type="text" placeholder="Enter file name" />
-                    </Form.Group>
-                    <Button>Create file</Button>
-                </Form>
-            );
+        default:
+            console.assert(false);
+            return <div />;
     }
 };
 
@@ -98,12 +92,8 @@ export const ForkDialog: React.FC<DialogProps> = (_props: DialogProps) => {
                                 </svg>
                             </div>
                         )}
-                        {(forkTarget == null || forkTarget == ForkTargetType.LOCAL_FILE) && (
-                            <div
-                                key="local"
-                                className={styles.fork_target_type}
-                                onClick={() => setForkTarget(s => (s != null ? null : ForkTargetType.LOCAL_FILE))}
-                            >
+                        {forkTarget == null && (
+                            <div key="local" className={styles.fork_target_type}>
                                 <svg width="20px" height="20px">
                                     <use xlinkHref={`${icon_copy}#sym`} />
                                 </svg>
