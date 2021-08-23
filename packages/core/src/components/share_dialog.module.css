@@ -16,5 +16,25 @@
 }
 
 .body {
-    height: 80px;
+    padding: 8px;
+}
+
+.share_url_table {
+    display: grid;
+    grid-template-rows: max-content max-content;
+    grid-template-columns: max-content auto;
+    grid-row-gap: 8px;
+    grid-column-gap: 8px;
+
+    color: rgb(36, 41, 46);
+}
+
+.share_url_type {
+    display: grid;
+    justify-content: start;
+    align-items: center;
+    padding: 0px 8px;
+}
+
+.share_url_text {
 }
