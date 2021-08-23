@@ -64,10 +64,20 @@ export const ForkDialog: React.FC<DialogProps> = (_props: DialogProps) => {
 
     return (
         <AnimatePresence>
-            <motion.div className={styles.container} initial={{ translateY: 20 }} animate={{ translateY: 0 }}>
+            <motion.div
+                className={styles.container}
+                initial={{ translateY: 20 }}
+                animate={{ translateY: 0 }}
+                onClick={e => e.stopPropagation()}
+            >
                 <div className={styles.header}>Fork Script</div>
                 <div className={styles.body}>
-                    <div className={styles.fork_target_config}>
+                    {forkTarget == null && (
+                        <div key="description" className={styles.description}>
+                            Select a fork destination
+                        </div>
+                    )}
+                    <div key="config" className={styles.fork_target_config}>
                         {(forkTarget == null || forkTarget == ForkTargetType.GITHUB_GIST) && (
                             <div
                                 key="gist"
