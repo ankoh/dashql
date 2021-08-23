@@ -35,3 +35,11 @@ body > div {
 :global(.btn) {
     border-radius: var(--border_radius);
 }
+
+:global(.form-control) {
+    border-radius: var(--border_radius);
+}
+
+:global(.form-control-sm) {
+    border-radius: var(--border_radius);
+}
