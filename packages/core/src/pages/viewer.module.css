@@ -19,6 +19,7 @@
     display: grid;
     justify-content: center;
     align-items: center;
+    color: rgb(36, 41, 46) !important;
 }
 
 .board {

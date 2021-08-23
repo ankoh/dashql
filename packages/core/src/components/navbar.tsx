@@ -35,11 +35,11 @@ export const NavBar = (): React.ReactElement => {
     const ghProfile = useActiveGitHubProfile();
     return (
         <div className={styles.navbar}>
-            <div className={styles.logo}>
+            <Link className={styles.logo} to="/">
                 <svg width="32px" height="32px">
                     <use xlinkHref={`${logo}#sym`} />
                 </svg>
-            </div>
+            </Link>
             <div className={styles.tabs}>
                 <Tab route="/explorer" location={location.pathname} icon={icon_explorer} />
                 <Tab route="/examples" location={location.pathname} icon={icon_examples} />
