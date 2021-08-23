@@ -4,6 +4,7 @@ import * as utils from '../utils';
 import axios from 'axios';
 import { useLocation } from 'react-router-dom';
 import { ScriptOriginType } from '../model';
+import { useAnalyzer } from '../analyzer';
 
 interface Props {
     progressComponent?: (progress: number) => React.ReactElement;
@@ -26,6 +27,7 @@ interface State {
 }
 
 export const ScriptLoader: React.FC<Props> = (props: Props) => {
+    const analyzer = useAnalyzer();
     const location = useLocation();
     const programContextDispatch = model.useProgramContextDispatch();
     const [state, setState] = React.useState<State>({
@@ -70,28 +72,30 @@ export const ScriptLoader: React.FC<Props> = (props: Props) => {
                 return;
             }
             const text = resp.data as string;
+            const program = analyzer.parseProgram(text);
+            const script: model.Script = {
+                origin: {
+                    originType: ScriptOriginType.HTTPS,
+                    fileName: '',
+                    exampleName: null,
+                    httpURL: null,
+                    githubAccount: null,
+                    githubGistName: null,
+                },
+                text,
+                description: '',
+                modified: false,
+                lineCount: utils.countLines(text),
+                bytes: utils.estimateUTF16Length(text),
+            };
+            programContextDispatch({
+                type: model.REPLACE_PROGRAM,
+                data: [program, script],
+            });
             setState({
                 ...state,
                 status: ScriptLoaderStatus.SUCCEEDED,
                 error: null,
-            });
-            programContextDispatch({
-                type: model.SET_SCRIPT,
-                data: {
-                    origin: {
-                        originType: ScriptOriginType.HTTPS,
-                        fileName: '',
-                        exampleName: null,
-                        httpURL: null,
-                        githubAccount: null,
-                        githubGistName: null,
-                    },
-                    text,
-                    description: '',
-                    modified: false,
-                    lineCount: utils.countLines(text),
-                    bytes: utils.estimateUTF16Length(text),
-                },
             });
         } catch (e) {
             setState({

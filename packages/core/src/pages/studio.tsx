@@ -65,7 +65,7 @@ export const Studio: React.FC<Props> = (props: Props) => {
             beans.push('Gist');
             break;
     }
-    const editorReadOnly = true;
+    const editorReadOnly = false;
     const ownScript = false;
 
     const BoardAction = (p: { icon: string }) => (

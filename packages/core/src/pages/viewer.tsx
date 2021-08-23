@@ -20,10 +20,10 @@ interface Props {
 export const Viewer: React.FC<Props> = () => {
     const setOverlay = useOverlaySetter();
     const showShareDialog = React.useCallback(() => {
-        const fork: React.FC = () => <ShareDialog onClose={() => setOverlay(null)} />;
+        const share: React.FC = () => <ShareDialog onClose={() => setOverlay(null)} />;
         setOverlay({
             id: shareOverlay,
-            renderer: fork,
+            renderer: share,
         });
     }, [setOverlay]);
     const rowHeight = 48;

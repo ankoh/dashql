@@ -14,4 +14,3 @@ export * as model from './model';
 export * as utils from './utils';
 export * as viz from './viz';
 export * from './task_scheduler';
-export * from './script_pipeline';

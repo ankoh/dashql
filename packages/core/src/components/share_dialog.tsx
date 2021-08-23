@@ -11,7 +11,7 @@ export const ShareDialog: React.FC<Props> = (_props: Props) => {
     return (
         <AnimatePresence>
             <motion.div className={styles.container} initial={{ translateY: 30 }} animate={{ translateY: 0 }}>
-                FORK
+                SHARE
             </motion.div>
         </AnimatePresence>
     );
