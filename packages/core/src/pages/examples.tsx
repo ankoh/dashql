@@ -71,7 +71,7 @@ export const Examples: React.FC<Props> = (_props: Props) => {
             type: model.REPLACE_PROGRAM,
             data: [program, nextScript],
         });
-        navigate('/studio');
+        navigate('/explorer');
     };
 
     const renderCollection = (
