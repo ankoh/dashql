@@ -117,7 +117,7 @@ export const Examples: React.FC<Props> = (_props: Props) => {
     return (
         <div className={styles.root}>
             <div className={styles.gallery_header}>
-                <div className={styles.gallery_header_title}>Example Gallery</div>
+                <div className={styles.gallery_header_title}>Example Library</div>
                 <div className={styles.gallery_filters}>
                     <div className={styles.filter_grid}>{features}</div>
                 </div>

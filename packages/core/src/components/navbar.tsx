@@ -8,8 +8,8 @@ import { useGitHubAuth, useActiveGitHubProfile } from '../github';
 import styles from './navbar.module.css';
 
 import logo from '../../static/svg/logo/logo.svg';
-import icon_examples from '../../static/svg/icons/library_books.svg';
-import icon_studio from '../../static/svg/icons/dashboard.svg';
+import icon_examples from '../../static/svg/icons/book_open_blank_variant.svg';
+import icon_studio from '../../static/svg/icons/compass.svg';
 import icon_account from '../../static/svg/icons/account_circle.svg';
 
 const Tab = (props: { route: string; location: string; icon: string }) => (
@@ -21,7 +21,7 @@ const Tab = (props: { route: string; location: string; icon: string }) => (
     >
         <Link to={props.route}>
             <Button variant="link">
-                <svg className={styles.tab_icon} width="18px" height="18px">
+                <svg className={styles.tab_icon} width="20px" height="20px">
                     <use xlinkHref={`${props.icon}#sym`} />
                 </svg>
             </Button>
