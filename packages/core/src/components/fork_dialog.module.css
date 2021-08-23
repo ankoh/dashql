@@ -25,6 +25,14 @@
     padding: 8px 32px 0 32px;
 }
 
+.detail_text {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    padding: 8px 16px;
+}
+
 .fork_target_config {
     display: flex;
     flex-direction: row;

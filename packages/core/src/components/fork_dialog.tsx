@@ -6,6 +6,7 @@ import styles from './fork_dialog.module.css';
 
 import icon_github from '../../static/svg/icons/github.svg';
 import icon_copy from '../../static/svg/icons/file_multiple.svg';
+import { useActiveGitHubProfile } from '../github';
 
 enum ForkTargetType {
     GITHUB_GIST,
@@ -18,8 +19,16 @@ interface FormProps {
 }
 
 const ForkDetailForm: React.FC<FormProps> = (props: FormProps) => {
+    const ghProfile = useActiveGitHubProfile();
     switch (props.type) {
         case ForkTargetType.GITHUB_GIST:
+            if (ghProfile == null) {
+                return (
+                    <div key="description" className={styles.detail_text}>
+                        Please log into your GitHub account first.
+                    </div>
+                );
+            }
             return (
                 <Form className={props.className}>
                     <Form.Group className="mb-2" controlId="formFileName">
