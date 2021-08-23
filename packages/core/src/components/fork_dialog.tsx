@@ -70,11 +70,6 @@ export const ForkDialog: React.FC<DialogProps> = (_props: DialogProps) => {
             >
                 <div className={styles.header}>Fork Script</div>
                 <div className={styles.body}>
-                    {forkTarget == null && (
-                        <div key="description" className={styles.description}>
-                            Select a fork destination
-                        </div>
-                    )}
                     <div key="config" className={styles.fork_target_config}>
                         {(forkTarget == null || forkTarget == ForkTargetType.GITHUB_GIST) && (
                             <div
@@ -82,16 +77,18 @@ export const ForkDialog: React.FC<DialogProps> = (_props: DialogProps) => {
                                 className={styles.fork_target_type}
                                 onClick={() => setForkTarget(s => (s != null ? null : ForkTargetType.GITHUB_GIST))}
                             >
-                                <svg width="28px" height="28px">
+                                <svg className={styles.fork_target_type_icon} width="28px" height="28px">
                                     <use xlinkHref={`${icon_github}#sym`} />
                                 </svg>
+                                {forkTarget == null && <div className={styles.fork_target_type_name}>GitHub Gist</div>}
                             </div>
                         )}
                         {forkTarget == null && (
                             <div key="local" className={styles.fork_target_type}>
-                                <svg width="20px" height="20px">
+                                <svg className={styles.fork_target_type_icon} width="20px" height="20px">
                                     <use xlinkHref={`${icon_copy}#sym`} />
                                 </svg>
+                                {forkTarget == null && <div className={styles.fork_target_type_name}>Local File</div>}
                             </div>
                         )}
                         {forkTarget != null && (
