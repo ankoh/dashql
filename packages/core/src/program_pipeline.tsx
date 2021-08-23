@@ -13,7 +13,7 @@ import {
 } from './model';
 import { TaskSchedulerDriver } from './task_scheduler';
 
-const MAX_INSTANTIATION_DELAY = 10000;
+const MAX_INSTANTIATION_DELAY = 2000;
 const MIN_INSTANTIATION_DELAY = 1000;
 
 type Props = {
