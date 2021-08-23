@@ -27,42 +27,12 @@
     overflow-x: hidden;
 }
 
-.script_detail {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 320px;
-    height: 260px;
-    margin-left: -200px;
-    margin-top: -100px;
-    background: white;
-    border-radius: var(--border_radius);
-    border: 1px solid var(--example_border_color);
-    padding: 16px;
-
-    display: grid;
-    grid-template-rows: 32px auto min-content;
-}
-
-.script_detail_header {
-    grid-row: 1;
-    display: grid;
-    grid-template-columns: 32px auto 32px;
-}
-
-.script_detail_actions {
-    display: grid;
-    grid-template-columns: auto auto;
-    grid-column-gap: 16px;
-    height: auto;
-    box-sizing: border-box;
-}
-
 .script_card {
     background: white;
     border-radius: var(--border_radius);
     border: 1px solid var(--example_border_color);
     padding: 8px 16px;
+    font-size: 95%;
 
     display: grid;
     grid-template-columns: 24px auto;
