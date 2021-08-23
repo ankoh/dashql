@@ -4,4 +4,17 @@
     max-height: 80%;
     background-color: rgb(255, 255, 255);
     border-radius: var(--border_radius);
+    border: 1px solid var(--vizcard_border_color);
+    font-size: 90%;
+}
+
+.header {
+    padding: 4px 12px;
+    border-bottom: 1px solid var(--border_color);
+    background-color: var(--vizcard_header_bg);
+    border-radius: var(--border_radius) var(--border_radius) 0 0;
+}
+
+.body {
+    height: 80px;
 }

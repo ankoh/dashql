@@ -79,7 +79,7 @@
 .example_icon {
     grid-row: 1;
     grid-column: 1;
-    color: rgb(80, 80, 80);
+    color: var(--example_icon_color);
     display: grid;
     align-items: center;
     justify-items: center;
