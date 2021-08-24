@@ -85,6 +85,7 @@ export const ForkDialog: React.FC<DialogProps> = (_props: DialogProps) => {
             type: REPLACE_PROGRAM,
             data: [programCtx.program, script],
         });
+        setOverlay(null);
     }, [setOverlay]);
 
     return (
