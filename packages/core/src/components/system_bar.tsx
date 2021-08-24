@@ -1,14 +1,13 @@
 import * as React from 'react';
-import { TaskList } from './task_list';
 import { LogViewer } from './log_viewer';
 import { DatabaseViewer } from './database_viewer';
 import classNames from 'classnames';
 
-import styles from './system_indicators.module.css';
+import styles from './system_bar.module.css';
 
 import icon_database from '../../static/svg/icons/database.svg';
 import icon_log from '../../static/svg/icons/log.svg';
-import icon_tasks from '../../static/svg/icons/task_list.svg';
+import icon_info from '../../static/svg/icons/info_outline.svg';
 
 interface SystemPanelProps {
     icon: string;
@@ -40,7 +39,7 @@ interface Props {
     className: string;
 }
 
-export const SystemIndicators: React.FC<Props> = (props: Props) => {
+export const SystemBar: React.FC<Props> = (props: Props) => {
     const [expanded, setExpanded] = React.useState<number | null>(null);
 
     const toggleTab = (tab: number): void => setExpanded(expanded == tab ? null : tab);
@@ -49,14 +48,14 @@ export const SystemIndicators: React.FC<Props> = (props: Props) => {
             <SystemPanel systemID={0} expandedPanel={expanded} onClick={toggleTab.bind(this)} icon={icon_database}>
                 <DatabaseViewer onClose={() => toggleTab(0)} />
             </SystemPanel>
-            <SystemPanel systemID={1} expandedPanel={expanded} onClick={toggleTab.bind(this)} icon={icon_tasks}>
-                <TaskList onClose={() => toggleTab(1)} />
+            <SystemPanel systemID={1} expandedPanel={expanded} onClick={toggleTab.bind(this)} icon={icon_log}>
+                <LogViewer onClose={() => toggleTab(1)} />
             </SystemPanel>
-            <SystemPanel systemID={2} expandedPanel={expanded} onClick={toggleTab.bind(this)} icon={icon_log}>
-                <LogViewer onClose={() => toggleTab(2)} />
+            <SystemPanel systemID={2} expandedPanel={expanded} onClick={toggleTab.bind(this)} icon={icon_info}>
+                <div />
             </SystemPanel>
         </div>
     );
 };
 
-export default SystemIndicators;
+export default SystemBar;

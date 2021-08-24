@@ -1,5 +1,5 @@
 import * as React from 'react';
-import SystemIndicators from './system_indicators';
+import SystemBar from './system_bar';
 import classNames from 'classnames';
 import { Link, useLocation } from 'react-router-dom';
 import Button from 'react-bootstrap/Button';
@@ -53,7 +53,7 @@ export const NavBar = (): React.ReactElement => {
                     </svg>
                 )}
             </Link>
-            <SystemIndicators className={styles.systemlist} />
+            <SystemBar className={styles.systemlist} />
         </div>
     );
 };
