@@ -38,6 +38,7 @@
     --nav_bar_width: 64px;
     --nav_logo_height: 56px;
     --system_bg: rgb(25, 28, 31);
+    --system_bg_light: rgba(25, 28, 31, 0.1);
     --system_bg_active: rgb(36, 41, 46);
     --system_button_height: 40px;
     --system_button_margin: 4px 6px;

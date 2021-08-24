@@ -1,5 +1,5 @@
 import * as React from 'react';
-import SystemBar from './system_bar';
+import { SystemBar } from './system_bar';
 import classNames from 'classnames';
 import { Link, useLocation } from 'react-router-dom';
 import Button from 'react-bootstrap/Button';

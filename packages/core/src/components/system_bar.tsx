@@ -36,7 +36,7 @@ const SystemPanel: React.FC<SystemPanelProps> = (props: SystemPanelProps) => {
 };
 
 interface Props {
-    className: string;
+    className?: string;
 }
 
 export const SystemBar: React.FC<Props> = (props: Props) => {
@@ -57,5 +57,3 @@ export const SystemBar: React.FC<Props> = (props: Props) => {
         </div>
     );
 };
-
-export default SystemBar;
