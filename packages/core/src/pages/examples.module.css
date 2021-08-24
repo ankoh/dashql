@@ -39,7 +39,7 @@
 }
 
 .script_card_disabled {
-    background: rgb(220, 220, 220);
+    background: hsl(210deg 12% 86%);
 }
 
 .script_card_hidden {

@@ -46,7 +46,7 @@
 }
 
 .header_col_label {
-    background: rgb(220, 220, 220);
+    background: var(--datagrid_col_label_bg);
     padding: 0 6px;
     border-radius: 4px;
     overflow: hidden;

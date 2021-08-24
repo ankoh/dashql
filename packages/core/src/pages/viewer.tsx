@@ -80,7 +80,7 @@ export const Viewer: React.FC<Props> = () => {
                             </Link>
                         </div>
                     </div>
-                    <SystemBar className={styles.systembar} />
+                    <SystemBar className={styles.systembar} light={true} />
                     <OverlayContainer id={shareOverlay} className={styles.overlay} />
                 </>
             </ScriptLoader>

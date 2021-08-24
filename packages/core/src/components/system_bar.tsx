@@ -14,6 +14,7 @@ interface SystemPanelProps {
     children: JSX.Element;
     systemID: number;
     expandedPanel: number | null;
+    light?: boolean;
     onClick: (tab: number) => void;
 }
 
@@ -22,6 +23,7 @@ const SystemPanel: React.FC<SystemPanelProps> = (props: SystemPanelProps) => {
     return (
         <div
             className={classNames(styles.system_button, {
+                [styles.system_button_light]: props.light || false,
                 [styles.active]: expanded,
             })}
         >
@@ -37,6 +39,7 @@ const SystemPanel: React.FC<SystemPanelProps> = (props: SystemPanelProps) => {
 
 interface Props {
     className?: string;
+    light?: boolean;
 }
 
 export const SystemBar: React.FC<Props> = (props: Props) => {
@@ -45,13 +48,31 @@ export const SystemBar: React.FC<Props> = (props: Props) => {
     const toggleTab = (tab: number): void => setExpanded(expanded == tab ? null : tab);
     return (
         <div className={props.className}>
-            <SystemPanel systemID={0} expandedPanel={expanded} onClick={toggleTab.bind(this)} icon={icon_database}>
+            <SystemPanel
+                systemID={0}
+                expandedPanel={expanded}
+                onClick={toggleTab.bind(this)}
+                icon={icon_database}
+                light={props.light}
+            >
                 <DatabaseViewer onClose={() => toggleTab(0)} />
             </SystemPanel>
-            <SystemPanel systemID={1} expandedPanel={expanded} onClick={toggleTab.bind(this)} icon={icon_log}>
+            <SystemPanel
+                systemID={1}
+                expandedPanel={expanded}
+                onClick={toggleTab.bind(this)}
+                icon={icon_log}
+                light={props.light}
+            >
                 <LogViewer onClose={() => toggleTab(1)} />
             </SystemPanel>
-            <SystemPanel systemID={2} expandedPanel={expanded} onClick={toggleTab.bind(this)} icon={icon_info}>
+            <SystemPanel
+                systemID={2}
+                expandedPanel={expanded}
+                onClick={toggleTab.bind(this)}
+                icon={icon_info}
+                light={props.light}
+            >
                 <div />
             </SystemPanel>
         </div>
