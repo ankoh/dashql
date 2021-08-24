@@ -13,3 +13,4 @@ export * from './status';
 export * from './text';
 export * from './time';
 export * from './user_agent';
+export * from './random';

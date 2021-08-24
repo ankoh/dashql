@@ -3,6 +3,7 @@
 import React from 'react';
 import './github_oauth.html';
 import { graphql } from '@octokit/graphql';
+import * as utils from '../utils';
 
 /// Refs:
 /// https://docs.github.com/en/free-pro-team@latest/developers/apps/authorizing-oauth-apps
@@ -13,16 +14,6 @@ const OAUTH_REDIRECT_URI = process.env.GITHUB_OAUTH_REDIRECT;
 const OAUTH_SCOPES = 'gist read:user read:email';
 const OAUTH_POPUP_NAME = 'DashQL GitHub OAuth';
 const OAUTH_POPUP_SETTINGS = 'toolbar=no, menubar=no, width=600, height=700, top=100, left=100';
-
-function generateOAuthSig() {
-    let tag = '';
-    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    const charactersLength = characters.length;
-    for (let i = 0; i < 20; i++) {
-        tag += characters.charAt(Math.floor(Math.random() * charactersLength));
-    }
-    return tag;
-}
 
 type Props = {
     children: React.ReactElement;
@@ -164,7 +155,7 @@ export const GitHubAuthProvider: React.FC<Props> = (props: Props) => {
 
         // Construct the URI
         const redirectURI = encodeURIComponent(OAUTH_REDIRECT_URI);
-        const authSig = generateOAuthSig();
+        const authSig = utils.generateRandomString(20);
         const scopes = encodeURIComponent(OAUTH_SCOPES);
         const params = [
             `client_id=${OAUTH_CLIENT_ID}`,

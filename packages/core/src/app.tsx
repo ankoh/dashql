@@ -1,11 +1,17 @@
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
 import { GitHubAuthProvider, GitHubProfileProvider } from './github';
-import { LogProvider, DatabaseMetadataProvider, ProgramContextProvider, PlanContextProvider } from './model';
+import {
+    LogProvider,
+    DatabaseMetadataProvider,
+    ProgramContextProvider,
+    PlanContextProvider,
+    LaunchProgressProvider,
+    ScriptRegistryProvider,
+} from './model';
 import { Route, BrowserRouter, Routes, Navigate } from 'react-router-dom';
 import { Explorer, Examples, Viewer, NotFound } from './pages';
 import { withNavBar, OverlayProvider } from './components';
-import { LaunchProgressProvider } from './model/launch_progress';
 import { AppLauncher } from './app_launcher';
 
 import 'bootstrap/dist/css/bootstrap.min.css';
@@ -23,9 +29,11 @@ const DataProviders = (props: { children: React.ReactElement }) => (
                 <DatabaseMetadataProvider>
                     <ProgramContextProvider>
                         <PlanContextProvider>
-                            <OverlayProvider>
-                                <LaunchProgressProvider>{props.children}</LaunchProgressProvider>
-                            </OverlayProvider>
+                            <ScriptRegistryProvider>
+                                <OverlayProvider>
+                                    <LaunchProgressProvider>{props.children}</LaunchProgressProvider>
+                                </OverlayProvider>
+                            </ScriptRegistryProvider>
                         </PlanContextProvider>
                     </ProgramContextProvider>
                 </DatabaseMetadataProvider>

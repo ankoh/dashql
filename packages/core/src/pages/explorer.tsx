@@ -25,12 +25,16 @@ import icon_star_outline from '../../static/svg/icons/star_outline.svg';
 import icon_edit from '../../static/svg/icons/edit.svg';
 import icon_blank from '../../static/svg/icons/file_outline.svg';
 import {
+    generateBlankScript,
     getScriptName,
     getScriptNamespace,
     REPLACE_PROGRAM,
+    SAVE_SCRIPT,
     ScriptOriginType,
     useProgramContext,
     useProgramContextDispatch,
+    useScriptRegistry,
+    useScriptRegistryDispatch,
 } from '../model';
 import { useAnalyzer } from '../analyzer';
 
@@ -64,6 +68,8 @@ export const Explorer: React.FC<Props> = (props: Props) => {
     // Use state
     const programCtx = useProgramContext();
     const programCtxDispatch = useProgramContextDispatch();
+    const scriptRegistry = useScriptRegistry();
+    const scriptRegistryDispatch = useScriptRegistryDispatch();
     const analyzer = useAnalyzer();
     const scriptNamespace = getScriptNamespace(programCtx.script);
     const scriptName = getScriptName(programCtx.script);
@@ -86,26 +92,14 @@ export const Explorer: React.FC<Props> = (props: Props) => {
     }, [setOverlay]);
     const createBlankScript = React.useCallback(() => {
         const program = analyzer.parseProgram('');
+        const script = generateBlankScript(scriptRegistry);
+        scriptRegistryDispatch({
+            type: SAVE_SCRIPT,
+            data: script,
+        });
         programCtxDispatch({
             type: REPLACE_PROGRAM,
-            data: [
-                program,
-                {
-                    origin: {
-                        originType: ScriptOriginType.LOCAL,
-                        fileName: 'unnamed.dashql',
-                        exampleName: null,
-                        httpURL: null,
-                        githubAccount: null,
-                        githubGistName: null,
-                    },
-                    description: '',
-                    text: '',
-                    modified: false,
-                    lineCount: 1,
-                    bytes: 0,
-                },
-            ],
+            data: [program, generateBlankScript(scriptRegistry)],
         });
     }, [setOverlay]);
 
