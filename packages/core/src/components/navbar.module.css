@@ -98,6 +98,5 @@
 .systemlist {
     grid-row: 4;
     background: var(--system_bg);
-    display: grid;
     padding: 4px 0px;
 }

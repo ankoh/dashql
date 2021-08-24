@@ -2,7 +2,7 @@ import * as React from 'react';
 import styles from './viewer.module.css';
 import styles_cmd from '../components/cmdbar.module.css';
 import { AutoSizer } from '../utils/autosizer';
-import { Board, ScriptLoader, OverlayContainer, useOverlaySetter, ShareDialog } from '../components';
+import { Board, ScriptLoader, OverlayContainer, useOverlaySetter, ShareDialog, SystemBar } from '../components';
 import { Link } from 'react-router-dom';
 import { Scrollbars } from 'rc-scrollbars';
 
@@ -80,6 +80,7 @@ export const Viewer: React.FC<Props> = () => {
                             </Link>
                         </div>
                     </div>
+                    <SystemBar className={styles.systembar} />
                     <OverlayContainer id={shareOverlay} className={styles.overlay} />
                 </>
             </ScriptLoader>

@@ -11,4 +11,5 @@ export * from './banner';
 export * from './overlay';
 export * from './fork_dialog';
 export * from './share_dialog';
+export * from './system_bar';
 export { withNavBar } from './navbar';
