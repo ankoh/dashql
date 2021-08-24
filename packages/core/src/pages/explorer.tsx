@@ -17,7 +17,7 @@ import styles from './explorer.module.css';
 import styles_cmd from '../components/cmdbar.module.css';
 
 import icon_eye from '../../static/svg/icons/eye.svg';
-import icon_settings from '../../static/svg/icons/settings.svg';
+import icon_cloud_upload from '../../static/svg/icons/cloud_upload.svg';
 import icon_fork from '../../static/svg/icons/fork.svg';
 import icon_share from '../../static/svg/icons/share.svg';
 import icon_star_outline from '../../static/svg/icons/star_outline.svg';
@@ -160,15 +160,15 @@ export const Explorer: React.FC<Props> = (props: Props) => {
                         </div>
                         <div key="actions" className={styles.program_actions}>
                             <div className={classNames(styles_cmd.cmdbar_cmdset, styles.program_action)}>
-                                <CmdButton width="20px" height="20px" icon={icon_blank} onClick={createBlankScript} />
                                 {ownScript ? (
                                     <>
                                         <CmdButton width="20px" height="20px" icon={icon_edit} />
-                                        <CmdButton width="20px" height="20px" icon={icon_settings} />
+                                        <CmdButton width="20px" height="20px" icon={icon_cloud_upload} />
                                     </>
                                 ) : (
                                     <CmdButton width="20px" height="20px" icon={icon_fork} onClick={showForkDialog} />
                                 )}
+                                <CmdButton width="20px" height="20px" icon={icon_blank} onClick={createBlankScript} />
                             </div>
                         </div>
                     </div>
