@@ -1,0 +1,49 @@
+@import '../vars.module.css';
+
+.root {
+    height: 100%;
+    width: 100%;
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(20%, 480px) auto;
+}
+
+.account_info {
+    background: white;
+    border-right: 1px solid rgb(200, 200, 200);
+}
+
+.account_info_title {
+    font-size: 120%;
+    padding: 8px 20px;
+    border-bottom: 1px solid rgb(200, 200, 200);
+}
+
+.script_collection {
+    padding: 8px 20px;
+}
+
+.script_collection_name {
+    font-size: 100%;
+    padding: 8px 0px;
+}
+
+.script_collection_grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    grid-template-rows: repeat(auto-fit, auto);
+    grid-column-gap: 16px;
+    grid-row-gap: 16px;
+}
+
+.script_collection_grid_placeholder {
+    max-width: 600px;
+    padding: 32px;
+    background: rgb(220, 220, 220);
+    border: 1px solid rgb(140, 140, 140);
+    border-style: dashed;
+    border-radius: 16px;
+    display: grid;
+    align-items: center;
+    justify-content: center;
+}

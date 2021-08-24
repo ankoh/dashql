@@ -6,12 +6,14 @@ import { Script, ScriptOriginType } from './script';
 
 export interface ScriptRegistry {
     local: Immutable.Map<string, Script>;
-    gists: Immutable.Map<string, Script>;
+    gistsOwned: Immutable.Map<string, Script>;
+    gistsStarred: Immutable.Map<string, Script>;
 }
 
 export const initialScriptRegistry: ScriptRegistry = {
     local: Immutable.Map<string, Script>(),
-    gists: Immutable.Map<string, Script>(),
+    gistsOwned: Immutable.Map<string, Script>(),
+    gistsStarred: Immutable.Map<string, Script>(),
 };
 
 export const SAVE_SCRIPT = Symbol('SAVE_SCRIPT');
@@ -48,10 +50,10 @@ export const reduceScriptRegistry = (ctx: ScriptRegistry, action: ScriptRegistry
             const next = { ...ctx };
             switch (action.data.origin.originType) {
                 case ScriptOriginType.GITHUB_GIST:
-                    next.gists = next.gists.set(action.data.origin.githubGistName, action.data);
+                    next.gistsOwned = next.gistsOwned.set(action.data.origin.githubGistName, action.data);
                     break;
                 case ScriptOriginType.LOCAL:
-                    next.gists = next.gists.set(action.data.origin.fileName, action.data);
+                    next.gistsOwned = next.gistsOwned.set(action.data.origin.fileName, action.data);
                     break;
             }
             return {
