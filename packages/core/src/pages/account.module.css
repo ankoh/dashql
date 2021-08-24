@@ -8,14 +8,74 @@
     grid-template-columns: minmax(20%, 480px) auto;
 }
 
-.account_info {
+.account_panel {
     background: white;
 }
 
-.account_info_title {
+.account_panel_header {
     font-size: 120%;
     padding: 8px 20px;
     border-bottom: 1px solid rgb(200, 200, 200);
+}
+
+.github_profile {
+    display: grid;
+    padding: 16px 8px;
+    border-bottom: 1px solid rgb(200, 200, 200);
+
+    display: grid;
+    grid-template-columns: 120px auto;
+    grid-template-rows: 50% 25% 25%;
+}
+
+.github_profile_avatar {
+    grid-column: 1;
+    grid-row: 1 / span 3;
+    padding: 16px;
+
+    display: grid;
+    justify-content: center;
+    align-items: center;
+}
+
+.github_profile_avatar_img {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: rgb(200, 200, 200);
+}
+
+.github_profile_login {
+    grid-column: 2;
+    grid-row: 1;
+
+    background: rgb(200, 200, 200);
+    border-radius: var(--border_radius);
+    padding: 4px 8px;
+    margin: 2px 8px;
+
+    font-size: 140%;
+    font-weight: 700;
+}
+
+.github_profile_name {
+    grid-column: 2;
+    grid-row: 2;
+
+    background: rgb(200, 200, 200);
+    border-radius: var(--border_radius);
+    padding: 4px 8px;
+    margin: 2px 8px;
+}
+
+.github_profile_stats {
+    grid-column: 2;
+    grid-row: 3;
+
+    background: rgb(200, 200, 200);
+    border-radius: var(--border_radius);
+    padding: 4px 8px;
+    margin: 2px 8px;
 }
 
 .scripts {
