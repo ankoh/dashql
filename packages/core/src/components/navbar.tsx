@@ -3,14 +3,14 @@ import SystemIndicators from './system_indicators';
 import classNames from 'classnames';
 import { Link, useLocation } from 'react-router-dom';
 import Button from 'react-bootstrap/Button';
-import { useGitHubAuth, useActiveGitHubProfile } from '../github';
+import { useActiveGitHubProfile } from '../github';
 
 import styles from './navbar.module.css';
 
 import logo from '../../static/svg/logo/logo.svg';
 import icon_examples from '../../static/svg/icons/book_open_blank_variant.svg';
 import icon_explorer from '../../static/svg/icons/compass.svg';
-import icon_account from '../../static/svg/icons/account_circle.svg';
+import icon_account from '../../static/svg/icons/folder_account.svg';
 
 const Tab = (props: { route: string; location: string; icon: string }) => (
     <div
@@ -31,7 +31,7 @@ const Tab = (props: { route: string; location: string; icon: string }) => (
 
 export const NavBar = (): React.ReactElement => {
     const location = useLocation();
-    const ghAuth = useGitHubAuth();
+    //const ghAuth = useGitHubAuth();
     const ghProfile = useActiveGitHubProfile();
     return (
         <div className={styles.navbar}>
@@ -44,7 +44,7 @@ export const NavBar = (): React.ReactElement => {
                 <Tab route="/explorer" location={location.pathname} icon={icon_explorer} />
                 <Tab route="/examples" location={location.pathname} icon={icon_examples} />
             </div>
-            <div className={styles.account} onClick={() => ghAuth.login()}>
+            <Link className={styles.account} to="/account">
                 {ghProfile?.avatarUrl ? (
                     <img className={styles.avatar} width="32px" height="32px" src={ghProfile!.avatarUrl} />
                 ) : (
@@ -52,7 +52,7 @@ export const NavBar = (): React.ReactElement => {
                         <use xlinkHref={`${icon_account}#sym`} />
                     </svg>
                 )}
-            </div>
+            </Link>
             <SystemIndicators className={styles.systemlist} />
         </div>
     );
