@@ -54,7 +54,7 @@ export const ShareDialog: React.FC<Props> = (_props: Props) => {
                             </InputGroup>
                         </div>
                         <div className={styles.share_url_immutable}>
-                            <Form.Switch label="Immutable" defaultChecked={false} disabled />
+                            <Form.Switch label="Encode Script into URL" defaultChecked={false} disabled />
                         </div>
                     </div>
                 </div>
