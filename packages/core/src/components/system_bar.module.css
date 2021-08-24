@@ -2,6 +2,7 @@
     height: var(--system_button_height);
     margin: var(--system_button_margin);
     box-sizing: border-box;
+    border-radius: var(--border_radius);
 }
 
 .system_button_light {
