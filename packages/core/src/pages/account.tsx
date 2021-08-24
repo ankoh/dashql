@@ -1,5 +1,6 @@
 import * as React from 'react';
 //import { AccountScriptHitsChart } from '../components';
+import logo from '../../static/svg/logo/logo.svg';
 import styles from './account.module.css';
 
 interface Props {
@@ -14,7 +15,11 @@ export const Account: React.FC<Props> = () => {
                 <div className={styles.account_panel_header}>Account</div>
                 <div className={styles.github_profile}>
                     <div className={styles.github_profile_avatar}>
-                        <div className={styles.github_profile_avatar_img}></div>
+                        <div className={styles.github_profile_avatar_img}>
+                            <svg width="40px" height="40px">
+                                <use xlinkHref={`${logo}#sym`} />
+                            </svg>
+                        </div>
                     </div>
                     <div className={styles.github_profile_login}></div>
                     <div className={styles.github_profile_name}></div>

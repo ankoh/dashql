@@ -42,14 +42,18 @@
     width: 80px;
     height: 80px;
     border-radius: 50%;
-    background: rgb(200, 200, 200);
+    background-color: var(--placeholder_avatar_bg);
+
+    display: grid;
+    justify-content: center;
+    align-items: center;
 }
 
 .github_profile_login {
     grid-column: 2;
     grid-row: 1;
 
-    background: rgb(200, 200, 200);
+    background: var(--placeholder_text_bg);
     border-radius: var(--border_radius);
     padding: 4px 8px;
     margin: 2px 8px;
@@ -62,7 +66,7 @@
     grid-column: 2;
     grid-row: 2;
 
-    background: rgb(200, 200, 200);
+    background: var(--placeholder_text_bg);
     border-radius: var(--border_radius);
     padding: 4px 8px;
     margin: 2px 8px;
@@ -72,7 +76,7 @@
     grid-column: 2;
     grid-row: 3;
 
-    background: rgb(200, 200, 200);
+    background: var(--placeholder_text_bg);
     border-radius: var(--border_radius);
     padding: 4px 8px;
     margin: 2px 8px;

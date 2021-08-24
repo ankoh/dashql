@@ -16,6 +16,7 @@ import { AnimatePresence } from 'framer-motion';
 import styles from './explorer.module.css';
 import styles_cmd from '../components/cmdbar.module.css';
 
+import logo from '../../static/svg/logo/logo.svg';
 import icon_eye from '../../static/svg/icons/eye.svg';
 import icon_cloud_upload from '../../static/svg/icons/cloud_upload.svg';
 import icon_fork from '../../static/svg/icons/fork.svg';
@@ -143,7 +144,11 @@ export const Explorer: React.FC<Props> = (props: Props) => {
                     <div key="info_actions" className={styles.program_info_and_actions}>
                         <div key="info" className={styles.program_info}>
                             <div className={styles.program_info_avatar}>
-                                <div className={styles.program_info_avatar_icon} />
+                                <div className={styles.program_info_avatar_icon}>
+                                    <svg width="24px" height="24px">
+                                        <use xlinkHref={`${logo}#sym`} />
+                                    </svg>
+                                </div>
                             </div>
                             <div className={styles.program_info_name}>
                                 <span className={styles.program_info_name_namespace}>{scriptNamespace}</span>/
