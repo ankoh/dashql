@@ -48,7 +48,7 @@ export const NavBar = (): React.ReactElement => {
                 {ghProfile?.avatarUrl ? (
                     <img className={styles.avatar} width="32px" height="32px" src={ghProfile!.avatarUrl} />
                 ) : (
-                    <svg className={styles.avatar} width="28px" height="28px">
+                    <svg className={styles.avatar} width="26px" height="26px">
                         <use xlinkHref={`${icon_account}#sym`} />
                     </svg>
                 )}
