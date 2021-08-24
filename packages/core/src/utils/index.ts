@@ -1,3 +1,4 @@
+export * from './aggregates';
 export * from './autosizer';
 export * from './binary_search';
 export * from './format';
@@ -7,10 +8,10 @@ export * from './max_element_size';
 export * from './native_bitmap';
 export * from './native_min_heap';
 export * from './native_stack';
+export * from './random';
 export * from './semaphore';
 export * from './sleep';
 export * from './status';
 export * from './text';
 export * from './time';
 export * from './user_agent';
-export * from './random';

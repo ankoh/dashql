@@ -1,3 +1,4 @@
+export * from './account_script_hits';
 export * from './board';
 export * from './board_editor';
 export * from './editor_loader';

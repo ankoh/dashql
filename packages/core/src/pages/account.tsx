@@ -1,4 +1,5 @@
 import * as React from 'react';
+//import { AccountScriptHitsChart } from '../components';
 import styles from './account.module.css';
 
 interface Props {
@@ -6,6 +7,7 @@ interface Props {
 }
 
 export const Account: React.FC<Props> = () => {
+    //<AccountScriptHitsChart width={80} height={14} data={state.table} />
     return (
         <div className={styles.root}>
             <div className={styles.account_panel}>
