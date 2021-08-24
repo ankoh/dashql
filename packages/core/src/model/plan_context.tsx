@@ -3,12 +3,14 @@
 import Immutable from 'immutable';
 import React from 'react';
 import * as proto from '@dashql/proto';
+import { ProgramInstance } from './program_instance';
 import { StatementStatus, deriveStatementStatusCode } from './program';
 import { TaskHandle, Task, TaskUpdate, TaskSchedulerStatus, buildTaskHandle } from './task';
 import { Action, Dispatch, ProviderProps } from './model_context';
 import { Plan } from './plan';
 import { CardSpecification } from './card_specification';
 import { UniqueBlob } from './unique_blob';
+import { AnalyzerBindings } from '../analyzer';
 
 type ObjectID = number;
 
@@ -52,7 +54,7 @@ export const REDUCE_BATCH = Symbol('REDUCE_BATCH');
 export const UPDATE_PLAN_TASKS = Symbol('UPDATE_PLAN_TASKS');
 
 export type PlanContextAction =
-    | Action<typeof SCHEDULE_PLAN, Plan>
+    | Action<typeof SCHEDULE_PLAN, [AnalyzerBindings, ProgramInstance]>
     | Action<typeof RESET_PLAN, null>
     | Action<typeof UPDATE_PLAN_TASKS, TaskUpdate[]>
     | Action<typeof ADD_BLOB, UniqueBlob>
@@ -121,7 +123,21 @@ export const reducePlanContext = (ctx: PlanContext, action: PlanContextAction): 
             return next;
         }
         case SCHEDULE_PLAN: {
-            const plan = action.data;
+            // Scheduler not idle?
+            const [analyzer, programInstance] = action.data;
+            if (ctx.schedulerStatus != TaskSchedulerStatus.IDLE) return ctx;
+            // Same instance?
+            if (ctx.plan?.programInstance == programInstance) return ctx;
+
+            // Plan the program
+            let plan: Plan | null;
+            try {
+                plan = analyzer.planProgram();
+                if (!plan) return ctx;
+            } catch (e) {
+                console.error(e);
+                return ctx;
+            }
             const graph = plan.task_graph;
             if (!graph) return ctx;
 

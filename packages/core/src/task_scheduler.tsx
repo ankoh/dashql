@@ -197,12 +197,27 @@ export class TaskScheduler<TaskBuffer extends ProtoTask> {
             if (p) promises.push(p);
         });
 
-        const [next, err] = await Promise.race(promises);
-        if (next == null) {
-            /// Return true to indicate that we're not yet done and let the graph scheduler figure out whats wrong.
+        let next: TaskHandle | null;
+        let err: TaskError | null;
+        try {
+            [next, err] = await Promise.race(promises);
+            if (next == null) {
+                /// Return true to indicate that we're not yet done and let the graph scheduler figure out whats wrong.
+                return true;
+            }
+            this._dirtyTasks.push(getTaskIndex(next));
+        } catch (e) {
+            ctx.logger.pushBack({
+                timestamp: new Date(),
+                level: LogLevel.WARNING,
+                origin: LogOrigin.TASK_SCHEDULER,
+                topic: LogTopic.EXECUTE_TASK,
+                event: LogEvent.ERROR,
+                value: err,
+            });
+            console.warn(e);
             return true;
         }
-        this._dirtyTasks.push(getTaskIndex(next));
 
         // Check the new status of the task
         const task_idx = getTaskIndex(next);

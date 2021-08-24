@@ -22,7 +22,7 @@ export class NativeMinHeap {
 
     /// Build the heap with entries
     public build(entries: [NativeMinHeapKey, NativeMinHeapRank][] = []): void {
-        if (this._entries.length < entries.length) {
+        if (this._entries.length < 2 * entries.length) {
             this._entries = new Uint32Array(2 * entries.length);
             this._index = new Uint32Array(entries.length);
         }
@@ -151,7 +151,7 @@ export class NativeMinHeap {
     public print(): string {
         let buffer = '';
         for (let i = 0; i < this._size; ++i) {
-            buffer += ` [${this.value(i)}]=${this.rank(i)}`;
+            buffer += ` [${this.value(i)},${this.rank(i)}]`;
         }
         return buffer;
     }
