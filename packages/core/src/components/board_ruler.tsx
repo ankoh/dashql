@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-const CORNER_COLOR = 'rgb(245, 245, 245)';
+const CORNER_COLOR = 'hsl(210deg 12% 93%)';
 const TICK_COLOR = 'rgb(180, 180, 180)';
 const TICK_WIDTH = 1;
 
