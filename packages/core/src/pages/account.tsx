@@ -18,7 +18,9 @@ export const Account: React.FC<Props> = () => {
                     <div className={styles.github_profile_name}></div>
                     <div className={styles.github_profile_stats}></div>
                 </div>
-                <div className={styles.analytics}>Analytics</div>
+                <div className={styles.account_analytics}>
+                    <div className={styles.account_analytics_header}>Analytics</div>
+                </div>
             </div>
             <div className={styles.scripts}>
                 <div className={styles.script_collection}>
