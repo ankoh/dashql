@@ -1,5 +1,5 @@
 .list {
-    background-color: rgb(240, 240, 240);
+    background-color: hsl(210deg 12% 93%);
     border-bottom-left-radius: var(--border_radius);
     border-bottom-right-radius: var(--border_radius);
 }
