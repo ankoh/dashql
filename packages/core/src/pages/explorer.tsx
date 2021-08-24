@@ -1,5 +1,4 @@
 import * as React from 'react';
-import * as model from '../model';
 import classNames from 'classnames';
 import { Link } from 'react-router-dom';
 import { Route, Routes } from 'react-router-dom';
@@ -24,7 +23,16 @@ import icon_fork from '../../static/svg/icons/fork.svg';
 import icon_share from '../../static/svg/icons/share.svg';
 import icon_star_outline from '../../static/svg/icons/star_outline.svg';
 import icon_edit from '../../static/svg/icons/edit.svg';
-import { getScriptName, getScriptNamespace, ScriptOriginType, useProgramContext } from '../model';
+import icon_blank from '../../static/svg/icons/file_outline.svg';
+import {
+    getScriptName,
+    getScriptNamespace,
+    REPLACE_PROGRAM,
+    ScriptOriginType,
+    useProgramContext,
+    useProgramContextDispatch,
+} from '../model';
+import { useAnalyzer } from '../analyzer';
 
 const forkOverlay = Symbol();
 const shareOverlay = Symbol();
@@ -33,9 +41,35 @@ type Props = {
     className?: string;
 };
 
+type CmdProps = {
+    /// The width
+    width: string;
+    /// The height
+    height: string;
+    /// The icon
+    icon: string;
+    /// The onclick handler
+    onClick?: () => void;
+};
+
+const CmdButton = (props: CmdProps) => (
+    <div className={styles_cmd.cmdbar_cmd} onClick={props.onClick}>
+        <svg width="20px" height="20px">
+            <use xlinkHref={`${props.icon}#sym`} />
+        </svg>
+    </div>
+);
+
 export const Explorer: React.FC<Props> = (props: Props) => {
-    const { script } = model.useProgramContext();
+    // Use state
+    const programCtx = useProgramContext();
+    const programCtxDispatch = useProgramContextDispatch();
+    const analyzer = useAnalyzer();
+    const scriptNamespace = getScriptNamespace(programCtx.script);
+    const scriptName = getScriptName(programCtx.script);
     const setOverlay = useOverlaySetter();
+
+    // Define callbacks
     const showForkDialog = React.useCallback(() => {
         const fork: React.FC = () => <ForkDialog onClose={() => setOverlay(null)} />;
         setOverlay({
@@ -50,12 +84,33 @@ export const Explorer: React.FC<Props> = (props: Props) => {
             renderer: share,
         });
     }, [setOverlay]);
+    const createBlankScript = React.useCallback(() => {
+        const program = analyzer.parseProgram('');
+        programCtxDispatch({
+            type: REPLACE_PROGRAM,
+            data: [
+                program,
+                {
+                    origin: {
+                        originType: ScriptOriginType.LOCAL,
+                        fileName: 'unnamed.dashql',
+                        exampleName: null,
+                        httpURL: null,
+                        githubAccount: null,
+                        githubGistName: null,
+                    },
+                    description: '',
+                    text: '',
+                    modified: false,
+                    lineCount: 1,
+                    bytes: 0,
+                },
+            ],
+        });
+    }, [setOverlay]);
 
-    const programCtx = useProgramContext();
-    const scriptNamespace = getScriptNamespace(script);
-    const scriptName = getScriptName(script);
     const beans = [];
-    switch (script.origin.originType) {
+    switch (programCtx.script.origin.originType) {
         case ScriptOriginType.LOCAL:
             beans.push('Local');
             break;
@@ -69,30 +124,16 @@ export const Explorer: React.FC<Props> = (props: Props) => {
     const editorReadOnly = false;
     const ownScript = false;
 
-    const BoardAction = (p: { icon: string }) => (
-        <svg width="20px" height="20px">
-            <use xlinkHref={`${p.icon}#sym`} />
-        </svg>
-    );
-
     const BoardCommandBar = () => (
         <div className={styles.cmdbar_board}>
             <div className={styles_cmd.cmdbar_cmdset} />
             <div className={styles_cmd.cmdbar_cmdset}>
                 {programCtx.script.origin.originType == ScriptOriginType.GITHUB_GIST && (
-                    <div className={styles_cmd.cmdbar_cmd}>
-                        <svg width="20px" height="20px">
-                            <use xlinkHref={`${icon_star_outline}#sym`} />
-                        </svg>
-                    </div>
+                    <CmdButton width="20px" height="20px" icon={icon_star_outline} />
                 )}
-                <div className={styles_cmd.cmdbar_cmd} onClick={showShareDialog}>
-                    <svg width="20px" height="20px">
-                        <use xlinkHref={`${icon_share}#sym`} />
-                    </svg>
-                </div>
-                <Link to="/viewer" className={styles_cmd.cmdbar_cmd}>
-                    <BoardAction icon={icon_eye} />
+                <CmdButton width="20px" height="20px" icon={icon_share} onClick={showShareDialog} />
+                <Link to="/viewer">
+                    <CmdButton width="20px" height="20px" icon={icon_eye} />
                 </Link>
             </div>
         </div>
@@ -111,7 +152,7 @@ export const Explorer: React.FC<Props> = (props: Props) => {
                                 <span className={styles.program_info_name_namespace}>{scriptNamespace}</span>/
                                 <span className={styles.program_info_name_file}>{scriptName}</span>
                             </div>
-                            <div className={styles.program_info_description}>{script.description}</div>
+                            <div className={styles.program_info_description}>{programCtx.script.description}</div>
                             <div className={styles.program_info_beans}>
                                 {beans.map(b => (
                                     <div key={b} className={styles.program_info_bean}>
@@ -124,29 +165,14 @@ export const Explorer: React.FC<Props> = (props: Props) => {
                             <div className={classNames(styles_cmd.cmdbar_cmdset, styles.program_action)}>
                                 {ownScript ? (
                                     <>
-                                        <div className={styles_cmd.cmdbar_cmd}>
-                                            <svg width="20px" height="20px">
-                                                <use xlinkHref={`${icon_edit}#sym`} />
-                                            </svg>
-                                        </div>
-                                        <div className={styles_cmd.cmdbar_cmd}>
-                                            <svg width="20px" height="20px">
-                                                <use xlinkHref={`${icon_delete}#sym`} />
-                                            </svg>
-                                        </div>
-                                        <div className={styles_cmd.cmdbar_cmd}>
-                                            <svg width="20px" height="20px">
-                                                <use xlinkHref={`${icon_settings}#sym`} />
-                                            </svg>
-                                        </div>
+                                        <CmdButton width="20px" height="20px" icon={icon_edit} />
+                                        <CmdButton width="20px" height="20px" icon={icon_delete} />
+                                        <CmdButton width="20px" height="20px" icon={icon_settings} />
                                     </>
                                 ) : (
-                                    <div className={styles_cmd.cmdbar_cmd} onClick={showForkDialog}>
-                                        <svg width="20px" height="20px">
-                                            <use xlinkHref={`${icon_fork}#sym`} />
-                                        </svg>
-                                    </div>
+                                    <CmdButton width="20px" height="20px" icon={icon_fork} onClick={showForkDialog} />
                                 )}
+                                <CmdButton width="20px" height="20px" icon={icon_blank} onClick={createBlankScript} />
                             </div>
                         </div>
                     </div>

@@ -56,9 +56,10 @@ export class TokensProvider implements monaco.languages.TokensProvider {
         if (!hl) return result;
 
         // Line break valid?
-        const tokenBreaks = hl.tokenBreaksArray()!;
-        const tokenOffsets = hl.tokenOffsetsArray()!;
-        const tokenTypes = hl.tokenTypesArray()!;
+        const tokenBreaks = hl.tokenBreaksArray();
+        const tokenOffsets = hl.tokenOffsetsArray();
+        const tokenTypes = hl.tokenTypesArray();
+        if (!tokenBreaks || !tokenOffsets || !tokenTypes) return result;
 
         // Resolve token range & lineOffset
         // breaks[0] refers to the offset of the first token after linebreak 0
