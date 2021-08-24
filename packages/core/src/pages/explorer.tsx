@@ -17,7 +17,6 @@ import styles from './explorer.module.css';
 import styles_cmd from '../components/cmdbar.module.css';
 
 import icon_eye from '../../static/svg/icons/eye.svg';
-import icon_delete from '../../static/svg/icons/delete.svg';
 import icon_settings from '../../static/svg/icons/settings.svg';
 import icon_fork from '../../static/svg/icons/fork.svg';
 import icon_share from '../../static/svg/icons/share.svg';
@@ -104,22 +103,26 @@ export const Explorer: React.FC<Props> = (props: Props) => {
     }, [setOverlay]);
 
     const beans = [];
+    let ownScript = false;
+    let hasStats = true;
     switch (programCtx.script.origin.originType) {
         case ScriptOriginType.LOCAL:
             beans.push('Local');
+            ownScript = true;
+            hasStats = false;
             break;
         case ScriptOriginType.EXAMPLES:
             beans.push('Example');
             break;
         case ScriptOriginType.GITHUB_GIST:
             beans.push('Gist');
+            ownScript = true; // XXX
             break;
     }
     const editorReadOnly = false;
-    const ownScript = false;
 
     const BoardCommandBar = () => (
-        <div className={styles.cmdbar_board}>
+        <div className={styles.board_cmdbar}>
             <div className={styles_cmd.cmdbar_cmdset} />
             <div className={styles_cmd.cmdbar_cmdset}>
                 {programCtx.script.origin.originType == ScriptOriginType.GITHUB_GIST && (
@@ -136,8 +139,8 @@ export const Explorer: React.FC<Props> = (props: Props) => {
     return (
         <div className={styles.explorer}>
             <AnimatePresence>
-                <div key="header" className={styles.program_header}>
-                    <div key="info" className={styles.program_info_and_actions}>
+                <div key="program" className={styles.program_page}>
+                    <div key="info_actions" className={styles.program_info_and_actions}>
                         <div key="info" className={styles.program_info}>
                             <div className={styles.program_info_avatar}>
                                 <div className={styles.program_info_avatar_icon} />
@@ -157,32 +160,41 @@ export const Explorer: React.FC<Props> = (props: Props) => {
                         </div>
                         <div key="actions" className={styles.program_actions}>
                             <div className={classNames(styles_cmd.cmdbar_cmdset, styles.program_action)}>
+                                <CmdButton width="20px" height="20px" icon={icon_blank} onClick={createBlankScript} />
                                 {ownScript ? (
                                     <>
                                         <CmdButton width="20px" height="20px" icon={icon_edit} />
-                                        <CmdButton width="20px" height="20px" icon={icon_delete} />
                                         <CmdButton width="20px" height="20px" icon={icon_settings} />
                                     </>
                                 ) : (
                                     <CmdButton width="20px" height="20px" icon={icon_fork} onClick={showForkDialog} />
                                 )}
-                                <CmdButton width="20px" height="20px" icon={icon_blank} onClick={createBlankScript} />
                             </div>
                         </div>
                     </div>
-                    <div key="stats" className={styles.program_stats}>
-                        <ProgramStatsBar scriptID="changeme" />
-                    </div>
+                    {hasStats && (
+                        <div key="stats" className={styles.program_stats}>
+                            <ProgramStatsBar scriptID="changeme" />
+                        </div>
+                    )}
+                    <Routes>
+                        <Route
+                            path="/"
+                            element={
+                                <OverlayContainer id={forkOverlay} className={styles.program_editor}>
+                                    <EditorLoader readOnly={editorReadOnly} />
+                                </OverlayContainer>
+                            }
+                        />
+                    </Routes>
                 </div>
                 <Routes>
                     <Route
                         path="/"
                         element={
                             <>
-                                <OverlayContainer id={forkOverlay} className={styles.program_editor}>
-                                    <EditorLoader readOnly={editorReadOnly} />
-                                </OverlayContainer>
                                 <div key="board" className={styles.board}>
+                                    <BoardCommandBar />
                                     <OverlayContainer id={shareOverlay}>
                                         <BoardEditor
                                             immutable={false}
@@ -190,7 +202,6 @@ export const Explorer: React.FC<Props> = (props: Props) => {
                                             className={styles.board_editor}
                                         />
                                     </OverlayContainer>
-                                    <BoardCommandBar />
                                 </div>
                             </>
                         }
