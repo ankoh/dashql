@@ -7,7 +7,7 @@ import styles from './system_bar.module.css';
 
 import icon_database from '../../static/svg/icons/database.svg';
 import icon_log from '../../static/svg/icons/log.svg';
-import icon_info from '../../static/svg/icons/info_outline.svg';
+import icon_info from '../../static/svg/icons/info.svg';
 
 interface SystemPanelProps {
     icon: string;
