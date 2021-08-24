@@ -55,19 +55,19 @@ export function testTaskScheduler(
                 const ctx = await tasks.wireTaskExecutionContext(db(), az(), async () => jp());
 
                 const program = az().parseProgram('CREATE TABLE a AS SELECT 1');
-                az().instantiateProgram();
-                const plan = az().planProgram();
-                const graph = plan!.buffer.taskGraph()!;
+                const programInstance = az().instantiateProgram();
+                ctx.planContextDispatch({
+                    type: SCHEDULE_PLAN,
+                    data: [az(), programInstance],
+                });
+
+                const plan = ctx.planContext.plan!;
+                const graph = plan.buffer.taskGraph()!;
                 expect(program.buffer.statementsLength()).toBe(1);
                 expect(graph.setupTasksLength()).toBe(0);
                 expect(graph.programTasksLength()).toBe(1);
 
-                ctx.planContextDispatch({
-                    type: SCHEDULE_PLAN,
-                    data: plan,
-                });
-
-                const logic = resolveProgramActionLogic(plan!);
+                const logic = resolveProgramActionLogic(plan);
                 const interrupt = new Promise((_resolve: (value: any) => void, _reject: (reason?: void) => void) => {});
                 const scheduler = new TaskScheduler<proto.task.ProgramTask>(interrupt);
                 scheduler.prepare(ctx, logic);
@@ -96,17 +96,17 @@ export function testTaskScheduler(
                     VIZ weather USING TABLE;
                     VIZ weather USING TABLE;
                 `);
-                az().instantiateProgram();
-                const plan = az().planProgram();
-                const graph = plan!.buffer.taskGraph()!;
+                const programInstance = az().instantiateProgram();
+                ctx.planContextDispatch({
+                    type: SCHEDULE_PLAN,
+                    data: [az(), programInstance],
+                });
+
+                const plan = ctx.planContext.plan!;
+                const graph = plan.buffer.taskGraph()!;
                 expect(program.buffer.statementsLength()).toBe(3);
                 expect(graph.setupTasksLength()).toBe(0);
                 expect(graph.programTasksLength()).toBe(3);
-
-                ctx.planContextDispatch({
-                    type: SCHEDULE_PLAN,
-                    data: plan,
-                });
 
                 const logic = resolveProgramActionLogic(plan!);
                 const interrupt = new Promise((_resolve: (value: any) => void, _reject: (reason?: void) => void) => {});
@@ -161,17 +161,17 @@ export function testTaskScheduler(
                     CREATE TABLE B AS SELECT 1;
                     CREATE TABLE C AS SELECT 1;
                 `);
-                az().instantiateProgram();
-                const plan = az().planProgram();
-                const graph = plan!.buffer.taskGraph()!;
+                const programInstance = az().instantiateProgram();
+                ctx.planContextDispatch({
+                    type: SCHEDULE_PLAN,
+                    data: [az(), programInstance],
+                });
+
+                const plan = ctx.planContext.plan!;
+                const graph = plan.buffer.taskGraph()!;
                 expect(program.buffer.statementsLength()).toBe(3);
                 expect(graph.setupTasksLength()).toBe(0);
                 expect(graph.programTasksLength()).toBe(3);
-
-                ctx.planContextDispatch({
-                    type: SCHEDULE_PLAN,
-                    data: plan,
-                });
 
                 const logic = resolveProgramActionLogic(plan!);
                 const interrupt = new Promise((_resolve: (value: any) => void, _reject: (reason?: void) => void) => {});

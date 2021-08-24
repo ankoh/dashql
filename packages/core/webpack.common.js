@@ -155,6 +155,7 @@ export function configure(params) {
                 'process.env.DASHQL_API_URL': JSON.stringify(params.dashqlAPI),
                 'process.env.GITHUB_OAUTH_CLIENT_ID': JSON.stringify(params.githubOAuthClientID),
                 'process.env.GITHUB_OAUTH_REDIRECT': JSON.stringify(params.githubOAuthRedirect),
+                'process.env.DEBUG_SCHEDULER': true,
             }),
             new MonacoWebpackPlugin({
                 features: ['clipboard', 'links'],

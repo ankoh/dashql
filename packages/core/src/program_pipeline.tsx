@@ -8,7 +8,6 @@ import {
     INSTANTIATE_PROGRAM,
     useProgramContextDispatch,
     usePlanContextDispatch,
-    TaskSchedulerStatus,
     SCHEDULE_PLAN,
 } from './model';
 import { TaskSchedulerDriver } from './task_scheduler';
@@ -74,11 +73,11 @@ export const ProgramPipeline: React.FC<Props> = (props: Props) => {
             // Wait at least MIN_DEBOUNCE_TIME after last instantiation
             const deltaMS = nowMS - lastInstantiation;
             if (deltaMS < MIN_INSTANTIATION_DELAY) {
-                debounce(nowMS, MIN_INSTANTIATION_DELAY - deltaMS);
+                debounce(nowMS, MIN_INSTANTIATION_DELAY);
                 return;
             }
             // Are there more errors than before?
-            if (programContext.program.buffer.errorsLength() > lastErrorCount) {
+            if (deltaMS < MAX_INSTANTIATION_DELAY && programContext.program.buffer.errorsLength() > lastErrorCount) {
                 debounce(nowMS, MAX_INSTANTIATION_DELAY - deltaMS);
                 return;
             }
@@ -88,7 +87,9 @@ export const ProgramPipeline: React.FC<Props> = (props: Props) => {
         const instance = analyzer.instantiateProgram(programContext.programInputValues);
         // Instantiation failed?
         // XXX log error
-        if (instance == null) return;
+        if (instance == null) {
+            return;
+        }
 
         // Otherwise store the new instance in redux
         programContextDispatch({
@@ -99,17 +100,9 @@ export const ProgramPipeline: React.FC<Props> = (props: Props) => {
 
     // Schedule program if scheduler is idle and instance differs
     React.useEffect(() => {
-        // Scheduler not idle?
-        if (planContext.schedulerStatus != TaskSchedulerStatus.IDLE) return;
-        // Same instance?
-        if (planContext.plan?.programInstance == programContext.programInstance) return;
-        // Plan the program
-        const plan = analyzer.planProgram();
-        if (!plan) return;
-        // Schedule the plan
         planContextDispatch({
             type: SCHEDULE_PLAN,
-            data: plan,
+            data: [analyzer, programContext.programInstance],
         });
     }, [planContext.schedulerStatus, programContext.programInstance]);
 
