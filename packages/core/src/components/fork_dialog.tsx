@@ -7,6 +7,16 @@ import styles from './fork_dialog.module.css';
 import icon_github from '../../static/svg/icons/github.svg';
 import icon_copy from '../../static/svg/icons/file_multiple.svg';
 import { useActiveGitHubProfile } from '../github';
+import {
+    forkLocal,
+    REPLACE_PROGRAM,
+    SAVE_SCRIPT,
+    useProgramContext,
+    useProgramContextDispatch,
+    useScriptRegistry,
+    useScriptRegistryDispatch,
+} from '../model';
+import { useOverlaySetter } from './overlay';
 
 enum ForkTargetType {
     GITHUB_GIST,
@@ -58,7 +68,24 @@ interface DialogProps {
 }
 
 export const ForkDialog: React.FC<DialogProps> = (_props: DialogProps) => {
+    const scriptRegistry = useScriptRegistry();
+    const programCtx = useProgramContext();
+    const programCtxDispatch = useProgramContextDispatch();
+    const scriptRegistryDispatch = useScriptRegistryDispatch();
+    const setOverlay = useOverlaySetter();
     const [forkTarget, setForkTarget] = React.useState<ForkTargetType | null>(null);
+
+    const forkScriptLocal = React.useCallback(() => {
+        const script = forkLocal(scriptRegistry, programCtx.script);
+        scriptRegistryDispatch({
+            type: SAVE_SCRIPT,
+            data: script,
+        });
+        programCtxDispatch({
+            type: REPLACE_PROGRAM,
+            data: [programCtx.program, script],
+        });
+    }, [setOverlay]);
 
     return (
         <AnimatePresence>
@@ -88,7 +115,11 @@ export const ForkDialog: React.FC<DialogProps> = (_props: DialogProps) => {
                                 <svg className={styles.fork_target_type_icon} width="20px" height="20px">
                                     <use xlinkHref={`${icon_copy}#sym`} />
                                 </svg>
-                                {forkTarget == null && <div className={styles.fork_target_type_name}>Local File</div>}
+                                {forkTarget == null && (
+                                    <div className={styles.fork_target_type_name} onClick={forkScriptLocal}>
+                                        Local File
+                                    </div>
+                                )}
                             </div>
                         )}
                         {forkTarget != null && (

@@ -44,6 +44,18 @@ export const generateBlankScript = (state: ScriptRegistry): Script => ({
     bytes: 0,
 });
 
+export const forkLocal = (state: ScriptRegistry, script: Script): Script => ({
+    ...script,
+    origin: {
+        originType: ScriptOriginType.LOCAL,
+        fileName: generateLocalFileName(state),
+        exampleName: null,
+        httpURL: null,
+        githubAccount: null,
+        githubGistName: null,
+    },
+});
+
 export const reduceScriptRegistry = (ctx: ScriptRegistry, action: ScriptRegistryAction): ScriptRegistry => {
     switch (action.type) {
         case SAVE_SCRIPT: {
