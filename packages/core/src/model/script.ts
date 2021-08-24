@@ -40,8 +40,10 @@ export interface Script {
 
 export function getScriptNamespace(script: Script): string | null {
     switch (script.origin.originType) {
+        case ScriptOriginType.LOCAL:
+            return '[local]';
         case ScriptOriginType.EXAMPLES:
-            return 'dashql';
+            return '[examples]';
         case ScriptOriginType.GITHUB_GIST:
             return script.origin.githubAccount;
         default:
