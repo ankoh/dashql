@@ -10,13 +10,16 @@
 
 .account_info {
     background: white;
-    border-right: 1px solid rgb(200, 200, 200);
 }
 
 .account_info_title {
     font-size: 120%;
     padding: 8px 20px;
     border-bottom: 1px solid rgb(200, 200, 200);
+}
+
+.scripts {
+    border-left: 1px solid rgb(200, 200, 200);
 }
 
 .script_collection {
