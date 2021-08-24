@@ -8,8 +8,17 @@ interface Props {
 export const Account: React.FC<Props> = () => {
     return (
         <div className={styles.root}>
-            <div className={styles.account_info}>
-                <div className={styles.account_info_title}>Account</div>
+            <div className={styles.account_panel}>
+                <div className={styles.account_panel_header}>Account</div>
+                <div className={styles.github_profile}>
+                    <div className={styles.github_profile_avatar}>
+                        <div className={styles.github_profile_avatar_img}></div>
+                    </div>
+                    <div className={styles.github_profile_login}></div>
+                    <div className={styles.github_profile_name}></div>
+                    <div className={styles.github_profile_stats}></div>
+                </div>
+                <div className={styles.analytics}>Analytics</div>
             </div>
             <div className={styles.scripts}>
                 <div className={styles.script_collection}>
