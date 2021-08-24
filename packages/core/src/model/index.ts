@@ -12,5 +12,6 @@ export * from './program';
 export * from './program_context';
 export * from './program_instance';
 export * from './script';
+export * from './script_registry';
 export * from './task';
 export * from './unique_blob';
