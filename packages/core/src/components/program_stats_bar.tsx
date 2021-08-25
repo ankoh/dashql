@@ -7,6 +7,7 @@ import styles from './program_stats_bar.module.css';
 
 import icon_arrow_right from '../../static/svg/icons/arrow_right.svg';
 import icon_open from '../../static/svg/icons/chevron_right_circle.svg';
+import { CenteredRectangleWaveSpinner } from './spinners';
 
 interface Props {
     scriptID: string;
@@ -60,7 +61,7 @@ export const ProgramStatsBar: React.FC<Props> = (props: Props) => {
     };
 
     if (!state) {
-        return <div />;
+        return <CenteredRectangleWaveSpinner className={styles.spinner} active={true} />;
     }
     return (
         <div className={styles.container}>

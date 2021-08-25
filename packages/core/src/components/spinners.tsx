@@ -8,9 +8,19 @@ interface IRectangleWaveSpinnerProps {
     active: boolean;
 }
 
+export const CenteredRectangleWaveSpinner: React.FC<IRectangleWaveSpinnerProps> = (
+    props: IRectangleWaveSpinnerProps,
+) => {
+    return (
+        <div className={styles.rw_container}>
+            <RectangleWaveSpinner className={props.className} active={props.active} color={props.color} />
+        </div>
+    );
+};
+
 export const RectangleWaveSpinner: React.FC<IRectangleWaveSpinnerProps> = (props: IRectangleWaveSpinnerProps) => {
     const s = {
-        backgroundColor: props.color || 'white',
+        backgroundColor: props.color || 'rgb(36, 41, 46)',
     };
     return (
         <div className={classNames(props.className, styles.rw)}>
