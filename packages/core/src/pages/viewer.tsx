@@ -2,7 +2,15 @@ import * as React from 'react';
 import styles from './viewer.module.css';
 import styles_cmd from '../components/cmdbar.module.css';
 import { AutoSizer } from '../utils/autosizer';
-import { Board, ScriptLoader, OverlayContainer, useOverlaySetter, ShareDialog, SystemBar } from '../components';
+import {
+    Board,
+    OverlayContainer,
+    ScriptLoader,
+    ScriptNotFound,
+    ShareDialog,
+    SystemBar,
+    useOverlaySetter,
+} from '../components';
 import { Link } from 'react-router-dom';
 import { Scrollbars } from 'rc-scrollbars';
 
@@ -32,6 +40,10 @@ export const Viewer: React.FC<Props> = () => {
     const columnCount = 12;
     const padding: [number, number] = [40, 40];
     const margin: [number, number] = [10, 10];
+
+    if (!programCtx.script) {
+        return <ScriptNotFound />;
+    }
     return (
         <div className={styles.container}>
             <Link className={styles.logo} to="/">

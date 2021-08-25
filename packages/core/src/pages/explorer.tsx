@@ -5,11 +5,12 @@ import { Route, Routes } from 'react-router-dom';
 import {
     BoardEditor,
     EditorLoader,
-    ProgramStatsBar,
-    OverlayContainer,
-    useOverlaySetter,
     ForkDialog,
+    OverlayContainer,
+    ProgramStatsBar,
+    ScriptNotFound,
     ShareDialog,
+    useOverlaySetter,
 } from '../components';
 import { AnimatePresence } from 'framer-motion';
 
@@ -71,8 +72,6 @@ export const Explorer: React.FC<Props> = (props: Props) => {
     const scriptRegistry = useScriptRegistry();
     const scriptRegistryDispatch = useScriptRegistryDispatch();
     const analyzer = useAnalyzer();
-    const scriptNamespace = getScriptNamespace(programCtx.script);
-    const scriptName = getScriptName(programCtx.script);
     const setOverlay = useOverlaySetter();
 
     // Define callbacks
@@ -103,6 +102,14 @@ export const Explorer: React.FC<Props> = (props: Props) => {
         });
     }, [setOverlay]);
 
+    // No script set?
+    if (!programCtx.script) {
+        return <ScriptNotFound />;
+    }
+    const scriptNamespace = getScriptNamespace(programCtx.script);
+    const scriptName = getScriptName(programCtx.script);
+
+    // Check script origin type
     const beans = [];
     let ownScript = false;
     let hasStats = true;

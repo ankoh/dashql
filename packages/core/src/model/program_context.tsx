@@ -6,11 +6,11 @@ import * as utils from '../utils';
 import { Action, Dispatch, ProviderProps } from './model_context';
 import { Program, InputValue } from './program';
 import { ProgramInstance } from './program_instance';
-import { Script, ScriptOriginType } from './script';
+import { Script } from './script';
 
 export type ProgramContext = {
     /// The file name
-    readonly script: Script;
+    readonly script: Script | null;
     /// The program
     readonly program: Program | null;
     /// The program input values
@@ -20,20 +20,7 @@ export type ProgramContext = {
 };
 
 const initialState: ProgramContext = {
-    script: {
-        text: '',
-        origin: {
-            originType: ScriptOriginType.LOCAL,
-            fileName: 'unnamed.dashql',
-            exampleName: null,
-            httpURL: null,
-            githubAccount: null,
-            githubGistName: null,
-        },
-        description: '',
-        modified: false,
-        lineCount: 0,
-    },
+    script: null,
     program: null,
     programInputValues: Immutable.List<InputValue>(),
     programInstance: null,
