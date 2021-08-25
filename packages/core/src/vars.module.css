@@ -5,7 +5,7 @@
     --board_ruler_bg: rgb(255, 255, 255);
     --board_ruler_corner_bg: hsl(210deg 12% 93%);
     --board_ruler_size: 20px;
-    --body_bg: hsl(210deg 12% 90%);
+    --body_bg: hsl(210deg 10% 90%);
     --border_color: rgb(220, 220, 220);
     --border_radius: 8px;
     --cmd_bar_bg: rgb(255, 255, 255);
@@ -22,10 +22,11 @@
     --datagrid_cell_headers_border: 1px solid rgb(215, 215, 215);
     --datagrid_cell_headers_fg: rgb(0, 0, 0);
     --datagrid_cell_nodata_bg: rgb(225, 225, 225);
+    --datagrid_col_label_bg: hsl(210deg 12% 85%);
     --datagrid_domain_bar_height: 6px;
     --datagrid_font_size: 95%;
-    --datagrid_col_label_bg: hsl(210deg 12% 85%);
     --editor_glyph_status_size: 65%;
+    --editor_loader_bg: hsl(210deg 10% 88%);
     --example_border_color: rgb(200, 200, 200);
     --example_icon_color: rgb(36, 41, 46);
     --explorer_board_bg: var(--body_bg);

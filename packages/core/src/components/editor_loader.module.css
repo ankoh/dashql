@@ -3,7 +3,7 @@
     width: 100%;
     height: 100%;
 
-    background-color: hsl(210deg 12% 88%);
+    background-color: var(--editor_loader_bg);
 }
 
 .editor_loader > div {
