@@ -16,9 +16,9 @@
     --cmd_hover_bg: rgb(36, 41, 46);
     --cmd_margin: 4px;
     --cmd_sublist_bg: rgb(36, 41, 46);
-    --datagrid_cell_anchor_bg: hsl(210deg 12% 93%);
+    --datagrid_cell_anchor_bg: var(--board_ruler_corner_bg);
     --datagrid_cell_border: 1px solid rgb(225, 225, 225);
-    --datagrid_cell_headers_bg: hsl(210deg 12% 93%);
+    --datagrid_cell_headers_bg: var(--board_ruler_corner_bg);
     --datagrid_cell_headers_border: 1px solid rgb(215, 215, 215);
     --datagrid_cell_headers_fg: rgb(0, 0, 0);
     --datagrid_cell_nodata_bg: rgb(225, 225, 225);
@@ -26,10 +26,9 @@
     --datagrid_domain_bar_height: 6px;
     --datagrid_font_size: 95%;
     --editor_glyph_status_size: 65%;
-    --editor_loader_bg: hsl(210deg 10% 88%);
     --example_border_color: rgb(200, 200, 200);
     --example_icon_color: rgb(36, 41, 46);
-    --example_card_bg_disabled: hsl(210deg 8% 86%);
+    --example_card_bg_disabled: hsl(210deg 4% 86%);
     --explorer_board_bg: var(--body_bg);
     --explorer_tool_fg: rgb(80, 80, 80);
     --explorer_tool_hover_bg: rgb(80, 80, 80);
