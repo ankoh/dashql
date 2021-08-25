@@ -27,7 +27,7 @@ export interface TaskExecutionContext {
     planContextDiff: PlanContextAction[];
 }
 
-type WiredTaskExecutionContext = TaskExecutionContext & {
+export type WiredTaskExecutionContext = TaskExecutionContext & {
     planContextDispatch: model.Dispatch<model.PlanContextAction>;
 };
 export async function wireTaskExecutionContext(
