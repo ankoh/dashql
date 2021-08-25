@@ -154,7 +154,7 @@ export const AppLauncher: React.FC<Props> = (props: Props) => {
         if (state.database == null || state.analyzer == null) return;
         updateStep(LaunchStepType.LOAD_SCRIPT, Status.RUNNING);
         (async () => {
-            const example = examples.EXAMPLE_SCRIPT_MAP.get('demo_unischema.dashql')!;
+            const example = examples.EXAMPLE_SCRIPT_MAP.get('demo_unischema')!;
             const script = await examples.getScript(example);
             const program = state.analyzer.parseProgram(script.text);
             programContextDispatch({
