@@ -1,4 +1,7 @@
+import * as proto from '@dashql/proto';
 import { InputValue, StatementStatus, UniqueBlob } from '../src/model';
+
+const COMPLETED = proto.task.TaskStatusCode.COMPLETED;
 
 interface DatabaseTest {
     script: string;
@@ -8,12 +11,12 @@ interface DatabaseTest {
 interface StepSpec {
     name: string;
     text: string;
-    input: InputValue[];
+    input?: InputValue[];
     expected: {
         status: StatementStatus[];
-        blobs: [number, UniqueBlob][];
-        cards: [number, UniqueBlob][];
-        data: DatabaseTest[];
+        blobs?: [number, UniqueBlob][];
+        cards?: [number, any][];
+        data?: DatabaseTest[];
     };
 }
 
@@ -37,11 +40,11 @@ export const TEST_CASES: SchedulerSpec[] = [
                     );
                     VIZ foo USING TABLE;
                 `,
-                input: [],
                 expected: {
-                    status: [],
-                    blobs: [],
-                    cards: [],
+                    status: [
+                        { status: COMPLETED, totalTasks: 1, totalPerStatus: [] },
+                        { status: COMPLETED, totalTasks: 1, totalPerStatus: [] },
+                    ],
                     data: [
                         {
                             script: 'SELECT * FROM foo',
