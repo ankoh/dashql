@@ -14,7 +14,6 @@ import styles from './script_loader.module.css';
 const DEFAULT_EXAMPLE = 'demo_unischema';
 
 interface Props {
-    progressComponent?: (progress: number) => React.ReactElement;
     errorComponent?: (error: string) => React.ReactElement;
     children: React.ReactElement;
 }
@@ -236,12 +235,11 @@ export const ScriptLoader: React.FC<Props> = (props: Props) => {
     }, [state.status, state.request]);
 
     switch (state.status) {
+        case ScriptLoaderStatus.IN_FLIGHT:
         case ScriptLoaderStatus.PENDING:
             return <CenteredRectangleWaveSpinner className={styles.spinner} active={true} color={'rgb(36, 41, 46)'} />;
         case ScriptLoaderStatus.FAILED:
-            return props.errorComponent?.(state.error) || <div />;
-        case ScriptLoaderStatus.IN_FLIGHT:
-            return props.progressComponent?.(0.0) || <div />;
+            return <div />;
         case ScriptLoaderStatus.SUCCEEDED:
             return props.children;
     }
