@@ -1,6 +1,7 @@
 export * from './aggregates';
 export * from './autosizer';
 export * from './binary_search';
+export * from './clipboard';
 export * from './format';
 export * from './http';
 export * from './lru_cache';
