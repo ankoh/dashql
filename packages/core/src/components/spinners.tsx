@@ -3,6 +3,7 @@ import classNames from 'classnames';
 import styles from './spinners.module.css';
 
 interface IRectangleWaveSpinnerProps {
+    className?: string;
     color?: string;
     active: boolean;
 }
@@ -12,7 +13,7 @@ export const RectangleWaveSpinner: React.FC<IRectangleWaveSpinnerProps> = (props
         backgroundColor: props.color || 'white',
     };
     return (
-        <div className={styles.rw}>
+        <div className={classNames(props.className, styles.rw)}>
             <div
                 className={classNames(styles.rw_rect_1, {
                     [styles.rw_rect_active]: props.active,

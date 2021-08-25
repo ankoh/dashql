@@ -12,7 +12,7 @@ interface Props {
 function loadingSpinner(props: Props) {
     return (
         <div className={classnames(styles.editor_loader, props.className)}>
-            <RectangleWaveSpinner active={true} />
+            <RectangleWaveSpinner className={styles.spinner} active={true} color={'rgb(36, 41, 46)'} />
         </div>
     );
 }
