@@ -39,7 +39,7 @@
 }
 
 .script_card_disabled {
-    background: hsl(210deg 12% 86%);
+    background: var(--example_card_bg_disabled);
 }
 
 .script_card_hidden {
