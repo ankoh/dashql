@@ -160,4 +160,14 @@
             </graph>
         </step>
     </test>
+    <test name="bug_quote_termination">
+        <input>
+            FETCH json_stats FROM HTTP '
+        </input>
+    </test>
+    <test name="bug_dquote_termination">
+        <input>
+            FETCH json_stats FROM HTTP "
+        </input>
+    </test>
 </tests>

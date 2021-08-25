@@ -311,7 +311,7 @@ auto loc = sx::Location();
 <xc>{xcinside}  {}
 <xc>{op_chars}  {}
 <xc>\*+         {}
-<xc><<EOF>>     { ctx.AddError(ctx.EndLiteral(loc), "unterminated bit string literal"); }
+<xc><<EOF>>     { BEGIN(INITIAL); ctx.AddError(ctx.EndLiteral(loc), "unterminated bit string literal"); }
 
 
 {xbstart}       { BEGIN(xb); ctx.BeginLiteral(loc); }
@@ -321,13 +321,13 @@ auto loc = sx::Location();
 <xb>{xbinside}  {}
 <xh>{quotecontinue} |
 <xb>{quotecontinue} {}
-<xb><<EOF>>     { ctx.AddError(ctx.EndLiteral(loc), "unterminated bit string literal"); }
+<xb><<EOF>>     { BEGIN(INITIAL); ctx.AddError(ctx.EndLiteral(loc), "unterminated bit string literal"); }
 
 
 {xhstart}       { BEGIN(xh); ctx.BeginLiteral(loc); }
 <xh>{quotestop} |
 <xh>{quotefail} { BEGIN(INITIAL); return Parser::make_XCONST(ctx.EndLiteral(loc, true)); }
-<xh><<EOF>>     { ctx.AddError(ctx.EndLiteral(loc), "unterminated hexadecimal bit string literal"); }
+<xh><<EOF>>     { BEGIN(INITIAL); ctx.AddError(ctx.EndLiteral(loc), "unterminated hexadecimal bit string literal"); }
 
 
 {xqstart}       { BEGIN(xq); ctx.BeginLiteral(loc); }
@@ -335,7 +335,7 @@ auto loc = sx::Location();
 <xq>{quotefail} { BEGIN(INITIAL); return Parser::make_SCONST(ctx.EndLiteral(loc, true)); }
 <xq>{xqdouble}  {}
 <xq>{xqinside}  {}
-<xq><<EOF>>     { ctx.AddError(ctx.EndLiteral(loc), "unterminated quoted string"); }
+<xq><<EOF>>     { BEGIN(INITIAL); ctx.AddError(ctx.EndLiteral(loc), "unterminated quoted string"); }
 
 
 {xdstart}       { BEGIN(xd); ctx.BeginLiteral(loc); }
@@ -348,7 +348,7 @@ auto loc = sx::Location();
                         ctx.AddError(l, "zero-length delimited identifier");
                     return Parser::make_IDENT(l);
                 }
-<xd><<EOF>>     { ctx.AddError(ctx.EndLiteral(loc), "unterminated delimited identifier"); }
+<xd><<EOF>>     { BEGIN(INITIAL); ctx.AddError(ctx.EndLiteral(loc), "unterminated delimited identifier"); }
 
 {typecast}          { return Parser::make_TYPECAST(loc); }
 {dot_dot}           { return Parser::make_DOT_DOT(loc); }
