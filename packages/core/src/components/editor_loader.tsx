@@ -1,6 +1,5 @@
 import * as React from 'react';
-import { RectangleWaveSpinner } from './spinners';
-import classnames from 'classnames';
+import { CenteredRectangleWaveSpinner } from './spinners';
 
 import styles from './editor_loader.module.css';
 
@@ -10,11 +9,7 @@ interface Props {
 }
 
 function loadingSpinner(props: Props) {
-    return (
-        <div className={classnames(styles.editor_loader, props.className)}>
-            <RectangleWaveSpinner className={styles.spinner} active={true} color={'rgb(36, 41, 46)'} />
-        </div>
-    );
+    return <CenteredRectangleWaveSpinner className={styles.spinner} active={true} />;
 }
 
 const Editor = React.lazy(() => import('./editor'));

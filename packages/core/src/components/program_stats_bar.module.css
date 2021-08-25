@@ -11,6 +11,11 @@
     font-size: 95%;
 }
 
+.spinner {
+    width: 28px;
+    height: 28px;
+}
+
 .prefix {
     padding: 0px 6px;
     background: var(--statsbar_views_teaser_bg);

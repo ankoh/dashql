@@ -4,6 +4,15 @@
     --rw_rect_height: 40%;
 }
 
+.rw_container {
+    width: 100%;
+    height: 100%;
+
+    display: grid;
+    align-items: center;
+    justify-content: center;
+}
+
 .rw {
     display: flex;
     flex-direction: row;

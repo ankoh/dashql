@@ -114,7 +114,7 @@
 .script_collection_grid_placeholder {
     max-width: 600px;
     padding: 32px;
-    background: hsl(210deg 12% 86%);
+    background: var(--placeholder_script_bg);
     border: 1px solid rgb(180, 180, 180);
     border-style: dashed;
     border-radius: 16px;
