@@ -89,7 +89,7 @@ export const initialLaunchProgress: LaunchProgress = {
             LaunchStepType.LOAD_SCRIPT,
             {
                 type: LaunchStepType.LOAD_SCRIPT,
-                label: 'Load example script',
+                label: 'Load initial script',
                 status: Status.NONE,
                 startedAt: null,
                 lastUpdateAt: null,
