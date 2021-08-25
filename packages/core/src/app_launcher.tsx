@@ -152,6 +152,7 @@ export const AppLauncher: React.FC<Props> = (props: Props) => {
     /// Load the example script when database and analyzer are ready
     React.useEffect(() => {
         if (state.database == null || state.analyzer == null) return;
+        updateStep(LaunchStepType.LOAD_EXAMPLE, Status.RUNNING);
         (async () => {
             const example = examples.EXAMPLE_SCRIPT_MAP.get('demo_unischema.dashql')!;
             const script = await examples.getScript(example);
@@ -160,6 +161,7 @@ export const AppLauncher: React.FC<Props> = (props: Props) => {
                 type: model.REPLACE_PROGRAM,
                 data: [program, script],
             });
+            updateStep(LaunchStepType.LOAD_EXAMPLE, Status.COMPLETED);
         })();
     }, [state.database, state.analyzer]);
 

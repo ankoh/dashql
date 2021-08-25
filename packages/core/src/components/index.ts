@@ -13,4 +13,5 @@ export * from './overlay';
 export * from './fork_dialog';
 export * from './share_dialog';
 export * from './system_bar';
+export * from './script_not_found';
 export { withNavBar } from './navbar';
