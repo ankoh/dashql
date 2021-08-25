@@ -29,6 +29,7 @@
     --editor_loader_bg: hsl(210deg 10% 88%);
     --example_border_color: rgb(200, 200, 200);
     --example_icon_color: rgb(36, 41, 46);
+    --example_card_bg_disabled: hsl(210deg 8% 86%);
     --explorer_board_bg: var(--body_bg);
     --explorer_tool_fg: rgb(80, 80, 80);
     --explorer_tool_hover_bg: rgb(80, 80, 80);
