@@ -3,8 +3,11 @@ import * as model from '../model';
 import * as utils from '../utils';
 import axios from 'axios';
 import { useLocation } from 'react-router-dom';
+import { RectangleWaveSpinner } from './spinners';
 import { ScriptOriginType } from '../model';
 import { useAnalyzer } from '../analyzer';
+
+import styles from './script_loader.module.css';
 
 interface Props {
     progressComponent?: (progress: number) => React.ReactElement;
@@ -114,7 +117,11 @@ export const ScriptLoader: React.FC<Props> = (props: Props) => {
 
     switch (state.status) {
         case ScriptLoaderStatus.PENDING:
-            return <div />;
+            return (
+                <div className={styles.spinner_container}>
+                    <RectangleWaveSpinner className={styles.spinner} active={true} color={'rgb(36, 41, 46)'} />
+                </div>
+            );
         case ScriptLoaderStatus.FAILED:
             return props.errorComponent?.(state.error) || <div />;
         case ScriptLoaderStatus.IN_FLIGHT:

@@ -1,16 +1,15 @@
 :root {
-    --rv_rect: {
-        flex: 1 0 auto;
-        margin: 0px 3%;
-        border-radius: 3px;
-        height: 40%;
-    }
+    --rw_rect_margin: 0px 3%;
+    --rw_rect_border_radius: 3px;
+    --rw_rect_height: 40%;
 }
 
 .rw {
     display: flex;
     flex-direction: row;
     align-items: center;
+    width: 50px;
+    height: 50px;
 }
 
 .rw_rect_active {
@@ -20,29 +19,48 @@
 }
 
 .rw_rect_1 {
-    @apply --rv_rect;
+    flex: 1 0 auto;
+    margin: var(--rw_rect_margin);
+    border-radius: var(--rw_rect_border_radius);
+    height: var(var(--rw_rect_height));
 }
 
 .rw_rect_2 {
-    @apply --rv_rect;
+    flex: 1 0 auto;
+    margin: var(--rw_rect_margin);
+    border-radius: var(--rw_rect_border_radius);
+    height: var(var(--rw_rect_height));
+
     -webkit-animation-delay: -1.1s !important;
     animation-delay: -1.1s !important;
 }
 
 .rw_rect_3 {
-    @apply --rv_rect;
+    flex: 1 0 auto;
+    margin: var(--rw_rect_margin);
+    border-radius: var(--rw_rect_border_radius);
+    height: var(var(--rw_rect_height));
+
     -webkit-animation-delay: -1s !important;
     animation-delay: -1s !important;
 }
 
 .rw_rect_4 {
-    @apply --rv_rect;
+    flex: 1 0 auto;
+    margin: var(--rw_rect_margin);
+    border-radius: var(--rw_rect_border_radius);
+    height: var(var(--rw_rect_height));
+
     -webkit-animation-delay: -0.9s !important;
     animation-delay: -0.9s !important;
 }
 
 .rw_rect_5 {
-    @apply --rv_rect;
+    flex: 1 0 auto;
+    margin: var(--rw_rect_margin);
+    border-radius: var(--rw_rect_border_radius);
+    height: var(var(--rw_rect_height));
+
     -webkit-animation-delay: -0.8s !important;
     animation-delay: -0.8s !important;
 }
