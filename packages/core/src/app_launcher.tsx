@@ -1,7 +1,6 @@
 import * as React from 'react';
 import * as duckdb from '@dashql/duckdb/dist/duckdb.module.js';
 import * as model from './model';
-import * as examples from './example_scripts';
 
 import { Analyzer } from './analyzer/bindings_browser';
 import { JMESPath } from './jmespath/bindings_browser';
@@ -77,7 +76,6 @@ export const AppLauncher: React.FC<Props> = (props: Props) => {
     });
     const dbMetadata = model.useDatabaseMetadata();
     const dbMetadataDispatch = model.useDatabaseMetadataDispatch();
-    const programContextDispatch = model.useProgramContextDispatch();
     const launchProgress = useLaunchProgress();
     const launchProgressDispatch = useLaunchProgressDispatch();
     const logger = model.useLogger();
@@ -148,22 +146,6 @@ export const AppLauncher: React.FC<Props> = (props: Props) => {
             }
         })();
     }, [state.config, state.analyzer]);
-
-    /// Load the example script when database and analyzer are ready
-    React.useEffect(() => {
-        if (state.database == null || state.analyzer == null) return;
-        updateStep(LaunchStepType.LOAD_SCRIPT, Status.RUNNING);
-        (async () => {
-            const example = examples.EXAMPLE_SCRIPT_MAP.get('demo_unischema')!;
-            const script = await examples.getScript(example);
-            const program = state.analyzer.parseProgram(script.text);
-            programContextDispatch({
-                type: model.REPLACE_PROGRAM,
-                data: [program, script],
-            });
-            updateStep(LaunchStepType.LOAD_SCRIPT, Status.COMPLETED);
-        })();
-    }, [state.database, state.analyzer]);
 
     // Render the loading spinner
     // XXX wasm instantiation progress with readable stream proxy!

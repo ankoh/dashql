@@ -2,15 +2,7 @@ import * as React from 'react';
 import styles from './viewer.module.css';
 import styles_cmd from '../components/cmdbar.module.css';
 import { AutoSizer } from '../utils/autosizer';
-import {
-    Board,
-    OverlayContainer,
-    ScriptLoader,
-    ScriptNotFound,
-    ShareDialog,
-    SystemBar,
-    useOverlaySetter,
-} from '../components';
+import { Board, OverlayContainer, ScriptNotFound, ShareDialog, SystemBar, useOverlaySetter } from '../components';
 import { Link } from 'react-router-dom';
 import { Scrollbars } from 'rc-scrollbars';
 
@@ -51,51 +43,47 @@ export const Viewer: React.FC<Props> = () => {
                     <use xlinkHref={`${logo}#sym`} />
                 </svg>
             </Link>
-            <ScriptLoader>
-                <>
-                    <div className={styles.board}>
-                        <AutoSizer>
-                            {({ width, height }) => (
-                                <div style={{ width, height }}>
-                                    <Scrollbars style={{ height, width }}>
-                                        <Board
-                                            className={styles.board_layout}
-                                            width={width}
-                                            rowHeight={rowHeight}
-                                            columnCount={columnCount}
-                                            containerPadding={padding}
-                                            elementMargin={margin}
-                                        />
-                                    </Scrollbars>
-                                </div>
-                            )}
-                        </AutoSizer>
-                    </div>
-                    <div className={styles.cmdbar}>
-                        <div className={styles_cmd.cmdbar_cmdset}>
-                            {programCtx.script.origin.originType == ScriptOriginType.GITHUB_GIST && (
-                                <div className={styles_cmd.cmdbar_cmd}>
-                                    <svg width="20px" height="20px">
-                                        <use xlinkHref={`${icon_star_outline}#sym`} />
-                                    </svg>
-                                </div>
-                            )}
-                            <div className={styles_cmd.cmdbar_cmd} onClick={showShareDialog}>
-                                <svg width="20px" height="20px">
-                                    <use xlinkHref={`${icon_share}#sym`} />
-                                </svg>
-                            </div>
-                            <Link to="/explorer" className={styles_cmd.cmdbar_cmd}>
-                                <svg width="20px" height="20px">
-                                    <use xlinkHref={`${icon_code}#sym`} />
-                                </svg>
-                            </Link>
+            <div className={styles.board}>
+                <AutoSizer>
+                    {({ width, height }) => (
+                        <div style={{ width, height }}>
+                            <Scrollbars style={{ height, width }}>
+                                <Board
+                                    className={styles.board_layout}
+                                    width={width}
+                                    rowHeight={rowHeight}
+                                    columnCount={columnCount}
+                                    containerPadding={padding}
+                                    elementMargin={margin}
+                                />
+                            </Scrollbars>
                         </div>
+                    )}
+                </AutoSizer>
+            </div>
+            <div className={styles.cmdbar}>
+                <div className={styles_cmd.cmdbar_cmdset}>
+                    {programCtx.script.origin.originType == ScriptOriginType.GITHUB_GIST && (
+                        <div className={styles_cmd.cmdbar_cmd}>
+                            <svg width="20px" height="20px">
+                                <use xlinkHref={`${icon_star_outline}#sym`} />
+                            </svg>
+                        </div>
+                    )}
+                    <div className={styles_cmd.cmdbar_cmd} onClick={showShareDialog}>
+                        <svg width="20px" height="20px">
+                            <use xlinkHref={`${icon_share}#sym`} />
+                        </svg>
                     </div>
-                    <SystemBar className={styles.systembar} light={true} />
-                    <OverlayContainer id={shareOverlay} className={styles.overlay} />
-                </>
-            </ScriptLoader>
+                    <Link to="/explorer" className={styles_cmd.cmdbar_cmd}>
+                        <svg width="20px" height="20px">
+                            <use xlinkHref={`${icon_code}#sym`} />
+                        </svg>
+                    </Link>
+                </div>
+            </div>
+            <SystemBar className={styles.systembar} light={true} />
+            <OverlayContainer id={shareOverlay} className={styles.overlay} />
         </div>
     );
 };

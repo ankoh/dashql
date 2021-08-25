@@ -6,10 +6,12 @@ import axios from 'axios';
 import lz from 'lz-string';
 import { useLocation } from 'react-router-dom';
 import { CenteredRectangleWaveSpinner } from './spinners';
-import { generateLocalFileName, ScriptOriginType, useScriptRegistry } from '../model';
+import { generateLocalFileName, ScriptOriginType, useProgramContext, useScriptRegistry } from '../model';
 import { useAnalyzer } from '../analyzer';
 
 import styles from './script_loader.module.css';
+
+const DEFAULT_EXAMPLE = 'demo_unischema';
 
 interface Props {
     progressComponent?: (progress: number) => React.ReactElement;
@@ -35,6 +37,7 @@ export const ScriptLoader: React.FC<Props> = (props: Props) => {
     const analyzer = useAnalyzer();
     const location = useLocation();
     const scriptRegistry = useScriptRegistry();
+    const programContext = useProgramContext();
     const programContextDispatch = model.useProgramContextDispatch();
     const [state, setState] = React.useState<State>({
         location: null,
@@ -45,8 +48,9 @@ export const ScriptLoader: React.FC<Props> = (props: Props) => {
 
     React.useEffect(() => {
         if (location == state.location) return;
-
         const searchParams = new URLSearchParams(location.search);
+
+        // URL refers to a raw script text?
         if (searchParams.has('text')) {
             const text = lz.decompressFromBase64(searchParams.get('text')!) || '-- Decoding failed';
             const program = analyzer.parseProgram(text);
@@ -75,6 +79,7 @@ export const ScriptLoader: React.FC<Props> = (props: Props) => {
             return;
         }
 
+        // URL refers to a GitHub gist?
         if (searchParams.has('gist')) {
             const gist = searchParams.get('gist')!;
             // XXX Account
@@ -94,6 +99,7 @@ export const ScriptLoader: React.FC<Props> = (props: Props) => {
             return;
         }
 
+        // URL refers to an example?
         if (searchParams.has('example')) {
             const exampleName = searchParams.get('example')!;
             setState({
@@ -110,6 +116,23 @@ export const ScriptLoader: React.FC<Props> = (props: Props) => {
             return;
         }
 
+        // Load default example?
+        if (programContext.script == null) {
+            setState({
+                ...state,
+                location,
+                status: ScriptLoaderStatus.PENDING,
+                request: {
+                    originType: ScriptOriginType.EXAMPLES,
+                    fileName: DEFAULT_EXAMPLE,
+                    exampleName: DEFAULT_EXAMPLE,
+                },
+                error: null,
+            });
+            return;
+        }
+
+        // Otherwise assume that everything is fine
         setState({
             ...state,
             location,
@@ -119,6 +142,7 @@ export const ScriptLoader: React.FC<Props> = (props: Props) => {
         });
     }, [state.location]);
 
+    // Do the asynchronous load
     React.useEffect(() => {
         if (state.status != ScriptLoaderStatus.PENDING || !state.request) return;
 
@@ -222,3 +246,14 @@ export const ScriptLoader: React.FC<Props> = (props: Props) => {
             return props.children;
     }
 };
+
+export function withScriptLoader<P>(Component: React.ComponentType<P>): React.FunctionComponent<P> {
+    // eslint-disable-next-line react/display-name
+    return (props: P) => {
+        return (
+            <ScriptLoader>
+                <Component {...props} />
+            </ScriptLoader>
+        );
+    };
+}

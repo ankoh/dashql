@@ -11,7 +11,7 @@ import {
 } from './model';
 import { Route, BrowserRouter, Routes, Navigate } from 'react-router-dom';
 import { Explorer, Examples, Viewer, NotFound, Account } from './pages';
-import { withNavBar, OverlayProvider } from './components';
+import { withNavBar, OverlayProvider, withScriptLoader } from './components';
 import { AppLauncher } from './app_launcher';
 
 import 'bootstrap/dist/css/bootstrap.min.css';
@@ -42,7 +42,8 @@ const DataProviders = (props: { children: React.ReactElement }) => (
     </LogProvider>
 );
 
-const ExplorerPage = withNavBar(Explorer);
+const ViewerPage = withScriptLoader(Viewer);
+const ExplorerPage = withNavBar(withScriptLoader(Explorer));
 const ExamplesPage = withNavBar(Examples);
 const AccountPage = withNavBar(Account);
 // const ExplorerPage = withNavBar(withBanner(Explorer));
@@ -55,7 +56,7 @@ ReactDOM.render(
                 <Routes>
                     <Route path="/explorer/*" element={<ExplorerPage />} />
                     <Route path="/examples" element={<ExamplesPage />} />
-                    <Route path="/viewer/*" element={<Viewer />} />
+                    <Route path="/viewer/*" element={<ViewerPage />} />
                     <Route path="/account/*" element={<AccountPage />} />
                     <Route path="/404" element={<NotFound />} />
                     <Route path="/" element={<Navigate to="/explorer" />} />
