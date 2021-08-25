@@ -35,7 +35,7 @@ VIZ Enrolments USING TABLE (
 -- ... or a bar chart
 VIZ StudentCounts USING VEGA (
     title = 'Auslastung',
-    position = (row = 0, column = 0, width = 6, height = 4),
+    position = (row = 0, column = 0, width = 12, height = 4),
     mark = 'bar',
     encoding = (
         y = (
@@ -49,25 +49,6 @@ VIZ StudentCounts USING VEGA (
             type ='quantitative',
             scale.zero = true,
             axis.tick_min_step = 1,
-        ),
-    )
-);
-
--- ... or a donut chart
-VIZ SWSCounts USING VEGA (
-    title = 'Wochenstunden',
-    position = (row = 0, column = 6, width = 6, height = 4),
-    mark = (type= 'arc', inner_radius=50),
-    encoding = (
-        color = (
-            field = 'SWS',
-            type = 'ordinal',
-        ),
-        theta = (
-            title = 'Vorlesungen',
-            field = 'cnt',
-            type = 'quantitative',
-            scale.zero = true,
         ),
     )
 );
