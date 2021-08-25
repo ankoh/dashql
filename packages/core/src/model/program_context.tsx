@@ -26,7 +26,7 @@ const initialState: ProgramContext = {
     programInstance: null,
 };
 
-export const REPLACE_PROGRAM = Symbol('REPLACE_SCRIPT');
+export const REPLACE_PROGRAM = Symbol('REPLACE_PROGRAM');
 export const MODIFY_PROGRAM = Symbol('MODIFY_PROGRAM');
 export const INSTANTIATE_PROGRAM = Symbol('INSTANTIATE_PROGRAM');
 export const REWRITE_PROGRAM = Symbol('REWRITE_PROGRAM');

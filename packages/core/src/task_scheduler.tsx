@@ -429,14 +429,14 @@ export const TaskSchedulerDriver: React.FC<Props> = (props: Props) => {
 
     // Advance the scheduler whenever there's work
     const stateMachine = React.useRef<TaskSchedulerStateMachine>(new TaskSchedulerStateMachine());
-    const lock = React.useRef<boolean>(false);
+    const [locked, setLocked] = React.useState<boolean>(false);
     React.useEffect(() => {
         // Early abort if locked or currently idle.
         // Plans are started with the SCHEDULE_PLAN action in the reducer.
-        if (lock.current || planContext.schedulerStatus == TaskSchedulerStatus.IDLE) {
+        if (locked || planContext.schedulerStatus == TaskSchedulerStatus.IDLE) {
             return;
         }
-        lock.current = true;
+        setLocked(true);
         ctx.current.planContext = planContext;
 
         // Schedule next tasks.
@@ -457,13 +457,13 @@ export const TaskSchedulerDriver: React.FC<Props> = (props: Props) => {
         // Block asynchronously on next task
         (async () => {
             const status = await work();
-            lock.current = false;
             dispatch({
                 type: SCHEDULER_STEP_DONE,
                 data: [status, ctx.current.planContextDiff],
             });
+            setLocked(false);
         })();
-    }, [planContext]);
+    }, [planContext, locked]);
 
     return props.children;
 };

@@ -23,7 +23,7 @@ interface Links {
 }
 
 const buildLinks = (script: Script, inline: boolean | null = null): Links => {
-    const baseURL = 'https://app.dashql.com';
+    const baseURL = process.env.DASHQL_APP_URL;
     const viewerURL = new URL(`${baseURL}/viewer`);
     const explorerURL = new URL(`${baseURL}/explorer`);
 
