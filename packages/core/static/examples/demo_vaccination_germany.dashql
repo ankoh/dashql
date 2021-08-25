@@ -31,4 +31,6 @@ VIZ vaccinations_desc USING VEGA (
 );
 
 -- Raw data table
-VIZ vaccinations_desc USING TABLE;
+VIZ vaccinations_desc USING TABLE (
+    position = (row = 4, column = 0, width = 12, height = 4),
+)
