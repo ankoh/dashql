@@ -28,7 +28,7 @@
     --editor_glyph_status_size: 65%;
     --example_border_color: rgb(200, 200, 200);
     --example_icon_color: rgb(36, 41, 46);
-    --example_card_bg_disabled: hsl(210deg 4% 86%);
+    --example_card_bg_disabled: hsl(210deg 6% 86%);
     --explorer_board_bg: var(--body_bg);
     --explorer_tool_fg: rgb(80, 80, 80);
     --explorer_tool_hover_bg: rgb(80, 80, 80);

@@ -16,7 +16,7 @@ export enum LaunchStepType {
     CONFIGURE_APP = 0,
     INIT_ANALYZER = 1,
     INIT_DATABASE = 2,
-    LOAD_EXAMPLE = 3,
+    LOAD_SCRIPT = 3,
 }
 
 /// A launch step info
@@ -46,7 +46,7 @@ export const LAUNCH_STEPS = [
     LaunchStepType.CONFIGURE_APP,
     LaunchStepType.INIT_ANALYZER,
     LaunchStepType.INIT_DATABASE,
-    LaunchStepType.LOAD_EXAMPLE,
+    LaunchStepType.LOAD_SCRIPT,
 ];
 
 export const initialLaunchProgress: LaunchProgress = {
@@ -86,9 +86,9 @@ export const initialLaunchProgress: LaunchProgress = {
             },
         ],
         [
-            LaunchStepType.LOAD_EXAMPLE,
+            LaunchStepType.LOAD_SCRIPT,
             {
-                type: LaunchStepType.LOAD_EXAMPLE,
+                type: LaunchStepType.LOAD_SCRIPT,
                 label: 'Load example script',
                 status: Status.NONE,
                 startedAt: null,
