@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { Route, Routes } from 'react-router-dom';
 import {
     BoardEditor,
-    EditorLoader,
+    LazyLoader,
     ForkDialog,
     OverlayContainer,
     ProgramStatsBar,
@@ -38,6 +38,8 @@ import {
     useScriptRegistryDispatch,
 } from '../model';
 import { useAnalyzer } from '../analyzer';
+
+const LazyEditor = React.lazy(() => import('../components/editor'));
 
 const forkOverlay = Symbol();
 const shareOverlay = Symbol();
@@ -194,7 +196,9 @@ export const Explorer: React.FC<Props> = (props: Props) => {
                             path="/"
                             element={
                                 <OverlayContainer id={forkOverlay} className={styles.program_editor}>
-                                    <EditorLoader readOnly={editorReadOnly} />
+                                    <LazyLoader>
+                                        <LazyEditor readOnly={editorReadOnly} />
+                                    </LazyLoader>
                                 </OverlayContainer>
                             }
                         />
