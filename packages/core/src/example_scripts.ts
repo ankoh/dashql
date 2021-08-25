@@ -69,7 +69,7 @@ export interface ExampleScriptMetadata {
 
 export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
     {
-        name: 'demo_unischema.dashql',
+        name: 'demo_unischema',
         collection: 'Demos',
         title: 'University Schema',
         description: 'An example with the university schema',
@@ -82,7 +82,7 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         enabled: true,
     },
     {
-        name: 'demo_explore_json.dashql',
+        name: 'demo_explore_json',
         collection: 'Demos',
         title: 'Explore JSON',
         description: 'A example that explores a JSON document',
@@ -94,7 +94,7 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         enabled: true,
     },
     {
-        name: 'demo_vaccination_germany.dashql',
+        name: 'demo_vaccination_germany',
         collection: 'Demos',
         title: 'Vaccination Germany',
         description: 'A script that displays official vaccination data',
@@ -104,7 +104,7 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         enabled: true,
     },
     {
-        name: 'demo_halowards.dashql',
+        name: 'demo_halowards',
         collection: 'Demos',
         title: 'HaloWars Player',
         description: 'A script that shows how to query REST APIs',
@@ -114,7 +114,7 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         enabled: true,
     },
     {
-        name: 'transform_jmespath.dashql',
+        name: 'transform_jmespath',
         collection: 'Transform',
         title: 'JMESPath',
         description: 'JMESPath Expressions',
@@ -124,7 +124,7 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         enabled: true,
     },
     {
-        name: 'viz_line.dashql',
+        name: 'viz_line',
         collection: 'Visualize',
         title: 'Line Charts',
         description: 'A test hello world script',
@@ -134,7 +134,7 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         enabled: false,
     },
     {
-        name: 'viz_area.dashql',
+        name: 'viz_area',
         collection: 'Visualize',
         title: 'Area Charts',
         description: 'A second test hello world script',
@@ -144,7 +144,7 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         enabled: false,
     },
     {
-        name: 'viz_bar.dashql',
+        name: 'viz_bar',
         collection: 'Visualize',
         title: 'Bar Charts',
         description: 'Fooo',
@@ -154,7 +154,7 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         enabled: false,
     },
     {
-        name: 'viz_pie.dashql',
+        name: 'viz_pie',
         collection: 'Visualize',
         title: 'Pie Charts',
         description: 'Fooo',
@@ -164,7 +164,7 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         enabled: false,
     },
     {
-        name: 'viz_scatter.dashql',
+        name: 'viz_scatter',
         collection: 'Visualize',
         title: 'Scatter Plots',
         description: 'Fooo',
@@ -174,7 +174,7 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         enabled: false,
     },
     {
-        name: 'viz_histogram.dashql',
+        name: 'viz_histogram',
         collection: 'Visualize',
         title: 'Histograms',
         description: 'Fooo',
@@ -184,7 +184,7 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         enabled: false,
     },
     {
-        name: 'viz_streamgraph.dashql',
+        name: 'viz_streamgraph',
         collection: 'Visualize',
         title: 'Streamgraphs',
         description: 'Fooo',
@@ -194,7 +194,7 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         enabled: false,
     },
     {
-        name: 'viz_heatmap.dashql',
+        name: 'viz_heatmap',
         collection: 'Visualize',
         title: 'Heatmaps',
         description: 'Fooo',
@@ -204,7 +204,7 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         enabled: false,
     },
     {
-        name: 'viz_interaction.dashql',
+        name: 'viz_interaction',
         collection: 'Visualize',
         title: 'Interactivity',
         description: 'FOOOOO',
@@ -214,7 +214,7 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         enabled: false,
     },
     {
-        name: 'fetch_http_static.dashql',
+        name: 'fetch_http_static',
         collection: 'Fetch',
         title: 'Static HTTP',
         description: 'FOOOOO',
@@ -224,7 +224,7 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         enabled: false,
     },
     {
-        name: 'fetch_http_dynamic.dashql',
+        name: 'fetch_http_dynamic',
         collection: 'Fetch',
         title: 'Dynamic HTTP',
         description: 'FOOOOO',
@@ -234,7 +234,7 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         enabled: false,
     },
     {
-        name: 'load_csv.dashql',
+        name: 'load_csv',
         collection: 'Load',
         title: 'CSV Parsing',
         description: 'FOOOOO',
@@ -244,7 +244,7 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         enabled: false,
     },
     {
-        name: 'load_parquet.dashql',
+        name: 'load_parquet',
         collection: 'Load',
         title: 'Parquet Import',
         description: 'FOOOOO',
@@ -254,7 +254,7 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         enabled: false,
     },
     {
-        name: 'sql_complex_joins.dashql',
+        name: 'sql_complex_joins',
         collection: 'SQL',
         title: 'Complex Joins',
         description: 'FOOOOO',
@@ -264,7 +264,7 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         enabled: false,
     },
     {
-        name: 'sql_explicit_grouping.dashql',
+        name: 'sql_explicit_grouping',
         collection: 'SQL',
         title: 'Explicit Grouping',
         description: 'FOOOOO',
@@ -274,7 +274,7 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         enabled: false,
     },
     {
-        name: 'sql_movingavg.dashql',
+        name: 'sql_movingavg',
         collection: 'SQL',
         title: 'Moving Avergage',
         description: 'FOOOOO',
@@ -284,7 +284,7 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         enabled: false,
     },
     {
-        name: 'sql_runningsum.dashql',
+        name: 'sql_runningsum',
         collection: 'SQL',
         title: 'Running Sum',
         description: 'FOOOOO',
@@ -294,7 +294,7 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         enabled: false,
     },
     {
-        name: 'sql_approxmedian.dashql',
+        name: 'sql_approxmedian',
         collection: 'SQL',
         title: 'Approximative',
         description: 'FOOOOO',
@@ -304,7 +304,7 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         enabled: false,
     },
     {
-        name: 'sql_sampling.dashql',
+        name: 'sql_sampling',
         collection: 'SQL',
         title: 'Sampling',
         description: 'FOOOOO',
@@ -314,7 +314,7 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         enabled: false,
     },
     {
-        name: 'sql_pattern_matching.dashql',
+        name: 'sql_pattern_matching',
         collection: 'SQL',
         title: 'Pattern Matching',
         description: 'FOOOOO',
@@ -338,7 +338,7 @@ export async function getScript(example: ExampleScriptMetadata): Promise<model.S
         origin: {
             originType: model.ScriptOriginType.EXAMPLES,
             exampleName: example.name,
-            fileName: null,
+            fileName: `${example.name}.dashql`,
             httpURL: null,
             githubAccount: null,
             githubGistName: null,

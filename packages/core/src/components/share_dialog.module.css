@@ -21,7 +21,7 @@
 
 .share_url_table {
     display: grid;
-    grid-template-rows: max-content max-content max-content;
+    grid-template-rows: max-content max-content max-content max-content;
     grid-template-columns: max-content auto;
     grid-row-gap: 8px;
     grid-column-gap: 8px;
@@ -37,10 +37,15 @@
 }
 
 .share_url_text {
+    grid-column: 2;
+}
+
+.share_stats {
+    grid-column: 2;
 }
 
 .share_url_immutable {
-    grid-row: 3;
+    grid-row: 4;
     grid-column: 2;
     padding: 4px 0px;
 }
