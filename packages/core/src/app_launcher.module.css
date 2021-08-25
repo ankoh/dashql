@@ -23,16 +23,8 @@
     justify-content: center;
 }
 
-.title {
-    text-align: center;
-    margin-top: 20px;
-    font-size: 250%;
-    letter-spacing: 2px;
-    font-weight: 400;
-}
-
 .steps {
-    margin-top: 8px;
+    margin-top: 20px;
     display: flex;
     flex-direction: column;
 }

@@ -188,7 +188,6 @@ export const AppLauncher: React.FC<Props> = (props: Props) => {
                         <use xlinkHref={`${logo}#sym`} />
                     </svg>
                 </div>
-                <div className={styles.title}>DashQL</div>
                 <div className={styles.steps}>
                     {LAUNCH_STEPS.map(s => {
                         const step = launchProgress.steps.get(s)!;
