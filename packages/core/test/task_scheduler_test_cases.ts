@@ -33,8 +33,9 @@ export const TEST_CASES: SchedulerSpec[] = [
                 name: 'Create Table',
                 text: `
                     CREATE TABLE foo AS (
-                        SELECT v::INTEGER FROM generate_series(1, 100) t(v)
+                        SELECT * FROM generate_series(1, 100) t(v)
                     );
+                    VIZ foo USING TABLE;
                 `,
                 input: [],
                 expected: {
