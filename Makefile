@@ -128,6 +128,12 @@ tests:
 	yarn workspace @dashql/core test:node
 
 # Test the dashql_core javascript library
+.PHONY: tests_browser
+tests_browser:
+	yarn workspace @dashql/core build:libs
+	yarn workspace @dashql/core test:browser
+
+# Test the dashql_core javascript library
 .PHONY: tests_node
 tests_node:
 	yarn workspace @dashql/core build:libs

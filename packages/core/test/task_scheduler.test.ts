@@ -1,13 +1,11 @@
-import { model, tasks, TaskScheduler, analyzer, jmespath } from '../src';
-import { HTTPMock } from './http_mock';
+import Immutable from 'immutable';
+import { analyzer, jmespath, TaskSchedulerStateMachine } from '../src';
+import { TEST_CASES } from './task_scheduler_test_cases';
+import { InputValue, REDUCE_BATCH, SCHEDULER_STEP_DONE, SCHEDULE_PLAN, TaskSchedulerStatus } from '../src/model';
+import { WiredTaskExecutionContext, wireTaskExecutionContext } from '../src/task';
+import { HTTPMock, mockHTTP } from './http_mock';
 
-import * as proto from '@dashql/proto';
 import * as duckdb from '@dashql/duckdb/dist/duckdb.module.js';
-
-import TaskStatus = proto.task.TaskStatusCode;
-import TaskClass = proto.task.TaskClass;
-import ProgramTaskType = proto.task.ProgramTaskType;
-import { SCHEDULER_STEP_DONE, SCHEDULE_PLAN, TaskSchedulerStatus } from '../src/model';
 
 export function testTaskScheduler(
     db: () => duckdb.AsyncDuckDB,
@@ -15,8 +13,12 @@ export function testTaskScheduler(
     jp: () => jmespath.JMESPathBindings,
 ): void {
     let httpMock: HTTPMock | null = null;
+    let taskCtx: WiredTaskExecutionContext;
 
-    beforeEach(async () => {});
+    beforeEach(async () => {
+        httpMock = mockHTTP();
+        taskCtx = await wireTaskExecutionContext(db(), az(), async () => jp());
+    });
 
     afterEach(async () => {
         await db().reset();
@@ -28,181 +30,55 @@ export function testTaskScheduler(
         }
     });
 
-    function resolveProgramActionLogic(plan: model.Plan) {
-        const r: tasks.TaskLogic<proto.task.ProgramTask>[] = [];
-        const graph = plan.task_graph;
-        expect(graph).toBeDefined();
-        expect(graph).not.toBeNull();
-        const count = graph!.programTasksLength();
-        r.length = count;
-        for (let i = 0; i < count; ++i) {
-            const action = graph!.programTasks(i)!;
-            expect(action).toBeDefined();
-            expect(action).not.toBeNull();
-            expect(action.originStatement()).toEqual(i);
-            expect(action.taskType()).not.toEqual(ProgramTaskType.NONE);
-            const stmt = plan.program.getStatement(i);
-            const aid = model.buildTaskHandle(i, TaskClass.PROGRAM_TASK);
-            r[i] = tasks.resolveProgramTaskLogic(aid, action, stmt)!;
-            expect(r[i]).not.toBeNull();
-        }
-        return r;
-    }
-
     describe('Task Scheduler', () => {
-        describe('program tasks', () => {
-            it('single table', async () => {
-                const ctx = await tasks.wireTaskExecutionContext(db(), az(), async () => jp());
+        for (let i = 0; i < TEST_CASES.length; ++i) {
+            const test = TEST_CASES[i];
+            const taskStateMachine = new TaskSchedulerStateMachine();
 
-                const program = az().parseProgram('CREATE TABLE a AS SELECT 1');
-                const programInstance = az().instantiateProgram();
-                ctx.planContextDispatch({
-                    type: SCHEDULE_PLAN,
-                    data: [az(), programInstance],
-                });
+            describe(test.name, () => {
+                // Setup the mocks
+                for (const [url, data] of test.mocks.http) {
+                    httpMock.onGet(url).reply(200, data);
+                }
+                // Execute the steps
+                for (const step of test.steps) {
+                    it(step.name, async () => {
+                        // Get the input list
+                        const input = Immutable.List<InputValue>(step.input);
+                        // Parse the program
+                        az().parseProgram(step.text);
 
-                const plan = ctx.planContext.plan!;
-                const graph = plan.buffer.taskGraph()!;
-                expect(program.buffer.statementsLength()).toBe(1);
-                expect(graph.setupTasksLength()).toBe(0);
-                expect(graph.programTasksLength()).toBe(1);
+                        // Instantiate the program
+                        const instance = az().instantiateProgram(input);
+                        // Schedule the plan
+                        taskCtx.planContextDispatch({
+                            type: SCHEDULE_PLAN,
+                            data: [az(), instance],
+                        });
 
-                const logic = resolveProgramActionLogic(plan);
-                const interrupt = new Promise((_resolve: (value: any) => void, _reject: (reason?: void) => void) => {});
-                const scheduler = new TaskScheduler<proto.task.ProgramTask>(interrupt);
-                scheduler.prepare(ctx, logic);
-                expect(scheduler.tasks.length).toBe(1);
-                expect(scheduler.tasks[0].taskClass).toBe(TaskClass.PROGRAM_TASK);
-                expect(scheduler.tasks[0].buffer.taskType()).toBe(ProgramTaskType.CREATE_TABLE);
-                expect(scheduler.tasks[0].status).toBe(TaskStatus.SKIPPED);
+                        // Execute all scheduler steps
+                        let status: TaskSchedulerStatus;
+                        do {
+                            // Advance state machine
+                            const work = taskStateMachine.step(taskCtx);
+                            // Reduce plan actions
+                            taskCtx.planContextDispatch({
+                                type: REDUCE_BATCH,
+                                data: taskCtx.planContextDiff,
+                            });
+                            // Perform the work
+                            status = await work();
+                            // Perform the scheduler step
+                            taskCtx.planContextDispatch({
+                                type: SCHEDULER_STEP_DONE,
+                                data: [status, taskCtx.planContextDiff],
+                            });
+                        } while (status != TaskSchedulerStatus.IDLE);
 
-                ctx.planContextDispatch({
-                    type: SCHEDULER_STEP_DONE,
-                    data: [TaskSchedulerStatus.EXECUTE_PROGRAM, ctx.planContextDiff],
-                });
-                ctx.planContextDiff.length = 0;
-
-                scheduler.scheduleNext(ctx);
-                const workLeft = await scheduler.awaitNext(ctx);
-                expect(workLeft).toBe(false);
-                expect(scheduler.tasks[0].status).toBe(TaskStatus.SKIPPED);
+                        // XXX Check state
+                    });
+                }
             });
-
-            it('tree', async () => {
-                const ctx = await tasks.wireTaskExecutionContext(db(), az(), async () => jp());
-
-                const program = az().parseProgram(`
-                    CREATE TABLE weather AS SELECT 1;
-                    VIZ weather USING TABLE;
-                    VIZ weather USING TABLE;
-                `);
-                const programInstance = az().instantiateProgram();
-                ctx.planContextDispatch({
-                    type: SCHEDULE_PLAN,
-                    data: [az(), programInstance],
-                });
-
-                const plan = ctx.planContext.plan!;
-                const graph = plan.buffer.taskGraph()!;
-                expect(program.buffer.statementsLength()).toBe(3);
-                expect(graph.setupTasksLength()).toBe(0);
-                expect(graph.programTasksLength()).toBe(3);
-
-                const logic = resolveProgramActionLogic(plan!);
-                const interrupt = new Promise((_resolve: (value: any) => void, _reject: (reason?: void) => void) => {});
-                const scheduler = new TaskScheduler<proto.task.ProgramTask>(interrupt);
-                scheduler.prepare(ctx, logic);
-                scheduler.tasks.forEach((a, i) => {
-                    expect(a.taskClass).toBe(TaskClass.PROGRAM_TASK);
-                    expect(a.buffer.originStatement()).toBe(i);
-                    expect(a.status).toBe(TaskStatus.PENDING);
-                });
-                expect(scheduler.tasks.map(a => a.buffer.taskType())).toEqual([
-                    ProgramTaskType.CREATE_TABLE,
-                    ProgramTaskType.CREATE_VIZ,
-                    ProgramTaskType.CREATE_VIZ,
-                ]);
-                expect(scheduler.tasks.map(a => a.buffer.dependsOnArray())).toEqual([
-                    null,
-                    new Uint32Array([0]),
-                    new Uint32Array([0]),
-                ]);
-                expect(scheduler.tasks.map(a => a.buffer.requiredForArray())).toEqual([
-                    new Uint32Array([1, 2]),
-                    null,
-                    null,
-                ]);
-
-                ctx.planContextDispatch({
-                    type: SCHEDULER_STEP_DONE,
-                    data: [TaskSchedulerStatus.EXECUTE_PROGRAM, ctx.planContextDiff],
-                });
-                ctx.planContextDiff = [];
-
-                scheduler.scheduleNext(ctx);
-                let workLeft = await scheduler.awaitNext(ctx);
-                expect(scheduler.tasks[0].status).toBe(TaskStatus.COMPLETED);
-                expect(workLeft).toBe(true);
-                scheduler.scheduleNext(ctx);
-                workLeft = await scheduler.awaitNext(ctx);
-                expect(workLeft).toBe(true);
-                scheduler.scheduleNext(ctx);
-                workLeft = await scheduler.awaitNext(ctx);
-                expect(scheduler.tasks[1].status).toBe(TaskStatus.COMPLETED);
-                expect(scheduler.tasks[2].status).toBe(TaskStatus.COMPLETED);
-                expect(workLeft).toBe(false);
-            });
-
-            it('independent', async () => {
-                const ctx = await tasks.wireTaskExecutionContext(db(), az(), async () => jp());
-
-                const program = az().parseProgram(`
-                    CREATE TABLE A AS SELECT 1;
-                    CREATE TABLE B AS SELECT 1;
-                    CREATE TABLE C AS SELECT 1;
-                `);
-                const programInstance = az().instantiateProgram();
-                ctx.planContextDispatch({
-                    type: SCHEDULE_PLAN,
-                    data: [az(), programInstance],
-                });
-
-                const plan = ctx.planContext.plan!;
-                const graph = plan.buffer.taskGraph()!;
-                expect(program.buffer.statementsLength()).toBe(3);
-                expect(graph.setupTasksLength()).toBe(0);
-                expect(graph.programTasksLength()).toBe(3);
-
-                const logic = resolveProgramActionLogic(plan!);
-                const interrupt = new Promise((_resolve: (value: any) => void, _reject: (reason?: void) => void) => {});
-                const scheduler = new TaskScheduler<proto.task.ProgramTask>(interrupt);
-                scheduler.prepare(ctx, logic);
-                scheduler.tasks.forEach((a, i) => {
-                    expect(a.taskClass).toBe(TaskClass.PROGRAM_TASK);
-                    expect(a.buffer.originStatement()).toBe(i);
-                    expect(a.status).toBe(TaskStatus.SKIPPED);
-                });
-                expect(scheduler.tasks.map(a => a.buffer.taskType())).toEqual([
-                    ProgramTaskType.CREATE_TABLE,
-                    ProgramTaskType.CREATE_TABLE,
-                    ProgramTaskType.CREATE_TABLE,
-                ]);
-                expect(scheduler.tasks.map(a => a.buffer.dependsOnArray())).toEqual([null, null, null]);
-                expect(scheduler.tasks.map(a => a.buffer.requiredForArray())).toEqual([null, null, null]);
-
-                ctx.planContextDispatch({
-                    type: SCHEDULER_STEP_DONE,
-                    data: [TaskSchedulerStatus.EXECUTE_PROGRAM, ctx.planContextDiff],
-                });
-                ctx.planContextDiff = [];
-
-                scheduler.scheduleNext(ctx);
-                const workLeft = await scheduler.awaitNext(ctx);
-                expect(workLeft).toBe(false);
-                expect(scheduler.tasks[0].status).toBe(TaskStatus.SKIPPED);
-                expect(scheduler.tasks[1].status).toBe(TaskStatus.SKIPPED);
-                expect(scheduler.tasks[2].status).toBe(TaskStatus.SKIPPED);
-            });
-        });
+        }
     });
 }
