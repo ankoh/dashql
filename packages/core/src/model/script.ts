@@ -14,13 +14,13 @@ export interface ScriptOrigin {
     /// The filename
     fileName: string;
     /// The example name
-    exampleName: string | null;
+    exampleName?: string;
     /// The raw http url
-    httpURL: URL | null;
+    httpURL?: URL;
     /// The github account
-    githubAccount: string | null;
+    githubAccount?: string;
     /// The github gist name
-    githubGistName: string | null;
+    githubGistName?: string;
 }
 
 export interface Script {

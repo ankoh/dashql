@@ -32,10 +32,6 @@ export const generateBlankScript = (state: ScriptRegistry): Script => ({
     origin: {
         originType: ScriptOriginType.LOCAL,
         fileName: generateLocalFileName(state),
-        exampleName: null,
-        httpURL: null,
-        githubAccount: null,
-        githubGistName: null,
     },
     description: '',
     text: '',
@@ -49,10 +45,6 @@ export const forkLocal = (state: ScriptRegistry, script: Script): Script => ({
     origin: {
         originType: ScriptOriginType.LOCAL,
         fileName: generateLocalFileName(state),
-        exampleName: null,
-        httpURL: null,
-        githubAccount: null,
-        githubGistName: null,
     },
 });
 

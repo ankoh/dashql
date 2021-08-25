@@ -27,7 +27,7 @@ export class TransformTaskLogic extends ProgramTaskLogic {
         // Find the loaded blob
         const blobName = transform.dataSource()!;
         const blobID = ctx.planContext.blobsByName.get(blobName);
-        if (!blobID) return;
+        if (blobID === undefined) throw new Error(`missing blob id for blob '${blobName}'`);
 
         // Parse transform options
         const extra = JSON.parse(transform.extra() || '') as TransformOptions;

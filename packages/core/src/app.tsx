@@ -55,7 +55,7 @@ ReactDOM.render(
                 <Routes>
                     <Route path="/explorer/*" element={<ExplorerPage />} />
                     <Route path="/examples" element={<ExamplesPage />} />
-                    <Route path="/viewer" element={<Viewer />} />
+                    <Route path="/viewer/*" element={<Viewer />} />
                     <Route path="/account/*" element={<AccountPage />} />
                     <Route path="/404" element={<NotFound />} />
                     <Route path="/" element={<Navigate to="/explorer" />} />
