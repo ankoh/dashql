@@ -14,37 +14,34 @@ export function testTaskLogic(
     az: () => analyzer.AnalyzerBindings,
     jpFn: () => jmespath.JMESPathBindings,
 ): void {
-    let httpMock: HTTPMock | null = null;
-    let taskCtx: WiredTaskExecutionContext;
-
-    beforeEach(async () => {
-        httpMock = mockHTTP();
-        taskCtx = await wireTaskExecutionContext(db(), az(), async () => jpFn());
-    });
-
-    afterEach(async () => {
-        await db().reset();
-        await az().reset();
-
-        if (httpMock != null) {
-            httpMock.reset();
-            httpMock = null;
-        }
-    });
-
     describe('Task Logic', () => {
+        let httpMock: HTTPMock | null = null;
+        let taskCtx: WiredTaskExecutionContext;
+
+        beforeEach(async () => {
+            httpMock = mockHTTP();
+            taskCtx = await wireTaskExecutionContext(db(), az(), async () => jpFn());
+        });
+
+        afterEach(async () => {
+            await db().reset();
+            await az().reset();
+            httpMock.reset();
+        });
+
         for (let i = 0; i < TEST_CASES.length; ++i) {
             const test = TEST_CASES[i];
             const taskStateMachine = new TaskSchedulerStateMachine();
 
             describe(test.name, () => {
-                // Setup the mocks
-                for (const { url, status, data } of test.mocks.http) {
-                    httpMock.onGet(url).reply(status, data);
-                }
                 // Execute the steps
-                for (const step of test.steps) {
-                    it(step.name, async () => {
+                for (let stepId = 0; stepId < test.steps.length; ++stepId) {
+                    const step = test.steps[stepId];
+                    it(stepId.toString(), async () => {
+                        // Setup the mocks
+                        for (const { url, status, data } of test.mocks.http) {
+                            httpMock.onGet(url).reply(status, data);
+                        }
                         // Get the input list
                         const input = Immutable.List<InputValue>(step.input);
                         // Parse the program
@@ -116,7 +113,7 @@ export function testTaskLogic(
                                 expect(hashArrowColumn(resultCol)).toEqual(hashArrowColumn(expectedCol));
                             }
                         }
-                        conn.disconnect();
+                        await conn.disconnect();
                     });
                 }
             });

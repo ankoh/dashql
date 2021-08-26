@@ -14,7 +14,7 @@ export function testDuckDB(db: () => duckdb.AsyncDuckDB): void {
     });
 
     describe('DuckDB', () => {
-        it('Hello World', async () => {
+        it('hello world', async () => {
             const table = await conn.runQuery<{ hello_world: arrow.Int32 }>('SELECT 1::INTEGER as hello_world');
             expect(table.numCols).toBe(1);
             expect(table.getColumnAt(0).length).toBe(1);

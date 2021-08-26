@@ -1,6 +1,7 @@
 import * as proto from '@dashql/proto';
 import * as arrow from 'apache-arrow';
 import { CardDataResolver, InputValue, StatementStatus, UniqueBlob } from '../src/model';
+import { encodeTextBody } from './http_mock';
 
 const COMPLETED = proto.task.TaskStatusCode.COMPLETED;
 
@@ -10,7 +11,6 @@ interface DatabaseTest {
 }
 
 interface StepSpec {
-    name: string;
     text: string;
     input?: InputValue[];
     expected: {
@@ -24,7 +24,7 @@ interface StepSpec {
 interface HTTPRequestMock {
     url: string;
     status: number;
-    data: Blob;
+    data: ArrayBuffer;
 }
 
 interface SchedulerSpec {
@@ -40,7 +40,6 @@ export const TEST_CASES: SchedulerSpec[] = [
         name: 'Generate Series',
         steps: [
             {
-                name: 'Create Table',
                 text: `
                     CREATE TABLE foo AS (
                         SELECT * FROM generate_series(1, 100) t(v)
@@ -75,6 +74,47 @@ export const TEST_CASES: SchedulerSpec[] = [
         ],
         mocks: {
             http: [],
+        },
+    },
+    {
+        name: 'Mocked HTTP Fetch',
+        steps: [
+            {
+                text: `
+                    FETCH test_csv FROM 'http://localhost/someurl.csv';
+                    LOAD test FROM test_csv USING CSV;
+                    VIZ test USING TABLE;
+                `,
+                expected: {
+                    status: [
+                        { status: COMPLETED, totalTasks: 1, totalPerStatus: [] },
+                        { status: COMPLETED, totalTasks: 1, totalPerStatus: [] },
+                        { status: COMPLETED, totalTasks: 1, totalPerStatus: [] },
+                    ],
+                    data: [
+                        {
+                            script: 'SELECT * FROM test LIMIT 10',
+                            expected: arrow.Table.new(
+                                [
+                                    arrow.Int32Vector.from(Int32Array.from([1, 2, 3, 4])),
+                                    arrow.Int32Vector.from(Int32Array.from([5, 6, 7, 8])),
+                                ],
+                                ['a', 'b'],
+                            ),
+                        },
+                    ],
+                    cards: [],
+                },
+            },
+        ],
+        mocks: {
+            http: [
+                {
+                    url: 'http://localhost/someurl.csv',
+                    status: 200,
+                    data: encodeTextBody(`a,b\n1,5\n2,6\n3,7\n4,8\n`),
+                },
+            ],
         },
     },
 ];
