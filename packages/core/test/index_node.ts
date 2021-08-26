@@ -43,17 +43,19 @@ afterAll(async () => {
     if (dbWorker) dbWorker.terminate();
 });
 
+import { testCompare } from './compare.test';
 import { testDuckDB } from './duckdb.test';
-import { testTaskLogic } from './task_logic_tester';
-import { testTaskGraph } from './task_graph.test';
 import { testHTTPClient } from './http_client.test';
-import { testNativeMinHeap } from './native_min_heap.test';
-import { testVegaComposer } from './vega_composer.test';
 import { testJMESPath } from './jmespath.test';
+import { testNativeMinHeap } from './native_min_heap.test';
 import { testProgramEditor } from './program_editor.test';
-import { testSemaphore } from './semaphore.test';
 import { testRowProxies } from './row_proxies.test';
+import { testSemaphore } from './semaphore.test';
+import { testTaskGraph } from './task_graph.test';
+import { testTaskLogic } from './task_logic_tester';
+import { testVegaComposer } from './vega_composer.test';
 
+testCompare();
 testDuckDB(() => db!);
 testTaskLogic(
     () => db!,

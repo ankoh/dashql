@@ -2,6 +2,7 @@ export * from './aggregates';
 export * from './autosizer';
 export * from './binary_search';
 export * from './clipboard';
+export * from './compare';
 export * from './format';
 export * from './hash';
 export * from './http';
