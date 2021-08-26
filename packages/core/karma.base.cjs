@@ -26,7 +26,7 @@ module.exports = function (config) {
             { pattern: 'node_modules/@dashql/duckdb/dist/*.wasm', included: false, watched: false, served: true },
         ],
         preprocessors: {
-            'tests-**/*.js': ['sourcemap', 'coverage'],
+            '**/tests-**.js': ['sourcemap', 'coverage'],
         },
         proxies: {
             '/static/jmespath_wasm.wasm': '/base/packages/core/src/jmespath/jmespath_wasm.wasm',
