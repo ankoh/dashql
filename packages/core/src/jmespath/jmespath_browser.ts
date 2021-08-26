@@ -2,7 +2,7 @@
 
 import jmespath_init from './jmespath_wasm';
 import { JMESPathModule } from './jmespath_wasm_module';
-import { JMESPathBindings } from './bindings';
+import { JMESPathBindings } from './jmespath_bindings';
 
 export class JMESPath extends JMESPathBindings {
     protected path: string;

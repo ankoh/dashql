@@ -2,7 +2,7 @@
 
 import analyzer_init from './analyzer_wasm';
 import { DashQLAnalyzerModule } from './analyzer_wasm_module';
-import { AnalyzerBindings, AnalyzerRuntime } from './bindings';
+import { AnalyzerBindings, AnalyzerRuntime } from './analyzer_bindings';
 
 export class Analyzer extends AnalyzerBindings {
     protected runtime: AnalyzerRuntime;

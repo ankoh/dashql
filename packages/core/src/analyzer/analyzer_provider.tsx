@@ -1,7 +1,7 @@
 // Copyright (c) 2020 The DashQL Authors
 
 import React from 'react';
-import { AnalyzerBindings } from './bindings';
+import { AnalyzerBindings } from './analyzer_bindings';
 
 type Props = {
     children: React.ReactElement;

@@ -7,6 +7,7 @@ import { TableStatisticsResolver } from '../table_statistics';
 import { VegaLiteEditOperation, ResolveMinMaxDomain } from './vega_editing';
 
 import * as vlt from 'vega-lite/build/src/transform.js';
+
 import { compile as compileVL } from 'vega-lite/build/src/compile/compile.js';
 import { AggregatedFieldDef } from 'vega-lite/build/src/transform.js';
 import { Field, isScaleFieldDef, isFieldDef, isTypedFieldDef } from 'vega-lite/build/src/channeldef.js';

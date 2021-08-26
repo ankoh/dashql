@@ -1,7 +1,7 @@
 import * as proto from '@dashql/proto';
 import * as arrow from 'apache-arrow';
 import { CardDataResolver, CardRendererType, InputValue, StatementStatus, UniqueBlob } from '../src/model';
-import { encodeTextBody } from './http_mock';
+import { encodeTextBody } from './test';
 
 const COMPLETED = proto.task.TaskStatusCode.COMPLETED;
 

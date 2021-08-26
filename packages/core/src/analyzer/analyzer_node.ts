@@ -1,15 +1,17 @@
 // Copyright (c) 2020 The DashQL Authors
 
-import jmespath_init from './jmespath_wasm';
-import { JMESPathModule } from './jmespath_wasm_module';
-import { JMESPathBindings } from './bindings';
+import analyzer_init from './analyzer_wasm';
+import { DashQLAnalyzerModule } from './analyzer_wasm_module';
+import { AnalyzerBindings, AnalyzerRuntime } from './analyzer_bindings';
 import fs from 'fs';
 
-export class JMESPath extends JMESPathBindings {
+export class Analyzer extends AnalyzerBindings {
+    protected runtime: AnalyzerRuntime;
     protected path: string;
 
-    public constructor(path: string) {
+    public constructor(runtime: AnalyzerRuntime, path: string) {
         super();
+        this.runtime = runtime;
         this.path = path;
     }
 
@@ -30,6 +32,7 @@ export class JMESPath extends JMESPathBindings {
             ...imports,
             env: {
                 ...imports.env,
+                ...this.runtime,
             },
         };
         const buf = fs.readFileSync(this.path);
@@ -39,8 +42,8 @@ export class JMESPath extends JMESPathBindings {
         return [];
     }
 
-    protected instantiate(moduleOverrides: Partial<JMESPathModule>): Promise<JMESPathModule> {
-        return jmespath_init({
+    protected instantiate(moduleOverrides: Partial<DashQLAnalyzerModule>): Promise<DashQLAnalyzerModule> {
+        return analyzer_init({
             ...moduleOverrides,
             instantiateWasm: this.instantiateWasm.bind(this),
             locateFile: this.locateFile.bind(this),

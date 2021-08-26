@@ -14,7 +14,6 @@
         "noImplicitAny": true,
         "noImplicitReturns": true,
         "noImplicitThis": true,
-        "noUnusedLocals": true,
         "strictNullChecks": false,
         "preserveConstEnums": true,
         "resolveJsonModule": true,
@@ -25,11 +24,11 @@
         "skipLibCheck": true,
 
         "jsx": "react",
-        "types": ["emscripten", "node", "jasmine"],
+        "types": ["emscripten", "node", "jasmine", "jest"],
         "lib": ["es6", "es2020", "dom"],
         "baseUrl": ".",
         "plugins": [{ "name": "typescript-plugin-css-modules" }]
     },
     "exclude": ["./node_modules"],
-    "include": ["./src/**/*", "./types/*.d.ts", "./test/**/*"]
+    "include": ["./src/**/*", "./types/*.d.ts", "./test/**/*", "./__mocks__/**/*", "./__tests__/**/*"]
 }
