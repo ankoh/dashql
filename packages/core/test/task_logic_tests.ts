@@ -1,6 +1,6 @@
 import * as proto from '@dashql/proto';
 import * as arrow from 'apache-arrow';
-import { InputValue, StatementStatus, UniqueBlob } from '../src/model';
+import { CardDataResolver, InputValue, StatementStatus, UniqueBlob } from '../src/model';
 
 const COMPLETED = proto.task.TaskStatusCode.COMPLETED;
 
@@ -15,8 +15,8 @@ interface StepSpec {
     input?: InputValue[];
     expected: {
         status: StatementStatus[];
-        blobs?: [number, UniqueBlob][];
-        cards?: [number, any][];
+        blobs?: UniqueBlob[];
+        cards?: (any & { objectId: number })[];
         data?: DatabaseTest[];
     };
 }
@@ -61,7 +61,15 @@ export const TEST_CASES: SchedulerSpec[] = [
                             ),
                         },
                     ],
-                    cards: [],
+                    cards: [
+                        {
+                            objectId: 1,
+                            dataSource: {
+                                dataResolver: CardDataResolver.PIECEWISE_SCAN,
+                                targetQualified: 'main.foo',
+                            },
+                        },
+                    ],
                 },
             },
         ],
