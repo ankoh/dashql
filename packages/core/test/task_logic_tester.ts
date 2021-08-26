@@ -1,23 +1,25 @@
+import * as proto from '@dashql/proto';
 import Immutable from 'immutable';
 import { analyzer, jmespath, TaskSchedulerStateMachine } from '../src';
-import { TEST_CASES } from './task_scheduler_test_cases';
+import { TEST_CASES } from './task_logic_tests';
 import { InputValue, REDUCE_BATCH, SCHEDULER_STEP_DONE, SCHEDULE_PLAN, TaskSchedulerStatus } from '../src/model';
 import { WiredTaskExecutionContext, wireTaskExecutionContext } from '../src/task';
 import { HTTPMock, mockHTTP } from './http_mock';
 
 import * as duckdb from '@dashql/duckdb/dist/duckdb.module.js';
+import { hashArrowColumn } from '../src/utils/hash';
 
-export function testTaskScheduler(
+export function testTaskLogic(
     db: () => duckdb.AsyncDuckDB,
     az: () => analyzer.AnalyzerBindings,
-    jp: () => jmespath.JMESPathBindings,
+    jpFn: () => jmespath.JMESPathBindings,
 ): void {
     let httpMock: HTTPMock | null = null;
     let taskCtx: WiredTaskExecutionContext;
 
     beforeEach(async () => {
         httpMock = mockHTTP();
-        taskCtx = await wireTaskExecutionContext(db(), az(), async () => jp());
+        taskCtx = await wireTaskExecutionContext(db(), az(), async () => jpFn());
     });
 
     afterEach(async () => {
@@ -30,15 +32,15 @@ export function testTaskScheduler(
         }
     });
 
-    describe('Task Scheduler', () => {
+    describe('Task Logic', () => {
         for (let i = 0; i < TEST_CASES.length; ++i) {
             const test = TEST_CASES[i];
             const taskStateMachine = new TaskSchedulerStateMachine();
 
             describe(test.name, () => {
                 // Setup the mocks
-                for (const [url, data] of test.mocks.http) {
-                    httpMock.onGet(url).reply(200, data);
+                for (const { url, status, data } of test.mocks.http) {
+                    httpMock.onGet(url).reply(status, data);
                 }
                 // Execute the steps
                 for (const step of test.steps) {
@@ -75,7 +77,29 @@ export function testTaskScheduler(
                             });
                         } while (status != TaskSchedulerStatus.IDLE);
 
-                        // XXX Check state
+                        // Check plan context
+                        const planCtx = taskCtx.planContext;
+                        expect(planCtx.statementStatus.size).toEqual(2);
+                        expect(planCtx.statementStatus.get(0).status).toEqual(proto.task.TaskStatusCode.COMPLETED);
+
+                        // Check database
+                        const conn = await db().connect();
+                        for (const dataSpec of step.expected.data) {
+                            // Match result size
+                            const query = dataSpec.script;
+                            const result = await conn.runQuery(query);
+                            expect(result.length).toEqual(dataSpec.expected.length);
+                            expect(result.numCols).toEqual(dataSpec.expected.numCols);
+
+                            // Match result columns
+                            for (let cid = 0; cid < result.numCols; ++cid) {
+                                const resultCol = result.getColumnAt(cid);
+                                const expectedCol = dataSpec.expected.getColumnAt(cid);
+                                expect(resultCol.name).toEqual(expectedCol.name);
+                                expect(hashArrowColumn(resultCol)).toEqual(hashArrowColumn(expectedCol));
+                            }
+                        }
+                        conn.disconnect();
                     });
                 }
             });
