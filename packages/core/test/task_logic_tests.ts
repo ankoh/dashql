@@ -1,6 +1,6 @@
 import * as proto from '@dashql/proto';
 import * as arrow from 'apache-arrow';
-import { CardDataResolver, InputValue, StatementStatus, UniqueBlob } from '../src/model';
+import { CardDataResolver, CardRendererType, InputValue, StatementStatus, UniqueBlob } from '../src/model';
 import { encodeTextBody } from './http_mock';
 
 const COMPLETED = proto.task.TaskStatusCode.COMPLETED;
@@ -63,6 +63,7 @@ export const TEST_CASES: SchedulerSpec[] = [
                     cards: [
                         {
                             objectId: 1, // origin == tasks[1]
+                            cardRenderer: CardRendererType.BUILTIN_TABLE,
                             dataSource: {
                                 dataResolver: CardDataResolver.PIECEWISE_SCAN,
                                 targetQualified: 'main.foo',
@@ -106,6 +107,7 @@ export const TEST_CASES: SchedulerSpec[] = [
                     cards: [
                         {
                             objectId: 2, // origin == tasks[2]
+                            cardRenderer: CardRendererType.BUILTIN_TABLE,
                             dataSource: {
                                 dataResolver: CardDataResolver.PIECEWISE_SCAN,
                                 targetQualified: 'main.test',
