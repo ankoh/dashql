@@ -6,7 +6,7 @@ export function isSubset(left: any, right: any): boolean {
     for (const key in left) {
         const lv = left[key];
         const rv = right[key];
-        if (!rv || !isSubset(lv, rv)) return false;
+        if (rv === undefined || !isSubset(lv, rv)) return false;
     }
     return true;
 }

@@ -7,6 +7,7 @@ import { HTTPMock, mockHTTP } from './http_mock';
 
 import * as duckdb from '@dashql/duckdb/dist/duckdb.module.js';
 import { hashArrowColumn } from '../src/utils/hash';
+import { isSubset } from '../src/utils';
 
 export function testTaskLogic(
     db: () => duckdb.AsyncDuckDB,
@@ -88,6 +89,15 @@ export function testTaskLogic(
                         // Check cards
                         const expectedCards = step.expected.cards || [];
                         expect(planCtx.cards.size).toBeGreaterThanOrEqual(expectedCards.length);
+                        for (const expected of expectedCards) {
+                            expect(planCtx.cards.has(expected.objectId)).toBeTrue();
+                            const have = planCtx.cards.get(expected.objectId);
+                            expect(isSubset(expected, have))
+                                .withContext(
+                                    `Mismatch\nExpected: ${JSON.stringify(expected)}\nHave: ${JSON.stringify(have)}`,
+                                )
+                                .toBeTrue();
+                        }
 
                         // Check database
                         const conn = await db().connect();
