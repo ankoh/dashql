@@ -19,6 +19,8 @@ export function testTaskLogic(
         let taskCtx: WiredTaskExecutionContext;
 
         beforeEach(async () => {
+            await db().reset();
+            await az().reset();
             httpMock = mockHTTP();
             taskCtx = await wireTaskExecutionContext(db(), az(), async () => jpFn());
         });
@@ -89,9 +91,12 @@ export function testTaskLogic(
                         for (const expected of expectedCards) {
                             expect(planCtx.cards.has(expected.objectId)).toBeTrue();
                             const have = planCtx.cards.get(expected.objectId);
+                            console.log([...planCtx.cards.keySeq()]);
                             expect(isSubset(expected, have))
                                 .withContext(
-                                    `Mismatch\nExpected: ${JSON.stringify(expected)}\nHave: ${JSON.stringify(have)}`,
+                                    `Expected: ${JSON.stringify(expected)}\nHave: ${JSON.stringify(
+                                        have,
+                                    )}\n\nCards:${JSON.stringify(planCtx.cards)}`,
                                 )
                                 .toBeTrue();
                         }

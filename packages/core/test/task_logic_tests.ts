@@ -62,7 +62,7 @@ export const TEST_CASES: SchedulerSpec[] = [
                     ],
                     cards: [
                         {
-                            objectId: 1,
+                            objectId: 1, // origin == tasks[1]
                             dataSource: {
                                 dataResolver: CardDataResolver.PIECEWISE_SCAN,
                                 targetQualified: 'main.foo',
@@ -103,7 +103,15 @@ export const TEST_CASES: SchedulerSpec[] = [
                             ),
                         },
                     ],
-                    cards: [],
+                    cards: [
+                        {
+                            objectId: 2, // origin == tasks[2]
+                            dataSource: {
+                                dataResolver: CardDataResolver.PIECEWISE_SCAN,
+                                targetQualified: 'main.test',
+                            },
+                        },
+                    ],
                 },
             },
         ],
