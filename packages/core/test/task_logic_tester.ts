@@ -1,4 +1,3 @@
-import * as proto from '@dashql/proto';
 import Immutable from 'immutable';
 import { analyzer, jmespath, TaskSchedulerStateMachine } from '../src';
 import { TEST_CASES } from './task_logic_tests';
@@ -79,8 +78,16 @@ export function testTaskLogic(
 
                         // Check plan context
                         const planCtx = taskCtx.planContext;
-                        expect(planCtx.statementStatus.size).toEqual(2);
-                        expect(planCtx.statementStatus.get(0).status).toEqual(proto.task.TaskStatusCode.COMPLETED);
+                        expect(planCtx.statementStatus.size).toEqual(step.expected.status.length);
+                        for (let j = 0; j < step.expected.status.length; ++j) {
+                            const have = planCtx.statementStatus.get(j);
+                            const expected = step.expected.status[j];
+                            expect(have.status).toEqual(expected.status);
+                        }
+
+                        // Check cards
+                        const expectedCards = step.expected.cards || [];
+                        expect(planCtx.cards.size).toBeGreaterThanOrEqual(expectedCards.length);
 
                         // Check database
                         const conn = await db().connect();

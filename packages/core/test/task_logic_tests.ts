@@ -61,6 +61,7 @@ export const TEST_CASES: SchedulerSpec[] = [
                             ),
                         },
                     ],
+                    cards: [],
                 },
             },
         ],
