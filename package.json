@@ -1,5 +1,6 @@
 {
     "private": true,
+    "type": "module",
     "workspaces": [
         "packages/*"
     ],
@@ -7,6 +8,7 @@
         "format": "prettier --write packages"
     },
     "dependencies": {
-        "prettier": "^2.3.2"
+        "prettier": "^2.3.2",
+        "jest": "^27.0.6"
     }
 }

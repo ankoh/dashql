@@ -120,6 +120,10 @@ lib_testgen_lldb: lib
 lib_debug: lib
 	lldb --args ${LIB_DEBUG_DIR}/tester ${LIB_SOURCE_DIR}
 
+.PHONY: jest
+jest:
+	./node_modules/.bin/jest --detectOpenHandles --forceExit
+
 # Test the dashql_core javascript library
 .PHONY: tests
 tests:

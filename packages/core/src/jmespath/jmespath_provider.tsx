@@ -1,7 +1,7 @@
 // Copyright (c) 2021 The DashQL Authors
 
 import React from 'react';
-import { JMESPathBindings } from './bindings';
+import { JMESPathBindings } from './jmespath_bindings';
 
 type Props = {
     children: React.ReactElement;

@@ -3,7 +3,7 @@ import { analyzer, jmespath, TaskSchedulerStateMachine } from '../src';
 import { TEST_CASES } from './task_logic_tests';
 import { InputValue, REDUCE_BATCH, SCHEDULER_STEP_DONE, SCHEDULE_PLAN, TaskSchedulerStatus } from '../src/model';
 import { WiredTaskExecutionContext, wireTaskExecutionContext } from '../src/task';
-import { HTTPMock, mockHTTP } from './http_mock';
+import { HTTPMock, mockHTTP } from './test';
 
 import * as duckdb from '@dashql/duckdb/dist/duckdb.module.js';
 import { hashArrowColumn } from '../src/utils/hash';
