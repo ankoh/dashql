@@ -3,6 +3,7 @@ export * from './autosizer';
 export * from './binary_search';
 export * from './clipboard';
 export * from './format';
+export * from './hash';
 export * from './http';
 export * from './lru_cache';
 export * from './max_element_size';

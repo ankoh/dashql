@@ -6,7 +6,7 @@ export function testTaskGraph(az: () => analyzer.AnalyzerBindings): void {
         az().reset();
     });
 
-    describe('Task Scheduler', () => {
+    describe('Task Graph', () => {
         describe('program tasks', () => {
             it('select 1', async () => {
                 const program = az().parseProgram('create table foo as select 1');
