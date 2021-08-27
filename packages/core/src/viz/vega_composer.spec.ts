@@ -4,7 +4,7 @@ import * as analyzer from '../analyzer/analyzer_node';
 import * as proto from '@dashql/proto';
 import * as viz from './vega_composer';
 import * as model from '../model';
-import * as test from '../test';
+import * as test_env from '../test';
 import { TableStatisticsResolver } from '../table_statistics';
 
 interface VizComposerTestExpectation {
@@ -200,7 +200,7 @@ describe('VizComposer', () => {
     let az: analyzer.Analyzer | null = null;
     beforeEach(async () => {
         if (az == null) {
-            az = await test.initAnalyzer();
+            az = await test_env.initAnalyzer();
         }
         az.reset();
     });
