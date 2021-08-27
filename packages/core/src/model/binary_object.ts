@@ -2,8 +2,6 @@
 
 import * as proto from '@dashql/proto';
 import { PlanObject } from './plan_object';
-import * as tmp from 'tmp';
-import * as fs from 'fs';
 import * as duckdb from '@dashql/duckdb/dist/duckdb.module.js';
 
 /// A blob path
@@ -24,13 +22,15 @@ export async function persistBinaryObject(buffer: BinaryObject): Promise<BinaryO
     // Is there an array buffer?
     if (buffer.dataBuffer) {
         // Browser?
-        if (process.env.NODE_ENV === undefined) {
+        if (process.env.ENV_BROWSER !== undefined) {
             buffer.dataBlob = new Blob([buffer.dataBuffer]);
             buffer.dataBuffer = null;
         }
 
         // Node.js write to disk
         else {
+            const tmp = await import('tmp');
+            const fs = await import('fs');
             const tmpName: string = await new Promise((resolve, reject) => {
                 tmp.file((err, name, _fd, _removeCallback) => {
                     if (err) reject(err);
@@ -52,10 +52,11 @@ export async function persistBinaryObject(buffer: BinaryObject): Promise<BinaryO
 
 export async function readBinaryObjectAsBuffer(buffer: BinaryObject): Promise<ArrayBuffer> {
     if (buffer.dataBuffer != null) return buffer.dataBuffer;
-    if (process.env.NODE_ENV === undefined) {
+    if (process.env.ENV_BROWSER !== undefined) {
         console.assert(buffer.dataBlob != null);
         return await buffer.dataBlob.arrayBuffer();
     } else {
+        const fs = await import('fs');
         console.assert(buffer.dataURL != null);
         return (await fs.promises.readFile(buffer.dataURL, null)).buffer;
     }

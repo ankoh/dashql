@@ -1,3 +1,4 @@
+import { jest } from '@jest/globals';
 import * as analyzer from './analyzer/analyzer_node';
 import * as jmespath from './jmespath/jmespath_node';
 import * as duckdb from '@dashql/duckdb/dist/duckdb.module.js';

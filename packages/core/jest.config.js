@@ -1,4 +1,6 @@
 const CONFIG = {
+    // ESM preset
+    preset: 'ts-jest/presets/default-esm',
     // Map module names
     moduleNameMapper: {
         // Static files
@@ -25,6 +27,7 @@ const CONFIG = {
     // Additional settings
     globals: {
         'ts-jest': {
+            useESM: true,
             tsconfig: '<rootDir>/tsconfig.json',
             isolatedModules: true,
         },

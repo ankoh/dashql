@@ -3,7 +3,9 @@ import Worker from 'web-worker';
 import path from 'path';
 import { Analyzer } from '../analyzer/analyzer_node';
 import { JMESPath } from '../jmespath/jmespath_node';
+import { fileURLToPath } from 'url';
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ANALYZER_WASM = path.resolve(__dirname, '../../src/analyzer/analyzer_wasm.wasm');
 const JMESPATH_WASM = path.resolve(__dirname, '../../src/jmespath/jmespath_wasm.wasm');
 const DUCKDB_BUNDLES: duckdb.DuckDBBundles = {

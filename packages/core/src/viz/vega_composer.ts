@@ -6,20 +6,20 @@ import * as v from 'vega';
 import { TableStatisticsResolver } from '../table_statistics';
 import { VegaLiteEditOperation, ResolveMinMaxDomain } from './vega_editing';
 
-import * as vlt from 'vega-lite/build/src/transform.js';
+import * as vlt from 'vega-lite/build/src/transform';
 
-import { compile as compileVL } from 'vega-lite/build/src/compile/compile.js';
-import { AggregatedFieldDef } from 'vega-lite/build/src/transform.js';
-import { Field, isScaleFieldDef, isFieldDef, isTypedFieldDef } from 'vega-lite/build/src/channeldef.js';
-import { LayerSpec, NormalizedLayerSpec } from 'vega-lite/build/src/spec/layer.js';
-import { LogicalComposition } from 'vega-lite/build/src/logical.js';
-import { Predicate } from 'vega-lite/build/src/predicate.js';
-import { SortField } from 'vega-lite/build/src/sort.js';
-import { Encoding } from 'vega-lite/build/src/encoding.js';
-import { TopLevel } from 'vega-lite/build/src/spec/toplevel.js';
-import { hasContinuousDomain } from 'vega-lite/build/src/scale.js';
-import { isUnitSpec, UnitSpec } from 'vega-lite/build/src/spec/unit.js';
-import { normalize } from 'vega-lite/build/src/normalize/index.js';
+import { compile as compileVL } from 'vega-lite/build/src/compile/compile';
+import { AggregatedFieldDef } from 'vega-lite/build/src/transform';
+import { Field, isScaleFieldDef, isFieldDef, isTypedFieldDef } from 'vega-lite/build/src/channeldef';
+import { LayerSpec, NormalizedLayerSpec } from 'vega-lite/build/src/spec/layer';
+import { LogicalComposition } from 'vega-lite/build/src/logical';
+import { Predicate } from 'vega-lite/build/src/predicate';
+import { SortField } from 'vega-lite/build/src/sort';
+import { Encoding } from 'vega-lite/build/src/encoding';
+import { TopLevel } from 'vega-lite/build/src/spec/toplevel';
+import { hasContinuousDomain } from 'vega-lite/build/src/scale';
+import { isUnitSpec, UnitSpec } from 'vega-lite/build/src/spec/unit';
+import { normalize } from 'vega-lite/build/src/normalize/index';
 
 export type VegaLiteTLLayerSpec = TopLevel<LayerSpec<Field>>;
 
