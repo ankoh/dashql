@@ -13,23 +13,26 @@ const DUCKDB_BUNDLES: duckdb.DuckDBBundles = {
     },
 };
 
-export async function initDuckDB(): Promise<duckdb.AsyncDuckDB> {
+export let DATABASE: duckdb.AsyncDuckDB | null = null;
+export let ANALYZER: Analyzer | null = null;
+export let JMESPATH: JMESPath | null = null;
+
+beforeAll(async () => {
     const config = await duckdb.configure(DUCKDB_BUNDLES);
     const logger = new duckdb.VoidLogger();
     const worker = new Worker(config.mainWorker!);
-    const db = new duckdb.AsyncDuckDB(logger, worker);
-    await db.instantiate(config.mainModule, config.pthreadWorker);
-    return db;
-}
+    DATABASE = new duckdb.AsyncDuckDB(logger, worker);
+    await DATABASE.instantiate(config.mainModule, config.pthreadWorker);
 
-export async function initAnalyzer(): Promise<Analyzer> {
-    const az = new Analyzer({}, ANALYZER_WASM);
-    await az.init();
-    return az;
-}
+    ANALYZER = new Analyzer({}, ANALYZER_WASM);
+    await ANALYZER.init();
 
-export async function initJMESPath(): Promise<JMESPath> {
-    const jp = new JMESPath(JMESPATH_WASM);
-    await jp.init();
-    return jp;
-}
+    JMESPATH = new JMESPath(JMESPATH_WASM);
+    await JMESPATH.init();
+});
+
+afterAll(async () => {
+    await DATABASE.terminate();
+    await DATABASE.reset();
+    await ANALYZER.reset();
+});

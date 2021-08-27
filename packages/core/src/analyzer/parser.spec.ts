@@ -4,11 +4,8 @@ import * as test from '../test';
 describe('Parser', () => {
     let az: analyzer.Analyzer | null = null;
 
-    beforeEach(async () => {
-        if (az == null) {
-            az = await test.initAnalyzer();
-        }
-        az.reset();
+    beforeAll(async () => {
+        az = await test.initAnalyzer();
     });
     afterEach(async () => {
         az.reset();
