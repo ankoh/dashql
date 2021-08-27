@@ -1,15 +1,15 @@
 {
     "compilerOptions": {
         "outDir": "./build/ts",
-        "target": "es2020",
+        "target": "es6",
         "module": "es2020",
         "moduleResolution": "node",
         "sourceMap": false,
         "declaration": true,
         "declarationMap": true,
         "declarationDir": "./build/types/",
-
         "esModuleInterop": true,
+
         "allowSyntheticDefaultImports": true,
         "noImplicitAny": true,
         "noImplicitReturns": true,

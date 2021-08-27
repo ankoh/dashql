@@ -4,10 +4,8 @@ import * as test from '../test';
 describe('JMESPath', () => {
     let jp: jmespath.JMESPath | null = null;
 
-    beforeEach(async () => {
-        if (jp == null) {
-            jp = await test.initJMESPath();
-        }
+    beforeAll(async () => {
+        jp = await test.initJMESPath();
     });
 
     it('Example', () => {

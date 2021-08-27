@@ -10,23 +10,25 @@ const CONFIG = {
         // Resolve .css and similar files to identity-obj-proxy instead.
         '^.+\\.(css|styl|less|sass|scss)$': `identity-obj-proxy`,
         // Map duckdb module to node version
+        //'@dashql/duckdb/dist/duckdb.module.js': '@dashql/duckdb/dist/duckdb.module.mjs',
         '@dashql/duckdb/dist/duckdb.module.js': '@dashql/duckdb/dist/duckdb-node-async.js',
         // Prepare publishing in @duckdb
         //'@duckdb/duckdb-wasm/dist/duckdb.module.js': '@duckdb/duckdb-wasm/dist/duckdb-node-async.js',
     },
     // Extensions as esm
     extensionsToTreatAsEsm: ['.ts', '.tsx'],
-    // Enable ts-jest esm
-    globals: {
-        'ts-jest': {
-            useESM: true,
-        },
-    },
     // Transform files
     transform: {
+        '^.+\\.jsx?$': 'babel-jest',
         '^.+\\.tsx?$': 'ts-jest',
     },
-    transformIgnorePatterns: ['/node_modules/(?!@dashql)', '/node_modules/(?!@duckdb)'],
+    globals: {
+        'ts-jest': {
+            tsconfig: '<rootDir>/tsconfig.json',
+            isolatedModules: true,
+        },
+    },
+    transformIgnorePatterns: ['node_modules/(?!vega-lite)/'],
     // Tells Jest what folders to ignore for tests
     testPathIgnorePatterns: [`node_modules`, `\\.cache`],
     // Test paths

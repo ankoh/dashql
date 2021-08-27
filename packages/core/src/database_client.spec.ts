@@ -6,15 +6,17 @@ describe('DuckDB', () => {
     let db: duckdb.AsyncDuckDB | null = null;
     let conn: duckdb.AsyncConnection | null = null;
 
+    beforeAll(async () => {
+        db = await test.initDuckDB();
+    });
     beforeEach(async () => {
-        if (db == null) {
-            db = await test.initDuckDB();
-            conn = await db.connect();
-        }
+        conn = await db.connect();
+    });
+    afterAll(async () => {
+        await db.terminate();
     });
     afterEach(async () => {
         await conn.disconnect();
-        await db.reset();
     });
 
     it('hello world', async () => {

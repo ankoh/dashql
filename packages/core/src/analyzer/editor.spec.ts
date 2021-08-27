@@ -5,11 +5,8 @@ import * as test from '../test';
 describe('Program editor', () => {
     let az: analyzer.AnalyzerBindings | null = null;
 
-    beforeEach(async () => {
-        if (az == null) {
-            az = await test.initAnalyzer();
-        }
-        az.reset();
+    beforeAll(async () => {
+        az = await test.initAnalyzer();
     });
     afterEach(async () => {
         az.reset();
