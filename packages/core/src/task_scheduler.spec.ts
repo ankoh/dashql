@@ -15,7 +15,7 @@ import { isSubset } from './utils';
 jest.setTimeout(10000);
 
 describe('Task Scheduler Scenarios', () => {
-    let taskStateMachine = new TaskSchedulerStateMachine();
+    const taskStateMachine = new TaskSchedulerStateMachine();
     let db: duckdb.AsyncDuckDB | null = null;
     let az: analyzer.Analyzer | null = null;
     let jp: jmespath.JMESPath | null = null;

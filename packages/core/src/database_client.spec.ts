@@ -30,7 +30,7 @@ describe('DuckDB', () => {
     });
 
     it('scan file', async () => {
-        const [tmpName, tmpFd, dropTmp] = await new Promise((resolve, reject) => {
+        const [tmpName, _tmpFd, dropTmp] = await new Promise((resolve, reject) => {
             tmp.file((err, name, fd, removeCallback) => {
                 if (err) reject(err);
                 resolve([name, fd, removeCallback]);
