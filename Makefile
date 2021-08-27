@@ -120,34 +120,14 @@ lib_testgen_lldb: lib
 lib_debug: lib
 	lldb --args ${LIB_DEBUG_DIR}/tester ${LIB_SOURCE_DIR}
 
-.PHONY: jest
-jest:
-	./node_modules/.bin/jest --detectOpenHandles --forceExit
-
-# Test the dashql_core javascript library
 .PHONY: tests
-tests:
-	yarn workspace @dashql/core build:libs
-	yarn workspace @dashql/core test:browser
-	yarn workspace @dashql/core test:node
+js_tests:
+	./node_modules/.bin/jest
 
 # Test the dashql_core javascript library
-.PHONY: tests_browser
-tests_browser:
-	yarn workspace @dashql/core build:libs
-	yarn workspace @dashql/core test:browser
-
-# Test the dashql_core javascript library
-.PHONY: tests_node
-tests_node:
-	yarn workspace @dashql/core build:libs
-	yarn workspace @dashql/core test:node
-
-# Test the dashql_core javascript library
-.PHONY: tests_browser
-tests_debug:
-	yarn workspace @dashql/core build:libs
-	yarn workspace @dashql/core test:browser:debug
+.PHONY: tests_cov
+js_tests_cov:
+	./node_modules/.bin/jest --collect-coverage
 
 # Compile the flatbuffer schema
 .PHONY: proto

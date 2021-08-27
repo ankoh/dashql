@@ -9,6 +9,7 @@
         "declarationMap": true,
         "declarationDir": "./build/types/",
         "esModuleInterop": true,
+        "allowJs": true,
 
         "allowSyntheticDefaultImports": true,
         "noImplicitAny": true,
