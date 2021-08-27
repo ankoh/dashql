@@ -18,7 +18,7 @@ const Bounce: React.FC<Props> = (props: Props) => {
 describe('CurrentTime', () => {
     beforeAll(() => {
         jest.useFakeTimers('modern');
-        jest.setSystemTime(new Date(2020, 3, 1));
+        jest.setSystemTime(Date.UTC(2020, 3, 1));
     });
 
     afterAll(() => {
