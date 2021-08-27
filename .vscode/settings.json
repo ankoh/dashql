@@ -47,5 +47,7 @@
         "**/.emscripten_cache": true,
         "**/lib/build": true
     },
-    "jest.autoRun": "off"
+    "jest.autoRun": "off",
+    "testMate.cpp.test.executables": "./lib/build/Debug/tester",
+    "testMate.cpp.test.workingDirectory": "./lib/"
 }
