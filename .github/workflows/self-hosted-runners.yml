@@ -223,7 +223,12 @@ jobs:
               uses: ./actions/image
               with:
                   script: |-
-	                  node --liftoff --no-wasm-tier-up ./node_modules/.bin/jest  --collect-coverage
+	                  node \
+                        --experimental-vm-modules \
+                        --liftoff \
+                        --no-wasm-tier-up \
+                        ./node_modules/.bin/jest \
+                        --collect-coverage
 
             - uses: codecov/codecov-action@v2.0.2
               with:
