@@ -4,12 +4,12 @@ import styles from './banner.module.css';
 
 type Props = Record<string, string>;
 
-class Banner extends React.Component<Props> {
+export class Banner extends React.Component<Props> {
     constructor(props: Props) {
         super(props);
     }
 
-    public render() {
+    public render(): React.ReactElement {
         return (
             <div className={styles.banner_bar}>
                 <span className={styles.banner_text}>
