@@ -1,8 +1,8 @@
-import * as proto from '@dashql/proto';
 import * as arrow from 'apache-arrow';
-import { CardDataResolver, CardRendererType, InputValue, StatementStatus, BinaryObject } from '../src/model';
+import * as model from './model';
+import * as proto from '@dashql/proto';
+import { BinaryObject, InputValue, StatementStatus } from './model';
 import { encodeTextBody } from './test';
-
 const COMPLETED = proto.task.TaskStatusCode.COMPLETED;
 
 interface DatabaseTest {
@@ -10,7 +10,13 @@ interface DatabaseTest {
     expected: arrow.Table;
 }
 
-interface StepSpec {
+interface HTTPRequestMock {
+    url: string;
+    status: number;
+    data: ArrayBuffer;
+}
+
+interface Interaction {
     text: string;
     input?: InputValue[];
     expected: {
@@ -21,21 +27,15 @@ interface StepSpec {
     };
 }
 
-interface HTTPRequestMock {
-    url: string;
-    status: number;
-    data: ArrayBuffer;
-}
-
-interface SchedulerSpec {
+interface Scenario {
     name: string;
-    steps: StepSpec[];
+    steps: Interaction[];
     mocks: {
         http: HTTPRequestMock[];
     };
 }
 
-export const TEST_CASES: SchedulerSpec[] = [
+export const SCENARIOS: Scenario[] = [
     {
         name: 'Generate Series',
         steps: [
@@ -63,9 +63,9 @@ export const TEST_CASES: SchedulerSpec[] = [
                     cards: [
                         {
                             objectId: 1, // origin == tasks[1]
-                            cardRenderer: CardRendererType.BUILTIN_TABLE,
+                            cardRenderer: model.CardRendererType.BUILTIN_TABLE,
                             dataSource: {
-                                dataResolver: CardDataResolver.PIECEWISE_SCAN,
+                                dataResolver: model.CardDataResolver.PIECEWISE_SCAN,
                                 targetQualified: 'main.foo',
                             },
                         },
@@ -107,9 +107,9 @@ export const TEST_CASES: SchedulerSpec[] = [
                     cards: [
                         {
                             objectId: 2, // origin == tasks[2]
-                            cardRenderer: CardRendererType.BUILTIN_TABLE,
+                            cardRenderer: model.CardRendererType.BUILTIN_TABLE,
                             dataSource: {
-                                dataResolver: CardDataResolver.PIECEWISE_SCAN,
+                                dataResolver: model.CardDataResolver.PIECEWISE_SCAN,
                                 targetQualified: 'main.test',
                             },
                         },

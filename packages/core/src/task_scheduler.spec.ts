@@ -1,56 +1,59 @@
 import * as analyzer from './analyzer/analyzer_node';
 import * as jmespath from './jmespath/jmespath_node';
 import * as duckdb from '@dashql/duckdb/dist/duckdb.module.js';
-import * as test from './test';
+import * as test_env from './test';
+import { SCENARIOS } from './task_scheduler_scenarios';
 import Immutable from 'immutable';
-import { TaskSchedulerStateMachine } from '../src';
-import { TEST_CASES } from './task_scheduler_tests';
-import { InputValue, REDUCE_BATCH, SCHEDULER_STEP_DONE, SCHEDULE_PLAN, TaskSchedulerStatus } from '../src/model';
-import { WiredTaskExecutionContext, wireTaskExecutionContext } from '../src/task';
+import { TaskSchedulerStateMachine } from './task_scheduler';
+import { InputValue, REDUCE_BATCH, SCHEDULER_STEP_DONE, SCHEDULE_PLAN, TaskSchedulerStatus } from './model';
+import { WiredTaskExecutionContext, wireTaskExecutionContext } from './task';
 import { HTTPMock, mockHTTP } from './test';
-
-import { hashArrowColumn } from '../src/utils/hash';
-import { isSubset } from '../src/utils';
+import { hashArrowColumn } from './utils/hash';
+import { isSubset } from './utils';
 
 jest.setTimeout(10000);
 
-describe('Task Logic', () => {
+describe('Task Scheduler Scenarios', () => {
+    let taskStateMachine = new TaskSchedulerStateMachine();
     let db: duckdb.AsyncDuckDB | null = null;
-    let dbConn: duckdb.AsyncConnection | null = null;
     let az: analyzer.Analyzer | null = null;
     let jp: jmespath.JMESPath | null = null;
-    let httpMock: HTTPMock | null = null;
+
+    let dbConn: duckdb.AsyncConnection | null = null;
     let taskCtx: WiredTaskExecutionContext = null;
+    let httpMock: HTTPMock | null = null;
 
     beforeAll(async () => {
-        az = await test.initAnalyzer();
-        db = await test.initDuckDB();
-        jp = await test.initJMESPath();
-        httpMock = mockHTTP();
-        taskCtx = await wireTaskExecutionContext(db, az, async () => jp);
+        az = await test_env.initAnalyzer();
+        db = await test_env.initDuckDB();
+        jp = await test_env.initJMESPath();
     });
+
     beforeEach(async () => {
         dbConn = await db.connect();
+        taskCtx = await wireTaskExecutionContext(db, az, async () => jp);
+        httpMock = mockHTTP();
     });
+
     afterEach(async () => {
+        httpMock.reset();
         await dbConn.disconnect();
+        await db.reset();
+        await az.reset();
     });
+
     afterAll(async () => {
         await db.terminate();
-        httpMock.reset();
     });
 
-    for (let i = 0; i < TEST_CASES.length; ++i) {
-        const test = TEST_CASES[i];
-        const taskStateMachine = new TaskSchedulerStateMachine();
-
-        describe(test.name, () => {
+    for (const scenario of SCENARIOS) {
+        describe(scenario.name, () => {
             // Execute the steps
-            for (let stepId = 0; stepId < test.steps.length; ++stepId) {
-                const step = test.steps[stepId];
+            for (let stepId = 0; stepId < scenario.steps.length; ++stepId) {
+                const step = scenario.steps[stepId];
                 it(stepId.toString(), async () => {
                     // Setup the mocks
-                    for (const { url, status, data } of test.mocks.http) {
+                    for (const { url, status, data } of scenario.mocks.http) {
                         httpMock.onGet(url).reply(status, data);
                     }
                     // Get the input list
@@ -98,16 +101,13 @@ describe('Task Logic', () => {
                     const expectedCards = step.expected.cards || [];
                     expect(planCtx.cards.size).toBeGreaterThanOrEqual(expectedCards.length);
                     for (const expected of expectedCards) {
-                        expect(planCtx.cards.has(expected.objectId)).toBeTrue();
+                        expect(planCtx.cards.has(expected.objectId)).toBe(true);
                         const have = planCtx.cards.get(expected.objectId);
-                        console.log([...planCtx.cards.keySeq()]);
-                        expect(isSubset(expected, have))
-                            .withContext(
-                                `Expected: ${JSON.stringify(expected)}\nHave: ${JSON.stringify(
-                                    have,
-                                )}\n\nCards:${JSON.stringify(planCtx.cards)}`,
-                            )
-                            .toBeTrue();
+                        // console.log([...planCtx.cards.keySeq()]);
+                        // console.log(`Expected: ${JSON.stringify(expected)}`);
+                        // console.log(`Have: ${JSON.stringify(have)}`);
+                        // console.log(`Cards: ${JSON.stringify(planCtx.cards)}`);
+                        expect(isSubset(expected, have)).toBe(true);
                     }
 
                     // Check database
