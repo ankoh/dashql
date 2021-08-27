@@ -233,7 +233,7 @@ jobs:
             - uses: codecov/codecov-action@v2.0.2
               with:
                   token: ${{ secrets.CODECOV_TOKEN }}
-                  files: ./packages/coverage/coverage-final.json
+                  files: ./coverage/coverage-final.json
                   flags: unittests
 
             - name: Build GitHub Pages
