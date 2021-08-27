@@ -53,6 +53,11 @@ export class DatabaseClient {
         this._metadataDispatch = metadataDispatch;
     }
 
+    /// Get the raw instance
+    public get instance(): duckdb.AsyncDuckDB {
+        return this._duckdb;
+    }
+
     /// Get the metadata
     public get metadata(): DatabaseMetadata {
         return this._metadata;

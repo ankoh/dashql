@@ -9,7 +9,7 @@ import { TaskHandle, Task, TaskUpdate, TaskSchedulerStatus, buildTaskHandle } fr
 import { Action, Dispatch, ProviderProps } from './model_context';
 import { Plan } from './plan';
 import { CardSpecification } from './card_specification';
-import { UniqueBlob } from './unique_blob';
+import { BinaryObject } from './binary_object';
 import { AnalyzerBindings } from '../analyzer';
 
 type ObjectID = number;
@@ -22,7 +22,7 @@ export interface PlanContext {
     /// The status
     readonly statementStatus: Immutable.List<StatementStatus>;
     /// The objects
-    readonly blobs: Immutable.Map<ObjectID, UniqueBlob>;
+    readonly blobs: Immutable.Map<ObjectID, BinaryObject>;
     /// The blobs by name
     readonly blobsByName: Immutable.Map<string, ObjectID>;
     /// The cards
@@ -35,7 +35,7 @@ export const initialPlanContext: PlanContext = {
     plan: null,
     schedulerStatus: TaskSchedulerStatus.IDLE,
     statementStatus: Immutable.List<StatementStatus>(),
-    blobs: Immutable.Map<ObjectID, UniqueBlob>(),
+    blobs: Immutable.Map<ObjectID, BinaryObject>(),
     blobsByName: Immutable.Map<string, ObjectID>(),
     cards: Immutable.Map<ObjectID, CardSpecification>(),
     tasks: Immutable.Map<TaskHandle, Task>(),
@@ -57,7 +57,7 @@ export type PlanContextAction =
     | Action<typeof SCHEDULE_PLAN, [AnalyzerBindings, ProgramInstance]>
     | Action<typeof RESET_PLAN, null>
     | Action<typeof UPDATE_PLAN_TASKS, TaskUpdate[]>
-    | Action<typeof ADD_BLOB, UniqueBlob>
+    | Action<typeof ADD_BLOB, BinaryObject>
     | Action<typeof ADD_CARD, CardSpecification>
     | Action<typeof UPDATE_CARD, Partial<CardSpecification> & { objectId: number }>
     | Action<typeof DELETE_BLOB, ObjectID>
