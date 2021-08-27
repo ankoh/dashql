@@ -123,5 +123,9 @@
         "tmp": false,
         "path": false,
         "buffer": false
-    }
+    },
+    "browserslist": [
+        "last 1 version",
+        "> 1%"
+    ]
 }

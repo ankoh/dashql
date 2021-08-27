@@ -31,7 +31,7 @@ const CONFIG_PATH = 'static/config.[contenthash].json';
 
 export function configure(params) {
     return {
-        target: 'web',
+        target: 'browserslist',
         entry: {
             app: ['./src/app.tsx'],
         },
