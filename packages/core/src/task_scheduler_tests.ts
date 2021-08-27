@@ -1,6 +1,6 @@
 import * as proto from '@dashql/proto';
 import * as arrow from 'apache-arrow';
-import { CardDataResolver, CardRendererType, InputValue, StatementStatus, UniqueBlob } from '../src/model';
+import { CardDataResolver, CardRendererType, InputValue, StatementStatus, BinaryObject } from '../src/model';
 import { encodeTextBody } from './test';
 
 const COMPLETED = proto.task.TaskStatusCode.COMPLETED;
@@ -15,7 +15,7 @@ interface StepSpec {
     input?: InputValue[];
     expected: {
         status: StatementStatus[];
-        blobs?: UniqueBlob[];
+        blobs?: BinaryObject[];
         cards?: (any & { objectId: number })[];
         data?: DatabaseTest[];
     };

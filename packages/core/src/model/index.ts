@@ -1,4 +1,5 @@
 export * from './app_config';
+export * from './binary_object';
 export * from './card_specification';
 export * from './database_metadata';
 export * from './input';
@@ -14,4 +15,3 @@ export * from './program_instance';
 export * from './script';
 export * from './script_registry';
 export * from './task';
-export * from './unique_blob';

@@ -2,7 +2,7 @@
 
 import * as proto from '@dashql/proto';
 import { ADD_BLOB } from '../model/plan_context';
-import { TaskHandle, Statement } from '../model';
+import { TaskHandle, Statement, BinaryObject, persistBinaryObject, registerBinaryObject } from '../model';
 import { ProgramTaskLogic } from './task_logic';
 import { TaskExecutionContext } from './task_execution_context';
 
@@ -42,12 +42,11 @@ export class FetchTaskLogic extends ProgramTaskLogic {
         }
 
         // Fetch the Blob
-        let blob: Blob | null;
+        let buffer: ArrayBuffer | null = null;
         switch (fetch.method()) {
             case proto.syntax.FetchMethodType.HTTP: {
                 const extra = fetch.extra() ? (JSON.parse(fetch.extra()!) as any) : undefined;
-                const buffer = await this.fetchHTTP(ctx, fetch.url()!, extra.headers);
-                blob = new Blob(buffer ? [buffer] : []);
+                buffer = await this.fetchHTTP(ctx, fetch.url()!, extra.headers);
                 break;
             }
             default:
@@ -55,28 +54,34 @@ export class FetchTaskLogic extends ProgramTaskLogic {
                 // XXX
                 return;
         }
-        if (!blob) {
+        if (!buffer) {
             this.status = proto.task.TaskStatusCode.FAILED;
             return;
         }
 
+        // Persist binary object
+        const now = new Date();
+        const name = this.buffer.nameQualified()!;
+        const obj: BinaryObject = await persistBinaryObject({
+            objectId: this.buffer.objectId(),
+            timeCreated: now,
+            timeUpdated: now,
+            nameQualified: name || '',
+            dataSize: buffer.byteLength,
+            dataBuffer: buffer,
+            dataURL: null,
+            dataBlob: null,
+            archiveMode: fetch.archive(),
+        });
+
         // Register as blob in database
         const db = ctx.database;
-        const name = this.buffer.nameQualified()!;
-        await db.use(async c => await c.instance.registerFileHandle(name, blob));
+        await registerBinaryObject(name, obj, db.instance);
 
         // Store as plan object
-        const now = new Date();
         ctx.planContextDiff.push({
             type: ADD_BLOB,
-            data: {
-                objectId: this.buffer.objectId(),
-                timeCreated: now,
-                timeUpdated: now,
-                nameQualified: name || '',
-                blob,
-                archiveMode: fetch.archive(),
-            },
+            data: obj,
         });
     }
 }

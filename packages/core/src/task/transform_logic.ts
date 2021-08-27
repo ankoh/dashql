@@ -1,7 +1,7 @@
 // Copyright (c) 2021 The DashQL Authors
 
 import * as proto from '@dashql/proto';
-import { ADD_BLOB } from '../model';
+import { ADD_BLOB, BinaryObject, persistBinaryObject, readBinaryObjectAsBuffer, registerBinaryObject } from '../model';
 import { TaskHandle, Statement } from '../model';
 import { ProgramTaskLogic } from './task_logic';
 import { TaskExecutionContext } from './task_execution_context';
@@ -33,30 +33,34 @@ export class TransformTaskLogic extends ProgramTaskLogic {
         const extra = JSON.parse(transform.extra() || '') as TransformOptions;
 
         // Evaluate a jmespath
-        const blob = ctx.planContext.blobs.get(blobID)!;
-        const buffer = new Uint8Array(await blob.blob.arrayBuffer());
+        const input = ctx.planContext.blobs.get(blobID)!;
+        const inputBuffer = new Uint8Array(await readBinaryObjectAsBuffer(input));
         const jp = await ctx.jmespath();
-        const result = await jp.evaluateUTF8(extra.expression || '.', buffer);
-        const resultBlob = new Blob([result]);
+        const result = await jp.evaluateUTF8(extra.expression || '.', inputBuffer);
 
-        // Register the file handle in DuckDB
-        const name = this.buffer.nameQualified()!;
-        await ctx.database.use(async c => await c.instance.registerFileHandle(name, resultBlob));
-
-        // Build the plan object
+        // Persist binary object
         const now = new Date();
+        const name = this.buffer.nameQualified()!;
+        const obj: BinaryObject = await persistBinaryObject({
+            objectId: this.buffer.objectId(),
+            timeCreated: now,
+            timeUpdated: now,
+            nameQualified: name || '',
+            dataSize: result.byteLength,
+            dataBuffer: result,
+            dataURL: null,
+            dataBlob: null,
+            archiveMode: proto.analyzer.ArchiveMode.NONE,
+        });
+
+        // Register as blob in database
+        const db = ctx.database;
+        await registerBinaryObject(name, obj, db.instance);
 
         // Store as plan object
         ctx.planContextDiff.push({
             type: ADD_BLOB,
-            data: {
-                objectId: this.buffer.objectId(),
-                timeCreated: now,
-                timeUpdated: now,
-                nameQualified: name || '',
-                blob: resultBlob,
-                archiveMode: proto.analyzer.ArchiveMode.NONE,
-            },
+            data: obj,
         });
     }
 }
