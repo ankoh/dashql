@@ -124,17 +124,17 @@ lib_debug: lib
 
 .PHONY: tests
 js_tests:
-	node --experimental-vm-modules --liftoff --no-wasm-tier-up ./node_modules/.bin/jest
+	NODE_NO_WARNINGS=1 node --experimental-vm-modules --liftoff --no-wasm-tier-up ./node_modules/.bin/jest
 
 # Test the dashql_core javascript library
 .PHONY: tests_cov
 js_tests_cov:
-	node --experimental-vm-modules --liftoff --no-wasm-tier-up ./node_modules/.bin/jest --collect-coverage
+	NODE_NO_WARNINGS=1 node --experimental-vm-modules --liftoff --no-wasm-tier-up ./node_modules/.bin/jest --collect-coverage
 
 
 .PHONY: tests
 js_tests_debug:
-	node --experimental-vm-modules --liftoff --no-wasm-tier-up --inspect-brk=0.0.0.0:9229 ./node_modules/.bin/jest packages/core/__tests__/tasks/scenario_genseries.test.ts
+	NODE_NO_WARNINGS=1 node --experimental-vm-modules --liftoff --no-wasm-tier-up --inspect-brk=0.0.0.0:9229 ./node_modules/.bin/jest packages/core/__tests__/tasks/scenario_genseries.test.ts
 
 # Compile the flatbuffer schema
 .PHONY: proto
