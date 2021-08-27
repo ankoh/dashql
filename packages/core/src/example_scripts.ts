@@ -104,7 +104,7 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         enabled: true,
     },
     {
-        name: 'demo_halowards',
+        name: 'demo_halowars',
         collection: 'Demos',
         title: 'HaloWars Player',
         description: 'A script that shows how to query REST APIs',
