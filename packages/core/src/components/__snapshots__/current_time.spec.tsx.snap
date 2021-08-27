@@ -1,0 +1,7 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`CurrentTime renders correctly 1`] = `
+<div>
+  Wed Apr 01 2020 00:00:00 GMT+0200 (Central European Summer Time)
+</div>
+`;
