@@ -1,0 +1,23 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`CardFrame renders correctly 1`] = `
+<div
+  className="container"
+>
+  <div
+    className="header"
+  >
+    <div
+      className="title"
+    />
+  </div>
+  <div
+    className="body"
+    onMouseDown={[Function]}
+  >
+    <div>
+      Foo
+    </div>
+  </div>
+</div>
+`;
