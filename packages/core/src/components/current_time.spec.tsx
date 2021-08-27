@@ -12,7 +12,7 @@ const Bounce: React.FC<Props> = (props: Props) => {
     React.useEffect(() => {
         props.update();
     });
-    return <div>{props.time.toString()}</div>;
+    return <div>{props.time.toUTCString()}</div>;
 };
 
 describe('CurrentTime', () => {
