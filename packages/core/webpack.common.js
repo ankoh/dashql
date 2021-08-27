@@ -152,6 +152,7 @@ export function configure(params) {
                 ],
             }),
             new webpack.DefinePlugin({
+                'process.env.ENV_BROWSER': true,
                 'process.env.DASHQL_APP_URL': JSON.stringify(params.dashqlAPP),
                 'process.env.DASHQL_API_URL': JSON.stringify(params.dashqlAPI),
                 'process.env.GITHUB_OAUTH_CLIENT_ID': JSON.stringify(params.githubOAuthClientID),

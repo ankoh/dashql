@@ -6,7 +6,6 @@
     "type": "module",
     "scripts": {
         "start": "webpack serve --config webpack.app.dev.js",
-        "build:libs": "node bundle-libs.js && tsc --emitDeclarationOnly",
         "build:app:dev": "webpack --config webpack.app.dev.js",
         "build:app:prod": "webpack --config webpack.app.prod.js",
         "analyze:app:dev": "webpack --config webpack.app.dev.js --analyze",
@@ -52,6 +51,7 @@
     },
     "devDependencies": {
         "@babel/core": "^7.0.0-0",
+        "@babel/plugin-transform-modules-commonjs": "^7.15.0",
         "@testing-library/react": "^12.0.0",
         "@types/classnames": "^2.3.1",
         "@types/d3": "^7.0.0",
@@ -120,6 +120,7 @@
         "worker_threads": false,
         "perf_hooks": false,
         "fs": false,
+        "tmp": false,
         "path": false,
         "buffer": false
     }

@@ -1,5 +1,6 @@
 // Copyright (c) 2020 The DashQL Authors
 
+import '../utils/emscripten_node_es6';
 import analyzer_init from './analyzer_wasm';
 import { DashQLAnalyzerModule } from './analyzer_wasm_module';
 import { AnalyzerBindings, AnalyzerRuntime } from './analyzer_bindings';

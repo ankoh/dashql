@@ -213,12 +213,6 @@ jobs:
                       cp ./lib/build/wasm/release/analyzer_*.{wasm,js} ./packages/core/src/analyzer/
                       cp ./lib/build/wasm/release/jmespath_*.{wasm,js} ./packages/core/src/jmespath/
 
-            - name: Build libraries
-              uses: ./actions/image
-              with:
-                  script: |-
-                      yarn workspace @dashql/core build:libs
-
             - name: Build app
               uses: ./actions/image
               with:
@@ -229,12 +223,12 @@ jobs:
               uses: ./actions/image
               with:
                   script: |-
-                      yarn workspace @dashql/core test:ci
+	                  node --liftoff --no-wasm-tier-up ./node_modules/.bin/jest  --collect-coverage
 
             - uses: codecov/codecov-action@v2.0.2
               with:
                   token: ${{ secrets.CODECOV_TOKEN }}
-                  files: ./packages/core/coverage/coverage.json
+                  files: ./packages/coverage/coverage-final.json
                   flags: unittests
 
             - name: Build GitHub Pages

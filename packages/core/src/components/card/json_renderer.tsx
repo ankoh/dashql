@@ -14,10 +14,11 @@ export const JsonRenderer: React.FC<Props> = (props: Props) => {
     const target = props.card.dataSource!.targetQualified;
     const blobID = planContext.blobsByName.get(target)!;
     const blob = planContext.blobs.get(blobID)!;
+    console.assert(blob.dataBlob!);
     return (
         <CardFrame title={props.card.title || target} controls={props.editable}>
             <BlobLoader
-                blob={blob.blob}
+                blob={blob.dataBlob!}
                 loadingComponent={() => <div>loading...</div>}
                 errorComponent={e => <div>Error: {e}</div>}
             >

@@ -1,5 +1,6 @@
 // Copyright (c) 2020 The DashQL Authors
 
+import '../utils/emscripten_node_es6';
 import jmespath_init from './jmespath_wasm';
 import { JMESPathModule } from './jmespath_wasm_module';
 import { JMESPathBindings } from './jmespath_bindings';
