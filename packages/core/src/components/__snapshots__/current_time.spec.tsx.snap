@@ -2,6 +2,6 @@
 
 exports[`CurrentTime renders correctly 1`] = `
 <div>
-  Tue, 31 Mar 2020 22:00:00 GMT
+  Wed, 01 Apr 2020 00:00:00 GMT
 </div>
 `;
