@@ -1,0 +1,24 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Banner renders correctly 1`] = `
+<div
+  className="banner_bar"
+>
+  <span
+    className="banner_text"
+  >
+    <b>
+      CAUTION:
+    </b>
+     Alpha-quality software in the wild! Talk to us
+  </span>
+  <a
+    className="banner_link"
+    href="https://github.com/dashql/dashql/discussions"
+    rel="noreferrer"
+    target="_blank"
+  >
+    here
+  </a>
+</div>
+`;
