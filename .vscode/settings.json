@@ -46,5 +46,6 @@
         "**/.ccache": true,
         "**/.emscripten_cache": true,
         "**/lib/build": true
-    }
+    },
+    "jest.autoRun": "off"
 }
