@@ -49,5 +49,18 @@
     },
     "jest.autoRun": "off",
     "testMate.cpp.test.executables": "./lib/build/Debug/tester",
-    "testMate.cpp.test.workingDirectory": "./lib/"
+    "testMate.cpp.test.workingDirectory": "./lib/",
+
+    "launch": {
+        "configurations": [
+            {
+                "type": "node",
+                "request": "launch",
+                "name": "Jest",
+                "program": "${workspaceRoot}/node_modules/jest/bin/jest.js",
+                "args": [],
+                "skipFiles": ["node_modules"]
+            }
+        ]
+    }
 }

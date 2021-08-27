@@ -120,14 +120,20 @@ lib_testgen_lldb: lib
 lib_debug: lib
 	lldb --args ${LIB_DEBUG_DIR}/tester ${LIB_SOURCE_DIR}
 
+
+
 .PHONY: tests
 js_tests:
-	./node_modules/.bin/jest
+	node --liftoff --no-wasm-tier-up ./node_modules/.bin/jest
 
 # Test the dashql_core javascript library
 .PHONY: tests_cov
 js_tests_cov:
-	./node_modules/.bin/jest --collect-coverage
+	node --liftoff --no-wasm-tier-up ./node_modules/.bin/jest --collect-coverage
+
+.PHONY: tests
+js_tests_debug:
+	node --liftoff --no-wasm-tier-up --inspect-brk=0.0.0.0:9229 ./node_modules/.bin/jest packages/core/__tests__/tasks/scenario_genseries.test.ts
 
 # Compile the flatbuffer schema
 .PHONY: proto

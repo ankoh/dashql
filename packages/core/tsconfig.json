@@ -25,7 +25,7 @@
         "skipLibCheck": true,
 
         "jsx": "react",
-        "types": ["emscripten", "node", "jasmine", "jest"],
+        "types": ["emscripten", "node", "jest"],
         "lib": ["es6", "es2020", "dom"],
         "baseUrl": ".",
         "plugins": [{ "name": "typescript-plugin-css-modules" }]
