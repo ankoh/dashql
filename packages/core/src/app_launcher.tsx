@@ -28,32 +28,11 @@ import styles from './app_launcher.module.css';
 
 import jmespath_wasm from './jmespath/jmespath_wasm.wasm';
 import analyzer_wasm from './analyzer/analyzer_wasm.wasm';
-import duckdb_wasm from '@dashql/duckdb/dist/duckdb.wasm';
-import duckdb_wasm_next from '@dashql/duckdb/dist/duckdb-next.wasm';
-import duckdb_wasm_next_coi from '@dashql/duckdb/dist/duckdb-next-coi.wasm';
 import { HTTPClientProvider } from './http_client';
-
-const DUCKDB_BUNDLES: duckdb.DuckDBBundles = {
-    asyncDefault: {
-        mainModule: duckdb_wasm,
-        mainWorker: new URL('@dashql/duckdb/dist/duckdb-browser-async.worker.js', import.meta.url).toString(),
-    },
-    asyncNext: {
-        mainModule: duckdb_wasm_next,
-        mainWorker: new URL('@dashql/duckdb/dist/duckdb-browser-async-next.worker.js', import.meta.url).toString(),
-    },
-    asyncNextCOI: {
-        mainModule: duckdb_wasm_next_coi,
-        mainWorker: new URL('@dashql/duckdb/dist/duckdb-browser-async-next-coi.worker.js', import.meta.url).toString(),
-        pthreadWorker: new URL(
-            '@dashql/duckdb/dist/duckdb-browser-async-next-coi.pthread.worker.js',
-            import.meta.url,
-        ).toString(),
-    },
-};
 
 interface Props {
     children: JSX.Element;
+    bundles: duckdb.DuckDBBundles;
 }
 
 type State = {
@@ -116,7 +95,7 @@ export const AppLauncher: React.FC<Props> = (props: Props) => {
         (async () => {
             updateStep(LaunchStepType.INIT_DATABASE, Status.RUNNING);
             try {
-                const config = await duckdb.configure(DUCKDB_BUNDLES);
+                const config = await duckdb.configure(props.bundles);
                 const worker = new Worker(config.mainWorker!);
                 const db = new duckdb.AsyncDuckDB(logger, worker);
                 await db.instantiate(config.mainModule, config.pthreadWorker);

@@ -1,5 +1,6 @@
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
+import * as duckdb from '@dashql/duckdb/dist/duckdb.module.js';
 import { GitHubAuthProvider, GitHubProfileProvider } from './github';
 import {
     LogProvider,
@@ -21,6 +22,29 @@ import '../static/fonts/fonts.module.css';
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
 import 'react-virtualized/styles.css';
+
+import duckdb_wasm from '@dashql/duckdb/dist/duckdb.wasm';
+import duckdb_wasm_next from '@dashql/duckdb/dist/duckdb-next.wasm';
+import duckdb_wasm_next_coi from '@dashql/duckdb/dist/duckdb-next-coi.wasm';
+
+const DUCKDB_BUNDLES: duckdb.DuckDBBundles = {
+    asyncDefault: {
+        mainModule: duckdb_wasm,
+        mainWorker: new URL('@dashql/duckdb/dist/duckdb-browser-async.worker.js', import.meta.url).toString(),
+    },
+    asyncNext: {
+        mainModule: duckdb_wasm_next,
+        mainWorker: new URL('@dashql/duckdb/dist/duckdb-browser-async-next.worker.js', import.meta.url).toString(),
+    },
+    asyncNextCOI: {
+        mainModule: duckdb_wasm_next_coi,
+        mainWorker: new URL('@dashql/duckdb/dist/duckdb-browser-async-next-coi.worker.js', import.meta.url).toString(),
+        pthreadWorker: new URL(
+            '@dashql/duckdb/dist/duckdb-browser-async-next-coi.pthread.worker.js',
+            import.meta.url,
+        ).toString(),
+    },
+};
 
 const DataProviders = (props: { children: React.ReactElement }) => (
     <LogProvider>
@@ -51,7 +75,7 @@ const AccountPage = withNavBar(Account);
 
 ReactDOM.render(
     <DataProviders>
-        <AppLauncher>
+        <AppLauncher bundles={DUCKDB_BUNDLES}>
             <BrowserRouter>
                 <Routes>
                     <Route path="/explorer/*" element={<ExplorerPage />} />
