@@ -10,7 +10,6 @@ import { theme as monaco_theme } from './editor_theme_light';
 import styles from './editor.module.css';
 
 import sx = proto.syntax;
-import { withAutoSizer } from '../utils/autosizer';
 import { TokensProvider } from './editor_tokens';
 import { useAnalyzer } from '../analyzer';
 
@@ -54,7 +53,7 @@ type Props = {
     target?: HTMLDivElement;
 };
 
-const InnerEditor: React.FC<Props> = (props: Props) => {
+export const Editor: React.FC<Props> = (props: Props) => {
     const analyzer = useAnalyzer();
     const [editor, setEditor] = React.useState<monaco.editor.IStandaloneCodeEditor | null>(null);
     const [mouseOffset, setMouseOffset] = React.useState<number | null>(null);
@@ -351,4 +350,4 @@ const InnerEditor: React.FC<Props> = (props: Props) => {
     );
 };
 
-export default withAutoSizer(InnerEditor);
+export const DynamicEditor = Editor;

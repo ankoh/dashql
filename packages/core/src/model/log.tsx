@@ -3,7 +3,7 @@
 import React from 'react';
 import * as duckdb from '@dashql/duckdb/dist/duckdb.module.js';
 import * as Immutable from 'immutable';
-import { Action, Dispatch, ProviderProps } from './model_context';
+import { Action, Dispatch } from './model_context';
 
 const MAX_LOG_SIZE = 100;
 
@@ -121,7 +121,7 @@ export function getLogOriginLabel(origin: LogOrigin | duckdb.LogOrigin): string 
     }
 }
 
-type LogState = {
+export type LogState = {
     /// The entries
     entries: Immutable.List<LogEntryVariant>;
 };
@@ -184,8 +184,13 @@ export class Logger implements duckdb.Logger {
 const loggerCtx = React.createContext<Logger | null>(null);
 const logStateCtx = React.createContext<LogState | null>(null);
 
+export type ProviderProps = {
+    children: React.ReactElement;
+    initialState?: LogState;
+};
+
 export const LogProvider: React.FC<ProviderProps> = (props: ProviderProps) => {
-    const [state, dispatch] = React.useReducer(reducer, initialState);
+    const [state, dispatch] = React.useReducer(reducer, props.initialState || initialState);
     const logger = React.useRef<Logger>(new Logger(state, dispatch));
     React.useEffect(() => {
         logger.current._state = state;

@@ -18,7 +18,7 @@ interface Props {
     onClose: () => void;
 }
 
-export const InnerLogViewer: React.FC<Props> = (props: Props) => {
+export const LogViewer: React.FC<Props> = (props: Props) => {
     const [focused, setFocused] = React.useState<number | null>(null);
     const log = model.useLogState();
 
@@ -97,8 +97,8 @@ export const InnerLogViewer: React.FC<Props> = (props: Props) => {
                                     className={styles.list}
                                     currentTimeRef={props.currentTime}
                                     focusedEntry={focused}
-                                    width={width}
-                                    height={height}
+                                    width={width || 150}
+                                    height={height || 100}
                                     overscanRowCount={OVERSCAN_ROW_COUNT}
                                     rowCount={log.entries.size}
                                     rowHeight={32}
@@ -116,4 +116,4 @@ export const InnerLogViewer: React.FC<Props> = (props: Props) => {
     );
 };
 
-export const LogViewer = withCurrentTime(InnerLogViewer, 5000);
+export const RefreshingLogViewer = withCurrentTime(LogViewer, 5000);

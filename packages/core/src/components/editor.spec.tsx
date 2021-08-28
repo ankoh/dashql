@@ -1,5 +1,3 @@
-//import { jest } from '@jest/globals';
-
 import { jest } from '@jest/globals';
 import * as Immutable from 'immutable';
 import * as analyzer from '../analyzer/analyzer_node';
@@ -8,7 +6,7 @@ import React from 'react';
 import renderer from 'react-test-renderer';
 import { InputValue, PlanContextProvider, ProgramContext, ProgramContextProvider, ScriptOriginType } from '../model/';
 import { AnalyzerProvider } from '../analyzer/';
-import Editor from './editor';
+import { Editor } from './editor';
 
 describe('Editor', () => {
     let az: analyzer.Analyzer | null = null;
@@ -68,7 +66,7 @@ VIZ vacc USING TABLE;
                 <ProgramContextProvider initialState={programCtx}>
                     <PlanContextProvider>
                         <AnalyzerProvider analyzer={az!}>
-                            <Editor readOnly={false} target={pseudo} />
+                            <Editor readOnly={false} target={pseudo} width={1000} height={1000} />
                         </AnalyzerProvider>
                     </PlanContextProvider>
                 </ProgramContextProvider>,
