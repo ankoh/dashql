@@ -5,12 +5,10 @@ const CONFIG = {
     testEnvironment: '<rootDir>/__tests__/jsdom_env.ts',
     // Map module names
     moduleNameMapper: {
-        // DashQL scripts
-        '^.+/static/(.*)\\.dashql$': '<rootDir>/static/$1.$2',
         // Map everything to src
         '^@/(.*)$': '<rootDir>/src/$1',
         // Mock static files
-        '.*\\.(jpg|jpeg|png|gif|eot|otf|webp|svg|ttf|woff|woff2|mp4|webm|wav|mp3|m4a|aac|oga|html)$':
+        '.*\\.(jpg|jpeg|png|gif|eot|otf|webp|svg|ttf|woff|woff2|mp4|webm|wav|mp3|m4a|aac|oga|html|dashql)$':
             '<rootDir>/__tests__/file_mock.ts',
         // Resolve .css and similar files to identity-obj-proxy instead.
         '^.+\\.(css|styl|less|sass|scss)$': `identity-obj-proxy`,
