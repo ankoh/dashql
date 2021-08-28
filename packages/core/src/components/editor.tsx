@@ -4,6 +4,7 @@ import * as monaco from 'monaco-editor/esm/vs/editor/editor.api';
 import * as proto from '@dashql/proto';
 import * as model from '../model';
 import * as utils from '../utils';
+import { withAutoSizer } from '../utils/autosizer';
 import classNames from 'classnames';
 
 import { theme as monaco_theme } from './editor_theme_light';
@@ -350,5 +351,5 @@ export const Editor: React.FC<Props> = (props: Props) => {
     );
 };
 
-export const DynamicEditor = Editor;
+export const DynamicEditor = withAutoSizer(Editor);
 export default DynamicEditor;
