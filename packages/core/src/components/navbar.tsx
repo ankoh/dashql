@@ -1,8 +1,8 @@
 import * as React from 'react';
+import Button from 'react-bootstrap/Button';
 import classNames from 'classnames';
 import { SystemBar } from './system_bar';
-import { Link, useLocation } from 'react-router-dom';
-import Button from 'react-bootstrap/Button';
+import { useLocation, Link } from 'react-router-dom/index';
 import { useActiveGitHubProfile } from '../github';
 
 import styles from './navbar.module.css';
