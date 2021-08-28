@@ -351,3 +351,4 @@ export const Editor: React.FC<Props> = (props: Props) => {
 };
 
 export const DynamicEditor = Editor;
+export default DynamicEditor;
