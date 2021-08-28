@@ -6,7 +6,7 @@ import * as proto from '@dashql/proto';
 import { ProgramInstance } from './program_instance';
 import { StatementStatus, deriveStatementStatusCode } from './program';
 import { TaskHandle, Task, TaskUpdate, TaskSchedulerStatus, buildTaskHandle } from './task';
-import { Action, Dispatch, ProviderProps } from './model_context';
+import { Action, Dispatch } from './model_context';
 import { Plan } from './plan';
 import { CardSpecification } from './card_specification';
 import { BinaryObject } from './binary_object';
@@ -265,8 +265,13 @@ export const reducePlanContext = (ctx: PlanContext, action: PlanContextAction): 
 const stateCtx = React.createContext<PlanContext>(initialPlanContext);
 const dispatchCtx = React.createContext<Dispatch<PlanContextAction>>(() => {});
 
+type ProviderProps = {
+    children: React.ReactElement;
+    initialState?: PlanContext;
+};
+
 export const PlanContextProvider: React.FC<ProviderProps> = (props: ProviderProps) => {
-    const [s, d] = React.useReducer(reducePlanContext, initialPlanContext);
+    const [s, d] = React.useReducer(reducePlanContext, props.initialState || initialPlanContext);
     return (
         <stateCtx.Provider value={s}>
             <dispatchCtx.Provider value={d}>{props.children}</dispatchCtx.Provider>
