@@ -18,7 +18,7 @@ const CONFIG = {
         '@dashql/duckdb/dist/duckdb.module.js': '@dashql/duckdb/dist/duckdb-node-async.js',
     },
     // Module path ignore
-    modulePathIgnorePatterns: ['<rootDir>/src/app.tsx'],
+    modulePathIgnorePatterns: ['<rootDir>/src/duckdb_bundles.ts'],
     // Extensions as esm
     extensionsToTreatAsEsm: ['.ts', '.tsx'],
     // Transform files
