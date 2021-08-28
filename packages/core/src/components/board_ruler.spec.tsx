@@ -2,7 +2,7 @@ import React from 'react';
 import renderer from 'react-test-renderer';
 import { Ruler, RulerOrientation } from './board_ruler';
 
-describe('CurrentTime', () => {
+describe('BoardRuler', () => {
     it('renders correctly', () => {
         const tree = renderer
             .create(

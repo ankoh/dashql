@@ -18,7 +18,7 @@ interface Props {
     onClose: () => void;
 }
 
-const InnerLogViewer: React.FC<Props> = (props: Props) => {
+export const InnerLogViewer: React.FC<Props> = (props: Props) => {
     const [focused, setFocused] = React.useState<number | null>(null);
     const log = model.useLogState();
 

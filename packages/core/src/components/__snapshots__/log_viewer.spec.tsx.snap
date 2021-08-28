@@ -1,0 +1,83 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`LogViewer renders correctly 1`] = `
+<div
+  className="panel"
+  style={
+    Object {
+      "transform": "translateY(30px) translateZ(0)",
+    }
+  }
+>
+  <div
+    className="header"
+    style={Object {}}
+  >
+    <div
+      className="header_title"
+      style={Object {}}
+    >
+      Log
+    </div>
+    <div
+      className="close"
+      onClick={[Function]}
+      style={Object {}}
+    >
+      <svg
+        height="20px"
+        width="20px"
+      >
+        <use
+          xlinkHref="test-file-stub#sym"
+        />
+      </svg>
+    </div>
+  </div>
+  <div
+    className="content"
+    style={Object {}}
+  >
+    <div
+      className="content"
+      onKeyDown={[Function]}
+    >
+      <div
+        className="list_container"
+      >
+        <div
+          style={
+            Object {
+              "height": 0,
+              "overflow": "visible",
+              "width": 0,
+            }
+          }
+        >
+          <div
+            aria-label="grid"
+            aria-readonly={true}
+            className="ReactVirtualized__Grid ReactVirtualized__List list"
+            onScroll={[Function]}
+            role="grid"
+            style={
+              Object {
+                "WebkitOverflowScrolling": "touch",
+                "boxSizing": "border-box",
+                "direction": "ltr",
+                "height": 0,
+                "overflowX": "hidden",
+                "overflowY": "hidden",
+                "position": "relative",
+                "width": 0,
+                "willChange": "transform",
+              }
+            }
+            tabIndex={0}
+          />
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;

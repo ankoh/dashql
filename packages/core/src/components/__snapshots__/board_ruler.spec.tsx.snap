@@ -1,6 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`CurrentTime renders correctly 1`] = `
+exports[`BoardRuler renders correctly 1`] = `
 <canvas
   style={
     Object {
