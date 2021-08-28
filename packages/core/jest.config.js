@@ -1,6 +1,8 @@
 const CONFIG = {
-    // ESM preset
+    // ESM preset, leaves js files as-is
     preset: 'ts-jest/presets/default-esm',
+    // Use custom jsdom environment
+    testEnvironment: '<rootDir>/__tests__/jsdom_env.ts',
     // Map module names
     moduleNameMapper: {
         // DashQL scripts
@@ -8,8 +10,8 @@ const CONFIG = {
         // Map everything to src
         '^@/(.*)$': '<rootDir>/src/$1',
         // Mock static files
-        '.*\\.(jpg|jpeg|png|gif|eot|otf|webp|svg|ttf|woff|woff2|mp4|webm|wav|mp3|m4a|aac|oga)$':
-            '<rootDir>/__mocks__/file_mock.ts',
+        '.*\\.(jpg|jpeg|png|gif|eot|otf|webp|svg|ttf|woff|woff2|mp4|webm|wav|mp3|m4a|aac|oga|html)$':
+            '<rootDir>/__tests__/file_mock.ts',
         // Resolve .css and similar files to identity-obj-proxy instead.
         '^.+\\.(css|styl|less|sass|scss)$': `identity-obj-proxy`,
         // Point duckdb module to node cjs version
