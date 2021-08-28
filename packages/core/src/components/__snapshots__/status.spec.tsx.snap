@@ -1,0 +1,155 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`StatusIndicator renders correctly 1`] = `
+<svg
+  className=""
+  fill="none"
+  height="24px"
+  stroke="white"
+  strokeWidth="2"
+  viewBox="-8 -8 16 16"
+  width="24px"
+>
+  <g
+    fill="none"
+    fillRule="evenodd"
+  >
+    <circle
+      cx="0"
+      cy="0"
+      fill="white"
+      opacity=".5"
+      r="4"
+      strokeWidth="0"
+    />
+  </g>
+</svg>
+`;
+
+exports[`StatusIndicator renders correctly 2`] = `
+<svg
+  className=""
+  fill="none"
+  height="24px"
+  stroke="white"
+  strokeWidth="2"
+  viewBox="-8 -8 16 16"
+  width="24px"
+>
+  <g
+    fill="none"
+    fillRule="evenodd"
+  >
+    <circle
+      cx="0"
+      cy="0"
+      opacity=".5"
+      r="7"
+    />
+    <circle
+      cx="0"
+      cy="0"
+      fill="white"
+      r="4"
+      strokeWidth="0"
+    />
+    <circle
+      className="status_spinner"
+      cx="0"
+      cy="0"
+      r="7"
+      strokeDasharray="12, 88"
+    />
+  </g>
+</svg>
+`;
+
+exports[`StatusIndicator renders correctly 3`] = `
+<svg
+  className=""
+  fill="none"
+  height="24px"
+  strokeWidth="2"
+  viewBox="-8 -8 16 16"
+  width="24px"
+>
+  <g
+    fill="none"
+    fillRule="evenodd"
+  >
+    <rect
+      fill="white"
+      height="6"
+      width="3"
+      x="-3.5"
+      y="-3"
+    />
+    <rect
+      fill="white"
+      height="6"
+      width="3"
+      x="0.5"
+      y="-3"
+    />
+    <circle
+      cx="0"
+      cy="0"
+      opacity=".5"
+      r="7"
+      stroke="white"
+    />
+    <circle
+      className="status_spinner"
+      cx="0"
+      cy="0"
+      r="7"
+      stroke="white"
+      strokeDasharray="12, 88"
+    />
+  </g>
+</svg>
+`;
+
+exports[`StatusIndicator renders correctly 4`] = `
+<svg
+  className=""
+  fill="none"
+  height="24px"
+  strokeWidth="2"
+  viewBox="0 0 16 16"
+  width="24px"
+>
+  <g
+    fill="none"
+    fillRule="evenodd"
+  >
+    <path
+      d="M2.343 13.657A8 8 0 1113.657 2.343 8 8 0 012.343 13.657zM6.03 4.97a.75.75 0 00-1.06 1.06L6.94 8 4.97 9.97a.75.75 0 101.06 1.06L8 9.06l1.97 1.97a.75.75 0 101.06-1.06L9.06 8l1.97-1.97a.75.75 0 10-1.06-1.06L8 6.94 6.03 4.97z"
+      fill="white"
+      fillRule="evenodd"
+    />
+  </g>
+</svg>
+`;
+
+exports[`StatusIndicator renders correctly 5`] = `
+<svg
+  className=""
+  fill="none"
+  height="24px"
+  strokeWidth="2"
+  viewBox="0 0 16 16"
+  width="24px"
+>
+  <g
+    fill="none"
+    fillRule="evenodd"
+  >
+    <path
+      d="M8 16A8 8 0 108 0a8 8 0 000 16zm3.78-9.72a.75.75 0 00-1.06-1.06L6.75 9.19 5.28 7.72a.75.75 0 00-1.06 1.06l2 2a.75.75 0 001.06 0l4.5-4.5z"
+      fill="white"
+      fillRule="evenodd"
+    />
+  </g>
+</svg>
+`;

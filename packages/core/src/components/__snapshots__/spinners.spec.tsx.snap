@@ -1,0 +1,48 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`RectangleWaveSpinner renders correctly 1`] = `
+<div
+  className="rw"
+>
+  <div
+    className="rw_rect_1 rw_rect_active"
+    style={
+      Object {
+        "backgroundColor": "rgb(36, 41, 46)",
+      }
+    }
+  />
+  <div
+    className="rw_rect_2 rw_rect_active"
+    style={
+      Object {
+        "backgroundColor": "rgb(36, 41, 46)",
+      }
+    }
+  />
+  <div
+    className="rw_rect_3 rw_rect_active"
+    style={
+      Object {
+        "backgroundColor": "rgb(36, 41, 46)",
+      }
+    }
+  />
+  <div
+    className="rw_rect_4 rw_rect_active"
+    style={
+      Object {
+        "backgroundColor": "rgb(36, 41, 46)",
+      }
+    }
+  />
+  <div
+    className="rw_rect_5 rw_rect_active"
+    style={
+      Object {
+        "backgroundColor": "rgb(36, 41, 46)",
+      }
+    }
+  />
+</div>
+`;
