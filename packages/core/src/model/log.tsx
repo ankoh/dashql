@@ -184,7 +184,7 @@ export class Logger implements duckdb.Logger {
 const loggerCtx = React.createContext<Logger | null>(null);
 const logStateCtx = React.createContext<LogState | null>(null);
 
-export type ProviderProps = {
+type ProviderProps = {
     children: React.ReactElement;
     initialState?: LogState;
 };
