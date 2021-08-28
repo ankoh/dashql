@@ -1,7 +1,37 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`CurrentTime renders correctly 1`] = `
+exports[`CurrentTime rerenders with refresh-rate 1`] = `
 <div>
   Wed, 01 Apr 2020 00:00:00 GMT
+</div>
+`;
+
+exports[`CurrentTime rerenders with refresh-rate 2`] = `
+<div>
+  Wed, 01 Apr 2020 00:00:00 GMT
+</div>
+`;
+
+exports[`CurrentTime rerenders with refresh-rate 3`] = `
+<div>
+  Wed, 01 Apr 2020 00:00:01 GMT
+</div>
+`;
+
+exports[`CurrentTime updates when requested 1`] = `
+<div>
+  Wed, 01 Apr 2020 00:00:00 GMT
+</div>
+`;
+
+exports[`CurrentTime updates when requested 2`] = `
+<div>
+  Wed, 01 Apr 2020 00:00:00 GMT
+</div>
+`;
+
+exports[`CurrentTime updates when requested 3`] = `
+<div>
+  Wed, 01 Apr 2020 00:00:01 GMT
 </div>
 `;
