@@ -48,6 +48,12 @@ const reducer = (ctx: ProgramContext, action: ProgramContextAction) => {
     switch (action.type) {
         case REPLACE_PROGRAM: {
             const [program, script] = action.data;
+            if (script.lineCount === undefined) {
+                script.lineCount = utils.countLines(program.text);
+            }
+            if (script.bytes === undefined) {
+                script.bytes = utils.estimateUTF16Length(program.text);
+            }
             return {
                 ...ctx,
                 program,
