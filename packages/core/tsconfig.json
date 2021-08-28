@@ -31,5 +31,13 @@
         "plugins": [{ "name": "typescript-plugin-css-modules" }]
     },
     "exclude": ["./node_modules"],
-    "include": ["./src/**/*.tsx?", "./types/*.d.ts", "./test/**/*.tsx?", "./__mocks__/**/*", "./__tests__/**/*.tsx?"]
+    "include": [
+        "./__mocks__/**/*.ts",
+        "./__mocks__/**/*.tsx",
+        "./src/**/*.ts",
+        "./src/**/*.tsx",
+        "./test/**/*.ts",
+        "./test/**/*.tsx",
+        "./types/*.d.ts"
+    ]
 }
