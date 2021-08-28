@@ -1,0 +1,21 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Editor renders with empty state 1`] = `
+<div
+  style={
+    Object {
+      "height": 0,
+      "overflow": "visible",
+      "width": 0,
+    }
+  }
+>
+  <div
+    className="editor"
+  >
+    <div
+      className="editor_monaco"
+    />
+  </div>
+</div>
+`;

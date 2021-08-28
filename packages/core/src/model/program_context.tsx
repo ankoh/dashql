@@ -3,7 +3,7 @@
 import React from 'react';
 import * as Immutable from 'immutable';
 import * as utils from '../utils';
-import { Action, Dispatch, ProviderProps } from './model_context';
+import { Action, Dispatch } from './model_context';
 import { Program, InputValue } from './program';
 import { ProgramInstance } from './program_instance';
 import { Script } from './script';
@@ -95,8 +95,13 @@ const reducer = (ctx: ProgramContext, action: ProgramContextAction) => {
 const programCtx = React.createContext<ProgramContext | null>(null);
 const dispatchCtx = React.createContext<Dispatch<ProgramContextAction> | null>(null);
 
+type ProviderProps = {
+    children: React.ReactElement;
+    initialState?: ProgramContext;
+};
+
 export const ProgramContextProvider: React.FC<ProviderProps> = (props: ProviderProps) => {
-    const [s, d] = React.useReducer(reducer, initialState);
+    const [s, d] = React.useReducer(reducer, props.initialState || initialState);
     return (
         <programCtx.Provider value={s}>
             <dispatchCtx.Provider value={d}>{props.children}</dispatchCtx.Provider>
