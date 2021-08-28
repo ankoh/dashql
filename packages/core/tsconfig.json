@@ -34,6 +34,8 @@
     "include": [
         "./__mocks__/**/*.ts",
         "./__mocks__/**/*.tsx",
+        "./__tests__/**/*.ts",
+        "./__tests__/**/*.tsx",
         "./src/**/*.ts",
         "./src/**/*.tsx",
         "./test/**/*.ts",
