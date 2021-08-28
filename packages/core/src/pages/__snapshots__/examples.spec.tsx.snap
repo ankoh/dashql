@@ -1,6 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`NavBar renders correctly with an empty state 1`] = `
+exports[`Examples renders correctly with an empty state 1`] = `
 <div
   className="root"
 >
