@@ -1,0 +1,820 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`NavBar renders correctly with an empty state 1`] = `
+<div
+  className="root"
+>
+  <div
+    className="gallery_header"
+  >
+    <div
+      className="gallery_header_title"
+    >
+      Example Library
+    </div>
+    <div
+      className="gallery_filters"
+    >
+      <div
+        className="filter_grid"
+      >
+        <div
+          className="filter_tag"
+          data-feature={0}
+          onClick={[Function]}
+        >
+          HTTP
+        </div>
+        <div
+          className="filter_tag"
+          data-feature={1}
+          onClick={[Function]}
+        >
+          ZIP ARCHIVE
+        </div>
+        <div
+          className="filter_tag"
+          data-feature={2}
+          onClick={[Function]}
+        >
+          JMESPATH
+        </div>
+        <div
+          className="filter_tag"
+          data-feature={3}
+          onClick={[Function]}
+        >
+          CSV
+        </div>
+        <div
+          className="filter_tag"
+          data-feature={4}
+          onClick={[Function]}
+        >
+          JSON
+        </div>
+        <div
+          className="filter_tag"
+          data-feature={5}
+          onClick={[Function]}
+        >
+          PARQUET
+        </div>
+        <div
+          className="filter_tag"
+          data-feature={6}
+          onClick={[Function]}
+        >
+          DYNAMIC LOAD
+        </div>
+        <div
+          className="filter_tag"
+          data-feature={7}
+          onClick={[Function]}
+        >
+          DYNAMIC SQL
+        </div>
+        <div
+          className="filter_tag"
+          data-feature={8}
+          onClick={[Function]}
+        >
+          DYNAMIC VIZ
+        </div>
+      </div>
+    </div>
+  </div>
+  <div
+    className="gallery_body"
+  >
+    <div
+      className="collection"
+    >
+      <div
+        className="collection_name"
+      >
+        Demos
+      </div>
+      <div
+        className="collection_grid"
+      >
+        <div
+          className="script_card"
+          data-key="demo_unischema"
+          onClick={[Function]}
+          style={Object {}}
+        >
+          <div
+            className="example_icon"
+            style={Object {}}
+          >
+            <svg
+              height="20"
+              width="20"
+            >
+              <use
+                xlinkHref="test-file-stub#sym"
+              />
+            </svg>
+          </div>
+          <span
+            className="example_title"
+            style={Object {}}
+          >
+            University Schema
+          </span>
+        </div>
+        <div
+          className="script_card"
+          data-key="demo_explore_json"
+          onClick={[Function]}
+          style={Object {}}
+        >
+          <div
+            className="example_icon"
+            style={Object {}}
+          >
+            <svg
+              height="20"
+              width="20"
+            >
+              <use
+                xlinkHref="test-file-stub#sym"
+              />
+            </svg>
+          </div>
+          <span
+            className="example_title"
+            style={Object {}}
+          >
+            Explore JSON
+          </span>
+        </div>
+        <div
+          className="script_card"
+          data-key="demo_vaccination_germany"
+          onClick={[Function]}
+          style={Object {}}
+        >
+          <div
+            className="example_icon"
+            style={Object {}}
+          >
+            <svg
+              height="20"
+              width="20"
+            >
+              <use
+                xlinkHref="test-file-stub#sym"
+              />
+            </svg>
+          </div>
+          <span
+            className="example_title"
+            style={Object {}}
+          >
+            Vaccination Germany
+          </span>
+        </div>
+        <div
+          className="script_card"
+          data-key="demo_halowars"
+          onClick={[Function]}
+          style={Object {}}
+        >
+          <div
+            className="example_icon"
+            style={Object {}}
+          >
+            <svg
+              height="20"
+              width="20"
+            >
+              <use
+                xlinkHref="test-file-stub#sym"
+              />
+            </svg>
+          </div>
+          <span
+            className="example_title"
+            style={Object {}}
+          >
+            HaloWars Player
+          </span>
+        </div>
+      </div>
+    </div>
+    <div
+      className="collection"
+    >
+      <div
+        className="collection_name"
+      >
+        Fetch
+      </div>
+      <div
+        className="collection_grid"
+      >
+        <div
+          className="script_card script_card_disabled"
+          data-key="fetch_http_static"
+          onClick={[Function]}
+          style={Object {}}
+        >
+          <div
+            className="example_icon"
+            style={Object {}}
+          >
+            <svg
+              height="20"
+              width="20"
+            >
+              <use
+                xlinkHref="test-file-stub#sym"
+              />
+            </svg>
+          </div>
+          <span
+            className="example_title"
+            style={Object {}}
+          >
+            Static HTTP
+          </span>
+        </div>
+        <div
+          className="script_card script_card_disabled"
+          data-key="fetch_http_dynamic"
+          onClick={[Function]}
+          style={Object {}}
+        >
+          <div
+            className="example_icon"
+            style={Object {}}
+          >
+            <svg
+              height="20"
+              width="20"
+            >
+              <use
+                xlinkHref="test-file-stub#sym"
+              />
+            </svg>
+          </div>
+          <span
+            className="example_title"
+            style={Object {}}
+          >
+            Dynamic HTTP
+          </span>
+        </div>
+      </div>
+    </div>
+    <div
+      className="collection"
+    >
+      <div
+        className="collection_name"
+      >
+        Transform
+      </div>
+      <div
+        className="collection_grid"
+      >
+        <div
+          className="script_card"
+          data-key="transform_jmespath"
+          onClick={[Function]}
+          style={Object {}}
+        >
+          <div
+            className="example_icon"
+            style={Object {}}
+          >
+            <svg
+              height="20"
+              width="20"
+            >
+              <use
+                xlinkHref="test-file-stub#sym"
+              />
+            </svg>
+          </div>
+          <span
+            className="example_title"
+            style={Object {}}
+          >
+            JMESPath
+          </span>
+        </div>
+      </div>
+    </div>
+    <div
+      className="collection"
+    >
+      <div
+        className="collection_name"
+      >
+        Load
+      </div>
+      <div
+        className="collection_grid"
+      >
+        <div
+          className="script_card script_card_disabled"
+          data-key="load_csv"
+          onClick={[Function]}
+          style={Object {}}
+        >
+          <div
+            className="example_icon"
+            style={Object {}}
+          >
+            <svg
+              height="20"
+              width="20"
+            >
+              <use
+                xlinkHref="test-file-stub#sym"
+              />
+            </svg>
+          </div>
+          <span
+            className="example_title"
+            style={Object {}}
+          >
+            CSV Parsing
+          </span>
+        </div>
+        <div
+          className="script_card script_card_disabled"
+          data-key="load_parquet"
+          onClick={[Function]}
+          style={Object {}}
+        >
+          <div
+            className="example_icon"
+            style={Object {}}
+          >
+            <svg
+              height="20"
+              width="20"
+            >
+              <use
+                xlinkHref="test-file-stub#sym"
+              />
+            </svg>
+          </div>
+          <span
+            className="example_title"
+            style={Object {}}
+          >
+            Parquet Import
+          </span>
+        </div>
+      </div>
+    </div>
+    <div
+      className="collection"
+    >
+      <div
+        className="collection_name"
+      >
+        SQL
+      </div>
+      <div
+        className="collection_grid"
+      >
+        <div
+          className="script_card script_card_disabled"
+          data-key="sql_complex_joins"
+          onClick={[Function]}
+          style={Object {}}
+        >
+          <div
+            className="example_icon"
+            style={Object {}}
+          >
+            <svg
+              height="20"
+              width="20"
+            >
+              <use
+                xlinkHref="test-file-stub#sym"
+              />
+            </svg>
+          </div>
+          <span
+            className="example_title"
+            style={Object {}}
+          >
+            Complex Joins
+          </span>
+        </div>
+        <div
+          className="script_card script_card_disabled"
+          data-key="sql_explicit_grouping"
+          onClick={[Function]}
+          style={Object {}}
+        >
+          <div
+            className="example_icon"
+            style={Object {}}
+          >
+            <svg
+              height="20"
+              width="20"
+            >
+              <use
+                xlinkHref="test-file-stub#sym"
+              />
+            </svg>
+          </div>
+          <span
+            className="example_title"
+            style={Object {}}
+          >
+            Explicit Grouping
+          </span>
+        </div>
+        <div
+          className="script_card script_card_disabled"
+          data-key="sql_movingavg"
+          onClick={[Function]}
+          style={Object {}}
+        >
+          <div
+            className="example_icon"
+            style={Object {}}
+          >
+            <svg
+              height="20"
+              width="20"
+            >
+              <use
+                xlinkHref="test-file-stub#sym"
+              />
+            </svg>
+          </div>
+          <span
+            className="example_title"
+            style={Object {}}
+          >
+            Moving Avergage
+          </span>
+        </div>
+        <div
+          className="script_card script_card_disabled"
+          data-key="sql_runningsum"
+          onClick={[Function]}
+          style={Object {}}
+        >
+          <div
+            className="example_icon"
+            style={Object {}}
+          >
+            <svg
+              height="20"
+              width="20"
+            >
+              <use
+                xlinkHref="test-file-stub#sym"
+              />
+            </svg>
+          </div>
+          <span
+            className="example_title"
+            style={Object {}}
+          >
+            Running Sum
+          </span>
+        </div>
+        <div
+          className="script_card script_card_disabled"
+          data-key="sql_approxmedian"
+          onClick={[Function]}
+          style={Object {}}
+        >
+          <div
+            className="example_icon"
+            style={Object {}}
+          >
+            <svg
+              height="20"
+              width="20"
+            >
+              <use
+                xlinkHref="test-file-stub#sym"
+              />
+            </svg>
+          </div>
+          <span
+            className="example_title"
+            style={Object {}}
+          >
+            Approximative
+          </span>
+        </div>
+        <div
+          className="script_card script_card_disabled"
+          data-key="sql_sampling"
+          onClick={[Function]}
+          style={Object {}}
+        >
+          <div
+            className="example_icon"
+            style={Object {}}
+          >
+            <svg
+              height="20"
+              width="20"
+            >
+              <use
+                xlinkHref="test-file-stub#sym"
+              />
+            </svg>
+          </div>
+          <span
+            className="example_title"
+            style={Object {}}
+          >
+            Sampling
+          </span>
+        </div>
+        <div
+          className="script_card script_card_disabled"
+          data-key="sql_pattern_matching"
+          onClick={[Function]}
+          style={Object {}}
+        >
+          <div
+            className="example_icon"
+            style={Object {}}
+          >
+            <svg
+              height="20"
+              width="20"
+            >
+              <use
+                xlinkHref="test-file-stub#sym"
+              />
+            </svg>
+          </div>
+          <span
+            className="example_title"
+            style={Object {}}
+          >
+            Pattern Matching
+          </span>
+        </div>
+      </div>
+    </div>
+    <div
+      className="collection"
+    >
+      <div
+        className="collection_name"
+      >
+        Visualize
+      </div>
+      <div
+        className="collection_grid"
+      >
+        <div
+          className="script_card script_card_disabled"
+          data-key="viz_line"
+          onClick={[Function]}
+          style={Object {}}
+        >
+          <div
+            className="example_icon"
+            style={Object {}}
+          >
+            <svg
+              height="20"
+              width="20"
+            >
+              <use
+                xlinkHref="test-file-stub#sym"
+              />
+            </svg>
+          </div>
+          <span
+            className="example_title"
+            style={Object {}}
+          >
+            Line Charts
+          </span>
+        </div>
+        <div
+          className="script_card script_card_disabled"
+          data-key="viz_area"
+          onClick={[Function]}
+          style={Object {}}
+        >
+          <div
+            className="example_icon"
+            style={Object {}}
+          >
+            <svg
+              height="20"
+              width="20"
+            >
+              <use
+                xlinkHref="test-file-stub#sym"
+              />
+            </svg>
+          </div>
+          <span
+            className="example_title"
+            style={Object {}}
+          >
+            Area Charts
+          </span>
+        </div>
+        <div
+          className="script_card script_card_disabled"
+          data-key="viz_bar"
+          onClick={[Function]}
+          style={Object {}}
+        >
+          <div
+            className="example_icon"
+            style={Object {}}
+          >
+            <svg
+              height="20"
+              width="20"
+            >
+              <use
+                xlinkHref="test-file-stub#sym"
+              />
+            </svg>
+          </div>
+          <span
+            className="example_title"
+            style={Object {}}
+          >
+            Bar Charts
+          </span>
+        </div>
+        <div
+          className="script_card script_card_disabled"
+          data-key="viz_pie"
+          onClick={[Function]}
+          style={Object {}}
+        >
+          <div
+            className="example_icon"
+            style={Object {}}
+          >
+            <svg
+              height="20"
+              width="20"
+            >
+              <use
+                xlinkHref="test-file-stub#sym"
+              />
+            </svg>
+          </div>
+          <span
+            className="example_title"
+            style={Object {}}
+          >
+            Pie Charts
+          </span>
+        </div>
+        <div
+          className="script_card script_card_disabled"
+          data-key="viz_scatter"
+          onClick={[Function]}
+          style={Object {}}
+        >
+          <div
+            className="example_icon"
+            style={Object {}}
+          >
+            <svg
+              height="20"
+              width="20"
+            >
+              <use
+                xlinkHref="test-file-stub#sym"
+              />
+            </svg>
+          </div>
+          <span
+            className="example_title"
+            style={Object {}}
+          >
+            Scatter Plots
+          </span>
+        </div>
+        <div
+          className="script_card script_card_disabled"
+          data-key="viz_histogram"
+          onClick={[Function]}
+          style={Object {}}
+        >
+          <div
+            className="example_icon"
+            style={Object {}}
+          >
+            <svg
+              height="20"
+              width="20"
+            >
+              <use
+                xlinkHref="test-file-stub#sym"
+              />
+            </svg>
+          </div>
+          <span
+            className="example_title"
+            style={Object {}}
+          >
+            Histograms
+          </span>
+        </div>
+        <div
+          className="script_card script_card_disabled"
+          data-key="viz_streamgraph"
+          onClick={[Function]}
+          style={Object {}}
+        >
+          <div
+            className="example_icon"
+            style={Object {}}
+          >
+            <svg
+              height="20"
+              width="20"
+            >
+              <use
+                xlinkHref="test-file-stub#sym"
+              />
+            </svg>
+          </div>
+          <span
+            className="example_title"
+            style={Object {}}
+          >
+            Streamgraphs
+          </span>
+        </div>
+        <div
+          className="script_card script_card_disabled"
+          data-key="viz_heatmap"
+          onClick={[Function]}
+          style={Object {}}
+        >
+          <div
+            className="example_icon"
+            style={Object {}}
+          >
+            <svg
+              height="20"
+              width="20"
+            >
+              <use
+                xlinkHref="test-file-stub#sym"
+              />
+            </svg>
+          </div>
+          <span
+            className="example_title"
+            style={Object {}}
+          >
+            Heatmaps
+          </span>
+        </div>
+        <div
+          className="script_card script_card_disabled"
+          data-key="viz_interaction"
+          onClick={[Function]}
+          style={Object {}}
+        >
+          <div
+            className="example_icon"
+            style={Object {}}
+          >
+            <svg
+              height="20"
+              width="20"
+            >
+              <use
+                xlinkHref="test-file-stub#sym"
+              />
+            </svg>
+          </div>
+          <span
+            className="example_title"
+            style={Object {}}
+          >
+            Interactivity
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;
