@@ -6,7 +6,6 @@ export * from './compare';
 export * from './format';
 export * from './hash';
 export * from './http';
-export * from './lru_cache';
 export * from './max_element_size';
 export * from './native_bitmap';
 export * from './native_min_heap';
