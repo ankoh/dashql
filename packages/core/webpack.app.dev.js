@@ -36,11 +36,15 @@ export default {
     devtool: 'source-map',
     devServer: {
         historyApiFallback: true,
-        contentBase: path.join(__dirname, './build/app-dev'),
         compress: true,
         port: 9001,
-        mimeTypes: {
-            'text/plain': ['dashql'],
+        static: {
+            directory: path.join(__dirname, './build/app-dev'),
+        },
+        devMiddleware: {
+            mimeTypes: {
+                'text/plain': ['dashql'],
+            },
         },
         headers: {
             'Access-Control-Allow-Origin': '*',
