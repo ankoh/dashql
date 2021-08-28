@@ -1,6 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`LogViewer renders correctly 1`] = `
+exports[`LogViewer renders correctly with logs 1`] = `
 <div
   className="panel"
   style={
@@ -65,16 +65,205 @@ exports[`LogViewer renders correctly 1`] = `
                 "WebkitOverflowScrolling": "touch",
                 "boxSizing": "border-box",
                 "direction": "ltr",
-                "height": 0,
+                "height": 100,
                 "overflowX": "hidden",
                 "overflowY": "hidden",
                 "position": "relative",
-                "width": 0,
+                "width": 150,
                 "willChange": "transform",
               }
             }
             tabIndex={0}
-          />
+          >
+            <div
+              className="ReactVirtualized__Grid__innerScrollContainer"
+              role="rowgroup"
+              style={
+                Object {
+                  "height": 64,
+                  "maxHeight": 64,
+                  "maxWidth": 150,
+                  "overflow": "hidden",
+                  "pointerEvents": "",
+                  "position": "relative",
+                  "width": "auto",
+                }
+              }
+            >
+              <div
+                className="row_container"
+                data-entry={0}
+                onClick={[Function]}
+                style={
+                  Object {
+                    "height": 32,
+                    "left": 0,
+                    "position": "absolute",
+                    "top": 0,
+                    "width": "100%",
+                  }
+                }
+              >
+                <div
+                  className="row"
+                >
+                  <div
+                    className="row_level"
+                  >
+                    INFO
+                  </div>
+                  <div
+                    className="row_origin"
+                  >
+                    SCRIPT PIPELINE
+                  </div>
+                  <div
+                    className="row_topic"
+                  >
+                    PARSE
+                  </div>
+                  <div
+                    className="row_event"
+                  >
+                    OK
+                  </div>
+                  <div
+                    className="row_timestamp"
+                  >
+                    now
+                  </div>
+                </div>
+              </div>
+              <div
+                className="row_container"
+                data-entry={1}
+                onClick={[Function]}
+                style={
+                  Object {
+                    "height": 32,
+                    "left": 0,
+                    "position": "absolute",
+                    "top": 32,
+                    "width": "100%",
+                  }
+                }
+              >
+                <div
+                  className="row"
+                >
+                  <div
+                    className="row_level"
+                  >
+                    INFO
+                  </div>
+                  <div
+                    className="row_origin"
+                  >
+                    SCRIPT PIPELINE
+                  </div>
+                  <div
+                    className="row_topic"
+                  >
+                    INSTANTIATE
+                  </div>
+                  <div
+                    className="row_event"
+                  >
+                    OK
+                  </div>
+                  <div
+                    className="row_timestamp"
+                  >
+                    now
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`LogViewer renders correctly without entries 1`] = `
+<div
+  className="panel"
+  style={
+    Object {
+      "transform": "translateY(30px) translateZ(0)",
+    }
+  }
+>
+  <div
+    className="header"
+    style={Object {}}
+  >
+    <div
+      className="header_title"
+      style={Object {}}
+    >
+      Log
+    </div>
+    <div
+      className="close"
+      onClick={[Function]}
+      style={Object {}}
+    >
+      <svg
+        height="20px"
+        width="20px"
+      >
+        <use
+          xlinkHref="test-file-stub#sym"
+        />
+      </svg>
+    </div>
+  </div>
+  <div
+    className="content"
+    style={Object {}}
+  >
+    <div
+      className="content"
+      onKeyDown={[Function]}
+    >
+      <div
+        className="list_container"
+      >
+        <div
+          style={
+            Object {
+              "height": 0,
+              "overflow": "visible",
+              "width": 0,
+            }
+          }
+        >
+          <div
+            aria-label="grid"
+            aria-readonly={true}
+            className="ReactVirtualized__Grid ReactVirtualized__List list"
+            onScroll={[Function]}
+            role="grid"
+            style={
+              Object {
+                "WebkitOverflowScrolling": "touch",
+                "boxSizing": "border-box",
+                "direction": "ltr",
+                "height": 100,
+                "overflowX": "hidden",
+                "overflowY": "hidden",
+                "position": "relative",
+                "width": 150,
+                "willChange": "transform",
+              }
+            }
+            tabIndex={0}
+          >
+            <div />
+          </div>
         </div>
       </div>
     </div>

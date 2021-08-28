@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { LogViewer } from './log_viewer';
+import { RefreshingLogViewer } from './log_viewer';
 import { DatabaseViewer } from './database_viewer';
 import classNames from 'classnames';
 
@@ -64,7 +64,7 @@ export const SystemBar: React.FC<Props> = (props: Props) => {
                 icon={icon_log}
                 light={props.light}
             >
-                <LogViewer onClose={() => toggleTab(1)} />
+                <RefreshingLogViewer onClose={() => toggleTab(1)} />
             </SystemPanel>
             <SystemPanel
                 systemID={2}
