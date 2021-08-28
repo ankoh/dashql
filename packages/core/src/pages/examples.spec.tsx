@@ -8,7 +8,7 @@ import { ProgramContextProvider } from '../model/';
 import { AnalyzerProvider } from '../analyzer/';
 import { Examples } from './examples';
 
-describe('NavBar', () => {
+describe('Examples', () => {
     let az: analyzer.Analyzer | null = null;
     let windowMock: any;
 
