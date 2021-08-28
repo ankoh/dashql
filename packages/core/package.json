@@ -20,7 +20,7 @@
         "@dashql/proto": "^0.0.5",
         "@octokit/graphql": "^4.6.4",
         "@popperjs/core": "^2.9.3",
-        "apache-arrow": "^4.0.1",
+        "apache-arrow": "^5.0.0",
         "axios": "^0.21.1",
         "bootstrap": "^5.1.0",
         "classnames": "^2.3.1",
