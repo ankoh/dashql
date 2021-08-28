@@ -50,6 +50,8 @@ type Props = {
     height: number;
     /// Is readonly?
     readOnly: boolean;
+    /// The target
+    target?: HTMLDivElement;
 };
 
 const InnerEditor: React.FC<Props> = (props: Props) => {
@@ -57,7 +59,7 @@ const InnerEditor: React.FC<Props> = (props: Props) => {
     const [editor, setEditor] = React.useState<monaco.editor.IStandaloneCodeEditor | null>(null);
     const [mouseOffset, setMouseOffset] = React.useState<number | null>(null);
     const monacoRef = React.useRef(null);
-    const monacoContainer = (monacoRef.current || null) as HTMLDivElement | null;
+    const monacoContainer = (props.target || monacoRef.current) as HTMLDivElement | null;
 
     const { script, program } = model.useProgramContext();
     const { statementStatus } = model.usePlanContext();
