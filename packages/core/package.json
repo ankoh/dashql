@@ -18,7 +18,7 @@
     "dependencies": {
         "@dashql/duckdb": "^0.0.37",
         "@dashql/proto": "^0.0.5",
-        "@octokit/graphql": "^4.6.4",
+        "@octokit/graphql": "^4.7.0",
         "@popperjs/core": "^2.9.3",
         "apache-arrow": "^4.0.1",
         "axios": "^0.21.1",
