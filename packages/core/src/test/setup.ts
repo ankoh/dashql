@@ -18,7 +18,7 @@ export let ANALYZER: Analyzer | null = null;
 export let JMESPATH: JMESPath | null = null;
 
 beforeAll(async () => {
-    const config = await duckdb.configure(DUCKDB_BUNDLES);
+    const config = await duckdb.selectBundle(DUCKDB_BUNDLES);
     const logger = new duckdb.VoidLogger();
     const worker = new Worker(config.mainWorker!);
     DATABASE = new duckdb.AsyncDuckDB(logger, worker);

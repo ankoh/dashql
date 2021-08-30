@@ -18,7 +18,7 @@ describe('DuckDB', () => {
         await db.terminate();
     });
     afterEach(async () => {
-        await conn.disconnect();
+        await conn.close();
     });
 
     it('hello world', async () => {

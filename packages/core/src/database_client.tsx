@@ -91,7 +91,7 @@ export class DatabaseClient {
     public async disconnect(): Promise<void> {
         return await this._connectionMutex.useAsync(async () => {
             if (!this._connection) return;
-            await this._connection.disconnect();
+            await this._connection.close();
         });
     }
 
