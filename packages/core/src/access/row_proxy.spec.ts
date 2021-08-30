@@ -17,7 +17,7 @@ describe('RowProxies', () => {
         await db.terminate();
     });
     afterEach(async () => {
-        await conn.disconnect();
+        await conn.close();
     });
 
     it('generate 10k', async () => {

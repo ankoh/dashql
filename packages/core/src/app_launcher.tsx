@@ -95,7 +95,7 @@ export const AppLauncher: React.FC<Props> = (props: Props) => {
         (async () => {
             updateStep(LaunchStepType.INIT_DATABASE, Status.RUNNING);
             try {
-                const config = await duckdb.configure(props.bundles);
+                const config = await duckdb.selectBundle(props.bundles);
                 const worker = new Worker(config.mainWorker!);
                 const db = new duckdb.AsyncDuckDB(logger, worker);
                 await db.instantiate(config.mainModule, config.pthreadWorker);

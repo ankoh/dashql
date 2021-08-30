@@ -38,7 +38,7 @@ describe('Task Scheduler Scenarios', () => {
 
     afterEach(async () => {
         httpMock.reset();
-        await dbConn.disconnect();
+        await dbConn.close();
         await db.reset();
         await az.reset();
     });

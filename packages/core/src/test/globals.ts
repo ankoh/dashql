@@ -16,7 +16,7 @@ const DUCKDB_BUNDLES: duckdb.DuckDBBundles = {
 };
 
 export async function initDuckDB(): Promise<duckdb.AsyncDuckDB> {
-    const config = await duckdb.configure(DUCKDB_BUNDLES);
+    const config = await duckdb.selectBundle(DUCKDB_BUNDLES);
     const logger = new duckdb.VoidLogger();
     const worker = new Worker(config.mainWorker!);
     const db = new duckdb.AsyncDuckDB(logger, worker);
