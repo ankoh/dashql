@@ -83,7 +83,6 @@ const reducer = (ctx: ProgramContext, action: ProgramContextAction) => {
             };
 
         case REWRITE_PROGRAM:
-            console.log('REWRITE PROGRAM');
             return {
                 ...ctx,
                 script: {

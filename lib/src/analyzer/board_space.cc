@@ -52,50 +52,50 @@ BoardPosition BoardSpace::Allocate(BoardPosition pref) {
     pref.column = std::min(pref.column, COLUMNS_PER_ROW - pref.width);
 
     // Resize the block mask
-    auto max_columns = std::min(COLUMNS_PER_ROW - pref.width + 1, COLUMNS_PER_ROW);
-    auto max_rows = pref.row + pref.height;
-    auto current_rows = (cells.size() << CELL_MASK_SHIFT) / COLUMNS_PER_ROW;
-    if (current_rows < max_rows) {
-        cells.resize(((max_rows * COLUMNS_PER_ROW) >> CELL_MASK_SHIFT) + 1, 0);
+    auto column_candidates = std::min(COLUMNS_PER_ROW - pref.width + 1, COLUMNS_PER_ROW);
+    auto required_rows = pref.row + pref.height;
+    auto row_count = (cells.size() << CELL_MASK_SHIFT) / COLUMNS_PER_ROW;
+    if (row_count < required_rows) {
+        cells.resize(((required_rows * COLUMNS_PER_ROW) >> CELL_MASK_SHIFT) + 1, 0);
+        row_count = required_rows;
     }
 
-    // Naive brute-force space allocation.
+    // Brute-force space allocation.
     // We could be smarter here but it's very likely not necessary.
     uint32_t row = 0, col = 0;
-    for (row = pref.row; row < max_rows; ++row) {
-        for (col = (row == pref.row) ? pref.column : 0; col < max_columns; ++col) {
-            bool qualifies = true;
-            for (auto r = row; r < (row + pref.height); ++r) {
-                for (auto c = col; c < (col + pref.width); ++c) {
-                    qualifies &= !isSet(cells, r, c);
+    while (true) {
+        // Naively check every origin candidate
+        for (row = pref.row; row < (row_count - pref.height); ++row) {
+            for (col = (row == pref.row) ? pref.column : 0; col < column_candidates; ++col) {
+                // Check if all cells are free
+                bool qualifies = true;
+                for (auto r = row; r < (row + pref.height); ++r) {
+                    for (auto c = col; c < (col + pref.width); ++c) {
+                        qualifies &= !isSet(cells, r, c);
+                    }
                 }
-            }
-            if (qualifies) {
-                goto found_space;
+                // Does not qualify?
+                if (!qualifies) continue;
+                // Mark the cells as occupied
+                for (size_t r = row; r < (row + pref.height); ++r) {
+                    for (size_t c = col; c < (col + pref.width); ++c) {
+                        set(cells, r, c);
+                    }
+                }
+                // Return the position
+                return {
+                    .width = pref.width,
+                    .height = pref.height,
+                    .row = row,
+                    .column = col,
+                };
             }
         }
+        // Could not allocate the block?
+        // Resize the buffer.
+        row_count += pref.height;
+        cells.resize(((row_count * COLUMNS_PER_ROW) >> CELL_MASK_SHIFT) + 1, 0);
     }
-
-    // Could not allocate the block?
-    // Resize the buffer.
-    max_rows = row + pref.height;
-    cells.resize(((max_rows * COLUMNS_PER_ROW) >> CELL_MASK_SHIFT) + 1, 0);
-
-found_space:
-    // Mark the bits as occupied
-    for (size_t r = row; r < (row + pref.height); ++r) {
-        for (size_t c = col; c < (col + pref.width); ++c) {
-            set(cells, r, c);
-        }
-    }
-
-    // Return position
-    return {
-        .width = pref.width,
-        .height = pref.height,
-        .row = row,
-        .column = col,
-    };
 }
 
 }  // namespace dashql
