@@ -61,16 +61,18 @@ export const Editor: React.FC<Props> = (props: Props) => {
     const monacoRef = React.useRef(null);
     const monacoContainer = (props.target || monacoRef.current) as HTMLDivElement | null;
 
-    const { script, program } = model.useProgramContext();
+    const { script, program, programInstance } = model.useProgramContext();
     const { statementStatus } = model.usePlanContext();
     const programContextDispatch = model.useProgramContextDispatch();
 
     // Expose program and script via ref for monaco
     const scriptRef = React.useRef<model.Script>(script);
     const programRef = React.useRef<model.Program | null>(program);
+    const programInstanceRef = React.useRef<model.ProgramInstance | null>(programInstance);
     React.useEffect(() => {
         scriptRef.current = script;
         programRef.current = program;
+        programInstanceRef.current = programInstance;
         if (editor && editor.getModel().getValue() !== script.text) {
             editor.setValue(script.text);
         }
@@ -80,7 +82,7 @@ export const Editor: React.FC<Props> = (props: Props) => {
                 renderLineHighlight: props.readOnly ? 'none' : 'all',
             });
         }
-    }, [script, program, props.readOnly]);
+    }, [script, program, programInstance, props.readOnly]);
 
     // Stable line breaks
     const lineBreaksRef = React.useRef<Float64Array>(new Float64Array());
@@ -184,7 +186,7 @@ export const Editor: React.FC<Props> = (props: Props) => {
             }
             monaco.editor.setModelMarkers(data, 'dashql-model', markers);
         }
-    }, [editor, program]);
+    }, [editor, program, programInstance]);
 
     // Update decorations
     const prevDecoration = React.useRef<{

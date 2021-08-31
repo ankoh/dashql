@@ -31,6 +31,7 @@ export const Board: React.FC<Props> = (props: Props) => {
     const programContextDispatch = model.useProgramContextDispatch();
     const planContext = model.usePlanContext();
 
+    // Memoize the grid layout
     const layout = React.useMemo(() => {
         const els: LayoutElement[] = [];
         planContext.cards.forEach(card => {
@@ -47,21 +48,29 @@ export const Board: React.FC<Props> = (props: Props) => {
     }, [planContext.cards]);
 
     const userExpectation = React.useRef<boolean>();
-    const onLayoutChanged = () => {
+    const onLayoutChanged = (newLayout: ReactGrid.Layout[]) => {
         if (!userExpectation.current) return;
         userExpectation.current = false;
-        const updates: edit.EditOperationVariant[] = layout.map(l => ({
-            statementID: (l as LayoutElement).card.statementID,
-            type: edit.EditOperationType.UPDATE_CARD_POSITION,
-            data: {
-                position: {
-                    row: l.y,
-                    column: l.x,
-                    width: l.w,
-                    height: l.h,
+        const mapping = new Map<string, LayoutElement>();
+        layout.forEach(l => mapping.set(l.i, l));
+
+        // Build card updates
+        const updates: edit.EditOperationVariant[] = newLayout.map(l => {
+            return {
+                statementID: mapping.get(l.i).card.statementID,
+                type: edit.EditOperationType.UPDATE_CARD_POSITION,
+                data: {
+                    position: {
+                        row: l.y,
+                        column: l.x,
+                        width: l.w,
+                        height: l.h,
+                    },
                 },
-            },
-        }));
+            };
+        });
+
+        // Edit program
         const next = analyzer.editProgram(updates);
         if (next) {
             programContextDispatch({
@@ -71,6 +80,7 @@ export const Board: React.FC<Props> = (props: Props) => {
         }
     };
 
+    // Build card renderers
     const els: React.ReactElement[] = [];
     for (const l of layout) {
         els.push(
