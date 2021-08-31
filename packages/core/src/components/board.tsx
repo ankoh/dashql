@@ -51,6 +51,8 @@ export const Board: React.FC<Props> = (props: Props) => {
     const onLayoutChanged = (newLayout: ReactGrid.Layout[]) => {
         if (!userExpectation.current) return;
         userExpectation.current = false;
+
+        // Build mapping
         const mapping = new Map<string, LayoutElement>();
         layout.forEach(l => mapping.set(l.i, l));
 
