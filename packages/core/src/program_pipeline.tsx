@@ -83,6 +83,15 @@ export const ProgramPipeline: React.FC<Props> = (props: Props) => {
             }
         }
 
+        // Already instantiated?
+        const prevInstance = programContext.programInstance;
+        if (
+            prevInstance &&
+            programContext.program == prevInstance.program &&
+            programContext.programInputValues == prevInstance.inputValues
+        ) {
+            return;
+        }
         // Instantiate the new program
         const instance = analyzer.instantiateProgram(programContext.programInputValues);
         // Instantiation failed?

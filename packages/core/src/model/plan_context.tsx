@@ -123,9 +123,11 @@ export const reducePlanContext = (ctx: PlanContext, action: PlanContextAction): 
             return next;
         }
         case SCHEDULE_PLAN: {
-            // Scheduler not idle?
             const [analyzer, programInstance] = action.data;
+            // Scheduler not idle?
             if (ctx.schedulerStatus != TaskSchedulerStatus.IDLE) return ctx;
+            // Null instance?
+            if (programInstance == null) return ctx;
             // Same instance?
             if (ctx.plan?.programInstance == programInstance) return ctx;
 
