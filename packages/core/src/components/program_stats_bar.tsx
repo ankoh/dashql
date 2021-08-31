@@ -61,7 +61,11 @@ export const ProgramStatsBar: React.FC<Props> = (props: Props) => {
     };
 
     if (!state) {
-        return <CenteredRectangleWaveSpinner className={styles.spinner} active={true} />;
+        return (
+            <div className={styles.spinner_container}>
+                <CenteredRectangleWaveSpinner className={styles.spinner} active={true} />;
+            </div>
+        );
     }
     return (
         <div className={styles.container}>
