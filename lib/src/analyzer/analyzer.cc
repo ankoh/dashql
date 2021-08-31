@@ -8,6 +8,7 @@
 #include "arrow/scalar.h"
 #include "arrow/type_fwd.h"
 #include "arrow/visitor_inline.h"
+#include "dashql/analyzer/board_space.h"
 #include "dashql/analyzer/function_logic.h"
 #include "dashql/analyzer/input_value.h"
 #include "dashql/analyzer/program_editor.h"
@@ -298,11 +299,20 @@ arrow::Status Analyzer::ComputeCardPositions(ProgramInstance& instance) {
         stmt->computed_position() = !!specified ? *specified : proto::analyzer::CardPosition(0, 0, 0, 0);
         positions.push_back(&stmt->computed_position().value());
     }
-    /// XXX Compute meaningful positions
+
+    // Allocate space
+    BoardSpace space;
     for (auto* pos : positions) {
-        if (pos->width() == 0 || pos->height() == 0) {
-            *pos = proto::analyzer::CardPosition(0, 0, 0, 0);
-        }
+        auto alloc = space.Allocate({
+            .width = pos->width(),
+            .height = pos->height(),
+            .row = pos->row(),
+            .column = pos->column(),
+        });
+        pos->mutate_width(alloc.width);
+        pos->mutate_height(alloc.height);
+        pos->mutate_row(alloc.row);
+        pos->mutate_column(alloc.column);
     }
     return arrow::Status::OK();
 }

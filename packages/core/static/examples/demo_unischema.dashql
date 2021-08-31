@@ -29,7 +29,7 @@ CREATE VIEW SWSCounts AS
 -- Visualize the result with a simple table
 VIZ Enrolments USING TABLE (
     title = 'Einschreibungen',
-    position = (row = 3, column = 0, width = 12, height = 4),
+    position = (row = 4, column = 0, width = 12, height = 4),
 );
 
 -- ... or a bar chart
