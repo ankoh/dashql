@@ -116,6 +116,7 @@
     height: 40px;
     border-bottom: 1px solid var(--border_color);
     display: grid;
+    grid-template-rows: 100%;
 }
 
 .program_editor {
