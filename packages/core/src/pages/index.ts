@@ -3,3 +3,4 @@ export { Explorer } from './explorer';
 export { NotFound } from './not_found';
 export { Viewer } from './viewer';
 export { Account } from './account';
+export { Platform } from './platform';

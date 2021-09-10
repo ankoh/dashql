@@ -1,0 +1,52 @@
+@import '../vars.module.css';
+
+.root {
+    height: 100%;
+    width: 100%;
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(30%, 600px) auto;
+}
+
+.stats_panel {
+    background: white;
+}
+
+.stats_panel_header {
+    font-size: 120%;
+    padding: 8px 20px;
+    border-bottom: 1px solid rgb(200, 200, 200);
+}
+
+.scripts {
+    border-left: 1px solid rgb(200, 200, 200);
+}
+
+.script_collection {
+    padding: 8px 20px;
+}
+
+.script_collection_name {
+    font-size: 100%;
+    padding: 8px 0px;
+}
+
+.script_collection_grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    grid-template-rows: repeat(auto-fit, auto);
+    grid-column-gap: 16px;
+    grid-row-gap: 16px;
+}
+
+.script_collection_grid_placeholder {
+    max-width: 600px;
+    padding: 32px;
+    background: var(--placeholder_script_bg);
+    border: 1px solid rgb(180, 180, 180);
+    border-style: dashed;
+    border-radius: 16px;
+    display: grid;
+    align-items: center;
+    justify-content: center;
+}
