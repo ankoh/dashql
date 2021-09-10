@@ -10,7 +10,7 @@ import {
     ScriptRegistryProvider,
 } from './model';
 import { Route, BrowserRouter, Routes, Navigate } from 'react-router-dom';
-import { Explorer, Examples, Viewer, NotFound, Account } from './pages';
+import { Explorer, Examples, Viewer, NotFound, Account, Platform } from './pages';
 import { withNavBar, OverlayProvider, withScriptLoader } from './components';
 import { AppLauncher } from './app_launcher';
 import { DUCKDB_BUNDLES } from './duckdb_bundles';
@@ -47,6 +47,7 @@ const ViewerPage = withScriptLoader(Viewer);
 const ExplorerPage = withNavBar(withScriptLoader(Explorer));
 const ExamplesPage = withNavBar(Examples);
 const AccountPage = withNavBar(Account);
+const PlatformPage = withNavBar(Platform);
 // const ExplorerPage = withNavBar(withBanner(Explorer));
 // const ExamplesPage = withNavBar(withBanner(Examples));
 
@@ -59,7 +60,7 @@ ReactDOM.render(
                     <Route path="/examples" element={<ExamplesPage />} />
                     <Route path="/viewer/*" element={<ViewerPage />} />
                     <Route path="/account/*" element={<AccountPage />} />
-                    <Route path="/platform/*" element={<AccountPage />} />
+                    <Route path="/platform/*" element={<PlatformPage />} />
                     <Route path="/404" element={<NotFound />} />
                     <Route path="/" element={<Navigate to="/explorer" />} />
                     <Navigate to="/404" />
