@@ -9,6 +9,7 @@ import styles from './navbar.module.css';
 
 import logo from '../../static/svg/logo/logo.svg';
 import icon_examples from '../../static/svg/icons/book_open_blank_variant.svg';
+import icon_web from '../../static/svg/icons/account_group.svg';
 import icon_explorer from '../../static/svg/icons/compass.svg';
 import icon_account from '../../static/svg/icons/folder_account.svg';
 
@@ -43,6 +44,7 @@ export const NavBar = (): React.ReactElement => {
             <div className={styles.tabs}>
                 <Tab route="/explorer" location={location.pathname} icon={icon_explorer} />
                 <Tab route="/examples" location={location.pathname} icon={icon_examples} />
+                <Tab route="/platform" location={location.pathname} icon={icon_web} />
             </div>
             <Link className={styles.account} to="/account">
                 {ghProfile?.avatarUrl ? (

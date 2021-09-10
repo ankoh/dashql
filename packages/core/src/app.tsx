@@ -59,6 +59,7 @@ ReactDOM.render(
                     <Route path="/examples" element={<ExamplesPage />} />
                     <Route path="/viewer/*" element={<ViewerPage />} />
                     <Route path="/account/*" element={<AccountPage />} />
+                    <Route path="/platform/*" element={<AccountPage />} />
                     <Route path="/404" element={<NotFound />} />
                     <Route path="/" element={<Navigate to="/explorer" />} />
                     <Navigate to="/404" />
