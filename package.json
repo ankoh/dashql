@@ -9,6 +9,6 @@
     },
     "dependencies": {
         "jest": "^27.1.1",
-        "prettier": "^2.3.2"
+        "prettier": "^2.4.0"
     }
 }
