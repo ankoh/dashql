@@ -82,7 +82,7 @@
         "html-webpack-plugin": "^5.3.2",
         "identity-obj-proxy": "^3.0.0",
         "kleur": "^4.1.4",
-        "mini-css-extract-plugin": "^2.2.2",
+        "mini-css-extract-plugin": "^2.3.0",
         "prettier": "^2.4.0",
         "prop-types": "^15.7.2",
         "puppeteer": "^10.1.0",
