@@ -59,6 +59,7 @@ export const PlatformStats: React.FC<Props> = (props: Props) => {
     }
     return (
         <div className={cn(styles.container, props.className)}>
+            <div className={styles.views_chart_label}>Total Sessions</div>
             <div className={styles.views_chart}>
                 <PlatformStatsSessionCountChart data={state.table} />
             </div>
