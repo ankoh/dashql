@@ -7,7 +7,7 @@ import {
     LazyLoader,
     ForkDialog,
     OverlayContainer,
-    ProgramStatsBar,
+    ProgramStats,
     ScriptNotFound,
     ShareDialog,
     useOverlaySetter,
@@ -188,7 +188,7 @@ export const Explorer: React.FC<Props> = (props: Props) => {
                     </div>
                     {hasStats && (
                         <div key="stats" className={styles.program_stats}>
-                            <ProgramStatsBar scriptID="changeme" />
+                            <ProgramStats scriptID="changeme" />
                         </div>
                     )}
                     <Routes>

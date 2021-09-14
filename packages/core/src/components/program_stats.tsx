@@ -1,9 +1,9 @@
 import * as React from 'react';
 import * as arrow from 'apache-arrow';
 import * as utils from '../utils';
-import { ProgramStatsBarHitChart } from './program_stats_bar_hits';
+import { ProgramStatsSessionCountChart } from './program_stats_chart';
 
-import styles from './program_stats_bar.module.css';
+import styles from './program_stats.module.css';
 
 import icon_arrow_right from '../../static/svg/icons/arrow_right.svg';
 import icon_open from '../../static/svg/icons/chevron_right_circle.svg';
@@ -18,7 +18,7 @@ interface State {
     trendSessions: number;
 }
 
-export const ProgramStatsBar: React.FC<Props> = (props: Props) => {
+export const ProgramStats: React.FC<Props> = (props: Props) => {
     const [state, setState] = React.useState<State | null>(null);
 
     // Maintain mount flag
@@ -47,7 +47,7 @@ export const ProgramStatsBar: React.FC<Props> = (props: Props) => {
             if (dataArray.length == 0) return;
             setState({
                 table: dataTable,
-                trendSessions: utils.regrSlopeBigInt(dataTable.getColumn('sessions')),
+                trendSessions: utils.regrSlopeF64(dataTable.getColumn('sessions')),
             });
         })();
     }, [props.scriptID]);
@@ -85,7 +85,7 @@ export const ProgramStatsBar: React.FC<Props> = (props: Props) => {
             </div>
             <div className={styles.details}>
                 <div className={styles.views_chart}>
-                    <ProgramStatsBarHitChart width={80} height={14} data={state.table} />
+                    <ProgramStatsSessionCountChart width={80} height={14} data={state.table} />
                     <div className={styles.open_analytics}>
                         <svg width="16px" height="16px">
                             <use xlinkHref={`${icon_open}#sym`} />

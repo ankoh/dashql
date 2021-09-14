@@ -9,7 +9,7 @@ import styles from './navbar.module.css';
 
 import logo from '../../static/svg/logo/logo.svg';
 import icon_examples from '../../static/svg/icons/book_open_blank_variant.svg';
-import icon_web from '../../static/svg/icons/account_group.svg';
+import icon_web from '../../static/svg/icons/cloud.svg';
 import icon_explorer from '../../static/svg/icons/compass.svg';
 import icon_account from '../../static/svg/icons/folder_account.svg';
 
