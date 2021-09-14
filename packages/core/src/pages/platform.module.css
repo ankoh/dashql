@@ -22,7 +22,8 @@
 }
 
 .stats_session_chart {
-    height: 120px;
+    padding: 0px 0px 8px 0px;
+    border-bottom: 1px solid var(--border_color);
 }
 
 .scripts_panel {
