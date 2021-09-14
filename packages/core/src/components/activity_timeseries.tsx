@@ -2,14 +2,15 @@ import * as React from 'react';
 import * as arrow from 'apache-arrow';
 import * as utils from '../utils';
 import cn from 'classnames';
-import { PlatformStatsSessionCountChart } from './platform_stats_session_counts';
+import { ActivityTimeseriesChart } from './activity_timeseries_chart';
 
-import styles from './platform_stats.module.css';
+import styles from './activity_timeseries.module.css';
 
 import { CenteredRectangleWaveSpinner } from './spinners';
 
 interface Props {
     className?: string;
+    title: string;
 }
 
 interface State {
@@ -17,7 +18,7 @@ interface State {
     trendSessions: number;
 }
 
-export const PlatformStats: React.FC<Props> = (props: Props) => {
+export const ActivityTimeseries: React.FC<Props> = (props: Props) => {
     const [state, setState] = React.useState<State | null>(null);
 
     // Maintain mount flag
@@ -59,9 +60,9 @@ export const PlatformStats: React.FC<Props> = (props: Props) => {
     }
     return (
         <div className={cn(styles.container, props.className)}>
-            <div className={styles.views_chart_label}>Total Sessions</div>
+            <div className={styles.views_chart_label}>{props.title}</div>
             <div className={styles.views_chart}>
-                <PlatformStatsSessionCountChart data={state.table} />
+                <ActivityTimeseriesChart data={state.table} />
             </div>
         </div>
     );
