@@ -1,5 +1,5 @@
 import * as React from 'react';
-//import { AccountScriptHitsChart } from '../components';
+import { ActivityTimeseries } from '../components';
 import logo from '../../static/svg/logo/logo.svg';
 import styles from './account.module.css';
 
@@ -26,7 +26,7 @@ export const Account: React.FC<Props> = () => {
                     <div className={styles.github_profile_stats}></div>
                 </div>
                 <div className={styles.account_analytics}>
-                    <div className={styles.account_analytics_header}>Analytics</div>
+                    <ActivityTimeseries className={styles.account_analytics_timeseries} title="Total account views" />
                 </div>
             </div>
             <div className={styles.scripts}>

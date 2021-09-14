@@ -86,7 +86,7 @@ const deriveStateFromProps = (props: Props, prevState?: State): State => {
     };
 };
 
-export const PlatformStatsSessionCountChart: React.FC<Props> = (props: Props) => {
+export const ActivityTimeseriesChart: React.FC<Props> = (props: Props) => {
     const [state, setState] = React.useState<State>(deriveStateFromProps(props));
     if (state.spec == null) {
         VEGA_SPEC_PROMISE!.then(spec => {
