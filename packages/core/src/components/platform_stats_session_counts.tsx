@@ -21,7 +21,7 @@ const VEGA_LITE_SPEC: VLLayerSpec = {
     height: 'container',
     title: undefined,
     background: 'transparent',
-    padding: 8,
+    padding: 0,
     layer: [
         {
             mark: {
