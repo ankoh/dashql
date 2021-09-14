@@ -9,7 +9,10 @@
 }
 
 .stats_panel {
+    grid-column: 1;
     background: white;
+    display: flex;
+    flex-direction: column;
 }
 
 .stats_panel_header {
@@ -18,7 +21,14 @@
     border-bottom: 1px solid rgb(200, 200, 200);
 }
 
-.scripts {
+.stats_session_chart {
+    height: 120px;
+}
+
+.scripts_panel {
+    grid-column: 2;
+    display: flex;
+    flex-direction: column;
     border-left: 1px solid rgb(200, 200, 200);
 }
 
