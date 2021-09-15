@@ -15,19 +15,13 @@ const renderArrow = (trend: number) => {
 
 interface MetricProps {
     key: number;
-    border?: boolean;
     name: string;
     value: string;
     trend?: number;
 }
 
 const ActivityMetric: React.FC<MetricProps> = (props: MetricProps) => (
-    <div
-        key={props.key}
-        className={cn(styles.metric_container, {
-            [styles.metric_border]: props.border,
-        })}
-    >
+    <div key={props.key} className={styles.metric_container}>
         <div className={styles.metric_name}>{props.name}</div>
         <div className={styles.metric_value}>{props.value}</div>
         {props.trend && <div className={styles.metric_trend}>{renderArrow(props.trend)}</div>}
@@ -41,9 +35,16 @@ interface SummaryProps {
 export const ActivitySummary: React.FC<SummaryProps> = (props: SummaryProps) => {
     return (
         <div className={cn(styles.container, props.className)}>
-            <ActivityMetric key={0} name="Views" value="42k" trend={1.0} />
-            <ActivityMetric key={1} border name="Fetched" value="42MB" />
-            <ActivityMetric key={2} border name="Queries" value="42k" />
+            <div className={styles.metric_row}>
+                <ActivityMetric key={0} name="Sessions" value="42k" trend={1.0} />
+                <ActivityMetric key={2} name="Session Time" value="Ø 2min" />
+                <ActivityMetric key={1} name="Instantiation" value="Ø 4s" />
+            </div>
+            <div className={styles.metric_row}>
+                <ActivityMetric key={0} name="Queries" value="42m" />
+                <ActivityMetric key={1} name="Fetched Data" value="42MB" />
+                <ActivityMetric key={2} name="Downstream" value="Ø 42kb/s" />
+            </div>
         </div>
     );
 };
