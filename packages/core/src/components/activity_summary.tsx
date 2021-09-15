@@ -37,13 +37,13 @@ export const ActivitySummary: React.FC<SummaryProps> = (props: SummaryProps) => 
         <div className={cn(styles.container, props.className)}>
             <div className={styles.metric_row}>
                 <ActivityMetric key={0} name="Sessions" value="42k" trend={1.0} />
-                <ActivityMetric key={2} name="Session Time" value="Ø 2min" />
+                <ActivityMetric key={2} name="Session Length" value="Ø 2min" />
                 <ActivityMetric key={1} name="Instantiation" value="Ø 4s" />
             </div>
             <div className={styles.metric_row}>
-                <ActivityMetric key={0} name="Queries" value="42m" />
-                <ActivityMetric key={1} name="Fetched Data" value="42MB" />
-                <ActivityMetric key={2} name="Downstream" value="Ø 42kb/s" />
+                <ActivityMetric key={0} name="Loaded Data" value="42GB" />
+                <ActivityMetric key={1} name="SQL Queries" value="42k" />
+                <ActivityMetric key={2} name="Visualizations" value="42k" />
             </div>
         </div>
     );
