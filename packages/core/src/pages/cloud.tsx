@@ -1,16 +1,16 @@
 import * as React from 'react';
-import styles from './platform.module.css';
+import styles from './cloud.module.css';
 import { ActivityTimeseries, WorkerStatus } from '../components';
 
 interface Props {
     className?: string;
 }
 
-export const Platform: React.FC<Props> = () => {
+export const Cloud: React.FC<Props> = () => {
     return (
         <div className={styles.root}>
             <div className={styles.stats_panel}>
-                <div className={styles.stats_panel_header}>Platform</div>
+                <div className={styles.stats_panel_header}>Cloud Service</div>
                 <WorkerStatus />
                 <ActivityTimeseries className={styles.stats_session_chart} />
             </div>
