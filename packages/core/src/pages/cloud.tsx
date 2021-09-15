@@ -1,6 +1,6 @@
 import * as React from 'react';
 import styles from './cloud.module.css';
-import { ActivityTimeseries, WorkerStatus } from '../components';
+import { ActivityTimeseries, ActivitySummary, WorkerStatus } from '../components';
 
 interface Props {
     className?: string;
@@ -13,6 +13,7 @@ export const Cloud: React.FC<Props> = () => {
                 <div className={styles.stats_panel_header}>Cloud Service</div>
                 <WorkerStatus />
                 <ActivityTimeseries className={styles.stats_session_chart} />
+                <ActivitySummary />
             </div>
             <div className={styles.scripts_panel}>
                 <div className={styles.script_collection}>

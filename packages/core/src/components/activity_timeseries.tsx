@@ -2,7 +2,6 @@ import * as React from 'react';
 import * as arrow from 'apache-arrow';
 import * as v from 'vega';
 import cn from 'classnames';
-//import { AutoSizer } from '../utils/autosizer';
 import { Field } from 'vega-lite/build/src/channeldef.js';
 import { IterableArrayLike, RowLike } from 'apache-arrow/type';
 import { LayerSpec } from 'vega-lite/build/src/spec/layer.js';

@@ -1,0 +1,27 @@
+.container {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+}
+
+.metric_border {
+    border-left: 1px solid var(--border_color);
+}
+
+.metric_container {
+    display: grid;
+    grid-template-columns: auto max-content max-content;
+    align-items: center;
+    padding: 4px 16px;
+}
+
+.metric_name {
+    font-size: 90%;
+    font-weight: 500;
+}
+
+.metric_value {
+}
+
+.metric_trend {
+    padding: 0px 4px;
+}
