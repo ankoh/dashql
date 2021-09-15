@@ -31,6 +31,7 @@ const VEGA_LITE_SPEC: VLLayerSpec = {
             mark: {
                 type: 'line',
                 point: true,
+                tooltip: false, // buggy
             },
         },
     ],
