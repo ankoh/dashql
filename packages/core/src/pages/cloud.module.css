@@ -21,7 +21,7 @@
     border-bottom: 1px solid rgb(200, 200, 200);
 }
 
-.stats_session_chart {
+.stats_sessions {
     padding: 16px 16px 16px 16px;
     border-bottom: 1px solid var(--border_color);
 }

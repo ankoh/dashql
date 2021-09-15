@@ -12,7 +12,7 @@ export const Cloud: React.FC<Props> = () => {
             <div className={styles.stats_panel}>
                 <div className={styles.stats_panel_header}>Cloud Service</div>
                 <WorkerStatus />
-                <ActivityTimeseries className={styles.stats_session_chart} />
+                <ActivityTimeseries className={styles.stats_sessions} />
                 <ActivitySummary />
             </div>
             <div className={styles.scripts_panel}>

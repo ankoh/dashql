@@ -44,7 +44,7 @@ export const WorkerStatus: React.FC<Props> = (props: Props) => {
     }
     return (
         <div className={cn(styles.container, props.className)}>
-            <div className={styles.title}>Worker</div>
+            <div className={styles.title}>Tasks</div>
             <div className={styles.indicators}>
                 {runs.map((run, i) => (
                     <div key={i} className={styles.indicator} />
