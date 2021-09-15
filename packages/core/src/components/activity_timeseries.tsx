@@ -1,25 +1,135 @@
 import * as React from 'react';
 import * as arrow from 'apache-arrow';
-import * as utils from '../utils';
+import * as v from 'vega';
 import cn from 'classnames';
-import { ActivityTimeseriesChart } from './activity_timeseries_chart';
+import { AutoSizer } from '../utils/autosizer';
+import { Field } from 'vega-lite/build/src/channeldef.js';
+import { IterableArrayLike, RowLike } from 'apache-arrow/type';
+import { LayerSpec } from 'vega-lite/build/src/spec/layer.js';
+import { TopLevel } from 'vega-lite/build/src/spec/toplevel.js';
+import { Vega } from 'react-vega';
+import { compile as compileVL } from 'vega-lite/build/src/compile/compile.js';
 
 import styles from './activity_timeseries.module.css';
 
 import { CenteredRectangleWaveSpinner } from './spinners';
 
-interface Props {
+type VLLayerSpec = TopLevel<LayerSpec<Field>>;
+const VEGA_LITE_SPEC: VLLayerSpec = {
+    autosize: {
+        type: 'fit',
+        contains: 'padding',
+        resize: true,
+    },
+    width: 'container',
+    height: 'container',
+    title: undefined,
+    background: 'transparent',
+    padding: 0,
+    layer: [
+        {
+            mark: {
+                type: 'line',
+                point: true,
+            },
+        },
+    ],
+    encoding: {
+        x: {
+            field: 'timestamp',
+            type: 'temporal',
+            title: null,
+        },
+        y: {
+            field: 'sessions',
+            type: 'quantitative',
+            title: 'Views',
+        },
+    },
+    config: {
+        view: {
+            stroke: 'transparent',
+        },
+    },
+};
+let VEGA_SPEC: v.Spec | null = null;
+let VEGA_SPEC_PROMISE: Promise<v.Spec> | null = null;
+
+async function compileVega(): Promise<v.Spec> {
+    const compiled = await compileVL(VEGA_LITE_SPEC);
+    VEGA_SPEC = compiled.spec;
+    return VEGA_SPEC;
+}
+
+interface ChartProps {
+    data: arrow.Table;
+}
+
+interface ChartState {
+    data: arrow.Table;
+    spec: v.Spec | null;
+    rows: IterableArrayLike<RowLike<any>>;
+}
+
+const deriveStateFromProps = (props: ChartProps, prevState?: ChartState): ChartState => {
+    if (!VEGA_SPEC && !VEGA_SPEC_PROMISE) {
+        VEGA_SPEC_PROMISE = compileVega();
+    }
+    if (prevState && props.data == prevState?.data && VEGA_SPEC == prevState?.spec) {
+        return prevState;
+    }
+    if (!prevState || props.data !== prevState?.data) {
+        return {
+            data: props.data,
+            rows: props.data.toArray(),
+            spec: VEGA_SPEC,
+        };
+    }
+    return {
+        data: prevState.data,
+        rows: prevState.rows,
+        spec: VEGA_SPEC,
+    };
+};
+
+export const ActivityTimeseriesChart: React.FC<ChartProps> = (props: ChartProps) => {
+    const [state, setState] = React.useState<ChartState>(deriveStateFromProps(props));
+    if (state.spec == null) {
+        VEGA_SPEC_PROMISE!.then(spec => {
+            setState({
+                ...state,
+                spec: spec,
+            });
+        });
+    }
+    if (state.spec == null) return <div />;
+    if (state.rows == null) return <div />;
+    return (
+        <AutoSizer>
+            {({ width, height }) => (
+                <Vega
+                    spec={state.spec as any}
+                    data={{ source: state.rows }}
+                    width={width}
+                    height={height}
+                    actions={false}
+                />
+            )}
+        </AutoSizer>
+    );
+};
+
+interface ResolverProps {
     className?: string;
     title: string;
 }
 
-interface State {
+interface ResolverState {
     table: arrow.Table;
-    trendSessions: number;
 }
 
-export const ActivityTimeseries: React.FC<Props> = (props: Props) => {
-    const [state, setState] = React.useState<State | null>(null);
+export const ActivityTimeseries: React.FC<ResolverProps> = (props: ResolverProps) => {
+    const [state, setState] = React.useState<ResolverState | null>(null);
 
     // Maintain mount flag
     const isMountedRef = React.useRef<boolean>(true);
@@ -46,7 +156,6 @@ export const ActivityTimeseries: React.FC<Props> = (props: Props) => {
             if (dataArray.length == 0) return;
             setState({
                 table: dataTable,
-                trendSessions: utils.regrSlopeBigInt(dataTable.getColumn('sessions')),
             });
         })();
     }, []);
@@ -60,7 +169,6 @@ export const ActivityTimeseries: React.FC<Props> = (props: Props) => {
     }
     return (
         <div className={cn(styles.container, props.className)}>
-            <div className={styles.views_chart_label}>{props.title}</div>
             <div className={styles.views_chart}>
                 <ActivityTimeseriesChart data={state.table} />
             </div>

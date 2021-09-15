@@ -22,7 +22,7 @@
 }
 
 .stats_session_chart {
-    padding: 0px 20px 16px 20px;
+    padding: 16px 20px 16px 20px;
     border-bottom: 1px solid var(--border_color);
 }
 
