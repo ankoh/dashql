@@ -18,6 +18,10 @@ export const Platform: React.FC<Props> = () => {
                     <div className={styles.script_collection_name}>Most Views</div>
                     <div className={styles.script_collection_grid_placeholder}>Not implemented</div>
                 </div>
+                <div className={styles.script_collection}>
+                    <div className={styles.script_collection_name}>Most Stars</div>
+                    <div className={styles.script_collection_grid_placeholder}>Not implemented</div>
+                </div>
             </div>
         </div>
     );
