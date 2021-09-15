@@ -10,6 +10,11 @@ import { Vega } from 'react-vega';
 
 type VLLayerSpec = TopLevel<LayerSpec<Field>>;
 const VEGA_LITE_SPEC: VLLayerSpec = {
+    autosize: {
+        type: 'fit',
+        contains: 'padding',
+        resize: true,
+    },
     width: 'container',
     height: 64,
     title: undefined,

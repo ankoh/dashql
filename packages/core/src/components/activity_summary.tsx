@@ -50,6 +50,7 @@ export const ActivitySummary: React.FC<SummaryProps> = (props: SummaryProps) => 
                 <div className={styles.chart_pie_container}>
                     <ActivityPieChart className={styles.chart_pie} />
                 </div>
+                <div className={styles.chart_pie_container}></div>
             </div>
         </div>
     );
