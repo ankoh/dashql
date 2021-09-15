@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { ActivityTimeseries } from '../components';
+import { ActivityTimeseries, ActivitySummary } from '../components';
 import logo from '../../static/svg/logo/logo.svg';
 import styles from './account.module.css';
 
@@ -27,6 +27,7 @@ export const Account: React.FC<Props> = () => {
                 </div>
                 <div className={styles.account_analytics}>
                     <ActivityTimeseries className={styles.account_analytics_timeseries} />
+                    <ActivitySummary />
                 </div>
             </div>
             <div className={styles.scripts}>
