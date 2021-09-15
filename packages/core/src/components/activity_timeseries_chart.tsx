@@ -34,6 +34,7 @@ const VEGA_LITE_SPEC: VLLayerSpec = {
         x: {
             field: 'timestamp',
             type: 'temporal',
+            title: null,
         },
         y: {
             field: 'sessions',
