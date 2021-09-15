@@ -45,7 +45,7 @@ export const NavBar = (): React.ReactElement => {
             <div className={styles.tabs}>
                 <Tab route="/explorer" location={location.pathname} icon={icon_explorer} />
                 <Tab route="/examples" location={location.pathname} icon={icon_examples} />
-                <Tab route="/platform" location={location.pathname} icon={icon_web} />
+                <Tab route="/cloud" location={location.pathname} icon={icon_web} />
             </div>
             <Link className={styles.account} to="/account">
                 {ghProfile?.avatarUrl ? (
