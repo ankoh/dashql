@@ -1,6 +1,6 @@
 import React from 'react';
 import renderer from 'react-test-renderer';
-import { MemoryRouter } from 'react-router-dom/index';
+import { MemoryRouter } from 'react-router';
 import { Account } from './account';
 
 describe('Account', () => {
