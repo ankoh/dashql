@@ -60,9 +60,9 @@
     grid-column: 2;
     font-weight: 400;
     margin-left: 8px;
-    display: grid;
-    align-items: center;
-    vertical-align: middle;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
 }
 
 .example_unfocus {
