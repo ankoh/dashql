@@ -28,8 +28,9 @@ const VEGA_LITE_SPEC: VLLayerSpec = {
     layer: [
         {
             mark: {
-                type: 'line',
+                type: 'area',
                 point: true,
+                line: true,
                 tooltip: false, // buggy
             },
         },
