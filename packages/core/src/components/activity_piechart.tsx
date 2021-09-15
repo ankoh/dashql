@@ -11,7 +11,7 @@ import { Vega } from 'react-vega';
 type VLLayerSpec = TopLevel<LayerSpec<Field>>;
 const VEGA_LITE_SPEC: VLLayerSpec = {
     width: 'container',
-    height: 80,
+    height: 64,
     title: undefined,
     background: 'transparent',
     padding: 0,
