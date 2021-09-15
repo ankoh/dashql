@@ -2,7 +2,7 @@ import * as React from 'react';
 import * as arrow from 'apache-arrow';
 import * as v from 'vega';
 import cn from 'classnames';
-import { AutoSizer } from '../utils/autosizer';
+//import { AutoSizer } from '../utils/autosizer';
 import { Field } from 'vega-lite/build/src/channeldef.js';
 import { IterableArrayLike, RowLike } from 'apache-arrow/type';
 import { LayerSpec } from 'vega-lite/build/src/spec/layer.js';
@@ -22,7 +22,7 @@ const VEGA_LITE_SPEC: VLLayerSpec = {
         resize: true,
     },
     width: 'container',
-    height: 'container',
+    height: 80,
     title: undefined,
     background: 'transparent',
     padding: 0,
@@ -105,24 +105,11 @@ export const ActivityTimeseriesChart: React.FC<ChartProps> = (props: ChartProps)
     }
     if (state.spec == null) return <div />;
     if (state.rows == null) return <div />;
-    return (
-        <AutoSizer>
-            {({ width, height }) => (
-                <Vega
-                    spec={state.spec as any}
-                    data={{ source: state.rows }}
-                    width={width}
-                    height={height}
-                    actions={false}
-                />
-            )}
-        </AutoSizer>
-    );
+    return <Vega style={{ width: '100%' }} spec={state.spec as any} data={{ source: state.rows }} actions={false} />;
 };
 
 interface ResolverProps {
     className?: string;
-    title: string;
 }
 
 interface ResolverState {
@@ -170,9 +157,7 @@ export const ActivityTimeseries: React.FC<ResolverProps> = (props: ResolverProps
     }
     return (
         <div className={cn(styles.container, props.className)}>
-            <div className={styles.views_chart}>
-                <ActivityTimeseriesChart data={state.table} />
-            </div>
+            <ActivityTimeseriesChart data={state.table} />
         </div>
     );
 };

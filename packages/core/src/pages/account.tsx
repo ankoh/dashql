@@ -26,7 +26,7 @@ export const Account: React.FC<Props> = () => {
                     <div className={styles.github_profile_stats}></div>
                 </div>
                 <div className={styles.account_analytics}>
-                    <ActivityTimeseries className={styles.account_analytics_timeseries} title="Total account views" />
+                    <ActivityTimeseries className={styles.account_analytics_timeseries} />
                 </div>
             </div>
             <div className={styles.scripts}>

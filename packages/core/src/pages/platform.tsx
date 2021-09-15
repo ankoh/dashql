@@ -11,7 +11,7 @@ export const Platform: React.FC<Props> = () => {
         <div className={styles.root}>
             <div className={styles.stats_panel}>
                 <div className={styles.stats_panel_header}>Platform</div>
-                <ActivityTimeseries className={styles.stats_session_chart} title="Total views" />
+                <ActivityTimeseries className={styles.stats_session_chart} />
             </div>
             <div className={styles.scripts_panel}>
                 <div className={styles.script_collection}>

@@ -15,20 +15,3 @@
     background-color: var(--statsbar_bg);
     font-size: 95%;
 }
-
-.views_chart_label {
-    display: grid;
-    padding: 12px 0px 10px 0px;
-    align-items: center;
-    justify-content: left;
-    font-weight: 500;
-}
-
-.views_chart {
-    width: 100%;
-    height: 80px;
-    line-height: 100%;
-    vertical-align: bottom;
-    display: grid;
-    grid-template-columns: auto auto;
-}
