@@ -15,7 +15,7 @@
 
 .gallery_header_title {
     font-size: 120%;
-    padding: 8px 20px;
+    padding: 8px 16px;
 }
 
 .gallery_filters {
@@ -72,7 +72,7 @@
 }
 
 .collection {
-    padding: 8px 20px;
+    padding: 8px 16px;
 }
 
 .collection_name {
@@ -89,7 +89,7 @@
 }
 
 .filter_grid {
-    padding: 8px 20px 16px 20px;
+    padding: 8px 16px 16px 16px;
     display: grid;
     grid-template-columns: repeat(8, max-content);
     grid-template-rows: auto;

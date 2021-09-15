@@ -1,0 +1,28 @@
+.container {
+    display: grid;
+    grid-template-columns: max-content auto;
+    border-bottom: 1px solid var(--border_color);
+    padding: 2px 0px;
+}
+
+.title {
+    font-weight: 500;
+    padding: 4px 4px 0px 16px;
+    font-size: 85%;
+}
+
+.indicators {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    width: 100%;
+    padding: 4px;
+}
+
+.indicator {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+    margin: 2px;
+    background: rgb(209, 209, 209);
+}
