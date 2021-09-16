@@ -19,8 +19,8 @@
 }
 
 .indicator {
-    width: 12px;
-    height: 12px;
+    width: 10px;
+    height: 16px;
     border-radius: 3px;
     margin: 2px;
     background: rgb(209, 209, 209);
