@@ -31,16 +31,11 @@ const VEGA_LITE_SPEC: VLLayerSpec = {
         color: {
             field: 'key',
             type: 'nominal',
-            title: 'Device',
+            title: null,
         },
         theta: {
             field: 'value',
             type: 'quantitative',
-        },
-    },
-    config: {
-        view: {
-            stroke: 'transparent',
         },
     },
 };
@@ -72,9 +67,11 @@ const deriveStateFromProps = (props: Props, prevState?: State): State => {
     return {
         spec: VEGA_SPEC,
         rows: [
-            { key: 'desktop', value: 420 },
-            { key: 'tablet', value: 1234 },
-            { key: 'mobile', value: 4321 },
+            { key: 'Visualize', value: 420 },
+            { key: 'Query', value: 3333 },
+            { key: 'Load', value: 1234 },
+            { key: 'Transform', value: 1234 },
+            { key: 'Fetch', value: 4321 },
         ],
     };
 };
