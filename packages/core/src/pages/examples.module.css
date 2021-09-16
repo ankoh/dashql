@@ -9,6 +9,7 @@
 }
 
 .gallery_header {
+    border-bottom: 1px solid var(--border_color);
 }
 
 .gallery_filters {
