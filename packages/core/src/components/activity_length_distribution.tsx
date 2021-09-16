@@ -16,7 +16,7 @@ const VEGA_LITE_SPEC: VLLayerSpec = {
         resize: true,
     },
     width: 'container',
-    height: 'container',
+    height: 72,
     background: 'transparent',
     padding: 0,
     layer: [
@@ -47,35 +47,35 @@ const VEGA_LITE_SPEC: VLLayerSpec = {
                 y: {
                     field: 'value',
                     type: 'quantitative',
-                    title: 'Length',
+                    title: 'Views',
                     axis: {
                         format: '~s',
                     },
                 },
             },
         },
-        {
-            mark: {
-                type: 'rule',
-                color: 'red',
-            },
-            encoding: {
-                x: {
-                    datum: 2,
-                },
-            },
-        },
-        {
-            mark: {
-                type: 'rule',
-                color: 'red',
-            },
-            encoding: {
-                x: {
-                    datum: 5,
-                },
-            },
-        },
+        //        {
+        //            mark: {
+        //                type: 'rule',
+        //                color: 'red',
+        //            },
+        //            encoding: {
+        //                x: {
+        //                    datum: 2,
+        //                },
+        //            },
+        //        },
+        //        {
+        //            mark: {
+        //                type: 'rule',
+        //                color: 'red',
+        //            },
+        //            encoding: {
+        //                x: {
+        //                    datum: 5,
+        //                },
+        //            },
+        //        },
     ],
 };
 let VEGA_SPEC: v.Spec | null = null;

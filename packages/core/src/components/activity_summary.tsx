@@ -16,14 +16,14 @@ const renderArrow = (trend: number) => {
 };
 
 interface MetricProps {
-    key: number;
+    className?: string;
     name: string;
     value: string;
     trend?: number;
 }
 
 const ActivityMetric: React.FC<MetricProps> = (props: MetricProps) => (
-    <div key={props.key} className={styles.metric_container}>
+    <div className={cn(styles.metric_container, props.className)}>
         <div className={styles.metric_name}>{props.name}</div>
         <div className={styles.metric_value}>{props.value}</div>
         {props.trend && <div className={styles.metric_trend}>{renderArrow(props.trend)}</div>}
@@ -38,14 +38,14 @@ export const ActivitySummary: React.FC<SummaryProps> = (props: SummaryProps) => 
     return (
         <div className={cn(styles.container, props.className)}>
             <div className={styles.metric_row}>
-                <ActivityMetric key={0} name="Sessions" value="42k" trend={1.0} />
-                <ActivityMetric key={2} name="Session Length" value="Ø 2min" />
-                <ActivityMetric key={1} name="Instantiation" value="Ø 4s" />
+                <ActivityMetric name="Views" value="42k" trend={1.0} />
+                <ActivityMetric name="Daily Views" value="42k" />
+                <ActivityMetric name="Loaded Data" value="42GB" />
             </div>
             <div className={styles.metric_row}>
-                <ActivityMetric key={0} name="Loaded Data" value="42GB" />
-                <ActivityMetric key={1} name="SQL Queries" value="42k" />
-                <ActivityMetric key={2} name="Visualizations" value="42k" />
+                <ActivityMetric name="Queries" value="42k" />
+                <ActivityMetric name="Query Results" value="42GB" />
+                <ActivityMetric name="Visualizations" value="42k" />
             </div>
             <div className={cn(styles.metric_row, styles.metric_row_charts)}>
                 <div className={cn(styles.chart_container, styles.chart_container_pie)}>
@@ -53,6 +53,11 @@ export const ActivitySummary: React.FC<SummaryProps> = (props: SummaryProps) => 
                 </div>
                 <div className={cn(styles.chart_container, styles.chart_container_dist)}>
                     <ActivityLengthDistribution className={styles.chart} />
+                </div>
+                <div className={styles.metric_column}>
+                    <ActivityMetric className={styles.metric_container_dist} name="View Time" value="Ø 8s" />
+                    <ActivityMetric className={styles.metric_container_dist} name="Evaluation Time" value="Ø 4s" />
+                    <ActivityMetric className={styles.metric_container_dist} name="Instantiation" value="Ø 4s" />
                 </div>
             </div>
         </div>
