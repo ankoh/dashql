@@ -1,5 +1,7 @@
 import * as React from 'react';
-import { ActivityTimeseries, ActivitySummary } from '../components';
+import { ActivityTimeseries, ActivitySummary, ScriptEntryCollection } from '../components';
+import { useScriptRegistry } from '../model';
+
 import logo from '../../static/svg/logo/logo.svg';
 import styles from './account.module.css';
 
@@ -8,6 +10,8 @@ interface Props {
 }
 
 export const Account: React.FC<Props> = () => {
+    const registry = useScriptRegistry();
+
     //<AccountScriptHitsChart width={80} height={14} data={state.table} />
     return (
         <div className={styles.root}>
@@ -31,24 +35,21 @@ export const Account: React.FC<Props> = () => {
                 </div>
             </div>
             <div className={styles.scripts}>
-                <div className={styles.script_collection}>
-                    <div className={styles.script_collection_name}>Local Scripts</div>
-                    <div className={styles.script_collection_grid_placeholder}>
-                        You haven&apos;t saved any local scripts yet
-                    </div>
-                </div>
-                <div className={styles.script_collection}>
-                    <div className={styles.script_collection_name}>Own Gists</div>
-                    <div className={styles.script_collection_grid_placeholder}>
-                        Please log into your GitHub account first.
-                    </div>
-                </div>
-                <div className={styles.script_collection}>
-                    <div className={styles.script_collection_name}>Starred Gists</div>
-                    <div className={styles.script_collection_grid_placeholder}>
-                        Please log into your GitHub account first.
-                    </div>
-                </div>
+                <ScriptEntryCollection
+                    name="Local Scripts"
+                    scripts={registry.local}
+                    fallback="You haven't saved any local scripts yet"
+                />
+                <ScriptEntryCollection
+                    name="Own Gists"
+                    scripts={registry.gistsOwned}
+                    fallback="Please log into your GitHub account first."
+                />
+                <ScriptEntryCollection
+                    name="Starred Gists"
+                    scripts={registry.gistsStarred}
+                    fallback="Please log into your GitHub account first."
+                />
             </div>
         </div>
     );
