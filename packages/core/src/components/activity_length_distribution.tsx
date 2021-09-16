@@ -17,7 +17,6 @@ const VEGA_LITE_SPEC: VLLayerSpec = {
     },
     width: 'container',
     height: 'container',
-    title: undefined,
     background: 'transparent',
     padding: 0,
     layer: [
@@ -42,7 +41,7 @@ const VEGA_LITE_SPEC: VLLayerSpec = {
                 y: {
                     field: 'value',
                     type: 'quantitative',
-                    title: null,
+                    title: 'Length',
                     axis: {
                         format: '~s',
                     },
