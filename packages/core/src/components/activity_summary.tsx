@@ -57,7 +57,7 @@ export const ActivitySummary: React.FC<SummaryProps> = (props: SummaryProps) => 
                 <div className={styles.metric_column}>
                     <ActivityMetric className={styles.metric_container_dist} name="View Time" value="Ø 8s" />
                     <ActivityMetric className={styles.metric_container_dist} name="Evaluation Time" value="Ø 4s" />
-                    <ActivityMetric className={styles.metric_container_dist} name="Interaction" value="1.2" />
+                    <ActivityMetric className={styles.metric_container_dist} name="Interaction Rate" value="1.2" />
                 </div>
             </div>
         </div>
