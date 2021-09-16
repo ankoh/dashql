@@ -10,8 +10,9 @@ export const Cloud: React.FC<Props> = () => {
     return (
         <div className={styles.root}>
             <div className={styles.stats_panel}>
-                <div className={styles.stats_panel_header}>Cloud Service</div>
-                <WorkerStatus />
+                <div className={styles.stats_task_header}>Cloud Worker</div>
+                <WorkerStatus className={styles.stats_task_status} />
+                <div className={styles.stats_summary_header}>Analytics</div>
                 <ActivityTimeseries className={styles.stats_sessions} />
                 <ActivitySummary />
             </div>

@@ -15,10 +15,19 @@
     flex-direction: column;
 }
 
-.stats_panel_header {
+.stats_task_header {
+    padding: 8px 16px 8px 16px;
     font-size: 120%;
-    padding: 8px 16px;
-    border-bottom: 1px solid rgb(200, 200, 200);
+}
+
+.stats_task_status {
+    border-bottom: 1px solid var(--border_color);
+    padding: 2px 0px 8px 0px;
+}
+
+.stats_summary_header {
+    padding: 12px 16px 0px 16px;
+    font-size: 120%;
 }
 
 .stats_sessions {

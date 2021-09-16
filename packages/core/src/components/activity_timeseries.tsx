@@ -44,7 +44,7 @@ const VEGA_LITE_SPEC: VLLayerSpec = {
         y: {
             field: 'sessions',
             type: 'quantitative',
-            title: 'Sessions',
+            title: 'Views',
         },
     },
     config: {

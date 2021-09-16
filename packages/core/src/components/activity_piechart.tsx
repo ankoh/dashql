@@ -16,7 +16,7 @@ const VEGA_LITE_SPEC: VLLayerSpec = {
         resize: true,
     },
     width: 'container',
-    height: 'container',
+    height: 64,
     title: {
         text: 'Time',
         orient: 'left',

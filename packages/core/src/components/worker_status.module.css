@@ -1,7 +1,6 @@
 .container {
     display: grid;
     grid-template-columns: max-content auto;
-    border-bottom: 1px solid var(--border_color);
     padding: 2px 0px;
 }
 

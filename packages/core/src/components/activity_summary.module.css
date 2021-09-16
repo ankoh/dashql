@@ -11,7 +11,11 @@
 }
 
 .metric_row_charts {
-    height: 80px;
+}
+
+.metric_column {
+    display: flex;
+    flex-direction: column;
 }
 
 .metric_container {
@@ -52,7 +56,15 @@
 }
 
 .chart_container_dist {
-    padding: 8px 8px 4px 8px;
+    padding: 6px 0px 0px 8px;
+}
+
+.metric_container_dist {
+    border-left: none !important;
+}
+
+.metric_container_dist:first-child {
+    border-top: none !important;
 }
 
 .chart {
