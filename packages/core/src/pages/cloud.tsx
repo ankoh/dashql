@@ -1,6 +1,8 @@
+import Immutable from 'immutable';
 import * as React from 'react';
 import styles from './cloud.module.css';
-import { ActivityTimeseries, ActivitySummary, WorkerStatus } from '../components';
+import { ActivityTimeseries, ActivitySummary, WorkerStatus, ScriptEntryCollection } from '../components';
+import { Script } from '../model';
 
 interface Props {
     className?: string;
@@ -17,14 +19,16 @@ export const Cloud: React.FC<Props> = () => {
                 <ActivitySummary />
             </div>
             <div className={styles.scripts_panel}>
-                <div className={styles.script_collection}>
-                    <div className={styles.script_collection_name}>Most Views</div>
-                    <div className={styles.script_collection_grid_placeholder}>Not implemented</div>
-                </div>
-                <div className={styles.script_collection}>
-                    <div className={styles.script_collection_name}>Most Stars</div>
-                    <div className={styles.script_collection_grid_placeholder}>Not implemented</div>
-                </div>
+                <ScriptEntryCollection
+                    name="Most Views"
+                    scripts={Immutable.Map<string, Script>()}
+                    fallback="Not implemented"
+                />
+                <ScriptEntryCollection
+                    name="Most Views"
+                    scripts={Immutable.Map<string, Script>()}
+                    fallback="Not implemented"
+                />
             </div>
         </div>
     );

@@ -10,6 +10,7 @@ export * from './lazy_loader';
 export * from './overlay';
 export * from './program_stats';
 export * from './program_stats_chart';
+export * from './script_entry';
 export * from './script_loader';
 export * from './script_not_found';
 export * from './share_dialog';
