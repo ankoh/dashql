@@ -85,6 +85,11 @@
 .account_analytics {
 }
 
+.account_analytics_header {
+    padding: 12px 16px 0px 16px;
+    font-size: 110%;
+}
+
 .account_analytics_timeseries {
     font-size: 100%;
     padding: 16px 20px 16px 20px;
