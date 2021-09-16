@@ -9,13 +9,6 @@
 }
 
 .gallery_header {
-    background: white;
-    border-bottom: 1px solid rgb(200, 200, 200);
-}
-
-.gallery_header_title {
-    font-size: 120%;
-    padding: 8px 16px;
 }
 
 .gallery_filters {
@@ -89,7 +82,7 @@
 }
 
 .filter_grid {
-    padding: 8px 16px 16px 16px;
+    padding: 16px 16px 16px 16px;
     display: grid;
     grid-template-columns: repeat(8, max-content);
     grid-template-rows: auto;
