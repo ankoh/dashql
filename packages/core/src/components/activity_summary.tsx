@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { ActivityPieChart } from './activity_piechart';
+import { ActivityLengthDistribution } from './activity_length_distribution';
 import cn from 'classnames';
 
 import styles from './activity_summary.module.css';
@@ -46,11 +47,13 @@ export const ActivitySummary: React.FC<SummaryProps> = (props: SummaryProps) => 
                 <ActivityMetric key={1} name="SQL Queries" value="42k" />
                 <ActivityMetric key={2} name="Visualizations" value="42k" />
             </div>
-            <div className={styles.metric_row}>
-                <div className={styles.chart_pie_container}>
-                    <ActivityPieChart className={styles.chart_pie} />
+            <div className={cn(styles.metric_row, styles.metric_row_charts)}>
+                <div className={cn(styles.chart_container, styles.chart_container_pie)}>
+                    <ActivityPieChart className={styles.chart} />
                 </div>
-                <div className={styles.chart_pie_container}></div>
+                <div className={cn(styles.chart_container, styles.chart_container_dist)}>
+                    <ActivityLengthDistribution className={styles.chart} />
+                </div>
             </div>
         </div>
     );

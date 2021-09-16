@@ -10,6 +10,10 @@
     border-bottom: none !important;
 }
 
+.metric_row_charts {
+    height: 80px;
+}
+
 .metric_container {
     display: grid;
     grid-template-columns: auto max-content max-content;
@@ -33,18 +37,25 @@
     padding: 0px 0px 0px 4px;
 }
 
-.chart_pie_container {
+.chart_container {
     width: 100%;
     height: 100%;
-    padding: 8px 16px;
     border-left: 1px solid var(--border_color);
 }
 
-.chart_pie_container:first-child {
+.chart_container:first-child {
     border-left: none !important;
 }
 
-.chart_pie {
+.chart_container_pie {
+    padding: 8px 16px;
+}
+
+.chart_container_dist {
+    padding: 4px 8px;
+}
+
+.chart {
     width: 100%;
     height: 100%;
 }

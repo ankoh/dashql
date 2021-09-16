@@ -23,21 +23,33 @@ const VEGA_LITE_SPEC: VLLayerSpec = {
     layer: [
         {
             mark: {
-                type: 'arc',
+                type: 'bar',
+                clip: true,
+            },
+            encoding: {
+                x: {
+                    field: 'label',
+                    type: 'nominal',
+                    title: null,
+                    sort: {
+                        field: 'bin',
+                    },
+                    axis: {
+                        labelAngle: 0,
+                        values: ['all', '8s', '1m', '8m'],
+                    },
+                },
+                y: {
+                    field: 'value',
+                    type: 'quantitative',
+                    title: null,
+                    axis: {
+                        format: '~s',
+                    },
+                },
             },
         },
     ],
-    encoding: {
-        color: {
-            field: 'key',
-            type: 'nominal',
-            title: null,
-        },
-        theta: {
-            field: 'value',
-            type: 'quantitative',
-        },
-    },
 };
 let VEGA_SPEC: v.Spec | null = null;
 let VEGA_SPEC_PROMISE: Promise<v.Spec> | null = null;
@@ -67,16 +79,26 @@ const deriveStateFromProps = (props: Props, prevState?: State): State => {
     return {
         spec: VEGA_SPEC,
         rows: [
-            { key: 'Visualize', value: 420 },
-            { key: 'Query', value: 3333 },
-            { key: 'Load', value: 1234 },
-            { key: 'Transform', value: 1234 },
-            { key: 'Fetch', value: 4321 },
+            { label: 'all', bin: 0, value: 38000 },
+            { label: '2s', bin: 1, value: 36000 },
+            { label: '4s', bin: 2, value: 32000 },
+
+            { label: '8s', bin: 3, value: 10000 },
+            { label: '16s', bin: 4, value: 5000 },
+            { label: '32s', bin: 5, value: 2000 },
+
+            { label: '1m', bin: 6, value: 1000 },
+            { label: '2m', bin: 7, value: 800 },
+            { label: '4m', bin: 8, value: 600 },
+
+            { label: '8m', bin: 9, value: 400 },
+            { label: '17m', bin: 10, value: 300 },
+            { label: '34m', bin: 11, value: 200 },
         ],
     };
 };
 
-export const ActivityPieChart: React.FC<Props> = (props: Props) => {
+export const ActivityLengthDistribution: React.FC<Props> = (props: Props) => {
     const [state, setState] = React.useState<State>(deriveStateFromProps(props));
     if (state.spec == null) {
         VEGA_SPEC_PROMISE!.then(spec => {
