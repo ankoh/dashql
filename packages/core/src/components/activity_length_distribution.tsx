@@ -22,20 +22,26 @@ const VEGA_LITE_SPEC: VLLayerSpec = {
     layer: [
         {
             mark: {
-                type: 'bar',
+                type: 'area',
+                point: true,
+                line: true,
                 clip: true,
             },
             encoding: {
                 x: {
-                    field: 'label',
-                    type: 'nominal',
+                    field: 'length',
+                    type: 'quantitative',
                     title: null,
-                    sort: {
-                        field: 'bin',
-                    },
                     axis: {
                         labelAngle: 0,
-                        values: ['all', '8s', '1m', '8m'],
+                        tickCount: 6,
+                        labelExpr: '(datum.value < 60) ? (datum.value + "s") : (floor(datum.value / 60) + "m")',
+                    },
+                    scale: {
+                        type: 'log',
+                        base: 2,
+                        domainMin: 1,
+                        domainMax: 2048,
                     },
                 },
                 y: {
@@ -45,6 +51,28 @@ const VEGA_LITE_SPEC: VLLayerSpec = {
                     axis: {
                         format: '~s',
                     },
+                },
+            },
+        },
+        {
+            mark: {
+                type: 'rule',
+                color: 'red',
+            },
+            encoding: {
+                x: {
+                    datum: 2,
+                },
+            },
+        },
+        {
+            mark: {
+                type: 'rule',
+                color: 'red',
+            },
+            encoding: {
+                x: {
+                    datum: 5,
                 },
             },
         },
@@ -78,21 +106,21 @@ const deriveStateFromProps = (props: Props, prevState?: State): State => {
     return {
         spec: VEGA_SPEC,
         rows: [
-            { label: 'all', bin: 0, value: 38000 },
-            { label: '2s', bin: 1, value: 36000 },
-            { label: '4s', bin: 2, value: 32000 },
+            { length: 1, value: 38000 },
+            { length: 2, value: 36000 },
+            { length: 4, value: 32000 },
 
-            { label: '8s', bin: 3, value: 10000 },
-            { label: '16s', bin: 4, value: 5000 },
-            { label: '32s', bin: 5, value: 2000 },
+            { length: 8, value: 10000 },
+            { length: 16, value: 5000 },
+            { length: 32, value: 2000 },
 
-            { label: '1m', bin: 6, value: 1000 },
-            { label: '2m', bin: 7, value: 800 },
-            { label: '4m', bin: 8, value: 600 },
+            { length: 64, value: 1000 },
+            { length: 128, value: 800 },
+            { length: 256, value: 600 },
 
-            { label: '8m', bin: 9, value: 400 },
-            { label: '17m', bin: 10, value: 300 },
-            { label: '34m', bin: 11, value: 200 },
+            { length: 512, value: 400 },
+            { length: 1024, value: 300 },
+            { length: 2048, value: 200 },
         ],
     };
 };

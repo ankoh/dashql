@@ -37,7 +37,7 @@ const VEGA_LITE_SPEC: VLLayerSpec = {
             field: 'key',
             type: 'nominal',
             title: null,
-            sort: false,
+            sort: ['Fetch', 'Load', 'Transform', 'Query', 'Visualize'],
         },
         theta: {
             field: 'value',
