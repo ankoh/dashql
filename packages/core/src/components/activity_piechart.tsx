@@ -17,7 +17,12 @@ const VEGA_LITE_SPEC: VLLayerSpec = {
     },
     width: 'container',
     height: 'container',
-    title: undefined,
+    title: {
+        text: 'Time',
+        orient: 'left',
+        angle: -90,
+        fontSize: 11,
+    },
     background: 'transparent',
     padding: 0,
     layer: [
@@ -32,6 +37,7 @@ const VEGA_LITE_SPEC: VLLayerSpec = {
             field: 'key',
             type: 'nominal',
             title: null,
+            sort: false,
         },
         theta: {
             field: 'value',
@@ -67,11 +73,11 @@ const deriveStateFromProps = (props: Props, prevState?: State): State => {
     return {
         spec: VEGA_SPEC,
         rows: [
-            { key: 'Visualize', value: 420 },
-            { key: 'Query', value: 3333 },
+            { key: 'Fetch', value: 4321 },
             { key: 'Load', value: 1234 },
             { key: 'Transform', value: 1234 },
-            { key: 'Fetch', value: 4321 },
+            { key: 'Query', value: 3333 },
+            { key: 'Visualize', value: 420 },
         ],
     };
 };
