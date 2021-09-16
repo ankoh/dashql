@@ -12,7 +12,6 @@ export const Account: React.FC<Props> = () => {
     return (
         <div className={styles.root}>
             <div className={styles.account_panel}>
-                <div className={styles.account_panel_header}>Account</div>
                 <div className={styles.github_profile}>
                     <div className={styles.github_profile_avatar}>
                         <div className={styles.github_profile_avatar_img}>
@@ -26,6 +25,7 @@ export const Account: React.FC<Props> = () => {
                     <div className={styles.github_profile_stats}></div>
                 </div>
                 <div className={styles.account_analytics}>
+                    <div className={styles.account_analytics_header}>Analytics</div>
                     <ActivityTimeseries className={styles.account_analytics_timeseries} />
                     <ActivitySummary />
                 </div>

@@ -38,12 +38,12 @@ export const ActivitySummary: React.FC<SummaryProps> = (props: SummaryProps) => 
     return (
         <div className={cn(styles.container, props.className)}>
             <div className={styles.metric_row}>
-                <ActivityMetric name="Views" value="42k" trend={1.0} />
-                <ActivityMetric name="Daily Views" value="42k" />
+                <ActivityMetric name="Total Views" value="42k" trend={1.0} />
+                <ActivityMetric name="Daily Views" value="Ø 42k" />
                 <ActivityMetric name="Loaded Data" value="42GB" />
             </div>
             <div className={styles.metric_row}>
-                <ActivityMetric name="Queries" value="42k" />
+                <ActivityMetric name="Total Queries" value="42k" />
                 <ActivityMetric name="Query Results" value="42GB" />
                 <ActivityMetric name="Visualizations" value="42k" />
             </div>
@@ -57,7 +57,7 @@ export const ActivitySummary: React.FC<SummaryProps> = (props: SummaryProps) => 
                 <div className={styles.metric_column}>
                     <ActivityMetric className={styles.metric_container_dist} name="View Time" value="Ø 8s" />
                     <ActivityMetric className={styles.metric_container_dist} name="Evaluation Time" value="Ø 4s" />
-                    <ActivityMetric className={styles.metric_container_dist} name="Instantiation" value="Ø 4s" />
+                    <ActivityMetric className={styles.metric_container_dist} name="Interaction" value="1.2" />
                 </div>
             </div>
         </div>
