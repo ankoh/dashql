@@ -80,6 +80,13 @@ export function configure(params) {
                     },
                 },
                 {
+                    test: /\/geo\/.*\.json$/i,
+                    type: 'asset/resource',
+                    generator: {
+                        filename: 'static/geo/[name].[contenthash].[ext]',
+                    },
+                },
+                {
                     test: /examples\/.*\.dashql$/i,
                     type: 'asset/resource',
                     generator: {

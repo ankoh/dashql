@@ -30,9 +30,21 @@
     font-size: 120%;
 }
 
-.stats_sessions {
+.stats_sessions_timeseries {
     padding: 16px 16px 16px 16px;
     border-bottom: 1px solid var(--border_color);
+}
+
+.stats_sessions_geo_container {
+    padding: 16px 16px 16px 16px;
+    height: 180px;
+    width: 100%;
+}
+
+.stats_sessions_geo_map {
+    border: 1px solid var(--border_color);
+    border-radius: var(--border_radius);
+    background-color: rgb(240, 240, 240);
 }
 
 .scripts_panel {
