@@ -31,7 +31,6 @@ const VEGA_LITE_SPEC: VLLayerSpec = {
                 line: {
                     color: 'hsl(210deg, 12%, 31%)',
                 },
-                clip: true,
             },
             encoding: {
                 x: {

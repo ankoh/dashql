@@ -16,12 +16,15 @@ export const Cloud: React.FC<Props> = () => {
                 <div className={styles.stats_task_header}>Cloud Service</div>
                 <WorkerStatus className={styles.stats_task_status} />
                 <div className={styles.stats_summary_header}>Analytics</div>
-                <div className={styles.stats_sessions_geo_map_container}>
-                    <AutoSizer>
-                        {({ width, height }) => (
-                            <ActivityMap width={width} height={height} className={styles.stats_sessions_geo_map} />
-                        )}
-                    </AutoSizer>
+                <div className={styles.stats_sessions_geo_map_labeled}>
+                    <div className={styles.stats_sessions_geo_map_label}>World Map</div>
+                    <div className={styles.stats_sessions_geo_map_container}>
+                        <AutoSizer>
+                            {({ width, height }) => (
+                                <ActivityMap width={width} height={height} className={styles.stats_sessions_geo_map} />
+                            )}
+                        </AutoSizer>
+                    </div>
                 </div>
                 <ActivityTimeseries className={styles.stats_sessions_timeseries} />
                 <ActivitySummary />
