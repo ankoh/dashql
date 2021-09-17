@@ -22,7 +22,7 @@
     display: grid;
     grid-template-columns: auto max-content max-content;
     align-items: center;
-    padding: 4px 16px;
+    padding: 6px 16px;
     border-left: 1px solid var(--border_color);
     font-size: 85%;
 }
@@ -61,6 +61,7 @@
 
 .metric_container_dist {
     border-left: none !important;
+    padding: 4px 16px !important;
 }
 
 .metric_container_dist:first-child {
