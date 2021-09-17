@@ -1,4 +1,5 @@
 export * from './account_script_hits';
+export * from './activity_map';
 export * from './activity_piechart';
 export * from './activity_summary';
 export * from './activity_timeseries';
