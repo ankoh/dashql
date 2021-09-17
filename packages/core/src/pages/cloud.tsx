@@ -17,7 +17,7 @@ export const Cloud: React.FC<Props> = () => {
                 <WorkerStatus className={styles.stats_task_status} />
                 <div className={styles.stats_summary_header}>Analytics</div>
                 <div className={styles.stats_sessions_geo_map_labeled}>
-                    <div className={styles.stats_sessions_geo_map_label}>World Map</div>
+                    <div className={styles.stats_sessions_geo_map_label}>Views</div>
                     <div className={styles.stats_sessions_geo_map_container}>
                         <AutoSizer>
                             {({ width, height }) => (

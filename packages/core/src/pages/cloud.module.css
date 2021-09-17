@@ -36,7 +36,7 @@
 }
 
 .stats_sessions_geo_map_labeled {
-    padding: 12px 16px 16px 38px;
+    padding: 12px 16px 16px 40px;
     height: 140px;
     width: 100%;
     position: relative;
@@ -51,6 +51,7 @@
     font-size: 70%;
     font-weight: 700;
     transform: rotate(-90deg) translateX(-50%);
+    font-family: 'sans-serif';
 }
 
 .stats_sessions_geo_map_container {
