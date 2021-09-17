@@ -18,6 +18,7 @@ const VEGA_LITE_SPEC: VLLayerSpec = {
         {
             mark: {
                 type: 'line',
+                color: 'hsl(210deg, 12%, 31%)',
                 point: false,
             },
         },
