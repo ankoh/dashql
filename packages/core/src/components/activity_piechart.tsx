@@ -29,6 +29,7 @@ const VEGA_LITE_SPEC: VLLayerSpec = {
         {
             mark: {
                 type: 'arc',
+                innerRadius: 16,
             },
         },
     ],
