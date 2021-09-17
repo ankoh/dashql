@@ -48,9 +48,6 @@ export const ActivitySummary: React.FC<SummaryProps> = (props: SummaryProps) => 
                 <ActivityMetric name="Visualizations" value="42k" />
             </div>
             <div className={cn(styles.metric_row, styles.metric_row_charts)}>
-                <div className={cn(styles.chart_container, styles.chart_container_pie)}>
-                    <ActivityPieChart className={styles.chart} />
-                </div>
                 <div className={cn(styles.chart_container, styles.chart_container_dist)}>
                     <ActivityLengthDistribution className={styles.chart} />
                 </div>
@@ -58,6 +55,9 @@ export const ActivitySummary: React.FC<SummaryProps> = (props: SummaryProps) => 
                     <ActivityMetric className={styles.metric_container_dist} name="View Time" value="Ø 8s" />
                     <ActivityMetric className={styles.metric_container_dist} name="Evaluation Time" value="Ø 4s" />
                     <ActivityMetric className={styles.metric_container_dist} name="Interaction Rate" value="1.2" />
+                </div>
+                <div className={cn(styles.chart_container, styles.chart_container_pie)}>
+                    <ActivityPieChart className={styles.chart} />
                 </div>
             </div>
         </div>

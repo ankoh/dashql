@@ -22,7 +22,7 @@
 
 .stats_task_status {
     border-bottom: 1px solid var(--border_color);
-    padding: 2px 0px 8px 0px;
+    padding: 2px 16px 8px 0px;
 }
 
 .stats_summary_header {
@@ -31,18 +31,19 @@
 }
 
 .stats_sessions_timeseries {
-    padding: 16px 16px 16px 16px;
+    padding: 16px 16px 8px 16px;
     border-bottom: 1px solid var(--border_color);
 }
 
-.stats_sessions_geo_container {
-    padding: 16px 16px 16px 16px;
-    height: 180px;
+.stats_sessions_geo_map_container {
+    padding: 12px 24px 16px 24px;
+    height: 140px;
     width: 100%;
+    border-bottom: 1px solid var(--border_color);
 }
 
 .stats_sessions_geo_map {
-    border: 1px solid var(--border_color);
+    border: 1px solid hsl(210deg, 12%, 76%);
     border-radius: var(--border_radius);
     background-color: rgb(240, 240, 240);
 }
