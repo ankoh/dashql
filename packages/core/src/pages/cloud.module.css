@@ -22,7 +22,7 @@
 
 .stats_task_status {
     border-bottom: 1px solid var(--border_color);
-    padding: 2px 16px 8px 0px;
+    padding: 2px 16px 8px 16px;
 }
 
 .stats_summary_header {
