@@ -73,7 +73,7 @@ exports[`NavBar renders correctly 1`] = `
       className="tab"
     >
       <a
-        href="/platform"
+        href="/cloud"
         onClick={[Function]}
       >
         <button
