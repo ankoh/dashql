@@ -4,7 +4,7 @@ import * as utils from '../utils';
 import * as examples from '../example_scripts';
 import axios from 'axios';
 import lz from 'lz-string';
-import { useLocation } from 'react-router';
+import { useLocation } from 'react-router-dom';
 import { CenteredRectangleWaveSpinner } from './spinners';
 import { generateLocalFileName, ScriptOriginType, useProgramContext, useScriptRegistry } from '../model';
 import { useAnalyzer } from '../analyzer';
