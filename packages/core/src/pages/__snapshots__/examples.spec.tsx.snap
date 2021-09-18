@@ -8,11 +8,6 @@ exports[`Examples renders correctly with an empty state 1`] = `
     className="gallery_header"
   >
     <div
-      className="gallery_header_title"
-    >
-      Example Library
-    </div>
-    <div
       className="gallery_filters"
     >
       <div
