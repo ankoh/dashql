@@ -2,8 +2,7 @@ import * as React from 'react';
 import Button from 'react-bootstrap/Button';
 import classNames from 'classnames';
 import { SystemBar } from './system_bar';
-import { useLocation } from 'react-router';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useActiveGitHubProfile } from '../github';
 
 import styles from './navbar.module.css';

@@ -3,7 +3,7 @@ import * as model from '../model';
 import * as utils from '../utils';
 import * as examples from '../example_scripts';
 import classNames from 'classnames';
-import { useNavigate } from 'react-router-dom/index';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimateSharedLayout } from 'framer-motion';
 import { EXAMPLE_SCRIPTS, EXAMPLE_SCRIPT_MAP, ScriptFeatureTag, ExampleScriptMetadata } from '../example_scripts';
 import { useAnalyzer } from '../analyzer';

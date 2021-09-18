@@ -3,7 +3,7 @@ import * as analyzer from '../analyzer/analyzer_node';
 import * as test_env from '../test';
 import React from 'react';
 import renderer from 'react-test-renderer';
-import { MemoryRouter } from 'react-router-dom/index';
+import { MemoryRouter } from 'react-router-dom';
 import { ProgramContextProvider } from '../model/';
 import { AnalyzerProvider } from '../analyzer/';
 import { Examples } from './examples';
