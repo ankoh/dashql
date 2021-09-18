@@ -12,6 +12,8 @@ const CONFIG = {
             '<rootDir>/__tests__/file_mock.ts',
         // Resolve .css and similar files to identity-obj-proxy instead.
         '^.+\\.(css|styl|less|sass|scss)$': `identity-obj-proxy`,
+        // Remap react-router
+        'react-router-dom': 'react-router-dom/react-router-dom.development.js',
         // Point duckdb module to node cjs version
         '@dashql/duckdb/dist/duckdb.module.js': '@dashql/duckdb/dist/duckdb-node-async.js',
     },
