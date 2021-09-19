@@ -1,10 +1,13 @@
 import * as React from 'react';
 import { SEQ_SINGLE_HUE_PRIMARY } from '../utils';
 import { ComposableMap, Graticule, Geographies, Geography, ZoomableGroup } from 'react-simple-maps';
+import { AutoSizer } from '../utils';
+import cn from 'classnames';
+import styles from './activity_map.module.css';
 
 import world_110m from '../../static/geo/world-110m.json';
 
-interface Props {
+interface MapProps {
     className?: string;
     width: number;
     height: number;
@@ -12,7 +15,7 @@ interface Props {
 
 const COLOR_PALETTE = SEQ_SINGLE_HUE_PRIMARY;
 
-export const ActivityMap: React.FC<Props> = (props: Props) => (
+export const ActivityMap: React.FC<MapProps> = (props: MapProps) => (
     <ComposableMap
         projection="geoEqualEarth"
         width={props.width}
@@ -39,4 +42,19 @@ export const ActivityMap: React.FC<Props> = (props: Props) => (
             </Geographies>
         </ZoomableGroup>
     </ComposableMap>
+);
+
+interface ChartProps {
+    className?: string;
+}
+
+export const ActivityMapChart: React.FC<ChartProps> = (props: ChartProps) => (
+    <div className={cn(styles.label_container, props.className)}>
+        <div className={styles.label}>Views</div>
+        <div className={styles.map_container}>
+            <AutoSizer>
+                {({ width, height }) => <ActivityMap width={width} height={height} className={styles.map} />}
+            </AutoSizer>
+        </div>
+    </div>
 );

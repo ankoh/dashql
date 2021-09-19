@@ -1,9 +1,14 @@
 import Immutable from 'immutable';
 import * as React from 'react';
 import styles from './cloud.module.css';
-import { ActivityTimeseries, ActivitySummary, WorkerStatus, ScriptEntryCollection, ActivityMap } from '../components';
+import {
+    ActivityTimeseries,
+    ActivitySummary,
+    WorkerStatus,
+    ScriptEntryCollection,
+    ActivityMapChart,
+} from '../components';
 import { Script } from '../model';
-import { AutoSizer } from '../utils';
 
 interface Props {
     className?: string;
@@ -16,16 +21,7 @@ export const Cloud: React.FC<Props> = () => {
                 <div className={styles.stats_task_header}>Cloud Service</div>
                 <WorkerStatus className={styles.stats_task_status} />
                 <div className={styles.stats_summary_header}>Analytics</div>
-                <div className={styles.stats_sessions_geo_map_labeled}>
-                    <div className={styles.stats_sessions_geo_map_label}>Views</div>
-                    <div className={styles.stats_sessions_geo_map_container}>
-                        <AutoSizer>
-                            {({ width, height }) => (
-                                <ActivityMap width={width} height={height} className={styles.stats_sessions_geo_map} />
-                            )}
-                        </AutoSizer>
-                    </div>
-                </div>
+                <ActivityMapChart className={styles.stats_sessions_geo_map} />
                 <ActivityTimeseries className={styles.stats_sessions_timeseries} />
                 <ActivitySummary />
             </div>
