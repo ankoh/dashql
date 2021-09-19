@@ -326,10 +326,10 @@
   resolved "https://registry.yarnpkg.com/@bcoe/v8-coverage/-/v8-coverage-0.2.3.tgz#75a2e8b51cb758a7553d6804a5932d7aace75c39"
   integrity sha512-0hYQ8SB4Db5zvZB4axdMHGwEaQjkZzFjQiN9LVYvIFB2nSUHW9tYpxWriPrWDASIxiaXax83REcLxuSdnGPZtw==
 
-"@dashql/duckdb@^0.0.38":
-  version "0.0.38"
-  resolved "https://registry.yarnpkg.com/@dashql/duckdb/-/duckdb-0.0.38.tgz#bc11bb38c52de740cb22e7e14852c686a9ead074"
-  integrity sha512-T/hBH/+yzgW7tIRimu1VRsex1zfgL7gXLCUm0/lzqxErDjesa95sOMat1a3NLlxuxMb2fi4oJ8w5XTWKHLhL6g==
+"@dashql/duckdb@^0.0.39":
+  version "0.0.39"
+  resolved "https://registry.yarnpkg.com/@dashql/duckdb/-/duckdb-0.0.39.tgz#deadf25749509a53b84a36440f6ac20375de39cb"
+  integrity sha512-qQpDSaWNStKnet8nBavTEio7eDjT63UtBf/BtOQCmGOyat6oqsIa9HcYGAg+z5X3FlwVebGl/l59/qCpVYSU6w==
   dependencies:
     apache-arrow "^4.0.0"
     wasm-feature-detect "^1.2.11"
