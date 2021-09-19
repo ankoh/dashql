@@ -8,11 +8,17 @@ type CommandProps = {
     width: string;
     height: string;
     icon: string;
+    disabled?: boolean;
     onClick?: () => void;
 };
 
 export const CommandButton: React.FC<CommandProps> = (props: CommandProps) => (
-    <div className={cn(styles_cmd.cmdbar_cmd, props.className)} onClick={props.onClick}>
+    <div
+        className={cn(styles_cmd.cmdbar_cmd, props.className, {
+            [styles_cmd.disabled]: props.disabled,
+        })}
+        onClick={props.onClick}
+    >
         <svg width={props.width} height={props.height}>
             <use xlinkHref={`${props.icon}#sym`} />
         </svg>

@@ -18,10 +18,17 @@
     border: 1px solid var(--cmd_border_color);
     background-color: var(--cmd_bg);
 }
+
+.cmdbar_cmd.disabled {
+    border: 1px dashed var(--cmd_border_color);
+    color: rgb(170, 170, 170);
+}
+
 .cmdbar_cmd:hover {
     background-color: var(--cmd_hover_bg);
     color: rgb(255, 255, 255);
 }
+
 .cmdbar_cmd.active {
     background-color: var(--cmd_hover_bg);
     color: rgb(255, 255, 255);
