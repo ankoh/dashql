@@ -90,6 +90,12 @@
     font-size: 110%;
 }
 
+.account_analytics_map {
+    padding: 16px 16px 16px 16px;
+    border-bottom: 1px solid var(--border_color);
+    height: 140px;
+}
+
 .account_analytics_timeseries {
     font-size: 100%;
     padding: 16px 20px 16px 20px;
