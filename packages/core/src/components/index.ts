@@ -6,6 +6,7 @@ export * from './activity_timeseries';
 export * from './banner';
 export * from './board';
 export * from './board_editor';
+export * from './cmd_button';
 export * from './fork_dialog';
 export * from './lazy_loader';
 export * from './overlay';

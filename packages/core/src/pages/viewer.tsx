@@ -1,6 +1,6 @@
 import * as React from 'react';
 import styles from './viewer.module.css';
-import styles_cmd from '../components/cmdbar.module.css';
+import styles_cmd from '../components/cmd_bar.module.css';
 import { AutoSizer } from '../utils/autosizer';
 import { Board, OverlayContainer, ScriptNotFound, ShareDialog, SystemBar, useOverlaySetter } from '../components';
 import { Link } from 'react-router-dom';

@@ -64,7 +64,7 @@ export const reduceScriptRegistry = (ctx: ScriptRegistry, action: ScriptRegistry
                     next.gistsOwned = next.gistsOwned.set(action.data.origin.githubGistName, action.data);
                     break;
                 case ScriptOriginType.LOCAL:
-                    next.gistsOwned = next.gistsOwned.set(action.data.origin.fileName, action.data);
+                    next.gistsOwned = next.local.set(action.data.origin.fileName, action.data);
                     break;
             }
             return next;
