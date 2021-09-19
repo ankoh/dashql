@@ -49,9 +49,8 @@
     left: 16px;
     top: 50%;
     font-size: 70%;
-    font-weight: 700;
+    font-weight: 900;
     transform: rotate(-90deg) translateX(-50%);
-    font-family: 'sans-serif';
 }
 
 .stats_sessions_geo_map_container {
