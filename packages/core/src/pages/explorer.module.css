@@ -108,7 +108,10 @@
 .program_actions {
     grid-row: 1;
     grid-column: 2;
-    margin-right: 4px;
+}
+
+.program_action {
+    height: 40px;
 }
 
 .program_stats {

@@ -1,6 +1,5 @@
 import * as React from 'react';
 import classNames from 'classnames';
-import { Link } from 'react-router-dom';
 import { Route, Routes } from 'react-router-dom';
 import {
     BoardEditor,
@@ -11,11 +10,13 @@ import {
     ScriptNotFound,
     ShareDialog,
     useOverlaySetter,
+    CommandButton,
+    LinkCommandButton,
 } from '../components';
 import { AnimatePresence } from 'framer-motion';
 
 import styles from './explorer.module.css';
-import styles_cmd from '../components/cmdbar.module.css';
+import styles_cmd from '../components/cmd_bar.module.css';
 
 import logo from '../../static/svg/logo/logo.svg';
 import icon_eye from '../../static/svg/icons/eye.svg';
@@ -47,25 +48,6 @@ const shareOverlay = Symbol();
 type Props = {
     className?: string;
 };
-
-type CmdProps = {
-    /// The width
-    width: string;
-    /// The height
-    height: string;
-    /// The icon
-    icon: string;
-    /// The onclick handler
-    onClick?: () => void;
-};
-
-const CmdButton = (props: CmdProps) => (
-    <div className={styles_cmd.cmdbar_cmd} onClick={props.onClick}>
-        <svg width="20px" height="20px">
-            <use xlinkHref={`${props.icon}#sym`} />
-        </svg>
-    </div>
-);
 
 export const Explorer: React.FC<Props> = (props: Props) => {
     // Use state
@@ -136,12 +118,10 @@ export const Explorer: React.FC<Props> = (props: Props) => {
             <div className={styles_cmd.cmdbar_cmdset} />
             <div className={styles_cmd.cmdbar_cmdset}>
                 {programCtx.script.origin.originType == ScriptOriginType.GITHUB_GIST && (
-                    <CmdButton width="20px" height="20px" icon={icon_star_outline} />
+                    <CommandButton width="20px" height="20px" icon={icon_star_outline} />
                 )}
-                <CmdButton width="20px" height="20px" icon={icon_share} onClick={showShareDialog} />
-                <Link to="/viewer">
-                    <CmdButton width="20px" height="20px" icon={icon_eye} />
-                </Link>
+                <CommandButton width="20px" height="20px" icon={icon_share} onClick={showShareDialog} />
+                <LinkCommandButton to="/viewer" width="20px" height="20px" icon={icon_eye} />
             </div>
         </div>
     );
@@ -176,13 +156,35 @@ export const Explorer: React.FC<Props> = (props: Props) => {
                             <div className={classNames(styles_cmd.cmdbar_cmdset, styles.program_action)}>
                                 {ownScript ? (
                                     <>
-                                        <CmdButton width="20px" height="20px" icon={icon_edit} />
-                                        <CmdButton width="20px" height="20px" icon={icon_cloud_upload} />
+                                        <CommandButton
+                                            className={styles.program_action}
+                                            width="20px"
+                                            height="20px"
+                                            icon={icon_edit}
+                                        />
+                                        <CommandButton
+                                            className={styles.program_action}
+                                            width="20px"
+                                            height="20px"
+                                            icon={icon_cloud_upload}
+                                        />
                                     </>
                                 ) : (
-                                    <CmdButton width="20px" height="20px" icon={icon_fork} onClick={showForkDialog} />
+                                    <CommandButton
+                                        className={styles.program_action}
+                                        width="20px"
+                                        height="20px"
+                                        icon={icon_fork}
+                                        onClick={showForkDialog}
+                                    />
                                 )}
-                                <CmdButton width="20px" height="20px" icon={icon_blank} onClick={createBlankScript} />
+                                <CommandButton
+                                    className={styles.program_action}
+                                    width="20px"
+                                    height="20px"
+                                    icon={icon_blank}
+                                    onClick={createBlankScript}
+                                />
                             </div>
                         </div>
                     </div>
