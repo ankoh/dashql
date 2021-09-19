@@ -16,9 +16,12 @@ export const initialScriptRegistry: ScriptRegistry = {
     gistsStarred: Immutable.Map<string, Script>(),
 };
 
+export const CREATE_BLANK_SCRIPT = Symbol('CREATE_BLANK');
 export const SAVE_SCRIPT = Symbol('SAVE_SCRIPT');
 
-export type ScriptRegistryAction = model.Action<typeof SAVE_SCRIPT, Script>;
+export type ScriptRegistryAction =
+    | model.Action<typeof SAVE_SCRIPT, Script>
+    | model.Action<typeof CREATE_BLANK_SCRIPT, undefined>;
 
 export const generateLocalFileName = (state: ScriptRegistry): string => {
     let name: string;
@@ -50,6 +53,10 @@ export const forkLocal = (state: ScriptRegistry, script: Script): Script => ({
 
 export const reduceScriptRegistry = (ctx: ScriptRegistry, action: ScriptRegistryAction): ScriptRegistry => {
     switch (action.type) {
+        case CREATE_BLANK_SCRIPT: {
+            const script = generateBlankScript(ctx);
+            return { ...ctx, local: ctx.local.set(script.origin.fileName, script) };
+        }
         case SAVE_SCRIPT: {
             const next = { ...ctx };
             switch (action.data.origin.originType) {
@@ -60,9 +67,7 @@ export const reduceScriptRegistry = (ctx: ScriptRegistry, action: ScriptRegistry
                     next.gistsOwned = next.gistsOwned.set(action.data.origin.fileName, action.data);
                     break;
             }
-            return {
-                ...ctx,
-            };
+            return next;
         }
     }
 };

@@ -18,7 +18,7 @@ import {
     useLaunchProgress,
     useLaunchProgressDispatch,
 } from './model/launch_progress';
-import { AppConfig, AppConfigProvider } from './model';
+import { AppConfig, AppConfigProvider, CREATE_BLANK_SCRIPT, useScriptRegistryDispatch } from './model';
 import { DatabaseClient, DatabaseClientProvider } from './database_client';
 import { ProgramPipeline } from './program_pipeline';
 
@@ -58,6 +58,7 @@ export const AppLauncher: React.FC<Props> = (props: Props) => {
     const launchProgress = useLaunchProgress();
     const launchProgressDispatch = useLaunchProgressDispatch();
     const logger = model.useLogger();
+    const scriptRegistryDispatch = useScriptRegistryDispatch();
 
     // Helper to update a launch step
     const updateStep = (step: LaunchStepType, status: Status, error?: any) => {
@@ -80,6 +81,10 @@ export const AppLauncher: React.FC<Props> = (props: Props) => {
                     updateStep(LaunchStepType.CONFIGURE_APP, Status.FAILED, 'invalid app config');
                     return null;
                 }
+                scriptRegistryDispatch({
+                    type: CREATE_BLANK_SCRIPT,
+                    data: undefined,
+                });
                 stateDispatch(s => ({ ...s, config: resp.data as model.AppConfig }));
                 updateStep(LaunchStepType.CONFIGURE_APP, Status.COMPLETED);
             } catch (e) {
