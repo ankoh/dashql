@@ -3,14 +3,14 @@
 .container {
     position: relative;
     flex: 1;
-    max-width: 240px;
+    max-width: 200px;
     border-radius: var(--border_radius);
     border: 1px solid var(--vizcard_border_color);
     box-sizing: border-box;
     font-size: 0.8rem;
     background-color: rgb(255, 255, 255);
     display: grid;
-    grid-template-rows: 36px 64px;
+    grid-template-rows: 36px auto;
 }
 
 .header {
@@ -21,6 +21,11 @@
 
     display: flex;
     flex-direction: row;
+}
+
+.command {
+    width: 32px;
+    border-radius: 6px;
 }
 
 .title {
@@ -65,7 +70,7 @@
 .collection_grid_placeholder {
     max-width: 600px;
     padding: 32px;
-    background: var(--placeholder_bg);
+    background: var(--placeholder_script_bg);
     border: 1px solid rgb(180, 180, 180);
     border-style: dashed;
     border-radius: 16px;

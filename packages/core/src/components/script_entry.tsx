@@ -4,7 +4,7 @@ import { getScriptName, Script } from '../model';
 import { CommandButton } from '../components';
 
 import styles from './script_entry.module.css';
-import icon_delete from '../../static/svg/icons/file_outline.svg';
+import icon_delete from '../../static/svg/icons/settings.svg';
 
 interface Props {
     className?: string;
@@ -17,7 +17,7 @@ export const ScriptEntry: React.FC<Props> = (props: Props) => {
         <div className={styles.container}>
             <div className={styles.header}>
                 <div className={styles.title}>{scriptName}</div>
-                <CommandButton width="16px" height="16px" icon={icon_delete} />
+                <CommandButton disabled className={styles.command} width="16px" height="16px" icon={icon_delete} />
             </div>
             <div
                 className={styles.body}

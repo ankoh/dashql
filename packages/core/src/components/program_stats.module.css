@@ -77,7 +77,7 @@
 }
 
 .views_chart {
-    border-radius: 8px;
+    border-radius: var(--border_radius);
     padding: 4px 6px 2px 6px;
     width: auto;
     border: 1px solid var(--border_color);
