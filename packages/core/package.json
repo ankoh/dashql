@@ -16,7 +16,7 @@
         "node": ">=14.13"
     },
     "dependencies": {
-        "@dashql/duckdb": "^0.0.38",
+        "@dashql/duckdb": "^0.0.39",
         "@dashql/proto": "^0.0.5",
         "@octokit/graphql": "^4.8.0",
         "@popperjs/core": "^2.10.1",
