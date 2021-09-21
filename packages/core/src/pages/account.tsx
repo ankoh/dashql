@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { ActivityTimeseries, ActivityMapChart, ActivitySummary, ScriptEntryCollection } from '../components';
+import { ActivityTimeseries, ActivityMapChart, ActivitySummary, LocalScriptEntryCollection } from '../components';
 import { useScriptRegistry } from '../model';
 
 import logo from '../../static/svg/logo/logo.svg';
@@ -38,17 +38,17 @@ export const Account: React.FC<Props> = () => {
                 </div>
             </div>
             <div className={styles.scripts}>
-                <ScriptEntryCollection
+                <LocalScriptEntryCollection
                     name="Local Scripts"
                     scripts={registry.local}
                     fallback="You haven't saved any local scripts yet"
                 />
-                <ScriptEntryCollection
+                <LocalScriptEntryCollection
                     name="Own Gists"
                     scripts={registry.gistsOwned}
                     fallback="Please log into your GitHub account first."
                 />
-                <ScriptEntryCollection
+                <LocalScriptEntryCollection
                     name="Starred Gists"
                     scripts={registry.gistsStarred}
                     fallback="Please log into your GitHub account first."
