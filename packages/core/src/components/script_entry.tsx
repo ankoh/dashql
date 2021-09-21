@@ -14,16 +14,12 @@ interface EntryProps {
 export const LocalScriptEntry: React.FC<EntryProps> = (props: EntryProps) => {
     const scriptName = getScriptName(props.script);
     return (
-        <div className={styles.container_local}>
-            <div className={styles.title}>{scriptName}</div>
-            <CommandButton disabled className={styles.command} width="20px" height="20px" icon={icon_more} />
-            <div
-                className={styles.body}
-                onMouseDown={e => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                }}
-            ></div>
+        <div className={styles.container}>
+            <div className={styles.header_local}>
+                <div className={styles.title}>{scriptName}</div>
+                <CommandButton disabled className={styles.command} width="20px" height="20px" icon={icon_more} />
+            </div>
+            <div className={styles.body}></div>
         </div>
     );
 };
@@ -35,16 +31,12 @@ export const OwnGistScriptEntry: React.FC<EntryProps> = (props: EntryProps) => {
     // const views = 48;
     // const viewTrend = 1.0;
     return (
-        <div className={styles.container_gist_owned}>
-            <div className={styles.title}>{scriptName}</div>
-            <CommandButton className={styles.command} width="16px" height="16px" icon={icon_more} />
-            <div
-                className={styles.body}
-                onMouseDown={e => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                }}
-            ></div>
+        <div className={styles.container}>
+            <div className={styles.header_gists_owned}>
+                <div className={styles.title}>{scriptName}</div>
+                <CommandButton className={styles.command} width="16px" height="16px" icon={icon_more} />
+            </div>
+            <div className={styles.body}></div>
         </div>
     );
 };
@@ -57,21 +49,17 @@ export const GistScriptEntry: React.FC<EntryProps> = (props: EntryProps) => {
     // const views = 48;
     // const viewTrend = 1.0;
     return (
-        <div className={styles.container_gist}>
-            <div className={styles.avatar}>
-                <img src="https://avatars.githubusercontent.com/u/3986510?v=4" width="100%" height="100%" />
+        <div className={styles.container}>
+            <div className={styles.header_gists}>
+                <div className={styles.avatar}>
+                    <img src="https://avatars.githubusercontent.com/u/3986510?v=4" width="100%" height="100%" />
+                </div>
+                <div className={styles.title}>
+                    {scriptNamespace}&nbsp;/&nbsp;{scriptName}
+                </div>
+                <CommandButton className={styles.command} width="16px" height="16px" icon={icon_more} />
             </div>
-            <div className={styles.title}>
-                {scriptNamespace}&nbsp;/&nbsp;{scriptName}
-            </div>
-            <CommandButton className={styles.command} width="16px" height="16px" icon={icon_more} />
-            <div
-                className={styles.body}
-                onMouseDown={e => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                }}
-            ></div>
+            <div className={styles.body}></div>
         </div>
     );
 };
