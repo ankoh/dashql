@@ -4,14 +4,41 @@ import { getScriptName, getScriptNamespace, Script } from '../model';
 import { CommandButton } from '../components';
 
 import styles from './script_entry.module.css';
+
 import icon_more from '../../static/svg/icons/dots_vertical.svg';
+import icon_eye from '../../static/svg/icons/eye.svg';
+import icon_fork from '../../static/svg/icons/fork.svg';
+import icon_star from '../../static/svg/icons/star.svg';
 
 interface EntryProps {
     className?: string;
     script?: Script;
 }
 
-export const LocalScriptEntry: React.FC<EntryProps> = (props: EntryProps) => {
+const GistInfo = () => (
+    <div className={styles.gist_info}>
+        <div className={styles.gist_info_entry}>
+            <svg className={styles.gist_info_entry_icon}>
+                <use xlinkHref={`${icon_eye}#sym`} />
+            </svg>
+            <div className={styles.gist_info_entry_value}>4k</div>
+        </div>
+        <div className={styles.gist_info_entry}>
+            <svg className={styles.gist_info_entry_icon}>
+                <use xlinkHref={`${icon_star}#sym`} />
+            </svg>
+            <div className={styles.gist_info_entry_value}>4k</div>
+        </div>
+        <div className={styles.gist_info_entry}>
+            <svg className={styles.gist_info_entry_icon}>
+                <use xlinkHref={`${icon_fork}#sym`} />
+            </svg>
+            <div className={styles.gist_info_entry_value}>0</div>
+        </div>
+    </div>
+);
+
+const LocalScriptEntry: React.FC<EntryProps> = (props: EntryProps) => {
     const scriptName = getScriptName(props.script);
     return (
         <div className={styles.container}>
@@ -23,7 +50,7 @@ export const LocalScriptEntry: React.FC<EntryProps> = (props: EntryProps) => {
     );
 };
 
-export const OwnGistScriptEntry: React.FC<EntryProps> = (props: EntryProps) => {
+const OwnGistScriptEntry: React.FC<EntryProps> = (props: EntryProps) => {
     const scriptName = getScriptName(props.script);
     // const stars = 42;
     // const starTrend = 1.0;
@@ -35,12 +62,12 @@ export const OwnGistScriptEntry: React.FC<EntryProps> = (props: EntryProps) => {
                 <div className={styles.title}>{scriptName}</div>
                 <CommandButton className={styles.command} width="20px" height="20px" icon={icon_more} />
             </div>
-            <div className={styles.gist_info}></div>
+            <GistInfo />
         </div>
     );
 };
 
-export const GistScriptEntry: React.FC<EntryProps> = (props: EntryProps) => {
+const GistScriptEntry: React.FC<EntryProps> = (props: EntryProps) => {
     const scriptName = getScriptName(props.script);
     const scriptNamespace = getScriptNamespace(props.script);
     // const stars = 42;
@@ -58,7 +85,7 @@ export const GistScriptEntry: React.FC<EntryProps> = (props: EntryProps) => {
                 </div>
                 <CommandButton className={styles.command} width="20px" height="20px" icon={icon_more} />
             </div>
-            <div className={styles.gist_info}></div>
+            <GistInfo />
         </div>
     );
 };
