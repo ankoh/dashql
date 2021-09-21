@@ -1,0 +1,19 @@
+.container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.bar {
+    flex: 1;
+    height: var(--minibar_height);
+    border-radius: calc(var(--minibar_height) / 2);
+    background: rgba(76, 120, 168, 0.2);
+    overflow: hidden;
+}
+
+.bar_fill {
+    height: 100%;
+    background: rgb(76, 120, 168);
+    border-radius: calc(var(--minibar_height) / 2);
+}

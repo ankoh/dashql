@@ -23,12 +23,11 @@
     --datagrid_cell_headers_fg: rgb(0, 0, 0);
     --datagrid_cell_nodata_bg: rgb(225, 225, 225);
     --datagrid_col_label_bg: hsl(210deg 12% 85%);
-    --datagrid_domain_bar_height: 6px;
     --datagrid_font_size: 95%;
     --editor_glyph_status_size: 65%;
     --example_border_color: rgb(200, 200, 200);
-    --example_icon_color: rgb(36, 41, 46);
     --example_card_bg_disabled: hsl(210deg 6% 86%);
+    --example_icon_color: rgb(36, 41, 46);
     --explorer_board_bg: var(--body_bg);
     --explorer_tool_fg: rgb(80, 80, 80);
     --explorer_tool_hover_bg: rgb(80, 80, 80);
@@ -37,6 +36,7 @@
     --explorer_viztype_hover_bg: rgb(40, 40, 40);
     --launcher_bg: rgb(36, 41, 46);
     --log_timestamp_color: rgba(255, 255, 255, 0.6);
+    --minibar_height: 6px;
     --nav_bar_bg: rgb(36, 41, 46);
     --nav_bar_button_height: 48px;
     --nav_bar_button_margin: 4px 6px;
@@ -51,8 +51,8 @@
     --pgraph_node_border_color: rgb(200, 200, 200);
     --pgraph_node_border_radius: 8px;
     --placeholder_avatar_bg: hsl(210deg 8% 86%);
-    --placeholder_text_bg: hsl(210deg 8% 90%);
     --placeholder_script_bg: hsl(210deg 8% 86%);
+    --placeholder_text_bg: hsl(210deg 8% 90%);
     --statsbar_bg: rgb(255, 255, 255);
     --statsbar_views_teaser_bg: hsl(210deg 12% 96%);
     --sys_panel_bg: rgb(36, 41, 46);
