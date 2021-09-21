@@ -10,36 +10,48 @@
 
 .stats_panel {
     grid-column: 1;
-    background: white;
+    background: rgb(240, 240, 240);
     display: flex;
     flex-direction: column;
+    height: 100%;
+    overflow: auto;
 }
 
 .stats_task_header {
+    background: white;
     padding: 12px 16px 8px 16px;
     font-size: 120%;
 }
 
 .stats_task_status {
+    background: white;
     border-bottom: 1px solid var(--border_color);
     padding: 2px 16px 8px 16px;
 }
 
 .stats_summary_header {
+    background: white;
     padding: 16px 16px 0px 16px;
     font-size: 120%;
 }
 
 .stats_sessions_geo_map {
+    background: white;
     padding: 16px 16px 16px 16px;
     border-bottom: 1px solid var(--border_color);
     height: 140px;
 }
 
 .stats_sessions_timeseries {
+    background-color: white;
     padding: 16px 16px 8px 16px;
     border-bottom: 1px solid var(--border_color);
 }
+
+.stats_summary {
+    background-color: white;
+}
+
 .scripts_panel {
     grid-column: 2;
     display: flex;
