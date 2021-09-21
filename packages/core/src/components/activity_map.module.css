@@ -7,13 +7,13 @@
     position: absolute;
     left: 16px;
     top: 50%;
-    font-size: 70%;
+    font-size: 75%;
     font-weight: 900;
     transform: rotate(-90deg) translateX(-50%);
 }
 
 .map_container {
-    margin-left: 20px;
+    margin-left: 24px;
     width: calc(100% - 20px);
     height: 100%;
 }

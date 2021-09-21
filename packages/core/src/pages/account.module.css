@@ -99,6 +99,7 @@
     padding: 16px 16px 16px 16px;
     border-bottom: 1px solid var(--border_color);
     height: 140px;
+    background-color: white;
 }
 
 .account_analytics_timeseries {
