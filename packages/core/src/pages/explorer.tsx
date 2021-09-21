@@ -153,7 +153,7 @@ export const Explorer: React.FC<Props> = (props: Props) => {
                             </div>
                         </div>
                         <div key="actions" className={styles.program_actions}>
-                            <div className={classNames(styles_cmd.cmdbar_cmdset, styles.program_action)}>
+                            <div className={classNames(styles_cmd.cmdbar_cmdset, styles.program_actions)}>
                                 {ownScript ? (
                                     <>
                                         <CommandButton
