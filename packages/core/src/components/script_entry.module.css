@@ -8,8 +8,8 @@
     border: 1px solid var(--vizcard_border_color);
     font-size: 0.8rem;
     background-color: rgb(255, 255, 255);
-    margin-right: 8px;
-    margin-bottom: 8px;
+    margin-right: var(--script_entry_margin);
+    margin-bottom: var(--script_entry_margin);
     display: flex;
     flex-direction: column;
 }
@@ -61,13 +61,13 @@
 }
 
 .title_namespace {
-    font-weight: 400;
+    font-weight: 500;
     align-items: center;
     overflow: hidden;
 }
 
 .title_name {
-    font-weight: 400;
+    font-weight: 500;
     align-items: center;
     overflow: hidden;
 }
@@ -109,7 +109,7 @@
 }
 
 .collection {
-    padding: 8px 24px 0 24px;
+    padding: 8px 24px;
 }
 
 .collection_name {

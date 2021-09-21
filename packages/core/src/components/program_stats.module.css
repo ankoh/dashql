@@ -18,16 +18,16 @@
     background-color: var(--statsbar_bg);
     padding-left: 8px;
     padding-right: 8px;
-
     font-size: 95%;
 }
 
 .prefix {
     padding: 0px 6px;
-    background: var(--statsbar_views_teaser_bg);
-    border: 1px solid var(--border_color);
+    color: white;
+    background: var(--nav_bar_bg);
     border-radius: var(--border_radius);
     margin-right: 16px;
+    font-size: 95%;
 }
 
 .trend {
@@ -78,9 +78,9 @@
 
 .views_chart {
     border-radius: var(--border_radius);
+    border: 1px solid var(--cmd_border_color);
     padding: 4px 6px 2px 6px;
     width: auto;
-    border: 1px solid var(--border_color);
     background: var(--statsbar_views_teaser_bg);
 
     /* removes bottom padding of vega-embed */

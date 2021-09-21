@@ -3,11 +3,12 @@
     flex-direction: row;
     align-items: start;
     height: 100%;
+    padding: 0px 2px;
 }
 .cmdbar_cmd {
     width: 40px;
     height: calc(100% - 2 * var(--cmd_margin));
-    margin: var(--cmd_margin);
+    margin: var(--cmd_margin) calc(var(--cmd_margin) / 2) var(--cmd_margin) calc(var(--cmd_margin) / 2);
 
     display: grid;
     justify-content: center;
