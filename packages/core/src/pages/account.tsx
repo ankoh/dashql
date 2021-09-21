@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { ActivityTimeseries, ActivitySummary, ScriptEntryCollection } from '../components';
+import { ActivityTimeseries, ActivityMapChart, ActivitySummary, ScriptEntryCollection } from '../components';
 import { useScriptRegistry } from '../model';
 
 import logo from '../../static/svg/logo/logo.svg';
@@ -31,6 +31,7 @@ export const Account: React.FC<Props> = () => {
                 <div className={styles.height100_overflowy}>
                     <div className={styles.account_analytics}>
                         <div className={styles.account_analytics_header}>Account Analytics</div>
+                        <ActivityMapChart className={styles.account_analytics_map} />
                         <ActivityTimeseries className={styles.account_analytics_timeseries} />
                         <ActivitySummary className={styles.account_analytics_summary} />
                     </div>
