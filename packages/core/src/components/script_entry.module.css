@@ -3,7 +3,7 @@
 .container {
     flex: 1;
     min-width: 120px;
-    max-width: 200px;
+    max-width: 240px;
     border-radius: var(--border_radius);
     border: 1px solid var(--vizcard_border_color);
     font-size: 0.8rem;
@@ -45,12 +45,11 @@
 }
 
 .avatar {
-    width: 32px;
+    width: 28px;
     height: 28px;
-    border-radius: 6px;
-    border: 1px solid hsl(210deg, 12%, 76%);
+    border-radius: 50%;
     overflow: hidden;
-    margin-left: 4px;
+    margin-left: 8px;
 }
 
 .title {
