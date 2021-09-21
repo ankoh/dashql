@@ -5,6 +5,7 @@ import {
     ActivitySummary,
     LocalScriptCollection,
     GistScriptCollection,
+    OwnGistScriptCollection,
 } from '../components';
 import { useScriptRegistry } from '../model';
 
@@ -49,7 +50,7 @@ export const Account: React.FC<Props> = () => {
                     scripts={registry.local}
                     fallback="You haven't saved any local scripts yet"
                 />
-                <GistScriptCollection
+                <OwnGistScriptCollection
                     name="Own Gists"
                     scripts={registry.gistsOwned}
                     fallback="Please log into your GitHub account first."
