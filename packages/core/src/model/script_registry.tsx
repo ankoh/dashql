@@ -32,6 +32,17 @@ const generateGists = (state: ScriptRegistry): ScriptRegistry => ({
             description: '',
         });
     }),
+    gistsStarred: state.gistsStarred.withMutations(m => {
+        m.set('6397dfca218aaa654f99dd76ab668871', {
+            origin: {
+                originType: ScriptOriginType.GITHUB_GIST,
+                fileName: 'helloworld.dashql',
+                githubAccount: 'ankoh',
+                githubGistName: '6397dfca218aaa654f99dd76ab668871',
+            },
+            description: '',
+        });
+    }),
 });
 
 export const initialScriptRegistry: ScriptRegistry = generateGists({

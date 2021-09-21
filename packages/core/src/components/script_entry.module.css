@@ -11,7 +11,7 @@
     background-color: rgb(255, 255, 255);
     margin-right: 16px;
     margin-bottom: 16px;
-    padding: 2px 6px 2px 12px;
+    padding: 2px 6px 2px 4px;
 
     display: grid;
     grid-template-columns: auto max-content;
@@ -19,10 +19,29 @@
     align-items: center;
 }
 
-.container_gist {
+.container_gist_owned {
     position: relative;
     flex: 1;
     max-width: 240px;
+
+    border-radius: var(--border_radius);
+    border: 1px solid var(--vizcard_border_color);
+    font-size: 0.8rem;
+    background-color: rgb(255, 255, 255);
+    margin-right: 16px;
+    margin-bottom: 16px;
+    padding: 2px 6px 0 4px;
+
+    display: grid;
+    grid-template-columns: auto max-content;
+    grid-template-rows: 36px 36px;
+    align-items: center;
+}
+
+.container_gist {
+    position: relative;
+    flex: 1;
+    max-width: 280px;
 
     border-radius: var(--border_radius);
     border: 1px solid var(--vizcard_border_color);
@@ -60,6 +79,7 @@
     font-weight: 500;
     overflow: hidden;
     text-overflow: ellipsis;
+    margin-left: 8px;
 }
 
 .settings {

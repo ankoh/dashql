@@ -28,6 +28,27 @@ export const LocalScriptEntry: React.FC<EntryProps> = (props: EntryProps) => {
     );
 };
 
+export const OwnGistScriptEntry: React.FC<EntryProps> = (props: EntryProps) => {
+    const scriptName = getScriptName(props.script);
+    // const stars = 42;
+    // const starTrend = 1.0;
+    // const views = 48;
+    // const viewTrend = 1.0;
+    return (
+        <div className={styles.container_gist_owned}>
+            <div className={styles.title}>{scriptName}</div>
+            <CommandButton className={styles.command} width="16px" height="16px" icon={icon_more} />
+            <div
+                className={styles.body}
+                onMouseDown={e => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }}
+            ></div>
+        </div>
+    );
+};
+
 export const GistScriptEntry: React.FC<EntryProps> = (props: EntryProps) => {
     const scriptName = getScriptName(props.script);
     const scriptNamespace = getScriptNamespace(props.script);
@@ -73,6 +94,27 @@ export const LocalScriptCollection: React.FC<CollectionProps> = (props: Collecti
     const out: React.ReactElement[] = [];
     props.scripts.forEach((value, key) => {
         out.push(<LocalScriptEntry key={key} script={value} />);
+    });
+    return (
+        <div className={styles.collection}>
+            <div className={styles.collection_name}>{props.name}</div>
+            <div className={styles.collection_grid}>{out}</div>
+        </div>
+    );
+};
+
+export const OwnGistScriptCollection: React.FC<CollectionProps> = (props: CollectionProps) => {
+    if (props.scripts.size == 0) {
+        return (
+            <div className={styles.collection}>
+                <div className={styles.collection_name}>{props.name}</div>
+                <div className={styles.collection_grid_placeholder}>{props.fallback}</div>
+            </div>
+        );
+    }
+    const out: React.ReactElement[] = [];
+    props.scripts.forEach((value, key) => {
+        out.push(<OwnGistScriptEntry key={key} script={value} />);
     });
     return (
         <div className={styles.collection}>
