@@ -20,10 +20,10 @@ export const Cloud: React.FC<Props> = () => {
             <div className={styles.stats_panel}>
                 <div className={styles.stats_task_header}>Cloud Service</div>
                 <WorkerStatus className={styles.stats_task_status} />
-                <div className={styles.stats_summary_header}>Analytics</div>
+                <div className={styles.stats_summary_header}>Platform Analytics</div>
                 <ActivityMapChart className={styles.stats_sessions_geo_map} />
                 <ActivityTimeseries className={styles.stats_sessions_timeseries} />
-                <ActivitySummary />
+                <ActivitySummary className={styles.stats_summary} />
             </div>
             <div className={styles.scripts_panel}>
                 <ScriptEntryCollection
