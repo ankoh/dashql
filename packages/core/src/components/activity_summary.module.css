@@ -85,7 +85,7 @@
     padding: 0px 16px 8px 16px;
     display: grid;
     align-items: center;
-    grid-template-rows: repeat(3, 24px);
+    grid-template-rows: repeat(3, 20px);
     grid-template-columns: auto max-content 48px;
     grid-column-gap: 16px;
     font-size: 85%;
