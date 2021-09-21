@@ -25,7 +25,7 @@
     background: white;
     border-radius: var(--border_radius);
     border: 1px solid var(--example_border_color);
-    padding: 8px 16px;
+    padding: 8px 8px;
     font-size: 95%;
 
     display: grid;
