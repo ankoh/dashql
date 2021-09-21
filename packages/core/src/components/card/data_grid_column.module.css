@@ -47,25 +47,7 @@
 
 .data_domain {
     grid-column: 2;
-
-    position: relative;
     padding-right: 8px;
     padding-left: 4px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-
-.data_domain_bar {
-    flex: 1;
-    height: var(--datagrid_domain_bar_height);
-    border-radius: calc(var(--datagrid_domain_bar_height) / 2);
-    background: rgba(76, 120, 168, 0.2);
-    overflow: hidden;
-}
-
-.data_domain_bar_fill {
     height: 100%;
-    background: rgb(76, 120, 168);
-    border-radius: calc(var(--datagrid_domain_bar_height) / 2);
 }

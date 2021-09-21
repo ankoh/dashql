@@ -3,6 +3,7 @@ import * as model from '../../model';
 import * as access from '../../access';
 import classNames from 'classnames';
 import React from 'react';
+import { MiniBarChart } from '../minibar_chart';
 
 import styles from './data_grid_column.module.css';
 
@@ -176,16 +177,7 @@ export class TextColumnRenderer implements ColumnRenderer {
             return (
                 <div key={key} className={styles.cell_with_domain} style={style}>
                     <div className={classNames(styles.data_value, this.valueClassName)}>{this.values[row]}</div>
-                    <div className={styles.data_domain}>
-                        <div className={styles.data_domain_bar}>
-                            <div
-                                className={styles.data_domain_bar_fill}
-                                style={{
-                                    width: this.valueDomainRatios[row] * 100 + '%',
-                                }}
-                            />
-                        </div>
-                    </div>
+                    <MiniBarChart className={styles.data_domain} value={this.valueDomainRatios[row]} />
                 </div>
             );
         } else {
