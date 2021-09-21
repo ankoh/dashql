@@ -10,11 +10,11 @@
 
 .stats_panel {
     grid-column: 1;
-    background: rgb(240, 240, 240);
     display: flex;
     flex-direction: column;
     height: 100%;
     overflow: auto;
+    background-color: white;
 }
 
 .stats_task_header {
