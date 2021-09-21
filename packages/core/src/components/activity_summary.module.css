@@ -21,7 +21,7 @@
 .metric_inline_column {
     display: flex;
     flex-direction: column;
-    padding: 8px 0px;
+    padding: 12px 0px;
 }
 
 .metric_padding_noborder {
@@ -64,7 +64,7 @@
 }
 
 .chart_container_dist {
-    padding: 8px 0px 0px 16px;
+    padding: 12px 0px 8px 16px;
 }
 
 .chart_container_pie {

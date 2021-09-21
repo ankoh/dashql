@@ -47,7 +47,7 @@ export const LocalScriptEntryCollection: React.FC<CollectionProps> = (props: Col
     }
     const out: React.ReactElement[] = [];
     props.scripts.forEach((value, key) => {
-        out.push(<LocalScriptEntry script={value} />);
+        out.push(<LocalScriptEntry key={key} script={value} />);
     });
     return (
         <div className={styles.collection}>
