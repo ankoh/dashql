@@ -109,12 +109,12 @@
 }
 
 .collection {
-    padding: 8px 24px;
+    padding: 16px 24px;
 }
 
 .collection_name {
     font-size: 100%;
-    padding: 8px 0px;
+    padding: 0px 0px 8px 0px;
 }
 
 .collection_grid {
