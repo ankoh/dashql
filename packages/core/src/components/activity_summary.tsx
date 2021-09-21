@@ -69,7 +69,7 @@ export const ActivitySummary: React.FC<SummaryProps> = (props: SummaryProps) => 
                 <div className={cn(styles.chart_container, styles.chart_container_dist)}>
                     <ActivityLengthDistribution className={styles.chart} />
                 </div>
-                <div className={styles.flex_column}>
+                <div className={styles.metric_inline_column}>
                     <ActivityMetric className={styles.metric_padding_noborder} name="View Time" value="Ø 8s" />
                     <ActivityMetric className={styles.metric_padding_noborder} name="Evaluation Time" value="Ø 4s" />
                     <ActivityMetric className={styles.metric_padding_noborder} name="Interaction Rate" value="1.2" />

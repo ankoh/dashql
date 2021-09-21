@@ -18,14 +18,15 @@
     border-bottom: none !important;
 }
 
-.flex_column {
+.metric_inline_column {
     display: flex;
     flex-direction: column;
+    padding: 8px 0px;
 }
 
 .metric_padding_noborder {
     border-left: none !important;
-    padding: 4px 16px !important;
+    padding: 2px 16px !important;
 }
 
 .metric_container {
@@ -63,11 +64,11 @@
 }
 
 .chart_container_dist {
-    padding: 6px 0px 0px 8px;
+    padding: 8px 0px 0px 8px;
 }
 
 .chart_container_pie {
-    padding: 8px 16px;
+    padding: 10px 16px;
 }
 
 .chart {
