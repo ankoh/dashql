@@ -9,11 +9,11 @@
 }
 
 .account_panel {
-    background: rgb(240, 240, 240);
     display: grid;
     grid-template-rows: max-content auto;
     height: 100%;
     overflow: hidden;
+    background-color: white;
 }
 
 .github_profile {

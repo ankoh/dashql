@@ -7,6 +7,7 @@ import {
     WorkerStatus,
     LocalScriptCollection,
     ActivityMapChart,
+    PageFooter,
 } from '../components';
 import { Script } from '../model';
 
@@ -24,6 +25,7 @@ export const Cloud: React.FC<Props> = () => {
                 <ActivityMapChart className={styles.stats_sessions_geo_map} />
                 <ActivityTimeseries className={styles.stats_sessions_timeseries} />
                 <ActivitySummary className={styles.stats_summary} />
+                <PageFooter github="foo" />
             </div>
             <div className={styles.scripts_panel}>
                 <LocalScriptCollection

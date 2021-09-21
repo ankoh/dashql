@@ -1,0 +1,30 @@
+.container {
+    width: 100%;
+    height: 64px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: rgb(230, 230, 230);
+}
+
+.content {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+}
+
+.icon {
+    width: 20px;
+    height: 20px;
+}
+
+.icon:not(:first-child) {
+    margin-left: 32px;
+}
+
+.link {
+    margin-left: 8px;
+    text-decoration: none;
+    color: rgb(230, 230, 230);
+}

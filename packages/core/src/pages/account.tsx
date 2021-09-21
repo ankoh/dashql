@@ -6,6 +6,7 @@ import {
     LocalScriptCollection,
     GistScriptCollection,
     OwnGistScriptCollection,
+    PageFooter,
 } from '../components';
 import { useScriptRegistry } from '../model';
 
@@ -42,6 +43,7 @@ export const Account: React.FC<Props> = () => {
                         <ActivityTimeseries className={styles.account_analytics_timeseries} />
                         <ActivitySummary className={styles.account_analytics_summary} />
                     </div>
+                    <PageFooter github="foo" />
                 </div>
             </div>
             <div className={styles.scripts}>
