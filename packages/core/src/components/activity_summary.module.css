@@ -42,11 +42,11 @@
 }
 
 .metric_name {
-    font-weight: 500;
+    font-weight: 400;
 }
 
 .metric_value {
-    font-weight: 300;
+    font-weight: 500;
 }
 
 .metric_trend {
@@ -113,7 +113,7 @@
 }
 
 .ua_table_value {
-    font-weight: 300;
+    font-weight: 500;
 }
 
 .ua_table_bar {

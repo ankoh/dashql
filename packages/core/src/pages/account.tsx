@@ -30,7 +30,7 @@ export const Account: React.FC<Props> = () => {
                 </div>
                 <div className={styles.height100_overflowy}>
                     <div className={styles.account_analytics}>
-                        <div className={styles.account_analytics_header}>Analytics</div>
+                        <div className={styles.account_analytics_header}>Account Analytics</div>
                         <ActivityTimeseries className={styles.account_analytics_timeseries} />
                         <ActivitySummary className={styles.account_analytics_summary} />
                     </div>
