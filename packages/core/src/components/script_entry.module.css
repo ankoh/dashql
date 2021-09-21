@@ -2,6 +2,7 @@
 
 .container {
     flex: 1;
+    min-width: 120px;
     max-width: 240px;
     border-radius: var(--border_radius);
     border: 1px solid var(--vizcard_border_color);

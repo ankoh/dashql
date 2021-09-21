@@ -33,7 +33,7 @@ export const OwnGistScriptEntry: React.FC<EntryProps> = (props: EntryProps) => {
         <div className={styles.container}>
             <div className={styles.header_gists_owned}>
                 <div className={styles.title}>{scriptName}</div>
-                <CommandButton className={styles.command} width="16px" height="16px" icon={icon_more} />
+                <CommandButton className={styles.command} width="20px" height="20px" icon={icon_more} />
             </div>
             <div className={styles.gist_info}></div>
         </div>
@@ -56,7 +56,7 @@ export const GistScriptEntry: React.FC<EntryProps> = (props: EntryProps) => {
                 <div className={styles.title}>
                     {scriptNamespace}&nbsp;/&nbsp;{scriptName}
                 </div>
-                <CommandButton className={styles.command} width="16px" height="16px" icon={icon_more} />
+                <CommandButton className={styles.command} width="20px" height="20px" icon={icon_more} />
             </div>
             <div className={styles.gist_info}></div>
         </div>
