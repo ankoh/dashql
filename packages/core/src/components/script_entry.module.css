@@ -11,7 +11,6 @@
     background-color: rgb(255, 255, 255);
     margin-right: 16px;
     margin-bottom: 16px;
-    padding: 2px 6px 2px 4px;
 
     display: grid;
     grid-template-columns: auto max-content;
@@ -30,7 +29,6 @@
     background-color: rgb(255, 255, 255);
     margin-right: 16px;
     margin-bottom: 16px;
-    padding: 2px 6px 0 4px;
 
     display: grid;
     grid-template-columns: auto max-content;
@@ -49,11 +47,10 @@
     background-color: rgb(255, 255, 255);
     margin-right: 16px;
     margin-bottom: 16px;
-    padding: 2px 6px 0 6px;
 
     display: grid;
-    grid-template-columns: 36px auto max-content;
-    grid-template-rows: 36px 36px;
+    grid-template-columns: max-content auto max-content;
+    grid-template-rows: auto auto;
     align-items: center;
 }
 
@@ -61,15 +58,16 @@
     width: 32px;
     height: 28px;
     border-radius: 6px;
-    margin: 0 !important;
+    margin: 4px 4px 4px 4px;
 }
 
 .avatar {
     width: 32px;
     height: 28px;
-    border-radius: var(--border_radius);
-    border: 1px solid var(--border_color);
+    border-radius: 6px;
+    border: 1px solid hsl(210deg, 12%, 76%);
     overflow: hidden;
+    margin-left: 4px;
 }
 
 .title {
