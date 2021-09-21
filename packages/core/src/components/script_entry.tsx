@@ -11,7 +11,7 @@ interface Props {
     script?: Script;
 }
 
-export const ScriptEntry: React.FC<Props> = (props: Props) => {
+export const LocalScriptEntry: React.FC<Props> = (props: Props) => {
     const scriptName = getScriptName(props.script);
     return (
         <div className={styles.container}>
@@ -36,7 +36,7 @@ interface CollectionProps {
     fallback: string;
 }
 
-export const ScriptEntryCollection: React.FC<CollectionProps> = (props: CollectionProps) => {
+export const LocalScriptEntryCollection: React.FC<CollectionProps> = (props: CollectionProps) => {
     if (props.scripts.size == 0) {
         return (
             <div className={styles.collection}>
@@ -47,7 +47,7 @@ export const ScriptEntryCollection: React.FC<CollectionProps> = (props: Collecti
     }
     const out: React.ReactElement[] = [];
     props.scripts.forEach((value, key) => {
-        out.push(<ScriptEntry script={value} />);
+        out.push(<LocalScriptEntry script={value} />);
     });
     return (
         <div className={styles.collection}>

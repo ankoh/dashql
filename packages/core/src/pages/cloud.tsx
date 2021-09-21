@@ -5,7 +5,7 @@ import {
     ActivityTimeseries,
     ActivitySummary,
     WorkerStatus,
-    ScriptEntryCollection,
+    LocalScriptEntryCollection,
     ActivityMapChart,
 } from '../components';
 import { Script } from '../model';
@@ -26,12 +26,12 @@ export const Cloud: React.FC<Props> = () => {
                 <ActivitySummary className={styles.stats_summary} />
             </div>
             <div className={styles.scripts_panel}>
-                <ScriptEntryCollection
+                <LocalScriptEntryCollection
                     name="Most Views"
                     scripts={Immutable.Map<string, Script>()}
                     fallback="Not implemented"
                 />
-                <ScriptEntryCollection
+                <LocalScriptEntryCollection
                     name="Most Views"
                     scripts={Immutable.Map<string, Script>()}
                     fallback="Not implemented"
