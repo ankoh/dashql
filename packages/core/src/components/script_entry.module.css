@@ -1,46 +1,68 @@
 @import '../vars.module.css';
 
-.container {
+.container_local {
     position: relative;
     flex: 1;
-    max-width: 200px;
+    max-width: 240px;
+
     border-radius: var(--border_radius);
     border: 1px solid var(--vizcard_border_color);
-    box-sizing: border-box;
     font-size: 0.8rem;
     background-color: rgb(255, 255, 255);
+    margin-right: 16px;
+    margin-bottom: 16px;
+    padding: 2px 6px 2px 12px;
+
     display: grid;
-    grid-template-rows: 36px auto;
+    grid-template-columns: auto max-content;
+    grid-template-rows: 36px;
+    align-items: center;
 }
 
-.header {
-    grid-column: 1;
-    grid-row: 1;
-    border-radius: var(--border_radius) var(--border_radius) 0 0;
-    box-sizing: border-box;
+.container_gist {
+    position: relative;
+    flex: 1;
+    max-width: 240px;
 
-    display: flex;
-    flex-direction: row;
+    border-radius: var(--border_radius);
+    border: 1px solid var(--vizcard_border_color);
+    font-size: 0.8rem;
+    background-color: rgb(255, 255, 255);
+    margin-right: 16px;
+    margin-bottom: 16px;
+    padding: 2px 6px 0 6px;
+
+    display: grid;
+    grid-template-columns: 36px auto max-content;
+    grid-template-rows: 36px 36px;
+    align-items: center;
 }
 
 .command {
     width: 32px;
+    height: 28px;
     border-radius: 6px;
+    margin: 0 !important;
+}
+
+.avatar {
+    width: 32px;
+    height: 28px;
+    border-radius: var(--border_radius);
+    border: 1px solid var(--border_color);
+    overflow: hidden;
 }
 
 .title {
-    flex: 1;
-    margin-left: 12px;
     display: flex;
     flex-direction: row;
     align-items: center;
     font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .settings {
-    grid-row: 1;
-    grid-column: 2;
-
     display: grid;
     justify-content: center;
     align-items: center;
@@ -68,7 +90,7 @@
 }
 
 .collection_grid_placeholder {
-    max-width: 600px;
+    max-width: 400px;
     padding: 32px;
     background: var(--placeholder_script_bg);
     border: 1px solid rgb(180, 180, 180);

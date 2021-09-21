@@ -29,9 +29,9 @@ export interface Script {
     /// The description
     description: string;
     /// The program text
-    text: string;
+    text?: string;
     /// Has been modified?
-    modified: boolean;
+    modified?: boolean;
     /// The line count
     lineCount?: number;
     /// The file size
@@ -61,7 +61,7 @@ export function getScriptName(script: Script): string | null {
         case ScriptOriginType.LOCAL:
             return script.origin.fileName;
         case ScriptOriginType.GITHUB_GIST:
-            return script.origin.githubGistName;
+            return script.origin.fileName;
         case ScriptOriginType.EXAMPLES:
             return script.origin.exampleName;
     }

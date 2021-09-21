@@ -10,11 +10,35 @@ export interface ScriptRegistry {
     gistsStarred: Immutable.Map<string, Script>;
 }
 
-export const initialScriptRegistry: ScriptRegistry = {
+const generateGists = (state: ScriptRegistry): ScriptRegistry => ({
+    ...state,
+    gistsOwned: state.gistsOwned.withMutations(m => {
+        m.set('6397dfca218aaa654f99dd76ab668871', {
+            origin: {
+                originType: ScriptOriginType.GITHUB_GIST,
+                fileName: 'helloworld.dashql',
+                githubAccount: 'ankoh',
+                githubGistName: '6397dfca218aaa654f99dd76ab668871',
+            },
+            description: '',
+        });
+        m.set('2fef57f8cad25fef737f1d619d3ca10a', {
+            origin: {
+                originType: ScriptOriginType.GITHUB_GIST,
+                fileName: 'helloworld2.dashql',
+                githubAccount: 'ankoh',
+                githubGistName: '2fef57f8cad25fef737f1d619d3ca10a',
+            },
+            description: '',
+        });
+    }),
+});
+
+export const initialScriptRegistry: ScriptRegistry = generateGists({
     local: Immutable.Map<string, Script>(),
     gistsOwned: Immutable.Map<string, Script>(),
     gistsStarred: Immutable.Map<string, Script>(),
-};
+});
 
 export const CREATE_BLANK_SCRIPT = Symbol('CREATE_BLANK');
 export const SAVE_SCRIPT = Symbol('SAVE_SCRIPT');

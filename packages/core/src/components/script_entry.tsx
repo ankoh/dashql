@@ -1,6 +1,6 @@
 import * as React from 'react';
 import Immutable from 'immutable';
-import { getScriptName, Script } from '../model';
+import { getScriptName, getScriptNamespace, Script } from '../model';
 import { CommandButton } from '../components';
 
 import styles from './script_entry.module.css';
@@ -14,11 +14,9 @@ interface EntryProps {
 export const LocalScriptEntry: React.FC<EntryProps> = (props: EntryProps) => {
     const scriptName = getScriptName(props.script);
     return (
-        <div className={styles.container}>
-            <div className={styles.header}>
-                <div className={styles.title}>{scriptName}</div>
-                <CommandButton disabled className={styles.command} width="20px" height="20px" icon={icon_more} />
-            </div>
+        <div className={styles.container_local}>
+            <div className={styles.title}>{scriptName}</div>
+            <CommandButton disabled className={styles.command} width="20px" height="20px" icon={icon_more} />
             <div
                 className={styles.body}
                 onMouseDown={e => {
@@ -30,18 +28,22 @@ export const LocalScriptEntry: React.FC<EntryProps> = (props: EntryProps) => {
     );
 };
 
-export const ScriptEntry: React.FC<EntryProps> = (props: EntryProps) => {
+export const GistScriptEntry: React.FC<EntryProps> = (props: EntryProps) => {
     const scriptName = getScriptName(props.script);
+    const scriptNamespace = getScriptNamespace(props.script);
     // const stars = 42;
     // const starTrend = 1.0;
     // const views = 48;
     // const viewTrend = 1.0;
     return (
-        <div className={styles.container}>
-            <div className={styles.header}>
-                <div className={styles.title}>{scriptName}</div>
-                <CommandButton disabled className={styles.command} width="16px" height="16px" icon={icon_more} />
+        <div className={styles.container_gist}>
+            <div className={styles.avatar}>
+                <img src="https://avatars.githubusercontent.com/u/3986510?v=4" width="100%" height="100%" />
             </div>
+            <div className={styles.title}>
+                {scriptNamespace}&nbsp;/&nbsp;{scriptName}
+            </div>
+            <CommandButton className={styles.command} width="16px" height="16px" icon={icon_more} />
             <div
                 className={styles.body}
                 onMouseDown={e => {
@@ -59,7 +61,7 @@ interface CollectionProps {
     fallback: string;
 }
 
-export const LocalScriptEntryCollection: React.FC<CollectionProps> = (props: CollectionProps) => {
+export const LocalScriptCollection: React.FC<CollectionProps> = (props: CollectionProps) => {
     if (props.scripts.size == 0) {
         return (
             <div className={styles.collection}>
@@ -80,7 +82,7 @@ export const LocalScriptEntryCollection: React.FC<CollectionProps> = (props: Col
     );
 };
 
-export const ScriptEntryCollection: React.FC<CollectionProps> = (props: CollectionProps) => {
+export const GistScriptCollection: React.FC<CollectionProps> = (props: CollectionProps) => {
     if (props.scripts.size == 0) {
         return (
             <div className={styles.collection}>
@@ -91,7 +93,7 @@ export const ScriptEntryCollection: React.FC<CollectionProps> = (props: Collecti
     }
     const out: React.ReactElement[] = [];
     props.scripts.forEach((value, key) => {
-        out.push(<ScriptEntry key={key} script={value} />);
+        out.push(<GistScriptEntry key={key} script={value} />);
     });
     return (
         <div className={styles.collection}>
