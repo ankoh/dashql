@@ -43,7 +43,9 @@ const LocalScriptEntry: React.FC<EntryProps> = (props: EntryProps) => {
     return (
         <div className={styles.container}>
             <div className={styles.header_local}>
-                <div className={styles.title}>{scriptName}</div>
+                <div className={styles.title}>
+                    <div className={styles.title_name}>{scriptName}</div>
+                </div>
                 <CommandButton className={styles.command} width="20px" height="20px" icon={icon_more} />
             </div>
         </div>
@@ -59,7 +61,9 @@ const OwnGistScriptEntry: React.FC<EntryProps> = (props: EntryProps) => {
     return (
         <div className={styles.container}>
             <div className={styles.header_gists_owned}>
-                <div className={styles.title}>{scriptName}</div>
+                <div className={styles.title}>
+                    <div className={styles.title_name}>{scriptName}</div>
+                </div>
                 <CommandButton className={styles.command} width="20px" height="20px" icon={icon_more} />
             </div>
             <GistInfo />
@@ -81,7 +85,9 @@ const GistScriptEntry: React.FC<EntryProps> = (props: EntryProps) => {
                     <img src="https://avatars.githubusercontent.com/u/3986510?v=4" width="100%" height="100%" />
                 </div>
                 <div className={styles.title}>
-                    {scriptNamespace}&nbsp;/&nbsp;{scriptName}
+                    <div className={styles.title_namespace}>{scriptNamespace}</div>
+                    &nbsp;/&nbsp;
+                    <div className={styles.title_name}>{scriptName}</div>
                 </div>
                 <CommandButton className={styles.command} width="20px" height="20px" icon={icon_more} />
             </div>
