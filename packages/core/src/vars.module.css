@@ -53,6 +53,7 @@
     --placeholder_avatar_bg: hsl(210deg 8% 86%);
     --placeholder_script_bg: hsl(210deg 8% 86%);
     --placeholder_text_bg: hsl(210deg 8% 90%);
+    --script_entry_header_height: 40px;
     --statsbar_bg: rgb(255, 255, 255);
     --statsbar_views_teaser_bg: hsl(210deg 12% 96%);
     --sys_panel_bg: rgb(36, 41, 46);
