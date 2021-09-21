@@ -1,5 +1,11 @@
 import * as React from 'react';
-import { ActivityTimeseries, ActivityMapChart, ActivitySummary, LocalScriptEntryCollection } from '../components';
+import {
+    ActivityTimeseries,
+    ActivityMapChart,
+    ActivitySummary,
+    LocalScriptEntryCollection,
+    ScriptEntryCollection,
+} from '../components';
 import { useScriptRegistry } from '../model';
 
 import logo from '../../static/svg/logo/logo.svg';
@@ -43,12 +49,12 @@ export const Account: React.FC<Props> = () => {
                     scripts={registry.local}
                     fallback="You haven't saved any local scripts yet"
                 />
-                <LocalScriptEntryCollection
+                <ScriptEntryCollection
                     name="Own Gists"
                     scripts={registry.gistsOwned}
                     fallback="Please log into your GitHub account first."
                 />
-                <LocalScriptEntryCollection
+                <ScriptEntryCollection
                     name="Starred Gists"
                     scripts={registry.gistsStarred}
                     fallback="Please log into your GitHub account first."
