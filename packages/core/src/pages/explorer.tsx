@@ -12,13 +12,13 @@ import {
     useOverlaySetter,
     Button,
     LinkButton,
+    ProgramHeader,
 } from '../components';
 import { AnimatePresence } from 'framer-motion';
 
 import styles from './explorer.module.css';
 import styles_cmd from '../components/button.module.css';
 
-import logo from '../../static/svg/logo/logo.svg';
 import icon_eye from '../../static/svg/icons/eye.svg';
 import icon_cloud_upload from '../../static/svg/icons/cloud_upload.svg';
 import icon_fork from '../../static/svg/icons/fork.svg';
@@ -32,14 +32,11 @@ import {
     ScriptOriginType,
     canEditScript,
     generateBlankScript,
-    getScriptName,
-    getScriptNamespace,
     scriptSupportsStats,
     useProgramContext,
     useProgramContextDispatch,
     useScriptRegistry,
     useScriptRegistryDispatch,
-    getScriptBeans,
 } from '../model';
 import { useAnalyzer } from '../analyzer';
 
@@ -93,13 +90,10 @@ export const Explorer: React.FC<Props> = (props: Props) => {
     if (!programCtx.script) {
         return <ScriptNotFound />;
     }
-    const scriptNamespace = getScriptNamespace(programCtx.script);
-    const scriptName = getScriptName(programCtx.script);
 
     // Check script origin type
     const canEdit = canEditScript(programCtx.script);
     const hasStats = scriptSupportsStats(programCtx.script);
-    const beans = getScriptBeans(programCtx.script);
     const editorReadOnly = false;
 
     const BoardCommandBar = () => (
@@ -120,27 +114,7 @@ export const Explorer: React.FC<Props> = (props: Props) => {
             <AnimatePresence>
                 <div key="program" className={styles.program_page}>
                     <div key="info_actions" className={styles.program_info_and_actions}>
-                        <div key="info" className={styles.program_info}>
-                            <div className={styles.program_info_avatar}>
-                                <div className={styles.program_info_avatar_icon}>
-                                    <svg width="24px" height="24px">
-                                        <use xlinkHref={`${logo}#sym`} />
-                                    </svg>
-                                </div>
-                            </div>
-                            <div className={styles.program_info_name}>
-                                <span className={styles.program_info_name_namespace}>{scriptNamespace}</span>/
-                                <span className={styles.program_info_name_file}>{scriptName}</span>
-                            </div>
-                            <div className={styles.program_info_description}>{programCtx.script.description}</div>
-                            <div className={styles.program_info_beans}>
-                                {beans.map(b => (
-                                    <div key={b} className={styles.program_info_bean}>
-                                        {b}
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
+                        <ProgramHeader script={programCtx.script} />
                         <div key="actions" className={styles.program_actions}>
                             <div className={classNames(styles_cmd.buttonset, styles.program_actions)}>
                                 {canEdit ? (

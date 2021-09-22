@@ -2,7 +2,15 @@ import * as React from 'react';
 import styles from './viewer.module.css';
 import styles_cmd from '../components/button.module.css';
 import { AutoSizer } from '../utils/autosizer';
-import { Board, OverlayContainer, ScriptNotFound, ShareDialog, SystemBar, useOverlaySetter } from '../components';
+import {
+    Board,
+    OverlayContainer,
+    ScriptNotFound,
+    ShareDialog,
+    SystemBar,
+    useOverlaySetter,
+    ProgramHeader,
+} from '../components';
 import { Link } from 'react-router-dom';
 import { Scrollbars } from 'rc-scrollbars';
 
@@ -10,7 +18,7 @@ import logo from '../../static/svg/logo/logo.svg';
 import icon_code from '../../static/svg/icons/code.svg';
 import icon_star_outline from '../../static/svg/icons/star_outline.svg';
 import icon_share from '../../static/svg/icons/share.svg';
-import { ScriptOriginType, useProgramContext, getScriptNamespace, getScriptName } from '../model';
+import { ScriptOriginType, useProgramContext } from '../model';
 
 const shareOverlay = Symbol();
 
@@ -33,9 +41,6 @@ export const Viewer: React.FC<Props> = () => {
     const padding: [number, number] = [40, 4];
     const margin: [number, number] = [10, 10];
 
-    const scriptNamespace = getScriptNamespace(programCtx.script);
-    const scriptName = getScriptName(programCtx.script);
-
     if (!programCtx.script) {
         return <ScriptNotFound />;
     }
@@ -49,20 +54,7 @@ export const Viewer: React.FC<Props> = () => {
             <div className={styles.body}>
                 <div className={styles.header_container}>
                     <div className={styles.header}>
-                        <div className={styles.program_info}>
-                            <div className={styles.program_info_avatar}>
-                                <div className={styles.program_info_avatar_icon}>
-                                    <svg width="24px" height="24px">
-                                        <use xlinkHref={`${logo}#sym`} />
-                                    </svg>
-                                </div>
-                            </div>
-                            <div className={styles.program_info_title}>
-                                <span className={styles.program_info_title_namespace}>{scriptNamespace}</span>/
-                                <span className={styles.program_info_title_name}>{scriptName}</span>
-                            </div>
-                            <div className={styles.program_info_description}>{programCtx.script.description}</div>
-                        </div>
+                        <ProgramHeader script={programCtx.script} />
                     </div>
                 </div>
                 <div className={styles.board}>

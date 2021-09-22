@@ -11,6 +11,7 @@ export * from './fork_dialog';
 export * from './lazy_loader';
 export * from './overlay';
 export * from './page_footer';
+export * from './program_header';
 export * from './program_stats';
 export * from './program_stats_chart';
 export * from './script_entry';
