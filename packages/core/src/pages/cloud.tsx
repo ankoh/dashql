@@ -34,7 +34,7 @@ export const Cloud: React.FC<Props> = () => {
                     fallback="Not implemented"
                 />
                 <LocalScriptCollection
-                    name="Most Views"
+                    name="Most Stars"
                     scripts={Immutable.Map<string, Script>()}
                     fallback="Not implemented"
                 />

@@ -46,7 +46,7 @@ const LocalScriptEntry: React.FC<EntryProps> = (props: EntryProps) => {
                 <div className={styles.title}>
                     <div className={styles.title_name}>{scriptName}</div>
                 </div>
-                <Button disabled className={styles.command} width="20px" height="20px" icon={icon_more} />
+                <Button className={styles.command} width="20px" height="20px" icon={icon_more} />
             </div>
         </div>
     );
@@ -64,7 +64,7 @@ const OwnGistScriptEntry: React.FC<EntryProps> = (props: EntryProps) => {
                 <div className={styles.title}>
                     <div className={styles.title_name}>{scriptName}</div>
                 </div>
-                <Button disabled className={styles.command} width="20px" height="20px" icon={icon_more} />
+                <Button className={styles.command} width="20px" height="20px" icon={icon_more} />
             </div>
             <GistInfo />
         </div>
@@ -89,7 +89,7 @@ const GistScriptEntry: React.FC<EntryProps> = (props: EntryProps) => {
                     &nbsp;/&nbsp;
                     <div className={styles.title_name}>{scriptName}</div>
                 </div>
-                <Button disabled className={styles.command} width="20px" height="20px" icon={icon_more} />
+                <Button className={styles.command} width="20px" height="20px" icon={icon_more} />
             </div>
             <GistInfo />
         </div>

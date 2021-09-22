@@ -38,7 +38,7 @@ export const Viewer: React.FC<Props> = () => {
     const programCtx = useProgramContext();
     const rowHeight = 48;
     const columnCount = 12;
-    const padding: [number, number] = [40, 4];
+    const padding: [number, number] = [20, 4];
     const margin: [number, number] = [10, 10];
 
     if (!programCtx.script) {
@@ -46,11 +46,6 @@ export const Viewer: React.FC<Props> = () => {
     }
     return (
         <div className={styles.container}>
-            <Link className={styles.logo} to="/">
-                <svg width="32px" height="32px">
-                    <use xlinkHref={`${logo}#sym`} />
-                </svg>
-            </Link>
             <div className={styles.body}>
                 <div className={styles.header_container}>
                     <div className={styles.header}>
@@ -77,28 +72,31 @@ export const Viewer: React.FC<Props> = () => {
                 </div>
             </div>
             <div className={styles.cmdbar}>
-                <div className={styles_cmd.buttonset}>
-                    {programCtx.script.origin.originType == ScriptOriginType.GITHUB_GIST && (
-                        <div className={styles_cmd.button}>
-                            <svg width="20px" height="20px">
-                                <use xlinkHref={`${icon_star_outline}#sym`} />
-                            </svg>
-                        </div>
-                    )}
-                    <div className={styles_cmd.button} onClick={showShareDialog}>
+                {programCtx.script.origin.originType == ScriptOriginType.GITHUB_GIST && (
+                    <div className={styles_cmd.button}>
                         <svg width="20px" height="20px">
-                            <use xlinkHref={`${icon_share}#sym`} />
+                            <use xlinkHref={`${icon_star_outline}#sym`} />
                         </svg>
                     </div>
-                    <Link to="/explorer" className={styles_cmd.button}>
-                        <svg width="20px" height="20px">
-                            <use xlinkHref={`${icon_code}#sym`} />
-                        </svg>
-                    </Link>
+                )}
+                <div className={styles_cmd.button} onClick={showShareDialog}>
+                    <svg width="20px" height="20px">
+                        <use xlinkHref={`${icon_share}#sym`} />
+                    </svg>
                 </div>
+                <Link to="/explorer" className={styles_cmd.button}>
+                    <svg width="20px" height="20px">
+                        <use xlinkHref={`${icon_code}#sym`} />
+                    </svg>
+                </Link>
             </div>
-            <SystemBar className={styles.systembar} light={true} />
+            <SystemBar className={styles.systembar} />
             <OverlayContainer id={shareOverlay} className={styles.overlay} />
+            <Link className={styles.logo} to="/">
+                <svg width="32px" height="32px">
+                    <use xlinkHref={`${logo}#sym`} />
+                </svg>
+            </Link>
         </div>
     );
 };

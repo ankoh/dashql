@@ -98,7 +98,7 @@ export const Explorer: React.FC<Props> = (props: Props) => {
 
     const BoardCommandBar = () => (
         <div className={styles.board_cmdbar}>
-            <div className={styles_cmd.buttonset} />
+            <div />
             <div className={styles_cmd.buttonset}>
                 {programCtx.script.origin.originType == ScriptOriginType.GITHUB_GIST && (
                     <Button width="20px" height="20px" icon={icon_star_outline} />
@@ -116,7 +116,7 @@ export const Explorer: React.FC<Props> = (props: Props) => {
                     <div key="info_actions" className={styles.program_info_and_actions}>
                         <ProgramHeader script={programCtx.script} />
                         <div key="actions" className={styles.program_actions}>
-                            <div className={classNames(styles_cmd.buttonset, styles.program_actions)}>
+                            <div className={classNames(styles_cmd.buttonset)}>
                                 {canEdit ? (
                                     <>
                                         <Button

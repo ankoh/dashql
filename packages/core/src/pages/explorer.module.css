@@ -109,6 +109,7 @@
 .program_actions {
     grid-row: 1;
     grid-column: 2;
+    padding: 4px;
 }
 
 .program_action {
@@ -143,13 +144,13 @@
 }
 
 .board_cmdbar {
-    height: 48px;
     background-color: var(--button_bar_board_bg);
     display: grid;
     grid-template-columns: auto min-content;
     box-sizing: border-box;
     border-left: 1px solid var(--border_color);
     border-bottom: 1px solid var(--border_color);
+    padding: 4px;
 }
 
 .board_editor {
