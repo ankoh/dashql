@@ -16,18 +16,20 @@
     grid-template-columns: max-content max-content max-content max-content max-content auto max-content;
 
     background-color: var(--statsbar_bg);
-    padding-left: 8px;
     padding-right: 4px;
     font-size: 95%;
 }
 
 .prefix {
-    padding: 0px 6px;
-    color: white;
-    background: var(--nav_bar_bg);
-    border-radius: var(--border_radius);
-    margin-right: 16px;
-    font-size: 95%;
+    margin-right: 12px;
+    padding-left: 12px;
+    padding-right: 12px;
+    height: 100%;
+    font-weight: 500;
+    display: grid;
+    justify-content: center;
+    align-items: center;
+    border-right: 1px solid var(--border_color);
 }
 
 .trend {
@@ -54,13 +56,15 @@
     grid-template-columns: auto auto;
     grid-column-gap: 8px;
     margin-right: 20px;
+    height: 100%;
+    align-items: center;
 }
 
 .metric:before {
     position: absolute;
     left: -10px;
     content: '';
-    height: 80%;
+    height: 100%;
     border-left: 1px solid var(--border_color);
 }
 
@@ -98,4 +102,5 @@
     padding-left: 6px;
     color: var(--cmd_fg);
     height: 100%;
+    padding-bottom: 2px;
 }

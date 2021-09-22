@@ -81,3 +81,32 @@ export function getScriptOriginTypeName(prefix: ScriptOriginType): string {
             return 'https';
     }
 }
+
+export function getScriptBeans(script: Script): string[] {
+    const beans = [];
+    switch (script.origin.originType) {
+        case ScriptOriginType.LOCAL:
+            beans.push('Local');
+            break;
+        case ScriptOriginType.EXAMPLES:
+            beans.push('Example');
+            break;
+        case ScriptOriginType.GITHUB_GIST:
+            beans.push('Gist');
+            break;
+    }
+    return beans;
+}
+
+export function scriptSupportsStats(script: Script): boolean {
+    return (
+        script.origin.originType == ScriptOriginType.GITHUB_GIST ||
+        script.origin.originType == ScriptOriginType.EXAMPLES
+    );
+}
+
+export function canEditScript(script: Script): boolean {
+    return (
+        script.origin.originType == ScriptOriginType.LOCAL || script.origin.originType == ScriptOriginType.GITHUB_GIST
+    );
+}
