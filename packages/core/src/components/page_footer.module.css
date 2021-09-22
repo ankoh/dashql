@@ -4,7 +4,7 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    color: rgb(230, 230, 230);
+    color: var(--page_footer_fg);
 }
 
 .content {
@@ -15,8 +15,8 @@
 }
 
 .icon {
-    width: 20px;
-    height: 20px;
+    width: 24px;
+    height: 24px;
 }
 
 .icon:not(:first-child) {
@@ -26,5 +26,5 @@
 .link {
     margin-left: 8px;
     text-decoration: none;
-    color: rgb(230, 230, 230);
+    color: var(--page_footer_fg);
 }
