@@ -10,7 +10,7 @@
     --border_radius: 8px;
     --button_bar_bg: rgba(150, 150, 150, 0.1);
     --button_bar_board_bg: rgb(255, 255, 255);
-    --button_border_color: rgb(200, 200, 200);
+    --button_border_color: rgba(200, 200, 200, 0.3);
     --button_fg: rgb(36, 41, 46);
     --button_hover_bg: rgb(36, 41, 46);
     --button_sublist_bg: rgb(36, 41, 46);
