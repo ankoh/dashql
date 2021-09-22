@@ -107,7 +107,7 @@
 .program_stats {
     border-top: 1px solid var(--border_color);
     border-radius: 0 0 var(--border_radius) var(--border_radius);
-    height: 40px;
+    height: 36px;
     background-color: var(--vizcard_header_bg);
 }
 
