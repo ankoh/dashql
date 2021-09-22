@@ -32,15 +32,14 @@
 .header_container {
     display: flex;
     flex-direction: row;
-    margin-top: 32px;
 }
 
 .header {
     border-radius: var(--border_radius);
-    border: 1px solid var(--vizcard_border_color);
     box-sizing: border-box;
-    background-color: rgb(255, 255, 255);
-    margin: 40px 40px 0px 40px;
+    background-color: transparent;
+    border: 1px solid transparent;
+    margin: 20px 40px 0px 40px;
 }
 
 .program_info {
@@ -67,6 +66,7 @@
 .program_info_avatar_icon {
     border-radius: 50%;
     background-color: var(--placeholder_avatar_bg);
+    border: 1px solid rgb(200, 200, 200);
     width: 44px;
     height: 44px;
 

@@ -46,6 +46,7 @@
 .program_info_avatar_icon {
     border-radius: 50%;
     background-color: var(--placeholder_avatar_bg);
+    border: 1px solid rgb(200, 200, 200);
     width: 44px;
     height: 44px;
 
