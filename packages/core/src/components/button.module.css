@@ -1,0 +1,38 @@
+.buttonset {
+    display: flex;
+    flex-direction: row;
+    align-items: start;
+    height: 100%;
+    padding: 0px 2px;
+}
+
+.button {
+    width: 40px;
+    height: calc(100% - 2 * var(--button_margin));
+    margin: var(--button_margin) calc(var(--button_margin) / 2) var(--button_margin) calc(var(--button_margin) / 2);
+
+    display: grid;
+    justify-content: center;
+    align-items: center;
+    box-sizing: border-box;
+
+    color: var(--button_fg);
+    border-radius: var(--border_radius);
+    border: 1px solid var(--button_border_color);
+    background-color: var(--button_bg);
+}
+
+.button:hover:not(.disabled) {
+    background-color: var(--button_hover_bg);
+    color: rgb(255, 255, 255);
+}
+
+.button.disabled {
+    border: 1px solid var(--button_border_color);
+    color: rgb(170, 170, 170);
+}
+
+.button.active {
+    background-color: var(--button_hover_bg);
+    color: rgb(255, 255, 255);
+}

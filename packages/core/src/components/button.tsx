@@ -1,9 +1,10 @@
 import * as React from 'react';
 import { Link } from 'react-router-dom';
 import cn from 'classnames';
-import styles_cmd from './cmd_bar.module.css';
 
-type CommandProps = {
+import styles from './button.module.css';
+
+type ButtonProps = {
     className?: string;
     width: string;
     height: string;
@@ -12,10 +13,10 @@ type CommandProps = {
     onClick?: () => void;
 };
 
-export const CommandButton: React.FC<CommandProps> = (props: CommandProps) => (
+export const Button: React.FC<ButtonProps> = (props: ButtonProps) => (
     <div
-        className={cn(styles_cmd.cmdbar_cmd, props.className, {
-            [styles_cmd.disabled]: props.disabled,
+        className={cn(styles.button, props.className, {
+            [styles.disabled]: props.disabled,
         })}
         onClick={props.onClick}
     >
@@ -33,8 +34,8 @@ type LinkProps = {
     to: string;
 };
 
-export const LinkCommandButton: React.FC<LinkProps> = (props: LinkProps) => (
-    <Link className={cn(styles_cmd.cmdbar_cmd, props.className)} to={props.to}>
+export const LinkButton: React.FC<LinkProps> = (props: LinkProps) => (
+    <Link className={cn(styles.button, props.className)} to={props.to}>
         <svg width={props.width} height={props.height}>
             <use xlinkHref={`${props.icon}#sym`} />
         </svg>

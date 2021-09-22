@@ -143,7 +143,7 @@
 
 .board_cmdbar {
     height: 48px;
-    background-color: var(--cmd_bar_board_bg);
+    background-color: var(--button_bar_board_bg);
     display: grid;
     grid-template-columns: auto min-content;
     box-sizing: border-box;
