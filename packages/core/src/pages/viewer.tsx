@@ -2,15 +2,7 @@ import * as React from 'react';
 import styles from './viewer.module.css';
 import styles_cmd from '../components/cmd_bar.module.css';
 import { AutoSizer } from '../utils/autosizer';
-import {
-    Board,
-    OverlayContainer,
-    ScriptNotFound,
-    ShareDialog,
-    SystemBar,
-    useOverlaySetter,
-    ProgramStats,
-} from '../components';
+import { Board, OverlayContainer, ScriptNotFound, ShareDialog, SystemBar, useOverlaySetter } from '../components';
 import { Link } from 'react-router-dom';
 import { Scrollbars } from 'rc-scrollbars';
 
@@ -71,7 +63,6 @@ export const Viewer: React.FC<Props> = () => {
                             </div>
                             <div className={styles.program_info_description}>{programCtx.script.description}</div>
                         </div>
-                        <ProgramStats className={styles.program_stats} scriptID="changeme" />
                     </div>
                 </div>
                 <div className={styles.board}>
