@@ -83,7 +83,7 @@
     grid-template-columns: repeat(3, 1fr);
     align-items: center;
     justify-content: center;
-    background-color: hsl(210deg 12% 96%);
+    background-color: var(--vizcard_header_bg);
 }
 
 .gist_info_entry {

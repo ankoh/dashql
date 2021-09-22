@@ -2,6 +2,7 @@ import * as React from 'react';
 import * as arrow from 'apache-arrow';
 import * as utils from '../utils';
 import { ProgramStatsSessionCountChart } from './program_stats_chart';
+import cn from 'classnames';
 
 import styles from './program_stats.module.css';
 
@@ -10,6 +11,7 @@ import icon_open from '../../static/svg/icons/chevron_right_circle.svg';
 import { CenteredRectangleWaveSpinner } from './spinners';
 
 interface Props {
+    className?: string;
     scriptID: string;
 }
 
@@ -62,13 +64,13 @@ export const ProgramStats: React.FC<Props> = (props: Props) => {
 
     if (!state) {
         return (
-            <div className={styles.spinner_container}>
+            <div className={cn(styles.spinner_container, props.className)}>
                 <CenteredRectangleWaveSpinner className={styles.spinner} active={true} />;
             </div>
         );
     }
     return (
-        <div className={styles.container}>
+        <div className={cn(styles.container, props.className)}>
             <div className={styles.prefix}>{state.table.length}d</div>
             <div className={styles.trend}>
                 <div className={styles.trend_name}>Views</div>

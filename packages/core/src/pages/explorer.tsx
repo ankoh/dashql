@@ -27,16 +27,19 @@ import icon_star_outline from '../../static/svg/icons/star_outline.svg';
 import icon_edit from '../../static/svg/icons/edit.svg';
 import icon_blank from '../../static/svg/icons/file_outline.svg';
 import {
-    generateBlankScript,
-    getScriptName,
-    getScriptNamespace,
     REPLACE_PROGRAM,
     SAVE_SCRIPT,
     ScriptOriginType,
+    canEditScript,
+    generateBlankScript,
+    getScriptName,
+    getScriptNamespace,
+    scriptSupportsStats,
     useProgramContext,
     useProgramContextDispatch,
     useScriptRegistry,
     useScriptRegistryDispatch,
+    getScriptBeans,
 } from '../model';
 import { useAnalyzer } from '../analyzer';
 
@@ -94,23 +97,9 @@ export const Explorer: React.FC<Props> = (props: Props) => {
     const scriptName = getScriptName(programCtx.script);
 
     // Check script origin type
-    const beans = [];
-    let ownScript = false;
-    let hasStats = true;
-    switch (programCtx.script.origin.originType) {
-        case ScriptOriginType.LOCAL:
-            beans.push('Local');
-            ownScript = true;
-            hasStats = false;
-            break;
-        case ScriptOriginType.EXAMPLES:
-            beans.push('Example');
-            break;
-        case ScriptOriginType.GITHUB_GIST:
-            beans.push('Gist');
-            ownScript = true; // XXX
-            break;
-    }
+    const canEdit = canEditScript(programCtx.script);
+    const hasStats = scriptSupportsStats(programCtx.script);
+    const beans = getScriptBeans(programCtx.script);
     const editorReadOnly = false;
 
     const BoardCommandBar = () => (
@@ -154,7 +143,7 @@ export const Explorer: React.FC<Props> = (props: Props) => {
                         </div>
                         <div key="actions" className={styles.program_actions}>
                             <div className={classNames(styles_cmd.cmdbar_cmdset, styles.program_actions)}>
-                                {ownScript ? (
+                                {canEdit ? (
                                     <>
                                         <CommandButton
                                             className={styles.program_action}
