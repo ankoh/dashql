@@ -84,7 +84,6 @@
     border-radius: var(--border_radius);
     padding: 0px 6px 0px 6px;
     width: auto;
-    background: var(--statsbar_views_teaser_bg);
 
     /* removes bottom padding of vega-embed */
     line-height: 100%;
