@@ -1,14 +1,8 @@
 .system_button {
     height: var(--system_button_height);
-    margin: var(--system_button_margin);
+    width: var(--system_button_width);
     box-sizing: border-box;
     border-radius: var(--border_radius);
-}
-
-.system_button_light {
-    border-radius: var(--border_radius);
-    background-color: var(--button_bg);
-    border: 1px solid var(--button_border_color);
 }
 
 .system_button:hover,

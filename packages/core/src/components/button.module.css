@@ -2,14 +2,14 @@
     display: flex;
     flex-direction: row;
     align-items: start;
-    height: 100%;
-    padding: 0px 2px;
+    height: 40px;
+    background-color: var(--button_bar_bg);
+    border-radius: var(--border_radius);
 }
 
 .button {
-    width: 40px;
-    height: calc(100% - 2 * var(--button_margin));
-    margin: var(--button_margin) calc(var(--button_margin) / 2) var(--button_margin) calc(var(--button_margin) / 2);
+    height: 40px;
+    width: 48px;
 
     display: grid;
     justify-content: center;
@@ -18,8 +18,6 @@
 
     color: var(--button_fg);
     border-radius: var(--border_radius);
-    border: 1px solid var(--button_border_color);
-    background-color: var(--button_bg);
 }
 
 .button:hover:not(.disabled) {
@@ -28,7 +26,6 @@
 }
 
 .button.disabled {
-    border: 1px solid var(--button_border_color);
     color: rgb(170, 170, 170);
 }
 

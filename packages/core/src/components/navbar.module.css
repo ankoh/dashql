@@ -37,7 +37,7 @@
 .tabs {
     grid-row: 2;
     display: grid;
-    grid-template-rows: repeat(3, 48px);
+    grid-template-rows: repeat(3, max-content);
     grid-template-columns: var(--nav_bar_width);
     margin-top: 16px;
 }
@@ -81,7 +81,10 @@
 .systemlist {
     grid-row: 4;
     background: var(--system_bg);
-    padding: 4px 0px;
     display: flex;
     flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    margin: 4px;
+    border-radius: var(--border_radius);
 }
