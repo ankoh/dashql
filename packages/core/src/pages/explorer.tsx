@@ -10,13 +10,13 @@ import {
     ScriptNotFound,
     ShareDialog,
     useOverlaySetter,
-    CommandButton,
-    LinkCommandButton,
+    Button,
+    LinkButton,
 } from '../components';
 import { AnimatePresence } from 'framer-motion';
 
 import styles from './explorer.module.css';
-import styles_cmd from '../components/cmd_bar.module.css';
+import styles_cmd from '../components/button.module.css';
 
 import logo from '../../static/svg/logo/logo.svg';
 import icon_eye from '../../static/svg/icons/eye.svg';
@@ -104,13 +104,13 @@ export const Explorer: React.FC<Props> = (props: Props) => {
 
     const BoardCommandBar = () => (
         <div className={styles.board_cmdbar}>
-            <div className={styles_cmd.cmdbar_cmdset} />
-            <div className={styles_cmd.cmdbar_cmdset}>
+            <div className={styles_cmd.buttonset} />
+            <div className={styles_cmd.buttonset}>
                 {programCtx.script.origin.originType == ScriptOriginType.GITHUB_GIST && (
-                    <CommandButton width="20px" height="20px" icon={icon_star_outline} />
+                    <Button width="20px" height="20px" icon={icon_star_outline} />
                 )}
-                <CommandButton width="20px" height="20px" icon={icon_share} onClick={showShareDialog} />
-                <LinkCommandButton to="/viewer" width="20px" height="20px" icon={icon_eye} />
+                <Button width="20px" height="20px" icon={icon_share} onClick={showShareDialog} />
+                <LinkButton to="/viewer" width="20px" height="20px" icon={icon_eye} />
             </div>
         </div>
     );
@@ -142,16 +142,16 @@ export const Explorer: React.FC<Props> = (props: Props) => {
                             </div>
                         </div>
                         <div key="actions" className={styles.program_actions}>
-                            <div className={classNames(styles_cmd.cmdbar_cmdset, styles.program_actions)}>
+                            <div className={classNames(styles_cmd.buttonset, styles.program_actions)}>
                                 {canEdit ? (
                                     <>
-                                        <CommandButton
+                                        <Button
                                             className={styles.program_action}
                                             width="20px"
                                             height="20px"
                                             icon={icon_edit}
                                         />
-                                        <CommandButton
+                                        <Button
                                             className={styles.program_action}
                                             width="20px"
                                             height="20px"
@@ -159,7 +159,7 @@ export const Explorer: React.FC<Props> = (props: Props) => {
                                         />
                                     </>
                                 ) : (
-                                    <CommandButton
+                                    <Button
                                         className={styles.program_action}
                                         width="20px"
                                         height="20px"
@@ -167,7 +167,7 @@ export const Explorer: React.FC<Props> = (props: Props) => {
                                         onClick={showForkDialog}
                                     />
                                 )}
-                                <CommandButton
+                                <Button
                                     className={styles.program_action}
                                     width="20px"
                                     height="20px"

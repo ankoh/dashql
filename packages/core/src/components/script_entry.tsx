@@ -1,7 +1,7 @@
 import * as React from 'react';
 import Immutable from 'immutable';
 import { getScriptName, getScriptNamespace, Script } from '../model';
-import { CommandButton } from '../components';
+import { Button } from '../components';
 
 import styles from './script_entry.module.css';
 
@@ -46,7 +46,7 @@ const LocalScriptEntry: React.FC<EntryProps> = (props: EntryProps) => {
                 <div className={styles.title}>
                     <div className={styles.title_name}>{scriptName}</div>
                 </div>
-                <CommandButton disabled className={styles.command} width="20px" height="20px" icon={icon_more} />
+                <Button disabled className={styles.command} width="20px" height="20px" icon={icon_more} />
             </div>
         </div>
     );
@@ -64,7 +64,7 @@ const OwnGistScriptEntry: React.FC<EntryProps> = (props: EntryProps) => {
                 <div className={styles.title}>
                     <div className={styles.title_name}>{scriptName}</div>
                 </div>
-                <CommandButton disabled className={styles.command} width="20px" height="20px" icon={icon_more} />
+                <Button disabled className={styles.command} width="20px" height="20px" icon={icon_more} />
             </div>
             <GistInfo />
         </div>
@@ -89,7 +89,7 @@ const GistScriptEntry: React.FC<EntryProps> = (props: EntryProps) => {
                     &nbsp;/&nbsp;
                     <div className={styles.title_name}>{scriptName}</div>
                 </div>
-                <CommandButton disabled className={styles.command} width="20px" height="20px" icon={icon_more} />
+                <Button disabled className={styles.command} width="20px" height="20px" icon={icon_more} />
             </div>
             <GistInfo />
         </div>

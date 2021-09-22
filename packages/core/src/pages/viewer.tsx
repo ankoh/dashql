@@ -1,6 +1,6 @@
 import * as React from 'react';
 import styles from './viewer.module.css';
-import styles_cmd from '../components/cmd_bar.module.css';
+import styles_cmd from '../components/button.module.css';
 import { AutoSizer } from '../utils/autosizer';
 import { Board, OverlayContainer, ScriptNotFound, ShareDialog, SystemBar, useOverlaySetter } from '../components';
 import { Link } from 'react-router-dom';
@@ -85,20 +85,20 @@ export const Viewer: React.FC<Props> = () => {
                 </div>
             </div>
             <div className={styles.cmdbar}>
-                <div className={styles_cmd.cmdbar_cmdset}>
+                <div className={styles_cmd.buttonset}>
                     {programCtx.script.origin.originType == ScriptOriginType.GITHUB_GIST && (
-                        <div className={styles_cmd.cmdbar_cmd}>
+                        <div className={styles_cmd.button}>
                             <svg width="20px" height="20px">
                                 <use xlinkHref={`${icon_star_outline}#sym`} />
                             </svg>
                         </div>
                     )}
-                    <div className={styles_cmd.cmdbar_cmd} onClick={showShareDialog}>
+                    <div className={styles_cmd.button} onClick={showShareDialog}>
                         <svg width="20px" height="20px">
                             <use xlinkHref={`${icon_share}#sym`} />
                         </svg>
                     </div>
-                    <Link to="/explorer" className={styles_cmd.cmdbar_cmd}>
+                    <Link to="/explorer" className={styles_cmd.button}>
                         <svg width="20px" height="20px">
                             <use xlinkHref={`${icon_code}#sym`} />
                         </svg>
