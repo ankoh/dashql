@@ -40,10 +40,11 @@ import {
 } from '../model';
 import { useAnalyzer } from '../analyzer';
 
-const LazyEditor = React.lazy(() => import('../components/editor'));
+const CMD_ICON_SIZE = '20px';
+const SYM_FORK_OVERLAY = Symbol();
+const SYM_SHARE_OVERLAY = Symbol();
 
-const forkOverlay = Symbol();
-const shareOverlay = Symbol();
+const LazyEditor = React.lazy(() => import('../components/editor'));
 
 type Props = {
     className?: string;
@@ -62,14 +63,14 @@ export const Explorer: React.FC<Props> = (props: Props) => {
     const showForkDialog = React.useCallback(() => {
         const fork: React.FC = () => <ForkDialog onClose={() => setOverlay(null)} />;
         setOverlay({
-            id: forkOverlay,
+            id: SYM_FORK_OVERLAY,
             renderer: fork,
         });
     }, [setOverlay]);
     const showShareDialog = React.useCallback(() => {
         const share: React.FC = () => <ShareDialog onClose={() => setOverlay(null)} />;
         setOverlay({
-            id: shareOverlay,
+            id: SYM_SHARE_OVERLAY,
             renderer: share,
         });
     }, [setOverlay]);
@@ -101,16 +102,27 @@ export const Explorer: React.FC<Props> = (props: Props) => {
             <div />
             <div className={styles_cmd.buttonset}>
                 {programCtx.script.origin.originType == ScriptOriginType.GITHUB_GIST && (
-                    <Button className={styles.board_cmd} width="20px" height="20px" icon={icon_star_outline} />
+                    <Button
+                        className={styles.board_cmd}
+                        width={CMD_ICON_SIZE}
+                        height={CMD_ICON_SIZE}
+                        icon={icon_star_outline}
+                    />
                 )}
                 <Button
                     className={styles.board_cmd}
-                    width="20px"
-                    height="20px"
+                    width={CMD_ICON_SIZE}
+                    height={CMD_ICON_SIZE}
                     icon={icon_share}
                     onClick={showShareDialog}
                 />
-                <LinkButton className={styles.board_cmd} to="/viewer" width="20px" height="20px" icon={icon_eye} />
+                <LinkButton
+                    className={styles.board_cmd}
+                    to="/viewer"
+                    width={CMD_ICON_SIZE}
+                    height={CMD_ICON_SIZE}
+                    icon={icon_eye}
+                />
             </div>
         </div>
     );
@@ -126,30 +138,30 @@ export const Explorer: React.FC<Props> = (props: Props) => {
                                 <>
                                     <Button
                                         className={styles.program_action}
-                                        width="20px"
-                                        height="20px"
+                                        width={CMD_ICON_SIZE}
+                                        height={CMD_ICON_SIZE}
                                         icon={icon_edit}
                                     />
                                     <Button
                                         className={styles.program_action}
-                                        width="20px"
-                                        height="20px"
+                                        width={CMD_ICON_SIZE}
+                                        height={CMD_ICON_SIZE}
                                         icon={icon_cloud_upload}
                                     />
                                 </>
                             ) : (
                                 <Button
                                     className={styles.program_action}
-                                    width="20px"
-                                    height="20px"
+                                    width={CMD_ICON_SIZE}
+                                    height={CMD_ICON_SIZE}
                                     icon={icon_fork}
                                     onClick={showForkDialog}
                                 />
                             )}
                             <Button
                                 className={styles.program_action}
-                                width="20px"
-                                height="20px"
+                                width={CMD_ICON_SIZE}
+                                height={CMD_ICON_SIZE}
                                 icon={icon_blank}
                                 onClick={createBlankScript}
                             />
@@ -164,7 +176,7 @@ export const Explorer: React.FC<Props> = (props: Props) => {
                         <Route
                             path="/"
                             element={
-                                <OverlayContainer id={forkOverlay} className={styles.program_editor}>
+                                <OverlayContainer id={SYM_FORK_OVERLAY} className={styles.program_editor}>
                                     <LazyLoader>
                                         <LazyEditor readOnly={editorReadOnly} />
                                     </LazyLoader>
@@ -180,7 +192,7 @@ export const Explorer: React.FC<Props> = (props: Props) => {
                             <>
                                 <div className={styles.board}>
                                     <BoardCommandBar />
-                                    <OverlayContainer id={shareOverlay}>
+                                    <OverlayContainer id={SYM_SHARE_OVERLAY}>
                                         <BoardEditor
                                             immutable={false}
                                             scaleFactor={1.0}
