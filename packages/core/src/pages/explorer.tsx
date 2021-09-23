@@ -130,7 +130,7 @@ export const Explorer: React.FC<Props> = (props: Props) => {
     return (
         <div className={styles.explorer}>
             <AnimatePresence>
-                <div className={styles.program_page}>
+                <div key="program_page" className={styles.program_page}>
                     <div className={styles.program_info_and_actions}>
                         <ProgramHeader className={styles.program_info} script={programCtx.script} />
                         <div className={cn(styles_cmd.buttonset, styles.program_actions)}>
@@ -190,7 +190,7 @@ export const Explorer: React.FC<Props> = (props: Props) => {
                         path="/"
                         element={
                             <>
-                                <div className={styles.board}>
+                                <div key="board" className={styles.board}>
                                     <BoardCommandBar />
                                     <OverlayContainer id={SYM_SHARE_OVERLAY}>
                                         <BoardEditor
