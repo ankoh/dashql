@@ -108,6 +108,7 @@
     grid-row: 1;
     grid-column: 2;
     margin: 4px;
+    align-self: start;
 }
 
 .program_action {
@@ -142,13 +143,17 @@
 }
 
 .board_cmdbar {
-    background-color: var(--button_bar_board_bg);
+    background-color: var(--board_cmd_bg);
     display: grid;
     grid-template-columns: auto min-content;
     box-sizing: border-box;
     border-left: 1px solid var(--border_color);
     border-bottom: 1px solid var(--border_color);
     padding: 4px;
+}
+
+.board_cmd {
+    height: 36px;
 }
 
 .board_editor {

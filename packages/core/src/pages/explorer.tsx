@@ -101,10 +101,16 @@ export const Explorer: React.FC<Props> = (props: Props) => {
             <div />
             <div className={styles_cmd.buttonset}>
                 {programCtx.script.origin.originType == ScriptOriginType.GITHUB_GIST && (
-                    <Button width="20px" height="20px" icon={icon_star_outline} />
+                    <Button className={styles.board_cmd} width="20px" height="20px" icon={icon_star_outline} />
                 )}
-                <Button width="20px" height="20px" icon={icon_share} onClick={showShareDialog} />
-                <LinkButton to="/viewer" width="20px" height="20px" icon={icon_eye} />
+                <Button
+                    className={styles.board_cmd}
+                    width="20px"
+                    height="20px"
+                    icon={icon_share}
+                    onClick={showShareDialog}
+                />
+                <LinkButton className={styles.board_cmd} to="/viewer" width="20px" height="20px" icon={icon_eye} />
             </div>
         </div>
     );

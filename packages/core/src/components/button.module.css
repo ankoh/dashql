@@ -2,14 +2,13 @@
     display: flex;
     flex-direction: row;
     align-items: end;
-    height: 36px;
-    background-color: var(--button_bar_bg);
     border-radius: var(--border_radius);
-    border: 1px solid var(--button_border_color);
+    border: 1px solid var(--button_bar_border_color);
+    background-color: var(--button_bar_bg);
 }
 
 .button {
-    height: 36px;
+    height: 100%;
     width: 48px;
 
     display: grid;
@@ -21,16 +20,35 @@
     border-radius: var(--border_radius);
 }
 
-.button:hover:not(.disabled) {
-    background-color: var(--button_hover_bg);
-    color: rgb(255, 255, 255);
-}
-
 .button.disabled {
     color: rgb(170, 170, 170);
 }
 
-.button.active {
+.button.active,
+.button:hover:not(.disabled) {
     background-color: var(--button_hover_bg);
-    color: rgb(255, 255, 255);
+    color: var(--button_hover_fg);
+}
+
+.button_inverted {
+    height: 100%;
+    width: 48px;
+
+    display: grid;
+    justify-content: center;
+    align-items: center;
+    box-sizing: border-box;
+
+    color: var(--button_fg_inverted);
+    border-radius: var(--border_radius);
+}
+
+.button_inverted.disabled {
+    color: rgb(170, 170, 170);
+}
+
+.button_inverted.active,
+.button_inverted:hover:not(.disabled) {
+    background-color: var(--button_hover_bg_inverted);
+    color: var(--button_hover_fg_inverted);
 }
