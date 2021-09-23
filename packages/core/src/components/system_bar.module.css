@@ -23,6 +23,7 @@
 }
 
 .system_panel {
+    z-index: 1000;
     position: absolute;
     left: 80px;
     bottom: 16px;
