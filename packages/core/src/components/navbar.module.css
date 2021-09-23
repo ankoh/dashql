@@ -23,8 +23,9 @@
     text-align: center;
 
     display: grid;
-    grid-template-rows: 48px auto 56px max-content;
+    grid-template-rows: 48px auto 48px max-content;
     grid-template-columns: var(--nav_bar_width);
+    grid-row-gap: 8px;
 }
 
 .logo {
@@ -93,6 +94,13 @@
     display: grid;
     justify-content: center;
     align-items: center;
+}
+
+.account:hover {
+    border-radius: var(--border_radius);
+    margin: var(--nav_bar_button_margin);
+    background-color: var(--nav_tab_bg_active);
+    color: var(--nav_tab_fg_active);
 }
 
 .avatar {
