@@ -6,7 +6,7 @@
         width: 100%;
         height: 100%;
         display: grid;
-        grid-template-columns: minmax(max-content, 1200px);
+        grid-template-columns: max-content;
         grid-template-rows: max-content max-content;
         justify-content: center;
         align-items: center;
@@ -28,16 +28,16 @@
         bottom: 8px;
         right: 8px;
         margin-top: 8px;
-        background-color: hsl(210deg 4% 30%);
+        background-color: hsl(210deg, 12%, 16%);
         border-radius: var(--border_radius);
-        border: 1px solid hsl(210deg 4% 20%);
+        border: 1px solid hsl(210deg, 12%, 10%);
 
         display: flex;
         flex-direction: column;
     }
 
     .cmdbutton {
-        height: 36px;
+        height: 40px;
         width: 48px;
     }
 
