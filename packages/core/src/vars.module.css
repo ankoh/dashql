@@ -57,8 +57,8 @@
     --statsbar_bg: rgb(255, 255, 255);
     --system_bg: hsl(210deg, 12%, 11%);
     --system_bg_active: hsl(210deg, 12%, 6%);
-    --system_bg_slim: hsl(210deg 4% 20%);
-    --system_bg_slim_active: hsl(210deg, 12%, 6%);
+    --system_bg_slim: hsl(210deg 4% 25%);
+    --system_bg_slim_active: hsl(210deg, 4%, 15%);
     --system_fg: rgb(255, 255, 255);
     --system_fg_active: rgb(255, 255, 255);
     --system_fg_slim: rgb(255, 255, 255);

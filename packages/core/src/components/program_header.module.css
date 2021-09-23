@@ -69,6 +69,7 @@
 
 .bean {
     font-size: 85%;
+    font-weight: 500;
     color: rgb(100, 100, 100);
     height: auto;
     border-radius: 8px;
