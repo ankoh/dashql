@@ -15,15 +15,16 @@
 }
 
 .icon {
-    width: 24px;
-    height: 24px;
+    width: 20px;
+    height: 20px;
 }
 
 .icon:not(:first-child) {
-    margin-left: 40px;
+    margin-left: 32px;
 }
 
 .link {
+    font-weight: 500;
     margin-left: 8px;
     text-decoration: none;
     color: var(--page_footer_fg);
