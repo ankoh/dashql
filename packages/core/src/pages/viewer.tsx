@@ -2,19 +2,9 @@ import * as React from 'react';
 import styles from './viewer.module.css';
 import styles_cmd from '../components/button.module.css';
 import { AutoSizer } from '../utils/autosizer';
-import {
-    Board,
-    OverlayContainer,
-    ScriptNotFound,
-    ShareDialog,
-    SystemBar,
-    useOverlaySetter,
-    ProgramHeader,
-} from '../components';
+import { Board, OverlayContainer, ScriptNotFound, ShareDialog, useOverlaySetter, ProgramHeader } from '../components';
 import { Link } from 'react-router-dom';
-import { Scrollbars } from 'rc-scrollbars';
 
-import logo from '../../static/svg/logo/logo.svg';
 import icon_code from '../../static/svg/icons/code.svg';
 import icon_star_outline from '../../static/svg/icons/star_outline.svg';
 import icon_share from '../../static/svg/icons/share.svg';
