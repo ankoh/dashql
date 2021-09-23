@@ -37,7 +37,7 @@
     text-align: center;
 
     display: grid;
-    grid-template-rows: 56px auto 48px max-content;
+    grid-template-rows: 56px auto 40px max-content;
     grid-template-columns: var(--nav_bar_width);
 }
 
