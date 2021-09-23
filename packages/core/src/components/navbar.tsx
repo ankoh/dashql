@@ -13,11 +13,11 @@ import icon_web from '../../static/svg/icons/cloud.svg';
 import icon_explorer from '../../static/svg/icons/compass.svg';
 import icon_account from '../../static/svg/icons/folder_account.svg';
 
-const Tab = (props: { route: string; location: string; icon: string }) => (
+const Tab = (props: { route: string; alt?: string; location: string; icon: string }) => (
     <div
         key={props.route}
         className={classNames(styles.tab, {
-            [styles.active]: props.location == props.route,
+            [styles.active]: props.location == props.route || props.location == props.alt,
         })}
     >
         <Link to={props.route} className={styles.tab_link}>
@@ -41,7 +41,7 @@ export const NavBar = (): React.ReactElement => {
                 </svg>
             </Link>
             <div className={styles.tabs}>
-                <Tab route="/explorer" location={location.pathname} icon={icon_explorer} />
+                <Tab route="/explorer" alt="/viewer" location={location.pathname} icon={icon_explorer} />
                 <Tab route="/examples" location={location.pathname} icon={icon_examples} />
                 <Tab route="/cloud" location={location.pathname} icon={icon_web} />
             </div>
@@ -59,19 +59,6 @@ export const NavBar = (): React.ReactElement => {
     );
 };
 
-export const SlimNavBar = (): React.ReactElement => {
-    return (
-        <div className={styles.navbar_slim}>
-            <Link className={styles.logo_slim} to="/">
-                <svg width="32px" height="32px">
-                    <use xlinkHref={`${logo}#sym`} />
-                </svg>
-            </Link>
-            <SystemBar className={styles.systemlist_slim} />
-        </div>
-    );
-};
-
 export function withNavBar<P>(Component: React.ComponentType<P>): React.FunctionComponent<P> {
     // eslint-disable-next-line react/display-name
     return (props: P) => {
@@ -81,20 +68,6 @@ export function withNavBar<P>(Component: React.ComponentType<P>): React.Function
                     <Component {...props} />
                 </div>
                 <NavBar />
-            </div>
-        );
-    };
-}
-
-export function withSlimNavBar<P>(Component: React.ComponentType<P>): React.FunctionComponent<P> {
-    // eslint-disable-next-line react/display-name
-    return (props: P) => {
-        return (
-            <div className={styles.container}>
-                <div className={styles.page}>
-                    <Component {...props} />
-                </div>
-                <SlimNavBar />
             </div>
         );
     };
