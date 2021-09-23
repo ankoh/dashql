@@ -88,9 +88,9 @@
 
         height: 36px;
         color: white;
-        background-color: hsl(210deg 4% 30%);
+        background-color: hsl(210deg, 12%, 16%);
         border-radius: var(--border_radius);
-        border: 1px solid hsl(210deg 4% 20%);
+        border: 1px solid hsl(210deg, 12%, 10%);
 
         display: flex;
         flex-direction: row;
