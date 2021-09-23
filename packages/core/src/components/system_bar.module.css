@@ -1,6 +1,6 @@
 .system_button {
-    height: var(--system_button_height);
-    width: var(--system_button_width);
+    height: 100%;
+    width: 100%;
     box-sizing: border-box;
     border-radius: var(--border_radius);
 }
@@ -26,7 +26,6 @@
     position: absolute;
     left: 80px;
     bottom: 16px;
-
     width: 500px;
     height: 400px;
 }

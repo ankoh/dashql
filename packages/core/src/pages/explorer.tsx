@@ -1,5 +1,5 @@
 import * as React from 'react';
-import classNames from 'classnames';
+import cn from 'classnames';
 import { Route, Routes } from 'react-router-dom';
 import {
     BoardEditor,
@@ -112,47 +112,45 @@ export const Explorer: React.FC<Props> = (props: Props) => {
     return (
         <div className={styles.explorer}>
             <AnimatePresence>
-                <div key="program" className={styles.program_page}>
-                    <div key="info_actions" className={styles.program_info_and_actions}>
+                <div className={styles.program_page}>
+                    <div className={styles.program_info_and_actions}>
                         <ProgramHeader script={programCtx.script} />
-                        <div key="actions" className={styles.program_actions}>
-                            <div className={classNames(styles_cmd.buttonset)}>
-                                {canEdit ? (
-                                    <>
-                                        <Button
-                                            className={styles.program_action}
-                                            width="20px"
-                                            height="20px"
-                                            icon={icon_edit}
-                                        />
-                                        <Button
-                                            className={styles.program_action}
-                                            width="20px"
-                                            height="20px"
-                                            icon={icon_cloud_upload}
-                                        />
-                                    </>
-                                ) : (
+                        <div className={cn(styles_cmd.buttonset, styles.program_actions)}>
+                            {canEdit ? (
+                                <>
                                     <Button
                                         className={styles.program_action}
                                         width="20px"
                                         height="20px"
-                                        icon={icon_fork}
-                                        onClick={showForkDialog}
+                                        icon={icon_edit}
                                     />
-                                )}
+                                    <Button
+                                        className={styles.program_action}
+                                        width="20px"
+                                        height="20px"
+                                        icon={icon_cloud_upload}
+                                    />
+                                </>
+                            ) : (
                                 <Button
                                     className={styles.program_action}
                                     width="20px"
                                     height="20px"
-                                    icon={icon_blank}
-                                    onClick={createBlankScript}
+                                    icon={icon_fork}
+                                    onClick={showForkDialog}
                                 />
-                            </div>
+                            )}
+                            <Button
+                                className={styles.program_action}
+                                width="20px"
+                                height="20px"
+                                icon={icon_blank}
+                                onClick={createBlankScript}
+                            />
                         </div>
                     </div>
                     {hasStats && (
-                        <div key="stats" className={styles.program_stats}>
+                        <div className={styles.program_stats}>
                             <ProgramStats scriptID="changeme" />
                         </div>
                     )}
@@ -174,7 +172,7 @@ export const Explorer: React.FC<Props> = (props: Props) => {
                         path="/"
                         element={
                             <>
-                                <div key="board" className={styles.board}>
+                                <div className={styles.board}>
                                     <BoardCommandBar />
                                     <OverlayContainer id={shareOverlay}>
                                         <BoardEditor

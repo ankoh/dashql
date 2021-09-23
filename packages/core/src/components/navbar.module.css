@@ -23,7 +23,7 @@
     text-align: center;
 
     display: grid;
-    grid-template-rows: 56px auto 64px min-content;
+    grid-template-rows: 48px auto 48px max-content;
     grid-template-columns: var(--nav_bar_width);
 }
 
@@ -36,10 +36,14 @@
 
 .tabs {
     grid-row: 2;
+    align-self: start;
+    margin: 16px var(--nav_bar_button_margin) 0 var(--nav_bar_button_margin);
     display: grid;
-    grid-template-rows: repeat(3, max-content);
-    grid-template-columns: var(--nav_bar_width);
-    margin-top: 16px;
+    grid-template-rows: repeat(3, 40px);
+    align-items: center;
+    border: 1px solid rgb(50, 50, 50);
+    border-radius: var(--border_radius);
+    background-color: hsl(210deg, 11%, 21%);
 }
 
 .tab_navbar {
@@ -47,13 +51,9 @@
 }
 
 .tab {
-    position: relative;
     background-color: var(--nav_tab_bg);
     color: var(--nav_tab_fg);
-    margin: var(--nav_bar_button_margin);
-    box-sizing: border-box;
     border-radius: var(--border_radius);
-    border: 1px solid rgba(0, 0, 0, 0.4);
 }
 
 .tab_icon {
@@ -81,9 +81,8 @@
 .systemlist {
     grid-row: 4;
     background: var(--system_bg);
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
+    display: grid;
+    grid-template-rows: repeat(3, 40px);
     align-items: center;
     margin: 4px;
     border-radius: var(--border_radius);
