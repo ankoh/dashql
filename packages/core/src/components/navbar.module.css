@@ -47,7 +47,7 @@
     display: grid;
     align-items: center;
     justify-content: center;
-    color: white !important;
+    color: var(--nav_bar_logo_color) !important;
 }
 
 .logo_slim {
