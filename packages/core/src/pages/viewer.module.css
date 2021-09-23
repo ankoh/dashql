@@ -67,7 +67,7 @@
     .header_anchor {
         display: grid;
         grid-template-columns: 1fr max-content;
-        margin-top: 24px;
+        margin-top: 16px;
     }
 
     .header {
