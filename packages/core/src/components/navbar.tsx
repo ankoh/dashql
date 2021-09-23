@@ -20,8 +20,8 @@ const Tab = (props: { route: string; location: string; icon: string }) => (
             [styles.active]: props.location == props.route,
         })}
     >
-        <Link to={props.route}>
-            <Button variant="link">
+        <Link to={props.route} className={styles.tab_link}>
+            <Button variant="link" className={styles.tab_button}>
                 <svg className={styles.tab_icon} width="20px" height="20px">
                     <use xlinkHref={`${props.icon}#sym`} />
                 </svg>
