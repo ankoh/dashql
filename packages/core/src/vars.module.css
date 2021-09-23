@@ -9,7 +9,7 @@
     --body_bg: hsl(210deg 4% 90%);
     --border_color: rgb(220, 220, 220);
     --border_radius: 8px;
-    --button_bar_bg: hsla(210deg, 12%, 80%, 0.3);
+    --button_bar_bg: hsla(210deg 12% 95%);
     --button_bar_border_color: hsl(210deg, 4%, 85%);
     --button_fg: hsl(210deg, 12%, 16%);
     --button_fg_inverted: rgb(255, 255, 255);

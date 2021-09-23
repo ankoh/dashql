@@ -20,6 +20,18 @@
     border-radius: var(--border_radius);
 }
 
+/*
+.button:not(:first-child):before {
+    position: absolute;
+    content: '';
+    left: 0;
+    top: 50%;
+    margin-top: -12px;
+    height: 24px;
+    border-left: 1px solid var(--border_color);
+}
+*/
+
 .button.disabled {
     color: rgb(170, 170, 170);
 }
