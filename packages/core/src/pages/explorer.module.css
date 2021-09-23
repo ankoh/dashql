@@ -109,11 +109,11 @@
 .program_actions {
     grid-row: 1;
     grid-column: 2;
-    padding: 4px;
+    margin: 4px;
 }
 
 .program_action {
-    height: 40px;
+    height: 36px;
 }
 
 .program_stats {
