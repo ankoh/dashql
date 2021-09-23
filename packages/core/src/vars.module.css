@@ -43,7 +43,7 @@
     --nav_bar_logo_color: rgb(255, 255, 255);
     --nav_bar_width: 64px;
     --nav_tab_bg: transparent;
-    --nav_tab_bg_active: hsla(210deg, 8%, 22%, 60%);
+    --nav_tab_bg_active: hsla(210deg, 12%, 21%);
     --nav_tab_fg: rgb(255, 255, 255);
     --nav_tab_fg_active: rgb(255, 255, 255);
     --page_footer_fg: rgb(230, 230, 230);
@@ -53,8 +53,8 @@
     --script_entry_header_height: 40px;
     --script_entry_margin: 16px;
     --statsbar_bg: rgb(255, 255, 255);
-    --system_bg: hsl(210deg, 12%, 11%);
-    --system_bg_active: hsl(210deg, 12%, 6%);
+    --system_bg: hsl(210deg, 12%, 21%);
+    --system_bg_active: hsl(210deg, 12%, 16%);
     --system_fg: rgb(255, 255, 255);
     --system_fg_active: rgb(255, 255, 255);
     --system_panel_bg: hsl(210deg, 12%, 16%);
