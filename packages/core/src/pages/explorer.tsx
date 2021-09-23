@@ -114,7 +114,7 @@ export const Explorer: React.FC<Props> = (props: Props) => {
             <AnimatePresence>
                 <div className={styles.program_page}>
                     <div className={styles.program_info_and_actions}>
-                        <ProgramHeader script={programCtx.script} />
+                        <ProgramHeader className={styles.program_info} script={programCtx.script} />
                         <div className={cn(styles_cmd.buttonset, styles.program_actions)}>
                             {canEdit ? (
                                 <>

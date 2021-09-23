@@ -25,11 +25,12 @@ exports[`NavBar renders correctly 1`] = `
       className="tab"
     >
       <a
+        className="tab_link"
         href="/explorer"
         onClick={[Function]}
       >
         <button
-          className="btn btn-link"
+          className="tab_button btn btn-link"
           disabled={false}
           type="button"
         >
@@ -49,11 +50,12 @@ exports[`NavBar renders correctly 1`] = `
       className="tab"
     >
       <a
+        className="tab_link"
         href="/examples"
         onClick={[Function]}
       >
         <button
-          className="btn btn-link"
+          className="tab_button btn btn-link"
           disabled={false}
           type="button"
         >
@@ -73,11 +75,12 @@ exports[`NavBar renders correctly 1`] = `
       className="tab"
     >
       <a
+        className="tab_link"
         href="/cloud"
         onClick={[Function]}
       >
         <button
-          className="btn btn-link"
+          className="tab_button btn btn-link"
           disabled={false}
           type="button"
         >

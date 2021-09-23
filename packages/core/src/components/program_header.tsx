@@ -1,4 +1,5 @@
 import * as React from 'react';
+import cn from 'classnames';
 import { Script, getScriptName, getScriptNamespace, getScriptBeans } from '../model';
 
 import logo from '../../static/svg/logo/logo.svg';
@@ -6,11 +7,12 @@ import logo from '../../static/svg/logo/logo.svg';
 import styles from './program_header.module.css';
 
 interface Props {
+    className?: string;
     script: Script;
 }
 
 export const ProgramHeader: React.FC<Props> = (props: Props) => (
-    <div className={styles.container}>
+    <div className={cn(styles.container, props.className)}>
         <div className={styles.avatar}>
             <div className={styles.avatar_icon}>
                 <svg width="24px" height="24px">
