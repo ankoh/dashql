@@ -36,9 +36,10 @@
     --log_timestamp_color: rgba(255, 255, 255, 0.6);
     --minibar_height: 6px;
     --nav_bar_bg: hsl(210deg, 12%, 16%);
-    --nav_bar_bg_slim: hsl(210deg 4% 80%);
+    --nav_bar_bg_slim: hsl(210deg 4% 30%);
     --nav_bar_button_margin: 4px;
-    --nav_bar_logo_color_slim: rgb(36, 41, 46);
+    --nav_bar_logo_color: rgb(255, 255, 255);
+    --nav_bar_logo_color_slim: rgb(255, 255, 255);
     --nav_bar_width: 64px;
     --nav_tab_bg: transparent;
     --nav_tab_bg_active: hsl(210deg, 12%, 22%);
@@ -55,11 +56,11 @@
     --statsbar_bg: rgb(255, 255, 255);
     --system_bg: hsl(210deg, 12%, 11%);
     --system_bg_active: hsl(210deg, 12%, 6%);
-    --system_bg_slim: hsl(210deg 4% 70%);
+    --system_bg_slim: hsl(210deg 4% 20%);
     --system_bg_slim_active: hsl(210deg, 12%, 6%);
     --system_fg: rgb(255, 255, 255);
     --system_fg_active: rgb(255, 255, 255);
-    --system_fg_slim: hsl(210deg, 12%, 16%);
+    --system_fg_slim: rgb(255, 255, 255);
     --system_panel_bg: hsl(210deg, 12%, 16%);
     --system_panel_border_radius: 8px;
     --system_subtitle_color: rgba(255, 255, 255, 0.6);
