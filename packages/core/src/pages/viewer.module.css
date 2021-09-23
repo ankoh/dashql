@@ -86,7 +86,6 @@
         margin-top: 8px;
         margin-right: 32px;
 
-        height: 36px;
         color: white;
         background-color: hsl(210deg, 12%, 16%);
         border-radius: var(--border_radius);
@@ -101,6 +100,7 @@
 
     .cmdbutton {
         width: 48px;
+        height: 32px;
     }
 
     .board {
