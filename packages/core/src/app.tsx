@@ -11,7 +11,7 @@ import {
 } from './model';
 import { Route, BrowserRouter, Routes, Navigate } from 'react-router-dom';
 import { Explorer, Examples, Viewer, NotFound, Account, Cloud } from './pages';
-import { withNavBar, OverlayProvider, withScriptLoader } from './components';
+import { withNavBar, withSlimNavBar, OverlayProvider, withScriptLoader } from './components';
 import { AppLauncher } from './app_launcher';
 import { DUCKDB_BUNDLES } from './duckdb_bundles';
 
@@ -43,7 +43,7 @@ const DataProviders = (props: { children: React.ReactElement }) => (
     </LogProvider>
 );
 
-const ViewerPage = withScriptLoader(Viewer);
+const ViewerPage = withSlimNavBar(withScriptLoader(Viewer));
 const ExplorerPage = withNavBar(withScriptLoader(Explorer));
 const ExamplesPage = withNavBar(Examples);
 const AccountPage = withNavBar(Account);

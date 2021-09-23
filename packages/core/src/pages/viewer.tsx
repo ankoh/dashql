@@ -46,57 +46,45 @@ export const Viewer: React.FC<Props> = () => {
     }
     return (
         <div className={styles.container}>
-            <div className={styles.body}>
-                <div className={styles.header_container}>
-                    <div className={styles.header}>
-                        <ProgramHeader script={programCtx.script} />
-                    </div>
+            <div className={styles.header_anchor}>
+                <div className={styles.header}>
+                    <ProgramHeader script={programCtx.script} />
                 </div>
-                <div className={styles.board}>
-                    <AutoSizer>
-                        {({ width, height }) => (
-                            <div style={{ width, height }}>
-                                <Scrollbars style={{ height, width }}>
-                                    <Board
-                                        className={styles.board_layout}
-                                        width={width}
-                                        rowHeight={rowHeight}
-                                        columnCount={columnCount}
-                                        containerPadding={padding}
-                                        elementMargin={margin}
-                                    />
-                                </Scrollbars>
-                            </div>
-                        )}
-                    </AutoSizer>
-                </div>
-            </div>
-            <div className={styles.cmdbar}>
-                {programCtx.script.origin.originType == ScriptOriginType.GITHUB_GIST && (
-                    <div className={styles_cmd.button}>
+                <div className={styles.cmdbar}>
+                    {programCtx.script.origin.originType == ScriptOriginType.GITHUB_GIST && (
+                        <div className={styles_cmd.button}>
+                            <svg width="20px" height="20px">
+                                <use xlinkHref={`${icon_star_outline}#sym`} />
+                            </svg>
+                        </div>
+                    )}
+                    <div className={styles_cmd.button} onClick={showShareDialog}>
                         <svg width="20px" height="20px">
-                            <use xlinkHref={`${icon_star_outline}#sym`} />
+                            <use xlinkHref={`${icon_share}#sym`} />
                         </svg>
                     </div>
-                )}
-                <div className={styles_cmd.button} onClick={showShareDialog}>
-                    <svg width="20px" height="20px">
-                        <use xlinkHref={`${icon_share}#sym`} />
-                    </svg>
+                    <Link to="/explorer" className={styles_cmd.button}>
+                        <svg width="20px" height="20px">
+                            <use xlinkHref={`${icon_code}#sym`} />
+                        </svg>
+                    </Link>
                 </div>
-                <Link to="/explorer" className={styles_cmd.button}>
-                    <svg width="20px" height="20px">
-                        <use xlinkHref={`${icon_code}#sym`} />
-                    </svg>
-                </Link>
             </div>
-            <SystemBar className={styles.systembar} />
+            <div className={styles.board}>
+                <AutoSizer disableHeight>
+                    {({ width }) => (
+                        <Board
+                            className={styles.board_layout}
+                            width={width}
+                            rowHeight={rowHeight}
+                            columnCount={columnCount}
+                            containerPadding={padding}
+                            elementMargin={margin}
+                        />
+                    )}
+                </AutoSizer>
+            </div>
             <OverlayContainer id={shareOverlay} className={styles.overlay} />
-            <Link className={styles.logo} to="/">
-                <svg width="32px" height="32px">
-                    <use xlinkHref={`${logo}#sym`} />
-                </svg>
-            </Link>
         </div>
     );
 };

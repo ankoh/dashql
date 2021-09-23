@@ -26,9 +26,7 @@
 .program_info {
     flex: 1;
     margin-top: 8px;
-    display: grid;
-    grid-template-rows: max-content max-content;
-    grid-template-columns: 80px max-content max-content;
+    padding-right: 24px;
 }
 
 .program_info_avatar {

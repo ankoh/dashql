@@ -32,7 +32,6 @@ const Tab = (props: { route: string; location: string; icon: string }) => (
 
 export const NavBar = (): React.ReactElement => {
     const location = useLocation();
-    //const ghAuth = useGitHubAuth();
     const ghProfile = useActiveGitHubProfile();
     return (
         <div className={styles.navbar}>
@@ -60,6 +59,19 @@ export const NavBar = (): React.ReactElement => {
     );
 };
 
+export const SlimNavBar = (): React.ReactElement => {
+    return (
+        <div className={styles.navbar_slim}>
+            <Link className={styles.logo_slim} to="/">
+                <svg width="32px" height="32px">
+                    <use xlinkHref={`${logo}#sym`} />
+                </svg>
+            </Link>
+            <SystemBar className={styles.systemlist_slim} />
+        </div>
+    );
+};
+
 export function withNavBar<P>(Component: React.ComponentType<P>): React.FunctionComponent<P> {
     // eslint-disable-next-line react/display-name
     return (props: P) => {
@@ -69,6 +81,20 @@ export function withNavBar<P>(Component: React.ComponentType<P>): React.Function
                     <Component {...props} />
                 </div>
                 <NavBar />
+            </div>
+        );
+    };
+}
+
+export function withSlimNavBar<P>(Component: React.ComponentType<P>): React.FunctionComponent<P> {
+    // eslint-disable-next-line react/display-name
+    return (props: P) => {
+        return (
+            <div className={styles.container}>
+                <div className={styles.page}>
+                    <Component {...props} />
+                </div>
+                <SlimNavBar />
             </div>
         );
     };

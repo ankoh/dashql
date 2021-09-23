@@ -23,7 +23,22 @@
     text-align: center;
 
     display: grid;
-    grid-template-rows: 48px auto 48px max-content;
+    grid-template-rows: 56px auto 48px max-content;
+    grid-template-columns: var(--nav_bar_width);
+    grid-row-gap: 8px;
+}
+
+.navbar_slim {
+    grid-row: 1;
+    grid-column: 1;
+
+    background-color: var(--nav_bar_bg_slim);
+    color: rgb(255, 255, 255);
+    line-height: 24px;
+    text-align: center;
+
+    display: grid;
+    grid-template-rows: 56px auto 48px max-content;
     grid-template-columns: var(--nav_bar_width);
     grid-row-gap: 8px;
 }
@@ -33,6 +48,13 @@
     align-items: center;
     justify-content: center;
     color: white !important;
+}
+
+.logo_slim {
+    display: grid;
+    align-items: center;
+    justify-content: center;
+    color: var(--nav_bar_logo_color_slim) !important;
 }
 
 .tabs {
@@ -110,7 +132,19 @@
 
 .systemlist {
     grid-row: 4;
+    color: var(--system_fg);
     background: var(--system_bg);
+    display: grid;
+    grid-template-rows: repeat(3, 40px);
+    grid-row-gap: 4px;
+    align-items: center;
+    padding: 4px;
+}
+
+.systemlist_slim {
+    grid-row: 4;
+    color: var(--system_fg_slim);
+    background: var(--system_bg_slim);
     display: grid;
     grid-template-rows: repeat(3, 40px);
     grid-row-gap: 4px;

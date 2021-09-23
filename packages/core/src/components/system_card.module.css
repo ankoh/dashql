@@ -1,9 +1,9 @@
 @import '../vars.module.css';
 
 .panel {
-    background: var(--sys_panel_bg);
+    background: var(--system_panel_bg);
     box-sizing: border-box;
-    border-radius: var(--sys_panel_border_radius);
+    border-radius: var(--system_panel_border_radius);
     color: white;
 
     display: flex;
@@ -37,8 +37,8 @@
 .header_subtitle {
     grid-column: 1;
     grid-row: 2;
-    font-size: var(--sys_subtitle_fontsize);
-    color: var(--sys_subtitle_color);
+    font-size: var(--system_subtitle_fontsize);
+    color: var(--system_subtitle_color);
     text-align: left;
 }
 

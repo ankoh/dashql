@@ -1,7 +1,4 @@
 .container {
-    flex: 1;
-    margin-top: 8px;
-    padding-right: 24px;
     display: grid;
     grid-template-rows: max-content max-content max-content;
     grid-template-columns: 80px max-content;
