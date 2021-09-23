@@ -45,6 +45,7 @@ export const NavBar = (): React.ReactElement => {
                 <Tab route="/examples" location={location.pathname} icon={icon_examples} />
                 <Tab route="/cloud" location={location.pathname} icon={icon_web} />
             </div>
+            <div />
             <Link className={styles.account} to="/account">
                 {ghProfile?.avatarUrl ? (
                     <img className={styles.avatar} width="32px" height="32px" src={ghProfile!.avatarUrl} />
@@ -64,10 +65,10 @@ export function withNavBar<P>(Component: React.ComponentType<P>): React.Function
     return (props: P) => {
         return (
             <div className={styles.container}>
+                <NavBar />
                 <div className={styles.page}>
                     <Component {...props} />
                 </div>
-                <NavBar />
             </div>
         );
     };

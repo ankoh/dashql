@@ -6,7 +6,7 @@
         width: 100%;
         height: 100%;
         display: grid;
-        grid-template-columns: max-content;
+        grid-template-columns: 1fr;
         grid-template-rows: max-content max-content;
         justify-content: center;
         align-items: center;
@@ -14,7 +14,7 @@
     }
 
     .header_anchor {
-        margin-top: 8px;
+        margin-top: 16px;
     }
 
     .header {
