@@ -97,6 +97,7 @@ exports[`NavBar renders correctly 1`] = `
       </a>
     </div>
   </div>
+  <div />
   <a
     className="account"
     href="/account"
