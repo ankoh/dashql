@@ -15,7 +15,7 @@ const base = configure({
     extractCss: false,
     cssIdentifier: '[local]_[hash:base64]',
     dashqlAPP: 'http://localhost:9001',
-    dashqlAPI: 'https://api-gateway-dev.dashql.workers.dev',
+    dashqlAPI: 'https://api-worker-dev.dashql.workers.dev',
     githubOAuthClientID: '877379132b93adf6f705',
     githubOAuthRedirect: `http://localhost:9001/static/html/github_oauth.${GITHUB_OAUTH_VERSION}.html`,
 });
