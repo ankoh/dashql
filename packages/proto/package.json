@@ -7,7 +7,7 @@
         "flatbuffers": "^2.0.3"
     },
     "devDependencies": {
-        "esbuild": "^0.12.26",
+        "esbuild": "^0.13.3",
         "typescript": "^4.4.3"
     },
     "scripts": {
