@@ -66,7 +66,7 @@
         "@types/react-simple-maps": "^1.0.6",
         "@types/react-test-renderer": "^17.0.1",
         "@types/react-virtualized": "^9.21.14",
-        "@types/tmp": "^0.2.1",
+        "@types/tmp": "^0.2.2",
         "@typescript-eslint/eslint-plugin": "^5.2.0",
         "@typescript-eslint/parser": "^5.1.0",
         "axios-mock-adapter": "^1.20.0",
