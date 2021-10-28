@@ -21,7 +21,7 @@
         "@octokit/graphql": "^4.8.0",
         "@popperjs/core": "^2.10.2",
         "apache-arrow": "^4.0.1",
-        "axios": "^0.23.0",
+        "axios": "^0.24.0",
         "bootstrap": "^5.1.1",
         "classnames": "^2.3.1",
         "copy-to-clipboard": "^3.3.1",
