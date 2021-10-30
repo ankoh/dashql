@@ -50,7 +50,6 @@ export class TransformTaskLogic extends ProgramTaskLogic {
             dataBuffer: result,
             dataURL: null,
             dataBlob: null,
-            archiveMode: proto.analyzer.ArchiveMode.NONE,
         });
 
         // Register as blob in database

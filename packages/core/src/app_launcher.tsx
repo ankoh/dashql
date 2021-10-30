@@ -1,5 +1,5 @@
 import * as React from 'react';
-import * as duckdb from '@dashql/duckdb/dist/duckdb.module.js';
+import * as duckdb from '@duckdb/duckdb-wasm/dist/duckdb-esm';
 import * as model from './model';
 
 import { Analyzer } from './analyzer/analyzer_browser';

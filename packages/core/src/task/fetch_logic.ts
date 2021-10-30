@@ -71,7 +71,6 @@ export class FetchTaskLogic extends ProgramTaskLogic {
             dataBuffer: buffer,
             dataURL: null,
             dataBlob: null,
-            archiveMode: fetch.archive(),
         });
 
         // Register as blob in database

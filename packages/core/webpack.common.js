@@ -45,6 +45,9 @@ export function configure(params) {
         },
         resolve: {
             extensions: ['.ts', '.tsx', '.js', '.jsx', '.css'],
+            alias: {
+                'apache-arrow': path.resolve(__dirname, '../../node_modules/apache-arrow/Arrow.esnext.min.js'),
+            },
         },
         module: {
             rules: [

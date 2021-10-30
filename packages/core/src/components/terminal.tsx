@@ -14,7 +14,7 @@ export const Terminal: React.FC<Props> = (props: Props) => {
     // Evaluate the terminal input
     const evalTermInput = async (text: string) => {
         const result = await database.use(async conn => {
-            return await conn.runQuery(text);
+            return await conn.query(text);
         });
         const term = termRef.current;
         for (const row of result) {

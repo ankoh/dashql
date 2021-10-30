@@ -14,8 +14,6 @@ const CONFIG = {
         '^.+\\.(css|styl|less|sass|scss)$': `identity-obj-proxy`,
         // Remap react-router
         'react-router-dom': 'react-router-dom/react-router-dom.development.js',
-        // Point duckdb module to node cjs version
-        '@dashql/duckdb/dist/duckdb.module.js': '@dashql/duckdb/dist/duckdb-node-async.js',
     },
     // Module path ignore
     modulePathIgnorePatterns: ['<rootDir>/src/duckdb_bundles.ts'],

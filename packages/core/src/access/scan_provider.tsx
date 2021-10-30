@@ -146,7 +146,7 @@ export const ScanProvider: React.FC<Props> = (props: Props) => {
                 query += ` USING SAMPLE RESERVOIR (${Math.trunc(request.sample)} ROWS)`;
             }
             const result = await database.use(async conn => {
-                return await conn.runQuery(query);
+                return await conn.query(query);
             });
             return {
                 request,

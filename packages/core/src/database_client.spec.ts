@@ -1,4 +1,4 @@
-import * as duckdb from '@dashql/duckdb/dist/duckdb.module.js';
+import * as duckdb from '@duckdb/duckdb-wasm/dist/duckdb-esm';
 import * as arrow from 'apache-arrow';
 import * as test from './test';
 import * as tmp from 'tmp';
@@ -6,7 +6,7 @@ import * as fs from 'fs';
 
 describe('DuckDB', () => {
     let db: duckdb.AsyncDuckDB | null = null;
-    let conn: duckdb.AsyncConnection | null = null;
+    let conn: duckdb.AsyncDuckDBConnection | null = null;
 
     beforeAll(async () => {
         db = await test.initDuckDB();
@@ -22,7 +22,7 @@ describe('DuckDB', () => {
     });
 
     it('hello world', async () => {
-        const table = await conn.runQuery<{ hello_world: arrow.Int32 }>('SELECT 1::INTEGER as hello_world');
+        const table = await conn.query<{ hello_world: arrow.Int32 }>('SELECT 1::INTEGER as hello_world');
         expect(table.numCols).toBe(1);
         expect(table.getColumnAt(0).length).toBe(1);
         const rows = table.toArray();
@@ -50,7 +50,7 @@ describe('DuckDB', () => {
 
         // Scan the temporary file
         await db.registerFileURL('foo.csv', tmpName);
-        const result = await conn.runQuery<{ a: arrow.Int32; b: arrow.Int32 }>(
+        const result = await conn.query<{ a: arrow.Int32; b: arrow.Int32 }>(
             `SELECT * FROM read_csv_auto('foo.csv') LIMIT 10`,
         );
         expect(result.numCols).toEqual(2);

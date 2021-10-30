@@ -32,8 +32,6 @@ class FetchStatement {
     sx::FetchMethodType method_ = sx::FetchMethodType::NONE;
     /// The url
     std::string url_ = "";
-    /// Is an archive?
-    proto::analyzer::ArchiveMode archive_ = proto::analyzer::ArchiveMode::NONE;
 
    public:
     /// Constructor

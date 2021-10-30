@@ -1,6 +1,5 @@
 // Copyright (c) 2021 The DashQL Authors
 
-import * as duckdb from '@dashql/duckdb/dist/duckdb.module.js';
 import * as proto from '@dashql/proto';
 import * as model from '../model';
 import { TaskHandle, Statement } from '../model';
@@ -32,21 +31,6 @@ export class LoadTaskLogic extends ProgramTaskLogic {
         const blob = ctx.planContext.blobs.get(blobID);
         if (!blob) throw new Error(`blob '${blobName}' is not registered in duckdb`);
 
-        // Get the input file
-        const extractIfNeeded = async (conn: duckdb.AsyncConnection) => {
-            const db = conn.instance;
-            switch (blob.archiveMode) {
-                case proto.analyzer.ArchiveMode.ZIP: {
-                    const outPath = this.buffer.nameQualified() || '';
-                    await db.registerFileBuffer(outPath, new Uint8Array());
-                    await db.extractZipPath(blob.nameQualified, outPath, xtr.dataSourceIndex() || '');
-                    return outPath;
-                }
-                case proto.analyzer.ArchiveMode.NONE:
-                    return blob.nameQualified;
-            }
-        };
-
         // XXX store this either in the flatbuffer or do via wasm.
         //     This is currently just a hack and not correct (indirections, multiple dots)
         let qSchema = 'main';
@@ -59,24 +43,24 @@ export class LoadTaskLogic extends ProgramTaskLogic {
 
         // Handle the different load method
         await ctx.database.use(async c => {
-            const filePath = await extractIfNeeded(c);
+            const filePath = blob.nameQualified;
             let tableType: model.TableType;
             let tableScript: string | undefined = undefined;
             switch (xtr.method()) {
                 case proto.syntax.LoadMethodType.PARQUET:
                     tableScript = `CREATE VIEW ${name} AS (SELECT * FROM parquet_scan('${filePath}'));`;
-                    await c.runQuery(tableScript);
+                    await c.query(tableScript);
                     tableType = model.TableType.VIEW;
                     break;
                 case proto.syntax.LoadMethodType.JSON:
-                    await c.importJSONFromPath(filePath, {
+                    await c.insertJSONFromPath(filePath, {
                         schema: qSchema,
                         name: qName,
                     });
                     tableType = model.TableType.TABLE;
                     break;
                 case proto.syntax.LoadMethodType.CSV:
-                    await c.importCSVFromPath(filePath, {
+                    await c.insertCSVFromPath(filePath, {
                         schema: qSchema,
                         name: qName,
                     });

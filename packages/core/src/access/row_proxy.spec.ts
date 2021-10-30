@@ -1,11 +1,11 @@
-import * as duckdb from '@dashql/duckdb/dist/duckdb.module.js';
+import * as duckdb from '@duckdb/duckdb-wasm/dist/duckdb-esm.js';
 import * as arrow from 'apache-arrow';
 import * as access from './row_proxy';
 import * as test from '../test';
 
 describe('RowProxies', () => {
     let db: duckdb.AsyncDuckDB | null = null;
-    let conn: duckdb.AsyncConnection | null = null;
+    let conn: duckdb.AsyncDuckDBConnection | null = null;
 
     beforeAll(async () => {
         db = await test.initDuckDB();
@@ -21,7 +21,7 @@ describe('RowProxies', () => {
     });
 
     it('generate 10k', async () => {
-        const result = await conn.runQuery<{ foo: arrow.Int32 }>(
+        const result = await conn.query<{ foo: arrow.Int32 }>(
             'SELECT v::INTEGER as foo FROM generate_series(1, 10000) t(v)',
         );
         const proxies = access.proxyTable(result);

@@ -62,16 +62,16 @@ export const QueryProvider: React.FC<Props> = (props: Props) => {
         const promise = database.use(async conn => {
             try {
                 if (query.before) {
-                    await conn.runQuery(query.before);
+                    await conn.query(query.before);
                 }
-                return await conn.runQuery(query.data);
+                return await conn.query(query.data);
             } catch (e) {
                 console.error(e);
                 throw e;
             } finally {
                 try {
                     if (query.after) {
-                        await conn.runQuery(query.after);
+                        await conn.query(query.after);
                     }
                 } catch (e) {
                     console.error(e);

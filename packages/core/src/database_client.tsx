@@ -2,7 +2,7 @@
 
 import Immutable from 'immutable';
 import React from 'react';
-import * as duckdb from '@dashql/duckdb/dist/duckdb.module.js';
+import * as duckdb from '@duckdb/duckdb-wasm/dist/duckdb-esm';
 import * as arrow from 'apache-arrow';
 import { TableStatisticsResolver, TableStatistics } from './table_statistics';
 import { Mutex } from './utils';
@@ -30,7 +30,7 @@ export class DatabaseClient {
     /// The async duckdb
     _duckdb: duckdb.AsyncDuckDB;
     /// The connection
-    _connection: duckdb.AsyncConnection | null;
+    _connection: duckdb.AsyncDuckDBConnection | null;
     /// The connection mutex
     _connectionMutex: Mutex;
     /// The table statistics requests
@@ -78,7 +78,7 @@ export class DatabaseClient {
     }
 
     /// Use the connection
-    public async use<T>(f: (conn: duckdb.AsyncConnection) => Promise<T>): Promise<T> {
+    public async use<T>(f: (conn: duckdb.AsyncDuckDBConnection) => Promise<T>): Promise<T> {
         return await this._connectionMutex.useAsync(async () => {
             if (!this._connection) {
                 throw new Error('not connected');
@@ -96,7 +96,7 @@ export class DatabaseClient {
     }
 
     /// Create a new connection
-    public async connect(): Promise<duckdb.AsyncConnection> {
+    public async connect(): Promise<duckdb.AsyncDuckDBConnection> {
         const conn = await this._connectionMutex.useAsync(async () => {
             if (this._connection) return this._connection;
             return await this._duckdb.connect();
@@ -153,13 +153,13 @@ export class DatabaseClient {
 
     /// Collect table info
     async collectTableMetadata(
-        conn: duckdb.AsyncConnection,
+        conn: duckdb.AsyncDuckDBConnection,
         info: Partial<TableMetadata> & { nameQualified: string },
     ): Promise<TableMetadata> {
         const columnNames: string[] = [];
         const columnNameMapping: Map<string, number> = new Map();
         const columnTypes: arrow.DataType[] = [];
-        const describe = await conn.runQuery<{ Field: arrow.Utf8; Type: arrow.Utf8 }>(`DESCRIBE ${info.nameQualified}`);
+        const describe = await conn.query<{ Field: arrow.Utf8; Type: arrow.Utf8 }>(`DESCRIBE ${info.nameQualified}`);
         let column = 0;
         for (const row of describe) {
             columnNames.push(row.Field!);

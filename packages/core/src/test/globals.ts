@@ -1,4 +1,4 @@
-import * as duckdb from '@dashql/duckdb/dist/duckdb.module.js';
+import * as duckdb from '@duckdb/duckdb-wasm/dist/duckdb-esm';
 import Worker from 'web-worker';
 import path from 'path';
 import { Analyzer } from '../analyzer/analyzer_node';
@@ -10,8 +10,11 @@ const ANALYZER_WASM = path.resolve(__dirname, '../../src/analyzer/analyzer_wasm.
 const JMESPATH_WASM = path.resolve(__dirname, '../../src/jmespath/jmespath_wasm.wasm');
 const DUCKDB_BUNDLES: duckdb.DuckDBBundles = {
     asyncDefault: {
-        mainModule: path.resolve(__dirname, '../../../../node_modules/@dashql/duckdb/dist/duckdb.wasm'),
-        mainWorker: path.resolve(__dirname, '../../../../node_modules/@dashql/duckdb/dist/duckdb-node-async.worker.js'),
+        mainModule: path.resolve(__dirname, '../../../../node_modules/@duckdb/duckdb-wasm/dist/duckdb.wasm'),
+        mainWorker: path.resolve(
+            __dirname,
+            '../../../../node_modules/@duckdb/duckdb-wasm/dist/duckdb-node-async.worker.js',
+        ),
     },
 };
 

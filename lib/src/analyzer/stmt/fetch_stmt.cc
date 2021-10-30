@@ -72,11 +72,6 @@ std::unique_ptr<FetchStatement> FetchStatement::ReadFrom(ProgramInstance& instan
             fetch->method_ = sx::FetchMethodType::HTTP;
         }
         optionIsRedundant(SX_FETCH_URL_OPTION, "url");
-
-        // Is an archive?
-        if (std::regex_match(fetch->url_, ZIP_EXT)) {
-            fetch->archive_ = proto::analyzer::ArchiveMode::ZIP;
-        }
     }
     return fetch;
 }
@@ -108,7 +103,6 @@ fb::Offset<ana::FetchStatement> FetchStatement::Pack(fb::FlatBufferBuilder& buil
     eb.add_statement_id(statement_id_);
     eb.add_method(method_);
     eb.add_url(url);
-    eb.add_archive(archive_);
     eb.add_extra(extra);
     return eb.Finish();
 }

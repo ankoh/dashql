@@ -1,7 +1,7 @@
 import { jest } from '@jest/globals';
 import * as analyzer from './analyzer/analyzer_node';
 import * as jmespath from './jmespath/jmespath_node';
-import * as duckdb from '@dashql/duckdb/dist/duckdb.module.js';
+import * as duckdb from '@duckdb/duckdb-wasm/dist/duckdb-esm';
 import * as test_env from './test';
 import { SCENARIOS } from './task_scheduler_scenarios';
 import Immutable from 'immutable';
@@ -20,7 +20,7 @@ describe('Task Scheduler Scenarios', () => {
     let az: analyzer.Analyzer | null = null;
     let jp: jmespath.JMESPath | null = null;
 
-    let dbConn: duckdb.AsyncConnection | null = null;
+    let dbConn: duckdb.AsyncDuckDBConnection | null = null;
     let taskCtx: WiredTaskExecutionContext = null;
     let httpMock: HTTPMock | null = null;
 
@@ -115,7 +115,7 @@ describe('Task Scheduler Scenarios', () => {
                     for (const dataSpec of step.expected.data) {
                         // Match result size
                         const query = dataSpec.script;
-                        const result = await dbConn.runQuery(query);
+                        const result = await dbConn.query(query);
                         expect(result.length).toEqual(dataSpec.expected.length);
                         expect(result.numCols).toEqual(dataSpec.expected.numCols);
 

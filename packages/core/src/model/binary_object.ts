@@ -1,8 +1,7 @@
 // Copyright (c) 2020 The DashQL Authors
 
-import * as proto from '@dashql/proto';
 import { PlanObject } from './plan_object';
-import * as duckdb from '@dashql/duckdb/dist/duckdb.module.js';
+import * as duckdb from '@duckdb/duckdb-wasm/dist/duckdb-esm';
 
 /// A blob path
 export interface BinaryObject extends PlanObject {
@@ -14,8 +13,6 @@ export interface BinaryObject extends PlanObject {
     dataBlob: Blob | null;
     /// The data url (if any)
     dataURL: string | null;
-    /// The archive mode (if any)
-    archiveMode: proto.analyzer.ArchiveMode;
 }
 
 export async function persistBinaryObject(buffer: BinaryObject): Promise<BinaryObject> {

@@ -43,17 +43,11 @@ table InputStatement {
     value: sql.SQLValue;
 }
 
-enum ArchiveMode: uint8 {
-    NONE,
-    ZIP
-}
-
 /// A fetch statement
 table FetchStatement {
     statement_id: uint32;
     method: syntax.FetchMethodType;
     url: string;
-    archive: ArchiveMode;
     extra: string;
 }
 
