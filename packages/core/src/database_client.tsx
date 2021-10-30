@@ -32,7 +32,7 @@ export class DatabaseClient {
     /// The connection
     _connection: duckdb.AsyncDuckDBConnection | null;
     /// The connection mutex
-    _connectionMutex: Mutex;
+    _connectionCtrlMutex: Mutex;
     /// The table statistics requests
     _statisticsQueues: Map<string, TableStatisticsResolver>;
     /// The database metadata
@@ -47,7 +47,7 @@ export class DatabaseClient {
     ) {
         this._duckdb = db;
         this._connection = null;
-        this._connectionMutex = new Mutex();
+        this._connectionCtrlMutex = new Mutex();
         this._statisticsQueues = new Map();
         this._metadata = metadata;
         this._metadataDispatch = metadataDispatch;
@@ -57,7 +57,6 @@ export class DatabaseClient {
     public get instance(): duckdb.AsyncDuckDB {
         return this._duckdb;
     }
-
     /// Get the metadata
     public get metadata(): DatabaseMetadata {
         return this._metadata;
@@ -76,28 +75,24 @@ export class DatabaseClient {
     public useUnsafe(): duckdb.AsyncDuckDB {
         return this._duckdb;
     }
-
     /// Use the connection
-    public async use<T>(f: (conn: duckdb.AsyncDuckDBConnection) => Promise<T>): Promise<T> {
-        return await this._connectionMutex.useAsync(async () => {
-            if (!this._connection) {
-                throw new Error('not connected');
-            }
-            return await f(this._connection);
-        });
+    public use<T>(f: (conn: duckdb.AsyncDuckDBConnection) => Promise<T>): Promise<T> {
+        if (!this._connection) {
+            throw new Error('not connected');
+        }
+        return f(this._connection);
     }
 
     /// Disconnect the connection
     public async disconnect(): Promise<void> {
-        return await this._connectionMutex.useAsync(async () => {
+        return await this._connectionCtrlMutex.useAsync(async () => {
             if (!this._connection) return;
             await this._connection.close();
         });
     }
-
     /// Create a new connection
     public async connect(): Promise<duckdb.AsyncDuckDBConnection> {
-        const conn = await this._connectionMutex.useAsync(async () => {
+        const conn = await this._connectionCtrlMutex.useAsync(async () => {
             if (this._connection) return this._connection;
             return await this._duckdb.connect();
         });
