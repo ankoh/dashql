@@ -132,7 +132,7 @@ export const Examples: React.FC<Props> = (_props: Props) => {
                 </div>
             </div>
             <div className={styles.gallery_body}>
-                <AnimateSharedLayout type="crossfade">
+                <AnimateSharedLayout>
                     {renderCollection(collections, 'Demos')}
                     {renderCollection(collections, 'Fetch')}
                     {renderCollection(collections, 'Transform')}
