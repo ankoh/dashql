@@ -184,12 +184,6 @@ app_prod:
 app_start:
 	yarn workspace @dashql/core start
 
-# Builds the core library
-.PHONY: core
-core:
-	yarn workspace @dashql/core build:libs
-
-
 # C++ formatting
 .PHONY: clang_format
 clang_format:
@@ -249,17 +243,3 @@ bootstrap:
 	make proto
 	make wasm
 	make core
-
-# ---------------------------------------------------------------------------
-# Data
-
-# Package the uni schema data
-UNI_SCHEMA_DIR="${ROOT_DIR}/data/uni"
-UNI_SCHEMA_OUT="${UNI_SCHEMA_DIR}/out"
-UNI_SCHEMA_PKG="${UNI_SCHEMA_DIR}/target/release/pkg_uni"
-.PHONY: pkg_uni_schema
-pkg_uni:
-	cargo +nightly build --manifest-path="${UNI_SCHEMA_DIR}/Cargo.toml" --release
-	mkdir -p ${UNI_SCHEMA_OUT}
-	${UNI_SCHEMA_PKG} ${UNI_SCHEMA_OUT}
-	cd ${UNI_SCHEMA_OUT} && rm -f ./all.zip && zip ./all.zip ./*.parquet
