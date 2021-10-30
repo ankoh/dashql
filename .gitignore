@@ -1,4 +1,5 @@
 /coverage
+/worktrees
 /.emsdk
 /perf.data*
 /.cache
