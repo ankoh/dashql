@@ -38,9 +38,9 @@
         "react-bootstrap": "^2.0.2",
         "react-dom": "^17.0.2",
         "react-grid-layout": "^1.2.5",
-        "react-json-tree": "^0.15.0",
+        "react-json-tree": "^0.15.1",
         "react-resizable": "^3.0.4",
-        "react-router-dom": "^6.0.0",
+        "react-router-dom": "^6.0.1",
         "react-simple-maps": "^2.3.0",
         "react-vega": "^7.4.3",
         "react-virtualized": "^9.22.3",
@@ -99,7 +99,7 @@
         "webpack-bundle-analyzer": "^4.5.0",
         "webpack-cli": "^4.9.1",
         "webpack-dev-server": "^4.4.0",
-        "webpackbar": "^5.0.0-3"
+        "webpackbar": "^5.0.2"
     },
     "optionalDependencies": {
         "fsevents": "*"
