@@ -63,7 +63,7 @@ ReactDOM.render(
                     <Route path="/cloud/*" element={<CloudPage />} />
                     <Route path="/404" element={<NotFound />} />
                     <Route path="/" element={<Navigate to="/explorer" />} />
-                    <Navigate to="/404" />
+                    <Route path="*" element={<Navigate to="/404" />} />
                 </Routes>
             </BrowserRouter>
         </AppLauncher>
