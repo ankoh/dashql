@@ -29,21 +29,9 @@
 	path = submodules/gflags
 	url = https://github.com/gflags/gflags.git
 	shallow = true
-[submodule "submodules/binaryen"]
-	path = submodules/binaryen
-	url = https://github.com/WebAssembly/binaryen
-	shallow = true
-[submodule "submodules/wasm-c-api"]
-	path = submodules/wasm-c-api
-	url = https://github.com/WebAssembly/wasm-c-api.git
-	shallow = true
 [submodule "submodules/arrow"]
 	path = submodules/arrow
 	url = https://github.com/apache/arrow
-	shallow = true
-[submodule "submodules/thrift"]
-	path = submodules/thrift
-	url = https://github.com/apache/thrift
 	shallow = true
 [submodule "submodules/double-conversion"]
 	path = submodules/double-conversion
@@ -56,10 +44,6 @@
 [submodule "submodules/nljson"]
 	path = submodules/nlohmann_json
 	url = https://github.com/nlohmann/json
-	shallow = true
-[submodule "submodules/xlnt"]
-	path = submodules/xlnt
-	url = https://github.com/tfussell/xlnt
 	shallow = true
 [submodule "submodules/fmt"]
 	path = submodules/fmt
