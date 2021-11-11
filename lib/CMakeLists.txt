@@ -58,12 +58,6 @@ set(CMAKE_BUILD_PARALLEL_LEVEL ${NPROCS})
 
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/modules ${CMAKE_MODULE_PATH})
 
-# Currently not needed include("${CMAKE_SOURCE_DIR}/cmake/binaryen.cmake")
-# include("${CMAKE_SOURCE_DIR}/cmake/wasm-c-api.cmake")
-# include("${CMAKE_SOURCE_DIR}/cmake/double-conversion.cmake")
-# include("${CMAKE_SOURCE_DIR}/cmake/flatc.cmake")
-# include("${CMAKE_SOURCE_DIR}/cmake/thrift.cmake")
-# include("${CMAKE_SOURCE_DIR}/cmake/xlnt.cmake")
 # include("${CMAKE_SOURCE_DIR}/cmake/spdlog.cmake")
 
 include("${CMAKE_SOURCE_DIR}/cmake/duckdb.cmake")
