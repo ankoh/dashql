@@ -2,20 +2,6 @@
 # yarn lockfile v1
 
 
-"@apache-arrow/esnext-esm@^6.0.0":
-  version "6.0.0"
-  resolved "https://registry.yarnpkg.com/@apache-arrow/esnext-esm/-/esnext-esm-6.0.0.tgz#9f8cb2decb2bf22ed5b668361493ddf6548457d0"
-  integrity sha512-ifAe4BXdhG6rP2aPFordrB9rsPQQabcx1L1k9Ja8IgJam4jv6g3/P/bv6zjklXwThxYVNJGwIMJS4rFsq49eoA==
-  dependencies:
-    "@types/flatbuffers" "^1.10.0"
-    "@types/node" "^16.4.0"
-    command-line-args "5.1.3"
-    command-line-usage "6.1.1"
-    flatbuffers "1.12.0"
-    json-bignum "^0.0.3"
-    pad-left "^2.1.0"
-    tslib "^2.3.0"
-
 "@babel/code-frame@^7.12.13", "@babel/code-frame@^7.16.0":
   version "7.16.0"
   resolved "https://registry.yarnpkg.com/@babel/code-frame/-/code-frame-7.16.0.tgz#0dfc80309beec8411e65e706461c408b0bb9b431"
@@ -338,12 +324,12 @@
   resolved "https://registry.yarnpkg.com/@discoveryjs/json-ext/-/json-ext-0.5.5.tgz#9283c9ce5b289a3c4f61c12757469e59377f81f3"
   integrity sha512-6nFkfkmSeV/rqSaS4oWHgmpnYw194f6hmWF5is6b0J1naJZoiD0NTc9AiUwPHvWsowkjuHErCZT1wa0jg+BLIA==
 
-"@duckdb/duckdb-wasm@^0.1.11":
-  version "0.1.11"
-  resolved "https://registry.yarnpkg.com/@duckdb/duckdb-wasm/-/duckdb-wasm-0.1.11.tgz#cc363a275b0ab0acbf8b52b00ac174d28eb1eab3"
-  integrity sha512-bB2cKOIVHA/aV4lX1eglxlIFS55npNLeY46tjV2ZhDsjR/jz33Af7lEikimJeygP19Q9IiBGjHE562JfGeXK6w==
+"@duckdb/duckdb-wasm@^0.1.12":
+  version "0.1.12"
+  resolved "https://registry.yarnpkg.com/@duckdb/duckdb-wasm/-/duckdb-wasm-0.1.12.tgz#994ba97fa5d39ddc0f202abb439f69005c204eae"
+  integrity sha512-C3lWHs4oFUIpJWLU87Tvda68fu3zBBvQap03jwkAQE1iblUh4kv5TuXCslZH29Z2bIkUWHFAgxtg9f9brFuGwA==
   dependencies:
-    "@apache-arrow/esnext-esm" "^6.0.0"
+    apache-arrow "^6.0.1"
     wasm-feature-detect "^1.2.11"
   optionalDependencies:
     fsevents "*"
@@ -1667,10 +1653,10 @@ anymatch@^3.0.3, anymatch@~3.1.2:
     normalize-path "^3.0.0"
     picomatch "^2.0.4"
 
-apache-arrow@^6.0.0:
-  version "6.0.0"
-  resolved "https://registry.yarnpkg.com/apache-arrow/-/apache-arrow-6.0.0.tgz#aed13a7a41e24fc57aa13d0db29a2ccd72111bc4"
-  integrity sha512-/ZJ9sdfq0pgnXKDtM/08N+q/ebztg1V71zBbZGH1ADgGcncBEnMY0niC72SY3y495azXDkhy6YrtlR23CICgQA==
+apache-arrow@^6.0.0, apache-arrow@^6.0.1:
+  version "6.0.1"
+  resolved "https://registry.yarnpkg.com/apache-arrow/-/apache-arrow-6.0.1.tgz#bc5ec6748bf23c09fd74a332e7218915a2c42339"
+  integrity sha512-imVT/9c54Xa9BebBD4+KiaKQnWJZozX5FWijVFH3VpJREaU8dRbpGV+6le+0IRwSgLBCD0gihq+VbHG1w98pEg==
   dependencies:
     "@types/flatbuffers" "^1.10.0"
     "@types/node" "^16.4.0"
