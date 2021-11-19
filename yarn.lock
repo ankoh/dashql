@@ -1667,10 +1667,10 @@ anymatch@^3.0.3, anymatch@~3.1.2:
     normalize-path "^3.0.0"
     picomatch "^2.0.4"
 
-apache-arrow@^6.0.0:
-  version "6.0.0"
-  resolved "https://registry.yarnpkg.com/apache-arrow/-/apache-arrow-6.0.0.tgz#aed13a7a41e24fc57aa13d0db29a2ccd72111bc4"
-  integrity sha512-/ZJ9sdfq0pgnXKDtM/08N+q/ebztg1V71zBbZGH1ADgGcncBEnMY0niC72SY3y495azXDkhy6YrtlR23CICgQA==
+apache-arrow@^6.0.1:
+  version "6.0.1"
+  resolved "https://registry.yarnpkg.com/apache-arrow/-/apache-arrow-6.0.1.tgz#bc5ec6748bf23c09fd74a332e7218915a2c42339"
+  integrity sha512-imVT/9c54Xa9BebBD4+KiaKQnWJZozX5FWijVFH3VpJREaU8dRbpGV+6le+0IRwSgLBCD0gihq+VbHG1w98pEg==
   dependencies:
     "@types/flatbuffers" "^1.10.0"
     "@types/node" "^16.4.0"
