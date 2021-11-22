@@ -8,7 +8,7 @@
     },
     "devDependencies": {
         "esbuild": "^0.13.15",
-        "typescript": "^4.4.4"
+        "typescript": "^4.5.2"
     },
     "scripts": {
         "build": "tsc --emitDeclarationOnly && node bundle.mjs"
