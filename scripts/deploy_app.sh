@@ -39,8 +39,8 @@ else
     cp -r ${PROJECT_ROOT}/packages/core/build/release ${TARGET_DIR}
 fi
 
-git config --global user.name 'github-actions[bot]'
-git config --global user.email '41898282+github-actions[bot]@users.noreply.github.com'
+git config user.name 'github-actions[bot]'
+git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
 git add -A .
 git commit --amend --reset-author -m "Deploy app"
 git push origin HEAD:gh-pages --force
