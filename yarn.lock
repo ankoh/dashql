@@ -324,13 +324,16 @@
   resolved "https://registry.yarnpkg.com/@discoveryjs/json-ext/-/json-ext-0.5.5.tgz#9283c9ce5b289a3c4f61c12757469e59377f81f3"
   integrity sha512-6nFkfkmSeV/rqSaS4oWHgmpnYw194f6hmWF5is6b0J1naJZoiD0NTc9AiUwPHvWsowkjuHErCZT1wa0jg+BLIA==
 
-"@duckdb/duckdb-wasm@^0.1.12":
-  version "0.1.12"
-  resolved "https://registry.yarnpkg.com/@duckdb/duckdb-wasm/-/duckdb-wasm-0.1.12.tgz#994ba97fa5d39ddc0f202abb439f69005c204eae"
-  integrity sha512-C3lWHs4oFUIpJWLU87Tvda68fu3zBBvQap03jwkAQE1iblUh4kv5TuXCslZH29Z2bIkUWHFAgxtg9f9brFuGwA==
+"@duckdb/duckdb-wasm@^1.11.0":
+  version "1.11.0"
+  resolved "https://registry.yarnpkg.com/@duckdb/duckdb-wasm/-/duckdb-wasm-1.11.0.tgz#397b6aff60e439e7ec4eef4dba653ad228be1498"
+  integrity sha512-Shn7PYPmf3QFnZ4bpWgxG+XW7NWt7oR++z+i+LTmwIFnDJsZblxiXsnCqrShZw6gkd//MYIG6e2h1DzGkvWm8A==
   dependencies:
+    "@types/emscripten" "^1.39.4"
     apache-arrow "^6.0.1"
+    fast-glob "^3.2.7"
     wasm-feature-detect "^1.2.11"
+    web-worker "^1.2.0"
   optionalDependencies:
     fsevents "*"
 
@@ -1003,7 +1006,7 @@
     "@types/d3-transition" "*"
     "@types/d3-zoom" "*"
 
-"@types/emscripten@^1.39.6":
+"@types/emscripten@^1.39.4", "@types/emscripten@^1.39.6":
   version "1.39.6"
   resolved "https://registry.yarnpkg.com/@types/emscripten/-/emscripten-1.39.6.tgz#698b90fe60d44acf93c31064218fbea93fbfd85a"
   integrity sha512-H90aoynNhhkQP6DRweEjJp5vfUVdIj7tdPLsu7pq89vODD/lcugKfZOsfgwpvM6XUewEp2N5dCg1Uf3Qe55Dcg==
