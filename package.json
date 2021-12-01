@@ -8,7 +8,7 @@
         "format": "prettier --write packages"
     },
     "dependencies": {
-        "jest": "^27.4.1",
+        "jest": "^27.4.2",
         "prettier": "^2.5.0"
     }
 }
