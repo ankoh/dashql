@@ -40,7 +40,7 @@ export function configure(params) {
             publicPath: '/',
             filename: 'static/js/[name].[contenthash].js',
             chunkFilename: 'static/js/[name].[contenthash].js',
-            assetModuleFilename: 'static/assets/[name].[contenthash].[ext]',
+            assetModuleFilename: 'static/assets/[name].[contenthash][ext]',
             clean: true,
         },
         resolve: {
@@ -86,35 +86,35 @@ export function configure(params) {
                     test: /\/geo\/.*\.json$/i,
                     type: 'asset/resource',
                     generator: {
-                        filename: 'static/geo/[name].[contenthash].[ext]',
+                        filename: 'static/geo/[name].[contenthash][ext]',
                     },
                 },
                 {
                     test: /examples\/.*\.dashql$/i,
                     type: 'asset/resource',
                     generator: {
-                        filename: 'static/examples/[name].[contenthash].[ext]',
+                        filename: 'static/examples/[name].[contenthash][ext]',
                     },
                 },
                 {
                     test: /\.(png|jpe?g|gif|svg)$/i,
                     type: 'asset/resource',
                     generator: {
-                        filename: 'static/img/[name].[contenthash].[ext]',
+                        filename: 'static/img/[name].[contenthash][ext]',
                     },
                 },
                 {
                     test: /\.(ttf|eot|woff|woff2)$/,
                     type: 'asset/resource',
                     generator: {
-                        filename: 'static/fonts/[name].[contenthash].[ext]',
+                        filename: 'static/fonts/[name].[contenthash][ext]',
                     },
                 },
                 {
                     test: /.*\.wasm$/,
                     type: 'asset/resource',
                     generator: {
-                        filename: 'static/wasm/[contenthash].[ext]',
+                        filename: 'static/wasm/[contenthash][ext]',
                     },
                 },
                 {
