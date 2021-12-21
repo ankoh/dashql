@@ -1,13 +1,13 @@
 // Copyright (c) 2021 The DashQL Authors
 
 import React from 'react';
-import * as duckdb from '@duckdb/duckdb-wasm/dist/duckdb-esm';
+import * as duckdb from '@duckdb/duckdb-wasm';
 import * as Immutable from 'immutable';
 import { Action, Dispatch } from './model_context';
 
 const MAX_LOG_SIZE = 100;
 
-export { LogLevel } from '@duckdb/duckdb-wasm/dist/duckdb-esm';
+export { LogLevel } from '@duckdb/duckdb-wasm';
 
 export enum LogOrigin {
     NONE = 0,

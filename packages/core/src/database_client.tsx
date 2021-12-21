@@ -2,7 +2,7 @@
 
 import Immutable from 'immutable';
 import React from 'react';
-import * as duckdb from '@duckdb/duckdb-wasm/dist/duckdb-esm';
+import * as duckdb from '@duckdb/duckdb-wasm';
 import * as arrow from 'apache-arrow';
 import { TableStatisticsResolver, TableStatistics } from './table_statistics';
 import { Mutex } from './utils';

@@ -1,7 +1,7 @@
 // Copyright (c) 2021 The DashQL Authors
 
 import * as proto from '@dashql/proto';
-import * as duckdb from '@duckdb/duckdb-wasm/dist/duckdb-esm';
+import * as duckdb from '@duckdb/duckdb-wasm';
 import * as model from '../model';
 import { ProgramTaskLogic, SetupTaskLogic } from './task_logic';
 import { TaskExecutionContext } from './task_execution_context';

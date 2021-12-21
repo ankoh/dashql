@@ -5,7 +5,7 @@ import { DatabaseClient } from '../database_client';
 import { AnalyzerBindings } from '../analyzer';
 import { JMESPathBindings } from '../jmespath';
 import { PlanContext, PlanContextAction, Logger, initialPlanContext } from '../model';
-import { AsyncDuckDB } from '@duckdb/duckdb-wasm/dist/duckdb-esm';
+import { AsyncDuckDB } from '@duckdb/duckdb-wasm';
 import * as model from '../model';
 
 /// A container that is passed to the scheduler and defines the runtime environment

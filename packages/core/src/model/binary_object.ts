@@ -1,7 +1,7 @@
 // Copyright (c) 2020 The DashQL Authors
 
 import { PlanObject } from './plan_object';
-import * as duckdb from '@duckdb/duckdb-wasm/dist/duckdb-esm';
+import * as duckdb from '@duckdb/duckdb-wasm';
 
 /// A blob path
 export interface BinaryObject extends PlanObject {

@@ -1,7 +1,7 @@
 import { jest } from '@jest/globals';
 import * as analyzer from './analyzer/analyzer_node';
 import * as jmespath from './jmespath/jmespath_node';
-import * as duckdb from '@duckdb/duckdb-wasm/dist/duckdb-esm';
+import * as duckdb from '@duckdb/duckdb-wasm';
 import * as test_env from './test';
 import { SCENARIOS } from './task_scheduler_scenarios';
 import Immutable from 'immutable';
