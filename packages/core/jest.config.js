@@ -14,6 +14,8 @@ const CONFIG = {
         '^.+\\.(css|styl|less|sass|scss)$': `identity-obj-proxy`,
         // Remap react-router
         'react-router-dom': 'react-router-dom/react-router-dom.development.js',
+        // Jest does not read the export map
+        '@duckdb/duckdb-wasm': '@duckdb/duckdb-wasm/dist/duckdb-node.cjs',
     },
     // Module path ignore
     modulePathIgnorePatterns: ['<rootDir>/src/duckdb_bundles.ts'],

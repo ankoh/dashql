@@ -11,7 +11,14 @@ const JMESPATH_WASM = path.resolve(__dirname, '../../src/jmespath/jmespath_wasm.
 const DUCKDB_BUNDLES: duckdb.DuckDBBundles = {
     mvp: {
         mainModule: path.resolve(__dirname, '../../../../node_modules/@duckdb/duckdb-wasm/dist/duckdb.wasm'),
-        mainWorker: path.resolve(__dirname, '../../../../node_modules/@duckdb/duckdb-wasm/dist/duckdb-node.worker.js'),
+        mainWorker: path.resolve(__dirname, '../../../../node_modules/@duckdb/duckdb-wasm/dist/duckdb-node.worker.cjs'),
+    },
+    next: {
+        mainModule: path.resolve(__dirname, '../../../../node_modules/@duckdb/duckdb-wasm/dist/duckdb-next.wasm'),
+        mainWorker: path.resolve(
+            __dirname,
+            '../../../../node_modules/@duckdb/duckdb-wasm/dist/duckdb-node-next.worker.cjs',
+        ),
     },
 };
 
