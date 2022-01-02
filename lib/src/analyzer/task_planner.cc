@@ -189,8 +189,8 @@ arrow::Status TaskPlanner::IdentifyApplicableTasks() {
     auto& prev_tasks = prev_task_graph_->program_tasks;
     task_applicability_.resize(prev_tasks.size(), false);
 
-    // Invalidate an task.
-    // If an task is invalidated, we might have to propagate the invalidation to the tasks before us.
+    // Invalidate a task.
+    // If a task is invalidated, we might have to propagate the invalidation to the tasks before us.
     // We are very pessimistic here and invalidate all our incoming dependencies to make sure everything is clean.
     // (Except for the cases where it's trivial to see that nobody else is affected)
     auto invalidate = [&](size_t task_id) {
@@ -351,9 +351,9 @@ arrow::Status TaskPlanner::MigrateTaskGraph() {
     // We know for every previous task whether it is applicable.
     // Emit setup tasks that either import or drop previous state and update the new program tasks.
     //
-    // If an task is applicable, there also exists a new task that does not reuse state so far.
+    // If a task is applicable, there also exists a new task that does not reuse state so far.
     // We update the target id of the new task and mark it as complete.
-    // If an task is not applicable, but the diff op is UPDATE, we try to patch the task type.
+    // If a task is not applicable, but the diff op is UPDATE, we try to patch the task type.
     // Currently this only affects the VIZ task to explicitly keep the viz state instead of recreating it.
     std::vector<std::unique_ptr<proto::task::SetupTaskT>> setup;
     setup.reserve(prev_program_tasks.size());
