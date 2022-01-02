@@ -153,7 +153,6 @@ set(GRAMMAR_RULES
     ${CMAKE_SOURCE_DIR}/src/parser/grammar/rules/dashql_load.y
     ${CMAKE_SOURCE_DIR}/src/parser/grammar/rules/dashql_query.y
     ${CMAKE_SOURCE_DIR}/src/parser/grammar/rules/dashql_statement.y
-    ${CMAKE_SOURCE_DIR}/src/parser/grammar/rules/dashql_transform.y
     ${CMAKE_SOURCE_DIR}/src/parser/grammar/rules/dashql_viz.y
     ${CMAKE_SOURCE_DIR}/src/parser/grammar/rules/dson.y
     ${CMAKE_SOURCE_DIR}/src/parser/grammar/rules/sql_create.y
@@ -167,7 +166,6 @@ set(GRAMMAR_TYPES
     ${CMAKE_SOURCE_DIR}/src/parser/grammar/rules/dashql_load.yh
     ${CMAKE_SOURCE_DIR}/src/parser/grammar/rules/dashql_query.yh
     ${CMAKE_SOURCE_DIR}/src/parser/grammar/rules/dashql_statement.yh
-    ${CMAKE_SOURCE_DIR}/src/parser/grammar/rules/dashql_transform.yh
     ${CMAKE_SOURCE_DIR}/src/parser/grammar/rules/dashql_viz.yh
     ${CMAKE_SOURCE_DIR}/src/parser/grammar/rules/dson.yh
     ${CMAKE_SOURCE_DIR}/src/parser/grammar/rules/sql_create.yh
@@ -268,9 +266,9 @@ add_library(
   ${CMAKE_SOURCE_DIR}/src/analyzer/program_instance.cc
   ${CMAKE_SOURCE_DIR}/src/analyzer/program_matcher.cc
   ${CMAKE_SOURCE_DIR}/src/analyzer/stmt/fetch_stmt.cc
+  ${CMAKE_SOURCE_DIR}/src/analyzer/stmt/set_stmt.cc
   ${CMAKE_SOURCE_DIR}/src/analyzer/stmt/input_stmt.cc
   ${CMAKE_SOURCE_DIR}/src/analyzer/stmt/load_stmt.cc
-  ${CMAKE_SOURCE_DIR}/src/analyzer/stmt/transform_stmt.cc
   ${CMAKE_SOURCE_DIR}/src/analyzer/stmt/viz_stmt.cc
   ${CMAKE_SOURCE_DIR}/src/analyzer/syntax_matcher.cc
   ${CMAKE_SOURCE_DIR}/src/analyzer/task_planner.cc

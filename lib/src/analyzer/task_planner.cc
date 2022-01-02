@@ -67,7 +67,6 @@ static const std::unordered_map<sx::StatementType, StatementTranslation>& Statem
     X(NONE, NONE, false)
     X(INPUT, INPUT, false)
     X(FETCH, FETCH, false)
-    X(TRANSFORM, TRANSFORM, false)
     X(LOAD, LOAD, false)
     X(SET, SET, false)
     X(SELECT_INTO, CREATE_TABLE, true)
@@ -177,7 +176,6 @@ static std::unordered_map<ProgramTaskType, ProgramTaskInvalidation> ACTION_TRANS
     X(LOAD, DROP_TABLE, NONE, false)
     X(MODIFY_TABLE, DROP_TABLE, NONE, true)
     X(SET, DROP_SET, NONE, false)
-    X(TRANSFORM, DROP_BLOB, NONE, false)
     X(UPDATE_VIZ, DROP_VIZ, UPDATE_VIZ, false)
 #undef X
     // clang-format on

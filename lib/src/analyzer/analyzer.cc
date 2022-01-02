@@ -13,7 +13,7 @@
 #include "dashql/analyzer/input_value.h"
 #include "dashql/analyzer/program_editor.h"
 #include "dashql/analyzer/stmt/input_stmt.h"
-#include "dashql/analyzer/stmt/transform_stmt.h"
+#include "dashql/analyzer/stmt/set_stmt.h"
 #include "dashql/analyzer/stmt/viz_stmt.h"
 #include "dashql/analyzer/syntax_matcher.h"
 #include "dashql/analyzer/task_planner.h"
@@ -257,13 +257,13 @@ arrow::Status Analyzer::AnalyzeFetchStatements(ProgramInstance& instance) {
     return arrow::Status::OK();
 }
 
-/// Analyze the transform statements
-arrow::Status Analyzer::AnalyzeTransformStatements(ProgramInstance& instance) {
+/// Analyze the set statements
+arrow::Status Analyzer::AnalyzeSetStatements(ProgramInstance& instance) {
     auto& program = instance.program();
     for (size_t stmt_id = 0; stmt_id < program.statements.size(); ++stmt_id) {
-        auto input = TransformStatement::ReadFrom(instance, stmt_id);
+        auto input = SetStatement::ReadFrom(instance, stmt_id);
         if (!input) continue;
-        instance.transform_statements_.push_back(std::move(input));
+        instance.set_statements_.push_back(std::move(input));
     }
     return arrow::Status::OK();
 }
@@ -331,7 +331,7 @@ arrow::Status Analyzer::InstantiateProgram(std::vector<InputValue> inputs) {
     // Analyze the statements
     ARROW_RETURN_NOT_OK(AnalyzeInputStatements(*next_instance));
     ARROW_RETURN_NOT_OK(AnalyzeFetchStatements(*next_instance));
-    ARROW_RETURN_NOT_OK(AnalyzeTransformStatements(*next_instance));
+    ARROW_RETURN_NOT_OK(AnalyzeSetStatements(*next_instance));
     ARROW_RETURN_NOT_OK(AnalyzeLoadStatements(*next_instance));
     ARROW_RETURN_NOT_OK(AnalyzeVizStatements(*next_instance));
     // Analyze liveness

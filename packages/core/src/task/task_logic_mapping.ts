@@ -7,7 +7,6 @@ import { TaskHandle, Statement } from '../model';
 import { DropBlobTaskLogic } from './blob_logic';
 import { LoadTaskLogic } from './load_logic';
 import { FetchTaskLogic } from './fetch_logic';
-import { TransformTaskLogic } from './transform_logic';
 import { InputTaskLogic, DropInputTaskLogic } from './input_logic';
 import { CreateTableTaskLogic, DropTableTaskLogic, ModifyTableTaskLogic } from './table_logic';
 import { ViewCreateTaskLogic, DropViewTaskLogic } from './view_logic';
@@ -45,8 +44,6 @@ export function resolveProgramTaskLogic(
             return new LoadTaskLogic(id, a, s);
         case ProgramTaskType.FETCH:
             return new FetchTaskLogic(id, a, s);
-        case ProgramTaskType.TRANSFORM:
-            return new TransformTaskLogic(id, a, s);
         case ProgramTaskType.INPUT:
             return new InputTaskLogic(id, a, s);
         case ProgramTaskType.CREATE_TABLE:

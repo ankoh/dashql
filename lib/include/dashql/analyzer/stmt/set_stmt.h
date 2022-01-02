@@ -1,7 +1,9 @@
 // Copyright (c) 2020 The DashQL Authors
 
-#ifndef INCLUDE_DASHQL_ANALYZER_STMT_TRANSFORM_STMT_H_
-#define INCLUDE_DASHQL_ANALYZER_STMT_TRANSFORM_STMT_H_
+#ifndef INCLUDE_DASHQL_ANALYZER_STMT_SET_STMT_H_
+#define INCLUDE_DASHQL_ANALYZER_STMT_SET_STMT_H_
+
+#include <flatbuffers/flatbuffers.h>
 
 #include <iostream>
 #include <limits>
@@ -16,40 +18,39 @@
 #include "dashql/parser/parser_driver.h"
 #include "dashql/proto_generated.h"
 #include "nonstd/span.h"
+#include "rapidjson/document.h"
 
 namespace dashql {
 
-class TransformStatement {
+class ProgramInstance;
+
+class SetStatement {
    protected:
     /// The program instance
     ProgramInstance& instance_;
     /// The statement id
     const size_t statement_id_;
-    /// The AST index
+    /// The schema map
     const ASTIndex ast_;
-    /// The load method
-    sx::TransformMethodType method_ = sx::TransformMethodType::NONE;
-    /// The data source
-    parser::QualifiedNameView data_source_ = {};
 
    public:
     /// Constructor
-    TransformStatement(ProgramInstance& instance, size_t statement_id, ASTIndex ast);
+    SetStatement(ProgramInstance& instance, size_t statement_id, ASTIndex ast);
     /// Get the instance
     auto& instance() { return instance_; }
     /// Get the ast
     auto& ast() { return ast_; }
-    /// Get the target text
-    sx::Location GetTarget() const;
+    /// Get the statement name
+    std::string_view GetStatementName() const;
     /// Print as script
     void PrintScript(std::ostream& out) const;
-    /// Print the extra config as json
-    void PrintExtraAsJSON(std::ostream& out, bool pretty = false) const;
+    /// Print the set statement as json
+    void PrintAsJSON(std::ostream& out, bool pretty = false) const;
     /// Pack the load statement
-    flatbuffers::Offset<proto::analyzer::TransformStatement> Pack(flatbuffers::FlatBufferBuilder& builder) const;
+    flatbuffers::Offset<proto::analyzer::SetStatement> Pack(flatbuffers::FlatBufferBuilder& builder) const;
 
     /// Read a viz statement
-    static std::unique_ptr<TransformStatement> ReadFrom(ProgramInstance& instance, size_t statement_id);
+    static std::unique_ptr<SetStatement> ReadFrom(ProgramInstance& instance, size_t statement_id);
 };
 
 }  // namespace dashql

@@ -20,7 +20,6 @@ dashql_statement:
   | dashql_load_statement           { $$ = $1; }
   | dashql_query_statement          { $$ = $1; }
   | dashql_set_statement            { $$ = $1; }
-  | dashql_transform_statement      { $$ = $1; }
   | dashql_viz_statement            { $$ = $1; }
     ;
 

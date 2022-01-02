@@ -41,7 +41,6 @@ X(sx::RowLockingBlockBehavior, sx::NodeType::ENUM_SQL_ROW_LOCKING_BLOCK_BEHAVIOR
 X(sx::RowLockingStrength, sx::NodeType::ENUM_SQL_ROW_LOCKING_STRENGTH)
 X(sx::SubqueryQuantifier, sx::NodeType::ENUM_SQL_SUBQUERY_QUANTIFIER)
 X(sx::TempType, sx::NodeType::ENUM_SQL_TEMP_TYPE)
-X(sx::TransformMethodType, sx::NodeType::ENUM_DASHQL_TRANSFORM_METHOD_TYPE)
 X(sx::TrimDirection, sx::NodeType::ENUM_SQL_TRIM_TARGET)
 X(sx::VizComponentType, sx::NodeType::ENUM_DASHQL_VIZ_COMPONENT_TYPE)
 X(sx::WindowBoundDirection, sx::NodeType::ENUM_SQL_WINDOW_BOUND_DIRECTION)

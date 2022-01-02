@@ -13,11 +13,6 @@ enum FetchMethodType: uint8 {
     FILE = 2
 }
 
-enum TransformMethodType: uint8 {
-    NONE = 0,
-    JMESPATH = 1,
-}
-
 enum LoadMethodType: uint8 {
     NONE = 0,
     CSV = 1,

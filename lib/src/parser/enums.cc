@@ -21,7 +21,6 @@ const char* getEnumText(const sx::Node& target) {
         X(ENUM_DASHQL_INPUT_COMPONENT_TYPE, InputComponentTypeTypeTable)
         X(ENUM_DASHQL_FETCH_METHOD_TYPE, FetchMethodTypeTypeTable)
         X(ENUM_DASHQL_LOAD_METHOD_TYPE, LoadMethodTypeTypeTable)
-        X(ENUM_DASHQL_TRANSFORM_METHOD_TYPE, TransformMethodTypeTypeTable)
 
         X(ENUM_SQL_TEMP_TYPE, TempTypeTypeTable)
         X(ENUM_SQL_CONST_TYPE, AConstTypeTypeTable)

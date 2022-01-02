@@ -15,7 +15,6 @@ using namespace dashql;
 using DiffOp = ProgramMatcher::DiffOp;
 using SimilarityEstimate = ProgramMatcher::SimilarityEstimate;
 using StatementMappings = ProgramMatcher::StatementMappings;
-namespace fb = flatbuffers;
 
 namespace {
 
@@ -282,39 +281,6 @@ INSTANTIATE_TEST_SUITE_P(ProgramDiff, DiffTestSuite,
                                                         {DiffOpCode::UPDATE, 2, 1},
                                                         {DiffOpCode::KEEP, 3, 2},
                                                         {DiffOpCode::INSERT, std::nullopt, 3},
-                                                    }},
-                                           DiffTest{R"DQL(
-        FETCH covid_raw FROM 'https://static.dashql.com/data/test/covid_i3_overview_2021_07_23.json';
-
-        VIZ covid_raw USING HEX;
-        VIZ covid_raw USING JSON;
-
-        TRANSFORM covid_raw INTO covid_history USING JMESPATH (
-            expression = 'history'
-        );
-
-        VIZ covid_history USING JSON;
-    )DQL",
-                                                    R"DQL(
-        FETCH covid_raw FROM 'https://static.dashql.com/data/test/covid_i3_overview_2021_07_23.json';
-
-        VIZ covid_raw USING HEX;
-        VIZ covid_raw USING JSON;
-        VIZ covid_raw USING JSON;
-
-        TRANSFORM covid_raw INTO covid_history USING JMESPATH (
-            expression = 'history'
-        );
-
-        VIZ covid_history USING JSON;
-    )DQL",
-                                                    {
-                                                        {DiffOpCode::KEEP, 0, 0},
-                                                        {DiffOpCode::KEEP, 1, 1},
-                                                        {DiffOpCode::MOVE, 2, 2},
-                                                        {DiffOpCode::INSERT, std::nullopt, 3},
-                                                        {DiffOpCode::KEEP, 3, 4},
-                                                        {DiffOpCode::KEEP, 4, 5},
                                                     }}));
 
 }  // namespace

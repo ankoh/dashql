@@ -60,8 +60,8 @@ class Analyzer {
     arrow::Status AnalyzeInputStatements(ProgramInstance& instance);
     /// Analyze fetch statements
     arrow::Status AnalyzeFetchStatements(ProgramInstance& instance);
-    /// Analyze transform statements
-    arrow::Status AnalyzeTransformStatements(ProgramInstance& instance);
+    /// Analyze set statements
+    arrow::Status AnalyzeSetStatements(ProgramInstance& instance);
     /// Analyze load statements
     arrow::Status AnalyzeLoadStatements(ProgramInstance& instance);
     /// Analyze viz statements

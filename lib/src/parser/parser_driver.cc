@@ -166,7 +166,6 @@ NodeID ParserDriver::AddNode(sx::Node node) {
             break;
 
         case sx::NodeType::OBJECT_DASHQL_LOAD:
-        case sx::NodeType::OBJECT_DASHQL_TRANSFORM:
             if (auto name_id = FindAttribute(node, Key::DASHQL_STATEMENT_NAME); name_id) {
                 current_statement_.name =
                     QualifiedNameView::ReadFrom(nodes_, text, *name_id).WithDefaultSchema(options_.global_namespace);
@@ -402,10 +401,6 @@ void ParserDriver::AddStatement(sx::Node node) {
 
         case sx::NodeType::OBJECT_DASHQL_LOAD:
             stmt_type = sx::StatementType::LOAD;
-            break;
-
-        case sx::NodeType::OBJECT_DASHQL_TRANSFORM:
-            stmt_type = sx::StatementType::TRANSFORM;
             break;
 
         case sx::NodeType::OBJECT_DASHQL_INPUT:

@@ -19,7 +19,7 @@
 #include "dashql/analyzer/stmt/fetch_stmt.h"
 #include "dashql/analyzer/stmt/input_stmt.h"
 #include "dashql/analyzer/stmt/load_stmt.h"
-#include "dashql/analyzer/stmt/transform_stmt.h"
+#include "dashql/analyzer/stmt/set_stmt.h"
 #include "dashql/analyzer/stmt/viz_stmt.h"
 #include "dashql/common/enum.h"
 #include "dashql/common/union_find.h"
@@ -97,12 +97,12 @@ class ProgramInstance {
     std::vector<LinterMessage> linter_messages_ = {};
     /// The dead statements
     std::vector<bool> statements_liveness_ = {};
+    /// The set statements
+    std::vector<std::unique_ptr<SetStatement>> set_statements_ = {};
     /// The input statements
     std::vector<std::unique_ptr<InputStatement>> input_statements_ = {};
     /// The fetch statements
     std::vector<std::unique_ptr<FetchStatement>> fetch_statements_ = {};
-    /// The transform statements
-    std::vector<std::unique_ptr<TransformStatement>> transform_statements_ = {};
     /// The load statements
     std::vector<std::unique_ptr<LoadStatement>> load_statements_ = {};
     /// The viz statements

@@ -1,3 +1,0 @@
-%type <sx::Node> dashql_transform_method_type;
-%type <sx::Node> dashql_transform_statement;
-%type <sx::Node> opt_dashql_transform_method;

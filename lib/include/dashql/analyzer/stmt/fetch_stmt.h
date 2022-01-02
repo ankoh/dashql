@@ -49,7 +49,7 @@ class FetchStatement {
     /// Pack the load statement
     flatbuffers::Offset<proto::analyzer::FetchStatement> Pack(flatbuffers::FlatBufferBuilder& builder) const;
 
-    /// Read a viz statement
+    /// Read a statement
     static std::unique_ptr<FetchStatement> ReadFrom(ProgramInstance& instance, size_t statement_id);
 };
 

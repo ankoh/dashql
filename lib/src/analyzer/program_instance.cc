@@ -187,11 +187,11 @@ arrow::Result<flatbuffers::Offset<proto::analyzer::ProgramAnnotations>> ProgramI
     auto fetchs_vec = builder.CreateVector(fetchs);
 
     // Pack the fetchs
-    std::vector<flatbuffers::Offset<proto::analyzer::TransformStatement>> transforms;
-    for (auto& trans : transform_statements_) {
-        transforms.push_back(trans->Pack(builder));
+    std::vector<flatbuffers::Offset<proto::analyzer::SetStatement>> sets;
+    for (auto& set : set_statements_) {
+        sets.push_back(set->Pack(builder));
     }
-    auto trans_vec = builder.CreateVector(transforms);
+    auto trans_vec = builder.CreateVector(sets);
 
     // Pack the loads
     std::vector<flatbuffers::Offset<proto::analyzer::LoadStatement>> loads;
@@ -216,7 +216,6 @@ arrow::Result<flatbuffers::Offset<proto::analyzer::ProgramAnnotations>> ProgramI
     annotations.add_input_values(input_vec);
     annotations.add_statements_liveness(liveness_vec);
     annotations.add_statements_fetch(fetchs_vec);
-    annotations.add_statements_transform(trans_vec);
     annotations.add_statements_load(loads_vec);
     annotations.add_cards(cards_vec);
     // XXX node errors
