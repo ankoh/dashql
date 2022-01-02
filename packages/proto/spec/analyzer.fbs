@@ -46,7 +46,7 @@ table InputStatement {
 /// A set statement
 table SetStatement {
     statement_id: uint32;
-    value: string;
+    data: string;
 }
 
 /// A fetch statement

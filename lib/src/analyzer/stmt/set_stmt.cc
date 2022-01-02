@@ -55,7 +55,7 @@ flatbuffers::Offset<proto::analyzer::SetStatement> SetStatement::Pack(flatbuffer
     // Build load statement
     proto::analyzer::SetStatementBuilder eb{builder};
     eb.add_statement_id(statement_id_);
-    eb.add_value(value);
+    eb.add_data(value);
     return eb.Finish();
 }
 
