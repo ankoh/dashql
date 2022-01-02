@@ -15,9 +15,9 @@ export class ProgramInstance {
     public readonly createdAt: Date;
     /// The fetch statements
     public readonly fetchStatements: Map<number, proto.analyzer.FetchStatement>;
-    /// The fetch statements
-    public readonly transformStatements: Map<number, proto.analyzer.TransformStatement>;
-    /// The fetch statements
+    /// The set statements
+    public readonly setStatements: Map<number, proto.analyzer.SetStatement>;
+    /// The load statements
     public readonly loadStatements: Map<number, proto.analyzer.LoadStatement>;
     /// The cards
     public readonly cards: Map<number, proto.analyzer.Card>;
@@ -33,16 +33,16 @@ export class ProgramInstance {
         this.annotations = annotations;
         this.createdAt = new Date();
         this.fetchStatements = new Map();
-        this.transformStatements = new Map();
+        this.setStatements = new Map();
         this.loadStatements = new Map();
         this.cards = new Map();
         for (let i = 0; i < annotations.statementsFetchLength(); ++i) {
             const s = annotations.statementsFetch(i)!;
             this.fetchStatements.set(s.statementId(), s);
         }
-        for (let i = 0; i < annotations.statementsTransformLength(); ++i) {
-            const s = annotations.statementsTransform(i)!;
-            this.transformStatements.set(s.statementId(), s);
+        for (let i = 0; i < annotations.statementsSetLength(); ++i) {
+            const s = annotations.statementsSet(i)!;
+            this.setStatements.set(s.statementId(), s);
         }
         for (let i = 0; i < annotations.statementsLoadLength(); ++i) {
             const s = annotations.statementsLoad(i)!;
