@@ -1,4 +1,20 @@
 <tests>
+    <test name="set">
+        <step>
+            <text>
+                SET title = 'foo';
+            </text>
+            <inputs />
+            <evaluations />
+            <cards />
+            <graph next_object_id="1">
+                <setup />
+                <program>
+                    <task type="SET" status="SKIPPED" object_id="0" statement="0" />
+                </program>
+            </graph>
+        </step>
+    </test>
     <test name="param">
         <step>
             <text>

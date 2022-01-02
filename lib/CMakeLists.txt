@@ -149,6 +149,7 @@ set(GRAMMAR_KEYWORDS
 set(GRAMMAR_RULES
     ${CMAKE_SOURCE_DIR}/src/parser/grammar/rules/dashql_fetch.y
     ${CMAKE_SOURCE_DIR}/src/parser/grammar/rules/dashql_input.y
+    ${CMAKE_SOURCE_DIR}/src/parser/grammar/rules/dashql_set.y
     ${CMAKE_SOURCE_DIR}/src/parser/grammar/rules/dashql_load.y
     ${CMAKE_SOURCE_DIR}/src/parser/grammar/rules/dashql_query.y
     ${CMAKE_SOURCE_DIR}/src/parser/grammar/rules/dashql_statement.y
@@ -162,6 +163,7 @@ set(GRAMMAR_RULES
 set(GRAMMAR_TYPES
     ${CMAKE_SOURCE_DIR}/src/parser/grammar/rules/dashql_fetch.yh
     ${CMAKE_SOURCE_DIR}/src/parser/grammar/rules/dashql_input.yh
+    ${CMAKE_SOURCE_DIR}/src/parser/grammar/rules/dashql_set.yh
     ${CMAKE_SOURCE_DIR}/src/parser/grammar/rules/dashql_load.yh
     ${CMAKE_SOURCE_DIR}/src/parser/grammar/rules/dashql_query.yh
     ${CMAKE_SOURCE_DIR}/src/parser/grammar/rules/dashql_statement.yh

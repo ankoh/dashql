@@ -1,0 +1,55 @@
+<tests>
+    <test name="dashql_set_title">
+        <input>SET title = 'foo';</input>
+        <expected>
+            <statements>
+                <statement type="SET">
+                    <node type="OBJECT_DASHQL_SET" loc="0..17" text="SET title = 'foo'">
+                        <node key="DSON_TITLE" loc="12..17" text="'foo'" />
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks />
+            <comments />
+            <dson_keys />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="dashql_set_qualified_title">
+        <input>SET dashql.title = 'foo';</input>
+        <expected>
+            <statements>
+                <statement type="SET">
+                    <node type="OBJECT_DASHQL_SET" loc="0..24" text="SET dashql..le = 'foo'">
+                        <node key="DSON_DASHQL" type="OBJECT_DSON" loc="4..24" text="dashql.tit..le = 'foo'">
+                            <node key="DSON_TITLE" loc="19..24" text="'foo'" />
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks />
+            <comments />
+            <dson_keys />
+            <dependencies />
+        </expected>
+    </test>
+    <test name="dashql_set_description">
+        <input>SET description = 'bar';</input>
+        <expected>
+            <statements>
+                <statement type="SET">
+                    <node type="OBJECT_DASHQL_SET" loc="0..23" text="SET descri..on = 'bar'">
+                        <node key="DSON_DESCRIPTION" loc="18..23" text="'bar'" />
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks />
+            <comments />
+            <dson_keys />
+            <dependencies />
+        </expected>
+    </test>
+</tests>

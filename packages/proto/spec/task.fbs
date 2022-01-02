@@ -40,18 +40,20 @@ enum SetupTaskType: uint8 {
 
     IMPORT_MIN,
 
-    IMPORT_INPUT,
     IMPORT_BLOB,
+    IMPORT_INPUT,
+    IMPORT_SET,
     IMPORT_TABLE,
     IMPORT_VIEW,
     IMPORT_VIZ,
 
     DROP_MIN,
 
-    DROP_INPUT,
     DROP_BLOB,
-    DROP_VIEW,
+    DROP_INPUT,
+    DROP_SET,
     DROP_TABLE,
+    DROP_VIEW,
     DROP_VIZ,
 }
 
@@ -66,14 +68,15 @@ table SetupTask {
 
 enum ProgramTaskType: uint8 {
     NONE = 0,
-    INPUT,
-    FETCH,
-    TRANSFORM,
-    LOAD,
-    CREATE_VIEW,
     CREATE_TABLE,
-    MODIFY_TABLE,
+    CREATE_VIEW,
     CREATE_VIZ,
+    FETCH,
+    INPUT,
+    LOAD,
+    MODIFY_TABLE,
+    SET,
+    TRANSFORM,
     UPDATE_VIZ,
 }
 

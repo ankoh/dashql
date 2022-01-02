@@ -1,4 +1,38 @@
 <tests>
+    <test name="set_change">
+        <step>
+            <text>
+                SET title = 'foo';
+            </text>
+            <graph>
+                <program>
+                    <action status="COMPLETED" />
+                </program>
+            </graph>
+        </step>
+        <step>
+            <text>
+                SET title = 'bar';
+            </text>
+        </step>
+    </test>
+    <test name="set_import">
+        <step>
+            <text>
+                SET title = 'foo';
+            </text>
+            <graph>
+                <program>
+                    <action status="COMPLETED" />
+                </program>
+            </graph>
+        </step>
+        <step>
+            <text>
+                SET title = 'foo';
+            </text>
+        </step>
+    </test>
     <test name="parameter_update_load">
         <step>
             <text>

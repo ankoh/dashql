@@ -69,6 +69,7 @@ static const std::unordered_map<sx::StatementType, StatementTranslation>& Statem
     X(FETCH, FETCH, false)
     X(TRANSFORM, TRANSFORM, false)
     X(LOAD, LOAD, false)
+    X(SET, SET, false)
     X(SELECT_INTO, CREATE_TABLE, true)
     X(CREATE_TABLE, CREATE_TABLE, true)
     X(CREATE_TABLE_AS, CREATE_TABLE, true)
@@ -169,14 +170,15 @@ static std::unordered_map<ProgramTaskType, ProgramTaskInvalidation> ACTION_TRANS
     {ProgramTaskType::ACTION,                                         \
      {SetupTaskType::IMPORT_ACTION, SetupTaskType::DROP_ACTION, ProgramTaskType::UPDATE_ACTION, PROPAGATE}},
     X(NONE, NONE, NONE, NONE, false)
-    X(INPUT, IMPORT_INPUT, DROP_INPUT, NONE, false)
-    X(FETCH, IMPORT_BLOB, DROP_BLOB, NONE, false)
-    X(TRANSFORM, IMPORT_BLOB, DROP_BLOB, NONE, false)
-    X(LOAD, IMPORT_TABLE, DROP_TABLE, NONE, false)
-    X(CREATE_VIEW, IMPORT_VIEW, DROP_VIEW, NONE, true)
     X(CREATE_TABLE, IMPORT_TABLE, DROP_TABLE, NONE, true)
-    X(MODIFY_TABLE, IMPORT_TABLE, DROP_TABLE, NONE, true)
+    X(CREATE_VIEW, IMPORT_VIEW, DROP_VIEW, NONE, true)
     X(CREATE_VIZ, IMPORT_VIZ, DROP_VIZ, UPDATE_VIZ, false)
+    X(FETCH, IMPORT_BLOB, DROP_BLOB, NONE, false)
+    X(INPUT, IMPORT_INPUT, DROP_INPUT, NONE, false)
+    X(LOAD, IMPORT_TABLE, DROP_TABLE, NONE, false)
+    X(MODIFY_TABLE, IMPORT_TABLE, DROP_TABLE, NONE, true)
+    X(SET, IMPORT_SET, DROP_SET, NONE, false)
+    X(TRANSFORM, IMPORT_BLOB, DROP_BLOB, NONE, false)
     X(UPDATE_VIZ, IMPORT_VIZ, DROP_VIZ, UPDATE_VIZ, false)
 #undef X
     // clang-format on

@@ -1,6 +1,6 @@
 # Copyright (c) 2020 The DashQL Authors
 
-.DEFAULT_GOAL := core
+.DEFAULT_GOAL := lib_tests
 
 # ---------------------------------------------------------------------------
 # Config

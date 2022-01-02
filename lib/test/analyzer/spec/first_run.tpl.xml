@@ -1,4 +1,11 @@
 <tests>
+    <test name="set">
+        <step>
+            <text>
+                SET title = 'foo';
+            </text>
+        </step>
+    </test>
     <test name="param">
         <step>
             <text>

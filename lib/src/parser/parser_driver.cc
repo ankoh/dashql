@@ -388,6 +388,10 @@ void ParserDriver::AddStatement(sx::Node node) {
     current_statement_.root = AddNode(node);
     auto stmt_type = sx::StatementType::NONE;
     switch (node.node_type()) {
+        case sx::NodeType::OBJECT_DASHQL_SET:
+            stmt_type = sx::StatementType::SET;
+            break;
+
         case sx::NodeType::OBJECT_DASHQL_VIZ:
             stmt_type = sx::StatementType::VIZUALIZE;
             break;
