@@ -33,16 +33,6 @@ export class ViewCreateTaskLogic extends ProgramTaskLogic {
     }
 }
 
-export class ImportViewTaskLogic extends SetupTaskLogic {
-    constructor(task_id: TaskHandle, task: proto.task.SetupTask) {
-        super(task_id, task);
-    }
-
-    public prepare(_ctx: TaskExecutionContext): void {}
-    public willExecute(_ctx: TaskExecutionContext): void {}
-    public async execute(_ctx: TaskExecutionContext): Promise<void> {}
-}
-
 export class DropViewTaskLogic extends SetupTaskLogic {
     constructor(task_id: TaskHandle, task: proto.task.SetupTask) {
         super(task_id, task);

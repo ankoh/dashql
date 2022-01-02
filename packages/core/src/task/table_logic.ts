@@ -42,16 +42,6 @@ export class ModifyTableTaskLogic extends ProgramTaskLogic {
     public async execute(_ctx: TaskExecutionContext): Promise<void> {}
 }
 
-export class ImportTableTaskLogic extends SetupTaskLogic {
-    constructor(task_id: model.TaskHandle, task: proto.task.SetupTask) {
-        super(task_id, task);
-    }
-
-    public prepare(_ctx: TaskExecutionContext): void {}
-    public willExecute(_ctx: TaskExecutionContext): void {}
-    public async execute(_ctx: TaskExecutionContext): Promise<void> {}
-}
-
 export class DropTableTaskLogic extends SetupTaskLogic {
     constructor(task_id: model.TaskHandle, task: proto.task.SetupTask) {
         super(task_id, task);

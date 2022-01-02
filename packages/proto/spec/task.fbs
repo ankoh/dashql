@@ -38,15 +38,6 @@ table TaskGraph {
 enum SetupTaskType: uint8 {
     NONE = 0,
 
-    IMPORT_MIN,
-
-    IMPORT_BLOB,
-    IMPORT_INPUT,
-    IMPORT_SET,
-    IMPORT_TABLE,
-    IMPORT_VIEW,
-    IMPORT_VIZ,
-
     DROP_MIN,
 
     DROP_BLOB,

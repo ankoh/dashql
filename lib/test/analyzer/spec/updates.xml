@@ -54,9 +54,7 @@
             <evaluations />
             <cards />
             <graph next_object_id="2">
-                <setup>
-                    <task type="IMPORT_SET" status="PENDING" object_id="0" />
-                </setup>
+                <setup />
                 <program>
                     <task type="SET" status="COMPLETED" object_id="0" statement="0" />
                 </program>
@@ -203,9 +201,6 @@
             </cards>
             <graph next_object_id="4">
                 <setup>
-                    <task type="IMPORT_VIEW" status="PENDING" object_id="0">
-                        <output name="main.foo" />
-                    </task>
                     <task type="DROP_VIZ" status="PENDING" object_id="1" />
                 </setup>
                 <program>
@@ -286,9 +281,6 @@
             </cards>
             <graph next_object_id="4">
                 <setup>
-                    <task type="IMPORT_VIEW" status="PENDING" object_id="0">
-                        <output name="main.foo" />
-                    </task>
                     <task type="DROP_VIZ" status="PENDING" object_id="1" />
                 </setup>
                 <program>

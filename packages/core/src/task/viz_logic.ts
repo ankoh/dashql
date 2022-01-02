@@ -283,13 +283,3 @@ export class DropVizTaskLogic extends SetupTaskLogic {
         });
     }
 }
-
-export class ImportVizTaskLogic extends SetupTaskLogic {
-    constructor(task_id: model.TaskHandle, task: proto.task.SetupTask) {
-        super(task_id, task);
-    }
-
-    public prepare(_ctx: TaskExecutionContext): void {}
-    public willExecute(_ctx: TaskExecutionContext): void {}
-    public async execute(_ctx: TaskExecutionContext): Promise<void> {}
-}

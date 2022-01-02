@@ -4,14 +4,14 @@ import * as proto from '@dashql/proto';
 import { SetupTaskLogic, ProgramTaskLogic } from './task_logic';
 import { TaskHandle, Statement } from '../model';
 
-import { ImportBlobTaskLogic, DropBlobTaskLogic } from './blob_logic';
+import { DropBlobTaskLogic } from './blob_logic';
 import { LoadTaskLogic } from './load_logic';
 import { FetchTaskLogic } from './fetch_logic';
 import { TransformTaskLogic } from './transform_logic';
-import { InputTaskLogic, DropInputTaskLogic, ImportInputTaskLogic } from './input_logic';
-import { CreateTableTaskLogic, DropTableTaskLogic, ModifyTableTaskLogic, ImportTableTaskLogic } from './table_logic';
-import { ViewCreateTaskLogic, ImportViewTaskLogic, DropViewTaskLogic } from './view_logic';
-import { CreateVizTaskLogic, UpdateVizTaskLogic, DropVizTaskLogic, ImportVizTaskLogic } from './viz_logic';
+import { InputTaskLogic, DropInputTaskLogic } from './input_logic';
+import { CreateTableTaskLogic, DropTableTaskLogic, ModifyTableTaskLogic } from './table_logic';
+import { ViewCreateTaskLogic, DropViewTaskLogic } from './view_logic';
+import { CreateVizTaskLogic, UpdateVizTaskLogic, DropVizTaskLogic } from './viz_logic';
 
 import SetupTaskType = proto.task.SetupTaskType;
 import ProgramTaskType = proto.task.ProgramTaskType;
@@ -29,16 +29,6 @@ export function resolveSetupTaskLogic(id: TaskHandle, a: proto.task.SetupTask): 
             return new DropViewTaskLogic(id, a);
         case SetupTaskType.DROP_VIZ:
             return new DropVizTaskLogic(id, a);
-        case SetupTaskType.IMPORT_INPUT:
-            return new ImportInputTaskLogic(id, a);
-        case SetupTaskType.IMPORT_BLOB:
-            return new ImportBlobTaskLogic(id, a);
-        case SetupTaskType.IMPORT_TABLE:
-            return new ImportTableTaskLogic(id, a);
-        case SetupTaskType.IMPORT_VIEW:
-            return new ImportViewTaskLogic(id, a);
-        case SetupTaskType.IMPORT_VIZ:
-            return new ImportVizTaskLogic(id, a);
     }
     console.error('unknown setup task type');
     return null;

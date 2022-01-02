@@ -159,27 +159,26 @@ arrow::Status TaskPlanner::TranslateStatements() {
 
 /// A program task invalidation
 struct ProgramTaskInvalidation {
-    SetupTaskType import_task;
     SetupTaskType drop_task;
     ProgramTaskType update_task;
     bool propagates_backwards;
 };
 static std::unordered_map<ProgramTaskType, ProgramTaskInvalidation> ACTION_TRANSLATION = {
 // clang-format off
-#define X(ACTION, IMPORT_ACTION, DROP_ACTION, UPDATE_ACTION, PROPAGATE) \
+#define X(ACTION, DROP_ACTION, UPDATE_ACTION, PROPAGATE) \
     {ProgramTaskType::ACTION,                                         \
-     {SetupTaskType::IMPORT_ACTION, SetupTaskType::DROP_ACTION, ProgramTaskType::UPDATE_ACTION, PROPAGATE}},
-    X(NONE, NONE, NONE, NONE, false)
-    X(CREATE_TABLE, IMPORT_TABLE, DROP_TABLE, NONE, true)
-    X(CREATE_VIEW, IMPORT_VIEW, DROP_VIEW, NONE, true)
-    X(CREATE_VIZ, IMPORT_VIZ, DROP_VIZ, UPDATE_VIZ, false)
-    X(FETCH, IMPORT_BLOB, DROP_BLOB, NONE, false)
-    X(INPUT, IMPORT_INPUT, DROP_INPUT, NONE, false)
-    X(LOAD, IMPORT_TABLE, DROP_TABLE, NONE, false)
-    X(MODIFY_TABLE, IMPORT_TABLE, DROP_TABLE, NONE, true)
-    X(SET, IMPORT_SET, DROP_SET, NONE, false)
-    X(TRANSFORM, IMPORT_BLOB, DROP_BLOB, NONE, false)
-    X(UPDATE_VIZ, IMPORT_VIZ, DROP_VIZ, UPDATE_VIZ, false)
+     {SetupTaskType::DROP_ACTION, ProgramTaskType::UPDATE_ACTION, PROPAGATE}},
+    X(NONE, NONE, NONE, false)
+    X(CREATE_TABLE, DROP_TABLE, NONE, true)
+    X(CREATE_VIEW, DROP_VIEW, NONE, true)
+    X(CREATE_VIZ, DROP_VIZ, UPDATE_VIZ, false)
+    X(FETCH, DROP_BLOB, NONE, false)
+    X(INPUT, DROP_INPUT, NONE, false)
+    X(LOAD, DROP_TABLE, NONE, false)
+    X(MODIFY_TABLE, DROP_TABLE, NONE, true)
+    X(SET, DROP_SET, NONE, false)
+    X(TRANSFORM, DROP_BLOB, NONE, false)
+    X(UPDATE_VIZ, DROP_VIZ, UPDATE_VIZ, false)
 #undef X
     // clang-format on
 };
@@ -216,7 +215,7 @@ arrow::Status TaskPlanner::IdentifyApplicableTasks() {
             if (iter == ACTION_TRANSLATION.end()) {
                 continue;
             }
-            auto [import_task, drop_task, update_task, propagates] = iter->second;
+            auto [drop_task, update_task, propagates] = iter->second;
 
             // Propagates invalidation?
             if (propagates) {
@@ -351,7 +350,7 @@ arrow::Status TaskPlanner::MigrateTaskGraph() {
     using TaskID = size_t;
 
     // We know for every previous task whether it is applicable.
-    // Emit setup tasks that either import or drop previous state and update the new program tasks.
+    // Emit setup tasks that drop previous state and update the new program tasks.
     //
     // If a task is applicable, there also exists a new task that does not reuse state so far.
     // We update the target id of the new task and mark it as complete.
@@ -373,24 +372,10 @@ arrow::Status TaskPlanner::MigrateTaskGraph() {
         auto iter = ACTION_TRANSLATION.find(prev_task->task_type);
         assert(iter != ACTION_TRANSLATION.end());
         if (iter == ACTION_TRANSLATION.end()) continue;
-        auto [import_task, drop_task, update_task, propagates] = iter->second;
+        auto [drop_task, update_task, propagates] = iter->second;
 
         // Is applicable?
         if (task_applicability_[prev_task_id]) {
-            // Create import task (if necessary)
-            if (import_task != SetupTaskType::NONE) {
-                setup.back() = std::make_unique<proto::task::SetupTaskT>();
-                auto& s = setup.back();
-                s->task_type = import_task;
-                s->object_id = prev_task->object_id;
-                s->name_qualified = prev_task->name_qualified;
-
-                // If statement B depends on A, the IMPORT task of B must be executed before A.
-                // More relevant for DROP statments as discussed further down below.
-                s->depends_on = prev_task->required_for;
-                s->required_for = prev_task->depends_on;
-            }
-
             // Map to new task.
             // Diff must be KEEP or MOVE since the previous task is applicable.
             auto next_stmt_id = diff_op.target();
