@@ -308,10 +308,10 @@
   resolved "https://registry.yarnpkg.com/@discoveryjs/json-ext/-/json-ext-0.5.6.tgz#d5e0706cf8c6acd8c6032f8d54070af261bbbb2f"
   integrity sha512-ws57AidsDvREKrZKYffXddNkyaF14iHNHm8VQnZH6t99E8gczjNN0GpvcGny0imC80yQ0tHz1xVUKk/KFQSUyA==
 
-"@duckdb/duckdb-wasm@^1.12.1-dev17.0":
-  version "1.12.1-dev17.0"
-  resolved "https://registry.yarnpkg.com/@duckdb/duckdb-wasm/-/duckdb-wasm-1.12.1-dev17.0.tgz#4fd0207664a1b724de7f6174416c7fc7fbce370a"
-  integrity sha512-kY8MW5HLHg0EH/7E1i13WAYIMEG03OCgXYP6qkpd7nXqA+pdjSg09JlqqzlekpYwQNGE1YTzL9euSWMVKDKzEg==
+"@duckdb/duckdb-wasm@^1.12.1-dev64.0":
+  version "1.12.1-dev64.0"
+  resolved "https://registry.yarnpkg.com/@duckdb/duckdb-wasm/-/duckdb-wasm-1.12.1-dev64.0.tgz#aaf8b304222ffb3aaaddcb26af3361509e4b6056"
+  integrity sha512-YHk+CWgnz4Gm4pZsARGVnDpCX00a4S7XVxrTDAg/RtTkGn1GaK8qxmTZBOv8EFcLytn7zGg4yf2/3iv68nc5cg==
   dependencies:
     "@types/emscripten" "^1.39.6"
     apache-arrow "^6.0.1"
