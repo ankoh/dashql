@@ -1129,7 +1129,7 @@
   resolved "https://registry.yarnpkg.com/@types/json5/-/json5-0.0.29.tgz#ee28707ae94e11d2b827bcbe5270bcea7f3e71ee"
   integrity sha1-7ihweulOEdK4J7y+UnC86n8+ce4=
 
-"@types/lodash@^4.14.176":
+"@types/lodash@^4.14.178":
   version "4.14.178"
   resolved "https://registry.yarnpkg.com/@types/lodash/-/lodash-4.14.178.tgz#341f6d2247db528d4a13ddbb374bcdc80406f4f8"
   integrity sha512-0d5Wd09ItQWH1qFbEyQ7oTQ3GZrMfth5JkbN3EvTKLXcHLRDSXeLnlvlOn0wvxVIwK5o2M8JzP/OWz7T3NRsbw==
@@ -2525,7 +2525,7 @@ cssstyle@^2.3.0:
   dependencies:
     cssom "~0.3.6"
 
-csstype@^3.0.2, csstype@^3.0.9:
+csstype@^3.0.10, csstype@^3.0.2:
   version "3.0.10"
   resolved "https://registry.yarnpkg.com/csstype/-/csstype-3.0.10.tgz#2ad3a7bed70f35b965707c092e5f30b327c290e5"
   integrity sha512-2u44ZG2OcNUO9HDp/Jl8C07x6pU/eTR3ncV91SiK3dhG9TWvRVsCoJw14Ckx5DgWkzGA3waZWO3d7pgqpUI/XA==
@@ -6004,7 +6004,7 @@ prop-types-extra@^1.1.0:
     react-is "^16.3.2"
     warning "^4.0.0"
 
-prop-types@15.x, prop-types@^15.0.0, prop-types@^15.6.0, prop-types@^15.6.2, prop-types@^15.7.2, prop-types@^15.8.1:
+prop-types@15.x, prop-types@^15.0.0, prop-types@^15.6.0, prop-types@^15.6.2, prop-types@^15.7.2, prop-types@^15.8.0, prop-types@^15.8.1:
   version "15.8.1"
   resolved "https://registry.yarnpkg.com/prop-types/-/prop-types-15.8.1.tgz#67d87bf1a694f48435cf332c24af10214a3140b5"
   integrity sha512-oj87CgZICdulUohogVAR7AjlC0327U4el4L6eAvOqCeudMDVU0NThNaV+b9Df4dXgSP1gXMTnPdhfe/2qDH5cg==
@@ -6122,16 +6122,16 @@ react-avatar@^4.0.0:
     is-retina "^1.0.3"
     md5 "^2.0.0"
 
-react-base16-styling@^0.8.1:
-  version "0.8.1"
-  resolved "https://registry.yarnpkg.com/react-base16-styling/-/react-base16-styling-0.8.1.tgz#fa397b831a1c1050cb13cf29e3729e4780483b14"
-  integrity sha512-Qf8MiaeZRa6EiooXEtQWGvPuJDp1CuN2EjS9QUiBTBY5lmpFLvL58lCfRNkkAs8fBVsXOmkiKTcFQuEl4vYTgw==
+react-base16-styling@^0.8.2:
+  version "0.8.2"
+  resolved "https://registry.yarnpkg.com/react-base16-styling/-/react-base16-styling-0.8.2.tgz#6bc97045b0f8c42d14857097d62b9017666aa5b9"
+  integrity sha512-5bxHCNKT/FfU9yMzNB/CaCQLGqZ/Nr4FnaIRJUTkwwPTRaCfYAP+/3opeQb61XvesmofJ4FloTSYW9aw1tMXqQ==
   dependencies:
     "@types/base16" "^1.0.2"
-    "@types/lodash" "^4.14.176"
+    "@types/lodash" "^4.14.178"
     base16 "^1.0.0"
     color "^3.2.1"
-    csstype "^3.0.9"
+    csstype "^3.0.10"
     lodash.curry "^4.1.1"
 
 react-bootstrap@^2.1.0:
@@ -6194,14 +6194,14 @@ react-is@^16.13.1, react-is@^16.3.2:
   resolved "https://registry.yarnpkg.com/react-is/-/react-is-16.13.1.tgz#789729a4dc36de2999dc156dd6c1d9c18cea56a4"
   integrity sha512-24e6ynE2H+OKt4kqsOvNd8kBpV65zoxbA4BVsEOB3ARVWQki/DHzaUoC5KuON/BiccDaCCTZBuOcfZs70kR8bQ==
 
-react-json-tree@^0.15.1:
-  version "0.15.1"
-  resolved "https://registry.yarnpkg.com/react-json-tree/-/react-json-tree-0.15.1.tgz#1682c3b59feaf192d4ff26cbb99d38f36d904a12"
-  integrity sha512-9HTejgI4yuR1RBSQ8HOp4AOZ513MZru/PC7abzo0EG+++IoMHqnCKw43hIySUyBNGz81un/0M575Hvwnp4oQiA==
+react-json-tree@^0.15.2:
+  version "0.15.2"
+  resolved "https://registry.yarnpkg.com/react-json-tree/-/react-json-tree-0.15.2.tgz#581f48bc8e925fc2d3802dd6c9075570666b358a"
+  integrity sha512-Fi5BMgpZbqujagMQ4OavtK6k4RhaoU/zFoJeK331/UdsBEXKFs3VosfvOc1JS/oyB21I1MKu8bwMkOXODePBCg==
   dependencies:
     "@types/prop-types" "^15.7.4"
-    prop-types "^15.7.2"
-    react-base16-styling "^0.8.1"
+    prop-types "^15.8.0"
+    react-base16-styling "^0.8.2"
 
 react-lifecycles-compat@^3.0.4:
   version "3.0.4"
