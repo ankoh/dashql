@@ -265,6 +265,13 @@
   dependencies:
     regenerator-runtime "^0.13.4"
 
+"@babel/runtime@^7.16.7":
+  version "7.16.7"
+  resolved "https://registry.yarnpkg.com/@babel/runtime/-/runtime-7.16.7.tgz#03ff99f64106588c9c403c6ecb8c3bafbbdff1fa"
+  integrity sha512-9E9FJowqAsytyOY6LG+1KuueckRL+aQW+mKvXRXnuFGyRAyepJPmEo9vgMfXUA6O9u3IeEdv9MAkppFcaQwogQ==
+  dependencies:
+    regenerator-runtime "^0.13.4"
+
 "@babel/template@^7.16.7", "@babel/template@^7.3.3":
   version "7.16.7"
   resolved "https://registry.yarnpkg.com/@babel/template/-/template-7.16.7.tgz#8d126c8701fde4d66b264b3eba3d96f07666d155"
@@ -6122,11 +6129,12 @@ react-avatar@^4.0.0:
     is-retina "^1.0.3"
     md5 "^2.0.0"
 
-react-base16-styling@^0.8.2:
-  version "0.8.2"
-  resolved "https://registry.yarnpkg.com/react-base16-styling/-/react-base16-styling-0.8.2.tgz#6bc97045b0f8c42d14857097d62b9017666aa5b9"
-  integrity sha512-5bxHCNKT/FfU9yMzNB/CaCQLGqZ/Nr4FnaIRJUTkwwPTRaCfYAP+/3opeQb61XvesmofJ4FloTSYW9aw1tMXqQ==
+react-base16-styling@^0.9.0:
+  version "0.9.0"
+  resolved "https://registry.yarnpkg.com/react-base16-styling/-/react-base16-styling-0.9.0.tgz#f76d078fa639c63dd9725a342cf88f7cce06db80"
+  integrity sha512-b8DfOEhLXVrVXqh0OcAUffPOEv6UDqnnos2ZGpw7eW4p2TNEXDvAzNqRRmsFVVVcfmfkyTu5/wjraorQ/Ntu1A==
   dependencies:
+    "@babel/runtime" "^7.16.7"
     "@types/base16" "^1.0.2"
     "@types/lodash" "^4.14.178"
     base16 "^1.0.0"
@@ -6194,14 +6202,15 @@ react-is@^16.13.1, react-is@^16.3.2:
   resolved "https://registry.yarnpkg.com/react-is/-/react-is-16.13.1.tgz#789729a4dc36de2999dc156dd6c1d9c18cea56a4"
   integrity sha512-24e6ynE2H+OKt4kqsOvNd8kBpV65zoxbA4BVsEOB3ARVWQki/DHzaUoC5KuON/BiccDaCCTZBuOcfZs70kR8bQ==
 
-react-json-tree@^0.15.2:
-  version "0.15.2"
-  resolved "https://registry.yarnpkg.com/react-json-tree/-/react-json-tree-0.15.2.tgz#581f48bc8e925fc2d3802dd6c9075570666b358a"
-  integrity sha512-Fi5BMgpZbqujagMQ4OavtK6k4RhaoU/zFoJeK331/UdsBEXKFs3VosfvOc1JS/oyB21I1MKu8bwMkOXODePBCg==
+react-json-tree@^0.16.0:
+  version "0.16.0"
+  resolved "https://registry.yarnpkg.com/react-json-tree/-/react-json-tree-0.16.0.tgz#11b91dcd08ef12cf559bae62b17a360f9bfa5032"
+  integrity sha512-FVa/cJFeFj2n1Rev89xjm77QrVlQQl0m/AH3SSM8NwS7RpNiYHmq58sz58Ad05H52FEVe4vOzxAXmQeR99MqLg==
   dependencies:
+    "@babel/runtime" "^7.16.7"
     "@types/prop-types" "^15.7.4"
     prop-types "^15.8.0"
-    react-base16-styling "^0.8.2"
+    react-base16-styling "^0.9.0"
 
 react-lifecycles-compat@^3.0.4:
   version "3.0.4"

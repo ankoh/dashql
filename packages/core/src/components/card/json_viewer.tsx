@@ -1,6 +1,6 @@
 import * as React from 'react';
 import * as utils from '../../utils';
-import JSONTree from 'react-json-tree';
+import { JSONTree } from 'react-json-tree';
 import classNames from 'classnames';
 
 import styles from './json_viewer.module.css';
