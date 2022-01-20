@@ -51,7 +51,7 @@
         "xterm-addon-fit": "^0.5.0"
     },
     "devDependencies": {
-        "@babel/core": "^7.16.7",
+        "@babel/core": "^7.16.10",
         "@babel/plugin-transform-modules-commonjs": "^7.16.8",
         "@types/d3": "^7.1.0",
         "@types/emscripten": "^1.39.6",
