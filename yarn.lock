@@ -1195,10 +1195,10 @@
   dependencies:
     "@types/react" "*"
 
-"@types/react-simple-maps@^1.0.7":
-  version "1.0.7"
-  resolved "https://registry.yarnpkg.com/@types/react-simple-maps/-/react-simple-maps-1.0.7.tgz#689138832c5058281e87e71050c2e99666e49710"
-  integrity sha512-FlBatVzPKTRQPO/D5b/lAL52Sf+UnPJYZk0alXdrXj/c8dK0uu3SS1LM5oLtKriAVBRk/io4GawkpGpkV5ZivQ==
+"@types/react-simple-maps@^1.0.8":
+  version "1.0.8"
+  resolved "https://registry.yarnpkg.com/@types/react-simple-maps/-/react-simple-maps-1.0.8.tgz#a21beb16cbeeadcb093a47de7888db64a2f103aa"
+  integrity sha512-gNXpQor+H0CCjp8GVNUeeTV+iDPdqFuCDIlYHH17KZ/tVHK1WaRIZl+s2ZnPCVQo27nEnRgU3GQxYbOYxXxgNQ==
   dependencies:
     "@types/d3-geo" "^1"
     "@types/d3-zoom" "^1"
