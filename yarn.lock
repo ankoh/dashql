@@ -1219,10 +1219,10 @@
   dependencies:
     "@types/react" "*"
 
-"@types/react-virtualized@^9.21.16":
-  version "9.21.16"
-  resolved "https://registry.yarnpkg.com/@types/react-virtualized/-/react-virtualized-9.21.16.tgz#5e33c7e8a7c187f2b6d542132fc7a1d132b34f9d"
-  integrity sha512-25QMrouz1VKq5T68+9JfRq3GP4JmN20ARi+hl5z7NMmriy07XmGd1Yh3I4EIZjmifpXhHZoQS/ny2fzZRyiAiw==
+"@types/react-virtualized@^9.21.19":
+  version "9.21.19"
+  resolved "https://registry.yarnpkg.com/@types/react-virtualized/-/react-virtualized-9.21.19.tgz#ee6d3c2a7347046a68250969d1ccc9bf7db98ae8"
+  integrity sha512-kz/3ebKCLb1hTfBXr9rWRJNynTBfnZ2zqFIasZV9tXILTeL9gXnzg1Ji6TeC5nIo7ytZk/GtOtY/7QXsn+AW3Q==
   dependencies:
     "@types/prop-types" "*"
     "@types/react" "*"
