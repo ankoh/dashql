@@ -133,7 +133,7 @@ CREATE VIEW foo AS
         (random() * 100)::INTEGER as cat100
     FROM generate_series(0, 1000000) AS a(v);
 
-VIZ foo USING VEGA (
+VIZ foo USING (
     title = 'Line Chart',
     position = (row = 1, column = 0, width = 6, height = 4),
     mark = 'line',
@@ -198,7 +198,7 @@ CREATE VIEW foo AS
         (random() * 100)::INTEGER as cat100
     FROM generate_series(0, 1000000) AS a(v);
 
-VIZ foo USING VEGA (
+VIZ foo USING (
     position = (
         row = 9,
         column = 8,

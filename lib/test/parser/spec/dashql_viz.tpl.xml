@@ -30,7 +30,7 @@
     </test>
     <test name="dashql_viz_vegalite_examples_bar">
         <input>
-            VIZ foo USING VEGA (
+            VIZ foo USING (
                 mark = 'bar',
                 encoding = (
                     x = (
@@ -47,7 +47,7 @@
     </test>
     <test name="dashql_viz_vegalite_examples_bar_size_responsive">
         <input>
-            VIZ foo USING VEGA (
+            VIZ foo USING (
                 mark = 'bar',
                 encoding = (
                     x = (
@@ -64,7 +64,7 @@
     </test>
     <test name="dashql_viz_vegalite_examples_bar_aggregate">
         <input>
-            VIZ foo USING VEGA (
+            VIZ foo USING (
                 mark = 'bar',
                 encoding = (
                     x = (

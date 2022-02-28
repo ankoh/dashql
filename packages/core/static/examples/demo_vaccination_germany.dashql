@@ -12,7 +12,7 @@ CREATE VIEW vaccinations_desc AS (
 );
 
 -- Visualize vaccination data
-VIZ vaccinations_desc USING VEGA (
+VIZ vaccinations_desc USING (
     title = 'Covid Total Doses',
     position = (row = 0, column = 0, width = 12, height = 4),
     mark = 'area',

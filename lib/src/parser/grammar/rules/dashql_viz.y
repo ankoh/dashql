@@ -66,6 +66,5 @@ dashql_viz_type:
   | POINT                 { $$ = Enum(@$, sx::VizComponentType::SCATTER); }
   | SCATTER               { $$ = Enum(@$, sx::VizComponentType::SCATTER); }
   | TABLE                 { $$ = Enum(@$, sx::VizComponentType::TABLE); }
-  | VEGA                  { $$ = Enum(@$, sx::VizComponentType::VEGA); }
   | %empty                { $$ = Enum(@$, sx::VizComponentType::VEGA); }
     ;

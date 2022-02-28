@@ -175,7 +175,7 @@
     </test>
     <test name="demo_2">
         <input>
-            VIZ foo USING VEGA (
+            VIZ foo USING (
                 title = 'Line Chart',
                 position = (row = 0, column = 0, width = 6, height = 4),
                 mark = 'line',
@@ -188,32 +188,32 @@
         <expected>
             <statements>
                 <statement type="VIZUALIZE">
-                    <node type="OBJECT_DASHQL_VIZ" loc="13..365" text="VIZ foo US..         )">
+                    <node type="OBJECT_DASHQL_VIZ" loc="13..360" text="VIZ foo US..         )">
                         <node key="DASHQL_VIZ_COMPONENTS">
-                            <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="27..365" text="VEGA (&#10;   ..         )">
+                            <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="26..360" text=" (&#10;       ..         )">
                                 <node key="DASHQL_VIZ_COMPONENT_TYPE" value="VEGA" />
-                                <node key="DSON_POSITION" type="OBJECT_DSON" loc="99..143" text="(row = 0, ..eight = 4)">
-                                    <node key="DSON_ROW" loc="106..107" text="0" />
-                                    <node key="DSON_COLUMN" loc="118..119" text="0" />
-                                    <node key="DSON_WIDTH" loc="129..130" text="6" />
-                                    <node key="DSON_HEIGHT" loc="141..142" text="4" />
+                                <node key="DSON_POSITION" type="OBJECT_DSON" loc="94..138" text="(row = 0, ..eight = 4)">
+                                    <node key="DSON_ROW" loc="101..102" text="0" />
+                                    <node key="DSON_COLUMN" loc="113..114" text="0" />
+                                    <node key="DSON_WIDTH" loc="124..125" text="6" />
+                                    <node key="DSON_HEIGHT" loc="136..137" text="4" />
                                 </node>
-                                <node key="DSON_TITLE" loc="58..70" text="'Line Chart'" />
-                                <node key="DSON_ENCODING" type="OBJECT_DSON" loc="203..351" text="(&#10;        ..         )">
-                                    <node key="DSON_X" type="OBJECT_DSON" loc="229..268" text="(field = '..unt = 10))">
-                                        <node key="DSON_AXIS" type="OBJECT_DSON" loc="250..267" text="(tick_count = 10)">
-                                            <node key="DSON_TICK_COUNT" loc="264..266" text="10" />
+                                <node key="DSON_TITLE" loc="53..65" text="'Line Chart'" />
+                                <node key="DSON_ENCODING" type="OBJECT_DSON" loc="198..346" text="(&#10;        ..         )">
+                                    <node key="DSON_X" type="OBJECT_DSON" loc="224..263" text="(field = '..unt = 10))">
+                                        <node key="DSON_AXIS" type="OBJECT_DSON" loc="245..262" text="(tick_count = 10)">
+                                            <node key="DSON_TICK_COUNT" loc="259..261" text="10" />
                                         </node>
-                                        <node key="DSON_FIELD" loc="238..241" text="'x'" />
+                                        <node key="DSON_FIELD" loc="233..236" text="'x'" />
                                     </node>
-                                    <node key="DSON_Y" type="OBJECT_DSON" loc="294..333" text="(field = '..unt = 10))">
-                                        <node key="DSON_AXIS" type="OBJECT_DSON" loc="315..332" text="(tick_count = 10)">
-                                            <node key="DSON_TICK_COUNT" loc="329..331" text="10" />
+                                    <node key="DSON_Y" type="OBJECT_DSON" loc="289..328" text="(field = '..unt = 10))">
+                                        <node key="DSON_AXIS" type="OBJECT_DSON" loc="310..327" text="(tick_count = 10)">
+                                            <node key="DSON_TICK_COUNT" loc="324..326" text="10" />
                                         </node>
-                                        <node key="DSON_FIELD" loc="303..306" text="'y'" />
+                                        <node key="DSON_FIELD" loc="298..301" text="'y'" />
                                     </node>
                                 </node>
-                                <node key="DSON_MARK" loc="168..174" text="'line'" />
+                                <node key="DSON_MARK" loc="163..169" text="'line'" />
                             </node>
                         </node>
                         <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLE_REF" loc="17..20" text="foo">
@@ -228,15 +228,15 @@
             <errors />
             <line_breaks>
                 <line_break loc="0..1" text="&#10;" />
-                <line_break loc="33..34" text="&#10;" />
-                <line_break loc="71..72" text="&#10;" />
-                <line_break loc="144..145" text="&#10;" />
-                <line_break loc="175..176" text="&#10;" />
-                <line_break loc="204..205" text="&#10;" />
-                <line_break loc="269..270" text="&#10;" />
-                <line_break loc="333..334" text="&#10;" />
-                <line_break loc="351..352" text="&#10;" />
-                <line_break loc="366..367" text="&#10;" />
+                <line_break loc="28..29" text="&#10;" />
+                <line_break loc="66..67" text="&#10;" />
+                <line_break loc="139..140" text="&#10;" />
+                <line_break loc="170..171" text="&#10;" />
+                <line_break loc="199..200" text="&#10;" />
+                <line_break loc="264..265" text="&#10;" />
+                <line_break loc="328..329" text="&#10;" />
+                <line_break loc="346..347" text="&#10;" />
+                <line_break loc="361..362" text="&#10;" />
             </line_breaks>
             <comments />
             <dson_keys />
@@ -280,7 +280,7 @@
             );
 
             -- ... or a bar chart
-            VIZ StudentCounts USING VEGA (
+            VIZ StudentCounts USING (
                 title = 'Auslastung',
                 position = (row = 0, column = 0, width = 6, height = 4),
                 mark = 'bar',
@@ -301,7 +301,7 @@
             );
 
             -- ... or a donut chart
-            VIZ SWSCounts USING VEGA (
+            VIZ SWSCounts USING (
                 title = 'Wochenstunden',
                 position = (row = 0, column = 6, width = 6, height = 4),
                 mark = (type= 'arc', inner_radius=50),
@@ -594,36 +594,36 @@
                     </node>
                 </statement>
                 <statement type="VIZUALIZE">
-                    <node type="OBJECT_DASHQL_VIZ" loc="1413..2100" text="VIZ Studen..         )">
+                    <node type="OBJECT_DASHQL_VIZ" loc="1413..2095" text="VIZ Studen..         )">
                         <node key="DASHQL_VIZ_COMPONENTS">
-                            <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="1437..2100" text="VEGA (&#10;   ..         )">
+                            <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="1436..2095" text=" (&#10;       ..         )">
                                 <node key="DASHQL_VIZ_COMPONENT_TYPE" value="VEGA" />
-                                <node key="DSON_POSITION" type="OBJECT_DSON" loc="1509..1553" text="(row = 0, ..eight = 4)">
-                                    <node key="DSON_ROW" loc="1516..1517" text="0" />
-                                    <node key="DSON_COLUMN" loc="1528..1529" text="0" />
-                                    <node key="DSON_WIDTH" loc="1539..1540" text="6" />
-                                    <node key="DSON_HEIGHT" loc="1551..1552" text="4" />
+                                <node key="DSON_POSITION" type="OBJECT_DSON" loc="1504..1548" text="(row = 0, ..eight = 4)">
+                                    <node key="DSON_ROW" loc="1511..1512" text="0" />
+                                    <node key="DSON_COLUMN" loc="1523..1524" text="0" />
+                                    <node key="DSON_WIDTH" loc="1534..1535" text="6" />
+                                    <node key="DSON_HEIGHT" loc="1546..1547" text="4" />
                                 </node>
-                                <node key="DSON_TITLE" loc="1468..1480" text="'Auslastung'" />
-                                <node key="DSON_ENCODING" type="OBJECT_DSON" loc="1612..2086" text="(&#10;        ..         )">
-                                    <node key="DSON_X" type="OBJECT_DSON" loc="1817..2067" text="(&#10;        ..         )">
-                                        <node key="DSON_TITLE" loc="1851..1862" text="'Studenten'" />
-                                        <node key="DSON_AXIS" type="OBJECT_DSON" loc="2022..2044" text="axis.tick_..n_step = 1">
-                                            <node key="DSON_TICK_MIN_STEP" loc="2043..2044" text="1" />
+                                <node key="DSON_TITLE" loc="1463..1475" text="'Auslastung'" />
+                                <node key="DSON_ENCODING" type="OBJECT_DSON" loc="1607..2081" text="(&#10;        ..         )">
+                                    <node key="DSON_X" type="OBJECT_DSON" loc="1812..2062" text="(&#10;        ..         )">
+                                        <node key="DSON_TITLE" loc="1846..1857" text="'Studenten'" />
+                                        <node key="DSON_AXIS" type="OBJECT_DSON" loc="2017..2039" text="axis.tick_..n_step = 1">
+                                            <node key="DSON_TICK_MIN_STEP" loc="2038..2039" text="1" />
                                         </node>
-                                        <node key="DSON_FIELD" loc="1896..1907" text="'studenten'" />
-                                        <node key="DSON_SCALE" type="OBJECT_DSON" loc="1979..1996" text="scale.zero = true">
+                                        <node key="DSON_FIELD" loc="1891..1902" text="'studenten'" />
+                                        <node key="DSON_SCALE" type="OBJECT_DSON" loc="1974..1991" text="scale.zero = true">
                                             <node key="DSON_ZERO" value="true" />
                                         </node>
-                                        <node key="DSON_TYPE" loc="1939..1953" text="'quantitative'" />
+                                        <node key="DSON_TYPE" loc="1934..1948" text="'quantitative'" />
                                     </node>
-                                    <node key="DSON_Y" type="OBJECT_DSON" loc="1638..1791" text="(&#10;        ..         )">
-                                        <node key="DSON_TITLE" loc="1672..1685" text="'Vorlesungen'" />
-                                        <node key="DSON_FIELD" loc="1719..1726" text="'Titel'" />
-                                        <node key="DSON_TYPE" loc="1759..1768" text="'nominal'" />
+                                    <node key="DSON_Y" type="OBJECT_DSON" loc="1633..1786" text="(&#10;        ..         )">
+                                        <node key="DSON_TITLE" loc="1667..1680" text="'Vorlesungen'" />
+                                        <node key="DSON_FIELD" loc="1714..1721" text="'Titel'" />
+                                        <node key="DSON_TYPE" loc="1754..1763" text="'nominal'" />
                                     </node>
                                 </node>
-                                <node key="DSON_MARK" loc="1578..1583" text="'bar'" />
+                                <node key="DSON_MARK" loc="1573..1578" text="'bar'" />
                             </node>
                         </node>
                         <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLE_REF" loc="1417..1430" text="StudentCounts">
@@ -635,41 +635,41 @@
                     </node>
                 </statement>
                 <statement type="VIZUALIZE">
-                    <node type="OBJECT_DASHQL_VIZ" loc="2151..2770" text="VIZ SWSCou..         )">
+                    <node type="OBJECT_DASHQL_VIZ" loc="2146..2760" text="VIZ SWSCou..         )">
                         <node key="DASHQL_VIZ_COMPONENTS">
-                            <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="2171..2770" text="VEGA (&#10;   ..         )">
+                            <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="2165..2760" text=" (&#10;       ..         )">
                                 <node key="DASHQL_VIZ_COMPONENT_TYPE" value="VEGA" />
-                                <node key="DSON_POSITION" type="OBJECT_DSON" loc="2246..2290" text="(row = 0, ..eight = 4)">
-                                    <node key="DSON_ROW" loc="2253..2254" text="0" />
-                                    <node key="DSON_COLUMN" loc="2265..2266" text="6" />
-                                    <node key="DSON_WIDTH" loc="2276..2277" text="6" />
-                                    <node key="DSON_HEIGHT" loc="2288..2289" text="4" />
+                                <node key="DSON_POSITION" type="OBJECT_DSON" loc="2236..2280" text="(row = 0, ..eight = 4)">
+                                    <node key="DSON_ROW" loc="2243..2244" text="0" />
+                                    <node key="DSON_COLUMN" loc="2255..2256" text="6" />
+                                    <node key="DSON_WIDTH" loc="2266..2267" text="6" />
+                                    <node key="DSON_HEIGHT" loc="2278..2279" text="4" />
                                 </node>
-                                <node key="DSON_TITLE" loc="2202..2217" text="'Wochenstunden'" />
-                                <node key="DSON_ENCODING" type="OBJECT_DSON" loc="2374..2756" text="(&#10;        ..         )">
-                                    <node key="DSON_COLOR" type="OBJECT_DSON" loc="2404..2508" text="(&#10;        ..         )">
-                                        <node key="DSON_FIELD" loc="2438..2443" text="'SWS'" />
-                                        <node key="DSON_TYPE" loc="2476..2485" text="'ordinal'" />
+                                <node key="DSON_TITLE" loc="2192..2207" text="'Wochenstunden'" />
+                                <node key="DSON_ENCODING" type="OBJECT_DSON" loc="2364..2746" text="(&#10;        ..         )">
+                                    <node key="DSON_COLOR" type="OBJECT_DSON" loc="2394..2498" text="(&#10;        ..         )">
+                                        <node key="DSON_FIELD" loc="2428..2433" text="'SWS'" />
+                                        <node key="DSON_TYPE" loc="2466..2475" text="'ordinal'" />
                                     </node>
-                                    <node key="DSON_THETA" type="OBJECT_DSON" loc="2538..2737" text="(&#10;        ..         )">
-                                        <node key="DSON_TITLE" loc="2572..2585" text="'Vorlesungen'" />
-                                        <node key="DSON_FIELD" loc="2619..2624" text="'cnt'" />
-                                        <node key="DSON_SCALE" type="OBJECT_DSON" loc="2697..2714" text="scale.zero = true">
+                                    <node key="DSON_THETA" type="OBJECT_DSON" loc="2528..2727" text="(&#10;        ..         )">
+                                        <node key="DSON_TITLE" loc="2562..2575" text="'Vorlesungen'" />
+                                        <node key="DSON_FIELD" loc="2609..2614" text="'cnt'" />
+                                        <node key="DSON_SCALE" type="OBJECT_DSON" loc="2687..2704" text="scale.zero = true">
                                             <node key="DSON_ZERO" value="true" />
                                         </node>
-                                        <node key="DSON_TYPE" loc="2657..2671" text="'quantitative'" />
+                                        <node key="DSON_TYPE" loc="2647..2661" text="'quantitative'" />
                                     </node>
                                 </node>
-                                <node key="DSON_MARK" type="OBJECT_DSON" loc="2315..2345" text="(type= 'ar..radius=50)">
-                                    <node key="DSON_INNER_RADIUS" loc="2342..2344" text="50" />
-                                    <node key="DSON_TYPE" loc="2322..2327" text="'arc'" />
+                                <node key="DSON_MARK" type="OBJECT_DSON" loc="2305..2335" text="(type= 'ar..radius=50)">
+                                    <node key="DSON_INNER_RADIUS" loc="2332..2334" text="50" />
+                                    <node key="DSON_TYPE" loc="2312..2317" text="'arc'" />
                                 </node>
                             </node>
                         </node>
-                        <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLE_REF" loc="2155..2164" text="SWSCounts">
+                        <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLE_REF" loc="2150..2159" text="SWSCounts">
                             <node key="SQL_TABLE_INHERIT" value="true" />
-                            <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="2155..2164" text="SWSCounts">
-                                <node key="SQL_QUALIFIED_NAME_RELATION" loc="2155..2164" text="SWSCounts" />
+                            <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="2150..2159" text="SWSCounts">
+                                <node key="SQL_QUALIFIED_NAME_RELATION" loc="2150..2159" text="SWSCounts" />
                             </node>
                         </node>
                     </node>
@@ -713,44 +713,44 @@
                 <line_break loc="1365..1366" text="&#10;" />
                 <line_break loc="1366..1367" text="&#10;" />
                 <line_break loc="1400..1401" text="&#10;" />
-                <line_break loc="1443..1444" text="&#10;" />
-                <line_break loc="1481..1482" text="&#10;" />
-                <line_break loc="1554..1555" text="&#10;" />
-                <line_break loc="1584..1585" text="&#10;" />
-                <line_break loc="1613..1614" text="&#10;" />
-                <line_break loc="1639..1640" text="&#10;" />
-                <line_break loc="1686..1687" text="&#10;" />
-                <line_break loc="1727..1728" text="&#10;" />
-                <line_break loc="1769..1770" text="&#10;" />
-                <line_break loc="1792..1793" text="&#10;" />
-                <line_break loc="1818..1819" text="&#10;" />
-                <line_break loc="1863..1864" text="&#10;" />
-                <line_break loc="1908..1909" text="&#10;" />
-                <line_break loc="1954..1955" text="&#10;" />
-                <line_break loc="1997..1998" text="&#10;" />
-                <line_break loc="2045..2046" text="&#10;" />
-                <line_break loc="2068..2069" text="&#10;" />
-                <line_break loc="2086..2087" text="&#10;" />
-                <line_break loc="2101..2102" text="&#10;" />
-                <line_break loc="2102..2103" text="&#10;" />
-                <line_break loc="2138..2139" text="&#10;" />
-                <line_break loc="2177..2178" text="&#10;" />
-                <line_break loc="2218..2219" text="&#10;" />
-                <line_break loc="2291..2292" text="&#10;" />
-                <line_break loc="2346..2347" text="&#10;" />
-                <line_break loc="2375..2376" text="&#10;" />
-                <line_break loc="2405..2406" text="&#10;" />
-                <line_break loc="2444..2445" text="&#10;" />
-                <line_break loc="2486..2487" text="&#10;" />
-                <line_break loc="2509..2510" text="&#10;" />
-                <line_break loc="2539..2540" text="&#10;" />
-                <line_break loc="2586..2587" text="&#10;" />
-                <line_break loc="2625..2626" text="&#10;" />
-                <line_break loc="2672..2673" text="&#10;" />
-                <line_break loc="2715..2716" text="&#10;" />
-                <line_break loc="2738..2739" text="&#10;" />
-                <line_break loc="2756..2757" text="&#10;" />
-                <line_break loc="2771..2772" text="&#10;" />
+                <line_break loc="1438..1439" text="&#10;" />
+                <line_break loc="1476..1477" text="&#10;" />
+                <line_break loc="1549..1550" text="&#10;" />
+                <line_break loc="1579..1580" text="&#10;" />
+                <line_break loc="1608..1609" text="&#10;" />
+                <line_break loc="1634..1635" text="&#10;" />
+                <line_break loc="1681..1682" text="&#10;" />
+                <line_break loc="1722..1723" text="&#10;" />
+                <line_break loc="1764..1765" text="&#10;" />
+                <line_break loc="1787..1788" text="&#10;" />
+                <line_break loc="1813..1814" text="&#10;" />
+                <line_break loc="1858..1859" text="&#10;" />
+                <line_break loc="1903..1904" text="&#10;" />
+                <line_break loc="1949..1950" text="&#10;" />
+                <line_break loc="1992..1993" text="&#10;" />
+                <line_break loc="2040..2041" text="&#10;" />
+                <line_break loc="2063..2064" text="&#10;" />
+                <line_break loc="2081..2082" text="&#10;" />
+                <line_break loc="2096..2097" text="&#10;" />
+                <line_break loc="2097..2098" text="&#10;" />
+                <line_break loc="2133..2134" text="&#10;" />
+                <line_break loc="2167..2168" text="&#10;" />
+                <line_break loc="2208..2209" text="&#10;" />
+                <line_break loc="2281..2282" text="&#10;" />
+                <line_break loc="2336..2337" text="&#10;" />
+                <line_break loc="2365..2366" text="&#10;" />
+                <line_break loc="2395..2396" text="&#10;" />
+                <line_break loc="2434..2435" text="&#10;" />
+                <line_break loc="2476..2477" text="&#10;" />
+                <line_break loc="2499..2500" text="&#10;" />
+                <line_break loc="2529..2530" text="&#10;" />
+                <line_break loc="2576..2577" text="&#10;" />
+                <line_break loc="2615..2616" text="&#10;" />
+                <line_break loc="2662..2663" text="&#10;" />
+                <line_break loc="2705..2706" text="&#10;" />
+                <line_break loc="2728..2729" text="&#10;" />
+                <line_break loc="2746..2747" text="&#10;" />
+                <line_break loc="2761..2762" text="&#10;" />
             </line_breaks>
             <comments>
                 <comment loc="13..51" text="-- Fetch t..ity schema" />
@@ -760,7 +760,7 @@
                 <comment loc="947..976" text="-- ... sto..le or view" />
                 <comment loc="1149..1192" text="-- Visuali..mple table" />
                 <comment loc="1379..1400" text="-- ... or .. bar chart" />
-                <comment loc="2115..2138" text="-- ... or ..onut chart" />
+                <comment loc="2110..2133" text="-- ... or ..onut chart" />
             </comments>
             <dson_keys />
             <dependencies>
@@ -774,7 +774,7 @@
                 <dependency type="TABLE_REF" source="1" target="5" loc="844..857" text="vorlesungen v" />
                 <dependency type="TABLE_REF" source="1" target="6" loc="1090..1103" text="vorlesungen v" />
                 <dependency type="TABLE_REF" source="4" target="7" loc="1209..1219" text="Enrolments" />
-                <dependency type="TABLE_REF" source="6" target="9" loc="2155..2164" text="SWSCounts" />
+                <dependency type="TABLE_REF" source="6" target="9" loc="2150..2159" text="SWSCounts" />
             </dependencies>
         </expected>
     </test>

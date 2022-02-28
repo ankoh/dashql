@@ -33,7 +33,7 @@ VIZ Enrolments USING TABLE (
 );
 
 -- ... or a bar chart
-VIZ StudentCounts USING VEGA (
+VIZ StudentCounts USING (
     title = 'Auslastung',
     position = (row = 0, column = 0, width = 12, height = 4),
     mark = 'bar',

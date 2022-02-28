@@ -194,7 +194,7 @@
     </test>
     <test name="dashql_viz_vegalite_examples_bar">
         <input>
-            VIZ foo USING VEGA (
+            VIZ foo USING (
                 mark = 'bar',
                 encoding = (
                     x = (
@@ -211,29 +211,29 @@
         <expected>
             <statements>
                 <statement type="VIZUALIZE">
-                    <node type="OBJECT_DASHQL_VIZ" loc="13..381" text="VIZ foo US..         )">
+                    <node type="OBJECT_DASHQL_VIZ" loc="13..376" text="VIZ foo US..         )">
                         <node key="DASHQL_VIZ_COMPONENTS">
-                            <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="27..381" text="VEGA (&#10;   ..         )">
+                            <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="26..376" text=" (&#10;       ..         )">
                                 <node key="DASHQL_VIZ_COMPONENT_TYPE" value="VEGA" />
-                                <node key="DSON_ENCODING" type="OBJECT_DSON" loc="91..367" text="(&#10;        ..         )">
-                                    <node key="DSON_X" type="OBJECT_DSON" loc="117..217" text="(&#10;        ..         )">
-                                        <node key="DSON_FIELD" type="OBJECT_SQL_COLUMN_REF" loc="151..152" text="a">
+                                <node key="DSON_ENCODING" type="OBJECT_DSON" loc="86..362" text="(&#10;        ..         )">
+                                    <node key="DSON_X" type="OBJECT_DSON" loc="112..212" text="(&#10;        ..         )">
+                                        <node key="DSON_FIELD" type="OBJECT_SQL_COLUMN_REF" loc="146..147" text="a">
                                             <node key="SQL_COLUMN_REF_PATH">
-                                                <node loc="151..152" text="a" />
+                                                <node loc="146..147" text="a" />
                                             </node>
                                         </node>
-                                        <node key="DSON_TYPE" loc="185..194" text="'nominal'" />
+                                        <node key="DSON_TYPE" loc="180..189" text="'nominal'" />
                                     </node>
-                                    <node key="DSON_Y" type="OBJECT_DSON" loc="243..348" text="(&#10;        ..         )">
-                                        <node key="DSON_FIELD" type="OBJECT_SQL_COLUMN_REF" loc="277..278" text="b">
+                                    <node key="DSON_Y" type="OBJECT_DSON" loc="238..343" text="(&#10;        ..         )">
+                                        <node key="DSON_FIELD" type="OBJECT_SQL_COLUMN_REF" loc="272..273" text="b">
                                             <node key="SQL_COLUMN_REF_PATH">
-                                                <node loc="277..278" text="b" />
+                                                <node loc="272..273" text="b" />
                                             </node>
                                         </node>
-                                        <node key="DSON_TYPE" loc="311..325" text="'quantitative'" />
+                                        <node key="DSON_TYPE" loc="306..320" text="'quantitative'" />
                                     </node>
                                 </node>
-                                <node key="DSON_MARK" loc="57..62" text="'bar'" />
+                                <node key="DSON_MARK" loc="52..57" text="'bar'" />
                             </node>
                         </node>
                         <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLE_REF" loc="17..20" text="foo">
@@ -248,19 +248,19 @@
             <errors />
             <line_breaks>
                 <line_break loc="0..1" text="&#10;" />
-                <line_break loc="33..34" text="&#10;" />
-                <line_break loc="63..64" text="&#10;" />
-                <line_break loc="92..93" text="&#10;" />
-                <line_break loc="118..119" text="&#10;" />
-                <line_break loc="153..154" text="&#10;" />
-                <line_break loc="195..196" text="&#10;" />
-                <line_break loc="218..219" text="&#10;" />
-                <line_break loc="244..245" text="&#10;" />
-                <line_break loc="279..280" text="&#10;" />
-                <line_break loc="326..327" text="&#10;" />
-                <line_break loc="349..350" text="&#10;" />
-                <line_break loc="367..368" text="&#10;" />
-                <line_break loc="382..383" text="&#10;" />
+                <line_break loc="28..29" text="&#10;" />
+                <line_break loc="58..59" text="&#10;" />
+                <line_break loc="87..88" text="&#10;" />
+                <line_break loc="113..114" text="&#10;" />
+                <line_break loc="148..149" text="&#10;" />
+                <line_break loc="190..191" text="&#10;" />
+                <line_break loc="213..214" text="&#10;" />
+                <line_break loc="239..240" text="&#10;" />
+                <line_break loc="274..275" text="&#10;" />
+                <line_break loc="321..322" text="&#10;" />
+                <line_break loc="344..345" text="&#10;" />
+                <line_break loc="362..363" text="&#10;" />
+                <line_break loc="377..378" text="&#10;" />
             </line_breaks>
             <comments />
             <dson_keys />
@@ -269,7 +269,7 @@
     </test>
     <test name="dashql_viz_vegalite_examples_bar_size_responsive">
         <input>
-            VIZ foo USING VEGA (
+            VIZ foo USING (
                 mark = 'bar',
                 encoding = (
                     x = (
@@ -286,25 +286,25 @@
         <expected>
             <statements>
                 <statement type="VIZUALIZE">
-                    <node type="OBJECT_DASHQL_VIZ" loc="13..394" text="VIZ foo US..         )">
+                    <node type="OBJECT_DASHQL_VIZ" loc="13..389" text="VIZ foo US..         )">
                         <node key="DASHQL_VIZ_COMPONENTS">
-                            <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="27..394" text="VEGA (&#10;   ..         )">
+                            <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="26..389" text=" (&#10;       ..         )">
                                 <node key="DASHQL_VIZ_COMPONENT_TYPE" value="VEGA" />
-                                <node key="DSON_ENCODING" type="OBJECT_DSON" loc="91..380" text="(&#10;        ..         )">
-                                    <node key="DSON_X" type="OBJECT_DSON" loc="117..217" text="(&#10;        ..         )">
-                                        <node key="DSON_FIELD" type="OBJECT_SQL_COLUMN_REF" loc="151..152" text="a">
+                                <node key="DSON_ENCODING" type="OBJECT_DSON" loc="86..375" text="(&#10;        ..         )">
+                                    <node key="DSON_X" type="OBJECT_DSON" loc="112..212" text="(&#10;        ..         )">
+                                        <node key="DSON_FIELD" type="OBJECT_SQL_COLUMN_REF" loc="146..147" text="a">
                                             <node key="SQL_COLUMN_REF_PATH">
-                                                <node loc="151..152" text="a" />
+                                                <node loc="146..147" text="a" />
                                             </node>
                                         </node>
-                                        <node key="DSON_TYPE" loc="185..194" text="'nominal'" />
+                                        <node key="DSON_TYPE" loc="180..189" text="'nominal'" />
                                     </node>
-                                    <node key="DSON_Y" type="OBJECT_DSON" loc="243..361" text="(&#10;        ..         )">
-                                        <node key="DSON_TITLE" loc="322..338" text="'Number of cars'" />
-                                        <node key="DSON_AGGREGATE" loc="281..288" text="'count'" />
+                                    <node key="DSON_Y" type="OBJECT_DSON" loc="238..356" text="(&#10;        ..         )">
+                                        <node key="DSON_TITLE" loc="317..333" text="'Number of cars'" />
+                                        <node key="DSON_AGGREGATE" loc="276..283" text="'count'" />
                                     </node>
                                 </node>
-                                <node key="DSON_MARK" loc="57..62" text="'bar'" />
+                                <node key="DSON_MARK" loc="52..57" text="'bar'" />
                             </node>
                         </node>
                         <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLE_REF" loc="17..20" text="foo">
@@ -319,19 +319,19 @@
             <errors />
             <line_breaks>
                 <line_break loc="0..1" text="&#10;" />
-                <line_break loc="33..34" text="&#10;" />
-                <line_break loc="63..64" text="&#10;" />
-                <line_break loc="92..93" text="&#10;" />
-                <line_break loc="118..119" text="&#10;" />
-                <line_break loc="153..154" text="&#10;" />
-                <line_break loc="195..196" text="&#10;" />
-                <line_break loc="218..219" text="&#10;" />
-                <line_break loc="244..245" text="&#10;" />
-                <line_break loc="289..290" text="&#10;" />
-                <line_break loc="339..340" text="&#10;" />
-                <line_break loc="362..363" text="&#10;" />
-                <line_break loc="380..381" text="&#10;" />
-                <line_break loc="395..396" text="&#10;" />
+                <line_break loc="28..29" text="&#10;" />
+                <line_break loc="58..59" text="&#10;" />
+                <line_break loc="87..88" text="&#10;" />
+                <line_break loc="113..114" text="&#10;" />
+                <line_break loc="148..149" text="&#10;" />
+                <line_break loc="190..191" text="&#10;" />
+                <line_break loc="213..214" text="&#10;" />
+                <line_break loc="239..240" text="&#10;" />
+                <line_break loc="284..285" text="&#10;" />
+                <line_break loc="334..335" text="&#10;" />
+                <line_break loc="357..358" text="&#10;" />
+                <line_break loc="375..376" text="&#10;" />
+                <line_break loc="390..391" text="&#10;" />
             </line_breaks>
             <comments />
             <dson_keys />
@@ -340,7 +340,7 @@
     </test>
     <test name="dashql_viz_vegalite_examples_bar_aggregate">
         <input>
-            VIZ foo USING VEGA (
+            VIZ foo USING (
                 mark = 'bar',
                 encoding = (
                     x = (
@@ -357,25 +357,25 @@
         <expected>
             <statements>
                 <statement type="VIZUALIZE">
-                    <node type="OBJECT_DASHQL_VIZ" loc="13..389" text="VIZ foo US..         )">
+                    <node type="OBJECT_DASHQL_VIZ" loc="13..384" text="VIZ foo US..         )">
                         <node key="DASHQL_VIZ_COMPONENTS">
-                            <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="27..389" text="VEGA (&#10;   ..         )">
+                            <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="26..384" text=" (&#10;       ..         )">
                                 <node key="DASHQL_VIZ_COMPONENT_TYPE" value="VEGA" />
-                                <node key="DSON_ENCODING" type="OBJECT_DSON" loc="91..375" text="(&#10;        ..         )">
-                                    <node key="DSON_X" type="OBJECT_DSON" loc="117..177" text="(&#10;        ..         )">
-                                        <node key="DSON_FIELD" type="OBJECT_SQL_COLUMN_REF" loc="151..154" text="age">
+                                <node key="DSON_ENCODING" type="OBJECT_DSON" loc="86..370" text="(&#10;        ..         )">
+                                    <node key="DSON_X" type="OBJECT_DSON" loc="112..172" text="(&#10;        ..         )">
+                                        <node key="DSON_FIELD" type="OBJECT_SQL_COLUMN_REF" loc="146..149" text="age">
                                             <node key="SQL_COLUMN_REF_PATH">
-                                                <node loc="151..154" text="age" />
+                                                <node loc="146..149" text="age" />
                                             </node>
                                         </node>
                                     </node>
-                                    <node key="DSON_Y" type="OBJECT_DSON" loc="203..356" text="(&#10;        ..         )">
-                                        <node key="DSON_TITLE" loc="322..334" text="'population'" />
-                                        <node key="DSON_AGGREGATE" loc="241..246" text="'sum'" />
-                                        <node key="DSON_FIELD" loc="280..288" text="'people'" />
+                                    <node key="DSON_Y" type="OBJECT_DSON" loc="198..351" text="(&#10;        ..         )">
+                                        <node key="DSON_TITLE" loc="317..329" text="'population'" />
+                                        <node key="DSON_AGGREGATE" loc="236..241" text="'sum'" />
+                                        <node key="DSON_FIELD" loc="275..283" text="'people'" />
                                     </node>
                                 </node>
-                                <node key="DSON_MARK" loc="57..62" text="'bar'" />
+                                <node key="DSON_MARK" loc="52..57" text="'bar'" />
                             </node>
                         </node>
                         <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLE_REF" loc="17..20" text="foo">
@@ -390,19 +390,19 @@
             <errors />
             <line_breaks>
                 <line_break loc="0..1" text="&#10;" />
-                <line_break loc="33..34" text="&#10;" />
-                <line_break loc="63..64" text="&#10;" />
-                <line_break loc="92..93" text="&#10;" />
-                <line_break loc="118..119" text="&#10;" />
-                <line_break loc="155..156" text="&#10;" />
-                <line_break loc="178..179" text="&#10;" />
-                <line_break loc="204..205" text="&#10;" />
-                <line_break loc="247..248" text="&#10;" />
-                <line_break loc="289..290" text="&#10;" />
-                <line_break loc="334..335" text="&#10;" />
-                <line_break loc="357..358" text="&#10;" />
-                <line_break loc="375..376" text="&#10;" />
-                <line_break loc="390..391" text="&#10;" />
+                <line_break loc="28..29" text="&#10;" />
+                <line_break loc="58..59" text="&#10;" />
+                <line_break loc="87..88" text="&#10;" />
+                <line_break loc="113..114" text="&#10;" />
+                <line_break loc="150..151" text="&#10;" />
+                <line_break loc="173..174" text="&#10;" />
+                <line_break loc="199..200" text="&#10;" />
+                <line_break loc="242..243" text="&#10;" />
+                <line_break loc="284..285" text="&#10;" />
+                <line_break loc="329..330" text="&#10;" />
+                <line_break loc="352..353" text="&#10;" />
+                <line_break loc="370..371" text="&#10;" />
+                <line_break loc="385..386" text="&#10;" />
             </line_breaks>
             <comments />
             <dson_keys />

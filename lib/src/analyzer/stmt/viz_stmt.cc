@@ -243,7 +243,11 @@ void VizComponent::PrintScript(std::ostream& out) const {
         out << " " << sx::VizComponentTypeModifierTypeTable()->names[i];
     }
     // Print the type name
-    out << " " << sx::VizComponentTypeTypeTable()->names[static_cast<uint32_t>(type_)] << " ";
+    if (type_ == sx::VizComponentType::VEGA) {
+        out << " ";
+    } else {
+        out << " " << sx::VizComponentTypeTypeTable()->names[static_cast<uint32_t>(type_)] << " ";
+    }
 
     // Create document writer
     json::DocumentWriter writer{viz_stmt_.instance_, node_id_, ast_};

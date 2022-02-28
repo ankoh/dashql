@@ -27,7 +27,7 @@ VIZ covid_history_json USING JSON (
 LOAD covid_history FROM covid_history_json USING JSON;
 
 -- Display infections as line chart
-VIZ covid_history USING VEGA (
+VIZ covid_history USING (
     title = 'Covid Total Positive',
     position = (row = 6, column = 0, width = 12, height = 4),
     mark = 'line',
