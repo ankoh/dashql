@@ -102,7 +102,7 @@ export abstract class VizTaskLogic extends ProgramTaskLogic {
                 case proto.syntax.VizComponentType.LINE:
                 case proto.syntax.VizComponentType.PIE:
                 case proto.syntax.VizComponentType.SCATTER:
-                case proto.syntax.VizComponentType.VEGA:
+                case proto.syntax.VizComponentType.SPEC:
                     require = model.CardRendererType.BUILTIN_VEGA;
                     break;
                 case proto.syntax.VizComponentType.JSON:
