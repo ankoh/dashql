@@ -30,7 +30,7 @@ const tests: VizComposerTest[] = [
     {
         name: 'vega/line/m5',
         query: `
-VIZ foo USING VEGA (
+VIZ foo USING (
     title = 'Line Chart',
     position = (row = 0, column = 6, width = 6, height = 4),
     mark = 'line',

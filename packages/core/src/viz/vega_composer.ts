@@ -188,7 +188,7 @@ export class VegaComposer {
         options: any = null,
     ): void {
         switch (type) {
-            case proto.syntax.VizComponentType.VEGA: {
+            case proto.syntax.VizComponentType.SPEC: {
                 this._inputVegaLiteSpec.transform = options.transform;
                 const layer = { ...options };
                 delete layer.transform;
