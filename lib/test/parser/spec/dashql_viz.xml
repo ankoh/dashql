@@ -214,7 +214,7 @@
                     <node type="OBJECT_DASHQL_VIZ" loc="13..376" text="VIZ foo US..         )">
                         <node key="DASHQL_VIZ_COMPONENTS">
                             <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="26..376" text=" (&#10;       ..         )">
-                                <node key="DASHQL_VIZ_COMPONENT_TYPE" value="VEGA" />
+                                <node key="DASHQL_VIZ_COMPONENT_TYPE" value="SPEC" />
                                 <node key="DSON_ENCODING" type="OBJECT_DSON" loc="86..362" text="(&#10;        ..         )">
                                     <node key="DSON_X" type="OBJECT_DSON" loc="112..212" text="(&#10;        ..         )">
                                         <node key="DSON_FIELD" type="OBJECT_SQL_COLUMN_REF" loc="146..147" text="a">
@@ -289,7 +289,7 @@
                     <node type="OBJECT_DASHQL_VIZ" loc="13..389" text="VIZ foo US..         )">
                         <node key="DASHQL_VIZ_COMPONENTS">
                             <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="26..389" text=" (&#10;       ..         )">
-                                <node key="DASHQL_VIZ_COMPONENT_TYPE" value="VEGA" />
+                                <node key="DASHQL_VIZ_COMPONENT_TYPE" value="SPEC" />
                                 <node key="DSON_ENCODING" type="OBJECT_DSON" loc="86..375" text="(&#10;        ..         )">
                                     <node key="DSON_X" type="OBJECT_DSON" loc="112..212" text="(&#10;        ..         )">
                                         <node key="DSON_FIELD" type="OBJECT_SQL_COLUMN_REF" loc="146..147" text="a">
@@ -360,7 +360,7 @@
                     <node type="OBJECT_DASHQL_VIZ" loc="13..384" text="VIZ foo US..         )">
                         <node key="DASHQL_VIZ_COMPONENTS">
                             <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="26..384" text=" (&#10;       ..         )">
-                                <node key="DASHQL_VIZ_COMPONENT_TYPE" value="VEGA" />
+                                <node key="DASHQL_VIZ_COMPONENT_TYPE" value="SPEC" />
                                 <node key="DSON_ENCODING" type="OBJECT_DSON" loc="86..370" text="(&#10;        ..         )">
                                     <node key="DSON_X" type="OBJECT_DSON" loc="112..172" text="(&#10;        ..         )">
                                         <node key="DSON_FIELD" type="OBJECT_SQL_COLUMN_REF" loc="146..149" text="age">

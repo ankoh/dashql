@@ -243,7 +243,7 @@ void VizComponent::PrintScript(std::ostream& out) const {
         out << " " << sx::VizComponentTypeModifierTypeTable()->names[i];
     }
     // Print the type name
-    if (type_ == sx::VizComponentType::VEGA) {
+    if (type_ == sx::VizComponentType::SPEC) {
         out << " ";
     } else {
         out << " " << sx::VizComponentTypeTypeTable()->names[static_cast<uint32_t>(type_)] << " ";

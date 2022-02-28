@@ -191,7 +191,7 @@
                     <node type="OBJECT_DASHQL_VIZ" loc="13..360" text="VIZ foo US..         )">
                         <node key="DASHQL_VIZ_COMPONENTS">
                             <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="26..360" text=" (&#10;       ..         )">
-                                <node key="DASHQL_VIZ_COMPONENT_TYPE" value="VEGA" />
+                                <node key="DASHQL_VIZ_COMPONENT_TYPE" value="SPEC" />
                                 <node key="DSON_POSITION" type="OBJECT_DSON" loc="94..138" text="(row = 0, ..eight = 4)">
                                     <node key="DSON_ROW" loc="101..102" text="0" />
                                     <node key="DSON_COLUMN" loc="113..114" text="0" />
@@ -597,7 +597,7 @@
                     <node type="OBJECT_DASHQL_VIZ" loc="1413..2095" text="VIZ Studen..         )">
                         <node key="DASHQL_VIZ_COMPONENTS">
                             <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="1436..2095" text=" (&#10;       ..         )">
-                                <node key="DASHQL_VIZ_COMPONENT_TYPE" value="VEGA" />
+                                <node key="DASHQL_VIZ_COMPONENT_TYPE" value="SPEC" />
                                 <node key="DSON_POSITION" type="OBJECT_DSON" loc="1504..1548" text="(row = 0, ..eight = 4)">
                                     <node key="DSON_ROW" loc="1511..1512" text="0" />
                                     <node key="DSON_COLUMN" loc="1523..1524" text="0" />
@@ -638,7 +638,7 @@
                     <node type="OBJECT_DASHQL_VIZ" loc="2146..2760" text="VIZ SWSCou..         )">
                         <node key="DASHQL_VIZ_COMPONENTS">
                             <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="2165..2760" text=" (&#10;       ..         )">
-                                <node key="DASHQL_VIZ_COMPONENT_TYPE" value="VEGA" />
+                                <node key="DASHQL_VIZ_COMPONENT_TYPE" value="SPEC" />
                                 <node key="DSON_POSITION" type="OBJECT_DSON" loc="2236..2280" text="(row = 0, ..eight = 4)">
                                     <node key="DSON_ROW" loc="2243..2244" text="0" />
                                     <node key="DSON_COLUMN" loc="2255..2256" text="6" />
