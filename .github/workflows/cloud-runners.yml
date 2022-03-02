@@ -12,7 +12,7 @@ jobs:
         name: Clang-Format
         runs-on: ubuntu-latest
         steps:
-            - uses: actions/checkout@v2
+            - uses: actions/checkout@v3
 
             - name: Prepare repository
               uses: ankoh/dashql-ci-env@v0.7

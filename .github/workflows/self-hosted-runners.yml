@@ -12,7 +12,7 @@ jobs:
         name: Clang-Format
         runs-on: self-hosted
         steps:
-            - uses: actions/checkout@v2
+            - uses: actions/checkout@v3
 
             - name: Prepare repository
               uses: ./actions/image
@@ -34,7 +34,7 @@ jobs:
         name: ESLint
         runs-on: self-hosted
         steps:
-            - uses: actions/checkout@v2
+            - uses: actions/checkout@v3
 
             - name: Prepare repository
               uses: ./actions/image
@@ -57,7 +57,7 @@ jobs:
             - clang_format
             - eslint
         steps:
-            - uses: actions/checkout@v2
+            - uses: actions/checkout@v3
 
             - name: Prepare repository
               uses: ./actions/image
@@ -124,7 +124,7 @@ jobs:
             - clang_format
             - eslint
         steps:
-            - uses: actions/checkout@v2
+            - uses: actions/checkout@v3
 
             - name: Prepare repository
               uses: ./actions/image
@@ -172,7 +172,7 @@ jobs:
             - linux_x86_release
 
         steps:
-            - uses: actions/checkout@v2
+            - uses: actions/checkout@v3
 
             - name: Prepare repository
               uses: ./actions/image
