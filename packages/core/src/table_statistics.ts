@@ -10,7 +10,7 @@ export class TableStatisticsRequest {
     /// The statistics type
     _key: model.TableStatisticsKey;
     /// The promise resolvers
-    _promiseResolvers: ((value: arrow.Column) => void)[];
+    _promiseResolvers: ((value: arrow.Vector) => void)[];
     /// The promise rejecters
     _promiseRejecters: ((e: any) => void)[];
     /// The value id
@@ -40,9 +40,9 @@ export interface TableStatisticsResolver {
     /// Resolve the table info
     resolveTableMetadata(): model.TableMetadata | null;
     /// Request table statistics
-    request(type: model.TableStatisticsType, columnId: number): Promise<arrow.Column>;
+    request(type: model.TableStatisticsType, columnId: number): Promise<arrow.Vector>;
     /// Evaluate table statistics
-    evaluate(): Promise<Map<model.TableStatisticsKey, arrow.Column>>;
+    evaluate(): Promise<Map<model.TableStatisticsKey, arrow.Vector>>;
 }
 
 /// A queue for table statistics
@@ -104,7 +104,7 @@ export class TableStatistics implements TableStatisticsResolver {
     }
 
     /// Request table statistics
-    public async request(type: model.TableStatisticsType, columnId = 0): Promise<arrow.Column> {
+    public async request(type: model.TableStatisticsType, columnId = 0): Promise<arrow.Vector> {
         const key = model.buildTableStatisticsKey(type, columnId);
         const prev = this._requests.get(key);
         const table = this._database.metadata.tables.get(this._tableName);
@@ -132,9 +132,9 @@ export class TableStatistics implements TableStatisticsResolver {
         }
     }
 
-    public async evaluate(): Promise<Map<model.TableStatisticsKey, arrow.Column>> {
+    public async evaluate(): Promise<Map<model.TableStatisticsKey, arrow.Vector>> {
         // Resolve the table info
-        const stats: Map<model.TableStatisticsKey, arrow.Column> = new Map();
+        const stats: Map<model.TableStatisticsKey, arrow.Vector> = new Map();
         const table = this._database.metadata.tables.get(this._tableName);
         if (!table) return stats;
 
@@ -146,7 +146,7 @@ export class TableStatistics implements TableStatisticsResolver {
                 const data = await this._database.use(async (conn: duckdb.AsyncDuckDBConnection) => {
                     return await conn.query(query);
                 });
-                if (data.count() == 0) {
+                if (data.numRows == 0) {
                     // Received no values, reject all requests
                     for (const req of this._associativeAggregates) {
                         for (const reject of req._promiseRejecters) {
@@ -158,7 +158,7 @@ export class TableStatistics implements TableStatisticsResolver {
                     // Update the statistics
                     for (const req of this._associativeAggregates) {
                         if (req._valueId >= data.numCols) continue;
-                        const col = data.getColumnAt(req._valueId);
+                        const col = data.getChildAt(req._valueId);
                         if (!col) continue;
                         stats.set(req.key, col);
                     }
@@ -181,7 +181,7 @@ export class TableStatistics implements TableStatisticsResolver {
                 const result = await this._database.use(async (conn: duckdb.AsyncDuckDBConnection) => {
                     return await conn.query(query);
                 });
-                stats.set(req.key, result.getColumnAt(0)!);
+                stats.set(req.key, result.getChildAt(0)!);
             } catch (e) {
                 // Reject all promises
                 for (const reject of req._promiseRejecters) {

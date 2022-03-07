@@ -8,26 +8,17 @@ import { fileURLToPath } from 'url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ANALYZER_WASM = path.resolve(__dirname, '../../src/analyzer/analyzer_wasm.wasm');
 const JMESPATH_WASM = path.resolve(__dirname, '../../src/jmespath/jmespath_wasm.wasm');
-const DUCKDB_BUNDLES: duckdb.DuckDBBundles = {
-    mvp: {
-        mainModule: path.resolve(__dirname, '../../../../node_modules/@duckdb/duckdb-wasm/dist/duckdb.wasm'),
-        mainWorker: path.resolve(__dirname, '../../../../node_modules/@duckdb/duckdb-wasm/dist/duckdb-node.worker.cjs'),
-    },
-    next: {
-        mainModule: path.resolve(__dirname, '../../../../node_modules/@duckdb/duckdb-wasm/dist/duckdb-next.wasm'),
-        mainWorker: path.resolve(
-            __dirname,
-            '../../../../node_modules/@duckdb/duckdb-wasm/dist/duckdb-node-next.worker.cjs',
-        ),
-    },
-};
+const DUCKDB_WASM = path.resolve(__dirname, '../../../../node_modules/@duckdb/duckdb-wasm/dist/duckdb-eh.wasm');
+const DUCKDB_WORKER = path.resolve(
+    __dirname,
+    '../../../../node_modules/@duckdb/duckdb-wasm/dist/duckdb-node-eh.worker.cjs',
+);
 
 export async function initDuckDB(): Promise<duckdb.AsyncDuckDB> {
-    const config = await duckdb.selectBundle(DUCKDB_BUNDLES);
     const logger = new duckdb.VoidLogger();
-    const worker = new Worker(config.mainWorker!);
+    const worker = new Worker(DUCKDB_WORKER);
     const db = new duckdb.AsyncDuckDB(logger, worker);
-    await db.instantiate(config.mainModule, config.pthreadWorker);
+    await db.instantiate(DUCKDB_WASM);
     return db;
 }
 

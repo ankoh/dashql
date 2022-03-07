@@ -114,7 +114,7 @@ export class DatabaseClient {
         qualifiedName: string,
         type: TableStatisticsType,
         columnId = 0,
-    ): Promise<arrow.Column> {
+    ): Promise<arrow.Vector> {
         let queue = this._statisticsQueues.get(qualifiedName);
         if (!queue) {
             queue = new TableStatistics(this, qualifiedName);
@@ -204,7 +204,7 @@ export class DatabaseClient {
             tableType: TableType.TABLE,
             tableID: null,
             script: null,
-            statistics: Immutable.Map<TableStatisticsType, arrow.Column>(),
+            statistics: Immutable.Map<TableStatisticsType, arrow.Vector>(),
             ...info,
             columnNames,
             columnTypes,

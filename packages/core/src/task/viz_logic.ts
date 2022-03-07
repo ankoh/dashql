@@ -20,7 +20,7 @@ export abstract class VizTaskLogic extends ProgramTaskLogic {
     /// The table (if needed)
     _table: model.TableMetadata | null = null;
     /// The promise to get the row count (if needed)
-    _rowCount: Promise<arrow.Column> | null = null;
+    _rowCount: Promise<arrow.Vector> | null = null;
 
     constructor(task_id: model.TaskHandle, task: proto.task.ProgramTask, statement: model.Statement) {
         super(task_id, task, statement);

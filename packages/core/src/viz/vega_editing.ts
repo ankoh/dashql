@@ -17,7 +17,7 @@ export class ResolveMinMaxDomain extends VegaLiteEditOperation {
     /// The domain object
     _out: model.DomainValues;
     /// The promises
-    _promises: Promise<arrow.Column>[];
+    _promises: Promise<arrow.Vector>[];
 
     constructor(stats: TableStatisticsResolver, attribute: number, out: model.DomainValues) {
         super();
@@ -40,7 +40,7 @@ export class ResolveMinMaxDomain extends VegaLiteEditOperation {
     /// Evaluate table statistics and update the domain spec
     async apply(): Promise<void> {
         const results = await Promise.all(this._promises!);
-        switch (results[0].field.typeId) {
+        switch (results[0].type) {
             case arrow.Type.Date:
             case arrow.Type.DateMillisecond:
             case arrow.Type.DateDay:
@@ -62,7 +62,7 @@ export class ResolveCategorialDomain extends VegaLiteEditOperation {
     /// The domain object
     _out: model.DomainValues;
     /// The promise
-    _promise: Promise<arrow.Column> | null;
+    _promise: Promise<arrow.Vector> | null;
 
     constructor(stats: TableStatisticsResolver, attribute: number, out: model.DomainValues) {
         super();

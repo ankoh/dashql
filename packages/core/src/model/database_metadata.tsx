@@ -50,7 +50,7 @@ export interface TableMetadata {
     /// The column types
     readonly columnTypes: arrow.DataType[];
     /// The statistics
-    readonly statistics: Immutable.Map<TableStatisticsType, arrow.Column>;
+    readonly statistics: Immutable.Map<TableStatisticsType, arrow.Vector>;
 }
 
 /// A database metadata
@@ -70,7 +70,7 @@ export const DROP_TABLE_METADATA = Symbol('DROP_TABLE_METADATA');
 
 export type DatabaseMetadataAction =
     | Action<typeof ADD_TABLE_METADATA, [string, TableMetadata]>
-    | Action<typeof ADD_TABLE_STATS, [string, IterableIterator<[TableStatisticsType, arrow.Column]>]>
+    | Action<typeof ADD_TABLE_STATS, [string, IterableIterator<[TableStatisticsType, arrow.Vector]>]>
     | Action<typeof UPDATE_TABLE_METADATA, [string, Partial<TableMetadata>]>
     | Action<typeof DROP_TABLE_METADATA, string>;
 

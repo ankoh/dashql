@@ -116,14 +116,14 @@ describe('Task Scheduler Scenarios', () => {
                         // Match result size
                         const query = dataSpec.script;
                         const result = await dbConn.query(query);
-                        expect(result.length).toEqual(dataSpec.expected.length);
+                        expect(result.numRows).toEqual(dataSpec.expected.numRows);
                         expect(result.numCols).toEqual(dataSpec.expected.numCols);
 
                         // Match result columns
                         for (let cid = 0; cid < result.numCols; ++cid) {
-                            const resultCol = result.getColumnAt(cid);
-                            const expectedCol = dataSpec.expected.getColumnAt(cid);
-                            expect(resultCol.name).toEqual(expectedCol.name);
+                            const resultCol = result.getChildAt(cid);
+                            const expectedCol = dataSpec.expected.getChildAt(cid);
+                            expect(result.schema.fields[cid].name).toEqual(dataSpec.expected.schema.fields[cid].name);
                             expect(hashArrowColumn(resultCol)).toEqual(hashArrowColumn(expectedCol));
                         }
                     }

@@ -1,6 +1,5 @@
 import * as React from 'react';
 import * as arrow from 'apache-arrow';
-import { IterableArrayLike, RowLike } from 'apache-arrow/type';
 import { Vega } from 'react-vega';
 
 import * as v from 'vega';
@@ -58,7 +57,7 @@ interface Props {
 interface State {
     data: arrow.Table;
     spec: v.Spec | null;
-    rows: IterableArrayLike<RowLike<any>>;
+    rows: any[];
 }
 
 const deriveStateFromProps = (props: Props, prevState?: State): State => {

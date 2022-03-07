@@ -49,10 +49,10 @@ VIZ foo USING (
             ]),
             columnTypes: [DOUBLE_TYPE, DOUBLE_TYPE],
             statistics: Immutable.Map([
-                [MIN_VALUE(0), arrow.Column.new('_', arrow.Float64Vector.from([0.0]))],
-                [MAX_VALUE(0), arrow.Column.new('_', arrow.Float64Vector.from([100.0]))],
-                [MIN_VALUE(1), arrow.Column.new('_', arrow.Float64Vector.from([42.0]))],
-                [MAX_VALUE(1), arrow.Column.new('_', arrow.Float64Vector.from([2222.0]))],
+                [MIN_VALUE(0), arrow.makeVector(Float64Array.from([0.0]))],
+                [MAX_VALUE(0), arrow.makeVector(Float64Array.from([100.0]))],
+                [MIN_VALUE(1), arrow.makeVector(Float64Array.from([42.0]))],
+                [MAX_VALUE(1), arrow.makeVector(Float64Array.from([2222.0]))],
             ]),
         },
         expected: {
@@ -113,10 +113,10 @@ VIZ foo USING LINE (
             ]),
             columnTypes: [DOUBLE_TYPE, DOUBLE_TYPE],
             statistics: Immutable.Map([
-                [MIN_VALUE(0), arrow.Column.new('_', arrow.Float64Vector.from([0.0]))],
-                [MAX_VALUE(0), arrow.Column.new('_', arrow.Float64Vector.from([100.0]))],
-                [MIN_VALUE(1), arrow.Column.new('_', arrow.Float64Vector.from([42.0]))],
-                [MAX_VALUE(1), arrow.Column.new('_', arrow.Float64Vector.from([2222.0]))],
+                [MIN_VALUE(0), arrow.makeVector(Float64Array.from([0.0]))],
+                [MAX_VALUE(0), arrow.makeVector(Float64Array.from([100.0]))],
+                [MIN_VALUE(1), arrow.makeVector(Float64Array.from([42.0]))],
+                [MAX_VALUE(1), arrow.makeVector(Float64Array.from([2222.0]))],
             ]),
         },
         expected: {
@@ -173,7 +173,7 @@ class FakeStatisticsResolver implements TableStatisticsResolver {
             columnNames: [],
             columnNameMapping: new Map<string, number>(),
             columnTypes: [],
-            statistics: Immutable.Map<model.TableStatisticsType, arrow.Column>(),
+            statistics: Immutable.Map<model.TableStatisticsType, arrow.Vector>(),
             ...test.table,
         };
     }
@@ -182,7 +182,7 @@ class FakeStatisticsResolver implements TableStatisticsResolver {
         return this._table;
     }
     /// Request table statistics
-    public request(type: model.TableStatisticsType, columnId: number): Promise<arrow.Column> {
+    public request(type: model.TableStatisticsType, columnId: number): Promise<arrow.Vector> {
         const key = model.buildTableStatisticsKey(type, columnId);
         const values = this._table.statistics.get(key);
         if (values) {
@@ -191,7 +191,7 @@ class FakeStatisticsResolver implements TableStatisticsResolver {
         throw new Error(`unexpected statistics request: type=${model.TableStatisticsType[type]} column=${columnId}`);
     }
     /// Evaluate table statistics
-    public evaluate(): Promise<Map<model.TableStatisticsKey, arrow.Column>> {
+    public evaluate(): Promise<Map<model.TableStatisticsKey, arrow.Vector>> {
         return Promise.resolve(new Map(this._table.statistics.toArray()));
     }
 }

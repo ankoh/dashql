@@ -24,7 +24,7 @@ describe('DuckDB', () => {
     it('hello world', async () => {
         const table = await conn.query<{ hello_world: arrow.Int32 }>('SELECT 1::INTEGER as hello_world');
         expect(table.numCols).toBe(1);
-        expect(table.getColumnAt(0).length).toBe(1);
+        expect(table.getChildAt(0).length).toBe(1);
         const rows = table.toArray();
         expect(rows[0].hello_world).toBe(1);
     });

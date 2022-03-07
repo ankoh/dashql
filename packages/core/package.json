@@ -16,8 +16,8 @@
         "node": ">=14.13"
     },
     "dependencies": {
-        "apache-arrow": "^6.0.1",
-        "@duckdb/duckdb-wasm": "^1.12.1-dev64.0",
+        "apache-arrow": "^7.0.0",
+        "@duckdb/duckdb-wasm": "^1.13.1-dev260.0",
         "@dashql/proto": "^0.0.5",
         "@octokit/graphql": "^4.8.0",
         "@popperjs/core": "^2.11.2",

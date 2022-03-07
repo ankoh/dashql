@@ -15,7 +15,7 @@ export function cyrb53(str: string, seed = 0): number {
 }
 
 /// Hash an arrow column
-export function hashArrowColumn<R extends arrow.DataType<arrow.Type, any>>(col: arrow.Column<R> | null): number {
+export function hashArrowColumn<R extends arrow.DataType<arrow.Type, any>>(col: arrow.Vector<R> | null): number {
     if (col == null) return 0;
     let hash = 0;
     for (const v of col) {

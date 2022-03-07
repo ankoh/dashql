@@ -42,14 +42,14 @@ export const ProgramStats: React.FC<Props> = (props: Props) => {
                 console.error('failed to fetch program stats');
             }
             const dataBuffer = await response.arrayBuffer();
-            const dataTable = arrow.Table.from(dataBuffer);
+            const dataTable = arrow.tableFromIPC(dataBuffer);
             if (!isMountedRef.current) return;
 
             const dataArray = dataTable.toArray();
             if (dataArray.length == 0) return;
             setState({
                 table: dataTable,
-                trendSessions: utils.regrSlopeF64(dataTable.getColumn('sessions')),
+                trendSessions: utils.regrSlopeF64(dataTable.getChild('sessions')),
             });
         })();
     }, [props.scriptID]);
@@ -71,7 +71,7 @@ export const ProgramStats: React.FC<Props> = (props: Props) => {
     }
     return (
         <div className={cn(styles.container, props.className)}>
-            <div className={styles.prefix}>{state.table.length}d</div>
+            <div className={styles.prefix}>{state.table.numRows}d</div>
             <div className={styles.trend}>
                 <div className={styles.trend_name}>Views</div>
                 <div className={styles.trend_value}>1.19k</div>

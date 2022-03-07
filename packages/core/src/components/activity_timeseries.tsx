@@ -3,7 +3,6 @@ import * as arrow from 'apache-arrow';
 import * as v from 'vega';
 import cn from 'classnames';
 import { Field } from 'vega-lite/build/src/channeldef.js';
-import { IterableArrayLike, RowLike } from 'apache-arrow/type';
 import { LayerSpec } from 'vega-lite/build/src/spec/layer.js';
 import { TopLevel } from 'vega-lite/build/src/spec/toplevel.js';
 import { Vega } from 'react-vega';
@@ -69,7 +68,7 @@ interface ChartProps {
 interface ChartState {
     data: arrow.Table;
     spec: v.Spec | null;
-    rows: IterableArrayLike<RowLike<any>>;
+    rows: any[];
 }
 
 const deriveStateFromProps = (props: ChartProps, prevState?: ChartState): ChartState => {
@@ -137,7 +136,7 @@ export const ActivityTimeseries: React.FC<ResolverProps> = (props: ResolverProps
                 console.error('failed to fetch program stats');
             }
             const dataBuffer = await response.arrayBuffer();
-            const dataTable = arrow.Table.from(dataBuffer);
+            const dataTable = arrow.tableFromIPC(dataBuffer);
             if (!isMountedRef.current) return;
 
             const dataArray = dataTable.toArray();

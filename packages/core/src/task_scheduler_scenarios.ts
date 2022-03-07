@@ -54,10 +54,9 @@ export const SCENARIOS: Scenario[] = [
                     data: [
                         {
                             script: 'SELECT * FROM foo LIMIT 10',
-                            expected: arrow.Table.new(
-                                [arrow.Int32Vector.from(Int32Array.from([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]))],
-                                ['v'],
-                            ),
+                            expected: new arrow.Table({
+                                v: arrow.makeVector(Int32Array.from([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])),
+                            }),
                         },
                     ],
                     cards: [
@@ -95,13 +94,10 @@ export const SCENARIOS: Scenario[] = [
                     data: [
                         {
                             script: 'SELECT * FROM test LIMIT 10',
-                            expected: arrow.Table.new(
-                                [
-                                    arrow.Int32Vector.from(Int32Array.from([1, 2, 3, 4])),
-                                    arrow.Int32Vector.from(Int32Array.from([5, 6, 7, 8])),
-                                ],
-                                ['a', 'b'],
-                            ),
+                            expected: new arrow.Table({
+                                a: arrow.makeVector(Int32Array.from([1, 2, 3, 4])),
+                                b: arrow.makeVector(Int32Array.from([5, 6, 7, 8])),
+                            }),
                         },
                     ],
                     cards: [

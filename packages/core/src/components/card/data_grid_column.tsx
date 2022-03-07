@@ -49,7 +49,8 @@ export class TextColumnRenderer implements ColumnRenderer {
     }
 
     public static ReadFrom(table: model.TableMetadata, data: arrow.Table, index: number): TextColumnRenderer {
-        const column = data.getColumnAt(index)!;
+        const columnName = data.schema.fields[index].name!;
+        const column = data.getChildAt(index)!;
         let valueClassName = styles.data_value_text;
         let formatter = (v: any): string => v.toString();
         let valueDomainRatio = null;
@@ -138,19 +139,17 @@ export class TextColumnRenderer implements ColumnRenderer {
         const valueDomainRatios = [];
         let valueLengthSum = 0;
         let valueLengthMax = 0;
-        for (const chunk of column.chunks) {
-            for (const value of chunk) {
-                const text = formatter(value);
-                values.push(text);
-                valueLengthSum += text.length;
-                valueLengthMax = Math.max(valueLengthMax, text.length);
-                if (valueDomainRatio) {
-                    valueDomainRatios.push(valueDomainRatio(value));
-                }
+        for (const value of column) {
+            const text = formatter(value);
+            values.push(text);
+            valueLengthSum += text.length;
+            valueLengthMax = Math.max(valueLengthMax, text.length);
+            if (valueDomainRatio) {
+                valueDomainRatios.push(valueDomainRatio(value));
             }
         }
         return new TextColumnRenderer(
-            column.name,
+            columnName,
             valueClassName,
             values,
             valueLengthMax,
