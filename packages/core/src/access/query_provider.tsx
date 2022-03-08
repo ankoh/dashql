@@ -1,5 +1,5 @@
 import * as React from 'react';
-import * as arrow from 'apache-arrow';
+import { Table } from 'apache-arrow/table';
 import { useDatabaseClient } from '../database_client';
 
 export interface Query {
@@ -17,7 +17,7 @@ interface Props {
     /// The in-flight component
     inFlightComponent?: ((query: Query) => React.ReactElement) | null;
     /// The children
-    children: (result: arrow.Table) => React.ReactElement;
+    children: (result: Table) => React.ReactElement;
 }
 
 interface QueryState {
@@ -26,7 +26,7 @@ interface QueryState {
     /// The result query
     resultQuery: Query | null;
     /// The result data
-    resultData: arrow.Table | null;
+    resultData: Table | null;
     /// The error
     error: string | null;
 }
@@ -83,7 +83,7 @@ export const QueryProvider: React.FC<Props> = (props: Props) => {
             queryInFlight: query,
         });
         promise
-            .then((result: arrow.Table): void => {
+            .then((result: Table): void => {
                 if (!isMountedRef.current) return;
                 setQueryState({
                     queryInFlight: null,

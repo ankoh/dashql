@@ -1,5 +1,5 @@
 import * as React from 'react';
-import * as arrow from 'apache-arrow';
+import { Table } from 'apache-arrow/table';
 import * as model from '../../model';
 import * as access from '../../access';
 import { withAutoSizer } from '../../utils/autosizer';
@@ -12,7 +12,7 @@ interface VegaRendererProps {
 }
 
 interface VegaWithRowsProps {
-    data: arrow.Table;
+    data: Table;
     width: number;
     height: number;
     vegaSpec: any;

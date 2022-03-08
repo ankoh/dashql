@@ -1,4 +1,5 @@
-import * as arrow from 'apache-arrow';
+import { Table } from 'apache-arrow/table';
+import { makeVector } from 'apache-arrow/vector';
 import * as model from './model';
 import * as proto from '@dashql/proto';
 import { BinaryObject, InputValue, StatementStatus } from './model';
@@ -7,7 +8,7 @@ const COMPLETED = proto.task.TaskStatusCode.COMPLETED;
 
 interface DatabaseTest {
     script: string;
-    expected: arrow.Table;
+    expected: Table;
 }
 
 interface HTTPRequestMock {
@@ -54,8 +55,8 @@ export const SCENARIOS: Scenario[] = [
                     data: [
                         {
                             script: 'SELECT * FROM foo LIMIT 10',
-                            expected: new arrow.Table({
-                                v: arrow.makeVector(Int32Array.from([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])),
+                            expected: new Table({
+                                v: makeVector(Int32Array.from([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])),
                             }),
                         },
                     ],
@@ -94,9 +95,9 @@ export const SCENARIOS: Scenario[] = [
                     data: [
                         {
                             script: 'SELECT * FROM test LIMIT 10',
-                            expected: new arrow.Table({
-                                a: arrow.makeVector(Int32Array.from([1, 2, 3, 4])),
-                                b: arrow.makeVector(Int32Array.from([5, 6, 7, 8])),
+                            expected: new Table({
+                                a: makeVector(Int32Array.from([1, 2, 3, 4])),
+                                b: makeVector(Int32Array.from([5, 6, 7, 8])),
                             }),
                         },
                     ],

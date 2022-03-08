@@ -1,5 +1,5 @@
 import * as React from 'react';
-import * as arrow from 'apache-arrow';
+import { Table } from 'apache-arrow/table';
 import { useDatabaseClient } from '../database_client';
 
 type RequestScanFn = (request: ScanRequest) => void;
@@ -72,7 +72,7 @@ export interface ScanResult {
     /// The scan request
     request: ScanRequest;
     /// The query result buffer
-    result: arrow.Table;
+    result: Table;
 }
 
 interface Props {

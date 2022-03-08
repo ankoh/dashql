@@ -1,5 +1,7 @@
 import * as Immutable from 'immutable';
 import * as arrow from 'apache-arrow';
+import { Float64 } from 'apache-arrow/type';
+import { makeVector } from 'apache-arrow/vector';
 import * as analyzer from '../analyzer/analyzer_node';
 import * as proto from '@dashql/proto';
 import * as viz from './vega_composer';
@@ -19,8 +21,6 @@ interface VizComposerTest {
     table: Partial<model.TableMetadata> & { nameQualified: string };
     expected: VizComposerTestExpectation;
 }
-
-const DOUBLE_TYPE = new arrow.Float64();
 
 //const ROW_COUNT = () => model.buildTableStatisticsKey(model.TableStatisticsType.COUNT_STAR, 0);
 const MAX_VALUE = (col: number) => model.buildTableStatisticsKey(model.TableStatisticsType.MAXIMUM_VALUE, col);
@@ -47,12 +47,12 @@ VIZ foo USING (
                 ['x', 0],
                 ['y', 1],
             ]),
-            columnTypes: [DOUBLE_TYPE, DOUBLE_TYPE],
+            columnTypes: [new Float64(), new Float64()],
             statistics: Immutable.Map([
-                [MIN_VALUE(0), arrow.makeVector(Float64Array.from([0.0]))],
-                [MAX_VALUE(0), arrow.makeVector(Float64Array.from([100.0]))],
-                [MIN_VALUE(1), arrow.makeVector(Float64Array.from([42.0]))],
-                [MAX_VALUE(1), arrow.makeVector(Float64Array.from([2222.0]))],
+                [MIN_VALUE(0), makeVector(Float64Array.from([0.0]))],
+                [MAX_VALUE(0), makeVector(Float64Array.from([100.0]))],
+                [MIN_VALUE(1), makeVector(Float64Array.from([42.0]))],
+                [MAX_VALUE(1), makeVector(Float64Array.from([2222.0]))],
             ]),
         },
         expected: {
@@ -111,12 +111,12 @@ VIZ foo USING LINE (
                 ['x', 0],
                 ['y', 1],
             ]),
-            columnTypes: [DOUBLE_TYPE, DOUBLE_TYPE],
+            columnTypes: [new Float64(), new Float64()],
             statistics: Immutable.Map([
-                [MIN_VALUE(0), arrow.makeVector(Float64Array.from([0.0]))],
-                [MAX_VALUE(0), arrow.makeVector(Float64Array.from([100.0]))],
-                [MIN_VALUE(1), arrow.makeVector(Float64Array.from([42.0]))],
-                [MAX_VALUE(1), arrow.makeVector(Float64Array.from([2222.0]))],
+                [MIN_VALUE(0), makeVector(Float64Array.from([0.0]))],
+                [MAX_VALUE(0), makeVector(Float64Array.from([100.0]))],
+                [MIN_VALUE(1), makeVector(Float64Array.from([42.0]))],
+                [MAX_VALUE(1), makeVector(Float64Array.from([2222.0]))],
             ]),
         },
         expected: {

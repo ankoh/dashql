@@ -1,6 +1,6 @@
 import * as React from 'react';
 import * as model from '../model';
-import * as arrow from 'apache-arrow';
+import { Table } from 'apache-arrow/table';
 import { QueryProvider, Query } from './query_provider';
 
 // We run single-threaded at the moment, so deterministic output > true random temp names. (easy caching!)
@@ -19,7 +19,7 @@ interface Props {
     /// The in-flight component
     inFlightComponent?: ((query: Query) => React.ReactElement) | null;
     /// The children
-    children: (result: arrow.Table) => React.ReactElement;
+    children: (result: Table) => React.ReactElement;
 }
 
 export const M5Provider: React.FC<Props> = (props: Props) => {

@@ -1,4 +1,5 @@
 import * as arrow from 'apache-arrow';
+import { Table } from 'apache-arrow/table';
 import * as model from '../../model';
 import * as access from '../../access';
 import classNames from 'classnames';
@@ -48,7 +49,7 @@ export class TextColumnRenderer implements ColumnRenderer {
         this.valueDomainRatios = valueDomainRatios;
     }
 
-    public static ReadFrom(table: model.TableMetadata, data: arrow.Table, index: number): TextColumnRenderer {
+    public static ReadFrom(table: model.TableMetadata, data: Table, index: number): TextColumnRenderer {
         const columnName = data.schema.fields[index].name!;
         const column = data.getChildAt(index)!;
         let valueClassName = styles.data_value_text;

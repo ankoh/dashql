@@ -1,5 +1,6 @@
 import * as React from 'react';
-import * as arrow from 'apache-arrow';
+import { Table } from 'apache-arrow/table';
+import { tableFromIPC } from 'apache-arrow/ipc/serialization';
 import * as v from 'vega';
 import cn from 'classnames';
 import { Field } from 'vega-lite/build/src/channeldef.js';
@@ -62,11 +63,11 @@ async function compileVega(): Promise<v.Spec> {
 }
 
 interface ChartProps {
-    data: arrow.Table;
+    data: Table;
 }
 
 interface ChartState {
-    data: arrow.Table;
+    data: Table;
     spec: v.Spec | null;
     rows: any[];
 }
@@ -112,7 +113,7 @@ interface ResolverProps {
 }
 
 interface ResolverState {
-    table: arrow.Table;
+    table: Table;
 }
 
 export const ActivityTimeseries: React.FC<ResolverProps> = (props: ResolverProps) => {
@@ -136,7 +137,7 @@ export const ActivityTimeseries: React.FC<ResolverProps> = (props: ResolverProps
                 console.error('failed to fetch program stats');
             }
             const dataBuffer = await response.arrayBuffer();
-            const dataTable = arrow.tableFromIPC(dataBuffer);
+            const dataTable = tableFromIPC(dataBuffer);
             if (!isMountedRef.current) return;
 
             const dataArray = dataTable.toArray();

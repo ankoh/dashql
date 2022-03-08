@@ -1,5 +1,6 @@
 import * as model from '../model';
-import * as arrow from 'apache-arrow';
+import { Vector } from 'apache-arrow/vector';
+import { Type } from 'apache-arrow/enum';
 import { TableStatisticsResolver } from '../table_statistics';
 
 export abstract class VegaLiteEditOperation {
@@ -17,7 +18,7 @@ export class ResolveMinMaxDomain extends VegaLiteEditOperation {
     /// The domain object
     _out: model.DomainValues;
     /// The promises
-    _promises: Promise<arrow.Vector>[];
+    _promises: Promise<Vector>[];
 
     constructor(stats: TableStatisticsResolver, attribute: number, out: model.DomainValues) {
         super();
@@ -41,9 +42,9 @@ export class ResolveMinMaxDomain extends VegaLiteEditOperation {
     async apply(): Promise<void> {
         const results = await Promise.all(this._promises!);
         switch (results[0].type) {
-            case arrow.Type.Date:
-            case arrow.Type.DateMillisecond:
-            case arrow.Type.DateDay:
+            case Type.Date:
+            case Type.DateMillisecond:
+            case Type.DateDay:
                 this._out[0] = results[0].get(0).getTime();
                 this._out[1] = results[1].get(0).getTime();
                 break;
@@ -62,7 +63,7 @@ export class ResolveCategorialDomain extends VegaLiteEditOperation {
     /// The domain object
     _out: model.DomainValues;
     /// The promise
-    _promise: Promise<arrow.Vector> | null;
+    _promise: Promise<Vector> | null;
 
     constructor(stats: TableStatisticsResolver, attribute: number, out: model.DomainValues) {
         super();

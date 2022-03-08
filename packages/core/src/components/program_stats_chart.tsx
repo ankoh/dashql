@@ -1,5 +1,5 @@
 import * as React from 'react';
-import * as arrow from 'apache-arrow';
+import { Table } from 'apache-arrow/table';
 import { Vega } from 'react-vega';
 
 import * as v from 'vega';
@@ -49,13 +49,13 @@ async function compileVega(): Promise<v.Spec> {
 }
 
 interface Props {
-    data: arrow.Table;
+    data: Table;
     width: number;
     height: number;
 }
 
 interface State {
-    data: arrow.Table;
+    data: Table;
     spec: v.Spec | null;
     rows: any[];
 }

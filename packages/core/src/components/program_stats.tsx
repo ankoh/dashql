@@ -1,5 +1,6 @@
 import * as React from 'react';
-import * as arrow from 'apache-arrow';
+import { Table } from 'apache-arrow/table';
+import { tableFromIPC } from 'apache-arrow/ipc/serialization';
 import * as utils from '../utils';
 import { ProgramStatsSessionCountChart } from './program_stats_chart';
 import cn from 'classnames';
@@ -16,7 +17,7 @@ interface Props {
 }
 
 interface State {
-    table: arrow.Table;
+    table: Table;
     trendSessions: number;
 }
 
@@ -42,7 +43,7 @@ export const ProgramStats: React.FC<Props> = (props: Props) => {
                 console.error('failed to fetch program stats');
             }
             const dataBuffer = await response.arrayBuffer();
-            const dataTable = arrow.tableFromIPC(dataBuffer);
+            const dataTable = tableFromIPC(dataBuffer);
             if (!isMountedRef.current) return;
 
             const dataArray = dataTable.toArray();

@@ -1,7 +1,7 @@
 import * as proto from '@dashql/proto';
 import * as model from '../model';
-import * as arrow from 'apache-arrow';
 import * as v from 'vega';
+import { Type } from 'apache-arrow/enum';
 
 import { TableStatisticsResolver } from '../table_statistics';
 import { VegaLiteEditOperation, ResolveMinMaxDomain } from './vega_editing';
@@ -310,21 +310,21 @@ export class VegaComposer {
         const analyzeFieldType = (enc: any, columnID: number) => {
             if (!isTypedFieldDef(enc)) {
                 switch (table.columnTypes[columnID].typeId) {
-                    case arrow.Type.Int:
-                    case arrow.Type.Float:
-                    case arrow.Type.Decimal:
-                    case arrow.Type.Bool:
+                    case Type.Int:
+                    case Type.Float:
+                    case Type.Decimal:
+                    case Type.Bool:
                         enc.type = 'quantitative';
                         break;
 
-                    case arrow.Type.Utf8:
+                    case Type.Utf8:
                         enc.type = 'nominal';
                         break;
 
-                    case arrow.Type.Date:
-                    case arrow.Type.Time:
-                    case arrow.Type.Timestamp:
-                    case arrow.Type.Interval:
+                    case Type.Date:
+                    case Type.Time:
+                    case Type.Timestamp:
+                    case Type.Interval:
                         enc.type = 'temporal';
                         break;
 
