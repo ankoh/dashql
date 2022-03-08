@@ -1,6 +1,6 @@
+import * as rd from '@duckdb/react-duckdb';
 import * as React from 'react';
 import { Table } from 'apache-arrow/table';
-import { useDatabaseClient } from '../database_client';
 
 type RequestScanFn = (request: ScanRequest) => void;
 
@@ -96,13 +96,25 @@ interface State {
 }
 
 export const ScanProvider: React.FC<Props> = (props: Props) => {
-    const database = useDatabaseClient();
+    const db = rd.useDuckDB();
+    const conn = rd.useDuckDBConnection();
+    const connDialer = rd.useDuckDBConnectionDialer();
+
     const [state, dispatchState] = React.useState<State>({
         queryQueued: props.request,
         queryInFlightPromise: null,
         queryInFlight: null,
         availableResult: null,
     });
+
+    React.useEffect(() => {
+        if (db == null) {
+            return;
+        } else if (conn == null && connDialer != null) {
+            connDialer();
+        }
+    }, [db, conn, connDialer]);
+    if (conn == null) return <div />;
 
     // Detect unmount
     const isMountedRef = React.useRef(true);
@@ -145,9 +157,7 @@ export const ScanProvider: React.FC<Props> = (props: Props) => {
             if (request.sample > 0) {
                 query += ` USING SAMPLE RESERVOIR (${Math.trunc(request.sample)} ROWS)`;
             }
-            const result = await database.use(async conn => {
-                return await conn.query(query);
-            });
+            const result = await conn.query(query);
             return {
                 request,
                 result,

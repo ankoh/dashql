@@ -74,8 +74,7 @@ export class FetchTaskLogic extends ProgramTaskLogic {
         });
 
         // Register as blob in database
-        const db = ctx.database;
-        await registerBinaryObject(name, obj, db.instance);
+        await registerBinaryObject(name, obj, ctx.databaseConnection.bindings);
 
         // Store as plan object
         ctx.planContextDiff.push({

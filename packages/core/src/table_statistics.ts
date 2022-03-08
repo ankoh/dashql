@@ -1,6 +1,5 @@
 // Copyright (c) 2021 The DashQL Authors
 
-import * as duckdb from '@duckdb/duckdb-wasm';
 import * as model from './model';
 import * as arrow from 'apache-arrow';
 import { DatabaseClient } from './database_client';
@@ -143,9 +142,7 @@ export class TableStatistics implements TableStatisticsResolver {
             try {
                 // Query the associative aggregates
                 const query = this.buildAssociativeAggregateQuery(table);
-                const data = await this._database.use(async (conn: duckdb.AsyncDuckDBConnection) => {
-                    return await conn.query(query);
-                });
+                const data = await this._database._connection.query(query);
                 if (data.numRows == 0) {
                     // Received no values, reject all requests
                     for (const req of this._associativeAggregates) {
@@ -178,9 +175,7 @@ export class TableStatistics implements TableStatisticsResolver {
             try {
                 // Evaluate the query
                 const query = this.buildStandaloneQuery(table, req);
-                const result = await this._database.use(async (conn: duckdb.AsyncDuckDBConnection) => {
-                    return await conn.query(query);
-                });
+                const result = await this._database._connection.query(query);
                 stats.set(req.key, result.getChildAt(0)!);
             } catch (e) {
                 // Reject all promises

@@ -1,7 +1,6 @@
 // Copyright (c) 2021 The DashQL Authors
 
 import * as proto from '@dashql/proto';
-import * as duckdb from '@duckdb/duckdb-wasm';
 import * as model from '../model';
 import { TaskHandle } from '../model';
 import { ProgramTaskLogic, SetupTaskLogic } from './task_logic';
@@ -18,17 +17,12 @@ export class ViewCreateTaskLogic extends ProgramTaskLogic {
         const script = this.script;
         if (!script) return;
 
-        await ctx.database.use(async (c: duckdb.AsyncDuckDBConnection) => {
-            /// First run the query
-            await c.query(script);
-
-            // Return plan object
-            return await ctx.database.collectTableMetadata(c, {
-                nameQualified: this.buffer.nameQualified() || '',
-                tableType: model.TableType.VIEW,
-                tableID: this.buffer.objectId(),
-                script,
-            });
+        await ctx.databaseConnection.query(script);
+        await ctx.database.collectTableMetadata(ctx.databaseConnection, {
+            nameQualified: this.buffer.nameQualified() || '',
+            tableType: model.TableType.VIEW,
+            tableID: this.buffer.objectId(),
+            script,
         });
     }
 }
@@ -41,12 +35,9 @@ export class DropViewTaskLogic extends SetupTaskLogic {
     public prepare(_ctx: TaskExecutionContext): void {}
     public willExecute(_ctx: TaskExecutionContext): void {}
     public async execute(ctx: TaskExecutionContext): Promise<void> {
-        const db = ctx.database;
         const table = ctx.database.metadata.tables.get(this.buffer.nameQualified()!);
         if (table === undefined) return;
         const dropTarget = table.tableType == model.TableType.VIEW ? 'VIEW' : 'TABLE';
-        await db.use(async (c: duckdb.AsyncDuckDBConnection) => {
-            await c.query(`DROP ${dropTarget} IF EXISTS ${this.buffer.nameQualified()}`);
-        });
+        await ctx.databaseConnection.query(`DROP ${dropTarget} IF EXISTS ${this.buffer.nameQualified()}`);
     }
 }

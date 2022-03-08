@@ -29,8 +29,6 @@ import {
 /// bundling as electron app or when connecting to a dedicated accelerator server.
 ///
 export class DatabaseClient {
-    /// The async duckdb
-    _duckdb: duckdb.AsyncDuckDB;
     /// The connection
     _connection: duckdb.AsyncDuckDBConnection | null;
     /// The connection mutex
@@ -43,21 +41,15 @@ export class DatabaseClient {
     _metadataDispatch: Dispatch<DatabaseMetadataAction>;
 
     constructor(
-        db: duckdb.AsyncDuckDB,
+        conn: duckdb.AsyncDuckDBConnection,
         metadata: DatabaseMetadata,
         metadataDispatch: Dispatch<DatabaseMetadataAction>,
     ) {
-        this._duckdb = db;
-        this._connection = null;
+        this._connection = conn;
         this._connectionCtrlMutex = new Mutex();
         this._statisticsQueues = new Map();
         this._metadata = metadata;
         this._metadataDispatch = metadataDispatch;
-    }
-
-    /// Get the raw instance
-    public get instance(): duckdb.AsyncDuckDB {
-        return this._duckdb;
     }
     /// Get the metadata
     public get metadata(): DatabaseMetadata {
@@ -71,35 +63,6 @@ export class DatabaseClient {
         const stats = new TableStatistics(this, qualifiedTableName);
         this._statisticsQueues.set(qualifiedTableName, stats);
         return stats;
-    }
-
-    /// Use the duckdb directly
-    public useUnsafe(): duckdb.AsyncDuckDB {
-        return this._duckdb;
-    }
-    /// Use the connection
-    public use<T>(f: (conn: duckdb.AsyncDuckDBConnection) => Promise<T>): Promise<T> {
-        if (!this._connection) {
-            throw new Error('not connected');
-        }
-        return f(this._connection);
-    }
-
-    /// Disconnect the connection
-    public async disconnect(): Promise<void> {
-        return await this._connectionCtrlMutex.useAsync(async () => {
-            if (!this._connection) return;
-            await this._connection.close();
-        });
-    }
-    /// Create a new connection
-    public async connect(): Promise<duckdb.AsyncDuckDBConnection> {
-        const conn = await this._connectionCtrlMutex.useAsync(async () => {
-            if (this._connection) return this._connection;
-            return await this._duckdb.connect();
-        });
-        this._connection = conn;
-        return this._connection;
     }
 
     /// Request table statistics.
@@ -222,9 +185,9 @@ export class DatabaseClient {
     }
 
     /// Create standalone database client
-    static createWired(db: duckdb.AsyncDuckDB): DatabaseClient {
+    static createWired(conn: duckdb.AsyncDuckDBConnection): DatabaseClient {
         const state = initialDatabaseMetadata;
-        const client = new DatabaseClient(db, state, () => {});
+        const client = new DatabaseClient(conn, state, () => {});
         const dispatch = (action: DatabaseMetadataAction) => {
             client._metadata = reduceDatabaseMetadata(client._metadata, action);
         };

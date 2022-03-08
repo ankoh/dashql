@@ -1,6 +1,7 @@
 // Copyright (c) 2021 The DashQL Authors
 
 import React from 'react';
+import * as rd from '@duckdb/react-duckdb';
 import * as proto from '@dashql/proto';
 import { NativeBitmap, NativeStack, NativeMinHeap, NativeMinHeapKey, NativeMinHeapRank } from './utils';
 import { TaskLogic, ProtoTask, resolveSetupTaskLogic, resolveProgramTaskLogic } from './task';
@@ -408,9 +409,10 @@ type Props = {
 };
 
 export const TaskSchedulerDriver: React.FC<Props> = (props: Props) => {
-    // Resolve the runtime
     const logger = useLogger();
     const database = useDatabaseClient();
+    const conn = rd.useDuckDBConnection();
+    const connDialer = rd.useDuckDBConnectionDialer();
     const http = useHTTPClient();
     const jmespath = useJMESPathResolver();
     const analyzer = useAnalyzer();
@@ -420,17 +422,26 @@ export const TaskSchedulerDriver: React.FC<Props> = (props: Props) => {
     const ctx = React.useRef<TaskExecutionContext>({
         logger,
         database,
+        databaseConnection: conn,
         http,
         jmespath,
         analyzer: analyzer.value!,
         planContext,
         planContextDiff: [],
     });
+    if (ctx.current.databaseConnection !== conn) {
+        ctx.current = {
+            ...ctx.current,
+            databaseConnection: conn,
+        };
+    }
 
     // Advance the scheduler whenever there's work
     const stateMachine = React.useRef<TaskSchedulerStateMachine>(new TaskSchedulerStateMachine());
     const [locked, setLocked] = React.useState<boolean>(false);
     React.useEffect(() => {
+        // Not connected?
+        if (conn == null) return;
         // Early abort if locked or currently idle.
         // Plans are started with the SCHEDULE_PLAN action in the reducer.
         if (locked || planContext.schedulerStatus == TaskSchedulerStatus.IDLE) {
@@ -463,7 +474,15 @@ export const TaskSchedulerDriver: React.FC<Props> = (props: Props) => {
             });
             setLocked(false);
         })();
-    }, [planContext, locked]);
+    }, [planContext, locked, conn]);
+
+    React.useEffect(() => {
+        if (database == null) {
+            return;
+        } else if (conn == null && connDialer != null) {
+            connDialer();
+        }
+    }, [database, conn, connDialer]);
 
     return props.children;
 };

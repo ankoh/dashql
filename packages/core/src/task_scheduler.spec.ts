@@ -32,7 +32,7 @@ describe('Task Scheduler Scenarios', () => {
 
     beforeEach(async () => {
         dbConn = await db.connect();
-        taskCtx = await wireTaskExecutionContext(db, az, async () => jp);
+        taskCtx = await wireTaskExecutionContext(dbConn, az, async () => jp);
         httpMock = mockHTTP();
     });
 

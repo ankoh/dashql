@@ -42,43 +42,42 @@ export class LoadTaskLogic extends ProgramTaskLogic {
         }
 
         // Handle the different load method
-        await ctx.database.use(async c => {
-            const filePath = blob.nameQualified;
-            let tableType: model.TableType;
-            let tableScript: string | undefined = undefined;
-            switch (xtr.method()) {
-                case proto.syntax.LoadMethodType.PARQUET:
-                    tableScript = `CREATE VIEW ${name} AS (SELECT * FROM parquet_scan('${filePath}'));`;
-                    await c.query(tableScript);
-                    tableType = model.TableType.VIEW;
-                    break;
-                case proto.syntax.LoadMethodType.JSON:
-                    await c.insertJSONFromPath(filePath, {
-                        schema: qSchema,
-                        name: qName,
-                    });
-                    tableType = model.TableType.TABLE;
-                    break;
-                case proto.syntax.LoadMethodType.CSV:
-                    await c.insertCSVFromPath(filePath, {
-                        schema: qSchema,
-                        name: qName,
-                    });
-                    tableType = model.TableType.TABLE;
-                    break;
-                default:
-                    tableType = model.TableType.TABLE;
-                    console.warn('not implemented');
-                    break;
-            }
+        const conn = ctx.databaseConnection;
+        const filePath = blob.nameQualified;
+        let tableType: model.TableType;
+        let tableScript: string | undefined = undefined;
+        switch (xtr.method()) {
+            case proto.syntax.LoadMethodType.PARQUET:
+                tableScript = `CREATE VIEW ${name} AS (SELECT * FROM parquet_scan('${filePath}'));`;
+                await conn.query(tableScript);
+                tableType = model.TableType.VIEW;
+                break;
+            case proto.syntax.LoadMethodType.JSON:
+                await conn.insertJSONFromPath(filePath, {
+                    schema: qSchema,
+                    name: qName,
+                });
+                tableType = model.TableType.TABLE;
+                break;
+            case proto.syntax.LoadMethodType.CSV:
+                await conn.insertCSVFromPath(filePath, {
+                    schema: qSchema,
+                    name: qName,
+                });
+                tableType = model.TableType.TABLE;
+                break;
+            default:
+                tableType = model.TableType.TABLE;
+                console.warn('not implemented');
+                break;
+        }
 
-            // Return plan object
-            return await ctx.database.collectTableMetadata(c, {
-                nameQualified: this.buffer.nameQualified() || '',
-                tableType,
-                tableID: this.buffer.objectId(),
-                script: tableScript,
-            });
+        // Return plan object
+        await ctx.database.collectTableMetadata(conn, {
+            nameQualified: this.buffer.nameQualified() || '',
+            tableType,
+            tableID: this.buffer.objectId(),
+            script: tableScript,
         });
 
         ctx.logger.pushBack({

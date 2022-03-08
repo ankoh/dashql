@@ -39,9 +39,9 @@ const LaunchLogic: React.FC<Props> = (props: Props) => {
             databaseLauncher();
         } else if (database != null && !connecting.current) {
             connecting.current = true;
-            const client = new DatabaseClient(database, metadata, metadataDispatch);
             const connect = async () => {
-                await client.connect();
+                const conn = await database.connect();
+                const client = new DatabaseClient(conn, metadata, metadataDispatch);
                 setDbc(client);
             };
             connect();
