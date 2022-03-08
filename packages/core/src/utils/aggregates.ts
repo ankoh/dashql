@@ -1,6 +1,6 @@
-import * as arrow from 'apache-arrow';
+import { Vector } from 'apache-arrow/vector';
 
-export const regrSlopeBigInt = (col: arrow.Vector): number => {
+export const regrSlopeBigInt = (col: Vector): number => {
     const n = BigInt(col.length);
     let sumXY = BigInt(0);
     let sumX = BigInt(0);
@@ -19,7 +19,7 @@ export const regrSlopeBigInt = (col: arrow.Vector): number => {
     return slope;
 };
 
-export const regrSlopeF64 = (col: arrow.Vector): number => {
+export const regrSlopeF64 = (col: Vector): number => {
     const n = col.length;
     let sumXY = 0;
     let sumX = 0;

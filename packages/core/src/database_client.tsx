@@ -3,7 +3,9 @@
 import Immutable from 'immutable';
 import React from 'react';
 import * as duckdb from '@duckdb/duckdb-wasm';
-import * as arrow from 'apache-arrow';
+import * as arrowtype from 'apache-arrow/type';
+import { Vector } from 'apache-arrow/vector';
+import { TimeUnit } from 'apache-arrow/enum';
 import { TableStatisticsResolver, TableStatistics } from './table_statistics';
 import { Mutex } from './utils';
 import {
@@ -114,7 +116,7 @@ export class DatabaseClient {
         qualifiedName: string,
         type: TableStatisticsType,
         columnId = 0,
-    ): Promise<arrow.Vector> {
+    ): Promise<Vector> {
         let queue = this._statisticsQueues.get(qualifiedName);
         if (!queue) {
             queue = new TableStatistics(this, qualifiedName);
@@ -153,48 +155,50 @@ export class DatabaseClient {
     ): Promise<TableMetadata> {
         const columnNames: string[] = [];
         const columnNameMapping: Map<string, number> = new Map();
-        const columnTypes: arrow.DataType[] = [];
-        const describe = await conn.query<{ Field: arrow.Utf8; Type: arrow.Utf8 }>(`DESCRIBE ${info.nameQualified}`);
+        const columnTypes: arrowtype.DataType[] = [];
+        const describe = await conn.query<{ Field: arrowtype.Utf8; Type: arrowtype.Utf8 }>(
+            `DESCRIBE ${info.nameQualified}`,
+        );
         let column = 0;
         for (const row of describe) {
             columnNames.push(row.Field!);
             columnNameMapping.set(row.Field!, column++);
-            const mapType = (type: string): arrow.DataType => {
+            const mapType = (type: string): arrowtype.DataType => {
                 switch (type) {
                     case 'BOOLEAN':
-                        return new arrow.Bool();
+                        return new arrowtype.Bool();
                     case 'TINYINT':
-                        return new arrow.Int8();
+                        return new arrowtype.Int8();
                     case 'SMALLINT':
-                        return new arrow.Int16();
+                        return new arrowtype.Int16();
                     case 'INTEGER':
-                        return new arrow.Int32();
+                        return new arrowtype.Int32();
                     case 'BIGINT':
-                        return new arrow.Int64();
+                        return new arrowtype.Int64();
                     case 'UTINYINT':
-                        return new arrow.Uint8();
+                        return new arrowtype.Uint8();
                     case 'USMALLINT':
-                        return new arrow.Uint16();
+                        return new arrowtype.Uint16();
                     case 'UINTEGER':
-                        return new arrow.Uint32();
+                        return new arrowtype.Uint32();
                     case 'UBIGINT':
-                        return new arrow.Uint64();
+                        return new arrowtype.Uint64();
                     case 'FLOAT':
-                        return new arrow.Float32();
+                        return new arrowtype.Float32();
                     case 'HUGEINT':
-                        return new arrow.Decimal(32, 0);
+                        return new arrowtype.Decimal(32, 0);
                     case 'DOUBLE':
-                        return new arrow.Float64();
+                        return new arrowtype.Float64();
                     case 'VARCHAR':
-                        return new arrow.Utf8();
+                        return new arrowtype.Utf8();
                     case 'DATE':
-                        return new arrow.DateDay();
+                        return new arrowtype.DateDay();
                     case 'TIME':
-                        return new arrow.Time(arrow.TimeUnit.MILLISECOND, 32);
+                        return new arrowtype.Time(TimeUnit.MILLISECOND, 32);
                     case 'TIMESTAMP':
-                        return new arrow.TimeNanosecond();
+                        return new arrowtype.TimeNanosecond();
                     default:
-                        return new arrow.Null();
+                        return new arrowtype.Null();
                 }
             };
             columnTypes.push(mapType(row.Type!));
@@ -204,7 +208,7 @@ export class DatabaseClient {
             tableType: TableType.TABLE,
             tableID: null,
             script: null,
-            statistics: Immutable.Map<TableStatisticsType, arrow.Vector>(),
+            statistics: Immutable.Map<TableStatisticsType, Vector>(),
             ...info,
             columnNames,
             columnTypes,

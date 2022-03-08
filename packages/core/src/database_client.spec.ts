@@ -1,5 +1,5 @@
 import * as duckdb from '@duckdb/duckdb-wasm';
-import * as arrow from 'apache-arrow';
+import { Int32 } from 'apache-arrow/type';
 import * as test from './test';
 import * as tmp from 'tmp';
 import * as fs from 'fs';
@@ -22,7 +22,7 @@ describe('DuckDB', () => {
     });
 
     it('hello world', async () => {
-        const table = await conn.query<{ hello_world: arrow.Int32 }>('SELECT 1::INTEGER as hello_world');
+        const table = await conn.query<{ hello_world: Int32 }>('SELECT 1::INTEGER as hello_world');
         expect(table.numCols).toBe(1);
         expect(table.getChildAt(0).length).toBe(1);
         const rows = table.toArray();
@@ -50,9 +50,7 @@ describe('DuckDB', () => {
 
         // Scan the temporary file
         await db.registerFileURL('foo.csv', tmpName);
-        const result = await conn.query<{ a: arrow.Int32; b: arrow.Int32 }>(
-            `SELECT * FROM read_csv_auto('foo.csv') LIMIT 10`,
-        );
+        const result = await conn.query<{ a: Int32; b: Int32 }>(`SELECT * FROM read_csv_auto('foo.csv') LIMIT 10`);
         expect(result.numCols).toEqual(2);
 
         // Drop the temporary file

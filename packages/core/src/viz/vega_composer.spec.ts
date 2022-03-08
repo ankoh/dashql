@@ -1,7 +1,6 @@
 import * as Immutable from 'immutable';
-import * as arrow from 'apache-arrow';
 import { Float64 } from 'apache-arrow/type';
-import { makeVector } from 'apache-arrow/vector';
+import { Vector, makeVector } from 'apache-arrow/vector';
 import * as analyzer from '../analyzer/analyzer_node';
 import * as proto from '@dashql/proto';
 import * as viz from './vega_composer';
@@ -173,7 +172,7 @@ class FakeStatisticsResolver implements TableStatisticsResolver {
             columnNames: [],
             columnNameMapping: new Map<string, number>(),
             columnTypes: [],
-            statistics: Immutable.Map<model.TableStatisticsType, arrow.Vector>(),
+            statistics: Immutable.Map<model.TableStatisticsType, Vector>(),
             ...test.table,
         };
     }
@@ -182,7 +181,7 @@ class FakeStatisticsResolver implements TableStatisticsResolver {
         return this._table;
     }
     /// Request table statistics
-    public request(type: model.TableStatisticsType, columnId: number): Promise<arrow.Vector> {
+    public request(type: model.TableStatisticsType, columnId: number): Promise<Vector> {
         const key = model.buildTableStatisticsKey(type, columnId);
         const values = this._table.statistics.get(key);
         if (values) {
@@ -191,7 +190,7 @@ class FakeStatisticsResolver implements TableStatisticsResolver {
         throw new Error(`unexpected statistics request: type=${model.TableStatisticsType[type]} column=${columnId}`);
     }
     /// Evaluate table statistics
-    public evaluate(): Promise<Map<model.TableStatisticsKey, arrow.Vector>> {
+    public evaluate(): Promise<Map<model.TableStatisticsKey, Vector>> {
         return Promise.resolve(new Map(this._table.statistics.toArray()));
     }
 }

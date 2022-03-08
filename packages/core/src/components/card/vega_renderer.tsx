@@ -19,7 +19,9 @@ interface VegaWithRowsProps {
 }
 
 const VegaWithRows: React.FC<VegaWithRowsProps> = (props: VegaWithRowsProps) => {
-    const rows = React.useMemo(() => props.data.toArray(), [props.data]);
+    const rows = React.useMemo(() => props.data.toArray().map(proxy => proxy.toJSON()), [props.data]);
+    console.log(rows);
+    console.log(props.vegaSpec);
     return (
         <Vega
             style={{

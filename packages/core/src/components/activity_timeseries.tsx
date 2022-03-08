@@ -82,7 +82,7 @@ const deriveStateFromProps = (props: ChartProps, prevState?: ChartState): ChartS
     if (!prevState || props.data !== prevState?.data) {
         return {
             data: props.data,
-            rows: props.data.toArray(),
+            rows: props.data.toArray().map(proxy => proxy.toJSON()),
             spec: VEGA_SPEC,
         };
     }

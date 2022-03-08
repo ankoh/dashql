@@ -1,4 +1,6 @@
-import * as arrow from 'apache-arrow';
+import { DataType } from 'apache-arrow/type';
+import { Type } from 'apache-arrow/enum';
+import { Vector } from 'apache-arrow/vector';
 
 /// Simple 53-bit hasher
 export function cyrb53(str: string, seed = 0): number {
@@ -15,7 +17,7 @@ export function cyrb53(str: string, seed = 0): number {
 }
 
 /// Hash an arrow column
-export function hashArrowColumn<R extends arrow.DataType<arrow.Type, any>>(col: arrow.Vector<R> | null): number {
+export function hashArrowColumn<R extends DataType<Type, any>>(col: Vector<R> | null): number {
     if (col == null) return 0;
     let hash = 0;
     for (const v of col) {

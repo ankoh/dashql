@@ -46,7 +46,7 @@ export const ProgramStats: React.FC<Props> = (props: Props) => {
             const dataTable = tableFromIPC(dataBuffer);
             if (!isMountedRef.current) return;
 
-            const dataArray = dataTable.toArray();
+            const dataArray = dataTable.toArray().map(proxy => proxy.toJSON());
             if (dataArray.length == 0) return;
             setState({
                 table: dataTable,

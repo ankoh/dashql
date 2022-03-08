@@ -3,7 +3,8 @@
 import * as proto from '@dashql/proto';
 import * as model from '../model';
 import * as error from '../error';
-import * as arrow from 'apache-arrow';
+import { Type } from 'apache-arrow/enum';
+import { Vector } from 'apache-arrow/vector';
 import { ADD_CARD, CardDataResolver, DELETE_CARD, UPDATE_CARD } from '../model';
 import { VegaComposer } from '../viz/vega_composer';
 import { ProgramTaskLogic, SetupTaskLogic } from './task_logic';
@@ -20,7 +21,7 @@ export abstract class VizTaskLogic extends ProgramTaskLogic {
     /// The table (if needed)
     _table: model.TableMetadata | null = null;
     /// The promise to get the row count (if needed)
-    _rowCount: Promise<arrow.Vector> | null = null;
+    _rowCount: Promise<Vector> | null = null;
 
     constructor(task_id: model.TaskHandle, task: proto.task.ProgramTask, statement: model.Statement) {
         super(task_id, task, statement);
@@ -58,18 +59,18 @@ export abstract class VizTaskLogic extends ProgramTaskLogic {
                 for (let i = 0; i < this._table.columnTypes.length; ++i) {
                     const type = this._table.columnTypes[i];
                     switch (type.typeId) {
-                        case arrow.Type.Int:
-                        case arrow.Type.Int16:
-                        case arrow.Type.Int32:
-                        case arrow.Type.Int64:
-                        case arrow.Type.Float:
-                        case arrow.Type.Float16:
-                        case arrow.Type.Float32:
-                        case arrow.Type.Float64:
-                        case arrow.Type.Uint8:
-                        case arrow.Type.Uint16:
-                        case arrow.Type.Uint32:
-                        case arrow.Type.Uint64:
+                        case Type.Int:
+                        case Type.Int16:
+                        case Type.Int32:
+                        case Type.Int64:
+                        case Type.Float:
+                        case Type.Float16:
+                        case Type.Float32:
+                        case Type.Float64:
+                        case Type.Uint8:
+                        case Type.Uint16:
+                        case Type.Uint32:
+                        case Type.Uint64:
                             ctx.database.requestTableStatistics(target, TableStatisticsType.MAXIMUM_VALUE, i);
                             ctx.database.requestTableStatistics(target, TableStatisticsType.MINIMUM_VALUE, i);
                             break;
