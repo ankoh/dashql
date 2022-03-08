@@ -110,7 +110,9 @@ const DuckDBContext: React.FC<Props> = (props: Props) => {
     const logger = model.useLogger();
     return (
         <rd.DuckDBPlatform bundles={DUCKDB_BUNDLES} logger={logger}>
-            <rd.DuckDBProvider>{props.children}</rd.DuckDBProvider>
+            <rd.DuckDBProvider>
+                <rd.DuckDBConnectionProvider>{props.children}</rd.DuckDBConnectionProvider>
+            </rd.DuckDBProvider>
         </rd.DuckDBPlatform>
     );
 };

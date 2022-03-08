@@ -1,6 +1,7 @@
 import * as React from 'react';
 import * as model from '../../model';
 import * as access from '../../access';
+import * as rd from '@duckdb/react-duckdb';
 import { Table } from 'apache-arrow/table';
 import { withAutoSizer } from '../../utils/autosizer';
 import { Vega } from 'react-vega';
@@ -38,13 +39,31 @@ const VegaWithRows: React.FC<VegaWithRowsProps> = (props: VegaWithRowsProps) => 
 type ContentProps = VegaRendererProps & { table: model.TableMetadata; width: number; height: number };
 
 const ContentRenderer: React.FC<ContentProps> = (props: ContentProps) => {
+    const db = rd.useDuckDB();
+    const conn = rd.useDuckDBConnection();
+    const connDialer = rd.useDuckDBConnectionDialer();
+
+    React.useEffect(() => {
+        if (db == null) {
+            return;
+        } else if (conn == null && connDialer != null) {
+            connDialer();
+        }
+    }, [db, conn, connDialer]);
+    if (conn == null) return <div />;
+
     if (props.width == 0 && props.height == 0) return <div />;
     console.assert(!!props.card.dataSource);
 
     switch (props.card.dataSource!.dataResolver) {
         case model.CardDataResolver.M5: {
             return (
-                <access.M5Provider table={props.table} data={props.card.dataSource!} width={props.width}>
+                <access.M5Provider
+                    connection={conn}
+                    table={props.table}
+                    data={props.card.dataSource!}
+                    width={props.width}
+                >
                     {result => (
                         <VegaWithRows
                             data={result}
@@ -59,7 +78,7 @@ const ContentRenderer: React.FC<ContentProps> = (props: ContentProps) => {
 
         case model.CardDataResolver.RESERVOIR_SAMPLE: {
             return (
-                <access.SampleProvider table={props.table} data={props.card.dataSource!}>
+                <access.SampleProvider connection={conn} table={props.table} data={props.card.dataSource!}>
                     {result => (
                         <VegaWithRows
                             data={result}

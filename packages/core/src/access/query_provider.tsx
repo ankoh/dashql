@@ -1,6 +1,6 @@
 import * as React from 'react';
+import * as duckdb from '@duckdb/duckdb-wasm';
 import { Table } from 'apache-arrow/table';
-import { useDatabaseClient } from '../database_client';
 
 export interface Query {
     before?: string;
@@ -9,6 +9,8 @@ export interface Query {
 }
 
 interface Props {
+    /// The connection
+    connection: duckdb.AsyncDuckDBConnection;
     /// The query
     query: Query;
 
@@ -40,7 +42,6 @@ function queryEquals(l: Query, r: Query) {
 }
 
 export const QueryProvider: React.FC<Props> = (props: Props) => {
-    const database = useDatabaseClient();
     const [queryState, setQueryState] = React.useState<QueryState>({
         queryInFlight: null,
         resultQuery: null,
@@ -59,25 +60,25 @@ export const QueryProvider: React.FC<Props> = (props: Props) => {
             return;
         }
         const query = props.query;
-        const promise = database.use(async conn => {
+        const promise = (async () => {
             try {
                 if (query.before) {
-                    await conn.query(query.before);
+                    await props.connection.query(query.before);
                 }
-                return await conn.query(query.data);
+                return await props.connection.query(query.data);
             } catch (e) {
                 console.error(e);
                 throw e;
             } finally {
                 try {
                     if (query.after) {
-                        await conn.query(query.after);
+                        await props.connection.query(query.after);
                     }
                 } catch (e) {
                     console.error(e);
                 }
             }
-        });
+        })();
         setQueryState({
             ...queryState,
             queryInFlight: query,

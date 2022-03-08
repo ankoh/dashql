@@ -1,5 +1,6 @@
 import * as React from 'react';
 import * as model from '../model';
+import * as duckdb from '@duckdb/duckdb-wasm';
 import { Table } from 'apache-arrow/table';
 import { QueryProvider, Query } from './query_provider';
 
@@ -7,6 +8,8 @@ import { QueryProvider, Query } from './query_provider';
 const TMP_NAME = '__M5__';
 
 interface Props {
+    /// The connection
+    connection: duckdb.AsyncDuckDBConnection;
     /// The table info
     table: model.TableMetadata;
     /// The viz data query
@@ -88,5 +91,9 @@ ${aggs}
     `;
     const after = `DROP TABLE IF EXISTS ${TMP_NAME}`;
 
-    return <QueryProvider query={{ before, data, after }}>{result => props.children(result)}</QueryProvider>;
+    return (
+        <QueryProvider connection={props.connection} query={{ before, data, after }}>
+            {result => props.children(result)}
+        </QueryProvider>
+    );
 };

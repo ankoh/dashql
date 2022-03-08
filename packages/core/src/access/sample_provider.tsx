@@ -1,9 +1,12 @@
 import * as React from 'react';
+import * as duckdb from '@duckdb/duckdb-wasm';
 import * as model from '../model';
 import { Table } from 'apache-arrow/table';
 import { QueryProvider } from './query_provider';
 
 interface Props {
+    /// The connection
+    connection: duckdb.AsyncDuckDBConnection;
     /// The table info
     table: model.TableMetadata;
     /// The viz data query
@@ -26,5 +29,9 @@ export const SampleProvider: React.FC<Props> = (props: Props) => {
     const sampling = ` TABLESAMPLE RESERVOIR(${props.data.sampleSize} ROWS)`;
 
     const script = `SELECT * FROM ${props.table.nameQualified}${sampling}${orderBy}`;
-    return <QueryProvider query={{ data: script }}>{result => props.children(result)}</QueryProvider>;
+    return (
+        <QueryProvider connection={props.connection} query={{ data: script }}>
+            {result => props.children(result)}
+        </QueryProvider>
+    );
 };
