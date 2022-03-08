@@ -133,8 +133,9 @@ export const Explorer: React.FC<Props> = (props: Props) => {
                 <div key="program_page" className={styles.program_page}>
                     <div className={styles.program_info_and_actions}>
                         <ProgramHeader className={styles.program_info} script={programCtx.script} />
-                        <div className={cn(styles_cmd.buttonset, styles.program_actions)}>
-                            {canEdit ? (
+                        {appConfig?.features?.editorControls && (
+                            <div className={cn(styles_cmd.buttonset, styles.program_actions)}>
+                                (canEdit ? (
                                 <>
                                     <Button
                                         className={styles.program_action}
@@ -149,7 +150,7 @@ export const Explorer: React.FC<Props> = (props: Props) => {
                                         icon={icon_cloud_upload}
                                     />
                                 </>
-                            ) : (
+                                ) : (
                                 <Button
                                     className={styles.program_action}
                                     width={CMD_ICON_SIZE}
@@ -157,15 +158,16 @@ export const Explorer: React.FC<Props> = (props: Props) => {
                                     icon={icon_fork}
                                     onClick={showForkDialog}
                                 />
-                            )}
-                            <Button
-                                className={styles.program_action}
-                                width={CMD_ICON_SIZE}
-                                height={CMD_ICON_SIZE}
-                                icon={icon_blank}
-                                onClick={createBlankScript}
-                            />
-                        </div>
+                                ))
+                                <Button
+                                    className={styles.program_action}
+                                    width={CMD_ICON_SIZE}
+                                    height={CMD_ICON_SIZE}
+                                    icon={icon_blank}
+                                    onClick={createBlankScript}
+                                />
+                            </div>
+                        )}
                     </div>
                     {appConfig.features?.scriptStatistics && scriptSupportsStats(programCtx.script) && (
                         <div className={styles.program_stats}>

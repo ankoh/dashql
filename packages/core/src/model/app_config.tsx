@@ -5,6 +5,7 @@ export interface AppFeatures {
     scriptStatistics?: boolean;
     cloudService?: boolean;
     userAccount?: boolean;
+    editorControls?: boolean;
 }
 
 export interface AppConfig {
