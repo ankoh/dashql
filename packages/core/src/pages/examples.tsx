@@ -76,7 +76,7 @@ export const Examples: React.FC<Props> = (_props: Props) => {
     const selectExample = async (elem: React.MouseEvent<HTMLDivElement>) => {
         const key = (elem.currentTarget as any).dataset.key;
         const nextScript = await examples.getScript(EXAMPLE_SCRIPT_MAP.get(key)!);
-        const program = analyzer.parseProgram(nextScript.text);
+        const program = analyzer.value!.parseProgram(nextScript.text);
         programDispatch({
             type: model.REPLACE_PROGRAM,
             data: [program, nextScript],

@@ -1,15 +1,7 @@
 import React from 'react';
 import * as Immutable from 'immutable';
 import * as model from '.';
-
-/// Status code
-export enum Status {
-    NONE,
-    RUNNING,
-    BLOCKED,
-    FAILED,
-    COMPLETED,
-}
+import { Status } from './lazy_setup';
 
 /// A launch step
 export enum LaunchStepType {

@@ -1,11 +1,14 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`Editor renders with script 1`] = `
-<div
-  className="editor"
->
+Array [
   <div
-    className="editor_monaco"
-  />
-</div>
+    className="editor"
+  >
+    <div
+      className="editor_monaco"
+    />
+  </div>,
+  ";",
+]
 `;

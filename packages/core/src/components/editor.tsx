@@ -139,7 +139,7 @@ export const Editor: React.FC<Props> = (props: Props) => {
         // Finalize the editor
         e.onDidChangeModelContent(_event => {
             if (e.getValue() != scriptRef.current?.text) {
-                programRef.current = analyzer.parseProgram(e.getValue());
+                programRef.current = analyzer.value!.parseProgram(e.getValue());
                 programContextDispatch({
                     type: model.MODIFY_PROGRAM,
                     data: programRef.current,

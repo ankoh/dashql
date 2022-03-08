@@ -4,7 +4,7 @@ import classNames from 'classnames';
 import { SystemBar } from './system_bar';
 import { Link, useLocation } from 'react-router-dom';
 import { useActiveGitHubProfile } from '../github';
-import { useAppConfig } from '../model';
+import { useAppConfig } from '../app_config';
 
 import styles from './navbar.module.css';
 
@@ -45,12 +45,12 @@ export const NavBar = (): React.ReactElement => {
             <div className={styles.tabs}>
                 <Tab route="/explorer" alt="/viewer" location={location.pathname} icon={icon_explorer} />
                 <Tab route="/examples" location={location.pathname} icon={icon_examples} />
-                {appConfig.features?.cloudService && (
+                {appConfig?.value?.features?.cloudService && (
                     <Tab route="/cloud" location={location.pathname} icon={icon_web} />
                 )}
             </div>
             <div />
-            {appConfig.features?.userAccount && (
+            {appConfig?.value?.features?.userAccount && (
                 <Link className={styles.account} to="/account">
                     {ghProfile?.avatarUrl ? (
                         <img className={styles.avatar} width="32px" height="32px" src={ghProfile!.avatarUrl} />

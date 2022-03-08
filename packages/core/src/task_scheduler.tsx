@@ -422,7 +422,7 @@ export const TaskSchedulerDriver: React.FC<Props> = (props: Props) => {
         database,
         http,
         jmespath,
-        analyzer,
+        analyzer: analyzer.value!,
         planContext,
         planContextDiff: [],
     });

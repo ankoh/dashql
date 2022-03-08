@@ -18,6 +18,9 @@
     "dependencies": {
         "apache-arrow": "^7.0.0",
         "@duckdb/duckdb-wasm": "^1.13.1-dev260.0",
+        "@duckdb/duckdb-wasm-shell": "^1.13.1-dev260.0",
+        "@duckdb/react-duckdb": "^1.13.1-dev260.0",
+        "@duckdb/react-duckdb-table": "^1.13.1-dev260.0",
         "@dashql/proto": "^0.0.5",
         "@octokit/graphql": "^4.8.0",
         "@popperjs/core": "^2.11.2",

@@ -73,7 +73,7 @@ export const Board: React.FC<Props> = (props: Props) => {
         });
 
         // Edit program
-        const next = analyzer.editProgram(updates);
+        const next = analyzer.value!.editProgram(updates);
         if (next) {
             programContextDispatch({
                 type: model.REWRITE_PROGRAM,

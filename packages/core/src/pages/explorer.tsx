@@ -39,7 +39,7 @@ import {
     useScriptRegistryDispatch,
 } from '../model';
 import { useAnalyzer } from '../analyzer';
-import { useAppConfig } from '../model';
+import { useAppConfig } from '../app_config';
 
 const CMD_ICON_SIZE = '20px';
 const SYM_FORK_OVERLAY = Symbol();
@@ -76,7 +76,7 @@ export const Explorer: React.FC<Props> = (props: Props) => {
         });
     }, [setOverlay]);
     const createBlankScript = React.useCallback(() => {
-        const program = analyzer.parseProgram('');
+        const program = analyzer.value!.parseProgram('');
         const script = generateBlankScript(scriptRegistry);
         scriptRegistryDispatch({
             type: SAVE_SCRIPT,
@@ -133,7 +133,7 @@ export const Explorer: React.FC<Props> = (props: Props) => {
                 <div key="program_page" className={styles.program_page}>
                     <div className={styles.program_info_and_actions}>
                         <ProgramHeader className={styles.program_info} script={programCtx.script} />
-                        {appConfig?.features?.editorControls && (
+                        {appConfig.value.features?.editorControls && (
                             <div className={cn(styles_cmd.buttonset, styles.program_actions)}>
                                 {canEdit ? (
                                     <>
@@ -169,7 +169,7 @@ export const Explorer: React.FC<Props> = (props: Props) => {
                             </div>
                         )}
                     </div>
-                    {appConfig.features?.scriptStatistics && scriptSupportsStats(programCtx.script) && (
+                    {appConfig.value!.features?.scriptStatistics && scriptSupportsStats(programCtx.script) && (
                         <div className={styles.program_stats}>
                             <ProgramStats scriptID="changeme" />
                         </div>

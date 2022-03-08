@@ -93,7 +93,7 @@ export const ProgramPipeline: React.FC<Props> = (props: Props) => {
             return;
         }
         // Instantiate the new program
-        const instance = analyzer.instantiateProgram(programContext.programInputValues);
+        const instance = analyzer.value!.instantiateProgram(programContext.programInputValues);
         // Instantiation failed?
         // XXX log error
         if (instance == null) {
@@ -111,7 +111,7 @@ export const ProgramPipeline: React.FC<Props> = (props: Props) => {
     React.useEffect(() => {
         planContextDispatch({
             type: SCHEDULE_PLAN,
-            data: [analyzer, programContext.programInstance],
+            data: [analyzer.value!, programContext.programInstance],
         });
     }, [planContext.schedulerStatus, programContext.programInstance]);
 

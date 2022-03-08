@@ -65,7 +65,7 @@ VIZ vacc USING TABLE;
             root = renderer.create(
                 <ProgramContextProvider initialState={programCtx}>
                     <PlanContextProvider>
-                        <AnalyzerProvider analyzer={az!}>
+                        <AnalyzerProvider value={az!}>
                             <Editor readOnly={false} target={pseudo} width={1000} height={1000} />
                         </AnalyzerProvider>
                     </PlanContextProvider>

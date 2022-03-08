@@ -6,14 +6,13 @@ import {
     DatabaseMetadataProvider,
     ProgramContextProvider,
     PlanContextProvider,
-    LaunchProgressProvider,
     ScriptRegistryProvider,
 } from './model';
 import { Route, BrowserRouter, Routes, Navigate } from 'react-router-dom';
 import { Explorer, Examples, Viewer, NotFound, Account, Cloud } from './pages';
 import { withNavBar, OverlayProvider, withScriptLoader } from './components';
 import { AppLauncher } from './app_launcher';
-import { DUCKDB_BUNDLES } from './duckdb_bundles';
+import { AppConfigResolver } from './app_config';
 
 import 'bootstrap/dist/css/bootstrap.min.css';
 
@@ -31,9 +30,7 @@ const DataProviders = (props: { children: React.ReactElement }) => (
                     <ProgramContextProvider>
                         <PlanContextProvider>
                             <ScriptRegistryProvider>
-                                <OverlayProvider>
-                                    <LaunchProgressProvider>{props.children}</LaunchProgressProvider>
-                                </OverlayProvider>
+                                <OverlayProvider>{props.children}</OverlayProvider>
                             </ScriptRegistryProvider>
                         </PlanContextProvider>
                     </ProgramContextProvider>
@@ -53,20 +50,22 @@ const CloudPage = withNavBar(Cloud);
 
 ReactDOM.render(
     <DataProviders>
-        <AppLauncher bundles={DUCKDB_BUNDLES}>
-            <BrowserRouter>
-                <Routes>
-                    <Route path="/explorer/*" element={<ExplorerPage />} />
-                    <Route path="/examples" element={<ExamplesPage />} />
-                    <Route path="/viewer/*" element={<ViewerPage />} />
-                    <Route path="/account/*" element={<AccountPage />} />
-                    <Route path="/cloud/*" element={<CloudPage />} />
-                    <Route path="/404" element={<NotFound />} />
-                    <Route path="/" element={<Navigate to="/explorer" />} />
-                    <Route path="*" element={<Navigate to="/404" />} />
-                </Routes>
-            </BrowserRouter>
-        </AppLauncher>
+        <AppConfigResolver>
+            <AppLauncher>
+                <BrowserRouter>
+                    <Routes>
+                        <Route path="/explorer/*" element={<ExplorerPage />} />
+                        <Route path="/examples" element={<ExamplesPage />} />
+                        <Route path="/viewer/*" element={<ViewerPage />} />
+                        <Route path="/account/*" element={<AccountPage />} />
+                        <Route path="/cloud/*" element={<CloudPage />} />
+                        <Route path="/404" element={<NotFound />} />
+                        <Route path="/" element={<Navigate to="/explorer" />} />
+                        <Route path="*" element={<Navigate to="/404" />} />
+                    </Routes>
+                </BrowserRouter>
+            </AppLauncher>
+        </AppConfigResolver>
     </DataProviders>,
     document.getElementById('root'),
 );

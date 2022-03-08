@@ -52,7 +52,7 @@ export const ScriptLoader: React.FC<Props> = (props: Props) => {
         // URL refers to a raw script text?
         if (searchParams.has('text')) {
             const text = lz.decompressFromBase64(searchParams.get('text')!) || '-- Decoding failed';
-            const program = analyzer.parseProgram(text);
+            const program = analyzer.value!.parseProgram(text);
             const script: model.Script = {
                 origin: {
                     originType: ScriptOriginType.LOCAL,
@@ -168,7 +168,7 @@ export const ScriptLoader: React.FC<Props> = (props: Props) => {
                             return;
                         }
                         const text = resp.data as string;
-                        const program = analyzer.parseProgram(text);
+                        const program = analyzer.value!.parseProgram(text);
                         const script: model.Script = {
                             origin: {
                                 originType: ScriptOriginType.HTTPS,
@@ -210,7 +210,7 @@ export const ScriptLoader: React.FC<Props> = (props: Props) => {
                     }));
                     try {
                         const script = await examples.getScript(example);
-                        const program = analyzer.parseProgram(script.text);
+                        const program = analyzer.value!.parseProgram(script.text);
                         programContextDispatch({
                             type: model.REPLACE_PROGRAM,
                             data: [program, script],

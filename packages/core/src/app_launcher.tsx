@@ -1,153 +1,93 @@
 import * as React from 'react';
-import * as duckdb from '@duckdb/duckdb-wasm';
+import * as rd from '@duckdb/react-duckdb';
 import * as model from './model';
 
-import { Analyzer } from './analyzer/analyzer_browser';
-import { JMESPath } from './jmespath/jmespath_browser';
+import { DUCKDB_BUNDLES } from './duckdb_bundles';
 import { StatusIndicator } from './components';
-import { AnalyzerProvider } from './analyzer';
+import { AnalyzerProvider, useAnalyzer, useAnalyzerResolver } from './analyzer';
 import { JMESPathProvider } from './jmespath';
-
-import axios from 'axios';
-import config_url from '../static/config.json';
-import {
-    LaunchStepType,
-    LAUNCH_STEPS,
-    Status,
-    UPDATE_LAUNCH_STEP,
-    useLaunchProgress,
-    useLaunchProgressDispatch,
-} from './model/launch_progress';
-import { AppConfig, AppConfigProvider, CREATE_BLANK_SCRIPT, useScriptRegistryDispatch } from './model';
+import { AppConfigResolver } from './app_config';
 import { DatabaseClient, DatabaseClientProvider } from './database_client';
 import { ProgramPipeline } from './program_pipeline';
+import { useAppConfig } from './app_config';
 
 import logo from '../static/svg/logo/logo.svg';
 
 import styles from './app_launcher.module.css';
 
-import jmespath_wasm from './jmespath/jmespath_wasm.wasm';
-import analyzer_wasm from './analyzer/analyzer_wasm.wasm';
 import { HTTPClientProvider } from './http_client';
 
 interface Props {
     children: JSX.Element;
-    bundles: duckdb.DuckDBBundles;
 }
 
-type State = {
-    config: AppConfig | null;
-    database: DatabaseClient | null;
-    analyzer: Analyzer | null;
-};
+const LaunchLogic: React.FC<Props> = (props: Props) => {
+    const config = useAppConfig();
+    const analyzer = useAnalyzer();
+    const resolveAnalyzer = useAnalyzerResolver();
+    const database = rd.useDuckDB();
+    const databaseStatus = rd.useDuckDBStatus();
+    const databaseLauncher = rd.useDuckDBLauncher();
+    const metadata = model.useDatabaseMetadata();
+    const metadataDispatch = model.useDatabaseMetadataDispatch();
+    const [dbc, setDbc] = React.useState<DatabaseClient | null>(null);
 
-const resolveJMESPath = async () => {
-    const jp = new JMESPath(jmespath_wasm);
-    await jp.init();
-    return jp;
-};
-
-export const AppLauncher: React.FC<Props> = (props: Props) => {
-    const [state, stateDispatch] = React.useState<State>({
-        config: null,
-        database: null,
-        analyzer: null,
-    });
-    const dbMetadata = model.useDatabaseMetadata();
-    const dbMetadataDispatch = model.useDatabaseMetadataDispatch();
-    const launchProgress = useLaunchProgress();
-    const launchProgressDispatch = useLaunchProgressDispatch();
-    const logger = model.useLogger();
-    const scriptRegistryDispatch = useScriptRegistryDispatch();
-
-    // Helper to update a launch step
-    const updateStep = (step: LaunchStepType, status: Status, error?: any) => {
-        launchProgressDispatch({
-            type: UPDATE_LAUNCH_STEP,
-            data: {
-                type: step,
-                status,
-                error,
-            },
-        });
-    };
-
-    // Configure the application
+    // Initialize database
+    const connecting = React.useRef<boolean>(false);
     React.useEffect(() => {
-        (async (): Promise<void> => {
-            try {
-                const resp = await axios.get(config_url as string);
-                if (!model.isAppConfig(resp.data)) {
-                    updateStep(LaunchStepType.CONFIGURE_APP, Status.FAILED, 'invalid app config');
-                    return null;
-                }
-                scriptRegistryDispatch({
-                    type: CREATE_BLANK_SCRIPT,
-                    data: undefined,
-                });
-                stateDispatch(s => ({ ...s, config: resp.data as model.AppConfig }));
-                updateStep(LaunchStepType.CONFIGURE_APP, Status.COMPLETED);
-            } catch (e) {
-                console.error(e);
-                updateStep(LaunchStepType.CONFIGURE_APP, Status.FAILED, e);
-            }
-        })();
-    }, []);
-
-    // Initialize DuckDB
-    React.useEffect(() => {
-        if (state.config == null || state.database != null) return;
-        (async () => {
-            updateStep(LaunchStepType.INIT_DATABASE, Status.RUNNING);
-            try {
-                const config = await duckdb.selectBundle(props.bundles);
-                const worker = new Worker(config.mainWorker!);
-                const db = new duckdb.AsyncDuckDB(logger, worker);
-                await db.instantiate(config.mainModule, config.pthreadWorker);
-                const client = new DatabaseClient(db, dbMetadata, dbMetadataDispatch);
+        if (database == null) {
+            databaseLauncher();
+        } else if (database != null && !connecting.current) {
+            connecting.current = true;
+            const client = new DatabaseClient(database, metadata, metadataDispatch);
+            const connect = async () => {
                 await client.connect();
-                stateDispatch(s => ({ ...s, database: client }));
-                updateStep(LaunchStepType.INIT_DATABASE, Status.COMPLETED);
-            } catch (e) {
-                console.error(e);
-                updateStep(LaunchStepType.INIT_DATABASE, Status.FAILED, e);
-            }
-        })();
-    }, [state.config, state.database]);
+                setDbc(client);
+            };
+            connect();
+        }
+    }, [database]);
 
-    // Initialize the analyzer
+    // Initialize analyzer
     React.useEffect(() => {
-        if (state.config == null || state.analyzer != null) return;
-        (async () => {
-            updateStep(LaunchStepType.INIT_ANALYZER, Status.RUNNING);
-            try {
-                const ana = new Analyzer({}, analyzer_wasm);
-                await ana.init();
-                stateDispatch(s => ({ ...s, analyzer: ana }));
-                updateStep(LaunchStepType.INIT_ANALYZER, Status.COMPLETED);
-            } catch (e) {
-                updateStep(LaunchStepType.INIT_ANALYZER, Status.FAILED, e);
-            }
-        })();
-    }, [state.config, state.analyzer]);
+        if (analyzer.value == null) {
+            resolveAnalyzer();
+        }
+    }, [analyzer.value]);
 
-    // Render the loading spinner
-    // XXX wasm instantiation progress with readable stream proxy!
-    if (launchProgress.complete) {
+    // Launch completed?
+    const completed = config.value != null && analyzer.value != null && database != null && dbc != null;
+    if (completed) {
         return (
-            <AppConfigProvider config={state.config!}>
-                <DatabaseClientProvider database={state.database!}>
-                    <AnalyzerProvider analyzer={state.analyzer!}>
-                        <JMESPathProvider resolver={resolveJMESPath}>
-                            <HTTPClientProvider>
-                                <ProgramPipeline>{props.children}</ProgramPipeline>
-                            </HTTPClientProvider>
-                        </JMESPathProvider>
-                    </AnalyzerProvider>
-                </DatabaseClientProvider>
-            </AppConfigProvider>
+            <DatabaseClientProvider database={dbc!}>
+                <HTTPClientProvider>
+                    <ProgramPipeline>{props.children}</ProgramPipeline>
+                </HTTPClientProvider>
+            </DatabaseClientProvider>
         );
     }
+
+    // Get the status
+    let dbStatus = model.Status.NONE;
+    if (database != null) {
+        dbStatus = model.Status.COMPLETED;
+    } else if (databaseStatus == null) {
+        dbStatus = model.Status.NONE;
+    } else if (databaseStatus.instantiationError != null) {
+        dbStatus = model.Status.FAILED;
+    } else if (databaseStatus.instantiationProgress != null) {
+        dbStatus = model.Status.RUNNING;
+    }
+
+    // Render status steps
+    const renderStatus = (label: string, status: model.Status) => (
+        <div key={label} className={styles.step}>
+            <div className={styles.step_status}>
+                <StatusIndicator width="14px" height="14px" status={status} />
+            </div>
+            <div className={styles.step_name}>{label}</div>
+        </div>
+    );
     return (
         <div className={styles.launcher}>
             <div className={styles.inner}>
@@ -157,19 +97,34 @@ export const AppLauncher: React.FC<Props> = (props: Props) => {
                     </svg>
                 </div>
                 <div className={styles.steps}>
-                    {LAUNCH_STEPS.map(s => {
-                        const step = launchProgress.steps.get(s)!;
-                        return (
-                            <div key={s as number} className={styles.step}>
-                                <div className={styles.step_status}>
-                                    <StatusIndicator width="14px" height="14px" status={step.status} />
-                                </div>
-                                <div className={styles.step_name}>{step.label}</div>
-                            </div>
-                        );
-                    })}
+                    {renderStatus('Configure the application', config.status)}
+                    {renderStatus('Initialize the database', dbStatus)}
+                    {renderStatus('Initialize the analyzer', analyzer.status)}
                 </div>
             </div>
         </div>
+    );
+};
+
+const DuckDBContext: React.FC<Props> = (props: Props) => {
+    const logger = model.useLogger();
+    return (
+        <rd.DuckDBPlatform bundles={DUCKDB_BUNDLES} logger={logger}>
+            <rd.DuckDBProvider>{props.children}</rd.DuckDBProvider>
+        </rd.DuckDBPlatform>
+    );
+};
+
+export const AppLauncher: React.FC<Props> = (props: Props) => {
+    return (
+        <AppConfigResolver>
+            <AnalyzerProvider>
+                <JMESPathProvider>
+                    <DuckDBContext>
+                        <LaunchLogic>{props.children}</LaunchLogic>
+                    </DuckDBContext>
+                </JMESPathProvider>
+            </AnalyzerProvider>
+        </AppConfigResolver>
     );
 };

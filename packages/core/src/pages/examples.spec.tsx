@@ -40,7 +40,7 @@ describe('Examples', () => {
             .create(
                 <MemoryRouter>
                     <ProgramContextProvider>
-                        <AnalyzerProvider analyzer={az!}>
+                        <AnalyzerProvider value={az!}>
                             <Examples />
                         </AnalyzerProvider>
                     </ProgramContextProvider>
