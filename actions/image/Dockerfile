@@ -42,7 +42,7 @@ RUN groupadd -g ${GID} -o ${UNAME} \
 
 ENV NVM_DIR=/opt/nvm
 ARG NVM_VERSION="v0.38.0"
-ARG NODE_VERSION="v16.1.0"
+ARG NODE_VERSION="v17.6.0"
 RUN mkdir -p /opt/nvm \
     && ls -lisah /opt/nvm \
     && curl https://raw.githubusercontent.com/nvm-sh/nvm/${NVM_VERSION}/install.sh | bash \
