@@ -135,30 +135,30 @@ export const Explorer: React.FC<Props> = (props: Props) => {
                         <ProgramHeader className={styles.program_info} script={programCtx.script} />
                         {appConfig?.features?.editorControls && (
                             <div className={cn(styles_cmd.buttonset, styles.program_actions)}>
-                                (canEdit ? (
-                                <>
-                                    <Button
-                                        className={styles.program_action}
-                                        width={CMD_ICON_SIZE}
-                                        height={CMD_ICON_SIZE}
-                                        icon={icon_edit}
-                                    />
-                                    <Button
-                                        className={styles.program_action}
-                                        width={CMD_ICON_SIZE}
-                                        height={CMD_ICON_SIZE}
-                                        icon={icon_cloud_upload}
-                                    />
-                                </>
+                                {canEdit ? (
+                                    <>
+                                        <Button
+                                            className={styles.program_action}
+                                            width={CMD_ICON_SIZE}
+                                            height={CMD_ICON_SIZE}
+                                            icon={icon_edit}
+                                        />
+                                        <Button
+                                            className={styles.program_action}
+                                            width={CMD_ICON_SIZE}
+                                            height={CMD_ICON_SIZE}
+                                            icon={icon_cloud_upload}
+                                        />
+                                    </>
                                 ) : (
-                                <Button
-                                    className={styles.program_action}
-                                    width={CMD_ICON_SIZE}
-                                    height={CMD_ICON_SIZE}
-                                    icon={icon_fork}
-                                    onClick={showForkDialog}
-                                />
-                                ))
+                                    <Button
+                                        className={styles.program_action}
+                                        width={CMD_ICON_SIZE}
+                                        height={CMD_ICON_SIZE}
+                                        icon={icon_fork}
+                                        onClick={showForkDialog}
+                                    />
+                                )}
                                 <Button
                                     className={styles.program_action}
                                     width={CMD_ICON_SIZE}
