@@ -1,10 +1,10 @@
 @import '../vars.module.css';
 
 .root {
-    background: rgb(25, 28, 31);
-    padding: 12px;
+    background: #333;
     border-radius: 0 0 var(--sys_panel_border_radius) var(--sys_panel_border_radius);
     height: 100%;
+    padding: 8px 0px 8px 16px;
 }
 
 .term_container {

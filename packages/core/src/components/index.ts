@@ -20,7 +20,7 @@ export * from './script_not_found';
 export * from './share_dialog';
 export * from './status';
 export * from './system_bar';
-export * from './terminal_loader';
+export * from './shell_loader';
 export * from './virtual_scrollbars';
 export * from './worker_status';
 export { withNavBar } from './navbar';

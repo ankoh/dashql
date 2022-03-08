@@ -2,7 +2,7 @@ import * as React from 'react';
 import { RectangleWaveSpinner } from './spinners';
 import classnames from 'classnames';
 
-import styles from './terminal_loader.module.css';
+import styles from './shell_loader.module.css';
 
 interface Props {
     className?: string;
@@ -16,10 +16,10 @@ function loadingSpinner(props: Props) {
     );
 }
 
-const Terminal = React.lazy(() => import('./terminal'));
+const Shell = React.lazy(() => import('./shell'));
 
-export const TerminalLoader: React.FC<Props> = (props: Props) => (
+export const ShellLoader: React.FC<Props> = (props: Props) => (
     <React.Suspense fallback={loadingSpinner(props)}>
-        <Terminal {...props} />
+        <Shell {...props} />
     </React.Suspense>
 );
