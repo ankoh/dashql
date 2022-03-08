@@ -41,7 +41,7 @@ export class ResolveMinMaxDomain extends VegaLiteEditOperation {
     /// Evaluate table statistics and update the domain spec
     async apply(): Promise<void> {
         const results = await Promise.all(this._promises!);
-        switch (results[0].type) {
+        switch (results[0].type.typeId) {
             case Type.Date:
             case Type.DateMillisecond:
             case Type.DateDay:

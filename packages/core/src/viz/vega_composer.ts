@@ -474,6 +474,8 @@ export class VegaComposer {
         } catch (e) {
             console.warn(e);
         }
+        console.log(this._normalizedVegaLiteSpec!);
+        console.log(vegaSpec);
         return {
             cardRenderer: model.CardRendererType.BUILTIN_VEGA,
             dataSource: {

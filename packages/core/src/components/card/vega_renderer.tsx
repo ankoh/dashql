@@ -1,7 +1,7 @@
 import * as React from 'react';
-import { Table } from 'apache-arrow/table';
 import * as model from '../../model';
 import * as access from '../../access';
+import { Table } from 'apache-arrow/table';
 import { withAutoSizer } from '../../utils/autosizer';
 import { Vega } from 'react-vega';
 import { CardFrame } from './card_frame';
@@ -19,9 +19,7 @@ interface VegaWithRowsProps {
 }
 
 const VegaWithRows: React.FC<VegaWithRowsProps> = (props: VegaWithRowsProps) => {
-    const rows = React.useMemo(() => props.data.toArray().map(proxy => proxy.toJSON()), [props.data]);
-    console.log(rows);
-    console.log(props.vegaSpec);
+    const rows = React.useMemo(() => access.tableToJSON(props.data), [props.data]);
     return (
         <Vega
             style={{
