@@ -4,6 +4,7 @@ import classNames from 'classnames';
 import { SystemBar } from './system_bar';
 import { Link, useLocation } from 'react-router-dom';
 import { useActiveGitHubProfile } from '../github';
+import { useAppConfig } from '../model';
 
 import styles from './navbar.module.css';
 
@@ -31,6 +32,7 @@ const Tab = (props: { route: string; alt?: string; location: string; icon: strin
 );
 
 export const NavBar = (): React.ReactElement => {
+    const appConfig = useAppConfig();
     const location = useLocation();
     const ghProfile = useActiveGitHubProfile();
     return (
@@ -43,18 +45,22 @@ export const NavBar = (): React.ReactElement => {
             <div className={styles.tabs}>
                 <Tab route="/explorer" alt="/viewer" location={location.pathname} icon={icon_explorer} />
                 <Tab route="/examples" location={location.pathname} icon={icon_examples} />
-                <Tab route="/cloud" location={location.pathname} icon={icon_web} />
+                {appConfig.features?.cloudService && (
+                    <Tab route="/cloud" location={location.pathname} icon={icon_web} />
+                )}
             </div>
             <div />
-            <Link className={styles.account} to="/account">
-                {ghProfile?.avatarUrl ? (
-                    <img className={styles.avatar} width="32px" height="32px" src={ghProfile!.avatarUrl} />
-                ) : (
-                    <svg className={styles.avatar} width="26px" height="26px">
-                        <use xlinkHref={`${icon_account}#sym`} />
-                    </svg>
-                )}
-            </Link>
+            {appConfig.features?.userAccount && (
+                <Link className={styles.account} to="/account">
+                    {ghProfile?.avatarUrl ? (
+                        <img className={styles.avatar} width="32px" height="32px" src={ghProfile!.avatarUrl} />
+                    ) : (
+                        <svg className={styles.avatar} width="26px" height="26px">
+                            <use xlinkHref={`${icon_account}#sym`} />
+                        </svg>
+                    )}
+                </Link>
+            )}
             <SystemBar className={styles.systemlist} />
         </div>
     );

@@ -39,6 +39,7 @@ import {
     useScriptRegistryDispatch,
 } from '../model';
 import { useAnalyzer } from '../analyzer';
+import { useAppConfig } from '../model';
 
 const CMD_ICON_SIZE = '20px';
 const SYM_FORK_OVERLAY = Symbol();
@@ -51,7 +52,7 @@ type Props = {
 };
 
 export const Explorer: React.FC<Props> = (props: Props) => {
-    // Use state
+    const appConfig = useAppConfig();
     const programCtx = useProgramContext();
     const programCtxDispatch = useProgramContextDispatch();
     const scriptRegistry = useScriptRegistry();
@@ -94,7 +95,6 @@ export const Explorer: React.FC<Props> = (props: Props) => {
 
     // Check script origin type
     const canEdit = canEditScript(programCtx.script);
-    const hasStats = scriptSupportsStats(programCtx.script);
     const editorReadOnly = false;
 
     const BoardCommandBar = () => (
@@ -167,7 +167,7 @@ export const Explorer: React.FC<Props> = (props: Props) => {
                             />
                         </div>
                     </div>
-                    {hasStats && (
+                    {appConfig.features?.scriptStatistics && scriptSupportsStats(programCtx.script) && (
                         <div className={styles.program_stats}>
                             <ProgramStats scriptID="changeme" />
                         </div>

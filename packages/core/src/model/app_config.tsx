@@ -1,7 +1,14 @@
 import React from 'react';
 import * as model from '.';
 
+export interface AppFeatures {
+    scriptStatistics?: boolean;
+    cloudService?: boolean;
+    userAccount?: boolean;
+}
+
 export interface AppConfig {
+    features?: AppFeatures;
     program?: string;
 }
 
@@ -12,6 +19,7 @@ export function isAppConfig(object: any): object is AppConfig {
 }
 
 export const initialAppConfig: AppConfig = {
+    features: undefined,
     program: undefined,
 };
 
