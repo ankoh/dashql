@@ -35,11 +35,11 @@ export function tableToJSON(table: Table): any[] {
             const batch = vectors[cid].data[bid];
             const visit = visitors[cid];
             const field = table.schema.fields[cid];
+            batchSize = batch.length;
             for (let local = 0; local < batchSize; ++local) {
                 out[writer][field.name] = visit(batch, local);
                 writer += 1;
             }
-            batchSize = batch.length;
         }
         global += batchSize;
     }
