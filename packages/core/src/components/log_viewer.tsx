@@ -43,7 +43,7 @@ export const LogViewer: React.FC<Props> = (props: Props) => {
 
     const focusEntry = (elem: React.MouseEvent<HTMLDivElement>) => {
         const entry = (elem.currentTarget as any).dataset.entry;
-        setFocused((focused != entry ? parseInt(entry) : null) || null);
+        setFocused((focused != entry ? parseInt(entry) : null) ?? null);
     };
 
     const renderRow = (rowProps: ListRowProps) => {
