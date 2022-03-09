@@ -40,12 +40,12 @@
                             </node>
                             <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="205..229" text="X AXIS(sca.. 'linear')">
                                 <node key="DASHQL_VIZ_COMPONENT_TYPE" value="AXIS" />
-                                <node key="DASHQL_VIZ_COMPONENT_TYPE_MODIFIERS" value="32" />
+                                <node key="DASHQL_VIZ_COMPONENT_TYPE_MODIFIERS" value="64" />
                                 <node key="DSON_SCALE" loc="220..228" text="'linear'" />
                             </node>
                             <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="231..252" text="Y AXIS(sca..e = 'log')">
                                 <node key="DASHQL_VIZ_COMPONENT_TYPE" value="AXIS" />
-                                <node key="DASHQL_VIZ_COMPONENT_TYPE_MODIFIERS" value="64" />
+                                <node key="DASHQL_VIZ_COMPONENT_TYPE_MODIFIERS" value="128" />
                                 <node key="DSON_SCALE" loc="246..251" text="'log'" />
                             </node>
                         </node>
