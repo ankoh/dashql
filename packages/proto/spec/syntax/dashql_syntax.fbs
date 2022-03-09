@@ -23,11 +23,12 @@ enum LoadMethodType: uint8 {
 enum VizComponentTypeModifier: uint8 {
     STACKED         = 0,
     CLUSTERED       = 1,
-    DEPENDENT       = 2,
-    INDEPENDENT     = 3,
-    POLAR           = 4,
-    X               = 5,
-    Y               = 6
+    MULTI           = 2,
+    DEPENDENT       = 3,
+    INDEPENDENT     = 4,
+    POLAR           = 5,
+    X               = 6,
+    Y               = 7 
 }
 
 enum VizComponentType: uint8 {

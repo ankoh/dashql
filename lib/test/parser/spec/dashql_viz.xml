@@ -409,4 +409,218 @@
             <dependencies />
         </expected>
     </test>
+    <test name="dashql_viz_paper">
+        <input>
+            VISUALIZE daily USING STACKED AREA CHART;
+            VISUALIZE daily USING TABLE;
+            VISUALIZE daily USING MULTI LINE CHART;
+            VISUALIZE grouped USING TABLE;
+            VISUALIZE grouped USING STACKED BAR CHART;
+            VIZ activity USING (
+                mark = 'line',
+                encoding = (
+                    x = (
+                        field = 'time',
+                        type = 'temporal',
+                        scale = (
+                            domain = [
+                                '15.10 12:00',
+                                '22.10 12:00'
+                            ]
+                        )
+                    ),
+                    y = (
+                        field = 'hits',
+                        type = 'quantitative',
+                        scale = (domain = [1234, 2345])
+                    ),
+                    color = (
+                        field = 'site',
+                        type = 'nominal',
+                        scale = (
+                            domain = [
+                                'https://github.com/dashql',
+                                'https://app.dashql.com',
+                                'https://www.dashql.com'
+                            ]
+                        )
+                    )
+                )
+            );
+        </input>
+        <expected>
+            <statements>
+                <statement type="VIZUALIZE">
+                    <node type="OBJECT_DASHQL_VIZ" loc="13..53" text="VISUALIZE ..AREA CHART">
+                        <node key="DASHQL_VIZ_COMPONENTS">
+                            <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="35..53" text="STACKED AREA CHART">
+                                <node key="DASHQL_VIZ_COMPONENT_TYPE" value="AREA" />
+                                <node key="DASHQL_VIZ_COMPONENT_TYPE_MODIFIERS" value="1" />
+                            </node>
+                        </node>
+                        <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLE_REF" loc="23..28" text="daily">
+                            <node key="SQL_TABLE_INHERIT" value="true" />
+                            <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="23..28" text="daily">
+                                <node key="SQL_QUALIFIED_NAME_RELATION" loc="23..28" text="daily" />
+                            </node>
+                        </node>
+                    </node>
+                </statement>
+                <statement type="VIZUALIZE">
+                    <node type="OBJECT_DASHQL_VIZ" loc="67..94" text="VISUALIZE ..SING TABLE">
+                        <node key="DASHQL_VIZ_COMPONENTS">
+                            <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="89..94" text="TABLE">
+                                <node key="DASHQL_VIZ_COMPONENT_TYPE" value="TABLE" />
+                            </node>
+                        </node>
+                        <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLE_REF" loc="77..82" text="daily">
+                            <node key="SQL_TABLE_INHERIT" value="true" />
+                            <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="77..82" text="daily">
+                                <node key="SQL_QUALIFIED_NAME_RELATION" loc="77..82" text="daily" />
+                            </node>
+                        </node>
+                    </node>
+                </statement>
+                <statement type="VIZUALIZE">
+                    <node type="OBJECT_DASHQL_VIZ" loc="108..146" text="VISUALIZE ..LINE CHART">
+                        <node key="DASHQL_VIZ_COMPONENTS">
+                            <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="130..146" text="MULTI LINE CHART">
+                                <node key="DASHQL_VIZ_COMPONENT_TYPE" value="LINE" />
+                                <node key="DASHQL_VIZ_COMPONENT_TYPE_MODIFIERS" value="2" />
+                            </node>
+                        </node>
+                        <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLE_REF" loc="118..123" text="daily">
+                            <node key="SQL_TABLE_INHERIT" value="true" />
+                            <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="118..123" text="daily">
+                                <node key="SQL_QUALIFIED_NAME_RELATION" loc="118..123" text="daily" />
+                            </node>
+                        </node>
+                    </node>
+                </statement>
+                <statement type="VIZUALIZE">
+                    <node type="OBJECT_DASHQL_VIZ" loc="160..189" text="VISUALIZE ..SING TABLE">
+                        <node key="DASHQL_VIZ_COMPONENTS">
+                            <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="184..189" text="TABLE">
+                                <node key="DASHQL_VIZ_COMPONENT_TYPE" value="TABLE" />
+                            </node>
+                        </node>
+                        <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLE_REF" loc="170..177" text="grouped">
+                            <node key="SQL_TABLE_INHERIT" value="true" />
+                            <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="170..177" text="grouped">
+                                <node key="SQL_QUALIFIED_NAME_RELATION" loc="170..177" text="grouped" />
+                            </node>
+                        </node>
+                    </node>
+                </statement>
+                <statement type="VIZUALIZE">
+                    <node type="OBJECT_DASHQL_VIZ" loc="203..244" text="VISUALIZE .. BAR CHART">
+                        <node key="DASHQL_VIZ_COMPONENTS">
+                            <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="227..244" text="STACKED BAR CHART">
+                                <node key="DASHQL_VIZ_COMPONENT_TYPE" value="BAR" />
+                                <node key="DASHQL_VIZ_COMPONENT_TYPE_MODIFIERS" value="1" />
+                            </node>
+                        </node>
+                        <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLE_REF" loc="213..220" text="grouped">
+                            <node key="SQL_TABLE_INHERIT" value="true" />
+                            <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="213..220" text="grouped">
+                                <node key="SQL_QUALIFIED_NAME_RELATION" loc="213..220" text="grouped" />
+                            </node>
+                        </node>
+                    </node>
+                </statement>
+                <statement type="VIZUALIZE">
+                    <node type="OBJECT_DASHQL_VIZ" loc="258..1355" text="VIZ activi..         )">
+                        <node key="DASHQL_VIZ_COMPONENTS">
+                            <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="276..1355" text=" (&#10;       ..         )">
+                                <node key="DASHQL_VIZ_COMPONENT_TYPE" value="SPEC" />
+                                <node key="DSON_ENCODING" type="OBJECT_DSON" loc="337..1341" text="(&#10;        ..         )">
+                                    <node key="DSON_COLOR" type="OBJECT_DSON" loc="913..1323" text="(&#10;        ..         )">
+                                        <node key="DSON_FIELD" loc="947..953" text="'site'" />
+                                        <node key="DSON_SCALE" type="OBJECT_DSON" loc="1029..1301" text="(&#10;        ..         )">
+                                            <node key="DSON_DOMAIN">
+                                                <node loc="1102..1129" text="'https://g..om/dashql'" />
+                                                <node loc="1163..1187" text="'https://a..ashql.com'" />
+                                                <node loc="1221..1245" text="'https://w..ashql.com'" />
+                                            </node>
+                                        </node>
+                                        <node key="DSON_TYPE" loc="986..995" text="'nominal'" />
+                                    </node>
+                                    <node key="DSON_X" type="OBJECT_DSON" loc="363..691" text="(&#10;        ..         )">
+                                        <node key="DSON_FIELD" loc="397..403" text="'time'" />
+                                        <node key="DSON_SCALE" type="OBJECT_DSON" loc="480..669" text="(&#10;        ..         )">
+                                            <node key="DSON_DOMAIN">
+                                                <node loc="553..566" text="'15.10 12:00'" />
+                                                <node loc="600..613" text="'22.10 12:00'" />
+                                            </node>
+                                        </node>
+                                        <node key="DSON_TYPE" loc="436..446" text="'temporal'" />
+                                    </node>
+                                    <node key="DSON_Y" type="OBJECT_DSON" loc="717..883" text="(&#10;        ..         )">
+                                        <node key="DSON_FIELD" loc="751..757" text="'hits'" />
+                                        <node key="DSON_SCALE" type="OBJECT_DSON" loc="838..861" text="(domain = ..34, 2345])">
+                                            <node key="DSON_DOMAIN">
+                                                <node loc="849..853" text="1234" />
+                                                <node loc="855..859" text="2345" />
+                                            </node>
+                                        </node>
+                                        <node key="DSON_TYPE" loc="790..804" text="'quantitative'" />
+                                    </node>
+                                </node>
+                                <node key="DSON_MARK" loc="302..308" text="'line'" />
+                            </node>
+                        </node>
+                        <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_TABLE_REF" loc="262..270" text="activity">
+                            <node key="SQL_TABLE_INHERIT" value="true" />
+                            <node key="SQL_TABLE_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="262..270" text="activity">
+                                <node key="SQL_QUALIFIED_NAME_RELATION" loc="262..270" text="activity" />
+                            </node>
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="54..55" text="&#10;" />
+                <line_break loc="95..96" text="&#10;" />
+                <line_break loc="147..148" text="&#10;" />
+                <line_break loc="190..191" text="&#10;" />
+                <line_break loc="245..246" text="&#10;" />
+                <line_break loc="278..279" text="&#10;" />
+                <line_break loc="309..310" text="&#10;" />
+                <line_break loc="338..339" text="&#10;" />
+                <line_break loc="364..365" text="&#10;" />
+                <line_break loc="404..405" text="&#10;" />
+                <line_break loc="447..448" text="&#10;" />
+                <line_break loc="481..482" text="&#10;" />
+                <line_break loc="520..521" text="&#10;" />
+                <line_break loc="567..568" text="&#10;" />
+                <line_break loc="613..614" text="&#10;" />
+                <line_break loc="643..644" text="&#10;" />
+                <line_break loc="669..670" text="&#10;" />
+                <line_break loc="692..693" text="&#10;" />
+                <line_break loc="718..719" text="&#10;" />
+                <line_break loc="758..759" text="&#10;" />
+                <line_break loc="805..806" text="&#10;" />
+                <line_break loc="861..862" text="&#10;" />
+                <line_break loc="884..885" text="&#10;" />
+                <line_break loc="914..915" text="&#10;" />
+                <line_break loc="954..955" text="&#10;" />
+                <line_break loc="996..997" text="&#10;" />
+                <line_break loc="1030..1031" text="&#10;" />
+                <line_break loc="1069..1070" text="&#10;" />
+                <line_break loc="1130..1131" text="&#10;" />
+                <line_break loc="1188..1189" text="&#10;" />
+                <line_break loc="1245..1246" text="&#10;" />
+                <line_break loc="1275..1276" text="&#10;" />
+                <line_break loc="1301..1302" text="&#10;" />
+                <line_break loc="1323..1324" text="&#10;" />
+                <line_break loc="1341..1342" text="&#10;" />
+                <line_break loc="1356..1357" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dson_keys />
+            <dependencies />
+        </expected>
+    </test>
 </tests>

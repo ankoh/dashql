@@ -79,4 +79,44 @@
             );
         </input>
     </test>
+    <test name="dashql_viz_paper">
+        <input>
+            VISUALIZE daily USING STACKED AREA CHART;
+            VISUALIZE daily USING TABLE;
+            VISUALIZE daily USING MULTI LINE CHART;
+            VISUALIZE grouped USING TABLE;
+            VISUALIZE grouped USING STACKED BAR CHART;
+            VIZ activity USING (
+                mark = 'line',
+                encoding = (
+                    x = (
+                        field = 'time',
+                        type = 'temporal',
+                        scale = (
+                            domain = [
+                                '15.10 12:00',
+                                '22.10 12:00'
+                            ]
+                        )
+                    ),
+                    y = (
+                        field = 'hits',
+                        type = 'quantitative',
+                        scale = (domain = [1234, 2345])
+                    ),
+                    color = (
+                        field = 'site',
+                        type = 'nominal',
+                        scale = (
+                            domain = [
+                                'https://github.com/dashql',
+                                'https://app.dashql.com',
+                                'https://www.dashql.com'
+                            ]
+                        )
+                    )
+                )
+            );
+        </input>
+    </test>
 </tests>

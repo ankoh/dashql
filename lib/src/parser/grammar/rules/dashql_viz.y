@@ -39,11 +39,17 @@ dashql_viz_type_modifiers:
 dashql_viz_type_modifier:
     STACKED         { $$ = 1 << static_cast<uint32_t>(sx::VizComponentTypeModifier::STACKED); }
   | CLUSTERED       { $$ = 1 << static_cast<uint32_t>(sx::VizComponentTypeModifier::CLUSTERED); }
+  | MULTI           { $$ = 1 << static_cast<uint32_t>(sx::VizComponentTypeModifier::CLUSTERED); }
   | DEPENDENT       { $$ = 1 << static_cast<uint32_t>(sx::VizComponentTypeModifier::DEPENDENT); }
   | INDEPENDENT     { $$ = 1 << static_cast<uint32_t>(sx::VizComponentTypeModifier::INDEPENDENT); }
   | POLAR           { $$ = 1 << static_cast<uint32_t>(sx::VizComponentTypeModifier::POLAR); }
   | X               { $$ = 1 << static_cast<uint32_t>(sx::VizComponentTypeModifier::X); }
   | Y               { $$ = 1 << static_cast<uint32_t>(sx::VizComponentTypeModifier::Y); }
+    ;
+
+dashql_opt_chart:
+    CHART
+  | %empty
     ;
 
 dashql_opt_dump:
@@ -52,19 +58,19 @@ dashql_opt_dump:
     ;
 
 dashql_viz_type:
-    AREA                  { $$ = Enum(@$, sx::VizComponentType::AREA); }
-  | AXIS                  { $$ = Enum(@$, sx::VizComponentType::AXIS); }
-  | BAR                   { $$ = Enum(@$, sx::VizComponentType::BAR); }
-  | BOX                   { $$ = Enum(@$, sx::VizComponentType::BOX); }
-  | CANDLESTICK           { $$ = Enum(@$, sx::VizComponentType::CANDLESTICK); }
+    AREA dashql_opt_chart { $$ = Enum(@$, sx::VizComponentType::AREA); }
+  | AXIS dashql_opt_chart { $$ = Enum(@$, sx::VizComponentType::AXIS); }
+  | BAR dashql_opt_chart  { $$ = Enum(@$, sx::VizComponentType::BAR); }
+  | BOX dashql_opt_chart  { $$ = Enum(@$, sx::VizComponentType::BOX); }
+  | CANDLESTICK dashql_opt_chart { $$ = Enum(@$, sx::VizComponentType::CANDLESTICK); }
   | DUMP                  { $$ = Enum(@$, sx::VizComponentType::HEX); }
-  | ERROR                 { $$ = Enum(@$, sx::VizComponentType::ERROR_BAR); }
+  | ERROR dashql_opt_chart { $$ = Enum(@$, sx::VizComponentType::ERROR_BAR); }
   | HEX dashql_opt_dump   { $$ = Enum(@$, sx::VizComponentType::HEX); }
   | JSON                  { $$ = Enum(@$, sx::VizComponentType::JSON); }
-  | LINE                  { $$ = Enum(@$, sx::VizComponentType::LINE); }
-  | PIE                   { $$ = Enum(@$, sx::VizComponentType::PIE); }
-  | POINT                 { $$ = Enum(@$, sx::VizComponentType::SCATTER); }
-  | SCATTER               { $$ = Enum(@$, sx::VizComponentType::SCATTER); }
+  | LINE dashql_opt_chart { $$ = Enum(@$, sx::VizComponentType::LINE); }
+  | PIE dashql_opt_chart  { $$ = Enum(@$, sx::VizComponentType::PIE); }
+  | POINT dashql_opt_chart { $$ = Enum(@$, sx::VizComponentType::SCATTER); }
+  | SCATTER dashql_opt_chart { $$ = Enum(@$, sx::VizComponentType::SCATTER); }
   | TABLE                 { $$ = Enum(@$, sx::VizComponentType::TABLE); }
   | %empty                { $$ = Enum(@$, sx::VizComponentType::SPEC); }
     ;
