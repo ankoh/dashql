@@ -8,6 +8,7 @@ export interface AppFeatures {
     cloudService?: boolean;
     userAccount?: boolean;
     editorControls?: boolean;
+    exampleCatalog?: boolean;
 }
 
 export interface AppConfig {
