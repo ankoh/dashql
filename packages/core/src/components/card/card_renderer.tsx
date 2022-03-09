@@ -18,6 +18,7 @@ export const CardRenderer: React.FunctionComponent<Props> = (props: Props) => {
     }
     switch (props.card.cardRenderer) {
         case model.CardRendererType.BUILTIN_INPUT_TEXT:
+            console.log(props.card);
             return <InputRenderer card={props.card} editable={props.editable} />;
         case model.CardRendererType.BUILTIN_TABLE:
             return <TableRenderer card={props.card} editable={props.editable} />;

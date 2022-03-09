@@ -37,13 +37,17 @@ class InputStatement {
     /// The component type
     std::optional<sx::InputComponentType> component_type_ = std::nullopt;
     /// The position option
-    std::optional<proto::analyzer::CardPosition> position_ = std::nullopt;
+    std::optional<proto::analyzer::CardPosition> specified_position_ = std::nullopt;
+    /// The computed position
+    std::optional<proto::analyzer::CardPosition> computed_position_ = std::nullopt;
     /// The title
     std::optional<std::string> title_ = std::nullopt;
 
    public:
     /// Constructor
     InputStatement(ProgramInstance& instance, size_t statement_id, ASTIndex ast);
+    /// Get the statement id
+    auto& statement_id() { return statement_id_; }
     /// Get the instance
     auto& instance() { return instance_; }
     /// Get the ast
@@ -51,7 +55,9 @@ class InputStatement {
     /// Get the component type
     auto& component_type() { return component_type_; }
     /// Get the specified position
-    auto& position() { return position_; }
+    auto& specified_position() { return specified_position_; }
+    /// Get the computed position
+    auto& computed_position() { return computed_position_; }
     /// Get the title
     auto& title() { return title_; }
     /// Get the statement name

@@ -148,6 +148,32 @@ Array [
           </div>
           <div
             className="script_card"
+            data-key="demo_ieeevis"
+            onClick={[Function]}
+            style={Object {}}
+          >
+            <div
+              className="example_icon"
+              style={Object {}}
+            >
+              <svg
+                height="20"
+                width="20"
+              >
+                <use
+                  xlinkHref="test-file-stub#sym"
+                />
+              </svg>
+            </div>
+            <span
+              className="example_title"
+              style={Object {}}
+            >
+              IEEE Viz
+            </span>
+          </div>
+          <div
+            className="script_card"
             data-key="demo_vaccination_germany"
             onClick={[Function]}
             style={Object {}}

@@ -96,7 +96,7 @@ std::string ProgramEditor::RewriteInputStatement(size_t stmt_id,
         switch (e->variant_type()) {
             case proto::edit::EditOperationVariant::CardPositionUpdate: {
                 auto up = e->variant_as_CardPositionUpdate();
-                input->position() = *up->position();
+                input->specified_position() = *up->position();
                 break;
             }
             default:

@@ -83,7 +83,7 @@ void AnalyzerTest::EncodePlan(pugi::xml_node root, const ProgramInstance& instan
             std::string copy{*title};
             i.append_attribute("title").set_value(copy.c_str());
         }
-        if (auto pos = in->position()) {
+        if (auto pos = in->specified_position()) {
             auto p = i.append_child("position");
             p.append_attribute("row") = pos->row();
             p.append_attribute("column") = pos->column();

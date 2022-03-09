@@ -90,7 +90,7 @@ std::unique_ptr<InputStatement> InputStatement::ReadFrom(ProgramInstance& instan
         auto w = instance.ReadNodeValueOrNull(pos_width->node_id)->CastTo(arrow::uint64()).ValueOr(zero);
         auto h = instance.ReadNodeValueOrNull(pos_height->node_id)->CastTo(arrow::uint64()).ValueOr(zero);
         auto getu64 = [](auto& ptr) { return reinterpret_cast<arrow::UInt64Scalar&>(*ptr).value; };
-        input->position_ = proto::analyzer::CardPosition(getu64(r), getu64(c), getu64(w), getu64(h));
+        input->specified_position_ = proto::analyzer::CardPosition(getu64(r), getu64(c), getu64(w), getu64(h));
     }
 
     /// Get the title attribute
@@ -130,7 +130,7 @@ void InputStatement::PrintScript(std::ostream& out) const {
     // Create document writer
     json::DocumentWriter writer{instance_, stmt->root_node, ast_};
     // Update position
-    if (position_) {
+    if (specified_position_) {
         writer.patch().Ignore({
             SX_ROW,
             SX_COLUMN,
@@ -144,13 +144,13 @@ void InputStatement::PrintScript(std::ostream& out) const {
         json::SAXDocumentBuilder node{sx::AttributeKey::DSON_POSITION};
         node.StartObject();
         node.Key("row");
-        node.Uint(position_->row());
+        node.Uint(specified_position_->row());
         node.Key("column");
-        node.Uint(position_->column());
+        node.Uint(specified_position_->column());
         node.Key("width");
-        node.Uint(position_->width());
+        node.Uint(specified_position_->width());
         node.Key("height");
-        node.Uint(position_->height());
+        node.Uint(specified_position_->height());
         node.EndObject(4);
         writer.patch().Append(stmt->root_node, node.Finish());
     }
@@ -178,9 +178,10 @@ flatbuffers::Offset<proto::analyzer::Card> InputStatement::PackCard(flatbuffers:
     }
 
     // Build viz spec
+    assert(computed_position_.has_value());
     proto::analyzer::CardBuilder cb{builder};
     cb.add_card_type(dashql::proto::analyzer::CardType::BUILTIN_VIZ);
-    if (position_) cb.add_card_position(&position_.value());
+    cb.add_card_position(&computed_position_.value());
     if (title_offset) cb.add_card_title(*title_offset);
     cb.add_statement_id(statement_id_);
     cb.add_input_extra(extra);

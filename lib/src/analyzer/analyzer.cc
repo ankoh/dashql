@@ -196,6 +196,8 @@ arrow::Status Analyzer::IdentifyDeadStatements(ProgramInstance& instance) {
     std::vector<bool> liveness;
     liveness.resize(instance.program_->statements.size(), false);
 
+    // Mark input statements as live
+
     // Collect dependencies
     std::unordered_multimap<size_t, size_t> depends_on;
     depends_on.reserve(instance.program_->dependencies.size());
@@ -203,13 +205,16 @@ arrow::Status Analyzer::IdentifyDeadStatements(ProgramInstance& instance) {
         depends_on.insert({dep.target_statement(), dep.source_statement()});
     }
 
-    // Prepare DFS
+    // Prepare DFSs starting from viz and input statements
     std::vector<size_t> pending;
     std::unordered_set<size_t> visited;
     pending.reserve(liveness.size());
     visited.reserve(liveness.size());
     for (auto& viz : instance.viz_statements()) {
         pending.push_back(viz->statement_id());
+    }
+    for (auto& input : instance.input_statements()) {
+        pending.push_back(input->statement_id());
     }
 
     // Traverse all dependencies
@@ -290,30 +295,49 @@ arrow::Status Analyzer::AnalyzeVizStatements(ProgramInstance& instance) {
     return arrow::Status::OK();
 }
 
+static constexpr uint32_t DEFAULT_INPUT_CARD_WIDTH = 3;
+static constexpr uint32_t DEFAULT_INPUT_CARD_HEIGHT = 1;
+static constexpr uint32_t DEFAULT_VIZ_CARD_WIDTH = 12;
+static constexpr uint32_t DEFAULT_VIZ_CARD_HEIGHT = 4;
+
 /// Compute the viz positions
 arrow::Status Analyzer::ComputeCardPositions(ProgramInstance& instance) {
-    std::vector<proto::analyzer::CardPosition*> positions;
-    positions.reserve(instance.viz_statements().size());
+    BoardSpace space;
+
+    // Collect input positions
+    for (auto& stmt : instance.input_statements()) {
+        auto& specified = stmt->specified_position();
+        stmt->computed_position() = !!specified ? *specified : proto::analyzer::CardPosition(0, 0, 0, 0);
+        auto& pos = stmt->computed_position().value();
+        auto alloc = space.Allocate({
+            .width = pos.width() == 0 ? DEFAULT_INPUT_CARD_WIDTH : pos.width(),
+            .height = pos.height() == 0 ? DEFAULT_INPUT_CARD_HEIGHT : pos.height(),
+            .row = pos.row(),
+            .column = pos.column(),
+        });
+        pos.mutate_width(alloc.width);
+        pos.mutate_height(alloc.height);
+        pos.mutate_row(alloc.row);
+        pos.mutate_column(alloc.column);
+    }
+
+    // Collect viz positions
     for (auto& stmt : instance.viz_statements()) {
         auto& specified = stmt->specified_position();
         stmt->computed_position() = !!specified ? *specified : proto::analyzer::CardPosition(0, 0, 0, 0);
-        positions.push_back(&stmt->computed_position().value());
+        auto& pos = stmt->computed_position().value();
+        auto alloc = space.Allocate({
+            .width = pos.width() == 0 ? DEFAULT_VIZ_CARD_WIDTH : pos.width(),
+            .height = pos.height() == 0 ? DEFAULT_VIZ_CARD_HEIGHT : pos.height(),
+            .row = pos.row(),
+            .column = pos.column(),
+        });
+        pos.mutate_width(alloc.width);
+        pos.mutate_height(alloc.height);
+        pos.mutate_row(alloc.row);
+        pos.mutate_column(alloc.column);
     }
 
-    // Allocate space
-    BoardSpace space;
-    for (auto* pos : positions) {
-        auto alloc = space.Allocate({
-            .width = pos->width(),
-            .height = pos->height(),
-            .row = pos->row(),
-            .column = pos->column(),
-        });
-        pos->mutate_width(alloc.width);
-        pos->mutate_height(alloc.height);
-        pos->mutate_row(alloc.row);
-        pos->mutate_column(alloc.column);
-    }
     return arrow::Status::OK();
 }
 
