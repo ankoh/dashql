@@ -49,6 +49,7 @@ export const Shell: React.FC<ShellProps> = (props: ShellProps) => {
                 });
                 return result;
             },
+            backgroundColor: 'rgb(25, 28, 31)',
         });
     }, []);
 

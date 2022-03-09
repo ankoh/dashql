@@ -1,5 +1,5 @@
 .root {
-    background: #333;
+    background: rgb(25, 28, 31);
     border-radius: 0 0 var(--sys_panel_border_radius) var(--sys_panel_border_radius);
     height: 100%;
     padding: 8px 0px 8px 16px;
