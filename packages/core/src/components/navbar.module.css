@@ -117,7 +117,8 @@
     }
 
     .sysbar > div {
-        height: 48px;
+        height: 40px;
+        margin: 2px 0px;
     }
 }
 
