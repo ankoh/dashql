@@ -34,6 +34,7 @@
     position: absolute;
     left: 80px;
     bottom: 16px;
-    width: 500px;
+    width: 50%;
+    max-width: 640px;
     height: 400px;
 }
