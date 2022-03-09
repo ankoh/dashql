@@ -38,6 +38,8 @@
         "./test/**/*.tsx",
         "./types/*.d.ts",
         "../../node_modules/@duckdb/react-duckdb/src/*.ts",
-        "../../node_modules/@duckdb/react-duckdb/src/*.tsx"
+        "../../node_modules/@duckdb/react-duckdb/src/*.tsx",
+        "../../node_modules/@duckdb/react-duckdb-table/src/*.ts",
+        "../../node_modules/@duckdb/react-duckdb-table/src/*.tsx"
     ]
 }

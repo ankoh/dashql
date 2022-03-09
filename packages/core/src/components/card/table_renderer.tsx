@@ -1,12 +1,10 @@
 //import * as rdt from '@duckdb/react-duckdb-table';
+
 import * as React from 'react';
+import * as rd from '@duckdb/react-duckdb';
+import * as rdt from '@duckdb/react-duckdb-table';
 import * as model from '../../model';
-import * as access from '../../access';
 import { CardFrame } from './card_frame';
-
-import DataGrid from './data_grid';
-
-import ScanProvider = access.ScanProvider;
 
 interface Props {
     card: model.CardSpecification;
@@ -14,21 +12,25 @@ interface Props {
 }
 
 export const TableRenderer: React.FC<Props> = (props: Props) => {
-    const dbMeta = model.useDatabaseMetadata();
+    const connection = rd.useDuckDBConnection();
+    const connect = rd.useDuckDBConnectionDialer();
     const target = props.card.dataSource?.targetQualified;
     const data = props.card.dataSource;
+    React.useEffect(() => {
+        if (connection == null) {
+            connect();
+        }
+    }, [connection]);
     if (!data) {
-        return <div />;
-    }
-    const table = dbMeta.tables.get(data.targetQualified);
-    if (!table) {
         return <div />;
     }
     return (
         <CardFrame title={props.card.title || target} controls={props.editable}>
-            <ScanProvider targetName={table.nameQualified} request={new access.ScanRequest().withRange(0, 1024)}>
-                {(d, r) => <DataGrid table={table} data={d} requestData={r} />}
-            </ScanProvider>
+            <rdt.TABLE_DATA_EPOCH.Provider value={0}>
+                <rdt.TableSchemaProvider name={target}>
+                    <rdt.WiredTableViewer connection={connection} />
+                </rdt.TableSchemaProvider>
+            </rdt.TABLE_DATA_EPOCH.Provider>
         </CardFrame>
     );
 };
