@@ -63,7 +63,7 @@ export const NavBar = (): React.ReactElement => {
                     )}
                 </Link>
             )}
-            <SystemBar className={styles.systemlist} />
+            <SystemBar className={styles.sysbar} />
         </div>
     );
 };

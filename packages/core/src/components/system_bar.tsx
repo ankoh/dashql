@@ -2,6 +2,7 @@ import * as React from 'react';
 import { RefreshingLogViewer } from './log_viewer';
 import { DatabaseViewer } from './database_viewer';
 import { SystemInfo } from './system_info';
+import { useAppConfig } from '../app_config';
 
 import styles from './system_bar.module.css';
 
@@ -49,6 +50,7 @@ interface Props {
 
 export const SystemBar: React.FC<Props> = (props: Props) => {
     const [expanded, setExpanded] = React.useState<number | null>(null);
+    const appConfig = useAppConfig();
 
     const toggleTab = (tab: number): void => setExpanded(expanded == tab ? null : tab);
     return (
@@ -73,16 +75,18 @@ export const SystemBar: React.FC<Props> = (props: Props) => {
             >
                 <RefreshingLogViewer onClose={() => toggleTab(1)} />
             </SystemPanel>
-            <SystemPanel
-                systemID={2}
-                expandedPanel={expanded}
-                onClick={toggleTab.bind(this)}
-                icon={icon_info}
-                preferredHeight="400px"
-                preferredWidth="400px"
-            >
-                <SystemInfo onClose={() => toggleTab(2)} />
-            </SystemPanel>
+            {appConfig.value?.features?.systemInfo && (
+                <SystemPanel
+                    systemID={2}
+                    expandedPanel={expanded}
+                    onClick={toggleTab.bind(this)}
+                    icon={icon_info}
+                    preferredHeight="400px"
+                    preferredWidth="400px"
+                >
+                    <SystemInfo onClose={() => toggleTab(2)} />
+                </SystemPanel>
+            )}
         </div>
     );
 };

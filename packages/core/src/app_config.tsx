@@ -9,6 +9,7 @@ export interface AppFeatures {
     userAccount?: boolean;
     editorControls?: boolean;
     exampleCatalog?: boolean;
+    systemInfo?: boolean;
 }
 
 export interface AppConfig {
