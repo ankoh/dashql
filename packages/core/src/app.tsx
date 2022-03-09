@@ -10,7 +10,7 @@ import {
 } from './model';
 import { Route, BrowserRouter, Routes, Navigate } from 'react-router-dom';
 import { Explorer, Examples, Viewer, NotFound, Account, Cloud } from './pages';
-import { withNavBar, OverlayProvider, withScriptLoader } from './components';
+import { withBanner, withNavBar, OverlayProvider, withScriptLoader } from './components';
 import { AppLauncher } from './app_launcher';
 import { AppConfigResolver } from './app_config';
 
@@ -42,11 +42,10 @@ const DataProviders = (props: { children: React.ReactElement }) => (
 );
 
 const ViewerPage = withNavBar(withScriptLoader(Viewer));
-const ExplorerPage = withNavBar(withScriptLoader(Explorer));
+const ExplorerPage = withBanner(withNavBar(withScriptLoader(Explorer)));
 const ExamplesPage = withNavBar(Examples);
 const AccountPage = withNavBar(Account);
 const CloudPage = withNavBar(Cloud);
-// const ExplorerPage = withNavBar(withBanner(Explorer));
 // const ExamplesPage = withNavBar(withBanner(Examples));
 
 ReactDOM.render(
