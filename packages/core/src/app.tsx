@@ -16,6 +16,7 @@ import { AppConfigResolver } from './app_config';
 
 import 'bootstrap/dist/css/bootstrap.min.css';
 
+import './vars.module.css';
 import './app.module.css';
 import '../static/fonts/fonts.module.css';
 import 'react-grid-layout/css/styles.css';
