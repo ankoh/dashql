@@ -66,10 +66,46 @@ std::unique_ptr<InputStatement> InputStatement::ReadFrom(ProgramInstance& instan
     assert(matches[SX_STATEMENT_NAME]);
     assert(matches[SX_INPUT_VALUE_TYPE]);
     auto statement_name_node = matches[SX_STATEMENT_NAME].node_id;
-    auto type_node = matches[SX_INPUT_VALUE_TYPE].node_id;
 
     // Create the viz statement
     auto input = std::make_unique<InputStatement>(instance, stmt_id, matches);
+
+    // Is simple type?
+    auto value_type_node_id = matches[SX_INPUT_VALUE_TYPE].node_id;
+    auto& value_type_node = program.nodes[value_type_node_id];
+    auto value_type_txt = instance.TextAt(value_type_node.location());
+    static const std::unordered_map<std::string_view, proto::sql::SQLType> SIMPLE_TYPES = {
+#define X(NAME, TYPEID) {NAME, proto::sql::SQLType(TYPEID, 0, 0)}
+        X("BOOLEAN", proto::sql::SQLTypeID::BOOLEAN),
+        X("TINYINT", proto::sql::SQLTypeID::TINYINT),
+        X("SMALLINT", proto::sql::SQLTypeID::SMALLINT),
+        X("INTEGER", proto::sql::SQLTypeID::INTEGER),
+        X("BIGINT", proto::sql::SQLTypeID::BIGINT),
+        X("DATE", proto::sql::SQLTypeID::DATE),
+        X("TIME", proto::sql::SQLTypeID::TIME),
+        X("TIMESTAMP_SEC", proto::sql::SQLTypeID::TIMESTAMP_SEC),
+        X("TIMESTAMP_MS", proto::sql::SQLTypeID::TIMESTAMP_MS),
+        X("TIMESTAMP", proto::sql::SQLTypeID::TIMESTAMP),
+        X("TIMESTAMP_NS", proto::sql::SQLTypeID::TIMESTAMP_NS),
+        X("FLOAT", proto::sql::SQLTypeID::FLOAT),
+        X("DOUBLE", proto::sql::SQLTypeID::DOUBLE),
+        X("CHAR", proto::sql::SQLTypeID::CHAR),
+        X("VARCHAR", proto::sql::SQLTypeID::VARCHAR),
+        X("BLOB", proto::sql::SQLTypeID::BLOB),
+        X("INTERVAL", proto::sql::SQLTypeID::INTERVAL),
+        X("UTINYINT", proto::sql::SQLTypeID::UTINYINT),
+        X("USMALLINT", proto::sql::SQLTypeID::USMALLINT),
+        X("UINTEGER", proto::sql::SQLTypeID::UINTEGER),
+        X("UBIGINT", proto::sql::SQLTypeID::UBIGINT),
+        X("HUGEINT", proto::sql::SQLTypeID::HUGEINT),
+#undef X
+    };
+    auto value_type_iter = SIMPLE_TYPES.find(value_type_txt);
+    if (value_type_iter != SIMPLE_TYPES.end()) {
+        input->value_type_ = value_type_iter->second;
+    } else {
+        input->value_type_ = proto::sql::SQLType(proto::sql::SQLTypeID::VARCHAR, 0, 0);
+    }
 
     /// Get the component type
     if (matches[SX_INPUT_COMPONENT_TYPE]) {
@@ -185,6 +221,7 @@ flatbuffers::Offset<proto::analyzer::Card> InputStatement::PackCard(flatbuffers:
     if (title_offset) cb.add_card_title(*title_offset);
     cb.add_statement_id(statement_id_);
     cb.add_input_extra(extra);
+    cb.add_input_value_type(&value_type_);
     return cb.Finish();
 }
 
