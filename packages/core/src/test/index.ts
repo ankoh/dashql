@@ -1,2 +1,2 @@
-export * from './globals';
 export * from './http_mock';
+export * from './setup';

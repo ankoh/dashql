@@ -25,9 +25,9 @@ describe('Task Scheduler Scenarios', () => {
     let httpMock: HTTPMock | null = null;
 
     beforeAll(async () => {
-        az = await test_env.initAnalyzer();
-        db = await test_env.initDuckDB();
-        jp = await test_env.initJMESPath();
+        az = await test_env.ANALYZER;
+        db = await test_env.DATABASE;
+        jp = await test_env.JMESPATH;
     });
 
     beforeEach(async () => {
@@ -39,13 +39,10 @@ describe('Task Scheduler Scenarios', () => {
     afterEach(async () => {
         httpMock.reset();
         await dbConn.close();
-        await db.reset();
         await az.reset();
     });
 
-    afterAll(async () => {
-        await db.terminate();
-    });
+    afterAll(async () => {});
 
     for (const scenario of SCENARIOS) {
         describe(scenario.name, () => {

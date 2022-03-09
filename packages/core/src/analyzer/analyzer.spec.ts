@@ -6,7 +6,7 @@ describe('Program editor', () => {
     let az: analyzer.Analyzer | null = null;
 
     beforeAll(async () => {
-        az = await test.initAnalyzer();
+        az = test.ANALYZER;
     });
     afterEach(async () => {
         az.reset();
@@ -90,7 +90,7 @@ describe('Parser', () => {
     let az: analyzer.Analyzer | null = null;
 
     beforeAll(async () => {
-        az = await test.initAnalyzer();
+        az = test.ANALYZER;
     });
     afterEach(async () => {
         az.reset();
@@ -132,7 +132,7 @@ describe('Task Graph', () => {
     let az: analyzer.Analyzer | null = null;
 
     beforeAll(async () => {
-        az = await test.initAnalyzer();
+        az = test.ANALYZER;
     });
     afterEach(async () => {
         az.reset();

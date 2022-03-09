@@ -199,7 +199,7 @@ describe('VizComposer', () => {
     let az: analyzer.Analyzer | null = null;
     beforeEach(async () => {
         if (az == null) {
-            az = await test_env.initAnalyzer();
+            az = test_env.ANALYZER;
         }
         az.reset();
     });

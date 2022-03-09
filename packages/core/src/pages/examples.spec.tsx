@@ -13,7 +13,7 @@ describe('Examples', () => {
     let windowMock: any;
 
     beforeAll(async () => {
-        az = await test_env.initAnalyzer();
+        az = test_env.ANALYZER;
         windowMock = jest.spyOn(window, 'window', 'get');
         windowMock.mockImplementation(() => ({
             matchMedia: jest.fn().mockImplementation(query => ({

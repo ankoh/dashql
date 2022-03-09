@@ -5,7 +5,7 @@ describe('JMESPath', () => {
     let jp: jmespath.JMESPath | null = null;
 
     beforeAll(async () => {
-        jp = await test.initJMESPath();
+        jp = test.JMESPATH;
     });
 
     it('Example', () => {

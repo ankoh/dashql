@@ -9,13 +9,10 @@ describe('DuckDB', () => {
     let conn: duckdb.AsyncDuckDBConnection | null = null;
 
     beforeAll(async () => {
-        db = await test.initDuckDB();
+        db = test.DATABASE;
     });
     beforeEach(async () => {
         conn = await db.connect();
-    });
-    afterAll(async () => {
-        await db.terminate();
     });
     afterEach(async () => {
         await conn.close();
