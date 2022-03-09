@@ -5,7 +5,6 @@ namespace dashql.proto.syntax;
 enum InputComponentType: uint8 {
     NONE = 0,
     TEXT = 1,
-    FILE = 2,
 }
 
 enum FetchMethodType: uint8 {

@@ -11,7 +11,7 @@ import { useAnalyzer } from '../analyzer';
 
 import styles from './script_loader.module.css';
 
-const DEFAULT_EXAMPLE = 'demo_vaccination_germany';
+const DEFAULT_EXAMPLE = 'demo_ieeevis';
 
 interface Props {
     errorComponent?: (error: string) => React.ReactElement;

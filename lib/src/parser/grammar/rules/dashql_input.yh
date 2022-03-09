@@ -1,3 +1,4 @@
 %type <sx::Node> dashql_input;
 %type <sx::Node> dashql_input_component_type;
-%type <sx::Node> dashql_opt_input_component_type;
+%type <NodeVector> opt_dashql_input_using;
+%type <NodeVector> dashql_input_component;

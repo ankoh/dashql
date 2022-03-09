@@ -2,6 +2,7 @@ import * as utils from './utils';
 import * as model from './model';
 import axios from 'axios';
 
+import example_demo_ieeevis from '../static/examples/demo_ieeevis.dashql';
 import example_demo_explore_json from '../static/examples/demo_explore_json.dashql';
 import example_demo_unischema from '../static/examples/demo_unischema.dashql';
 import example_demo_vaccination_germany from '../static/examples/demo_vaccination_germany.dashql';
@@ -91,6 +92,16 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
             .set(ScriptFeatureTag.DATA_JSON)
             .set(ScriptFeatureTag.TRANSFORM_JMESPATH),
         url: example_demo_explore_json,
+        enabled: true,
+    },
+    {
+        name: 'demo_ieeevis',
+        collection: 'Demos',
+        title: 'IEEE Viz',
+        description: 'A script for the IEEE Viz publication',
+        icon: icon_dashboard,
+        features: new utils.NativeBitmap(ScriptFeatureTag._COUNT_),
+        url: example_demo_ieeevis,
         enabled: true,
     },
     {
