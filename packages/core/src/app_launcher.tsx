@@ -26,34 +26,34 @@ const LaunchLogic: React.FC<Props> = (props: Props) => {
     const analyzer = useAnalyzer();
     const resolveAnalyzer = useAnalyzerResolver();
     const database = rd.useDuckDB();
-    const databaseStatus = rd.useDuckDBStatus();
-    const databaseLauncher = rd.useDuckDBLauncher();
+    const resolveDatabase = rd.useDuckDBResolver();
     const metadata = model.useDatabaseMetadata();
     const metadataDispatch = model.useDatabaseMetadataDispatch();
     const [dbc, setDbc] = React.useState<DatabaseClient | null>(null);
 
-    // Initialize database
+    // Resolve database and analyzer
+    React.useEffect(() => {
+        if (!database.resolving()) {
+            resolveDatabase();
+        }
+        if (!analyzer.resolving()) {
+            resolveAnalyzer();
+        }
+    }, [database, analyzer]);
+
+    // Initialize database client
     const connecting = React.useRef<boolean>(false);
     React.useEffect(() => {
-        if (database == null) {
-            databaseLauncher();
-        } else if (database != null && !connecting.current) {
+        if (database.value != null && !connecting.current) {
             connecting.current = true;
             const connect = async () => {
-                const conn = await database.connect();
+                const conn = await database.value.connect();
                 const client = new DatabaseClient(conn, metadata, metadataDispatch);
                 setDbc(client);
             };
             connect();
         }
     }, [database]);
-
-    // Initialize analyzer
-    React.useEffect(() => {
-        if (analyzer.value == null) {
-            resolveAnalyzer();
-        }
-    }, [analyzer.value]);
 
     // Launch completed?
     const completed = config.value != null && analyzer.value != null && database != null && dbc != null;
@@ -67,20 +67,8 @@ const LaunchLogic: React.FC<Props> = (props: Props) => {
         );
     }
 
-    // Get the status
-    let dbStatus = model.Status.NONE;
-    if (database != null) {
-        dbStatus = model.Status.COMPLETED;
-    } else if (databaseStatus == null) {
-        dbStatus = model.Status.NONE;
-    } else if (databaseStatus.instantiationError != null) {
-        dbStatus = model.Status.FAILED;
-    } else if (databaseStatus.instantiationProgress != null) {
-        dbStatus = model.Status.RUNNING;
-    }
-
     // Render status steps
-    const renderStatus = (label: string, status: model.Status) => (
+    const renderStatus = (label: string, status: rd.ResolvableStatus) => (
         <div key={label} className={styles.step}>
             <div className={styles.step_status}>
                 <StatusIndicator width="14px" height="14px" status={status} />
@@ -98,7 +86,7 @@ const LaunchLogic: React.FC<Props> = (props: Props) => {
                 </div>
                 <div className={styles.steps}>
                     {renderStatus('Configure the application', config.status)}
-                    {renderStatus('Initialize the database', dbStatus)}
+                    {renderStatus('Initialize the database', database.status)}
                     {renderStatus('Initialize the analyzer', analyzer.status)}
                 </div>
             </div>

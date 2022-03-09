@@ -1,7 +1,7 @@
+import * as rd from '@duckdb/react-duckdb';
 import React from 'react';
 import axios from 'axios';
 import config_url from '../static/config.json';
-import { Status, LazySetup } from './model';
 
 export interface AppFeatures {
     scriptStatistics?: boolean;
@@ -26,7 +26,7 @@ export const initialAppConfig: AppConfig = {
     program: undefined,
 };
 
-const configCtx = React.createContext<LazySetup<AppConfig>>(null);
+const configCtx = React.createContext<rd.Resolvable<AppConfig>>(null);
 const reconfigureCtx = React.createContext<(config: AppConfig) => void>(null);
 
 type Props = {
@@ -34,51 +34,26 @@ type Props = {
 };
 
 export const AppConfigResolver: React.FC<Props> = (props: Props) => {
-    const [config, setConfig] = React.useState<LazySetup<AppConfig>>({
-        status: Status.NONE,
-        value: null,
-        error: null,
-    });
+    const [config, setConfig] = React.useState<rd.Resolvable<AppConfig>>(new rd.Resolvable());
     const started = React.useRef<boolean>(false);
     if (!started.current) {
         started.current = true;
         const resolve = async (): Promise<void> => {
-            setConfig({
-                status: Status.RUNNING,
-                value: null,
-                error: null,
-            });
+            setConfig(c => c.updateRunning());
             try {
                 const resp = await axios.get(config_url as string);
                 if (isAppConfig(resp.data)) {
-                    setConfig({
-                        status: Status.COMPLETED,
-                        value: resp as AppConfig,
-                        error: null,
-                    });
+                    setConfig(c => c.completeWith(resp as AppConfig));
                 } else {
-                    setConfig({
-                        status: Status.FAILED,
-                        value: null,
-                        error: null,
-                    });
+                    setConfig(c => c.failWith('invalid app config'));
                 }
-            } catch (_) {
-                setConfig({
-                    status: Status.FAILED,
-                    value: null,
-                    error: null,
-                });
+            } catch (e: any) {
+                setConfig(c => c.failWith(e));
             }
         };
         resolve();
     }
-    const reconfigure = (next: AppConfig) =>
-        setConfig({
-            status: Status.COMPLETED,
-            value: next,
-            error: null,
-        });
+    const reconfigure = (next: AppConfig) => setConfig(c => c.completeWith(next));
     return (
         <configCtx.Provider value={config}>
             <reconfigureCtx.Provider value={reconfigure}>{props.children}</reconfigureCtx.Provider>
@@ -86,5 +61,5 @@ export const AppConfigResolver: React.FC<Props> = (props: Props) => {
     );
 };
 
-export const useAppConfig = (): LazySetup<AppConfig> => React.useContext(configCtx);
+export const useAppConfig = (): rd.Resolvable<AppConfig> => React.useContext(configCtx);
 export const useAppReconfigure = (): ((config: AppConfig) => void) => React.useContext(reconfigureCtx);

@@ -1,12 +1,12 @@
 import * as React from 'react';
 import * as proto from '@dashql/proto';
-import { Status } from '../model';
+import * as rd from '@duckdb/react-duckdb';
 import classNames from 'classnames';
 
 import styles from './status.module.css';
 
 interface IStatusIndicatorProps {
-    status: Status | null;
+    status: rd.ResolvableStatus | null;
     className?: string;
     width?: string;
     height?: string;
@@ -14,10 +14,10 @@ interface IStatusIndicatorProps {
 }
 
 export const StatusIndicator: React.FC<IStatusIndicatorProps> = (props: IStatusIndicatorProps) => {
-    const status_code = props.status ? props.status : Status.NONE;
+    const status_code = props.status ? props.status : rd.ResolvableStatus.NONE;
     let element = <div />;
     switch (status_code) {
-        case Status.RUNNING:
+        case rd.ResolvableStatus.RUNNING:
             element = (
                 <svg
                     className={classNames(props.className)}
@@ -36,7 +36,7 @@ export const StatusIndicator: React.FC<IStatusIndicatorProps> = (props: IStatusI
                 </svg>
             );
             break;
-        case Status.NONE:
+        case rd.ResolvableStatus.NONE:
             element = (
                 <svg
                     className={classNames(props.className)}
@@ -53,7 +53,7 @@ export const StatusIndicator: React.FC<IStatusIndicatorProps> = (props: IStatusI
                 </svg>
             );
             break;
-        case Status.FAILED:
+        case rd.ResolvableStatus.FAILED:
             element = (
                 <svg
                     className={classNames(props.className)}
@@ -73,33 +73,7 @@ export const StatusIndicator: React.FC<IStatusIndicatorProps> = (props: IStatusI
                 </svg>
             );
             break;
-        case Status.BLOCKED:
-            element = (
-                <svg
-                    className={classNames(props.className)}
-                    width={props.width || '24px'}
-                    height={props.height || '24px'}
-                    viewBox="-8 -8 16 16"
-                    fill="none"
-                    strokeWidth="2"
-                >
-                    <g fill="none" fillRule="evenodd">
-                        <rect x="-3.5" y="-3" width="3" height="6" fill={props.fill || 'white'}></rect>
-                        <rect x="0.5" y="-3" width="3" height="6" fill={props.fill || 'white'}></rect>
-                        <circle cx="0" cy="0" r="7" opacity=".5" stroke={props.fill || 'white'}></circle>
-                        <circle
-                            cx="0"
-                            cy="0"
-                            r="7"
-                            stroke={props.fill || 'white'}
-                            strokeDasharray="12, 88"
-                            className={styles.status_spinner}
-                        />
-                    </g>
-                </svg>
-            );
-            break;
-        case Status.COMPLETED:
+        case rd.ResolvableStatus.COMPLETED:
             element = (
                 <svg
                     className={classNames(props.className)}
@@ -132,22 +106,22 @@ interface ITaskStatusIndicatorProps {
 }
 
 export const TaskStatusIndicator: React.FC<ITaskStatusIndicatorProps> = (props: ITaskStatusIndicatorProps) => {
-    let mappedStatus = Status.NONE;
+    let mappedStatus = rd.ResolvableStatus.NONE;
     switch (props.status) {
         case proto.task.TaskStatusCode.PENDING:
-            mappedStatus = Status.NONE;
+            mappedStatus = rd.ResolvableStatus.NONE;
             break;
         case proto.task.TaskStatusCode.COMPLETED:
-            mappedStatus = Status.COMPLETED;
+            mappedStatus = rd.ResolvableStatus.COMPLETED;
             break;
         case proto.task.TaskStatusCode.BLOCKED:
-            mappedStatus = Status.BLOCKED;
+            mappedStatus = rd.ResolvableStatus.RUNNING;
             break;
         case proto.task.TaskStatusCode.FAILED:
-            mappedStatus = Status.FAILED;
+            mappedStatus = rd.ResolvableStatus.FAILED;
             break;
         case proto.task.TaskStatusCode.RUNNING:
-            mappedStatus = Status.RUNNING;
+            mappedStatus = rd.ResolvableStatus.RUNNING;
             break;
     }
     const mappedProps: IStatusIndicatorProps = {

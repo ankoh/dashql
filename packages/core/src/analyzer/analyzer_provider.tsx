@@ -1,9 +1,9 @@
 // Copyright (c) 2020 The DashQL Authors
 
+import * as rd from '@duckdb/react-duckdb';
 import React from 'react';
 import { AnalyzerBindings } from './analyzer_bindings';
 import { Analyzer } from './analyzer_browser';
-import { Status, LazyResolver, LazySetup } from '../model';
 
 import analyzer_wasm from './analyzer_wasm.wasm';
 
@@ -12,38 +12,27 @@ type Props = {
     value?: AnalyzerBindings;
 };
 
-const setupCtx = React.createContext<LazySetup<AnalyzerBindings>>(null);
-const resolverCtx = React.createContext<LazyResolver<AnalyzerBindings>>(null);
+const setupCtx = React.createContext<rd.Resolvable<AnalyzerBindings>>(null);
+const resolverCtx = React.createContext<rd.Resolver<AnalyzerBindings>>(null);
 
 export const AnalyzerProvider: React.FC<Props> = (props: Props) => {
-    const [setup, updateSetup] = React.useState<LazySetup<AnalyzerBindings>>({
-        status: props.value != null ? Status.COMPLETED : Status.NONE,
-        value: props.value || null,
-        error: null,
-    });
+    const [setup, updateSetup] = React.useState<rd.Resolvable<AnalyzerBindings>>(new rd.Resolvable());
+    const lock = React.useRef<boolean>(false);
     const resolver = React.useCallback(async () => {
         if (setup.value != null) return setup.value;
         if (setup.error != null) return null;
+        if (lock.current) return null;
+        lock.current = true;
         try {
-            updateSetup(s => ({
-                ...s,
-                status: Status.RUNNING,
-            }));
-            const jp = new Analyzer({}, analyzer_wasm);
-            await jp.init();
-            updateSetup(s => ({
-                ...s,
-                value: jp,
-                status: Status.COMPLETED,
-            }));
-            return jp;
-        } catch (e) {
-            updateSetup(s => ({
-                ...s,
-                value: null,
-                status: Status.FAILED,
-                error: e,
-            }));
+            updateSetup(s => s.updateRunning());
+            const ana = new Analyzer({}, analyzer_wasm);
+            await ana.init();
+            lock.current = false;
+            updateSetup(s => s.completeWith(ana));
+            return ana;
+        } catch (e: any) {
+            lock.current = false;
+            updateSetup(s => s.failWith(e));
         }
         return null;
     }, []);
@@ -54,5 +43,5 @@ export const AnalyzerProvider: React.FC<Props> = (props: Props) => {
     );
 };
 
-export const useAnalyzer = (): LazySetup<AnalyzerBindings> => React.useContext(setupCtx)!;
-export const useAnalyzerResolver = (): LazyResolver<AnalyzerBindings> => React.useContext(resolverCtx)!;
+export const useAnalyzer = (): rd.Resolvable<AnalyzerBindings> => React.useContext(setupCtx)!;
+export const useAnalyzerResolver = (): rd.Resolver<AnalyzerBindings> => React.useContext(resolverCtx)!;

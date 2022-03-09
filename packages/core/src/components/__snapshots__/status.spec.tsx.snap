@@ -70,52 +70,6 @@ exports[`StatusIndicator renders correctly 3`] = `
   fill="none"
   height="24px"
   strokeWidth="2"
-  viewBox="-8 -8 16 16"
-  width="24px"
->
-  <g
-    fill="none"
-    fillRule="evenodd"
-  >
-    <rect
-      fill="white"
-      height="6"
-      width="3"
-      x="-3.5"
-      y="-3"
-    />
-    <rect
-      fill="white"
-      height="6"
-      width="3"
-      x="0.5"
-      y="-3"
-    />
-    <circle
-      cx="0"
-      cy="0"
-      opacity=".5"
-      r="7"
-      stroke="white"
-    />
-    <circle
-      className="status_spinner"
-      cx="0"
-      cy="0"
-      r="7"
-      stroke="white"
-      strokeDasharray="12, 88"
-    />
-  </g>
-</svg>
-`;
-
-exports[`StatusIndicator renders correctly 4`] = `
-<svg
-  className=""
-  fill="none"
-  height="24px"
-  strokeWidth="2"
   viewBox="0 0 16 16"
   width="24px"
 >
@@ -132,7 +86,7 @@ exports[`StatusIndicator renders correctly 4`] = `
 </svg>
 `;
 
-exports[`StatusIndicator renders correctly 5`] = `
+exports[`StatusIndicator renders correctly 4`] = `
 <svg
   className=""
   fill="none"
