@@ -75,7 +75,7 @@ export const SystemBar: React.FC<Props> = (props: Props) => {
             >
                 <RefreshingLogViewer onClose={() => toggleTab(1)} />
             </SystemPanel>
-            {appConfig.value?.features?.systemInfo && (
+            {appConfig?.value?.features?.systemInfo && (
                 <SystemPanel
                     systemID={2}
                     expandedPanel={expanded}

@@ -46,54 +46,11 @@ exports[`NavBar renders correctly 1`] = `
         </button>
       </a>
     </div>
-    <div
-      className="tab"
-    >
-      <a
-        className="tab_link"
-        href="/examples"
-        onClick={[Function]}
-      >
-        <button
-          className="tab_button btn btn-link"
-          disabled={false}
-          type="button"
-        >
-          <svg
-            className="tab_icon"
-            height="20px"
-            width="20px"
-          >
-            <use
-              xlinkHref="test-file-stub#sym"
-            />
-          </svg>
-        </button>
-      </a>
-    </div>
   </div>
   <div />
   <div
-    className="systemlist"
+    className="sysbar"
   >
-    <div
-      className="system_button"
-    >
-      <div
-        className="system_toggle"
-        onClick={[Function]}
-      >
-        <svg
-          className="system_icon"
-          height="20px"
-          width="20px"
-        >
-          <use
-            xlinkHref="test-file-stub#sym"
-          />
-        </svg>
-      </div>
-    </div>
     <div
       className="system_button"
     >
