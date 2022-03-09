@@ -29,9 +29,6 @@ export class InputTaskLogic extends ProgramTaskLogic {
         // Get the input component type
         let renderer = null;
         switch (this._card.inputComponent()) {
-            case proto.syntax.InputComponentType.FILE:
-                renderer = CardRendererType.BUILTIN_INPUT_FILE;
-                break;
             case proto.syntax.InputComponentType.TEXT:
                 renderer = CardRendererType.BUILTIN_INPUT_TEXT;
                 break;
