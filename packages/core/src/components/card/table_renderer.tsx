@@ -26,11 +26,9 @@ export const TableRenderer: React.FC<Props> = (props: Props) => {
     }
     return (
         <CardFrame title={props.card.title || target} controls={props.editable}>
-            <rdt.TABLE_DATA_EPOCH.Provider value={0}>
-                <rdt.TableSchemaProvider name={target}>
-                    <rdt.WiredTableViewer connection={connection} />
-                </rdt.TableSchemaProvider>
-            </rdt.TABLE_DATA_EPOCH.Provider>
+            <rdt.TableSchemaProvider name={target}>
+                <rdt.WiredTableViewer connection={connection} />
+            </rdt.TableSchemaProvider>
         </CardFrame>
     );
 };
