@@ -80,8 +80,8 @@
     --duckdb_table_font_size: 95%;
     --duckdb_table_border_radius_nw: 0px;
     --duckdb_table_border_radius_ne: 0px;
-    --duckdb_table_border_radius_sw: 0px;
-    --duckdb_table_border_radius_se: 0px;
+    --duckdb_table_border_radius_sw: 8px;
+    --duckdb_table_border_radius_se: 8px;
     --duckdb_table_stats_border_radius_sw: 0px;
     --duckdb_table_stats_border_radius_se: 0px;
     --duckdb_table_stats_bg: black;
