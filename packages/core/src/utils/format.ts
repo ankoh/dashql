@@ -18,3 +18,7 @@ export function formatThousands(value: number): string {
     const size = Number((value / Math.pow(multiple, exp)).toFixed(2));
     return size + (exp ? ` ${`${k}MGTPEZY`[exp - 1]}` : '');
 }
+
+export function formatTitle(str: string): string {
+    return str.replace(/[-_]/g, ' ').replace(/(?:^\w|[A-Z]|\b\w)/g, (word, index) => word.toUpperCase());
+}

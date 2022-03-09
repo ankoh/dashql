@@ -97,6 +97,7 @@ std::unique_ptr<sx::StatementT> Statement::Finish() {
     stmt->statement_type = type;
     stmt->root_node = root;
     stmt->name_qualified = name.ToString();
+    stmt->name_pretty = name.ToPrettyString();
     return stmt;
 }
 

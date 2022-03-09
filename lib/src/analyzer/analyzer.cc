@@ -295,7 +295,7 @@ arrow::Status Analyzer::AnalyzeVizStatements(ProgramInstance& instance) {
     return arrow::Status::OK();
 }
 
-static constexpr uint32_t DEFAULT_INPUT_CARD_WIDTH = 3;
+static constexpr uint32_t DEFAULT_INPUT_CARD_WIDTH = 2;
 static constexpr uint32_t DEFAULT_INPUT_CARD_HEIGHT = 1;
 static constexpr uint32_t DEFAULT_VIZ_CARD_WIDTH = 12;
 static constexpr uint32_t DEFAULT_VIZ_CARD_HEIGHT = 4;

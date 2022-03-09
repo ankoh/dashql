@@ -21,6 +21,12 @@ std::string QualifiedNameView::ToString() const {
     return out.str();
 }
 
+std::string QualifiedNameView::ToPrettyString() const {
+    std::stringstream out;
+    out << relation;
+    return out.str();
+}
+
 QualifiedNameView QualifiedNameView::ReadFrom(nonstd::span<proto::syntax::Node> nodes, std::string_view text,
                                               size_t root_id) {
     // clang-format off

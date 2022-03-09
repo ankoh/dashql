@@ -3,6 +3,7 @@
 import * as proto from '@dashql/proto';
 import * as model from '../model';
 import * as error from '../error';
+import * as utils from '../utils';
 import { Type } from 'apache-arrow/enum';
 import { Vector } from 'apache-arrow/vector';
 import { ADD_CARD, CardDataResolver, DELETE_CARD, UPDATE_CARD } from '../model';
@@ -176,6 +177,7 @@ export class CreateVizTaskLogic extends VizTaskLogic {
             height: posReader.height(),
         };
         const now = new Date();
+        const title = this._card!.cardTitle();
         ctx.planContextDiff.push({
             type: ADD_CARD,
             data: {
@@ -187,7 +189,7 @@ export class CreateVizTaskLogic extends VizTaskLogic {
                 cardRenderer: this._renderer,
                 statementID: this.origin.statementId,
                 position: pos,
-                title: this._card!.cardTitle() || null,
+                title: title != null ? utils.formatTitle(title) : null,
                 inputExtra: null,
                 vegaLiteSpec: null,
                 vegaSpec: null,

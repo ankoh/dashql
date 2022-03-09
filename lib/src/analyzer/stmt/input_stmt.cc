@@ -202,6 +202,8 @@ flatbuffers::Offset<proto::analyzer::Card> InputStatement::PackCard(flatbuffers:
     std::optional<fb::Offset<fb::String>> title_offset = std::nullopt;
     if (title_) {
         title_offset = builder.CreateString(*title_);
+    } else {
+        title_offset = builder.CreateString(stmt->name_pretty);
     }
 
     // Print the options

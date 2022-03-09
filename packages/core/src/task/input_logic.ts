@@ -3,6 +3,7 @@
 import * as proto from '@dashql/proto';
 import * as model from '../model';
 import * as error from '../error';
+import * as utils from '../utils';
 import { ADD_CARD, DELETE_CARD } from '../model/plan_context';
 import { TaskHandle, Statement, CardRendererType } from '../model';
 import { ProgramTaskLogic, SetupTaskLogic } from './task_logic';
@@ -58,12 +59,12 @@ export class InputTaskLogic extends ProgramTaskLogic {
                 objectId: this.buffer.objectId(),
                 timeCreated: now,
                 timeUpdated: now,
-                nameQualified: stmt.nameQualified || '',
+                nameQualified: stmt.nameQualified,
                 cardType: proto.analyzer.CardType.BUILTIN_INPUT,
                 cardRenderer: renderer,
                 statementID: this.origin.statementId,
                 position: pos,
-                title: this._card!.cardTitle() || stmt.nameQualified || null,
+                title: utils.formatTitle(this._card!.cardTitle() || stmt.namePretty),
                 inputExtra: JSON.parse(this._card.inputExtra() || '') as model.InputExtra,
                 vegaLiteSpec: null,
                 vegaSpec: null,

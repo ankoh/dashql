@@ -8,18 +8,9 @@
     background-color: var(--vizcard_header_bg);
     display: grid;
     align-items: center;
-    justify-items: start;
-    grid-template-columns: min-content auto;
+    justify-items: center;
 }
 
-.input_prefix {
-    grid-column: 1;
+.input_label {
     font-size: 0.8rem;
-    margin-left: 12px;
-}
-
-.input_group_container {
-    grid-column: 2;
-    padding: 0px 8px;
-    width: 100%;
 }

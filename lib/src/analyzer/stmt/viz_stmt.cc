@@ -109,7 +109,8 @@ void VizStatement::PrintScript(std::ostream& out) const {
 
 /// Pack the viz specs
 flatbuffers::Offset<proto::analyzer::Card> VizStatement::PackCard(flatbuffers::FlatBufferBuilder& builder) const {
-    // Add the target
+    auto& program = instance_.program();
+    auto& stmt = program.statements[statement_id_];
     auto target = builder.CreateString(target_.ToString());
 
     // Pack components
@@ -124,6 +125,8 @@ flatbuffers::Offset<proto::analyzer::Card> VizStatement::PackCard(flatbuffers::F
     std::optional<fb::Offset<fb::String>> title_offset = std::nullopt;
     if (title_) {
         title_offset = builder.CreateString(*title_);
+    } else {
+        title_offset = builder.CreateString(target_.ToPrettyString());
     }
 
     // Build viz spec

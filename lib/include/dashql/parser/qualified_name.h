@@ -23,6 +23,8 @@ struct QualifiedNameView {
 
     /// Create a string for a qualified name
     std::string ToString() const;
+    /// Create a string for a pretty name
+    std::string ToPrettyString() const;
     /// Without indirection
     QualifiedNameView WithoutIndex() const {
         return {

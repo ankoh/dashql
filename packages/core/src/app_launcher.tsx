@@ -108,13 +108,13 @@ const DuckDBContext: React.FC<Props> = (props: Props) => {
 export const AppLauncher: React.FC<Props> = (props: Props) => {
     return (
         <AppConfigResolver>
-            <AnalyzerProvider>
-                <JMESPathProvider>
-                    <DuckDBContext>
+            <DuckDBContext>
+                <AnalyzerProvider>
+                    <JMESPathProvider>
                         <LaunchLogic>{props.children}</LaunchLogic>
-                    </DuckDBContext>
-                </JMESPathProvider>
-            </AnalyzerProvider>
+                    </JMESPathProvider>
+                </AnalyzerProvider>
+            </DuckDBContext>
         </AppConfigResolver>
     );
 };

@@ -292,6 +292,10 @@ export class Statement {
     public get statement_type(): sx.StatementType {
         return this._statement.statementType();
     }
+    /// Get the pretty name
+    public get namePretty(): string | null {
+        return this._statement.namePretty();
+    }
     /// Get the qualified name
     public get nameQualified(): string | null {
         return this._statement.nameQualified();
