@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { RefreshingLogViewer } from './log_viewer';
 import { DatabaseViewer } from './database_viewer';
+import { SystemInfo } from './system_info';
 
 import styles from './system_bar.module.css';
 
@@ -47,7 +48,7 @@ export const SystemBar: React.FC<Props> = (props: Props) => {
                 <RefreshingLogViewer onClose={() => toggleTab(1)} />
             </SystemPanel>
             <SystemPanel systemID={2} expandedPanel={expanded} onClick={toggleTab.bind(this)} icon={icon_info}>
-                <div />
+                <SystemInfo onClose={() => toggleTab(2)} />
             </SystemPanel>
         </div>
     );

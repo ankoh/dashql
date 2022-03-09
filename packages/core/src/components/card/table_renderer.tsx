@@ -1,3 +1,4 @@
+//import * as rdt from '@duckdb/react-duckdb-table';
 import * as React from 'react';
 import * as model from '../../model';
 import * as access from '../../access';
