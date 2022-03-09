@@ -226,7 +226,7 @@ export class CreateVizTaskLogic extends VizTaskLogic {
                         filters: null,
                         aggregates: null,
                         orderBy: null,
-                        m5Config: null,
+                        am4Config: null,
                         sampleSize: 0,
                     },
                 };
@@ -250,7 +250,7 @@ export class CreateVizTaskLogic extends VizTaskLogic {
                         filters: null,
                         aggregates: null,
                         orderBy: null,
-                        m5Config: null,
+                        am4Config: null,
                         sampleSize: 0,
                     },
                 };

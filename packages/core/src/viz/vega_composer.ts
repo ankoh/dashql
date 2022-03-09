@@ -50,8 +50,8 @@ export class VegaComposer {
     _aggregates: AggregatedFieldDef[] | null = null;
     /// The data ordering (if any)
     _orderBy: SortField[] | null = null;
-    /// The M5 X-attributes (if any)
-    _m5Config: model.M5Config | null = null;
+    /// The am4 X-attributes (if any)
+    _am4Config: model.AM4Config | null = null;
     /// The max sample size (if any)
     _sampleSize: number | null = null;
 
@@ -379,20 +379,20 @@ export class VegaComposer {
         }
     }
 
-    /// Switch query type to M5 if the spec allows it
-    public useM5IfPossible(spec: TopLevel<NormalizedLayerSpec>): void {
+    /// Switch query type to am4 if the spec allows it
+    public useAM4IfPossible(spec: TopLevel<NormalizedLayerSpec>): void {
         const table = this._tableStatistics.resolveTableMetadata()!;
 
-        // Use m5 data source?
-        let preferM5 = false;
-        let canUseM5 = true;
-        let m5Config: model.M5Config | null = null;
+        // Use am4 data source?
+        let preferAM4 = false;
+        let canUseAM4 = true;
+        let am4Config: model.AM4Config | null = null;
 
         // Iterate over all layer specs
         for (const layer of spec.layer) {
             // Skip nested layers
             if (!isUnitSpec(layer)) {
-                canUseM5 = false;
+                canUseAM4 = false;
                 continue;
             }
 
@@ -401,44 +401,44 @@ export class VegaComposer {
             if (x && y && isFieldDef(x) && isFieldDef(y) && x.field && y.field) {
                 //
                 if (x.type === 'quantitative' && y.type === 'quantitative') {
-                    preferM5 = true;
+                    preferAM4 = true;
                 }
 
                 // Has exlicit X scale property?
                 if (x.scale && x.scale.type) {
                     const scale = x.scale!;
                     const scaleType = scale.type;
-                    canUseM5 &&= scaleType ? hasContinuousDomain(scaleType) : true;
-                    preferM5 ||= canUseM5;
+                    canUseAM4 &&= scaleType ? hasContinuousDomain(scaleType) : true;
+                    preferAM4 ||= canUseAM4;
                 }
 
                 // Has exlicit Y scale property?
                 if (y.scale && y.scale.type) {
                     const scale = x.scale!;
                     const scaleType = scale.type;
-                    canUseM5 &&= scaleType ? hasContinuousDomain(scaleType) : true;
-                    preferM5 ||= canUseM5;
+                    canUseAM4 &&= scaleType ? hasContinuousDomain(scaleType) : true;
+                    preferAM4 ||= canUseAM4;
                 }
 
                 // Has field properties?
-                canUseM5 &&= table.columnNameMapping.has(x.field) || table!.columnNameMapping.has(y.field) || false;
-                if (canUseM5) {
-                    m5Config = {
+                canUseAM4 &&= table.columnNameMapping.has(x.field) || table!.columnNameMapping.has(y.field) || false;
+                if (canUseAM4) {
+                    am4Config = {
                         attributeX: x.field!,
                         attributeY: y.field!,
                         domainX: [],
                     };
                     const xID = table.columnNameMapping.get(x.field)!;
-                    const resolver = new ResolveMinMaxDomain(this._tableStatistics, xID, m5Config.domainX);
+                    const resolver = new ResolveMinMaxDomain(this._tableStatistics, xID, am4Config.domainX);
                     this._vegaLiteEditOps.push(resolver);
                 }
             }
         }
 
-        // Use m5 sampling?
-        if (preferM5 && canUseM5) {
-            this._dataResolver = model.CardDataResolver.M5;
-            this._m5Config = m5Config;
+        // Use am4 sampling?
+        if (preferAM4 && canUseAM4) {
+            this._dataResolver = model.CardDataResolver.AM4;
+            this._am4Config = am4Config;
         }
     }
 
@@ -448,7 +448,7 @@ export class VegaComposer {
             this._normalizedVegaLiteSpec = normalize(this._inputVegaLiteSpec) as TopLevel<NormalizedLayerSpec>;
             this.analyzeVegaEncodings(this._normalizedVegaLiteSpec);
             this.analyzeVegaTransforms(this._normalizedVegaLiteSpec);
-            this.useM5IfPossible(this._normalizedVegaLiteSpec);
+            this.useAM4IfPossible(this._normalizedVegaLiteSpec);
             this._vegaLiteEditOps.map(o => o.prepare());
         }
     }
@@ -482,7 +482,7 @@ export class VegaComposer {
                 filters: this._filters,
                 aggregates: this._aggregates,
                 orderBy: this._orderBy,
-                m5Config: this._m5Config,
+                am4Config: this._am4Config,
                 sampleSize: 10000,
             },
             vegaLiteSpec: this._normalizedVegaLiteSpec,

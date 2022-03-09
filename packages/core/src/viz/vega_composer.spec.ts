@@ -57,9 +57,9 @@ VIZ foo USING (
         expected: {
             cardRenderer: model.CardRendererType.BUILTIN_VEGA,
             dataSource: {
-                dataResolver: model.CardDataResolver.M5,
+                dataResolver: model.CardDataResolver.AM4,
                 targetQualified: 'global.foo',
-                m5Config: {
+                am4Config: {
                     attributeX: 'x',
                     attributeY: 'y',
                     domainX: [0.0, 100.0],
@@ -96,7 +96,7 @@ VIZ foo USING (
         },
     },
     {
-        name: 'completion/line/m5',
+        name: 'completion/line/am4',
         query: `
 VIZ foo USING LINE (
     title = 'Line Chart',
@@ -121,9 +121,9 @@ VIZ foo USING LINE (
         expected: {
             cardRenderer: model.CardRendererType.BUILTIN_VEGA,
             dataSource: {
-                dataResolver: model.CardDataResolver.M5,
+                dataResolver: model.CardDataResolver.AM4,
                 targetQualified: 'global.foo',
-                m5Config: {
+                am4Config: {
                     attributeX: 'x',
                     attributeY: 'y',
                     domainX: [0.0, 100.0],

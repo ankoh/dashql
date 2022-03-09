@@ -5,7 +5,7 @@ import { Table } from 'apache-arrow/table';
 import { QueryProvider, Query } from './query_provider';
 
 // We run single-threaded at the moment, so deterministic output > true random temp names. (easy caching!)
-const TMP_NAME = '__M5__';
+const TMP_NAME = '__AM4__';
 
 interface Props {
     /// The connection
@@ -25,10 +25,10 @@ interface Props {
     children: (result: Table) => React.ReactElement;
 }
 
-export const M5Provider: React.FC<Props> = (props: Props) => {
+export const AM4Provider: React.FC<Props> = (props: Props) => {
     const canvasWidth = 500;
-    const m5Config = props.data.m5Config;
-    console.assert(!!m5Config, 'M5 not configured!');
+    const m5Config = props.data.am4Config;
+    console.assert(!!m5Config, 'AM4 not configured!');
 
     // Get x and y attributes
     const xName = m5Config!.attributeX!;

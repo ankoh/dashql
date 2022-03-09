@@ -56,9 +56,9 @@ const ContentRenderer: React.FC<ContentProps> = (props: ContentProps) => {
     console.assert(!!props.card.dataSource);
 
     switch (props.card.dataSource!.dataResolver) {
-        case model.CardDataResolver.M5: {
+        case model.CardDataResolver.AM4: {
             return (
-                <access.M5Provider
+                <access.AM4Provider
                     connection={conn}
                     table={props.table}
                     data={props.card.dataSource!}
@@ -72,7 +72,7 @@ const ContentRenderer: React.FC<ContentProps> = (props: ContentProps) => {
                             vegaSpec={props.card.vegaSpec}
                         />
                     )}
-                </access.M5Provider>
+                </access.AM4Provider>
             );
         }
 

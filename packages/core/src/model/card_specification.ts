@@ -35,7 +35,7 @@ export interface CardSpecification extends PlanObject {
 export type DomainValue = null | string | number | boolean | ExprRef | v.SignalRef | DateTime;
 export type DomainValues = DomainValue[];
 
-export interface M5Config {
+export interface AM4Config {
     attributeX: string;
     attributeY: string;
     domainX: DomainValues;
@@ -44,7 +44,7 @@ export interface M5Config {
 export enum CardDataResolver {
     PIECEWISE_SCAN,
     RESERVOIR_SAMPLE,
-    M5,
+    AM4,
 }
 
 export interface CardDataSource {
@@ -53,7 +53,7 @@ export interface CardDataSource {
     readonly filters: LogicalComposition<Predicate>[] | null;
     readonly aggregates: AggregatedFieldDef[] | null;
     readonly orderBy: SortField[] | null;
-    readonly m5Config: M5Config | null;
+    readonly am4Config: AM4Config | null;
     readonly sampleSize: number;
 }
 
