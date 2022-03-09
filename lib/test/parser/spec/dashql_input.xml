@@ -1,0 +1,63 @@
+<tests>
+    <test name="input_varchar">
+        <input>
+            INPUT foo TYPE VARCHAR;
+            INPUT foo TYPE VARCHAR USING TEXT;
+            INPUT foo TYPE VARCHAR USING TEXT (label = 'Foo');
+        </input>
+        <expected>
+            <statements>
+                <statement type="INPUT" name="main.foo">
+                    <node type="OBJECT_DASHQL_INPUT" loc="13..35" text="INPUT foo ..PE VARCHAR">
+                        <node key="DASHQL_INPUT_COMPONENT_TYPE" value="NONE" />
+                        <node key="DASHQL_INPUT_VALUE_TYPE" type="OBJECT_SQL_TYPENAME" loc="28..35" text="VARCHAR">
+                            <node key="SQL_TYPENAME_TYPE" type="OBJECT_SQL_CHARACTER_TYPE" loc="28..35" text="VARCHAR">
+                                <node key="SQL_CHARACTER_TYPE" value="VARCHAR" />
+                            </node>
+                        </node>
+                        <node key="DASHQL_STATEMENT_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="19..22" text="foo">
+                            <node key="SQL_QUALIFIED_NAME_RELATION" loc="19..22" text="foo" />
+                        </node>
+                    </node>
+                </statement>
+                <statement type="INPUT" name="main.foo">
+                    <node type="OBJECT_DASHQL_INPUT" loc="49..82" text="INPUT foo ..USING TEXT">
+                        <node key="DASHQL_INPUT_COMPONENT_TYPE" value="TEXT" />
+                        <node key="DASHQL_INPUT_VALUE_TYPE" type="OBJECT_SQL_TYPENAME" loc="64..71" text="VARCHAR">
+                            <node key="SQL_TYPENAME_TYPE" type="OBJECT_SQL_CHARACTER_TYPE" loc="64..71" text="VARCHAR">
+                                <node key="SQL_CHARACTER_TYPE" value="VARCHAR" />
+                            </node>
+                        </node>
+                        <node key="DASHQL_STATEMENT_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="55..58" text="foo">
+                            <node key="SQL_QUALIFIED_NAME_RELATION" loc="55..58" text="foo" />
+                        </node>
+                    </node>
+                </statement>
+                <statement type="INPUT" name="main.foo">
+                    <node type="OBJECT_DASHQL_INPUT" loc="96..145" text="INPUT foo ..l = 'Foo')">
+                        <node key="DASHQL_INPUT_COMPONENT_TYPE" value="TEXT" />
+                        <node key="DASHQL_INPUT_VALUE_TYPE" type="OBJECT_SQL_TYPENAME" loc="111..118" text="VARCHAR">
+                            <node key="SQL_TYPENAME_TYPE" type="OBJECT_SQL_CHARACTER_TYPE" loc="111..118" text="VARCHAR">
+                                <node key="SQL_CHARACTER_TYPE" value="VARCHAR" />
+                            </node>
+                        </node>
+                        <node key="DASHQL_STATEMENT_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="102..105" text="foo">
+                            <node key="SQL_QUALIFIED_NAME_RELATION" loc="102..105" text="foo" />
+                        </node>
+                        <node key="DSON_LABEL" loc="139..144" text="'Foo'" />
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="36..37" text="&#10;" />
+                <line_break loc="83..84" text="&#10;" />
+                <line_break loc="146..147" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dson_keys />
+            <dependencies />
+        </expected>
+    </test>
+</tests>
