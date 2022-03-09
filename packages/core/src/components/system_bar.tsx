@@ -15,6 +15,8 @@ interface SystemPanelProps {
     systemID: number;
     expandedPanel: number | null;
     onClick: (tab: number) => void;
+    preferredHeight: string;
+    preferredWidth: string;
 }
 
 const SystemPanel: React.FC<SystemPanelProps> = (props: SystemPanelProps) => {
@@ -26,7 +28,17 @@ const SystemPanel: React.FC<SystemPanelProps> = (props: SystemPanelProps) => {
                     <use xlinkHref={`${props.icon}#sym`} />
                 </svg>
             </div>
-            {expanded && <div className={styles.system_panel}>{props.children}</div>}
+            {expanded && (
+                <div
+                    className={styles.system_panel}
+                    style={{
+                        height: props.preferredHeight,
+                        width: props.preferredWidth,
+                    }}
+                >
+                    {props.children}
+                </div>
+            )}
         </div>
     );
 };
@@ -41,13 +53,34 @@ export const SystemBar: React.FC<Props> = (props: Props) => {
     const toggleTab = (tab: number): void => setExpanded(expanded == tab ? null : tab);
     return (
         <div className={props.className}>
-            <SystemPanel systemID={0} expandedPanel={expanded} onClick={toggleTab.bind(this)} icon={icon_database}>
+            <SystemPanel
+                systemID={0}
+                expandedPanel={expanded}
+                onClick={toggleTab.bind(this)}
+                icon={icon_database}
+                preferredHeight="calc(100% - 128px)"
+                preferredWidth="calc(100% - 96px)"
+            >
                 <DatabaseViewer onClose={() => toggleTab(0)} />
             </SystemPanel>
-            <SystemPanel systemID={1} expandedPanel={expanded} onClick={toggleTab.bind(this)} icon={icon_log}>
+            <SystemPanel
+                systemID={1}
+                expandedPanel={expanded}
+                onClick={toggleTab.bind(this)}
+                icon={icon_log}
+                preferredHeight="400px"
+                preferredWidth="500px"
+            >
                 <RefreshingLogViewer onClose={() => toggleTab(1)} />
             </SystemPanel>
-            <SystemPanel systemID={2} expandedPanel={expanded} onClick={toggleTab.bind(this)} icon={icon_info}>
+            <SystemPanel
+                systemID={2}
+                expandedPanel={expanded}
+                onClick={toggleTab.bind(this)}
+                icon={icon_info}
+                preferredHeight="400px"
+                preferredWidth="400px"
+            >
                 <SystemInfo onClose={() => toggleTab(2)} />
             </SystemPanel>
         </div>

@@ -34,7 +34,7 @@
     position: absolute;
     left: 80px;
     bottom: 16px;
-    width: 50%;
-    max-width: 640px;
+    max-width: calc(100% - 40px);
+    max-height: calc(100% - 40px);
     height: 400px;
 }
