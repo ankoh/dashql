@@ -308,33 +308,33 @@
   resolved "https://registry.yarnpkg.com/@discoveryjs/json-ext/-/json-ext-0.5.6.tgz#d5e0706cf8c6acd8c6032f8d54070af261bbbb2f"
   integrity sha512-ws57AidsDvREKrZKYffXddNkyaF14iHNHm8VQnZH6t99E8gczjNN0GpvcGny0imC80yQ0tHz1xVUKk/KFQSUyA==
 
-"@duckdb/duckdb-wasm-shell@^1.13.1-dev273.0":
-  version "1.13.1-dev273.0"
-  resolved "https://registry.yarnpkg.com/@duckdb/duckdb-wasm-shell/-/duckdb-wasm-shell-1.13.1-dev273.0.tgz#c109f620b2155c8bef498b9b47f642c16c5f0e82"
-  integrity sha512-vM+FK862zjItoDChHGppuXIr1e0+cbAsihQs/pYcZe51o+ELp5nCZrdBMZ/TNI2iPGww82pcmANL0KWHf4PTVg==
+"@duckdb/duckdb-wasm-shell@^1.13.1-dev274.0":
+  version "1.13.1-dev274.0"
+  resolved "https://registry.yarnpkg.com/@duckdb/duckdb-wasm-shell/-/duckdb-wasm-shell-1.13.1-dev274.0.tgz#5929ad23ede5f9796332279b55489eb8aff9fbca"
+  integrity sha512-/M+00eqY4zmIAvnsyBrcD1zguJ4s9URLCreKbS79ZqbDaGrJP2xi7Q/JGicKUAVZT1e2gLG0pV2ppA3RT2sVqw==
   dependencies:
-    "@duckdb/duckdb-wasm" "^1.13.1-dev273.0"
+    "@duckdb/duckdb-wasm" "^1.13.1-dev274.0"
     xterm "^4.18.0"
     xterm-addon-fit "^0.5.0"
     xterm-addon-web-links "^0.5.1"
     xterm-addon-webgl "^0.11.4"
 
-"@duckdb/duckdb-wasm@^1.13.1-dev273.0":
-  version "1.13.1-dev273.0"
-  resolved "https://registry.yarnpkg.com/@duckdb/duckdb-wasm/-/duckdb-wasm-1.13.1-dev273.0.tgz#16e6788411f2f7d6e08bdaccf2f6b47ff6b08753"
-  integrity sha512-aix+jFZdntRaYSB7X+N0X62JcBS03Z+ptBUtD4StvBP2gP9L43yaPVR+cCet13hL8WjAZxD8sVPz5UB8ReGkYA==
+"@duckdb/duckdb-wasm@^1.13.1-dev274.0":
+  version "1.13.1-dev274.0"
+  resolved "https://registry.yarnpkg.com/@duckdb/duckdb-wasm/-/duckdb-wasm-1.13.1-dev274.0.tgz#13baa5c4d243adb8e652415713ce313901f556ea"
+  integrity sha512-PR5iIr+B4aHnEIY8CX4dAgpGnlWV9HCo26PBfAHpzL8wHpfyrUUT6KbCNe9UGbSAOVewWbQ+AZpUtyoazPRyKw==
   dependencies:
     apache-arrow "^7.0.0"
 
-"@duckdb/react-duckdb-table@^1.13.1-dev273.0":
-  version "1.13.1-dev273.0"
-  resolved "https://registry.yarnpkg.com/@duckdb/react-duckdb-table/-/react-duckdb-table-1.13.1-dev273.0.tgz#ea7cd1dab2d88ce3a7f127404d00ae9cd3527df2"
-  integrity sha512-VOwpmajfHlZHVat7W8gCIYib1g4+RKvOmvOBfpNxZC1WNxXqVeOofaxQaB3US0w6dZXRyT0sX8KOdILrdcvmWg==
+"@duckdb/react-duckdb-table@^1.13.1-dev274.0":
+  version "1.13.1-dev274.0"
+  resolved "https://registry.yarnpkg.com/@duckdb/react-duckdb-table/-/react-duckdb-table-1.13.1-dev274.0.tgz#79c020676e702823dbfdab894516931d11938feb"
+  integrity sha512-CvDt0JgsuO2WfaYpPqbhWj995D5PhDGiEAJgMhXpD52/CQzgmohI875l6fz/1vgbB1rtrqrwzj1n3KBz25nygg==
 
-"@duckdb/react-duckdb@^1.13.1-dev273.0":
-  version "1.13.1-dev273.0"
-  resolved "https://registry.yarnpkg.com/@duckdb/react-duckdb/-/react-duckdb-1.13.1-dev273.0.tgz#3c1b0c2ab1b6488923a52551c5c75e1143120368"
-  integrity sha512-B+S1HH8SNuTkgVcH2dquqheMQDxOMxuGQ184Ls1HgrXIQe3nsFFhNNwFLD7bVNi8RRXnEKVtwKtziKVQW2pWLg==
+"@duckdb/react-duckdb@^1.13.1-dev274.0":
+  version "1.13.1-dev274.0"
+  resolved "https://registry.yarnpkg.com/@duckdb/react-duckdb/-/react-duckdb-1.13.1-dev274.0.tgz#081cd7d6ec53fb5fb283a47cb8c5e9b7a760a7cf"
+  integrity sha512-4PcesHqvYSaLrRK60rR3gmxqownZGaOxqf2t8RPfdJsWLOuZyQuC4lHhnQ8Tu89lWUtY3JT1HrFDv42BYTfiCA==
 
 "@emotion/is-prop-valid@^0.8.2":
   version "0.8.8"
