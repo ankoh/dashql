@@ -60,8 +60,8 @@ export const SystemBar: React.FC<Props> = (props: Props) => {
                 expandedPanel={expanded}
                 onClick={toggleTab.bind(this)}
                 icon={icon_database}
-                preferredHeight="calc(100% - 128px)"
-                preferredWidth="calc(100% - 96px)"
+                preferredHeight="80%"
+                preferredWidth="80%"
             >
                 <DatabaseViewer onClose={() => toggleTab(0)} />
             </SystemPanel>
