@@ -97,8 +97,8 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
     {
         name: 'demo_ieeevis',
         collection: 'Demos',
-        title: 'IEEE Viz',
-        description: 'A script for the IEEE Viz publication',
+        title: 'IEEE Vis',
+        description: 'A script for the IEEE Vis publication',
         icon: icon_dashboard,
         features: new utils.NativeBitmap(ScriptFeatureTag._COUNT_),
         url: example_demo_ieeevis,
