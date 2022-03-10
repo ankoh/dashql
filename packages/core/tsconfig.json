@@ -17,7 +17,6 @@
         "noImplicitThis": true,
         "strictNullChecks": false,
         "preserveConstEnums": true,
-        "resolveJsonModule": true,
         "suppressImplicitAnyIndexErrors": true,
 
         "jsx": "react",

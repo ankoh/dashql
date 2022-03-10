@@ -16,7 +16,7 @@ function getFeatureTagLabel(tag: ScriptFeatureTag) {
             return 'HTTP';
         case ScriptFeatureTag.FETCH_ARCHIVE_ZIP:
             return 'ZIP ARCHIVE';
-        case ScriptFeatureTag.TRANSFORM_JMESPATH:
+        case ScriptFeatureTag.JMESPATH:
             return 'JMESPATH';
         case ScriptFeatureTag.DATA_CSV:
             return 'CSV';

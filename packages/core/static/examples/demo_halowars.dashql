@@ -7,8 +7,8 @@ FETCH json_stats FROM HTTP (
 
 VIZ json_stats USING JSON;
 
-TRANSFORM json_stats INTO json_stats_mm USING JMESPATH (
-    expression = 'MatchmakingSummary.RankedPlaylistStats[*].{
+LOAD stats_mm FROM json_stats USING JSON (
+    jmespath = 'MatchmakingSummary.RankedPlaylistStats[*].{
         playlist_id: @.PlaylistId,
         units_built: @.TotalUnitsBuilt,
         time_played: @.TotalTimePlayed,
@@ -20,7 +20,5 @@ TRANSFORM json_stats INTO json_stats_mm USING JMESPATH (
         units_destroyed: @.TotalUnitsDestroyed
     }'
 );
-
-LOAD stats_mm FROM json_stats_mm USING JSON;
 
 VIZ stats_mm USING TABLE;

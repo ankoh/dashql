@@ -23,11 +23,6 @@ export function isAppConfig(object: any): object is AppConfig {
     //return object.program !== undefined;
 }
 
-export const initialAppConfig: AppConfig = {
-    features: undefined,
-    program: undefined,
-};
-
 const configCtx = React.createContext<rd.Resolvable<AppConfig>>(null);
 const reconfigureCtx = React.createContext<(config: AppConfig) => void>(null);
 
@@ -45,7 +40,7 @@ export const AppConfigResolver: React.FC<Props> = (props: Props) => {
             try {
                 const resp = await axios.get(config_url as string);
                 if (isAppConfig(resp.data)) {
-                    setConfig(c => c.completeWith(resp as AppConfig));
+                    setConfig(c => c.completeWith(resp.data as AppConfig));
                 } else {
                     setConfig(c => c.failWith('invalid app config'));
                 }

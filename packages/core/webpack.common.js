@@ -78,7 +78,7 @@ export function configure(params) {
                     ],
                 },
                 {
-                    test: /static\/config\.json$/i,
+                    test: /.*\/static\/config\.json$/i,
                     type: 'asset/resource',
                     generator: {
                         filename: CONFIG_PATH,

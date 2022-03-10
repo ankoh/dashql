@@ -4,14 +4,13 @@ import axios from 'axios';
 
 import example_demo_ieeevis from '../static/examples/demo_ieeevis.dashql';
 import example_demo_explore_json from '../static/examples/demo_explore_json.dashql';
-import example_demo_unischema from '../static/examples/demo_unischema.dashql';
 import example_demo_vaccination_germany from '../static/examples/demo_vaccination_germany.dashql';
 import example_demo_halowars from '../static/examples/demo_halowars.dashql';
 import example_load_csv from '../static/examples/load_csv.dashql';
 import example_load_parquet from '../static/examples/load_parquet.dashql';
+import example_load_json_jmespath from '../static/examples/load_json_jmespath.dashql';
 import example_fetch_http_dynamic from '../static/examples/fetch_http_dynamic.dashql';
 import example_fetch_http_static from '../static/examples/fetch_http_static.dashql';
-import example_transform_jmespath from '../static/examples/transform_jmespath.dashql';
 import example_sql_approxmedian from '../static/examples/sql_approxmedian.dashql';
 import example_sql_complexjoins from '../static/examples/sql_complexjoins.dashql';
 import example_sql_explicitgrouping from '../static/examples/sql_explicitgrouping.dashql';
@@ -47,7 +46,7 @@ import icon_shape from '../static/svg/icons/shape.svg';
 export enum ScriptFeatureTag {
     FETCH_HTTP,
     FETCH_ARCHIVE_ZIP,
-    TRANSFORM_JMESPATH,
+    JMESPATH,
     DATA_CSV,
     DATA_JSON,
     DATA_PARQUET,
@@ -70,16 +69,13 @@ export interface ExampleScriptMetadata {
 
 export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
     {
-        name: 'demo_unischema',
+        name: 'demo_ieeevis',
         collection: 'Demos',
-        title: 'University Schema',
-        description: 'An example with the university schema',
+        title: 'IEEE Vis',
+        description: 'A script for the IEEE Vis publication',
         icon: icon_dashboard,
-        features: new utils.NativeBitmap(ScriptFeatureTag._COUNT_)
-            .set(ScriptFeatureTag.DATA_PARQUET)
-            .set(ScriptFeatureTag.FETCH_HTTP)
-            .set(ScriptFeatureTag.FETCH_ARCHIVE_ZIP),
-        url: example_demo_unischema,
+        features: new utils.NativeBitmap(ScriptFeatureTag._COUNT_),
+        url: example_demo_ieeevis,
         enabled: true,
     },
     {
@@ -90,18 +86,8 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         icon: icon_dashboard,
         features: new utils.NativeBitmap(ScriptFeatureTag._COUNT_)
             .set(ScriptFeatureTag.DATA_JSON)
-            .set(ScriptFeatureTag.TRANSFORM_JMESPATH),
+            .set(ScriptFeatureTag.JMESPATH),
         url: example_demo_explore_json,
-        enabled: true,
-    },
-    {
-        name: 'demo_ieeevis',
-        collection: 'Demos',
-        title: 'IEEE Vis',
-        description: 'A script for the IEEE Vis publication',
-        icon: icon_dashboard,
-        features: new utils.NativeBitmap(ScriptFeatureTag._COUNT_),
-        url: example_demo_ieeevis,
         enabled: true,
     },
     {
@@ -122,16 +108,6 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         icon: icon_dashboard,
         features: new utils.NativeBitmap(ScriptFeatureTag._COUNT_).set(ScriptFeatureTag.DATA_CSV),
         url: example_demo_halowars,
-        enabled: true,
-    },
-    {
-        name: 'transform_jmespath',
-        collection: 'Transform',
-        title: 'JMESPath',
-        description: 'JMESPath Expressions',
-        icon: icon_shape,
-        features: new utils.NativeBitmap(ScriptFeatureTag._COUNT_).set(ScriptFeatureTag.TRANSFORM_JMESPATH),
-        url: example_transform_jmespath,
         enabled: true,
     },
     {
@@ -263,6 +239,16 @@ export const EXAMPLE_SCRIPTS: ExampleScriptMetadata[] = [
         features: new utils.NativeBitmap(ScriptFeatureTag._COUNT_),
         url: example_load_parquet,
         enabled: false,
+    },
+    {
+        name: 'load_json_jmespath',
+        collection: 'Load',
+        title: 'JMESPath',
+        description: 'JMESPath Expressions',
+        icon: icon_shape,
+        features: new utils.NativeBitmap(ScriptFeatureTag._COUNT_).set(ScriptFeatureTag.JMESPATH),
+        url: example_load_json_jmespath,
+        enabled: true,
     },
     {
         name: 'sql_complex_joins',
