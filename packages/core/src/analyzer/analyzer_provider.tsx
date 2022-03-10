@@ -17,24 +17,26 @@ const resolverCtx = React.createContext<rd.Resolver<AnalyzerBindings>>(null);
 
 export const AnalyzerProvider: React.FC<Props> = (props: Props) => {
     const [setup, updateSetup] = React.useState<rd.Resolvable<AnalyzerBindings>>(new rd.Resolvable());
-    const lock = React.useRef<boolean>(false);
+    const inFlight = React.useRef<Promise<AnalyzerBindings | null> | null>(null);
     const resolver = React.useCallback(async () => {
         if (setup.value != null) return setup.value;
         if (setup.error != null) return null;
-        if (lock.current) return null;
-        lock.current = true;
-        try {
-            updateSetup(s => s.updateRunning());
-            const ana = new Analyzer({}, analyzer_wasm);
-            await ana.init();
-            lock.current = false;
-            updateSetup(s => s.completeWith(ana));
-            return ana;
-        } catch (e: any) {
-            lock.current = false;
-            updateSetup(s => s.failWith(e));
-        }
-        return null;
+        const resolve = async () => {
+            if (inFlight.current) return await inFlight.current;
+            try {
+                updateSetup(s => s.updateRunning());
+                const ana = new Analyzer({}, analyzer_wasm);
+                await ana.init();
+                updateSetup(s => s.completeWith(ana));
+                return ana;
+            } catch (e: any) {
+                inFlight.current = null;
+                updateSetup(s => s.failWith(e));
+                return null;
+            }
+        };
+        inFlight.current = resolve();
+        return await inFlight.current;
     }, []);
     return (
         <resolverCtx.Provider value={resolver}>

@@ -17,23 +17,26 @@ const resolverCtx = React.createContext<rd.Resolver<JMESPathBindings>>(null);
 
 export const JMESPathProvider: React.FC<Props> = (props: Props) => {
     const [setup, updateSetup] = React.useState<rd.Resolvable<JMESPathBindings>>(new rd.Resolvable());
-    const lock = React.useRef<boolean>(false);
+    const inFlight = React.useRef<Promise<JMESPathBindings | null> | null>(null);
     const resolver = React.useCallback(async () => {
         if (setup.value != null) return setup.value;
         if (setup.error != null) return null;
-        if (lock.current) return null;
-        lock.current = true;
-        try {
-            updateSetup(s => s.updateRunning());
-            const jp = new JMESPath(jmespath_wasm);
-            await jp.init();
-            updateSetup(s => s.completeWith(jp));
-            return jp;
-        } catch (e: any) {
-            lock.current = false;
-            updateSetup(s => s.failWith(e));
-        }
-        return null;
+        const resolve = async () => {
+            if (inFlight.current) return await inFlight.current;
+            try {
+                updateSetup(s => s.updateRunning());
+                const jp = new JMESPath(jmespath_wasm);
+                await jp.init();
+                updateSetup(s => s.completeWith(jp));
+                return jp;
+            } catch (e: any) {
+                inFlight.current = null;
+                updateSetup(s => s.failWith(e));
+                return null;
+            }
+        };
+        inFlight.current = resolve();
+        return await inFlight.current;
     }, []);
     return (
         <resolverCtx.Provider value={resolver}>
