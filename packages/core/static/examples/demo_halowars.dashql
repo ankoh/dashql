@@ -5,8 +5,6 @@ FETCH stats_json FROM HTTP (
     )
 );
 
-VIZ stats_json USING JSON;
-
 LOAD stats FROM stats_json USING JSON (
     jmespath = 'MatchmakingSummary.RankedPlaylistStats[*].{
         playlist_id: @.PlaylistId,
