@@ -96,7 +96,7 @@ Array [
         >
           <div
             className="script_card"
-            data-key="demo_unischema"
+            data-key="demo_ieeevis"
             onClick={[Function]}
             style={Object {}}
           >
@@ -117,7 +117,7 @@ Array [
               className="example_title"
               style={Object {}}
             >
-              University Schema
+              IEEE Vis
             </span>
           </div>
           <div
@@ -144,32 +144,6 @@ Array [
               style={Object {}}
             >
               Explore JSON
-            </span>
-          </div>
-          <div
-            className="script_card"
-            data-key="demo_ieeevis"
-            onClick={[Function]}
-            style={Object {}}
-          >
-            <div
-              className="example_icon"
-              style={Object {}}
-            >
-              <svg
-                height="20"
-                width="20"
-              >
-                <use
-                  xlinkHref="test-file-stub#sym"
-                />
-              </svg>
-            </div>
-            <span
-              className="example_title"
-              style={Object {}}
-            >
-              IEEE Vis
             </span>
           </div>
           <div
@@ -297,45 +271,6 @@ Array [
         <div
           className="collection_name"
         >
-          Transform
-        </div>
-        <div
-          className="collection_grid"
-        >
-          <div
-            className="script_card"
-            data-key="transform_jmespath"
-            onClick={[Function]}
-            style={Object {}}
-          >
-            <div
-              className="example_icon"
-              style={Object {}}
-            >
-              <svg
-                height="20"
-                width="20"
-              >
-                <use
-                  xlinkHref="test-file-stub#sym"
-                />
-              </svg>
-            </div>
-            <span
-              className="example_title"
-              style={Object {}}
-            >
-              JMESPath
-            </span>
-          </div>
-        </div>
-      </div>
-      <div
-        className="collection"
-      >
-        <div
-          className="collection_name"
-        >
           Load
         </div>
         <div
@@ -391,6 +326,32 @@ Array [
               style={Object {}}
             >
               Parquet Import
+            </span>
+          </div>
+          <div
+            className="script_card"
+            data-key="load_json_jmespath"
+            onClick={[Function]}
+            style={Object {}}
+          >
+            <div
+              className="example_icon"
+              style={Object {}}
+            >
+              <svg
+                height="20"
+                width="20"
+              >
+                <use
+                  xlinkHref="test-file-stub#sym"
+                />
+              </svg>
+            </div>
+            <span
+              className="example_title"
+              style={Object {}}
+            >
+              JMESPath
             </span>
           </div>
         </div>
