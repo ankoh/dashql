@@ -6,6 +6,10 @@ import { TaskHandle, Statement } from '../model';
 import { ProgramTaskLogic } from './task_logic';
 import { TaskExecutionContext } from './task_execution_context';
 
+interface JSONLoadOptions {
+    jmespath?: string;
+}
+
 export class LoadTaskLogic extends ProgramTaskLogic {
     constructor(task_id: TaskHandle, task: proto.task.ProgramTask, statement: Statement) {
         super(task_id, task, statement);
@@ -16,11 +20,12 @@ export class LoadTaskLogic extends ProgramTaskLogic {
 
     public async execute(ctx: TaskExecutionContext): Promise<void> {
         if (!ctx.planContext.plan) return;
+
+        // A Get load statment
         const instance = ctx.planContext.plan.programInstance;
         const stmtId = this._origin.statementId;
         const xtr = instance.loadStatements.get(stmtId);
         if (!xtr) throw new Error(`missing information for load statement ${stmtId}`);
-
         const stmt = instance.program.getStatement(this._origin.statementId);
         const name = this.buffer.nameQualified() || '';
 
@@ -44,21 +49,45 @@ export class LoadTaskLogic extends ProgramTaskLogic {
         // Handle the different load method
         const conn = ctx.databaseConnection;
         const filePath = blob.nameQualified;
+        let filePathTmp = null;
         let tableType: model.TableType;
         let tableScript: string | undefined = undefined;
         switch (xtr.method()) {
+            // Load table from parquet?
             case proto.syntax.LoadMethodType.PARQUET:
                 tableScript = `CREATE VIEW ${name} AS (SELECT * FROM parquet_scan('${filePath}'));`;
                 await conn.query(tableScript);
                 tableType = model.TableType.VIEW;
                 break;
-            case proto.syntax.LoadMethodType.JSON:
-                await conn.insertJSONFromPath(filePath, {
+
+            // Load table from JSON?
+            case proto.syntax.LoadMethodType.JSON: {
+                const options = JSON.parse(xtr.extra()) as JSONLoadOptions;
+
+                // Has jmespath expression?
+                if (options.jmespath) {
+                    const jm = await ctx.jmespath();
+                    const data = await conn.bindings.copyFileToBuffer(filePath);
+                    const transformed = jm.evaluateUTF8(options.jmespath!, data);
+                    filePathTmp = '/tmp/' + filePath;
+                    await conn.bindings.registerFileBuffer(filePathTmp, transformed);
+                }
+
+                // Insert JSON from path
+                await conn.insertJSONFromPath(filePathTmp ?? filePath, {
                     schema: qSchema,
                     name: qName,
-                });
+                } as any);
                 tableType = model.TableType.TABLE;
+
+                // Drop file if temporary
+                if (filePathTmp) {
+                    await conn.bindings.dropFile(filePathTmp);
+                }
                 break;
+            }
+
+            // Load table from CSV?
             case proto.syntax.LoadMethodType.CSV:
                 await conn.insertCSVFromPath(filePath, {
                     schema: qSchema,
@@ -66,6 +95,8 @@ export class LoadTaskLogic extends ProgramTaskLogic {
                 });
                 tableType = model.TableType.TABLE;
                 break;
+
+            // Otherwise bail out
             default:
                 tableType = model.TableType.TABLE;
                 console.warn('not implemented');

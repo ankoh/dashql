@@ -22,7 +22,7 @@ export interface TaskExecutionContext {
     /// The database
     readonly http: HTTPClient;
     /// The jmespath resolver
-    readonly jmespath: () => Promise<JMESPathBindings>;
+    readonly jmespath: () => Promise<JMESPathBindings | null>;
 
     /// The plan state
     planContext: PlanContext;
