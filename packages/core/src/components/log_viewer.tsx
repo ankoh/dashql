@@ -77,7 +77,6 @@ export const LogViewer: React.FC<Props> = (props: Props) => {
 
     const containerElement = React.useRef(null);
     const containerSize = observeSize(containerElement);
-
     return (
         <SystemCard title="Log" onClose={props.onClose} className={props.className}>
             <div className={styles.content} onKeyDown={onKeyDown}>

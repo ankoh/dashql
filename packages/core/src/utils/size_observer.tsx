@@ -1,5 +1,5 @@
 import * as React from 'react';
-import useResizeObserver from '@react-hook/resize-observer';
+import useResizeObserver from 'use-resize-observer';
 
 export interface ObservedSize {
     width: number;
@@ -12,9 +12,17 @@ export const useObservedSize = () => React.useContext(OBSERVED_SIZE);
 export const observeSize = (target: React.RefObject<HTMLElement>): ObservedSize | null => {
     const [size, setSize] = React.useState<ObservedSize>(null);
     React.useLayoutEffect(() => {
-        setSize(target.current.getBoundingClientRect());
+        setSize(
+            target.current?.getBoundingClientRect() ?? {
+                width: 1000,
+                height: 1000,
+            },
+        );
     }, [target]);
-    useResizeObserver(target, entry => setSize(entry.contentRect));
+    useResizeObserver({
+        ref: target,
+        onResize: s => setSize(s),
+    });
     return size;
 };
 

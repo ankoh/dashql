@@ -46,136 +46,126 @@ exports[`LogViewer renders correctly with logs 1`] = `
         className="list_container"
       >
         <div
+          aria-label="grid"
+          aria-readonly={true}
+          className="ReactVirtualized__Grid ReactVirtualized__List list"
+          onScroll={[Function]}
+          role="grid"
           style={
             Object {
-              "height": 0,
-              "overflow": "visible",
-              "width": 0,
+              "WebkitOverflowScrolling": "touch",
+              "boxSizing": "border-box",
+              "direction": "ltr",
+              "height": 1000,
+              "overflowX": "hidden",
+              "overflowY": "hidden",
+              "position": "relative",
+              "width": 1000,
+              "willChange": "transform",
             }
           }
+          tabIndex={0}
         >
           <div
-            aria-label="grid"
-            aria-readonly={true}
-            className="ReactVirtualized__Grid ReactVirtualized__List list"
-            onScroll={[Function]}
-            role="grid"
+            className="ReactVirtualized__Grid__innerScrollContainer"
+            role="rowgroup"
             style={
               Object {
-                "WebkitOverflowScrolling": "touch",
-                "boxSizing": "border-box",
-                "direction": "ltr",
-                "height": 100,
-                "overflowX": "hidden",
-                "overflowY": "hidden",
+                "height": 64,
+                "maxHeight": 64,
+                "maxWidth": 1000,
+                "overflow": "hidden",
+                "pointerEvents": "",
                 "position": "relative",
-                "width": 150,
-                "willChange": "transform",
+                "width": "auto",
               }
             }
-            tabIndex={0}
           >
             <div
-              className="ReactVirtualized__Grid__innerScrollContainer"
-              role="rowgroup"
+              className="row_container"
+              data-entry={0}
+              onClick={[Function]}
               style={
                 Object {
-                  "height": 64,
-                  "maxHeight": 64,
-                  "maxWidth": 150,
-                  "overflow": "hidden",
-                  "pointerEvents": "",
-                  "position": "relative",
-                  "width": "auto",
+                  "height": 32,
+                  "left": 0,
+                  "position": "absolute",
+                  "top": 0,
+                  "width": "100%",
                 }
               }
             >
               <div
-                className="row_container"
-                data-entry={0}
-                onClick={[Function]}
-                style={
-                  Object {
-                    "height": 32,
-                    "left": 0,
-                    "position": "absolute",
-                    "top": 0,
-                    "width": "100%",
-                  }
-                }
+                className="row"
               >
                 <div
-                  className="row"
+                  className="row_level"
                 >
-                  <div
-                    className="row_level"
-                  >
-                    INFO
-                  </div>
-                  <div
-                    className="row_origin"
-                  >
-                    SCRIPT PIPELINE
-                  </div>
-                  <div
-                    className="row_topic"
-                  >
-                    PARSE
-                  </div>
-                  <div
-                    className="row_event"
-                  >
-                    OK
-                  </div>
-                  <div
-                    className="row_timestamp"
-                  >
-                    now
-                  </div>
+                  INFO
+                </div>
+                <div
+                  className="row_origin"
+                >
+                  SCRIPT PIPELINE
+                </div>
+                <div
+                  className="row_topic"
+                >
+                  PARSE
+                </div>
+                <div
+                  className="row_event"
+                >
+                  OK
+                </div>
+                <div
+                  className="row_timestamp"
+                >
+                  now
                 </div>
               </div>
-              <div
-                className="row_container"
-                data-entry={1}
-                onClick={[Function]}
-                style={
-                  Object {
-                    "height": 32,
-                    "left": 0,
-                    "position": "absolute",
-                    "top": 32,
-                    "width": "100%",
-                  }
+            </div>
+            <div
+              className="row_container"
+              data-entry={1}
+              onClick={[Function]}
+              style={
+                Object {
+                  "height": 32,
+                  "left": 0,
+                  "position": "absolute",
+                  "top": 32,
+                  "width": "100%",
                 }
+              }
+            >
+              <div
+                className="row"
               >
                 <div
-                  className="row"
+                  className="row_level"
                 >
-                  <div
-                    className="row_level"
-                  >
-                    INFO
-                  </div>
-                  <div
-                    className="row_origin"
-                  >
-                    SCRIPT PIPELINE
-                  </div>
-                  <div
-                    className="row_topic"
-                  >
-                    INSTANTIATE
-                  </div>
-                  <div
-                    className="row_event"
-                  >
-                    OK
-                  </div>
-                  <div
-                    className="row_timestamp"
-                  >
-                    now
-                  </div>
+                  INFO
+                </div>
+                <div
+                  className="row_origin"
+                >
+                  SCRIPT PIPELINE
+                </div>
+                <div
+                  className="row_topic"
+                >
+                  INSTANTIATE
+                </div>
+                <div
+                  className="row_event"
+                >
+                  OK
+                </div>
+                <div
+                  className="row_timestamp"
+                >
+                  now
                 </div>
               </div>
             </div>
@@ -233,37 +223,27 @@ exports[`LogViewer renders correctly without entries 1`] = `
         className="list_container"
       >
         <div
+          aria-label="grid"
+          aria-readonly={true}
+          className="ReactVirtualized__Grid ReactVirtualized__List list"
+          onScroll={[Function]}
+          role="grid"
           style={
             Object {
-              "height": 0,
-              "overflow": "visible",
-              "width": 0,
+              "WebkitOverflowScrolling": "touch",
+              "boxSizing": "border-box",
+              "direction": "ltr",
+              "height": 1000,
+              "overflowX": "hidden",
+              "overflowY": "hidden",
+              "position": "relative",
+              "width": 1000,
+              "willChange": "transform",
             }
           }
+          tabIndex={0}
         >
-          <div
-            aria-label="grid"
-            aria-readonly={true}
-            className="ReactVirtualized__Grid ReactVirtualized__List list"
-            onScroll={[Function]}
-            role="grid"
-            style={
-              Object {
-                "WebkitOverflowScrolling": "touch",
-                "boxSizing": "border-box",
-                "direction": "ltr",
-                "height": 100,
-                "overflowX": "hidden",
-                "overflowY": "hidden",
-                "position": "relative",
-                "width": 150,
-                "willChange": "transform",
-              }
-            }
-            tabIndex={0}
-          >
-            <div />
-          </div>
+          <div />
         </div>
       </div>
     </div>
