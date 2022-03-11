@@ -4,6 +4,7 @@ import axios from 'axios';
 import config_url from '../static/config.json';
 
 export interface AppFeatures {
+    scriptBeans?: boolean;
     scriptStatistics?: boolean;
     cloudService?: boolean;
     userAccount?: boolean;
