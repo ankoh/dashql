@@ -2,7 +2,7 @@ import * as React from 'react';
 import styles from './viewer.module.css';
 import styles_cmd from '../components/button.module.css';
 import cn from 'classnames';
-import { AutoSizer } from '../utils/size_observer';
+import { observeSize } from '../utils/size_observer';
 import { Board, OverlayContainer, ScriptNotFound, ShareDialog, useOverlaySetter, ProgramHeader } from '../components';
 import { Link } from 'react-router-dom';
 
@@ -31,6 +31,9 @@ export const Viewer: React.FC<Props> = () => {
     const columnCount = 12;
     const padding: [number, number] = [20, 4];
     const margin: [number, number] = [10, 10];
+
+    const boardElement = React.useRef(null);
+    const boardSize = observeSize(boardElement);
 
     if (!programCtx.script) {
         return <ScriptNotFound />;
@@ -61,19 +64,17 @@ export const Viewer: React.FC<Props> = () => {
                     </Link>
                 </div>
             </div>
-            <div className={styles.board}>
-                <AutoSizer disableHeight>
-                    {({ width }) => (
-                        <Board
-                            className={styles.board_layout}
-                            width={width}
-                            rowHeight={rowHeight}
-                            columnCount={columnCount}
-                            containerPadding={padding}
-                            elementMargin={margin}
-                        />
-                    )}
-                </AutoSizer>
+            <div ref={boardElement} className={styles.board}>
+                {boardSize && (
+                    <Board
+                        className={styles.board_layout}
+                        width={boardSize.width}
+                        rowHeight={rowHeight}
+                        columnCount={columnCount}
+                        containerPadding={padding}
+                        elementMargin={margin}
+                    />
+                )}
             </div>
             <OverlayContainer id={shareOverlay} className={styles.overlay} />
         </div>
