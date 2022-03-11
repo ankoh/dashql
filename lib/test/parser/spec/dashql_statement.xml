@@ -235,17 +235,17 @@
     </test>
     <test name="dashql_input_calendar_date_range">
         <input>
-            INPUT foo TYPE DATETIME[] USING CALENDAR;
+            INPUT foo TYPE DATETIME[2] USING CALENDAR;
             VIZ (SELECT foo[0], foo[1]) USING TABLE;
         </input>
         <expected>
             <statements>
                 <statement type="INPUT" name="main.foo">
-                    <node type="OBJECT_DASHQL_INPUT" loc="13..53" text="INPUT foo ..G CALENDAR">
+                    <node type="OBJECT_DASHQL_INPUT" loc="13..54" text="INPUT foo ..G CALENDAR">
                         <node key="DASHQL_INPUT_COMPONENT_TYPE" value="CALENDAR" />
-                        <node key="DASHQL_INPUT_VALUE_TYPE" type="OBJECT_SQL_TYPENAME" loc="28..38" text="DATETIME[]">
+                        <node key="DASHQL_INPUT_VALUE_TYPE" type="OBJECT_SQL_TYPENAME" loc="28..39" text="DATETIME[2]">
                             <node key="SQL_TYPENAME_ARRAY">
-                                <node loc="36..38" text="[]" />
+                                <node loc="36..39" text="[2]" />
                             </node>
                             <node key="SQL_TYPENAME_TYPE" type="OBJECT_SQL_GENERIC_TYPE" loc="28..36" text="DATETIME">
                                 <node key="SQL_GENERIC_TYPE_NAME" loc="28..36" text="DATETIME" />
@@ -257,27 +257,27 @@
                     </node>
                 </statement>
                 <statement type="VIZUALIZE">
-                    <node type="OBJECT_DASHQL_VIZ" loc="67..106" text="VIZ (SELEC..SING TABLE">
+                    <node type="OBJECT_DASHQL_VIZ" loc="68..107" text="VIZ (SELEC..SING TABLE">
                         <node key="DASHQL_VIZ_COMPONENTS">
-                            <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="101..106" text="TABLE">
+                            <node type="OBJECT_DASHQL_VIZ_COMPONENT" loc="102..107" text="TABLE">
                                 <node key="DASHQL_VIZ_COMPONENT_TYPE" value="TABLE" />
                             </node>
                         </node>
-                        <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_FUNCTION_TABLE" loc="71..94" text="(SELECT fo..], foo[1])">
+                        <node key="DASHQL_VIZ_TARGET" type="OBJECT_SQL_FUNCTION_TABLE" loc="72..95" text="(SELECT fo..], foo[1])">
                             <node key="SQL_SELECT_TARGETS">
-                                <node type="OBJECT_SQL_COLUMN_REF" loc="79..85" text="foo[0]">
+                                <node type="OBJECT_SQL_COLUMN_REF" loc="80..86" text="foo[0]">
                                     <node key="SQL_COLUMN_REF_PATH">
-                                        <node loc="79..82" text="foo" />
-                                        <node type="OBJECT_SQL_INDIRECTION_INDEX" loc="82..85" text="[0]">
-                                            <node key="SQL_INDIRECTION_INDEX_VALUE" loc="83..84" text="0" />
+                                        <node loc="80..83" text="foo" />
+                                        <node type="OBJECT_SQL_INDIRECTION_INDEX" loc="83..86" text="[0]">
+                                            <node key="SQL_INDIRECTION_INDEX_VALUE" loc="84..85" text="0" />
                                         </node>
                                     </node>
                                 </node>
-                                <node type="OBJECT_SQL_COLUMN_REF" loc="87..93" text="foo[1]">
+                                <node type="OBJECT_SQL_COLUMN_REF" loc="88..94" text="foo[1]">
                                     <node key="SQL_COLUMN_REF_PATH">
-                                        <node loc="87..90" text="foo" />
-                                        <node type="OBJECT_SQL_INDIRECTION_INDEX" loc="90..93" text="[1]">
-                                            <node key="SQL_INDIRECTION_INDEX_VALUE" loc="91..92" text="1" />
+                                        <node loc="88..91" text="foo" />
+                                        <node type="OBJECT_SQL_INDIRECTION_INDEX" loc="91..94" text="[1]">
+                                            <node key="SQL_INDIRECTION_INDEX_VALUE" loc="92..93" text="1" />
                                         </node>
                                     </node>
                                 </node>
@@ -289,8 +289,8 @@
             <errors />
             <line_breaks>
                 <line_break loc="0..1" text="&#10;" />
-                <line_break loc="54..55" text="&#10;" />
-                <line_break loc="107..108" text="&#10;" />
+                <line_break loc="55..56" text="&#10;" />
+                <line_break loc="108..109" text="&#10;" />
             </line_breaks>
             <comments />
             <dson_keys />

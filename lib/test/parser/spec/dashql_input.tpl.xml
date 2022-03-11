@@ -8,7 +8,7 @@
     </test>
     <test name="input_calendar">
         <input>
-            INPUT foo TYPE DATETIME[] USING CALENDAR;
+            INPUT foo TYPE DATETIME[2] USING CALENDAR;
         </input>
     </test>
 </tests>
