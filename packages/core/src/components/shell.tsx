@@ -2,12 +2,15 @@ import * as duckdb from '@duckdb/duckdb-wasm';
 import * as shell from '@duckdb/duckdb-wasm-shell';
 import * as rd from '@duckdb/react-duckdb';
 import React from 'react';
+import FontFaceObserver from 'fontfaceobserver';
 
 import 'xterm/css/xterm.css';
 
 import styles from './shell.module.css';
 
 import shell_wasm from '@duckdb/duckdb-wasm-shell/dist/shell_bg.wasm';
+
+const SHELL_FONT_FAMILY = 'Roboto Mono';
 
 interface ShellProps {
     className?: string;
@@ -33,24 +36,29 @@ export const Shell: React.FC<ShellProps> = (props: ShellProps) => {
     // Embed the shell into the term container
     React.useEffect(() => {
         console.assert(termContainer.current != null);
-        shell.embed({
-            shellModule: shell_wasm,
-            container: termContainer.current!,
-            resolveDatabase: (p: duckdb.InstantiationProgressHandler) => {
-                if (db.error != null) {
-                    return Promise.reject(db.error);
-                }
-                if (db.value != null) {
-                    return Promise.resolve(db.value);
-                }
-                shellStatusUpdater.current = p;
-                const result = new Promise<duckdb.AsyncDuckDB>((resolve, reject) => {
-                    shellDBResolver.current = [resolve, reject];
-                });
-                return result;
-            },
-            backgroundColor: 'rgb(25, 28, 31)',
-        });
+        (async () => {
+            const regular = new FontFaceObserver(SHELL_FONT_FAMILY).load();
+            const bold = new FontFaceObserver(SHELL_FONT_FAMILY, { weight: 'bold' }).load();
+            await Promise.all([regular, bold]);
+            await shell.embed({
+                shellModule: shell_wasm,
+                container: termContainer.current!,
+                resolveDatabase: (p: duckdb.InstantiationProgressHandler) => {
+                    if (db.error != null) {
+                        return Promise.reject(db.error);
+                    }
+                    if (db.value != null) {
+                        return Promise.resolve(db.value);
+                    }
+                    shellStatusUpdater.current = p;
+                    const result = new Promise<duckdb.AsyncDuckDB>((resolve, reject) => {
+                        shellDBResolver.current = [resolve, reject];
+                    });
+                    return result;
+                },
+                backgroundColor: 'rgb(25, 28, 31)',
+            });
+        })();
     }, []);
 
     // Propagate the react state updates to the wasm progress handler

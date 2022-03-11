@@ -308,33 +308,33 @@
   resolved "https://registry.yarnpkg.com/@discoveryjs/json-ext/-/json-ext-0.5.6.tgz#d5e0706cf8c6acd8c6032f8d54070af261bbbb2f"
   integrity sha512-ws57AidsDvREKrZKYffXddNkyaF14iHNHm8VQnZH6t99E8gczjNN0GpvcGny0imC80yQ0tHz1xVUKk/KFQSUyA==
 
-"@duckdb/duckdb-wasm-shell@^1.13.1-dev282.0":
-  version "1.13.1-dev282.0"
-  resolved "https://registry.yarnpkg.com/@duckdb/duckdb-wasm-shell/-/duckdb-wasm-shell-1.13.1-dev282.0.tgz#fb4893622c463d122321e4013e56b4fe37b2c053"
-  integrity sha512-Gvn1/e+4AMmJdMX3FNpGJRiFeI9NVygfeg04qWUPxY/ywwjgqm4x0pzIlnAKHQu56KO0TOKokHU90GhvlQeekw==
+"@duckdb/duckdb-wasm-shell@^1.13.1-dev285.0":
+  version "1.13.1-dev285.0"
+  resolved "https://registry.yarnpkg.com/@duckdb/duckdb-wasm-shell/-/duckdb-wasm-shell-1.13.1-dev285.0.tgz#55c0cbc9aab41733975667cbbce95cd2e505c8f0"
+  integrity sha512-8PejdUqTA1dVBXwtlBv16/c/Uj1SGcyDY1Z3AkfcknMDiI7aDgD4FeZFwBWMvE9GivdUr90NF1mik7+jqW8KSw==
   dependencies:
-    "@duckdb/duckdb-wasm" "^1.13.1-dev282.0"
+    "@duckdb/duckdb-wasm" "^1.13.1-dev285.0"
     xterm "^4.18.0"
     xterm-addon-fit "^0.5.0"
     xterm-addon-web-links "^0.5.1"
     xterm-addon-webgl "^0.11.4"
 
-"@duckdb/duckdb-wasm@^1.13.1-dev282.0":
-  version "1.13.1-dev282.0"
-  resolved "https://registry.yarnpkg.com/@duckdb/duckdb-wasm/-/duckdb-wasm-1.13.1-dev282.0.tgz#2c01c30fa86a81d95690c4b4b677e145750af90e"
-  integrity sha512-fHJP7yo8lCGyIQmP0aRPNxO2qFgbDiuyjMWQCXDS+4B769BFyP0nQPKqEkXuT524vvY5tpVKuwgbefICm8QfrQ==
+"@duckdb/duckdb-wasm@^1.13.1-dev285.0":
+  version "1.13.1-dev285.0"
+  resolved "https://registry.yarnpkg.com/@duckdb/duckdb-wasm/-/duckdb-wasm-1.13.1-dev285.0.tgz#1127c0f072395b33b88f0d1c05eeee5f2aed6998"
+  integrity sha512-bPtS56sWOy/41LUt+5yI+9HPrX7wiBYX9ZiGR5MaIDuOGbeu9qZ9DhNyYM/KkqfSbQ12S/3w3aJJm3IjcL74Dw==
   dependencies:
     apache-arrow "^7.0.0"
 
-"@duckdb/react-duckdb-table@^1.13.1-dev282.0":
-  version "1.13.1-dev282.0"
-  resolved "https://registry.yarnpkg.com/@duckdb/react-duckdb-table/-/react-duckdb-table-1.13.1-dev282.0.tgz#53d90b45bd99e778342232ed91574c0ed051c61e"
-  integrity sha512-3H1l2oPIs1rmT8aQLFPXqM+8i9AGTqNtunZlC0UYpZW+WOl1DRKhJ0J6XfiJqit5vEoP7RJBJW5czNqkRga0Eg==
+"@duckdb/react-duckdb-table@^1.13.1-dev285.0":
+  version "1.13.1-dev285.0"
+  resolved "https://registry.yarnpkg.com/@duckdb/react-duckdb-table/-/react-duckdb-table-1.13.1-dev285.0.tgz#6f77621634749c222670a0c28d4b6ce2d7d7cfe7"
+  integrity sha512-szoQ6kDbZs30EZztJj/1MNmsNZ7F+sFY2Tn/HyJrGIaJiwsGA9WTB3t3AIywTXAAuQeYSyDT1gjwbcPiO7D+uQ==
 
-"@duckdb/react-duckdb@^1.13.1-dev282.0":
-  version "1.13.1-dev282.0"
-  resolved "https://registry.yarnpkg.com/@duckdb/react-duckdb/-/react-duckdb-1.13.1-dev282.0.tgz#aabe58f5886e19bf07af4da1c6d3035086e0c556"
-  integrity sha512-guyQKXp4GfuIc7Zr9R9DQoHIyTsSbuSfjjV7Nl9N1trPOdr7sJPL/rcD+dJy4wgwFlrW3qK9vVQjhew2rM+kIw==
+"@duckdb/react-duckdb@^1.13.1-dev285.0":
+  version "1.13.1-dev285.0"
+  resolved "https://registry.yarnpkg.com/@duckdb/react-duckdb/-/react-duckdb-1.13.1-dev285.0.tgz#526b5c23341f06638150f0d52542c98d8f36c5a1"
+  integrity sha512-ita2mEOH4bXWLljOOSdtsoidnPQAbzZ7y944sb1T0IhX7bC/vqoetRYU5BNkimEZSOVrL6cFnjv0ukhjRX4NyQ==
 
 "@emotion/is-prop-valid@^0.8.2":
   version "0.8.8"
@@ -1082,6 +1082,11 @@
   version "1.10.0"
   resolved "https://registry.yarnpkg.com/@types/flatbuffers/-/flatbuffers-1.10.0.tgz#aa74e30ffdc86445f2f060e1808fc9d56b5603ba"
   integrity sha512-7btbphLrKvo5yl/5CC2OCxUSMx1wV1wvGT1qDXkSt7yi00/YW7E8k6qzXqJHsp+WU0eoG7r6MTQQXI9lIvd0qA==
+
+"@types/fontfaceobserver@^2.1.0":
+  version "2.1.0"
+  resolved "https://registry.yarnpkg.com/@types/fontfaceobserver/-/fontfaceobserver-2.1.0.tgz#9ec2eabadfcaaf8c68c5e1254d19f5a293d132b4"
+  integrity sha512-Vqf183RAiFdIjUi4asKqogf2HIfLDnxn+dQo9GCpnsU5QrrsLMA2bkJU1dHRudQlizLybWD61Csd1zAgUQ3JKQ==
 
 "@types/geojson@*":
   version "7946.0.8"
@@ -3723,6 +3728,11 @@ follow-redirects@^1.0.0, follow-redirects@^1.14.7:
   version "1.14.7"
   resolved "https://registry.yarnpkg.com/follow-redirects/-/follow-redirects-1.14.7.tgz#2004c02eb9436eee9a21446a6477debf17e81685"
   integrity sha512-+hbxoLbFMbRKDwohX8GkTataGqO6Jb7jGwpAlwgy2bIz25XtRm7KEzJM76R1WiNT5SwZkX4Y75SwBolkpmE7iQ==
+
+fontfaceobserver@^2.1.0:
+  version "2.1.0"
+  resolved "https://registry.yarnpkg.com/fontfaceobserver/-/fontfaceobserver-2.1.0.tgz#e2705d293e2c585a6531c2a722905657317a2991"
+  integrity sha512-ReOsO2F66jUa0jmv2nlM/s1MiutJx/srhAe2+TE8dJCMi02ZZOcCTxTCQFr3Yet+uODUtnr4Mewg+tNQ+4V1Ng==
 
 form-data@^3.0.0:
   version "3.0.1"
