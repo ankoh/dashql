@@ -535,8 +535,8 @@ std::vector<ProgramMatcher::DiffOp> ProgramMatcher::ComputeDiff() {
 bool ProgramMatcher::InputValuesEqual(const proto::analyzer::InputValueT* l, const proto::analyzer::InputValueT* r) {
     auto& lv = *l->value;
     auto& rv = *r->value;
-    auto values_equal = lv.is_null == rv.is_null && lv.data_f64 == rv.data_f64 && lv.data_i64 == rv.data_i64 &&
-                        lv.data_u32 == rv.data_u32 && lv.data_str == rv.data_str;
+    auto values_equal = lv.data_f64 == rv.data_f64 && lv.data_i64 == rv.data_i64 && lv.data_str == rv.data_str &&
+                        lv.is_null == rv.is_null;
     auto& lt = *lv.logical_type;
     auto& rt = *rv.logical_type;
     auto types_equal = lt.type_id() == rt.type_id() && lt.width() == rt.width() && lt.scale() == rt.scale();

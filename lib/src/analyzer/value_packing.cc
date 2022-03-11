@@ -39,7 +39,7 @@ arrow::Result<flatbuffers::Offset<proto::sql::SQLValue>> PackValue(flatbuffers::
         case arrow::Type::NA:
             logical_type = proto::sql::SQLType(proto::sql::SQLTypeID::SQLNULL, 0, 0);
             v.add_logical_type(&logical_type);
-            v.add_physical_type(proto::sql::PhysicalType::NULL_);
+            v.add_physical_type(proto::sql::PhysicalType::NONE);
             break;
         default:
             return arrow::Status::Invalid("Value packing not implemented for type: ", scalar.type->ToString());
