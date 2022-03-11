@@ -43,6 +43,7 @@ export const Shell: React.FC<ShellProps> = (props: ShellProps) => {
             await shell.embed({
                 shellModule: shell_wasm,
                 container: termContainer.current!,
+                fontFamily: SHELL_FONT_FAMILY,
                 resolveDatabase: (p: duckdb.InstantiationProgressHandler) => {
                     if (db.error != null) {
                         return Promise.reject(db.error);
