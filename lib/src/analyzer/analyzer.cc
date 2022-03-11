@@ -300,7 +300,7 @@ arrow::Status Analyzer::ComputeCardPositions(ProgramInstance& instance) {
     static constexpr uint32_t DEFAULT_INPUT_CARD_WIDTH = 3;
     static constexpr uint32_t DEFAULT_INPUT_CARD_HEIGHT = 1;
     static constexpr uint32_t DEFAULT_VIZ_CARD_WIDTH = 12;
-    static constexpr uint32_t DEFAULT_VIZ_CARD_HEIGHT = 6;
+    static constexpr uint32_t DEFAULT_VIZ_CARD_HEIGHT = 4;
 
     BoardSpace space;
 
