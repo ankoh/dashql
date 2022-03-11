@@ -6,4 +6,9 @@
             INPUT foo TYPE VARCHAR USING TEXT (label = 'Foo');
         </input>
     </test>
+    <test name="input_calendar">
+        <input>
+            INPUT foo TYPE DATETIME[] USING CALENDAR;
+        </input>
+    </test>
 </tests>

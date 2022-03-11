@@ -30,5 +30,6 @@ dashql_input_component:
     ;
 
 dashql_input_component_type:
-    TEXT { $$ = Enum(@$, sx::InputComponentType::TEXT); }
+    TEXT     { $$ = Enum(@$, sx::InputComponentType::TEXT); }
+  | CALENDAR { $$ = Enum(@$, sx::InputComponentType::CALENDAR); }
     ;

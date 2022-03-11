@@ -30,7 +30,7 @@
             <graph next_object_id="1">
                 <setup />
                 <program>
-                    <task type="INPUT" status="SKIPPED" object_id="0" statement="0">
+                    <task type="INPUT" status="PENDING" object_id="0" statement="0">
                         <output name="main.country" />
                     </task>
                 </program>
@@ -77,7 +77,7 @@
             <graph next_object_id="3">
                 <setup />
                 <program>
-                    <task type="INPUT" status="SKIPPED" object_id="0" statement="0">
+                    <task type="INPUT" status="PENDING" object_id="0" statement="0">
                         <output name="main.country" />
                         <required_for>
                             <ref task="1" />
@@ -123,7 +123,7 @@
             <graph next_object_id="3">
                 <setup />
                 <program>
-                    <task type="INPUT" status="SKIPPED" object_id="0" statement="0">
+                    <task type="INPUT" status="PENDING" object_id="0" statement="0">
                         <output name="main.country" />
                         <required_for>
                             <ref task="1" />
@@ -170,7 +170,7 @@
             <graph next_object_id="4">
                 <setup />
                 <program>
-                    <task type="INPUT" status="SKIPPED" object_id="0" statement="0">
+                    <task type="INPUT" status="PENDING" object_id="0" statement="0">
                         <output name="main.country" />
                         <required_for>
                             <ref task="1" />
@@ -516,13 +516,13 @@
             <graph next_object_id="5">
                 <setup />
                 <program>
-                    <task type="INPUT" status="SKIPPED" object_id="0" statement="0">
+                    <task type="INPUT" status="PENDING" object_id="0" statement="0">
                         <output name="main.country" />
                         <required_for>
                             <ref task="2" />
                         </required_for>
                     </task>
-                    <task type="INPUT" status="SKIPPED" object_id="1" statement="1">
+                    <task type="INPUT" status="PENDING" object_id="1" statement="1">
                         <output name="main.city" />
                         <required_for>
                             <ref task="4" />

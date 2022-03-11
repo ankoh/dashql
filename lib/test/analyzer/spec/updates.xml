@@ -126,7 +126,7 @@
                     </task>
                 </setup>
                 <program>
-                    <task type="INPUT" status="SKIPPED" object_id="2" statement="0">
+                    <task type="INPUT" status="PENDING" object_id="2" statement="0">
                         <output name="main.country" />
                         <required_for>
                             <ref task="1" />

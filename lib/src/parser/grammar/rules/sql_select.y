@@ -898,8 +898,8 @@ sql_typename:
     ;
 
 sql_opt_array_bounds:
-    sql_opt_array_bounds '[' ']'            { $$.push_back(String(Loc({@2, @3}))); $$ = move($1); }
-  | sql_opt_array_bounds '[' ICONST ']'     { $$.push_back(String(Loc({@2, @3, @4}))); $$ = move($1); }
+    sql_opt_array_bounds '[' ']'            { $1.push_back(String(Loc({@2, @3}))); $$ = move($1); }
+  | sql_opt_array_bounds '[' ICONST ']'     { $1.push_back(String(Loc({@2, @3, @4}))); $$ = move($1); }
   | %empty                                  { $$ = {}; }
     ;
 

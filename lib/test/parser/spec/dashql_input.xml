@@ -60,4 +60,37 @@
             <dependencies />
         </expected>
     </test>
+    <test name="input_calendar">
+        <input>
+            INPUT foo TYPE DATETIME[] USING CALENDAR;
+        </input>
+        <expected>
+            <statements>
+                <statement type="INPUT" name="main.foo">
+                    <node type="OBJECT_DASHQL_INPUT" loc="13..53" text="INPUT foo ..G CALENDAR">
+                        <node key="DASHQL_INPUT_COMPONENT_TYPE" value="CALENDAR" />
+                        <node key="DASHQL_INPUT_VALUE_TYPE" type="OBJECT_SQL_TYPENAME" loc="28..38" text="DATETIME[]">
+                            <node key="SQL_TYPENAME_ARRAY">
+                                <node loc="36..38" text="[]" />
+                            </node>
+                            <node key="SQL_TYPENAME_TYPE" type="OBJECT_SQL_GENERIC_TYPE" loc="28..36" text="DATETIME">
+                                <node key="SQL_GENERIC_TYPE_NAME" loc="28..36" text="DATETIME" />
+                            </node>
+                        </node>
+                        <node key="DASHQL_STATEMENT_NAME" type="OBJECT_SQL_QUALIFIED_NAME" loc="19..22" text="foo">
+                            <node key="SQL_QUALIFIED_NAME_RELATION" loc="19..22" text="foo" />
+                        </node>
+                    </node>
+                </statement>
+            </statements>
+            <errors />
+            <line_breaks>
+                <line_break loc="0..1" text="&#10;" />
+                <line_break loc="54..55" text="&#10;" />
+            </line_breaks>
+            <comments />
+            <dson_keys />
+            <dependencies />
+        </expected>
+    </test>
 </tests>
