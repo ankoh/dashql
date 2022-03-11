@@ -155,15 +155,9 @@ void InputStatement::PrintScript(std::ostream& out) const {
     out << instance_.TextAt(nodes[ast_[SX_STATEMENT_NAME].node_id].location());
     out << " TYPE ";
     out << instance_.TextAt(nodes[ast_[SX_INPUT_VALUE_TYPE].node_id].location());
-    if (component_type_) {
-        out << " USING ";
-        auto tt = proto::syntax::InputComponentTypeTypeTable();
-        auto name = tt->names[static_cast<size_t>(component_type_.value())];
-        out << name;
-        out << " ";
-    }
 
     // Create document writer
+    std::stringstream options_buffer;
     json::DocumentWriter writer{instance_, stmt->root_node, ast_};
     // Update position
     if (specified_position_) {
@@ -190,7 +184,19 @@ void InputStatement::PrintScript(std::ostream& out) const {
         node.EndObject(4);
         writer.patch().Append(stmt->root_node, node.Finish());
     }
-    writer.writeAsScript(out, true, true);
+    writer.writeAsScript(options_buffer, true, true);
+    auto options_str = options_buffer.str();
+
+    if (component_type_ || options_str.empty()) {
+        out << " USING ";
+    }
+    if (component_type_ && component_type_.value() != proto::syntax::InputComponentType::NONE) {
+        auto tt = proto::syntax::InputComponentTypeTypeTable();
+        auto name = tt->names[static_cast<size_t>(component_type_.value())];
+        out << name;
+        out << " ";
+    }
+    out << options_str;
 }
 
 /// Pack the viz specs

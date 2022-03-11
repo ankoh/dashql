@@ -4,13 +4,13 @@
     height: 100%;
     box-sizing: border-box;
     border-radius: var(--border_radius);
-    border: 1px solid var(--vizcard_border_color);
-    background-color: var(--vizcard_header_bg);
     display: grid;
     align-items: center;
     justify-items: center;
 }
 
-.input_label {
-    font-size: 0.8rem;
+.input_text {
+    border: 1px solid var(--vizcard_border_color) !important;
+    background-color: var(--vizcard_header_bg) !important;
+    font-size: 0.9rem !important;
 }
