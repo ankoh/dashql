@@ -7,6 +7,7 @@ import renderer from 'react-test-renderer';
 import { InputValue, PlanContextProvider, ProgramContext, ProgramContextProvider, ScriptOriginType } from '../model/';
 import { AnalyzerProvider } from '../analyzer/';
 import { Editor } from './editor';
+import { OBSERVED_SIZE } from '../utils/size_observer';
 
 describe('Editor', () => {
     let az: analyzer.Analyzer | null = null;
@@ -66,7 +67,9 @@ VIZ vacc USING TABLE;
                 <ProgramContextProvider initialState={programCtx}>
                     <PlanContextProvider>
                         <AnalyzerProvider value={az!}>
-                            <Editor readOnly={false} target={pseudo} width={1000} height={1000} />
+                            <OBSERVED_SIZE.Provider value={{ width: 1000, height: 1000 }}>
+                                <Editor readOnly={false} target={pseudo} />
+                            </OBSERVED_SIZE.Provider>
                         </AnalyzerProvider>
                     </PlanContextProvider>
                 </ProgramContextProvider>,

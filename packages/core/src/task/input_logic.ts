@@ -3,7 +3,6 @@
 import * as proto from '@dashql/proto';
 import * as model from '../model';
 import * as error from '../error';
-import * as utils from '../utils';
 import { ADD_CARD, DELETE_CARD } from '../model/plan_context';
 import { TaskHandle, Statement, CardRendererType } from '../model';
 import { ProgramTaskLogic, SetupTaskLogic } from './task_logic';
@@ -29,12 +28,14 @@ export class InputTaskLogic extends ProgramTaskLogic {
         }
         // Get the input component type
         let renderer = null;
+        const inputName = stmt.namePretty;
+        const inputValueType = this._card.inputValueType();
         switch (this._card.inputComponent()) {
             case proto.syntax.InputComponentType.TEXT:
                 renderer = CardRendererType.BUILTIN_INPUT_TEXT;
                 break;
             case proto.syntax.InputComponentType.NONE:
-                switch (this._card.inputValueType().typeId()) {
+                switch (inputValueType.typeId()) {
                     case proto.sql.SQLTypeID.ANY:
                     case proto.sql.SQLTypeID.INTEGER:
                         renderer = CardRendererType.BUILTIN_INPUT_TEXT;
@@ -64,11 +65,9 @@ export class InputTaskLogic extends ProgramTaskLogic {
                 cardRenderer: renderer,
                 statementID: this.origin.statementId,
                 position: pos,
-                title: utils.formatTitle(this._card!.cardTitle() || stmt.namePretty),
+                title: inputName,
+                inputValueType: inputValueType,
                 inputExtra: JSON.parse(this._card.inputExtra() || '') as model.InputExtra,
-                vegaLiteSpec: null,
-                vegaSpec: null,
-                dataSource: null,
             },
         });
     }

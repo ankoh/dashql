@@ -3,7 +3,7 @@ import * as model from '../../model';
 import * as access from '../../access';
 import * as rd from '@duckdb/react-duckdb';
 import { Table } from 'apache-arrow/table';
-import { withAutoSizer } from '../../utils/autosizer';
+import { SizeObserver, useObservedSize } from '../../utils/size_observer';
 import { Vega } from 'react-vega';
 import { CardFrame } from './card_frame';
 
@@ -36,12 +36,13 @@ const VegaWithRows: React.FC<VegaWithRowsProps> = (props: VegaWithRowsProps) => 
     );
 };
 
-type ContentProps = VegaRendererProps & { table: model.TableMetadata; width: number; height: number };
+type ContentProps = VegaRendererProps & { table: model.TableMetadata };
 
 const ContentRenderer: React.FC<ContentProps> = (props: ContentProps) => {
     const db = rd.useDuckDB();
     const conn = rd.useDuckDBConnection();
     const connDialer = rd.useDuckDBConnectionDialer();
+    const size = useObservedSize();
 
     React.useEffect(() => {
         if (db == null) {
@@ -51,8 +52,8 @@ const ContentRenderer: React.FC<ContentProps> = (props: ContentProps) => {
         }
     }, [db, conn, connDialer]);
     if (conn == null) return <div />;
+    if (size == null) return <div />;
 
-    if (props.width == 0 && props.height == 0) return <div />;
     console.assert(!!props.card.dataSource);
 
     switch (props.card.dataSource!.dataResolver) {
@@ -62,13 +63,13 @@ const ContentRenderer: React.FC<ContentProps> = (props: ContentProps) => {
                     connection={conn}
                     table={props.table}
                     data={props.card.dataSource!}
-                    width={props.width}
+                    width={size.width}
                 >
                     {result => (
                         <VegaWithRows
                             data={result}
-                            width={props.width}
-                            height={props.height}
+                            width={size.width}
+                            height={size.height}
                             vegaSpec={props.card.vegaSpec}
                         />
                     )}
@@ -82,8 +83,8 @@ const ContentRenderer: React.FC<ContentProps> = (props: ContentProps) => {
                     {result => (
                         <VegaWithRows
                             data={result}
-                            width={props.width}
-                            height={props.height}
+                            width={size.width}
+                            height={size.height}
                             vegaSpec={props.card.vegaSpec}
                         />
                     )}
@@ -95,7 +96,6 @@ const ContentRenderer: React.FC<ContentProps> = (props: ContentProps) => {
             return <div />;
     }
 };
-const ContentRendererWithSize = withAutoSizer(ContentRenderer);
 
 export const VegaRenderer: React.FC<VegaRendererProps> = (props: VegaRendererProps) => {
     const dbMeta = model.useDatabaseMetadata();
@@ -106,7 +106,9 @@ export const VegaRenderer: React.FC<VegaRendererProps> = (props: VegaRendererPro
     }
     return (
         <CardFrame title={props.card.title || target} controls={props.editable}>
-            <ContentRendererWithSize {...props} table={table} />
+            <SizeObserver>
+                <ContentRenderer {...props} table={table} />
+            </SizeObserver>
         </CardFrame>
     );
 };

@@ -2,7 +2,7 @@ import * as React from 'react';
 import styles from './viewer.module.css';
 import styles_cmd from '../components/button.module.css';
 import cn from 'classnames';
-import { AutoSizer } from '../utils/autosizer';
+import { AutoSizer } from '../utils/size_observer';
 import { Board, OverlayContainer, ScriptNotFound, ShareDialog, useOverlaySetter, ProgramHeader } from '../components';
 import { Link } from 'react-router-dom';
 
@@ -62,7 +62,7 @@ export const Viewer: React.FC<Props> = () => {
                 </div>
             </div>
             <div className={styles.board}>
-                <AutoSizer disableHeight>
+                <AutoSizer>
                     {({ width }) => (
                         <Board
                             className={styles.board_layout}

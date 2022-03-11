@@ -4,7 +4,7 @@ import * as monaco from 'monaco-editor/esm/vs/editor/editor.api';
 import * as proto from '@dashql/proto';
 import * as model from '../model';
 import * as utils from '../utils';
-import { withAutoSizer } from '../utils/autosizer';
+import { SizeObserver, useObservedSize } from '../utils/size_observer';
 import classNames from 'classnames';
 
 import { theme as monaco_theme } from './editor_theme_light';
@@ -44,10 +44,6 @@ const mouseMoveAffectsDecorations = (program: model.Program, prevOffset: number 
 type Props = {
     /// The requested css class name
     className?: string;
-    /// The width
-    width: number;
-    /// The height
-    height: number;
     /// Is readonly?
     readOnly: boolean;
     /// The target
@@ -329,13 +325,15 @@ export const Editor: React.FC<Props> = (props: Props) => {
 
     /// Debounce editor layouting
     const delayedResize = React.useRef<number | null>();
+    const size = useObservedSize();
     React.useEffect(() => {
+        if (size == null) return () => {};
         const delayMs = 100;
         delayedResize.current = window.setTimeout(() => {
             if (editor == null || delayedResize.current == null) return;
             editor.layout({
-                height: props.height,
-                width: props.width,
+                height: size.height,
+                width: size.width,
             });
             delayedResize.current = null;
         }, delayMs);
@@ -344,7 +342,7 @@ export const Editor: React.FC<Props> = (props: Props) => {
             clearTimeout(delayedResize.current);
             delayedResize.current = null;
         };
-    }, [editor, props.width, props.height]);
+    }, [editor, size, size]);
 
     // Return the placeholders
     return (
@@ -354,5 +352,9 @@ export const Editor: React.FC<Props> = (props: Props) => {
     );
 };
 
-export const DynamicEditor = withAutoSizer(Editor);
-export default DynamicEditor;
+export const ResizingEditor: React.FC<Props> = (props: Props) => (
+    <SizeObserver>
+        <Editor {...props} />
+    </SizeObserver>
+);
+export default ResizingEditor;

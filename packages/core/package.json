@@ -24,6 +24,7 @@
         "@dashql/proto": "^0.0.5",
         "@octokit/graphql": "^4.8.0",
         "@popperjs/core": "^2.11.2",
+        "@react-hook/resize-observer": "^1.2.5",
         "fontfaceobserver": "^2.1.0",
         "axios": "^0.25.0",
         "bootstrap": "^5.1.1",

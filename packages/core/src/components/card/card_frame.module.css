@@ -29,6 +29,7 @@
     grid-column: 1;
 
     margin-left: 12px;
+    font-weight: 500;
 
     display: grid;
     justify-content: start;

@@ -1,0 +1,47 @@
+import * as React from 'react';
+import useResizeObserver from '@react-hook/resize-observer';
+
+export interface ObservedSize {
+    width: number;
+    height: number;
+}
+
+export const OBSERVED_SIZE = React.createContext<ObservedSize>(null);
+export const useObservedSize = () => React.useContext(OBSERVED_SIZE);
+
+export const observeSize = (target: React.RefObject<HTMLElement>): ObservedSize | null => {
+    const [size, setSize] = React.useState<ObservedSize>(null);
+    React.useLayoutEffect(() => {
+        setSize(target.current.getBoundingClientRect());
+    }, [target]);
+    useResizeObserver(target, entry => setSize(entry.contentRect));
+    return size;
+};
+
+interface ObserverProps {
+    children: React.ReactElement;
+}
+
+export const SizeObserver: React.FC<ObserverProps> = (props: ObserverProps) => {
+    const target = React.useRef(null);
+    const size = observeSize(target);
+    return (
+        <div ref={target} style={{ width: '100%', height: '100%' }}>
+            <OBSERVED_SIZE.Provider value={size}>{props.children}</OBSERVED_SIZE.Provider>
+        </div>
+    );
+};
+
+interface AutoSizerProps {
+    children: (rect: ObservedSize | null) => React.ReactElement;
+}
+
+export const AutoSizer: React.FC<AutoSizerProps> = (props: AutoSizerProps) => {
+    const target = React.useRef(null);
+    const size = observeSize(target);
+    return (
+        <div ref={target} style={{ width: '100%', height: '100%' }}>
+            {size ? props.children(size!) : undefined}
+        </div>
+    );
+};

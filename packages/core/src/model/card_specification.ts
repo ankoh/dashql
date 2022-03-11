@@ -26,10 +26,11 @@ export interface CardSpecification extends PlanObject {
     readonly statementID: number;
     readonly position: CardPosition;
     readonly title: string | null;
-    readonly inputExtra: InputExtra | null;
-    readonly vegaLiteSpec: TopLevelSpec | null;
-    readonly vegaSpec: v.Spec | null;
-    readonly dataSource: CardDataSource | null;
+    readonly inputValueType?: proto.sql.SQLType | null;
+    readonly inputExtra?: InputExtra | null;
+    readonly vegaLiteSpec?: TopLevelSpec | null;
+    readonly vegaSpec?: v.Spec | null;
+    readonly dataSource?: CardDataSource | null;
 }
 
 export type DomainValue = null | string | number | boolean | ExprRef | v.SignalRef | DateTime;

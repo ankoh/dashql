@@ -1,5 +1,5 @@
 export * from './aggregates';
-export * from './autosizer';
+export * from './size_observer';
 export * from './binary_search';
 export * from './clipboard';
 export * from './color_schemes';

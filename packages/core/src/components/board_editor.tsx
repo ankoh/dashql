@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { AutoSizer } from '../utils/autosizer';
+import { AutoSizer } from '../utils/size_observer';
 import classNames from 'classnames';
 import { Board } from './board';
 import { Ruler, RulerOrientation } from './board_ruler';
@@ -52,7 +52,7 @@ export const BoardEditor: React.FC<IBoardEditorProps> = (props: IBoardEditorProp
                                         elementMargin={elementMargin}
                                     />
                                     <div className={styles.ruler_left}>
-                                        <AutoSizer disableWidth>
+                                        <AutoSizer>
                                             {s => (
                                                 <Ruler
                                                     width={rulerThickness}
