@@ -1,6 +1,6 @@
 import * as React from 'react';
-import { observeSize } from '../utils/size_observer';
 import classNames from 'classnames';
+import { observeSize } from '../utils/size_observer';
 import { Board } from './board';
 import { Ruler, RulerOrientation } from './board_ruler';
 

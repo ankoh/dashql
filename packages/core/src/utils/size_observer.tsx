@@ -36,22 +36,3 @@ export const SizeObserver: React.FC<ObserverProps> = (props: ObserverProps) => {
         </div>
     );
 };
-
-interface AutoSizerProps {
-    children: (rect: ObservedSize | null) => React.ReactElement;
-    disableWidth?: boolean;
-    disableHeight?: boolean;
-}
-
-export const AutoSizer: React.FC<AutoSizerProps> = (props: AutoSizerProps) => {
-    const target = React.useRef(null);
-    const size = observeSize(target);
-    return (
-        <div
-            ref={target}
-            style={{ width: props.disableWidth ? 'auto' : '100%', height: props.disableHeight ? 'auto' : '100%' }}
-        >
-            {size ? props.children(size!) : undefined}
-        </div>
-    );
-};
