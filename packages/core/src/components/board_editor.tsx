@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { AutoSizer } from '../utils/size_observer';
+import { observeSize } from '../utils/size_observer';
 import classNames from 'classnames';
 import { Board } from './board';
 import { Ruler, RulerOrientation } from './board_ruler';
@@ -18,60 +18,60 @@ export const BoardEditor: React.FC<IBoardEditorProps> = (props: IBoardEditorProp
     const containerPadding: [number, number] = [32, 32];
     const elementMargin: [number, number] = [10, 10];
     const rulerThickness = 20;
+
+    const containerElement = React.useRef(null);
+    const containerSize = observeSize(containerElement);
+    const leftRulerElement = React.useRef(null);
+    const leftRulerSize = observeSize(containerElement);
+
     return (
-        <div className={classNames(styles.container, props.className)}>
-            <AutoSizer>
-                {({ height, width }) => (
-                    <div style={{ width, height }}>
-                        <div className={styles.content_with_rulers}>
-                            <div className={styles.ruler_corner} />
-                            <Ruler
-                                className={styles.ruler_top}
-                                width={width - rulerThickness}
-                                height={rulerThickness}
-                                orientation={RulerOrientation.Horizontal}
-                                scaleFactor={props.scaleFactor}
-                                stepCount={columnCount}
-                                containerPadding={containerPadding[0]}
-                                tickMargin={elementMargin[0]}
+        <div ref={containerElement} className={classNames(styles.container, props.className)}>
+            {containerSize && (
+                <div className={styles.content_with_rulers}>
+                    <div className={styles.ruler_corner} />
+                    <Ruler
+                        className={styles.ruler_top}
+                        width={containerSize.width - rulerThickness}
+                        height={rulerThickness}
+                        orientation={RulerOrientation.Horizontal}
+                        scaleFactor={props.scaleFactor}
+                        stepCount={columnCount}
+                        containerPadding={containerPadding[0]}
+                        tickMargin={elementMargin[0]}
+                    />
+                    <div className={styles.content_scroller} style={{ height: containerSize.height }}>
+                        <div
+                            className={styles.content_container}
+                            style={{
+                                gridTemplateRows: `minmax(${containerSize.height - rulerThickness}px, max-content)`,
+                            }}
+                        >
+                            <Board
+                                className={styles.content}
+                                width={containerSize.width - rulerThickness}
+                                editable={true}
+                                columnCount={columnCount}
+                                rowHeight={rowHeight}
+                                containerPadding={containerPadding}
+                                elementMargin={elementMargin}
                             />
-                            <div className={styles.content_scroller} style={{ height }}>
-                                <div
-                                    className={styles.content_container}
-                                    style={{
-                                        gridTemplateRows: `minmax(${height - rulerThickness}px, max-content)`,
-                                    }}
-                                >
-                                    <Board
-                                        className={styles.content}
-                                        width={width - rulerThickness}
-                                        editable={true}
-                                        columnCount={columnCount}
-                                        rowHeight={rowHeight}
-                                        containerPadding={containerPadding}
-                                        elementMargin={elementMargin}
+                            <div ref={leftRulerElement} className={styles.ruler_left}>
+                                {leftRulerSize && (
+                                    <Ruler
+                                        width={rulerThickness}
+                                        height={containerSize.height}
+                                        orientation={RulerOrientation.Vertical}
+                                        scaleFactor={props.scaleFactor}
+                                        stepLength={rowHeight}
+                                        containerPadding={containerPadding[1]}
+                                        tickMargin={elementMargin[1]}
                                     />
-                                    <div className={styles.ruler_left}>
-                                        <AutoSizer>
-                                            {s => (
-                                                <Ruler
-                                                    width={rulerThickness}
-                                                    height={s.height}
-                                                    orientation={RulerOrientation.Vertical}
-                                                    scaleFactor={props.scaleFactor}
-                                                    stepLength={rowHeight}
-                                                    containerPadding={containerPadding[1]}
-                                                    tickMargin={elementMargin[1]}
-                                                />
-                                            )}
-                                        </AutoSizer>
-                                    </div>
-                                </div>
+                                )}
                             </div>
                         </div>
                     </div>
-                )}
-            </AutoSizer>
+                </div>
+            )}
         </div>
     );
 };

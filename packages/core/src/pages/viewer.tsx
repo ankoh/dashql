@@ -62,7 +62,7 @@ export const Viewer: React.FC<Props> = () => {
                 </div>
             </div>
             <div className={styles.board}>
-                <AutoSizer>
+                <AutoSizer disableHeight>
                     {({ width }) => (
                         <Board
                             className={styles.board_layout}

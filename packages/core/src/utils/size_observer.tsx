@@ -20,13 +20,18 @@ export const observeSize = (target: React.RefObject<HTMLElement>): ObservedSize 
 
 interface ObserverProps {
     children: React.ReactElement;
+    disableWidth?: boolean;
+    disableHeight?: boolean;
 }
 
 export const SizeObserver: React.FC<ObserverProps> = (props: ObserverProps) => {
     const target = React.useRef(null);
     const size = observeSize(target);
     return (
-        <div ref={target} style={{ width: '100%', height: '100%' }}>
+        <div
+            ref={target}
+            style={{ width: props.disableWidth ? 'auto' : '100%', height: props.disableHeight ? 'auto' : '100%' }}
+        >
             <OBSERVED_SIZE.Provider value={size}>{props.children}</OBSERVED_SIZE.Provider>
         </div>
     );
@@ -34,13 +39,18 @@ export const SizeObserver: React.FC<ObserverProps> = (props: ObserverProps) => {
 
 interface AutoSizerProps {
     children: (rect: ObservedSize | null) => React.ReactElement;
+    disableWidth?: boolean;
+    disableHeight?: boolean;
 }
 
 export const AutoSizer: React.FC<AutoSizerProps> = (props: AutoSizerProps) => {
     const target = React.useRef(null);
     const size = observeSize(target);
     return (
-        <div ref={target} style={{ width: '100%', height: '100%' }}>
+        <div
+            ref={target}
+            style={{ width: props.disableWidth ? 'auto' : '100%', height: props.disableHeight ? 'auto' : '100%' }}
+        >
             {size ? props.children(size!) : undefined}
         </div>
     );
