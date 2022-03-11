@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { SEQ_SINGLE_HUE_PRIMARY } from '../utils';
 import { ComposableMap, Graticule, Geographies, Geography, ZoomableGroup } from 'react-simple-maps';
-import { AutoSizer } from '../utils';
+import { observeSize } from '../utils/size_observer';
 import cn from 'classnames';
 import styles from './activity_map.module.css';
 
@@ -48,13 +48,17 @@ interface ChartProps {
     className?: string;
 }
 
-export const ActivityMapChart: React.FC<ChartProps> = (props: ChartProps) => (
-    <div className={cn(styles.label_container, props.className)}>
-        <div className={styles.label}>Views</div>
-        <div className={styles.map_container}>
-            <AutoSizer>
-                {({ width, height }) => <ActivityMap width={width} height={height} className={styles.map} />}
-            </AutoSizer>
+export const ActivityMapChart: React.FC<ChartProps> = (props: ChartProps) => {
+    const containerElement = React.useRef(null);
+    const containerSize = observeSize(containerElement);
+    return (
+        <div className={cn(styles.label_container, props.className)}>
+            <div className={styles.label}>Views</div>
+            <div ref={containerElement} className={styles.map_container}>
+                {containerSize && (
+                    <ActivityMap width={containerSize.width} height={containerSize.height} className={styles.map} />
+                )}
+            </div>
         </div>
-    </div>
-);
+    );
+};
